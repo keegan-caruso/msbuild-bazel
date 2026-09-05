@@ -2,7 +2,7 @@
 
 A spike exploring Bazel project-level scheduling and caching while retaining MSBuild, NuGet, and the .NET SDK build behavior.
 
-**Status:** Codex development environment scaffold. No MSBuild/Bazel adapter is implemented yet.
+**Status:** Codex setup, CI, and the first MSBuild boundary experiment are implemented. A Bazel project rule and graph exporter are not implemented yet.
 
 ## Quick start
 
@@ -29,9 +29,23 @@ The script lives in the repository; committing it does not configure the hosted 
 
 Codex reads [AGENTS.md](AGENTS.md) for project context and commands. See the [spike plan](docs/spike-plan.md) for the next implementation steps.
 
+## Spike contracts and tests
+
+The [interface contract](docs/interfaces.md) and [e2e scope](docs/e2e-scope.md) were committed before the driver implementation. Run the six black-box scenarios with:
+
+```sh
+python3 -m unittest discover -s tests/e2e -v
+```
+
+Tests copy the two-project fixture to fresh temporary directories. Restore downloads the pinned Traversal SDK from NuGet into each workspace's own package directory; tests currently require network access. Compilation is then invoked separately without restore.
+
+The first milestone exports a Shared project's MSBuild result cache and bin/obj artifacts, removes local build outputs, and consumes that bundle in an isolated App build. It also tests an App-only edit and rejects missing artifacts, mismatched configuration, and workspace relocation. Failed workspaces are retained for diagnosis.
+
+This is a same-path handoff experiment, not a general Bazel adapter or proof of portable caching. See the [findings](docs/findings.md) and the next milestone in [e2e scope](docs/e2e-scope.md).
+
 ## Validation
 
-`bash scripts/check.sh` checks shell syntax, version-pin consistency, and installed tool versions. It does not claim that .NET compilation or Bazel caching has been tested. GitHub Actions runs fresh setup, repeated setup, and this check.
+`bash scripts/check.sh` checks shell syntax, version-pin consistency, and installed tool versions. It does not run the integration experiments. GitHub Actions separately runs fresh setup, repeated setup, Bazel package loading, and the e2e suite.
 
 ## References
 

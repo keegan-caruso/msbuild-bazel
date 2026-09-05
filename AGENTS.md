@@ -2,17 +2,18 @@
 
 ## Goal and current state
 
-Explore whether Bazel can schedule/cache individual .NET project builds while MSBuild retains SDK and NuGet behavior. This repository currently contains environment setup only. Read README.md and docs/spike-plan.md before implementing the spike.
+Explore whether Bazel can schedule/cache individual .NET project builds while MSBuild retains SDK and NuGet behavior. The first same-path MSBuild boundary experiment is implemented; the Bazel adapter is still planned. Read README.md and docs/spike-plan.md before implementing the spike.
 
 ## Commands
 
 - Install or refresh pinned tools: `bash scripts/setup.sh` (network required for missing downloads).
 - Validate the current scaffold: `bash scripts/check.sh`.
+- Run e2e acceptance tests: `python3 -m unittest discover -s tests/e2e -v` (network access for isolated restore).
 - Run .NET: `bash scripts/dotnet.sh <args>`.
 - Run Bazel: `bash scripts/bazel.sh <args>`.
 - Review changes: `git diff --check` and `git diff`.
 
-Use wrappers instead of assuming setup changed PATH in future shells. Linux x86-64 is the initial supported environment. Version pins are in global.json, .bazelversion, and scripts/toolchains.json; update them together. No application build or test command exists yet; add documented commands with the first sample projects.
+Use wrappers instead of assuming setup changed PATH in future shells. Linux x86-64 is the initial supported environment. Version pins are in global.json, .bazelversion, and scripts/toolchains.json; update them together. The fixture lives in tests/fixtures/two-projects. The e2e suite copies it; do not build directly into the source fixture. tools/spike.py implements the versioned process contract in docs/interfaces.md.
 
 ## Implementation direction
 
