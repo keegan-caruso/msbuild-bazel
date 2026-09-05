@@ -5,3 +5,5 @@ artifacts/
 **/obj/
 bazel-*
 *.binlog
+__pycache__/
+*.pyc
