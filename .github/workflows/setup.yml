@@ -18,3 +18,12 @@ jobs:
         run: bash scripts/bazel.sh query //:repo_setup --noshow_progress
       - name: Check whitespace
         run: git diff --check
+      - name: MSBuild boundary e2e tests
+        run: python3 -m unittest discover -s tests/e2e -v
+      - name: Retain failed experiment artifacts
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: msbuild-e2e-failures
+          path: /tmp/msbuild-e2e-*/action-*/build.log
+          if-no-files-found: ignore
