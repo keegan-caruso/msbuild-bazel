@@ -17,6 +17,25 @@ bash scripts/bazel.sh version --gnu_format
 
 Setup installs checksum-pinned .NET SDK 10.0.100 and Bazel 8.4.2 into ignored `.tools/` directories without sudo. These are fixed experimental baselines, not a claim to be the latest releases. Bazel's distribution includes its JDK. The wrapper uses batch mode for short-lived agent containers. Setup is repeatable and needs internet access only for missing downloads. Use the wrappers in each new shell; setup exports do not persist into Codex's agent session.
 
+## Nix development shell
+
+The flake provides native toolchains for macOS ARM64 (`aarch64-darwin`) and Linux x86-64 (`x86_64-linux`). Install [Nix](https://nixos.org/download/), then enter the shell:
+
+```sh
+nix --extra-experimental-features 'nix-command flakes' develop
+bash scripts/check.sh
+bash scripts/bazel.sh query //:repo_setup --noshow_progress
+python3 -m unittest discover -s tests/e2e -v
+```
+
+If flakes are already enabled in your Nix configuration, use `nix develop`, or run a single command with `nix develop -c python3 -m unittest discover -s tests/e2e -v`. No `scripts/setup.sh` step is needed inside this shell. When trying an uncommitted flake before its files are tracked by Git, use `develop path:.` instead of `develop`.
+
+`flake.lock` locks Nixpkgs to a revision containing .NET SDK 10.0.100 and Bazel 8.4.2. The shell checks those versions against `scripts/toolchains.json`. It uses the upstream binary .NET SDK packaged by Nixpkgs and Nixpkgs' source-built, patched Bazel; that Bazel reports the suffix `- (@non-git)`, which the check script accepts. It is not byte-identical to the Bazel release binary used by setup.
+
+The shell supplies `SPIKE_DOTNET_ROOT` (the directory containing `dotnet`) and `SPIKE_BAZEL` (the executable path). The wrappers, driver, and tests use these explicit overrides; outside Nix they retain the repository-local `.tools/` defaults. Restore and build outputs remain writable and local to the repository or copied test workspace, outside the Nix store.
+
+Initial Nix downloads and each test workspace's NuGet restore require network access. This is a development environment, not a sandboxed Nix derivation of the application or proof of hermetic builds. macOS runs are native, not Linux emulation. The separate Nix workflow runs the version checks, Bazel query, and six e2e scenarios on Ubuntu only; see [findings](docs/findings.md) for measured validation.
+
 ## Codex cloud environment
 
 Select this repository in the Codex environment settings and configure:

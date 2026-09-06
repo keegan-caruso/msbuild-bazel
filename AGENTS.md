@@ -7,13 +7,14 @@ Explore whether Bazel can schedule/cache individual .NET project builds while MS
 ## Commands
 
 - Install or refresh pinned tools: `bash scripts/setup.sh` (network required for missing downloads).
+- Alternative native environment: `nix develop` (flakes enabled), for macOS ARM64 or Linux x86-64; no setup script needed inside the shell.
 - Validate the current scaffold: `bash scripts/check.sh`.
 - Run e2e acceptance tests: `python3 -m unittest discover -s tests/e2e -v` (network access for isolated restore).
 - Run .NET: `bash scripts/dotnet.sh <args>`.
 - Run Bazel: `bash scripts/bazel.sh <args>`.
 - Review changes: `git diff --check` and `git diff`.
 
-Use wrappers instead of assuming setup changed PATH in future shells. Linux x86-64 is the initial supported environment. Version pins are in global.json, .bazelversion, and scripts/toolchains.json; update them together. The fixture lives in tests/fixtures/two-projects. The e2e suite copies it; do not build directly into the source fixture. tools/spike.py implements the versioned process contract in docs/interfaces.md.
+Use wrappers instead of assuming setup changed PATH in future shells. Linux x86-64 is the initial measured environment; the Nix shell also targets macOS ARM64. Version pins are in global.json, .bazelversion, and scripts/toolchains.json; update them together and keep flake.nix/flake.lock and the fixture pins consistent. Nix supplies explicit SPIKE_DOTNET_ROOT and SPIKE_BAZEL overrides; preserve the .tools defaults outside that shell. The fixture lives in tests/fixtures/two-projects. The e2e suite copies it; do not build directly into the source fixture. tools/spike.py implements the versioned process contract in docs/interfaces.md.
 
 ## Implementation direction
 

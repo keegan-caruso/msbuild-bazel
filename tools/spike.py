@@ -8,7 +8,7 @@ import subprocess
 import sys
 
 ROOT = Path(__file__).resolve().parents[1]
-DOTNET = ROOT / '.tools/dotnet/dotnet'
+DOTNET = Path(os.environ.get('SPIKE_DOTNET_ROOT', ROOT / '.tools/dotnet')) / 'dotnet'
 SDK = '10.0.100'
 FRAMEWORK = 'net10.0'
 

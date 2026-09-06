@@ -1,0 +1,31 @@
+name: Nix development shell
+on:
+  push:
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  boundary:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    env:
+      TMPDIR: ${{ runner.temp }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: cachix/install-nix-action@b85815f71a6de0ddee80b8a80a98d43f4bcc66c7 # v31
+        with:
+          extra_nix_config: |
+            experimental-features = nix-command flakes
+      - name: Check pinned tools
+        run: nix develop --no-update-lock-file -c bash scripts/check.sh
+      - name: Load Bazel scaffold
+        run: nix develop --no-update-lock-file -c bash scripts/bazel.sh query //:repo_setup --noshow_progress
+      - name: MSBuild boundary e2e tests
+        run: nix develop --no-update-lock-file -c python3 -m unittest discover -s tests/e2e -v
+      - name: Retain failed experiment logs
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: nix-msbuild-e2e-failures
+          path: ${{ runner.temp }}/msbuild-e2e-*/action-*/build.log
+          if-no-files-found: ignore

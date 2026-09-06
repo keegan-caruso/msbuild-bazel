@@ -11,7 +11,7 @@ import unittest
 ROOT = Path(__file__).resolve().parents[2]
 DRIVER = ROOT / "tools/spike.py"
 FIXTURE = ROOT / "tests/fixtures/two-projects"
-DOTNET = ROOT / ".tools/dotnet/dotnet"
+DOTNET = Path(os.environ.get("SPIKE_DOTNET_ROOT", ROOT / ".tools/dotnet")) / "dotnet"
 
 
 class MsbuildBoundaryTests(unittest.TestCase):
