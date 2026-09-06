@@ -1,4 +1,5 @@
 """Deterministic, checksum-pinned build-package preparation for the fixture."""
+import base64
 import hashlib
 import io
 import json
@@ -55,8 +56,8 @@ def configure(workspace, version, package_feed):
     config.write(workspace / 'NuGet.Config')
 
 
-def stage(prepare, workspace, pins):
-    """Only archive payload bytes enter actions, verified against pinned archives."""
+def stage(prepare, workspace, pins, archives=None):
+    """Stage verified payloads and an archive-derived NuGet installation marker."""
     shutil.rmtree(workspace / 'packages', ignore_errors=True)
     (workspace / 'packages').mkdir()
     (workspace / 'package-manifests').mkdir(exist_ok=True)
@@ -67,16 +68,17 @@ def stage(prepare, workspace, pins):
             if library['type'] != 'package':
                 continue
             package_id, version = identity.split('/')
-            if package_id != PACKAGE_ID or version not in pins:
+            key = identity if archives is not None else version
+            if (archives is None and package_id != PACKAGE_ID) or key not in pins:
                 raise ValueError('unsupported unpinned package: ' + identity)
-            contents = archive_bytes(version)
-            if hashlib.sha256(contents).hexdigest() != pins[version]:
+            contents = archives[identity] if archives is not None else archive_bytes(version)
+            if hashlib.sha256(contents).hexdigest() != pins[key]:
                 raise ValueError('package archive pin mismatch')
             package_path = f'{package_id.lower()}/{version}'
             if library['path'] != package_path:
                 raise ValueError('unexpected package path')
             restored_archive = prepare / '.nuget/packages' / package_path / f'{package_id.lower()}.{version}.nupkg'
-            if not restored_archive.is_file() or hashlib.sha256(restored_archive.read_bytes()).hexdigest() != pins[version]:
+            if not restored_archive.is_file() or hashlib.sha256(restored_archive.read_bytes()).hexdigest() != pins[key]:
                 raise ValueError('restored package archive differs from pin: ' + identity)
             files = []
             with zipfile.ZipFile(io.BytesIO(contents)) as archive:
@@ -93,7 +95,17 @@ def stage(prepare, workspace, pins):
                     target.parent.mkdir(parents=True, exist_ok=True)
                     target.write_bytes(expected)
                     files.append(dict(path=name, sha256=hashlib.sha256(expected).hexdigest(), size=len(expected)))
+            # ResolvePackageAssets recognizes an installed package by its
+            # .nupkg.sha512 sidecar (or .nupkg.metadata), not DLL presence alone.
+            # Derive this from verified archive bytes; never copy ambient cache metadata.
+            archive_hash = base64.b64encode(hashlib.sha512(contents).digest()).decode('ascii')
+            if library['sha512'] != archive_hash:
+                raise ValueError('restored package content hash differs from archive: ' + identity)
+            name = f'{package_id.lower()}.{version}.nupkg.sha512'
+            marker = archive_hash.encode('ascii')
+            (workspace / 'packages' / package_path / name).write_bytes(marker)
+            files.append(dict(path=name, sha256=hashlib.sha256(marker).hexdigest(), size=len(marker)))
             packages.append(dict(id=package_id, version=version, path=package_path,
-                                 archiveSha256=pins[version], files=files))
+                                 archiveSha256=pins[key], files=files))
         (workspace / 'package-manifests' / (project + '.json')).write_text(
             json.dumps(dict(schemaVersion=1, packages=packages), indent=2))

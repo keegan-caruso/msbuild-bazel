@@ -8,7 +8,7 @@ jobs:
   setup:
     # Native Bazel sandboxing needs unprivileged user namespaces.
     runs-on: ubuntu-22.04
-    timeout-minutes: 15
+    timeout-minutes: 25
     steps:
       - uses: actions/checkout@v4
       - name: Fresh setup and environment checks
@@ -23,6 +23,15 @@ jobs:
         run: bash scripts/dotnet.sh run --project tests/ActionRunner.Tests -c Release
       - name: MSBuild boundary e2e tests
         run: python3 -m unittest discover -s tests/e2e -v
+      - name: Retain binary package evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: binary-package-evidence
+          path: |
+            /tmp/msbuild-e2e-binary-*/probe/*.log
+            /tmp/msbuild-e2e-binary-*/probe/report.json
+          if-no-files-found: ignore
       - name: Retain failed experiment artifacts
         if: failure()
         uses: actions/upload-artifact@v4
@@ -31,4 +40,22 @@ jobs:
           path: |
             /tmp/msbuild-e2e-*/**/*.log
             /tmp/msbuild-e2e-*/**/report.json
+          if-no-files-found: ignore
+  binary-packages:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install pinned tools
+        run: bash scripts/setup.sh
+      - name: Managed binary package acceptance
+        run: python3 -m unittest discover -s tests/e2e -p test_binary_packages.py -v
+      - name: Retain focused binary package evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: focused-binary-package-evidence
+          path: |
+            /tmp/msbuild-e2e-binary-*/probe/*.log
+            /tmp/msbuild-e2e-binary-*/probe/report.json
           if-no-files-found: ignore

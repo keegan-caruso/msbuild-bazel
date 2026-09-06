@@ -34,6 +34,15 @@ jobs:
           name: native-runtime-evidence
           path: ${{ runner.temp }}/native-runtime-evidence
           if-no-files-found: ignore
+      - name: Retain binary package evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: nix-binary-package-evidence
+          path: |
+            ${{ runner.temp }}/msbuild-e2e-binary-*/probe/*.log
+            ${{ runner.temp }}/msbuild-e2e-binary-*/probe/report.json
+          if-no-files-found: ignore
       - name: Retain failed experiment logs
         if: failure()
         uses: actions/upload-artifact@v4

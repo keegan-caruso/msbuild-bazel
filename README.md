@@ -24,10 +24,11 @@ The [runtime integrity extension](docs/native-runtime-integrity-findings.md)
 verifies declared payload hashes, tests copied-library changes and records loader
 diagnostics. The [loaded JIT experiment](docs/loader-runtime-findings.md) stages a
 private runtime and checks actual loading, invalid-image rejection and cache
-invalidation. **Next:** Verify ordinary NuGet binary/runtime assets before
-general graph export; full runtime closure remains unproven.
-General graph export, ordinary NuGet binary/runtime assets, remote-cache
-correctness and cross-platform portability remain unproven.
+invalidation. [Managed binary package acceptance](docs/binary-package-findings.md)
+now passes on Linux, including transitive runtime assets, relocation and cache
+recovery. **Next:** General graph export for the deliberately local-only adapter.
+General NuGet compatibility, RID-specific/native package assets, full runtime
+closure, remote-cache correctness and cross-platform portability remain unproven.
 
 ## Quick start
 
@@ -120,6 +121,10 @@ host-runtime limitations. Add `--identity-probe` to test imported targets,
 generated-source data, environment and host-identity invalidation. Use
 `--package-probe` instead to test pinned NuGet package payloads, build-target
 upgrades and rejection of missing/corrupt/stale package inputs.
+Use `--binary-package-probe` for managed reference/runtime DLLs, a transitive
+package dependency, direct/transitive upgrades and relocated output staging.
+See the [binary package contract](docs/binary-package-plan.md) and
+[validation record](docs/binary-package-findings.md) for scope and evidence.
 Use `--staging-probe` to compare complete consumer bundles from two fresh builds
 with separate output bases and empty disk caches.
 Inside `nix develop`, use `--native-runtime-probe` to declare the transitive Nix
