@@ -1,6 +1,8 @@
 # Spike interfaces (v1)
 
-This contract is written before the adapter implementation. The first executable milestone proves the MSBuild action boundary. A Bazel rule consumes the same project boundary only after that proof passes.
+This implemented v1 contract was written before the driver. It remains the
+same-path MSBuild control. The separate [replay contract](replay-interface.md)
+and [Bazel contract](bazel-interface.md) describe the later implemented boundaries.
 
 ## First milestone: process interface
 
@@ -34,29 +36,23 @@ The consumer checks the dependency identity, configuration, SDK, framework, work
 
 Tests inspect MSBuild's `SPIKE_COMPILE:<project>` messages emitted immediately before CoreCompile and execute the built App DLL independently. The driver cannot supply its own list of compiled projects as evidence. Positive handoff tests also remove both projects' bin/obj trees, then restore only consumer restore metadata plus the declared dependency artifact bundle.
 
-## Next milestone: public-API result replay (proposed, not implemented)
+## Later implemented boundaries
 
 The [raw path probe](path-findings.md) measured that changing only the bundle
 directory succeeds, but changing the absolute workspace path fails MSBuild's
-configured-project cache lookup. The v1 same-workspace restriction remains in
-force. The standalone probe bypasses that guard for investigation only; it does
-not add a supported relocation operation to this interface.
+configured-project cache lookup. This v1 interface retains its same-workspace
+restriction; the probe bypasses that guard for investigation only.
 
-The next experiment uses a separate entry point and versioned target-result
-payload, with normalized project identity, item paths and metadata, plus a
-separate artifact manifest. Finalize the experimental command and schema before
-implementation. Replay through public project-cache APIs in graph order, and
-reject missing dependency results rather than falling back to compilation.
-The [replay plan](result-replay-plan.md) defines the required fields, isolation
-constraints and acceptance cases. This does not change the implemented v1
-request or bundle format.
+The separate [public-API replay interface](replay-interface.md) uses normalized
+project identity, target-result metadata and staged artifacts. It supports
+relocation for the fixture and rejects missing results without falling back to
+dependency compilation. See [replay findings](replay-findings.md). It does not
+change the v1 request or bundle format.
 
-## Later milestone: Bazel rule boundary (gated by replay)
+The implemented [two-target Bazel contract](bazel-interface.md) maps Shared and
+App to separate actions with declared inputs and output bundles. Execution logs
+verify scheduling and local disk-cache reuse; see [Bazel findings](bazel-findings.md).
 
-`msbuild_project(project, properties, sources, imports, restore_assets, toolchain, deps)`
-
-Inputs include all configured-project inputs and the dependency output bundles. Outputs are a declared artifact tree, result metadata and diagnostic logs. Each configured project maps to one action with mnemonic `MSBuildProject`.
-
-A graph exporter must emit this graph before Bazel analysis. It must use MSBuild ProjectGraph and preserve global properties; it must not infer arbitrary csproj semantics from XML alone.
-
-Bazel execution logs, not elapsed time, will prove unchanged/App-only/Shared-change action reuse. Successful relocated replay is a prerequisite, not proof of sandbox portability. The rule must validate path handling across actual actions and declare its toolchain and inputs before remote-cache or sandbox portability claims.
+General graph export remains deferred. A future exporter must use MSBuild
+ProjectGraph and preserve global properties rather than infer arbitrary csproj
+semantics from XML. See the [current plan](spike-plan.md) for remaining work.

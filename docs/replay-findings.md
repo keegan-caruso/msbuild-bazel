@@ -101,7 +101,8 @@ Linux validation is left to CI/the pinned Linux environment. Native macOS succes
 does not prove Linux or cross-platform replay. The raw-cache path controls remain
 independent: raw serialization still cannot move project identities.
 
-Next define the Bazel two-target execution-log acceptance harness and producer
-Shared-only action contract, then test this replay boundary across actual action
-paths and sandbox inputs. Restore and tool acquisition remain outside compile
-actions. Disk-cache and remote-cache claims require their own measurements.
+The subsequent [Bazel experiment](bazel-findings.md) implemented the two-target
+harness and Shared-only producer action, measuring separate sandbox paths and
+local disk-cache reuse. Restore and tool acquisition remain outside compilation
+actions. Those results extend this standalone probe; remote-cache correctness
+remains unproven. See the [current plan](spike-plan.md).

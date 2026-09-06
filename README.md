@@ -2,13 +2,19 @@
 
 A spike exploring Bazel project-level scheduling and caching while retaining MSBuild, NuGet, and the .NET SDK build behavior.
 
-**Status:** Codex setup, CI, the first MSBuild boundary experiment, a raw-cache path probe, and public-API dependency-result replay are implemented. Moving the bundle works at the same workspace path; moving the workspace fails raw MSBuild cache lookup. A two-project Bazel rule and sandbox/cache harness are implemented; a general graph exporter is not.
+**Status:** The explicit two-project Bazel adapter builds Shared and App in separate
+native macOS ARM64 sandbox actions and reuses their outputs through a local disk
+cache. Public-API dependency-result replay works across workspace paths.
+[Action-identity checks](docs/action-identity-findings.md) and
+[pinned build-package inputs](docs/package-input-findings.md) are implemented.
+
+**Platform evidence:** Current replay, sandbox, cache and package measurements are
+from macOS ARM64. Linux x86-64 is the initial target environment; Linux validation
+is being handled separately and is not established by these measurements.
 
 **Next:** Address native runtime/toolchain closure and deterministic output staging.
-[Pinned build-package inputs](docs/package-input-findings.md) now pass package
-upgrade and rejection tests alongside the [action-identity checks](docs/action-identity-findings.md).
-The adapter has native macOS sandbox and local disk-cache evidence; general
-NuGet, remote-cache correctness and cross-platform portability remain unproven.
+General graph export, ordinary NuGet binary/runtime assets, remote-cache
+correctness and cross-platform portability remain unproven.
 
 ## Quick start
 
@@ -66,7 +72,11 @@ Tests copy the two-project fixture to fresh temporary directories. Restore downl
 
 The first milestone exports a Shared project's MSBuild result cache and bin/obj artifacts, removes local build outputs, and consumes that bundle in an isolated App build. It also tests an App-only edit and rejects missing artifacts, mismatched configuration, and workspace relocation. Failed workspaces are retained for diagnosis.
 
-This is a same-path handoff experiment, not a general Bazel adapter or proof of portable caching. See the [findings](docs/findings.md) and the next milestone in [e2e scope](docs/e2e-scope.md).
+That first milestone retains its same-path restriction as a control: raw MSBuild
+result caches fail when the project workspace moves. The later public-API replay
+experiment supports relocated workspaces, and the Bazel adapter uses that replay
+boundary. See the [first-milestone findings](docs/findings.md) and
+[e2e scope](docs/e2e-scope.md) for the separate contracts.
 
 Run the path probe independently to retain copied workspaces, logs, the raw MSBuild command, and a JSON report (the output directory must not exist):
 

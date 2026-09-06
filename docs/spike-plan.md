@@ -4,7 +4,20 @@
 
 Can Bazel cache and schedule configured .NET projects while each action uses MSBuild and consumes dependency artifacts plus MSBuild result metadata?
 
-## Planned sequence
+## Current status and next step
+
+Steps 1–7 below are implemented. The two-target Bazel adapter also has
+[action-identity](action-identity-findings.md) and
+[pinned build-package](package-input-findings.md) acceptance coverage. Replay,
+native sandbox and local disk-cache evidence is from macOS ARM64. Linux x86-64
+remains the initial target environment; the user is handling its validation
+separately. macOS results do not establish Linux or cross-platform correctness.
+
+Next, address native runtime/toolchain closure and deterministic output staging.
+Ordinary package DLL/runtime assets need separate coverage. General graph export
+(step 8) remains deferred until these boundaries are established.
+
+## Milestone sequence
 
 1. Add Shared and App SDK projects, with App referencing Shared, and a Microsoft.Build.Traversal entry point. Pin Traversal when introduced.
 2. Establish a normal Release traversal/static-graph build baseline and confirm project isolation.
@@ -24,9 +37,10 @@ Can Bazel cache and schedule configured .NET projects while each action uses MSB
 - Results do not depend on pre-existing bin/obj or an undeclared user NuGet cache.
 - SDK, package assets, configuration, imports, and custom inputs participate in action identity.
 
-## Initial boundaries
+## Scope
 
-Linux x86-64, one framework, Release, local execution and local disk cache. Remote execution, cross-platform support, multi-targeting, Native AOT, publishing, Razor/WPF, and arbitrary NuGet build targets need separate evidence. Pinned bootstrap tools alone do not make build actions hermetic.
+One framework, Release, local execution and local disk cache. Linux x86-64 was
+the initial platform target; current measured platform evidence is stated above. Remote execution, cross-platform support, multi-targeting, Native AOT, publishing, Razor/WPF, and arbitrary NuGet build targets need separate evidence. Pinned bootstrap tools alone do not make build actions hermetic.
 
 ## Recorded results
 
@@ -47,20 +61,19 @@ Steps 6 and 7 now have an explicit two-target Bazel rule, Shared-only producer,
 App dependency replay, and a native sandbox/cache harness. Cold, unchanged,
 App edit, Shared edit, cleared-output disk-cache reuse, and a fresh Bazel output
 base are measured on macOS ARM64. See [Bazel findings](bazel-findings.md) and the
-[process contract](bazel-interface.md). The next work is input/toolchain identity
-hardening and Linux sandbox validation before broad graph export.
+[process contract](bazel-interface.md). Subsequent input-identity experiments
+are recorded below.
 
 The first action-identity hardening experiment now covers imported targets,
 generated-source data, declared versus ambient environment, App restore metadata
 and host-identity changes. Python runtime files are declared; direct isolated
 Python execution replaces the shell launcher, and remote execution/cache use is
-disabled. See [identity findings](action-identity-findings.md). Next add pinned
-application package contents/build targets; native runtime closure and
-deterministic staging remain open. Linux validation is handled separately.
+disabled. See [identity findings](action-identity-findings.md). The following
+package experiment extends that input boundary.
 
 The pinned package-input experiment now stages verified archive payloads using
 per-project restore manifests. Package data and target upgrades rebuild Shared
 and App; missing, corrupt and stale-version inputs fail before compilation.
 See [package findings](package-input-findings.md). This is build-only package
 coverage, with no binary/runtime assets or arbitrary package closure claim.
-Native runtime closure and deterministic output staging remain next.
+See the current status above for remaining work.

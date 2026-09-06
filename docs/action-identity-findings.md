@@ -93,7 +93,7 @@ embedded in diagnostic artifacts; outputs are not proven byte-reproducible.
 Tool versions and file inputs do not prove a sandbox declared every absolute
 host read. Linux validation is being handled separately by the user.
 
-The next bounded experiment should add pinned application package contents and a
-package build target to the declared input boundary, with package/restore
-perturbation tests. After that, address the remaining native runtime closure and
-deterministic staging before expanding into general ProjectGraph export.
+The subsequent [package experiment](package-input-findings.md) added pinned
+build-package contents and package/restore perturbation tests. Native runtime
+closure and deterministic output staging remain open before general ProjectGraph
+export; see the [current plan](spike-plan.md).

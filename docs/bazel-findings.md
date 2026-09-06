@@ -115,10 +115,11 @@ On 2026-09-05 with the pinned Nix tools:
 Native macOS sandbox tests were run outside the Codex outer restriction. No
 Linux or remote-execution validation is included in these results.
 
-## Next
+## Subsequent work and remaining scope
 
-Before expanding to general ProjectGraph export, harden the action identity:
-package assets and contents, custom imports/inputs, environment, host runtime
-closure and deterministic output staging. Add perturbation tests for those
-inputs and Linux native-sandbox evidence. General publishing, multi-targeting,
-arbitrary package tasks and remote execution remain deferred.
+[Identity tests](action-identity-findings.md) subsequently added custom imports,
+data, environment and Python runtime inputs. [Package tests](package-input-findings.md)
+added pinned build assets and upgrade/rejection cases. Native runtime closure,
+deterministic staging and Linux native-sandbox evidence remain open. General
+publishing, multi-targeting, arbitrary package tasks and remote execution remain
+deferred. See the [current plan](spike-plan.md).
