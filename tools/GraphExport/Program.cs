@@ -12,6 +12,7 @@ internal static class GraphExporter
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
         PropertyNameCaseInsensitive = true,
+        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
         WriteIndented = true,
     };
 
