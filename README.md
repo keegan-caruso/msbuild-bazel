@@ -2,12 +2,21 @@
 
 A spike exploring Bazel project-level scheduling and caching while retaining MSBuild, NuGet, and the .NET SDK build behavior.
 
-**Status:** Codex setup, CI, the first MSBuild boundary experiment, a raw-cache path probe, and public-API dependency-result replay are implemented. Moving the bundle works at the same workspace path; moving the workspace fails raw MSBuild cache lookup. A two-project Bazel rule and sandbox/cache harness are implemented; a general graph exporter is not.
+**Status:** The explicit two-project Bazel adapter builds Shared and App in separate
+native sandbox actions and reuses their outputs through a local disk
+cache. Public-API dependency-result replay works across workspace paths.
+[Action-identity checks](docs/action-identity-findings.md) and
+[pinned build-package inputs](docs/package-input-findings.md) are implemented.
 
-**Next:** Harden the Bazel action input/toolchain contract and obtain Linux sandbox
-measurements before general graph export. The [two-target Bazel experiment](docs/bazel-findings.md)
-passes on macOS ARM64 with native action sandboxing and local disk-cache reuse.
-Remote-cache correctness and cross-platform portability remain unproven.
+**Platform evidence:** The original nine-test suite, including replay and native
+Bazel sandbox/cache cases, passed on macOS ARM64 and in Ubuntu 22.04 Linux x86-64
+CI; see [Linux evidence](docs/bazel-findings.md#ci-repair-2026-09-05). The newer
+identity and package tests have macOS results; Linux validation of those tests
+is handled separately. Cross-platform artifact reuse remains unproven.
+
+**Next:** Address native runtime/toolchain closure and deterministic output staging.
+General graph export, ordinary NuGet binary/runtime assets, remote-cache
+correctness and cross-platform portability remain unproven.
 
 ## Quick start
 
@@ -65,7 +74,11 @@ Tests copy the two-project fixture to fresh temporary directories. Restore downl
 
 The first milestone exports a Shared project's MSBuild result cache and bin/obj artifacts, removes local build outputs, and consumes that bundle in an isolated App build. It also tests an App-only edit and rejects missing artifacts, mismatched configuration, and workspace relocation. Failed workspaces are retained for diagnosis.
 
-This is a same-path handoff experiment, not a general Bazel adapter or proof of portable caching. See the [findings](docs/findings.md) and the next milestone in [e2e scope](docs/e2e-scope.md).
+That first milestone retains its same-path restriction as a control: raw MSBuild
+result caches fail when the project workspace moves. The later public-API replay
+experiment supports relocated workspaces, and the Bazel adapter uses that replay
+boundary. See the [first-milestone findings](docs/findings.md) and
+[e2e scope](docs/e2e-scope.md) for the separate contracts.
 
 Run the path probe independently to retain copied workspaces, logs, the raw MSBuild command, and a JSON report (the output directory must not exist):
 
@@ -92,7 +105,10 @@ python3 tools/probe_bazel.py --output artifacts/bazel-probe
 
 This generates a copied Bazel workspace containing `//:shared` and `//:app`.
 See [Bazel findings](docs/bazel-findings.md) for the measured action matrix and
-host-runtime limitations.
+host-runtime limitations. Add `--identity-probe` to test imported targets,
+generated-source data, environment and host-identity invalidation. Use
+`--package-probe` instead to test pinned NuGet package payloads, build-target
+upgrades and rejection of missing/corrupt/stale package inputs.
 
 ## Validation
 

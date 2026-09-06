@@ -21,15 +21,15 @@ Exporting all project bin/obj files is deliberately conservative. It proves the 
 
 The bundle manifest validates identity and file presence. It is not a content-addressed cache and does not implement input hashing, integrity validation, dependency invalidation, filesystem sandboxing, remote execution, or Bazel action scheduling.
 
-## Next experiment
+## Subsequent experiments
 
 The raw-cache path investigation is recorded in [path findings](path-findings.md):
 bundle relocation succeeds, but workspace relocation fails MSBuild cache lookup.
-Next, test [public-API result replay](result-replay-plan.md) with normalized
-target-result metadata and separately staged artifacts at a new workspace path.
-This is planned, not measured, and the v1 same-workspace restriction remains.
-After replay succeeds, define the Bazel e2e harness and Starlark rule, including
-execution-log assertions and disk-cache reuse after clearing local outputs.
+The later [public-API replay experiment](replay-findings.md) measured successful
+relocation with normalized target-result metadata and separately staged artifacts.
+The [Bazel harness](bazel-findings.md) subsequently measured separate sandbox
+actions and local disk-cache reuse. These later results do not change this v1
+driver's same-workspace restriction. See the [current plan](spike-plan.md).
 
 ## Scaffold check failure handling
 

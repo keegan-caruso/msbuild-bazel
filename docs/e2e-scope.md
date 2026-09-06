@@ -2,7 +2,8 @@
 
 ## Milestone 1: prove the MSBuild boundary before writing a Bazel adapter
 
-Linux x86-64, .NET 10.0.100, net10.0, Release; two projects (App -> Shared) and Microsoft.Build.Traversal 4.1.82. Standard SDK projects; no application NuGet dependencies. Traversal is restored during preparation.
+Initial target: Linux x86-64; local MSBuild acceptance was also measured on macOS
+ARM64 (see [findings](findings.md)). .NET 10.0.100, net10.0, Release; two projects (App -> Shared) and Microsoft.Build.Traversal 4.1.82. Standard SDK projects; no application NuGet dependencies. Traversal is restored during preparation.
 
 | Scenario | Required observation |
 | --- | --- |
@@ -15,7 +16,8 @@ Linux x86-64, .NET 10.0.100, net10.0, Release; two projects (App -> Shared) and 
 
 Tests use fresh copied workspaces, isolated NuGet package directories, subprocess timeouts and retained logs on failure. They test the public process contract, not private helper functions. No mocks, sleeps, timing assertions, unconditional skips or expected failures may substitute for running the build.
 
-Before implementation, the test command is expected to fail because `tools/spike.py` does not exist. Record that red run, then implement. The workflow should run the tests after the implementation commit rather than hide failures behind file-existence guards.
+The original tests were run before `tools/spike.py` existed; see the historical
+red-run evidence below. The driver is now implemented and these tests must pass.
 
 ## Path-probe evidence
 
@@ -49,15 +51,31 @@ Shared edits, disk-cache recovery after clearing outputs, and reuse in a fresh
 Bazel output base. It compares runtime output, checks compile markers and declared
 inputs, and rejects an undeclared relative input. Restore and plugin preparation
 run before compile actions. See [Bazel findings](bazel-findings.md) for the
-measured macOS evidence and host/runtime limits. Linux is not locally measured.
+measured macOS evidence, passing Ubuntu 22.04 Linux CI results, and host/runtime limits.
+
+## Milestone 4: action identity (implemented)
+
+The identity probe tests imports, generated-source data, declared versus ambient
+build environment, restore metadata and host identity. Python runtime inputs are
+explicit. See [identity findings](action-identity-findings.md).
+
+## Milestone 5: pinned build-package inputs (implemented)
+
+The package probe checks exact-version NuGet build assets, data/target upgrades,
+and rejection of missing, corrupt or stale inputs. It retains the scheduling and
+cache matrix. Coverage is build-only; ordinary package DLL/runtime assets remain
+unproven. See [package findings](package-input-findings.md), including the precise
+full-suite and focused-rerun validation record.
 
 ## Deferred
 
 General graph generation, multi-targeting, Native AOT, general publishing beyond
 the replay fixture check, Razor/WPF, arbitrary package build tasks, remote
 execution and distributed caches. Linux x86-64 remains the initial Bazel target;
-native macOS ARM64 MSBuild controls have been measured, but cross-platform Bazel
-support is not established. A failed prerequisite experiment is a useful finding
+native macOS ARM64 replay, Bazel sandbox/cache, identity and package tests have
+been measured. The earlier nine-test suite also passed in Ubuntu 22.04 Linux CI;
+Linux validation of the newer identity/package tests is handled separately.
+Cross-platform artifact reuse is not established. A failed prerequisite experiment is a useful finding
 and blocks expanding into these areas.
 
 ## Red-run evidence

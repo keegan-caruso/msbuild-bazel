@@ -18,6 +18,45 @@ def sha256(path):
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
+def stage_packages(request, workspace, execroot):
+    assets = json.loads((workspace / request['project'] / 'obj/project.assets.json').read_text())
+    resolved = {key.lower(): value['path'] for key, value in assets['libraries'].items() if value['type'] == 'package'}
+    manifest = {'schemaVersion': 1, 'packages': []}
+    if request['package_manifest']:
+        manifest = json.loads((execroot / request['package_manifest']).read_text())
+    if manifest['schemaVersion'] != 1:
+        raise ValueError('package manifest version mismatch')
+    provided = {f"{p['id']}/{p['version']}".lower(): p['path'] for p in manifest['packages']}
+    if provided != resolved:
+        raise ValueError('package manifest does not match restore assets')
+    project = ET.parse(workspace / request['project'] / (request['project'] + '.csproj'))
+    for ref in project.getroot().iter('PackageReference'):
+        version = ref.get('Version', '')
+        if not version.startswith('[') or not version.endswith(']') or ',' in version:
+            raise ValueError('package requires an exact inline version')
+        if (ref.get('Include', '') + '/' + version[1:-1]).lower() not in resolved:
+            raise ValueError('package reference differs from restored version')
+    files = {entry['destination']: execroot / entry['source'] for entry in request['packages']}
+    staged = []
+    for package in manifest['packages']:
+        for entry in package['files']:
+            relative = Path(package['path']) / entry['path']
+            if relative.is_absolute() or '..' in relative.parts or '\\' in str(relative):
+                raise ValueError('package payload path invalid')
+            source = files.get(relative.as_posix())
+            if source is None or not source.is_file():
+                raise ValueError('package payload missing: ' + str(relative))
+            if source.stat().st_size != entry['size'] or sha256(source) != entry['sha256']:
+                raise ValueError('package payload hash mismatch: ' + str(relative))
+            staged.append((source, workspace / '.nuget/packages' / relative))
+    if len(staged) != len(files):
+        raise ValueError('package payload set mismatch')
+    for source, target in staged:
+        target.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(source, target)
+    return sorted(resolved)
+
+
 def action(request):
     execroot = Path.cwd()
     output = (execroot / request['output']).absolute()
@@ -44,6 +83,7 @@ def action(request):
             target = workspace / relative
             target.parent.mkdir(parents=True, exist_ok=True)
             target.write_text(contents.replace('${WORKSPACE}', str(workspace)).replace('${SDK}', str(dotnet.parent)))
+    packages = stage_packages(request, workspace, execroot)
     tree = ET.parse(workspace / 'Directory.Build.targets')
     ET.SubElement(ET.SubElement(tree.getroot(), 'ItemGroup'), 'ProjectCachePlugin', Include=str(plugin))
     tree.write(workspace / 'Directory.Build.targets')
@@ -80,7 +120,8 @@ def action(request):
     process = subprocess.run(command, cwd=workspace, env=env, text=True,
                              stdout=subprocess.PIPE, stderr=subprocess.STDOUT, timeout=180)
     (output / 'build.log').write_text(process.stdout)
-    observed = dict(project=project, workspace=str(workspace), command=command,
+    observed = dict(project=project, workspace=str(workspace), command=command, packages=packages,
+                    packageTargets=re.findall(r'SPIKE_PACKAGE_TARGET:(\w+)', process.stdout),
                     returncode=process.returncode, compiledProjects=re.findall(r'SPIKE_COMPILE:(\w+)', process.stdout),
                     replayHits=re.findall(r'SPIKE_REPLAY_HIT:(.*)', process.stdout),
                     sharedSources=[str(p.relative_to(workspace)) for p in (workspace / 'Shared').glob('*.cs')])

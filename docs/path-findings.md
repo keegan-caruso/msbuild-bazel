@@ -74,11 +74,11 @@ was measured in this local run. Nix supplies an ambient SDK from its store; it
 is not a declared Bazel toolchain. The existing Linux CI commands discover the
 new test, but their results are pending.
 
-Before writing the two-target rule, test
-[public-API result replay](result-replay-plan.md): capture target outputs in a
-normalized payload and reconstruct dependency results at the consumer's paths.
-Keep this raw-cache probe as a control. The replay proposal does not change the
-observations above or establish artifact/sandbox portability.
+The subsequent [public-API replay experiment](replay-findings.md) captured
+normalized target outputs and reconstructed dependency results at consumer paths.
+The later [Bazel experiment](bazel-findings.md) measured native sandbox actions
+and local disk-cache reuse. This raw-cache probe remains an independent control;
+its failure and the v1 restriction are unchanged.
 
 If replay cannot satisfy the target and path contracts, revisit a stable internal
 path strategy with that evidence. A fixed shared scratch directory with serialized

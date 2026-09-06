@@ -17,8 +17,9 @@ metadata is expanded from explicit workspace/SDK tokens; compilation does not
 restore or download tools. App stages and validates Shared's dependency bundle,
 then uses public-API replay with `-graphBuild -isolateProjects`. Shared and App
 outputs are separate Bazel tree artifacts with retained action reports and logs.
-The SDK tree participates in the action digest. The host Python interpreter,
-shell, native libraries and Nix runtime closure are not yet hermetic toolchains;
+The SDK tree participates in the action digest. The Python executable/core library/standard library are now declared through a
+local runtime repository; Python runs directly with `-I -S -B`. Native libraries
+outside those trees and the Nix runtime closure are not yet hermetic toolchains;
 reports and rule configuration record the chosen host runtime. No remote-cache
 or remote-execution correctness is claimed.
 
@@ -32,3 +33,17 @@ output through both the DLL and native app host, preserving executable modes.
 A negative undeclared-input probe must fail inside the action sandbox.
 Sandbox platform limitations must be reported explicitly, never hidden by a
 fallback to local execution.
+
+`--identity-probe` additionally measures imported targets, generated-source data,
+explicit build environment, ambient environment exclusion, App restore metadata
+and host-identity changes. See [identity findings](action-identity-findings.md).
+The rule requires `runtime`, `python`, and `host_identity` labels and optionally
+accepts `build_environment` entries prefixed with `SPIKE_INPUT_`. Remote execution
+and remote-cache use are disabled; local disk caching remains enabled.
+
+`--package-probe` is mutually exclusive with `--identity-probe`. It prepares exact
+versions of a locally authored, checksum-pinned build package before compilation.
+The rule accepts `packages` payload labels and an optional `package_manifest`
+label. Before MSBuild starts, the runner checks package/restore identities and
+payload hashes, then stages the files in its own NuGet root. See the
+[package contract](package-input-plan.md) and [findings](package-input-findings.md).

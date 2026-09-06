@@ -81,10 +81,14 @@ execution has now passed in Ubuntu 22.04 CI; see the CI repair evidence below.
 
 Nix's Bazel launcher obtains its Java runtime from its system bazelrc. The
 harness preserves that system configuration and disables home/workspace rc files.
-Action environment variables and the host Python path are explicit. The entire
+In that initial implementation, action environment variables and the host Python
+path were explicit. The entire
 SDK file tree participates in Bazel's action inputs, but the host Python standard
 library, shell, native libraries, macOS signing tools and Nix runtime closure
-are not yet hermetic toolchains. A native sandbox plus declared relative inputs
+were not declared as complete toolchains. The subsequent
+[identity experiment](action-identity-findings.md) declares Python runtime files,
+removes the shell launcher, and tests more build inputs; native closure remains
+incomplete. A native sandbox plus declared relative inputs
 does not prove every absolute host read was declared. Actions request network
 blocking; this is not a general file-access or network audit.
 
@@ -111,13 +115,14 @@ On 2026-09-05 with the pinned Nix tools:
 Native macOS sandbox tests were run outside the Codex outer restriction. No
 Linux or remote-execution validation is included in these results.
 
-## Next
+## Subsequent work and remaining scope
 
-Before expanding to general ProjectGraph export, harden the action identity:
-package assets and contents, custom imports/inputs, environment, host runtime
-closure and deterministic output staging. Add perturbation tests for those
-inputs and broader Linux native-sandbox coverage. General publishing, multi-targeting,
-arbitrary package tasks and remote execution remain deferred.
+[Identity tests](action-identity-findings.md) subsequently added custom imports,
+data, environment and Python runtime inputs. [Package tests](package-input-findings.md)
+added pinned build assets and upgrade/rejection cases. Native runtime closure,
+deterministic staging and Linux coverage of these newer tests remain open. General
+publishing, multi-targeting, arbitrary package tasks and remote execution remain
+deferred. See the [current plan](spike-plan.md).
 
 ## CI repair (2026-09-05)
 
