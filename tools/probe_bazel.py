@@ -300,6 +300,13 @@ def probe(output, identity=False, package_mode=False, staging=False, native_runt
             report['packagePreparationDeleted'].append(not preparation.exists())
             write_build()
             build_case(name)
+        if binary_packages:
+            isolated = output / 'missing-runtime'
+            shutil.copytree(workspace / 'bazel-bin/app.bundle/artifacts/App/bin/Release/net10.0', isolated)
+            (isolated / 'Spike.Leaf.dll').unlink()
+            failure = run('missingRuntimeAsset', [DOTNET, isolated / 'App.dll'], cwd=isolated, require=False)
+            if failure.returncode == 0 or 'Spike.Leaf' not in failure.stdout:
+                raise RuntimeError('missing transitive runtime asset did not fail execution')
         def package_failure(name):
             failure = run(name, startup + ['build', '//:app', *flags], require=False)
             if failure.returncode == 0 or 'SPIKE_COMPILE:' in failure.stdout or 'package' not in failure.stdout.lower():
@@ -328,12 +335,6 @@ def probe(output, identity=False, package_mode=False, staging=False, native_runt
             manifest.write_text(json.dumps(value))
             package_failure('missingTransitivePackage')
             manifest.write_text(original_manifest)
-            isolated = output / 'missing-runtime'
-            shutil.copytree(workspace / 'bazel-bin/app.bundle/artifacts/App/bin/Release/net10.0', isolated)
-            (isolated / 'Spike.Leaf.dll').unlink()
-            failure = run('missingRuntimeAsset', [DOTNET, isolated / 'App.dll'], cwd=isolated, require=False)
-            if failure.returncode == 0 or 'Spike.Leaf' not in failure.stdout:
-                raise RuntimeError('missing transitive runtime asset did not fail execution')
     if native_runtime:
         for execution in report['cases']['cold']['executions']:
             declared = {'/'.join(path.split('/')[2:]) for path in execution['inputs'] if path.startswith('external/')}

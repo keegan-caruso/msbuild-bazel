@@ -23,6 +23,15 @@ jobs:
         run: bash scripts/dotnet.sh run --project tests/ActionRunner.Tests -c Release
       - name: MSBuild boundary e2e tests
         run: python3 -m unittest discover -s tests/e2e -v
+      - name: Retain binary package evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: binary-package-evidence
+          path: |
+            /tmp/msbuild-e2e-binary-*/probe/*.log
+            /tmp/msbuild-e2e-binary-*/probe/report.json
+          if-no-files-found: ignore
       - name: Retain failed experiment artifacts
         if: failure()
         uses: actions/upload-artifact@v4

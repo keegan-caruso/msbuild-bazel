@@ -120,6 +120,10 @@ host-runtime limitations. Add `--identity-probe` to test imported targets,
 generated-source data, environment and host-identity invalidation. Use
 `--package-probe` instead to test pinned NuGet package payloads, build-target
 upgrades and rejection of missing/corrupt/stale package inputs.
+Use `--binary-package-probe` for managed reference/runtime DLLs, a transitive
+package dependency, direct/transitive upgrades and relocated output staging.
+See the [binary package contract](docs/binary-package-plan.md) and
+[validation record](docs/binary-package-findings.md) for scope and evidence.
 Use `--staging-probe` to compare complete consumer bundles from two fresh builds
 with separate output bases and empty disk caches.
 Inside `nix develop`, use `--native-runtime-probe` to declare the transitive Nix

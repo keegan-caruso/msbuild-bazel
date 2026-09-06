@@ -29,6 +29,11 @@ invalid-image rejection. Full runtime closure and general host-read discovery
 remain open. Next, cover ordinary package DLL/runtime assets; general graph
 export (step 8) remains deferred until that package boundary is established.
 
+The managed binary-package milestone now has a test-first
+[contract](binary-package-plan.md), fixture and probe. See its
+[validation record](binary-package-findings.md); implementation alone does not
+close the package gate without native sandbox acceptance evidence.
+
 ## Milestone sequence
 
 1. Add Shared and App SDK projects, with App referencing Shared, and a Microsoft.Build.Traversal entry point. Pin Traversal when introduced.
