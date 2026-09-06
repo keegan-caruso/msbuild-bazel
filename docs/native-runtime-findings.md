@@ -75,5 +75,6 @@ programs remain outside this manifest. Nix reference traversal does not discover
 arbitrary dynamically computed host paths, and Darwin sandbox success does not
 prove all host reads were declared. Closure payloads are not relocated. Remote
 execution/cache correctness, arbitrary package runtime assets and general input
-discovery remain unproven. The next runtime slice should investigate those host
-reads and a native-library change/rejection control before claiming full closure.
+discovery remain unproven. The [runtime integrity extension](native-runtime-integrity-findings.md)
+adds a copied-library change/rejection control and loader diagnostics. It does
+not redirect actual library loading or establish full closure.

@@ -43,6 +43,38 @@ try
     var requestPath = Path.Combine(directory.FullName, "request.json");
     File.WriteAllText(requestPath, validRequest);
     Check(JsonFiles.ReadRequest(requestPath).Project == ProjectKind.Shared, "valid request must preserve project identity");
+    var nativeManifest = Path.Combine(directory.FullName, "native.json");
+    var nativeEntry = new Artifact("store/lib/native", new FileInfo(payload).Length, Files.Hash(payload));
+    JsonFiles.Write(nativeManifest, new NativeManifest(2, [nativeEntry]));
+    var nativeRequest = JsonFiles.ReadRequest(requestPath) with
+    {
+        NativeManifest = nativeManifest,
+        NativeFiles = [new InputFile(link, nativeEntry.Path)]
+    };
+    NativeRuntimeInputs.Validate(nativeRequest);
+    File.WriteAllText(payload, "Package payload"); // Same size, different hash.
+    try
+    {
+        NativeRuntimeInputs.Validate(nativeRequest);
+        throw new InvalidOperationException("corrupt native payload accepted");
+    }
+    catch (InvalidDataException error) when (error.Message.Contains("payload mismatch")) { }
+    foreach (var invalidManifest in new[]
+    {
+        new NativeManifest(1, [nativeEntry]),
+        new NativeManifest(2, [nativeEntry, nativeEntry]),
+        new NativeManifest(2, []),
+        new NativeManifest(2, [nativeEntry with { Path = "../escape" }])
+    })
+    {
+        JsonFiles.Write(nativeManifest, invalidManifest);
+        try
+        {
+            NativeRuntimeInputs.Validate(nativeRequest);
+            throw new InvalidOperationException("invalid native manifest accepted");
+        }
+        catch (InvalidDataException error) when (error.Message.Contains("declaration mismatch")) { }
+    }
     foreach (var malformed in new[]
     {
         validRequest.Replace("\"project\":\"Shared\",", ""),

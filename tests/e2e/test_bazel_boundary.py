@@ -45,6 +45,46 @@ class BazelBoundaryTests(unittest.TestCase):
                 self.assertGreater(report['nativeRuntime']['fileCount'], 0)
                 self.assertGreater(len(report['nativeRuntime']['storePaths']), 2)
                 self.assertNotEqual(report['missingNativeRuntime']['returncode'], 0)
+                self.assertNotEqual(report['corruptNativeRuntime']['returncode'], 0)
+                self.assertNotIn('SPIKE_COMPILE:', Path(report['corruptNativeRuntime']['log']).read_text())
+                control = report['nativeLibraryControl']
+                self.assertTrue(control['installedPayloadUnchanged'])
+                self.assertNotEqual(control['originalSha256'], control['changedSha256'])
+                self.assertEqual(report['cases']['nativeLibraryIdentityChange']['executedProjects'], ['App', 'Shared'])
+                self.assertEqual(report['cases']['nativeLibraryUnchanged']['executedProjects'], [])
+                for case in ('nativeLibraryCopy', 'nativeLibraryIdentityChange', 'nativeLibraryUnchanged'):
+                    self.assertEqual(report['cases'][case]['applicationOutput'], 'shared-v2/app-v2')
+                    self.assertEqual(report['cases'][case]['apphostOutput'], 'shared-v2/app-v2')
+                self.assertEqual(report['cases']['nativeLoaderTrace']['executedProjects'], ['App', 'Shared'])
+                for trace in report['nativeLoaderTraceEvidence']['projects'].values():
+                    self.assertTrue(trace['loaded'])
+                    self.assertTrue(Path(trace['log']).exists())
+                loader = report['loaderRuntime']
+                self.assertTrue(loader['originalUnchanged'])
+                self.assertNotEqual(loader['payloads']['first']['sha256'], loader['payloads']['second']['sha256'])
+                for case, executed in (('jitCopied', ['App', 'Shared']), ('jitChanged', ['App', 'Shared']),
+                                       ('jitUnchanged', []), ('jitDiskCache', []), ('jitFresh', ['App', 'Shared'])):
+                    observed = report['cases'][case]
+                    self.assertEqual(observed['executedProjects'], executed, case)
+                    self.assertEqual(observed['applicationOutput'], 'shared-v2/app-v2', case)
+                    self.assertEqual(observed['apphostOutput'], 'shared-v2/app-v2', case)
+                    for action in observed['executions']:
+                        self.assertIn('loader/manifest.json', action['inputs'])
+                        if not action['cacheHit']:
+                            self.assertIn('sandbox', action['runner'])
+                self.assertEqual(report['cases']['jitDiskCache']['cacheHitProjects'], ['App', 'Shared'])
+                for case, projects in loader['cases'].items():
+                    for project, trace in projects.items():
+                        self.assertIn(trace['jitPath'], trace['loaded'], (case, project))
+                        self.assertNotIn(trace['originalJitPath'], trace['loaded'], (case, project))
+                        self.assertEqual(trace['sha256'], loader['payloads']['first' if case == 'jitCopied' else 'second']['sha256'])
+                        self.assertTrue(Path(trace['log']).exists())
+                for project in ('shared', 'app'):
+                    self.assertNotEqual(loader['cases']['jitChanged'][project]['jitPath'],
+                                        loader['cases']['jitFresh'][project]['jitPath'])
+                for case in ('jitMissing', 'jitCorrupt', 'jitLoaderReject'):
+                    self.assertNotEqual(report[case]['returncode'], 0)
+                    self.assertNotIn('SPIKE_COMPILE:', Path(report[case]['log']).read_text())
                 for action in report['cases']['cold']['executions']:
                     self.assertIn('runtime-closure.json', action['inputs'])
                     self.assertTrue(any('/lib/lib' in path and ('dylib' in path or '.so' in path)
@@ -152,6 +192,15 @@ class BazelBoundaryTests(unittest.TestCase):
             print(f'Retained Bazel workspace: {directory}', file=sys.stderr)
             raise
         else:
+            evidence = os.environ.get('SPIKE_NATIVE_EVIDENCE_DIR') if native_runtime else None
+            if evidence:
+                destination = Path(evidence)
+                destination.mkdir(parents=True, exist_ok=True)
+                # Retain small reports/logs for CI without uploading SDK copies,
+                # binaries or Bazel caches. Report paths describe the test run.
+                for source in (directory / 'probe').iterdir():
+                    if source.name == 'report.json' or source.suffix == '.log':
+                        shutil.copyfile(source, destination / source.name)
             # Bazel makes output directories read-only. Change only directories
             # owned by this test; never follow SDK or execroot symlinks.
             for current, _, _ in os.walk(directory, followlinks=False):

@@ -1,5 +1,6 @@
 """Conservative Nix reference closure; not discovery of arbitrary host reads."""
 import json
+import hashlib
 from pathlib import Path
 import subprocess
 import shutil
@@ -33,7 +34,13 @@ def prepare(workspace, paths):
         for path in sorted(root.rglob('*')):
             if path.is_file():
                 files.append(root.name + '/' + path.relative_to(root).as_posix())
-    manifest = dict(schemaVersion=1, roots=roots, storePaths=closure, files=files,
+    payloads = []
+    for name in files:
+        path = Path('/nix/store') / name
+        with path.open('rb') as stream:
+            digest = hashlib.file_digest(stream, 'sha256').hexdigest()
+        payloads.append(dict(path=name, size=path.stat().st_size, sha256=digest))
+    manifest = dict(schemaVersion=2, roots=roots, storePaths=closure, files=payloads,
                     boundary='Nix references only; host OS and dynamic host reads remain outside this closure')
     (workspace / 'runtime-closure.json').write_text(json.dumps(manifest, indent=2) + '\n')
     return manifest

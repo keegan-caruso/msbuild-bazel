@@ -20,7 +20,10 @@ consumer bundles across fresh sandbox executions on macOS ARM64.
 **Runtime progress:** The [Nix runtime experiment](docs/native-runtime-findings.md)
 declares native libraries and signing tools. The [.NET action runner](docs/dotnet-runner-findings.md)
 uses the existing SDK; Python remains only in preparation and tests.
-**Next:** Investigate remaining host runtime dependencies and native-library changes.
+The [runtime integrity extension](docs/native-runtime-integrity-findings.md)
+verifies declared payload hashes, tests copied-library changes and records loader
+diagnostics. **Next:** Force actual loader substitution or deny observed host
+dependencies; declared-file hashing alone does not establish runtime closure.
 General graph export, ordinary NuGet binary/runtime assets, remote-cache
 correctness and cross-platform portability remain unproven.
 

@@ -21,8 +21,10 @@ reference closure and rejects incomplete declarations. The [.NET runner](dotnet-
 removes Python from build actions while retaining the Python experiment harness.
 The [runner refactor](action-runner-refactor.md) moves policy into declared MSBuild
 imports and strengthens the .NET request/process contracts.
-Next, investigate remaining
-host runtime reads and native-library changes; full runtime closure remains open.
+The [runtime integrity extension](native-runtime-integrity-findings.md) adds
+payload hashes, copied-library rejection/invalidation and loader diagnostics.
+Next, force actual loaded-library substitution or denial of an observed host
+dependency; full runtime closure and general host-read discovery remain open.
 Ordinary package DLL/runtime assets need separate coverage. General graph export
 (step 8) remains deferred until these boundaries are established.
 

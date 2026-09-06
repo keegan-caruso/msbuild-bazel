@@ -8,15 +8,21 @@ internal sealed record BuildInvocation(string Executable, string WorkingDirector
     private const string SharedTargets = "GetTargetFrameworks;Build;GetNativeManifest;GetCopyToOutputDirectoryItems;" +
         "GetTargetFrameworksWithPlatformForSingleTargetFramework;GetCopyToPublishDirectoryItems";
 
-    public static BuildInvocation Create(ActionRequest request, Workspace workspace, string bundle) => new(
-        workspace.Dotnet,
+    public static BuildInvocation Create(ActionRequest request, Workspace workspace, string bundle) => Create(
+        request, workspace, bundle, LoaderRuntime.Stage(request, workspace));
+
+    private static BuildInvocation Create(ActionRequest request, Workspace workspace, string bundle, string dotnet) => new(
+        dotnet,
         workspace.Root,
-        ["msbuild", $"{request.Project}/{request.Project}.csproj",
+        [.. (request.LoaderJit is null ? new[] { "msbuild" } :
+            new[] { "exec", Path.Combine(workspace.SdkRoot, "sdk", "10.0.100", "MSBuild.dll") }),
+            $"{request.Project}/{request.Project}.csproj",
             "-t:" + (request.Project == ProjectKind.Shared ? SharedTargets : "Build"), "-p:Configuration=Release",
             "-graphBuild", "-isolateProjects", "-nodeReuse:false", "-nologo", "-verbosity:normal"],
         new Dictionary<string, string>
         {
-            ["DOTNET_ROOT"] = workspace.SdkRoot,
+            ["SPIKE_LOADER_TRACE_PATH"] = Path.Combine(workspace.Diagnostics, "loader.log"),
+            ["DOTNET_ROOT"] = Path.GetDirectoryName(dotnet)!,
             ["DOTNET_CLI_HOME"] = Path.Combine(workspace.Scratch, "home"),
             ["NUGET_PACKAGES"] = Path.Combine(workspace.Root, ".nuget/packages"),
             ["DOTNET_NOLOGO"] = "1",
@@ -45,6 +51,17 @@ internal sealed record BuildInvocation(string Executable, string WorkingDirector
         };
         foreach (var (key, value) in Environment)
             start.Environment[key] = value;
+        // Set loader flags at the MSBuild child boundary. macOS sandbox
+        // launchers can strip DYLD_* variables before the runner starts.
+        if (System.Environment.GetEnvironmentVariable("SPIKE_TRACE_RUNTIME") == "1")
+        {
+            start.Environment["DYLD_PRINT_LIBRARIES"] = "1";
+            start.Environment["LD_DEBUG"] = "libs";
+            // Compiler tasks interpret stderr as errors; keep loader output
+            // in declared diagnostics instead of changing compilation behavior.
+            start.Environment["DYLD_PRINT_TO_FILE"] = Environment["SPIKE_LOADER_TRACE_PATH"];
+            start.Environment["LD_DEBUG_OUTPUT"] = Environment["SPIKE_LOADER_TRACE_PATH"];
+        }
         return start;
     }
 }

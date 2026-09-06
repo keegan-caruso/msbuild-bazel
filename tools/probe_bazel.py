@@ -5,6 +5,7 @@ import json
 import os
 from pathlib import Path
 import platform
+import re
 import shutil
 import subprocess
 import sys
@@ -12,6 +13,7 @@ import xml.etree.ElementTree as ET
 
 import package_inputs
 import runtime_inputs
+import loader_inputs
 
 ROOT = Path(__file__).resolve().parents[1]
 DOTNET = Path(os.environ.get('SPIKE_DOTNET_ROOT', ROOT / '.tools/dotnet')) / 'dotnet'
@@ -311,7 +313,7 @@ def probe(output, identity=False, package_mode=False, staging=False, native_runt
     if native_runtime:
         for execution in report['cases']['cold']['executions']:
             declared = {'/'.join(path.split('/')[2:]) for path in execution['inputs'] if path.startswith('external/')}
-            missing = sorted(set(closure['files']) - declared)
+            missing = sorted({entry['path'] for entry in closure['files']} - declared)
             if missing:
                 raise RuntimeError('native runtime inputs absent from execution log: ' + str(missing[:3]))
         build_file = workspace / 'BUILD.bazel'
@@ -321,6 +323,104 @@ def probe(output, identity=False, package_mode=False, staging=False, native_runt
         build_file.write_text(original)
         if failure.returncode == 0 or 'native runtime closure declaration mismatch' not in failure.stdout or 'SPIKE_COMPILE:' in failure.stdout:
             raise RuntimeError('native runtime rejection not observed')
+        # Substitute a workspace copy of an external native library. Absolute
+        # Nix loader paths still use the installed library: this tests declared
+        # payload identity/integrity, not a loaded-library upgrade.
+        entry = next(item for item in closure['files']
+                     if '/lib/lib' in item['path'] and
+                     (item['path'].endswith('.dylib') or '.so' in item['path']) and
+                     not any(item['path'].startswith(Path(root).name + '/') for root in closure['roots']))
+        payload = workspace / 'native-probe-library'
+        shutil.copyfile(Path('/nix/store') / entry['path'], payload)
+        module = workspace / 'MODULE.bazel'
+        module.write_text(module.read_text().replace(
+            'manifest="//:runtime-closure.json")',
+            'manifest="//:runtime-closure.json", overrides={"//:native-probe-library": ' + json.dumps(entry['path']) + '})'))
+        build_case('nativeLibraryCopy')
+        # Same length, different bytes: exercise the digest, not just size checks.
+        with payload.open('r+b') as stream:
+            first = stream.read(1)
+            stream.seek(0)
+            stream.write(bytes([first[0] ^ 1]))
+        failure = run('corruptNativeRuntime', startup + ['build', '//:app', *flags], require=False)
+        if failure.returncode == 0 or 'native runtime closure payload mismatch' not in failure.stdout or 'SPIKE_COMPILE:' in failure.stdout:
+            raise RuntimeError('native runtime payload rejection not observed')
+        original_hash = entry['sha256']
+        entry['sha256'] = hashlib.sha256(payload.read_bytes()).hexdigest()
+        (workspace / 'runtime-closure.json').write_text(json.dumps(closure, indent=2) + '\n')
+        build_case('nativeLibraryIdentityChange')
+        build_case('nativeLibraryUnchanged')
+        report['nativeLibraryControl'] = dict(path=entry['path'], originalSha256=original_hash,
+            changedSha256=entry['sha256'], size=entry['size'],
+            installedPayloadUnchanged=hashlib.sha256((Path('/nix/store') / entry['path']).read_bytes()).hexdigest() == original_hash,
+            boundary='Declared copy only; absolute Nix loader paths still use the installed library')
+        if (report['cases']['nativeLibraryIdentityChange']['executedProjects'] != ['App', 'Shared'] or
+                report['cases']['nativeLibraryUnchanged']['executedProjects'] or
+                not report['nativeLibraryControl']['installedPayloadUnchanged']):
+            raise RuntimeError('native library identity control failed')
+        build_file.write_text(original.replace('msbuild_project(\n', 'msbuild_project(\n    trace_runtime = True,\n'))
+        build_case('nativeLoaderTrace')
+        traces = {}
+        declared_paths = {'/nix/store/' + item['path'] for item in closure['files']}
+        for project in ('shared', 'app'):
+            trace = '\n'.join(path.read_text() for path in sorted(
+                (workspace / f'bazel-bin/{project}.diagnostics').glob('loader.log*')))
+            trace_log = output / f'native-loader-{project}.log'
+            trace_log.write_text(trace)
+            # dyld reports loaded images; glibc reports initialization calls.
+            # Do not classify LD_DEBUG search candidates as loaded libraries.
+            loaded = sorted(set(re.findall(r'^dyld\[\d+\]:.*? (/[^\n]+)$', trace, re.MULTILINE)
+                                if platform.system() == 'Darwin' else
+                                re.findall(r'calling init:\s*(/[^\n]+)', trace)))
+            if not loaded:
+                raise RuntimeError('native loader trace contained no loaded library records: ' + project)
+            traces[project] = dict(loaded=loaded,
+                outsideDeclaredClosure=[path for path in loaded if path not in declared_paths],
+                log=str(trace_log))
+        report['nativeLoaderTraceEvidence'] = dict(projects=traces,
+            boundary='Loader diagnostics from MSBuild and inherited child processes, not a complete filesystem read trace')
+        build_file.write_text(original)
+        jit = loader_inputs.prepare(workspace, DOTNET.parent.resolve(), closure)
+        report['loaderRuntime'] = dict(payloads=jit, cases={})
+        def select_jit(version):
+            loader_inputs.select(workspace, version, jit['library'])
+            build_file.write_text(original.replace('msbuild_project(\n',
+                'msbuild_project(\n    trace_runtime = True,\n'
+                f'    loader_jit = "loader/jit-{version}",\n    loader_manifest = "loader/manifest.json",\n'))
+        def jit_case(name, expected_hash):
+            build_case(name)
+            report['loaderRuntime']['cases'][name] = loader_inputs.evidence(workspace, output, name, expected_hash)
+        select_jit('v1')
+        jit_case('jitCopied', jit['first']['sha256'])
+        select_jit('v2')
+        jit_case('jitChanged', jit['second']['sha256'])
+        build_case('jitUnchanged')
+        run('jitClean', startup + ['clean'])
+        build_case('jitDiskCache')
+        startup = [f'--output_base={output / "jit-fresh-base"}' if str(arg).startswith('--output_base=') else arg for arg in startup]
+        flags = [f'--disk_cache={output / "jit-fresh-cache"}' if str(arg).startswith('--disk_cache=') else arg for arg in flags]
+        jit_case('jitFresh', jit['second']['sha256'])
+        jit_build = build_file.read_text()
+        def jit_failure(name, expected):
+            failure = run(name, startup + ['build', '//:app', *flags], require=False)
+            if failure.returncode == 0 or 'SPIKE_COMPILE:' in failure.stdout or expected not in failure.stdout:
+                raise RuntimeError('JIT rejection not observed: ' + name)
+        build_file.write_text('\n'.join(line for line in jit_build.splitlines() if 'loader_jit =' not in line))
+        jit_failure('jitMissing', 'loader JIT requires payload')
+        build_file.write_text(jit_build)
+        payload = workspace / 'loader/jit-v2'
+        valid_bytes = payload.read_bytes()
+        payload.write_bytes(b'invalid native JIT image\n')
+        jit_failure('jitCorrupt', 'loader JIT payload mismatch')
+        loader_inputs.select(workspace, 'v2', jit['library'])
+        jit_failure('jitLoaderReject', 'JIT')
+        payload.write_bytes(valid_bytes)
+        select_jit('v2')
+        report['loaderRuntime']['originalUnchanged'] = (
+            hashlib.sha256(Path(jit['original']).read_bytes()).hexdigest() == jit['first']['sha256'])
+        if not report['loaderRuntime']['originalUnchanged']:
+            raise RuntimeError('installed JIT changed')
+        build_file.write_text(original)
     negative_log = output / 'undeclared.execution.json'
     negative = run('undeclaredInput', startup + ['build', '//:undeclared', *flags,
                    f'--execution_log_json_file={negative_log}'], require=False)

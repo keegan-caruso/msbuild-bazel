@@ -19,11 +19,21 @@ jobs:
         run: nix develop --no-update-lock-file -c bash scripts/check.sh
       - name: Load Bazel scaffold
         run: nix develop --no-update-lock-file -c bash scripts/bazel.sh query //:repo_setup --noshow_progress
+      - name: Action runner contracts
+        run: nix develop --no-update-lock-file -c bash scripts/dotnet.sh run --project tests/ActionRunner.Tests -c Release
       - name: MSBuild boundary e2e tests
         env:
           TMPDIR: ${{ runner.temp }}
           SPIKE_NATIVE_RUNTIME_TEST: "1"
+          SPIKE_NATIVE_EVIDENCE_DIR: ${{ runner.temp }}/native-runtime-evidence
         run: nix develop --no-update-lock-file -c python3 -m unittest discover -s tests/e2e -v
+      - name: Retain native runtime evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: native-runtime-evidence
+          path: ${{ runner.temp }}/native-runtime-evidence
+          if-no-files-found: ignore
       - name: Retain failed experiment logs
         if: failure()
         uses: actions/upload-artifact@v4

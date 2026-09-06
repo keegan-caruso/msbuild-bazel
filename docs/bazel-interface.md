@@ -59,9 +59,27 @@ for path mapping, metadata canonicalization and the fixture-specific limits.
 `--native-runtime-probe` is an opt-in, mutually exclusive Nix mode. Preparation
 queries the SDK reference closure and writes `runtime-closure.json`. The
 `native_runtime` and `native_manifest` rule inputs declare all inventoried files;
-the runner checks completeness before compilation. Missing declarations fail
+the runner checks completeness, size and SHA-256 before compilation. The runtime
+manifest uses schema version 2 with `files` entries containing `path`, `size` and
+`sha256`; version 1 manifests must be regenerated. Missing declarations fail
 even if store files are still readable on the host. See [runtime findings](native-runtime-findings.md)
 for the host OS boundary and retained evidence.
+
+The native repository optionally accepts `overrides`, mapping input labels to
+manifest paths, for controlled workspace-copy experiments. The manifest still
+validates their bytes. This changes declared inputs without redirecting absolute
+Nix loader paths. `trace_runtime = True` enables dyld/glibc loader diagnostics
+for the MSBuild child in a separate build action; the `SPIKE_TRACE_RUNTIME`
+environment marker participates in action identity.
+See [runtime integrity findings](native-runtime-integrity-findings.md).
+
+The optional `loader_jit` and `loader_manifest` labels enable the experimental
+private runtime. Both are required together with `native_manifest`; the payload
+must match the manifest's filename, size and SHA-256. The runner copies the host
+and framework to action scratch, substitutes the JIT, and invokes MSBuild
+directly there. Loader evidence is kept in diagnostics, never consumer bundles.
+See [loaded JIT findings](loader-runtime-findings.md) for the byte variants,
+no-fallback control and remaining absolute-path dependencies.
 
 See the [.NET runner experiment](dotnet-runner-findings.md) for the migration
 from Python actions and its validation. The action request and consumer bundle

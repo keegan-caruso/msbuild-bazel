@@ -7,13 +7,14 @@ internal sealed record InputFile(string Source, string Destination);
 internal sealed record ActionRequest(
     ProjectKind Project, InputFile[] Sources, string[] Restore, InputFile[] Packages,
     string? PackageManifest, string Plugin, string BuildProps, string BuildTargets, string Output, string Diagnostics,
-    string? Dependency, string UndeclaredProbe, string? NativeManifest, InputFile[] NativeFiles);
+    string? Dependency, string UndeclaredProbe, string? NativeManifest, InputFile[] NativeFiles,
+    string? LoaderJit = null, string? LoaderManifest = null);
 
 internal sealed record Artifact(string Path, long Size, string Sha256);
 internal sealed record PackageFile(string Path, long Size, string Sha256);
 internal sealed record Package(string Id, string Version, string Path, PackageFile[] Files);
 internal sealed record PackageManifest(int SchemaVersion, Package[] Packages);
-internal sealed record NativeManifest(int SchemaVersion, string[] Files);
+internal sealed record NativeManifest(int SchemaVersion, Artifact[] Files);
 
 internal sealed record RestoreAssets(Dictionary<string, RestoreLibrary> Libraries);
 internal sealed record RestoreLibrary(string Type, string? Path = null);

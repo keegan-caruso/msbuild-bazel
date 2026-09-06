@@ -19,6 +19,8 @@ jobs:
         run: bash scripts/bazel.sh query //:repo_setup --noshow_progress
       - name: Check whitespace
         run: git diff --check
+      - name: Action runner contracts
+        run: bash scripts/dotnet.sh run --project tests/ActionRunner.Tests -c Release
       - name: MSBuild boundary e2e tests
         run: python3 -m unittest discover -s tests/e2e -v
       - name: Retain failed experiment artifacts
