@@ -1,0 +1,24 @@
+name: Configured graph acceptance
+on:
+  push:
+    branches: [main, 'codex/m*']
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  graph-export:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install pinned tools
+        run: bash scripts/setup.sh
+      - name: Configured graph contracts
+        run: python3 -m unittest discover -s tests/graph -v
+      - name: Retain failed graph evidence
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: configured-graph-failures
+          path: /tmp/msbuild-graph-*/**/*.log
+          if-no-files-found: ignore
