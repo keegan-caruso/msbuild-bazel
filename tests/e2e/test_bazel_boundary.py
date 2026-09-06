@@ -25,17 +25,30 @@ class BazelBoundaryTests(unittest.TestCase):
     def test_deterministic_staging(self):
         self.run_probe(False, staging=True)
 
-    def run_probe(self, identity, packages=False, staging=False):
+    @unittest.skipUnless(os.environ.get('SPIKE_NATIVE_RUNTIME_TEST') == '1',
+                         'opt in with SPIKE_NATIVE_RUNTIME_TEST=1 inside nix develop')
+    def test_native_runtime_closure(self):
+        self.run_probe(False, native_runtime=True)
+
+    def run_probe(self, identity, packages=False, staging=False, native_runtime=False):
         directory = Path(tempfile.mkdtemp(prefix='msbuild-e2e-bazel-')).resolve()
         try:
             completed = subprocess.run([sys.executable, str(ROOT / 'tools/probe_bazel.py'),
-                                        '--output', str(directory / 'probe'), *(['--identity-probe'] if identity else []), *(['--package-probe'] if packages else []), *(['--staging-probe'] if staging else [])],
+                                        '--output', str(directory / 'probe'), *(['--identity-probe'] if identity else []), *(['--package-probe'] if packages else []), *(['--staging-probe'] if staging else []), *(['--native-runtime-probe'] if native_runtime else [])],
                                        text=True, capture_output=True, timeout=900)
             self.assertEqual(completed.returncode, 0, completed.stdout + completed.stderr)
             report = json.loads((directory / 'probe/report.json').read_text())
             self.assertEqual(report['baselineOutput'], 'shared-v1/data-v1/import-v1/env-v1/app-v1' if identity else ('shared-v1/package-v1/target-v1/app-v1' if packages else 'shared-v1/app-v1'))
             self.assertTrue(report['preparationWorkspaceAbsent'])
             self.assertEqual(report['sdkVersion'], '10.0.100')
+            if native_runtime:
+                self.assertGreater(report['nativeRuntime']['fileCount'], 0)
+                self.assertGreater(len(report['nativeRuntime']['storePaths']), 2)
+                self.assertNotEqual(report['missingNativeRuntime']['returncode'], 0)
+                for action in report['cases']['cold']['executions']:
+                    self.assertIn('runtime-closure.json', action['inputs'])
+                    self.assertTrue(any('/lib/lib' in path and ('dylib' in path or '.so' in path)
+                                        for path in action['inputs']))
             if staging:
                 self.assertEqual(report['staging']['differences'], {'shared': [], 'app': []})
                 self.assertEqual(report['staging']['before'], report['staging']['after'])

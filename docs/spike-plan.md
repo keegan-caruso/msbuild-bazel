@@ -11,12 +11,14 @@ Steps 1–7 below are implemented. The two-target Bazel adapter also has
 [pinned build-package](package-input-findings.md) acceptance coverage on macOS
 ARM64. The earlier nine-test suite, including replay and native sandbox/cache
 cases, also passed in Ubuntu 22.04 Linux x86-64 CI; see [Linux evidence](bazel-findings.md#ci-repair-2026-09-05).
-The user is handling Linux validation of the newer identity/package tests.
+Linux validation runs through the setup and Nix CI workflows.
 Cross-platform artifact reuse remains unproven.
 
 The first staging slice now compares identical consumer bundles across fresh
 native macOS ARM64 executions; see [staging findings](staging-findings.md).
-Next, address native runtime/toolchain closure.
+The first [native runtime slice](native-runtime-findings.md) now declares the Nix
+reference closure and rejects incomplete declarations. Next, investigate remaining
+host runtime reads and native-library changes; full runtime closure remains open.
 Ordinary package DLL/runtime assets need separate coverage. General graph export
 (step 8) remains deferred until these boundaries are established.
 

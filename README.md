@@ -17,7 +17,9 @@ is handled separately. Cross-platform artifact reuse remains unproven.
 The [deterministic staging experiment](docs/staging-findings.md) now compares
 consumer bundles across fresh sandbox executions on macOS ARM64.
 
-**Next:** Address native runtime/toolchain closure.
+**Runtime progress:** The [Nix runtime experiment](docs/native-runtime-findings.md)
+declares SDK/Python reference closures, including native libraries and signing tools.
+**Next:** Investigate remaining host runtime dependencies and native-library changes.
 General graph export, ordinary NuGet binary/runtime assets, remote-cache
 correctness and cross-platform portability remain unproven.
 
@@ -114,6 +116,8 @@ generated-source data, environment and host-identity invalidation. Use
 upgrades and rejection of missing/corrupt/stale package inputs.
 Use `--staging-probe` to compare complete consumer bundles from two fresh builds
 with separate output bases and empty disk caches.
+Inside `nix develop`, use `--native-runtime-probe` to declare the transitive Nix
+runtime closure and check rejection of incomplete action inputs.
 
 ## Validation
 

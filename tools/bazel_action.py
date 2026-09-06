@@ -59,6 +59,14 @@ def stage_packages(request, workspace, execroot):
 
 def action(request):
     execroot = Path.cwd()
+    if request.get('native_manifest'):
+        manifest = json.loads((execroot / request['native_manifest']).read_text())
+        entries = request['native_files']
+        if manifest['schemaVersion'] != 1 or sorted(e['destination'] for e in entries) != sorted(manifest['files']):
+            raise ValueError('native runtime closure declaration mismatch')
+        for entry in entries:
+            if not (execroot / entry['source']).is_file():
+                raise ValueError('native runtime closure file missing: ' + entry['destination'])
     output = (execroot / request['output']).absolute()
     output.mkdir(parents=True, exist_ok=True)
     diagnostics = execroot / request['diagnostics']

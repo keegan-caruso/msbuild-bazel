@@ -22,6 +22,7 @@ jobs:
       - name: MSBuild boundary e2e tests
         env:
           TMPDIR: ${{ runner.temp }}
+          SPIKE_NATIVE_RUNTIME_TEST: "1"
         run: nix develop --no-update-lock-file -c python3 -m unittest discover -s tests/e2e -v
       - name: Retain failed experiment logs
         if: failure()

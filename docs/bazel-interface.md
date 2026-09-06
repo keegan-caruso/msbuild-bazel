@@ -54,3 +54,10 @@ with a separate output base and empty disk cache, then compares every consumer
 bundle file hash and executable bit. Shared stages bin outputs and its reference
 assembly, rather than its entire obj tree. See [staging findings](staging-findings.md)
 for path mapping, metadata canonicalization and the fixture-specific limits.
+
+`--native-runtime-probe` is an opt-in, mutually exclusive Nix mode. Preparation
+queries SDK/Python reference closures and writes `runtime-closure.json`. The
+`native_runtime` and `native_manifest` rule inputs declare all inventoried files;
+the runner checks completeness before compilation. Missing declarations fail
+even if store files are still readable on the host. See [runtime findings](native-runtime-findings.md)
+for the host OS boundary and retained evidence.

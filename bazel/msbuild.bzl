@@ -22,9 +22,11 @@ def _msbuild_project_impl(ctx):
         "diagnostics": diagnostics.path,
         "dependency": dependency.path if dependency else None,
         "undeclared_probe": ctx.attr.undeclared_probe,
+        "native_manifest": ctx.file.native_manifest.path if ctx.file.native_manifest else None,
+        "native_files": [{"source": f.path, "destination": "/".join(f.short_path.split("/")[2:])} for f in ctx.files.native_runtime],
     }))
     ctx.actions.run(
-        inputs = depset(ctx.files.srcs + ctx.files.restore + ctx.files.packages +
+        inputs = depset(ctx.files.native_runtime + ([ctx.file.native_manifest] if ctx.file.native_manifest else []) + ctx.files.srcs + ctx.files.restore + ctx.files.packages +
                         ([ctx.file.package_manifest] if ctx.file.package_manifest else []) + [request, ctx.file.plugin, ctx.file.runner, ctx.file.host_identity] +
                         ([dependency] if dependency else []), transitive = [ctx.attr.sdk[DefaultInfo].files, ctx.attr.runtime[DefaultInfo].files]),
         outputs = [output, diagnostics],
@@ -51,6 +53,8 @@ msbuild_project = rule(
         "dotnet": attr.label(allow_single_file = True, mandatory = True),
         "python": attr.label(allow_single_file = True, executable = True, cfg = "exec", mandatory = True),
         "runtime": attr.label(mandatory = True),
+        "native_runtime": attr.label(allow_files = True),
+        "native_manifest": attr.label(allow_single_file = True),
         "host_identity": attr.label(allow_single_file = True, mandatory = True),
         "build_environment": attr.string_dict(),
         "dependency": attr.label(providers = [MsbuildBundle]),
@@ -83,5 +87,18 @@ local_python_runtime = repository_rule(
         "stdlib": attr.string(mandatory = True),
         "library": attr.string(),
     },
+    local = True,
+)
+
+# Use the exact preparation inventory rather than an independent glob.
+def _native_runtime_impl(ctx):
+    manifest = json.decode(ctx.read(ctx.attr.manifest))
+    for path in manifest["storePaths"]:
+        ctx.symlink(path, path.split("/")[-1])
+    ctx.file("BUILD.bazel", "filegroup(name=\"files\", srcs=" + json.encode(manifest["files"]) + ", visibility=[\"//visibility:public\"])\n")
+
+local_native_runtime = repository_rule(
+    implementation = _native_runtime_impl,
+    attrs = {"manifest": attr.label(mandatory = True)},
     local = True,
 )

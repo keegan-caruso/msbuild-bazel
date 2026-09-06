@@ -12,6 +12,7 @@ import sysconfig
 import xml.etree.ElementTree as ET
 
 import package_inputs
+import runtime_inputs
 
 ROOT = Path(__file__).resolve().parents[1]
 DOTNET = Path(os.environ.get('SPIKE_DOTNET_ROOT', ROOT / '.tools/dotnet')) / 'dotnet'
@@ -34,11 +35,11 @@ def bundle_snapshot(directory):
         for path in sorted(directory.rglob('*')) if path.is_file()}
 
 
-def probe(output, identity=False, package_mode=False, staging=False):
+def probe(output, identity=False, package_mode=False, staging=False, native_runtime=False):
     output.mkdir(parents=True, exist_ok=False)
     workspace = output / 'workspace'
     workspace.mkdir()
-    report = dict(schemaVersion=1, platform=platform.platform(), identityProbe=identity, packageProbe=package_mode, stagingProbe=staging, cases={})
+    report = dict(schemaVersion=1, platform=platform.platform(), identityProbe=identity, packageProbe=package_mode, stagingProbe=staging, nativeRuntimeProbe=native_runtime, cases={})
     env = dict(os.environ, DOTNET_ROOT=str(DOTNET.parent),
                DOTNET_CLI_HOME=str(output / 'dotnet-home'),
                NUGET_PACKAGES=str(output / 'prepare/.nuget/packages'),
@@ -125,6 +126,12 @@ def probe(output, identity=False, package_mode=False, staging=False):
     with (workspace / 'MODULE.bazel').open('a') as module:
         module.write('local_python_runtime = use_repo_rule("//:msbuild.bzl", "local_python_runtime")\n')
         module.write('local_python_runtime(name="python", ' + ', '.join(f'{key}={json.dumps(value)}' for key, value in runtime.items()) + ')\n')
+    if native_runtime:
+        closure = runtime_inputs.prepare(workspace, [runtime['python'], runtime['stdlib'], runtime['library'], DOTNET])
+        report['nativeRuntime'] = dict(storePaths=closure['storePaths'], fileCount=len(closure['files']), boundary=closure['boundary'])
+        with (workspace / 'MODULE.bazel').open('a') as module:
+            module.write('local_native_runtime = use_repo_rule("//:msbuild.bzl", "local_native_runtime")\n')
+            module.write('local_native_runtime(name="native", manifest="//:runtime-closure.json")\n')
     host_identity = dict(schemaVersion=1, platform=platform.platform(), machine=platform.machine(),
                          pythonVersion=sys.version, runtime=runtime, policyRevision=1)
     (workspace / 'host-identity.json').write_text(json.dumps(host_identity, indent=2))
@@ -134,6 +141,8 @@ def probe(output, identity=False, package_mode=False, staging=False):
     settings = dict(plugin='ReplayPlugin.dll', runner='bazel_action.py', sdk='@dotnet//:files',
                     dotnet='@dotnet//:sdk/dotnet', python='@python//:python', runtime='@python//:files',
                     host_identity='host-identity.json', build_environment={'SPIKE_INPUT_FLAVOR': 'env-v1'} if identity else {})
+    if native_runtime:
+        settings.update(native_runtime='@native//:files', native_manifest='runtime-closure.json')
     def rule(name, project, sources, restore, dependency=None, undeclared_probe=''):
         attrs = dict(settings, name=name, project=project, srcs=sources, restore=restore,
                      undeclared_probe=undeclared_probe)
@@ -296,6 +305,19 @@ def probe(output, identity=False, package_mode=False, staging=False):
         project.write_text(original_project.replace('[1.0.2]', '[1.0.0]'))
         package_failure('stalePackageRestore')
         project.write_text(original_project)
+    if native_runtime:
+        for execution in report['cases']['cold']['executions']:
+            declared = {'/'.join(path.split('/')[2:]) for path in execution['inputs'] if path.startswith('external/')}
+            missing = sorted(set(closure['files']) - declared)
+            if missing:
+                raise RuntimeError('native runtime inputs absent from execution log: ' + str(missing[:3]))
+        build_file = workspace / 'BUILD.bazel'
+        original = build_file.read_text()
+        build_file.write_text(original.replace('"@native//:files"', '"empty-runtime"') + '\nfilegroup(name="empty-runtime")\n')
+        failure = run('missingNativeRuntime', startup + ['build', '//:app', *flags], require=False)
+        build_file.write_text(original)
+        if failure.returncode == 0 or 'native runtime closure declaration mismatch' not in failure.stdout or 'SPIKE_COMPILE:' in failure.stdout:
+            raise RuntimeError('native runtime rejection not observed')
     negative_log = output / 'undeclared.execution.json'
     negative = run('undeclaredInput', startup + ['build', '//:undeclared', *flags,
                    f'--execution_log_json_file={negative_log}'], require=False)
@@ -315,9 +337,10 @@ if __name__ == '__main__':
     mode.add_argument('--identity-probe', action='store_true')
     mode.add_argument('--package-probe', action='store_true')
     mode.add_argument('--staging-probe', action='store_true')
+    mode.add_argument('--native-runtime-probe', action='store_true')
     args = parser.parse_args()
     try:
-        probe(args.output.resolve(), args.identity_probe, args.package_probe, args.staging_probe)
+        probe(args.output.resolve(), args.identity_probe, args.package_probe, args.staging_probe, args.native_runtime_probe)
     except (OSError, ValueError, RuntimeError, subprocess.SubprocessError) as error:
         print(error, file=sys.stderr)
         sys.exit(1)
