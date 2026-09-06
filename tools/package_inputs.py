@@ -1,4 +1,5 @@
 """Deterministic, checksum-pinned build-package preparation for the fixture."""
+import base64
 import hashlib
 import io
 import json
@@ -56,7 +57,7 @@ def configure(workspace, version, package_feed):
 
 
 def stage(prepare, workspace, pins, archives=None):
-    """Only archive payload bytes enter actions, verified against pinned archives."""
+    """Stage verified payloads and an archive-derived NuGet installation marker."""
     shutil.rmtree(workspace / 'packages', ignore_errors=True)
     (workspace / 'packages').mkdir()
     (workspace / 'package-manifests').mkdir(exist_ok=True)
@@ -94,6 +95,16 @@ def stage(prepare, workspace, pins, archives=None):
                     target.parent.mkdir(parents=True, exist_ok=True)
                     target.write_bytes(expected)
                     files.append(dict(path=name, sha256=hashlib.sha256(expected).hexdigest(), size=len(expected)))
+            # ResolvePackageAssets recognizes an installed package by its
+            # .nupkg.sha512 sidecar (or .nupkg.metadata), not DLL presence alone.
+            # Derive this from verified archive bytes; never copy ambient cache metadata.
+            archive_hash = base64.b64encode(hashlib.sha512(contents).digest()).decode('ascii')
+            if library['sha512'] != archive_hash:
+                raise ValueError('restored package content hash differs from archive: ' + identity)
+            name = f'{package_id.lower()}.{version}.nupkg.sha512'
+            marker = archive_hash.encode('ascii')
+            (workspace / 'packages' / package_path / name).write_bytes(marker)
+            files.append(dict(path=name, sha256=hashlib.sha256(marker).hexdigest(), size=len(marker)))
             packages.append(dict(id=package_id, version=version, path=package_path,
                                  archiveSha256=pins[key], files=files))
         (workspace / 'package-manifests' / (project + '.json')).write_text(

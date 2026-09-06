@@ -14,7 +14,11 @@ ZIP archives, and records SHA-256 for each archive. These are generated fixture
 hashes, not independently checked-in binary pins. Source and toolchain are pinned
 by the checkout; no general external-package trust claim is made. Restore occurs
 before actions. The existing schema-1 package manifest lists the complete
-resolved closure and verifies each payload against its prepared archive.
+resolved closure and verifies each payload against its prepared archive. Binary
+resolution also requires a `.nupkg.sha512` installation marker: preparation
+derives it from the verified archive, checks it against restored `sha512`, and
+includes it in the same declared, hash-verified manifest. Ambient `.nupkg.metadata`
+and source-feed paths are not copied into the package directory.
 
 The report adds `binaryPackageProbe`, `binaryAssets` per successful case (package
 identities from App.deps.json and staged DLL hashes), and per-case compilation
@@ -37,6 +41,7 @@ Acceptance:
   runtime payload hashes, not reference assembly hashes.
 - Missing declarations, corrupt transitive DLL bytes, stale direct restore,
   and an incomplete transitive manifest fail before compilation.
+- Removing the declared installation marker fails before compilation.
 - Removing the transitive runtime DLL from a copied runnable App output causes
   execution to fail despite the prepared package payload still being available.
 

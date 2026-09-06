@@ -317,6 +317,10 @@ def probe(output, identity=False, package_mode=False, staging=False, native_runt
                                         for line in original_build.splitlines()))
         package_failure('missingPackage')
         build_file.write_text(original_build)
+        if binary_packages:
+            build_file.write_text(re.sub(r'"packages/[^"]+\.nupkg\.sha512",? ?', '', original_build))
+            package_failure('missingPackageMarker')
+            build_file.write_text(original_build)
         payload = workspace / ('packages/spike.leaf/1.0.1/lib/net10.0/Spike.Leaf.dll' if binary_packages else 'packages/spike.buildinputs/1.0.2/data/value.txt')
         original_payload = payload.read_bytes()
         payload.write_bytes(original_payload + b'corrupt')

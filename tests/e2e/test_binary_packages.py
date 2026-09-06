@@ -50,6 +50,8 @@ class BinaryPackageTests(unittest.TestCase):
                         self.assertFalse(any(p.startswith('src/Shared/') and p.endswith('.cs')
                                              for p in action['inputs']))
                     for package in ('spike.binary', 'spike.leaf'):
+                        self.assertTrue(any(p.startswith('packages/' + package + '/')
+                                            and p.endswith('.nupkg.sha512') for p in action['inputs']))
                         for kind in ('ref', 'lib'):
                             self.assertTrue(any(p.startswith('packages/' + package + '/')
                                                 and f'/{kind}/net10.0/' in p and p.endswith('.dll')
@@ -63,10 +65,17 @@ class BinaryPackageTests(unittest.TestCase):
                     self.assertNotEqual(asset['outputSha256'], asset['referenceSha256'])
         for name in ('diskCache', 'newOutputBase'):
             self.assertEqual(report['cases'][name]['cacheHitProjects'], ['App', 'Shared'])
+        initial = report['cases']['cold']['binaryAssets']['files']
+        direct = report['cases']['binaryDirectVersion']['binaryAssets']['files']
+        transitive = report['cases']['binaryTransitiveVersion']['binaryAssets']['files']
+        self.assertNotEqual(initial['Spike.Binary.dll']['runtimeSha256'], direct['Spike.Binary.dll']['runtimeSha256'])
+        self.assertEqual(initial['Spike.Leaf.dll']['runtimeSha256'], direct['Spike.Leaf.dll']['runtimeSha256'])
+        self.assertEqual(direct['Spike.Binary.dll']['runtimeSha256'], transitive['Spike.Binary.dll']['runtimeSha256'])
+        self.assertNotEqual(direct['Spike.Leaf.dll']['runtimeSha256'], transitive['Spike.Leaf.dll']['runtimeSha256'])
         self.assertEqual(report['cases']['freshExecution']['cacheHitProjects'], [])
         self.assertTrue(report['staging']['workspacePathsDiffer'])
         self.assertEqual(report['staging']['differences'], {'shared': [], 'app': []})
-        for name in ('missingPackage', 'corruptPackage', 'stalePackageRestore', 'missingTransitivePackage'):
+        for name in ('missingPackage', 'missingPackageMarker', 'corruptPackage', 'stalePackageRestore', 'missingTransitivePackage'):
             self.assertNotEqual(report[name]['returncode'], 0)
             self.assertNotIn('SPIKE_COMPILE:', Path(report[name]['log']).read_text())
         self.assertNotEqual(report['missingRuntimeAsset']['returncode'], 0)

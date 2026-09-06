@@ -41,6 +41,21 @@ access, but this container does not register Bazel's required `linux-sandbox`
 strategy. No fallback strategy was used. This is not a passing sandbox/cache
 result. CI validation is tracked on PR #2.
 
+## Binary resolver finding
+
+The first Linux setup CI run passed all 13 existing non-native tests but failed
+the new binary test at Shared's `ResolvePackageAssets` with `NETSDK1064`.
+NuGet's package resolver requires a `.nupkg.sha512` or `.nupkg.metadata` marker
+to recognize an installed package; extracted DLLs alone are insufficient.
+See [SDK resolver](https://github.com/dotnet/sdk/blob/v10.0.100/src/Tasks/Microsoft.NET.Build.Tasks/NuGetPackageResolver.cs)
+and [NuGet resolver](https://github.com/NuGet/NuGet.Client/blob/dev/src/NuGet.Core/NuGet.Packaging/FallbackPackagePathResolver.cs).
+
+Preparation now derives the `.nupkg.sha512` sidecar from the already verified
+archive, checks it against the restore library hash and declares/hashes it with
+the payloads. A negative control removes its declaration. No ambient metadata
+or package archive is copied into an action. This extends preparation, without
+changing the runner's manifest validation or replay schemas.
+
 ## Limits
 
 This slice covers managed net10.0 ref/lib assets and an exact transitive package
