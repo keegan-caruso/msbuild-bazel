@@ -8,7 +8,6 @@ import platform
 import shutil
 import subprocess
 import sys
-import sysconfig
 import xml.etree.ElementTree as ET
 
 import package_inputs
@@ -113,33 +112,31 @@ def probe(output, identity=False, package_mode=False, staging=False, native_runt
                      '-graphBuild', '-isolateProjects', '-nologo'], prepare)
     report['baselineOutput'] = run('baseline-app', [DOTNET, prepare / 'App/bin/Release/net10.0/App.dll']).stdout.strip()
     shutil.copyfile(ROOT / 'tools/ReplayPlugin/bin/Release/net10.0/ReplayPlugin.dll', workspace / 'ReplayPlugin.dll')
-    shutil.copyfile(ROOT / 'tools/bazel_action.py', workspace / 'bazel_action.py')
+    run('runnerBuild', [DOTNET, 'build', ROOT / 'tools/ActionRunner', '-c', 'Release', '--nologo'], ROOT)
+    (workspace / 'runner').mkdir()
+    for suffix in ('.dll', '.deps.json', '.runtimeconfig.json'):
+        name = 'ActionRunner' + suffix
+        shutil.copyfile(ROOT / 'tools/ActionRunner/bin/Release/net10.0' / name, workspace / 'runner' / name)
     shutil.copyfile(ROOT / 'bazel/msbuild.bzl', workspace / 'msbuild.bzl')
     (workspace / 'MODULE.bazel').write_text('module(name="msbuild_fixture")\n'
         'local_dotnet_sdk = use_repo_rule("//:msbuild.bzl", "local_dotnet_sdk")\n'
         f'local_dotnet_sdk(name="dotnet", path={json.dumps(str(DOTNET.parent.resolve()))})\n')
-    library = Path(sysconfig.get_config_var('LIBDIR')) / sysconfig.get_config_var('LDLIBRARY')
-    if sysconfig.get_config_var('PYTHONFRAMEWORK'):
-        library = Path(sys.prefix) / sysconfig.get_config_var('PYTHONFRAMEWORK')
-    runtime = dict(python=str(Path(sys.executable).resolve()), stdlib=str(Path(sysconfig.get_path('stdlib')).resolve()),
-                   library=str(library.resolve()) if library.is_file() else '')
-    with (workspace / 'MODULE.bazel').open('a') as module:
-        module.write('local_python_runtime = use_repo_rule("//:msbuild.bzl", "local_python_runtime")\n')
-        module.write('local_python_runtime(name="python", ' + ', '.join(f'{key}={json.dumps(value)}' for key, value in runtime.items()) + ')\n')
+    runtime = dict(dotnet=str(DOTNET.resolve()))
     if native_runtime:
-        closure = runtime_inputs.prepare(workspace, [runtime['python'], runtime['stdlib'], runtime['library'], DOTNET])
+        closure = runtime_inputs.prepare(workspace, [DOTNET])
         report['nativeRuntime'] = dict(storePaths=closure['storePaths'], fileCount=len(closure['files']), boundary=closure['boundary'])
         with (workspace / 'MODULE.bazel').open('a') as module:
             module.write('local_native_runtime = use_repo_rule("//:msbuild.bzl", "local_native_runtime")\n')
             module.write('local_native_runtime(name="native", manifest="//:runtime-closure.json")\n')
     host_identity = dict(schemaVersion=1, platform=platform.platform(), machine=platform.machine(),
-                         pythonVersion=sys.version, runtime=runtime, policyRevision=1)
+                         runtime=runtime, policyRevision=1)
     (workspace / 'host-identity.json').write_text(json.dumps(host_identity, indent=2))
     common = ['src/Directory.Build.props', 'src/Directory.Build.targets', 'src/global.json', 'src/NuGet.Config']
     # NuGet.Config fixture casing follows the existing source tree.
     common = [p for p in common if (workspace / p).exists()]
-    settings = dict(plugin='ReplayPlugin.dll', runner='bazel_action.py', sdk='@dotnet//:files',
-                    dotnet='@dotnet//:sdk/dotnet', python='@python//:python', runtime='@python//:files',
+    settings = dict(plugin='ReplayPlugin.dll', runner='runner/ActionRunner.dll',
+                    runner_support=['runner/ActionRunner.deps.json', 'runner/ActionRunner.runtimeconfig.json'], sdk='@dotnet//:files',
+                    dotnet='@dotnet//:sdk/dotnet',
                     host_identity='host-identity.json', build_environment={'SPIKE_INPUT_FLAVOR': 'env-v1'} if identity else {})
     if native_runtime:
         settings.update(native_runtime='@native//:files', native_manifest='runtime-closure.json')
@@ -322,7 +319,7 @@ def probe(output, identity=False, package_mode=False, staging=False, native_runt
     negative = run('undeclaredInput', startup + ['build', '//:undeclared', *flags,
                    f'--execution_log_json_file={negative_log}'], require=False)
     report['undeclaredInput']['executionLog'] = str(negative_log)
-    if 'FileNotFoundError' not in negative.stdout or 'undeclared.txt' not in negative.stdout:
+    if 'FileNotFoundException' not in negative.stdout or 'undeclared.txt' not in negative.stdout:
         raise RuntimeError('undeclared-input probe failed for an unexpected reason')
     if negative.returncode == 0:
         raise RuntimeError('sandbox exposed undeclared relative input')

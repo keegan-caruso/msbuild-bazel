@@ -28,8 +28,8 @@ def prepare(workspace, paths):
         if root.is_file():
             files.append(root.name)
             continue
-        # Follow file symlinks, but not directory symlinks. Their targets are
-        # separately enumerated through Nix references.
+        # Nix references enumerate directory symlink targets separately;
+        # walking them here would duplicate payloads.
         for path in sorted(root.rglob('*')):
             if path.is_file():
                 files.append(root.name + '/' + path.relative_to(root).as_posix())

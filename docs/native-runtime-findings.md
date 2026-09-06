@@ -52,6 +52,16 @@ scheduling/cache, same-path boundary, relocation and public-API replay cases.
 `bash scripts/check.sh`, Python syntax checks and `git diff --check` also passed.
 Native sandbox execution ran outside the outer agent restriction.
 
+## Linux validation
+
+At commit `ba80e29`, the [Nix workflow](https://github.com/keegan-caruso/msbuild-bazel/actions/runs/34005560602)
+passed all 13 tests in 695.839 seconds on Ubuntu 22.04. The [setup workflow](https://github.com/keegan-caruso/msbuild-bazel/actions/runs/34005560579)
+passed 12 tests with the Nix-only test skipped (735.243 seconds for the suite).
+
+The subsequent [.NET runner change](dotnet-runner-findings.md) removes Python
+from actions and changes the closure roots to the SDK alone. The SDK/Python
+counts above describe the original experiment, not the smaller current closure.
+
 ## Boundary and remaining work
 
 Nix references close a larger part of action identity, including external native

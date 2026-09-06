@@ -18,7 +18,8 @@ The [deterministic staging experiment](docs/staging-findings.md) now compares
 consumer bundles across fresh sandbox executions on macOS ARM64.
 
 **Runtime progress:** The [Nix runtime experiment](docs/native-runtime-findings.md)
-declares SDK/Python reference closures, including native libraries and signing tools.
+declares native libraries and signing tools. The [.NET action runner](docs/dotnet-runner-findings.md)
+uses the existing SDK; Python remains only in preparation and tests.
 **Next:** Investigate remaining host runtime dependencies and native-library changes.
 General graph export, ordinary NuGet binary/runtime assets, remote-cache
 correctness and cross-platform portability remain unproven.

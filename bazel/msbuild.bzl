@@ -17,7 +17,6 @@ def _msbuild_project_impl(ctx):
         "packages": [{"source": f.path, "destination": f.short_path.removeprefix("packages/")} for f in ctx.files.packages],
         "package_manifest": ctx.file.package_manifest.path if ctx.file.package_manifest else None,
         "plugin": ctx.file.plugin.path,
-        "dotnet": ctx.file.dotnet.path,
         "output": output.path,
         "diagnostics": diagnostics.path,
         "dependency": dependency.path if dependency else None,
@@ -26,12 +25,12 @@ def _msbuild_project_impl(ctx):
         "native_files": [{"source": f.path, "destination": "/".join(f.short_path.split("/")[2:])} for f in ctx.files.native_runtime],
     }))
     ctx.actions.run(
-        inputs = depset(ctx.files.native_runtime + ([ctx.file.native_manifest] if ctx.file.native_manifest else []) + ctx.files.srcs + ctx.files.restore + ctx.files.packages +
+        inputs = depset(ctx.files.runner_support + ctx.files.native_runtime + ([ctx.file.native_manifest] if ctx.file.native_manifest else []) + ctx.files.srcs + ctx.files.restore + ctx.files.packages +
                         ([ctx.file.package_manifest] if ctx.file.package_manifest else []) + [request, ctx.file.plugin, ctx.file.runner, ctx.file.host_identity] +
-                        ([dependency] if dependency else []), transitive = [ctx.attr.sdk[DefaultInfo].files, ctx.attr.runtime[DefaultInfo].files]),
+                        ([dependency] if dependency else []), transitive = [ctx.attr.sdk[DefaultInfo].files]),
         outputs = [output, diagnostics],
-        executable = ctx.executable.python,
-        arguments = ["-I", "-S", "-B", ctx.file.runner.path, "--request", request.path],
+        executable = ctx.executable.dotnet,
+        arguments = [ctx.file.runner.path, "--request", request.path],
         env = dict({"PATH": "/usr/bin:/bin", "LANG": "en_US.UTF-8"}, **ctx.attr.build_environment),
         mnemonic = "MsbuildProject",
         progress_message = "MSBuild %s with dependency replay" % ctx.attr.project,
@@ -49,10 +48,9 @@ msbuild_project = rule(
         "package_manifest": attr.label(allow_single_file = True),
         "plugin": attr.label(allow_single_file = True, mandatory = True),
         "runner": attr.label(allow_single_file = True, mandatory = True),
+        "runner_support": attr.label_list(allow_files = True),
         "sdk": attr.label(mandatory = True),
-        "dotnet": attr.label(allow_single_file = True, mandatory = True),
-        "python": attr.label(allow_single_file = True, executable = True, cfg = "exec", mandatory = True),
-        "runtime": attr.label(mandatory = True),
+        "dotnet": attr.label(allow_single_file = True, executable = True, cfg = "exec", mandatory = True),
         "native_runtime": attr.label(allow_files = True),
         "native_manifest": attr.label(allow_single_file = True),
         "host_identity": attr.label(allow_single_file = True, mandatory = True),
@@ -73,24 +71,7 @@ local_dotnet_sdk = repository_rule(
 )
 
 
-def _runtime_impl(ctx):
-    ctx.symlink(ctx.attr.python, "python")
-    ctx.symlink(ctx.attr.stdlib, "stdlib")
-    if ctx.attr.library:
-        ctx.symlink(ctx.attr.library, "python-library")
-    ctx.file("BUILD.bazel", 'filegroup(name="files", srcs=glob(["python", "python-library", "stdlib/**"], exclude=["stdlib/site-packages/**"]), visibility=["//visibility:public"])\nexports_files(["python"])\n')
-
-local_python_runtime = repository_rule(
-    implementation = _runtime_impl,
-    attrs = {
-        "python": attr.string(mandatory = True),
-        "stdlib": attr.string(mandatory = True),
-        "library": attr.string(),
-    },
-    local = True,
-)
-
-# Use the exact preparation inventory rather than an independent glob.
+# Derive inputs from the manifest so Bazel hashes the same files the runner validates.
 def _native_runtime_impl(ctx):
     manifest = json.decode(ctx.read(ctx.attr.manifest))
     for path in manifest["storePaths"]:

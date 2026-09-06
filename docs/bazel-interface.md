@@ -18,9 +18,10 @@ restore or download tools. App stages and validates Shared's dependency bundle,
 then uses public-API replay with `-graphBuild -isolateProjects`. Shared and App
 outputs are separate Bazel tree artifacts. Action reports and logs live in
 separate `<target>.diagnostics` outputs excluded from downstream action inputs.
-The SDK tree participates in the action digest. The Python executable/core library/standard library are now declared through a
-local runtime repository; Python runs directly with `-I -S -B`. Native libraries
-outside those trees and the Nix runtime closure are not yet hermetic toolchains;
+The SDK tree and framework-dependent `ActionRunner` DLL, deps.json and
+runtimeconfig.json participate in the action digest. Bazel launches the declared
+SDK host directly with the runner DLL. Python is used only by preparation and
+tests. The runtime is not yet a hermetic toolchain;
 reports and rule configuration record the chosen host runtime. No remote-cache
 or remote-execution correctness is claimed.
 
@@ -38,8 +39,8 @@ fallback to local execution.
 `--identity-probe` additionally measures imported targets, generated-source data,
 explicit build environment, ambient environment exclusion, App restore metadata
 and host-identity changes. See [identity findings](action-identity-findings.md).
-The rule requires `runtime`, `python`, and `host_identity` labels and optionally
-accepts `build_environment` entries prefixed with `SPIKE_INPUT_`. Remote execution
+The rule requires `dotnet`, `sdk`, `runner`, and `host_identity` labels, with
+`runner_support` supplying its runtime JSON files. It optionally accepts `build_environment` entries prefixed with `SPIKE_INPUT_`. Remote execution
 and remote-cache use are disabled; local disk caching remains enabled.
 
 `--package-probe` is mutually exclusive with `--identity-probe`. It prepares exact
@@ -56,8 +57,13 @@ assembly, rather than its entire obj tree. See [staging findings](staging-findin
 for path mapping, metadata canonicalization and the fixture-specific limits.
 
 `--native-runtime-probe` is an opt-in, mutually exclusive Nix mode. Preparation
-queries SDK/Python reference closures and writes `runtime-closure.json`. The
+queries the SDK reference closure and writes `runtime-closure.json`. The
 `native_runtime` and `native_manifest` rule inputs declare all inventoried files;
 the runner checks completeness before compilation. Missing declarations fail
 even if store files are still readable on the host. See [runtime findings](native-runtime-findings.md)
 for the host OS boundary and retained evidence.
+
+See the [.NET runner experiment](dotnet-runner-findings.md) for the migration
+from Python actions and its validation. The action request and consumer bundle
+contracts remain the same except that the runner locates its SDK host through
+`Environment.ProcessPath` instead of accepting a redundant `dotnet` JSON field.

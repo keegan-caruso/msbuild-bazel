@@ -94,8 +94,11 @@ class BazelBoundaryTests(unittest.TestCase):
                 self.assertTrue(any('/sdk/sdk/10.0.100/Microsoft.Build.dll' in path for path in action['inputs']))
                 self.assertIn('ReplayPlugin.dll', action['inputs'])
                 self.assertIn('host-identity.json', action['inputs'])
-                self.assertTrue(any('/stdlib/json/__init__.py' in path for path in action['inputs']))
-                self.assertEqual(action['commandArgs'][1:4], ['-I', '-S', '-B'])
+                self.assertFalse(any('/stdlib/' in path or '+python/' in path for path in action['inputs']))
+                self.assertTrue(action['commandArgs'][0].endswith('/sdk/dotnet'))
+                self.assertEqual(action['commandArgs'][1:3], ['runner/ActionRunner.dll', '--request'])
+                for name in ('ActionRunner.dll', 'ActionRunner.deps.json', 'ActionRunner.runtimeconfig.json'):
+                    self.assertIn('runner/' + name, action['inputs'])
                 self.assertFalse(action['remotable'])
                 self.assertFalse(action['remoteCacheable'])
                 self.assertIn('src/Directory.Build.targets', action['inputs'])

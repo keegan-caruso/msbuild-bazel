@@ -17,7 +17,9 @@ Cross-platform artifact reuse remains unproven.
 The first staging slice now compares identical consumer bundles across fresh
 native macOS ARM64 executions; see [staging findings](staging-findings.md).
 The first [native runtime slice](native-runtime-findings.md) now declares the Nix
-reference closure and rejects incomplete declarations. Next, investigate remaining
+reference closure and rejects incomplete declarations. The [.NET runner](dotnet-runner-findings.md)
+removes Python from build actions while retaining the Python experiment harness.
+Next, investigate remaining
 host runtime reads and native-library changes; full runtime closure remains open.
 Ordinary package DLL/runtime assets need separate coverage. General graph export
 (step 8) remains deferred until these boundaries are established.
