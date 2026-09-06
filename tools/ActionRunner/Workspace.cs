@@ -1,5 +1,3 @@
-using System.Xml.Linq;
-
 namespace ActionRunner;
 
 internal sealed class Workspace
@@ -31,27 +29,12 @@ internal sealed class Workspace
         foreach (var source in request.Sources)
             Files.Copy(source.Source, Path.Combine(Root, source.Destination));
         foreach (var restore in request.Restore)
-        foreach (var (relative, contents) in JsonFiles.Read<Dictionary<string, string>>(restore))
-        {
-            var target = Path.Combine(Root, relative);
-            Directory.CreateDirectory(Path.GetDirectoryName(target)!);
-            File.WriteAllText(target, contents.Replace("${WORKSPACE}", Root).Replace("${SDK}", SdkRoot));
-        }
+            foreach (var (relative, contents) in JsonFiles.Read<Dictionary<string, string>>(restore))
+            {
+                var target = Path.Combine(Root, relative);
+                Directory.CreateDirectory(Path.GetDirectoryName(target)!);
+                File.WriteAllText(target, contents.Replace("${WORKSPACE}", Root).Replace("${SDK}", SdkRoot));
+            }
     }
 
-    public void ConfigureBuild(string plugin)
-    {
-        var propsPath = Path.Combine(Root, "Directory.Build.props");
-        var props = XDocument.Load(propsPath);
-        // Local properties preserve the replay identity while removing sandbox paths from compiler outputs.
-        props.Root!.Add(new XElement("PropertyGroup",
-            new XElement("PathMap", Root + "=/_/workspace"), new XElement("Deterministic", "true"),
-            // A copied fixture must not discover the enclosing checkout's Git metadata.
-            new XElement("EnableSourceControlManagerQueries", "false"), new XElement("EnableSourceLink", "false")));
-        props.Save(propsPath);
-        var targetsPath = Path.Combine(Root, "Directory.Build.targets");
-        var targets = XDocument.Load(targetsPath);
-        targets.Root!.Add(new XElement("ItemGroup", new XElement("ProjectCachePlugin", new XAttribute("Include", Path.GetFullPath(plugin)))));
-        targets.Save(targetsPath);
-    }
 }

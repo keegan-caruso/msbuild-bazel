@@ -117,6 +117,8 @@ def probe(output, identity=False, package_mode=False, staging=False, native_runt
     for suffix in ('.dll', '.deps.json', '.runtimeconfig.json'):
         name = 'ActionRunner' + suffix
         shutil.copyfile(ROOT / 'tools/ActionRunner/bin/Release/net10.0' / name, workspace / 'runner' / name)
+    for name in ('Action.props', 'Action.targets'):
+        shutil.copyfile(ROOT / 'tools/ActionRunner/Build' / name, workspace / 'runner' / name)
     shutil.copyfile(ROOT / 'bazel/msbuild.bzl', workspace / 'msbuild.bzl')
     (workspace / 'MODULE.bazel').write_text('module(name="msbuild_fixture")\n'
         'local_dotnet_sdk = use_repo_rule("//:msbuild.bzl", "local_dotnet_sdk")\n'
@@ -134,7 +136,7 @@ def probe(output, identity=False, package_mode=False, staging=False, native_runt
     common = ['src/Directory.Build.props', 'src/Directory.Build.targets', 'src/global.json', 'src/NuGet.Config']
     # NuGet.Config fixture casing follows the existing source tree.
     common = [p for p in common if (workspace / p).exists()]
-    settings = dict(plugin='ReplayPlugin.dll', runner='runner/ActionRunner.dll',
+    settings = dict(plugin='ReplayPlugin.dll', build_props='runner/Action.props', build_targets='runner/Action.targets', runner='runner/ActionRunner.dll',
                     runner_support=['runner/ActionRunner.deps.json', 'runner/ActionRunner.runtimeconfig.json'], sdk='@dotnet//:files',
                     dotnet='@dotnet//:sdk/dotnet',
                     host_identity='host-identity.json', build_environment={'SPIKE_INPUT_FLAVOR': 'env-v1'} if identity else {})
@@ -267,6 +269,10 @@ def probe(output, identity=False, package_mode=False, staging=False, native_runt
         host_identity['policyRevision'] = 2
         (workspace / 'host-identity.json').write_text(json.dumps(host_identity, indent=2))
         build_case('hostIdentityEdit')
+        policy = workspace / 'runner/Action.props'
+        policy.write_text(policy.read_text().replace('<Deterministic>true',
+            '<Deterministic Condition="\'$(Configuration)\' == \'Release\'">true'))
+        build_case('policyEdit')
     if package_mode:
         for name, version in (('packageDataVersion', '1.0.1'), ('packageTargetVersion', '1.0.2')):
             preparation = output / ('prepare-' + version)

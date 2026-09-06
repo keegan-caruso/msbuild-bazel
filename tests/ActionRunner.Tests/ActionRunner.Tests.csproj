@@ -8,6 +8,6 @@
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
   </PropertyGroup>
   <ItemGroup>
-    <InternalsVisibleTo Include="ActionRunner.Tests" />
+    <ProjectReference Include="../../tools/ActionRunner/ActionRunner.csproj" />
   </ItemGroup>
 </Project>

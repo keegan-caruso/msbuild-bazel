@@ -44,6 +44,14 @@ experiment to 19 paths / 6,009 files. No Python store roots remain in that
 inventory. The declared SDK host launches the runner directly. The runtime
 configuration and dependency JSON are staged alongside its DLL.
 
+## Subsequent review changes
+
+The [runner refactor](action-runner-refactor.md) separates process execution from
+build evidence, moves policy to declared MSBuild imports and makes a file-by-file
+.NET contract pass. It also fixes the symlink-length package validation regression
+found by CI on this initial runner commit. The initial native probe above did not
+exercise package payloads; see the refactor for that separate validation.
+
 ## Limits
 
 This removes Python from build actions only. It does not remove .NET's native

@@ -1,0 +1,6 @@
+<Project>
+  <Import Project="$(SPIKE_REPLAY_WORKSPACE)/Directory.Build.targets" />
+  <ItemGroup>
+    <ProjectCachePlugin Include="$(SPIKE_REPLAY_PLUGIN)" />
+  </ItemGroup>
+</Project>

@@ -97,7 +97,7 @@ class BazelBoundaryTests(unittest.TestCase):
                 self.assertFalse(any('/stdlib/' in path or '+python/' in path for path in action['inputs']))
                 self.assertTrue(action['commandArgs'][0].endswith('/sdk/dotnet'))
                 self.assertEqual(action['commandArgs'][1:3], ['runner/ActionRunner.dll', '--request'])
-                for name in ('ActionRunner.dll', 'ActionRunner.deps.json', 'ActionRunner.runtimeconfig.json'):
+                for name in ('ActionRunner.dll', 'ActionRunner.deps.json', 'ActionRunner.runtimeconfig.json', 'Action.props', 'Action.targets'):
                     self.assertIn('runner/' + name, action['inputs'])
                 self.assertFalse(action['remotable'])
                 self.assertFalse(action['remoteCacheable'])
@@ -116,6 +116,7 @@ class BazelBoundaryTests(unittest.TestCase):
                     ('ambientEnvironment', [], '/data-v2/import-v2/env-v2'),
                     ('restoreEdit', ['App'], '/data-v2/import-v2/env-v2'),
                     ('hostIdentityEdit', ['App', 'Shared'], '/data-v2/import-v2/env-v2'),
+                    ('policyEdit', ['App', 'Shared'], '/data-v2/import-v2/env-v2'),
                 ):
                     observed = report['cases'][name]
                     self.assertEqual(observed['executedProjects'], executed, name)

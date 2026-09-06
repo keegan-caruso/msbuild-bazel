@@ -17,6 +17,8 @@ def _msbuild_project_impl(ctx):
         "packages": [{"source": f.path, "destination": f.short_path.removeprefix("packages/")} for f in ctx.files.packages],
         "package_manifest": ctx.file.package_manifest.path if ctx.file.package_manifest else None,
         "plugin": ctx.file.plugin.path,
+        "build_props": ctx.file.build_props.path,
+        "build_targets": ctx.file.build_targets.path,
         "output": output.path,
         "diagnostics": diagnostics.path,
         "dependency": dependency.path if dependency else None,
@@ -26,7 +28,7 @@ def _msbuild_project_impl(ctx):
     }))
     ctx.actions.run(
         inputs = depset(ctx.files.runner_support + ctx.files.native_runtime + ([ctx.file.native_manifest] if ctx.file.native_manifest else []) + ctx.files.srcs + ctx.files.restore + ctx.files.packages +
-                        ([ctx.file.package_manifest] if ctx.file.package_manifest else []) + [request, ctx.file.plugin, ctx.file.runner, ctx.file.host_identity] +
+                        ([ctx.file.package_manifest] if ctx.file.package_manifest else []) + [request, ctx.file.plugin, ctx.file.runner, ctx.file.host_identity, ctx.file.build_props, ctx.file.build_targets] +
                         ([dependency] if dependency else []), transitive = [ctx.attr.sdk[DefaultInfo].files]),
         outputs = [output, diagnostics],
         executable = ctx.executable.dotnet,
@@ -47,6 +49,8 @@ msbuild_project = rule(
         "packages": attr.label_list(allow_files = True),
         "package_manifest": attr.label(allow_single_file = True),
         "plugin": attr.label(allow_single_file = True, mandatory = True),
+        "build_props": attr.label(allow_single_file = True, mandatory = True),
+        "build_targets": attr.label(allow_single_file = True, mandatory = True),
         "runner": attr.label(allow_single_file = True, mandatory = True),
         "runner_support": attr.label_list(allow_files = True),
         "sdk": attr.label(mandatory = True),

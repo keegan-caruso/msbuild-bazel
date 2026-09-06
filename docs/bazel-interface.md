@@ -67,3 +67,8 @@ See the [.NET runner experiment](dotnet-runner-findings.md) for the migration
 from Python actions and its validation. The action request and consumer bundle
 contracts remain the same except that the runner locates its SDK host through
 `Environment.ProcessPath` instead of accepting a redundant `dotnet` JSON field.
+
+The runner also requires `build_props` and `build_targets` labels. These declared
+MSBuild wrappers import the staged fixture build files before adding action policy.
+The runner sets their import paths through environment properties, preserving
+replay's global-property identity. See the [review refactor](action-runner-refactor.md).
