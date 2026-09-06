@@ -1,0 +1,29 @@
+name: Repository setup
+on:
+  push:
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  setup:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Fresh setup and environment checks
+        run: bash scripts/setup.sh
+      - name: Verify repeatable setup
+        run: bash scripts/setup.sh
+      - name: Load Bazel scaffold
+        run: bash scripts/bazel.sh query //:repo_setup --noshow_progress
+      - name: Check whitespace
+        run: git diff --check
+      - name: MSBuild boundary e2e tests
+        run: python3 -m unittest discover -s tests/e2e -v
+      - name: Retain failed experiment artifacts
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: msbuild-e2e-failures
+          path: /tmp/msbuild-e2e-*/action-*/build.log
+          if-no-files-found: ignore

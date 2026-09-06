@@ -29,4 +29,4 @@ Linux x86-64, one framework, Release, local execution and local disk cache. Remo
 
 ## Recorded results
 
-Environment scaffold only. The integration experiments above have not run.
+Codex setup and CI are established. The initial process contract and six e2e scenarios were committed before implementation. See [e2e scope](e2e-scope.md), [interfaces](interfaces.md), and [findings](findings.md). Bazel action integration remains the next milestone.

@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # Source from repository scripts; do not depend on a previous shell's exports.
 REPO_ROOT="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)"
-export DOTNET_ROOT="$REPO_ROOT/.tools/dotnet"
+export DOTNET_ROOT="${SPIKE_DOTNET_ROOT:-$REPO_ROOT/.tools/dotnet}"
+export SPIKE_BAZEL="${SPIKE_BAZEL:-$REPO_ROOT/.tools/bin/bazel}"
 export DOTNET_CLI_HOME="$REPO_ROOT/.cache/dotnet-home"
 export DOTNET_CLI_TELEMETRY_OPTOUT=1
 export DOTNET_SKIP_FIRST_TIME_EXPERIENCE=1
