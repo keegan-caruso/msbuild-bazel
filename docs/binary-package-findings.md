@@ -56,6 +56,14 @@ the payloads. A negative control removes its declaration. No ambient metadata
 or package archive is copied into an action. This extends preparation, without
 changing the runner's manifest validation or replay schemas.
 
+A focused local runner check then succeeded: Shared compiled only Shared, App
+compiled only App and recorded a Shared replay hit, and the application printed
+`shared-v1/binary-v1/leaf-v1/app-v1`. A second pair of direct runner invocations
+at fresh workspace paths produced identical complete consumer bundles. Both
+staged DLLs matched their runtime payload hashes and differed from their
+reference assembly hashes. These direct invocations were debugging evidence
+outside Bazel, not a substitute for native sandbox/cache acceptance.
+
 ## Limits
 
 This slice covers managed net10.0 ref/lib assets and an exact transitive package

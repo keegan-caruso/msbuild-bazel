@@ -303,6 +303,9 @@ def probe(output, identity=False, package_mode=False, staging=False, native_runt
         if binary_packages:
             isolated = output / 'missing-runtime'
             shutil.copytree(workspace / 'bazel-bin/app.bundle/artifacts/App/bin/Release/net10.0', isolated)
+            # copytree preserves Bazel's read-only output directory mode.
+            # Make only this private negative-control copy writable.
+            isolated.chmod(isolated.stat().st_mode | 0o200)
             (isolated / 'Spike.Leaf.dll').unlink()
             failure = run('missingRuntimeAsset', [DOTNET, isolated / 'App.dll'], cwd=isolated, require=False)
             if failure.returncode == 0 or 'Spike.Leaf' not in failure.stdout:
