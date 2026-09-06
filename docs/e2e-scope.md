@@ -17,7 +17,7 @@ Tests use fresh copied workspaces, isolated NuGet package directories, subproces
 
 Before implementation, the test command is expected to fail because `tools/spike.py` does not exist. Record that red run, then implement. The workflow should run the tests after the implementation commit rather than hide failures behind file-existence guards.
 
-## Milestone 2: Bazel integration (gated by milestone 1)
+## Path-probe evidence
 
 The prerequisite path experiment is implemented in `tools/probe_paths.py` and
 `test_msbuild_paths.py`. It moves a completed bundle while preserving the project
@@ -26,6 +26,22 @@ producer workspace and restoring the consumer afresh. Finally it builds a fresh
 dependency cache at the consumer path as a positive control. The seventh e2e
 test asserts successful App-only compilation for both controls and raw MSBuild
 `MSB4252` for relocation. See [path findings](path-findings.md).
+
+## Milestone 2: public-API result replay (next, not implemented)
+
+Define a separate experimental process contract and black-box tests before
+implementation. The [replay plan](result-replay-plan.md) specifies same-path and
+relocated replay, App-only edits, missing dependency payloads/target results,
+missing artifacts, identity mismatches, and a narrow publish request. Preserve
+the existing seven tests and their v1 expectations as controls. No new replay
+tests have been run or counted as passing.
+
+Use graph-ordered dependency submissions and verify strict isolation. Require
+the producer workspace to be absent in the relocation case, fresh consumer
+restore metadata, staged artifacts, and no Shared compilation. Record commands,
+engine versions, target requests and actual application output.
+
+## Milestone 3: Bazel integration (gated by replay)
 
 The following Bazel scenarios remain planned:
 
@@ -37,7 +53,12 @@ The following Bazel scenarios remain planned:
 
 ## Deferred
 
-General graph generation, multi-targeting, Native AOT, publishing, Razor/WPF, arbitrary package build tasks, remote execution, distributed caches, Windows/macOS. A failure in milestone 1 is a useful finding and blocks expanding into these areas.
+General graph generation, multi-targeting, Native AOT, general publishing beyond
+the replay fixture check, Razor/WPF, arbitrary package build tasks, remote
+execution and distributed caches. Linux x86-64 remains the initial Bazel target;
+native macOS ARM64 MSBuild controls have been measured, but cross-platform Bazel
+support is not established. A failed prerequisite experiment is a useful finding
+and blocks expanding into these areas.
 
 ## Red-run evidence
 

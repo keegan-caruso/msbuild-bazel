@@ -23,7 +23,13 @@ The bundle manifest validates identity and file presence. It is not a content-ad
 
 ## Next experiment
 
-The prerequisite raw-cache path investigation is now recorded in [path findings](path-findings.md): bundle relocation succeeds, but workspace relocation fails MSBuild cache lookup. Define the concrete Bazel e2e harness before writing the Starlark rule. It must assert actual executed actions for cold, unchanged, App-edit and Shared-edit builds, then clear outputs while preserving disk cache. Prove a stable project-path strategy across actions next. Do not advertise portable caching while the runner requires one absolute workspace path.
+The raw-cache path investigation is recorded in [path findings](path-findings.md):
+bundle relocation succeeds, but workspace relocation fails MSBuild cache lookup.
+Next, test [public-API result replay](result-replay-plan.md) with normalized
+target-result metadata and separately staged artifacts at a new workspace path.
+This is planned, not measured, and the v1 same-workspace restriction remains.
+After replay succeeds, define the Bazel e2e harness and Starlark rule, including
+execution-log assertions and disk-cache reuse after clearing local outputs.
 
 ## Scaffold check failure handling
 

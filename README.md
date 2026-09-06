@@ -4,6 +4,11 @@ A spike exploring Bazel project-level scheduling and caching while retaining MSB
 
 **Status:** Codex setup, CI, the first MSBuild boundary experiment, and a raw-cache path probe are implemented. Moving the bundle works at the same workspace path; moving the workspace fails MSBuild cache lookup. A Bazel project rule and graph exporter are not implemented yet.
 
+**Next:** Test [public-API dependency-result replay](docs/result-replay-plan.md)
+with normalized metadata and separately staged artifacts at a new workspace
+path, before building the Bazel adapter. This experiment is planned; the v1
+driver still supports only the same absolute workspace path.
+
 ## Quick start
 
 Linux x86-64 (glibc), with Bash, Python 3, curl, tar, and standard .NET runtime dependencies:

@@ -74,9 +74,13 @@ was measured in this local run. Nix supplies an ambient SDK from its store; it
 is not a declared Bazel toolchain. The existing Linux CI commands discover the
 new test, but their results are pending.
 
-Before writing the two-target rule, define its execution-log assertions and
-prove how separate actions see the same absolute project paths without relying
-on writable producer state. A fixed shared scratch directory with serialized
-local actions could explore scheduling, but would not establish sandboxed
-parallelism or portable caching. A sandbox strategy providing identical internal
-paths needs its own measurement. Neither strategy is implemented by this probe.
+Before writing the two-target rule, test
+[public-API result replay](result-replay-plan.md): capture target outputs in a
+normalized payload and reconstruct dependency results at the consumer's paths.
+Keep this raw-cache probe as a control. The replay proposal does not change the
+observations above or establish artifact/sandbox portability.
+
+If replay cannot satisfy the target and path contracts, revisit a stable internal
+path strategy with that evidence. A fixed shared scratch directory with serialized
+local actions would not establish sandboxed parallelism or portable caching.
+Neither replay nor a stable-path sandbox strategy is implemented by this probe.

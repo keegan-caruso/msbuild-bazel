@@ -10,9 +10,10 @@ Can Bazel cache and schedule configured .NET projects while each action uses MSB
 2. Establish a normal Release traversal/static-graph build baseline and confirm project isolation.
 3. Build Shared separately; stage its artifacts and result cache; build App with the input result cache. Verify Shared compilation does not execute again.
 4. Repeat with clean directories and changed checkout/action paths. Investigate absolute paths in result metadata before claiming portable caching.
-5. Add a custom Bazel rule and runner for these two explicit targets. Keep restore/tool acquisition outside compilation actions.
-6. Measure cold build, unchanged rebuild, App-only edit, Shared edit, and reuse after clearing local outputs while retaining the Bazel disk cache. Assert which actions execute and verify application output.
-7. Only after the handoff works, add a C# ProjectGraph exporter and custom MSBuild targets for input/output contracts.
+5. Prove relocated dependency-result replay through public MSBuild project-cache APIs, using a versioned metadata payload and separately staged artifacts. Keep the raw-cache path probe as a control. See the [replay experiment](result-replay-plan.md) for the proposed contract and acceptance cases.
+6. After replay works, define the Bazel e2e harness and add a custom rule and runner for these two explicit targets. Keep restore/tool acquisition outside compilation actions; test separate action paths and sandbox inputs explicitly.
+7. Measure cold build, unchanged rebuild, App-only edit, Shared edit, and reuse after clearing local outputs while retaining the Bazel disk cache. Assert which actions execute and verify application output.
+8. Only after the handoff works, add a general C# ProjectGraph exporter and custom MSBuild targets for input/output contracts. The replay experiment may use ProjectGraph for the two-project fixture without expanding into a general exporter.
 
 ## Acceptance evidence
 
@@ -35,7 +36,9 @@ Step 4 now has a runnable path probe and a seventh e2e test. On macOS ARM64 with
 the pinned Nix SDK, moving the bundle preserves App-only compilation, but moving
 the project workspace causes raw MSBuild `MSB4252` at `GetTargetFrameworks`. A
 fresh dependency cache at the new path succeeds. See [path findings](path-findings.md)
-for commands, controls, and limitations. The next step is to define the Bazel e2e
-harness and prove a stable project-path strategy across separate actions before
-implementing the two-target rule. The probe has not established sandbox or
-remote-cache portability.
+for commands, controls, and limitations. The next step is the
+[public-API result-replay experiment](result-replay-plan.md), before implementing
+the two-target Bazel rule. Test whether normalized target-result metadata can
+replace the raw cache at a changed workspace path before investing in fixed
+absolute paths or an MSBuild fork. Neither replay nor sandbox/remote-cache
+portability has been established.

@@ -2,7 +2,7 @@
 
 ## Goal and current state
 
-Explore whether Bazel can schedule/cache individual .NET project builds while MSBuild retains SDK and NuGet behavior. The first same-path MSBuild boundary experiment is implemented; the Bazel adapter is still planned. Read README.md and docs/spike-plan.md before implementing the spike.
+Explore whether Bazel can schedule/cache individual .NET project builds while MSBuild retains SDK and NuGet behavior. The same-path MSBuild boundary and raw-cache path probe are implemented. Next, test public-API dependency-result replay at a new workspace path (docs/result-replay-plan.md); the Bazel adapter is still planned. Read README.md and docs/spike-plan.md before implementing the spike.
 
 ## Commands
 
