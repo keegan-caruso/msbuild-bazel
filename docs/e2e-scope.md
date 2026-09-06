@@ -67,6 +67,15 @@ cache matrix. Coverage is build-only; ordinary package DLL/runtime assets remain
 unproven. See [package findings](package-input-findings.md), including the precise
 full-suite and focused-rerun validation record.
 
+## Milestone 6: managed binary packages (implemented)
+
+`test_binary_packages.py` covers distinct ref/lib assemblies, a transitive
+managed dependency, direct/transitive implementation upgrades, fresh-path bundle
+determinism and the scheduling/cache matrix. Missing declarations/installation
+markers, corrupt DLLs, stale restore and incomplete manifests fail before
+compilation; removing a transitive runtime DLL prevents App execution. Focused
+Linux native-sandbox acceptance passes. See [findings](binary-package-findings.md).
+
 ## Deferred
 
 General graph generation, multi-targeting, Native AOT, general publishing beyond

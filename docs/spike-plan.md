@@ -26,13 +26,15 @@ payload hashes, copied-library rejection/invalidation and loader diagnostics.
 The [loaded JIT experiment](loader-runtime-findings.md) now forces one substituted
 native library into the actual MSBuild runtime, with loader evidence and
 invalid-image rejection. Full runtime closure and general host-read discovery
-remain open. Next, cover ordinary package DLL/runtime assets; general graph
-export (step 8) remains deferred until that package boundary is established.
+remain open. Managed package DLL/runtime assets and transitive handoff now pass
+focused Linux native-sandbox acceptance. Next is the local-only graph exporter
+(step 8), retaining explicit input/output contracts and host restrictions.
 
-The managed binary-package milestone now has a test-first
-[contract](binary-package-plan.md), fixture and probe. See its
-[validation record](binary-package-findings.md); implementation alone does not
-close the package gate without native sandbox acceptance evidence.
+The managed binary-package milestone has a test-first
+[contract](binary-package-plan.md), fixture and probe. Its
+[validation record](binary-package-findings.md) includes passing native sandbox,
+cache, relocation, upgrade and rejection evidence. Broader NuGet behavior is
+still outside this measured boundary.
 
 ## Milestone sequence
 

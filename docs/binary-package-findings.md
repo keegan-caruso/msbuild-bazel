@@ -1,5 +1,9 @@
 # Managed binary package findings
 
+**Status:** Focused Linux x86-64 native-sandbox acceptance passed on commit
+`3771e5b`. The broader setup and Nix regression runs remain in progress at this
+checkpoint. New macOS binary-package acceptance has not been measured.
+
 The [contract](binary-package-plan.md) and black-box e2e test were committed
 before implementation. The initial run failed with `unrecognized arguments:
 --binary-package-probe` (one test, 0.077 seconds).
@@ -64,11 +68,45 @@ staged DLLs matched their runtime payload hashes and differed from their
 reference assembly hashes. These direct invocations were debugging evidence
 outside Bazel, not a substitute for native sandbox/cache acceptance.
 
+## Linux acceptance
+
+The [focused CI job](https://github.com/keegan-caruso/msbuild-bazel/actions/runs/34011816923/job/101428853796)
+passed the complete binary-package test in 154.609 seconds. Its
+[retained evidence](https://github.com/keegan-caruso/msbuild-bazel/actions/runs/34011816923/artifacts/9982728603)
+contains reports and logs.
+
+Measured results:
+
+- Cold and fresh executions build Shared and App; unchanged builds execute
+  neither. App-only edits execute App alone; Shared edits execute both.
+- Clearing outputs and using a new output base restore both bundles from the
+  disk cache. Fresh execution with an empty cache at new action paths produces
+  identical bundle bytes and executable bits.
+- Direct and transitive package upgrades rebuild both actions and execute the
+  changed implementation. Each upgrade leaves the other package DLL unchanged.
+- App's deps.json contains both packages. Its DLLs match runtime payload hashes
+  and differ from reference assembly hashes. No consumer compilation of Shared
+  occurs, and preparation workspaces/feeds are absent before action execution.
+- Missing payload declarations or installation markers, corrupt transitive DLLs,
+  stale direct restore and an incomplete transitive manifest fail before
+  compilation. Removing Spike.Leaf.dll from a private copied App output makes
+  application execution fail.
+
+The marker-fix run had already completed the positive matrix but failed when
+the negative control tried to remove a DLL from a copy of Bazel's read-only
+output directory. The harness now makes only that private copy writable. The
+full setup run approached its 15-minute limit (856.168 seconds for tests), so
+its limit is now 25 minutes; the focused job has a separate 10-minute limit.
+All 13 existing non-native tests passed in that earlier run. The later focused
+job establishes the complete new package matrix; it is not a claim that the
+latest full setup/Nix jobs have finished.
+
 ## Limits
 
 This slice covers managed net10.0 ref/lib assets and an exact transitive package
 dependency on the explicit two-project graph. It does not establish RID-specific
 or native package selection, analyzers, arbitrary feeds/build targets, central
 package management, version conflict behavior, full runtime closure, remote
-caching or cross-platform artifact reuse. Graph export remains deferred until
-the binary-package acceptance test passes in a native sandbox.
+caching or cross-platform artifact reuse. This closes the deliberately narrow
+managed-package gate for a local-only graph exporter; it does not establish
+general NuGet compatibility or remote-cache correctness.
