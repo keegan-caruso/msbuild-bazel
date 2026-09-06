@@ -77,7 +77,7 @@ not silently substitute `processwrapper-sandbox` or local execution. The Codex
 outer restriction prevented Bazel from registering its native macOS sandbox;
 the measured run used the authorized execution outside that outer restriction.
 Ordinary local development must likewise permit the OS sandbox facility. Linux
-execution has not been measured locally; CI remains necessary.
+execution has now passed in Ubuntu 22.04 CI; see the CI repair evidence below.
 
 Nix's Bazel launcher obtains its Java runtime from its system bazelrc. The
 harness preserves that system configuration and disables home/workspace rc files.
@@ -116,7 +116,7 @@ Linux or remote-execution validation is included in these results.
 Before expanding to general ProjectGraph export, harden the action identity:
 package assets and contents, custom imports/inputs, environment, host runtime
 closure and deterministic output staging. Add perturbation tests for those
-inputs and Linux native-sandbox evidence. General publishing, multi-targeting,
+inputs and broader Linux native-sandbox coverage. General publishing, multi-targeting,
 arbitrary package tasks and remote execution remain deferred.
 
 ## CI repair (2026-09-05)
@@ -127,7 +127,15 @@ reported that `linux-sandbox` was not registered, listing only
 tests passed ([failed run](https://github.com/keegan-caruso/msbuild-bazel/actions/runs/34003038128)).
 Both workflows now select Ubuntu 22.04 to run the required native sandbox
 without changing host security settings or weakening the probe's strategy.
-This runner change still needs verification in GitHub Actions.
+At commit `020ddc6`, both repaired Ubuntu 22.04 workflows passed all nine e2e
+tests, including the required `linux-sandbox` action and local disk-cache cases:
+
+- [Repository setup](https://github.com/keegan-caruso/msbuild-bazel/actions/runs/34003245199)
+- [Nix development shell](https://github.com/keegan-caruso/msbuild-bazel/actions/runs/34003245222)
+
+This establishes Linux x86-64 CI evidence for the two-project fixture with both
+tool acquisition paths. It does not establish Ubuntu 24.04 support, host-runtime
+hermeticity, remote-cache correctness, or cross-platform artifact reuse.
 
 The Nix workflow was also rejected before scheduling a job. Running
 `actionlint -shellcheck= .github/workflows/*.yml` with actionlint 1.7.12 reproduced
