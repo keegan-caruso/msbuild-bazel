@@ -13,6 +13,8 @@ def _msbuild_project_impl(ctx):
         "project": ctx.attr.project,
         "sources": [{"source": f.path, "destination": f.short_path.removeprefix("src/")} for f in ctx.files.srcs],
         "restore": [f.path for f in ctx.files.restore],
+        "packages": [{"source": f.path, "destination": f.short_path.removeprefix("packages/")} for f in ctx.files.packages],
+        "package_manifest": ctx.file.package_manifest.path if ctx.file.package_manifest else None,
         "plugin": ctx.file.plugin.path,
         "dotnet": ctx.file.dotnet.path,
         "output": output.path,
@@ -20,7 +22,8 @@ def _msbuild_project_impl(ctx):
         "undeclared_probe": ctx.attr.undeclared_probe,
     }))
     ctx.actions.run(
-        inputs = depset(ctx.files.srcs + ctx.files.restore + [request, ctx.file.plugin, ctx.file.runner, ctx.file.host_identity] +
+        inputs = depset(ctx.files.srcs + ctx.files.restore + ctx.files.packages +
+                        ([ctx.file.package_manifest] if ctx.file.package_manifest else []) + [request, ctx.file.plugin, ctx.file.runner, ctx.file.host_identity] +
                         ([dependency] if dependency else []), transitive = [ctx.attr.sdk[DefaultInfo].files, ctx.attr.runtime[DefaultInfo].files]),
         outputs = [output],
         executable = ctx.executable.python,
@@ -38,6 +41,8 @@ msbuild_project = rule(
         "project": attr.string(mandatory = True, values = ["Shared", "App"]),
         "srcs": attr.label_list(allow_files = True),
         "restore": attr.label_list(allow_files = True),
+        "packages": attr.label_list(allow_files = True),
+        "package_manifest": attr.label(allow_single_file = True),
         "plugin": attr.label(allow_single_file = True, mandatory = True),
         "runner": attr.label(allow_single_file = True, mandatory = True),
         "sdk": attr.label(mandatory = True),

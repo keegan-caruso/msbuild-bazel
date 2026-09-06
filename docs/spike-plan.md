@@ -57,3 +57,10 @@ Python execution replaces the shell launcher, and remote execution/cache use is
 disabled. See [identity findings](action-identity-findings.md). Next add pinned
 application package contents/build targets; native runtime closure and
 deterministic staging remain open. Linux validation is handled separately.
+
+The pinned package-input experiment now stages verified archive payloads using
+per-project restore manifests. Package data and target upgrades rebuild Shared
+and App; missing, corrupt and stale-version inputs fail before compilation.
+See [package findings](package-input-findings.md). This is build-only package
+coverage, with no binary/runtime assets or arbitrary package closure claim.
+Native runtime closure and deterministic output staging remain next.

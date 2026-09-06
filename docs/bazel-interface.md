@@ -40,3 +40,10 @@ and host-identity changes. See [identity findings](action-identity-findings.md).
 The rule requires `runtime`, `python`, and `host_identity` labels and optionally
 accepts `build_environment` entries prefixed with `SPIKE_INPUT_`. Remote execution
 and remote-cache use are disabled; local disk caching remains enabled.
+
+`--package-probe` is mutually exclusive with `--identity-probe`. It prepares exact
+versions of a locally authored, checksum-pinned build package before compilation.
+The rule accepts `packages` payload labels and an optional `package_manifest`
+label. Before MSBuild starts, the runner checks package/restore identities and
+payload hashes, then stages the files in its own NuGet root. See the
+[package contract](package-input-plan.md) and [findings](package-input-findings.md).

@@ -2,7 +2,7 @@
 
 ## Goal and current state
 
-Explore whether Bazel can schedule/cache individual .NET project builds while MSBuild retains SDK and NuGet behavior. The same-path boundary, raw-cache path probe, and public-API dependency-result replay are implemented. Replay succeeds at a new workspace path on macOS ARM64 (docs/replay-findings.md). The explicit two-target Bazel adapter now has native macOS sandbox and local disk-cache evidence (docs/bazel-findings.md). Action-identity perturbations and Python runtime declarations are measured on macOS (docs/action-identity-findings.md). Next, add pinned application package inputs and package build-target perturbations; native runtime closure and deterministic staging remain open. The user is handling Linux validation. Read README.md and docs/spike-plan.md before implementing the spike.
+Explore whether Bazel can schedule/cache individual .NET project builds while MSBuild retains SDK and NuGet behavior. The same-path boundary, raw-cache path probe, and public-API dependency-result replay are implemented. Replay succeeds at a new workspace path on macOS ARM64 (docs/replay-findings.md). The explicit two-target Bazel adapter now has native macOS sandbox and local disk-cache evidence (docs/bazel-findings.md). Action-identity perturbations and Python runtime declarations are measured on macOS (docs/action-identity-findings.md). Pinned build-package payloads and package upgrade/rejection tests now pass on macOS (docs/package-input-findings.md). Next, address native runtime closure and deterministic staging; binary package assets and general NuGet remain unproven. The user is handling Linux validation. Read README.md and docs/spike-plan.md before implementing the spike.
 
 ## Commands
 

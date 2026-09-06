@@ -10,6 +10,8 @@ import sys
 import sysconfig
 import xml.etree.ElementTree as ET
 
+import package_inputs
+
 ROOT = Path(__file__).resolve().parents[1]
 DOTNET = Path(os.environ.get('SPIKE_DOTNET_ROOT', ROOT / '.tools/dotnet')) / 'dotnet'
 BAZEL = Path(os.environ.get('SPIKE_BAZEL', ROOT / '.tools/bin/bazel'))
@@ -24,11 +26,11 @@ def json_stream(path):
         text = text.lstrip()[end:]
 
 
-def probe(output, identity=False):
+def probe(output, identity=False, package_mode=False):
     output.mkdir(parents=True, exist_ok=False)
     workspace = output / 'workspace'
     workspace.mkdir()
-    report = dict(schemaVersion=1, platform=platform.platform(), identityProbe=identity, cases={})
+    report = dict(schemaVersion=1, platform=platform.platform(), identityProbe=identity, packageProbe=package_mode, cases={})
     env = dict(os.environ, DOTNET_ROOT=str(DOTNET.parent),
                DOTNET_CLI_HOME=str(output / 'dotnet-home'),
                NUGET_PACKAGES=str(output / 'prepare/.nuget/packages'),
@@ -56,6 +58,11 @@ def probe(output, identity=False):
     report['python'] = dict(executable=sys.executable, version=sys.version)
     prepare = output / 'prepare'
     shutil.copytree(ROOT / 'tests/fixtures/two-projects', prepare)
+    if package_mode:
+        pins = package_inputs.feed(prepare / 'package-feed')
+        package_inputs.configure(prepare, '1.0.0', prepare / 'package-feed')
+        report['packagePins'] = pins
+        report['packagePreparationDeleted'] = []
     if identity:
         project = prepare / 'Shared/Shared.csproj'
         tree = ET.parse(project)
@@ -78,19 +85,21 @@ def probe(output, identity=False):
   </Target>
 </Project>
 ''')
-    shutil.copytree(prepare, workspace / 'src')
+    shutil.copytree(prepare, workspace / 'src', ignore=shutil.ignore_patterns('package-feed'))
     run('restore', [DOTNET, 'msbuild', 'dirs.proj', '-t:Restore', '-p:Configuration=Release', '-nologo'], prepare)
     run('pluginBuild', [DOTNET, 'build', ROOT / 'tools/ReplayPlugin', '-c', 'Release', '--nologo'], ROOT)
-    # Compile actions only consume normalized restore files; the fixture has no
-    # application PackageReferences. Traversal itself is preparation-only.
-    (workspace / 'restore').mkdir()
-    for project in ('Shared', 'App'):
-        state = {}
-        for source in sorted((prepare / project / 'obj').rglob('*')):
-            if source.is_file():
-                contents = source.read_text().replace(str(prepare), '${WORKSPACE}').replace(str(DOTNET.parent.resolve()), '${SDK}')
-                state[source.relative_to(prepare).as_posix()] = contents
-        (workspace / 'restore' / (project + '.json')).write_text(json.dumps(state, indent=2))
+    def capture_restore(preparation):
+        (workspace / 'restore').mkdir(exist_ok=True)
+        for project in ('Shared', 'App'):
+            state = {}
+            for source in sorted((preparation / project / 'obj').rglob('*')):
+                if source.is_file():
+                    contents = source.read_text().replace(str(preparation), '${WORKSPACE}').replace(str(DOTNET.parent.resolve()), '${SDK}')
+                    state[source.relative_to(preparation).as_posix()] = contents
+            (workspace / 'restore' / (project + '.json')).write_text(json.dumps(state, indent=2))
+        if package_mode:
+            package_inputs.stage(preparation, workspace, pins)
+    capture_restore(prepare)
     run('baseline', [DOTNET, 'msbuild', 'dirs.proj', '-t:Build', '-p:Configuration=Release',
                      '-graphBuild', '-isolateProjects', '-nologo'], prepare)
     report['baselineOutput'] = run('baseline-app', [DOTNET, prepare / 'App/bin/Release/net10.0/App.dll']).stdout.strip()
@@ -120,6 +129,11 @@ def probe(output, identity=False):
     def rule(name, project, sources, restore, dependency=None, undeclared_probe=''):
         attrs = dict(settings, name=name, project=project, srcs=sources, restore=restore,
                      undeclared_probe=undeclared_probe)
+        if package_mode:
+            closure = json.loads((workspace / 'package-manifests' / (project + '.json')).read_text())
+            attrs['packages'] = sorted('packages/' + package['path'] + '/' + entry['path']
+                                       for package in closure['packages'] for entry in package['files'])
+            attrs['package_manifest'] = f'package-manifests/{project}.json'
         if dependency:
             attrs['dependency'] = dependency
         return 'msbuild_project(\n' + ''.join(f'    {k} = {json.dumps(v)},\n' for k, v in attrs.items()) + ')\n'
@@ -127,13 +141,17 @@ def probe(output, identity=False):
     app_sources = common + ['src/Shared/Shared.csproj'] + ['src/App/' + p.name for p in (workspace / 'src/App').iterdir() if p.is_file()]
     if identity:
         app_sources.append('src/Shared/BuildInputs.targets')
-    build = 'load(":msbuild.bzl", "msbuild_project")\n' + rule('shared', 'Shared', shared_sources, ['restore/Shared.json'])
-    build += rule('app', 'App', app_sources, ['restore/Shared.json', 'restore/App.json'], ':shared')
+    def write_build():
+        build = 'load(":msbuild.bzl", "msbuild_project")\n' + rule('shared', 'Shared', shared_sources, ['restore/Shared.json'])
+        build += rule('app', 'App', app_sources, ['restore/Shared.json', 'restore/App.json'], ':shared')
+        build += rule('undeclared', 'Shared', shared_sources, ['restore/Shared.json'], undeclared_probe='undeclared.txt')
+        (workspace / 'BUILD.bazel').write_text(build)
     (workspace / 'undeclared.txt').write_text('must not be visible inside an action')
-    build += rule('undeclared', 'Shared', shared_sources, ['restore/Shared.json'], undeclared_probe='undeclared.txt')
-    (workspace / 'BUILD.bazel').write_text(build)
+    write_build()
     shutil.rmtree(prepare)
     report['preparationWorkspaceAbsent'] = not prepare.exists()
+    if package_mode:
+        report['packagePreparationDeleted'].append(not prepare.exists())
     base = output / 'bazel-base'
     cache = output / 'disk-cache'
     startup = [BAZEL, '--batch', '--nohome_rc', '--noworkspace_rc', f'--output_base={base}', f'--output_user_root={output / "bazel-user"}']
@@ -166,6 +184,9 @@ def probe(output, identity=False):
                         applicationOutput=app.stdout.strip(), applicationReturncode=app.returncode,
                         apphostOutput=native.stdout.strip(), apphostReturncode=native.returncode,
                         executionLog=str(log))
+        if package_mode:
+            observed['packageTargets'] = {project: json.loads((workspace / f'bazel-bin/{project.lower()}.bundle/action.json').read_text())['packageTargets']
+                                          for project in executed}
         report['cases'][name] = observed
         (output / 'report.json').write_text(json.dumps(report, indent=2))
         return result
@@ -176,6 +197,8 @@ def probe(output, identity=False):
     report.update(sharedWorkspace=shared['workspace'], appWorkspace=app['workspace'],
                   appHasSharedSources=bool(app['sharedSources']),
                   sharedCompiledProjects=shared['compiledProjects'], appCompiledProjects=app['compiledProjects'])
+    if package_mode:
+        report['packageTargets'] = dict(Shared=shared['packageTargets'], App=app['packageTargets'])
     build_case('unchanged')
     program = workspace / 'src/App/Program.cs'
     program.write_text(program.read_text().replace('app-v1', 'app-v2'))
@@ -210,6 +233,41 @@ def probe(output, identity=False):
         host_identity['policyRevision'] = 2
         (workspace / 'host-identity.json').write_text(json.dumps(host_identity, indent=2))
         build_case('hostIdentityEdit')
+    if package_mode:
+        for name, version in (('packageDataVersion', '1.0.1'), ('packageTargetVersion', '1.0.2')):
+            preparation = output / ('prepare-' + version)
+            shutil.copytree(workspace / 'src', preparation)
+            package_inputs.feed(preparation / 'package-feed')
+            package_inputs.configure(preparation, version, preparation / 'package-feed')
+            env['NUGET_PACKAGES'] = str(preparation / '.nuget/packages')
+            run(name + '-restore', [DOTNET, 'msbuild', 'dirs.proj', '-t:Restore', '-p:Configuration=Release', '-nologo'], preparation)
+            capture_restore(preparation)
+            for relative in ('Shared/Shared.csproj', 'NuGet.Config'):
+                shutil.copyfile(preparation / relative, workspace / 'src' / relative)
+            shutil.rmtree(preparation)
+            report['packagePreparationDeleted'].append(not preparation.exists())
+            write_build()
+            build_case(name)
+        def package_failure(name):
+            failure = run(name, startup + ['build', '//:app', *flags], require=False)
+            if failure.returncode == 0 or 'SPIKE_COMPILE:' in failure.stdout or 'package' not in failure.stdout.lower():
+                raise RuntimeError('package rejection was not observed: ' + name)
+        build_file = workspace / 'BUILD.bazel'
+        original_build = build_file.read_text()
+        build_file.write_text('\n'.join('    packages = [],' if line.strip().startswith('packages =') else line
+                                        for line in original_build.splitlines()))
+        package_failure('missingPackage')
+        build_file.write_text(original_build)
+        payload = workspace / 'packages/spike.buildinputs/1.0.2/data/value.txt'
+        original_payload = payload.read_bytes()
+        payload.write_bytes(original_payload + b'corrupt')
+        package_failure('corruptPackage')
+        payload.write_bytes(original_payload)
+        project = workspace / 'src/Shared/Shared.csproj'
+        original_project = project.read_text()
+        project.write_text(original_project.replace('[1.0.2]', '[1.0.0]'))
+        package_failure('stalePackageRestore')
+        project.write_text(original_project)
     negative_log = output / 'undeclared.execution.json'
     negative = run('undeclaredInput', startup + ['build', '//:undeclared', *flags,
                    f'--execution_log_json_file={negative_log}'], require=False)
@@ -225,10 +283,12 @@ def probe(output, identity=False):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--output', type=Path, required=True)
-    parser.add_argument('--identity-probe', action='store_true')
+    mode = parser.add_mutually_exclusive_group()
+    mode.add_argument('--identity-probe', action='store_true')
+    mode.add_argument('--package-probe', action='store_true')
     args = parser.parse_args()
     try:
-        probe(args.output.resolve(), args.identity_probe)
+        probe(args.output.resolve(), args.identity_probe, args.package_probe)
     except (OSError, ValueError, RuntimeError, subprocess.SubprocessError) as error:
         print(error, file=sys.stderr)
         sys.exit(1)

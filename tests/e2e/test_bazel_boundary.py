@@ -19,15 +19,18 @@ class BazelBoundaryTests(unittest.TestCase):
     def test_action_identity_inputs(self):
         self.run_probe(True)
 
-    def run_probe(self, identity):
+    def test_pinned_package_inputs(self):
+        self.run_probe(False, True)
+
+    def run_probe(self, identity, packages=False):
         directory = Path(tempfile.mkdtemp(prefix='msbuild-e2e-bazel-')).resolve()
         try:
             completed = subprocess.run([sys.executable, str(ROOT / 'tools/probe_bazel.py'),
-                                        '--output', str(directory / 'probe'), *(['--identity-probe'] if identity else [])],
+                                        '--output', str(directory / 'probe'), *(['--identity-probe'] if identity else []), *(['--package-probe'] if packages else [])],
                                        text=True, capture_output=True, timeout=900)
             self.assertEqual(completed.returncode, 0, completed.stdout + completed.stderr)
             report = json.loads((directory / 'probe/report.json').read_text())
-            self.assertEqual(report['baselineOutput'], 'shared-v1/data-v1/import-v1/env-v1/app-v1' if identity else 'shared-v1/app-v1')
+            self.assertEqual(report['baselineOutput'], 'shared-v1/data-v1/import-v1/env-v1/app-v1' if identity else ('shared-v1/package-v1/target-v1/app-v1' if packages else 'shared-v1/app-v1'))
             self.assertTrue(report['preparationWorkspaceAbsent'])
             self.assertEqual(report['sdkVersion'], '10.0.100')
             for name, executed, output in (
@@ -40,12 +43,16 @@ class BazelBoundaryTests(unittest.TestCase):
             ):
                 if identity:
                     output = output.replace('/app-', '/data-v1/import-v1/env-v1/app-')
+                if packages:
+                    output = output.replace('/app-', '/package-v1/target-v1/app-')
                 observed = report['cases'][name]
                 self.assertEqual(observed['executedProjects'], executed, observed)
                 self.assertEqual(observed['applicationOutput'], output, observed)
                 self.assertEqual(observed['applicationReturncode'], 0, observed)
                 self.assertEqual(observed['apphostReturncode'], 0, observed)
                 self.assertEqual(observed['apphostOutput'], output, observed)
+                if packages:
+                    self.assertEqual(observed['packageTargets'], {project: ['Shared'] if project == 'Shared' else [] for project in executed})
                 for action in observed['executions']:
                     if not action['cacheHit']:
                         self.assertIn('sandbox', action['runner'])
@@ -78,6 +85,27 @@ class BazelBoundaryTests(unittest.TestCase):
                     self.assertEqual(observed['executedProjects'], executed, name)
                     self.assertEqual(observed['applicationOutput'], 'shared-v2' + suffix + '/app-v2', name)
                     self.assertEqual(observed['apphostOutput'], observed['applicationOutput'])
+            if packages:
+                for name, suffix in (('packageDataVersion', 'package-v2/target-v1'),
+                                     ('packageTargetVersion', 'package-v2/target-v2')):
+                    observed = report['cases'][name]
+                    self.assertEqual(observed['executedProjects'], ['App', 'Shared'])
+                    self.assertEqual(observed['applicationOutput'], 'shared-v2/' + suffix + '/app-v2')
+                    self.assertEqual(observed['apphostOutput'], observed['applicationOutput'])
+                    self.assertEqual(observed['packageTargets'], {'Shared': ['Shared'], 'App': []})
+                self.assertEqual(report['packageTargets'], {'Shared': ['Shared'], 'App': []})
+                for name in ('missingPackage', 'corruptPackage', 'stalePackageRestore'):
+                    failure = report[name]
+                    self.assertNotEqual(failure['returncode'], 0)
+                    log = Path(failure['log']).read_text()
+                    self.assertIn('package', log.lower())
+                    self.assertNotIn('SPIKE_COMPILE:', log)
+                self.assertEqual(report['packagePreparationDeleted'], [True, True, True])
+                self.assertFalse((directory / 'probe/workspace/src/package-feed').exists())
+                for action in report['cases']['cold']['executions']:
+                    self.assertIn(f"package-manifests/{action['project']}.json", action['inputs'])
+                    self.assertIn('packages/spike.buildinputs/1.0.0/build/Spike.BuildInputs.targets', action['inputs'])
+                    self.assertIn('packages/spike.buildinputs/1.0.0/data/value.txt', action['inputs'])
             self.assertNotEqual(report['sharedWorkspace'], report['appWorkspace'])
             self.assertFalse(report['appHasSharedSources'])
             self.assertNotEqual(report['undeclaredInput']['returncode'], 0)
