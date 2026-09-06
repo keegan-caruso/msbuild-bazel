@@ -118,7 +118,11 @@ its actual location scheme. Sources: [Roslyn generator APIs](https://github.com/
 ## Aspire composition boundary
 
 P07 needs a composition model beyond MSBuild ProjectGraph. Use the MSBuild adapter
-for .NET builds and explicit language adapters/rules for Python and TypeScript.
+for .NET builds and integrate existing Bazel rules for Python and TypeScript/Node
+through shared multi-language harnesses. Reuse rules_python and appropriate
+rules_js/rules_ts targets; pin compatible versions rather than implement new
+language rules. The harness owns target wiring, runfiles/artifact handoff, test
+orchestration and shared cache/invalidation evidence.
 Aspire describes application resources, startup/readiness and connection wiring;
 a runtime service relationship is not automatically a compile dependency.
 
@@ -140,7 +144,7 @@ repository for every row.
 | F01 | F# and VB; mixed managed-language graph | Selected: SDK AppWithLibraryVB and later Avalonia F# consumer. Add C# consumers as separately authored mixed-language graph tests; preserve language inputs and handoff. [Selections](coverage-project-selections.md#vb-and-traditional-framework-projects-f01f02). |
 | F02 | Traditional .NET Framework projects | Selected: MSBuild non-SDK dependency fixture, SDK legacy VB template and NuGet.Client packages.config restore fixtures. Integrate restore with executable consumers as a separate test on declared Windows tools. [Selections](coverage-project-selections.md#vb-and-traditional-framework-projects-f01f02). |
 | F03 | Native interop and RID selection | P/Invoke consumer with RID-specific native package assets, then a source-built native library; check actual loading. C++/CLI is a separate Windows extension if required. |
-| F04 | NuGet restore semantics | Central package versions, lock files, conditional references, transitive conflicts, Include/Exclude/PrivateAssets and buildTransitive; preparation records the exact selected closure. |
+| F04 | NuGet restore semantics | Central versions, locks, conditions/conflicts and asset metadata. R02 adds PrivateAssets default/all/none controls; R07 expands categories and IncludeAssets/ExcludeAssets interactions. Compare local versus transitive inputs, metadata-only invalidation and F05 packed dependency metadata; record the selected closure per consumer. |
 | F05 | Pack and independent consumption | P05 Avalonia BuildTests is the first selected package consumer; verify compiled XAML from locally produced packages. P16 analyzer-package consumption is a separate extension. Neither proves every native/build/analyzer asset variant. |
 | F06 | Publish variants | Framework-dependent, self-contained, single-file, trimmed and ReadyToRun outputs; run recovered output. Native AOT and WebAssembly AOT retain separate P08/P09 lanes. |
 | F07 | Resources and dynamic runtime behavior | Satellite assemblies/cultures, embedded resources, copied content and plugin loading; verify discovery at runtime after relocation. |
@@ -247,7 +251,7 @@ capabilities. Native baseline discovery may proceed before adapter prerequisites
 | K07 | Native support. Select prebuilt runtime assets, native source compilation/linking, or AOT tools/runtime packs; declare execution/target pair under C15. Loading a prebuilt native asset does not require source-native compilation support. |
 | K08 | Frontend or external-tool build. Name the tool and asset/code-generation pipeline; define inputs, outputs, invalidation and recovered-asset oracle. F08 applies to external code generation. |
 | K09 | Windows toolchain. Select modern .NET desktop or .NET Framework and name required targeting packs, build tools and runtime/UI test host. Neither lane requires the other. |
-| K10 | Composition. Define the selected language build edges, generated-contract edges and runtime relationships; provide Python/TypeScript adapters and artifact-only launch. |
+| K10 | Composition. Define the selected language build edges, generated-contract edges and runtime relationships; integrate existing Bazel Python/TypeScript rules with the .NET adapter through a shared harness, then prove artifact-only launch. |
 
 Checks apply by operation as follows. “Required” means within the explicitly
 supported slice, including rejection of unsupported variants; it does not require
@@ -269,7 +273,7 @@ assign bazel-remote to C10 and Buildbarn to C11, initially using the existing
 diamond and later P01. All operations record C15 identities, with native or
 cross-target acceptance chosen explicitly. Build cache recovery never substitutes
 for fresh Test/Launch execution. For non-MSBuild language actions in P07, test the
-language adapter's declared artifact handoff; MSBuild result replay applies only
+existing rule set's declared artifact/runfiles handoff; MSBuild result replay applies only
 to .NET actions.
 
 The table names the required capability slices and scenario checks for the first
@@ -286,7 +290,7 @@ is widened only when the selected entry point requires it.
 | P04 Orchard Core | K01; K02 packages; K03 selected frameworks; K04 resolved Razor/compiler tooling; K05 resources/targets; K06 selected web Publish; K08 frontend assets | Build, Publish, Launch | F07/F09; HTTP/module/static-asset oracle | Linux x86-64 plus pinned frontend tools | Proposed |
 | P05 Avalonia | K01; K02 packages; K03 selected frameworks; K05 XAML tasks/resources; K06 Pack for package slice | Separate Build/Test headless and source-task slices; Pack plus consumer Build/Test package slice; later Launch | F05/F07/F09; declare task-host/dependency closure; K07 runtime assets for rendering extension | Linux x86-64 where selected slice permits; Windows/macOS separately | Proposed; pinned source inspection |
 | P06 Azure SDK | K01; K02 selected restore features; K03 selected frameworks; K04 resolved analyzers; K05 shared sources/imports | Build, Test | F04/F07, C16; mock tests before isolated playback | Linux x86-64 | Proposed |
-| P07 Aspire | K01; K02 selected .NET packages; K03 selected .NET frameworks; K08 TypeScript assets; K10 Python/TypeScript/.NET composition | Build, Launch, Test | F08 where schema generation exists; independent language/shared-schema edits; K06 only if publishing | Linux x86-64 with declared container/runtime resources | Proposed |
+| P07 Aspire | K01; K02 selected .NET packages; K03 selected .NET frameworks; K08 existing-rule TypeScript asset integration; K10 multi-language harness and Aspire composition | Build, Launch, Test | F08 where schema generation exists; independent language/shared-schema edits; K06 only if publishing | Linux x86-64 with declared container/runtime resources | Proposed |
 | P08 ConsoleAppFramework | K01; K02 packages; K03 selected framework/RID; K04 project generator; K06 Native AOT Publish; K07 AOT compiler/linker/runtime packs | Build, Publish, Test | G06/G09, F06; execute recovered published native test binary without .NET runtime | Linux x86-64 -> linux-x64 | Proposed |
 | P09 MudBlazor | K01; K02 packages; K03 framework selection; K04 resolved generators/analyzers; K05 Razor/resources; K06 WASM Publish; K08 frontend assets | Build, Publish, Launch, Test | F07/F08; C15 browser target; add K07 WASM AOT tool/workload closure separately | Linux x86-64 worker and pinned browser, WASM target | Proposed |
 | P10 Modern WPF | K01; K02 packages; K03 selected Windows framework; K05 XAML/resources; K09 modern desktop | Build, Launch, Test | F07/F09; XAML/BAML and UI smoke oracle | Windows x64, net10.0-windows | Proposed |

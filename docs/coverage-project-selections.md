@@ -350,3 +350,20 @@ bin/obj, undeclared package caches or compilation-time acquisition. Remove a
 required tool/runtime input and require an explicit failure. Deployment on one
 host is useful smoke testing; it does not replace the independent-worker evidence
 needed for the stated C10/C11 claims.
+
+## Multi-language harness scope (P07/R12)
+
+The Aspire selection uses existing Bazel language support:
+[rules_python](https://github.com/bazel-contrib/rules_python),
+[rules_js](https://github.com/aspect-build/rules_js) and
+[rules_ts](https://github.com/aspect-build/rules_ts) as appropriate. Their versions
+and compatibility with the spike's pinned Bazel must be established before use;
+these links identify upstream implementations, not validated dependency pins.
+
+Build a small shared .NET/Python/TypeScript harness first, wiring upstream-rule
+targets to the MSBuild adapter's outputs. Test runfiles/runtime handoff, common
+orchestration, language-local edits, shared-schema edits and cache recovery.
+Then integrate those targets into Aspire startup/readiness and end-to-end tests.
+Python/Node toolchains, package resolution and compilation stay with the existing
+rules; our work is the .NET integration and harness glue. No new Python or
+TypeScript build-rule implementation is planned.

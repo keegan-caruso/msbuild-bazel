@@ -1,0 +1,396 @@
+{
+  "schemaVersion": 1,
+  "baselineCommit": "6bd2525",
+  "edgeMeaning": "Acceptance prerequisites: all requires nodes must have passing evidence before downstream acceptance. Design, inventory and isolated implementation may start earlier. Edges apply to the initial named slice; extensions add explicit prerequisites.",
+  "completed": [
+    "base"
+  ],
+  "nodes": [
+    {
+      "id": "base",
+      "milestone": "existing",
+      "label": "Existing graph execution",
+      "requires": [],
+      "workstream": "baseline",
+      "scope": "Implemented macOS package-free slice; source checkpoint 6bd2525. This is the only completed node."
+    },
+    {
+      "id": "linux",
+      "milestone": "R01",
+      "label": "Linux execution validation",
+      "requires": [
+        "base"
+      ],
+      "workstream": "validation",
+      "scope": "Run current graph execution/replay acceptance in native Linux CI; preserve sandbox strategy."
+    },
+    {
+      "id": "cache",
+      "milestone": "R01",
+      "label": "Package-free cache probe",
+      "requires": [
+        "base"
+      ],
+      "workstream": "cache",
+      "scope": "Implement existing package-free report cases, edit sets and relocated disk-cache recovery."
+    },
+    {
+      "id": "handoff",
+      "milestone": "R01",
+      "label": "Replay and discovery controls",
+      "requires": [
+        "base"
+      ],
+      "workstream": "contracts",
+      "scope": "Add C13 boundary controls, C14 new inputs, concurrent baseline builds and interrupted publication tests."
+    },
+    {
+      "id": "local",
+      "milestone": "R01",
+      "label": "Local baseline accepted",
+      "requires": [
+        "linux",
+        "cache",
+        "handoff"
+      ],
+      "workstream": "integration",
+      "scope": "Both native lanes pass R01; full package-bearing cache suite is not yet complete."
+    },
+    {
+      "id": "packages",
+      "milestone": "R02",
+      "label": "Managed packages and PrivateAssets",
+      "requires": [
+        "local"
+      ],
+      "workstream": "packages",
+      "scope": "Generated graph package closure, private-asset default/all/none, upgrade/stale controls and entire cache suite."
+    },
+    {
+      "id": "configured",
+      "milestone": "R03",
+      "label": "Configured-node semantics",
+      "requires": [
+        "local"
+      ],
+      "workstream": "graph",
+      "scope": "Inner/outer builds and executable AdditionalProperties/GlobalPropertiesToRemove fixtures; prerequisites for Serilog."
+    },
+    {
+      "id": "entrypoints",
+      "milestone": "R03",
+      "label": "Solution and SDK extensions",
+      "requires": [
+        "configured",
+        "packages"
+      ],
+      "workstream": "graph",
+      "scope": "F13/F14 separately qualified entry-point formats and package/local SDK resolution."
+    },
+    {
+      "id": "inputs",
+      "milestone": "R04",
+      "label": "Serilog-required generator and inputs",
+      "requires": [
+        "packages",
+        "configured"
+      ],
+      "workstream": "inputs",
+      "scope": "Required package generator/analyzer, signing, resource and shared-import contracts, tested in small fixtures."
+    },
+    {
+      "id": "serilog",
+      "milestone": "R04",
+      "label": "Serilog adapter acceptance",
+      "requires": [
+        "inputs"
+      ],
+      "workstream": "pilot",
+      "scope": "P01 baseline parity, API/logging oracle, mutations, relocation, native Linux/macOS and timings."
+    },
+    {
+      "id": "generators",
+      "milestone": "R05",
+      "label": "Generator APIs and reference roles",
+      "requires": [
+        "inputs"
+      ],
+      "workstream": "generators",
+      "scope": "P02/P16 plus small API/delivery/diagnostic fixtures, framework combinations and additional files."
+    },
+    {
+      "id": "interceptors",
+      "milestone": "R05",
+      "label": "Interceptor acceptance",
+      "requires": [
+        "inputs"
+      ],
+      "workstream": "interceptors",
+      "scope": "P14 execution oracle, compiler identity and call-site/relocation mutations; does not wait for all P02/P16 results."
+    },
+    {
+      "id": "tasks",
+      "milestone": "R06",
+      "label": "Source-built task handoff",
+      "requires": [
+        "generators"
+      ],
+      "workstream": "tasks",
+      "scope": "P05 source-task closure and scheduling with producer-free consumer; any extra native requirement adds an explicit dependency."
+    },
+    {
+      "id": "pack",
+      "milestone": "R06",
+      "label": "Pack and independent consumers",
+      "requires": [
+        "tasks"
+      ],
+      "workstream": "packaging",
+      "scope": "P05 task packages and P16 analyzer package consumption; separate Pack/restore/Build/Test boundaries."
+    },
+    {
+      "id": "lifecycle",
+      "milestone": "R06",
+      "label": "Clean and Rebuild contract",
+      "requires": [
+        "local"
+      ],
+      "workstream": "lifecycle",
+      "scope": "Define output ownership and command semantics; test deletion, config isolation and recovery as supported configs expand."
+    },
+    {
+      "id": "git_tasks",
+      "milestone": "R06",
+      "label": "Git-versioning task pilot",
+      "requires": [
+        "tasks",
+        "native_assets"
+      ],
+      "workstream": "tasks",
+      "scope": "P17 selected task/tool closure and controlled Git cases; inventory native dependencies before fixing the slice."
+    },
+    {
+      "id": "restore",
+      "milestone": "R07",
+      "label": "Broader restore and asset flow",
+      "requires": [
+        "packages",
+        "configured"
+      ],
+      "workstream": "restore",
+      "scope": "F04 categories/conditions/conflicts/locks and metadata-only invalidation; packaged dependency checks join pack separately."
+    },
+    {
+      "id": "publish",
+      "milestone": "R07",
+      "label": "Ordinary publish contracts",
+      "requires": [
+        "packages",
+        "configured"
+      ],
+      "workstream": "publishing",
+      "scope": "Named F06 distribution modes and F07 output/runtime oracle; qualify modes independently and add feature-specific prerequisites."
+    },
+    {
+      "id": "asset_pack",
+      "milestone": "R07",
+      "label": "PrivateAssets through Pack",
+      "requires": [
+        "restore",
+        "pack"
+      ],
+      "workstream": "packaging",
+      "scope": "Inspect generated nuspec metadata and test independent package consumers for selected asset-flow controls."
+    },
+    {
+      "id": "native_assets",
+      "milestone": "R07",
+      "label": "Native and target runtime closure",
+      "requires": [
+        "publish"
+      ],
+      "workstream": "runtime",
+      "scope": "F03 declared assets/tools and selected C15 target pairs; wider host closure is separately required for remote execution."
+    },
+    {
+      "id": "aot",
+      "milestone": "R08",
+      "label": "Native AOT executable",
+      "requires": [
+        "generators",
+        "native_assets"
+      ],
+      "workstream": "aot",
+      "scope": "P08 native publish/test with declared AOT compiler/linker/runtime packs; no dependency on interceptor acceptance."
+    },
+    {
+      "id": "scale_synthetic",
+      "milestone": "R09",
+      "label": "Synthetic scale protocol",
+      "requires": [
+        "local"
+      ],
+      "workstream": "performance",
+      "scope": "10/100/1000 configured nodes, independent cache states, baseline timings and process-tree memory."
+    },
+    {
+      "id": "scale_real",
+      "milestone": "R09",
+      "label": "EF Core and Azure SDK scale",
+      "requires": [
+        "serilog",
+        "generators",
+        "restore",
+        "scale_synthetic"
+      ],
+      "workstream": "performance",
+      "scope": "P03/P06 selected subtrees; add native_assets edge if SQLite/native slice is selected."
+    },
+    {
+      "id": "web",
+      "milestone": "R10",
+      "label": "Web and Blazor slices",
+      "requires": [
+        "tasks",
+        "publish",
+        "generators"
+      ],
+      "workstream": "web",
+      "scope": "P04/P09/P18; independent server/WASM browser oracles. WASM AOT extension additionally requires native_assets and its workloads."
+    },
+    {
+      "id": "desktop",
+      "milestone": "R11",
+      "label": "Desktop Framework and languages",
+      "requires": [
+        "configured",
+        "tasks",
+        "native_assets"
+      ],
+      "workstream": "desktop",
+      "scope": "Selected P05/P10\u2013P13/F01/F02 slices with Windows and other runtime prerequisites; do not require every lane for the first result."
+    },
+    {
+      "id": "languages",
+      "milestone": "R12",
+      "label": "Multi-language Bazel harness integration",
+      "requires": [
+        "base"
+      ],
+      "workstream": "polyglot",
+      "scope": "Integrate existing rules_python and rules_js/rules_ts with the .NET adapter: shared targets, runfiles, tests and cache evidence. Pin compatible rule/tool versions; do not implement new language rules. Independent of .NET generator work."
+    },
+    {
+      "id": "aspire",
+      "milestone": "R12",
+      "label": "Aspire composition acceptance",
+      "requires": [
+        "serilog",
+        "languages"
+      ],
+      "workstream": "polyglot",
+      "scope": "P07 composes existing-rule Python/TypeScript targets and .NET outputs through the shared harness; prove fresh-service message flow without build/restore at launch. Add task/publish prerequisites only if needed."
+    },
+    {
+      "id": "worker_identity",
+      "milestone": "R13",
+      "label": "Compatible worker identity",
+      "requires": [
+        "packages"
+      ],
+      "workstream": "remote",
+      "scope": "Declare compatible-worker inputs, toolchain and host assumptions; resolve relevant undeclared inputs."
+    },
+    {
+      "id": "remote_cache",
+      "milestone": "R13",
+      "label": "Independent remote cache",
+      "requires": [
+        "worker_identity"
+      ],
+      "workstream": "remote-cache",
+      "scope": "bazel-remote plus diamond on independent workers; Serilog extension adds serilog prerequisite."
+    },
+    {
+      "id": "worker_closure",
+      "milestone": "R14",
+      "label": "Remote execution closure",
+      "requires": [
+        "worker_identity"
+      ],
+      "workstream": "remote-execution",
+      "scope": "Provision/pin Buildbarn services and full execution tool/runtime closure for diamond; no local fallback."
+    },
+    {
+      "id": "remote_exec",
+      "milestone": "R14",
+      "label": "Remote execution acceptance",
+      "requires": [
+        "remote_cache",
+        "worker_closure"
+      ],
+      "workstream": "remote-execution",
+      "scope": "Force uncached diamond identities onto worker and verify output/missing-input failures; extend to Serilog after serilog."
+    },
+    {
+      "id": "design_time",
+      "milestone": "R15",
+      "label": "Design-time and IDE slices",
+      "requires": [
+        "inputs",
+        "lifecycle"
+      ],
+      "workstream": "ide",
+      "scope": "Start target output contracts; actual IDE/generated-source/desktop extensions add relevant generators/desktop prerequisites."
+    },
+    {
+      "id": "runtime_managed",
+      "milestone": "R16",
+      "label": "dotnet/runtime managed slice",
+      "requires": [
+        "configured",
+        "tasks",
+        "restore",
+        "scale_synthetic"
+      ],
+      "workstream": "runtime-repo",
+      "scope": "Pinned bootstrap and selected managed subtree; inventory may add generator/package features before execution."
+    },
+    {
+      "id": "runtime_native",
+      "milestone": "R16",
+      "label": "dotnet/runtime native expansion",
+      "requires": [
+        "runtime_managed",
+        "native_assets"
+      ],
+      "workstream": "runtime-repo",
+      "scope": "Selected native shims/build and target oracle; remote variant additionally requires remote_exec."
+    },
+    {
+      "id": "dispositions",
+      "milestone": "R17",
+      "label": "Support scope and dispositions",
+      "requires": [
+        "base"
+      ],
+      "workstream": "release",
+      "scope": "Maintain named support/rejection/deferral decisions for every P/G/F category; final sign-off uses current evidence and explicitly accounts for unfinished tracks."
+    },
+    {
+      "id": "release",
+      "milestone": "R17",
+      "label": "Supported adapter and adoption report",
+      "requires": [
+        "serilog",
+        "entrypoints",
+        "lifecycle",
+        "scale_real",
+        "remote_exec",
+        "dispositions"
+      ],
+      "workstream": "release",
+      "scope": "Full local/remote endpoint; release checklist also verifies documentation, reproducible installs and versioned contracts. Broad optional tracks can be deferred explicitly."
+    }
+  ]
+}

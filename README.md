@@ -35,6 +35,13 @@ they do not yet establish generated-graph cache recovery or real-project support
 General NuGet compatibility, RID-specific/native package assets, full runtime
 closure, remote-cache correctness and cross-platform portability remain unproven.
 
+The [forward roadmap](docs/roadmap.md) covers R01–R17 from this checkpoint through
+a supported adapter. **Next:** prove generated-graph local caching and Linux
+execution, integrate managed packages, then qualify configured nodes and Serilog.
+Later tracks cover specialized SDKs, platform workloads and independent remote
+workers; see the [coverage matrix](docs/scenario-coverage.md) and
+[parallel dependency graph](docs/roadmap-graph.md).
+
 ## Quick start
 
 Linux x86-64 (glibc), with Bash, Python 3, curl, tar, and standard .NET runtime dependencies:

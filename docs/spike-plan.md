@@ -41,15 +41,22 @@ still outside this measured boundary.
 
 ## Forward roadmap
 
-The [next six milestones](roadmap.md) extend the sequence below: configured graph
-export, generated graph execution, selective invalidation/cache recovery, a real
-project pilot, shared remote caching, then remote execution. Each requires
-contracts and failing acceptance tests before implementation. The roadmap states
-completion gates and distinguishes planned capabilities from measured results.
-Parallel preparation now includes the [generated-graph cache contract](graph-cache-contract.md)
-and [real-project pilot discovery](real-project-pilot.md). Cache tests are
-intentionally red pending their probe; the pilot baseline does not establish
-adapter compatibility.
+The [forward roadmap](roadmap.md) starts at the implemented generated-graph slice
+and uses R01–R17 for local correctness, package/configuration support, Serilog,
+specialized project tracks, independent remote workers and the supported-adapter
+endpoint. Near-term milestones have concrete deliverables and exit gates; later
+tracks are refined before implementation. Historical milestone numbers in older
+contracts and findings remain unchanged; the roadmap includes their mapping.
+
+Next: R01 proves Linux graph execution and package-free cache/replay/discovery
+controls; R02 completes the existing [generated-graph cache contract](graph-cache-contract.md)
+with package cases. R03 supplies configured-node semantics needed by the R04
+[Serilog pilot](real-project-pilot.md). Its ordinary baseline is not adapter
+acceptance. The [coverage matrix](scenario-coverage.md) and
+[pinned project selections](coverage-project-selections.md) define the broader
+portfolio and separate proposed work from measured support. The
+[parallel dependency graph](roadmap-graph.md) splits milestones into work packages
+and records the acceptance gates between independent tracks.
 
 ## Milestone sequence
 
