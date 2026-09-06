@@ -2,7 +2,7 @@
 
 A spike exploring Bazel project-level scheduling and caching while retaining MSBuild, NuGet, and the .NET SDK build behavior.
 
-**Status:** Codex setup, CI, and the first MSBuild boundary experiment are implemented. A Bazel project rule and graph exporter are not implemented yet.
+**Status:** Codex setup, CI, the first MSBuild boundary experiment, and a raw-cache path probe are implemented. Moving the bundle works at the same workspace path; moving the workspace fails MSBuild cache lookup. A Bazel project rule and graph exporter are not implemented yet.
 
 ## Quick start
 
@@ -32,9 +32,9 @@ If flakes are already enabled in your Nix configuration, use `nix develop`, or r
 
 `flake.lock` locks Nixpkgs to a revision containing .NET SDK 10.0.100 and Bazel 8.4.2. The shell checks those versions against `scripts/toolchains.json`. It uses the upstream binary .NET SDK packaged by Nixpkgs and Nixpkgs' source-built, patched Bazel; that Bazel reports the suffix `- (@non-git)`, which the check script accepts. It is not byte-identical to the Bazel release binary used by setup.
 
-The shell supplies `SPIKE_DOTNET_ROOT` (the directory containing `dotnet`) and `SPIKE_BAZEL` (the executable path). The wrappers, driver, and tests use these explicit overrides; outside Nix they retain the repository-local `.tools/` defaults. Restore and build outputs remain writable and local to the repository or copied test workspace, outside the Nix store.
+The shell supplies `SPIKE_DOTNET_ROOT` (the directory containing `dotnet`) and `SPIKE_BAZEL` (the executable path). The wrappers, driver, probes, and tests use these explicit overrides; outside Nix they retain the repository-local `.tools/` defaults. Restore and build outputs remain writable and local to the repository or copied test workspace, outside the Nix store.
 
-Initial Nix downloads and each test workspace's NuGet restore require network access. This is a development environment, not a sandboxed Nix derivation of the application or proof of hermetic builds. macOS runs are native, not Linux emulation. The separate Nix workflow runs the version checks, Bazel query, and six e2e scenarios on Ubuntu only; see [findings](docs/findings.md) for measured validation.
+Initial Nix downloads and each test workspace's NuGet restore require network access. This is a development environment, not a sandboxed Nix derivation of the application or proof of hermetic builds. macOS runs are native, not Linux emulation. The separate Nix workflow runs the version checks, Bazel query, and seven e2e tests on Ubuntu only; see [findings](docs/findings.md) for measured validation.
 
 ## Codex cloud environment
 
@@ -50,7 +50,7 @@ Codex reads [AGENTS.md](AGENTS.md) for project context and commands. See the [sp
 
 ## Spike contracts and tests
 
-The [interface contract](docs/interfaces.md) and [e2e scope](docs/e2e-scope.md) were committed before the driver implementation. Run the six black-box scenarios with:
+The [interface contract](docs/interfaces.md) and [e2e scope](docs/e2e-scope.md) were committed before the driver implementation. Run the seven black-box tests with:
 
 ```sh
 python3 -m unittest discover -s tests/e2e -v
@@ -61,6 +61,14 @@ Tests copy the two-project fixture to fresh temporary directories. Restore downl
 The first milestone exports a Shared project's MSBuild result cache and bin/obj artifacts, removes local build outputs, and consumes that bundle in an isolated App build. It also tests an App-only edit and rejects missing artifacts, mismatched configuration, and workspace relocation. Failed workspaces are retained for diagnosis.
 
 This is a same-path handoff experiment, not a general Bazel adapter or proof of portable caching. See the [findings](docs/findings.md) and the next milestone in [e2e scope](docs/e2e-scope.md).
+
+Run the path probe independently to retain copied workspaces, logs, the raw MSBuild command, and a JSON report (the output directory must not exist):
+
+```sh
+python3 tools/probe_paths.py --output artifacts/path-probe
+```
+
+Use this command inside `nix develop` on macOS ARM64. The probe records the raw relocation build's exit status; an observed relocation failure does not itself fail the probe command. The e2e test asserts the measured `MSB4252` failure and both successful controls. See [path findings](docs/path-findings.md) for the implications for Bazel.
 
 ## Validation
 

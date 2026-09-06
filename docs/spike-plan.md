@@ -29,4 +29,13 @@ Linux x86-64, one framework, Release, local execution and local disk cache. Remo
 
 ## Recorded results
 
-Codex setup and CI are established. The initial process contract and six e2e scenarios were committed before implementation. See [e2e scope](e2e-scope.md), [interfaces](interfaces.md), and [findings](findings.md). Bazel action integration remains the next milestone.
+Codex setup and CI are established. The initial process contract and six e2e scenarios were committed before implementation. See [e2e scope](e2e-scope.md), [interfaces](interfaces.md), and [findings](findings.md).
+
+Step 4 now has a runnable path probe and a seventh e2e test. On macOS ARM64 with
+the pinned Nix SDK, moving the bundle preserves App-only compilation, but moving
+the project workspace causes raw MSBuild `MSB4252` at `GetTargetFrameworks`. A
+fresh dependency cache at the new path succeeds. See [path findings](path-findings.md)
+for commands, controls, and limitations. The next step is to define the Bazel e2e
+harness and prove a stable project-path strategy across separate actions before
+implementing the two-target rule. The probe has not established sandbox or
+remote-cache portability.

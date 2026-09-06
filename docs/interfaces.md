@@ -36,6 +36,12 @@ Tests inspect MSBuild's `SPIKE_COMPILE:<project>` messages emitted immediately b
 
 ## Next milestone: Bazel rule boundary (proposed, not implemented)
 
+The [raw path probe](path-findings.md) measured that changing only the bundle
+directory succeeds, but changing the absolute workspace path fails MSBuild's
+configured-project cache lookup. The v1 same-workspace restriction remains in
+force. The standalone probe bypasses that guard for investigation only; it does
+not add a supported relocation operation to this interface.
+
 `msbuild_project(project, properties, sources, imports, restore_assets, toolchain, deps)`
 
 Inputs include all configured-project inputs and the dependency output bundles. Outputs are a declared artifact tree, result metadata and diagnostic logs. Each configured project maps to one action with mnemonic `MSBuildProject`.

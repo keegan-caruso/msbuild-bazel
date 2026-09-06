@@ -19,6 +19,16 @@ Before implementation, the test command is expected to fail because `tools/spike
 
 ## Milestone 2: Bazel integration (gated by milestone 1)
 
+The prerequisite path experiment is implemented in `tools/probe_paths.py` and
+`test_msbuild_paths.py`. It moves a completed bundle while preserving the project
+path, then tries an unchanged cache at a new workspace path after removing the
+producer workspace and restoring the consumer afresh. Finally it builds a fresh
+dependency cache at the consumer path as a positive control. The seventh e2e
+test asserts successful App-only compilation for both controls and raw MSBuild
+`MSB4252` for relocation. See [path findings](path-findings.md).
+
+The following Bazel scenarios remain planned:
+
 - Build the same outputs with a real custom Bazel action per project.
 - Compare normal build output with the Bazel result.
 - Read execution logs to assert cold (Shared + App), unchanged (neither), App edit (App only), Shared edit (Shared + App).

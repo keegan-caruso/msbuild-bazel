@@ -25,5 +25,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: msbuild-e2e-failures
-          path: /tmp/msbuild-e2e-*/action-*/build.log
+          path: |
+            /tmp/msbuild-e2e-*/**/*.log
+            /tmp/msbuild-e2e-*/**/report.json
           if-no-files-found: ignore
