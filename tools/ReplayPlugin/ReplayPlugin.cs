@@ -1,0 +1,144 @@
+using System.Diagnostics;
+using System.Security.Cryptography;
+using System.Text.Json;
+using System.Text.RegularExpressions;
+using Microsoft.Build.Execution;
+using Microsoft.Build.Framework;
+using Microsoft.Build.ProjectCache;
+using TaskItem = Microsoft.Build.Utilities.TaskItem;
+
+public sealed record Artifact(string Path, long Size, string Sha256);
+public sealed record Item(string Spec, Dictionary<string, string> Metadata);
+public sealed record Payload(int SchemaVersion, string SdkVersion, string EngineVersion,
+    string Project, string TargetFramework, Dictionary<string, string> RootMappings,
+    Dictionary<string, string> Properties, string[] RequestedTargets,
+    Dictionary<string, Item[]> Targets);
+
+public sealed class ReplayPlugin : ProjectCachePluginBase
+{
+    static readonly JsonSerializerOptions Json = new() { WriteIndented = true, PropertyNamingPolicy = JsonNamingPolicy.CamelCase };
+    static readonly Dictionary<string, string> RootMappings = new() {
+        ["${WORKSPACE}"] = "action-workspace",
+        ["${NUGET}"] = "${WORKSPACE}/.nuget/packages",
+        ["${SDK}"] = "dotnet-sdk:10.0.100"
+    };
+    string workspace = "", bundle = "", mode = "";
+    KeyValuePair<string, string>[] roots = [];
+    static string Engine => FileVersionInfo.GetVersionInfo(typeof(BuildManager).Assembly.Location).FileVersion!;
+    string PayloadPath => Path.Combine(bundle, "results.json");
+
+    public override Task BeginBuildAsync(CacheContext context, PluginLoggerBase logger, CancellationToken token)
+    {
+        workspace = Environment.GetEnvironmentVariable("SPIKE_REPLAY_WORKSPACE")!;
+        bundle = Environment.GetEnvironmentVariable("SPIKE_REPLAY_BUNDLE")!;
+        mode = Environment.GetEnvironmentVariable("SPIKE_REPLAY_MODE")!;
+        if (mode is not ("capture" or "replay")) throw new InvalidOperationException("dependency replay mode invalid");
+        roots = new Dictionary<string, string> {
+            ["${NUGET}"] = Path.Combine(workspace, ".nuget/packages"),
+            ["${WORKSPACE}"] = workspace,
+            ["${SDK}"] = Path.GetDirectoryName(typeof(BuildManager).Assembly.Location)!
+        }.OrderByDescending(pair => pair.Value.Length).ToArray();
+        if (context.Graph != null)
+        {
+            if (context.Graph.ProjectNodes.Any(node => node.ProjectInstance.GetPropertyValue("TargetFramework") != "net10.0"))
+                throw new InvalidOperationException("dependency framework must be net10.0");
+            var targets = context.Graph.GetTargetLists(["Build", "Publish"]);
+            File.WriteAllText(Path.Combine(bundle, $"graph-{mode}.json"), JsonSerializer.Serialize(
+                targets.ToDictionary(pair => Path.GetRelativePath(workspace, pair.Key.ProjectInstance.FullPath), pair => pair.Value), Json));
+        }
+        return Task.CompletedTask;
+    }
+
+    string Normalize(string value)
+    {
+        foreach (var root in roots)
+            value = value.Replace(root.Value + "/", root.Key + "/", StringComparison.Ordinal)
+                         .Replace(root.Value + "\\", root.Key + "/", StringComparison.Ordinal);
+        foreach (var root in roots)
+            if (value == root.Value) value = root.Key;
+        // This deliberately rejects unfamiliar absolute path forms instead of guessing.
+        if (Regex.IsMatch(value, @"(^|[;=\s""'>])/(?!/)|[A-Za-z]:[\\/]|^\\\\"))
+            throw new InvalidOperationException($"dependency unsupported external path: {value}");
+        return value;
+    }
+
+    string Expand(string value)
+    {
+        // Validate the normalized form before substituting the consumer roots.
+        if (Normalize(value) != value) throw new InvalidOperationException("dependency unnormalized path");
+        foreach (var root in roots) value = value.Replace(root.Key, root.Value, StringComparison.Ordinal);
+        if (value.Contains("${")) throw new InvalidOperationException("dependency unknown root token");
+        return value;
+    }
+
+    Dictionary<string, string> Properties(IEnumerable<KeyValuePair<string, string>> properties) =>
+        properties.ToDictionary(pair => pair.Key, pair => Normalize(pair.Value), StringComparer.OrdinalIgnoreCase);
+
+    public override Task<CacheResult> GetCacheResultAsync(BuildRequestData request, PluginLoggerBase logger, CancellationToken token)
+    {
+        try { return Evaluate(request); }
+        catch (Exception error)
+        {
+            logger.LogError("dependency replay rejected: " + error.Message);
+            return Task.FromResult(CacheResult.IndicateNonCacheHit(CacheResultType.None));
+        }
+    }
+
+    Task<CacheResult> Evaluate(BuildRequestData request)
+    {
+        if (Path.GetRelativePath(workspace, request.ProjectInstance!.FullPath) != "Shared/Shared.csproj")
+            return Task.FromResult(CacheResult.IndicateNonCacheHit(CacheResultType.CacheNotApplicable));
+        Console.WriteLine("SPIKE_REPLAY_REQUEST:" + string.Join(";", request.TargetNames));
+        if (mode == "capture") return Task.FromResult(CacheResult.IndicateNonCacheHit(CacheResultType.CacheMiss));
+        if (!File.Exists(PayloadPath)) throw new InvalidOperationException("dependency payload missing");
+        var payload = JsonSerializer.Deserialize<Payload>(File.ReadAllText(PayloadPath), Json)!;
+        if (payload.SchemaVersion != 1 || payload.SdkVersion != "10.0.100" || payload.EngineVersion != Engine ||
+            payload.Project != "Shared/Shared.csproj" || payload.TargetFramework != request.ProjectInstance.GetPropertyValue("TargetFramework")) throw new InvalidOperationException("dependency identity/version mismatch");
+        if (payload.RootMappings.Count != RootMappings.Count || RootMappings.Any(pair =>
+            !payload.RootMappings.TryGetValue(pair.Key, out var value) || value != pair.Value))
+            throw new InvalidOperationException("dependency root mappings mismatch");
+        var properties = Properties(request.ProjectInstance.GlobalProperties);
+        if (properties.Count != payload.Properties.Count || properties.Any(p => !payload.Properties.TryGetValue(p.Key, out var v) || p.Value != v))
+            throw new InvalidOperationException("dependency global properties mismatch");
+        foreach (var target in request.TargetNames)
+            if (!payload.Targets.ContainsKey(target)) throw new InvalidOperationException("dependency target missing: " + target);
+        var artifacts = JsonSerializer.Deserialize<Artifact[]>(File.ReadAllText(Path.Combine(bundle, "artifacts.json")), Json)!;
+        if (artifacts.Length == 0) throw new InvalidOperationException("dependency artifacts empty");
+        foreach (var artifact in artifacts)
+        {
+            if (Path.IsPathRooted(artifact.Path) || artifact.Path.Split('/').Contains("..") ||
+                !(artifact.Path.StartsWith("Shared/bin/", StringComparison.Ordinal) || artifact.Path.StartsWith("Shared/obj/Release/", StringComparison.Ordinal)))
+                throw new InvalidOperationException("dependency artifact path invalid");
+            var path = Path.Combine(workspace, artifact.Path);
+            if (!File.Exists(path) || new FileInfo(path).Length != artifact.Size ||
+                Convert.ToHexString(SHA256.HashData(File.ReadAllBytes(path))).ToLowerInvariant() != artifact.Sha256)
+                throw new InvalidOperationException("dependency staged artifact missing or corrupt: " + artifact.Path);
+        }
+        var results = payload.Targets.Select(pair => new PluginTargetResult(pair.Key,
+            pair.Value.Select(item => {
+                ITaskItem2 result = new TaskItem();
+                result.EvaluatedIncludeEscaped = Expand(item.Spec);
+                foreach (var metadata in item.Metadata) result.SetMetadata(metadata.Key, Expand(metadata.Value));
+                return result;
+            }).ToArray(), BuildResultCode.Success)).ToArray();
+        Console.WriteLine("SPIKE_REPLAY_HIT:Shared");
+        return Task.FromResult(CacheResult.IndicateCacheHit(results));
+    }
+
+    public override Task HandleProjectFinishedAsync(FileAccessContext context, BuildResult result, PluginLoggerBase logger, CancellationToken token)
+    {
+        if (mode != "capture" || Path.GetRelativePath(workspace, context.ProjectFullPath) != "Shared/Shared.csproj") return Task.CompletedTask;
+        if (result.OverallResult != BuildResultCode.Success) throw new InvalidOperationException("dependency capture failed");
+        var targets = result.ResultsByTarget.ToDictionary(pair => pair.Key, pair => {
+            if (pair.Value.ResultCode != TargetResultCode.Success) throw new InvalidOperationException("dependency target unsuccessful");
+            return pair.Value.Items.Select(item => new Item(Normalize(((ITaskItem2)item).EvaluatedIncludeEscaped),
+                ((ITaskItem2)item).CloneCustomMetadataEscaped().Keys.Cast<string>()
+                    .ToDictionary(name => name, name => Normalize(((ITaskItem2)item).GetMetadataValueEscaped(name))))).ToArray();
+        });
+        File.WriteAllText(PayloadPath, JsonSerializer.Serialize(new Payload(1, "10.0.100", Engine,
+            "Shared/Shared.csproj", "net10.0", RootMappings, Properties(context.GlobalProperties), context.Targets.ToArray(), targets), Json));
+        Console.WriteLine("SPIKE_REPLAY_CAPTURE:" + string.Join(";", targets.Keys));
+        return Task.CompletedTask;
+    }
+    public override Task EndBuildAsync(PluginLoggerBase logger, CancellationToken token) => Task.CompletedTask;
+}

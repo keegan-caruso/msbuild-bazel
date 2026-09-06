@@ -27,14 +27,14 @@ dependency cache at the consumer path as a positive control. The seventh e2e
 test asserts successful App-only compilation for both controls and raw MSBuild
 `MSB4252` for relocation. See [path findings](path-findings.md).
 
-## Milestone 2: public-API result replay (next, not implemented)
+## Milestone 2: public-API result replay (implemented)
 
-Define a separate experimental process contract and black-box tests before
-implementation. The [replay plan](result-replay-plan.md) specifies same-path and
-relocated replay, App-only edits, missing dependency payloads/target results,
-missing artifacts, identity mismatches, and a narrow publish request. Preserve
-the existing seven tests and their v1 expectations as controls. No new replay
-tests have been run or counted as passing.
+The separate [experimental contract](replay-interface.md) and black-box test
+were written before the runner. `test_msbuild_replay.py` invokes the probe and
+asserts same-path and relocated replay, App-only edits, missing payloads/target
+results, missing artifacts, identity mismatches, unsupported paths, and narrow
+publish. The original seven tests retain their v1 expectations as controls.
+See [replay findings](replay-findings.md) for measured results.
 
 Use graph-ordered dependency submissions and verify strict isolation. Require
 the producer workspace to be absent in the relocation case, fresh consumer

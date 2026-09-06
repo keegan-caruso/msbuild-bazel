@@ -2,10 +2,12 @@
 
 ## Decision and status
 
-The next experiment is to capture and replay dependency target results through
+This experiment captures and replays dependency target results through
 public MSBuild project-cache APIs at a different workspace path. This precedes
 the two-target Bazel rule and any investment in fixed absolute sandbox paths or
-a custom MSBuild fork. This is a proposed experiment, not implemented behavior.
+a custom MSBuild fork. Implemented and measured on macOS ARM64; see [findings](replay-findings.md)
+and the finalized [experimental contract](replay-interface.md). The sections
+below preserve the original experiment design.
 
 Keep the existing v1 driver and raw-cache path probe as controls. Their
 same-workspace restriction and measured relocation failure remain valid; see

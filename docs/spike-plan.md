@@ -36,9 +36,10 @@ Step 4 now has a runnable path probe and a seventh e2e test. On macOS ARM64 with
 the pinned Nix SDK, moving the bundle preserves App-only compilation, but moving
 the project workspace causes raw MSBuild `MSB4252` at `GetTargetFrameworks`. A
 fresh dependency cache at the new path succeeds. See [path findings](path-findings.md)
-for commands, controls, and limitations. The next step is the
-[public-API result-replay experiment](result-replay-plan.md), before implementing
-the two-target Bazel rule. Test whether normalized target-result metadata can
-replace the raw cache at a changed workspace path before investing in fixed
-absolute paths or an MSBuild fork. Neither replay nor sandbox/remote-cache
-portability has been established.
+for commands, controls, and limitations. Raw-cache relocation remains unsupported.
+
+Step 5 now has a public-API replay plugin, an independent probe, and black-box
+acceptance coverage. Relocated Build, App-only edit, and narrow Publish succeeded
+on macOS ARM64 after deleting the producer, with strict isolation and no Shared
+compilation. See [replay findings](replay-findings.md). Step 6, the two-target
+Bazel action harness and sandbox boundary, is next.
