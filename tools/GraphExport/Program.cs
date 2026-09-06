@@ -216,7 +216,17 @@ internal static class GraphExporter
                 AddOutput(request, outputs, "assembly", targetPath);
         }
 
-        var dependencies = node.ProjectReferences.Where(IsCompilationNode).Select(n => ids[n]).OrderBy(x => x, StringComparer.Ordinal).ToList();
+        var directReferencePaths = instance.GetItems("ProjectReference")
+            .Select(item => item.GetMetadataValue("FullPath"))
+            .Where(path => !string.IsNullOrWhiteSpace(path))
+            .Select(Path.GetFullPath)
+            .ToHashSet(OperatingSystem.IsWindows() ? StringComparer.OrdinalIgnoreCase : StringComparer.Ordinal);
+        var dependencies = node.ProjectReferences
+            .Where(IsCompilationNode)
+            .Where(reference => directReferencePaths.Contains(Path.GetFullPath(reference.ProjectInstance.FullPath)))
+            .Select(reference => ids[reference])
+            .OrderBy(id => id, StringComparer.Ordinal)
+            .ToList();
         var globalProperties = NormalizedGlobalProperties(instance);
         return new NodeRecord(
             ids[node],
@@ -284,8 +294,13 @@ internal static class GraphExporter
         {
             var path = raw;
             if (!Path.IsPathRooted(path)) path = Path.GetFullPath(path, Path.GetDirectoryName(instance.FullPath)!);
-            if (File.Exists(path) && !string.Equals(Path.GetFullPath(path), Path.GetFullPath(instance.FullPath), StringComparison.Ordinal) && seen.Add(Path.GetFullPath(path)))
-                yield return Path.GetFullPath(path);
+            path = Path.GetFullPath(path);
+            var fileName = Path.GetFileName(path);
+            if (fileName.EndsWith(".nuget.g.props", StringComparison.OrdinalIgnoreCase) ||
+                fileName.EndsWith(".nuget.g.targets", StringComparison.OrdinalIgnoreCase))
+                continue;
+            if (File.Exists(path) && !string.Equals(path, Path.GetFullPath(instance.FullPath), StringComparison.Ordinal) && seen.Add(path))
+                yield return path;
         }
     }
 
