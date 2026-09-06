@@ -4,7 +4,8 @@ internal static class NativeRuntimeInputs
 {
     public static void Validate(ActionRequest request)
     {
-        if (request.NativeManifest is null) return;
+        if (request.NativeManifest is null)
+            return;
         var manifest = JsonFiles.Read<NativeManifest>(request.NativeManifest);
         if (manifest.SchemaVersion != 1 || !request.NativeFiles.Select(f => f.Destination)
                 .Order(StringComparer.Ordinal).SequenceEqual(manifest.Files.Order(StringComparer.Ordinal)))

@@ -34,7 +34,8 @@ internal static class Files
 
     public static void Verify(string path, long size, string hash, string error)
     {
-        if (!File.Exists(path)) throw new InvalidDataException(error);
+        if (!File.Exists(path))
+            throw new InvalidDataException(error);
         // Bazel presents inputs as symlinks; stream length measures the payload, not the link itself.
         using var stream = File.OpenRead(path);
         if (stream.Length != size || Convert.ToHexStringLower(SHA256.HashData(stream)) != hash)

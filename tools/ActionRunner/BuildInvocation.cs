@@ -36,15 +36,15 @@ internal sealed record BuildInvocation(string Executable, string WorkingDirector
 
     public ProcessStartInfo CreateStartInfo()
     {
-        var start = new ProcessStartInfo(Executable)
+        var start = new ProcessStartInfo(Executable, Arguments)
         {
             WorkingDirectory = WorkingDirectory,
             UseShellExecute = false,
             RedirectStandardOutput = true,
             RedirectStandardError = true
         };
-        foreach (var argument in Arguments) start.ArgumentList.Add(argument);
-        foreach (var (key, value) in Environment) start.Environment[key] = value;
+        foreach (var (key, value) in Environment)
+            start.Environment[key] = value;
         return start;
     }
 }

@@ -29,20 +29,21 @@ internal static class PackageInputs
         }
         var files = request.Packages.ToDictionary(f => f.Destination, f => f.Source);
         var staged = new List<(string Source, string Target)>();
-        foreach (var package in manifest.Packages)
-            foreach (var entry in package.Files)
-            {
-                var relative = package.Path + "/" + entry.Path;
-                if (!Files.ValidRelativePath(relative))
-                    throw new InvalidDataException("package payload path invalid");
-                if (!files.TryGetValue(relative, out var source) || !File.Exists(source))
-                    throw new FileNotFoundException("package payload missing: " + relative);
-                Files.Verify(source, entry.Size, entry.Sha256, "package payload hash mismatch: " + relative);
-                staged.Add((source, Path.Combine(workspace, ".nuget/packages", relative)));
-            }
+        var payloads = manifest.Packages.SelectMany(package => package.Files,
+            (package, entry) => (Path: package.Path + "/" + entry.Path, File: entry));
+        foreach (var (relative, entry) in payloads)
+        {
+            if (!Files.ValidRelativePath(relative))
+                throw new InvalidDataException("package payload path invalid");
+            if (!files.TryGetValue(relative, out var source) || !File.Exists(source))
+                throw new FileNotFoundException("package payload missing: " + relative);
+            Files.Verify(source, entry.Size, entry.Sha256, "package payload hash mismatch: " + relative);
+            staged.Add((source, Path.Combine(workspace, ".nuget/packages", relative)));
+        }
         if (staged.Count != files.Count)
             throw new InvalidDataException("package payload set mismatch");
-        foreach (var (source, target) in staged) Files.Copy(source, target);
+        foreach (var (source, target) in staged)
+            Files.Copy(source, target);
         return resolved.Keys.Select(key => key.ToLowerInvariant()).Order(StringComparer.Ordinal).ToArray();
     }
 }

@@ -16,8 +16,10 @@ internal static class Msbuild
                 .Select(path => Path.GetRelativePath(workspace.Root, path)).Order(StringComparer.Ordinal).ToArray());
         JsonFiles.Write(Path.Combine(workspace.Diagnostics, "action.json"), report);
         Console.Write(result.Log);
-        if (result.TimedOut) throw new TimeoutException("MSBuild exceeded 180 seconds");
-        if (result.ExitCode != 0) throw new InvalidOperationException($"MSBuild {request.Project} failed with {result.ExitCode}");
+        if (result.TimedOut)
+            throw new TimeoutException("MSBuild exceeded 180 seconds");
+        if (result.ExitCode != 0)
+            throw new InvalidOperationException($"MSBuild {request.Project} failed with {result.ExitCode}");
         evidence.Verify(request.Project);
     }
 }

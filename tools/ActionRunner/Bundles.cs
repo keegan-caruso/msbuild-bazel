@@ -6,13 +6,15 @@ internal static class Bundles
 {
     public static string StageDependency(ActionRequest request, Workspace workspace)
     {
-        if (request.Project == ProjectKind.Shared) return workspace.Output;
+        if (request.Project == ProjectKind.Shared)
+            return workspace.Output;
         if (string.IsNullOrEmpty(request.Dependency))
             throw new InvalidDataException("App requires a Shared dependency bundle");
         var bundle = Path.Combine(workspace.Scratch, "dependency");
         Files.CopyTree(request.Dependency, bundle);
         var manifest = JsonFiles.Read<Artifact[]>(Path.Combine(bundle, "artifacts.json"));
-        if (manifest.Length == 0) throw new InvalidDataException("dependency artifacts empty");
+        if (manifest.Length == 0)
+            throw new InvalidDataException("dependency artifacts empty");
         foreach (var entry in manifest)
         {
             if (!Files.ValidRelativePath(entry.Path) ||

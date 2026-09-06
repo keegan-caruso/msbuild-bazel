@@ -49,7 +49,8 @@ them on both Linux CI workflows. They cover missing/null/duplicate/invalid reque
 fields, large output pipes, nonzero exits, timeout, cancellation, CRLF evidence,
 rejection of repeated dependency compilation and symlinked payload verification.
 
-The focused tests and retained package probe passed on macOS ARM64. Package
+The full opt-in e2e suite passed all 14 tests in 309.931 seconds on macOS ARM64.
+The focused tests and retained package probe also passed. Package
 data/target upgrades rebuilt both projects, disk-cache controls recovered both
 bundles, and missing/corrupt/stale package controls were rejected before compilation.
 

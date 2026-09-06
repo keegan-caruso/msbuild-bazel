@@ -17,10 +17,8 @@ if (args is ["--child", var mode])
     }
 }
 
-void Check(bool condition, string message)
-{
-    if (!condition) throw new InvalidOperationException(message);
-}
+static bool Check(bool condition, string message) =>
+    condition ? true : throw new InvalidOperationException(message);
 
 var directory = Directory.CreateTempSubdirectory("action-runner-tests-");
 try
@@ -63,19 +61,13 @@ try
         catch (JsonException) { }
     }
 
-    ProcessStartInfo Child(string childMode)
+    ProcessStartInfo Child(string childMode) => new(
+        Environment.ProcessPath!, [Assembly.GetExecutingAssembly().Location, "--child", childMode])
     {
-        var start = new ProcessStartInfo(Environment.ProcessPath!)
-        {
-            RedirectStandardOutput = true,
-            RedirectStandardError = true,
-            UseShellExecute = false
-        };
-        start.ArgumentList.Add(Assembly.GetExecutingAssembly().Location);
-        start.ArgumentList.Add("--child");
-        start.ArgumentList.Add(childMode);
-        return start;
-    }
+        RedirectStandardOutput = true,
+        RedirectStandardError = true,
+        UseShellExecute = false
+    };
 
     var pipes = await ProcessRunner.RunAsync(Child("pipes"), TimeSpan.FromSeconds(10));
     Check(pipes.ExitCode == 7 && !pipes.TimedOut, "child exit code lost");
