@@ -93,9 +93,10 @@ run.
 
 ## Remaining boundary
 
-Absolute store and host loader paths remain in use. The next experiment should
-force an actual loaded-library substitution or deny an observed host dependency,
-then measure behavior under the sandbox. Host OS libraries/frameworks, complete
+Absolute store and host loader paths remain in use. The subsequent
+[loaded JIT experiment](loader-runtime-findings.md) forces actual substitution
+for one runtime library and tests loader rejection under the sandbox.
+Host OS libraries/frameworks, complete
 filesystem-read discovery, remote-cache correctness and ordinary NuGet runtime
 assets remain unproven. Linux validation of this extension belongs to the
 existing Nix CI workflow; no new Linux result is claimed here.

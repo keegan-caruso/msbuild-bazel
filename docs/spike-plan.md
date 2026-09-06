@@ -23,10 +23,11 @@ The [runner refactor](action-runner-refactor.md) moves policy into declared MSBu
 imports and strengthens the .NET request/process contracts.
 The [runtime integrity extension](native-runtime-integrity-findings.md) adds
 payload hashes, copied-library rejection/invalidation and loader diagnostics.
-Next, force actual loaded-library substitution or denial of an observed host
-dependency; full runtime closure and general host-read discovery remain open.
-Ordinary package DLL/runtime assets need separate coverage. General graph export
-(step 8) remains deferred until these boundaries are established.
+The [loaded JIT experiment](loader-runtime-findings.md) now forces one substituted
+native library into the actual MSBuild runtime, with loader evidence and
+invalid-image rejection. Full runtime closure and general host-read discovery
+remain open. Next, cover ordinary package DLL/runtime assets; general graph
+export (step 8) remains deferred until that package boundary is established.
 
 ## Milestone sequence
 

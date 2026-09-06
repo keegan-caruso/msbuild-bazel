@@ -73,6 +73,16 @@ failed with `Failed to load JIT compiler`, before any compilation marker.
 These retries are retained under `artifacts/loader-runtime-1`; its original
 report records the failed first attempt, not a passing full matrix.
 
+The full macOS ARM64 native-runtime acceptance test subsequently passed in
+139.054 seconds. Its successful report and logs are retained under
+`artifacts/loader-runtime-acceptance`. Both the original and changed valid JITs
+loaded from private action paths, with no original JIT path in either project's
+trace. Both projects executed for changed bytes and fresh execution; neither
+executed for an unchanged build or disk-cache recovery. Both bundles were
+restored from disk cache. DLL and apphost output remained `shared-v2/app-v2`.
+Missing, corrupt and loader-invalid payloads all failed before compilation,
+and the installed JIT hash was unchanged.
+
 ## Scope of the conclusion
 
 This is one enforced runtime-library boundary. It does not make the remaining
@@ -80,3 +90,11 @@ SDK, native dependency closure or operating system hermetic. It does not prove
 remote-cache correctness, ordinary NuGet binary/runtime assets, cross-platform
 artifact reuse, or general input discovery. General graph export must not turn
 those unproven properties into implicit promises.
+
+The runtime boundary is sufficient to continue the deliberately host-bound,
+local-cache spike: declared bytes affect identity, one substituted library is
+observably loaded, and invalid bytes do not silently fall back. It is not
+sufficient for a hermetic or remotely cacheable general adapter. The next
+bounded milestone should cover ordinary NuGet compile/runtime assets and their
+dependency handoff before investing in the general graph exporter. Further
+runtime closure work can remain separate from that local-only exporter.
