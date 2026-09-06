@@ -14,7 +14,9 @@ cases, also passed in Ubuntu 22.04 Linux x86-64 CI; see [Linux evidence](bazel-f
 The user is handling Linux validation of the newer identity/package tests.
 Cross-platform artifact reuse remains unproven.
 
-Next, address native runtime/toolchain closure and deterministic output staging.
+The first staging slice now compares identical consumer bundles across fresh
+native macOS ARM64 executions; see [staging findings](staging-findings.md).
+Next, address native runtime/toolchain closure.
 Ordinary package DLL/runtime assets need separate coverage. General graph export
 (step 8) remains deferred until these boundaries are established.
 
@@ -78,3 +80,9 @@ and App; missing, corrupt and stale-version inputs fail before compilation.
 See [package findings](package-input-findings.md). This is build-only package
 coverage, with no binary/runtime assets or arbitrary package closure claim.
 See the current status above for remaining work.
+
+The [staging experiment](staging-findings.md) separates diagnostic outputs from
+consumer bundles, maps compiler paths and narrows Shared's intermediate handoff
+to the reference assembly. A fresh output base with an empty cache forces real
+executions and compares all bundle bytes and executable bits. Runtime closure
+and broader output discovery remain open.

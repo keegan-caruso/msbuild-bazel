@@ -14,7 +14,10 @@ CI; see [Linux evidence](docs/bazel-findings.md#ci-repair-2026-09-05). The newer
 identity and package tests have macOS results; Linux validation of those tests
 is handled separately. Cross-platform artifact reuse remains unproven.
 
-**Next:** Address native runtime/toolchain closure and deterministic output staging.
+The [deterministic staging experiment](docs/staging-findings.md) now compares
+consumer bundles across fresh sandbox executions on macOS ARM64.
+
+**Next:** Address native runtime/toolchain closure.
 General graph export, ordinary NuGet binary/runtime assets, remote-cache
 correctness and cross-platform portability remain unproven.
 
@@ -109,6 +112,8 @@ host-runtime limitations. Add `--identity-probe` to test imported targets,
 generated-source data, environment and host-identity invalidation. Use
 `--package-probe` instead to test pinned NuGet package payloads, build-target
 upgrades and rejection of missing/corrupt/stale package inputs.
+Use `--staging-probe` to compare complete consumer bundles from two fresh builds
+with separate output bases and empty disk caches.
 
 ## Validation
 

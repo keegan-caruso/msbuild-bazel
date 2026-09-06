@@ -22,17 +22,36 @@ class BazelBoundaryTests(unittest.TestCase):
     def test_pinned_package_inputs(self):
         self.run_probe(False, True)
 
-    def run_probe(self, identity, packages=False):
+    def test_deterministic_staging(self):
+        self.run_probe(False, staging=True)
+
+    def run_probe(self, identity, packages=False, staging=False):
         directory = Path(tempfile.mkdtemp(prefix='msbuild-e2e-bazel-')).resolve()
         try:
             completed = subprocess.run([sys.executable, str(ROOT / 'tools/probe_bazel.py'),
-                                        '--output', str(directory / 'probe'), *(['--identity-probe'] if identity else []), *(['--package-probe'] if packages else [])],
+                                        '--output', str(directory / 'probe'), *(['--identity-probe'] if identity else []), *(['--package-probe'] if packages else []), *(['--staging-probe'] if staging else [])],
                                        text=True, capture_output=True, timeout=900)
             self.assertEqual(completed.returncode, 0, completed.stdout + completed.stderr)
             report = json.loads((directory / 'probe/report.json').read_text())
             self.assertEqual(report['baselineOutput'], 'shared-v1/data-v1/import-v1/env-v1/app-v1' if identity else ('shared-v1/package-v1/target-v1/app-v1' if packages else 'shared-v1/app-v1'))
             self.assertTrue(report['preparationWorkspaceAbsent'])
             self.assertEqual(report['sdkVersion'], '10.0.100')
+            if staging:
+                self.assertEqual(report['staging']['differences'], {'shared': [], 'app': []})
+                self.assertEqual(report['staging']['before'], report['staging']['after'])
+                self.assertTrue(report['staging']['workspacePathsDiffer'])
+                fresh = report['cases']['freshExecution']
+                self.assertEqual(fresh['executedProjects'], ['App', 'Shared'])
+                self.assertEqual(fresh['cacheHitProjects'], [])
+                self.assertEqual(fresh['applicationOutput'], report['baselineOutput'])
+                self.assertEqual(fresh['apphostOutput'], report['baselineOutput'])
+                for execution in fresh['executions']:
+                    self.assertIn('sandbox', execution['runner'])
+                for files in report['staging']['after'].values():
+                    self.assertNotIn('action.json', files)
+                    self.assertNotIn('build.log', files)
+                    self.assertFalse(any('FileListAbsolute' in name for name in files))
+                self.assertTrue(report['staging']['after']['app']['artifacts/App/bin/Release/net10.0/App']['executable'])
             for name, executed, output in (
                 ('cold', ['App', 'Shared'], 'shared-v1/app-v1'),
                 ('unchanged', [], 'shared-v1/app-v1'),
@@ -68,6 +87,7 @@ class BazelBoundaryTests(unittest.TestCase):
                 self.assertFalse(action['remoteCacheable'])
                 self.assertIn('src/Directory.Build.targets', action['inputs'])
                 if action['project'] == 'App':
+                    self.assertFalse(any('shared.diagnostics' in path.split('/') for path in action['inputs']))
                     self.assertFalse(any(path.startswith('src/Shared/') and path.endswith('.cs') for path in action['inputs']))
                     self.assertNotIn('src/Shared/value.txt', action['inputs'])
                 else:

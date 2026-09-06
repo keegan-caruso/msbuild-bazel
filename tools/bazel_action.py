@@ -61,6 +61,8 @@ def action(request):
     execroot = Path.cwd()
     output = (execroot / request['output']).absolute()
     output.mkdir(parents=True, exist_ok=True)
+    diagnostics = execroot / request['diagnostics']
+    diagnostics.mkdir(parents=True, exist_ok=True)
     # Under the declared output so platform sandboxes allow writes. Scratch is
     # removed before success; only the bundle is returned to Bazel.
     scratch = Path(tempfile.mkdtemp(prefix='work-', dir=output))
@@ -84,6 +86,16 @@ def action(request):
             target.parent.mkdir(parents=True, exist_ok=True)
             target.write_text(contents.replace('${WORKSPACE}', str(workspace)).replace('${SDK}', str(dotnet.parent)))
     packages = stage_packages(request, workspace, execroot)
+    # These are local evaluated properties, not global properties in the replay
+    # identity. Both projects map their current action workspace identically.
+    props = ET.parse(workspace / 'Directory.Build.props')
+    group = ET.SubElement(props.getroot(), 'PropertyGroup')
+    ET.SubElement(group, 'PathMap').text = str(workspace) + '=/_/workspace'
+    ET.SubElement(group, 'Deterministic').text = 'true'
+    # A copied fixture must not discover the enclosing checkout's Git metadata.
+    ET.SubElement(group, 'EnableSourceControlManagerQueries').text = 'false'
+    ET.SubElement(group, 'EnableSourceLink').text = 'false'
+    props.write(workspace / 'Directory.Build.props')
     tree = ET.parse(workspace / 'Directory.Build.targets')
     ET.SubElement(ET.SubElement(tree.getroot(), 'ItemGroup'), 'ProjectCachePlugin', Include=str(plugin))
     tree.write(workspace / 'Directory.Build.targets')
@@ -119,13 +131,13 @@ def action(request):
                '-nodeReuse:false', '-nologo', '-verbosity:normal']
     process = subprocess.run(command, cwd=workspace, env=env, text=True,
                              stdout=subprocess.PIPE, stderr=subprocess.STDOUT, timeout=180)
-    (output / 'build.log').write_text(process.stdout)
+    (diagnostics / 'build.log').write_text(process.stdout)
     observed = dict(project=project, workspace=str(workspace), command=command, packages=packages,
                     packageTargets=re.findall(r'SPIKE_PACKAGE_TARGET:(\w+)', process.stdout),
                     returncode=process.returncode, compiledProjects=re.findall(r'SPIKE_COMPILE:(\w+)', process.stdout),
                     replayHits=re.findall(r'SPIKE_REPLAY_HIT:(.*)', process.stdout),
                     sharedSources=[str(p.relative_to(workspace)) for p in (workspace / 'Shared').glob('*.cs')])
-    (output / 'action.json').write_text(json.dumps(observed, indent=2))
+    (diagnostics / 'action.json').write_text(json.dumps(observed, indent=2))
     print(process.stdout)
     if process.returncode:
         raise RuntimeError(f'MSBuild {project} failed with {process.returncode}')
@@ -134,7 +146,9 @@ def action(request):
     if project == 'App' and observed['replayHits'] != ['Shared']:
         raise RuntimeError('App did not replay Shared')
     manifest = []
-    folders = ('Shared/bin', 'Shared/obj/Release') if project == 'Shared' else ('App/bin',)
+    # Replay needs runtime outputs plus the reference assembly; SDK incremental
+    # caches, generated source and absolute file lists are producer-private.
+    folders = ('Shared/bin', 'Shared/obj/Release/net10.0/ref') if project == 'Shared' else ('App/bin',)
     for folder in folders:
         for source in sorted((workspace / folder).rglob('*')):
             if source.is_file():
@@ -145,6 +159,19 @@ def action(request):
                 manifest.append(dict(path=relative, size=source.stat().st_size, sha256=sha256(source)))
     (output / 'artifacts.json').write_text(json.dumps(manifest, indent=2))
     shutil.rmtree(scratch)
+    for path in output.glob('graph-*.json'):
+        shutil.move(path, diagnostics / path.name)
+    # JSON object iteration order in MSBuild is not an output contract. Preserve
+    # item order, but canonicalize object keys and the target-name set.
+    results = output / 'results.json'
+    if results.exists():
+        payload = json.loads(results.read_text())
+        payload['requestedTargets'] = sorted(payload['requestedTargets'])
+        results.write_text(json.dumps(payload, sort_keys=True, indent=2) + '\n')
+    for path in sorted(output.rglob('*'), reverse=True):
+        path.chmod(0o755 if path.is_dir() or path.stat().st_mode & 0o111 else 0o644)
+        os.utime(path, (0, 0))
+    os.utime(output, (0, 0))
 
 
 if __name__ == '__main__':

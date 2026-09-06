@@ -16,7 +16,8 @@ Each action copies declared inputs into its own fresh scratch workspace. Restore
 metadata is expanded from explicit workspace/SDK tokens; compilation does not
 restore or download tools. App stages and validates Shared's dependency bundle,
 then uses public-API replay with `-graphBuild -isolateProjects`. Shared and App
-outputs are separate Bazel tree artifacts with retained action reports and logs.
+outputs are separate Bazel tree artifacts. Action reports and logs live in
+separate `<target>.diagnostics` outputs excluded from downstream action inputs.
 The SDK tree participates in the action digest. The Python executable/core library/standard library are now declared through a
 local runtime repository; Python runs directly with `-I -S -B`. Native libraries
 outside those trees and the Nix runtime closure are not yet hermetic toolchains;
@@ -47,3 +48,9 @@ The rule accepts `packages` payload labels and an optional `package_manifest`
 label. Before MSBuild starts, the runner checks package/restore identities and
 payload hashes, then stages the files in its own NuGet root. See the
 [package contract](package-input-plan.md) and [findings](package-input-findings.md).
+
+`--staging-probe` is another mutually exclusive mode. It forces fresh compilation
+with a separate output base and empty disk cache, then compares every consumer
+bundle file hash and executable bit. Shared stages bin outputs and its reference
+assembly, rather than its entire obj tree. See [staging findings](staging-findings.md)
+for path mapping, metadata canonicalization and the fixture-specific limits.

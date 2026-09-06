@@ -7,6 +7,7 @@ def _msbuild_project_impl(ctx):
         if not key.startswith("SPIKE_INPUT_"):
             fail("build_environment keys must start with SPIKE_INPUT_")
     output = ctx.actions.declare_directory(ctx.label.name + ".bundle")
+    diagnostics = ctx.actions.declare_directory(ctx.label.name + ".diagnostics")
     request = ctx.actions.declare_file(ctx.label.name + ".request.json")
     dependency = ctx.attr.dependency[MsbuildBundle].directory if ctx.attr.dependency else None
     ctx.actions.write(request, json.encode({
@@ -18,6 +19,7 @@ def _msbuild_project_impl(ctx):
         "plugin": ctx.file.plugin.path,
         "dotnet": ctx.file.dotnet.path,
         "output": output.path,
+        "diagnostics": diagnostics.path,
         "dependency": dependency.path if dependency else None,
         "undeclared_probe": ctx.attr.undeclared_probe,
     }))
@@ -25,7 +27,7 @@ def _msbuild_project_impl(ctx):
         inputs = depset(ctx.files.srcs + ctx.files.restore + ctx.files.packages +
                         ([ctx.file.package_manifest] if ctx.file.package_manifest else []) + [request, ctx.file.plugin, ctx.file.runner, ctx.file.host_identity] +
                         ([dependency] if dependency else []), transitive = [ctx.attr.sdk[DefaultInfo].files, ctx.attr.runtime[DefaultInfo].files]),
-        outputs = [output],
+        outputs = [output, diagnostics],
         executable = ctx.executable.python,
         arguments = ["-I", "-S", "-B", ctx.file.runner.path, "--request", request.path],
         env = dict({"PATH": "/usr/bin:/bin", "LANG": "en_US.UTF-8"}, **ctx.attr.build_environment),
@@ -33,7 +35,7 @@ def _msbuild_project_impl(ctx):
         progress_message = "MSBuild %s with dependency replay" % ctx.attr.project,
         execution_requirements = {"block-network": "1", "no-remote": "1"},
     )
-    return [DefaultInfo(files = depset([output])), MsbuildBundle(directory = output)]
+    return [DefaultInfo(files = depset([output, diagnostics])), MsbuildBundle(directory = output)]
 
 msbuild_project = rule(
     implementation = _msbuild_project_impl,

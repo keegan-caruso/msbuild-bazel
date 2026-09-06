@@ -1,5 +1,6 @@
 """Prepare and measure two explicit Bazel/MSBuild actions with sandboxing."""
 import argparse
+import hashlib
 import json
 import os
 from pathlib import Path
@@ -26,11 +27,18 @@ def json_stream(path):
         text = text.lstrip()[end:]
 
 
-def probe(output, identity=False, package_mode=False):
+def bundle_snapshot(directory):
+    return {path.relative_to(directory).as_posix(): dict(
+        sha256=hashlib.sha256(path.read_bytes()).hexdigest(),
+        executable=bool(path.stat().st_mode & 0o111))
+        for path in sorted(directory.rglob('*')) if path.is_file()}
+
+
+def probe(output, identity=False, package_mode=False, staging=False):
     output.mkdir(parents=True, exist_ok=False)
     workspace = output / 'workspace'
     workspace.mkdir()
-    report = dict(schemaVersion=1, platform=platform.platform(), identityProbe=identity, packageProbe=package_mode, cases={})
+    report = dict(schemaVersion=1, platform=platform.platform(), identityProbe=identity, packageProbe=package_mode, stagingProbe=staging, cases={})
     env = dict(os.environ, DOTNET_ROOT=str(DOTNET.parent),
                DOTNET_CLI_HOME=str(output / 'dotnet-home'),
                NUGET_PACKAGES=str(output / 'prepare/.nuget/packages'),
@@ -185,21 +193,41 @@ def probe(output, identity=False, package_mode=False):
                         apphostOutput=native.stdout.strip(), apphostReturncode=native.returncode,
                         executionLog=str(log))
         if package_mode:
-            observed['packageTargets'] = {project: json.loads((workspace / f'bazel-bin/{project.lower()}.bundle/action.json').read_text())['packageTargets']
+            observed['packageTargets'] = {project: json.loads((workspace / f'bazel-bin/{project.lower()}.diagnostics/action.json').read_text())['packageTargets']
                                           for project in executed}
         report['cases'][name] = observed
         (output / 'report.json').write_text(json.dumps(report, indent=2))
         return result
 
     build_case('cold')
-    shared = json.loads((workspace / 'bazel-bin/shared.bundle/action.json').read_text())
-    app = json.loads((workspace / 'bazel-bin/app.bundle/action.json').read_text())
+    shared = json.loads((workspace / 'bazel-bin/shared.diagnostics/action.json').read_text())
+    app = json.loads((workspace / 'bazel-bin/app.diagnostics/action.json').read_text())
     report.update(sharedWorkspace=shared['workspace'], appWorkspace=app['workspace'],
                   appHasSharedSources=bool(app['sharedSources']),
                   sharedCompiledProjects=shared['compiledProjects'], appCompiledProjects=app['compiledProjects'])
     if package_mode:
         report['packageTargets'] = dict(Shared=shared['packageTargets'], App=app['packageTargets'])
     build_case('unchanged')
+    if staging:
+        before = {p: bundle_snapshot(workspace / f'bazel-bin/{p}.bundle') for p in ('shared', 'app')}
+        # A new output base AND an empty disk cache force real compilation at
+        # different action paths, unlike the existing cache-recovery controls.
+        startup = [f'--output_base={output / "staging-bazel-base"}' if str(arg).startswith('--output_base=') else arg for arg in startup]
+        flags = [f'--disk_cache={output / "staging-disk-cache"}' if str(arg).startswith('--disk_cache=') else arg for arg in flags]
+        build_case('freshExecution')
+        after = {p: bundle_snapshot(workspace / f'bazel-bin/{p}.bundle') for p in ('shared', 'app')}
+        report['staging'] = dict(before=before, after=after, differences={
+            p: [name for name in sorted(before[p].keys() | after[p].keys()) if before[p].get(name) != after[p].get(name)]
+            for p in before})
+        fresh = {p: json.loads((workspace / f'bazel-bin/{p}.diagnostics/action.json').read_text())
+                 for p in ('shared', 'app')}
+        report['staging']['workspacePathsDiffer'] = (
+            fresh['shared']['workspace'] != shared['workspace'] and fresh['app']['workspace'] != app['workspace'])
+        (output / 'report.json').write_text(json.dumps(report, indent=2))
+        if (report['cases']['freshExecution']['executedProjects'] != ['App', 'Shared']
+                or not report['staging']['workspacePathsDiffer']
+                or any(report['staging']['differences'].values())):
+            raise RuntimeError('fresh execution staging differs; see report.json')
     program = workspace / 'src/App/Program.cs'
     program.write_text(program.read_text().replace('app-v1', 'app-v2'))
     build_case('appEdit')
@@ -286,9 +314,10 @@ if __name__ == '__main__':
     mode = parser.add_mutually_exclusive_group()
     mode.add_argument('--identity-probe', action='store_true')
     mode.add_argument('--package-probe', action='store_true')
+    mode.add_argument('--staging-probe', action='store_true')
     args = parser.parse_args()
     try:
-        probe(args.output.resolve(), args.identity_probe, args.package_probe)
+        probe(args.output.resolve(), args.identity_probe, args.package_probe, args.staging_probe)
     except (OSError, ValueError, RuntimeError, subprocess.SubprocessError) as error:
         print(error, file=sys.stderr)
         sys.exit(1)
