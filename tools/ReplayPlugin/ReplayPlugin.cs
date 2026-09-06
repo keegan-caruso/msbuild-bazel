@@ -23,6 +23,8 @@ public sealed class ReplayPlugin : ProjectCachePluginBase
         ["${SDK}"] = "dotnet-sdk:10.0.100"
     };
     string workspace = "", bundle = "", mode = "";
+    string? graphProject;
+    Dictionary<string, string> graphBundles = new(StringComparer.Ordinal);
     KeyValuePair<string, string>[] roots = [];
     static string Engine => FileVersionInfo.GetVersionInfo(typeof(BuildManager).Assembly.Location).FileVersion!;
     string PayloadPath => Path.Combine(bundle, "results.json");
@@ -32,6 +34,10 @@ public sealed class ReplayPlugin : ProjectCachePluginBase
         workspace = Environment.GetEnvironmentVariable("SPIKE_REPLAY_WORKSPACE")!;
         bundle = Environment.GetEnvironmentVariable("SPIKE_REPLAY_BUNDLE")!;
         mode = Environment.GetEnvironmentVariable("SPIKE_REPLAY_MODE")!;
+        graphProject = Environment.GetEnvironmentVariable("SPIKE_GRAPH_PROJECT");
+        var dependencies = Environment.GetEnvironmentVariable("SPIKE_GRAPH_DEPENDENCIES");
+        if (graphProject is not null && dependencies is not null)
+            graphBundles = JsonSerializer.Deserialize<Dictionary<string, string>>(dependencies)!;
         if (mode is not ("capture" or "replay")) throw new InvalidOperationException("dependency replay mode invalid");
         roots = new Dictionary<string, string> {
             ["${NUGET}"] = Path.Combine(workspace, ".nuget/packages"),
@@ -86,14 +92,20 @@ public sealed class ReplayPlugin : ProjectCachePluginBase
 
     Task<CacheResult> Evaluate(BuildRequestData request)
     {
-        if (Path.GetRelativePath(workspace, request.ProjectInstance!.FullPath) != "Shared/Shared.csproj")
+        var project = Path.GetRelativePath(workspace, request.ProjectInstance!.FullPath);
+        if (graphProject is not null && project == graphProject)
+            return Task.FromResult(CacheResult.IndicateNonCacheHit(CacheResultType.CacheMiss));
+        if (graphProject is null && project != "Shared/Shared.csproj")
             return Task.FromResult(CacheResult.IndicateNonCacheHit(CacheResultType.CacheNotApplicable));
         Console.WriteLine("SPIKE_REPLAY_REQUEST:" + string.Join(";", request.TargetNames));
-        if (mode == "capture") return Task.FromResult(CacheResult.IndicateNonCacheHit(CacheResultType.CacheMiss));
-        if (!File.Exists(PayloadPath)) throw new InvalidOperationException("dependency payload missing");
-        var payload = JsonSerializer.Deserialize<Payload>(File.ReadAllText(PayloadPath), Json)!;
+        if (graphProject is null && mode == "capture") return Task.FromResult(CacheResult.IndicateNonCacheHit(CacheResultType.CacheMiss));
+        var dependencyBundle = graphProject is null ? bundle : graphBundles.TryGetValue(project, out var supplied)
+            ? supplied : throw new InvalidOperationException("dependency bundle missing: " + project);
+        var payloadPath = Path.Combine(dependencyBundle, "results.json");
+        if (!File.Exists(payloadPath)) throw new InvalidOperationException("dependency payload missing");
+        var payload = JsonSerializer.Deserialize<Payload>(File.ReadAllText(payloadPath), Json)!;
         if (payload.SchemaVersion != 1 || payload.SdkVersion != "10.0.100" || payload.EngineVersion != Engine ||
-            payload.Project != "Shared/Shared.csproj" || payload.TargetFramework != request.ProjectInstance.GetPropertyValue("TargetFramework")) throw new InvalidOperationException("dependency identity/version mismatch");
+            payload.Project != project || payload.TargetFramework != request.ProjectInstance.GetPropertyValue("TargetFramework")) throw new InvalidOperationException("dependency identity/version mismatch");
         if (payload.RootMappings.Count != RootMappings.Count || RootMappings.Any(pair =>
             !payload.RootMappings.TryGetValue(pair.Key, out var value) || value != pair.Value))
             throw new InvalidOperationException("dependency root mappings mismatch");
@@ -102,12 +114,12 @@ public sealed class ReplayPlugin : ProjectCachePluginBase
             throw new InvalidOperationException("dependency global properties mismatch");
         foreach (var target in request.TargetNames)
             if (!payload.Targets.ContainsKey(target)) throw new InvalidOperationException("dependency target missing: " + target);
-        var artifacts = JsonSerializer.Deserialize<Artifact[]>(File.ReadAllText(Path.Combine(bundle, "artifacts.json")), Json)!;
+        var artifacts = JsonSerializer.Deserialize<Artifact[]>(File.ReadAllText(Path.Combine(dependencyBundle, "artifacts.json")), Json)!;
         if (artifacts.Length == 0) throw new InvalidOperationException("dependency artifacts empty");
         foreach (var artifact in artifacts)
         {
             if (Path.IsPathRooted(artifact.Path) || artifact.Path.Split('/').Contains("..") ||
-                !(artifact.Path.StartsWith("Shared/bin/", StringComparison.Ordinal) || artifact.Path.StartsWith("Shared/obj/Release/", StringComparison.Ordinal)))
+                !(artifact.Path.StartsWith(Path.Combine(Path.GetDirectoryName(project)!, "bin") + "/", StringComparison.Ordinal) || artifact.Path.StartsWith(Path.Combine(Path.GetDirectoryName(project)!, "obj/Release") + "/", StringComparison.Ordinal)))
                 throw new InvalidOperationException("dependency artifact path invalid");
             var path = Path.Combine(workspace, artifact.Path);
             if (!File.Exists(path) || new FileInfo(path).Length != artifact.Size ||
@@ -121,13 +133,13 @@ public sealed class ReplayPlugin : ProjectCachePluginBase
                 foreach (var metadata in item.Metadata) result.SetMetadata(metadata.Key, Expand(metadata.Value));
                 return result;
             }).ToArray(), BuildResultCode.Success)).ToArray();
-        Console.WriteLine("SPIKE_REPLAY_HIT:Shared");
+        Console.WriteLine("SPIKE_REPLAY_HIT:" + Path.GetFileNameWithoutExtension(project));
         return Task.FromResult(CacheResult.IndicateCacheHit(results));
     }
 
     public override Task HandleProjectFinishedAsync(FileAccessContext context, BuildResult result, PluginLoggerBase logger, CancellationToken token)
     {
-        if (mode != "capture" || Path.GetRelativePath(workspace, context.ProjectFullPath) != "Shared/Shared.csproj") return Task.CompletedTask;
+        if (mode != "capture" || Path.GetRelativePath(workspace, context.ProjectFullPath) != (graphProject ?? "Shared/Shared.csproj")) return Task.CompletedTask;
         if (result.OverallResult != BuildResultCode.Success) throw new InvalidOperationException("dependency capture failed");
         var targets = result.ResultsByTarget.ToDictionary(pair => pair.Key, pair => {
             if (pair.Value.ResultCode != TargetResultCode.Success) throw new InvalidOperationException("dependency target unsuccessful");
@@ -136,7 +148,7 @@ public sealed class ReplayPlugin : ProjectCachePluginBase
                     .ToDictionary(name => name, name => Normalize(((ITaskItem2)item).GetMetadataValueEscaped(name))))).ToArray();
         });
         File.WriteAllText(PayloadPath, JsonSerializer.Serialize(new Payload(1, "10.0.100", Engine,
-            "Shared/Shared.csproj", "net10.0", RootMappings, Properties(context.GlobalProperties), context.Targets.ToArray(), targets), Json));
+            graphProject ?? "Shared/Shared.csproj", "net10.0", RootMappings, Properties(context.GlobalProperties), context.Targets.ToArray(), targets), Json));
         Console.WriteLine("SPIKE_REPLAY_CAPTURE:" + string.Join(";", targets.Keys));
         return Task.CompletedTask;
     }

@@ -48,7 +48,7 @@ internal static class Bundles
         Files.NormalizeTree(workspace.Output);
     }
 
-    private static void CanonicalizeResults(string results)
+    internal static void CanonicalizeResults(string results)
     {
         if (File.Exists(results))
         {

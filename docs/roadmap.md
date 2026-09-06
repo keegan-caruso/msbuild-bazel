@@ -1,8 +1,9 @@
 # Next six milestones
 
 This roadmap follows the managed binary-package milestone merged in PR #2.
-It extends the historical sequence in [spike-plan.md](spike-plan.md); these six
-milestones are planned work, not claims of completed support.
+It extends the historical sequence in [spike-plan.md](spike-plan.md). Milestone 1
+has passing acceptance evidence; later milestones require their own evidence
+before completion can be claimed.
 
 At every milestone, define interface contracts and executable acceptance tests
 before implementation. Record failing tests first, then measured results and
@@ -10,7 +11,8 @@ limitations. Keep experiments independently runnable and retain existing control
 
 ## 1. Export configured project graphs
 
-Status: scoped and started; exporter implementation is not complete.
+Status: acceptance implemented, with all 12 tests passing on Linux x86-64 CI;
+see [graph export findings](graph-export-findings.md).
 
 Build a local C# `ProjectGraph` exporter and custom MSBuild input/output targets.
 Identify nodes by project path plus global properties, preserve direct dependency
@@ -26,6 +28,11 @@ Completion criteria:
 
 ## 2. Execute exported graphs through Bazel
 
+Status: the [first execution slice](graph-execution-contract.md) targets a
+Release/net10.0 managed diamond. See [execution findings](graph-execution-findings.md)
+for measured results and narrower support limits. This does not yet claim
+execution of every configuration accepted by the exporter.
+
 Generalize the two-project runner, dependency-result replay, artifact bundles and
 Bazel rules to consume exported nodes, including multiple dependencies.
 
@@ -37,6 +44,10 @@ Completion criteria:
 - Application behavior matches the ordinary MSBuild static-graph baseline.
 
 ## 3. Prove selective invalidation and cache recovery
+
+Status: [contract and executable acceptance](graph-cache-contract.md) prepared.
+The separate suite is intentionally red until its probe is implemented; no
+generated-graph cache acceptance is claimed.
 
 Extend existing two-project cache evidence to generated graphs. Exercise source,
 shared configuration, package and graph-structure changes.
@@ -51,6 +62,9 @@ Completion criteria:
 - Missing, corrupt and stale inputs remain explicit failures.
 
 ## 4. Validate a representative real project
+
+Status: [pilot discovery and ordinary MSBuild baseline](real-project-pilot.md)
+prepared. Adapter compatibility and comparative performance remain future work.
 
 Select a .NET subtree with realistic dependencies and custom build behavior.
 Inventory its requirements before widening the adapter's support boundary.
@@ -106,3 +120,7 @@ actions unless a later explicit contract changes that boundary.
 
 Use the [risk register](edge-cases-and-risks.md) when refining acceptance tests,
 and the [spike plan](spike-plan.md) for links to measured findings.
+
+The [scenario and coverage mapping](scenario-coverage.md) maps the proposed
+project portfolio, generator variants and shared acceptance checks to these
+milestones, with measured evidence kept separate from planned coverage.

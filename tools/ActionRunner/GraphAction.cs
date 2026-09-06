@@ -1,0 +1,79 @@
+using System.Text.Json;
+using System.Text.Json.Nodes;
+
+namespace ActionRunner;
+
+// Graph execution is additive: the original two-project controls retain their request contract.
+internal static class GraphAction
+{
+    public static async Task RunAsync(ActionRequest request, Workspace workspace)
+    {
+        var project = request.GraphProject!;
+        if (!Files.ValidRelativePath(project) || !project.EndsWith(".csproj", StringComparison.Ordinal))
+            throw new InvalidDataException("graph project path invalid");
+        var dependencies = new Dictionary<string, string>(StringComparer.Ordinal);
+        foreach (var input in request.GraphDependencies ?? [])
+        {
+            var payload = JsonNode.Parse(File.ReadAllText(Path.Combine(input, "results.json")))!;
+            var dependencyProject = payload["project"]!.GetValue<string>();
+            if (!Files.ValidRelativePath(dependencyProject) || !dependencies.TryAdd(dependencyProject, Path.GetFullPath(input)))
+                throw new InvalidDataException("duplicate or invalid dependency project");
+            var directory = Path.GetDirectoryName(dependencyProject)!;
+            var prefix = string.IsNullOrEmpty(directory) ? "" : directory + "/";
+            var artifacts = JsonFiles.Read<Artifact[]>(Path.Combine(input, "artifacts.json"));
+            if (artifacts.Length == 0) throw new InvalidDataException("dependency artifacts empty");
+            foreach (var artifact in artifacts)
+            {
+                if (!Files.ValidRelativePath(artifact.Path) ||
+                    !(artifact.Path.StartsWith(prefix + "bin/", StringComparison.Ordinal) ||
+                      artifact.Path.StartsWith(prefix + "obj/Release/net10.0/ref/", StringComparison.Ordinal)))
+                    throw new InvalidDataException("dependency artifact path invalid");
+                var source = Path.Combine(input, "artifacts", artifact.Path);
+                Files.Verify(source, artifact.Size, artifact.Sha256, "dependency artifact missing or corrupt");
+                Files.Copy(source, Path.Combine(workspace.Root, artifact.Path));
+            }
+        }
+        const string targets = "GetTargetFrameworks;Build;GetNativeManifest;GetCopyToOutputDirectoryItems;GetTargetFrameworksWithPlatformForSingleTargetFramework;GetCopyToPublishDirectoryItems";
+        var environment = new Dictionary<string, string>(BuildInvocation.Create(request, workspace, workspace.Output).Environment)
+        {
+            ["SPIKE_REPLAY_MODE"] = "capture",
+            ["SPIKE_GRAPH_PROJECT"] = project,
+            ["SPIKE_GRAPH_DEPENDENCIES"] = JsonSerializer.Serialize(dependencies)
+        };
+        var invocation = new BuildInvocation(workspace.Dotnet, workspace.Root,
+            ["msbuild", project, "-t:" + targets, "-p:Configuration=Release", "-graphBuild", "-isolateProjects", "-nodeReuse:false", "-nologo", "-verbosity:normal"], environment);
+        var result = await ProcessRunner.RunAsync(invocation.CreateStartInfo(), TimeSpan.FromSeconds(180), default);
+        File.WriteAllText(Path.Combine(workspace.Diagnostics, "build.log"), result.Log);
+        var evidence = BuildEvidence.Parse(result.Log);
+        JsonFiles.Write(Path.Combine(workspace.Diagnostics, "action.json"), new {
+            project, workspace = workspace.Root, command = invocation.Arguments, returncode = result.ExitCode,
+            compiledProjects = evidence.CompiledProjects, replayHits = evidence.ReplayHits
+        });
+        Console.Write(result.Log);
+        if (result.ExitCode != 0 || result.TimedOut) throw new InvalidOperationException("graph MSBuild failed");
+        if (!evidence.CompiledProjects.SequenceEqual([Path.GetFileNameWithoutExtension(project)]))
+            throw new InvalidOperationException("unexpected graph project compilation");
+        if (!evidence.ReplayHits.Order().SequenceEqual(dependencies.Keys.Select(Path.GetFileNameWithoutExtension).Order()))
+            throw new InvalidOperationException("incomplete graph dependency replay");
+        var manifest = new List<Artifact>();
+        var projectDirectory = Path.GetDirectoryName(project)!;
+        foreach (var directory in new[] { Path.Combine(projectDirectory, "bin/Release/net10.0"), Path.Combine(projectDirectory, "obj/Release/net10.0/ref") })
+        {
+            var folder = Path.Combine(workspace.Root, directory);
+            if (!Directory.Exists(folder)) continue;
+            foreach (var source in Directory.EnumerateFiles(folder, "*", SearchOption.AllDirectories).Order(StringComparer.Ordinal))
+            {
+                var relative = Path.GetRelativePath(workspace.Root, source);
+                Files.Copy(source, Path.Combine(workspace.Output, "artifacts", relative));
+                manifest.Add(new Artifact(relative, new FileInfo(source).Length, Files.Hash(source)));
+            }
+        }
+        if (manifest.Count == 0) throw new InvalidDataException("graph action produced no artifacts");
+        JsonFiles.Write(Path.Combine(workspace.Output, "artifacts.json"), manifest);
+        Bundles.CanonicalizeResults(Path.Combine(workspace.Output, "results.json"));
+        foreach (var path in Directory.EnumerateFiles(workspace.Output, "graph-*.json"))
+            File.Move(path, Path.Combine(workspace.Diagnostics, Path.GetFileName(path)));
+        Directory.Delete(workspace.Scratch, recursive: true);
+        Files.NormalizeTree(workspace.Output);
+    }
+}

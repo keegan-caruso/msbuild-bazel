@@ -1,0 +1,31 @@
+name: Configured graph execution
+on:
+  push:
+    branches: [main, 'codex/graph-execution', 'codex/parallel-milestones']
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  graph-execution:
+    # Native Bazel sandboxing needs unprivileged user namespaces.
+    runs-on: ubuntu-22.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install pinned tools
+        run: bash scripts/setup.sh
+      - name: Configured graph export regression
+        run: python3 -m unittest discover -s tests/graph -v
+      - name: Action runner regression contracts
+        run: bash scripts/dotnet.sh run --project tests/ActionRunner.Tests -c Release
+      - name: Configured graph execution acceptance
+        run: python3 -m unittest discover -s tests/graph_execution -v
+      - name: Retain graph execution evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: configured-graph-execution-evidence
+          path: |
+            /tmp/graph-execution-*/**/*.log
+            /tmp/graph-execution-*/**/report.json
+          if-no-files-found: ignore

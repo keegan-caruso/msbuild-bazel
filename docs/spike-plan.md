@@ -27,8 +27,11 @@ The [loaded JIT experiment](loader-runtime-findings.md) now forces one substitut
 native library into the actual MSBuild runtime, with loader evidence and
 invalid-image rejection. Full runtime closure and general host-read discovery
 remain open. Managed package DLL/runtime assets and transitive handoff now pass
-focused Linux native-sandbox acceptance. Next is the local-only graph exporter
-(step 8), retaining explicit input/output contracts and host restrictions.
+focused Linux native-sandbox acceptance. The local-only graph exporter
+(step 8) now has passing Linux acceptance [evidence](graph-export-findings.md).
+The first [generated graph execution slice](graph-execution-findings.md) now
+passes native macOS acceptance for a Release/net10.0 package-free diamond.
+Broader configurations, package nodes and Linux execution evidence remain open.
 
 The managed binary-package milestone has a test-first
 [contract](binary-package-plan.md), fixture and probe. Its
@@ -43,6 +46,10 @@ export, generated graph execution, selective invalidation/cache recovery, a real
 project pilot, shared remote caching, then remote execution. Each requires
 contracts and failing acceptance tests before implementation. The roadmap states
 completion gates and distinguishes planned capabilities from measured results.
+Parallel preparation now includes the [generated-graph cache contract](graph-cache-contract.md)
+and [real-project pilot discovery](real-project-pilot.md). Cache tests are
+intentionally red pending their probe; the pilot baseline does not establish
+adapter compatibility.
 
 ## Milestone sequence
 

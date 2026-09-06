@@ -26,7 +26,12 @@ diagnostics. The [loaded JIT experiment](docs/loader-runtime-findings.md) stages
 private runtime and checks actual loading, invalid-image rejection and cache
 invalidation. [Managed binary package acceptance](docs/binary-package-findings.md)
 now passes on Linux, including transitive runtime assets, relocation and cache
-recovery. **Next:** General graph export for the deliberately local-only adapter.
+recovery. **Graph export:** The configured graph exporter has passing Linux acceptance
+[evidence](docs/graph-export-findings.md). The first [generated graph execution
+slice](docs/graph-execution-findings.md) passes native macOS acceptance for a
+Release/net10.0 package-free diamond. [Cache acceptance contracts](docs/graph-cache-contract.md)
+and [real-project discovery](docs/real-project-pilot.md) are prepared in parallel;
+they do not yet establish generated-graph cache recovery or real-project support.
 General NuGet compatibility, RID-specific/native package assets, full runtime
 closure, remote-cache correctness and cross-platform portability remain unproven.
 
