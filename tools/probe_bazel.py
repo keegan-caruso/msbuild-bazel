@@ -7,6 +7,8 @@ import platform
 import shutil
 import subprocess
 import sys
+import sysconfig
+import xml.etree.ElementTree as ET
 
 ROOT = Path(__file__).resolve().parents[1]
 DOTNET = Path(os.environ.get('SPIKE_DOTNET_ROOT', ROOT / '.tools/dotnet')) / 'dotnet'
@@ -22,15 +24,18 @@ def json_stream(path):
         text = text.lstrip()[end:]
 
 
-def probe(output):
+def probe(output, identity=False):
     output.mkdir(parents=True, exist_ok=False)
     workspace = output / 'workspace'
     workspace.mkdir()
-    report = dict(schemaVersion=1, platform=platform.platform(), cases={})
+    report = dict(schemaVersion=1, platform=platform.platform(), identityProbe=identity, cases={})
     env = dict(os.environ, DOTNET_ROOT=str(DOTNET.parent),
                DOTNET_CLI_HOME=str(output / 'dotnet-home'),
                NUGET_PACKAGES=str(output / 'prepare/.nuget/packages'),
                DOTNET_NOLOGO='1', DOTNET_CLI_TELEMETRY_OPTOUT='1')
+
+    if identity:
+        env['SPIKE_INPUT_FLAVOR'] = 'env-v1'
 
     def run(name, command, cwd=workspace, require=True):
         process = subprocess.run([str(arg) for arg in command], cwd=cwd, env=env, text=True,
@@ -51,6 +56,29 @@ def probe(output):
     report['python'] = dict(executable=sys.executable, version=sys.version)
     prepare = output / 'prepare'
     shutil.copytree(ROOT / 'tests/fixtures/two-projects', prepare)
+    if identity:
+        project = prepare / 'Shared/Shared.csproj'
+        tree = ET.parse(project)
+        ET.SubElement(tree.getroot(), 'Import', Project='BuildInputs.targets')
+        tree.write(project)
+        # Locate the fixture source without depending on its filename.
+        source = next((prepare / 'Shared').glob('*.cs'))
+        source.write_text(source.read_text().replace('"shared-v1"', '"shared-v1" + "/" + Inputs.Value'))
+        (prepare / 'Shared/value.txt').write_text('data-v1\n')
+        (prepare / 'Shared/BuildInputs.targets').write_text('''<Project>
+  <PropertyGroup><SpikeImportVersion>import-v1</SpikeImportVersion></PropertyGroup>
+  <Target Name="GenerateSharedInput" BeforeTargets="CoreCompile">
+    <ReadLinesFromFile File="$(MSBuildProjectDirectory)/value.txt">
+      <Output TaskParameter="Lines" PropertyName="_SpikeInput" />
+    </ReadLinesFromFile>
+    <WriteLinesToFile File="$(IntermediateOutputPath)SpikeInputs.g.cs"
+      Lines="namespace Shared { public static class Inputs { public const string Value = &quot;$(_SpikeInput)/$(SpikeImportVersion)/$(SPIKE_INPUT_FLAVOR)&quot;%3B } }"
+      Overwrite="true" />
+    <ItemGroup><Compile Include="$(IntermediateOutputPath)SpikeInputs.g.cs" /></ItemGroup>
+  </Target>
+</Project>
+''')
+    shutil.copytree(prepare, workspace / 'src')
     run('restore', [DOTNET, 'msbuild', 'dirs.proj', '-t:Restore', '-p:Configuration=Release', '-nologo'], prepare)
     run('pluginBuild', [DOTNET, 'build', ROOT / 'tools/ReplayPlugin', '-c', 'Release', '--nologo'], ROOT)
     # Compile actions only consume normalized restore files; the fixture has no
@@ -66,18 +94,29 @@ def probe(output):
     run('baseline', [DOTNET, 'msbuild', 'dirs.proj', '-t:Build', '-p:Configuration=Release',
                      '-graphBuild', '-isolateProjects', '-nologo'], prepare)
     report['baselineOutput'] = run('baseline-app', [DOTNET, prepare / 'App/bin/Release/net10.0/App.dll']).stdout.strip()
-    shutil.copytree(ROOT / 'tests/fixtures/two-projects', workspace / 'src')
     shutil.copyfile(ROOT / 'tools/ReplayPlugin/bin/Release/net10.0/ReplayPlugin.dll', workspace / 'ReplayPlugin.dll')
     shutil.copyfile(ROOT / 'tools/bazel_action.py', workspace / 'bazel_action.py')
     shutil.copyfile(ROOT / 'bazel/msbuild.bzl', workspace / 'msbuild.bzl')
     (workspace / 'MODULE.bazel').write_text('module(name="msbuild_fixture")\n'
         'local_dotnet_sdk = use_repo_rule("//:msbuild.bzl", "local_dotnet_sdk")\n'
         f'local_dotnet_sdk(name="dotnet", path={json.dumps(str(DOTNET.parent.resolve()))})\n')
+    library = Path(sysconfig.get_config_var('LIBDIR')) / sysconfig.get_config_var('LDLIBRARY')
+    if sysconfig.get_config_var('PYTHONFRAMEWORK'):
+        library = Path(sys.prefix) / sysconfig.get_config_var('PYTHONFRAMEWORK')
+    runtime = dict(python=str(Path(sys.executable).resolve()), stdlib=str(Path(sysconfig.get_path('stdlib')).resolve()),
+                   library=str(library.resolve()) if library.is_file() else '')
+    with (workspace / 'MODULE.bazel').open('a') as module:
+        module.write('local_python_runtime = use_repo_rule("//:msbuild.bzl", "local_python_runtime")\n')
+        module.write('local_python_runtime(name="python", ' + ', '.join(f'{key}={json.dumps(value)}' for key, value in runtime.items()) + ')\n')
+    host_identity = dict(schemaVersion=1, platform=platform.platform(), machine=platform.machine(),
+                         pythonVersion=sys.version, runtime=runtime, policyRevision=1)
+    (workspace / 'host-identity.json').write_text(json.dumps(host_identity, indent=2))
     common = ['src/Directory.Build.props', 'src/Directory.Build.targets', 'src/global.json', 'src/NuGet.Config']
     # NuGet.Config fixture casing follows the existing source tree.
     common = [p for p in common if (workspace / p).exists()]
     settings = dict(plugin='ReplayPlugin.dll', runner='bazel_action.py', sdk='@dotnet//:files',
-                    dotnet='@dotnet//:sdk/dotnet', python=sys.executable)
+                    dotnet='@dotnet//:sdk/dotnet', python='@python//:python', runtime='@python//:files',
+                    host_identity='host-identity.json', build_environment={'SPIKE_INPUT_FLAVOR': 'env-v1'} if identity else {})
     def rule(name, project, sources, restore, dependency=None, undeclared_probe=''):
         attrs = dict(settings, name=name, project=project, srcs=sources, restore=restore,
                      undeclared_probe=undeclared_probe)
@@ -86,6 +125,8 @@ def probe(output):
         return 'msbuild_project(\n' + ''.join(f'    {k} = {json.dumps(v)},\n' for k, v in attrs.items()) + ')\n'
     shared_sources = common + ['src/Shared/' + p.name for p in (workspace / 'src/Shared').iterdir() if p.is_file()]
     app_sources = common + ['src/Shared/Shared.csproj'] + ['src/App/' + p.name for p in (workspace / 'src/App').iterdir() if p.is_file()]
+    if identity:
+        app_sources.append('src/Shared/BuildInputs.targets')
     build = 'load(":msbuild.bzl", "msbuild_project")\n' + rule('shared', 'Shared', shared_sources, ['restore/Shared.json'])
     build += rule('app', 'App', app_sources, ['restore/Shared.json', 'restore/App.json'], ':shared')
     (workspace / 'undeclared.txt').write_text('must not be visible inside an action')
@@ -114,7 +155,8 @@ def probe(output):
             return 'Shared' if label.endswith(':shared') else 'App'
         executions = [dict(project=project(r), runner=r.get('runner', ''), cacheHit=r.get('cacheHit', False),
                            inputs=[item['path'] for item in r.get('inputs', [])],
-                           status=r.get('status'), exitCode=r.get('exitCode')) for r in records]
+                           status=r.get('status'), exitCode=r.get('exitCode'), commandArgs=r.get('commandArgs'),
+                           remotable=r.get('remotable'), remoteCacheable=r.get('remoteCacheable')) for r in records]
         executed = sorted(r['project'] for r in executions if not r['cacheHit'])
         cached = sorted(r['project'] for r in executions if r['cacheHit'])
         binary = workspace / 'bazel-bin/app.bundle/artifacts/App/bin/Release/net10.0/App.dll'
@@ -145,6 +187,29 @@ def probe(output):
     build_case('diskCache')
     startup = [f'--output_base={output / "second-bazel-base"}' if str(arg).startswith('--output_base=') else arg for arg in startup]
     build_case('newOutputBase')
+    if identity:
+        target = workspace / 'src/Shared/BuildInputs.targets'
+        target.write_text(target.read_text().replace('import-v1', 'import-v2'))
+        build_case('importEdit')
+        (workspace / 'src/Shared/value.txt').write_text('data-v2\n')
+        build_case('dataEdit')
+        build_file = workspace / 'BUILD.bazel'
+        build_file.write_text(build_file.read_text().replace('env-v1', 'env-v2'))
+        build_case('environmentEdit')
+        env['SPIKE_INPUT_FLAVOR'] = 'ambient-must-not-leak'
+        env['PYTHONPATH'] = '/does-not-exist'
+        build_case('ambientEnvironment')
+        restore = workspace / 'restore/App.json'
+        state = json.loads(restore.read_text())
+        key = 'App/obj/project.assets.json'
+        assets = json.loads(state[key])
+        assets['spikeIdentityProbe'] = 1
+        state[key] = json.dumps(assets)
+        restore.write_text(json.dumps(state, indent=2))
+        build_case('restoreEdit')
+        host_identity['policyRevision'] = 2
+        (workspace / 'host-identity.json').write_text(json.dumps(host_identity, indent=2))
+        build_case('hostIdentityEdit')
     negative_log = output / 'undeclared.execution.json'
     negative = run('undeclaredInput', startup + ['build', '//:undeclared', *flags,
                    f'--execution_log_json_file={negative_log}'], require=False)
@@ -160,9 +225,10 @@ def probe(output):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--output', type=Path, required=True)
+    parser.add_argument('--identity-probe', action='store_true')
     args = parser.parse_args()
     try:
-        probe(args.output.resolve())
+        probe(args.output.resolve(), args.identity_probe)
     except (OSError, ValueError, RuntimeError, subprocess.SubprocessError) as error:
         print(error, file=sys.stderr)
         sys.exit(1)

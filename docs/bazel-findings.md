@@ -81,10 +81,14 @@ execution has not been measured locally; CI remains necessary.
 
 Nix's Bazel launcher obtains its Java runtime from its system bazelrc. The
 harness preserves that system configuration and disables home/workspace rc files.
-Action environment variables and the host Python path are explicit. The entire
+In that initial implementation, action environment variables and the host Python
+path were explicit. The entire
 SDK file tree participates in Bazel's action inputs, but the host Python standard
 library, shell, native libraries, macOS signing tools and Nix runtime closure
-are not yet hermetic toolchains. A native sandbox plus declared relative inputs
+were not declared as complete toolchains. The subsequent
+[identity experiment](action-identity-findings.md) declares Python runtime files,
+removes the shell launcher, and tests more build inputs; native closure remains
+incomplete. A native sandbox plus declared relative inputs
 does not prove every absolute host read was declared. Actions request network
 blocking; this is not a general file-access or network audit.
 

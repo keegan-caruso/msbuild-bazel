@@ -3,6 +3,9 @@
 MsbuildBundle = provider(fields = ["directory"])
 
 def _msbuild_project_impl(ctx):
+    for key in ctx.attr.build_environment:
+        if not key.startswith("SPIKE_INPUT_"):
+            fail("build_environment keys must start with SPIKE_INPUT_")
     output = ctx.actions.declare_directory(ctx.label.name + ".bundle")
     request = ctx.actions.declare_file(ctx.label.name + ".request.json")
     dependency = ctx.attr.dependency[MsbuildBundle].directory if ctx.attr.dependency else None
@@ -16,16 +19,16 @@ def _msbuild_project_impl(ctx):
         "dependency": dependency.path if dependency else None,
         "undeclared_probe": ctx.attr.undeclared_probe,
     }))
-    ctx.actions.run_shell(
-        inputs = depset(ctx.files.srcs + ctx.files.restore + [request, ctx.file.plugin, ctx.file.runner] +
-                        ([dependency] if dependency else []), transitive = [ctx.attr.sdk[DefaultInfo].files]),
+    ctx.actions.run(
+        inputs = depset(ctx.files.srcs + ctx.files.restore + [request, ctx.file.plugin, ctx.file.runner, ctx.file.host_identity] +
+                        ([dependency] if dependency else []), transitive = [ctx.attr.sdk[DefaultInfo].files, ctx.attr.runtime[DefaultInfo].files]),
         outputs = [output],
-        command = 'exec "$1" "$2" --request "$3"',
-        arguments = [ctx.attr.python, ctx.file.runner.path, request.path],
-        env = {"PATH": "/usr/bin:/bin", "LANG": "en_US.UTF-8"},
+        executable = ctx.executable.python,
+        arguments = ["-I", "-S", "-B", ctx.file.runner.path, "--request", request.path],
+        env = dict({"PATH": "/usr/bin:/bin", "LANG": "en_US.UTF-8"}, **ctx.attr.build_environment),
         mnemonic = "MsbuildProject",
         progress_message = "MSBuild %s with dependency replay" % ctx.attr.project,
-        execution_requirements = {"block-network": "1"},
+        execution_requirements = {"block-network": "1", "no-remote": "1"},
     )
     return [DefaultInfo(files = depset([output])), MsbuildBundle(directory = output)]
 
@@ -39,7 +42,10 @@ msbuild_project = rule(
         "runner": attr.label(allow_single_file = True, mandatory = True),
         "sdk": attr.label(mandatory = True),
         "dotnet": attr.label(allow_single_file = True, mandatory = True),
-        "python": attr.string(mandatory = True),
+        "python": attr.label(allow_single_file = True, executable = True, cfg = "exec", mandatory = True),
+        "runtime": attr.label(mandatory = True),
+        "host_identity": attr.label(allow_single_file = True, mandatory = True),
+        "build_environment": attr.string_dict(),
         "dependency": attr.label(providers = [MsbuildBundle]),
         "undeclared_probe": attr.string(),
     },
@@ -52,5 +58,23 @@ def _sdk_impl(ctx):
 local_dotnet_sdk = repository_rule(
     implementation = _sdk_impl,
     attrs = {"path": attr.string(mandatory = True)},
+    local = True,
+)
+
+
+def _runtime_impl(ctx):
+    ctx.symlink(ctx.attr.python, "python")
+    ctx.symlink(ctx.attr.stdlib, "stdlib")
+    if ctx.attr.library:
+        ctx.symlink(ctx.attr.library, "python-library")
+    ctx.file("BUILD.bazel", 'filegroup(name="files", srcs=glob(["python", "python-library", "stdlib/**"], exclude=["stdlib/site-packages/**"]), visibility=["//visibility:public"])\nexports_files(["python"])\n')
+
+local_python_runtime = repository_rule(
+    implementation = _runtime_impl,
+    attrs = {
+        "python": attr.string(mandatory = True),
+        "stdlib": attr.string(mandatory = True),
+        "library": attr.string(),
+    },
     local = True,
 )

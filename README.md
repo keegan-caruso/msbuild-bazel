@@ -4,8 +4,10 @@ A spike exploring Bazel project-level scheduling and caching while retaining MSB
 
 **Status:** Codex setup, CI, the first MSBuild boundary experiment, a raw-cache path probe, and public-API dependency-result replay are implemented. Moving the bundle works at the same workspace path; moving the workspace fails raw MSBuild cache lookup. A two-project Bazel rule and sandbox/cache harness are implemented; a general graph exporter is not.
 
-**Next:** Harden the Bazel action input/toolchain contract and obtain Linux sandbox
-measurements before general graph export. The [two-target Bazel experiment](docs/bazel-findings.md)
+**Next:** Extend the declared input contract to pinned application packages and
+package build targets. [Action-identity checks](docs/action-identity-findings.md)
+now cover imports, generated inputs, environment, restore metadata and Python
+runtime declarations; native runtime closure remains incomplete. The [two-target Bazel experiment](docs/bazel-findings.md)
 passes on macOS ARM64 with native action sandboxing and local disk-cache reuse.
 Remote-cache correctness and cross-platform portability remain unproven.
 
@@ -92,7 +94,8 @@ python3 tools/probe_bazel.py --output artifacts/bazel-probe
 
 This generates a copied Bazel workspace containing `//:shared` and `//:app`.
 See [Bazel findings](docs/bazel-findings.md) for the measured action matrix and
-host-runtime limitations.
+host-runtime limitations. Add `--identity-probe` to test imported targets,
+generated-source data, environment and host-identity invalidation.
 
 ## Validation
 

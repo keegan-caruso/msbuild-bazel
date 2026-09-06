@@ -49,3 +49,11 @@ App edit, Shared edit, cleared-output disk-cache reuse, and a fresh Bazel output
 base are measured on macOS ARM64. See [Bazel findings](bazel-findings.md) and the
 [process contract](bazel-interface.md). The next work is input/toolchain identity
 hardening and Linux sandbox validation before broad graph export.
+
+The first action-identity hardening experiment now covers imported targets,
+generated-source data, declared versus ambient environment, App restore metadata
+and host-identity changes. Python runtime files are declared; direct isolated
+Python execution replaces the shell launcher, and remote execution/cache use is
+disabled. See [identity findings](action-identity-findings.md). Next add pinned
+application package contents/build targets; native runtime closure and
+deterministic staging remain open. Linux validation is handled separately.
