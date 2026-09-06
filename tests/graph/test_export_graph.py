@@ -57,8 +57,9 @@ class GraphExportAcceptance(unittest.TestCase):
 
     def restore(self, work=None):
         work = work or self.work
-        env = dict(os.environ, NUGET_PACKAGES=str(work / ".nuget/packages"))
-        result = subprocess.run(["bash", str(REPO / "scripts/dotnet.sh"), "msbuild", str(work / "build.proj"), "/t:Restore", "/p:Configuration=Release", "/nologo"], cwd=work, env=env, text=True, capture_output=True)
+        package_root = work / ".nuget/packages"
+        env = dict(os.environ, NUGET_PACKAGES=str(package_root))
+        result = subprocess.run(["bash", str(REPO / "scripts/dotnet.sh"), "msbuild", str(work / "build.proj"), "/t:Restore", "/p:Configuration=Release", f"/p:RestorePackagesPath={package_root}", "/nologo"], cwd=work, env=env, text=True, capture_output=True)
         (work / "restore.log").write_text(result.stdout + result.stderr)
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
 
