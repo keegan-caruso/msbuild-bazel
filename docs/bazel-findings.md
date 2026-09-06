@@ -118,3 +118,18 @@ package assets and contents, custom imports/inputs, environment, host runtime
 closure and deterministic output staging. Add perturbation tests for those
 inputs and Linux native-sandbox evidence. General publishing, multi-targeting,
 arbitrary package tasks and remote execution remain deferred.
+
+## CI repair (2026-09-05)
+
+The first Linux run on Ubuntu 24.04 failed before compilation: Bazel 8.4.2
+reported that `linux-sandbox` was not registered, listing only
+`processwrapper-sandbox` and other fallback strategies. The other eight e2e
+tests passed ([failed run](https://github.com/keegan-caruso/msbuild-bazel/actions/runs/34003038128)).
+Both workflows now select Ubuntu 22.04 to run the required native sandbox
+without changing host security settings or weakening the probe's strategy.
+This runner change still needs verification in GitHub Actions.
+
+The Nix workflow was also rejected before scheduling a job. Running
+`actionlint -shellcheck= .github/workflows/*.yml` with actionlint 1.7.12 reproduced
+an unavailable `runner` context at job-level `env`. Moving `TMPDIR` to the e2e
+step makes both workflows pass actionlint; `git diff --check` also passes.
