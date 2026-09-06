@@ -12,6 +12,7 @@ import sys
 import xml.etree.ElementTree as ET
 
 import package_inputs
+import binary_inputs
 import runtime_inputs
 import loader_inputs
 
@@ -36,11 +37,13 @@ def bundle_snapshot(directory):
         for path in sorted(directory.rglob('*')) if path.is_file()}
 
 
-def probe(output, identity=False, package_mode=False, staging=False, native_runtime=False):
+def probe(output, identity=False, package_mode=False, staging=False, native_runtime=False, binary_packages=False):
+    staging = staging or binary_packages
+    has_packages = package_mode or binary_packages
     output.mkdir(parents=True, exist_ok=False)
     workspace = output / 'workspace'
     workspace.mkdir()
-    report = dict(schemaVersion=1, platform=platform.platform(), identityProbe=identity, packageProbe=package_mode, stagingProbe=staging, nativeRuntimeProbe=native_runtime, cases={})
+    report = dict(binaryPackageProbe=binary_packages, schemaVersion=1, platform=platform.platform(), identityProbe=identity, packageProbe=package_mode, stagingProbe=staging, nativeRuntimeProbe=native_runtime, cases={})
     env = dict(os.environ, DOTNET_ROOT=str(DOTNET.parent),
                DOTNET_CLI_HOME=str(output / 'dotnet-home'),
                NUGET_PACKAGES=str(output / 'prepare/.nuget/packages'),
@@ -66,11 +69,13 @@ def probe(output, identity=False, package_mode=False, staging=False, native_runt
     if report['sdkVersion'] != '10.0.100':
         raise ValueError('expected pinned SDK 10.0.100')
     report['python'] = dict(executable=sys.executable, version=sys.version)
+    package_provider = (binary_inputs.Packages(output / 'binary-preparation', DOTNET, run)
+                        if binary_packages else package_inputs)
     prepare = output / 'prepare'
     shutil.copytree(ROOT / 'tests/fixtures/two-projects', prepare)
-    if package_mode:
-        pins = package_inputs.feed(prepare / 'package-feed')
-        package_inputs.configure(prepare, '1.0.0', prepare / 'package-feed')
+    if has_packages:
+        pins = package_provider.feed(prepare / 'package-feed')
+        package_provider.configure(prepare, '1.0.0', prepare / 'package-feed')
         report['packagePins'] = pins
         report['packagePreparationDeleted'] = []
     if identity:
@@ -107,8 +112,8 @@ def probe(output, identity=False, package_mode=False, staging=False, native_runt
                     contents = source.read_text().replace(str(preparation), '${WORKSPACE}').replace(str(DOTNET.parent.resolve()), '${SDK}')
                     state[source.relative_to(preparation).as_posix()] = contents
             (workspace / 'restore' / (project + '.json')).write_text(json.dumps(state, indent=2))
-        if package_mode:
-            package_inputs.stage(preparation, workspace, pins)
+        if has_packages:
+            package_provider.stage(preparation, workspace, pins)
     capture_restore(prepare)
     run('baseline', [DOTNET, 'msbuild', 'dirs.proj', '-t:Build', '-p:Configuration=Release',
                      '-graphBuild', '-isolateProjects', '-nologo'], prepare)
@@ -147,7 +152,7 @@ def probe(output, identity=False, package_mode=False, staging=False, native_runt
     def rule(name, project, sources, restore, dependency=None, undeclared_probe=''):
         attrs = dict(settings, name=name, project=project, srcs=sources, restore=restore,
                      undeclared_probe=undeclared_probe)
-        if package_mode:
+        if has_packages:
             closure = json.loads((workspace / 'package-manifests' / (project + '.json')).read_text())
             attrs['packages'] = sorted('packages/' + package['path'] + '/' + entry['path']
                                        for package in closure['packages'] for entry in package['files'])
@@ -168,7 +173,7 @@ def probe(output, identity=False, package_mode=False, staging=False, native_runt
     write_build()
     shutil.rmtree(prepare)
     report['preparationWorkspaceAbsent'] = not prepare.exists()
-    if package_mode:
+    if has_packages:
         report['packagePreparationDeleted'].append(not prepare.exists())
     base = output / 'bazel-base'
     cache = output / 'disk-cache'
@@ -202,9 +207,13 @@ def probe(output, identity=False, package_mode=False, staging=False, native_runt
                         applicationOutput=app.stdout.strip(), applicationReturncode=app.returncode,
                         apphostOutput=native.stdout.strip(), apphostReturncode=native.returncode,
                         executionLog=str(log))
-        if package_mode:
+        if has_packages:
             observed['packageTargets'] = {project: json.loads((workspace / f'bazel-bin/{project.lower()}.diagnostics/action.json').read_text())['packageTargets']
                                           for project in executed}
+        if binary_packages:
+            observed['binaryAssets'] = binary_inputs.evidence(workspace, binary)
+            observed['compiledProjects'] = {project: json.loads((workspace / f'bazel-bin/{project.lower()}.diagnostics/action.json').read_text())['compiledProjects']
+                                            for project in executed}
         report['cases'][name] = observed
         (output / 'report.json').write_text(json.dumps(report, indent=2))
         return result
@@ -215,7 +224,7 @@ def probe(output, identity=False, package_mode=False, staging=False, native_runt
     report.update(sharedWorkspace=shared['workspace'], appWorkspace=app['workspace'],
                   appHasSharedSources=bool(app['sharedSources']),
                   sharedCompiledProjects=shared['compiledProjects'], appCompiledProjects=app['compiledProjects'])
-    if package_mode:
+    if has_packages:
         report['packageTargets'] = dict(Shared=shared['packageTargets'], App=app['packageTargets'])
     build_case('unchanged')
     if staging:
@@ -275,12 +284,13 @@ def probe(output, identity=False, package_mode=False, staging=False, native_runt
         policy.write_text(policy.read_text().replace('<Deterministic>true',
             '<Deterministic Condition="\'$(Configuration)\' == \'Release\'">true'))
         build_case('policyEdit')
-    if package_mode:
-        for name, version in (('packageDataVersion', '1.0.1'), ('packageTargetVersion', '1.0.2')):
+    if has_packages:
+        upgrades = (('binaryDirectVersion', '1.0.1'), ('binaryTransitiveVersion', '1.0.2')) if binary_packages else (('packageDataVersion', '1.0.1'), ('packageTargetVersion', '1.0.2'))
+        for name, version in upgrades:
             preparation = output / ('prepare-' + version)
             shutil.copytree(workspace / 'src', preparation)
-            package_inputs.feed(preparation / 'package-feed')
-            package_inputs.configure(preparation, version, preparation / 'package-feed')
+            package_provider.feed(preparation / 'package-feed')
+            package_provider.configure(preparation, version, preparation / 'package-feed')
             env['NUGET_PACKAGES'] = str(preparation / '.nuget/packages')
             run(name + '-restore', [DOTNET, 'msbuild', 'dirs.proj', '-t:Restore', '-p:Configuration=Release', '-nologo'], preparation)
             capture_restore(preparation)
@@ -300,7 +310,7 @@ def probe(output, identity=False, package_mode=False, staging=False, native_runt
                                         for line in original_build.splitlines()))
         package_failure('missingPackage')
         build_file.write_text(original_build)
-        payload = workspace / 'packages/spike.buildinputs/1.0.2/data/value.txt'
+        payload = workspace / ('packages/spike.leaf/1.0.1/lib/net10.0/Spike.Leaf.dll' if binary_packages else 'packages/spike.buildinputs/1.0.2/data/value.txt')
         original_payload = payload.read_bytes()
         payload.write_bytes(original_payload + b'corrupt')
         package_failure('corruptPackage')
@@ -310,6 +320,20 @@ def probe(output, identity=False, package_mode=False, staging=False, native_runt
         project.write_text(original_project.replace('[1.0.2]', '[1.0.0]'))
         package_failure('stalePackageRestore')
         project.write_text(original_project)
+        if binary_packages:
+            manifest = workspace / 'package-manifests/Shared.json'
+            original_manifest = manifest.read_text()
+            value = json.loads(original_manifest)
+            value['packages'] = [p for p in value['packages'] if p['id'] != 'Spike.Leaf']
+            manifest.write_text(json.dumps(value))
+            package_failure('missingTransitivePackage')
+            manifest.write_text(original_manifest)
+            isolated = output / 'missing-runtime'
+            shutil.copytree(workspace / 'bazel-bin/app.bundle/artifacts/App/bin/Release/net10.0', isolated)
+            (isolated / 'Spike.Leaf.dll').unlink()
+            failure = run('missingRuntimeAsset', [DOTNET, isolated / 'App.dll'], cwd=isolated, require=False)
+            if failure.returncode == 0 or 'Spike.Leaf' not in failure.stdout:
+                raise RuntimeError('missing transitive runtime asset did not fail execution')
     if native_runtime:
         for execution in report['cases']['cold']['executions']:
             declared = {'/'.join(path.split('/')[2:]) for path in execution['inputs'] if path.startswith('external/')}
@@ -439,11 +463,12 @@ if __name__ == '__main__':
     mode = parser.add_mutually_exclusive_group()
     mode.add_argument('--identity-probe', action='store_true')
     mode.add_argument('--package-probe', action='store_true')
+    mode.add_argument('--binary-package-probe', action='store_true')
     mode.add_argument('--staging-probe', action='store_true')
     mode.add_argument('--native-runtime-probe', action='store_true')
     args = parser.parse_args()
     try:
-        probe(args.output.resolve(), args.identity_probe, args.package_probe, args.staging_probe, args.native_runtime_probe)
+        probe(args.output.resolve(), args.identity_probe, args.package_probe, args.staging_probe, args.native_runtime_probe, args.binary_package_probe)
     except (OSError, ValueError, RuntimeError, subprocess.SubprocessError) as error:
         print(error, file=sys.stderr)
         sys.exit(1)

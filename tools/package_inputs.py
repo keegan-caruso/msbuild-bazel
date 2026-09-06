@@ -55,7 +55,7 @@ def configure(workspace, version, package_feed):
     config.write(workspace / 'NuGet.Config')
 
 
-def stage(prepare, workspace, pins):
+def stage(prepare, workspace, pins, archives=None):
     """Only archive payload bytes enter actions, verified against pinned archives."""
     shutil.rmtree(workspace / 'packages', ignore_errors=True)
     (workspace / 'packages').mkdir()
@@ -67,16 +67,17 @@ def stage(prepare, workspace, pins):
             if library['type'] != 'package':
                 continue
             package_id, version = identity.split('/')
-            if package_id != PACKAGE_ID or version not in pins:
+            key = identity if archives is not None else version
+            if (archives is None and package_id != PACKAGE_ID) or key not in pins:
                 raise ValueError('unsupported unpinned package: ' + identity)
-            contents = archive_bytes(version)
-            if hashlib.sha256(contents).hexdigest() != pins[version]:
+            contents = archives[identity] if archives is not None else archive_bytes(version)
+            if hashlib.sha256(contents).hexdigest() != pins[key]:
                 raise ValueError('package archive pin mismatch')
             package_path = f'{package_id.lower()}/{version}'
             if library['path'] != package_path:
                 raise ValueError('unexpected package path')
             restored_archive = prepare / '.nuget/packages' / package_path / f'{package_id.lower()}.{version}.nupkg'
-            if not restored_archive.is_file() or hashlib.sha256(restored_archive.read_bytes()).hexdigest() != pins[version]:
+            if not restored_archive.is_file() or hashlib.sha256(restored_archive.read_bytes()).hexdigest() != pins[key]:
                 raise ValueError('restored package archive differs from pin: ' + identity)
             files = []
             with zipfile.ZipFile(io.BytesIO(contents)) as archive:
@@ -94,6 +95,6 @@ def stage(prepare, workspace, pins):
                     target.write_bytes(expected)
                     files.append(dict(path=name, sha256=hashlib.sha256(expected).hexdigest(), size=len(expected)))
             packages.append(dict(id=package_id, version=version, path=package_path,
-                                 archiveSha256=pins[version], files=files))
+                                 archiveSha256=pins[key], files=files))
         (workspace / 'package-manifests' / (project + '.json')).write_text(
             json.dumps(dict(schemaVersion=1, packages=packages), indent=2))
