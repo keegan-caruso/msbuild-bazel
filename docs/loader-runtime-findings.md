@@ -83,6 +83,22 @@ restored from disk cache. DLL and apphost output remained `shared-v2/app-v2`.
 Missing, corrupt and loader-invalid payloads all failed before compilation,
 and the installed JIT hash was unchanged.
 
+The broader macOS e2e invocation passed 13 tests with the opt-in native test
+skipped (14 discovered, 259.364 seconds); combined with the separate native run,
+all 14 scenarios passed. This includes staging, package inputs, action identity,
+sandbox/cache scheduling, same-path handoff, relocation and public-API replay.
+Runner contracts, pinned-tool checks, Python syntax and `git diff --check` also
+passed.
+
+## Linux CI checkpoint
+
+For implementation commit `7174b99`, the
+[setup workflow](https://github.com/keegan-caruso/msbuild-bazel/actions/runs/34008028286)
+passed. The [Nix workflow](https://github.com/keegan-caruso/msbuild-bazel/actions/runs/34008028268)
+was still running when this checkpoint was pushed at the user's request.
+The extended native-runtime test is Nix-only, so Linux validation of actual JIT
+substitution remains pending at this checkpoint.
+
 ## Scope of the conclusion
 
 This is one enforced runtime-library boundary. It does not make the remaining
