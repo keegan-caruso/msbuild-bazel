@@ -36,6 +36,14 @@ The managed binary-package milestone has a test-first
 cache, relocation, upgrade and rejection evidence. Broader NuGet behavior is
 still outside this measured boundary.
 
+## Forward roadmap
+
+The [next six milestones](roadmap.md) extend the sequence below: configured graph
+export, generated graph execution, selective invalidation/cache recovery, a real
+project pilot, shared remote caching, then remote execution. Each requires
+contracts and failing acceptance tests before implementation. The roadmap states
+completion gates and distinguishes planned capabilities from measured results.
+
 ## Milestone sequence
 
 1. Add Shared and App SDK projects, with App referencing Shared, and a Microsoft.Build.Traversal entry point. Pin Traversal when introduced.
