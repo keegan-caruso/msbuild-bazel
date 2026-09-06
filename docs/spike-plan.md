@@ -41,5 +41,11 @@ for commands, controls, and limitations. Raw-cache relocation remains unsupporte
 Step 5 now has a public-API replay plugin, an independent probe, and black-box
 acceptance coverage. Relocated Build, App-only edit, and narrow Publish succeeded
 on macOS ARM64 after deleting the producer, with strict isolation and no Shared
-compilation. See [replay findings](replay-findings.md). Step 6, the two-target
-Bazel action harness and sandbox boundary, is next.
+compilation. See [replay findings](replay-findings.md).
+
+Steps 6 and 7 now have an explicit two-target Bazel rule, Shared-only producer,
+App dependency replay, and a native sandbox/cache harness. Cold, unchanged,
+App edit, Shared edit, cleared-output disk-cache reuse, and a fresh Bazel output
+base are measured on macOS ARM64. See [Bazel findings](bazel-findings.md) and the
+[process contract](bazel-interface.md). The next work is input/toolchain identity
+hardening and Linux sandbox validation before broad graph export.

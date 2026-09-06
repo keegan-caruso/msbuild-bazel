@@ -41,15 +41,15 @@ the producer workspace to be absent in the relocation case, fresh consumer
 restore metadata, staged artifacts, and no Shared compilation. Record commands,
 engine versions, target requests and actual application output.
 
-## Milestone 3: Bazel integration (gated by replay)
+## Milestone 3: explicit Bazel integration (implemented)
 
-The following Bazel scenarios remain planned:
-
-- Build the same outputs with a real custom Bazel action per project.
-- Compare normal build output with the Bazel result.
-- Read execution logs to assert cold (Shared + App), unchanged (neither), App edit (App only), Shared edit (Shared + App).
-- Clear local outputs while retaining disk cache and verify artifact reuse and execution.
-- Exercise changed output/sandbox paths before claiming portability.
+`test_bazel_boundary.py` runs the two-target harness with a mandatory native OS
+sandbox. It checks cold Shared+App execution, unchanged reuse, App-only and
+Shared edits, disk-cache recovery after clearing outputs, and reuse in a fresh
+Bazel output base. It compares runtime output, checks compile markers and declared
+inputs, and rejects an undeclared relative input. Restore and plugin preparation
+run before compile actions. See [Bazel findings](bazel-findings.md) for the
+measured macOS evidence and host/runtime limits. Linux is not locally measured.
 
 ## Deferred
 

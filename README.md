@@ -2,12 +2,12 @@
 
 A spike exploring Bazel project-level scheduling and caching while retaining MSBuild, NuGet, and the .NET SDK build behavior.
 
-**Status:** Codex setup, CI, the first MSBuild boundary experiment, a raw-cache path probe, and public-API dependency-result replay are implemented. Moving the bundle works at the same workspace path; moving the workspace fails raw MSBuild cache lookup. A Bazel project rule and graph exporter are not implemented yet.
+**Status:** Codex setup, CI, the first MSBuild boundary experiment, a raw-cache path probe, and public-API dependency-result replay are implemented. Moving the bundle works at the same workspace path; moving the workspace fails raw MSBuild cache lookup. A two-project Bazel rule and sandbox/cache harness are implemented; a general graph exporter is not.
 
-**Next:** Define the two-target Bazel action harness. The separate
-[public-API replay experiment](docs/replay-findings.md) succeeds at a new workspace
-path on macOS ARM64 with strict isolation. The v1 driver retains its same-path
-restriction; Bazel sandbox and disk-cache reuse are not yet measured.
+**Next:** Harden the Bazel action input/toolchain contract and obtain Linux sandbox
+measurements before general graph export. The [two-target Bazel experiment](docs/bazel-findings.md)
+passes on macOS ARM64 with native action sandboxing and local disk-cache reuse.
+Remote-cache correctness and cross-platform portability remain unproven.
 
 ## Quick start
 
@@ -83,6 +83,16 @@ python3 tools/probe_replay.py --output artifacts/replay-probe
 
 See [replay findings](docs/replay-findings.md) for target contracts, validation
 cases, and remaining limitations.
+
+Run the Bazel action and cache probe (requires native OS sandbox support):
+
+```sh
+python3 tools/probe_bazel.py --output artifacts/bazel-probe
+```
+
+This generates a copied Bazel workspace containing `//:shared` and `//:app`.
+See [Bazel findings](docs/bazel-findings.md) for the measured action matrix and
+host-runtime limitations.
 
 ## Validation
 

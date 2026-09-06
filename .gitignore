@@ -3,7 +3,7 @@
 artifacts/
 **/bin/
 **/obj/
-bazel-*
+/bazel-*
 *.binlog
 __pycache__/
 *.pyc

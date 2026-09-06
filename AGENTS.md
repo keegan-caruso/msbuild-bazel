@@ -2,7 +2,7 @@
 
 ## Goal and current state
 
-Explore whether Bazel can schedule/cache individual .NET project builds while MSBuild retains SDK and NuGet behavior. The same-path boundary, raw-cache path probe, and public-API dependency-result replay are implemented. Replay succeeds at a new workspace path on macOS ARM64 (docs/replay-findings.md). Next, define the two-target Bazel action harness and sandbox boundary; the Bazel adapter is still planned. Read README.md and docs/spike-plan.md before implementing the spike.
+Explore whether Bazel can schedule/cache individual .NET project builds while MSBuild retains SDK and NuGet behavior. The same-path boundary, raw-cache path probe, and public-API dependency-result replay are implemented. Replay succeeds at a new workspace path on macOS ARM64 (docs/replay-findings.md). The explicit two-target Bazel adapter now has native macOS sandbox and local disk-cache evidence (docs/bazel-findings.md). Next, harden action inputs and host toolchain identity, add Linux sandbox evidence, then consider general graph export. Read README.md and docs/spike-plan.md before implementing the spike.
 
 ## Commands
 
