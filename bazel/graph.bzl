@@ -12,14 +12,16 @@ def _graph_project_impl(ctx):
         "graph_dependencies": [f.path for f in dependencies.to_list()],
         "sources": [{"source": f.path, "destination": f.short_path.removeprefix("src/")} for f in ctx.files.srcs],
         "restore": [f.path for f in ctx.files.restore],
-        "packages": [], "package_manifest": None,
+        "packages": [{"source": f.path, "destination": f.short_path.removeprefix("packages/")} for f in ctx.files.packages],
+        "package_manifest": ctx.file.package_manifest.path if ctx.file.package_manifest else None,
         "plugin": ctx.file.plugin.path, "build_props": ctx.file.build_props.path,
         "build_targets": ctx.file.build_targets.path,
         "output": output.path, "diagnostics": diagnostics.path,
         "dependency": None, "undeclared_probe": "", "native_manifest": None, "native_files": [],
     }))
     ctx.actions.run(
-        inputs = depset(ctx.files.srcs + ctx.files.restore + ctx.files.runner_support +
+        inputs = depset(ctx.files.srcs + ctx.files.restore + ctx.files.packages +
+            ([ctx.file.package_manifest] if ctx.file.package_manifest else []) + ctx.files.runner_support +
             [request, ctx.file.plugin, ctx.file.runner, ctx.file.build_props, ctx.file.build_targets, ctx.file.host_identity],
             transitive = [dependencies, ctx.attr.sdk[DefaultInfo].files]),
         outputs = [output, diagnostics], executable = ctx.executable.dotnet,
@@ -34,6 +36,8 @@ def _graph_project_impl(ctx):
 graph_project = rule(implementation = _graph_project_impl, attrs = {
     "project": attr.string(mandatory = True),
     "srcs": attr.label_list(allow_files = True), "restore": attr.label_list(allow_files = True),
+    "packages": attr.label_list(allow_files = True),
+    "package_manifest": attr.label(allow_single_file = True),
     "dependencies": attr.label_list(providers = [GraphBundle]),
     "plugin": attr.label(allow_single_file = True, mandatory = True),
     "build_props": attr.label(allow_single_file = True, mandatory = True),

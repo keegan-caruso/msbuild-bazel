@@ -8,7 +8,7 @@ internal sealed partial record BuildEvidence(string[] CompiledProjects, string[]
         Capture(CompileMarker(), log), Capture(ReplayMarker(), log), Capture(PackageMarker(), log));
 
     private static string[] Capture(Regex pattern, string log) => pattern.Matches(log)
-        .Select(match => match.Groups[1].Value).ToArray();
+        .Select(match => match.Groups[1].Value.Trim()).ToArray();
 
     public void Verify(ProjectKind project)
     {
@@ -18,7 +18,7 @@ internal sealed partial record BuildEvidence(string[] CompiledProjects, string[]
             throw new InvalidOperationException("App did not replay Shared");
     }
 
-    [GeneratedRegex(@"SPIKE_COMPILE:(\w+)", RegexOptions.CultureInvariant)]
+    [GeneratedRegex(@"SPIKE_COMPILE:([^\r\n]+)", RegexOptions.CultureInvariant)]
     private static partial Regex CompileMarker();
 
     [GeneratedRegex(@"SPIKE_REPLAY_HIT:([^\r\n]*)", RegexOptions.CultureInvariant)]

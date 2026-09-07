@@ -11,6 +11,7 @@ internal static class GraphAction
         var project = request.GraphProject!;
         if (!Files.ValidRelativePath(project) || !project.EndsWith(".csproj", StringComparison.Ordinal))
             throw new InvalidDataException("graph project path invalid");
+        var packages = PackageInputs.Stage(request, workspace.Root);
         var dependencies = new Dictionary<string, string>(StringComparer.Ordinal);
         foreach (var input in request.GraphDependencies ?? [])
         {
@@ -54,11 +55,11 @@ internal static class GraphAction
         var evidence = BuildEvidence.Parse(result.Log);
         JsonFiles.Write(Path.Combine(workspace.Diagnostics, "action.json"), new {
             project, workspace = workspace.Root, command = invocation.Arguments, returncode = result.ExitCode,
-            compiledProjects = evidence.CompiledProjects, replayHits = evidence.ReplayHits
+            compiledProjects = evidence.CompiledProjects.Select(Path.GetFileNameWithoutExtension).ToArray(), replayHits = evidence.ReplayHits, packages
         });
         Console.Write(result.Log);
         if (result.ExitCode != 0 || result.TimedOut) throw new InvalidOperationException("graph MSBuild failed");
-        if (!evidence.CompiledProjects.SequenceEqual([Path.GetFileNameWithoutExtension(project)]))
+        if (!evidence.CompiledProjects.SequenceEqual([project]))
             throw new InvalidOperationException("unexpected graph project compilation");
         if (!evidence.ReplayHits.Order().SequenceEqual(dependencies.Keys.Select(Path.GetFileNameWithoutExtension).Order()))
             throw new InvalidOperationException("incomplete graph dependency replay");

@@ -217,6 +217,28 @@ internal static class GraphExporter
         AddRestoreSidecar(request, inputs, assets, "project.nuget.cache");
         AddRestoreSidecar(request, inputs, assets, Path.GetFileNameWithoutExtension(instance.FullPath) + ".csproj.nuget.dgspec.json");
 
+        using (var assetsDocument = JsonDocument.Parse(File.ReadAllText(assets)))
+        {
+            foreach (var library in assetsDocument.RootElement.GetProperty("libraries").EnumerateObject())
+            {
+                if (library.Value.GetProperty("type").GetString() != "package") continue;
+                var packagePath = library.Value.GetProperty("path").GetString()!;
+                var folder = Path.GetFullPath(Path.Combine(request.PackageRoot, packagePath));
+                if (!IsUnder(folder, request.PackageRoot))
+                    throw new ExportException("path-escape", "package path escapes package root");
+                foreach (var file in library.Value.GetProperty("files").EnumerateArray())
+                {
+                    var payload = Path.GetFullPath(Path.Combine(folder, file.GetString()!));
+                    if (!IsUnder(payload, folder)) throw new ExportException("path-escape", "package file escapes package root");
+                    AddInput(request, inputs, "package", payload, workspaceOnly: false, normalizeText: false);
+                }
+                var identity = library.Name.Split('/');
+                AddInput(request, inputs, "package", Path.Combine(folder,
+                    identity[0].ToLowerInvariant() + "." + identity[1] + ".nupkg"),
+                    workspaceOnly: false, normalizeText: false);
+            }
+        }
+
         var outputs = new Dictionary<(string Kind, string Path), OutputRecord>();
         foreach (var item in instance.GetItems("_BazelExportOutput"))
         {

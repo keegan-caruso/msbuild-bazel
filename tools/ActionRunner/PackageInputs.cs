@@ -7,7 +7,8 @@ internal static class PackageInputs
     public static string[] Stage(ActionRequest request, string workspace)
     {
         var projectName = request.Project.ToString();
-        var assets = JsonFiles.Read<RestoreAssets>(Path.Combine(workspace, projectName, "obj/project.assets.json"));
+        var projectPath = request.GraphProject ?? Path.Combine(projectName, projectName + ".csproj");
+        var assets = JsonFiles.Read<RestoreAssets>(Path.Combine(workspace, Path.GetDirectoryName(projectPath)!, "obj/project.assets.json"));
         var resolved = assets.Libraries.Where(entry => entry.Value.Type == "package")
             .ToDictionary(entry => entry.Key, entry => entry.Value.Path
                 ?? throw new InvalidDataException("restored package path missing: " + entry.Key), StringComparer.OrdinalIgnoreCase);
@@ -18,7 +19,7 @@ internal static class PackageInputs
         var provided = manifest.Packages.ToDictionary(p => p.Id + "/" + p.Version, p => p.Path, StringComparer.OrdinalIgnoreCase);
         if (provided.Count != resolved.Count || provided.Any(p => !resolved.TryGetValue(p.Key, out var path) || path != p.Value))
             throw new InvalidDataException("package manifest does not match restore assets");
-        var project = XDocument.Load(Path.Combine(workspace, projectName, projectName + ".csproj"));
+        var project = XDocument.Load(Path.Combine(workspace, projectPath));
         foreach (var reference in project.Descendants("PackageReference"))
         {
             var version = (string?)reference.Attribute("Version") ?? "";

@@ -12,6 +12,8 @@ import shutil
 import subprocess
 import tempfile
 
+import graph_packages
+
 ROOT = Path(__file__).resolve().parents[1]
 DOTNET_ROOT = Path(os.environ.get('SPIKE_DOTNET_ROOT', ROOT / '.tools/dotnet')).resolve()
 
@@ -64,8 +66,7 @@ def _prepare(workspace, manifest, output, *, environment=None):
         if any(dep not in nodes for dep in node['dependencies']):
             raise ValueError('missing dependency node')
         assets = json.loads((workspace / Path(project).parent / 'obj/project.assets.json').read_text())
-        if any(v['type'] == 'package' for v in assets['libraries'].values()):
-            raise ValueError('package graph execution is not supported by this slice')
+        graph_packages.package_plan(workspace, project)
     def closure(identity, active=()):
         if identity in active:
             raise ValueError('cyclic graph')
@@ -88,7 +89,7 @@ def _prepare(workspace, manifest, output, *, environment=None):
         source = roots[prefix] / logical
         # SDK installations may contain Nix symlinks; workspace payloads may not escape.
         if not source.is_file() or (prefix == 'workspace' and not source.resolve().is_relative_to(workspace)):
-            raise ValueError('missing or escaping input: ' + item['path'])
+            raise ValueError('missing-input: missing or escaping input: ' + item['path'])
         if prefix == 'workspace' and '/obj/' in '/' + logical and item['kind'] not in ('restore', 'import'):
             raise ValueError('unsupported declared obj input: ' + item['path'])
         contents = source.read_bytes()
@@ -103,7 +104,7 @@ def _prepare(workspace, manifest, output, *, environment=None):
                     text = text.replace(character, '\\u' + format(ord(character), '04X'))
             contents = text.replace(str(workspace), '$WORKSPACE').replace(str(workspace / '.nuget/packages'), '$PACKAGES').replace(str(DOTNET_ROOT), '$DOTNET').encode()
         if hashlib.sha256(contents).hexdigest() != item['sha256']:
-            raise ValueError('stale graph input: ' + item['path'])
+            raise ValueError(('hash-mismatch: ' if item['kind'] == 'package' else 'stale-manifest: ') + 'stale graph input: ' + item['path'])
     if not graph.get('entryRequests'):
         raise ValueError('graph discovery request missing; regenerate manifest')
     output.mkdir(parents=True, exist_ok=False)
@@ -126,7 +127,7 @@ def _prepare(workspace, manifest, output, *, environment=None):
     if result.returncode:
         raise ValueError('graph discovery revalidation failed: ' + result.stdout + result.stderr)
     if json.loads(refreshed.read_text()) != graph:
-        raise ValueError('stale graph discovery: regenerate manifest')
+        raise ValueError('stale-manifest: stale graph discovery: regenerate manifest')
     shutil.copyfile(ROOT / 'tools/ReplayPlugin/bin/Release/net10.0/ReplayPlugin.dll', output / 'ReplayPlugin.dll')
     (output / 'runner').mkdir()
     for suffix in ('.dll', '.deps.json', '.runtimeconfig.json'):
@@ -143,7 +144,7 @@ def _prepare(workspace, manifest, output, *, environment=None):
         (output / 'runner' / name).write_text(contents)
     # Instrument every subject regardless of fixture naming or project directory.
     targets = output / 'runner/Action.targets'
-    targets.write_text(targets.read_text().replace('</Project>', '<Target Name="GraphCompileEvidence" BeforeTargets="CoreCompile"><Message Importance="high" Text="SPIKE_COMPILE:$(MSBuildProjectName)" /></Target></Project>'))
+    targets.write_text(targets.read_text().replace('</Project>', '<Target Name="GraphCompileEvidence" BeforeTargets="CoreCompile"><Message Importance="high" Text="SPIKE_COMPILE:$(SPIKE_GRAPH_PROJECT)" /></Target></Project>'))
     for name in ('msbuild.bzl', 'graph.bzl'):
         shutil.copyfile(ROOT / 'bazel' / name, output / name)
     (output / 'MODULE.bazel').write_text('module(name="msbuild_graph")\nlocal_dotnet_sdk = use_repo_rule("//:msbuild.bzl", "local_dotnet_sdk")\n' + f'local_dotnet_sdk(name="dotnet", path={json.dumps(str(DOTNET_ROOT))})\n')
@@ -157,7 +158,7 @@ def _prepare(workspace, manifest, output, *, environment=None):
         for reachable in sorted(closures[identity]):
             dependency = nodes[reachable]
             for item in dependency['inputs']:
-                if item['path'].startswith('workspace/') and item['kind'] != 'restore':
+                if item['path'].startswith('workspace/') and item['kind'] not in ('restore', 'package'):
                     # Dependency evaluation needs projects, imports and explicitly declared
                     # evaluation extras (for example an Exists condition), never its sources.
                     if reachable == identity or item['kind'] in ('project', 'import', 'extra'):
@@ -184,7 +185,8 @@ def _prepare(workspace, manifest, output, *, environment=None):
             target = output / 'src' / source
             target.parent.mkdir(parents=True, exist_ok=True)
             shutil.copyfile(workspace / source, target)
-        attrs = dict(settings, name='node_' + identity, project=relative(node['project']), srcs=sorted('src/' + s for s in sources), restore=restore, dependencies=[':node_' + d for d in node['dependencies']])
+        package_manifest, packages = graph_packages.stage(workspace, relative(node['project']), output, identity)
+        attrs = dict(settings, packages=packages, package_manifest=package_manifest, name='node_' + identity, project=relative(node['project']), srcs=sorted('src/' + s for s in sources), restore=restore, dependencies=[':node_' + d for d in node['dependencies']])
         build += 'graph_project(\n' + ''.join(f'    {k} = {json.dumps(v)},\n' for k, v in attrs.items()) + ')\n'
     build += 'filegroup(name="all", srcs=' + json.dumps([':node_' + n for n in graph['entryPoints']]) + ')\n'
     (output / 'BUILD.bazel').write_text(build)
