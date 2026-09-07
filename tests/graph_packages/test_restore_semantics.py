@@ -1,5 +1,6 @@
 """Reject stale package-reference semantics before graph/plan publication."""
 import json
+import hashlib
 import os
 from pathlib import Path
 import subprocess
@@ -81,6 +82,95 @@ class PackageRestoreSemantics(unittest.TestCase):
         app = next(n['id'] for n in graph['nodes'] if n['project'].endswith('/App.csproj'))
         packages = json.loads((self.evidence / ('accepted-' + str(self.serial)) / 'package-manifests' / (app + '.json')).read_text())
         self.assertEqual(sorted(p['id'] for p in packages['packages']), app_packages)
+
+    @staticmethod
+    def plan_digest(path):
+        return {item.relative_to(path).as_posix(): hashlib.sha256(item.read_bytes()).hexdigest()
+                for item in path.rglob('*') if item.is_file()}
+
+    def partial_restore_control(self, mutation, expected_packages):
+        self.restore()
+        original = self.export()
+        plan = self.evidence / 'original-plan'
+        prepare(self.workspace, original, plan)
+        before = self.plan_digest(plan)
+        mutation()
+        self.run_dotnet('left-only-restore', ['msbuild', 'src/Left/Left.csproj', '-t:Restore',
+            '-p:Configuration=Release', '-nodeReuse:false', '-nologo'])
+        self.export(error='stale-restore')
+        with self.assertRaisesRegex(ValueError, 'stale-(restore|manifest)'):
+            prepare(self.workspace, original, self.evidence / 'rejected-plan')
+        self.assertFalse((self.evidence / 'rejected-plan').exists())
+        self.assertEqual(self.plan_digest(plan), before)
+        self.restore()
+        self.assert_current_prepares(expected_packages)
+
+    def test_consumer_snapshot_rejects_partial_private_assets_restore(self):
+        self.partial_restore_control(lambda: configure(self.workspace, self.workspace / '.feed',
+            private_assets='all'), [])
+
+    def test_consumer_snapshot_rejects_partial_version_restore(self):
+        self.partial_restore_control(lambda: configure(self.workspace, self.workspace / '.feed',
+            version='1.0.1'), ['Spike.Binary', 'Spike.Leaf'])
+
+    def test_consumer_snapshot_rejects_removed_package_after_partial_restore(self):
+        def remove():
+            self.project.write_text('<Project Sdk="Microsoft.NET.Sdk"><ItemGroup><ProjectReference Include="../Shared/Shared.csproj"/></ItemGroup></Project>')
+            (self.project.parent / 'Value.cs').write_text('namespace Left; public static class Value { public static string Text => Shared.Message.Value; }')
+        self.partial_restore_control(remove, [])
+
+    def test_removed_project_edge_requires_consumer_restore(self):
+        self.restore()
+        original = self.export()
+        plan = self.evidence / 'original-plan'
+        prepare(self.workspace, original, plan)
+        before = self.plan_digest(plan)
+        app = self.workspace / 'src/App/App.csproj'
+        app.write_text(app.read_text().replace('<ProjectReference Include="../Left/Left.csproj"/>', ''))
+        (app.parent / 'Program.cs').write_text('System.Console.WriteLine(Right.Value.Text);')
+        self.export(error='stale-restore')
+        self.assertEqual(self.plan_digest(plan), before)
+        self.restore()
+        self.assert_current_prepares([])
+
+    def test_consumer_direct_version_can_differ_from_dependency_resolution(self):
+        app = self.workspace / 'src/App/App.csproj'
+        app.write_text(app.read_text().replace('</Project>',
+            '<ItemGroup><PackageReference Include="Spike.Binary" Version="[1.0.1]"/></ItemGroup></Project>'))
+        self.restore()
+        def binary_versions(project):
+            assets = json.loads((self.workspace / 'src' / project / 'obj/project.assets.json').read_text())
+            return sorted(name for name in assets['libraries'] if name.startswith('Spike.Binary/'))
+        self.assertEqual(binary_versions('Left'), ['Spike.Binary/1.0.0'])
+        self.assertEqual(binary_versions('App'), ['Spike.Binary/1.0.1'])
+        self.assert_current_prepares(['Spike.Binary', 'Spike.Leaf'])
+
+    def test_failed_restore_cannot_refresh_snapshot_over_invalid_assets(self):
+        app = self.workspace / 'src/App/App.csproj'
+        app.write_text(app.read_text().replace('</Project>',
+            '<ItemGroup><PackageReference Include="Spike.Binary" Version="[1.0.0]"/></ItemGroup></Project>'))
+        self.restore()
+        original = self.export()
+        plan = self.evidence / 'original-plan'
+        prepare(self.workspace, original, plan)
+        before = self.plan_digest(plan)
+        configure(self.workspace, self.workspace / '.feed', version='1.0.1')
+        self.run_dotnet('left-only-restore', ['msbuild', 'src/Left/Left.csproj', '-t:Restore',
+            '-p:Configuration=Release', '-nodeReuse:false', '-nologo'])
+        self.run_dotnet('failed-whole-restore', ['msbuild', 'build.proj', '-t:Restore',
+            '-p:Configuration=Release', '-nodeReuse:false', '-nologo'], error='NU1605')
+        cache = json.loads((app.parent / 'obj/project.nuget.cache').read_text())
+        self.assertFalse(cache['success'])
+        self.export(error='stale-restore')
+        self.assertEqual(self.plan_digest(plan), before)
+        app.write_text(app.read_text().replace('[1.0.0]', '[1.0.1]'))
+        self.restore()
+        self.assert_current_prepares(['Spike.Binary', 'Spike.Leaf'])
+
+    def test_missing_consumer_dependency_snapshot_rejects(self):
+        self.restore()
+        (self.workspace / 'src/App/obj/App.csproj.nuget.dgspec.json').unlink()
+        self.export(error='stale-restore')
 
     def test_namespaced_exact_version_change_requires_restore(self):
         self.project.write_text(self.project.read_text().replace('<Project ', '<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003" ', 1))

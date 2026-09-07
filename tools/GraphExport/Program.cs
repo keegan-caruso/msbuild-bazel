@@ -169,6 +169,7 @@ internal static class GraphExporter
         var ids = compilationNodes.ToDictionary(n => n, n => NodeId(request, n));
 
         var nodes = compilationNodes.Select(node => ExportNode(request, node, ids)).OrderBy(n => n.Project, StringComparer.Ordinal).ThenBy(n => n.Id, StringComparer.Ordinal).ToList();
+        PackageRestoreValidation.ValidateGraph(compilationNodes);
         var entryIds = new SortedSet<string>(StringComparer.Ordinal);
         foreach (var node in graph.EntryPointNodes)
             CollectEntryCompilationNodes(node, ids, entryIds);
@@ -290,7 +291,7 @@ internal static class GraphExporter
                 NormalizeWorkspaceRelative(request, Path.GetFullPath(Path.Combine(instance.GetPropertyValue("IntermediateOutputPath"), "ref"), Path.GetDirectoryName(instance.FullPath)!))));
     }
 
-    private static string CanonicalDirectory(string path)
+    internal static string CanonicalDirectory(string path)
     {
         var full = Path.GetFullPath(path);
         var current = Path.GetPathRoot(full)!;
