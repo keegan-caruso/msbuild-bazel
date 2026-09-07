@@ -100,3 +100,16 @@ so the recorded wall times are not performance comparisons.
 The dedicated native unittest entrypoint also passed on the final topology-checking
 probe (one test, 57.5 seconds overall; not a benchmark). Evidence:
 `/private/var/folders/__/z2sj57556cgfrkvbdznlvdt40000gn/T/synthetic-scale-q9rhan22/probe/report.json`.
+
+## Confirmed larger-chain preparation blocker
+
+A bounded non-native reproduction with a 1,000-node chain manifest called the
+real `prepare_graph._prepare` while mocking only package-plan validation. Its
+recursive dependency-closure traversal raised `RecursionError: maximum recursion
+depth exceeded` at Python's default recursion limit of 1,000, before graph
+re-evaluation or a native build. Evidence:
+`/private/var/folders/__/z2sj57556cgfrkvbdznlvdt40000gn/T/synthetic-closure-review-d594ifj1/result.json`.
+This is a confirmed preparation-scale blocker, not 1,000-node build acceptance
+or a native timeout. An iterative traversal needs separate production work and
+validation before attempting that chain scale; the probe does not raise Python's
+recursion limit to conceal the failure.
