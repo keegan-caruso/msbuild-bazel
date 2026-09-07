@@ -19,6 +19,11 @@ REVISION = '49b5339ce85385dc52d4d8e8f2b8308becf23506'
 PROJECT = 'src/Serilog/Serilog.csproj'
 ASSEMBLY = 'src/Serilog/bin/Release/net10.0/Serilog.dll'
 PROPERTIES = ['-p:Configuration=Release', '-p:TargetFramework=net10.0', '-nodeReuse:false', '-nologo']
+ANALYZERS = {'Microsoft.CodeAnalysis.CSharp.NetAnalyzers.dll', 'Microsoft.CodeAnalysis.NetAnalyzers.dll',
+    'ILLink.CodeFixProvider.dll', 'ILLink.RoslynAnalyzer.dll', 'PolySharp.SourceGenerators.dll',
+    'Microsoft.Interop.ComInterfaceGenerator.dll', 'Microsoft.Interop.JavaScript.JSImportGenerator.dll',
+    'Microsoft.Interop.LibraryImportGenerator.dll', 'Microsoft.Interop.SourceGeneration.dll',
+    'System.Text.Json.SourceGeneration.dll', 'System.Text.RegularExpressions.Generator.dll'}
 ORACLE = '''using System.Reflection;
 using System.Reflection.PortableExecutable;
 using System.Security.Cryptography;
@@ -114,6 +119,19 @@ def probe(source, package_cache, output, cases=('source', 'resource', 'key', 'im
         graph = prepare(path, manifest, destination, environment=cache_environment(output, path))
         if len(graph['nodes']) != 1 or graph['nodes'][0]['project'] != 'workspace/' + PROJECT:
             raise AssertionError('unexpected selected library graph')
+        node = graph['nodes'][0]
+        if node['globalProperties'] != {'configuration': 'Release', 'targetframework': 'net10.0'}:
+            raise AssertionError('selected inner identity changed')
+        if node.get('discovery') != dict(signAssembly=True, publicSign=False, delaySign=False):
+            raise AssertionError('signing discovery differs from pinned signed pilot')
+        if {Path(item['path']).name for item in node['inputs'] if item['kind'] == 'analyzer'} != ANALYZERS:
+            raise AssertionError('resolved analyzer closure differs from ordinary inventory')
+        signing = [item for item in node['inputs'] if item['kind'] == 'signing']
+        if len(signing) != 1 or signing[0]['path'] != 'workspace/assets/Serilog.snk' or signing[0]['sha256'] != hashlib.sha256((path / 'assets/Serilog.snk').read_bytes()).hexdigest():
+            raise AssertionError('signing key input missing or wrong')
+        resources = [item for item in node['inputs'] if item['kind'] == 'resource']
+        if len(resources) != 1 or resources[0].get('metadata', {}).get('LogicalName') != 'ILLink.Substitutions.xml':
+            raise AssertionError('resource logical metadata missing')
         return graph
 
     base, cache = output / 'bazel-base', output / 'disk-cache'
