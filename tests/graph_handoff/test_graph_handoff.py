@@ -97,8 +97,7 @@ class GraphHandoffAcceptance(unittest.TestCase):
         self.rejected('missing-target', self.semantic(lambda p: p['targets'].pop('GetTargetFrameworks')), 'dependency target missing', True)
         self.rejected('wrong-properties', self.semantic(lambda p: p['properties'].update(Configuration='Debug')), 'dependency global properties mismatch', True)
         def invalid_metadata(payload):
-            item = next(items[0] for items in payload['targets'].values() if items)
-            item['metadata']['InvalidPath'] = '${UNKNOWN}/invalid.dll'
+            payload['targets']['Build'][0]['metadata']['ReferenceAssembly'] = '${UNKNOWN}/invalid.dll'
         self.rejected('invalid-metadata', self.semantic(invalid_metadata), 'dependency unknown root token', True)
 
     def test_completed_output_cannot_be_reused_by_a_new_attempt(self):
