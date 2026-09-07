@@ -131,7 +131,7 @@
         "starlark_configured"
       ],
       "workstream": "generators",
-      "scope": "P02/P16 plus small API/delivery/diagnostic fixtures, framework combinations and additional files."
+      "scope": "P02/P16 plus small API/delivery/diagnostic fixtures, framework combinations and additional files. Distinguish ordinary references from executable generators/analyzers and supporting dependencies, with role-specific mutations."
     },
     {
       "id": "interceptors",
@@ -153,7 +153,7 @@
         "generators"
       ],
       "workstream": "tasks",
-      "scope": "P05 source-task closure and scheduling with producer-free consumer; any extra native requirement adds an explicit dependency."
+      "scope": "P05 source-task closure and scheduling with producer-free consumer; any extra native requirement adds an explicit dependency. Declare task environment, generated outputs and execution-platform needs; cover implementation-reading tasks before compile_boundary."
     },
     {
       "id": "pack",
@@ -227,7 +227,7 @@
         "publish"
       ],
       "workstream": "runtime",
-      "scope": "F03 declared assets/tools and selected C15 target pairs; wider host closure is separately required for remote execution."
+      "scope": "F03 declared assets/tools and selected C15 target pairs; wider host closure is separately required for remote execution. Distinguish build-tool execution platform from output target platform."
     },
     {
       "id": "aot",
@@ -239,6 +239,29 @@
       ],
       "workstream": "aot",
       "scope": "P08 native publish/test with declared AOT compiler/linker/runtime packs; no dependency on interceptor acceptance."
+    },
+    {
+      "id": "preparation_reuse",
+      "milestone": "R09",
+      "label": "Reusable export and preparation",
+      "requires": [
+        "serilog",
+        "starlark_packages",
+        "starlark_configured"
+      ],
+      "workstream": "performance",
+      "scope": "Immediate selected Serilog/discovery slice: complete discovery identity, unchanged reuse, mutation/stale/concurrent publication controls and producer-free relocation; repeated phase timings with predeclared budget."
+    },
+    {
+      "id": "compile_boundary",
+      "milestone": "R09",
+      "label": "Qualified compile and runtime boundary",
+      "requires": [
+        "generators",
+        "tasks"
+      ],
+      "workstream": "performance",
+      "scope": "After selected R05/R06 contracts: implementation-only edit reuses consumer compilation while runtime changes; API/tool/task changes invalidate correctly, including implementation-reading tasks and replay metadata. Explicit release disposition if deferred; required before enabling this optimization."
     },
     {
       "id": "scale_synthetic",
@@ -258,10 +281,11 @@
         "serilog",
         "generators",
         "restore",
-        "scale_synthetic"
+        "scale_synthetic",
+        "preparation_reuse"
       ],
       "workstream": "performance",
-      "scope": "P03/P06 selected subtrees; add native_assets edge if SQLite/native slice is selected."
+      "scope": "P03/P06 selected subtrees; add native_assets edge if SQLite/native slice is selected. Requires compile_boundary before acceptance only when that optimization is enabled; add the edge for that extension. Conservative-bundle baselines can start earlier."
     },
     {
       "id": "web",
@@ -317,7 +341,7 @@
         "starlark_packages"
       ],
       "workstream": "remote",
-      "scope": "Declare compatible-worker inputs, toolchain and host assumptions; resolve relevant undeclared inputs."
+      "scope": "Declare compatible-worker inputs, toolchain and host assumptions; resolve relevant undeclared inputs. Distinguish SDK/task execution requirements from target framework/RID; no prerequisite on R09 optimizations."
     },
     {
       "id": "remote_cache",
@@ -494,7 +518,9 @@
     "starlark_packages": "Accepted native macOS ARM64 analysis/generated package closure, roles and private-asset assertions; all 13 full-cache and 18 package tests pass. See docs/r02-r04-validation-findings.md; Linux deferred.",
     "starlark_configured": "Accepted native macOS ARM64 configured identities, distinct outputs, direct edges versus replay closure, discovery refresh and deterministic generation, with native configured regressions. Broader outer/transitive configurations and entrypoints remain open. See docs/r02-r04-validation-findings.md.",
     "starlark_tests": "Accepted native macOS ARM64 test-rule analysis, generated runfiles/requests/data hashes and failures, with actual unchanged upstream approval execution and forced tests after producer-free build-cache recovery. See docs/r02-r04-validation-findings.md; Linux deferred.",
-    "bazel_compatibility": "Open additional validation gate; existing behavioral acceptance does not complete it."
+    "bazel_compatibility": "Open additional validation gate; existing behavioral acceptance does not complete it.",
+    "preparation_reuse": "Planned immediate slice; existing Serilog phase measurements motivate priority, not acceptance.",
+    "compile_boundary": "Planned after selected generator/task contracts; conservative bundles remain the supported boundary."
   },
   "qualificationScope": {
     "activePlatform": "native macOS ARM64",
@@ -503,5 +529,19 @@
     ],
     "reference": "platform-validation-scope.md"
   },
-  "validationReference": "validation.md"
+  "validationReference": "validation.md",
+  "scheduling": {
+    "updated": "2026-09-07",
+    "reference": "language-rule-lessons.md",
+    "startNow": [
+      "preparation_reuse",
+      "generators",
+      "interceptors"
+    ],
+    "afterRoleContracts": [
+      "tasks",
+      "compile_boundary"
+    ],
+    "note": "Stable milestone IDs; acceptance edges remain authoritative. Baselines and remote qualification need not wait for compile optimization. Serialize shared interface edits and controlled benchmarks."
+  }
 }

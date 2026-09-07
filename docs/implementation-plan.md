@@ -15,8 +15,12 @@ controls, with cache/discovery/forced-replay regressions retained. The additiona
 `starlark_packages`, `starlark_configured` and `starlark_tests` gates now pass
 [native macOS qualification](r02-r04-validation-findings.md), including generated
 workspaces, real generator-version changes and cold/recovered reference consumers.
-The next feature slice is R05 generator combinations and reference roles, with
-broader R03 entry points and independent-worker gates still separate.
+The next work packages are R09 preparation reuse alongside R05 generator
+combinations and reference roles. Preparation reuse starts from the accepted
+R04 measurements and discovery/package contracts; compile-interface optimization
+follows the relevant R05/R06 role contracts. Broader R03 entry points and
+independent-worker gates remain separate. See the
+[active execution order](roadmap.md#active-execution-order).
 
 The three parallel [upstream test tracks](serilog-test-plan.md) now pass [native macOS acceptance](serilog-test-acceptance-findings.md): unchanged Serilog approval Build/Test, exact failure controls, test-data-only invalidation, and producer-free relocated build recovery followed by actual test execution. The [selected-framework adaptation](selected-framework-findings.md) preserves ordinary SDK reference selection without changing project declarations.
 
@@ -62,6 +66,11 @@ still outside this measured boundary.
 
 ## Upstream issue coverage
 
+The [language-rule lessons](language-rule-lessons.md) compare Java, Scala, Python,
+TypeScript, Go and Rust designs with the MSBuild-retention goal. Their preparation
+and dependency-role lessons are scheduled in the roadmap and dependency graph;
+the proposed optimizations remain unqualified until their acceptance gates pass.
+
 The [rules_dotnet issue review](rules-dotnet-issue-plan.md) maps the current open
 board to milestone owners and turns selected closed fixes into regression gates.
 It includes the full dated issue inventory, next-batch priorities and explicit
@@ -76,7 +85,7 @@ endpoint. Near-term milestones have concrete deliverables and exit gates; later
 tracks are refined before implementation. Historical milestone numbers in older
 contracts and findings remain unchanged; the roadmap includes their mapping.
 
-Current macOS evidence covers R01 cache/replay/discovery, the selected R02 managed-package and R03 configured-node slices, and the R04 Serilog library plus unchanged approval test, with their additional rule/generated-workspace gates. [Repeated comparative measurements](serilog-performance-findings.md) now pass all 24 correctness/work-set samples; they show adapter overhead for this two-project graph and do not qualify useful performance at scale. R05 generator/reference-role qualification is next; broader R03 entry points and Linux validation remain separate. The [coverage matrix](scenario-coverage.md) and
+Current macOS evidence covers R01 cache/replay/discovery, the selected R02 managed-package and R03 configured-node slices, and the R04 Serilog library plus unchanged approval test, with their additional rule/generated-workspace gates. [Repeated comparative measurements](serilog-performance-findings.md) now pass all 24 correctness/work-set samples; they show adapter overhead for this two-project graph and do not qualify useful performance at scale. R09 preparation reuse and R05 generator/reference-role qualification are next; broader R03 entry points and Linux validation remain separate. The [coverage matrix](scenario-coverage.md) and
 [pinned project selections](coverage-project-selections.md) define the broader
 portfolio and separate proposed work from measured support. The
 [parallel dependency graph](roadmap-graph.md) splits milestones into work packages

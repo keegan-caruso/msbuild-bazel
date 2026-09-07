@@ -46,8 +46,10 @@ The [forward roadmap](docs/roadmap.md) covers R01–R17 from this checkpoint thr
 a supported adapter. **Completed:** the selected R02–R04 package/configuration/test-rule
 [qualification gates](docs/r02-r04-validation-findings.md) pass on native macOS,
 including the unchanged upstream approval test, a real PolySharp version mutation
-and reference consumption after cache recovery. **Next:** R05 generator combinations
-and reference roles. [Repeated measurements](docs/serilog-performance-findings.md) are
+and reference consumption after cache recovery. **Next:** R09 preparation reuse
+alongside R05 generator combinations and reference roles; see the
+[active execution order](docs/roadmap.md#active-execution-order).
+[Repeated measurements](docs/serilog-performance-findings.md) are
 complete and show adapter overhead for this small graph; useful performance at
 scale, broader R03 entry points and Linux qualification remain separate.
 Later tracks cover specialized SDKs, platform workloads and independent remote

@@ -21,6 +21,25 @@ node table state additional prerequisites for native SQLite, WASM AOT, IDE and
 remote real-project extensions. Refine broad later nodes before scheduling their
 implementation. Never infer support for an omitted configuration from an edge.
 
+## Active scheduling priority
+
+The [language-rule lessons](language-rule-lessons.md) bring R09
+`preparation_reuse` forward alongside R05 `generators` and `interceptors`.
+Its accepted R04/package/configuration prerequisites make it ready to start now.
+After the relevant reference roles pass, qualify R06 `tasks`, then the R09
+`compile_boundary` experiment. Shared runner/preparation edits and controlled
+benchmarks still require serialized ownership.
+
+Synthetic and real-project baselines may start when their existing feature
+prerequisites permit. Final `scale_real` acceptance now includes
+`preparation_reuse`. Interface optimization is a separate experiment: if enabled
+for a scale workload, add `compile_boundary` as an acceptance dependency before
+qualification. Otherwise report the conservative-bundle result. Remote
+qualification retains its independent worker prerequisites.
+
+Milestone IDs and completed states are unchanged. See the
+[active execution order](roadmap.md#active-execution-order) for the rationale.
+
 ## Dependency views
 
 Boundary nodes repeat across views with the same IDs. Each arrow is represented
@@ -64,6 +83,32 @@ flowchart TD
   local --> scale_synthetic
   base --> languages
 ```
+
+### Early performance and dependency boundaries
+
+```mermaid
+flowchart TD
+  serilog["R04: Serilog adapter acceptance"]
+  starlark_packages["R02: Package rule validation"]
+  starlark_configured["R03: Configured rule validation"]
+  preparation_reuse["R09: Reusable export and preparation — start now"]
+  generators["R05: Generator APIs and reference roles"]
+  tasks["R06: Source-built task handoff"]
+  compile_boundary["R09: Qualified compile and runtime boundary"]
+  scale_real["R09: EF Core and Azure SDK scale"]
+  serilog --> preparation_reuse
+  starlark_packages --> preparation_reuse
+  starlark_configured --> preparation_reuse
+  generators --> tasks
+  generators --> compile_boundary
+  tasks --> compile_boundary
+  preparation_reuse --> scale_real
+```
+
+Other incoming prerequisites are shown in the adjacent views. The
+`compile_boundary` experiment has an explicit release disposition; it does not
+block conservative-bundle scale acceptance. An enabled optimization adds its
+acceptance edge for that workload.
 
 ### Application and platform tracks
 
@@ -222,8 +267,9 @@ the selected R03 configured-node slice now satisfy the active macOS prerequisite
 Linux validation is deferred. The completed R04 library batch delivered the
 following contracts. The additional Starlark package/configuration/test-rule
 nodes now pass [qualification](r02-r04-validation-findings.md), following the
-completed [shared baseline](starlark-core-findings.md). R05 generator/reference-role
-work can proceed, with each new scenario extending the applicable assertions.
+completed [shared baseline](starlark-core-findings.md). R09 preparation reuse and R05 generator/reference-role
+work can proceed now, with each new scenario extending the applicable assertions.
+The early performance view records the new acceptance joins.
 The existing feature contracts are:
 
 | Work package | Immediate deliverable | Primary ownership |
@@ -277,24 +323,26 @@ not a claim that Linux execution or generated-graph caching already passes.
 | `entrypoints` | R03 | F13/F14 separately qualified entry-point formats and package/local SDK resolution. |
 | `inputs` | R04 | Required package generator/analyzer, signing, resource and shared-import contracts, tested in small fixtures. |
 | `serilog` | R04 | P01 baseline parity, API/logging and reference-consumer oracles, real generator mutation, approval Build/Test, relocation and repeated descriptive timings on native macOS; Linux qualification deferred. |
-| `generators` | R05 | P02/P16 plus small API/delivery/diagnostic fixtures, framework combinations and additional files. |
+| `generators` | R05 | P02/P16 plus small API/delivery/diagnostic fixtures, framework combinations and additional files; distinguish ordinary references from executable tools and their supporting dependencies. |
 | `interceptors` | R05 | P14 execution oracle, compiler identity and call-site/relocation mutations; does not wait for all P02/P16 results. |
-| `tasks` | R06 | P05 source-task closure and scheduling with producer-free consumer; any extra native requirement adds an explicit dependency. |
+| `tasks` | R06 | P05 source-task closure and scheduling with producer-free consumer; any extra native requirement adds an explicit dependency. Declare environment, outputs and execution platform; cover implementation-reading tasks before compile_boundary. |
 | `pack` | R06 | P05 task packages and P16 analyzer package consumption; separate Pack/restore/Build/Test boundaries. |
 | `lifecycle` | R06 | Define output ownership and command semantics; test deletion, config isolation and recovery as supported configs expand. |
 | `git_tasks` | R06 | P17 selected task/tool closure and controlled Git cases; inventory native dependencies before fixing the slice. |
 | `restore` | R07 | F04 categories/conditions/conflicts/locks and metadata-only invalidation; packaged dependency checks join pack separately. |
 | `publish` | R07 | Named F06 distribution modes and F07 output/runtime oracle; qualify modes independently and add feature-specific prerequisites. |
 | `asset_pack` | R07 | Inspect generated nuspec metadata and test independent package consumers for selected asset-flow controls. |
-| `native_assets` | R07 | F03 declared assets/tools and selected C15 target pairs; wider host closure is separately required for remote execution. |
+| `native_assets` | R07 | F03 declared assets/tools and selected C15 target pairs; wider host closure is separately required for remote execution. Distinguish build-tool execution platform from output target platform. |
 | `aot` | R08 | P08 native publish/test with declared AOT compiler/linker/runtime packs; no dependency on interceptor acceptance. |
+| `preparation_reuse` | R09 | Immediate selected Serilog/discovery slice: complete discovery identity, unchanged reuse, mutation/stale/concurrent publication controls and producer-free relocation; repeated phase timings with a predeclared budget. |
+| `compile_boundary` | R09 | After selected generator/task contracts: reuse consumer compilation on implementation-only edits while runtime changes; API/tool/task changes invalidate correctly. Retain conservative bundles if unqualified; explicit release disposition. |
 | `scale_synthetic` | R09 | 10/100/1000 configured nodes, independent cache states, baseline timings and process-tree memory. |
-| `scale_real` | R09 | P03/P06 selected subtrees; add native_assets edge if SQLite/native slice is selected. |
+| `scale_real` | R09 | P03/P06 selected subtrees after preparation reuse; baselines may start earlier. Add native_assets for SQLite/native slices and compile_boundary when that optimization is enabled. |
 | `web` | R10 | P04/P09/P18; independent server/WASM browser oracles. WASM AOT extension additionally requires native_assets and its workloads. |
 | `desktop` | R11 | Selected P05/P10–P13/F01/F02 slices with Windows and other runtime prerequisites; do not require every lane for the first result. |
 | `languages` | R12 | Integrate existing rules_python and rules_js/rules_ts with the .NET adapter: shared targets, runfiles, tests and cache evidence. Pin compatible rule/tool versions; do not implement new language rules. Independent of .NET generator work. |
 | `aspire` | R12 | P07 composes existing-rule Python/TypeScript targets and .NET outputs through the shared harness; prove fresh-service message flow without build/restore at launch. Add task/publish prerequisites only if needed. |
-| `worker_identity` | R13 | Declare compatible-worker inputs, toolchain and host assumptions; resolve relevant undeclared inputs. |
+| `worker_identity` | R13 | Declare compatible-worker inputs, toolchain and host assumptions; resolve relevant undeclared inputs. Distinguish SDK/task execution requirements from target framework/RID; no prerequisite on R09 optimizations. |
 | `remote_cache` | R13 | bazel-remote plus diamond on independent workers; Serilog extension adds serilog prerequisite. |
 | `worker_closure` | R14 | Provision/pin Buildbarn services and full execution tool/runtime closure for diamond; no local fallback. |
 | `remote_exec` | R14 | Force uncached diamond identities onto worker and verify output/missing-input failures; extend to Serilog after serilog. |
@@ -320,6 +368,8 @@ substantial pure helper exists, with the reason recorded rather than a fictitiou
 release may be cut earlier and must be labeled accordingly. Application/platform
 tracks without an edge to `release` are not silently complete: `dispositions`
 records measured support, known limitations or explicit deferral for every one.
+R17 explicitly accepts or defers `compile_boundary`; enabling it requires its
+qualified role contracts and workload regression evidence.
 Final scope sign-off happens at release using current evidence, even though the
 support matrix can be prepared earlier. If a track becomes promised release
 scope, add it as a required dependency rather than relying on prose.
