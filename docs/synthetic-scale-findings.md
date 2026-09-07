@@ -142,3 +142,25 @@ python3 -m unittest discover -s tests/graph_execution -p test_prepare_graph.py -
 
 No 1,000-project restore, export, native build, cache or Linux qualification is
 claimed by this fix. Native scale acceptance remains a separate bounded run.
+
+## Ten-node chain native smoke after iterative closure
+
+At stable implementation commit `15955a1`, the ten-node chain fresh/warm protocol
+passed on native macOS ARM64 with SDK 10.0.100 and Bazel 8.4.2. Both exported graphs
+contained ten configured nodes and nine direct edges. The fresh adapter executed
+exactly N0000 through N0009 once each in `darwin-sandbox`; ordinary MSBuild recorded
+ten compiler invocations. The unchanged warm adapter executed no project actions,
+and ordinary MSBuild recorded zero compiler invocations. Both fresh and warm
+applications printed `55`, matching their ordinary oracle. Preparation workspaces
+were deleted before measured adapter builds.
+
+```sh
+python3 tools/probe_synthetic_scale.py --output /private/tmp/r09-chain-ten \
+  --nodes 10 --shape chain --cases fresh warm
+```
+
+The report, raw execution records, build logs and Bazel profiles are retained at
+`/private/tmp/r09-chain-ten`. These results qualify the iterative traversal on a
+small native chain; they are not a performance conclusion, a 100/1,000-project
+build qualification, or Linux acceptance. Chain mutation/recovery cases were not
+run in this smoke protocol.
