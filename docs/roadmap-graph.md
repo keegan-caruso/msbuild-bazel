@@ -7,7 +7,7 @@ Acceptance state is recorded in the JSON and the
 `packages` and the bounded `configured` slice now pass on native macOS ARM64.
 Further Linux validation is [deferred by request](platform-validation-scope.md);
 The R04 input slice and Serilog library build/mutation/relocation acceptance now
-pass; upstream Test remains open. Other nodes remain
+pass; unchanged approval Test also passes native macOS mutation and recovered-artifact execution. Repeated timings and Linux remain open. Other nodes remain
 open until their own scoped acceptance lanes pass. Arrows are acceptance prerequisites, not a
 requirement to delay source inspection, contract design or isolated implementation.
 Every incoming solid edge must pass before accepting that downstream slice.

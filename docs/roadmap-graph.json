@@ -411,7 +411,7 @@
     "lifecycle": "Seven native macOS characterization tests pass; production lifecycle API, wider configurations and Linux acceptance remain open.",
     "scale_synthetic": "Ten-node fan protocol states and chain fresh/warm pass on macOS; 1000-node recursive preparation failure fixed with iterative closures. Larger native execution, aggregate memory and controlled timing remain unmeasured.",
     "inputs": "Accepted pinned Serilog library input slice on macOS: 11 resolved analyzers, exact package/archive integrity, signing/resource/import declarations and native mutation/relocation evidence.",
-    "serilog": "Selected unchanged library native build, five ordinary-parity mutations and producer-free disk recovery pass on macOS. Standalone upstream API oracle implemented; unchanged upstream Test execution remains open. Linux deferred."
+    "serilog": "Selected unchanged library native build, five ordinary-parity mutations and producer-free disk recovery pass on macOS. Standalone upstream API oracle and unchanged upstream approval Build/Test pass, including test-only invalidation and recovered-artifact execution. Repeated comparative timings remain open; Linux deferred."
   },
   "qualificationScope": {
     "activePlatform": "native macOS ARM64",

@@ -8,7 +8,7 @@ cache. Public-API dependency-result replay works across workspace paths.
 [Action-identity checks](docs/action-identity-findings.md) and
 [pinned build-package inputs](docs/package-input-findings.md) are implemented.
 
-**Active scope:** Further Linux validation is deferred by request. The [R04 Serilog library slice](docs/r04-integration-findings.md) now passes native macOS build, mutation and producer-free relocated cache acceptance; broader upstream test-project execution remains separate.
+**Active scope:** Further Linux validation is deferred by request. The [R04 Serilog library slice](docs/r04-integration-findings.md) now passes native macOS build, mutation and producer-free relocated cache acceptance; the unchanged upstream approval-test project also passes native build/test, mutation and relocated-cache acceptance ([test findings](docs/serilog-test-acceptance-findings.md)).
 
 **Platform evidence:** The original nine-test suite, including replay and native
 Bazel sandbox/cache cases, passed on macOS ARM64 and in Ubuntu 22.04 Linux x86-64
@@ -42,8 +42,7 @@ General NuGet compatibility, RID-specific/native package assets, full runtime
 closure, remote-cache correctness and cross-platform portability remain unproven.
 
 The [forward roadmap](docs/roadmap.md) covers R01–R17 from this checkpoint through
-a supported adapter. **Next:** execute the unchanged Serilog approval-test project through Bazel, with
-[test inputs, test execution and acceptance](docs/serilog-test-plan.md) developed in parallel.
+a supported adapter. **Completed:** the three parallel [upstream test tracks](docs/serilog-test-plan.md) pass native macOS acceptance. **Next:** repeated comparative measurements and the next generator/reference-role slice; Linux remains deferred.
 Later tracks cover specialized SDKs, platform workloads and independent remote
 workers; see the [coverage matrix](docs/scenario-coverage.md) and
 [parallel dependency graph](docs/roadmap-graph.md).

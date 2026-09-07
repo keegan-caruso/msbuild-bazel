@@ -6,7 +6,7 @@ Can Bazel cache and schedule configured .NET projects while each action uses MSB
 
 ## Current status and next step
 
-The [native VSTest contract](test-action-findings.md) adds explicit test targets, declared approval data, and retained failure results; its ordinary-runtime prototype is separate from graph-built upstream acceptance.
+The three parallel [upstream test tracks](serilog-test-plan.md) now pass [native macOS acceptance](serilog-test-acceptance-findings.md): unchanged Serilog approval Build/Test, exact failure controls, test-data-only invalidation, and producer-free relocated build recovery followed by actual test execution. The [selected-framework adaptation](selected-framework-findings.md) preserves ordinary SDK reference selection without changing project declarations.
 
 Further Linux validation is deferred by request. The [R04 selected Serilog library](r04-integration-findings.md) now passes native
 macOS mutation and relocated-cache acceptance after R02 and selected R03; see
@@ -57,11 +57,7 @@ endpoint. Near-term milestones have concrete deliverables and exit gates; later
 tracks are refined before implementation. Historical milestone numbers in older
 contracts and findings remain unchanged; the roadmap includes their mapping.
 
-Next: R01 proves Linux graph execution and package-free cache/replay/discovery
-controls; R02 completes the existing [generated-graph cache contract](graph-cache-contract.md)
-with package cases. R03 supplies configured-node semantics needed by the R04
-[Serilog pilot](real-project-pilot.md). Its ordinary baseline is not adapter
-acceptance. The [coverage matrix](scenario-coverage.md) and
+Current macOS evidence covers R01 cache/replay/discovery, the selected R02 managed-package and R03 configured-node slices, and the R04 Serilog library plus unchanged approval test. Repeated comparative measurements and broader generator/reference-role qualification remain next; Linux validation is deferred. The [coverage matrix](scenario-coverage.md) and
 [pinned project selections](coverage-project-selections.md) define the broader
 portfolio and separate proposed work from measured support. The
 [parallel dependency graph](roadmap-graph.md) splits milestones into work packages

@@ -19,8 +19,8 @@ executable slices before implementation.
 | Configured graph export | [Export findings](graph-export-findings.md): 12 tests passed on Linux x86-64. | Execution support does not automatically cover every exported configuration. |
 | Generated graph execution | [Execution findings](graph-execution-findings.md): package-free Release/net10.0 diamond and root-project acceptance on macOS ARM64. | Linux execution evidence, generated-graph cache recovery, packages and broader configurations. |
 | Explicit two-project adapter | [Replay](replay-findings.md), [Bazel](bazel-findings.md), [package](binary-package-findings.md) and [runtime](loader-runtime-findings.md) findings. | Transfer only measured behavior into the generated adapter; full host closure remains open. |
-| Generated-graph cache tests | [Cache contract](graph-cache-contract.md): acceptance suite exists; probe is missing and tests are intentionally red. | Implementation and passing native execution evidence. |
-| Serilog | [Pilot](real-project-pilot.md): pinned ordinary MSBuild baseline and API approval test on macOS. | Adapter build/test, output equivalence, cache recovery and comparative timings. |
+| Generated-graph cache tests | [Cache contract](graph-cache-contract.md) and [managed-package findings](graph-package-plan.md): selected local cache and relocation slices pass native macOS acceptance. | Broader assets, remote-cache correctness and further Linux qualification. |
+| Serilog | [Library acceptance](r04-integration-findings.md) and [unchanged approval Build/Test](serilog-test-acceptance-findings.md) pass native macOS mutation and relocated-cache controls. | Repeated comparative timings, Linux qualification and broader upstream portfolio. |
 | Broader portfolio | Pinned inspections and proposed coverage. | No portfolio-wide adapter support is established. |
 
 Forward milestones use **R01–R17** to avoid reassigning numbers in historical
@@ -54,7 +54,7 @@ retains both platforms. “Planned” means prerequisites or contracts are still
 | R01 | Reliable package-free generated graph and local cache | Existing execution slice | Accepted on native macOS and Linux at c384671 |
 | R02 | Managed package closure in generated graph actions | R01 core execution/cache | Selected managed slice accepted on macOS; Linux deferred |
 | R03 | Configured nodes, discovery and entry-point semantics | R01; R02 for package/SDK cases | Selected inner/direct-edge configurations accepted on macOS; broader semantics open |
-| R04 | First real-project adapter acceptance: Serilog | R02, selected R03 configuration support | Selected library inputs/build/mutations/relocation accepted on macOS; upstream Test remains open |
+| R04 | First real-project adapter acceptance: Serilog | R02, selected R03 configuration support | Selected library and unchanged approval Build/Test accepted on macOS; repeated timings and Linux remain open |
 | R05 | Generator combinations and project-reference roles | R04 input-contract slice; parallel with Serilog acceptance | Planned |
 | R06 | Source-built tasks, package consumers and output lifecycle | R02–R05 slices actually used | Planned |
 | R07 | Broader restore/runtime assets and ordinary publish modes | R02/R03; selected R06 task/output support | Planned |

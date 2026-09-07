@@ -6,6 +6,8 @@ mutation, relocation and standalone API comparison already pass. This slice
 executes the unchanged `test/Serilog.ApprovalTests` project through Bazel on
 macOS ARM64, Release/net10.0. Linux validation remains deferred.
 
+All three tracks completed their native macOS acceptance. See [input findings](serilog-test-input-findings.md), [test action findings](test-action-findings.md), and [integrated acceptance](serilog-test-acceptance-findings.md).
+
 ## Parallel ownership
 
 | Track | Owned change | Required evidence |
@@ -42,3 +44,41 @@ and full host closure remain separate.
 See [the inventory](serilog-approval-next.md) for the original package/target
 inspection. New findings must distinguish ordinary results, runner prototypes
 using ordinary bundles, and the final native graph-build/test integration.
+
+## Integration review
+
+Correctness review found and fixed two prerequisites: the SDK repository's optional
+empty import glob, and graph discovery/execution losing SDK-selected reference
+frameworks. The latter includes SDK-added transitive references and preserves
+configured global identities. A restore regression also restored the existing
+failed-restore diagnostic before framework negotiation runs. The native negative
+controls require the actual Shouldly mismatch and injected-exception diagnostics;
+an unrelated failing test cannot satisfy them.
+
+The ordinary runtime prototype, actual upstream input export, selected-reference
+native diamond, full upstream native acceptance and broader regressions are
+recorded separately. Their elapsed times overlap parallel work and are not
+comparative performance measurements. Full host closure and network isolation
+remain unproven; VSTest uses localhost IPC. No Linux validation was run for these
+tracks.
+
+Final integration checks also passed:
+
+- 20 exporter tests with the failed-restore correction integrated.
+- 12 restore-semantic rejection/parity tests.
+- 2 native configured-node tests: same-path red/blue identities, edge convergence,
+  selected inner framework, and producer-free relocated cache recovery.
+- 17 existing graph preparation checks and 3 test-data preparation checks.
+- ActionRunner contract/process checks and the pinned environment scaffold check.
+
+The native configured regression used frozen adapter `ac8f29f`; evidence is in
+`/private/tmp/serilog-integrated-configured.log`. The exporter run is recorded in
+`/private/tmp/final-selected-framework-exporter.log`. The unchanged upstream native
+acceptance is linked above; all three tracks have concrete independent evidence.
+
+The final full graph-cache regression also passed all 13 tests on frozen
+`43d3fb5`, including package upgrades, expected action sets, deleted-base and
+producer-free relocation, and missing/corrupt/stale publication guards. Report:
+`/private/var/folders/__/z2sj57556cgfrkvbdznlvdt40000gn/T/msbuild-graph-cache-10h3zxsz/probe/report.json`.
+The later restore-diagnostic correction was separately covered by the 12 restore
+and 20 exporter tests; it does not change successful action execution.
