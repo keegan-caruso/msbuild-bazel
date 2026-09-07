@@ -189,7 +189,7 @@ layers, acceptance matrix, runnable suites and evidence requirements. It separat
 recorded probe results and the [implemented Starlark baseline](docs/starlark-core-findings.md)
 from the remaining package/configuration/test-rule and Bazel-version gates.
 
-`bash scripts/check.sh` checks shell syntax, version-pin consistency, installed tool versions, and tracked Starlark formatting/lint. It does not run the integration experiments. GitHub Actions separately runs fresh setup, repeated setup, Bazel package loading, and the e2e suite.
+`bash scripts/check.sh` checks shell syntax, version-pin consistency, installed tool versions, and tracked Starlark formatting/lint. It does not run the integration experiments. GitHub CI is manual-only. The Linux workflow defaults to quick checks; select full only for broad native acceptance. Nix and macOS qualification remain separate explicit requests. See the [CI scope and cost guide](docs/ci-scope.md).
 
 ## References
 

@@ -30,7 +30,7 @@ Steps 1–7 below are implemented. The two-target Bazel adapter also has
 [pinned build-package](package-input-findings.md) acceptance coverage on macOS
 ARM64. The earlier nine-test suite, including replay and native sandbox/cache
 cases, also passed in Ubuntu 22.04 Linux x86-64 CI; see [Linux evidence](bazel-findings.md#ci-repair-2026-09-05).
-Linux validation runs through the setup and Nix CI workflows.
+Linux validation is prepared as one manual quick/full workflow, with Nix separate; see the [CI scope and local validation record](ci-scope.md).
 Cross-platform artifact reuse remains unproven.
 
 The first staging slice now compares identical consumer bundles across fresh

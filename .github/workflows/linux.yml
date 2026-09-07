@@ -1,0 +1,107 @@
+name: Linux validation
+# Run GitHub CI only when explicitly requested.
+on:
+  workflow_dispatch:
+    inputs:
+      scope:
+        description: Validation scope (full includes quick)
+        type: choice
+        required: true
+        default: quick
+        options:
+          - quick
+          - full
+permissions:
+  contents: read
+jobs:
+  linux:
+    # One runner shares acquisition and tooling builds; full stops if quick fails.
+    # Native Bazel sandboxing needs unprivileged user namespaces.
+    runs-on: ubuntu-22.04
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+      - name: Restore pinned tool downloads
+        id: tool-downloads
+        uses: actions/cache/restore@v4
+        with:
+          path: .cache/downloads
+          key: linux-tools-${{ runner.arch }}-${{ hashFiles('scripts/toolchains.json', 'scripts/setup.py', 'global.json', '.bazelversion') }}
+      - name: Restore repository tooling NuGet packages
+        id: tooling-nuget
+        uses: actions/cache/restore@v4
+        with:
+          path: .cache/nuget/packages
+          key: linux-tooling-nuget-${{ runner.arch }}-${{ hashFiles('global.json', 'tools/**/*.csproj', 'tests/ActionRunner.Tests/*.csproj', 'Directory.Build.*', 'NuGet.Config') }}
+      - name: Install pinned tools and check source
+        run: bash scripts/setup.sh
+      - name: Verify repeatable setup
+        run: bash scripts/setup.sh
+      - name: Save verified tool downloads
+        if: steps.tool-downloads.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: .cache/downloads
+          key: ${{ steps.tool-downloads.outputs.cache-primary-key }}
+      - name: Quick checks
+        run: bash scripts/ci-linux.sh quick
+      - name: Save repository tooling NuGet packages
+        if: steps.tooling-nuget.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: .cache/nuget/packages
+          key: ${{ steps.tooling-nuget.outputs.cache-primary-key }}
+      - name: Full acceptance
+        if: inputs.scope == 'full'
+        run: bash scripts/ci-linux.sh acceptance
+      - name: Retain validation evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: linux-${{ inputs.scope }}-evidence
+          retention-days: 7
+          path: |
+            /tmp/msbuild-e2e-binary-*/probe/*.log
+            /tmp/msbuild-e2e-binary-*/probe/report.json
+            /tmp/msbuild-e2e-*/**/*.log
+            /tmp/msbuild-e2e-*/**/report.json
+            /tmp/msbuild-graph-*/**/*.log
+            /tmp/msbuild-graph-*/graph-*.json
+            /tmp/graph-execution-*/**/*.log
+            /tmp/graph-execution-*/**/report.json
+            /tmp/graph-execution-*/**/execution.json
+            /tmp/graph-execution-*/**/manifest.json
+            /tmp/msbuild-e2e-replay-*/**/*.log
+            /tmp/msbuild-e2e-replay-*/**/report.json
+            /tmp/msbuild-graph-cache-*/probe/*.log
+            /tmp/msbuild-graph-cache-*/probe/*.json
+            /tmp/msbuild-graph-cache-*/probe/evidence/**
+            /tmp/graph-discovery-*/**/*.log
+            /tmp/graph-discovery-*/**/*.json
+            /tmp/graph-handoff-*/**/*.log
+            /tmp/graph-handoff-*/**/report.json
+            /tmp/msbuild-multilanguage-*/probe/*.log
+            /tmp/msbuild-multilanguage-*/probe/*.json
+            /tmp/msbuild-multilanguage-*/probe/workspace/MODULE.bazel.lock
+            /tmp/msbuild-graph-cache-*/probe/pinned-package-archives/**
+            /tmp/msbuild-graph-cache-*/probe/guards/**
+            /tmp/graph-private-assets-*/probe/*.log
+            /tmp/graph-private-assets-*/probe/report.json
+            /tmp/graph-private-adapter-*/*.log
+            /tmp/graph-private-adapter-*/*.json
+            /tmp/graph-private-adapter-*/ordinary/*.log
+            /tmp/graph-private-adapter-*/ordinary/report.json
+            /tmp/graph-restore-semantics-*/**/*.log
+            /tmp/graph-restore-semantics-*/**/graph-*.json
+            /tmp/configured-baseline-*/**/*.log
+            /tmp/configured-baseline-*/**/*.json
+            /tmp/configured-execution-*/probe/*.log
+            /tmp/configured-execution-*/probe/*.json
+            /tmp/configured-execution-*/probe/evidence/**
+            /tmp/msbuild-lifecycle-*/probe/*.log
+            /tmp/msbuild-lifecycle-*/probe/*.json
+            /tmp/msbuild-lifecycle-*/probe/evidence/**
+            /tmp/synthetic-scale-*/probe/*.log
+            /tmp/synthetic-scale-*/probe/*.json
+            /tmp/synthetic-scale-*/probe/evidence/**
+          if-no-files-found: ignore

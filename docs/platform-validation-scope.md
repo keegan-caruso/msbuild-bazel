@@ -35,7 +35,10 @@ Linux jobs for newer changes previously failed before startup because of account
 billing/spending limits. Those attempts are not test failures or passing evidence.
 All repository CI workflows now use only `workflow_dispatch`: pushes and pull
 requests do not launch GitHub CI. Dispatch runs only when explicitly requested
-by the user. The requested one-time Linux validation round targets `main` through
-the setup, Nix, graph-export and graph-execution workflows.
+by the user. The one-time round on `9c549f3` dispatched setup, Nix, graph-export and
+graph-execution against `main`; GitHub reported failure before validation, with
+setup confirming the billing/spending-limit block. The [local consolidation](ci-scope.md)
+replaces the three overlapping non-Nix workflows with one quick/full entry point.
+The consolidated workflow has not been dispatched.
 That decision did not establish new Linux, cross-platform cache, remote-cache or
 full host-closure evidence. The later Linux ARM64 results above are separately scoped.
