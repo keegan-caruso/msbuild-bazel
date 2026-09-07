@@ -112,6 +112,20 @@ Codex reads [AGENTS.md](AGENTS.md) for project context and commands. See the [im
 The [terminology cleanup](docs/terminology-cleanup.md) records the current driver,
 environment and fixture names. Commands below use the current interfaces.
 
+## .NET code style
+
+C# style and warning policies apply to the repository's tools and unit tests.
+Builds enforce the selected EditorConfig rules and treat compiler/analyzer warnings
+as errors. Run the complete owned-project check with:
+
+```sh
+bash scripts/check-dotnet.sh
+```
+
+This rebuilds the tools and unit tests with MSBuild warnings also treated as errors,
+checks formatter output (including System-first imports), and verifies that deliberate
+violations fail. Experimental fixtures retain their own build policy. See [code-style validation](docs/code-style-findings.md) for scope and evidence.
+
 ## Adapter contracts and tests
 
 The [interface contract](docs/interfaces.md) and [e2e scope](docs/e2e-scope.md) were committed before the driver implementation. Run the black-box tests with:

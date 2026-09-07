@@ -23,6 +23,8 @@ jobs:
         run: nix develop --no-update-lock-file -c bash scripts/check.sh
       - name: Load Bazel scaffold
         run: nix develop --no-update-lock-file -c bash scripts/bazel.sh query //:repo_setup --noshow_progress
+      - name: .NET code style and warnings
+        run: nix develop --no-update-lock-file -c bash scripts/check-dotnet.sh
       - name: Action runner contracts
         run: nix develop --no-update-lock-file -c bash scripts/dotnet.sh run --project tests/ActionRunner.Tests -c Release
       - name: MSBuild boundary e2e tests

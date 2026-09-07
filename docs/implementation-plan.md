@@ -6,6 +6,9 @@ Can Bazel cache and schedule configured .NET projects while each action uses MSB
 
 ## Current status and next step
 
+Repository-owned .NET tooling and unit tests now have [build-enforced code style
+and warning policies](code-style-findings.md), separate from fixture build semantics.
+
 The added R01 [Starlark baseline](starlark-core-findings.md) now passes on native
 macOS and local Linux ARM64: pinned formatting/lint, rule analysis, prepared-workspace and repository
 controls, with cache/discovery/forced-replay regressions retained. The additional

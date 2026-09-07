@@ -23,6 +23,8 @@ jobs:
         run: bash scripts/bazel.sh query //:repo_setup --noshow_progress
       - name: Check whitespace
         run: git diff --check
+      - name: .NET code style and warnings
+        run: bash scripts/check-dotnet.sh
       - name: Action runner contracts
         run: bash scripts/dotnet.sh run --project tests/ActionRunner.Tests -c Release
       - name: MSBuild boundary e2e tests

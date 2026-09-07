@@ -3,8 +3,8 @@ using System.Text;
 using System.Text.Json;
 using Microsoft.Build.Evaluation;
 using Microsoft.Build.Exceptions;
-using Microsoft.Build.Graph;
 using Microsoft.Build.Execution;
+using Microsoft.Build.Graph;
 
 return await GraphExporter.RunAsync(args);
 
@@ -163,7 +163,8 @@ internal static class GraphExporter
                 ["RestorePackagesPath"] = request.PackageRoot,
             };
             entries.Add(new ProjectGraphEntryPoint(project, props));
-            entryRequests.Add(new EntryRequest {
+            entryRequests.Add(new EntryRequest
+            {
                 Project = Rel(request.Workspace, project),
                 GlobalProperties = entry.GlobalProperties!
                     .Where(pair => !ExporterForcedGlobalProperties.Contains(pair.Key))

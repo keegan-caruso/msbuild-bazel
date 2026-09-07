@@ -16,19 +16,20 @@ public sealed record Payload(int SchemaVersion, string SdkVersion, string Engine
 
 public sealed class ReplayPlugin : ProjectCachePluginBase
 {
-    static readonly JsonSerializerOptions Json = new() { WriteIndented = true, PropertyNamingPolicy = JsonNamingPolicy.CamelCase };
-    static readonly Dictionary<string, string> RootMappings = new() {
+    private static readonly JsonSerializerOptions Json = new() { WriteIndented = true, PropertyNamingPolicy = JsonNamingPolicy.CamelCase };
+    private static readonly Dictionary<string, string> RootMappings = new()
+    {
         ["${WORKSPACE}"] = "action-workspace",
         ["${NUGET}"] = "${WORKSPACE}/.nuget/packages",
         ["${SDK}"] = "dotnet-sdk:10.0.100"
     };
-    string workspace = "", bundle = "", mode = "";
-    string? graphProject;
-    string[] graphBundles = [];
-    Dictionary<string, string> graphProperties = new(StringComparer.OrdinalIgnoreCase);
-    KeyValuePair<string, string>[] roots = [];
-    static string Engine => FileVersionInfo.GetVersionInfo(typeof(BuildManager).Assembly.Location).FileVersion!;
-    string PayloadPath => Path.Combine(bundle, "results.json");
+    private string workspace = "", bundle = "", mode = "";
+    private string? graphProject;
+    private string[] graphBundles = [];
+    private Dictionary<string, string> graphProperties = new(StringComparer.OrdinalIgnoreCase);
+    private KeyValuePair<string, string>[] roots = [];
+    private static string Engine => FileVersionInfo.GetVersionInfo(typeof(BuildManager).Assembly.Location).FileVersion!;
+    private string PayloadPath => Path.Combine(bundle, "results.json");
 
     public override Task BeginBuildAsync(CacheContext context, PluginLoggerBase logger, CancellationToken token)
     {
@@ -40,13 +41,15 @@ public sealed class ReplayPlugin : ProjectCachePluginBase
         if (graphProject is not null && dependencies is not null)
             graphBundles = JsonSerializer.Deserialize<string[]>(dependencies)!;
         var configuredProperties = Environment.GetEnvironmentVariable("RULES_MSBUILD_GRAPH_PROPERTIES");
-        if (configuredProperties is not null) {
+        if (configuredProperties is not null)
+        {
             graphProperties = JsonSerializer.Deserialize<Dictionary<string, string>>(configuredProperties)!;
             // -graphBuild injects this global into every request and capture.
             graphProperties["IsGraphBuild"] = "true";
         }
         if (mode is not ("capture" or "replay")) throw new InvalidOperationException("dependency replay mode invalid");
-        roots = new Dictionary<string, string> {
+        roots = new Dictionary<string, string>
+        {
             ["${NUGET}"] = Path.Combine(workspace, ".nuget/packages"),
             ["${WORKSPACE}"] = workspace,
             ["${SDK}"] = Path.GetDirectoryName(typeof(BuildManager).Assembly.Location)!
@@ -62,7 +65,7 @@ public sealed class ReplayPlugin : ProjectCachePluginBase
         return Task.CompletedTask;
     }
 
-    string Normalize(string value)
+    private string Normalize(string value)
     {
         foreach (var root in roots)
             value = value.Replace(root.Value + "/", root.Key + "/", StringComparison.Ordinal)
@@ -75,7 +78,7 @@ public sealed class ReplayPlugin : ProjectCachePluginBase
         return value;
     }
 
-    string Expand(string value)
+    private string Expand(string value)
     {
         // Validate the normalized form before substituting the consumer roots.
         if (Normalize(value) != value) throw new InvalidOperationException("dependency unnormalized path");
@@ -84,7 +87,7 @@ public sealed class ReplayPlugin : ProjectCachePluginBase
         return value;
     }
 
-    Dictionary<string, string> Properties(IEnumerable<KeyValuePair<string, string>> properties) =>
+    private Dictionary<string, string> Properties(IEnumerable<KeyValuePair<string, string>> properties) =>
         properties.ToDictionary(pair => pair.Key, pair => Normalize(pair.Value), StringComparer.OrdinalIgnoreCase);
 
     public override Task<CacheResult> GetCacheResultAsync(BuildRequestData request, PluginLoggerBase logger, CancellationToken token)
@@ -97,10 +100,10 @@ public sealed class ReplayPlugin : ProjectCachePluginBase
         }
     }
 
-    static bool SameProperties(Dictionary<string, string> left, Dictionary<string, string> right) =>
+    private static bool SameProperties(Dictionary<string, string> left, Dictionary<string, string> right) =>
         left.Count == right.Count && left.All(pair => right.Any(other => string.Equals(pair.Key, other.Key, StringComparison.OrdinalIgnoreCase) && pair.Value == other.Value));
 
-    Task<CacheResult> Evaluate(BuildRequestData request)
+    private Task<CacheResult> Evaluate(BuildRequestData request)
     {
         var project = Path.GetRelativePath(workspace, request.ProjectInstance!.FullPath);
         if (graphProject is not null && project == graphProject && SameProperties(Properties(request.ProjectInstance.GlobalProperties), graphProperties))
@@ -109,7 +112,8 @@ public sealed class ReplayPlugin : ProjectCachePluginBase
             return Task.FromResult(CacheResult.IndicateNonCacheHit(CacheResultType.CacheNotApplicable));
         Console.WriteLine("RULES_MSBUILD_REPLAY_REQUEST:" + string.Join(";", request.TargetNames));
         if (graphProject is null && mode == "capture") return Task.FromResult(CacheResult.IndicateNonCacheHit(CacheResultType.CacheMiss));
-        var matches = graphProject is null ? [bundle] : graphBundles.Where(candidate => {
+        var matches = graphProject is null ? [bundle] : graphBundles.Where(candidate =>
+        {
             var data = JsonSerializer.Deserialize<Payload>(File.ReadAllText(Path.Combine(candidate, "results.json")), Json)!;
             return data.Project == project && SameProperties(data.Properties, Properties(request.ProjectInstance.GlobalProperties));
         }).ToArray();
@@ -144,7 +148,8 @@ public sealed class ReplayPlugin : ProjectCachePluginBase
                 throw new InvalidOperationException("dependency staged artifact missing or corrupt: " + artifact.Path);
         }
         var results = payload.Targets.Select(pair => new PluginTargetResult(pair.Key,
-            pair.Value.Select(item => {
+            pair.Value.Select(item =>
+            {
                 ITaskItem2 result = new TaskItem();
                 result.EvaluatedIncludeEscaped = Expand(item.Spec);
                 foreach (var metadata in item.Metadata) result.SetMetadata(metadata.Key, Expand(metadata.Value));
@@ -158,7 +163,8 @@ public sealed class ReplayPlugin : ProjectCachePluginBase
     {
         if (mode != "capture" || Path.GetRelativePath(workspace, context.ProjectFullPath) != (graphProject ?? "Shared/Shared.csproj") || (graphProject is not null && !SameProperties(Properties(context.GlobalProperties), graphProperties))) return Task.CompletedTask;
         if (result.OverallResult != BuildResultCode.Success) throw new InvalidOperationException("dependency capture failed");
-        var targets = result.ResultsByTarget.ToDictionary(pair => pair.Key, pair => {
+        var targets = result.ResultsByTarget.ToDictionary(pair => pair.Key, pair =>
+        {
             if (pair.Value.ResultCode != TargetResultCode.Success) throw new InvalidOperationException("dependency target unsuccessful");
             return pair.Value.Items.Select(item => new Item(Normalize(((ITaskItem2)item).EvaluatedIncludeEscaped),
                 ((ITaskItem2)item).CloneCustomMetadataEscaped().Keys.Cast<string>()

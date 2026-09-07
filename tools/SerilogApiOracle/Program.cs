@@ -1,6 +1,6 @@
-using PublicApiGenerator;
 using System.Reflection;
 using System.Text;
+using PublicApiGenerator;
 
 if (args.Length != 2) throw new ArgumentException("usage: SerilogApiOracle assembly.dll actual.txt");
 var assembly = Assembly.LoadFrom(Path.GetFullPath(args[0]));

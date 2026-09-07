@@ -13,27 +13,28 @@ internal sealed record Artifact(string Path, long Size, string Sha256);
 
 internal static class GraphTest
 {
-    static readonly JsonSerializerOptions Json = new() { PropertyNameCaseInsensitive = true, PropertyNamingPolicy = JsonNamingPolicy.CamelCase, WriteIndented = true };
-    static bool Relative(string path) => path.Length > 0 && !Path.IsPathRooted(path) && !path.Contains('\\') && !path.Split('/').Any(part => part is ".." or "." or "");
-    static string Hash(string path) { using var stream = File.OpenRead(path); return Convert.ToHexString(SHA256.HashData(stream)).ToLowerInvariant(); }
-    static T Read<T>(string path) => JsonSerializer.Deserialize<T>(File.ReadAllText(path), Json)!;
-    static void Copy(string source, string target)
+    private static readonly JsonSerializerOptions Json = new() { PropertyNameCaseInsensitive = true, PropertyNamingPolicy = JsonNamingPolicy.CamelCase, WriteIndented = true };
+    private static bool Relative(string path) => path.Length > 0 && !Path.IsPathRooted(path) && !path.Contains('\\') && !path.Split('/').Any(part => part is ".." or "." or "");
+    private static string Hash(string path)
+    { using var stream = File.OpenRead(path); return Convert.ToHexString(SHA256.HashData(stream)).ToLowerInvariant(); }
+    private static T Read<T>(string path) => JsonSerializer.Deserialize<T>(File.ReadAllText(path), Json)!;
+    private static void Copy(string source, string target)
     {
         Directory.CreateDirectory(Path.GetDirectoryName(target)!);
         File.Copy(source, target, false);
     }
-    static bool Properties(JsonElement saved, Dictionary<string, string> selected)
+    private static bool Properties(JsonElement saved, Dictionary<string, string> selected)
     {
         var expected = new Dictionary<string, string>(selected, StringComparer.OrdinalIgnoreCase) { ["IsGraphBuild"] = "true" };
         var actual = saved.EnumerateObject().ToDictionary(p => p.Name, p => p.Value.GetString(), StringComparer.OrdinalIgnoreCase);
         return actual.Count == expected.Count && expected.All(p => actual.TryGetValue(p.Key, out var value) && value == p.Value);
     }
-    static string Resolve(string root, string path)
+    private static string Resolve(string root, string path)
     {
         if (!Relative(path)) throw new InvalidDataException("invalid declared runfile: " + path);
         return Path.Combine(root, path);
     }
-    static void WriteXml(string? path, string[] expected, bool passed, string failure)
+    private static void WriteXml(string? path, string[] expected, bool passed, string failure)
     {
         if (string.IsNullOrEmpty(path)) return;
         Directory.CreateDirectory(Path.GetDirectoryName(path)!);
@@ -121,11 +122,20 @@ internal static class GraphTest
             var info = new ProcessStartInfo(command[0]) { WorkingDirectory = workspace, UseShellExecute = false, RedirectStandardOutput = true, RedirectStandardError = true };
             foreach (var arg in command.Skip(1)) info.ArgumentList.Add(arg);
             info.Environment.Clear();
-            foreach (var pair in new Dictionary<string, string> {
-                ["PATH"] = "/usr/bin:/bin", ["LANG"] = "en_US.UTF-8", ["HOME"] = home,
-                ["DOTNET_ROOT"] = sdk, ["DOTNET_CLI_HOME"] = home, ["DOTNET_MULTILEVEL_LOOKUP"] = "0",
-                ["DOTNET_CLI_TELEMETRY_OPTOUT"] = "1", ["MSBUILDDISABLENODEREUSE"] = "1", ["TMPDIR"] = temporary,
-                ["CI"] = "true", ["DiffEngine_Disabled"] = "true", ["SHOULDLY_SOURCE_PATH_MAP"] = workspace + "=" + request.SourceRoot
+            foreach (var pair in new Dictionary<string, string>
+            {
+                ["PATH"] = "/usr/bin:/bin",
+                ["LANG"] = "en_US.UTF-8",
+                ["HOME"] = home,
+                ["DOTNET_ROOT"] = sdk,
+                ["DOTNET_CLI_HOME"] = home,
+                ["DOTNET_MULTILEVEL_LOOKUP"] = "0",
+                ["DOTNET_CLI_TELEMETRY_OPTOUT"] = "1",
+                ["MSBUILDDISABLENODEREUSE"] = "1",
+                ["TMPDIR"] = temporary,
+                ["CI"] = "true",
+                ["DiffEngine_Disabled"] = "true",
+                ["SHOULDLY_SOURCE_PATH_MAP"] = workspace + "=" + request.SourceRoot
             }) info.Environment[pair.Key] = pair.Value;
             Console.WriteLine("RULES_MSBUILD_VSTEST_START:" + request.Project);
             using var process = Process.Start(info) ?? throw new InvalidOperationException("VSTest failed to start");
@@ -158,10 +168,25 @@ internal static class GraphTest
         catch (Exception error) { failure = error.ToString(); Console.Error.WriteLine(failure); }
         finally
         {
-            File.WriteAllText(Path.Combine(output, "report.json"), JsonSerializer.Serialize(new {
-                schemaVersion = 1, passed, exitCode, runnerExitCode = passed ? 0 : 1, timedOut, total, successful, failed, skipped,
-                expectedTests = expected, tests = results, command, dataHashes, runtimeHashes, failure,
-                buildOrRestoreInvoked = false, trx = File.Exists(Path.Combine(output, "results.trx")) ? "results.trx" : null
+            File.WriteAllText(Path.Combine(output, "report.json"), JsonSerializer.Serialize(new
+            {
+                schemaVersion = 1,
+                passed,
+                exitCode,
+                runnerExitCode = passed ? 0 : 1,
+                timedOut,
+                total,
+                successful,
+                failed,
+                skipped,
+                expectedTests = expected,
+                tests = results,
+                command,
+                dataHashes,
+                runtimeHashes,
+                failure,
+                buildOrRestoreInvoked = false,
+                trx = File.Exists(Path.Combine(output, "results.trx")) ? "results.trx" : null
             }, Json));
             WriteXml(Environment.GetEnvironmentVariable("XML_OUTPUT_FILE"), expected, passed, failure);
             Directory.Delete(scratch, recursive: true);

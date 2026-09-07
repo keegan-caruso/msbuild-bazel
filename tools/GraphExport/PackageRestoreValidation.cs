@@ -1,7 +1,7 @@
 using System.Text.Json;
-using NuGet.Versioning;
 using Microsoft.Build.Execution;
 using Microsoft.Build.Graph;
+using NuGet.Versioning;
 
 internal static class PackageRestoreValidation
 {

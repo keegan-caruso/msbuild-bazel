@@ -34,7 +34,8 @@ internal static class LoaderRuntime
         }
         JsonFiles.Write(Path.Combine(workspace.Diagnostics, "loader-runtime.json"), new
         {
-            dotnet = Path.Combine(root, "dotnet"), jitPath = jit,
+            dotnet = Path.Combine(root, "dotnet"),
+            jitPath = jit,
             originalJitPath = Path.Combine(workspace.SdkRoot, framework, library),
             sha256 = Files.Hash(jit)
         });

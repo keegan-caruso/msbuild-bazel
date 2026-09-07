@@ -71,9 +71,15 @@ internal static class GraphAction
         var result = await ProcessRunner.RunAsync(invocation.CreateStartInfo(), TimeSpan.FromSeconds(180), default);
         File.WriteAllText(Path.Combine(workspace.Diagnostics, "build.log"), result.Log);
         var evidence = BuildEvidence.Parse(result.Log);
-        JsonFiles.Write(Path.Combine(workspace.Diagnostics, "action.json"), new {
-            project, workspace = workspace.Root, command = invocation.Arguments, returncode = result.ExitCode,
-            compiledProjects = evidence.CompiledProjects.Select(Path.GetFileNameWithoutExtension).ToArray(), replayHits = evidence.ReplayHits, packages
+        JsonFiles.Write(Path.Combine(workspace.Diagnostics, "action.json"), new
+        {
+            project,
+            workspace = workspace.Root,
+            command = invocation.Arguments,
+            returncode = result.ExitCode,
+            compiledProjects = evidence.CompiledProjects.Select(Path.GetFileNameWithoutExtension).ToArray(),
+            replayHits = evidence.ReplayHits,
+            packages
         });
         Console.Write(result.Log);
         if (result.ExitCode != 0 || result.TimedOut) throw new InvalidOperationException("graph MSBuild failed");
@@ -106,7 +112,8 @@ internal static class GraphAction
         Files.NormalizeTree(workspace.Output);
         // Commit marker is written only after every consumer-visible file is complete.
         var exportSealPath = Path.Combine(workspace.Diagnostics, "bundle-seal.json");
-        JsonFiles.Write(exportSealPath, new {
+        JsonFiles.Write(exportSealPath, new
+        {
             schemaVersion = 1,
             resultsSha256 = Files.Hash(Path.Combine(workspace.Output, "results.json")),
             artifactsSha256 = Files.Hash(Path.Combine(workspace.Output, "artifacts.json"))

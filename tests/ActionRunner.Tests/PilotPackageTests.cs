@@ -12,7 +12,8 @@ internal static class PilotPackageTests
         var manifest = JsonFiles.Read<PackageManifest>(originalManifest);
         var localManifest = Path.Combine(temporary, "packages.json");
         JsonFiles.Write(localManifest, manifest);
-        var inputs = manifest.Packages.SelectMany(package => package.Files.Select(file => {
+        var inputs = manifest.Packages.SelectMany(package => package.Files.Select(file =>
+        {
             var relative = package.Path + "/" + file.Path;
             var link = Path.Combine(temporary, "links", relative);
             Directory.CreateDirectory(Path.GetDirectoryName(link)!);
