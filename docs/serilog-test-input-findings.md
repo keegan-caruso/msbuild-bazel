@@ -34,7 +34,21 @@ Exporter post-resolution discovery adds `ContentWithTargetPath` and preserves it
 TargetPath/copy metadata. Package-owned source/resource/content/additional inputs
 require a qualified package identity, and their bytes remain declared and verified.
 TestSDK's InitialTargets-generated Compile item is collected from resolved state.
-Integrated unchanged-test export awaits the separate downstream framework-selection
-prerequisite: the original ProjectGraph construction expands Serilog's outer build,
-while ordinary SDK Build selects its net10.0 dependency. No input-track build,
-xUnit execution, remote cache, general NuGet or Linux qualification is claimed here.
+Integrated unchanged-test export now passes with the selected-reference discovery
+prerequisite at `a0c8a76`. The focused test checks exactly two net10.0 nodes
+(approval test and Serilog), no compiled project DLLs, and the exact 20 identity/version
+package set in both restore and exported inputs. It verifies TestSDK's generated
+`Microsoft.NET.Test.Sdk.Program.cs` source hash and all 42 EmptyFiles content hashes,
+`TargetPath` values, and `CopyToOutputDirectory=PreserveNewest` metadata.
+
+`Serilog.approved.txt` is upstream test data, not an implicit graph build input.
+The focused check proves it is absent from compilation input discovery and is
+explicitly copied and hashed by the test-plan declaration. This preserves separate
+build and test invalidation without changing upstream sources.
+
+Measured on native macOS ARM64 with SDK 10.0.100: the extended focused test passed
+in 4.321 seconds. Evidence is `serilog-approval-inputs-cjrydiio` in the native
+temporary folder, including `graph.json`, `request.json`, test-plan metadata, and
+restore/export logs. This was a correctness check concurrent with other track work,
+not a performance result. No input-track project compilation, xUnit execution,
+remote cache, general NuGet or Linux qualification is claimed here.

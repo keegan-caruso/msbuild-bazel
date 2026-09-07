@@ -16,6 +16,7 @@ import zipfile
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / 'tools'))
 import graph_packages
+from prepare_graph_tests import add_tests
 
 
 @unittest.skipUnless(os.environ.get('SPIKE_SERILOG_SOURCE') and os.environ.get('SPIKE_SERILOG_PACKAGES'), 'requires acquired pinned Serilog source/packages')
@@ -57,6 +58,51 @@ class ApprovalInputs(unittest.TestCase):
                     self.assertIn('packages/'+identity.lower()+'/'+relative, files)
         self.assertTrue(any(f.endswith('/Microsoft.NET.Test.Sdk.Program.cs') for f in files))
         self.assertTrue(any('/emptyfiles/4.4.0/EmptyFiles/' in f for f in files))
+        run('exporter-build', ['build', ROOT/'tools/GraphExport', '-c', 'Release', '--nologo', '-nodeReuse:false'])
+        manifest = evidence / 'graph.json'
+        request = evidence / 'request.json'
+        request.write_text(json.dumps(dict(schemaVersion=1, workspace=str(work), dotnetRoot=str(sdk),
+            sdkVersion='10.0.100', packageRoot=str(work/'.nuget/packages'),
+            entryPoints=[dict(project=project, globalProperties={'Configuration':'Release', 'TargetFramework':'net10.0'})], output=str(manifest))))
+        run('export', [ROOT/'tools/GraphExport/bin/Release/net10.0/GraphExport.dll', '--request', request])
+        graph = json.loads(manifest.read_text())
+        self.assertEqual({node['project'] for node in graph['nodes']},
+                         {'workspace/'+project, 'workspace/src/Serilog/Serilog.csproj'})
+        self.assertTrue(all(node['targetFramework'] == 'net10.0' for node in graph['nodes']))
+        self.assertFalse(list(work.glob('**/bin/**/*.dll')))
+        entry = next(node for node in graph['nodes'] if node['project'] == 'workspace/'+project)
+        inputs = {(item['kind'], item['path']): item for item in entry['inputs']}
+        program = 'workspace/.nuget/packages/microsoft.net.test.sdk/17.11.1/build/netcoreapp3.1/Microsoft.NET.Test.Sdk.Program.cs'
+        self.assertEqual(inputs[('source', program)]['sha256'], hashlib.sha256((work/program.removeprefix('workspace/')).read_bytes()).hexdigest())
+        empty_root = work/'.nuget/packages/emptyfiles/4.4.0/EmptyFiles'
+        empty_files = sorted(path for path in empty_root.rglob('*') if path.is_file())
+        self.assertEqual(len(empty_files), 42)
+        for path in empty_files:
+            item = inputs[('content', 'workspace/'+path.relative_to(work).as_posix())]
+            self.assertEqual(item['sha256'], hashlib.sha256(path.read_bytes()).hexdigest())
+            self.assertEqual(item['metadata']['CopyToOutputDirectory'], 'PreserveNewest')
+            self.assertEqual(item['metadata']['TargetPath'].replace('\\', '/'), 'EmptyFiles/'+path.relative_to(empty_root).as_posix())
+        expected_packages = {
+            'diffengine/11.3.0', 'emptyfiles/4.4.0', 'microsoft.codecoverage/17.11.1',
+            'microsoft.net.test.sdk/17.11.1', 'microsoft.testplatform.objectmodel/17.11.1',
+            'microsoft.testplatform.testhost/17.11.1', 'mono.cecil/0.11.5', 'newtonsoft.json/13.0.1',
+            'publicapigenerator/11.1.0', 'shouldly/4.2.1', 'system.codedom/8.0.0', 'system.management/6.0.1',
+            'xunit/2.9.2', 'xunit.abstractions/2.0.3', 'xunit.analyzers/1.16.0', 'xunit.assert/2.9.2',
+            'xunit.core/2.9.2', 'xunit.extensibility.core/2.9.2', 'xunit.extensibility.execution/2.9.2',
+            'xunit.runner.visualstudio/2.8.2'}
+        self.assertEqual({identity.lower() for identity, value in assets['libraries'].items() if value['type']=='package'}, expected_packages)
+        self.assertEqual({'/'.join(item['path'].removeprefix('workspace/.nuget/packages/').split('/')[:2])
+                          for item in entry['inputs'] if item['kind']=='package'}, expected_packages)
+        approved = 'test/Serilog.ApprovalTests/Serilog.approved.txt'
+        self.assertFalse(any(item['path']=='workspace/'+approved for item in entry['inputs']))
+        # Approval data is explicit test input, not an inferred build dependency.
+        run('test-runner-build', ['build', ROOT/'tools/TestRunner', '-c', 'Release', '--nologo', '-nodeReuse:false'])
+        test_plan = evidence/'test-plan'; test_plan.mkdir()
+        add_tests(work, test_plan, {node['id']:node for node in graph['nodes']},
+                  [dict(node=entry['id'], data=[approved], expectedTests=['ApiApprovalTests.PublicApi_Should_Not_Change_Unintentionally'])], ROOT)
+        test_metadata = json.loads((test_plan/'tests.json').read_text())
+        self.assertEqual(test_metadata['tests'][0]['dataHashes'][approved], hashlib.sha256((work/approved).read_bytes()).hexdigest())
+        self.assertEqual((test_plan/'test-data'/approved).read_bytes(), (work/approved).read_bytes())
         assets_path = work/'test/Serilog.ApprovalTests/obj/project.assets.json'
         original_assets = assets_path.read_text()
         changed = json.loads(original_assets)
