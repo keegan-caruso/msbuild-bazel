@@ -8,7 +8,7 @@ cache. Public-API dependency-result replay works across workspace paths.
 [Action-identity checks](docs/action-identity-findings.md) and
 [pinned build-package inputs](docs/package-input-findings.md) are implemented.
 
-**Active scope:** Continue milestones on native macOS ARM64; further Linux validation is deferred by request. See [platform validation scope](docs/platform-validation-scope.md). R04 Serilog library input support is the next implementation slice.
+**Active scope:** Further Linux validation is deferred by request. The [R04 Serilog library slice](docs/r04-integration-findings.md) now passes native macOS build, mutation and producer-free relocated cache acceptance; broader upstream test-project execution remains separate.
 
 **Platform evidence:** The original nine-test suite, including replay and native
 Bazel sandbox/cache cases, passed on macOS ARM64 and in Ubuntu 22.04 Linux x86-64
@@ -33,7 +33,7 @@ recovery. **Graph export:** The configured graph exporter has passing Linux acce
 slice](docs/graph-execution-findings.md) passes native macOS acceptance for a
 Release/net10.0 package-free diamond. [Cache acceptance contracts](docs/graph-cache-contract.md)
 and [real-project discovery](docs/real-project-pilot.md) are prepared in parallel;
-they do not yet establish generated-graph cache recovery or real-project support.
+the later acceptance results below supersede their initial unimplemented status.
 The [first parallel batch](docs/parallel-tracks-findings.md) implements package-free
 cache and handoff controls plus an existing-rule multi-language harness; combined
 native validation is recorded there. The [R02 managed-package slice](docs/graph-package-plan.md) has native macOS

@@ -9,7 +9,8 @@
     "handoff",
     "local",
     "packages",
-    "configured"
+    "configured",
+    "inputs"
   ],
   "nodes": [
     {
@@ -409,7 +410,8 @@
     "configured": "Accepted selected net10.0 inner and direct-edge Flavor variants on macOS with action/mutation/relocation evidence. Linux deferred; unselected outer builds, general transitive configurations and broader entry points remain open.",
     "lifecycle": "Seven native macOS characterization tests pass; production lifecycle API, wider configurations and Linux acceptance remain open.",
     "scale_synthetic": "Ten-node fan protocol states and chain fresh/warm pass on macOS; 1000-node recursive preparation failure fixed with iterative closures. Larger native execution, aggregate memory and controlled timing remain unmeasured.",
-    "inputs": "In progress: pinned Serilog library package policy, compiler input discovery and native macOS adapter acceptance. Ordinary generator/signing/resource oracle passes."
+    "inputs": "Accepted pinned Serilog library input slice on macOS: 11 resolved analyzers, exact package/archive integrity, signing/resource/import declarations and native mutation/relocation evidence.",
+    "serilog": "Selected unchanged library native build, five ordinary-parity mutations and producer-free disk recovery pass on macOS. Standalone upstream API oracle implemented; unchanged upstream Test execution remains open. Linux deferred."
   },
   "qualificationScope": {
     "activePlatform": "native macOS ARM64",

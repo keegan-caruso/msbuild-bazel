@@ -6,7 +6,8 @@ Acceptance state is recorded in the JSON and the
 [first parallel batch findings](parallel-tracks-findings.md). `base`, `linux`, `cache`, `handoff` and `local` have passing evidence; downstream
 `packages` and the bounded `configured` slice now pass on native macOS ARM64.
 Further Linux validation is [deferred by request](platform-validation-scope.md);
-R04 input contracts and Serilog library acceptance are active. Other nodes remain
+The R04 input slice and Serilog library build/mutation/relocation acceptance now
+pass; upstream Test remains open. Other nodes remain
 open until their own scoped acceptance lanes pass. Arrows are acceptance prerequisites, not a
 requirement to delay source inspection, contract design or isolated implementation.
 Every incoming solid edge must pass before accepting that downstream slice.
@@ -160,7 +161,9 @@ TypeScript build rules. This scope correction leaves dependency edges unchanged.
 
 R01 is accepted at `c384671` on both native lanes. R02 managed packages and
 the selected R03 configured-node slice now satisfy the active macOS prerequisites.
-Linux validation is deferred. The current parallel batch advances R04:
+Linux validation is deferred. The completed R04 library batch delivered the following contracts. The next
+ready extensions are broader Test execution and the independent R05 generator
+and reference-role slices:
 
 | Work package | Immediate deliverable | Primary ownership |
 | --- | --- | --- |

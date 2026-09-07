@@ -54,7 +54,7 @@ retains both platforms. “Planned” means prerequisites or contracts are still
 | R01 | Reliable package-free generated graph and local cache | Existing execution slice | Accepted on native macOS and Linux at c384671 |
 | R02 | Managed package closure in generated graph actions | R01 core execution/cache | Selected managed slice accepted on macOS; Linux deferred |
 | R03 | Configured nodes, discovery and entry-point semantics | R01; R02 for package/SDK cases | Selected inner/direct-edge configurations accepted on macOS; broader semantics open |
-| R04 | First real-project adapter acceptance: Serilog | R02, selected R03 configuration support | In progress: pinned library package/input contracts and adapter acceptance |
+| R04 | First real-project adapter acceptance: Serilog | R02, selected R03 configuration support | Selected library inputs/build/mutations/relocation accepted on macOS; upstream Test remains open |
 | R05 | Generator combinations and project-reference roles | R04 input-contract slice; parallel with Serilog acceptance | Planned |
 | R06 | Source-built tasks, package consumers and output lifecycle | R02–R05 slices actually used | Planned |
 | R07 | Broader restore/runtime assets and ordinary publish modes | R02/R03; selected R06 task/output support | Planned |
