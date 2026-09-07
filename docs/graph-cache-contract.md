@@ -1,12 +1,12 @@
 # Generated graph cache acceptance: milestone 3
 
-Status: the **R01 package-free probe is implemented** in
-`tools/probe_graph_cache.py`, with focused acceptance in `tests/graph_cache`.
-The complete historical milestone 3 contract below remains a future gate;
-its original assertions are preserved in `tests/graph_cache_full` and remain
-red until package and failure-control integration is complete. See
-[package-free findings](graph-cache-findings.md) for measured evidence and limits.
-A passing R01 suite does not establish full milestone 3 acceptance.
+Status: the package-free R01 and managed-package R02 cache probes are
+implemented in `tools/probe_graph_cache.py`. The scoped suite remains in
+`tests/graph_cache`; `tests/graph_cache_full` adds the package and failure
+controls while inheriting every R01 assertion. See [package-free findings](graph-cache-findings.md)
+and [managed-package cache findings](graph-package-cache-findings.md) for
+measured evidence and remaining gates. Full cache acceptance does not by itself
+establish every R02 PrivateAssets or broader NuGet scenario.
 
 ## Boundary and prerequisite
 
@@ -15,7 +15,7 @@ from [graph-export-contract.md](graph-export-contract.md). Milestone 2 provides
 `tools/prepare_graph.py --workspace RESTORED --manifest GRAPH.json --output BAZELDIR`
 and generated `:node_<id>` targets plus `:all`. These are the agreed integration
 points with the concurrent execution track; implementation evidence belongs to
-that track. This suite introduces no execution implementation.
+that track. The suite exercises the generated adapter while keeping its assertions independent.
 
 Keep SDK-style MSBuild compilation, strict dependency-result replay, native local
 sandbox execution and local disk caching. Restore and package acquisition happen
@@ -51,6 +51,8 @@ consume their own input slices and direct dependency bundles.
 | `packageUpgrade` | Upgrade Left package from v1 to v2, restore and re-export | Left, App | `shared-v1:left/package-v2\|shared-v1:right` |
 | `graphEdgeAdded` | Add Right -> Left and update Right source to call Left | Right, App | `shared-v1:left\|shared-v1:right+shared-v1:left` |
 | `diskCache` | Remove workspace build outputs and Bazel output base, retain disk cache | None; four disk-cache hits | Baseline |
+| `packageDiskCache` | Fresh package preparation after deleting the output base | None; four disk-cache hits | Package v1 baseline |
+| `packageRelocated` | Fresh package consumer after deleting producer and output base | None; four disk-cache hits | Package v1 baseline |
 | `relocated` | Fresh restored consumer at different path, delete producer and use fresh output base | None; four disk-cache hits | Baseline |
 
 The package case uses its own `packageCold` baseline and checksum-pinned package
@@ -84,15 +86,16 @@ cache, and must fail before compilation or publication of a replacement plan:
 A corrupt-input test must preserve the old manifest; re-exporting the corrupt
 bytes would test different behavior. An intentional upgrade restores and exports
 new inputs; stale data must never silently fall back to the old cached plan.
-These diagnostics are proposed adapter-facing codes, not claims about current
-exporter or MSBuild diagnostic names.
+These codes are adapter-facing preparation diagnostics; the tests preserve the
+actual failure log and parse the reported code, rather than assigning an expected
+code to an arbitrary failure.
 
 ## Probe/report contract
 
 Run the package-free R01 probe and focused suite as:
 
 ```sh
-python3 tools/probe_graph_cache.py --output artifacts/graph-cache-probe
+python3 tools/probe_graph_cache.py --package-free --output artifacts/graph-cache-probe
 python3 -m unittest discover -s tests/graph_cache -v
 ```
 
@@ -103,14 +106,18 @@ have their own nonzero result while a complete probe returns zero. Tooling,
 network or sandbox failures must be errors rather than skips. The acceptance
 suite retains its temporary evidence directory and prints its location.
 
+Run the full package cache contract with:
+
+```sh
+python3 tools/probe_graph_cache.py --output artifacts/graph-package-cache-probe
+python3 -m unittest discover -s tests/graph_cache_full -v
+```
+
 The R01 report identifies itself with `scope: "R01-package-free-cache"` and
-`pendingTracks`; it does not emit fictitious package or failure-case results.
-The existing graph runner records `SPIKE_COMPILE:<project-name>` markers; R01
-maps each marker through the diamond's unique project stems to its configured
-project path. The full contract's path-marker requirement below remains distinct.
-Run the preserved full contract separately with
-`python3 -m unittest discover -s tests/graph_cache_full -v`; it is intentionally
-not included in the R01 or existing e2e discovery roots.
+`pendingTracks`; it does not emit package or failure-case results. Full reports
+identify themselves with `scope: "R02-managed-package-cache"`. The runner now
+emits workspace-relative project paths in compile markers, while the existing
+action report's `compiledProjects` retains project stems for compatibility.
 
 The full report schema version 1 has `schemaVersion`, `baselineOutput`, `cases`,
 `packageUpgrade`, `graphEdgeAdded`, and `failures`. Project strings are normalized

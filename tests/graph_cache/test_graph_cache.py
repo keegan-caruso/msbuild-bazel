@@ -18,6 +18,8 @@ BASELINE = "shared-v1:left|shared-v1:right"
 
 
 class GraphCacheAcceptance(unittest.TestCase):
+    probe_args = ["--package-free"]
+    expected_scope = "R01-package-free-cache"
     @classmethod
     def setUpClass(cls):
         if not PROBE.is_file():
@@ -25,7 +27,7 @@ class GraphCacheAcceptance(unittest.TestCase):
         cls.output = Path(tempfile.mkdtemp(prefix="msbuild-graph-cache-")) / "probe"
         # Retain evidence even on success: Bazel caches may contain read-only trees.
         print(f"Graph cache evidence: {cls.output}", file=sys.stderr)
-        result = subprocess.run([sys.executable, str(PROBE), "--output", str(cls.output)],
+        result = subprocess.run([sys.executable, str(PROBE), "--output", str(cls.output), *cls.probe_args],
                                 cwd=REPO, text=True, capture_output=True, timeout=1800)
         if result.returncode:
             raise AssertionError(result.stdout + result.stderr)
@@ -59,7 +61,7 @@ class GraphCacheAcceptance(unittest.TestCase):
                 log = self.evidence(action["log"]).read_text()
                 markers = [line.split("SPIKE_COMPILE:", 1)[1].strip()
                            for line in log.splitlines() if "SPIKE_COMPILE:" in line]
-                self.assertEqual(markers, [Path(action["project"]).stem], "consumer compiled dependency or compiled twice")
+                self.assertEqual(markers, [action["project"]], "consumer compiled dependency or compiled twice")
         self.evidence(case["executionLog"])
         self.assertTrue(case["bundleFiles"], "no recovered artifacts")
         self.assertEqual(len({Path(p).parts[0] for p in case["bundleFiles"]}), 4, "missing configured bundle")
@@ -77,7 +79,7 @@ class GraphCacheAcceptance(unittest.TestCase):
 
     def test_cold_and_unchanged(self):
         self.assertEqual(self.report["schemaVersion"], 1)
-        self.assertEqual(self.report["scope"], "R01-package-free-cache")
+        self.assertEqual(self.report["scope"], self.expected_scope)
         self.assertEqual(self.report["baselineOutput"], BASELINE)
         self.case("cold", PROJECTS, cache_hits=[])
         self.case("unchanged", [])

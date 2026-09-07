@@ -1,151 +1,76 @@
-"""Full milestone 3 acceptance contract; deliberately red until R02 packages exist.
-
-Run separately from existing acceptance: python3 -m unittest discover -s tests/graph_cache_full -v
-"""
+"""Full managed-package graph cache acceptance, including the R01 controls."""
 import hashlib
 import json
 from pathlib import Path
-import subprocess
 import sys
-import tempfile
-import unittest
+import zipfile
 
-REPO = Path(__file__).resolve().parents[2]
-PROBE = REPO / "tools/probe_graph_cache.py"
-PROJECTS = {name: f"src/{name}/{name}.csproj" for name in ("App", "Left", "Right", "Shared")}
-ALL = set(PROJECTS.values())
-BASELINE = "shared-v1:left|shared-v1:right"
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'graph_cache'))
+import test_graph_cache as package_free
 
 
-class GraphCacheAcceptance(unittest.TestCase):
-    @classmethod
-    def setUpClass(cls):
-        if not PROBE.is_file():
-            raise AssertionError("Milestone 3 cache probe is not implemented: tools/probe_graph_cache.py")
-        cls.output = Path(tempfile.mkdtemp(prefix="msbuild-graph-cache-")) / "probe"
-        # Retain evidence even on success: Bazel caches may contain read-only trees.
-        print(f"Graph cache evidence: {cls.output}", file=sys.stderr)
-        result = subprocess.run([sys.executable, str(PROBE), "--output", str(cls.output)],
-                                cwd=REPO, text=True, capture_output=True, timeout=1800)
-        if result.returncode:
-            raise AssertionError(result.stdout + result.stderr)
-        cls.report = json.loads((cls.output / "report.json").read_text())
-
-    def evidence(self, name):
-        path = (self.output / name).resolve()
-        self.assertTrue(path.is_relative_to(self.output.resolve()), "evidence escapes output directory")
-        self.assertTrue(path.is_file(), str(path))
-        return path
-
-    def case(self, name, executed, output=BASELINE, cache_hits=None):
-        case = self.report["cases"][name]
-        self.assertEqual(case["returncode"], 0, name)
-        self.assertEqual(case["applicationReturncode"], 0, name)
-        self.assertEqual(case["applicationOutput"], output, name)
-        self.assertEqual(set(case["executedProjects"]), {PROJECTS[p] for p in executed}, name)
-        self.assertEqual(len(case["executedProjects"]), len(executed), "duplicate configured action execution")
-        if cache_hits is not None:
-            self.assertEqual(set(case["cacheHitProjects"]), {PROJECTS[p] for p in cache_hits}, name)
-        actions = case["executions"]
-        self.assertEqual({a["project"] for a in actions if not a["cacheHit"]}, set(case["executedProjects"]))
-        self.assertEqual({a["project"] for a in actions if a["cacheHit"]}, set(case["cacheHitProjects"]))
-        self.assertEqual(len({a["nodeId"] for a in actions}), len(actions), "duplicate configured node")
-        for action in actions:
-            self.assertIn(action["project"], ALL)
-            self.assertFalse(action["remotable"])
-            self.assertFalse(action["remoteCacheable"])
-            if not action["cacheHit"]:
-                self.assertIn(action["runner"], ("darwin-sandbox", "linux-sandbox"))
-                log = self.evidence(action["log"]).read_text()
-                markers = [line.split("SPIKE_COMPILE:", 1)[1].strip()
-                           for line in log.splitlines() if "SPIKE_COMPILE:" in line]
-                self.assertEqual(markers, [action["project"]], "consumer compiled dependency or compiled twice")
-        self.evidence(case["executionLog"])
-        self.assertTrue(case["bundleFiles"], "no recovered artifacts")
-        canonical = {}
-        for path, metadata in case["bundleFiles"].items():
-            self.assertFalse(Path(path).is_absolute())
-            self.assertNotIn("..", Path(path).parts)
-            payload = self.evidence(metadata["file"])
-            self.assertEqual(hashlib.sha256(payload.read_bytes()).hexdigest(), metadata["sha256"])
-            self.assertEqual(bool(payload.stat().st_mode & 0o111), metadata["executable"])
-            canonical[path] = {"sha256": metadata["sha256"], "executable": metadata["executable"]}
-        digest = hashlib.sha256(json.dumps(canonical, sort_keys=True, separators=(",", ":")).encode()).hexdigest()
-        self.assertEqual(case["bundleDigest"], digest)
-        return case
-
-    def test_cold_and_unchanged(self):
-        self.assertEqual(self.report["schemaVersion"], 1)
-        self.assertEqual(self.report["baselineOutput"], BASELINE)
-        self.case("cold", PROJECTS, cache_hits=[])
-        self.case("unchanged", [])
-
-    def test_app_source_edit(self):
-        self.case("appEdit", ["App"], BASELINE + "|app-v2")
-
-    def test_one_branch_source_edit(self):
-        self.case("leftEdit", ["Left", "App"], "shared-v1:left-v2|shared-v1:right")
-
-    def test_shared_source_edit(self):
-        self.case("sharedEdit", PROJECTS, "shared-v2:left|shared-v2:right")
-
-    def test_shared_import_edit(self):
-        self.case("importEdit", PROJECTS, BASELINE + "|config-v2")
+class GraphCacheAcceptance(package_free.GraphCacheAcceptance):
+    probe_args = []
+    expected_scope = 'R02-managed-package-cache'
 
     def test_branch_package_upgrade(self):
-        self.case("packageCold", PROJECTS, "shared-v1:left/package-v1|shared-v1:right", cache_hits=[])
-        self.case("packageUpgrade", ["Left", "App"], "shared-v1:left/package-v2|shared-v1:right")
-        evidence = self.report["packageUpgrade"]
-        self.assertNotEqual(evidence["beforeVersion"], evidence["afterVersion"])
-        self.assertNotEqual(evidence["beforePayloadSha256"], evidence["afterPayloadSha256"])
-        self.assertTrue(evidence["preparationWorkspaceAbsent"])
+        cold = self.case('packageCold', package_free.PROJECTS,
+            'shared-v1:left/package-v1|shared-v1:right', cache_hits=[])
+        upgrade = self.case('packageUpgrade', ['Left', 'App'],
+            'shared-v1:left/package-v2|shared-v1:right')
+        for case in (cold, upgrade):
+            self.assertTrue(case['preparationWorkspaceAbsent'])
+            self.assertEqual(case['applicationOutput'], case['ordinaryOutput'])
+        evidence = self.report['packageUpgrade']
+        self.assertEqual((evidence['beforeVersion'], evidence['afterVersion']), ('1.0.0', '1.0.1'))
+        self.assertNotEqual(evidence['beforePayloadSha256'], evidence['afterPayloadSha256'])
+        self.assertNotEqual(evidence['beforeArchiveSha256'], evidence['afterArchiveSha256'])
+        self.assertTrue(evidence['preparationWorkspaceAbsent'])
+        pins = json.loads(self.evidence(evidence['pins']).read_text())
+        for prefix in ('before', 'after'):
+            version = evidence[prefix + 'Version']
+            archive = self.evidence(f'pinned-package-archives/Spike.Binary.{version}.nupkg')
+            self.assertEqual(hashlib.sha256(archive.read_bytes()).hexdigest(), pins['Spike.Binary/' + version])
+            self.assertEqual(evidence[prefix + 'ArchiveSha256'], pins['Spike.Binary/' + version])
+            payload = self.evidence(evidence[prefix + 'PayloadFile'])
+            self.assertEqual(hashlib.sha256(payload.read_bytes()).hexdigest(), evidence[prefix + 'PayloadSha256'])
+            with zipfile.ZipFile(archive) as package:
+                self.assertEqual(payload.read_bytes(), package.read('lib/net10.0/Spike.Binary.dll'))
+            manifest = json.loads(self.evidence(evidence[prefix + 'Manifest']).read_text())
+            nodes = {n['project'].removeprefix('workspace/'): n for n in manifest['nodes']}
+            for project in ('Shared', 'Right'):
+                self.assertFalse([i for i in nodes[package_free.PROJECTS[project]]['inputs'] if i['kind'] == 'package'])
+            for project in ('Left', 'App'):
+                self.assertTrue([i for i in nodes[package_free.PROJECTS[project]]['inputs'] if i['kind'] == 'package'])
 
-    def test_graph_edge_added_before_analysis(self):
-        self.case("graphEdgeAdded", ["Right", "App"], "shared-v1:left|shared-v1:right+shared-v1:left")
-        evidence = self.report["graphEdgeAdded"]
-        before = json.loads(self.evidence(evidence["beforeManifest"]).read_text())
-        after = json.loads(self.evidence(evidence["afterManifest"]).read_text())
-        old = {n["project"]: n for n in before["nodes"]}
-        new = {n["project"]: n for n in after["nodes"]}
-        right, left, shared = (PROJECTS[p] for p in ("Right", "Left", "Shared"))
-        self.assertEqual(set(new), ALL)
-        self.assertEqual({p: n["id"] for p, n in old.items()}, {p: n["id"] for p, n in new.items()})
-        self.assertEqual(set(old[right]["dependencies"]), {old[shared]["id"]})
-        self.assertEqual(set(new[right]["dependencies"]), {new[shared]["id"], new[left]["id"]})
-        self.assertEqual(evidence["analyzedDependencies"][new[right]["id"]], sorted(new[right]["dependencies"]))
-        self.assertLess(evidence["planGenerationSequence"], evidence["analysisSequence"])
-        self.evidence(evidence["analysisLog"])
+    def test_package_disk_cache_recovery(self):
+        case = self.case('packageDiskCache', [], 'shared-v1:left/package-v1|shared-v1:right', cache_hits=package_free.PROJECTS)
+        self.assertTrue(case['outputsAbsentBeforeBuild'])
+        self.assertTrue(case['outputBaseAbsentBeforeBuild'])
+        self.assertTrue(case['preparationWorkspaceAbsent'])
+        self.assertEqual(case['bundleDigest'], self.report['cases']['packageCold']['bundleDigest'])
 
-    def test_clean_disk_cache_recovery(self):
-        case = self.case("diskCache", [], cache_hits=PROJECTS)
-        self.assertTrue(case["outputsAbsentBeforeBuild"])
-        self.assertTrue(case["outputBaseAbsentBeforeBuild"])
-        self.assertEqual(case["bundleDigest"], self.report["cases"]["cold"]["bundleDigest"])
-
-    def test_relocated_cache_recovery_without_producer(self):
-        case = self.case("relocated", [], cache_hits=PROJECTS)
-        self.assertTrue(case["producerWorkspaceAbsent"])
-        self.assertNotEqual(case["producerWorkspace"], case["consumerWorkspace"])
-        self.assertTrue(case["outputsAbsentBeforeBuild"])
-        self.assertTrue(case["outputBaseAbsentBeforeBuild"])
-        self.assertEqual(case["bundleDigest"], self.report["cases"]["cold"]["bundleDigest"])
+    def test_package_relocated_recovery(self):
+        case = self.case('packageRelocated', [], 'shared-v1:left/package-v1|shared-v1:right', cache_hits=package_free.PROJECTS)
+        self.assertTrue(case['outputsAbsentBeforeBuild'])
+        self.assertTrue(case['outputBaseAbsentBeforeBuild'])
+        self.assertTrue(case['preparationWorkspaceAbsent'])
+        self.assertTrue(case['producerWorkspaceAbsent'])
+        self.assertNotEqual(case['producerWorkspace'], case['consumerWorkspace'])
+        self.assertEqual(case['bundleDigest'], self.report['cases']['packageCold']['bundleDigest'])
 
     def test_missing_corrupt_and_stale_inputs(self):
-        for name, diagnostic in (("missingSource", "missing-input"),
-                                 ("missingPackage", "missing-input"),
-                                 ("corruptPackage", "hash-mismatch"),
-                                 ("staleManifest", "stale-manifest"),
-                                 ("staleRestore", "stale-restore")):
+        for name, diagnostic in (('missingSource', 'missing-input'), ('missingPackage', 'missing-input'),
+                ('corruptPackage', 'hash-mismatch'), ('staleManifest', 'stale-manifest'), ('staleRestore', 'stale-restore')):
             with self.subTest(case=name):
-                case = self.report["failures"][name]
-                self.assertNotEqual(case["returncode"], 0)
-                self.assertEqual(case["diagnostic"], diagnostic)
-                self.assertEqual(case["executedProjects"], [])
-                self.assertFalse(case["publishedPlan"])
-                log = self.evidence(case["log"]).read_text()
+                case = self.report['failures'][name]
+                self.assertNotEqual(case['returncode'], 0)
+                self.assertEqual(case['diagnostic'], diagnostic)
+                self.assertEqual(case['executedProjects'], [])
+                self.assertFalse(case['publishedPlan'])
+                self.assertTrue(case['preservedManifest'])
+                manifest = self.evidence(case['manifest'])
+                self.assertEqual(hashlib.sha256(manifest.read_bytes()).hexdigest(), case['manifestSha256'])
+                log = self.evidence(case['log']).read_text()
                 self.assertIn(diagnostic, log)
-                self.assertNotIn("SPIKE_COMPILE:", log)
-
-
-if __name__ == "__main__":
-    unittest.main()
+                self.assertNotIn('SPIKE_COMPILE:', log)
