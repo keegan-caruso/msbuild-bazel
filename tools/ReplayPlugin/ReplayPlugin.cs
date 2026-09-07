@@ -113,6 +113,9 @@ public sealed class ReplayPlugin : ProjectCachePluginBase
             var data = JsonSerializer.Deserialize<Payload>(File.ReadAllText(Path.Combine(candidate, "results.json")), Json)!;
             return data.Project == project && SameProperties(data.Properties, Properties(request.ProjectInstance.GlobalProperties));
         }).ToArray();
+        if (matches.Length == 0 && graphBundles.Any(candidate =>
+            JsonSerializer.Deserialize<Payload>(File.ReadAllText(Path.Combine(candidate, "results.json")), Json)!.Project == project))
+            throw new InvalidOperationException("dependency global properties mismatch");
         if (matches.Length != 1) throw new InvalidOperationException("dependency configured bundle missing or ambiguous: " + project);
         var dependencyBundle = matches[0];
         var payloadPath = Path.Combine(dependencyBundle, "results.json");
