@@ -1,4 +1,4 @@
-# MSBuild / Bazel spike
+# MSBuild / Bazel implementation plan
 
 ## Question
 

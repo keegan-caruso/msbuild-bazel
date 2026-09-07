@@ -64,7 +64,7 @@ Each consumer uses a fresh request/output, with no action cache enabled. Artifac
 removal/corruption, an absent completion seal and stale result bytes must reject
 before replay and compilation. Missing targets, incompatible globals and an
 invalid root token in returned metadata deliberately update the transport seal;
-they must reach `SPIKE_REPLAY_REQUEST`, reject semantically, and never compile a
+they must reach `RULES_MSBUILD_REPLAY_REQUEST`, reject semantically, and never compile a
 dependency or consumer. Two simultaneous valid App consumers must use distinct
 scratch paths, compile only App, replay Left/Right/Shared and match ordinary output.
 A repeated attempt cannot overwrite a completed output. Evidence is retained under

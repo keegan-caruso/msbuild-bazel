@@ -11,7 +11,7 @@ Inside `nix develop`:
 
 ```sh
 python3 tools/probe_bazel.py --native-runtime-probe --output artifacts/native-runtime-3
-SPIKE_NATIVE_RUNTIME_TEST=1 python3 -m unittest discover -s tests/e2e -v
+RULES_MSBUILD_NATIVE_RUNTIME_TEST=1 python3 -m unittest discover -s tests/e2e -v
 ```
 
 The Nix CI workflow enables this test on Ubuntu 22.04. The setup workflow keeps
@@ -46,7 +46,7 @@ control also fails as expected. Installed store files are never modified.
 
 ## Local regression validation
 
-On macOS ARM64, `SPIKE_NATIVE_RUNTIME_TEST=1 python3 -m unittest discover -s tests/e2e -v`
+On macOS ARM64, `RULES_MSBUILD_NATIVE_RUNTIME_TEST=1 python3 -m unittest discover -s tests/e2e -v`
 passed all 13 tests in 314.022 seconds. This includes identity, package, staging,
 scheduling/cache, same-path boundary, relocation and public-API replay cases.
 `bash scripts/check.sh`, Python syntax checks and `git diff --check` also passed.

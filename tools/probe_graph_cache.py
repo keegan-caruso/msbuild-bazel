@@ -233,10 +233,10 @@ Console.WriteLine(Left.Value.Text + "|" + Right.Value.Text + suffix);
             left = next(n for n in graph['nodes'] if n['project'] == 'workspace/src/Left/Left.csproj')
             manifest_file = generated / 'package-manifests' / (left['id'] + '.json')
             manifest = json.loads(manifest_file.read_text())
-            binary = next(p for p in manifest['packages'] if p['id'] == 'Spike.Binary')
-            if binary['archiveSha256'] != pins['Spike.Binary/' + binary['version']]:
+            binary = next(p for p in manifest['packages'] if p['id'] == 'RulesMsbuild.Binary')
+            if binary['archiveSha256'] != pins['RulesMsbuild.Binary/' + binary['version']]:
                 raise RuntimeError('staged Binary archive differs from pinned fixture archive')
-            payload = generated / 'packages' / binary['path'] / 'lib/net10.0/Spike.Binary.dll'
+            payload = generated / 'packages' / binary['path'] / 'lib/net10.0/RulesMsbuild.Binary.dll'
             retained = output / (name + '-payload.dll')
             shutil.copy2(payload, retained)
             return dict(version=binary['version'], payloadSha256=hashlib.sha256(payload.read_bytes()).hexdigest(),
@@ -281,7 +281,7 @@ Console.WriteLine(Left.Value.Text + "|" + Right.Value.Text + suffix);
             if name == 'missingSource':
                 (package_source / 'src/Left/Value.cs').unlink()
             elif name in ('missingPackage', 'corruptPackage'):
-                payload = package_source / '.nuget/packages/spike.binary/1.0.0/ref/net10.0/Spike.Binary.dll'
+                payload = package_source / '.nuget/packages/rulesmsbuild.binary/1.0.0/ref/net10.0/RulesMsbuild.Binary.dll'
                 if name == 'missingPackage': payload.unlink()
                 else:
                     payload.chmod(payload.stat().st_mode | 0o200)

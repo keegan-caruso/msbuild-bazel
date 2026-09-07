@@ -38,10 +38,10 @@ container run --rm alpine uname -sm
 
 Expected output: `Linux aarch64`. The project scripts default to native ARM64
 and select architecture-specific downloads at the same .NET/Bazel versions.
-To reproduce the Rosetta x86-64 baseline, set `SPIKE_CONTAINER_ARCH=amd64`:
+To reproduce the Rosetta x86-64 baseline, set `RULES_MSBUILD_CONTAINER_ARCH=amd64`:
 
 ```sh
-SPIKE_CONTAINER_ARCH=amd64 bash scripts/test-apple-container.sh
+RULES_MSBUILD_CONTAINER_ARCH=amd64 bash scripts/test-apple-container.sh
 ```
 
 This workflow does not run a macOS guest. Nix support remains limited to the
@@ -60,8 +60,8 @@ exits 0 and ends with:
 PASS: Shared -> App produced shared-v1/app-v1
 ```
 
-The build log should also contain `SPIKE_COMPILE:Shared` and
-`SPIKE_COMPILE:App`. Any setup, restore, build or output assertion failure
+The build log should also contain `RULES_MSBUILD_COMPILE:Shared` and
+`RULES_MSBUILD_COMPILE:App`. Any setup, restore, build or output assertion failure
 returns a nonzero exit code.
 
 The script:
@@ -160,14 +160,14 @@ failures in one suite do not prevent later suites from running.
 | `e2e` | MSBuild baseline/handoff, relocation controls, public-API replay, runner process contracts, action identity, package inputs/assets, staging and disk-cache recovery |
 
 For an architecture comparison, retain the default 4 CPUs and 6 GB RAM and run
-the same suites with `SPIKE_CONTAINER_ARCH=amd64`. Results include the guest
+the same suites with `RULES_MSBUILD_CONTAINER_ARCH=amd64`. Results include the guest
 architecture in `summary.json`. Do not mix an architecture change with CPU or
 Bazel execution-mode changes when measuring its effect.
 
 The printed `run.*` evidence directory contains `run.log`, one log per
 suite, and `summary.json` with counts, durations, failures, errors and explicit
 skip reasons. Inspect skips separately from passes: the Nix native runtime
-test requires `SPIKE_NATIVE_RUNTIME_TEST=1` and a Nix environment and is not
+test requires `RULES_MSBUILD_NATIVE_RUNTIME_TEST=1` and a Nix environment and is not
 enabled in this setup-based guest. A suite with no discovered tests fails.
 Overall exit status is nonzero if any suite fails. Small logs and reports from
 retained failed workspaces are copied under `failures/` before guest removal.
@@ -179,7 +179,7 @@ explicitly shut them down before deleting their workspaces. Idle timeout is
 120 seconds. For a batch-mode comparison:
 
 ```sh
-SPIKE_BAZEL_MODE=batch bash scripts/test-apple-container-scenarios.sh e2e
+RULES_MSBUILD_BAZEL_MODE=batch bash scripts/test-apple-container-scenarios.sh e2e
 ```
 
 Run the benchmark with three no-op samples per mode:
@@ -204,7 +204,7 @@ changes and 0.011–0.014 seconds in `buildTargets`.
 To evaluate more CPUs independently, keep memory and mode fixed:
 
 ```sh
-SPIKE_CONTAINER_CPUS=6 SPIKE_CONTAINER_MEMORY=6G bash scripts/test-apple-container-scenarios.sh
+RULES_MSBUILD_CONTAINER_CPUS=6 RULES_MSBUILD_CONTAINER_MEMORY=6G bash scripts/test-apple-container-scenarios.sh
 ```
 
 The default remains 4 CPUs and 6 GB. A 6-CPU improvement has not been measured.
@@ -215,7 +215,7 @@ Build once, then select the exact local image digest for subsequent runs:
 
 ```sh
 bash scripts/build-apple-container-image.sh
-export SPIKE_CONTAINER_IMAGE="$(cat .cache/apple-container/arm64/image.ref)"
+export RULES_MSBUILD_CONTAINER_IMAGE="$(cat .cache/apple-container/arm64/image.ref)"
 bash scripts/test-apple-container.sh
 bash scripts/test-apple-container-scenarios.sh
 ```
@@ -232,13 +232,13 @@ checksum-verifies Buildifier for that guest before the full source check. The
 image build and MSBuild-only smoke use `--toolchain-only` because their minimal
 contexts contain no adapter Starlark; this does not count as source validation.
 
-Rebuild after changing pins or image inputs and reload `SPIKE_CONTAINER_IMAGE`.
+Rebuild after changing pins or image inputs and reload `RULES_MSBUILD_CONTAINER_IMAGE`.
 Build logs, image metadata and input hashes live in `.cache/apple-container/arm64`.
 The builder registers the digest reference in the local image store; nothing
 is published to a registry. Ubuntu package repositories are live at image
 build time: the resulting digest pins that artifact, but rebuilds are not
 guaranteed to produce identical bytes. The ARM64 image path is validated.
-Unset `SPIKE_CONTAINER_IMAGE` to return to installation in a fresh Ubuntu guest.
+Unset `RULES_MSBUILD_CONTAINER_IMAGE` to return to installation in a fresh Ubuntu guest.
 
 ## Troubleshooting
 
@@ -291,7 +291,7 @@ Each measured scenario run passed 41 tests, with one explicit Nix-only skip:
 All used 4 CPUs and 6 GB RAM against baseline `6a14e1f` plus the staged
 container changes. These are single-run observations, not a controlled
 hardware benchmark. The skipped test is `test_native_runtime_closure`, which
-requires `SPIKE_NATIVE_RUNTIME_TEST=1` inside `nix develop`.
+requires `RULES_MSBUILD_NATIVE_RUNTIME_TEST=1` inside `nix develop`.
 
 Retained evidence directories are `baseline-amd64`, `scenarios.BXxxfD`
 (native batch), `scenarios.jmH9Vc` (native server), and `run.MD6PXR`

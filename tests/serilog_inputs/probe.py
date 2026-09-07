@@ -24,7 +24,7 @@ def probe(source, package_cache, output):
         package.extractall(workspace, filter='data')
     packages = output / 'packages'
     shutil.copytree(package_cache, packages)
-    sdk = Path(os.environ.get('SPIKE_DOTNET_ROOT', ROOT / '.tools/dotnet')).resolve()
+    sdk = Path(os.environ.get('RULES_MSBUILD_DOTNET_ROOT', ROOT / '.tools/dotnet')).resolve()
     env = dict(os.environ, DOTNET_CLI_HOME=str(output / 'home'), NUGET_PACKAGES=str(packages),
                MSBUILDDISABLENODEREUSE='1', DOTNET_CLI_TELEMETRY_OPTOUT='1')
     def run(name, args, cwd=workspace):

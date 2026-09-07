@@ -86,10 +86,10 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     for name in ('source', 'packages', 'assembly', 'output'):
         parser.add_argument('--' + name, required=True)
-    parser.add_argument('--dotnet-root', default=os.environ.get('SPIKE_DOTNET_ROOT'))
+    parser.add_argument('--dotnet-root', default=os.environ.get('RULES_MSBUILD_DOTNET_ROOT'))
     args = parser.parse_args()
     if not args.dotnet_root:
-        parser.error('--dotnet-root or SPIKE_DOTNET_ROOT is required')
+        parser.error('--dotnet-root or RULES_MSBUILD_DOTNET_ROOT is required')
     report = compare(args.source, args.packages, args.assembly, args.output, args.dotnet_root)
     print(json.dumps(report, indent=2))
     return 0 if report['passed'] else 1

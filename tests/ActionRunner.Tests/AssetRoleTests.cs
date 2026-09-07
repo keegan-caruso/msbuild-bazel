@@ -6,7 +6,7 @@ internal static class AssetRoleTests
     public static void Run()
     {
         foreach (var (identity, role, allowed) in new[] {
-            ("Spike.Unknown/1.0.0", "runtimeTargets", false),
+            ("RulesMsbuild.Unknown/1.0.0", "runtimeTargets", false),
             ("PolySharp/1.15.0", "resource", false),
             ("System.Management/6.0.1", "runtimeTargets", true),
             ("Microsoft.TestPlatform.TestHost/17.11.1", "resource", true) })

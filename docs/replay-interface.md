@@ -4,10 +4,10 @@
 SDK 10.0.100, copies the fixture, restores separately, captures Shared results,
 and tests same-path and relocated graph replay. Each compilation invocation is a new
 MSBuild process with `-graphBuild -isolateProjects` and Release. The producer is deleted
-before relocated consumption. The v1 `spike.py` protocol is unchanged.
+before relocated consumption. The v1 `adapter.py` protocol is unchanged.
 
-The plugin uses environment variables `SPIKE_REPLAY_MODE` (capture/replay),
-`SPIKE_REPLAY_WORKSPACE`, and `SPIKE_REPLAY_BUNDLE`. These are orchestration
+The plugin uses environment variables `RULES_MSBUILD_REPLAY_MODE` (capture/replay),
+`RULES_MSBUILD_REPLAY_WORKSPACE`, and `RULES_MSBUILD_REPLAY_BUNDLE`. These are orchestration
 settings, not project global properties. `results.json` contains schemaVersion 1,
 SDK and engine versions, workspace-relative project, evaluated target framework,
 explicit root mappings, complete global properties,

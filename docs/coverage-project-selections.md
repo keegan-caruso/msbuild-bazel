@@ -126,7 +126,7 @@ source. Test C07 configured-node identity, C13 matching replay properties and C1
 regeneration when edge properties change. Include incompatible-property rejection
 as an authored negative control. Graph-construction tests alone do not establish
 SDK restore, compilation or replay semantics; add each deliberately under the
-pinned spike SDK.
+pinned adapter SDK.
 
 ## Nerdbank.GitVersioning (P17)
 
@@ -188,7 +188,7 @@ Then change a solution mapping and require plan regeneration before analysis.
 
 Assign separate cases to .sln, .slnx and solution filters where the chosen toolchain
 supports them. Source inspection here does not establish that every format is
-covered by the cited tests or supported by the spike's pinned SDK. Unsupported
+covered by the cited tests or supported by the adapter's pinned SDK. Unsupported
 formats must be rejected or remain outside the claim, not silently interpreted as
 equivalent input. NuGet solution-filter restore tests below supply an additional
 restore-side reference, not graph-execution evidence.
@@ -357,7 +357,7 @@ The Aspire selection uses existing Bazel language support:
 [rules_python](https://github.com/bazel-contrib/rules_python),
 [rules_js](https://github.com/aspect-build/rules_js) and
 [rules_ts](https://github.com/aspect-build/rules_ts) as appropriate. Their versions
-and compatibility with the spike's pinned Bazel must be established before use;
+and compatibility with the adapter's pinned Bazel must be established before use;
 these links identify upstream implementations, not validated dependency pins.
 
 Build a small shared .NET/Python/TypeScript harness first, wiring upstream-rule

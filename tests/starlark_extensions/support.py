@@ -16,7 +16,7 @@ sys.path.insert(0, str(ROOT / "tests/graph"))
 from prepare_graph import DOTNET_ROOT, prepare
 
 
-BAZEL = Path(os.environ.get("SPIKE_BAZEL", ROOT / ".tools/bin/bazel"))
+BAZEL = Path(os.environ.get("RULES_MSBUILD_BAZEL", ROOT / ".tools/bin/bazel"))
 
 
 def configured_id(project, properties):

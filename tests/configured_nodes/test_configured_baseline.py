@@ -8,7 +8,7 @@ import tempfile
 import unittest
 
 ROOT = Path(__file__).resolve().parents[2]
-SDK = Path(os.environ.get('SPIKE_DOTNET_ROOT', ROOT / '.tools/dotnet'))
+SDK = Path(os.environ.get('RULES_MSBUILD_DOTNET_ROOT', ROOT / '.tools/dotnet'))
 
 
 class ConfiguredBaseline(unittest.TestCase):

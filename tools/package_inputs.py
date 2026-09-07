@@ -9,7 +9,7 @@ import xml.etree.ElementTree as ET
 import zipfile
 
 FIXTURE = Path(__file__).resolve().parents[1] / 'tests/fixtures/package-inputs'
-PACKAGE_ID = 'Spike.BuildInputs'
+PACKAGE_ID = 'RulesMsbuild.BuildInputs'
 
 
 def archive_bytes(version):
@@ -50,9 +50,9 @@ def configure(workspace, version, package_feed):
     config = ET.parse(workspace / 'NuGet.Config')
     sources = config.getroot().find('packageSources')
     for item in list(sources):
-        if item.get('key') == 'spike-local':
+        if item.get('key') == 'rules-msbuild-local':
             sources.remove(item)
-    ET.SubElement(sources, 'add', key='spike-local', value=str(package_feed))
+    ET.SubElement(sources, 'add', key='rules-msbuild-local', value=str(package_feed))
     config.write(workspace / 'NuGet.Config')
 
 

@@ -4,8 +4,8 @@
 an ordinary MSBuild oracle. Its `configure(workspace, package_feed,
 version='1.0.0', private_assets=None)` function requires a feed inside the workspace,
 records that feed relatively in NuGet.Config, and adds exact `[version]`
-`Spike.Binary` metadata to `src/Left/Left.csproj`. It reuses the deterministic
-`binary_inputs.Packages` ref/lib archives, including transitive `Spike.Leaf`.
+`RulesMsbuild.Binary` metadata to `src/Left/Left.csproj`. It reuses the deterministic
+`binary_inputs.Packages` ref/lib archives, including transitive `RulesMsbuild.Leaf`.
 Only Left's source uses the package. The returned binary version is rendered as
 `package-v1`/`package-v2`; the call still executes the transitive Leaf assembly.
 
@@ -13,14 +13,14 @@ Only Left's source uses the package. The returned binary version is rendered as
 
 All four configurations restore and build the Release/net10.0 diamond successfully.
 The explicit default value is `contentfiles;analyzers;build`; omitted metadata is
-measured separately. The package inventories below include both Spike.Binary and
-Spike.Leaf, version 1.0.0.
+measured separately. The package inventories below include both RulesMsbuild.Binary and
+RulesMsbuild.Leaf, version 1.0.0.
 
 | PrivateAssets | Left restore | App restore and direct compile access | App copies package DLLs | Isolated App execution |
 | --- | --- | --- | --- | --- |
 | omitted | both packages | both packages; compile succeeds | both runtime DLLs | succeeds |
 | explicit default | both packages | both packages; compile succeeds | both runtime DLLs | succeeds |
-| all | both packages | neither package; direct access fails CS0103 | neither DLL | fails FileNotFoundException for Spike.Binary |
+| all | both packages | neither package; direct access fails CS0103 | neither DLL | fails FileNotFoundException for RulesMsbuild.Binary |
 | none | both packages | both packages; compile succeeds | both runtime DLLs | succeeds |
 
 Shared and Right have no package assets in every case. Left retains the reference
@@ -33,7 +33,7 @@ reference assemblies differ. Successful execution runs from a copied output
 directory with an isolated CLI home/package root, outside the source tree.
 
 Each case first measures the unmodified App's build, output inventory and runtime.
-Only afterward does a separate compiler control add a direct `Spike.Binary` API
+Only afterward does a separate compiler control add a direct `RulesMsbuild.Binary` API
 call to App without changing restore assets. This distinguishes App's own compile
 visibility from Left's ability to use its package.
 

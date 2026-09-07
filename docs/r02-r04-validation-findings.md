@@ -34,7 +34,7 @@ the separate generated and native suites use real compiled/package payloads.
 The test rule now rejects empty, blank or duplicate expected names at analysis time,
 matching preparation's existing contract. The blank-name control covers a nonempty list containing an empty test name. Missing hashes and missing subject
 providers are independently rejected. The native prototype accepts the common
-`SPIKE_SERILOG_SOURCE` / `SPIKE_SERILOG_PACKAGES` variables and retains its older
+`RULES_MSBUILD_SERILOG_SOURCE` / `RULES_MSBUILD_SERILOG_PACKAGES` variables and retains its older
 variable aliases for existing callers.
 
 ## Reproduction
@@ -44,9 +44,9 @@ The opt-in Serilog suites require the pinned upstream checkout and acquired
 packages documented in [library findings](serilog-adapter-findings.md):
 
 ```sh
-export SPIKE_SERILOG_SOURCE=/path/to/pinned/serilog/source
-export SPIKE_SERILOG_PACKAGES=/path/to/acquired/packages
-export SPIKE_SERILOG_NATIVE_TESTS=1
+export RULES_MSBUILD_SERILOG_SOURCE=/path/to/pinned/serilog/source
+export RULES_MSBUILD_SERILOG_PACKAGES=/path/to/acquired/packages
+export RULES_MSBUILD_SERILOG_NATIVE_TESTS=1
 mkdir -p artifacts/r04-generator-acquisition
 cat > artifacts/r04-generator-acquisition/Upgrade.csproj <<'PROJECT'
 <Project Sdk="Microsoft.NET.Sdk">
@@ -54,7 +54,7 @@ cat > artifacts/r04-generator-acquisition/Upgrade.csproj <<'PROJECT'
   <ItemGroup><PackageReference Include="PolySharp" Version="1.16.0" /></ItemGroup>
 </Project>
 PROJECT
-bash scripts/dotnet.sh restore artifacts/r04-generator-acquisition/Upgrade.csproj --packages "$SPIKE_SERILOG_PACKAGES"
+bash scripts/dotnet.sh restore artifacts/r04-generator-acquisition/Upgrade.csproj --packages "$RULES_MSBUILD_SERILOG_PACKAGES"
 bash scripts/check.sh
 python3 -m unittest discover -s tests/starlark -v
 python3 -m unittest discover -s tests/starlark_extensions -v

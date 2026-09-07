@@ -83,7 +83,7 @@ an independent cache that downloads or builds missing dependencies.
 
 Write the experimental process contract and black-box tests before the runner.
 Use copied fixtures, Release/net10.0, fresh processes, retained logs and the
-existing `SPIKE_COMPILE` instrumentation.
+existing `RULES_MSBUILD_COMPILE` instrumentation.
 
 | Case | Required evidence |
 | --- | --- |

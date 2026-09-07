@@ -122,7 +122,7 @@ data, environment and Python runtime inputs. [Package tests](package-input-findi
 added pinned build assets and upgrade/rejection cases. Native runtime closure,
 deterministic staging and Linux coverage of these newer tests remain open. General
 publishing, multi-targeting, arbitrary package tasks and remote execution remain
-deferred. See the [current plan](spike-plan.md).
+deferred. See the [current plan](implementation-plan.md).
 
 ## CI repair (2026-09-05)
 

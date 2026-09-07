@@ -59,8 +59,8 @@ class GraphCacheAcceptance(unittest.TestCase):
             if not action["cacheHit"]:
                 self.assertIn(action["runner"], ("darwin-sandbox", "linux-sandbox"))
                 log = self.evidence(action["log"]).read_text()
-                markers = [line.split("SPIKE_COMPILE:", 1)[1].strip()
-                           for line in log.splitlines() if "SPIKE_COMPILE:" in line]
+                markers = [line.split("RULES_MSBUILD_COMPILE:", 1)[1].strip()
+                           for line in log.splitlines() if "RULES_MSBUILD_COMPILE:" in line]
                 self.assertEqual(markers, [action["project"]], "consumer compiled dependency or compiled twice")
         self.evidence(case["executionLog"])
         self.assertTrue(case["bundleFiles"], "no recovered artifacts")

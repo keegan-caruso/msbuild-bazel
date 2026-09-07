@@ -1,4 +1,4 @@
-namespace Spike.Binary;
+namespace RulesMsbuild.Binary;
 
 public static class Value
 {

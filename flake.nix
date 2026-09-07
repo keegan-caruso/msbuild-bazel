@@ -1,5 +1,5 @@
 {
-  description = "Pinned tools for the MSBuild/Bazel boundary experiment";
+  description = "Pinned tools for rules_msbuild";
 
   # This revision contains both experimental baseline versions.
   inputs.nixpkgs.url = "github:NixOS/nixpkgs/74c7dbb8e8adc9fdd3e734d7fd85f36f5421a2f9";
@@ -21,8 +21,8 @@
             assert bazel.version == pins.bazel.version;
             pkgs.mkShell {
               packages = [ dotnet bazel pkgs.python3 pkgs.bash pkgs.git pkgs.curl ];
-              SPIKE_DOTNET_ROOT = "${dotnet}/share/dotnet";
-              SPIKE_BAZEL = "${bazel}/bin/bazel";
+              RULES_MSBUILD_DOTNET_ROOT = "${dotnet}/share/dotnet";
+              RULES_MSBUILD_BAZEL = "${bazel}/bin/bazel";
               DOTNET_ROOT = "${dotnet}/share/dotnet";
               DOTNET_CLI_TELEMETRY_OPTOUT = "1";
               DOTNET_NOLOGO = "1";

@@ -26,7 +26,7 @@ remote-execution, general NuGet or cross-platform claim follows.
 
 Use a fresh copy of the exporter test's diamond: Shared supplies `shared-v1`;
 Left and Right append `:left` and `:right`; App prints the two joined by `|`.
-Instrument compile logs with exactly one `SPIKE_COMPILE:<relative-csproj-path>`
+Instrument compile logs with exactly one `RULES_MSBUILD_COMPILE:<relative-csproj-path>`
 line per real compilation. Never build the checked-in fixture. Baseline output
 must come from an ordinary MSBuild static-graph build in a separate copy.
 

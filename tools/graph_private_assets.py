@@ -24,23 +24,23 @@ def configure(workspace, package_feed, version='1.0.0', private_assets=None):
     feed = package_feed.relative_to(workspace).as_posix()
     project = workspace / 'src/Left/Left.csproj'
     tree = ET.parse(project)
-    reference = tree.getroot().find('.//PackageReference[@Include="Spike.Binary"]')
+    reference = tree.getroot().find('.//PackageReference[@Include="RulesMsbuild.Binary"]')
     if reference is None:
         reference = ET.SubElement(ET.SubElement(tree.getroot(), 'ItemGroup'),
-                                  'PackageReference', Include='Spike.Binary')
+                                  'PackageReference', Include='RulesMsbuild.Binary')
     reference.set('Version', '[' + version + ']')
     if private_assets is None:
         reference.attrib.pop('PrivateAssets', None)
     else:
         reference.set('PrivateAssets', private_assets)
     tree.write(project)
-    (project.parent / 'Value.cs').write_text('namespace Left; public static class Value { public static string Text => Shared.Message.Value + ":left/" + Spike.Binary.Value.Read().Split(\'/\')[0].Replace("binary-", "package-"); }\n')
+    (project.parent / 'Value.cs').write_text('namespace Left; public static class Value { public static string Text => Shared.Message.Value + ":left/" + RulesMsbuild.Binary.Value.Read().Split(\'/\')[0].Replace("binary-", "package-"); }\n')
     config = ET.parse(workspace / 'NuGet.Config')
     sources = config.getroot().find('packageSources')
     for item in list(sources):
-        if item.get('key') == 'spike-local':
+        if item.get('key') == 'rules-msbuild-local':
             sources.remove(item)
-    ET.SubElement(sources, 'add', key='spike-local', value=feed)
+    ET.SubElement(sources, 'add', key='rules-msbuild-local', value=feed)
     config.write(workspace / 'NuGet.Config')
 
 
@@ -81,7 +81,7 @@ def probe(output):
             node['outputFiles'] = sorted(p.name for p in (workspace / 'src' / project / 'bin/Release/net10.0').iterdir() if p.is_file())
         app_output = workspace / 'src/App/bin/Release/net10.0'
         package_copies = {}
-        for package in ('Spike.Binary', 'Spike.Leaf'):
+        for package in ('RulesMsbuild.Binary', 'RulesMsbuild.Leaf'):
             assembly = package + '.dll'
             installed = workspace / '.nuget/packages' / package.lower() / '1.0.0'
             digest = lambda path: hashlib.sha256(path.read_bytes()).hexdigest()
@@ -94,7 +94,7 @@ def probe(output):
         runtime = run(name + '-runtime', [dotnet, isolated / 'App.dll'], isolated, expected_success=False)
         # Direct App package access is a separate compiler visibility control.
         program = workspace / 'src/App/Program.cs'
-        program.write_text(program.read_text() + '\nConsole.WriteLine(Spike.Binary.Value.Read());\n')
+        program.write_text(program.read_text() + '\nConsole.WriteLine(RulesMsbuild.Binary.Value.Read());\n')
         visible = run(name + '-visibility', [dotnet, 'msbuild', 'src/App/App.csproj', '-t:Build', '-graphBuild', '-isolateProjects', '-p:Configuration=Release', '-nodeReuse:false', '-nologo'], workspace, expected_success=False)
         deps = json.loads((app_output / 'App.deps.json').read_text())
         cases[name] = dict(privateAssets=metadata, nodes=nodes, packageCopies=package_copies,

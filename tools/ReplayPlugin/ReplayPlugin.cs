@@ -32,14 +32,14 @@ public sealed class ReplayPlugin : ProjectCachePluginBase
 
     public override Task BeginBuildAsync(CacheContext context, PluginLoggerBase logger, CancellationToken token)
     {
-        workspace = Environment.GetEnvironmentVariable("SPIKE_REPLAY_WORKSPACE")!;
-        bundle = Environment.GetEnvironmentVariable("SPIKE_REPLAY_BUNDLE")!;
-        mode = Environment.GetEnvironmentVariable("SPIKE_REPLAY_MODE")!;
-        graphProject = Environment.GetEnvironmentVariable("SPIKE_GRAPH_PROJECT");
-        var dependencies = Environment.GetEnvironmentVariable("SPIKE_GRAPH_DEPENDENCIES");
+        workspace = Environment.GetEnvironmentVariable("RULES_MSBUILD_REPLAY_WORKSPACE")!;
+        bundle = Environment.GetEnvironmentVariable("RULES_MSBUILD_REPLAY_BUNDLE")!;
+        mode = Environment.GetEnvironmentVariable("RULES_MSBUILD_REPLAY_MODE")!;
+        graphProject = Environment.GetEnvironmentVariable("RULES_MSBUILD_GRAPH_PROJECT");
+        var dependencies = Environment.GetEnvironmentVariable("RULES_MSBUILD_GRAPH_DEPENDENCIES");
         if (graphProject is not null && dependencies is not null)
             graphBundles = JsonSerializer.Deserialize<string[]>(dependencies)!;
-        var configuredProperties = Environment.GetEnvironmentVariable("SPIKE_GRAPH_PROPERTIES");
+        var configuredProperties = Environment.GetEnvironmentVariable("RULES_MSBUILD_GRAPH_PROPERTIES");
         if (configuredProperties is not null) {
             graphProperties = JsonSerializer.Deserialize<Dictionary<string, string>>(configuredProperties)!;
             // -graphBuild injects this global into every request and capture.
@@ -107,7 +107,7 @@ public sealed class ReplayPlugin : ProjectCachePluginBase
             return Task.FromResult(CacheResult.IndicateNonCacheHit(CacheResultType.CacheMiss));
         if (graphProject is null && project != "Shared/Shared.csproj")
             return Task.FromResult(CacheResult.IndicateNonCacheHit(CacheResultType.CacheNotApplicable));
-        Console.WriteLine("SPIKE_REPLAY_REQUEST:" + string.Join(";", request.TargetNames));
+        Console.WriteLine("RULES_MSBUILD_REPLAY_REQUEST:" + string.Join(";", request.TargetNames));
         if (graphProject is null && mode == "capture") return Task.FromResult(CacheResult.IndicateNonCacheHit(CacheResultType.CacheMiss));
         var matches = graphProject is null ? [bundle] : graphBundles.Where(candidate => {
             var data = JsonSerializer.Deserialize<Payload>(File.ReadAllText(Path.Combine(candidate, "results.json")), Json)!;
@@ -150,7 +150,7 @@ public sealed class ReplayPlugin : ProjectCachePluginBase
                 foreach (var metadata in item.Metadata) result.SetMetadata(metadata.Key, Expand(metadata.Value));
                 return result;
             }).ToArray(), BuildResultCode.Success)).ToArray();
-        Console.WriteLine("SPIKE_REPLAY_HIT:" + Path.GetFileNameWithoutExtension(project));
+        Console.WriteLine("RULES_MSBUILD_REPLAY_HIT:" + Path.GetFileNameWithoutExtension(project));
         return Task.FromResult(CacheResult.IndicateCacheHit(results));
     }
 
@@ -166,7 +166,7 @@ public sealed class ReplayPlugin : ProjectCachePluginBase
         });
         File.WriteAllText(PayloadPath, JsonSerializer.Serialize(new Payload(1, "10.0.100", Engine,
             graphProject ?? "Shared/Shared.csproj", "net10.0", RootMappings, Properties(context.GlobalProperties), context.Targets.ToArray(), targets), Json));
-        Console.WriteLine("SPIKE_REPLAY_CAPTURE:" + string.Join(";", targets.Keys));
+        Console.WriteLine("RULES_MSBUILD_REPLAY_CAPTURE:" + string.Join(";", targets.Keys));
         return Task.CompletedTask;
     }
     public override Task EndBuildAsync(PluginLoggerBase logger, CancellationToken token) => Task.CompletedTask;

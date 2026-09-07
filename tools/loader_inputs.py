@@ -46,7 +46,7 @@ def prepare(workspace, sdk, closure):
     else:
         # An ELF trailing marker changes bytes without changing load segments.
         with second.open('ab') as stream:
-            stream.write(b'\nspike-jit-payload-v2\n')
+            stream.write(b'\nadapter-jit-payload-v2\n')
     first_info, second_info = manifest(first, library), manifest(second, library)
     if first_info['sha256'] == second_info['sha256']:
         raise ValueError('JIT variants must differ')

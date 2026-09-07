@@ -19,8 +19,8 @@ import loader_inputs
 from bazel_session import BazelSession
 
 ROOT = Path(__file__).resolve().parents[1]
-DOTNET = Path(os.environ.get('SPIKE_DOTNET_ROOT', ROOT / '.tools/dotnet')) / 'dotnet'
-BAZEL = Path(os.environ.get('SPIKE_BAZEL', ROOT / '.tools/bin/bazel'))
+DOTNET = Path(os.environ.get('RULES_MSBUILD_DOTNET_ROOT', ROOT / '.tools/dotnet')) / 'dotnet'
+BAZEL = Path(os.environ.get('RULES_MSBUILD_BAZEL', ROOT / '.tools/bin/bazel'))
 
 
 def json_stream(path):
@@ -58,7 +58,7 @@ def _probe(output, identity, package_mode, staging, native_runtime, binary_packa
                DOTNET_NOLOGO='1', DOTNET_CLI_TELEMETRY_OPTOUT='1')
 
     if identity:
-        env['SPIKE_INPUT_FLAVOR'] = 'env-v1'
+        env['RULES_MSBUILD_INPUT_FLAVOR'] = 'env-v1'
 
     def run(name, command, cwd=workspace, require=True):
         if str(command[0]) == str(BAZEL):
@@ -98,15 +98,15 @@ def _probe(output, identity, package_mode, staging, native_runtime, binary_packa
         source.write_text(source.read_text().replace('"shared-v1"', '"shared-v1" + "/" + Inputs.Value'))
         (prepare / 'Shared/value.txt').write_text('data-v1\n')
         (prepare / 'Shared/BuildInputs.targets').write_text('''<Project>
-  <PropertyGroup><SpikeImportVersion>import-v1</SpikeImportVersion></PropertyGroup>
+  <PropertyGroup><RulesMsbuildImportVersion>import-v1</RulesMsbuildImportVersion></PropertyGroup>
   <Target Name="GenerateSharedInput" BeforeTargets="CoreCompile">
     <ReadLinesFromFile File="$(MSBuildProjectDirectory)/value.txt">
-      <Output TaskParameter="Lines" PropertyName="_SpikeInput" />
+      <Output TaskParameter="Lines" PropertyName="_RulesMsbuildInput" />
     </ReadLinesFromFile>
-    <WriteLinesToFile File="$(IntermediateOutputPath)SpikeInputs.g.cs"
-      Lines="namespace Shared { public static class Inputs { public const string Value = &quot;$(_SpikeInput)/$(SpikeImportVersion)/$(SPIKE_INPUT_FLAVOR)&quot;%3B } }"
+    <WriteLinesToFile File="$(IntermediateOutputPath)RulesMsbuildInputs.g.cs"
+      Lines="namespace Shared { public static class Inputs { public const string Value = &quot;$(_RulesMsbuildInput)/$(RulesMsbuildImportVersion)/$(RULES_MSBUILD_INPUT_FLAVOR)&quot;%3B } }"
       Overwrite="true" />
-    <ItemGroup><Compile Include="$(IntermediateOutputPath)SpikeInputs.g.cs" /></ItemGroup>
+    <ItemGroup><Compile Include="$(IntermediateOutputPath)RulesMsbuildInputs.g.cs" /></ItemGroup>
   </Target>
 </Project>
 ''')
@@ -156,7 +156,7 @@ def _probe(output, identity, package_mode, staging, native_runtime, binary_packa
     settings = dict(plugin='ReplayPlugin.dll', build_props='runner/Action.props', build_targets='runner/Action.targets', runner='runner/ActionRunner.dll',
                     runner_support=['runner/ActionRunner.deps.json', 'runner/ActionRunner.runtimeconfig.json'], sdk='@dotnet//:files',
                     dotnet='@dotnet//:sdk/dotnet',
-                    host_identity='host-identity.json', build_environment={'SPIKE_INPUT_FLAVOR': 'env-v1'} if identity else {})
+                    host_identity='host-identity.json', build_environment={'RULES_MSBUILD_INPUT_FLAVOR': 'env-v1'} if identity else {})
     if native_runtime:
         settings.update(native_runtime='@native//:files', native_manifest='runtime-closure.json')
     def rule(name, project, sources, restore, dependency=None, undeclared_probe=''):
@@ -276,14 +276,14 @@ def _probe(output, identity, package_mode, staging, native_runtime, binary_packa
         build_file = workspace / 'BUILD.bazel'
         build_file.write_text(build_file.read_text().replace('env-v1', 'env-v2'))
         build_case('environmentEdit')
-        env['SPIKE_INPUT_FLAVOR'] = 'ambient-must-not-leak'
+        env['RULES_MSBUILD_INPUT_FLAVOR'] = 'ambient-must-not-leak'
         env['PYTHONPATH'] = '/does-not-exist'
         build_case('ambientEnvironment')
         restore = workspace / 'restore/App.json'
         state = json.loads(restore.read_text())
         key = 'App/obj/project.assets.json'
         assets = json.loads(state[key])
-        assets['spikeIdentityProbe'] = 1
+        assets['adapterIdentityProbe'] = 1
         state[key] = json.dumps(assets)
         restore.write_text(json.dumps(state, indent=2))
         build_case('restoreEdit')
@@ -316,13 +316,13 @@ def _probe(output, identity, package_mode, staging, native_runtime, binary_packa
             # copytree preserves Bazel's read-only output directory mode.
             # Make only this private negative-control copy writable.
             isolated.chmod(isolated.stat().st_mode | 0o200)
-            (isolated / 'Spike.Leaf.dll').unlink()
+            (isolated / 'RulesMsbuild.Leaf.dll').unlink()
             failure = run('missingRuntimeAsset', [DOTNET, isolated / 'App.dll'], cwd=isolated, require=False)
-            if failure.returncode == 0 or 'Spike.Leaf' not in failure.stdout:
+            if failure.returncode == 0 or 'RulesMsbuild.Leaf' not in failure.stdout:
                 raise RuntimeError('missing transitive runtime asset did not fail execution')
         def package_failure(name):
             failure = run(name, startup + ['build', '//:app', *flags], require=False)
-            if failure.returncode == 0 or 'SPIKE_COMPILE:' in failure.stdout or 'package' not in failure.stdout.lower():
+            if failure.returncode == 0 or 'RULES_MSBUILD_COMPILE:' in failure.stdout or 'package' not in failure.stdout.lower():
                 raise RuntimeError('package rejection was not observed: ' + name)
         build_file = workspace / 'BUILD.bazel'
         original_build = build_file.read_text()
@@ -333,7 +333,7 @@ def _probe(output, identity, package_mode, staging, native_runtime, binary_packa
             build_file.write_text(re.sub(r'"packages/[^"]+\.nupkg\.sha512",? ?', '', original_build))
             package_failure('missingPackageMarker')
             build_file.write_text(original_build)
-        payload = workspace / ('packages/spike.leaf/1.0.1/lib/net10.0/Spike.Leaf.dll' if binary_packages else 'packages/spike.buildinputs/1.0.2/data/value.txt')
+        payload = workspace / ('packages/rulesmsbuild.leaf/1.0.1/lib/net10.0/RulesMsbuild.Leaf.dll' if binary_packages else 'packages/rulesmsbuild.buildinputs/1.0.2/data/value.txt')
         original_payload = payload.read_bytes()
         payload.write_bytes(original_payload + b'corrupt')
         package_failure('corruptPackage')
@@ -347,7 +347,7 @@ def _probe(output, identity, package_mode, staging, native_runtime, binary_packa
             manifest = workspace / 'package-manifests/Shared.json'
             original_manifest = manifest.read_text()
             value = json.loads(original_manifest)
-            value['packages'] = [p for p in value['packages'] if p['id'] != 'Spike.Leaf']
+            value['packages'] = [p for p in value['packages'] if p['id'] != 'RulesMsbuild.Leaf']
             manifest.write_text(json.dumps(value))
             package_failure('missingTransitivePackage')
             manifest.write_text(original_manifest)
@@ -362,7 +362,7 @@ def _probe(output, identity, package_mode, staging, native_runtime, binary_packa
         build_file.write_text(original.replace('"@native//:files"', '"empty-runtime"') + '\nfilegroup(name="empty-runtime")\n')
         failure = run('missingNativeRuntime', startup + ['build', '//:app', *flags], require=False)
         build_file.write_text(original)
-        if failure.returncode == 0 or 'native runtime closure declaration mismatch' not in failure.stdout or 'SPIKE_COMPILE:' in failure.stdout:
+        if failure.returncode == 0 or 'native runtime closure declaration mismatch' not in failure.stdout or 'RULES_MSBUILD_COMPILE:' in failure.stdout:
             raise RuntimeError('native runtime rejection not observed')
         # Substitute a workspace copy of an external native library. Absolute
         # Nix loader paths still use the installed library: this tests declared
@@ -384,7 +384,7 @@ def _probe(output, identity, package_mode, staging, native_runtime, binary_packa
             stream.seek(0)
             stream.write(bytes([first[0] ^ 1]))
         failure = run('corruptNativeRuntime', startup + ['build', '//:app', *flags], require=False)
-        if failure.returncode == 0 or 'native runtime closure payload mismatch' not in failure.stdout or 'SPIKE_COMPILE:' in failure.stdout:
+        if failure.returncode == 0 or 'native runtime closure payload mismatch' not in failure.stdout or 'RULES_MSBUILD_COMPILE:' in failure.stdout:
             raise RuntimeError('native runtime payload rejection not observed')
         original_hash = entry['sha256']
         entry['sha256'] = hashlib.sha256(payload.read_bytes()).hexdigest()
@@ -444,7 +444,7 @@ def _probe(output, identity, package_mode, staging, native_runtime, binary_packa
         jit_build = build_file.read_text()
         def jit_failure(name, expected):
             failure = run(name, startup + ['build', '//:app', *flags], require=False)
-            if failure.returncode == 0 or 'SPIKE_COMPILE:' in failure.stdout or expected not in failure.stdout:
+            if failure.returncode == 0 or 'RULES_MSBUILD_COMPILE:' in failure.stdout or expected not in failure.stdout:
                 raise RuntimeError('JIT rejection not observed: ' + name)
         build_file.write_text('\n'.join(line for line in jit_build.splitlines() if 'loader_jit =' not in line))
         jit_failure('jitMissing', 'loader JIT requires payload')

@@ -41,7 +41,7 @@ Inside `nix develop`:
 bash scripts/dotnet.sh run --project tests/ActionRunner.Tests -c Release
 python3 tools/probe_bazel.py --staging-probe --output artifacts/build-policy-1
 python3 tools/probe_bazel.py --package-probe --output artifacts/build-policy-packages-1
-SPIKE_NATIVE_RUNTIME_TEST=1 python3 -m unittest discover -s tests/e2e -v
+RULES_MSBUILD_NATIVE_RUNTIME_TEST=1 python3 -m unittest discover -s tests/e2e -v
 ```
 
 The focused console tests use no test-framework package. The e2e harness invokes

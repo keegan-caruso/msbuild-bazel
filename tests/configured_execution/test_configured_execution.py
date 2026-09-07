@@ -38,7 +38,7 @@ class ConfiguredExecution(unittest.TestCase):
                 if action['cacheHit']: continue
                 self.assertIn(action['runner'], ('darwin-sandbox', 'linux-sandbox'))
                 self.assertEqual(action['compiledProjects'], [Path(action['project']).stem])
-                markers = re.findall(r'SPIKE_COMPILE:([^\r\n]+)', (output / action['log']).read_text())
+                markers = re.findall(r'RULES_MSBUILD_COMPILE:([^\r\n]+)', (output / action['log']).read_text())
                 self.assertEqual([m.strip() for m in markers], [action['project'].removeprefix('workspace/')])
                 self.assertTrue((output / action['log']).is_file())
             canonical = {}

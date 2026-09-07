@@ -9,12 +9,12 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[2] / 'tools'))
 from probe_test_action import probe
 
 
-SOURCE = os.environ.get('SPIKE_SERILOG_SOURCE') or os.environ.get('SERILOG_SOURCE')
-PACKAGES = os.environ.get('SPIKE_SERILOG_PACKAGES') or os.environ.get('SERILOG_PACKAGES')
+SOURCE = os.environ.get('RULES_MSBUILD_SERILOG_SOURCE') or os.environ.get('SERILOG_SOURCE')
+PACKAGES = os.environ.get('RULES_MSBUILD_SERILOG_PACKAGES') or os.environ.get('SERILOG_PACKAGES')
 
 
 @unittest.skipUnless(SOURCE and PACKAGES,
-                     'set SPIKE_SERILOG_SOURCE and SPIKE_SERILOG_PACKAGES to pinned acquired upstream inputs')
+                     'set RULES_MSBUILD_SERILOG_SOURCE and RULES_MSBUILD_SERILOG_PACKAGES to pinned acquired upstream inputs')
 class NativeTestRule(unittest.TestCase):
     def test_retained_results_and_no_source_checkout(self):
         parent = Path(tempfile.mkdtemp(prefix='msbuild-test-action-')).resolve()

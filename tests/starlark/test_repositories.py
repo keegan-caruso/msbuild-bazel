@@ -9,7 +9,7 @@ import tempfile
 import unittest
 
 ROOT = Path(__file__).resolve().parents[2]
-BAZEL = Path(os.environ.get('SPIKE_BAZEL', ROOT / '.tools/bin/bazel'))
+BAZEL = Path(os.environ.get('RULES_MSBUILD_BAZEL', ROOT / '.tools/bin/bazel'))
 
 
 class RepositoryContracts(unittest.TestCase):
@@ -61,7 +61,7 @@ class RepositoryContracts(unittest.TestCase):
         self.query('@dotnet//:files', error='external_imports require explicit Nix SDK import paths')
 
     def test_installed_sdk_exports_real_tool_files(self):
-        sdk = Path(os.environ.get('SPIKE_DOTNET_ROOT', ROOT / '.tools/dotnet')).resolve()
+        sdk = Path(os.environ.get('RULES_MSBUILD_DOTNET_ROOT', ROOT / '.tools/dotnet')).resolve()
         self.assertTrue((sdk / 'dotnet').is_file(), 'Install the pinned SDK before S05 acceptance')
         self.sdk(sdk)
         # Query labels instead of reading the entire SDK into memory.

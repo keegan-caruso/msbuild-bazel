@@ -16,7 +16,7 @@ class PrivateAssetsBaseline(unittest.TestCase):
         report = probe(evidence)
         print('PrivateAssets evidence: ' + str(evidence), flush=True)
         self.assertEqual(report['schemaVersion'], 1)
-        expected_packages = ['Spike.Binary/1.0.0', 'Spike.Leaf/1.0.0']
+        expected_packages = ['RulesMsbuild.Binary/1.0.0', 'RulesMsbuild.Leaf/1.0.0']
         self.assertEqual(report['cases']['default']['privateAssets'], DEFAULT_PRIVATE_ASSETS)
         for name, case in report['cases'].items():
             with self.subTest(private_assets=name):
@@ -39,16 +39,16 @@ class PrivateAssetsBaseline(unittest.TestCase):
                     self.assertEqual(case['appDirectPackageCompileDiagnostic'], 'CS0103')
                     self.assertNotEqual(case['runtimeReturncode'], 0)
                     self.assertIn('FileNotFoundException', case['runtimeError'])
-                    self.assertIn('Spike.Binary', case['runtimeError'])
-                    self.assertNotIn('Spike.Binary.dll', app['outputFiles'])
-                    self.assertNotIn('Spike.Leaf.dll', app['outputFiles'])
+                    self.assertIn('RulesMsbuild.Binary', case['runtimeError'])
+                    self.assertNotIn('RulesMsbuild.Binary.dll', app['outputFiles'])
+                    self.assertNotIn('RulesMsbuild.Leaf.dll', app['outputFiles'])
                 else:
                     self.assertEqual(app['packages'], expected_packages)
                     self.assertEqual(case['appDirectPackageCompileReturncode'], 0)
                     self.assertEqual(case['runtimeReturncode'], 0, case['runtimeError'])
                     self.assertEqual(case['runtimeOutput'], 'shared-v1:left/package-v1|shared-v1:right')
-                    self.assertIn('Spike.Binary.dll', app['outputFiles'])
-                    self.assertIn('Spike.Leaf.dll', app['outputFiles'])
+                    self.assertIn('RulesMsbuild.Binary.dll', app['outputFiles'])
+                    self.assertIn('RulesMsbuild.Leaf.dll', app['outputFiles'])
         self.assertEqual(json.loads((evidence / 'report.json').read_text()), report)
 
 

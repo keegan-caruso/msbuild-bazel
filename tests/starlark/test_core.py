@@ -16,7 +16,7 @@ from prepare_graph import prepare, write_build, DOTNET_ROOT
 from test_export_graph import write_fixture
 from starlark import call
 
-BAZEL = Path(os.environ.get('SPIKE_BAZEL', ROOT / '.tools/bin/bazel'))
+BAZEL = Path(os.environ.get('RULES_MSBUILD_BAZEL', ROOT / '.tools/bin/bazel'))
 
 
 class CoreValidation(unittest.TestCase):

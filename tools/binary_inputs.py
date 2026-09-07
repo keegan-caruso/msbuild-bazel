@@ -15,12 +15,12 @@ FIXTURE = Path(__file__).resolve().parents[1] / 'tests/fixtures/binary-packages'
 def archive(project, package_id, version, dependency=None):
     root = ET.Element('package')
     metadata = ET.SubElement(root, 'metadata')
-    for key, value in dict(id=package_id, version=version, authors='Spike',
+    for key, value in dict(id=package_id, version=version, authors='Adapter',
                            description='Managed binary boundary fixture').items():
         ET.SubElement(metadata, key).text = value
     if dependency:
         group = ET.SubElement(ET.SubElement(metadata, 'dependencies'), 'group', targetFramework='net10.0')
-        ET.SubElement(group, 'dependency', id='Spike.Leaf', version=f'[{dependency}]')
+        ET.SubElement(group, 'dependency', id='RulesMsbuild.Leaf', version=f'[{dependency}]')
     files = {
         package_id + '.nuspec': ET.tostring(root),
         f'lib/net10.0/{package_id}.dll': (project / f'bin/Release/net10.0/{package_id}.dll').read_bytes(),
@@ -55,8 +55,8 @@ class Packages:
                 '-p:EnableSourceLink=false', '-p:Deterministic=true',
                 f'-p:PathMap={source}=/_/package-fixture'], source)
             for name, selected, dependency in (('Leaf', leaf_version, None), ('Binary', version, leaf_version)):
-                identity = f'Spike.{name}/{selected}'
-                contents = archive(source / name, 'Spike.' + name, selected, dependency)
+                identity = f'RulesMsbuild.{name}/{selected}'
+                contents = archive(source / name, 'RulesMsbuild.' + name, selected, dependency)
                 if identity in self.archives and self.archives[identity] != contents:
                     raise ValueError('binary package preparation is not deterministic: ' + identity)
                 self.archives[identity] = contents
@@ -77,18 +77,18 @@ class Packages:
         reference = tree.getroot().find('.//PackageReference')
         if reference is None:
             reference = ET.SubElement(ET.SubElement(tree.getroot(), 'ItemGroup'),
-                                      'PackageReference', Include='Spike.Binary')
+                                      'PackageReference', Include='RulesMsbuild.Binary')
             source = next((workspace / 'Shared').glob('*.cs'))
             source.write_text(source.read_text().replace('"shared-v1"',
-                '"shared-v1/" + Spike.Binary.Value.Read()'))
+                '"shared-v1/" + RulesMsbuild.Binary.Value.Read()'))
         reference.set('Version', f'[{version}]')
         tree.write(project)
         config = ET.parse(workspace / 'NuGet.Config')
         sources = config.getroot().find('packageSources')
         for item in list(sources):
-            if item.get('key') == 'spike-local':
+            if item.get('key') == 'rules-msbuild-local':
                 sources.remove(item)
-        ET.SubElement(sources, 'add', key='spike-local', value=str(package_feed))
+        ET.SubElement(sources, 'add', key='rules-msbuild-local', value=str(package_feed))
         config.write(workspace / 'NuGet.Config')
 
     def stage(self, preparation, workspace, pins):

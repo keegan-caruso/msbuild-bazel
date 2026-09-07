@@ -25,7 +25,7 @@ absolute Nix loader paths. A build accepting the changed copy therefore does
 upgrade. It exposes the distinction between hashing a declaration and forcing
 the loader to use it.
 
-`trace_runtime = True` marks a separate action with `SPIKE_TRACE_RUNTIME=1`.
+`trace_runtime = True` marks a separate action with `RULES_MSBUILD_TRACE_RUNTIME=1`.
 The runner sets `DYLD_PRINT_LIBRARIES=1` and `LD_DEBUG=libs` directly on its
 MSBuild child process and redirects loader output into the declared diagnostics
 directory (`DYLD_PRINT_TO_FILE` / `LD_DEBUG_OUTPUT`). The harness extracts dyld
@@ -42,7 +42,7 @@ Inside the pinned Nix development shell:
 
 ```sh
 python3 tools/probe_bazel.py --native-runtime-probe --output artifacts/native-integrity-3
-SPIKE_NATIVE_RUNTIME_TEST=1 python3 -m unittest discover -s tests/e2e -p test_bazel_boundary.py -k native_runtime -v
+RULES_MSBUILD_NATIVE_RUNTIME_TEST=1 python3 -m unittest discover -s tests/e2e -p test_bazel_boundary.py -k native_runtime -v
 bash scripts/dotnet.sh run --project tests/ActionRunner.Tests -c Release
 ```
 

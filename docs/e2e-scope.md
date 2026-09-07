@@ -16,7 +16,7 @@ ARM64 (see [findings](findings.md)). .NET 10.0.100, net10.0, Release; two projec
 
 Tests use fresh copied workspaces, isolated NuGet package directories, subprocess timeouts and retained logs on failure. They test the public process contract, not private helper functions. No mocks, sleeps, timing assertions, unconditional skips or expected failures may substitute for running the build.
 
-The original tests were run before `tools/spike.py` existed; see the historical
+The original tests were run before `tools/adapter.py` existed; see the historical
 red-run evidence below. The driver is now implemented and these tests must pass.
 
 ## Path-probe evidence
@@ -89,4 +89,4 @@ and blocks expanding into these areas.
 
 ## Red-run evidence
 
-Before implementation: `python3 -m unittest discover -s tests/e2e -v` ran six tests; all six failed because the public `tools/spike.py` entry point did not exist. No skips or expected-failure annotations were used.
+Before implementation: `python3 -m unittest discover -s tests/e2e -v` ran six tests; all six failed because the public `tools/adapter.py` entry point did not exist. No skips or expected-failure annotations were used.

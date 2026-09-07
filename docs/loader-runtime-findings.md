@@ -49,12 +49,12 @@ Inside the pinned Nix development shell:
 
 ```sh
 python3 tools/probe_bazel.py --native-runtime-probe --output artifacts/loader-runtime-1
-SPIKE_NATIVE_RUNTIME_TEST=1 python3 -m unittest discover -s tests/e2e -p test_bazel_boundary.py -k native_runtime -v
+RULES_MSBUILD_NATIVE_RUNTIME_TEST=1 python3 -m unittest discover -s tests/e2e -p test_bazel_boundary.py -k native_runtime -v
 ```
 
 The existing Nix CI workflow runs the extended test on Linux. Both setup and
 Nix workflows also run the .NET runner contract tests. Set
-`SPIKE_NATIVE_EVIDENCE_DIR` to retain the successful native test's top-level
+`RULES_MSBUILD_NATIVE_EVIDENCE_DIR` to retain the successful native test's top-level
 reports and logs; the Nix workflow uploads these as `native-runtime-evidence`.
 Absolute log paths in reports identify the original run directories; the
 archive retains log files by basename.
@@ -108,7 +108,7 @@ artifact reuse, or general input discovery. General graph export must not turn
 those unproven properties into implicit promises.
 
 The runtime boundary is sufficient to continue the deliberately host-bound,
-local-cache spike: declared bytes affect identity, one substituted library is
+local-cache experiment: declared bytes affect identity, one substituted library is
 observably loaded, and invalid bytes do not silently fall back. It is not
 sufficient for a hermetic or remotely cacheable general adapter. The next
 bounded milestone should cover ordinary NuGet compile/runtime assets and their

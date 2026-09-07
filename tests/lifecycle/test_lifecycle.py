@@ -40,8 +40,8 @@ class LifecycleAcceptance(unittest.TestCase):
             self.assertFalse(action['remoteCacheable'])
             if not action['cacheHit']:
                 self.assertIn(action['runner'], ('darwin-sandbox', 'linux-sandbox'))
-                markers = [line.split('SPIKE_COMPILE:', 1)[1].strip()
-                    for line in self.evidence(action['log']).read_text().splitlines() if 'SPIKE_COMPILE:' in line]
+                markers = [line.split('RULES_MSBUILD_COMPILE:', 1)[1].strip()
+                    for line in self.evidence(action['log']).read_text().splitlines() if 'RULES_MSBUILD_COMPILE:' in line]
                 self.assertEqual(markers, [action['project']])
                 targets = next(arg[3:] for arg in action['command'] if arg.startswith('-t:')).split(';')
                 self.assertIn('Build', targets)

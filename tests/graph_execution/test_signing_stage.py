@@ -12,10 +12,10 @@ sys.path.insert(0, str(ROOT / 'tools'))
 import probe_graph_execution
 
 
-@unittest.skipUnless(os.environ.get('SPIKE_SERILOG_SOURCE'), 'requires acquired pinned Serilog key fixture')
+@unittest.skipUnless(os.environ.get('RULES_MSBUILD_SERILOG_SOURCE'), 'requires acquired pinned Serilog key fixture')
 class SigningStageAcceptance(unittest.TestCase):
     def test_dependency_key_preserves_conditional_signing(self):
-        source = Path(os.environ['SPIKE_SERILOG_SOURCE'])
+        source = Path(os.environ['RULES_MSBUILD_SERILOG_SOURCE'])
         self.assertEqual(subprocess.check_output(['git', '-C', str(source), 'rev-parse', 'HEAD'], text=True).strip(),
                          '49b5339ce85385dc52d4d8e8f2b8308becf23506')
         original = probe_graph_execution.write_fixture

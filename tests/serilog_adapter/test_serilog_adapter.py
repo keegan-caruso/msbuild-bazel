@@ -10,13 +10,13 @@ sys.path.insert(0, str(ROOT / 'tools'))
 from probe_serilog_adapter import probe, REVISION
 
 
-@unittest.skipUnless(os.environ.get('SPIKE_SERILOG_SOURCE') and os.environ.get('SPIKE_SERILOG_PACKAGES'),
+@unittest.skipUnless(os.environ.get('RULES_MSBUILD_SERILOG_SOURCE') and os.environ.get('RULES_MSBUILD_SERILOG_PACKAGES'),
                      'provide the pinned source and acquired package cache; skip is not acceptance')
 class SerilogAdapter(unittest.TestCase):
     def test_pinned_library_native_mutations_and_relocation(self):
         output = Path(tempfile.mkdtemp(prefix='serilog-adapter-')) / 'probe'
         print('Serilog adapter evidence: ' + str(output), flush=True)
-        report = probe(os.environ['SPIKE_SERILOG_SOURCE'], os.environ['SPIKE_SERILOG_PACKAGES'], output)
+        report = probe(os.environ['RULES_MSBUILD_SERILOG_SOURCE'], os.environ['RULES_MSBUILD_SERILOG_PACKAGES'], output)
         self.assertTrue(report['accepted'])
         self.assertEqual(report['revision'], REVISION)
         self.assertEqual(set(report['cases']), {'cold', 'unchanged', 'source', 'resource', 'key', 'import', 'generatorOption', 'generatorVersion', 'relocated'})

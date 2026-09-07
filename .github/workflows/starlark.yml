@@ -51,9 +51,9 @@ jobs:
           nix develop --no-update-lock-file -c bash scripts/dotnet.sh restore artifacts/r04-generator-acquisition/Upgrade.csproj --packages "${{ runner.temp }}/serilog-packages"
       - name: Pinned Serilog library and unchanged approval Build/Test
         env:
-          SPIKE_SERILOG_SOURCE: ${{ github.workspace }}/artifacts/serilog-upstream
-          SPIKE_SERILOG_PACKAGES: ${{ runner.temp }}/serilog-packages
-          SPIKE_SERILOG_NATIVE_TESTS: '1'
+          RULES_MSBUILD_SERILOG_SOURCE: ${{ github.workspace }}/artifacts/serilog-upstream
+          RULES_MSBUILD_SERILOG_PACKAGES: ${{ runner.temp }}/serilog-packages
+          RULES_MSBUILD_SERILOG_NATIVE_TESTS: '1'
         run: |
           nix develop --no-update-lock-file -c python3 -m unittest discover -s tests/serilog_adapter -v
           nix develop --no-update-lock-file -c python3 -m unittest discover -s tests/test_action -v

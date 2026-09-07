@@ -19,10 +19,10 @@ import graph_packages
 from prepare_graph_tests import add_tests
 
 
-@unittest.skipUnless(os.environ.get('SPIKE_SERILOG_SOURCE') and os.environ.get('SPIKE_SERILOG_PACKAGES'), 'requires acquired pinned Serilog source/packages')
+@unittest.skipUnless(os.environ.get('RULES_MSBUILD_SERILOG_SOURCE') and os.environ.get('RULES_MSBUILD_SERILOG_PACKAGES'), 'requires acquired pinned Serilog source/packages')
 class ApprovalInputs(unittest.TestCase):
     def test_unchanged_approval_complete_packages(self):
-        source = Path(os.environ['SPIKE_SERILOG_SOURCE'])
+        source = Path(os.environ['RULES_MSBUILD_SERILOG_SOURCE'])
         revision = '49b5339ce85385dc52d4d8e8f2b8308becf23506'
         self.assertEqual(subprocess.check_output(['git','-C',str(source),'rev-parse','HEAD'], text=True).strip(), revision)
         evidence = Path(tempfile.mkdtemp(prefix='serilog-approval-inputs-')).resolve()
@@ -30,8 +30,8 @@ class ApprovalInputs(unittest.TestCase):
         with tarfile.open(fileobj=io.BytesIO(subprocess.check_output(['git','-C',str(source),'archive',revision]))) as archive:
             archive.extractall(work, filter='data')
         for identity in graph_packages.PILOT_PACKAGES:
-            shutil.copytree(Path(os.environ['SPIKE_SERILOG_PACKAGES']) / identity, work / '.nuget/packages' / identity)
-        sdk = Path(os.environ['SPIKE_DOTNET_ROOT'])
+            shutil.copytree(Path(os.environ['RULES_MSBUILD_SERILOG_PACKAGES']) / identity, work / '.nuget/packages' / identity)
+        sdk = Path(os.environ['RULES_MSBUILD_DOTNET_ROOT'])
         env = dict(os.environ, NUGET_PACKAGES=str(work / '.nuget/packages'), DOTNET_CLI_HOME=str(evidence / 'home'), MSBUILDDISABLENODEREUSE='1')
         def run(name, args, error=None):
             result = subprocess.run([str(sdk/'dotnet'), *map(str,args)], cwd=work, env=env, capture_output=True, text=True, timeout=240)

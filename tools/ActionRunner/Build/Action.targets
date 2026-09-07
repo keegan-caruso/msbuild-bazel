@@ -1,9 +1,9 @@
 <Project>
-  <Import Project="$(SPIKE_REPLAY_WORKSPACE)/Directory.Build.targets" />
-  <PropertyGroup Condition="'$(SPIKE_GRAPH_SELECTION_TARGETS)' != ''">
-    <AfterMicrosoftNETSdkTargets>$(AfterMicrosoftNETSdkTargets);$(SPIKE_GRAPH_SELECTION_TARGETS)</AfterMicrosoftNETSdkTargets>
+  <Import Project="$(RULES_MSBUILD_REPLAY_WORKSPACE)/Directory.Build.targets" />
+  <PropertyGroup Condition="'$(RULES_MSBUILD_GRAPH_SELECTION_TARGETS)' != ''">
+    <AfterMicrosoftNETSdkTargets>$(AfterMicrosoftNETSdkTargets);$(RULES_MSBUILD_GRAPH_SELECTION_TARGETS)</AfterMicrosoftNETSdkTargets>
   </PropertyGroup>
   <ItemGroup>
-    <ProjectCachePlugin Include="$(SPIKE_REPLAY_PLUGIN)" />
+    <ProjectCachePlugin Include="$(RULES_MSBUILD_REPLAY_PLUGIN)" />
   </ItemGroup>
 </Project>

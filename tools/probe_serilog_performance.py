@@ -715,7 +715,7 @@ def main():
     parser.add_argument('--repetitions', type=int, default=5)
     parser.add_argument('--host-note', default='exclusive local measurement window; operator must confirm competing workload state')
     parser.add_argument('--bazel-mode', choices=('server', 'batch'),
-                        default=os.environ.get('SPIKE_BAZEL_MODE', 'server'))
+                        default=os.environ.get('RULES_MSBUILD_BAZEL_MODE', 'server'))
     parser.add_argument('--describe-plan', action='store_true')
     parser.add_argument('--internal-prepare', action='store_true', help=argparse.SUPPRESS)
     parser.add_argument('--manifest', type=Path, help=argparse.SUPPRESS)

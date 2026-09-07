@@ -29,13 +29,13 @@ class GraphCacheAcceptance(package_free.GraphCacheAcceptance):
         pins = json.loads(self.evidence(evidence['pins']).read_text())
         for prefix in ('before', 'after'):
             version = evidence[prefix + 'Version']
-            archive = self.evidence(f'pinned-package-archives/Spike.Binary.{version}.nupkg')
-            self.assertEqual(hashlib.sha256(archive.read_bytes()).hexdigest(), pins['Spike.Binary/' + version])
-            self.assertEqual(evidence[prefix + 'ArchiveSha256'], pins['Spike.Binary/' + version])
+            archive = self.evidence(f'pinned-package-archives/RulesMsbuild.Binary.{version}.nupkg')
+            self.assertEqual(hashlib.sha256(archive.read_bytes()).hexdigest(), pins['RulesMsbuild.Binary/' + version])
+            self.assertEqual(evidence[prefix + 'ArchiveSha256'], pins['RulesMsbuild.Binary/' + version])
             payload = self.evidence(evidence[prefix + 'PayloadFile'])
             self.assertEqual(hashlib.sha256(payload.read_bytes()).hexdigest(), evidence[prefix + 'PayloadSha256'])
             with zipfile.ZipFile(archive) as package:
-                self.assertEqual(payload.read_bytes(), package.read('lib/net10.0/Spike.Binary.dll'))
+                self.assertEqual(payload.read_bytes(), package.read('lib/net10.0/RulesMsbuild.Binary.dll'))
             manifest = json.loads(self.evidence(evidence[prefix + 'Manifest']).read_text())
             nodes = {n['project'].removeprefix('workspace/'): n for n in manifest['nodes']}
             for project in ('Shared', 'Right'):
@@ -73,7 +73,7 @@ class GraphCacheAcceptance(package_free.GraphCacheAcceptance):
                 self.assertEqual(hashlib.sha256(manifest.read_bytes()).hexdigest(), case['manifestSha256'])
                 log = self.evidence(case['log']).read_text()
                 self.assertIn(diagnostic, log)
-                self.assertNotIn('SPIKE_COMPILE:', log)
+                self.assertNotIn('RULES_MSBUILD_COMPILE:', log)
 
     def test_stale_metadata_cannot_replace_a_warm_published_plan(self):
         for name, diagnostic in (('stalePrivateAssets', 'stale-restore'),
@@ -113,4 +113,4 @@ class GraphCacheAcceptance(package_free.GraphCacheAcceptance):
                 for field in ('log', 'exportLog'):
                     log = self.evidence(case[field]).read_text()
                     self.assertIn(diagnostic, log)
-                    self.assertNotIn('SPIKE_COMPILE:', log)
+                    self.assertNotIn('RULES_MSBUILD_COMPILE:', log)

@@ -6,8 +6,8 @@ MsbuildBundle = provider(doc = "Published dependency artifacts and replay metada
 
 def _msbuild_project_impl(ctx):
     for key in ctx.attr.build_environment:
-        if not key.startswith("SPIKE_INPUT_"):
-            fail("build_environment keys must start with SPIKE_INPUT_")
+        if not key.startswith("RULES_MSBUILD_INPUT_"):
+            fail("build_environment keys must start with RULES_MSBUILD_INPUT_")
     output = ctx.actions.declare_directory(ctx.label.name + ".bundle")
     diagnostics = ctx.actions.declare_directory(ctx.label.name + ".diagnostics")
     request = ctx.actions.declare_file(ctx.label.name + ".request.json")
@@ -40,7 +40,7 @@ def _msbuild_project_impl(ctx):
         env = dict(
             dict(
                 {"PATH": "/usr/bin:/bin", "LANG": "en_US.UTF-8"},
-                **({"SPIKE_TRACE_RUNTIME": "1"} if ctx.attr.trace_runtime else {})
+                **({"RULES_MSBUILD_TRACE_RUNTIME": "1"} if ctx.attr.trace_runtime else {})
             ),
             **ctx.attr.build_environment
         ),

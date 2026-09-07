@@ -29,7 +29,7 @@ worksets, test-data-only and runtime exception failures, and producer-free
 relocation with forced test execution after build bundle disk-cache recovery.
 It also requires missing/changed source/package and missing approval data to
 reject preparation without publication. Enable the opt-in suite with
-`SPIKE_SERILOG_NATIVE_TESTS=1` with the pinned source/package cache and explicit
+`RULES_MSBUILD_SERILOG_NATIVE_TESTS=1` with the pinned source/package cache and explicit
 SDK/Bazel paths.
 
 

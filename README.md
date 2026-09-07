@@ -1,6 +1,7 @@
-# msbuild-bazel
+# MSBuild rules for [Bazel](https://bazel.build)
 
-A spike exploring Bazel project-level scheduling and caching while retaining MSBuild, NuGet, and the .NET SDK build behavior.
+`rules_msbuild` provides Bazel project-level scheduling and caching while retaining
+MSBuild, NuGet, and .NET SDK build behavior.
 
 **Status:** The explicit two-project Bazel adapter builds Shared and App in separate
 native sandbox actions and reuses their outputs through a local disk
@@ -64,7 +65,7 @@ bash scripts/dotnet.sh --info
 bash scripts/bazel.sh version --gnu_format
 ```
 
-Setup installs checksum-pinned .NET SDK 10.0.100 and Bazel 8.4.2 into ignored `.tools/` directories without sudo. These are fixed experimental baselines, not a claim to be the latest releases. Bazel's distribution includes its JDK. The wrapper defaults to a persistent Bazel server; set `SPIKE_BAZEL_MODE=batch` for one-shot execution. Container probes shut down their servers before cleanup. Setup is repeatable and needs internet access only for missing downloads. Use the wrappers in each new shell; setup exports do not persist into Codex's agent session.
+Setup installs checksum-pinned .NET SDK 10.0.100 and Bazel 8.4.2 into ignored `.tools/` directories without sudo. These are fixed experimental baselines, not a claim to be the latest releases. Bazel's distribution includes its JDK. The wrapper defaults to a persistent Bazel server; set `RULES_MSBUILD_BAZEL_MODE=batch` for one-shot execution. Container probes shut down their servers before cleanup. Setup is repeatable and needs internet access only for missing downloads. Use the wrappers in each new shell; setup exports do not persist into Codex's agent session.
 
 ## Apple container smoke test
 
@@ -92,7 +93,7 @@ If flakes are already enabled in your Nix configuration, use `nix develop`, or r
 
 `flake.lock` locks Nixpkgs to a revision containing .NET SDK 10.0.100 and Bazel 8.4.2. The shell checks those versions against `scripts/toolchains.json`. It uses the upstream binary .NET SDK packaged by Nixpkgs and Nixpkgs' source-built, patched Bazel; that Bazel reports the suffix `- (@non-git)`, which the check script accepts. It is not byte-identical to the Bazel release binary used by setup.
 
-The shell supplies `SPIKE_DOTNET_ROOT` (the directory containing `dotnet`) and `SPIKE_BAZEL` (the executable path). The wrappers, driver, probes, and tests use these explicit overrides; outside Nix they retain the repository-local `.tools/` defaults. Restore and build outputs remain writable and local to the repository or copied test workspace, outside the Nix store.
+The shell supplies `RULES_MSBUILD_DOTNET_ROOT` (the directory containing `dotnet`) and `RULES_MSBUILD_BAZEL` (the executable path). The wrappers, driver, probes, and tests use these explicit overrides; outside Nix they retain the repository-local `.tools/` defaults. Restore and build outputs remain writable and local to the repository or copied test workspace, outside the Nix store.
 
 Initial Nix downloads and each test workspace's NuGet restore require network access. This is a development environment, not a sandboxed Nix derivation of the application or proof of hermetic builds. macOS runs are native, not Linux emulation. The separate Nix workflow runs the version checks, Bazel query, and e2e tests on Ubuntu only; see [findings](docs/findings.md) for measured validation.
 
@@ -106,9 +107,12 @@ Select this repository in the Codex environment settings and configure:
 
 The script lives in the repository; committing it does not configure the hosted environment automatically. Setup downloads from `builds.dotnet.microsoft.com` and `releases.bazel.build`. Future NuGet dependencies must be restored during setup before agent-phase offline builds can work.
 
-Codex reads [AGENTS.md](AGENTS.md) for project context and commands. See the [spike plan](docs/spike-plan.md) for the next implementation steps.
+Codex reads [AGENTS.md](AGENTS.md) for project context and commands. See the [implementation plan](docs/implementation-plan.md) for the next implementation steps.
 
-## Spike contracts and tests
+The [terminology cleanup](docs/terminology-cleanup.md) records the current driver,
+environment and fixture names. Commands below use the current interfaces.
+
+## Adapter contracts and tests
 
 The [interface contract](docs/interfaces.md) and [e2e scope](docs/e2e-scope.md) were committed before the driver implementation. Run the black-box tests with:
 

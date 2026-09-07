@@ -115,11 +115,11 @@ python3 -m unittest discover -s tests/graph_execution -v
 The scaffold check validates shell/Python syntax, tool pins and tracked Starlark
 formatting/lint; it does not run build acceptance. Inside Nix, first acquire
 Buildifier with `python3 scripts/setup-starlark.py`. The ordinary e2e command skips the
-native-runtime test unless `SPIKE_NATIVE_RUNTIME_TEST=1` is set, including inside
+native-runtime test unless `RULES_MSBUILD_NATIVE_RUNTIME_TEST=1` is set, including inside
 an interactive Nix shell. Run that existing focused mode explicitly:
 
 ```sh
-nix develop --no-update-lock-file -c env SPIKE_NATIVE_RUNTIME_TEST=1 python3 -m unittest discover -s tests/e2e -p test_bazel_boundary.py -k test_native_runtime_closure -v
+nix develop --no-update-lock-file -c env RULES_MSBUILD_NATIVE_RUNTIME_TEST=1 python3 -m unittest discover -s tests/e2e -p test_bazel_boundary.py -k test_native_runtime_closure -v
 ```
 
 This enables the runtime payload, loader and JIT controls in the native-runtime
@@ -155,8 +155,8 @@ configuration has not yet been observed in hosted CI.
 These commands are the core rule/build validation paths, not an exhaustive
 portfolio run. The native test-rule preparation suite is
 `python3 -m unittest discover -s tests/test_action -v`; its native case requires
-`SPIKE_SERILOG_SOURCE` and `SPIKE_SERILOG_PACKAGES` (legacy unprefixed names are also accepted). Graph-built Serilog approval acceptance
-uses `SPIKE_SERILOG_NATIVE_TESTS=1` and the source/package/tool prerequisites in
+`RULES_MSBUILD_SERILOG_SOURCE` and `RULES_MSBUILD_SERILOG_PACKAGES` (legacy unprefixed names are also accepted). Graph-built Serilog approval acceptance
+uses `RULES_MSBUILD_SERILOG_NATIVE_TESTS=1` and the source/package/tool prerequisites in
 [Serilog test findings](serilog-test-acceptance-findings.md). Preserve exact
 expected test names/counts, TRX outcomes and standard Bazel outputs; force test
 execution with `--nocache_test_results` when verifying recovered build bundles.
@@ -165,7 +165,7 @@ A cached test result or zero discovered tests is not actual test execution.
 ## Recording a validation result
 
 For each new behavioral change, add a findings entry linked from the
-[spike plan](spike-plan.md), with:
+[implementation plan](implementation-plan.md), with:
 
 - Revision, exact command, OS/architecture, toolchain identity and fixture/configuration.
 - Actual exit status and executed case/test count; identify failures and blocked prerequisites.

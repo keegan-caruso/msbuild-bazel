@@ -21,8 +21,8 @@ consumers.
 The probe builds the existing deterministic `binary_inputs.Packages` fixture
 outside Bazel actions and writes all archive SHA-256 pins to `package-pins.json`.
 Each restored source copy uses a local `.feed` with the same relative NuGet
-configuration. Only Left directly references exact `Spike.Binary` versions
-`[1.0.0]` and `[1.0.1]`; the package depends on `Spike.Leaf`. Observable output
+configuration. Only Left directly references exact `RulesMsbuild.Binary` versions
+`[1.0.0]` and `[1.0.1]`; the package depends on `RulesMsbuild.Leaf`. Observable output
 maps the actual package result to `package-v1` or `package-v2`.
 
 Separate ordinary MSBuild static-graph builds provide package v1/v2 output

@@ -20,7 +20,7 @@ files, including all 65 selected localized resources, TestSDK's Program source,
 EmptyFiles content, xUnit analyzers and the Windows runtime payload. It also rejects
 an unqualified asset category, a changed pinned archive and a changed extracted
 Program source. The existing three library policy checks pass. Commands use the
-pinned SDK and `SPIKE_SERILOG_SOURCE`/`SPIKE_SERILOG_PACKAGES` acquired-cache inputs:
+pinned SDK and `RULES_MSBUILD_SERILOG_SOURCE`/`RULES_MSBUILD_SERILOG_PACKAGES` acquired-cache inputs:
 
 ```sh
 python3 -m unittest discover -s tests/graph_packages -p test_approval_inputs.py -v

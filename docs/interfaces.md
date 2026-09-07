@@ -1,4 +1,4 @@
-# Spike interfaces (v1)
+# Adapter interfaces (v1)
 
 This implemented v1 contract was written before the driver. It remains the
 same-path MSBuild control. The separate [replay contract](replay-interface.md)
@@ -6,7 +6,7 @@ and [Bazel contract](bazel-interface.md) describe the later implemented boundari
 
 ## First milestone: process interface
 
-`python3 tools/spike.py --request /absolute/request.json`
+`python3 tools/adapter.py --request /absolute/request.json`
 
 A request is a JSON object with these fields:
 
@@ -34,7 +34,7 @@ The consumer checks the dependency identity, configuration, SDK, framework, work
 
 ## Evidence
 
-Tests inspect MSBuild's `SPIKE_COMPILE:<project>` messages emitted immediately before CoreCompile and execute the built App DLL independently. The driver cannot supply its own list of compiled projects as evidence. Positive handoff tests also remove both projects' bin/obj trees, then restore only consumer restore metadata plus the declared dependency artifact bundle.
+Tests inspect MSBuild's `RULES_MSBUILD_COMPILE:<project>` messages emitted immediately before CoreCompile and execute the built App DLL independently. The driver cannot supply its own list of compiled projects as evidence. Positive handoff tests also remove both projects' bin/obj trees, then restore only consumer restore metadata plus the declared dependency artifact bundle.
 
 ## Later implemented boundaries
 
@@ -55,4 +55,4 @@ verify scheduling and local disk-cache reuse; see [Bazel findings](bazel-finding
 
 General graph export remains deferred. A future exporter must use MSBuild
 ProjectGraph and preserve global properties rather than infer arbitrary csproj
-semantics from XML. See the [current plan](spike-plan.md) for remaining work.
+semantics from XML. See the [current plan](implementation-plan.md) for remaining work.

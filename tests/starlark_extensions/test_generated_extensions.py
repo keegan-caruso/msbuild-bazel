@@ -27,8 +27,8 @@ from support import (
 
 
 PACKAGE_IDENTITIES = {
-    "1.0.0": {"Spike.Binary/1.0.0", "Spike.Leaf/1.0.0"},
-    "1.0.1": {"Spike.Binary/1.0.1", "Spike.Leaf/1.0.0"},
+    "1.0.0": {"RulesMsbuild.Binary/1.0.0", "RulesMsbuild.Leaf/1.0.0"},
+    "1.0.1": {"RulesMsbuild.Binary/1.0.1", "RulesMsbuild.Leaf/1.0.0"},
 }
 
 

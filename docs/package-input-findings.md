@@ -18,7 +18,7 @@ the runner changes. The original two-project fixture is unchanged. Preparation
 adds an exact inline PackageReference to Shared in a copy of that fixture.
 
 `tests/fixtures/package-inputs` contains the source payloads and archive SHA-256
-pins for `Spike.BuildInputs`:
+pins for `RulesMsbuild.BuildInputs`:
 
 | Version | Packaged data | Generated target value |
 | --- | --- | --- |
@@ -32,7 +32,7 @@ Only source payloads and pins are committed. NuGet restores the archives through
 a local feed; preparation verifies both the restored archive hash and each
 extracted payload file. Traversal restore still requires its existing NuGet source.
 
-The package has a normal `build/Spike.BuildInputs.targets` import. NuGet's generated
+The package has a normal `build/RulesMsbuild.BuildInputs.targets` import. NuGet's generated
 `.nuget.g.targets` activates it; the runner does not inject the package import.
 The target reads packaged `data/value.txt` and generates a C# constant in Shared
 obj. Shared includes the value in its public message. The package has no DLLs,
@@ -81,7 +81,7 @@ After the existing source-edit scenarios, the package probe observes:
 | Corrupt packaged data without changing manifest | Shared action rejects | Hash mismatch; no compilation |
 | Change Shared reference to 1.0.0 with 1.0.2 restore state | Shared action rejects | Restore-version mismatch; no compilation |
 
-Execution reports record `SPIKE_PACKAGE_TARGET:Shared` in Shared builds and no
+Execution reports record `RULES_MSBUILD_PACKAGE_TARGET:Shared` in Shared builds and no
 package-target marker in App. The test checks markers for actions that execute,
 including both package upgrades; cache reuse is checked through Bazel execution
 logs. A cached dependency tree can remain unmaterialized when App also comes from

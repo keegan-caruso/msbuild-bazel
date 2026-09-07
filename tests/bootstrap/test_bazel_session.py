@@ -13,7 +13,7 @@ from bazel_session import BazelSession
 
 class BazelSessionTests(unittest.TestCase):
     def test_server_reuse_and_shutdown_of_each_output_base(self):
-        with tempfile.TemporaryDirectory() as output, patch.dict(os.environ, SPIKE_BAZEL_MODE='server'):
+        with tempfile.TemporaryDirectory() as output, patch.dict(os.environ, RULES_MSBUILD_BAZEL_MODE='server'):
             with patch('bazel_session.subprocess.run', return_value=subprocess.CompletedProcess([], 0, '')) as run:
                 with BazelSession(output) as session:
                     for base in ('first', 'first', 'second'):
@@ -23,7 +23,7 @@ class BazelSessionTests(unittest.TestCase):
                 self.assertTrue(all(call.args[0][-1] == 'shutdown' for call in run.call_args_list))
 
     def test_batch_does_not_start_or_stop_servers(self):
-        with tempfile.TemporaryDirectory() as output, patch.dict(os.environ, SPIKE_BAZEL_MODE='batch'):
+        with tempfile.TemporaryDirectory() as output, patch.dict(os.environ, RULES_MSBUILD_BAZEL_MODE='batch'):
             with patch('bazel_session.subprocess.run') as run:
                 with BazelSession(output) as session:
                     command = ['bazel', '--batch', 'version']
@@ -31,7 +31,7 @@ class BazelSessionTests(unittest.TestCase):
                 run.assert_not_called()
 
     def test_probe_failure_still_shuts_down(self):
-        with tempfile.TemporaryDirectory() as output, patch.dict(os.environ, SPIKE_BAZEL_MODE='server'):
+        with tempfile.TemporaryDirectory() as output, patch.dict(os.environ, RULES_MSBUILD_BAZEL_MODE='server'):
             with patch('bazel_session.subprocess.run', return_value=subprocess.CompletedProcess([], 0, '')) as run:
                 with self.assertRaisesRegex(ValueError, 'probe failed'):
                     with BazelSession(output) as session:
@@ -40,7 +40,7 @@ class BazelSessionTests(unittest.TestCase):
                 run.assert_called_once()
 
     def test_shutdown_failure_cannot_report_success(self):
-        with tempfile.TemporaryDirectory() as output, patch.dict(os.environ, SPIKE_BAZEL_MODE='server'):
+        with tempfile.TemporaryDirectory() as output, patch.dict(os.environ, RULES_MSBUILD_BAZEL_MODE='server'):
             with patch('bazel_session.subprocess.run', return_value=subprocess.CompletedProcess([], 1, 'failure')):
                 with self.assertRaisesRegex(RuntimeError, 'cleanup failed'):
                     with BazelSession(output) as session:

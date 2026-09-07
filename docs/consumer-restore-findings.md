@@ -14,13 +14,13 @@ On macOS ARM64 with pinned Nix SDK 10.0.100 and Bazel 8.4.2 at `737e29f`:
 3. Freshly export the whole graph, prepare it and build in native sandbox actions.
 
 The fresh export and preparation succeeded. App's generated package manifest
-still contained Spike.Binary and Spike.Leaf, and its executable printed
+still contained RulesMsbuild.Binary and RulesMsbuild.Leaf, and its executable printed
 `shared-v1:left/package-v1|shared-v1:right`. Its direct PackageReference set was
 empty and matched its stale assets, so the earlier per-node check accepted it.
 
 After restoring the whole graph, App's package manifest was empty. Both generated
 execution and a separate ordinary isolated MSBuild build then failed at runtime
-with the expected missing Spike.Binary assembly (exit -6). This is the established
+with the expected missing RulesMsbuild.Binary assembly (exit -6). This is the established
 PrivateAssets=all baseline: the earlier successful stale runtime was incorrect.
 Evidence is retained at `/private/tmp/restore-closure-repro`, including both
 manifests, raw build/runtime logs and `report.json`.

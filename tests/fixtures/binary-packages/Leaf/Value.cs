@@ -1,4 +1,4 @@
-namespace Spike.Leaf;
+namespace RulesMsbuild.Leaf;
 
 public static class Value
 {

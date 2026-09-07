@@ -8,12 +8,12 @@ import unittest
 from probe import probe
 
 
-@unittest.skipUnless(os.environ.get('SPIKE_SERILOG_SOURCE') and os.environ.get('SPIKE_SERILOG_PACKAGES'),
-                     'set SPIKE_SERILOG_SOURCE and SPIKE_SERILOG_PACKAGES to the pinned acquired pilot')
+@unittest.skipUnless(os.environ.get('RULES_MSBUILD_SERILOG_SOURCE') and os.environ.get('RULES_MSBUILD_SERILOG_PACKAGES'),
+                     'set RULES_MSBUILD_SERILOG_SOURCE and RULES_MSBUILD_SERILOG_PACKAGES to the pinned acquired pilot')
 class SerilogInputs(unittest.TestCase):
     def test_selected_inner_required_inputs(self):
         output = Path(tempfile.mkdtemp(prefix='serilog-inputs-')) / 'probe'
-        report = probe(os.environ['SPIKE_SERILOG_SOURCE'], os.environ['SPIKE_SERILOG_PACKAGES'], output)
+        report = probe(os.environ['RULES_MSBUILD_SERILOG_SOURCE'], os.environ['RULES_MSBUILD_SERILOG_PACKAGES'], output)
         self.assertEqual(report['sdkVersion'], '10.0.100')
         self.assertTrue(report['sourceDeclarationPreserved'])
         self.assertIn('netstandard2.0', report['properties']['TargetFrameworks'])

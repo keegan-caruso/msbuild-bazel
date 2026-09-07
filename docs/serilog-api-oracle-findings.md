@@ -22,7 +22,7 @@ python3 tools/probe_serilog_api.py \
   --output /path/to/fresh/evidence
 ```
 
-Set `SPIKE_DOTNET_ROOT` to the pinned SDK, or pass `--dotnet-root`. Exit status is
+Set `RULES_MSBUILD_DOTNET_ROOT` to the pinned SDK, or pass `--dotnet-root`. Exit status is
 zero for matching API and one for a mismatch; setup/generation failures raise an
 error. Retained evidence contains the approved and actual text, a unified diff,
 archive pins, assembly hash and command logs. Comparison preserves all text and

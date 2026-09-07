@@ -56,8 +56,8 @@ class GraphHandoffAcceptance(unittest.TestCase):
         (root / 'report.json').write_text(json.dumps(dict(schemaVersion=1,
             boundary='direct-action-runner', cacheEnabled=False,
             requestSha256=digest(path), returncode=result.returncode,
-            replayRequested='SPIKE_REPLAY_REQUEST:' in log,
-            compilationObserved='SPIKE_COMPILE:' in log,
+            replayRequested='RULES_MSBUILD_REPLAY_REQUEST:' in log,
+            compilationObserved='RULES_MSBUILD_COMPILE:' in log,
             dependencies=[dict(resultsSha256=digest(Path(p) / 'results.json'),
                 artifactsSha256=digest(Path(p) / 'artifacts.json')) for p in request['graph_dependencies']]), indent=2))
         return result, log, root
@@ -66,8 +66,8 @@ class GraphHandoffAcceptance(unittest.TestCase):
         result, log, root = self.run_consumer(name, mutation)
         self.assertNotEqual(result.returncode, 0, log)
         self.assertIn(diagnostic, log)
-        self.assertNotIn('SPIKE_COMPILE:', log)
-        self.assertEqual('SPIKE_REPLAY_REQUEST:' in log, replay)
+        self.assertNotIn('RULES_MSBUILD_COMPILE:', log)
+        self.assertEqual('RULES_MSBUILD_REPLAY_REQUEST:' in log, replay)
         self.assertFalse((root / 'bundle/bundle.json').exists())
 
     @staticmethod

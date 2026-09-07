@@ -111,7 +111,7 @@ class PackageRestoreSemantics(unittest.TestCase):
 
     def test_consumer_snapshot_rejects_partial_version_restore(self):
         self.partial_restore_control(lambda: configure(self.workspace, self.workspace / '.feed',
-            version='1.0.1'), ['Spike.Binary', 'Spike.Leaf'])
+            version='1.0.1'), ['RulesMsbuild.Binary', 'RulesMsbuild.Leaf'])
 
     def test_consumer_snapshot_rejects_removed_package_after_partial_restore(self):
         def remove():
@@ -136,19 +136,19 @@ class PackageRestoreSemantics(unittest.TestCase):
     def test_consumer_direct_version_can_differ_from_dependency_resolution(self):
         app = self.workspace / 'src/App/App.csproj'
         app.write_text(app.read_text().replace('</Project>',
-            '<ItemGroup><PackageReference Include="Spike.Binary" Version="[1.0.1]"/></ItemGroup></Project>'))
+            '<ItemGroup><PackageReference Include="RulesMsbuild.Binary" Version="[1.0.1]"/></ItemGroup></Project>'))
         self.restore()
         def binary_versions(project):
             assets = json.loads((self.workspace / 'src' / project / 'obj/project.assets.json').read_text())
-            return sorted(name for name in assets['libraries'] if name.startswith('Spike.Binary/'))
-        self.assertEqual(binary_versions('Left'), ['Spike.Binary/1.0.0'])
-        self.assertEqual(binary_versions('App'), ['Spike.Binary/1.0.1'])
-        self.assert_current_prepares(['Spike.Binary', 'Spike.Leaf'])
+            return sorted(name for name in assets['libraries'] if name.startswith('RulesMsbuild.Binary/'))
+        self.assertEqual(binary_versions('Left'), ['RulesMsbuild.Binary/1.0.0'])
+        self.assertEqual(binary_versions('App'), ['RulesMsbuild.Binary/1.0.1'])
+        self.assert_current_prepares(['RulesMsbuild.Binary', 'RulesMsbuild.Leaf'])
 
     def test_failed_restore_cannot_refresh_snapshot_over_invalid_assets(self):
         app = self.workspace / 'src/App/App.csproj'
         app.write_text(app.read_text().replace('</Project>',
-            '<ItemGroup><PackageReference Include="Spike.Binary" Version="[1.0.0]"/></ItemGroup></Project>'))
+            '<ItemGroup><PackageReference Include="RulesMsbuild.Binary" Version="[1.0.0]"/></ItemGroup></Project>'))
         self.restore()
         original = self.export()
         plan = self.evidence / 'original-plan'
@@ -165,7 +165,7 @@ class PackageRestoreSemantics(unittest.TestCase):
         self.assertEqual(self.plan_digest(plan), before)
         app.write_text(app.read_text().replace('[1.0.0]', '[1.0.1]'))
         self.restore()
-        self.assert_current_prepares(['Spike.Binary', 'Spike.Leaf'])
+        self.assert_current_prepares(['RulesMsbuild.Binary', 'RulesMsbuild.Leaf'])
 
     def test_missing_consumer_dependency_snapshot_rejects(self):
         self.restore()
@@ -179,7 +179,7 @@ class PackageRestoreSemantics(unittest.TestCase):
         self.project.write_text(self.project.read_text().replace('[1.0.0]', '[1.0.1]'))
         self.assert_rejected_old_and_fresh(old)
         self.restore()
-        self.assert_current_prepares(['Spike.Binary', 'Spike.Leaf'])
+        self.assert_current_prepares(['RulesMsbuild.Binary', 'RulesMsbuild.Leaf'])
 
     def test_direct_private_assets_change_requires_restore(self):
         self.restore()
@@ -190,7 +190,7 @@ class PackageRestoreSemantics(unittest.TestCase):
         self.assert_current_prepares([])
 
     def test_imported_private_assets_change_requires_restore(self):
-        self.project.write_text(self.project.read_text().replace('Include="Spike.Binary"', 'Include="Spike.Binary" PrivateAssets="$(ScopedPrivacy)"'))
+        self.project.write_text(self.project.read_text().replace('Include="RulesMsbuild.Binary"', 'Include="RulesMsbuild.Binary" PrivateAssets="$(ScopedPrivacy)"'))
         props = self.workspace / 'Directory.Build.props'
         props.write_text(props.read_text().replace('</PropertyGroup>', '<ScopedPrivacy>none</ScopedPrivacy></PropertyGroup>'))
         self.restore()
@@ -207,7 +207,7 @@ class PackageRestoreSemantics(unittest.TestCase):
 
     def test_nondefault_asset_filters_reject_explicitly(self):
         configure(self.workspace, self.workspace / '.feed')
-        self.project.write_text(self.project.read_text().replace('Include="Spike.Binary"', 'Include="Spike.Binary" IncludeAssets="compile"'))
+        self.project.write_text(self.project.read_text().replace('Include="RulesMsbuild.Binary"', 'Include="RulesMsbuild.Binary" IncludeAssets="compile"'))
         self.restore()
         self.export(error='unsupported-package')
 

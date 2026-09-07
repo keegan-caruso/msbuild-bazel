@@ -40,7 +40,7 @@ def probe(output):
         (path / '.nuget/packages').mkdir(parents=True)
         target = path / 'Directory.Build.targets'
         target.write_text(target.read_text().replace('</Project>',
-            '<Target Name="LifecycleCompileEvidence" BeforeTargets="CoreCompile" Condition="\'$(SPIKE_GRAPH_PROJECT)\' == \'\'"><Message Importance="high" Text="LIFECYCLE_COMPILE:$(MSBuildProjectName)" /></Target></Project>'))
+            '<Target Name="LifecycleCompileEvidence" BeforeTargets="CoreCompile" Condition="\'$(RULES_MSBUILD_GRAPH_PROJECT)\' == \'\'"><Message Importance="high" Text="LIFECYCLE_COMPILE:$(MSBuildProjectName)" /></Target></Project>'))
 
     ordinary = output / 'ordinary'
     fixture(ordinary)

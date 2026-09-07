@@ -15,7 +15,7 @@ from prepare_graph import nix_imports
 
 IMPORTS = ['/nix/store/7j5z3nhm7kqc12lw46153fbahbbdxf7k-extra.targets',
            '/nix/store/ik0wdskh7nw2l9kj31g57k2zkc31i06v-sign-apphost.proj']
-SDK = os.environ.get('SPIKE_DOTNET_ROOT', '')
+SDK = os.environ.get('RULES_MSBUILD_DOTNET_ROOT', '')
 
 
 class NixImportDeclarations(unittest.TestCase):
@@ -36,14 +36,14 @@ class NixImportDeclarations(unittest.TestCase):
             with self.subTest(value=value), self.assertRaisesRegex(ValueError, 'unsupported Nix SDK import'):
                 nix_imports([dict(kind='import',path=value)], '/nix/store/sdk')
 
-    @unittest.skipUnless(SDK.startswith('/nix/store/') and all(Path(path).is_file() for path in IMPORTS) and os.environ.get('SPIKE_BAZEL'), 'requires pinned Nix SDK imports and Bazel')
+    @unittest.skipUnless(SDK.startswith('/nix/store/') and all(Path(path).is_file() for path in IMPORTS) and os.environ.get('RULES_MSBUILD_BAZEL'), 'requires pinned Nix SDK imports and Bazel')
     def test_bazel_sdk_filegroup_materializes_import_bytes(self):
         output = Path(tempfile.mkdtemp(prefix='nix-import-declarations-')).resolve()
         shutil.copyfile(ROOT/'bazel/msbuild.bzl', output/'msbuild.bzl')
         (output/'BUILD.bazel').write_text('')
         (output/'MODULE.bazel').write_text('module(name="nix_import_test")\nlocal_dotnet_sdk = use_repo_rule("//:msbuild.bzl", "local_dotnet_sdk")\nlocal_dotnet_sdk(name="dotnet", path='+json.dumps(SDK)+', external_imports='+json.dumps(IMPORTS)+')\n')
         base = output/'base'
-        result = subprocess.run([os.environ['SPIKE_BAZEL'],'--batch','--nohome_rc','--noworkspace_rc','--output_base='+str(base),'cquery','@dotnet//:files','--output=files','--noshow_progress'], cwd=output, capture_output=True,text=True,timeout=180)
+        result = subprocess.run([os.environ['RULES_MSBUILD_BAZEL'],'--batch','--nohome_rc','--noworkspace_rc','--output_base='+str(base),'cquery','@dotnet//:files','--output=files','--noshow_progress'], cwd=output, capture_output=True,text=True,timeout=180)
         (output/'analysis.log').write_text(result.stdout+result.stderr)
         self.assertEqual(result.returncode,0,result.stdout+result.stderr)
         for index, source in enumerate(IMPORTS):

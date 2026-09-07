@@ -18,12 +18,12 @@ internal sealed partial record BuildEvidence(string[] CompiledProjects, string[]
             throw new InvalidOperationException("App did not replay Shared");
     }
 
-    [GeneratedRegex(@"SPIKE_COMPILE:([^\r\n]+)", RegexOptions.CultureInvariant)]
+    [GeneratedRegex(@"RULES_MSBUILD_COMPILE:([^\r\n]+)", RegexOptions.CultureInvariant)]
     private static partial Regex CompileMarker();
 
-    [GeneratedRegex(@"SPIKE_REPLAY_HIT:([^\r\n]*)", RegexOptions.CultureInvariant)]
+    [GeneratedRegex(@"RULES_MSBUILD_REPLAY_HIT:([^\r\n]*)", RegexOptions.CultureInvariant)]
     private static partial Regex ReplayMarker();
 
-    [GeneratedRegex(@"SPIKE_PACKAGE_TARGET:(\w+)", RegexOptions.CultureInvariant)]
+    [GeneratedRegex(@"RULES_MSBUILD_PACKAGE_TARGET:(\w+)", RegexOptions.CultureInvariant)]
     private static partial Regex PackageMarker();
 }

@@ -23,11 +23,11 @@ for machine in ('x86_64', 'aarch64'):
     for pin in select(pins, machine).values():
         assert re.fullmatch('[0-9a-f]{64}', pin['sha256'])
         assert pin['url'].startswith('https://')
-if os.environ.get('SPIKE_CONTAINER_PREBUILT') == '1':
+if os.environ.get('RULES_MSBUILD_CONTAINER_PREBUILT') == '1':
     selected = select(pins, platform.machine())
     stamps = {
         'dotnet': Path(os.environ['DOTNET_ROOT']).parent / 'dotnet.sha256',
-        'bazel': Path(os.environ['SPIKE_BAZEL']).parents[1] / 'bazel.sha256',
+        'bazel': Path(os.environ['RULES_MSBUILD_BAZEL']).parents[1] / 'bazel.sha256',
     }
     for name, stamp in stamps.items():
         assert stamp.read_text().strip() == selected[name]['sha256'], f'Prebuilt {name} pin mismatch; rebuild the toolchain image'
@@ -39,7 +39,7 @@ if [[ "$actual_dotnet" != "$expected_dotnet" ]]; then
     exit 1
 fi
 expected_bazel="bazel $(cat .bazelversion)"
-actual_bazel="$(SPIKE_BAZEL_MODE=batch bash scripts/bazel.sh version --gnu_format)"
+actual_bazel="$(RULES_MSBUILD_BAZEL_MODE=batch bash scripts/bazel.sh version --gnu_format)"
 # Nixpkgs builds Bazel from the release archive with this exact label suffix.
 if [[ "$actual_bazel" != "$expected_bazel" && "$actual_bazel" != "$expected_bazel- (@non-git)" ]]; then
     printf 'Expected %s, got %s.\n' "$expected_bazel" "$actual_bazel" >&2

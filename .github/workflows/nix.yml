@@ -28,8 +28,8 @@ jobs:
       - name: MSBuild boundary e2e tests
         env:
           TMPDIR: ${{ runner.temp }}
-          SPIKE_NATIVE_RUNTIME_TEST: "1"
-          SPIKE_NATIVE_EVIDENCE_DIR: ${{ runner.temp }}/native-runtime-evidence
+          RULES_MSBUILD_NATIVE_RUNTIME_TEST: "1"
+          RULES_MSBUILD_NATIVE_EVIDENCE_DIR: ${{ runner.temp }}/native-runtime-evidence
         run: nix develop --no-update-lock-file -c python3 -m unittest discover -s tests/e2e -v
       - name: Retain native runtime evidence
         if: always()

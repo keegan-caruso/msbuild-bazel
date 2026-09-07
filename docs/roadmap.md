@@ -1,4 +1,4 @@
-# Roadmap from the current spike to a supported adapter
+# Roadmap to a supported MSBuild / Bazel adapter
 
 Planning baseline: 2026-09-06, branch checkpoint `6bd2525`. This roadmap starts
 from the implemented exported-graph execution slice and continues through a

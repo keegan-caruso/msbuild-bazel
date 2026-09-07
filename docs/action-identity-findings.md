@@ -22,7 +22,7 @@ probe adds the imported target and data file only to its copied fixture.
 
 The Shared project imports `BuildInputs.targets`. Before compilation, that target
 reads `value.txt` and generates a C# constant in obj from the file contents, an
-imported property and `SPIKE_INPUT_FLAVOR`. Shared's public value includes that
+imported property and `RULES_MSBUILD_INPUT_FLAVOR`. Shared's public value includes that
 constant. App consumes the normal Shared assembly through result replay.
 
 After the original six scheduling/cache scenarios, the probe applies:
@@ -67,7 +67,7 @@ that the full host dependency closure has been discovered. The test changes the
 policy revision and checks both actions rerun. It does not modify installed
 Python or SDK binaries.
 
-The rule accepts explicit `build_environment` entries only under `SPIKE_INPUT_`.
+The rule accepts explicit `build_environment` entries only under `RULES_MSBUILD_INPUT_`.
 They join fixed PATH and LANG values in the action environment, which Bazel hashes.
 Runner-owned workspace, NuGet and .NET settings are still supplied inside each
 action. Arbitrary environment forwarding is not supported.
@@ -96,4 +96,4 @@ host read. Linux validation is being handled separately by the user.
 The subsequent [package experiment](package-input-findings.md) added pinned
 build-package contents and package/restore perturbation tests. Native runtime
 closure and deterministic output staging remain open before general ProjectGraph
-export; see the [current plan](spike-plan.md).
+export; see the [current plan](implementation-plan.md).

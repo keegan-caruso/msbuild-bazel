@@ -2,8 +2,8 @@
 # Build locally, then record the immutable digest used by subsequent runs.
 set -euo pipefail
 repo_root="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)"
-arch="${SPIKE_CONTAINER_ARCH:-arm64}"
-case "$arch" in arm64|amd64) ;; *) echo 'SPIKE_CONTAINER_ARCH must be arm64 or amd64.' >&2; exit 2 ;; esac
+arch="${RULES_MSBUILD_CONTAINER_ARCH:-arm64}"
+case "$arch" in arm64|amd64) ;; *) echo 'RULES_MSBUILD_CONTAINER_ARCH must be arm64 or amd64.' >&2; exit 2 ;; esac
 command -v container >/dev/null || { echo 'Install Apple container first.' >&2; exit 1; }
 context_dir="$(mktemp -d "${TMPDIR:-/tmp}/msbuild-toolchain.XXXXXX")"
 trap 'rm -rf "$context_dir"' EXIT
@@ -15,7 +15,7 @@ for name in setup.sh setup.py toolchain_pins.py toolchains.json env.sh check.sh 
 done
 image_dir="$repo_root/.cache/apple-container/$arch"
 mkdir -p "$image_dir"
-tag="msbuild-bazel-toolchain:$arch"
+tag="rules_msbuild-toolchain:$arch"
 container build --platform "linux/$arch" --cpus 4 --memory 4G --tag "$tag" \
     "$context_dir" 2>&1 | tee "$image_dir/build.log"
 container image inspect "$tag" > "$image_dir/image.json"

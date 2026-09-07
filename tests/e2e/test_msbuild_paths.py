@@ -29,18 +29,18 @@ class MsbuildPathTests(unittest.TestCase):
                 observed = report[scenario]
                 log = Path(observed['log']).read_text()
                 self.assertEqual(observed['returncode'], 0, scenario)
-                self.assertIn('SPIKE_COMPILE:App', log, scenario)
-                self.assertNotIn('SPIKE_COMPILE:Shared', log, scenario)
+                self.assertIn('RULES_MSBUILD_COMPILE:App', log, scenario)
+                self.assertNotIn('RULES_MSBUILD_COMPILE:Shared', log, scenario)
                 self.assertEqual(observed['compiledProjects'], ['App'], scenario)
                 self.assertEqual(observed['applicationReturncode'], 0, scenario)
                 self.assertEqual(observed['applicationOutput'], 'shared-v1/app-v1', scenario)
             for bundle in ('different-action-output/shared-bundle', 'fresh-shared'):
-                self.assertIn('SPIKE_COMPILE:Shared', (output / bundle / 'build.log').read_text())
+                self.assertIn('RULES_MSBUILD_COMPILE:Shared', (output / bundle / 'build.log').read_text())
             relocated = report['relocatedWorkspace']
             self.assertNotEqual(relocated['returncode'], 0)
             self.assertEqual(relocated['compiledProjects'], [])
             log = Path(relocated['log']).read_text()
-            self.assertNotIn('SPIKE_COMPILE:', log)
+            self.assertNotIn('RULES_MSBUILD_COMPILE:', log)
             self.assertIn('MSB4252', log)
             self.assertIn('GetTargetFrameworks', log)
             self.assertIn(str(output / 'consumer-workspace/Shared/Shared.csproj'), log)

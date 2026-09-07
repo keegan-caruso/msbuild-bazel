@@ -19,8 +19,8 @@ execution records and every bundle file with content hashes and executable flags
 On 2026-09-06, native macOS ARM64 with pinned Nix SDK 10.0.100/MSBuild
 18.0.2.52411 and Bazel 8.4.2 passed all seven characterization tests. Evidence:
 `/private/var/folders/__/z2sj57556cgfrkvbdznlvdt40000gn/T/msbuild-lifecycle-n25ou9ka/probe`.
-The commands use the explicit installed tool paths through `SPIKE_DOTNET_ROOT`
-and `SPIKE_BAZEL`; normal wrapper pinning remains unchanged.
+The commands use the explicit installed tool paths through `RULES_MSBUILD_DOTNET_ROOT`
+and `RULES_MSBUILD_BAZEL`; normal wrapper pinning remains unchanged.
 
 | Operation | Observed behavior |
 | --- | --- |

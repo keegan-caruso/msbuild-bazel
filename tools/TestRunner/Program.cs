@@ -127,7 +127,7 @@ internal static class GraphTest
                 ["DOTNET_CLI_TELEMETRY_OPTOUT"] = "1", ["MSBUILDDISABLENODEREUSE"] = "1", ["TMPDIR"] = temporary,
                 ["CI"] = "true", ["DiffEngine_Disabled"] = "true", ["SHOULDLY_SOURCE_PATH_MAP"] = workspace + "=" + request.SourceRoot
             }) info.Environment[pair.Key] = pair.Value;
-            Console.WriteLine("SPIKE_VSTEST_START:" + request.Project);
+            Console.WriteLine("RULES_MSBUILD_VSTEST_START:" + request.Project);
             using var process = Process.Start(info) ?? throw new InvalidOperationException("VSTest failed to start");
             var stdout = process.StandardOutput.ReadToEndAsync();
             var stderr = process.StandardError.ReadToEndAsync();

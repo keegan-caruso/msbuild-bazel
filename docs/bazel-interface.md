@@ -40,7 +40,7 @@ fallback to local execution.
 explicit build environment, ambient environment exclusion, App restore metadata
 and host-identity changes. See [identity findings](action-identity-findings.md).
 The rule requires `dotnet`, `sdk`, `runner`, and `host_identity` labels, with
-`runner_support` supplying its runtime JSON files. It optionally accepts `build_environment` entries prefixed with `SPIKE_INPUT_`. Remote execution
+`runner_support` supplying its runtime JSON files. It optionally accepts `build_environment` entries prefixed with `RULES_MSBUILD_INPUT_`. Remote execution
 and remote-cache use are disabled; local disk caching remains enabled.
 
 `--package-probe` is mutually exclusive with `--identity-probe`. It prepares exact
@@ -69,7 +69,7 @@ The native repository optionally accepts `overrides`, mapping input labels to
 manifest paths, for controlled workspace-copy experiments. The manifest still
 validates their bytes. This changes declared inputs without redirecting absolute
 Nix loader paths. `trace_runtime = True` enables dyld/glibc loader diagnostics
-for the MSBuild child in a separate build action; the `SPIKE_TRACE_RUNTIME`
+for the MSBuild child in a separate build action; the `RULES_MSBUILD_TRACE_RUNTIME`
 environment marker participates in action identity.
 See [runtime integrity findings](native-runtime-integrity-findings.md).
 

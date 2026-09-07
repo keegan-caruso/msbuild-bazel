@@ -12,7 +12,7 @@ committed first (`96192d8`). Before implementation,
 ## Measured result
 
 ```sh
-# With SPIKE_DOTNET_ROOT and SPIKE_BAZEL set to the pinned Nix tools:
+# With RULES_MSBUILD_DOTNET_ROOT and RULES_MSBUILD_BAZEL set to the pinned Nix tools:
 python3 -m unittest discover -s tests/graph_execution -v
 ```
 

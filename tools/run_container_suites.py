@@ -17,7 +17,7 @@ def main():
     args.output.mkdir(parents=True, exist_ok=True)
     root = Path(__file__).resolve().parents[1]
     summary = {'schemaVersion': 1, 'platform': platform.platform(),
-               'machine': platform.machine(), 'bazelMode': os.environ.get('SPIKE_BAZEL_MODE', 'server'),
+               'machine': platform.machine(), 'bazelMode': os.environ.get('RULES_MSBUILD_BAZEL_MODE', 'server'),
                'suites': [], 'status': 'running'}
     report = args.output / 'summary.json'
 

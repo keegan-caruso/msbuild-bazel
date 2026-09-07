@@ -21,7 +21,7 @@ internal sealed record BuildInvocation(string Executable, string WorkingDirector
             "-graphBuild", "-isolateProjects", "-nodeReuse:false", "-nologo", "-verbosity:normal"],
         new Dictionary<string, string>
         {
-            ["SPIKE_LOADER_TRACE_PATH"] = Path.Combine(workspace.Diagnostics, "loader.log"),
+            ["RULES_MSBUILD_LOADER_TRACE_PATH"] = Path.Combine(workspace.Diagnostics, "loader.log"),
             ["DOTNET_ROOT"] = Path.GetDirectoryName(dotnet)!,
             ["DOTNET_CLI_HOME"] = Path.Combine(workspace.Scratch, "home"),
             ["NUGET_PACKAGES"] = Path.Combine(workspace.Root, ".nuget/packages"),
@@ -31,10 +31,10 @@ internal sealed record BuildInvocation(string Executable, string WorkingDirector
             ["TMPDIR"] = workspace.Scratch,
             ["TMP"] = workspace.Scratch,
             ["TEMP"] = workspace.Scratch,
-            ["SPIKE_REPLAY_MODE"] = request.Project == ProjectKind.Shared ? "capture" : "replay",
-            ["SPIKE_REPLAY_WORKSPACE"] = workspace.Root,
-            ["SPIKE_REPLAY_BUNDLE"] = bundle,
-            ["SPIKE_REPLAY_PLUGIN"] = Path.GetFullPath(request.Plugin),
+            ["RULES_MSBUILD_REPLAY_MODE"] = request.Project == ProjectKind.Shared ? "capture" : "replay",
+            ["RULES_MSBUILD_REPLAY_WORKSPACE"] = workspace.Root,
+            ["RULES_MSBUILD_REPLAY_BUNDLE"] = bundle,
+            ["RULES_MSBUILD_REPLAY_PLUGIN"] = Path.GetFullPath(request.Plugin),
             // Environment properties remain local to evaluation; global action paths would break replay identity.
             ["DirectoryBuildPropsPath"] = Path.GetFullPath(request.BuildProps),
             ["DirectoryBuildTargetsPath"] = Path.GetFullPath(request.BuildTargets)
@@ -53,14 +53,14 @@ internal sealed record BuildInvocation(string Executable, string WorkingDirector
             start.Environment[key] = value;
         // Set loader flags at the MSBuild child boundary. macOS sandbox
         // launchers can strip DYLD_* variables before the runner starts.
-        if (System.Environment.GetEnvironmentVariable("SPIKE_TRACE_RUNTIME") == "1")
+        if (System.Environment.GetEnvironmentVariable("RULES_MSBUILD_TRACE_RUNTIME") == "1")
         {
             start.Environment["DYLD_PRINT_LIBRARIES"] = "1";
             start.Environment["LD_DEBUG"] = "libs";
             // Compiler tasks interpret stderr as errors; keep loader output
             // in declared diagnostics instead of changing compilation behavior.
-            start.Environment["DYLD_PRINT_TO_FILE"] = Environment["SPIKE_LOADER_TRACE_PATH"];
-            start.Environment["LD_DEBUG_OUTPUT"] = Environment["SPIKE_LOADER_TRACE_PATH"];
+            start.Environment["DYLD_PRINT_TO_FILE"] = Environment["RULES_MSBUILD_LOADER_TRACE_PATH"];
+            start.Environment["LD_DEBUG_OUTPUT"] = Environment["RULES_MSBUILD_LOADER_TRACE_PATH"];
         }
         return start;
     }

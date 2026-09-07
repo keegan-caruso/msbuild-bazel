@@ -4,8 +4,8 @@ Contract and acceptance scenarios precede implementation. Keep the explicit
 Shared -> App graph, net10.0, Release, native sandbox and local disk cache.
 
 `python3 tools/probe_bazel.py --binary-package-probe --output ABSENT_DIRECTORY`
-prepares repository-authored packages `Spike.Binary` and `Spike.Leaf`. Shared
-references only Spike.Binary; Spike.Binary depends on Spike.Leaf. Both expose
+prepares repository-authored packages `RulesMsbuild.Binary` and `RulesMsbuild.Leaf`. Shared
+references only RulesMsbuild.Binary; RulesMsbuild.Binary depends on RulesMsbuild.Leaf. Both expose
 distinct reference (`ref/net10.0`) and executable (`lib/net10.0`) assemblies.
 Methods, not constants, make App execute both package implementations.
 

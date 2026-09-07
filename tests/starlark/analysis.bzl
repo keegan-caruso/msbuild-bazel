@@ -22,7 +22,7 @@ def _project_test_impl(ctx):
     asserts.equals(env, [name + ".cs"], [f for f in inputs if f.endswith(".cs")])
     expected_env = {"PATH": "/usr/bin:/bin", "LANG": "en_US.UTF-8"}
     if ctx.attr.explicit:
-        expected_env["SPIKE_INPUT_FLAVOR"] = "declared"
+        expected_env["RULES_MSBUILD_INPUT_FLAVOR"] = "declared"
         asserts.equals(env, name + ".bundle", target[MsbuildBundle].directory.basename)
     else:
         asserts.equals(env, sorted(ctx.attr.bundles + [name + ".bundle"]), sorted([f.basename for f in target[GraphBundle].bundles.to_list()]))
@@ -76,11 +76,11 @@ def core_suite(name):
         project_test(name = node + "_test", target_under_test = ":" + node, bundles = [dep + ".bundle" for dep in bundles])
         tests.append(node + "_test")
     for node, dependency in [("explicit_shared", None), ("explicit_app", ":explicit_shared")]:
-        msbuild_project(name = node, project = "Shared" if not dependency else "App", srcs = [node + ".cs"], dependency = dependency, build_environment = {"SPIKE_INPUT_FLAVOR": "declared"}, **settings)
+        msbuild_project(name = node, project = "Shared" if not dependency else "App", srcs = [node + ".cs"], dependency = dependency, build_environment = {"RULES_MSBUILD_INPUT_FLAVOR": "declared"}, **settings)
         project_test(name = node + "_test", target_under_test = ":" + node, explicit = True, bundles = ["explicit_shared.bundle"] if dependency else [])
         tests.append(node + "_test")
     msbuild_project(name = "bad_environment", project = "Shared", build_environment = {"PATH": "ambient"}, **settings)
-    failure_test(name = "environment_test", target_under_test = ":bad_environment", message = "build_environment keys must start with SPIKE_INPUT_")
+    failure_test(name = "environment_test", target_under_test = ":bad_environment", message = "build_environment keys must start with RULES_MSBUILD_INPUT_")
     graph_project(name = "bad_graph_provider", project = "App.csproj", dependencies = [":sdk"], **settings)
     failure_test(name = "graph_provider_test", target_under_test = ":bad_graph_provider", message = "does not have mandatory providers")
     msbuild_project(name = "bad_explicit_provider", project = "App", dependency = ":sdk", **settings)

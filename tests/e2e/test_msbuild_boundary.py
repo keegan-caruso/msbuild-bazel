@@ -1,4 +1,4 @@
-"""Black-box acceptance tests; committed before tools/spike.py exists."""
+"""Black-box acceptance tests; committed before tools/adapter.py exists."""
 import json
 import os
 from pathlib import Path
@@ -9,9 +9,9 @@ import tempfile
 import unittest
 
 ROOT = Path(__file__).resolve().parents[2]
-DRIVER = ROOT / "tools/spike.py"
+DRIVER = ROOT / "tools/adapter.py"
 FIXTURE = ROOT / "tests/fixtures/two-projects"
-DOTNET = Path(os.environ.get("SPIKE_DOTNET_ROOT", ROOT / ".tools/dotnet")) / "dotnet"
+DOTNET = Path(os.environ.get("RULES_MSBUILD_DOTNET_ROOT", ROOT / ".tools/dotnet")) / "dotnet"
 
 
 class MsbuildBoundaryTests(unittest.TestCase):
@@ -75,19 +75,19 @@ class MsbuildBoundaryTests(unittest.TestCase):
 
     def assert_app_only(self, output):
         log = (output / "build.log").read_text()
-        self.assertIn("SPIKE_COMPILE:App", log)
-        self.assertNotIn("SPIKE_COMPILE:Shared", log)
+        self.assertIn("RULES_MSBUILD_COMPILE:App", log)
+        self.assertNotIn("RULES_MSBUILD_COMPILE:Shared", log)
 
     def test_traversal_baseline(self):
         output, _ = self.call("baseline")
         log = (output / "build.log").read_text()
-        self.assertIn("SPIKE_COMPILE:Shared", log)
-        self.assertIn("SPIKE_COMPILE:App", log)
+        self.assertIn("RULES_MSBUILD_COMPILE:Shared", log)
+        self.assertIn("RULES_MSBUILD_COMPILE:App", log)
         self.assertEqual(self.run_app(), "shared-v1/app-v1")
 
     def test_isolated_dependency_handoff_after_clean(self):
         shared, _ = self.call("project", "Shared")
-        self.assertIn("SPIKE_COMPILE:Shared", (shared / "build.log").read_text())
+        self.assertIn("RULES_MSBUILD_COMPILE:Shared", (shared / "build.log").read_text())
         self.clean_outputs()
         app, _ = self.call("project", "App", [shared])
         self.assert_app_only(app)

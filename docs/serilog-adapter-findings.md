@@ -14,8 +14,8 @@ the independent workspace. No bracket rewriting, signing disablement, generator
 disablement or framework retargeting is used for the baseline.
 
 ```sh
-SPIKE_SERILOG_SOURCE=/private/tmp/msbuild-serilog-baseline-3/source \
-SPIKE_SERILOG_PACKAGES=/private/tmp/msbuild-serilog-baseline-3/packages \
+RULES_MSBUILD_SERILOG_SOURCE=/private/tmp/msbuild-serilog-baseline-3/source \
+RULES_MSBUILD_SERILOG_PACKAGES=/private/tmp/msbuild-serilog-baseline-3/packages \
 python3 -m unittest discover -s tests/serilog_adapter -v
 ```
 

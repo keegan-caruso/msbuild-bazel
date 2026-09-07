@@ -14,7 +14,7 @@ at these exact revisions; subsequent upstream changes do not change this study.
 
 | Candidate | Pinned revision | Relevant requirements | Decision |
 | --- | --- | --- | --- |
-| [Serilog](https://github.com/serilog/serilog/tree/49b5339ce85385dc52d4d8e8f2b8308becf23506) | `49b5339ce85385dc52d4d8e8f2b8308becf23506` | SDK 10.0.100; net10 approval-test entry; multi-target library; PolySharp; signing; imported props/targets | First pilot: SDK matches this spike and a narrow behavior oracle needs no external service |
+| [Serilog](https://github.com/serilog/serilog/tree/49b5339ce85385dc52d4d8e8f2b8308becf23506) | `49b5339ce85385dc52d4d8e8f2b8308becf23506` | SDK 10.0.100; net10 approval-test entry; multi-target library; PolySharp; signing; imported props/targets | First pilot: SDK matches this adapter and a narrow behavior oracle needs no external service |
 | [Dapper](https://github.com/DapperLib/Dapper/tree/6d48ef664acc7298c649e2d449d903b3360d5a90) | `6d48ef664acc7298c649e2d449d903b3360d5a90` | SDK 10.0.102 minimum; SqlBuilder references multi-target Dapper; central packages; Nerdbank.GitVersioning and SourceLink; database/native dependencies in broader tests | Defer: SDK and Git-derived build metadata add independent work before a faithful baseline |
 | [Spectre.Console](https://github.com/spectreconsole/spectre.console/tree/2dc90b90add956c2f6777cb659120900ac2eb740) | `2dc90b90add956c2f6777cb659120900ac2eb740` | SDK 10.0.400; Console and Ansi share a netstandard2.0 source-generator project through analyzer references; JSON additional inputs; generated files outside obj; multiple TFMs | Strong later graph pilot, after analyzer-project handoff and SDK/framework contracts |
 
@@ -72,7 +72,7 @@ bash scripts/dotnet.sh test "$project" --no-build --no-restore -p:Configuration=
 
 `project` is the absolute upstream approval-test csproj; `packages` is the
 probe's output-local packages directory. The wrapper deliberately selects the
-spike SDK. No upstream project, global.json, framework list or build property
+adapter SDK. No upstream project, global.json, framework list or build property
 file is edited.
 
 ## Measured evidence and limitations

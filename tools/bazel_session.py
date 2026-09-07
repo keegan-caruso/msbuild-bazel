@@ -8,9 +8,9 @@ import sys
 class BazelSession:
     def __init__(self, output, mode=None):
         self.output = Path(output)
-        self.mode = mode or os.environ.get('SPIKE_BAZEL_MODE', 'server')
+        self.mode = mode or os.environ.get('RULES_MSBUILD_BAZEL_MODE', 'server')
         if self.mode not in ('batch', 'server'):
-            raise ValueError('SPIKE_BAZEL_MODE must be batch or server')
+            raise ValueError('RULES_MSBUILD_BAZEL_MODE must be batch or server')
         self.servers = {}
 
     def __enter__(self):

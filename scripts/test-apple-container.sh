@@ -9,9 +9,9 @@ if [[ "$(uname -s)" != Darwin || "$(uname -m)" != arm64 ]]; then
 fi
 command -v container >/dev/null || { echo 'Install Apple container first.' >&2; exit 1; }
 
-image="${SPIKE_CONTAINER_IMAGE:-ubuntu@sha256:2edbbc5dc405e9612ba3584ce95480277e3eb374407b5505fe26f17df77c7dbc}"
-arch="${SPIKE_CONTAINER_ARCH:-arm64}"
-case "$arch" in arm64|amd64) ;; *) echo 'SPIKE_CONTAINER_ARCH must be arm64 or amd64.' >&2; exit 2 ;; esac
+image="${RULES_MSBUILD_CONTAINER_IMAGE:-ubuntu@sha256:2edbbc5dc405e9612ba3584ce95480277e3eb374407b5505fe26f17df77c7dbc}"
+arch="${RULES_MSBUILD_CONTAINER_ARCH:-arm64}"
+case "$arch" in arm64|amd64) ;; *) echo 'RULES_MSBUILD_CONTAINER_ARCH must be arm64 or amd64.' >&2; exit 2 ;; esac
 mkdir -p "$repo_root/artifacts/apple-container"
 run_dir="$(mktemp -d "$repo_root/artifacts/apple-container/smoke.XXXXXX")"
 printf 'Smoke-test log: %s/run.log\n' "$run_dir"
@@ -22,7 +22,7 @@ container run --rm -i --arch "$arch" --cpus 2 --memory 2G \
     -v "$repo_root:/src:ro" "$image" bash -s <<'GUEST' 2>&1 | tee "$run_dir/run.log"
 set -euo pipefail
 export DEBIAN_FRONTEND=noninteractive
-if [[ "${SPIKE_CONTAINER_PREBUILT:-0}" != 1 ]]; then
+if [[ "${RULES_MSBUILD_CONTAINER_PREBUILT:-0}" != 1 ]]; then
     apt-get update -qq
     apt-get install -y -qq python3 curl ca-certificates libicu70 libssl3 zlib1g
 fi
@@ -31,7 +31,7 @@ mkdir -p /workspace/fixture
 cp -a /src/scripts /src/global.json /src/.bazelversion /workspace/
 cp -a /src/tests/fixtures/two-projects/. /workspace/fixture/
 cd /workspace
-if [[ "${SPIKE_CONTAINER_PREBUILT:-0}" == 1 ]]; then
+if [[ "${RULES_MSBUILD_CONTAINER_PREBUILT:-0}" == 1 ]]; then
     echo 'Using prebuilt toolchain; checking repository pins.'
     bash scripts/check.sh --toolchain-only
 else

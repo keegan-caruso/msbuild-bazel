@@ -49,7 +49,7 @@ class BinaryPackageTests(unittest.TestCase):
                     if action['project'] == 'App':
                         self.assertFalse(any(p.startswith('src/Shared/') and p.endswith('.cs')
                                              for p in action['inputs']))
-                    for package in ('spike.binary', 'spike.leaf'):
+                    for package in ('rulesmsbuild.binary', 'rulesmsbuild.leaf'):
                         self.assertTrue(any(p.startswith('packages/' + package + '/')
                                             and p.endswith('.nupkg.sha512') for p in action['inputs']))
                         for kind in ('ref', 'lib'):
@@ -59,7 +59,7 @@ class BinaryPackageTests(unittest.TestCase):
                 assets = case['binaryAssets']
                 version = '1.0.2' if name == 'binaryTransitiveVersion' else ('1.0.1' if name == 'binaryDirectVersion' else '1.0.0')
                 leaf = '1.0.1' if name == 'binaryTransitiveVersion' else '1.0.0'
-                self.assertEqual(assets['identities'], ['Spike.Binary/' + version, 'Spike.Leaf/' + leaf])
+                self.assertEqual(assets['identities'], ['RulesMsbuild.Binary/' + version, 'RulesMsbuild.Leaf/' + leaf])
                 for asset in assets['files'].values():
                     self.assertEqual(asset['outputSha256'], asset['runtimeSha256'])
                     self.assertNotEqual(asset['outputSha256'], asset['referenceSha256'])
@@ -68,17 +68,17 @@ class BinaryPackageTests(unittest.TestCase):
         initial = report['cases']['cold']['binaryAssets']['files']
         direct = report['cases']['binaryDirectVersion']['binaryAssets']['files']
         transitive = report['cases']['binaryTransitiveVersion']['binaryAssets']['files']
-        self.assertNotEqual(initial['Spike.Binary.dll']['runtimeSha256'], direct['Spike.Binary.dll']['runtimeSha256'])
-        self.assertEqual(initial['Spike.Leaf.dll']['runtimeSha256'], direct['Spike.Leaf.dll']['runtimeSha256'])
-        self.assertEqual(direct['Spike.Binary.dll']['runtimeSha256'], transitive['Spike.Binary.dll']['runtimeSha256'])
-        self.assertNotEqual(direct['Spike.Leaf.dll']['runtimeSha256'], transitive['Spike.Leaf.dll']['runtimeSha256'])
+        self.assertNotEqual(initial['RulesMsbuild.Binary.dll']['runtimeSha256'], direct['RulesMsbuild.Binary.dll']['runtimeSha256'])
+        self.assertEqual(initial['RulesMsbuild.Leaf.dll']['runtimeSha256'], direct['RulesMsbuild.Leaf.dll']['runtimeSha256'])
+        self.assertEqual(direct['RulesMsbuild.Binary.dll']['runtimeSha256'], transitive['RulesMsbuild.Binary.dll']['runtimeSha256'])
+        self.assertNotEqual(direct['RulesMsbuild.Leaf.dll']['runtimeSha256'], transitive['RulesMsbuild.Leaf.dll']['runtimeSha256'])
         self.assertEqual(report['cases']['freshExecution']['cacheHitProjects'], [])
         self.assertTrue(report['staging']['workspacePathsDiffer'])
         self.assertEqual(report['staging']['differences'], {'shared': [], 'app': []})
         for name in ('missingPackage', 'missingPackageMarker', 'corruptPackage', 'stalePackageRestore', 'missingTransitivePackage'):
             self.assertNotEqual(report[name]['returncode'], 0)
-            self.assertNotIn('SPIKE_COMPILE:', Path(report[name]['log']).read_text())
+            self.assertNotIn('RULES_MSBUILD_COMPILE:', Path(report[name]['log']).read_text())
         self.assertNotEqual(report['missingRuntimeAsset']['returncode'], 0)
-        self.assertIn('Spike.Leaf', Path(report['missingRuntimeAsset']['log']).read_text())
+        self.assertIn('RulesMsbuild.Leaf', Path(report['missingRuntimeAsset']['log']).read_text())
         # Keep evidence for this first milestone run and CI artifact collection.
         print(f'Binary-package evidence: {directory}')

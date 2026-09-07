@@ -59,13 +59,13 @@ internal static class GraphAction
         const string targets = "GetTargetFrameworks;Build;GetNativeManifest;GetCopyToOutputDirectoryItems;GetTargetFrameworksWithPlatformForSingleTargetFramework;GetCopyToPublishDirectoryItems";
         var environment = new Dictionary<string, string>(BuildInvocation.Create(request, workspace, workspace.Output).Environment)
         {
-            ["SPIKE_REPLAY_MODE"] = "capture",
-            ["SPIKE_GRAPH_PROJECT"] = project,
-            ["SPIKE_GRAPH_PROPERTIES"] = JsonSerializer.Serialize(properties),
-            ["SPIKE_GRAPH_DEPENDENCIES"] = JsonSerializer.Serialize(dependencies)
+            ["RULES_MSBUILD_REPLAY_MODE"] = "capture",
+            ["RULES_MSBUILD_GRAPH_PROJECT"] = project,
+            ["RULES_MSBUILD_GRAPH_PROPERTIES"] = JsonSerializer.Serialize(properties),
+            ["RULES_MSBUILD_GRAPH_DEPENDENCIES"] = JsonSerializer.Serialize(dependencies)
         };
         if (SelectedFrameworks.Stage(request, workspace) is { } selectionTargets)
-            environment["SPIKE_GRAPH_SELECTION_TARGETS"] = selectionTargets;
+            environment["RULES_MSBUILD_GRAPH_SELECTION_TARGETS"] = selectionTargets;
         var invocation = new BuildInvocation(workspace.Dotnet, workspace.Root,
             ["msbuild", project, "-t:" + targets, .. properties.OrderBy(pair => pair.Key, StringComparer.Ordinal).Select(pair => "-p:" + pair.Key + "=" + pair.Value), "-graphBuild", "-isolateProjects", "-nodeReuse:false", "-nologo", "-verbosity:normal"], environment);
         var result = await ProcessRunner.RunAsync(invocation.CreateStartInfo(), TimeSpan.FromSeconds(180), default);

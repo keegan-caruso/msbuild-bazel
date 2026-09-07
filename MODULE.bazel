@@ -1,5 +1,5 @@
 module(
-    name = "msbuild_bazel",
+    name = "rules_msbuild",
     version = "0.0.0",
 )
 

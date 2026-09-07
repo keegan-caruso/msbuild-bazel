@@ -1,5 +1,5 @@
 <Project>
-  <Target Name="SpikeCompileEvidence" BeforeTargets="CoreCompile">
-    <Message Text="SPIKE_COMPILE:$(MSBuildProjectName)" Importance="high" />
+  <Target Name="RulesMsbuildCompileEvidence" BeforeTargets="CoreCompile">
+    <Message Text="RULES_MSBUILD_COMPILE:$(MSBuildProjectName)" Importance="high" />
   </Target>
 </Project>

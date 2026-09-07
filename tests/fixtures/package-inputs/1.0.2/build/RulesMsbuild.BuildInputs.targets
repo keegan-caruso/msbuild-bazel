@@ -1,0 +1,10 @@
+<Project>
+  <PropertyGroup><RulesMsbuildPackageData>$(MSBuildThisFileDirectory)../data/value.txt</RulesMsbuildPackageData></PropertyGroup>
+  <Target Name="RulesMsbuildPackageGenerate" BeforeTargets="CoreCompile">
+    <Message Text="RULES_MSBUILD_PACKAGE_TARGET:$(MSBuildProjectName)" Importance="high" />
+    <ReadLinesFromFile File="$(RulesMsbuildPackageData)"><Output TaskParameter="Lines" PropertyName="_PackageValue" /></ReadLinesFromFile>
+    <WriteLinesToFile File="$(IntermediateOutputPath)PackageInput.g.cs"
+      Lines="namespace Shared { public static class PackageInput { public const string Value = &quot;$(_PackageValue)/target-v2&quot;%3B } }" Overwrite="true" />
+    <ItemGroup><Compile Include="$(IntermediateOutputPath)PackageInput.g.cs" /></ItemGroup>
+  </Target>
+</Project>

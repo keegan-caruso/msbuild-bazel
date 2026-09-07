@@ -40,7 +40,7 @@ class GraphExportAcceptance(unittest.TestCase):
         # This assertion is intentionally red before the exporter is implemented.
         if not EXPORTER.is_file():
             raise AssertionError("Milestone 1 exporter is not implemented: " + str(EXPORTER))
-        cls.dotnet_root = Path(os.environ.get("SPIKE_DOTNET_ROOT", REPO / ".tools/dotnet")).resolve()
+        cls.dotnet_root = Path(os.environ.get("RULES_MSBUILD_DOTNET_ROOT", REPO / ".tools/dotnet")).resolve()
         result = subprocess.run(["bash", str(REPO / "scripts/dotnet.sh"), "build", str(EXPORTER), "-c", "Release", "--nologo"], cwd=REPO, text=True, capture_output=True)
         if result.returncode:
             raise AssertionError(result.stdout + result.stderr)

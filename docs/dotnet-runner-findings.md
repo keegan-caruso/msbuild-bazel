@@ -24,7 +24,7 @@ See the [migration plan](dotnet-runner-plan.md). Run inside `nix develop`:
 
 ```sh
 python3 tools/probe_bazel.py --native-runtime-probe --output artifacts/dotnet-runner-1
-SPIKE_NATIVE_RUNTIME_TEST=1 python3 -m unittest discover -s tests/e2e -v
+RULES_MSBUILD_NATIVE_RUNTIME_TEST=1 python3 -m unittest discover -s tests/e2e -v
 ```
 
 Tests inspect each cold action's executable and support files and reject Python

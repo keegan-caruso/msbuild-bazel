@@ -1,8 +1,8 @@
 <Project>
-  <Import Project="$(SPIKE_REPLAY_WORKSPACE)/Directory.Build.props" />
+  <Import Project="$(RULES_MSBUILD_REPLAY_WORKSPACE)/Directory.Build.props" />
   <!-- Local properties keep action paths out of compiler outputs without changing replay's global-property identity. -->
   <PropertyGroup>
-    <PathMap>$(SPIKE_REPLAY_WORKSPACE)=/_/workspace</PathMap>
+    <PathMap>$(RULES_MSBUILD_REPLAY_WORKSPACE)=/_/workspace</PathMap>
     <Deterministic>true</Deterministic>
     <!-- A copied fixture must not discover the enclosing checkout's Git metadata. -->
     <EnableSourceControlManagerQueries>false</EnableSourceControlManagerQueries>

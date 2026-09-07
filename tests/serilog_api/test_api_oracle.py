@@ -11,14 +11,14 @@ from probe_serilog_api import compare
 
 
 @unittest.skipUnless(all(os.environ.get(name) for name in
-    ('SPIKE_SERILOG_SOURCE', 'SPIKE_SERILOG_PACKAGES', 'SPIKE_SERILOG_ASSEMBLY', 'SPIKE_DOTNET_ROOT')),
+    ('RULES_MSBUILD_SERILOG_SOURCE', 'RULES_MSBUILD_SERILOG_PACKAGES', 'RULES_MSBUILD_SERILOG_ASSEMBLY', 'RULES_MSBUILD_DOTNET_ROOT')),
     'requires acquired pinned source, packages, ordinary assembly and SDK')
 class ApiOracleAcceptance(unittest.TestCase):
     def test_ordinary_public_api_and_incompatible_assembly_control(self):
         evidence = Path(tempfile.mkdtemp(prefix='serilog-api-oracle-')).resolve()
-        args = (os.environ['SPIKE_SERILOG_SOURCE'], os.environ['SPIKE_SERILOG_PACKAGES'])
-        sdk = os.environ['SPIKE_DOTNET_ROOT']
-        report = compare(*args, os.environ['SPIKE_SERILOG_ASSEMBLY'], evidence / 'ordinary', sdk)
+        args = (os.environ['RULES_MSBUILD_SERILOG_SOURCE'], os.environ['RULES_MSBUILD_SERILOG_PACKAGES'])
+        sdk = os.environ['RULES_MSBUILD_DOTNET_ROOT']
+        report = compare(*args, os.environ['RULES_MSBUILD_SERILOG_ASSEMBLY'], evidence / 'ordinary', sdk)
         self.assertTrue(report['passed'])
         self.assertFalse(report['upstreamTestProjectExecuted'])
         self.assertEqual(len(report['packageArchiveSha256']), 3)

@@ -46,7 +46,7 @@ class PrivateAssetsAdapter(unittest.TestCase):
                 case = {}
                 for phase in ('baseline', 'direct'):
                     if phase == 'direct':
-                        program.write_text(program.read_text() + 'Console.WriteLine(Spike.Binary.Value.Read());\n')
+                        program.write_text(program.read_text() + 'Console.WriteLine(RulesMsbuild.Binary.Value.Read());\n')
                     prefix = mode + '-' + phase
                     manifest = evidence / (prefix + '-graph.json')
                     request = evidence / (prefix + '-export.json')
@@ -105,7 +105,7 @@ class PrivateAssetsAdapter(unittest.TestCase):
                     self.assertEqual(runtime.stdout.strip(), expected['runtimeOutput'])
                     if mode == 'all':
                         self.assertIn('FileNotFoundException', runtime.stderr)
-                        self.assertIn('Spike.Binary', runtime.stderr)
+                        self.assertIn('RulesMsbuild.Binary', runtime.stderr)
                 report['cases'][mode] = case
                 (evidence / 'adapter-report.json').write_text(json.dumps(report, indent=2))
         print('PrivateAssets adapter evidence: ' + str(evidence), flush=True)

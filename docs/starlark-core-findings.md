@@ -83,7 +83,7 @@ workflows acquire Buildifier before their scaffold check when those workflows ru
 
 Local acceptance uses the installed Nix SDK `/nix/store/mfpfzwpi79ac7yvm50lnq235vzy7knw6-dotnet-sdk-10.0.100/share/dotnet`,
 Bazel `/nix/store/9mzvqbfsvcg98n64jrvfjqrdkkr9s530-bazel-8.4.2/bin/bazel`, and
-Nix Python 3.13.9. Set `SPIKE_DOTNET_ROOT` and `SPIKE_BAZEL` to those paths when
+Nix Python 3.13.9. Set `RULES_MSBUILD_DOTNET_ROOT` and `RULES_MSBUILD_BAZEL` to those paths when
 replaying outside `nix develop`; use the Nix Python interpreter. Native probes
 ran outside the agent sandbox so Bazel could register `darwin-sandbox`; the
 initial nested-sandbox failure was a tooling restriction, not passing evidence.
@@ -141,7 +141,7 @@ original suites. No protected-path flags were removed, and native tests still
 require actual `linux-sandbox`; standalone execution is not substituted.
 
 ```sh
-SPIKE_CONTAINER_IMAGE=msbuild-bazel-toolchain@sha256:758f615972683a582ad312154a7d76225ed31ef17fff575d88a991c0cf5bcb58 \
+RULES_MSBUILD_CONTAINER_IMAGE=msbuild-bazel-toolchain@sha256:758f615972683a582ad312154a7d76225ed31ef17fff575d88a991c0cf5bcb58 \
   bash scripts/test-apple-container-scenarios.sh bootstrap starlark sdk-repository \
   starlark-native graph-execution graph-cache graph-handoff e2e
 ```

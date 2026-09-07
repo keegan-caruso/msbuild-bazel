@@ -10,10 +10,10 @@ before implementation. The initial run failed with `unrecognized arguments:
 
 ## Implementation
 
-`binary_inputs.py` builds repository-authored Spike.Binary and Spike.Leaf packages
+`binary_inputs.py` builds repository-authored RulesMsbuild.Binary and RulesMsbuild.Leaf packages
 outside actions with SDK 10.0.100. Each archive includes a reference assembly and
-an executable assembly. Shared references Spike.Binary, which depends on
-Spike.Leaf. App calls through Shared and executes both package implementations.
+an executable assembly. Shared references RulesMsbuild.Binary, which depends on
+RulesMsbuild.Leaf. App calls through Shared and executes both package implementations.
 
 The existing package staging verifier now accepts a prepared archive inventory
 in addition to the original checked-in build-package pins. Restore manifests
@@ -32,7 +32,7 @@ Pinned tool checks passed. All three package variants built, including the
 unchanged Leaf archive comparison. Restore and ordinary traversal Build passed;
 the baseline printed `shared-v1/binary-v1/leaf-v1/app-v1`.
 
-Command (with SPIKE_DOTNET_ROOT/SPIKE_BAZEL pointing at the existing pinned tools):
+Command (with RULES_MSBUILD_DOTNET_ROOT/RULES_MSBUILD_BAZEL pointing at the existing pinned tools):
 
 ```sh
 python3 -m unittest discover -s tests/e2e -p test_binary_packages.py -v
@@ -89,7 +89,7 @@ Measured results:
   occurs, and preparation workspaces/feeds are absent before action execution.
 - Missing payload declarations or installation markers, corrupt transitive DLLs,
   stale direct restore and an incomplete transitive manifest fail before
-  compilation. Removing Spike.Leaf.dll from a private copied App output makes
+  compilation. Removing RulesMsbuild.Leaf.dll from a private copied App output makes
   application execution fail.
 
 The marker-fix run had already completed the positive matrix but failed when

@@ -74,7 +74,7 @@ NuGet and SDK substitutions need richer dependency fixtures for evidence.
 ## Validation
 
 On 2026-09-05, using the installed Nix SDK and Bazel through explicit
-`SPIKE_DOTNET_ROOT` / `SPIKE_BAZEL` overrides:
+`RULES_MSBUILD_DOTNET_ROOT` / `RULES_MSBUILD_BAZEL` overrides:
 
 - `bash scripts/check.sh`: passed pinned version and scaffold checks.
 - `python3 -m unittest discover -s tests/e2e -v`: all eight tests passed in
@@ -105,4 +105,4 @@ The subsequent [Bazel experiment](bazel-findings.md) implemented the two-target
 harness and Shared-only producer action, measuring separate sandbox paths and
 local disk-cache reuse. Restore and tool acquisition remain outside compilation
 actions. Those results extend this standalone probe; remote-cache correctness
-remains unproven. See the [current plan](spike-plan.md).
+remains unproven. See the [current plan](implementation-plan.md).

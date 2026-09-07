@@ -44,7 +44,7 @@ nix --extra-experimental-features 'nix-command flakes' develop path:. --no-updat
 The relocated build fails with `MSB4252`: the consumer requests
 `Shared/Shared.csproj` at the new absolute path, with `Configuration=Release`,
 for `GetTargetFrameworks`, but the engine has no cached build result for it.
-Both Shared producer logs contain `SPIKE_COMPILE:Shared`. The original producer
+Both Shared producer logs contain `RULES_MSBUILD_COMPILE:Shared`. The original producer
 workspace and original bundle directory are absent when the experiment ends.
 
 The failure is produced by MSBuild itself, not by the v1 manifest validation.

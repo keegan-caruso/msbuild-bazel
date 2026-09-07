@@ -11,7 +11,7 @@ import subprocess
 import sys
 import xml.etree.ElementTree as ET
 
-from spike import DOTNET, ROOT
+from adapter import DOTNET, ROOT
 
 
 def digest(path):
@@ -65,10 +65,10 @@ def probe(output):
         observed = dict(command=command, cwd=str(workspace), environment={key: env[key] for key in
                         ('DOTNET_ROOT', 'DOTNET_CLI_HOME', 'NUGET_PACKAGES')},
                         replayEnvironment=extra or {},
-                        requestedTargets=re.findall(r'SPIKE_REPLAY_REQUEST:(.*)', result.stdout),
-                        replayHits=re.findall(r'SPIKE_REPLAY_HIT:(.*)', result.stdout),
+                        requestedTargets=re.findall(r'RULES_MSBUILD_REPLAY_REQUEST:(.*)', result.stdout),
+                        replayHits=re.findall(r'RULES_MSBUILD_REPLAY_HIT:(.*)', result.stdout),
                         returncode=result.returncode, log=str(log),
-                        compiledProjects=re.findall(r'SPIKE_COMPILE:(\w+)', result.stdout))
+                        compiledProjects=re.findall(r'RULES_MSBUILD_COMPILE:(\w+)', result.stdout))
         report['cases'][name] = observed
         (output / 'report.json').write_text(json.dumps(report, indent=2))
         return observed
@@ -115,7 +115,7 @@ def probe(output):
         return run(name, workspace, ['msbuild', 'App/App.csproj', '-t:' + target,
                    '-p:Configuration=Release', '-graphBuild', '-isolateProjects', '-nodeReuse:false',
                    '-nologo', '-verbosity:normal'],
-                   dict(SPIKE_REPLAY_WORKSPACE=str(workspace), SPIKE_REPLAY_BUNDLE=str(bundle), SPIKE_REPLAY_MODE=mode))
+                   dict(RULES_MSBUILD_REPLAY_WORKSPACE=str(workspace), RULES_MSBUILD_REPLAY_BUNDLE=str(bundle), RULES_MSBUILD_REPLAY_MODE=mode))
 
     def application(result, workspace, publish=False):
         path = workspace / 'App/bin/Release/net10.0'

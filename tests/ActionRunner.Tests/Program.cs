@@ -124,12 +124,12 @@ try
     }
     catch (OperationCanceledException) when (cancellation.IsCancellationRequested) { }
 
-    var evidence = BuildEvidence.Parse("SPIKE_COMPILE:App\r\nSPIKE_REPLAY_HIT:Shared\r\nSPIKE_PACKAGE_TARGET:Shared\r\n");
+    var evidence = BuildEvidence.Parse("RULES_MSBUILD_COMPILE:App\r\nRULES_MSBUILD_REPLAY_HIT:Shared\r\nRULES_MSBUILD_PACKAGE_TARGET:Shared\r\n");
     evidence.Verify(ProjectKind.App);
     Check(evidence.PackageTargets.SequenceEqual(["Shared"]), "CRLF marker parsing changed");
     try
     {
-        BuildEvidence.Parse("SPIKE_COMPILE:Shared\nSPIKE_COMPILE:App\nSPIKE_REPLAY_HIT:Shared\n").Verify(ProjectKind.App);
+        BuildEvidence.Parse("RULES_MSBUILD_COMPILE:Shared\nRULES_MSBUILD_COMPILE:App\nRULES_MSBUILD_REPLAY_HIT:Shared\n").Verify(ProjectKind.App);
         throw new InvalidOperationException("duplicate dependency compilation accepted");
     }
     catch (InvalidOperationException error) when (error.Message.StartsWith("unexpected project compilation:")) { }

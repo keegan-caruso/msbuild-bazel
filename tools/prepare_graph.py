@@ -18,7 +18,7 @@ from starlark import call
 from prepare_graph_tests import add_tests
 
 ROOT = Path(__file__).resolve().parents[1]
-DOTNET_ROOT = Path(os.environ.get('SPIKE_DOTNET_ROOT', ROOT / '.tools/dotnet')).resolve()
+DOTNET_ROOT = Path(os.environ.get('RULES_MSBUILD_DOTNET_ROOT', ROOT / '.tools/dotnet')).resolve()
 
 
 def relative(value):
@@ -225,14 +225,14 @@ def _prepare(workspace, manifest, output, *, environment=None, tests=None):
         filename = 'Directory.Build.' + ('props' if name.endswith('.props') else 'targets')
         property_name = '_GraphDirectoryBuild' + ('Props' if name.endswith('.props') else 'Targets')
         import_path = "$([MSBuild]::GetPathOfFileAbove('" + filename + "', '$(MSBuildProjectDirectory)/'))"
-        original = '<Import Project="$(SPIKE_REPLAY_WORKSPACE)/' + filename + '" />'
+        original = '<Import Project="$(RULES_MSBUILD_REPLAY_WORKSPACE)/' + filename + '" />'
         replacement = '<PropertyGroup><' + property_name + '>' + import_path + '</' + property_name + '></PropertyGroup>'
         replacement += '<Import Project="$(' + property_name + ')" Condition="\'$(' + property_name + ')\' != \'\'" />'
         contents = contents.replace(original, replacement)
         (output / 'runner' / name).write_text(contents)
     # Instrument every subject regardless of fixture naming or project directory.
     targets = output / 'runner/Action.targets'
-    targets.write_text(targets.read_text().replace('</Project>', '<Target Name="GraphCompileEvidence" BeforeTargets="CoreCompile"><Message Importance="high" Text="SPIKE_COMPILE:$(SPIKE_GRAPH_PROJECT)" /></Target></Project>'))
+    targets.write_text(targets.read_text().replace('</Project>', '<Target Name="GraphCompileEvidence" BeforeTargets="CoreCompile"><Message Importance="high" Text="RULES_MSBUILD_COMPILE:$(RULES_MSBUILD_GRAPH_PROJECT)" /></Target></Project>'))
     for name in ('msbuild.bzl', 'graph.bzl'):
         shutil.copyfile(ROOT / 'bazel' / name, output / name)
     (output / 'MODULE.bazel').write_text('module(name = "msbuild_graph")\n\nlocal_dotnet_sdk = use_repo_rule("//:msbuild.bzl", "local_dotnet_sdk")\n' + call('local_dotnet_sdk', name='dotnet', path=str(DOTNET_ROOT), external_imports=external_imports))

@@ -25,8 +25,8 @@ class BazelBoundaryTests(unittest.TestCase):
     def test_deterministic_staging(self):
         self.run_probe(False, staging=True)
 
-    @unittest.skipUnless(os.environ.get('SPIKE_NATIVE_RUNTIME_TEST') == '1',
-                         'opt in with SPIKE_NATIVE_RUNTIME_TEST=1 inside nix develop')
+    @unittest.skipUnless(os.environ.get('RULES_MSBUILD_NATIVE_RUNTIME_TEST') == '1',
+                         'opt in with RULES_MSBUILD_NATIVE_RUNTIME_TEST=1 inside nix develop')
     def test_native_runtime_closure(self):
         self.run_probe(False, native_runtime=True)
 
@@ -46,7 +46,7 @@ class BazelBoundaryTests(unittest.TestCase):
                 self.assertGreater(len(report['nativeRuntime']['storePaths']), 2)
                 self.assertNotEqual(report['missingNativeRuntime']['returncode'], 0)
                 self.assertNotEqual(report['corruptNativeRuntime']['returncode'], 0)
-                self.assertNotIn('SPIKE_COMPILE:', Path(report['corruptNativeRuntime']['log']).read_text())
+                self.assertNotIn('RULES_MSBUILD_COMPILE:', Path(report['corruptNativeRuntime']['log']).read_text())
                 control = report['nativeLibraryControl']
                 self.assertTrue(control['installedPayloadUnchanged'])
                 self.assertNotEqual(control['originalSha256'], control['changedSha256'])
@@ -84,7 +84,7 @@ class BazelBoundaryTests(unittest.TestCase):
                                         loader['cases']['jitFresh'][project]['jitPath'])
                 for case in ('jitMissing', 'jitCorrupt', 'jitLoaderReject'):
                     self.assertNotEqual(report[case]['returncode'], 0)
-                    self.assertNotIn('SPIKE_COMPILE:', Path(report[case]['log']).read_text())
+                    self.assertNotIn('RULES_MSBUILD_COMPILE:', Path(report[case]['log']).read_text())
                 for action in report['cases']['cold']['executions']:
                     self.assertIn('runtime-closure.json', action['inputs'])
                     self.assertTrue(any('/lib/lib' in path and ('dylib' in path or '.so' in path)
@@ -176,13 +176,13 @@ class BazelBoundaryTests(unittest.TestCase):
                     self.assertNotEqual(failure['returncode'], 0)
                     log = Path(failure['log']).read_text()
                     self.assertIn('package', log.lower())
-                    self.assertNotIn('SPIKE_COMPILE:', log)
+                    self.assertNotIn('RULES_MSBUILD_COMPILE:', log)
                 self.assertEqual(report['packagePreparationDeleted'], [True, True, True])
                 self.assertFalse((directory / 'probe/workspace/src/package-feed').exists())
                 for action in report['cases']['cold']['executions']:
                     self.assertIn(f"package-manifests/{action['project']}.json", action['inputs'])
-                    self.assertIn('packages/spike.buildinputs/1.0.0/build/Spike.BuildInputs.targets', action['inputs'])
-                    self.assertIn('packages/spike.buildinputs/1.0.0/data/value.txt', action['inputs'])
+                    self.assertIn('packages/rulesmsbuild.buildinputs/1.0.0/build/RulesMsbuild.BuildInputs.targets', action['inputs'])
+                    self.assertIn('packages/rulesmsbuild.buildinputs/1.0.0/data/value.txt', action['inputs'])
             self.assertNotEqual(report['sharedWorkspace'], report['appWorkspace'])
             self.assertFalse(report['appHasSharedSources'])
             self.assertNotEqual(report['undeclaredInput']['returncode'], 0)
@@ -192,7 +192,7 @@ class BazelBoundaryTests(unittest.TestCase):
             print(f'Retained Bazel workspace: {directory}', file=sys.stderr)
             raise
         else:
-            evidence = os.environ.get('SPIKE_NATIVE_EVIDENCE_DIR') if native_runtime else None
+            evidence = os.environ.get('RULES_MSBUILD_NATIVE_EVIDENCE_DIR') if native_runtime else None
             if evidence:
                 destination = Path(evidence)
                 destination.mkdir(parents=True, exist_ok=True)

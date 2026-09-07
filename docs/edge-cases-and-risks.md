@@ -3,7 +3,7 @@
 ## Scope and evidence
 
 The main risk is generalizing a passing fixture into a promise of arbitrary
-MSBuild compatibility. The spike establishes a deliberately narrow contract:
+MSBuild compatibility. The adapter establishes a deliberately narrow contract:
 Shared -> App, net10.0, Release, explicitly declared inputs, native sandbox
 execution and local disk caching. Checksums establish integrity of declared
 files, not completeness of the input set or filesystem hermeticity.
@@ -20,7 +20,7 @@ Broader workflow status and additional platforms must be verified separately.
 | Area | Evidence / boundary | Risk and next acceptance case |
 | --- | --- | --- |
 | Compile versus runtime assets | Distinct `ref/net10.0` and `lib/net10.0` DLLs are tested; App outputs match runtime DLL hashes, not reference hashes. | Add multiple compatible framework assets, RID-specific managed/native assets and satellite resources. Verify both selection and execution, not just file presence. |
-| Transitive dependencies | Shared directly references Spike.Binary, which depends on Spike.Leaf. Both implementations execute. | Add diamond dependencies, conflicting versions and asset exclusions such as `PrivateAssets`, `IncludeAssets` and `ExcludeAssets`. Check that downstream restore and runtime outputs agree. |
+| Transitive dependencies | Shared directly references RulesMsbuild.Binary, which depends on RulesMsbuild.Leaf. Both implementations execute. | Add diamond dependencies, conflicting versions and asset exclusions such as `PrivateAssets`, `IncludeAssets` and `ExcludeAssets`. Check that downstream restore and runtime outputs agree. |
 | Restore coherence | Exact inline package versions, archive/payload hashes and selected stale-restore failures are checked. | Central package management, conditional references, lock files and the complete restore-input identity are not covered. Changing any relevant property, import, source configuration or lock state must invalidate preparation appropriately. |
 | NuGet installation metadata | Binary resolution failed with `NETSDK1064` despite staged DLLs. Declaring an archive-derived `.nupkg.sha512` marker fixed the tested case. | Other package features may rely on further restored-directory metadata. Keep required metadata explicit, verified and relocatable; do not copy ambient cache state indiscriminately. |
 | Package provenance | Repository-authored binary fixtures are built with the pinned SDK and their generated archives are hashed during preparation. | These are not independently pinned external binaries. External feeds need an explicit package identity, integrity and provenance policy; arbitrary feeds and signed-package behavior remain outside the demonstrated boundary. |
@@ -84,7 +84,7 @@ arbitrary `.csproj` behavior.
 
 ## Related findings on main
 
-- [Spike plan](spike-plan.md)
+- [Implementation plan](implementation-plan.md)
 - [Raw-cache path probe](path-findings.md)
 - [Public-API replay](replay-findings.md)
 - [Action identity](action-identity-findings.md)

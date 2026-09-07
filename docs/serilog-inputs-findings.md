@@ -12,8 +12,8 @@ Run the executable ordinary SDK oracle after the existing
 [acquisition baseline](real-project-pilot.md) has prepared its source/packages:
 
 ```sh
-SPIKE_SERILOG_SOURCE=/path/to/serilog-baseline/source \
-SPIKE_SERILOG_PACKAGES=/path/to/serilog-baseline/packages \
+RULES_MSBUILD_SERILOG_SOURCE=/path/to/serilog-baseline/source \
+RULES_MSBUILD_SERILOG_PACKAGES=/path/to/serilog-baseline/packages \
 python3 -m unittest discover -s tests/serilog_inputs -v
 ```
 

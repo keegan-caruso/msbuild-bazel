@@ -8,7 +8,7 @@ import tempfile
 import unittest
 
 ROOT = Path(__file__).resolve().parents[2]
-BAZEL = Path(os.environ.get('SPIKE_BAZEL', ROOT / '.tools/bazel'))
+BAZEL = Path(os.environ.get('RULES_MSBUILD_BAZEL', ROOT / '.tools/bazel'))
 
 
 class SdkRepository(unittest.TestCase):
@@ -39,7 +39,7 @@ class SdkRepository(unittest.TestCase):
         self.assertIn('sdk/**', result)
 
     def test_declared_nix_import_is_a_real_repository_input(self):
-        sdk = os.environ.get('SPIKE_DOTNET_ROOT', '')
+        sdk = os.environ.get('RULES_MSBUILD_DOTNET_ROOT', '')
         if not sdk.startswith('/nix/store/'):
             self.skipTest('requires acquired Nix SDK')
         imported = '/nix/store/7j5z3nhm7kqc12lw46153fbahbbdxf7k-extra.targets'

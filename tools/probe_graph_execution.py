@@ -15,7 +15,7 @@ from bazel_session import BazelSession
 sys.path.insert(0, str(ROOT / 'tests/graph'))
 from test_export_graph import write_fixture
 
-BAZEL = Path(os.environ.get('SPIKE_BAZEL', ROOT / '.tools/bin/bazel'))
+BAZEL = Path(os.environ.get('RULES_MSBUILD_BAZEL', ROOT / '.tools/bin/bazel'))
 
 def probe(output, root_project=False, selected_reference=False):
     with BazelSession(output) as bazel:

@@ -13,7 +13,7 @@ import subprocess
 import sys
 
 ROOT = Path(__file__).resolve().parents[1]
-DOTNET = Path(os.environ.get('SPIKE_DOTNET_ROOT', ROOT / '.tools/dotnet')) / 'dotnet'
+DOTNET = Path(os.environ.get('RULES_MSBUILD_DOTNET_ROOT', ROOT / '.tools/dotnet')) / 'dotnet'
 
 
 def probe(directory):
@@ -31,7 +31,7 @@ def probe(directory):
         request_file = directory / f'{name}.request.json'
         request_file.write_text(json.dumps(request, indent=2) + '\n')
         process = subprocess.run(
-            [sys.executable, str(ROOT / 'tools/spike.py'), '--request', str(request_file)],
+            [sys.executable, str(ROOT / 'tools/adapter.py'), '--request', str(request_file)],
             text=True, capture_output=True, timeout=180,
         )
         (directory / f'{name}.driver.log').write_text(process.stdout + process.stderr)
@@ -48,7 +48,7 @@ def probe(directory):
         log = (output / 'build.log').read_text()
         result = dict(returncode=returncode,
                       compiledProjects=[p for p in ('Shared', 'App')
-                                        if f'SPIKE_COMPILE:{p}' in log],
+                                        if f'RULES_MSBUILD_COMPILE:{p}' in log],
                       log=str(output / 'build.log'))
         if returncode == 0:
             process = subprocess.run(
