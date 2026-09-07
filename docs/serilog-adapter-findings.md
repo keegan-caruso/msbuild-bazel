@@ -1,9 +1,11 @@
 # R04 pinned Serilog library adapter acceptance
 
-The independent harness is implemented; initial native adapter acceptance is
-blocked by production package/input discovery support. A rejection is recorded
-as `accepted=false` with its precise stage, and the probe exits nonzero. The
-configured native test is not converted to a skip when production fails.
+The pinned selected-inner library passes all eight native macOS acceptance
+controls: cold, unchanged, five independent mutations and producer-free relocated
+disk recovery. This qualifies the library slice, not the unchanged upstream test
+project or general package/generator support. Failures remain recorded as
+`accepted=false` with their precise stage; the configured test never converts a
+production failure into a skip.
 
 The input is a Git archive of unchanged upstream revision
 `49b5339ce85385dc52d4d8e8f2b8308becf23506`, selected at its existing `net10.0`
@@ -49,7 +51,42 @@ build. Ordinary binary logs, native execution logs, action diagnostics, complete
 bundles and normalized hash/mode inventories are retained in the output directory.
 The library's XML documentation must also be published.
 
-## Initial measured evidence
+## Measured native acceptance
+
+The full unittest passed at acceptance revision `e97849b` in 75.484 seconds using
+SDK 10.0.100, Bazel 8.4.2 and Nix Python 3.13.9 on macOS ARM64. Evidence:
+`/private/var/folders/__/z2sj57556cgfrkvbdznlvdt40000gn/T/serilog-adapter-3gsemaqt/probe/report.json`.
+The elapsed duration is a shared-worker correctness result, not a performance
+qualification. The host's unqualified `python3` changed to Python 3.9 during the
+session; the successful final run used
+`/nix/store/xcjk9ill54kjk8mzgq6yydnx9015lidg-python3-3.13.9/bin/python3` explicitly.
+The safe archive extraction API requires Python 3.12 or newer.
+
+Cold executed one `darwin-sandbox` action. Unchanged executed none. Source,
+resource, replacement signing key, version import and generator-option edits each
+executed exactly one native action and matched a separately built ordinary DLL's
+observation. Every publication declared the exact eleven-analyzer inventory,
+shared/nested props imports, key path/hash and resource LogicalName metadata.
+
+Relocation removed the output base and generated producer tree, regenerated from
+an unchanged archive at a different path, deleted its preparation tree and
+restored one disk-cache hit with zero executions. All eight bundle files matched
+cold bytes and executable bits, including the signed DLL, reference DLL, PDB,
+XML documentation, dependency metadata and bundle manifests. The recovered DLL
+passed real-consumer signing/resource/logging/generated-type checks. The full
+canonical file inventory digest was
+`d8ea2b60ff0056afbccb7382bb0cbc8d6cf067991753dd318ead62004103f388`.
+The cold/recovered implementation DLL SHA-256 was
+`241bb6b6023c1c089c027f0b179ad3b7da06b90bfd758f6f464425bf1c2ac926`.
+
+The independent API helper also passed on both final cold/recovered DLLs, with
+generated API text equal to the pinned approved bytes. Reports:
+`/private/tmp/r04-api-final-cold-3gsemaqt/report.json` and
+`/private/tmp/r04-api-final-relocated-3gsemaqt/report.json`. See
+`serilog-api-oracle-findings.md` for its distinct scope; this does not execute the
+unchanged upstream xUnit test project.
+
+## Earlier failures and ordinary controls
 
 At adapter revision `48a5439`, the ordinary unchanged source built successfully.
 The consumer observed public key token `24C2F752A8E58A10`, a set strong-name flag,
@@ -61,8 +98,11 @@ The resource hash was
 Fresh graph export then rejected the library with `stale-restore: evaluated direct
 package set differs from restore`. Evidence:
 `/private/tmp/msbuild-serilog-adapter-initial/report.json`. No native Bazel action,
-mutation or cache recovery acceptance is claimed by that initial run. Package
-policy and post-resolution input discovery are being implemented independently.
+mutation or cache recovery acceptance was established by that initial run. The
+subsequent native attempts exposed sandbox-symlink archive length, nested import
+discovery, explicit Nix import staging, and CRLF/BOM hash normalization gaps. Their
+production fixes were integrated before the successful full run above. The
+harness also needed to unlink its previous read-only DLL copy before replacement.
 
 This scope is the library only. The upstream approval-test entry, isolated test
 execution, publishing/trimming/AOT, general generators, Linux qualification and
