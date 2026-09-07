@@ -1,0 +1,25 @@
+load("@rules_python//python:defs.bzl", "py_binary", "py_test")
+load("@aspect_rules_ts//ts:defs.bzl", "ts_project")
+load("@aspect_rules_js//js:defs.bzl", "js_binary")
+py_binary(name = "python_app", srcs = ["python_app.py"], main = "python_app.py")
+ts_project(
+    name = "typescript_lib",
+    srcs = ["typescript_app.ts"],
+    tsconfig = {"compilerOptions": {"target": "ES2020", "module": "commonjs", "strict": True}},
+    transpiler = "tsc",
+)
+js_binary(name = "typescript_app", entry_point = "typescript_app.js", data = [":typescript_lib"])
+py_test(
+    name = "polyglot_test",
+    srcs = ["polyglot_test.py"],
+    main = "polyglot_test.py",
+    args = [
+        "--python", "$(rootpath :python_app)",
+        "--typescript", "$(rootpath :typescript_app)",
+        "--dotnet", "$(rootpath @dotnet//:sdk/dotnet)",
+        "--bundles", "$(rootpaths :node_APP_ID)",
+    ],
+    data = [":python_app", ":typescript_app", ":node_APP_ID", "@dotnet//:files", "@dotnet//:sdk/dotnet"],
+    deps = ["@rules_python//python/runfiles"],
+    tags = ["no-remote"],
+)
