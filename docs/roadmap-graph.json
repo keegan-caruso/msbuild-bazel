@@ -3,7 +3,11 @@
   "baselineCommit": "6bd2525",
   "edgeMeaning": "Acceptance prerequisites: all requires nodes must have passing evidence before downstream acceptance. Design, inventory and isolated implementation may start earlier. Edges apply to the initial named slice; extensions add explicit prerequisites.",
   "completed": [
-    "base"
+    "base",
+    "linux",
+    "cache",
+    "handoff",
+    "local"
   ],
   "nodes": [
     {
@@ -12,7 +16,7 @@
       "label": "Existing graph execution",
       "requires": [],
       "workstream": "baseline",
-      "scope": "Implemented macOS package-free slice; source checkpoint 6bd2525. This is the only completed node."
+      "scope": "Implemented macOS package-free slice; source checkpoint 6bd2525."
     },
     {
       "id": "linux",
@@ -394,9 +398,10 @@
     }
   ],
   "progress": {
-    "linux": "Existing baseline CI passed; combined revision CI pending.",
-    "cache": "Eight scoped native macOS tests pass; combined Linux pending.",
-    "handoff": "Native macOS discovery and forced-consumption controls pass; combined Linux pending.",
-    "languages": "Native macOS composition, edits and forced cache recovery pass; Linux and broader harness gates pending."
+    "linux": "Integrated c384671 native Linux graph, setup and Nix lanes passed.",
+    "cache": "Native macOS scoped cache acceptance and integrated Linux lane passed, including deleted-producer relocation.",
+    "handoff": "Native macOS controls and integrated Linux discovery and forced-consumption lane passed.",
+    "languages": "Native macOS and integrated Linux composition, edits and forced cache recovery pass; broader harness gates remain open.",
+    "local": "R01 accepted on native macOS ARM64 and Linux x86-64; package-bearing R02 remains separate."
   }
 }

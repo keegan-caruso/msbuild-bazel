@@ -3,8 +3,8 @@
 This graph decomposes [R01–R17](roadmap.md) into work packages. The source is
 [roadmap-graph.json](roadmap-graph.json); node IDs are stable within this plan.
 Acceptance state is recorded in the JSON and the
-[first parallel batch findings](parallel-tracks-findings.md). Nodes other than
-`base` remain open until the integrated native lanes pass. Arrows are acceptance prerequisites, not a
+[first parallel batch findings](parallel-tracks-findings.md). `base`, `linux`, `cache`, `handoff` and `local` have passing evidence; downstream
+nodes remain open until their own acceptance lanes pass. Arrows are acceptance prerequisites, not a
 requirement to delay source inspection, contract design or isolated implementation.
 Every incoming solid edge must pass before accepting that downstream slice.
 
@@ -155,7 +155,9 @@ TypeScript build rules. This scope correction leaves dependency edges unchanged.
 
 ## What can start now
 
-The first implementation batch has four independent work packages. Their
+R01 is accepted at `c384671` on both native lanes. Package integration, configured
+node semantics, lifecycle and synthetic scale are dependency-ready. The first
+implementation batch had four independent work packages. Their
 implementation and measured results are tracked in the
 [first parallel batch findings](parallel-tracks-findings.md).
 
@@ -201,7 +203,7 @@ not a claim that Linux execution or generated-graph caching already passes.
 
 | ID | Milestone | Deliverable and boundary |
 | --- | --- | --- |
-| `base` | existing | Implemented macOS package-free slice; source checkpoint 6bd2525. This is the only completed node. |
+| `base` | existing | Implemented macOS package-free slice; source checkpoint 6bd2525. R01 acceptance is recorded below. |
 | `linux` | R01 | Run current graph execution/replay acceptance in native Linux CI; preserve sandbox strategy. |
 | `cache` | R01 | Implement existing package-free report cases, edit sets and relocated disk-cache recovery. |
 | `handoff` | R01 | Add C13 boundary controls, C14 new inputs, concurrent baseline builds and interrupted publication tests. |
