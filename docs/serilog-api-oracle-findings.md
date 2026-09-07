@@ -37,3 +37,26 @@ failed report and nonempty diff. The opt-in `tests/serilog_api` test passed in
 with harness log `/private/tmp/r04-api-oracle-tests.log`. This result measures
 the existing ordinary library baseline; adapter and recovered bundles must be
 passed independently before claiming equivalent public API there.
+
+## Native cold and relocated bundle approval
+
+The final native Serilog adapter probe at `serilog-adapter-3gsemaqt/probe`
+completed its eight cases. The standalone oracle was independently run against
+both `evidence/cold/bundle/artifacts/src/Serilog/bin/Release/net10.0/Serilog.dll`
+and the corresponding `evidence/relocated` DLL, using explicit Nix Python 3.13.9
+and SDK 10.0.100. Both passed. The generated API text in both cases is byte-for-byte
+identical to the pinned upstream approval file (SHA256
+`ba5f809321f00be804d5ef5839f1654404fc87641a077429edb196ecaf74d1ef`), without needing
+line-ending normalization. The cold and relocated DLL bytes are also identical
+(SHA256 `241bb6b6023c1c089c027f0b179ad3b7da06b90bfd758f6f464425bf1c2ac926`).
+
+Independent reports, actual/approved text, and helper build logs are retained at
+`/private/tmp/r04-api-final-cold-3gsemaqt` and
+`/private/tmp/r04-api-final-relocated-3gsemaqt`. Native probe evidence is under
+`/private/var/folders/__/z2sj57556cgfrkvbdznlvdt40000gn/T/serilog-adapter-3gsemaqt/probe`.
+An earlier successful cold assembly from `serilog-adapter-sb57w6os` also passed;
+its report is `/private/tmp/r04-api-native-cold-sb57w6os/report.json`.
+
+These comparisons establish the approved public API for the measured ordinary,
+native cold, and relocated library artifacts. The unchanged upstream xunit /
+Shouldly approval test project remains a separate unexecuted acceptance slice.
