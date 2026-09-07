@@ -1,7 +1,7 @@
 name: Configured graph execution
 on:
   push:
-    branches: [main, 'codex/graph-execution', 'codex/parallel-milestones', 'codex/r01-*']
+    branches: [main, 'codex/graph-execution', 'codex/parallel-milestones', 'codex/r01-*', 'codex/ready-tracks']
   pull_request:
   workflow_dispatch:
 permissions:
@@ -42,6 +42,27 @@ jobs:
             /tmp/msbuild-graph-cache-*/probe/*.log
             /tmp/msbuild-graph-cache-*/probe/*.json
             /tmp/msbuild-graph-cache-*/probe/evidence/**
+            /tmp/graph-discovery-*/**/*.log
+            /tmp/graph-discovery-*/**/*.json
             /tmp/graph-handoff-*/**/*.log
             /tmp/graph-handoff-*/**/report.json
+          if-no-files-found: ignore
+  multilanguage:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install pinned tools
+        run: bash scripts/setup.sh
+      - name: Existing-rule multi-language acceptance
+        run: python3 -m unittest discover -s tests/multilanguage -v
+      - name: Retain multi-language evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: multilanguage-evidence
+          path: |
+            /tmp/msbuild-multilanguage-*/probe/*.log
+            /tmp/msbuild-multilanguage-*/probe/*.json
+            /tmp/msbuild-multilanguage-*/probe/workspace/MODULE.bazel.lock
           if-no-files-found: ignore

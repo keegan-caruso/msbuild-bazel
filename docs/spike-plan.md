@@ -56,7 +56,9 @@ acceptance. The [coverage matrix](scenario-coverage.md) and
 [pinned project selections](coverage-project-selections.md) define the broader
 portfolio and separate proposed work from measured support. The
 [parallel dependency graph](roadmap-graph.md) splits milestones into work packages
-and records the acceptance gates between independent tracks.
+and records the acceptance gates between independent tracks. The
+[first parallel batch](parallel-tracks-findings.md) records execution and
+integration of the four initially ready work packages.
 
 ## Milestone sequence
 

@@ -32,7 +32,9 @@ slice](docs/graph-execution-findings.md) passes native macOS acceptance for a
 Release/net10.0 package-free diamond. [Cache acceptance contracts](docs/graph-cache-contract.md)
 and [real-project discovery](docs/real-project-pilot.md) are prepared in parallel;
 they do not yet establish generated-graph cache recovery or real-project support.
-General NuGet compatibility, RID-specific/native package assets, full runtime
+The [first parallel batch](docs/parallel-tracks-findings.md) implements package-free
+cache and handoff controls plus an existing-rule multi-language harness; combined
+native validation is recorded there. General NuGet compatibility, RID-specific/native package assets, full runtime
 closure, remote-cache correctness and cross-platform portability remain unproven.
 
 The [forward roadmap](docs/roadmap.md) covers R01–R17 from this checkpoint through

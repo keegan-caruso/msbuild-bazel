@@ -2,7 +2,9 @@
 
 This graph decomposes [R01–R17](roadmap.md) into work packages. The source is
 [roadmap-graph.json](roadmap-graph.json); node IDs are stable within this plan.
-All nodes except `base` are **open**. Arrows are acceptance prerequisites, not a
+Acceptance state is recorded in the JSON and the
+[first parallel batch findings](parallel-tracks-findings.md). Nodes other than
+`base` remain open until the integrated native lanes pass. Arrows are acceptance prerequisites, not a
 requirement to delay source inspection, contract design or isolated implementation.
 Every incoming solid edge must pass before accepting that downstream slice.
 
@@ -153,9 +155,9 @@ TypeScript build rules. This scope correction leaves dependency edges unchanged.
 
 ## What can start now
 
-The first implementation batch has four independent work packages. Completion
-requires the ordinary contract/test-first workflow; this plan does not dispatch
-agents or start infrastructure.
+The first implementation batch has four independent work packages. Their
+implementation and measured results are tracked in the
+[first parallel batch findings](parallel-tracks-findings.md).
 
 | Work package | Immediate deliverable | Primary ownership |
 | --- | --- | --- |

@@ -90,3 +90,16 @@ Linux validation must run the same focused suite through CI. No remote cache,
 remote execution, cross-platform reuse, arbitrary configuration/package support
 or complete host runtime closure follows. Concurrent native runs establish
 correctness only; no performance measurements are reported.
+
+## Integrated native macOS acceptance
+
+After integrating handoff normalization and complete output download, ran
+`python3 -m unittest discover -s tests/graph_cache -v` on macOS ARM64 with the
+pinned Nix tools at integration source `c8e19ff` (unchanged production source
+during the run). All **8 tests passed** in 125.658 seconds. Evidence:
+`/private/var/folders/__/z2sj57556cgfrkvbdznlvdt40000gn/T/msbuild-graph-cache-uw3b8wik/probe`.
+Both clean recovery and deleted-producer relocation record four disk-cache hits,
+no project executions, identical bundle hashes/permissions and correct App output.
+The Shared edit also matches a separately rebuilt ordinary MSBuild baseline.
+This supersedes the partial six-of-eight result above; Linux at the combined
+revision remains a separate gate.

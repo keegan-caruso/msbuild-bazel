@@ -37,6 +37,8 @@ def probe(output):
                    '--spawn_strategy=' + strategy, '--strategy=MsbuildProject=' + strategy,
                    '--strategy=TsProject=' + strategy, '--test_output=all',
                    '--execution_log_json_file=' + str(execution), '--noshow_progress']
+        if name == 'diskCache':
+            command.append('--nocache_test_results')
         result = subprocess.run(command, cwd=workspace, text=True, stdout=subprocess.PIPE,
                                 stderr=subprocess.STDOUT, timeout=600)
         (output / (name + '.log')).write_text(result.stdout)
@@ -91,7 +93,9 @@ def probe(output):
     recovery = run('diskCache')
     assert not any(a['mnemonic'] in ('MsbuildProject', 'TsProject') and not a['cacheHit'] for a in recovery), recovery
     assert sum(a['mnemonic'] == 'MsbuildProject' and a['cacheHit'] for a in recovery) == 4, recovery
+    assert any(a['mnemonic'] == 'TestRunner' and not a['cacheHit'] and a['runner'] == strategy for a in recovery), recovery
     cases['diskCache']['outputBaseAbsentBeforeBuild'] = True
+    cases['diskCache']['testForcedToExecute'] = True
     report = dict(schemaVersion=1, cases=cases, preparationWorkspaceAbsent=baseline['preparationWorkspaceAbsent'],
                   scope='Local runfiles composition and language-local edits; relocation, Aspire and remote support remain open.')
     (output / 'multilanguage-report.json').write_text(json.dumps(report, indent=2))
