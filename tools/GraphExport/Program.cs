@@ -332,10 +332,25 @@ internal static class GraphExporter
             outputs.Values.OrderBy(o => o.Path, StringComparer.Ordinal).ThenBy(o => o.Kind, StringComparer.Ordinal).ToList(),
             new ExecutionRecord(NormalizeWorkspaceRelative(request, assets),
                 NormalizeWorkspaceRelative(request, Path.GetDirectoryName(instance.GetPropertyValue("TargetPath"))!),
-                NormalizeWorkspaceRelative(request, Path.GetFullPath(Path.Combine(instance.GetPropertyValue("IntermediateOutputPath"), "ref"), Path.GetDirectoryName(instance.FullPath)!))),
+                NormalizeWorkspaceRelative(request, Path.GetFullPath(Path.Combine(instance.GetPropertyValue("IntermediateOutputPath"), "ref"), Path.GetDirectoryName(instance.FullPath)!)),
+                node.ProjectInstance.GetItems("ProjectReference")
+                    .Where(reference => !string.IsNullOrEmpty(reference.GetMetadataValue("SetTargetFramework")))
+                    .Select(reference => new SelectedReferenceRecord(
+                        NormalizeWorkspaceRelative(request, reference.GetMetadataValue("FullPath")),
+                        SelectedFramework(reference.GetMetadataValue("SetTargetFramework"))))
+                    .OrderBy(reference => reference.Project, StringComparer.Ordinal).ToList()),
             new DiscoveryRecord(instance.GetPropertyValue("SignAssembly").Equals("true", StringComparison.OrdinalIgnoreCase),
                 instance.GetPropertyValue("PublicSign").Equals("true", StringComparison.OrdinalIgnoreCase),
                 instance.GetPropertyValue("DelaySign").Equals("true", StringComparison.OrdinalIgnoreCase)));
+    }
+
+    private static string SelectedFramework(string metadata)
+    {
+        const string prefix = "TargetFramework=";
+        if (!metadata.StartsWith(prefix, StringComparison.OrdinalIgnoreCase) ||
+            metadata.Length == prefix.Length || metadata.Contains(';'))
+            throw new ExportException("unsupported-configured-reference", "unexpected SDK framework selection: " + metadata);
+        return metadata[prefix.Length..];
     }
 
     internal static string CanonicalDirectory(string path)
@@ -551,7 +566,8 @@ internal sealed record ToolchainRecord(string SdkVersion, string GraphEngine, in
 internal sealed record InputRecord(string Kind, string Path, string Sha256, SortedDictionary<string, string>? Metadata = null);
 internal sealed record OutputRecord(string Kind, string Path);
 internal sealed record NodeRecord(string Id, string Project, SortedDictionary<string, string> GlobalProperties, string TargetFramework, string OutputType, List<string> Dependencies, List<InputRecord> Inputs, List<OutputRecord> Outputs, ExecutionRecord Execution, DiscoveryRecord Discovery);
-internal sealed record ExecutionRecord(string AssetsFile, string OutputDirectory, string ReferenceDirectory);
+internal sealed record SelectedReferenceRecord(string Project, string TargetFramework);
+internal sealed record ExecutionRecord(string AssetsFile, string OutputDirectory, string ReferenceDirectory, List<SelectedReferenceRecord> SelectedReferences);
 internal sealed record Manifest(int SchemaVersion, ToolchainRecord Toolchain, List<string> EntryPoints, List<InputRecord> GraphInputs, List<NodeRecord> Nodes, List<EntryRequest> EntryRequests);
 
 internal sealed record DiscoveryRecord(bool SignAssembly, bool PublicSign, bool DelaySign);
