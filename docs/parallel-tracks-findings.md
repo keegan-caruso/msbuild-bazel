@@ -26,3 +26,11 @@ Native macOS package-free cache acceptance passes all 8 tests, including
 producer-free relocation and complete recovered-bundle hash/permission comparison.
 The pinned environment check also passes. Combined regression and Linux results
 are recorded below when their runs finish.
+
+At `f22153c`, the integrated exporter passed 12 tests, runner contracts passed,
+graph execution/rejection passed 16 tests, and forced multi-language recovery
+passed its acceptance test. Handoff found one fixture-environment issue: reused
+MSBuild workers changed NuGet config paths between the conditional-edge baseline
+and regenerated build. This is being fixed with a dedicated CLI home and worker
+reuse disabled; the final handoff rerun remains required. Logs are retained in
+`artifacts/parallel-regression` in the integration worktree.

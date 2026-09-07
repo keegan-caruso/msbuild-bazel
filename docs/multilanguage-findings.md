@@ -60,3 +60,14 @@ missing-runfile rejection and Aspire service composition remain open. Dependency
 fetches occur before actions and need network access; execution evidence is local
 and does not establish full host closure or cross-worker portability. These
 correctness runs overlap other track validation and are not performance evidence.
+
+## Forced recovered-program execution
+
+Independent review identified that a cached test result could hide whether the
+recovered runfiles execute. The integration probe now adds
+`--nocache_test_results` for `diskCache` and requires a real native `TestRunner`
+action. The integrated acceptance passed (1 test, 64.622 seconds) on macOS
+ARM64 at `f22153c`. Evidence:
+`/private/var/folders/__/z2sj57556cgfrkvbdznlvdt40000gn/T/msbuild-multilanguage-u1ysav_2/probe`.
+The recovered .NET, Python and TypeScript programs were actually launched; the
+four .NET build actions came from disk cache, with no .NET/TypeScript compilation.
