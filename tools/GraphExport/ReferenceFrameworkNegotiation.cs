@@ -19,6 +19,13 @@ internal static class ReferenceFrameworkNegotiation
         instance.SetProperty("InnerBuildPropertyValues", "");
         if (instance.GetItems("ProjectReference").Count == 0) return instance;
 
+        var assets = instance.GetPropertyValue("ProjectAssetsFile");
+        if (!string.IsNullOrWhiteSpace(assets))
+        {
+            assets = Path.GetFullPath(assets, Path.GetDirectoryName(path)!);
+            if (File.Exists(assets)) PackageRestoreValidation.ValidateSuccessfulRestore(instance, assets);
+        }
+
         // Let the pinned SDK negotiate references as ordinary MSBuild does. The
         // returned metadata shapes the graph only; source projects are unchanged.
         BuildResult result;

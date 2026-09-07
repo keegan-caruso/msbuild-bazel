@@ -68,6 +68,12 @@ internal static class GraphExporter
             Console.Error.WriteLine($"project-evaluation: {ex.Message}");
             return 3;
         }
+        catch (AggregateException ex) when (ex.Flatten().InnerExceptions.OfType<ExportException>().Any())
+        {
+            var failure = ex.Flatten().InnerExceptions.OfType<ExportException>().First();
+            Console.Error.WriteLine($"{failure.Code}: {failure.Message}");
+            return 2;
+        }
         catch (AggregateException ex) when (ex.InnerExceptions.OfType<InvalidProjectFileException>().Any())
         {
             Console.Error.WriteLine($"project-evaluation: {ex.Flatten().InnerExceptions[0].Message}");

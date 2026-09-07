@@ -68,3 +68,8 @@ python3 -m unittest discover -s tests/graph_execution -p test_framework_selectio
 python3 -m unittest discover -s tests/graph_execution -p test_prepare_graph.py -v
 bash scripts/dotnet.sh run --project tests/ActionRunner.Tests
 ```
+The restore regression suite exposed an ordering issue: SDK negotiation could
+report a package downgrade before the existing failed-restore diagnostic. Discovery
+now validates the successful restore marker before running negotiation and preserves
+typed exporter errors raised through graph construction. All 12 restore-semantic
+controls passed after the correction, including failed/partial restore rejection.
