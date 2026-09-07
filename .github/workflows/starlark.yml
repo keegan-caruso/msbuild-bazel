@@ -1,8 +1,6 @@
 name: Starlark and local adapter qualification
+# Run GitHub CI only when explicitly requested.
 on:
-  pull_request:
-  push:
-    branches: [main, 'codex/starlark-core']
   workflow_dispatch:
 permissions:
   contents: read

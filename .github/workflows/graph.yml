@@ -1,8 +1,7 @@
 name: Configured graph acceptance
+# Run GitHub CI only when explicitly requested.
 on:
-  push:
-    branches: [main, 'codex/m*']
-  pull_request:
+  workflow_dispatch:
 permissions:
   contents: read
 jobs:

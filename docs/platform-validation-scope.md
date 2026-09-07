@@ -33,8 +33,9 @@ it does not itself establish adapter support or full Serilog test-project suppor
 
 Linux jobs for newer changes previously failed before startup because of account
 billing/spending limits. Those attempts are not test failures or passing evidence.
-Automatic push validation for `codex/ready-tracks` is paused in the setup, Nix and
-graph-execution workflows. Main and pull-request checks remain enabled; manual
-setup/Nix/graph-execution runs remain available when Linux validation resumes.
+All repository CI workflows now use only `workflow_dispatch`: pushes and pull
+requests do not launch GitHub CI. Dispatch runs only when explicitly requested
+by the user. The requested one-time Linux validation round targets `main` through
+the setup, Nix, graph-export and graph-execution workflows.
 That decision did not establish new Linux, cross-platform cache, remote-cache or
 full host-closure evidence. The later Linux ARM64 results above are separately scoped.

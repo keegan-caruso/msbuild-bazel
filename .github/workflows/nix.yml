@@ -1,8 +1,6 @@
 name: Nix development shell
+# Run GitHub CI only when explicitly requested.
 on:
-  push:
-    branches-ignore: ['codex/ready-tracks']
-  pull_request:
   workflow_dispatch:
 permissions:
   contents: read
