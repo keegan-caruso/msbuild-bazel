@@ -14,6 +14,7 @@ import subprocess
 import tempfile
 
 import graph_packages
+from prepare_graph_tests import add_tests
 
 ROOT = Path(__file__).resolve().parents[1]
 DOTNET_ROOT = Path(os.environ.get('SPIKE_DOTNET_ROOT', ROOT / '.tools/dotnet')).resolve()
@@ -82,7 +83,7 @@ def nix_imports(inputs, sdk_root):
     return sorted(paths)
 
 
-def prepare(workspace, manifest, output, *, environment=None):
+def prepare(workspace, manifest, output, *, environment=None, tests=None):
     """Publish only a completely validated plan; serialize shared adapter builds."""
     output = Path(output).resolve()
     if output.exists():
@@ -93,7 +94,7 @@ def prepare(workspace, manifest, output, *, environment=None):
     with lock.open('a') as handle, tempfile.TemporaryDirectory(prefix='.graph-prepare-', dir=output.parent) as temporary:
         fcntl.flock(handle, fcntl.LOCK_EX)
         staged = Path(temporary) / 'workspace'
-        graph = _prepare(workspace, manifest, staged, environment=environment)
+        graph = _prepare(workspace, manifest, staged, environment=environment, tests=tests)
         # Never replace another preparation's committed plan, including an empty directory.
         if output.exists():
             raise FileExistsError(output)
@@ -101,7 +102,7 @@ def prepare(workspace, manifest, output, *, environment=None):
         return graph
 
 
-def _prepare(workspace, manifest, output, *, environment=None):
+def _prepare(workspace, manifest, output, *, environment=None, tests=None):
     workspace, manifest, output = map(lambda p: Path(p).resolve(), (workspace, manifest, output))
     graph = json.loads(manifest.read_text())
     if graph['schemaVersion'] != 1 or graph.get('toolchain') != {'sdkVersion': '10.0.100', 'graphEngine': 'ProjectGraph', 'contractVersion': 1}:
@@ -169,7 +170,7 @@ def _prepare(workspace, manifest, output, *, environment=None):
     if not graph.get('entryRequests'):
         raise ValueError('graph discovery request missing; regenerate manifest')
     output.mkdir(parents=True, exist_ok=False)
-    for name in ('GraphExport', 'ReplayPlugin', 'ActionRunner'):
+    for name in ('GraphExport', 'ReplayPlugin', 'ActionRunner') + (('TestRunner',) if tests else ()):
         result = subprocess.run([str(DOTNET_ROOT / 'dotnet'), 'build', str(ROOT / 'tools' / name), '-c', 'Release', '--nologo'], cwd=ROOT, text=True, capture_output=True, env=environment)
         (output / (name + '-build.log')).write_text(result.stdout + result.stderr)
         if result.returncode:
@@ -253,6 +254,8 @@ def _prepare(workspace, manifest, output, *, environment=None):
         attrs = dict(settings, **execution_attrs, global_properties=node['globalProperties'], packages=packages, package_manifest=package_manifest, name='node_' + identity, project=relative(node['project']), srcs=sorted('src/' + s for s in sources), restore=restore, dependencies=[':node_' + d for d in node['dependencies']])
         build += 'graph_project(\n' + ''.join(f'    {k} = {json.dumps(v)},\n' for k, v in attrs.items()) + ')\n'
     build += 'filegroup(name="all", srcs=' + json.dumps([':node_' + n for n in graph['entryPoints']]) + ')\n'
+    build += add_tests(workspace, output, nodes, tests, ROOT)
+    if tests: build = 'load(":graph_test.bzl", "graph_test")\n' + build
     (output / 'BUILD.bazel').write_text(build)
     (output / 'graph.json').write_text(json.dumps(graph, indent=2))
     return graph
@@ -261,5 +264,6 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     for option in ('workspace', 'manifest', 'output'):
         parser.add_argument('--' + option, required=True, type=Path)
+    parser.add_argument('--tests', type=Path, help='JSON list of explicit node/data/expectedTests declarations')
     args = parser.parse_args()
-    prepare(args.workspace, args.manifest, args.output)
+    prepare(args.workspace, args.manifest, args.output, tests=json.loads(args.tests.read_text()) if args.tests else None)

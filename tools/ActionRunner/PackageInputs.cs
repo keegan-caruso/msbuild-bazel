@@ -1,6 +1,7 @@
 using System.Xml.Linq;
 using System.IO.Compression;
 using System.Security.Cryptography;
+using System.Text.Json;
 
 namespace ActionRunner;
 
@@ -10,7 +11,9 @@ internal static class PackageInputs
     {
         var projectName = request.Project.ToString();
         var projectPath = request.GraphProject ?? Path.Combine(projectName, projectName + ".csproj");
-        var assets = JsonFiles.Read<RestoreAssets>(Path.Combine(workspace, request.GraphAssetsFile ?? Path.Combine(Path.GetDirectoryName(projectPath)!, "obj/project.assets.json")));
+        var assetsPath = Path.Combine(workspace, request.GraphAssetsFile ?? Path.Combine(Path.GetDirectoryName(projectPath)!, "obj/project.assets.json"));
+        var assets = JsonFiles.Read<RestoreAssets>(assetsPath);
+        using var assetsDocument = JsonDocument.Parse(File.ReadAllText(assetsPath));
         var resolved = assets.Libraries.Where(entry => entry.Value.Type == "package")
             .ToDictionary(entry => entry.Key, entry => entry.Value.Path
                 ?? throw new InvalidDataException("restored package path missing: " + entry.Key), StringComparer.OrdinalIgnoreCase);
@@ -38,6 +41,7 @@ internal static class PackageInputs
         foreach (var package in manifest.Packages)
         {
             var pin = PilotPackagePolicy.Find(package.Id + "/" + package.Version);
+            if (request.GraphProject is not null) VerifyAssetRoles(assetsDocument.RootElement, package.Id + "/" + package.Version, pin);
             if (pin is not null) VerifyPilot(package, pin, files, assets);
             if (request.GraphProject is not null)
                 foreach (var entry in package.Files)
@@ -65,6 +69,23 @@ internal static class PackageInputs
         foreach (var (source, target) in staged)
             Files.Copy(source, target);
         return resolved.Keys.Select(key => key.ToLowerInvariant()).Order(StringComparer.Ordinal).ToArray();
+    }
+    internal static void VerifyAssetRoles(JsonElement assets, string identity, PilotPackagePin? pin)
+    {
+        if (!assets.TryGetProperty("targets", out var targets)) return;
+        foreach (var framework in targets.EnumerateObject())
+            foreach (var package in framework.Value.EnumerateObject())
+            {
+                if (!package.Name.Equals(identity, StringComparison.OrdinalIgnoreCase)) continue;
+                foreach (var role in package.Value.EnumerateObject())
+                {
+                    var name = role.Name.ToLowerInvariant();
+                    if (!new[] { "native", "runtimetargets", "resource", "build", "buildmultitargeting", "buildtransitive", "contentfiles" }.Contains(name)) continue;
+                    if (role.Value.ValueKind == JsonValueKind.Object && !role.Value.EnumerateObject().Any()) continue;
+                    if (!(pin?.AssetRoles.Contains(name) ?? false))
+                        throw new InvalidDataException("unsupported graph package asset role: " + identity + ":" + role.Name);
+                }
+            }
     }
     private static void VerifyPilot(Package package, PilotPackagePin pin, Dictionary<string, string> files, RestoreAssets assets)
     {

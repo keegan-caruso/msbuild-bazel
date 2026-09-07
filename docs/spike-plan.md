@@ -6,6 +6,8 @@ Can Bazel cache and schedule configured .NET projects while each action uses MSB
 
 ## Current status and next step
 
+The [native VSTest contract](test-action-findings.md) adds explicit test targets, declared approval data, and retained failure results; its ordinary-runtime prototype is separate from graph-built upstream acceptance.
+
 Further Linux validation is deferred by request. The [R04 selected Serilog library](r04-integration-findings.md) now passes native
 macOS mutation and relocated-cache acceptance after R02 and selected R03; see
 [active platform scope](platform-validation-scope.md). Historical platform

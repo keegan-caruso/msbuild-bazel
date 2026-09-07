@@ -29,6 +29,7 @@ try
          "output":"bundle","diagnostics":"diagnostics","dependency":null,"undeclared_probe":"",
          "native_manifest":null,"native_files":[]}
         """;
+    AssetRoleTests.Run();
     var payload = Path.Combine(directory.FullName, "payload.txt");
     File.WriteAllText(payload, "package payload");
     var link = Path.Combine(directory.FullName, "payload-link");
