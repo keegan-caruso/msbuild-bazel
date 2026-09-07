@@ -44,3 +44,9 @@ select different versions. The fix now validates those saved requests, project e
 completion. Twelve focused regressions pass, including a natural failed-restore
 case and a valid consumer/dependency version-resolution difference. Full native
 integration checks are recorded in [consumer restore findings](consumer-restore-findings.md).
+
+Final integrated native validation at `6563e3c` passed all 13 full cache tests and
+14 PrivateAssets/restore-state tests after the consumer fix. The reviewed R03
+configured slice also passed native cold, mutation and relocation controls. The
+remaining platform limitation is the unstarted Linux CI gate; broader NuGet,
+remote execution and full host closure remain outside the qualified scope.

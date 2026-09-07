@@ -63,3 +63,7 @@ reported an account payment or spending-limit issue. This is not a test failure
 or passing Linux evidence; R02 remains unaccepted until the native Linux jobs
 can execute. R03 and lifecycle implementation can proceed under their already
 accepted R01 prerequisite.
+
+The subsequent [consumer restore review](consumer-restore-findings.md) closed
+partial-restore and failed-restore gaps. Integrated `6563e3c` passed all 13 full
+cache and 14 PrivateAssets/restore-state tests on macOS after those fixes.

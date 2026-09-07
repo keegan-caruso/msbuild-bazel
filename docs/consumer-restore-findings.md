@@ -94,3 +94,22 @@ byte-identical relocated recovery and selected-inner behavior. Evidence is under
 `configured-execution-79anw0qi/probe` (configured graph) and
 `configured-execution-jxzn2bt7/probe` (selected inner). These runs used native
 macOS sandboxing; no Linux result is claimed for this extension.
+
+## Final integration regression
+
+At integrated `6563e3c`, the full package-cache suite passed all 13 tests in
+217.776 seconds and the complete PrivateAssets/restore-state suite passed all
+14 tests in 161.561 seconds on native macOS ARM64. These runs include the
+configured-node implementation and iterative dependency-closure fix. Commands:
+
+```sh
+python3 -m unittest discover -s tests/graph_cache_full -v
+python3 -m unittest discover -s tests/graph_packages -v
+```
+
+Retained cache evidence is
+`/private/var/folders/__/z2sj57556cgfrkvbdznlvdt40000gn/T/msbuild-graph-cache-czm716kd/probe`.
+The combined local logs are `/private/tmp/final-package-cache.log` and
+`/private/tmp/final-privateassets.log`. The pinned environment check and diff
+whitespace check also passed. Linux qualification remains blocked by the GitHub
+account billing/spending-limit gate until jobs can start.
