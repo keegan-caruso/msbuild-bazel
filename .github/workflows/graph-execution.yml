@@ -108,4 +108,6 @@ jobs:
             /tmp/graph-private-adapter-*/*.json
             /tmp/graph-private-adapter-*/ordinary/*.log
             /tmp/graph-private-adapter-*/ordinary/report.json
+            /tmp/graph-restore-semantics-*/**/*.log
+            /tmp/graph-restore-semantics-*/**/graph-*.json
           if-no-files-found: ignore

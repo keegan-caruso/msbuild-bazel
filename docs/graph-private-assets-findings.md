@@ -140,3 +140,9 @@ python3 -m unittest discover -s tests/graph -v
 python3 -m unittest discover -s tests/graph_execution -p test_prepare_graph.py -v
 bash scripts/dotnet.sh run --project tests/ActionRunner.Tests
 ```
+
+At integrated revision `2407142`, the complete seven-test PrivateAssets and
+restore-semantics suite passed on native macOS ARM64 in 136.277 seconds. This
+includes all four adapter parity cases and the five restore-freshness regressions.
+The command was `python3 -m unittest discover -s tests/graph_packages -v`;
+local combined log: `/private/tmp/r02-private-fixed.log`.

@@ -48,4 +48,7 @@ Nix SDK 10.0.100/Bazel 8.4.2. Evidence is retained at
 `/private/tmp/r02-first-package`: the producer preparation checkout was deleted
 after export/staging; all four nodes built under darwin-sandbox; App printed
 `shared-v1:left/package-v1|shared-v1:right`. This is only the initial cold case,
-not R02 acceptance. Upgrade/recovery/negative/private-asset tests remain required.
+not R02 acceptance by itself. The integrated `2407142` macOS run subsequently
+passed all 13 full cache and seven PrivateAssets/restore-semantics tests, including
+upgrade, recovery, relocation and review regression controls. Linux CI remains
+the final R02 acceptance gate.

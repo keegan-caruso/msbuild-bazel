@@ -104,3 +104,15 @@ The additional guard method brings full-suite coverage to 13 test methods.
 Python syntax and whitespace checks pass. The new controls await the production
 restore-semantic fix and an integrated native run; the earlier 12-test passing
 record above predates these additional guards.
+
+## Integrated review-fix acceptance
+
+At `2407142`, all 13 full cache tests passed on native macOS ARM64 in 237.611
+seconds, including every package-free control, managed-package upgrade, both
+package recovery modes and the new stale-metadata publication guards. The seven
+PrivateAssets/restore-semantics tests also passed on this revision. Commands used
+the pinned Nix SDK/Bazel overrides and native `darwin-sandbox`. Evidence is retained
+at `/private/var/folders/__/z2sj57556cgfrkvbdznlvdt40000gn/T/msbuild-graph-cache-rloaltwq/probe`;
+combined log: `/private/tmp/r02-full-final.log`. Linux acceptance remains pending
+for the integrated package revision. Overlapping correctness runs are not
+performance measurements.
