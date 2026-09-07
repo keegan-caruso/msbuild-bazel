@@ -56,6 +56,29 @@ def dependency_closures(nodes):
     return closures
 
 
+def framework_selections(nodes, closure):
+    """Carry SDK-selected direct framework edges into isolated graph evaluation."""
+    selections = {}
+    for identity in sorted(closure):
+        node = nodes[identity]
+        references = {}
+        dependencies = {relative(nodes[dependency]['project']): nodes[dependency]['targetFramework'] for dependency in node['dependencies']}
+        for target in node.get('execution', {}).get('selectedReferences', []):
+            project = relative(target['project'])
+            framework = target['targetFramework']
+            if dependencies.get(project) != framework:
+                raise ValueError('unsupported-configuration: selected reference differs from dependency')
+            if project in references and references[project] != framework:
+                raise ValueError('unsupported-configuration: conflicting selected reference frameworks')
+            references[project] = framework
+        project = relative(node['project'])
+        selection = dict(target_framework=node['targetFramework'], references=references)
+        if project in selections and selections[project] != selection:
+            raise ValueError('unsupported-configuration: conflicting selected framework edges')
+        selections[project] = selection
+    return selections
+
+
 def read_import_text(path):
     """Match File.ReadAllText BOM detection without universal-newline rewriting."""
     data = path.read_bytes()
@@ -251,7 +274,7 @@ def _prepare(workspace, manifest, output, *, environment=None, tests=None):
             shutil.copyfile(workspace / source, target)
         package_manifest, packages = graph_packages.stage(workspace, relative(node['project']), output, identity, relative(node['execution']['assetsFile']) if 'execution' in node else None)
         execution_attrs = dict(assets_file=relative(node['execution']['assetsFile']), output_directories=[relative(node['execution'][key]) for key in ('outputDirectory', 'referenceDirectory')]) if 'execution' in node else {}
-        attrs = dict(settings, **execution_attrs, global_properties=node['globalProperties'], packages=packages, package_manifest=package_manifest, name='node_' + identity, project=relative(node['project']), srcs=sorted('src/' + s for s in sources), restore=restore, dependencies=[':node_' + d for d in node['dependencies']])
+        attrs = dict(settings, **execution_attrs, framework_selections=json.dumps(framework_selections(nodes, closures[identity]), sort_keys=True), global_properties=node['globalProperties'], packages=packages, package_manifest=package_manifest, name='node_' + identity, project=relative(node['project']), srcs=sorted('src/' + s for s in sources), restore=restore, dependencies=[':node_' + d for d in node['dependencies']])
         build += 'graph_project(\n' + ''.join(f'    {k} = {json.dumps(v)},\n' for k, v in attrs.items()) + ')\n'
     build += 'filegroup(name="all", srcs=' + json.dumps([':node_' + n for n in graph['entryPoints']]) + ')\n'
     build += add_tests(workspace, output, nodes, tests, ROOT)

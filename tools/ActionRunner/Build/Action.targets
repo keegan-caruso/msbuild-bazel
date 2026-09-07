@@ -1,5 +1,8 @@
 <Project>
   <Import Project="$(SPIKE_REPLAY_WORKSPACE)/Directory.Build.targets" />
+  <PropertyGroup Condition="'$(SPIKE_GRAPH_SELECTION_TARGETS)' != ''">
+    <AfterMicrosoftNETSdkTargets>$(AfterMicrosoftNETSdkTargets);$(SPIKE_GRAPH_SELECTION_TARGETS)</AfterMicrosoftNETSdkTargets>
+  </PropertyGroup>
   <ItemGroup>
     <ProjectCachePlugin Include="$(SPIKE_REPLAY_PLUGIN)" />
   </ItemGroup>

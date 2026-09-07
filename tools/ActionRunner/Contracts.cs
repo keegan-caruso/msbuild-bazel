@@ -9,7 +9,7 @@ internal sealed record ActionRequest(
     string? PackageManifest, string Plugin, string BuildProps, string BuildTargets, string Output, string Diagnostics,
     string? Dependency, string UndeclaredProbe, string? NativeManifest, InputFile[] NativeFiles,
     string? LoaderJit = null, string? LoaderManifest = null,
-    string? GraphProject = null, string[]? GraphDependencies = null, Dictionary<string, string>? GraphGlobalProperties = null, string? GraphAssetsFile = null, string[]? GraphOutputDirectories = null);
+    string? GraphProject = null, string[]? GraphDependencies = null, Dictionary<string, string>? GraphGlobalProperties = null, string? GraphAssetsFile = null, string[]? GraphOutputDirectories = null, Dictionary<string, GraphFrameworkSelection>? GraphFrameworkSelections = null);
 
 internal sealed record Artifact(string Path, long Size, string Sha256);
 internal sealed record PackageFile(string Path, long Size, string Sha256);
@@ -22,3 +22,5 @@ internal sealed record RestoreLibrary(string Type, string? Path = null, string? 
 
 internal sealed record BuildReport(ProjectKind Project, string Workspace, string[] Command, string[] Packages,
     string[] PackageTargets, int Returncode, string[] CompiledProjects, string[] ReplayHits, string[] SharedSources);
+
+internal sealed record GraphFrameworkSelection(string TargetFramework, Dictionary<string, string> References);

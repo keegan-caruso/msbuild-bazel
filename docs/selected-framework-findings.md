@@ -33,3 +33,38 @@ again after adding the selected-reference execution metadata.
 This discovery evidence does not yet establish action execution of that graph.
 The action-side import must reproduce selection before a native acceptance run.
 Linux validation is deferred.
+
+## Native action adaptation
+
+Preparation carries each node's exact `execution.selectedReferences` into a
+declared action request, together with the selected project/framework closure.
+It rejects selected edges that disagree with graph dependencies and conflicting
+same-path framework selections. The runtime produces a request-derived import
+appended through `AfterMicrosoftNETSdkTargets`, after the SDK assigns its static
+graph markers. For declared net10.0 projects it clears both graph markers without
+changing `TargetFrameworks`, then attaches the SDK-selected SetTargetFramework to
+existing authored references. No global identity property is added or ignored.
+
+The SDK can add transitive references from restore after evaluation. Before its
+framework negotiation target, the import also decorates existing transitive items
+with the same exact selected framework from the declared closure. This remains
+bounded to net10.0 callers and dependencies and retains their graph edges. The
+first native diamond exposed MSB4252 when App's transitive Shared reference asked
+for an unconfigured GetTargetFrameworks result; the late target closes that gap
+without disabling transitive references or isolation.
+
+A fresh native macOS diamond with Shared declaring `net10.0;netstandard2.1` passes
+at `/private/tmp/selected-framework-native-3`. Ordinary SDK Build and four native
+sandbox project actions return `shared-v1:left|shared-v1:right`. App replays Shared,
+Left and Right after the preparation workspace is deleted; every action compiles
+only its own project. The original multi-target declaration remains in the staged
+project. This is cold execution evidence, not cache recovery or Linux qualification.
+The three selection preparation tests, seventeen existing preparation tests and
+runner contract/process tests also pass.
+
+```sh
+python3 tools/probe_graph_execution.py --selected-reference --output /private/tmp/selected-framework-native-3
+python3 -m unittest discover -s tests/graph_execution -p test_framework_selection.py -v
+python3 -m unittest discover -s tests/graph_execution -p test_prepare_graph.py -v
+bash scripts/dotnet.sh run --project tests/ActionRunner.Tests
+```

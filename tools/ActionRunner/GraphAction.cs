@@ -64,6 +64,8 @@ internal static class GraphAction
             ["SPIKE_GRAPH_PROPERTIES"] = JsonSerializer.Serialize(properties),
             ["SPIKE_GRAPH_DEPENDENCIES"] = JsonSerializer.Serialize(dependencies)
         };
+        if (SelectedFrameworks.Stage(request, workspace) is { } selectionTargets)
+            environment["SPIKE_GRAPH_SELECTION_TARGETS"] = selectionTargets;
         var invocation = new BuildInvocation(workspace.Dotnet, workspace.Root,
             ["msbuild", project, "-t:" + targets, .. properties.OrderBy(pair => pair.Key, StringComparer.Ordinal).Select(pair => "-p:" + pair.Key + "=" + pair.Value), "-graphBuild", "-isolateProjects", "-nodeReuse:false", "-nologo", "-verbosity:normal"], environment);
         var result = await ProcessRunner.RunAsync(invocation.CreateStartInfo(), TimeSpan.FromSeconds(180), default);

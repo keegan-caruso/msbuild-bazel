@@ -16,7 +16,7 @@ from test_export_graph import write_fixture
 
 BAZEL = Path(os.environ.get('SPIKE_BAZEL', ROOT / '.tools/bin/bazel'))
 
-def probe(output, root_project=False):
+def probe(output, root_project=False, selected_reference=False):
     output = output.resolve()
     output.mkdir(parents=True, exist_ok=False)
     workspace = output / 'preparation'
@@ -30,6 +30,8 @@ def probe(output, root_project=False):
         (workspace / 'App.csproj').write_text('<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup><TargetFramework>net10.0</TargetFramework><OutputType>Exe</OutputType><UseAppHost>false</UseAppHost></PropertyGroup></Project>')
         (workspace / 'Program.cs').write_text('System.Console.WriteLine("root-project");')
         entry = app_project = 'App.csproj'
+    if selected_reference:
+        (workspace/'src/Shared/Shared.csproj').write_text('<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup><TargetFramework></TargetFramework><TargetFrameworks>net10.0;netstandard2.1</TargetFrameworks></PropertyGroup></Project>')
     binary = Path(app_project).parent / 'bin/Release/net10.0/App.dll'
 
     (workspace / '.nuget/packages').mkdir(parents=True, exist_ok=True)
@@ -48,7 +50,7 @@ def probe(output, root_project=False):
     run('export', [dotnet, ROOT / 'tools/GraphExport/bin/Release/net10.0/GraphExport.dll', '--request', request])
     generated = output / 'workspace'
     graph = prepare(workspace, manifest, generated)
-    run('baseline', [dotnet, 'msbuild', entry, '-t:Build', '-p:Configuration=Release', '-graphBuild', '-isolateProjects', '-nologo'])
+    run('baseline', [dotnet, 'msbuild', app_project if selected_reference else entry, '-t:Build', '-p:Configuration=Release', *([] if selected_reference else ['-graphBuild', '-isolateProjects']), '-nologo'])
     baseline = run('baseline-app', [dotnet, workspace / binary])
     shutil.rmtree(workspace)
     strategy = 'darwin-sandbox' if platform.system() == 'Darwin' else 'linux-sandbox'
@@ -75,5 +77,6 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--output', type=Path, required=True)
     parser.add_argument('--root-project', action='store_true')
+    parser.add_argument('--selected-reference', action='store_true')
     args = parser.parse_args()
-    print(json.dumps(probe(args.output, args.root_project), indent=2))
+    print(json.dumps(probe(args.output, args.root_project, args.selected_reference), indent=2))
