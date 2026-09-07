@@ -18,7 +18,7 @@ internal sealed record PackageManifest(int SchemaVersion, Package[] Packages);
 internal sealed record NativeManifest(int SchemaVersion, Artifact[] Files);
 
 internal sealed record RestoreAssets(Dictionary<string, RestoreLibrary> Libraries);
-internal sealed record RestoreLibrary(string Type, string? Path = null);
+internal sealed record RestoreLibrary(string Type, string? Path = null, string? Sha512 = null);
 
 internal sealed record BuildReport(ProjectKind Project, string Workspace, string[] Command, string[] Packages,
     string[] PackageTargets, int Returncode, string[] CompiledProjects, string[] ReplayHits, string[] SharedSources);

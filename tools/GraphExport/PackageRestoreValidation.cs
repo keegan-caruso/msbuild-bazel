@@ -1,4 +1,5 @@
 using System.Text.Json;
+using NuGet.Versioning;
 using Microsoft.Build.Execution;
 using Microsoft.Build.Graph;
 
@@ -135,13 +136,14 @@ internal static class PackageRestoreValidation
         foreach (var reference in references)
         {
             var version = reference.GetMetadataValue("Version");
-            if (!version.StartsWith('[') || !version.EndsWith(']') || version.Contains(','))
-                throw new ExportException("unsupported-package", "exact inline version required: " + reference.EvaluatedInclude);
-            var selected = version[1..^1];
+            var selected = PilotPackagePolicy.SelectedVersion(reference.EvaluatedInclude, version);
+            if (selected is null || !NuGetVersion.TryParse(selected, out var selectedVersion) ||
+                !VersionRange.TryParse(version, out var requestedRange) || requestedRange.IsFloating)
+                throw new ExportException("unsupported-package", "exact inline version or qualified pilot version required: " + reference.EvaluatedInclude);
             var dependency = restored[reference.EvaluatedInclude];
-            var range = dependency.GetProperty("version").GetString()!.Replace(" ", "", StringComparison.Ordinal);
-            if ((libraries is not null && !libraries.Contains(reference.EvaluatedInclude + "/" + selected)) ||
-                (range != version && range != "[" + selected + "," + selected + "]"))
+            var savedVersion = dependency.GetProperty("version").GetString()!;
+            if (!VersionRange.TryParse(savedVersion, out var restoredRange) || !requestedRange.Equals(restoredRange) ||
+                (libraries is not null && !libraries.Contains(reference.EvaluatedInclude + "/" + selectedVersion.ToNormalizedString())))
                 throw new ExportException("stale-restore", "package reference differs from restored version: " + reference.EvaluatedInclude);
             var currentPrivacy = Privacy(reference.GetMetadataValue("PrivateAssets"), "unsupported-package");
             var savedPrivacy = Privacy(dependency.TryGetProperty("suppressParent", out var privacy) ? privacy.GetString()! : "", "stale-restore");

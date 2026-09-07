@@ -1,4 +1,6 @@
 using System.Xml.Linq;
+using System.IO.Compression;
+using System.Security.Cryptography;
 
 namespace ActionRunner;
 
@@ -22,13 +24,30 @@ internal static class PackageInputs
         var project = XDocument.Load(Path.Combine(workspace, projectPath));
         foreach (var reference in project.Descendants().Where(element => element.Name.LocalName == "PackageReference"))
         {
+            // The exporter evaluates conditional references before sealing the graph.
+            // Raw XML cannot decide whether another framework's reference is active.
+            if (request.GraphProject is not null && reference.AncestorsAndSelf().Any(element => element.Attribute("Condition") is not null)) continue;
             var version = (string?)reference.Attribute("Version") ?? "";
-            if (!version.StartsWith('[') || !version.EndsWith(']') || version.Contains(','))
+            var selected = PilotPackagePolicy.SelectedVersion((string?)reference.Attribute("Include") ?? "", version);
+            if (selected is null)
                 throw new InvalidDataException("package requires an exact inline version");
-            if (!resolved.ContainsKey((string?)reference.Attribute("Include") + "/" + version[1..^1]))
+            if (!resolved.ContainsKey((string?)reference.Attribute("Include") + "/" + selected))
                 throw new InvalidDataException("package reference differs from restored version");
         }
         var files = request.Packages.ToDictionary(f => f.Destination, f => f.Source);
+        foreach (var package in manifest.Packages)
+        {
+            var pin = PilotPackagePolicy.Find(package.Id + "/" + package.Version);
+            if (pin is not null) VerifyPilot(package, pin, files, assets);
+            if (request.GraphProject is not null)
+                foreach (var entry in package.Files)
+                {
+                    var root = entry.Path.Split('/')[0].ToLowerInvariant();
+                    if (new[] { "runtimes", "native", "analyzers", "build", "buildtransitive", "buildmultitargeting", "content", "contentfiles", "tools" }.Contains(root) &&
+                        !(pin?.AdditionalRoots.Contains(root) ?? false))
+                        throw new InvalidDataException("unsupported graph package payload category");
+                }
+        }
         var staged = new List<(string Source, string Target)>();
         var payloads = manifest.Packages.SelectMany(package => package.Files,
             (package, entry) => (Path: package.Path + "/" + entry.Path, File: entry));
@@ -47,4 +66,29 @@ internal static class PackageInputs
             Files.Copy(source, target);
         return resolved.Keys.Select(key => key.ToLowerInvariant()).Order(StringComparer.Ordinal).ToArray();
     }
+    private static void VerifyPilot(Package package, PilotPackagePin pin, Dictionary<string, string> files, RestoreAssets assets)
+    {
+        var identity = package.Id + "/" + package.Version;
+        if (!assets.Libraries.TryGetValue(identity, out var library) || library.Sha512 != pin.RestoreContentHash)
+            throw new InvalidDataException("qualified package restore content hash mismatch");
+        var archiveName = package.Id.ToLowerInvariant() + "." + package.Version + ".nupkg";
+        if (!files.TryGetValue(package.Path + "/" + archiveName, out var archive) || !File.Exists(archive) || Files.Hash(archive) != pin.ArchiveSha256)
+            throw new InvalidDataException("qualified package archive hash mismatch");
+        var expected = new Dictionary<string, (long Size, string Hash)>(StringComparer.Ordinal);
+        using (var zip = ZipFile.OpenRead(archive))
+            foreach (var entry in zip.Entries)
+            {
+                if (entry.FullName.EndsWith('/')) continue;
+                var name = entry.FullName.EndsWith(".nuspec", StringComparison.OrdinalIgnoreCase) ? entry.FullName.ToLowerInvariant() : entry.FullName;
+                using var stream = entry.Open();
+                expected.Add(name, (entry.Length, Convert.ToHexString(SHA256.HashData(stream)).ToLowerInvariant()));
+            }
+        expected.Add(archiveName, (new FileInfo(archive).Length, pin.ArchiveSha256));
+        var marker = System.Text.Encoding.ASCII.GetBytes(Convert.ToBase64String(SHA512.HashData(File.ReadAllBytes(archive))));
+        expected.Add(archiveName + ".sha512", (marker.Length, Convert.ToHexString(SHA256.HashData(marker)).ToLowerInvariant()));
+        if (package.Files.Length != expected.Count || package.Files.Select(file => file.Path).Distinct().Count() != expected.Count ||
+            package.Files.Any(file => !expected.TryGetValue(file.Path, out var value) || value.Size != file.Size || value.Hash != file.Sha256))
+            throw new InvalidDataException("qualified package manifest differs from pinned archive");
+    }
+
 }

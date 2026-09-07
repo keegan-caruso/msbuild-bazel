@@ -1,0 +1,20 @@
+{
+  "polysharp/1.15.0": {
+    "archiveSha256": "9c7fd43995b85fddc55042da0ed78cbc4116a1f5f8be28b87b9f633aac7d2538",
+    "additionalRoots": [
+      "analyzers",
+      "build",
+      "buildtransitive"
+    ],
+    "restoreContentHash": "FbU0El+EEjdpuIX4iDbeS7ki1uzpJPx8vbqOzEtqnl1GZeAGJfq+jCbxeJL2y0EPnUNk8dRnnqR2xnYXg9Tf+g=="
+  },
+  "microsoft.net.illink.tasks/10.0.0": {
+    "archiveSha256": "b48b3cb567f4b0924c50803f83ec15df37b0e4c11afba0a244a2dd310beb72b3",
+    "additionalRoots": [
+      "analyzers",
+      "build",
+      "tools"
+    ],
+    "restoreContentHash": "kICGrGYEzCNI3wPzfEXcwNHgTvlvVn9yJDhSdRK+oZQy4jvYH529u7O0xf5ocQKzOMjfS07+3z9PKRIjrFMJDA=="
+  }
+}
