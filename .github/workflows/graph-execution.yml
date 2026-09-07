@@ -66,3 +66,45 @@ jobs:
             /tmp/msbuild-multilanguage-*/probe/*.json
             /tmp/msbuild-multilanguage-*/probe/workspace/MODULE.bazel.lock
           if-no-files-found: ignore
+  graph-packages:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install pinned tools
+        run: bash scripts/setup.sh
+      - name: Full generated graph package cache acceptance
+        run: python3 -m unittest discover -s tests/graph_cache_full -v
+      - name: Retain complete package cache evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: graph-package-cache-evidence
+          path: |
+            /tmp/msbuild-graph-cache-*/probe/*.log
+            /tmp/msbuild-graph-cache-*/probe/*.json
+            /tmp/msbuild-graph-cache-*/probe/evidence/**
+            /tmp/msbuild-graph-cache-*/probe/pinned-package-archives/**
+          if-no-files-found: ignore
+  private-assets:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install pinned tools
+        run: bash scripts/setup.sh
+      - name: SDK and adapter PrivateAssets parity
+        run: python3 -m unittest discover -s tests/graph_packages -v
+      - name: Retain PrivateAssets evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: graph-private-assets-evidence
+          path: |
+            /tmp/graph-private-assets-*/probe/*.log
+            /tmp/graph-private-assets-*/probe/report.json
+            /tmp/graph-private-adapter-*/*.log
+            /tmp/graph-private-adapter-*/*.json
+            /tmp/graph-private-adapter-*/ordinary/*.log
+            /tmp/graph-private-adapter-*/ordinary/report.json
+          if-no-files-found: ignore

@@ -31,7 +31,9 @@ focused Linux native-sandbox acceptance. The local-only graph exporter
 (step 8) now has passing Linux acceptance [evidence](graph-export-findings.md).
 The first [generated graph execution slice](graph-execution-findings.md) now
 passes native macOS acceptance for a Release/net10.0 package-free diamond.
-Broader configurations, package nodes and Linux execution evidence remain open.
+R02 [managed package execution](graph-package-plan.md) now has native macOS
+cache and PrivateAssets evidence; its combined Linux qualification is pending.
+Broader configurations remain open.
 
 The managed binary-package milestone has a test-first
 [contract](binary-package-plan.md), fixture and probe. Its

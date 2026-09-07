@@ -113,6 +113,11 @@ remote behavior or arbitrary custom target compatibility is implied.
 
 ## R02 — Integrate managed packages into generated graphs
 
+Implementation and native macOS evidence: [package plan](graph-package-plan.md),
+[full cache findings](graph-package-cache-findings.md), and
+[PrivateAssets parity](graph-private-assets-findings.md). Linux acceptance remains
+a separate gate until the combined revision passes its jobs.
+
 Scope: move the explicit adapter's measured managed-package behavior into the
 generated graph, beginning with a package used only by Left in the diamond.
 
@@ -139,8 +144,9 @@ Deliverables:
 6. Run the entire existing generated-graph cache suite, package-free controls
    included, through native Linux CI and macOS acceptance.
 
-Exit: `python3 -m unittest discover -s tests/graph_cache -v` passes all existing
-cases without skips, plus the new private-asset controls; the package-backed App
+Exit: `python3 -m unittest discover -s tests/graph_cache_full -v` passes all existing
+package-free and package cases without skips, and `tests/graph_packages` passes
+the ordinary/adapter private-asset controls; the package-backed App
 also executes after recovery and producer deletion. Keep binary-package explicit-adapter regressions. This closes
 the original milestone-3 contract, not every later NuGet scenario.
 

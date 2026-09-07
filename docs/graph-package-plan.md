@@ -37,7 +37,8 @@ behavior without adding private compile assets to App's restore closure.
 - Full original graph-cache cases remain required; new package coverage does not
   replace the package-free mutation/recovery checks or the explicit-adapter tests.
 
-Evidence is recorded in a linked findings file after each actual run. This plan
+Evidence is recorded in [cache findings](graph-package-cache-findings.md) and
+[PrivateAssets findings](graph-private-assets-findings.md) after each actual run. This plan
 alone does not qualify R02 or general NuGet support.
 
 ## Initial execution evidence

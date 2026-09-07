@@ -15,8 +15,7 @@ sys.path.insert(0, str(ROOT / 'tools'))
 from graph_private_assets import probe
 from prepare_graph import DOTNET_ROOT, prepare
 from probe_graph_execution import BAZEL
-from probe_bazel import hashlib
-import json_stream
+from probe_bazel import json_stream
 
 
 class PrivateAssetsAdapter(unittest.TestCase):

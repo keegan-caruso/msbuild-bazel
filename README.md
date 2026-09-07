@@ -34,7 +34,9 @@ and [real-project discovery](docs/real-project-pilot.md) are prepared in paralle
 they do not yet establish generated-graph cache recovery or real-project support.
 The [first parallel batch](docs/parallel-tracks-findings.md) implements package-free
 cache and handoff controls plus an existing-rule multi-language harness; combined
-native validation is recorded there. General NuGet compatibility, RID-specific/native package assets, full runtime
+native validation is recorded there. The [R02 managed-package slice](docs/graph-package-plan.md) has native macOS
+cache/relocation and PrivateAssets parity evidence, with Linux qualification pending.
+General NuGet compatibility, RID-specific/native package assets, full runtime
 closure, remote-cache correctness and cross-platform portability remain unproven.
 
 The [forward roadmap](docs/roadmap.md) covers R01–R17 from this checkpoint through
