@@ -78,10 +78,13 @@ producer-artifact changes versus an updated ordinary MSBuild baseline.
 ## Measured scope
 
 Local validation uses macOS ARM64, SDK 10.0.100, MSBuild 18.0.2.52411 and Bazel
-8.4.2 from the pinned Nix toolchain. The nine-test handoff/discovery suite passed in 105.1 seconds; all 14
-preparation rejection tests passed. A final ten-test run adds warm-cache input
-rejection and the cache track's relocation normalization fix and is pending at
-this checkpoint. Linux qualification belongs to the integrated native CI run. The tests
+8.4.2 from the pinned Nix toolchain. All ten handoff/discovery tests passed in 110.7 seconds at revision
+`f5cdae9`, including the warm-cache input controls and normalized generated
+restore state. All 14 preparation rejection tests passed. The original two native
+graph execution tests also passed before the final bundle-seal addition; the new
+suite repeats the native diamond baseline with the final sealed bundles. Forced
+consumer evidence is retained at `graph-handoff-rk4ad98s` under the native
+temporary directory. Linux qualification belongs to the integrated native CI run. The tests
 are correctness evidence, not contention-free performance measurements. No remote
 cache, cross-platform reuse, multiple configurations, general NuGet, crash-durable
 filesystem transaction, or arbitrary MSBuild filesystem discovery is established.
@@ -91,3 +94,9 @@ Generated restore state also replaces NuGet `project.nuget.cache`
 not an independently consumed package digest. Keeping its original value changed
 Bazel restore inputs solely after workspace relocation; the cache track verifies
 the resulting relocated action reuse.
+
+Keep the Git revision stable for an entire cache experiment: a commit made during
+an earlier run changed the SDK-generated adapter assembly revision metadata.
+Execution-log comparison isolated the resulting misses to `ReplayPlugin.dll` and
+`ActionRunner.dll`; the unchanged-revision rerun above passed every action-set
+assertion. This is an input-identity change, not a relocation failure.
