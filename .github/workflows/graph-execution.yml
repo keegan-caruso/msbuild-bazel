@@ -85,6 +85,7 @@ jobs:
             /tmp/msbuild-graph-cache-*/probe/*.json
             /tmp/msbuild-graph-cache-*/probe/evidence/**
             /tmp/msbuild-graph-cache-*/probe/pinned-package-archives/**
+            /tmp/msbuild-graph-cache-*/probe/guards/**
           if-no-files-found: ignore
   private-assets:
     runs-on: ubuntu-22.04

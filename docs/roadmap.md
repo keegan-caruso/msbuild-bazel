@@ -50,9 +50,9 @@ All forward milestones are open. “Next” means ready for detailed implementat
 
 | Milestone | Outcome | Prerequisites | State |
 | --- | --- | --- | --- |
-| R01 | Reliable package-free generated graph and local cache | Existing execution slice | Next |
-| R02 | Managed package closure in generated graph actions | R01 core execution/cache | Planned; existing cache contract includes these cases |
-| R03 | Configured nodes, discovery and entry-point semantics | R01; R02 for package/SDK cases | Planned |
+| R01 | Reliable package-free generated graph and local cache | Existing execution slice | Accepted on native macOS and Linux at c384671 |
+| R02 | Managed package closure in generated graph actions | R01 core execution/cache | Implemented; review fixes and integrated acceptance in progress |
+| R03 | Configured nodes, discovery and entry-point semantics | R01; R02 for package/SDK cases | Configured-node ordinary fixtures in progress |
 | R04 | First real-project adapter acceptance: Serilog | R02, selected R03 configuration support | Planned; ordinary baseline available |
 | R05 | Generator combinations and project-reference roles | R04 input-contract slice; parallel with Serilog acceptance | Planned |
 | R06 | Source-built tasks, package consumers and output lifecycle | R02–R05 slices actually used | Planned |

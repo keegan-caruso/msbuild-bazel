@@ -104,3 +104,8 @@ This extends the measured claim from ordinary MSBuild to generated native macOS
 actions for these four configurations. Linux acceptance remains an integrated CI
 gate. It does not change the deliberate runtime failure of the `all` fixture or
 claim support for additional package asset categories.
+
+The integrated `fd96f5e` run passed both baseline and adapter tests in 101.612
+seconds, including the strengthened payload-hash assertions. Evidence:
+`graph-private-assets-q_qm3pmi/probe` and `graph-private-adapter-46jzosv_` in the
+native temporary directory. This run precedes the stale-restore review fixes.
