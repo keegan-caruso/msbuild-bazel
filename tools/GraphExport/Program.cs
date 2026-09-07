@@ -282,8 +282,11 @@ internal static class GraphExporter
 
     private static void ValidateSupported(Microsoft.Build.Execution.ProjectInstance instance)
     {
-        if (!string.IsNullOrWhiteSpace(instance.GetPropertyValue("TargetFrameworks")))
-            throw new ExportException("unsupported-configuration", $"multi-targeting: {instance.FullPath}");
+        var frameworks = instance.GetPropertyValue("TargetFrameworks");
+        if (!string.IsNullOrWhiteSpace(frameworks) &&
+            (!instance.GlobalProperties.TryGetValue("TargetFramework", out var selected) ||
+             !frameworks.Split(';', StringSplitOptions.TrimEntries).Contains(selected, StringComparer.OrdinalIgnoreCase)))
+            throw new ExportException("unsupported-configuration", $"unselected or invalid multi-targeting inner build: {instance.FullPath}");
         if (!string.IsNullOrWhiteSpace(instance.GetPropertyValue("RuntimeIdentifier")) || !string.IsNullOrWhiteSpace(instance.GetPropertyValue("RuntimeIdentifiers")))
             throw new ExportException("unsupported-configuration", $"RID build: {instance.FullPath}");
         var tfm = instance.GetPropertyValue("TargetFramework");

@@ -11,6 +11,10 @@ internal static class GraphAction
         var project = request.GraphProject!;
         if (!Files.ValidRelativePath(project) || !project.EndsWith(".csproj", StringComparison.Ordinal))
             throw new InvalidDataException("graph project path invalid");
+        var properties = request.GraphGlobalProperties ?? new Dictionary<string, string> { ["configuration"] = "Release" };
+        if (!properties.TryGetValue("configuration", out var configuration) || configuration != "Release" ||
+            properties.Any(pair => pair.Key != "configuration" && (pair.Key != "targetframework" || pair.Value != "net10.0")))
+            throw new InvalidDataException("unsupported graph execution configuration");
         var packages = PackageInputs.Stage(request, workspace.Root);
         var dependencies = new Dictionary<string, string>(StringComparer.Ordinal);
         foreach (var input in request.GraphDependencies ?? [])
@@ -49,7 +53,7 @@ internal static class GraphAction
             ["SPIKE_GRAPH_DEPENDENCIES"] = JsonSerializer.Serialize(dependencies)
         };
         var invocation = new BuildInvocation(workspace.Dotnet, workspace.Root,
-            ["msbuild", project, "-t:" + targets, "-p:Configuration=Release", "-graphBuild", "-isolateProjects", "-nodeReuse:false", "-nologo", "-verbosity:normal"], environment);
+            ["msbuild", project, "-t:" + targets, .. properties.OrderBy(pair => pair.Key, StringComparer.Ordinal).Select(pair => "-p:" + pair.Key + "=" + pair.Value), "-graphBuild", "-isolateProjects", "-nodeReuse:false", "-nologo", "-verbosity:normal"], environment);
         var result = await ProcessRunner.RunAsync(invocation.CreateStartInfo(), TimeSpan.FromSeconds(180), default);
         File.WriteAllText(Path.Combine(workspace.Diagnostics, "build.log"), result.Log);
         var evidence = BuildEvidence.Parse(result.Log);

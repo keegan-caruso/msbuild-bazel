@@ -57,7 +57,7 @@ def _prepare(workspace, manifest, output, *, environment=None):
     for node in nodes.values():
         if not re.fullmatch('[0-9a-f]{24}', node['id']):
             raise ValueError('invalid configured node id')
-        if node['globalProperties'] != {'configuration': 'Release'} or node['targetFramework'] != 'net10.0':
+        if node['globalProperties'] not in ({'configuration': 'Release'}, {'configuration': 'Release', 'targetframework': 'net10.0'}) or node['targetFramework'] != 'net10.0':
             raise ValueError('unsupported graph execution configuration')
         project = relative(node['project'])
         expected = str(Path(project).parent / 'bin/Release/net10.0' / (Path(project).stem + '.dll'))
@@ -186,7 +186,7 @@ def _prepare(workspace, manifest, output, *, environment=None):
             target.parent.mkdir(parents=True, exist_ok=True)
             shutil.copyfile(workspace / source, target)
         package_manifest, packages = graph_packages.stage(workspace, relative(node['project']), output, identity)
-        attrs = dict(settings, packages=packages, package_manifest=package_manifest, name='node_' + identity, project=relative(node['project']), srcs=sorted('src/' + s for s in sources), restore=restore, dependencies=[':node_' + d for d in node['dependencies']])
+        attrs = dict(settings, global_properties=node['globalProperties'], packages=packages, package_manifest=package_manifest, name='node_' + identity, project=relative(node['project']), srcs=sorted('src/' + s for s in sources), restore=restore, dependencies=[':node_' + d for d in node['dependencies']])
         build += 'graph_project(\n' + ''.join(f'    {k} = {json.dumps(v)},\n' for k, v in attrs.items()) + ')\n'
     build += 'filegroup(name="all", srcs=' + json.dumps([':node_' + n for n in graph['entryPoints']]) + ')\n'
     (output / 'BUILD.bazel').write_text(build)

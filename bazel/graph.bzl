@@ -9,6 +9,7 @@ def _graph_project_impl(ctx):
     ctx.actions.write(request, json.encode({
         "project": "Shared",
         "graph_project": ctx.attr.project,
+        "graph_global_properties": ctx.attr.global_properties,
         "graph_dependencies": [f.path for f in dependencies.to_list()],
         "sources": [{"source": f.path, "destination": f.short_path.removeprefix("src/")} for f in ctx.files.srcs],
         "restore": [f.path for f in ctx.files.restore],
@@ -35,6 +36,7 @@ def _graph_project_impl(ctx):
 
 graph_project = rule(implementation = _graph_project_impl, attrs = {
     "project": attr.string(mandatory = True),
+    "global_properties": attr.string_dict(default = {"configuration": "Release"}),
     "srcs": attr.label_list(allow_files = True), "restore": attr.label_list(allow_files = True),
     "packages": attr.label_list(allow_files = True),
     "package_manifest": attr.label(allow_single_file = True),

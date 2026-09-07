@@ -87,3 +87,17 @@ fixture establishes both semantics but does not make either a supported adapter
 operation. Custom Flavor support, replay property rejection, action-set changes,
 relocation, configured restore and output collision controls remain separate R03
 gates. Solution formats, resolver SDKs and wider frameworks remain future slices.
+
+## Selected-inner execution implementation
+
+The first R03 production slice permits an explicitly selected existing net10.0
+inner build while retaining the source `TargetFrameworks` declaration. Unselected
+outer builds and a selection absent from that declaration still fail export.
+Preparation carries normalized global properties through the generated rule and
+`graph_global_properties` action request; the runner passes them to MSBuild.
+Replay retains its existing exact property comparison. This first slice still
+requires standard output paths and one configured node per project path.
+
+The exporter suite passed all 13 tests on native macOS ARM64, including selected
+inner export and invalid-selection rejection; ActionRunner builds successfully.
+Generated inner-build acceptance is a separate pending gate at this commit.

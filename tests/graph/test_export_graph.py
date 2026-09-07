@@ -81,6 +81,17 @@ class GraphExportAcceptance(unittest.TestCase):
         self.assertTrue(json.loads(result.stdout)["ok"])
         return json.loads(output.read_text())
 
+    def test_selected_existing_inner_framework_retains_declaration(self):
+        project = self.work / "src/Shared/Shared.csproj"
+        project.write_text('<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup><TargetFrameworks>net10.0;netstandard2.1</TargetFrameworks></PropertyGroup></Project>')
+        self.restore()
+        graph = self.export(entries=[{"project": "src/Shared/Shared.csproj", "globalProperties": {"Configuration": "Release", "TargetFramework": "net10.0"}}])
+        self.assertEqual(len(graph["nodes"]), 1)
+        self.assertEqual(graph["nodes"][0]["globalProperties"], {"configuration": "Release", "targetframework": "net10.0"})
+        self.assertIn("netstandard2.1", project.read_text())
+        project.write_text(project.read_text().replace("net10.0;netstandard2.1", "netstandard2.1"))
+        self.export(entries=[{"project": "src/Shared/Shared.csproj", "globalProperties": {"Configuration": "Release", "TargetFramework": "net10.0"}}], error="unsupported-configuration")
+
     def test_diamond_direct_edges_and_declared_boundaries(self):
         self.restore()
         graph = self.export()
