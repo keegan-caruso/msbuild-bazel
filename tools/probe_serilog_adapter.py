@@ -100,6 +100,8 @@ def probe(source, package_cache, output, cases=('source', 'resource', 'key', 'im
     inspector = output / 'oracle'
     def observe(assembly, label):
         runtime = inspector / 'bin/Release/net10.0'
+        # Cached bundles are read-only; replace the prior oracle copy, preserving source modes.
+        (runtime / 'Serilog.dll').unlink(missing_ok=True)
         shutil.copy2(assembly, runtime / 'Serilog.dll')
         return json.loads(run(label + '-oracle', [dotnet, runtime / 'Oracle.dll'], inspector))
 
