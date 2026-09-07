@@ -25,7 +25,7 @@ def relative(value):
     return result
 
 
-def prepare(workspace, manifest, output):
+def prepare(workspace, manifest, output, *, environment=None):
     """Publish only a completely validated plan; serialize shared adapter builds."""
     output = Path(output).resolve()
     if output.exists():
@@ -36,7 +36,7 @@ def prepare(workspace, manifest, output):
     with lock.open('a') as handle, tempfile.TemporaryDirectory(prefix='.graph-prepare-', dir=output.parent) as temporary:
         fcntl.flock(handle, fcntl.LOCK_EX)
         staged = Path(temporary) / 'workspace'
-        graph = _prepare(workspace, manifest, staged)
+        graph = _prepare(workspace, manifest, staged, environment=environment)
         # Never replace another preparation's committed plan, including an empty directory.
         if output.exists():
             raise FileExistsError(output)
@@ -44,7 +44,7 @@ def prepare(workspace, manifest, output):
         return graph
 
 
-def _prepare(workspace, manifest, output):
+def _prepare(workspace, manifest, output, *, environment=None):
     workspace, manifest, output = map(lambda p: Path(p).resolve(), (workspace, manifest, output))
     graph = json.loads(manifest.read_text())
     if graph['schemaVersion'] != 1 or graph.get('toolchain') != {'sdkVersion': '10.0.100', 'graphEngine': 'ProjectGraph', 'contractVersion': 1}:
@@ -108,7 +108,7 @@ def _prepare(workspace, manifest, output):
         raise ValueError('graph discovery request missing; regenerate manifest')
     output.mkdir(parents=True, exist_ok=False)
     for name in ('GraphExport', 'ReplayPlugin', 'ActionRunner'):
-        result = subprocess.run([str(DOTNET_ROOT / 'dotnet'), 'build', str(ROOT / 'tools' / name), '-c', 'Release', '--nologo'], cwd=ROOT, text=True, capture_output=True)
+        result = subprocess.run([str(DOTNET_ROOT / 'dotnet'), 'build', str(ROOT / 'tools' / name), '-c', 'Release', '--nologo'], cwd=ROOT, text=True, capture_output=True, env=environment)
         (output / (name + '-build.log')).write_text(result.stdout + result.stderr)
         if result.returncode:
             raise RuntimeError(name + ' build failed: ' + result.stdout + result.stderr)
@@ -122,7 +122,7 @@ def _prepare(workspace, manifest, output):
         entryPoints=graph['entryRequests'], output=str(refreshed))))
     result = subprocess.run([str(DOTNET_ROOT / 'dotnet'),
         str(ROOT / 'tools/GraphExport/bin/Release/net10.0/GraphExport.dll'),
-        '--request', str(request)], cwd=workspace, text=True, capture_output=True)
+        '--request', str(request)], cwd=workspace, text=True, capture_output=True, env=environment)
     if result.returncode:
         raise ValueError('graph discovery revalidation failed: ' + result.stdout + result.stderr)
     if json.loads(refreshed.read_text()) != graph:

@@ -14,20 +14,34 @@ from prepare_graph import prepare
 from probe_bazel import json_stream
 
 
+def cache_environment(output, workspace):
+    """Keep NuGet configuration stable and never inherit an old MSBuild worker."""
+    return dict(os.environ, NUGET_PACKAGES=str(workspace / '.nuget/packages'),
+                DOTNET_CLI_HOME=str(output / 'home'), DOTNET_NOLOGO='1',
+                DOTNET_CLI_TELEMETRY_OPTOUT='1', MSBUILDDISABLENODEREUSE='1')
+
+
+def run_logged(output, name, args, cwd):
+    result = subprocess.run(list(map(str, args)), cwd=cwd, env=cache_environment(output, cwd),
+                            text=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=300)
+    (output / (name + '.log')).write_text(result.stdout + result.stderr)
+    if result.returncode:
+        raise RuntimeError(name + ' failed: ' + result.stdout + result.stderr)
+    return result.stdout.strip()
+
+
+def restore_source(output, source, name):
+    return run_logged(output, name, [DOTNET_ROOT / 'dotnet', 'msbuild', 'build.proj',
+        '-t:Restore', '-p:Configuration=Release', '-nodeReuse:false', '-nologo'], source)
+
+
 def probe(output):
     output = output.resolve()
     output.mkdir(parents=True, exist_ok=False)
     dotnet = DOTNET_ROOT / 'dotnet'
     serial = 0
     def run(name, args, cwd):
-        env = dict(os.environ, NUGET_PACKAGES=str(cwd / '.nuget/packages'),
-                   DOTNET_CLI_HOME=str(output / 'home'), DOTNET_NOLOGO='1', DOTNET_CLI_TELEMETRY_OPTOUT='1')
-        result = subprocess.run(list(map(str, args)), cwd=cwd, env=env, text=True,
-                                stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=300)
-        (output / (name + '.log')).write_text(result.stdout + result.stderr)
-        if result.returncode:
-            raise RuntimeError(name + ' failed: ' + result.stdout + result.stderr)
-        return result.stdout.strip()
+        return run_logged(output, name, args, cwd)
 
     def fixture(path):
         write_fixture(path)
@@ -41,7 +55,7 @@ Console.WriteLine(Left.Value.Text + "|" + Right.Value.Text + suffix);
 
     def export(source, name):
         nonlocal serial
-        run(name + '-restore', [dotnet, 'msbuild', 'build.proj', '-t:Restore', '-p:Configuration=Release', '-nologo'], source)
+        restore_source(output, source, name + '-restore')
         manifest = output / (name + '-manifest.json')
         request = output / (name + '-request.json')
         request.write_text(json.dumps(dict(schemaVersion=1, workspace=str(source), dotnetRoot=str(DOTNET_ROOT),
@@ -54,7 +68,7 @@ Console.WriteLine(Left.Value.Text + "|" + Right.Value.Text + suffix);
         nonlocal serial
         manifest = export(source, name)
         if generated.exists(): shutil.rmtree(generated)
-        graph = prepare(source, manifest, generated)
+        graph = prepare(source, manifest, generated, environment=cache_environment(output, source))
         serial += 1
         return graph, manifest
 

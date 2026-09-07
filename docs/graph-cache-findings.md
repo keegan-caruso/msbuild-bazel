@@ -103,3 +103,43 @@ no project executions, identical bundle hashes/permissions and correct App outpu
 The Shared edit also matches a separately rebuilt ordinary MSBuild baseline.
 This supersedes the partial six-of-eight result above; Linux at the combined
 revision remains a separate gate.
+
+## Worker environment regression
+
+Review reproduced a cache-probe flake after seeding reusable MSBuild workers via
+`scripts/dotnet.sh msbuild <fixture>/build.proj -t:Restore -p:Configuration=Release -m:4`.
+The next restore used the probe's explicit CLI home for Shared, Left and App, but
+Right's `project.assets.json` retained the wrapper's
+`.cache/dotnet-home/.nuget/NuGet/NuGet.Config`. This unrelated configuration path
+changes declared restore bytes and can falsely fail selective caching or
+relocation. Reproduction evidence is retained at
+`/private/var/folders/__/z2sj57556cgfrkvbdznlvdt40000gn/T/cache-worker-home-review-rmh37vvw`.
+
+The cache probe now supplies `MSBUILDDISABLENODEREUSE=1` to every child and
+`-nodeReuse:false` to restore. Its preparation calls pass the same explicit
+CLI-home/package environment through a new optional `prepare(..., environment=)`
+argument, including adapter builds and discovery revalidation. Other callers keep
+their existing inherited-environment behavior; the probe does not mutate global
+process environment state.
+
+A focused regression seeds wrapper workers, performs three fresh restores and
+checks all four projects use the intended home and exclude the wrapper's home.
+It also runs real preparation and verifies that all four generated restore-input
+slices are byte-identical across the three source paths. On macOS ARM64 with the
+pinned Nix tools, this command passed (1 test):
+
+```sh
+python3 -m unittest discover -s tests/graph_cache -p test_worker_environment.py -v
+```
+
+Evidence: `/private/var/folders/__/z2sj57556cgfrkvbdznlvdt40000gn/T/msbuild-cache-worker-442mu2oq`.
+
+The complete cache suite then passed with the fix (9 tests), including cold and
+selective mutation actions, four-hit clean recovery, four-hit relocated recovery,
+bundle-byte equality and the seeded-worker regression. Command:
+`python3 -m unittest discover -s tests/graph_cache -v`.
+Evidence is retained at
+`/private/var/folders/__/z2sj57556cgfrkvbdznlvdt40000gn/T/msbuild-graph-cache-xu5bcwyg/probe`
+and `/private/var/folders/__/z2sj57556cgfrkvbdznlvdt40000gn/T/msbuild-cache-worker-rkrszwwt`.
+All 14 existing preparation rejection tests also passed. This validation is native
+macOS; Linux execution of this additional regression remains a CI gate.
