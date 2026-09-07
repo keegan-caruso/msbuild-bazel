@@ -1,0 +1,14 @@
+<Project>
+  <PropertyGroup>
+    <Configuration Condition="'$(Configuration)' == ''">Release</Configuration>
+    <TargetFramework Condition="'$(MSBuildProjectName)' != 'Multi'">net10.0</TargetFramework>
+    <Flavor Condition="'$(Flavor)' == ''">plain</Flavor>
+    <BaseIntermediateOutputPath Condition="'$(MSBuildProjectName)' == 'Shared'">obj/$(Flavor)/</BaseIntermediateOutputPath>
+    <BaseOutputPath Condition="'$(MSBuildProjectName)' == 'Shared'">bin/$(Flavor)/</BaseOutputPath>
+    <MSBuildProjectExtensionsPath>$(BaseIntermediateOutputPath)</MSBuildProjectExtensionsPath>
+    <DisableTransitiveProjectReferences>true</DisableTransitiveProjectReferences>
+    <DefaultItemExcludes>$(DefaultItemExcludes);obj/**;bin/**</DefaultItemExcludes>
+    <UseAppHost>false</UseAppHost>
+    <EnableNETAnalyzers>false</EnableNETAnalyzers>
+  </PropertyGroup>
+</Project>
