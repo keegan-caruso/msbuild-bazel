@@ -62,6 +62,29 @@ acceptance. R05 depends on those contracts, not on waiting for the entire Serilo
 pilot. Later broad milestone dependencies likewise refer to their selected
 feature slices; the graph makes those joins explicit.
 
+## Active execution order
+
+Scheduling update: 2026-09-07, based on the
+[language-rule lessons](language-rule-lessons.md) and the existing
+[Serilog phase measurements](serilog-performance-findings.md). R01–R17 remain
+stable identifiers, not a required numerical execution order. Historical
+acceptance and the active platform scope are unchanged.
+
+| Order | Work packages | Acceptance boundary |
+| --- | --- | --- |
+| Start now | R09 `preparation_reuse` alongside R05 `generators`/`interceptors` | Reuse already qualified discovery/package inputs; extend reference and executable-tool roles independently. Serialize shared preparation/runner edits and performance runs. |
+| After relevant R05 roles | R06 `tasks`, then its package consumers | Declare task implementation, dependencies, environment, outputs and execution-platform needs; preserve producer-free consumption. |
+| After R05/R06 contracts | R09 `compile_boundary` | Qualify reference-only compilation inputs and separate runtime staging with positive and negative mutation controls. |
+| Performance qualification | R09 `scale_synthetic` and `scale_real` | Baseline measurement may start now; final real-scale acceptance includes preparation reuse. It need not wait for compile-boundary optimization unless that optimization is enabled in the measured configuration. |
+| Independent tracks | Selected R03/R07/R08 and R13/R14 slices | Keep their existing feature and worker-closure prerequisites; preparation or interface optimization does not gate remote qualification. |
+
+Prioritize preparation reuse because the recorded unchanged Serilog case spends
+more time in preparation than Bazel Build. This is evidence for a small experiment,
+not a prediction of scale benefit. Worker reuse or earlier reference publication
+comes after phase profiling identifies a remaining bottleneck; it is not a new
+mandatory milestone. Enabled optimizations must be requalified for each broader
+workload rather than inherited from a narrow fixture.
+
 ## Milestone map
 
 Native macOS ARM64 remains the broader acceptance lane. The Starlark baseline
@@ -79,7 +102,7 @@ original platforms. “Planned” means prerequisites or contracts are still nee
 | R06 | Source-built tasks, package consumers and output lifecycle | R02–R05 slices actually used | Planned |
 | R07 | Broader restore/runtime assets and ordinary publish modes | R02/R03; selected R06 task/output support | Planned |
 | R08 | Native AOT publishing | R05 project generator, R07 publish/runtime contracts | Planned |
-| R09 | Managed graph scale and useful performance | R02–R05 for real projects; synthetic measurements can start after R01 | Planned |
+| R09 | Preparation reuse, qualified compile boundaries and useful scale performance | Preparation after accepted R04/contracts; compile boundary after selected R05/R06; scale uses actual project prerequisites | Preparation reuse starts now alongside R05; other slices planned |
 | R10 | Web/Razor, Blazor server and WebAssembly | R05/R06, selected R07 publish support | Planned |
 | R11 | Desktop, Windows/Framework and managed languages | R03/R06/R07 slices and platform toolchains | Planned |
 | R12 | Aspire mixed-language composition | R04 .NET foundation, existing-rule harness integration | Planned |
@@ -310,6 +333,10 @@ CommunityToolkit.Mvvm and P14 Dapper.AOT. Begin after R04's required input-contr
 slice passes; R04's Serilog acceptance and the R05 generator/interceptor tracks
 may then proceed independently.
 
+- Distinguish ordinary reference assemblies from executable generators/analyzers and
+  their supporting dependencies. Mutate each role independently; missing supporting
+  files must fail explicitly. Preserve SDK/NuGet transitive semantics. These
+  contracts precede R09 compile-boundary optimization.
 - Cover classic/incremental APIs independently from ordinary/interceptor output;
   include SDK-, package- and project-delivered assemblies where selected. Add
   diagnostic-only analyzer severity/suppression/warnings-as-errors controls.
@@ -335,7 +362,11 @@ and P16's analyzer-package extension.
 
 Establish task producer ordering even when UsingTask is not a ProjectReference;
 stage task/dependency/task-host closure and execute consumers without producer
-paths. Preserve Avalonia's required package creation/patching, restore local
+paths. Declare environment, generated outputs and execution-platform requirements,
+including custom tasks that read dependency implementation assemblies. These
+contracts gate the R09 compile-boundary experiment; they must remain correct if
+ordinary references become interface-only inputs. Preserve Avalonia's required
+package creation/patching, restore local
 packages into a fresh consumer, and verify compiled XAML. P16 separately tests
 packed analyzer selection; P17 adds controlled Git/version inputs and executable
 build-order outputs. Broader native dependencies are gated by the selected R07
@@ -384,21 +415,70 @@ compiler/linker/runtime-pack changes invalidate correctly and missing tools fail
 without host fallback. Cross-compilation is a later named slice. WebAssembly AOT
 belongs to R10, not this executable-publish claim.
 
-## R09 — Establish graph scale and useful performance
+## R09 — Reduce preparation cost, qualify boundaries and measure scale
+
+R09 begins now with `preparation_reuse`, alongside R05. Its work packages have
+separate acceptance gates; neither the milestone number nor the broad portfolio
+is a prerequisite for this first optimization.
+
+### Preparation reuse: immediate slice
+
+Prerequisites: accepted `serilog`, `starlark_packages` and
+`starlark_configured` contracts. Start with the existing selected Serilog workload
+and small discovery fixtures. Reuse export/preparation when its complete discovery
+identity is unchanged; validate glob/directory membership, optional imports,
+project references, global properties, restore/package content, SDK/tool identity
+and preparation schema. Timestamp-only or previously enumerated-file checks are
+insufficient.
+
+Exit: unchanged runs demonstrate which export/preparation work was avoided;
+source addition/removal, imports, reference metadata, restore/package and
+configuration changes refresh the correct plan. Missing/corrupt prepared state,
+interrupted publication and concurrent consumers cannot expose stale/partial
+inputs. Producer-free relocation and actual recovered execution still pass.
+Record repeated before/after preparation, analysis, build and test timings with
+controlled cache states. Calibrate and predeclare the performance budget before
+qualification; correctness alone does not establish reduced latency.
+
+### Compile boundary: after reference and task contracts
+
+`compile_boundary` requires the selected R05 `generators` and R06 `tasks`
+contracts. Prototype separate reference, implementation/runtime, executable-tool
+and replay-metadata inputs. Splitting provider fields without narrowing actual
+action inputs does not qualify. Preserve SDK target semantics when separating
+compilation from runtime staging; do not hide implementation hashes in metadata
+that still invalidates compilation.
+
+Exit: a Shared implementation-only edit with unchanged reference bytes leaves
+App's compilation action reusable while actual App execution observes the new
+implementation. An API edit invalidates compilation; a generator/task or its
+supporting dependency change invalidates its consumers. An implementation-reading
+custom task receives the implementation and reruns correctly. Repeat relocation,
+missing-input and forced replay controls. If this cannot preserve the selected
+MSBuild semantics, retain conservative bundles and record the limitation; do not
+enable an unqualified shortcut. R17 must explicitly disposition this experiment.
+
+### Scale and later optimizations
 
 Run C16 synthetic 10/100/1,000-node chain and fan-in/fan-out graphs, then P03 EF
-Core and P06 Azure SDK subtrees. Start synthetic measurement after R01; real
-project acceptance waits only for its actual feature prerequisites.
+Core and P06 Azure SDK subtrees. Synthetic and real-project baselines may begin
+as soon as their feature prerequisites allow. Final `scale_real` acceptance
+requires `preparation_reuse` plus its existing prerequisites. It additionally
+requires `compile_boundary` only if that optimization is enabled for the workload;
+add the edge before qualifying such an extension. A conservative-bundle scale
+result remains valid when explicitly labeled.
 
 Follow the coverage document's independent cache-state and MSBuild comparison
 protocol. Predeclare each system's expected work sets; compare observable results,
 not identical compilation counts. Record preparation/analysis/execution costs,
 process-tree memory and graph sizes. Set numeric qualification budgets after
-baseline calibration but before qualification runs.
+baseline calibration but before qualification runs. Investigate persistent workers
+or earlier reference publication only after these phase measurements identify the
+remaining cost, with separate state-isolation and memory controls.
 
 Exit: correctness at the claimed scales, reproducible performance reports and a
-clear statement of where the adapter helps or adds overhead. Optimize reference-
-assembly or metadata inputs only with tests proving omitted changes irrelevant.
+clear statement of where the adapter helps or adds overhead. Report compiler-task
+skips, Bazel action reuse and earlier metadata availability as different results.
 
 ## R10 — Qualify web, Razor and Blazor applications
 
@@ -538,7 +618,10 @@ Mandatory release gates:
 - Each portfolio slice P01–P18 and fixture/generator category has an honest final
   disposition: measured support with links, a reproducible known limitation, or
   explicit deferral with rationale. Deferred rows are not counted as coverage.
-- R09 supplies reproducible cost/benefit measurements. R13/R14 pass for at least
+- R09 supplies reproducible cost/benefit measurements including preparation reuse.
+  Explicitly accept or defer `compile_boundary`; any released optimization must
+  pass its role-specific correctness gates for the supported workload. R13/R14
+  pass for at least
   the initial declared workload before the full local-and-remote roadmap is
   considered complete; a local-only release may precede that endpoint.
 - Installation/tool acquisition, CI reproduction, artifact schemas, cache identity
