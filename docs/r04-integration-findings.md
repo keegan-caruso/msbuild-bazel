@@ -32,6 +32,31 @@ PackageInputs and the SDK repository rule. [Input discovery](input-discovery-fin
 record the detailed boundaries. Failed intermediate runs are retained as evidence;
 acceptance refers to the later successful runs only.
 
+## Final integrated checks
+
+The final production source at `893f24f` passes all 13 tests in
+`tests/graph_cache_full` in 351.270 seconds using pinned Nix Python 3.13.9 and
+the pinned SDK/Bazel overrides. Retained report:
+`/private/var/folders/__/z2sj57556cgfrkvbdznlvdt40000gn/T/msbuild-graph-cache-2pfyoac2/probe/report.json`.
+The committed signed-dependency test passes at `c8a83d8` in 16.803 seconds;
+its report is `graph-signing-stage-b56o7oye/probe/report.json` under the same temp root.
+The only later production-source difference in these checkpoints is the
+acceptance harness's read-only DLL replacement fix.
+
+The same final production changes also pass 17 package/restore tests and two
+configured execution tests; see [package/input findings](serilog-inputs-findings.md).
+Exporter validation passed 16 tests plus two focused host/Nix boundary controls.
+Preparation passed 17 tests, including six text-encoding/CRLF cases, and four
+Nix import declaration checks including native Bazel filegroup inspection.
+The Serilog library's eight native states and both standalone API comparisons
+pass as linked above. `bash scripts/check.sh` passes with pinned overrides;
+`git diff --check` passes.
+
+One cache attempt stopped after the Homebrew Python installation became unavailable
+while it was running. The later successful full run explicitly uses Nix Python;
+no compatibility conclusion is drawn from that interrupted interpreter environment.
+These runs qualify correctness, not comparative performance.
+
 ## Qualification boundary
 
 Linux validation is [deferred by request](platform-validation-scope.md). This is
