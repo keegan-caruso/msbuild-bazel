@@ -34,14 +34,23 @@ class GraphDiscoveryAcceptance(unittest.TestCase):
         write_fixture(self.workspace)
         (self.workspace / '.nuget/packages').mkdir(parents=True)
         self.serial = 0
+        self.environment = dict(os.environ,
+            NUGET_PACKAGES=str(self.workspace / '.nuget/packages'),
+            DOTNET_CLI_HOME=str(self.workspace / '.dotnet-home'),
+            MSBUILDDISABLENODEREUSE='1')
+        # prepare() also launches exporter/adapter children. Keep those under the
+        # same home as explicit restore/export and avoid workers from other tests.
+        environment = patch.dict(os.environ, self.environment)
+        environment.start()
+        self.addCleanup(environment.stop)
 
     def run_dotnet(self, name, args):
-        result = subprocess.run([str(DOTNET_ROOT / 'dotnet'), *map(str, args)], cwd=self.workspace, env=dict(os.environ, NUGET_PACKAGES=str(self.workspace / '.nuget/packages')), capture_output=True, text=True, timeout=180)
+        result = subprocess.run([str(DOTNET_ROOT / 'dotnet'), *map(str, args)], cwd=self.workspace, env=self.environment, capture_output=True, text=True, timeout=180)
         (self.root / (name + '.log')).write_text(result.stdout + result.stderr)
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
 
     def restore(self):
-        self.run_dotnet('restore', ['msbuild', 'build.proj', '-t:Restore', '-p:Configuration=Release', '-nologo'])
+        self.run_dotnet('restore', ['msbuild', 'build.proj', '-t:Restore', '-p:Configuration=Release', '-nodeReuse:false', '-nologo'])
 
     def export(self):
         self.serial += 1
@@ -60,7 +69,7 @@ class GraphDiscoveryAcceptance(unittest.TestCase):
             '--disk_cache=' + str(self.root / 'disk-cache'), '--spawn_strategy=' + strategy,
             '--strategy=MsbuildProject=' + strategy, '--jobs=2', '--noshow_progress',
             '--execution_log_json_file=' + str(execution)], cwd=directory,
-            capture_output=True, text=True, timeout=180)
+            capture_output=True, text=True, timeout=180, env=self.environment)
         (self.root / (name + '-build.log')).write_text(result.stdout + result.stderr)
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
         nodes = {n['id']: n['project'] for n in graph['nodes']}

@@ -100,3 +100,21 @@ an earlier run changed the SDK-generated adapter assembly revision metadata.
 Execution-log comparison isolated the resulting misses to `ReplayPlugin.dll` and
 `ActionRunner.dll`; the unchanged-revision rerun above passed every action-set
 assertion. This is an input-identity change, not a relocation failure.
+
+An integrated run exposed a separate test-environment drift: Shared's only changed
+input was its generated restore JSON. The assets and dgspec `configFilePaths`
+switched between the wrapper's `.cache/dotnet-home` NuGet configuration and the
+user-home NuGet configuration. The resulting conservative rebuild was correct;
+the test's supposedly unchanged restore environment was not. Discovery tests now
+set one fixture-local `DOTNET_CLI_HOME` for restore, export, preparation children
+and Bazel, and disable reusable MSBuild workers (`MSBUILDDISABLENODEREUSE=1` plus
+`-nodeReuse:false` on restore). This keeps earlier wrapper-based tests from
+contributing a different worker environment to an action-set comparison.
+
+Validation of that environment fix ran `bash scripts/dotnet.sh run --project
+ tests/ActionRunner.Tests -c Release` immediately before `python3 -m unittest
+ discover -s tests/graph_handoff -p test_graph_discovery.py -v`, with the pinned
+Nix tool overrides. Runner contract/process tests and all six discovery tests
+passed (93.9 seconds for discovery). In retained `graph-discovery-vr00vjeh`, both
+Shared restore snapshots list the same normalized fixture-local NuGet
+configuration path and the conditional change executes exactly Left plus App.
