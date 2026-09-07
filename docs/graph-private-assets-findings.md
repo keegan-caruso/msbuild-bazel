@@ -72,3 +72,35 @@ lane; no cross-platform claim follows from this local result.
 The executable four-case test passed on macOS ARM64 in 15.8 seconds, including
 runtime/reference hash assertions. Final test evidence is retained under
 `graph-private-assets-7lcdolak/probe` in the native temporary directory.
+
+## Generated adapter parity
+
+`tests/graph_packages/test_private_assets_adapter.py` compares all four modes with
+this ordinary oracle. Each mode has a cold native sandbox build and a second
+build after adding a direct package API call only to App. The generated per-node
+package manifests exactly match ordinary restore inventories. Cold execution
+includes all four projects; the direct-call change executes App alone, with
+producer bundles recovered from the local disk cache.
+
+Omitted/default/none reproduce the successful runtime output and package DLL copy
+set. `all` reproduces successful compilation of the original App, its absent
+package DLLs, and the same isolated runtime FileNotFoundException. Direct App
+access to the private package fails with CS0103 and publishes no completion seal.
+The successful direct-access cases compile successfully. Compile diagnostics are
+read only for executed actions: Bazel can prune unrequested diagnostics when
+recovering producer bundles from cache. Raw execution records establish reuse.
+
+The native macOS ARM64 parity test passed in 86.2 seconds against the R02 package
+adapter, with evidence at `graph-private-adapter-qvpdk1s4` in the native temporary
+directory. A subsequent check of all eight package-DLL hash/absence comparisons
+against those retained outputs passed; the test now asserts those hashes too.
+Run the test with:
+
+```sh
+python3 -m unittest discover -s tests/graph_packages -p test_private_assets_adapter.py -v
+```
+
+This extends the measured claim from ordinary MSBuild to generated native macOS
+actions for these four configurations. Linux acceptance remains an integrated CI
+gate. It does not change the deliberate runtime failure of the `all` fixture or
+claim support for additional package asset categories.
