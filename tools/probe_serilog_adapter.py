@@ -122,6 +122,8 @@ def probe(source, package_cache, output, cases=('source', 'resource', 'key', 'im
         node = graph['nodes'][0]
         if node['globalProperties'] != {'configuration': 'Release', 'targetframework': 'net10.0'}:
             raise AssertionError('selected inner identity changed')
+        if not {'workspace/Directory.Build.props', 'workspace/Directory.Version.props'}.issubset({item['path'] for item in node['inputs'] if item['kind'] == 'import'}):
+            raise AssertionError('evaluated shared/nested imports missing')
         if node.get('discovery') != dict(signAssembly=True, publicSign=False, delaySign=False):
             raise AssertionError('signing discovery differs from pinned signed pilot')
         if {Path(item['path']).name for item in node['inputs'] if item['kind'] == 'analyzer'} != ANALYZERS:
