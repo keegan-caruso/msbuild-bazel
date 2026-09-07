@@ -1,0 +1,8 @@
+root = true
+
+[*.cs]
+dotnet_diagnostic.GEN001.severity = warning
+dotnet_diagnostic.GEN002.severity = warning
+
+[values/*.txt]
+r05_generator_suffix = editor-v1

@@ -46,8 +46,12 @@ internal static class PackageInputs
             if (request.GraphProject is not null)
                 foreach (var entry in package.Files)
                 {
-                    var root = entry.Path.Split('/')[0].ToLowerInvariant();
-                    if (new[] { "runtimes", "native", "analyzers", "build", "buildtransitive", "buildmultitargeting", "content", "contentfiles", "tools" }.Contains(root) &&
+                    var segments = entry.Path.Split('/');
+                    var root = segments[0].ToLowerInvariant();
+                    var analyzerPayload = segments.Length == 4 &&
+                        entry.Path.StartsWith("analyzers/dotnet/cs/", StringComparison.Ordinal) &&
+                        entry.Path.EndsWith(".dll", StringComparison.Ordinal);
+                    if (!analyzerPayload && new[] { "runtimes", "native", "analyzers", "build", "buildtransitive", "buildmultitargeting", "content", "contentfiles", "tools" }.Contains(root) &&
                         !(pin?.AdditionalRoots.Contains(root) ?? false))
                         throw new InvalidDataException("unsupported graph package payload category");
                 }

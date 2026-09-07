@@ -305,6 +305,10 @@ Coverage: selected K02–K05, G05/G07–G09/G11, F07/F09/F10 and applicable loca
 
 ## R05 — Qualify generator combinations and reference roles
 
+The bounded [R05a contract](r05a-plan.md) and [implementation/evidence](r05a-findings.md)
+cover synthetic project/package delivery, reference roles and diagnostic-only
+analyzers. The Spectre.Console real-project prerequisite gate remains open.
+
 Start with small API/delivery fixtures, then P02 Spectre.Console, P16
 CommunityToolkit.Mvvm and P14 Dapper.AOT. Begin after R04's required input-contract
 slice passes; R04's Serilog acceptance and the R05 generator/interceptor tracks

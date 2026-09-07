@@ -1,0 +1,20 @@
+<Project>
+  <Target Name="ObserveGeneratorReferenceRoles"
+          BeforeTargets="CoreCompile"
+          Condition="'$(GeneratorRolesObservationDirectory)' != ''">
+    <PropertyGroup>
+      <_GeneratorRolesObservationFile>$(GeneratorRolesObservationDirectory)/$(MSBuildProjectName).roles.txt</_GeneratorRolesObservationFile>
+    </PropertyGroup>
+    <ItemGroup>
+      <_GeneratorRoleLine Include="@(Analyzer->'Analyzer|%(FullPath)')" />
+      <_GeneratorRoleLine Include="@(ReferencePath->'ReferencePath|%(FullPath)')" />
+      <_GeneratorRoleLine Include="@(ReferenceCopyLocalPaths->'ReferenceCopyLocalPaths|%(FullPath)')" />
+      <FileWrites Include="$(_GeneratorRolesObservationFile)" />
+    </ItemGroup>
+    <MakeDir Directories="$(GeneratorRolesObservationDirectory)" />
+    <WriteLinesToFile File="$(_GeneratorRolesObservationFile)"
+                      Lines="@(_GeneratorRoleLine)"
+                      Overwrite="true"
+                      Encoding="UTF-8" />
+  </Target>
+</Project>

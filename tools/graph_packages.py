@@ -116,7 +116,9 @@ def stage(workspace, project, output, node_id, assets_file=None):
                 if name.endswith('.nuspec'): name = name.lower()
                 if Path(name).is_absolute() or '..' in Path(name).parts:
                     raise ValueError('unsupported-package: escaping archive entry')
-                if name.split('/')[0].lower() in ('runtimes', 'native', 'analyzers', 'build', 'buildtransitive', 'buildmultitargeting', 'content', 'contentfiles', 'tools') and name.split('/')[0].lower() not in (pilot or {}).get('additionalRoots', []):
+                analyzer_payload = (name.startswith('analyzers/dotnet/cs/') and
+                    len(name.split('/')) == 4 and name.endswith('.dll'))
+                if not analyzer_payload and name.split('/')[0].lower() in ('runtimes', 'native', 'analyzers', 'build', 'buildtransitive', 'buildmultitargeting', 'content', 'contentfiles', 'tools') and name.split('/')[0].lower() not in (pilot or {}).get('additionalRoots', []):
                     raise ValueError('unsupported-package: only managed ref/lib payloads supported')
                 contents = package.read(entry)
                 source = folder / name
