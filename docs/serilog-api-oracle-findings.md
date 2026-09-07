@@ -28,3 +28,12 @@ error. Retained evidence contains the approved and actual text, a unified diff,
 archive pins, assembly hash and command logs. Comparison preserves all text and
 internal whitespace, normalizing CRLF/LF and final newlines only. The helper
 runs locally and does not establish hermetic or upstream test-runner acceptance.
+
+On macOS ARM64 with SDK 10.0.100, the acquired ordinary net10.0 Serilog DLL
+matched the upstream approved API. A supplied incompatible assembly produced a
+failed report and nonempty diff. The opt-in `tests/serilog_api` test passed in
+2.088 seconds, covering both comparisons. Evidence is retained at
+`/private/var/folders/__/z2sj57556cgfrkvbdznlvdt40000gn/T/serilog-api-oracle-dw1rzs0k`,
+with harness log `/private/tmp/r04-api-oracle-tests.log`. This result measures
+the existing ordinary library baseline; adapter and recovered bundles must be
+passed independently before claiming equivalent public API there.
