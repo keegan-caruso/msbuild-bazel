@@ -68,8 +68,9 @@ The new `.github/workflows/graph-execution.yml` runs exporter regression, runner
 contracts and graph execution acceptance on Ubuntu 22.04, retaining logs/reports.
 It had not been dispatched during initial implementation. The subsequent native
 Linux result is recorded below.
-The separate milestone 3 cache suite remains intentionally red and is not part
-of the milestone 2 CI gate.
+At initial implementation the separate milestone 3 cache suite remained
+intentionally red and was not part of the milestone 2 CI gate. The R01 workflow
+now adds its package-free acceptance command; package cases remain R02 work.
 
 ## Boundary and remaining work
 
@@ -125,8 +126,11 @@ the observed runner/replay result; independent raw execution-record auditing is
 limited for this historical artifact. The workflow now retains those JSON files,
 runs the existing public-API replay regression explicitly, and accepts R01 branch
 pushes/manual dispatches. These workflow additions have not themselves run in
-Linux CI yet. Future R01 handoff tests in `tests/graph_execution` are included by
-the existing discovery command.
+Linux CI yet. R01 handoff tests in `tests/graph_execution` are included by the existing
+discovery command. The parallel cache track narrows `tests/graph_cache` to its
+package-free R01 acceptance cases; the workflow now runs that discovery command
+and retains its `msbuild-graph-cache-*` logs and JSON evidence. These new gates
+require the parallel implementations to be integrated before running.
 
 This closes the existing-execution part of the `linux` work package. It does not
 accept the new cache, input-discovery or interrupted-publication controls, the
