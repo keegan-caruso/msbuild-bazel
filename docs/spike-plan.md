@@ -6,6 +6,11 @@ Can Bazel cache and schedule configured .NET projects while each action uses MSB
 
 ## Current status and next step
 
+Further Linux validation is deferred by request. Continue R04 Serilog library
+input support using the accepted macOS R02 and selected R03 prerequisites; see
+[active platform scope](platform-validation-scope.md). Historical platform
+evidence below remains bounded to its recorded source and experiment.
+
 Steps 1–7 below are implemented. The two-target Bazel adapter also has
 [action-identity](action-identity-findings.md) and
 [pinned build-package](package-input-findings.md) acceptance coverage on macOS

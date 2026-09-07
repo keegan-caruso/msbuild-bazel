@@ -7,7 +7,9 @@
     "linux",
     "cache",
     "handoff",
-    "local"
+    "local",
+    "packages",
+    "configured"
   ],
   "nodes": [
     {
@@ -78,7 +80,7 @@
         "local"
       ],
       "workstream": "graph",
-      "scope": "Inner/outer builds and executable AdditionalProperties/GlobalPropertiesToRemove fixtures; prerequisites for Serilog."
+      "scope": "Selected net10.0 inner builds and direct-edge AdditionalProperties/GlobalPropertiesToRemove with DisableTransitiveProjectReferences=true; broader outer/transitive semantics remain unqualified."
     },
     {
       "id": "entrypoints",
@@ -403,10 +405,17 @@
     "handoff": "Native macOS controls and integrated Linux discovery and forced-consumption lane passed.",
     "languages": "Native macOS and integrated Linux composition, edits and forced cache recovery pass; broader harness gates remain open.",
     "local": "R01 accepted on native macOS ARM64 and Linux x86-64; package-bearing R02 remains separate.",
-    "packages": "Integrated 6563e3c passes 13 full cache and 14 PrivateAssets/restore-state tests on native macOS, including consumer snapshot fixes. Linux jobs remain blocked before startup by GitHub account billing/spending limit; acceptance pending.",
-    "configured": "Selected net10.0 inner and direct-edge Flavor variants pass native macOS action/mutation/relocation tests. Linux acceptance and broader configuration/entry-point semantics remain open.",
+    "packages": "Accepted bounded managed-package slice on macOS: 13 full cache and 14 PrivateAssets/restore-state tests pass at 6563e3c, including consumer snapshot fixes. Further Linux validation deferred by user request.",
+    "configured": "Accepted selected net10.0 inner and direct-edge Flavor variants on macOS with action/mutation/relocation evidence. Linux deferred; unselected outer builds, general transitive configurations and broader entry points remain open.",
     "lifecycle": "Seven native macOS characterization tests pass; production lifecycle API, wider configurations and Linux acceptance remain open.",
     "scale_synthetic": "Ten-node fan protocol states and chain fresh/warm pass on macOS; 1000-node recursive preparation failure fixed with iterative closures. Larger native execution, aggregate memory and controlled timing remain unmeasured.",
-    "inputs": "Pinned ordinary Serilog library generator/signing/resource oracle passes; production analyzer/package policy and input discovery remain open."
+    "inputs": "In progress: pinned Serilog library package policy, compiler input discovery and native macOS adapter acceptance. Ordinary generator/signing/resource oracle passes."
+  },
+  "qualificationScope": {
+    "activePlatform": "native macOS ARM64",
+    "deferredValidation": [
+      "Further Linux acceptance for R02 and later changes"
+    ],
+    "reference": "platform-validation-scope.md"
   }
 }

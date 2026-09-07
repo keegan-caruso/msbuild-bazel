@@ -45,15 +45,16 @@ feature slices; the graph makes those joins explicit.
 
 ## Milestone map
 
-All forward milestones are open. “Next” means ready for detailed implementation;
-“planned” means prerequisites or contracts are still needed.
+The active acceptance lane is native macOS ARM64; further Linux validation is
+[deferred by request](platform-validation-scope.md). Historical R01 acceptance
+retains both platforms. “Planned” means prerequisites or contracts are still needed.
 
 | Milestone | Outcome | Prerequisites | State |
 | --- | --- | --- | --- |
 | R01 | Reliable package-free generated graph and local cache | Existing execution slice | Accepted on native macOS and Linux at c384671 |
-| R02 | Managed package closure in generated graph actions | R01 core execution/cache | Implemented; review fixes and integrated acceptance in progress |
-| R03 | Configured nodes, discovery and entry-point semantics | R01; R02 for package/SDK cases | Configured-node ordinary fixtures in progress |
-| R04 | First real-project adapter acceptance: Serilog | R02, selected R03 configuration support | Planned; ordinary baseline available |
+| R02 | Managed package closure in generated graph actions | R01 core execution/cache | Selected managed slice accepted on macOS; Linux deferred |
+| R03 | Configured nodes, discovery and entry-point semantics | R01; R02 for package/SDK cases | Selected inner/direct-edge configurations accepted on macOS; broader semantics open |
+| R04 | First real-project adapter acceptance: Serilog | R02, selected R03 configuration support | In progress: pinned library package/input contracts and adapter acceptance |
 | R05 | Generator combinations and project-reference roles | R04 input-contract slice; parallel with Serilog acceptance | Planned |
 | R06 | Source-built tasks, package consumers and output lifecycle | R02–R05 slices actually used | Planned |
 | R07 | Broader restore/runtime assets and ordinary publish modes | R02/R03; selected R06 task/output support | Planned |

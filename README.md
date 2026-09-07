@@ -8,6 +8,8 @@ cache. Public-API dependency-result replay works across workspace paths.
 [Action-identity checks](docs/action-identity-findings.md) and
 [pinned build-package inputs](docs/package-input-findings.md) are implemented.
 
+**Active scope:** Continue milestones on native macOS ARM64; further Linux validation is deferred by request. See [platform validation scope](docs/platform-validation-scope.md). R04 Serilog library input support is the next implementation slice.
+
 **Platform evidence:** The original nine-test suite, including replay and native
 Bazel sandbox/cache cases, passed on macOS ARM64 and in Ubuntu 22.04 Linux x86-64
 CI; see [Linux evidence](docs/bazel-findings.md#ci-repair-2026-09-05). The newer

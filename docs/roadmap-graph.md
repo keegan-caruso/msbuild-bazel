@@ -4,7 +4,10 @@ This graph decomposes [R01–R17](roadmap.md) into work packages. The source is
 [roadmap-graph.json](roadmap-graph.json); node IDs are stable within this plan.
 Acceptance state is recorded in the JSON and the
 [first parallel batch findings](parallel-tracks-findings.md). `base`, `linux`, `cache`, `handoff` and `local` have passing evidence; downstream
-nodes remain open until their own acceptance lanes pass. Arrows are acceptance prerequisites, not a
+`packages` and the bounded `configured` slice now pass on native macOS ARM64.
+Further Linux validation is [deferred by request](platform-validation-scope.md);
+R04 input contracts and Serilog library acceptance are active. Other nodes remain
+open until their own scoped acceptance lanes pass. Arrows are acceptance prerequisites, not a
 requirement to delay source inspection, contract design or isolated implementation.
 Every incoming solid edge must pass before accepting that downstream slice.
 
@@ -155,22 +158,19 @@ TypeScript build rules. This scope correction leaves dependency edges unchanged.
 
 ## What can start now
 
-R01 is accepted at `c384671` on both native lanes. Package integration, configured
-node semantics, lifecycle and synthetic scale are dependency-ready. The first
-implementation batch had four independent work packages. Their
-implementation and measured results are tracked in the
-[first parallel batch findings](parallel-tracks-findings.md).
+R01 is accepted at `c384671` on both native lanes. R02 managed packages and
+the selected R03 configured-node slice now satisfy the active macOS prerequisites.
+Linux validation is deferred. The current parallel batch advances R04:
 
 | Work package | Immediate deliverable | Primary ownership |
 | --- | --- | --- |
-| `linux` | Existing execution acceptance on native Linux CI, with retained logs | CI workflow and Linux findings; request runner fixes through its owner |
-| `cache` | Package-free cache probe and report/action-set assertions | `tools/probe_graph_cache.py`, `tests/graph_cache`; owns shared probe/report schema |
-| `handoff` | Boundary/discovery contracts and focused negative tests, then fixes | Graph preparation/runner/replay interfaces; coordinate mutation instrumentation with cache owner |
-| `languages` | Shared .NET/Python/TypeScript harness using existing Bazel rules | Harness targets, runfiles and orchestration; upstream rules own language actions |
+| Package policy | Evaluated pinned package requests and narrowly qualified analyzer/build payloads | Restore validation, package staging and action package checks |
+| Compiler inputs | Resolved analyzers, signing key, resources and shared imports without compilation during discovery | Graph exporter and discovery acceptance |
+| Serilog library | Ordinary/native parity, mutations and producer-free relocated cache recovery | Pinned pilot harness and evidence |
 
-In parallel, inventory R02 package manifests, R03 configured-node fixtures,
-R04 Serilog inputs, Windows toolchains, SDK/solution fixtures and remote deployment
-pins. These are preparation activities, not passing downstream acceptance.
+The [first parallel batch findings](parallel-tracks-findings.md) retain the earlier
+R01 work. Lifecycle characterization and synthetic-scale smoke results do not
+establish their full production or performance milestones.
 
 After `local` passes, package integration, configured-node work, lifecycle tests
 and synthetic scale can run concurrently. After `inputs` passes, Serilog,
