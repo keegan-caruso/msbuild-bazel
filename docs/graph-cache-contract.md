@@ -1,9 +1,12 @@
 # Generated graph cache acceptance: milestone 3
 
-Status: **test-first preparation only**. The independent acceptance suite is
-intentionally red because `tools/probe_graph_cache.py` does not exist. This
-contract does not claim selective invalidation, recovery or relocation for the
-generated graph adapter. Existing two-project evidence remains separate.
+Status: the **R01 package-free probe is implemented** in
+`tools/probe_graph_cache.py`, with focused acceptance in `tests/graph_cache`.
+The complete historical milestone 3 contract below remains a future gate;
+its original assertions are preserved in `tests/graph_cache_full` and remain
+red until package and failure-control integration is complete. See
+[package-free findings](graph-cache-findings.md) for measured evidence and limits.
+A passing R01 suite does not establish full milestone 3 acceptance.
 
 ## Boundary and prerequisite
 
@@ -86,7 +89,7 @@ exporter or MSBuild diagnostic names.
 
 ## Probe/report contract
 
-Run the future probe as:
+Run the package-free R01 probe and focused suite as:
 
 ```sh
 python3 tools/probe_graph_cache.py --output artifacts/graph-cache-probe
@@ -100,7 +103,16 @@ have their own nonzero result while a complete probe returns zero. Tooling,
 network or sandbox failures must be errors rather than skips. The acceptance
 suite retains its temporary evidence directory and prints its location.
 
-Report schema version 1 has `schemaVersion`, `baselineOutput`, `cases`,
+The R01 report identifies itself with `scope: "R01-package-free-cache"` and
+`pendingTracks`; it does not emit fictitious package or failure-case results.
+The existing graph runner records `SPIKE_COMPILE:<project-name>` markers; R01
+maps each marker through the diamond's unique project stems to its configured
+project path. The full contract's path-marker requirement below remains distinct.
+Run the preserved full contract separately with
+`python3 -m unittest discover -s tests/graph_cache_full -v`; it is intentionally
+not included in the R01 or existing e2e discovery roots.
+
+The full report schema version 1 has `schemaVersion`, `baselineOutput`, `cases`,
 `packageUpgrade`, `graphEdgeAdded`, and `failures`. Project strings are normalized
 workspace-relative csproj paths (`src/Left/Left.csproj`), not display names.
 Each case has:
