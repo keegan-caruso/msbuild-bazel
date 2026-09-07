@@ -42,8 +42,8 @@ General NuGet compatibility, RID-specific/native package assets, full runtime
 closure, remote-cache correctness and cross-platform portability remain unproven.
 
 The [forward roadmap](docs/roadmap.md) covers R01–R17 from this checkpoint through
-a supported adapter. **Next:** prove generated-graph local caching and Linux
-execution, integrate managed packages, then qualify configured nodes and Serilog.
+a supported adapter. **Next:** execute the unchanged Serilog approval-test project through Bazel, with
+[test inputs, test execution and acceptance](docs/serilog-test-plan.md) developed in parallel.
 Later tracks cover specialized SDKs, platform workloads and independent remote
 workers; see the [coverage matrix](docs/scenario-coverage.md) and
 [parallel dependency graph](docs/roadmap-graph.md).
