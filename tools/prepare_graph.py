@@ -55,6 +55,22 @@ def dependency_closures(nodes):
     return closures
 
 
+def nix_imports(inputs, sdk_root):
+    """Declare only exporter-discovered Nix imports for a Nix-hosted SDK."""
+    paths = set()
+    for item in inputs:
+        if not item['path'].startswith('nix/'):
+            continue
+        logical = item['path'].removeprefix('nix/')
+        parts = logical.split('/')
+        if (item['kind'] != 'import' or not Path(sdk_root).is_relative_to('/nix/store') or
+            not re.fullmatch(r'[0-9abcdfghijklmnpqrsvwxyz]{32}-[^/]+', parts[0]) or
+            any(part in ('', '.', '..') for part in parts) or '\\' in logical):
+            raise ValueError('unsupported Nix SDK import: ' + item['path'])
+        paths.add('/nix/store/' + logical)
+    return sorted(paths)
+
+
 def prepare(workspace, manifest, output, *, environment=None):
     """Publish only a completely validated plan; serialize shared adapter builds."""
     output = Path(output).resolve()
@@ -113,15 +129,16 @@ def _prepare(workspace, manifest, output, *, environment=None):
     # Check every exported file against the producer manifest before publishing.
     # Match the exporter's normalization, including NuGet's derived dgspec hash.
     roots = {'workspace': workspace, 'dotnet': DOTNET_ROOT,
-             'packages': workspace / '.nuget/packages', 'adapter': ROOT / 'tools/GraphExport'}
+             'packages': workspace / '.nuget/packages', 'adapter': ROOT / 'tools/GraphExport', 'nix': Path('/nix/store')}
     inputs = graph.get('graphInputs', []) + [item for node in nodes.values() for item in node['inputs']]
+    external_imports = nix_imports(inputs, DOTNET_ROOT)
     for item in inputs:
         prefix, _, logical = item['path'].partition('/')
         if prefix not in roots or not logical or Path(logical).is_absolute() or '..' in Path(logical).parts:
             raise ValueError('unsafe input path: ' + item['path'])
         source = roots[prefix] / logical
         # SDK installations may contain Nix symlinks; workspace payloads may not escape.
-        if not source.is_file() or (prefix == 'workspace' and not source.resolve().is_relative_to(workspace)):
+        if not source.is_file() or (prefix == 'workspace' and not source.resolve().is_relative_to(workspace)) or (prefix == 'nix' and not source.resolve().is_relative_to('/nix/store')):
             raise ValueError('missing-input: missing or escaping input: ' + item['path'])
         if prefix == 'workspace' and '/obj/' in '/' + logical and item['kind'] not in ('restore', 'import'):
             raise ValueError('unsupported declared obj input: ' + item['path'])
@@ -180,7 +197,7 @@ def _prepare(workspace, manifest, output, *, environment=None):
     targets.write_text(targets.read_text().replace('</Project>', '<Target Name="GraphCompileEvidence" BeforeTargets="CoreCompile"><Message Importance="high" Text="SPIKE_COMPILE:$(SPIKE_GRAPH_PROJECT)" /></Target></Project>'))
     for name in ('msbuild.bzl', 'graph.bzl'):
         shutil.copyfile(ROOT / 'bazel' / name, output / name)
-    (output / 'MODULE.bazel').write_text('module(name="msbuild_graph")\nlocal_dotnet_sdk = use_repo_rule("//:msbuild.bzl", "local_dotnet_sdk")\n' + f'local_dotnet_sdk(name="dotnet", path={json.dumps(str(DOTNET_ROOT))})\n')
+    (output / 'MODULE.bazel').write_text('module(name="msbuild_graph")\nlocal_dotnet_sdk = use_repo_rule("//:msbuild.bzl", "local_dotnet_sdk")\n' + f'local_dotnet_sdk(name="dotnet", path={json.dumps(str(DOTNET_ROOT))}, external_imports={json.dumps(external_imports)})\n')
     (output / 'host-identity.json').write_text(json.dumps({'platform': platform.platform(), 'machine': platform.machine(), 'dotnet': str(DOTNET_ROOT), 'policyRevision': 1}))
     (output / 'restore').mkdir()
     settings = dict(plugin='ReplayPlugin.dll', build_props='runner/Action.props', build_targets='runner/Action.targets', runner='runner/ActionRunner.dll', runner_support=['runner/ActionRunner.deps.json', 'runner/ActionRunner.runtimeconfig.json'], sdk='@dotnet//:files', dotnet='@dotnet//:sdk/dotnet', host_identity='host-identity.json')

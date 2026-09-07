@@ -73,11 +73,15 @@ msbuild_project = rule(
 
 def _sdk_impl(ctx):
     ctx.symlink(ctx.attr.path, "sdk")
-    ctx.file("BUILD.bazel", 'filegroup(name="files", srcs=glob(["sdk/**"], exclude=["sdk/**/BUILD", "sdk/**/BUILD.bazel"]), visibility=["//visibility:public"])\nexports_files(["sdk/dotnet"])\n')
+    for index, path in enumerate(ctx.attr.external_imports):
+        if not ctx.attr.path.startswith("/nix/store/") or not path.startswith("/nix/store/") or ".." in path.split("/"):
+            fail("external_imports require explicit Nix SDK import paths")
+        ctx.symlink(path, "imports/" + str(index))
+    ctx.file("BUILD.bazel", 'filegroup(name="files", srcs=glob(["sdk/**", "imports/**"], exclude=["sdk/**/BUILD", "sdk/**/BUILD.bazel"]), visibility=["//visibility:public"])\nexports_files(["sdk/dotnet"])\n')
 
 local_dotnet_sdk = repository_rule(
     implementation = _sdk_impl,
-    attrs = {"path": attr.string(mandatory = True)},
+    attrs = {"path": attr.string(mandatory = True), "external_imports": attr.string_list(default = [])},
     local = True,
 )
 
