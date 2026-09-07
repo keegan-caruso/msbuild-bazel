@@ -83,7 +83,8 @@ internal static class PackageInputs
                 using var stream = entry.Open();
                 expected.Add(name, (entry.Length, Convert.ToHexString(SHA256.HashData(stream)).ToLowerInvariant()));
             }
-        expected.Add(archiveName, (new FileInfo(archive).Length, pin.ArchiveSha256));
+        using var archiveStream = File.OpenRead(archive);
+        expected.Add(archiveName, (archiveStream.Length, pin.ArchiveSha256));
         var marker = System.Text.Encoding.ASCII.GetBytes(Convert.ToBase64String(SHA512.HashData(File.ReadAllBytes(archive))));
         expected.Add(archiveName + ".sha512", (marker.Length, Convert.ToHexString(SHA256.HashData(marker)).ToLowerInvariant()));
         if (package.Files.Length != expected.Count || package.Files.Select(file => file.Path).Distinct().Count() != expected.Count ||
