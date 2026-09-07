@@ -17,6 +17,6 @@ Remaining limitations:
 
 - net10.0, Debug/Release, SDK-style C# only.
 - Restore and tool acquisition remain preparation steps outside export/build actions.
-- MSBuild evaluation is trusted code and not a security sandbox.
+- MSBuild evaluation is trusted code and not a security sandbox. R04 also executes pinned SDK resolution targets locally (which can write resolution caches); project-authored target overrides/hooks are trusted. Build/CoreCompile are not requested. See [input discovery findings](input-discovery-findings.md).
 - Multi-targeting, RIDs/native assets, specialized SDKs, arbitrary custom target behavior, remote caching and remote execution remain unproven.
 - The exporter establishes a local manifest contract; it does not yet generate or execute Bazel actions for the graph.

@@ -8,6 +8,8 @@ cache. Public-API dependency-result replay works across workspace paths.
 [Action-identity checks](docs/action-identity-findings.md) and
 [pinned build-package inputs](docs/package-input-findings.md) are implemented.
 
+**Active scope:** Further Linux validation is deferred by request. The [R04 Serilog library slice](docs/r04-integration-findings.md) now passes native macOS build, mutation and producer-free relocated cache acceptance; the unchanged upstream approval-test project also passes native build/test, mutation and relocated-cache acceptance ([test findings](docs/serilog-test-acceptance-findings.md)).
+
 **Platform evidence:** The original nine-test suite, including replay and native
 Bazel sandbox/cache cases, passed on macOS ARM64 and in Ubuntu 22.04 Linux x86-64
 CI; see [Linux evidence](docs/bazel-findings.md#ci-repair-2026-09-05). The newer
@@ -31,13 +33,16 @@ recovery. **Graph export:** The configured graph exporter has passing Linux acce
 slice](docs/graph-execution-findings.md) passes native macOS acceptance for a
 Release/net10.0 package-free diamond. [Cache acceptance contracts](docs/graph-cache-contract.md)
 and [real-project discovery](docs/real-project-pilot.md) are prepared in parallel;
-they do not yet establish generated-graph cache recovery or real-project support.
+the later acceptance results below supersede their initial unimplemented status.
+The [first parallel batch](docs/parallel-tracks-findings.md) implements package-free
+cache and handoff controls plus an existing-rule multi-language harness; combined
+native validation is recorded there. The [R02 managed-package slice](docs/graph-package-plan.md) has native macOS
+cache/relocation and PrivateAssets parity evidence, with Linux qualification pending.
 General NuGet compatibility, RID-specific/native package assets, full runtime
 closure, remote-cache correctness and cross-platform portability remain unproven.
 
 The [forward roadmap](docs/roadmap.md) covers R01–R17 from this checkpoint through
-a supported adapter. **Next:** prove generated-graph local caching and Linux
-execution, integrate managed packages, then qualify configured nodes and Serilog.
+a supported adapter. **Completed:** the three parallel [upstream test tracks](docs/serilog-test-plan.md) pass native macOS acceptance. **Next:** repeated comparative measurements and the next generator/reference-role slice; Linux remains deferred.
 Later tracks cover specialized SDKs, platform workloads and independent remote
 workers; see the [coverage matrix](docs/scenario-coverage.md) and
 [parallel dependency graph](docs/roadmap-graph.md).
@@ -153,6 +158,11 @@ Inside `nix develop`, use `--native-runtime-probe` to declare the transitive Nix
 runtime closure and check rejection of incomplete action inputs.
 
 ## Validation
+
+See the [adapter validation strategy](docs/validation.md) for the Bazel test
+layers, acceptance matrix, runnable suites and evidence requirements. It separates
+recorded probe results from planned Starlark quality, rule analysis, generated-workspace
+checks and Bazel version coverage.
 
 `bash scripts/check.sh` checks shell syntax, version-pin consistency, and installed tool versions. It does not run the integration experiments. GitHub Actions separately runs fresh setup, repeated setup, Bazel package loading, and the e2e suite.
 

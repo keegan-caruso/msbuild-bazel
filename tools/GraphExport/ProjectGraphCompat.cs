@@ -1,9 +1,8 @@
 using Microsoft.Build.Evaluation;
 using Microsoft.Build.Graph;
 
-// Microsoft.Build 17.14 exposes the multi-entry constructor without a
-// ProjectCollection overload. Keep collection ownership explicit at the call
-// site while adapting to that supported API surface.
+// Keep collection ownership and configured traversal roots explicit. The SDK
+// reference negotiation callback selects the same inner build as ordinary MSBuild.
 internal sealed class ProjectGraph
 {
     private readonly Microsoft.Build.Graph.ProjectGraph inner;
@@ -11,7 +10,7 @@ internal sealed class ProjectGraph
     public ProjectGraph(IEnumerable<ProjectGraphEntryPoint> entryPoints, ProjectCollection collection)
     {
         ArgumentNullException.ThrowIfNull(collection);
-        inner = new Microsoft.Build.Graph.ProjectGraph(entryPoints);
+        inner = new Microsoft.Build.Graph.ProjectGraph(entryPoints, collection, ReferenceFrameworkNegotiation.CreateProject, 1, CancellationToken.None);
     }
 
     public IReadOnlyCollection<ProjectGraphNode> ProjectNodes => inner.ProjectNodes;

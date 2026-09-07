@@ -44,3 +44,13 @@ the original two-project wrappers are unchanged. `--root-project` on the probe
 checks a root-level csproj without either Directory.Build file. This slice assumes
 standard bin/Release/net10.0 output and reference-assembly locations. Full configured
 graph execution, including Debug and package nodes, remains later work.
+
+Schema-1 `entryRequests` persists canonical discovery requests: project paths are
+workspace-relative with redundant path segments removed, property keys have stable
+ordering, and requests are sorted by project and their property map. The
+exporter-forced `BazelGraphExport`, `CustomAfterMicrosoftCommonTargets` and
+`RestorePackagesPath` values are omitted case-insensitively because evaluation
+always replaces them. Other entry properties retain their spelling and values;
+they must remain available when preparation re-evaluates discovery. Equivalent
+caller entry order, path spelling, property order and ignored forced-property
+values must not change the exported manifest.

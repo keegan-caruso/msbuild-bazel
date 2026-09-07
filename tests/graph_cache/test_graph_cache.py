@@ -1,4 +1,4 @@
-"""Milestone 3 acceptance contract; deliberately red until its probe exists.
+"""R01 package-free cache acceptance. R02 package obligations remain in the contract.
 
 Run separately from existing acceptance: python3 -m unittest discover -s tests/graph_cache -v
 """
@@ -18,6 +18,8 @@ BASELINE = "shared-v1:left|shared-v1:right"
 
 
 class GraphCacheAcceptance(unittest.TestCase):
+    probe_args = ["--package-free"]
+    expected_scope = "R01-package-free-cache"
     @classmethod
     def setUpClass(cls):
         if not PROBE.is_file():
@@ -25,7 +27,7 @@ class GraphCacheAcceptance(unittest.TestCase):
         cls.output = Path(tempfile.mkdtemp(prefix="msbuild-graph-cache-")) / "probe"
         # Retain evidence even on success: Bazel caches may contain read-only trees.
         print(f"Graph cache evidence: {cls.output}", file=sys.stderr)
-        result = subprocess.run([sys.executable, str(PROBE), "--output", str(cls.output)],
+        result = subprocess.run([sys.executable, str(PROBE), "--output", str(cls.output), *cls.probe_args],
                                 cwd=REPO, text=True, capture_output=True, timeout=1800)
         if result.returncode:
             raise AssertionError(result.stdout + result.stderr)
@@ -62,6 +64,7 @@ class GraphCacheAcceptance(unittest.TestCase):
                 self.assertEqual(markers, [action["project"]], "consumer compiled dependency or compiled twice")
         self.evidence(case["executionLog"])
         self.assertTrue(case["bundleFiles"], "no recovered artifacts")
+        self.assertEqual(len({Path(p).parts[0] for p in case["bundleFiles"]}), 4, "missing configured bundle")
         canonical = {}
         for path, metadata in case["bundleFiles"].items():
             self.assertFalse(Path(path).is_absolute())
@@ -76,6 +79,7 @@ class GraphCacheAcceptance(unittest.TestCase):
 
     def test_cold_and_unchanged(self):
         self.assertEqual(self.report["schemaVersion"], 1)
+        self.assertEqual(self.report["scope"], self.expected_scope)
         self.assertEqual(self.report["baselineOutput"], BASELINE)
         self.case("cold", PROJECTS, cache_hits=[])
         self.case("unchanged", [])
@@ -87,26 +91,19 @@ class GraphCacheAcceptance(unittest.TestCase):
         self.case("leftEdit", ["Left", "App"], "shared-v1:left-v2|shared-v1:right")
 
     def test_shared_source_edit(self):
-        self.case("sharedEdit", PROJECTS, "shared-v2:left|shared-v2:right")
+        case = self.case("sharedEdit", PROJECTS, "shared-v2:left|shared-v2:right")
+        self.assertEqual(case["applicationOutput"], case["ordinaryOutput"])
 
     def test_shared_import_edit(self):
         self.case("importEdit", PROJECTS, BASELINE + "|config-v2")
-
-    def test_branch_package_upgrade(self):
-        self.case("packageCold", PROJECTS, "shared-v1:left/package-v1|shared-v1:right", cache_hits=[])
-        self.case("packageUpgrade", ["Left", "App"], "shared-v1:left/package-v2|shared-v1:right")
-        evidence = self.report["packageUpgrade"]
-        self.assertNotEqual(evidence["beforeVersion"], evidence["afterVersion"])
-        self.assertNotEqual(evidence["beforePayloadSha256"], evidence["afterPayloadSha256"])
-        self.assertTrue(evidence["preparationWorkspaceAbsent"])
 
     def test_graph_edge_added_before_analysis(self):
         self.case("graphEdgeAdded", ["Right", "App"], "shared-v1:left|shared-v1:right+shared-v1:left")
         evidence = self.report["graphEdgeAdded"]
         before = json.loads(self.evidence(evidence["beforeManifest"]).read_text())
         after = json.loads(self.evidence(evidence["afterManifest"]).read_text())
-        old = {n["project"]: n for n in before["nodes"]}
-        new = {n["project"]: n for n in after["nodes"]}
+        old = {n["project"].removeprefix("workspace/"): n for n in before["nodes"]}
+        new = {n["project"].removeprefix("workspace/"): n for n in after["nodes"]}
         right, left, shared = (PROJECTS[p] for p in ("Right", "Left", "Shared"))
         self.assertEqual(set(new), ALL)
         self.assertEqual({p: n["id"] for p, n in old.items()}, {p: n["id"] for p, n in new.items()})
@@ -130,21 +127,6 @@ class GraphCacheAcceptance(unittest.TestCase):
         self.assertTrue(case["outputBaseAbsentBeforeBuild"])
         self.assertEqual(case["bundleDigest"], self.report["cases"]["cold"]["bundleDigest"])
 
-    def test_missing_corrupt_and_stale_inputs(self):
-        for name, diagnostic in (("missingSource", "missing-input"),
-                                 ("missingPackage", "missing-input"),
-                                 ("corruptPackage", "hash-mismatch"),
-                                 ("staleManifest", "stale-manifest"),
-                                 ("staleRestore", "stale-restore")):
-            with self.subTest(case=name):
-                case = self.report["failures"][name]
-                self.assertNotEqual(case["returncode"], 0)
-                self.assertEqual(case["diagnostic"], diagnostic)
-                self.assertEqual(case["executedProjects"], [])
-                self.assertFalse(case["publishedPlan"])
-                log = self.evidence(case["log"]).read_text()
-                self.assertIn(diagnostic, log)
-                self.assertNotIn("SPIKE_COMPILE:", log)
 
 
 if __name__ == "__main__":

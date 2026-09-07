@@ -1,8 +1,9 @@
 name: Configured graph execution
 on:
   push:
-    branches: [main, 'codex/graph-execution', 'codex/parallel-milestones']
+    branches: [main, 'codex/graph-execution', 'codex/parallel-milestones', 'codex/r01-*']
   pull_request:
+  workflow_dispatch:
 permissions:
   contents: read
 jobs:
@@ -18,8 +19,14 @@ jobs:
         run: python3 -m unittest discover -s tests/graph -v
       - name: Action runner regression contracts
         run: bash scripts/dotnet.sh run --project tests/ActionRunner.Tests -c Release
+      - name: Public API replay regression
+        run: python3 -m unittest discover -s tests/e2e -p test_msbuild_replay.py -v
       - name: Configured graph execution acceptance
         run: python3 -m unittest discover -s tests/graph_execution -v
+      - name: Graph handoff and discovery acceptance
+        run: python3 -m unittest discover -s tests/graph_handoff -v
+      - name: Package-free generated graph cache acceptance
+        run: python3 -m unittest discover -s tests/graph_cache -v
       - name: Retain graph execution evidence
         if: always()
         uses: actions/upload-artifact@v4
@@ -28,4 +35,142 @@ jobs:
           path: |
             /tmp/graph-execution-*/**/*.log
             /tmp/graph-execution-*/**/report.json
+            /tmp/graph-execution-*/**/execution.json
+            /tmp/graph-execution-*/**/manifest.json
+            /tmp/msbuild-e2e-replay-*/**/*.log
+            /tmp/msbuild-e2e-replay-*/**/report.json
+            /tmp/msbuild-graph-cache-*/probe/*.log
+            /tmp/msbuild-graph-cache-*/probe/*.json
+            /tmp/msbuild-graph-cache-*/probe/evidence/**
+            /tmp/graph-discovery-*/**/*.log
+            /tmp/graph-discovery-*/**/*.json
+            /tmp/graph-handoff-*/**/*.log
+            /tmp/graph-handoff-*/**/report.json
+          if-no-files-found: ignore
+  multilanguage:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install pinned tools
+        run: bash scripts/setup.sh
+      - name: Existing-rule multi-language acceptance
+        run: python3 -m unittest discover -s tests/multilanguage -v
+      - name: Retain multi-language evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: multilanguage-evidence
+          path: |
+            /tmp/msbuild-multilanguage-*/probe/*.log
+            /tmp/msbuild-multilanguage-*/probe/*.json
+            /tmp/msbuild-multilanguage-*/probe/workspace/MODULE.bazel.lock
+          if-no-files-found: ignore
+  graph-packages:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install pinned tools
+        run: bash scripts/setup.sh
+      - name: Full generated graph package cache acceptance
+        run: python3 -m unittest discover -s tests/graph_cache_full -v
+      - name: Retain complete package cache evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: graph-package-cache-evidence
+          path: |
+            /tmp/msbuild-graph-cache-*/probe/*.log
+            /tmp/msbuild-graph-cache-*/probe/*.json
+            /tmp/msbuild-graph-cache-*/probe/evidence/**
+            /tmp/msbuild-graph-cache-*/probe/pinned-package-archives/**
+            /tmp/msbuild-graph-cache-*/probe/guards/**
+          if-no-files-found: ignore
+  private-assets:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install pinned tools
+        run: bash scripts/setup.sh
+      - name: SDK and adapter PrivateAssets parity
+        run: python3 -m unittest discover -s tests/graph_packages -v
+      - name: Retain PrivateAssets evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: graph-private-assets-evidence
+          path: |
+            /tmp/graph-private-assets-*/probe/*.log
+            /tmp/graph-private-assets-*/probe/report.json
+            /tmp/graph-private-adapter-*/*.log
+            /tmp/graph-private-adapter-*/*.json
+            /tmp/graph-private-adapter-*/ordinary/*.log
+            /tmp/graph-private-adapter-*/ordinary/report.json
+            /tmp/graph-restore-semantics-*/**/*.log
+            /tmp/graph-restore-semantics-*/**/graph-*.json
+          if-no-files-found: ignore
+  configured-nodes:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install pinned tools
+        run: bash scripts/setup.sh
+      - name: Ordinary configured-node semantics
+        run: python3 -m unittest discover -s tests/configured_nodes -v
+      - name: Configured-node execution and recovery
+        run: python3 -m unittest discover -s tests/configured_execution -v
+      - name: Retain configured-node evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: configured-node-evidence
+          path: |
+            /tmp/configured-baseline-*/**/*.log
+            /tmp/configured-baseline-*/**/*.json
+            /tmp/configured-execution-*/probe/*.log
+            /tmp/configured-execution-*/probe/*.json
+            /tmp/configured-execution-*/probe/evidence/**
+          if-no-files-found: ignore
+  lifecycle:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install pinned tools
+        run: bash scripts/setup.sh
+      - name: Output lifecycle characterization
+        run: python3 -m unittest discover -s tests/lifecycle -v
+      - name: Retain lifecycle evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: lifecycle-evidence
+          path: |
+            /tmp/msbuild-lifecycle-*/probe/*.log
+            /tmp/msbuild-lifecycle-*/probe/*.json
+            /tmp/msbuild-lifecycle-*/probe/evidence/**
+          if-no-files-found: ignore
+  synthetic-scale-smoke:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install pinned tools
+        run: bash scripts/setup.sh
+      - name: Synthetic graph construction
+        run: python3 -m unittest discover -s tests/scale_synthetic -v
+      - name: Bounded native synthetic graph smoke
+        run: python3 -m unittest discover -s tests/scale_synthetic_native -v
+      - name: Retain synthetic correctness evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: synthetic-scale-smoke-evidence
+          path: |
+            /tmp/synthetic-scale-*/probe/*.log
+            /tmp/synthetic-scale-*/probe/*.json
+            /tmp/synthetic-scale-*/probe/evidence/**
           if-no-files-found: ignore

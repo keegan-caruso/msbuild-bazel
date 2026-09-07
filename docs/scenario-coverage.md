@@ -28,8 +28,8 @@ Current measured foundations are deliberately narrower than this portfolio:
 | Package payloads | [Build packages](package-input-findings.md) and [managed binary packages](binary-package-findings.md): selected package input and runtime-asset cases in the explicit adapter; not general NuGet or generated-graph package support. |
 | Runtime inputs | [Native runtime](native-runtime-findings.md), [integrity](native-runtime-integrity-findings.md) and [loaded JIT](loader-runtime-findings.md): bounded runtime declarations and substitution/rejection evidence; full host closure remains open. |
 | Configured graph export/execution | [Export findings](graph-export-findings.md) and [execution findings](graph-execution-findings.md): first package-free Release/net10.0 execution slice measured on macOS ARM64. Do not extend its platform or cache claims beyond the linked evidence. |
-| Generated-graph cache matrix | [Cache contract](graph-cache-contract.md): contract only; the missing probe leaves acceptance intentionally red. |
-| Serilog | [Pilot findings](real-project-pilot.md): pinned ordinary MSBuild baseline and one API approval test on macOS ARM64; no adapter execution yet. |
+| Generated-graph cache matrix | [Cache contract](graph-cache-contract.md) and [managed-package findings](graph-package-plan.md): selected local mutation and relocated-cache controls pass native macOS acceptance. |
+| Serilog | [Library findings](r04-integration-findings.md) and [unchanged approval-test findings](serilog-test-acceptance-findings.md): native macOS ARM64 build/test, mutation and producer-free disk recovery pass for the selected net10.0 slice. |
 
 ## Operation boundaries
 
@@ -51,8 +51,7 @@ path plus global properties still identifies the configured project node.
 
 ## Project portfolio
 
-All rows below are **proposed adapter coverage**. Serilog additionally has the
-ordinary baseline above. Spectre.Console has a pinned source inspection in the
+Rows below describe target coverage; only explicitly linked measured slices are accepted. Serilog has the linked ordinary and native adapter evidence above. Spectre.Console has a pinned source inspection in the
 pilot document. The [selected coverage extensions](coverage-project-selections.md)
 pin source inspections for CommunityToolkit.Mvvm, Avalonia, Nerdbank.GitVersioning,
 server-side Blazor, upstream build/IDE fixtures and remote infrastructure. These pins do not establish compatible toolchains or build
@@ -284,7 +283,7 @@ is widened only when the selected entry point requires it.
 
 | Project | Required capability slices | Operations | Additional checks / fixture mapping | Initial execution and runtime lane | Adapter status |
 | --- | --- | --- | --- | --- | --- |
-| P01 Serilog | K01; K02 packages; K03 framework selection; K04 package generator and diagnostics; K05 resources/imports/signing | Build, Test | G05/G07–G09/G11; F07/F09/F10 | Linux x86-64; ordinary baseline on macOS ARM64 | Proposed; ordinary baseline linked above |
+| P01 Serilog | K01; K02 packages; K03 framework selection; K04 package generator and diagnostics; K05 resources/imports/signing | Build, Test | G05/G07–G09/G11; F07/F09/F10 | Native macOS ARM64; Linux deferred | Selected Build/Test accepted; [evidence](serilog-test-acceptance-findings.md); broader scope remains open |
 | P02 Spectre.Console | K01; K02 packages; K03 framework selection; K04 project generator; K05 resources/imports | Build, Test | G06–G09; pin G01/G02 classification | Linux x86-64 | Proposed |
 | P03 EF Core | K01; K02 packages; K03 selected frameworks; K04 resolved analyzers; K05 imports | Build, Test | F04, C16; add K07 runtime assets/F03 only for SQLite extension | Linux x86-64 | Proposed |
 | P04 Orchard Core | K01; K02 packages; K03 selected frameworks; K04 resolved Razor/compiler tooling; K05 resources/targets; K06 selected web Publish; K08 frontend assets | Build, Publish, Launch | F07/F09; HTTP/module/static-asset oracle | Linux x86-64 plus pinned frontend tools | Proposed |

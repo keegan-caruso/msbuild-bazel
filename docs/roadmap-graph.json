@@ -3,7 +3,14 @@
   "baselineCommit": "6bd2525",
   "edgeMeaning": "Acceptance prerequisites: all requires nodes must have passing evidence before downstream acceptance. Design, inventory and isolated implementation may start earlier. Edges apply to the initial named slice; extensions add explicit prerequisites.",
   "completed": [
-    "base"
+    "base",
+    "linux",
+    "cache",
+    "handoff",
+    "local",
+    "packages",
+    "configured",
+    "inputs"
   ],
   "nodes": [
     {
@@ -12,7 +19,7 @@
       "label": "Existing graph execution",
       "requires": [],
       "workstream": "baseline",
-      "scope": "Implemented macOS package-free slice; source checkpoint 6bd2525. This is the only completed node."
+      "scope": "Implemented macOS package-free slice; source checkpoint 6bd2525."
     },
     {
       "id": "linux",
@@ -74,7 +81,7 @@
         "local"
       ],
       "workstream": "graph",
-      "scope": "Inner/outer builds and executable AdditionalProperties/GlobalPropertiesToRemove fixtures; prerequisites for Serilog."
+      "scope": "Selected net10.0 inner builds and direct-edge AdditionalProperties/GlobalPropertiesToRemove with DisableTransitiveProjectReferences=true; broader outer/transitive semantics remain unqualified."
     },
     {
       "id": "entrypoints",
@@ -82,7 +89,8 @@
       "label": "Solution and SDK extensions",
       "requires": [
         "configured",
-        "packages"
+        "packages",
+        "starlark_configured"
       ],
       "workstream": "graph",
       "scope": "F13/F14 separately qualified entry-point formats and package/local SDK resolution."
@@ -113,7 +121,9 @@
       "milestone": "R05",
       "label": "Generator APIs and reference roles",
       "requires": [
-        "inputs"
+        "inputs",
+        "starlark_packages",
+        "starlark_configured"
       ],
       "workstream": "generators",
       "scope": "P02/P16 plus small API/delivery/diagnostic fixtures, framework combinations and additional files."
@@ -123,7 +133,9 @@
       "milestone": "R05",
       "label": "Interceptor acceptance",
       "requires": [
-        "inputs"
+        "inputs",
+        "starlark_packages",
+        "starlark_configured"
       ],
       "workstream": "interceptors",
       "scope": "P14 execution oracle, compiler identity and call-site/relocation mutations; does not wait for all P02/P16 results."
@@ -296,7 +308,8 @@
       "milestone": "R13",
       "label": "Compatible worker identity",
       "requires": [
-        "packages"
+        "packages",
+        "starlark_packages"
       ],
       "workstream": "remote",
       "scope": "Declare compatible-worker inputs, toolchain and host assumptions; resolve relevant undeclared inputs."
@@ -387,10 +400,93 @@
         "lifecycle",
         "scale_real",
         "remote_exec",
-        "dispositions"
+        "dispositions",
+        "bazel_compatibility"
       ],
       "workstream": "release",
       "scope": "Full local/remote endpoint; release checklist also verifies documentation, reproducible installs and versioned contracts. Broad optional tracks can be deferred explicitly."
+    },
+    {
+      "id": "starlark_core",
+      "milestone": "R01",
+      "label": "Starlark baseline validation",
+      "requires": [
+        "base"
+      ],
+      "workstream": "validation",
+      "scope": "S01 formatting/lint and applicable S02 helper tests; S03 explicit/diamond build-rule analysis, S04 generated baseline/escaping/determinism and S05 SDK/runtime repository controls. Existing behavior remains independently tested."
+    },
+    {
+      "id": "starlark_packages",
+      "milestone": "R02",
+      "label": "Package rule validation",
+      "requires": [
+        "starlark_core",
+        "packages"
+      ],
+      "workstream": "validation",
+      "scope": "Extend S03/S04 to per-consumer package/restore inputs and generated package targets; retain full cache, PrivateAssets, upgrade and rejection controls for the qualified slice."
+    },
+    {
+      "id": "starlark_configured",
+      "milestone": "R03",
+      "label": "Configured rule validation",
+      "requires": [
+        "starlark_core",
+        "configured"
+      ],
+      "workstream": "validation",
+      "scope": "Extend S03/S04 to selected configured identities, output separation, direct edges versus replay closure, discovery refresh and deterministic generated labels. Broader entry-point SDK checks belong to entrypoints."
+    },
+    {
+      "id": "starlark_tests",
+      "milestone": "R04",
+      "label": "Test rule validation",
+      "requires": [
+        "starlark_core",
+        "inputs"
+      ],
+      "workstream": "validation",
+      "scope": "S03/S04 graph_test analysis, runfiles/data hashes, expected failures and generated test targets; native expected-count/TRX evidence and forced test execution after build-cache recovery."
+    },
+    {
+      "id": "bazel_compatibility",
+      "milestone": "R17",
+      "label": "Bazel version qualification",
+      "requires": [
+        "starlark_packages",
+        "starlark_configured",
+        "starlark_tests",
+        "entrypoints"
+      ],
+      "workstream": "validation",
+      "scope": "Pin supported Bazel/toolchain combinations and run applicable S01-S05 plus behavioral regressions and upgrade invalidation. Required for local-only and full releases; version-matrix framework adoption is optional."
     }
-  ]
+  ],
+  "progress": {
+    "linux": "Integrated c384671 native Linux graph, setup and Nix lanes passed.",
+    "cache": "Native macOS scoped cache acceptance and integrated Linux lane passed, including deleted-producer relocation.",
+    "handoff": "Native macOS controls and integrated Linux discovery and forced-consumption lane passed.",
+    "languages": "Native macOS and integrated Linux composition, edits and forced cache recovery pass; broader harness gates remain open.",
+    "local": "R01 accepted on native macOS ARM64 and Linux x86-64; package-bearing R02 remains separate.",
+    "packages": "Accepted bounded managed-package slice on macOS: 13 full cache and 14 PrivateAssets/restore-state tests pass at 6563e3c, including consumer snapshot fixes. Further Linux validation deferred by user request.",
+    "configured": "Accepted selected net10.0 inner and direct-edge Flavor variants on macOS with action/mutation/relocation evidence. Linux deferred; unselected outer builds, general transitive configurations and broader entry points remain open.",
+    "lifecycle": "Seven native macOS characterization tests pass; production lifecycle API, wider configurations and Linux acceptance remain open.",
+    "scale_synthetic": "Ten-node fan protocol states and chain fresh/warm pass on macOS; 1000-node recursive preparation failure fixed with iterative closures. Larger native execution, aggregate memory and controlled timing remain unmeasured.",
+    "inputs": "Accepted pinned Serilog library input slice on macOS: 11 resolved analyzers, exact package/archive integrity, signing/resource/import declarations and native mutation/relocation evidence.",
+    "serilog": "Selected unchanged library native build, five ordinary-parity mutations and producer-free disk recovery pass on macOS. Standalone upstream API oracle and unchanged upstream approval Build/Test pass, including test-only invalidation and recovered-artifact execution. Repeated comparative timings remain open; Linux deferred.",
+    "starlark_core": "Open additional validation gate; existing behavioral acceptance does not complete it.",
+    "starlark_packages": "Open additional validation gate; existing behavioral acceptance does not complete it.",
+    "starlark_configured": "Open additional validation gate; existing behavioral acceptance does not complete it.",
+    "starlark_tests": "Open additional validation gate; existing behavioral acceptance does not complete it.",
+    "bazel_compatibility": "Open additional validation gate; existing behavioral acceptance does not complete it."
+  },
+  "qualificationScope": {
+    "activePlatform": "native macOS ARM64",
+    "deferredValidation": [
+      "Further Linux acceptance for R02 and later changes"
+    ],
+    "reference": "platform-validation-scope.md"
+  },
+  "validationReference": "validation.md"
 }

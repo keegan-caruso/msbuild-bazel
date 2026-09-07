@@ -6,6 +6,13 @@ Can Bazel cache and schedule configured .NET projects while each action uses MSB
 
 ## Current status and next step
 
+The three parallel [upstream test tracks](serilog-test-plan.md) now pass [native macOS acceptance](serilog-test-acceptance-findings.md): unchanged Serilog approval Build/Test, exact failure controls, test-data-only invalidation, and producer-free relocated build recovery followed by actual test execution. The [selected-framework adaptation](selected-framework-findings.md) preserves ordinary SDK reference selection without changing project declarations.
+
+Further Linux validation is deferred by request. The [R04 selected Serilog library](r04-integration-findings.md) now passes native
+macOS mutation and relocated-cache acceptance after R02 and selected R03; see
+[active platform scope](platform-validation-scope.md). Historical platform
+evidence below remains bounded to its recorded source and experiment.
+
 Steps 1–7 below are implemented. The two-target Bazel adapter also has
 [action-identity](action-identity-findings.md) and
 [pinned build-package](package-input-findings.md) acceptance coverage on macOS
@@ -31,7 +38,9 @@ focused Linux native-sandbox acceptance. The local-only graph exporter
 (step 8) now has passing Linux acceptance [evidence](graph-export-findings.md).
 The first [generated graph execution slice](graph-execution-findings.md) now
 passes native macOS acceptance for a Release/net10.0 package-free diamond.
-Broader configurations, package nodes and Linux execution evidence remain open.
+R02 [managed package execution](graph-package-plan.md) now has native macOS
+cache and PrivateAssets evidence; its combined Linux qualification is pending.
+Broader configurations remain open.
 
 The managed binary-package milestone has a test-first
 [contract](binary-package-plan.md), fixture and probe. Its
@@ -48,15 +57,13 @@ endpoint. Near-term milestones have concrete deliverables and exit gates; later
 tracks are refined before implementation. Historical milestone numbers in older
 contracts and findings remain unchanged; the roadmap includes their mapping.
 
-Next: R01 proves Linux graph execution and package-free cache/replay/discovery
-controls; R02 completes the existing [generated-graph cache contract](graph-cache-contract.md)
-with package cases. R03 supplies configured-node semantics needed by the R04
-[Serilog pilot](real-project-pilot.md). Its ordinary baseline is not adapter
-acceptance. The [coverage matrix](scenario-coverage.md) and
+Current macOS evidence covers R01 cache/replay/discovery, the selected R02 managed-package and R03 configured-node slices, and the R04 Serilog library plus unchanged approval test. Repeated comparative measurements and broader generator/reference-role qualification remain next; Linux validation is deferred. The [coverage matrix](scenario-coverage.md) and
 [pinned project selections](coverage-project-selections.md) define the broader
 portfolio and separate proposed work from measured support. The
 [parallel dependency graph](roadmap-graph.md) splits milestones into work packages
-and records the acceptance gates between independent tracks.
+and records the acceptance gates between independent tracks. The
+[first parallel batch](parallel-tracks-findings.md) records execution and
+integration of the four initially ready work packages.
 
 ## Milestone sequence
 
@@ -70,6 +77,14 @@ and records the acceptance gates between independent tracks.
 8. Only after the handoff works, add a general C# ProjectGraph exporter and custom MSBuild targets for input/output contracts. The replay experiment may use ProjectGraph for the two-project fixture without expanding into a general exporter.
 
 ## Acceptance evidence
+
+The [validation strategy](validation.md) maps these requirements to Bazel analysis
+tests, real-build integration, existing findings and planned acceptance gates.
+Use its evidence checklist when recording a new result. The roadmap now assigns
+these checks to [milestone deliverables and exit gates](roadmap.md#validation-ownership-and-remaining-gates),
+with open Starlark baseline/package/configuration/test work and release version
+qualification recorded in the dependency graph; earlier acceptance remains scoped
+to its original evidence.
 
 - Plain MSBuild and Bazel-built App have equivalent observable output.
 - App-only changes reuse Shared's Bazel action output.
@@ -129,3 +144,19 @@ consumer bundles, maps compiler paths and narrows Shared's intermediate handoff
 to the reference assembly. A fresh output base with an empty cache forces real
 executions and compares all bundle bytes and executable bits. Runtime closure
 and broader output discovery remain open.
+
+The next parallel slices are tracked in [configured-node findings](configured-node-findings.md)
+and [lifecycle findings](lifecycle-findings.md). Their ordinary MSBuild controls
+retain the observed isolation failures explicitly; implementation and native
+acceptance states are recorded separately from those baselines.
+
+The [synthetic scale protocol](synthetic-scale-findings.md) has a measured
+ten-node fan slice and a corrected thousand-node preparation recursion failure;
+larger native runs and aggregate memory remain unmeasured. The
+[Serilog input oracle](serilog-inputs-findings.md) records pinned ordinary SDK
+behavior while adapter generator/signing support remains a separate gate.
+
+The [consumer restore review](consumer-restore-findings.md) covers partial and
+failed restores that otherwise allowed stale transitive package inputs through
+fresh export. It compares requested dependency semantics and restore completion,
+preserving valid NuGet version resolution differences.

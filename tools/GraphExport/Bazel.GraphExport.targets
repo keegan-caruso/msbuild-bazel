@@ -1,14 +1,28 @@
 <Project>
-  <!-- Evaluation-only declaration surface. Graph export never invokes Build/CoreCompile. -->
+  <!-- SDK resolution declaration surface. Graph export never invokes Build/CoreCompile. -->
   <ItemGroup Condition="'$(BazelGraphExport)' == 'true'">
     <_BazelExportInput Include="@(Compile)" Kind="source" />
     <_BazelExportInput Include="@(EmbeddedResource)" Kind="resource" />
     <_BazelExportInput Include="@(Content)" Kind="content" />
+      <_BazelExportInput Include="@(ContentWithTargetPath)" Kind="content" />
     <_BazelExportInput Include="@(AdditionalFiles)" Kind="additional" />
     <_BazelExportInput Include="@(Analyzer)" Kind="analyzer" />
     <_BazelExportInput Include="@(BazelExtraInput)" Kind="extra" />
     <_BazelExportOutput Include="$(TargetPath)" Kind="assembly" Condition="'$(TargetPath)' != ''" />
     <_BazelExportOutput Include="@(BazelExtraOutput)" Kind="extra" />
   </ItemGroup>
-  <Target Name="BazelGraphExportContract" Condition="'$(BazelGraphExport)' == 'true'" />
+  <Target Name="BazelGraphExportContract" DependsOnTargets="ProcessFrameworkReferences;ResolvePackageAssets;ResolveLockFileAnalyzers;ResolveTargetingPackAssets" Condition="'$(BazelGraphExport)' == 'true'">
+    <ItemGroup>
+      <_BazelExportInput Remove="@(_BazelExportInput)" />
+      <_BazelExportInput Include="@(Compile)" Kind="source" />
+      <_BazelExportInput Include="@(EmbeddedResource)" Kind="resource" />
+      <_BazelExportInput Include="@(Content)" Kind="content" />
+      <_BazelExportInput Include="@(ContentWithTargetPath)" Kind="content" />
+      <_BazelExportInput Include="@(AdditionalFiles)" Kind="additional" />
+      <_BazelExportInput Include="@(Analyzer)" Kind="analyzer" />
+      <_BazelExportInput Include="@(EditorConfigFiles)" Kind="editorconfig" />
+      <_BazelExportInput Include="@(BazelExtraInput)" Kind="extra" />
+      <_BazelExportInput Include="$(AssemblyOriginatorKeyFile)" Kind="signing" Condition="'$(SignAssembly)' == 'true' and '$(AssemblyOriginatorKeyFile)' != ''" />
+    </ItemGroup>
+  </Target>
 </Project>

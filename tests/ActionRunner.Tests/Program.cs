@@ -29,6 +29,7 @@ try
          "output":"bundle","diagnostics":"diagnostics","dependency":null,"undeclared_probe":"",
          "native_manifest":null,"native_files":[]}
         """;
+    AssetRoleTests.Run();
     var payload = Path.Combine(directory.FullName, "payload.txt");
     File.WriteAllText(payload, "package payload");
     var link = Path.Combine(directory.FullName, "payload-link");
@@ -43,6 +44,13 @@ try
     var requestPath = Path.Combine(directory.FullName, "request.json");
     File.WriteAllText(requestPath, validRequest);
     Check(JsonFiles.ReadRequest(requestPath).Project == ProjectKind.Shared, "valid request must preserve project identity");
+    if (args is ["--pilot-package-inputs", var sourceWorkspace, var stagedDirectory])
+    {
+        PilotPackageTests.Run(JsonFiles.ReadRequest(requestPath), sourceWorkspace, stagedDirectory, directory.FullName);
+        Console.WriteLine("Pinned package symlink and manifest controls passed.");
+        return 0;
+    }
+    SelectedFrameworkTests.Run(JsonFiles.ReadRequest(requestPath), directory.FullName);
     var nativeManifest = Path.Combine(directory.FullName, "native.json");
     var nativeEntry = new Artifact("store/lib/native", new FileInfo(payload).Length, Files.Hash(payload));
     JsonFiles.Write(nativeManifest, new NativeManifest(2, [nativeEntry]));

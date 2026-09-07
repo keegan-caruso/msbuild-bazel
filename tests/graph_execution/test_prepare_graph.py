@@ -31,6 +31,36 @@ class PreparationRejection(unittest.TestCase):
             prepare(self.workspace, manifest, self.root / 'generated')
         self.assertFalse((self.root / 'generated').exists())
 
+    def test_same_path_configured_output_collision_rejected(self):
+        self.node['execution'] = dict(assetsFile='workspace/App/obj/project.assets.json',
+            outputDirectory='workspace/App/bin/Release/net10.0', referenceDirectory='workspace/App/obj/Release/net10.0/ref')
+        other = json.loads(json.dumps(self.node))
+        other['id'] = 'b' * 24
+        other['globalProperties']['flavor'] = 'blue'
+        self.node['globalProperties']['flavor'] = 'red'
+        self.graph['nodes'].append(other)
+        self.rejected('configured-output-collision')
+
+    def test_configured_restore_path_escape_rejected(self):
+        self.node['execution'] = dict(assetsFile='workspace/App/../other/project.assets.json',
+            outputDirectory='workspace/App/bin/red/Release/net10.0', referenceDirectory='workspace/App/obj/red/Release/net10.0/ref')
+        self.rejected('unsafe workspace path')
+
+    def test_import_hash_preserves_crlf_and_decodes_bom(self):
+        source = self.workspace / 'Imported.targets'
+        text = '<Project>\r\n<!-- ' + str(self.workspace.resolve()) + '/value -->\r\n</Project>\r\n'
+        expected = text.replace(str(self.workspace.resolve()), '$WORKSPACE').encode('utf-8')
+        record = dict(kind='import', path='workspace/Imported.targets', sha256=hashlib.sha256(expected).hexdigest())
+        self.node['inputs'].append(record)
+        for encoding in ('utf-8', 'utf-8-sig', 'utf-16', 'utf-32'):
+            with self.subTest(encoding=encoding):
+                source.write_bytes(text.encode(encoding))
+                self.rejected('graph discovery request missing')
+        for encoding, marker in (('utf-16-be', b'\xfe\xff'), ('utf-32-be', b'\x00\x00\xfe\xff')):
+            with self.subTest(encoding=encoding):
+                source.write_bytes(marker + text.encode(encoding))
+                self.rejected('graph discovery request missing')
+
     def test_unsupported_global_property(self):
         self.node['globalProperties']['defineconstants'] = 'OTHER'
         self.rejected('configuration')
@@ -43,9 +73,9 @@ class PreparationRejection(unittest.TestCase):
         self.node['outputs'][0]['path'] = 'workspace/custom/App.dll'
         self.rejected('output layout')
 
-    def test_package_reference_rejected(self):
+    def test_incomplete_package_restore_rejected(self):
         (self.workspace / 'App/obj/project.assets.json').write_text('{"libraries":{"Example/1.0.0":{"type":"package"}}}')
-        self.rejected('package graph execution')
+        self.rejected('unsupported-package: incomplete restored package metadata')
 
     def test_stale_source_manifest(self):
         (self.workspace / 'App/App.csproj').write_text('changed')
@@ -87,6 +117,9 @@ class PreparationRejection(unittest.TestCase):
         (self.workspace / 'App/App.csproj').unlink()
         (self.workspace / 'App/App.csproj').symlink_to(outside)
         self.rejected('missing or escaping input')
+
+    def test_missing_discovery_request_rejected(self):
+        self.rejected('graph discovery request missing')
 
     def test_missing_dependency(self):
         self.node['dependencies'] = ['b'*24]

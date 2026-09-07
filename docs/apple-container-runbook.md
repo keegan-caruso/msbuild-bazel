@@ -296,3 +296,10 @@ msbuild-bazel-toolchain@sha256:758f615972683a582ad312154a7d76225ed31ef17fff575d8
 Keep native Linux CI for x86-64 acceptance; it was not rerun for these changes.
 Nix runtime closure, remote caching and cross-platform artifact reuse remain
 outside the validated scope.
+
+After integrating main at `bdbc060`, the updated graph-execution suite passed
+33 tests with two prerequisite skips in 56.66 seconds (`run.cMDIvA`). The
+selected-framework native test passed with server reuse. The skips require
+Nix SDK imports and the acquired Serilog signing-key fixture respectively.
+All eight bootstrap/server-lifecycle tests passed again. The earlier complete
+suite timings above remain measurements of baseline `6a14e1f`.
