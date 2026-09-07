@@ -41,18 +41,49 @@ fixture extension, including the unchanged full outer-framework ordinary baselin
 No Linux acceptance is claimed for this new slice; CI acquisition/billing
 availability is separate from a passing local run.
 
-## Next configured slice and explicit boundaries
+## Configured direct edges: measured native macOS slice
 
-`tools/probe_configured_nodes.py --scope configured --output NEW_DIRECTORY` and
-the separate `test_same_path_configurations_and_edge_convergence` acceptance
-method define the next slice. They consume the normal preparation API and
-exported identities/output declarations. They require six configured nodes,
-Shared red/blue bundles with distinct IDs, Common convergence, Right's blue-to-red
-edge mutation rebuilding only Right/App, actual Bazel dependency analysis, and
-relocated byte-identical cache recovery. Default transitive references must fail
-explicitly with `unsupported-configured-transitive` before manifest publication.
-These assertions were prepared alongside production work; this record does not
-yet claim they pass.
+After integrating the configured implementation and replay diagnostic fix, ran:
+
+```sh
+python3 -m unittest discover -s tests/configured_execution -v
+```
+
+Both tests passed in 86.489 seconds on native macOS ARM64 at stable commit
+`7e1e529` on 2026-09-07 UTC. The configured evidence directory is
+`/private/var/folders/__/z2sj57556cgfrkvbdznlvdt40000gn/T/configured-execution-yseelx4d/probe`;
+the repeated selected-inner evidence is the sibling
+`configured-execution-p5wfbnau/probe`. Tool versions are unchanged from above.
+
+The probe consumes the normal preparation API and exported configured identities
+and output declarations. Shared red and blue have distinct IDs and evaluated
+artifact/restore paths; their Common dependency has one ID and no Flavor global.
+
+| Case | Measured action and runtime evidence |
+| --- | --- |
+| Cold | Six real native sandbox actions: Common, Shared/red, Shared/blue, Left, Right, App. Each action compiles only its requested project. App prints `red:common\|blue:common`, matching ordinary isolated MSBuild. |
+| Unchanged | No executed actions; output unchanged. |
+| Right edge changes blue to red | Re-exported graph has five nodes. Only Right and App execute. Both branches now reference the same Shared/red node and App prints `red:common\|red:common`. Actual Bazel dependency analysis equals the new manifest. |
+| Relocated original graph | Original producer/preparation and output base removed, independent source restored/prepared at a new path and removed before execution. Six disk-cache hits, zero compilations, original output restored. All six consumer bundle digests match cold bytes/executable bits. |
+| Unsupported outer graph | Export returns 2 with `unsupported-configuration`, no manifest. |
+| Default transitive configured graph | Export returns 2 with `unsupported-configured-transitive`, no manifest. The ordinary nonisolated success and isolation failure remain recorded separately. |
+
+For full bundle-byte verification the probe explicitly requests every configured
+node target as well as `:all`. An all-hit entry action can otherwise leave its
+dependency output trees unmaterialized locally; missing unrequested trees are not
+corruption. The test still executes the recovered App directly after recovery.
+Reports, raw execution JSON, per-action logs and every compared bundle file are
+retained beneath the evidence directory.
+
+Keep the checkout revision and tool sources stable throughout these action-set
+experiments. Preparation rebuilds adapter tools, and .NET incorporates the Git
+revision in their informational version. A preliminary run crossed a commit and
+correctly rebuilt more nodes after the tool bytes changed; its action-set failure
+is not used as passing evidence. The complete passing rerun above used one stable
+revision.
+
+No Linux run has qualified these new R03 cases. GitHub CI billing/spending-limit
+failures before job startup provide no execution evidence.
 
 The selected-inner result is a root project, not proof of downstream framework
 selection. An attempted InnerApp -> Multi ordinary graph still introduced an
