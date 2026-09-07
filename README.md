@@ -149,6 +149,11 @@ runtime closure and check rejection of incomplete action inputs.
 
 ## Validation
 
+See the [adapter validation strategy](docs/validation.md) for the Bazel test
+layers, acceptance matrix, runnable suites and evidence requirements. It separates
+recorded probe results from planned Starlark quality, rule analysis, generated-workspace
+checks and Bazel version coverage.
+
 `bash scripts/check.sh` checks shell syntax, version-pin consistency, and installed tool versions. It does not run the integration experiments. GitHub Actions separately runs fresh setup, repeated setup, Bazel package loading, and the e2e suite.
 
 ## References

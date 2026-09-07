@@ -78,6 +78,10 @@ integration of the four initially ready work packages.
 
 ## Acceptance evidence
 
+The [validation strategy](validation.md) maps these requirements to Bazel analysis
+tests, real-build integration, existing findings and planned acceptance gates.
+Use its evidence checklist when recording a new result.
+
 - Plain MSBuild and Bazel-built App have equivalent observable output.
 - App-only changes reuse Shared's Bazel action output.
 - Shared changes invalidate dependent work correctly.
