@@ -155,6 +155,11 @@ def probe(source, packages, output):
             raise AssertionError('test runner counts disagree with expected outcome')
         if bool(runner_report['passed']) != (expected == 0) or (runner_report['exitCode'] == 0) != (expected == 0):
             raise AssertionError('real test failure did not propagate through runner')
+        if label in ('testdata', 'exception'):
+            test_log = runner_reports[0].parent / 'test.log'
+            diagnostic = 'Shouldly.ShouldMatchApprovedException' if label == 'testdata' else 'intentional-test-exception'
+            if diagnostic not in test_log.read_text():
+                raise AssertionError('wrong actual test failure diagnostic for ' + label)
         summary = parse_results(results[0])
         if summary['passed'] != (1 if expected == 0 else 0):
             raise AssertionError('native actual Fact result differs')
