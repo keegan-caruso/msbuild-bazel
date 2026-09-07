@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Materialize the supported local graph slice as Bazel configured project actions."""
 import argparse
+from collections import deque
 import fcntl
 import hashlib
 import json
@@ -25,6 +26,33 @@ def relative(value):
     if not result or Path(result).is_absolute() or '..' in Path(result).parts:
         raise ValueError('unsafe workspace path: ' + value)
     return result
+
+
+def dependency_closures(nodes):
+    """Compute each inclusive closure once, in dependency-first DAG order."""
+    dependencies = {identity: set(node['dependencies']) for identity, node in nodes.items()}
+    consumers = {identity: [] for identity in nodes}
+    for identity, required in dependencies.items():
+        for dependency in required:
+            if dependency not in nodes:
+                raise ValueError('missing dependency node')
+            consumers[dependency].append(identity)
+    pending = {identity: len(required) for identity, required in dependencies.items()}
+    ready = deque(identity for identity, count in pending.items() if count == 0)
+    closures = {}
+    while ready:
+        identity = ready.popleft()
+        reachable = {identity}
+        for dependency in dependencies[identity]:
+            reachable.update(closures[dependency])
+        closures[identity] = reachable
+        for consumer in consumers[identity]:
+            pending[consumer] -= 1
+            if pending[consumer] == 0:
+                ready.append(consumer)
+    if len(closures) != len(nodes):
+        raise ValueError('cyclic graph')
+    return closures
 
 
 def prepare(workspace, manifest, output, *, environment=None):
@@ -79,14 +107,7 @@ def _prepare(workspace, manifest, output, *, environment=None):
                 if path.is_relative_to(other) or other.is_relative_to(path):
                     raise ValueError('configured-output-collision: ' + str(path))
             output_owners[path] = identity
-    def closure(identity, active=()):
-        if identity in active:
-            raise ValueError('cyclic graph')
-        result = {identity}
-        for dependency in nodes[identity]['dependencies']:
-            result.update(closure(dependency, (*active, identity)))
-        return result
-    closures = {identity: closure(identity) for identity in nodes}
+    closures = dependency_closures(nodes)
     if not graph['entryPoints'] or any(entry not in nodes for entry in graph['entryPoints']):
         raise ValueError('invalid entry points')
     # Check every exported file against the producer manifest before publishing.

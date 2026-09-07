@@ -109,7 +109,36 @@ recursive dependency-closure traversal raised `RecursionError: maximum recursion
 depth exceeded` at Python's default recursion limit of 1,000, before graph
 re-evaluation or a native build. Evidence:
 `/private/var/folders/__/z2sj57556cgfrkvbdznlvdt40000gn/T/synthetic-closure-review-d594ifj1/result.json`.
-This is a confirmed preparation-scale blocker, not 1,000-node build acceptance
-or a native timeout. An iterative traversal needs separate production work and
-validation before attempting that chain scale; the probe does not raise Python's
-recursion limit to conceal the failure.
+This was a confirmed preparation-scale blocker, not 1,000-node build acceptance
+or a native timeout. The iterative fix below addresses that failure without
+raising Python's recursion limit.
+## Dependency-closure recursion fix
+
+Preparation formerly recomputed each inclusive dependency closure through recursive
+DFS. A synthetic 1,000-node chain raised Python `RecursionError` before discovery
+revalidation; repeated convergence also revisited the same subgraphs. The focused
+regression reproduced that failure with only package inspection mocked, before
+any SDK/Bazel subprocess or plan publication.
+
+`prepare_graph.dependency_closures` now processes nodes in dependency-first DAG
+order using an iterative ready queue and memoizes each node's inclusive closure.
+Missing dependencies and cycles retain their existing ValueError diagnostics;
+self-loops fail as cycles. The change does not increase Python's recursion limit.
+Closure storage still scales with total reachable node pairs (quadratic for a
+chain), and merging many dense dependency sets can remain expensive. This removes
+one bounded correctness blocker, not all scale costs.
+
+Seven focused tests pass: exact 1,000-node chain closures, a 1,000-node layered
+converging fan, known diamond/disconnected closures, duplicate edges, cycle and
+self-loop controls, missing dependencies, and the 1,000-node preparation path
+reaching the discovery-request guard. The seven test methods completed in 0.111
+seconds locally; the existing 16 preparation rejection tests passed in 0.021
+seconds. These are Python-only validation times, not graph build benchmarks.
+
+```sh
+python3 -m unittest discover -s tests/graph_execution -p test_dependency_closures.py -v
+python3 -m unittest discover -s tests/graph_execution -p test_prepare_graph.py -v
+```
+
+No 1,000-project restore, export, native build, cache or Linux qualification is
+claimed by this fix. Native scale acceptance remains a separate bounded run.
