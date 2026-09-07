@@ -45,3 +45,34 @@ UTF-8 BOM, UTF-16 little/big-endian and UTF-32 little/big-endian input, includin
 workspace path normalization. All seventeen preparation tests pass. The original
 integrated package-suite failure involved the SDK WorkloadManifest.targets import;
 full native compatibility is rerun separately after this correction.
+
+## Integrated compatibility after import discovery
+
+At frozen production commit `6c6ba18`, the full `tests/graph_packages` suite passed
+all seventeen tests on native macOS in 192.284 seconds. This includes the three
+pinned package policy checks, ordinary and isolated PrivateAssets behavior across
+four modes, and twelve restore-freshness regressions. The prior SDK import hash
+failure is resolved. Native PrivateAssets evidence is retained at
+`graph-private-adapter-l3_a2x3k`; the full log is
+`/private/tmp/r04-final-package-suite-fixed.log`.
+
+Both `tests/configured_execution` tests also passed at that frozen commit in
+136.925 seconds, using the explicit Nix Python 3.13.9 interpreter and pinned SDK
+and Bazel overrides. The same-path red/blue graph retains separate identities,
+converges the changed edge with only Right and App rebuilding, and recovers its
+cold bundle bytes from the disk cache after relocation. The selected existing
+inner framework also passes cold, unchanged and relocated recovery assertions.
+Unsupported outer and default-transitive configurations remain explicit negative
+controls. Evidence directories are `configured-execution-kct5tqfa/probe` and
+`configured-execution-x_afzaye/probe`; the full log is
+`/private/tmp/r04-final-configured-suite.log`.
+
+```sh
+python3 -m unittest discover -s tests/graph_packages -v
+/nix/store/xcjk9ill54kjk8mzgq6yydnx9015lidg-python3-3.13.9/bin/python3 \
+  -m unittest discover -s tests/configured_execution -v
+```
+
+These are compatibility checks for the bounded package and configured-node
+contracts on macOS, not a performance measurement, remote-cache qualification,
+or Linux validation. The Serilog pilot acceptance remains separately reported.
