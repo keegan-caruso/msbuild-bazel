@@ -193,8 +193,9 @@ def _prepare(workspace, manifest, output, *, environment=None):
             for item in dependency['inputs']:
                 if item['path'].startswith('workspace/') and item['kind'] not in ('restore', 'package'):
                     # Dependency evaluation needs projects, imports and explicitly declared
-                    # evaluation extras (for example an Exists condition), never its sources.
-                    if reachable == identity or item['kind'] in ('project', 'import', 'extra'):
+                    # evaluation extras and signing keys (which can control SignAssembly
+                    # through Exists), never its compile sources.
+                    if reachable == identity or item['kind'] in ('project', 'import', 'extra', 'signing'):
                         source = relative(item['path'])
                         if '/obj/' not in source:
                             sources.add(source)
