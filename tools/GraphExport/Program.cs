@@ -16,6 +16,13 @@ internal static class GraphExporter
         WriteIndented = true,
     };
 
+    // These request values are always replaced before evaluation. Persisting
+    // them would leak ignored caller paths into an otherwise normalized graph.
+    private static readonly HashSet<string> ExporterForcedGlobalProperties = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "BazelGraphExport", "CustomAfterMicrosoftCommonTargets", "RestorePackagesPath",
+    };
+
     private static readonly HashSet<string> InternalGlobalProperties = new(StringComparer.OrdinalIgnoreCase)
     {
         "BazelGraphExport", "CustomAfterMicrosoftCommonTargets", "RestorePackagesPath",
@@ -131,6 +138,7 @@ internal static class GraphExporter
             throw new ExportException("missing-input", "Bazel.GraphExport.targets is missing from the exporter payload");
 
         var entries = new List<ProjectGraphEntryPoint>();
+        var entryRequests = new List<EntryRequest>();
         foreach (var entry in request.EntryPoints)
         {
             var project = ResolveWorkspacePath(request, entry.Project, "project");
@@ -143,6 +151,13 @@ internal static class GraphExporter
                 ["RestorePackagesPath"] = request.PackageRoot,
             };
             entries.Add(new ProjectGraphEntryPoint(project, props));
+            entryRequests.Add(new EntryRequest {
+                Project = Rel(request.Workspace, project),
+                GlobalProperties = entry.GlobalProperties!
+                    .Where(pair => !ExporterForcedGlobalProperties.Contains(pair.Key))
+                    .OrderBy(pair => pair.Key, StringComparer.Ordinal)
+                    .ToDictionary(pair => pair.Key, pair => pair.Value),
+            });
         }
 
         using var collection = new ProjectCollection();
@@ -169,7 +184,9 @@ internal static class GraphExporter
             entryIds.ToList(),
             graphInputs.Values.OrderBy(i => i.Path, StringComparer.Ordinal).ThenBy(i => i.Kind, StringComparer.Ordinal).ToList(),
             nodes,
-            request.EntryPoints);
+            entryRequests.OrderBy(entry => entry.Project, StringComparer.Ordinal)
+                .ThenBy(entry => JsonSerializer.Serialize(entry.GlobalProperties, JsonOptions), StringComparer.Ordinal)
+                .ToList());
     }
 
     private static NodeRecord ExportNode(ExportRequest request, ProjectGraphNode node, IReadOnlyDictionary<ProjectGraphNode, string> ids)

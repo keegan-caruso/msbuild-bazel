@@ -5,7 +5,7 @@ The entry point remains MSBuild; Bazel schedules configured project actions.
 
 ## Contract changes
 
-Graph manifest schema 1 gains additive `entryRequests`: the original logical entry
+Graph manifest schema 1 gains additive `entryRequests`: canonical logical entry
 project paths and global properties. Preparation requires this field; regenerate
 older manifests. After validating each recorded input digest, preparation runs
 GraphExport again with those entries and compares the complete fresh manifest.
@@ -118,3 +118,22 @@ Nix tool overrides. Runner contract/process tests and all six discovery tests
 passed (93.9 seconds for discovery). In retained `graph-discovery-vr00vjeh`, both
 Shared restore snapshots list the same normalized fixture-local NuGet
 configuration path and the conditional change executes exactly Left plus App.
+
+A correctness review found that initially persisting raw `entryRequests` added
+ignored absolute caller paths to otherwise identical manifests. Equivalent exports
+using different overridden `RestorePackagesPath` values differed solely in that
+new field. The exporter now persists the canonical request contract described in
+[graph execution](graph-execution-contract.md), dropping only the three properties
+it always overrides. Tests compare complete export bytes across request order,
+redundant project path spelling, property order and case variants of the ignored
+properties, then successfully revalidate the canonical result in preparation.
+A separate control preserves custom global-property values and proves that changes
+still select distinct configured nodes. These controls retain the execution
+slice's rejection of additional non-Release properties.
+
+On macOS ARM64 with the pinned Nix SDK, `python3 -m unittest discover -s
+ tests/graph_handoff -p test_graph_discovery.py -k entry -v` passed both new
+controls (6.5 seconds), and `python3 -m unittest discover -s tests/graph -v`
+passed all 12 exporter tests, including restored relocation (13.5 seconds).
+The equivalent-entry regression was observed failing before the fix. Native
+Linux validation of this review correction remains assigned to integrated CI.

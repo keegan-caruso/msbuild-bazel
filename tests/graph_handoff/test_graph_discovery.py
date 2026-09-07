@@ -52,11 +52,11 @@ class GraphDiscoveryAcceptance(unittest.TestCase):
     def restore(self):
         self.run_dotnet('restore', ['msbuild', 'build.proj', '-t:Restore', '-p:Configuration=Release', '-nodeReuse:false', '-nologo'])
 
-    def export(self):
+    def export(self, entries=None):
         self.serial += 1
         manifest = self.root / f'manifest-{self.serial}.json'
         request = self.root / f'request-{self.serial}.json'
-        request.write_text(json.dumps(dict(schemaVersion=1, workspace=str(self.workspace), dotnetRoot=str(DOTNET_ROOT), sdkVersion='10.0.100', packageRoot=str(self.workspace / '.nuget/packages'), entryPoints=[dict(project='build.proj', globalProperties={'Configuration':'Release'})], output=str(manifest))))
+        request.write_text(json.dumps(dict(schemaVersion=1, workspace=str(self.workspace), dotnetRoot=str(DOTNET_ROOT), sdkVersion='10.0.100', packageRoot=str(self.workspace / '.nuget/packages'), entryPoints=entries or [dict(project='build.proj', globalProperties={'Configuration':'Release'})], output=str(manifest))))
         self.run_dotnet('export-' + str(self.serial), [ROOT / 'tools/GraphExport/bin/Release/net10.0/GraphExport.dll', '--request', request])
         return manifest
 
@@ -104,6 +104,43 @@ class GraphDiscoveryAcceptance(unittest.TestCase):
         (self.root / 'report.json').write_text(json.dumps(dict(schemaVersion=1,
             before=json.loads(old.read_text()), after=graph, executedProjects=sorted(executed)), indent=2))
         return graph
+
+    def test_equivalent_entry_requests_are_canonical_and_revalidate(self):
+        self.restore()
+        first = self.export(entries=[
+            dict(project='./src/Right/Right.csproj', globalProperties={
+                'RestorePackagesPath': str(self.root / 'ignored-first'),
+                'Configuration': 'Release', 'BazelGraphExport': 'false',
+                'CustomAfterMicrosoftCommonTargets': str(self.root / 'ignored-first.targets')}),
+            dict(project='src/Left/../Left/Left.csproj', globalProperties={'Configuration': 'Release'})])
+        second = self.export(entries=[
+            dict(project='src/Left/Left.csproj', globalProperties={'Configuration': 'Release'}),
+            dict(project='src/Right/Right.csproj', globalProperties={
+                'Configuration': 'Release', 'restorepackagespath': str(self.root / 'ignored-second'),
+                'bazelgraphexport': 'true',
+                'customaftermicrosoftcommontargets': str(self.root / 'ignored-second.targets')})])
+        self.assertEqual(first.read_bytes(), second.read_bytes())
+        graph = json.loads(second.read_text())
+        self.assertEqual(graph['entryRequests'], [
+            dict(project='src/Left/Left.csproj', globalProperties={'Configuration': 'Release'}),
+            dict(project='src/Right/Right.csproj', globalProperties={'Configuration': 'Release'})])
+        self.assertNotIn('ignored-', second.read_text())
+        self.assertEqual(prepare(self.workspace, second, self.root / 'canonical'), graph)
+
+    def test_semantic_entry_properties_remain_distinct(self):
+        self.restore()
+        graphs = []
+        for value in ('first', 'second'):
+            manifest = self.export(entries=[dict(project='src/Shared/Shared.csproj',
+                globalProperties={'Configuration': 'Release', 'DiscoveryFlavor': value})])
+            reordered = self.export(entries=[dict(project='src/Shared/Shared.csproj',
+                globalProperties={'DiscoveryFlavor': value, 'Configuration': 'Release'})])
+            self.assertEqual(manifest.read_bytes(), reordered.read_bytes())
+            graph = json.loads(manifest.read_text())
+            self.assertEqual(graph['entryRequests'][0]['globalProperties']['DiscoveryFlavor'], value)
+            self.assertEqual(graph['nodes'][0]['globalProperties']['discoveryflavor'], value)
+            graphs.append(graph)
+        self.assertNotEqual(graphs[0]['nodes'][0]['id'], graphs[1]['nodes'][0]['id'])
 
     def test_new_globbed_source(self):
         self.restore()
