@@ -81,6 +81,35 @@ class GraphExportAcceptance(unittest.TestCase):
         self.assertTrue(json.loads(result.stdout)["ok"])
         return json.loads(output.read_text())
 
+    def test_external_host_import_is_not_implicitly_declared(self):
+        external = self.root / "host.props"
+        external.write_text('<Project><PropertyGroup><VersionPrefix>1.2.3</VersionPrefix></PropertyGroup></Project>')
+        props = self.work / "Directory.Build.props"
+        props.write_text(props.read_text().replace("</Project>", f'<Import Project="{external}" /></Project>'))
+        self.restore()
+        self.export(error="path-escape")
+
+    def test_nix_import_declarations_do_not_allow_nix_analyzer_inputs(self):
+        if os.name != "posix" or os.uname().sysname != "Darwin" or not str(self.dotnet_root).startswith("/nix/store/"):
+            self.skipTest("requires pinned macOS Nix SDK external imports")
+        self.restore()
+        graph = self.export()
+        inputs = [item for node in graph["nodes"] for item in node["inputs"]]
+        external = {item["path"]: item for item in inputs if item["path"].startswith("nix/")}
+        self.assertEqual({Path(path).name.split('-', 1)[1] for path in external},
+                         {"extra.targets", "sign-apphost.proj"})
+        for logical, item in external.items():
+            self.assertEqual(item["kind"], "import")
+            raw = (Path("/nix/store") / logical.removeprefix("nix/")).read_text()
+            normalized = raw.replace(str(self.work), "$WORKSPACE").replace(
+                str(self.work / ".nuget/packages"), "$PACKAGES").replace(str(self.dotnet_root), "$DOTNET")
+            import hashlib
+            self.assertEqual(item["sha256"], hashlib.sha256(normalized.encode()).hexdigest())
+        project = self.work / "src/Shared/Shared.csproj"
+        path = Path("/nix/store") / next(iter(external)).removeprefix("nix/")
+        project.write_text(f'<Project Sdk="Microsoft.NET.Sdk"><ItemGroup><Analyzer Include="{path}" /></ItemGroup></Project>')
+        self.export(error="external Nix inputs are limited to evaluated imports")
+
     def test_nested_imports_do_not_require_msbuild_all_projects_registration(self):
         props = self.work / "Directory.Build.props"
         props.write_text(props.read_text().replace("</Project>", '<Import Project="nested/Version.props" /></Project>'))
