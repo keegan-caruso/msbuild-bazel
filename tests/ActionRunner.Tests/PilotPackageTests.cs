@@ -21,6 +21,13 @@ internal static class PilotPackageTests
         })).ToArray();
         var request = template with { GraphProject = project, PackageManifest = localManifest, Packages = inputs };
         PackageInputs.Stage(request, workspace); // Every input, including the pinned archive, is a symlink.
+        var assetsPath = Path.Combine(workspace, "src/Serilog/obj/project.assets.json");
+        var originalAssets = File.ReadAllText(assetsPath);
+        var assets = JsonFiles.Read<RestoreAssets>(assetsPath);
+        assets.Libraries["PolySharp/1.15.0"] = assets.Libraries["PolySharp/1.15.0"] with { Sha512 = "changed" };
+        JsonFiles.Write(assetsPath, assets);
+        Reject(() => PackageInputs.Stage(request, workspace), "qualified package restore content hash mismatch");
+        File.WriteAllText(assetsPath, originalAssets);
         var package = manifest.Packages.Single(p => p.Id == "PolySharp");
         var altered = package with { Files = package.Files.Select(file => file.Path.EndsWith("PolySharp.SourceGenerators.dll") ? file with { Sha256 = new string('0', 64) } : file).ToArray() };
         JsonFiles.Write(localManifest, manifest with { Packages = manifest.Packages.Select(p => p == package ? altered : p).ToArray() });

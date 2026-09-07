@@ -126,3 +126,54 @@ It asserts signed resource/logging behavior, exact selected package/analyzer
 inventory, two generated sources, option-driven source removal, unchanged
 upstream framework declaration and the ordinary unsigned missing-key control.
 Python compilation and diff whitespace checks also passed.
+
+## Qualified package implementation
+
+`tools/pilot-package-policy.json` qualifies only PolySharp 1.15.0 and
+Microsoft.NET.ILLink.Tasks 10.0.0. It pins each signed archive SHA-256 separately
+from its NuGet restore content hash. SDK `NuGet.Packaging.PackageArchiveReader`
+`GetContentHash` independently reproduced both recorded restore hashes from the
+acquired signed archives. These values differ from raw archive SHA-512; unsigned
+synthetic packages retain the previous raw-SHA512 restore check.
+
+The exporter uses the pinned SDK's NuGet.Versioning API to compare evaluated
+requested/restored constraints. Existing bracket-exact versions remain supported;
+the unchanged bare versions are accepted only for the two qualified identities,
+and their selected version must match the qualified version. Unqualified bare,
+floating and broader range declarations remain rejected. SDK-discovered implicit
+ILLink items pass the same freshness checks. Raw XML guards defer conditional
+references to fresh evaluated discovery rather than treating inactive upstream
+framework references as active.
+
+Only the qualified archives may contribute the measured analyzer/build directories
+(and ILLink's tools directory); this is not generic analyzer or trimming support.
+Preparation verifies the archive pin, restore hash and extracted bytes. NuGet
+omits OPC bookkeeping from its cache, so the exact qualified archive supplies
+those metadata entries directly. The entire signed archive is also an action
+input. Runtime staging rechecks its pin and restore hash, reconstructs the complete
+expected file inventory from that archive, then checks each supplied payload.
+A hand-edited preparation manifest cannot authorize substituted files.
+
+Focused Python controls reject an unqualified bare/floating/range request and a
+repacked archive borrowing the qualified package identity and restore hash. Paired
+with resolved input discovery, the unchanged pinned library export and full
+57-file package staging passed; corrupting an extracted generator rejects staging
+without a package manifest. Direct runner controls use all inputs as symlinks,
+validate successful staging and reject an altered generator-manifest hash or a
+replacement archive. An initial native failure exposed that FileInfo.Length reads
+a Bazel input symlink's size; archive verification now uses the opened stream's
+payload length, matching the established file verifier.
+
+These checks establish the bounded package-input implementation. Full native
+Serilog compilation/cache acceptance is measured separately by the adapter probe.
+
+The three focused policy tests passed with both real acquisition paths enabled
+(native macOS; `serilog-package-policy-frp4r3rd`). The separate direct runner test
+also rejects an altered restore content hash, and all existing runner
+contract/process tests passed. Reproduce the direct runtime checks after the
+Python policy test has retained its `source` and `staged` directories:
+
+```sh
+bash scripts/dotnet.sh run --project tests/ActionRunner.Tests -- \
+  --pilot-package-inputs /path/to/policy-evidence/source /path/to/policy-evidence/staged
+```

@@ -81,6 +81,14 @@ class PinnedSerilogPackagePolicy(unittest.TestCase):
         self.assertEqual(sorted(p['id']+'/'+p['version'] for p in payload['packages']), ['Microsoft.NET.ILLink.Tasks/10.0.0','PolySharp/1.15.0'])
         self.assertTrue(any('analyzers/dotnet/cs/PolySharp.SourceGenerators.dll' in f for f in files))
         self.assertTrue(any('build/PolySharp.targets' in f for f in files))
+        assets_path = work/'src/Serilog/obj/project.assets.json'
+        original_assets = assets_path.read_text()
+        modified = json.loads(original_assets)
+        modified['libraries']['PolySharp/1.15.0']['sha512'] = 'changed'
+        assets_path.write_text(json.dumps(modified))
+        with self.assertRaisesRegex(ValueError, 'hash-mismatch: package archive disagrees with restore'):
+            graph_packages.stage(work, project, evidence/'wrong-restore-hash', 'serilog')
+        assets_path.write_text(original_assets)
         generator = work/'.nuget/packages/polysharp/1.15.0/analyzers/dotnet/cs/PolySharp.SourceGenerators.dll'
         generator.write_bytes(b'corrupt')
         with self.assertRaisesRegex(ValueError,'hash-mismatch: package payload'):
