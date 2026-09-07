@@ -21,4 +21,4 @@ internal static class PilotPackagePolicy
     }
 }
 
-internal sealed record PilotPackagePin(string ArchiveSha256, string RestoreContentHash, string[] AdditionalRoots);
+internal sealed record PilotPackagePin(string ArchiveSha256, string RestoreContentHash, string[] AdditionalRoots, string[] AssetRoles);

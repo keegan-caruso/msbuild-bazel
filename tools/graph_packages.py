@@ -83,7 +83,7 @@ def package_plan(workspace, project, assets_file=None):
         raise ValueError('unsupported-package: incomplete restored package metadata')
     for target in assets['targets'].values():
         for identity, entry in target.items():
-            if identity in libraries and any(entry.get(k) for k in ('native', 'runtimeTargets', 'build', 'buildMultiTargeting', 'buildTransitive', 'contentFiles') if k.lower() not in PILOT_PACKAGES.get(identity.lower(), {}).get('additionalRoots', [])):
+            if identity in libraries and any(entry.get(k) for k in ('native', 'runtimeTargets', 'resource', 'build', 'buildMultiTargeting', 'buildTransitive', 'contentFiles') if k.lower() not in PILOT_PACKAGES.get(identity.lower(), {}).get('assetRoles', [])):
                 raise ValueError('unsupported-package: only managed ref/lib assets are supported')
     return assets, libraries
 

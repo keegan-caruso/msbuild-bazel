@@ -6,7 +6,11 @@
       "build",
       "buildtransitive"
     ],
-    "restoreContentHash": "FbU0El+EEjdpuIX4iDbeS7ki1uzpJPx8vbqOzEtqnl1GZeAGJfq+jCbxeJL2y0EPnUNk8dRnnqR2xnYXg9Tf+g=="
+    "restoreContentHash": "FbU0El+EEjdpuIX4iDbeS7ki1uzpJPx8vbqOzEtqnl1GZeAGJfq+jCbxeJL2y0EPnUNk8dRnnqR2xnYXg9Tf+g==",
+    "assetRoles": [
+      "build",
+      "buildtransitive"
+    ]
   },
   "microsoft.net.illink.tasks/10.0.0": {
     "archiveSha256": "b48b3cb567f4b0924c50803f83ec15df37b0e4c11afba0a244a2dd310beb72b3",
@@ -15,6 +19,178 @@
       "build",
       "tools"
     ],
-    "restoreContentHash": "kICGrGYEzCNI3wPzfEXcwNHgTvlvVn9yJDhSdRK+oZQy4jvYH529u7O0xf5ocQKzOMjfS07+3z9PKRIjrFMJDA=="
+    "restoreContentHash": "kICGrGYEzCNI3wPzfEXcwNHgTvlvVn9yJDhSdRK+oZQy4jvYH529u7O0xf5ocQKzOMjfS07+3z9PKRIjrFMJDA==",
+    "assetRoles": [
+      "build"
+    ]
+  },
+  "diffengine/11.3.0": {
+    "archiveSha256": "6996cb6b0b4ecad6ca3eb1760d0ddd64ec20c63b9a1ac5ca0b42f09a5030e95d",
+    "restoreContentHash": "k0ZgZqd09jLZQjR8FyQbSQE86Q7QZnjEzq1LPHtj1R2AoWO8sjV5x+jlSisL7NZAbUOI4y+7Bog8gkr9WIRBGw==",
+    "additionalRoots": [],
+    "assetRoles": []
+  },
+  "emptyfiles/4.4.0": {
+    "archiveSha256": "d9e8fa6584abfca4b3fcc9a1d116af8c830cc87cf34d5b728ddf676d6d7b2306",
+    "restoreContentHash": "gwJEfIGS7FhykvtZoscwXj/XwW+mJY6UbAZk+qtLKFUGWC95kfKXnj8VkxsZQnWBxJemM/q664rGLN5nf+OHZw==",
+    "additionalRoots": [
+      "build",
+      "buildtransitive"
+    ],
+    "assetRoles": [
+      "build"
+    ]
+  },
+  "microsoft.codecoverage/17.11.1": {
+    "archiveSha256": "d5d2e52b734687cf0fb85619898a53fa2cc0f7a7adc61537052822c4381db460",
+    "restoreContentHash": "nPJqrcA5iX+Y0kqoT3a+pD/8lrW/V7ayqnEJQsTonSoPz59J8bmoQhcSN4G8+UJ64Hkuf0zuxnfuj2lkHOq4cA==",
+    "additionalRoots": [
+      "build"
+    ],
+    "assetRoles": [
+      "build"
+    ]
+  },
+  "microsoft.net.test.sdk/17.11.1": {
+    "archiveSha256": "d09504b9c43697368f824ae39bf3452c14dba94d5d7e1be13774e5de6a04ea62",
+    "restoreContentHash": "U3Ty4BaGoEu+T2bwSko9tWqWUOU16WzSFkq6U8zve75oRBMSLTBdMAZrVNNz1Tq12aCdDom9fcOcM9QZaFHqFg==",
+    "additionalRoots": [
+      "build",
+      "buildmultitargeting"
+    ],
+    "assetRoles": [
+      "build",
+      "buildmultitargeting"
+    ]
+  },
+  "microsoft.testplatform.objectmodel/17.11.1": {
+    "archiveSha256": "e6f5febc2cc56374bbc5f31522ff0e94c305b5d79d5bd50827373458473ebe6e",
+    "restoreContentHash": "E2jZqAU6JeWEVsyOEOrSW1o1bpHLgb25ypvKNB/moBXPVsFYBPd/Jwi7OrYahG50J83LfHzezYI+GaEkpAotiA==",
+    "additionalRoots": [],
+    "assetRoles": [
+      "resource"
+    ]
+  },
+  "microsoft.testplatform.testhost/17.11.1": {
+    "archiveSha256": "c12918d07d5f400ab41f72dc293e2eed8e51ce10003daeb2b9e54df3883c1f15",
+    "restoreContentHash": "DnG+GOqJXO/CkoqlJWeDFTgPhqD/V6VqUIL3vINizCWZ3X+HshCtbbyDdSHQQEjrc2Sl/K3yaxX6s+5LFEdYuw==",
+    "additionalRoots": [
+      "build"
+    ],
+    "assetRoles": [
+      "build",
+      "resource"
+    ]
+  },
+  "mono.cecil/0.11.5": {
+    "archiveSha256": "9cf1706f35b4f209c28da7417608bed7a307621b0f0179c52258af78bc4668d0",
+    "restoreContentHash": "fxfX+0JGTZ8YQeu1MYjbBiK2CYTSzDyEeIixt+yqKKTn7FW8rv7JMY70qevup4ZJfD7Kk/VG/jDzQQTpfch87g==",
+    "additionalRoots": [],
+    "assetRoles": []
+  },
+  "newtonsoft.json/13.0.1": {
+    "archiveSha256": "2b6b52556e27e1b7913f33eedeb95568110c746bd64afff74357f1683878323a",
+    "restoreContentHash": "ppPFpBcvxdsfUonNcvITKqLl3bqxWbDCZIzDWHzjpdAHRFfZe0Dw9HmA0+za13IdyrgJwpkDTDA9fHaxOrt20A==",
+    "additionalRoots": [],
+    "assetRoles": []
+  },
+  "publicapigenerator/11.1.0": {
+    "archiveSha256": "ff50293ec8ce4081de95a16428c3229e04c05695820a0bd061304a066bcecef5",
+    "restoreContentHash": "iHU9N149uYirtVxGZh8dKIGv1CpecHD+5E2NVx1c490LqGyWCORZ52DpVqgjNs1rGluT1LNasRNBBjARssGcIg==",
+    "additionalRoots": [],
+    "assetRoles": []
+  },
+  "shouldly/4.2.1": {
+    "archiveSha256": "966b9e4851a824565c45da14c7ecce8be7b00bc9937fc38f0766c677719e600f",
+    "restoreContentHash": "dKAKiSuhLKqD2TXwLKtqNg1nwzJcIKOOMncZjk9LYe4W+h+SCftpWdxwR79YZUIHMH+3Vu9s0s0UHNrgICLwRQ==",
+    "additionalRoots": [
+      "buildtransitive"
+    ],
+    "assetRoles": [
+      "build"
+    ]
+  },
+  "system.codedom/8.0.0": {
+    "archiveSha256": "bb05618b7c5cbd7ede88e1908bb751113937431d447c7b147dc859b04b68df7f",
+    "restoreContentHash": "WTlRjL6KWIMr/pAaq3rYqh0TJlzpouaQ/W1eelssHgtlwHAH25jXTkUphTYx9HaIIf7XA6qs/0+YhtLEQRkJ+Q==",
+    "additionalRoots": [
+      "buildtransitive"
+    ],
+    "assetRoles": [
+      "build"
+    ]
+  },
+  "system.management/6.0.1": {
+    "archiveSha256": "83b6e3c10bfa69fd245a262da5713caa0af560c743e917fded36e12b94f1406d",
+    "restoreContentHash": "10J1D0h/lioojphfJ4Fuh5ZUThT/xOVHdV9roGBittKKNP2PMjrvibEdbVTGZcPra1399Ja3tqIJLyQrc5Wmhg==",
+    "additionalRoots": [
+      "buildtransitive",
+      "runtimes"
+    ],
+    "assetRoles": [
+      "build",
+      "runtimetargets"
+    ]
+  },
+  "xunit/2.9.2": {
+    "archiveSha256": "879fb24d37c29a89023f2e25a9d130f111b3425ae5b10016dc09b4261d2aee8a",
+    "restoreContentHash": "7LhFS2N9Z6Xgg8aE5lY95cneYivRMfRI8v+4PATa4S64D5Z/Plkg0qa8dTRHSiGRgVZ/CL2gEfJDE5AUhOX+2Q==",
+    "additionalRoots": [],
+    "assetRoles": []
+  },
+  "xunit.abstractions/2.0.3": {
+    "archiveSha256": "d03d72fc2df8880448f7a81bddb00e1bcb5c18f323c7e7cc69b4cfa727469403",
+    "restoreContentHash": "pot1I4YOxlWjIb5jmwvvQNbTrZ3lJQ+jUGkGjWE3hEFM0l5gOnBWS+H3qsex68s5cO52g+44vpGzhAt+42vwKg==",
+    "additionalRoots": [],
+    "assetRoles": []
+  },
+  "xunit.analyzers/1.16.0": {
+    "archiveSha256": "3f906f97d86f1ef17c298d5858b838b4a898c657d19e61f22f5e237d20020da5",
+    "restoreContentHash": "hptYM7vGr46GUIgZt21YHO4rfuBAQS2eINbFo16CV/Dqq+24Tp+P5gDCACu1AbFfW4Sp/WRfDPSK8fmUUb8s0Q==",
+    "additionalRoots": [
+      "analyzers",
+      "tools"
+    ],
+    "assetRoles": []
+  },
+  "xunit.assert/2.9.2": {
+    "archiveSha256": "104eabe76e90e1c1e7d0ebab7f510da57677ecb8ff3f6b8dbe89c782975c9eae",
+    "restoreContentHash": "QkNBAQG4pa66cholm28AxijBjrmki98/vsEh4Sx5iplzotvPgpiotcxqJQMRC8d7RV7nIT8ozh97957hDnZwsQ==",
+    "additionalRoots": [],
+    "assetRoles": []
+  },
+  "xunit.core/2.9.2": {
+    "archiveSha256": "ce18d5d48e7187444572481310aef6b4890bc5597808f9ad7abd9407efa8c9ef",
+    "restoreContentHash": "O6RrNSdmZ0xgEn5kT927PNwog5vxTtKrWMihhhrT0Sg9jQ7iBDciYOwzBgP2krBEk5/GBXI18R1lKvmnxGcb4w==",
+    "additionalRoots": [
+      "build",
+      "buildmultitargeting"
+    ],
+    "assetRoles": [
+      "build",
+      "buildmultitargeting"
+    ]
+  },
+  "xunit.extensibility.core/2.9.2": {
+    "archiveSha256": "310002ff877aecdb2cbb747ea473e1eaf1e2b415d06311046645553065bbdb47",
+    "restoreContentHash": "Ol+KlBJz1x8BrdnhN2DeOuLrr1I/cTwtHCggL9BvYqFuVd/TUSzxNT5O0NxCIXth30bsKxgMfdqLTcORtM52yQ==",
+    "additionalRoots": [],
+    "assetRoles": []
+  },
+  "xunit.extensibility.execution/2.9.2": {
+    "archiveSha256": "7fef547e83f22b72480e14125b462ef5ce0f1aa52a642f7a0cc20d0988b68bcd",
+    "restoreContentHash": "rKMpq4GsIUIJibXuZoZ8lYp5EpROlnYaRpwu9Zr0sRZXE7JqJfEEbCsUriZqB+ByXCLFBJyjkTRULMdC+U566g==",
+    "additionalRoots": [],
+    "assetRoles": []
+  },
+  "xunit.runner.visualstudio/2.8.2": {
+    "archiveSha256": "5257cadf8f2bf2426eadacb07dd0ada492711e4bf4e303cdce951acf850cffad",
+    "restoreContentHash": "vm1tbfXhFmjFMUmS4M0J0ASXz3/U5XvXBa6DOQUL3fEz4Vt6YPhv+ESCarx6M6D+9kJkJYZKCNvJMas1+nVfmQ==",
+    "additionalRoots": [
+      "build"
+    ],
+    "assetRoles": [
+      "build"
+    ]
   }
 }

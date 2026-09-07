@@ -245,12 +245,21 @@ internal static class GraphExporter
             var path = item.GetMetadataValue("FullPath");
             if (string.IsNullOrWhiteSpace(path))
                 path = Path.GetFullPath(item.EvaluatedInclude, Path.GetDirectoryName(instance.FullPath)!);
-            AddInput(request, inputs, kind, path, workspaceOnly: kind is "source" or "resource" or "content" or "additional" or "extra" or "signing" or "editorconfig", normalizeText: false);
-            if (kind is "resource" or "additional")
+            var packageOwned = IsUnder(path, request.PackageRoot);
+            if (packageOwned && kind is ("source" or "resource" or "content" or "additional"))
             {
-                var logical = NormalizeInputPath(request, path, workspaceOnly: true);
+                var packagePath = Rel(request.PackageRoot, path).Split('/');
+                if (packagePath.Length < 3 || PilotPackagePolicy.Find(packagePath[0] + "/" + packagePath[1]) is null)
+                    throw new ExportException("unsupported-package", "unqualified package-owned " + kind + ": " + path);
+            }
+            var workspaceOnly = kind is ("source" or "resource" or "content" or "additional" or "extra" or "signing" or "editorconfig") &&
+                !(packageOwned && kind is ("source" or "resource" or "content" or "additional"));
+            AddInput(request, inputs, kind, path, workspaceOnly: workspaceOnly, normalizeText: false);
+            if (kind is "resource" or "additional" or "content")
+            {
+                var logical = NormalizeInputPath(request, path, workspaceOnly: workspaceOnly);
                 var metadata = new SortedDictionary<string, string>(StringComparer.Ordinal);
-                foreach (var name in new[] { "LogicalName", "ManifestResourceName", "Link", "DependentUpon", "WithCulture", "Culture" })
+                foreach (var name in new[] { "LogicalName", "ManifestResourceName", "Link", "DependentUpon", "WithCulture", "Culture", "TargetPath", "CopyToOutputDirectory", "CopyToPublishDirectory" })
                     if (item.GetMetadataValue(name) is { Length: > 0 } value) metadata[name] = value;
                 inputs[(kind, logical)] = inputs[(kind, logical)] with { Metadata = metadata };
             }
