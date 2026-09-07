@@ -11,7 +11,11 @@
     "packages",
     "configured",
     "inputs",
-    "starlark_core"
+    "starlark_core",
+    "starlark_packages",
+    "starlark_configured",
+    "starlark_tests",
+    "serilog"
   ],
   "nodes": [
     {
@@ -115,7 +119,7 @@
         "inputs"
       ],
       "workstream": "pilot",
-      "scope": "P01 baseline parity, API/logging oracle, mutations, relocation, native Linux/macOS and timings."
+      "scope": "P01 baseline parity, API/logging and reference-consumer oracles, real generator mutation, approval Build/Test, relocation and repeated descriptive timings on native macOS; Linux qualification deferred."
     },
     {
       "id": "generators",
@@ -475,11 +479,11 @@
     "lifecycle": "Seven native macOS characterization tests pass; production lifecycle API, wider configurations and Linux acceptance remain open.",
     "scale_synthetic": "Ten-node fan protocol states and chain fresh/warm pass on macOS; 1000-node recursive preparation failure fixed with iterative closures. Larger native execution, aggregate memory and controlled timing remain unmeasured.",
     "inputs": "Accepted pinned Serilog library input slice on macOS: 11 resolved analyzers, exact package/archive integrity, signing/resource/import declarations and native mutation/relocation evidence.",
-    "serilog": "Selected unchanged library native build, five ordinary-parity mutations and producer-free disk recovery pass on macOS. Standalone upstream API oracle and unchanged upstream approval Build/Test pass, including test-only invalidation and recovered-artifact execution. Repeated comparative timings remain open; Linux deferred.",
+    "serilog": "Accepted selected native macOS library and unchanged approval Build/Test, actual PolySharp 1.15-to-1.16 mutation, cold/recovered reference consumption, test-rule gate and producer-free disk recovery. All 24 samples pass across three repetitions of four ordinary/Bazel measurement cases. Descriptive timings show small-graph adapter overhead; R09 performance qualification and Linux remain open. See docs/r02-r04-validation-findings.md and docs/serilog-performance-findings.md.",
     "starlark_core": "Accepted native macOS ARM64 and local Apple-container Linux ARM64 baseline with pinned Buildifier/Skylib, analysis/generated-workspace/repository controls and native cache/discovery/forced-replay regressions. S02 has no applicable pure Starlark helper. Nix-only Linux checks were skipped in the setup guest. See docs/starlark-core-findings.md; Linux x86-64 CI and package/configuration/test-rule extensions remain separate.",
-    "starlark_packages": "Open additional validation gate; existing behavioral acceptance does not complete it.",
-    "starlark_configured": "Open additional validation gate; existing behavioral acceptance does not complete it.",
-    "starlark_tests": "Open additional validation gate; existing behavioral acceptance does not complete it.",
+    "starlark_packages": "Accepted native macOS ARM64 analysis/generated package closure, roles and private-asset assertions; all 13 full-cache and 18 package tests pass. See docs/r02-r04-validation-findings.md; Linux deferred.",
+    "starlark_configured": "Accepted native macOS ARM64 configured identities, distinct outputs, direct edges versus replay closure, discovery refresh and deterministic generation, with native configured regressions. Broader outer/transitive configurations and entrypoints remain open. See docs/r02-r04-validation-findings.md.",
+    "starlark_tests": "Accepted native macOS ARM64 test-rule analysis, generated runfiles/requests/data hashes and failures, with actual unchanged upstream approval execution and forced tests after producer-free build-cache recovery. See docs/r02-r04-validation-findings.md; Linux deferred.",
     "bazel_compatibility": "Open additional validation gate; existing behavioral acceptance does not complete it."
   },
   "qualificationScope": {

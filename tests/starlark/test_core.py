@@ -66,11 +66,14 @@ class CoreValidation(unittest.TestCase):
     def test_analysis_contracts(self):
         self.bazel('analysis-tests', ['test', '//tests/starlark:core', '--test_output=errors', '--nocache_test_results'])
 
+    def test_extension_analysis_contracts(self):
+        self.bazel("extension-tests", ["test", "//tests/starlark:extensions", "--test_output=errors", "--nocache_test_results"])
+
     def test_execution_policy_is_declared(self):
-        subjects = 'set(' + ' '.join('//tests/starlark:' + name for name in ('shared', 'left', 'right', 'app', 'explicit_shared', 'explicit_app')) + ')'
+        subjects = 'set(' + ' '.join('//tests/starlark:' + name for name in ('shared', 'left', 'right', 'app', 'explicit_shared', 'explicit_app', 'package_producer', 'package_consumer', 'configured_red', 'configured_blue')) + ')'
         data = json.loads(self.bazel('analysis-actions', ['aquery', 'mnemonic(MsbuildProject, ' + subjects + ')', '--output=jsonproto']))
         actions = data['actions']
-        self.assertEqual(len(actions), 6)
+        self.assertEqual(len(actions), 10)
         for action in actions:
             self.assertEqual({p['key']: p['value'] for p in action['executionInfo']}, {'block-network': '1', 'no-remote': '1'})
 

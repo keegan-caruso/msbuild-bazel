@@ -20,7 +20,7 @@ executable slices before implementation.
 | Generated graph execution | [Execution findings](graph-execution-findings.md): package-free Release/net10.0 diamond and root-project acceptance on macOS ARM64. | Linux execution evidence, generated-graph cache recovery, packages and broader configurations. |
 | Explicit two-project adapter | [Replay](replay-findings.md), [Bazel](bazel-findings.md), [package](binary-package-findings.md) and [runtime](loader-runtime-findings.md) findings. | Transfer only measured behavior into the generated adapter; full host closure remains open. |
 | Generated-graph cache tests | [Cache contract](graph-cache-contract.md) and [managed-package findings](graph-package-plan.md): selected local cache and relocation slices pass native macOS acceptance. | Broader assets, remote-cache correctness and further Linux qualification. |
-| Serilog | [Library acceptance](r04-integration-findings.md) and [unchanged approval Build/Test](serilog-test-acceptance-findings.md) pass native macOS mutation and relocated-cache controls. | Repeated comparative timings, Linux qualification and broader upstream portfolio. |
+| Serilog | [Library acceptance](r04-integration-findings.md), [unchanged approval Build/Test](serilog-test-acceptance-findings.md), [qualification extensions](r02-r04-validation-findings.md) and [three-repetition measurements](serilog-performance-findings.md) pass their native macOS correctness/work-set controls. | Useful performance at scale, Linux qualification and broader upstream portfolio. |
 | Broader portfolio | Pinned inspections and proposed coverage. | No portfolio-wide adapter support is established. |
 
 Forward milestones use **R01–R17** to avoid reassigning numbers in historical
@@ -53,9 +53,9 @@ original platforms. “Planned” means prerequisites or contracts are still nee
 | Milestone | Outcome | Prerequisites | State |
 | --- | --- | --- | --- |
 | R01 | Reliable package-free generated graph and local cache | Existing execution slice | Historical native macOS/Linux acceptance at c384671; added Starlark baseline accepted on macOS and Linux ARM64 ([findings](starlark-core-findings.md)) |
-| R02 | Managed package closure in generated graph actions | R01 core execution/cache | Selected managed slice accepted on macOS; added package-rule gate open; Linux deferred |
-| R03 | Configured nodes, discovery and entry-point semantics | R01; R02 for package/SDK cases | Selected inner/direct-edge configurations accepted on macOS; added configured-rule gate and broader semantics open |
-| R04 | First real-project adapter acceptance: Serilog | R02, selected R03 configuration support | Selected library and unchanged approval Build/Test accepted on macOS; added test-rule gate, repeated timings and Linux remain open |
+| R02 | Managed package closure in generated graph actions | R01 core execution/cache | Selected managed slice and package-rule gate accepted on macOS ([qualification](r02-r04-validation-findings.md)); Linux deferred |
+| R03 | Configured nodes, discovery and entry-point semantics | R01; R02 for package/SDK cases | Selected inner/direct-edge configurations and configured-rule gate accepted on macOS; broader semantics and entry points open |
+| R04 | First real-project adapter acceptance: Serilog | R02, selected R03 configuration support | Selected library, unchanged approval Build/Test and test-rule gate accepted on macOS; repeated descriptive timings complete ([measurements](serilog-performance-findings.md)); Linux deferred |
 | R05 | Generator combinations and project-reference roles | R04 input-contract slice; parallel with Serilog acceptance | Planned |
 | R06 | Source-built tasks, package consumers and output lifecycle | R02–R05 slices actually used | Planned |
 | R07 | Broader restore/runtime assets and ordinary publish modes | R02/R03; selected R06 task/output support | Planned |
@@ -96,10 +96,12 @@ remain the evidence index; this roadmap owns scheduling and acceptance joins.
 
 Historical acceptance remains scoped to its original revision and assertions.
 The added `starlark_core` baseline now passes on native macOS and a local Linux ARM64 guest; see its
-[findings](starlark-core-findings.md). `starlark_packages`, `starlark_configured`,
-`starlark_tests` and `bazel_compatibility` remain open additions. These gates do
-not erase prior R01–R04 results or inherit passing status from them. Extend
-package/configuration/test coverage next before accepting dependent new feature slices. Use the qualified local lanes; Linux x86-64 CI remains
+[findings](starlark-core-findings.md). The additional `starlark_packages`,
+`starlark_configured` and `starlark_tests` gates now pass on native macOS ARM64;
+[qualification findings](r02-r04-validation-findings.md) record analysis, generated
+workspaces and native behavioral regressions. `entrypoints` and
+`bazel_compatibility` remain separate open gates. Extend the accepted assertions
+for each new generator/reference-role slice. Linux x86-64 CI remains
 deferred under the [platform scope](platform-validation-scope.md).
 
 ## R01 — Prove generated-graph local correctness and caching
@@ -151,7 +153,9 @@ remote behavior or arbitrary custom target compatibility is implied.
 Implementation and native macOS evidence: [package plan](graph-package-plan.md),
 [full cache findings](graph-package-cache-findings.md), and
 [PrivateAssets parity](graph-private-assets-findings.md). Linux acceptance remains
-a separate gate until the combined revision passes its jobs.
+a separate gate until the combined revision passes its jobs. The additional
+[package-rule and generated-workspace gate](r02-r04-validation-findings.md) now
+passes on native macOS, alongside all 13 full-cache and 18 package tests.
 
 Scope: move the explicit adapter's measured managed-package behavior into the
 generated graph, beginning with a package used only by Left in the diamond.
@@ -197,7 +201,10 @@ Coverage: K02 initial slice, F04 selected package behavior, C03/C05/C08/C13/C14.
 ## R03 — Support configured dependencies and reliable discovery
 
 Scope: the graph semantics needed before a faithful Serilog adapter baseline,
-then separately qualified solution and custom-SDK entry points.
+then separately qualified solution and custom-SDK entry points. The selected
+[configured-rule gate](r02-r04-validation-findings.md) now passes on native macOS,
+including generated action/edge inspection and native configured regressions.
+Solution and custom-SDK entry-point extensions remain open.
 
 Deliverables and gates:
 
@@ -236,6 +243,12 @@ Coverage: K03, C06/C07/C13/C14/C15, F13/F14; upstream fixture pins are in the
 
 Scope: P01's pinned approval-test project and Serilog dependency. Retain signing,
 PolySharp, shared imports, resources and selected framework semantics.
+
+Active macOS acceptance now includes the [additional rule/input/reference gates](r02-r04-validation-findings.md)
+and [three repetitions of all four measurement cases](serilog-performance-findings.md):
+24 system/case samples with actual approval execution and verified work sets.
+The adapter has higher measured end-to-end latency for this small graph; no
+latency budget or scale-performance acceptance is claimed. Linux remains deferred.
 
 Deliverables:
 

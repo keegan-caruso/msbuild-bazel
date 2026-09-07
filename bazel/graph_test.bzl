@@ -7,6 +7,9 @@ def _runfile(ctx, file):
     return path[3:] if path.startswith("../") else ctx.workspace_name + "/" + path
 
 def _graph_test_impl(ctx):
+    names = ctx.attr.expected_tests
+    if not names or len({name: True for name in names}) != len(names) or any([not name for name in names]):
+        fail("expected_tests must contain unique nonempty test names")
     request = ctx.actions.declare_file(ctx.label.name + ".request.json")
     launcher = ctx.actions.declare_file(ctx.label.name + ".sh")
     bundles = ctx.attr.subject[GraphBundle].bundles

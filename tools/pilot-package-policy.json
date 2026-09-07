@@ -192,5 +192,18 @@
     "assetRoles": [
       "build"
     ]
+  },
+  "polysharp/1.16.0": {
+    "archiveSha256": "36b6daa6b98bcca5e618db1cdaa63cbbdea74f0153a62d4ad2deada58bbbc0e0",
+    "additionalRoots": [
+      "analyzers",
+      "build",
+      "buildtransitive"
+    ],
+    "restoreContentHash": "3kdIIceBPumwjw279FuiVMfVENT2cGASXJgcigdySsbX2dJB8ofUgG6i47yqF/k1qu6fvNR3csrSekZPviR6kQ==",
+    "assetRoles": [
+      "build",
+      "buildtransitive"
+    ]
   }
 }

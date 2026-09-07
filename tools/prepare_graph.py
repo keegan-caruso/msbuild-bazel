@@ -249,6 +249,7 @@ def write_build(workspace, graph, output, tests=None, *, closures=None):
         closures = dependency_closures(nodes)
     settings = dict(plugin='ReplayPlugin.dll', build_props='runner/Action.props', build_targets='runner/Action.targets', runner='runner/ActionRunner.dll', runner_support=['runner/ActionRunner.deps.json', 'runner/ActionRunner.runtimeconfig.json'], sdk='@dotnet//:files', dotnet='@dotnet//:sdk/dotnet', host_identity='host-identity.json')
     build = 'load(":graph.bzl", "graph_project")\n'
+    if tests: build += 'load(":graph_test.bzl", "graph_test")\n'
     for identity, node in sorted(nodes.items()):
         sources = set()
         restore = []
@@ -290,7 +291,6 @@ def write_build(workspace, graph, output, tests=None, *, closures=None):
         build += call('graph_project', **attrs)
     build += call('filegroup', name='all', srcs=[':node_' + n for n in sorted(graph['entryPoints'])])
     build += add_tests(workspace, output, nodes, tests, ROOT)
-    if tests: build = 'load(":graph_test.bzl", "graph_test")\n' + build
     (output / 'BUILD.bazel').write_text(build)
 
 if __name__ == '__main__':

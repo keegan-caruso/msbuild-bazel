@@ -116,3 +116,14 @@ successful real-consumer loading after the signing token changed, and actual
 removal of IsExternalInit after the generator option changed. Evidence:
 `/private/tmp/msbuild-serilog-ordinary-controls/report.json`. This validates the
 oracles and mutations; it does not qualify their native adapter counterparts.
+
+## R04 qualification extension
+
+The subsequent [R02–R04 qualification](r02-r04-validation-findings.md) adds a real
+PolySharp 1.15.0 → 1.16.0 package/analyzer mutation, exact missing-payload rejection,
+and fresh consumers compiled against both cold and recovered reference assemblies
+before execution with their matching implementations. The complete nine-case
+library probe passes on native macOS ARM64. The unchanged upstream approval
+Build/Test suite also passes separately, with forced test execution after recovery.
+[Repeated comparative measurements](serilog-performance-findings.md) are separate
+from correctness-suite durations and do not extend Linux or remote-worker claims.

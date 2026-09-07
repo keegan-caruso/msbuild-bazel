@@ -1,4 +1,5 @@
 load(":analysis.bzl", "core_suite")
+load(":extensions.bzl", "extension_suite")
 
 filegroup(
     name = "sdk",
@@ -6,3 +7,5 @@ filegroup(
 )
 
 core_suite(name = "core")
+
+extension_suite(name = "extensions")

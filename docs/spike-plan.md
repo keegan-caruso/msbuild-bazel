@@ -8,9 +8,12 @@ Can Bazel cache and schedule configured .NET projects while each action uses MSB
 
 The added R01 [Starlark baseline](starlark-core-findings.md) now passes on native
 macOS and local Linux ARM64: pinned formatting/lint, rule analysis, prepared-workspace and repository
-controls, with cache/discovery/forced-replay regressions retained. Next extend
-`starlark_packages`, `starlark_configured` and `starlark_tests` before accepting
-new generator/reference-role slices. Repeated comparative timings remain open.
+controls, with cache/discovery/forced-replay regressions retained. The additional
+`starlark_packages`, `starlark_configured` and `starlark_tests` gates now pass
+[native macOS qualification](r02-r04-validation-findings.md), including generated
+workspaces, real generator-version changes and cold/recovered reference consumers.
+The next feature slice is R05 generator combinations and reference roles, with
+broader R03 entry points and independent-worker gates still separate.
 
 The three parallel [upstream test tracks](serilog-test-plan.md) now pass [native macOS acceptance](serilog-test-acceptance-findings.md): unchanged Serilog approval Build/Test, exact failure controls, test-data-only invalidation, and producer-free relocated build recovery followed by actual test execution. The [selected-framework adaptation](selected-framework-findings.md) preserves ordinary SDK reference selection without changing project declarations.
 
@@ -63,7 +66,7 @@ endpoint. Near-term milestones have concrete deliverables and exit gates; later
 tracks are refined before implementation. Historical milestone numbers in older
 contracts and findings remain unchanged; the roadmap includes their mapping.
 
-Current macOS evidence covers R01 cache/replay/discovery, the selected R02 managed-package and R03 configured-node slices, and the R04 Serilog library plus unchanged approval test. Repeated comparative measurements and broader generator/reference-role qualification remain next; Linux validation is deferred. The [coverage matrix](scenario-coverage.md) and
+Current macOS evidence covers R01 cache/replay/discovery, the selected R02 managed-package and R03 configured-node slices, and the R04 Serilog library plus unchanged approval test, with their additional rule/generated-workspace gates. [Repeated comparative measurements](serilog-performance-findings.md) now pass all 24 correctness/work-set samples; they show adapter overhead for this two-project graph and do not qualify useful performance at scale. R05 generator/reference-role qualification is next; broader R03 entry points and Linux validation remain separate. The [coverage matrix](scenario-coverage.md) and
 [pinned project selections](coverage-project-selections.md) define the broader
 portfolio and separate proposed work from measured support. The
 [parallel dependency graph](roadmap-graph.md) splits milestones into work packages

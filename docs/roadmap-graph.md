@@ -7,7 +7,10 @@ Acceptance state is recorded in the JSON and the
 `packages` and the bounded `configured` slice now pass on native macOS ARM64.
 Further Linux validation is [deferred by request](platform-validation-scope.md);
 The R04 input slice and Serilog library build/mutation/relocation acceptance now
-pass; unchanged approval Test also passes native macOS mutation and recovered-artifact execution. Repeated timings and Linux remain open. Other nodes remain
+pass; unchanged approval Test also passes native macOS mutation and recovered-artifact execution.
+The package/configuration/test-rule gates and [three-repetition measurements](serilog-performance-findings.md)
+now complete the selected active macOS R04 acceptance. Linux and useful performance
+at scale remain open. Other nodes remain
 open until their own scoped acceptance lanes pass. Arrows are acceptance prerequisites, not a
 requirement to delay source inspection, contract design or isolated implementation.
 Every incoming solid edge must pass before accepting that downstream slice.
@@ -202,9 +205,10 @@ flowchart TD
 ```
 
 Existing incoming edges from the other views still apply. `starlark_core` now
-passes on native macOS and local Linux ARM64. Package, selected-configuration and test-rule extensions
-can proceed independently under their existing feature prerequisites. New generator,
-interceptor and remote-worker acceptance waits for the added relevant joins.
+passes on native macOS and local Linux ARM64. The package, selected-configuration
+and test-rule extensions now pass [native macOS qualification](r02-r04-validation-findings.md).
+New generator, interceptor and remote-worker slices must extend these assertions
+and satisfy their remaining feature prerequisites.
 Other feature packages extend applicable assertions as part of their own exit
 criteria; they do not create retroactive edges into completed historical nodes.
 Both local-only and full releases require `bazel_compatibility`.
@@ -214,10 +218,10 @@ Both local-only and full releases require `bazel_compatibility`.
 R01 is accepted at `c384671` on both native lanes. R02 managed packages and
 the selected R03 configured-node slice now satisfy the active macOS prerequisites.
 Linux validation is deferred. The completed R04 library batch delivered the
-following contracts. The next acceptance work includes the open Starlark
-package/configuration/test-rule validation nodes above, following the completed
-[shared baseline](starlark-core-findings.md); R05 generator/reference-role work
-can be prepared while those extension gates are implemented.
+following contracts. The additional Starlark package/configuration/test-rule
+nodes now pass [qualification](r02-r04-validation-findings.md), following the
+completed [shared baseline](starlark-core-findings.md). R05 generator/reference-role
+work can proceed, with each new scenario extending the applicable assertions.
 The existing feature contracts are:
 
 | Work package | Immediate deliverable | Primary ownership |
@@ -270,7 +274,7 @@ not a claim that Linux execution or generated-graph caching already passes.
 | `configured` | R03 | Inner/outer builds and executable AdditionalProperties/GlobalPropertiesToRemove fixtures; prerequisites for Serilog. |
 | `entrypoints` | R03 | F13/F14 separately qualified entry-point formats and package/local SDK resolution. |
 | `inputs` | R04 | Required package generator/analyzer, signing, resource and shared-import contracts, tested in small fixtures. |
-| `serilog` | R04 | P01 baseline parity, API/logging oracle, mutations, relocation, native Linux/macOS and timings. |
+| `serilog` | R04 | P01 baseline parity, API/logging and reference-consumer oracles, real generator mutation, approval Build/Test, relocation and repeated descriptive timings on native macOS; Linux qualification deferred. |
 | `generators` | R05 | P02/P16 plus small API/delivery/diagnostic fixtures, framework combinations and additional files. |
 | `interceptors` | R05 | P14 execution oracle, compiler identity and call-site/relocation mutations; does not wait for all P02/P16 results. |
 | `tasks` | R06 | P05 source-task closure and scheduling with producer-free consumer; any extra native requirement adds an explicit dependency. |

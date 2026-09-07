@@ -21,6 +21,7 @@ import graph_packages
 class PilotPolicy(unittest.TestCase):
     def test_only_qualified_bare_versions(self):
         self.assertEqual(graph_packages.selected_version('PolySharp', '1.15.0'), '1.15.0')
+        self.assertEqual(graph_packages.selected_version('PolySharp', '1.16.0'), '1.16.0')
         self.assertEqual(graph_packages.selected_version('Microsoft.NET.ILLink.Tasks', '10.0.0'), '10.0.0')
         self.assertEqual(graph_packages.selected_version('Example', '[1.0.0]'), '1.0.0')
         for package, version in [('Example', '1.0.0'), ('PolySharp', '1.15.1'), ('PolySharp', '1.*'), ('PolySharp', '[1.15.0,2.0.0)')]:

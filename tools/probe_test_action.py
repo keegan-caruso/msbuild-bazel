@@ -13,6 +13,7 @@ import zipfile
 
 from prepare_graph import ROOT, DOTNET_ROOT
 from prepare_graph_tests import add_tests
+from starlark import value
 from probe_graph_execution import BAZEL
 from probe_graph_cache import cache_environment
 from probe_serilog_adapter import REVISION
@@ -66,7 +67,7 @@ bundle_fixture = rule(implementation = _fixture, attrs = {"srcs": attr.label_lis
     declarations=add_tests(workspace,generated,{'subject':node},[dict(node='subject',data=DATA,expectedTests=[TEST])],ROOT)
     build='load(":fixture.bzl","bundle_fixture")\nload(":graph_test.bzl","graph_test")\nbundle_fixture(name="node_subject",srcs=glob(["input-bundle/**"]),anchor="input-bundle/bundle.json")\n'+declarations
     shutil.rmtree(workspace)
-    report=dict(schemaVersion=1,scope='native-test-rule-over-ordinary-build',preparationWorkspaceAbsent=not workspace.exists(),cases={})
+    report=dict(schemaVersion=1,scope='native-test-rule-over-ordinary-build',preparationWorkspaceAbsent=not workspace.exists(),cases={},accepted=False)
     strategy='darwin-sandbox' if os.uname().sysname=='Darwin' else 'linux-sandbox'
     data_path=generated/'test-data'/APPROVED;data_bytes=data_path.read_bytes()
     for case in ('pass','changed','missing','zeroTests'):
@@ -75,7 +76,11 @@ bundle_fixture = rule(implementation = _fixture, attrs = {"srcs": attr.label_lis
         if case=='changed':
             bad=b'wrong approval\n';data_path.write_bytes(bad)
             current=current.replace(hashlib.sha256(data_bytes).hexdigest(),hashlib.sha256(bad).hexdigest())
-        if case=='missing':current=current.replace(json.dumps(['test-data/'+p for p in DATA]),json.dumps(['test-data/'+DATA[0]]))
+        if case=='missing':
+            declaration = '    data = ' + value(['test-data/'+p for p in DATA]) + ','
+            if current.count(declaration) != 1:
+                raise AssertionError('missing-data control could not locate the generated data declaration')
+            current = current.replace(declaration, '    data = ' + value(['test-data/'+DATA[0]]) + ',')
         if case=='zeroTests':current=current.replace('assembly = "Serilog.ApprovalTests.dll"','assembly = "Serilog.dll"')
         (generated/'BUILD.bazel').write_text(current)
         execution=output/(case+'-execution.json')
@@ -89,10 +94,12 @@ bundle_fixture = rule(implementation = _fixture, attrs = {"srcs": attr.label_lis
         if not archive.exists():raise RuntimeError('missing retained test outputs: '+result.stdout[-6000:])
         with zipfile.ZipFile(archive) as contents:
             summary=json.loads(contents.read('report.json'))
+        report['cases'][case]=dict(returncode=result.returncode,report=summary,evidence=str(evidence),executionLog=execution.name)
+        (output/'report.json').write_text(json.dumps(report,indent=2))
         if (result.returncode==0)!= (case=='pass') or summary['passed']!=(case=='pass'):raise AssertionError('wrong native result '+case)
         if case!='zeroTests' and summary['total']!=1:raise AssertionError('did not execute real Fact: '+str(summary))
         if case=='zeroTests' and summary['total']!=0:raise AssertionError('zero-test control did not select no-test library')
-        report['cases'][case]=dict(returncode=result.returncode,report=summary,evidence=str(evidence),executionLog=execution.name)
+    report['accepted'] = True
     (output/'report.json').write_text(json.dumps(report,indent=2))
     return report
 

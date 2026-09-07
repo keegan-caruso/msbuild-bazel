@@ -1,4 +1,4 @@
-name: Starlark baseline
+name: Starlark and local adapter qualification
 on:
   pull_request:
   push:
@@ -25,6 +25,41 @@ jobs:
         run: nix develop --no-update-lock-file -c bash scripts/check.sh
       - name: Analysis, generated workspace and repository contracts
         run: nix develop --no-update-lock-file -c python3 -m unittest discover -s tests/starlark -v
+      - name: Package, configuration and test generated-workspace contracts
+        run: nix develop --no-update-lock-file -c python3 -m unittest discover -s tests/starlark_extensions -v
+      - name: Managed graph cache and package behavior
+        run: |
+          nix develop --no-update-lock-file -c python3 -m unittest discover -s tests/graph_cache_full -v
+          nix develop --no-update-lock-file -c python3 -m unittest discover -s tests/graph_packages -v
+      - name: Configured graph behavior
+        run: |
+          nix develop --no-update-lock-file -c python3 -m unittest discover -s tests/configured_execution -v
+      - name: Checkout pinned Serilog input
+        uses: actions/checkout@v4
+        with:
+          repository: serilog/serilog
+          ref: 49b5339ce85385dc52d4d8e8f2b8308becf23506
+          path: artifacts/serilog-upstream
+          persist-credentials: false
+      - name: Acquire selected Serilog and generator-mutation packages
+        run: |
+          nix develop --no-update-lock-file -c bash scripts/dotnet.sh msbuild artifacts/serilog-upstream/test/Serilog.ApprovalTests/Serilog.ApprovalTests.csproj -t:Restore -p:Configuration=Release -p:TargetFramework=net10.0 -p:RestorePackagesPath="${{ runner.temp }}/serilog-packages" -nodeReuse:false -nologo
+          mkdir -p artifacts/r04-generator-acquisition
+          cat > artifacts/r04-generator-acquisition/Upgrade.csproj <<'PROJECT'
+          <Project Sdk="Microsoft.NET.Sdk"><PropertyGroup><TargetFramework>net10.0</TargetFramework></PropertyGroup><ItemGroup><PackageReference Include="PolySharp" Version="1.16.0" /></ItemGroup></Project>
+          PROJECT
+          nix develop --no-update-lock-file -c bash scripts/dotnet.sh restore artifacts/r04-generator-acquisition/Upgrade.csproj --packages "${{ runner.temp }}/serilog-packages"
+      - name: Pinned Serilog library and unchanged approval Build/Test
+        env:
+          SPIKE_SERILOG_SOURCE: ${{ github.workspace }}/artifacts/serilog-upstream
+          SPIKE_SERILOG_PACKAGES: ${{ runner.temp }}/serilog-packages
+          SPIKE_SERILOG_NATIVE_TESTS: '1'
+        run: |
+          nix develop --no-update-lock-file -c python3 -m unittest discover -s tests/serilog_adapter -v
+          nix develop --no-update-lock-file -c python3 -m unittest discover -s tests/test_action -v
+          nix develop --no-update-lock-file -c python3 -m unittest discover -s tests/serilog_tests -v
+      - name: Comparative measurement protocol checks
+        run: nix develop --no-update-lock-file -c python3 -m unittest discover -s tests/serilog_performance -v
       - name: Existing SDK repository controls
         run: nix develop --no-update-lock-file -c python3 -m unittest discover -s tests/sdk_repository -v
       - name: Native explicit-adapter generation and cache acceptance
@@ -43,6 +78,23 @@ jobs:
         with:
           name: starlark-core-evidence
           path: |
+            ${{ runner.temp }}/serilog-adapter-*/probe/*.log
+            ${{ runner.temp }}/serilog-adapter-*/probe/report.json
+            ${{ runner.temp }}/serilog-adapter-*/probe/evidence/**/*.log
+            ${{ runner.temp }}/serilog-native-tests-*/probe/*.log
+            ${{ runner.temp }}/serilog-native-tests-*/probe/report.json
+            ${{ runner.temp }}/serilog-native-tests-*/probe/evidence/**/testlogs/**
+            ${{ runner.temp }}/serilog-test-ordinary-*/probe/**/*.trx
+            ${{ runner.temp }}/serilog-test-ordinary-*/probe/*.log
+            ${{ runner.temp }}/msbuild-test-action-*/probe/**/*.json
+            ${{ runner.temp }}/msbuild-test-action-*/probe/**/*.log
+            ${{ runner.temp }}/starlark-extensions-*/**/*.log
+            ${{ runner.temp }}/starlark-extensions-*/**/*.json
+            ${{ runner.temp }}/starlark-extensions-*/**/BUILD.bazel
+            ${{ runner.temp }}/configured-execution-*/probe/**/*.json
+            ${{ runner.temp }}/configured-execution-*/probe/**/*.log
+            ${{ runner.temp }}/graph-private-adapter-*/**/*.json
+            ${{ runner.temp }}/graph-private-adapter-*/**/*.log
             ${{ runner.temp }}/starlark-core-*/*.log
             ${{ runner.temp }}/starlark-core-*/generated/BUILD.bazel
             ${{ runner.temp }}/starlark-core-*/generated/MODULE.bazel

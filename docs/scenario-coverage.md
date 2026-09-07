@@ -29,7 +29,7 @@ Current measured foundations are deliberately narrower than this portfolio:
 | Runtime inputs | [Native runtime](native-runtime-findings.md), [integrity](native-runtime-integrity-findings.md) and [loaded JIT](loader-runtime-findings.md): bounded runtime declarations and substitution/rejection evidence; full host closure remains open. |
 | Configured graph export/execution | [Export findings](graph-export-findings.md) and [execution findings](graph-execution-findings.md): first package-free Release/net10.0 execution slice measured on macOS ARM64. Do not extend its platform or cache claims beyond the linked evidence. |
 | Generated-graph cache matrix | [Cache contract](graph-cache-contract.md) and [managed-package findings](graph-package-plan.md): selected local mutation and relocated-cache controls pass native macOS acceptance. |
-| Serilog | [Library findings](r04-integration-findings.md) and [unchanged approval-test findings](serilog-test-acceptance-findings.md): native macOS ARM64 build/test, mutation and producer-free disk recovery pass for the selected net10.0 slice. |
+| Serilog | [Library findings](r04-integration-findings.md), [unchanged approval-test findings](serilog-test-acceptance-findings.md) and [R02–R04 qualification](r02-r04-validation-findings.md): native macOS ARM64 build/test, real generator-version mutation, reference consumption and producer-free disk recovery pass for the selected net10.0 slice. [Repeated measurements](serilog-performance-findings.md) are descriptive; useful performance at scale remains open. |
 
 ## Operation boundaries
 
@@ -283,7 +283,7 @@ is widened only when the selected entry point requires it.
 
 | Project | Required capability slices | Operations | Additional checks / fixture mapping | Initial execution and runtime lane | Adapter status |
 | --- | --- | --- | --- | --- | --- |
-| P01 Serilog | K01; K02 packages; K03 framework selection; K04 package generator and diagnostics; K05 resources/imports/signing | Build, Test | G05/G07–G09/G11; F07/F09/F10 | Native macOS ARM64; Linux deferred | Selected Build/Test accepted; [evidence](serilog-test-acceptance-findings.md); broader scope remains open |
+| P01 Serilog | K01; K02 packages; K03 framework selection; K04 package generator and diagnostics; K05 resources/imports/signing | Build, Test | G05/G07–G09/G11; F07/F09/F10 | Native macOS ARM64; Linux deferred | Selected Build/Test and added rule/input/reference gates accepted; [qualification](r02-r04-validation-findings.md) and [descriptive measurements](serilog-performance-findings.md); broader scope remains open |
 | P02 Spectre.Console | K01; K02 packages; K03 framework selection; K04 project generator; K05 resources/imports | Build, Test | G06–G09; pin G01/G02 classification | Linux x86-64 | Proposed |
 | P03 EF Core | K01; K02 packages; K03 selected frameworks; K04 resolved analyzers; K05 imports | Build, Test | F04, C16; add K07 runtime assets/F03 only for SQLite extension | Linux x86-64 | Proposed |
 | P04 Orchard Core | K01; K02 packages; K03 selected frameworks; K04 resolved Razor/compiler tooling; K05 resources/targets; K06 selected web Publish; K08 frontend assets | Build, Publish, Launch | F07/F09; HTTP/module/static-asset oracle | Linux x86-64 plus pinned frontend tools | Proposed |
