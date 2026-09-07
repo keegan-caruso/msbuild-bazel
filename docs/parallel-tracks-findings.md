@@ -24,13 +24,16 @@ revision is required before advancing the `local` join.
 
 Native macOS package-free cache acceptance passes all 8 tests, including
 producer-free relocation and complete recovered-bundle hash/permission comparison.
-The pinned environment check also passes. Combined regression and Linux results
-are recorded below when their runs finish.
+The pinned environment check also passes. New native Linux validation remains
+pending; the branch is committed locally and has not been pushed.
 
 At `f22153c`, the integrated exporter passed 12 tests, runner contracts passed,
 graph execution/rejection passed 16 tests, and forced multi-language recovery
 passed its acceptance test. Handoff found one fixture-environment issue: reused
 MSBuild workers changed NuGet config paths between the conditional-edge baseline
-and regenerated build. This is being fixed with a dedicated CLI home and worker
-reuse disabled; the final handoff rerun remains required. Logs are retained in
+and regenerated build. The fix uses a dedicated CLI home for every preparation child and disables
+worker reuse. The conditional regression passed in integration (25.276 seconds),
+and runner contracts immediately followed by all six discovery tests passed in
+the handoff worktree (93.889 seconds). The four direct handoff tests had already
+passed in integration. No production behavior changed in this test-helper fix. Logs are retained in
 `artifacts/parallel-regression` in the integration worktree.

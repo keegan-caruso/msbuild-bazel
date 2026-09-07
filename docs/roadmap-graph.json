@@ -392,5 +392,11 @@
       "workstream": "release",
       "scope": "Full local/remote endpoint; release checklist also verifies documentation, reproducible installs and versioned contracts. Broad optional tracks can be deferred explicitly."
     }
-  ]
+  ],
+  "progress": {
+    "linux": "Existing baseline CI passed; combined revision CI pending.",
+    "cache": "Eight scoped native macOS tests pass; combined Linux pending.",
+    "handoff": "Native macOS discovery and forced-consumption controls pass; combined Linux pending.",
+    "languages": "Native macOS composition, edits and forced cache recovery pass; Linux and broader harness gates pending."
+  }
 }
