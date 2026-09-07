@@ -118,8 +118,10 @@ jobs:
       - uses: actions/checkout@v4
       - name: Install pinned tools
         run: bash scripts/setup.sh
-      - name: Configured-node semantics and execution
+      - name: Ordinary configured-node semantics
         run: python3 -m unittest discover -s tests/configured_nodes -v
+      - name: Configured-node execution and recovery
+        run: python3 -m unittest discover -s tests/configured_execution -v
       - name: Retain configured-node evidence
         if: always()
         uses: actions/upload-artifact@v4
@@ -128,8 +130,9 @@ jobs:
           path: |
             /tmp/configured-baseline-*/**/*.log
             /tmp/configured-baseline-*/**/*.json
-            /tmp/configured-adapter-*/**/*.log
-            /tmp/configured-adapter-*/**/*.json
+            /tmp/configured-execution-*/probe/*.log
+            /tmp/configured-execution-*/probe/*.json
+            /tmp/configured-execution-*/probe/evidence/**
           if-no-files-found: ignore
   lifecycle:
     runs-on: ubuntu-22.04

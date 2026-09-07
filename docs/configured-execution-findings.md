@@ -64,3 +64,7 @@ passing adapter evidence. The fixture in this record selects Multi itself.
 Full outer graph execution, default transitive configured semantics, solution/SDK
 extensions, arbitrary configurations, Serilog, cross-platform reuse and remote
 support remain outside the selected-inner measured boundary.
+
+The integrated selected-inner implementation also passed all 12 existing
+handoff/discovery tests at `eebbc12` on native macOS (126.310 seconds). This
+regression run predates the broader configured-path implementation.
