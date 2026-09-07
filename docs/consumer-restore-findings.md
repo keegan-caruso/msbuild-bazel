@@ -60,7 +60,7 @@ stack rather than recursion.
 NuGet's ProjectSpec map is keyed by project path. If same-path configured nodes
 have different direct package requests, it cannot unambiguously represent both;
 that shape rejects `unsupported-configured-restore`. Package-free configured
-variants remain valid. Nondefault ProjectReference asset filters and
+variants remain valid. Explicit ProjectReference PrivateAssets/IncludeAssets/ExcludeAssets metadata and
 ReferenceOutputAssembly=false reject explicitly in this restore-validation slice.
 The existing configured Flavor metadata remains supported; no equality of all
 transitive package versions or broad NuGet compatibility is claimed.
@@ -77,7 +77,20 @@ PrivateAssets/version restores, removed packages, removed project edges, missing
 snapshots, a failed NU1605 restore, and valid differing consumer resolution. Fresh
 exports fail without manifests, attempted replacements do not publish, and original
 plans remain byte-identical. A full successful restore subsequently prepares.
-The 14 exporter regressions also passed in 62.330 seconds after canonical path
-handling was added; this includes independent relocation and selected-inner cases.
-Native configured execution and package regressions are recorded separately after
-running against a stable committed tool revision. No Linux result is claimed here.
+All 14 exporter regressions passed again in 63.256 seconds against the final
+committed implementation, including canonical path aliases, independent relocation
+and selected-inner cases.
+
+With the native sandbox available, also ran:
+
+```sh
+python3 -m unittest discover -s tests/configured_execution -v
+```
+
+Both configured execution tests passed in 71.017 seconds at stable commit
+`38bfb92`, preserving six-node Flavor execution, selective edge convergence,
+byte-identical relocated recovery and selected-inner behavior. Evidence is under
+`/private/var/folders/__/z2sj57556cgfrkvbdznlvdt40000gn/T/` in
+`configured-execution-79anw0qi/probe` (configured graph) and
+`configured-execution-jxzn2bt7/probe` (selected inner). These runs used native
+macOS sandboxing; no Linux result is claimed for this extension.
