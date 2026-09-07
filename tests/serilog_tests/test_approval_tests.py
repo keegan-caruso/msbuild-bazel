@@ -22,3 +22,19 @@ class SerilogApprovalAcceptance(unittest.TestCase):
             self.assertEqual(report['cases'][case]['failed'], 1)
             self.assertEqual(report['cases'][case]['executed'], 1)
         print('Ordinary approval test evidence: ' + str(output), flush=True)
+
+
+@unittest.skipUnless(os.environ.get('SPIKE_SERILOG_SOURCE') and os.environ.get('SPIKE_SERILOG_PACKAGES') and
+    os.environ.get('SPIKE_SERILOG_NATIVE_TESTS') == '1', 'requires opt-in native test action qualification')
+class SerilogNativeApprovalAcceptance(unittest.TestCase):
+    def test_native_one_fact_failure_worksets_and_recovery(self):
+        from probe_serilog_test_adapter import probe
+        output = Path(tempfile.mkdtemp(prefix='serilog-native-tests-')).resolve() / 'probe'
+        report = probe(os.environ['SPIKE_SERILOG_SOURCE'], os.environ['SPIKE_SERILOG_PACKAGES'], output)
+        self.assertTrue(report['accepted'])
+        self.assertEqual(set(report['rejections']), {'missing-source','changed-source','missing-package','changed-package','missing-testdata'})
+        self.assertEqual(report['cases']['cold']['result']['passed'], 1)
+        self.assertEqual(report['cases']['relocated']['result']['passed'], 1)
+        self.assertTrue(report['cases']['relocated']['testExecuted'])
+        self.assertTrue(report['cases']['relocated']['producerStateAbsentBeforeBuild'])
+        print('Native approval test evidence: ' + str(output), flush=True)

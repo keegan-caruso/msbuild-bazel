@@ -16,3 +16,17 @@ set to prevent an interactive diff application on failure.
 
 Native Bazel test-action acceptance and producer-free relocation are being
 qualified separately. Ordinary results alone do not establish either behavior.
+
+On macOS ARM64 SDK 10.0.100, the ordinary opt-in test passed in 5.684 seconds,
+covering all four real test invocations. Evidence is retained at
+`/private/var/folders/__/z2sj57556cgfrkvbdznlvdt40000gn/T/serilog-test-ordinary-nd_y_iwp/probe`,
+with harness log `/private/tmp/serilog-test-ordinary-suite.log`.
+
+`tools/probe_serilog_test_adapter.py` defines the pending native qualification:
+real `bazel test`, retained standard test outputs/TRX, exact project build
+worksets, test-data-only and runtime exception failures, and producer-free
+relocation with forced test execution after build bundle disk-cache recovery.
+It also requires missing/changed source/package and missing approval data to
+reject preparation without publication. Enable the opt-in suite with
+`SPIKE_SERILOG_NATIVE_TESTS=1`; these assertions are not passing evidence until
+run against the integrated test rule and downstream framework implementation.
