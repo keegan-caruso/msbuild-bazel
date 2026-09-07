@@ -30,3 +30,18 @@ The Bazel test is explicitly skipped without the pinned Nix SDK/import files and
 Bazel override; that skip is not qualification. Integrated exporter-to-preparation
 and native Serilog validation remain separate tests. No Linux qualification is
 claimed; the user has deferred Linux validation.
+
+## Import text encoding parity
+
+The broader import inventory exposed UTF-8 BOMs and CRLF line endings in SDK
+imports. Python's default text reader translated CRLF and retained a UTF-8 BOM,
+while .NET File.ReadAllText preserves line endings and consumes encoding BOMs.
+Preparation now decodes the hashed import bytes using matching UTF-8/16/32 BOM
+selection and preserves newlines. Only hash normalization changes; action restore
+staging and runtime policy are unchanged.
+
+The focused preparation regression verifies the hash boundary with CRLF in UTF-8,
+UTF-8 BOM, UTF-16 little/big-endian and UTF-32 little/big-endian input, including
+workspace path normalization. All seventeen preparation tests pass. The original
+integrated package-suite failure involved the SDK WorkloadManifest.targets import;
+full native compatibility is rerun separately after this correction.

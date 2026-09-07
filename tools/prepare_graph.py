@@ -55,6 +55,17 @@ def dependency_closures(nodes):
     return closures
 
 
+def read_import_text(path):
+    """Match File.ReadAllText BOM detection without universal-newline rewriting."""
+    data = path.read_bytes()
+    for marker, encoding in ((b'\xff\xfe\x00\x00', 'utf-32'), (b'\x00\x00\xfe\xff', 'utf-32'),
+                             (b'\xff\xfe', 'utf-16'), (b'\xfe\xff', 'utf-16'),
+                             (b'\xef\xbb\xbf', 'utf-8-sig')):
+        if data.startswith(marker):
+            return data.decode(encoding, errors='replace')
+    return data.decode('utf-8', errors='replace')
+
+
 def nix_imports(inputs, sdk_root):
     """Declare only exporter-discovered Nix imports for a Nix-hosted SDK."""
     paths = set()
@@ -144,7 +155,7 @@ def _prepare(workspace, manifest, output, *, environment=None):
             raise ValueError('unsupported declared obj input: ' + item['path'])
         contents = source.read_bytes()
         if item['kind'] == 'restore' or (item['kind'] == 'import' and source.suffix.lower() in ('.json', '.props', '.targets', '.xml', '.proj', '.csproj')):
-            text = source.read_text()
+            text = read_import_text(source)
             if source.name == 'project.nuget.cache':
                 cache = json.loads(text)
                 if 'dgSpecHash' in cache: cache['dgSpecHash'] = '$NORMALIZED'
