@@ -64,7 +64,10 @@ def probe(output, scope='inner'):
 
     def build(generated, graph, name, **extra):
         execution = output / (name + '-execution.json')
-        bazel(generated, name, ['build', '//:all', '--disk_cache=' + str(cache),
+        # Request every node so recovered dependency bundle bytes are materialized,
+        # even when a cached entry action no longer needs its inputs locally.
+        targets = ['//:node_' + node['id'] for node in graph['nodes']]
+        bazel(generated, name, ['build', '//:all', *targets, '--disk_cache=' + str(cache),
             '--spawn_strategy=' + strategy, '--strategy=MsbuildProject=' + strategy,
             '--jobs=2', '--noshow_progress', '--color=no', '--curses=no',
             '--execution_log_json_file=' + str(execution)])
