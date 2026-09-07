@@ -1,0 +1,64 @@
+name: Starlark baseline
+on:
+  pull_request:
+  push:
+    branches: [main, 'codex/starlark-core']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  starlark-core:
+    # Active acceptance lane; Linux qualification remains deferred.
+    runs-on: macos-15
+    timeout-minutes: 45
+    env:
+      TMPDIR: ${{ runner.temp }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: cachix/install-nix-action@b85815f71a6de0ddee80b8a80a98d43f4bcc66c7 # v31
+        with:
+          extra_nix_config: |
+            experimental-features = nix-command flakes
+      - name: Acquire pinned Buildifier
+        run: nix develop --no-update-lock-file -c python3 scripts/setup-starlark.py
+      - name: Check tracked Starlark and pinned tools
+        run: nix develop --no-update-lock-file -c bash scripts/check.sh
+      - name: Analysis, generated workspace and repository contracts
+        run: nix develop --no-update-lock-file -c python3 -m unittest discover -s tests/starlark -v
+      - name: Existing SDK repository controls
+        run: nix develop --no-update-lock-file -c python3 -m unittest discover -s tests/sdk_repository -v
+      - name: Native explicit-adapter generation and cache acceptance
+        run: nix develop --no-update-lock-file -c python3 -m unittest discover -s tests/starlark_native -v
+      - name: Generated build-package rejection regression
+        run: nix develop --no-update-lock-file -c python3 -m unittest discover -s tests/e2e -p test_bazel_boundary.py -k test_pinned_package_inputs -v
+      - name: Generated binary-package rejection regression
+        run: nix develop --no-update-lock-file -c python3 -m unittest discover -s tests/e2e -p test_binary_packages.py -v
+      - name: Native graph cache and replay controls
+        run: nix develop --no-update-lock-file -c python3 -m unittest discover -s tests/graph_cache -v
+      - name: Graph discovery and forced replay controls
+        run: nix develop --no-update-lock-file -c python3 -m unittest discover -s tests/graph_handoff -v
+      - name: Retain evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: starlark-core-evidence
+          path: |
+            ${{ runner.temp }}/starlark-core-*/*.log
+            ${{ runner.temp }}/starlark-core-*/generated/BUILD.bazel
+            ${{ runner.temp }}/starlark-core-*/generated/MODULE.bazel
+            ${{ runner.temp }}/starlark-repository-*/*.log
+            ${{ runner.temp }}/starlark-explicit-*/probe/*.log
+            ${{ runner.temp }}/starlark-explicit-*/probe/report.json
+            ${{ runner.temp }}/starlark-explicit-*/probe/workspace/BUILD.bazel
+            ${{ runner.temp }}/starlark-explicit-*/probe/workspace/MODULE.bazel
+            ${{ runner.temp }}/msbuild-graph-cache-*/probe/*.log
+            ${{ runner.temp }}/msbuild-graph-cache-*/probe/*.json
+            ${{ runner.temp }}/msbuild-graph-cache-*/probe/evidence/**
+            ${{ runner.temp }}/graph-handoff-*/**/*.json
+            ${{ runner.temp }}/graph-handoff-*/**/*.log
+            ${{ runner.temp }}/graph-discovery-*/**/*.json
+            ${{ runner.temp }}/graph-discovery-*/**/*.log
+            ${{ runner.temp }}/msbuild-e2e-bazel-*/probe/*.log
+            ${{ runner.temp }}/msbuild-e2e-binary-*/probe/*.log
+            ${{ runner.temp }}/msbuild-e2e-binary-*/probe/report.json
+          if-no-files-found: ignore

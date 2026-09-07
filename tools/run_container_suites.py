@@ -12,7 +12,7 @@ import unittest
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--output', required=True, type=Path)
-    parser.add_argument('suites', nargs='+', choices=['graph', 'graph-execution', 'e2e'])
+    parser.add_argument('suites', nargs='+', choices=['graph', 'graph-execution', 'e2e', 'starlark', 'starlark-native', 'sdk-repository', 'graph-cache', 'graph-handoff', 'bootstrap'])
     args = parser.parse_args()
     args.output.mkdir(parents=True, exist_ok=True)
     root = Path(__file__).resolve().parents[1]
@@ -51,7 +51,7 @@ def main():
         excluded = {'.tools', '.cache', 'bin', 'obj', 'disk-cache', 'bazel-base',
                     'second-bazel-base', 'bazel-user', 'external', 'execroot'}
         for candidate in Path('/tmp').iterdir():
-            if not candidate.is_dir() or not candidate.name.startswith(('msbuild-', 'graph-')):
+            if not candidate.is_dir() or not candidate.name.startswith(('msbuild-', 'graph-', 'starlark-')):
                 continue
             for directory, dirs, files in os.walk(candidate, followlinks=False):
                 dirs[:] = [d for d in dirs if d not in excluded and not d.startswith('bazel-')]

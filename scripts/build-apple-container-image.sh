@@ -10,7 +10,7 @@ trap 'rm -rf "$context_dir"' EXIT
 mkdir "$context_dir/scripts"
 cp "$repo_root/containers/toolchain.Dockerfile" "$context_dir/Dockerfile"
 cp "$repo_root/global.json" "$repo_root/.bazelversion" "$context_dir/"
-for name in setup.sh setup.py toolchain_pins.py toolchains.json env.sh check.sh dotnet.sh bazel.sh; do
+for name in setup.sh setup.py toolchain_pins.py toolchains.json env.sh check.sh dotnet.sh bazel.sh setup-starlark.py check-starlark.py starlark-tools.json; do
     cp "$repo_root/scripts/$name" "$context_dir/scripts/"
 done
 image_dir="$repo_root/.cache/apple-container/$arch"

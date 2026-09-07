@@ -14,6 +14,7 @@ import subprocess
 import tempfile
 
 import graph_packages
+from starlark import call
 from prepare_graph_tests import add_tests
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -26,6 +27,8 @@ def relative(value):
     result = value.removeprefix('workspace/')
     if not result or Path(result).is_absolute() or '..' in Path(result).parts:
         raise ValueError('unsafe workspace path: ' + value)
+    if any(character in result for character in (':', '\\', '\n', '\r')):
+        raise ValueError('unsupported Bazel workspace path: ' + value)
     return result
 
 
@@ -232,9 +235,18 @@ def _prepare(workspace, manifest, output, *, environment=None, tests=None):
     targets.write_text(targets.read_text().replace('</Project>', '<Target Name="GraphCompileEvidence" BeforeTargets="CoreCompile"><Message Importance="high" Text="SPIKE_COMPILE:$(SPIKE_GRAPH_PROJECT)" /></Target></Project>'))
     for name in ('msbuild.bzl', 'graph.bzl'):
         shutil.copyfile(ROOT / 'bazel' / name, output / name)
-    (output / 'MODULE.bazel').write_text('module(name="msbuild_graph")\nlocal_dotnet_sdk = use_repo_rule("//:msbuild.bzl", "local_dotnet_sdk")\n' + f'local_dotnet_sdk(name="dotnet", path={json.dumps(str(DOTNET_ROOT))}, external_imports={json.dumps(external_imports)})\n')
+    (output / 'MODULE.bazel').write_text('module(name = "msbuild_graph")\n\nlocal_dotnet_sdk = use_repo_rule("//:msbuild.bzl", "local_dotnet_sdk")\n' + call('local_dotnet_sdk', name='dotnet', path=str(DOTNET_ROOT), external_imports=external_imports))
     (output / 'host-identity.json').write_text(json.dumps({'platform': platform.platform(), 'machine': platform.machine(), 'dotnet': str(DOTNET_ROOT), 'policyRevision': 1}))
     (output / 'restore').mkdir()
+    write_build(workspace, graph, output, tests, closures=closures)
+    (output / 'graph.json').write_text(json.dumps(graph, indent=2))
+    return graph
+
+def write_build(workspace, graph, output, tests=None, *, closures=None):
+    """Materialize declarations from an already validated graph."""
+    nodes = {node['id']: node for node in graph['nodes']}
+    if closures is None:
+        closures = dependency_closures(nodes)
     settings = dict(plugin='ReplayPlugin.dll', build_props='runner/Action.props', build_targets='runner/Action.targets', runner='runner/ActionRunner.dll', runner_support=['runner/ActionRunner.deps.json', 'runner/ActionRunner.runtimeconfig.json'], sdk='@dotnet//:files', dotnet='@dotnet//:sdk/dotnet', host_identity='host-identity.json')
     build = 'load(":graph.bzl", "graph_project")\n'
     for identity, node in sorted(nodes.items()):
@@ -274,14 +286,12 @@ def _prepare(workspace, manifest, output, *, environment=None, tests=None):
             shutil.copyfile(workspace / source, target)
         package_manifest, packages = graph_packages.stage(workspace, relative(node['project']), output, identity, relative(node['execution']['assetsFile']) if 'execution' in node else None)
         execution_attrs = dict(assets_file=relative(node['execution']['assetsFile']), output_directories=[relative(node['execution'][key]) for key in ('outputDirectory', 'referenceDirectory')]) if 'execution' in node else {}
-        attrs = dict(settings, **execution_attrs, framework_selections=json.dumps(framework_selections(nodes, closures[identity]), sort_keys=True), global_properties=node['globalProperties'], packages=packages, package_manifest=package_manifest, name='node_' + identity, project=relative(node['project']), srcs=sorted('src/' + s for s in sources), restore=restore, dependencies=[':node_' + d for d in node['dependencies']])
-        build += 'graph_project(\n' + ''.join(f'    {k} = {json.dumps(v)},\n' for k, v in attrs.items()) + ')\n'
-    build += 'filegroup(name="all", srcs=' + json.dumps([':node_' + n for n in graph['entryPoints']]) + ')\n'
+        attrs = dict(settings, **execution_attrs, framework_selections=json.dumps(framework_selections(nodes, closures[identity]), sort_keys=True), global_properties=node['globalProperties'], packages=packages, package_manifest=package_manifest, name='node_' + identity, project=relative(node['project']), srcs=sorted('src/' + s for s in sources), restore=restore, dependencies=[':node_' + d for d in sorted(node['dependencies'])])
+        build += call('graph_project', **attrs)
+    build += call('filegroup', name='all', srcs=[':node_' + n for n in sorted(graph['entryPoints'])])
     build += add_tests(workspace, output, nodes, tests, ROOT)
     if tests: build = 'load(":graph_test.bzl", "graph_test")\n' + build
     (output / 'BUILD.bazel').write_text(build)
-    (output / 'graph.json').write_text(json.dumps(graph, indent=2))
-    return graph
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()

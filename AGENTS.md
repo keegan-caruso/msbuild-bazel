@@ -10,7 +10,8 @@ Explore whether Bazel can schedule/cache individual .NET project builds while MS
 
 - Install or refresh pinned tools: `bash scripts/setup.sh` (network required for missing downloads).
 - Alternative native environment: `nix develop` (flakes enabled), for macOS ARM64 or Linux x86-64; no setup script needed inside the shell.
-- Validate the current scaffold: `bash scripts/check.sh`.
+- Acquire pinned Starlark validation tooling inside Nix: `python3 scripts/setup-starlark.py` (setup.sh does this outside Nix).
+- Validate the current scaffold and tracked Starlark: `bash scripts/check.sh`.
 - Run e2e acceptance tests: `python3 -m unittest discover -s tests/e2e -v` (network access for isolated restore).
 - Run .NET: `bash scripts/dotnet.sh <args>`.
 - Run Bazel: `bash scripts/bazel.sh <args>`.

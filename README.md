@@ -8,7 +8,7 @@ cache. Public-API dependency-result replay works across workspace paths.
 [Action-identity checks](docs/action-identity-findings.md) and
 [pinned build-package inputs](docs/package-input-findings.md) are implemented.
 
-**Active scope:** Further Linux validation is deferred by request. The [R04 Serilog library slice](docs/r04-integration-findings.md) now passes native macOS build, mutation and producer-free relocated cache acceptance; the unchanged upstream approval-test project also passes native build/test, mutation and relocated-cache acceptance ([test findings](docs/serilog-test-acceptance-findings.md)).
+**Active scope:** The Starlark baseline now has local Linux ARM64 evidence through Apple container; further Linux x86-64 CI remains deferred. The [R04 Serilog library slice](docs/r04-integration-findings.md) now passes native macOS build, mutation and producer-free relocated cache acceptance; the unchanged upstream approval-test project also passes native build/test, mutation and relocated-cache acceptance ([test findings](docs/serilog-test-acceptance-findings.md)).
 
 **Platform evidence:** The original nine-test suite, including replay and native
 Bazel sandbox/cache cases, passed on macOS ARM64 and in Ubuntu 22.04 Linux x86-64
@@ -42,7 +42,7 @@ General NuGet compatibility, RID-specific/native package assets, full runtime
 closure, remote-cache correctness and cross-platform portability remain unproven.
 
 The [forward roadmap](docs/roadmap.md) covers R01–R17 from this checkpoint through
-a supported adapter. **Completed:** the three parallel [upstream test tracks](docs/serilog-test-plan.md) pass native macOS acceptance. **Next:** repeated comparative measurements and the next generator/reference-role slice; Linux remains deferred.
+a supported adapter. **Completed:** the three parallel [upstream test tracks](docs/serilog-test-plan.md) pass native macOS acceptance. **Next:** extend the [accepted Starlark baseline](docs/starlark-core-findings.md) to package/configuration/test rules, then qualify the next generator/reference-role slice. Repeated comparative measurements remain open; Linux x86-64 CI remains deferred.
 Later tracks cover specialized SDKs, platform workloads and independent remote
 workers; see the [coverage matrix](docs/scenario-coverage.md) and
 [parallel dependency graph](docs/roadmap-graph.md).
@@ -76,12 +76,13 @@ The flake provides native toolchains for macOS ARM64 (`aarch64-darwin`) and Linu
 
 ```sh
 nix --extra-experimental-features 'nix-command flakes' develop
+python3 scripts/setup-starlark.py
 bash scripts/check.sh
 bash scripts/bazel.sh query //:repo_setup --noshow_progress
 python3 -m unittest discover -s tests/e2e -v
 ```
 
-If flakes are already enabled in your Nix configuration, use `nix develop`, or run a single command with `nix develop -c python3 -m unittest discover -s tests/e2e -v`. No `scripts/setup.sh` step is needed inside this shell. When trying an uncommitted flake before its files are tracked by Git, use `develop path:.` instead of `develop`.
+If flakes are already enabled in your Nix configuration, use `nix develop`, or run a single command with `nix develop -c python3 -m unittest discover -s tests/e2e -v`. No `scripts/setup.sh` step is needed inside this shell. Acquire the separately checksum-pinned Buildifier once with `python3 scripts/setup-starlark.py`; it is validation tooling and is not used by compilation or graph preparation. When trying an uncommitted flake before its files are tracked by Git, use `develop path:.` instead of `develop`.
 
 `flake.lock` locks Nixpkgs to a revision containing .NET SDK 10.0.100 and Bazel 8.4.2. The shell checks those versions against `scripts/toolchains.json`. It uses the upstream binary .NET SDK packaged by Nixpkgs and Nixpkgs' source-built, patched Bazel; that Bazel reports the suffix `- (@non-git)`, which the check script accepts. It is not byte-identical to the Bazel release binary used by setup.
 
@@ -161,10 +162,10 @@ runtime closure and check rejection of incomplete action inputs.
 
 See the [adapter validation strategy](docs/validation.md) for the Bazel test
 layers, acceptance matrix, runnable suites and evidence requirements. It separates
-recorded probe results from planned Starlark quality, rule analysis, generated-workspace
-checks and Bazel version coverage.
+recorded probe results and the [implemented Starlark baseline](docs/starlark-core-findings.md)
+from the remaining package/configuration/test-rule and Bazel-version gates.
 
-`bash scripts/check.sh` checks shell syntax, version-pin consistency, and installed tool versions. It does not run the integration experiments. GitHub Actions separately runs fresh setup, repeated setup, Bazel package loading, and the e2e suite.
+`bash scripts/check.sh` checks shell syntax, version-pin consistency, installed tool versions, and tracked Starlark formatting/lint. It does not run the integration experiments. GitHub Actions separately runs fresh setup, repeated setup, Bazel package loading, and the e2e suite.
 
 ## References
 

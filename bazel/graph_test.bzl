@@ -1,4 +1,5 @@
 """Native VSTest execution consuming sealed graph outputs and declared test data."""
+
 load(":graph.bzl", "GraphBundle")
 
 def _runfile(ctx, file):
@@ -16,17 +17,23 @@ def _graph_test_impl(ctx):
             fail("missing declared test data hash: " + destination)
         data.append({"source": _runfile(ctx, file), "destination": destination, "sha256": ctx.attr.data_hashes[destination]})
     ctx.actions.write(request, json.encode({
-        "schemaVersion": 1, "project": ctx.attr.project, "globalProperties": ctx.attr.global_properties,
+        "schemaVersion": 1,
+        "project": ctx.attr.project,
+        "globalProperties": ctx.attr.global_properties,
         "bundles": [_runfile(ctx, f) for f in bundles.to_list()],
-        "runtimeDirectory": ctx.attr.runtime_directory, "assembly": ctx.attr.assembly,
-        "testData": data, "expectedTests": ctx.attr.expected_tests,
+        "runtimeDirectory": ctx.attr.runtime_directory,
+        "assembly": ctx.attr.assembly,
+        "testData": data,
+        "expectedTests": ctx.attr.expected_tests,
         "sdkRoot": _runfile(ctx, ctx.executable.dotnet).rsplit("/", 1)[0],
         "sourceRoot": "/_/workspace",
     }))
     ctx.actions.write(launcher, "#!/bin/sh\nset -eu\nexec \"$TEST_SRCDIR/" + _runfile(ctx, ctx.executable.dotnet) + "\" \"$TEST_SRCDIR/" + _runfile(ctx, ctx.file.runner) + "\" --request \"$TEST_SRCDIR/" + _runfile(ctx, request) + "\"\n", is_executable = True)
     files = depset(ctx.files.data + ctx.files.runner_support + [ctx.file.runner, ctx.file.host_identity, request, ctx.executable.dotnet], transitive = [bundles, ctx.attr.sdk[DefaultInfo].files])
-    return [DefaultInfo(executable = launcher, runfiles = ctx.runfiles(transitive_files = files)),
-            testing.ExecutionInfo(requirements = {"no-remote": "1"})]
+    return [
+        DefaultInfo(executable = launcher, runfiles = ctx.runfiles(transitive_files = files)),
+        testing.ExecutionInfo(requirements = {"no-remote": "1"}),
+    ]
 
 graph_test = rule(implementation = _graph_test_impl, test = True, attrs = {
     "subject": attr.label(providers = [GraphBundle], mandatory = True),

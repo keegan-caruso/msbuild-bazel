@@ -1,5 +1,15 @@
 # Active platform validation scope
 
+On 2026-09-07 the user requested local Linux validation through the
+[Apple container workflow](apple-container-runbook.md). The Starlark baseline
+now uses a native Linux ARM64 guest alongside the recorded native macOS lane.
+This supersedes the Linux deferral below only for that selected local ARM64
+validation. Linux x86-64 CI, Nix runtime closure and cross-platform cache reuse
+remain separately qualified work. Results are recorded in the
+[Starlark findings](starlark-core-findings.md).
+
+## Earlier decision and evidence
+
 At the user's request on 2026-09-06, defer further Linux validation and
 continue implementation and acceptance on native macOS ARM64. This changes
 milestone scheduling, not the platforms established by previous evidence.
@@ -26,4 +36,5 @@ billing/spending limits. Those attempts are not test failures or passing evidenc
 Automatic push validation for `codex/ready-tracks` is paused in the setup, Nix and
 graph-execution workflows. Main and pull-request checks remain enabled; manual
 setup/Nix/graph-execution runs remain available when Linux validation resumes.
-No new Linux, cross-platform cache, remote-cache or full host-closure claim is made.
+That decision did not establish new Linux, cross-platform cache, remote-cache or
+full host-closure evidence. The later Linux ARM64 results above are separately scoped.

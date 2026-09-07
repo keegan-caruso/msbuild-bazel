@@ -1,5 +1,9 @@
 #!/usr/bin/env bash
 set -euo pipefail
+case "${1:-}" in
+    ''|--toolchain-only) ;;
+    *) echo 'Usage: check.sh [--toolchain-only]' >&2; exit 2 ;;
+esac
 source "$(dirname -- "${BASH_SOURCE[0]}")/env.sh"
 cd "$REPO_ROOT"
 for script in scripts/*.sh; do bash -n "$script"; done
@@ -42,3 +46,8 @@ if [[ "$actual_bazel" != "$expected_bazel" && "$actual_bazel" != "$expected_baze
     exit 1
 fi
 printf 'Environment checks passed (not an MSBuild/Bazel integration test).\n'
+if [[ "${1:-}" == --toolchain-only ]]; then
+    echo 'Toolchain-only check: repository Starlark validation is not included.'
+else
+    python3 scripts/check-starlark.py
+fi

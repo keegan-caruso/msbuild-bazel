@@ -4,19 +4,19 @@ This document maps Bazel's testing facilities to the MSBuild adapter's validatio
 contract. It is a strategy and evidence index, not a Bazel certification or a new
 passing test result. Existing findings retain their recorded platform, fixture
 and toolchain scope. The current experimental pins are Bazel 8.4.2 and .NET SDK
-10.0.100; additional versions require separate evidence. Status was reconciled against
-main at `c81d4ca`; no behavioral experiments were rerun for this documentation
-change. Follow the [active platform scope](platform-validation-scope.md): new
-acceptance is currently on native macOS ARM64, with further Linux validation
-deferred. Earlier Linux results retain their original revision and scope.
+10.0.100; additional versions require separate evidence. The original strategy was reconciled against main at `c81d4ca`. The added
+[R01 baseline findings](starlark-core-findings.md) record subsequent implementation
+and commands separately from that historical checkpoint. Follow the [active platform scope](platform-validation-scope.md): the broader
+acceptance lane is native macOS ARM64, with local Linux ARM64 container evidence
+for the Starlark baseline. Further Linux x86-64 CI remains deferred. Earlier Linux results retain their original revision and scope.
 
 ## Test layers
 
 | Layer | Facility and intended use | Repository status |
 | --- | --- | --- |
-| Starlark quality | Pinned [Buildifier](https://github.com/bazel-contrib/buildtools/blob/main/buildifier/README.md) formatting/lint checks and Skylib unit tests for substantial pure helper logic. | Planned; `scripts/check.sh` currently has no Starlark checks. |
+| Starlark quality | Pinned [Buildifier](https://github.com/bazel-contrib/buildtools/blob/main/buildifier/README.md) formatting/lint checks and Skylib unit tests for substantial pure helper logic. | Implemented by `scripts/check.sh`; pinned Buildifier acquisition and scope are in the [baseline findings](starlark-core-findings.md). |
 | Generated workspaces and repositories | Load and analyze generated BUILD/MODULE files with Bazel; exercise SDK/runtime repository rules in fresh workspaces. | Existing probes exercise baseline workspaces; focused generation and repository-rule gates are specified below. |
-| Rule analysis | [Bazel analysis tests](https://bazel.build/rules/testing), using Skylib, inspect registered actions, inputs, outputs, providers and expected analysis failures without running MSBuild. | Planned for `bazel/msbuild.bzl`, `bazel/graph.bzl` and `bazel/graph_test.bzl`; no analysis-test suite is claimed here. |
+| Rule analysis | [Bazel analysis tests](https://bazel.build/rules/testing), using Skylib, inspect registered actions, inputs, outputs, providers and expected analysis failures without running MSBuild. | Ten Skylib analysis tests cover `bazel/msbuild.bzl` and `bazel/graph.bzl` through `//tests/starlark:core`. The separate `graph_test.bzl` analysis extension remains open. |
 | Real build integration | [rules_bazel_integration_test](https://github.com/bazel-contrib/rules_bazel_integration_test) can run fixture workspaces against selected Bazel versions. | Candidate framework for a future pinned version matrix; migration is not required to retain the current acceptance coverage. Current Python probes already invoke real Bazel and remain the behavioral acceptance source. |
 | Test execution contract | The [Bazel Test Encyclopedia](https://bazel.build/reference/test-encyclopedia) defines the environment for tests run by Bazel. | The [native VSTest rule](test-action-findings.md) runs through `bazel test` with declared runfiles and standard result outputs. The outer Python harness runs outside Bazel; full language-independent test-environment compliance is not claimed. |
 | Bazel engine regression | [Bazel's upstream remote execution tests](https://github.com/bazelbuild/bazel/blob/master/src/test/shell/bazel/remote/remote_execution_test.sh) provide implementation examples and regression controls. | Reference material; running Bazel's own tests is not an adapter acceptance gate. |
@@ -40,17 +40,17 @@ are scheduled in the [dependency graph](roadmap-graph.md#validation-work-package
 R01 owns the shared baseline, R02 packages, R03 configurations/SDK extensions,
 R04 test rules, and R17 the supported-version matrix. Later feature milestones
 extend applicable gates before claiming their new slice.
-No new tools, Bazel test targets or CI checks are implemented by this document.
+The baseline implementation is linked below; package/configuration/test-rule extensions remain separate gates.
 
 | Gate | Scope and required assertions | Entry point and current status |
 | --- | --- | --- |
-| S01: Starlark quality | Pin Buildifier and check formatting plus an explicit lint-warning policy for tracked `.bzl`, BUILD and MODULE files, and materialized generated equivalents. Fail on configured violations; do not silently rewrite files in CI. | Planned check entry point; absent from `scripts/check.sh`. Include both the graph generator and explicit-adapter generator outputs. Exclude downloaded dependencies and Bazel output trees. |
+| S01: Starlark quality | Pin Buildifier and check formatting plus an explicit lint-warning policy for tracked `.bzl`, BUILD and MODULE files, and materialized generated equivalents. Fail on configured violations; do not silently rewrite files in CI. | Implemented: `python3 scripts/setup-starlark.py`, then `bash scripts/check.sh`; use `python3 scripts/check-starlark.py --workspace PATH` for materialized output. Both the graph generator and explicit-adapter generator are checked by the baseline suites. Exclude downloaded dependencies and Bazel output trees. |
 | S02: Helper logic | Use Skylib unit tests for substantial pure Starlark transformations when introduced. Assert meaningful input/output and rejection behavior. | No dedicated suite today. Add only where pure helper logic warrants tests; action registration belongs to S03, repository side effects to S05. |
-| S03: Rule analysis | Analyze Shared/App and diamond targets; assert one `MsbuildProject` compile action per node, declared toolchain/runner/input closure, request-file dependency, separate bundle/diagnostic outputs, providers and dependency bundle closure. Check controlled environment and `block-network`/`no-remote` execution requirements, invalid explicit-rule environment keys and missing required providers. | Planned Skylib analysis suite for [msbuild.bzl](../bazel/msbuild.bzl) and [graph.bzl](../bazel/graph.bzl). Existing execution probes cover some assertions, but no dedicated analysis targets exist. Extend analysis to [graph_test.bzl](../bazel/graph_test.bzl): require declared runfiles, expected tests, data hashes, test executable and no-remote policy; missing data hashes must fail. Unlike compilation, VSTest requires loopback IPC and intentionally omits `block-network`. |
-| S04: Generated-workspace validation | Generate fixtures through preparation, load all intended targets, then inspect configured dependencies and actions using Bazel analysis (`cquery`/`aquery` or analysis tests). Compare observed edges to the independent fixture expectation and exported graph. Exercise supported path/string escaping, stable labels, entry points and deterministic BUILD generation under equivalent manifest ordering; explicitly reject unsupported names. | Partial baseline execution coverage in [test_execute_graph.py](../tests/graph_execution/test_execute_graph.py) and [graph execution findings](graph-execution-findings.md); focused generation/analysis matrix remains planned. Python preparation rejection tests do not substitute for loading generated Starlark. |
-| S05: Repository-rule integration | Exercise `local_dotnet_sdk` and `local_native_runtime` in fresh workspaces/output bases. Verify exported tool files, manifest-derived runtime declarations, unsupported manifest schemas, overrides absent from the manifest and controlled valid overrides. Check changed declarations materialize correctly without stale external-repository state. | Partial measured coverage: `python3 -m unittest discover -s tests/sdk_repository -v` checks optional imports and rejects an empty SDK; see [SDK repository findings](sdk-repository-findings.md). [probe_bazel.py](../tools/probe_bazel.py) also exercises runtime overrides. The remaining runtime-repository rejection/refetch matrix is planned. Requires the applicable installed SDK or Nix runtime slice. |
+| S03: Rule analysis | Analyze Shared/App and diamond targets; assert one `MsbuildProject` compile action per node, declared toolchain/runner/input closure, request-file dependency, separate bundle/diagnostic outputs, providers and dependency bundle closure. Check controlled environment and `block-network`/`no-remote` execution requirements, invalid explicit-rule environment keys and missing required providers. | Implemented Skylib analysis suite (`//tests/starlark:core`) for [msbuild.bzl](../bazel/msbuild.bzl) and [graph.bzl](../bazel/graph.bzl). The ten analysis targets and `tests/starlark` aquery checks cover the baseline; native probes remain required. Extend analysis to [graph_test.bzl](../bazel/graph_test.bzl): require declared runfiles, expected tests, data hashes, test executable and no-remote policy; missing data hashes must fail. Unlike compilation, VSTest requires loopback IPC and intentionally omits `block-network`. |
+| S04: Generated-workspace validation | Generate fixtures through preparation, load all intended targets, then inspect configured dependencies and actions using Bazel analysis (`cquery`/`aquery` or analysis tests). Compare observed edges to the independent fixture expectation and exported graph. Exercise supported path/string escaping, stable labels, entry points and deterministic BUILD generation under equivalent manifest ordering; explicitly reject unsupported names. | Partial baseline execution coverage in [test_execute_graph.py](../tests/graph_execution/test_execute_graph.py) and [graph execution findings](graph-execution-findings.md); the baseline `tests/starlark` suite now loads actual prepared diamond targets, checks edges/actions and escaping, and verifies deterministic emission. Broader configuration/test generation remains open. Python preparation rejection tests do not substitute for loading generated Starlark. |
+| S05: Repository-rule integration | Exercise `local_dotnet_sdk` and `local_native_runtime` in fresh workspaces/output bases. Verify exported tool files, manifest-derived runtime declarations, unsupported manifest schemas, overrides absent from the manifest and controlled valid overrides. Check changed declarations materialize correctly without stale external-repository state. | Partial measured coverage: `python3 -m unittest discover -s tests/sdk_repository -v` checks optional imports and rejects an empty SDK; see [SDK repository findings](sdk-repository-findings.md). [probe_bazel.py](../tools/probe_bazel.py) also exercises runtime overrides. The baseline `tests/starlark/test_repositories.py` now covers runtime schema/override rejection, payload substitution and manifest refresh in reused/fresh output bases. Requires the applicable installed SDK or Nix runtime slice. |
 
-S01–S04 start at Bazel 8.4.2. Use the active native macOS ARM64 lane and record Linux x86-64 separately when
+S01–S04 start at Bazel 8.4.2. The baseline has native macOS ARM64 and local Linux ARM64 evidence; record Linux x86-64 separately when
 that deferred lane resumes; S05 must also identify the setup or Nix
 toolchain and platform. Additional Bazel versions require explicitly pinned runs.
 For each implemented gate, add its exact runnable entry point, CI job, qualified
@@ -111,8 +111,9 @@ bash scripts/dotnet.sh run --project tests/ActionRunner.Tests -c Release
 python3 -m unittest discover -s tests/graph_execution -v
 ```
 
-The scaffold check validates shell/Python syntax and tool pins; it does not
-validate Starlark or run build acceptance. The ordinary e2e command skips the
+The scaffold check validates shell/Python syntax, tool pins and tracked Starlark
+formatting/lint; it does not run build acceptance. Inside Nix, first acquire
+Buildifier with `python3 scripts/setup-starlark.py`. The ordinary e2e command skips the
 native-runtime test unless `SPIKE_NATIVE_RUNTIME_TEST=1` is set, including inside
 an interactive Nix shell. Run that existing focused mode explicitly:
 

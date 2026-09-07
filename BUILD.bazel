@@ -1,5 +1,10 @@
 # Environment scaffold only; this target does not compile .NET.
 filegroup(
     name = "repo_setup",
-    srcs = ["AGENTS.md", "README.md", "global.json", ".bazelversion"],
+    srcs = [
+        ".bazelversion",
+        "AGENTS.md",
+        "README.md",
+        "global.json",
+    ],
 )

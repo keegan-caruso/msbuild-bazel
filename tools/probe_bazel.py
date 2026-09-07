@@ -1,5 +1,6 @@
 """Prepare and measure two explicit Bazel/MSBuild actions with sandboxing."""
 import argparse
+from starlark import call
 import hashlib
 import json
 import os
@@ -136,9 +137,9 @@ def _probe(output, identity, package_mode, staging, native_runtime, binary_packa
     for name in ('Action.props', 'Action.targets'):
         shutil.copyfile(ROOT / 'tools/ActionRunner/Build' / name, workspace / 'runner' / name)
     shutil.copyfile(ROOT / 'bazel/msbuild.bzl', workspace / 'msbuild.bzl')
-    (workspace / 'MODULE.bazel').write_text('module(name="msbuild_fixture")\n'
+    (workspace / 'MODULE.bazel').write_text('module(name = "msbuild_fixture")\n\n'
         'local_dotnet_sdk = use_repo_rule("//:msbuild.bzl", "local_dotnet_sdk")\n'
-        f'local_dotnet_sdk(name="dotnet", path={json.dumps(str(DOTNET.parent.resolve()))})\n')
+         + call('local_dotnet_sdk', name='dotnet', path=str(DOTNET.parent.resolve())))
     runtime = dict(dotnet=str(DOTNET.resolve()))
     if native_runtime:
         closure = runtime_inputs.prepare(workspace, [DOTNET])
@@ -159,7 +160,7 @@ def _probe(output, identity, package_mode, staging, native_runtime, binary_packa
     if native_runtime:
         settings.update(native_runtime='@native//:files', native_manifest='runtime-closure.json')
     def rule(name, project, sources, restore, dependency=None, undeclared_probe=''):
-        attrs = dict(settings, name=name, project=project, srcs=sources, restore=restore,
+        attrs = dict(settings, name=name, project=project, srcs=sorted(sources), restore=restore,
                      undeclared_probe=undeclared_probe)
         if has_packages:
             closure = json.loads((workspace / 'package-manifests' / (project + '.json')).read_text())
@@ -168,7 +169,7 @@ def _probe(output, identity, package_mode, staging, native_runtime, binary_packa
             attrs['package_manifest'] = f'package-manifests/{project}.json'
         if dependency:
             attrs['dependency'] = dependency
-        return 'msbuild_project(\n' + ''.join(f'    {k} = {json.dumps(v)},\n' for k, v in attrs.items()) + ')\n'
+        return call('msbuild_project', **attrs)
     shared_sources = common + ['src/Shared/' + p.name for p in (workspace / 'src/Shared').iterdir() if p.is_file()]
     app_sources = common + ['src/Shared/Shared.csproj'] + ['src/App/' + p.name for p in (workspace / 'src/App').iterdir() if p.is_file()]
     if identity:
@@ -325,8 +326,7 @@ def _probe(output, identity, package_mode, staging, native_runtime, binary_packa
                 raise RuntimeError('package rejection was not observed: ' + name)
         build_file = workspace / 'BUILD.bazel'
         original_build = build_file.read_text()
-        build_file.write_text('\n'.join('    packages = [],' if line.strip().startswith('packages =') else line
-                                        for line in original_build.splitlines()))
+        build_file.write_text(re.sub(r'(?ms)^    packages = \[.*?\],$', '    packages = [],', original_build))
         package_failure('missingPackage')
         build_file.write_text(original_build)
         if binary_packages:

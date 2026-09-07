@@ -45,13 +45,14 @@ feature slices; the graph makes those joins explicit.
 
 ## Milestone map
 
-The active acceptance lane is native macOS ARM64; further Linux validation is
-[deferred by request](platform-validation-scope.md). Historical R01 acceptance
-retains both platforms. “Planned” means prerequisites or contracts are still needed.
+Native macOS ARM64 remains the broader acceptance lane. The Starlark baseline
+also has local Linux ARM64 container evidence; further Linux x86-64 CI remains
+[deferred](platform-validation-scope.md). Historical R01 acceptance retains its
+original platforms. “Planned” means prerequisites or contracts are still needed.
 
 | Milestone | Outcome | Prerequisites | State |
 | --- | --- | --- | --- |
-| R01 | Reliable package-free generated graph and local cache | Existing execution slice | Accepted on native macOS and Linux at c384671; added Starlark baseline gate open |
+| R01 | Reliable package-free generated graph and local cache | Existing execution slice | Historical native macOS/Linux acceptance at c384671; added Starlark baseline accepted on macOS and Linux ARM64 ([findings](starlark-core-findings.md)) |
 | R02 | Managed package closure in generated graph actions | R01 core execution/cache | Selected managed slice accepted on macOS; added package-rule gate open; Linux deferred |
 | R03 | Configured nodes, discovery and entry-point semantics | R01; R02 for package/SDK cases | Selected inner/direct-edge configurations accepted on macOS; added configured-rule gate and broader semantics open |
 | R04 | First real-project adapter acceptance: Serilog | R02, selected R03 configuration support | Selected library and unchanged approval Build/Test accepted on macOS; added test-rule gate, repeated timings and Linux remain open |
@@ -94,10 +95,11 @@ remain the evidence index; this roadmap owns scheduling and acceptance joins.
 | R17 | Pin the supported Bazel/toolchain matrix, run applicable S01–S05 and behavioral regressions per supported combination, and exercise upgrade invalidation. | `bazel_compatibility`: named versions/platforms, commands, CI jobs and result links. Required by local-only as well as full releases; a version-matrix framework is optional. |
 
 Historical acceptance remains scoped to its original revision and assertions.
-The new `starlark_*` and `bazel_compatibility` nodes are open additions; they do
-not erase prior R01–R04 results or inherit a passing status from them. Land the
-shared baseline next, then extend package/configuration/test coverage before
-accepting dependent new feature slices. Use the active macOS lane; Linux remains
+The added `starlark_core` baseline now passes on native macOS and a local Linux ARM64 guest; see its
+[findings](starlark-core-findings.md). `starlark_packages`, `starlark_configured`,
+`starlark_tests` and `bazel_compatibility` remain open additions. These gates do
+not erase prior R01–R04 results or inherit passing status from them. Extend
+package/configuration/test coverage next before accepting dependent new feature slices. Use the qualified local lanes; Linux x86-64 CI remains
 deferred under the [platform scope](platform-validation-scope.md).
 
 ## R01 — Prove generated-graph local correctness and caching

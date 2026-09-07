@@ -33,9 +33,9 @@ cp -a /src/tests/fixtures/two-projects/. /workspace/fixture/
 cd /workspace
 if [[ "${SPIKE_CONTAINER_PREBUILT:-0}" == 1 ]]; then
     echo 'Using prebuilt toolchain; checking repository pins.'
-    bash scripts/check.sh
+    bash scripts/check.sh --toolchain-only
 else
-    bash scripts/setup.sh
+    bash scripts/setup.sh --toolchain-only
 fi
 source scripts/env.sh
 cd /workspace/fixture

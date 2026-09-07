@@ -1,6 +1,8 @@
 """Explicit two-project experiment; restore is prepared before these actions."""
 
-MsbuildBundle = provider(fields = ["directory"])
+# Preserve the existing public provider name.
+# buildifier: disable=name-conventions
+MsbuildBundle = provider(doc = "Published dependency artifacts and replay metadata.", fields = ["directory"])
 
 def _msbuild_project_impl(ctx):
     for key in ctx.attr.build_environment:
@@ -35,9 +37,13 @@ def _msbuild_project_impl(ctx):
         outputs = [output, diagnostics],
         executable = ctx.executable.dotnet,
         arguments = [ctx.file.runner.path, "--request", request.path],
-        env = dict(dict({"PATH": "/usr/bin:/bin", "LANG": "en_US.UTF-8"},
-                        **({"SPIKE_TRACE_RUNTIME": "1"} if ctx.attr.trace_runtime else {})),
-                   **ctx.attr.build_environment),
+        env = dict(
+            dict(
+                {"PATH": "/usr/bin:/bin", "LANG": "en_US.UTF-8"},
+                **({"SPIKE_TRACE_RUNTIME": "1"} if ctx.attr.trace_runtime else {})
+            ),
+            **ctx.attr.build_environment
+        ),
         mnemonic = "MsbuildProject",
         progress_message = "MSBuild %s with dependency replay" % ctx.attr.project,
         execution_requirements = {"block-network": "1", "no-remote": "1"},
@@ -85,7 +91,6 @@ local_dotnet_sdk = repository_rule(
     attrs = {"path": attr.string(mandatory = True), "external_imports": attr.string_list(default = [])},
     local = True,
 )
-
 
 # Derive inputs from the manifest so Bazel hashes the same files the runner validates.
 def _native_runtime_impl(ctx):

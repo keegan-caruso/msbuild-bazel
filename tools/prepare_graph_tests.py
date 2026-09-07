@@ -3,6 +3,7 @@ import hashlib
 import json
 from pathlib import Path
 import shutil
+from starlark import call
 
 
 def add_tests(workspace, output, nodes, tests, root):
@@ -47,7 +48,7 @@ def add_tests(workspace, output, nodes, tests, root):
             runner='test-runner/TestRunner.dll', runner_support=['test-runner/TestRunner.deps.json','test-runner/TestRunner.runtimeconfig.json'],
             host_identity='host-identity.json', sdk='@dotnet//:files', dotnet='@dotnet//:sdk/dotnet',
             size='small', timeout='moderate')
-        build += 'graph_test(\n' + ''.join(f'    {key} = {json.dumps(value)},\n' for key, value in attrs.items()) + ')\n'
+        build += call('graph_test', **attrs)
         declarations.append(dict(node=identity, target='//:test_' + identity, dataHashes=hashes, expectedTests=expected))
     (output / 'tests.json').write_text(json.dumps(dict(schemaVersion=1, tests=declarations), indent=2))
     return build

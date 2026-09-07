@@ -32,6 +32,7 @@ tar -C /src --exclude=.git --exclude=.tools --exclude=.cache --exclude=artifacts
 cd /workspace
 if [[ "${SPIKE_CONTAINER_PREBUILT:-0}" == 1 ]]; then
     echo 'Using prebuilt toolchain; checking repository pins.'
+    python3 scripts/setup-starlark.py
     bash scripts/check.sh
 else
     bash scripts/setup.sh

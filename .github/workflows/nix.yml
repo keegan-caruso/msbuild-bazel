@@ -17,6 +17,8 @@ jobs:
         with:
           extra_nix_config: |
             experimental-features = nix-command flakes
+      - name: Acquire pinned Starlark validation tool
+        run: nix develop --no-update-lock-file -c python3 scripts/setup-starlark.py
       - name: Check pinned tools
         run: nix develop --no-update-lock-file -c bash scripts/check.sh
       - name: Load Bazel scaffold

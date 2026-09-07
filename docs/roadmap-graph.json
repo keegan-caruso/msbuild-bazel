@@ -10,7 +10,8 @@
     "local",
     "packages",
     "configured",
-    "inputs"
+    "inputs",
+    "starlark_core"
   ],
   "nodes": [
     {
@@ -475,7 +476,7 @@
     "scale_synthetic": "Ten-node fan protocol states and chain fresh/warm pass on macOS; 1000-node recursive preparation failure fixed with iterative closures. Larger native execution, aggregate memory and controlled timing remain unmeasured.",
     "inputs": "Accepted pinned Serilog library input slice on macOS: 11 resolved analyzers, exact package/archive integrity, signing/resource/import declarations and native mutation/relocation evidence.",
     "serilog": "Selected unchanged library native build, five ordinary-parity mutations and producer-free disk recovery pass on macOS. Standalone upstream API oracle and unchanged upstream approval Build/Test pass, including test-only invalidation and recovered-artifact execution. Repeated comparative timings remain open; Linux deferred.",
-    "starlark_core": "Open additional validation gate; existing behavioral acceptance does not complete it.",
+    "starlark_core": "Accepted native macOS ARM64 and local Apple-container Linux ARM64 baseline with pinned Buildifier/Skylib, analysis/generated-workspace/repository controls and native cache/discovery/forced-replay regressions. S02 has no applicable pure Starlark helper. Nix-only Linux checks were skipped in the setup guest. See docs/starlark-core-findings.md; Linux x86-64 CI and package/configuration/test-rule extensions remain separate.",
     "starlark_packages": "Open additional validation gate; existing behavioral acceptance does not complete it.",
     "starlark_configured": "Open additional validation gate; existing behavioral acceptance does not complete it.",
     "starlark_tests": "Open additional validation gate; existing behavioral acceptance does not complete it.",

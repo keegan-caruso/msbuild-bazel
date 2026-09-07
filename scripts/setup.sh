@@ -10,4 +10,5 @@ for prerequisite in python3 curl tar; do
     command -v "$prerequisite" >/dev/null || { echo "Missing prerequisite: $prerequisite" >&2; exit 1; }
 done
 python3 scripts/setup.py
-bash scripts/check.sh
+python3 scripts/setup-starlark.py
+bash scripts/check.sh "$@"

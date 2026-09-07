@@ -11,6 +11,7 @@ pass; unchanged approval Test also passes native macOS mutation and recovered-ar
 open until their own scoped acceptance lanes pass. Arrows are acceptance prerequisites, not a
 requirement to delay source inspection, contract design or isolated implementation.
 Every incoming solid edge must pass before accepting that downstream slice.
+The added `starlark_core` baseline now has [native macOS and Linux ARM64 acceptance](starlark-core-findings.md).
 
 The graph covers initial slices, not every optional extension. Scope notes in the
 node table state additional prerequisites for native SQLite, WASM AOT, IDE and
@@ -200,9 +201,9 @@ flowchart TD
   bazel_compatibility --> release
 ```
 
-Existing incoming edges from the other views still apply. Start `starlark_core`
-next; package, selected-configuration and test-rule extensions can follow it
-independently once their existing feature prerequisites pass. New generator,
+Existing incoming edges from the other views still apply. `starlark_core` now
+passes on native macOS and local Linux ARM64. Package, selected-configuration and test-rule extensions
+can proceed independently under their existing feature prerequisites. New generator,
 interceptor and remote-worker acceptance waits for the added relevant joins.
 Other feature packages extend applicable assertions as part of their own exit
 criteria; they do not create retroactive edges into completed historical nodes.
@@ -214,8 +215,9 @@ R01 is accepted at `c384671` on both native lanes. R02 managed packages and
 the selected R03 configured-node slice now satisfy the active macOS prerequisites.
 Linux validation is deferred. The completed R04 library batch delivered the
 following contracts. The next acceptance work includes the open Starlark
-validation nodes above;
-R05 generator/reference-role work can be prepared while their gates are implemented.
+package/configuration/test-rule validation nodes above, following the completed
+[shared baseline](starlark-core-findings.md); R05 generator/reference-role work
+can be prepared while those extension gates are implemented.
 The existing feature contracts are:
 
 | Work package | Immediate deliverable | Primary ownership |

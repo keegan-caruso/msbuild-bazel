@@ -1,0 +1,8 @@
+load(":analysis.bzl", "core_suite")
+
+filegroup(
+    name = "sdk",
+    srcs = ["sdk.txt"],
+)
+
+core_suite(name = "core")

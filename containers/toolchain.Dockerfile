@@ -4,9 +4,9 @@ RUN apt-get update -qq && apt-get install -y -qq \
     python3 curl ca-certificates libicu70 libssl3 zlib1g git \
     && rm -rf /var/lib/apt/lists/*
 WORKDIR /opt/msbuild-bazel-toolchain
-COPY scripts/setup.sh scripts/setup.py scripts/toolchain_pins.py scripts/toolchains.json scripts/env.sh scripts/check.sh scripts/dotnet.sh scripts/bazel.sh ./scripts/
+COPY scripts/setup.sh scripts/setup.py scripts/toolchain_pins.py scripts/toolchains.json scripts/env.sh scripts/check.sh scripts/dotnet.sh scripts/bazel.sh scripts/setup-starlark.py scripts/check-starlark.py scripts/starlark-tools.json ./scripts/
 COPY global.json .bazelversion ./
-RUN bash scripts/setup.sh && rm -rf .cache
+RUN bash scripts/setup.sh --toolchain-only && rm -rf .cache
 ENV SPIKE_DOTNET_ROOT=/opt/msbuild-bazel-toolchain/.tools/dotnet \
     SPIKE_BAZEL=/opt/msbuild-bazel-toolchain/.tools/bin/bazel \
     SPIKE_CONTAINER_PREBUILT=1

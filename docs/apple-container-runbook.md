@@ -135,6 +135,19 @@ bash scripts/test-apple-container-scenarios.sh graph graph-execution
 bash scripts/test-apple-container-scenarios.sh e2e
 ```
 
+The Starlark baseline and its supporting regressions can use the same launcher:
+
+```sh
+bash scripts/test-apple-container-scenarios.sh bootstrap starlark sdk-repository \
+  starlark-native graph-execution graph-cache graph-handoff e2e
+```
+
+`starlark` includes rule analysis, actual generated-workspace loading and SDK/runtime
+repository controls. `starlark-native` checks the explicit generated BUILD files
+and native build/cache behavior. `graph-cache` and `graph-handoff` retain the
+cache, discovery and forced-replay checks. Linux ARM64 results do not qualify
+Linux x86-64 or the Nix runtime closure.
+
 The guest uses 4 CPUs, 6 GB RAM and both protected-path flags from step 4.
 The script excludes host caches, downloaded tools and generated build outputs
 when copying the checkout. Setup runs once, then suites run sequentially;
@@ -212,6 +225,12 @@ Runs copy current source into the guest and check the repository's versions
 and archive checksum stamps against the installed toolchain. A mismatch fails
 with a rebuild instruction. This avoids repeated apt and tool downloads;
 NuGet restore and workspace builds still happen inside each disposable guest.
+
+The source checker supports the copied checkout without `.git`, excluding tool,
+cache and output directories. The prebuilt launcher separately acquires and
+checksum-verifies Buildifier for that guest before the full source check. The
+image build and MSBuild-only smoke use `--toolchain-only` because their minimal
+contexts contain no adapter Starlark; this does not count as source validation.
 
 Rebuild after changing pins or image inputs and reload `SPIKE_CONTAINER_IMAGE`.
 Build logs, image metadata and input hashes live in `.cache/apple-container/arm64`.

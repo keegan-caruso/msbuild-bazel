@@ -6,6 +6,12 @@ Can Bazel cache and schedule configured .NET projects while each action uses MSB
 
 ## Current status and next step
 
+The added R01 [Starlark baseline](starlark-core-findings.md) now passes on native
+macOS and local Linux ARM64: pinned formatting/lint, rule analysis, prepared-workspace and repository
+controls, with cache/discovery/forced-replay regressions retained. Next extend
+`starlark_packages`, `starlark_configured` and `starlark_tests` before accepting
+new generator/reference-role slices. Repeated comparative timings remain open.
+
 The three parallel [upstream test tracks](serilog-test-plan.md) now pass [native macOS acceptance](serilog-test-acceptance-findings.md): unchanged Serilog approval Build/Test, exact failure controls, test-data-only invalidation, and producer-free relocated build recovery followed by actual test execution. The [selected-framework adaptation](selected-framework-findings.md) preserves ordinary SDK reference selection without changing project declarations.
 
 Further Linux validation is deferred by request. The [R04 selected Serilog library](r04-integration-findings.md) now passes native

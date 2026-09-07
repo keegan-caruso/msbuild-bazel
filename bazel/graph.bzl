@@ -1,5 +1,8 @@
 """Generated configured-project actions; restore occurs during preparation."""
-GraphBundle = provider(fields = ["bundles"])
+
+# Preserve the existing public provider name.
+# buildifier: disable=name-conventions
+GraphBundle = provider(doc = "Reachable project bundles for isolated dependency replay.", fields = ["bundles"])
 
 def _graph_project_impl(ctx):
     output = ctx.actions.declare_directory(ctx.label.name + ".bundle")
@@ -18,24 +21,35 @@ def _graph_project_impl(ctx):
         "restore": [f.path for f in ctx.files.restore],
         "packages": [{"source": f.path, "destination": f.short_path.removeprefix("packages/")} for f in ctx.files.packages],
         "package_manifest": ctx.file.package_manifest.path if ctx.file.package_manifest else None,
-        "plugin": ctx.file.plugin.path, "build_props": ctx.file.build_props.path,
+        "plugin": ctx.file.plugin.path,
+        "build_props": ctx.file.build_props.path,
         "build_targets": ctx.file.build_targets.path,
-        "output": output.path, "diagnostics": diagnostics.path,
-        "dependency": None, "undeclared_probe": "", "native_manifest": None, "native_files": [],
+        "output": output.path,
+        "diagnostics": diagnostics.path,
+        "dependency": None,
+        "undeclared_probe": "",
+        "native_manifest": None,
+        "native_files": [],
     }))
     ctx.actions.run(
-        inputs = depset(ctx.files.srcs + ctx.files.restore + ctx.files.packages +
+        inputs = depset(
+            ctx.files.srcs + ctx.files.restore + ctx.files.packages +
             ([ctx.file.package_manifest] if ctx.file.package_manifest else []) + ctx.files.runner_support +
             [request, ctx.file.plugin, ctx.file.runner, ctx.file.build_props, ctx.file.build_targets, ctx.file.host_identity],
-            transitive = [dependencies, ctx.attr.sdk[DefaultInfo].files]),
-        outputs = [output, diagnostics], executable = ctx.executable.dotnet,
+            transitive = [dependencies, ctx.attr.sdk[DefaultInfo].files],
+        ),
+        outputs = [output, diagnostics],
+        executable = ctx.executable.dotnet,
         arguments = [ctx.file.runner.path, "--request", request.path],
         env = {"PATH": "/usr/bin:/bin", "LANG": "en_US.UTF-8"},
-        mnemonic = "MsbuildProject", progress_message = "MSBuild " + ctx.attr.project,
+        mnemonic = "MsbuildProject",
+        progress_message = "MSBuild " + ctx.attr.project,
         execution_requirements = {"block-network": "1", "no-remote": "1"},
     )
-    return [DefaultInfo(files = depset([output, diagnostics])),
-            GraphBundle(bundles = depset([output], transitive = [dependencies]))]
+    return [
+        DefaultInfo(files = depset([output, diagnostics])),
+        GraphBundle(bundles = depset([output], transitive = [dependencies])),
+    ]
 
 graph_project = rule(implementation = _graph_project_impl, attrs = {
     "project": attr.string(mandatory = True),
@@ -43,7 +57,8 @@ graph_project = rule(implementation = _graph_project_impl, attrs = {
     "output_directories": attr.string_list(),
     "framework_selections": attr.string(),
     "global_properties": attr.string_dict(default = {"configuration": "Release"}),
-    "srcs": attr.label_list(allow_files = True), "restore": attr.label_list(allow_files = True),
+    "srcs": attr.label_list(allow_files = True),
+    "restore": attr.label_list(allow_files = True),
     "packages": attr.label_list(allow_files = True),
     "package_manifest": attr.label(allow_single_file = True),
     "dependencies": attr.label_list(providers = [GraphBundle]),
