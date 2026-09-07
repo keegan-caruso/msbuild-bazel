@@ -1,0 +1,13 @@
+{
+  "revision": "49b5339ce85385dc52d4d8e8f2b8308becf23506",
+  "packages": {
+    "publicapigenerator/11.1.0": "ff50293ec8ce4081de95a16428c3229e04c05695820a0bd061304a066bcecef5",
+    "mono.cecil/0.11.5": "9cf1706f35b4f209c28da7417608bed7a307621b0f0179c52258af78bc4668d0",
+    "system.codedom/8.0.0": "bb05618b7c5cbd7ede88e1908bb751113937431d447c7b147dc859b04b68df7f"
+  },
+  "sourceFiles": {
+    "test/Serilog.ApprovalTests/ApiApprovalTests.cs": "e1e91fe0cc9f0176231ad4daf10b12e68c55c7aae42a615bcfa2fe11d3f5b2f3",
+    "test/Serilog.ApprovalTests/Serilog.approved.txt": "ba5f809321f00be804d5ef5839f1654404fc87641a077429edb196ecaf74d1ef",
+    "test/Serilog.ApprovalTests/Serilog.ApprovalTests.csproj": "44c0e9a8b9746b310b89a25622243c09b1b32f03cb0a695d12f316c75b9f1b0c"
+  }
+}
