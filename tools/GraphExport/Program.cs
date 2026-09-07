@@ -4,6 +4,7 @@ using System.Text.Json;
 using Microsoft.Build.Evaluation;
 using Microsoft.Build.Exceptions;
 using Microsoft.Build.Graph;
+using Microsoft.Build.Execution;
 
 return await GraphExporter.RunAsync(args);
 
@@ -122,6 +123,11 @@ internal static class GraphExporter
         var sdks = Path.Combine(sdkRoot, "Sdks");
         if (!File.Exists(msbuild) || !Directory.Exists(sdks))
             throw new ExportException("missing-input", $"SDK {request.SdkVersion} is not present under dotnetRoot");
+        System.Runtime.Loader.AssemblyLoadContext.Default.Resolving += (context, name) =>
+        {
+            var candidate = Path.Combine(sdkRoot, name.Name + ".dll");
+            return File.Exists(candidate) ? context.LoadFromAssemblyPath(candidate) : null;
+        };
         Environment.SetEnvironmentVariable("DOTNET_ROOT", request.DotnetRoot);
         Environment.SetEnvironmentVariable("DOTNET_HOST_PATH", Path.Combine(request.DotnetRoot, "dotnet"));
         Environment.SetEnvironmentVariable("MSBUILD_EXE_PATH", msbuild);
@@ -202,16 +208,6 @@ internal static class GraphExporter
         foreach (var import in EnumerateImports(instance))
             AddInput(request, inputs, "import", import, workspaceOnly: false, normalizeText: IsTextMetadata(import));
 
-        foreach (var item in instance.GetItems("_BazelExportInput"))
-        {
-            var kind = item.GetMetadataValue("Kind");
-            if (string.IsNullOrWhiteSpace(kind)) kind = "extra";
-            var path = item.GetMetadataValue("FullPath");
-            if (string.IsNullOrWhiteSpace(path))
-                path = Path.GetFullPath(item.EvaluatedInclude, Path.GetDirectoryName(instance.FullPath)!);
-            AddInput(request, inputs, kind, path, workspaceOnly: kind is "source" or "resource" or "content" or "additional" or "extra", normalizeText: false);
-        }
-
         var assets = instance.GetPropertyValue("ProjectAssetsFile");
         if (string.IsNullOrWhiteSpace(assets))
             assets = Path.Combine(Path.GetDirectoryName(instance.FullPath)!, "obj", "project.assets.json");
@@ -220,6 +216,43 @@ internal static class GraphExporter
         AddInput(request, inputs, "restore", assets, workspaceOnly: true, normalizeText: true);
         AddRestoreSidecar(request, inputs, assets, "project.nuget.cache");
         AddRestoreSidecar(request, inputs, assets, Path.GetFileNameWithoutExtension(instance.FullPath) + ".csproj.nuget.dgspec.json");
+
+        // Resolve SDK/package analyzer items in a disposable instance. No compilation
+        // target runs, and the evaluated graph identity/restore contract stays intact.
+        using var manager = new BuildManager();
+        var discoveryLog = new StringBuilder();
+        var resolution = manager.Build(new BuildParameters { EnableNodeReuse = false, MaxNodeCount = 1, Loggers = [new Microsoft.Build.Logging.ConsoleLogger(Microsoft.Build.Framework.LoggerVerbosity.Minimal, text => discoveryLog.Append(text), null, null)] },
+            new BuildRequestData(instance.DeepCopy(), ["BazelGraphExportContract"], null,
+                BuildRequestDataFlags.ProvideProjectStateAfterBuild));
+        if (resolution.OverallResult != BuildResultCode.Success || resolution.ProjectStateAfterBuild is null)
+            throw new ExportException("input-discovery-failed", "SDK input resolution failed: " + instance.FullPath + "\n" + discoveryLog);
+        var resolved = resolution.ProjectStateAfterBuild;
+        // Framework processing adds implicit SDK PackageReferences (e.g. ILLink).
+        // Restore checks must use those same evaluated SDK requests in every node.
+        foreach (var item in instance.GetItems("PackageReference").ToArray()) instance.RemoveItem(item);
+        foreach (var item in resolved.GetItems("PackageReference"))
+            instance.AddItem("PackageReference", item.EvaluatedInclude,
+                item.Metadata.Select(metadata => new KeyValuePair<string, string>(metadata.Name, metadata.EvaluatedValue)));
+        if (string.Equals(instance.GetPropertyValue("SignAssembly"), "true", StringComparison.OrdinalIgnoreCase) &&
+            string.IsNullOrWhiteSpace(instance.GetPropertyValue("AssemblyOriginatorKeyFile")))
+            throw new ExportException("unsupported-signing", "signed builds require an explicit signing key file");
+        foreach (var item in resolved.GetItems("_BazelExportInput"))
+        {
+            var kind = item.GetMetadataValue("Kind");
+            if (string.IsNullOrWhiteSpace(kind)) kind = "extra";
+            var path = item.GetMetadataValue("FullPath");
+            if (string.IsNullOrWhiteSpace(path))
+                path = Path.GetFullPath(item.EvaluatedInclude, Path.GetDirectoryName(instance.FullPath)!);
+            AddInput(request, inputs, kind, path, workspaceOnly: kind is "source" or "resource" or "content" or "additional" or "extra" or "signing" or "editorconfig", normalizeText: false);
+            if (kind is "resource" or "additional")
+            {
+                var logical = NormalizeInputPath(request, path, workspaceOnly: true);
+                var metadata = new SortedDictionary<string, string>(StringComparer.Ordinal);
+                foreach (var name in new[] { "LogicalName", "ManifestResourceName", "Link", "DependentUpon", "WithCulture", "Culture" })
+                    if (item.GetMetadataValue(name) is { Length: > 0 } value) metadata[name] = value;
+                inputs[(kind, logical)] = inputs[(kind, logical)] with { Metadata = metadata };
+            }
+        }
 
         using (var assetsDocument = JsonDocument.Parse(File.ReadAllText(assets)))
         {
@@ -288,7 +321,10 @@ internal static class GraphExporter
             outputs.Values.OrderBy(o => o.Path, StringComparer.Ordinal).ThenBy(o => o.Kind, StringComparer.Ordinal).ToList(),
             new ExecutionRecord(NormalizeWorkspaceRelative(request, assets),
                 NormalizeWorkspaceRelative(request, Path.GetDirectoryName(instance.GetPropertyValue("TargetPath"))!),
-                NormalizeWorkspaceRelative(request, Path.GetFullPath(Path.Combine(instance.GetPropertyValue("IntermediateOutputPath"), "ref"), Path.GetDirectoryName(instance.FullPath)!))));
+                NormalizeWorkspaceRelative(request, Path.GetFullPath(Path.Combine(instance.GetPropertyValue("IntermediateOutputPath"), "ref"), Path.GetDirectoryName(instance.FullPath)!))),
+            new DiscoveryRecord(instance.GetPropertyValue("SignAssembly").Equals("true", StringComparison.OrdinalIgnoreCase),
+                instance.GetPropertyValue("PublicSign").Equals("true", StringComparison.OrdinalIgnoreCase),
+                instance.GetPropertyValue("DelaySign").Equals("true", StringComparison.OrdinalIgnoreCase)));
     }
 
     internal static string CanonicalDirectory(string path)
@@ -495,8 +531,10 @@ internal sealed class EntryRequest
 }
 
 internal sealed record ToolchainRecord(string SdkVersion, string GraphEngine, int ContractVersion);
-internal sealed record InputRecord(string Kind, string Path, string Sha256);
+internal sealed record InputRecord(string Kind, string Path, string Sha256, SortedDictionary<string, string>? Metadata = null);
 internal sealed record OutputRecord(string Kind, string Path);
-internal sealed record NodeRecord(string Id, string Project, SortedDictionary<string, string> GlobalProperties, string TargetFramework, string OutputType, List<string> Dependencies, List<InputRecord> Inputs, List<OutputRecord> Outputs, ExecutionRecord Execution);
+internal sealed record NodeRecord(string Id, string Project, SortedDictionary<string, string> GlobalProperties, string TargetFramework, string OutputType, List<string> Dependencies, List<InputRecord> Inputs, List<OutputRecord> Outputs, ExecutionRecord Execution, DiscoveryRecord Discovery);
 internal sealed record ExecutionRecord(string AssetsFile, string OutputDirectory, string ReferenceDirectory);
 internal sealed record Manifest(int SchemaVersion, ToolchainRecord Toolchain, List<string> EntryPoints, List<InputRecord> GraphInputs, List<NodeRecord> Nodes, List<EntryRequest> EntryRequests);
+
+internal sealed record DiscoveryRecord(bool SignAssembly, bool PublicSign, bool DelaySign);

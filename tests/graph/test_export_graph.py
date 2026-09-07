@@ -81,6 +81,54 @@ class GraphExportAcceptance(unittest.TestCase):
         self.assertTrue(json.loads(result.stdout)["ok"])
         return json.loads(output.read_text())
 
+    def test_resolved_inputs_preserve_signing_resource_and_analyzer_contract(self):
+        project = self.work / "src/Shared/Shared.csproj"
+        text = '<Project Sdk="Microsoft.NET.Sdk"></Project>'.replace("</Project>", '<PropertyGroup><SignAssembly Condition="Exists(\'$(MSBuildThisFileDirectory)key.snk\')">true</SignAssembly><AssemblyOriginatorKeyFile>key.snk</AssemblyOriginatorKeyFile></PropertyGroup><ItemGroup><EmbeddedResource Include="payload.xml"><LogicalName>Example.Payload</LogicalName></EmbeddedResource><AdditionalFiles Include="generator.txt" /><Analyzer Include="local-analyzer.dll" /></ItemGroup><Target Name="MustNotCompile" BeforeTargets="CoreCompile"><Error Text="discovery compiled" /></Target></Project>')
+        project.write_text(text)
+        folder = project.parent
+        (folder / "key.snk").write_bytes(b"discovery-only-key")
+        (folder / "payload.xml").write_text("<root />")
+        (folder / "generator.txt").write_text("option")
+        (folder / "local-analyzer.dll").write_bytes(b"discovery-only-analyzer")
+        (self.work / ".editorconfig").write_text("root = true\n[*.cs]\nindent_size = 4\n")
+        self.restore()
+        graph = self.export()
+        node = next(n for n in graph["nodes"] if n["project"].endswith("Shared.csproj"))
+        by_kind = {}
+        for item in node["inputs"]:
+            by_kind.setdefault(item["kind"], []).append(item)
+        self.assertTrue(node["discovery"]["signAssembly"])
+        self.assertEqual(by_kind["resource"][0]["metadata"]["LogicalName"], "Example.Payload")
+        self.assertTrue(by_kind["signing"])
+        self.assertTrue(by_kind["editorconfig"])
+        self.assertTrue(by_kind["additional"])
+        self.assertTrue(by_kind["analyzer"], "SDK analyzer items must be resolved")
+        ordinary = subprocess.run([str(self.dotnet_root / "dotnet"), "msbuild", str(project),
+            "-t:ResolveReferences", "-getItem:Analyzer", "-p:Configuration=Release",
+            "-p:BuildProjectReferences=false", "-nodeReuse:false", "-nologo"],
+            cwd=self.work, text=True, capture_output=True)
+        self.assertEqual(ordinary.returncode, 0, ordinary.stdout + ordinary.stderr)
+        expected = {Path(item["FullPath"]).name for item in json.loads(ordinary.stdout)["Items"]["Analyzer"]}
+        self.assertEqual({Path(item["path"]).name for item in by_kind["analyzer"]}, expected)
+
+        self.assertFalse(list(folder.glob("bin/**/*.dll")), "discovery compiled the project")
+        original_analyzer = next(i for i in by_kind["analyzer"] if i["path"].endswith("local-analyzer.dll"))
+        (folder / "local-analyzer.dll").write_bytes(b"altered-analyzer")
+        changed = self.export()
+        changed_node = next(n for n in changed["nodes"] if n["project"].endswith("Shared.csproj"))
+        changed_analyzer = next(i for i in changed_node["inputs"] if i["path"].endswith("local-analyzer.dll"))
+        self.assertNotEqual(original_analyzer["sha256"], changed_analyzer["sha256"])
+        (folder / "local-analyzer.dll").unlink()
+        self.export(error="missing-input")
+        (folder / "local-analyzer.dll").write_bytes(b"discovery-only-analyzer")
+        (folder / "key.snk").unlink()
+        graph = self.export()
+        node = next(n for n in graph["nodes"] if n["project"].endswith("Shared.csproj"))
+        self.assertFalse(node["discovery"]["signAssembly"])
+        self.assertFalse(any(i["kind"] == "signing" for i in node["inputs"]))
+        project.write_text(text.replace('Condition="Exists(\'$(MSBuildThisFileDirectory)key.snk\')"', ''))
+        self.export(error="missing-input")
+
     def test_restore_from_other_configured_directory_is_rejected(self):
         self.restore()
         path = self.work / "src/Shared/obj/project.assets.json"
