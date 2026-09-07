@@ -77,7 +77,8 @@ def _sdk_impl(ctx):
         if not ctx.attr.path.startswith("/nix/store/") or not path.startswith("/nix/store/") or ".." in path.split("/"):
             fail("external_imports require explicit Nix SDK import paths")
         ctx.symlink(path, "imports/" + str(index))
-    ctx.file("BUILD.bazel", 'filegroup(name="files", srcs=glob(["sdk/**", "imports/**"], exclude=["sdk/**/BUILD", "sdk/**/BUILD.bazel"]), visibility=["//visibility:public"])\nexports_files(["sdk/dotnet"])\n')
+    patterns = ["sdk/**"] + (["imports/**"] if ctx.attr.external_imports else [])
+    ctx.file("BUILD.bazel", 'filegroup(name="files", srcs=glob(' + json.encode(patterns) + ', exclude=["sdk/**/BUILD", "sdk/**/BUILD.bazel"], allow_empty=False), visibility=["//visibility:public"])\nexports_files(["sdk/dotnet"])\n')
 
 local_dotnet_sdk = repository_rule(
     implementation = _sdk_impl,
