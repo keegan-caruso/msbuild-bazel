@@ -60,6 +60,13 @@ The managed binary-package milestone has a test-first
 cache, relocation, upgrade and rejection evidence. Broader NuGet behavior is
 still outside this measured boundary.
 
+## Upstream issue coverage
+
+The [rules_dotnet issue review](rules-dotnet-issue-plan.md) maps the current open
+board to milestone owners and turns selected closed fixes into regression gates.
+It includes the full dated issue inventory, next-batch priorities and explicit
+scope decisions. This is research/planning evidence; upstream repros were not run.
+
 ## Forward roadmap
 
 The [forward roadmap](roadmap.md) starts at the implemented generated-graph slice

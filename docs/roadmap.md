@@ -12,6 +12,25 @@ contracts and findings remain the authority for exact behavior and measured
 results. Later milestones are intentionally broader and must be split into
 executable slices before implementation.
 
+## Upstream issue-derived acceptance requirements
+
+The [rules_dotnet issue review](rules-dotnet-issue-plan.md) assigns all 38 open
+issues in the 2026-09-07 snapshot to work-package owners and extracts regression
+requirements from closed histories. Its open-issue table is an acceptance addendum
+for the named milestones, not a claim that those repros currently pass.
+
+Next extend `starlark_packages` with meta-package/native-file selection,
+`starlark_configured` with mixed-framework runtime and SDK-generated input cases,
+and `starlark_tests` with runner versions, nested plugin layout and stale-binary
+controls. R05 owns analyzer conflicts, resource naming and localization; R06/R07
+own local feeds, CPM/locked restore, package-source behavior and publish layout.
+R17 adds fetch/lockfile/execution-group and external-consumer compatibility checks.
+
+The planned R04 `test_coverage` extension follows `starlark_tests` and requires
+collector/PDB closure plus instrumented, source-mapped coverage evidence. R17 must
+explicitly accept or defer it and the Fable/provider extension before release.
+No existing completion status or platform qualification changes in this review.
+
 ## Starting point and historical numbering
 
 | Existing work | Evidence at this checkpoint | What remains |

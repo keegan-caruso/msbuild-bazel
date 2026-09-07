@@ -466,6 +466,16 @@
       ],
       "workstream": "validation",
       "scope": "Pin supported Bazel/toolchain combinations and run applicable S01-S05 plus behavioral regressions and upgrade invalidation. Required for local-only and full releases; version-matrix framework adoption is optional."
+    },
+    {
+      "id": "test_coverage",
+      "milestone": "R04",
+      "label": "Instrumented test coverage extension",
+      "requires": [
+        "starlark_tests"
+      ],
+      "workstream": "validation",
+      "scope": "Pin collector/adapter and transitive PDB closure; actual instrumented execution after build recovery with source-mapped covered/uncovered-line oracle and Bazel-consumable report. Planned; explicit R17 release disposition required. See docs/rules-dotnet-issue-plan.md."
     }
   ],
   "progress": {

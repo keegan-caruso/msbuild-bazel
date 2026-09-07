@@ -178,6 +178,7 @@ flowchart TD
   starlark_packages["R02: Package rule validation"]
   starlark_configured["R03: Configured rule validation"]
   starlark_tests["R04: Test rule validation"]
+  test_coverage["R04: Instrumented test coverage extension"]
   entrypoints["R03: Solution and SDK extensions"]
   generators["R05: Generator APIs and reference roles"]
   interceptors["R05: Interceptor acceptance"]
@@ -191,6 +192,7 @@ flowchart TD
   configured --> starlark_configured
   starlark_core --> starlark_tests
   inputs --> starlark_tests
+  starlark_tests --> test_coverage
   starlark_configured --> entrypoints
   starlark_packages --> generators
   starlark_configured --> generators
@@ -303,6 +305,7 @@ not a claim that Linux execution or generated-graph caching already passes.
 | `starlark_core` | R01 | S01 formatting/lint and applicable S02 helper tests; S03 explicit/diamond build-rule analysis, S04 generated baseline/escaping/determinism and S05 SDK/runtime repository controls. Existing behavior remains independently tested. |
 | `starlark_packages` | R02 | Extend S03/S04 to per-consumer package/restore inputs and generated package targets; retain full cache, PrivateAssets, upgrade and rejection controls for the qualified slice. |
 | `starlark_configured` | R03 | Extend S03/S04 to selected configured identities, output separation, direct edges versus replay closure, discovery refresh and deterministic generated labels. Broader entry-point SDK checks belong to entrypoints. |
+| `test_coverage` | R04 | Planned collector/adapter and transitive PDB closure; instrumented execution after build recovery and source-mapped coverage reports. Requires `starlark_tests`; explicit release disposition. |
 | `starlark_tests` | R04 | S03/S04 graph_test analysis, runfiles/data hashes, expected failures and generated test targets; native expected-count/TRX evidence and forced test execution after build-cache recovery. |
 | `bazel_compatibility` | R17 | Pin supported Bazel/toolchain combinations and run applicable S01-S05 plus behavioral regressions and upgrade invalidation. Required for local-only and full releases; version-matrix framework adoption is optional. |
 | `release` | R17 | Full local/remote endpoint; release checklist also verifies documentation, reproducible installs and versioned contracts. Broad optional tracks can be deferred explicitly. |
@@ -325,3 +328,13 @@ This graph deliberately allows remote validation before web/desktop/Aspire or th
 full runtime repository. Individual workload extensions must still pass local
 acceptance and their own remote closure tests. No timeline or critical-path
 duration is claimed until work packages have estimates.
+
+## Issue-review acceptance addendum
+
+The [upstream issue plan](rules-dotnet-issue-plan.md) attaches concrete regression
+cases to existing node owners without reopening historical measured slices.
+The JSON DAG additionally defines `test_coverage` (R04), requiring `starlark_tests`.
+It covers collector/adapter and transitive PDB inputs, forced instrumented execution
+after recovery, and source-mapped reports. This extension is planned; release scope
+must explicitly accept or defer it. Fable/source-provider support is also explicitly
+deferred in the review. Neither is silently counted as existing test/language support.
