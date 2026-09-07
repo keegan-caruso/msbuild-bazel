@@ -23,6 +23,8 @@ jobs:
         run: python3 -m unittest discover -s tests/e2e -p test_msbuild_replay.py -v
       - name: Configured graph execution acceptance
         run: python3 -m unittest discover -s tests/graph_execution -v
+      - name: Graph handoff and discovery acceptance
+        run: python3 -m unittest discover -s tests/graph_handoff -v
       - name: Package-free generated graph cache acceptance
         run: python3 -m unittest discover -s tests/graph_cache -v
       - name: Retain graph execution evidence
@@ -37,6 +39,9 @@ jobs:
             /tmp/graph-execution-*/**/manifest.json
             /tmp/msbuild-e2e-replay-*/**/*.log
             /tmp/msbuild-e2e-replay-*/**/report.json
-            /tmp/msbuild-graph-cache-*/**/*.log
-            /tmp/msbuild-graph-cache-*/**/*.json
+            /tmp/msbuild-graph-cache-*/probe/*.log
+            /tmp/msbuild-graph-cache-*/probe/*.json
+            /tmp/msbuild-graph-cache-*/probe/evidence/**
+            /tmp/graph-handoff-*/**/*.log
+            /tmp/graph-handoff-*/**/report.json
           if-no-files-found: ignore

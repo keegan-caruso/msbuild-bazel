@@ -126,10 +126,11 @@ the observed runner/replay result; independent raw execution-record auditing is
 limited for this historical artifact. The workflow now retains those JSON files,
 runs the existing public-API replay regression explicitly, and accepts R01 branch
 pushes/manual dispatches. These workflow additions have not themselves run in
-Linux CI yet. R01 handoff tests in `tests/graph_execution` are included by the existing
-discovery command. The parallel cache track narrows `tests/graph_cache` to its
+Linux CI yet. R01 handoff tests have a separate `tests/graph_handoff` discovery step with
+retained logs and reports. The parallel cache track narrows `tests/graph_cache` to its
 package-free R01 acceptance cases; the workflow now runs that discovery command
-and retains its `msbuild-graph-cache-*` logs and JSON evidence. These new gates
+and retains its `msbuild-graph-cache-*` probe logs, JSON and per-case bundle
+evidence so downloaded artifact hashes can be checked independently. These new gates
 require the parallel implementations to be integrated before running.
 
 This closes the existing-execution part of the `linux` work package. It does not
