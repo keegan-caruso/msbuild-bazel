@@ -27,6 +27,7 @@ def probe(source, packages, output):
     strategy = 'darwin-sandbox' if platform.system() == 'Darwin' else 'linux-sandbox'
     base, disk = output / 'bazel-base', output / 'disk-cache'
     stage = 'initialization'
+    data_hashes = {}
 
     def run(label, command, cwd, expected=0):
         result = subprocess.run(list(map(str, command)), cwd=cwd, env=cache_environment(output, cwd),
@@ -90,6 +91,7 @@ def probe(source, packages, output):
                 finally:
                     item.write_bytes(original)
             report['rejections'] = checks
+        data_hashes[label] = {relative: hashlib.sha256((path / relative).read_bytes()).hexdigest() for relative in tests[0]['data']}
         graph = prepare(path, manifest, generated, environment=cache_environment(output, path), tests=tests)
         if len(graph['nodes']) != 2 or {n['targetFramework'] for n in graph['nodes']} != {'net10.0'}:
             raise AssertionError('ordinary selected-inner two-project graph required')
@@ -102,7 +104,7 @@ def probe(source, packages, output):
         run(label + '-bazel', [BAZEL, '--batch', '--nohome_rc', '--noworkspace_rc', '--output_base=' + str(base),
             '--output_user_root=' + str(output / 'bazel-user'), 'test', '//:' + target,
             '--disk_cache=' + str(disk), '--spawn_strategy=' + strategy, '--strategy=MsbuildProject=' + strategy,
-            '--test_strategy=' + strategy, '--cache_test_results=' + ('no' if force else 'yes'),
+            '--cache_test_results=' + ('no' if force else 'yes'),
             '--jobs=2', '--noshow_progress', '--color=no', '--curses=no', '--test_output=errors',
             '--execution_log_json_file=' + str(execution)], generated, expected)
         actions = list(json_stream(execution))
@@ -136,6 +138,23 @@ def probe(source, packages, output):
         results = list((evidence / 'testlogs').rglob('*.trx'))
         if len(results) != 1:
             raise AssertionError('exactly one retained TRX required: ' + str(results))
+        runner_reports = list((evidence / 'testlogs').rglob('report.json'))
+        if len(runner_reports) != 1:
+            raise AssertionError('exactly one test runner report required')
+        runner_report = json.loads(runner_reports[0].read_text())
+        if runner_report.get('buildOrRestoreInvoked') is not False:
+            raise AssertionError('test runner did not enforce no-build/no-restore')
+        command = runner_report['command']
+        if len(command) < 3 or Path(command[0]).name != 'dotnet' or Path(command[1]).name != 'vstest.console.dll':
+            raise AssertionError('test action must directly invoke SDK VSTest')
+        if runner_report['dataHashes'] != data_hashes['cold' if label == 'unchanged' else label]:
+            raise AssertionError('test action data hashes differ from declared current files')
+        if runner_report['total'] != 1 or runner_report['skipped'] != 0:
+            raise AssertionError('test runner report did not execute exactly one Fact')
+        if runner_report['successful'] != (1 if expected == 0 else 0) or runner_report['failed'] != (0 if expected == 0 else 1):
+            raise AssertionError('test runner counts disagree with expected outcome')
+        if bool(runner_report['passed']) != (expected == 0) or (runner_report['exitCode'] == 0) != (expected == 0):
+            raise AssertionError('real test failure did not propagate through runner')
         summary = parse_results(results[0])
         if summary['passed'] != (1 if expected == 0 else 0):
             raise AssertionError('native actual Fact result differs')
@@ -143,7 +162,7 @@ def probe(source, packages, output):
         shutil.copytree(bundle, evidence / 'bundle')
         inventory = {p.relative_to(bundle).as_posix():dict(sha256=hashlib.sha256(p.read_bytes()).hexdigest(),
             executable=bool(p.stat().st_mode & 0o111)) for p in bundle.rglob('*') if p.is_file()}
-        return dict(result=summary, buildActions=[dict(cacheHit=a.get('cacheHit',False),runner=a.get('runner')) for a in builds],
+        return dict(result=summary, runnerReport=runner_report, buildActions=[dict(cacheHit=a.get('cacheHit',False),runner=a.get('runner')) for a in builds],
                     executedProjects=actual_projects, testExecuted=bool(tests), bundleFiles=inventory)
 
     try:
