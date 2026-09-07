@@ -69,3 +69,10 @@ execution, publishing/trimming/AOT, general generators, Linux qualification and
 remote-cache behavior remain separate. Linux validation is deferred by user
 instruction. Shared-worker runs establish correctness, not useful-performance
 thresholds.
+
+The five ordinary mutation oracles were independently exercised while production
+support was pending. All produced the specified observable changes, including
+successful real-consumer loading after the signing token changed, and actual
+removal of IsExternalInit after the generator option changed. Evidence:
+`/private/tmp/msbuild-serilog-ordinary-controls/report.json`. This validates the
+oracles and mutations; it does not qualify their native adapter counterparts.
