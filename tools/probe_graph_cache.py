@@ -83,7 +83,9 @@ Console.WriteLine(Left.Value.Text + "|" + Right.Value.Text + suffix);
 
     cache = output / 'disk-cache'
     base = output / 'bazel-base'
+    bazel_invocations = []
     def bazel(generated, name, command):
+        bazel_invocations.append(name)
         return run(name, [BAZEL, '--batch', '--nohome_rc', '--noworkspace_rc',
             f'--output_base={base}', f'--output_user_root={output / "bazel-user"}', *command], generated)
 
@@ -305,6 +307,92 @@ Console.WriteLine(Left.Value.Text + "|" + Right.Value.Text + suffix);
                 executedProjects=[], publishedPlan=failed_output.exists(), log=log_path.name,
                 manifest=manifest.name, manifestSha256=digest,
                 preservedManifest=hashlib.sha256(manifest.read_bytes()).hexdigest() == digest)
+            shutil.rmtree(package_source)
+        # Re-export is intentionally attempted without restore: recording current
+        # source hashes must not bless stale PackageReference semantics.
+        import xml.etree.ElementTree as ET
+        namespace = 'http://schemas.microsoft.com/developer/msbuild/2003'
+        for name in ('stalePrivateAssets', 'namespacedStaleRestore', 'namespacedUnpinnedVersion'):
+            package_fixture(package_source)
+            graph, baseline_manifest = generate(package_source, package_generated, name + '-baseline')
+            build(package_generated, graph, name + '-baseline')
+            guard_evidence = output / 'guards' / name
+            guard_evidence.mkdir(parents=True)
+
+            def snapshot_plan(retain=False):
+                snapshot = {}
+                for directory, children, files in os.walk(package_generated, followlinks=False):
+                    children[:] = [child for child in children if not (Path(directory) / child).is_symlink()]
+                    for filename in files:
+                        path = Path(directory) / filename
+                        if path.is_symlink(): continue
+                        logical = path.relative_to(package_generated).as_posix()
+                        snapshot[logical] = dict(sha256=hashlib.sha256(path.read_bytes()).hexdigest(),
+                            executable=bool(path.stat().st_mode & 0o111))
+                        if retain:
+                            retained = guard_evidence / 'published-plan' / logical
+                            retained.parent.mkdir(parents=True, exist_ok=True)
+                            shutil.copy2(path, retained)
+                return snapshot
+
+            before_snapshot = snapshot_plan(retain=True)
+            before_snapshot_file = guard_evidence / 'before-plan.json'
+            before_snapshot_file.write_text(json.dumps(before_snapshot, indent=2, sort_keys=True))
+            invocations_before = list(bazel_invocations)
+            original_digest = hashlib.sha256(baseline_manifest.read_bytes()).hexdigest()
+            target = package_source / 'src/Left/Left.csproj'
+            tree = ET.parse(target)
+            reference = tree.getroot().find('.//PackageReference')
+            if name == 'stalePrivateAssets':
+                reference.set('PrivateAssets', 'all')
+            else:
+                reference.set('Version', '[1.0.1]' if name == 'namespacedStaleRestore' else '1.0.0')
+                for element in tree.iter(): element.tag = '{' + namespace + '}' + element.tag
+                ET.register_namespace('', namespace)
+            tree.write(target)
+            shutil.copy2(target, guard_evidence / 'mutated-Left.csproj')
+            refreshed = output / (name + '-fresh-manifest.json')
+            request = output / (name + '-reexport-request.json')
+            request.write_text(json.dumps(dict(schemaVersion=1, workspace=str(package_source),
+                dotnetRoot=str(DOTNET_ROOT), sdkVersion='10.0.100',
+                packageRoot=str(package_source / '.nuget/packages'),
+                entryPoints=[dict(project='build.proj', globalProperties={'Configuration':'Release'})],
+                output=str(refreshed))))
+            environment = cache_environment(output, package_source)
+            result = subprocess.run([str(dotnet), str(ROOT / 'tools/GraphExport/bin/Release/net10.0/GraphExport.dll'),
+                '--request', str(request)], cwd=package_source, env=environment,
+                text=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=300)
+            export_returncode = result.returncode
+            export_log = result.stdout + result.stderr
+            (guard_evidence / 'reexport.log').write_text(export_log)
+            failed_output = output / (name + '-replacement')
+            # Also check the preparation boundary directly against the original
+            # graph; neither entry point may publish or silently reuse a plan.
+            result = subprocess.run([sys.executable, str(ROOT / 'tools/prepare_graph.py'),
+                '--workspace', str(package_source), '--manifest', str(baseline_manifest), '--output', str(failed_output)],
+                cwd=ROOT, env=environment, text=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=300)
+            log = result.stdout + result.stderr
+            (guard_evidence / 'failure.log').write_text(log)
+            if result.returncode == 0 or export_returncode == 0:
+                raise RuntimeError(name + ' blessed stale package semantics during re-export/preparation')
+            after_snapshot = snapshot_plan()
+            after_snapshot_file = guard_evidence / 'after-plan.json'
+            after_snapshot_file.write_text(json.dumps(after_snapshot, indent=2, sort_keys=True))
+            codes = re.findall(r'(?<![\w-])(stale-restore|unsupported-package)(?![\w-])', log)
+            export_codes = re.findall(r'(?<![\w-])(stale-restore|unsupported-package)(?![\w-])', export_log)
+            failures[name] = dict(returncode=result.returncode, exportReturncode=export_returncode,
+                diagnostic=codes[-1] if codes else None, exportDiagnostic=export_codes[-1] if export_codes else None,
+                exportLog=(guard_evidence / 'reexport.log').relative_to(output).as_posix(),
+                executedProjects=[], publishedPlan=failed_output.exists(), freshManifestPublished=refreshed.exists(),
+                log=(guard_evidence / 'failure.log').relative_to(output).as_posix(),
+                manifest=baseline_manifest.name, manifestSha256=original_digest,
+                preservedManifest=hashlib.sha256(baseline_manifest.read_bytes()).hexdigest() == original_digest,
+                existingPlanIntact=before_snapshot == after_snapshot and (package_generated / 'BUILD.bazel').is_file(),
+                beforePlan=before_snapshot_file.relative_to(output).as_posix(),
+                afterPlan=after_snapshot_file.relative_to(output).as_posix(),
+                retainedPlan=(guard_evidence / 'published-plan').relative_to(output).as_posix(),
+                mutatedProject=(guard_evidence / 'mutated-Left.csproj').relative_to(output).as_posix(),
+                bazelInvocationsBefore=invocations_before, bazelInvocationsAfter=list(bazel_invocations))
             shutil.rmtree(package_source)
         report['failures'] = failures
 

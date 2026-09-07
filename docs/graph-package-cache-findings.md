@@ -73,3 +73,34 @@ managed ref/lib package flow; PrivateAssets variants are measured by the
 separate R02 controls. RID/native assets, arbitrary NuGet targets, remote reuse,
 full host closure and cross-platform cache portability remain outside this
 claim. Concurrent runs establish correctness, not performance.
+
+## Stale metadata publication guards
+
+Review reproduced a stale PrivateAssets escape: after an omitted-metadata
+restore, changing Left to `PrivateAssets="all"` and re-exporting without restore
+published a plan that still gave App both package identities. A correct restore
+removed both from App. The reproduction is retained at
+`/private/var/folders/__/z2sj57556cgfrkvbdznlvdt40000gn/T/r02-stale-privateassets-review-5ze3zhfp`.
+The version-only preflight did not establish restore freshness for this supported
+metadata change.
+
+The full probe now adds three independently warmed controls: changed
+PrivateAssets, a changed exact version inside the MSBuild XML namespace, and an
+unpinned version inside that namespace. Each attempts both a fresh export without
+restore and direct preparation with the previous manifest. Expected diagnostics
+are `stale-restore`, `stale-restore` and `unsupported-package`, respectively.
+Neither attempt may publish a fresh graph or replacement plan, and no Bazel
+invocation follows either rejection.
+
+Each control retains the mutated project, both raw rejection logs, original
+manifest hash, and every regular file in the previously published preparation.
+Before/after plan snapshots include content hashes and executable flags; the
+suite checks their equality and independently hashes retained bytes. A recorded
+Bazel invocation ledger must remain unchanged after the warm baseline. These
+checks prevent reporting a rejected replacement while silently consuming or
+damaging an earlier plan.
+
+The additional guard method brings full-suite coverage to 13 test methods.
+Python syntax and whitespace checks pass. The new controls await the production
+restore-semantic fix and an integrated native run; the earlier 12-test passing
+record above predates these additional guards.
