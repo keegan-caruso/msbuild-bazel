@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Materialize the supported local graph slice as Bazel configured project actions."""
 import argparse
+import fcntl
 import hashlib
 import json
 import os
@@ -9,6 +10,7 @@ import platform
 import re
 import shutil
 import subprocess
+import tempfile
 
 ROOT = Path(__file__).resolve().parents[1]
 DOTNET_ROOT = Path(os.environ.get('SPIKE_DOTNET_ROOT', ROOT / '.tools/dotnet')).resolve()
@@ -24,6 +26,25 @@ def relative(value):
 
 
 def prepare(workspace, manifest, output):
+    """Publish only a completely validated plan; serialize shared adapter builds."""
+    output = Path(output).resolve()
+    if output.exists():
+        raise FileExistsError(output)
+    output.parent.mkdir(parents=True, exist_ok=True)
+    lock = ROOT / 'artifacts/graph-preparation.lock'
+    lock.parent.mkdir(parents=True, exist_ok=True)
+    with lock.open('a') as handle, tempfile.TemporaryDirectory(prefix='.graph-prepare-', dir=output.parent) as temporary:
+        fcntl.flock(handle, fcntl.LOCK_EX)
+        staged = Path(temporary) / 'workspace'
+        graph = _prepare(workspace, manifest, staged)
+        # Never replace another preparation's committed plan, including an empty directory.
+        if output.exists():
+            raise FileExistsError(output)
+        staged.rename(output)
+        return graph
+
+
+def _prepare(workspace, manifest, output):
     workspace, manifest, output = map(lambda p: Path(p).resolve(), (workspace, manifest, output))
     graph = json.loads(manifest.read_text())
     if graph['schemaVersion'] != 1 or graph.get('toolchain') != {'sdkVersion': '10.0.100', 'graphEngine': 'ProjectGraph', 'contractVersion': 1}:
@@ -83,12 +104,29 @@ def prepare(workspace, manifest, output):
             contents = text.replace(str(workspace), '$WORKSPACE').replace(str(workspace / '.nuget/packages'), '$PACKAGES').replace(str(DOTNET_ROOT), '$DOTNET').encode()
         if hashlib.sha256(contents).hexdigest() != item['sha256']:
             raise ValueError('stale graph input: ' + item['path'])
+    if not graph.get('entryRequests'):
+        raise ValueError('graph discovery request missing; regenerate manifest')
     output.mkdir(parents=True, exist_ok=False)
-    for name in ('ReplayPlugin', 'ActionRunner'):
+    for name in ('GraphExport', 'ReplayPlugin', 'ActionRunner'):
         result = subprocess.run([str(DOTNET_ROOT / 'dotnet'), 'build', str(ROOT / 'tools' / name), '-c', 'Release', '--nologo'], cwd=ROOT, text=True, capture_output=True)
         (output / (name + '-build.log')).write_text(result.stdout + result.stderr)
         if result.returncode:
             raise RuntimeError(name + ' build failed: ' + result.stdout + result.stderr)
+    # Hashes cover present inputs only. Re-evaluation also discovers new globs,
+    # previously absent imports and changed conditional project references.
+    request = output.parent / 'discovery-request.json'
+    refreshed = output.parent / 'discovery.json'
+    request.write_text(json.dumps(dict(schemaVersion=1, workspace=str(workspace),
+        dotnetRoot=str(DOTNET_ROOT), sdkVersion='10.0.100',
+        packageRoot=str(workspace / '.nuget/packages'),
+        entryPoints=graph['entryRequests'], output=str(refreshed))))
+    result = subprocess.run([str(DOTNET_ROOT / 'dotnet'),
+        str(ROOT / 'tools/GraphExport/bin/Release/net10.0/GraphExport.dll'),
+        '--request', str(request)], cwd=workspace, text=True, capture_output=True)
+    if result.returncode:
+        raise ValueError('graph discovery revalidation failed: ' + result.stdout + result.stderr)
+    if json.loads(refreshed.read_text()) != graph:
+        raise ValueError('stale graph discovery: regenerate manifest')
     shutil.copyfile(ROOT / 'tools/ReplayPlugin/bin/Release/net10.0/ReplayPlugin.dll', output / 'ReplayPlugin.dll')
     (output / 'runner').mkdir()
     for suffix in ('.dll', '.deps.json', '.runtimeconfig.json'):
@@ -120,8 +158,9 @@ def prepare(workspace, manifest, output):
             dependency = nodes[reachable]
             for item in dependency['inputs']:
                 if item['path'].startswith('workspace/') and item['kind'] != 'restore':
-                    # Dependency evaluation needs projects and imports, never its sources.
-                    if reachable == identity or item['kind'] in ('project', 'import'):
+                    # Dependency evaluation needs projects, imports and explicitly declared
+                    # evaluation extras (for example an Exists condition), never its sources.
+                    if reachable == identity or item['kind'] in ('project', 'import', 'extra'):
                         source = relative(item['path'])
                         if '/obj/' not in source:
                             sources.add(source)
@@ -129,7 +168,13 @@ def prepare(workspace, manifest, output):
             state = {}
             for source in sorted((workspace / project_directory / 'obj').iterdir()):
                 if source.is_file() and (source.name.endswith(('.json', '.props', '.targets')) or source.name == 'project.nuget.cache'):
-                    state[source.relative_to(workspace).as_posix()] = source.read_text().replace(str(workspace), '${WORKSPACE}').replace(str(DOTNET_ROOT), '${SDK}')
+                    contents = source.read_text()
+                    if source.name == 'project.nuget.cache':
+                        cache = json.loads(contents)
+                        if 'dgSpecHash' in cache:
+                            cache['dgSpecHash'] = '$NORMALIZED'
+                        contents = json.dumps(cache, sort_keys=True)
+                    state[source.relative_to(workspace).as_posix()] = contents.replace(str(workspace), '${WORKSPACE}').replace(str(DOTNET_ROOT), '${SDK}')
             path = f'restore/{reachable}.json'
             (output / path).write_text(json.dumps(state, sort_keys=True))
             restore.append(path)

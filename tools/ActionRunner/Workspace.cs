@@ -13,6 +13,9 @@ internal sealed class Workspace
     {
         Output = Path.GetFullPath(request.Output);
         Diagnostics = Path.GetFullPath(request.Diagnostics);
+        if (request.GraphProject is not null && Directory.Exists(Output) &&
+            Directory.EnumerateFileSystemEntries(Output).Any())
+            throw new InvalidDataException("graph output already contains a prior attempt; use a fresh output");
         Directory.CreateDirectory(Output);
         Directory.CreateDirectory(Diagnostics);
         // Scratch must be under a declared output for the native sandbox to allow writes.

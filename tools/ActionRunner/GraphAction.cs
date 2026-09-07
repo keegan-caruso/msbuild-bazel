@@ -14,6 +14,13 @@ internal static class GraphAction
         var dependencies = new Dictionary<string, string>(StringComparer.Ordinal);
         foreach (var input in request.GraphDependencies ?? [])
         {
+            var sealPath = Path.Combine(input, "bundle.json");
+            if (!File.Exists(sealPath)) throw new InvalidDataException("dependency bundle incomplete");
+            var seal = JsonNode.Parse(File.ReadAllText(sealPath))!;
+            if (seal["schemaVersion"]?.GetValue<int>() != 1 ||
+                seal["resultsSha256"]?.GetValue<string>() != Files.Hash(Path.Combine(input, "results.json")) ||
+                seal["artifactsSha256"]?.GetValue<string>() != Files.Hash(Path.Combine(input, "artifacts.json")))
+                throw new InvalidDataException("dependency bundle metadata corrupt");
             var payload = JsonNode.Parse(File.ReadAllText(Path.Combine(input, "results.json")))!;
             var dependencyProject = payload["project"]!.GetValue<string>();
             if (!Files.ValidRelativePath(dependencyProject) || !dependencies.TryAdd(dependencyProject, Path.GetFullPath(input)))
@@ -75,5 +82,17 @@ internal static class GraphAction
             File.Move(path, Path.Combine(workspace.Diagnostics, Path.GetFileName(path)));
         Directory.Delete(workspace.Scratch, recursive: true);
         Files.NormalizeTree(workspace.Output);
+        // Commit marker is written only after every consumer-visible file is complete.
+        var exportSealPath = Path.Combine(workspace.Diagnostics, "bundle-seal.json");
+        JsonFiles.Write(exportSealPath, new {
+            schemaVersion = 1,
+            resultsSha256 = Files.Hash(Path.Combine(workspace.Output, "results.json")),
+            artifactsSha256 = Files.Hash(Path.Combine(workspace.Output, "artifacts.json"))
+        });
+        if (!OperatingSystem.IsWindows()) File.SetUnixFileMode(exportSealPath,
+            UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.GroupRead | UnixFileMode.OtherRead);
+        File.SetLastWriteTimeUtc(exportSealPath, DateTime.UnixEpoch);
+        File.Move(exportSealPath, Path.Combine(workspace.Output, "bundle.json"));
+        Directory.SetLastWriteTimeUtc(workspace.Output, DateTime.UnixEpoch);
     }
 }

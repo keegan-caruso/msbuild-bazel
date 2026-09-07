@@ -88,6 +88,9 @@ class PreparationRejection(unittest.TestCase):
         (self.workspace / 'App/App.csproj').symlink_to(outside)
         self.rejected('missing or escaping input')
 
+    def test_missing_discovery_request_rejected(self):
+        self.rejected('graph discovery request missing')
+
     def test_missing_dependency(self):
         self.node['dependencies'] = ['b'*24]
         self.rejected('missing dependency')

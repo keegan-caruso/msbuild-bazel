@@ -168,7 +168,8 @@ internal static class GraphExporter
             new ToolchainRecord(request.SdkVersion, "ProjectGraph", 1),
             entryIds.ToList(),
             graphInputs.Values.OrderBy(i => i.Path, StringComparer.Ordinal).ThenBy(i => i.Kind, StringComparer.Ordinal).ToList(),
-            nodes);
+            nodes,
+            request.EntryPoints);
     }
 
     private static NodeRecord ExportNode(ExportRequest request, ProjectGraphNode node, IReadOnlyDictionary<ProjectGraphNode, string> ids)
@@ -431,4 +432,4 @@ internal sealed record ToolchainRecord(string SdkVersion, string GraphEngine, in
 internal sealed record InputRecord(string Kind, string Path, string Sha256);
 internal sealed record OutputRecord(string Kind, string Path);
 internal sealed record NodeRecord(string Id, string Project, SortedDictionary<string, string> GlobalProperties, string TargetFramework, string OutputType, List<string> Dependencies, List<InputRecord> Inputs, List<OutputRecord> Outputs);
-internal sealed record Manifest(int SchemaVersion, ToolchainRecord Toolchain, List<string> EntryPoints, List<InputRecord> GraphInputs, List<NodeRecord> Nodes);
+internal sealed record Manifest(int SchemaVersion, ToolchainRecord Toolchain, List<string> EntryPoints, List<InputRecord> GraphInputs, List<NodeRecord> Nodes, List<EntryRequest> EntryRequests);
