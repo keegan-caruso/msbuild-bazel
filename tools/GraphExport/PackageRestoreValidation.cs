@@ -17,6 +17,16 @@ internal static class PackageRestoreValidation
         ValidateRequested(project, framework, libraries);
     }
 
+    internal static void ValidateSuccessfulRestore(ProjectInstance owner, string assetsPath)
+    {
+        var cachePath = Path.Combine(Path.GetDirectoryName(assetsPath)!, "project.nuget.cache");
+        if (!File.Exists(cachePath))
+            throw new ExportException("stale-restore", "successful restore marker missing: " + owner.FullPath);
+        using (var cache = JsonDocument.Parse(File.ReadAllText(cachePath)))
+            if (!cache.RootElement.TryGetProperty("success", out var success) || success.ValueKind != JsonValueKind.True)
+                throw new ExportException("stale-restore", "latest restore did not succeed: " + owner.FullPath);
+    }
+
     // A consumer's dependency spec is a snapshot taken when that consumer was
     // restored. Checking only each project's own assets misses partial restores.
     public static void ValidateGraph(IEnumerable<ProjectGraphNode> nodes)
@@ -42,12 +52,7 @@ internal static class PackageRestoreValidation
             if (string.IsNullOrWhiteSpace(assetsPath))
                 assetsPath = Path.Combine(Path.GetDirectoryName(owner.FullPath)!, "obj", "project.assets.json");
             assetsPath = Path.GetFullPath(assetsPath, Path.GetDirectoryName(owner.FullPath)!);
-            var cachePath = Path.Combine(Path.GetDirectoryName(assetsPath)!, "project.nuget.cache");
-            if (!File.Exists(cachePath))
-                throw new ExportException("stale-restore", "successful restore marker missing: " + owner.FullPath);
-            using (var cache = JsonDocument.Parse(File.ReadAllText(cachePath)))
-                if (!cache.RootElement.TryGetProperty("success", out var success) || success.ValueKind != JsonValueKind.True)
-                    throw new ExportException("stale-restore", "latest restore did not succeed: " + owner.FullPath);
+            ValidateSuccessfulRestore(owner, assetsPath);
             var specPath = Path.Combine(Path.GetDirectoryName(assetsPath)!, Path.GetFileName(owner.FullPath) + ".nuget.dgspec.json");
             if (!File.Exists(specPath))
                 throw new ExportException("stale-restore", "consumer dependency restore snapshot missing: " + owner.FullPath);

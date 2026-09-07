@@ -217,6 +217,8 @@ internal static class GraphExporter
         AddRestoreSidecar(request, inputs, assets, "project.nuget.cache");
         AddRestoreSidecar(request, inputs, assets, Path.GetFileNameWithoutExtension(instance.FullPath) + ".csproj.nuget.dgspec.json");
 
+        PackageRestoreValidation.ValidateSuccessfulRestore(instance, assets);
+
         // Resolve SDK/package analyzer items in a disposable instance. No compilation
         // target runs, and the evaluated graph identity/restore contract stays intact.
         using var manager = new BuildManager();
@@ -392,8 +394,10 @@ internal static class GraphExporter
     private static IEnumerable<string> EnumerateImports(Microsoft.Build.Execution.ProjectInstance instance)
     {
         var seen = new HashSet<string>(StringComparer.Ordinal);
+        // MSBuildAllProjects is an incremental-build property, not a complete import
+        // inventory. ImportPaths records the evaluated conditional/nested closure.
         var all = instance.GetPropertyValue("MSBuildAllProjects");
-        foreach (var raw in all.Split(';', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+        foreach (var raw in instance.ImportPaths.Concat(all.Split(';', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)))
         {
             var path = raw;
             if (!Path.IsPathRooted(path)) path = Path.GetFullPath(path, Path.GetDirectoryName(instance.FullPath)!);
@@ -419,6 +423,8 @@ internal static class GraphExporter
         if (!File.Exists(path)) throw new ExportException("missing-input", $"{kind} input does not exist: {path}");
         EnsureNoSymlinkEscape(request, path, workspaceOnly);
         var logical = NormalizeInputPath(request, path, workspaceOnly);
+        if (logical.StartsWith("nix/", StringComparison.Ordinal) && kind != "import")
+            throw new ExportException("path-escape", "external Nix inputs are limited to evaluated imports");
         var hash = normalizeText ? HashNormalizedText(request, path) : HashFile(path);
         inputs[(kind, logical)] = new InputRecord(kind, logical, hash);
     }
@@ -439,6 +445,8 @@ internal static class GraphExporter
         if (IsUnder(path, request.DotnetRoot)) return "dotnet/" + Rel(request.DotnetRoot, path);
         var adapter = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", ".."));
         if (IsUnder(path, adapter)) return "adapter/" + Rel(adapter, path);
+        if (IsUnder(request.DotnetRoot, "/nix/store") && IsUnder(path, "/nix/store"))
+            return "nix/" + Rel("/nix/store", path);
         throw new ExportException("path-escape", $"undeclared host input: {path}");
     }
 

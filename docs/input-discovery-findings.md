@@ -38,3 +38,18 @@ On macOS ARM64 with pinned SDK 10.0.100, `MSBUILDDISABLENODEREUSE=1 python3
 -m unittest discover -s tests/graph -v` passed all 15 tests in 75.273 seconds.
 The generated/ordinary analyzer-set comparison and all focused missing/changed
 input controls passed. This is discovery evidence, not native build acceptance.
+
+The Serilog native attempt exposed that `MSBuildAllProjects` is not an exhaustive
+import inventory: the unchanged root props imported Directory.Version.props,
+but that nested file was absent from the manifest. Discovery now also enumerates
+`ProjectInstance.ImportPaths`, preserving MSBuild's evaluated conditional and
+nested import closure. A fixture without manual MSBuildAllProjects registration
+checks both imports and a changed nested-file hash. The pinned Nix SDK's two
+external imports are represented as explicit `nix/` import inputs; preparation
+and the SDK repository must declare and hash these files before native acceptance.
+This does not qualify arbitrary host inputs or full Nix runtime closure.
+
+The successful-restore marker is now checked before SDK input resolution, so a
+failed restore still rejects with `stale-restore` rather than exposing a later
+ResolvePackageAssets error first. Dependency snapshot consistency remains checked
+after implicit SDK package references have been resolved.

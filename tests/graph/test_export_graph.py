@@ -81,6 +81,23 @@ class GraphExportAcceptance(unittest.TestCase):
         self.assertTrue(json.loads(result.stdout)["ok"])
         return json.loads(output.read_text())
 
+    def test_nested_imports_do_not_require_msbuild_all_projects_registration(self):
+        props = self.work / "Directory.Build.props"
+        props.write_text(props.read_text().replace("</Project>", '<Import Project="nested/Version.props" /></Project>'))
+        nested = self.work / "nested/Version.props"
+        nested.parent.mkdir()
+        nested.write_text('<Project><PropertyGroup><VersionPrefix>1.2.3</VersionPrefix></PropertyGroup></Project>')
+        self.restore()
+        graph = self.export()
+        def imports(value):
+            return {item["path"]: item["sha256"] for item in value["nodes"][0]["inputs"] if item["kind"] == "import"}
+        before = imports(graph)
+        self.assertIn("workspace/Directory.Build.props", before)
+        self.assertIn("workspace/nested/Version.props", before)
+        nested.write_text(nested.read_text().replace("1.2.3", "1.2.4"))
+        after = imports(self.export())
+        self.assertNotEqual(before["workspace/nested/Version.props"], after["workspace/nested/Version.props"])
+
     def test_resolved_inputs_preserve_signing_resource_and_analyzer_contract(self):
         project = self.work / "src/Shared/Shared.csproj"
         text = '<Project Sdk="Microsoft.NET.Sdk"></Project>'.replace("</Project>", '<PropertyGroup><SignAssembly Condition="Exists(\'$(MSBuildThisFileDirectory)key.snk\')">true</SignAssembly><AssemblyOriginatorKeyFile>key.snk</AssemblyOriginatorKeyFile></PropertyGroup><ItemGroup><EmbeddedResource Include="payload.xml"><LogicalName>Example.Payload</LogicalName></EmbeddedResource><AdditionalFiles Include="generator.txt" /><Analyzer Include="local-analyzer.dll" /></ItemGroup><Target Name="MustNotCompile" BeforeTargets="CoreCompile"><Error Text="discovery compiled" /></Target></Project>')
