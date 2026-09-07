@@ -3,7 +3,6 @@ import base64
 import hashlib
 import json
 from pathlib import Path
-import shutil
 import xml.etree.ElementTree as ET
 import zipfile
 
@@ -12,13 +11,24 @@ def package_plan(workspace, project):
     project = Path(project)
     assets = json.loads((workspace / project.parent / 'obj/project.assets.json').read_text())
     libraries = {k: v for k, v in assets['libraries'].items() if v['type'] == 'package'}
-    for reference in ET.parse(workspace / project).getroot().iter('PackageReference'):
+    source = workspace / project
+    if not source.is_file() or not source.resolve().is_relative_to(workspace):
+        raise ValueError('missing-input: missing or escaping input: workspace/' + project.as_posix())
+    try:
+        tree = ET.parse(source)
+    except ET.ParseError as error:
+        raise ValueError('stale-manifest: stale graph input: workspace/' + project.as_posix()) from error
+    for reference in tree.getroot().iter('PackageReference'):
         version = reference.get('Version', '')
         if not (version.startswith('[') and version.endswith(']') and ',' not in version):
             raise ValueError('unsupported-package: exact inline version required')
         identity = reference.get('Include', '') + '/' + version[1:-1]
         if identity.lower() not in {k.lower() for k in libraries}:
             raise ValueError('stale-restore: package reference differs from restored version')
+    if not libraries:
+        return assets, libraries
+    if not assets.get('targets') or any('path' not in item or 'sha512' not in item for item in libraries.values()):
+        raise ValueError('unsupported-package: incomplete restored package metadata')
     for target in assets['targets'].values():
         for identity, entry in target.items():
             if identity in libraries and any(entry.get(k) for k in ('native', 'runtimeTargets', 'build', 'buildMultiTargeting', 'buildTransitive', 'contentFiles')):

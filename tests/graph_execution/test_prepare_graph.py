@@ -43,9 +43,9 @@ class PreparationRejection(unittest.TestCase):
         self.node['outputs'][0]['path'] = 'workspace/custom/App.dll'
         self.rejected('output layout')
 
-    def test_package_reference_rejected(self):
+    def test_incomplete_package_restore_rejected(self):
         (self.workspace / 'App/obj/project.assets.json').write_text('{"libraries":{"Example/1.0.0":{"type":"package"}}}')
-        self.rejected('package graph execution')
+        self.rejected('unsupported-package: incomplete restored package metadata')
 
     def test_stale_source_manifest(self):
         (self.workspace / 'App/App.csproj').write_text('changed')
