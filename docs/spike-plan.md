@@ -80,7 +80,11 @@ integration of the four initially ready work packages.
 
 The [validation strategy](validation.md) maps these requirements to Bazel analysis
 tests, real-build integration, existing findings and planned acceptance gates.
-Use its evidence checklist when recording a new result.
+Use its evidence checklist when recording a new result. The roadmap now assigns
+these checks to [milestone deliverables and exit gates](roadmap.md#validation-ownership-and-remaining-gates),
+with open Starlark baseline/package/configuration/test work and release version
+qualification recorded in the dependency graph; earlier acceptance remains scoped
+to its original evidence.
 
 - Plain MSBuild and Bazel-built App have equivalent observable output.
 - App-only changes reuse Shared's Bazel action output.

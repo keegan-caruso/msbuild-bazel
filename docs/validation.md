@@ -35,6 +35,11 @@ new language interpreter. Parsing/linting alone cannot establish action or
 repository-rule behavior.
 
 The following gate IDs are local validation identifiers, not roadmap milestones.
+Their [milestone owners and exit gates](roadmap.md#validation-ownership-and-remaining-gates)
+are scheduled in the [dependency graph](roadmap-graph.md#validation-work-packages).
+R01 owns the shared baseline, R02 packages, R03 configurations/SDK extensions,
+R04 test rules, and R17 the supported-version matrix. Later feature milestones
+extend applicable gates before claiming their new slice.
 No new tools, Bazel test targets or CI checks are implemented by this document.
 
 | Gate | Scope and required assertions | Entry point and current status |

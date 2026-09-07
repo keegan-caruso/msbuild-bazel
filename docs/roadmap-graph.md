@@ -157,13 +157,66 @@ The stable node ID `languages` now means integration of existing Bazel rules int
 a multi-language harness. It does not schedule development of new Python or
 TypeScript build rules. This scope correction leaves dependency edges unchanged.
 
+## Validation work packages
+
+The [milestone ownership table](roadmap.md#validation-ownership-and-remaining-gates)
+assigns S01–S05 to deliverables and exit criteria. These additional nodes remain
+open and preserve historical acceptance states. Their all-of joins are explicit
+in the JSON; qualification uses the active macOS lane with Linux deferred.
+
+```mermaid
+flowchart TD
+  base["existing: Existing graph execution"]
+  packages["R02: Managed packages and PrivateAssets"]
+  configured["R03: Configured-node semantics"]
+  inputs["R04: Serilog-required generator and inputs"]
+  starlark_core["R01: Starlark baseline validation"]
+  starlark_packages["R02: Package rule validation"]
+  starlark_configured["R03: Configured rule validation"]
+  starlark_tests["R04: Test rule validation"]
+  entrypoints["R03: Solution and SDK extensions"]
+  generators["R05: Generator APIs and reference roles"]
+  interceptors["R05: Interceptor acceptance"]
+  worker_identity["R13: Compatible worker identity"]
+  bazel_compatibility["R17: Bazel version qualification"]
+  release["R17: Supported adapter and adoption report"]
+  base --> starlark_core
+  starlark_core --> starlark_packages
+  packages --> starlark_packages
+  starlark_core --> starlark_configured
+  configured --> starlark_configured
+  starlark_core --> starlark_tests
+  inputs --> starlark_tests
+  starlark_configured --> entrypoints
+  starlark_packages --> generators
+  starlark_configured --> generators
+  starlark_packages --> interceptors
+  starlark_configured --> interceptors
+  starlark_packages --> worker_identity
+  starlark_packages --> bazel_compatibility
+  starlark_configured --> bazel_compatibility
+  starlark_tests --> bazel_compatibility
+  entrypoints --> bazel_compatibility
+  bazel_compatibility --> release
+```
+
+Existing incoming edges from the other views still apply. Start `starlark_core`
+next; package, selected-configuration and test-rule extensions can follow it
+independently once their existing feature prerequisites pass. New generator,
+interceptor and remote-worker acceptance waits for the added relevant joins.
+Other feature packages extend applicable assertions as part of their own exit
+criteria; they do not create retroactive edges into completed historical nodes.
+Both local-only and full releases require `bazel_compatibility`.
+
 ## What can start now
 
 R01 is accepted at `c384671` on both native lanes. R02 managed packages and
 the selected R03 configured-node slice now satisfy the active macOS prerequisites.
-Linux validation is deferred. The completed R04 library batch delivered the following contracts. The next
-ready extensions are broader Test execution and the independent R05 generator
-and reference-role slices:
+Linux validation is deferred. The completed R04 library batch delivered the
+following contracts. The next acceptance work includes the open Starlark
+validation nodes above;
+R05 generator/reference-role work can be prepared while their gates are implemented.
+The existing feature contracts are:
 
 | Work package | Immediate deliverable | Primary ownership |
 | --- | --- | --- |
@@ -241,9 +294,18 @@ not a claim that Linux execution or generated-graph caching already passes.
 | `runtime_managed` | R16 | Pinned bootstrap and selected managed subtree; inventory may add generator/package features before execution. |
 | `runtime_native` | R16 | Selected native shims/build and target oracle; remote variant additionally requires remote_exec. |
 | `dispositions` | R17 | Maintain named support/rejection/deferral decisions for every P/G/F category; final sign-off uses current evidence and explicitly accounts for unfinished tracks. |
+| `starlark_core` | R01 | S01 formatting/lint and applicable S02 helper tests; S03 explicit/diamond build-rule analysis, S04 generated baseline/escaping/determinism and S05 SDK/runtime repository controls. Existing behavior remains independently tested. |
+| `starlark_packages` | R02 | Extend S03/S04 to per-consumer package/restore inputs and generated package targets; retain full cache, PrivateAssets, upgrade and rejection controls for the qualified slice. |
+| `starlark_configured` | R03 | Extend S03/S04 to selected configured identities, output separation, direct edges versus replay closure, discovery refresh and deterministic generated labels. Broader entry-point SDK checks belong to entrypoints. |
+| `starlark_tests` | R04 | S03/S04 graph_test analysis, runfiles/data hashes, expected failures and generated test targets; native expected-count/TRX evidence and forced test execution after build-cache recovery. |
+| `bazel_compatibility` | R17 | Pin supported Bazel/toolchain combinations and run applicable S01-S05 plus behavioral regressions and upgrade invalidation. Required for local-only and full releases; version-matrix framework adoption is optional. |
 | `release` | R17 | Full local/remote endpoint; release checklist also verifies documentation, reproducible installs and versioned contracts. Broad optional tracks can be deferred explicitly. |
 
 ## Endpoint and optional tracks
+
+The Starlark and version-qualification additions are mandatory for release; they
+are not optional portfolio dispositions. S02 may be inapplicable where no
+substantial pure helper exists, with the reason recorded rather than a fictitious pass.
 
 `release` is the full local-and-remote endpoint defined by R17. A local-only
 release may be cut earlier and must be labeled accordingly. Application/platform

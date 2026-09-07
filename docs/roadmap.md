@@ -51,10 +51,10 @@ retains both platforms. “Planned” means prerequisites or contracts are still
 
 | Milestone | Outcome | Prerequisites | State |
 | --- | --- | --- | --- |
-| R01 | Reliable package-free generated graph and local cache | Existing execution slice | Accepted on native macOS and Linux at c384671 |
-| R02 | Managed package closure in generated graph actions | R01 core execution/cache | Selected managed slice accepted on macOS; Linux deferred |
-| R03 | Configured nodes, discovery and entry-point semantics | R01; R02 for package/SDK cases | Selected inner/direct-edge configurations accepted on macOS; broader semantics open |
-| R04 | First real-project adapter acceptance: Serilog | R02, selected R03 configuration support | Selected library and unchanged approval Build/Test accepted on macOS; repeated timings and Linux remain open |
+| R01 | Reliable package-free generated graph and local cache | Existing execution slice | Accepted on native macOS and Linux at c384671; added Starlark baseline gate open |
+| R02 | Managed package closure in generated graph actions | R01 core execution/cache | Selected managed slice accepted on macOS; added package-rule gate open; Linux deferred |
+| R03 | Configured nodes, discovery and entry-point semantics | R01; R02 for package/SDK cases | Selected inner/direct-edge configurations accepted on macOS; added configured-rule gate and broader semantics open |
+| R04 | First real-project adapter acceptance: Serilog | R02, selected R03 configuration support | Selected library and unchanged approval Build/Test accepted on macOS; added test-rule gate, repeated timings and Linux remain open |
 | R05 | Generator combinations and project-reference roles | R04 input-contract slice; parallel with Serilog acceptance | Planned |
 | R06 | Source-built tasks, package consumers and output lifecycle | R02–R05 slices actually used | Planned |
 | R07 | Broader restore/runtime assets and ordinary publish modes | R02/R03; selected R06 task/output support | Planned |
@@ -75,6 +75,31 @@ in parallel. A prerequisite means the required feature slice, not every optional
 extension of an earlier milestone. A platform's result does not qualify another
 platform, and remote support is qualified per workload/toolchain slice.
 
+## Validation ownership and remaining gates
+
+The [validation strategy](validation.md) defines S01–S05 and the behavioral
+acceptance matrix. They are deliverables and exit gates of the milestones below,
+not a separate optional testing initiative. Its runnable suites and findings
+remain the evidence index; this roadmap owns scheduling and acceptance joins.
+
+| Milestone | Validation deliverable | Acceptance gate / DAG owner |
+| --- | --- | --- |
+| R01 | S01 pinned Buildifier checks for tracked and generated Starlark; S02 tests where substantial pure helpers exist; S03 explicit/diamond build-rule analysis; S04 generated baseline loading/action inspection; S05 SDK/runtime repository baseline and rejection/refetch controls. | `starlark_core`: exact commands and CI checks, scoped native evidence, and applicable S01–S05 baseline assertions pass. Existing cache, discovery and forced replay probes remain required behavioral controls. |
+| R02 | Extend S03/S04 to per-consumer package/restore closure, private assets, upgrades and invalid input rejection. | `starlark_packages`: analysis/generation assertions plus existing full cache and package suites pass for the claimed managed slice. |
+| R03 | Extend S03/S04 to configured identities, output separation, direct graph edges versus replay closure, discovery refresh, labels/escaping and deterministic generation. Extend S05 for each claimed resolver/entry-point slice. | `starlark_configured` qualifies the selected configuration slice; `entrypoints` owns additional solution/SDK checks. Neither qualifies unselected outer/transitive configurations. |
+| R04 | S03/S04 test-rule analysis and generated test targets; declared runfiles/data hashes, expected test identities and standard outputs; forced actual test execution after build-cache recovery. | `starlark_tests`: selected test-rule assertions and native Build/Test evidence pass. Compile network restrictions and VSTest loopback requirements remain distinct. |
+| R05–R12, R15–R16 | Extend applicable S01–S05 assertions when adding rules, providers, generators, repository inputs or output contracts; define a scenario-specific ordinary MSBuild/runtime/diagnostic oracle. | Each owning work package must pass affected gates and its own fresh/mutation/recovery cases. Existing-rule composition also validates generated targets/runfiles; lint or a warm no-op cannot replace behavior. |
+| R13 | Assert remote-cache policy and compatible-worker inputs; recover verified artifacts on an independent worker with empty local caches. | `remote_cache`: remote cache evidence and actual execution of recovered App/tests; no claim of remote compilation. |
+| R14 | Extend S03/S05 for the enabled execution policy and worker tool/runtime closure; force misses, disable local fallback and observe remote compilation. | `remote_exec`: execution evidence separate from R13 hits, plus missing tool/runtime rejection. |
+| R17 | Pin the supported Bazel/toolchain matrix, run applicable S01–S05 and behavioral regressions per supported combination, and exercise upgrade invalidation. | `bazel_compatibility`: named versions/platforms, commands, CI jobs and result links. Required by local-only as well as full releases; a version-matrix framework is optional. |
+
+Historical acceptance remains scoped to its original revision and assertions.
+The new `starlark_*` and `bazel_compatibility` nodes are open additions; they do
+not erase prior R01–R04 results or inherit a passing status from them. Land the
+shared baseline next, then extend package/configuration/test coverage before
+accepting dependent new feature slices. Use the active macOS lane; Linux remains
+deferred under the [platform scope](platform-validation-scope.md).
+
 ## R01 — Prove generated-graph local correctness and caching
 
 Scope: the existing four-project diamond, package-free Release/net10.0, standard
@@ -89,7 +114,8 @@ Deliverables:
 2. Implement `tools/probe_graph_cache.py` for the package-free cases in the
    [existing report contract](graph-cache-contract.md), with retained reports,
    execution logs and artifact digests. This is partial milestone-3 acceptance;
-   the full existing cache suite remains red until R02 package cases pass.
+   the full managed-package contract is separately exercised by
+   `tests/graph_cache_full` under R02; its original red state is historical.
 3. Exercise cold, unchanged, App/Left/Shared/import edits and Right -> Left edge
    addition. Record expected/observed action sets and application output. Graph
    changes must go through export/preparation, not hand-edited Bazel files.
@@ -103,7 +129,13 @@ Deliverables:
    optional import, plus concurrent builds of the supported configuration,
    interrupted publication and unsupported-global rejection.
 
-Exit: package-free cases pass on both native lanes; each project compiles only
+7. Complete `starlark_core` as an additional R01 gate: pin Buildifier and Skylib;
+   expose reproducible commands/CI checks for S01 and applicable S02–S05 baseline
+   assertions. Use generated fixtures, not the root scaffold query. Preserve the
+   diamond's transitive replay closure and independent behavioral probes.
+
+Exit: the new Starlark baseline gate passes on the active qualification lane.
+The historical package-free acceptance remains recorded on both native lanes. Retain the behavioral requirements: each project compiles only
 in its own action; cold/edited/recovered behavior matches ordinary MSBuild; stale
 inputs and interrupted writes cannot publish usable partial results. Retain the
 existing root-project and rejection regressions. Record the exact passing subset
@@ -143,9 +175,16 @@ Deliverables:
 5. Complete missing/corrupt package, stale restore and stale graph controls with
    the specified diagnostics and no invalid replacement-plan publication.
 6. Run the entire existing generated-graph cache suite, package-free controls
-   included, through native Linux CI and macOS acceptance.
+   included, through native macOS acceptance; retain Linux CI as the deferred
+   platform gate rather than claiming a new Linux result.
 
-Exit: `python3 -m unittest discover -s tests/graph_cache_full -v` passes all existing
+7. Complete `starlark_packages`: assert package/restore inputs on the actual
+   consuming actions, compile/runtime roles, dependency bundle closure and
+   package-backed generated targets. Pair analysis with full native cache,
+   upgrade and rejection controls; declarations alone do not prove runtime use.
+
+Exit: the added S03/S04 package gate passes for the selected slice, and
+`python3 -m unittest discover -s tests/graph_cache_full -v` passes all existing
 package-free and package cases without skips, and `tests/graph_packages` passes
 the ordinary/adapter private-asset controls; the package-backed App
 also executes after recovery and producer deletion. Keep binary-package explicit-adapter regressions. This closes
@@ -177,7 +216,14 @@ Deliverables and gates:
   fixture. Declare resolver/import inputs; version/import changes invalidate
   preparation and missing SDKs cannot silently fall back to host state.
 
-Exit: each claimed configuration/entry-point slice has baseline, action-set,
+- Complete `starlark_configured` with S03/S04 assertions for distinct configured
+  labels/outputs, direct edges and reachable replay bundles, fresh discovery and
+  deterministic/escaped generated declarations. Unsupported names/configurations
+  fail explicitly. `entrypoints` additionally extends S05 to each selected SDK
+  resolver/import path and verifies fresh repository state after changes.
+
+Exit: the corresponding Starlark/configuration gates pass, and each claimed
+configuration/entry-point slice has baseline, action-set,
 relocation and rejection evidence. R04 can start after the required configured-node
 slice; it need not wait for every solution format or resolver extension.
 
@@ -208,7 +254,15 @@ Deliverables:
    reporting setup/restore and cache/host state separately. Do not claim speedup
    from the existing single baseline timing samples.
 
-Exit: P01 Build/Test passes on Linux x86-64 and macOS ARM64 for the declared slice,
+6. Complete `starlark_tests`: analyze `graph_test.bzl` providers, runfiles, data
+   hashes and no-remote policy, including expected failures; load generated test
+   targets. Retain standard Bazel/TRX outputs and exact expected test counts.
+   Force tests with `--nocache_test_results` after build-bundle recovery; zero
+   discovered tests or a cached test result cannot satisfy actual execution.
+
+Exit: the added test-rule gate passes on the active lane. P01 Build/Test passes
+for the declared slice on the active macOS lane; Linux qualification remains
+deferred and is required before claiming the same slice there,
 with its contracts, test IDs, logs and exclusions linked from the coverage matrix.
 A successful ordinary baseline is not completion. Windows/Framework and publish
 remain separately qualified work.
@@ -359,6 +413,10 @@ flow. Keep build/generated-contract edges distinct from runtime relationships;
 MSBuild replay applies only to .NET. Use the upstream rules' declared dependency
 and toolchain mechanisms and pin their inputs for reproducibility.
 
+Extend S01/S04 to the shared MODULE/BUILD declarations and S03 to adapter-owned
+composition/runfiles contracts. Existing upstream language-rule suites do not
+replace the generated-workspace and runtime integration oracles.
+
 Exit: one harness builds/tests all three languages; language-local edits reuse
 unrelated outputs; shared-contract changes invalidate the intended consumers;
 fresh-output/cache-recovery runs preserve runfiles and runtime dependencies.
@@ -372,6 +430,10 @@ Use the selected bazel-remote deployment with the diamond first, then P01. Start
 when R01/R02 local correctness and a compatible-worker input/toolchain identity
 contract are ready; do not wait for the whole portfolio.
 
+Extend S03 to the qualified remote-cache policy and declared compatible-worker
+inputs. Keep remote compilation disabled for this gate; analysis of flags alone
+does not prove artifact transfer or execution of the recovered application.
+
 Exit: worker B, with an independent checkout and empty local build caches, recovers
 worker A's results from the remote service and executes App/tests. Retain client/
 server hit evidence, producer-absence checks and incompatible-environment controls.
@@ -384,6 +446,10 @@ slices, not cross-OS sharing or remote execution.
 Use the selected Buildbarn deployment. Declare/provision the full execution
 closure for the initial Linux diamond; then add P01 and later qualified workloads.
 Pin service/worker images, SDK/runtime/native inputs and operation identities.
+
+Extend S03/S05 to the execution policy and worker repository/tool/runtime inputs,
+including absent or changed declarations. Enable remote compilation only for
+the qualified slice; retain local-only policy assertions for unsupported slices.
 
 Exit: identities absent from enabled caches execute on remote workers, local
 fallback is disabled, outputs match the baseline and missing tool/runtime inputs
@@ -422,6 +488,13 @@ Keep MSBuild/SDK/NuGet semantics inside declared, versioned action contracts.
 
 Mandatory release gates:
 
+- `bazel_compatibility` and all required Starlark extensions pass for the named
+  release slice, including a local-only release. Pin each supported Bazel version
+  and relevant SDK/rule dependencies; run applicable S01–S05 and behavioral
+  suites, retain per-platform results and test upgrade invalidation. Do not
+  claim additional versions from one pinned baseline. Adopting
+  `rules_bazel_integration_test` is optional; matrix evidence is required.
+
 - R01–R04 pass their named baseline lanes; the adapter has a repeatable supported
   prepare/export/build entry point, actionable rejection diagnostics and no hidden
   dependency recompilation or ambient restore fallback.
@@ -446,6 +519,16 @@ and cross-platform reuse claims remain outside the release until separately
 qualified. No fixed completion date or blanket compatibility percentage is implied.
 
 ## Evidence rules for every milestone
+
+Apply S01 to changed tracked/generated Starlark and extend S02–S05 wherever the
+milestone changes their contract. Each exit record names the gate, test/probe
+entry point, CI job/run, revision, platform/configuration and remaining assertions.
+Use the [validation evidence checklist](validation.md#recording-a-validation-result).
+A broad findings link cannot stand in for a result covering the claimed slice.
+Fresh execution, unchanged reuse, local recovery, relocation, remote recovery
+and remote execution are separate observations. Force consumer execution for
+replay/rejection checks, and use a scenario-specific ordinary baseline for
+behavior; deterministic bundle equality across adapter runs is a separate claim.
 
 Write the contract and executable failing acceptance before implementation. Keep
 experiments independently runnable and restore/tool acquisition outside build
