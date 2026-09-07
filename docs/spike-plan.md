@@ -133,3 +133,14 @@ The next parallel slices are tracked in [configured-node findings](configured-no
 and [lifecycle findings](lifecycle-findings.md). Their ordinary MSBuild controls
 retain the observed isolation failures explicitly; implementation and native
 acceptance states are recorded separately from those baselines.
+
+The [synthetic scale protocol](synthetic-scale-findings.md) has a measured
+ten-node fan slice and a corrected thousand-node preparation recursion failure;
+larger native runs and aggregate memory remain unmeasured. The
+[Serilog input oracle](serilog-inputs-findings.md) records pinned ordinary SDK
+behavior while adapter generator/signing support remains a separate gate.
+
+The [consumer restore review](consumer-restore-findings.md) covers partial and
+failed restores that otherwise allowed stale transitive package inputs through
+fresh export. It compares requested dependency semantics and restore completion,
+preserving valid NuGet version resolution differences.

@@ -153,3 +153,24 @@ jobs:
             /tmp/msbuild-lifecycle-*/probe/*.json
             /tmp/msbuild-lifecycle-*/probe/evidence/**
           if-no-files-found: ignore
+  synthetic-scale-smoke:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install pinned tools
+        run: bash scripts/setup.sh
+      - name: Synthetic graph construction
+        run: python3 -m unittest discover -s tests/scale_synthetic -v
+      - name: Bounded native synthetic graph smoke
+        run: python3 -m unittest discover -s tests/scale_synthetic_native -v
+      - name: Retain synthetic correctness evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: synthetic-scale-smoke-evidence
+          path: |
+            /tmp/synthetic-scale-*/probe/*.log
+            /tmp/synthetic-scale-*/probe/*.json
+            /tmp/synthetic-scale-*/probe/evidence/**
+          if-no-files-found: ignore

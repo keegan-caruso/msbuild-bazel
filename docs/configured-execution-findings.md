@@ -99,3 +99,16 @@ support remain outside the selected-inner measured boundary.
 The integrated selected-inner implementation also passed all 12 existing
 handoff/discovery tests at `eebbc12` on native macOS (126.310 seconds). This
 regression run predates the broader configured-path implementation.
+
+At integrated `737e29f`, all 13 full package-cache tests passed in 255.320 seconds
+and all seven PrivateAssets/restore-semantic tests passed in 146.097 seconds on
+native macOS. The same production changes passed 18 graph-execution tests, 14
+exporter tests and the explicit binary-package e2e regression. The exporter suite
+needed a serial retry after another build rewrote a runtimeconfig file during a
+read; the retry passed without source changes. These are correctness results,
+not controlled performance measurements.
+
+Review also corrected an empty-directory prefix check that rejected projects at
+the workspace root. The existing root-project native probe passed after that fix,
+with preparation deleted and ordinary/generated output equal. Evidence:
+`/private/tmp/msbuild-r03-root-review/report.json`.

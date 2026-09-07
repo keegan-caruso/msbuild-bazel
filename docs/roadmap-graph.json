@@ -404,7 +404,9 @@
     "languages": "Native macOS and integrated Linux composition, edits and forced cache recovery pass; broader harness gates remain open.",
     "local": "R01 accepted on native macOS ARM64 and Linux x86-64; package-bearing R02 remains separate.",
     "packages": "All 13 full cache and 7 PrivateAssets tests pass on macOS at 2407142. Published 9cba8c5 Linux jobs blocked before startup by GitHub account billing/spending limit; acceptance pending.",
-    "configured": "Ordinary configured-node baselines and selected-inner implementation underway; broader configured execution and native acceptance pending.",
-    "lifecycle": "Seven native macOS characterization tests pass; production lifecycle API, wider configurations and Linux acceptance remain open."
+    "configured": "Selected net10.0 inner and direct-edge Flavor variants pass native macOS action/mutation/relocation tests. Linux acceptance and broader configuration/entry-point semantics remain open.",
+    "lifecycle": "Seven native macOS characterization tests pass; production lifecycle API, wider configurations and Linux acceptance remain open.",
+    "scale_synthetic": "Ten-node fan protocol states pass; 1000-node recursive preparation failure fixed with iterative closures. Larger native execution, aggregate memory and controlled timing remain unmeasured.",
+    "inputs": "Pinned ordinary Serilog library generator/signing/resource oracle passes; production analyzer/package policy and input discovery remain open."
   }
 }

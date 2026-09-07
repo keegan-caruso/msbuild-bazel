@@ -2,7 +2,8 @@
 
 The review concentrated on cache identity, relocation, publication and dependency
 consumption. Four actionable defects were reproduced and corrected before the
-package milestone was published.
+package milestone was first published. A subsequent partial-restore control found
+a fifth issue, described below.
 
 | Defect and consequence | Correction | Regression evidence |
 | --- | --- | --- |
@@ -20,8 +21,26 @@ The published `9cba8c5` Linux jobs did not start because GitHub reported an acco
 billing/spending-limit issue. This remains missing platform evidence, not a test
 failure or acceptance result. See [package status](graph-package-plan.md).
 
-No additional actionable correctness defect remained in the reviewed R01/R02
-scope after those fixes and checks. This does not qualify broader NuGet asset
+Those checks did not cover restoring only a dependency after changing its
+package metadata. That gap is corrected by the consumer snapshot checks below. This does not qualify broader NuGet asset
 selection, configured-node extensions, remote caching or full host closure; those
 retain separate implementation and acceptance gates. R03 changes are reviewed
 and validated separately as they arrive.
+
+## Partial consumer restore freshness
+
+At `737e29f`, restoring the whole package diamond, changing Left to
+`PrivateAssets=all`, and then restoring only Left still allowed fresh export and
+preparation to publish App's old public package closure. App ran successfully
+using those stale package inputs. A full restore instead removed both packages
+from App and reproduced the ordinary missing-runtime-dependency result.
+Evidence: `/private/tmp/restore-closure-repro/report.json`.
+
+The fix must compare the dependency request semantics saved in each consumer's
+restore graph with current evaluated dependencies. Comparing only each node's
+own direct references is insufficient. Comparing all resolved transitive versions
+for equality would also be incorrect because NuGet resolution may legitimately
+select different versions. The fix now validates those saved requests, project edges and successful restore
+completion. Twelve focused regressions pass, including a natural failed-restore
+case and a valid consumer/dependency version-resolution difference. Full native
+integration checks are recorded in [consumer restore findings](consumer-restore-findings.md).
