@@ -109,3 +109,34 @@ The integrated `fd96f5e` run passed both baseline and adapter tests in 101.612
 seconds, including the strengthened payload-hash assertions. Evidence:
 `graph-private-assets-q_qm3pmi/probe` and `graph-private-adapter-46jzosv_` in the
 native temporary directory. This run precedes the stale-restore review fixes.
+## Restore metadata freshness
+
+Graph export now compares evaluated direct `PackageReference` identities, exact
+versions and `PrivateAssets` against the corresponding restored framework's
+project dependencies, before publishing a manifest. This includes metadata from
+imports and property expansion, and detects removed references as well as changed
+ones. `PrivateAssets` supports omitted/default, `all` and `none`; nondefault
+`IncludeAssets` or `ExcludeAssets` are explicitly rejected in this managed ref/lib
+slice. This is a bounded consistency check, not general NuGet evaluation support.
+
+Preparation also diagnoses direct literal version/privacy edits against an old
+manifest as `stale-restore`. Its XML inspection and the runner's inline version
+guard recognize standard MSBuild XML namespaces. Imported semantics are checked
+by the evaluated exporter; raw XML checks do not pretend to evaluate MSBuild.
+
+The five focused regressions in `tests/graph_packages/test_restore_semantics.py`
+failed before the fix and passed afterward on native macOS ARM64 (23.7 seconds):
+namespaced version change, direct privacy change, imported privacy change,
+reference removal and unsupported asset filtering. Failed fresh export leaves no
+manifest, and failed direct preparation leaves no replacement plan. After restore,
+the changed exact version and private package cases prepare successfully with the
+expected App package ownership. The package-free exporter suite (12 tests),
+preparation rejection suite (14 tests), and ActionRunner contract/process tests
+also passed. Linux acceptance remains the integrated CI gate.
+
+```sh
+python3 -m unittest discover -s tests/graph_packages -p test_restore_semantics.py -v
+python3 -m unittest discover -s tests/graph -v
+python3 -m unittest discover -s tests/graph_execution -p test_prepare_graph.py -v
+bash scripts/dotnet.sh run --project tests/ActionRunner.Tests
+```

@@ -1,0 +1,126 @@
+"""Reject stale package-reference semantics before graph/plan publication."""
+import json
+import os
+from pathlib import Path
+import subprocess
+import sys
+import tempfile
+import unittest
+from unittest.mock import patch
+
+ROOT = Path(__file__).resolve().parents[2]
+sys.path.insert(0, str(ROOT / 'tools'))
+from binary_inputs import Packages
+from graph_private_assets import configure, write_fixture
+from prepare_graph import DOTNET_ROOT, prepare
+
+
+class PackageRestoreSemantics(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        cls.root = Path(tempfile.mkdtemp(prefix='graph-restore-semantics-')).resolve()
+        def run(name, command, cwd):
+            result = subprocess.run(list(map(str, command)), cwd=cwd,
+                env=dict(os.environ, DOTNET_CLI_HOME=str(cls.root / 'bootstrap-home'),
+                         NUGET_PACKAGES=str(cls.root / 'bootstrap-packages'), MSBUILDDISABLENODEREUSE='1'),
+                capture_output=True, text=True, timeout=180)
+            (cls.root / (name + '.log')).write_text(result.stdout + result.stderr)
+            if result.returncode:
+                raise AssertionError(result.stdout + result.stderr)
+        cls.packages = Packages(cls.root / 'package-build', DOTNET_ROOT / 'dotnet', run)
+        run('exporter-build', [DOTNET_ROOT / 'dotnet', 'build', ROOT / 'tools/GraphExport', '-c', 'Release', '--nologo'], ROOT)
+
+    def setUp(self):
+        self.evidence = self.root / self._testMethodName
+        self.workspace = self.evidence / 'source'
+        write_fixture(self.workspace)
+        self.packages.feed(self.workspace / '.feed')
+        configure(self.workspace, self.workspace / '.feed')
+        self.project = self.workspace / 'src/Left/Left.csproj'
+        self.serial = 0
+        self.environment = dict(os.environ, DOTNET_CLI_HOME=str(self.workspace / '.dotnet-home'),
+            NUGET_PACKAGES=str(self.workspace / '.nuget/packages'), MSBUILDDISABLENODEREUSE='1')
+        environment = patch.dict(os.environ, self.environment)
+        environment.start()
+        self.addCleanup(environment.stop)
+
+    def run_dotnet(self, label, args, error=None):
+        result = subprocess.run([str(DOTNET_ROOT / 'dotnet'), *map(str, args)], cwd=self.workspace,
+            env=self.environment, capture_output=True, text=True, timeout=180)
+        (self.evidence / (label + '.log')).write_text(result.stdout + result.stderr)
+        if error:
+            self.assertNotEqual(result.returncode, 0)
+            self.assertIn(error, result.stdout + result.stderr)
+        else:
+            self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+
+    def restore(self):
+        self.run_dotnet('restore', ['msbuild', 'build.proj', '-t:Restore', '-p:Configuration=Release', '-nodeReuse:false', '-nologo'])
+
+    def export(self, error=None):
+        self.serial += 1
+        output = self.evidence / f'graph-{self.serial}.json'
+        request = self.evidence / f'request-{self.serial}.json'
+        request.write_text(json.dumps(dict(schemaVersion=1, workspace=str(self.workspace),
+            dotnetRoot=str(DOTNET_ROOT), sdkVersion='10.0.100', packageRoot=str(self.workspace / '.nuget/packages'),
+            entryPoints=[dict(project='build.proj', globalProperties={'Configuration':'Release'})], output=str(output))))
+        self.run_dotnet('export-' + str(self.serial), [ROOT / 'tools/GraphExport/bin/Release/net10.0/GraphExport.dll', '--request', request], error)
+        if error:
+            self.assertFalse(output.exists(), 'failed export published a manifest')
+        return output
+
+    def assert_rejected_old_and_fresh(self, old):
+        with self.assertRaisesRegex(ValueError, 'stale-restore'):
+            prepare(self.workspace, old, self.evidence / 'rejected')
+        self.assertFalse((self.evidence / 'rejected').exists())
+        self.export(error='stale-restore')
+
+    def assert_current_prepares(self, app_packages):
+        manifest = self.export()
+        graph = prepare(self.workspace, manifest, self.evidence / ('accepted-' + str(self.serial)))
+        app = next(n['id'] for n in graph['nodes'] if n['project'].endswith('/App.csproj'))
+        packages = json.loads((self.evidence / ('accepted-' + str(self.serial)) / 'package-manifests' / (app + '.json')).read_text())
+        self.assertEqual(sorted(p['id'] for p in packages['packages']), app_packages)
+
+    def test_namespaced_exact_version_change_requires_restore(self):
+        self.project.write_text(self.project.read_text().replace('<Project ', '<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003" ', 1))
+        self.restore()
+        old = self.export()
+        self.project.write_text(self.project.read_text().replace('[1.0.0]', '[1.0.1]'))
+        self.assert_rejected_old_and_fresh(old)
+        self.restore()
+        self.assert_current_prepares(['Spike.Binary', 'Spike.Leaf'])
+
+    def test_direct_private_assets_change_requires_restore(self):
+        self.restore()
+        old = self.export()
+        configure(self.workspace, self.workspace / '.feed', private_assets='all')
+        self.assert_rejected_old_and_fresh(old)
+        self.restore()
+        self.assert_current_prepares([])
+
+    def test_imported_private_assets_change_requires_restore(self):
+        self.project.write_text(self.project.read_text().replace('Include="Spike.Binary"', 'Include="Spike.Binary" PrivateAssets="$(ScopedPrivacy)"'))
+        props = self.workspace / 'Directory.Build.props'
+        props.write_text(props.read_text().replace('</PropertyGroup>', '<ScopedPrivacy>none</ScopedPrivacy></PropertyGroup>'))
+        self.restore()
+        self.export()
+        props.write_text(props.read_text().replace('<ScopedPrivacy>none</ScopedPrivacy>', '<ScopedPrivacy>all</ScopedPrivacy>'))
+        self.export(error='stale-restore')
+        self.restore()
+        self.assert_current_prepares([])
+
+    def test_removed_direct_reference_requires_restore(self):
+        self.restore()
+        self.project.write_text('<Project Sdk="Microsoft.NET.Sdk"><ItemGroup><ProjectReference Include="../Shared/Shared.csproj"/></ItemGroup></Project>')
+        self.export(error='stale-restore')
+
+    def test_nondefault_asset_filters_reject_explicitly(self):
+        configure(self.workspace, self.workspace / '.feed')
+        self.project.write_text(self.project.read_text().replace('Include="Spike.Binary"', 'Include="Spike.Binary" IncludeAssets="compile"'))
+        self.restore()
+        self.export(error='unsupported-package')
+
+
+if __name__ == '__main__':
+    unittest.main()

@@ -20,7 +20,7 @@ internal static class PackageInputs
         if (provided.Count != resolved.Count || provided.Any(p => !resolved.TryGetValue(p.Key, out var path) || path != p.Value))
             throw new InvalidDataException("package manifest does not match restore assets");
         var project = XDocument.Load(Path.Combine(workspace, projectPath));
-        foreach (var reference in project.Descendants("PackageReference"))
+        foreach (var reference in project.Descendants().Where(element => element.Name.LocalName == "PackageReference"))
         {
             var version = (string?)reference.Attribute("Version") ?? "";
             if (!version.StartsWith('[') || !version.EndsWith(']') || version.Contains(','))

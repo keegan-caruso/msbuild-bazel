@@ -7,6 +7,21 @@ import xml.etree.ElementTree as ET
 import zipfile
 
 
+def metadata(reference, name):
+    if name in reference.attrib:
+        return reference.attrib[name]
+    return next((child.text or '' for child in reference if child.tag.rsplit('}', 1)[-1] == name), None)
+
+
+def privacy(value):
+    flags = {flag.strip().lower() for flag in (value or '').replace(',', ';').split(';') if flag.strip()}
+    if not flags or flags == {'contentfiles', 'analyzers', 'build'}:
+        return 'default'
+    if flags in ({'all'}, {'none'}):
+        return next(iter(flags))
+    raise ValueError('unsupported-package: PrivateAssets must be default, all or none')
+
+
 def package_plan(workspace, project):
     project = Path(project)
     assets = json.loads((workspace / project.parent / 'obj/project.assets.json').read_text())
@@ -18,13 +33,34 @@ def package_plan(workspace, project):
         tree = ET.parse(source)
     except ET.ParseError as error:
         raise ValueError('stale-manifest: stale graph input: workspace/' + project.as_posix()) from error
-    for reference in tree.getroot().iter('PackageReference'):
-        version = reference.get('Version', '')
-        if not (version.startswith('[') and version.endswith(']') and ',' not in version):
-            raise ValueError('unsupported-package: exact inline version required')
-        identity = reference.get('Include', '') + '/' + version[1:-1]
-        if identity.lower() not in {k.lower() for k in libraries}:
-            raise ValueError('stale-restore: package reference differs from restored version')
+    direct = assets.get('project', {}).get('frameworks', {}).get('net10.0', {}).get('dependencies', {})
+    direct = {name.lower(): value for name, value in direct.items()}
+    for reference in tree.getroot().iter():
+        if reference.tag.rsplit('}', 1)[-1] != 'PackageReference':
+            continue
+        package_id = reference.get('Include') or reference.get('Update')
+        if package_id is None:
+            continue
+        version = reference.get('Version')
+        if 'Include' in reference.attrib or version is not None:
+            version = version or ''
+            if not (version.startswith('[') and version.endswith(']') and ',' not in version):
+                raise ValueError('unsupported-package: exact inline version required')
+            identity = package_id + '/' + version[1:-1]
+            if identity.lower() not in {k.lower() for k in libraries}:
+                raise ValueError('stale-restore: package reference differs from restored version')
+        # This early guard preserves stale-restore diagnostics for direct literal
+        # edits. Imported/property-derived metadata is checked after evaluation
+        # by GraphExport, before any fresh manifest can be published.
+        current = metadata(reference, 'PrivateAssets')
+        if current is not None and '$(' not in current and '@(' not in current:
+            saved = direct.get(package_id.lower())
+            if saved is None or privacy(current) != privacy(saved.get('suppressParent')):
+                raise ValueError('stale-restore: PrivateAssets differs from restore: ' + package_id)
+        for name, allowed in (('IncludeAssets', 'all'), ('ExcludeAssets', 'none')):
+            value = metadata(reference, name)
+            if value and '$(' not in value and '@(' not in value and value.lower() != allowed:
+                raise ValueError('unsupported-package: nondefault ' + name)
     if not libraries:
         return assets, libraries
     if not assets.get('targets') or any('path' not in item or 'sha512' not in item for item in libraries.values()):

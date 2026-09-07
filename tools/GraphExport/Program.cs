@@ -219,6 +219,7 @@ internal static class GraphExporter
 
         using (var assetsDocument = JsonDocument.Parse(File.ReadAllText(assets)))
         {
+            PackageRestoreValidation.Validate(instance, assetsDocument.RootElement);
             foreach (var library in assetsDocument.RootElement.GetProperty("libraries").EnumerateObject())
             {
                 if (library.Value.GetProperty("type").GetString() != "package") continue;
