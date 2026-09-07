@@ -402,6 +402,9 @@
     "cache": "Native macOS scoped cache acceptance and integrated Linux lane passed, including deleted-producer relocation.",
     "handoff": "Native macOS controls and integrated Linux discovery and forced-consumption lane passed.",
     "languages": "Native macOS and integrated Linux composition, edits and forced cache recovery pass; broader harness gates remain open.",
-    "local": "R01 accepted on native macOS ARM64 and Linux x86-64; package-bearing R02 remains separate."
+    "local": "R01 accepted on native macOS ARM64 and Linux x86-64; package-bearing R02 remains separate.",
+    "packages": "All 13 full cache and 7 PrivateAssets tests pass on macOS at 2407142. Published 9cba8c5 Linux jobs blocked before startup by GitHub account billing/spending limit; acceptance pending.",
+    "configured": "Ordinary configured-node baselines and selected-inner implementation underway; broader configured execution and native acceptance pending.",
+    "lifecycle": "Seven native macOS characterization tests pass; production lifecycle API, wider configurations and Linux acceptance remain open."
   }
 }

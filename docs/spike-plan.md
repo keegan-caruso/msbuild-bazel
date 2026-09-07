@@ -128,3 +128,8 @@ consumer bundles, maps compiler paths and narrows Shared's intermediate handoff
 to the reference assembly. A fresh output base with an empty cache forces real
 executions and compares all bundle bytes and executable bits. Runtime closure
 and broader output discovery remain open.
+
+The next parallel slices are tracked in [configured-node findings](configured-node-findings.md)
+and [lifecycle findings](lifecycle-findings.md). Their ordinary MSBuild controls
+retain the observed isolation failures explicitly; implementation and native
+acceptance states are recorded separately from those baselines.

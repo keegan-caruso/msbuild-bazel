@@ -111,3 +111,42 @@ jobs:
             /tmp/graph-restore-semantics-*/**/*.log
             /tmp/graph-restore-semantics-*/**/graph-*.json
           if-no-files-found: ignore
+  configured-nodes:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install pinned tools
+        run: bash scripts/setup.sh
+      - name: Configured-node semantics and execution
+        run: python3 -m unittest discover -s tests/configured_nodes -v
+      - name: Retain configured-node evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: configured-node-evidence
+          path: |
+            /tmp/configured-baseline-*/**/*.log
+            /tmp/configured-baseline-*/**/*.json
+            /tmp/configured-adapter-*/**/*.log
+            /tmp/configured-adapter-*/**/*.json
+          if-no-files-found: ignore
+  lifecycle:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install pinned tools
+        run: bash scripts/setup.sh
+      - name: Output lifecycle characterization
+        run: python3 -m unittest discover -s tests/lifecycle -v
+      - name: Retain lifecycle evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: lifecycle-evidence
+          path: |
+            /tmp/msbuild-lifecycle-*/probe/*.log
+            /tmp/msbuild-lifecycle-*/probe/*.json
+            /tmp/msbuild-lifecycle-*/probe/evidence/**
+          if-no-files-found: ignore

@@ -52,3 +52,14 @@ not R02 acceptance by itself. The integrated `2407142` macOS run subsequently
 passed all 13 full cache and seven PrivateAssets/restore-semantics tests, including
 upgrade, recovery, relocation and review regression controls. Linux CI remains
 the final R02 acceptance gate.
+
+## Linux execution blocked before startup
+
+The published revision `9cba8c5` triggered Linux CI, but GitHub did not start any
+job steps. The [graph run](https://github.com/keegan-caruso/msbuild-bazel/actions/runs/34072647046),
+[setup run](https://github.com/keegan-caruso/msbuild-bazel/actions/runs/34072646985)
+and [Nix run](https://github.com/keegan-caruso/msbuild-bazel/actions/runs/34072646891)
+reported an account payment or spending-limit issue. This is not a test failure
+or passing Linux evidence; R02 remains unaccepted until the native Linux jobs
+can execute. R03 and lifecycle implementation can proceed under their already
+accepted R01 prerequisite.
