@@ -101,3 +101,30 @@ requires standard output paths and one configured node per project path.
 The exporter suite passed all 13 tests on native macOS ARM64, including selected
 inner export and invalid-selection rejection; ActionRunner builds successfully.
 Generated inner-build acceptance is a separate pending gate at this commit.
+
+## Configured execution implementation
+
+The next slice carries evaluated assets, output and reference directories in each
+node's additive `execution` object. Preparation stages restore state per configured
+ID, excludes dependency source files, and rejects overlapping configured output
+folders before publication. The runner uses `graph_global_properties`,
+`graph_assets_file` and `graph_output_directories`. Bundles are selected by project
+path and complete global properties; property names are case-insensitive as in
+MSBuild, while values and property sets must match exactly. The imposed
+`IsGraphBuild=true` property is included in current-node capture identity.
+
+Flavor graphs require an explicitly authored `DisableTransitiveProjectReferences`
+setting; the adapter rejects the unsupported default-transitive case rather than
+changing project semantics. Restore metadata output paths must agree with the
+evaluated assets location, detecting a variant restore copied from another folder.
+Supported custom output paths remain under each project's bin/obj directories.
+
+The initial native macOS configured probe completed at
+`/private/tmp/r03-configured-smoke3`: six cold project actions, no unchanged
+actions, only Right and App after blue-to-red edge convergence, and six disk-cache
+hits after deleting and relocating both preparation and generated workspaces.
+Outputs were `red:common|blue:common` and `red:common|red:common` respectively.
+Bazel pruned unrequested intermediate bundles in the all-hit case, so this first
+probe does not establish full-bundle byte equality; the acceptance probe is being
+updated to request every node explicitly. Linux execution remains blocked by the
+repository's CI account billing gate and is not claimed.

@@ -9,7 +9,7 @@ internal sealed record ActionRequest(
     string? PackageManifest, string Plugin, string BuildProps, string BuildTargets, string Output, string Diagnostics,
     string? Dependency, string UndeclaredProbe, string? NativeManifest, InputFile[] NativeFiles,
     string? LoaderJit = null, string? LoaderManifest = null,
-    string? GraphProject = null, string[]? GraphDependencies = null, Dictionary<string, string>? GraphGlobalProperties = null);
+    string? GraphProject = null, string[]? GraphDependencies = null, Dictionary<string, string>? GraphGlobalProperties = null, string? GraphAssetsFile = null, string[]? GraphOutputDirectories = null);
 
 internal sealed record Artifact(string Path, long Size, string Sha256);
 internal sealed record PackageFile(string Path, long Size, string Sha256);

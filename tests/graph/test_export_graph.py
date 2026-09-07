@@ -81,6 +81,14 @@ class GraphExportAcceptance(unittest.TestCase):
         self.assertTrue(json.loads(result.stdout)["ok"])
         return json.loads(output.read_text())
 
+    def test_restore_from_other_configured_directory_is_rejected(self):
+        self.restore()
+        path = self.work / "src/Shared/obj/project.assets.json"
+        assets = json.loads(path.read_text())
+        assets["project"]["restore"]["outputPath"] = str(self.work / "src/Shared/obj/other")
+        path.write_text(json.dumps(assets))
+        self.export(error="stale-restore")
+
     def test_selected_existing_inner_framework_retains_declaration(self):
         project = self.work / "src/Shared/Shared.csproj"
         project.write_text('<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup><TargetFrameworks>net10.0;netstandard2.1</TargetFrameworks></PropertyGroup></Project>')

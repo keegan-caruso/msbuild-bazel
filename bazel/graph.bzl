@@ -10,6 +10,8 @@ def _graph_project_impl(ctx):
         "project": "Shared",
         "graph_project": ctx.attr.project,
         "graph_global_properties": ctx.attr.global_properties,
+        "graph_assets_file": ctx.attr.assets_file or None,
+        "graph_output_directories": ctx.attr.output_directories or None,
         "graph_dependencies": [f.path for f in dependencies.to_list()],
         "sources": [{"source": f.path, "destination": f.short_path.removeprefix("src/")} for f in ctx.files.srcs],
         "restore": [f.path for f in ctx.files.restore],
@@ -36,6 +38,8 @@ def _graph_project_impl(ctx):
 
 graph_project = rule(implementation = _graph_project_impl, attrs = {
     "project": attr.string(mandatory = True),
+    "assets_file": attr.string(),
+    "output_directories": attr.string_list(),
     "global_properties": attr.string_dict(default = {"configuration": "Release"}),
     "srcs": attr.label_list(allow_files = True), "restore": attr.label_list(allow_files = True),
     "packages": attr.label_list(allow_files = True),

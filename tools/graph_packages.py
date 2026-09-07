@@ -22,9 +22,9 @@ def privacy(value):
     raise ValueError('unsupported-package: PrivateAssets must be default, all or none')
 
 
-def package_plan(workspace, project):
+def package_plan(workspace, project, assets_file=None):
     project = Path(project)
-    assets = json.loads((workspace / project.parent / 'obj/project.assets.json').read_text())
+    assets = json.loads((workspace / (assets_file or project.parent / 'obj/project.assets.json')).read_text())
     libraries = {k: v for k, v in assets['libraries'].items() if v['type'] == 'package'}
     source = workspace / project
     if not source.is_file() or not source.resolve().is_relative_to(workspace):
@@ -72,8 +72,8 @@ def package_plan(workspace, project):
     return assets, libraries
 
 
-def stage(workspace, project, output, node_id):
-    assets, libraries = package_plan(workspace, project)
+def stage(workspace, project, output, node_id, assets_file=None):
+    assets, libraries = package_plan(workspace, project, assets_file)
     manifest = {'schemaVersion': 1, 'packages': []}
     paths = []
     for identity, library in sorted(libraries.items()):

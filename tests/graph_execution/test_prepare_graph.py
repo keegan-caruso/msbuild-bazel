@@ -31,6 +31,21 @@ class PreparationRejection(unittest.TestCase):
             prepare(self.workspace, manifest, self.root / 'generated')
         self.assertFalse((self.root / 'generated').exists())
 
+    def test_same_path_configured_output_collision_rejected(self):
+        self.node['execution'] = dict(assetsFile='workspace/App/obj/project.assets.json',
+            outputDirectory='workspace/App/bin/Release/net10.0', referenceDirectory='workspace/App/obj/Release/net10.0/ref')
+        other = json.loads(json.dumps(self.node))
+        other['id'] = 'b' * 24
+        other['globalProperties']['flavor'] = 'blue'
+        self.node['globalProperties']['flavor'] = 'red'
+        self.graph['nodes'].append(other)
+        self.rejected('configured-output-collision')
+
+    def test_configured_restore_path_escape_rejected(self):
+        self.node['execution'] = dict(assetsFile='workspace/App/../other/project.assets.json',
+            outputDirectory='workspace/App/bin/red/Release/net10.0', referenceDirectory='workspace/App/obj/red/Release/net10.0/ref')
+        self.rejected('unsafe workspace path')
+
     def test_unsupported_global_property(self):
         self.node['globalProperties']['defineconstants'] = 'OTHER'
         self.rejected('configuration')

@@ -8,7 +8,7 @@ internal static class PackageInputs
     {
         var projectName = request.Project.ToString();
         var projectPath = request.GraphProject ?? Path.Combine(projectName, projectName + ".csproj");
-        var assets = JsonFiles.Read<RestoreAssets>(Path.Combine(workspace, Path.GetDirectoryName(projectPath)!, "obj/project.assets.json"));
+        var assets = JsonFiles.Read<RestoreAssets>(Path.Combine(workspace, request.GraphAssetsFile ?? Path.Combine(Path.GetDirectoryName(projectPath)!, "obj/project.assets.json")));
         var resolved = assets.Libraries.Where(entry => entry.Value.Type == "package")
             .ToDictionary(entry => entry.Key, entry => entry.Value.Path
                 ?? throw new InvalidDataException("restored package path missing: " + entry.Key), StringComparer.OrdinalIgnoreCase);

@@ -163,6 +163,9 @@ internal static class GraphExporter
         using var collection = new ProjectCollection();
         var graph = new ProjectGraph(entries, collection);
         var compilationNodes = graph.ProjectNodes.Where(IsCompilationNode).ToArray();
+        if (compilationNodes.Any(node => node.ProjectInstance.GlobalProperties.ContainsKey("Flavor")) &&
+            compilationNodes.Any(node => !string.Equals(node.ProjectInstance.GetPropertyValue("DisableTransitiveProjectReferences"), "true", StringComparison.OrdinalIgnoreCase)))
+            throw new ExportException("unsupported-configured-transitive", "configured variants require the explicitly authored direct-edge graph");
         var ids = compilationNodes.ToDictionary(n => n, n => NodeId(request, n));
 
         var nodes = compilationNodes.Select(node => ExportNode(request, node, ids)).OrderBy(n => n.Project, StringComparer.Ordinal).ThenBy(n => n.Id, StringComparer.Ordinal).ToList();
@@ -220,6 +223,10 @@ internal static class GraphExporter
         using (var assetsDocument = JsonDocument.Parse(File.ReadAllText(assets)))
         {
             PackageRestoreValidation.Validate(instance, assetsDocument.RootElement);
+            var restoreMetadata = assetsDocument.RootElement.GetProperty("project").GetProperty("restore");
+            if (!restoreMetadata.TryGetProperty("outputPath", out var restoredOutput) ||
+                CanonicalDirectory(restoredOutput.GetString()!) != CanonicalDirectory(Path.GetDirectoryName(assets)!))
+                throw new ExportException("stale-restore", "configured restore output path differs from evaluated assets path: " + instance.FullPath);
             foreach (var library in assetsDocument.RootElement.GetProperty("libraries").EnumerateObject())
             {
                 if (library.Value.GetProperty("type").GetString() != "package") continue;
@@ -277,7 +284,22 @@ internal static class GraphExporter
             instance.GetPropertyValue("OutputType"),
             dependencies,
             inputs.Values.OrderBy(i => i.Path, StringComparer.Ordinal).ThenBy(i => i.Kind, StringComparer.Ordinal).ToList(),
-            outputs.Values.OrderBy(o => o.Path, StringComparer.Ordinal).ThenBy(o => o.Kind, StringComparer.Ordinal).ToList());
+            outputs.Values.OrderBy(o => o.Path, StringComparer.Ordinal).ThenBy(o => o.Kind, StringComparer.Ordinal).ToList(),
+            new ExecutionRecord(NormalizeWorkspaceRelative(request, assets),
+                NormalizeWorkspaceRelative(request, Path.GetDirectoryName(instance.GetPropertyValue("TargetPath"))!),
+                NormalizeWorkspaceRelative(request, Path.GetFullPath(Path.Combine(instance.GetPropertyValue("IntermediateOutputPath"), "ref"), Path.GetDirectoryName(instance.FullPath)!))));
+    }
+
+    private static string CanonicalDirectory(string path)
+    {
+        var full = Path.GetFullPath(path);
+        var current = Path.GetPathRoot(full)!;
+        foreach (var segment in full[current.Length..].Split(Path.DirectorySeparatorChar, StringSplitOptions.RemoveEmptyEntries))
+        {
+            var directory = new DirectoryInfo(Path.Combine(current, segment));
+            current = directory.Exists ? directory.ResolveLinkTarget(true)?.FullName ?? directory.FullName : directory.FullName;
+        }
+        return current.TrimEnd(Path.DirectorySeparatorChar);
     }
 
     private static void ValidateSupported(Microsoft.Build.Execution.ProjectInstance instance)
@@ -474,5 +496,6 @@ internal sealed class EntryRequest
 internal sealed record ToolchainRecord(string SdkVersion, string GraphEngine, int ContractVersion);
 internal sealed record InputRecord(string Kind, string Path, string Sha256);
 internal sealed record OutputRecord(string Kind, string Path);
-internal sealed record NodeRecord(string Id, string Project, SortedDictionary<string, string> GlobalProperties, string TargetFramework, string OutputType, List<string> Dependencies, List<InputRecord> Inputs, List<OutputRecord> Outputs);
+internal sealed record NodeRecord(string Id, string Project, SortedDictionary<string, string> GlobalProperties, string TargetFramework, string OutputType, List<string> Dependencies, List<InputRecord> Inputs, List<OutputRecord> Outputs, ExecutionRecord Execution);
+internal sealed record ExecutionRecord(string AssetsFile, string OutputDirectory, string ReferenceDirectory);
 internal sealed record Manifest(int SchemaVersion, ToolchainRecord Toolchain, List<string> EntryPoints, List<InputRecord> GraphInputs, List<NodeRecord> Nodes, List<EntryRequest> EntryRequests);

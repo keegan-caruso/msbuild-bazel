@@ -52,21 +52,33 @@ def _prepare(workspace, manifest, output, *, environment=None):
     if graph['schemaVersion'] != 1 or graph.get('toolchain') != {'sdkVersion': '10.0.100', 'graphEngine': 'ProjectGraph', 'contractVersion': 1}:
         raise ValueError('unsupported graph schema')
     nodes = {n['id']: n for n in graph['nodes']}
-    if len(nodes) != len(graph['nodes']) or not nodes or len({n['project'] for n in nodes.values()}) != len(nodes):
+    if len(nodes) != len(graph['nodes']) or not nodes:
         raise ValueError('duplicate or empty graph nodes')
     for node in nodes.values():
         if not re.fullmatch('[0-9a-f]{24}', node['id']):
             raise ValueError('invalid configured node id')
-        if node['globalProperties'] not in ({'configuration': 'Release'}, {'configuration': 'Release', 'targetframework': 'net10.0'}) or node['targetFramework'] != 'net10.0':
+        if node['globalProperties'].get('configuration') != 'Release' or any(k not in ('configuration', 'targetframework', 'flavor') for k in node['globalProperties']) or node['globalProperties'].get('targetframework', 'net10.0') != 'net10.0' or node['targetFramework'] != 'net10.0':
             raise ValueError('unsupported graph execution configuration')
         project = relative(node['project'])
-        expected = str(Path(project).parent / 'bin/Release/net10.0' / (Path(project).stem + '.dll'))
-        if node['outputs'] != [{'kind': 'assembly', 'path': 'workspace/' + expected}]:
+        execution = node.get('execution', dict(assetsFile='workspace/' + str(Path(project).parent / 'obj/project.assets.json'), outputDirectory='workspace/' + str(Path(project).parent / 'bin/Release/net10.0'), referenceDirectory='workspace/' + str(Path(project).parent / 'obj/Release/net10.0/ref')))
+        for key, prefix in (('assetsFile', 'obj'), ('outputDirectory', 'bin'), ('referenceDirectory', 'obj')):
+            path = Path(relative(execution[key]))
+            if not path.is_relative_to(Path(project).parent / prefix):
+                raise ValueError('unsupported graph output layout')
+        if len(node['outputs']) != 1 or node['outputs'][0]['kind'] != 'assembly' or Path(relative(node['outputs'][0]['path'])).parent != Path(relative(execution['outputDirectory'])):
             raise ValueError('unsupported graph output layout')
         if any(dep not in nodes for dep in node['dependencies']):
             raise ValueError('missing dependency node')
-        assets = json.loads((workspace / Path(project).parent / 'obj/project.assets.json').read_text())
-        graph_packages.package_plan(workspace, project)
+        graph_packages.package_plan(workspace, project, relative(execution['assetsFile']))
+    output_owners = {}
+    for identity, node in nodes.items():
+        if 'execution' not in node: continue
+        for key in ('outputDirectory', 'referenceDirectory'):
+            path = Path(relative(node['execution'][key]))
+            for other, owner in output_owners.items():
+                if path.is_relative_to(other) or other.is_relative_to(path):
+                    raise ValueError('configured-output-collision: ' + str(path))
+            output_owners[path] = identity
     def closure(identity, active=()):
         if identity in active:
             raise ValueError('cyclic graph')
@@ -167,7 +179,8 @@ def _prepare(workspace, manifest, output, *, environment=None):
                             sources.add(source)
             project_directory = Path(relative(dependency['project'])).parent
             state = {}
-            for source in sorted((workspace / project_directory / 'obj').iterdir()):
+            assets_file = relative(dependency['execution']['assetsFile']) if 'execution' in dependency else str(project_directory / 'obj/project.assets.json')
+            for source in sorted((workspace / assets_file).parent.iterdir()):
                 if source.is_file() and (source.name.endswith(('.json', '.props', '.targets')) or source.name == 'project.nuget.cache'):
                     contents = source.read_text()
                     if source.name == 'project.nuget.cache':
@@ -185,8 +198,9 @@ def _prepare(workspace, manifest, output, *, environment=None):
             target = output / 'src' / source
             target.parent.mkdir(parents=True, exist_ok=True)
             shutil.copyfile(workspace / source, target)
-        package_manifest, packages = graph_packages.stage(workspace, relative(node['project']), output, identity)
-        attrs = dict(settings, global_properties=node['globalProperties'], packages=packages, package_manifest=package_manifest, name='node_' + identity, project=relative(node['project']), srcs=sorted('src/' + s for s in sources), restore=restore, dependencies=[':node_' + d for d in node['dependencies']])
+        package_manifest, packages = graph_packages.stage(workspace, relative(node['project']), output, identity, relative(node['execution']['assetsFile']) if 'execution' in node else None)
+        execution_attrs = dict(assets_file=relative(node['execution']['assetsFile']), output_directories=[relative(node['execution'][key]) for key in ('outputDirectory', 'referenceDirectory')]) if 'execution' in node else {}
+        attrs = dict(settings, **execution_attrs, global_properties=node['globalProperties'], packages=packages, package_manifest=package_manifest, name='node_' + identity, project=relative(node['project']), srcs=sorted('src/' + s for s in sources), restore=restore, dependencies=[':node_' + d for d in node['dependencies']])
         build += 'graph_project(\n' + ''.join(f'    {k} = {json.dumps(v)},\n' for k, v in attrs.items()) + ')\n'
     build += 'filegroup(name="all", srcs=' + json.dumps([':node_' + n for n in graph['entryPoints']]) + ')\n'
     (output / 'BUILD.bazel').write_text(build)
