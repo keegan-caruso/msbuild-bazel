@@ -137,3 +137,21 @@ controls (6.5 seconds), and `python3 -m unittest discover -s tests/graph -v`
 passed all 12 exporter tests, including restored relocation (13.5 seconds).
 The equivalent-entry regression was observed failing before the fix. Native
 Linux validation of this review correction remains assigned to integrated CI.
+
+## Conditional-edge restore diagnostic
+
+With consumer restore-snapshot validation integrated, adding the conditional
+Shared reference to Left is rejected during fresh evaluation as
+`stale-restore: direct project reference set differs from restore`. This precedes
+the later whole-manifest comparison. The conditional discovery test now expects
+that specific diagnostic; new source and optional-import cases retain their
+`stale graph discovery` expectation. The negative still asserts no plan publication,
+then restores, regenerates and verifies exactly Left plus App execute.
+
+At stable production revision `6563e3c`, the full twelve-test handoff suite passed
+eleven tests and failed only this outdated diagnostic expectation. After the
+narrow test-only change, the conditional case passed in 23.170 seconds on native
+macOS ARM64. Logs are `/private/tmp/final-discovery-before.log` and
+`/private/tmp/final-discovery-after.log`; the original handoff evidence is retained
+at `graph-handoff-zbzyfcwe` in the native temporary directory. Production behavior
+was unchanged; this result does not add Linux qualification.

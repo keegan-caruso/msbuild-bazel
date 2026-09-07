@@ -91,8 +91,8 @@ class GraphDiscoveryAcceptance(unittest.TestCase):
         self.assertEqual(self.build(self.root / 'baseline', graph, 'baseline'), {n['project'] for n in graph['nodes']})
         return old
 
-    def stale_then_regenerate(self, old, expected):
-        with self.assertRaisesRegex(ValueError, 'stale graph discovery'):
+    def stale_then_regenerate(self, old, expected, expected_error='stale graph discovery'):
+        with self.assertRaisesRegex(ValueError, expected_error):
             prepare(self.workspace, old, self.root / 'rejected')
         self.assertFalse((self.root / 'rejected').exists())
         self.restore()
@@ -169,7 +169,8 @@ class GraphDiscoveryAcceptance(unittest.TestCase):
         self.restore()
         old = self.baseline()
         (project.parent / 'select-shared.flag').write_text('selected')
-        graph = self.stale_then_regenerate(old, {'Left', 'App'})
+        graph = self.stale_then_regenerate(old, {'Left', 'App'},
+            expected_error='stale-restore: direct project reference set differs from restore:')
         before = next(n for n in json.loads(old.read_text())['nodes'] if n['project'].endswith('/Left.csproj'))
         after = next(n for n in graph['nodes'] if n['project'].endswith('/Left.csproj'))
         self.assertEqual(before['dependencies'], [])
