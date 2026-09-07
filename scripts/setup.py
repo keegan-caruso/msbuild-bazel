@@ -1,15 +1,18 @@
-"""Install the checked-in Linux x64 toolchain pins; no global installation."""
+"""Install the checked-in native Linux toolchain pins; no global installation."""
 import hashlib
 import json
+import platform
 from pathlib import Path
 import shutil
 import subprocess
 import tempfile
+from toolchain_pins import select
 
 ROOT = Path(__file__).resolve().parent.parent
 pins = json.loads((ROOT / "scripts/toolchains.json").read_text())
 assert pins["dotnet"]["version"] == json.loads((ROOT / "global.json").read_text())["sdk"]["version"]
 assert pins["bazel"]["version"] == (ROOT / ".bazelversion").read_text().strip()
+pins = select(pins, platform.machine())
 cache = ROOT / ".cache/downloads"
 cache.mkdir(parents=True, exist_ok=True)
 (ROOT / ".tools").mkdir(exist_ok=True)

@@ -85,6 +85,11 @@ the initial platform target; current measured platform evidence is stated above.
 
 ## Recorded results
 
+The [Apple container runbook](apple-container-runbook.md) covers host setup,
+the Shared -> App smoke test, and the focused Bazel sandbox/cache probe on an
+Apple silicon Mac. It includes required guest protected-path settings,
+troubleshooting, cleanup, and the limits of this local validation.
+
 Codex setup and CI are established. The initial process contract and six e2e scenarios were committed before implementation. See [e2e scope](e2e-scope.md), [interfaces](interfaces.md), and [findings](findings.md).
 
 Step 4 now has a runnable path probe and a seventh e2e test. On macOS ARM64 with

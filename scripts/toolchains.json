@@ -2,11 +2,23 @@
   "dotnet": {
     "version": "10.0.100",
     "url": "https://builds.dotnet.microsoft.com/dotnet/Sdk/10.0.100/dotnet-sdk-10.0.100-linux-x64.tar.gz",
-    "sha256": "a9631cc6bfad0ef167383ac654b54254bad95a6fb4b6f4309fa78f558055e637"
+    "sha256": "a9631cc6bfad0ef167383ac654b54254bad95a6fb4b6f4309fa78f558055e637",
+    "platforms": {
+      "linux-arm64": {
+        "url": "https://builds.dotnet.microsoft.com/dotnet/Sdk/10.0.100/dotnet-sdk-10.0.100-linux-arm64.tar.gz",
+        "sha256": "b6425aeef6009a2d427bf600a2cd02f9dd6ac608e6bad021fd2f82f685914793"
+      }
+    }
   },
   "bazel": {
     "version": "8.4.2",
     "url": "https://releases.bazel.build/8.4.2/release/bazel-8.4.2-linux-x86_64",
-    "sha256": "4dc8e99dfa802e252dac176d08201fd15c542ae78c448c8a89974b6f387c282c"
+    "sha256": "4dc8e99dfa802e252dac176d08201fd15c542ae78c448c8a89974b6f387c282c",
+    "platforms": {
+      "linux-arm64": {
+        "url": "https://releases.bazel.build/8.4.2/release/bazel-8.4.2-linux-arm64",
+        "sha256": "58e6042fc54f3bf5704452b579f575ae935817d4b842a76123f05fae6b1f9a83"
+      }
+    }
   }
 }

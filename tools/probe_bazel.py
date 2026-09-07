@@ -15,6 +15,7 @@ import package_inputs
 import binary_inputs
 import runtime_inputs
 import loader_inputs
+from bazel_session import BazelSession
 
 ROOT = Path(__file__).resolve().parents[1]
 DOTNET = Path(os.environ.get('SPIKE_DOTNET_ROOT', ROOT / '.tools/dotnet')) / 'dotnet'
@@ -38,12 +39,18 @@ def bundle_snapshot(directory):
 
 
 def probe(output, identity=False, package_mode=False, staging=False, native_runtime=False, binary_packages=False):
+    with BazelSession(output) as bazel:
+        return _probe(output, identity, package_mode, staging, native_runtime, binary_packages, bazel)
+
+
+def _probe(output, identity, package_mode, staging, native_runtime, binary_packages, bazel):
     staging = staging or binary_packages
     has_packages = package_mode or binary_packages
     output.mkdir(parents=True, exist_ok=False)
     workspace = output / 'workspace'
     workspace.mkdir()
     report = dict(binaryPackageProbe=binary_packages, schemaVersion=1, platform=platform.platform(), identityProbe=identity, packageProbe=package_mode, stagingProbe=staging, nativeRuntimeProbe=native_runtime, cases={})
+    report['bazelMode'] = bazel.mode
     env = dict(os.environ, DOTNET_ROOT=str(DOTNET.parent),
                DOTNET_CLI_HOME=str(output / 'dotnet-home'),
                NUGET_PACKAGES=str(output / 'prepare/.nuget/packages'),
@@ -53,6 +60,8 @@ def probe(output, identity=False, package_mode=False, staging=False, native_runt
         env['SPIKE_INPUT_FLAVOR'] = 'env-v1'
 
     def run(name, command, cwd=workspace, require=True):
+        if str(command[0]) == str(BAZEL):
+            command = bazel.prepare(command, cwd, env)
         process = subprocess.run([str(arg) for arg in command], cwd=cwd, env=env, text=True,
                                  stdout=subprocess.PIPE, stderr=subprocess.STDOUT, timeout=300)
         log = output / (name + '.log')

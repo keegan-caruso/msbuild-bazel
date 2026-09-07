@@ -11,12 +11,18 @@ import sys
 
 from prepare_graph import prepare, ROOT, DOTNET_ROOT
 from probe_bazel import json_stream
+from bazel_session import BazelSession
 sys.path.insert(0, str(ROOT / 'tests/graph'))
 from test_export_graph import write_fixture
 
 BAZEL = Path(os.environ.get('SPIKE_BAZEL', ROOT / '.tools/bin/bazel'))
 
 def probe(output, root_project=False):
+    with BazelSession(output) as bazel:
+        return _probe(output, root_project, bazel)
+
+
+def _probe(output, root_project, bazel):
     output = output.resolve()
     output.mkdir(parents=True, exist_ok=False)
     workspace = output / 'preparation'
@@ -35,6 +41,8 @@ def probe(output, root_project=False):
     (workspace / '.nuget/packages').mkdir(parents=True, exist_ok=True)
     environment = dict(os.environ, NUGET_PACKAGES=str(workspace / '.nuget/packages'), DOTNET_CLI_HOME=str(output / 'home'), DOTNET_NOLOGO='1', DOTNET_CLI_TELEMETRY_OPTOUT='1')
     def run(name, command, cwd=workspace):
+        if str(command[0]) == str(BAZEL):
+            command = bazel.prepare(command, cwd, environment)
         result = subprocess.run([str(a) for a in command], cwd=cwd, env=environment, text=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, timeout=300)
         (output / (name + '.log')).write_text(result.stdout)
         if result.returncode: raise RuntimeError(name + ' failed: ' + result.stdout)
@@ -68,6 +76,7 @@ def probe(output, root_project=False):
     app = next(identity for identity, project in nodes.items() if project == app_project)
     actual = run('app', [dotnet, generated / f'bazel-bin/node_{app}.bundle/artifacts' / binary], generated)
     report = dict(schemaVersion=1, baselineOutput=baseline, output=actual, nodes=nodes, executedProjects=sorted(executed), actions=actions, preparationWorkspaceAbsent=not workspace.exists())
+    report['bazelMode'] = bazel.mode
     (output / 'report.json').write_text(json.dumps(report, indent=2))
     return report
 

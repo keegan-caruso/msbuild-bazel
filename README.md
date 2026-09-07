@@ -44,7 +44,7 @@ workers; see the [coverage matrix](docs/scenario-coverage.md) and
 
 ## Quick start
 
-Linux x86-64 (glibc), with Bash, Python 3, curl, tar, and standard .NET runtime dependencies:
+Linux x86-64 or ARM64 (glibc), with Bash, Python 3, curl, tar, and standard .NET runtime dependencies:
 
 ```sh
 bash scripts/setup.sh
@@ -53,7 +53,17 @@ bash scripts/dotnet.sh --info
 bash scripts/bazel.sh version --gnu_format
 ```
 
-Setup installs checksum-pinned .NET SDK 10.0.100 and Bazel 8.4.2 into ignored `.tools/` directories without sudo. These are fixed experimental baselines, not a claim to be the latest releases. Bazel's distribution includes its JDK. The wrapper uses batch mode for short-lived agent containers. Setup is repeatable and needs internet access only for missing downloads. Use the wrappers in each new shell; setup exports do not persist into Codex's agent session.
+Setup installs checksum-pinned .NET SDK 10.0.100 and Bazel 8.4.2 into ignored `.tools/` directories without sudo. These are fixed experimental baselines, not a claim to be the latest releases. Bazel's distribution includes its JDK. The wrapper defaults to a persistent Bazel server; set `SPIKE_BAZEL_MODE=batch` for one-shot execution. Container probes shut down their servers before cleanup. Setup is repeatable and needs internet access only for missing downloads. Use the wrappers in each new shell; setup exports do not persist into Codex's agent session.
+
+## Apple container smoke test
+
+For a disposable Linux smoke test on an Apple silicon Mac with Apple `container`
+installed and running, use `bash scripts/test-apple-container.sh`. It builds and
+runs a copy of Shared -> App and checks the output. See the
+[Apple container runbook](docs/apple-container-runbook.md) for prerequisites,
+logs, and the separate Bazel sandbox/cache experiment.
+Run `bash scripts/test-apple-container-scenarios.sh` for the broader graph,
+graph-execution and end-to-end suites, or pass suite names to select a subset.
 
 ## Nix development shell
 
