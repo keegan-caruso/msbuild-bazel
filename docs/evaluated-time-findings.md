@@ -72,3 +72,8 @@ property, integrate the older content-identity prototype, or enable production
 preparation reuse. Those are the remaining implementation gates for RUL-5/RUL-6.
 A clean XML report cannot substitute for them. The existing
 [deterministic CI contract](deterministic-ci-contract.md) still applies.
+
+The next design uses [MSBuild filesystem observation hooks](preparation-observation-design.md)
+to record and recheck negative existence probes, enumeration results and content
+reads. This supersedes conservative tree hashing as the preferred starting
+approach; recorder coverage and timestamp eligibility still require experiments.

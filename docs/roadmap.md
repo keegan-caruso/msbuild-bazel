@@ -434,7 +434,10 @@ and small discovery fixtures. Reuse export/preparation when its complete discove
 identity is unchanged; validate glob/directory membership, optional imports,
 project references, global properties, restore/package content, SDK/tool identity
 and preparation schema. Timestamp-only or previously enumerated-file checks are
-insufficient.
+insufficient. The [observation design](preparation-observation-design.md) uses
+MSBuild evaluation filesystem hooks to capture negative existence probes and
+enumeration results alongside content hashes. Qualify cache/resolver/property-
+function coverage before enabling reuse; whole-tree hashing is a scoped fallback.
 
 Exit: unchanged runs demonstrate which export/preparation work was avoided;
 source addition/removal, imports, reference metadata, restore/package and

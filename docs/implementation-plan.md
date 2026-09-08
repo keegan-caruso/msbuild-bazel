@@ -24,6 +24,10 @@ not authorize preparation reuse or establish general timestamp eligibility.
 The [evaluated-import extension](evaluated-time-findings.md) adds verified graph
 XML scanning and configured ownership; its real SDK optional-import control
 demonstrates why a verified old inventory cannot authorize reuse.
+The [RUL-5 observation design](preparation-observation-design.md) now prioritizes
+MSBuild filesystem hooks to record and revalidate content reads, absent-file
+probes and directory enumeration, with explicit invocation inputs and enforced
+coverage before reuse.
 
 Repository-owned .NET tooling and unit tests now have [build-enforced code style
 and warning policies](code-style-findings.md), separate from fixture build semantics.
