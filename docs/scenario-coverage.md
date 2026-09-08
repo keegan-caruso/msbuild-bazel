@@ -10,6 +10,12 @@ Coverage belongs to a pinned subtree, configuration, platform, command and
 observable result. Preserve upstream behavior; do not remove generators, signing,
 imports or dependencies to make a candidate pass.
 
+Support targets [deterministic CI builds](deterministic-ci-contract.md). Apply that
+contract to discovery and each cached operation. The [portfolio time audit](project-time-audit.md)
+records source-level clock and file-metadata dependencies for every portfolio
+entry and the supplemental selections; it does not promote proposed slices to
+measured support.
+
 ## Status and evidence
 
 | Status | Meaning |
