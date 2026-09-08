@@ -74,6 +74,9 @@ Spectre prerequisites. Historical results below retain their original SDK scope.
 The [Spectre framework prerequisite](spectre-framework-findings.md) extends selected
 framework identity handling to netstandard2.0; its real-project package and native
 acceptance gates remain separate.
+The [ordinary Spectre baseline](spectre-baseline-findings.md) now records the
+selected net10.0/netstandard2.0 graph, generated API oracle and Git identity
+requirements; adapter acceptance remains separate.
 
 ## Upstream issue coverage
 
