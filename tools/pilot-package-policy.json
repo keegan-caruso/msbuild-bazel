@@ -217,5 +217,245 @@
     "assetRoles": [
       "build"
     ]
+  },
+  "microsoft.build.tasks.git/10.0.400": {
+    "archiveSha256": "0535d65b2c8ffba05da4e54c6da0b9b603a9c6770274e1cfd5f0a771a8451c39",
+    "restoreContentHash": "uXJ/eBDqAo9HlyPjvvvynjHb59KXQWG9txpBzyI1drO6MV3Lhndt2yhxuMKvIga4kND2UKc3xCNXlXBhWU8Hlg==",
+    "additionalRoots": [
+      "build",
+      "buildmultitargeting",
+      "buildtransitive",
+      "tools"
+    ],
+    "assetRoles": [
+      "build",
+      "buildmultitargeting"
+    ]
+  },
+  "microsoft.sourcelink.common/10.0.400": {
+    "archiveSha256": "42678eed9517e62dcf21c5a46c3a66eaba999c38cd9bae4240a09e28510078a3",
+    "restoreContentHash": "Knli3Y2k/rdBqUlQ8TP+Sbd0J0jV/0kvgLsxieowoVayioZ0JGfqb9go+/dQJqtU53i6IpZzRxAPxbBT5UJBNg==",
+    "additionalRoots": [
+      "build",
+      "buildmultitargeting",
+      "buildtransitive",
+      "tools"
+    ],
+    "assetRoles": [
+      "build",
+      "buildmultitargeting"
+    ]
+  },
+  "microsoft.sourcelink.github/10.0.400": {
+    "archiveSha256": "0124c58c67961c9d22d9dee0060562fb1a960c5433f3066bd533dd8aad9bcb27",
+    "restoreContentHash": "N1Ut0+EmMb2Tma9spHxAgpCspkln4gst1RWYc1PYPn8LA4KJWDSiggKpE183lfR98TNG2C+XnJ71zSYtuCSsqA==",
+    "additionalRoots": [
+      "build",
+      "buildmultitargeting",
+      "tools"
+    ],
+    "assetRoles": [
+      "build",
+      "buildmultitargeting"
+    ]
+  },
+  "minver/8.0.0": {
+    "archiveSha256": "35e9862126227b0071ba4fbd4d9d7a8f8701d5b0f87c9ad72bb4cf92519a1c4c",
+    "restoreContentHash": "AJy/KVjXgUbgjf6HiI8wAk4DSSq0SCmvXQF8aU6IB+pnIQq+YJvofvMczug2hqO8yEvnQY557ryew66KPpyCsA==",
+    "additionalRoots": [
+      "build",
+      "buildmultitargeting"
+    ],
+    "assetRoles": [
+      "build",
+      "buildmultitargeting"
+    ]
+  },
+  "roslynator.analyzers/5.0.0": {
+    "archiveSha256": "e5623ec990957c5ab9fd8ff23992d63c0d4c5571f4383f913d8af9886e18277b",
+    "restoreContentHash": "+J5kR/naCd62IwY2BG9P0QoHnJM8liBUFFAk6jga1t9s61JC3M+ofb3AY3wc73/pdROyKFCURqctQh8WRCIT/w==",
+    "additionalRoots": [
+      "analyzers",
+      "tools"
+    ],
+    "assetRoles": []
+  },
+  "system.io.hashing/10.0.11": {
+    "archiveSha256": "fe37e0c8bd4cfb1b36ef24497a0fd126298d487bb3ba2aa1576e35a6f7e8a1a7",
+    "restoreContentHash": "OzKDcIRkeNJeC8qAsbn8yJXnfTLP1dtkWILe+T56Gf/z+IkAASi7sMqLqJQat08j5z/mRN5xVtoAwbkMNMoBUQ==",
+    "additionalRoots": [
+      "buildtransitive"
+    ],
+    "assetRoles": [
+      "build"
+    ]
+  },
+  "wcwidth.sources/4.0.1": {
+    "archiveSha256": "908211f8102324a5b674a9b4eecf9733a72e4676185f1783727d0f8b53bba156",
+    "restoreContentHash": "LwdI2GZl7VRDj3AoKgBlRAWtvq8WECa/9RnUVUQ0ud5gAD6QMVlzc71eqLu9EJVSX7DZ2/lB5y2DPdQPeOuRUQ==",
+    "additionalRoots": [
+      "contentfiles"
+    ],
+    "assetRoles": [
+      "contentfiles"
+    ]
+  },
+  "isexternalinit/1.0.3": {
+    "archiveSha256": "51fc86ae3fa101fb2f4bf47bb65ba04d3a03fff6b1f45cb409a99e8a7467d405",
+    "restoreContentHash": "jcdN7vpDwjnV7U9KGCv/oNIWHJ/RIbyrpVsLQL2qbj6Cbi5U3iafKsaMn1rP+qCbkLbkB0v6oAwbVEkqrUnlyg==",
+    "additionalRoots": [
+      "build",
+      "content",
+      "contentfiles"
+    ],
+    "assetRoles": [
+      "build",
+      "contentfiles"
+    ]
+  },
+  "microsoft.bcl.asyncinterfaces/10.0.11": {
+    "archiveSha256": "ebebb2e99bb404716e8fb6b2e8738905b1c39ba93fb4c010ad2ac94c37f40aeb",
+    "restoreContentHash": "pUkYI1f99hY9giu/MRaEVN53RO7skXwR7FGtVvFJCK5ezdg5i0W+z1yj/91X5aKv07xGuSB5n1g/Zt2P4Ooq6g==",
+    "additionalRoots": [
+      "buildtransitive"
+    ],
+    "assetRoles": []
+  },
+  "microsoft.codeanalysis.analyzers/5.9.0": {
+    "archiveSha256": "3a1ff7ec1de65781d47c9c60742f7163a4e9ce9c09c701cd8202ded9a20d4995",
+    "restoreContentHash": "jMNOo+uoBGiWbZ6Wx0dqU93r5WD4P5WnIRZdoz67RP5N09OUetHgAbo4L7hihOH1NHdD2TgW5/l+SP4gQukwww==",
+    "additionalRoots": [
+      "analyzers",
+      "buildtransitive",
+      "tools"
+    ],
+    "assetRoles": [
+      "build"
+    ]
+  },
+  "microsoft.codeanalysis.common/5.9.0": {
+    "archiveSha256": "77efd4715c24c8cd6b36f9b92980a2f5a86e4a7b53648d4f1ca3b79a3933a429",
+    "restoreContentHash": "IYaIaUWdIx539AReKZOBEqTskFusZfCh/wFSPilDvCn5Say8MegLw2LONcSIcVy+v3Gzv53qYBspgvBGSErfbQ==",
+    "additionalRoots": [],
+    "assetRoles": [
+      "resource"
+    ]
+  },
+  "microsoft.codeanalysis.csharp/5.9.0": {
+    "archiveSha256": "7602c3dbaa122268f3b26c6cc0dd02eb9224dea9442ed27af5c3fe56d643993f",
+    "restoreContentHash": "7JGDA0UT1+h7k9ZcA3rF4eFC8+QPq1xyYaXxag4p8r/zzPurEJxvdi7aM+MRL/SfP7XADXpWF/pl/eUYXOq/ww==",
+    "additionalRoots": [],
+    "assetRoles": [
+      "resource"
+    ]
+  },
+  "microsoft.netcore.platforms/1.1.0": {
+    "archiveSha256": "15e338d24b5c39b4099389cc612841eb51ff13c07bb4829f97d39b27420e7023",
+    "restoreContentHash": "kz0PEW2lhqygehI/d6XsPCQzD7ff7gUJaVGPVETX611eadGsA3A877GdSlU0LRVMCTH/+P3o2iDTak+S08V2+A==",
+    "additionalRoots": [],
+    "assetRoles": []
+  },
+  "netstandard.library/2.0.3": {
+    "archiveSha256": "3eb87644f79bcffb3c0331dbdac3c7837265f2cdf58a7bfd93e431776f77c9ba",
+    "restoreContentHash": "st47PosZSHrjECdjeIzZQbzivYBJFv6P2nv4cj2ypdI204DO+vZ7l5raGMiX4eXMJ53RfOIg+/s4DHVZ54Nu2A==",
+    "additionalRoots": [
+      "build"
+    ],
+    "assetRoles": [
+      "build"
+    ]
+  },
+  "system.buffers/4.6.1": {
+    "archiveSha256": "b00451e91d016fbec091ad1e361f3a7015e1d91d4047f7e48a74455b2a673d79",
+    "restoreContentHash": "N8GXpmiLMtljq7gwvyS+1QvKT/W2J8sNAvx+HVg4NGmsG/H+2k/y9QI23auLJRterrzCiDH+IWAw4V/GPwsMlw==",
+    "additionalRoots": [
+      "buildtransitive"
+    ],
+    "assetRoles": []
+  },
+  "system.collections.immutable/10.0.1": {
+    "archiveSha256": "3836cd6220804071ef9449ca1eac814437d1fe0ecb8762df490fd96f87cd49e8",
+    "restoreContentHash": "kdTe61B8P7i2M1pODC3MLbZ/CfFGjpC6c6jzxjQoB5DHZNewayCRqgFUmx3JKB6vLQtozpMQEiw+R5fO32Jv4g==",
+    "additionalRoots": [
+      "buildtransitive"
+    ],
+    "assetRoles": []
+  },
+  "system.io.pipelines/10.0.11": {
+    "archiveSha256": "da005b01cb6af967de9e0f2e4c11477a4fc611d8e9071d3ed57fdc25e2c8f34b",
+    "restoreContentHash": "rg8LPOZ62quw3aTnsQNh9rssncaMs69WEM1DiJdDkV+o4Llb2s5Pasy5Bulfm8zL+pE4gDcSQo7V2zW2jvxwYg==",
+    "additionalRoots": [
+      "buildtransitive"
+    ],
+    "assetRoles": []
+  },
+  "system.memory/4.6.3": {
+    "archiveSha256": "26078aeb758c9ae985e8bf851f973026061da6a5eb4837204d0c2d2204c72955",
+    "restoreContentHash": "qdcDOgnFZY40+Q9876JUHnlHu7bosOHX8XISRoH94fwk6hgaeQGSgfZd8srWRZNt5bV9ZW2TljcegDNxsf+96A==",
+    "additionalRoots": [
+      "buildtransitive"
+    ],
+    "assetRoles": []
+  },
+  "system.numerics.vectors/4.6.1": {
+    "archiveSha256": "2bc500a86dcb02f2032d6d877f9e2d6e9e4a79080e57239b4198679d4031f2c7",
+    "restoreContentHash": "sQxefTnhagrhoq2ReR0D/6K0zJcr9Hrd6kikeXsA1I8kOCboTavcUC4r7TSfpKFeE163uMuxZcyfO1mGO3EN8Q==",
+    "additionalRoots": [
+      "buildtransitive"
+    ],
+    "assetRoles": []
+  },
+  "system.reflection.metadata/10.0.1": {
+    "archiveSha256": "c63032a103a356e4145d2a29f54cfbfe50479396fb8ae903ae21293293901538",
+    "restoreContentHash": "zpcfT/wacPPhE17zcudozlxQtWN/84qyiMyZNGLnK4cj2IMBtLsZYwYjVnALUhPliwyUVj/P7kaZvBWYBCnf2Q==",
+    "additionalRoots": [
+      "buildtransitive"
+    ],
+    "assetRoles": []
+  },
+  "system.runtime.compilerservices.unsafe/6.1.2": {
+    "archiveSha256": "5f6a7f53af3465f92beb6da873ebe0e496206c313313b98badee4355a6b25937",
+    "restoreContentHash": "2hBr6zdbIBTDE3EhK7NSVNdX58uTK6iHW/P/Axmm9sl1xoGSLqDvMtpecn226TNwHByFokYwJmt/aQQNlO5CRw==",
+    "additionalRoots": [
+      "buildtransitive"
+    ],
+    "assetRoles": []
+  },
+  "system.text.encoding.codepages/8.0.0": {
+    "archiveSha256": "7e308b41cd4f456d08c7921995d8345cabfe2750ea3d27eef698ccc8d069edd1",
+    "restoreContentHash": "OZIsVplFGaVY90G2SbpgU7EnCoOO5pw1t4ic21dBF3/1omrJFpAGoNAVpPyMVOC90/hvgkGG3VFqR13YgZMQfg==",
+    "additionalRoots": [
+      "buildtransitive",
+      "runtimes"
+    ],
+    "assetRoles": []
+  },
+  "system.text.encodings.web/10.0.11": {
+    "archiveSha256": "4f5f5f2397f709946d2d5593c55da497ae9d18f9fe0f38348aa7f0c9995c9bb6",
+    "restoreContentHash": "R7H2/Oqr3onFff/JKDpfRjwxcQZlocF/eQ0ce8go/OTjqz+6LEp/fZK8j1YnDobtysChATEg7krVq4hQJ3IoeQ==",
+    "additionalRoots": [
+      "buildtransitive",
+      "runtimes"
+    ],
+    "assetRoles": []
+  },
+  "system.text.json/10.0.11": {
+    "archiveSha256": "6ce27e07fce25c7c3e572f22f20824f87906eb38ee52a83f4a87ad90ea296ebc",
+    "restoreContentHash": "X2rXQy7g8KEUvWVbAz6vOk6byI1eMgmzFeXbKxq4BfZCfFy5S91K+K+hd4ZBlSp0wL1Y8FyGRXs6+hvABTjwQw==",
+    "additionalRoots": [
+      "analyzers",
+      "buildtransitive"
+    ],
+    "assetRoles": [
+      "build"
+    ]
+  },
+  "system.threading.tasks.extensions/4.6.3": {
+    "archiveSha256": "1abc92c7517a021ead7e79d0b7f3c70be75bce0fac7cfe3b38e157d32245ff1a",
+    "restoreContentHash": "7sCiwilJLYbTZELaKnc7RecBBXWXA+xMLQWZKWawBxYjp6DBlSE3v9/UcvKBvr1vv2tTOhipiogM8rRmxlhrVA==",
+    "additionalRoots": [
+      "buildtransitive"
+    ],
+    "assetRoles": []
   }
 }

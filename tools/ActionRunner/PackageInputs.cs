@@ -31,6 +31,9 @@ internal static class PackageInputs
             // Raw XML cannot decide whether another framework's reference is active.
             if (request.GraphProject is not null && reference.AncestorsAndSelf().Any(element => element.Attribute("Condition") is not null)) continue;
             var version = (string?)reference.Attribute("Version") ?? "";
+            // GraphExport validates evaluated central/imported versions against restore;
+            // raw project XML cannot resolve Directory.Packages.props or properties.
+            if (request.GraphProject is not null && version.Length == 0) continue;
             var selected = PilotPackagePolicy.SelectedVersion((string?)reference.Attribute("Include") ?? "", version);
             if (selected is null)
                 throw new InvalidDataException("package requires an exact inline version");

@@ -42,7 +42,10 @@ def package_plan(workspace, project, assets_file=None):
         tree = ET.parse(source)
     except ET.ParseError as error:
         raise ValueError('stale-manifest: stale graph input: workspace/' + project.as_posix()) from error
-    direct = assets.get('project', {}).get('frameworks', {}).get('net10.0', {}).get('dependencies', {})
+    frameworks = assets.get('project', {}).get('frameworks', {})
+    direct = {}
+    for framework in frameworks.values():
+        direct.update(framework.get('dependencies', {}))
     direct = {name.lower(): value for name, value in direct.items()}
     parents = {child: parent for parent in tree.iter() for child in parent}
     for reference in tree.getroot().iter():
@@ -60,7 +63,7 @@ def package_plan(workspace, project, assets_file=None):
         if package_id is None:
             continue
         version = reference.get('Version')
-        if 'Include' in reference.attrib or version is not None:
+        if version is not None:
             version = version or ''
             identity = package_id + '/' + selected_version(package_id, version)
             if identity.lower() not in {k.lower() for k in libraries}:
