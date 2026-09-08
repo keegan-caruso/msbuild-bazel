@@ -1475,5 +1475,11 @@
       "analyzers"
     ],
     "assetRoles": []
+  },
+  "dapper/2.1.72": {
+    "archiveSha256": "f422b2cfbdbf569e7f188a3127397b4405d38f832f2938058bfedf1b2851a9fe",
+    "restoreContentHash": "ns4mGqQd9a/MhP8m6w556vVlZIa0/MfUu03zrxjZC/jlr1uVCsUac8bkdB+Fs98Llbd56rRSo1eZH5VVmeGZyw==",
+    "additionalRoots": [],
+    "assetRoles": []
   }
 }

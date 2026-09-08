@@ -242,3 +242,11 @@ ARM64 actions and 69 passing upstream tests at the pinned revision, including
 same-project net8.0/netstandard2.0 identities, ordinary/analyzer/build-order
 references and default Nerdbank. The full mutation/recovery harness is prepared;
 its remaining gates are not counted as accepted by this cold checkpoint.
+
+### R05 package-delivered interception
+
+The [Dapper.AOT findings](interceptor-findings.md) record the actual interception
+oracle, 11 mutation/recovery cases, pinned path/line/column encoding and explicit
+compiler feature failures. Language-independent analyzer package payloads retain
+archive and per-file integrity guards. Acquisition, native Build/Test and Native
+AOT/Pack qualification are explicitly separate.

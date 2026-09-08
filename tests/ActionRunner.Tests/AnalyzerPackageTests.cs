@@ -4,6 +4,12 @@ internal static class AnalyzerPackageTests
 {
     public static void Run(ActionRequest template, string temporary)
     {
+        foreach (var path in new[] { "analyzers/dotnet/cs/Fixture.dll", "analyzers/dotnet/Fixture.dll" })
+            CheckLayout(template, temporary, path);
+    }
+
+    private static void CheckLayout(ActionRequest template, string temporary, string path)
+    {
         var workspace = Path.Combine(temporary, "analyzer-workspace");
         Directory.CreateDirectory(Path.Combine(workspace, "App", "obj"));
         File.WriteAllText(Path.Combine(workspace, "App", "App.csproj"),
@@ -13,7 +19,6 @@ internal static class AnalyzerPackageTests
         var source = Path.Combine(temporary, "analyzer-payload");
         File.WriteAllText(source, "original");
         var manifestPath = Path.Combine(temporary, "analyzer-manifest.json");
-        const string path = "analyzers/dotnet/cs/Fixture.dll";
         var packageFile = new PackageFile(path, new FileInfo(source).Length, Files.Hash(source));
         var package = new Package("Fixture", "1.0.0", "fixture/1.0.0", [packageFile]);
         JsonFiles.Write(manifestPath, new PackageManifest(1, [package]));

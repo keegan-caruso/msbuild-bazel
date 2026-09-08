@@ -58,8 +58,8 @@ internal static class PackageInputs
                 {
                     var segments = entry.Path.Split('/');
                     var root = segments[0].ToLowerInvariant();
-                    var analyzerPayload = segments.Length == 4 &&
-                        entry.Path.StartsWith("analyzers/dotnet/cs/", StringComparison.Ordinal) &&
+                    var analyzerPayload = ((segments.Length == 4 && entry.Path.StartsWith("analyzers/dotnet/cs/", StringComparison.Ordinal)) ||
+                        (segments.Length == 3 && entry.Path.StartsWith("analyzers/dotnet/", StringComparison.Ordinal))) &&
                         entry.Path.EndsWith(".dll", StringComparison.Ordinal);
                     if (!analyzerPayload && new[] { "runtimes", "native", "analyzers", "build", "buildtransitive", "buildmultitargeting", "content", "contentfiles", "tools" }.Contains(root) &&
                         !(pin?.AdditionalRoots.Contains(root) ?? false))

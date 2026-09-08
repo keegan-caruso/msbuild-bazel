@@ -21,6 +21,7 @@ class AnalyzerPackageIntegrity(unittest.TestCase):
         archive = folder / 'fixture.1.0.0.nupkg'
         with zipfile.ZipFile(archive, 'w') as package:
             package.writestr(path, b'fixture-payload')
+            package.writestr('[Content_Types].xml', b'archive-bookkeeping')
         payload = folder / path
         payload.parent.mkdir(parents=True, exist_ok=True)
         payload.write_bytes(b'fixture-payload')
@@ -57,3 +58,11 @@ class AnalyzerPackageIntegrity(unittest.TestCase):
                 self.make_package(root, path)
                 with self.assertRaisesRegex(ValueError, 'unsupported-package'):
                     graph_packages.stage(root, 'App/App.csproj', root/'out', 'app')
+
+    def test_language_independent_analyzer_and_omitted_opc_metadata(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary).resolve()
+            self.make_package(root, 'analyzers/dotnet/Fixture.dll')
+            manifest, files = graph_packages.stage(root, 'App/App.csproj', root/'out', 'app')
+            self.assertIn('packages/fixture/1.0.0/analyzers/dotnet/Fixture.dll', files)
+            self.assertEqual((root/'out/packages/fixture/1.0.0/[Content_Types].xml').read_bytes(), b'archive-bookkeeping')

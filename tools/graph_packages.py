@@ -135,8 +135,8 @@ def stage(workspace, project, output, node_id, assets_file=None, target_framewor
                 if name.endswith('.nuspec'): name = name.lower()
                 if Path(name).is_absolute() or '..' in Path(name).parts:
                     raise ValueError('unsupported-package: escaping archive entry')
-                analyzer_payload = (name.startswith('analyzers/dotnet/cs/') and
-                    len(name.split('/')) == 4 and name.endswith('.dll'))
+                analyzer_payload = (((name.startswith('analyzers/dotnet/cs/') and len(name.split('/')) == 4) or
+                     (name.startswith('analyzers/dotnet/') and len(name.split('/')) == 3)) and name.endswith('.dll'))
                 if not analyzer_payload and name.split('/')[0].lower() in ('runtimes', 'native', 'analyzers', 'build', 'buildtransitive', 'buildmultitargeting', 'content', 'contentfiles', 'tools') and name.split('/')[0].lower() not in (pilot or {}).get('additionalRoots', []):
                     raise ValueError('unsupported-package: only managed ref/lib payloads supported')
                 contents = package.read(entry)
@@ -144,7 +144,7 @@ def stage(workspace, project, output, node_id, assets_file=None, target_framewor
                 archive_metadata = name in ('_rels/.rels', '[Content_Types].xml') or name.startswith('package/services/metadata/core-properties/')
                 if not source.is_file():
                     # NuGet omits OPC archive bookkeeping from the extracted cache.
-                    if not (pilot and archive_metadata): raise ValueError('missing-input: ' + str(source))
+                    if not archive_metadata: raise ValueError('missing-input: ' + str(source))
                 elif source.read_bytes() != contents:
                     raise ValueError('hash-mismatch: package payload ' + name)
                 target = output / 'packages' / relative / name
