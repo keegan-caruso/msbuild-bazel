@@ -54,7 +54,11 @@ internal static class SelectedFrameworks
         {
             var project = selection.Project ?? key;
             var runtimeItems = new XElement("ItemGroup");
-            foreach (var dependency in selection.References)
+            var references = selections.GroupBy(pair => pair.Value.Project ?? pair.Key)
+                .Where(group => group.Select(pair => pair.Value.TargetFramework).Distinct().Count() == 1)
+                .ToDictionary(group => group.Key, group => group.First().Value.TargetFramework);
+            foreach (var reference in selection.References) references[reference.Key] = reference.Value;
+            foreach (var dependency in references)
             {
                 runtimeItems.Add(new XElement("_MSBuildProjectReferenceExistent",
                     new XAttribute("Condition", "'%(_MSBuildProjectReferenceExistent.FullPath)' == '" + Escape(Path.Combine(workspace.Root, dependency.Key)) + "'"),

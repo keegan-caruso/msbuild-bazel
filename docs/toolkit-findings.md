@@ -1,7 +1,7 @@
 # CommunityToolkit configured generator graph
 
 The selected CommunityToolkit graph at
-`b135626dd54d33b8f05f2ff31591592c004aa848` passes cold native macOS ARM64
+`b135626dd54d33b8f05f2ff31591592c004aa848` passes the full selected native macOS ARM64
 execution with SDK 10.0.400 and Bazel 8.4.2. The upstream Roslyn4001 test
 project targets net10.0; its ordinary SDK negotiation selects both net8.0 and
 netstandard2.0 instances of the Mvvm library and netstandard2.0 generators.
@@ -47,15 +47,39 @@ during restore. Then run in the pinned environment:
 ```sh
 python3 tools/probe_toolkit_acceptance.py \
   --source /path/to/restored/CommunityToolkit \
-  --output /tmp/toolkit-acceptance --cold-only
+  --output /tmp/toolkit-acceptance
 ```
 
-Cold evidence: `/private/tmp/r05-toolkit-evidence-8/report.json` (`coldAccepted`).
-The full harness also runs unchanged, shared-generator, conditional-package,
-supporting-package, relocated recovery and consumer mutations; acceptance is
-reported only when every case completes. That matrix is pending at this
-checkpoint. Owned .NET style/build checks pass; configured framework unit tests
-cover duplicate project paths with distinct selected frameworks.
+Full evidence: `/private/tmp/r05-toolkit-full-2/report.json` (`accepted`).
+Every positive run matches all 69 upstream tests and the ordinary runtime DLL set.
+
+| Case | Executed actions | Result |
+| --- | ---: | --- |
+| Cold | 11 | Each action compiles only its own project |
+| Unchanged | 0 | No rebuild |
+| Shared generator implementation | 10 | Generator owners and descendants rebuild; net8 library remains cached |
+| Conditional Bcl.AsyncInterfaces 10.0.1 to 10.0.11 | 4 | Both library instances, external assembly and tests rebuild |
+| Supporting PolySharp 1.15.0 to 1.16.0 | 11 | Shared import/package change reaches all configured nodes |
+| Relocated baseline | 0 | 11 explicit disk-cache hits, identical bundle bytes/modes |
+| Relocated consumer edit | 1 | Only the test project compiles, then all 69 tests pass |
+
+The package conditional remains netstandard2.0-only; both library instances
+invalidate because their shared project-file bytes changed. This is conservative
+project-input identity, not an ABI optimization. Generator API inspection confirms
+ObservablePropertyGenerator and RelayCommandGenerator implement IIncrementalGenerator.
+Analyzer edges retain OutputItemType=Analyzer, ReferenceOutputAssembly=false and
+contentfiles;build privacy. Packaging/build-order edges remain scheduling edges;
+ordinary codefixer-to-generator references retain their normal compiler role.
+
+The first full attempt was invalidated by committing while the run was active:
+rebuilt tool assemblies included a different Git revision. Its unexpected extra
+work was correctly attributable to changed tool bytes, not the package mutation.
+The passing rerun kept tool inputs fixed. A native diamond regression exposed
+SDK-added transitive references; unique framework selections now apply to those
+references, with explicit owner selections taking precedence. The focused native
+rerun passes. Across the graph regression suite and that fix rerun, 38 tests pass
+and one acquired-Serilog fixture prerequisite is skipped. Owned .NET style/build
+checks and all five style enforcement controls pass.
 
 This is selected Build/Test evidence. Windows/net472 comparison, Linux,
 CommunityToolkit Pack, all test projects and other framework combinations remain

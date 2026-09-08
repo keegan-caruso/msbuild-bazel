@@ -235,13 +235,15 @@ failed restores that otherwise allowed stale transitive package inputs through
 fresh export. It compares requested dependency semantics and restore completion,
 preserving valid NuGet version resolution differences.
 
-### R05 CommunityToolkit cold configured graph checkpoint
+### R05 CommunityToolkit configured graph acceptance
 
 The [CommunityToolkit findings](toolkit-findings.md) record 11 native macOS
 ARM64 actions and 69 passing upstream tests at the pinned revision, including
 same-project net8.0/netstandard2.0 identities, ordinary/analyzer/build-order
-references and default Nerdbank. The full mutation/recovery harness is prepared;
-its remaining gates are not counted as accepted by this cold checkpoint.
+references and default Nerdbank. All seven mutation/recovery cases now pass,
+including exact rebuild sets, 11 relocated disk-cache hits and fresh recovered
+consumer compilation. The selected framework native regression also passes
+after retaining unique transitive selections.
 
 ### R05 package-delivered interception
 
