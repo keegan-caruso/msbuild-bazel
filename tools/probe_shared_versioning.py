@@ -42,10 +42,12 @@ Console.WriteLine(JsonSerializer.Serialize(identities));
 
 
 class VersionProbe(Probe):
-    def __init__(self, output, packages, sourcelink_version="10.0.300"):
+    def __init__(self, output, packages, sourcelink_version="10.0.300", default_cache=False):
         super().__init__(output)
         self.packages = Path(packages).resolve()
         self.sourcelink_version = sourcelink_version
+        self.default_cache = default_cache
+        self.report["defaultCacheMode"] = default_cache
         self.report["sourceLinkVersion"] = sourcelink_version
         self.seed = self.output / 'seed'
         self.report['scope'] = 'R05-shared-versioning-net10'
@@ -103,7 +105,7 @@ class VersionProbe(Probe):
         shutil.copytree(self.packages, destination / '.nuget/packages')
 
     def properties(self, case):
-        return dict(Configuration='Release', NBGV_CacheMode='None', **({'PublicRelease': 'true'} if case == 'releaseOverride' else {}))
+        return dict(Configuration='Release', **({} if self.default_cache else {'NBGV_CacheMode': 'None'}), **({'PublicRelease': 'true'} if case == 'releaseOverride' else {}))
 
     def restore(self, source, name):
         self.run(name + '-restore', [DOTNET_ROOT / 'dotnet', 'restore', 'App/App.csproj'], source)
@@ -121,14 +123,14 @@ class VersionProbe(Probe):
         remove_tree(source)
         return result
 
-    def export(self, case, default_mode=False):
+    def export(self, case, expected_error=None):
         request, manifest = (self.output / (case + suffix) for suffix in ('-request.json', '-manifest.json'))
         request.write_text(json.dumps(dict(schemaVersion=1, workspace=str(self.source), dotnetRoot=str(DOTNET_ROOT),
             sdkVersion='10.0.400', packageRoot=str(self.source / '.nuget/packages'),
-            entryPoints=[dict(project='App/App.csproj', globalProperties=({'Configuration': 'Release'} if default_mode else self.properties(case)))], output=str(manifest))))
-        result = self.run(case + '-export', [DOTNET_ROOT / 'dotnet', ROOT / 'tools/GraphExport/bin/Release/net10.0/GraphExport.dll', '--request', request], self.source, success=not default_mode)
-        if default_mode:
-            assert result.returncode != 0 and 'unsupported-project-reference-role' in result.stdout
+            entryPoints=[dict(project='App/App.csproj', globalProperties=self.properties(case))], output=str(manifest))))
+        result = self.run(case + '-export', [DOTNET_ROOT / 'dotnet', ROOT / 'tools/GraphExport/bin/Release/net10.0/GraphExport.dll', '--request', request], self.source, success=expected_error is None)
+        if expected_error:
+            assert result.returncode != 0 and expected_error in result.stdout
             assert not manifest.exists()
         return manifest
 
@@ -179,14 +181,11 @@ class VersionProbe(Probe):
         return item
 
     def reject_inputs(self):
-        for case in ('defaultGraphMode', 'missingHistory', 'missingVersion', 'missingTask', 'corruptTask'):
+        for case in ('missingHistory', 'missingVersion', 'missingTask', 'corruptTask'):
             remove_tree(self.source)
             self.copy(self.source, 'cold')
             self.restore(self.source, case)
-            manifest = self.export(case, default_mode=case == 'defaultGraphMode')
-            if case == 'defaultGraphMode':
-                self.report['cases'][case] = dict(rejected=True, diagnostic='unsupported-project-reference-role')
-                continue
+            manifest = self.export(case)
             if case == 'missingHistory':
                 parent = self.git(self.source, 'rev-parse', 'HEAD^')
                 path = self.source / '.git/objects' / parent[:2] / parent[2:]
@@ -210,6 +209,15 @@ class VersionProbe(Probe):
             else:
                 raise AssertionError('accepted ' + case)
             self.save()
+        if self.default_cache:
+            remove_tree(self.source)
+            self.copy(self.source, 'cold')
+            path = self.source / 'Directory.Build.props'
+            path.write_text(path.read_text().replace('</PropertyGroup>', '<NBGV_PrivateP2PAuxTargets>$(MSBuildThisFileDirectory)extra.targets</NBGV_PrivateP2PAuxTargets></PropertyGroup>'))
+            (self.source / 'extra.targets').write_text('<Project />')
+            self.restore(self.source, 'customAuxiliary')
+            self.export('customAuxiliary', expected_error='unsupported-project-reference-role')
+            self.report['cases']['customAuxiliary'] = dict(rejected=True, diagnostic='unsupported-project-reference-role')
         remove_tree(self.source)
 
     def execute(self):
@@ -268,5 +276,6 @@ if __name__ == '__main__':
     parser.add_argument('--packages', type=Path, required=True)
     parser.add_argument('--output', type=Path, required=True)
     parser.add_argument('--sourcelink-version', choices=('8.0.0', '10.0.300'), default='10.0.300')
+    parser.add_argument('--default-cache', action='store_true')
     args = parser.parse_args()
-    VersionProbe(args.output, args.packages, args.sourcelink_version).execute()
+    VersionProbe(args.output, args.packages, args.sourcelink_version, args.default_cache).execute()

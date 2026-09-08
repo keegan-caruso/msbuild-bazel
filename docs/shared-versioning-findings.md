@@ -1,5 +1,9 @@
 # Shared R05 versioning inputs
 
+**Follow-up:** [default target caching is now qualified](default-versioning-findings.md).
+The default-mode rejection below records the initial RUL-93 checkpoint; RUL-94
+adds support without requiring the explicit cache-mode setting.
+
 The two-project `Shared -> App` fixture passes 13 cases for each of
 Microsoft.SourceLink.GitHub 8.0.0 and 10.0.300, using
 Nerdbank.GitVersioning 3.9.50 and DotNet.ReproducibleBuilds 2.0.2.

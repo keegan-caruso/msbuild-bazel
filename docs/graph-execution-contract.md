@@ -62,8 +62,9 @@ The [shared R05 fixture](shared-versioning-findings.md) adds explicitly supplied
 property allowlist, alongside Release, selected framework and the qualified
 Flavor configuration. These values participate in node/action identity and are
 forwarded to MSBuild; the adapter supplies no default Nerdbank override.
-The package-owned auxiliary project used by Nerdbank's default cache mode remains
-outside the supported reference-role contract. Version configuration files use
+The pinned package-owned auxiliary project used by Nerdbank's default cache mode
+is now supported as documented in [its findings](default-versioning-findings.md).
+Other custom-target project references remain outside the qualified contract. Version configuration files use
 `BazelExtraInput`; standalone Git and pinned package payloads use their existing
 input contracts. See the findings for the measured package versions and platform
 boundary.

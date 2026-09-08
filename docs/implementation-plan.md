@@ -35,8 +35,8 @@ The [shared R05 versioning fixture](shared-versioning-findings.md) qualifies
 Nerdbank 3.9.50 with explicitly supplied `NBGV_CacheMode=None`, SourceLink
 8.0.0/10.0.300 and DotNet.ReproducibleBuilds 2.0.2 on macOS ARM64. Both 13-case
 matrices cover version/SourceLink parity, input invalidation, relocated disk-cache
-recovery and rejection controls. Default auxiliary-project caching remains
-unsupported (RUL-94); complete CommunityToolkit and Dapper.AOT acceptance remains
+recovery and rejection controls. [Default auxiliary-project caching](default-versioning-findings.md) is also
+qualified (RUL-94); complete CommunityToolkit and Dapper.AOT acceptance remains
 separate.
 
 The [R05a generator/reference-role slice](r05a-findings.md) implements project and

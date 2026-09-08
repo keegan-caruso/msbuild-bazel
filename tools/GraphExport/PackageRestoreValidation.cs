@@ -103,6 +103,7 @@ internal static class PackageRestoreValidation
         // which can include SDK-inferred transitive references.
         foreach (var reference in project.GetItems("ProjectReference"))
         {
+            if (NerdbankProject.IsReference(reference)) continue;
             foreach (var metadata in new[] { "PrivateAssets", "IncludeAssets", "ExcludeAssets" })
                 if (!string.IsNullOrEmpty(reference.GetMetadataValue(metadata)))
                     throw new ExportException("unsupported-project-reference-restore", "nondefault " + metadata + ": " + project.FullPath);
@@ -126,6 +127,7 @@ internal static class PackageRestoreValidation
 
     private static bool IsRestoreReference(ProjectItemInstance reference)
     {
+        if (NerdbankProject.IsReference(reference)) return false;
         var output = reference.GetMetadataValue("ReferenceOutputAssembly");
         var ordinary = output.Length == 0 || output.Equals("true", StringComparison.OrdinalIgnoreCase);
         if (!ordinary && !output.Equals("false", StringComparison.OrdinalIgnoreCase))

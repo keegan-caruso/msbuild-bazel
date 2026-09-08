@@ -57,7 +57,7 @@ public sealed class ReplayPlugin : ProjectCachePluginBase
         }.OrderByDescending(pair => pair.Value.Length).ToArray();
         if (context.Graph != null)
         {
-            if (context.Graph.ProjectNodes.Any(node => node.ProjectInstance.GetPropertyValue("TargetFramework") is not ("net10.0" or "netstandard2.0")))
+            if (context.Graph.ProjectNodes.Any(node => !NerdbankProject.IsProject(node.ProjectInstance.FullPath, Path.Combine(workspace, ".nuget/packages")) && node.ProjectInstance.GetPropertyValue("TargetFramework") is not ("net10.0" or "netstandard2.0")))
                 throw new InvalidOperationException("dependency framework must be net10.0 or netstandard2.0");
             if (graphProject is not null)
                 capturedFramework = context.Graph.ProjectNodes.Single(node =>
@@ -110,6 +110,8 @@ public sealed class ReplayPlugin : ProjectCachePluginBase
 
     private Task<CacheResult> Evaluate(BuildRequestData request)
     {
+        if (NerdbankProject.IsProject(request.ProjectInstance!.FullPath, Path.Combine(workspace, ".nuget/packages")))
+            return Task.FromResult(CacheResult.IndicateNonCacheHit(CacheResultType.CacheNotApplicable));
         var project = Path.GetRelativePath(workspace, request.ProjectInstance!.FullPath);
         if (graphProject is not null && project == graphProject && SameProperties(Properties(request.ProjectInstance.GlobalProperties), graphProperties))
             return Task.FromResult(CacheResult.IndicateNonCacheHit(CacheResultType.CacheMiss));
