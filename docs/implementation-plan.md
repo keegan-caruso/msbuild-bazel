@@ -17,6 +17,11 @@ focused R17 experiment, not qualification of the full supported-version/platform
 
 ## Current status and next step
 
+The first [MSBuild time-input diagnostic slice](msbuild-time-findings.md) reports
+potential clock and file-timestamp reads in project/import XML, excluding application
+source. An explicit build-ID probe passes five ordinary MSBuild cases; this does
+not authorize preparation reuse or establish general timestamp eligibility.
+
 Repository-owned .NET tooling and unit tests now have [build-enforced code style
 and warning policies](code-style-findings.md), separate from fixture build semantics.
 
