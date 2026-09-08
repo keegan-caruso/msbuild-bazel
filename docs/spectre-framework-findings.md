@@ -45,3 +45,23 @@ Spectre build, mutation and producer-free relocated-cache acceptance belong to t
 integration harness. Passing existing net10.0 regressions is not evidence that
 this real-project gate has passed. No Linux or remote-cache qualification is
 claimed here.
+
+## Explicit parent framework correction
+
+The first integrated Spectre export exposed `NETSDK1005`: an explicit net10.0
+entry framework flowed into the single-target netstandard2.0 generator. Ordinary
+SDK negotiation puts `TargetFramework` in `UndefineProperties` for single-target
+children, while static graph construction consumes `GlobalPropertiesToRemove`.
+The exporter now merges the SDK removal metadata into the graph edge, retaining
+any existing removal list. It still copies selected-framework metadata for
+multi-target children.
+
+The discovery regression now gives App an explicit net10.0 global property and a
+direct reference to the declared netstandard2.0 child. Before this correction it
+failed with the same `NETSDK1005`; afterward all three selected-framework tests
+passed. Assertions require the parent global to remain net10.0, the child to have
+no inherited framework global, its evaluated framework/output to remain
+netstandard2.0, and SDK-selected multi-target behavior to remain intact. The
+fixture still isolates discovery from framework-package acquisition as described
+above. Exporter build and formatter verification also passed; real Spectre
+execution remains the integrated acceptance gate.

@@ -43,10 +43,18 @@ class SelectedReferenceFramework(unittest.TestCase):
             '<DisableImplicitFrameworkReferences>true</DisableImplicitFrameworkReferences>'
             '</PropertyGroup></Project>')
         declaration = project.read_bytes()
+        parent = self.work / 'src/App/App.csproj'
+        parent.write_text(parent.read_text().replace('</ItemGroup>',
+            '<ProjectReference Include="../Shared/Shared.csproj"/></ItemGroup>'))
         self.restore()
-        nodes = {node['project']: node for node in self.export()['nodes']}
+        graph = self.export(entries=[{'project': 'src/App/App.csproj',
+            'globalProperties': {'Configuration': 'Release', 'TargetFramework': 'net10.0'}}])
+        nodes = {node['project']: node for node in graph['nodes']}
         shared = nodes['workspace/src/Shared/Shared.csproj']
         self.assertEqual(shared['targetFramework'], 'netstandard2.0')
+        self.assertNotIn('targetframework', shared['globalProperties'])
+        self.assertEqual(nodes['workspace/src/App/App.csproj']['globalProperties']['targetframework'], 'net10.0')
+        self.assertIn(shared['id'], nodes['workspace/src/App/App.csproj']['dependencies'])
         self.assertTrue(shared['execution']['outputDirectory'].endswith('/netstandard2.0'))
         for name in ('Left', 'Right'):
             # The SDK needs no SetTargetFramework override for a single-target
