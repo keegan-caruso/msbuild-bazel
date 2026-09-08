@@ -164,6 +164,17 @@ escapes workspace`. This was a matrix layout error; no adapter behavior was
 changed. The runner now requires external output. Those intermediate results
 remain in the worktree artifacts and are not the final acceptance evidence.
 
+## Main integration validation
+
+Before publishing, main had advanced to `c17027e` with Spectre and framework
+handling changes. These merged cleanly at `857c220`. A focused post-merge run
+on Bazel 9.2.0 passed all nine gates: toolchain/setup/query/info, 12 bootstrap
+checks, 13 Starlark tests, 3 SDK repository tests, the sandbox/cache probe and
+ordinary shutdown. Evidence is at `/private/tmp/rules-msbuild-bazel-postmerge-9`.
+The other three versions retain the earlier pre-merge matrix evidence; they
+were not rerun on the integrated code. The generated module lock change from
+the post-merge run was discarded before publishing.
+
 ## Qualification limits
 
 This is focused native macOS ARM64 evidence using official release binaries
