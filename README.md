@@ -48,8 +48,7 @@ a supported adapter. **Completed:** the selected R02–R04 package/configuration
 including the unchanged upstream approval test, a real PolySharp version mutation
 and reference consumption after cache recovery. **R05a:** [generator delivery and reference-role qualification](docs/r05a-findings.md)
 adds classic/incremental project generators, package combinations, diagnostic-only
-analyzers and recovered consumer compilation. Spectre.Console retains outstanding
-SDK/framework/package prerequisites. **Next:** R09 preparation reuse; see the
+analyzers and recovered consumer compilation. The [selected Spectre.Console graph](docs/spectre-acceptance-findings.md) now passes native macOS mutation and relocated-cache acceptance. **Next:** R09 preparation reuse; see the
 [active execution order](docs/roadmap.md#active-execution-order).
 [Repeated measurements](docs/serilog-performance-findings.md) are
 complete and show adapter overhead for this small graph; useful performance at

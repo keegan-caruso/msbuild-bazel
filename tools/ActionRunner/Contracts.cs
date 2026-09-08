@@ -23,4 +23,4 @@ internal sealed record RestoreLibrary(string Type, string? Path = null, string? 
 internal sealed record BuildReport(ProjectKind Project, string Workspace, string[] Command, string[] Packages,
     string[] PackageTargets, int Returncode, string[] CompiledProjects, string[] ReplayHits, string[] SharedSources);
 
-internal sealed record GraphFrameworkSelection(string TargetFramework, Dictionary<string, string> References);
+internal sealed record GraphFrameworkSelection(string TargetFramework, Dictionary<string, string> References, bool RemoveFrameworkGlobal = false);

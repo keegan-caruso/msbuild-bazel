@@ -214,6 +214,8 @@ internal static class GraphExporter
         AddInput(request, inputs, "project", instance.FullPath, workspaceOnly: true, normalizeText: false);
         foreach (var import in EnumerateImports(instance))
             AddInput(request, inputs, "import", import, workspaceOnly: false, normalizeText: IsTextMetadata(import));
+        foreach (var gitInput in GitInputs.Discover(request.Workspace))
+            AddInput(request, inputs, "extra", gitInput, workspaceOnly: true, normalizeText: false);
 
         var assets = instance.GetPropertyValue("ProjectAssetsFile");
         if (string.IsNullOrWhiteSpace(assets))
@@ -279,9 +281,10 @@ internal static class GraphExporter
             if (!restoreMetadata.TryGetProperty("outputPath", out var restoredOutput) ||
                 CanonicalDirectory(restoredOutput.GetString()!) != CanonicalDirectory(Path.GetDirectoryName(assets)!))
                 throw new ExportException("stale-restore", "configured restore output path differs from evaluated assets path: " + instance.FullPath);
+            var selectedPackages = assetsDocument.RootElement.GetProperty("targets").GetProperty(instance.GetPropertyValue("TargetFramework"));
             foreach (var library in assetsDocument.RootElement.GetProperty("libraries").EnumerateObject())
             {
-                if (library.Value.GetProperty("type").GetString() != "package") continue;
+                if (library.Value.GetProperty("type").GetString() != "package" || !selectedPackages.TryGetProperty(library.Name, out _)) continue;
                 var packagePath = library.Value.GetProperty("path").GetString()!;
                 var folder = Path.GetFullPath(Path.Combine(request.PackageRoot, packagePath));
                 if (!IsUnder(folder, request.PackageRoot))
@@ -382,8 +385,8 @@ internal static class GraphExporter
         if (!string.IsNullOrWhiteSpace(instance.GetPropertyValue("RuntimeIdentifier")) || !string.IsNullOrWhiteSpace(instance.GetPropertyValue("RuntimeIdentifiers")))
             throw new ExportException("unsupported-configuration", $"RID build: {instance.FullPath}");
         var tfm = instance.GetPropertyValue("TargetFramework");
-        if (!string.Equals(tfm, "net10.0", StringComparison.OrdinalIgnoreCase))
-            throw new ExportException("unsupported-configuration", $"TargetFramework {tfm} is outside milestone 1: {instance.FullPath}");
+        if (tfm is not ("net10.0" or "netstandard2.0"))
+            throw new ExportException("unsupported-configuration", $"TargetFramework {tfm} is outside the selected framework slice: {instance.FullPath}");
         var configuration = instance.GetPropertyValue("Configuration");
         if (configuration is not ("Release" or "Debug"))
             throw new ExportException("unsupported-configuration", $"Configuration {configuration}: {instance.FullPath}");

@@ -105,6 +105,32 @@ class PackageRestoreSemantics(unittest.TestCase):
         self.restore()
         self.assert_current_prepares(expected_packages)
 
+    def centralize(self):
+        self.project.write_text(self.project.read_text().replace('Version="[1.0.0]"', ''))
+        central = self.workspace / 'Directory.Packages.props'
+        central.write_text('<Project><PropertyGroup><ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally></PropertyGroup><ItemGroup><PackageVersion Include="RulesMsbuild.Binary" Version="[1.0.0]" /></ItemGroup></Project>')
+        return central
+
+    def test_central_package_version_is_evaluated_and_staged(self):
+        self.centralize()
+        self.restore()
+        self.assert_current_prepares(['RulesMsbuild.Binary', 'RulesMsbuild.Leaf'])
+
+    def test_central_version_mutation_requires_restore(self):
+        central = self.centralize()
+        self.restore()
+        old = self.export()
+        central.write_text(central.read_text().replace('[1.0.0]', '[1.0.1]'))
+        self.export(error='stale-restore')
+        with self.assertRaisesRegex(ValueError, 'stale-(restore|manifest)'):
+            prepare(self.workspace, old, self.evidence / 'rejected')
+
+    def test_central_version_partial_restore_rejects_consumer_snapshot(self):
+        central = self.centralize()
+        self.partial_restore_control(lambda: central.write_text(
+            central.read_text().replace('[1.0.0]', '[1.0.1]')),
+            ['RulesMsbuild.Binary', 'RulesMsbuild.Leaf'])
+
     def test_consumer_snapshot_rejects_partial_private_assets_restore(self):
         self.partial_restore_control(lambda: configure(self.workspace, self.workspace / '.feed',
             private_assets='all'), [])

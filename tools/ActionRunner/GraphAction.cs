@@ -13,7 +13,7 @@ internal static class GraphAction
             throw new InvalidDataException("graph project path invalid");
         var properties = request.GraphGlobalProperties ?? new Dictionary<string, string> { ["configuration"] = "Release" };
         if (!properties.TryGetValue("configuration", out var configuration) || configuration != "Release" ||
-            properties.Any(pair => pair.Key != "configuration" && pair.Key != "flavor" && (pair.Key != "targetframework" || pair.Value != "net10.0")))
+            properties.Any(pair => pair.Key != "configuration" && pair.Key != "flavor" && (pair.Key != "targetframework" || pair.Value is not ("net10.0" or "netstandard2.0"))))
             throw new InvalidDataException("unsupported graph execution configuration");
         if (properties.Any(pair => pair.Value.Contains(';') || pair.Value.Contains(',') || pair.Value.Contains('\n')))
             throw new InvalidDataException("unsupported graph property value");
@@ -90,7 +90,8 @@ internal static class GraphAction
         var manifest = new List<Artifact>();
         var projectDirectory = Path.GetDirectoryName(project)!;
         var projectPrefix = projectDirectory.Length == 0 ? "" : projectDirectory + "/";
-        foreach (var directory in request.GraphOutputDirectories ?? [Path.Combine(projectDirectory, "bin/Release/net10.0"), Path.Combine(projectDirectory, "obj/Release/net10.0/ref")])
+        var framework = request.GraphFrameworkSelections?.GetValueOrDefault(project)?.TargetFramework ?? properties.GetValueOrDefault("targetframework", "net10.0");
+        foreach (var directory in request.GraphOutputDirectories ?? [Path.Combine(projectDirectory, "bin/Release", framework), Path.Combine(projectDirectory, "obj/Release", framework, "ref")])
         {
             if (!Files.ValidRelativePath(directory) || !(directory.StartsWith(projectPrefix + "bin/", StringComparison.Ordinal) || directory.StartsWith(projectPrefix + "obj/", StringComparison.Ordinal)))
                 throw new InvalidDataException("graph output path invalid");

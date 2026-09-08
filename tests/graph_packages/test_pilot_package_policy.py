@@ -42,6 +42,7 @@ class PilotPolicy(unittest.TestCase):
             raw = archive.read_bytes()
             identity = 'PolySharp/1.15.0'
             (work / 'App/obj/project.assets.json').write_text(json.dumps(dict(
+                project={'frameworks': {'net10.0': {'dependencies': {'PolySharp': {}}}}},
                 libraries={identity:dict(type='package', path='polysharp/1.15.0', sha512=graph_packages.PILOT_PACKAGES['polysharp/1.15.0']['restoreContentHash'])},
                 targets={'net10.0':{identity:dict(build={'build/PolySharp.targets':{}})}})))
             with self.assertRaisesRegex(ValueError, 'hash-mismatch: package archive differs from qualified pilot pin'):
@@ -60,7 +61,9 @@ class PinnedSerilogPackagePolicy(unittest.TestCase):
         with tarfile.open(fileobj=io.BytesIO(subprocess.check_output(['git','-C',str(source),'archive',revision]))) as archive:
             archive.extractall(work, filter='data')
         for identity in graph_packages.PILOT_PACKAGES:
-            shutil.copytree(Path(os.environ['RULES_MSBUILD_SERILOG_PACKAGES']) / identity, work / '.nuget/packages' / identity)
+            source_package = Path(os.environ['RULES_MSBUILD_SERILOG_PACKAGES']) / identity
+            if source_package.is_dir():
+                shutil.copytree(source_package, work / '.nuget/packages' / identity)
         sdk = Path(os.environ['RULES_MSBUILD_DOTNET_ROOT'])
         env = dict(os.environ, NUGET_PACKAGES=str(work / '.nuget/packages'), DOTNET_CLI_HOME=str(evidence / 'home'), MSBUILDDISABLENODEREUSE='1')
         def run(name, args, error=None):

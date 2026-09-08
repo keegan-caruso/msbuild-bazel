@@ -50,8 +50,18 @@ internal static class ReferenceFrameworkNegotiation
             var matches = resolved.Where(item => Path.GetFullPath(item.GetMetadataValue("FullPath")) == fullPath).ToArray();
             if (matches.Length != 1)
                 throw new ExportException("unsupported-configured-reference", "SDK reference negotiation is missing or ambiguous: " + fullPath);
-            var selected = matches[0].GetMetadataValue("SetTargetFramework");
+            var negotiated = matches[0];
+            var selected = negotiated.GetMetadataValue("SetTargetFramework");
             if (!string.IsNullOrEmpty(selected)) reference.SetMetadata("SetTargetFramework", selected);
+            // Ordinary MSBuild consumes UndefineProperties on task items. The
+            // static graph consumes GlobalPropertiesToRemove on ProjectReference.
+            // In particular a single-target child must not inherit the parent's
+            // explicit TargetFramework; let the child's declaration evaluate it.
+            var removed = new[] { reference.GetMetadataValue("GlobalPropertiesToRemove"),
+                negotiated.GetMetadataValue("GlobalPropertiesToRemove"), negotiated.GetMetadataValue("UndefineProperties") }
+                .SelectMany(value => value.Split(';', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+                .Distinct(StringComparer.OrdinalIgnoreCase);
+            reference.SetMetadata("GlobalPropertiesToRemove", string.Join(';', removed));
         }
         return instance;
     }

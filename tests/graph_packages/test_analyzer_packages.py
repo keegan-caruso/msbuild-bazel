@@ -25,6 +25,7 @@ class AnalyzerPackageIntegrity(unittest.TestCase):
         payload.parent.mkdir(parents=True, exist_ok=True)
         payload.write_bytes(b'fixture-payload')
         (root / 'App/obj/project.assets.json').write_text(json.dumps({
+            'project': {'frameworks': {'net10.0': {'dependencies': {'Fixture': {}}}}},
             'libraries': {'Fixture/1.0.0': {'type':'package', 'path':'fixture/1.0.0',
                 'sha512':base64.b64encode(hashlib.sha512(archive.read_bytes()).digest()).decode()}},
             'targets': {'net10.0': {'Fixture/1.0.0': {}}}}))

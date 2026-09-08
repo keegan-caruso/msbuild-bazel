@@ -34,6 +34,37 @@ class SelectedReferenceFramework(unittest.TestCase):
         self.assertEqual(project.read_bytes(), declaration)
         self.assertFalse(list(self.work.glob('src/**/bin/**/*.dll')))
 
+    def test_netstandard_framework_identity_and_output_discovery(self):
+        # Discovery-only fixture: package acquisition is tested by the Spectre
+        # package/acceptance gate, independently of SDK framework negotiation.
+        project = self.work / 'src/Shared/Shared.csproj'
+        project.write_text('<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup>'
+            '<TargetFramework>netstandard2.0</TargetFramework>'
+            '<DisableImplicitFrameworkReferences>true</DisableImplicitFrameworkReferences>'
+            '</PropertyGroup></Project>')
+        declaration = project.read_bytes()
+        parent = self.work / 'src/App/App.csproj'
+        parent.write_text(parent.read_text().replace('</ItemGroup>',
+            '<ProjectReference Include="../Shared/Shared.csproj"/></ItemGroup>'))
+        self.restore()
+        graph = self.export(entries=[{'project': 'src/App/App.csproj',
+            'globalProperties': {'Configuration': 'Release', 'TargetFramework': 'net10.0'}}])
+        nodes = {node['project']: node for node in graph['nodes']}
+        shared = nodes['workspace/src/Shared/Shared.csproj']
+        self.assertEqual(shared['targetFramework'], 'netstandard2.0')
+        self.assertNotIn('targetframework', shared['globalProperties'])
+        self.assertEqual(nodes['workspace/src/App/App.csproj']['globalProperties']['targetframework'], 'net10.0')
+        self.assertIn(shared['id'], nodes['workspace/src/App/App.csproj']['dependencies'])
+        self.assertTrue(shared['execution']['outputDirectory'].endswith('/netstandard2.0'))
+        for name in ('Left', 'Right'):
+            # The SDK needs no SetTargetFramework override for a single-target
+            # dependency; retaining that absence is part of ordinary semantics.
+            self.assertEqual(nodes[f'workspace/src/{name}/{name}.csproj']['execution']['selectedReferences'], [])
+            self.assertIn(shared['id'], nodes[f'workspace/src/{name}/{name}.csproj']['dependencies'])
+            self.assertEqual(nodes[f'workspace/src/{name}/{name}.csproj']['targetFramework'], 'net10.0')
+        self.assertEqual(project.read_bytes(), declaration)
+        self.assertFalse(list(self.work.glob('src/**/bin/**/*.dll')))
+
     def test_unsupported_sdk_selection_still_rejects(self):
         self.configure_multitargeted_dependency('netstandard2.1;netstandard2.0')
         self.restore()

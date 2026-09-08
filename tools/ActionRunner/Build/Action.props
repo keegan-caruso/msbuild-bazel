@@ -5,7 +5,7 @@
     <PathMap>$(RULES_MSBUILD_REPLAY_WORKSPACE)=/_/workspace</PathMap>
     <Deterministic>true</Deterministic>
     <!-- A copied fixture must not discover the enclosing checkout's Git metadata. -->
-    <EnableSourceControlManagerQueries>false</EnableSourceControlManagerQueries>
-    <EnableSourceLink>false</EnableSourceLink>
+    <EnableSourceControlManagerQueries Condition="!Exists('$(RULES_MSBUILD_REPLAY_WORKSPACE)/.git/HEAD')">false</EnableSourceControlManagerQueries>
+    <EnableSourceLink Condition="!Exists('$(RULES_MSBUILD_REPLAY_WORKSPACE)/.git/HEAD')">false</EnableSourceLink>
   </PropertyGroup>
 </Project>

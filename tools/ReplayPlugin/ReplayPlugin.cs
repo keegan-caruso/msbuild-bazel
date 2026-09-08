@@ -25,6 +25,7 @@ public sealed class ReplayPlugin : ProjectCachePluginBase
     };
     private string workspace = "", bundle = "", mode = "";
     private string? graphProject;
+    private string capturedFramework = "net10.0";
     private string[] graphBundles = [];
     private Dictionary<string, string> graphProperties = new(StringComparer.OrdinalIgnoreCase);
     private KeyValuePair<string, string>[] roots = [];
@@ -56,8 +57,12 @@ public sealed class ReplayPlugin : ProjectCachePluginBase
         }.OrderByDescending(pair => pair.Value.Length).ToArray();
         if (context.Graph != null)
         {
-            if (context.Graph.ProjectNodes.Any(node => node.ProjectInstance.GetPropertyValue("TargetFramework") != "net10.0"))
-                throw new InvalidOperationException("dependency framework must be net10.0");
+            if (context.Graph.ProjectNodes.Any(node => node.ProjectInstance.GetPropertyValue("TargetFramework") is not ("net10.0" or "netstandard2.0")))
+                throw new InvalidOperationException("dependency framework must be net10.0 or netstandard2.0");
+            if (graphProject is not null)
+                capturedFramework = context.Graph.ProjectNodes.Single(node =>
+                    Path.GetRelativePath(workspace, node.ProjectInstance.FullPath) == graphProject)
+                    .ProjectInstance.GetPropertyValue("TargetFramework");
             var targets = context.Graph.GetTargetLists(["Build", "Publish"]);
             File.WriteAllText(Path.Combine(bundle, $"graph-{mode}.json"), JsonSerializer.Serialize(
                 targets.Select(pair => new { project = Path.GetRelativePath(workspace, pair.Key.ProjectInstance.FullPath), properties = Properties(pair.Key.ProjectInstance.GlobalProperties), targets = pair.Value }), Json));
@@ -171,7 +176,7 @@ public sealed class ReplayPlugin : ProjectCachePluginBase
                     .ToDictionary(name => name, name => Normalize(((ITaskItem2)item).GetMetadataValueEscaped(name))))).ToArray();
         });
         File.WriteAllText(PayloadPath, JsonSerializer.Serialize(new Payload(1, "10.0.400", Engine,
-            graphProject ?? "Shared/Shared.csproj", "net10.0", RootMappings, Properties(context.GlobalProperties), context.Targets.ToArray(), targets), Json));
+            graphProject ?? "Shared/Shared.csproj", capturedFramework, RootMappings, Properties(context.GlobalProperties), context.Targets.ToArray(), targets), Json));
         Console.WriteLine("RULES_MSBUILD_REPLAY_CAPTURE:" + string.Join(";", targets.Keys));
         return Task.CompletedTask;
     }

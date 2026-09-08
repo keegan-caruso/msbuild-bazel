@@ -28,7 +28,7 @@ controls, with cache/discovery/forced-replay regressions retained. The additiona
 workspaces, real generator-version changes and cold/recovered reference consumers.
 The [R05a generator/reference-role slice](r05a-findings.md) implements project and
 package generator combinations, diagnostic-only analyzers and recovered consumer
-compilation. Spectre.Console retains its SDK/framework/package gate. R09 preparation
+compilation. The [selected Spectre.Console graph](spectre-acceptance-findings.md) now passes native macOS mutation and relocated-cache acceptance. R09 preparation
 reuse starts from the accepted R04 measurements and discovery/package contracts;
 compile-interface optimization follows the relevant R05/R06 role contracts.
 Broader R03 entry points and independent-worker gates remain separate. See the
@@ -79,8 +79,15 @@ still outside this measured boundary.
 ## SDK baseline refresh
 
 The SDK 10.0.400 upgrade passes the targeted native macOS regression gates, separately from R09 preparation reuse.
-See [SDK upgrade findings](sdk-upgrade-findings.md) for pins, validation and remaining
+See [SDK upgrade findings](sdk-upgrade-findings.md) for pins, validation and the original
 Spectre prerequisites. Historical results below retain their original SDK scope.
+
+The [Spectre framework prerequisite](spectre-framework-findings.md) extends selected
+framework identity handling to netstandard2.0 and is now integrated into the
+[selected real-project acceptance](spectre-acceptance-findings.md).
+The [ordinary Spectre baseline](spectre-baseline-findings.md) now records the
+selected net10.0/netstandard2.0 graph, generated API oracle and Git identity
+requirements; the adapter comparison is recorded in the integration findings.
 
 ## Upstream issue coverage
 
