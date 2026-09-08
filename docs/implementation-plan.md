@@ -21,6 +21,9 @@ The first [MSBuild time-input diagnostic slice](msbuild-time-findings.md) report
 potential clock and file-timestamp reads in project/import XML, excluding application
 source. An explicit build-ID probe passes five ordinary MSBuild cases; this does
 not authorize preparation reuse or establish general timestamp eligibility.
+The [evaluated-import extension](evaluated-time-findings.md) adds verified graph
+XML scanning and configured ownership; its real SDK optional-import control
+demonstrates why a verified old inventory cannot authorize reuse.
 
 Repository-owned .NET tooling and unit tests now have [build-enforced code style
 and warning policies](code-style-findings.md), separate from fixture build semantics.

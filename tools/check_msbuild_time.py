@@ -19,7 +19,7 @@ def unescape(value):
     return re.sub(r'%([0-9a-f]{2})', lambda match: chr(int(match[1], 16)), value, flags=re.I)
 
 
-def scan(paths):
+def scan(paths, *, follow_imports=True, contents=None):
     report = dict(schemaVersion=1, scope='msbuild-time-diagnostics', reuseEnabled=False,
                   eligibility='not-established', files=[], findings=[], coverageGaps=[], errors=[])
     seen = set()
@@ -29,7 +29,7 @@ def scan(paths):
         if path in seen:
             return
         seen.add(path)
-        if path.suffix.lower() not in EXTENSIONS:
+        if contents is None and path.suffix.lower() not in EXTENSIONS:
             report['errors'].append(dict(file=str(path), message='expected an MSBuild project or import file'))
             return
         parser = expat.ParserCreate(namespace_separator='}')
@@ -77,11 +77,13 @@ def scan(paths):
         parser.CharacterDataHandler = characters
         parser.StartDoctypeDeclHandler = reject_doctype
         try:
-            parser.Parse(path.read_bytes(), True)
+            parser.Parse(path.read_bytes() if contents is None else contents[path], True)
         except (OSError, expat.ExpatError, ValueError) as error:
             report['errors'].append(dict(file=str(path), message=str(error)))
             return
         report['files'].append(str(path))
+        if not follow_imports:
+            return
         for origin, attrs in imports:
             value = unescape(attrs.get('Project', ''))
             value = re.sub(r'\$\(MSBuildThisFileDirectory\)', lambda _: str(path.parent) + '/', value, flags=re.I)
@@ -105,10 +107,19 @@ def scan(paths):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('files', nargs='+', type=Path)
+    parser.add_argument('files', nargs='*', type=Path)
+    parser.add_argument('--graph-request', type=Path, help='Scan project/import bytes from an existing GraphExport request and output')
     parser.add_argument('--output', type=Path)
     args = parser.parse_args()
-    report = scan(args.files)
+    if args.graph_request:
+        if args.files:
+            parser.error('files and --graph-request are mutually exclusive')
+        from msbuild_graph_diagnostics import scan_graph
+        report = scan_graph(args.graph_request)
+    else:
+        if not args.files:
+            parser.error('supply files or --graph-request')
+        report = scan(args.files)
     text = json.dumps(report, indent=2) + '\n'
     if args.output:
         args.output.write_text(text)
