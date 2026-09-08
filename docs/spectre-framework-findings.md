@@ -65,3 +65,23 @@ netstandard2.0, and SDK-selected multi-target behavior to remain intact. The
 fixture still isolates discovery from framework-package acquisition as described
 above. Exporter build and formatter verification also passed; real Spectre
 execution remains the integrated acceptance gate.
+
+## Matching implicit framework globals in actions
+
+The next integrated cold run successfully compiled the netstandard2.0 generator,
+then rejected its replay in Ansi. The action's recorded graph showed an inherited
+net10.0 global on the generator; export had correctly omitted that global. The
+prepared selection contract now carries `remove_framework_global` for nodes whose
+exported globals omit TargetFramework. The runner appends TargetFramework to the
+removal list of existing references to those nodes before static graph expansion.
+This neither adds references nor weakens replay's exact property comparison.
+
+The new native `test_explicit_framework.py` gives the consumer an explicit net10.0
+global while its four producers have implicit framework declarations. Its cold
+sandbox build passed with one compilation per action and all dependency replay
+hits; exported producer globals remain implicit. This is a package-free net10.0
+regression of the property mismatch, separate from actual Spectre acceptance.
+Five preparation-selection tests and the ActionRunner contract/process suite
+also passed, including rejection of attempts to collapse explicit and implicit
+identities for the same project path. Formatter verification and diff checks
+passed.

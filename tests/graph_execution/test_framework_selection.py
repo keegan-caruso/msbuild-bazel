@@ -14,8 +14,8 @@ class FrameworkSelection(unittest.TestCase):
                  'red':self.node('Shared.csproj'), 'blue':self.node('Shared.csproj')}
         nodes['app']['execution'] = dict(selectedReferences=[dict(project='workspace/Shared.csproj', targetFramework='net10.0')])
         result = framework_selections(nodes, nodes)
-        self.assertEqual(result, {'App.csproj':dict(target_framework='net10.0', references={'Shared.csproj':'net10.0'}),
-                                  'Shared.csproj':dict(target_framework='net10.0', references={})})
+        self.assertEqual(result, {'App.csproj':dict(target_framework='net10.0', remove_framework_global=True, references={'Shared.csproj':'net10.0'}),
+                                  'Shared.csproj':dict(target_framework='net10.0', remove_framework_global=True, references={})})
 
     def test_conflicting_framework_reference_rejected(self):
         nodes = {'app':self.node('App.csproj', ['red','blue']),
@@ -28,5 +28,22 @@ class FrameworkSelection(unittest.TestCase):
         nodes = {'red':self.node('Shared.csproj', ['dep']), 'blue':self.node('Shared.csproj'),
                  'dep':self.node('Common.csproj')}
         nodes['red']['execution'] = dict(selectedReferences=[dict(project='workspace/Common.csproj', targetFramework='net10.0')])
+        with self.assertRaisesRegex(ValueError, 'conflicting selected framework edges'):
+            framework_selections(nodes, nodes)
+
+    def test_explicit_parent_and_implicit_child_keep_different_global_identities(self):
+        nodes = {'app': self.node('App.csproj', ['generator']),
+                 'generator': self.node('Generator.csproj', framework='netstandard2.0')}
+        nodes['app']['globalProperties'] = {'configuration': 'Release', 'targetframework': 'net10.0'}
+        nodes['generator']['globalProperties'] = {'configuration': 'Release'}
+        result = framework_selections(nodes, nodes)
+        self.assertFalse(result['App.csproj']['remove_framework_global'])
+        self.assertTrue(result['Generator.csproj']['remove_framework_global'])
+        self.assertEqual(result['Generator.csproj']['target_framework'], 'netstandard2.0')
+
+    def test_same_path_explicit_and_implicit_global_identity_cannot_collapse(self):
+        nodes = {'explicit': self.node('Shared.csproj'), 'implicit': self.node('Shared.csproj')}
+        nodes['explicit']['globalProperties'] = {'targetframework': 'net10.0'}
+        nodes['implicit']['globalProperties'] = {}
         with self.assertRaisesRegex(ValueError, 'conflicting selected framework edges'):
             framework_selections(nodes, nodes)

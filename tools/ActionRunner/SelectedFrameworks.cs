@@ -27,6 +27,14 @@ internal static class SelectedFrameworks
                 items.Add(new XElement("ProjectReference", new XAttribute("Update", Escape(Path.GetRelativePath(Path.GetDirectoryName(fullPath)!, Path.Combine(workspace.Root, reference)))),
                     new XElement("SetTargetFramework", "TargetFramework=" + framework)));
             }
+            // Single-target producers were exported without a TargetFramework
+            // global. Recreate that exact graph identity before static graph
+            // expansion, rather than inheriting an explicit consumer framework.
+            foreach (var (reference, dependency) in selections.Where(pair => pair.Value.RemoveFrameworkGlobal))
+            {
+                items.Add(new XElement("ProjectReference", new XAttribute("Update", Escape(Path.GetRelativePath(Path.GetDirectoryName(fullPath)!, Path.Combine(workspace.Root, reference)))),
+                    new XElement("GlobalPropertiesToRemove", "%(ProjectReference.GlobalPropertiesToRemove);TargetFramework")));
+            }
             document.Add(items);
         }
         // Restore can add transitive references after evaluation. Their SDK-selected

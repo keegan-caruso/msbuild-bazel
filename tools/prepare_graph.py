@@ -75,7 +75,8 @@ def framework_selections(nodes, closure):
                 raise ValueError('unsupported-configuration: conflicting selected reference frameworks')
             references[project] = framework
         project = relative(node['project'])
-        selection = dict(target_framework=node['targetFramework'], references=references)
+        selection = dict(target_framework=node['targetFramework'], references=references,
+            remove_framework_global='targetframework' not in node.get('globalProperties', {}))
         if project in selections and selections[project] != selection:
             raise ValueError('unsupported-configuration: conflicting selected framework edges')
         selections[project] = selection

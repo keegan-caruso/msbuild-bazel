@@ -24,12 +24,15 @@ internal static class SelectedFrameworkTests
             !document.Descendants("ProjectReference").Any(item => (string?)item.Attribute("Update") == "../Shared/Shared.csproj" && (string?)item.Element("SetTargetFramework") == "TargetFramework=net10.0"))
             throw new InvalidOperationException("selected framework import changed source declaration or lost edge");
         request.GraphFrameworkSelections["App/App.csproj"].References["Shared/Shared.csproj"] = "netstandard2.0";
-        request.GraphFrameworkSelections["Shared/Shared.csproj"] = new("netstandard2.0", new());
+        request.GraphFrameworkSelections["Shared/Shared.csproj"] = new("netstandard2.0", new(), RemoveFrameworkGlobal: true);
         document = XDocument.Load(SelectedFrameworks.Stage(request, workspace)!);
         if (!document.Descendants("ProjectReference").Any(item => (string?)item.Element("SetTargetFramework") == "TargetFramework=netstandard2.0") ||
             !document.Descendants("PropertyGroup").Any(item => ((string?)item.Attribute("Condition"))?.EndsWith("'$(TargetFramework)' == 'netstandard2.0'", StringComparison.Ordinal) == true) ||
             document.Descendants("TargetFramework").Any())
             throw new InvalidOperationException("mixed selected framework edge or condition lost");
+        if (!document.Descendants("ProjectReference").Any(item =>
+            (string?)item.Element("GlobalPropertiesToRemove") == "%(ProjectReference.GlobalPropertiesToRemove);TargetFramework"))
+            throw new InvalidOperationException("implicit child framework global removal missing");
         request.GraphFrameworkSelections["App/App.csproj"].References["Shared/Shared.csproj"] = "netstandard2.1";
         request.GraphFrameworkSelections["Shared/Shared.csproj"] = new("netstandard2.1", new());
         try
@@ -38,7 +41,7 @@ internal static class SelectedFrameworkTests
             throw new InvalidOperationException("unsupported selected framework accepted");
         }
         catch (InvalidDataException error) when (error.Message == "selected framework project invalid") { }
-        request.GraphFrameworkSelections["Shared/Shared.csproj"] = new("netstandard2.0", new());
+        request.GraphFrameworkSelections["Shared/Shared.csproj"] = new("netstandard2.0", new(), RemoveFrameworkGlobal: true);
         request.GraphFrameworkSelections["App/App.csproj"].References["Shared/Shared.csproj"] = "netstandard2.0";
         request.GraphFrameworkSelections["App/App.csproj"].References["Missing/Missing.csproj"] = "net10.0";
         try
