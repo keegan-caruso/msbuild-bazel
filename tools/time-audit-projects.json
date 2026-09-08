@@ -1,0 +1,146 @@
+[
+  {
+    "scope": "P01",
+    "repository": "serilog/serilog",
+    "revision": "49b5339ce85385dc52d4d8e8f2b8308becf23506",
+    "revisionSource": "testing-plan"
+  },
+  {
+    "scope": "P02",
+    "repository": "spectreconsole/spectre.console",
+    "revision": "2dc90b90add956c2f6777cb659120900ac2eb740",
+    "revisionSource": "testing-plan"
+  },
+  {
+    "scope": "P03",
+    "repository": "dotnet/efcore",
+    "revision": "48ebeecf35dc04b90ace28d7a23dfdc7bdc12e88",
+    "revisionSource": "default-HEAD-at-audit"
+  },
+  {
+    "scope": "P04",
+    "repository": "OrchardCMS/OrchardCore",
+    "revision": "5b87b3fad1814235465af0614f72d6a36e85dbfb",
+    "revisionSource": "default-HEAD-at-audit"
+  },
+  {
+    "scope": "P05",
+    "repository": "AvaloniaUI/Avalonia",
+    "revision": "b709c58c6b1b8aa3b90866c7c001b7bf82b6353b",
+    "revisionSource": "testing-plan"
+  },
+  {
+    "scope": "P06",
+    "repository": "Azure/azure-sdk-for-net",
+    "revision": "eab6b95ea4438b8e9b9c80c3f574e506ba1c1337",
+    "revisionSource": "default-HEAD-at-audit"
+  },
+  {
+    "scope": "P07",
+    "repository": "microsoft/aspire-samples",
+    "revision": "383d5d025b53ac37cd4dd86f50a036ccf39f76f5",
+    "revisionSource": "default-HEAD-at-audit"
+  },
+  {
+    "scope": "P08",
+    "repository": "Cysharp/ConsoleAppFramework",
+    "revision": "6f40d3e520bbd81b86ee9bf1f4cb193b0b2b88be",
+    "revisionSource": "default-HEAD-at-audit"
+  },
+  {
+    "scope": "P09",
+    "repository": "MudBlazor/MudBlazor",
+    "revision": "6c1a2e986fb8d79c0ec85a03bc7879f1f01d449f",
+    "revisionSource": "default-HEAD-at-audit"
+  },
+  {
+    "scope": "P10/P11",
+    "repository": "MaterialDesignInXAML/MaterialDesignInXamlToolkit",
+    "revision": "3f6e67aaee6b5728cab6c45d5ce419cd9b37ab22",
+    "revisionSource": "default-HEAD-at-audit"
+  },
+  {
+    "scope": "P12/P13",
+    "repository": "Krypton-Suite/Standard-Toolkit",
+    "revision": "59f791271f7f682841461fcde167b39ba75e6dd2",
+    "revisionSource": "default-HEAD-at-audit"
+  },
+  {
+    "scope": "P14",
+    "repository": "DapperLib/DapperAOT",
+    "revision": "bebc9e49bcb8c5e24474e678f3e6716373db7f09",
+    "revisionSource": "default-HEAD-at-audit"
+  },
+  {
+    "scope": "P15",
+    "repository": "dotnet/runtime",
+    "revision": "fb98b574c9c5bcea55f33dbad31c418c8815ce8e",
+    "revisionSource": "default-HEAD-at-audit"
+  },
+  {
+    "scope": "P16",
+    "repository": "CommunityToolkit/dotnet",
+    "revision": "b135626dd54d33b8f05f2ff31591592c004aa848",
+    "revisionSource": "testing-plan"
+  },
+  {
+    "scope": "P17",
+    "repository": "dotnet/Nerdbank.GitVersioning",
+    "revision": "700f125382c10bb149e52df4fc8513a86886c8ef",
+    "revisionSource": "testing-plan"
+  },
+  {
+    "scope": "P18",
+    "repository": "dotnet/blazor-samples",
+    "revision": "567732e0a78d2c1b2a22c3677f86c673d7527bed",
+    "revisionSource": "testing-plan"
+  },
+  {
+    "scope": "F13/F14/F02",
+    "repository": "dotnet/msbuild",
+    "revision": "fcb368d8894f6448382f20304c659f383d210f61",
+    "revisionSource": "testing-plan"
+  },
+  {
+    "scope": "F13/F14/F15",
+    "repository": "microsoft/MSBuildSdks",
+    "revision": "60e5aa0dabf1e6276f2b698337a6dc92620c05ec",
+    "revisionSource": "testing-plan"
+  },
+  {
+    "scope": "F15/F01/F02",
+    "repository": "dotnet/sdk",
+    "revision": "fcd632a06320edcb05ac62f20e150da48b00b6a8",
+    "revisionSource": "testing-plan"
+  },
+  {
+    "scope": "F02",
+    "repository": "NuGet/NuGet.Client",
+    "revision": "5fe0c128b2d58335a60161c5141064be42dd8a6b",
+    "revisionSource": "testing-plan"
+  },
+  {
+    "scope": "F11",
+    "repository": "dotnet/project-system",
+    "revision": "1379b2dce76234664ad1b970e0bd72dc95c75e68",
+    "revisionSource": "testing-plan"
+  },
+  {
+    "scope": "C10",
+    "repository": "buchgr/bazel-remote",
+    "revision": "a69b6b5ed933234d93b489ffd216bee5bb74aa06",
+    "revisionSource": "testing-plan"
+  },
+  {
+    "scope": "C11",
+    "repository": "buildbarn/bb-deployments",
+    "revision": "a35485609467dd70cd44c78b4735e5835061df5a",
+    "revisionSource": "testing-plan"
+  },
+  {
+    "scope": "P18 later candidate",
+    "repository": "dotnet/aspnetcore",
+    "revision": "0b5b41b76d74fa93c86de07eb69775668c0b1c17",
+    "revisionSource": "testing-plan"
+  }
+]

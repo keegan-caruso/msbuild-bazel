@@ -3,6 +3,11 @@
 `rules_msbuild` provides Bazel project-level scheduling and caching while retaining
 MSBuild, NuGet, and .NET SDK build behavior.
 
+**Support target:** deterministic CI builds within qualified project and operation
+slices. Build-time dates/version inputs and file timestamp behavior must satisfy
+the [deterministic CI contract](docs/deterministic-ci-contract.md). CI execution
+alone does not establish determinism or compatibility.
+
 **Status:** The explicit two-project Bazel adapter builds Shared and App in separate
 native sandbox actions and reuses their outputs through a local disk
 cache. Public-API dependency-result replay works across workspace paths.

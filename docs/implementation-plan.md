@@ -130,6 +130,14 @@ to its original evidence.
 
 ## Scope
 
+The support target is **deterministic CI builds**, with explicit build-time inputs
+and a qualified file timestamp policy. The [support contract](deterministic-ci-contract.md)
+defines eligibility and acceptance gates; it does not enable R09 reuse or expand
+measured compatibility. The [portfolio time audit](project-time-audit.md) covers
+all P01–P18 entries and supplemental sources, separating clock-dependent build
+outputs, file metadata and runtime/test behavior. Its source observations are
+planning evidence; selected configurations still need execution qualification.
+
 One framework, Release, local execution and local disk cache. Linux x86-64 was
 the initial platform target; current measured platform evidence is stated above. Remote execution, cross-platform support, multi-targeting, Native AOT, publishing, Razor/WPF, and arbitrary NuGet build targets need separate evidence. Pinned bootstrap tools alone do not make build actions hermetic.
 
