@@ -11,4 +11,4 @@ case "${RULES_MSBUILD_BAZEL_MODE:-server}" in
     batch) startup=(--batch) ;;
     *) echo 'RULES_MSBUILD_BAZEL_MODE must be batch or server.' >&2; exit 2 ;;
 esac
-exec "$RULES_MSBUILD_BAZEL" "${startup[@]}" --output_user_root="$REPO_ROOT/.cache/bazel" "$@"
+exec "$RULES_MSBUILD_BAZEL" "${startup[@]}" "$@"

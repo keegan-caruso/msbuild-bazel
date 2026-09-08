@@ -601,6 +601,13 @@ tracks with explicit workload/signing/device contracts when brought into scope.
 
 ## R17 — Deliver the supported adapter and adoption conclusion
 
+The [Nix Bazel layout/version experiment](nix-bazel-layout-findings.md) records
+passing focused native macOS checks, repository tests and explicit sandbox/cache
+acceptance for 7.7.1, 8.4.2, 8.8.0 and 9.2.0. It preserves the
+[initial failures](nix-bazel-matrix-findings.md) and separates harness fixes from
+new adapter compatibility failures. Linux and the full release portfolio remain
+separate gates.
+
 The endpoint is a documented support envelope, not a universal .NET build engine.
 Keep MSBuild/SDK/NuGet semantics inside declared, versioned action contracts.
 

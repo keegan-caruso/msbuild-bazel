@@ -17,6 +17,7 @@ import binary_inputs
 import runtime_inputs
 import loader_inputs
 from bazel_session import BazelSession
+from bazel_version import validate_version
 
 ROOT = Path(__file__).resolve().parents[1]
 DOTNET = Path(os.environ.get('RULES_MSBUILD_DOTNET_ROOT', ROOT / '.tools/dotnet')) / 'dotnet'
@@ -191,8 +192,10 @@ def _probe(output, identity, package_mode, staging, native_runtime, binary_packa
     strategy = 'darwin-sandbox' if platform.system() == 'Darwin' else 'linux-sandbox'
     report['sandboxStrategy'] = strategy
     version = run('bazelVersion', startup + ['version', '--gnu_format']).stdout.strip()
-    if not version.endswith(('bazel 8.4.2', 'bazel 8.4.2- (@non-git)')):
-        raise ValueError('expected pinned Bazel 8.4.2: ' + version)
+    expected = os.environ.get('RULES_MSBUILD_BAZEL_VERSION', (ROOT / '.bazelversion').read_text().strip())
+    validate_version(version, expected)
+    report['bazelExecutable'] = str(BAZEL)
+    report['expectedBazelVersion'] = expected
     report['bazelVersion'] = version.splitlines()[-1]
     flags = [f'--disk_cache={cache}', f'--spawn_strategy={strategy}', f'--strategy=MsbuildProject={strategy}',
              '--noshow_progress', '--color=no', '--curses=no', '--jobs=2']

@@ -103,6 +103,30 @@ The shell supplies `RULES_MSBUILD_DOTNET_ROOT` (the directory containing `dotnet
 
 Initial Nix downloads and each test workspace's NuGet restore require network access. This is a development environment, not a sandboxed Nix derivation of the application or proof of hermetic builds. macOS runs are native, not Linux emulation. The separate Nix workflow runs the version checks, Bazel query, and e2e tests on Ubuntu only; see [findings](docs/findings.md) for measured validation.
 
+### Bazel version experiments on macOS ARM64
+
+Select an exact checksum-pinned official Bazel release with
+`nix develop .#bazel-7_7_1`, `.#bazel-8_4_2`, `.#bazel-8_8_0`, or
+`.#bazel-9_2_0`. These experimental shells retain the same pinned .NET SDK.
+The default shell continues to use Nixpkgs' patched Bazel 8.4.2; the named
+8.4.2 shell deliberately uses the official release binary for comparison with
+the other releases. Version selection does not change `.bazelversion`.
+The wrappers check the shell-selected version and use Bazel's native output-root
+default. Explicit startup options remain available to callers. The matrix runs
+each version in a separate copy of one source snapshot, including identical initial
+module lockfiles. Linux currently exposes only the existing default shell.
+
+Run all four entries, retaining each failure and continuing to later gates:
+
+```sh
+python3 scripts/test-nix-bazel-matrix.py --output /tmp/rules-msbuild-bazel-matrix
+```
+
+The output directory must be new and outside the checkout, so temporary fixtures
+do not inherit repository build configuration. See [layout and version qualification](docs/nix-bazel-layout-findings.md)
+for current commands and results, and [initial matrix findings](docs/nix-bazel-matrix-findings.md)
+for the original failures and distribution differences.
+
 ## Codex cloud environment
 
 Select this repository in the Codex environment settings and configure:

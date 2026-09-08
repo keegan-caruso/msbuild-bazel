@@ -8,18 +8,20 @@ import tempfile
 import unittest
 
 ROOT = Path(__file__).resolve().parents[2]
-BAZEL = Path(os.environ.get('RULES_MSBUILD_BAZEL', ROOT / '.tools/bazel'))
+BAZEL = Path(os.environ.get('RULES_MSBUILD_BAZEL', ROOT / '.tools/bin/bazel'))
 
 
 class SdkRepository(unittest.TestCase):
     def check_repository(self, sdk, imports, succeeds):
-        work = Path(tempfile.mkdtemp(prefix='sdk-repository-')).resolve()
+        evidence = Path(tempfile.mkdtemp(prefix='sdk-repository-')).resolve()
+        work = evidence / 'workspace'
+        work.mkdir()
         shutil.copyfile(ROOT / 'bazel/msbuild.bzl', work / 'msbuild.bzl')
         (work / 'MODULE.bazel').write_text('local_dotnet_sdk = use_repo_rule("//:msbuild.bzl", "local_dotnet_sdk")\n' +
             'local_dotnet_sdk(name="dotnet", path=' + json.dumps(str(sdk)) + ', external_imports=' + json.dumps(imports) + ')\n')
         (work / 'BUILD.bazel').write_text('exports_files(["msbuild.bzl"])\n')
         result = subprocess.run([str(BAZEL), '--batch', '--nohome_rc', '--noworkspace_rc',
-            '--output_base=' + str(work / 'base'), '--output_user_root=' + str(work / 'bazel-user'), 'cquery', '@dotnet//:files', '--output=files',
+            '--output_base=' + str(evidence / 'base'), '--output_user_root=' + str(evidence / 'bazel-user'), 'cquery', '@dotnet//:files', '--output=files',
             '--noshow_progress', '--color=no', '--curses=no'], cwd=work, text=True, capture_output=True, timeout=120)
         (work / 'query.log').write_text(result.stdout + result.stderr)
         self.assertEqual(result.returncode == 0, succeeds, result.stdout + result.stderr)

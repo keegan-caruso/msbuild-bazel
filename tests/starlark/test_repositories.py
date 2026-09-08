@@ -14,17 +14,19 @@ BAZEL = Path(os.environ.get('RULES_MSBUILD_BAZEL', ROOT / '.tools/bin/bazel'))
 
 class RepositoryContracts(unittest.TestCase):
     def setUp(self):
-        self.work = Path(tempfile.mkdtemp(prefix='starlark-repository-')).resolve()
-        print('Repository evidence: ' + str(self.work), file=sys.stderr)
+        self.evidence = Path(tempfile.mkdtemp(prefix='starlark-repository-')).resolve()
+        self.work = self.evidence / 'workspace'
+        self.work.mkdir()
+        print('Repository evidence: ' + str(self.evidence), file=sys.stderr)
         shutil.copyfile(ROOT / 'bazel/msbuild.bzl', self.work / 'msbuild.bzl')
         (self.work / 'BUILD.bazel').write_text('exports_files(["msbuild.bzl", "manifest.json", "replacement.txt"])\n')
         self.serial = 0
 
     def query(self, target, base='base', error=None):
         self.serial += 1
-        output_base = self.work / base
+        output_base = self.evidence / base
         result = subprocess.run([str(BAZEL), '--batch', '--nohome_rc', '--noworkspace_rc',
-            '--output_user_root=' + str(self.work / 'user'), '--output_base=' + str(output_base),
+            '--output_user_root=' + str(self.evidence / 'user'), '--output_base=' + str(output_base),
             'cquery', target, '--output=files', '--noshow_progress', '--color=no', '--curses=no'],
             cwd=self.work, text=True, capture_output=True, timeout=180)
         (self.work / f'query-{self.serial}.log').write_text(result.stdout + result.stderr)
@@ -66,7 +68,7 @@ class RepositoryContracts(unittest.TestCase):
         self.sdk(sdk)
         # Query labels instead of reading the entire SDK into memory.
         result = subprocess.run([str(BAZEL), '--batch', '--nohome_rc', '--noworkspace_rc',
-            '--output_user_root=' + str(self.work / 'user'), '--output_base=' + str(self.work / 'base'),
+            '--output_user_root=' + str(self.evidence / 'user'), '--output_base=' + str(self.evidence / 'base'),
             'cquery', '@dotnet//:files', '--output=files', '--noshow_progress'], cwd=self.work,
             capture_output=True, text=True, timeout=180)
         (self.work / 'installed-sdk.log').write_text(result.stdout + result.stderr)

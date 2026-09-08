@@ -573,7 +573,7 @@ class Harness:
             physicalMemoryBytes=memory, hostNote=self.host_note,
             sdkRoot=str(DOTNET_ROOT), dotnetInfo=output([self.dotnet, '--info']),
             bazelVersion=output([BAZEL, '--batch', '--nohome_rc', '--noworkspace_rc',
-                '--output_user_root=' + str(self.output / 'host-bazel-user'), 'version', '--gnu_format']))
+                'version', '--gnu_format']))
 
     def initialize_report(self):
         self.report = dict(schemaVersion=1, scope='R04-Serilog-ApprovalTests-comparative-measurement',

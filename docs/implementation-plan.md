@@ -4,6 +4,17 @@
 
 Can Bazel cache and schedule configured .NET projects while each action uses MSBuild and consumes dependency artifacts plus MSBuild result metadata?
 
+## Bazel version selection experiment
+
+The [Nix Bazel matrix](nix-bazel-matrix-findings.md) adds selectable official
+7.7.1, 8.4.2, 8.8.0 and 9.2.0 binaries on macOS ARM64, holding the SDK fixed.
+The [layout follow-up](nix-bazel-layout-findings.md) uses native wrapper defaults,
+separate test state and selected-version checks to reach the compatibility gates.
+All four selected versions pass the focused native macOS checks, repository
+tests and explicit sandbox/cache probe. Further failures are recorded without
+adapter compatibility fixes. This is a
+focused R17 experiment, not qualification of the full supported-version/platform matrix.
+
 ## Current status and next step
 
 Repository-owned .NET tooling and unit tests now have [build-enforced code style

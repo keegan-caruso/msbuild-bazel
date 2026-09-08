@@ -18,18 +18,38 @@
           # Use the upstream binary SDK on both platforms, as setup.sh does.
           dotnetPkgs = import nixpkgs-dotnet { inherit system; };
           dotnet = dotnetPkgs.dotnetCorePackages.sdk_10_0-bin;
-          bazel = pkgs.bazel_8;
-        in {
-          default = assert dotnet.version == pins.dotnet.version;
-            assert bazel.version == pins.bazel.version;
+          bazelPins = builtins.fromJSON (builtins.readFile ./nix/bazel-versions.json);
+          releaseBazel = version:
+            pkgs.stdenvNoCC.mkDerivation {
+              pname = "bazel-release";
+              inherit version;
+              src = pkgs.fetchurl bazelPins.${version};
+              dontUnpack = true;
+              dontStrip = true;
+              installPhase = ''
+                mkdir -p "$out/bin"
+                cp "$src" "$out/bin/bazel"
+                chmod +x "$out/bin/bazel"
+              '';
+            };
+          mkShell = bazel: expectedVersion:
+            assert dotnet.version == pins.dotnet.version;
+            assert bazel.version == expectedVersion;
             pkgs.mkShell {
               packages = [ dotnet bazel pkgs.python3 pkgs.bash pkgs.git pkgs.curl ];
               RULES_MSBUILD_DOTNET_ROOT = "${dotnet}/share/dotnet";
               RULES_MSBUILD_BAZEL = "${bazel}/bin/bazel";
+              RULES_MSBUILD_BAZEL_VERSION = expectedVersion;
               DOTNET_ROOT = "${dotnet}/share/dotnet";
               DOTNET_CLI_TELEMETRY_OPTOUT = "1";
               DOTNET_NOLOGO = "1";
             };
-        });
+        in {
+          default = mkShell pkgs.bazel_8 pins.bazel.version;
+        } // nixpkgs.lib.optionalAttrs (system == "aarch64-darwin")
+          (builtins.listToAttrs (map (version: {
+            name = "bazel-" + builtins.replaceStrings [ "." ] [ "_" ] version;
+            value = mkShell (releaseBazel version) version;
+          }) (builtins.attrNames bazelPins))));
     };
 }

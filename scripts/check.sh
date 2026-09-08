@@ -38,7 +38,7 @@ if [[ "$actual_dotnet" != "$expected_dotnet" ]]; then
     printf 'Expected .NET SDK %s, got %s.\n' "$expected_dotnet" "$actual_dotnet" >&2
     exit 1
 fi
-expected_bazel="bazel $(cat .bazelversion)"
+expected_bazel="bazel ${RULES_MSBUILD_BAZEL_VERSION:-$(cat .bazelversion)}"
 actual_bazel="$(RULES_MSBUILD_BAZEL_MODE=batch bash scripts/bazel.sh version --gnu_format)"
 # Nixpkgs builds Bazel from the release archive with this exact label suffix.
 if [[ "$actual_bazel" != "$expected_bazel" && "$actual_bazel" != "$expected_bazel- (@non-git)" ]]; then
