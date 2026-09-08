@@ -71,6 +71,10 @@ The SDK 10.0.400 upgrade passes the targeted native macOS regression gates, sepa
 See [SDK upgrade findings](sdk-upgrade-findings.md) for pins, validation and remaining
 Spectre prerequisites. Historical results below retain their original SDK scope.
 
+The [Spectre framework prerequisite](spectre-framework-findings.md) extends selected
+framework identity handling to netstandard2.0; its real-project package and native
+acceptance gates remain separate.
+
 ## Upstream issue coverage
 
 The [language-rule lessons](language-rule-lessons.md) compare Java, Scala, Python,

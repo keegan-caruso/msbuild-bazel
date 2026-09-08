@@ -13,10 +13,10 @@ internal static class SelectedFrameworks
         var document = new XElement("Project");
         foreach (var (project, selection) in selections.OrderBy(pair => pair.Key, StringComparer.Ordinal))
         {
-            if (!Files.ValidRelativePath(project) || !project.EndsWith(".csproj", StringComparison.Ordinal) || selection.TargetFramework != "net10.0")
+            if (!Files.ValidRelativePath(project) || !project.EndsWith(".csproj", StringComparison.Ordinal) || selection.TargetFramework is not ("net10.0" or "netstandard2.0"))
                 throw new InvalidDataException("selected framework project invalid");
             var fullPath = Path.Combine(workspace.Root, project);
-            var condition = "'$(MSBuildProjectFullPath)' == '" + Escape(fullPath) + "' and '$(TargetFramework)' == 'net10.0'";
+            var condition = "'$(MSBuildProjectFullPath)' == '" + Escape(fullPath) + "' and '$(TargetFramework)' == '" + selection.TargetFramework + "'";
             document.Add(new XElement("PropertyGroup", new XAttribute("Condition", condition),
                 new XElement("InnerBuildProperty", ""), new XElement("InnerBuildPropertyValues", "")));
             var items = new XElement("ItemGroup", new XAttribute("Condition", condition));
@@ -29,8 +29,8 @@ internal static class SelectedFrameworks
             }
             document.Add(items);
         }
-        // Restore can add transitive references after evaluation. For the net10-only
-        // slice their SDK-selected inner identity is the same declared closure identity.
+        // Restore can add transitive references after evaluation. Their SDK-selected
+        // inner identity must match the declared closure identity.
         // Carry that selection onto those existing items before framework negotiation;
         // no reference is added, removed, or compiled outside the exported graph.
         var selectedDependencies = selections.Values.SelectMany(selection => selection.References)
@@ -45,7 +45,7 @@ internal static class SelectedFrameworks
         }
         document.Add(new XElement("Target", new XAttribute("Name", "BazelApplySelectedReferenceFrameworks"),
             new XAttribute("BeforeTargets", "_GetProjectReferenceTargetFrameworkProperties"),
-            new XAttribute("Condition", "'$(TargetFramework)' == 'net10.0'"), runtimeItems));
+            new XAttribute("Condition", "'$(TargetFramework)' == 'net10.0' or '$(TargetFramework)' == 'netstandard2.0'"), runtimeItems));
         var path = Path.Combine(workspace.Scratch, "selected-frameworks.targets");
         new XDocument(document).Save(path);
         return path;

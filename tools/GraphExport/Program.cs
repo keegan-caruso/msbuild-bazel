@@ -382,8 +382,8 @@ internal static class GraphExporter
         if (!string.IsNullOrWhiteSpace(instance.GetPropertyValue("RuntimeIdentifier")) || !string.IsNullOrWhiteSpace(instance.GetPropertyValue("RuntimeIdentifiers")))
             throw new ExportException("unsupported-configuration", $"RID build: {instance.FullPath}");
         var tfm = instance.GetPropertyValue("TargetFramework");
-        if (!string.Equals(tfm, "net10.0", StringComparison.OrdinalIgnoreCase))
-            throw new ExportException("unsupported-configuration", $"TargetFramework {tfm} is outside milestone 1: {instance.FullPath}");
+        if (tfm is not ("net10.0" or "netstandard2.0"))
+            throw new ExportException("unsupported-configuration", $"TargetFramework {tfm} is outside the selected framework slice: {instance.FullPath}");
         var configuration = instance.GetPropertyValue("Configuration");
         if (configuration is not ("Release" or "Debug"))
             throw new ExportException("unsupported-configuration", $"Configuration {configuration}: {instance.FullPath}");

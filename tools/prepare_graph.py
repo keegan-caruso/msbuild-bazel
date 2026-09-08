@@ -139,10 +139,10 @@ def _prepare(workspace, manifest, output, *, environment=None, tests=None):
     for node in nodes.values():
         if not re.fullmatch('[0-9a-f]{24}', node['id']):
             raise ValueError('invalid configured node id')
-        if node['globalProperties'].get('configuration') != 'Release' or any(k not in ('configuration', 'targetframework', 'flavor') for k in node['globalProperties']) or node['globalProperties'].get('targetframework', 'net10.0') != 'net10.0' or node['targetFramework'] != 'net10.0':
+        if node['globalProperties'].get('configuration') != 'Release' or any(k not in ('configuration', 'targetframework', 'flavor') for k in node['globalProperties']) or node['targetFramework'] not in ('net10.0', 'netstandard2.0') or node['globalProperties'].get('targetframework', node['targetFramework']) != node['targetFramework']:
             raise ValueError('unsupported graph execution configuration')
         project = relative(node['project'])
-        execution = node.get('execution', dict(assetsFile='workspace/' + str(Path(project).parent / 'obj/project.assets.json'), outputDirectory='workspace/' + str(Path(project).parent / 'bin/Release/net10.0'), referenceDirectory='workspace/' + str(Path(project).parent / 'obj/Release/net10.0/ref')))
+        execution = node.get('execution', dict(assetsFile='workspace/' + str(Path(project).parent / 'obj/project.assets.json'), outputDirectory='workspace/' + str(Path(project).parent / ('bin/Release/' + node['targetFramework'])), referenceDirectory='workspace/' + str(Path(project).parent / ('obj/Release/' + node['targetFramework'] + '/ref'))))
         for key, prefix in (('assetsFile', 'obj'), ('outputDirectory', 'bin'), ('referenceDirectory', 'obj')):
             path = Path(relative(execution[key]))
             if not path.is_relative_to(Path(project).parent / prefix):
