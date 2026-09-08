@@ -4,6 +4,7 @@ import argparse
 import json
 from pathlib import Path
 import shutil
+import subprocess
 
 from bazel_session import BazelSession
 from prepare_graph import prepare
@@ -21,7 +22,8 @@ SPINNERS = 'src/Spectre.Console/Data/spinners_default.json'
 EXPECTED = {
     'cold': PROJECTS, 'unchanged': set(), 'jsonEdit': {CONSOLE},
     'jsonEntryAdd': {CONSOLE}, 'jsonEntryRemove': {CONSOLE},
-    'unreferencedJsonAdd': set(), 'generatorEdit': PROJECTS,
+    'unreferencedJsonAdd': set(), 'additionalFileAdd': {CONSOLE},
+    'additionalFileRemove': set(), 'generatorEdit': PROJECTS, 'gitTag': PROJECTS,
     'relocated': set(), 'recoveredConsumer': {CONSOLE},
 }
 
@@ -29,24 +31,29 @@ EXPECTED = {
 def mutate(source, case):
     """Mutate source inputs, never rewrite upstream project declarations."""
     if case in ('jsonEdit', 'jsonEntryAdd', 'jsonEntryRemove'):
-        path = source / SPINNERS
+        path = source / (SPINNERS.replace('spinners_default', 'spinners_sindresorhus') if case == 'jsonEntryRemove' else SPINNERS)
         data = json.loads(path.read_text())
         if case == 'jsonEdit':
             data['Default']['interval'] += 7
         elif case == 'jsonEntryAdd':
             data['AcceptanceProbe'] = dict(interval=137, unicode=False, frames=['x', 'y'])
         else:
-            del data['Ascii']
+            del data['dots']
         path.write_text(json.dumps(data, indent=2) + '\n')
     elif case == 'unreferencedJsonAdd':
         (source / 'src/Spectre.Console/Data/acceptance-unreferenced.json').write_text('{}\n')
+    elif case == 'additionalFileAdd':
+        (source / 'src/Spectre.Console/Data/acceptance-extra.json').write_text('{}\n')
+        edit(source / PROJECT, '</Project>', '<ItemGroup><AdditionalFiles Include="Data/acceptance-extra.json" /></ItemGroup></Project>')
+    elif case == 'gitTag':
+        subprocess.run(['git', 'tag', '1.2.3'], cwd=source, check=True, capture_output=True)
     elif case == 'generatorEdit':
         edit(source / ('src/' + GENERATOR + '/Spinners/SpinnerEmitter.cs'),
              'FromMilliseconds({spinner.Interval})', 'FromMilliseconds({spinner.Interval + 1})')
     elif case == 'recoveredConsumer':
         (source / 'src/Spectre.Console/AcceptanceProbe.cs').write_text(
             'namespace Spectre.Console;\ninternal static class AcceptanceProbe { internal const int Value = 2; }\n')
-    elif case not in ('cold', 'unchanged', 'relocated'):
+    elif case not in ('cold', 'unchanged', 'relocated', 'additionalFileRemove'):
         raise ValueError('unknown Spectre case: ' + case)
 
 
@@ -72,6 +79,8 @@ def verify_actions(actions, expected, strategy, recovered=False):
 # to generated API names, compare each spinner's actual interval/frames/unicode.
 ORACLE = r'''
 using System.Reflection;
+using System.Reflection.Metadata;
+using System.Reflection.PortableExecutable;
 using System.Runtime.Loader;
 using System.Text.Json;
 var paths = args.Select(Path.GetFullPath).ToArray();
@@ -98,7 +107,30 @@ foreach (var property in color.GetProperties(BindingFlags.Public | BindingFlags.
     var value = property.GetValue(null)!;
     colors[property.Name] = new { r = color.GetProperty("R")!.GetValue(value), g = color.GetProperty("G")!.GetValue(value), b = color.GetProperty("B")!.GetValue(value) };
 }
-Console.WriteLine(JsonSerializer.Serialize(new { spinners, colors }));
+var identities = new SortedDictionary<string, object>();
+foreach (var name in new[] { "Spectre.Console", "Spectre.Console.Ansi", "Spectre.Console.SourceGenerator" }) {
+    var assemblyPath = paths.Select(p => Path.Combine(p, name + ".dll")).First(File.Exists);
+    var assembly = AssemblyLoadContext.Default.LoadFromAssemblyPath(assemblyPath);
+    using var stream = File.OpenRead(assemblyPath);
+    using var pe = new PEReader(stream);
+    var entry = pe.ReadDebugDirectory().Single(e => e.Type == DebugDirectoryEntryType.EmbeddedPortablePdb);
+    using var provider = pe.ReadEmbeddedPortablePdbDebugDirectoryData(entry);
+    var reader = provider.GetMetadataReader();
+    var sourceLinks = reader.CustomDebugInformation.Select(h => reader.GetCustomDebugInformation(h))
+        .Where(info => reader.GetGuid(info.Kind) == new Guid("CC110556-A091-4D38-9FEC-25AB9A351A6A"))
+        .Select(info => JsonDocument.Parse(reader.GetBlobBytes(info.Value)))
+        .SelectMany(doc => doc.RootElement.GetProperty("documents").EnumerateObject().Select(p => p.Value.GetString()))
+        .Order().ToArray();
+    if (sourceLinks.Length == 0 || sourceLinks.Any(url => !url!.Contains("2dc90b90add956c2f6777cb659120900ac2eb740")))
+        throw new Exception("Missing pinned-revision SourceLink metadata: " + name);
+    identities[name] = new {
+        version = assembly.GetName().Version!.ToString(),
+        informationalVersion = assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()!.InformationalVersion,
+        fileVersion = assembly.GetCustomAttribute<AssemblyFileVersionAttribute>()!.Version,
+        sourceLinkUrls = sourceLinks
+    };
+}
+Console.WriteLine(JsonSerializer.Serialize(new { spinners, colors, identities }));
 '''
 
 
@@ -117,10 +149,20 @@ class SpectreProbe(Probe):
         # the original checkout's objects or copying its build output.
         self.run(destination.name + '-clone', ['git', 'clone', '--local', '--no-hardlinks',
             self.upstream, destination], self.output)
+        origin = self.run(destination.name + '-original-origin', ['git', 'remote', 'get-url', 'origin'], self.upstream).stdout.strip()
+        self.run(destination.name + '-preserve-origin', ['git', 'remote', 'set-url', 'origin', origin], destination)
         self.run(destination.name + '-checkout', ['git', 'checkout', '--detach', REVISION], destination)
+        git_identity = dict(origin=origin, shallow=self.run(destination.name + '-shallow', ['git', 'rev-parse', '--is-shallow-repository'], destination).stdout.strip(), tags=self.run(destination.name + '-tags', ['git', 'tag', '--list'], destination).stdout.splitlines())
+        prior = self.report.setdefault('gitIdentity', git_identity)
+        if prior != git_identity:
+            raise AssertionError('source Git origin/history identity changed')
         actual = self.run(destination.name + '-revision', ['git', 'rev-parse', 'HEAD'], destination).stdout.strip()
         if actual != REVISION:
             raise AssertionError('unexpected source revision')
+        # Rebuild the baseline index without checkout stat timestamps. Its blob IDs
+        # still describe HEAD, so later mutation dirty/untracked semantics survive.
+        (destination / '.git/index').unlink()
+        self.run(destination.name + '-index', ['git', 'read-tree', 'HEAD'], destination)
         package_root = destination / '.nuget/packages'
         if self.packages:
             shutil.copytree(self.packages, package_root)
@@ -160,12 +202,16 @@ class SpectreProbe(Probe):
             raise AssertionError('unexpected selected configured graph')
         if set(self.nodes[CONSOLE]['dependencies']) != {self.nodes[ANSI]['id'], self.nodes[GENERATOR]['id']} or set(self.nodes[ANSI]['dependencies']) != {self.nodes[GENERATOR]['id']} or self.nodes[GENERATOR]['dependencies']:
             raise AssertionError('unexpected Spectre reference scheduling graph')
+        additional = [item['path'] for item in self.nodes[CONSOLE]['inputs'] if item['kind'] == 'additional']
+        if any(path.endswith('acceptance-extra.json') for path in additional) != (name == 'additionalFileAdd'):
+            raise AssertionError('explicit AdditionalFiles membership differs')
+        self.report.setdefault('additionalFiles', {})[name] = additional
         self.graph = graph
         remove_tree(self.source)
 
-    def observe(self, name, console, ansi):
+    def observe(self, name, console, ansi, generator):
         result = self.run(name + '-oracle', [DOTNET_ROOT / 'dotnet',
-            self.output / 'oracle/bin/Release/net10.0/Oracle.dll', console, ansi], self.output)
+            self.output / 'oracle/bin/Release/net10.0/Oracle.dll', console, ansi, generator], self.output)
         observed = json.loads(result.stdout)
         if not observed['spinners'] or not observed['colors']:
             raise AssertionError('generated APIs missing')
@@ -181,7 +227,8 @@ class SpectreProbe(Probe):
             '-nodeReuse:false', '-nologo', '-verbosity:normal'], source)
         result = self.observe('ordinary-' + name,
             source / ('src/' + CONSOLE + '/bin/Release/net10.0'),
-            source / ('src/' + ANSI + '/bin/Release/net10.0'))
+            source / ('src/' + ANSI + '/bin/Release/net10.0'),
+            source / ('src/' + GENERATOR + '/bin/Release/netstandard2.0'))
         remove_tree(source)
         return result
 
@@ -209,9 +256,15 @@ class SpectreProbe(Probe):
             actions.append(action)
         verify_actions(actions, EXPECTED[name], self.strategy, recovered=name == 'relocated')
         bundles = {key: self.generated / ('bazel-bin/node_' + node['id'] + '.bundle') for key, node in self.nodes.items()}
+        for project, bundle in bundles.items():
+            payload = json.loads((bundle / 'results.json').read_text())
+            expected_framework = 'netstandard2.0' if project == GENERATOR else 'net10.0'
+            if payload['targetFramework'] != expected_framework:
+                raise AssertionError('replay payload lost selected framework: ' + project)
         observed = self.observe(name,
             bundles[CONSOLE] / ('artifacts/src/' + CONSOLE + '/bin/Release/net10.0'),
-            bundles[ANSI] / ('artifacts/src/' + ANSI + '/bin/Release/net10.0'))
+            bundles[ANSI] / ('artifacts/src/' + ANSI + '/bin/Release/net10.0'),
+            bundles[GENERATOR] / ('artifacts/src/' + GENERATOR + '/bin/Release/netstandard2.0'))
         if observed != baseline:
             raise AssertionError('ordinary and adapter generated behavior differ')
         if self.source.exists():
@@ -222,7 +275,33 @@ class SpectreProbe(Probe):
         self.save()
         return result
 
-    def execute(self, cold_only=False):
+    def reject_missing_git_input(self):
+        remove_tree(self.source)
+        self.copy(self.source)
+        self.restore(self.source, 'missingGitInput')
+        manifest, _ = self.export(self.source, 'missingGitInput')
+        graph = json.loads(manifest.read_text())
+        missing = 'workspace/.git/shallow'
+        if not all(any(item['path'] == missing for item in node['inputs']) for node in graph['nodes']):
+            raise AssertionError('shallow Git input was not declared for every node')
+        (self.source / '.git/shallow').unlink()
+        destination = self.output / 'missing-git-prepared'
+        try:
+            prepare(self.source, manifest, destination, environment=cache_environment(self.output, self.source))
+        except ValueError as error:
+            if not str(error).startswith('missing-input:') or '.git/shallow' not in str(error):
+                raise
+            if destination.exists():
+                raise AssertionError('missing Git input published a prepared workspace')
+            self.report['cases']['missingGitInput'] = dict(rejected=True, diagnostic=str(error), published=False)
+        else:
+            raise AssertionError('missing declared Git input was accepted')
+        remove_tree(self.source)
+        self.save()
+
+    def execute(self, cold_only=False, git_only=False):
+        if git_only:
+            self.report.update(scope='R05-Spectre-declared-Git', acceptanceCaseNames=['cold', 'unchanged', 'gitTag', 'missingGitInput'])
         stage = 'bootstrap'
         try:
             self.run('exporter-build', [DOTNET_ROOT / 'dotnet', 'build', ROOT / 'tools/GraphExport', '-c', 'Release', '--nologo'], ROOT)
@@ -234,11 +313,13 @@ class SpectreProbe(Probe):
             stage = 'ordinary-cold'
             baseline = self.ordinary('cold')
             with BazelSession(self.output) as self.session:
-                for name in list(EXPECTED)[:7]:
+                for name in (['cold', 'unchanged', 'gitTag'] if git_only else list(EXPECTED)[:-2]):
                     stage = name
                     ordinary = baseline if name in ('cold', 'unchanged') else self.ordinary(name)
-                    if name in ('jsonEdit', 'jsonEntryAdd', 'jsonEntryRemove', 'generatorEdit') and ordinary == baseline:
+                    if name in ('jsonEdit', 'jsonEntryAdd', 'jsonEntryRemove', 'generatorEdit', 'gitTag') and ordinary == baseline:
                         raise AssertionError('mutation failed to change generated behavior')
+                    if name == 'gitTag' and any(value['version'] != '1.0.0.0' or value['fileVersion'] != '1.2.3.0' or not value['informationalVersion'].startswith('1.2.3+') for value in ordinary['identities'].values()):
+                        raise AssertionError('tag did not change actual MinVer assembly identities')
                     self.generate(name)
                     result = self.build(name, ordinary)
                     if name == 'cold':
@@ -246,6 +327,11 @@ class SpectreProbe(Probe):
                     if cold_only:
                         self.report['coldAccepted'] = True
                         return self.report
+            stage = 'missingGitInput'
+            self.reject_missing_git_input()
+            if git_only:
+                self.report.update(accepted=True, status='accepted-native-declared-Git')
+                return self.report
             stage = 'relocated'
             old_generated, old_base = self.generated, self.base
             remove_tree(old_generated)
@@ -279,5 +365,6 @@ if __name__ == '__main__':
     parser.add_argument('--packages', type=Path)
     parser.add_argument('--output', type=Path, required=True)
     parser.add_argument('--cold-only', action='store_true')
+    parser.add_argument('--git-only', action='store_true', help='Run cold/unchanged/tag mutation/missing Git input companion gate')
     args = parser.parse_args()
-    SpectreProbe(args.output, args.source, args.packages).execute(args.cold_only)
+    SpectreProbe(args.output, args.source, args.packages).execute(args.cold_only, args.git_only)

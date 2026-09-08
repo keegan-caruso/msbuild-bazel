@@ -11,8 +11,9 @@ internal static class PackageRestoreValidation
             !restoreProject.TryGetProperty("frameworks", out var frameworks) ||
             !frameworks.TryGetProperty(project.GetPropertyValue("TargetFramework"), out var framework))
             throw new ExportException("stale-restore", "restored project framework metadata missing: " + project.FullPath);
+        var selected = assets.GetProperty("targets").GetProperty(project.GetPropertyValue("TargetFramework"));
         var libraries = assets.GetProperty("libraries").EnumerateObject()
-            .Where(library => library.Value.GetProperty("type").GetString() == "package")
+            .Where(library => library.Value.GetProperty("type").GetString() == "package" && selected.TryGetProperty(library.Name, out _))
             .Select(library => library.Name).ToHashSet(StringComparer.OrdinalIgnoreCase);
         ValidateRequested(project, framework, libraries);
     }

@@ -14,7 +14,12 @@ internal static class PackageInputs
         var assetsPath = Path.Combine(workspace, request.GraphAssetsFile ?? Path.Combine(Path.GetDirectoryName(projectPath)!, "obj/project.assets.json"));
         var assets = JsonFiles.Read<RestoreAssets>(assetsPath);
         using var assetsDocument = JsonDocument.Parse(File.ReadAllText(assetsPath));
-        var resolved = assets.Libraries.Where(entry => entry.Value.Type == "package")
+        var framework = request.GraphProject is null ? null :
+            request.GraphFrameworkSelections?.GetValueOrDefault(projectPath)?.TargetFramework ??
+            request.GraphGlobalProperties?.GetValueOrDefault("targetframework", "net10.0") ?? "net10.0";
+        var selectedTarget = framework is null ? (JsonElement?)null : assetsDocument.RootElement.GetProperty("targets").GetProperty(framework);
+        var resolved = assets.Libraries.Where(entry => entry.Value.Type == "package" &&
+            (selectedTarget is null || selectedTarget.Value.TryGetProperty(entry.Key, out _)))
             .ToDictionary(entry => entry.Key, entry => entry.Value.Path
                 ?? throw new InvalidDataException("restored package path missing: " + entry.Key), StringComparer.OrdinalIgnoreCase);
         var manifest = request.PackageManifest is null
@@ -44,7 +49,7 @@ internal static class PackageInputs
         foreach (var package in manifest.Packages)
         {
             var pin = PilotPackagePolicy.Find(package.Id + "/" + package.Version);
-            if (request.GraphProject is not null) VerifyAssetRoles(assetsDocument.RootElement, package.Id + "/" + package.Version, pin);
+            if (request.GraphProject is not null) VerifyAssetRoles(assetsDocument.RootElement, package.Id + "/" + package.Version, pin, framework);
             if (pin is not null) VerifyPilot(package, pin, files, assets);
             if (request.GraphProject is not null)
                 foreach (var entry in package.Files)
@@ -77,10 +82,10 @@ internal static class PackageInputs
             Files.Copy(source, target);
         return resolved.Keys.Select(key => key.ToLowerInvariant()).Order(StringComparer.Ordinal).ToArray();
     }
-    internal static void VerifyAssetRoles(JsonElement assets, string identity, PilotPackagePin? pin)
+    internal static void VerifyAssetRoles(JsonElement assets, string identity, PilotPackagePin? pin, string? selectedFramework = null)
     {
         if (!assets.TryGetProperty("targets", out var targets)) return;
-        foreach (var framework in targets.EnumerateObject())
+        foreach (var framework in targets.EnumerateObject().Where(target => selectedFramework is null || target.Name == selectedFramework))
             foreach (var package in framework.Value.EnumerateObject())
             {
                 if (!package.Name.Equals(identity, StringComparison.OrdinalIgnoreCase)) continue;

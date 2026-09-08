@@ -8,8 +8,8 @@ internal static class AnalyzerPackageTests
         Directory.CreateDirectory(Path.Combine(workspace, "App", "obj"));
         File.WriteAllText(Path.Combine(workspace, "App", "App.csproj"),
             "<Project><ItemGroup><PackageReference Include=\"Fixture\" Version=\"[1.0.0]\" /></ItemGroup></Project>");
-        JsonFiles.Write(Path.Combine(workspace, "App", "obj", "project.assets.json"),
-            new RestoreAssets(new Dictionary<string, RestoreLibrary> { ["Fixture/1.0.0"] = new("package", "fixture/1.0.0") }));
+        File.WriteAllText(Path.Combine(workspace, "App", "obj", "project.assets.json"),
+            """{"libraries":{"Fixture/1.0.0":{"type":"package","path":"fixture/1.0.0"}},"targets":{"net10.0":{"Fixture/1.0.0":{}}}}""");
         var source = Path.Combine(temporary, "analyzer-payload");
         File.WriteAllText(source, "original");
         var manifestPath = Path.Combine(temporary, "analyzer-manifest.json");

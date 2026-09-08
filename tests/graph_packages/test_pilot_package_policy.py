@@ -42,6 +42,7 @@ class PilotPolicy(unittest.TestCase):
             raw = archive.read_bytes()
             identity = 'PolySharp/1.15.0'
             (work / 'App/obj/project.assets.json').write_text(json.dumps(dict(
+                project={'frameworks': {'net10.0': {'dependencies': {'PolySharp': {}}}}},
                 libraries={identity:dict(type='package', path='polysharp/1.15.0', sha512=graph_packages.PILOT_PACKAGES['polysharp/1.15.0']['restoreContentHash'])},
                 targets={'net10.0':{identity:dict(build={'build/PolySharp.targets':{}})}})))
             with self.assertRaisesRegex(ValueError, 'hash-mismatch: package archive differs from qualified pilot pin'):

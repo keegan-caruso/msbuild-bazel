@@ -152,7 +152,7 @@ def _prepare(workspace, manifest, output, *, environment=None, tests=None):
             raise ValueError('unsupported graph output layout')
         if any(dep not in nodes for dep in node['dependencies']):
             raise ValueError('missing dependency node')
-        graph_packages.package_plan(workspace, project, relative(execution['assetsFile']))
+        graph_packages.package_plan(workspace, project, relative(execution['assetsFile']), node['targetFramework'])
     output_owners = {}
     for identity, node in nodes.items():
         if 'execution' not in node: continue
@@ -286,7 +286,7 @@ def write_build(workspace, graph, output, tests=None, *, closures=None):
             target = output / 'src' / source
             target.parent.mkdir(parents=True, exist_ok=True)
             shutil.copyfile(workspace / source, target)
-        package_manifest, packages = graph_packages.stage(workspace, relative(node['project']), output, identity, relative(node['execution']['assetsFile']) if 'execution' in node else None)
+        package_manifest, packages = graph_packages.stage(workspace, relative(node['project']), output, identity, relative(node['execution']['assetsFile']) if 'execution' in node else None, node['targetFramework'])
         execution_attrs = dict(assets_file=relative(node['execution']['assetsFile']), output_directories=[relative(node['execution'][key]) for key in ('outputDirectory', 'referenceDirectory')]) if 'execution' in node else {}
         attrs = dict(settings, **execution_attrs, framework_selections=json.dumps(framework_selections(nodes, closures[identity]), sort_keys=True), global_properties=node['globalProperties'], packages=packages, package_manifest=package_manifest, name='node_' + identity, project=relative(node['project']), srcs=sorted('src/' + s for s in sources), restore=restore, dependencies=[':node_' + d for d in sorted(node['dependencies'])])
         build += call('graph_project', **attrs)

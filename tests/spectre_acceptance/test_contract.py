@@ -45,13 +45,14 @@ class AcceptanceContractTests(unittest.TestCase):
             path.parent.mkdir(parents=True)
             original = dict(Default=dict(interval=100, frames=['a', 'b']), Ascii=dict(interval=100, frames=['x', 'y']))
             for case in ('jsonEdit', 'jsonEntryAdd', 'jsonEntryRemove'):
-                path.write_text(json.dumps(original))
+                selected = path.with_name('spinners_sindresorhus.json') if case == 'jsonEntryRemove' else path
+                selected.write_text(json.dumps(original | {'dots': original['Ascii']}))
                 mutate(source, case)
-                changed = json.loads(path.read_text())
-                self.assertNotEqual(original, changed)
+                changed = json.loads(selected.read_text())
+                self.assertNotEqual(original | {'dots': original['Ascii']}, changed)
                 if case == 'jsonEdit': self.assertEqual(107, changed['Default']['interval'])
                 if case == 'jsonEntryAdd': self.assertIn('AcceptanceProbe', changed)
-                if case == 'jsonEntryRemove': self.assertNotIn('Ascii', changed)
+                if case == 'jsonEntryRemove': self.assertNotIn('dots', changed)
                 self.assertFalse(list(source.rglob('*.csproj')))
 
     def test_unknown_case_fails(self):

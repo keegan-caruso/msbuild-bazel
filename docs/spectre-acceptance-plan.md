@@ -1,10 +1,9 @@
 # Selected Spectre acceptance preparation
 
-This is a prepared gate, not passing adapter evidence. It targets the unchanged
+This gate now has native macOS evidence in [the integration findings](spectre-acceptance-findings.md). It targets the unchanged
 Spectre.Console declarations at revision
 `2dc90b90add956c2f6777cb659120900ac2eb740`: Console/net10.0,
-Ansi/net10.0 and their shared SourceGenerator/netstandard2.0. Framework and
-package prerequisites must be integrated before the native acceptance run.
+Ansi/net10.0 and their shared SourceGenerator/netstandard2.0. Framework and package prerequisites are integrated; the findings bound the selected supported scope.
 
 Run from the adapter checkout with pinned SDK 10.0.400 and Bazel available:
 
@@ -37,15 +36,21 @@ selected behavioral oracle, not a claim of full API or upstream test coverage.
 | Spinner JSON entry added | Console |
 | Spinner JSON entry removed | Console |
 | Unreferenced JSON file added | None |
+| Explicit AdditionalFiles item and file added | Console |
+| Added item and file removed back to baseline | None; original action reused |
+| Git tag added at HEAD | Generator, Ansi, Console |
+| Declared Git shallow input removed after export | Preparation rejects before publication |
 | Generator interval emission changed | Generator, Ansi, Console |
 | Producer-free relocated recovery | None; three explicit disk cache hits |
 | New consumer source after recovery | Console |
 
 The upstream AdditionalFiles declarations name specific files rather than globs.
-Entry addition/removal above means JSON data entries, not AdditionalFiles item
-membership; the extra unreferenced file checks that distinction. Missing explicitly
-referenced JSON files and changed item declarations require separate negative/item
-membership controls; they are not covered by this initial gate.
+JSON entry removal uses the unreferenced `dots` spinner, preserving the `Ascii`
+spinner required by upstream source. A separate case adds an explicit extra JSON
+item/file, then removes both to return to the original baseline. The extra
+unreferenced file case checks that a file on disk alone does not become a compiler
+input. Baseline declarations are unchanged; the item-add case is an intentional
+mutation, not a prerequisite workaround.
 
 Each fresh action must use the native sandbox, and its diagnostic must report
 only its own project compilation. Preparation sources are deleted before build.
@@ -56,8 +61,9 @@ Then add consumer source and compile Console using recovered producer bundles.
 Record all failures by stage in report.json; never reinterpret a rejected export
 as accepted adapter behavior.
 
-Initial preparation validation: seven contract tests passed, covering exact
-worksets, repeated dependency compilation rejection, native sandbox enforcement,
-explicit recovery evidence and real JSON mutation semantics. No adapter build
-was run in this preparation checkpoint. Integration must first resolve selected
-restore and Git metadata behavior, then run this gate and record measured limits.
+Run `--git-only` for the cold/unchanged/tag/missing-input companion gate. It
+requires the actual MinVer assembly identity to become 1.2.3 and retains pinned
+SourceLink URL parity for every assembly. The full default gate includes those
+controls as well. Initial preparation had seven contract tests; integration adds
+selected-framework package metadata and actual C# Git discovery rejection tests.
+See the findings for commands and measured results.

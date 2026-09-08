@@ -31,10 +31,18 @@ def privacy(value):
     raise ValueError('unsupported-package: PrivateAssets must be default, all or none')
 
 
-def package_plan(workspace, project, assets_file=None):
+def package_plan(workspace, project, assets_file=None, target_framework=None):
     project = Path(project)
     assets = json.loads((workspace / (assets_file or project.parent / 'obj/project.assets.json')).read_text())
-    libraries = {k: v for k, v in assets['libraries'].items() if v['type'] == 'package'}
+    targets = assets.get('targets', {})
+    if target_framework is None:
+        if len(targets) != 1:
+            raise ValueError('unsupported-configuration: explicit selected package framework required')
+        target_framework = next(iter(targets))
+    if target_framework not in targets:
+        raise ValueError('stale-restore: selected package target missing')
+    selected = targets[target_framework]
+    libraries = {k: v for k, v in assets['libraries'].items() if v['type'] == 'package' and k in selected}
     source = workspace / project
     if not source.is_file() or not source.resolve().is_relative_to(workspace):
         raise ValueError('missing-input: missing or escaping input: workspace/' + project.as_posix())
@@ -43,9 +51,9 @@ def package_plan(workspace, project, assets_file=None):
     except ET.ParseError as error:
         raise ValueError('stale-manifest: stale graph input: workspace/' + project.as_posix()) from error
     frameworks = assets.get('project', {}).get('frameworks', {})
-    direct = {}
-    for framework in frameworks.values():
-        direct.update(framework.get('dependencies', {}))
+    if target_framework not in frameworks:
+        raise ValueError('stale-restore: selected project framework missing')
+    direct = frameworks[target_framework].get('dependencies', {})
     direct = {name.lower(): value for name, value in direct.items()}
     parents = {child: parent for parent in tree.iter() for child in parent}
     for reference in tree.getroot().iter():
@@ -84,15 +92,15 @@ def package_plan(workspace, project, assets_file=None):
         return assets, libraries
     if not assets.get('targets') or any('path' not in item or 'sha512' not in item for item in libraries.values()):
         raise ValueError('unsupported-package: incomplete restored package metadata')
-    for target in assets['targets'].values():
+    for target in (selected,):
         for identity, entry in target.items():
             if identity in libraries and any(entry.get(k) for k in ('native', 'runtimeTargets', 'resource', 'build', 'buildMultiTargeting', 'buildTransitive', 'contentFiles') if k.lower() not in PILOT_PACKAGES.get(identity.lower(), {}).get('assetRoles', [])):
                 raise ValueError('unsupported-package: only managed ref/lib assets are supported')
     return assets, libraries
 
 
-def stage(workspace, project, output, node_id, assets_file=None):
-    assets, libraries = package_plan(workspace, project, assets_file)
+def stage(workspace, project, output, node_id, assets_file=None, target_framework=None):
+    assets, libraries = package_plan(workspace, project, assets_file, target_framework)
     manifest = {'schemaVersion': 1, 'packages': []}
     paths = []
     for identity, library in sorted(libraries.items()):
