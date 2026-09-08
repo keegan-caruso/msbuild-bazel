@@ -6,6 +6,11 @@ using Microsoft.Build.Evaluation.Context;
 using Microsoft.Build.Graph;
 
 var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true, PropertyNamingPolicy = JsonNamingPolicy.CamelCase, WriteIndented = true };
+if (args is ["--boundary-check", var boundaryPath])
+{
+    BoundaryCheck.Run(boundaryPath, options);
+    return;
+}
 if (args is not ["--request", var requestPath]) throw new ArgumentException("usage: EvaluationProbe --request file.json");
 var request = JsonSerializer.Deserialize<Request>(File.ReadAllText(requestPath), options) ?? throw new InvalidDataException("empty request");
 var sdk = Path.Combine(request.DotnetRoot, "sdk", request.SdkVersion);

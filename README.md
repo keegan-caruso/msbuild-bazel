@@ -57,7 +57,9 @@ analyzers and recovered consumer compilation. Spectre.Console, CommunityToolkit
 and Dapper.AOT add native macOS mutation, behavioral and relocated-cache evidence,
 with explicit remaining combinations. **Next:** R09 preparation reuse; see the
 [active execution order](docs/roadmap.md#active-execution-order).
-[Repeated measurements](docs/serilog-performance-findings.md) are
+[RUL-5 discovery identity and eligibility](docs/discovery-contract.md) now cover
+the selected native macOS SDK/Serilog slice; production preparation reuse remains
+the next step. [Repeated measurements](docs/serilog-performance-findings.md) are
 complete and show adapter overhead for this small graph; useful performance at
 scale, broader R03 entry points and Linux qualification remain separate.
 Later tracks cover specialized SDKs, platform workloads and independent remote

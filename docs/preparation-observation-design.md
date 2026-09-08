@@ -1,7 +1,9 @@
 # RUL-5: observed dependencies for preparation identity
 
-Status: proposed design, following the evaluated-import diagnostic checkpoint
-`72a4613`. Recording and reuse are not implemented by that checkpoint.
+Status: the recorder and the selected [discovery identity/eligibility
+contract](discovery-contract.md) are implemented. Production reuse remains RUL-6.
+The measured read-hook gaps require a sealed full-tree fallback for this first
+qualified slice; an observation-only key remains unqualified.
 
 ## Decision
 
@@ -111,9 +113,9 @@ Retain the equal-content/different-timestamp negative control and the existing
 are ordinary inputs; Git-derived values require their Git inputs; application
 runtime clocks remain outside build-discovery diagnostics.
 
-## Next implementation and acceptance
+## Implementation and acceptance
 
-Build a small forwarding-recorder experiment before wiring production reuse:
+The forwarding-recorder experiment and discovery contract exercise:
 
 - Compare plain MSBuild and recorded evaluation for identical configured graphs.
 - Import props through nested, property-selected and wildcard imports; modify an

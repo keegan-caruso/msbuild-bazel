@@ -29,6 +29,31 @@ MSBuild filesystem hooks to record and revalidate content reads, absent-file
 probes and directory enumeration, with explicit invocation inputs and enforced
 coverage before reuse.
 
+The [discovery contract](discovery-contract.md) adds enforced eligibility for the
+selected Release/net10.0 GraphExport operation, including its SDK discovery
+targets and the pinned Serilog library. It stages a private input view, hashes
+complete declared trees to cover the measured hook gaps, verifies qualified
+SDK/package imports, rejects unsupported executable XML, and runs discovery in
+a native macOS sandbox. Candidate validation rechecks content and external
+absences without running discovery. Production prepared-artifact reuse,
+publication/recovery and consumption under a retained lease remain RUL-6;
+validation-cost measurement remains RUL-7.
+
+Final RUL-5 qualification (2026-09-08, native macOS ARM64, Nix SDK 10.0.400):
+31 identity/contract unit tests and 22 MSBuild diagnostic tests pass. The final
+small-graph matrix passes all 27 cases at
+`/private/tmp/rul5-contract-final-2/report.json`; the unchanged pinned Serilog
+library passes all 15 cases at
+`/private/tmp/rul5-serilog-contract-final/report.json`. `bash scripts/check.sh`
+and `bash scripts/check-dotnet.sh` pass, including all five code-style enforcement
+tests; `git diff --check` passes. The first repository check was blocked by the
+agent sandbox's Bazel output-directory restriction; the native rerun passed.
+An intermediate test expected an MSBuild error-code prefix on an exception
+message; the final negative control instead asserts the actual missing-import
+diagnostic and independently verifies that the denied external file exists.
+No CI workflow was dispatched. These results complete the selected RUL-5
+discovery identity/eligibility gate, not R09 production reuse or performance.
+
 Repository-owned .NET tooling and unit tests now have [build-enforced code style
 and warning policies](code-style-findings.md), separate from fixture build semantics.
 
