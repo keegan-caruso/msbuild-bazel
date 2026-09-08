@@ -46,8 +46,10 @@ The [forward roadmap](docs/roadmap.md) covers R01–R17 from this checkpoint thr
 a supported adapter. **Completed:** the selected R02–R04 package/configuration/test-rule
 [qualification gates](docs/r02-r04-validation-findings.md) pass on native macOS,
 including the unchanged upstream approval test, a real PolySharp version mutation
-and reference consumption after cache recovery. **Next:** R09 preparation reuse
-alongside R05 generator combinations and reference roles; see the
+and reference consumption after cache recovery. **R05a:** [generator delivery and reference-role qualification](docs/r05a-findings.md)
+adds classic/incremental project generators, package combinations, diagnostic-only
+analyzers and recovered consumer compilation. Spectre.Console retains outstanding
+SDK/framework/package prerequisites. **Next:** R09 preparation reuse; see the
 [active execution order](docs/roadmap.md#active-execution-order).
 [Repeated measurements](docs/serilog-performance-findings.md) are
 complete and show adapter overhead for this small graph; useful performance at

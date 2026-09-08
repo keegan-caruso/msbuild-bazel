@@ -15,11 +15,12 @@ controls, with cache/discovery/forced-replay regressions retained. The additiona
 `starlark_packages`, `starlark_configured` and `starlark_tests` gates now pass
 [native macOS qualification](r02-r04-validation-findings.md), including generated
 workspaces, real generator-version changes and cold/recovered reference consumers.
-The next work packages are R09 preparation reuse alongside R05 generator
-combinations and reference roles. Preparation reuse starts from the accepted
-R04 measurements and discovery/package contracts; compile-interface optimization
-follows the relevant R05/R06 role contracts. Broader R03 entry points and
-independent-worker gates remain separate. See the
+The [R05a generator/reference-role slice](r05a-findings.md) implements project and
+package generator combinations, diagnostic-only analyzers and recovered consumer
+compilation. Spectre.Console retains its SDK/framework/package gate. R09 preparation
+reuse starts from the accepted R04 measurements and discovery/package contracts;
+compile-interface optimization follows the relevant R05/R06 role contracts.
+Broader R03 entry points and independent-worker gates remain separate. See the
 [active execution order](roadmap.md#active-execution-order).
 
 The three parallel [upstream test tracks](serilog-test-plan.md) now pass [native macOS acceptance](serilog-test-acceptance-findings.md): unchanged Serilog approval Build/Test, exact failure controls, test-data-only invalidation, and producer-free relocated build recovery followed by actual test execution. The [selected-framework adaptation](selected-framework-findings.md) preserves ordinary SDK reference selection without changing project declarations.
@@ -85,7 +86,7 @@ endpoint. Near-term milestones have concrete deliverables and exit gates; later
 tracks are refined before implementation. Historical milestone numbers in older
 contracts and findings remain unchanged; the roadmap includes their mapping.
 
-Current macOS evidence covers R01 cache/replay/discovery, the selected R02 managed-package and R03 configured-node slices, and the R04 Serilog library plus unchanged approval test, with their additional rule/generated-workspace gates. [Repeated comparative measurements](serilog-performance-findings.md) now pass all 24 correctness/work-set samples; they show adapter overhead for this two-project graph and do not qualify useful performance at scale. R09 preparation reuse and R05 generator/reference-role qualification are next; broader R03 entry points and Linux validation remain separate. The [coverage matrix](scenario-coverage.md) and
+Current macOS evidence covers R01 cache/replay/discovery, the selected R02 managed-package and R03 configured-node slices, and the R04 Serilog library plus unchanged approval test, with their additional rule/generated-workspace gates. [Repeated comparative measurements](serilog-performance-findings.md) now pass all 24 correctness/work-set samples; they show adapter overhead for this two-project graph and do not qualify useful performance at scale. R09 preparation reuse is next. R05a generator/reference-role evidence is tracked in [its findings](r05a-findings.md); broader R03 entry points and Linux validation remain separate. The [coverage matrix](scenario-coverage.md) and
 [pinned project selections](coverage-project-selections.md) define the broader
 portfolio and separate proposed work from measured support. The
 [parallel dependency graph](roadmap-graph.md) splits milestones into work packages

@@ -1,0 +1,11 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <Target Name="WriteOrderOnlyState" AfterTargets="Build">
+    <WriteLinesToFile File="$(OutputPath)order-only.state"
+                      Lines="order-only-v1"
+                      Overwrite="true"
+                      Encoding="UTF-8" />
+    <ItemGroup>
+      <FileWrites Include="$(OutputPath)order-only.state" />
+    </ItemGroup>
+  </Target>
+</Project>

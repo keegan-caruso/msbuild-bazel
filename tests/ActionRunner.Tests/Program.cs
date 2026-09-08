@@ -50,6 +50,7 @@ try
         Console.WriteLine("Pinned package symlink and manifest controls passed.");
         return 0;
     }
+    AnalyzerPackageTests.Run(JsonFiles.ReadRequest(requestPath), directory.FullName);
     SelectedFrameworkTests.Run(JsonFiles.ReadRequest(requestPath), directory.FullName);
     var nativeManifest = Path.Combine(directory.FullName, "native.json");
     var nativeEntry = new Artifact("store/lib/native", new FileInfo(payload).Length, Files.Hash(payload));

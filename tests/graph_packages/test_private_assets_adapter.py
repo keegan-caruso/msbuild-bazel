@@ -26,11 +26,13 @@ class PrivateAssetsAdapter(unittest.TestCase):
         strategy = 'darwin-sandbox' if platform.system() == 'Darwin' else 'linux-sandbox'
         report = dict(schemaVersion=1, cases={})
 
-        def run(name, command, cwd, success=True):
+        def environment(cwd):
             environment_root = evidence / 'bootstrap' if cwd == ROOT else cwd
-            environment = dict(os.environ, DOTNET_CLI_HOME=str(environment_root / '.dotnet-home'),
+            return dict(os.environ, DOTNET_CLI_HOME=str(environment_root / '.dotnet-home'),
                 NUGET_PACKAGES=str(environment_root / '.nuget/packages'), MSBUILDDISABLENODEREUSE='1')
-            result = subprocess.run([str(a) for a in command], cwd=cwd, env=environment,
+
+        def run(name, command, cwd, success=True):
+            result = subprocess.run([str(a) for a in command], cwd=cwd, env=environment(cwd),
                 capture_output=True, text=True, timeout=240)
             (evidence / (name + '.log')).write_text(result.stdout + result.stderr)
             if success:
@@ -57,7 +59,7 @@ class PrivateAssetsAdapter(unittest.TestCase):
                         output=str(manifest))))
                     run(prefix + '-export', [dotnet, ROOT / 'tools/GraphExport/bin/Release/net10.0/GraphExport.dll', '--request', request], workspace)
                     generated = evidence / (prefix + '-generated')
-                    graph = prepare(workspace, manifest, generated)
+                    graph = prepare(workspace, manifest, generated, environment=environment(ROOT))
                     nodes = {n['id']: Path(n['project']).stem for n in graph['nodes']}
                     app = next(identity for identity, name in nodes.items() if name == 'App')
                     manifests = {}

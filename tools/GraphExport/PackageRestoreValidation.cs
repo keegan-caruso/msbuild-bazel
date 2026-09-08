@@ -39,7 +39,19 @@ internal static class PackageRestoreValidation
             while (pending.TryPop(out var currentNode))
             {
                 if (!closure.Add(currentNode)) continue;
-                foreach (var dependency in currentNode.ProjectReferences) pending.Push(dependency);
+                // NuGet excludes ReferenceOutputAssembly=false edges from the
+                // consumer restore snapshot, even though MSBuild still schedules
+                // their producers. Each producer validates its own snapshot below.
+                var references = currentNode.ProjectInstance.GetItems("ProjectReference");
+                var pathComparer = OperatingSystem.IsWindows() ? StringComparer.OrdinalIgnoreCase : StringComparer.Ordinal;
+                var restoredPaths = references
+                    .Where(IsRestoreReference)
+                    .Select(reference => CanonicalProjectPath(Path.GetFullPath(reference.EvaluatedInclude,
+                        Path.GetDirectoryName(currentNode.ProjectInstance.FullPath)!)))
+                    .ToHashSet(pathComparer);
+                foreach (var dependency in currentNode.ProjectReferences)
+                    if (restoredPaths.Contains(CanonicalProjectPath(dependency.ProjectInstance.FullPath)))
+                        pending.Push(dependency);
             }
             var projects = closure.Select(node => node.ProjectInstance)
                 .Where(project => project.FullPath.EndsWith(".csproj", StringComparison.OrdinalIgnoreCase)).ToArray();
@@ -93,10 +105,8 @@ internal static class PackageRestoreValidation
             foreach (var metadata in new[] { "PrivateAssets", "IncludeAssets", "ExcludeAssets" })
                 if (!string.IsNullOrEmpty(reference.GetMetadataValue(metadata)))
                     throw new ExportException("unsupported-project-reference-restore", "nondefault " + metadata + ": " + project.FullPath);
-            var output = reference.GetMetadataValue("ReferenceOutputAssembly");
-            if (output.Length != 0 && !output.Equals("true", StringComparison.OrdinalIgnoreCase))
-                throw new ExportException("unsupported-project-reference-restore", "ReferenceOutputAssembly=false is outside restore validation");
-            current.Add(CanonicalProjectPath(Path.GetFullPath(reference.EvaluatedInclude, Path.GetDirectoryName(project.FullPath)!)));
+            if (IsRestoreReference(reference))
+                current.Add(CanonicalProjectPath(Path.GetFullPath(reference.EvaluatedInclude, Path.GetDirectoryName(project.FullPath)!)));
         }
         var restored = new HashSet<string>(StringComparer.Ordinal);
         foreach (var reference in restoredReferences.EnumerateObject())
@@ -111,6 +121,22 @@ internal static class PackageRestoreValidation
         }
         if (!current.SetEquals(restored))
             throw new ExportException("stale-restore", "direct project reference set differs from restore: " + project.FullPath);
+    }
+
+    private static bool IsRestoreReference(ProjectItemInstance reference)
+    {
+        var output = reference.GetMetadataValue("ReferenceOutputAssembly");
+        var ordinary = output.Length == 0 || output.Equals("true", StringComparison.OrdinalIgnoreCase);
+        if (!ordinary && !output.Equals("false", StringComparison.OrdinalIgnoreCase))
+            throw new ExportException("unsupported-project-reference-role", "ReferenceOutputAssembly must be true or false");
+        var itemType = reference.GetMetadataValue("OutputItemType");
+        if (itemType.Length != 0 && (ordinary || !itemType.Equals("Analyzer", StringComparison.OrdinalIgnoreCase)))
+            throw new ExportException("unsupported-project-reference-role", "only Analyzer with ReferenceOutputAssembly=false is qualified");
+        var build = reference.GetMetadataValue("BuildReference");
+        if ((build.Length != 0 && !build.Equals("true", StringComparison.OrdinalIgnoreCase)) ||
+            reference.GetMetadataValue("Targets").Length != 0)
+            throw new ExportException("unsupported-project-reference-role", "disabled or custom-target project references are outside the Build slice");
+        return ordinary;
     }
 
     private static string CanonicalProjectPath(string path)
