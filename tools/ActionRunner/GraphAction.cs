@@ -13,7 +13,9 @@ internal static class GraphAction
             throw new InvalidDataException("graph project path invalid");
         var properties = request.GraphGlobalProperties ?? new Dictionary<string, string> { ["configuration"] = "Release" };
         if (!properties.TryGetValue("configuration", out var configuration) || configuration != "Release" ||
-            properties.Any(pair => pair.Key != "configuration" && pair.Key != "flavor" && (pair.Key != "targetframework" || pair.Value is not ("net10.0" or "netstandard2.0"))))
+            properties.Any(pair => pair.Key != "configuration" && pair.Key != "flavor" &&
+                !(pair.Key == "nbgv_cachemode" && pair.Value.Equals("None", StringComparison.OrdinalIgnoreCase)) &&
+                !(pair.Key == "publicrelease" && (pair.Value.Equals("true", StringComparison.OrdinalIgnoreCase) || pair.Value.Equals("false", StringComparison.OrdinalIgnoreCase))) && (pair.Key != "targetframework" || pair.Value is not ("net10.0" or "netstandard2.0"))))
             throw new InvalidDataException("unsupported graph execution configuration");
         if (properties.Any(pair => pair.Value.Contains(';') || pair.Value.Contains(',') || pair.Value.Contains('\n')))
             throw new InvalidDataException("unsupported graph property value");

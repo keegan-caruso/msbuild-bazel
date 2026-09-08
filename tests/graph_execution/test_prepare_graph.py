@@ -16,7 +16,9 @@ class PreparationRejection(unittest.TestCase):
         self.root = Path(self.temporary.name)
         self.workspace = self.root / 'source'
         (self.workspace / 'App/obj').mkdir(parents=True)
-        (self.workspace / 'App/obj/project.assets.json').write_text('{"libraries":{}}')
+        self.assets = {'libraries': {}, 'targets': {'net10.0': {}},
+                       'project': {'frameworks': {'net10.0': {}}}}
+        (self.workspace / 'App/obj/project.assets.json').write_text(json.dumps(self.assets))
         (self.workspace / 'App/App.csproj').write_text('<Project Sdk="Microsoft.NET.Sdk"/>')
         self.node = dict(id='a' * 24, project='workspace/App/App.csproj', globalProperties={'configuration': 'Release'}, targetFramework='net10.0', outputType='Exe', dependencies=[], inputs=[dict(kind='project', path='workspace/App/App.csproj', sha256=hashlib.sha256((self.workspace / 'App/App.csproj').read_bytes()).hexdigest())], outputs=[dict(kind='assembly', path='workspace/App/bin/Release/net10.0/App.dll')])
         self.graph = dict(schemaVersion=1, toolchain=dict(sdkVersion='10.0.400', graphEngine='ProjectGraph', contractVersion=1), entryPoints=['a'*24], graphInputs=[], nodes=[self.node])
@@ -65,6 +67,14 @@ class PreparationRejection(unittest.TestCase):
         self.node['globalProperties']['defineconstants'] = 'OTHER'
         self.rejected('configuration')
 
+    def test_unsupported_versioning_modes_rejected_before_publication(self):
+        for key, value in (('nbgv_cachemode', 'MSBuildTargetCaching'),
+                           ('nbgv_cachemode', 'None;PublicRelease=true'),
+                           ('publicrelease', 'auto')):
+            with self.subTest(key=key, value=value):
+                self.node['globalProperties'] = {'configuration': 'Release', key: value}
+                self.rejected('unsupported graph versioning configuration')
+
     def test_debug_rejected(self):
         self.node['globalProperties']['configuration'] = 'Debug'
         self.rejected('configuration')
@@ -74,7 +84,9 @@ class PreparationRejection(unittest.TestCase):
         self.rejected('output layout')
 
     def test_incomplete_package_restore_rejected(self):
-        (self.workspace / 'App/obj/project.assets.json').write_text('{"libraries":{"Example/1.0.0":{"type":"package"}}}')
+        self.assets['libraries']['Example/1.0.0'] = {'type': 'package'}
+        self.assets['targets']['net10.0']['Example/1.0.0'] = {'type': 'package'}
+        (self.workspace / 'App/obj/project.assets.json').write_text(json.dumps(self.assets))
         self.rejected('unsupported-package: incomplete restored package metadata')
 
     def test_stale_source_manifest(self):
@@ -91,7 +103,7 @@ class PreparationRejection(unittest.TestCase):
     def test_stale_restore_manifest(self):
         source = self.workspace / 'App/obj/project.assets.json'
         self.node['inputs'].append(dict(kind='restore', path='workspace/App/obj/project.assets.json', sha256=hashlib.sha256(source.read_bytes()).hexdigest()))
-        source.write_text('{"libraries":{},"changed":true}')
+        source.write_text(json.dumps(self.assets, indent=2))
         self.rejected('stale graph input')
 
     def test_stale_traversal_input(self):

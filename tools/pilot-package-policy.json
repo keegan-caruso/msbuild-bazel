@@ -457,5 +457,119 @@
       "buildtransitive"
     ],
     "assetRoles": []
+  },
+  "dotnet.reproduciblebuilds/2.0.2": {
+    "archiveSha256": "f1c7b3debf22a3c16632d343d38f417411c8e83ab87fb1e41546d2ea442ecac1",
+    "restoreContentHash": "VaHoEN6YHp0jXucxm67vfuRy8zo9ufiKSuaZ4ZudRi8xmWcEFMKxfCsg2nvYNvdISFTURDu+IHqADGh53+Bamw==",
+    "additionalRoots": [
+      "build",
+      "buildmultitargeting",
+      "buildtransitive"
+    ],
+    "assetRoles": [
+      "build",
+      "buildmultitargeting"
+    ]
+  },
+  "microsoft.build.tasks.git/10.0.300": {
+    "archiveSha256": "71dbf22be5c1130c7df74eac515e91c1dfd566e4523698ce65b055bcc7f37959",
+    "restoreContentHash": "P0kaQwVZx4xIUe2FtrLyBadYNXuAljttJUPvjBYRuHhPE8L77L42KakLDkaADRiUrGspoLcMwayjrbQhYTr0zA==",
+    "additionalRoots": [
+      "build",
+      "buildmultitargeting",
+      "buildtransitive",
+      "tools"
+    ],
+    "assetRoles": [
+      "build",
+      "buildmultitargeting"
+    ]
+  },
+  "microsoft.sourcelink.common/10.0.300": {
+    "archiveSha256": "2c643ceef6c7b4f1e782a38686f84de5105edad4c8eb6dbf37391aa6409691f1",
+    "restoreContentHash": "0jlkXaUGjYlWTIVPve5MftjKHnT3SlAtq9BCLV4J9IjdPrxV/+4rMlBSjfr1khG8/GC6KGojjola8E1VvWF0qQ==",
+    "additionalRoots": [
+      "build",
+      "buildmultitargeting",
+      "buildtransitive",
+      "tools"
+    ],
+    "assetRoles": [
+      "build",
+      "buildmultitargeting"
+    ]
+  },
+  "microsoft.sourcelink.github/10.0.300": {
+    "archiveSha256": "6ea24929af22808d1ead98d441264943de4b247b1cf5720c371199ddbdb47c5f",
+    "restoreContentHash": "QzCtLkXVb3l4IxcpvJCbzUwMLihAmLN6vVLjQGSzYSF8d2dvXxqJAZk83RV3gYnp2egz8jRMgSR2woY3vOahTA==",
+    "additionalRoots": [
+      "build",
+      "buildmultitargeting",
+      "tools"
+    ],
+    "assetRoles": [
+      "build",
+      "buildmultitargeting"
+    ]
+  },
+  "nerdbank.gitversioning/3.9.50": {
+    "archiveSha256": "06205f5f0afca1bd874da164d8be53c0082dbddfc43e8aae75223d9e102340f2",
+    "restoreContentHash": "HtOgGF6jZ+WYbXnCUCYPT8Y2d6mIJo9ozjK/FINTRsXdm4Zgv9GehUMa7EFoGQkqrMcDJNOIDwCmENnvXg4UbA==",
+    "additionalRoots": [
+      "build"
+    ],
+    "assetRoles": [
+      "build",
+      "buildmultitargeting"
+    ]
+  },
+  "system.io.hashing/10.0.8": {
+    "archiveSha256": "9ec0ccbc2bc078a0b2a79eba884ca9dc93967d09d33e00d4ddd205320d2250bd",
+    "restoreContentHash": "+dJsbPJ3FyUbTZNplFj0RCKePFizmv6ewDV46JE9q/IVH4c3xTCftHfHelLsAKf0jryIPqgMb5GpS0x7TAY3mg==",
+    "additionalRoots": [
+      "buildtransitive"
+    ],
+    "assetRoles": [
+      "build"
+    ]
+  },
+  "microsoft.build.tasks.git/8.0.0": {
+    "archiveSha256": "bd7ebf90f8a3f2f340bbc7fbaebbc71e13eb369876d0872e7e6ac1819371a500",
+    "restoreContentHash": "bZKfSIKJRXLTuSzLudMFte/8CempWjVamNUR5eHJizsy+iuOuO/k2gnh7W0dHJmYY0tBf+gUErfluCv5mySAOQ==",
+    "additionalRoots": [
+      "build",
+      "buildmultitargeting",
+      "tools"
+    ],
+    "assetRoles": [
+      "build",
+      "buildmultitargeting"
+    ]
+  },
+  "microsoft.sourcelink.common/8.0.0": {
+    "archiveSha256": "01f52a95e544a96b8713bcf684d8b038b9eab81277b6e62d6e4746329a473977",
+    "restoreContentHash": "dk9JPxTCIevS75HyEQ0E4OVAFhB2N+V9ShCXf8Q6FkUQZDkgLI12y679Nym1YqsiSysuQskT7Z+6nUf3yab6Vw==",
+    "additionalRoots": [
+      "build",
+      "buildmultitargeting",
+      "tools"
+    ],
+    "assetRoles": [
+      "build",
+      "buildmultitargeting"
+    ]
+  },
+  "microsoft.sourcelink.github/8.0.0": {
+    "archiveSha256": "84d4e4a4a7422d8e6422e3a6ce70f5998fa945d2743cabb61f2a725e883dbdbd",
+    "restoreContentHash": "G5q7OqtwIyGTkeIOAc3u2ZuV/kicQaec5EaRnc0pIeSnh9LUjj+PYQrJYBURvDt7twGl2PKA7nSN0kz1Zw5bnQ==",
+    "additionalRoots": [
+      "build",
+      "buildmultitargeting",
+      "tools"
+    ],
+    "assetRoles": [
+      "build",
+      "buildmultitargeting"
+    ]
   }
 }

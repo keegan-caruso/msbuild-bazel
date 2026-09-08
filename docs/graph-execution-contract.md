@@ -54,3 +54,16 @@ always replaces them. Other entry properties retain their spelling and values;
 they must remain available when preparation re-evaluates discovery. Equivalent
 caller entry order, path spelling, property order and ignored forced-property
 values must not change the exported manifest.
+
+## Shared versioning extension
+
+The [shared R05 fixture](shared-versioning-findings.md) adds explicitly supplied
+`nbgv_cachemode=None` and boolean `publicrelease` to the current execution
+property allowlist, alongside Release, selected framework and the qualified
+Flavor configuration. These values participate in node/action identity and are
+forwarded to MSBuild; the adapter supplies no default Nerdbank override.
+The package-owned auxiliary project used by Nerdbank's default cache mode remains
+outside the supported reference-role contract. Version configuration files use
+`BazelExtraInput`; standalone Git and pinned package payloads use their existing
+input contracts. See the findings for the measured package versions and platform
+boundary.

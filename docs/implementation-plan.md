@@ -31,6 +31,14 @@ controls, with cache/discovery/forced-replay regressions retained. The additiona
 `starlark_packages`, `starlark_configured` and `starlark_tests` gates now pass
 [native macOS qualification](r02-r04-validation-findings.md), including generated
 workspaces, real generator-version changes and cold/recovered reference consumers.
+The [shared R05 versioning fixture](shared-versioning-findings.md) qualifies
+Nerdbank 3.9.50 with explicitly supplied `NBGV_CacheMode=None`, SourceLink
+8.0.0/10.0.300 and DotNet.ReproducibleBuilds 2.0.2 on macOS ARM64. Both 13-case
+matrices cover version/SourceLink parity, input invalidation, relocated disk-cache
+recovery and rejection controls. Default auxiliary-project caching remains
+unsupported (RUL-94); complete CommunityToolkit and Dapper.AOT acceptance remains
+separate.
+
 The [R05a generator/reference-role slice](r05a-findings.md) implements project and
 package generator combinations, diagnostic-only analyzers and recovered consumer
 compilation. The [selected Spectre.Console graph](spectre-acceptance-findings.md) now passes native macOS mutation and relocated-cache acceptance. R09 preparation
