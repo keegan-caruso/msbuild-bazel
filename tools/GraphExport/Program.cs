@@ -281,6 +281,13 @@ internal static class GraphExporter
             if (!restoreMetadata.TryGetProperty("outputPath", out var restoredOutput) ||
                 CanonicalDirectory(restoredOutput.GetString()!) != CanonicalDirectory(Path.GetDirectoryName(assets)!))
                 throw new ExportException("stale-restore", "configured restore output path differs from evaluated assets path: " + instance.FullPath);
+            var frameworkPack = FrameworkPack.Selected(assetsDocument.RootElement, instance.GetPropertyValue("TargetFramework"));
+            if (frameworkPack is not null)
+            {
+                var packRoot = Path.Combine(request.PackageRoot, frameworkPack.ToLowerInvariant());
+                foreach (var payload in Directory.EnumerateFiles(packRoot, "*", SearchOption.AllDirectories).Where(file => !file.EndsWith(".nupkg.metadata", StringComparison.Ordinal)))
+                    AddInput(request, inputs, "package", payload, workspaceOnly: false, normalizeText: false);
+            }
             var selectedPackages = assetsDocument.RootElement.GetProperty("targets").GetProperty(instance.GetPropertyValue("TargetFramework"));
             foreach (var library in assetsDocument.RootElement.GetProperty("libraries").EnumerateObject())
             {
@@ -385,7 +392,7 @@ internal static class GraphExporter
         if (!string.IsNullOrWhiteSpace(instance.GetPropertyValue("RuntimeIdentifier")) || !string.IsNullOrWhiteSpace(instance.GetPropertyValue("RuntimeIdentifiers")))
             throw new ExportException("unsupported-configuration", $"RID build: {instance.FullPath}");
         var tfm = instance.GetPropertyValue("TargetFramework");
-        if (tfm is not ("net10.0" or "netstandard2.0"))
+        if (tfm is not ("net10.0" or "net8.0" or "netstandard2.0"))
             throw new ExportException("unsupported-configuration", $"TargetFramework {tfm} is outside the selected framework slice: {instance.FullPath}");
         var configuration = instance.GetPropertyValue("Configuration");
         if (configuration is not ("Release" or "Debug"))

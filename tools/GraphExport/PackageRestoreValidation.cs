@@ -56,7 +56,7 @@ internal static class PackageRestoreValidation
             }
             var projects = closure.Select(node => node.ProjectInstance)
                 .Where(project => project.FullPath.EndsWith(".csproj", StringComparison.OrdinalIgnoreCase)).ToArray();
-            foreach (var samePath in projects.GroupBy(project => CanonicalProjectPath(project.FullPath), StringComparer.Ordinal))
+            foreach (var samePath in projects.GroupBy(project => (Path: CanonicalProjectPath(project.FullPath), Framework: project.GetPropertyValue("TargetFramework"))))
                 if (samePath.Select(RequestedSignature).Distinct(StringComparer.Ordinal).Count() > 1)
                     throw new ExportException("unsupported-configured-restore",
                         "path-keyed restore specs cannot distinguish configured package requests: " + samePath.Key);
@@ -104,7 +104,10 @@ internal static class PackageRestoreValidation
         foreach (var reference in project.GetItems("ProjectReference"))
         {
             if (NerdbankProject.IsReference(reference)) continue;
-            foreach (var metadata in new[] { "PrivateAssets", "IncludeAssets", "ExcludeAssets" })
+            var privateAssets = reference.GetMetadataValue("PrivateAssets").ToLowerInvariant();
+            if (privateAssets.Length != 0 && (!reference.GetMetadataValue("ReferenceOutputAssembly").Equals("false", StringComparison.OrdinalIgnoreCase) || (privateAssets != "all" && privateAssets != "contentfiles;build")))
+                throw new ExportException("unsupported-project-reference-restore", "unsupported PrivateAssets: " + project.FullPath);
+            foreach (var metadata in new[] { "IncludeAssets", "ExcludeAssets" })
                 if (!string.IsNullOrEmpty(reference.GetMetadataValue(metadata)))
                     throw new ExportException("unsupported-project-reference-restore", "nondefault " + metadata + ": " + project.FullPath);
             if (IsRestoreReference(reference))
@@ -133,7 +136,7 @@ internal static class PackageRestoreValidation
         if (!ordinary && !output.Equals("false", StringComparison.OrdinalIgnoreCase))
             throw new ExportException("unsupported-project-reference-role", "ReferenceOutputAssembly must be true or false");
         var itemType = reference.GetMetadataValue("OutputItemType");
-        if (itemType.Length != 0 && (ordinary || !itemType.Equals("Analyzer", StringComparison.OrdinalIgnoreCase)))
+        if (itemType.Length != 0 && (ordinary || !itemType.Equals("Analyzer", StringComparison.OrdinalIgnoreCase) && !itemType.Equals("None", StringComparison.OrdinalIgnoreCase)))
             throw new ExportException("unsupported-project-reference-role", "only Analyzer with ReferenceOutputAssembly=false is qualified");
         var build = reference.GetMetadataValue("BuildReference");
         if ((build.Length != 0 && !build.Equals("true", StringComparison.OrdinalIgnoreCase)) ||
@@ -189,7 +192,8 @@ internal static class PackageRestoreValidation
         foreach (var reference in references)
         {
             var version = RequestedVersion(project, reference);
-            var selected = PilotPackagePolicy.SelectedVersion(reference.EvaluatedInclude, version);
+            var selected = PilotPackagePolicy.SelectedVersion(reference.EvaluatedInclude,
+                NuGetVersion.TryParse(version, out var normalizedRequested) ? normalizedRequested.ToNormalizedString() : version);
             if (selected is null || !NuGetVersion.TryParse(selected, out var selectedVersion) ||
                 !VersionRange.TryParse(version, out var requestedRange) || requestedRange.IsFloating)
                 throw new ExportException("unsupported-package", "exact inline version or qualified pilot version required: " + reference.EvaluatedInclude);
@@ -204,16 +208,20 @@ internal static class PackageRestoreValidation
                 throw new ExportException("stale-restore", "PrivateAssets differs from restore: " + reference.EvaluatedInclude);
             foreach (var (name, allowed) in new[] { ("IncludeAssets", "all"), ("ExcludeAssets", "none") })
             {
-                var value = reference.GetMetadataValue(name);
-                if (value.Length != 0 && !value.Equals(allowed, StringComparison.OrdinalIgnoreCase))
+                var value = AssetFlags(reference.GetMetadataValue(name), allowed);
+                if (value != allowed && !(name == "IncludeAssets" && value == "analyzers;build"))
                     throw new ExportException("unsupported-package", "nondefault " + name + " is outside the managed package slice");
                 var restoredName = name == "IncludeAssets" ? "include" : "exclude";
-                if (dependency.TryGetProperty(restoredName, out var saved) &&
-                    !string.Equals(saved.GetString(), allowed, StringComparison.OrdinalIgnoreCase))
+                var restoredFlags = dependency.TryGetProperty(restoredName, out var saved) ? AssetFlags(saved.GetString()!, allowed) : allowed;
+                if (restoredFlags != value)
                     throw new ExportException("stale-restore", name + " differs from restore: " + reference.EvaluatedInclude);
             }
         }
     }
+
+    private static string AssetFlags(string value, string fallback) => string.IsNullOrWhiteSpace(value) ? fallback :
+        string.Join(";", value.Split([';', ','], StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries)
+            .Select(flag => flag.ToLowerInvariant()).Distinct().Order(StringComparer.Ordinal));
 
     private static string Privacy(string value, string error)
     {

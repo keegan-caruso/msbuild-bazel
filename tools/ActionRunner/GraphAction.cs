@@ -15,7 +15,7 @@ internal static class GraphAction
         if (!properties.TryGetValue("configuration", out var configuration) || configuration != "Release" ||
             properties.Any(pair => pair.Key != "configuration" && pair.Key != "flavor" &&
                 !(pair.Key == "nbgv_cachemode" && pair.Value.Equals("None", StringComparison.OrdinalIgnoreCase)) &&
-                !(pair.Key == "publicrelease" && (pair.Value.Equals("true", StringComparison.OrdinalIgnoreCase) || pair.Value.Equals("false", StringComparison.OrdinalIgnoreCase))) && (pair.Key != "targetframework" || pair.Value is not ("net10.0" or "netstandard2.0"))))
+                !(pair.Key == "publicrelease" && (pair.Value.Equals("true", StringComparison.OrdinalIgnoreCase) || pair.Value.Equals("false", StringComparison.OrdinalIgnoreCase))) && (pair.Key != "targetframework" || pair.Value is not ("net10.0" or "net8.0" or "netstandard2.0"))))
             throw new InvalidDataException("unsupported graph execution configuration");
         if (properties.Any(pair => pair.Value.Contains(';') || pair.Value.Contains(',') || pair.Value.Contains('\n')))
             throw new InvalidDataException("unsupported graph property value");
@@ -58,11 +58,12 @@ internal static class GraphAction
                 Files.Copy(source, Path.Combine(workspace.Root, artifact.Path));
             }
         }
-        const string targets = "GetTargetFrameworks;Build;GetNativeManifest;GetCopyToOutputDirectoryItems;GetTargetFrameworksWithPlatformForSingleTargetFramework;GetCopyToPublishDirectoryItems";
+        const string targets = "InitializeSourceRootMappedPaths;GetTargetFrameworks;Build;GetNativeManifest;GetCopyToOutputDirectoryItems;GetTargetFrameworksWithPlatformForSingleTargetFramework;GetCopyToPublishDirectoryItems";
         var environment = new Dictionary<string, string>(BuildInvocation.Create(request, workspace, workspace.Output).Environment)
         {
             ["RULES_MSBUILD_REPLAY_MODE"] = "capture",
             ["RULES_MSBUILD_GRAPH_PROJECT"] = project,
+            ["RULES_MSBUILD_GRAPH_TARGETS"] = targets,
             ["RULES_MSBUILD_GRAPH_PROPERTIES"] = JsonSerializer.Serialize(properties),
             ["RULES_MSBUILD_GRAPH_DEPENDENCIES"] = JsonSerializer.Serialize(dependencies)
         };
@@ -92,7 +93,7 @@ internal static class GraphAction
         var manifest = new List<Artifact>();
         var projectDirectory = Path.GetDirectoryName(project)!;
         var projectPrefix = projectDirectory.Length == 0 ? "" : projectDirectory + "/";
-        var framework = request.GraphFrameworkSelections?.GetValueOrDefault(project)?.TargetFramework ?? properties.GetValueOrDefault("targetframework", "net10.0");
+        var framework = SelectedFrameworks.ForProject(request, project)?.TargetFramework ?? properties.GetValueOrDefault("targetframework", "net10.0");
         foreach (var directory in request.GraphOutputDirectories ?? [Path.Combine(projectDirectory, "bin/Release", framework), Path.Combine(projectDirectory, "obj/Release", framework, "ref")])
         {
             if (!Files.ValidRelativePath(directory) || !(directory.StartsWith(projectPrefix + "bin/", StringComparison.Ordinal) || directory.StartsWith(projectPrefix + "obj/", StringComparison.Ordinal)))

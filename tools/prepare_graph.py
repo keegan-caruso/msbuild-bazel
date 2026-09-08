@@ -65,11 +65,11 @@ def framework_selections(nodes, closure):
     for identity in sorted(closure):
         node = nodes[identity]
         references = {}
-        dependencies = {relative(nodes[dependency]['project']): nodes[dependency]['targetFramework'] for dependency in node['dependencies']}
+        dependencies = {(relative(nodes[dependency]['project']), nodes[dependency]['targetFramework']) for dependency in node['dependencies']}
         for target in node.get('execution', {}).get('selectedReferences', []):
             project = relative(target['project'])
             framework = target['targetFramework']
-            if dependencies.get(project) != framework:
+            if (project, framework) not in dependencies:
                 raise ValueError('unsupported-configuration: selected reference differs from dependency')
             if project in references and references[project] != framework:
                 raise ValueError('unsupported-configuration: conflicting selected reference frameworks')
@@ -77,6 +77,13 @@ def framework_selections(nodes, closure):
         project = relative(node['project'])
         selection = dict(target_framework=node['targetFramework'], references=references,
             remove_framework_global='targetframework' not in node.get('globalProperties', {}))
+        if project in selections and selections[project] != selection:
+            prior = selections.pop(project)
+            prior['project'] = project
+            selections[project + '|' + prior['target_framework']] = prior
+        if any(key.startswith(project + '|') for key in selections):
+            selection['project'] = project
+            project += '|' + selection['target_framework']
         if project in selections and selections[project] != selection:
             raise ValueError('unsupported-configuration: conflicting selected framework edges')
         selections[project] = selection
@@ -140,7 +147,7 @@ def _prepare(workspace, manifest, output, *, environment=None, tests=None):
     for node in nodes.values():
         if not re.fullmatch('[0-9a-f]{24}', node['id']):
             raise ValueError('invalid configured node id')
-        if node['globalProperties'].get('configuration') != 'Release' or any(k not in ('configuration', 'targetframework', 'flavor', 'nbgv_cachemode', 'publicrelease') for k in node['globalProperties']) or node['targetFramework'] not in ('net10.0', 'netstandard2.0') or node['globalProperties'].get('targetframework', node['targetFramework']) != node['targetFramework']:
+        if node['globalProperties'].get('configuration') != 'Release' or any(k not in ('configuration', 'targetframework', 'flavor', 'nbgv_cachemode', 'publicrelease') for k in node['globalProperties']) or node['targetFramework'] not in ('net10.0', 'net8.0', 'netstandard2.0') or node['globalProperties'].get('targetframework', node['targetFramework']) != node['targetFramework']:
             raise ValueError('unsupported graph execution configuration')
         if node['globalProperties'].get('nbgv_cachemode', 'None').lower() != 'none' or node['globalProperties'].get('publicrelease', 'false').lower() not in ('true', 'false'):
             raise ValueError('unsupported graph versioning configuration')
@@ -263,7 +270,7 @@ def write_build(workspace, graph, output, tests=None, *, closures=None):
                     # Dependency evaluation needs projects, imports and explicitly declared
                     # evaluation extras and signing keys (which can control SignAssembly
                     # through Exists), never its compile sources.
-                    if reachable == identity or item['kind'] in ('project', 'import', 'extra', 'signing'):
+                    if reachable == identity or item['kind'] in ('project', 'import', 'extra', 'signing', 'content'):
                         source = relative(item['path'])
                         if '/obj/' not in source:
                             sources.add(source)

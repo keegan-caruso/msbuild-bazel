@@ -43,6 +43,13 @@ def package_plan(workspace, project, assets_file=None, target_framework=None):
         raise ValueError('stale-restore: selected package target missing')
     selected = targets[target_framework]
     libraries = {k: v for k, v in assets['libraries'].items() if v['type'] == 'package' and k in selected}
+    if target_framework == 'net8.0':
+        packs = assets['project']['frameworks'][target_framework]['downloadDependencies']
+        pack = next(item for item in packs if item['name'] == 'Microsoft.NETCore.App.Ref')
+        if pack['version'].replace(' ', '') != '[8.0.30,8.0.30]':
+            raise ValueError('unsupported-framework-pack: expected Microsoft.NETCore.App.Ref 8.0.30')
+        identity = 'Microsoft.NETCore.App.Ref/8.0.30'
+        libraries[identity] = dict(type='package', path=identity.lower(), sha512=PILOT_PACKAGES[identity.lower()]['restoreContentHash'])
     source = workspace / project
     if not source.is_file() or not source.resolve().is_relative_to(workspace):
         raise ValueError('missing-input: missing or escaping input: workspace/' + project.as_posix())
@@ -86,7 +93,7 @@ def package_plan(workspace, project, assets_file=None, target_framework=None):
                 raise ValueError('stale-restore: PrivateAssets differs from restore: ' + package_id)
         for name, allowed in (('IncludeAssets', 'all'), ('ExcludeAssets', 'none')):
             value = metadata(reference, name)
-            if value and '$(' not in value and '@(' not in value and value.lower() != allowed:
+            if value and '$(' not in value and '@(' not in value and ';'.join(sorted({flag.strip().lower() for flag in value.replace(',', ';').split(';') if flag.strip()})) not in ((allowed, 'analyzers;build') if name == 'IncludeAssets' else (allowed,)):
                 raise ValueError('unsupported-package: nondefault ' + name)
     if not libraries:
         return assets, libraries
@@ -123,7 +130,8 @@ def stage(workspace, project, output, node_id, assets_file=None, target_framewor
         with zipfile.ZipFile(archive) as package:
             for entry in package.infolist():
                 if entry.is_dir(): continue
-                name = entry.filename
+                # NuGet decodes the OPC-escaped plus in portable framework names.
+                name = entry.filename.replace("%2B", "+").replace("%2b", "+")
                 if name.endswith('.nuspec'): name = name.lower()
                 if Path(name).is_absolute() or '..' in Path(name).parts:
                     raise ValueError('unsupported-package: escaping archive entry')

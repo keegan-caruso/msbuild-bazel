@@ -234,3 +234,11 @@ The [consumer restore review](consumer-restore-findings.md) covers partial and
 failed restores that otherwise allowed stale transitive package inputs through
 fresh export. It compares requested dependency semantics and restore completion,
 preserving valid NuGet version resolution differences.
+
+### R05 CommunityToolkit cold configured graph checkpoint
+
+The [CommunityToolkit findings](toolkit-findings.md) record 11 native macOS
+ARM64 actions and 69 passing upstream tests at the pinned revision, including
+same-project net8.0/netstandard2.0 identities, ordinary/analyzer/build-order
+references and default Nerdbank. The full mutation/recovery harness is prepared;
+its remaining gates are not counted as accepted by this cold checkpoint.

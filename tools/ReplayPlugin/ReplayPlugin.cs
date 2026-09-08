@@ -57,7 +57,7 @@ public sealed class ReplayPlugin : ProjectCachePluginBase
         }.OrderByDescending(pair => pair.Value.Length).ToArray();
         if (context.Graph != null)
         {
-            if (context.Graph.ProjectNodes.Any(node => !NerdbankProject.IsProject(node.ProjectInstance.FullPath, Path.Combine(workspace, ".nuget/packages")) && node.ProjectInstance.GetPropertyValue("TargetFramework") is not ("net10.0" or "netstandard2.0")))
+            if (context.Graph.ProjectNodes.Any(node => !NerdbankProject.IsProject(node.ProjectInstance.FullPath, Path.Combine(workspace, ".nuget/packages")) && node.ProjectInstance.GetPropertyValue("TargetFramework") is not ("net10.0" or "net8.0" or "netstandard2.0")))
                 throw new InvalidOperationException("dependency framework must be net10.0 or netstandard2.0");
             if (graphProject is not null)
                 capturedFramework = context.Graph.ProjectNodes.Single(node =>
@@ -72,6 +72,9 @@ public sealed class ReplayPlugin : ProjectCachePluginBase
 
     private string Normalize(string value)
     {
+        // Source-root results carry repository URLs as well as filesystem paths.
+        if (Uri.TryCreate(value, UriKind.Absolute, out var uri) && uri.Scheme is ("https" or "http") && uri.AbsoluteUri == value)
+            return value;
         foreach (var root in roots)
             value = value.Replace(root.Value + "/", root.Key + "/", StringComparison.Ordinal)
                          .Replace(root.Value + "\\", root.Key + "/", StringComparison.Ordinal);
@@ -170,13 +173,19 @@ public sealed class ReplayPlugin : ProjectCachePluginBase
     {
         if (mode != "capture" || Path.GetRelativePath(workspace, context.ProjectFullPath) != (graphProject ?? "Shared/Shared.csproj") || (graphProject is not null && !SameProperties(Properties(context.GlobalProperties), graphProperties))) return Task.CompletedTask;
         if (result.OverallResult != BuildResultCode.Success) throw new InvalidOperationException("dependency capture failed");
-        var targets = result.ResultsByTarget.ToDictionary(pair => pair.Key, pair =>
+        // Before/AfterTargets hooks may be skipped even when every requested target succeeds.
+        // Keep successful helper results needed by SDK consumers, but do not turn
+        // skipped internal hooks into failed (or successful) cached targets.
+        var requested = (Environment.GetEnvironmentVariable("RULES_MSBUILD_GRAPH_TARGETS")?.Split(';') ?? context.Targets.ToArray())
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+        var targets = result.ResultsByTarget.Where(pair => pair.Value.ResultCode != TargetResultCode.Skipped || requested.Contains(pair.Key)).ToDictionary(pair => pair.Key, pair =>
         {
-            if (pair.Value.ResultCode != TargetResultCode.Success) throw new InvalidOperationException("dependency target unsuccessful");
+            if (pair.Value.ResultCode != TargetResultCode.Success) throw new InvalidOperationException("dependency target unsuccessful: " + pair.Key + ":" + pair.Value.ResultCode);
             return pair.Value.Items.Select(item => new Item(Normalize(((ITaskItem2)item).EvaluatedIncludeEscaped),
                 ((ITaskItem2)item).CloneCustomMetadataEscaped().Keys.Cast<string>()
                     .ToDictionary(name => name, name => Normalize(((ITaskItem2)item).GetMetadataValueEscaped(name))))).ToArray();
         });
+        if (!requested.IsSubsetOf(targets.Keys)) throw new InvalidOperationException("dependency requested target result missing");
         File.WriteAllText(PayloadPath, JsonSerializer.Serialize(new Payload(1, "10.0.400", Engine,
             graphProject ?? "Shared/Shared.csproj", capturedFramework, RootMappings, Properties(context.GlobalProperties), context.Targets.ToArray(), targets), Json));
         Console.WriteLine("RULES_MSBUILD_REPLAY_CAPTURE:" + string.Join(";", targets.Keys));

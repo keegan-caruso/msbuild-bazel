@@ -6,4 +6,5 @@
   <ItemGroup>
     <ProjectCachePlugin Include="$(RULES_MSBUILD_REPLAY_PLUGIN)" />
   </ItemGroup>
+  <Target Name="BazelUseInActionCompiler" BeforeTargets="CoreCompile"><PropertyGroup><UseSharedCompilation>false</UseSharedCompilation></PropertyGroup></Target>
 </Project>

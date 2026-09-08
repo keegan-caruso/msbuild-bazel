@@ -15,13 +15,15 @@ internal static class PackageInputs
         var assets = JsonFiles.Read<RestoreAssets>(assetsPath);
         using var assetsDocument = JsonDocument.Parse(File.ReadAllText(assetsPath));
         var framework = request.GraphProject is null ? null :
-            request.GraphFrameworkSelections?.GetValueOrDefault(projectPath)?.TargetFramework ??
+            SelectedFrameworks.ForProject(request, projectPath)?.TargetFramework ??
             request.GraphGlobalProperties?.GetValueOrDefault("targetframework", "net10.0") ?? "net10.0";
         var selectedTarget = framework is null ? (JsonElement?)null : assetsDocument.RootElement.GetProperty("targets").GetProperty(framework);
         var resolved = assets.Libraries.Where(entry => entry.Value.Type == "package" &&
             (selectedTarget is null || selectedTarget.Value.TryGetProperty(entry.Key, out _)))
             .ToDictionary(entry => entry.Key, entry => entry.Value.Path
                 ?? throw new InvalidDataException("restored package path missing: " + entry.Key), StringComparer.OrdinalIgnoreCase);
+        var frameworkPack = framework is null ? null : FrameworkPack.Selected(assetsDocument.RootElement, framework);
+        if (frameworkPack is not null) resolved.Add(frameworkPack, frameworkPack.ToLowerInvariant());
         var manifest = request.PackageManifest is null
             ? new PackageManifest(1, []) : JsonFiles.Read<PackageManifest>(request.PackageManifest);
         if (manifest.SchemaVersion != 1)
@@ -50,7 +52,7 @@ internal static class PackageInputs
         {
             var pin = PilotPackagePolicy.Find(package.Id + "/" + package.Version);
             if (request.GraphProject is not null) VerifyAssetRoles(assetsDocument.RootElement, package.Id + "/" + package.Version, pin, framework);
-            if (pin is not null) VerifyPilot(package, pin, files, assets);
+            if (pin is not null) VerifyPilot(package, pin, files, assets, package.Id + "/" + package.Version == frameworkPack);
             if (request.GraphProject is not null)
                 foreach (var entry in package.Files)
                 {
@@ -99,10 +101,10 @@ internal static class PackageInputs
                 }
             }
     }
-    private static void VerifyPilot(Package package, PilotPackagePin pin, Dictionary<string, string> files, RestoreAssets assets)
+    private static void VerifyPilot(Package package, PilotPackagePin pin, Dictionary<string, string> files, RestoreAssets assets, bool frameworkDownload)
     {
         var identity = package.Id + "/" + package.Version;
-        if (!assets.Libraries.TryGetValue(identity, out var library) || library.Sha512 != pin.RestoreContentHash)
+        if (!frameworkDownload && (!assets.Libraries.TryGetValue(identity, out var library) || library.Sha512 != pin.RestoreContentHash))
             throw new InvalidDataException("qualified package restore content hash mismatch");
         var archiveName = package.Id.ToLowerInvariant() + "." + package.Version + ".nupkg";
         if (!files.TryGetValue(package.Path + "/" + archiveName, out var archive) || !File.Exists(archive) || Files.Hash(archive) != pin.ArchiveSha256)
@@ -113,6 +115,7 @@ internal static class PackageInputs
             {
                 if (entry.FullName.EndsWith('/')) continue;
                 var name = entry.FullName.EndsWith(".nuspec", StringComparison.OrdinalIgnoreCase) ? entry.FullName.ToLowerInvariant() : entry.FullName;
+                name = name.Replace("%2B", "+", StringComparison.OrdinalIgnoreCase);
                 using var stream = entry.Open();
                 expected.Add(name, (entry.Length, Convert.ToHexString(SHA256.HashData(stream)).ToLowerInvariant()));
             }

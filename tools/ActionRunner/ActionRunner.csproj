@@ -13,4 +13,5 @@
     <Compile Include="../PilotPackagePolicy.cs" Link="PilotPackagePolicy.cs" />
     <EmbeddedResource Include="../pilot-package-policy.json" LogicalName="pilot-package-policy.json" />
   </ItemGroup>
+  <ItemGroup><Compile Include="../FrameworkPack.cs" Link="FrameworkPack.cs" /></ItemGroup>
 </Project>

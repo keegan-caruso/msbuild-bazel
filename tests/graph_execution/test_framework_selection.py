@@ -17,12 +17,26 @@ class FrameworkSelection(unittest.TestCase):
         self.assertEqual(result, {'App.csproj':dict(target_framework='net10.0', remove_framework_global=True, references={'Shared.csproj':'net10.0'}),
                                   'Shared.csproj':dict(target_framework='net10.0', remove_framework_global=True, references={})})
 
-    def test_conflicting_framework_reference_rejected(self):
+    def test_framework_reference_absent_from_configured_dependencies_rejected(self):
         nodes = {'app':self.node('App.csproj', ['red','blue']),
                  'red':self.node('Shared.csproj'), 'blue':self.node('Shared.csproj', framework='net9.0')}
-        nodes['app']['execution'] = dict(selectedReferences=[dict(project='workspace/Shared.csproj', targetFramework='net10.0')])
+        nodes['app']['execution'] = dict(selectedReferences=[dict(project='workspace/Shared.csproj', targetFramework='net8.0')])
         with self.assertRaisesRegex(ValueError, 'selected reference differs from dependency'):
             framework_selections(nodes, nodes)
+
+    def test_same_project_frameworks_preserve_distinct_edges(self):
+        nodes = {'app': self.node('App.csproj', ['net8', 'external']),
+                 'external': self.node('External.csproj', ['standard'], framework='netstandard2.0'),
+                 'net8': self.node('Shared.csproj', framework='net8.0'),
+                 'standard': self.node('Shared.csproj', ['generator'], framework='netstandard2.0'),
+                 'generator': self.node('Generator.csproj', framework='netstandard2.0')}
+        nodes['app']['execution'] = dict(selectedReferences=[dict(project='workspace/Shared.csproj', targetFramework='net8.0')])
+        nodes['external']['execution'] = dict(selectedReferences=[dict(project='workspace/Shared.csproj', targetFramework='netstandard2.0')])
+        result = framework_selections(nodes, nodes)
+        self.assertEqual(result['App.csproj']['references']['Shared.csproj'], 'net8.0')
+        self.assertEqual(result['External.csproj']['references']['Shared.csproj'], 'netstandard2.0')
+        self.assertEqual(result['Shared.csproj|net8.0']['target_framework'], 'net8.0')
+        self.assertEqual(result['Shared.csproj|netstandard2.0']['target_framework'], 'netstandard2.0')
 
     def test_conflicting_same_path_edges_rejected(self):
         nodes = {'red':self.node('Shared.csproj', ['dep']), 'blue':self.node('Shared.csproj'),
