@@ -37,7 +37,7 @@ class CoreValidation(unittest.TestCase):
         cls.manifest = cls.evidence / 'graph.json'
         request = cls.evidence / 'request.json'
         request.write_text(json.dumps(dict(schemaVersion=1, workspace=str(cls.work),
-            dotnetRoot=str(DOTNET_ROOT), sdkVersion='10.0.100', packageRoot=cls.env['NUGET_PACKAGES'],
+            dotnetRoot=str(DOTNET_ROOT), sdkVersion='10.0.400', packageRoot=cls.env['NUGET_PACKAGES'],
             entryPoints=[dict(project='build.proj', globalProperties={'Configuration': 'Release'})], output=str(cls.manifest))))
         cls.command('export', [DOTNET_ROOT / 'dotnet', ROOT / 'tools/GraphExport/bin/Release/net10.0/GraphExport.dll', '--request', request], cls.work)
         cls.generated = cls.evidence / 'generated'

@@ -50,7 +50,7 @@ def generate(workspace, count=10, shape='fan', changed=None):
     workspace = Path(workspace)
     workspace.mkdir(parents=True, exist_ok=False)
     edges = topology(count, shape)
-    (workspace / 'global.json').write_text('{"sdk":{"version":"10.0.100","rollForward":"disable"}}\n')
+    (workspace / 'global.json').write_text('{"sdk":{"version":"10.0.400","rollForward":"disable"}}\n')
     (workspace / 'NuGet.Config').write_text('<configuration><packageSources><clear/></packageSources></configuration>\n')
     (workspace / 'Directory.Build.props').write_text('<Project><PropertyGroup><TargetFramework>net10.0</TargetFramework><UseAppHost>false</UseAppHost><UseSharedCompilation>false</UseSharedCompilation><EnableNETAnalyzers>false</EnableNETAnalyzers><Deterministic>true</Deterministic><DisableTransitiveProjectReferences>true</DisableTransitiveProjectReferences></PropertyGroup></Project>\n')
     for index, dependencies in enumerate(edges):

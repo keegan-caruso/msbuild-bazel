@@ -72,7 +72,7 @@ class RepositoryContracts(unittest.TestCase):
         (self.work / 'installed-sdk.log').write_text(result.stdout + result.stderr)
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
         self.assertIn('/sdk/dotnet\n', result.stdout)
-        self.assertIn('/sdk/sdk/10.0.100/MSBuild.dll\n', result.stdout)
+        self.assertIn('/sdk/sdk/10.0.400/MSBuild.dll\n', result.stdout)
 
     def test_runtime_manifest_schema_and_override_rejections(self):
         self.runtime(dict(schemaVersion=1, files=[], storePaths=[]))

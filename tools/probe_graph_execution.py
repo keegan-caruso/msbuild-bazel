@@ -54,7 +54,7 @@ def _probe(output, root_project, selected_reference, bazel):
     run('restore', [dotnet, 'msbuild', entry, '-t:Restore', '-p:Configuration=Release', '-nologo'])
     manifest = output / 'manifest.json'
     request = output / 'export-request.json'
-    request.write_text(json.dumps(dict(schemaVersion=1, workspace=str(workspace), dotnetRoot=str(DOTNET_ROOT), sdkVersion='10.0.100', packageRoot=str(workspace / '.nuget/packages'), entryPoints=[dict(project=entry, globalProperties={'Configuration':'Release'})], output=str(manifest))))
+    request.write_text(json.dumps(dict(schemaVersion=1, workspace=str(workspace), dotnetRoot=str(DOTNET_ROOT), sdkVersion='10.0.400', packageRoot=str(workspace / '.nuget/packages'), entryPoints=[dict(project=entry, globalProperties={'Configuration':'Release'})], output=str(manifest))))
     run('export', [dotnet, ROOT / 'tools/GraphExport/bin/Release/net10.0/GraphExport.dll', '--request', request])
     generated = output / 'workspace'
     graph = prepare(workspace, manifest, generated)

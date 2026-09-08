@@ -76,8 +76,8 @@ def _probe(output, identity, package_mode, staging, native_runtime, binary_packa
 
     report['sdkVersion'] = run('sdkVersion', [DOTNET, '--version'], ROOT).stdout.strip()
     report['engineVersion'] = run('engineVersion', [DOTNET, 'msbuild', '-version', '-nologo'], ROOT).stdout.strip()
-    if report['sdkVersion'] != '10.0.100':
-        raise ValueError('expected pinned SDK 10.0.100')
+    if report['sdkVersion'] != '10.0.400':
+        raise ValueError('expected pinned SDK 10.0.400')
     report['python'] = dict(executable=sys.executable, version=sys.version)
     package_provider = (binary_inputs.Packages(output / 'binary-preparation', DOTNET, run)
                         if binary_packages else package_inputs)

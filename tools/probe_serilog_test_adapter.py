@@ -55,7 +55,7 @@ def probe(source, packages, output):
             '-p:Configuration=Release', '-p:TargetFramework=net10.0', '-nodeReuse:false', '-nologo'], path)
         manifest, request = output / (label + '-manifest.json'), output / (label + '-request.json')
         request.write_text(json.dumps(dict(schemaVersion=1, workspace=str(path), dotnetRoot=str(DOTNET_ROOT),
-            sdkVersion='10.0.100', packageRoot=str(path / '.nuget/packages'), entryPoints=[dict(project=PROJECT,
+            sdkVersion='10.0.400', packageRoot=str(path / '.nuget/packages'), entryPoints=[dict(project=PROJECT,
             globalProperties={'Configuration':'Release','TargetFramework':'net10.0'})], output=str(manifest))))
         run(label + '-export', [DOTNET_ROOT / 'dotnet', ROOT / 'tools/GraphExport/bin/Release/net10.0/GraphExport.dll', '--request', request], path)
         exported = json.loads(manifest.read_text())

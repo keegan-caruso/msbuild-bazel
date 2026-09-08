@@ -53,7 +53,7 @@ Enter the pinned Nix shell, or install this repository's pinned tools, then run:
 python3 tools/probe_real_project.py --output /tmp/serilog-baseline
 ```
 
-The output directory must be new. The probe verifies SDK 10.0.100, clones the
+The output directory must be new. The probe verifies the current pinned SDK (10.0.400), clones the
 public repository, checks out the pinned commit, restores into a fresh package
 directory, performs a Release static-graph build, repeats it unchanged, and runs
 the existing approval test with `--no-build --no-restore`. It retains command

@@ -69,7 +69,9 @@ bash scripts/dotnet.sh --info
 bash scripts/bazel.sh version --gnu_format
 ```
 
-Setup installs checksum-pinned .NET SDK 10.0.100 and Bazel 8.4.2 into ignored `.tools/` directories without sudo. These are fixed experimental baselines, not a claim to be the latest releases. Bazel's distribution includes its JDK. The wrapper defaults to a persistent Bazel server; set `RULES_MSBUILD_BAZEL_MODE=batch` for one-shot execution. Container probes shut down their servers before cleanup. Setup is repeatable and needs internet access only for missing downloads. Use the wrappers in each new shell; setup exports do not persist into Codex's agent session.
+Setup installs checksum-pinned .NET SDK 10.0.400 and Bazel 8.4.2 into ignored `.tools/` directories without sudo. These are fixed experimental baselines, not a claim to be the latest releases. Bazel's distribution includes its JDK. The wrapper defaults to a persistent Bazel server; set `RULES_MSBUILD_BAZEL_MODE=batch` for one-shot execution. Container probes shut down their servers before cleanup. Setup is repeatable and needs internet access only for missing downloads. Use the wrappers in each new shell; setup exports do not persist into Codex's agent session.
+
+The [SDK upgrade findings](docs/sdk-upgrade-findings.md) record validation and compatibility limits for SDK 10.0.400.
 
 ## Apple container smoke test
 
@@ -95,7 +97,7 @@ python3 -m unittest discover -s tests/e2e -v
 
 If flakes are already enabled in your Nix configuration, use `nix develop`, or run a single command with `nix develop -c python3 -m unittest discover -s tests/e2e -v`. No `scripts/setup.sh` step is needed inside this shell. Acquire the separately checksum-pinned Buildifier once with `python3 scripts/setup-starlark.py`; it is validation tooling and is not used by compilation or graph preparation. When trying an uncommitted flake before its files are tracked by Git, use `develop path:.` instead of `develop`.
 
-`flake.lock` locks Nixpkgs to a revision containing .NET SDK 10.0.100 and Bazel 8.4.2. The shell checks those versions against `scripts/toolchains.json`. It uses the upstream binary .NET SDK packaged by Nixpkgs and Nixpkgs' source-built, patched Bazel; that Bazel reports the suffix `- (@non-git)`, which the check script accepts. It is not byte-identical to the Bazel release binary used by setup.
+`flake.lock` separately locks the .NET SDK 10.0.400 Nixpkgs input and the existing Bazel 8.4.2 input. The shell checks those versions against `scripts/toolchains.json`. It uses the upstream binary .NET SDK packaged by Nixpkgs and Nixpkgs' source-built, patched Bazel; that Bazel reports the suffix `- (@non-git)`, which the check script accepts. It is not byte-identical to the Bazel release binary used by setup.
 
 The shell supplies `RULES_MSBUILD_DOTNET_ROOT` (the directory containing `dotnet`) and `RULES_MSBUILD_BAZEL` (the executable path). The wrappers, driver, probes, and tests use these explicit overrides; outside Nix they retain the repository-local `.tools/` defaults. Restore and build outputs remain writable and local to the repository or copied test workspace, outside the Nix store.
 

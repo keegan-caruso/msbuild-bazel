@@ -57,7 +57,7 @@ class DependencyClosureTests(unittest.TestCase):
                     outputs=[dict(kind='assembly', path=f'workspace/P{index}/bin/Release/net10.0/P{index}.dll')]))
             manifest = root / 'graph.json'
             manifest.write_text(json.dumps(dict(schemaVersion=1,
-                toolchain=dict(sdkVersion='10.0.100', graphEngine='ProjectGraph', contractVersion=1),
+                toolchain=dict(sdkVersion='10.0.400', graphEngine='ProjectGraph', contractVersion=1),
                 nodes=nodes, entryPoints=[nodes[0]['id']], graphInputs=[])))
             with patch.object(prepare_graph.graph_packages, 'package_plan'), patch.object(prepare_graph.subprocess, 'run') as process:
                 with self.assertRaisesRegex(ValueError, 'graph discovery request missing'):

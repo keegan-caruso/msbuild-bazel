@@ -82,7 +82,7 @@ internal static class GraphTest
                     seal.RootElement.GetProperty("resultsSha256").GetString() != Hash(Path.Combine(bundle, "results.json")) ||
                     seal.RootElement.GetProperty("artifactsSha256").GetString() != Hash(Path.Combine(bundle, "artifacts.json"))) throw new InvalidDataException("test bundle metadata corrupt");
                 using var payload = JsonDocument.Parse(File.ReadAllText(Path.Combine(bundle, "results.json")));
-                if (payload.RootElement.GetProperty("schemaVersion").GetInt32() != 1 || payload.RootElement.GetProperty("sdkVersion").GetString() != "10.0.100" || payload.RootElement.GetProperty("targetFramework").GetString() != "net10.0") throw new InvalidDataException("test bundle identity/version mismatch");
+                if (payload.RootElement.GetProperty("schemaVersion").GetInt32() != 1 || payload.RootElement.GetProperty("sdkVersion").GetString() != "10.0.400" || payload.RootElement.GetProperty("targetFramework").GetString() != "net10.0") throw new InvalidDataException("test bundle identity/version mismatch");
                 if (payload.RootElement.GetProperty("project").GetString() == request.Project && Properties(payload.RootElement.GetProperty("properties"), request.GlobalProperties)) matches.Add(bundle);
             }
             if (matches.Count != 1) throw new InvalidDataException("test subject bundle missing or ambiguous");
@@ -117,7 +117,7 @@ internal static class GraphTest
             var temporary = Path.Combine(scratch, "tmp");
             Directory.CreateDirectory(home);
             Directory.CreateDirectory(temporary);
-            command = [Path.Combine(sdk, "dotnet"), Path.Combine(sdk, "sdk/10.0.100/vstest.console.dll"), Path.Combine(runtime, request.Assembly),
+            command = [Path.Combine(sdk, "dotnet"), Path.Combine(sdk, "sdk/10.0.400/vstest.console.dll"), Path.Combine(runtime, request.Assembly),
                 "/TestAdapterPath:" + runtime, "/Logger:trx;LogFileName=results.trx", "/ResultsDirectory:" + output];
             var info = new ProcessStartInfo(command[0]) { WorkingDirectory = workspace, UseShellExecute = false, RedirectStandardOutput = true, RedirectStandardError = true };
             foreach (var arg in command.Skip(1)) info.ArgumentList.Add(arg);

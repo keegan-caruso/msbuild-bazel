@@ -19,7 +19,7 @@ class PreparationRejection(unittest.TestCase):
         (self.workspace / 'App/obj/project.assets.json').write_text('{"libraries":{}}')
         (self.workspace / 'App/App.csproj').write_text('<Project Sdk="Microsoft.NET.Sdk"/>')
         self.node = dict(id='a' * 24, project='workspace/App/App.csproj', globalProperties={'configuration': 'Release'}, targetFramework='net10.0', outputType='Exe', dependencies=[], inputs=[dict(kind='project', path='workspace/App/App.csproj', sha256=hashlib.sha256((self.workspace / 'App/App.csproj').read_bytes()).hexdigest())], outputs=[dict(kind='assembly', path='workspace/App/bin/Release/net10.0/App.dll')])
-        self.graph = dict(schemaVersion=1, toolchain=dict(sdkVersion='10.0.100', graphEngine='ProjectGraph', contractVersion=1), entryPoints=['a'*24], graphInputs=[], nodes=[self.node])
+        self.graph = dict(schemaVersion=1, toolchain=dict(sdkVersion='10.0.400', graphEngine='ProjectGraph', contractVersion=1), entryPoints=['a'*24], graphInputs=[], nodes=[self.node])
 
     def tearDown(self):
         self.temporary.cleanup()

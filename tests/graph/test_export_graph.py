@@ -14,7 +14,7 @@ DLL = REPO / "tools/GraphExport/bin/Release/net10.0/GraphExport.dll"
 
 def write_fixture(work):
     files = {
-        "global.json": '{"sdk":{"version":"10.0.100","rollForward":"disable"},"msbuild-sdks":{"Microsoft.Build.Traversal":"4.1.82"}}\n',
+        "global.json": '{"sdk":{"version":"10.0.400","rollForward":"disable"},"msbuild-sdks":{"Microsoft.Build.Traversal":"4.1.82"}}\n',
         "NuGet.Config": '<configuration><packageSources><clear/><add key="nuget" value="https://api.nuget.org/v3/index.json"/></packageSources></configuration>\n',
         "Directory.Build.props": '<Project><PropertyGroup><TargetFramework>net10.0</TargetFramework><ImplicitUsings>enable</ImplicitUsings><UseAppHost>false</UseAppHost><Deterministic>true</Deterministic></PropertyGroup></Project>\n',
         "Directory.Build.targets": '<Project><Target Name="RejectExportCompilation" BeforeTargets="CoreCompile" Condition="\'$(BazelGraphExport)\' == \'true\'"><Error Text="Export must never compile fixture projects"/></Target></Project>\n',
@@ -69,7 +69,7 @@ class GraphExportAcceptance(unittest.TestCase):
         work = work or self.work
         output = self.root / f"graph-{self.serial}.json"
         request = self.root / f"request-{self.serial}.json"
-        request.write_text(json.dumps({"schemaVersion": 1, "workspace": str(work), "dotnetRoot": str(self.dotnet_root), "sdkVersion": "10.0.100", "packageRoot": str(work / ".nuget/packages"), "entryPoints": entries or [{"project": "build.proj", "globalProperties": {"Configuration": "Release"}}], "output": str(output)}))
+        request.write_text(json.dumps({"schemaVersion": 1, "workspace": str(work), "dotnetRoot": str(self.dotnet_root), "sdkVersion": "10.0.400", "packageRoot": str(work / ".nuget/packages"), "entryPoints": entries or [{"project": "build.proj", "globalProperties": {"Configuration": "Release"}}], "output": str(output)}))
         result = subprocess.run([str(self.dotnet_root / "dotnet"), str(DLL), "--request", str(request)], cwd=REPO, text=True, capture_output=True)
         (self.root / f"export-{self.serial}.log").write_text(result.stdout + result.stderr)
         if error:

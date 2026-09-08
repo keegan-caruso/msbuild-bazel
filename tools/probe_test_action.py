@@ -51,7 +51,7 @@ def probe(source, packages, output):
         relative=path.relative_to(workspace).as_posix();target=bundle/'artifacts'/relative;target.parent.mkdir(parents=True,exist_ok=True);shutil.copy2(path,target)
         artifacts.append(dict(path=relative,size=path.stat().st_size,sha256=hashlib.sha256(path.read_bytes()).hexdigest()))
     (bundle/'artifacts.json').write_text(json.dumps(artifacts))
-    (bundle/'results.json').write_text(json.dumps(dict(schemaVersion=1,sdkVersion='10.0.100',targetFramework='net10.0',project=PROJECT,properties={'configuration':'Release','targetframework':'net10.0','IsGraphBuild':'true'})))
+    (bundle/'results.json').write_text(json.dumps(dict(schemaVersion=1,sdkVersion='10.0.400',targetFramework='net10.0',project=PROJECT,properties={'configuration':'Release','targetframework':'net10.0','IsGraphBuild':'true'})))
     (bundle/'bundle.json').write_text(json.dumps(dict(schemaVersion=1,resultsSha256=hashlib.sha256((bundle/'results.json').read_bytes()).hexdigest(),artifactsSha256=hashlib.sha256((bundle/'artifacts.json').read_bytes()).hexdigest())))
     for name in ('graph.bzl','msbuild.bzl'):shutil.copyfile(ROOT/'bazel'/name,generated/name)
     (generated/'MODULE.bazel').write_text('module(name="graph_test_prototype")\nlocal_dotnet_sdk = use_repo_rule("//:msbuild.bzl", "local_dotnet_sdk")\nlocal_dotnet_sdk(name="dotnet",path='+json.dumps(str(DOTNET_ROOT))+')\n')

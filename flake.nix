@@ -1,10 +1,12 @@
 {
   description = "Pinned tools for rules_msbuild";
 
-  # This revision contains both experimental baseline versions.
+  # Preserve the qualified Bazel baseline; update the SDK independently.
   inputs.nixpkgs.url = "github:NixOS/nixpkgs/74c7dbb8e8adc9fdd3e734d7fd85f36f5421a2f9";
 
-  outputs = { nixpkgs, ... }:
+  inputs.nixpkgs-dotnet.url = "github:NixOS/nixpkgs/nixpkgs-unstable";
+
+  outputs = { nixpkgs, nixpkgs-dotnet, ... }:
     let
       systems = [ "aarch64-darwin" "x86_64-linux" ];
       forAllSystems = nixpkgs.lib.genAttrs systems;
@@ -14,7 +16,8 @@
         let
           pkgs = import nixpkgs { inherit system; };
           # Use the upstream binary SDK on both platforms, as setup.sh does.
-          dotnet = pkgs.dotnetCorePackages.sdk_10_0-bin;
+          dotnetPkgs = import nixpkgs-dotnet { inherit system; };
+          dotnet = dotnetPkgs.dotnetCorePackages.sdk_10_0-bin;
           bazel = pkgs.bazel_8;
         in {
           default = assert dotnet.version == pins.dotnet.version;

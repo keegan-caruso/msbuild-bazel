@@ -113,7 +113,7 @@ category guard, which was extended together with preparation.
 
 The pinned Spectre.Console revision is
 `2dc90b90add956c2f6777cb659120900ac2eb740`. Its global.json requires SDK 10.0.400;
-the repository pins 10.0.100. A copied checkout failed `dotnet --version` with
+the repository pinned 10.0.100 at this checkpoint. The later [SDK upgrade](sdk-upgrade-findings.md) removes this SDK-selection blocker. A copied checkout failed `dotnet --version` with
 exit 155 under the pinned SDK; evidence is at
 `/private/tmp/r05a-spectre-prerequisites/report.json` and `sdk-selection.log`.
 Its source generator targets netstandard2.0 and its

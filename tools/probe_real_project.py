@@ -39,8 +39,8 @@ def main():
 
     dotnet = ["bash", str(ROOT / "scripts/dotnet.sh")]
     version = run("sdk-version", dotnet + ["--version"])
-    if version != "10.0.100":
-        raise SystemExit(f"Expected SDK 10.0.100, got {version}")
+    if version != "10.0.400":
+        raise SystemExit(f"Expected SDK 10.0.400, got {version}")
     run("clone", ["git", "clone", "--no-checkout", REPOSITORY, str(source)])
     run("checkout", ["git", "-C", str(source), "checkout", "--detach", REVISION])
     project = str(source / "test/Serilog.ApprovalTests/Serilog.ApprovalTests.csproj")

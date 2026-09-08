@@ -60,7 +60,7 @@ Console.WriteLine(Left.Value.Text + "|" + Right.Value.Text + suffix);
         manifest = output / (name + '-manifest.json')
         request = output / (name + '-request.json')
         request.write_text(json.dumps(dict(schemaVersion=1, workspace=str(source), dotnetRoot=str(DOTNET_ROOT),
-            sdkVersion='10.0.100', packageRoot=str(source / '.nuget/packages'),
+            sdkVersion='10.0.400', packageRoot=str(source / '.nuget/packages'),
             entryPoints=[dict(project='build.proj', globalProperties={'Configuration':'Release'})], output=str(manifest))))
         run(name + '-export', [dotnet, ROOT / 'tools/GraphExport/bin/Release/net10.0/GraphExport.dll', '--request', request], source)
         return manifest
@@ -354,7 +354,7 @@ Console.WriteLine(Left.Value.Text + "|" + Right.Value.Text + suffix);
             refreshed = output / (name + '-fresh-manifest.json')
             request = output / (name + '-reexport-request.json')
             request.write_text(json.dumps(dict(schemaVersion=1, workspace=str(package_source),
-                dotnetRoot=str(DOTNET_ROOT), sdkVersion='10.0.100',
+                dotnetRoot=str(DOTNET_ROOT), sdkVersion='10.0.400',
                 packageRoot=str(package_source / '.nuget/packages'),
                 entryPoints=[dict(project='build.proj', globalProperties={'Configuration':'Release'})],
                 output=str(refreshed))))

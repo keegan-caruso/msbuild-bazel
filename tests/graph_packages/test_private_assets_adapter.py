@@ -53,7 +53,7 @@ class PrivateAssetsAdapter(unittest.TestCase):
                     manifest = evidence / (prefix + '-graph.json')
                     request = evidence / (prefix + '-export.json')
                     request.write_text(json.dumps(dict(schemaVersion=1, workspace=str(workspace),
-                        dotnetRoot=str(DOTNET_ROOT), sdkVersion='10.0.100',
+                        dotnetRoot=str(DOTNET_ROOT), sdkVersion='10.0.400',
                         packageRoot=str(workspace / '.nuget/packages'),
                         entryPoints=[dict(project='build.proj', globalProperties={'Configuration':'Release'})],
                         output=str(manifest))))

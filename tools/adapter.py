@@ -9,7 +9,7 @@ import sys
 
 ROOT = Path(__file__).resolve().parents[1]
 DOTNET = Path(os.environ.get('RULES_MSBUILD_DOTNET_ROOT', ROOT / '.tools/dotnet')) / 'dotnet'
-SDK = '10.0.100'
+SDK = '10.0.400'
 FRAMEWORK = 'net10.0'
 
 

@@ -192,7 +192,7 @@ def probe(source, package_cache, output, cases=('source', 'resource', 'key', 'im
         restore(path, label)
         request, manifest = output / (label + '-request.json'), output / (label + '-manifest.json')
         request.write_text(json.dumps(dict(schemaVersion=1, workspace=str(path), dotnetRoot=str(DOTNET_ROOT),
-            sdkVersion='10.0.100', packageRoot=str(path / '.nuget/packages'),
+            sdkVersion='10.0.400', packageRoot=str(path / '.nuget/packages'),
             entryPoints=[dict(project=PROJECT, globalProperties={'Configuration':'Release','TargetFramework':'net10.0'})], output=str(manifest))))
         run(label + '-export', [dotnet, ROOT / 'tools/GraphExport/bin/Release/net10.0/GraphExport.dll', '--request', request], path)
         if label == 'generatorVersion':

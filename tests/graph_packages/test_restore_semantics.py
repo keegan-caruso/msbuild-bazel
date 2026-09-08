@@ -63,7 +63,7 @@ class PackageRestoreSemantics(unittest.TestCase):
         output = self.evidence / f'graph-{self.serial}.json'
         request = self.evidence / f'request-{self.serial}.json'
         request.write_text(json.dumps(dict(schemaVersion=1, workspace=str(self.workspace),
-            dotnetRoot=str(DOTNET_ROOT), sdkVersion='10.0.100', packageRoot=str(self.workspace / '.nuget/packages'),
+            dotnetRoot=str(DOTNET_ROOT), sdkVersion='10.0.400', packageRoot=str(self.workspace / '.nuget/packages'),
             entryPoints=[dict(project='build.proj', globalProperties={'Configuration':'Release'})], output=str(output))))
         self.run_dotnet('export-' + str(self.serial), [ROOT / 'tools/GraphExport/bin/Release/net10.0/GraphExport.dll', '--request', request], error)
         if error:

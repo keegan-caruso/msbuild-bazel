@@ -65,6 +65,12 @@ The managed binary-package milestone has a test-first
 cache, relocation, upgrade and rejection evidence. Broader NuGet behavior is
 still outside this measured boundary.
 
+## SDK baseline refresh
+
+The SDK 10.0.400 upgrade passes the targeted native macOS regression gates, separately from R09 preparation reuse.
+See [SDK upgrade findings](sdk-upgrade-findings.md) for pins, validation and remaining
+Spectre prerequisites. Historical results below retain their original SDK scope.
+
 ## Upstream issue coverage
 
 The [language-rule lessons](language-rule-lessons.md) compare Java, Scala, Python,

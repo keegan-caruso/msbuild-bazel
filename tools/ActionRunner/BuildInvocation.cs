@@ -15,7 +15,7 @@ internal sealed record BuildInvocation(string Executable, string WorkingDirector
         dotnet,
         workspace.Root,
         [.. (request.LoaderJit is null ? new[] { "msbuild" } :
-            new[] { "exec", Path.Combine(workspace.SdkRoot, "sdk", "10.0.100", "MSBuild.dll") }),
+            new[] { "exec", Path.Combine(workspace.SdkRoot, "sdk", "10.0.400", "MSBuild.dll") }),
             $"{request.Project}/{request.Project}.csproj",
             "-t:" + (request.Project == ProjectKind.Shared ? SharedTargets : "Build"), "-p:Configuration=Release",
             "-graphBuild", "-isolateProjects", "-nodeReuse:false", "-nologo", "-verbosity:normal"],

@@ -136,7 +136,7 @@ class Harness:
             "schemaVersion": 1,
             "workspace": str(workspace),
             "dotnetRoot": str(DOTNET_ROOT),
-            "sdkVersion": "10.0.100",
+            "sdkVersion": "10.0.400",
             "packageRoot": str(workspace / ".nuget/packages"),
             "entryPoints": [{"project": entry, "globalProperties": properties}],
             "output": str(manifest),

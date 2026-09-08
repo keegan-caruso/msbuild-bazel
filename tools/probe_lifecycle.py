@@ -89,7 +89,7 @@ def probe(output):
     manifest = output / 'graph-manifest.json'
     request = output / 'graph-request.json'
     request.write_text(json.dumps(dict(schemaVersion=1, workspace=str(source), dotnetRoot=str(DOTNET_ROOT),
-        sdkVersion='10.0.100', packageRoot=str(source / '.nuget/packages'),
+        sdkVersion='10.0.400', packageRoot=str(source / '.nuget/packages'),
         entryPoints=[dict(project='build.proj', globalProperties={'Configuration':'Release'})], output=str(manifest))))
     run('export', [dotnet, ROOT / 'tools/GraphExport/bin/Release/net10.0/GraphExport.dll', '--request', request], source)
     generated = output / 'workspace'

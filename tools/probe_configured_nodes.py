@@ -39,7 +39,7 @@ def probe(output, scope='inner'):
         manifest = output / (name + '-manifest.json')
         request = output / (name + '-request.json')
         request.write_text(json.dumps(dict(schemaVersion=1, workspace=str(source),
-            dotnetRoot=str(DOTNET_ROOT), sdkVersion='10.0.100', packageRoot=str(source / '.nuget/packages'),
+            dotnetRoot=str(DOTNET_ROOT), sdkVersion='10.0.400', packageRoot=str(source / '.nuget/packages'),
             entryPoints=[dict(project=export_entry, globalProperties=selected)], output=str(manifest))))
         run(name + '-export', [dotnet, ROOT / 'tools/GraphExport/bin/Release/net10.0/GraphExport.dll', '--request', request], source)
         return manifest
@@ -169,7 +169,7 @@ def probe(output, scope='inner'):
         manifest = output / (name + '-rejected.json')
         request = output / (name + '-rejected-request.json')
         request.write_text(json.dumps(dict(schemaVersion=1, workspace=str(rejected_source),
-            dotnetRoot=str(DOTNET_ROOT), sdkVersion='10.0.100', packageRoot=str(rejected_source / '.nuget/packages'),
+            dotnetRoot=str(DOTNET_ROOT), sdkVersion='10.0.400', packageRoot=str(rejected_source / '.nuget/packages'),
             entryPoints=[dict(project=rejected_entry, globalProperties={'Configuration': 'Release'})], output=str(manifest))))
         result = subprocess.run([str(dotnet), str(ROOT / 'tools/GraphExport/bin/Release/net10.0/GraphExport.dll'),
             '--request', str(request)], cwd=rejected_source, env=cache_environment(output, rejected_source),

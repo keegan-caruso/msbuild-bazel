@@ -56,7 +56,7 @@ class GraphDiscoveryAcceptance(unittest.TestCase):
         self.serial += 1
         manifest = self.root / f'manifest-{self.serial}.json'
         request = self.root / f'request-{self.serial}.json'
-        request.write_text(json.dumps(dict(schemaVersion=1, workspace=str(self.workspace), dotnetRoot=str(DOTNET_ROOT), sdkVersion='10.0.100', packageRoot=str(self.workspace / '.nuget/packages'), entryPoints=entries or [dict(project='build.proj', globalProperties={'Configuration':'Release'})], output=str(manifest))))
+        request.write_text(json.dumps(dict(schemaVersion=1, workspace=str(self.workspace), dotnetRoot=str(DOTNET_ROOT), sdkVersion='10.0.400', packageRoot=str(self.workspace / '.nuget/packages'), entryPoints=entries or [dict(project='build.proj', globalProperties={'Configuration':'Release'})], output=str(manifest))))
         self.run_dotnet('export-' + str(self.serial), [ROOT / 'tools/GraphExport/bin/Release/net10.0/GraphExport.dll', '--request', request])
         return manifest
 

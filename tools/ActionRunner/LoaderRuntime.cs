@@ -18,7 +18,7 @@ internal static class LoaderRuntime
         Directory.CreateDirectory(root);
         Files.Copy(workspace.Dotnet, Path.Combine(root, "dotnet"));
         Files.CopyTree(Path.Combine(workspace.SdkRoot, "host"), Path.Combine(root, "host"));
-        var framework = Path.Combine("shared", "Microsoft.NETCore.App", "10.0.0");
+        var framework = Path.Combine("shared", "Microsoft.NETCore.App", "10.0.11");
         Files.CopyTree(Path.Combine(workspace.SdkRoot, framework), Path.Combine(root, framework));
         var jit = Path.Combine(root, framework, library);
         // Nix payloads retain read-only modes when copied. Unlink our private

@@ -103,7 +103,7 @@ class Probe:
         self.session = None
         self.strategy = 'darwin-sandbox' if platform.system() == 'Darwin' else 'linux-sandbox'
         self.report = dict(schemaVersion=1, accepted=False, scope='R05-package-free-project-generator-roles',
-            platform=platform.platform(), sdkVersion='10.0.100', bazelVersion='8.4.2',
+            platform=platform.platform(), sdkVersion='10.0.400', bazelVersion='8.4.2',
             configuration='Release', targetFramework='net10.0', cases={})
 
     def save(self):
@@ -138,7 +138,7 @@ class Probe:
         request = self.output / (name + '-request.json')
         manifest = self.output / (name + '-manifest.json')
         request.write_text(json.dumps(dict(schemaVersion=1, workspace=str(source),
-            dotnetRoot=str(DOTNET_ROOT), sdkVersion='10.0.100', packageRoot=str(source / '.nuget/packages'),
+            dotnetRoot=str(DOTNET_ROOT), sdkVersion='10.0.400', packageRoot=str(source / '.nuget/packages'),
             entryPoints=[dict(project=PROJECT, globalProperties={'Configuration': 'Release'})], output=str(manifest))))
         result = self.run(name + '-export', [DOTNET_ROOT / 'dotnet',
             ROOT / 'tools/GraphExport/bin/Release/net10.0/GraphExport.dll', '--request', request], source, success)

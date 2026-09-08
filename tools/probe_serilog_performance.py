@@ -261,7 +261,7 @@ class Harness:
         manifest = directory / (prefix + 'manifest.json')
         request = directory / (prefix + 'request.json')
         request.write_text(json.dumps(dict(schemaVersion=1, workspace=str(workspace),
-            dotnetRoot=str(DOTNET_ROOT), sdkVersion='10.0.100',
+            dotnetRoot=str(DOTNET_ROOT), sdkVersion='10.0.400',
             packageRoot=str(workspace / '.nuget/packages'),
             entryPoints=[dict(project=PROJECT, globalProperties={
                 'Configuration': 'Release', 'TargetFramework': 'net10.0'})],

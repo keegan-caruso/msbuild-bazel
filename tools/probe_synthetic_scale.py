@@ -86,7 +86,7 @@ def probe(output, count=10, shape='fan', cases=('fresh', 'warm', 'leaf', 'shared
         def publish(label):
             manifest, request = output / (label + '-manifest.json'), output / (label + '-request.json')
             request.write_text(json.dumps(dict(schemaVersion=1, workspace=str(preparation), dotnetRoot=str(DOTNET_ROOT),
-                sdkVersion='10.0.100', packageRoot=str(preparation / '.nuget/packages'),
+                sdkVersion='10.0.400', packageRoot=str(preparation / '.nuget/packages'),
                 entryPoints=[dict(project=entry, globalProperties={'Configuration': 'Release'})], output=str(manifest))))
             run(label + '-export', [dotnet, ROOT / 'tools/GraphExport/bin/Release/net10.0/GraphExport.dll', '--request', request], preparation)
             started = time.monotonic()

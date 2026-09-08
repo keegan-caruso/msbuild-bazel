@@ -16,7 +16,7 @@ def manifest(payload, name):
 
 def prepare(workspace, sdk, closure):
     library = 'libclrjit.dylib' if platform.system() == 'Darwin' else 'libclrjit.so'
-    original = sdk / 'shared/Microsoft.NETCore.App/10.0.0' / library
+    original = sdk / 'shared/Microsoft.NETCore.App/10.0.11' / library
     directory = workspace / 'loader'
     directory.mkdir()
     first, second = directory / 'jit-v1', directory / 'jit-v2'

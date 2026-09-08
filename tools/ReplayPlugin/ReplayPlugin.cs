@@ -21,7 +21,7 @@ public sealed class ReplayPlugin : ProjectCachePluginBase
     {
         ["${WORKSPACE}"] = "action-workspace",
         ["${NUGET}"] = "${WORKSPACE}/.nuget/packages",
-        ["${SDK}"] = "dotnet-sdk:10.0.100"
+        ["${SDK}"] = "dotnet-sdk:10.0.400"
     };
     private string workspace = "", bundle = "", mode = "";
     private string? graphProject;
@@ -125,7 +125,7 @@ public sealed class ReplayPlugin : ProjectCachePluginBase
         var payloadPath = Path.Combine(dependencyBundle, "results.json");
         if (!File.Exists(payloadPath)) throw new InvalidOperationException("dependency payload missing");
         var payload = JsonSerializer.Deserialize<Payload>(File.ReadAllText(payloadPath), Json)!;
-        if (payload.SchemaVersion != 1 || payload.SdkVersion != "10.0.100" || payload.EngineVersion != Engine ||
+        if (payload.SchemaVersion != 1 || payload.SdkVersion != "10.0.400" || payload.EngineVersion != Engine ||
             payload.Project != project || payload.TargetFramework != request.ProjectInstance.GetPropertyValue("TargetFramework")) throw new InvalidOperationException("dependency identity/version mismatch");
         if (payload.RootMappings.Count != RootMappings.Count || RootMappings.Any(pair =>
             !payload.RootMappings.TryGetValue(pair.Key, out var value) || value != pair.Value))
@@ -170,7 +170,7 @@ public sealed class ReplayPlugin : ProjectCachePluginBase
                 ((ITaskItem2)item).CloneCustomMetadataEscaped().Keys.Cast<string>()
                     .ToDictionary(name => name, name => Normalize(((ITaskItem2)item).GetMetadataValueEscaped(name))))).ToArray();
         });
-        File.WriteAllText(PayloadPath, JsonSerializer.Serialize(new Payload(1, "10.0.100", Engine,
+        File.WriteAllText(PayloadPath, JsonSerializer.Serialize(new Payload(1, "10.0.400", Engine,
             graphProject ?? "Shared/Shared.csproj", "net10.0", RootMappings, Properties(context.GlobalProperties), context.Targets.ToArray(), targets), Json));
         Console.WriteLine("RULES_MSBUILD_REPLAY_CAPTURE:" + string.Join(";", targets.Keys));
         return Task.CompletedTask;

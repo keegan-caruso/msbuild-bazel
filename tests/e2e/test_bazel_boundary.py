@@ -40,7 +40,7 @@ class BazelBoundaryTests(unittest.TestCase):
             report = json.loads((directory / 'probe/report.json').read_text())
             self.assertEqual(report['baselineOutput'], 'shared-v1/data-v1/import-v1/env-v1/app-v1' if identity else ('shared-v1/package-v1/target-v1/app-v1' if packages else 'shared-v1/app-v1'))
             self.assertTrue(report['preparationWorkspaceAbsent'])
-            self.assertEqual(report['sdkVersion'], '10.0.100')
+            self.assertEqual(report['sdkVersion'], '10.0.400')
             if native_runtime:
                 self.assertGreater(report['nativeRuntime']['fileCount'], 0)
                 self.assertGreater(len(report['nativeRuntime']['storePaths']), 2)
@@ -131,7 +131,7 @@ class BazelBoundaryTests(unittest.TestCase):
                 if name in ('diskCache', 'newOutputBase'):
                     self.assertEqual(observed['cacheHitProjects'], ['App', 'Shared'], observed)
             for action in report['cases']['cold']['executions']:
-                self.assertTrue(any('/sdk/sdk/10.0.100/Microsoft.Build.dll' in path for path in action['inputs']))
+                self.assertTrue(any('/sdk/sdk/10.0.400/Microsoft.Build.dll' in path for path in action['inputs']))
                 self.assertIn('ReplayPlugin.dll', action['inputs'])
                 self.assertIn('host-identity.json', action['inputs'])
                 self.assertFalse(any('/stdlib/' in path or '+python/' in path for path in action['inputs']))

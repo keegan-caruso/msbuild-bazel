@@ -205,5 +205,17 @@
       "build",
       "buildtransitive"
     ]
+  },
+  "microsoft.net.illink.tasks/10.0.11": {
+    "archiveSha256": "28ee7ccf5c4bdfe67823c8e0ea62232174f61e224d77e7c6ef5caa1413ac0a76",
+    "additionalRoots": [
+      "analyzers",
+      "build",
+      "tools"
+    ],
+    "restoreContentHash": "IBf7lbovvjGWVWXZX5cJ/cO0WXbId0Zq4BuSeT94mGZuOAP66oMeH9PTBZ9Jpp3Jb6jtK0qm/NyUbPRo1gC/wQ==",
+    "assetRoles": [
+      "build"
+    ]
   }
 }

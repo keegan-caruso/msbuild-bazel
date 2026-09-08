@@ -43,7 +43,7 @@ def compare(source, packages, assembly, output, dotnet_root):
     config = output / 'NuGet.Config'
     config.write_text('<configuration><packageSources><clear /></packageSources></configuration>')
     sdk = Path(dotnet_root).resolve()
-    (output / 'global.json').write_text(json.dumps({'sdk': {'version': '10.0.100', 'rollForward': 'disable'}}))
+    (output / 'global.json').write_text(json.dumps({'sdk': {'version': '10.0.400', 'rollForward': 'disable'}}))
     env = dict(os.environ, DOTNET_ROOT=str(sdk), NUGET_PACKAGES=str(output / 'packages'),
                DOTNET_CLI_HOME=str(output / 'home'), MSBUILDDISABLENODEREUSE='1')
 

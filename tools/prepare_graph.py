@@ -131,7 +131,7 @@ def prepare(workspace, manifest, output, *, environment=None, tests=None):
 def _prepare(workspace, manifest, output, *, environment=None, tests=None):
     workspace, manifest, output = map(lambda p: Path(p).resolve(), (workspace, manifest, output))
     graph = json.loads(manifest.read_text())
-    if graph['schemaVersion'] != 1 or graph.get('toolchain') != {'sdkVersion': '10.0.100', 'graphEngine': 'ProjectGraph', 'contractVersion': 1}:
+    if graph['schemaVersion'] != 1 or graph.get('toolchain') != {'sdkVersion': '10.0.400', 'graphEngine': 'ProjectGraph', 'contractVersion': 1}:
         raise ValueError('unsupported graph schema')
     nodes = {n['id']: n for n in graph['nodes']}
     if len(nodes) != len(graph['nodes']) or not nodes:
@@ -206,7 +206,7 @@ def _prepare(workspace, manifest, output, *, environment=None, tests=None):
     request = output.parent / 'discovery-request.json'
     refreshed = output.parent / 'discovery.json'
     request.write_text(json.dumps(dict(schemaVersion=1, workspace=str(workspace),
-        dotnetRoot=str(DOTNET_ROOT), sdkVersion='10.0.100',
+        dotnetRoot=str(DOTNET_ROOT), sdkVersion='10.0.400',
         packageRoot=str(workspace / '.nuget/packages'),
         entryPoints=graph['entryRequests'], output=str(refreshed))))
     result = subprocess.run([str(DOTNET_ROOT / 'dotnet'),

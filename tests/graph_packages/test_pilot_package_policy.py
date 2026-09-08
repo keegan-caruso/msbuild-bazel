@@ -23,6 +23,7 @@ class PilotPolicy(unittest.TestCase):
         self.assertEqual(graph_packages.selected_version('PolySharp', '1.15.0'), '1.15.0')
         self.assertEqual(graph_packages.selected_version('PolySharp', '1.16.0'), '1.16.0')
         self.assertEqual(graph_packages.selected_version('Microsoft.NET.ILLink.Tasks', '10.0.0'), '10.0.0')
+        self.assertEqual(graph_packages.selected_version('Microsoft.NET.ILLink.Tasks', '10.0.11'), '10.0.11')
         self.assertEqual(graph_packages.selected_version('Example', '[1.0.0]'), '1.0.0')
         for package, version in [('Example', '1.0.0'), ('PolySharp', '1.15.1'), ('PolySharp', '1.*'), ('PolySharp', '[1.15.0,2.0.0)')]:
             with self.subTest(package=package, version=version), self.assertRaisesRegex(ValueError, 'unsupported-package'):
@@ -74,12 +75,12 @@ class PinnedSerilogPackagePolicy(unittest.TestCase):
         run('exporter-build',['build',ROOT/'tools/GraphExport','-c','Release','--nologo'])
         manifest = evidence/'graph.json'
         request = evidence/'request.json'
-        request.write_text(json.dumps(dict(schemaVersion=1,workspace=str(work),dotnetRoot=str(sdk),sdkVersion='10.0.100',packageRoot=str(work/'.nuget/packages'),entryPoints=[dict(project=project,globalProperties={'Configuration':'Release','TargetFramework':'net10.0'})],output=str(manifest))))
+        request.write_text(json.dumps(dict(schemaVersion=1,workspace=str(work),dotnetRoot=str(sdk),sdkVersion='10.0.400',packageRoot=str(work/'.nuget/packages'),entryPoints=[dict(project=project,globalProperties={'Configuration':'Release','TargetFramework':'net10.0'})],output=str(manifest))))
         run('export',[ROOT/'tools/GraphExport/bin/Release/net10.0/GraphExport.dll','--request',request])
         self.assertTrue(manifest.is_file())
         plan, files = graph_packages.stage(work, project, evidence/'staged', 'serilog')
         payload = json.loads((evidence/'staged'/plan).read_text())
-        self.assertEqual(sorted(p['id']+'/'+p['version'] for p in payload['packages']), ['Microsoft.NET.ILLink.Tasks/10.0.0','PolySharp/1.15.0'])
+        self.assertEqual(sorted(p['id']+'/'+p['version'] for p in payload['packages']), ['Microsoft.NET.ILLink.Tasks/10.0.11','PolySharp/1.15.0'])
         self.assertTrue(any('analyzers/dotnet/cs/PolySharp.SourceGenerators.dll' in f for f in files))
         self.assertTrue(any('build/PolySharp.targets' in f for f in files))
         assets_path = work/'src/Serilog/obj/project.assets.json'

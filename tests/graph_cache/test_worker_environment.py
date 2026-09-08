@@ -47,7 +47,7 @@ class CacheWorkerEnvironmentAcceptance(unittest.TestCase):
             manifest = output / f'manifest-{index}.json'
             request = output / f'request-{index}.json'
             request.write_text(json.dumps(dict(schemaVersion=1, workspace=str(source),
-                dotnetRoot=str(DOTNET_ROOT), sdkVersion='10.0.100',
+                dotnetRoot=str(DOTNET_ROOT), sdkVersion='10.0.400',
                 packageRoot=str(source / '.nuget/packages'),
                 entryPoints=[dict(project='build.proj', globalProperties={'Configuration':'Release'})],
                 output=str(manifest))))

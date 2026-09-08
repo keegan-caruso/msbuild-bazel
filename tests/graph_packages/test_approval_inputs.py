@@ -62,7 +62,7 @@ class ApprovalInputs(unittest.TestCase):
         manifest = evidence / 'graph.json'
         request = evidence / 'request.json'
         request.write_text(json.dumps(dict(schemaVersion=1, workspace=str(work), dotnetRoot=str(sdk),
-            sdkVersion='10.0.100', packageRoot=str(work/'.nuget/packages'),
+            sdkVersion='10.0.400', packageRoot=str(work/'.nuget/packages'),
             entryPoints=[dict(project=project, globalProperties={'Configuration':'Release', 'TargetFramework':'net10.0'})], output=str(manifest))))
         run('export', [ROOT/'tools/GraphExport/bin/Release/net10.0/GraphExport.dll', '--request', request])
         graph = json.loads(manifest.read_text())
