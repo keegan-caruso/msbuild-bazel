@@ -330,7 +330,8 @@ Coverage: selected K02–K05, G05/G07–G09/G11, F07/F09/F10 and applicable loca
 
 The bounded [R05a contract](r05a-plan.md) and [implementation/evidence](r05a-findings.md)
 cover synthetic project/package delivery, reference roles and diagnostic-only
-analyzers. The Spectre.Console real-project prerequisite gate remains open.
+analyzers. The [selected R05 qualification](r05-qualification.md) adds
+Spectre.Console, CommunityToolkit and Dapper.AOT with explicit deferred combinations.
 
 Start with small API/delivery fixtures, then P02 Spectre.Console, P16
 CommunityToolkit.Mvvm and P14 Dapper.AOT. Begin after R04's required input-contract

@@ -36,8 +36,9 @@ Nerdbank 3.9.50 with explicitly supplied `NBGV_CacheMode=None`, SourceLink
 8.0.0/10.0.300 and DotNet.ReproducibleBuilds 2.0.2 on macOS ARM64. Both 13-case
 matrices cover version/SourceLink parity, input invalidation, relocated disk-cache
 recovery and rejection controls. [Default auxiliary-project caching](default-versioning-findings.md) is also
-qualified (RUL-94); complete CommunityToolkit and Dapper.AOT acceptance remains
-separate.
+qualified (RUL-94). [R05 qualification](r05-qualification.md) now includes the
+selected CommunityToolkit and Dapper.AOT mutation/recovery gates and an explicit
+G01–G11 disposition.
 
 The [R05a generator/reference-role slice](r05a-findings.md) implements project and
 package generator combinations, diagnostic-only analyzers and recovered consumer
