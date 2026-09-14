@@ -12,6 +12,7 @@ def _graph_project_impl(ctx):
     ctx.actions.write(request, json.encode({
         "project": "Shared",
         "graph_project": ctx.attr.project,
+        "sdk_version": ctx.attr.sdk_version,
         "graph_global_properties": ctx.attr.global_properties,
         "graph_framework_selections": json.decode(ctx.attr.framework_selections) if ctx.attr.framework_selections else None,
         "graph_assets_file": ctx.attr.assets_file or None,
@@ -68,6 +69,7 @@ graph_project = rule(implementation = _graph_project_impl, attrs = {
     "runner": attr.label(allow_single_file = True, mandatory = True),
     "runner_support": attr.label_list(allow_files = True),
     "host_identity": attr.label(allow_single_file = True, mandatory = True),
+    "sdk_version": attr.string(default = "10.0.400", doc = "Exact SDK directory version in the declared SDK payload; independent of project target frameworks."),
     "sdk": attr.label(mandatory = True),
     "dotnet": attr.label(allow_single_file = True, executable = True, cfg = "exec", mandatory = True),
 })

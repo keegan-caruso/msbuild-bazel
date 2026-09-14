@@ -70,7 +70,7 @@ internal static class GraphAction
         if (SelectedFrameworks.Stage(request, workspace) is { } selectionTargets)
             environment["RULES_MSBUILD_GRAPH_SELECTION_TARGETS"] = selectionTargets;
         var invocation = new BuildInvocation(workspace.Dotnet, workspace.Root,
-            ["msbuild", project, "-t:" + targets, .. properties.OrderBy(pair => pair.Key, StringComparer.Ordinal).Select(pair => "-p:" + pair.Key + "=" + pair.Value), "-graphBuild", "-isolateProjects", "-nodeReuse:false", "-nologo", "-verbosity:normal"], environment);
+            [.. BuildInvocation.EngineArguments(request, workspace.SdkRoot), project, "-t:" + targets, .. properties.OrderBy(pair => pair.Key, StringComparer.Ordinal).Select(pair => "-p:" + pair.Key + "=" + pair.Value), "-graphBuild", "-isolateProjects", "-nodeReuse:false", "-nologo", "-verbosity:normal"], environment);
         var result = await ProcessRunner.RunAsync(invocation.CreateStartInfo(), TimeSpan.FromSeconds(180), default);
         File.WriteAllText(Path.Combine(workspace.Diagnostics, "build.log"), result.Log);
         var evidence = BuildEvidence.Parse(result.Log);

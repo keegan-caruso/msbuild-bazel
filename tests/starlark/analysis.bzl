@@ -30,6 +30,7 @@ def _project_test_impl(ctx):
     requests = [a for a in actions if a.mnemonic == "FileWrite"]
     asserts.equals(env, 1, len(requests))
     request = json.decode(requests[0].content)
+    asserts.equals(env, "11.0.100-test", request["sdk_version"])
     asserts.equals(env, name + ".bundle", request["output"].split("/")[-1])
     asserts.equals(env, name + ".diagnostics", request["diagnostics"].split("/")[-1])
     asserts.true(env, requests[0].outputs.to_list()[0] in build.inputs.to_list())
@@ -64,6 +65,7 @@ def core_suite(name):
         runner = "runner.dll",
         runner_support = ["runner.deps.json", "runner.runtimeconfig.json"],
         sdk = ":sdk",
+        sdk_version = "11.0.100-test",
         dotnet = "dotnet.sh",
         host_identity = "host.json",
         restore = ["restore.json"],

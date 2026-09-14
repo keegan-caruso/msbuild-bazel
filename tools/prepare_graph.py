@@ -14,6 +14,7 @@ import subprocess
 import tempfile
 
 import graph_packages
+import msbuild_tool
 from starlark import call
 from prepare_graph_tests import add_tests
 
@@ -117,7 +118,7 @@ def nix_imports(inputs, sdk_root):
     return sorted(paths)
 
 
-def prepare(workspace, manifest, output, *, environment=None, tests=None):
+def prepare(workspace, manifest, output, *, environment=None, tests=None, tool_framework=None, engine_root=None, sdk_root=None, sdk_version=None):
     """Publish only a completely validated plan; serialize shared adapter builds."""
     output = Path(output).resolve()
     if output.exists():
@@ -128,7 +129,7 @@ def prepare(workspace, manifest, output, *, environment=None, tests=None):
     with lock.open('a') as handle, tempfile.TemporaryDirectory(prefix='.graph-prepare-', dir=output.parent) as temporary:
         fcntl.flock(handle, fcntl.LOCK_EX)
         staged = Path(temporary) / 'workspace'
-        graph = _prepare(workspace, manifest, staged, environment=environment, tests=tests)
+        graph = _prepare(workspace, manifest, staged, environment=environment, tests=tests, tool_framework=tool_framework, engine_root=engine_root, sdk_root=sdk_root, sdk_version=sdk_version)
         # Never replace another preparation's committed plan, including an empty directory.
         if output.exists():
             raise FileExistsError(output)
@@ -136,10 +137,16 @@ def prepare(workspace, manifest, output, *, environment=None, tests=None):
         return graph
 
 
-def _prepare(workspace, manifest, output, *, environment=None, tests=None, _leased=False):
+def _prepare(workspace, manifest, output, *, environment=None, tests=None, tool_framework=None, engine_root=None, sdk_root=None, sdk_version=None, _leased=False):
+    if _leased and any(value is not None for value in (environment, tests, tool_framework, engine_root, sdk_root, sdk_version)):
+        raise ValueError("leased preparation requires the qualified default toolchain")
     workspace, manifest, output = map(lambda p: Path(p).resolve(), (workspace, manifest, output))
+    dotnet_root = Path(sdk_root).resolve() if sdk_root is not None else DOTNET_ROOT
+    sdk_version = sdk_version or json.loads((ROOT / 'global.json').read_text())['sdk']['version']
+    if not re.fullmatch(r'[0-9A-Za-z][0-9A-Za-z.\-]*', sdk_version):
+        raise ValueError('invalid SDK version input')
     graph = json.loads(manifest.read_text())
-    if graph['schemaVersion'] != 1 or graph.get('toolchain') != {'sdkVersion': '10.0.400', 'graphEngine': 'ProjectGraph', 'contractVersion': 1}:
+    if graph['schemaVersion'] != 1 or graph.get('toolchain') != {'sdkVersion': sdk_version, 'graphEngine': 'ProjectGraph', 'contractVersion': 1}:
         raise ValueError('unsupported graph schema')
     nodes = {n['id']: n for n in graph['nodes']}
     if len(nodes) != len(graph['nodes']) or not nodes:
@@ -176,10 +183,10 @@ def _prepare(workspace, manifest, output, *, environment=None, tests=None, _leas
         raise ValueError('invalid entry points')
     # Check every exported file against the producer manifest before publishing.
     # Match the exporter's normalization, including NuGet's derived dgspec hash.
-    roots = {'workspace': workspace, 'dotnet': DOTNET_ROOT,
+    roots = {'workspace': workspace, 'dotnet': dotnet_root,
              'packages': workspace / '.nuget/packages', 'adapter': ROOT / 'tools/GraphExport', 'nix': Path('/nix/store')}
     inputs = graph.get('graphInputs', []) + [item for node in nodes.values() for item in node['inputs']]
-    external_imports = nix_imports(inputs, DOTNET_ROOT)
+    external_imports = nix_imports(inputs, dotnet_root)
     for item in inputs:
         prefix, _, logical = item['path'].partition('/')
         if prefix not in roots or not logical or Path(logical).is_absolute() or '..' in Path(logical).parts:
@@ -200,34 +207,49 @@ def _prepare(workspace, manifest, output, *, environment=None, tests=None, _leas
                 # System.Text.Json's default encoder escapes HTML-sensitive ASCII.
                 for character in ('<', '>', '&', "'", '+'):
                     text = text.replace(character, '\\u' + format(ord(character), '04X'))
-            contents = text.replace(str(workspace), '$WORKSPACE').replace(str(workspace / '.nuget/packages'), '$PACKAGES').replace(str(DOTNET_ROOT), '$DOTNET').encode()
+            contents = text.replace(str(workspace), '$WORKSPACE').replace(str(workspace / '.nuget/packages'), '$PACKAGES').replace(str(dotnet_root), '$DOTNET').encode()
         if hashlib.sha256(contents).hexdigest() != item['sha256']:
             raise ValueError(('hash-mismatch: ' if item['kind'] == 'package' else 'stale-manifest: ') + 'stale graph input: ' + item['path'])
     if not graph.get('entryRequests'):
         raise ValueError('graph discovery request missing; regenerate manifest')
     output.mkdir(parents=True, exist_ok=False)
-    if not _leased:
+    if _leased:
+        built_tools = {'ReplayPlugin': ROOT / 'tools/ReplayPlugin/bin/Release/net10.0/ReplayPlugin.dll'}
+    else:
+        selected_sdk = dotnet_root / 'sdk' / sdk_version
+        if not (selected_sdk / 'MSBuild.dll').is_file():
+            raise ValueError('selected SDK engine missing: ' + str(selected_sdk))
+        environment = dict(os.environ if environment is None else environment,
+            DOTNET_ROOT=str(dotnet_root), DOTNET_HOST_PATH=str(dotnet_root / 'dotnet'), MSBUILD_EXE_PATH=str(selected_sdk / 'MSBuild.dll'),
+            MSBuildSDKsPath=str(selected_sdk / 'Sdks'),
+            DOTNET_MSBUILD_SDK_RESOLVER_CLI_DIR=str(dotnet_root),
+            DOTNET_MSBUILD_SDK_RESOLVER_SDKS_DIR=str(selected_sdk / 'Sdks'),
+            DOTNET_MSBUILD_SDK_RESOLVER_SDKS_VER=sdk_version)
+        built_tools = {}
         for name in ('GraphExport', 'ReplayPlugin', 'ActionRunner') + (('TestRunner',) if tests else ()):
-            result = subprocess.run([str(DOTNET_ROOT / 'dotnet'), 'build', str(ROOT / 'tools' / name), '-c', 'Release', '--nologo'], cwd=ROOT, text=True, capture_output=True, env=environment)
+            arguments = msbuild_tool.build_arguments(ROOT / 'tools' / name, tool_framework, engine_root) if name in ('GraphExport', 'ReplayPlugin') else ['msbuild', str(ROOT / 'tools' / name), '-restore', '-target:Build', '-property:Configuration=Release', '-nologo']
+            result = subprocess.run([str(dotnet_root / 'dotnet'), 'exec', str(dotnet_root / 'sdk' / sdk_version / 'MSBuild.dll'), *arguments[1:]], cwd=ROOT, text=True, capture_output=True, env=environment)
             (output / (name + '-build.log')).write_text(result.stdout + result.stderr)
             if result.returncode:
                 raise RuntimeError(name + ' build failed: ' + result.stdout + result.stderr)
+            if name in ('GraphExport', 'ReplayPlugin'):
+                built_tools[name] = msbuild_tool.output_path(result.stdout, name)
         # Hashes cover present inputs only. Re-evaluation also discovers new globs,
         # previously absent imports and changed conditional project references.
         request = output.parent / 'discovery-request.json'
         refreshed = output.parent / 'discovery.json'
         request.write_text(json.dumps(dict(schemaVersion=1, workspace=str(workspace),
-            dotnetRoot=str(DOTNET_ROOT), sdkVersion='10.0.400',
+            dotnetRoot=str(dotnet_root), sdkVersion=sdk_version,
             packageRoot=str(workspace / '.nuget/packages'),
             entryPoints=graph['entryRequests'], output=str(refreshed))))
-        result = subprocess.run([str(DOTNET_ROOT / 'dotnet'),
-            str(ROOT / 'tools/GraphExport/bin/Release/net10.0/GraphExport.dll'),
+        result = subprocess.run([str(dotnet_root / 'dotnet'),
+            str(built_tools['GraphExport']),
             '--request', str(request)], cwd=workspace, text=True, capture_output=True, env=environment)
         if result.returncode:
             raise ValueError('graph discovery revalidation failed: ' + result.stdout + result.stderr)
         if json.loads(refreshed.read_text()) != graph:
             raise ValueError('stale-manifest: stale graph discovery: regenerate manifest')
-    shutil.copyfile(ROOT / 'tools/ReplayPlugin/bin/Release/net10.0/ReplayPlugin.dll', output / 'ReplayPlugin.dll')
+    shutil.copyfile(built_tools['ReplayPlugin'], output / 'ReplayPlugin.dll')
     (output / 'runner').mkdir()
     for suffix in ('.dll', '.deps.json', '.runtimeconfig.json'):
         shutil.copyfile(ROOT / ('tools/ActionRunner/bin/Release/net10.0/ActionRunner' + suffix), output / ('runner/ActionRunner' + suffix))
@@ -246,8 +268,8 @@ def _prepare(workspace, manifest, output, *, environment=None, tests=None, _leas
     targets.write_text(targets.read_text().replace('</Project>', '<Target Name="GraphCompileEvidence" BeforeTargets="CoreCompile"><Message Importance="high" Text="RULES_MSBUILD_COMPILE:$(RULES_MSBUILD_GRAPH_PROJECT)" /></Target></Project>'))
     for name in ('msbuild.bzl', 'graph.bzl'):
         shutil.copyfile(ROOT / 'bazel' / name, output / name)
-    (output / 'MODULE.bazel').write_text('module(name = "msbuild_graph")\n\nlocal_dotnet_sdk = use_repo_rule("//:msbuild.bzl", "local_dotnet_sdk")\n' + call('local_dotnet_sdk', name='dotnet', path=str(DOTNET_ROOT), external_imports=external_imports))
-    (output / 'host-identity.json').write_text(json.dumps({'platform': platform.platform(), 'machine': platform.machine(), 'dotnet': str(DOTNET_ROOT), 'policyRevision': 1}))
+    (output / 'MODULE.bazel').write_text('module(name = "msbuild_graph")\n\nlocal_dotnet_sdk = use_repo_rule("//:msbuild.bzl", "local_dotnet_sdk")\n' + call('local_dotnet_sdk', name='dotnet', path=str(dotnet_root), external_imports=external_imports))
+    (output / 'host-identity.json').write_text(json.dumps({'platform': platform.platform(), 'machine': platform.machine(), 'dotnet': str(dotnet_root), 'policyRevision': 1}))
     (output / 'restore').mkdir()
     write_build(workspace, graph, output, tests, closures=closures)
     (output / 'graph.json').write_text(json.dumps(graph, indent=2))
@@ -258,7 +280,7 @@ def write_build(workspace, graph, output, tests=None, *, closures=None):
     nodes = {node['id']: node for node in graph['nodes']}
     if closures is None:
         closures = dependency_closures(nodes)
-    settings = dict(plugin='ReplayPlugin.dll', build_props='runner/Action.props', build_targets='runner/Action.targets', runner='runner/ActionRunner.dll', runner_support=['runner/ActionRunner.deps.json', 'runner/ActionRunner.runtimeconfig.json'], sdk='@dotnet//:files', dotnet='@dotnet//:sdk/dotnet', host_identity='host-identity.json')
+    settings = dict(sdk_version=graph['toolchain']['sdkVersion'], plugin='ReplayPlugin.dll', build_props='runner/Action.props', build_targets='runner/Action.targets', runner='runner/ActionRunner.dll', runner_support=['runner/ActionRunner.deps.json', 'runner/ActionRunner.runtimeconfig.json'], sdk='@dotnet//:files', dotnet='@dotnet//:sdk/dotnet', host_identity='host-identity.json')
     build = 'load(":graph.bzl", "graph_project")\n'
     if tests: build += 'load(":graph_test.bzl", "graph_test")\n'
     for identity, node in sorted(nodes.items()):
@@ -309,5 +331,9 @@ if __name__ == '__main__':
     for option in ('workspace', 'manifest', 'output'):
         parser.add_argument('--' + option, required=True, type=Path)
     parser.add_argument('--tests', type=Path, help='JSON list of explicit node/data/expectedTests declarations')
+    parser.add_argument('--sdk-root', type=Path, help='Declared SDK payload root')
+    parser.add_argument('--sdk-version', help='Exact SDK version, independent of project target frameworks')
+    parser.add_argument('--tool-target-framework', choices=('net10.0', 'net11.0'), help='Framework for GraphExport and ReplayPlugin, independent of application TFMs')
+    parser.add_argument('--msbuild-engine-root', type=Path, help='Directory containing the engine assemblies referenced by the tools')
     args = parser.parse_args()
-    prepare(args.workspace, args.manifest, args.output, tests=json.loads(args.tests.read_text()) if args.tests else None)
+    prepare(args.workspace, args.manifest, args.output, tests=json.loads(args.tests.read_text()) if args.tests else None, tool_framework=args.tool_target_framework, engine_root=args.msbuild_engine_root, sdk_root=args.sdk_root, sdk_version=args.sdk_version)

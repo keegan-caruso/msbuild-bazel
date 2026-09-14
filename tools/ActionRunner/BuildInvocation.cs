@@ -14,8 +14,7 @@ internal sealed record BuildInvocation(string Executable, string WorkingDirector
     private static BuildInvocation Create(ActionRequest request, Workspace workspace, string bundle, string dotnet) => new(
         dotnet,
         workspace.Root,
-        [.. (request.LoaderJit is null ? new[] { "msbuild" } :
-            new[] { "exec", Path.Combine(workspace.SdkRoot, "sdk", "10.0.400", "MSBuild.dll") }),
+        [.. EngineArguments(request, workspace.SdkRoot),
             $"{request.Project}/{request.Project}.csproj",
             "-t:" + (request.Project == ProjectKind.Shared ? SharedTargets : "Build"), "-p:Configuration=Release",
             "-graphBuild", "-isolateProjects", "-nodeReuse:false", "-nologo", "-verbosity:normal"],
@@ -23,6 +22,12 @@ internal sealed record BuildInvocation(string Executable, string WorkingDirector
         {
             ["RULES_MSBUILD_LOADER_TRACE_PATH"] = Path.Combine(workspace.Diagnostics, "loader.log"),
             ["DOTNET_ROOT"] = Path.GetDirectoryName(dotnet)!,
+            ["DOTNET_HOST_PATH"] = dotnet,
+            ["MSBUILD_EXE_PATH"] = EngineArguments(request, workspace.SdkRoot)[1],
+            ["MSBuildSDKsPath"] = Path.Combine(workspace.SdkRoot, "sdk", request.SdkVersion, "Sdks"),
+            ["DOTNET_MSBUILD_SDK_RESOLVER_CLI_DIR"] = workspace.SdkRoot,
+            ["DOTNET_MSBUILD_SDK_RESOLVER_SDKS_DIR"] = Path.Combine(workspace.SdkRoot, "sdk", request.SdkVersion, "Sdks"),
+            ["DOTNET_MSBUILD_SDK_RESOLVER_SDKS_VER"] = request.SdkVersion,
             ["DOTNET_CLI_HOME"] = Path.Combine(workspace.Scratch, "home"),
             ["NUGET_PACKAGES"] = Path.Combine(workspace.Root, ".nuget/packages"),
             ["DOTNET_NOLOGO"] = "1",
@@ -39,6 +44,18 @@ internal sealed record BuildInvocation(string Executable, string WorkingDirector
             ["DirectoryBuildPropsPath"] = Path.GetFullPath(request.BuildProps),
             ["DirectoryBuildTargetsPath"] = Path.GetFullPath(request.BuildTargets)
         });
+
+    internal static string[] EngineArguments(ActionRequest request, string sdkRoot)
+    {
+        var version = request.SdkVersion;
+        if (string.IsNullOrEmpty(version) || version is "." or ".." ||
+            version.Any(c => !char.IsAsciiLetterOrDigit(c) && c != '.' && c != '-'))
+            throw new InvalidDataException("invalid SDK version input");
+        var engine = Path.Combine(sdkRoot, "sdk", version, "MSBuild.dll");
+        if (!File.Exists(engine))
+            throw new InvalidDataException("selected SDK engine missing: " + engine);
+        return ["exec", engine];
+    }
 
     public ProcessStartInfo CreateStartInfo()
     {

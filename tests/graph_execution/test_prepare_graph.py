@@ -33,6 +33,29 @@ class PreparationRejection(unittest.TestCase):
             prepare(self.workspace, manifest, self.root / 'generated')
         self.assertFalse((self.root / 'generated').exists())
 
+    def test_leased_preparation_rejects_unqualified_toolchain_overrides(self):
+        from prepare_graph import _prepare
+        for options in ({'sdk_version': '11.0.100-test'}, {'sdk_root': self.root},
+                        {'tool_framework': 'net11.0'}, {'engine_root': self.root}):
+            with self.subTest(options=options), self.assertRaisesRegex(ValueError, 'qualified default toolchain'):
+                _prepare(self.workspace, self.root / 'absent.json', self.root / 'generated', _leased=True, **options)
+        self.assertFalse((self.root / 'generated').exists())
+
+    def test_selected_sdk_must_match_discovery(self):
+        manifest = self.root / 'graph.json'
+        manifest.write_text(json.dumps(self.graph))
+        with self.assertRaisesRegex(ValueError, 'unsupported graph schema'):
+            prepare(self.workspace, manifest, self.root / 'generated', sdk_version='11.0.100-test')
+        self.assertFalse((self.root / 'generated').exists())
+
+    def test_matching_alternate_sdk_passes_schema_validation(self):
+        self.graph['toolchain']['sdkVersion'] = '11.0.100-test'
+        manifest = self.root / 'graph.json'
+        manifest.write_text(json.dumps(self.graph))
+        with self.assertRaisesRegex(ValueError, 'graph discovery request missing'):
+            prepare(self.workspace, manifest, self.root / 'generated', sdk_version='11.0.100-test')
+        self.assertFalse((self.root / 'generated').exists())
+
     def test_same_path_configured_output_collision_rejected(self):
         self.node['execution'] = dict(assetsFile='workspace/App/obj/project.assets.json',
             outputDirectory='workspace/App/bin/Release/net10.0', referenceDirectory='workspace/App/obj/Release/net10.0/ref')

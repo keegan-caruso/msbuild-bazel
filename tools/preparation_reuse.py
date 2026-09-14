@@ -24,7 +24,8 @@ POLICY = 'leased-preparation-v1'
 
 def controller():
     paths = [*sorted((ROOT / 'tools').glob('*.py')),
-             *sorted((ROOT / 'tools').glob('*.json'))]
+             *sorted((ROOT / 'tools').glob('*.json')),
+             *sorted((ROOT / 'tools').glob('*.props'))]
     return digest({str(p.relative_to(ROOT)): p.read_bytes().hex() for p in paths})
 
 

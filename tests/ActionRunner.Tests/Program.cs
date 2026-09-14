@@ -30,6 +30,23 @@ try
          "native_manifest":null,"native_files":[]}
         """;
     AssetRoleTests.Run();
+    var toolchainRequestPath = Path.Combine(directory.FullName, "toolchain-request.json");
+    File.WriteAllText(toolchainRequestPath, validRequest);
+    var toolchainRequest = JsonFiles.ReadRequest(toolchainRequestPath);
+    var selectedSdk = Path.Combine(directory.FullName, "sdk", "11.0.100-test");
+    Directory.CreateDirectory(selectedSdk);
+    File.WriteAllText(Path.Combine(selectedSdk, "MSBuild.dll"), "selected engine");
+    Check(BuildInvocation.EngineArguments(toolchainRequest with { SdkVersion = "11.0.100-test" }, directory.FullName)
+        .SequenceEqual(new[] { "exec", Path.Combine(selectedSdk, "MSBuild.dll") }), "exact selected engine");
+    foreach (var invalidSdk in new[] { "../escape", "", "10.0.999" })
+    {
+        try
+        {
+            BuildInvocation.EngineArguments(toolchainRequest with { SdkVersion = invalidSdk }, directory.FullName);
+            throw new InvalidOperationException("invalid or absent SDK accepted");
+        }
+        catch (InvalidDataException) { }
+    }
     var payload = Path.Combine(directory.FullName, "payload.txt");
     File.WriteAllText(payload, "package payload");
     var link = Path.Combine(directory.FullName, "payload-link");

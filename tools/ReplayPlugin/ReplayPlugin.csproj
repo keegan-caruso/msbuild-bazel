@@ -1,13 +1,13 @@
 <Project Sdk="Microsoft.NET.Sdk">
+  <Import Project="../MSBuildTool.props" />
   <PropertyGroup>
-    <TargetFramework>net10.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
   </PropertyGroup>
   <ItemGroup>
-    <Reference Include="Microsoft.Build" HintPath="$(MSBuildBinPath)/Microsoft.Build.dll" Private="false" />
-    <Reference Include="Microsoft.Build.Framework" HintPath="$(MSBuildBinPath)/Microsoft.Build.Framework.dll" Private="false" />
-    <Reference Include="Microsoft.Build.Utilities.Core" HintPath="$(MSBuildBinPath)/Microsoft.Build.Utilities.Core.dll" Private="false" />
+    <Reference Include="Microsoft.Build" HintPath="$(RulesMSBuildEngineRoot)/Microsoft.Build.dll" Private="false" />
+    <Reference Include="Microsoft.Build.Framework" HintPath="$(RulesMSBuildEngineRoot)/Microsoft.Build.Framework.dll" Private="false" />
+    <Reference Include="Microsoft.Build.Utilities.Core" HintPath="$(RulesMSBuildEngineRoot)/Microsoft.Build.Utilities.Core.dll" Private="false" />
   </ItemGroup>
   <ItemGroup><Compile Include="../NerdbankProject.cs" Link="NerdbankProject.cs" /></ItemGroup>
 </Project>

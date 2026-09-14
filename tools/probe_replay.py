@@ -12,6 +12,7 @@ import sys
 import xml.etree.ElementTree as ET
 
 from adapter import DOTNET, ROOT
+import msbuild_tool
 
 
 def digest(path):
@@ -47,7 +48,7 @@ def artifacts(bundle, workspace, capture=False):
         shutil.copy2(bundle / 'artifacts' / entry['path'], destination)
 
 
-def probe(output):
+def probe(output, *, tool_framework=None, engine_root=None):
     output.mkdir(parents=True, exist_ok=False)
     report = dict(schemaVersion=1, platform=platform.platform(), architecture=platform.machine(), cases={})
 
@@ -77,11 +78,11 @@ def probe(output):
         if result['returncode']:
             raise RuntimeError('command failed; see ' + result['log'])
 
-    require(run('pluginBuild', ROOT, ['build', str(ROOT / 'tools/ReplayPlugin'), '-c', 'Release', '--nologo']))
+    require(run('pluginBuild', ROOT, msbuild_tool.build_arguments(ROOT / 'tools/ReplayPlugin', tool_framework, engine_root)))
     version_env = dict(os.environ, DOTNET_CLI_HOME=str(output / 'dotnet-home'), DOTNET_NOLOGO='1')
     report['sdkVersion'] = subprocess.check_output([str(DOTNET), '--version'], cwd=ROOT, env=version_env, text=True).strip()
     report['engineVersion'] = subprocess.check_output([str(DOTNET), 'msbuild', '-version', '-nologo'], cwd=ROOT, env=version_env, text=True).strip()
-    plugin = ROOT / 'tools/ReplayPlugin/bin/Release/net10.0/ReplayPlugin.dll'
+    plugin = msbuild_tool.output_path((output / 'pluginBuild.log').read_text(), 'ReplayPlugin')
     bundle = output / 'bundle'
     bundle.mkdir()
 
@@ -189,9 +190,11 @@ def probe(output):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--output', type=Path, required=True)
+    parser.add_argument('--tool-target-framework', choices=('net10.0', 'net11.0'))
+    parser.add_argument('--msbuild-engine-root', type=Path)
     args = parser.parse_args()
     try:
-        probe(args.output.resolve())
+        probe(args.output.resolve(), tool_framework=args.tool_target_framework, engine_root=args.msbuild_engine_root)
     except (OSError, ValueError, RuntimeError, subprocess.SubprocessError) as error:
         print(error, file=sys.stderr)
         sys.exit(1)

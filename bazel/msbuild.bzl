@@ -14,6 +14,7 @@ def _msbuild_project_impl(ctx):
     dependency = ctx.attr.dependency[MsbuildBundle].directory if ctx.attr.dependency else None
     ctx.actions.write(request, json.encode({
         "project": ctx.attr.project,
+        "sdk_version": ctx.attr.sdk_version,
         "sources": [{"source": f.path, "destination": f.short_path.removeprefix("src/")} for f in ctx.files.srcs],
         "restore": [f.path for f in ctx.files.restore],
         "packages": [{"source": f.path, "destination": f.short_path.removeprefix("packages/")} for f in ctx.files.packages],
@@ -63,6 +64,7 @@ msbuild_project = rule(
         "build_targets": attr.label(allow_single_file = True, mandatory = True),
         "runner": attr.label(allow_single_file = True, mandatory = True),
         "runner_support": attr.label_list(allow_files = True),
+        "sdk_version": attr.string(default = "10.0.400", doc = "Exact SDK directory version in the declared SDK payload; independent of project target frameworks."),
         "sdk": attr.label(mandatory = True),
         "dotnet": attr.label(allow_single_file = True, executable = True, cfg = "exec", mandatory = True),
         "native_runtime": attr.label(allow_files = True),

@@ -17,11 +17,12 @@ public sealed record Payload(int SchemaVersion, string SdkVersion, string Engine
 public sealed class ReplayPlugin : ProjectCachePluginBase
 {
     private static readonly JsonSerializerOptions Json = new() { WriteIndented = true, PropertyNamingPolicy = JsonNamingPolicy.CamelCase };
-    private static readonly Dictionary<string, string> RootMappings = new()
+    private string sdkVersion = "";
+    private Dictionary<string, string> RootMappings => new()
     {
         ["${WORKSPACE}"] = "action-workspace",
         ["${NUGET}"] = "${WORKSPACE}/.nuget/packages",
-        ["${SDK}"] = "dotnet-sdk:10.0.400"
+        ["${SDK}"] = "dotnet-sdk:" + sdkVersion
     };
     private string workspace = "", bundle = "", mode = "";
     private string? graphProject;
@@ -57,6 +58,10 @@ public sealed class ReplayPlugin : ProjectCachePluginBase
         }.OrderByDescending(pair => pair.Value.Length).ToArray();
         if (context.Graph != null)
         {
+            var sdkVersions = context.Graph.ProjectNodes.Select(node => node.ProjectInstance.GetPropertyValue("NETCoreSdkVersion"))
+                .Where(version => !string.IsNullOrEmpty(version)).Distinct(StringComparer.Ordinal).ToArray();
+            if (sdkVersions.Length != 1) throw new InvalidOperationException("dependency SDK identity missing or ambiguous");
+            sdkVersion = sdkVersions[0];
             if (context.Graph.ProjectNodes.Any(node => !NerdbankProject.IsProject(node.ProjectInstance.FullPath, Path.Combine(workspace, ".nuget/packages")) && node.ProjectInstance.GetPropertyValue("TargetFramework") is not ("net10.0" or "net8.0" or "netstandard2.0")))
                 throw new InvalidOperationException("dependency framework must be net10.0 or netstandard2.0");
             if (graphProject is not null)
@@ -135,7 +140,7 @@ public sealed class ReplayPlugin : ProjectCachePluginBase
         var payloadPath = Path.Combine(dependencyBundle, "results.json");
         if (!File.Exists(payloadPath)) throw new InvalidOperationException("dependency payload missing");
         var payload = JsonSerializer.Deserialize<Payload>(File.ReadAllText(payloadPath), Json)!;
-        if (payload.SchemaVersion != 1 || payload.SdkVersion != "10.0.400" || payload.EngineVersion != Engine ||
+        if (payload.SchemaVersion != 1 || payload.SdkVersion != sdkVersion || payload.EngineVersion != Engine ||
             payload.Project != project || payload.TargetFramework != request.ProjectInstance.GetPropertyValue("TargetFramework")) throw new InvalidOperationException("dependency identity/version mismatch");
         if (payload.RootMappings.Count != RootMappings.Count || RootMappings.Any(pair =>
             !payload.RootMappings.TryGetValue(pair.Key, out var value) || value != pair.Value))
@@ -186,7 +191,7 @@ public sealed class ReplayPlugin : ProjectCachePluginBase
                     .ToDictionary(name => name, name => Normalize(((ITaskItem2)item).GetMetadataValueEscaped(name))))).ToArray();
         });
         if (!requested.IsSubsetOf(targets.Keys)) throw new InvalidOperationException("dependency requested target result missing");
-        File.WriteAllText(PayloadPath, JsonSerializer.Serialize(new Payload(1, "10.0.400", Engine,
+        File.WriteAllText(PayloadPath, JsonSerializer.Serialize(new Payload(1, sdkVersion, Engine,
             graphProject ?? "Shared/Shared.csproj", capturedFramework, RootMappings, Properties(context.GlobalProperties), context.Targets.ToArray(), targets), Json));
         Console.WriteLine("RULES_MSBUILD_REPLAY_CAPTURE:" + string.Join(";", targets.Keys));
         return Task.CompletedTask;

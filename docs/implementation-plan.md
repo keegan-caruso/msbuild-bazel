@@ -134,6 +134,15 @@ The managed binary-package milestone has a test-first
 cache, relocation, upgrade and rejection evidence. Broader NuGet behavior is
 still outside this measured boundary.
 
+## Adapter tool build inputs
+
+GraphExport and ReplayPlugin accept explicit tool-framework and reference-engine
+inputs while preserving the net10.0/current-engine defaults. The [tool-input
+findings](tool-input-findings.md) record native compilation/loading, selected
+18.10.1 replay with SDK-10 application semantics, and actual cross-engine payload
+rejection. Full new-engine graph/cache qualification remains separate; a default
+diamond MSB4252 failure also reproduces on the unchanged baseline.
+
 ## SDK baseline refresh
 
 The SDK 10.0.400 upgrade passes the targeted native macOS regression gates, separately from R09 preparation reuse.
@@ -297,3 +306,11 @@ oracle, 11 mutation/recovery cases, pinned path/line/column encoding and explici
 compiler feature failures. Language-independent analyzer package payloads retain
 archive and per-file integrity guards. Acquisition, native Build/Test and Native
 AOT/Pack qualification are explicitly separate.
+
+## Rule-selected build SDK
+
+[Explicit build SDK inputs](rule-toolchain-findings.md) connect `sdk_version` on
+both project rules with preparation's `sdk_root`/`sdk_version`, exact engine
+execution, compiler host selection and replay SDK identity. Project target
+framework declarations remain independent. The findings bound native qualification
+and describe the complete SDK payload requirement.

@@ -17,12 +17,13 @@ from test_export_graph import write_fixture
 
 BAZEL = Path(os.environ.get('RULES_MSBUILD_BAZEL', ROOT / '.tools/bin/bazel'))
 
-def probe(output, root_project=False, selected_reference=False):
+def probe(output, root_project=False, selected_reference=False, *, sdk_root=None, sdk_version="10.0.400", tool_framework=None):
     with BazelSession(output) as bazel:
-        return _probe(output, root_project, selected_reference, bazel)
+        return _probe(output, root_project, selected_reference, bazel, sdk_root, sdk_version, tool_framework)
 
 
-def _probe(output, root_project, selected_reference, bazel):
+def _probe(output, root_project, selected_reference, bazel, sdk_root, sdk_version, tool_framework):
+    dotnet_root = Path(sdk_root).resolve() if sdk_root else DOTNET_ROOT
     output = output.resolve()
     output.mkdir(parents=True, exist_ok=False)
     workspace = output / 'preparation'
@@ -49,16 +50,18 @@ def _probe(output, root_project, selected_reference, bazel):
         (output / (name + '.log')).write_text(result.stdout)
         if result.returncode: raise RuntimeError(name + ' failed: ' + result.stdout)
         return result.stdout.strip()
-    dotnet = DOTNET_ROOT / 'dotnet'
-    run('exporter-build', [dotnet, 'build', ROOT / 'tools/GraphExport', '-c', 'Release', '--nologo'], ROOT)
-    run('restore', [dotnet, 'msbuild', entry, '-t:Restore', '-p:Configuration=Release', '-nologo'])
+    dotnet = dotnet_root / 'dotnet'
+    engine = dotnet_root / 'sdk' / sdk_version / 'MSBuild.dll'
+    environment.update(DOTNET_ROOT=str(dotnet_root), DOTNET_HOST_PATH=str(dotnet_root / 'dotnet'), MSBuildSDKsPath=str(engine.parent / 'Sdks'), DOTNET_MSBUILD_SDK_RESOLVER_CLI_DIR=str(dotnet_root), DOTNET_MSBUILD_SDK_RESOLVER_SDKS_DIR=str(engine.parent / 'Sdks'), DOTNET_MSBUILD_SDK_RESOLVER_SDKS_VER=sdk_version)
+    run('exporter-build', [dotnet, 'exec', engine, ROOT / 'tools/GraphExport/GraphExport.csproj', '-restore', '-t:Build', '-p:Configuration=Release', '-p:RulesMSBuildToolTargetFramework=' + (tool_framework or 'net10.0'), '-nologo'], ROOT)
+    run('restore', [dotnet, 'exec', engine, entry, '-t:Restore', '-p:Configuration=Release', '-nologo'])
     manifest = output / 'manifest.json'
     request = output / 'export-request.json'
-    request.write_text(json.dumps(dict(schemaVersion=1, workspace=str(workspace), dotnetRoot=str(DOTNET_ROOT), sdkVersion='10.0.400', packageRoot=str(workspace / '.nuget/packages'), entryPoints=[dict(project=entry, globalProperties={'Configuration':'Release'})], output=str(manifest))))
-    run('export', [dotnet, ROOT / 'tools/GraphExport/bin/Release/net10.0/GraphExport.dll', '--request', request])
+    request.write_text(json.dumps(dict(schemaVersion=1, workspace=str(workspace), dotnetRoot=str(dotnet_root), sdkVersion=sdk_version, packageRoot=str(workspace / '.nuget/packages'), entryPoints=[dict(project=entry, globalProperties={'Configuration':'Release'})], output=str(manifest))))
+    run('export', [dotnet, ROOT / ('tools/GraphExport/bin/Release/' + (tool_framework or 'net10.0') + '/GraphExport.dll'), '--request', request])
     generated = output / 'workspace'
-    graph = prepare(workspace, manifest, generated)
-    run('baseline', [dotnet, 'msbuild', app_project if selected_reference else entry, '-t:Build', '-p:Configuration=Release', *([] if selected_reference else ['-graphBuild', '-isolateProjects']), '-nologo'])
+    graph = prepare(workspace, manifest, generated, sdk_root=dotnet_root, sdk_version=sdk_version, tool_framework=tool_framework)
+    run('baseline', [dotnet, 'exec', engine, app_project if selected_reference else entry, '-t:Build', '-p:Configuration=Release', *([] if selected_reference else ['-graphBuild', '-isolateProjects']), '-nologo'])
     baseline = run('baseline-app', [dotnet, workspace / binary])
     shutil.rmtree(workspace)
     strategy = 'darwin-sandbox' if platform.system() == 'Darwin' else 'linux-sandbox'
@@ -85,7 +88,10 @@ def _probe(output, root_project, selected_reference, bazel):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--output', type=Path, required=True)
+    parser.add_argument('--sdk-root', type=Path)
+    parser.add_argument('--sdk-version', default='10.0.400')
+    parser.add_argument('--tool-target-framework', choices=('net10.0', 'net11.0'))
     parser.add_argument('--root-project', action='store_true')
     parser.add_argument('--selected-reference', action='store_true')
     args = parser.parse_args()
-    print(json.dumps(probe(args.output, args.root_project, args.selected_reference), indent=2))
+    print(json.dumps(probe(args.output, args.root_project, args.selected_reference, sdk_root=args.sdk_root, sdk_version=args.sdk_version, tool_framework=args.tool_target_framework), indent=2))
