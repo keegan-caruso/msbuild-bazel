@@ -3,6 +3,7 @@
 This is a capture/validation boundary, not a preparation cache. See
 docs/discovery-contract.md for the deliberately restricted authored XML grammar.
 """
+from contextlib import contextmanager
 import fcntl
 import json
 import os
@@ -203,7 +204,8 @@ def validate_certificate(value):
         raise IdentityError('incomplete discovery certificate') from error
 
 
-def qualify(source, state, entries, *, candidate=None):
+@contextmanager
+def qualified_view(source, state, entries, *, candidate=None):
     """Capture one supported full GraphExport invocation; production reuse stays off."""
     if candidate is not None: validate_certificate(candidate)
     if CONTROLLER_DIGEST != digest({name: (ROOT / 'tools' / name).read_text() for name in CONTROLLER_FILES}):
@@ -267,7 +269,14 @@ def qualify(source, state, entries, *, candidate=None):
             result = dict(eligible=unchanged, unchanged=unchanged, reuseEnabled=False,
                           discoveryExecuted=False, identity=before, operation='GraphExport')
             (output / 'validation.json').write_text(json.dumps(result, indent=2) + '\n')
-            return result
+            yield result
+            if not compare(before, capture(roots, request=invocation, environment=env, host=host))["unchanged"]:
+                raise IdentityError("leased discovery inputs changed during consumption")
+            # A stale negative observation already caused a miss. Only an
+            # accepted candidate promises those paths remain absent during use.
+            if unchanged and any(Path(path).exists() for path in candidate["externalAbsent"]):
+                raise IdentityError("external namespace changed during consumption")
+            return
 
         def run(name, request):
             request_path = output / (name + '-request.json')
@@ -346,7 +355,17 @@ def qualify(source, state, entries, *, candidate=None):
                            externalAbsent=sorted(external_absent))
         certificate['sha256'] = digest(certificate)
         (output / 'certificate.json').write_text(json.dumps(certificate, indent=2) + '\n')
-        return certificate
+        yield certificate
+        if not compare(before, capture(roots, request=invocation, environment=env, host=host))["unchanged"]:
+            raise IdentityError("leased discovery inputs changed during consumption")
+        if any(Path(path).exists() for path in external_absent):
+            raise IdentityError("external namespace changed during consumption")
+
+
+def qualify(source, state, entries, *, candidate=None):
+    """Return qualification evidence; callers consuming inputs use qualified_view."""
+    with qualified_view(source, state, entries, candidate=candidate) as result:
+        return result
 
 
 if __name__ == '__main__':

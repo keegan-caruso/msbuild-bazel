@@ -10,7 +10,7 @@ separate manual workflows and are not launched by either Linux selection.
 
 | Selection | Checks |
 | --- | --- |
-| Quick | Pinned setup/source checks and repeatable setup, CI orchestration contracts, bootstrap contracts, scaffold query, owned .NET style/warnings, runner contracts, graph-export suite, core and extension Starlark analysis |
+| Quick | Pinned setup/source checks and repeatable setup, CI orchestration contracts, bootstrap contracts, preparation identity/lease/reuse regressions, scaffold query, owned .NET style/warnings, runner contracts, graph-export suite, core and extension Starlark analysis |
 | Full | Quick, then the remaining e2e modules, graph execution, handoff/discovery, graph cache, multi-language, full package cache, PrivateAssets/restore semantics, configured-node baseline/execution, lifecycle and synthetic-scale suites |
 | Nix (separate) | Existing Nix setup, tooling and runtime-closure/e2e lane; request when Nix or runtime coverage is needed |
 | macOS (separate) | Existing Starlark and selected Serilog qualification lane |

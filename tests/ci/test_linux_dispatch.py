@@ -49,6 +49,7 @@ if os.environ.get('CI_TEST_FAIL') in args:
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertTrue(any('test_action_runner.py' in call for call in calls))
         self.assertTrue(any('tests/graph' in call for call in calls))
+        self.assertTrue(any('tests/preparation_reuse' in call for call in calls))
         self.assertFalse(any('tests/graph_execution' in call for call in calls))
         self.assertFalse(any('test_bazel_boundary.py' in call for call in calls))
 

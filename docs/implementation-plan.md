@@ -35,9 +35,21 @@ targets and the pinned Serilog library. It stages a private input view, hashes
 complete declared trees to cover the measured hook gaps, verifies qualified
 SDK/package imports, rejects unsupported executable XML, and runs discovery in
 a native macOS sandbox. Candidate validation rechecks content and external
-absences without running discovery. Production prepared-artifact reuse,
-publication/recovery and consumption under a retained lease remain RUL-6;
-validation-cost measurement remains RUL-7.
+absences without running discovery. The [RUL-6 preparation cache](preparation-reuse-findings.md) adds opt-in
+prepared-artifact reuse, integrity verification, atomic publication/recovery and
+consumption under a retained lease. Validation-cost measurement remains RUL-7.
+
+RUL-6 native macOS qualification (2026-09-09) passes all 17 small-graph
+reuse/publication cases, including two-process serialization and producer-free
+recovered execution. The pinned Serilog library also passes cold/recovered
+preparation, a fresh native build and an executable consumer after producer
+deletion. Forty preparation unit tests and 31 focused graph
+materialization/selection/closure regressions pass; repository and .NET style
+checks pass. See [commands, evidence and limitations](preparation-reuse-findings.md).
+No Linux or CI workflow was dispatched.
+The 2026-09-14 readiness correction distinguishes an already-invalid external
+absence from a mutation during accepted consumption. All 43 preparation tests
+pass, including three new lease/fallback regressions; see the linked findings.
 
 Final RUL-5 qualification (2026-09-08, native macOS ARM64, Nix SDK 10.0.400):
 31 identity/contract unit tests and 22 MSBuild diagnostic tests pass. The final

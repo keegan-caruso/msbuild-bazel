@@ -136,7 +136,7 @@ def prepare(workspace, manifest, output, *, environment=None, tests=None):
         return graph
 
 
-def _prepare(workspace, manifest, output, *, environment=None, tests=None):
+def _prepare(workspace, manifest, output, *, environment=None, tests=None, _leased=False):
     workspace, manifest, output = map(lambda p: Path(p).resolve(), (workspace, manifest, output))
     graph = json.loads(manifest.read_text())
     if graph['schemaVersion'] != 1 or graph.get('toolchain') != {'sdkVersion': '10.0.400', 'graphEngine': 'ProjectGraph', 'contractVersion': 1}:
@@ -206,26 +206,27 @@ def _prepare(workspace, manifest, output, *, environment=None, tests=None):
     if not graph.get('entryRequests'):
         raise ValueError('graph discovery request missing; regenerate manifest')
     output.mkdir(parents=True, exist_ok=False)
-    for name in ('GraphExport', 'ReplayPlugin', 'ActionRunner') + (('TestRunner',) if tests else ()):
-        result = subprocess.run([str(DOTNET_ROOT / 'dotnet'), 'build', str(ROOT / 'tools' / name), '-c', 'Release', '--nologo'], cwd=ROOT, text=True, capture_output=True, env=environment)
-        (output / (name + '-build.log')).write_text(result.stdout + result.stderr)
+    if not _leased:
+        for name in ('GraphExport', 'ReplayPlugin', 'ActionRunner') + (('TestRunner',) if tests else ()):
+            result = subprocess.run([str(DOTNET_ROOT / 'dotnet'), 'build', str(ROOT / 'tools' / name), '-c', 'Release', '--nologo'], cwd=ROOT, text=True, capture_output=True, env=environment)
+            (output / (name + '-build.log')).write_text(result.stdout + result.stderr)
+            if result.returncode:
+                raise RuntimeError(name + ' build failed: ' + result.stdout + result.stderr)
+        # Hashes cover present inputs only. Re-evaluation also discovers new globs,
+        # previously absent imports and changed conditional project references.
+        request = output.parent / 'discovery-request.json'
+        refreshed = output.parent / 'discovery.json'
+        request.write_text(json.dumps(dict(schemaVersion=1, workspace=str(workspace),
+            dotnetRoot=str(DOTNET_ROOT), sdkVersion='10.0.400',
+            packageRoot=str(workspace / '.nuget/packages'),
+            entryPoints=graph['entryRequests'], output=str(refreshed))))
+        result = subprocess.run([str(DOTNET_ROOT / 'dotnet'),
+            str(ROOT / 'tools/GraphExport/bin/Release/net10.0/GraphExport.dll'),
+            '--request', str(request)], cwd=workspace, text=True, capture_output=True, env=environment)
         if result.returncode:
-            raise RuntimeError(name + ' build failed: ' + result.stdout + result.stderr)
-    # Hashes cover present inputs only. Re-evaluation also discovers new globs,
-    # previously absent imports and changed conditional project references.
-    request = output.parent / 'discovery-request.json'
-    refreshed = output.parent / 'discovery.json'
-    request.write_text(json.dumps(dict(schemaVersion=1, workspace=str(workspace),
-        dotnetRoot=str(DOTNET_ROOT), sdkVersion='10.0.400',
-        packageRoot=str(workspace / '.nuget/packages'),
-        entryPoints=graph['entryRequests'], output=str(refreshed))))
-    result = subprocess.run([str(DOTNET_ROOT / 'dotnet'),
-        str(ROOT / 'tools/GraphExport/bin/Release/net10.0/GraphExport.dll'),
-        '--request', str(request)], cwd=workspace, text=True, capture_output=True, env=environment)
-    if result.returncode:
-        raise ValueError('graph discovery revalidation failed: ' + result.stdout + result.stderr)
-    if json.loads(refreshed.read_text()) != graph:
-        raise ValueError('stale-manifest: stale graph discovery: regenerate manifest')
+            raise ValueError('graph discovery revalidation failed: ' + result.stdout + result.stderr)
+        if json.loads(refreshed.read_text()) != graph:
+            raise ValueError('stale-manifest: stale graph discovery: regenerate manifest')
     shutil.copyfile(ROOT / 'tools/ReplayPlugin/bin/Release/net10.0/ReplayPlugin.dll', output / 'ReplayPlugin.dll')
     (output / 'runner').mkdir()
     for suffix in ('.dll', '.deps.json', '.runtimeconfig.json'):

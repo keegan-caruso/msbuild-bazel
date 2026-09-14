@@ -58,8 +58,7 @@ and Dapper.AOT add native macOS mutation, behavioral and relocated-cache evidenc
 with explicit remaining combinations. **Next:** R09 preparation reuse; see the
 [active execution order](docs/roadmap.md#active-execution-order).
 [RUL-5 discovery identity and eligibility](docs/discovery-contract.md) now cover
-the selected native macOS SDK/Serilog slice; production preparation reuse remains
-the next step. [Repeated measurements](docs/serilog-performance-findings.md) are
+the selected native macOS SDK/Serilog slice. [RUL-6 preparation reuse](docs/preparation-reuse-findings.md) adds opt-in leased reuse, integrity verification and atomic publication. [Repeated measurements](docs/serilog-performance-findings.md) are
 complete and show adapter overhead for this small graph; useful performance at
 scale, broader R03 entry points and Linux qualification remain separate.
 Later tracks cover specialized SDKs, platform workloads and independent remote
