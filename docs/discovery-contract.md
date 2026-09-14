@@ -6,8 +6,9 @@ cases and 15 pinned Serilog cases; 31 identity/contract unit tests also pass.
 The first complete identity contract covers `GraphExport`, including its SDK
 discovery targets, for Release/net10.0 on the pinned Nix SDK 10.0.400, native macOS
 ARM64. It includes the selected upstream Serilog library and small project graphs.
-It does not enable production preparation reuse. RUL-6 owns prepared-artifact
-integrity, publication, recovery and keeping the input lease through consumption.
+The standalone qualification API does not enable preparation reuse.
+[RUL-6](preparation-reuse-findings.md) integrates this boundary with prepared-artifact
+integrity, publication, recovery and a lease retained through consumption.
 
 ## Why the fallback is necessary
 
@@ -118,9 +119,10 @@ integrity and external absences, and reports whether it is unchanged **without
 executing MSBuild discovery**. A changed candidate is ineligible; request a fresh
 capture to learn its new graph. Both paths report `reuseEnabled=false` because
 neither returns a cached prepared artifact. A JSON result is evidence from that
-call, not a durable lock. RUL-6 must retain a lease through artifact verification
-and consumption and bind the complete materialization/test/tool request; it must
-not use this GraphExport certificate to skip arbitrary preparation operations.
+call, not a durable lock. The `qualified_view` context manager now retains that lease through artifact
+verification and consumption. RUL-6 uses it while binding the complete
+materialization/test/tool request; this certificate does not authorize skipping
+arbitrary preparation operations.
 
 ## Acceptance
 

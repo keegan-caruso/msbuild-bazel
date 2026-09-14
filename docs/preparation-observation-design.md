@@ -1,7 +1,7 @@
 # RUL-5: observed dependencies for preparation identity
 
 Status: the recorder and the selected [discovery identity/eligibility
-contract](discovery-contract.md) are implemented. Production reuse remains RUL-6.
+contract](discovery-contract.md) are implemented. Opt-in production reuse is implemented in [RUL-6](preparation-reuse-findings.md).
 The measured read-hook gaps require a sealed full-tree fallback for this first
 qualified slice; an observation-only key remains unqualified.
 
