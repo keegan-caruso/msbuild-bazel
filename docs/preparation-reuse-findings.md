@@ -157,3 +157,25 @@ Native validation also passes all 27 cases with the pinned Nix SDK:
 The report is `/private/tmp/rul6-external-miss-fix/report.json`, including
 `external-absence-invalidated` and `masked-external-input`. Both discovery tools
 rebuilt with zero warnings/errors. `git diff --check` passes. No CI was dispatched.
+
+## Local merge qualification (2026-09-14)
+
+GitHub full Linux run `34863017842` was rejected before the job started because
+of account billing/spending limits. The user explicitly authorized local validation
+and merge without waiting for GitHub CI; the CI-waiting follow-up was paused.
+
+Fresh validation on native macOS ARM64 with the pinned Nix environment passes:
+
+- `bash scripts/check.sh`: toolchain and Starlark formatting/lint checks.
+- `bash scripts/ci-linux.sh quick`: all local quick checks, including 43
+  preparation tests, 21 graph tests, owned .NET style/warnings and all 20 Starlark
+  tests. Log: `/private/tmp/rul6-local-quick.log`.
+- The 31 focused tests in `test_prepare_graph.py`, `test_framework_selection.py`
+  and `test_dependency_closures.py`.
+- `python3 tools/probe_preparation_reuse.py --output /private/tmp/rul6-local-merge`:
+  all 17 cases, including missing/corrupt state, interrupted publication,
+  two-process serialization, runner-input invalidation and producer-free execution
+  of two fresh native sandbox actions. Report: `/private/tmp/rul6-local-merge/report.json`.
+
+These are local macOS results. The billing-blocked GitHub run supplied no Linux
+validation evidence, and full Linux acceptance was not run locally.
