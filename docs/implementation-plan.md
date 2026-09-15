@@ -17,6 +17,18 @@ focused R17 experiment, not qualification of the full supported-version/platform
 
 ## Current status and next step
 
+The [local MVP candidate contract](local-mvp-contract.md) maps GitHub #63,
+#5, #6, #7, #64 and #65 to a single native macOS ARM64/Nix Build/Test release
+slice. It verifies RUL-6's integration and separates build-only preparation reuse
+from fresh test preparation. The engine inventory and operation audit are
+recorded, and [calibration](local-mvp-calibration-findings.md) found a preparation
+latency regression despite skipped work. The predeclared budget requires that
+regression to be removed before #7 can pass. Native qualification also exposed
+and corrected a [macOS path-length hang](local-mvp-path-findings.md) with an
+actionable rejection. The [correctness matrix](local-mvp-correctness-findings.md)
+passes 85 native cases; 40 Build/Test samples and 20 paired preparation samples
+complete calibration. Same-candidate release qualification remains #64.
+
 The first [MSBuild time-input diagnostic slice](msbuild-time-findings.md) reports
 potential clock and file-timestamp reads in project/import XML, excluding application
 source. An explicit build-ID probe passes five ordinary MSBuild cases; this does

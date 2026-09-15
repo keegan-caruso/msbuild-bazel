@@ -33,6 +33,20 @@ try
     var toolchainRequestPath = Path.Combine(directory.FullName, "toolchain-request.json");
     File.WriteAllText(toolchainRequestPath, validRequest);
     var toolchainRequest = JsonFiles.ReadRequest(toolchainRequestPath);
+    if (OperatingSystem.IsMacOS())
+    {
+        foreach (var component in new[] { new string('a', 170), new string('é', 90) })
+        {
+            var longOutput = Path.Combine(directory.FullName, component);
+            try
+            {
+                _ = new Workspace(toolchainRequest with { Output = longOutput });
+                throw new InvalidOperationException("long runtime pipe path accepted");
+            }
+            catch (InvalidDataException error) when (error.Message.Contains("shorter Bazel --output_base")) { }
+            Check(!Directory.Exists(longOutput), "long path must reject before output publication");
+        }
+    }
     var selectedSdk = Path.Combine(directory.FullName, "sdk", "11.0.100-test");
     Directory.CreateDirectory(selectedSdk);
     File.WriteAllText(Path.Combine(selectedSdk, "MSBuild.dll"), "selected engine");

@@ -1,3 +1,5 @@
+using System.Text;
+
 namespace ActionRunner;
 
 internal sealed class Workspace
@@ -16,10 +18,16 @@ internal sealed class Workspace
         if (request.GraphProject is not null && Directory.Exists(Output) &&
             Directory.EnumerateFileSystemEntries(Output).Any())
             throw new InvalidDataException("graph output already contains a prior attempt; use a fresh output");
-        Directory.CreateDirectory(Output);
-        Directory.CreateDirectory(Diagnostics);
         // Scratch must be under a declared output for the native sandbox to allow writes.
         Scratch = Path.Combine(Output, "work-" + Guid.NewGuid().ToString("N"));
+        // .NET's macOS debugger transport uses a 260-byte path buffer. Reserve
+        // 52 bytes for the separator, pipe prefix, PID, disambiguation key,
+        // direction suffix and terminator; truncation can alias startup pipes
+        // and hang a compiler before managed code runs.
+        if (OperatingSystem.IsMacOS() && Encoding.UTF8.GetByteCount(Scratch) > 208)
+            throw new InvalidDataException("action temporary path exceeds the macOS .NET pipe limit; use a shorter Bazel --output_base and output directory");
+        Directory.CreateDirectory(Output);
+        Directory.CreateDirectory(Diagnostics);
         Root = Path.Combine(Scratch, "workspace");
         Directory.CreateDirectory(Root);
         // The loaded host resolves sandbox symlinks, keeping restore SDK paths and MSBuild aligned.
