@@ -652,7 +652,9 @@ class Harness:
             for slot in self.report['schedule']:
                 for system in slot['systems']:
                     stage = f"repetition {slot['repetition']} {slot['case']} {system}"
-                    directory = self.output / 'samples' / f"r{slot['repetition']:02d}-{slot['case']}-{system}"
+                    # Keep native .NET debugger pipe names below their byte
+                    # limit; full case/system identities remain in the report.
+                    directory = self.output / 'samples' / f"r{slot['repetition']:02d}-{slot['case'][0]}-{system[0]}"
                     sample = dict(repetition=slot['repetition'], case=slot['case'], system=system,
                         directory=str(directory), status='running', phases={}, cacheState=dict(
                             independentCaseState=True, remoteCacheEnabled=False, remoteExecutionEnabled=False),

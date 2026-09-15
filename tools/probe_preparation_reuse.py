@@ -19,6 +19,9 @@ def probe(output):
     source, state = output / 'source', output / 'cache'
     (source / 'App').mkdir(parents=True)
     (source / 'Shared').mkdir()
+    # Package-free restore need not create this directory, but fresh export
+    # requires an explicit package root even when the closure is empty.
+    (source / '.nuget/packages').mkdir(parents=True)
     (source / 'Directory.Build.props').write_text('<Project/>')
     (source / 'Directory.Build.targets').write_text('<Project/>')
     (source / 'App/App.csproj').write_text('<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup><TargetFramework>net10.0</TargetFramework><OutputType>Exe</OutputType></PropertyGroup><ItemGroup><ProjectReference Include="../Shared/Shared.csproj"/></ItemGroup></Project>')

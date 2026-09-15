@@ -1,0 +1,35 @@
+{
+  "schemaVersion": 1,
+  "issue": "https://github.com/keegan-caruso/msbuild-bazel/issues/5",
+  "declaredOn": "2026-09-15",
+  "purpose": "Predeclared gate for issue #7; calibration is not qualification",
+  "metric": "Full preparation context wall time, including lease teardown and final verification",
+  "statistic": "median",
+  "measuredRepetitionsPerMode": 5,
+  "warmupRepetitionsPerMode": 1,
+  "seedCostReportedSeparately": true,
+  "order": "Alternate fresh/reuse order by repetition",
+  "workloads": {
+    "small": {
+      "configuration": "Release/net10.0 App -> Shared",
+      "maxMedianReuseToFreshRatio": 1.0,
+      "maxMedianReuseSeconds": 5.0
+    },
+    "serilog": {
+      "revision": "49b5339ce85385dc52d4d8e8f2b8308becf23506",
+      "project": "src/Serilog/Serilog.csproj",
+      "configuration": "Release/net10.0",
+      "maxMedianReuseToFreshRatio": 1.0,
+      "maxMedianReuseSeconds": 5.0
+    }
+  },
+  "requiredReuseWork": {
+    "reused": true,
+    "discoveryExecuted": false,
+    "materializationExecuted": false,
+    "toolBuildsExecuted": false
+  },
+  "failurePolicy": "Any failed/missing sample, incorrect work set, source mutation during measured runs, or exceeded limit fails qualification. Preserve failures and investigate; do not relax this budget retrospectively.",
+  "comparisonPolicy": "Report ordinary MSBuild and adapter preparation, analysis, build, test and end-to-end timings separately. Explicit test preparation remains fresh. No scale or cross-platform speedup claim.",
+  "rationale": "Calibration found 62% and 79% median preparation regressions. The ratio gate requires removing those regressions before the MVP performance gate can pass; the 5-second absolute guardrail bounds interactive preparation cost. Current calibration does not satisfy the ratio gate."
+}
