@@ -1,5 +1,6 @@
 """Exercise restore/package invalidation through the real prepared consumer path."""
 import argparse
+from contextlib import contextmanager
 import json
 import os
 from pathlib import Path
@@ -10,6 +11,35 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[2] / 'tools'))
 from preparation_reuse import prepared_view
 from preparation_identity import tree_snapshot
 from probe_bazel import json_stream
+
+
+@contextmanager
+def capture_process_output(path):
+    """Capture inherited subprocess descriptors as well as Python diagnostics."""
+    sys.stdout.flush()
+    sys.stderr.flush()
+    saved = [os.dup(fd) for fd in (1, 2)]
+    try:
+        with path.open('w') as stream:
+            for fd in (1, 2):
+                os.dup2(stream.fileno(), fd)
+            try:
+                yield
+            finally:
+                sys.stdout.flush()
+                sys.stderr.flush()
+    finally:
+        for fd, original in zip((1, 2), saved):
+            os.dup2(original, fd)
+            os.close(original)
+
+
+def rejection_diagnostic(error, expected, process_output):
+    if isinstance(error, subprocess.CalledProcessError):
+        assert len(error.cmd) > 1 and Path(error.cmd[1]).name == 'GraphExport.dll', str(error)
+    diagnostic = str(error) + '\n' + process_output
+    assert any(message in diagnostic for message in expected), diagnostic
+    return diagnostic
 
 
 def probe(source, output):
@@ -54,14 +84,13 @@ def probe(source, output):
         pointer = (state / 'current.json').read_bytes()
         try:
             mutate(path, original)
+            rejection_log = output / (name + '-rejection.log')
             try:
-                with prepared_view(source, state, output / name, entries):
-                    raise AssertionError('invalid package/restore produced a consumer')
+                with capture_process_output(rejection_log):
+                    with prepared_view(source, state, output / name, entries):
+                        raise AssertionError('invalid package/restore produced a consumer')
             except (ValueError, RuntimeError, subprocess.CalledProcessError) as error:
-                # CalledProcessError reports the exporting process failure;
-                # its diagnostic is retained in the probe's outer log.
-                diagnostic = str(error)
-                assert isinstance(error, subprocess.CalledProcessError) or any(s in diagnostic for s in expected_diagnostics), diagnostic
+                diagnostic = rejection_diagnostic(error, expected_diagnostics, rejection_log.read_text())
                 assert not (output / name).exists(), 'invalid inputs published consumer state'
                 assert (state / 'current.json').read_bytes() == pointer, 'invalid inputs changed committed generation'
                 report['cases'][name] = dict(rejected=True, diagnostic=diagnostic,
@@ -85,7 +114,7 @@ def probe(source, output):
         # package graph is semantically the same; consume the refreshed plan.
         assets.write_bytes(original_assets + b'\n')
         prepare('restore-content-refreshed', False, execute=True)
-        reject('restore-corrupt', assets, lambda p, data: p.write_text('{'), ('restore', 'assets', 'JSON'))
+        reject('restore-corrupt', assets, lambda p, data: p.write_text('{'), ('NETSDK1060',))
         package = source / '.nuget/packages/polysharp/1.15.0'
         assembly = package / 'analyzers/dotnet/cs/PolySharp.SourceGenerators.dll'
         reject('package-assembly-corrupt', assembly, lambda p, data: p.write_bytes(data + b'corrupt'), ('hash-mismatch',))

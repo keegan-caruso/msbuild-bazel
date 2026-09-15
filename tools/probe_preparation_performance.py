@@ -36,6 +36,8 @@ def probe(source, entries, output, repetitions, host_note):
         raise ValueError('at least three measured repetitions are required')
     if source == output or source.is_relative_to(output) or output.is_relative_to(source):
         raise ValueError('source and evidence output must be disjoint')
+    if ROOT == output or ROOT.is_relative_to(output) or output.is_relative_to(ROOT):
+        raise ValueError('controller and evidence output must be disjoint')
     output.mkdir(parents=True, exist_ok=False)
     report = dict(schemaVersion=1, purpose='calibration', complete=False,
                   performanceQualified=False, samples=[], warmup=[], repetitions=repetitions,
@@ -86,6 +88,7 @@ def probe(source, entries, output, repetitions, host_note):
         # warmed source before either measured path, and report that setup
         # mutation explicitly rather than treating it as a timed source edit.
         report['sourceIdentityAfterWarmup'] = tree_snapshot(source)['sha256']
+        report['toolsAfterWarmup'] = tool_identity()
         started = time.perf_counter()
         with prepared_view(source, output / 'cache', output / 'seed', entries) as seed:
             if seed['reused'] or not seed['discoveryExecuted']:
@@ -101,6 +104,8 @@ def probe(source, entries, output, repetitions, host_note):
         if report['sourceIdentityAfter'] != report['sourceIdentityAfterWarmup']:
             raise AssertionError('calibration changed source inputs')
         report['toolsAfter'] = tool_identity()
+        if report['toolsAfter'] != report['toolsAfterWarmup']:
+            raise AssertionError('calibration changed tools during measured runs')
         report['summary'] = summarize(report['samples'])
         report['complete'] = True
     finally:

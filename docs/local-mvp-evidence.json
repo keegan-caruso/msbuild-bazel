@@ -4,16 +4,6 @@
   "scope": "Native macOS ARM64 / locked default Nix SDK 10.0.400, runtime 10.0.11, Nixpkgs Bazel 8.4.2; calibration is not performance qualification",
   "budgetSha256": "c89f378450e1d7196ce30931e7c45990d7a5511c63bf431d39b6299cec0f84c1",
   "flakeLockSha256": "31fbfccd0927fbd4a60a47a30750036b69917a7e81ad494262b7d62da2a1a0d2",
-  "candidateCode": {
-    "tools/ActionRunner/Workspace.cs": "a7e639ce43fa41cbb506843667be7ac57eb70da83ce1b0b2172d387330cda56d",
-    "tests/ActionRunner.Tests/Program.cs": "648e648d8ea63cd66058ebb56c723e6d304fbb11c9280669f637fbaaca5bf947",
-    "tools/probe_preparation_reuse.py": "1b30b50cf1f51487594514a6fd97975dae742226d91cc8cf25943ed0c8cbc853",
-    "tools/probe_preparation_performance.py": "cb7f7d492b89b6d1c08a103d3ddf076773ab87e863d6621644a35d5c3233ddca",
-    "tools/probe_serilog_performance.py": "fa1e9d691df559ba18c9dc1901a6e0410fcf6b4f3b0b4193000ba1683f20f22e",
-    "tests/preparation_reuse/probe_mvp_invalidation.py": "3c6e00ab75c9e5f71748dae34d65a98ac4b605259826bac8f7ca3c4671929f65",
-    "tests/preparation_reuse/probe_mvp_package_inputs.py": "a49c848771d444bbdd67d3df360e97acd54d211675185359c8861cf2506f290e",
-    "tests/preparation_reuse/test_performance_report.py": "a782ac31bfa552ff605a669d14de9fa63bb2e50b530c4e1b39628c488b9ea249"
-  },
   "correctness": {
     "package-inputs": {
       "reportSha256": "02de08a9421d409d8c60de279b836db3c7e618723cda4866fa337e96c75cf8cf",
@@ -3097,5 +3087,720 @@
     "actionRunnerTests": "passed, including ASCII and multibyte long-path rejection",
     "starlark": "passed",
     "ciDispatched": false
+  },
+  "initialCandidateRevision": "6fd5793d084be799587ce6c331f3756b663a5b24",
+  "initialCandidateCode": {
+    "tools/ActionRunner/Workspace.cs": "a7e639ce43fa41cbb506843667be7ac57eb70da83ce1b0b2172d387330cda56d",
+    "tests/ActionRunner.Tests/Program.cs": "648e648d8ea63cd66058ebb56c723e6d304fbb11c9280669f637fbaaca5bf947",
+    "tools/probe_preparation_reuse.py": "1b30b50cf1f51487594514a6fd97975dae742226d91cc8cf25943ed0c8cbc853",
+    "tools/probe_preparation_performance.py": "cb7f7d492b89b6d1c08a103d3ddf076773ab87e863d6621644a35d5c3233ddca",
+    "tools/probe_serilog_performance.py": "fa1e9d691df559ba18c9dc1901a6e0410fcf6b4f3b0b4193000ba1683f20f22e",
+    "tests/preparation_reuse/probe_mvp_invalidation.py": "3c6e00ab75c9e5f71748dae34d65a98ac4b605259826bac8f7ca3c4671929f65",
+    "tests/preparation_reuse/probe_mvp_package_inputs.py": "a49c848771d444bbdd67d3df360e97acd54d211675185359c8861cf2506f290e",
+    "tests/preparation_reuse/test_performance_report.py": "a782ac31bfa552ff605a669d14de9fa63bb2e50b530c4e1b39628c488b9ea249"
+  },
+  "reviewValidation": {
+    "baselineRevision": "6fd5793d084be799587ce6c331f3756b663a5b24",
+    "qualificationOnly": true,
+    "productionCodeUnchanged": true,
+    "unitTests": 50,
+    "reports": {
+      "small": {
+        "reportSha256": "d230ed166021d861eeaf67d577ed0cdb31a4668d08d33399ba5029ad51740c10",
+        "report": {
+          "schemaVersion": 1,
+          "purpose": "calibration",
+          "complete": true,
+          "performanceQualified": false,
+          "samples": [
+            {
+              "mode": "fresh",
+              "repetition": 1,
+              "status": "passed",
+              "workspace": "/private/tmp/mrc1/sample/1-fresh",
+              "readySeconds": 2.2874095410006703,
+              "work": {
+                "reused": false,
+                "discoveryExecuted": true,
+                "materializationExecuted": true,
+                "toolBuildsExecuted": true,
+                "reason": "unsupported-request",
+                "workspace": "/private/tmp/mrc1/sample/1-fresh"
+              },
+              "seconds": 2.287560625001788
+            },
+            {
+              "mode": "reuse",
+              "repetition": 1,
+              "status": "passed",
+              "workspace": "/private/tmp/mrc1/sample/1-reuse",
+              "readySeconds": 1.9171860409987858,
+              "work": {
+                "reused": true,
+                "discoveryExecuted": false,
+                "materializationExecuted": false,
+                "toolBuildsExecuted": false,
+                "reason": "unchanged",
+                "workspace": "/private/tmp/mrc1/sample/1-reuse"
+              },
+              "seconds": 3.6816359579970594
+            },
+            {
+              "mode": "reuse",
+              "repetition": 2,
+              "status": "passed",
+              "workspace": "/private/tmp/mrc1/sample/2-reuse",
+              "readySeconds": 1.909723832999589,
+              "work": {
+                "reused": true,
+                "discoveryExecuted": false,
+                "materializationExecuted": false,
+                "toolBuildsExecuted": false,
+                "reason": "unchanged",
+                "workspace": "/private/tmp/mrc1/sample/2-reuse"
+              },
+              "seconds": 3.657466165997903
+            },
+            {
+              "mode": "fresh",
+              "repetition": 2,
+              "status": "passed",
+              "workspace": "/private/tmp/mrc1/sample/2-fresh",
+              "readySeconds": 2.2811112080016755,
+              "work": {
+                "reused": false,
+                "discoveryExecuted": true,
+                "materializationExecuted": true,
+                "toolBuildsExecuted": true,
+                "reason": "unsupported-request",
+                "workspace": "/private/tmp/mrc1/sample/2-fresh"
+              },
+              "seconds": 2.2812527920032153
+            },
+            {
+              "mode": "fresh",
+              "repetition": 3,
+              "status": "passed",
+              "workspace": "/private/tmp/mrc1/sample/3-fresh",
+              "readySeconds": 2.2832522919998155,
+              "work": {
+                "reused": false,
+                "discoveryExecuted": true,
+                "materializationExecuted": true,
+                "toolBuildsExecuted": true,
+                "reason": "unsupported-request",
+                "workspace": "/private/tmp/mrc1/sample/3-fresh"
+              },
+              "seconds": 2.2833778749991325
+            },
+            {
+              "mode": "reuse",
+              "repetition": 3,
+              "status": "passed",
+              "workspace": "/private/tmp/mrc1/sample/3-reuse",
+              "readySeconds": 1.923800416996528,
+              "work": {
+                "reused": true,
+                "discoveryExecuted": false,
+                "materializationExecuted": false,
+                "toolBuildsExecuted": false,
+                "reason": "unchanged",
+                "workspace": "/private/tmp/mrc1/sample/3-reuse"
+              },
+              "seconds": 3.7133786249978584
+            },
+            {
+              "mode": "reuse",
+              "repetition": 4,
+              "status": "passed",
+              "workspace": "/private/tmp/mrc1/sample/4-reuse",
+              "readySeconds": 1.9170244170018123,
+              "work": {
+                "reused": true,
+                "discoveryExecuted": false,
+                "materializationExecuted": false,
+                "toolBuildsExecuted": false,
+                "reason": "unchanged",
+                "workspace": "/private/tmp/mrc1/sample/4-reuse"
+              },
+              "seconds": 3.6771792080035084
+            },
+            {
+              "mode": "fresh",
+              "repetition": 4,
+              "status": "passed",
+              "workspace": "/private/tmp/mrc1/sample/4-fresh",
+              "readySeconds": 2.2776109170008567,
+              "work": {
+                "reused": false,
+                "discoveryExecuted": true,
+                "materializationExecuted": true,
+                "toolBuildsExecuted": true,
+                "reason": "unsupported-request",
+                "workspace": "/private/tmp/mrc1/sample/4-fresh"
+              },
+              "seconds": 2.277729834000638
+            },
+            {
+              "mode": "fresh",
+              "repetition": 5,
+              "status": "passed",
+              "workspace": "/private/tmp/mrc1/sample/5-fresh",
+              "readySeconds": 2.2733271659963066,
+              "work": {
+                "reused": false,
+                "discoveryExecuted": true,
+                "materializationExecuted": true,
+                "toolBuildsExecuted": true,
+                "reason": "unsupported-request",
+                "workspace": "/private/tmp/mrc1/sample/5-fresh"
+              },
+              "seconds": 2.2734457080005086
+            },
+            {
+              "mode": "reuse",
+              "repetition": 5,
+              "status": "passed",
+              "workspace": "/private/tmp/mrc1/sample/5-reuse",
+              "readySeconds": 1.9177909169957275,
+              "work": {
+                "reused": true,
+                "discoveryExecuted": false,
+                "materializationExecuted": false,
+                "toolBuildsExecuted": false,
+                "reason": "unchanged",
+                "workspace": "/private/tmp/mrc1/sample/5-reuse"
+              },
+              "seconds": 3.6777061249958933
+            }
+          ],
+          "warmup": [
+            {
+              "mode": "fresh",
+              "repetition": 0,
+              "status": "passed",
+              "workspace": "/private/tmp/mrc1/warmup/0-fresh",
+              "readySeconds": 3.7657382909965236,
+              "work": {
+                "reused": false,
+                "discoveryExecuted": true,
+                "materializationExecuted": true,
+                "toolBuildsExecuted": true,
+                "reason": "unsupported-request",
+                "workspace": "/private/tmp/mrc1/warmup/0-fresh"
+              },
+              "seconds": 3.7659016249963315
+            },
+            {
+              "mode": "reuse",
+              "repetition": 0,
+              "status": "passed",
+              "workspace": "/private/tmp/mrc1/warmup/0-reuse",
+              "readySeconds": 1.9110240410009283,
+              "work": {
+                "reused": true,
+                "discoveryExecuted": false,
+                "materializationExecuted": false,
+                "toolBuildsExecuted": false,
+                "reason": "unchanged",
+                "workspace": "/private/tmp/mrc1/warmup/0-reuse"
+              },
+              "seconds": 3.699545750001562
+            }
+          ],
+          "repetitions": 5,
+          "hostNote": "Serial review rerun; interactive desktop load uncontrolled",
+          "startedUtc": "2026-09-15T18:54:38.688478+00:00",
+          "platform": "macOS-27.0-arm64-arm-64bit-Mach-O",
+          "machine": "arm64",
+          "python": "3.13.9 (main, Oct 14 2025, 13:52:31) [Clang 21.1.2 ]",
+          "sdkRoot": "/nix/store/f3kvj2nc26gn7rh5mnfnaa2dgy2p10v3-dotnet-sdk-10.0.400/share/dotnet",
+          "entries": [
+            {
+              "project": "App/App.csproj",
+              "globalProperties": {
+                "Configuration": "Release",
+                "TargetFramework": "net10.0"
+              }
+            }
+          ],
+          "source": "/private/tmp/msbuild-mvp-calibration-small",
+          "controller": "/private/tmp/msbuild-mvp-contract-20260915",
+          "revision": "6fd5793d084be799587ce6c331f3756b663a5b24",
+          "sourceIdentityBefore": "ca837b544bfdf608ce6a1f44cd9b36cdecb50e04f20b07a25a83b4da5049691d",
+          "toolsBefore": {
+            "controller": "e76f7b4f098e441efead85ee13a527982135579f541c5a9ea3b1cfbc3b8808f4",
+            "trees": {
+              "/private/tmp/msbuild-mvp-contract-20260915/bazel": "b2b5daedfd859e77b9858ecae225404d5ba498173a149cdf00a0df0c0e915b21",
+              "/private/tmp/msbuild-mvp-contract-20260915/tools/GraphExport": "a232e058cbc08a7046fabf96fcf81ea410ff2c4ea1be18b39c3d15c8327f896a",
+              "/private/tmp/msbuild-mvp-contract-20260915/tools/EvaluationProbe": "a66d8350276b13f9feb8784ef4acb53da9eca2491f6ea947c1aa061dd2579a08",
+              "/private/tmp/msbuild-mvp-contract-20260915/tools/ReplayPlugin": "afea1869308281a945a234f1e386f6ea0823ad0fabe0b0875bcb145628f356fa",
+              "/private/tmp/msbuild-mvp-contract-20260915/tools/ActionRunner": "e5b3781e777e1e33b2c712d883eb9d666d8b610768b7a8b544346bc155894a60"
+            },
+            "sdk": "/nix/store/f3kvj2nc26gn7rh5mnfnaa2dgy2p10v3-dotnet-sdk-10.0.400/share/dotnet",
+            "python": {
+              "version": "3.13.9 (main, Oct 14 2025, 13:52:31) [Clang 21.1.2 ]",
+              "executable": "/nix/store/xcjk9ill54kjk8mzgq6yydnx9015lidg-python3-3.13.9/bin/python3",
+              "executableSha256": "16e21f5e8701eeeb969e3c1dced5b3fd60a3b0746fe0306ee58a62dab748388c"
+            }
+          },
+          "sdkInfo": ".NET SDK:\n Version:           10.0.400\n Commit:            14fbf8d527\n Workload version:  10.0.400-manifests.330ea142\n MSBuild version:   18.9.6+14fbf8d52\n\nRuntime Environment:\n OS Name:     Mac OS X\n OS Version:  27.0\n OS Platform: Darwin\n RID:         osx-arm64\n Base Path:   /nix/store/f3kvj2nc26gn7rh5mnfnaa2dgy2p10v3-dotnet-sdk-10.0.400/share/dotnet/sdk/10.0.400/\n\n.NET workloads installed:\nThere are no installed workloads to display.\nConfigured to use workload sets when installing new manifests.\nNo workload sets are installed. Run \"dotnet workload restore\" to install a workload set.\n\nHost:\n  Version:      10.0.11\n  Architecture: arm64\n  Commit:       e2f47b0110\n\n.NET SDKs installed:\n  10.0.400 [/nix/store/f3kvj2nc26gn7rh5mnfnaa2dgy2p10v3-dotnet-sdk-10.0.400/share/dotnet/sdk]\n\n.NET runtimes installed:\n  Microsoft.AspNetCore.App 10.0.11 [/nix/store/f3kvj2nc26gn7rh5mnfnaa2dgy2p10v3-dotnet-sdk-10.0.400/share/dotnet/shared/Microsoft.AspNetCore.App]\n  Microsoft.NETCore.App 10.0.11 [/nix/store/f3kvj2nc26gn7rh5mnfnaa2dgy2p10v3-dotnet-sdk-10.0.400/share/dotnet/shared/Microsoft.NETCore.App]\n\nOther architectures found:\n  None\n\nEnvironment variables:\n  DOTNET_CLI_TELEMETRY_OPTOUT              [1]\n  DOTNET_NOLOGO                            [1]\n  DOTNET_ROOT                              [/nix/store/rzz1g24svcpzfiwbvimgg1jx7yb23733-dotnet-sdk-wrapped-10.0.400/share/dotnet]\n  DOTNET_SKIP_FIRST_TIME_EXPERIENCE        [1]\n  DOTNET_SKIP_WORKLOAD_INTEGRITY_CHECK     [1]\n\nglobal.json file:\n  /private/tmp/msbuild-mvp-contract-20260915/global.json\n\nLearn more:\n  https://aka.ms/dotnet/info\n\nDownload .NET:\n  https://aka.ms/dotnet/download\n",
+          "sourceIdentityAfterWarmup": "ca837b544bfdf608ce6a1f44cd9b36cdecb50e04f20b07a25a83b4da5049691d",
+          "toolsAfterWarmup": {
+            "controller": "e76f7b4f098e441efead85ee13a527982135579f541c5a9ea3b1cfbc3b8808f4",
+            "trees": {
+              "/private/tmp/msbuild-mvp-contract-20260915/bazel": "b2b5daedfd859e77b9858ecae225404d5ba498173a149cdf00a0df0c0e915b21",
+              "/private/tmp/msbuild-mvp-contract-20260915/tools/GraphExport": "31256b2f5158339def586b09a4b9f644c675ff378283916fda92deb907e22a63",
+              "/private/tmp/msbuild-mvp-contract-20260915/tools/EvaluationProbe": "a66d8350276b13f9feb8784ef4acb53da9eca2491f6ea947c1aa061dd2579a08",
+              "/private/tmp/msbuild-mvp-contract-20260915/tools/ReplayPlugin": "db1c7194efbb81e1159ff36775168ee999de61787869ce0c8eb54edd7bc1cf92",
+              "/private/tmp/msbuild-mvp-contract-20260915/tools/ActionRunner": "66ef7e5029907eb1eebddd6762a5be8bd792e6d59c5666b52e67d219a4e9aaf8"
+            },
+            "sdk": "/nix/store/f3kvj2nc26gn7rh5mnfnaa2dgy2p10v3-dotnet-sdk-10.0.400/share/dotnet",
+            "python": {
+              "version": "3.13.9 (main, Oct 14 2025, 13:52:31) [Clang 21.1.2 ]",
+              "executable": "/nix/store/xcjk9ill54kjk8mzgq6yydnx9015lidg-python3-3.13.9/bin/python3",
+              "executableSha256": "16e21f5e8701eeeb969e3c1dced5b3fd60a3b0746fe0306ee58a62dab748388c"
+            }
+          },
+          "seed": {
+            "work": {
+              "reused": false,
+              "discoveryExecuted": true,
+              "materializationExecuted": true,
+              "toolBuildsExecuted": false,
+              "reason": "missing-or-corrupt-state: [Errno 2] No such file or directory: '/private/tmp/mrc1/cache/current.json'",
+              "workspace": "/private/tmp/mrc1/seed"
+            },
+            "seconds": 9.409314500000619
+          },
+          "sourceIdentityAfter": "ca837b544bfdf608ce6a1f44cd9b36cdecb50e04f20b07a25a83b4da5049691d",
+          "toolsAfter": {
+            "controller": "e76f7b4f098e441efead85ee13a527982135579f541c5a9ea3b1cfbc3b8808f4",
+            "trees": {
+              "/private/tmp/msbuild-mvp-contract-20260915/bazel": "b2b5daedfd859e77b9858ecae225404d5ba498173a149cdf00a0df0c0e915b21",
+              "/private/tmp/msbuild-mvp-contract-20260915/tools/GraphExport": "31256b2f5158339def586b09a4b9f644c675ff378283916fda92deb907e22a63",
+              "/private/tmp/msbuild-mvp-contract-20260915/tools/EvaluationProbe": "a66d8350276b13f9feb8784ef4acb53da9eca2491f6ea947c1aa061dd2579a08",
+              "/private/tmp/msbuild-mvp-contract-20260915/tools/ReplayPlugin": "db1c7194efbb81e1159ff36775168ee999de61787869ce0c8eb54edd7bc1cf92",
+              "/private/tmp/msbuild-mvp-contract-20260915/tools/ActionRunner": "66ef7e5029907eb1eebddd6762a5be8bd792e6d59c5666b52e67d219a4e9aaf8"
+            },
+            "sdk": "/nix/store/f3kvj2nc26gn7rh5mnfnaa2dgy2p10v3-dotnet-sdk-10.0.400/share/dotnet",
+            "python": {
+              "version": "3.13.9 (main, Oct 14 2025, 13:52:31) [Clang 21.1.2 ]",
+              "executable": "/nix/store/xcjk9ill54kjk8mzgq6yydnx9015lidg-python3-3.13.9/bin/python3",
+              "executableSha256": "16e21f5e8701eeeb969e3c1dced5b3fd60a3b0746fe0306ee58a62dab748388c"
+            }
+          },
+          "summary": {
+            "fresh": {
+              "count": 5,
+              "median": 2.2812527920032153,
+              "minimum": 2.2734457080005086,
+              "maximum": 2.287560625001788
+            },
+            "reuse": {
+              "count": 5,
+              "median": 3.6777061249958933,
+              "minimum": 3.657466165997903,
+              "maximum": 3.7133786249978584
+            },
+            "medianReuseToFreshRatio": 1.612143177594283
+          }
+        }
+      },
+      "serilog": {
+        "reportSha256": "61de7289e21cbfacd16a7d75cec433205b63d0ab0d6c7f4cc5415fb233dbfedc",
+        "report": {
+          "schemaVersion": 1,
+          "purpose": "calibration",
+          "complete": true,
+          "performanceQualified": false,
+          "samples": [
+            {
+              "mode": "fresh",
+              "repetition": 1,
+              "status": "passed",
+              "workspace": "/private/tmp/mrc2/sample/1-fresh",
+              "readySeconds": 2.2076598750063567,
+              "work": {
+                "reused": false,
+                "discoveryExecuted": true,
+                "materializationExecuted": true,
+                "toolBuildsExecuted": true,
+                "reason": "unsupported-request",
+                "workspace": "/private/tmp/mrc2/sample/1-fresh"
+              },
+              "seconds": 2.207779666001443
+            },
+            {
+              "mode": "reuse",
+              "repetition": 1,
+              "status": "passed",
+              "workspace": "/private/tmp/mrc2/sample/1-reuse",
+              "readySeconds": 2.1241068329982227,
+              "work": {
+                "reused": true,
+                "discoveryExecuted": false,
+                "materializationExecuted": false,
+                "toolBuildsExecuted": false,
+                "reason": "unchanged",
+                "workspace": "/private/tmp/mrc2/sample/1-reuse"
+              },
+              "seconds": 3.908898333000252
+            },
+            {
+              "mode": "reuse",
+              "repetition": 2,
+              "status": "passed",
+              "workspace": "/private/tmp/mrc2/sample/2-reuse",
+              "readySeconds": 2.1136709170023096,
+              "work": {
+                "reused": true,
+                "discoveryExecuted": false,
+                "materializationExecuted": false,
+                "toolBuildsExecuted": false,
+                "reason": "unchanged",
+                "workspace": "/private/tmp/mrc2/sample/2-reuse"
+              },
+              "seconds": 3.902945667003223
+            },
+            {
+              "mode": "fresh",
+              "repetition": 2,
+              "status": "passed",
+              "workspace": "/private/tmp/mrc2/sample/2-fresh",
+              "readySeconds": 2.2111821250000503,
+              "work": {
+                "reused": false,
+                "discoveryExecuted": true,
+                "materializationExecuted": true,
+                "toolBuildsExecuted": true,
+                "reason": "unsupported-request",
+                "workspace": "/private/tmp/mrc2/sample/2-fresh"
+              },
+              "seconds": 2.2113167089992203
+            },
+            {
+              "mode": "fresh",
+              "repetition": 3,
+              "status": "passed",
+              "workspace": "/private/tmp/mrc2/sample/3-fresh",
+              "readySeconds": 2.2102052500049467,
+              "work": {
+                "reused": false,
+                "discoveryExecuted": true,
+                "materializationExecuted": true,
+                "toolBuildsExecuted": true,
+                "reason": "unsupported-request",
+                "workspace": "/private/tmp/mrc2/sample/3-fresh"
+              },
+              "seconds": 2.2103358750027837
+            },
+            {
+              "mode": "reuse",
+              "repetition": 3,
+              "status": "passed",
+              "workspace": "/private/tmp/mrc2/sample/3-reuse",
+              "readySeconds": 2.154705833992921,
+              "work": {
+                "reused": true,
+                "discoveryExecuted": false,
+                "materializationExecuted": false,
+                "toolBuildsExecuted": false,
+                "reason": "unchanged",
+                "workspace": "/private/tmp/mrc2/sample/3-reuse"
+              },
+              "seconds": 3.9484480839964817
+            },
+            {
+              "mode": "reuse",
+              "repetition": 4,
+              "status": "passed",
+              "workspace": "/private/tmp/mrc2/sample/4-reuse",
+              "readySeconds": 2.114624207999441,
+              "work": {
+                "reused": true,
+                "discoveryExecuted": false,
+                "materializationExecuted": false,
+                "toolBuildsExecuted": false,
+                "reason": "unchanged",
+                "workspace": "/private/tmp/mrc2/sample/4-reuse"
+              },
+              "seconds": 3.9051135830013664
+            },
+            {
+              "mode": "fresh",
+              "repetition": 4,
+              "status": "passed",
+              "workspace": "/private/tmp/mrc2/sample/4-fresh",
+              "readySeconds": 2.2092174159988645,
+              "work": {
+                "reused": false,
+                "discoveryExecuted": true,
+                "materializationExecuted": true,
+                "toolBuildsExecuted": true,
+                "reason": "unsupported-request",
+                "workspace": "/private/tmp/mrc2/sample/4-fresh"
+              },
+              "seconds": 2.2093546249961946
+            },
+            {
+              "mode": "fresh",
+              "repetition": 5,
+              "status": "passed",
+              "workspace": "/private/tmp/mrc2/sample/5-fresh",
+              "readySeconds": 2.190743041996029,
+              "work": {
+                "reused": false,
+                "discoveryExecuted": true,
+                "materializationExecuted": true,
+                "toolBuildsExecuted": true,
+                "reason": "unsupported-request",
+                "workspace": "/private/tmp/mrc2/sample/5-fresh"
+              },
+              "seconds": 2.190885249998246
+            },
+            {
+              "mode": "reuse",
+              "repetition": 5,
+              "status": "passed",
+              "workspace": "/private/tmp/mrc2/sample/5-reuse",
+              "readySeconds": 2.130091833001643,
+              "work": {
+                "reused": true,
+                "discoveryExecuted": false,
+                "materializationExecuted": false,
+                "toolBuildsExecuted": false,
+                "reason": "unchanged",
+                "workspace": "/private/tmp/mrc2/sample/5-reuse"
+              },
+              "seconds": 3.956920333002927
+            }
+          ],
+          "warmup": [
+            {
+              "mode": "fresh",
+              "repetition": 0,
+              "status": "passed",
+              "workspace": "/private/tmp/mrc2/warmup/0-fresh",
+              "readySeconds": 2.202133209000749,
+              "work": {
+                "reused": false,
+                "discoveryExecuted": true,
+                "materializationExecuted": true,
+                "toolBuildsExecuted": true,
+                "reason": "unsupported-request",
+                "workspace": "/private/tmp/mrc2/warmup/0-fresh"
+              },
+              "seconds": 2.20227483400231
+            },
+            {
+              "mode": "reuse",
+              "repetition": 0,
+              "status": "passed",
+              "workspace": "/private/tmp/mrc2/warmup/0-reuse",
+              "readySeconds": 2.121520375003456,
+              "work": {
+                "reused": true,
+                "discoveryExecuted": false,
+                "materializationExecuted": false,
+                "toolBuildsExecuted": false,
+                "reason": "unchanged",
+                "workspace": "/private/tmp/mrc2/warmup/0-reuse"
+              },
+              "seconds": 3.9305947500033653
+            }
+          ],
+          "repetitions": 5,
+          "hostNote": "Serial review rerun; interactive desktop load uncontrolled",
+          "startedUtc": "2026-09-15T18:55:25.869382+00:00",
+          "platform": "macOS-27.0-arm64-arm-64bit-Mach-O",
+          "machine": "arm64",
+          "python": "3.13.9 (main, Oct 14 2025, 13:52:31) [Clang 21.1.2 ]",
+          "sdkRoot": "/nix/store/f3kvj2nc26gn7rh5mnfnaa2dgy2p10v3-dotnet-sdk-10.0.400/share/dotnet",
+          "entries": [
+            {
+              "project": "src/Serilog/Serilog.csproj",
+              "globalProperties": {
+                "Configuration": "Release",
+                "TargetFramework": "net10.0"
+              }
+            }
+          ],
+          "source": "/private/tmp/msbuild-mvp-calibration-serilog",
+          "controller": "/private/tmp/msbuild-mvp-contract-20260915",
+          "revision": "6fd5793d084be799587ce6c331f3756b663a5b24",
+          "sourceIdentityBefore": "41f1df24d75b67c6dc901d4d69c4e5829b9c2caf571ddc61776b5064ca317665",
+          "toolsBefore": {
+            "controller": "e76f7b4f098e441efead85ee13a527982135579f541c5a9ea3b1cfbc3b8808f4",
+            "trees": {
+              "/private/tmp/msbuild-mvp-contract-20260915/bazel": "b2b5daedfd859e77b9858ecae225404d5ba498173a149cdf00a0df0c0e915b21",
+              "/private/tmp/msbuild-mvp-contract-20260915/tools/GraphExport": "31256b2f5158339def586b09a4b9f644c675ff378283916fda92deb907e22a63",
+              "/private/tmp/msbuild-mvp-contract-20260915/tools/EvaluationProbe": "a66d8350276b13f9feb8784ef4acb53da9eca2491f6ea947c1aa061dd2579a08",
+              "/private/tmp/msbuild-mvp-contract-20260915/tools/ReplayPlugin": "db1c7194efbb81e1159ff36775168ee999de61787869ce0c8eb54edd7bc1cf92",
+              "/private/tmp/msbuild-mvp-contract-20260915/tools/ActionRunner": "66ef7e5029907eb1eebddd6762a5be8bd792e6d59c5666b52e67d219a4e9aaf8"
+            },
+            "sdk": "/nix/store/f3kvj2nc26gn7rh5mnfnaa2dgy2p10v3-dotnet-sdk-10.0.400/share/dotnet",
+            "python": {
+              "version": "3.13.9 (main, Oct 14 2025, 13:52:31) [Clang 21.1.2 ]",
+              "executable": "/nix/store/xcjk9ill54kjk8mzgq6yydnx9015lidg-python3-3.13.9/bin/python3",
+              "executableSha256": "16e21f5e8701eeeb969e3c1dced5b3fd60a3b0746fe0306ee58a62dab748388c"
+            }
+          },
+          "sdkInfo": ".NET SDK:\n Version:           10.0.400\n Commit:            14fbf8d527\n Workload version:  10.0.400-manifests.330ea142\n MSBuild version:   18.9.6+14fbf8d52\n\nRuntime Environment:\n OS Name:     Mac OS X\n OS Version:  27.0\n OS Platform: Darwin\n RID:         osx-arm64\n Base Path:   /nix/store/f3kvj2nc26gn7rh5mnfnaa2dgy2p10v3-dotnet-sdk-10.0.400/share/dotnet/sdk/10.0.400/\n\n.NET workloads installed:\nThere are no installed workloads to display.\nConfigured to use workload sets when installing new manifests.\nNo workload sets are installed. Run \"dotnet workload restore\" to install a workload set.\n\nHost:\n  Version:      10.0.11\n  Architecture: arm64\n  Commit:       e2f47b0110\n\n.NET SDKs installed:\n  10.0.400 [/nix/store/f3kvj2nc26gn7rh5mnfnaa2dgy2p10v3-dotnet-sdk-10.0.400/share/dotnet/sdk]\n\n.NET runtimes installed:\n  Microsoft.AspNetCore.App 10.0.11 [/nix/store/f3kvj2nc26gn7rh5mnfnaa2dgy2p10v3-dotnet-sdk-10.0.400/share/dotnet/shared/Microsoft.AspNetCore.App]\n  Microsoft.NETCore.App 10.0.11 [/nix/store/f3kvj2nc26gn7rh5mnfnaa2dgy2p10v3-dotnet-sdk-10.0.400/share/dotnet/shared/Microsoft.NETCore.App]\n\nOther architectures found:\n  None\n\nEnvironment variables:\n  DOTNET_CLI_TELEMETRY_OPTOUT              [1]\n  DOTNET_NOLOGO                            [1]\n  DOTNET_ROOT                              [/nix/store/rzz1g24svcpzfiwbvimgg1jx7yb23733-dotnet-sdk-wrapped-10.0.400/share/dotnet]\n  DOTNET_SKIP_FIRST_TIME_EXPERIENCE        [1]\n  DOTNET_SKIP_WORKLOAD_INTEGRITY_CHECK     [1]\n\nglobal.json file:\n  /private/tmp/msbuild-mvp-contract-20260915/global.json\n\nLearn more:\n  https://aka.ms/dotnet/info\n\nDownload .NET:\n  https://aka.ms/dotnet/download\n",
+          "sourceIdentityAfterWarmup": "41f1df24d75b67c6dc901d4d69c4e5829b9c2caf571ddc61776b5064ca317665",
+          "toolsAfterWarmup": {
+            "controller": "e76f7b4f098e441efead85ee13a527982135579f541c5a9ea3b1cfbc3b8808f4",
+            "trees": {
+              "/private/tmp/msbuild-mvp-contract-20260915/bazel": "b2b5daedfd859e77b9858ecae225404d5ba498173a149cdf00a0df0c0e915b21",
+              "/private/tmp/msbuild-mvp-contract-20260915/tools/GraphExport": "31256b2f5158339def586b09a4b9f644c675ff378283916fda92deb907e22a63",
+              "/private/tmp/msbuild-mvp-contract-20260915/tools/EvaluationProbe": "a66d8350276b13f9feb8784ef4acb53da9eca2491f6ea947c1aa061dd2579a08",
+              "/private/tmp/msbuild-mvp-contract-20260915/tools/ReplayPlugin": "db1c7194efbb81e1159ff36775168ee999de61787869ce0c8eb54edd7bc1cf92",
+              "/private/tmp/msbuild-mvp-contract-20260915/tools/ActionRunner": "66ef7e5029907eb1eebddd6762a5be8bd792e6d59c5666b52e67d219a4e9aaf8"
+            },
+            "sdk": "/nix/store/f3kvj2nc26gn7rh5mnfnaa2dgy2p10v3-dotnet-sdk-10.0.400/share/dotnet",
+            "python": {
+              "version": "3.13.9 (main, Oct 14 2025, 13:52:31) [Clang 21.1.2 ]",
+              "executable": "/nix/store/xcjk9ill54kjk8mzgq6yydnx9015lidg-python3-3.13.9/bin/python3",
+              "executableSha256": "16e21f5e8701eeeb969e3c1dced5b3fd60a3b0746fe0306ee58a62dab748388c"
+            }
+          },
+          "seed": {
+            "work": {
+              "reused": false,
+              "discoveryExecuted": true,
+              "materializationExecuted": true,
+              "toolBuildsExecuted": false,
+              "reason": "missing-or-corrupt-state: [Errno 2] No such file or directory: '/private/tmp/mrc2/cache/current.json'",
+              "workspace": "/private/tmp/mrc2/seed"
+            },
+            "seconds": 8.710663249999925
+          },
+          "sourceIdentityAfter": "41f1df24d75b67c6dc901d4d69c4e5829b9c2caf571ddc61776b5064ca317665",
+          "toolsAfter": {
+            "controller": "e76f7b4f098e441efead85ee13a527982135579f541c5a9ea3b1cfbc3b8808f4",
+            "trees": {
+              "/private/tmp/msbuild-mvp-contract-20260915/bazel": "b2b5daedfd859e77b9858ecae225404d5ba498173a149cdf00a0df0c0e915b21",
+              "/private/tmp/msbuild-mvp-contract-20260915/tools/GraphExport": "31256b2f5158339def586b09a4b9f644c675ff378283916fda92deb907e22a63",
+              "/private/tmp/msbuild-mvp-contract-20260915/tools/EvaluationProbe": "a66d8350276b13f9feb8784ef4acb53da9eca2491f6ea947c1aa061dd2579a08",
+              "/private/tmp/msbuild-mvp-contract-20260915/tools/ReplayPlugin": "db1c7194efbb81e1159ff36775168ee999de61787869ce0c8eb54edd7bc1cf92",
+              "/private/tmp/msbuild-mvp-contract-20260915/tools/ActionRunner": "66ef7e5029907eb1eebddd6762a5be8bd792e6d59c5666b52e67d219a4e9aaf8"
+            },
+            "sdk": "/nix/store/f3kvj2nc26gn7rh5mnfnaa2dgy2p10v3-dotnet-sdk-10.0.400/share/dotnet",
+            "python": {
+              "version": "3.13.9 (main, Oct 14 2025, 13:52:31) [Clang 21.1.2 ]",
+              "executable": "/nix/store/xcjk9ill54kjk8mzgq6yydnx9015lidg-python3-3.13.9/bin/python3",
+              "executableSha256": "16e21f5e8701eeeb969e3c1dced5b3fd60a3b0746fe0306ee58a62dab748388c"
+            }
+          },
+          "summary": {
+            "fresh": {
+              "count": 5,
+              "median": 2.2093546249961946,
+              "minimum": 2.190885249998246,
+              "maximum": 2.2113167089992203
+            },
+            "reuse": {
+              "count": 5,
+              "median": 3.908898333000252,
+              "minimum": 3.902945667003223,
+              "maximum": 3.956920333002927
+            },
+            "medianReuseToFreshRatio": 1.769248942100902
+          }
+        }
+      },
+      "packageInputs": {
+        "reportSha256": "e0af3b1cd597129097c92b57015be23d6a2f2782fba8a293a45b3c429ea5fa9c",
+        "report": {
+          "accepted": true,
+          "cases": {
+            "cold": {
+              "preparation": {
+                "reused": false,
+                "discoveryExecuted": true,
+                "materializationExecuted": true,
+                "toolBuildsExecuted": false,
+                "reason": "missing-or-corrupt-state: [Errno 2] No such file or directory: '/private/tmp/mrp1/state/current.json'",
+                "workspace": "/private/tmp/mrp1/cold"
+              }
+            },
+            "unchanged": {
+              "preparation": {
+                "reused": true,
+                "discoveryExecuted": false,
+                "materializationExecuted": false,
+                "toolBuildsExecuted": false,
+                "reason": "unchanged",
+                "workspace": "/private/tmp/mrp1/unchanged"
+              }
+            },
+            "restore-content-refreshed": {
+              "preparation": {
+                "reused": false,
+                "discoveryExecuted": true,
+                "materializationExecuted": true,
+                "toolBuildsExecuted": false,
+                "reason": "discovery-inputs-changed",
+                "workspace": "/private/tmp/mrp1/restore-content-refreshed"
+              },
+              "expectedNativeActions": 1,
+              "nativeActions": 1
+            },
+            "restore-corrupt": {
+              "rejected": true,
+              "diagnostic": "Command '['/nix/store/f3kvj2nc26gn7rh5mnfnaa2dgy2p10v3-dotnet-sdk-10.0.400/share/dotnet/dotnet', '/private/tmp/msbuild-mvp-contract-20260915/tools/GraphExport/bin/Release/net10.0/GraphExport.dll', '--request', '/private/tmp/mrp1/fresh-export-wr44p2b8/request.json']' returned non-zero exit status 2.\n  Determining projects to restore...\n  All projects are up-to-date for restore.\n  GraphExport -> /private/tmp/msbuild-mvp-contract-20260915/tools/GraphExport/bin/Release/net10.0/GraphExport.dll\n\nBuild succeeded.\n    0 Warning(s)\n    0 Error(s)\n\nTime Elapsed 00:00:00.35\ninput-discovery-failed: SDK input resolution failed: /private/tmp/msbuild-mvp-calibration-serilog/src/Serilog/Serilog.csproj\n/nix/store/f3kvj2nc26gn7rh5mnfnaa2dgy2p10v3-dotnet-sdk-10.0.400/share/dotnet/sdk/10.0.400/Sdks/Microsoft.NET.Sdk/targets/Microsoft.PackageDependencyResolution.targets(266,5): error NETSDK1060: Error reading assets file: Error loading lock file '/private/tmp/msbuild-mvp-calibration-serilog/src/Serilog/obj/project.assets.json' : Expected depth to be zero at the end of the JSON payload. There is an open JSON object or array that should be closed. LineNumber: 0 | BytePositionInLine: 1.\n\n",
+              "committedGenerationPreserved": true,
+              "consumerAbsent": true
+            },
+            "package-assembly-corrupt": {
+              "rejected": true,
+              "diagnostic": "hash-mismatch: package payload analyzers/dotnet/cs/PolySharp.SourceGenerators.dll\n  Determining projects to restore...\n  All projects are up-to-date for restore.\n  GraphExport -> /private/tmp/msbuild-mvp-contract-20260915/tools/GraphExport/bin/Release/net10.0/GraphExport.dll\n\nBuild succeeded.\n    0 Warning(s)\n    0 Error(s)\n\nTime Elapsed 00:00:00.34\n{\"ok\":true,\"schemaVersion\":1}\n",
+              "committedGenerationPreserved": true,
+              "consumerAbsent": true
+            },
+            "package-assembly-missing": {
+              "rejected": true,
+              "diagnostic": "Command '['/nix/store/f3kvj2nc26gn7rh5mnfnaa2dgy2p10v3-dotnet-sdk-10.0.400/share/dotnet/dotnet', '/private/tmp/msbuild-mvp-contract-20260915/tools/GraphExport/bin/Release/net10.0/GraphExport.dll', '--request', '/private/tmp/mrp1/fresh-export-1dj163xx/request.json']' returned non-zero exit status 2.\n  Determining projects to restore...\n  All projects are up-to-date for restore.\n  GraphExport -> /private/tmp/msbuild-mvp-contract-20260915/tools/GraphExport/bin/Release/net10.0/GraphExport.dll\n\nBuild succeeded.\n    0 Warning(s)\n    0 Error(s)\n\nTime Elapsed 00:00:00.35\nmissing-input: analyzer input does not exist: /private/tmp/msbuild-mvp-calibration-serilog/.nuget/packages/polysharp/1.15.0/analyzers/dotnet/cs/PolySharp.SourceGenerators.dll\n",
+              "committedGenerationPreserved": true,
+              "consumerAbsent": true
+            },
+            "package-import-corrupt": {
+              "rejected": true,
+              "diagnostic": "hash-mismatch: package payload buildTransitive/PolySharp.targets\n  Determining projects to restore...\n  All projects are up-to-date for restore.\n  GraphExport -> /private/tmp/msbuild-mvp-contract-20260915/tools/GraphExport/bin/Release/net10.0/GraphExport.dll\n\nBuild succeeded.\n    0 Warning(s)\n    0 Error(s)\n\nTime Elapsed 00:00:00.34\n{\"ok\":true,\"schemaVersion\":1}\n",
+              "committedGenerationPreserved": true,
+              "consumerAbsent": true
+            },
+            "restored-inputs": {
+              "preparation": {
+                "reused": true,
+                "discoveryExecuted": false,
+                "materializationExecuted": false,
+                "toolBuildsExecuted": false,
+                "reason": "unchanged",
+                "workspace": "/private/tmp/mrp1/restored-inputs"
+              },
+              "expectedNativeActions": 1,
+              "nativeActions": 1
+            },
+            "restored-unchanged": {
+              "preparation": {
+                "reused": true,
+                "discoveryExecuted": false,
+                "materializationExecuted": false,
+                "toolBuildsExecuted": false,
+                "reason": "unchanged",
+                "workspace": "/private/tmp/mrp1/restored-unchanged"
+              }
+            }
+          }
+        }
+      }
+    },
+    "changedCodeSha256": {
+      "tools/probe_preparation_performance.py": "fc7ed8fdb73f4d954e3817c9f8329b795ef3a86fec458194c883944eac7a9dbf",
+      "tests/preparation_reuse/probe_mvp_package_inputs.py": "5881358bfeaeb8d8e6623cfcebdacd9e4e51022d76101592d17cdfb959abe7ac",
+      "tests/preparation_reuse/test_package_probe.py": "d522e96150a3ae4a7b4ab225e59d57735eee8360dfa6dc7b7d4cb290a1e875dd",
+      "tests/preparation_reuse/test_performance_report.py": "05dae7f87cdc2624c67d865975596d9f060fe7dc9f49f102a2348369bcd89f18"
+    }
   }
 }

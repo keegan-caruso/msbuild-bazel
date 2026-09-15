@@ -138,3 +138,8 @@ other SDK distributions, synchronized storage or arbitrary package support.
 
 The ratio performance gate remains #7. Clean acquisition and final candidate
 release qualification remain #64, and packaging/sign-off remain #65.
+
+## PR review follow-up
+
+[Review fixes and rerun results](local-mvp-review-findings.md) strengthen the
+qualification harnesses and preserve the initial evidence separately.

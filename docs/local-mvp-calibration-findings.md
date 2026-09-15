@@ -117,3 +117,8 @@ Preparation seed/acquisition costs are separate from steady-state comparisons.
 Explicit test requests use fresh preparation; library reuse timing does not
 establish test-preparation reuse or end-to-end speedup. These observations
 complete calibration and expose work for #7; they do not pass its ratio gate.
+
+## PR review follow-up
+
+[Review fixes and rerun results](local-mvp-review-findings.md) strengthen the
+qualification harnesses and preserve the initial evidence separately.

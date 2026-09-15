@@ -186,3 +186,8 @@ their broader portfolio work:
 Individual links and retained scope are in the
 [parent scope issue](https://github.com/keegan-caruso/msbuild-bazel/issues/63).
 GitHub CI remains manual-only and requires an explicit request.
+
+## PR review follow-up
+
+[Review fixes and rerun results](local-mvp-review-findings.md) strengthen the
+qualification harnesses and preserve the initial evidence separately.
