@@ -1,9 +1,9 @@
 """Refresh content hashes without reevaluating a qualified compile-only graph.
 
 Only existing C# compile inputs may change. Namespace, modes, imports, restore,
-package and every other declared domain remain byte-identical. Resource-bearing
-or additional-input graphs retain full discovery because SDK tasks may inspect
-source contents while computing resource metadata.
+package and every other declared domain remain byte-identical. Resources retain
+full discovery except unchanged XML resources with an explicit literal name;
+additional-input graphs also retain full discovery.
 """
 import copy
 from pathlib import PurePosixPath
@@ -14,7 +14,15 @@ def refresh(candidate, graph, current):
     if digest(graph) != candidate['graphSha256']: return None
     if compare(candidate['identity'], current)['changedDomains'] != ['root:workspace']: return None
     inputs=graph.get('graphInputs',[])+[item for node in graph['nodes'] for item in node['inputs']]
-    if any(item['kind'] in ('resource','additional') for item in inputs): return None
+    for item in inputs:
+        if item['kind'] == 'additional': return None
+        if item['kind'] == 'resource':
+            path = PurePosixPath(item['path'])
+            # The qualified Serilog XML resource has an explicit name. Neither
+            # membership nor that name depends on C# class contents. Do not admit
+            # RESX conventions or other resource metadata through this exception.
+            if path.suffix != '.xml' or item.get('metadata') != {'LogicalName': path.name}:
+                return None
     roles={}
     for item in inputs: roles.setdefault(item['path'],set()).add(item['kind'])
     allowed={path for path,kinds in roles.items() if kinds=={'source'} and path.startswith('workspace/') and PurePosixPath(path).suffix=='.cs'}

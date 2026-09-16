@@ -59,3 +59,16 @@ class SourceUpdateTests(unittest.TestCase):
         self.assertIsNone(refresh(self.candidate,self.graph,capture({'workspace':self.root},request={'changed':True},environment={},host={})))
         graph=copy.deepcopy(self.graph);graph['extra']='corrupt'
         self.assertIsNone(refresh(self.candidate,graph,self.snapshot()))
+
+    def test_only_explicitly_named_xml_resource_exception(self):
+        (self.root/'Program.cs').write_text('class Changed {}')
+        for path,metadata,allowed in (
+            ('rules.xml',{'LogicalName':'rules.xml'},True),
+            ('rules.xml',None,False),
+            ('rules.resx',{'LogicalName':'rules.resx'},False),
+            ('rules.xml',{'LogicalName':'rules.xml','DependentUpon':'Program.cs'},False)):
+            graph=copy.deepcopy(self.graph)
+            graph['nodes'][0]['inputs'].append(dict(kind='resource',path='workspace/'+path,
+                sha256='b'*64,metadata=metadata))
+            candidate=dict(self.candidate,graphSha256=digest(graph))
+            self.assertEqual(refresh(candidate,graph,self.snapshot()) is not None,allowed)
