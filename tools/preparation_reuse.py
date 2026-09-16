@@ -93,18 +93,19 @@ def read_candidate(state, request):
         return None, 'missing-or-corrupt-state: ' + str(error)
 
 
-def verify_view(certificate):
+def verify_view(certificate, *, protected_store=None):
     """Recheck the leased inputs before committing or exposing prepared bytes."""
     roots = certificate['identity']['roots']
     allowed = [root['location'] for root in roots.values()]
+    snapshot = tree_snapshot if protected_store is None else protected_store.snapshot
     for root in roots.values():
-        if tree_snapshot(root['location'], allowed)['sha256'] != root['sha256']:
+        if snapshot(root['location'], allowed)['sha256'] != root['sha256']:
             raise IdentityError('leased discovery inputs changed before publication')
     if any(Path(path).exists() for path in certificate['externalAbsent']):
         raise IdentityError('external namespace changed before publication')
 
 
-def publish(state, workspace, graph_path, certificate, request):
+def publish(state, workspace, graph_path, certificate, request, *, protected_store=None):
     """Flush a complete generation before atomically switching the commit pointer."""
     generations = state / 'generations'
     generations.mkdir(exist_ok=True)
@@ -127,7 +128,7 @@ def publish(state, workspace, graph_path, certificate, request):
         committed = generations / name
         pending.rename(committed)
         sync_directory(generations)
-        verify_view(certificate)
+        verify_view(certificate, protected_store=protected_store)
         atomic_json(state / 'current.json', dict(generation=name, sha256=digest(manifest)))
         return committed
     finally:
@@ -221,7 +222,7 @@ def prepared_view(source, state, output, entries, *, environment=None, tests=Non
                     if tool_identity() != request['tools']: raise IdentityError('tools changed during consumption')
                     return
                 if validation.get('sourceContentUpdate'):
-                    generation = publish(state, discovery_state / 'workspace', discovery_state / 'output/graph.json', validation['certificate'], request)
+                    generation = publish(state, discovery_state / 'workspace', discovery_state / 'output/graph.json', validation['certificate'], request, protected_store=protected_store)
                     manifest = json.loads((generation / 'manifest.json').read_text())
                     yield consume(generation, manifest, False, 'source-content-changed', discovery_executed=False)
                     if tool_identity() != request['tools']: raise IdentityError('tools changed during consumption')
@@ -237,7 +238,7 @@ def prepared_view(source, state, output, entries, *, environment=None, tests=Non
                 with fresh_view(source, output, entries, environment=environment, tests=tests) as result:
                     yield result
                 return
-            generation = publish(state, discovery_state / 'workspace', discovery_state / 'output/graph.json', certificate, request)
+            generation = publish(state, discovery_state / 'workspace', discovery_state / 'output/graph.json', certificate, request, protected_store=protected_store)
             manifest = json.loads((generation / 'manifest.json').read_text())
             yield consume(generation, manifest, False, reason)
             if tool_identity() != request['tools']: raise IdentityError('tools changed during consumption')
