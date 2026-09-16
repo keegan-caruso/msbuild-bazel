@@ -17,6 +17,13 @@ focused R17 experiment, not qualification of the full supported-version/platform
 
 ## Current status and next step
 
+The [local MVP release](local-mvp-release.md), **v0.1.0-mvp.1**, provides the
+pinned native macOS ARM64 Build/Test source release. Its
+[release sign-off](local-mvp-signoff.md) records a rerun on merged main,
+complete Build/Test measurements, compatibility policy, retained limitations and
+reproducible evidence. Broader compile/runtime boundary and scale work remain
+open; the next performance milestone is #34.
+
 The [incremental preparation experiment](incremental-preparation-findings.md)
 removes repeated materialization, adds explicit protected-store session reuse,
 and qualifies content-only C# graph refresh. It measures each change separately
@@ -35,8 +42,8 @@ passes 99 correctness cases, 20 paired preparation samples and 40 Build/Test
 samples, with exact code/evidence applicability recorded. The original
 [85-case matrix](local-mvp-correctness-findings.md) and
 [macOS path guard](local-mvp-path-findings.md) remain part of the contract.
-Release version/artifact selection and sign-off remain #65; broader platform,
-package and scale work stays open.
+The subsequent [#65 release](local-mvp-signoff.md) records delivery and fresh
+qualification; broader platform, package and scale work stays open.
 
 The first [MSBuild time-input diagnostic slice](msbuild-time-findings.md) reports
 potential clock and file-timestamp reads in project/import XML, excluding application

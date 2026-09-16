@@ -4,7 +4,8 @@ Status: frozen scope and acceptance contract for [#63](https://github.com/keegan
 Reviewed 2026-09-15 against candidate source
 `498114a4b67ba56682b93fb6a6f98d82d1b2acaf`. This records the intended
 qualification boundary. The candidate includes the changes in this commit;
-the evidence manifest binds its patch and input identities. This is not a release.
+the evidence manifest binds its patch and input identities. The subsequent
+[v0.1.0-mvp.1 release](local-mvp-release.md) retains these scope boundaries.
 
 ## Candidate and acquisition
 
@@ -118,7 +119,7 @@ the MVP's Serilog entry point.
 The subsequent [performance qualification](local-mvp-performance-findings.md)
 and [clean-candidate qualification](local-mvp-release-qualification.md) now record
 passing evidence for #7 and #64. The frozen boundaries and budget below are
-unchanged; #65 still owns release packaging and sign-off.
+unchanged; the [release sign-off](local-mvp-signoff.md) records #65 delivery.
 
 [RUL-6](https://linear.app/rules-msbuild/issue/RUL-6/reuse-and-safely-publish-unchanged-export-and-preparation)
 is Done and [PR #4](https://github.com/keegan-caruso/msbuild-bazel/pull/4)
@@ -149,9 +150,9 @@ Nix acquisition and toolchain checks pass. The
 [calibration findings](local-mvp-calibration-findings.md) and
 [numeric budget](local-mvp-preparation-budget.json) fix the metric, five
 repetitions per mode, median ratio limit of 1.0 and absolute limit of 5.0s
-for each workload. Current calibration fails the ratio limit. Performance
-qualification remains a separate gate and requires investigation of that
-regression; these thresholds must not be relaxed retrospectively.
+for each workload. Initial calibration failed the ratio limit; subsequent
+[qualification](local-mvp-performance-findings.md) passed after optimization.
+The [release rerun](local-mvp-signoff.md) retains the same thresholds.
 
 1. **#63:** complete exact runtime/engine inventory, supported invocation and
    exposed-operation audit; resolve every entry-point/lifecycle disposition.

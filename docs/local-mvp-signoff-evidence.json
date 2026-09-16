@@ -1,0 +1,2560 @@
+{
+  "schemaVersion": 1,
+  "version": "v0.1.0-mvp.1",
+  "measuredRevision": "73109f160839e25f1be3f8212e07c3deb0dce727",
+  "qualificationCaseCount": 99,
+  "native": {
+    "r": {
+      "cases": 17,
+      "sha256": "3cda138fbdac6c0e502771ae053418e7919f86696d4776e4bf99246bd0576866"
+    },
+    "i": {
+      "cases": 8,
+      "sha256": "7e4b09de5dc458c3e01379e84eed20db92e2044163dcbe9a2071bc1ae23578ef"
+    },
+    "d": {
+      "cases": 27,
+      "sha256": "ba7f45eb49a600c503baf13eb29dc30381f4f37f9e824da12851558c78141e75"
+    },
+    "sd": {
+      "cases": 15,
+      "sha256": "10029dcdb28f0db08596c693f37cfd800a5868831e769af863ce4e49d5d36a65"
+    },
+    "sr": {
+      "cases": 2,
+      "sha256": "58b7fa3e56628c9d56a99bdc15a11c28f3a0dd93234e3fe866a6f2d7ce2056ef"
+    },
+    "l": {
+      "cases": 9,
+      "sha256": "3b088ce43c101c1bf205148db23bd78c6fcf8239d2b499e139e52ccd5f8c54f3"
+    },
+    "t": {
+      "cases": 5,
+      "sha256": "4580e3289d6dcf1d11b588805f4a766e533d23e71525b0bca6836341f8bd2420"
+    },
+    "pk": {
+      "cases": 9,
+      "sha256": "54eb6484d88d900cf184a19bab5b0f3db3f2c84b00f8eca371d639cd27b5f316"
+    },
+    "f": {
+      "cases": 2,
+      "sha256": "b2e159ab71c54e2e6efef95934986ee63f4d426ed26c95214b1e45e0b6832d69"
+    },
+    "lifecycle": {
+      "cases": 4,
+      "sha256": "d22ba632261af93039d02ec79ac49914832d60f64206e1d72ccc9d51a848cc50"
+    }
+  },
+  "preparationGate": {
+    "schemaVersion": 1,
+    "performanceQualified": true,
+    "scope": "local MVP preparation only",
+    "budgetSha256": "c89f378450e1d7196ce30931e7c45990d7a5511c63bf431d39b6299cec0f84c1",
+    "workloads": {
+      "small": {
+        "passed": true,
+        "summary": {
+          "fresh": {
+            "count": 5,
+            "median": 2.291578500007745,
+            "minimum": 2.2912244579929393,
+            "maximum": 2.3015436659916304
+          },
+          "reuse": {
+            "count": 5,
+            "median": 1.521736750000855,
+            "minimum": 1.5140141250158194,
+            "maximum": 1.5651650829822756
+          },
+          "medianReuseToFreshRatio": 0.6640561298666888
+        }
+      },
+      "serilog": {
+        "passed": true,
+        "summary": {
+          "fresh": {
+            "count": 5,
+            "median": 2.2205425830034073,
+            "minimum": 2.214862416993128,
+            "maximum": 2.2238064169941936
+          },
+          "reuse": {
+            "count": 5,
+            "median": 1.7736495829885826,
+            "minimum": 1.768462540989276,
+            "maximum": 1.8120841249765363
+          },
+          "medianReuseToFreshRatio": 0.7987460346694288
+        }
+      }
+    },
+    "failures": [],
+    "candidateRevision": "73109f160839e25f1be3f8212e07c3deb0dce727",
+    "endToEndSummaries": {
+      "fresh": {
+        "ordinary": {
+          "sampleCount": 5,
+          "metrics": {
+            "comparisonSeconds": {
+              "median": 1.5325083329807967,
+              "minimum": 1.483286666974891,
+              "maximum": 1.5803467920050025
+            },
+            "fullWorkflowSeconds": {
+              "median": 2.1546568339690566,
+              "minimum": 2.0999399999855086,
+              "maximum": 2.2442272920161486
+            }
+          },
+          "phases": {
+            "build": {
+              "median": 0.8424032080220059,
+              "minimum": 0.8377600410021842,
+              "maximum": 0.8934464170015417
+            },
+            "packageCopy": {
+              "median": 0.10799529199721292,
+              "minimum": 0.10678208401077427,
+              "maximum": 0.2140307910158299
+            },
+            "restore": {
+              "median": 0.4745959169813432,
+              "minimum": 0.45486741699278355,
+              "maximum": 0.4962590000068303
+            },
+            "sourceExtraction": {
+              "median": 0.04099291699822061,
+              "minimum": 0.038647875015158206,
+              "maximum": 0.04312233399832621
+            },
+            "test": {
+              "median": 0.6822249589895364,
+              "minimum": 0.6439382499956992,
+              "maximum": 0.6947482919786125
+            }
+          }
+        },
+        "bazel": {
+          "sampleCount": 5,
+          "metrics": {
+            "comparisonSeconds": {
+              "median": 12.495976915990468,
+              "minimum": 12.333342084020842,
+              "maximum": 12.866458166012308
+            },
+            "fullWorkflowSeconds": {
+              "median": 13.156362125009764,
+              "minimum": 12.967959793051705,
+              "maximum": 13.486071748047834
+            }
+          },
+          "phases": {
+            "bazelShutdown": {
+              "median": 0.6080623750167433,
+              "minimum": 0.5549869579845108,
+              "maximum": 0.6395358330046292
+            },
+            "build": {
+              "median": 7.321922874980373,
+              "minimum": 7.248537333012791,
+              "maximum": 7.7027665420027915
+            },
+            "export": {
+              "median": 0.4673633750062436,
+              "minimum": 0.46615991697763093,
+              "maximum": 0.5020846659899689
+            },
+            "packageCopy": {
+              "median": 0.10911129199666902,
+              "minimum": 0.1085022079932969,
+              "maximum": 0.1188822080148384
+            },
+            "preparation": {
+              "median": 2.998444833996473,
+              "minimum": 2.9760945830203127,
+              "maximum": 3.0283195829833858
+            },
+            "restore": {
+              "median": 0.4860728750063572,
+              "minimum": 0.4632651249994524,
+              "maximum": 0.5109545419982169
+            },
+            "sourceExtraction": {
+              "median": 0.03881179098971188,
+              "minimum": 0.037386416021035984,
+              "maximum": 0.039433542027836666
+            },
+            "test": {
+              "median": 1.6317445840104483,
+              "minimum": 1.5940773750189692,
+              "maximum": 1.6958747919998132
+            }
+          }
+        }
+      },
+      "unchanged": {
+        "ordinary": {
+          "sampleCount": 5,
+          "metrics": {
+            "comparisonSeconds": {
+              "median": 1.3231987500039395,
+              "minimum": 1.2908662500267383,
+              "maximum": 1.3865192499943078
+            },
+            "fullWorkflowSeconds": {
+              "median": 2.8818882910127286,
+              "minimum": 2.807374375028303,
+              "maximum": 2.9314715410291683
+            }
+          },
+          "phases": {
+            "build": {
+              "median": 0.6729615829826798,
+              "minimum": 0.6380812500137836,
+              "maximum": 0.6930999169999268
+            },
+            "packageCopy": {
+              "median": 0.11074258302687667,
+              "minimum": 0.10882129200035706,
+              "maximum": 0.27950454197707586
+            },
+            "restore": {
+              "median": 0.46840208300272934,
+              "minimum": 0.4597521660034545,
+              "maximum": 0.5197386669751722
+            },
+            "sourceExtraction": {
+              "median": 0.04225308299646713,
+              "minimum": 0.03844220799510367,
+              "maximum": 0.043387416983023286
+            },
+            "test": {
+              "median": 0.6527850000129547,
+              "minimum": 0.6441237919789273,
+              "maximum": 0.7087484580115415
+            },
+            "warmupBuild": {
+              "median": 0.8668817500001751,
+              "minimum": 0.852384208003059,
+              "maximum": 0.881112375005614
+            }
+          }
+        },
+        "bazel": {
+          "sampleCount": 5,
+          "metrics": {
+            "comparisonSeconds": {
+              "median": 5.250290627009235,
+              "minimum": 5.192407957016258,
+              "maximum": 5.399976708053146
+            },
+            "fullWorkflowSeconds": {
+              "median": 16.90592670699698,
+              "minimum": 16.787260959041305,
+              "maximum": 17.299695124005666
+            }
+          },
+          "phases": {
+            "baseline-export": {
+              "median": 0.48761662500328384,
+              "minimum": 0.4664818749879487,
+              "maximum": 0.5183158750005532
+            },
+            "baseline-preparation": {
+              "median": 3.0034656249918044,
+              "minimum": 2.959436500008451,
+              "maximum": 3.021245917014312
+            },
+            "bazelShutdown": {
+              "median": 0.5896379170008004,
+              "minimum": 0.49437641599797644,
+              "maximum": 0.6358316670230124
+            },
+            "build": {
+              "median": 0.512908000004245,
+              "minimum": 0.5088740840146784,
+              "maximum": 0.6490167920128442
+            },
+            "export": {
+              "median": 0.4696531670051627,
+              "minimum": 0.45884891602327116,
+              "maximum": 0.500448459002655
+            },
+            "packageCopy": {
+              "median": 0.10750245800591074,
+              "minimum": 0.10518637500354089,
+              "maximum": 0.22385570802725852
+            },
+            "preparation": {
+              "median": 2.656516916991677,
+              "minimum": 2.6375368330045603,
+              "maximum": 2.697693041001912
+            },
+            "restore": {
+              "median": 0.4768306250043679,
+              "minimum": 0.47371591700357385,
+              "maximum": 0.4808889160049148
+            },
+            "sourceExtraction": {
+              "median": 0.03967120798188262,
+              "minimum": 0.03843695801333524,
+              "maximum": 0.04299891600385308
+            },
+            "test": {
+              "median": 1.584954416990513,
+              "minimum": 1.5447094999835826,
+              "maximum": 1.5988704160263296
+            },
+            "warmupBuild": {
+              "median": 7.498666208004579,
+              "minimum": 7.408503415994346,
+              "maximum": 8.03646024997579
+            }
+          }
+        }
+      },
+      "sourceEdited": {
+        "ordinary": {
+          "sampleCount": 5,
+          "metrics": {
+            "comparisonSeconds": {
+              "median": 1.3645916669920553,
+              "minimum": 1.3379999170138035,
+              "maximum": 1.4024075829947833
+            },
+            "fullWorkflowSeconds": {
+              "median": 2.8272008330386598,
+              "minimum": 2.7977052929927595,
+              "maximum": 2.9473894590046257
+            }
+          },
+          "phases": {
+            "build": {
+              "median": 0.6924222919915337,
+              "minimum": 0.6909678330121096,
+              "maximum": 0.7145732920034789
+            },
+            "packageCopy": {
+              "median": 0.10838058401714079,
+              "minimum": 0.10548149998066947,
+              "maximum": 0.17196745800902136
+            },
+            "restore": {
+              "median": 0.46972387499408796,
+              "minimum": 0.46825487501337193,
+              "maximum": 0.5098155000014231
+            },
+            "sourceExtraction": {
+              "median": 0.03953970901784487,
+              "minimum": 0.03859116701642051,
+              "maximum": 0.05186420801328495
+            },
+            "test": {
+              "median": 0.6675829160085414,
+              "minimum": 0.6455776250222698,
+              "maximum": 0.7114397499826737
+            },
+            "warmupBuild": {
+              "median": 0.8479307920206338,
+              "minimum": 0.8207860839902423,
+              "maximum": 0.8570582920219749
+            }
+          }
+        },
+        "bazel": {
+          "sampleCount": 5,
+          "metrics": {
+            "comparisonSeconds": {
+              "median": 6.711181500024395,
+              "minimum": 6.666162626002915,
+              "maximum": 6.869370957982028
+            },
+            "fullWorkflowSeconds": {
+              "median": 18.468969248002395,
+              "minimum": 18.04253345899633,
+              "maximum": 19.27789770596428
+            }
+          },
+          "phases": {
+            "baseline-export": {
+              "median": 0.5024596659932286,
+              "minimum": 0.46350883299601264,
+              "maximum": 0.5155083329882473
+            },
+            "baseline-preparation": {
+              "median": 3.0222762919729576,
+              "minimum": 2.9660517500014976,
+              "maximum": 3.0434263750212267
+            },
+            "bazelShutdown": {
+              "median": 0.5950016669812612,
+              "minimum": 0.5299149170168675,
+              "maximum": 0.6137403329776134
+            },
+            "build": {
+              "median": 2.0410541250021197,
+              "minimum": 1.9940369160030968,
+              "maximum": 2.1288223330047913
+            },
+            "export": {
+              "median": 0.4780495839950163,
+              "minimum": 0.46597170797758736,
+              "maximum": 0.4920823749853298
+            },
+            "packageCopy": {
+              "median": 0.10959912501857616,
+              "minimum": 0.1065391659794841,
+              "maximum": 0.2581179160042666
+            },
+            "preparation": {
+              "median": 2.6787978330103215,
+              "minimum": 2.6212025830172934,
+              "maximum": 2.717316624999512
+            },
+            "restore": {
+              "median": 0.483980333985528,
+              "minimum": 0.47295933301211335,
+              "maximum": 0.5119303750107065
+            },
+            "sourceExtraction": {
+              "median": 0.03975249998620711,
+              "minimum": 0.03834649999043904,
+              "maximum": 0.04351074999431148
+            },
+            "test": {
+              "median": 1.5311804999946617,
+              "minimum": 1.5220466250029858,
+              "maximum": 1.5708752080099657
+            },
+            "warmupBuild": {
+              "median": 7.418602457997622,
+              "minimum": 7.30029783397913,
+              "maximum": 8.239224958000705
+            }
+          }
+        }
+      },
+      "recovered": {
+        "ordinary": {
+          "sampleCount": 5,
+          "metrics": {
+            "comparisonSeconds": {
+              "median": 1.5247362500231247,
+              "minimum": 1.47414058301365,
+              "maximum": 1.5860452920023818
+            },
+            "fullWorkflowSeconds": {
+              "median": 3.032208458025707,
+              "minimum": 2.921329084027093,
+              "maximum": 3.1373859170125797
+            }
+          },
+          "phases": {
+            "build": {
+              "median": 0.8344755000143778,
+              "minimum": 0.8080509169958532,
+              "maximum": 0.9116107909940183
+            },
+            "packageCopy": {
+              "median": 0.11048345899325795,
+              "minimum": 0.10546058299951255,
+              "maximum": 0.11408374999882653
+            },
+            "restore": {
+              "median": 0.4972794170025736,
+              "minimum": 0.4619602079910692,
+              "maximum": 0.5186857910011895
+            },
+            "sourceExtraction": {
+              "median": 0.03976387498551048,
+              "minimum": 0.038241041998844594,
+              "maximum": 0.05167250000522472
+            },
+            "test": {
+              "median": 0.6821615829830989,
+              "minimum": 0.6611111249949317,
+              "maximum": 0.7079140830028336
+            },
+            "warmupBuild": {
+              "median": 0.8618511249951553,
+              "minimum": 0.8381070840114262,
+              "maximum": 0.8720535419997759
+            }
+          }
+        },
+        "bazel": {
+          "sampleCount": 5,
+          "metrics": {
+            "comparisonSeconds": {
+              "median": 9.379271374986274,
+              "minimum": 9.201162958022906,
+              "maximum": 9.480327085009776
+            },
+            "fullWorkflowSeconds": {
+              "median": 22.328943917993456,
+              "minimum": 21.99324458403862,
+              "maximum": 23.108290664997185
+            }
+          },
+          "phases": {
+            "baseline-export": {
+              "median": 0.46684391601593234,
+              "minimum": 0.46098529201117344,
+              "maximum": 0.508781332988292
+            },
+            "baseline-preparation": {
+              "median": 3.0329920840158593,
+              "minimum": 2.9948987920070067,
+              "maximum": 3.08501104201423
+            },
+            "bazelShutdown": {
+              "median": 0.5353499589837156,
+              "minimum": 0.49337041698163375,
+              "maximum": 0.6326998340082355
+            },
+            "build": {
+              "median": 4.170472625002731,
+              "minimum": 4.083715124987066,
+              "maximum": 4.216735041991342
+            },
+            "export": {
+              "median": 0.5103892920014914,
+              "minimum": 0.46787741701700725,
+              "maximum": 0.5288858750136569
+            },
+            "packageCopy": {
+              "median": 0.12337050001951866,
+              "minimum": 0.10657108298619278,
+              "maximum": 0.2472503750177566
+            },
+            "preparation": {
+              "median": 3.0202016660186928,
+              "minimum": 2.9783843329933006,
+              "maximum": 3.066536250000354
+            },
+            "producerServerShutdown": {
+              "median": 0.6039466669899411,
+              "minimum": 0.544409791007638,
+              "maximum": 0.6451841669913847
+            },
+            "relocated-packageCopy": {
+              "median": 0.10674416701658629,
+              "minimum": 0.10356970800785348,
+              "maximum": 0.2398855409992393
+            },
+            "relocated-sourceExtraction": {
+              "median": 0.038243999995756894,
+              "minimum": 0.037896833004197106,
+              "maximum": 0.041066457983106375
+            },
+            "relocatedRestore": {
+              "median": 0.4379420829936862,
+              "minimum": 0.41508683399297297,
+              "maximum": 0.44573741700151004
+            },
+            "restore": {
+              "median": 0.4740289589972235,
+              "minimum": 0.4703572079888545,
+              "maximum": 0.48132199997780845
+            },
+            "sourceExtraction": {
+              "median": 0.04068737500347197,
+              "minimum": 0.03872654199949466,
+              "maximum": 0.0426244160044007
+            },
+            "test": {
+              "median": 1.640553125005681,
+              "minimum": 1.5833855830132961,
+              "maximum": 1.7489967090077698
+            },
+            "warmupBuild": {
+              "median": 7.5360339999897406,
+              "minimum": 7.263281791994814,
+              "maximum": 8.255902082979446
+            }
+          }
+        }
+      }
+    },
+    "limitation": "Only preparation latency is budget-qualified. End-to-end adapter overhead and recovery comparison differences remain reported; no scale or cross-platform claim.",
+    "reportSha256": {
+      "small": "6d53806f5bafb88f564274985f33410751e8b10a9aa0349900a678c82fd96dd2",
+      "serilog": "1f517de6e7a319cd9326ae484921eb4dedb02444d799e207707ff2e4faa7cc6b",
+      "end_to_end": "af9b8d2b38650b655655b44127a4c9ee06f21afdd0604c3eca53225e2c34b31a"
+    }
+  },
+  "endToEndSamples": [
+    {
+      "repetition": 1,
+      "case": "fresh",
+      "system": "ordinary",
+      "status": "passed",
+      "workset": {
+        "expectedCompilerInvocations": 2,
+        "compilerInvocations": 2
+      },
+      "testResult": {
+        "total": 1,
+        "executed": 1,
+        "passed": 1,
+        "failed": 0,
+        "test": "ApiApprovalTests.PublicApi_Should_Not_Change_Unintentionally",
+        "outcome": "Passed"
+      },
+      "comparisonSeconds": 1.5372682499873918,
+      "fullWorkflowSeconds": 2.1486627089907415
+    },
+    {
+      "repetition": 1,
+      "case": "fresh",
+      "system": "bazel",
+      "status": "passed",
+      "workset": {
+        "expectedExecutedProjects": [
+          "Serilog",
+          "Serilog.ApprovalTests"
+        ],
+        "build": {
+          "buildActions": [
+            {
+              "nodeId": "6374c4d1a3b9b425bd8b734f",
+              "project": "Serilog",
+              "cacheHit": false,
+              "runner": "darwin-sandbox",
+              "diagnostic": "samples/r01-f-b/action-evidence/build/6374c4d1a3b9b425bd8b734f",
+              "compiledProjects": [
+                "Serilog"
+              ]
+            },
+            {
+              "nodeId": "0102ed020e5af058e2595e4c",
+              "project": "Serilog.ApprovalTests",
+              "cacheHit": false,
+              "runner": "darwin-sandbox",
+              "diagnostic": "samples/r01-f-b/action-evidence/build/0102ed020e5af058e2595e4c",
+              "compiledProjects": [
+                "Serilog.ApprovalTests"
+              ]
+            }
+          ],
+          "testActions": [],
+          "materializedProjects": [
+            "Serilog",
+            "Serilog.ApprovalTests"
+          ],
+          "materializedWithoutExecutionRecord": [],
+          "recordedLocalCacheHitProjects": []
+        },
+        "test": {
+          "buildActions": [],
+          "testActions": [
+            {
+              "cacheHit": false,
+              "runner": "darwin-sandbox"
+            }
+          ]
+        }
+      },
+      "testResult": {
+        "total": 1,
+        "executed": 1,
+        "passed": 1,
+        "failed": 0,
+        "test": "ApiApprovalTests.PublicApi_Should_Not_Change_Unintentionally",
+        "outcome": "Passed"
+      },
+      "comparisonSeconds": 12.866458166012308,
+      "fullWorkflowSeconds": 13.486071748047834
+    },
+    {
+      "repetition": 1,
+      "case": "unchanged",
+      "system": "bazel",
+      "status": "passed",
+      "workset": {
+        "expectedExecutedProjects": [],
+        "build": {
+          "buildActions": [],
+          "testActions": [],
+          "materializedProjects": [
+            "Serilog",
+            "Serilog.ApprovalTests"
+          ],
+          "materializedWithoutExecutionRecord": [
+            "Serilog",
+            "Serilog.ApprovalTests"
+          ],
+          "recordedLocalCacheHitProjects": []
+        },
+        "test": {
+          "buildActions": [],
+          "testActions": [
+            {
+              "cacheHit": false,
+              "runner": "darwin-sandbox"
+            }
+          ]
+        }
+      },
+      "testResult": {
+        "total": 1,
+        "executed": 1,
+        "passed": 1,
+        "failed": 0,
+        "test": "ApiApprovalTests.PublicApi_Should_Not_Change_Unintentionally",
+        "outcome": "Passed"
+      },
+      "comparisonSeconds": 5.192407957016258,
+      "fullWorkflowSeconds": 16.843063582025934
+    },
+    {
+      "repetition": 1,
+      "case": "unchanged",
+      "system": "ordinary",
+      "status": "passed",
+      "workset": {
+        "expectedCompilerInvocations": 0,
+        "compilerInvocations": 0
+      },
+      "testResult": {
+        "total": 1,
+        "executed": 1,
+        "passed": 1,
+        "failed": 0,
+        "test": "ApiApprovalTests.PublicApi_Should_Not_Change_Unintentionally",
+        "outcome": "Passed"
+      },
+      "comparisonSeconds": 1.303647666994948,
+      "fullWorkflowSeconds": 2.807374375028303
+    },
+    {
+      "repetition": 1,
+      "case": "sourceEdited",
+      "system": "ordinary",
+      "status": "passed",
+      "workset": {
+        "expectedCompilerInvocations": 1,
+        "compilerInvocations": 1
+      },
+      "testResult": {
+        "total": 1,
+        "executed": 1,
+        "passed": 1,
+        "failed": 0,
+        "test": "ApiApprovalTests.PublicApi_Should_Not_Change_Unintentionally",
+        "outcome": "Passed"
+      },
+      "comparisonSeconds": 1.3616841660114005,
+      "fullWorkflowSeconds": 2.8272008330386598
+    },
+    {
+      "repetition": 1,
+      "case": "sourceEdited",
+      "system": "bazel",
+      "status": "passed",
+      "workset": {
+        "expectedExecutedProjects": [
+          "Serilog.ApprovalTests"
+        ],
+        "build": {
+          "buildActions": [
+            {
+              "nodeId": "0102ed020e5af058e2595e4c",
+              "project": "Serilog.ApprovalTests",
+              "cacheHit": false,
+              "runner": "darwin-sandbox",
+              "diagnostic": "samples/r01-s-b/action-evidence/build/0102ed020e5af058e2595e4c",
+              "compiledProjects": [
+                "Serilog.ApprovalTests"
+              ]
+            }
+          ],
+          "testActions": [],
+          "materializedProjects": [
+            "Serilog",
+            "Serilog.ApprovalTests"
+          ],
+          "materializedWithoutExecutionRecord": [
+            "Serilog"
+          ],
+          "recordedLocalCacheHitProjects": []
+        },
+        "test": {
+          "buildActions": [],
+          "testActions": [
+            {
+              "cacheHit": false,
+              "runner": "darwin-sandbox"
+            }
+          ]
+        }
+      },
+      "testResult": {
+        "total": 1,
+        "executed": 1,
+        "passed": 1,
+        "failed": 0,
+        "test": "ApiApprovalTests.PublicApi_Should_Not_Change_Unintentionally",
+        "outcome": "Passed"
+      },
+      "comparisonSeconds": 6.865103208023356,
+      "fullWorkflowSeconds": 18.57466729101725
+    },
+    {
+      "repetition": 1,
+      "case": "recovered",
+      "system": "bazel",
+      "status": "passed",
+      "workset": {
+        "expectedExecutedProjects": [],
+        "build": {
+          "buildActions": [
+            {
+              "nodeId": "6374c4d1a3b9b425bd8b734f",
+              "project": "Serilog",
+              "cacheHit": true,
+              "runner": "disk cache hit",
+              "diagnostic": "samples/r01-r-b/action-evidence/build/6374c4d1a3b9b425bd8b734f"
+            },
+            {
+              "nodeId": "0102ed020e5af058e2595e4c",
+              "project": "Serilog.ApprovalTests",
+              "cacheHit": true,
+              "runner": "disk cache hit",
+              "diagnostic": "samples/r01-r-b/action-evidence/build/0102ed020e5af058e2595e4c"
+            }
+          ],
+          "testActions": [],
+          "materializedProjects": [
+            "Serilog",
+            "Serilog.ApprovalTests"
+          ],
+          "materializedWithoutExecutionRecord": [],
+          "recordedLocalCacheHitProjects": []
+        },
+        "test": {
+          "buildActions": [],
+          "testActions": [
+            {
+              "cacheHit": false,
+              "runner": "darwin-sandbox"
+            }
+          ]
+        }
+      },
+      "testResult": {
+        "total": 1,
+        "executed": 1,
+        "passed": 1,
+        "failed": 0,
+        "test": "ApiApprovalTests.PublicApi_Should_Not_Change_Unintentionally",
+        "outcome": "Passed"
+      },
+      "comparisonSeconds": 9.4075484170462,
+      "fullWorkflowSeconds": 22.328943917993456
+    },
+    {
+      "repetition": 1,
+      "case": "recovered",
+      "system": "ordinary",
+      "status": "passed",
+      "workset": {
+        "expectedCompilerInvocations": 2,
+        "compilerInvocations": 2
+      },
+      "testResult": {
+        "total": 1,
+        "executed": 1,
+        "passed": 1,
+        "failed": 0,
+        "test": "ApiApprovalTests.PublicApi_Should_Not_Change_Unintentionally",
+        "outcome": "Passed"
+      },
+      "comparisonSeconds": 1.5247362500231247,
+      "fullWorkflowSeconds": 3.032208458025707
+    },
+    {
+      "repetition": 2,
+      "case": "fresh",
+      "system": "bazel",
+      "status": "passed",
+      "workset": {
+        "expectedExecutedProjects": [
+          "Serilog",
+          "Serilog.ApprovalTests"
+        ],
+        "build": {
+          "buildActions": [
+            {
+              "nodeId": "6374c4d1a3b9b425bd8b734f",
+              "project": "Serilog",
+              "cacheHit": false,
+              "runner": "darwin-sandbox",
+              "diagnostic": "samples/r02-f-b/action-evidence/build/6374c4d1a3b9b425bd8b734f",
+              "compiledProjects": [
+                "Serilog"
+              ]
+            },
+            {
+              "nodeId": "0102ed020e5af058e2595e4c",
+              "project": "Serilog.ApprovalTests",
+              "cacheHit": false,
+              "runner": "darwin-sandbox",
+              "diagnostic": "samples/r02-f-b/action-evidence/build/0102ed020e5af058e2595e4c",
+              "compiledProjects": [
+                "Serilog.ApprovalTests"
+              ]
+            }
+          ],
+          "testActions": [],
+          "materializedProjects": [
+            "Serilog",
+            "Serilog.ApprovalTests"
+          ],
+          "materializedWithoutExecutionRecord": [],
+          "recordedLocalCacheHitProjects": []
+        },
+        "test": {
+          "buildActions": [],
+          "testActions": [
+            {
+              "cacheHit": false,
+              "runner": "darwin-sandbox"
+            }
+          ]
+        }
+      },
+      "testResult": {
+        "total": 1,
+        "executed": 1,
+        "passed": 1,
+        "failed": 0,
+        "test": "ApiApprovalTests.PublicApi_Should_Not_Change_Unintentionally",
+        "outcome": "Passed"
+      },
+      "comparisonSeconds": 12.548117833008291,
+      "fullWorkflowSeconds": 13.196411541022826
+    },
+    {
+      "repetition": 2,
+      "case": "fresh",
+      "system": "ordinary",
+      "status": "passed",
+      "workset": {
+        "expectedCompilerInvocations": 2,
+        "compilerInvocations": 2
+      },
+      "testResult": {
+        "total": 1,
+        "executed": 1,
+        "passed": 1,
+        "failed": 0,
+        "test": "ApiApprovalTests.PublicApi_Should_Not_Change_Unintentionally",
+        "outcome": "Passed"
+      },
+      "comparisonSeconds": 1.500452000007499,
+      "fullWorkflowSeconds": 2.2442272920161486
+    },
+    {
+      "repetition": 2,
+      "case": "unchanged",
+      "system": "ordinary",
+      "status": "passed",
+      "workset": {
+        "expectedCompilerInvocations": 0,
+        "compilerInvocations": 0
+      },
+      "testResult": {
+        "total": 1,
+        "executed": 1,
+        "passed": 1,
+        "failed": 0,
+        "test": "ApiApprovalTests.PublicApi_Should_Not_Change_Unintentionally",
+        "outcome": "Passed"
+      },
+      "comparisonSeconds": 1.3865192499943078,
+      "fullWorkflowSeconds": 2.8818882910127286
+    },
+    {
+      "repetition": 2,
+      "case": "unchanged",
+      "system": "bazel",
+      "status": "passed",
+      "workset": {
+        "expectedExecutedProjects": [],
+        "build": {
+          "buildActions": [],
+          "testActions": [],
+          "materializedProjects": [
+            "Serilog",
+            "Serilog.ApprovalTests"
+          ],
+          "materializedWithoutExecutionRecord": [
+            "Serilog",
+            "Serilog.ApprovalTests"
+          ],
+          "recordedLocalCacheHitProjects": []
+        },
+        "test": {
+          "buildActions": [],
+          "testActions": [
+            {
+              "cacheHit": false,
+              "runner": "darwin-sandbox"
+            }
+          ]
+        }
+      },
+      "testResult": {
+        "total": 1,
+        "executed": 1,
+        "passed": 1,
+        "failed": 0,
+        "test": "ApiApprovalTests.PublicApi_Should_Not_Change_Unintentionally",
+        "outcome": "Passed"
+      },
+      "comparisonSeconds": 5.219418750028126,
+      "fullWorkflowSeconds": 17.299695124005666
+    },
+    {
+      "repetition": 2,
+      "case": "sourceEdited",
+      "system": "bazel",
+      "status": "passed",
+      "workset": {
+        "expectedExecutedProjects": [
+          "Serilog.ApprovalTests"
+        ],
+        "build": {
+          "buildActions": [
+            {
+              "nodeId": "0102ed020e5af058e2595e4c",
+              "project": "Serilog.ApprovalTests",
+              "cacheHit": false,
+              "runner": "darwin-sandbox",
+              "diagnostic": "samples/r02-s-b/action-evidence/build/0102ed020e5af058e2595e4c",
+              "compiledProjects": [
+                "Serilog.ApprovalTests"
+              ]
+            }
+          ],
+          "testActions": [],
+          "materializedProjects": [
+            "Serilog",
+            "Serilog.ApprovalTests"
+          ],
+          "materializedWithoutExecutionRecord": [
+            "Serilog"
+          ],
+          "recordedLocalCacheHitProjects": []
+        },
+        "test": {
+          "buildActions": [],
+          "testActions": [
+            {
+              "cacheHit": false,
+              "runner": "darwin-sandbox"
+            }
+          ]
+        }
+      },
+      "testResult": {
+        "total": 1,
+        "executed": 1,
+        "passed": 1,
+        "failed": 0,
+        "test": "ApiApprovalTests.PublicApi_Should_Not_Change_Unintentionally",
+        "outcome": "Passed"
+      },
+      "comparisonSeconds": 6.711181500024395,
+      "fullWorkflowSeconds": 18.468969248002395
+    },
+    {
+      "repetition": 2,
+      "case": "sourceEdited",
+      "system": "ordinary",
+      "status": "passed",
+      "workset": {
+        "expectedCompilerInvocations": 1,
+        "compilerInvocations": 1
+      },
+      "testResult": {
+        "total": 1,
+        "executed": 1,
+        "passed": 1,
+        "failed": 0,
+        "test": "ApiApprovalTests.PublicApi_Should_Not_Change_Unintentionally",
+        "outcome": "Passed"
+      },
+      "comparisonSeconds": 1.3770153759687673,
+      "fullWorkflowSeconds": 2.9473894590046257
+    },
+    {
+      "repetition": 2,
+      "case": "recovered",
+      "system": "ordinary",
+      "status": "passed",
+      "workset": {
+        "expectedCompilerInvocations": 2,
+        "compilerInvocations": 2
+      },
+      "testResult": {
+        "total": 1,
+        "executed": 1,
+        "passed": 1,
+        "failed": 0,
+        "test": "ApiApprovalTests.PublicApi_Should_Not_Change_Unintentionally",
+        "outcome": "Passed"
+      },
+      "comparisonSeconds": 1.47414058301365,
+      "fullWorkflowSeconds": 2.921329084027093
+    },
+    {
+      "repetition": 2,
+      "case": "recovered",
+      "system": "bazel",
+      "status": "passed",
+      "workset": {
+        "expectedExecutedProjects": [],
+        "build": {
+          "buildActions": [
+            {
+              "nodeId": "6374c4d1a3b9b425bd8b734f",
+              "project": "Serilog",
+              "cacheHit": true,
+              "runner": "disk cache hit",
+              "diagnostic": "samples/r02-r-b/action-evidence/build/6374c4d1a3b9b425bd8b734f"
+            },
+            {
+              "nodeId": "0102ed020e5af058e2595e4c",
+              "project": "Serilog.ApprovalTests",
+              "cacheHit": true,
+              "runner": "disk cache hit",
+              "diagnostic": "samples/r02-r-b/action-evidence/build/0102ed020e5af058e2595e4c"
+            }
+          ],
+          "testActions": [],
+          "materializedProjects": [
+            "Serilog",
+            "Serilog.ApprovalTests"
+          ],
+          "materializedWithoutExecutionRecord": [],
+          "recordedLocalCacheHitProjects": []
+        },
+        "test": {
+          "buildActions": [],
+          "testActions": [
+            {
+              "cacheHit": false,
+              "runner": "darwin-sandbox"
+            }
+          ]
+        }
+      },
+      "testResult": {
+        "total": 1,
+        "executed": 1,
+        "passed": 1,
+        "failed": 0,
+        "test": "ApiApprovalTests.PublicApi_Should_Not_Change_Unintentionally",
+        "outcome": "Passed"
+      },
+      "comparisonSeconds": 9.480327085009776,
+      "fullWorkflowSeconds": 22.055240375979338
+    },
+    {
+      "repetition": 3,
+      "case": "fresh",
+      "system": "ordinary",
+      "status": "passed",
+      "workset": {
+        "expectedCompilerInvocations": 2,
+        "compilerInvocations": 2
+      },
+      "testResult": {
+        "total": 1,
+        "executed": 1,
+        "passed": 1,
+        "failed": 0,
+        "test": "ApiApprovalTests.PublicApi_Should_Not_Change_Unintentionally",
+        "outcome": "Passed"
+      },
+      "comparisonSeconds": 1.5803467920050025,
+      "fullWorkflowSeconds": 2.2255940010072663
+    },
+    {
+      "repetition": 3,
+      "case": "fresh",
+      "system": "bazel",
+      "status": "passed",
+      "workset": {
+        "expectedExecutedProjects": [
+          "Serilog",
+          "Serilog.ApprovalTests"
+        ],
+        "build": {
+          "buildActions": [
+            {
+              "nodeId": "6374c4d1a3b9b425bd8b734f",
+              "project": "Serilog",
+              "cacheHit": false,
+              "runner": "darwin-sandbox",
+              "diagnostic": "samples/r03-f-b/action-evidence/build/6374c4d1a3b9b425bd8b734f",
+              "compiledProjects": [
+                "Serilog"
+              ]
+            },
+            {
+              "nodeId": "0102ed020e5af058e2595e4c",
+              "project": "Serilog.ApprovalTests",
+              "cacheHit": false,
+              "runner": "darwin-sandbox",
+              "diagnostic": "samples/r03-f-b/action-evidence/build/0102ed020e5af058e2595e4c",
+              "compiledProjects": [
+                "Serilog.ApprovalTests"
+              ]
+            }
+          ],
+          "testActions": [],
+          "materializedProjects": [
+            "Serilog",
+            "Serilog.ApprovalTests"
+          ],
+          "materializedWithoutExecutionRecord": [],
+          "recordedLocalCacheHitProjects": []
+        },
+        "test": {
+          "buildActions": [],
+          "testActions": [
+            {
+              "cacheHit": false,
+              "runner": "darwin-sandbox"
+            }
+          ]
+        }
+      },
+      "testResult": {
+        "total": 1,
+        "executed": 1,
+        "passed": 1,
+        "failed": 0,
+        "test": "ApiApprovalTests.PublicApi_Should_Not_Change_Unintentionally",
+        "outcome": "Passed"
+      },
+      "comparisonSeconds": 12.43861925098463,
+      "fullWorkflowSeconds": 13.059975751006277
+    },
+    {
+      "repetition": 3,
+      "case": "unchanged",
+      "system": "bazel",
+      "status": "passed",
+      "workset": {
+        "expectedExecutedProjects": [],
+        "build": {
+          "buildActions": [],
+          "testActions": [],
+          "materializedProjects": [
+            "Serilog",
+            "Serilog.ApprovalTests"
+          ],
+          "materializedWithoutExecutionRecord": [
+            "Serilog",
+            "Serilog.ApprovalTests"
+          ],
+          "recordedLocalCacheHitProjects": []
+        },
+        "test": {
+          "buildActions": [],
+          "testActions": [
+            {
+              "cacheHit": false,
+              "runner": "darwin-sandbox"
+            }
+          ]
+        }
+      },
+      "testResult": {
+        "total": 1,
+        "executed": 1,
+        "passed": 1,
+        "failed": 0,
+        "test": "ApiApprovalTests.PublicApi_Should_Not_Change_Unintentionally",
+        "outcome": "Passed"
+      },
+      "comparisonSeconds": 5.250290627009235,
+      "fullWorkflowSeconds": 16.787260959041305
+    },
+    {
+      "repetition": 3,
+      "case": "unchanged",
+      "system": "ordinary",
+      "status": "passed",
+      "workset": {
+        "expectedCompilerInvocations": 0,
+        "compilerInvocations": 0
+      },
+      "testResult": {
+        "total": 1,
+        "executed": 1,
+        "passed": 1,
+        "failed": 0,
+        "test": "ApiApprovalTests.PublicApi_Should_Not_Change_Unintentionally",
+        "outcome": "Passed"
+      },
+      "comparisonSeconds": 1.3732312920037657,
+      "fullWorkflowSeconds": 2.899484166991897
+    },
+    {
+      "repetition": 3,
+      "case": "sourceEdited",
+      "system": "ordinary",
+      "status": "passed",
+      "workset": {
+        "expectedCompilerInvocations": 1,
+        "compilerInvocations": 1
+      },
+      "testResult": {
+        "total": 1,
+        "executed": 1,
+        "passed": 1,
+        "failed": 0,
+        "test": "ApiApprovalTests.PublicApi_Should_Not_Change_Unintentionally",
+        "outcome": "Passed"
+      },
+      "comparisonSeconds": 1.4024075829947833,
+      "fullWorkflowSeconds": 2.9128144170099404
+    },
+    {
+      "repetition": 3,
+      "case": "sourceEdited",
+      "system": "bazel",
+      "status": "passed",
+      "workset": {
+        "expectedExecutedProjects": [
+          "Serilog.ApprovalTests"
+        ],
+        "build": {
+          "buildActions": [
+            {
+              "nodeId": "0102ed020e5af058e2595e4c",
+              "project": "Serilog.ApprovalTests",
+              "cacheHit": false,
+              "runner": "darwin-sandbox",
+              "diagnostic": "samples/r03-s-b/action-evidence/build/0102ed020e5af058e2595e4c",
+              "compiledProjects": [
+                "Serilog.ApprovalTests"
+              ]
+            }
+          ],
+          "testActions": [],
+          "materializedProjects": [
+            "Serilog",
+            "Serilog.ApprovalTests"
+          ],
+          "materializedWithoutExecutionRecord": [
+            "Serilog"
+          ],
+          "recordedLocalCacheHitProjects": []
+        },
+        "test": {
+          "buildActions": [],
+          "testActions": [
+            {
+              "cacheHit": false,
+              "runner": "darwin-sandbox"
+            }
+          ]
+        }
+      },
+      "testResult": {
+        "total": 1,
+        "executed": 1,
+        "passed": 1,
+        "failed": 0,
+        "test": "ApiApprovalTests.PublicApi_Should_Not_Change_Unintentionally",
+        "outcome": "Passed"
+      },
+      "comparisonSeconds": 6.672251083014999,
+      "fullWorkflowSeconds": 18.04253345899633
+    },
+    {
+      "repetition": 3,
+      "case": "recovered",
+      "system": "bazel",
+      "status": "passed",
+      "workset": {
+        "expectedExecutedProjects": [],
+        "build": {
+          "buildActions": [
+            {
+              "nodeId": "6374c4d1a3b9b425bd8b734f",
+              "project": "Serilog",
+              "cacheHit": true,
+              "runner": "disk cache hit",
+              "diagnostic": "samples/r03-r-b/action-evidence/build/6374c4d1a3b9b425bd8b734f"
+            },
+            {
+              "nodeId": "0102ed020e5af058e2595e4c",
+              "project": "Serilog.ApprovalTests",
+              "cacheHit": true,
+              "runner": "disk cache hit",
+              "diagnostic": "samples/r03-r-b/action-evidence/build/0102ed020e5af058e2595e4c"
+            }
+          ],
+          "testActions": [],
+          "materializedProjects": [
+            "Serilog",
+            "Serilog.ApprovalTests"
+          ],
+          "materializedWithoutExecutionRecord": [],
+          "recordedLocalCacheHitProjects": []
+        },
+        "test": {
+          "buildActions": [],
+          "testActions": [
+            {
+              "cacheHit": false,
+              "runner": "darwin-sandbox"
+            }
+          ]
+        }
+      },
+      "testResult": {
+        "total": 1,
+        "executed": 1,
+        "passed": 1,
+        "failed": 0,
+        "test": "ApiApprovalTests.PublicApi_Should_Not_Change_Unintentionally",
+        "outcome": "Passed"
+      },
+      "comparisonSeconds": 9.379271374986274,
+      "fullWorkflowSeconds": 21.99324458403862
+    },
+    {
+      "repetition": 3,
+      "case": "recovered",
+      "system": "ordinary",
+      "status": "passed",
+      "workset": {
+        "expectedCompilerInvocations": 2,
+        "compilerInvocations": 2
+      },
+      "testResult": {
+        "total": 1,
+        "executed": 1,
+        "passed": 1,
+        "failed": 0,
+        "test": "ApiApprovalTests.PublicApi_Should_Not_Change_Unintentionally",
+        "outcome": "Passed"
+      },
+      "comparisonSeconds": 1.57272191598895,
+      "fullWorkflowSeconds": 3.1038855409715325
+    },
+    {
+      "repetition": 4,
+      "case": "fresh",
+      "system": "bazel",
+      "status": "passed",
+      "workset": {
+        "expectedExecutedProjects": [
+          "Serilog",
+          "Serilog.ApprovalTests"
+        ],
+        "build": {
+          "buildActions": [
+            {
+              "nodeId": "6374c4d1a3b9b425bd8b734f",
+              "project": "Serilog",
+              "cacheHit": false,
+              "runner": "darwin-sandbox",
+              "diagnostic": "samples/r04-f-b/action-evidence/build/6374c4d1a3b9b425bd8b734f",
+              "compiledProjects": [
+                "Serilog"
+              ]
+            },
+            {
+              "nodeId": "0102ed020e5af058e2595e4c",
+              "project": "Serilog.ApprovalTests",
+              "cacheHit": false,
+              "runner": "darwin-sandbox",
+              "diagnostic": "samples/r04-f-b/action-evidence/build/0102ed020e5af058e2595e4c",
+              "compiledProjects": [
+                "Serilog.ApprovalTests"
+              ]
+            }
+          ],
+          "testActions": [],
+          "materializedProjects": [
+            "Serilog",
+            "Serilog.ApprovalTests"
+          ],
+          "materializedWithoutExecutionRecord": [],
+          "recordedLocalCacheHitProjects": []
+        },
+        "test": {
+          "buildActions": [],
+          "testActions": [
+            {
+              "cacheHit": false,
+              "runner": "darwin-sandbox"
+            }
+          ]
+        }
+      },
+      "testResult": {
+        "total": 1,
+        "executed": 1,
+        "passed": 1,
+        "failed": 0,
+        "test": "ApiApprovalTests.PublicApi_Should_Not_Change_Unintentionally",
+        "outcome": "Passed"
+      },
+      "comparisonSeconds": 12.333342084020842,
+      "fullWorkflowSeconds": 12.967959793051705
+    },
+    {
+      "repetition": 4,
+      "case": "fresh",
+      "system": "ordinary",
+      "status": "passed",
+      "workset": {
+        "expectedCompilerInvocations": 2,
+        "compilerInvocations": 2
+      },
+      "testResult": {
+        "total": 1,
+        "executed": 1,
+        "passed": 1,
+        "failed": 0,
+        "test": "ApiApprovalTests.PublicApi_Should_Not_Change_Unintentionally",
+        "outcome": "Passed"
+      },
+      "comparisonSeconds": 1.5325083329807967,
+      "fullWorkflowSeconds": 2.1546568339690566
+    },
+    {
+      "repetition": 4,
+      "case": "unchanged",
+      "system": "ordinary",
+      "status": "passed",
+      "workset": {
+        "expectedCompilerInvocations": 0,
+        "compilerInvocations": 0
+      },
+      "testResult": {
+        "total": 1,
+        "executed": 1,
+        "passed": 1,
+        "failed": 0,
+        "test": "ApiApprovalTests.PublicApi_Should_Not_Change_Unintentionally",
+        "outcome": "Passed"
+      },
+      "comparisonSeconds": 1.3231987500039395,
+      "fullWorkflowSeconds": 2.8393377910542767
+    },
+    {
+      "repetition": 4,
+      "case": "unchanged",
+      "system": "bazel",
+      "status": "passed",
+      "workset": {
+        "expectedExecutedProjects": [],
+        "build": {
+          "buildActions": [],
+          "testActions": [],
+          "materializedProjects": [
+            "Serilog",
+            "Serilog.ApprovalTests"
+          ],
+          "materializedWithoutExecutionRecord": [
+            "Serilog",
+            "Serilog.ApprovalTests"
+          ],
+          "recordedLocalCacheHitProjects": []
+        },
+        "test": {
+          "buildActions": [],
+          "testActions": [
+            {
+              "cacheHit": false,
+              "runner": "darwin-sandbox"
+            }
+          ]
+        }
+      },
+      "testResult": {
+        "total": 1,
+        "executed": 1,
+        "passed": 1,
+        "failed": 0,
+        "test": "ApiApprovalTests.PublicApi_Should_Not_Change_Unintentionally",
+        "outcome": "Passed"
+      },
+      "comparisonSeconds": 5.319493082992267,
+      "fullWorkflowSeconds": 16.90592670699698
+    },
+    {
+      "repetition": 4,
+      "case": "sourceEdited",
+      "system": "bazel",
+      "status": "passed",
+      "workset": {
+        "expectedExecutedProjects": [
+          "Serilog.ApprovalTests"
+        ],
+        "build": {
+          "buildActions": [
+            {
+              "nodeId": "0102ed020e5af058e2595e4c",
+              "project": "Serilog.ApprovalTests",
+              "cacheHit": false,
+              "runner": "darwin-sandbox",
+              "diagnostic": "samples/r04-s-b/action-evidence/build/0102ed020e5af058e2595e4c",
+              "compiledProjects": [
+                "Serilog.ApprovalTests"
+              ]
+            }
+          ],
+          "testActions": [],
+          "materializedProjects": [
+            "Serilog",
+            "Serilog.ApprovalTests"
+          ],
+          "materializedWithoutExecutionRecord": [
+            "Serilog"
+          ],
+          "recordedLocalCacheHitProjects": []
+        },
+        "test": {
+          "buildActions": [],
+          "testActions": [
+            {
+              "cacheHit": false,
+              "runner": "darwin-sandbox"
+            }
+          ]
+        }
+      },
+      "testResult": {
+        "total": 1,
+        "executed": 1,
+        "passed": 1,
+        "failed": 0,
+        "test": "ApiApprovalTests.PublicApi_Should_Not_Change_Unintentionally",
+        "outcome": "Passed"
+      },
+      "comparisonSeconds": 6.666162626002915,
+      "fullWorkflowSeconds": 18.24540337602957
+    },
+    {
+      "repetition": 4,
+      "case": "sourceEdited",
+      "system": "ordinary",
+      "status": "passed",
+      "workset": {
+        "expectedCompilerInvocations": 1,
+        "compilerInvocations": 1
+      },
+      "testResult": {
+        "total": 1,
+        "executed": 1,
+        "passed": 1,
+        "failed": 0,
+        "test": "ApiApprovalTests.PublicApi_Should_Not_Change_Unintentionally",
+        "outcome": "Passed"
+      },
+      "comparisonSeconds": 1.3379999170138035,
+      "fullWorkflowSeconds": 2.826795334054623
+    },
+    {
+      "repetition": 4,
+      "case": "recovered",
+      "system": "ordinary",
+      "status": "passed",
+      "workset": {
+        "expectedCompilerInvocations": 2,
+        "compilerInvocations": 2
+      },
+      "testResult": {
+        "total": 1,
+        "executed": 1,
+        "passed": 1,
+        "failed": 0,
+        "test": "ApiApprovalTests.PublicApi_Should_Not_Change_Unintentionally",
+        "outcome": "Passed"
+      },
+      "comparisonSeconds": 1.5137434999633115,
+      "fullWorkflowSeconds": 2.981676040944876
+    },
+    {
+      "repetition": 4,
+      "case": "recovered",
+      "system": "bazel",
+      "status": "passed",
+      "workset": {
+        "expectedExecutedProjects": [],
+        "build": {
+          "buildActions": [
+            {
+              "nodeId": "6374c4d1a3b9b425bd8b734f",
+              "project": "Serilog",
+              "cacheHit": true,
+              "runner": "disk cache hit",
+              "diagnostic": "samples/r04-r-b/action-evidence/build/6374c4d1a3b9b425bd8b734f"
+            },
+            {
+              "nodeId": "0102ed020e5af058e2595e4c",
+              "project": "Serilog.ApprovalTests",
+              "cacheHit": true,
+              "runner": "disk cache hit",
+              "diagnostic": "samples/r04-r-b/action-evidence/build/0102ed020e5af058e2595e4c"
+            }
+          ],
+          "testActions": [],
+          "materializedProjects": [
+            "Serilog",
+            "Serilog.ApprovalTests"
+          ],
+          "materializedWithoutExecutionRecord": [],
+          "recordedLocalCacheHitProjects": []
+        },
+        "test": {
+          "buildActions": [],
+          "testActions": [
+            {
+              "cacheHit": false,
+              "runner": "darwin-sandbox"
+            }
+          ]
+        }
+      },
+      "testResult": {
+        "total": 1,
+        "executed": 1,
+        "passed": 1,
+        "failed": 0,
+        "test": "ApiApprovalTests.PublicApi_Should_Not_Change_Unintentionally",
+        "outcome": "Passed"
+      },
+      "comparisonSeconds": 9.304556124989176,
+      "fullWorkflowSeconds": 23.108290664997185
+    },
+    {
+      "repetition": 5,
+      "case": "fresh",
+      "system": "ordinary",
+      "status": "passed",
+      "workset": {
+        "expectedCompilerInvocations": 2,
+        "compilerInvocations": 2
+      },
+      "testResult": {
+        "total": 1,
+        "executed": 1,
+        "passed": 1,
+        "failed": 0,
+        "test": "ApiApprovalTests.PublicApi_Should_Not_Change_Unintentionally",
+        "outcome": "Passed"
+      },
+      "comparisonSeconds": 1.483286666974891,
+      "fullWorkflowSeconds": 2.0999399999855086
+    },
+    {
+      "repetition": 5,
+      "case": "fresh",
+      "system": "bazel",
+      "status": "passed",
+      "workset": {
+        "expectedExecutedProjects": [
+          "Serilog",
+          "Serilog.ApprovalTests"
+        ],
+        "build": {
+          "buildActions": [
+            {
+              "nodeId": "6374c4d1a3b9b425bd8b734f",
+              "project": "Serilog",
+              "cacheHit": false,
+              "runner": "darwin-sandbox",
+              "diagnostic": "samples/r05-f-b/action-evidence/build/6374c4d1a3b9b425bd8b734f",
+              "compiledProjects": [
+                "Serilog"
+              ]
+            },
+            {
+              "nodeId": "0102ed020e5af058e2595e4c",
+              "project": "Serilog.ApprovalTests",
+              "cacheHit": false,
+              "runner": "darwin-sandbox",
+              "diagnostic": "samples/r05-f-b/action-evidence/build/0102ed020e5af058e2595e4c",
+              "compiledProjects": [
+                "Serilog.ApprovalTests"
+              ]
+            }
+          ],
+          "testActions": [],
+          "materializedProjects": [
+            "Serilog",
+            "Serilog.ApprovalTests"
+          ],
+          "materializedWithoutExecutionRecord": [],
+          "recordedLocalCacheHitProjects": []
+        },
+        "test": {
+          "buildActions": [],
+          "testActions": [
+            {
+              "cacheHit": false,
+              "runner": "darwin-sandbox"
+            }
+          ]
+        }
+      },
+      "testResult": {
+        "total": 1,
+        "executed": 1,
+        "passed": 1,
+        "failed": 0,
+        "test": "ApiApprovalTests.PublicApi_Should_Not_Change_Unintentionally",
+        "outcome": "Passed"
+      },
+      "comparisonSeconds": 12.495976915990468,
+      "fullWorkflowSeconds": 13.156362125009764
+    },
+    {
+      "repetition": 5,
+      "case": "unchanged",
+      "system": "bazel",
+      "status": "passed",
+      "workset": {
+        "expectedExecutedProjects": [],
+        "build": {
+          "buildActions": [],
+          "testActions": [],
+          "materializedProjects": [
+            "Serilog",
+            "Serilog.ApprovalTests"
+          ],
+          "materializedWithoutExecutionRecord": [
+            "Serilog",
+            "Serilog.ApprovalTests"
+          ],
+          "recordedLocalCacheHitProjects": []
+        },
+        "test": {
+          "buildActions": [],
+          "testActions": [
+            {
+              "cacheHit": false,
+              "runner": "darwin-sandbox"
+            }
+          ]
+        }
+      },
+      "testResult": {
+        "total": 1,
+        "executed": 1,
+        "passed": 1,
+        "failed": 0,
+        "test": "ApiApprovalTests.PublicApi_Should_Not_Change_Unintentionally",
+        "outcome": "Passed"
+      },
+      "comparisonSeconds": 5.399976708053146,
+      "fullWorkflowSeconds": 17.1272285830928
+    },
+    {
+      "repetition": 5,
+      "case": "unchanged",
+      "system": "ordinary",
+      "status": "passed",
+      "workset": {
+        "expectedCompilerInvocations": 0,
+        "compilerInvocations": 0
+      },
+      "testResult": {
+        "total": 1,
+        "executed": 1,
+        "passed": 1,
+        "failed": 0,
+        "test": "ApiApprovalTests.PublicApi_Should_Not_Change_Unintentionally",
+        "outcome": "Passed"
+      },
+      "comparisonSeconds": 1.2908662500267383,
+      "fullWorkflowSeconds": 2.9314715410291683
+    },
+    {
+      "repetition": 5,
+      "case": "sourceEdited",
+      "system": "ordinary",
+      "status": "passed",
+      "workset": {
+        "expectedCompilerInvocations": 1,
+        "compilerInvocations": 1
+      },
+      "testResult": {
+        "total": 1,
+        "executed": 1,
+        "passed": 1,
+        "failed": 0,
+        "test": "ApiApprovalTests.PublicApi_Should_Not_Change_Unintentionally",
+        "outcome": "Passed"
+      },
+      "comparisonSeconds": 1.3645916669920553,
+      "fullWorkflowSeconds": 2.7977052929927595
+    },
+    {
+      "repetition": 5,
+      "case": "sourceEdited",
+      "system": "bazel",
+      "status": "passed",
+      "workset": {
+        "expectedExecutedProjects": [
+          "Serilog.ApprovalTests"
+        ],
+        "build": {
+          "buildActions": [
+            {
+              "nodeId": "0102ed020e5af058e2595e4c",
+              "project": "Serilog.ApprovalTests",
+              "cacheHit": false,
+              "runner": "darwin-sandbox",
+              "diagnostic": "samples/r05-s-b/action-evidence/build/0102ed020e5af058e2595e4c",
+              "compiledProjects": [
+                "Serilog.ApprovalTests"
+              ]
+            }
+          ],
+          "testActions": [],
+          "materializedProjects": [
+            "Serilog",
+            "Serilog.ApprovalTests"
+          ],
+          "materializedWithoutExecutionRecord": [
+            "Serilog"
+          ],
+          "recordedLocalCacheHitProjects": []
+        },
+        "test": {
+          "buildActions": [],
+          "testActions": [
+            {
+              "cacheHit": false,
+              "runner": "darwin-sandbox"
+            }
+          ]
+        }
+      },
+      "testResult": {
+        "total": 1,
+        "executed": 1,
+        "passed": 1,
+        "failed": 0,
+        "test": "ApiApprovalTests.PublicApi_Should_Not_Change_Unintentionally",
+        "outcome": "Passed"
+      },
+      "comparisonSeconds": 6.869370957982028,
+      "fullWorkflowSeconds": 19.27789770596428
+    },
+    {
+      "repetition": 5,
+      "case": "recovered",
+      "system": "bazel",
+      "status": "passed",
+      "workset": {
+        "expectedExecutedProjects": [],
+        "build": {
+          "buildActions": [
+            {
+              "nodeId": "6374c4d1a3b9b425bd8b734f",
+              "project": "Serilog",
+              "cacheHit": true,
+              "runner": "disk cache hit",
+              "diagnostic": "samples/r05-r-b/action-evidence/build/6374c4d1a3b9b425bd8b734f"
+            },
+            {
+              "nodeId": "0102ed020e5af058e2595e4c",
+              "project": "Serilog.ApprovalTests",
+              "cacheHit": true,
+              "runner": "disk cache hit",
+              "diagnostic": "samples/r05-r-b/action-evidence/build/0102ed020e5af058e2595e4c"
+            }
+          ],
+          "testActions": [],
+          "materializedProjects": [
+            "Serilog",
+            "Serilog.ApprovalTests"
+          ],
+          "materializedWithoutExecutionRecord": [],
+          "recordedLocalCacheHitProjects": []
+        },
+        "test": {
+          "buildActions": [],
+          "testActions": [
+            {
+              "cacheHit": false,
+              "runner": "darwin-sandbox"
+            }
+          ]
+        }
+      },
+      "testResult": {
+        "total": 1,
+        "executed": 1,
+        "passed": 1,
+        "failed": 0,
+        "test": "ApiApprovalTests.PublicApi_Should_Not_Change_Unintentionally",
+        "outcome": "Passed"
+      },
+      "comparisonSeconds": 9.201162958022906,
+      "fullWorkflowSeconds": 22.33639745900291
+    },
+    {
+      "repetition": 5,
+      "case": "recovered",
+      "system": "ordinary",
+      "status": "passed",
+      "workset": {
+        "expectedCompilerInvocations": 2,
+        "compilerInvocations": 2
+      },
+      "testResult": {
+        "total": 1,
+        "executed": 1,
+        "passed": 1,
+        "failed": 0,
+        "test": "ApiApprovalTests.PublicApi_Should_Not_Change_Unintentionally",
+        "outcome": "Passed"
+      },
+      "comparisonSeconds": 1.5860452920023818,
+      "fullWorkflowSeconds": 3.1373859170125797
+    }
+  ],
+  "acquisition": {
+    "candidateRevision": "73109f160839e25f1be3f8212e07c3deb0dce727",
+    "sourceRevision": "49b5339ce85385dc52d4d8e8f2b8308becf23506",
+    "sourceArchiveSha256": "bc289bfa238dd5c3f244027feade1b5cf9b0ae72ad33a3763f44583734bd4e98",
+    "smallAuthoredSha256": {
+      "App/App.csproj": "ad9acca2e46cc6786a0832ac9c75d416fa48630268881d8116194ac949a89375",
+      "App/Program.cs": "dec9ee51ccd0106d9528771544c7818358625252dbff1ad923c83f9a68a717ed",
+      "Shared/Shared.csproj": "70c34fafea2e093c458e3d2014ec7d305658813bd4e5ec4d80b6b87fddb1bdb2",
+      "Shared/Value.cs": "c37876f9104e7405207be5a4583d9ca03089060bbd56f2833287f634ac5286da",
+      "Directory.Build.props": "4fd24be83f7dd636f6e2e8f456dfa559f1ca9c7346e1d10a5358db346b1300b9",
+      "Directory.Build.targets": "4fd24be83f7dd636f6e2e8f456dfa559f1ca9c7346e1d10a5358db346b1300b9"
+    },
+    "packages": {
+      "diffengine/11.3.0/diffengine.11.3.0.nupkg": "6996cb6b0b4ecad6ca3eb1760d0ddd64ec20c63b9a1ac5ca0b42f09a5030e95d",
+      "emptyfiles/4.4.0/emptyfiles.4.4.0.nupkg": "d9e8fa6584abfca4b3fcc9a1d116af8c830cc87cf34d5b728ddf676d6d7b2306",
+      "microsoft.codecoverage/17.11.1/microsoft.codecoverage.17.11.1.nupkg": "d5d2e52b734687cf0fb85619898a53fa2cc0f7a7adc61537052822c4381db460",
+      "microsoft.net.illink.tasks/10.0.11/microsoft.net.illink.tasks.10.0.11.nupkg": "28ee7ccf5c4bdfe67823c8e0ea62232174f61e224d77e7c6ef5caa1413ac0a76",
+      "microsoft.net.test.sdk/17.11.1/microsoft.net.test.sdk.17.11.1.nupkg": "d09504b9c43697368f824ae39bf3452c14dba94d5d7e1be13774e5de6a04ea62",
+      "microsoft.testplatform.objectmodel/17.11.1/microsoft.testplatform.objectmodel.17.11.1.nupkg": "e6f5febc2cc56374bbc5f31522ff0e94c305b5d79d5bd50827373458473ebe6e",
+      "microsoft.testplatform.testhost/17.11.1/microsoft.testplatform.testhost.17.11.1.nupkg": "c12918d07d5f400ab41f72dc293e2eed8e51ce10003daeb2b9e54df3883c1f15",
+      "mono.cecil/0.11.5/mono.cecil.0.11.5.nupkg": "9cf1706f35b4f209c28da7417608bed7a307621b0f0179c52258af78bc4668d0",
+      "newtonsoft.json/13.0.1/newtonsoft.json.13.0.1.nupkg": "2b6b52556e27e1b7913f33eedeb95568110c746bd64afff74357f1683878323a",
+      "polysharp/1.15.0/polysharp.1.15.0.nupkg": "9c7fd43995b85fddc55042da0ed78cbc4116a1f5f8be28b87b9f633aac7d2538",
+      "polysharp/1.16.0/polysharp.1.16.0.nupkg": "36b6daa6b98bcca5e618db1cdaa63cbbdea74f0153a62d4ad2deada58bbbc0e0",
+      "publicapigenerator/11.1.0/publicapigenerator.11.1.0.nupkg": "ff50293ec8ce4081de95a16428c3229e04c05695820a0bd061304a066bcecef5",
+      "shouldly/4.2.1/shouldly.4.2.1.nupkg": "966b9e4851a824565c45da14c7ecce8be7b00bc9937fc38f0766c677719e600f",
+      "system.codedom/6.0.0/system.codedom.6.0.0.nupkg": "b8f7ad5056721dfc6349cbb9c786a08e4f692216c292de6b1b80318f6e67a5c4",
+      "system.codedom/8.0.0/system.codedom.8.0.0.nupkg": "bb05618b7c5cbd7ede88e1908bb751113937431d447c7b147dc859b04b68df7f",
+      "system.management/6.0.1/system.management.6.0.1.nupkg": "83b6e3c10bfa69fd245a262da5713caa0af560c743e917fded36e12b94f1406d",
+      "xunit/2.9.2/xunit.2.9.2.nupkg": "879fb24d37c29a89023f2e25a9d130f111b3425ae5b10016dc09b4261d2aee8a",
+      "xunit.abstractions/2.0.3/xunit.abstractions.2.0.3.nupkg": "d03d72fc2df8880448f7a81bddb00e1bcb5c18f323c7e7cc69b4cfa727469403",
+      "xunit.analyzers/1.16.0/xunit.analyzers.1.16.0.nupkg": "3f906f97d86f1ef17c298d5858b838b4a898c657d19e61f22f5e237d20020da5",
+      "xunit.assert/2.9.2/xunit.assert.2.9.2.nupkg": "104eabe76e90e1c1e7d0ebab7f510da57677ecb8ff3f6b8dbe89c782975c9eae",
+      "xunit.core/2.9.2/xunit.core.2.9.2.nupkg": "ce18d5d48e7187444572481310aef6b4890bc5597808f9ad7abd9407efa8c9ef",
+      "xunit.extensibility.core/2.9.2/xunit.extensibility.core.2.9.2.nupkg": "310002ff877aecdb2cbb747ea473e1eaf1e2b415d06311046645553065bbdb47",
+      "xunit.extensibility.execution/2.9.2/xunit.extensibility.execution.2.9.2.nupkg": "7fef547e83f22b72480e14125b462ef5ce0f1aa52a642f7a0cc20d0988b68bcd",
+      "xunit.runner.visualstudio/2.8.2/xunit.runner.visualstudio.2.8.2.nupkg": "5257cadf8f2bf2426eadacb07dd0ada492711e4bf4e303cdce951acf850cffad"
+    },
+    "sdkRoot": "/nix/store/f3kvj2nc26gn7rh5mnfnaa2dgy2p10v3-dotnet-sdk-10.0.400/share/dotnet",
+    "sdkInfo": ".NET SDK:\n Version:           10.0.400\n Commit:            14fbf8d527\n Workload version:  10.0.400-manifests.330ea142\n MSBuild version:   18.9.6+14fbf8d52\n\nRuntime Environment:\n OS Name:     Mac OS X\n OS Version:  27.0\n OS Platform: Darwin\n RID:         osx-arm64\n Base Path:   /nix/store/f3kvj2nc26gn7rh5mnfnaa2dgy2p10v3-dotnet-sdk-10.0.400/share/dotnet/sdk/10.0.400/\n\n.NET workloads installed:\nThere are no installed workloads to display.\nConfigured to use workload sets when installing new manifests.\nNo workload sets are installed. Run \"dotnet workload restore\" to install a workload set.\n\nHost:\n  Version:      10.0.11\n  Architecture: arm64\n  Commit:       e2f47b0110\n\n.NET SDKs installed:\n  10.0.400 [/nix/store/f3kvj2nc26gn7rh5mnfnaa2dgy2p10v3-dotnet-sdk-10.0.400/share/dotnet/sdk]\n\n.NET runtimes installed:\n  Microsoft.AspNetCore.App 10.0.11 [/nix/store/f3kvj2nc26gn7rh5mnfnaa2dgy2p10v3-dotnet-sdk-10.0.400/share/dotnet/shared/Microsoft.AspNetCore.App]\n  Microsoft.NETCore.App 10.0.11 [/nix/store/f3kvj2nc26gn7rh5mnfnaa2dgy2p10v3-dotnet-sdk-10.0.400/share/dotnet/shared/Microsoft.NETCore.App]\n\nOther architectures found:\n  None\n\nEnvironment variables:\n  DOTNET_CLI_HOME                          [/private/tmp/mr/home/dotnet]\n  DOTNET_CLI_TELEMETRY_OPTOUT              [1]\n  DOTNET_NOLOGO                            [1]\n  DOTNET_ROOT                              [/nix/store/rzz1g24svcpzfiwbvimgg1jx7yb23733-dotnet-sdk-wrapped-10.0.400/share/dotnet]\n  DOTNET_SKIP_FIRST_TIME_EXPERIENCE        [1]\n  DOTNET_SKIP_WORKLOAD_INTEGRITY_CHECK     [1]\n\nglobal.json file:\n  /private/tmp/mr-src/global.json\n\nLearn more:\n  https://aka.ms/dotnet/info\n\nDownload .NET:\n  https://aka.ms/dotnet/download\n",
+    "msbuild": "18.9.6.38015\n",
+    "bazel": "bazel 8.4.2- (@non-git)\n",
+    "nixClosure": [
+      [
+        "/nix/store/0iavzb323r97k7sps762r5kj1f2bny0b-libiconv-115.100.1",
+        "sha256:05mv6mzm25l659bkbh0yi61imrx5syz97ip7p69bk0kzx317ssc1"
+      ],
+      [
+        "/nix/store/895xjmaqf329l5mia9gpvx0d0pq6bx15-icu4c-78.3",
+        "sha256:09fzd09h8i2h3jcsgcyaixx0n1ymndyk9w8i4hvc8fnyza3xkx77"
+      ],
+      [
+        "/nix/store/9ihp157s1yjwa9vcfvbskbik18djv53q-libffi-40",
+        "sha256:0hvxy2inr3cvpk48lnbay8bxkfmnciq36nf44jp6j08c1ks50x2c"
+      ],
+      [
+        "/nix/store/a7523w35991b7lhhrkccam2bhavh2zq9-libxml2-2.15.3",
+        "sha256:0v64r86wg7p9crga1hmr63ya79vqlknmhnvjsaqrcmnvnr4vbc4w"
+      ],
+      [
+        "/nix/store/gyvvqx69fvrgxf0hr4jmb3rc7szg1c79-zlib-1.3.2",
+        "sha256:0rvv5jif45d990c1j6gw0zdrdhyfviggfpnr5mqnkhw0jikjprdq"
+      ],
+      [
+        "/nix/store/93xh0rqlwq7ypvg6c2sgdmkki7378b0v-llvm-21.1.8-lib",
+        "sha256:0pdl1zpy9b0dlddzm9y7jzw3i3j8hd9xxwg4z0xmaaxy5nipkm44"
+      ],
+      [
+        "/nix/store/gjv48s39ild2f85wjal2wvlgyrdzbhvl-openssl-3.6.3",
+        "sha256:0d5v7z72mki2difjh2vl893iz4r8s3ig4jp3a5fnbfxzyq86a9pj"
+      ],
+      [
+        "/nix/store/a5ksjdp4g11g1kp82phvjgyx1j495gwl-ld64-957.1-lib",
+        "sha256:0hzigg92ihfr8mqcjdsina2gi29ywgad0j2mj873g0jxjh507yvh"
+      ],
+      [
+        "/nix/store/fk8dbxjdnizkhklczkqdh9m9by94ab7k-bzip2-1.0.8",
+        "sha256:0fil0xlh2r75dlb2r86m45yval9xva3cxjvggm3cr6cnjlyclyns"
+      ],
+      [
+        "/nix/store/i69q16hlfw0rk0nz5abarf51r98ajkp6-xz-5.8.3",
+        "sha256:0c802pj4gd8nws3a8v344q04crr59xkizl62y8456sbjqgsg6fyb"
+      ],
+      [
+        "/nix/store/ps0dd9mx8n7r198xp4yqdh33p0psfl2v-xar-minimal-503-lib",
+        "sha256:00rmamsdvrxzvvpxc4hqvpchwqg7j2r4zdixb93k73frynxfsw62"
+      ],
+      [
+        "/nix/store/nwifj85zj1kaakjjx33i2dd5c1778j30-ld64-957.1",
+        "sha256:1xnwqgkxdm3ilp6ikp22rdqfab48qlpdyfnyxjfcyshl0r0jw0xx"
+      ],
+      [
+        "/nix/store/pkpd4pbq86zhjx8kyz4cka684l7k28xw-cctools-1010.6-libtool",
+        "sha256:1whl06j5yg68gmpsfml55jw2268zd1p2wyrnqn2bb34fgb03lx9j"
+      ],
+      [
+        "/nix/store/s7mqkmivpdxlak3awbra4i64zlpz31ha-cctools-1010.6",
+        "sha256:0v9bxqkylhj4ykksszdswszkzs430578vrdbiylfdrlz4ff3kpiz"
+      ],
+      [
+        "/nix/store/yqk6qhawnigv832m2zhcbs25nb37r73i-bash-5.3p15",
+        "sha256:1rl9zp03h0rl98k8qhh8cb9kdzdmz366w154nx2wbxhlqvdib7a6"
+      ],
+      [
+        "/nix/store/f4ss1jyk1hansfk6qp3889bb9mpp42yg-sigtool-0.1.3",
+        "sha256:1kx604d04l7jbjhq9szm7j215ji2sb6ra6nmx78ibphalknh6wlf"
+      ],
+      [
+        "/nix/store/hm53cqanyh9f8dl3bij21iyhvk1mlb30-sign-apphost.proj",
+        "sha256:1hwaq545wa6y8bj8ljfi88p6w1wmxhn49nwj187y6q8irx0m97lz"
+      ],
+      [
+        "/nix/store/dfhdbgnvv0jm1ld0hrzfaklgigvl7bzp-extra.targets",
+        "sha256:04sfsm8wmrs1k9ryvv6sdrylfvh8hvkialkr741648bvw47fyqy5"
+      ],
+      [
+        "/nix/store/f3kvj2nc26gn7rh5mnfnaa2dgy2p10v3-dotnet-sdk-10.0.400",
+        "sha256:18j8vixp9in5457bb9ahx2xw64l1vz7wi20hzgzpnzmqc0ys4qrq"
+      ]
+    ],
+    "osBuild": "ProductName:\t\tmacOS\nProductVersion:\t\t27.0\nBuildVersion:\t\t26A428\n",
+    "acquisition": "New package cache and DOTNET_CLI_HOME; ambient HOME and system Nix store retained"
+  },
+  "backlog": {
+    "scope": "All deferred links in frozen contract; states observed without changes",
+    "deferred": [
+      {
+        "number": 8,
+        "state": "OPEN",
+        "title": "[RUL-12] R03: Configured nodes, discovery and entry-point semantics",
+        "url": "https://github.com/keegan-caruso/msbuild-bazel/issues/8"
+      },
+      {
+        "number": 10,
+        "state": "OPEN",
+        "title": "[RUL-15] R06: Source-built tasks, package consumers and output lifecycle",
+        "url": "https://github.com/keegan-caruso/msbuild-bazel/issues/10"
+      },
+      {
+        "number": 11,
+        "state": "OPEN",
+        "title": "[RUL-16] R07: Broader restore/runtime assets and ordinary publish modes",
+        "url": "https://github.com/keegan-caruso/msbuild-bazel/issues/11"
+      },
+      {
+        "number": 12,
+        "state": "OPEN",
+        "title": "[RUL-17] R08: Native AOT publishing",
+        "url": "https://github.com/keegan-caruso/msbuild-bazel/issues/12"
+      },
+      {
+        "number": 14,
+        "state": "OPEN",
+        "title": "[RUL-19] R10: Web/Razor, Blazor server and WebAssembly",
+        "url": "https://github.com/keegan-caruso/msbuild-bazel/issues/14"
+      },
+      {
+        "number": 15,
+        "state": "OPEN",
+        "title": "[RUL-20] R11: Desktop, Windows/Framework and managed languages",
+        "url": "https://github.com/keegan-caruso/msbuild-bazel/issues/15"
+      },
+      {
+        "number": 16,
+        "state": "OPEN",
+        "title": "[RUL-21] R12: Aspire mixed-language composition",
+        "url": "https://github.com/keegan-caruso/msbuild-bazel/issues/16"
+      },
+      {
+        "number": 17,
+        "state": "OPEN",
+        "title": "[RUL-22] R13: Independent-worker remote cache",
+        "url": "https://github.com/keegan-caruso/msbuild-bazel/issues/17"
+      },
+      {
+        "number": 18,
+        "state": "OPEN",
+        "title": "[RUL-23] R14: Actual remote execution",
+        "url": "https://github.com/keegan-caruso/msbuild-bazel/issues/18"
+      },
+      {
+        "number": 19,
+        "state": "OPEN",
+        "title": "[RUL-24] R15: Design-time and developer workflows",
+        "url": "https://github.com/keegan-caruso/msbuild-bazel/issues/19"
+      },
+      {
+        "number": 20,
+        "state": "OPEN",
+        "title": "[RUL-25] R16: dotnet/runtime managed slices, then native integration",
+        "url": "https://github.com/keegan-caruso/msbuild-bazel/issues/20"
+      },
+      {
+        "number": 21,
+        "state": "OPEN",
+        "title": "[RUL-26] R17: Supported release and final adoption decision",
+        "url": "https://github.com/keegan-caruso/msbuild-bazel/issues/21"
+      },
+      {
+        "number": 22,
+        "state": "OPEN",
+        "title": "[RUL-35] Solution and SDK extensions",
+        "url": "https://github.com/keegan-caruso/msbuild-bazel/issues/22"
+      },
+      {
+        "number": 23,
+        "state": "OPEN",
+        "title": "[RUL-40] Instrumented test coverage extension",
+        "url": "https://github.com/keegan-caruso/msbuild-bazel/issues/23"
+      },
+      {
+        "number": 24,
+        "state": "OPEN",
+        "title": "[RUL-43] Source-built task handoff",
+        "url": "https://github.com/keegan-caruso/msbuild-bazel/issues/24"
+      },
+      {
+        "number": 25,
+        "state": "OPEN",
+        "title": "[RUL-44] Pack and independent consumers",
+        "url": "https://github.com/keegan-caruso/msbuild-bazel/issues/25"
+      },
+      {
+        "number": 26,
+        "state": "OPEN",
+        "title": "[RUL-45] Clean and Rebuild contract",
+        "url": "https://github.com/keegan-caruso/msbuild-bazel/issues/26"
+      },
+      {
+        "number": 27,
+        "state": "OPEN",
+        "title": "[RUL-46] Git-versioning task pilot",
+        "url": "https://github.com/keegan-caruso/msbuild-bazel/issues/27"
+      },
+      {
+        "number": 28,
+        "state": "OPEN",
+        "title": "[RUL-47] Broader restore and asset flow",
+        "url": "https://github.com/keegan-caruso/msbuild-bazel/issues/28"
+      },
+      {
+        "number": 29,
+        "state": "OPEN",
+        "title": "[RUL-48] Ordinary publish contracts",
+        "url": "https://github.com/keegan-caruso/msbuild-bazel/issues/29"
+      },
+      {
+        "number": 30,
+        "state": "OPEN",
+        "title": "[RUL-49] PrivateAssets through Pack",
+        "url": "https://github.com/keegan-caruso/msbuild-bazel/issues/30"
+      },
+      {
+        "number": 31,
+        "state": "OPEN",
+        "title": "[RUL-50] Native and target runtime closure",
+        "url": "https://github.com/keegan-caruso/msbuild-bazel/issues/31"
+      },
+      {
+        "number": 32,
+        "state": "OPEN",
+        "title": "[RUL-51] Native AOT executable",
+        "url": "https://github.com/keegan-caruso/msbuild-bazel/issues/32"
+      },
+      {
+        "number": 33,
+        "state": "OPEN",
+        "title": "[RUL-52] Reusable export and preparation",
+        "url": "https://github.com/keegan-caruso/msbuild-bazel/issues/33"
+      },
+      {
+        "number": 34,
+        "state": "OPEN",
+        "title": "[RUL-53] Qualified compile and runtime boundary",
+        "url": "https://github.com/keegan-caruso/msbuild-bazel/issues/34"
+      },
+      {
+        "number": 35,
+        "state": "OPEN",
+        "title": "[RUL-54] Synthetic scale protocol",
+        "url": "https://github.com/keegan-caruso/msbuild-bazel/issues/35"
+      },
+      {
+        "number": 36,
+        "state": "OPEN",
+        "title": "[RUL-55] EF Core and Azure SDK scale",
+        "url": "https://github.com/keegan-caruso/msbuild-bazel/issues/36"
+      },
+      {
+        "number": 37,
+        "state": "OPEN",
+        "title": "[RUL-56] Web and Blazor slices",
+        "url": "https://github.com/keegan-caruso/msbuild-bazel/issues/37"
+      },
+      {
+        "number": 38,
+        "state": "OPEN",
+        "title": "[RUL-57] Desktop Framework and languages",
+        "url": "https://github.com/keegan-caruso/msbuild-bazel/issues/38"
+      },
+      {
+        "number": 39,
+        "state": "OPEN",
+        "title": "[RUL-58] Multi-language Bazel harness integration",
+        "url": "https://github.com/keegan-caruso/msbuild-bazel/issues/39"
+      },
+      {
+        "number": 40,
+        "state": "OPEN",
+        "title": "[RUL-59] Aspire composition acceptance",
+        "url": "https://github.com/keegan-caruso/msbuild-bazel/issues/40"
+      },
+      {
+        "number": 41,
+        "state": "OPEN",
+        "title": "[RUL-60] Compatible worker identity",
+        "url": "https://github.com/keegan-caruso/msbuild-bazel/issues/41"
+      },
+      {
+        "number": 42,
+        "state": "OPEN",
+        "title": "[RUL-61] Independent remote cache",
+        "url": "https://github.com/keegan-caruso/msbuild-bazel/issues/42"
+      },
+      {
+        "number": 43,
+        "state": "OPEN",
+        "title": "[RUL-62] Remote execution closure",
+        "url": "https://github.com/keegan-caruso/msbuild-bazel/issues/43"
+      },
+      {
+        "number": 44,
+        "state": "OPEN",
+        "title": "[RUL-63] Remote execution acceptance",
+        "url": "https://github.com/keegan-caruso/msbuild-bazel/issues/44"
+      },
+      {
+        "number": 45,
+        "state": "OPEN",
+        "title": "[RUL-64] Design-time and IDE slices",
+        "url": "https://github.com/keegan-caruso/msbuild-bazel/issues/45"
+      },
+      {
+        "number": 46,
+        "state": "OPEN",
+        "title": "[RUL-65] dotnet/runtime managed slice",
+        "url": "https://github.com/keegan-caruso/msbuild-bazel/issues/46"
+      },
+      {
+        "number": 47,
+        "state": "OPEN",
+        "title": "[RUL-66] dotnet/runtime native expansion",
+        "url": "https://github.com/keegan-caruso/msbuild-bazel/issues/47"
+      },
+      {
+        "number": 48,
+        "state": "OPEN",
+        "title": "[RUL-67] Support scope and dispositions",
+        "url": "https://github.com/keegan-caruso/msbuild-bazel/issues/48"
+      },
+      {
+        "number": 49,
+        "state": "OPEN",
+        "title": "[RUL-68] Supported adapter and adoption report",
+        "url": "https://github.com/keegan-caruso/msbuild-bazel/issues/49"
+      },
+      {
+        "number": 50,
+        "state": "OPEN",
+        "title": "[RUL-69] Bazel version qualification",
+        "url": "https://github.com/keegan-caruso/msbuild-bazel/issues/50"
+      },
+      {
+        "number": 51,
+        "state": "OPEN",
+        "title": "[RUL-71] R03 platform acceptance \u2014 macOS x64",
+        "url": "https://github.com/keegan-caruso/msbuild-bazel/issues/51"
+      },
+      {
+        "number": 52,
+        "state": "OPEN",
+        "title": "[RUL-72] R03 platform acceptance \u2014 Linux ARM64",
+        "url": "https://github.com/keegan-caruso/msbuild-bazel/issues/52"
+      },
+      {
+        "number": 53,
+        "state": "OPEN",
+        "title": "[RUL-73] R03 platform acceptance \u2014 Linux x64",
+        "url": "https://github.com/keegan-caruso/msbuild-bazel/issues/53"
+      },
+      {
+        "number": 54,
+        "state": "OPEN",
+        "title": "[RUL-75] R04 platform acceptance \u2014 macOS x64",
+        "url": "https://github.com/keegan-caruso/msbuild-bazel/issues/54"
+      },
+      {
+        "number": 55,
+        "state": "OPEN",
+        "title": "[RUL-76] R04 platform acceptance \u2014 Linux ARM64",
+        "url": "https://github.com/keegan-caruso/msbuild-bazel/issues/55"
+      },
+      {
+        "number": 56,
+        "state": "OPEN",
+        "title": "[RUL-77] R04 platform acceptance \u2014 Linux x64",
+        "url": "https://github.com/keegan-caruso/msbuild-bazel/issues/56"
+      },
+      {
+        "number": 57,
+        "state": "OPEN",
+        "title": "[RUL-78] Qualify broader outer-build and transitive configured graphs",
+        "url": "https://github.com/keegan-caruso/msbuild-bazel/issues/57"
+      },
+      {
+        "number": 58,
+        "state": "OPEN",
+        "title": "[RUL-83] Test supported Bazel versions with Bazelisk",
+        "url": "https://github.com/keegan-caruso/msbuild-bazel/issues/58"
+      },
+      {
+        "number": 59,
+        "state": "OPEN",
+        "title": "[RUL-84] R03 platform acceptance \u2014 Windows ARM64",
+        "url": "https://github.com/keegan-caruso/msbuild-bazel/issues/59"
+      },
+      {
+        "number": 60,
+        "state": "OPEN",
+        "title": "[RUL-85] R03 platform acceptance \u2014 Windows x64",
+        "url": "https://github.com/keegan-caruso/msbuild-bazel/issues/60"
+      },
+      {
+        "number": 61,
+        "state": "OPEN",
+        "title": "[RUL-86] R04 platform acceptance \u2014 Windows ARM64",
+        "url": "https://github.com/keegan-caruso/msbuild-bazel/issues/61"
+      },
+      {
+        "number": 62,
+        "state": "OPEN",
+        "title": "[RUL-87] R04 platform acceptance \u2014 Windows x64",
+        "url": "https://github.com/keegan-caruso/msbuild-bazel/issues/62"
+      }
+    ],
+    "prerequisites": [
+      {
+        "number": 63,
+        "state": "CLOSED",
+        "title": "MVP: freeze the local Build/Test support contract",
+        "url": "https://github.com/keegan-caruso/msbuild-bazel/issues/63"
+      },
+      {
+        "number": 5,
+        "state": "CLOSED",
+        "title": "[RUL-7] Calibrate preparation-reuse baseline and performance budget",
+        "url": "https://github.com/keegan-caruso/msbuild-bazel/issues/5"
+      },
+      {
+        "number": 6,
+        "state": "CLOSED",
+        "title": "[RUL-8] Qualify preparation invalidation and relocated recovery",
+        "url": "https://github.com/keegan-caruso/msbuild-bazel/issues/6"
+      },
+      {
+        "number": 7,
+        "state": "CLOSED",
+        "title": "[RUL-9] Qualify and document preparation-reuse performance",
+        "url": "https://github.com/keegan-caruso/msbuild-bazel/issues/7"
+      },
+      {
+        "number": 64,
+        "state": "CLOSED",
+        "title": "MVP: qualify the pinned local release candidate",
+        "url": "https://github.com/keegan-caruso/msbuild-bazel/issues/64"
+      }
+    ],
+    "release": {
+      "number": 65,
+      "state": "OPEN",
+      "title": "MVP: local Build/Test release checklist",
+      "url": "https://github.com/keegan-caruso/msbuild-bazel/issues/65"
+    }
+  },
+  "rawReportSha256": {
+    "b/report.json": "af9b8d2b38650b655655b44127a4c9ee06f21afdd0604c3eca53225e2c34b31a",
+    "cs/report.json": "6d53806f5bafb88f564274985f33410751e8b10a9aa0349900a678c82fd96dd2",
+    "cl/report.json": "1f517de6e7a319cd9326ae484921eb4dedb02444d799e207707ff2e4faa7cc6b",
+    "performance-gate.json": "75013eb5e30f2f5cd7d2fa0ba2e27adb3eb0c852b08498d929b0c0e766c78e9f",
+    "u/report.json": "14b5bd64db5df0a3f0f2a2e2e153ad33112cd30147c61bd96cb6ee451a0d39e5"
+  },
+  "historicalIncrementalEvidence": "Included separately in qualification-evidence.zip; not relabeled as release reruns",
+  "ciDispatched": false,
+  "sourceDelivery": {
+    "accepted": true,
+    "sourceArchiveSha256": "ecfe23f939331bb7fcbee21486ec2b2f463d2685d200c0e43164d9310d707aa7",
+    "qualificationImplementation": "73109f160839e25f1be3f8212e07c3deb0dce727",
+    "approvalCases": 5,
+    "approvalAccepted": true,
+    "approvalReportSha256": "d752c191d8004d0ac300e57150867dfbfa5a5b7de84ba1552560983abb549338",
+    "libraryPreparations": [
+      {
+        "reused": false,
+        "discoveryExecuted": true,
+        "materializationExecuted": true,
+        "toolBuildsExecuted": false,
+        "reason": "missing-or-corrupt-state: [Errno 2] No such file or directory: '/private/tmp/rd/state/current.json'",
+        "workspace": "/private/tmp/rd/consumer1"
+      },
+      {
+        "reused": true,
+        "discoveryExecuted": false,
+        "materializationExecuted": false,
+        "toolBuildsExecuted": false,
+        "reason": "unchanged",
+        "workspace": "/private/tmp/rd/consumer2"
+      }
+    ],
+    "scriptSha256": "bd3a11f92968eaa36c5e4f9174cee50f35f4030cd492d479f1378ef093e32698",
+    "documentationChangedSinceSmokeArchive": [
+      "README.md",
+      "docs/local-mvp-performance-findings.md",
+      "docs/local-mvp-release-qualification.md",
+      "docs/local-mvp-signoff.md"
+    ],
+    "scope": "Extracted source tarball in a new path; executed installation/tool checks, approval-test recovery and cold/unchanged library Build. Nix store and ambient caches retained."
+  }
+}
