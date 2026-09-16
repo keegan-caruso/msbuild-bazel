@@ -33,6 +33,34 @@ payload and copy it to the consumer. They skip the evaluation recorder, full
 GraphExport, materializer, package staging and tool builds. This is a correctness
 boundary; the cost of the conservative full-tree checks is RUL-7's measurement.
 
+## Opt-in incremental preparation experiments
+
+See [the sequential experiment](incremental-preparation-findings.md) for measured
+results and limits. The default keeps full content verification. Two independent
+options are available:
+
+- `--trust-system-nix-store` keeps a process-local verification cache for protected,
+  root-owned Nix store generations on macOS. It explicitly trusts privileged Nix
+  administration and storage integrity for the session. Restart after store repair
+  or administrative changes. No persisted receipt grants trust. User-owned trees,
+  writable entries and entries with ACLs retain full hashing. A persistent Python
+  caller can pass the same `ProtectedStore()` object to successive `prepared_view`
+  calls; a CLI process starts with an empty store.
+- `--incremental-sources` allows existing C# source contents to change without
+  rerunning evaluation or GraphExport when every other qualified input, namespace,
+  mode and request field is unchanged. It publishes a new materialized generation
+  with updated content hashes and a certificate recording its parent and changed
+  files. Resources other than explicitly named unchanged XML, and additional-input
+  graphs, keep full discovery, as do
+  membership, import, restore, toolchain and request changes. Input validation and
+  normal compilation still run.
+
+These flags bind separate preparation request policies. Enabling or disabling one
+invalidates the previous request. The original observation digest in a derived
+certificate identifies the recorded evaluation whose structure is reused; it is
+not evidence of a new evaluation. Full mutable-checkout content validation remains
+required: absent file events and stable timestamps do not prove unchanged bytes.
+
 ## Identity and publication
 
 The request binds entries, explicit environment/test choices, materialization

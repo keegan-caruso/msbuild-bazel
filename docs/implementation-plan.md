@@ -17,6 +17,12 @@ focused R17 experiment, not qualification of the full supported-version/platform
 
 ## Current status and next step
 
+The [incremental preparation experiment](incremental-preparation-findings.md)
+removes repeated materialization, adds explicit protected-store session reuse,
+and qualifies content-only C# graph refresh. It measures each change separately
+and retains full mutable-input validation after a missed-event counterexample.
+These focused results do not replace the frozen MVP release qualification.
+
 The [local MVP candidate contract](local-mvp-contract.md) maps GitHub #63,
 #5, #6, #7, #64 and #65 to a single native macOS ARM64/Nix Build/Test release
 slice. The initial [calibration](local-mvp-calibration-findings.md) found a
