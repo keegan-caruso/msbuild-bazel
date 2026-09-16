@@ -16,6 +16,13 @@ cache. Public-API dependency-result replay works across workspace paths.
 
 **Active scope:** The Starlark baseline now has local Linux ARM64 evidence through Apple container; further Linux x86-64 CI remains deferred. The [R04 Serilog library slice](docs/r04-integration-findings.md) now passes native macOS build, mutation and producer-free relocated cache acceptance; the unchanged upstream approval-test project also passes native build/test, mutation and relocated-cache acceptance ([test findings](docs/serilog-test-acceptance-findings.md)).
 
+**Local MVP candidate:** The [frozen support contract](docs/local-mvp-contract.md)
+and [clean macOS ARM64 qualification](docs/local-mvp-release-qualification.md)
+cover the pinned Nix Build/Test slice. [Preparation performance](docs/local-mvp-performance-findings.md)
+passes the predeclared budget while retaining full input verification. The adapter
+still has end-to-end overhead on the small workload; release packaging and
+sign-off remain open.
+
 **Platform evidence:** The original nine-test suite, including replay and native
 Bazel sandbox/cache cases, passed on macOS ARM64 and in Ubuntu 22.04 Linux x86-64
 CI; see [Linux evidence](docs/bazel-findings.md#ci-repair-2026-09-05). The newer
