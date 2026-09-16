@@ -20,7 +20,8 @@ from probe_bazel import json_stream
 
 class PrivateAssetsAdapter(unittest.TestCase):
     def test_matches_ordinary_compile_visibility_and_runtime_copy(self):
-        evidence = Path(tempfile.mkdtemp(prefix='graph-private-adapter-')).resolve()
+        # Leave room for the native sandbox suffix and .NET's macOS pipe names.
+        evidence = Path(tempfile.mkdtemp(prefix='gpa-')).resolve()
         ordinary = probe(evidence / 'ordinary')
         dotnet = DOTNET_ROOT / 'dotnet'
         strategy = 'darwin-sandbox' if platform.system() == 'Darwin' else 'linux-sandbox'
@@ -69,7 +70,7 @@ class PrivateAssetsAdapter(unittest.TestCase):
                         self.assertEqual(manifests[name], expected['nodes'][name]['packages'])
                     execution = evidence / (prefix + '-execution.json')
                     result = run(prefix + '-build', [BAZEL, '--batch', '--nohome_rc', '--noworkspace_rc',
-                        '--output_base=' + str(evidence / (prefix + '-base')),
+                        '--output_base=' + str(evidence / (mode[0] + phase[0])),
                         '--output_user_root=' + str(evidence / 'bazel-user'),
                         'build', '//:all', '--disk_cache=' + str(evidence / (mode + '-cache')),
                         '--spawn_strategy=' + strategy, '--strategy=MsbuildProject=' + strategy,
