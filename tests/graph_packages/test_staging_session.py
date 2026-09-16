@@ -60,3 +60,15 @@ class StagingSessionTests(unittest.TestCase):
                 mapped[0] = mapped[0] ^ 1
                 with self.assertRaisesRegex(ValueError,'package changed'):
                     session.verify()
+
+    def test_shared_package_preserves_each_restore_identity_spelling(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root=Path(directory).resolve();self.fixture(root)
+            output=root/'output';session=graph_packages.StagingSession(root,output)
+            graph_packages.stage(root,'App/App.csproj',output,'first',session=session)
+            path=root/'App/obj/project.assets.json'
+            path.write_text(path.read_text().replace('Fixture/1.0.0','fixture/1.0.0'))
+            actual=graph_packages.stage(root,'App/App.csproj',output,'second',session=session)
+            expected=graph_packages.stage(root,'App/App.csproj',root/'expected','second')
+            self.assertEqual((output/actual[0]).read_bytes(),(root/'expected'/expected[0]).read_bytes())
+            session.verify()

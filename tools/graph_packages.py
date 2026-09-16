@@ -164,6 +164,8 @@ def stage(workspace, project, output, node_id, assets_file=None, target_framewor
             previous_hash, record, package_paths = session.packages[relative]
             if previous_hash != library['sha512']:
                 raise ValueError('hash-mismatch: package archive disagrees with restore')
+            if record['id'] != package_id:
+                record = dict(record, id=package_id)
             manifest['packages'].append(record)
             paths.extend(package_paths)
             continue
