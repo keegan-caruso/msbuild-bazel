@@ -37,3 +37,27 @@ class ProtectedStoreTests(unittest.TestCase):
             self.assertFalse(ProtectedStore().cache)
             store.pid=-1
             self.assertFalse(store.eligible_root(root))
+
+    def test_replaced_root_cannot_reuse_old_snapshot(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root=Path(directory).resolve()/'root';root.mkdir();(root/'file').write_text('old')
+            store=ProtectedStore();value=tree_snapshot(root)
+            from preparation_identity import _signature
+            key=(str(root),(str(root),));store.cache[key]=(_signature(root.lstat()),value)
+            root.rename(root.with_name('old'))
+            root.mkdir();(root/'file').write_text('new')
+            with patch.object(store,'eligible_root',return_value=True):
+                actual=store.snapshot(root,[root])
+            self.assertNotEqual(actual['sha256'],value['sha256'])
+            self.assertEqual(store.hits,0)
+            self.assertFalse(store.cache)  # Observer rejects non-store descendants.
+
+    def test_unknown_acl_and_write_permissions_reject_protection(self):
+        from types import SimpleNamespace
+        import stat
+        store=ProtectedStore()
+        with patch.object(store,'no_acl',return_value=True):
+            self.assertFalse(store.protected(Path('/unused'),SimpleNamespace(st_uid=0,st_mode=stat.S_IFREG|0o664)))
+            self.assertFalse(store.protected(Path('/unused'),SimpleNamespace(st_uid=501,st_mode=stat.S_IFREG|0o444)))
+        with patch.object(store,'no_acl',return_value=False):
+            self.assertFalse(store.protected(Path('/unused'),SimpleNamespace(st_uid=0,st_mode=stat.S_IFREG|0o444)))
