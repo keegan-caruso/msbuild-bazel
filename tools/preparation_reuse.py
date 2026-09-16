@@ -156,7 +156,7 @@ def fresh_view(source, output, entries, *, environment=None, tests=None):
 
 
 @contextmanager
-def prepared_view(source, state, output, entries, *, environment=None, tests=None, protected_store=None):
+def prepared_view(source, state, output, entries, *, environment=None, tests=None, protected_store=None, incremental_sources=False):
     """Materialize a private consumer copy and retain both leases until it finishes.
 
     Tools must be prebuilt for reuse. Tests and custom environments take the fresh
@@ -193,10 +193,11 @@ def prepared_view(source, state, output, entries, *, environment=None, tests=Non
         request = dict(entries=entries, environment=environment, tests=tests,
                        operation='prepare_graph', tools=tool_identity())
         if protected_store is not None: request['storePolicy'] = 'trusted-system-nix-session-v1'
+        if incremental_sources: request['sourcePolicy'] = 'compile-content-only-v1'
         candidate, reason = read_candidate(state, request)
         discovery_state = state / 'discovery'
 
-        def consume(generation, manifest, reused, reason):
+        def consume(generation, manifest, reused, reason, discovery_executed=None):
             # Atomic publication of the caller's copy; builds never mutate cached bytes.
             import tempfile
             with tempfile.TemporaryDirectory(prefix='.consumer-', dir=output.parent) as directory:
@@ -206,16 +207,23 @@ def prepared_view(source, state, output, entries, *, environment=None, tests=Non
                     raise IdentityError('prepared payload changed during copy')
                 if output.exists(): raise FileExistsError(output)
                 staged.rename(output)
-            return dict(reused=reused, discoveryExecuted=not reused,
+            return dict(reused=reused, discoveryExecuted=not reused if discovery_executed is None else discovery_executed,
                         materializationExecuted=not reused, toolBuildsExecuted=False,
                         reason=reason, workspace=str(output))
 
         if candidate:
             generation, manifest = candidate
             options = {'protected_store': protected_store} if protected_store is not None else {}
+            if incremental_sources: options['candidate_graph'] = json.loads((generation / 'payload/graph.json').read_text())
             with discovery.qualified_view(source, discovery_state, entries, candidate=manifest['certificate'], **options) as validation:
                 if validation['unchanged']:
                     yield consume(generation, manifest, True, 'unchanged')
+                    if tool_identity() != request['tools']: raise IdentityError('tools changed during consumption')
+                    return
+                if validation.get('sourceContentUpdate'):
+                    generation = publish(state, discovery_state / 'workspace', discovery_state / 'output/graph.json', validation['certificate'], request)
+                    manifest = json.loads((generation / 'manifest.json').read_text())
+                    yield consume(generation, manifest, False, 'source-content-changed', discovery_executed=False)
                     if tool_identity() != request['tools']: raise IdentityError('tools changed during consumption')
                     return
             reason = 'discovery-inputs-changed'
@@ -242,12 +250,15 @@ if __name__ == '__main__':
     parser.add_argument('--tests', type=Path)
     parser.add_argument('--trust-system-nix-store', action='store_true',
                         help='reuse verified system-owned Nix trees within this process; trust privileged store administration and storage integrity')
+    parser.add_argument('--incremental-sources', action='store_true',
+                        help='refresh qualified C# content hashes without reevaluating unchanged graph structure')
     parser.add_argument('command', nargs=argparse.REMAINDER, help='command consumed under lease, after --')
     args = parser.parse_args()
     from protected_store import ProtectedStore
     with prepared_view(args.workspace, args.state, args.output, json.loads(args.entries.read_text()),
                        tests=json.loads(args.tests.read_text()) if args.tests else None,
-                       protected_store=ProtectedStore() if args.trust_system_nix_store else None) as result:
+                       protected_store=ProtectedStore() if args.trust_system_nix_store else None,
+                       incremental_sources=args.incremental_sources) as result:
         print(json.dumps(result), flush=True)
         command = args.command[1:] if args.command[:1] == ['--'] else args.command
         if command: subprocess.run(command, cwd=args.output, check=True)
