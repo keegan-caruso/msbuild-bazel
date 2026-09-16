@@ -50,8 +50,9 @@ def restore_generated(source, generated, directories):
     for current in sorted(paths, key=lambda p: len(p.parts), reverse=True):
         if current.is_dir() and current not in directories:
             current.rmdir()
-    for current, data in generated.items():
+    for current, (data, mode) in generated.items():
         current.write_bytes(data)
+        current.chmod(mode)
 
 
 def probe(source, output):
@@ -87,11 +88,12 @@ def probe(source, output):
 
     def reject(name, path, mutate, expected_diagnostics):
         original = path.read_bytes()
+        original_mode = path.stat().st_mode
         source_identity = tree_snapshot(source)['sha256']
         # Fresh fallback can update MSBuild's generated assets caches while
         # rejecting bad inputs. Restore those too, so the next case starts
         # from exactly the same content instead of depending on warm-up state.
-        generated = {p: p.read_bytes() for p in source.rglob('*')
+        generated = {p: (p.read_bytes(), p.stat().st_mode) for p in source.rglob('*')
                      if p.is_file() and 'obj' in p.relative_to(source).parts}
         directories = {p for p in source.rglob('*')
                        if p.is_dir() and 'obj' in p.relative_to(source).parts}
@@ -111,6 +113,7 @@ def probe(source, output):
                     committedGenerationPreserved=True, consumerAbsent=True)
         finally:
             path.write_bytes(original)
+            path.chmod(original_mode)
             restore_generated(source, generated, directories)
             assert tree_snapshot(source)['sha256'] == source_identity, 'negative control did not restore source content'
             save()

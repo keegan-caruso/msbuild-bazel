@@ -16,8 +16,10 @@ class PackageRejectionTests(unittest.TestCase):
             obj.mkdir()
             assets = obj / 'project.assets.json'
             assets.write_text('original')
+            assets.chmod(0o744)
             before = tree_snapshot(source)
-            generated = {assets: assets.read_bytes()}
+            generated = {assets: (assets.read_bytes(), assets.stat().st_mode)}
+            assets.unlink()
             assets.write_text('changed')
             extra = obj / 'Release/net10.0'
             extra.mkdir(parents=True)
