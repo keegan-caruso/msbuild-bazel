@@ -31,7 +31,7 @@ def _signature(value):
             value.st_mtime_ns, value.st_ctime_ns)
 
 
-def tree_snapshot(root, allowed_roots=None):
+def tree_snapshot(root, allowed_roots=None, *, _observe=None):
     """Hash bytes and namespace membership, rejecting unstable/escaping inputs.
 
     Root locations are deliberately bound to this host/path. Directory names and
@@ -56,6 +56,7 @@ def tree_snapshot(root, allowed_roots=None):
     def visit(path, logical, ancestors):
         nonlocal total_bytes
         before = path.lstat()
+        if _observe is not None: _observe(path, before)
         mode = stat.S_IMODE(before.st_mode)
         resolved = path.resolve(strict=True)
         resolved_name = os.path.normcase(str(resolved))
@@ -106,7 +107,7 @@ def tree_snapshot(root, allowed_roots=None):
         sha256=digest(records), entries=records, bytesHashed=total_bytes)
 
 
-def capture(roots, *, request, environment, host, schema=SCHEMA_VERSION):
+def capture(roots, *, request, environment, host, schema=SCHEMA_VERSION, protected_store=None):
     """Return a content identity for explicitly enumerated discovery domains.
 
     Environment values are hashed as a whole, never included in reports. The
@@ -129,7 +130,8 @@ def capture(roots, *, request, environment, host, schema=SCHEMA_VERSION):
     # changing record order, persisted identities, or the enclosing input lease.
     items = sorted(roots.items())
     with ThreadPoolExecutor(max_workers=min(4, len(items))) as workers:
-        values = workers.map(lambda item: tree_snapshot(item[1], allowed), items)
+        snapshot = tree_snapshot if protected_store is None else protected_store.snapshot
+        values = workers.map(lambda item: snapshot(item[1], allowed), items)
         snapshots = {name: value for (name, _), value in zip(items, values)}
     key_fields = dict(schemaVersion=schema, policy=POLICY,
         roots={name: {key: value for key, value in snapshot.items()

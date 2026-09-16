@@ -39,7 +39,7 @@ PACKAGE_IMPORTS = {'build/PolySharp.targets', 'buildTransitive/PolySharp.targets
                    'build/Microsoft.NET.ILLink.targets'}
 SDK_IMPORTS = json.loads((ROOT / 'tools/discovery-sdk-imports.json').read_text())['imports']
 CONTROLLER_FILES = ('discovery_contract.py', 'preparation_identity.py', 'graph_packages.py',
-                    'pilot-package-policy.json', 'discovery-sdk-imports.json')
+                    'pilot-package-policy.json', 'discovery-sdk-imports.json', 'protected_store.py', 'preparation_source_update.py')
 CONTROLLER_DIGEST = digest({name: (ROOT / 'tools' / name).read_text() for name in CONTROLLER_FILES})
 
 
@@ -205,7 +205,7 @@ def validate_certificate(value):
 
 
 @contextmanager
-def qualified_view(source, state, entries, *, candidate=None):
+def qualified_view(source, state, entries, *, candidate=None, protected_store=None, candidate_graph=None):
     """Capture one supported full GraphExport invocation; production reuse stays off."""
     if candidate is not None: validate_certificate(candidate)
     if CONTROLLER_DIGEST != digest({name: (ROOT / 'tools' / name).read_text() for name in CONTROLLER_FILES}):
@@ -263,18 +263,26 @@ def qualified_view(source, state, entries, *, candidate=None):
                     osBuild=subprocess.check_output(['/usr/bin/sw_vers', '-buildVersion'], text=True).strip(),
                     bootSession=subprocess.check_output(['/usr/sbin/sysctl', '-n', 'kern.bootsessionuuid'], text=True).strip(),
                     cpuCount=os.cpu_count())
-        before = capture(roots, request=invocation, environment=env, host=host)
+        before = capture(roots, request=invocation, environment=env, host=host, protected_store=protected_store)
         if candidate is not None:
             unchanged = compare(candidate['identity'], before)['unchanged'] and not any(Path(path).exists() for path in candidate['externalAbsent'])
             result = dict(eligible=unchanged, unchanged=unchanged, reuseEnabled=False,
                           discoveryExecuted=False, identity=before, operation='GraphExport')
+            if not unchanged and candidate_graph is not None and not any(Path(path).exists() for path in candidate['externalAbsent']):
+                from preparation_source_update import refresh
+                refreshed = refresh(candidate, candidate_graph, before)
+                if refreshed is not None:
+                    graph, certificate = refreshed
+                    (output / 'graph.json').write_text(json.dumps(graph, indent=2) + '\n')
+                    result.update(eligible=True, sourceContentUpdate=True, certificate=certificate,
+                                  changedSources=certificate['derivation']['changedSources'])
             (output / 'validation.json').write_text(json.dumps(result, indent=2) + '\n')
             yield result
-            if not compare(before, capture(roots, request=invocation, environment=env, host=host))["unchanged"]:
+            if not compare(before, capture(roots, request=invocation, environment=env, host=host, protected_store=protected_store))["unchanged"]:
                 raise IdentityError("leased discovery inputs changed during consumption")
             # A stale negative observation already caused a miss. Only an
             # accepted candidate promises those paths remain absent during use.
-            if unchanged and any(Path(path).exists() for path in candidate["externalAbsent"]):
+            if result['eligible'] and any(Path(path).exists() for path in candidate["externalAbsent"]):
                 raise IdentityError("external namespace changed during consumption")
             return
 
@@ -341,7 +349,7 @@ def qualified_view(source, state, entries, *, candidate=None):
                     raise IdentityError('unqualified SDK/host import: ' + str(path))
         run('GraphExport', dict(schemaVersion=1, workspace=str(workspace), dotnetRoot=str(SDK), sdkVersion='10.0.400',
             packageRoot=str(workspace / '.nuget/packages'), entryPoints=entries, output=str(output / 'graph.json')))
-        after = capture(roots, request=invocation, environment=env, host=host)
+        after = capture(roots, request=invocation, environment=env, host=host, protected_store=protected_store)
         if not compare(before, after)['unchanged']:
             raise IdentityError('discovery inputs changed during consumption')
         if any(Path(path).exists() for path in external_absent):
@@ -356,7 +364,7 @@ def qualified_view(source, state, entries, *, candidate=None):
         certificate['sha256'] = digest(certificate)
         (output / 'certificate.json').write_text(json.dumps(certificate, indent=2) + '\n')
         yield certificate
-        if not compare(before, capture(roots, request=invocation, environment=env, host=host))["unchanged"]:
+        if not compare(before, capture(roots, request=invocation, environment=env, host=host, protected_store=protected_store))["unchanged"]:
             raise IdentityError("leased discovery inputs changed during consumption")
         if any(Path(path).exists() for path in external_absent):
             raise IdentityError("external namespace changed during consumption")

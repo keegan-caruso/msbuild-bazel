@@ -12,7 +12,7 @@ from discovery_contract import SDK
 from probe_bazel import json_stream
 
 
-def probe(output):
+def probe(output, incremental=False):
     output = output.resolve()
     output.mkdir(parents=True, exist_ok=False)
     source, state = output / 'source', output / 'state'
@@ -31,6 +31,8 @@ def probe(output):
     entries = [dict(project='App/App.csproj', globalProperties={'Configuration': 'Release', 'TargetFramework': 'net10.0'})]
     env = dict(os.environ, DOTNET_CLI_HOME=str(output / 'home'))
     report = dict(accepted=False, cases={})
+    from protected_store import ProtectedStore
+    options = dict(incremental_sources=True, protected_store=ProtectedStore()) if incremental else {}
     bazel = os.environ.get('RULES_MSBUILD_BAZEL', str(ROOT / '.tools/bin/bazel'))
 
     def save():
@@ -46,8 +48,12 @@ def probe(output):
 
     def case(name, expected_reuse, expected_output, expected_projects, fresh_cache=False):
         consumer = output / name
-        with prepared_view(source, state, consumer, entries) as result:
+        with prepared_view(source, state, consumer, entries, **options) as result:
             assert result['reused'] == expected_reuse, result
+            if incremental:
+                content_update = name in ('source-content', 'source-content-restored')
+                assert result['discoveryExecuted'] == (not expected_reuse and not content_update), result
+                if content_update: assert result['reason'] == 'source-content-changed', result
             graph = json.loads((consumer / 'graph.json').read_text())
             execution = output / (name + '-execution.json')
             cache = output / (name + '-empty-cache' if fresh_cache else 'disk-cache')
@@ -73,6 +79,13 @@ def probe(output):
         both = ['App/App.csproj', 'Shared/Shared.csproj']
         case('cold', False, 'mvp:base', both)
         case('unchanged', True, 'mvp:base', [])
+        if incremental:
+            program = source / 'App/Program.cs'
+            previous = program.read_bytes()
+            program.write_bytes(previous + b'\n// compile content delta\n')
+            case('source-content', False, 'mvp:base', ['App/App.csproj'])
+            program.write_bytes(previous)
+            case('source-content-restored', False, 'mvp:base', [])
         added = source / 'App/Added.cs'
         added.write_text('public class Added {}')
         case('source-added', False, 'mvp:added', ['App/App.csproj'])
@@ -109,4 +122,6 @@ def probe(output):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--output', type=Path, required=True)
-    probe(parser.parse_args().output)
+    parser.add_argument('--incremental', action='store_true')
+    args = parser.parse_args()
+    probe(args.output, args.incremental)

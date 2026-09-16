@@ -63,6 +63,9 @@ def dependency_closures(nodes):
 def framework_selections(nodes, closure):
     """Carry SDK-selected direct framework edges into isolated graph evaluation."""
     selections = {}
+    split_projects = set()
+    # Preserve legacy delimiter handling for unusual project paths.
+    ambiguous_paths = any("|" in nodes[identity]["project"] for identity in closure)
     for identity in sorted(closure):
         node = nodes[identity]
         references = {}
@@ -82,7 +85,8 @@ def framework_selections(nodes, closure):
             prior = selections.pop(project)
             prior['project'] = project
             selections[project + '|' + prior['target_framework']] = prior
-        if any(key.startswith(project + '|') for key in selections):
+            split_projects.add(project)
+        if (any(key.startswith(project + '|') for key in selections) if ambiguous_paths else project in split_projects):
             selection['project'] = project
             project += '|' + selection['target_framework']
         if project in selections and selections[project] != selection:
@@ -283,6 +287,9 @@ def write_build(workspace, graph, output, tests=None, *, closures=None):
     settings = dict(sdk_version=graph['toolchain']['sdkVersion'], plugin='ReplayPlugin.dll', build_props='runner/Action.props', build_targets='runner/Action.targets', runner='runner/ActionRunner.dll', runner_support=['runner/ActionRunner.deps.json', 'runner/ActionRunner.runtimeconfig.json'], sdk='@dotnet//:files', dotnet='@dotnet//:sdk/dotnet', host_identity='host-identity.json')
     build = 'load(":graph.bzl", "graph_project")\n'
     if tests: build += 'load(":graph_test.bzl", "graph_test")\n'
+    restored = set()
+    copied = set()
+    package_session = graph_packages.StagingSession(workspace, output)
     for identity, node in sorted(nodes.items()):
         sources = set()
         restore = []
@@ -297,6 +304,11 @@ def write_build(workspace, graph, output, tests=None, *, closures=None):
                         source = relative(item['path'])
                         if '/obj/' not in source:
                             sources.add(source)
+            path = f'restore/{reachable}.json'
+            restore.append(path)
+            if reachable in restored:
+                continue
+            restored.add(reachable)
             project_directory = Path(relative(dependency['project'])).parent
             state = {}
             assets_file = relative(dependency['execution']['assetsFile']) if 'execution' in dependency else str(project_directory / 'obj/project.assets.json')
@@ -309,19 +321,21 @@ def write_build(workspace, graph, output, tests=None, *, closures=None):
                             cache['dgSpecHash'] = '$NORMALIZED'
                         contents = json.dumps(cache, sort_keys=True)
                     state[source.relative_to(workspace).as_posix()] = contents.replace(str(workspace), '${WORKSPACE}').replace(str(DOTNET_ROOT), '${SDK}')
-            path = f'restore/{reachable}.json'
             (output / path).write_text(json.dumps(state, sort_keys=True))
-            restore.append(path)
         for name in ('global.json', 'NuGet.Config', 'Directory.Build.props', 'Directory.Build.targets'):
             if (workspace / name).is_file(): sources.add(name)
         for source in sources:
+            if source in copied:
+                continue
             target = output / 'src' / source
             target.parent.mkdir(parents=True, exist_ok=True)
             shutil.copyfile(workspace / source, target)
-        package_manifest, packages = graph_packages.stage(workspace, relative(node['project']), output, identity, relative(node['execution']['assetsFile']) if 'execution' in node else None, node['targetFramework'])
+            copied.add(source)
+        package_manifest, packages = graph_packages.stage(workspace, relative(node['project']), output, identity, relative(node['execution']['assetsFile']) if 'execution' in node else None, node['targetFramework'], session=package_session)
         execution_attrs = dict(assets_file=relative(node['execution']['assetsFile']), output_directories=[relative(node['execution'][key]) for key in ('outputDirectory', 'referenceDirectory')]) if 'execution' in node else {}
         attrs = dict(settings, **execution_attrs, framework_selections=json.dumps(framework_selections(nodes, closures[identity]), sort_keys=True), global_properties=node['globalProperties'], packages=packages, package_manifest=package_manifest, name='node_' + identity, project=relative(node['project']), srcs=sorted('src/' + s for s in sources), restore=restore, dependencies=[':node_' + d for d in sorted(node['dependencies'])])
         build += call('graph_project', **attrs)
+    package_session.verify()
     build += call('filegroup', name='all', srcs=[':node_' + n for n in sorted(graph['entryPoints'])])
     build += add_tests(workspace, output, nodes, tests, ROOT)
     (output / 'BUILD.bazel').write_text(build)

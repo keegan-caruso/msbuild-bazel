@@ -2,6 +2,8 @@
 import base64
 import hashlib
 import json
+import io
+import os
 from pathlib import Path
 import xml.etree.ElementTree as ET
 import zipfile
@@ -106,7 +108,49 @@ def package_plan(workspace, project, assets_file=None, target_framework=None):
     return assets, libraries
 
 
-def stage(workspace, project, output, node_id, assets_file=None, target_framework=None):
+def file_signature(value):
+    return (value.st_dev, value.st_ino, value.st_mode, value.st_size,
+            value.st_mtime_ns, value.st_ctime_ns)
+
+
+class StagingSession:
+    """Deduplicate verified packages within one unpublished preparation only.
+
+    This object is never persisted or reused across requests. Recheck every
+    observed file content at the end; timestamps alone can miss mmap writes.
+    """
+    def __init__(self, workspace, output):
+        self.workspace, self.output = Path(workspace), Path(output)
+        self.packages = {}
+        self.observed = {}
+        self.closed = False
+
+    def read(self, path):
+        before = path.stat()
+        with path.open('rb') as stream:
+            if file_signature(before) != file_signature(os.fstat(stream.fileno())):
+                raise ValueError('package changed before reading: ' + str(path))
+            data = stream.read()
+            if file_signature(before) != file_signature(os.fstat(stream.fileno())):
+                raise ValueError('package changed while reading: ' + str(path))
+        self.observed.setdefault(path, (file_signature(before), hashlib.sha256(data).digest()))
+        return data
+
+    def verify(self):
+        self.closed = True
+        for path, expected in self.observed.items():
+            actual = file_signature(path.stat()) if path.exists() else None
+            if expected is None:
+                if actual is not None:
+                    raise ValueError('package changed during preparation: ' + str(path))
+                continue
+            if actual != expected[0] or hashlib.sha256(self.read(path)).digest() != expected[1]:
+                raise ValueError('package changed during preparation: ' + str(path))
+
+
+def stage(workspace, project, output, node_id, assets_file=None, target_framework=None, *, session=None):
+    if session is not None and (session.closed or (workspace, output) != (session.workspace, session.output)):
+        raise ValueError("package session belongs to another preparation")
     assets, libraries = package_plan(workspace, project, assets_file, target_framework)
     manifest = {'schemaVersion': 1, 'packages': []}
     paths = []
@@ -116,9 +160,19 @@ def stage(workspace, project, output, node_id, assets_file=None, target_framewor
         if library['path'] != relative or '..' in Path(relative).parts:
             raise ValueError('unsupported-package: invalid package path')
         folder = workspace / '.nuget/packages' / relative
+        if session is not None and relative in session.packages:
+            previous_hash, record, package_paths = session.packages[relative]
+            if previous_hash != library['sha512']:
+                raise ValueError('hash-mismatch: package archive disagrees with restore')
+            if record['id'] != package_id:
+                record = dict(record, id=package_id)
+            manifest['packages'].append(record)
+            paths.extend(package_paths)
+            continue
+        path_start = len(paths)
         archive = folder / (package_id.lower() + '.' + version + '.nupkg')
         if not archive.is_file(): raise ValueError('missing-input: ' + str(archive))
-        raw = archive.read_bytes()
+        raw = session.read(archive) if session is not None else archive.read_bytes()
         sha512 = base64.b64encode(hashlib.sha512(raw).digest()).decode('ascii')
         pilot = PILOT_PACKAGES.get(identity.lower())
         expected_restore_hash = pilot['restoreContentHash'] if pilot else sha512
@@ -127,7 +181,7 @@ def stage(workspace, project, output, node_id, assets_file=None, target_framewor
         if pilot and hashlib.sha256(raw).hexdigest() != pilot['archiveSha256']:
             raise ValueError('hash-mismatch: package archive differs from qualified pilot pin')
         files = []
-        with zipfile.ZipFile(archive) as package:
+        with zipfile.ZipFile(io.BytesIO(raw)) as package:
             for entry in package.infolist():
                 if entry.is_dir(): continue
                 # NuGet decodes the OPC-escaped plus in portable framework names.
@@ -145,7 +199,8 @@ def stage(workspace, project, output, node_id, assets_file=None, target_framewor
                 if not source.is_file():
                     # NuGet omits OPC archive bookkeeping from the extracted cache.
                     if not archive_metadata: raise ValueError('missing-input: ' + str(source))
-                elif source.read_bytes() != contents:
+                    if session is not None: session.observed.setdefault(source, None)
+                elif (session.read(source) if session is not None else source.read_bytes()) != contents:
                     raise ValueError('hash-mismatch: package payload ' + name)
                 target = output / 'packages' / relative / name
                 target.parent.mkdir(parents=True, exist_ok=True)
@@ -164,8 +219,11 @@ def stage(workspace, project, output, node_id, assets_file=None, target_framewor
         target.write_bytes(marker)
         paths.append(target.relative_to(output).as_posix())
         files.append(dict(path=name, size=len(marker), sha256=hashlib.sha256(marker).hexdigest()))
-        manifest['packages'].append(dict(id=package_id, version=version, path=relative,
-                                        archiveSha256=hashlib.sha256(raw).hexdigest(), files=files))
+        record = dict(id=package_id, version=version, path=relative,
+                      archiveSha256=hashlib.sha256(raw).hexdigest(), files=files)
+        manifest['packages'].append(record)
+        if session is not None:
+            session.packages[relative] = (library['sha512'], record, paths[path_start:])
     path = output / 'package-manifests' / (node_id + '.json')
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(manifest, sort_keys=True))
