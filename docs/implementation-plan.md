@@ -19,15 +19,18 @@ focused R17 experiment, not qualification of the full supported-version/platform
 
 The [local MVP candidate contract](local-mvp-contract.md) maps GitHub #63,
 #5, #6, #7, #64 and #65 to a single native macOS ARM64/Nix Build/Test release
-slice. It verifies RUL-6's integration and separates build-only preparation reuse
-from fresh test preparation. The engine inventory and operation audit are
-recorded, and [calibration](local-mvp-calibration-findings.md) found a preparation
-latency regression despite skipped work. The predeclared budget requires that
-regression to be removed before #7 can pass. Native qualification also exposed
-and corrected a [macOS path-length hang](local-mvp-path-findings.md) with an
-actionable rejection. The [correctness matrix](local-mvp-correctness-findings.md)
-passes 85 native cases; 40 Build/Test samples and 20 paired preparation samples
-complete calibration. Same-candidate release qualification remains #64.
+slice. The initial [calibration](local-mvp-calibration-findings.md) found a
+preparation latency regression. The [performance qualification](local-mvp-performance-findings.md)
+now passes the unchanged budget: median reuse is 1.544s versus 2.271s fresh for
+the small fixture and 1.866s versus 2.184s for Serilog. Full hashing and lease
+validation remain enforced; the adapter still has end-to-end overhead on the
+small Build/Test workload. The [clean-candidate qualification](local-mvp-release-qualification.md)
+passes 99 correctness cases, 20 paired preparation samples and 40 Build/Test
+samples, with exact code/evidence applicability recorded. The original
+[85-case matrix](local-mvp-correctness-findings.md) and
+[macOS path guard](local-mvp-path-findings.md) remain part of the contract.
+Release version/artifact selection and sign-off remain #65; broader platform,
+package and scale work stays open.
 
 The first [MSBuild time-input diagnostic slice](msbuild-time-findings.md) reports
 potential clock and file-timestamp reads in project/import XML, excluding application

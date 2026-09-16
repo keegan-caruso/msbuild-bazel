@@ -8,7 +8,7 @@ import subprocess
 import sys
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2] / 'tools'))
-from preparation_reuse import prepared_view
+from preparation_reuse import prepared_view, tool_identity
 from preparation_identity import tree_snapshot
 from probe_bazel import json_stream
 
@@ -42,6 +42,19 @@ def rejection_diagnostic(error, expected, process_output):
     return diagnostic
 
 
+def restore_generated(source, generated, directories):
+    paths = [p for p in source.rglob('*') if 'obj' in p.relative_to(source).parts]
+    for current in paths:
+        if current.is_file() and current not in generated:
+            current.unlink()
+    for current in sorted(paths, key=lambda p: len(p.parts), reverse=True):
+        if current.is_dir() and current not in directories:
+            current.rmdir()
+    for current, (data, mode) in generated.items():
+        current.write_bytes(data)
+        current.chmod(mode)
+
+
 def probe(source, output):
     source, output = source.resolve(), output.resolve()
     output.mkdir(parents=True, exist_ok=False)
@@ -52,10 +65,12 @@ def probe(source, output):
     def save():
         (output / 'report.json').write_text(json.dumps(report, indent=2) + '\n')
 
-    def prepare(name, expected_reuse, execute=False):
+    def prepare(name, expected_reuse, execute=False, expected_reason=None):
         consumer = output / name
         with prepared_view(source, state, consumer, entries) as result:
             assert result['reused'] == expected_reuse, result
+            if expected_reason is not None:
+                assert result['reason'] == expected_reason, result
             record = dict(preparation=result)
             if execute:
                 execution = output / (name + '-execution.json')
@@ -75,12 +90,15 @@ def probe(source, output):
 
     def reject(name, path, mutate, expected_diagnostics):
         original = path.read_bytes()
+        original_mode = path.stat().st_mode
         source_identity = tree_snapshot(source)['sha256']
         # Fresh fallback can update MSBuild's generated assets caches while
         # rejecting bad inputs. Restore those too, so the next case starts
         # from exactly the same content instead of depending on warm-up state.
-        generated = {p: p.read_bytes() for p in source.rglob('*')
+        generated = {p: (p.read_bytes(), p.stat().st_mode) for p in source.rglob('*')
                      if p.is_file() and 'obj' in p.relative_to(source).parts}
+        directories = {p for p in source.rglob('*')
+                       if p.is_dir() and 'obj' in p.relative_to(source).parts}
         pointer = (state / 'current.json').read_bytes()
         try:
             mutate(path, original)
@@ -97,11 +115,8 @@ def probe(source, output):
                     committedGenerationPreserved=True, consumerAbsent=True)
         finally:
             path.write_bytes(original)
-            for current in source.rglob('*'):
-                if current.is_file() and 'obj' in current.relative_to(source).parts and current not in generated:
-                    current.unlink()
-            for current, data in generated.items():
-                current.write_bytes(data)
+            path.chmod(original_mode)
+            restore_generated(source, generated, directories)
             assert tree_snapshot(source)['sha256'] == source_identity, 'negative control did not restore source content'
             save()
 
@@ -114,6 +129,7 @@ def probe(source, output):
         # package graph is semantically the same; consume the refreshed plan.
         assets.write_bytes(original_assets + b'\n')
         prepare('restore-content-refreshed', False, execute=True)
+        tools_before_rejections = tool_identity()
         reject('restore-corrupt', assets, lambda p, data: p.write_text('{'), ('NETSDK1060',))
         package = source / '.nuget/packages/polysharp/1.15.0'
         assembly = package / 'analyzers/dotnet/cs/PolySharp.SourceGenerators.dll'
@@ -122,7 +138,14 @@ def probe(source, output):
         targets = package / 'buildTransitive/PolySharp.targets'
         reject('package-import-corrupt', targets, lambda p, data: p.write_bytes(data + b'\n'), ('hash-mismatch',))
         # After rejected requests, valid inputs must recover a usable consumer.
-        prepare('restored-inputs', True, execute=True)
+        # Fresh rejection paths may rebuild owned tools, changing their generated
+        # inputs. That must invalidate the old request even after source recovery.
+        tools_after_rejections = tool_identity()
+        tools_unchanged = tools_before_rejections == tools_after_rejections
+        report['rejectionTools'] = dict(before=tools_before_rejections, after=tools_after_rejections,
+            unchanged=tools_unchanged)
+        prepare('restored-inputs', tools_unchanged, execute=True,
+            expected_reason=None if tools_unchanged else 'request-changed')
         prepare('restored-unchanged', True)
         report['accepted'] = True
     finally:

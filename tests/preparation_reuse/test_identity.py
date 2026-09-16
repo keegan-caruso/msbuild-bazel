@@ -9,7 +9,7 @@ import unittest
 from unittest.mock import patch
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2] / 'tools'))
-from preparation_identity import capture, compare, IdentityError
+from preparation_identity import capture, compare, IdentityError, tree_snapshot
 
 
 class DiscoveryIdentity(unittest.TestCase):
@@ -50,6 +50,13 @@ class DiscoveryIdentity(unittest.TestCase):
     def test_unchanged_bytes_and_membership_are_stable(self):
         self.assertEqual(self.baseline, self.snapshot())
         self.assertTrue(compare(self.baseline,self.snapshot())['unchanged'])
+
+    def test_parallel_capture_matches_serial_capture(self):
+        from concurrent.futures import ThreadPoolExecutor
+        with patch('preparation_identity.ThreadPoolExecutor',
+                   side_effect=lambda **kwargs: ThreadPoolExecutor(max_workers=1)):
+            serial = self.snapshot()
+        self.assertEqual(serial, self.snapshot())
 
     def test_same_size_edit_with_restored_mtime_invalidates(self):
         path = self.workspace/'Program.cs'; times=path.stat()
@@ -120,6 +127,22 @@ class DiscoveryIdentity(unittest.TestCase):
         (self.workspace/'link').symlink_to(target)
         before=self.snapshot();target.write_text('v2')
         self.assertFalse(compare(before,self.snapshot())['unchanged'])
+
+    def test_allowed_root_does_not_admit_a_sibling_prefix(self):
+        sibling = self.root / 'sdk-extra'
+        sibling.mkdir()
+        target = sibling / 'compiler.dll'
+        target.write_text('outside')
+        (self.workspace / 'link').symlink_to(target)
+        with self.assertRaisesRegex(IdentityError, 'undeclared symlink'):
+            self.snapshot()
+
+    def test_filesystem_root_allows_descendants(self):
+        target = self.roots['external'] / 'unicode-é'
+        target.write_text('allowed')
+        (self.workspace / 'link').symlink_to(target)
+        snapshot = tree_snapshot(self.workspace, [Path(self.workspace.anchor)])
+        self.assertTrue(any(entry['path'] == './link/@target' for entry in snapshot['entries']))
 
     def test_undeclared_or_missing_symlink_target_is_rejected(self):
         target=self.root/'outside';target.write_text('v1')

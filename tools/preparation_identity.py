@@ -6,6 +6,7 @@ matching snapshot cannot prove that arbitrary MSBuild property functions never
 read undeclared host state. The separate discovery contract enforces eligibility;
 RUL-6 owns reuse and publication.
 """
+from concurrent.futures import ThreadPoolExecutor
 import hashlib
 import json
 import os
@@ -43,6 +44,11 @@ def tree_snapshot(root, allowed_roots=None):
         allowed = [Path(path).resolve(strict=True) for path in (allowed_roots or [root])]
     except (OSError, RuntimeError) as error:
         raise IdentityError('missing or unreadable discovery input: ' + str(root)) from error
+    # Resolve every entry below as before, but compare canonical names without
+    # constructing each path's parents once per allowed runtime-closure root.
+    # The separator makes this an ancestry check, not a sibling-prefix match.
+    allowed_names = {os.path.normcase(str(path)) for path in allowed}
+    allowed_prefixes = tuple(name.rstrip(os.sep) + os.sep for name in allowed_names)
     records = []
     total_bytes = 0
     observed = []
@@ -52,7 +58,8 @@ def tree_snapshot(root, allowed_roots=None):
         before = path.lstat()
         mode = stat.S_IMODE(before.st_mode)
         resolved = path.resolve(strict=True)
-        if not any(resolved == domain or resolved.is_relative_to(domain) for domain in allowed):
+        resolved_name = os.path.normcase(str(resolved))
+        if resolved_name not in allowed_names and not resolved_name.startswith(allowed_prefixes):
             raise IdentityError('undeclared symlink target: ' + logical)
         if stat.S_ISLNK(before.st_mode):
             target = os.readlink(path)
@@ -117,7 +124,13 @@ def capture(roots, *, request, environment, host, schema=SCHEMA_VERSION):
             allowed.append(Path(path).resolve(strict=True))
         except (OSError, RuntimeError) as error:
             raise IdentityError('missing discovery root') from error
-    snapshots = {name: tree_snapshot(path, allowed) for name, path in sorted(roots.items())}
+    # Independent roots still hash every byte and retain their traversal checks.
+    # Hashing releases the GIL; overlap the large SDK/runtime roots without
+    # changing record order, persisted identities, or the enclosing input lease.
+    items = sorted(roots.items())
+    with ThreadPoolExecutor(max_workers=min(4, len(items))) as workers:
+        values = workers.map(lambda item: tree_snapshot(item[1], allowed), items)
+        snapshots = {name: value for (name, _), value in zip(items, values)}
     key_fields = dict(schemaVersion=schema, policy=POLICY,
         roots={name: {key: value for key, value in snapshot.items()
             if key in ('location', 'resolvedLocation', 'sha256')} for name, snapshot in snapshots.items()},

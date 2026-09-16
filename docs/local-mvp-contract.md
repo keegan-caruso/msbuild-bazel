@@ -115,6 +115,11 @@ the MVP's Serilog entry point.
 
 ## Existing evidence and remaining release gates
 
+The subsequent [performance qualification](local-mvp-performance-findings.md)
+and [clean-candidate qualification](local-mvp-release-qualification.md) now record
+passing evidence for #7 and #64. The frozen boundaries and budget below are
+unchanged; #65 still owns release packaging and sign-off.
+
 [RUL-6](https://linear.app/rules-msbuild/issue/RUL-6/reuse-and-safely-publish-unchanged-export-and-preparation)
 is Done and [PR #4](https://github.com/keegan-caruso/msbuild-bazel/pull/4)
 merged as `c5934ce8e54dac12bdfc49996c3043303a50cdc2`, an ancestor of this
