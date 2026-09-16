@@ -42,6 +42,18 @@ def rejection_diagnostic(error, expected, process_output):
     return diagnostic
 
 
+def restore_generated(source, generated, directories):
+    paths = [p for p in source.rglob('*') if 'obj' in p.relative_to(source).parts]
+    for current in paths:
+        if current.is_file() and current not in generated:
+            current.unlink()
+    for current in sorted(paths, key=lambda p: len(p.parts), reverse=True):
+        if current.is_dir() and current not in directories:
+            current.rmdir()
+    for current, data in generated.items():
+        current.write_bytes(data)
+
+
 def probe(source, output):
     source, output = source.resolve(), output.resolve()
     output.mkdir(parents=True, exist_ok=False)
@@ -81,6 +93,8 @@ def probe(source, output):
         # from exactly the same content instead of depending on warm-up state.
         generated = {p: p.read_bytes() for p in source.rglob('*')
                      if p.is_file() and 'obj' in p.relative_to(source).parts}
+        directories = {p for p in source.rglob('*')
+                       if p.is_dir() and 'obj' in p.relative_to(source).parts}
         pointer = (state / 'current.json').read_bytes()
         try:
             mutate(path, original)
@@ -97,11 +111,7 @@ def probe(source, output):
                     committedGenerationPreserved=True, consumerAbsent=True)
         finally:
             path.write_bytes(original)
-            for current in source.rglob('*'):
-                if current.is_file() and 'obj' in current.relative_to(source).parts and current not in generated:
-                    current.unlink()
-            for current, data in generated.items():
-                current.write_bytes(data)
+            restore_generated(source, generated, directories)
             assert tree_snapshot(source)['sha256'] == source_identity, 'negative control did not restore source content'
             save()
 
