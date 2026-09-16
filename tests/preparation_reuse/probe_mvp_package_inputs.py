@@ -8,7 +8,7 @@ import subprocess
 import sys
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2] / 'tools'))
-from preparation_reuse import prepared_view
+from preparation_reuse import prepared_view, tool_identity
 from preparation_identity import tree_snapshot
 from probe_bazel import json_stream
 
@@ -65,10 +65,12 @@ def probe(source, output):
     def save():
         (output / 'report.json').write_text(json.dumps(report, indent=2) + '\n')
 
-    def prepare(name, expected_reuse, execute=False):
+    def prepare(name, expected_reuse, execute=False, expected_reason=None):
         consumer = output / name
         with prepared_view(source, state, consumer, entries) as result:
             assert result['reused'] == expected_reuse, result
+            if expected_reason is not None:
+                assert result['reason'] == expected_reason, result
             record = dict(preparation=result)
             if execute:
                 execution = output / (name + '-execution.json')
@@ -127,6 +129,7 @@ def probe(source, output):
         # package graph is semantically the same; consume the refreshed plan.
         assets.write_bytes(original_assets + b'\n')
         prepare('restore-content-refreshed', False, execute=True)
+        tools_before_rejections = tool_identity()
         reject('restore-corrupt', assets, lambda p, data: p.write_text('{'), ('NETSDK1060',))
         package = source / '.nuget/packages/polysharp/1.15.0'
         assembly = package / 'analyzers/dotnet/cs/PolySharp.SourceGenerators.dll'
@@ -135,7 +138,14 @@ def probe(source, output):
         targets = package / 'buildTransitive/PolySharp.targets'
         reject('package-import-corrupt', targets, lambda p, data: p.write_bytes(data + b'\n'), ('hash-mismatch',))
         # After rejected requests, valid inputs must recover a usable consumer.
-        prepare('restored-inputs', True, execute=True)
+        # Fresh rejection paths may rebuild owned tools, changing their generated
+        # inputs. That must invalidate the old request even after source recovery.
+        tools_after_rejections = tool_identity()
+        tools_unchanged = tools_before_rejections == tools_after_rejections
+        report['rejectionTools'] = dict(before=tools_before_rejections, after=tools_after_rejections,
+            unchanged=tools_unchanged)
+        prepare('restored-inputs', tools_unchanged, execute=True,
+            expected_reason=None if tools_unchanged else 'request-changed')
         prepare('restored-unchanged', True)
         report['accepted'] = True
     finally:
