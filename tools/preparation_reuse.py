@@ -156,7 +156,7 @@ def fresh_view(source, output, entries, *, environment=None, tests=None):
 
 
 @contextmanager
-def prepared_view(source, state, output, entries, *, environment=None, tests=None):
+def prepared_view(source, state, output, entries, *, environment=None, tests=None, protected_store=None):
     """Materialize a private consumer copy and retain both leases until it finishes.
 
     Tools must be prebuilt for reuse. Tests and custom environments take the fresh
@@ -192,6 +192,7 @@ def prepared_view(source, state, output, entries, *, environment=None, tests=Non
             else: shutil.rmtree(pending)
         request = dict(entries=entries, environment=environment, tests=tests,
                        operation='prepare_graph', tools=tool_identity())
+        if protected_store is not None: request['storePolicy'] = 'trusted-system-nix-session-v1'
         candidate, reason = read_candidate(state, request)
         discovery_state = state / 'discovery'
 
@@ -211,7 +212,8 @@ def prepared_view(source, state, output, entries, *, environment=None, tests=Non
 
         if candidate:
             generation, manifest = candidate
-            with discovery.qualified_view(source, discovery_state, entries, candidate=manifest['certificate']) as validation:
+            options = {'protected_store': protected_store} if protected_store is not None else {}
+            with discovery.qualified_view(source, discovery_state, entries, candidate=manifest['certificate'], **options) as validation:
                 if validation['unchanged']:
                     yield consume(generation, manifest, True, 'unchanged')
                     if tool_identity() != request['tools']: raise IdentityError('tools changed during consumption')
@@ -222,7 +224,7 @@ def prepared_view(source, state, output, entries, *, environment=None, tests=Non
         from contextlib import ExitStack
         with ExitStack() as stack:
             try:
-                certificate = stack.enter_context(discovery.qualified_view(source, discovery_state, entries))
+                certificate = stack.enter_context(discovery.qualified_view(source, discovery_state, entries, **({"protected_store": protected_store} if protected_store is not None else {})))
             except IdentityError:
                 with fresh_view(source, output, entries, environment=environment, tests=tests) as result:
                     yield result
@@ -238,10 +240,14 @@ if __name__ == '__main__':
     for name in ('workspace', 'state', 'output', 'entries'):
         parser.add_argument('--' + name, required=True, type=Path)
     parser.add_argument('--tests', type=Path)
+    parser.add_argument('--trust-system-nix-store', action='store_true',
+                        help='reuse verified system-owned Nix trees within this process; trust privileged store administration and storage integrity')
     parser.add_argument('command', nargs=argparse.REMAINDER, help='command consumed under lease, after --')
     args = parser.parse_args()
+    from protected_store import ProtectedStore
     with prepared_view(args.workspace, args.state, args.output, json.loads(args.entries.read_text()),
-                       tests=json.loads(args.tests.read_text()) if args.tests else None) as result:
+                       tests=json.loads(args.tests.read_text()) if args.tests else None,
+                       protected_store=ProtectedStore() if args.trust_system_nix_store else None) as result:
         print(json.dumps(result), flush=True)
         command = args.command[1:] if args.command[:1] == ['--'] else args.command
         if command: subprocess.run(command, cwd=args.output, check=True)
