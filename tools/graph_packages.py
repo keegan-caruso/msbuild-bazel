@@ -117,7 +117,7 @@ class StagingSession:
     """Deduplicate verified packages within one unpublished preparation only.
 
     This object is never persisted or reused across requests. Recheck every
-    observed file at the end so a cache hit cannot hide an in-flight mutation.
+    observed file content at the end; timestamps alone can miss mmap writes.
     """
     def __init__(self, workspace, output):
         self.workspace, self.output = Path(workspace), Path(output)
@@ -133,14 +133,18 @@ class StagingSession:
             data = stream.read()
             if file_signature(before) != file_signature(os.fstat(stream.fileno())):
                 raise ValueError('package changed while reading: ' + str(path))
-        self.observed.setdefault(path, file_signature(before))
+        self.observed.setdefault(path, (file_signature(before), hashlib.sha256(data).digest()))
         return data
 
     def verify(self):
         self.closed = True
         for path, expected in self.observed.items():
             actual = file_signature(path.stat()) if path.exists() else None
-            if actual != expected:
+            if expected is None:
+                if actual is not None:
+                    raise ValueError('package changed during preparation: ' + str(path))
+                continue
+            if actual != expected[0] or hashlib.sha256(self.read(path)).digest() != expected[1]:
                 raise ValueError('package changed during preparation: ' + str(path))
 
 

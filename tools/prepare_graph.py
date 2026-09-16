@@ -63,6 +63,9 @@ def dependency_closures(nodes):
 def framework_selections(nodes, closure):
     """Carry SDK-selected direct framework edges into isolated graph evaluation."""
     selections = {}
+    split_projects = set()
+    # Preserve legacy delimiter handling for unusual project paths.
+    ambiguous_paths = any("|" in nodes[identity]["project"] for identity in closure)
     for identity in sorted(closure):
         node = nodes[identity]
         references = {}
@@ -82,7 +85,8 @@ def framework_selections(nodes, closure):
             prior = selections.pop(project)
             prior['project'] = project
             selections[project + '|' + prior['target_framework']] = prior
-        if any(key.startswith(project + '|') for key in selections):
+            split_projects.add(project)
+        if (any(key.startswith(project + '|') for key in selections) if ambiguous_paths else project in split_projects):
             selection['project'] = project
             project += '|' + selection['target_framework']
         if project in selections and selections[project] != selection:

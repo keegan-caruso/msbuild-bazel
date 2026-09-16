@@ -1,5 +1,6 @@
 """Repeated package consumers keep integrity checks under one preparation."""
 import json
+import mmap
 from pathlib import Path
 import tempfile
 import unittest
@@ -49,3 +50,13 @@ class StagingSessionTests(unittest.TestCase):
             path.write_text(json.dumps(assets))
             with self.assertRaisesRegex(ValueError,'archive disagrees'):
                 graph_packages.stage(root,'App/App.csproj',output,'second',session=session)
+
+    def test_mapped_content_change_rejects_without_timestamp_evidence(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root=Path(directory).resolve();payload,_=self.fixture(root)
+            with payload.open('r+b') as stream, mmap.mmap(stream.fileno(),0) as mapped:
+                output=root/'output';session=graph_packages.StagingSession(root,output)
+                graph_packages.stage(root,'App/App.csproj',output,'first',session=session)
+                mapped[0] = mapped[0] ^ 1
+                with self.assertRaisesRegex(ValueError,'package changed'):
+                    session.verify()
