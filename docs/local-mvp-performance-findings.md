@@ -1,5 +1,8 @@
 # MVP preparation performance qualification (#7)
 
+Historical prerequisite qualification. The subsequent [MVP release sign-off](local-mvp-signoff.md)
+records the merged implementation and current release measurements.
+
 ## Result and scope
 
 The unchanged [predeclared budget](local-mvp-preparation-budget.json) passes

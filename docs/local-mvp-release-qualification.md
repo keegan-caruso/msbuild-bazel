@@ -1,5 +1,8 @@
 # Pinned local MVP candidate qualification (#64)
 
+Historical prerequisite qualification. The subsequent [MVP release sign-off](local-mvp-signoff.md)
+records the merged implementation and current release measurements.
+
 ## Result and applicability
 
 The single combination in the [support contract](local-mvp-contract.md) passes

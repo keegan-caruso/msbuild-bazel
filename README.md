@@ -16,12 +16,11 @@ cache. Public-API dependency-result replay works across workspace paths.
 
 **Active scope:** The Starlark baseline now has local Linux ARM64 evidence through Apple container; further Linux x86-64 CI remains deferred. The [R04 Serilog library slice](docs/r04-integration-findings.md) now passes native macOS build, mutation and producer-free relocated cache acceptance; the unchanged upstream approval-test project also passes native build/test, mutation and relocated-cache acceptance ([test findings](docs/serilog-test-acceptance-findings.md)).
 
-**Local MVP candidate:** The [frozen support contract](docs/local-mvp-contract.md)
-and [clean macOS ARM64 qualification](docs/local-mvp-release-qualification.md)
-cover the pinned Nix Build/Test slice. [Preparation performance](docs/local-mvp-performance-findings.md)
-passes the predeclared budget while retaining full input verification. The adapter
-still has end-to-end overhead on the small workload; release packaging and
-sign-off remain open.
+**Local MVP:** [v0.1.0-mvp.1 installation and adoption guide](docs/local-mvp-release.md)
+covers the pinned native macOS ARM64/Nix Build/Test slice. See the
+[release qualification and measured costs](docs/local-mvp-signoff.md) and
+[frozen support contract](docs/local-mvp-contract.md). Preparation reuse reduces
+preparation work; complete Build/Test still carries overhead on this small graph.
 
 **Platform evidence:** The original nine-test suite, including replay and native
 Bazel sandbox/cache cases, passed on macOS ARM64 and in Ubuntu 22.04 Linux x86-64
@@ -62,7 +61,8 @@ and reference consumption after cache recovery. **R05:** [selected generator and
 adds classic/incremental project generators, package combinations, diagnostic-only
 analyzers and recovered consumer compilation. Spectre.Console, CommunityToolkit
 and Dapper.AOT add native macOS mutation, behavioral and relocated-cache evidence,
-with explicit remaining combinations. **Next:** R09 preparation reuse; see the
+with explicit remaining combinations. **Preparation reuse:** implemented and measured
+for the local MVP; broader work remains in the
 [active execution order](docs/roadmap.md#active-execution-order).
 [RUL-5 discovery identity and eligibility](docs/discovery-contract.md) now cover
 the selected native macOS SDK/Serilog slice. [RUL-6 preparation reuse](docs/preparation-reuse-findings.md) adds opt-in leased reuse, integrity verification and atomic publication. [Repeated measurements](docs/serilog-performance-findings.md) are
