@@ -72,6 +72,13 @@ Later tracks cover specialized SDKs, platform workloads and independent remote
 workers; see the [coverage matrix](docs/scenario-coverage.md) and
 [parallel dependency graph](docs/roadmap-graph.md).
 
+The opt-in [native MSBuild project cache](docs/native-cache-serilog.md) now admits
+the pinned Serilog library and approval-test graph through verified evaluated
+inputs and package manifests. Native Bazel builds preserve SDK runtime outputs;
+explicit HTTP snapshots support fresh-workspace project recovery. Dependency
+implementation keys are conservative. This selected same-host macOS slice does
+not qualify code coverage, arbitrary packages or cross-host remote caching.
+
 ## Quick start
 
 Linux x86-64 or ARM64 (glibc), with Bash, Python 3, curl, tar, and standard .NET runtime dependencies:

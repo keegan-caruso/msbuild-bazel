@@ -393,6 +393,9 @@ package/test acceptance and the still-rejected native-cache real-project boundar
 It defines the next package/generator qualification slice without broadening the
 prototype's eligibility.
 
-The [native-cache Serilog qualification](native-cache-serilog.md) starts a separate
-opt-in evaluated-graph/package-manifest input path. Execution and acceptance are
-tracked as separate commits from input preparation.
+The [native-cache Serilog qualification](native-cache-serilog.md) adds an opt-in
+evaluated-graph/package-manifest input path, complete SDK runtime bundles and
+conservative dependency implementation keys. Input preparation, execution and
+upstream acceptance are separate commits. The pinned library and approval graph
+have native macOS sandbox, HTTP recovery, mutation, corruption and actual-test
+evidence, with the code-coverage and cross-host limitations recorded explicitly.
