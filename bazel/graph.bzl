@@ -2,13 +2,16 @@
 
 # Preserve the existing public provider name.
 # buildifier: disable=name-conventions
-GraphBundle = provider(doc = "Reachable project bundles for isolated dependency replay.", fields = ["bundles"])
+GraphBundle = provider(doc = "Reachable project bundles for isolated dependency replay.", fields = ["bundles", "compile_bundles", "runtime_inputs"])
 
 def _graph_project_impl(ctx):
     output = ctx.actions.declare_directory(ctx.label.name + ".bundle")
+    compile_output = ctx.actions.declare_directory(ctx.label.name + ".compile.bundle") if ctx.attr.compile_boundary else output
+    api = ctx.actions.declare_directory(ctx.label.name + ".api.bundle") if ctx.attr.compile_boundary else None
     diagnostics = ctx.actions.declare_directory(ctx.label.name + ".diagnostics")
     request = ctx.actions.declare_file(ctx.label.name + ".request.json")
-    dependencies = depset(transitive = [dep[GraphBundle].bundles for dep in ctx.attr.dependencies])
+    runtime_dependencies = depset(transitive = [dep[GraphBundle].runtime_inputs if ctx.attr.compile_boundary else dep[GraphBundle].bundles for dep in ctx.attr.dependencies])
+    dependencies = depset(transitive = [dep[GraphBundle].compile_bundles if ctx.attr.compile_boundary else dep[GraphBundle].bundles for dep in ctx.attr.dependencies])
     ctx.actions.write(request, json.encode({
         "project": "Shared",
         "graph_project": ctx.attr.project,
@@ -25,7 +28,8 @@ def _graph_project_impl(ctx):
         "plugin": ctx.file.plugin.path,
         "build_props": ctx.file.build_props.path,
         "build_targets": ctx.file.build_targets.path,
-        "output": output.path,
+        "output": compile_output.path,
+        "api_output": api.path if api else None,
         "diagnostics": diagnostics.path,
         "dependency": None,
         "undeclared_probe": "",
@@ -39,7 +43,7 @@ def _graph_project_impl(ctx):
             [request, ctx.file.plugin, ctx.file.runner, ctx.file.build_props, ctx.file.build_targets, ctx.file.host_identity],
             transitive = [dependencies, ctx.attr.sdk[DefaultInfo].files],
         ),
-        outputs = [output, diagnostics],
+        outputs = [compile_output, diagnostics] + ([api] if api else []),
         executable = ctx.executable.dotnet,
         arguments = [ctx.file.runner.path, "--request", request.path],
         env = {"PATH": "/usr/bin:/bin", "LANG": "en_US.UTF-8"},
@@ -47,13 +51,37 @@ def _graph_project_impl(ctx):
         progress_message = "MSBuild " + ctx.attr.project,
         execution_requirements = {"block-network": "1", "no-remote": "1"},
     )
+    if ctx.attr.compile_boundary:
+        runtime_request = ctx.actions.declare_file(ctx.label.name + ".runtime.json")
+        ctx.actions.write(runtime_request, json.encode({
+            "own": compile_output.path,
+            "dependencies": [f.path for f in runtime_dependencies.to_list()],
+            "output": output.path,
+        }))
+        ctx.actions.run(
+            inputs = depset(
+                [runtime_request, compile_output, ctx.file.runner] + ctx.files.runner_support,
+                transitive = [runtime_dependencies, ctx.attr.sdk[DefaultInfo].files],
+            ),
+            outputs = [output],
+            executable = ctx.executable.dotnet,
+            arguments = [ctx.file.runner.path, "--assemble-runtime", runtime_request.path],
+            env = {"PATH": "/usr/bin:/bin", "LANG": "en_US.UTF-8"},
+            mnemonic = "MsbuildRuntime",
+            execution_requirements = {"block-network": "1", "no-remote": "1"},
+        )
     return [
         DefaultInfo(files = depset([output, diagnostics])),
-        GraphBundle(bundles = depset([output], transitive = [dependencies])),
+        GraphBundle(
+            bundles = depset([output], transitive = [dep[GraphBundle].bundles for dep in ctx.attr.dependencies]),
+            compile_bundles = depset([api if api else output], transitive = [dependencies]),
+            runtime_inputs = depset([compile_output], transitive = [runtime_dependencies]),
+        ),
     ]
 
 graph_project = rule(implementation = _graph_project_impl, attrs = {
     "project": attr.string(mandatory = True),
+    "compile_boundary": attr.bool(default = False),
     "assets_file": attr.string(),
     "output_directories": attr.string_list(),
     "framework_selections": attr.string(),

@@ -342,3 +342,53 @@ both project rules with preparation's `sdk_root`/`sdk_version`, exact engine
 execution, compiler host selection and replay SDK identity. Project target
 framework declarations remain independent. The findings bound native qualification
 and describe the complete SDK payload requirement.
+
+## Measured MSBuild parity follow-up
+
+See [MSBuild parity findings](msbuild-parity-findings.md) for preparation reuse,
+opt-in package-free API/runtime separation, flattened runtime composition, and
+complete-workflow measurements. Cold-build parity remains open.
+
+The [raw MSBuild batch experiment](msbuild-batch-findings.md) measures one native
+sandboxed whole-graph action without upfront graph export. It cuts cold overhead
+but rebuilds all 100 projects on a source edit; fixed intermediate groups remain
+future work.
+
+The [MSBuild plugin-cache investigation](msbuild-plugin-cache-findings.md) pins
+and tests Microsoft's published cache package. ARM64 assembly loading and the
+missing file-access-reporting feature block its use on the current SDK. SDK-native
+project-cache callbacks work; an explicit-input cache remains a separate prototype.
+
+The [native explicit-input cache prototype](msbuild-native-cache-findings.md)
+retains one MSBuild graph scheduler with per-project API-based cache decisions and
+current runtime composition. Fresh-workspace recovery and edit/corruption/failure
+checks pass for owned package-free fixtures; general-project and sandbox support
+remain outside this experiment.
+
+The [isolated-consumer HTTP comparison](remote-cache-comparison.md) tests actual
+remote transfers for Bazel-owned project actions and native MSBuild project
+bundles, plus whole-graph outer-cache behavior. It uses loopback storage and
+fresh consumer build state; worker integration and cross-host qualification
+remain separate gates.
+
+The [portable sandboxed native cache](sandboxed-native-cache-findings.md) uses
+explicit project-cache seed inputs and post-success publication around one native
+Bazel graph action. It removes controller-location identities, tests independent
+restore/controller roots, and measures fresh-consumer versus retained-server
+costs. The macOS read/temporary-directory limitations are recorded explicitly.
+
+The [native-cache overhead follow-up](native-cache-overhead-findings.md) measures
+publication reuse independently from avoiding unused language-rule autoloads in
+the generated workspace. It retains Bazel profiles and explicit request counts;
+repeated downloads and the remaining cold-action cost are still open.
+
+The [startup overlap experiment](native-cache-startup-findings.md) overlaps the
+required Bazel platform query with full SDK fingerprinting and seed preparation.
+It includes startup costs in wall time and preserves serial/JVM-only controls;
+public repository acquisition remains a source of cold-run variation.
+
+The [merge review and Serilog boundary check](native-cache-review.md) records
+malformed-cache fixes, local regression validation, passing existing-adapter
+package/test acceptance and the still-rejected native-cache real-project boundary.
+It defines the next package/generator qualification slice without broadening the
+prototype's eligibility.

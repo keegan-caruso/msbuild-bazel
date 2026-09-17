@@ -53,12 +53,15 @@ def tree_snapshot(root, allowed_roots=None, *, _observe=None):
     total_bytes = 0
     observed = []
 
-    def visit(path, logical, ancestors):
+    def visit(path, logical, ancestors, canonical=None):
         nonlocal total_bytes
         before = path.lstat()
         if _observe is not None: _observe(path, before)
         mode = stat.S_IMODE(before.st_mode)
-        resolved = path.resolve(strict=True)
+        # A non-link child inherits its parent's resolved directory. Ancestor
+        # signatures are still rechecked after the complete traversal; links
+        # always resolve and pass the declared-root and cycle checks.
+        resolved = path.resolve(strict=True) if canonical is None or stat.S_ISLNK(before.st_mode) else canonical
         resolved_name = os.path.normcase(str(resolved))
         if resolved_name not in allowed_names and not resolved_name.startswith(allowed_prefixes):
             raise IdentityError('undeclared symlink target: ' + logical)
@@ -74,7 +77,7 @@ def tree_snapshot(root, allowed_roots=None, *, _observe=None):
             records.append(dict(path=logical, kind='directory', mode=mode))
             names = sorted(os.listdir(path))
             for name in names:
-                visit(path / name, logical + '/' + name, ancestors | {resolved})
+                visit(path / name, logical + '/' + name, ancestors | {resolved}, resolved / name)
             if names != sorted(os.listdir(path)):
                 raise IdentityError('directory changed while reading: ' + logical)
         elif stat.S_ISREG(before.st_mode):
