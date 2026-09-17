@@ -392,3 +392,7 @@ malformed-cache fixes, local regression validation, passing existing-adapter
 package/test acceptance and the still-rejected native-cache real-project boundary.
 It defines the next package/generator qualification slice without broadening the
 prototype's eligibility.
+
+The [native-cache Serilog qualification](native-cache-serilog.md) starts a separate
+opt-in evaluated-graph/package-manifest input path. Execution and acceptance are
+tracked as separate commits from input preparation.
