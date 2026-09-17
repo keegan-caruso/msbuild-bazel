@@ -1,11 +1,12 @@
 using System.Diagnostics;
 using System.Text.Json;
+using System.Xml.Linq;
 using ActionRunner;
 using NativeCache;
 
 internal sealed record RunnerFile(string Source, string Destination);
 internal sealed record RunnerRequest(string Entry, string Output, string Diagnostics, string Manifest, string Restore, RunnerFile[] Sources, RunnerFile[] Seeds, string? ReadProbe = null, string? NetworkProbe = null, string? WriteProbe = null);
-internal sealed record PortableManifest(string Toolchain, Dictionary<string, DeclaredProject> Projects);
+internal sealed record PortableManifest(string Toolchain, Dictionary<string, DeclaredProject> Projects, string Policy = "native-qualified-v2");
 
 internal static class Program
 {
@@ -43,14 +44,40 @@ internal static class Program
                 Files.Copy(input.Source, Path.Combine(cache, input.Destination));
             }
             var manifest = JsonSerializer.Deserialize<PortableManifest>(File.ReadAllText(request.Manifest), Json)!;
+            var selection = "";
+            if (manifest.Policy == "evaluated-packages-v1")
+            {
+                var document = new XElement("Project");
+                foreach (var (project, declared) in manifest.Projects)
+                {
+                    if (!Files.ValidRelativePath(project)) throw new InvalidDataException("invalid declared project");
+                    var full = Path.Combine(workspace, project);
+                    var condition = "'$(MSBuildProjectFullPath)' == '" + full.Replace("'", "%27", StringComparison.Ordinal) + "'";
+                    document.Add(new XElement("PropertyGroup", new XAttribute("Condition", condition),
+                        new XElement("InnerBuildProperty", ""), new XElement("InnerBuildPropertyValues", "")));
+                    var items = new XElement("ItemGroup", new XAttribute("Condition", condition));
+                    foreach (var dependency in declared.Dependencies)
+                    {
+                        if (!manifest.Projects.ContainsKey(dependency)) throw new InvalidDataException("missing declared reference");
+                        items.Add(new XElement("ProjectReference", new XAttribute("Update", Path.GetRelativePath(Path.GetDirectoryName(full)!, Path.Combine(workspace, dependency))),
+                            new XElement("SetTargetFramework", "TargetFramework=net10.0")));
+                    }
+                    document.Add(items);
+                }
+                var path = Path.Combine(scratch, "selected.targets");
+                new XDocument(document).Save(path);
+                selection = "<PropertyGroup><AfterMicrosoftNETSdkTargets>$(AfterMicrosoftNETSdkTargets);" + System.Security.SecurityElement.Escape(path) + "</AfterMicrosoftNETSdkTargets></PropertyGroup>";
+            }
             var plugin = typeof(Program).Assembly.Location;
             var targets = Path.Combine(scratch, "Cache.targets");
-            File.WriteAllText(targets, "<Project><ItemGroup><ProjectCachePlugin Include=\"" + System.Security.SecurityElement.Escape(plugin) + "\" /></ItemGroup></Project>");
+            File.WriteAllText(targets, "<Project><PropertyGroup><_NativeOriginalTargets>$([MSBuild]::GetPathOfFileAbove('Directory.Build.targets', '$(MSBuildProjectDirectory)/'))</_NativeOriginalTargets></PropertyGroup>" +
+                "<Import Project=\"$(_NativeOriginalTargets)\" Condition=\"'$(_NativeOriginalTargets)' != ''\" />" +
+                selection + "<ItemGroup><ProjectCachePlugin Include=\"" + System.Security.SecurityElement.Escape(plugin) + "\" /></ItemGroup></Project>");
             var files = Directory.EnumerateFiles(workspace, "*", SearchOption.AllDirectories).Select(path => new DeclaredFile(Path.GetRelativePath(workspace, path), Files.Hash(path))).ToArray();
             var sessionPath = Path.Combine(scratch, "session.json");
             var pending = Path.Combine(scratch, "pending"); Directory.CreateDirectory(pending);
             var report = Path.Combine(diagnostics, "events.json");
-            var session = new Session(workspace, cache, pending, report, request.Entry, manifest.Toolchain, files, manifest.Projects, TargetsPath: targets);
+            var session = new Session(workspace, cache, pending, report, request.Entry, manifest.Toolchain, files, manifest.Projects, TargetsPath: targets, Policy: manifest.Policy);
             File.WriteAllText(sessionPath, JsonSerializer.Serialize(session, Json));
             if (request.ReadProbe is not null) File.ReadAllText(request.ReadProbe);
             if (request.WriteProbe is not null) File.WriteAllText(request.WriteProbe, "unexpected write");

@@ -20,3 +20,21 @@ with its verified package payloads. Changing `src/Serilog/Log.cs` after export w
 rejected as a stale manifest, and no output plan was published. Acquisition-only
 NuGet metadata contributes its verified export digest to identity; staged Build
 payloads follow the existing package-manifest boundary.
+
+## Step 2: package-aware execution
+
+The runner imports authored `Directory.Build.targets` and selects the declared
+net10.0 inner builds using the same late SDK framework-selection technique as the
+existing graph adapter. The plugin still verifies the evaluated graph against the
+session. Package-policy bundles contain the complete project `bin/Release/net10.0`
+output plus its reference assembly; SDK-generated dependency/runtime metadata is
+preserved. Downstream keys hash the complete dependency artifact manifest, so
+implementation changes conservatively invalidate consumers and generators.
+The package-free policy retains reference-assembly keys and runtime composition.
+
+Direct cold execution of the pinned Serilog approval graph compiled two projects.
+A fresh runner workspace restored both with zero compilation. All 142 runtime
+files were byte-identical, and VSTest executed the real upstream approval Fact
+(one passed, none skipped) against the recovered output. The native project builds
+with warnings as errors and passes whitespace formatting. The existing four-node
+synthetic Bazel regression covers cold, relocated recovery and body edits.
