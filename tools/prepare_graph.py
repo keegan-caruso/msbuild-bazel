@@ -122,7 +122,7 @@ def nix_imports(inputs, sdk_root):
     return sorted(paths)
 
 
-def prepare(workspace, manifest, output, *, environment=None, tests=None, tool_framework=None, engine_root=None, sdk_root=None, sdk_version=None):
+def prepare(workspace, manifest, output, *, environment=None, tests=None, tool_framework=None, engine_root=None, sdk_root=None, sdk_version=None, compile_boundary=False):
     """Publish only a completely validated plan; serialize shared adapter builds."""
     output = Path(output).resolve()
     if output.exists():
@@ -133,7 +133,7 @@ def prepare(workspace, manifest, output, *, environment=None, tests=None, tool_f
     with lock.open('a') as handle, tempfile.TemporaryDirectory(prefix='.graph-prepare-', dir=output.parent) as temporary:
         fcntl.flock(handle, fcntl.LOCK_EX)
         staged = Path(temporary) / 'workspace'
-        graph = _prepare(workspace, manifest, staged, environment=environment, tests=tests, tool_framework=tool_framework, engine_root=engine_root, sdk_root=sdk_root, sdk_version=sdk_version)
+        graph = _prepare(workspace, manifest, staged, environment=environment, tests=tests, tool_framework=tool_framework, engine_root=engine_root, sdk_root=sdk_root, sdk_version=sdk_version, compile_boundary=compile_boundary)
         # Never replace another preparation's committed plan, including an empty directory.
         if output.exists():
             raise FileExistsError(output)
@@ -141,7 +141,7 @@ def prepare(workspace, manifest, output, *, environment=None, tests=None, tool_f
         return graph
 
 
-def _prepare(workspace, manifest, output, *, environment=None, tests=None, tool_framework=None, engine_root=None, sdk_root=None, sdk_version=None, _leased=False):
+def _prepare(workspace, manifest, output, *, environment=None, tests=None, tool_framework=None, engine_root=None, sdk_root=None, sdk_version=None, _leased=False, compile_boundary=False):
     if _leased and any(value is not None for value in (environment, tests, tool_framework, engine_root, sdk_root, sdk_version)):
         raise ValueError("leased preparation requires the qualified default toolchain")
     workspace, manifest, output = map(lambda p: Path(p).resolve(), (workspace, manifest, output))
@@ -173,15 +173,14 @@ def _prepare(workspace, manifest, output, *, environment=None, tests=None, tool_
         if any(dep not in nodes for dep in node['dependencies']):
             raise ValueError('missing dependency node')
         graph_packages.package_plan(workspace, project, relative(execution['assetsFile']), node['targetFramework'])
-    output_owners = {}
-    for identity, node in nodes.items():
-        if 'execution' not in node: continue
-        for key in ('outputDirectory', 'referenceDirectory'):
-            path = Path(relative(node['execution'][key]))
-            for other, owner in output_owners.items():
-                if path.is_relative_to(other) or other.is_relative_to(path):
-                    raise ValueError('configured-output-collision: ' + str(path))
-            output_owners[path] = identity
+    # Lexical component order places each directory immediately before its
+    # descendants. Adjacent checks catch every overlap without an all-pairs scan.
+    output_paths = sorted(Path(relative(node['execution'][key])).parts
+                          for node in nodes.values() if 'execution' in node
+                          for key in ('outputDirectory', 'referenceDirectory'))
+    for left, right in zip(output_paths, output_paths[1:]):
+        if right[:len(left)] == left:
+            raise ValueError('configured-output-collision: ' + str(Path(*right)))
     closures = dependency_closures(nodes)
     if not graph['entryPoints'] or any(entry not in nodes for entry in graph['entryPoints']):
         raise ValueError('invalid entry points')
@@ -216,6 +215,9 @@ def _prepare(workspace, manifest, output, *, environment=None, tests=None, tool_
             raise ValueError(('hash-mismatch: ' if item['kind'] == 'package' else 'stale-manifest: ') + 'stale graph input: ' + item['path'])
     if not graph.get('entryRequests'):
         raise ValueError('graph discovery request missing; regenerate manifest')
+    if compile_boundary:
+        from compile_boundary import validate
+        validate(workspace, graph)
     output.mkdir(parents=True, exist_ok=False)
     if _leased:
         built_tools = {'ReplayPlugin': ROOT / 'tools/ReplayPlugin/bin/Release/net10.0/ReplayPlugin.dll'}
@@ -275,11 +277,11 @@ def _prepare(workspace, manifest, output, *, environment=None, tests=None, tool_
     (output / 'MODULE.bazel').write_text('module(name = "msbuild_graph")\n\nlocal_dotnet_sdk = use_repo_rule("//:msbuild.bzl", "local_dotnet_sdk")\n' + call('local_dotnet_sdk', name='dotnet', path=str(dotnet_root), external_imports=external_imports))
     (output / 'host-identity.json').write_text(json.dumps({'platform': platform.platform(), 'machine': platform.machine(), 'dotnet': str(dotnet_root), 'policyRevision': 1}))
     (output / 'restore').mkdir()
-    write_build(workspace, graph, output, tests, closures=closures)
+    write_build(workspace, graph, output, tests, closures=closures, compile_boundary=compile_boundary)
     (output / 'graph.json').write_text(json.dumps(graph, indent=2))
     return graph
 
-def write_build(workspace, graph, output, tests=None, *, closures=None):
+def write_build(workspace, graph, output, tests=None, *, closures=None, compile_boundary=False):
     """Materialize declarations from an already validated graph."""
     nodes = {node['id']: node for node in graph['nodes']}
     if closures is None:
@@ -333,7 +335,7 @@ def write_build(workspace, graph, output, tests=None, *, closures=None):
             copied.add(source)
         package_manifest, packages = graph_packages.stage(workspace, relative(node['project']), output, identity, relative(node['execution']['assetsFile']) if 'execution' in node else None, node['targetFramework'], session=package_session)
         execution_attrs = dict(assets_file=relative(node['execution']['assetsFile']), output_directories=[relative(node['execution'][key]) for key in ('outputDirectory', 'referenceDirectory')]) if 'execution' in node else {}
-        attrs = dict(settings, **execution_attrs, framework_selections=json.dumps(framework_selections(nodes, closures[identity]), sort_keys=True), global_properties=node['globalProperties'], packages=packages, package_manifest=package_manifest, name='node_' + identity, project=relative(node['project']), srcs=sorted('src/' + s for s in sources), restore=restore, dependencies=[':node_' + d for d in sorted(node['dependencies'])])
+        attrs = dict(settings, **execution_attrs, compile_boundary=compile_boundary, framework_selections=json.dumps(framework_selections(nodes, closures[identity]), sort_keys=True), global_properties=node['globalProperties'], packages=packages, package_manifest=package_manifest, name='node_' + identity, project=relative(node['project']), srcs=sorted('src/' + s for s in sources), restore=restore, dependencies=[':node_' + d for d in sorted(node['dependencies'])])
         build += call('graph_project', **attrs)
     package_session.verify()
     build += call('filegroup', name='all', srcs=[':node_' + n for n in sorted(graph['entryPoints'])])
@@ -344,10 +346,11 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     for option in ('workspace', 'manifest', 'output'):
         parser.add_argument('--' + option, required=True, type=Path)
+    parser.add_argument('--compile-boundary', action='store_true', help='Qualified package-free reference/runtime split')
     parser.add_argument('--tests', type=Path, help='JSON list of explicit node/data/expectedTests declarations')
     parser.add_argument('--sdk-root', type=Path, help='Declared SDK payload root')
     parser.add_argument('--sdk-version', help='Exact SDK version, independent of project target frameworks')
     parser.add_argument('--tool-target-framework', choices=('net10.0', 'net11.0'), help='Framework for GraphExport and ReplayPlugin, independent of application TFMs')
     parser.add_argument('--msbuild-engine-root', type=Path, help='Directory containing the engine assemblies referenced by the tools')
     args = parser.parse_args()
-    prepare(args.workspace, args.manifest, args.output, tests=json.loads(args.tests.read_text()) if args.tests else None, tool_framework=args.tool_target_framework, engine_root=args.msbuild_engine_root, sdk_root=args.sdk_root, sdk_version=args.sdk_version)
+    prepare(args.workspace, args.manifest, args.output, tests=json.loads(args.tests.read_text()) if args.tests else None, tool_framework=args.tool_target_framework, engine_root=args.msbuild_engine_root, sdk_root=args.sdk_root, sdk_version=args.sdk_version, compile_boundary=args.compile_boundary)

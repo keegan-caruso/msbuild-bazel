@@ -31,6 +31,11 @@ PROPERTIES |= {'Description', 'Authors', 'Copyright', 'AssemblyVersion', 'Target
                'DefineConstants', 'VersionPrefix', 'TreatWarningsAsErrors', 'SignAssembly',
                'AssemblyOriginatorKeyFile', 'CheckEolTargetFramework', 'GenerateDocumentationFile',
                'PublishRepositoryUrl', 'EmbedUntrackedSources', 'IncludeSymbols', 'SymbolPackageFormat'}
+# Literal SDK switches used by the package-free scale fixture. They may not
+# select tasks, paths or property functions; qualify only these exact values.
+SDK_SWITCHES = {'UseAppHost': 'false', 'UseSharedCompilation': 'false',
+                'EnableNETAnalyzers': 'false', 'Deterministic': 'true',
+                'DisableTransitiveProjectReferences': 'true'}
 ITEMS = {'Compile', 'None', 'EmbeddedResource', 'Content', 'AdditionalFiles',
          'BazelExtraInput', 'ProjectReference', 'Reference', 'PackageReference', 'Using'}
 QUALIFIED_PACKAGES = {'polysharp/1.15.0', 'microsoft.net.illink.tasks/10.0.11'}
@@ -91,7 +96,7 @@ def check_xml(path):
             generated = path.name.endswith(('.nuget.g.props', '.nuget.g.targets'))
             generated_names = {'RestoreSuccess', 'RestoreTool', 'ProjectAssetsFile', 'NuGetPackageRoot',
                                'NuGetPackageFolders', 'NuGetProjectStyle', 'NuGetToolVersion', 'PkgMicrosoft_NET_ILLink_Tasks'}
-            if name not in PROPERTIES and not (generated and name in generated_names): reject(name)
+            if name not in PROPERTIES and name not in SDK_SWITCHES and not (generated and name in generated_names): reject(name)
         elif parent == 'ItemGroup':
             generated = path.name.endswith(('.nuget.g.props', '.nuget.g.targets'))
             if name not in ITEMS and not (generated and name == 'SourceRoot'): reject(name)
@@ -113,7 +118,10 @@ def check_xml(path):
 
     def end(name):
         _, fragments = stack.pop()
-        expression(''.join(fragments))
+        value = ''.join(fragments)
+        if name in SDK_SWITCHES and value.strip() != SDK_SWITCHES[name]:
+            reject('unqualified SDK switch value: ' + name)
+        expression(value)
 
     def doctype(*args): reject('DTD')
     parser.StartElementHandler = start

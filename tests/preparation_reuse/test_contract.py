@@ -84,6 +84,14 @@ class ContractTests(unittest.TestCase):
             with self.assertRaisesRegex(IdentityError, 'source changed while sealing'):
                 seal(source, self.root / 'stage')
 
+    def test_scale_sdk_switches_require_qualified_literal_values(self):
+        from discovery_contract import SDK_SWITCHES
+        for name, value in SDK_SWITCHES.items():
+            check_xml(self.xml(f'<Project><PropertyGroup><{name}>{value}</{name}></PropertyGroup></Project>'))
+            for other in ('$(Value)', 'true' if value == 'false' else 'false'):
+                with self.subTest(name=name, value=other), self.assertRaises(IdentityError):
+                    check_xml(self.xml(f'<Project><PropertyGroup><{name}>{other}</{name}></PropertyGroup></Project>'))
+
     def test_incomplete_certificates_reject(self):
         for value in ({}, {'schemaVersion':2}, {'schemaVersion':1,'policy':'unqualified'}):
             with self.subTest(value=value), self.assertRaises(IdentityError): validate_certificate(value)

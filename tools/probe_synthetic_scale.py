@@ -17,12 +17,13 @@ from probe_bazel import json_stream
 from synthetic_graph import generate, name, project, source, consumers, oracle
 
 
-def probe(output, count=10, shape='fan', cases=('fresh', 'warm', 'leaf', 'shared', 'recovery')):
+def probe(output, count=10, shape='fan', cases=('fresh', 'warm', 'leaf', 'shared', 'recovery'), *, target_framework=None, compile_boundary=False):
     output = Path(output).resolve()
     output.mkdir(parents=True, exist_ok=False)
     dotnet = DOTNET_ROOT / 'dotnet'
     strategy = 'darwin-sandbox' if platform.system() == 'Darwin' else 'linux-sandbox'
     phases = {}
+    framework_args = ['-p:TargetFramework=' + target_framework] if target_framework else []
 
     def run(label, command, cwd):
         started = time.monotonic()
@@ -39,6 +40,7 @@ def probe(output, count=10, shape='fan', cases=('fresh', 'warm', 'leaf', 'shared
         performanceQualified=False, budgets=None, repetitions=1, jobs=2,
         platform=platform.platform(), architecture=platform.machine(), sdkRoot=str(DOTNET_ROOT),
         repositoryToolchainPins=json.loads((ROOT / 'scripts/toolchains.json').read_text()),
+        targetFrameworkSelection=target_framework, compileBoundary=compile_boundary,
         serverPolicy='MSBuild node reuse and shared C# compiler disabled',
         timingStatus='descriptive wall times on shared worker; not benchmark comparisons',
         unmeasured=['aggregate process-tree RSS', 'separate evaluation/analysis/execution phase attribution',
@@ -50,16 +52,19 @@ def probe(output, count=10, shape='fan', cases=('fresh', 'warm', 'leaf', 'shared
         spec = generate(ordinary, count, shape)
         edges, entry = spec['edges'], spec['entry']
         # Leaf means the final entry consumer; shared means the root dependency.
-        changed = count - 1 if case == 'leaf' else 0 if case == 'shared' else None
-        expected = oracle(edges, changed)
+        changed = count - 1 if case == 'leaf' else 0 if case in ('shared', 'api') else None
+        expected = oracle(edges, changed if case != 'api' else None)
         ordinary_counts = []
+        def mutation():
+            text = source(changed, edges[changed], changed == count - 1, case != 'api')
+            return text.replace('public static long Read()', 'public static int AddedApi() => 42; public static long Read()') if case == 'api' else text
 
         def restore(work, label):
-            run(label, [dotnet, 'msbuild', entry, '-t:Restore', '-p:Configuration=Release', '-m:2', '-nodeReuse:false', '-nologo'], work)
+            run(label, [dotnet, 'msbuild', entry, '-t:Restore', '-p:Configuration=Release', '-m:2', '-nodeReuse:false', '-nologo', *framework_args], work)
 
         def ordinary_build(label):
             log = run(label, [dotnet, 'msbuild', entry, '-t:Build', '-p:Configuration=Release', '-graphBuild', '-isolateProjects',
-                '-m:2', '-nodeReuse:false', '-nologo', '-verbosity:diagnostic', '-bl:' + str(output / (label + '.binlog'))], ordinary)
+                '-m:2', '-nodeReuse:false', '-nologo', '-verbosity:diagnostic', '-bl:' + str(output / (label + '.binlog')), *framework_args], ordinary)
             # Diagnostic task-start lines distinguish executed Csc tasks from skipped targets.
             return len(re.findall(r'Task "Csc"\s+\(TaskId:\d+\)', log))
 
@@ -68,7 +73,7 @@ def probe(output, count=10, shape='fan', cases=('fresh', 'warm', 'leaf', 'shared
             ordinary_counts.append(ordinary_build(case + '-ordinary-warmup'))
             if ordinary_counts != [count]: raise AssertionError('ordinary baseline warmup did not compile every node')
         if changed is not None:
-            (ordinary / name(changed) / 'Value.cs').write_text(source(changed, edges[changed], changed == count - 1, True))
+            (ordinary / name(changed) / 'Value.cs').write_text(mutation())
         if case == 'recovery':
             for i in range(count):
                 for directory in ('bin', 'obj/Release'):
@@ -76,7 +81,7 @@ def probe(output, count=10, shape='fan', cases=('fresh', 'warm', 'leaf', 'shared
         ordinary_count = ordinary_build(case + '-ordinary')
         ordinary_result = run(case + '-ordinary-app', [dotnet, ordinary / name(count - 1) / f'bin/Release/net10.0/{name(count - 1)}.dll'], ordinary)
         if ordinary_result != expected: raise AssertionError('ordinary output mismatch ' + case)
-        ordinary_expected = count if case in ('fresh', 'recovery') else 0 if case == 'warm' else 1
+        ordinary_expected = count if case in ('fresh', 'recovery') else 0 if case == 'warm' else 1 + sum(0 in deps for deps in edges) if case == 'api' else 1
         if ordinary_count != ordinary_expected:
             raise AssertionError(f'{case}: ordinary Csc count {ordinary_count}, expected {ordinary_expected}')
         preparation, generated = state / 'preparation', state / 'generated'
@@ -87,10 +92,10 @@ def probe(output, count=10, shape='fan', cases=('fresh', 'warm', 'leaf', 'shared
             manifest, request = output / (label + '-manifest.json'), output / (label + '-request.json')
             request.write_text(json.dumps(dict(schemaVersion=1, workspace=str(preparation), dotnetRoot=str(DOTNET_ROOT),
                 sdkVersion='10.0.400', packageRoot=str(preparation / '.nuget/packages'),
-                entryPoints=[dict(project=entry, globalProperties={'Configuration': 'Release'})], output=str(manifest))))
+                entryPoints=[dict(project=entry, globalProperties={'Configuration': 'Release', **({'TargetFramework': target_framework} if target_framework else {})})], output=str(manifest))))
             run(label + '-export', [dotnet, ROOT / 'tools/GraphExport/bin/Release/net10.0/GraphExport.dll', '--request', request], preparation)
             started = time.monotonic()
-            graph = prepare(preparation, manifest, generated, environment=cache_environment(output, preparation))
+            graph = prepare(preparation, manifest, generated, environment=cache_environment(output, preparation), compile_boundary=compile_boundary)
             actual_nodes = {n['id']: n for n in graph['nodes']}
             actual_edges = {n['project'].removeprefix('workspace/'): sorted(actual_nodes[d]['project'].removeprefix('workspace/') for d in n['dependencies']) for n in graph['nodes']}
             if actual_edges != {project(i): sorted(project(d) for d in dependencies) for i, dependencies in enumerate(edges)}:
@@ -143,7 +148,7 @@ def probe(output, count=10, shape='fan', cases=('fresh', 'warm', 'leaf', 'shared
             if warmup['output'] != oracle(edges) or {a['project'] for a in warmup['actions'] if not a['cacheHit']} != {project(i) for i in range(count)}:
                 raise AssertionError('adapter baseline warmup was not a correct full fresh build')
         if changed is not None:
-            (preparation / name(changed) / 'Value.cs').write_text(source(changed, edges[changed], changed == count - 1, True))
+            (preparation / name(changed) / 'Value.cs').write_text(mutation())
             shutil.rmtree(generated)
             graph = publish(case + '-changed')
         if case == 'recovery':
@@ -154,7 +159,7 @@ def probe(output, count=10, shape='fan', cases=('fresh', 'warm', 'leaf', 'shared
             graph = publish(case + '-recovery')
         shutil.rmtree(preparation)
         record = build(case + '-adapter')
-        expected_actions = {project(i) for i in (range(count) if case == 'fresh' else consumers(edges, changed) if changed is not None else [])}
+        expected_actions = {project(i) for i in (range(count) if case == 'fresh' else ({changed} if compile_boundary and case != 'api' else consumers(edges, changed)) if changed is not None else [])}
         actual_actions = {a['project'] for a in record['actions'] if not a['cacheHit']}
         if actual_actions != expected_actions or len([a for a in record['actions'] if not a['cacheHit']]) != len(expected_actions): raise AssertionError(f'{case}: adapter action set mismatch {actual_actions} != {expected_actions}')
         if record['output'] != expected: raise AssertionError('adapter output mismatch')
@@ -177,6 +182,8 @@ if __name__ == '__main__':
     parser.add_argument('--output', required=True, type=Path)
     parser.add_argument('--nodes', type=int, default=10)
     parser.add_argument('--shape', choices=('chain', 'fan'), default='fan')
-    parser.add_argument('--cases', nargs='+', choices=('fresh', 'warm', 'leaf', 'shared', 'recovery'), default=['fresh', 'warm', 'leaf', 'shared', 'recovery'])
+    parser.add_argument('--cases', nargs='+', choices=('fresh', 'warm', 'leaf', 'shared', 'api', 'recovery'), default=['fresh', 'warm', 'leaf', 'shared', 'recovery'])
+    parser.add_argument('--compile-boundary', action='store_true')
+    parser.add_argument('--target-framework', choices=('net10.0',), help='Explicit inner-build selection; omission preserves the original protocol')
     args = parser.parse_args()
-    probe(args.output, args.nodes, args.shape, args.cases)
+    probe(args.output, args.nodes, args.shape, args.cases, target_framework=args.target_framework, compile_boundary=args.compile_boundary)

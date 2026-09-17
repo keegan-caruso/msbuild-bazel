@@ -30,6 +30,7 @@ try
          "native_manifest":null,"native_files":[]}
         """;
     AssetRoleTests.Run();
+    CompileBoundaryTests.Run();
     var toolchainRequestPath = Path.Combine(directory.FullName, "toolchain-request.json");
     File.WriteAllText(toolchainRequestPath, validRequest);
     var toolchainRequest = JsonFiles.ReadRequest(toolchainRequestPath);

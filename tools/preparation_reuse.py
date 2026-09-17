@@ -6,6 +6,7 @@ The cache is owned local state, not an authenticated or remote artifact store.
 import argparse
 from contextlib import contextmanager
 import fcntl
+import hashlib
 import json
 import os
 from pathlib import Path
@@ -26,7 +27,7 @@ def controller():
     paths = [*sorted((ROOT / 'tools').glob('*.py')),
              *sorted((ROOT / 'tools').glob('*.json')),
              *sorted((ROOT / 'tools').glob('*.props'))]
-    return digest({str(p.relative_to(ROOT)): p.read_bytes().hex() for p in paths})
+    return digest({str(p.relative_to(ROOT)): hashlib.sha256(p.read_bytes()).hexdigest() for p in paths})
 
 
 CONTROLLER = controller()
@@ -39,7 +40,7 @@ def tool_identity():
              ('GraphExport', 'EvaluationProbe', 'ReplayPlugin', 'ActionRunner')]]
     return dict(controller=CONTROLLER, trees={str(p): tree_snapshot(p)['sha256'] for p in roots},
                 sdk=str(prepare_graph.DOTNET_ROOT), python=dict(version=sys.version, executable=sys.executable,
-                    executableSha256=digest(Path(sys.executable).read_bytes().hex())))
+                    executableSha256=hashlib.sha256(Path(sys.executable).read_bytes()).hexdigest()))
 
 
 def atomic_json(path, value):
@@ -105,7 +106,7 @@ def verify_view(certificate, *, protected_store=None):
         raise IdentityError('external namespace changed before publication')
 
 
-def publish(state, workspace, graph_path, certificate, request, *, protected_store=None):
+def publish(state, workspace, graph_path, certificate, request, *, protected_store=None, compile_boundary=False):
     """Flush a complete generation before atomically switching the commit pointer."""
     generations = state / 'generations'
     generations.mkdir(exist_ok=True)
@@ -113,7 +114,7 @@ def publish(state, workspace, graph_path, certificate, request, *, protected_sto
     pending = generations / ('.pending-' + name)
     pending.mkdir()
     try:
-        prepare_graph._prepare(workspace, graph_path, pending / 'payload', _leased=True)
+        prepare_graph._prepare(workspace, graph_path, pending / 'payload', _leased=True, compile_boundary=compile_boundary)
         if tool_identity() != request['tools']:
             raise IdentityError('preparation tools changed during materialization')
         manifest = dict(policy=POLICY, request=request, certificate=certificate,
@@ -136,7 +137,7 @@ def publish(state, workspace, graph_path, certificate, request, *, protected_sto
 
 
 @contextmanager
-def fresh_view(source, output, entries, *, environment=None, tests=None):
+def fresh_view(source, output, entries, *, environment=None, tests=None, compile_boundary=False):
     """Existing uncached behavior for operations outside the qualified slice."""
     import tempfile
     with tempfile.TemporaryDirectory(prefix='fresh-export-', dir=output.parent) as directory:
@@ -151,13 +152,13 @@ def fresh_view(source, output, entries, *, environment=None, tests=None):
             packageRoot=str(source / '.nuget/packages'), entryPoints=entries, output=str(graph))))
         subprocess.run([str(dotnet), str(ROOT / 'tools/GraphExport/bin/Release/net10.0/GraphExport.dll'),
                         '--request', str(request)], cwd=source, env=environment, check=True)
-        prepare_graph.prepare(source, graph, output, environment=environment, tests=tests)
+        prepare_graph.prepare(source, graph, output, environment=environment, tests=tests, compile_boundary=compile_boundary)
         yield dict(reused=False, discoveryExecuted=True, materializationExecuted=True,
                    toolBuildsExecuted=True, reason='unsupported-request', workspace=str(output))
 
 
 @contextmanager
-def prepared_view(source, state, output, entries, *, environment=None, tests=None, protected_store=None, incremental_sources=False):
+def prepared_view(source, state, output, entries, *, environment=None, tests=None, protected_store=None, incremental_sources=False, compile_boundary=False):
     """Materialize a private consumer copy and retain both leases until it finishes.
 
     Tools must be prebuilt for reuse. Tests and custom environments take the fresh
@@ -174,7 +175,7 @@ def prepared_view(source, state, output, entries, *, environment=None, tests=Non
         all(set(e) == {'project', 'globalProperties'} and e['globalProperties'] ==
             {'Configuration': 'Release', 'TargetFramework': 'net10.0'} for e in entries))
     if not supported:
-        with fresh_view(source, output, entries, environment=environment, tests=tests) as result:
+        with fresh_view(source, output, entries, environment=environment, tests=tests, compile_boundary=compile_boundary) as result:
             yield result
         return
     state.mkdir(parents=True, exist_ok=True)
@@ -192,7 +193,7 @@ def prepared_view(source, state, output, entries, *, environment=None, tests=Non
             if pending.is_symlink(): pending.unlink()
             else: shutil.rmtree(pending)
         request = dict(entries=entries, environment=environment, tests=tests,
-                       operation='prepare_graph', tools=tool_identity())
+                       operation='prepare_graph', tools=tool_identity(), compileBoundary=compile_boundary)
         if protected_store is not None: request['storePolicy'] = 'trusted-system-nix-session-v1'
         if incremental_sources: request['sourcePolicy'] = 'compile-content-only-v1'
         candidate, reason = read_candidate(state, request)
@@ -222,7 +223,7 @@ def prepared_view(source, state, output, entries, *, environment=None, tests=Non
                     if tool_identity() != request['tools']: raise IdentityError('tools changed during consumption')
                     return
                 if validation.get('sourceContentUpdate'):
-                    generation = publish(state, discovery_state / 'workspace', discovery_state / 'output/graph.json', validation['certificate'], request, protected_store=protected_store)
+                    generation = publish(state, discovery_state / 'workspace', discovery_state / 'output/graph.json', validation['certificate'], request, protected_store=protected_store, compile_boundary=compile_boundary)
                     manifest = json.loads((generation / 'manifest.json').read_text())
                     yield consume(generation, manifest, False, 'source-content-changed', discovery_executed=False)
                     if tool_identity() != request['tools']: raise IdentityError('tools changed during consumption')
@@ -235,10 +236,10 @@ def prepared_view(source, state, output, entries, *, environment=None, tests=Non
             try:
                 certificate = stack.enter_context(discovery.qualified_view(source, discovery_state, entries, **({"protected_store": protected_store} if protected_store is not None else {})))
             except IdentityError:
-                with fresh_view(source, output, entries, environment=environment, tests=tests) as result:
+                with fresh_view(source, output, entries, environment=environment, tests=tests, compile_boundary=compile_boundary) as result:
                     yield result
                 return
-            generation = publish(state, discovery_state / 'workspace', discovery_state / 'output/graph.json', certificate, request, protected_store=protected_store)
+            generation = publish(state, discovery_state / 'workspace', discovery_state / 'output/graph.json', certificate, request, protected_store=protected_store, compile_boundary=compile_boundary)
             manifest = json.loads((generation / 'manifest.json').read_text())
             yield consume(generation, manifest, False, reason)
             if tool_identity() != request['tools']: raise IdentityError('tools changed during consumption')
@@ -248,6 +249,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description=__doc__)
     for name in ('workspace', 'state', 'output', 'entries'):
         parser.add_argument('--' + name, required=True, type=Path)
+    parser.add_argument('--compile-boundary', action='store_true')
     parser.add_argument('--tests', type=Path)
     parser.add_argument('--trust-system-nix-store', action='store_true',
                         help='reuse verified system-owned Nix trees within this process; trust privileged store administration and storage integrity')
@@ -259,7 +261,7 @@ if __name__ == '__main__':
     with prepared_view(args.workspace, args.state, args.output, json.loads(args.entries.read_text()),
                        tests=json.loads(args.tests.read_text()) if args.tests else None,
                        protected_store=ProtectedStore() if args.trust_system_nix_store else None,
-                       incremental_sources=args.incremental_sources) as result:
+                       incremental_sources=args.incremental_sources, compile_boundary=args.compile_boundary) as result:
         print(json.dumps(result), flush=True)
         command = args.command[1:] if args.command[:1] == ['--'] else args.command
         if command: subprocess.run(command, cwd=args.output, check=True)
