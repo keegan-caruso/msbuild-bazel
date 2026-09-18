@@ -8,6 +8,39 @@ try
     var request = Json.Read(args[1]);
     switch (args[0])
     {
+        case "snapshot":
+            Console.WriteLine(Json.Text(FileTree.Snapshot(request.String("path"))));
+            break;
+        case "copy":
+            FileTree.Copy(request.String("source"), request.String("output"), request["preserveModes"]?.GetValue<bool>() ?? true);
+            Console.WriteLine(Json.Text(FileTree.Snapshot(request.String("output"))));
+            break;
+        case "remove":
+            FileTree.Remove(request.String("path"));
+            break;
+        case "nuget":
+            Console.WriteLine(Json.Text(NuGetInputs.Stage(request.String("source"), request.String("output"), request.String("cache"))));
+            break;
+        case "native-plan":
+            NativePlan.Materialize(request.String("prepared"), request["graph"]!, request.String("output"), request.String("toolchain"));
+            break;
+        case "refresh":
+            Console.WriteLine(Json.Text(NativePlan.Refresh(request.String("plan"), request.String("workspace"), request["before"]!, request["after"]!)));
+            break;
+        case "bundle":
+            Console.WriteLine(Json.Text(RemoteCache.ValidateBundle(RemoteCache.Unpack(File.ReadAllBytes(request.String("archive"))))));
+            break;
+        case "publish":
+            using (var remote = new RemoteCache(request.String("endpoint")))
+                Console.WriteLine(Json.Text(JsonValue.Create(remote.Publish(request.String("cache"), null, null))));
+            break;
+        case "workflow":
+            Console.WriteLine(Json.Text(NativeWorkflow.Run(request)));
+            break;
+        case "remote-preparation":
+            using (var remote = new RemoteCache(request.String("endpoint")))
+                Console.WriteLine(Json.Text(remote.Preparation(request.String("digest"), request.String("output"), [])));
+            break;
         case "frameworks":
             Console.WriteLine(Json.Text(GraphPreparation.FrameworkSelections(request.AsObject().ToDictionary(p => p.Key, p => p.Value!), request.AsObject().Select(p => p.Key).ToHashSet())));
             break;

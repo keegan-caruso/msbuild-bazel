@@ -17,10 +17,14 @@ internal sealed class GraphPreparation
     private readonly Dictionary<string, JsonNode> nodes;
     private readonly Dictionary<string, HashSet<string>> closures;
     private readonly Packages packages;
+    private readonly IReadOnlyDictionary<string, string>? prebuilt;
+    private readonly Func<JsonNode>? revalidate;
 
-    private GraphPreparation(JsonNode request, string output)
+    private GraphPreparation(JsonNode request, string output, IReadOnlyDictionary<string, string>? prebuilt, Func<JsonNode>? revalidate)
     {
         this.request = request;
+        this.prebuilt = prebuilt;
+        this.revalidate = revalidate;
         this.output = output;
         root = Host.Real(request.String("repository"));
         workspace = Host.Real(request.String("workspace"));
@@ -38,7 +42,7 @@ internal sealed class GraphPreparation
         ValidateNodes();
         closures = Closures(nodes);
     }
-    public static void Run(JsonNode request)
+    public static void Run(JsonNode request, IReadOnlyDictionary<string, string>? prebuilt = null, Func<JsonNode>? revalidate = null)
     {
         var allowed = new HashSet<string>(["schemaVersion", "repository", "workspace", "manifest", "output", "sdkRoot", "sdkVersion", "toolTargetFramework", "msbuildEngineRoot", "tests", "compileBoundary"], StringComparer.Ordinal);
         if (request["schemaVersion"]?.GetValue<int>() != 1 || request.AsObject().Any(p => !allowed.Contains(p.Key))) throw new InvalidDataException("unsupported preparation request");
@@ -53,7 +57,7 @@ internal sealed class GraphPreparation
         try
         {
             var stage = Path.Combine(temporary, "workspace");
-            var preparation = new GraphPreparation(request, stage);
+            var preparation = new GraphPreparation(request, stage, prebuilt, revalidate);
             preparation.Prepare();
             // Directory.Move refuses to overwrite even an empty committed directory.
             Directory.Move(stage, output);
@@ -172,10 +176,18 @@ internal sealed class GraphPreparation
         var engine = Path.Combine(sdk, "sdk", version, "MSBuild.dll");
         if (!File.Exists(engine)) throw new InvalidDataException("selected SDK engine missing: " + engine);
         var environment = Host.SdkEnvironment(sdk, version);
+        if (prebuilt is not null) environment["MSBuildEnableWorkloadResolver"] = "false";
         var tests = request["tests"] as JsonArray;
         var built = new Dictionary<string, string>(StringComparer.Ordinal);
         foreach (var name in new[] { "GraphExport", "ReplayPlugin", "ActionRunner" }.Concat(tests is { Count: > 0 } ? ["TestRunner"] : Array.Empty<string>()))
         {
+            if (prebuilt is not null)
+            {
+                var bound = prebuilt[name];
+                if (!File.Exists(bound)) throw new InvalidDataException("Missing bound tool: " + name);
+                built[name] = bound;
+                continue;
+            }
             var arguments = new List<string> { "exec", engine, Path.Combine(root, "tools", name), "-restore", "-target:Build", "-property:Configuration=Release", "-nologo", "-getProperty:TargetPath,TargetFramework" };
             if (name is "GraphExport" or "ReplayPlugin")
             {
@@ -197,7 +209,8 @@ internal sealed class GraphPreparation
         var discoveryRequest = Path.Combine(Path.GetDirectoryName(output)!, "discovery-request.json");
         var refreshed = Path.Combine(Path.GetDirectoryName(output)!, "discovery.json");
         Json.Write(discoveryRequest, new JsonObject { ["schemaVersion"] = 1, ["workspace"] = workspace, ["dotnetRoot"] = sdk, ["sdkVersion"] = version, ["packageRoot"] = Path.Combine(workspace, ".nuget/packages"), ["entryPoints"] = graph["entryRequests"]!.DeepClone(), ["output"] = refreshed });
-        Host.Run(Path.Combine(sdk, "dotnet"), [built["GraphExport"], "--request", discoveryRequest], workspace, environment);
+        if (revalidate is not null) Json.Write(refreshed, revalidate());
+        else Host.Run(Path.Combine(sdk, "dotnet"), [built["GraphExport"], "--request", discoveryRequest], workspace, environment);
         if (!JsonNode.DeepEquals(Json.Read(refreshed), graph)) throw new InvalidDataException("stale-manifest: stale graph discovery: regenerate manifest");
         Host.Copy(built["ReplayPlugin"], Path.Combine(output, "ReplayPlugin.dll"));
         foreach (var suffix in new[] { ".dll", ".deps.json", ".runtimeconfig.json" }) Host.Copy(Path.ChangeExtension(built["ActionRunner"], null) + suffix, Path.Combine(output, "runner/ActionRunner" + suffix));

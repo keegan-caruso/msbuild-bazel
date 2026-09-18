@@ -45,7 +45,7 @@ internal static class CompileBoundary
         value = Regex.Replace(value, @"\$\([A-Za-z_][A-Za-z_0-9]*\)", "");
         if (value.Contains("$(", StringComparison.Ordinal) || value.Contains("@(", StringComparison.Ordinal) || value.Contains("%(", StringComparison.Ordinal)) throw new InvalidDataException("unsupported discovery XML: property functions, item transforms and metadata expressions are not qualified");
     }
-    private static XDocument CheckXml(string path)
+    internal static XDocument CheckXml(string path)
     {
         using var reader = XmlReader.Create(path, new XmlReaderSettings { DtdProcessing = DtdProcessing.Prohibit, XmlResolver = null });
         var tree = XDocument.Load(reader); var generated = path.EndsWith(".nuget.g.props", StringComparison.Ordinal) || path.EndsWith(".nuget.g.targets", StringComparison.Ordinal);
