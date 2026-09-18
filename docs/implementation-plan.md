@@ -530,3 +530,7 @@ about 30% at 64 projects, while fresh-worker cache hits/edits remain slower than
 the whole-graph lane. Removing bootstrap/analysis/cache overhead is the next
 performance target; small-graph parity is not the gate. See the
 [measured tradeoffs and evidence](bazel-direct-inputs.md#large-graph-measurement-and-decision).
+
+The [single-pass follow-up](bazel-single-pass.md) introduces a portable MSBuild-generated
+project layout and a cacheable whole-layout validation action. A declared layout
+lets fresh workers use one Bazel invocation; stale declarations fail before publication.

@@ -23,7 +23,7 @@ def _project(ctx):
     ctx.actions.run(
         executable = ctx.executable.dotnet,
         arguments = [ctx.file.preparation.path, "owned-bind-sources", "--request", bind.path],
-        inputs = depset(ctx.files.sources + ctx.files.runner_support + [discovery, bind, ctx.file.preparation], transitive = [ctx.attr.sdk[DefaultInfo].files]),
+        inputs = depset(ctx.attr.discovery[DiscoveryPlanInfo].validation + ctx.files.sources + ctx.files.runner_support + [discovery, bind, ctx.file.preparation], transitive = [ctx.attr.sdk[DefaultInfo].files]),
         outputs = [plan],
         env = {"PATH": "/usr/bin:/bin", "LANG": "en_US.UTF-8"},
         mnemonic = "MsbuildBindProject",

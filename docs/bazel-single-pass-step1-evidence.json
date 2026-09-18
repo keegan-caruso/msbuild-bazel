@@ -1,0 +1,1216 @@
+{
+  "qualification": {
+    "accepted": true,
+    "cases": [
+      {
+        "kind": "diamond",
+        "case": "producer",
+        "result": {
+          "accepted": true,
+          "phases": {
+            "stagePackages": 0.0175147,
+            "layout": 6.6486025,
+            "bazel": 6.5823474,
+            "leaseExit": 0.072426
+          },
+          "layoutSource": "bootstrap",
+          "bazelInvocations": 2,
+          "MsbuildDiscover": {
+            "executed": 1,
+            "remoteHits": 0
+          },
+          "MsbuildCompileProject": {
+            "executed": 4,
+            "remoteHits": 0
+          },
+          "MsbuildComposeRuntime": {
+            "executed": 1,
+            "remoteHits": 0
+          },
+          "MsbuildValidateLayout": {
+            "executed": 1,
+            "remoteHits": 0
+          },
+          "compiles": 4,
+          "wallSeconds": 14.363746667047963,
+          "publishedObjects": 143
+        }
+      },
+      {
+        "kind": "diamond",
+        "case": "fresh-hit",
+        "result": {
+          "accepted": true,
+          "phases": {
+            "stagePackages": 0.0153701,
+            "bazel": 3.4084661,
+            "leaseExit": 0.0541464
+          },
+          "layoutSource": "declared",
+          "bazelInvocations": 1,
+          "MsbuildDiscover": {
+            "executed": 0,
+            "remoteHits": 1
+          },
+          "MsbuildCompileProject": {
+            "executed": 0,
+            "remoteHits": 4
+          },
+          "MsbuildComposeRuntime": {
+            "executed": 0,
+            "remoteHits": 1
+          },
+          "MsbuildValidateLayout": {
+            "executed": 0,
+            "remoteHits": 1
+          },
+          "compiles": 0,
+          "wallSeconds": 3.8217302919947542,
+          "publishedObjects": 0
+        }
+      },
+      {
+        "kind": "diamond",
+        "case": "warm-0",
+        "result": {
+          "accepted": true,
+          "phases": {
+            "stagePackages": 0.020349,
+            "bazel": 0.6894213,
+            "leaseExit": 0.0631915
+          },
+          "layoutSource": "declared",
+          "bazelInvocations": 1,
+          "MsbuildDiscover": {
+            "executed": 0,
+            "remoteHits": 0
+          },
+          "MsbuildCompileProject": {
+            "executed": 0,
+            "remoteHits": 0
+          },
+          "MsbuildComposeRuntime": {
+            "executed": 0,
+            "remoteHits": 0
+          },
+          "MsbuildValidateLayout": {
+            "executed": 0,
+            "remoteHits": 0
+          },
+          "compiles": 0,
+          "wallSeconds": 0.9078874589758925,
+          "publishedObjects": 0
+        }
+      },
+      {
+        "kind": "diamond",
+        "case": "warm-1",
+        "result": {
+          "accepted": true,
+          "phases": {
+            "stagePackages": 0.0214485,
+            "bazel": 0.6053357,
+            "leaseExit": 0.0692412
+          },
+          "layoutSource": "declared",
+          "bazelInvocations": 1,
+          "MsbuildDiscover": {
+            "executed": 0,
+            "remoteHits": 0
+          },
+          "MsbuildCompileProject": {
+            "executed": 0,
+            "remoteHits": 0
+          },
+          "MsbuildComposeRuntime": {
+            "executed": 0,
+            "remoteHits": 0
+          },
+          "MsbuildValidateLayout": {
+            "executed": 0,
+            "remoteHits": 0
+          },
+          "compiles": 0,
+          "wallSeconds": 0.8373156249872409,
+          "publishedObjects": 0
+        }
+      },
+      {
+        "kind": "diamond",
+        "case": "warm-2",
+        "result": {
+          "accepted": true,
+          "phases": {
+            "stagePackages": 0.019676,
+            "bazel": 0.4897449,
+            "leaseExit": 0.0572095
+          },
+          "layoutSource": "declared",
+          "bazelInvocations": 1,
+          "MsbuildDiscover": {
+            "executed": 0,
+            "remoteHits": 0
+          },
+          "MsbuildCompileProject": {
+            "executed": 0,
+            "remoteHits": 0
+          },
+          "MsbuildComposeRuntime": {
+            "executed": 0,
+            "remoteHits": 0
+          },
+          "MsbuildValidateLayout": {
+            "executed": 0,
+            "remoteHits": 0
+          },
+          "compiles": 0,
+          "wallSeconds": 0.6960735419997945,
+          "publishedObjects": 0
+        }
+      },
+      {
+        "kind": "diamond",
+        "case": "body-edit",
+        "result": {
+          "accepted": true,
+          "phases": {
+            "stagePackages": 0.0155998,
+            "bazel": 5.6462565,
+            "leaseExit": 0.0719516
+          },
+          "layoutSource": "declared",
+          "bazelInvocations": 1,
+          "MsbuildDiscover": {
+            "executed": 0,
+            "remoteHits": 1
+          },
+          "MsbuildCompileProject": {
+            "executed": 1,
+            "remoteHits": 3
+          },
+          "MsbuildComposeRuntime": {
+            "executed": 1,
+            "remoteHits": 0
+          },
+          "MsbuildValidateLayout": {
+            "executed": 0,
+            "remoteHits": 1
+          },
+          "compiles": 1,
+          "wallSeconds": 6.086135999998078,
+          "publishedObjects": 0
+        }
+      },
+      {
+        "kind": "diamond",
+        "case": "api-edit",
+        "result": {
+          "accepted": true,
+          "phases": {
+            "stagePackages": 0.0156982,
+            "bazel": 7.920612,
+            "leaseExit": 0.051349
+          },
+          "layoutSource": "declared",
+          "bazelInvocations": 1,
+          "MsbuildDiscover": {
+            "executed": 0,
+            "remoteHits": 1
+          },
+          "MsbuildCompileProject": {
+            "executed": 4,
+            "remoteHits": 0
+          },
+          "MsbuildComposeRuntime": {
+            "executed": 1,
+            "remoteHits": 0
+          },
+          "MsbuildValidateLayout": {
+            "executed": 0,
+            "remoteHits": 1
+          },
+          "compiles": 4,
+          "wallSeconds": 8.321284166013356,
+          "publishedObjects": 0
+        }
+      },
+      {
+        "kind": "diamond",
+        "case": "undeclared-read",
+        "result": {
+          "accepted": false,
+          "phases": {
+            "stagePackages": 0.0158208,
+            "bazel": 3.8121694
+          },
+          "layoutSource": "declared",
+          "bazelInvocations": 1,
+          "MsbuildDiscover": {
+            "executed": 1,
+            "remoteHits": 0
+          },
+          "MsbuildCompileProject": {
+            "executed": 0,
+            "remoteHits": 0
+          },
+          "MsbuildComposeRuntime": {
+            "executed": 0,
+            "remoteHits": 0
+          },
+          "MsbuildValidateLayout": {
+            "executed": 0,
+            "remoteHits": 0
+          },
+          "wallSeconds": 3.9897432909929194,
+          "publishedObjects": 0
+        }
+      },
+      {
+        "kind": "diamond",
+        "case": "source-role",
+        "result": {
+          "accepted": false,
+          "phases": {
+            "stagePackages": 0.0153331,
+            "bazel": 6.1280263
+          },
+          "layoutSource": "declared",
+          "bazelInvocations": 1,
+          "MsbuildDiscover": {
+            "executed": 1,
+            "remoteHits": 0
+          },
+          "MsbuildCompileProject": {
+            "executed": 0,
+            "remoteHits": 0
+          },
+          "MsbuildComposeRuntime": {
+            "executed": 0,
+            "remoteHits": 0
+          },
+          "MsbuildValidateLayout": {
+            "executed": 0,
+            "remoteHits": 0
+          },
+          "wallSeconds": 6.286561041022651,
+          "publishedObjects": 0
+        }
+      },
+      {
+        "kind": "diamond",
+        "case": "added-source",
+        "result": {
+          "accepted": true,
+          "phases": {
+            "stagePackages": 0.015729,
+            "layout": 6.067548,
+            "bazel": 6.5940267,
+            "leaseExit": 0.069729
+          },
+          "layoutSource": "bootstrap",
+          "bazelInvocations": 2,
+          "MsbuildDiscover": {
+            "executed": 1,
+            "remoteHits": 0
+          },
+          "MsbuildCompileProject": {
+            "executed": 4,
+            "remoteHits": 0
+          },
+          "MsbuildComposeRuntime": {
+            "executed": 1,
+            "remoteHits": 0
+          },
+          "MsbuildValidateLayout": {
+            "executed": 1,
+            "remoteHits": 0
+          },
+          "compiles": 4,
+          "wallSeconds": 13.009246833040379,
+          "publishedObjects": 0
+        }
+      },
+      {
+        "kind": "diamond",
+        "case": "live-mutation",
+        "result": {
+          "accepted": false,
+          "phases": {
+            "stagePackages": 0.0163376,
+            "bazel": 5.8175344,
+            "leaseExit": 0.0330755
+          },
+          "layoutSource": "declared",
+          "bazelInvocations": 1,
+          "MsbuildDiscover": {
+            "executed": 0,
+            "remoteHits": 1
+          },
+          "MsbuildCompileProject": {
+            "executed": 1,
+            "remoteHits": 3
+          },
+          "MsbuildComposeRuntime": {
+            "executed": 1,
+            "remoteHits": 0
+          },
+          "MsbuildValidateLayout": {
+            "executed": 0,
+            "remoteHits": 1
+          },
+          "compiles": 1,
+          "wallSeconds": 6.201945332984906,
+          "publishedObjects": 0
+        }
+      },
+      {
+        "kind": "serilog",
+        "case": "producer",
+        "result": {
+          "accepted": true,
+          "phases": {
+            "stagePackages": 0.062307,
+            "layout": 8.5375915,
+            "bazel": 7.8400699,
+            "leaseExit": 0.0792269
+          },
+          "layoutSource": "bootstrap",
+          "bazelInvocations": 2,
+          "MsbuildDiscover": {
+            "executed": 1,
+            "remoteHits": 0
+          },
+          "MsbuildCompileProject": {
+            "executed": 2,
+            "remoteHits": 0
+          },
+          "MsbuildComposeRuntime": {
+            "executed": 1,
+            "remoteHits": 0
+          },
+          "MsbuildValidateLayout": {
+            "executed": 1,
+            "remoteHits": 0
+          },
+          "compiles": 2,
+          "wallSeconds": 18.042707209009677,
+          "publishedObjects": 220
+        }
+      },
+      {
+        "kind": "serilog",
+        "case": "fresh-hit",
+        "result": {
+          "accepted": true,
+          "phases": {
+            "stagePackages": 0.0686186,
+            "bazel": 5.4215719,
+            "leaseExit": 0.0901131
+          },
+          "layoutSource": "declared",
+          "bazelInvocations": 1,
+          "MsbuildDiscover": {
+            "executed": 0,
+            "remoteHits": 1
+          },
+          "MsbuildCompileProject": {
+            "executed": 0,
+            "remoteHits": 2
+          },
+          "MsbuildComposeRuntime": {
+            "executed": 0,
+            "remoteHits": 1
+          },
+          "MsbuildValidateLayout": {
+            "executed": 0,
+            "remoteHits": 1
+          },
+          "compiles": 0,
+          "wallSeconds": 5.968636584002525,
+          "publishedObjects": 0
+        }
+      },
+      {
+        "kind": "serilog",
+        "case": "warm-0",
+        "result": {
+          "accepted": true,
+          "phases": {
+            "stagePackages": 0.0795447,
+            "bazel": 1.5475185,
+            "leaseExit": 0.089857
+          },
+          "layoutSource": "declared",
+          "bazelInvocations": 1,
+          "MsbuildDiscover": {
+            "executed": 0,
+            "remoteHits": 0
+          },
+          "MsbuildCompileProject": {
+            "executed": 0,
+            "remoteHits": 0
+          },
+          "MsbuildComposeRuntime": {
+            "executed": 0,
+            "remoteHits": 0
+          },
+          "MsbuildValidateLayout": {
+            "executed": 0,
+            "remoteHits": 0
+          },
+          "compiles": 0,
+          "wallSeconds": 1.9355261249584146,
+          "publishedObjects": 0
+        }
+      },
+      {
+        "kind": "serilog",
+        "case": "warm-1",
+        "result": {
+          "accepted": true,
+          "phases": {
+            "stagePackages": 0.0825529,
+            "bazel": 1.4196107,
+            "leaseExit": 0.0769294
+          },
+          "layoutSource": "declared",
+          "bazelInvocations": 1,
+          "MsbuildDiscover": {
+            "executed": 0,
+            "remoteHits": 0
+          },
+          "MsbuildCompileProject": {
+            "executed": 0,
+            "remoteHits": 0
+          },
+          "MsbuildComposeRuntime": {
+            "executed": 0,
+            "remoteHits": 0
+          },
+          "MsbuildValidateLayout": {
+            "executed": 0,
+            "remoteHits": 0
+          },
+          "compiles": 0,
+          "wallSeconds": 1.7764864590135403,
+          "publishedObjects": 0
+        }
+      },
+      {
+        "kind": "serilog",
+        "case": "warm-2",
+        "result": {
+          "accepted": true,
+          "phases": {
+            "stagePackages": 0.0937697,
+            "bazel": 1.2925039,
+            "leaseExit": 0.0892728
+          },
+          "layoutSource": "declared",
+          "bazelInvocations": 1,
+          "MsbuildDiscover": {
+            "executed": 0,
+            "remoteHits": 0
+          },
+          "MsbuildCompileProject": {
+            "executed": 0,
+            "remoteHits": 0
+          },
+          "MsbuildComposeRuntime": {
+            "executed": 0,
+            "remoteHits": 0
+          },
+          "MsbuildValidateLayout": {
+            "executed": 0,
+            "remoteHits": 0
+          },
+          "compiles": 0,
+          "wallSeconds": 1.6941625000326894,
+          "publishedObjects": 0
+        }
+      },
+      {
+        "kind": "serilog",
+        "case": "body-edit",
+        "result": {
+          "accepted": true,
+          "phases": {
+            "stagePackages": 0.0687758,
+            "bazel": 8.312984,
+            "leaseExit": 0.0888357
+          },
+          "layoutSource": "declared",
+          "bazelInvocations": 1,
+          "MsbuildDiscover": {
+            "executed": 0,
+            "remoteHits": 1
+          },
+          "MsbuildCompileProject": {
+            "executed": 1,
+            "remoteHits": 1
+          },
+          "MsbuildComposeRuntime": {
+            "executed": 1,
+            "remoteHits": 0
+          },
+          "MsbuildValidateLayout": {
+            "executed": 0,
+            "remoteHits": 1
+          },
+          "compiles": 1,
+          "wallSeconds": 8.849320207955316,
+          "publishedObjects": 0
+        }
+      },
+      {
+        "kind": "serilog",
+        "case": "api-edit",
+        "result": {
+          "accepted": true,
+          "phases": {
+            "stagePackages": 0.0642399,
+            "bazel": 14.8856581,
+            "leaseExit": 0.091863
+          },
+          "layoutSource": "declared",
+          "bazelInvocations": 1,
+          "MsbuildDiscover": {
+            "executed": 1,
+            "remoteHits": 0
+          },
+          "MsbuildCompileProject": {
+            "executed": 2,
+            "remoteHits": 0
+          },
+          "MsbuildComposeRuntime": {
+            "executed": 1,
+            "remoteHits": 0
+          },
+          "MsbuildValidateLayout": {
+            "executed": 0,
+            "remoteHits": 1
+          },
+          "compiles": 2,
+          "wallSeconds": 15.419504249992315,
+          "publishedObjects": 0
+        }
+      },
+      {
+        "kind": "serilog",
+        "case": "failed-test",
+        "result": {
+          "accepted": false,
+          "phases": {
+            "stagePackages": 0.0666197,
+            "bazel": 14.8741052
+          },
+          "layoutSource": "declared",
+          "bazelInvocations": 1,
+          "MsbuildDiscover": {
+            "executed": 1,
+            "remoteHits": 0
+          },
+          "MsbuildCompileProject": {
+            "executed": 2,
+            "remoteHits": 0
+          },
+          "MsbuildComposeRuntime": {
+            "executed": 0,
+            "remoteHits": 1
+          },
+          "MsbuildValidateLayout": {
+            "executed": 0,
+            "remoteHits": 1
+          },
+          "wallSeconds": 15.306214792013634,
+          "publishedObjects": 0
+        }
+      },
+      {
+        "kind": "serilog",
+        "case": "live-mutation",
+        "result": {
+          "accepted": false,
+          "phases": {
+            "stagePackages": 0.0714839,
+            "bazel": 10.9143298,
+            "leaseExit": 0.0961899
+          },
+          "layoutSource": "declared",
+          "bazelInvocations": 1,
+          "MsbuildDiscover": {
+            "executed": 0,
+            "remoteHits": 1
+          },
+          "MsbuildCompileProject": {
+            "executed": 1,
+            "remoteHits": 1
+          },
+          "MsbuildComposeRuntime": {
+            "executed": 1,
+            "remoteHits": 0
+          },
+          "MsbuildValidateLayout": {
+            "executed": 0,
+            "remoteHits": 1
+          },
+          "compiles": 1,
+          "wallSeconds": 11.552856415975839,
+          "publishedObjects": 0
+        }
+      }
+    ],
+    "rawOracleCount": 7
+  },
+  "scale": {
+    "accepted": true,
+    "cases": [
+      {
+        "nodes": 64,
+        "mode": "projects",
+        "case": "producer",
+        "result": {
+          "accepted": true,
+          "phases": {
+            "stagePackages": 0.1650432,
+            "layout": 17.417531,
+            "bazel": 56.1121841,
+            "leaseExit": 0.1914038
+          },
+          "layoutSource": "bootstrap",
+          "bazelInvocations": 2,
+          "MsbuildDiscover": {
+            "executed": 1,
+            "remoteHits": 0
+          },
+          "MsbuildCompileProject": {
+            "executed": 64,
+            "remoteHits": 0
+          },
+          "MsbuildComposeRuntime": {
+            "executed": 1,
+            "remoteHits": 0
+          },
+          "MsbuildValidateLayout": {
+            "executed": 1,
+            "remoteHits": 0
+          },
+          "compiles": 64,
+          "wallSeconds": 86.00866270897677,
+          "actionExecutionSeconds": {
+            "MsbuildValidateLayout": {
+              "count": 1,
+              "total": 0.051,
+              "maximum": 0.051
+            },
+            "MsbuildBindProject": {
+              "count": 64,
+              "total": 11.238,
+              "maximum": 0.192
+            },
+            "MsbuildCompileProject": {
+              "count": 64,
+              "total": 68.893,
+              "maximum": 2.162
+            },
+            "MsbuildComposeRuntime": {
+              "count": 1,
+              "total": 0.289,
+              "maximum": 0.289
+            },
+            "MsbuildDiscover": {
+              "count": 1,
+              "total": 14.489,
+              "maximum": 14.489
+            }
+          },
+          "rawParity": true,
+          "publishedObjects": 1943
+        }
+      },
+      {
+        "nodes": 64,
+        "mode": "projects",
+        "case": "fresh-hit",
+        "result": {
+          "accepted": true,
+          "phases": {
+            "stagePackages": 0.1890587,
+            "bazel": 9.468324,
+            "leaseExit": 0.2022906
+          },
+          "layoutSource": "declared",
+          "bazelInvocations": 1,
+          "MsbuildDiscover": {
+            "executed": 0,
+            "remoteHits": 1
+          },
+          "MsbuildCompileProject": {
+            "executed": 0,
+            "remoteHits": 64
+          },
+          "MsbuildComposeRuntime": {
+            "executed": 0,
+            "remoteHits": 1
+          },
+          "MsbuildValidateLayout": {
+            "executed": 0,
+            "remoteHits": 1
+          },
+          "compiles": 0,
+          "wallSeconds": 11.476353999983985,
+          "actionExecutionSeconds": {},
+          "rawParity": true,
+          "publishedObjects": 0
+        }
+      },
+      {
+        "nodes": 64,
+        "mode": "projects",
+        "case": "warm-0",
+        "result": {
+          "accepted": true,
+          "phases": {
+            "stagePackages": 0.1925785,
+            "bazel": 1.0830574,
+            "leaseExit": 0.0943748
+          },
+          "layoutSource": "declared",
+          "bazelInvocations": 1,
+          "MsbuildDiscover": {
+            "executed": 0,
+            "remoteHits": 0
+          },
+          "MsbuildCompileProject": {
+            "executed": 0,
+            "remoteHits": 0
+          },
+          "MsbuildComposeRuntime": {
+            "executed": 0,
+            "remoteHits": 0
+          },
+          "MsbuildValidateLayout": {
+            "executed": 0,
+            "remoteHits": 0
+          },
+          "compiles": 0,
+          "wallSeconds": 1.7294753750320524,
+          "actionExecutionSeconds": {},
+          "rawParity": true,
+          "publishedObjects": 0
+        }
+      },
+      {
+        "nodes": 64,
+        "mode": "projects",
+        "case": "warm-1",
+        "result": {
+          "accepted": true,
+          "phases": {
+            "stagePackages": 0.1900752,
+            "bazel": 0.948387,
+            "leaseExit": 0.0998897
+          },
+          "layoutSource": "declared",
+          "bazelInvocations": 1,
+          "MsbuildDiscover": {
+            "executed": 0,
+            "remoteHits": 0
+          },
+          "MsbuildCompileProject": {
+            "executed": 0,
+            "remoteHits": 0
+          },
+          "MsbuildComposeRuntime": {
+            "executed": 0,
+            "remoteHits": 0
+          },
+          "MsbuildValidateLayout": {
+            "executed": 0,
+            "remoteHits": 0
+          },
+          "compiles": 0,
+          "wallSeconds": 1.601993250020314,
+          "actionExecutionSeconds": {},
+          "rawParity": true,
+          "publishedObjects": 0
+        }
+      },
+      {
+        "nodes": 64,
+        "mode": "projects",
+        "case": "warm-2",
+        "result": {
+          "accepted": true,
+          "phases": {
+            "stagePackages": 0.1920704,
+            "bazel": 0.8507748,
+            "leaseExit": 0.090389
+          },
+          "layoutSource": "declared",
+          "bazelInvocations": 1,
+          "MsbuildDiscover": {
+            "executed": 0,
+            "remoteHits": 0
+          },
+          "MsbuildCompileProject": {
+            "executed": 0,
+            "remoteHits": 0
+          },
+          "MsbuildComposeRuntime": {
+            "executed": 0,
+            "remoteHits": 0
+          },
+          "MsbuildValidateLayout": {
+            "executed": 0,
+            "remoteHits": 0
+          },
+          "compiles": 0,
+          "wallSeconds": 1.4845133330090903,
+          "actionExecutionSeconds": {},
+          "rawParity": true,
+          "publishedObjects": 0
+        }
+      },
+      {
+        "nodes": 64,
+        "mode": "projects",
+        "case": "warm-shared-edit",
+        "result": {
+          "accepted": true,
+          "phases": {
+            "stagePackages": 0.1939559,
+            "bazel": 4.0769307,
+            "leaseExit": 0.0982958
+          },
+          "layoutSource": "declared",
+          "bazelInvocations": 1,
+          "MsbuildDiscover": {
+            "executed": 0,
+            "remoteHits": 0
+          },
+          "MsbuildCompileProject": {
+            "executed": 1,
+            "remoteHits": 0
+          },
+          "MsbuildComposeRuntime": {
+            "executed": 1,
+            "remoteHits": 0
+          },
+          "MsbuildValidateLayout": {
+            "executed": 0,
+            "remoteHits": 0
+          },
+          "compiles": 1,
+          "wallSeconds": 4.811995583004318,
+          "actionExecutionSeconds": {
+            "MsbuildBindProject": {
+              "count": 1,
+              "total": 0.163,
+              "maximum": 0.163
+            },
+            "MsbuildCompileProject": {
+              "count": 1,
+              "total": 0.85,
+              "maximum": 0.85
+            },
+            "MsbuildComposeRuntime": {
+              "count": 1,
+              "total": 0.274,
+              "maximum": 0.274
+            }
+          },
+          "rawParity": true,
+          "publishedObjects": 0
+        }
+      },
+      {
+        "nodes": 64,
+        "mode": "projects",
+        "case": "warm-restored",
+        "result": {
+          "accepted": true,
+          "phases": {
+            "stagePackages": 0.2009558,
+            "bazel": 1.0329879,
+            "leaseExit": 0.0938156
+          },
+          "layoutSource": "declared",
+          "bazelInvocations": 1,
+          "MsbuildDiscover": {
+            "executed": 0,
+            "remoteHits": 0
+          },
+          "MsbuildCompileProject": {
+            "executed": 0,
+            "remoteHits": 1
+          },
+          "MsbuildComposeRuntime": {
+            "executed": 0,
+            "remoteHits": 1
+          },
+          "MsbuildValidateLayout": {
+            "executed": 0,
+            "remoteHits": 0
+          },
+          "compiles": 0,
+          "wallSeconds": 1.7493169999797828,
+          "actionExecutionSeconds": {},
+          "rawParity": true,
+          "publishedObjects": 0
+        }
+      },
+      {
+        "nodes": 64,
+        "mode": "projects",
+        "case": "warm-leaf-edit",
+        "result": {
+          "accepted": true,
+          "phases": {
+            "stagePackages": 0.196446,
+            "bazel": 2.64305,
+            "leaseExit": 0.1139961
+          },
+          "layoutSource": "declared",
+          "bazelInvocations": 1,
+          "MsbuildDiscover": {
+            "executed": 0,
+            "remoteHits": 0
+          },
+          "MsbuildCompileProject": {
+            "executed": 1,
+            "remoteHits": 0
+          },
+          "MsbuildComposeRuntime": {
+            "executed": 1,
+            "remoteHits": 0
+          },
+          "MsbuildValidateLayout": {
+            "executed": 0,
+            "remoteHits": 0
+          },
+          "compiles": 1,
+          "wallSeconds": 3.4066852499963716,
+          "actionExecutionSeconds": {
+            "MsbuildBindProject": {
+              "count": 1,
+              "total": 0.181,
+              "maximum": 0.181
+            },
+            "MsbuildCompileProject": {
+              "count": 1,
+              "total": 1.006,
+              "maximum": 1.006
+            },
+            "MsbuildComposeRuntime": {
+              "count": 1,
+              "total": 0.285,
+              "maximum": 0.285
+            }
+          },
+          "rawParity": true,
+          "publishedObjects": 0
+        }
+      },
+      {
+        "nodes": 64,
+        "mode": "projects",
+        "case": "shared-edit",
+        "result": {
+          "accepted": true,
+          "phases": {
+            "stagePackages": 0.1589211,
+            "bazel": 10.9695315,
+            "leaseExit": 0.2155978
+          },
+          "layoutSource": "declared",
+          "bazelInvocations": 1,
+          "MsbuildDiscover": {
+            "executed": 0,
+            "remoteHits": 1
+          },
+          "MsbuildCompileProject": {
+            "executed": 1,
+            "remoteHits": 63
+          },
+          "MsbuildComposeRuntime": {
+            "executed": 1,
+            "remoteHits": 0
+          },
+          "MsbuildValidateLayout": {
+            "executed": 0,
+            "remoteHits": 1
+          },
+          "compiles": 1,
+          "wallSeconds": 12.910043041978497,
+          "actionExecutionSeconds": {
+            "MsbuildBindProject": {
+              "count": 1,
+              "total": 0.179,
+              "maximum": 0.179
+            },
+            "MsbuildCompileProject": {
+              "count": 1,
+              "total": 0.885,
+              "maximum": 0.885
+            },
+            "MsbuildComposeRuntime": {
+              "count": 1,
+              "total": 0.292,
+              "maximum": 0.292
+            }
+          },
+          "rawParity": true,
+          "publishedObjects": 0
+        }
+      },
+      {
+        "nodes": 64,
+        "mode": "projects",
+        "case": "leaf-edit",
+        "result": {
+          "accepted": true,
+          "phases": {
+            "stagePackages": 0.1679539,
+            "bazel": 11.2370352,
+            "leaseExit": 0.2032647
+          },
+          "layoutSource": "declared",
+          "bazelInvocations": 1,
+          "MsbuildDiscover": {
+            "executed": 0,
+            "remoteHits": 1
+          },
+          "MsbuildCompileProject": {
+            "executed": 1,
+            "remoteHits": 63
+          },
+          "MsbuildComposeRuntime": {
+            "executed": 1,
+            "remoteHits": 0
+          },
+          "MsbuildValidateLayout": {
+            "executed": 0,
+            "remoteHits": 1
+          },
+          "compiles": 1,
+          "wallSeconds": 13.20389362500282,
+          "actionExecutionSeconds": {
+            "MsbuildBindProject": {
+              "count": 1,
+              "total": 0.186,
+              "maximum": 0.186
+            },
+            "MsbuildCompileProject": {
+              "count": 1,
+              "total": 1.004,
+              "maximum": 1.004
+            },
+            "MsbuildComposeRuntime": {
+              "count": 1,
+              "total": 0.285,
+              "maximum": 0.285
+            }
+          },
+          "rawParity": true,
+          "publishedObjects": 0
+        }
+      }
+    ],
+    "rawOracleCount": 3
+  },
+  "staleLayoutGuard": {
+    "accepted": true,
+    "externalPuts": 0,
+    "workflow": {
+      "accepted": false,
+      "phases": {
+        "stagePackages": 0.0158181,
+        "bazel": 8.0176009
+      },
+      "sdkContentScansInController": 0,
+      "nuget": {
+        "staged": true,
+        "packages": 0,
+        "bytes": 0,
+        "copied": false,
+        "locked": {}
+      },
+      "worker": {
+        "policy": "darwin-arm64-worker-v1",
+        "scope": "independent-qualified-workers",
+        "controllerSdkClosure": "f769848f2fd953fe5d5e9551f19128d154c9fdcaeb87b597fed95265f3a91820",
+        "execution": {
+          "os": "macOS",
+          "osBuild": "26A428",
+          "kernel": "macOS 27.0.0",
+          "architecture": "Arm64",
+          "cpuModel": "Mac16,10",
+          "cpuBrand": "Apple M4",
+          "cpuCount": 10
+        },
+        "systemTools": {
+          "bazel": "fdb6497a0c01924bfbccb7a89472717a549751af112ceae42e7953a9f4dec9e7",
+          "/usr/bin/sandbox-exec": "58839ef01b4eef8aac0d2aa8f9d1c074ae45aafe3533965b030672450064acc8",
+          "/usr/bin/codesign": "d517c9be608ffd266ec106c685e880cda71abc94001450e36d2476016406dd1e",
+          "/usr/bin/security": "744518f4d582d3edf26660fc550dbde5a49c10dafa2cb096a0c435b0a7f1526b",
+          "/bin/sh": "84ca7f9b83021621e16059a1c7850df72a462d879e8239d566236ca6ddd00953",
+          "/usr/bin/env": "2b2a1145527f00e8369fda0d2ffc523b520201bb08dbaf4b0bded837f7652ce0",
+          "/usr/bin/sw_vers": "b822969762f22f30bfdd9139e5188949ddbc75b5f0c8e58788d7bb88b3c11e25",
+          "/usr/sbin/sysctl": "6622f616b0c573eeede54165af8642df5d755d7e1423543de3ee648203725a3a"
+        },
+        "environmentPolicy": "evaluated-net10-release-env-v1",
+        "hostPolicy": "sealed-macos-system-libraries-reviewed-packages-v1",
+        "inputOwnership": "bazel-owned-preparation-v1"
+      },
+      "bazelInstallBase": "/private/tmp/oh-bazel-install/fdb6497a0c01924bfbccb7a89472717a549751af112ceae42e7953a9f4dec9e7",
+      "layoutSource": "declared",
+      "bazelInvocations": 1,
+      "cacheProtocol": "bazel-project-actions",
+      "exitCode": 1,
+      "MsbuildDiscover": {
+        "executed": 1,
+        "remoteHits": 0
+      },
+      "MsbuildBindSources": {
+        "executed": 0,
+        "remoteHits": 0
+      },
+      "MsbuildNativeCache": {
+        "executed": 0,
+        "remoteHits": 0
+      },
+      "MsbuildBindProject": {
+        "executed": 0,
+        "remoteHits": 0
+      },
+      "MsbuildCompileProject": {
+        "executed": 0,
+        "remoteHits": 0
+      },
+      "MsbuildComposeRuntime": {
+        "executed": 0,
+        "remoteHits": 0
+      },
+      "MsbuildValidateLayout": {
+        "executed": 1,
+        "remoteHits": 0
+      },
+      "actionCache": {
+        "uploadEnabled": true,
+        "lookupKeys": [
+          "8a2db64ec007705e0ebfd62cf16d69f7228c8cc5732cdab897c721978ea5f76f",
+          "c94230396938d98c2ba7e40ae39ae72ba23e552ec1e9bad6d3df267d9f7d9268"
+        ],
+        "hitKeys": [],
+        "stagedObjects": 13,
+        "stagedBytes": 349556,
+        "publishedObjects": 0,
+        "uploadedBytes": 0,
+        "downloadedBytes": 20,
+        "failures": 0
+      },
+      "seconds": 8.2343853
+    }
+  }
+}

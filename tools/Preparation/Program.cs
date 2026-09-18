@@ -37,6 +37,8 @@ internal static class Program
             var request = JsonNode.Parse(File.ReadAllText(args[2])) ?? throw new InvalidDataException("Empty request");
             switch (args[0])
             {
+                case "owned-validate-layout": ProjectLayout.Validate(request); break;
+                case "owned-export-layout": Json.Write(request.String("output"), ProjectLayout.Capture(Json.Read(request.String("graph")))); break;
                 case "owned-workflow": Console.WriteLine(Json.Text(BazelOwnedWorkflow.Run(request))); break;
                 case "owned-bind-sources": NativePlan.BindSources(request); break;
                 case "owned-prepare": BazelOwnedWorkflow.Prepare(request); break;

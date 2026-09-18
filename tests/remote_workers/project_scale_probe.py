@@ -33,7 +33,7 @@ def run(a):
                 expected[label]=hashes(source/runtime)
                 report['raw'].append(dict(nodes=count,case=label,seconds=time.perf_counter()-begin,managedHashes=expected[label]));save()
             for mode in a.modes:
-                root=out/str(count)/mode
+                root=out/str(count)/mode;layout=None
                 with CacheService(a.cache_binary,root/'server') as server:
                     def invoke(label,snapshot=None,index=None,reuse=None,keep=False):
                         base=root/(reuse or label)
@@ -41,7 +41,9 @@ def run(a):
                         else:local,_=fixture(base,count)
                         if index is not None:edit(local,graph,index)
                         request=dict(schemaVersion=1,repository=str(ROOT),sdkRoot=str(SDK),bazel=str(BAZEL),workspace=str(local),state=str(base/'state'),output=str(base/'result'),entry=entry,operation='build',**{'nuget-packages':str(a.packages),'bazel-remote-cache':server.url,'bazel-remote-upload':label=='producer','bazel-install-cache':str(a.bazel_install_cache),'bazel-repository-cache':str(a.bazel_repository_cache)})
-                        if mode=='projects':request['project-actions']=True
+                        if mode=='projects':
+                            request['project-actions']=True
+                            if layout:request['project-layout']=str(layout)
                         else:
                             request['remote-endpoint']=server.url+'/native'
                             if snapshot:request['remote-snapshot']=snapshot
@@ -71,12 +73,16 @@ def run(a):
                             assert value['compiles']==(count if label=='producer' else 1 if index is not None else 0)
                             if mode=='projects' and label=='fresh-hit':assert value['MsbuildCompileProject']['remoteHits']==count
                             if mode=='projects' and index is not None and not reuse:assert value['MsbuildCompileProject']['remoteHits']==count-1
+                            if layout:assert value['bazelInvocations']==1
                             value['rawParity']=True;save()
                             print(count,mode,label,round(value['wallSeconds'],3),value['compiles'],value.get('MsbuildCompileProject'),flush=True)
                             return value
                         finally:
                             if not keep:shutdown(base)
-                    producer=invoke('producer');snapshot=producer.get('publishedSnapshot');remove(root/'producer')
+                    producer=invoke('producer');snapshot=producer.get('publishedSnapshot')
+                    if mode=='projects' and a.declared_layout:
+                        layout=root/'project-layout.json';layout.write_bytes((root/'producer/result/project-layout.json').read_bytes())
+                    remove(root/'producer')
                     invoke('fresh-hit',snapshot,keep=True)
                     try:
                         for repetition in range(3):
@@ -98,5 +104,6 @@ if __name__=='__main__':
     p=argparse.ArgumentParser(description=__doc__)
     for name in ['output','cache-binary','packages','bazel-install-cache','bazel-repository-cache']:p.add_argument('--'+name,type=Path,required=True)
     p.add_argument('--nodes',nargs='+',type=int,default=[16,64]);p.add_argument('--shape',choices=['fan','chain'],default='fan')
+    p.add_argument('--declared-layout',action='store_true')
     p.add_argument('--modes',nargs='+',choices=['whole','projects'],default=['whole','projects'])
     run(p.parse_args())

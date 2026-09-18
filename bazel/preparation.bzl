@@ -2,7 +2,7 @@
 
 load(":input_paths.bzl", "input_path")
 
-DiscoveryPlanInfo = provider(doc = "Structural discovery tree shared by project bindings.", fields = ["directory"])
+DiscoveryPlanInfo = provider(doc = "Structural discovery tree shared by project bindings.", fields = ["directory", "validation"])
 
 def _prepare(ctx):
     plan = ctx.actions.declare_directory(ctx.label.name + ".plan")
@@ -33,6 +33,21 @@ def _prepare(ctx):
         # sandbox-exec; keep this trusted staging process local but cacheable.
         execution_requirements = {"no-sandbox": "1", "no-remote-exec": "1"},
     )
+    validation = []
+    if ctx.file.layout:
+        marker = ctx.actions.declare_file(ctx.label.name + ".layout-valid.json")
+        check = ctx.actions.declare_file(ctx.label.name + ".validate-layout.json")
+        ctx.actions.write(check, json.encode({"discovery": discovery.path, "layout": ctx.file.layout.path, "output": marker.path}))
+        ctx.actions.run(
+            executable = ctx.executable.dotnet,
+            arguments = [ctx.file.runner.path, "owned-validate-layout", "--request", check.path],
+            inputs = depset(ctx.files.controller + [ctx.file.runner, discovery, ctx.file.layout, check], transitive = [ctx.attr.sdk[DefaultInfo].files]),
+            outputs = [marker],
+            env = {"PATH": "/usr/bin:/bin", "LANG": "en_US.UTF-8"},
+            mnemonic = "MsbuildValidateLayout",
+            execution_requirements = {"block-network": "1", "no-remote-exec": "1"},
+        )
+        validation.append(marker)
     bind_request = ctx.actions.declare_file(ctx.label.name + ".bind.json")
     ctx.actions.write(bind_request, json.encode({
         "discovery": discovery.path,
@@ -42,15 +57,16 @@ def _prepare(ctx):
     ctx.actions.run(
         executable = ctx.executable.dotnet,
         arguments = [ctx.file.runner.path, "owned-bind-sources", "--request", bind_request.path],
-        inputs = depset(bodies + ctx.files.controller + [ctx.file.runner, discovery, bind_request], transitive = [ctx.attr.sdk[DefaultInfo].files]),
+        inputs = depset(validation + bodies + ctx.files.controller + [ctx.file.runner, discovery, bind_request], transitive = [ctx.attr.sdk[DefaultInfo].files]),
         outputs = [plan],
         env = {"PATH": "/usr/bin:/bin", "LANG": "en_US.UTF-8"},
         mnemonic = "MsbuildBindSources",
         execution_requirements = {"block-network": "1", "no-remote-exec": "1"},
     )
-    return [DefaultInfo(files = depset([plan])), DiscoveryPlanInfo(directory = discovery), OutputGroupInfo(discovery = depset([discovery]))]
+    return [DefaultInfo(files = depset([plan])), DiscoveryPlanInfo(directory = discovery, validation = validation), OutputGroupInfo(discovery = depset([discovery]))]
 
 msbuild_prepare = rule(implementation = _prepare, attrs = {
+    "layout": attr.label(allow_single_file = True),
     "project": attr.string(mandatory = True),
     "srcs": attr.label_list(allow_files = True),
     "controller": attr.label_list(allow_files = True),

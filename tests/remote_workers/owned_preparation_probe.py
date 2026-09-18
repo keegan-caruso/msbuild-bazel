@@ -19,7 +19,7 @@ def run(a):
     def save():(out/'report.json').write_text(json.dumps(report,indent=2)+'\n')
     try:
         for kind in a.workloads:
-            root=out/kind;root.mkdir()
+            root=out/kind;root.mkdir();layout=None
             with CacheService(a.cache_binary,root/'server') as server:
                 def invoke(label,key=None,edit=None,upload=True,probe=None,expect_failure=False,live=False,extra_source=False,source_role=False,reuse=None,keep_server=False):
                     base=root/(reuse or label);source=base/'source' if reuse else fixture(base,kind,a.packages,a.checkout)
@@ -30,6 +30,7 @@ def run(a):
                     if extra_source:(source/'N0000/Added.cs').write_text('public static class Added { public static int Value => 7; }\n')
                     request=dict(schemaVersion=1,repository=str(ROOT),sdkRoot=str(SDK),bazel=str(BAZEL),workspace=str(source),state=str(base/'state'),output=str(base/'result'),entry='N0003/N0003.csproj' if kind=='diamond' else 'test/Serilog.ApprovalTests/Serilog.ApprovalTests.csproj',operation='build' if kind=='diamond' else 'test',**{'nuget-packages':str(a.packages),'bazel-remote-cache':server.url,'bazel-remote-upload':upload,'remote-endpoint':server.url+'/native','bazel-install-cache':str(a.bazel_install_cache),'bazel-repository-cache':str(a.bazel_repository_cache)})
                     if a.project_actions:request['project-actions']=True;request.pop('remote-endpoint')
+                    if layout and not extra_source:request['project-layout']=str(layout)
                     if kind=='serilog':request['tests']=TESTS
                     if key:request['remote-snapshot']=key
                     if probe:
@@ -68,6 +69,8 @@ def run(a):
                         if worker:worker.join();assert applied.is_set()
                         if not keep_server:shutdown(base)
                 p=invoke('producer');key=p.get('publishedSnapshot');assert p['compiles']==(4 if kind=='diamond' else 2)
+                if a.project_actions and a.declared_layout:
+                    layout=root/'project-layout.json';layout.write_bytes((root/'producer/result/project-layout.json').read_bytes())
                 remove(root/'producer')
                 assert 'cachePrime' not in p if a.project_actions else p['cachePrime']['accepted'] and p['cachePrime']['compiles']==0
                 hit=invoke('fresh-hit',key,upload=False,keep_server=True);assert hit['compiles']==0 and hit['MsbuildDiscover']['remoteHits']==1
@@ -127,5 +130,6 @@ if __name__=='__main__':
     p=argparse.ArgumentParser(description=__doc__)
     for n in ['output','cache-binary','packages','checkout','bazel-install-cache','bazel-repository-cache']:p.add_argument('--'+n,type=Path,required=True)
     p.add_argument('--workloads',nargs='+',default=['diamond','serilog'])
+    p.add_argument('--declared-layout',action='store_true')
     p.add_argument('--project-actions',action='store_true')
     run(p.parse_args())
