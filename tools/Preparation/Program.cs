@@ -8,6 +8,24 @@ internal static class Program
     {
         try
         {
+            if (args.Length == 1 && args[0] == "workflow-session")
+            {
+                var store = new ProtectedStore();
+                var controllerDirectory = Host.Real(AppContext.BaseDirectory); var controllerIdentity = FileTree.Snapshot(controllerDirectory);
+                string? line;
+                while ((line = Console.ReadLine()) is not null)
+                {
+                    try
+                    {
+                        FileTree.Verify(controllerDirectory, controllerIdentity);
+                        var sessionRequest = JsonNode.Parse(line) ?? throw new InvalidDataException("Empty request");
+                        var report = NativeWorkflow.Run(sessionRequest, store);
+                        Console.WriteLine(report.ToJsonString());
+                    }
+                    catch (Exception error) { Console.WriteLine(new JsonObject { ["accepted"] = false, ["error"] = error.Message }.ToJsonString()); }
+                }
+                return 0;
+            }
             if (args.Length > 0 && args[0] == "tooling") { Tooling.Run(args[1..]); return 0; }
             if (args.Length > 0 && args[0] == "workflow" && !(args.Length == 3 && args[1] == "--request"))
             {

@@ -158,8 +158,9 @@ State and cache identities deliberately change. Use a new local state directory:
 `dotnet-native-discovery-v1`, and explicit remote roots use
 `dotnet-native-snapshot-v1`. Python-format remote roots cause a miss and fresh
 preparation. This migration does not promise cache compatibility across controllers.
-`--trust-system-nix-store` is accepted for CLI compatibility but the .NET controller
-still hashes and rechecks SDK content; it has no retained Python-process trust cache.
+At this migration checkpoint, `--trust-system-nix-store` was accepted for CLI
+compatibility without retained trust. [Protected toolchain sessions](protected-toolchain-session.md)
+subsequently restore opt-in process-local reuse in .NET.
 
 ### Current validation
 

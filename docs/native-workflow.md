@@ -83,8 +83,11 @@ The .NET formats are `dotnet-native-workflow-v1` for owned state,
 `dotnet-native-discovery-v1` for discovery proofs, and `dotnet-native-snapshot-v1`
 for remote snapshots. Start with a new state directory when migrating from the
 Python controller. Old Python remote snapshots miss and require fresh preparation;
-they are not silently adopted. `--trust-system-nix-store` is accepted for command
-compatibility but does not skip any verification in the .NET controller.
+they are not silently adopted. `--trust-system-nix-store` now opts into process-local
+reuse of verified, protected system Nix roots on macOS. A reusable JSON-lines
+controller is available through `scripts/build-session.sh`; requests must opt in
+individually. See [protected toolchain sessions](protected-toolchain-session.md)
+for the trust boundary, restart requirements and measurements.
 
 ## Qualification
 

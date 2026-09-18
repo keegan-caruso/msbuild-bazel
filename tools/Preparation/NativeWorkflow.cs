@@ -27,12 +27,14 @@ internal static class NativeWorkflow
     }
     private static string Tool(string root, string name) => Path.Combine(root, "tools", name, "bin/Release/net10.0", name + ".dll");
     private static void Disjoint(string a, string b) { if (Host.Within(a, b) || Host.Within(b, a)) throw new InvalidDataException("Paths must be disjoint: " + a + " and " + b); }
-    public static JsonNode Run(JsonNode request)
+    public static JsonNode Run(JsonNode request, ProtectedStore? sessionStore = null)
     {
         var allowed = new HashSet<string>(["schemaVersion", "repository", "sdkRoot", "bazel", "workspace", "state", "entry", "output", "operation", "reuse", "independent-workers", "incremental-sources", "trust-system-nix-store", "bootstrap", "force-tests", "tests", "nuget-packages", "remote-endpoint", "remote-snapshot", "bazel-install-cache", "bazel-repository-cache", "bazel-disable-repository-downloads", "bazel-remote-cache", "bazel-remote-upload", "integrity-profile"], StringComparer.Ordinal);
         if (request["schemaVersion"]?.GetValue<int>() != 1 || request.AsObject().Any(p => !allowed.Contains(p.Key))) throw new InvalidDataException("Invalid workflow request");
         var root = Host.Real(request["repository"]?.GetValue<string>() ?? Environment.GetEnvironmentVariable("RULES_MSBUILD_REPOSITORY") ?? throw new ArgumentException("repository required"));
+        if (sessionStore is not null && Host.Real(typeof(NativeWorkflow).Assembly.Location) != Host.Real(Tool(root, "Preparation"))) throw new InvalidDataException("Controller session repository differs from loaded controller");
         var sdk = Host.Real(request["sdkRoot"]?.GetValue<string>() ?? Environment.GetEnvironmentVariable("RULES_MSBUILD_DOTNET_ROOT") ?? Path.Combine(root, ".tools/dotnet"));
+        if (sessionStore is not null && Host.Real(Environment.ProcessPath ?? throw new InvalidDataException("Unknown controller host")) != Host.Real(Path.Combine(sdk, "dotnet"))) throw new InvalidDataException("Controller session SDK differs from loaded host; restart with the selected SDK");
         var bazel = request["bazel"]?.GetValue<string>() ?? Environment.GetEnvironmentVariable("RULES_MSBUILD_BAZEL") ?? Path.Combine(root, ".tools/bin/bazel");
         var source = Host.Real(request.String("workspace")); var state = Host.Real(request.String("state")); var output = Host.Real(request.String("output")); var entry = Host.Safe(request.String("entry"));
         Disjoint(source, root); Disjoint(source, state); Disjoint(state, root); foreach (var path in new[] { source, state, root }) Disjoint(output, path);
@@ -59,6 +61,8 @@ internal static class NativeWorkflow
         if (Json.Read(owner).String("policy") != Owner) throw new InvalidDataException("State policy mismatch");
         var timer = Stopwatch.StartNew(); var phases = new JsonObject(); var report = new JsonObject { ["accepted"] = false, ["operation"] = operation, ["phases"] = phases };
         T Measure<T>(string name, Func<T> action) { var watch = Stopwatch.StartNew(); try { return action(); } finally { phases[name] = watch.Elapsed.TotalSeconds; } }
+        var store = request["trust-system-nix-store"]?.GetValue<bool>() == true ? sessionStore ?? new ProtectedStore() : null;
+        var storeHits = store?.Hits ?? 0; var storeScans = store?.FullScans ?? 0;
         var profiling = request["integrity-profile"]?.GetValue<bool>() == true;
         var integrity = new JsonArray();
         if (profiling) report["integrityProfile"] = integrity;
@@ -69,7 +73,8 @@ internal static class NativeWorkflow
             try { return action(); }
             finally { integrity.Add(new JsonObject { ["phase"] = phase, ["category"] = category, ["path"] = path, ["seconds"] = clock.Elapsed.TotalSeconds }); }
         }
-        JsonObject Scan(string phase, string path, bool links)
+        JsonObject Scan(string phase, string path, bool links) => links && store is not null ? store.Snapshot(path, () => FullScan(phase, path, links)) : FullScan(phase, path, links);
+        JsonObject FullScan(string phase, string path, bool links)
         {
             if (!profiling) return FileTree.Snapshot(path, links);
             var detail = new IntegrityProfile(); var clock = Stopwatch.StartNew();
@@ -269,7 +274,7 @@ internal static class NativeWorkflow
             Measure("leaseExit", () =>
             {
                 Detail("leaseExit", "workerCapture", bazel, () => { WorkerIdentity.RequireCompatible(worker, WorkerIdentity.Capture(controllerClosure!, bazel, root, independent)); return true; });
-                var verification = new FileTree.Verification(profiling ? (path, links) => Scan("leaseExit", path, links) : null);
+                var verification = new FileTree.Verification(profiling || store is not null ? (path, links) => Scan("leaseExit", path, links) : null);
                 discovery?.Verify(verification); verification.Verify(workspace, sourceIdentity); verification.Verify(plan, payloadIdentity); foreach (var (path, identity) in watched) verification.Verify(path, identity, !Host.Within(path, root));
                 report["leaseVerification"] = new JsonObject { ["requests"] = verification.Requests, ["scans"] = verification.Scans };
                 foreach (var (path, hash) in watchedFiles) if (Json.Sha(File.ReadAllBytes(path)) != hash) throw new InvalidDataException("Controller policy/import changed during consumption"); return true;
@@ -297,7 +302,8 @@ internal static class NativeWorkflow
         {
             if (actionCache is not null) { actionCache.Dispose(); report["actionCache"] = actionCache.Statistics; }
             if (remote is not null) { report["remote"] ??= new JsonObject(); report["remote"]!["transport"] = remote.Statistics; }
-            report["seconds"] = timer.Elapsed.TotalSeconds; Json.Write(Path.Combine(output, "report.json"), report); FileTree.Remove(temporary);
+            report["seconds"] = timer.Elapsed.TotalSeconds; if (store is not null) report["protectedStore"] = new JsonObject { ["policy"] = "trusted-system-nix-session-v1", ["hits"] = store.Hits - storeHits, ["fullScans"] = store.FullScans - storeScans, ["roots"] = store.Roots };
+            Json.Write(Path.Combine(output, "report.json"), report); FileTree.Remove(temporary);
         }
         return report;
     }

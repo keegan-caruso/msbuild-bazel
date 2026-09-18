@@ -42,6 +42,41 @@ class Components(unittest.TestCase):
         self.assertEqual(value,dict(hidden=True,read=True,deniedWrite=True,deniedNetwork=True))
         self.assertEqual(hidden.read_text(),'must not be visible')
 
+    def test_controller_session_rejects_other_repository_and_sdk(self):
+        command=[str(self.dotnet),str(ROOT/'tools/Preparation/bin/Release/net10.0/Preparation.dll'),'workflow-session']
+        for repository,sdk,error in [(str(self.root),str(self.dotnet.parent),'repository differs'),(str(ROOT),str(self.root/'sdk'),'SDK differs')]:
+            result=subprocess.run(command,input=json.dumps(dict(schemaVersion=1,repository=repository,sdkRoot=sdk))+'\n',capture_output=True,text=True,timeout=30)
+            self.assertEqual(result.returncode,0,result.stderr)
+            self.assertIn(error,json.loads(result.stdout)['error'])
+
+    def test_controller_session_rejects_changed_loaded_files(self):
+        folder=self.root/'controller'
+        shutil.copytree(ROOT/'tools/Preparation/bin/Release/net10.0',folder)
+        guard=folder/'session-input';guard.write_text('before')
+        process=subprocess.Popen([str(self.dotnet),str(folder/'Preparation.dll'),'workflow-session'],stdin=subprocess.PIPE,stdout=subprocess.PIPE,stderr=subprocess.PIPE,text=True)
+        try:
+            process.stdin.write('{}\n');process.stdin.flush()
+            self.assertIn('Invalid workflow request',json.loads(process.stdout.readline())['error'])
+            info=guard.stat();guard.write_text('after!');os.utime(guard,ns=(info.st_atime_ns,info.st_mtime_ns))
+            process.stdin.write('{}\n');process.stdin.flush()
+            self.assertIn('Leased inputs changed',json.loads(process.stdout.readline())['error'])
+        finally:
+            process.stdin.close();process.wait(timeout=10);process.stdout.close();process.stderr.close()
+
+    def test_protected_store_mutable_fallback(self):
+        root=self.root/'ordinary';root.mkdir();(root/'file').write_text('content')
+        value=self.invoke('protected-store',dict(root=str(root),mutable=str(self.root/'mutable')))
+        self.assertFalse(value['eligible']);self.assertEqual(value['hits'],0);self.assertEqual(value['roots'],0)
+        self.assertEqual(value['restartHits'],0)
+
+    @unittest.skipUnless(sys.platform=='darwin', 'Protected system Nix store is macOS-only')
+    def test_protected_store_real_root_and_restart(self):
+        sdk=Path(os.environ['RULES_MSBUILD_DOTNET_ROOT']).resolve()
+        if not str(sdk).startswith('/nix/store/'):self.skipTest('Requires system Nix SDK')
+        value=self.invoke('protected-store',dict(root=str(sdk.parents[1]),mutable=str(self.root/'mutable')))
+        self.assertTrue(value['eligible']);self.assertEqual(value['hits'],2);self.assertEqual(value['roots'],1)
+        self.assertEqual(value['fullScans'],3);self.assertEqual(value['restartHits'],0)
+
     def test_action_cache_defers_and_orders_publication(self):
         import base64
         data=b'cache payload';blob=sha(data);action='a'*64

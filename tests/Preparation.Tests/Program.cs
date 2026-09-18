@@ -11,6 +11,24 @@ try
     var request = Json.Read(args[1]);
     switch (args[0])
     {
+        case "protected-store":
+            {
+                var root = request.String("root"); var mutable = request.String("mutable");
+                var store = new ProtectedStore();
+                var protectedFirst = store.Snapshot(root, () => FileTree.Snapshot(root, true));
+                var protectedSecond = store.Snapshot(root, () => FileTree.Snapshot(root, true));
+                if (!JsonNode.DeepEquals(protectedFirst, protectedSecond)) throw new InvalidDataException("Protected snapshot differs");
+                protectedSecond.Clear();
+                if (!JsonNode.DeepEquals(protectedFirst, store.Snapshot(root, () => FileTree.Snapshot(root, true)))) throw new InvalidDataException("Caller mutated cached manifest");
+                var file = Path.Combine(mutable, "input"); Directory.CreateDirectory(mutable); File.WriteAllText(file, "before");
+                var old = store.Snapshot(mutable, () => FileTree.Snapshot(mutable, true)); var time = File.GetLastWriteTimeUtc(file);
+                File.WriteAllText(file, "after!"); File.SetLastWriteTimeUtc(file, time);
+                var changed = store.Snapshot(mutable, () => FileTree.Snapshot(mutable, true));
+                if (JsonNode.DeepEquals(old, changed)) throw new InvalidDataException("Mutable tree reused");
+                var restarted = new ProtectedStore(); restarted.Snapshot(root, () => FileTree.Snapshot(root, true));
+                Console.WriteLine(new JsonObject { ["eligible"] = ProtectedStore.Eligible(root), ["hits"] = store.Hits, ["roots"] = store.Roots, ["fullScans"] = store.FullScans, ["restartHits"] = restarted.Hits }.ToJsonString());
+                break;
+            }
         case "linux-sandbox-control":
             {
                 var sdk = request.String("sdk"); var folder = request.String("folder"); var sandboxOutput = request.String("output");

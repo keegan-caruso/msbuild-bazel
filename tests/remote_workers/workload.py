@@ -5,6 +5,8 @@ import json
 import os
 from pathlib import Path
 import shutil
+import select
+from types import SimpleNamespace
 import subprocess
 import sys
 import tarfile
@@ -90,12 +92,13 @@ def shutdown(base):
         subprocess.run(command+['shutdown'],cwd=state/'g',capture_output=True,check=True)
 
 
-def native(base,source,kind,packages,endpoint,snapshot=None,failed=False,install_cache=None,repository_cache=None,disable_repository_downloads=False,action_cache=None,action_upload=False,lease_mutation=False,bazel_override=None,integrity_profile=False):
+def native(base,source,kind,packages,endpoint,snapshot=None,failed=False,install_cache=None,repository_cache=None,disable_repository_downloads=False,action_cache=None,action_upload=False,lease_mutation=False,bazel_override=None,integrity_profile=False,trust_store=False,session=None):
     entry='N0003/N0003.csproj' if kind=='diamond' else PROJECT
     request=dict(schemaVersion=1,repository=str(ROOT),sdkRoot=str(SDK),bazel=str(BAZEL),workspace=str(source),state=str(base/'state'),
         entry=entry,output=str(base/'result'),operation='build' if kind=='diamond' else 'test',reuse=True,
         **{'independent-workers':True,'nuget-packages':str(packages),'remote-endpoint':endpoint,'force-tests':True})
     if integrity_profile:request['integrity-profile']=True
+    if trust_store:request['trust-system-nix-store']=True
     if bazel_override:request['bazel']=str(bazel_override)
     if action_cache:request['bazel-remote-cache']=action_cache
     if action_upload:request['bazel-remote-upload']=True
@@ -115,7 +118,13 @@ def native(base,source,kind,packages,endpoint,snapshot=None,failed=False,install
                 path.write_bytes(path.read_bytes()+b'\n// live lease mutation\n');applied.set();return
     worker=threading.Thread(target=mutation,daemon=True) if lease_mutation else None
     if worker:worker.start()
-    try:process=subprocess.run(command,cwd=ROOT,capture_output=True,text=True,timeout=900)
+    try:
+        if session is None:process=subprocess.run(command,cwd=ROOT,capture_output=True,text=True,timeout=900)
+        else:
+            session.stdin.write(json.dumps(request)+'\n');session.stdin.flush()
+            if not select.select([session.stdout],[],[],900)[0]:raise TimeoutError('Controller session timed out')
+            response=session.stdout.readline();parsed=json.loads(response)
+            process=SimpleNamespace(returncode=0 if parsed.get('accepted') else 1,stdout=response,stderr='')
     finally:
         stopped.set()
         if worker:worker.join()
