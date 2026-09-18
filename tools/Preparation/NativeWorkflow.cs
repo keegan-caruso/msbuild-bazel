@@ -14,7 +14,7 @@ internal static class NativeWorkflow
     public static JsonNode Arguments(string[] args)
     {
         var result = new JsonObject { ["schemaVersion"] = 1, ["operation"] = "build" };
-        var flags = new HashSet<string>(["reuse", "independent-workers", "incremental-sources", "trust-system-nix-store", "bootstrap", "force-tests", "bazel-disable-repository-downloads", "bazel-remote-upload"], StringComparer.Ordinal);
+        var flags = new HashSet<string>(["reuse", "independent-workers", "incremental-sources", "trust-system-nix-store", "bootstrap", "force-tests", "bazel-disable-repository-downloads", "bazel-remote-upload", "integrity-profile"], StringComparer.Ordinal);
         for (var i = 0; i < args.Length; i++)
         {
             if (!args[i].StartsWith("--", StringComparison.Ordinal)) throw new ArgumentException("Expected named argument");
@@ -29,7 +29,7 @@ internal static class NativeWorkflow
     private static void Disjoint(string a, string b) { if (Host.Within(a, b) || Host.Within(b, a)) throw new InvalidDataException("Paths must be disjoint: " + a + " and " + b); }
     public static JsonNode Run(JsonNode request)
     {
-        var allowed = new HashSet<string>(["schemaVersion", "repository", "sdkRoot", "bazel", "workspace", "state", "entry", "output", "operation", "reuse", "independent-workers", "incremental-sources", "trust-system-nix-store", "bootstrap", "force-tests", "tests", "nuget-packages", "remote-endpoint", "remote-snapshot", "bazel-install-cache", "bazel-repository-cache", "bazel-disable-repository-downloads", "bazel-remote-cache", "bazel-remote-upload"], StringComparer.Ordinal);
+        var allowed = new HashSet<string>(["schemaVersion", "repository", "sdkRoot", "bazel", "workspace", "state", "entry", "output", "operation", "reuse", "independent-workers", "incremental-sources", "trust-system-nix-store", "bootstrap", "force-tests", "tests", "nuget-packages", "remote-endpoint", "remote-snapshot", "bazel-install-cache", "bazel-repository-cache", "bazel-disable-repository-downloads", "bazel-remote-cache", "bazel-remote-upload", "integrity-profile"], StringComparer.Ordinal);
         if (request["schemaVersion"]?.GetValue<int>() != 1 || request.AsObject().Any(p => !allowed.Contains(p.Key))) throw new InvalidDataException("Invalid workflow request");
         var root = Host.Real(request["repository"]?.GetValue<string>() ?? Environment.GetEnvironmentVariable("RULES_MSBUILD_REPOSITORY") ?? throw new ArgumentException("repository required"));
         var sdk = Host.Real(request["sdkRoot"]?.GetValue<string>() ?? Environment.GetEnvironmentVariable("RULES_MSBUILD_DOTNET_ROOT") ?? Path.Combine(root, ".tools/dotnet"));
@@ -59,6 +59,24 @@ internal static class NativeWorkflow
         if (Json.Read(owner).String("policy") != Owner) throw new InvalidDataException("State policy mismatch");
         var timer = Stopwatch.StartNew(); var phases = new JsonObject(); var report = new JsonObject { ["accepted"] = false, ["operation"] = operation, ["phases"] = phases };
         T Measure<T>(string name, Func<T> action) { var watch = Stopwatch.StartNew(); try { return action(); } finally { phases[name] = watch.Elapsed.TotalSeconds; } }
+        var profiling = request["integrity-profile"]?.GetValue<bool>() == true;
+        var integrity = new JsonArray();
+        if (profiling) report["integrityProfile"] = integrity;
+        T Detail<T>(string phase, string category, string path, Func<T> action)
+        {
+            if (!profiling) return action();
+            var clock = Stopwatch.StartNew();
+            try { return action(); }
+            finally { integrity.Add(new JsonObject { ["phase"] = phase, ["category"] = category, ["path"] = path, ["seconds"] = clock.Elapsed.TotalSeconds }); }
+        }
+        JsonObject Scan(string phase, string path, bool links)
+        {
+            if (!profiling) return FileTree.Snapshot(path, links);
+            var detail = new IntegrityProfile(); var clock = Stopwatch.StartNew();
+            var snapshot = FileTree.Snapshot(path, links, detail);
+            var item = detail.Report(); item["phase"] = phase; item["category"] = "scan"; item["path"] = path; item["seconds"] = clock.Elapsed.TotalSeconds;
+            integrity.Add(item); return snapshot;
+        }
         var temporary = Path.Combine(state, "pending"); FileTree.Remove(temporary); Directory.CreateDirectory(temporary);
         using var remote = request["remote-endpoint"] is { } endpoint ? new RemoteCache(endpoint.GetValue<string>()) : null;
         if (request["remote-snapshot"] is { } selected) { RemoteCache.Digest(selected.GetValue<string>()); if (remote is null) throw new InvalidDataException("Snapshot requires endpoint"); }
@@ -77,19 +95,19 @@ internal static class NativeWorkflow
             string? controllerClosure = null;
             var toolchain = Measure("identity", () =>
             {
-                foreach (var name in Tools.Append("Preparation")) { var folder = Path.Combine(root, "tools", name, "bin/Release/net10.0"); watched[folder] = FileTree.Snapshot(folder); }
-                watched[Path.Combine(root, "bazel")] = FileTree.Snapshot(Path.Combine(root, "bazel"));
+                foreach (var name in Tools.Append("Preparation")) { var folder = Path.Combine(root, "tools", name, "bin/Release/net10.0"); watched[folder] = Scan("identity", folder, false); }
+                watched[Path.Combine(root, "bazel")] = Scan("identity", Path.Combine(root, "bazel"), false);
                 var runtime = new JsonObject();
                 var runtimeRoots = sdk.StartsWith("/nix/store/", StringComparison.Ordinal)
-                    ? Host.Run("/nix/var/nix/profiles/default/bin/nix-store", ["-qR", Path.GetDirectoryName(Path.GetDirectoryName(sdk))!], root).Split('\n', StringSplitOptions.RemoveEmptyEntries)
+                    ? Detail("identity", "closureQuery", sdk, () => Host.Run("/nix/var/nix/profiles/default/bin/nix-store", ["-qR", Path.GetDirectoryName(Path.GetDirectoryName(sdk))!], root)).Split('\n', StringSplitOptions.RemoveEmptyEntries)
                     : OperatingSystem.IsLinux() ? new[] { sdk }.Concat(LinuxPlatform.Libraries).ToArray() : new[] { sdk };
-                foreach (var path in runtimeRoots.Order(StringComparer.Ordinal)) { watched[path] = FileTree.Snapshot(path, true); runtime[path] = Json.Digest(watched[path]); }
+                foreach (var path in runtimeRoots.Order(StringComparer.Ordinal)) { watched[path] = Scan("identity", path, true); runtime[path] = Detail("identity", "manifestDigest", path, () => Json.Digest(watched[path])); }
                 var identity = new JsonObject { ["policy"] = Owner, ["platform"] = RuntimeInformation.OSDescription, ["machine"] = RuntimeInformation.OSArchitecture.ToString(), ["sdk"] = Json.Digest(runtime) };
                 foreach (var (path, value) in watched.Where(p => Host.Within(p.Key, root))) identity[Path.GetRelativePath(root, path)] = Json.Digest(value);
                 foreach (var path in Imports) { watchedFiles[path] = Json.Sha(File.ReadAllBytes(path)); identity[path] = watchedFiles[path]; }
                 foreach (var path in new[] { "pilot-package-policy.json", "discovery-test-packages.json", "discovery-sdk-imports.json" }) { var full = Path.Combine(root, "tools", path); watchedFiles[full] = Json.Sha(File.ReadAllBytes(full)); identity[path] = watchedFiles[full]; }
                 controllerClosure = Json.Digest(identity);
-                worker = WorkerIdentity.Capture(controllerClosure, bazel, root, independent);
+                worker = Detail("identity", "workerCapture", bazel, () => WorkerIdentity.Capture(controllerClosure, bazel, root, independent));
                 report["worker"] = worker.DeepClone();
                 return WorkerIdentity.Digest(worker);
             });
@@ -250,8 +268,8 @@ internal static class NativeWorkflow
                 });
             Measure("leaseExit", () =>
             {
-                WorkerIdentity.RequireCompatible(worker, WorkerIdentity.Capture(controllerClosure!, bazel, root, independent));
-                var verification = new FileTree.Verification();
+                Detail("leaseExit", "workerCapture", bazel, () => { WorkerIdentity.RequireCompatible(worker, WorkerIdentity.Capture(controllerClosure!, bazel, root, independent)); return true; });
+                var verification = new FileTree.Verification(profiling ? (path, links) => Scan("leaseExit", path, links) : null);
                 discovery?.Verify(verification); verification.Verify(workspace, sourceIdentity); verification.Verify(plan, payloadIdentity); foreach (var (path, identity) in watched) verification.Verify(path, identity, !Host.Within(path, root));
                 report["leaseVerification"] = new JsonObject { ["requests"] = verification.Requests, ["scans"] = verification.Scans };
                 foreach (var (path, hash) in watchedFiles) if (Json.Sha(File.ReadAllBytes(path)) != hash) throw new InvalidDataException("Controller policy/import changed during consumption"); return true;

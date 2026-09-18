@@ -126,7 +126,7 @@ internal static class FileTree
     }
     // One instance belongs to one final validation pass. Every caller's original
     // expectation is checked, even when callers share the same physical input.
-    internal sealed class Verification
+    internal sealed class Verification(Func<string, bool, JsonObject>? scan = null)
     {
         private readonly Dictionary<(string Root, bool FollowLinks), JsonObject> snapshots = new();
         public int Scans => snapshots.Count;
@@ -135,7 +135,7 @@ internal static class FileTree
         {
             Requests++;
             var key = (root, followLinks);
-            if (!snapshots.TryGetValue(key, out var actual)) snapshots[key] = actual = Snapshot(root, followLinks);
+            if (!snapshots.TryGetValue(key, out var actual)) snapshots[key] = actual = scan is null ? Snapshot(root, followLinks) : scan(root, followLinks);
             if (!JsonNode.DeepEquals(actual, expected))
             {
                 var changed = actual.Select(p => p.Key).Union(expected.AsObject().Select(p => p.Key)).Where(k => !JsonNode.DeepEquals(actual[k], expected[k])).Take(5);

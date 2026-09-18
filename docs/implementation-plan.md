@@ -508,3 +508,5 @@ Bazel action on uploading producers. Both seed histories recover one action;
 failed-primer, failed-test and live-input mutation controls pass. The final
 combined Linux two-VM qualification also passes. Partial/full seed variants
 remain distinct declared actions, and physical-machine/WAN validation remains open.
+
+[Focused integrity profiling](integrity-workflow-profile.md) attributes approximately 1.22 seconds per Serilog invocation to repeated runtime scans, dominated by the SDK and LLVM. Six off/on pairs plus fresh/edit diagnostics preserve worker identities, scan counts and outputs. No scan-elision optimization is implemented.
