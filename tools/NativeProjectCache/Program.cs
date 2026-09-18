@@ -5,7 +5,7 @@ using ActionRunner;
 using NativeCache;
 
 internal sealed record RunnerFile(string Source, string Destination);
-internal sealed record RunnerRequest(string Entry, string Output, string Diagnostics, string Manifest, string Restore, RunnerFile[] Sources, RunnerFile[] Seeds, string? ReadProbe = null, string? NetworkProbe = null, string? WriteProbe = null, string? PreparedPlan = null);
+internal sealed record RunnerRequest(string Entry, string Output, string Diagnostics, string Manifest, string Restore, RunnerFile[] Sources, RunnerFile[] Seeds, string? ReadProbe = null, string? NetworkProbe = null, string? WriteProbe = null, string? PreparedPlan = null, bool ProjectAction = false, string? ApiOutput = null, string[]? Prebuilt = null);
 internal sealed record PortableManifest(string Toolchain, Dictionary<string, DeclaredProject> Projects, string Policy = "native-qualified-v2");
 
 internal static class Program
@@ -20,6 +20,7 @@ internal static class Program
         void Mark(string name) { phases[name] = timer.Elapsed.TotalSeconds; timer.Restart(); }
         try
         {
+            if (args is ["--compose-projects", var compose]) { ProjectActions.Compose(compose); return 0; }
             if (args is not ["--portable-request", var file]) throw new ArgumentException("expected --portable-request PATH");
             var request = JsonSerializer.Deserialize<RunnerRequest>(File.ReadAllText(file), Json)!;
             var output = Path.GetFullPath(request.Output);
@@ -121,7 +122,14 @@ internal static class Program
             var sessionPath = Path.Combine(scratch, "session.json");
             var pending = Path.Combine(scratch, "pending"); Directory.CreateDirectory(pending);
             var report = Path.Combine(diagnostics, "events.json");
-            var session = new Session(workspace, cache, pending, report, request.Entry, manifest.Toolchain, files, manifest.Projects, TargetsPath: targets, Policy: manifest.Policy);
+            var prebuilt = request.ProjectAction ? (request.Prebuilt ?? []).ToDictionary(path => ProjectActions.Read(path).Project, path => Path.GetFullPath(path), StringComparer.Ordinal) : null;
+            if (prebuilt is not null)
+                foreach (var project in prebuilt.Keys.ToArray())
+                {
+                    var dependencyCopy = Path.Combine(scratch, "dependencies", prebuilt.Keys.ToList().IndexOf(project).ToString(System.Globalization.CultureInfo.InvariantCulture));
+                    CompileBoundary.Validate(prebuilt[project]); Files.CopyTree(prebuilt[project], dependencyCopy); Files.NormalizeTree(dependencyCopy); prebuilt[project] = dependencyCopy;
+                }
+            var session = new Session(workspace, cache, pending, report, request.Entry, manifest.Toolchain, files, manifest.Projects, TargetsPath: targets, Policy: manifest.Policy, Prebuilt: prebuilt);
             File.WriteAllText(sessionPath, JsonSerializer.Serialize(session, Json));
             if (request.ReadProbe is not null) File.ReadAllText(request.ReadProbe);
             if (request.WriteProbe is not null) File.WriteAllText(request.WriteProbe, "unexpected write");
@@ -131,7 +139,7 @@ internal static class Program
                 using var response = await client.GetAsync(request.NetworkProbe);
             }
             var start = new ProcessStartInfo(Path.Combine(sdk, "dotnet")) { WorkingDirectory = workspace, RedirectStandardOutput = true, RedirectStandardError = true };
-            foreach (var arg in new[] { "exec", Path.Combine(sdk, "sdk/10.0.400/MSBuild.dll"), request.Entry, "-t:Build", "-p:Configuration=Release", "-p:TargetFramework=net10.0", "-graphBuild", "-isolateProjects", "-m:2", "-nodeReuse:false", "-nologo", "-verbosity:normal", "-p:PathMap=" + workspace + "=/_/workspace", "-p:DirectoryBuildTargetsPath=" + targets }) start.ArgumentList.Add(arg);
+            foreach (var arg in new[] { "exec", Path.Combine(sdk, "sdk/10.0.400/MSBuild.dll"), request.Entry, request.ProjectAction ? "-t:Build;GetCopyToOutputDirectoryItems;GetTargetFrameworksWithPlatformForSingleTargetFramework;GetNativeManifest;GetTargetFrameworks" : "-t:Build", "-p:Configuration=Release", "-p:TargetFramework=net10.0", "-graphBuild", "-isolateProjects", "-m:2", "-nodeReuse:false", "-nologo", "-verbosity:normal", "-p:PathMap=" + workspace + "=/_/workspace", "-p:DirectoryBuildTargetsPath=" + targets }) start.ArgumentList.Add(arg);
             start.Environment.Clear();
             foreach (var (key, value) in PortableEnvironment.Create(sdk, home, scratch, workspace)) start.Environment[key] = value;
             if (manifest.Policy == "evaluated-api-runtime-v2") start.Environment["MSBuildEnableWorkloadResolver"] = "false";
@@ -161,6 +169,14 @@ internal static class Program
             var entryBundle = Directory.EnumerateDirectories(cache).Single(bundle =>
                 JsonSerializer.Deserialize<Results>(File.ReadAllText(Path.Combine(bundle, "results.json")), Json)!.Project == request.Entry);
             var entryArtifacts = CompileBoundary.Validate(entryBundle);
+            if (request.ProjectAction)
+            {
+                if (compiles != 1 || request.ApiOutput is null) throw new InvalidDataException("A project action must compile exactly its entry");
+                var identities = prebuilt!.ToDictionary(p => p.Key, p => ProjectActions.Read(p.Value).Key);
+                var identity = EvaluatedBoundary.Identity(entryBundle, request.Entry, manifest.Projects.Keys.Order(StringComparer.Ordinal).ToArray(), manifest.Projects[request.Entry].Dependencies.Order(StringComparer.Ordinal).Select(p => p + ":" + identities[p]).ToArray(), runtimeReferences: true);
+                ProjectActions.Project(entryBundle, request.ApiOutput, prebuilt!, identity);
+                Directory.Delete(scratch, true); Mark("cleanup"); return 0;
+            }
             var runtime = Path.Combine(output, "runtime", Path.GetFileName(entryBundle));
             Mark("validateEntry");
             var runtimeDirectory = Path.Combine(Path.GetDirectoryName(request.Entry)!, "bin/Release/net10.0");

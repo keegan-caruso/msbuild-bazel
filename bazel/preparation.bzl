@@ -2,6 +2,8 @@
 
 load(":input_paths.bzl", "input_path")
 
+DiscoveryPlanInfo = provider(doc = "Structural discovery tree shared by project bindings.", fields = ["directory"])
+
 def _prepare(ctx):
     plan = ctx.actions.declare_directory(ctx.label.name + ".plan")
     discovery = ctx.actions.declare_directory(ctx.label.name + ".discovery")
@@ -46,7 +48,7 @@ def _prepare(ctx):
         mnemonic = "MsbuildBindSources",
         execution_requirements = {"block-network": "1", "no-remote-exec": "1"},
     )
-    return [DefaultInfo(files = depset([plan]))]
+    return [DefaultInfo(files = depset([plan])), DiscoveryPlanInfo(directory = discovery), OutputGroupInfo(discovery = depset([discovery]))]
 
 msbuild_prepare = rule(implementation = _prepare, attrs = {
     "project": attr.string(mandatory = True),

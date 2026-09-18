@@ -32,6 +32,7 @@ try
     AssetRoleTests.Run();
     CompileBoundaryTests.Run();
     EvaluatedBoundaryTests.Run();
+    RuntimeContractTests.Run();
     var toolchainRequestPath = Path.Combine(directory.FullName, "toolchain-request.json");
     File.WriteAllText(toolchainRequestPath, validRequest);
     var toolchainRequest = JsonFiles.ReadRequest(toolchainRequestPath);

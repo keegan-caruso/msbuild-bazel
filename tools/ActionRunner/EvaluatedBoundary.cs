@@ -1,3 +1,5 @@
+using System.Reflection.Metadata;
+using System.Reflection.PortableExecutable;
 using System.Text.Json;
 
 namespace ActionRunner;
@@ -22,7 +24,7 @@ internal static class EvaluatedBoundary
         _ => value.Clone()
     };
 
-    internal static string Identity(string bundle, string project, string[] closure, string[] dependencies)
+    internal static string Identity(string bundle, string project, string[] closure, string[] dependencies, bool runtimeReferences = false)
     {
         var artifacts = CompileBoundary.Validate(bundle);
         if (!artifacts.Any(item => item.Path == Reference(project)))
@@ -47,6 +49,19 @@ internal static class EvaluatedBoundary
         {
             artifacts = artifacts.OrderBy(item => item.Path, StringComparer.Ordinal)
                 .Select(item => new { item.Path, Sha256 = implementations.Contains(item.Path) ? null : item.Sha256 }),
+            runtimeReferences = runtimeReferences ? implementations.Where(path => path.EndsWith(".dll", StringComparison.Ordinal) && File.Exists(Path.Combine(bundle, "artifacts", path))).Order(StringComparer.Ordinal).Select(path =>
+            {
+                using var stream = File.OpenRead(Path.Combine(bundle, "artifacts", path)); using var pe = new PEReader(stream); var reader = pe.GetMetadataReader();
+                return new
+                {
+                    path,
+                    references = reader.AssemblyReferences.Select(handle =>
+                    {
+                        var reference = reader.GetAssemblyReference(handle);
+                        return new { name = reader.GetString(reference.Name), version = reference.Version.ToString(), culture = reader.GetString(reference.Culture), key = Convert.ToHexString(reader.GetBlobBytes(reference.PublicKeyOrToken)), flags = (int)reference.Flags };
+                    }).OrderBy(reference => reference.name, StringComparer.Ordinal).ToArray()
+                };
+            }).ToArray() : null,
             targets = Canonical(results.RootElement.GetProperty("targets")),
             dependencies
         });
@@ -73,6 +88,7 @@ internal static class EvaluatedBoundary
         }
         if (!changed) return false;
         Files.CopyTree(bundle, output);
+        Files.NormalizeTree(output);
         Compose(bundle, project, dependencies, Path.Combine(output, "artifacts"));
         CompileBoundary.Seal(output);
         return true;

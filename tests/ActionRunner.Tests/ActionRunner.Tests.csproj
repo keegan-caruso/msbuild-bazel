@@ -7,6 +7,7 @@
     <UseAppHost>false</UseAppHost>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="../../tools/NativeProjectCache/RuntimeContract.cs" Link="RuntimeContract.cs" />
     <ProjectReference Include="../../tools/ActionRunner/ActionRunner.csproj" />
   </ItemGroup>
 </Project>

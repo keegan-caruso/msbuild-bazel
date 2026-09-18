@@ -4,6 +4,7 @@ namespace RulesMSBuild.Preparation;
 
 internal static class NativePlan
 {
+    public static bool SourceBody(JsonNode input) => input.String("kind") == "source" && input.String("path").StartsWith("workspace/", StringComparison.Ordinal) && !input.String("path").StartsWith("workspace/.nuget/", StringComparison.Ordinal) && !input.String("path").Contains("/obj/", StringComparison.Ordinal) && input.String("path").EndsWith(".cs", StringComparison.Ordinal);
     public const string Policy = "evaluated-api-runtime-v2";
     public static Dictionary<string, JsonNode> Qualify(JsonNode graph)
     {
@@ -114,6 +115,25 @@ internal static class NativePlan
             foreach (var name in record!["inputs"]!.AsObject().Select(p => p.Key).ToArray()) if (hashes.TryGetValue(name, out var hash)) record["inputs"]![name] = hash;
             record!["graphInputs"] = graph["graphInputs"]?.DeepClone() ?? new JsonArray();
             manifest["projects"]![project]!["identity"] = Json.Digest(record);
+        }
+        if (request["project"] is { } selectedProject)
+        {
+            var project = selectedProject.GetValue<string>(); var projects = manifest["projects"]!.AsObject();
+            if (!projects.ContainsKey(project) || !projects[project]!.Array("dependencies").Select(n => n!.GetValue<string>()).Order().SequenceEqual(request.Array("dependencies").Select(n => n!.GetValue<string>()).Order())) throw new InvalidDataException("Project layout differs from discovery");
+            var node = graph.Array("nodes").Single(n => Host.Relative(n!.String("project")) == project)!;
+            var expected = node.Array("inputs").Where(n => SourceBody(n!)).Select(n => Host.Relative(n!.String("path"))).ToHashSet(pathComparer);
+            if (!expected.SetEquals(sources.Keys)) throw new InvalidDataException("Project source layout differs from discovery");
+            var closure = new HashSet<string>(StringComparer.Ordinal);
+            void Visit(string current) { if (!closure.Add(current)) return; foreach (var dependency in projects[current]!.Array("dependencies")) Visit(dependency!.GetValue<string>()); }
+            Visit(project);
+            foreach (var name in projects.Select(p => p.Key).ToArray()) if (!closure.Contains(name)) { projects.Remove(name); records.AsObject().Remove(name); }
+            if (payload is null) throw new InvalidDataException("Project actions require direct payloads");
+            foreach (var name in payload.AsObject().Select(p => p.Key).ToArray())
+                if (name.EndsWith(".cs", StringComparison.Ordinal) && !name.StartsWith(".nuget/", StringComparison.Ordinal) && !sources.ContainsKey(name)) payload.AsObject().Remove(name);
+            Json.Write(payloadPath, payload);
+            var restore = new JsonObject();
+            foreach (var record in records.AsObject().Select(p => p.Value!)) foreach (var (name, value) in record["restore"]!.AsObject()) restore[name] = value!.DeepClone();
+            Json.Write(Path.Combine(output, "restore.json"), restore); Json.Write(Path.Combine(output, "entry.json"), new JsonObject { ["entry"] = project });
         }
         Json.Write(Path.Combine(output, "identity-records.json"), records); Json.Write(Path.Combine(output, "manifest.json"), manifest); Json.Write(Path.Combine(output, "graph.json"), graph);
     }

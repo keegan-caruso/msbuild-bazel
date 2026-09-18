@@ -100,7 +100,12 @@ source groups, graph metadata, and SDK evidence, with shaped-network measurement
 The opt-in [Bazel-owned preparation lane](docs/bazel-owned-preparation.md) moves
 discovery behind Bazel's remote-cache lookup while retaining MSBuild, NuGet and
 the existing strict discovery sandbox. It wraps the pinned Nix SDK and declares
-its native runtime closure. The established workflow remains the default.
+its native runtime closure. [Direct inputs and project actions](docs/bazel-direct-inputs.md)
+separate structural discovery from source binding and move tools and NuGet archives
+into Bazel repositories. Individual project actions are an additional opt-in mode;
+they remove snapshot/priming protocols. Development targets large-graph cache hits
+and edits, accepting additional overhead on small graphs.
+The established workflow remains the default.
 
 ## Quick start
 

@@ -66,3 +66,75 @@ class SourceBinding(unittest.TestCase):
             self.assertNotEqual(p.returncode, 0)
             self.assertIn('Prepared payload differs from declared input', p.stderr)
             self.assertFalse((root/'diagnostics/action.json').exists())
+
+    def test_project_binding_rejects_stale_edges_and_source_membership(self):
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder); template = root/'template'; template.mkdir()
+            empty = hashlib.sha256(b'').hexdigest()
+            records = {name: dict(inputs={'workspace/'+source: empty}, graphInputs=[], restore={}) for name, source in [('A.csproj', 'A.cs'), ('B.csproj', 'B.cs')]}
+            documents = {
+                'graph.json': dict(nodes=[dict(project='workspace/'+name, inputs=[dict(kind='source', path='workspace/'+name.replace('.csproj', '.cs'), sha256=empty)]) for name in records], graphInputs=[]),
+                'manifest.json': dict(projects={name: dict(identity=digest(record), dependencies=[] if name=='A.csproj' else ['A.csproj']) for name, record in records.items()}),
+                'identity-records.json': records,
+                'payload.json': {'A.cs': empty, 'B.cs': empty},
+            }
+            for name, value in documents.items(): (template/name).write_text(json.dumps(value))
+            source = root/'B.cs'; source.write_text('class B {}')
+            for label, dependencies, sources, accepted in [
+                ('valid', ['A.csproj'], [dict(source=str(source), destination='B.cs')], True),
+                ('stale-edge', [], [dict(source=str(source), destination='B.cs')], False),
+                ('stale-source', ['A.csproj'], [], False),
+            ]:
+                with self.subTest(label=label):
+                    output = root/label; request = root/'request.json'
+                    request.write_text(json.dumps(dict(discovery=str(template), output=str(output), project='B.csproj', dependencies=dependencies, sources=sources)))
+                    p = subprocess.run([str(Path(os.environ['RULES_MSBUILD_DOTNET_ROOT'])/'dotnet'), str(ROOT/'tools/Preparation/bin/Release/net10.0/Preparation.dll'), 'owned-bind-sources', '--request', str(request)], capture_output=True, text=True, timeout=30)
+                    self.assertEqual(p.returncode==0, accepted, p.stderr)
+                    if accepted:
+                        self.assertEqual(set(json.loads((output/'payload.json').read_text())), {'B.cs'})
+                        self.assertEqual(set(json.loads((output/'manifest.json').read_text())['projects']), {'A.csproj', 'B.csproj'})
+                    else: self.assertIn('differs from discovery', p.stderr)
+
+    def test_composer_rejects_escaping_cache_key_before_copy(self):
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder); bundle = root/'input/cache/entry'; bundle.mkdir(parents=True)
+            (bundle/'results.json').write_text(json.dumps(dict(project='App.csproj', key='../escape', targets={}, inputs='fixture', toolchain='fixture')))
+            request = root/'request.json'; request.write_text(json.dumps(dict(entry='App.csproj', output=str(root/'output'), bundles=[str(root/'input')])))
+            p = subprocess.run([str(Path(os.environ['RULES_MSBUILD_DOTNET_ROOT'])/'dotnet'), str(ROOT/'tools/NativeProjectCache/bin/Release/net10.0/NativeProjectCache.dll'), '--compose-projects', str(request)], capture_output=True, text=True, timeout=30)
+            self.assertNotEqual(p.returncode, 0)
+            self.assertIn('Invalid project bundle identity', p.stderr)
+            self.assertFalse((root/'output').exists())
+
+    def test_composer_refreshes_entry_once_and_validates_every_producer(self):
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            def bundle(name, files):
+                parent = root/name; path = parent/'cache'/('a'*64); path.mkdir(parents=True)
+                items = []
+                for relative, content in files.items():
+                    target = path/'artifacts'/relative; target.parent.mkdir(parents=True, exist_ok=True); target.write_bytes(content)
+                    items.append(dict(path=relative, size=len(content), sha256=hashlib.sha256(content).hexdigest()))
+                (path/'artifacts.json').write_text(json.dumps(items))
+                (path/'results.json').write_text(json.dumps(dict(project=name+'/'+name+'.csproj', key=hashlib.sha256(name.encode()).hexdigest(), targets={}, inputs='fixture', toolchain='fixture')))
+                (path/'bundle.json').write_text(json.dumps(dict(schemaVersion=1, resultsSha256=hashlib.sha256((path/'results.json').read_bytes()).hexdigest(), artifactsSha256=hashlib.sha256((path/'artifacts.json').read_bytes()).hexdigest())))
+                return parent, path
+            dep, dep_bundle = bundle('Dep', {'Dep/bin/Release/net10.0/Dep.dll': b'current'})
+            app, app_bundle = bundle('App', {'App/bin/Release/net10.0/App.dll': b'app', 'App/bin/Release/net10.0/Dep.dll': b'historical'})
+            unused, unused_bundle = bundle('Unused', {'Unused/bin/Release/net10.0/Unused.dll': b'unused'})
+            original = {path: path.read_bytes() for parent in [dep, app, unused] for path in parent.rglob('*') if path.is_file()}
+            for corrupt in [False, True]:
+                if corrupt: (unused_bundle/'artifacts/Unused/bin/Release/net10.0/Unused.dll').write_bytes(b'corrupt')
+                output = root/('corrupt' if corrupt else 'output'); request = root/'request.json'
+                request.write_text(json.dumps(dict(entry='App/App.csproj', output=str(output), bundles=[str(dep), str(app), str(unused)])))
+                p = subprocess.run([str(Path(os.environ['RULES_MSBUILD_DOTNET_ROOT'])/'dotnet'), str(ROOT/'tools/NativeProjectCache/bin/Release/net10.0/NativeProjectCache.dll'), '--compose-projects', str(request)], capture_output=True, text=True, timeout=30)
+                if corrupt:
+                    self.assertNotEqual(p.returncode, 0)
+                    self.assertIn('dependency artifact corrupt', p.stderr)
+                    self.assertFalse(output.exists())
+                else:
+                    self.assertEqual(p.returncode, 0, p.stderr)
+                    self.assertEqual((output/'app/Dep.dll').read_bytes(), b'current')
+                    self.assertEqual(len(list((output/'cache').iterdir())), 1)
+                    self.assertEqual(len(list((output/'runtime').iterdir())), 1)
+                    self.assertFalse((output/'app/Unused.dll').exists())
+                    for path, content in original.items(): self.assertEqual(path.read_bytes(), content)

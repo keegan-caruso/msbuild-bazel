@@ -3,8 +3,11 @@
 ## Boundary
 
 The opt-in `scripts/bazel-build.sh --request REQUEST.json` lane places discovery
-and native-plan preparation in a declared `MsbuildPrepare` action. Its output is
-a tree artifact consumed directly by the native MSBuild build and test rules.
+and native-plan preparation behind declared `MsbuildDiscover` and `MsbuildBindSources`
+actions. Structural discovery is independent of compile-only source contents.
+Their thin metadata outputs bind direct source/package inputs for build and test.
+See [the four-step follow-up](bazel-direct-inputs.md) for current measurements
+and the additional opt-in project-action mode.
 A preparation cache hit therefore runs no project evaluation, graph preparation,
 or custom SDK content scan in the outer controller. Bazel still tracks and
 hashes its declared inputs according to its normal cache semantics.
@@ -24,7 +27,8 @@ It is analogous to wrapping an installed SDK; it does not implement archive
 fetching, toolchain resolution, or Go's package-compilation model.
 
 The source checkout and restored metadata are staged without project evaluation.
-The built-in NuGet global cache supplies verified package payloads. Restore paths
+Bazel repository rules acquire integrity-checked archives from the built-in NuGet
+global cache or NuGet's public flat-container endpoint, then extract declared payloads. Restore paths
 and the path-dependent NuGet receipt hash are normalized before Bazel sees them.
 Source contents, file membership, restore/package payloads, controller binaries,
 policies, host identity, SDK files and native runtime files are declared inputs.
@@ -34,7 +38,8 @@ reference-closure query inside the action.
 
 The returned worker identity has `inputOwnership: bazel-owned-preparation-v1`.
 Its `controllerSdkClosure` field records controller content and the selected SDK
-recipe/runtime root names; SDK content identity belongs to Bazel's action inputs.
+recipe; the SDK repository resolves runtime roots and SDK content identity belongs
+to Bazel's action inputs.
 It cannot consume a legacy workflow snapshot as an equivalent worker identity.
 Candidate project-cache bundles are fetched without requiring an upfront graph;
 their seals are verified on download and actual input/toolchain keys are checked
@@ -115,16 +120,13 @@ Linux support, SDK archive acquisition, physical-machine/WAN qualification and
 removing the remaining mutable-input staging costs are separate work. Fresh
 Bazel analysis/startup and forced test startup remain on the hit path.
 
-Source body edits currently invalidate the preparation action as well as the
-build action. The native project cache still limits compilation to the changed
-project when its reference API is unchanged, but discovery runs again. This can
-be slower than the legacy source-refresh path. Separating graph-discovery inputs
-from source-content materialization is the next step before switching defaults.
-
-The preparation tree currently includes normalized source and package payloads.
-A fresh Bazel cache consumer may download those outputs even when NuGet already
-has the original package files locally. Loopback timings do not qualify WAN
-transfer efficiency; avoiding those duplicated payloads is a follow-up.
+Source body edits reuse structural discovery and bind only current source hashes.
+Preparation outputs omit source/package payloads. SDK/tool wrapping and NuGet
+archive acquisition belong to Bazel repositories. The default owned lane still
+uses the native snapshot/seed protocol; `"project-actions": true` uses per-project
+Bazel actions and a separate runtime composition action without native snapshots,
+seed copies, or cache priming. It currently adds fresh-worker overhead and remains
+opt-in. See [current evidence and usage](bazel-direct-inputs.md).
 
 ## Recorded result
 

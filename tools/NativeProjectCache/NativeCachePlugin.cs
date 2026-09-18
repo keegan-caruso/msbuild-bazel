@@ -10,7 +10,7 @@ using TaskItem = Microsoft.Build.Utilities.TaskItem;
 internal sealed record DeclaredFile(string Path, string Hash);
 internal sealed record DeclaredProject(string Identity, string[] Dependencies);
 internal sealed record Session(string Workspace, string Cache, string Scratch, string Report, string Entry, string Toolchain,
-    DeclaredFile[] Files, Dictionary<string, DeclaredProject> Projects, string? Remote = null, string? TargetsPath = null, string Policy = "native-qualified-v2");
+    DeclaredFile[] Files, Dictionary<string, DeclaredProject> Projects, string? Remote = null, string? TargetsPath = null, string Policy = "native-qualified-v2", Dictionary<string, string>? Prebuilt = null);
 internal sealed record CachedItem(string Spec, Dictionary<string, string> Metadata);
 internal sealed record Results(string Project, string Key, Dictionary<string, CachedItem[]> Targets, string? Inputs = null, string? Toolchain = null);
 internal sealed record Ready(string Bundle, string Api);
@@ -52,7 +52,7 @@ public sealed class NativeCachePlugin : ProjectCachePluginBase
     }
     private string DependencyIdentity(string bundle, string project) => apiRuntime
         ? EvaluatedBoundary.Identity(bundle, project, Closure(project), session.Projects[project].Dependencies.Order(StringComparer.Ordinal)
-            .Select(dependency => dependency + ":" + states[dependency].Completion.Task.Result.Api).ToArray())
+            .Select(dependency => dependency + ":" + states[dependency].Completion.Task.Result.Api).ToArray(), runtimeReferences: session.Prebuilt is not null)
         : Files.Hash(Path.Combine(bundle, PackagePolicy ? "artifacts.json" : Path.Combine("artifacts", Reference(project))));
     private void Compose(string bundle, string project, bool verifySelection = false) => EvaluatedBoundary.Compose(bundle, project,
         Closure(project).Where(dependency => dependency != project).ToDictionary(dependency => dependency,
@@ -90,6 +90,7 @@ public sealed class NativeCachePlugin : ProjectCachePluginBase
             !node.ProjectInstance.Items.Any(item => item.ItemType is "Content" or "None" or "Compile" or "EmbeddedResource" &&
                 EvaluatedBoundary.CopiesProjectRuntime(item.GetMetadataValue("CopyToOutputDirectory"),
                     [item.EvaluatedInclude, item.GetMetadataValue("TargetPath"), item.GetMetadataValue("Link")], runtimeNames)));
+        if (session.Prebuilt is not null && (!apiRuntime || !session.Prebuilt.Keys.Order().SequenceEqual(states.Keys.Where(p => p != session.Entry).Order()))) throw new InvalidDataException("Project actions require a complete API dependency set");
         VerifyInputs();
         if (session.Remote is not null) remote = new RemoteBundles(session.Remote, message => events.Add(new { kind = "remote", message }));
         return Task.CompletedTask;
@@ -128,6 +129,26 @@ public sealed class NativeCachePlugin : ProjectCachePluginBase
             targets = request.TargetNames.Order(),
             dependencies
         }));
+        if (session.Prebuilt is not null && session.Prebuilt.TryGetValue(project, out var prebuilt))
+        {
+            try
+            {
+                var artifacts = CompileBoundary.Validate(prebuilt);
+                var results = ProjectActions.Read(prebuilt);
+                var identity = DependencyIdentity(prebuilt, project);
+                if (results.Project != project || results.Toolchain != session.Toolchain || results.Key != identity || results.Inputs != identity || request.TargetNames.Any(target => !results.Targets.ContainsKey(target))) throw new InvalidDataException("Invalid project API dependency: " + project + " expected " + identity + " received " + results.Key);
+                foreach (var artifact in artifacts)
+                {
+                    if (!Allowed(project, artifact.Path)) throw new InvalidDataException("API artifact outside project outputs");
+                    Files.Copy(Path.Combine(prebuilt, "artifacts", artifact.Path), Path.Combine(session.Workspace, artifact.Path));
+                }
+                Compose(prebuilt, project);
+                state.Completion.SetResult(new Ready(prebuilt, identity));
+                events.Add(new { project, kind = "dependency", key = identity });
+                return Replay(results);
+            }
+            catch (Exception error) { events.Add(new { project, kind = "dependency-rejected", reason = error.Message }); Console.Error.WriteLine(error); throw; }
+        }
         var candidate = Path.Combine(session.Cache, state.Key);
         if (!Directory.Exists(candidate) && remote is not null) await remote.Fetch(state.Key, candidate, token);
         if (Directory.Exists(candidate))
@@ -147,14 +168,7 @@ public sealed class NativeCachePlugin : ProjectCachePluginBase
                 if (apiRuntime) Compose(candidate, project);
                 state.Completion.SetResult(ready);
                 events.Add(new { project, kind = "hit", key = state.Key });
-                return CacheResult.IndicateCacheHit(results.Targets.Select(pair => new PluginTargetResult(pair.Key,
-                    pair.Value.Select(item =>
-                    {
-                        ITaskItem2 result = new TaskItem();
-                        result.EvaluatedIncludeEscaped = Expand(item.Spec);
-                        foreach (var metadata in item.Metadata) result.SetMetadata(metadata.Key, Expand(metadata.Value));
-                        return result;
-                    }).ToArray(), BuildResultCode.Success)).ToArray());
+                return Replay(results);
             }
             catch (Exception error) when (error is IOException or InvalidDataException or JsonException)
             {
@@ -167,6 +181,14 @@ public sealed class NativeCachePlugin : ProjectCachePluginBase
         events.Add(new { project, kind = "miss", key = state.Key });
         return CacheResult.IndicateNonCacheHit(CacheResultType.CacheMiss);
     }
+
+    private CacheResult Replay(Results results) => CacheResult.IndicateCacheHit(results.Targets.Select(pair => new PluginTargetResult(pair.Key,
+        pair.Value.Select(item =>
+        {
+            ITaskItem2 result = new TaskItem(); result.EvaluatedIncludeEscaped = Expand(item.Spec);
+            foreach (var metadata in item.Metadata) result.SetMetadata(metadata.Key, Expand(metadata.Value));
+            return result;
+        }).ToArray(), BuildResultCode.Success)).ToArray());
 
     private bool Allowed(string project, string path) => path == Reference(project) ||
         (PackagePolicy && path.StartsWith(Bin(project) + "/", StringComparison.Ordinal)) ||
@@ -249,6 +271,7 @@ public sealed class NativeCachePlugin : ProjectCachePluginBase
             if (apiRuntime)
                 foreach (var (project, state) in states)
                 {
+                    if (session.Prebuilt?.ContainsKey(project) == true) continue;
                     var ready = await state.Completion.Task;
                     var canonical = Path.Combine(session.Scratch, "canonical", state.Key!);
                     var dependencies = Closure(project).Where(dependency => dependency != project)

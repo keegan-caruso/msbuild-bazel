@@ -517,5 +517,16 @@ remain distinct declared actions, and physical-machine/WAN validation remains op
 action whose declared tree feeds build and test, with the wrapped Nix SDK/runtime
 closure as Bazel inputs. It retains strict native discovery sandboxing, automatic
 seed priming and gated publication. This opt-in macOS slice keeps restore explicit;
-source edits currently rerun discovery, and Linux/default-workflow migration
-remain separate.
+the [direct-input follow-up](bazel-direct-inputs.md) now reuses discovery for source
+body edits, acquires package/tool inputs through repositories, and exposes opt-in
+per-project actions with stable API/runtime contracts. The performance target is
+large-graph cache hits and edits; small-graph overhead is an accepted tradeoff.
+Linux/default-workflow migration remains separate.
+
+Large-graph qualification now compares 16/64-project fan graphs. Removing repeated
+all-project runtime composition cuts its 64-project action from 6.775 to 0.272 s;
+40 scale cases and final Serilog qualification pass. Per-project warm edits improve
+about 30% at 64 projects, while fresh-worker cache hits/edits remain slower than
+the whole-graph lane. Removing bootstrap/analysis/cache overhead is the next
+performance target; small-graph parity is not the gate. See the
+[measured tradeoffs and evidence](bazel-direct-inputs.md#large-graph-measurement-and-decision).
