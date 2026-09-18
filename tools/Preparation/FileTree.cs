@@ -11,7 +11,8 @@ internal static class FileTree
 {
     private static FileStream OpenRegular(string path)
     {
-        var flags = OperatingSystem.IsMacOS() ? 0x104 : OperatingSystem.IsLinux() ? 0x20800 : throw new PlatformNotSupportedException();
+        // Linux ARM64 uses a different O_NOFOLLOW value from Linux x86-64.
+        var flags = OperatingSystem.IsMacOS() ? 0x104 : OperatingSystem.IsLinux() ? RuntimeInformation.ProcessArchitecture == Architecture.Arm64 ? 0x8800 : 0x20800 : throw new PlatformNotSupportedException();
         var fd = Open(path, flags);
         if (fd < 0) throw new IOException("Cannot open regular input: " + path);
         var handle = new SafeFileHandle((IntPtr)fd, true);
@@ -73,9 +74,12 @@ internal static class FileTree
         File.SetUnixFileMode(path, mode);
     }
     public static IEnumerable<string> Files(string root) => Directory.EnumerateFiles(root, "*", SearchOption.AllDirectories).Order(StringComparer.Ordinal);
-    public static JsonObject Snapshot(string root, bool followLinks = false, IntegrityProfile? profile = null)
+    public static JsonObject Snapshot(string root, bool followLinks = false, IntegrityProfile? profile = null, bool deduplicateLinks = true)
     {
         var result = new JsonObject();
+        // This cache lives for one scan only. Aliases retain their own manifest
+        // records and metadata checks; later validation starts from fresh bytes.
+        var contents = new Dictionary<string, (long Length, DateTime Written, int Mode, string Digest)>(StringComparer.Ordinal);
         var active = new HashSet<string>(StringComparer.Ordinal);
         void Visit(string path, string name)
         {
@@ -100,10 +104,18 @@ internal static class FileTree
             else
             {
                 var before = new FileInfo(path); var length = before.Length; var written = before.LastWriteTimeUtc;
-                var content = HashRegular(path, profile);
+                (long Length, string Digest) content;
+                if (followLinks && deduplicateLinks && contents.TryGetValue(path, out var known))
+                {
+                    if (known.Length != length || known.Written != written || known.Mode != mode) throw new InvalidDataException("Input changed between aliases: " + path);
+                    content = (known.Length, known.Digest);
+                    if (profile is not null) { profile.ReusedFiles++; profile.ReusedBytes += content.Length; }
+                }
+                else content = HashRegular(path, profile);
                 if (profile is not null) { profile.Files++; profile.ContentBytes += content.Length; }
                 var after = new FileInfo(path);
                 if (length != content.Length || length != after.Length || written != after.LastWriteTimeUtc || mode != (int)Mode(path)) throw new InvalidDataException("Input changed while reading: " + path);
+                if (followLinks && deduplicateLinks) contents[path] = (content.Length, written, mode, content.Digest);
                 var started = profile is null ? default : IntegrityProfile.Begin();
                 result[name] = new JsonObject { ["kind"] = "file", ["mode"] = mode, ["size"] = content.Length, ["sha256"] = content.Digest };
                 profile?.End("fileManifest", started);

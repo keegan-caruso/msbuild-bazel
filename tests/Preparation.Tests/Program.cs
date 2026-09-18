@@ -1,3 +1,6 @@
+using System.Diagnostics;
+using System.Net;
+using System.Net.Sockets;
 using System.Text.Json.Nodes;
 using RulesMSBuild.Preparation;
 
@@ -8,6 +11,42 @@ try
     var request = Json.Read(args[1]);
     switch (args[0])
     {
+        case "linux-sandbox-control":
+            {
+                var sdk = request.String("sdk"); var folder = request.String("folder"); var sandboxOutput = request.String("output");
+                Directory.CreateDirectory(folder); Directory.CreateDirectory(sandboxOutput);
+                File.WriteAllText(Path.Combine(folder, "readonly"), "original");
+                using var server = new TcpListener(IPAddress.Loopback, 0); server.Start();
+                request["port"] = ((IPEndPoint)server.LocalEndpoint).Port;
+                var childRequest = Path.Combine(sandboxOutput, "child.json"); Json.Write(childRequest, request);
+                var runner = typeof(LinuxPlatform).Assembly.Location;
+                var testRunner = System.Reflection.Assembly.GetExecutingAssembly().Location;
+                var start = LinuxPlatform.Discovery([sdk, folder, Path.GetDirectoryName(runner)!, Path.GetDirectoryName(testRunner)!], sandboxOutput, folder);
+                foreach (var arg in new[] { Path.Combine(sdk, "dotnet"), testRunner, "linux-sandbox-child", childRequest }) start.ArgumentList.Add(arg);
+                start.Environment.Clear(); start.Environment["DOTNET_ROOT"] = sdk;
+                using var process = Process.Start(start)!;
+                var stdout = process.StandardOutput.ReadToEndAsync(); var stderr = process.StandardError.ReadToEndAsync();
+                if (!process.WaitForExit(15000)) { process.Kill(true); throw new IOException("Sandbox control timed out"); }
+                Task.WaitAll(stdout, stderr);
+                if (process.ExitCode != 0) throw new IOException(stderr.Result);
+                Console.WriteLine(stdout.Result);
+            }
+            break;
+        case "linux-sandbox-child":
+            {
+                var hidden = !File.Exists(request.String("hidden"));
+                var read = File.ReadAllText(Path.Combine(request.String("folder"), "readonly")) == "original";
+                var deniedWrite = false;
+                try { File.WriteAllText(Path.Combine(request.String("folder"), "readonly"), "changed"); }
+                catch (UnauthorizedAccessException) { deniedWrite = true; }
+                catch (IOException) { deniedWrite = true; }
+                var deniedNetwork = false;
+                using var socket = new TcpClient();
+                try { await socket.ConnectAsync(IPAddress.Loopback, request["port"]!.GetValue<int>()).WaitAsync(TimeSpan.FromSeconds(2)); }
+                catch (Exception error) when (error is SocketException or TimeoutException) { deniedNetwork = true; }
+                Console.WriteLine(Json.Text(new JsonObject { ["hidden"] = hidden, ["read"] = read, ["deniedWrite"] = deniedWrite, ["deniedNetwork"] = deniedNetwork }));
+            }
+            break;
         case "action-cache-endpoint":
             Console.WriteLine(Json.Text(JsonValue.Create(ActionCache.Endpoint(request.String("endpoint")))));
             break;
@@ -35,16 +74,29 @@ try
                 Console.WriteLine(Json.Text(new JsonObject { ["responses"] = responses, ["beforePublish"] = beforePublish, ["upstreamBefore"] = upstreamBefore, ["afterPublish"] = gate.Statistics }));
             }
             break;
+        case "alias-snapshot":
+            var aliasRoot = request.String("path"); var aliasProfile = new IntegrityProfile();
+            var aliasBaseline = FileTree.Snapshot(aliasRoot, true, deduplicateLinks: false);
+            var aliasActual = FileTree.Snapshot(aliasRoot, true, aliasProfile);
+            if (!JsonNode.DeepEquals(aliasActual, aliasBaseline)) throw new InvalidDataException("Alias manifests differ");
+            if (request["mutate"]?.GetValue<bool>() == true)
+            {
+                var file = Path.Combine(aliasRoot, "value"); var modified = File.GetLastWriteTimeUtc(file);
+                File.WriteAllText(file, "other"); File.SetLastWriteTimeUtc(file, modified);
+                FileTree.Verify(aliasRoot, aliasActual, true);
+            }
+            Console.WriteLine(Json.Text(aliasProfile.Report()));
+            break;
         case "integrity-profile":
             var roots = request.Array("roots").Select(n => n!.GetValue<string>()).ToArray();
-            var baseline = roots.ToDictionary(p => p, p => FileTree.Snapshot(p, true));
+            var baseline = roots.ToDictionary(p => p, p => FileTree.Snapshot(p, true, deduplicateLinks: false));
             var samples = new JsonArray();
             for (var iteration = 0; iteration < 5; iteration++)
             {
                 var profile = new IntegrityProfile();
                 var started = IntegrityProfile.Begin();
                 var beforeGc = Enumerable.Range(0, 3).Select(GC.CollectionCount).ToArray();
-                var actual = roots.ToDictionary(p => p, p => FileTree.Snapshot(p, true, profile));
+                var actual = roots.ToDictionary(p => p, p => FileTree.Snapshot(p, true, profile, request["deduplicateLinks"]?.GetValue<bool>() != false));
                 profile.End("snapshotTotal", started);
                 started = IntegrityProfile.Begin();
                 foreach (var root in roots) if (!JsonNode.DeepEquals(actual[root], baseline[root])) throw new InvalidDataException("Profile snapshot differs");

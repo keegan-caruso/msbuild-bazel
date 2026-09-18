@@ -185,3 +185,10 @@ it. Different source/toolchain/seed inputs still miss and use the existing nativ
 per-project cache. This is not a seed-independent cache-key optimization.
 See the [qualification protocol](remote-action-cache-protocol.md) and the
 [measured findings](remote-action-cache.md).
+
+### Selected Linux ARM64 lane
+
+The native workflow also supports the [qualified Ubuntu ARM64 image and
+isolated-worker protocol](linux-cache-workers.md). It uses bubblewrap discovery
+and Bazel linux-sandbox, with a separate Linux worker identity. This does not
+permit consuming macOS actions on Linux or qualify arbitrary Linux installations.

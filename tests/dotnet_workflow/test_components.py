@@ -35,6 +35,13 @@ class Components(unittest.TestCase):
         if success:self.assertEqual(result.returncode,0,result.stderr)
         else:self.assertNotEqual(result.returncode,0);return result.stderr
         return json.loads(result.stdout) if result.stdout.strip() else None
+    @unittest.skipUnless(sys.platform=='linux', 'Linux discovery sandbox control')
+    def test_linux_discovery_denies_undeclared_reads_writes_and_network(self):
+        hidden=self.root/'hidden';hidden.write_text('must not be visible')
+        value=self.invoke('linux-sandbox-control',dict(sdk=str(self.dotnet.parent),folder=str(self.root/'declared'),output=str(self.root/'scratch'),hidden=str(hidden)))
+        self.assertEqual(value,dict(hidden=True,read=True,deniedWrite=True,deniedNetwork=True))
+        self.assertEqual(hidden.read_text(),'must not be visible')
+
     def test_action_cache_defers_and_orders_publication(self):
         import base64
         data=b'cache payload';blob=sha(data);action='a'*64
@@ -92,6 +99,16 @@ class Components(unittest.TestCase):
         for flag in ('mutate','differentExpectation','laterMutation'):
             value.write_text('value')
             self.assertIn('Leased inputs changed',self.invoke('verification',dict(request,**{flag:True}),False))
+    def test_alias_hash_reuse_preserves_records_and_rechecks_later_scans(self):
+        root=self.root/'tree';root.mkdir();(root/'value').write_text('value')
+        (root/'alias-a').symlink_to('value');(root/'alias-b').symlink_to('value')
+        value=self.invoke('alias-snapshot',dict(path=str(root)))
+        self.assertEqual(value['files'],3)
+        self.assertEqual(value['contentBytes'],15)
+        self.assertEqual(value['reusedFiles'],2)
+        self.assertEqual(value['reusedBytes'],10)
+        self.assertIn('Leased inputs changed',self.invoke('alias-snapshot',dict(path=str(root),mutate=True),False))
+
     def test_stream_hash_matches_sha256_across_buffer_boundaries(self):
         path=self.root/'value'
         for size in (0,1,65535,65536,65537,17*1024*1024+3):
@@ -214,6 +231,8 @@ class Components(unittest.TestCase):
 
     def test_worker_identity_accepts_equal_records_and_rejects_each_changed_role(self):
         worker=self.worker_identity()
+        linux=json.loads(json.dumps(worker));linux["policy"]="linux-arm64-worker-v1"
+        self.assertIn("Incompatible worker",self.invoke("worker-compatible",dict(producer=worker,consumer=linux),False))
         self.assertTrue(self.invoke('worker-compatible',dict(producer=worker,consumer=worker)))
         for field in worker:
             with self.subTest(field=field):

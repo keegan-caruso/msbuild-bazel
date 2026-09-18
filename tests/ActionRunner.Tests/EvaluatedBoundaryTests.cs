@@ -84,6 +84,15 @@ internal static class EvaluatedBoundaryTests
                 throw new InvalidOperationException("runtime did not use current implementation");
             if (File.Exists(Path.Combine(workspace, "App/bin/Release/net10.0/Package.dll")) || Files.Hash(Path.Combine(app, "bundle.json")) != seal)
                 throw new InvalidOperationException("composition changed package selection or immutable bundle");
+            var refreshed = Path.Combine(root, "refreshed");
+            if (!EvaluatedBoundary.RefreshBundle(app, "App/App.csproj", new() { [project] = lib }, refreshed))
+                throw new InvalidOperationException("historical seed runtime was not refreshed");
+            CompileBoundary.Validate(refreshed);
+            if (File.ReadAllText(Path.Combine(refreshed, "artifacts/App/bin/Release/net10.0/Lib.dll")) != "current body with different length" ||
+                File.ReadAllText(Path.Combine(refreshed, "artifacts/App/bin/Release/net10.0/Package.dll")) != "consumer package selection" || Files.Hash(Path.Combine(app, "bundle.json")) != seal)
+                throw new InvalidOperationException("seed refresh changed immutable input or package selection");
+            if (EvaluatedBoundary.RefreshBundle(refreshed, "App/App.csproj", new() { [project] = lib }, Path.Combine(root, "unchanged")) || Directory.Exists(Path.Combine(root, "unchanged")))
+                throw new InvalidOperationException("current seeds were copied unnecessarily");
             Write(lib, "Lib/bin/Release/net10.0/Lib.dll", "corrupt");
             try
             {
@@ -91,6 +100,13 @@ internal static class EvaluatedBoundaryTests
                 throw new InvalidOperationException("corrupt current producer accepted");
             }
             catch (InvalidDataException) { }
+            try
+            {
+                EvaluatedBoundary.RefreshBundle(app, "App/App.csproj", new() { [project] = lib }, Path.Combine(root, "corrupt-seed"));
+                throw new InvalidOperationException("corrupt producer refreshed a seed");
+            }
+            catch (InvalidDataException) { }
+            if (Directory.Exists(Path.Combine(root, "corrupt-seed"))) throw new InvalidOperationException("corrupt seed refresh wrote partial output");
             if (Directory.Exists(Path.Combine(root, "rejected"))) throw new InvalidOperationException("corruption wrote partial runtime");
         }
         finally { Directory.Delete(root, true); }

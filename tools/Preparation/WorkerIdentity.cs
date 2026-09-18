@@ -8,36 +8,36 @@ namespace RulesMSBuild.Preparation;
 internal static class WorkerIdentity
 {
     public const string Policy = "darwin-arm64-worker-v1";
-    private static readonly string[] SystemTools = ["/usr/bin/sandbox-exec", "/usr/bin/codesign", "/usr/bin/security", "/bin/sh", "/usr/bin/env", "/usr/bin/sw_vers", "/usr/sbin/sysctl"];
+    private static readonly string[] SystemTools = OperatingSystem.IsLinux() ? ["/usr/bin/bwrap", "/bin/sh", "/usr/bin/env", "/usr/bin/uname", .. LinuxPlatform.Configuration] : ["/usr/bin/sandbox-exec", "/usr/bin/codesign", "/usr/bin/security", "/bin/sh", "/usr/bin/env", "/usr/bin/sw_vers", "/usr/sbin/sysctl"];
     public static JsonObject Capture(string controller, string bazel, string cwd, bool independent = false)
     {
-        if (!OperatingSystem.IsMacOS() || RuntimeInformation.OSArchitecture != Architecture.Arm64 || RuntimeInformation.ProcessArchitecture != Architecture.Arm64)
-            throw new PlatformNotSupportedException("Worker policy requires native macOS ARM64");
+        if ((!OperatingSystem.IsMacOS() && !OperatingSystem.IsLinux()) || RuntimeInformation.OSArchitecture != Architecture.Arm64 || RuntimeInformation.ProcessArchitecture != Architecture.Arm64)
+            throw new PlatformNotSupportedException("Worker policy requires native macOS or Linux ARM64");
         var tools = new JsonObject { ["bazel"] = FileTree.HashRegular(Host.Real(bazel)).Digest };
         foreach (var path in SystemTools) tools[path] = FileTree.HashRegular(Host.Real(path)).Digest;
         return new JsonObject
         {
-            ["policy"] = Policy,
+            ["policy"] = OperatingSystem.IsLinux() ? "linux-arm64-worker-v1" : Policy,
             ["scope"] = independent ? "independent-qualified-workers" : "same-host-experimental",
             ["controllerSdkClosure"] = controller,
             ["execution"] = new JsonObject
             {
-                ["os"] = "macOS",
-                ["osBuild"] = Host.Run("/usr/bin/sw_vers", ["-buildVersion"], cwd).Trim(),
-                ["kernel"] = RuntimeInformation.OSDescription,
+                ["os"] = OperatingSystem.IsLinux() ? "Linux" : "macOS",
+                ["osBuild"] = OperatingSystem.IsLinux() ? File.ReadAllText("/etc/os-release") : Host.Run("/usr/bin/sw_vers", ["-buildVersion"], cwd).Trim(),
+                ["kernel"] = OperatingSystem.IsLinux() ? Host.Run("/usr/bin/uname", ["-srv"], cwd).Trim() : RuntimeInformation.OSDescription,
                 ["architecture"] = "Arm64",
-                ["cpuModel"] = Host.Run("/usr/sbin/sysctl", ["-n", "hw.model"], cwd).Trim(),
-                ["cpuBrand"] = Host.Run("/usr/sbin/sysctl", ["-n", "machdep.cpu.brand_string"], cwd).Trim(),
+                ["cpuModel"] = OperatingSystem.IsLinux() ? "aarch64" : Host.Run("/usr/sbin/sysctl", ["-n", "hw.model"], cwd).Trim(),
+                ["cpuBrand"] = OperatingSystem.IsLinux() ? string.Join("\n", File.ReadLines("/proc/cpuinfo").Where(line => line.StartsWith("Features", StringComparison.Ordinal) || line.StartsWith("CPU implementer", StringComparison.Ordinal) || line.StartsWith("CPU part", StringComparison.Ordinal) || line.StartsWith("CPU variant", StringComparison.Ordinal) || line.StartsWith("CPU revision", StringComparison.Ordinal)).Distinct().Order(StringComparer.Ordinal)) : Host.Run("/usr/sbin/sysctl", ["-n", "machdep.cpu.brand_string"], cwd).Trim(),
                 ["cpuCount"] = Environment.ProcessorCount
             },
             ["systemTools"] = tools,
             ["environmentPolicy"] = "evaluated-net10-release-env-v1",
-            ["hostPolicy"] = "sealed-macos-system-libraries-reviewed-packages-v1"
+            ["hostPolicy"] = OperatingSystem.IsLinux() ? "hashed-ubuntu2204-libraries-reviewed-packages-v1" : "sealed-macos-system-libraries-reviewed-packages-v1"
         };
     }
     public static string Digest(JsonNode worker)
     {
-        if (worker["policy"]?.GetValue<string>() != Policy) throw new InvalidDataException("Unsupported worker policy");
+        if (worker["policy"]?.GetValue<string>() is not (Policy or "linux-arm64-worker-v1")) throw new InvalidDataException("Unsupported worker policy");
         RemoteCache.Digest(worker.String("controllerSdkClosure"));
         return Json.Digest(worker);
     }

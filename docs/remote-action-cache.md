@@ -1,5 +1,7 @@
 # Whole-action HTTP cache integration
 
+Current behavior: [automatic producer priming and current runtime seeds](canonical-seeds.md) supersede the manual priming procedure in the historical measurements below.
+
 ## What is implemented
 
 The native controller accepts `--bazel-remote-cache URL` for read-only whole-action

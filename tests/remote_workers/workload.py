@@ -90,11 +90,12 @@ def shutdown(base):
         subprocess.run(command+['shutdown'],cwd=state/'g',capture_output=True,check=True)
 
 
-def native(base,source,kind,packages,endpoint,snapshot=None,failed=False,install_cache=None,repository_cache=None,disable_repository_downloads=False,action_cache=None,action_upload=False,lease_mutation=False):
+def native(base,source,kind,packages,endpoint,snapshot=None,failed=False,install_cache=None,repository_cache=None,disable_repository_downloads=False,action_cache=None,action_upload=False,lease_mutation=False,bazel_override=None):
     entry='N0003/N0003.csproj' if kind=='diamond' else PROJECT
     request=dict(schemaVersion=1,repository=str(ROOT),sdkRoot=str(SDK),bazel=str(BAZEL),workspace=str(source),state=str(base/'state'),
         entry=entry,output=str(base/'result'),operation='build' if kind=='diamond' else 'test',reuse=True,
         **{'independent-workers':True,'nuget-packages':str(packages),'remote-endpoint':endpoint,'force-tests':True})
+    if bazel_override:request['bazel']=str(bazel_override)
     if action_cache:request['bazel-remote-cache']=action_cache
     if action_upload:request['bazel-remote-upload']=True
     if disable_repository_downloads:request['bazel-disable-repository-downloads']=True

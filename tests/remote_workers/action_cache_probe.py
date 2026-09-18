@@ -32,8 +32,8 @@ def run(args):
                     print(kind,label,value['accepted'],value.get('buildActions'),value.get('remoteBuildHits'),value.get('compiles'),round(value['wallSeconds'],3),flush=True)
                     return value
                 producer=build('producer');key=producer['remote']['publishedSnapshot'];remove(root/'producer')
-                # Seeds are real inputs: prime the full-seed variant independently.
-                primer=build('seeded-primer',key);assert primer['buildActions']==1 and primer['compiles']==0
+                # The producer automatically warms the full-seed variant; verify it hits.
+                primer=build('seeded-primer',key);assert primer['buildActions']==0 and primer['compiles']==0 and primer['remoteBuildHits']==1
                 remove(root/'seeded-primer')
                 for repetition in range(args.repetitions):
                     # Pair outer-hit/inner-only comparisons, alternating their order.

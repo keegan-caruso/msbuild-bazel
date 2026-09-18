@@ -22,10 +22,11 @@ internal sealed class Discovery
     public Discovery(string root, string sdk, string workspace, string directory, string toolchain, IReadOnlyDictionary<string, JsonObject> runtimeSnapshots)
     {
         this.root = root; this.sdk = sdk; this.workspace = workspace; this.directory = directory;
-        if (!OperatingSystem.IsMacOS() || System.Runtime.InteropServices.RuntimeInformation.OSArchitecture != System.Runtime.InteropServices.Architecture.Arm64 || sdk != "/nix/store/f3kvj2nc26gn7rh5mnfnaa2dgy2p10v3-dotnet-sdk-10.0.400/share/dotnet") throw new InvalidDataException("Unqualified discovery host/toolchain");
+        if (OperatingSystem.IsLinux()) LinuxPlatform.Require(sdk);
+        else if (!OperatingSystem.IsMacOS() || System.Runtime.InteropServices.RuntimeInformation.OSArchitecture != System.Runtime.InteropServices.Architecture.Arm64 || sdk != "/nix/store/f3kvj2nc26gn7rh5mnfnaa2dgy2p10v3-dotnet-sdk-10.0.400/share/dotnet") throw new InvalidDataException("Unqualified discovery host/toolchain");
         output = Path.Combine(directory, "output"); Directory.CreateDirectory(output);
         foreach (var name in new[] { "home", "tmp", "http" }) Directory.CreateDirectory(Path.Combine(output, name));
-        runtimes = Host.Run("/nix/var/nix/profiles/default/bin/nix-store", ["-qR", Path.GetDirectoryName(Path.GetDirectoryName(sdk))!], root).Split('\n', StringSplitOptions.RemoveEmptyEntries).Order(StringComparer.Ordinal).ToArray();
+        runtimes = OperatingSystem.IsLinux() ? new[] { sdk }.Concat(LinuxPlatform.Libraries).ToArray() : Host.Run("/nix/var/nix/profiles/default/bin/nix-store", ["-qR", Path.GetDirectoryName(Path.GetDirectoryName(sdk))!], root).Split('\n', StringSplitOptions.RemoveEmptyEntries).Order(StringComparer.Ordinal).ToArray();
         roots["workspace"] = workspace;
         for (var i = 0; i < runtimes.Length; i++) roots["runtime-" + i] = runtimes[i];
         foreach (var name in new[] { "GraphExport", "EvaluationProbe" })
@@ -34,7 +35,7 @@ internal sealed class Discovery
         }
         foreach (var (name, path) in roots) identities[name] = runtimeSnapshots.TryGetValue(path, out var known) ? (JsonObject)known.DeepClone() : FileTree.Snapshot(path, name.StartsWith("runtime-", StringComparison.Ordinal));
         WorkspaceIdentity = FileTree.Portable(workspace);
-        HostIdentity = new JsonObject { ["osBuild"] = Host.Run("/usr/bin/sw_vers", ["-buildVersion"], root).Trim(), ["machine"] = "arm64", ["cpuCount"] = Environment.ProcessorCount };
+        HostIdentity = new JsonObject { ["osBuild"] = OperatingSystem.IsLinux() ? File.ReadAllText("/etc/os-release") : Host.Run("/usr/bin/sw_vers", ["-buildVersion"], root).Trim(), ["machine"] = "arm64", ["cpuCount"] = Environment.ProcessorCount };
         environment = new() { ["DOTNET_ROOT"] = sdk, ["DOTNET_HOST_PATH"] = Path.Combine(sdk, "dotnet"), ["HOME"] = Path.Combine(output, "home"), ["DOTNET_CLI_HOME"] = Path.Combine(output, "home"), ["TMPDIR"] = Path.Combine(output, "tmp"), ["NUGET_HTTP_CACHE_PATH"] = Path.Combine(output, "http"), ["PATH"] = sdk, ["TZ"] = "UTC", ["LANG"] = "en_US.UTF-8", ["LC_ALL"] = "en_US.UTF-8", ["DOTNET_CLI_TELEMETRY_OPTOUT"] = "1", ["DOTNET_SKIP_FIRST_TIME_EXPERIENCE"] = "1", ["DOTNET_MULTILEVEL_LOOKUP"] = "0", ["DOTNET_EnableDiagnostics"] = "0", ["MSBUILDDISABLENODEREUSE"] = "1", ["MSBuildEnableWorkloadResolver"] = "false" };
         var runtimeIdentity = new JsonObject(); foreach (var name in roots.Keys.Where(k => k != "workspace")) runtimeIdentity[name] = Json.Digest(identities[name]);
         Context = Json.Digest(new JsonObject { ["policy"] = Policy, ["toolchain"] = toolchain, ["runtime"] = runtimeIdentity, ["host"] = HostIdentity.DeepClone(), ["workspaceDepth"] = workspace.Split('/').Length });
@@ -53,8 +54,9 @@ internal sealed class Discovery
     private void Run(string name, JsonNode request)
     {
         var path = Path.Combine(output, name + "-request.json"); Json.Write(path, request);
-        var start = new ProcessStartInfo("/usr/bin/sandbox-exec") { WorkingDirectory = workspace, RedirectStandardOutput = true, RedirectStandardError = true };
-        foreach (var arg in new[] { "-f", Path.Combine(output, "sandbox.sb"), Path.Combine(sdk, "dotnet"), Path.Combine(roots[name], "bin/Release/net10.0", name + ".dll"), "--request", path }) start.ArgumentList.Add(arg);
+        var start = OperatingSystem.IsLinux() ? LinuxPlatform.Discovery(roots.Values, output, workspace) : new ProcessStartInfo("/usr/bin/sandbox-exec") { WorkingDirectory = workspace, RedirectStandardOutput = true, RedirectStandardError = true };
+        if (!OperatingSystem.IsLinux()) foreach (var arg in new[] { "-f", Path.Combine(output, "sandbox.sb") }) start.ArgumentList.Add(arg);
+        foreach (var arg in new[] { Path.Combine(sdk, "dotnet"), Path.Combine(roots[name], "bin/Release/net10.0", name + ".dll"), "--request", path }) start.ArgumentList.Add(arg);
         start.Environment.Clear(); foreach (var (key, value) in environment) start.Environment[key] = value;
         using var process = Process.Start(start)!; var stdout = process.StandardOutput.ReadToEndAsync(); var stderr = process.StandardError.ReadToEndAsync();
         if (!process.WaitForExit(180000)) { process.Kill(true); throw new IOException("Discovery timed out"); }
@@ -112,11 +114,20 @@ internal sealed class Discovery
             {
                 var path = import!.String("path");
                 if (Host.Within(path, workspace)) { if (!trusted.Contains(path)) CompileBoundary.CheckXml(path); }
-                else if (path != targets && sdkImports[path]?.GetValue<string>() != import.String("sha256")) throw new InvalidDataException("Unqualified SDK import: " + path);
+                else if (path != targets && !QualifiedImport(sdkImports, path, import.String("sha256"))) throw new InvalidDataException("Unqualified SDK import: " + path);
             }
         Absent = absent.Order(StringComparer.Ordinal).ToArray();
         Run("GraphExport", new JsonObject { ["schemaVersion"] = 1, ["workspace"] = workspace, ["dotnetRoot"] = sdk, ["sdkVersion"] = "10.0.400", ["packageRoot"] = Path.Combine(workspace, ".nuget/packages"), ["entryPoints"] = entries, ["output"] = Path.Combine(output, "graph.json") });
         Verify(); return Json.Read(Path.Combine(output, "graph.json"));
+    }
+    private bool QualifiedImport(JsonNode reviewed, string path, string hash)
+    {
+        if (reviewed[path]?.GetValue<string>() == hash) return true;
+        if (!OperatingSystem.IsLinux() || !Host.Within(path, sdk)) return false;
+        // The Linux SDK may reuse only already-reviewed import bytes at the
+        // corresponding SDK-relative path. New imports still fail closed.
+        var suffix = "/share/dotnet/" + Path.GetRelativePath(sdk, path);
+        return reviewed.AsObject().Any(p => p.Key.EndsWith(suffix, StringComparison.Ordinal) && p.Value?.GetValue<string>() == hash);
     }
     public JsonNode Export(string entry)
     {

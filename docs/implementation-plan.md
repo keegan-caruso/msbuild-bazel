@@ -486,3 +486,25 @@ Bazel action-cache consumption and opt-in publication gated on successful tests,
 live-input validation and output validation. Fresh-workspace hits preserve forced
 tests; changed actions fall back to per-project reuse. Seeds remain declared
 inputs, so the qualified experiment explicitly primes the seeded action variant.
+
+[Persistent native cache hosting](native-cache-service.md) now provides a pinned
+macOS user launch agent with loopback access and an SSH-tunnel runbook. Local
+restart and disk-persistence acceptance passed; independent-worker validation
+still requires a second compatible Mac.
+
+[Linux ARM64 cache workers](linux-cache-workers.md) adds the selected Ubuntu
+workflow lane, namespace-isolated discovery, native Linux Bazel sandboxing and
+a producer-deletion/consumer-recovery harness using Apple containers. This is
+separate from physical-machine and cross-platform qualification.
+
+[Within-scan alias digest reuse](integrity-alias-reuse.md) removes repeated LLVM/
+ICU reads while retaining independent final validation. Exact manifest parity,
+mutation guards and repeated complete-workflow comparisons pass; remote-hit
+medians improved by 2.8–5.3% in the recorded run.
+
+[Current runtime seeds and automatic priming](canonical-seeds.md) remove the
+qualified build-history variation and automatically populate the full-seed
+Bazel action on uploading producers. Both seed histories recover one action;
+failed-primer, failed-test and live-input mutation controls pass. The final
+combined Linux two-VM qualification also passes. Partial/full seed variants
+remain distinct declared actions, and physical-machine/WAN validation remains open.

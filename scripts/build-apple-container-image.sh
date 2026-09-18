@@ -17,6 +17,9 @@ mkdir -p "$context_dir/tools/Preparation"
 cp "$repo_root/.editorconfig" "$context_dir/"
 cp "$repo_root/tools/Directory.Build.props" "$context_dir/tools/"
 cp "$repo_root/tools/Preparation/"*.cs "$repo_root/tools/Preparation/Preparation.csproj" "$context_dir/tools/Preparation/"
+# Transfer nested inputs as one archive; Apple container 1.4.1 may omit nested
+# files from its directory context transfer. The archive remains content-addressed.
+COPYFILE_DISABLE=1 tar -C "$context_dir" -cf "$context_dir/payload.tar" scripts tools .editorconfig global.json .bazelversion
 image_dir="$repo_root/.cache/apple-container/$arch"
 mkdir -p "$image_dir"
 tag="rules_msbuild-toolchain:$arch"
