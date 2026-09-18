@@ -538,3 +538,8 @@ lets fresh workers use one Bazel invocation; stale declarations fail before publ
 The direct-checkout slice exposes source files through a Bazel repository and
 normalizes restore metadata in a declared action. It removes controller source
 copying while retaining independent final input verification and publication gating.
+
+Single-entry project actions now use the public MSBuild build API and replay-only
+private dependency projects, retaining real SDK target outputs and strict input
+validation. Qualification passes; 64-project total compile time improved 6.2%,
+while wall-time gains were modest. See the single-pass findings for scope.

@@ -8,6 +8,8 @@
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="../../tools/NativeProjectCache/RuntimeContract.cs" Link="RuntimeContract.cs" />
+    <Compile Include="../../tools/NativeProjectCache/DependencyReplay.cs" Link="DependencyReplay.cs" />
+    <Compile Include="../../tools/NativeProjectCache/ProjectResults.cs" Link="ProjectResults.cs" />
     <ProjectReference Include="../../tools/ActionRunner/ActionRunner.csproj" />
   </ItemGroup>
 </Project>

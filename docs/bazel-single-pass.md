@@ -108,3 +108,55 @@ observed gain is in warm controller overhead; fresh workers still execute the
 normalization action. Both fresh edits compiled one project and reused 63 remote
 compile results. Restore remains excluded from these timings.
 See `bazel-single-pass-step2-evidence.json` for compact evidence.
+
+## 3. Single-entry MSBuild execution
+
+Project actions now evaluate the real entry project through MSBuild's public
+`BuildManager` API, with one MSBuild node. Bazel supplies the complete dependency
+API set. Each private dependency project copy is replaced with a project containing
+only the producer's recorded target outputs; it has no SDK imports, compiler, or
+nested project references. MSBuild can request those outputs without evaluating
+the dependency SDK or scheduling its build graph again. Unknown targets fail with
+MSBuild's missing-target error.
+
+The normal command-line non-graph build did not initialize the cache plugin in
+our first prototype. The public API host supplies an already evaluated entry
+`ProjectInstance`, allowing the existing plugin to validate the entry and capture
+real SDK target results. The whole-graph mode retains its original command line.
+
+Before compilation, the plugin checks the complete dependency set, seals,
+toolchain, transitive API identities, and artifact ownership. It validates the
+entry's evaluated configuration, references and supported copy-local behavior.
+The runner checks original payload hashes before replacing private project
+copies, and publication still requires final original-checkout validation.
+The native filesystem sandbox remains enabled. This lane no longer uses MSBuild
+static-graph isolation: Bazel schedules the project builds; MSBuild still executes
+small recorded-result targets when its SDK asks for dependency metadata.
+
+Validation: owned builds/style/format checks, 5 style tests, 32 preparation tests,
+40 workflow tests (one Linux-only skip), and the C# contract suite pass. A focused
+contract test executes recorded values through real MSBuild, verifies escaped
+semicolons and literal property expressions survive, and checks unknown targets
+fail with MSB4057. The complete 20-case qualification passes seven raw DLL/PDB
+and runtime metadata comparisons, fresh recovery, source/API invalidation, and
+zero publication for failed tests/live mutation. An attempted custom-target
+workflow probe was rejected even earlier by the existing discovery XML policy.
+
+The 64-project run passed all 10 cases and three raw oracles:
+
+| Case | Step 2 | Single entry |
+| --- | ---: | ---: |
+| Cold bootstrap | 85.366s | 83.322s |
+| Fresh cache hit | 10.546s | 10.887s |
+| Warm no-op median (3) | 1.198s | 1.122s |
+| Warm shared edit | 4.132s | 4.120s |
+| Warm leaf edit | 2.975s | 2.844s |
+| Fresh shared edit | 12.661s | 12.644s |
+| Fresh leaf edit | 12.709s | 12.739s |
+
+Total compile-action execution fell from 68.481s to 64.215s (6.2%); cold wall time
+improved 2.4%. Fresh/edit improvements are small or absent in this run. The change
+removes repeated SDK evaluation but does not eliminate per-action MSBuild startup,
+private input materialization or metadata composition. This is not evidence of a
+large overall speedup. Both fresh edits still execute one compile and recover 63
+remote compile results. See `bazel-single-pass-step3-evidence.json`.

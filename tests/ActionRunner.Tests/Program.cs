@@ -33,6 +33,7 @@ try
     CompileBoundaryTests.Run();
     EvaluatedBoundaryTests.Run();
     RuntimeContractTests.Run();
+    DependencyReplayTests.Run();
     var toolchainRequestPath = Path.Combine(directory.FullName, "toolchain-request.json");
     File.WriteAllText(toolchainRequestPath, validRequest);
     var toolchainRequest = JsonFiles.ReadRequest(toolchainRequestPath);
