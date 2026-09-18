@@ -1,0 +1,385 @@
+{
+  "accepted": true,
+  "step": 2,
+  "note": "Diamond qualification preceded the package archive-metadata fallback; Serilog includes that fix.",
+  "cases": [
+    {
+      "kind": "diamond",
+      "case": "producer",
+      "accepted": true,
+      "seconds": 11.22352070803754,
+      "planBytes": 694962,
+      "downloadBytes": 40,
+      "discovery": {
+        "executed": 1,
+        "remoteHits": 0
+      },
+      "binding": {
+        "executed": 1,
+        "remoteHits": 0
+      },
+      "build": {
+        "executed": 1,
+        "remoteHits": 0
+      },
+      "compiles": 4
+    },
+    {
+      "kind": "diamond",
+      "case": "fresh-hit",
+      "accepted": true,
+      "seconds": 3.662144874979276,
+      "planBytes": 694962,
+      "downloadBytes": 1008938,
+      "discovery": {
+        "executed": 0,
+        "remoteHits": 1
+      },
+      "binding": {
+        "executed": 0,
+        "remoteHits": 1
+      },
+      "build": {
+        "executed": 0,
+        "remoteHits": 1
+      },
+      "compiles": 0
+    },
+    {
+      "kind": "diamond",
+      "case": "warm-0",
+      "accepted": true,
+      "seconds": 1.1255466250004247,
+      "planBytes": 694962,
+      "downloadBytes": 0,
+      "discovery": {
+        "executed": 0,
+        "remoteHits": 0
+      },
+      "binding": {
+        "executed": 0,
+        "remoteHits": 0
+      },
+      "build": {
+        "executed": 0,
+        "remoteHits": 0
+      },
+      "compiles": 0
+    },
+    {
+      "kind": "diamond",
+      "case": "warm-1",
+      "accepted": true,
+      "seconds": 1.0104287910507992,
+      "planBytes": 694962,
+      "downloadBytes": 0,
+      "discovery": {
+        "executed": 0,
+        "remoteHits": 0
+      },
+      "binding": {
+        "executed": 0,
+        "remoteHits": 0
+      },
+      "build": {
+        "executed": 0,
+        "remoteHits": 0
+      },
+      "compiles": 0
+    },
+    {
+      "kind": "diamond",
+      "case": "warm-2",
+      "accepted": true,
+      "seconds": 0.8910224999999627,
+      "planBytes": 694962,
+      "downloadBytes": 0,
+      "discovery": {
+        "executed": 0,
+        "remoteHits": 0
+      },
+      "binding": {
+        "executed": 0,
+        "remoteHits": 0
+      },
+      "build": {
+        "executed": 0,
+        "remoteHits": 0
+      },
+      "compiles": 0
+    },
+    {
+      "kind": "diamond",
+      "case": "body-edit",
+      "accepted": true,
+      "seconds": 5.176884207990952,
+      "planBytes": 694962,
+      "downloadBytes": 349175,
+      "discovery": {
+        "executed": 0,
+        "remoteHits": 1
+      },
+      "binding": {
+        "executed": 1,
+        "remoteHits": 0
+      },
+      "build": {
+        "executed": 1,
+        "remoteHits": 0
+      },
+      "compiles": 1
+    },
+    {
+      "kind": "diamond",
+      "case": "undeclared-read",
+      "accepted": false,
+      "seconds": 4.165389292000327,
+      "planBytes": null,
+      "downloadBytes": 10,
+      "discovery": {
+        "executed": 1,
+        "remoteHits": 0
+      },
+      "binding": {
+        "executed": 0,
+        "remoteHits": 0
+      },
+      "build": {
+        "executed": 0,
+        "remoteHits": 0
+      },
+      "compiles": null
+    },
+    {
+      "kind": "diamond",
+      "case": "source-role",
+      "accepted": false,
+      "seconds": 6.305507291981485,
+      "planBytes": null,
+      "downloadBytes": 10,
+      "discovery": {
+        "executed": 1,
+        "remoteHits": 0
+      },
+      "binding": {
+        "executed": 0,
+        "remoteHits": 0
+      },
+      "build": {
+        "executed": 0,
+        "remoteHits": 0
+      },
+      "compiles": null
+    },
+    {
+      "kind": "diamond",
+      "case": "added-source",
+      "accepted": true,
+      "seconds": 9.771265208022669,
+      "planBytes": 695606,
+      "downloadBytes": 30,
+      "discovery": {
+        "executed": 1,
+        "remoteHits": 0
+      },
+      "binding": {
+        "executed": 1,
+        "remoteHits": 0
+      },
+      "build": {
+        "executed": 1,
+        "remoteHits": 0
+      },
+      "compiles": 4
+    },
+    {
+      "kind": "diamond",
+      "case": "live-mutation",
+      "accepted": false,
+      "seconds": 6.4502203749725595,
+      "planBytes": null,
+      "downloadBytes": 349185,
+      "discovery": {
+        "executed": 0,
+        "remoteHits": 1
+      },
+      "binding": {
+        "executed": 1,
+        "remoteHits": 0
+      },
+      "build": {
+        "executed": 1,
+        "remoteHits": 0
+      },
+      "compiles": 1
+    },
+    {
+      "kind": "serilog",
+      "case": "producer",
+      "accepted": true,
+      "seconds": 16.75655154202832,
+      "planBytes": 1758148,
+      "downloadBytes": 40,
+      "discovery": {
+        "executed": 1,
+        "remoteHits": 0
+      },
+      "binding": {
+        "executed": 1,
+        "remoteHits": 0
+      },
+      "build": {
+        "executed": 1,
+        "remoteHits": 0
+      },
+      "compiles": 2
+    },
+    {
+      "kind": "serilog",
+      "case": "fresh-hit",
+      "accepted": true,
+      "seconds": 6.040343208995182,
+      "planBytes": 1758148,
+      "downloadBytes": 22512866,
+      "discovery": {
+        "executed": 0,
+        "remoteHits": 1
+      },
+      "binding": {
+        "executed": 0,
+        "remoteHits": 1
+      },
+      "build": {
+        "executed": 0,
+        "remoteHits": 1
+      },
+      "compiles": 0
+    },
+    {
+      "kind": "serilog",
+      "case": "warm-0",
+      "accepted": true,
+      "seconds": 2.844326040998567,
+      "planBytes": 1758148,
+      "downloadBytes": 0,
+      "discovery": {
+        "executed": 0,
+        "remoteHits": 0
+      },
+      "binding": {
+        "executed": 0,
+        "remoteHits": 0
+      },
+      "build": {
+        "executed": 0,
+        "remoteHits": 0
+      },
+      "compiles": 0
+    },
+    {
+      "kind": "serilog",
+      "case": "warm-1",
+      "accepted": true,
+      "seconds": 2.7490632080007344,
+      "planBytes": 1758148,
+      "downloadBytes": 0,
+      "discovery": {
+        "executed": 0,
+        "remoteHits": 0
+      },
+      "binding": {
+        "executed": 0,
+        "remoteHits": 0
+      },
+      "build": {
+        "executed": 0,
+        "remoteHits": 0
+      },
+      "compiles": 0
+    },
+    {
+      "kind": "serilog",
+      "case": "warm-2",
+      "accepted": true,
+      "seconds": 2.572839832981117,
+      "planBytes": 1758148,
+      "downloadBytes": 0,
+      "discovery": {
+        "executed": 0,
+        "remoteHits": 0
+      },
+      "binding": {
+        "executed": 0,
+        "remoteHits": 0
+      },
+      "build": {
+        "executed": 0,
+        "remoteHits": 0
+      },
+      "compiles": 0
+    },
+    {
+      "kind": "serilog",
+      "case": "body-edit",
+      "accepted": true,
+      "seconds": 8.248003917047754,
+      "planBytes": 1758148,
+      "downloadBytes": 880564,
+      "discovery": {
+        "executed": 0,
+        "remoteHits": 1
+      },
+      "binding": {
+        "executed": 1,
+        "remoteHits": 0
+      },
+      "build": {
+        "executed": 1,
+        "remoteHits": 0
+      },
+      "compiles": 1
+    },
+    {
+      "kind": "serilog",
+      "case": "failed-test",
+      "accepted": false,
+      "seconds": 12.646743042045273,
+      "planBytes": null,
+      "downloadBytes": 880283,
+      "discovery": {
+        "executed": 1,
+        "remoteHits": 0
+      },
+      "binding": {
+        "executed": 0,
+        "remoteHits": 1
+      },
+      "build": {
+        "executed": 1,
+        "remoteHits": 0
+      },
+      "compiles": null
+    },
+    {
+      "kind": "serilog",
+      "case": "live-mutation",
+      "accepted": false,
+      "seconds": 10.512119624996558,
+      "planBytes": null,
+      "downloadBytes": 880574,
+      "discovery": {
+        "executed": 0,
+        "remoteHits": 1
+      },
+      "binding": {
+        "executed": 1,
+        "remoteHits": 0
+      },
+      "build": {
+        "executed": 1,
+        "remoteHits": 0
+      },
+      "compiles": 1
+    }
+  ]
+}

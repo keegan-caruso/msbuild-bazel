@@ -44,7 +44,7 @@ internal static class BazelOwnedWorkflow
             var prepared = Path.Combine(scratch, "prepared");
             var bound = Tools.ToDictionary(name => name, name => Tool(root, name), StringComparer.Ordinal);
             GraphPreparation.Run(new JsonObject { ["schemaVersion"] = 1, ["repository"] = root, ["workspace"] = workspace, ["manifest"] = graphPath, ["output"] = prepared, ["sdkRoot"] = sdk, ["sdkVersion"] = "10.0.400" }, bound, () => discovery.Export(request.String("entry")));
-            NativePlan.Materialize(prepared, graph, output, toolchain); discovery.Verify();
+            NativePlan.Materialize(prepared, graph, output, toolchain, includePayload: false); discovery.Verify();
             NativePlan.RequireSourceOnly(graph, request.Array("sourceNames").Select(n => n!.GetValue<string>()).ToHashSet(StringComparer.Ordinal));
             Json.Write(Path.Combine(diagnostics, "report.json"), new JsonObject { ["accepted"] = true, ["seconds"] = clock.Elapsed.TotalSeconds, ["projects"] = graph.Array("nodes").Count });
         }
@@ -202,7 +202,7 @@ internal static class BazelOwnedWorkflow
         JsonArray Files(string directory) => Json.Strings(FileTree.Files(Path.Combine(generated, directory)).Select(p => Path.GetRelativePath(generated, p)));
         var build = "load(\":preparation.bzl\", \"msbuild_prepare\")\nload(\":native_cache.bzl\", \"msbuild_native_cache\")\nload(\":native_test.bzl\", \"native_test\")\n";
         build += Starlark.Call("msbuild_prepare", new JsonObject { ["name"] = "prepare", ["project"] = entry, ["srcs"] = Files("inputs"), ["controller"] = Files("controller"), ["runner"] = "controller/tools/Preparation/bin/Release/net10.0/Preparation.dll", ["host"] = "host.json", ["runtime_roots"] = Json.Strings(runtimeRoots), ["sdk"] = "@dotnet//:files", ["dotnet"] = "@dotnet//:sdk/dotnet" });
-        build += Starlark.Call("msbuild_native_cache", new JsonObject { ["name"] = "build", ["project"] = entry, ["prepared_plan"] = ":prepare", ["seeds"] = Files("seeds"), ["runner"] = "controller/tools/NativeProjectCache/bin/Release/net10.0/NativeProjectCache.dll", ["runner_support"] = Files("controller").DeepClone(), ["sdk"] = "@dotnet//:files", ["dotnet"] = "@dotnet//:sdk/dotnet" });
+        build += Starlark.Call("msbuild_native_cache", new JsonObject { ["name"] = "build", ["project"] = entry, ["prepared_plan"] = ":prepare", ["direct_inputs"] = Files("inputs"), ["seeds"] = Files("seeds"), ["runner"] = "controller/tools/NativeProjectCache/bin/Release/net10.0/NativeProjectCache.dll", ["runner_support"] = Files("controller").DeepClone(), ["sdk"] = "@dotnet//:files", ["dotnet"] = "@dotnet//:sdk/dotnet" });
         if (tests is not null)
         {
             var data = new JsonArray(); var hashes = new JsonObject(); var testData = Path.Combine(generated, "test-data"); FileTree.Remove(testData); Directory.CreateDirectory(testData);

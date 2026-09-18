@@ -49,6 +49,9 @@ def run(a):
                         report['cases'].append(dict(kind=kind,case=label,result=value));save()
                         if value['accepted']==expect_failure or (p.returncode!=0)!=expect_failure:raise RuntimeError('Unexpected result: '+str(base/'command.log'))
                         if not expect_failure:
+                            plans=[base/'state/g/bazel-bin'/name for name in ['prepare.discovery','prepare.plan']]
+                            value['planBytes']=sum(p.stat().st_size for folder in plans for p in folder.rglob('*') if p.is_file())
+                            assert all(not (folder/'src').exists() for folder in plans)
                             app=base/'state/g/bazel-bin/build.bundle/app';value['managedHashes']=hashes(app)
                             if kind=='diamond':value['applicationOutput']=subprocess.check_output([str(SDK/'dotnet'),str(app/'N0003.dll')],text=True).strip()
                             else:assert value['test']['passed']

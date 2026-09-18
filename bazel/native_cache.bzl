@@ -8,6 +8,8 @@ def _native_impl(ctx):
     diagnostics = ctx.actions.declare_directory(ctx.label.name + ".diagnostics")
     request = ctx.actions.declare_file(ctx.label.name + ".request.json")
     plan = ctx.file.prepared_plan
+    if ctx.files.direct_inputs and (not plan or ctx.files.srcs):
+        fail("direct_inputs require a prepared plan and no legacy srcs")
     if not plan and (not ctx.file.manifest or not ctx.file.restore):
         fail("manifest and restore or prepared_plan required")
     ctx.actions.write(request, json.encode({
@@ -18,7 +20,7 @@ def _native_impl(ctx):
         "manifest": plan.path + "/manifest.json" if plan else ctx.file.manifest.path,
         "preparedPlan": plan.path if plan else None,
         "restore": plan.path + "/restore.json" if plan else ctx.file.restore.path,
-        "sources": [{"source": f.path, "destination": f.short_path.removeprefix("src/")} for f in ctx.files.srcs],
+        "sources": [{"source": f.path, "destination": f.short_path.removeprefix("inputs/")} for f in ctx.files.direct_inputs] if ctx.files.direct_inputs else [{"source": f.path, "destination": f.short_path.removeprefix("src/")} for f in ctx.files.srcs],
         "seeds": [{"source": f.path, "destination": f.short_path.removeprefix("seeds/")} for f in ctx.files.seeds],
         "readProbe": ctx.attr.read_probe or None,
         "networkProbe": ctx.attr.network_probe or None,
@@ -27,7 +29,7 @@ def _native_impl(ctx):
     ctx.actions.run(
         executable = ctx.executable.dotnet,
         arguments = [ctx.file.runner.path, "--portable-request", request.path],
-        inputs = depset(ctx.files.srcs + ctx.files.seeds + ctx.files.runner_support + [ctx.file.runner, request] + ([plan] if plan else [ctx.file.manifest, ctx.file.restore]), transitive = [ctx.attr.sdk[DefaultInfo].files]),
+        inputs = depset(ctx.files.srcs + ctx.files.direct_inputs + ctx.files.seeds + ctx.files.runner_support + [ctx.file.runner, request] + ([plan] if plan else [ctx.file.manifest, ctx.file.restore]), transitive = [ctx.attr.sdk[DefaultInfo].files]),
         outputs = [output, diagnostics],
         env = {"PATH": "/usr/bin:/bin", "LANG": "en_US.UTF-8"},
         mnemonic = "MsbuildNativeCache",
@@ -39,6 +41,7 @@ msbuild_native_cache = rule(implementation = _native_impl, attrs = {
     "project": attr.string(mandatory = True),
     "srcs": attr.label_list(allow_files = True),
     "seeds": attr.label_list(allow_files = True),
+    "direct_inputs": attr.label_list(allow_files = True),
     "prepared_plan": attr.label(allow_single_file = True),
     "manifest": attr.label(allow_single_file = True),
     "restore": attr.label(allow_single_file = True),

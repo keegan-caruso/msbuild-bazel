@@ -22,12 +22,6 @@ internal static class Program
         {
             if (args is not ["--portable-request", var file]) throw new ArgumentException("expected --portable-request PATH");
             var request = JsonSerializer.Deserialize<RunnerRequest>(File.ReadAllText(file), Json)!;
-            if (request.PreparedPlan is not null)
-            {
-                if (request.Sources.Length != 0) throw new InvalidDataException("Prepared plan cannot also supply explicit sources");
-                var planSources = Path.Combine(request.PreparedPlan, "src");
-                request = request with { Sources = Directory.EnumerateFiles(planSources, "*", SearchOption.AllDirectories).Select(path => new RunnerFile(path, Path.GetRelativePath(planSources, path))).ToArray() };
-            }
             var output = Path.GetFullPath(request.Output);
             var diagnostics = Path.GetFullPath(request.Diagnostics);
             diagnosticsPath = diagnostics;
@@ -39,6 +33,42 @@ internal static class Program
             Directory.CreateDirectory(workspace); Directory.CreateDirectory(diagnostics);
             var cache = Path.Combine(output, "cache"); Directory.CreateDirectory(cache);
             var sdk = Path.GetDirectoryName(Environment.ProcessPath!)!;
+            if (request.PreparedPlan is not null)
+            {
+                var payloadPath = Path.Combine(request.PreparedPlan, "payload.json");
+                if (File.Exists(payloadPath))
+                {
+                    var declared = request.Sources.ToDictionary(input => input.Destination, input => input.Source, OperatingSystem.IsMacOS() ? StringComparer.OrdinalIgnoreCase : StringComparer.Ordinal);
+                    var payload = JsonSerializer.Deserialize<Dictionary<string, string>>(File.ReadAllText(payloadPath), Json)!;
+                    var selectedSources = new List<RunnerFile>();
+                    foreach (var (name, hash) in payload)
+                    {
+                        if (!Files.ValidRelativePath(name)) throw new InvalidDataException("Invalid prepared payload path");
+                        if (!declared.TryGetValue(name, out var source))
+                        {
+                            // NuGet omits ZIP packaging metadata from its installed cache.
+                            // Recover only those known omissions from the declared archive.
+                            var parts = name.Split('/', 5);
+                            if (parts.Length != 5 || parts[0] != ".nuget" || parts[1] != "packages" ||
+                                !(parts[4] is "[Content_Types].xml" or "_rels/.rels" || parts[4].StartsWith("package/services/metadata/core-properties/", StringComparison.Ordinal)) ||
+                                !declared.TryGetValue(string.Join('/', parts.Take(4)) + "/" + parts[2] + "." + parts[3] + ".nupkg", out var archive)) throw new InvalidDataException("Missing declared package payload: " + name);
+                            using var zip = System.IO.Compression.ZipFile.OpenRead(archive);
+                            var entry = zip.GetEntry(parts[4]) ?? throw new InvalidDataException("Missing declared package archive entry: " + name);
+                            source = Path.Combine(scratch, "package-inputs", name); Directory.CreateDirectory(Path.GetDirectoryName(source)!);
+                            using (var input = entry.Open()) using (var target = File.Create(source)) input.CopyTo(target);
+                        }
+                        if (Files.Hash(source) != hash) throw new InvalidDataException("Prepared payload differs from declared input: " + name);
+                        selectedSources.Add(new RunnerFile(source, name));
+                    }
+                    request = request with { Sources = selectedSources.ToArray() };
+                }
+                else
+                {
+                    if (request.Sources.Length != 0) throw new InvalidDataException("Prepared plan cannot also supply explicit sources");
+                    var planSources = Path.Combine(request.PreparedPlan, "src");
+                    request = request with { Sources = Directory.EnumerateFiles(planSources, "*", SearchOption.AllDirectories).Select(path => new RunnerFile(path, Path.GetRelativePath(planSources, path))).ToArray() };
+                }
+            }
             foreach (var input in request.Sources)
             {
                 if (!Files.ValidRelativePath(input.Destination)) throw new InvalidDataException("invalid source path");

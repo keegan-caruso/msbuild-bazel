@@ -21,12 +21,13 @@ internal static class NativePlan
         }
         return nodes;
     }
-    public static void Materialize(string prepared, JsonNode graph, string output, string toolchain)
+    public static void Materialize(string prepared, JsonNode graph, string output, string toolchain, bool includePayload = true)
     {
         var nodes = Qualify(graph); Directory.CreateDirectory(output);
-        FileTree.Copy(Path.Combine(prepared, "src"), Path.Combine(output, "src"));
+        var sourceRoot = Path.Combine(prepared, "src");
+        if (includePayload) FileTree.Copy(sourceRoot, Path.Combine(output, "src"));
         var packageRoot = Path.Combine(prepared, "packages");
-        if (Directory.Exists(packageRoot)) FileTree.Copy(packageRoot, Path.Combine(output, "src/.nuget/packages"));
+        if (includePayload && Directory.Exists(packageRoot)) FileTree.Copy(packageRoot, Path.Combine(output, "src/.nuget/packages"));
         var restore = new JsonObject(); var projects = new JsonObject(); var records = new JsonObject();
         foreach (var (id, node) in nodes)
         {
@@ -48,15 +49,22 @@ internal static class NativePlan
                 else
                 {
                     var path = Host.Relative(logical);
-                    if (!path.Contains("/obj/", StringComparison.Ordinal)) inputs[logical] = Json.Sha(File.ReadAllBytes(Path.Combine(output, "src", path)));
+                    if (!path.Contains("/obj/", StringComparison.Ordinal)) inputs[logical] = Json.Sha(File.ReadAllBytes(Path.Combine(sourceRoot, path)));
                 }
             }
             foreach (var name in new[] { "global.json", "NuGet.Config", "NuGet.config", "Directory.Build.props", "Directory.Build.targets" })
-                if (File.Exists(Path.Combine(output, "src", name))) inputs["workspace/" + name] = Json.Sha(File.ReadAllBytes(Path.Combine(output, "src", name)));
+                if (File.Exists(Path.Combine(sourceRoot, name))) inputs["workspace/" + name] = Json.Sha(File.ReadAllBytes(Path.Combine(sourceRoot, name)));
             var project = Host.Relative(node.String("project"));
             var record = new JsonObject { ["policy"] = Policy, ["inputs"] = inputs, ["restore"] = selected, ["packages"] = packages, ["configuration"] = node["globalProperties"]!.DeepClone(), ["graphInputs"] = graph["graphInputs"]?.DeepClone() ?? new JsonArray() };
             records[project] = record;
             projects[project] = new JsonObject { ["identity"] = Json.Digest(record), ["dependencies"] = Json.Strings(node.Array("dependencies").Select(d => Host.Relative(nodes[d!.GetValue<string>()].String("project")))) };
+        }
+        if (!includePayload)
+        {
+            var payload = new JsonObject();
+            foreach (var path in FileTree.Files(sourceRoot)) payload[Path.GetRelativePath(sourceRoot, path)] = FileTree.HashRegular(path).Digest;
+            if (Directory.Exists(packageRoot)) foreach (var path in FileTree.Files(packageRoot)) payload[".nuget/packages/" + Path.GetRelativePath(packageRoot, path)] = FileTree.HashRegular(path).Digest;
+            Json.Write(Path.Combine(output, "payload.json"), payload);
         }
         Json.Write(Path.Combine(output, "identity-records.json"), records);
         Json.Write(Path.Combine(output, "manifest.json"), new JsonObject { ["policy"] = Policy, ["toolchain"] = toolchain, ["projects"] = projects });
@@ -68,7 +76,7 @@ internal static class NativePlan
     public static void RequireSourceOnly(JsonNode graph, HashSet<string> names)
     {
         foreach (var item in graph.Array("nodes").SelectMany(n => n!.Array("inputs")).Concat(graph["graphInputs"] as JsonArray ?? []))
-            if (item!.String("path").StartsWith("workspace/", StringComparison.Ordinal) && names.Contains(Host.Relative(item.String("path"))) && item.String("kind") != "source")
+            if (item!.String("path").StartsWith("workspace/", StringComparison.Ordinal) && (names.Contains(Host.Relative(item.String("path"))) || OperatingSystem.IsMacOS() && names.Any(name => name.Equals(Host.Relative(item.String("path")), StringComparison.OrdinalIgnoreCase))) && item.String("kind") != "source")
                 throw new InvalidDataException("Source-content split requires a compile-only input: " + item!.String("path"));
     }
     public static void BindSources(JsonNode request)
@@ -81,18 +89,29 @@ internal static class NativePlan
             FileTree.SetMode(target, FileTree.Mode(target) | UnixFileMode.UserWrite);
         }
         var graph = Json.Read(Path.Combine(output, "graph.json"));
-        var sources = request.Array("sources").ToDictionary(n => Host.Safe(n!.String("destination")), n => n!.String("source"), StringComparer.Ordinal);
+        var pathComparer = OperatingSystem.IsMacOS() ? StringComparer.OrdinalIgnoreCase : StringComparer.Ordinal;
+        var sources = request.Array("sources").ToDictionary(n => Host.Safe(n!.String("destination")), n => n!.String("source"), pathComparer);
         RequireSourceOnly(graph, sources.Keys.ToHashSet(StringComparer.Ordinal));
-        var hashes = sources.ToDictionary(p => "workspace/" + p.Key, p => FileTree.HashRegular(Host.Real(p.Value)).Digest, StringComparer.Ordinal);
+        var payloadPath = Path.Combine(output, "payload.json");
+        var payload = File.Exists(payloadPath) ? Json.Read(payloadPath) : null;
+        var hashes = sources.ToDictionary(p => "workspace/" + p.Key, p => FileTree.HashRegular(Host.Real(p.Value)).Digest, pathComparer);
         foreach (var (name, source) in sources)
-            if (File.Exists(Path.Combine(output, "src", name))) Host.Copy(source, Path.Combine(output, "src", name));
+        {
+            if (payload is not null) continue;
+            else if (File.Exists(Path.Combine(output, "src", name))) Host.Copy(source, Path.Combine(output, "src", name));
+        }
+        if (payload is not null)
+        {
+            foreach (var name in payload.AsObject().Select(p => p.Key).ToArray()) if (hashes.TryGetValue("workspace/" + name, out var hash)) payload[name] = hash;
+            Json.Write(payloadPath, payload);
+        }
         foreach (var item in graph.Array("nodes").SelectMany(n => n!.Array("inputs")).Concat(graph["graphInputs"] as JsonArray ?? []))
             if (hashes.TryGetValue(item!.String("path"), out var hash)) item!["sha256"] = hash;
         var records = Json.Read(Path.Combine(output, "identity-records.json")); var manifest = Json.Read(Path.Combine(output, "manifest.json"));
         foreach (var (project, record) in records.AsObject())
         {
             if (Json.Digest(record!) != manifest["projects"]![project]!.String("identity")) throw new InvalidDataException("Corrupt discovery identity");
-            foreach (var (name, hash) in hashes) if (record!["inputs"]!.AsObject().ContainsKey(name)) record["inputs"]![name] = hash;
+            foreach (var name in record!["inputs"]!.AsObject().Select(p => p.Key).ToArray()) if (hashes.TryGetValue(name, out var hash)) record["inputs"]![name] = hash;
             record!["graphInputs"] = graph["graphInputs"]?.DeepClone() ?? new JsonArray();
             manifest["projects"]![project]!["identity"] = Json.Digest(record);
         }
