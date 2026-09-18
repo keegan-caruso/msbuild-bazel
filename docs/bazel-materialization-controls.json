@@ -1,0 +1,234 @@
+{
+  "accepted": true,
+  "revision": "318918bf5b77cb63702af945f33d70892bc54344",
+  "source": "/private/tmp/ba-controls/report.json",
+  "sha256": "fbfbf9ef42fcc13bcbfc71b7a1d0729882d82087895739f2a7c7fc84e7ee56db",
+  "pythonDeniedInChildPath": true,
+  "producerCompiles": 2,
+  "cases": [
+    {
+      "case": "local-unchanged",
+      "expectedRejection": false,
+      "accepted": true,
+      "compiles": 0,
+      "snapshotPublished": true,
+      "transport": {
+        "requests": 55,
+        "downloadBytes": 0,
+        "uploadBytes": 0,
+        "hits": 0,
+        "misses": 0,
+        "errors": 0,
+        "requestSeconds": 0.6749299152288586
+      }
+    },
+    {
+      "case": "local-body",
+      "expectedRejection": false,
+      "accepted": true,
+      "compiles": 1,
+      "snapshotPublished": true,
+      "transport": {
+        "requests": 60,
+        "downloadBytes": 0,
+        "uploadBytes": 573190,
+        "hits": 0,
+        "misses": 5,
+        "errors": 0,
+        "requestSeconds": 0.7246432548272423
+      }
+    },
+    {
+      "case": "local-malformed-proof",
+      "expectedRejection": false,
+      "accepted": true,
+      "compiles": 0,
+      "snapshotPublished": true,
+      "transport": {
+        "requests": 55,
+        "downloadBytes": 0,
+        "uploadBytes": 0,
+        "hits": 0,
+        "misses": 0,
+        "errors": 0,
+        "requestSeconds": 0.7067017929512076
+      }
+    },
+    {
+      "case": "unchanged",
+      "expectedRejection": false,
+      "accepted": true,
+      "compiles": 0,
+      "snapshotPublished": true,
+      "transport": {
+        "requests": 90,
+        "downloadBytes": 4639036,
+        "uploadBytes": 136346,
+        "hits": 33,
+        "misses": 2,
+        "errors": 0,
+        "requestSeconds": 1.100157582666725
+      }
+    },
+    {
+      "case": "body",
+      "expectedRejection": false,
+      "accepted": true,
+      "compiles": 1,
+      "snapshotPublished": true,
+      "transport": {
+        "requests": 92,
+        "downloadBytes": 4430734,
+        "uploadBytes": 573183,
+        "hits": 32,
+        "misses": 5,
+        "errors": 0,
+        "requestSeconds": 1.163615251891315
+      }
+    },
+    {
+      "case": "api",
+      "expectedRejection": true,
+      "accepted": false,
+      "compiles": 2,
+      "snapshotPublished": false,
+      "transport": {
+        "requests": 32,
+        "downloadBytes": 4430734,
+        "uploadBytes": 0,
+        "hits": 32,
+        "misses": 0,
+        "errors": 0,
+        "requestSeconds": 0.3955109149683267
+      }
+    },
+    {
+      "case": "package",
+      "expectedRejection": false,
+      "accepted": true,
+      "compiles": 2,
+      "snapshotPublished": true,
+      "transport": {
+        "requests": 38,
+        "downloadBytes": 4430734,
+        "uploadBytes": 4044010,
+        "hits": 32,
+        "misses": 3,
+        "errors": 0,
+        "requestSeconds": 0.482881959003862
+      }
+    },
+    {
+      "case": "corrupt-preparation",
+      "expectedRejection": false,
+      "accepted": true,
+      "compiles": 0,
+      "snapshotPublished": true,
+      "transport": {
+        "requests": 61,
+        "downloadBytes": 4042608,
+        "uploadBytes": 136369,
+        "hits": 4,
+        "misses": 2,
+        "errors": 0,
+        "requestSeconds": 0.7153778322390281
+      }
+    },
+    {
+      "case": "corrupt-project",
+      "expectedRejection": false,
+      "accepted": true,
+      "compiles": 2,
+      "snapshotPublished": true,
+      "transport": {
+        "requests": 92,
+        "downloadBytes": 598421,
+        "uploadBytes": 4176987,
+        "hits": 33,
+        "misses": 2,
+        "errors": 0,
+        "requestSeconds": 1.147678125067614
+      }
+    },
+    {
+      "case": "namespace",
+      "expectedRejection": false,
+      "accepted": true,
+      "compiles": 2,
+      "snapshotPublished": true,
+      "transport": {
+        "requests": 93,
+        "downloadBytes": 4430734,
+        "uploadBytes": 4406256,
+        "hits": 32,
+        "misses": 6,
+        "errors": 0,
+        "requestSeconds": 1.1853057591360994
+      }
+    },
+    {
+      "case": "missing-global",
+      "expectedRejection": true,
+      "accepted": false,
+      "compiles": null,
+      "snapshotPublished": false,
+      "transport": {
+        "requests": 0,
+        "downloadBytes": 0,
+        "uploadBytes": 0,
+        "hits": 0,
+        "misses": 0,
+        "errors": 0,
+        "requestSeconds": 0
+      }
+    },
+    {
+      "case": "tampered-global",
+      "expectedRejection": true,
+      "accepted": false,
+      "compiles": null,
+      "snapshotPublished": false,
+      "transport": {
+        "requests": 32,
+        "downloadBytes": 1558011,
+        "uploadBytes": 0,
+        "hits": 32,
+        "misses": 0,
+        "errors": 0,
+        "requestSeconds": 0.40259741415502504
+      }
+    },
+    {
+      "case": "lease-mutation",
+      "expectedRejection": true,
+      "accepted": false,
+      "compiles": 0,
+      "snapshotPublished": false,
+      "transport": {
+        "requests": 33,
+        "downloadBytes": 4639036,
+        "uploadBytes": 0,
+        "hits": 33,
+        "misses": 0,
+        "errors": 0,
+        "requestSeconds": 0.3967136221472174
+      }
+    },
+    {
+      "case": "failed-test",
+      "expectedRejection": true,
+      "accepted": false,
+      "compiles": 0,
+      "snapshotPublished": false,
+      "transport": {
+        "requests": 33,
+        "downloadBytes": 4639036,
+        "uploadBytes": 0,
+        "hits": 33,
+        "misses": 0,
+        "errors": 0,
+        "requestSeconds": 0.40512150118593127
+      }
+    }
+  ]
+}

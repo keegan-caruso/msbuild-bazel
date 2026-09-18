@@ -1,0 +1,1678 @@
+[
+  {
+    "source": "/private/tmp/ba-profile/report.json",
+    "sha256": "4baae37afb287130342222c43fe18ae21807762efe93d75dda20054358b52d8b",
+    "revision": "55d23bcf61d7ae92aa5811a29c4b6368c2913615",
+    "accepted": true,
+    "samples": [
+      {
+        "kind": "diamond",
+        "case": "unchanged",
+        "repetition": 0,
+        "profileSha256": "d51d5f6ec898998e00a6c5691daa521acb6b031998d1cca03603df38d75bb779",
+        "bazelVersion": "release 8.4.2- (@non-git)",
+        "launchSeconds": 0.483,
+        "extractSeconds": 0.0,
+        "moduleMappingSeconds": 0.115235,
+        "downloadSpans": 132,
+        "downloadUnionSeconds": 0.023598,
+        "criticalPathSeconds": 0.560685,
+        "sandboxCreateSeconds": 0.197461,
+        "phases": {
+          "Initialize command": 0.272511,
+          "Evaluate target patterns": 0.113684,
+          "Load, analyze dependencies and build artifacts": 1.321763
+        },
+        "actions": {
+          "BazelWorkspaceStatusAction stable-status.txt": 0.009699,
+          "Writing file build.request.json": 0.001512,
+          "MsbuildNativeCache build.bundle": 0.559735
+        },
+        "configuredTargets": 4969,
+        "sdkPackageLoads": 1,
+        "sdkInputs": [
+          {
+            "mnemonic": "MsbuildNativeCache",
+            "count": 4906,
+            "bytes": 669469503,
+            "sha256": "91bbaa17d58d09cf4784188ae072ec10af9a47ca643b89217cffa3ea2988816f"
+          }
+        ],
+        "sdkPackageSeconds": 0.045454,
+        "beforeFirstBuildActionSeconds": 0.747269,
+        "runfilesSeconds": 0.0,
+        "sandboxInputsSeconds": 0.172334,
+        "runner": {
+          "sourceAndRestore": 0.0200057,
+          "seedCopy": 0.0066073,
+          "sessionSetup": 0.0079262,
+          "msbuild": 0.2348164,
+          "selectBundles": 0.0032492,
+          "validateEntry": 0.0032248,
+          "runtimeCopy": 0.0042106,
+          "runtimeSeal": 0.0033584,
+          "appCopy": 0.0011289,
+          "cleanup": 0.0037993
+        },
+        "test": {}
+      },
+      {
+        "kind": "diamond",
+        "case": "body",
+        "repetition": 0,
+        "profileSha256": "c213f7d7fc0535a13b65c36e1a63a96a74782faba0aef50333cad98663bcffcc",
+        "bazelVersion": "release 8.4.2- (@non-git)",
+        "launchSeconds": 0.468,
+        "extractSeconds": 0.0,
+        "moduleMappingSeconds": 0.111775,
+        "downloadSpans": 132,
+        "downloadUnionSeconds": 0.024261,
+        "criticalPathSeconds": 1.060106,
+        "sandboxCreateSeconds": 0.195617,
+        "phases": {
+          "Initialize command": 0.264825,
+          "Evaluate target patterns": 0.112145,
+          "Load, analyze dependencies and build artifacts": 1.822279
+        },
+        "actions": {
+          "BazelWorkspaceStatusAction stable-status.txt": 0.00749,
+          "Writing file build.request.json": 0.001622,
+          "MsbuildNativeCache build.bundle": 1.058975
+        },
+        "configuredTargets": 4962,
+        "sdkPackageLoads": 1,
+        "sdkInputs": [
+          {
+            "mnemonic": "MsbuildNativeCache",
+            "count": 4906,
+            "bytes": 669469503,
+            "sha256": "91bbaa17d58d09cf4784188ae072ec10af9a47ca643b89217cffa3ea2988816f"
+          }
+        ],
+        "sdkPackageSeconds": 0.050495,
+        "beforeFirstBuildActionSeconds": 0.748644,
+        "runfilesSeconds": 0.0,
+        "sandboxInputsSeconds": 0.170232,
+        "runner": {
+          "sourceAndRestore": 0.0195104,
+          "seedCopy": 0.0054615,
+          "sessionSetup": 0.007114,
+          "msbuild": 0.7361652,
+          "selectBundles": 0.0033942,
+          "validateEntry": 0.0035272,
+          "runtimeCopy": 0.0042711,
+          "runtimeSeal": 0.0033159,
+          "appCopy": 0.0011328,
+          "cleanup": 0.0046634
+        },
+        "test": {}
+      },
+      {
+        "kind": "diamond",
+        "case": "unchanged",
+        "repetition": 1,
+        "profileSha256": "03c743c050f28a8a5b09f337f0ee5e242eb63adb83359d5a917d9f2feb612996",
+        "bazelVersion": "release 8.4.2- (@non-git)",
+        "launchSeconds": 0.48,
+        "extractSeconds": 0.0,
+        "moduleMappingSeconds": 0.114151,
+        "downloadSpans": 132,
+        "downloadUnionSeconds": 0.027171,
+        "criticalPathSeconds": 0.562104,
+        "sandboxCreateSeconds": 0.199424,
+        "phases": {
+          "Initialize command": 0.267905,
+          "Evaluate target patterns": 0.109926,
+          "Load, analyze dependencies and build artifacts": 1.309326
+        },
+        "actions": {
+          "BazelWorkspaceStatusAction stable-status.txt": 0.008819,
+          "Writing file build.request.json": 0.001592,
+          "MsbuildNativeCache build.bundle": 0.561121
+        },
+        "configuredTargets": 4969,
+        "sdkPackageLoads": 1,
+        "sdkInputs": [
+          {
+            "mnemonic": "MsbuildNativeCache",
+            "count": 4906,
+            "bytes": 669469503,
+            "sha256": "91bbaa17d58d09cf4784188ae072ec10af9a47ca643b89217cffa3ea2988816f"
+          }
+        ],
+        "sdkPackageSeconds": 0.049077,
+        "beforeFirstBuildActionSeconds": 0.734053,
+        "runfilesSeconds": 0.0,
+        "sandboxInputsSeconds": 0.173328,
+        "runner": {
+          "sourceAndRestore": 0.0188646,
+          "seedCopy": 0.0066739,
+          "sessionSetup": 0.0071525,
+          "msbuild": 0.2333574,
+          "selectBundles": 0.0034583,
+          "validateEntry": 0.0033239,
+          "runtimeCopy": 0.0042293,
+          "runtimeSeal": 0.0036375,
+          "appCopy": 0.0011596,
+          "cleanup": 0.0042445
+        },
+        "test": {}
+      },
+      {
+        "kind": "diamond",
+        "case": "body",
+        "repetition": 1,
+        "profileSha256": "0a3fb5550c9d263f5d56d3bcf77572ebd24f038f6b7296417b94402fc473006c",
+        "bazelVersion": "release 8.4.2- (@non-git)",
+        "launchSeconds": 0.495,
+        "extractSeconds": 0.0,
+        "moduleMappingSeconds": 0.115027,
+        "downloadSpans": 132,
+        "downloadUnionSeconds": 0.024519,
+        "criticalPathSeconds": 1.068845,
+        "sandboxCreateSeconds": 0.198631,
+        "phases": {
+          "Initialize command": 0.268855,
+          "Evaluate target patterns": 0.109198,
+          "Load, analyze dependencies and build artifacts": 1.838385
+        },
+        "actions": {
+          "BazelWorkspaceStatusAction stable-status.txt": 0.009668,
+          "Writing file build.request.json": 0.001469,
+          "MsbuildNativeCache build.bundle": 1.067958
+        },
+        "configuredTargets": 4962,
+        "sdkPackageLoads": 1,
+        "sdkInputs": [
+          {
+            "mnemonic": "MsbuildNativeCache",
+            "count": 4906,
+            "bytes": 669469503,
+            "sha256": "91bbaa17d58d09cf4784188ae072ec10af9a47ca643b89217cffa3ea2988816f"
+          }
+        ],
+        "sdkPackageSeconds": 0.051815,
+        "beforeFirstBuildActionSeconds": 0.755804,
+        "runfilesSeconds": 0.0,
+        "sandboxInputsSeconds": 0.173042,
+        "runner": {
+          "sourceAndRestore": 0.0191042,
+          "seedCopy": 0.0054808,
+          "sessionSetup": 0.0076585,
+          "msbuild": 0.7401176,
+          "selectBundles": 0.0035007,
+          "validateEntry": 0.0037415,
+          "runtimeCopy": 0.0042917,
+          "runtimeSeal": 0.0036413,
+          "appCopy": 0.0011144,
+          "cleanup": 0.0046799
+        },
+        "test": {}
+      },
+      {
+        "kind": "diamond",
+        "case": "unchanged",
+        "repetition": 2,
+        "profileSha256": "7e920ee903aaf9c328cd4d60a994a71297a3c17ad4e7fed098cf59eb7d045ce1",
+        "bazelVersion": "release 8.4.2- (@non-git)",
+        "launchSeconds": 0.475,
+        "extractSeconds": 0.0,
+        "moduleMappingSeconds": 0.118677,
+        "downloadSpans": 132,
+        "downloadUnionSeconds": 0.025827,
+        "criticalPathSeconds": 0.575267,
+        "sandboxCreateSeconds": 0.197371,
+        "phases": {
+          "Initialize command": 0.270183,
+          "Evaluate target patterns": 0.106969,
+          "Load, analyze dependencies and build artifacts": 1.337137
+        },
+        "actions": {
+          "BazelWorkspaceStatusAction stable-status.txt": 0.013351,
+          "Writing file build.request.json": 0.004165,
+          "MsbuildNativeCache build.bundle": 0.571649
+        },
+        "configuredTargets": 4969,
+        "sdkPackageLoads": 1,
+        "sdkInputs": [
+          {
+            "mnemonic": "MsbuildNativeCache",
+            "count": 4906,
+            "bytes": 669469503,
+            "sha256": "91bbaa17d58d09cf4784188ae072ec10af9a47ca643b89217cffa3ea2988816f"
+          }
+        ],
+        "sdkPackageSeconds": 0.048568,
+        "beforeFirstBuildActionSeconds": 0.751088,
+        "runfilesSeconds": 0.0,
+        "sandboxInputsSeconds": 0.171364,
+        "runner": {
+          "sourceAndRestore": 0.0188759,
+          "seedCopy": 0.0066692,
+          "sessionSetup": 0.0069948,
+          "msbuild": 0.2456619,
+          "selectBundles": 0.0033195,
+          "validateEntry": 0.0033614,
+          "runtimeCopy": 0.0042305,
+          "runtimeSeal": 0.0036423,
+          "appCopy": 0.0011142,
+          "cleanup": 0.0042268
+        },
+        "test": {}
+      },
+      {
+        "kind": "diamond",
+        "case": "body",
+        "repetition": 2,
+        "profileSha256": "d9d0973aee6ce65f3bbc39d376c9410f57b7de24889d11c32b91143c268561fc",
+        "bazelVersion": "release 8.4.2- (@non-git)",
+        "launchSeconds": 0.487,
+        "extractSeconds": 0.0,
+        "moduleMappingSeconds": 0.109544,
+        "downloadSpans": 132,
+        "downloadUnionSeconds": 0.024335,
+        "criticalPathSeconds": 1.068964,
+        "sandboxCreateSeconds": 0.200281,
+        "phases": {
+          "Initialize command": 0.262171,
+          "Evaluate target patterns": 0.107722,
+          "Load, analyze dependencies and build artifacts": 1.823088
+        },
+        "actions": {
+          "BazelWorkspaceStatusAction stable-status.txt": 0.008419,
+          "Writing file build.request.json": 0.001703,
+          "MsbuildNativeCache build.bundle": 1.067861
+        },
+        "configuredTargets": 4962,
+        "sdkPackageLoads": 1,
+        "sdkInputs": [
+          {
+            "mnemonic": "MsbuildNativeCache",
+            "count": 4906,
+            "bytes": 669469503,
+            "sha256": "91bbaa17d58d09cf4784188ae072ec10af9a47ca643b89217cffa3ea2988816f"
+          }
+        ],
+        "sdkPackageSeconds": 0.044927,
+        "beforeFirstBuildActionSeconds": 0.740603,
+        "runfilesSeconds": 0.0,
+        "sandboxInputsSeconds": 0.174605,
+        "runner": {
+          "sourceAndRestore": 0.0188665,
+          "seedCopy": 0.0053129,
+          "sessionSetup": 0.0067059,
+          "msbuild": 0.7394971,
+          "selectBundles": 0.003499,
+          "validateEntry": 0.0034301,
+          "runtimeCopy": 0.0042481,
+          "runtimeSeal": 0.0037117,
+          "appCopy": 0.0011604,
+          "cleanup": 0.0047045
+        },
+        "test": {}
+      },
+      {
+        "kind": "serilog",
+        "case": "unchanged",
+        "repetition": 0,
+        "profileSha256": "74a82f41ecfee50a94cab482d4acc515d9284cd73cf55bde446464c13cbb8665",
+        "bazelVersion": "release 8.4.2- (@non-git)",
+        "launchSeconds": 0.496,
+        "extractSeconds": 0.0,
+        "moduleMappingSeconds": 0.107479,
+        "downloadSpans": 132,
+        "downloadUnionSeconds": 0.029341,
+        "criticalPathSeconds": 2.155827,
+        "sandboxCreateSeconds": 0.461729,
+        "phases": {
+          "Initialize command": 0.268243,
+          "Evaluate target patterns": 0.168057,
+          "Load, analyze dependencies and build artifacts": 3.153835
+        },
+        "actions": {
+          "BazelWorkspaceStatusAction stable-status.txt": 0.007555,
+          "Writing script test.sh": 0.001444,
+          "Writing file test.request.json": 0.001249,
+          "Writing repo mapping manifest for //:test": 0.002166,
+          "Writing file build.request.json": 0.000944,
+          "Creating source manifest for //:test": 0.018017,
+          "Creating runfiles tree bazel-out/darwin_arm64-fastbuild/bin/test.sh.runfiles": 0.300044,
+          "MsbuildNativeCache build.bundle": 1.284739,
+          "Testing //:test": 0.868146
+        },
+        "configuredTargets": 5837,
+        "sdkPackageLoads": 1,
+        "sdkInputs": [
+          {
+            "mnemonic": "MsbuildNativeCache",
+            "count": 4906,
+            "bytes": 669469503,
+            "sha256": "91bbaa17d58d09cf4784188ae072ec10af9a47ca643b89217cffa3ea2988816f"
+          },
+          {
+            "mnemonic": "TestRunner",
+            "count": 4906,
+            "bytes": 669469503,
+            "sha256": "91bbaa17d58d09cf4784188ae072ec10af9a47ca643b89217cffa3ea2988816f"
+          }
+        ],
+        "sdkPackageSeconds": 0.059174,
+        "beforeFirstBuildActionSeconds": 0.976045,
+        "runfilesSeconds": 0.289124,
+        "sandboxInputsSeconds": 0.396175,
+        "runner": {
+          "sourceAndRestore": 0.1315076,
+          "seedCopy": 0.0233918,
+          "sessionSetup": 0.1919537,
+          "msbuild": 0.4001275,
+          "selectBundles": 0.0029739,
+          "validateEntry": 0.010083,
+          "runtimeCopy": 0.0514042,
+          "runtimeSeal": 0.0330091,
+          "appCopy": 0.0200072,
+          "cleanup": 0.0582794
+        },
+        "test": {
+          "selectBundle": 0.0169005,
+          "verifyAndCopyRuntime": 0.0254208,
+          "dataAndSetup": 0.0013998,
+          "vstest": 0.4287103
+        }
+      },
+      {
+        "kind": "serilog",
+        "case": "body",
+        "repetition": 0,
+        "profileSha256": "8bcba9aa0edf97ab1a3cf01793530b535d8f01dd8e9a265e5c92366997366ff5",
+        "bazelVersion": "release 8.4.2- (@non-git)",
+        "launchSeconds": 0.475,
+        "extractSeconds": 0.0,
+        "moduleMappingSeconds": 0.130432,
+        "downloadSpans": 132,
+        "downloadUnionSeconds": 0.029313,
+        "criticalPathSeconds": 2.82296,
+        "sandboxCreateSeconds": 0.497654,
+        "phases": {
+          "Initialize command": 0.301076,
+          "Evaluate target patterns": 0.172,
+          "Load, analyze dependencies and build artifacts": 3.703207
+        },
+        "actions": {
+          "BazelWorkspaceStatusAction stable-status.txt": 0.012956,
+          "Writing file test.request.json": 0.001404,
+          "Writing script test.sh": 0.002182,
+          "Writing repo mapping manifest for //:test": 0.00274,
+          "Writing file build.request.json": 0.001801,
+          "Creating source manifest for //:test": 0.016238,
+          "Creating runfiles tree bazel-out/darwin_arm64-fastbuild/bin/test.sh.runfiles": 0.306692,
+          "MsbuildNativeCache build.bundle": 1.888591,
+          "Testing //:test": 0.930803
+        },
+        "configuredTargets": 5829,
+        "sdkPackageLoads": 1,
+        "sdkInputs": [
+          {
+            "mnemonic": "MsbuildNativeCache",
+            "count": 4906,
+            "bytes": 669469503,
+            "sha256": "91bbaa17d58d09cf4784188ae072ec10af9a47ca643b89217cffa3ea2988816f"
+          },
+          {
+            "mnemonic": "TestRunner",
+            "count": 4906,
+            "bytes": 669469503,
+            "sha256": "91bbaa17d58d09cf4784188ae072ec10af9a47ca643b89217cffa3ea2988816f"
+          }
+        ],
+        "sdkPackageSeconds": 0.060176,
+        "beforeFirstBuildActionSeconds": 0.845561,
+        "runfilesSeconds": 0.297174,
+        "sandboxInputsSeconds": 0.42701,
+        "runner": {
+          "sourceAndRestore": 0.1406906,
+          "seedCopy": 0.0227834,
+          "sessionSetup": 0.2085546,
+          "msbuild": 0.931572,
+          "selectBundles": 0.0035765,
+          "validateEntry": 0.0107558,
+          "runtimeCopy": 0.0524691,
+          "runtimeSeal": 0.0357169,
+          "appCopy": 0.0204723,
+          "cleanup": 0.0589412
+        },
+        "test": {
+          "selectBundle": 0.0190752,
+          "verifyAndCopyRuntime": 0.0264671,
+          "dataAndSetup": 0.001459,
+          "vstest": 0.4547804
+        }
+      },
+      {
+        "kind": "serilog",
+        "case": "unchanged",
+        "repetition": 1,
+        "profileSha256": "189113ad0527b74b2f068135a02d886cd64f3029eb1b06ad83b920e556d0f7ee",
+        "bazelVersion": "release 8.4.2- (@non-git)",
+        "launchSeconds": 0.464,
+        "extractSeconds": 0.0,
+        "moduleMappingSeconds": 0.117047,
+        "downloadSpans": 132,
+        "downloadUnionSeconds": 0.025278,
+        "criticalPathSeconds": 2.22557,
+        "sandboxCreateSeconds": 0.491474,
+        "phases": {
+          "Initialize command": 0.276387,
+          "Evaluate target patterns": 0.16683,
+          "Load, analyze dependencies and build artifacts": 3.116381
+        },
+        "actions": {
+          "BazelWorkspaceStatusAction stable-status.txt": 0.008559,
+          "Writing file test.request.json": 0.000979,
+          "Writing script test.sh": 0.001304,
+          "Writing repo mapping manifest for //:test": 0.00218,
+          "Writing file build.request.json": 0.001449,
+          "Creating source manifest for //:test": 0.023021,
+          "Creating runfiles tree bazel-out/darwin_arm64-fastbuild/bin/test.sh.runfiles": 0.317374,
+          "MsbuildNativeCache build.bundle": 1.355015,
+          "Testing //:test": 0.867131
+        },
+        "configuredTargets": 5837,
+        "sdkPackageLoads": 1,
+        "sdkInputs": [
+          {
+            "mnemonic": "MsbuildNativeCache",
+            "count": 4906,
+            "bytes": 669469503,
+            "sha256": "91bbaa17d58d09cf4784188ae072ec10af9a47ca643b89217cffa3ea2988816f"
+          },
+          {
+            "mnemonic": "TestRunner",
+            "count": 4906,
+            "bytes": 669469503,
+            "sha256": "91bbaa17d58d09cf4784188ae072ec10af9a47ca643b89217cffa3ea2988816f"
+          }
+        ],
+        "sdkPackageSeconds": 0.056448,
+        "beforeFirstBuildActionSeconds": 0.869496,
+        "runfilesSeconds": 0.308764,
+        "sandboxInputsSeconds": 0.420249,
+        "runner": {
+          "sourceAndRestore": 0.1430851,
+          "seedCopy": 0.0246674,
+          "sessionSetup": 0.1976197,
+          "msbuild": 0.4077116,
+          "selectBundles": 0.0030573,
+          "validateEntry": 0.0102032,
+          "runtimeCopy": 0.0532934,
+          "runtimeSeal": 0.0374667,
+          "appCopy": 0.0206922,
+          "cleanup": 0.059712
+        },
+        "test": {
+          "selectBundle": 0.0180085,
+          "verifyAndCopyRuntime": 0.0250555,
+          "dataAndSetup": 0.0013234,
+          "vstest": 0.4209091
+        }
+      },
+      {
+        "kind": "serilog",
+        "case": "body",
+        "repetition": 1,
+        "profileSha256": "f0fa54167e3386b8534087ad3154e3dce3263ce3105be370c15508ac9ac27e7c",
+        "bazelVersion": "release 8.4.2- (@non-git)",
+        "launchSeconds": 0.475,
+        "extractSeconds": 0.0,
+        "moduleMappingSeconds": 0.108849,
+        "downloadSpans": 132,
+        "downloadUnionSeconds": 0.027618,
+        "criticalPathSeconds": 2.542267,
+        "sandboxCreateSeconds": 0.458448,
+        "phases": {
+          "Initialize command": 0.270201,
+          "Evaluate target patterns": 0.177468,
+          "Load, analyze dependencies and build artifacts": 3.53655
+        },
+        "actions": {
+          "BazelWorkspaceStatusAction stable-status.txt": 0.00973,
+          "Writing script test.sh": 0.001513,
+          "Writing file test.request.json": 0.001263,
+          "Writing repo mapping manifest for //:test": 0.003219,
+          "Writing file build.request.json": 0.001855,
+          "Creating source manifest for //:test": 0.019856,
+          "Creating runfiles tree bazel-out/darwin_arm64-fastbuild/bin/test.sh.runfiles": 0.305535,
+          "MsbuildNativeCache build.bundle": 1.635803,
+          "Testing //:test": 0.901214
+        },
+        "configuredTargets": 5829,
+        "sdkPackageLoads": 1,
+        "sdkInputs": [
+          {
+            "mnemonic": "MsbuildNativeCache",
+            "count": 4906,
+            "bytes": 669469503,
+            "sha256": "91bbaa17d58d09cf4784188ae072ec10af9a47ca643b89217cffa3ea2988816f"
+          },
+          {
+            "mnemonic": "TestRunner",
+            "count": 4906,
+            "bytes": 669469503,
+            "sha256": "91bbaa17d58d09cf4784188ae072ec10af9a47ca643b89217cffa3ea2988816f"
+          }
+        ],
+        "sdkPackageSeconds": 0.05709,
+        "beforeFirstBuildActionSeconds": 0.970916,
+        "runfilesSeconds": 0.297875,
+        "sandboxInputsSeconds": 0.393578,
+        "runner": {
+          "sourceAndRestore": 0.1397814,
+          "seedCopy": 0.0219065,
+          "sessionSetup": 0.2054175,
+          "msbuild": 0.7172009,
+          "selectBundles": 0.003597,
+          "validateEntry": 0.0109677,
+          "runtimeCopy": 0.0538025,
+          "runtimeSeal": 0.0350244,
+          "appCopy": 0.0217511,
+          "cleanup": 0.0610566
+        },
+        "test": {
+          "selectBundle": 0.0181636,
+          "verifyAndCopyRuntime": 0.0263713,
+          "dataAndSetup": 0.0013567,
+          "vstest": 0.4353619
+        }
+      },
+      {
+        "kind": "serilog",
+        "case": "unchanged",
+        "repetition": 2,
+        "profileSha256": "56a1d9387e4b4d3a9e80f5ff93d4d30e8226c5dd2aba27acae0b2047decdd7d7",
+        "bazelVersion": "release 8.4.2- (@non-git)",
+        "launchSeconds": 0.479,
+        "extractSeconds": 0.0,
+        "moduleMappingSeconds": 0.108241,
+        "downloadSpans": 132,
+        "downloadUnionSeconds": 0.020425,
+        "criticalPathSeconds": 2.234969,
+        "sandboxCreateSeconds": 0.487259,
+        "phases": {
+          "Initialize command": 0.263795,
+          "Evaluate target patterns": 0.171165,
+          "Load, analyze dependencies and build artifacts": 3.173849
+        },
+        "actions": {
+          "BazelWorkspaceStatusAction stable-status.txt": 0.008696,
+          "Writing file test.request.json": 0.001357,
+          "Writing script test.sh": 0.001797,
+          "Writing repo mapping manifest for //:test": 0.002188,
+          "Writing file build.request.json": 0.001297,
+          "Creating source manifest for //:test": 0.018843,
+          "Creating runfiles tree bazel-out/darwin_arm64-fastbuild/bin/test.sh.runfiles": 0.3073,
+          "MsbuildNativeCache build.bundle": 1.346656,
+          "Testing //:test": 0.884752
+        },
+        "configuredTargets": 5837,
+        "sdkPackageLoads": 1,
+        "sdkInputs": [
+          {
+            "mnemonic": "MsbuildNativeCache",
+            "count": 4906,
+            "bytes": 669469503,
+            "sha256": "91bbaa17d58d09cf4784188ae072ec10af9a47ca643b89217cffa3ea2988816f"
+          },
+          {
+            "mnemonic": "TestRunner",
+            "count": 4906,
+            "bytes": 669469503,
+            "sha256": "91bbaa17d58d09cf4784188ae072ec10af9a47ca643b89217cffa3ea2988816f"
+          }
+        ],
+        "sdkPackageSeconds": 0.069915,
+        "beforeFirstBuildActionSeconds": 0.914261,
+        "runfilesSeconds": 0.296372,
+        "sandboxInputsSeconds": 0.416689,
+        "runner": {
+          "sourceAndRestore": 0.1385063,
+          "seedCopy": 0.0245217,
+          "sessionSetup": 0.2001195,
+          "msbuild": 0.4087135,
+          "selectBundles": 0.0030891,
+          "validateEntry": 0.010169,
+          "runtimeCopy": 0.0507585,
+          "runtimeSeal": 0.034871,
+          "appCopy": 0.0209963,
+          "cleanup": 0.0622297
+        },
+        "test": {
+          "selectBundle": 0.0178902,
+          "verifyAndCopyRuntime": 0.0249459,
+          "dataAndSetup": 0.0012877,
+          "vstest": 0.4297078
+        }
+      },
+      {
+        "kind": "serilog",
+        "case": "body",
+        "repetition": 2,
+        "profileSha256": "630535e15257f5ff970ca319236569816149ea7594b27b024a2ebb647b10b31c",
+        "bazelVersion": "release 8.4.2- (@non-git)",
+        "launchSeconds": 0.49,
+        "extractSeconds": 0.0,
+        "moduleMappingSeconds": 0.119991,
+        "downloadSpans": 132,
+        "downloadUnionSeconds": 0.025851,
+        "criticalPathSeconds": 2.514175,
+        "sandboxCreateSeconds": 0.488123,
+        "phases": {
+          "Initialize command": 0.275036,
+          "Evaluate target patterns": 0.169628,
+          "Load, analyze dependencies and build artifacts": 3.405622
+        },
+        "actions": {
+          "BazelWorkspaceStatusAction stable-status.txt": 0.0089,
+          "Writing file test.request.json": 0.001204,
+          "Writing script test.sh": 0.0018,
+          "Writing repo mapping manifest for //:test": 0.002104,
+          "Writing file build.request.json": 0.001043,
+          "Creating source manifest for //:test": 0.018017,
+          "Creating runfiles tree bazel-out/darwin_arm64-fastbuild/bin/test.sh.runfiles": 0.305808,
+          "MsbuildNativeCache build.bundle": 1.621777,
+          "Testing //:test": 0.889304
+        },
+        "configuredTargets": 5829,
+        "sdkPackageLoads": 1,
+        "sdkInputs": [
+          {
+            "mnemonic": "MsbuildNativeCache",
+            "count": 4906,
+            "bytes": 669469503,
+            "sha256": "91bbaa17d58d09cf4784188ae072ec10af9a47ca643b89217cffa3ea2988816f"
+          },
+          {
+            "mnemonic": "TestRunner",
+            "count": 4906,
+            "bytes": 669469503,
+            "sha256": "91bbaa17d58d09cf4784188ae072ec10af9a47ca643b89217cffa3ea2988816f"
+          }
+        ],
+        "sdkPackageSeconds": 0.054081,
+        "beforeFirstBuildActionSeconds": 0.868242,
+        "runfilesSeconds": 0.294699,
+        "sandboxInputsSeconds": 0.418016,
+        "runner": {
+          "sourceAndRestore": 0.1340635,
+          "seedCopy": 0.0221077,
+          "sessionSetup": 0.1941855,
+          "msbuild": 0.6966125,
+          "selectBundles": 0.0036344,
+          "validateEntry": 0.0110584,
+          "runtimeCopy": 0.0521465,
+          "runtimeSeal": 0.0329737,
+          "appCopy": 0.0204189,
+          "cleanup": 0.0602617
+        },
+        "test": {
+          "selectBundle": 0.0175367,
+          "verifyAndCopyRuntime": 0.0247092,
+          "dataAndSetup": 0.0013307,
+          "vstest": 0.4374843
+        }
+      }
+    ],
+    "medians": [
+      {
+        "kind": "diamond",
+        "case": "body",
+        "configuredTargets": 4962,
+        "launchSeconds": 0.487,
+        "moduleMappingSeconds": 0.111775,
+        "sdkPackageSeconds": 0.050495,
+        "beforeFirstBuildActionSeconds": 0.748644,
+        "runfilesSeconds": 0.0,
+        "sandboxCreateSeconds": 0.198631,
+        "sandboxInputsSeconds": 0.173042,
+        "criticalPathSeconds": 1.068845,
+        "runner": {
+          "sourceAndRestore": 0.0191042,
+          "seedCopy": 0.0054615,
+          "sessionSetup": 0.007114,
+          "msbuild": 0.7394971,
+          "selectBundles": 0.003499,
+          "validateEntry": 0.0035272,
+          "runtimeCopy": 0.0042711,
+          "runtimeSeal": 0.0036413,
+          "appCopy": 0.0011328,
+          "cleanup": 0.0046799
+        },
+        "test": {}
+      },
+      {
+        "kind": "diamond",
+        "case": "unchanged",
+        "configuredTargets": 4969,
+        "launchSeconds": 0.48,
+        "moduleMappingSeconds": 0.115235,
+        "sdkPackageSeconds": 0.048568,
+        "beforeFirstBuildActionSeconds": 0.747269,
+        "runfilesSeconds": 0.0,
+        "sandboxCreateSeconds": 0.197461,
+        "sandboxInputsSeconds": 0.172334,
+        "criticalPathSeconds": 0.562104,
+        "runner": {
+          "sourceAndRestore": 0.0188759,
+          "seedCopy": 0.0066692,
+          "sessionSetup": 0.0071525,
+          "msbuild": 0.2348164,
+          "selectBundles": 0.0033195,
+          "validateEntry": 0.0033239,
+          "runtimeCopy": 0.0042293,
+          "runtimeSeal": 0.0036375,
+          "appCopy": 0.0011289,
+          "cleanup": 0.0042268
+        },
+        "test": {}
+      },
+      {
+        "kind": "serilog",
+        "case": "body",
+        "configuredTargets": 5829,
+        "launchSeconds": 0.475,
+        "moduleMappingSeconds": 0.119991,
+        "sdkPackageSeconds": 0.05709,
+        "beforeFirstBuildActionSeconds": 0.868242,
+        "runfilesSeconds": 0.297174,
+        "sandboxCreateSeconds": 0.488123,
+        "sandboxInputsSeconds": 0.418016,
+        "criticalPathSeconds": 2.542267,
+        "runner": {
+          "sourceAndRestore": 0.1397814,
+          "seedCopy": 0.0221077,
+          "sessionSetup": 0.2054175,
+          "msbuild": 0.7172009,
+          "selectBundles": 0.003597,
+          "validateEntry": 0.0109677,
+          "runtimeCopy": 0.0524691,
+          "runtimeSeal": 0.0350244,
+          "appCopy": 0.0204723,
+          "cleanup": 0.0602617
+        },
+        "test": {
+          "selectBundle": 0.0181636,
+          "verifyAndCopyRuntime": 0.0263713,
+          "dataAndSetup": 0.0013567,
+          "vstest": 0.4374843
+        }
+      },
+      {
+        "kind": "serilog",
+        "case": "unchanged",
+        "configuredTargets": 5837,
+        "launchSeconds": 0.479,
+        "moduleMappingSeconds": 0.108241,
+        "sdkPackageSeconds": 0.059174,
+        "beforeFirstBuildActionSeconds": 0.914261,
+        "runfilesSeconds": 0.296372,
+        "sandboxCreateSeconds": 0.487259,
+        "sandboxInputsSeconds": 0.416689,
+        "criticalPathSeconds": 2.22557,
+        "runner": {
+          "sourceAndRestore": 0.1385063,
+          "seedCopy": 0.0245217,
+          "sessionSetup": 0.1976197,
+          "msbuild": 0.4077116,
+          "selectBundles": 0.0030573,
+          "validateEntry": 0.010169,
+          "runtimeCopy": 0.0514042,
+          "runtimeSeal": 0.034871,
+          "appCopy": 0.0206922,
+          "cleanup": 0.059712
+        },
+        "test": {
+          "selectBundle": 0.0178902,
+          "verifyAndCopyRuntime": 0.0250555,
+          "dataAndSetup": 0.0013234,
+          "vstest": 0.4287103
+        }
+      }
+    ]
+  },
+  {
+    "source": "/private/tmp/ba-export/report.json",
+    "sha256": "5eab3866fcbe3be04d6670c229755cb485e6ef042ee7b2fed0820ad36bcbbdcd",
+    "revision": "318918bf5b77cb63702af945f33d70892bc54344",
+    "accepted": true,
+    "samples": [
+      {
+        "kind": "diamond",
+        "case": "unchanged",
+        "repetition": 0,
+        "profileSha256": "01d7f84f0010c0f77f3ccbeb71efede1fdcc6aeab07705aabbc2eb148bbf03fc",
+        "bazelVersion": "release 8.4.2- (@non-git)",
+        "launchSeconds": 0.489,
+        "extractSeconds": 0.0,
+        "moduleMappingSeconds": 0.105651,
+        "downloadSpans": 132,
+        "downloadUnionSeconds": 0.024698,
+        "criticalPathSeconds": 0.562254,
+        "sandboxCreateSeconds": 0.196614,
+        "phases": {
+          "Initialize command": 0.259862,
+          "Evaluate target patterns": 0.113995,
+          "Load, analyze dependencies and build artifacts": 1.337412
+        },
+        "actions": {
+          "BazelWorkspaceStatusAction stable-status.txt": 0.008447,
+          "Writing file build.request.json": 0.001826,
+          "MsbuildNativeCache build.bundle": 0.560934
+        },
+        "configuredTargets": 4969,
+        "sdkPackageLoads": 1,
+        "sdkInputs": [
+          {
+            "mnemonic": "MsbuildNativeCache",
+            "count": 4906,
+            "bytes": 669469503,
+            "sha256": "91bbaa17d58d09cf4784188ae072ec10af9a47ca643b89217cffa3ea2988816f"
+          }
+        ],
+        "sdkPackageSeconds": 0.058429,
+        "beforeFirstBuildActionSeconds": 0.762484,
+        "runfilesSeconds": 0.0,
+        "sandboxInputsSeconds": 0.171197,
+        "runner": {
+          "sourceAndRestore": 0.0197001,
+          "seedCopy": 0.0067826,
+          "sessionSetup": 0.0071715,
+          "msbuild": 0.2383565,
+          "selectBundles": 0.0034412,
+          "validateEntry": 0.0033755,
+          "runtimeCopy": 0.0006842,
+          "runtimeSeal": 0.0036288,
+          "appCopy": 0.001221,
+          "cleanup": 0.0039932
+        },
+        "test": {}
+      },
+      {
+        "kind": "diamond",
+        "case": "body",
+        "repetition": 0,
+        "profileSha256": "a651b07d7a0661924cd2418b652cc73dcb483264ac130618a37ad96f24b3ac68",
+        "bazelVersion": "release 8.4.2- (@non-git)",
+        "launchSeconds": 0.484,
+        "extractSeconds": 0.0,
+        "moduleMappingSeconds": 0.114691,
+        "downloadSpans": 132,
+        "downloadUnionSeconds": 0.021946,
+        "criticalPathSeconds": 1.069935,
+        "sandboxCreateSeconds": 0.195015,
+        "phases": {
+          "Initialize command": 0.268363,
+          "Evaluate target patterns": 0.110201,
+          "Load, analyze dependencies and build artifacts": 1.820753
+        },
+        "actions": {
+          "BazelWorkspaceStatusAction stable-status.txt": 0.008112,
+          "Writing file build.request.json": 0.001945,
+          "MsbuildNativeCache build.bundle": 1.068609
+        },
+        "configuredTargets": 4962,
+        "sdkPackageLoads": 1,
+        "sdkInputs": [
+          {
+            "mnemonic": "MsbuildNativeCache",
+            "count": 4906,
+            "bytes": 669469503,
+            "sha256": "91bbaa17d58d09cf4784188ae072ec10af9a47ca643b89217cffa3ea2988816f"
+          }
+        ],
+        "sdkPackageSeconds": 0.048075,
+        "beforeFirstBuildActionSeconds": 0.736898,
+        "runfilesSeconds": 0.0,
+        "sandboxInputsSeconds": 0.169384,
+        "runner": {
+          "sourceAndRestore": 0.0201659,
+          "seedCopy": 0.0055605,
+          "sessionSetup": 0.0068897,
+          "msbuild": 0.7461528,
+          "selectBundles": 0.0036307,
+          "validateEntry": 0.0035087,
+          "runtimeCopy": 0.0006931,
+          "runtimeSeal": 0.0037752,
+          "appCopy": 0.0011745,
+          "cleanup": 0.0046005
+        },
+        "test": {}
+      },
+      {
+        "kind": "diamond",
+        "case": "unchanged",
+        "repetition": 1,
+        "profileSha256": "fc9352d1581d4e60eed639258172edbd367b38652a271ef0782454419ec461e9",
+        "bazelVersion": "release 8.4.2- (@non-git)",
+        "launchSeconds": 0.472,
+        "extractSeconds": 0.0,
+        "moduleMappingSeconds": 0.117577,
+        "downloadSpans": 132,
+        "downloadUnionSeconds": 0.023943,
+        "criticalPathSeconds": 0.567524,
+        "sandboxCreateSeconds": 0.203641,
+        "phases": {
+          "Initialize command": 0.272236,
+          "Evaluate target patterns": 0.110533,
+          "Load, analyze dependencies and build artifacts": 1.34141
+        },
+        "actions": {
+          "BazelWorkspaceStatusAction stable-status.txt": 0.009943,
+          "Writing file build.request.json": 0.001666,
+          "MsbuildNativeCache build.bundle": 0.566482
+        },
+        "configuredTargets": 4969,
+        "sdkPackageLoads": 1,
+        "sdkInputs": [
+          {
+            "mnemonic": "MsbuildNativeCache",
+            "count": 4906,
+            "bytes": 669469503,
+            "sha256": "91bbaa17d58d09cf4784188ae072ec10af9a47ca643b89217cffa3ea2988816f"
+          }
+        ],
+        "sdkPackageSeconds": 0.046224,
+        "beforeFirstBuildActionSeconds": 0.759699,
+        "runfilesSeconds": 0.0,
+        "sandboxInputsSeconds": 0.177313,
+        "runner": {
+          "sourceAndRestore": 0.0193269,
+          "seedCopy": 0.0069698,
+          "sessionSetup": 0.0072057,
+          "msbuild": 0.235821,
+          "selectBundles": 0.0033771,
+          "validateEntry": 0.0033251,
+          "runtimeCopy": 0.0007133,
+          "runtimeSeal": 0.0039062,
+          "appCopy": 0.0011758,
+          "cleanup": 0.0041495
+        },
+        "test": {}
+      },
+      {
+        "kind": "diamond",
+        "case": "body",
+        "repetition": 1,
+        "profileSha256": "7077f7ff6694317e991fc0751cdf2d71862b65a737576ec743cd27acf88984b6",
+        "bazelVersion": "release 8.4.2- (@non-git)",
+        "launchSeconds": 0.477,
+        "extractSeconds": 0.0,
+        "moduleMappingSeconds": 0.107132,
+        "downloadSpans": 132,
+        "downloadUnionSeconds": 0.021614,
+        "criticalPathSeconds": 1.076979,
+        "sandboxCreateSeconds": 0.202252,
+        "phases": {
+          "Initialize command": 0.25873,
+          "Evaluate target patterns": 0.119753,
+          "Load, analyze dependencies and build artifacts": 1.837334
+        },
+        "actions": {
+          "BazelWorkspaceStatusAction stable-status.txt": 0.010151,
+          "Writing file build.request.json": 0.00172,
+          "MsbuildNativeCache build.bundle": 1.075835
+        },
+        "configuredTargets": 4962,
+        "sdkPackageLoads": 1,
+        "sdkInputs": [
+          {
+            "mnemonic": "MsbuildNativeCache",
+            "count": 4906,
+            "bytes": 669469503,
+            "sha256": "91bbaa17d58d09cf4784188ae072ec10af9a47ca643b89217cffa3ea2988816f"
+          }
+        ],
+        "sdkPackageSeconds": 0.046042,
+        "beforeFirstBuildActionSeconds": 0.747205,
+        "runfilesSeconds": 0.0,
+        "sandboxInputsSeconds": 0.176583,
+        "runner": {
+          "sourceAndRestore": 0.0198203,
+          "seedCopy": 0.0054013,
+          "sessionSetup": 0.0078387,
+          "msbuild": 0.7462171,
+          "selectBundles": 0.0034181,
+          "validateEntry": 0.0034284,
+          "runtimeCopy": 0.0006762,
+          "runtimeSeal": 0.0038219,
+          "appCopy": 0.0012547,
+          "cleanup": 0.004602
+        },
+        "test": {}
+      },
+      {
+        "kind": "diamond",
+        "case": "unchanged",
+        "repetition": 2,
+        "profileSha256": "7a93d7ac2af173f77fcee65746b3c73451003215de0c2aebf76583d8008a361a",
+        "bazelVersion": "release 8.4.2- (@non-git)",
+        "launchSeconds": 0.472,
+        "extractSeconds": 0.0,
+        "moduleMappingSeconds": 0.115756,
+        "downloadSpans": 132,
+        "downloadUnionSeconds": 0.029272,
+        "criticalPathSeconds": 0.563836,
+        "sandboxCreateSeconds": 0.197665,
+        "phases": {
+          "Initialize command": 0.268067,
+          "Evaluate target patterns": 0.117497,
+          "Load, analyze dependencies and build artifacts": 1.345174
+        },
+        "actions": {
+          "BazelWorkspaceStatusAction stable-status.txt": 0.009527,
+          "Writing file build.request.json": 0.002022,
+          "MsbuildNativeCache build.bundle": 0.56237
+        },
+        "configuredTargets": 4969,
+        "sdkPackageLoads": 1,
+        "sdkInputs": [
+          {
+            "mnemonic": "MsbuildNativeCache",
+            "count": 4906,
+            "bytes": 669469503,
+            "sha256": "91bbaa17d58d09cf4784188ae072ec10af9a47ca643b89217cffa3ea2988816f"
+          }
+        ],
+        "sdkPackageSeconds": 0.051976,
+        "beforeFirstBuildActionSeconds": 0.767579,
+        "runfilesSeconds": 0.0,
+        "sandboxInputsSeconds": 0.171986,
+        "runner": {
+          "sourceAndRestore": 0.0196087,
+          "seedCopy": 0.0067196,
+          "sessionSetup": 0.0068753,
+          "msbuild": 0.2398291,
+          "selectBundles": 0.0034259,
+          "validateEntry": 0.0035077,
+          "runtimeCopy": 0.000702,
+          "runtimeSeal": 0.0034331,
+          "appCopy": 0.0012461,
+          "cleanup": 0.0040841
+        },
+        "test": {}
+      },
+      {
+        "kind": "diamond",
+        "case": "body",
+        "repetition": 2,
+        "profileSha256": "b9d0de16f143f7b2b3ac0b99bcdb40a00f23e6ad1b97c630a30dfe95c2b66909",
+        "bazelVersion": "release 8.4.2- (@non-git)",
+        "launchSeconds": 0.471,
+        "extractSeconds": 0.0,
+        "moduleMappingSeconds": 0.117118,
+        "downloadSpans": 132,
+        "downloadUnionSeconds": 0.023969,
+        "criticalPathSeconds": 1.076471,
+        "sandboxCreateSeconds": 0.203274,
+        "phases": {
+          "Initialize command": 0.269157,
+          "Evaluate target patterns": 0.113883,
+          "Load, analyze dependencies and build artifacts": 1.848695
+        },
+        "actions": {
+          "BazelWorkspaceStatusAction stable-status.txt": 0.010047,
+          "Writing file build.request.json": 0.001728,
+          "MsbuildNativeCache build.bundle": 1.075297
+        },
+        "configuredTargets": 4962,
+        "sdkPackageLoads": 1,
+        "sdkInputs": [
+          {
+            "mnemonic": "MsbuildNativeCache",
+            "count": 4906,
+            "bytes": 669469503,
+            "sha256": "91bbaa17d58d09cf4784188ae072ec10af9a47ca643b89217cffa3ea2988816f"
+          }
+        ],
+        "sdkPackageSeconds": 0.048242,
+        "beforeFirstBuildActionSeconds": 0.759134,
+        "runfilesSeconds": 0.0,
+        "sandboxInputsSeconds": 0.176525,
+        "runner": {
+          "sourceAndRestore": 0.0197955,
+          "seedCopy": 0.005508,
+          "sessionSetup": 0.0069581,
+          "msbuild": 0.745821,
+          "selectBundles": 0.0034595,
+          "validateEntry": 0.0034261,
+          "runtimeCopy": 0.0006977,
+          "runtimeSeal": 0.003358,
+          "appCopy": 0.0012653,
+          "cleanup": 0.0045723
+        },
+        "test": {}
+      },
+      {
+        "kind": "serilog",
+        "case": "unchanged",
+        "repetition": 0,
+        "profileSha256": "229afcde42b25ca72957101dc6a9cae10e4a38cc4884078c88f2a79a01951495",
+        "bazelVersion": "release 8.4.2- (@non-git)",
+        "launchSeconds": 0.474,
+        "extractSeconds": 0.0,
+        "moduleMappingSeconds": 0.117194,
+        "downloadSpans": 132,
+        "downloadUnionSeconds": 0.02065,
+        "criticalPathSeconds": 2.680961,
+        "sandboxCreateSeconds": 0.474667,
+        "phases": {
+          "Initialize command": 0.272569,
+          "Evaluate target patterns": 0.163444,
+          "Load, analyze dependencies and build artifacts": 3.662916
+        },
+        "actions": {
+          "BazelWorkspaceStatusAction stable-status.txt": 0.00829,
+          "Writing script test.sh": 0.00129,
+          "Writing file test.request.json": 0.00098,
+          "Writing repo mapping manifest for //:test": 0.006235,
+          "Writing file build.request.json": 0.003078,
+          "Creating source manifest for //:test": 0.020408,
+          "Creating runfiles tree bazel-out/darwin_arm64-fastbuild/bin/test.sh.runfiles": 0.287314,
+          "MsbuildNativeCache build.bundle": 1.246188,
+          "Testing //:test": 1.429804
+        },
+        "configuredTargets": 5837,
+        "sdkPackageLoads": 1,
+        "sdkInputs": [
+          {
+            "mnemonic": "MsbuildNativeCache",
+            "count": 4906,
+            "bytes": 669469503,
+            "sha256": "91bbaa17d58d09cf4784188ae072ec10af9a47ca643b89217cffa3ea2988816f"
+          },
+          {
+            "mnemonic": "TestRunner",
+            "count": 4906,
+            "bytes": 669469503,
+            "sha256": "91bbaa17d58d09cf4784188ae072ec10af9a47ca643b89217cffa3ea2988816f"
+          }
+        ],
+        "sdkPackageSeconds": 0.060968,
+        "beforeFirstBuildActionSeconds": 0.961449,
+        "runfilesSeconds": 0.279811,
+        "sandboxInputsSeconds": 0.404177,
+        "runner": {
+          "sourceAndRestore": 0.1380711,
+          "seedCopy": 0.0247995,
+          "sessionSetup": 0.185633,
+          "msbuild": 0.4028928,
+          "selectBundles": 0.0030392,
+          "validateEntry": 0.0101872,
+          "runtimeCopy": 0.0007996,
+          "runtimeSeal": 0.0325775,
+          "appCopy": 0.0205088,
+          "cleanup": 0.0531185
+        },
+        "test": {
+          "selectBundle": 0.0222509,
+          "verifyAndCopyRuntime": 0.0275676,
+          "dataAndSetup": 0.0014339,
+          "vstest": 0.4219455
+        }
+      },
+      {
+        "kind": "serilog",
+        "case": "body",
+        "repetition": 0,
+        "profileSha256": "bfe4b0c551a4d3cebf9179b47188a64800acf5b00f6b05379cf649249c03f0ae",
+        "bazelVersion": "release 8.4.2- (@non-git)",
+        "launchSeconds": 0.482,
+        "extractSeconds": 0.0,
+        "moduleMappingSeconds": 0.118254,
+        "downloadSpans": 132,
+        "downloadUnionSeconds": 0.022209,
+        "criticalPathSeconds": 2.699642,
+        "sandboxCreateSeconds": 0.461535,
+        "phases": {
+          "Initialize command": 0.295513,
+          "Evaluate target patterns": 0.178274,
+          "Load, analyze dependencies and build artifacts": 3.680476
+        },
+        "actions": {
+          "BazelWorkspaceStatusAction stable-status.txt": 0.010557,
+          "Writing file test.request.json": 0.001233,
+          "Writing script test.sh": 0.001578,
+          "Writing repo mapping manifest for //:test": 0.002489,
+          "Writing file build.request.json": 0.000959,
+          "Creating source manifest for //:test": 0.018738,
+          "Creating runfiles tree bazel-out/darwin_arm64-fastbuild/bin/test.sh.runfiles": 0.296859,
+          "MsbuildNativeCache build.bundle": 1.768345,
+          "Testing //:test": 0.928464
+        },
+        "configuredTargets": 5829,
+        "sdkPackageLoads": 1,
+        "sdkInputs": [
+          {
+            "mnemonic": "MsbuildNativeCache",
+            "count": 4906,
+            "bytes": 669469503,
+            "sha256": "91bbaa17d58d09cf4784188ae072ec10af9a47ca643b89217cffa3ea2988816f"
+          },
+          {
+            "mnemonic": "TestRunner",
+            "count": 4906,
+            "bytes": 669469503,
+            "sha256": "91bbaa17d58d09cf4784188ae072ec10af9a47ca643b89217cffa3ea2988816f"
+          }
+        ],
+        "sdkPackageSeconds": 0.058809,
+        "beforeFirstBuildActionSeconds": 0.951689,
+        "runfilesSeconds": 0.289326,
+        "sandboxInputsSeconds": 0.395676,
+        "runner": {
+          "sourceAndRestore": 0.1361163,
+          "seedCopy": 0.0323581,
+          "sessionSetup": 0.1934982,
+          "msbuild": 0.9106565,
+          "selectBundles": 0.0036899,
+          "validateEntry": 0.0107484,
+          "runtimeCopy": 0.0008849,
+          "runtimeSeal": 0.0335248,
+          "appCopy": 0.021233,
+          "cleanup": 0.055495
+        },
+        "test": {
+          "selectBundle": 0.0189673,
+          "verifyAndCopyRuntime": 0.0266738,
+          "dataAndSetup": 0.001472,
+          "vstest": 0.4585935
+        }
+      },
+      {
+        "kind": "serilog",
+        "case": "unchanged",
+        "repetition": 1,
+        "profileSha256": "86148038eb7f68a1414f9277cba0358c51f0fb78c26cf3e604be2ce65cb70ad7",
+        "bazelVersion": "release 8.4.2- (@non-git)",
+        "launchSeconds": 0.481,
+        "extractSeconds": 0.0,
+        "moduleMappingSeconds": 0.113637,
+        "downloadSpans": 132,
+        "downloadUnionSeconds": 0.020309,
+        "criticalPathSeconds": 2.478802,
+        "sandboxCreateSeconds": 0.49951,
+        "phases": {
+          "Initialize command": 0.26868,
+          "Evaluate target patterns": 0.170112,
+          "Load, analyze dependencies and build artifacts": 3.346371
+        },
+        "actions": {
+          "BazelWorkspaceStatusAction stable-status.txt": 0.010811,
+          "Writing script test.sh": 0.001423,
+          "Writing file test.request.json": 0.00121,
+          "Writing repo mapping manifest for //:test": 0.00199,
+          "Writing file build.request.json": 0.000966,
+          "Creating source manifest for //:test": 0.020972,
+          "Creating runfiles tree bazel-out/darwin_arm64-fastbuild/bin/test.sh.runfiles": 0.324596,
+          "MsbuildNativeCache build.bundle": 1.302853,
+          "Testing //:test": 1.172823
+        },
+        "configuredTargets": 5837,
+        "sdkPackageLoads": 1,
+        "sdkInputs": [
+          {
+            "mnemonic": "MsbuildNativeCache",
+            "count": 4906,
+            "bytes": 669469503,
+            "sha256": "91bbaa17d58d09cf4784188ae072ec10af9a47ca643b89217cffa3ea2988816f"
+          },
+          {
+            "mnemonic": "TestRunner",
+            "count": 4906,
+            "bytes": 669469503,
+            "sha256": "91bbaa17d58d09cf4784188ae072ec10af9a47ca643b89217cffa3ea2988816f"
+          }
+        ],
+        "sdkPackageSeconds": 0.057838,
+        "beforeFirstBuildActionSeconds": 0.845161,
+        "runfilesSeconds": 0.316992,
+        "sandboxInputsSeconds": 0.428304,
+        "runner": {
+          "sourceAndRestore": 0.1354241,
+          "seedCopy": 0.0242829,
+          "sessionSetup": 0.1826425,
+          "msbuild": 0.4217812,
+          "selectBundles": 0.0029885,
+          "validateEntry": 0.0101412,
+          "runtimeCopy": 0.0007892,
+          "runtimeSeal": 0.0332817,
+          "appCopy": 0.0216171,
+          "cleanup": 0.0537869
+        },
+        "test": {
+          "selectBundle": 0.0219625,
+          "verifyAndCopyRuntime": 0.0285586,
+          "dataAndSetup": 0.001429,
+          "vstest": 0.4309107
+        }
+      },
+      {
+        "kind": "serilog",
+        "case": "body",
+        "repetition": 1,
+        "profileSha256": "f5088c93f96a2313c6f0e7b4df2cb6e253365c90f3785e25385e59f4f7a6d112",
+        "bazelVersion": "release 8.4.2- (@non-git)",
+        "launchSeconds": 0.497,
+        "extractSeconds": 0.0,
+        "moduleMappingSeconds": 0.110418,
+        "downloadSpans": 132,
+        "downloadUnionSeconds": 0.021185,
+        "criticalPathSeconds": 2.511378,
+        "sandboxCreateSeconds": 0.461214,
+        "phases": {
+          "Initialize command": 0.266744,
+          "Evaluate target patterns": 0.172425,
+          "Load, analyze dependencies and build artifacts": 3.502562
+        },
+        "actions": {
+          "BazelWorkspaceStatusAction stable-status.txt": 0.009153,
+          "Writing file test.request.json": 0.000752,
+          "Writing script test.sh": 0.00141,
+          "Writing repo mapping manifest for //:test": 0.001954,
+          "Writing file build.request.json": 0.000971,
+          "Creating source manifest for //:test": 0.026969,
+          "Creating runfiles tree bazel-out/darwin_arm64-fastbuild/bin/test.sh.runfiles": 0.29791,
+          "MsbuildNativeCache build.bundle": 1.621071,
+          "Testing //:test": 0.887359
+        },
+        "configuredTargets": 5829,
+        "sdkPackageLoads": 1,
+        "sdkInputs": [
+          {
+            "mnemonic": "MsbuildNativeCache",
+            "count": 4906,
+            "bytes": 669469503,
+            "sha256": "91bbaa17d58d09cf4784188ae072ec10af9a47ca643b89217cffa3ea2988816f"
+          },
+          {
+            "mnemonic": "TestRunner",
+            "count": 4906,
+            "bytes": 669469503,
+            "sha256": "91bbaa17d58d09cf4784188ae072ec10af9a47ca643b89217cffa3ea2988816f"
+          }
+        ],
+        "sdkPackageSeconds": 0.055218,
+        "beforeFirstBuildActionSeconds": 0.96556,
+        "runfilesSeconds": 0.28972,
+        "sandboxInputsSeconds": 0.395399,
+        "runner": {
+          "sourceAndRestore": 0.1401208,
+          "seedCopy": 0.022397,
+          "sessionSetup": 0.2075593,
+          "msbuild": 0.7386481,
+          "selectBundles": 0.0037531,
+          "validateEntry": 0.011138,
+          "runtimeCopy": 0.0008871,
+          "runtimeSeal": 0.0434904,
+          "appCopy": 0.0210682,
+          "cleanup": 0.0546103
+        },
+        "test": {
+          "selectBundle": 0.0191807,
+          "verifyAndCopyRuntime": 0.026254,
+          "dataAndSetup": 0.0014602,
+          "vstest": 0.4337707
+        }
+      },
+      {
+        "kind": "serilog",
+        "case": "unchanged",
+        "repetition": 2,
+        "profileSha256": "84e9cb78b51ad2d650bf61e86628d93bf5de6f10d3f08275c4eddd2c5a2a5475",
+        "bazelVersion": "release 8.4.2- (@non-git)",
+        "launchSeconds": 0.483,
+        "extractSeconds": 0.0,
+        "moduleMappingSeconds": 0.111037,
+        "downloadSpans": 132,
+        "downloadUnionSeconds": 0.023984,
+        "criticalPathSeconds": 2.173339,
+        "sandboxCreateSeconds": 0.472203,
+        "phases": {
+          "Initialize command": 0.266368,
+          "Evaluate target patterns": 0.17219,
+          "Load, analyze dependencies and build artifacts": 3.203475
+        },
+        "actions": {
+          "BazelWorkspaceStatusAction stable-status.txt": 0.009088,
+          "Writing file test.request.json": 0.001475,
+          "Writing script test.sh": 0.002017,
+          "Writing repo mapping manifest for //:test": 0.002208,
+          "Writing file build.request.json": 0.000995,
+          "Creating source manifest for //:test": 0.019249,
+          "Creating runfiles tree bazel-out/darwin_arm64-fastbuild/bin/test.sh.runfiles": 0.311025,
+          "MsbuildNativeCache build.bundle": 1.277636,
+          "Testing //:test": 0.892975
+        },
+        "configuredTargets": 5837,
+        "sdkPackageLoads": 1,
+        "sdkInputs": [
+          {
+            "mnemonic": "MsbuildNativeCache",
+            "count": 4906,
+            "bytes": 669469503,
+            "sha256": "91bbaa17d58d09cf4784188ae072ec10af9a47ca643b89217cffa3ea2988816f"
+          },
+          {
+            "mnemonic": "TestRunner",
+            "count": 4906,
+            "bytes": 669469503,
+            "sha256": "91bbaa17d58d09cf4784188ae072ec10af9a47ca643b89217cffa3ea2988816f"
+          }
+        ],
+        "sdkPackageSeconds": 0.064881,
+        "beforeFirstBuildActionSeconds": 1.004617,
+        "runfilesSeconds": 0.302276,
+        "sandboxInputsSeconds": 0.406815,
+        "runner": {
+          "sourceAndRestore": 0.137186,
+          "seedCopy": 0.0245568,
+          "sessionSetup": 0.1981961,
+          "msbuild": 0.4131471,
+          "selectBundles": 0.0030132,
+          "validateEntry": 0.0103007,
+          "runtimeCopy": 0.0007945,
+          "runtimeSeal": 0.0344686,
+          "appCopy": 0.0209243,
+          "cleanup": 0.0541793
+        },
+        "test": {
+          "selectBundle": 0.0174406,
+          "verifyAndCopyRuntime": 0.0257117,
+          "dataAndSetup": 0.001346,
+          "vstest": 0.43746
+        }
+      },
+      {
+        "kind": "serilog",
+        "case": "body",
+        "repetition": 2,
+        "profileSha256": "e3c51d97162552260d5a4c44d8d0aecd328c7d065abc7678d3f9af40f7c2ec4a",
+        "bazelVersion": "release 8.4.2- (@non-git)",
+        "launchSeconds": 0.478,
+        "extractSeconds": 0.0,
+        "moduleMappingSeconds": 0.117751,
+        "downloadSpans": 132,
+        "downloadUnionSeconds": 0.0257,
+        "criticalPathSeconds": 2.455679,
+        "sandboxCreateSeconds": 0.463029,
+        "phases": {
+          "Initialize command": 0.277083,
+          "Evaluate target patterns": 0.165837,
+          "Load, analyze dependencies and build artifacts": 3.451064
+        },
+        "actions": {
+          "BazelWorkspaceStatusAction stable-status.txt": 0.011536,
+          "Writing file test.request.json": 0.000859,
+          "Writing script test.sh": 0.001609,
+          "Writing repo mapping manifest for //:test": 0.002235,
+          "Writing file build.request.json": 0.000943,
+          "Creating source manifest for //:test": 0.025426,
+          "Creating runfiles tree bazel-out/darwin_arm64-fastbuild/bin/test.sh.runfiles": 0.300147,
+          "MsbuildNativeCache build.bundle": 1.573646,
+          "Testing //:test": 0.878987
+        },
+        "configuredTargets": 5829,
+        "sdkPackageLoads": 1,
+        "sdkInputs": [
+          {
+            "mnemonic": "MsbuildNativeCache",
+            "count": 4906,
+            "bytes": 669469503,
+            "sha256": "91bbaa17d58d09cf4784188ae072ec10af9a47ca643b89217cffa3ea2988816f"
+          },
+          {
+            "mnemonic": "TestRunner",
+            "count": 4906,
+            "bytes": 669469503,
+            "sha256": "91bbaa17d58d09cf4784188ae072ec10af9a47ca643b89217cffa3ea2988816f"
+          }
+        ],
+        "sdkPackageSeconds": 0.05351,
+        "beforeFirstBuildActionSeconds": 0.97422,
+        "runfilesSeconds": 0.283256,
+        "sandboxInputsSeconds": 0.397242,
+        "runner": {
+          "sourceAndRestore": 0.1392729,
+          "seedCopy": 0.0224061,
+          "sessionSetup": 0.1945849,
+          "msbuild": 0.7340107,
+          "selectBundles": 0.003621,
+          "validateEntry": 0.0106993,
+          "runtimeCopy": 0.0008674,
+          "runtimeSeal": 0.0328367,
+          "appCopy": 0.0203635,
+          "cleanup": 0.054263
+        },
+        "test": {
+          "selectBundle": 0.0180975,
+          "verifyAndCopyRuntime": 0.0249376,
+          "dataAndSetup": 0.0014301,
+          "vstest": 0.4265661
+        }
+      }
+    ],
+    "medians": [
+      {
+        "kind": "diamond",
+        "case": "body",
+        "configuredTargets": 4962,
+        "launchSeconds": 0.477,
+        "moduleMappingSeconds": 0.114691,
+        "sdkPackageSeconds": 0.048075,
+        "beforeFirstBuildActionSeconds": 0.747205,
+        "runfilesSeconds": 0.0,
+        "sandboxCreateSeconds": 0.202252,
+        "sandboxInputsSeconds": 0.176525,
+        "criticalPathSeconds": 1.076471,
+        "runner": {
+          "sourceAndRestore": 0.0198203,
+          "seedCopy": 0.005508,
+          "sessionSetup": 0.0069581,
+          "msbuild": 0.7461528,
+          "selectBundles": 0.0034595,
+          "validateEntry": 0.0034284,
+          "runtimeCopy": 0.0006931,
+          "runtimeSeal": 0.0037752,
+          "appCopy": 0.0012547,
+          "cleanup": 0.0046005
+        },
+        "test": {}
+      },
+      {
+        "kind": "diamond",
+        "case": "unchanged",
+        "configuredTargets": 4969,
+        "launchSeconds": 0.472,
+        "moduleMappingSeconds": 0.115756,
+        "sdkPackageSeconds": 0.051976,
+        "beforeFirstBuildActionSeconds": 0.762484,
+        "runfilesSeconds": 0.0,
+        "sandboxCreateSeconds": 0.197665,
+        "sandboxInputsSeconds": 0.171986,
+        "criticalPathSeconds": 0.563836,
+        "runner": {
+          "sourceAndRestore": 0.0196087,
+          "seedCopy": 0.0067826,
+          "sessionSetup": 0.0071715,
+          "msbuild": 0.2383565,
+          "selectBundles": 0.0034259,
+          "validateEntry": 0.0033755,
+          "runtimeCopy": 0.000702,
+          "runtimeSeal": 0.0036288,
+          "appCopy": 0.001221,
+          "cleanup": 0.0040841
+        },
+        "test": {}
+      },
+      {
+        "kind": "serilog",
+        "case": "body",
+        "configuredTargets": 5829,
+        "launchSeconds": 0.482,
+        "moduleMappingSeconds": 0.117751,
+        "sdkPackageSeconds": 0.055218,
+        "beforeFirstBuildActionSeconds": 0.96556,
+        "runfilesSeconds": 0.289326,
+        "sandboxCreateSeconds": 0.461535,
+        "sandboxInputsSeconds": 0.395676,
+        "criticalPathSeconds": 2.511378,
+        "runner": {
+          "sourceAndRestore": 0.1392729,
+          "seedCopy": 0.0224061,
+          "sessionSetup": 0.1945849,
+          "msbuild": 0.7386481,
+          "selectBundles": 0.0036899,
+          "validateEntry": 0.0107484,
+          "runtimeCopy": 0.0008849,
+          "runtimeSeal": 0.0335248,
+          "appCopy": 0.0210682,
+          "cleanup": 0.0546103
+        },
+        "test": {
+          "selectBundle": 0.0189673,
+          "verifyAndCopyRuntime": 0.026254,
+          "dataAndSetup": 0.0014602,
+          "vstest": 0.4337707
+        }
+      },
+      {
+        "kind": "serilog",
+        "case": "unchanged",
+        "configuredTargets": 5837,
+        "launchSeconds": 0.481,
+        "moduleMappingSeconds": 0.113637,
+        "sdkPackageSeconds": 0.060968,
+        "beforeFirstBuildActionSeconds": 0.961449,
+        "runfilesSeconds": 0.302276,
+        "sandboxCreateSeconds": 0.474667,
+        "sandboxInputsSeconds": 0.406815,
+        "criticalPathSeconds": 2.478802,
+        "runner": {
+          "sourceAndRestore": 0.137186,
+          "seedCopy": 0.0245568,
+          "sessionSetup": 0.185633,
+          "msbuild": 0.4131471,
+          "selectBundles": 0.0030132,
+          "validateEntry": 0.0101872,
+          "runtimeCopy": 0.0007945,
+          "runtimeSeal": 0.0332817,
+          "appCopy": 0.0209243,
+          "cleanup": 0.0537869
+        },
+        "test": {
+          "selectBundle": 0.0219625,
+          "verifyAndCopyRuntime": 0.0275676,
+          "dataAndSetup": 0.001429,
+          "vstest": 0.4309107
+        }
+      }
+    ]
+  }
+]

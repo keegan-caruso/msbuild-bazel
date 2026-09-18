@@ -1,0 +1,1039 @@
+[
+  {
+    "source": "ba-profile/report.json",
+    "sha256": "4baae37afb287130342222c43fe18ae21807762efe93d75dda20054358b52d8b",
+    "revision": "55d23bcf61d7ae92aa5811a29c4b6368c2913615",
+    "harnessSha256": {
+      "worker.py": "7b6ead7a566fde8e9c94cc283dcb77a5d5fdf3faf0d2ef21a6368e0a75674b0b",
+      "measure.py": "84b22dda21aa1d75302316ea56cdd5263fd5d8fd13e0d96e7d8c1ea00b988607",
+      "rehearse.py": "1b0380fa07c628ca1ce438a091801307be3275e3ddab1c7e4f91cd315fd47a3f",
+      "profile.py": "9a9fcac9b9ed74d93bb1e004853d7025ef679036ff6a81dcff27671a442e8571",
+      "integrity_profile.py": "f34b4207417c177791c51929dd7f5257cfc142a7611fa739b12d399ba686e8de",
+      "summarize.py": "43e8b757b191ec6f12f4d9e5b472922aa143595c9701b2effbd09ba3b5af0b99",
+      "workload.py": "9bf85533e638d1a867fa6158ed4026b73be1154582abc1c24ba44a037ad6cb9e",
+      "repository_controls.py": "e45f9fbd5832019f126b90560acbdd2ac0667bacf4c27f9d6c53b66ec92fbdb7",
+      "overhead_summary.py": "cc0a7de8fdb856859177f97704c7084a5d068f41d9961d93266b0289d41b6149",
+      "analysis_profile.py": "7bdb93a1d68ec9220316c6974ab34ce5d2bd32a73dd6279698ee1d9acacc0ee4",
+      "cache_service.py": "3815c3dab32f07f010114e0e1a7876a987ecdba924d2a7a2e77a75fe12bcece0"
+    },
+    "producers": [
+      {
+        "kind": "diamond",
+        "seconds": 8.264336625987198,
+        "compiles": 4,
+        "phases": {
+          "identity": 0.9831909,
+          "nuget": 0.0155964,
+          "prepare": 2.0880184,
+          "stage": 0.0044791,
+          "bazel": 4.1953999,
+          "leaseExit": 0.8080073,
+          "remotePublish": 0.0816494
+        }
+      },
+      {
+        "kind": "serilog",
+        "seconds": 12.525293959013652,
+        "compiles": 2,
+        "phases": {
+          "identity": 0.9425021,
+          "nuget": 0.5345701,
+          "prepare": 3.5075748,
+          "stage": 0.1061181,
+          "bazel": 5.4769761,
+          "leaseExit": 0.9163037,
+          "remotePublish": 0.5611818
+        }
+      }
+    ],
+    "sharedBazelInstall": true,
+    "sharedBazelRepository": true,
+    "samples": [
+      {
+        "kind": "diamond",
+        "case": "unchanged",
+        "repetition": 0,
+        "seconds": 4.5140352079761215,
+        "rawSeconds": 0.5795697090215981,
+        "compiles": 0,
+        "managedBytesEqual": true,
+        "phases": {
+          "identity": 0.9707404,
+          "nuget": 0.0172781,
+          "remoteSnapshot": 0.010929,
+          "prepare": 0.2611053,
+          "remoteSeeds": 0.0030817,
+          "stage": 0.0153707,
+          "bazel": 2.3225863,
+          "leaseExit": 0.7931005,
+          "remotePublish": 0.0223862
+        },
+        "verification": {
+          "requests": 51,
+          "scans": 31
+        },
+        "transport": {
+          "getRequests": 13,
+          "headRequests": 13,
+          "putRequests": 2,
+          "downloadBytes": 182032,
+          "uploadBytes": 6642,
+          "failures": 0,
+          "requestSeconds": 0.0299617
+        }
+      },
+      {
+        "kind": "diamond",
+        "case": "body",
+        "repetition": 0,
+        "seconds": 5.007447999960277,
+        "rawSeconds": 0.9828813749481924,
+        "compiles": 1,
+        "managedBytesEqual": true,
+        "phases": {
+          "identity": 0.9712686,
+          "nuget": 0.0158184,
+          "remoteSnapshot": 0.0107567,
+          "prepare": 0.2501845,
+          "remoteSeeds": 0.0028113,
+          "stage": 0.0121171,
+          "bazel": 2.8005181,
+          "leaseExit": 0.8086176,
+          "remotePublish": 0.0383489
+        },
+        "verification": {
+          "requests": 51,
+          "scans": 31
+        },
+        "transport": {
+          "getRequests": 12,
+          "headRequests": 13,
+          "putRequests": 5,
+          "downloadBytes": 169201,
+          "uploadBytes": 95130,
+          "failures": 0,
+          "requestSeconds": 0.0449406
+        }
+      },
+      {
+        "kind": "diamond",
+        "case": "unchanged",
+        "repetition": 1,
+        "seconds": 4.51259525003843,
+        "rawSeconds": 0.576976582990028,
+        "compiles": 0,
+        "managedBytesEqual": true,
+        "phases": {
+          "identity": 0.9762195,
+          "nuget": 0.0156104,
+          "remoteSnapshot": 0.0109668,
+          "prepare": 0.2428505,
+          "remoteSeeds": 0.0028808,
+          "stage": 0.0142212,
+          "bazel": 2.3087865,
+          "leaseExit": 0.8123248,
+          "remotePublish": 0.027499
+        },
+        "verification": {
+          "requests": 51,
+          "scans": 31
+        },
+        "transport": {
+          "getRequests": 13,
+          "headRequests": 13,
+          "putRequests": 2,
+          "downloadBytes": 182032,
+          "uploadBytes": 6642,
+          "failures": 0,
+          "requestSeconds": 0.0339347
+        }
+      },
+      {
+        "kind": "diamond",
+        "case": "body",
+        "repetition": 1,
+        "seconds": 5.062767208029982,
+        "rawSeconds": 0.9964907079702243,
+        "compiles": 1,
+        "managedBytesEqual": true,
+        "phases": {
+          "identity": 0.9705348,
+          "nuget": 0.0154237,
+          "remoteSnapshot": 0.0109216,
+          "prepare": 0.25238,
+          "remoteSeeds": 0.0029539,
+          "stage": 0.0129689,
+          "bazel": 2.8597278,
+          "leaseExit": 0.8102945,
+          "remotePublish": 0.0296945
+        },
+        "verification": {
+          "requests": 51,
+          "scans": 31
+        },
+        "transport": {
+          "getRequests": 12,
+          "headRequests": 13,
+          "putRequests": 2,
+          "downloadBytes": 169201,
+          "uploadBytes": 6636,
+          "failures": 0,
+          "requestSeconds": 0.0434384
+        }
+      },
+      {
+        "kind": "diamond",
+        "case": "unchanged",
+        "repetition": 2,
+        "seconds": 4.534283582994249,
+        "rawSeconds": 0.579767958028242,
+        "compiles": 0,
+        "managedBytesEqual": true,
+        "phases": {
+          "identity": 0.9807632,
+          "nuget": 0.0153854,
+          "remoteSnapshot": 0.0107127,
+          "prepare": 0.2444382,
+          "remoteSeeds": 0.0035992,
+          "stage": 0.014151,
+          "bazel": 2.3265128,
+          "leaseExit": 0.8144029,
+          "remotePublish": 0.0239165
+        },
+        "verification": {
+          "requests": 51,
+          "scans": 31
+        },
+        "transport": {
+          "getRequests": 13,
+          "headRequests": 13,
+          "putRequests": 2,
+          "downloadBytes": 182032,
+          "uploadBytes": 6642,
+          "failures": 0,
+          "requestSeconds": 0.0302934
+        }
+      },
+      {
+        "kind": "diamond",
+        "case": "body",
+        "repetition": 2,
+        "seconds": 4.958626375009771,
+        "rawSeconds": 1.0037224169936962,
+        "compiles": 1,
+        "managedBytesEqual": true,
+        "phases": {
+          "identity": 0.9528955,
+          "nuget": 0.01455,
+          "remoteSnapshot": 0.0108026,
+          "prepare": 0.2436097,
+          "remoteSeeds": 0.0027476,
+          "stage": 0.0125077,
+          "bazel": 2.8033311,
+          "leaseExit": 0.7981655,
+          "remotePublish": 0.0238166
+        },
+        "verification": {
+          "requests": 51,
+          "scans": 31
+        },
+        "transport": {
+          "getRequests": 12,
+          "headRequests": 13,
+          "putRequests": 2,
+          "downloadBytes": 169201,
+          "uploadBytes": 6636,
+          "failures": 0,
+          "requestSeconds": 0.0286872
+        }
+      },
+      {
+        "kind": "serilog",
+        "case": "unchanged",
+        "repetition": 0,
+        "seconds": 8.346203874971252,
+        "rawSeconds": 1.041711917030625,
+        "compiles": 0,
+        "managedBytesEqual": true,
+        "phases": {
+          "identity": 0.9526972,
+          "nuget": 0.4958407,
+          "remoteSnapshot": 0.0108745,
+          "prepare": 0.6318676,
+          "remoteSeeds": 0.0311112,
+          "stage": 0.1673475,
+          "bazel": 4.2586182,
+          "leaseExit": 0.9250347,
+          "remotePublish": 0.4152373
+        },
+        "verification": {
+          "requests": 51,
+          "scans": 31
+        },
+        "transport": {
+          "getRequests": 33,
+          "headRequests": 55,
+          "putRequests": 2,
+          "downloadBytes": 4638892,
+          "uploadBytes": 136362,
+          "failures": 0,
+          "requestSeconds": 0.0513085
+        }
+      },
+      {
+        "kind": "serilog",
+        "case": "body",
+        "repetition": 0,
+        "seconds": 8.966989833046682,
+        "rawSeconds": 1.4853704580455087,
+        "compiles": 1,
+        "managedBytesEqual": true,
+        "phases": {
+          "identity": 0.9845874,
+          "nuget": 0.4825405,
+          "remoteSnapshot": 0.0114495,
+          "prepare": 0.6155978,
+          "remoteSeeds": 0.0303361,
+          "stage": 0.1494612,
+          "bazel": 4.8365004,
+          "leaseExit": 0.9648447,
+          "remotePublish": 0.4414069
+        },
+        "verification": {
+          "requests": 51,
+          "scans": 31
+        },
+        "transport": {
+          "getRequests": 32,
+          "headRequests": 55,
+          "putRequests": 5,
+          "downloadBytes": 4430592,
+          "uploadBytes": 573053,
+          "failures": 0,
+          "requestSeconds": 0.0875735
+        }
+      },
+      {
+        "kind": "serilog",
+        "case": "unchanged",
+        "repetition": 1,
+        "seconds": 8.359884124947712,
+        "rawSeconds": 1.069265790982172,
+        "compiles": 0,
+        "managedBytesEqual": true,
+        "phases": {
+          "identity": 1.029373,
+          "nuget": 0.4643352,
+          "remoteSnapshot": 0.0116226,
+          "prepare": 0.6584147,
+          "remoteSeeds": 0.0266595,
+          "stage": 0.1393951,
+          "bazel": 4.215989,
+          "leaseExit": 0.9497627,
+          "remotePublish": 0.4219487
+        },
+        "verification": {
+          "requests": 51,
+          "scans": 31
+        },
+        "transport": {
+          "getRequests": 33,
+          "headRequests": 55,
+          "putRequests": 2,
+          "downloadBytes": 4638892,
+          "uploadBytes": 136366,
+          "failures": 0,
+          "requestSeconds": 0.0529987
+        }
+      },
+      {
+        "kind": "serilog",
+        "case": "body",
+        "repetition": 1,
+        "seconds": 8.830456958967261,
+        "rawSeconds": 1.1990917079965584,
+        "compiles": 1,
+        "managedBytesEqual": true,
+        "phases": {
+          "identity": 1.0161758,
+          "nuget": 0.4674659,
+          "remoteSnapshot": 0.011178,
+          "prepare": 0.6516183,
+          "remoteSeeds": 0.0306035,
+          "stage": 0.1600022,
+          "bazel": 4.6461685,
+          "leaseExit": 0.953246,
+          "remotePublish": 0.4398067
+        },
+        "verification": {
+          "requests": 51,
+          "scans": 31
+        },
+        "transport": {
+          "getRequests": 32,
+          "headRequests": 55,
+          "putRequests": 2,
+          "downloadBytes": 4430592,
+          "uploadBytes": 136360,
+          "failures": 0,
+          "requestSeconds": 0.0525468
+        }
+      },
+      {
+        "kind": "serilog",
+        "case": "unchanged",
+        "repetition": 2,
+        "seconds": 8.344241166021675,
+        "rawSeconds": 1.1197494579828344,
+        "compiles": 0,
+        "managedBytesEqual": true,
+        "phases": {
+          "identity": 0.9627542,
+          "nuget": 0.4611765,
+          "remoteSnapshot": 0.0112439,
+          "prepare": 0.6164421,
+          "remoteSeeds": 0.0277844,
+          "stage": 0.1654258,
+          "bazel": 4.276164,
+          "leaseExit": 0.9302783,
+          "remotePublish": 0.4258205
+        },
+        "verification": {
+          "requests": 51,
+          "scans": 31
+        },
+        "transport": {
+          "getRequests": 33,
+          "headRequests": 55,
+          "putRequests": 2,
+          "downloadBytes": 4638892,
+          "uploadBytes": 136363,
+          "failures": 0,
+          "requestSeconds": 0.051165
+        }
+      },
+      {
+        "kind": "serilog",
+        "case": "body",
+        "repetition": 2,
+        "seconds": 8.577209124981891,
+        "rawSeconds": 1.2431542500271462,
+        "compiles": 1,
+        "managedBytesEqual": true,
+        "phases": {
+          "identity": 0.9822102,
+          "nuget": 0.4588957,
+          "remoteSnapshot": 0.0112367,
+          "prepare": 0.6193068,
+          "remoteSeeds": 0.028344,
+          "stage": 0.1371031,
+          "bazel": 4.5230816,
+          "leaseExit": 0.9451541,
+          "remotePublish": 0.4362906
+        },
+        "verification": {
+          "requests": 51,
+          "scans": 31
+        },
+        "transport": {
+          "getRequests": 32,
+          "headRequests": 55,
+          "putRequests": 2,
+          "downloadBytes": 4430592,
+          "uploadBytes": 136358,
+          "failures": 0,
+          "requestSeconds": 0.0645947
+        }
+      }
+    ],
+    "medians": [
+      {
+        "kind": "diamond",
+        "case": "body",
+        "seconds": 5.007447999960277,
+        "rawSeconds": 0.9964907079702243,
+        "phases": {
+          "prepare": 0.2501845,
+          "remotePublish": 0.0296945,
+          "leaseExit": 0.8086176,
+          "remoteSnapshot": 0.0108026,
+          "nuget": 0.0154237,
+          "identity": 0.9705348,
+          "remoteSeeds": 0.0028113,
+          "bazel": 2.8033311,
+          "stage": 0.0125077
+        }
+      },
+      {
+        "kind": "diamond",
+        "case": "unchanged",
+        "seconds": 4.5140352079761215,
+        "rawSeconds": 0.5795697090215981,
+        "phases": {
+          "prepare": 0.2444382,
+          "remotePublish": 0.0239165,
+          "leaseExit": 0.8123248,
+          "remoteSnapshot": 0.010929,
+          "nuget": 0.0156104,
+          "identity": 0.9762195,
+          "remoteSeeds": 0.0030817,
+          "bazel": 2.3225863,
+          "stage": 0.0142212
+        }
+      },
+      {
+        "kind": "serilog",
+        "case": "body",
+        "seconds": 8.830456958967261,
+        "rawSeconds": 1.2431542500271462,
+        "phases": {
+          "prepare": 0.6193068,
+          "remotePublish": 0.4398067,
+          "leaseExit": 0.953246,
+          "remoteSnapshot": 0.0112367,
+          "nuget": 0.4674659,
+          "identity": 0.9845874,
+          "remoteSeeds": 0.0303361,
+          "bazel": 4.6461685,
+          "stage": 0.1494612
+        }
+      },
+      {
+        "kind": "serilog",
+        "case": "unchanged",
+        "seconds": 8.346203874971252,
+        "rawSeconds": 1.069265790982172,
+        "phases": {
+          "prepare": 0.6318676,
+          "remotePublish": 0.4219487,
+          "leaseExit": 0.9302783,
+          "remoteSnapshot": 0.0112439,
+          "nuget": 0.4643352,
+          "identity": 0.9627542,
+          "remoteSeeds": 0.0277844,
+          "bazel": 4.2586182,
+          "stage": 0.1654258
+        }
+      }
+    ]
+  },
+  {
+    "source": "ba-export/report.json",
+    "sha256": "5eab3866fcbe3be04d6670c229755cb485e6ef042ee7b2fed0820ad36bcbbdcd",
+    "revision": "318918bf5b77cb63702af945f33d70892bc54344",
+    "harnessSha256": {
+      "worker.py": "7b6ead7a566fde8e9c94cc283dcb77a5d5fdf3faf0d2ef21a6368e0a75674b0b",
+      "measure.py": "84b22dda21aa1d75302316ea56cdd5263fd5d8fd13e0d96e7d8c1ea00b988607",
+      "rehearse.py": "1b0380fa07c628ca1ce438a091801307be3275e3ddab1c7e4f91cd315fd47a3f",
+      "profile.py": "9a9fcac9b9ed74d93bb1e004853d7025ef679036ff6a81dcff27671a442e8571",
+      "integrity_profile.py": "f34b4207417c177791c51929dd7f5257cfc142a7611fa739b12d399ba686e8de",
+      "summarize.py": "43e8b757b191ec6f12f4d9e5b472922aa143595c9701b2effbd09ba3b5af0b99",
+      "workload.py": "9bf85533e638d1a867fa6158ed4026b73be1154582abc1c24ba44a037ad6cb9e",
+      "repository_controls.py": "e45f9fbd5832019f126b90560acbdd2ac0667bacf4c27f9d6c53b66ec92fbdb7",
+      "overhead_summary.py": "cc0a7de8fdb856859177f97704c7084a5d068f41d9961d93266b0289d41b6149",
+      "analysis_profile.py": "a764eca6ac25784b9fffa4e62f757df98599acf39df6922c3d21df78268f0d33",
+      "materialization_parity.py": "5c5fbd1f584d080a63fe4e2621b9a4a88004c305b1685ccc250a3f30e4d21450",
+      "cache_service.py": "3815c3dab32f07f010114e0e1a7876a987ecdba924d2a7a2e77a75fe12bcece0"
+    },
+    "producers": [
+      {
+        "kind": "diamond",
+        "seconds": 10.473556833982002,
+        "compiles": 4,
+        "phases": {
+          "identity": 0.956372,
+          "nuget": 0.0152704,
+          "prepare": 2.0607474,
+          "stage": 0.0037485,
+          "bazel": 6.4768044,
+          "leaseExit": 0.8003862,
+          "remotePublish": 0.072834
+        }
+      },
+      {
+        "kind": "serilog",
+        "seconds": 12.68813120800769,
+        "compiles": 2,
+        "phases": {
+          "identity": 0.9702174,
+          "nuget": 0.4602685,
+          "prepare": 3.5307111,
+          "stage": 0.111995,
+          "bazel": 5.6354228,
+          "leaseExit": 0.9402164,
+          "remotePublish": 0.5680337
+        }
+      }
+    ],
+    "sharedBazelInstall": true,
+    "sharedBazelRepository": true,
+    "samples": [
+      {
+        "kind": "diamond",
+        "case": "unchanged",
+        "repetition": 0,
+        "seconds": 4.584547790989745,
+        "rawSeconds": 0.5946148750372231,
+        "compiles": 0,
+        "managedBytesEqual": true,
+        "phases": {
+          "identity": 0.9984077,
+          "nuget": 0.0155176,
+          "remoteSnapshot": 0.010913,
+          "prepare": 0.2635682,
+          "remoteSeeds": 0.0028722,
+          "stage": 0.014666,
+          "bazel": 2.3392343,
+          "leaseExit": 0.8137122,
+          "remotePublish": 0.0243628
+        },
+        "verification": {
+          "requests": 51,
+          "scans": 31
+        },
+        "transport": {
+          "getRequests": 13,
+          "headRequests": 13,
+          "putRequests": 2,
+          "downloadBytes": 182023,
+          "uploadBytes": 6641,
+          "failures": 0,
+          "requestSeconds": 0.0314998
+        }
+      },
+      {
+        "kind": "diamond",
+        "case": "body",
+        "repetition": 0,
+        "seconds": 5.02028220804641,
+        "rawSeconds": 0.9882257080171257,
+        "compiles": 1,
+        "managedBytesEqual": true,
+        "phases": {
+          "identity": 0.9718458,
+          "nuget": 0.015492,
+          "remoteSnapshot": 0.0107912,
+          "prepare": 0.2463928,
+          "remoteSeeds": 0.0031176,
+          "stage": 0.0118555,
+          "bazel": 2.8094045,
+          "leaseExit": 0.8072187,
+          "remotePublish": 0.0476153
+        },
+        "verification": {
+          "requests": 51,
+          "scans": 31
+        },
+        "transport": {
+          "getRequests": 12,
+          "headRequests": 13,
+          "putRequests": 5,
+          "downloadBytes": 169192,
+          "uploadBytes": 95122,
+          "failures": 0,
+          "requestSeconds": 0.0553101
+        }
+      },
+      {
+        "kind": "diamond",
+        "case": "unchanged",
+        "repetition": 1,
+        "seconds": 4.516032166953664,
+        "rawSeconds": 0.5798877920024097,
+        "compiles": 0,
+        "managedBytesEqual": true,
+        "phases": {
+          "identity": 0.9712932,
+          "nuget": 0.0141853,
+          "remoteSnapshot": 0.0107022,
+          "prepare": 0.243014,
+          "remoteSeeds": 0.0029234,
+          "stage": 0.0132634,
+          "bazel": 2.3305329,
+          "leaseExit": 0.8097328,
+          "remotePublish": 0.0237458
+        },
+        "verification": {
+          "requests": 51,
+          "scans": 31
+        },
+        "transport": {
+          "getRequests": 13,
+          "headRequests": 13,
+          "putRequests": 2,
+          "downloadBytes": 182023,
+          "uploadBytes": 6641,
+          "failures": 0,
+          "requestSeconds": 0.0307913
+        }
+      },
+      {
+        "kind": "diamond",
+        "case": "body",
+        "repetition": 1,
+        "seconds": 5.067813209025189,
+        "rawSeconds": 1.0005214579869062,
+        "compiles": 1,
+        "managedBytesEqual": true,
+        "phases": {
+          "identity": 0.9881202,
+          "nuget": 0.0153197,
+          "remoteSnapshot": 0.0108427,
+          "prepare": 0.260352,
+          "remoteSeeds": 0.0029171,
+          "stage": 0.0119156,
+          "bazel": 2.8299527,
+          "leaseExit": 0.8299282,
+          "remotePublish": 0.0235575
+        },
+        "verification": {
+          "requests": 51,
+          "scans": 31
+        },
+        "transport": {
+          "getRequests": 12,
+          "headRequests": 13,
+          "putRequests": 2,
+          "downloadBytes": 169192,
+          "uploadBytes": 6631,
+          "failures": 0,
+          "requestSeconds": 0.0284292
+        }
+      },
+      {
+        "kind": "diamond",
+        "case": "unchanged",
+        "repetition": 2,
+        "seconds": 4.499209666042589,
+        "rawSeconds": 0.5866071659838781,
+        "compiles": 0,
+        "managedBytesEqual": true,
+        "phases": {
+          "identity": 0.9582984,
+          "nuget": 0.0156166,
+          "remoteSnapshot": 0.010863,
+          "prepare": 0.2381841,
+          "remoteSeeds": 0.0028103,
+          "stage": 0.0139388,
+          "bazel": 2.340368,
+          "leaseExit": 0.8000539,
+          "remotePublish": 0.0220683
+        },
+        "verification": {
+          "requests": 51,
+          "scans": 31
+        },
+        "transport": {
+          "getRequests": 13,
+          "headRequests": 13,
+          "putRequests": 2,
+          "downloadBytes": 182023,
+          "uploadBytes": 6641,
+          "failures": 0,
+          "requestSeconds": 0.0290045
+        }
+      },
+      {
+        "kind": "diamond",
+        "case": "body",
+        "repetition": 2,
+        "seconds": 5.077140750014223,
+        "rawSeconds": 0.9950221669860184,
+        "compiles": 1,
+        "managedBytesEqual": true,
+        "phases": {
+          "identity": 0.9879979,
+          "nuget": 0.0148594,
+          "remoteSnapshot": 0.0110896,
+          "prepare": 0.2591677,
+          "remoteSeeds": 0.0027962,
+          "stage": 0.0120498,
+          "bazel": 2.84992,
+          "leaseExit": 0.8186582,
+          "remotePublish": 0.0256856
+        },
+        "verification": {
+          "requests": 51,
+          "scans": 31
+        },
+        "transport": {
+          "getRequests": 12,
+          "headRequests": 13,
+          "putRequests": 2,
+          "downloadBytes": 169192,
+          "uploadBytes": 6631,
+          "failures": 0,
+          "requestSeconds": 0.0307738
+        }
+      },
+      {
+        "kind": "serilog",
+        "case": "unchanged",
+        "repetition": 0,
+        "seconds": 8.881868582975585,
+        "rawSeconds": 1.062167749973014,
+        "compiles": 0,
+        "managedBytesEqual": true,
+        "phases": {
+          "identity": 0.9910006,
+          "nuget": 0.4636928,
+          "remoteSnapshot": 0.0127874,
+          "prepare": 0.6345924,
+          "remoteSeeds": 0.0271767,
+          "stage": 0.1589208,
+          "bazel": 4.7630512,
+          "leaseExit": 0.9526688,
+          "remotePublish": 0.4215285
+        },
+        "verification": {
+          "requests": 51,
+          "scans": 31
+        },
+        "transport": {
+          "getRequests": 33,
+          "headRequests": 55,
+          "putRequests": 2,
+          "downloadBytes": 4638902,
+          "uploadBytes": 136362,
+          "failures": 0,
+          "requestSeconds": 0.0543738
+        }
+      },
+      {
+        "kind": "serilog",
+        "case": "body",
+        "repetition": 0,
+        "seconds": 9.086911541991867,
+        "rawSeconds": 1.4872212079935707,
+        "compiles": 1,
+        "managedBytesEqual": true,
+        "phases": {
+          "identity": 1.0296142,
+          "nuget": 0.4735302,
+          "remoteSnapshot": 0.0118999,
+          "prepare": 0.6477514,
+          "remoteSeeds": 0.0301079,
+          "stage": 0.1484083,
+          "bazel": 4.8447642,
+          "leaseExit": 0.996046,
+          "remotePublish": 0.4411028
+        },
+        "verification": {
+          "requests": 51,
+          "scans": 31
+        },
+        "transport": {
+          "getRequests": 32,
+          "headRequests": 55,
+          "putRequests": 5,
+          "downloadBytes": 4430601,
+          "uploadBytes": 573050,
+          "failures": 0,
+          "requestSeconds": 0.0767434
+        }
+      },
+      {
+        "kind": "serilog",
+        "case": "unchanged",
+        "repetition": 1,
+        "seconds": 8.517059999983758,
+        "rawSeconds": 1.0762429579626769,
+        "compiles": 0,
+        "managedBytesEqual": true,
+        "phases": {
+          "identity": 1.0015853,
+          "nuget": 0.4805396,
+          "remoteSnapshot": 0.0118554,
+          "prepare": 0.5942604,
+          "remoteSeeds": 0.0275802,
+          "stage": 0.1429227,
+          "bazel": 4.4431601,
+          "leaseExit": 0.9357724,
+          "remotePublish": 0.4327665
+        },
+        "verification": {
+          "requests": 51,
+          "scans": 31
+        },
+        "transport": {
+          "getRequests": 33,
+          "headRequests": 55,
+          "putRequests": 2,
+          "downloadBytes": 4638902,
+          "uploadBytes": 136366,
+          "failures": 0,
+          "requestSeconds": 0.0554983
+        }
+      },
+      {
+        "kind": "serilog",
+        "case": "body",
+        "repetition": 1,
+        "seconds": 8.687563499959651,
+        "rawSeconds": 1.2078961660154164,
+        "compiles": 1,
+        "managedBytesEqual": true,
+        "phases": {
+          "identity": 0.981479,
+          "nuget": 0.4605048,
+          "remoteSnapshot": 0.0110032,
+          "prepare": 0.6196201,
+          "remoteSeeds": 0.0290756,
+          "stage": 0.1428603,
+          "bazel": 4.6248917,
+          "leaseExit": 0.9375152,
+          "remotePublish": 0.4350971
+        },
+        "verification": {
+          "requests": 51,
+          "scans": 31
+        },
+        "transport": {
+          "getRequests": 32,
+          "headRequests": 55,
+          "putRequests": 2,
+          "downloadBytes": 4430601,
+          "uploadBytes": 136356,
+          "failures": 0,
+          "requestSeconds": 0.0554825
+        }
+      },
+      {
+        "kind": "serilog",
+        "case": "unchanged",
+        "repetition": 2,
+        "seconds": 8.427714416000526,
+        "rawSeconds": 1.0943772500031628,
+        "compiles": 0,
+        "managedBytesEqual": true,
+        "phases": {
+          "identity": 0.9774745,
+          "nuget": 0.4604807,
+          "remoteSnapshot": 0.0112526,
+          "prepare": 0.6318099,
+          "remoteSeeds": 0.0309006,
+          "stage": 0.1628263,
+          "bazel": 4.3225034,
+          "leaseExit": 0.9416053,
+          "remotePublish": 0.421778
+        },
+        "verification": {
+          "requests": 51,
+          "scans": 31
+        },
+        "transport": {
+          "getRequests": 33,
+          "headRequests": 55,
+          "putRequests": 2,
+          "downloadBytes": 4638902,
+          "uploadBytes": 136364,
+          "failures": 0,
+          "requestSeconds": 0.0514542
+        }
+      },
+      {
+        "kind": "serilog",
+        "case": "body",
+        "repetition": 2,
+        "seconds": 8.644853040983435,
+        "rawSeconds": 1.2141961669549346,
+        "compiles": 1,
+        "managedBytesEqual": true,
+        "phases": {
+          "identity": 0.9974065,
+          "nuget": 0.4604879,
+          "remoteSnapshot": 0.0111393,
+          "prepare": 0.6268662,
+          "remoteSeeds": 0.0298617,
+          "stage": 0.1360154,
+          "bazel": 4.5619005,
+          "leaseExit": 0.9542805,
+          "remotePublish": 0.4298021
+        },
+        "verification": {
+          "requests": 51,
+          "scans": 31
+        },
+        "transport": {
+          "getRequests": 32,
+          "headRequests": 55,
+          "putRequests": 2,
+          "downloadBytes": 4430601,
+          "uploadBytes": 136354,
+          "failures": 0,
+          "requestSeconds": 0.0568336
+        }
+      }
+    ],
+    "medians": [
+      {
+        "kind": "diamond",
+        "case": "body",
+        "seconds": 5.067813209025189,
+        "rawSeconds": 0.9950221669860184,
+        "phases": {
+          "prepare": 0.2591677,
+          "remotePublish": 0.0256856,
+          "leaseExit": 0.8186582,
+          "remoteSnapshot": 0.0108427,
+          "nuget": 0.0153197,
+          "identity": 0.9879979,
+          "remoteSeeds": 0.0029171,
+          "bazel": 2.8299527,
+          "stage": 0.0119156
+        }
+      },
+      {
+        "kind": "diamond",
+        "case": "unchanged",
+        "seconds": 4.516032166953664,
+        "rawSeconds": 0.5866071659838781,
+        "phases": {
+          "prepare": 0.243014,
+          "remotePublish": 0.0237458,
+          "leaseExit": 0.8097328,
+          "remoteSnapshot": 0.010863,
+          "nuget": 0.0155176,
+          "identity": 0.9712932,
+          "remoteSeeds": 0.0028722,
+          "bazel": 2.3392343,
+          "stage": 0.0139388
+        }
+      },
+      {
+        "kind": "serilog",
+        "case": "body",
+        "seconds": 8.687563499959651,
+        "rawSeconds": 1.2141961669549346,
+        "phases": {
+          "prepare": 0.6268662,
+          "remotePublish": 0.4350971,
+          "leaseExit": 0.9542805,
+          "remoteSnapshot": 0.0111393,
+          "nuget": 0.4605048,
+          "identity": 0.9974065,
+          "remoteSeeds": 0.0298617,
+          "bazel": 4.6248917,
+          "stage": 0.1428603
+        }
+      },
+      {
+        "kind": "serilog",
+        "case": "unchanged",
+        "seconds": 8.517059999983758,
+        "rawSeconds": 1.0762429579626769,
+        "phases": {
+          "prepare": 0.6318099,
+          "remotePublish": 0.421778,
+          "leaseExit": 0.9416053,
+          "remoteSnapshot": 0.0118554,
+          "nuget": 0.4636928,
+          "identity": 0.9910006,
+          "remoteSeeds": 0.0275802,
+          "bazel": 4.4431601,
+          "stage": 0.1589208
+        }
+      }
+    ]
+  }
+]

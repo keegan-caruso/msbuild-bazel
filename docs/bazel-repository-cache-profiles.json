@@ -1,0 +1,570 @@
+[
+  {
+    "source": "br-lock/report.json",
+    "accepted": true,
+    "samples": [
+      {
+        "kind": "diamond",
+        "case": "unchanged",
+        "repetition": 0,
+        "profileSha256": "a16756a9bd9d80de86cdb3f61449b6e1fb6f93557820fc4f5d6225f230106161",
+        "bazelVersion": "release 8.4.2- (@non-git)",
+        "launchSeconds": 0.583,
+        "extractSeconds": 0.0,
+        "moduleMappingSeconds": 1.442002,
+        "downloadSpans": 132,
+        "downloadUnionSeconds": 1.350516,
+        "criticalPathSeconds": 0.565496,
+        "sandboxCreateSeconds": 0.188549,
+        "phases": {
+          "Initialize command": 1.601052,
+          "Evaluate target patterns": 0.113833,
+          "Load, analyze dependencies and build artifacts": 1.485634
+        },
+        "actions": {
+          "BazelWorkspaceStatusAction stable-status.txt": 0.008591,
+          "Writing file build.request.json": 0.001552,
+          "MsbuildNativeCache build.bundle": 0.564469
+        }
+      },
+      {
+        "kind": "diamond",
+        "case": "unchanged",
+        "repetition": 1,
+        "profileSha256": "f010d9787f2d75cefc80f945658935ee0f729f413f885e90ab1a62f5c4e98858",
+        "bazelVersion": "release 8.4.2- (@non-git)",
+        "launchSeconds": 0.473,
+        "extractSeconds": 0.0,
+        "moduleMappingSeconds": 1.421498,
+        "downloadSpans": 132,
+        "downloadUnionSeconds": 1.331123,
+        "criticalPathSeconds": 0.567113,
+        "sandboxCreateSeconds": 0.194488,
+        "phases": {
+          "Initialize command": 1.578673,
+          "Evaluate target patterns": 0.109276,
+          "Load, analyze dependencies and build artifacts": 1.458996
+        },
+        "actions": {
+          "BazelWorkspaceStatusAction stable-status.txt": 0.01008,
+          "Writing file build.request.json": 0.001529,
+          "MsbuildNativeCache build.bundle": 0.566157
+        }
+      },
+      {
+        "kind": "diamond",
+        "case": "unchanged",
+        "repetition": 2,
+        "profileSha256": "f1faaf96332943648a02a97d946c1bd8ef55fcefe7fafe76fad047f20d230e23",
+        "bazelVersion": "release 8.4.2- (@non-git)",
+        "launchSeconds": 0.473,
+        "extractSeconds": 0.0,
+        "moduleMappingSeconds": 1.502254,
+        "downloadSpans": 132,
+        "downloadUnionSeconds": 1.405486,
+        "criticalPathSeconds": 0.568458,
+        "sandboxCreateSeconds": 0.191391,
+        "phases": {
+          "Initialize command": 1.659766,
+          "Evaluate target patterns": 0.109591,
+          "Load, analyze dependencies and build artifacts": 1.482295
+        },
+        "actions": {
+          "BazelWorkspaceStatusAction stable-status.txt": 0.007758,
+          "Writing file build.request.json": 0.001876,
+          "MsbuildNativeCache build.bundle": 0.567141
+        }
+      },
+      {
+        "kind": "serilog",
+        "case": "unchanged",
+        "repetition": 0,
+        "profileSha256": "c9499668b95b67e768d16637bd7f0d53c04c8779bf080d5fb73f31356bc3dd62",
+        "bazelVersion": "release 8.4.2- (@non-git)",
+        "launchSeconds": 0.481,
+        "extractSeconds": 0.0,
+        "moduleMappingSeconds": 1.370264,
+        "downloadSpans": 132,
+        "downloadUnionSeconds": 1.277733,
+        "criticalPathSeconds": 2.208542,
+        "sandboxCreateSeconds": 0.454525,
+        "phases": {
+          "Initialize command": 1.53086,
+          "Evaluate target patterns": 0.170187,
+          "Load, analyze dependencies and build artifacts": 3.336105
+        },
+        "actions": {
+          "BazelWorkspaceStatusAction stable-status.txt": 0.010019,
+          "Writing script test.sh": 0.001302,
+          "Writing file test.request.json": 0.001032,
+          "Writing repo mapping manifest for //:test": 0.00182,
+          "Writing file build.request.json": 0.001187,
+          "Creating source manifest for //:test": 0.046967,
+          "Creating runfiles tree bazel-out/darwin_arm64-fastbuild/bin/test.sh.runfiles": 0.298669,
+          "MsbuildNativeCache build.bundle": 1.299335,
+          "Testing //:test": 0.908578
+        }
+      },
+      {
+        "kind": "serilog",
+        "case": "unchanged",
+        "repetition": 1,
+        "profileSha256": "c946d7113c4e349fffbf76e2c2455e734ecccfd5fdea242618f34d6e16cff15e",
+        "bazelVersion": "release 8.4.2- (@non-git)",
+        "launchSeconds": 0.491,
+        "extractSeconds": 0.0,
+        "moduleMappingSeconds": 1.411135,
+        "downloadSpans": 132,
+        "downloadUnionSeconds": 1.323043,
+        "criticalPathSeconds": 2.166725,
+        "sandboxCreateSeconds": 0.459003,
+        "phases": {
+          "Initialize command": 1.571833,
+          "Evaluate target patterns": 0.161323,
+          "Load, analyze dependencies and build artifacts": 3.493118
+        },
+        "actions": {
+          "BazelWorkspaceStatusAction stable-status.txt": 0.010403,
+          "Writing file test.request.json": 0.001063,
+          "Writing script test.sh": 0.001444,
+          "Writing repo mapping manifest for //:test": 0.001992,
+          "Creating source manifest for //:test": 0.035436,
+          "Writing file build.request.json": 0.001006,
+          "Creating runfiles tree bazel-out/darwin_arm64-fastbuild/bin/test.sh.runfiles": 0.309609,
+          "MsbuildNativeCache build.bundle": 1.29403,
+          "Testing //:test": 0.86918
+        }
+      },
+      {
+        "kind": "serilog",
+        "case": "unchanged",
+        "repetition": 2,
+        "profileSha256": "72d3918f3f97a00e8c2b79be9fe1b302dd4cdb97a2a7a9695988122babebc61d",
+        "bazelVersion": "release 8.4.2- (@non-git)",
+        "launchSeconds": 0.485,
+        "extractSeconds": 0.0,
+        "moduleMappingSeconds": 1.375915,
+        "downloadSpans": 132,
+        "downloadUnionSeconds": 1.304747,
+        "criticalPathSeconds": 2.167991,
+        "sandboxCreateSeconds": 0.460913,
+        "phases": {
+          "Initialize command": 1.546126,
+          "Evaluate target patterns": 0.180556,
+          "Load, analyze dependencies and build artifacts": 3.303546
+        },
+        "actions": {
+          "BazelWorkspaceStatusAction stable-status.txt": 0.009145,
+          "Writing file test.request.json": 0.001115,
+          "Writing script test.sh": 0.001408,
+          "Writing repo mapping manifest for //:test": 0.001921,
+          "Writing file build.request.json": 0.000951,
+          "Creating source manifest for //:test": 0.028174,
+          "Creating runfiles tree bazel-out/darwin_arm64-fastbuild/bin/test.sh.runfiles": 0.289475,
+          "MsbuildNativeCache build.bundle": 1.285336,
+          "Testing //:test": 0.879756
+        }
+      }
+    ],
+    "medians": [
+      {
+        "kind": "diamond",
+        "case": "unchanged",
+        "launchSeconds": 0.473,
+        "extractSeconds": 0.0,
+        "moduleMappingSeconds": 1.442002,
+        "downloadSpans": 132,
+        "downloadUnionSeconds": 1.350516,
+        "criticalPathSeconds": 0.567113,
+        "sandboxCreateSeconds": 0.191391
+      },
+      {
+        "kind": "serilog",
+        "case": "unchanged",
+        "launchSeconds": 0.485,
+        "extractSeconds": 0.0,
+        "moduleMappingSeconds": 1.375915,
+        "downloadSpans": 132,
+        "downloadUnionSeconds": 1.304747,
+        "criticalPathSeconds": 2.167991,
+        "sandboxCreateSeconds": 0.459003
+      }
+    ]
+  },
+  {
+    "source": "br-cache/report.json",
+    "accepted": true,
+    "samples": [
+      {
+        "kind": "diamond",
+        "case": "unchanged",
+        "repetition": 0,
+        "profileSha256": "d531e450dc66cb6098fa4bacd27d33f8047f37e04738868ecdec13b31c043a41",
+        "bazelVersion": "release 8.4.2- (@non-git)",
+        "launchSeconds": 0.478,
+        "extractSeconds": 0.0,
+        "moduleMappingSeconds": 0.109806,
+        "downloadSpans": 132,
+        "downloadUnionSeconds": 0.020341,
+        "criticalPathSeconds": 0.565389,
+        "sandboxCreateSeconds": 0.190535,
+        "phases": {
+          "Initialize command": 0.263501,
+          "Evaluate target patterns": 0.11003,
+          "Load, analyze dependencies and build artifacts": 1.343438
+        },
+        "actions": {
+          "BazelWorkspaceStatusAction stable-status.txt": 0.010638,
+          "Writing file build.request.json": 0.002152,
+          "MsbuildNativeCache build.bundle": 0.563794
+        }
+      },
+      {
+        "kind": "diamond",
+        "case": "body",
+        "repetition": 0,
+        "profileSha256": "1b989ef9728f0fcf952093e43132ae7354ce73b27e66d41ad0d9f498b759f232",
+        "bazelVersion": "release 8.4.2- (@non-git)",
+        "launchSeconds": 0.468,
+        "extractSeconds": 0.0,
+        "moduleMappingSeconds": 0.104639,
+        "downloadSpans": 132,
+        "downloadUnionSeconds": 0.021206,
+        "criticalPathSeconds": 1.058751,
+        "sandboxCreateSeconds": 0.19678,
+        "phases": {
+          "Initialize command": 0.256815,
+          "Evaluate target patterns": 0.114033,
+          "Load, analyze dependencies and build artifacts": 1.844955
+        },
+        "actions": {
+          "BazelWorkspaceStatusAction stable-status.txt": 0.009688,
+          "Writing file build.request.json": 0.001813,
+          "MsbuildNativeCache build.bundle": 1.057418
+        }
+      },
+      {
+        "kind": "diamond",
+        "case": "unchanged",
+        "repetition": 1,
+        "profileSha256": "707ce2c802980ce2f12b63ae826abaf47845161665fdd031a560ca206e830a0a",
+        "bazelVersion": "release 8.4.2- (@non-git)",
+        "launchSeconds": 0.476,
+        "extractSeconds": 0.0,
+        "moduleMappingSeconds": 0.110101,
+        "downloadSpans": 132,
+        "downloadUnionSeconds": 0.028221,
+        "criticalPathSeconds": 0.565468,
+        "sandboxCreateSeconds": 0.193757,
+        "phases": {
+          "Initialize command": 0.265163,
+          "Evaluate target patterns": 0.112745,
+          "Load, analyze dependencies and build artifacts": 1.329823
+        },
+        "actions": {
+          "BazelWorkspaceStatusAction stable-status.txt": 0.010036,
+          "Writing file build.request.json": 0.001581,
+          "MsbuildNativeCache build.bundle": 0.564445
+        }
+      },
+      {
+        "kind": "diamond",
+        "case": "body",
+        "repetition": 1,
+        "profileSha256": "7761c0689269914d29a4b86b0cf6db868ce1a8a0f3fc9731e2f24d544b3ad3be",
+        "bazelVersion": "release 8.4.2- (@non-git)",
+        "launchSeconds": 0.488,
+        "extractSeconds": 0.0,
+        "moduleMappingSeconds": 0.110529,
+        "downloadSpans": 132,
+        "downloadUnionSeconds": 0.024035,
+        "criticalPathSeconds": 1.066994,
+        "sandboxCreateSeconds": 0.19879,
+        "phases": {
+          "Initialize command": 0.26566,
+          "Evaluate target patterns": 0.113517,
+          "Load, analyze dependencies and build artifacts": 1.818712
+        },
+        "actions": {
+          "BazelWorkspaceStatusAction stable-status.txt": 0.011692,
+          "Writing file build.request.json": 0.001495,
+          "MsbuildNativeCache build.bundle": 1.066079
+        }
+      },
+      {
+        "kind": "diamond",
+        "case": "unchanged",
+        "repetition": 2,
+        "profileSha256": "1a63e700258b91b10da118669b5d9a319b25231386ac26045ea20c8279c4ac06",
+        "bazelVersion": "release 8.4.2- (@non-git)",
+        "launchSeconds": 0.489,
+        "extractSeconds": 0.0,
+        "moduleMappingSeconds": 0.11013,
+        "downloadSpans": 132,
+        "downloadUnionSeconds": 0.021416,
+        "criticalPathSeconds": 0.57374,
+        "sandboxCreateSeconds": 0.197921,
+        "phases": {
+          "Initialize command": 0.264764,
+          "Evaluate target patterns": 0.109195,
+          "Load, analyze dependencies and build artifacts": 1.323292
+        },
+        "actions": {
+          "BazelWorkspaceStatusAction stable-status.txt": 0.008995,
+          "Writing file build.request.json": 0.003072,
+          "MsbuildNativeCache build.bundle": 0.57125
+        }
+      },
+      {
+        "kind": "diamond",
+        "case": "body",
+        "repetition": 2,
+        "profileSha256": "e2faa89dfac128aa3a491461b175ba7b2492b0760cc27b089267a5d174247299",
+        "bazelVersion": "release 8.4.2- (@non-git)",
+        "launchSeconds": 0.487,
+        "extractSeconds": 0.0,
+        "moduleMappingSeconds": 0.114618,
+        "downloadSpans": 132,
+        "downloadUnionSeconds": 0.021896,
+        "criticalPathSeconds": 1.084545,
+        "sandboxCreateSeconds": 0.205437,
+        "phases": {
+          "Initialize command": 0.267478,
+          "Evaluate target patterns": 0.112708,
+          "Load, analyze dependencies and build artifacts": 1.844132
+        },
+        "actions": {
+          "BazelWorkspaceStatusAction stable-status.txt": 0.008284,
+          "Writing file build.request.json": 0.001848,
+          "MsbuildNativeCache build.bundle": 1.083271
+        }
+      },
+      {
+        "kind": "serilog",
+        "case": "unchanged",
+        "repetition": 0,
+        "profileSha256": "02e29918f7a20a730366d65a2ba996d14df27acc8fbe8bdeb88f2c3f9ab2c4d6",
+        "bazelVersion": "release 8.4.2- (@non-git)",
+        "launchSeconds": 0.469,
+        "extractSeconds": 0.0,
+        "moduleMappingSeconds": 0.118308,
+        "downloadSpans": 132,
+        "downloadUnionSeconds": 0.022215,
+        "criticalPathSeconds": 2.175622,
+        "sandboxCreateSeconds": 0.476302,
+        "phases": {
+          "Initialize command": 0.276055,
+          "Evaluate target patterns": 0.165015,
+          "Load, analyze dependencies and build artifacts": 3.11489
+        },
+        "actions": {
+          "BazelWorkspaceStatusAction stable-status.txt": 0.01104,
+          "Writing file test.request.json": 0.001019,
+          "Writing script test.sh": 0.001294,
+          "Writing repo mapping manifest for //:test": 0.005035,
+          "Writing file build.request.json": 0.001221,
+          "Creating source manifest for //:test": 0.019023,
+          "Creating runfiles tree bazel-out/darwin_arm64-fastbuild/bin/test.sh.runfiles": 0.308146,
+          "MsbuildNativeCache build.bundle": 1.310206,
+          "Testing //:test": 0.861966
+        }
+      },
+      {
+        "kind": "serilog",
+        "case": "body",
+        "repetition": 0,
+        "profileSha256": "8ef8fe6724caff73020f6b4726a9ded69a0fce19df5cadb6868ef7860af865ca",
+        "bazelVersion": "release 8.4.2- (@non-git)",
+        "launchSeconds": 0.489,
+        "extractSeconds": 0.0,
+        "moduleMappingSeconds": 0.111823,
+        "downloadSpans": 132,
+        "downloadUnionSeconds": 0.025472,
+        "criticalPathSeconds": 2.692571,
+        "sandboxCreateSeconds": 0.462238,
+        "phases": {
+          "Initialize command": 0.268769,
+          "Evaluate target patterns": 0.173637,
+          "Load, analyze dependencies and build artifacts": 3.71043
+        },
+        "actions": {
+          "BazelWorkspaceStatusAction stable-status.txt": 0.010098,
+          "Writing script test.sh": 0.001555,
+          "Writing file test.request.json": 0.000746,
+          "Writing repo mapping manifest for //:test": 0.00251,
+          "Writing file build.request.json": 0.000959,
+          "Creating source manifest for //:test": 0.017489,
+          "Creating runfiles tree bazel-out/darwin_arm64-fastbuild/bin/test.sh.runfiles": 0.290962,
+          "MsbuildNativeCache build.bundle": 1.769407,
+          "Testing //:test": 0.919761
+        }
+      },
+      {
+        "kind": "serilog",
+        "case": "unchanged",
+        "repetition": 1,
+        "profileSha256": "688eb2be9d6c38c3be103bc0c4c78d327ea62da7a649ab79b699a255c2fd76e8",
+        "bazelVersion": "release 8.4.2- (@non-git)",
+        "launchSeconds": 0.473,
+        "extractSeconds": 0.0,
+        "moduleMappingSeconds": 0.113832,
+        "downloadSpans": 132,
+        "downloadUnionSeconds": 0.023174,
+        "criticalPathSeconds": 2.199962,
+        "sandboxCreateSeconds": 0.469965,
+        "phases": {
+          "Initialize command": 0.27036,
+          "Evaluate target patterns": 0.178543,
+          "Load, analyze dependencies and build artifacts": 3.174748
+        },
+        "actions": {
+          "BazelWorkspaceStatusAction stable-status.txt": 0.01147,
+          "Writing script test.sh": 0.00158,
+          "Writing file test.request.json": 0.001366,
+          "Writing repo mapping manifest for //:test": 0.002298,
+          "Writing file build.request.json": 0.001404,
+          "Creating source manifest for //:test": 0.019649,
+          "Creating runfiles tree bazel-out/darwin_arm64-fastbuild/bin/test.sh.runfiles": 0.295355,
+          "MsbuildNativeCache build.bundle": 1.314321,
+          "Testing //:test": 0.881716
+        }
+      },
+      {
+        "kind": "serilog",
+        "case": "body",
+        "repetition": 1,
+        "profileSha256": "77b252b42c2c1b5cb87d40cd21b9312380f9df07d34fef20101dbcdf9a1401a0",
+        "bazelVersion": "release 8.4.2- (@non-git)",
+        "launchSeconds": 0.481,
+        "extractSeconds": 0.0,
+        "moduleMappingSeconds": 0.118694,
+        "downloadSpans": 132,
+        "downloadUnionSeconds": 0.024443,
+        "criticalPathSeconds": 2.559796,
+        "sandboxCreateSeconds": 0.472673,
+        "phases": {
+          "Initialize command": 0.27121,
+          "Evaluate target patterns": 0.166908,
+          "Load, analyze dependencies and build artifacts": 3.560479
+        },
+        "actions": {
+          "BazelWorkspaceStatusAction stable-status.txt": 0.011317,
+          "Writing file test.request.json": 0.001045,
+          "Writing script test.sh": 0.001366,
+          "Writing repo mapping manifest for //:test": 0.002617,
+          "Creating source manifest for //:test": 0.029394,
+          "Writing file build.request.json": 0.000897,
+          "Creating runfiles tree bazel-out/darwin_arm64-fastbuild/bin/test.sh.runfiles": 0.29004,
+          "MsbuildNativeCache build.bundle": 1.649964,
+          "Testing //:test": 0.905512
+        }
+      },
+      {
+        "kind": "serilog",
+        "case": "unchanged",
+        "repetition": 2,
+        "profileSha256": "8bc9ec700868b7db980ad94b14fc0e48f8726bc721ee156a9392f19ee5975b81",
+        "bazelVersion": "release 8.4.2- (@non-git)",
+        "launchSeconds": 0.461,
+        "extractSeconds": 0.0,
+        "moduleMappingSeconds": 0.110658,
+        "downloadSpans": 132,
+        "downloadUnionSeconds": 0.025874,
+        "criticalPathSeconds": 2.221476,
+        "sandboxCreateSeconds": 0.506509,
+        "phases": {
+          "Initialize command": 0.261847,
+          "Evaluate target patterns": 0.171115,
+          "Load, analyze dependencies and build artifacts": 3.094197
+        },
+        "actions": {
+          "BazelWorkspaceStatusAction stable-status.txt": 0.011788,
+          "Writing script test.sh": 0.001494,
+          "Writing file test.request.json": 0.00115,
+          "Writing repo mapping manifest for //:test": 0.002598,
+          "Writing file build.request.json": 0.001545,
+          "Creating source manifest for //:test": 0.022011,
+          "Creating runfiles tree bazel-out/darwin_arm64-fastbuild/bin/test.sh.runfiles": 0.319681,
+          "MsbuildNativeCache build.bundle": 1.34836,
+          "Testing //:test": 0.869578
+        }
+      },
+      {
+        "kind": "serilog",
+        "case": "body",
+        "repetition": 2,
+        "profileSha256": "5ac20fc68da3dbc4907b6f080aee3e2282886c7e9259b6613f909fc3bbb3a78c",
+        "bazelVersion": "release 8.4.2- (@non-git)",
+        "launchSeconds": 0.489,
+        "extractSeconds": 0.0,
+        "moduleMappingSeconds": 0.108283,
+        "downloadSpans": 132,
+        "downloadUnionSeconds": 0.021282,
+        "criticalPathSeconds": 2.48454,
+        "sandboxCreateSeconds": 0.500203,
+        "phases": {
+          "Initialize command": 0.266943,
+          "Evaluate target patterns": 0.169714,
+          "Load, analyze dependencies and build artifacts": 3.360987
+        },
+        "actions": {
+          "BazelWorkspaceStatusAction stable-status.txt": 0.014425,
+          "Writing script test.sh": 0.00141,
+          "Writing file test.request.json": 0.001171,
+          "Writing repo mapping manifest for //:test": 0.002396,
+          "Writing file build.request.json": 0.001684,
+          "Creating source manifest for //:test": 0.018977,
+          "Creating runfiles tree bazel-out/darwin_arm64-fastbuild/bin/test.sh.runfiles": 0.309382,
+          "MsbuildNativeCache build.bundle": 1.598477,
+          "Testing //:test": 0.882434
+        }
+      }
+    ],
+    "medians": [
+      {
+        "kind": "diamond",
+        "case": "body",
+        "launchSeconds": 0.487,
+        "extractSeconds": 0.0,
+        "moduleMappingSeconds": 0.110529,
+        "downloadSpans": 132,
+        "downloadUnionSeconds": 0.021896,
+        "criticalPathSeconds": 1.066994,
+        "sandboxCreateSeconds": 0.19879
+      },
+      {
+        "kind": "diamond",
+        "case": "unchanged",
+        "launchSeconds": 0.478,
+        "extractSeconds": 0.0,
+        "moduleMappingSeconds": 0.110101,
+        "downloadSpans": 132,
+        "downloadUnionSeconds": 0.021416,
+        "criticalPathSeconds": 0.565468,
+        "sandboxCreateSeconds": 0.193757
+      },
+      {
+        "kind": "serilog",
+        "case": "body",
+        "launchSeconds": 0.489,
+        "extractSeconds": 0.0,
+        "moduleMappingSeconds": 0.111823,
+        "downloadSpans": 132,
+        "downloadUnionSeconds": 0.024443,
+        "criticalPathSeconds": 2.559796,
+        "sandboxCreateSeconds": 0.472673
+      },
+      {
+        "kind": "serilog",
+        "case": "unchanged",
+        "launchSeconds": 0.469,
+        "extractSeconds": 0.0,
+        "moduleMappingSeconds": 0.113832,
+        "downloadSpans": 132,
+        "downloadUnionSeconds": 0.023174,
+        "criticalPathSeconds": 2.199962,
+        "sandboxCreateSeconds": 0.476302
+      }
+    ]
+  }
+]

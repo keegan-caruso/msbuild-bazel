@@ -1,0 +1,509 @@
+{
+  "manifestDigestsEqual": true,
+  "profiles": [
+    {
+      "samples": [
+        {
+          "files": 6002,
+          "contentBytes": 1562628733,
+          "phases": {
+            "readBuffer": {
+              "seconds": 0.5210189000000023,
+              "allocatedBytes": 6063158592
+            },
+            "hash": {
+              "seconds": 0.47683549999999736,
+              "allocatedBytes": 1464344
+            },
+            "fileManifest": {
+              "seconds": 0.002381999999999902,
+              "allocatedBytes": 4701088
+            },
+            "snapshotTotal": {
+              "seconds": 1.0914867,
+              "allocatedBytes": 6082902648
+            },
+            "comparison": {
+              "seconds": 0.0021909,
+              "allocatedBytes": 176
+            },
+            "canonicalDigest": {
+              "seconds": 0.0639922,
+              "allocatedBytes": 67481400
+            }
+          },
+          "iteration": 0,
+          "collections": [
+            146,
+            115,
+            113
+          ]
+        },
+        {
+          "files": 6002,
+          "contentBytes": 1562628733,
+          "phases": {
+            "readBuffer": {
+              "seconds": 0.5429900000000003,
+              "allocatedBytes": 6063138304
+            },
+            "hash": {
+              "seconds": 0.4812647000000009,
+              "allocatedBytes": 1387672
+            },
+            "fileManifest": {
+              "seconds": 0.00433529999999977,
+              "allocatedBytes": 4701088
+            },
+            "snapshotTotal": {
+              "seconds": 1.107646,
+              "allocatedBytes": 6082774928
+            },
+            "comparison": {
+              "seconds": 0.0014655,
+              "allocatedBytes": 0
+            },
+            "canonicalDigest": {
+              "seconds": 0.030615,
+              "allocatedBytes": 59064968
+            }
+          },
+          "iteration": 1,
+          "collections": [
+            107,
+            79,
+            75
+          ]
+        },
+        {
+          "files": 6002,
+          "contentBytes": 1562628733,
+          "phases": {
+            "readBuffer": {
+              "seconds": 0.5228978999999992,
+              "allocatedBytes": 6063162472
+            },
+            "hash": {
+              "seconds": 0.48324980000000023,
+              "allocatedBytes": 1351784
+            },
+            "fileManifest": {
+              "seconds": 0.001779999999999918,
+              "allocatedBytes": 4701088
+            },
+            "snapshotTotal": {
+              "seconds": 1.0893884,
+              "allocatedBytes": 6082764768
+            },
+            "comparison": {
+              "seconds": 0.0011763,
+              "allocatedBytes": 0
+            },
+            "canonicalDigest": {
+              "seconds": 0.0233561,
+              "allocatedBytes": 59066824
+            }
+          },
+          "iteration": 2,
+          "collections": [
+            109,
+            80,
+            77
+          ]
+        },
+        {
+          "files": 6002,
+          "contentBytes": 1562628733,
+          "phases": {
+            "readBuffer": {
+              "seconds": 0.5044786999999975,
+              "allocatedBytes": 6063152600
+            },
+            "hash": {
+              "seconds": 0.49076370000000064,
+              "allocatedBytes": 1374928
+            },
+            "fileManifest": {
+              "seconds": 0.0012105999999999072,
+              "allocatedBytes": 4701088
+            },
+            "snapshotTotal": {
+              "seconds": 1.077459,
+              "allocatedBytes": 6082792384
+            },
+            "comparison": {
+              "seconds": 0.0006504,
+              "allocatedBytes": 0
+            },
+            "canonicalDigest": {
+              "seconds": 0.0226643,
+              "allocatedBytes": 59066824
+            }
+          },
+          "iteration": 3,
+          "collections": [
+            118,
+            89,
+            86
+          ]
+        },
+        {
+          "files": 6002,
+          "contentBytes": 1562628733,
+          "phases": {
+            "readBuffer": {
+              "seconds": 0.4941039999999982,
+              "allocatedBytes": 6063117960
+            },
+            "hash": {
+              "seconds": 0.48756719999999837,
+              "allocatedBytes": 1384832
+            },
+            "fileManifest": {
+              "seconds": 0.0013764999999998796,
+              "allocatedBytes": 4701088
+            },
+            "snapshotTotal": {
+              "seconds": 1.0614024,
+              "allocatedBytes": 6082755992
+            },
+            "comparison": {
+              "seconds": 0.000647,
+              "allocatedBytes": 0
+            },
+            "canonicalDigest": {
+              "seconds": 0.0218249,
+              "allocatedBytes": 59064968
+            }
+          },
+          "iteration": 4,
+          "collections": [
+            111,
+            81,
+            79
+          ]
+        }
+      ],
+      "rootDigests": {
+        "0iavzb323r97k7sps762r5kj1f2bny0b-libiconv-115.100.1": "f954a369d303fd318fbf3909c5b764d9b98a743c8ac0871dfe0b0fae55492868",
+        "895xjmaqf329l5mia9gpvx0d0pq6bx15-icu4c-78.3": "07fbf689ba6dbc8e4c3a76a1b2fe0725094d3ba36c357adfc48dd33e3ed72dd4",
+        "93xh0rqlwq7ypvg6c2sgdmkki7378b0v-llvm-21.1.8-lib": "83587d749ee35f0712ddffadb4b5004c4e81f4b8a950fd99df67a24d1cc5be6d",
+        "9ihp157s1yjwa9vcfvbskbik18djv53q-libffi-40": "93589ed84f11ac3703274fb6a6a2cc5d19983318f2cb0448fdaf7086938cc73c",
+        "a5ksjdp4g11g1kp82phvjgyx1j495gwl-ld64-957.1-lib": "5359ddb9a41e1d698bf8c82e0df8ebc0180c8bad0b29b7a5e8824ab4cb5e9e14",
+        "a7523w35991b7lhhrkccam2bhavh2zq9-libxml2-2.15.3": "f3eb5f0cc1529bd753f68956317b9187db7f1948d69179ea231ede0efbc2639e",
+        "dfhdbgnvv0jm1ld0hrzfaklgigvl7bzp-extra.targets": "29627556b16a2679b99373f2a50086bfda6018cf46c3b49fb9e50902c91146b1",
+        "f3kvj2nc26gn7rh5mnfnaa2dgy2p10v3-dotnet-sdk-10.0.400": "4eb1caa468c7b8ec060f613bb4412e23d7733ce08d5de85160f7bbc26997d807",
+        "f4ss1jyk1hansfk6qp3889bb9mpp42yg-sigtool-0.1.3": "14729324e25bdab9d500a69932aac6ec369fc0037d8b0093e81e54b6ada58195",
+        "fk8dbxjdnizkhklczkqdh9m9by94ab7k-bzip2-1.0.8": "3d21e97d0362029b7a0fe083b262f8513d1f8c1dbec7d4507be33705d7aa8f16",
+        "gjv48s39ild2f85wjal2wvlgyrdzbhvl-openssl-3.6.3": "69450ab2d7be723b8f22b3cb561d5df8a04c749ce1242d19d1bb0c6ffa6cf4a7",
+        "gyvvqx69fvrgxf0hr4jmb3rc7szg1c79-zlib-1.3.2": "b923b1eb126fcf92774c04283c15628a39f06104a9920fb5b776233c83a0a707",
+        "hm53cqanyh9f8dl3bij21iyhvk1mlb30-sign-apphost.proj": "f66eda1b62174baf5077f1d0814d51cff2584ed0f0245b4345671955a3a50ad6",
+        "i69q16hlfw0rk0nz5abarf51r98ajkp6-xz-5.8.3": "eb83c6b7497a54b8d05a816e4fd784e33a859ad8454c53221f9bca772a2aa7af",
+        "nwifj85zj1kaakjjx33i2dd5c1778j30-ld64-957.1": "4f53b9c75fda704299396a0b77c431c4f3dbf45be233633c7503de5c201d8595",
+        "pkpd4pbq86zhjx8kyz4cka684l7k28xw-cctools-1010.6-libtool": "fad585b14fcd0c7c301e92871023de25de81501b9c388bd0aedaad4fbd03c999",
+        "ps0dd9mx8n7r198xp4yqdh33p0psfl2v-xar-minimal-503-lib": "ff2945a7bcbe172f5eae6fc951024d71ccbeb65cf390707b8a37c3d836766703",
+        "s7mqkmivpdxlak3awbra4i64zlpz31ha-cctools-1010.6": "65e9326985da6f74d0514b16dbebb3d3a288de8ef6b455088c8f89718b686926",
+        "yqk6qhawnigv832m2zhcbs25nb37r73i-bash-5.3p15": "6d9b8fdf83fa5013e773a26a51939eff94dc6dc617bd4e83be1440e7d1494875"
+      },
+      "label": "buffered",
+      "roots": 19,
+      "revision": "b637d6e59080d55977b267f2d091b35d414bacda",
+      "assemblySha256": "f511dd7e386babd90d152ab018c36136a9ee166a3b9d0dc5ab3f06f6be3360b1",
+      "medians": {
+        "readBuffer": {
+          "seconds": 0.5210189000000023,
+          "allocatedBytes": 6063152600
+        },
+        "hash": {
+          "seconds": 0.48324980000000023,
+          "allocatedBytes": 1384832
+        },
+        "fileManifest": {
+          "seconds": 0.001779999999999918,
+          "allocatedBytes": 4701088
+        },
+        "snapshotTotal": {
+          "seconds": 1.0893884,
+          "allocatedBytes": 6082774928
+        },
+        "comparison": {
+          "seconds": 0.0011763,
+          "allocatedBytes": 0
+        },
+        "canonicalDigest": {
+          "seconds": 0.0233561,
+          "allocatedBytes": 59066824
+        }
+      },
+      "medianCollections": [
+        111,
+        81,
+        79
+      ]
+    },
+    {
+      "samples": [
+        {
+          "files": 6002,
+          "contentBytes": 1562628733,
+          "phases": {
+            "open": {
+              "seconds": 0.06403870000000048,
+              "allocatedBytes": 4232264
+            },
+            "hash": {
+              "seconds": 0.46706309999998863,
+              "allocatedBytes": 2017344
+            },
+            "read": {
+              "seconds": 0.08512760000001637,
+              "allocatedBytes": 0
+            },
+            "fileManifest": {
+              "seconds": 0.0021606999999998523,
+              "allocatedBytes": 4737520
+            },
+            "snapshotTotal": {
+              "seconds": 0.7331332,
+              "allocatedBytes": 24517440
+            },
+            "comparison": {
+              "seconds": 0.0024571,
+              "allocatedBytes": 176
+            },
+            "canonicalDigest": {
+              "seconds": 0.0668946,
+              "allocatedBytes": 67497976
+            }
+          },
+          "iteration": 0,
+          "collections": [
+            11,
+            3,
+            2
+          ]
+        },
+        {
+          "files": 6002,
+          "contentBytes": 1562628733,
+          "phases": {
+            "open": {
+              "seconds": 0.06317950000000062,
+              "allocatedBytes": 4232264
+            },
+            "hash": {
+              "seconds": 0.4643698999999632,
+              "allocatedBytes": 2017568
+            },
+            "read": {
+              "seconds": 0.08370210000001597,
+              "allocatedBytes": 0
+            },
+            "fileManifest": {
+              "seconds": 0.0013985999999999398,
+              "allocatedBytes": 4701088
+            },
+            "snapshotTotal": {
+              "seconds": 0.70125,
+              "allocatedBytes": 24473664
+            },
+            "comparison": {
+              "seconds": 0.0016207,
+              "allocatedBytes": 0
+            },
+            "canonicalDigest": {
+              "seconds": 0.0456063,
+              "allocatedBytes": 59064928
+            }
+          },
+          "iteration": 1,
+          "collections": [
+            9,
+            1,
+            0
+          ]
+        },
+        {
+          "files": 6002,
+          "contentBytes": 1562628733,
+          "phases": {
+            "open": {
+              "seconds": 0.0633235000000004,
+              "allocatedBytes": 4232264
+            },
+            "hash": {
+              "seconds": 0.4646822999999568,
+              "allocatedBytes": 2025592
+            },
+            "read": {
+              "seconds": 0.08384750000001676,
+              "allocatedBytes": 0
+            },
+            "fileManifest": {
+              "seconds": 0.002577099999999782,
+              "allocatedBytes": 4701088
+            },
+            "snapshotTotal": {
+              "seconds": 0.697962,
+              "allocatedBytes": 24481688
+            },
+            "comparison": {
+              "seconds": 0.0009712,
+              "allocatedBytes": 0
+            },
+            "canonicalDigest": {
+              "seconds": 0.0216164,
+              "allocatedBytes": 59064928
+            }
+          },
+          "iteration": 2,
+          "collections": [
+            10,
+            3,
+            1
+          ]
+        },
+        {
+          "files": 6002,
+          "contentBytes": 1562628733,
+          "phases": {
+            "open": {
+              "seconds": 0.06327500000000064,
+              "allocatedBytes": 4232264
+            },
+            "hash": {
+              "seconds": 0.46444319999995676,
+              "allocatedBytes": 2017568
+            },
+            "read": {
+              "seconds": 0.08345860000001692,
+              "allocatedBytes": 0
+            },
+            "fileManifest": {
+              "seconds": 0.0011671999999999176,
+              "allocatedBytes": 4701088
+            },
+            "snapshotTotal": {
+              "seconds": 0.6945187,
+              "allocatedBytes": 24473664
+            },
+            "comparison": {
+              "seconds": 0.000621,
+              "allocatedBytes": 0
+            },
+            "canonicalDigest": {
+              "seconds": 0.0219486,
+              "allocatedBytes": 59064928
+            }
+          },
+          "iteration": 3,
+          "collections": [
+            10,
+            2,
+            1
+          ]
+        },
+        {
+          "files": 6002,
+          "contentBytes": 1562628733,
+          "phases": {
+            "open": {
+              "seconds": 0.06424040000000057,
+              "allocatedBytes": 4238480
+            },
+            "hash": {
+              "seconds": 0.4641977999999577,
+              "allocatedBytes": 2017792
+            },
+            "read": {
+              "seconds": 0.08370350000001733,
+              "allocatedBytes": 0
+            },
+            "fileManifest": {
+              "seconds": 0.0011546999999999224,
+              "allocatedBytes": 4701088
+            },
+            "snapshotTotal": {
+              "seconds": 0.6996903,
+              "allocatedBytes": 24480104
+            },
+            "comparison": {
+              "seconds": 0.0006748,
+              "allocatedBytes": 0
+            },
+            "canonicalDigest": {
+              "seconds": 0.0218039,
+              "allocatedBytes": 59064928
+            }
+          },
+          "iteration": 4,
+          "collections": [
+            9,
+            1,
+            0
+          ]
+        }
+      ],
+      "rootDigests": {
+        "0iavzb323r97k7sps762r5kj1f2bny0b-libiconv-115.100.1": "f954a369d303fd318fbf3909c5b764d9b98a743c8ac0871dfe0b0fae55492868",
+        "895xjmaqf329l5mia9gpvx0d0pq6bx15-icu4c-78.3": "07fbf689ba6dbc8e4c3a76a1b2fe0725094d3ba36c357adfc48dd33e3ed72dd4",
+        "93xh0rqlwq7ypvg6c2sgdmkki7378b0v-llvm-21.1.8-lib": "83587d749ee35f0712ddffadb4b5004c4e81f4b8a950fd99df67a24d1cc5be6d",
+        "9ihp157s1yjwa9vcfvbskbik18djv53q-libffi-40": "93589ed84f11ac3703274fb6a6a2cc5d19983318f2cb0448fdaf7086938cc73c",
+        "a5ksjdp4g11g1kp82phvjgyx1j495gwl-ld64-957.1-lib": "5359ddb9a41e1d698bf8c82e0df8ebc0180c8bad0b29b7a5e8824ab4cb5e9e14",
+        "a7523w35991b7lhhrkccam2bhavh2zq9-libxml2-2.15.3": "f3eb5f0cc1529bd753f68956317b9187db7f1948d69179ea231ede0efbc2639e",
+        "dfhdbgnvv0jm1ld0hrzfaklgigvl7bzp-extra.targets": "29627556b16a2679b99373f2a50086bfda6018cf46c3b49fb9e50902c91146b1",
+        "f3kvj2nc26gn7rh5mnfnaa2dgy2p10v3-dotnet-sdk-10.0.400": "4eb1caa468c7b8ec060f613bb4412e23d7733ce08d5de85160f7bbc26997d807",
+        "f4ss1jyk1hansfk6qp3889bb9mpp42yg-sigtool-0.1.3": "14729324e25bdab9d500a69932aac6ec369fc0037d8b0093e81e54b6ada58195",
+        "fk8dbxjdnizkhklczkqdh9m9by94ab7k-bzip2-1.0.8": "3d21e97d0362029b7a0fe083b262f8513d1f8c1dbec7d4507be33705d7aa8f16",
+        "gjv48s39ild2f85wjal2wvlgyrdzbhvl-openssl-3.6.3": "69450ab2d7be723b8f22b3cb561d5df8a04c749ce1242d19d1bb0c6ffa6cf4a7",
+        "gyvvqx69fvrgxf0hr4jmb3rc7szg1c79-zlib-1.3.2": "b923b1eb126fcf92774c04283c15628a39f06104a9920fb5b776233c83a0a707",
+        "hm53cqanyh9f8dl3bij21iyhvk1mlb30-sign-apphost.proj": "f66eda1b62174baf5077f1d0814d51cff2584ed0f0245b4345671955a3a50ad6",
+        "i69q16hlfw0rk0nz5abarf51r98ajkp6-xz-5.8.3": "eb83c6b7497a54b8d05a816e4fd784e33a859ad8454c53221f9bca772a2aa7af",
+        "nwifj85zj1kaakjjx33i2dd5c1778j30-ld64-957.1": "4f53b9c75fda704299396a0b77c431c4f3dbf45be233633c7503de5c201d8595",
+        "pkpd4pbq86zhjx8kyz4cka684l7k28xw-cctools-1010.6-libtool": "fad585b14fcd0c7c301e92871023de25de81501b9c388bd0aedaad4fbd03c999",
+        "ps0dd9mx8n7r198xp4yqdh33p0psfl2v-xar-minimal-503-lib": "ff2945a7bcbe172f5eae6fc951024d71ccbeb65cf390707b8a37c3d836766703",
+        "s7mqkmivpdxlak3awbra4i64zlpz31ha-cctools-1010.6": "65e9326985da6f74d0514b16dbebb3d3a288de8ef6b455088c8f89718b686926",
+        "yqk6qhawnigv832m2zhcbs25nb37r73i-bash-5.3p15": "6d9b8fdf83fa5013e773a26a51939eff94dc6dc617bd4e83be1440e7d1494875"
+      },
+      "label": "stream",
+      "roots": 19,
+      "revision": "24b93293605d93d09dc192c1cb1dd8b5b49ffe58",
+      "assemblySha256": "c858034d33f394f36587d7e022f877d6312e0b08e5e59d54f4c7deec40fdae42",
+      "medians": {
+        "open": {
+          "seconds": 0.0633235000000004,
+          "allocatedBytes": 4232264
+        },
+        "hash": {
+          "seconds": 0.46444319999995676,
+          "allocatedBytes": 2017568
+        },
+        "read": {
+          "seconds": 0.08370350000001733,
+          "allocatedBytes": 0
+        },
+        "fileManifest": {
+          "seconds": 0.0013985999999999398,
+          "allocatedBytes": 4701088
+        },
+        "snapshotTotal": {
+          "seconds": 0.6996903,
+          "allocatedBytes": 24480104
+        },
+        "comparison": {
+          "seconds": 0.0009712,
+          "allocatedBytes": 0
+        },
+        "canonicalDigest": {
+          "seconds": 0.0219486,
+          "allocatedBytes": 59064928
+        }
+      },
+      "medianCollections": [
+        10,
+        2,
+        1
+      ]
+    }
+  ]
+}

@@ -1,0 +1,7 @@
+{
+  "version": "2.6.2",
+  "tag": "v2.6.2",
+  "sourceCommit": "3cb3084b57542c260860a484afcfe69557f6b27c",
+  "url": "https://github.com/buchgr/bazel-remote/releases/download/v2.6.2/bazel-remote-2.6.2-darwin-arm64",
+  "sha256": "1d6bc5fe5be7a66c7aeea6723280402414e280ae579016d3b5e6e5c77278ad04"
+}

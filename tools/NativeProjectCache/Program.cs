@@ -14,12 +14,17 @@ internal static class Program
     public static async Task<int> Main(string[] args)
     {
         string? scratch = null;
+        string? diagnosticsPath = null;
+        var phases = new Dictionary<string, double>();
+        var timer = Stopwatch.StartNew();
+        void Mark(string name) { phases[name] = timer.Elapsed.TotalSeconds; timer.Restart(); }
         try
         {
             if (args is not ["--portable-request", var file]) throw new ArgumentException("expected --portable-request PATH");
             var request = JsonSerializer.Deserialize<RunnerRequest>(File.ReadAllText(file), Json)!;
             var output = Path.GetFullPath(request.Output);
             var diagnostics = Path.GetFullPath(request.Diagnostics);
+            diagnosticsPath = diagnostics;
             if (Directory.Exists(output) && Directory.EnumerateFileSystemEntries(output).Any())
                 throw new InvalidDataException("portable runner requires an empty output");
             scratch = Path.Combine(output, ".work");
@@ -39,11 +44,13 @@ internal static class Program
                 var path = Path.Combine(workspace, relative); Directory.CreateDirectory(Path.GetDirectoryName(path)!);
                 File.WriteAllText(path, contents.Replace("${WORKSPACE}", workspace, StringComparison.Ordinal).Replace("${SDK}", sdk, StringComparison.Ordinal).Replace("${HOME}", home, StringComparison.Ordinal));
             }
+            Mark("sourceAndRestore");
             foreach (var input in request.Seeds)
             {
                 if (!Files.ValidRelativePath(input.Destination)) throw new InvalidDataException("invalid seed path");
                 Files.Copy(input.Source, Path.Combine(cache, input.Destination));
             }
+            Mark("seedCopy");
             var manifest = JsonSerializer.Deserialize<PortableManifest>(File.ReadAllText(request.Manifest), Json)!;
             var selection = "";
             if (manifest.Policy == "evaluated-api-runtime-v2")
@@ -95,11 +102,13 @@ internal static class Program
             // Failed builds must not leave diagnostic FIFOs for Bazel to hash.
             start.Environment["DOTNET_EnableDiagnostics"] = "0";
             start.Environment["NATIVE_CACHE_SESSION"] = sessionPath;
+            Mark("sessionSetup");
             using var process = Process.Start(start)!;
             var stdout = process.StandardOutput.ReadToEndAsync(); var stderr = process.StandardError.ReadToEndAsync();
             try { await process.WaitForExitAsync().WaitAsync(TimeSpan.FromMinutes(10)); }
             catch { process.Kill(true); throw; }
             var log = await stdout + await stderr;
+            Mark("msbuild");
             File.WriteAllText(Path.Combine(diagnostics, "build.log"), log);
             var compiles = log.Split('\n').Count(line => line.Contains("/Roslyn/bincore/csc", StringComparison.Ordinal) && line.Contains(" /noconfig ", StringComparison.Ordinal));
             File.WriteAllText(Path.Combine(diagnostics, "action.json"), JsonSerializer.Serialize(new { compiles, exitCode = process.ExitCode, environmentPolicy = manifest.Policy == "evaluated-api-runtime-v2" ? "evaluated-net10-release-env-v1" : PortableEnvironment.Policy }, Json));
@@ -110,25 +119,43 @@ internal static class Program
                 .Select(e => e.GetProperty("key").GetString()!).ToHashSet(StringComparer.Ordinal);
             foreach (var directory in Directory.EnumerateDirectories(cache))
                 if (!selected.Contains(Path.GetFileName(directory))) Directory.Delete(directory, true);
+            Mark("selectBundles");
             // Compile cache bundles can contain historical copy-local implementations.
             // Publish a separate sealed current runtime for test consumers.
             var entryBundle = Directory.EnumerateDirectories(cache).Single(bundle =>
                 JsonSerializer.Deserialize<Results>(File.ReadAllText(Path.Combine(bundle, "results.json")), Json)!.Project == request.Entry);
-            CompileBoundary.Validate(entryBundle);
+            var entryArtifacts = CompileBoundary.Validate(entryBundle);
             var runtime = Path.Combine(output, "runtime", Path.GetFileName(entryBundle));
-            Files.CopyTree(entryBundle, runtime);
+            Mark("validateEntry");
             var runtimeDirectory = Path.Combine(Path.GetDirectoryName(request.Entry)!, "bin/Release/net10.0");
-            Directory.Delete(Path.Combine(runtime, "artifacts", runtimeDirectory), true);
-            Files.CopyTree(Path.Combine(workspace, runtimeDirectory), Path.Combine(runtime, "artifacts", runtimeDirectory));
+            // Keep reference/intermediate artifacts, but never copy the historical
+            // runtime that current composition is about to replace. Validation
+            // above still covers every cached artifact, including that runtime.
+            foreach (var artifact in entryArtifacts)
+                if (!artifact.Path.StartsWith(runtimeDirectory + "/", StringComparison.Ordinal))
+                    Files.Copy(Path.Combine(entryBundle, "artifacts", artifact.Path), Path.Combine(runtime, "artifacts", artifact.Path));
+            Files.Copy(Path.Combine(entryBundle, "results.json"), Path.Combine(runtime, "results.json"));
+            var destination = Path.Combine(runtime, "artifacts", runtimeDirectory);
+            Directory.CreateDirectory(Path.GetDirectoryName(destination)!);
+            // MSBuild has exited and all graph cache bundles are published. This
+            // private scratch tree is no longer consumed; both paths are inside
+            // the same output tree. Move ownership rather than copy then delete.
+            Directory.Move(Path.Combine(workspace, runtimeDirectory), destination);
+            Mark("runtimeCopy");
             CompileBoundary.Seal(runtime);
+            Mark("runtimeSeal");
             Files.CopyTree(Path.Combine(runtime, "artifacts", runtimeDirectory), Path.Combine(output, "app"));
+            Mark("appCopy");
             Directory.Delete(scratch, true);
+            Mark("cleanup");
             return 0;
         }
         catch (Exception error) { Console.Error.WriteLine(error); return 1; }
         finally
         {
             if (scratch is not null && Directory.Exists(scratch)) Directory.Delete(scratch, true);
+            if (diagnosticsPath is not null && Directory.Exists(diagnosticsPath))
+                File.WriteAllText(Path.Combine(diagnosticsPath, "timings.json"), JsonSerializer.Serialize(phases, Json));
         }
     }
 }

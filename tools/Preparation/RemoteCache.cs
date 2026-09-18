@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.IO.Compression;
 using System.Net;
 using System.Security.Cryptography;
@@ -12,6 +13,35 @@ internal sealed class RemoteCache : IDisposable
     private const int Limit = 64 * 1024 * 1024;
     private readonly HttpClient client = new(new SocketsHttpHandler { AllowAutoRedirect = false, MaxConnectionsPerServer = 8 }) { Timeout = TimeSpan.FromSeconds(30), MaxResponseContentBufferSize = Limit };
     private readonly string endpoint;
+    private long gets, heads, puts, downloaded, uploaded, failures, requestTicks;
+    public JsonObject Statistics => new()
+    {
+        ["getRequests"] = Interlocked.Read(ref gets),
+        ["headRequests"] = Interlocked.Read(ref heads),
+        ["putRequests"] = Interlocked.Read(ref puts),
+        ["downloadBytes"] = Interlocked.Read(ref downloaded),
+        ["uploadBytes"] = Interlocked.Read(ref uploaded),
+        ["failures"] = Interlocked.Read(ref failures),
+        ["requestSeconds"] = (double)Interlocked.Read(ref requestTicks) / TimeSpan.TicksPerSecond
+    };
+    private HttpResponseMessage Send(HttpRequestMessage request)
+    {
+        using (request)
+        {
+            if (request.Method == HttpMethod.Get) Interlocked.Increment(ref gets);
+            if (request.Method == HttpMethod.Head) Interlocked.Increment(ref heads);
+            if (request.Method == HttpMethod.Put) { Interlocked.Increment(ref puts); Interlocked.Add(ref uploaded, request.Content?.Headers.ContentLength ?? 0); }
+            var timer = Stopwatch.StartNew();
+            try
+            {
+                var response = client.Send(request);
+                if ((int)response.StatusCode >= 500) Interlocked.Increment(ref failures);
+                return response;
+            }
+            catch { Interlocked.Increment(ref failures); throw; }
+            finally { Interlocked.Add(ref requestTicks, timer.Elapsed.Ticks); }
+        }
+    }
     public RemoteCache(string endpoint)
     {
         var uri = new Uri(endpoint);
@@ -21,7 +51,10 @@ internal sealed class RemoteCache : IDisposable
     public static string Digest(string value) => value.Length == 64 && value.All(c => c is >= '0' and <= '9' or >= 'a' and <= 'f') ? value : throw new InvalidDataException("Invalid CAS digest");
     public byte[] Fetch(string hash)
     {
-        var data = client.GetByteArrayAsync(endpoint + "/cas/" + Digest(hash)).GetAwaiter().GetResult();
+        using var response = Send(new HttpRequestMessage(HttpMethod.Get, endpoint + "/cas/" + Digest(hash)));
+        response.EnsureSuccessStatusCode();
+        var data = response.Content.ReadAsByteArrayAsync().GetAwaiter().GetResult();
+        Interlocked.Add(ref downloaded, data.LongLength);
         if (data.Length > Limit || Json.Sha(data) != hash) throw new InvalidDataException("CAS digest mismatch");
         return data;
     }
@@ -29,12 +62,12 @@ internal sealed class RemoteCache : IDisposable
     {
         if (data.Length > Limit) throw new InvalidDataException("CAS object exceeds limit");
         var hash = Json.Sha(data); var url = endpoint + "/cas/" + hash;
-        using (var head = client.Send(new HttpRequestMessage(HttpMethod.Head, url)))
+        using (var head = Send(new HttpRequestMessage(HttpMethod.Head, url)))
         {
             if (head.IsSuccessStatusCode && head.Content.Headers.ContentLength == data.Length) return hash;
             if (!head.IsSuccessStatusCode && head.StatusCode is not (HttpStatusCode.NotFound or HttpStatusCode.MethodNotAllowed or HttpStatusCode.NotImplemented)) head.EnsureSuccessStatusCode();
         }
-        using var response = client.PutAsync(url, new ByteArrayContent(data)).GetAwaiter().GetResult(); response.EnsureSuccessStatusCode(); return hash;
+        using var response = Send(new HttpRequestMessage(HttpMethod.Put, url) { Content = new ByteArrayContent(data) }); response.EnsureSuccessStatusCode(); return hash;
     }
     internal static byte[] Pack(Dictionary<string, byte[]> files)
     {
@@ -80,11 +113,12 @@ internal sealed class RemoteCache : IDisposable
         if (!expected.SetEquals(files.Keys)) throw new InvalidDataException("Undeclared bundle member");
         Digest(result.String("key")); Digest(result.String("inputs")); Digest(result.String("toolchain")); Host.Safe(result.String("project")); return result;
     }
-    public JsonNode Snapshot(string hash)
+    public JsonNode Snapshot(string hash, JsonNode? worker = null)
     {
         var value = JsonNode.Parse(Fetch(hash))!;
         if (value["policy"]?.GetValue<string>() != Policy || value["projects"] is not JsonArray projects || projects.Count > 100000) throw new InvalidDataException("Unsupported snapshot");
         if (value["preparation"] is { } preparation) Digest(preparation.GetValue<string>());
+        if (worker is not null) WorkerIdentity.RequireCompatible(value["worker"], worker);
         var seen = new HashSet<string>(StringComparer.Ordinal);
         foreach (var record in projects)
         {
@@ -112,7 +146,7 @@ internal sealed class RemoteCache : IDisposable
     {
         FileTree.Snapshot(root); return FileTree.Files(root).ToDictionary(p => Path.GetRelativePath(root, p), File.ReadAllBytes, StringComparer.Ordinal);
     }
-    public string Publish(string cache, string? plan, JsonNode? receipt)
+    public string Publish(string cache, string? plan, JsonNode? receipt, JsonNode? worker = null)
     {
         var projects = Directory.GetDirectories(cache).Order(StringComparer.Ordinal).AsParallel().AsOrdered().WithDegreeOfParallelism(8).Select(folder =>
         {
@@ -120,7 +154,7 @@ internal sealed class RemoteCache : IDisposable
             return new JsonObject { ["key"] = result["key"]!.DeepClone(), ["project"] = result["project"]!.DeepClone(), ["inputs"] = result["inputs"]!.DeepClone(), ["toolchain"] = result["toolchain"]!.DeepClone(), ["blob"] = blob };
         }).ToArray();
         var preparation = plan is not null && receipt is not null ? PublishPreparation(plan, receipt) : null;
-        return Upload(Encoding.UTF8.GetBytes(Json.Canonical(new JsonObject { ["policy"] = Policy, ["projects"] = new JsonArray(projects.Cast<JsonNode?>().ToArray()), ["preparation"] = preparation })));
+        return Upload(Encoding.UTF8.GetBytes(Json.Canonical(new JsonObject { ["policy"] = Policy, ["worker"] = worker?.DeepClone(), ["projects"] = new JsonArray(projects.Cast<JsonNode?>().ToArray()), ["preparation"] = preparation })));
     }
     private string PublishPreparation(string plan, JsonNode receipt)
     {

@@ -1,0 +1,52 @@
+{
+  "accepted": true,
+  "source": "br-controls5/report.json",
+  "sourceSha256": "ae2cdec7a8de9451db9137e3cdb87e9c2c8ac836e2a931399b98f8b389b2c3f0",
+  "networkProbeExitCode": 7,
+  "cases": [
+    {
+      "case": "repository-downloads-disabled-recovery",
+      "passed": true,
+      "compiles": 0,
+      "phases": {
+        "identity": 1.3528479,
+        "nuget": 0.0136434,
+        "remoteSnapshot": 0.0106665,
+        "prepare": 0.2382996,
+        "remoteSeeds": 0.0026253,
+        "stage": 0.0107815,
+        "bazel": 2.303759,
+        "leaseExit": 1.2425268,
+        "remotePublish": 0.0231393
+      }
+    },
+    {
+      "case": "warm-offline",
+      "passed": true,
+      "exitCode": 0,
+      "lockUnchanged": true,
+      "diagnostic": ""
+    },
+    {
+      "case": "missing-object",
+      "passed": true,
+      "exitCode": 32,
+      "lockUnchanged": true,
+      "diagnostic": "ERROR: Error computing the main repository mapping: Error accessing registry https://bcr.bazel.build/: Failed to fetch registry file https://bcr.bazel.build/modules/platforms/0.0.11/MODULE.bazel: Operation not permitted"
+    },
+    {
+      "case": "corrupt-object",
+      "passed": true,
+      "exitCode": 32,
+      "lockUnchanged": true,
+      "diagnostic": "ERROR: Error computing the main repository mapping: Error accessing registry https://bcr.bazel.build/: Failed to fetch registry file https://bcr.bazel.build/modules/platforms/0.0.11/MODULE.bazel: Operation not permitted"
+    },
+    {
+      "case": "outdated-lock",
+      "passed": true,
+      "exitCode": 48,
+      "lockUnchanged": true,
+      "diagnostic": "ERROR: Error computing the main repository mapping: Missing checksum for registry file https://bcr.bazel.build/modules/platforms/0.0.11/MODULE.bazel not permitted with --lockfile_mode=error. Please run `bazel mod deps --lockfile_mode=update` to update your lockfile."
+    }
+  ]
+}
