@@ -120,3 +120,30 @@ build action. The native project cache still limits compilation to the changed
 project when its reference API is unchanged, but discovery runs again. This can
 be slower than the legacy source-refresh path. Separating graph-discovery inputs
 from source-content materialization is the next step before switching defaults.
+
+The preparation tree currently includes normalized source and package payloads.
+A fresh Bazel cache consumer may download those outputs even when NuGet already
+has the original package files locally. Loopback timings do not qualify WAN
+transfer efficiency; avoiding those duplicated payloads is a follow-up.
+
+## Recorded result
+
+Candidate `c59f420` passed all **17 workflow cases** and **five raw-MSBuild
+DLL/PDB comparisons**. Both fresh consumers recovered one preparation action
+and one build action after producer deletion. Body edits compiled one project.
+Added-source membership invalidated preparation. Undeclared reads, failing tests,
+and live source changes rejected the invocation with no new server PUTs.
+All owned .NET/style and pinned Starlark checks passed (one Linux-only test skipped).
+See [compact evidence](bazel-owned-preparation-evidence.json).
+
+| Workload | Cold producer + priming | Fresh remote hit | Warm median (3) | Fresh body edit |
+|---|---:|---:|---:|---:|
+| diamond | 10.726 s | 3.327 s | 1.131 s | 7.911 s |
+| serilog | 19.230 s | 6.136 s | 2.779 s | 13.123 s |
+
+These are direct controller wall times with tools already built and restore
+completed. Fresh consumers have new project/Bazel state but share the binary-keyed
+Bazel installation, repository downloads and NuGet cache. Warm samples retain the
+Bazel server/state. Serilog always runs its approval test. Only warm values are
+medians; other columns are individual qualification observations. They do not
+establish raw-MSBuild parity, a before/after speedup, or WAN performance.
