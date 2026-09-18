@@ -64,3 +64,35 @@ reads, writes to inputs, and access to the parent network namespace.
 
 Separate Linux VMs on one Mac establish isolated-worker evidence. They do not
 establish physical-machine independence, WAN performance or macOS-to-Linux reuse.
+
+## Accepted run, 2026-09-18
+
+Candidate `90f4e24`, with source archive and image digests recorded in the
+[compact evidence](linux-cache-workers-evidence.json), passed all eleven workflow
+cases in `/private/tmp/linux-workers-qualified/report.json`:
+
+| Case | Diamond compiles | Serilog compiles | Remote build hits |
+| --- | ---: | ---: | ---: |
+| Producer cold | 4 | 2 | 0 |
+| Producer seeded primer | 0 | 0 | 0 |
+| Fresh consumer outer cache | 0 | 0 | 1 each |
+| Fresh consumer inner cache only | 0 | 0 | 0 |
+| Consumer body edit | 1 | 1 | 0 |
+| Failed approval test | — | 1 | 0 |
+
+The consumer was created only after successful producer stop/deletion and an
+absence check. Boot ID hashes differ. Both unchanged and edited managed DLL/PDB
+sets exactly matched the consumer's independent raw builds. Serilog's actual
+approval test ran on recovered outputs. The intentionally failed test staged
+action-cache uploads but published zero objects; the real server PUT counter was
+unchanged and inner publication sent zero PUTs.
+
+Each Linux worker passed 28 workflow and 32 preparation tests, including the
+namespace isolation and ARM64 file-type guards. Host macOS owned .NET build/style,
+five style-policy tests, 32 preparation tests, and 27 workflow tests passed
+(the additional Linux-only test was explicitly skipped). Repository pins and
+Starlark checks passed. No GitHub CI was dispatched.
+
+The temporary producer, consumer and qualification cache containers were deleted.
+The persistent native macOS cache remains running. These measurements are
+correctness qualification, not a controlled Linux-versus-macOS speed comparison.
