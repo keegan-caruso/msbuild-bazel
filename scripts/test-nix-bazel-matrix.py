@@ -72,7 +72,7 @@ def main():
                         initialModuleLockSha256=hashlib.sha256((ROOT / 'MODULE.bazel.lock').read_bytes()).hexdigest())
         (output / 'environment.json').write_text(json.dumps(metadata, indent=2) + '\n')
         stages = {
-            'setup-starlark': ['python3', 'scripts/setup-starlark.py'],
+            'setup-starlark': ['bash', 'scripts/tooling.sh', 'setup-starlark'],
             'check': ['bash', 'scripts/check.sh'],
             'query': ['bash', 'scripts/bazel.sh', 'query', '//:repo_setup', '--noshow_progress'],
             'output-base': ['bash', 'scripts/bazel.sh', 'info', 'output_base'],

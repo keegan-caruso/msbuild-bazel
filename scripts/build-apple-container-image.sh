@@ -10,9 +10,13 @@ trap 'rm -rf "$context_dir"' EXIT
 mkdir "$context_dir/scripts"
 cp "$repo_root/containers/toolchain.Dockerfile" "$context_dir/Dockerfile"
 cp "$repo_root/global.json" "$repo_root/.bazelversion" "$context_dir/"
-for name in setup.sh setup.py toolchain_pins.py toolchains.json env.sh check.sh dotnet.sh bazel.sh setup-starlark.py check-starlark.py starlark-tools.json; do
+for name in setup.sh toolchain-pins.sh toolchains.json env.sh check.sh dotnet.sh bazel.sh tooling.sh starlark-tools.json; do
     cp "$repo_root/scripts/$name" "$context_dir/scripts/"
 done
+mkdir -p "$context_dir/tools/Preparation"
+cp "$repo_root/.editorconfig" "$context_dir/"
+cp "$repo_root/tools/Directory.Build.props" "$context_dir/tools/"
+cp "$repo_root/tools/Preparation/"*.cs "$repo_root/tools/Preparation/Preparation.csproj" "$context_dir/tools/Preparation/"
 image_dir="$repo_root/.cache/apple-container/$arch"
 mkdir -p "$image_dir"
 tag="rules_msbuild-toolchain:$arch"

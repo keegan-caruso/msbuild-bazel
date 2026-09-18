@@ -26,7 +26,7 @@ jobs:
         uses: actions/cache/restore@v4
         with:
           path: .cache/downloads
-          key: linux-tools-${{ runner.arch }}-${{ hashFiles('scripts/toolchains.json', 'scripts/setup.py', 'global.json', '.bazelversion') }}
+          key: linux-tools-${{ runner.arch }}-${{ hashFiles('scripts/toolchains.json', 'scripts/setup.sh', 'scripts/toolchain-pins.sh', 'global.json', '.bazelversion') }}
       - name: Restore repository tooling NuGet packages
         id: tooling-nuget
         uses: actions/cache/restore@v4

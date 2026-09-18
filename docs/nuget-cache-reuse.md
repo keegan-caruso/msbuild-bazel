@@ -1,5 +1,10 @@
 # Reusing the NuGet global packages cache
 
+The production entry point is now .NET. See [the current workflow](native-workflow.md)
+and [migration validation](python-removal.md#steps-3-and-4-production-workflow-and-bootstrap).
+The measurements below describe the earlier Python controller and cache format;
+new .NET snapshots use a separate versioned format.
+
 [Preparation components v3](preparation-components.md) extend the package split
 below to sources, metadata, and SDK evidence. These measurements describe v2.
 
@@ -12,7 +17,7 @@ NuGet remains responsible for acquiring and repairing packages.
 # Restore with the same package-cache selection used by the workflow.
 export NUGET_PACKAGES=/absolute/global-packages
 dotnet restore path/App.csproj -p:Configuration=Release -p:TargetFramework=net10.0
-python3 tools/native_workflow.py \
+bash scripts/build.sh \
   --workspace /absolute/source --state /absolute/owned/state \
   --entry path/App.csproj --output /absolute/new/report \
   --trust-system-nix-store \

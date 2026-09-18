@@ -1,5 +1,10 @@
 # Remote preparation snapshots
 
+The production entry point is now .NET. See [the current workflow](native-workflow.md)
+and [migration validation](python-removal.md#steps-3-and-4-production-workflow-and-bootstrap).
+The measurements below describe the earlier Python controller and cache format;
+new .NET snapshots use a separate versioned format.
+
 [NuGet cache reuse and split package objects](nuget-cache-reuse.md) extend this
 workflow with transfer policy v2. The measurements below describe the original
 v1 full-payload transport. [Preparation components v3](preparation-components.md)
@@ -17,7 +22,7 @@ API edits still invalidate downstream compilation through reference assemblies.
 Run in the pinned Nix shell with restored inputs and prebuilt controller tools:
 
 ```sh
-python3 tools/native_workflow.py \
+bash scripts/build.sh \
   --workspace /absolute/restored/source --state /absolute/owned/state \
   --entry path/App.csproj --output /absolute/new/report \
   --trust-system-nix-store \

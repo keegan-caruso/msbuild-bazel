@@ -10,3 +10,4 @@ for project in tools/*/*.csproj tests/ActionRunner.Tests/*.csproj tests/Preparat
 done
 python3 -m unittest discover -s tests/code_style -v
 python3 -m unittest discover -s tests/dotnet_preparation -v
+python3 -m unittest discover -s tests/dotnet_workflow -v

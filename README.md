@@ -33,8 +33,10 @@ consumer bundles across fresh sandbox executions on macOS ARM64.
 
 **Runtime progress:** The [Nix runtime experiment](docs/native-runtime-findings.md)
 declares native libraries and signing tools. The [.NET action runner](docs/dotnet-runner-findings.md)
-uses the existing SDK. [Fresh preparation can also run in .NET](docs/python-removal.md#step-2-net-fresh-preparation);
-Python remains in the original preparation/workflow, bootstrap and test paths.
+uses the existing SDK. [Production preparation, Build/Test, cache transport and
+setup now run without Python](docs/python-removal.md). Use
+`bash scripts/build.sh` for the [native workflow](docs/native-workflow.md);
+Python implementations remain as test oracles and experiment harnesses.
 The [runtime integrity extension](docs/native-runtime-integrity-findings.md)
 verifies declared payload hashes, tests copied-library changes and records loader
 diagnostics. The [loaded JIT experiment](docs/loader-runtime-findings.md) stages a
@@ -97,7 +99,8 @@ source groups, graph metadata, and SDK evidence, with shaped-network measurement
 
 ## Quick start
 
-Linux x86-64 or ARM64 (glibc), with Bash, Python 3, curl, tar, and standard .NET runtime dependencies:
+Linux x86-64 or ARM64 (glibc), with Bash, curl, tar, gzip, sha256sum, and standard .NET runtime dependencies
+(Python 3 is needed only to run repository tests and experiment harnesses):
 
 ```sh
 bash scripts/setup.sh
@@ -126,13 +129,13 @@ The flake provides native toolchains for macOS ARM64 (`aarch64-darwin`) and Linu
 
 ```sh
 nix --extra-experimental-features 'nix-command flakes' develop
-python3 scripts/setup-starlark.py
+bash scripts/tooling.sh setup-starlark
 bash scripts/check.sh
 bash scripts/bazel.sh query //:repo_setup --noshow_progress
 python3 -m unittest discover -s tests/e2e -v
 ```
 
-If flakes are already enabled in your Nix configuration, use `nix develop`, or run a single command with `nix develop -c python3 -m unittest discover -s tests/e2e -v`. No `scripts/setup.sh` step is needed inside this shell. Acquire the separately checksum-pinned Buildifier once with `python3 scripts/setup-starlark.py`; it is validation tooling and is not used by compilation or graph preparation. When trying an uncommitted flake before its files are tracked by Git, use `develop path:.` instead of `develop`.
+If flakes are already enabled in your Nix configuration, use `nix develop`, or run a single command with `nix develop -c python3 -m unittest discover -s tests/e2e -v`. No `scripts/setup.sh` step is needed inside this shell. Acquire the separately checksum-pinned Buildifier once with `bash scripts/tooling.sh setup-starlark`; it is validation tooling and is not used by compilation or graph preparation. When trying an uncommitted flake before its files are tracked by Git, use `develop path:.` instead of `develop`.
 
 `flake.lock` separately locks the .NET SDK 10.0.400 Nixpkgs input and the existing Bazel 8.4.2 input. The shell checks those versions against `scripts/toolchains.json`. It uses the upstream binary .NET SDK packaged by Nixpkgs and Nixpkgs' source-built, patched Bazel; that Bazel reports the suffix `- (@non-git)`, which the check script accepts. It is not byte-identical to the Bazel release binary used by setup.
 

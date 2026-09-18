@@ -432,3 +432,10 @@ and package-upgrade consumers under explicit latency and bandwidth limits.
 
 See [the migration record](python-removal.md) for staged removal of Python from
 production preparation, orchestration and bootstrap while retaining test harnesses.
+
+The .NET production controller now owns fresh preparation, sealed discovery, local
+reuse, guarded source refresh, HTTP snapshots, NuGet cache staging and native
+Build/Test. Shell/.NET bootstrap and validation need no Python. The migration
+record includes 13 producer-deleted/negative consumer cases and the remaining
+platform qualification limits. Python probes and reference implementations remain
+test-only; use `scripts/build.sh` and `scripts/prepare.sh` in production.

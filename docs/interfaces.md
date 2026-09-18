@@ -1,5 +1,10 @@
 # Adapter interfaces (v1)
 
+This document preserves the earlier experiment/release contract. Current production
+entry points are [the .NET native workflow](native-workflow.md) and
+[.NET preparation](python-removal.md#step-2-net-fresh-preparation). Python commands
+here remain available only to reproduce historical tests and measurements.
+
 This implemented v1 contract was written before the driver. It remains the
 same-path MSBuild control. The separate [replay contract](replay-interface.md)
 and [Bazel contract](bazel-interface.md) describe the later implemented boundaries.

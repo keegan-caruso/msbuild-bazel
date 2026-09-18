@@ -1,19 +1,21 @@
-# Opt-in native-cache Build/Test workflow
+# Native-cache Build/Test workflow
 
-`tools/native_workflow.py` prepares the qualified Release/net10.0 input graph,
-generates `//:build` and optionally `//:test`, runs Bazel, and publishes verified
-project bundles to owned local state only after success. The existing graph
-adapter remains the default interface; this command explicitly selects the native
-backend. The measured platform is macOS ARM64 with the pinned Nix SDK.
+The .NET controller in `tools/Preparation` prepares the qualified Release/net10.0
+input graph, generates `//:build` and optionally `//:test`, runs Bazel, and publishes
+verified project bundles after successful input checks and tests. The measured
+platform is macOS ARM64 with the pinned Nix SDK. Production commands need no Python.
 
 ## Use
 
-Restore the chosen entry normally with packages under the source checkout's
-`.nuget/packages`. Prebuild tools once with `--bootstrap` on the first invocation.
-Keep source, controller checkout, owned state and per-invocation report output
-paths disjoint, and use short paths on macOS. Run inside `nix develop`.
+Restore the selected entry normally. Packages may reside in the ordinary NuGet
+global cache or in the source checkout's `.nuget/packages`. The controller copies
+only the restored package closure into private build inputs and verifies it;
+it does not modify the global cache. Override its location with `--nuget-packages`
+or `NUGET_PACKAGES`.
 
-For the pinned Serilog approval entry, declare test data and expected test names:
+Keep source, controller checkout, owned state and report output paths disjoint.
+Use short paths on macOS and run inside `nix develop`. For the pinned Serilog
+approval entry, save this test declaration as `/private/tmp/tests.json`:
 
 ```json
 {
@@ -25,115 +27,76 @@ For the pinned Serilog approval entry, declare test data and expected test names
 }
 ```
 
-Save that declaration as `/private/tmp/tests.json`, then run:
-
 ```sh
-python3 tools/native_workflow.py --bootstrap \
+bash scripts/build.sh --bootstrap --reuse --incremental-sources \
   --workspace /private/tmp/serilog --state /private/tmp/native-state \
   --entry test/Serilog.ApprovalTests/Serilog.ApprovalTests.csproj \
   --tests /private/tmp/tests.json --operation test --force-tests \
   --output /private/tmp/native-run1
 ```
 
-Repeat without `--bootstrap` and with a new `--output`. `--operation build`
-selects `//:build`; `--operation test` selects `//:test`. `--force-tests` asks Bazel
-to execute VSTest even when its test-result cache could satisfy the request.
-Without it, normal Bazel test-result caching applies. The stable generated
-workspace is `<state>/g`. Reports record phase timings, actual build/test action
-counts, compiler invocations, runtime hashes, and VSTest results. Bazel test logs,
-TRX and the standard test XML are retained alongside the report.
+Repeat without `--bootstrap` and with a new `--output`. `--bootstrap` builds the
+owned action/export tools. The shell wrapper builds the controller incrementally;
+for repeated calls use the selected .NET host directly:
 
-The native test rule consumes a separate sealed current runtime bundle, checks its selected input
-and toolchain identity, verifies artifact hashes, and stages declared test data.
-It invokes VSTest directly and never builds or restores during test execution.
-Test data participates in Bazel test identity separately from compilation inputs.
+```sh
+"$RULES_MSBUILD_DOTNET_ROOT/dotnet" \
+  tools/Preparation/bin/Release/net10.0/Preparation.dll workflow \
+  --repository "$PWD" --workspace /private/tmp/serilog \
+  --state /private/tmp/native-state \
+  --entry test/Serilog.ApprovalTests/Serilog.ApprovalTests.csproj \
+  --operation build --reuse --incremental-sources \
+  --output /private/tmp/native-run2
+```
 
-## Scope
+`--operation build` selects `//:build`; `--operation test` selects `//:test` and
+requires a test declaration. `--force-tests` executes VSTest even if Bazel's test
+cache could satisfy the request. Tests consume verified current runtime artifacts
+and declared test data; they never build or restore. Reports include timings,
+compiler invocations, runtime hashes and test results. Generated files live at
+`<state>/g` and persist by content.
 
-This extends the [qualified Serilog slice](native-cache-serilog.md). The
-[API/runtime boundary](native-api-runtime.md) separates ordinary project
-compilation reuse from current runtime composition. The existing package boundary
-and native sandbox limitations remain. Tests run locally; no remote execution or cross-host
-cache claim is added. This command currently manages a local project cache.
-The separately qualified HTTP broker remains available to experiment harnesses.
-Code coverage remains outside the qualified slice.
+## Local and remote reuse
 
-## Original integration validation
+`--reuse` retains a native preparation plan in owned state. Unchanged inputs skip
+discovery and materialization. `--incremental-sources` permits content changes to
+existing C# source-only inputs; new files, imports, package changes and other
+unsupported changes require fresh discovery. The API/runtime boundary retains
+zero downstream compilation for implementation-only edits while tests run the
+current runtime bundle.
 
-The five-case real workflow probe passed: cold compilation of two projects,
-zero-compilation recovery with actual VSTest execution, a golden-data mismatch
-that failed the test without publishing cache state, restored golden data with no
-compilation, and a library implementation edit rebuilding both projects. Every
-case executed exactly one test, with none skipped. Cold/recovered runtime hashes
-matched. Reproduce with `tools/probe_native_workflow.py --source <pinned-checkout>
---packages <acquired-packages> --output <new-short-path>`.
+For remote reuse add `--remote-endpoint https://cache.example/native`. A successful
+run publishes an immutable root digest as `remote.publishedSnapshot` in its report.
+Select that exact digest on a fresh consumer with `--remote-snapshot <sha256>`.
+Remote consumers use guarded source refresh automatically. The selected cache
+endpoint and snapshot are trusted inputs; there is no mutable latest-pointer or
+remote execution. HTTPS is recommended outside a local test server.
 
-The existing graph test-rule probe also passed its pass, mismatch, missing-data
-and zero-test controls after extending the shared runner. Owned .NET formatting,
-warnings and style-policy checks passed; the new Starlark passes pinned Buildifier.
+Preparation is split into source groups, metadata and per-package objects. Local
+NuGet bytes reconstruct package objects only after content checks. Downloads,
+ZIP members, result identities and artifacts are checked before use. Missing or
+corrupt objects become cache misses. Failed compilation, failed tests, or changed
+leased inputs prevent publication. Source, package, controller, policy and SDK
+snapshots are checked again after consumption.
 
-## Preparation reuse
+The .NET formats are `dotnet-native-workflow-v1` for owned state,
+`dotnet-native-discovery-v1` for discovery proofs, and `dotnet-native-snapshot-v1`
+for remote snapshots. Start with a new state directory when migrating from the
+Python controller. Old Python remote snapshots miss and require fresh preparation;
+they are not silently adopted. `--trust-system-nix-store` is accepted for command
+compatibility but does not skip any verification in the .NET controller.
 
-Add `--reuse` to retain native plans through the existing leased preparation
-cache. An unchanged invocation skips GraphExport, evaluated materialization and
-package restaging. It still seals and hashes mutable inputs, verifies cached
-payloads, stages changed consumer inputs, and checks the lease and borrowed
-payload again after Bazel finishes. Project-cache publication occurs only after that final check. Test data
-is copied from the leased source snapshot, so tests and compilation share the
-same captured view. Test-result caching remains a separate Bazel decision.
+## Qualification
 
-The native plan policy is part of the preparation request, including its complete
-toolchain digest. Cached native plans and the original graph-adapter plans cannot
-alias. Corrupt or incomplete generations fall back to fresh qualified preparation.
-The default existing graph adapter keeps its original interface and behavior.
+See [the migration record](python-removal.md#steps-3-and-4-production-workflow-and-bootstrap)
+for the current .NET acceptance cases. The qualified discovery grammar, reviewed
+package imports and fixed SDK inputs remain deliberately narrow. Unsupported
+discovery can fall back to fresh preparation without publishing a reusable
+preparation proof. Code coverage, remote execution, general NuGet support and
+cross-host/platform cache reuse remain outside this qualification.
 
-The approval-test discovery extension admits only the package versions already
-archive-pinned in `pilot-package-policy.json`. `discovery-test-packages.json`
-additionally pins the exact reviewed imports: test SDK program inclusion, xUnit
-runtime/adapter items, EmptyFiles content, Shouldly path-map targets and coverage
-metadata. Evaluation does not execute the Shouldly inline task; VSTest receives
-its source map explicitly. Package payload verification precedes trusting imports.
-The SDK import list adds eight fixed files observed during framework negotiation;
-this does not enable execution of additional target frameworks or Windows builds.
-Authored XML gains only `DeterministicSourcePaths=false`, the generated xUnit
-package-path property, and Serilog's exact conditional runtime option.
-
-`--trust-system-nix-store` and `--incremental-sources` explicitly select the existing
-protected-store and C# content-refresh policies. Protected-store reuse is confined
-to a retained Python process and assumes the integrity of root-owned Nix paths;
-a one-shot CLI starts with an empty store-verification cache. Mutable source and
-package content is always checked. These options do not change the default.
-
-The reuse probe adds corruption recovery, source namespace invalidation,
-package-payload tampering and missing-data rejection. The preparation unit suite
-covers candidate integrity, atomic publication, overlapping paths, accepted-lease
-changes and no retry of failed consumer commands, plus the new exact policy gates.
-
-The final eleven-case reuse probe passed, including a successful actual Bazel test
-followed by an injected mutation of the leased source view: the lease rejected it
-and the project-cache publication pointer stayed unchanged. Unchanged cases
-reported `reused=true`, `discoveryExecuted=false`, and
-`materializationExecuted=false`. All 71 preparation identity/lease/policy unit
-tests passed. Earlier runs correctly fell back while the test-package, SDK-import
-and exact Serilog runtime-option eligibility additions were incomplete; fallback
-reasons are now preserved in workflow reports.
-
-## Complete-workflow timing
-
-The [measurement protocol and results](native-workflow-performance.md) compare the
-one-shot CLI and optional retained-controller profile against raw MSBuild/VSTest.
-They include preparation and lease checks, actual tests and cache publication.
-Fresh preparation, qualified fallback, and native execution use the same disabled
-workload-resolver policy for this net10.0 slice, preventing mode-switch false
-misses caused by differing SDK imports. The runner reports this as
-`evaluated-net10-release-env-v1`; the package-free policy is unchanged.
-
-The [overhead follow-up](native-workflow-optimization.md) retains generated inputs
-by content and lets native staging read prepared generations under the existing
-lease, with payload verification before use and at consumption exit.
-
-With guarded incremental sources, native plans retain verified package payloads
-and update only the admitted C# contents and their project identities. SDK/tool
-snapshots are shared within a single command and freshly checked before publishing
-project bundles. This adds no persistent mutable-file trust. The explicit
-protected-Nix-store option retains its separately documented trust assumptions.
+Earlier Python measurements remain in [workflow performance](native-workflow-performance.md),
+[overhead optimization](native-workflow-optimization.md), and
+[remote preparation](remote-preparation.md). They are historical evidence, not
+measurements of this .NET controller. Python probes and reference implementations
+remain available for differential tests and experiments.

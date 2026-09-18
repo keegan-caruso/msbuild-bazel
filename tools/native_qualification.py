@@ -52,4 +52,3 @@ def qualify(root):
         elif p.name not in ('global.json','NuGet.Config','Directory.Build.props','synthetic.json') and p.suffix not in ('.cs','.csproj'):
             raise ValueError('undeclared fixture input: '+str(rel))
     return projects
-

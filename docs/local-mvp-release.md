@@ -1,5 +1,9 @@
 # Local Build/Test MVP: v0.1.0-mvp.1
 
+This is the historical v0.1.0-mvp.1 qualification guide. For the current Python-free
+production commands, use [the native workflow guide](native-workflow.md). The
+Python commands below reproduce the release experiments and their recorded evidence.
+
 This experimental source release covers **native macOS ARM64, the default locked
 Nix toolchain, and pinned Serilog Release/net10.0 Build/Test**. It retains normal
 MSBuild compilation, SDK behavior, signing and package generators while Bazel
@@ -21,7 +25,7 @@ requires network access and an existing working system Nix daemon/store.
 git clone --branch v0.1.0-mvp.1 https://github.com/keegan-caruso/msbuild-bazel.git /private/tmp/rm
 cd /private/tmp/rm
 nix --extra-experimental-features 'nix-command flakes' develop
-python3 scripts/setup-starlark.py
+bash scripts/tooling.sh setup-starlark
 bash scripts/check.sh
 for tool in GraphExport EvaluationProbe ReplayPlugin ActionRunner; do
   bash scripts/dotnet.sh build "tools/$tool" -c Release --nologo

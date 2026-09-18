@@ -17,7 +17,7 @@ def check(workspace=None):
     pin = json.loads((ROOT / 'scripts/starlark-tools.json').read_text())['buildifier']
     artifact = pin['platforms'][platform.system() + '-' + platform.machine()]
     if not binary.is_file() or hashlib.sha256(binary.read_bytes()).hexdigest() != artifact['sha256']:
-        raise SystemExit('Run python3 scripts/setup-starlark.py to acquire pinned Buildifier')
+        raise SystemExit('Run bash scripts/tooling.sh setup-starlark to acquire pinned Buildifier')
     if workspace:
         # Generated workspaces own only these root files; never follow SDK/Bazel
         # symlinks into downloads, packages, or output trees.

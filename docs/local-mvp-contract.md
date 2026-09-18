@@ -1,5 +1,10 @@
 # Local Build/Test MVP support contract
 
+This document preserves the earlier experiment/release contract. Current production
+entry points are [the .NET native workflow](native-workflow.md) and
+[.NET preparation](python-removal.md#step-2-net-fresh-preparation). Python commands
+here remain available only to reproduce historical tests and measurements.
+
 Status: frozen scope and acceptance contract for [#63](https://github.com/keegan-caruso/msbuild-bazel/issues/63).
 Reviewed 2026-09-15 against candidate source
 `498114a4b67ba56682b93fb6a6f98d82d1b2acaf`. This records the intended

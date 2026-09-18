@@ -16,7 +16,7 @@ jobs:
           extra_nix_config: |
             experimental-features = nix-command flakes
       - name: Acquire pinned validation tooling
-        run: nix develop --no-update-lock-file -c python3 scripts/setup-starlark.py
+        run: nix develop --no-update-lock-file -c bash scripts/tooling.sh setup-starlark
       - name: Validate tools and owned code
         run: |
           nix develop --no-update-lock-file -c bash scripts/check.sh

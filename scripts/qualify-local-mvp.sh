@@ -33,7 +33,7 @@ cat > "${release_state}/upgrade/Upgrade.csproj" <<'PROJECT'
 PROJECT
 step restore-upgrade bash scripts/dotnet.sh restore "${release_state}/upgrade/Upgrade.csproj" --packages "${release_state}/p"
 for tool in GraphExport EvaluationProbe ReplayPlugin ActionRunner; do step "build-$tool" bash scripts/dotnet.sh build "tools/$tool" -c Release --nologo; done
-step setup-starlark python3 scripts/setup-starlark.py
+step setup-starlark bash scripts/tooling.sh setup-starlark
 step toolchain bash scripts/check.sh
 step dotnet-style bash scripts/check-dotnet.sh
 step runner bash scripts/dotnet.sh run --project tests/ActionRunner.Tests -c Release

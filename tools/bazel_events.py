@@ -9,4 +9,3 @@ def json_stream(path):
         value, end = decoder.raw_decode(text.lstrip())
         yield value
         text = text.lstrip()[end:]
-
