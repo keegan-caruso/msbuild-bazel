@@ -96,3 +96,18 @@ Starlark checks passed. No GitHub CI was dispatched.
 The temporary producer, consumer and qualification cache containers were deleted.
 The persistent native macOS cache remains running. These measurements are
 correctness qualification, not a controlled Linux-versus-macOS speed comparison.
+
+## Final combined qualification
+
+Candidate `d9947e0` passed the eleven-case matrix again with alias digest reuse,
+current runtime seed publication and automatic producer priming enabled. The
+explicit seeded-primer calls now hit the producer-populated remote action with
+zero build actions and zero compilations. Both fresh outer consumers also hit;
+inner-only consumers compiled zero projects, and body edits compiled one each.
+Producer deletion, distinct VM boot identities, exact raw DLL/PDB comparisons,
+actual tests and failed-test publication rejection all passed.
+
+Each VM also passed 29 workflow tests, 32 preparation tests and action-runner
+contract/process tests. See [final evidence](linux-cache-workers-final-evidence.json).
+The initial results above retain their original candidate and manual-primer
+semantics. The final qualification containers were deleted after completion.

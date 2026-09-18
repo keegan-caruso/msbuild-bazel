@@ -58,3 +58,30 @@ fails only the optional follow-up build. This checks original-output restoration
 successful primary acceptance, and discarded outer publication after primer failure.
 The normal action-cache matrix retains changed builds, raw artifact equality,
 forced tests, failed-test and live-lease rejection controls.
+
+## Accepted results, 2026-09-18
+
+Candidate `79c343a` passed the six-case Serilog history/failure experiment and
+all 16 macOS action-cache matrix cases. The two histories published identical
+project key/blob catalogs and recovered the same outer action key with zero
+build actions and zero compilations. The forced optional follow-up failure
+restored primary outputs and published no outer-cache objects. Failed tests and
+live-input mutation continued to reject publication.
+
+In the final macOS matrix, producer priming added 0.81 seconds for the diamond
+and 1.77 seconds for Serilog; changed-source publication added 0.81 and 1.75
+seconds respectively. These are single-run phase measurements, not benchmark
+medians. Every successful primer compiled zero projects. Fully seeded consumers
+paid no priming phase. The separate history experiment's cold edited producer
+reused the action populated by the incremental producer.
+
+Candidate `d9947e0` then passed all eleven cases on separate Apple-container Linux
+VMs, including producer deletion before consumer creation. Both workers passed
+29 workflow tests, 32 preparation tests and the action-runner contract/process
+suite. The macOS owned .NET build/style and preparation/workflow suites also
+passed. No GitHub CI was dispatched.
+
+See [seed evidence](canonical-seeds-evidence.json) and
+[final Linux evidence](linux-cache-workers-final-evidence.json). The earlier
+[alias measurements](integrity-alias-reuse.md) remain the controlled performance
+comparison; these correctness runs do not establish raw-MSBuild parity.

@@ -501,3 +501,10 @@ separate from physical-machine and cross-platform qualification.
 ICU reads while retaining independent final validation. Exact manifest parity,
 mutation guards and repeated complete-workflow comparisons pass; remote-hit
 medians improved by 2.8–5.3% in the recorded run.
+
+[Current runtime seeds and automatic priming](canonical-seeds.md) remove the
+qualified build-history variation and automatically populate the full-seed
+Bazel action on uploading producers. Both seed histories recover one action;
+failed-primer, failed-test and live-input mutation controls pass. The final
+combined Linux two-VM qualification also passes. Partial/full seed variants
+remain distinct declared actions, and physical-machine/WAN validation remains open.
