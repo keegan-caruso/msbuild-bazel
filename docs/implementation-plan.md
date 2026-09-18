@@ -427,3 +427,8 @@ objects from verified local bytes, preserving the build input and publication ch
 extend reuse to source groups, graph metadata, and SDK evidence. The HTTP probe
 shares bandwidth across concurrent transfers and measures unchanged, body-edit,
 and package-upgrade consumers under explicit latency and bandwidth limits.
+
+## Production Python removal
+
+See [the migration record](python-removal.md) for staged removal of Python from
+production preparation, orchestration and bootstrap while retaining test harnesses.

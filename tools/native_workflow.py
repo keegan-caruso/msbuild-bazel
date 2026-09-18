@@ -23,8 +23,9 @@ from invocation_identity import InvocationIdentity
 from preparation_identity import digest
 from preparation_reuse import atomic_json, prepared_view
 from prepare_graph import ROOT, DOTNET_ROOT
-from probe_graph_execution import BAZEL
-from probe_bazel import json_stream
+from bazel_events import json_stream
+
+BAZEL = Path(os.environ.get("RULES_MSBUILD_BAZEL", ROOT / ".tools/bin/bazel"))
 from starlark import call
 
 IMPORTS = [Path('/nix/store/dfhdbgnvv0jm1ld0hrzfaklgigvl7bzp-extra.targets'),

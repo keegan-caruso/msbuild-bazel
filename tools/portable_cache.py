@@ -10,7 +10,7 @@ from urllib.request import Request, urlopen
 import zipfile
 
 from preparation_identity import digest, tree_snapshot
-from probe_native_cache import qualify
+from native_qualification import qualify
 
 POLICY = 'owned-net10-release-env-v1'
 

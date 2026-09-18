@@ -24,13 +24,7 @@ DOTNET = Path(os.environ.get('RULES_MSBUILD_DOTNET_ROOT', ROOT / '.tools/dotnet'
 BAZEL = Path(os.environ.get('RULES_MSBUILD_BAZEL', ROOT / '.tools/bin/bazel'))
 
 
-def json_stream(path):
-    text = path.read_text()
-    decoder = json.JSONDecoder()
-    while text.strip():
-        value, end = decoder.raw_decode(text.lstrip())
-        yield value
-        text = text.lstrip()[end:]
+from bazel_events import json_stream
 
 
 def bundle_snapshot(directory):
