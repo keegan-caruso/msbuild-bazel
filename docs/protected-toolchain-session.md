@@ -82,11 +82,40 @@ standard-library inputs through Bazel dependency sets. See [SDK acquisition](htt
 and [compile action inputs](https://github.com/bazel-contrib/rules_go/blob/master/go/private/actions/compilepkg.bzl)
 (inspected 2026-09-18). This does not imply that Bazel never hashes SDK files.
 
-The architectural inference for this project is to give Bazel ownership of the
-.NET SDK/runtime and discovery actions, letting its normal input tracking handle
-more of the work currently performed by the outer controller. Our discovery
-currently runs before the Bazel action, so deleting its identity/lease checks now
-would leave that boundary uncovered. This session implementation is a bounded
+We already declare SDK files as Bazel inputs for build/test through
+`@dotnet//:files`. The architectural gap is the outer controller: discovery runs
+before Bazel, and its runtime identity includes the broader native closure. The
+inference is to move that discovery/runtime boundary under Bazel and use a pinned
+SDK repository, letting normal input tracking replace more outer-controller work.
+Simply deleting the existing identity/lease checks would leave discovery uncovered. This session implementation is a bounded
 opt-in improvement; avoid expanding it into a separate general build daemon.
 Bazel-owned SDK/discovery is the next larger design to explore while retaining
 MSBuild's SDK and NuGet behavior.
+
+## Accepted results, 2026-09-18
+
+Candidate `4d025a0` passed 18 measured unchanged invocations, two fresh consumer
+checks, two body edits, two cold producer builds and both rejected-publication
+controls. Three-repetition unprofiled medians, seconds:
+
+| Mode | Diamond total | Serilog total | Diamond identity + final | Serilog identity + final |
+| --- | ---: | ---: | ---: | ---: |
+| Default, new controller process | 2.055 | 4.944 | 1.508 | 1.660 |
+| One-shot protected trust | 1.543 | 4.378 | 0.981 | 1.120 |
+| Warm protected session | 0.680 | 3.338 | 0.245 | 0.349 |
+
+Total reductions versus default are 25%/11% for one-shot trust and 67%/32% for
+the session. Session results include both verified-manifest reuse and a warm
+controller process; they do not isolate the benefit of hashing removal alone.
+These are same-host steady-state comparisons, not fresh remote-worker or WAN
+results. Cold producers retained the initial full runtime scans and audit; their
+complete timings and counters are in the [evidence](protected-toolchain-session-evidence.json).
+The final pass keeps all mutable-input checks and conservative file-root scans.
+
+Owned .NET build/style checks, five style-policy tests, 32 preparation tests and
+32 macOS workflow tests passed (one Linux-only test skipped). Shell syntax,
+Python harness compilation and diff checks passed. No GitHub CI ran. The benchmark
+uses the completed candidate after adding repository/SDK identity guards. An
+earlier harness incorrectly expected zero fallback scans; that rejected attempt
+is excluded. The corrected expectation preserves both tiny standalone import
+files' full verification.

@@ -1,0 +1,1438 @@
+{
+  "accepted": true,
+  "revision": "4d025a0971b19f5e80b090df1651f416eef88361",
+  "sourceReportSha256": "1179035660be74981bc77b9fcfca13e186f745df427d9bb64c36c326f773fff1",
+  "medians": [
+    {
+      "kind": "diamond",
+      "mode": "default",
+      "wall": 2.054616209003143,
+      "identity": 0.8360301,
+      "leaseExit": 0.6722553
+    },
+    {
+      "kind": "diamond",
+      "mode": "oneshot",
+      "wall": 1.5431687089730985,
+      "identity": 0.9002407,
+      "leaseExit": 0.0804039
+    },
+    {
+      "kind": "diamond",
+      "mode": "session",
+      "wall": 0.6803294999990612,
+      "identity": 0.1545604,
+      "leaseExit": 0.0907754
+    },
+    {
+      "kind": "serilog",
+      "mode": "default",
+      "wall": 4.943522083980497,
+      "identity": 0.8468288,
+      "leaseExit": 0.813042
+    },
+    {
+      "kind": "serilog",
+      "mode": "oneshot",
+      "wall": 4.377759457973298,
+      "identity": 0.9035437,
+      "leaseExit": 0.2168451
+    },
+    {
+      "kind": "serilog",
+      "mode": "session",
+      "wall": 3.3378669579979032,
+      "identity": 0.1406155,
+      "leaseExit": 0.2080947
+    }
+  ],
+  "samples": [
+    {
+      "kind": "diamond",
+      "mode": "default",
+      "repetition": 0,
+      "result": {
+        "accepted": true,
+        "compiles": 0,
+        "buildActions": 0,
+        "remoteBuildHits": 0,
+        "testActions": 0,
+        "phases": {
+          "identity": 0.8377213,
+          "nuget": 0.0185826,
+          "remoteSnapshot": 0.0108192,
+          "prepare": 0.2426294,
+          "remoteSeeds": 0.0052097,
+          "stage": 0.0097493,
+          "bazel": 0.2173652,
+          "leaseExit": 0.6722553,
+          "remotePublish": 0.0114966,
+          "actionCachePublish": 0.0015265
+        },
+        "wallSeconds": 2.1362516249646433,
+        "leaseVerification": {
+          "requests": 51,
+          "scans": 31
+        },
+        "actionCache": {
+          "uploadEnabled": false,
+          "lookupKeys": [],
+          "hitKeys": [],
+          "stagedObjects": 0,
+          "stagedBytes": 0,
+          "publishedObjects": 0,
+          "uploadedBytes": 0,
+          "downloadedBytes": 0,
+          "failures": 0
+        },
+        "remote": {
+          "publishedSnapshot": "a88c0830530429814d0b3a701e3367830d878d0d63f988c7738e41b69d66cbdc",
+          "transport": {
+            "getRequests": 5,
+            "headRequests": 13,
+            "putRequests": 0,
+            "downloadBytes": 99425,
+            "uploadBytes": 0,
+            "failures": 0,
+            "requestSeconds": 0.017315
+          }
+        }
+      },
+      "managedHashesDigest": "aa550792d36a649aeccbbb84b1b9c1fb16083444964ac93e65dab73a6acd0dcf"
+    },
+    {
+      "kind": "diamond",
+      "mode": "oneshot",
+      "repetition": 0,
+      "result": {
+        "accepted": true,
+        "compiles": 0,
+        "buildActions": 0,
+        "remoteBuildHits": 0,
+        "testActions": 0,
+        "protectedStore": {
+          "policy": "trusted-system-nix-session-v1",
+          "hits": 17,
+          "fullScans": 21,
+          "roots": 17
+        },
+        "phases": {
+          "identity": 0.8460767,
+          "nuget": 0.0174402,
+          "remoteSnapshot": 0.0108442,
+          "prepare": 0.2620757,
+          "remoteSeeds": 0.0050073,
+          "stage": 0.0098193,
+          "bazel": 0.1457782,
+          "leaseExit": 0.0804039,
+          "remotePublish": 0.0137596,
+          "actionCachePublish": 0.00153
+        },
+        "wallSeconds": 1.5019659170066006,
+        "leaseVerification": {
+          "requests": 51,
+          "scans": 31
+        },
+        "actionCache": {
+          "uploadEnabled": false,
+          "lookupKeys": [],
+          "hitKeys": [],
+          "stagedObjects": 0,
+          "stagedBytes": 0,
+          "publishedObjects": 0,
+          "uploadedBytes": 0,
+          "downloadedBytes": 0,
+          "failures": 0
+        },
+        "remote": {
+          "publishedSnapshot": "a88c0830530429814d0b3a701e3367830d878d0d63f988c7738e41b69d66cbdc",
+          "transport": {
+            "getRequests": 5,
+            "headRequests": 13,
+            "putRequests": 0,
+            "downloadBytes": 99425,
+            "uploadBytes": 0,
+            "failures": 0,
+            "requestSeconds": 0.0165364
+          }
+        }
+      },
+      "managedHashesDigest": "aa550792d36a649aeccbbb84b1b9c1fb16083444964ac93e65dab73a6acd0dcf"
+    },
+    {
+      "kind": "diamond",
+      "mode": "session",
+      "repetition": 0,
+      "result": {
+        "accepted": true,
+        "compiles": 0,
+        "buildActions": 0,
+        "remoteBuildHits": 0,
+        "testActions": 0,
+        "protectedStore": {
+          "policy": "trusted-system-nix-session-v1",
+          "hits": 34,
+          "fullScans": 4,
+          "roots": 17
+        },
+        "phases": {
+          "identity": 0.1508325,
+          "nuget": 0.0126381,
+          "remoteSnapshot": 0.0006267,
+          "prepare": 0.1981932,
+          "remoteSeeds": 0.001836,
+          "stage": 0.0061488,
+          "bazel": 0.1487852,
+          "leaseExit": 0.090411,
+          "remotePublish": 0.0049397,
+          "actionCachePublish": 0.0001365
+        },
+        "wallSeconds": 0.6787587090511806,
+        "leaseVerification": {
+          "requests": 51,
+          "scans": 31
+        },
+        "actionCache": {
+          "uploadEnabled": false,
+          "lookupKeys": [],
+          "hitKeys": [],
+          "stagedObjects": 0,
+          "stagedBytes": 0,
+          "publishedObjects": 0,
+          "uploadedBytes": 0,
+          "downloadedBytes": 0,
+          "failures": 0
+        },
+        "remote": {
+          "publishedSnapshot": "a88c0830530429814d0b3a701e3367830d878d0d63f988c7738e41b69d66cbdc",
+          "transport": {
+            "getRequests": 5,
+            "headRequests": 13,
+            "putRequests": 0,
+            "downloadBytes": 99425,
+            "uploadBytes": 0,
+            "failures": 0,
+            "requestSeconds": 0.0047666
+          }
+        }
+      },
+      "managedHashesDigest": "aa550792d36a649aeccbbb84b1b9c1fb16083444964ac93e65dab73a6acd0dcf"
+    },
+    {
+      "kind": "diamond",
+      "mode": "session",
+      "repetition": 1,
+      "result": {
+        "accepted": true,
+        "compiles": 0,
+        "buildActions": 0,
+        "remoteBuildHits": 0,
+        "testActions": 0,
+        "protectedStore": {
+          "policy": "trusted-system-nix-session-v1",
+          "hits": 34,
+          "fullScans": 4,
+          "roots": 17
+        },
+        "phases": {
+          "identity": 0.1613034,
+          "nuget": 0.0142619,
+          "remoteSnapshot": 0.0005974,
+          "prepare": 0.2070958,
+          "remoteSeeds": 0.0018762,
+          "stage": 0.0062148,
+          "bazel": 0.1455746,
+          "leaseExit": 0.0907754,
+          "remotePublish": 0.0072865,
+          "actionCachePublish": 0.000125
+        },
+        "wallSeconds": 0.6991072079981677,
+        "leaseVerification": {
+          "requests": 51,
+          "scans": 31
+        },
+        "actionCache": {
+          "uploadEnabled": false,
+          "lookupKeys": [],
+          "hitKeys": [],
+          "stagedObjects": 0,
+          "stagedBytes": 0,
+          "publishedObjects": 0,
+          "uploadedBytes": 0,
+          "downloadedBytes": 0,
+          "failures": 0
+        },
+        "remote": {
+          "publishedSnapshot": "a88c0830530429814d0b3a701e3367830d878d0d63f988c7738e41b69d66cbdc",
+          "transport": {
+            "getRequests": 5,
+            "headRequests": 13,
+            "putRequests": 0,
+            "downloadBytes": 99425,
+            "uploadBytes": 0,
+            "failures": 0,
+            "requestSeconds": 0.0046354
+          }
+        }
+      },
+      "managedHashesDigest": "aa550792d36a649aeccbbb84b1b9c1fb16083444964ac93e65dab73a6acd0dcf"
+    },
+    {
+      "kind": "diamond",
+      "mode": "oneshot",
+      "repetition": 1,
+      "result": {
+        "accepted": true,
+        "compiles": 0,
+        "buildActions": 0,
+        "remoteBuildHits": 0,
+        "testActions": 0,
+        "protectedStore": {
+          "policy": "trusted-system-nix-session-v1",
+          "hits": 17,
+          "fullScans": 21,
+          "roots": 17
+        },
+        "phases": {
+          "identity": 0.9002407,
+          "nuget": 0.0171968,
+          "remoteSnapshot": 0.0108516,
+          "prepare": 0.2616254,
+          "remoteSeeds": 0.0051954,
+          "stage": 0.010022,
+          "bazel": 0.1372254,
+          "leaseExit": 0.0793178,
+          "remotePublish": 0.012115,
+          "actionCachePublish": 0.0014563
+        },
+        "wallSeconds": 1.5431687089730985,
+        "leaseVerification": {
+          "requests": 51,
+          "scans": 31
+        },
+        "actionCache": {
+          "uploadEnabled": false,
+          "lookupKeys": [],
+          "hitKeys": [],
+          "stagedObjects": 0,
+          "stagedBytes": 0,
+          "publishedObjects": 0,
+          "uploadedBytes": 0,
+          "downloadedBytes": 0,
+          "failures": 0
+        },
+        "remote": {
+          "publishedSnapshot": "a88c0830530429814d0b3a701e3367830d878d0d63f988c7738e41b69d66cbdc",
+          "transport": {
+            "getRequests": 5,
+            "headRequests": 13,
+            "putRequests": 0,
+            "downloadBytes": 99425,
+            "uploadBytes": 0,
+            "failures": 0,
+            "requestSeconds": 0.0170182
+          }
+        }
+      },
+      "managedHashesDigest": "aa550792d36a649aeccbbb84b1b9c1fb16083444964ac93e65dab73a6acd0dcf"
+    },
+    {
+      "kind": "diamond",
+      "mode": "default",
+      "repetition": 1,
+      "result": {
+        "accepted": true,
+        "compiles": 0,
+        "buildActions": 0,
+        "remoteBuildHits": 0,
+        "testActions": 0,
+        "phases": {
+          "identity": 0.8360301,
+          "nuget": 0.0181585,
+          "remoteSnapshot": 0.0106937,
+          "prepare": 0.244216,
+          "remoteSeeds": 0.0050875,
+          "stage": 0.0080033,
+          "bazel": 0.1413704,
+          "leaseExit": 0.6736936,
+          "remotePublish": 0.011886,
+          "actionCachePublish": 0.0014094
+        },
+        "wallSeconds": 2.054616209003143,
+        "leaseVerification": {
+          "requests": 51,
+          "scans": 31
+        },
+        "actionCache": {
+          "uploadEnabled": false,
+          "lookupKeys": [],
+          "hitKeys": [],
+          "stagedObjects": 0,
+          "stagedBytes": 0,
+          "publishedObjects": 0,
+          "uploadedBytes": 0,
+          "downloadedBytes": 0,
+          "failures": 0
+        },
+        "remote": {
+          "publishedSnapshot": "a88c0830530429814d0b3a701e3367830d878d0d63f988c7738e41b69d66cbdc",
+          "transport": {
+            "getRequests": 5,
+            "headRequests": 13,
+            "putRequests": 0,
+            "downloadBytes": 99425,
+            "uploadBytes": 0,
+            "failures": 0,
+            "requestSeconds": 0.0168965
+          }
+        }
+      },
+      "managedHashesDigest": "aa550792d36a649aeccbbb84b1b9c1fb16083444964ac93e65dab73a6acd0dcf"
+    },
+    {
+      "kind": "diamond",
+      "mode": "default",
+      "repetition": 2,
+      "result": {
+        "accepted": true,
+        "compiles": 0,
+        "buildActions": 0,
+        "remoteBuildHits": 0,
+        "testActions": 0,
+        "phases": {
+          "identity": 0.8192229,
+          "nuget": 0.0177956,
+          "remoteSnapshot": 0.010769,
+          "prepare": 0.2346926,
+          "remoteSeeds": 0.0049171,
+          "stage": 0.0079799,
+          "bazel": 0.1269325,
+          "leaseExit": 0.6583705,
+          "remotePublish": 0.012067,
+          "actionCachePublish": 0.0014273
+        },
+        "wallSeconds": 1.999406540999189,
+        "leaseVerification": {
+          "requests": 51,
+          "scans": 31
+        },
+        "actionCache": {
+          "uploadEnabled": false,
+          "lookupKeys": [],
+          "hitKeys": [],
+          "stagedObjects": 0,
+          "stagedBytes": 0,
+          "publishedObjects": 0,
+          "uploadedBytes": 0,
+          "downloadedBytes": 0,
+          "failures": 0
+        },
+        "remote": {
+          "publishedSnapshot": "a88c0830530429814d0b3a701e3367830d878d0d63f988c7738e41b69d66cbdc",
+          "transport": {
+            "getRequests": 5,
+            "headRequests": 13,
+            "putRequests": 0,
+            "downloadBytes": 99425,
+            "uploadBytes": 0,
+            "failures": 0,
+            "requestSeconds": 0.0166689
+          }
+        }
+      },
+      "managedHashesDigest": "aa550792d36a649aeccbbb84b1b9c1fb16083444964ac93e65dab73a6acd0dcf"
+    },
+    {
+      "kind": "diamond",
+      "mode": "oneshot",
+      "repetition": 2,
+      "result": {
+        "accepted": true,
+        "compiles": 0,
+        "buildActions": 0,
+        "remoteBuildHits": 0,
+        "testActions": 0,
+        "protectedStore": {
+          "policy": "trusted-system-nix-session-v1",
+          "hits": 17,
+          "fullScans": 21,
+          "roots": 17
+        },
+        "phases": {
+          "identity": 0.9067175,
+          "nuget": 0.0194721,
+          "remoteSnapshot": 0.0109344,
+          "prepare": 0.2596222,
+          "remoteSeeds": 0.0051916,
+          "stage": 0.009718,
+          "bazel": 0.1461,
+          "leaseExit": 0.105318,
+          "remotePublish": 0.0136604,
+          "actionCachePublish": 0.0015293
+        },
+        "wallSeconds": 1.5861548329121433,
+        "leaseVerification": {
+          "requests": 51,
+          "scans": 31
+        },
+        "actionCache": {
+          "uploadEnabled": false,
+          "lookupKeys": [],
+          "hitKeys": [],
+          "stagedObjects": 0,
+          "stagedBytes": 0,
+          "publishedObjects": 0,
+          "uploadedBytes": 0,
+          "downloadedBytes": 0,
+          "failures": 0
+        },
+        "remote": {
+          "publishedSnapshot": "a88c0830530429814d0b3a701e3367830d878d0d63f988c7738e41b69d66cbdc",
+          "transport": {
+            "getRequests": 5,
+            "headRequests": 13,
+            "putRequests": 0,
+            "downloadBytes": 99425,
+            "uploadBytes": 0,
+            "failures": 0,
+            "requestSeconds": 0.0169833
+          }
+        }
+      },
+      "managedHashesDigest": "aa550792d36a649aeccbbb84b1b9c1fb16083444964ac93e65dab73a6acd0dcf"
+    },
+    {
+      "kind": "diamond",
+      "mode": "session",
+      "repetition": 2,
+      "result": {
+        "accepted": true,
+        "compiles": 0,
+        "buildActions": 0,
+        "remoteBuildHits": 0,
+        "testActions": 0,
+        "protectedStore": {
+          "policy": "trusted-system-nix-session-v1",
+          "hits": 34,
+          "fullScans": 4,
+          "roots": 17
+        },
+        "phases": {
+          "identity": 0.1545604,
+          "nuget": 0.0131324,
+          "remoteSnapshot": 0.0006219,
+          "prepare": 0.2052154,
+          "remoteSeeds": 0.002681,
+          "stage": 0.0067206,
+          "bazel": 0.1361589,
+          "leaseExit": 0.0907992,
+          "remotePublish": 0.0052236,
+          "actionCachePublish": 0.0001064
+        },
+        "wallSeconds": 0.6803294999990612,
+        "leaseVerification": {
+          "requests": 51,
+          "scans": 31
+        },
+        "actionCache": {
+          "uploadEnabled": false,
+          "lookupKeys": [],
+          "hitKeys": [],
+          "stagedObjects": 0,
+          "stagedBytes": 0,
+          "publishedObjects": 0,
+          "uploadedBytes": 0,
+          "downloadedBytes": 0,
+          "failures": 0
+        },
+        "remote": {
+          "publishedSnapshot": "a88c0830530429814d0b3a701e3367830d878d0d63f988c7738e41b69d66cbdc",
+          "transport": {
+            "getRequests": 5,
+            "headRequests": 13,
+            "putRequests": 0,
+            "downloadBytes": 99425,
+            "uploadBytes": 0,
+            "failures": 0,
+            "requestSeconds": 0.0060625
+          }
+        }
+      },
+      "managedHashesDigest": "aa550792d36a649aeccbbb84b1b9c1fb16083444964ac93e65dab73a6acd0dcf"
+    },
+    {
+      "kind": "serilog",
+      "mode": "default",
+      "repetition": 0,
+      "result": {
+        "accepted": true,
+        "compiles": 0,
+        "buildActions": 0,
+        "remoteBuildHits": 0,
+        "testActions": 1,
+        "phases": {
+          "identity": 0.87158,
+          "nuget": 0.5188766,
+          "remoteSnapshot": 0.0110963,
+          "prepare": 0.694095,
+          "remoteSeeds": 0.0335582,
+          "stage": 0.0948455,
+          "bazel": 0.9323172,
+          "leaseExit": 0.813042,
+          "remotePublish": 0.4063383,
+          "actionCachePublish": 0.0015819
+        },
+        "wallSeconds": 4.943522083980497,
+        "leaseVerification": {
+          "requests": 51,
+          "scans": 31
+        },
+        "actionCache": {
+          "uploadEnabled": false,
+          "lookupKeys": [],
+          "hitKeys": [],
+          "stagedObjects": 0,
+          "stagedBytes": 0,
+          "publishedObjects": 0,
+          "uploadedBytes": 0,
+          "downloadedBytes": 0,
+          "failures": 0
+        },
+        "remote": {
+          "publishedSnapshot": "141944cc215ac9c2ed0dbbccc2632a729c655111e91ba464d19a705235eaee7a",
+          "transport": {
+            "getRequests": 3,
+            "headRequests": 55,
+            "putRequests": 0,
+            "downloadBytes": 4042608,
+            "uploadBytes": 0,
+            "failures": 0,
+            "requestSeconds": 0.0258573
+          }
+        }
+      },
+      "managedHashesDigest": "b28b8151e550e71c86502bb6a1daf582dd65f90069f2f577f771424b20135558",
+      "testPassed": true
+    },
+    {
+      "kind": "serilog",
+      "mode": "oneshot",
+      "repetition": 0,
+      "result": {
+        "accepted": true,
+        "compiles": 0,
+        "buildActions": 0,
+        "remoteBuildHits": 0,
+        "testActions": 1,
+        "protectedStore": {
+          "policy": "trusted-system-nix-session-v1",
+          "hits": 17,
+          "fullScans": 21,
+          "roots": 17
+        },
+        "phases": {
+          "identity": 0.8707064,
+          "nuget": 0.5249905,
+          "remoteSnapshot": 0.0110685,
+          "prepare": 0.7861829,
+          "remoteSeeds": 0.0343677,
+          "stage": 0.1182287,
+          "bazel": 0.8261255,
+          "leaseExit": 0.2145345,
+          "remotePublish": 0.4238535,
+          "actionCachePublish": 0.0016155
+        },
+        "wallSeconds": 4.430182208016049,
+        "leaseVerification": {
+          "requests": 51,
+          "scans": 31
+        },
+        "actionCache": {
+          "uploadEnabled": false,
+          "lookupKeys": [],
+          "hitKeys": [],
+          "stagedObjects": 0,
+          "stagedBytes": 0,
+          "publishedObjects": 0,
+          "uploadedBytes": 0,
+          "downloadedBytes": 0,
+          "failures": 0
+        },
+        "remote": {
+          "publishedSnapshot": "141944cc215ac9c2ed0dbbccc2632a729c655111e91ba464d19a705235eaee7a",
+          "transport": {
+            "getRequests": 3,
+            "headRequests": 55,
+            "putRequests": 0,
+            "downloadBytes": 4042608,
+            "uploadBytes": 0,
+            "failures": 0,
+            "requestSeconds": 0.0241783
+          }
+        }
+      },
+      "managedHashesDigest": "b28b8151e550e71c86502bb6a1daf582dd65f90069f2f577f771424b20135558",
+      "testPassed": true
+    },
+    {
+      "kind": "serilog",
+      "mode": "session",
+      "repetition": 0,
+      "result": {
+        "accepted": true,
+        "compiles": 0,
+        "buildActions": 0,
+        "remoteBuildHits": 0,
+        "testActions": 1,
+        "protectedStore": {
+          "policy": "trusted-system-nix-session-v1",
+          "hits": 34,
+          "fullScans": 4,
+          "roots": 17
+        },
+        "phases": {
+          "identity": 0.1406155,
+          "nuget": 0.5338342,
+          "remoteSnapshot": 0.0007355,
+          "prepare": 0.7159622,
+          "remoteSeeds": 0.0275647,
+          "stage": 0.0962113,
+          "bazel": 0.821337,
+          "leaseExit": 0.2080066,
+          "remotePublish": 0.4009117,
+          "actionCachePublish": 0.000161
+        },
+        "wallSeconds": 3.428274792036973,
+        "leaseVerification": {
+          "requests": 51,
+          "scans": 31
+        },
+        "actionCache": {
+          "uploadEnabled": false,
+          "lookupKeys": [],
+          "hitKeys": [],
+          "stagedObjects": 0,
+          "stagedBytes": 0,
+          "publishedObjects": 0,
+          "uploadedBytes": 0,
+          "downloadedBytes": 0,
+          "failures": 0
+        },
+        "remote": {
+          "publishedSnapshot": "141944cc215ac9c2ed0dbbccc2632a729c655111e91ba464d19a705235eaee7a",
+          "transport": {
+            "getRequests": 3,
+            "headRequests": 55,
+            "putRequests": 0,
+            "downloadBytes": 4042608,
+            "uploadBytes": 0,
+            "failures": 0,
+            "requestSeconds": 0.0163243
+          }
+        }
+      },
+      "managedHashesDigest": "b28b8151e550e71c86502bb6a1daf582dd65f90069f2f577f771424b20135558",
+      "testPassed": true
+    },
+    {
+      "kind": "serilog",
+      "mode": "session",
+      "repetition": 1,
+      "result": {
+        "accepted": true,
+        "compiles": 0,
+        "buildActions": 0,
+        "remoteBuildHits": 0,
+        "testActions": 1,
+        "protectedStore": {
+          "policy": "trusted-system-nix-session-v1",
+          "hits": 34,
+          "fullScans": 4,
+          "roots": 17
+        },
+        "phases": {
+          "identity": 0.1461552,
+          "nuget": 0.4923953,
+          "remoteSnapshot": 0.0007497,
+          "prepare": 0.6873002,
+          "remoteSeeds": 0.0285948,
+          "stage": 0.0926917,
+          "bazel": 0.8043699,
+          "leaseExit": 0.211627,
+          "remotePublish": 0.38903,
+          "actionCachePublish": 0.0001319
+        },
+        "wallSeconds": 3.3378669579979032,
+        "leaseVerification": {
+          "requests": 51,
+          "scans": 31
+        },
+        "actionCache": {
+          "uploadEnabled": false,
+          "lookupKeys": [],
+          "hitKeys": [],
+          "stagedObjects": 0,
+          "stagedBytes": 0,
+          "publishedObjects": 0,
+          "uploadedBytes": 0,
+          "downloadedBytes": 0,
+          "failures": 0
+        },
+        "remote": {
+          "publishedSnapshot": "141944cc215ac9c2ed0dbbccc2632a729c655111e91ba464d19a705235eaee7a",
+          "transport": {
+            "getRequests": 3,
+            "headRequests": 55,
+            "putRequests": 0,
+            "downloadBytes": 4042608,
+            "uploadBytes": 0,
+            "failures": 0,
+            "requestSeconds": 0.0133546
+          }
+        }
+      },
+      "managedHashesDigest": "b28b8151e550e71c86502bb6a1daf582dd65f90069f2f577f771424b20135558",
+      "testPassed": true
+    },
+    {
+      "kind": "serilog",
+      "mode": "oneshot",
+      "repetition": 1,
+      "result": {
+        "accepted": true,
+        "compiles": 0,
+        "buildActions": 0,
+        "remoteBuildHits": 0,
+        "testActions": 1,
+        "protectedStore": {
+          "policy": "trusted-system-nix-session-v1",
+          "hits": 17,
+          "fullScans": 21,
+          "roots": 17
+        },
+        "phases": {
+          "identity": 0.9035437,
+          "nuget": 0.5221185,
+          "remoteSnapshot": 0.0110214,
+          "prepare": 0.7970865,
+          "remoteSeeds": 0.0343545,
+          "stage": 0.1287158,
+          "bazel": 0.808294,
+          "leaseExit": 0.2168451,
+          "remotePublish": 0.4048821,
+          "actionCachePublish": 0.0015545
+        },
+        "wallSeconds": 4.377759457973298,
+        "leaseVerification": {
+          "requests": 51,
+          "scans": 31
+        },
+        "actionCache": {
+          "uploadEnabled": false,
+          "lookupKeys": [],
+          "hitKeys": [],
+          "stagedObjects": 0,
+          "stagedBytes": 0,
+          "publishedObjects": 0,
+          "uploadedBytes": 0,
+          "downloadedBytes": 0,
+          "failures": 0
+        },
+        "remote": {
+          "publishedSnapshot": "141944cc215ac9c2ed0dbbccc2632a729c655111e91ba464d19a705235eaee7a",
+          "transport": {
+            "getRequests": 3,
+            "headRequests": 55,
+            "putRequests": 0,
+            "downloadBytes": 4042608,
+            "uploadBytes": 0,
+            "failures": 0,
+            "requestSeconds": 0.0252554
+          }
+        }
+      },
+      "managedHashesDigest": "b28b8151e550e71c86502bb6a1daf582dd65f90069f2f577f771424b20135558",
+      "testPassed": true
+    },
+    {
+      "kind": "serilog",
+      "mode": "default",
+      "repetition": 1,
+      "result": {
+        "accepted": true,
+        "compiles": 0,
+        "buildActions": 0,
+        "remoteBuildHits": 0,
+        "testActions": 1,
+        "phases": {
+          "identity": 0.8456361,
+          "nuget": 0.5357458,
+          "remoteSnapshot": 0.0109886,
+          "prepare": 0.7868888,
+          "remoteSeeds": 0.0397995,
+          "stage": 0.100994,
+          "bazel": 0.8102017,
+          "leaseExit": 0.8071288,
+          "remotePublish": 0.4084963,
+          "actionCachePublish": 0.0016912
+        },
+        "wallSeconds": 4.878652666986454,
+        "leaseVerification": {
+          "requests": 51,
+          "scans": 31
+        },
+        "actionCache": {
+          "uploadEnabled": false,
+          "lookupKeys": [],
+          "hitKeys": [],
+          "stagedObjects": 0,
+          "stagedBytes": 0,
+          "publishedObjects": 0,
+          "uploadedBytes": 0,
+          "downloadedBytes": 0,
+          "failures": 0
+        },
+        "remote": {
+          "publishedSnapshot": "141944cc215ac9c2ed0dbbccc2632a729c655111e91ba464d19a705235eaee7a",
+          "transport": {
+            "getRequests": 3,
+            "headRequests": 55,
+            "putRequests": 0,
+            "downloadBytes": 4042608,
+            "uploadBytes": 0,
+            "failures": 0,
+            "requestSeconds": 0.0254264
+          }
+        }
+      },
+      "managedHashesDigest": "b28b8151e550e71c86502bb6a1daf582dd65f90069f2f577f771424b20135558",
+      "testPassed": true
+    },
+    {
+      "kind": "serilog",
+      "mode": "default",
+      "repetition": 2,
+      "result": {
+        "accepted": true,
+        "compiles": 0,
+        "buildActions": 0,
+        "remoteBuildHits": 0,
+        "testActions": 1,
+        "phases": {
+          "identity": 0.8468288,
+          "nuget": 0.5258287,
+          "remoteSnapshot": 0.0109566,
+          "prepare": 0.8122553,
+          "remoteSeeds": 0.0334702,
+          "stage": 0.1018369,
+          "bazel": 0.8082399,
+          "leaseExit": 0.825803,
+          "remotePublish": 0.413421,
+          "actionCachePublish": 0.0015658
+        },
+        "wallSeconds": 4.966272125020623,
+        "leaseVerification": {
+          "requests": 51,
+          "scans": 31
+        },
+        "actionCache": {
+          "uploadEnabled": false,
+          "lookupKeys": [],
+          "hitKeys": [],
+          "stagedObjects": 0,
+          "stagedBytes": 0,
+          "publishedObjects": 0,
+          "uploadedBytes": 0,
+          "downloadedBytes": 0,
+          "failures": 0
+        },
+        "remote": {
+          "publishedSnapshot": "141944cc215ac9c2ed0dbbccc2632a729c655111e91ba464d19a705235eaee7a",
+          "transport": {
+            "getRequests": 3,
+            "headRequests": 55,
+            "putRequests": 0,
+            "downloadBytes": 4042608,
+            "uploadBytes": 0,
+            "failures": 0,
+            "requestSeconds": 0.0271074
+          }
+        }
+      },
+      "managedHashesDigest": "b28b8151e550e71c86502bb6a1daf582dd65f90069f2f577f771424b20135558",
+      "testPassed": true
+    },
+    {
+      "kind": "serilog",
+      "mode": "oneshot",
+      "repetition": 2,
+      "result": {
+        "accepted": true,
+        "compiles": 0,
+        "buildActions": 0,
+        "remoteBuildHits": 0,
+        "testActions": 1,
+        "protectedStore": {
+          "policy": "trusted-system-nix-session-v1",
+          "hits": 17,
+          "fullScans": 21,
+          "roots": 17
+        },
+        "phases": {
+          "identity": 0.931052,
+          "nuget": 0.5281098,
+          "remoteSnapshot": 0.0109312,
+          "prepare": 0.792174,
+          "remoteSeeds": 0.0329735,
+          "stage": 0.108861,
+          "bazel": 0.799648,
+          "leaseExit": 0.2249567,
+          "remotePublish": 0.4000252,
+          "actionCachePublish": 0.0016295
+        },
+        "wallSeconds": 4.375961540965363,
+        "leaseVerification": {
+          "requests": 51,
+          "scans": 31
+        },
+        "actionCache": {
+          "uploadEnabled": false,
+          "lookupKeys": [],
+          "hitKeys": [],
+          "stagedObjects": 0,
+          "stagedBytes": 0,
+          "publishedObjects": 0,
+          "uploadedBytes": 0,
+          "downloadedBytes": 0,
+          "failures": 0
+        },
+        "remote": {
+          "publishedSnapshot": "141944cc215ac9c2ed0dbbccc2632a729c655111e91ba464d19a705235eaee7a",
+          "transport": {
+            "getRequests": 3,
+            "headRequests": 55,
+            "putRequests": 0,
+            "downloadBytes": 4042608,
+            "uploadBytes": 0,
+            "failures": 0,
+            "requestSeconds": 0.0255343
+          }
+        }
+      },
+      "managedHashesDigest": "b28b8151e550e71c86502bb6a1daf582dd65f90069f2f577f771424b20135558",
+      "testPassed": true
+    },
+    {
+      "kind": "serilog",
+      "mode": "session",
+      "repetition": 2,
+      "result": {
+        "accepted": true,
+        "compiles": 0,
+        "buildActions": 0,
+        "remoteBuildHits": 0,
+        "testActions": 1,
+        "protectedStore": {
+          "policy": "trusted-system-nix-session-v1",
+          "hits": 34,
+          "fullScans": 4,
+          "roots": 17
+        },
+        "phases": {
+          "identity": 0.1378152,
+          "nuget": 0.4896216,
+          "remoteSnapshot": 0.000724,
+          "prepare": 0.6765182,
+          "remoteSeeds": 0.026928,
+          "stage": 0.0904478,
+          "bazel": 0.8039129,
+          "leaseExit": 0.2080947,
+          "remotePublish": 0.3930321,
+          "actionCachePublish": 0.0001189
+        },
+        "wallSeconds": 3.3082702080137096,
+        "leaseVerification": {
+          "requests": 51,
+          "scans": 31
+        },
+        "actionCache": {
+          "uploadEnabled": false,
+          "lookupKeys": [],
+          "hitKeys": [],
+          "stagedObjects": 0,
+          "stagedBytes": 0,
+          "publishedObjects": 0,
+          "uploadedBytes": 0,
+          "downloadedBytes": 0,
+          "failures": 0
+        },
+        "remote": {
+          "publishedSnapshot": "141944cc215ac9c2ed0dbbccc2632a729c655111e91ba464d19a705235eaee7a",
+          "transport": {
+            "getRequests": 3,
+            "headRequests": 55,
+            "putRequests": 0,
+            "downloadBytes": 4042608,
+            "uploadBytes": 0,
+            "failures": 0,
+            "requestSeconds": 0.0152127
+          }
+        }
+      },
+      "managedHashesDigest": "b28b8151e550e71c86502bb6a1daf582dd65f90069f2f577f771424b20135558",
+      "testPassed": true
+    }
+  ],
+  "controls": [
+    {
+      "kind": "diamond",
+      "case": "cold-session-producer",
+      "result": {
+        "accepted": true,
+        "compiles": 4,
+        "buildActions": 1,
+        "remoteBuildHits": 0,
+        "testActions": 0,
+        "protectedStore": {
+          "policy": "trusted-system-nix-session-v1",
+          "hits": 17,
+          "fullScans": 21,
+          "roots": 17
+        },
+        "phases": {
+          "identity": 0.9289013,
+          "nuget": 0.0126825,
+          "prepare": 1.9519061,
+          "stage": 0.003375,
+          "bazel": 4.5418812,
+          "primeActionCache": 0.8146489,
+          "leaseExit": 0.0919728,
+          "remotePublish": 0.0719316,
+          "actionCachePublish": 0.1959498
+        },
+        "wallSeconds": 8.697458832990378,
+        "leaseVerification": {
+          "requests": 51,
+          "scans": 31
+        },
+        "actionCache": {
+          "uploadEnabled": true,
+          "lookupKeys": [
+            "49818b41e6f8bcac34af018ef28f511024ee9007c20aa083b6383a63e0022a23",
+            "51c643aea63e37f06abe67afb9d11887d2845efa858dfe798373b4fa5f4bdc8d"
+          ],
+          "hitKeys": [],
+          "stagedObjects": 45,
+          "stagedBytes": 358807,
+          "publishedObjects": 45,
+          "uploadedBytes": 255353,
+          "downloadedBytes": 20,
+          "failures": 0
+        },
+        "remote": {
+          "publishedSnapshot": "5734fa05bce6aa0da084d878d3cb13ee9b79753a6fa1b984c8b05238c2094594",
+          "transport": {
+            "getRequests": 0,
+            "headRequests": 13,
+            "putRequests": 13,
+            "downloadBytes": 0,
+            "uploadBytes": 182039,
+            "failures": 0,
+            "requestSeconds": 0.1978941
+          }
+        }
+      },
+      "managedHashesDigest": "aa550792d36a649aeccbbb84b1b9c1fb16083444964ac93e65dab73a6acd0dcf"
+    },
+    {
+      "kind": "diamond",
+      "case": "body-edit",
+      "result": {
+        "accepted": true,
+        "compiles": 1,
+        "buildActions": 1,
+        "remoteBuildHits": 0,
+        "testActions": 0,
+        "protectedStore": {
+          "policy": "trusted-system-nix-session-v1",
+          "hits": 34,
+          "fullScans": 4,
+          "roots": 17
+        },
+        "phases": {
+          "identity": 0.1629507,
+          "nuget": 0.0132445,
+          "remoteSnapshot": 0.0006175,
+          "prepare": 0.2124785,
+          "remoteSeeds": 0.00171,
+          "stage": 0.0073931,
+          "bazel": 1.4609079,
+          "leaseExit": 0.0984405,
+          "remotePublish": 0.0359747,
+          "actionCachePublish": 0.0001269
+        },
+        "wallSeconds": 2.063835666049272,
+        "leaseVerification": {
+          "requests": 51,
+          "scans": 31
+        },
+        "actionCache": {
+          "uploadEnabled": false,
+          "lookupKeys": [
+            "2ef7f5e5188847d3e0c0caee1e1c4cf42dab07ab78b1b1a9609c82855fedacdb"
+          ],
+          "hitKeys": [],
+          "stagedObjects": 0,
+          "stagedBytes": 0,
+          "publishedObjects": 0,
+          "uploadedBytes": 0,
+          "downloadedBytes": 10,
+          "failures": 0
+        },
+        "remote": {
+          "publishedSnapshot": "bc66d489cf775e1427c9bf4287b9748ac59f4214e7c74f3036fbd5b61a4102b2",
+          "transport": {
+            "getRequests": 4,
+            "headRequests": 13,
+            "putRequests": 8,
+            "downloadBytes": 86595,
+            "uploadBytes": 179119,
+            "failures": 0,
+            "requestSeconds": 0.0706803
+          }
+        }
+      },
+      "managedHashesDigest": "2addd23d9600951b42776df5e2cb51be2a8f745c56dd9f70edd901ae77362ea2"
+    },
+    {
+      "kind": "serilog",
+      "case": "cold-session-producer",
+      "result": {
+        "accepted": true,
+        "compiles": 2,
+        "buildActions": 1,
+        "remoteBuildHits": 0,
+        "testActions": 1,
+        "protectedStore": {
+          "policy": "trusted-system-nix-session-v1",
+          "hits": 17,
+          "fullScans": 21,
+          "roots": 17
+        },
+        "phases": {
+          "identity": 0.8778409,
+          "nuget": 0.4529745,
+          "prepare": 3.3968175,
+          "stage": 0.114822,
+          "bazel": 4.8922574,
+          "primeActionCache": 1.7999267,
+          "leaseExit": 0.2092189,
+          "remotePublish": 0.5609207,
+          "actionCachePublish": 0.655993
+        },
+        "wallSeconds": 13.452153749996796,
+        "leaseVerification": {
+          "requests": 51,
+          "scans": 31
+        },
+        "actionCache": {
+          "uploadEnabled": true,
+          "lookupKeys": [
+            "2d15153456679ae2ec0b39a661e152b8eaecf686dd2dcb5547b3b9434de8c5d0",
+            "82b567e83ee7699fc97f2a6b8ec4cff4d8aeab403f0b6dc81aff1f1245f1a173"
+          ],
+          "hitKeys": [],
+          "stagedObjects": 159,
+          "stagedBytes": 13870349,
+          "publishedObjects": 159,
+          "uploadedBytes": 7057734,
+          "downloadedBytes": 20,
+          "failures": 0
+        },
+        "remote": {
+          "publishedSnapshot": "9d6a7e149ffa057dd5a7b27fb2695990aec8562cda27d5cc20c129eecf4bee6e",
+          "transport": {
+            "getRequests": 0,
+            "headRequests": 55,
+            "putRequests": 55,
+            "downloadBytes": 0,
+            "uploadBytes": 57044667,
+            "failures": 0,
+            "requestSeconds": 0.9813722
+          }
+        }
+      },
+      "managedHashesDigest": "b28b8151e550e71c86502bb6a1daf582dd65f90069f2f577f771424b20135558",
+      "testPassed": true
+    },
+    {
+      "kind": "serilog",
+      "case": "body-edit",
+      "result": {
+        "accepted": true,
+        "compiles": 1,
+        "buildActions": 1,
+        "remoteBuildHits": 0,
+        "testActions": 1,
+        "protectedStore": {
+          "policy": "trusted-system-nix-session-v1",
+          "hits": 34,
+          "fullScans": 4,
+          "roots": 17
+        },
+        "phases": {
+          "identity": 0.1379229,
+          "nuget": 0.4890094,
+          "remoteSnapshot": 0.0007222,
+          "prepare": 0.6859172,
+          "remoteSeeds": 0.0304218,
+          "stage": 0.0995153,
+          "bazel": 2.6981558,
+          "leaseExit": 0.2229721,
+          "remotePublish": 0.4346365,
+          "actionCachePublish": 0.0001311
+        },
+        "wallSeconds": 5.326336500002071,
+        "leaseVerification": {
+          "requests": 51,
+          "scans": 31
+        },
+        "actionCache": {
+          "uploadEnabled": false,
+          "lookupKeys": [
+            "1c1d45a60a588eb8d90ee355cd5bb983302cbdac96b02b9e77d21220933f20e5"
+          ],
+          "hitKeys": [],
+          "stagedObjects": 0,
+          "stagedBytes": 0,
+          "publishedObjects": 0,
+          "uploadedBytes": 0,
+          "downloadedBytes": 10,
+          "failures": 0
+        },
+        "remote": {
+          "publishedSnapshot": "b07d6ecf60baff47d9e2df4f796d0627bff121bbc7d8cbe7d269457e5072c38f",
+          "transport": {
+            "getRequests": 2,
+            "headRequests": 55,
+            "putRequests": 6,
+            "downloadBytes": 3834304,
+            "uploadBytes": 4405403,
+            "failures": 0,
+            "requestSeconds": 0.0763163
+          }
+        }
+      },
+      "managedHashesDigest": "2332488d07b8f0a076c1dc5cdc94bb399e37c85ed9288011c72ae2478ca406cd",
+      "testPassed": true
+    },
+    {
+      "kind": "serilog",
+      "case": "failed-test",
+      "result": {
+        "accepted": false,
+        "compiles": 1,
+        "buildActions": 1,
+        "remoteBuildHits": 0,
+        "testActions": 1,
+        "protectedStore": {
+          "policy": "trusted-system-nix-session-v1",
+          "hits": 17,
+          "fullScans": 2,
+          "roots": 17
+        },
+        "phases": {
+          "identity": 0.1373707,
+          "nuget": 0.4310988,
+          "remoteSnapshot": 0.0007177,
+          "prepare": 3.4900657,
+          "remoteSeeds": 0.0269017,
+          "stage": 0.1325399,
+          "bazel": 5.410901
+        },
+        "wallSeconds": 9.940727333014365,
+        "actionCache": {
+          "uploadEnabled": true,
+          "lookupKeys": [
+            "af3d38f0527607797ce8022dbff00902f0c7f0feebe78e07057a0eb72b4d04ea"
+          ],
+          "hitKeys": [],
+          "stagedObjects": 152,
+          "stagedBytes": 6893848,
+          "publishedObjects": 0,
+          "uploadedBytes": 0,
+          "downloadedBytes": 10,
+          "failures": 0
+        },
+        "remote": {
+          "transport": {
+            "getRequests": 32,
+            "headRequests": 0,
+            "putRequests": 0,
+            "downloadBytes": 4430611,
+            "uploadBytes": 0,
+            "failures": 0,
+            "requestSeconds": 0.0143883
+          }
+        }
+      },
+      "managedHashesDigest": "74234e98afe7498fb5daf1f36ac2d78acc339464f950703b8c019892f982b90b"
+    },
+    {
+      "kind": "serilog",
+      "case": "lease-mutation",
+      "result": {
+        "accepted": false,
+        "compiles": 1,
+        "buildActions": 1,
+        "remoteBuildHits": 0,
+        "testActions": 1,
+        "protectedStore": {
+          "policy": "trusted-system-nix-session-v1",
+          "hits": 17,
+          "fullScans": 2,
+          "roots": 17
+        },
+        "phases": {
+          "identity": 0.1531797,
+          "nuget": 0.4630967,
+          "remoteSnapshot": 0.0007467,
+          "prepare": 0.5433933,
+          "remoteSeeds": 0.0299433,
+          "stage": 0.1333416,
+          "bazel": 4.6760393,
+          "primeActionCache": 1.7115603,
+          "leaseExit": 0.1049335
+        },
+        "wallSeconds": 8.117399833048694,
+        "actionCache": {
+          "uploadEnabled": true,
+          "lookupKeys": [
+            "3b8defa816624f19523f803ed5e98bdbe46b729eae656b1caa7aa5316fae26c4",
+            "622e06c50a9704c04ff820c85c4e82004d9a5874672f38c8d8f6cc1d6bec09e7"
+          ],
+          "hitKeys": [],
+          "stagedObjects": 159,
+          "stagedBytes": 13709817,
+          "publishedObjects": 0,
+          "uploadedBytes": 0,
+          "downloadedBytes": 20,
+          "failures": 0
+        },
+        "remote": {
+          "transport": {
+            "getRequests": 32,
+            "headRequests": 0,
+            "putRequests": 0,
+            "downloadBytes": 4430611,
+            "uploadBytes": 0,
+            "failures": 0,
+            "requestSeconds": 0.0180214
+          }
+        }
+      },
+      "managedHashesDigest": "74234e98afe7498fb5daf1f36ac2d78acc339464f950703b8c019892f982b90b",
+      "testPassed": true
+    }
+  ]
+}
