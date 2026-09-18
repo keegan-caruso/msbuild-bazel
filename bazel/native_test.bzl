@@ -27,6 +27,7 @@ def _native_test_impl(ctx):
         "bundles": [],
         "nativeBundle": _runfile(ctx, bundle),
         "nativeInputs": ctx.attr.native_inputs,
+        "nativeManifest": _runfile(ctx, ctx.file.prepared_plan) + "/manifest.json" if ctx.file.prepared_plan else None,
         "nativeToolchain": ctx.attr.native_toolchain,
         "runtimeDirectory": ctx.attr.runtime_directory,
         "assembly": ctx.attr.assembly,
@@ -36,7 +37,7 @@ def _native_test_impl(ctx):
         "sourceRoot": "/_/workspace",
     }))
     ctx.actions.write(launcher, "#!/bin/sh\nset -eu\nexec \"$TEST_SRCDIR/" + _runfile(ctx, ctx.executable.dotnet) + "\" \"$TEST_SRCDIR/" + _runfile(ctx, ctx.file.runner) + "\" --request \"$TEST_SRCDIR/" + _runfile(ctx, request) + "\"\n", is_executable = True)
-    files = depset(ctx.files.data + ctx.files.runner_support + [ctx.file.runner, ctx.file.host_identity, request, ctx.executable.dotnet], transitive = [bundles, ctx.attr.sdk[DefaultInfo].files])
+    files = depset(ctx.files.data + ctx.files.runner_support + [ctx.file.runner, ctx.file.host_identity, request, ctx.executable.dotnet], transitive = [bundles, ctx.attr.sdk[DefaultInfo].files] + ([ctx.attr.prepared_plan[DefaultInfo].files] if ctx.file.prepared_plan else []))
     return [
         DefaultInfo(executable = launcher, runfiles = ctx.runfiles(transitive_files = files)),
         testing.ExecutionInfo(requirements = {"no-remote": "1"}),
@@ -45,8 +46,9 @@ def _native_test_impl(ctx):
 native_test = rule(implementation = _native_test_impl, test = True, attrs = {
     "subject": attr.label(providers = [NativeBundle], mandatory = True),
     "project": attr.string(mandatory = True),
-    "native_inputs": attr.string(mandatory = True),
-    "native_toolchain": attr.string(mandatory = True),
+    "prepared_plan": attr.label(allow_single_file = True),
+    "native_inputs": attr.string(),
+    "native_toolchain": attr.string(),
     "global_properties": attr.string_dict(mandatory = True),
     "runtime_directory": attr.string(mandatory = True),
     "assembly": attr.string(mandatory = True),

@@ -19,14 +19,14 @@ internal sealed class Discovery
     public JsonObject HostIdentity { get; }
     public string Context { get; }
     public string[] Absent { get; private set; } = [];
-    public Discovery(string root, string sdk, string workspace, string directory, string toolchain, IReadOnlyDictionary<string, JsonObject> runtimeSnapshots)
+    public Discovery(string root, string sdk, string workspace, string directory, string toolchain, IReadOnlyDictionary<string, JsonObject> runtimeSnapshots, string[]? declaredRuntimeRoots = null)
     {
         this.root = root; this.sdk = sdk; this.workspace = workspace; this.directory = directory;
         if (OperatingSystem.IsLinux()) LinuxPlatform.Require(sdk);
         else if (!OperatingSystem.IsMacOS() || System.Runtime.InteropServices.RuntimeInformation.OSArchitecture != System.Runtime.InteropServices.Architecture.Arm64 || sdk != "/nix/store/f3kvj2nc26gn7rh5mnfnaa2dgy2p10v3-dotnet-sdk-10.0.400/share/dotnet") throw new InvalidDataException("Unqualified discovery host/toolchain");
         output = Path.Combine(directory, "output"); Directory.CreateDirectory(output);
         foreach (var name in new[] { "home", "tmp", "http" }) Directory.CreateDirectory(Path.Combine(output, name));
-        runtimes = OperatingSystem.IsLinux() ? new[] { sdk }.Concat(LinuxPlatform.Libraries).ToArray() : Host.Run("/nix/var/nix/profiles/default/bin/nix-store", ["-qR", Path.GetDirectoryName(Path.GetDirectoryName(sdk))!], root).Split('\n', StringSplitOptions.RemoveEmptyEntries).Order(StringComparer.Ordinal).ToArray();
+        runtimes = declaredRuntimeRoots ?? (OperatingSystem.IsLinux() ? new[] { sdk }.Concat(LinuxPlatform.Libraries).ToArray() : Host.Run("/nix/var/nix/profiles/default/bin/nix-store", ["-qR", Path.GetDirectoryName(Path.GetDirectoryName(sdk))!], root).Split('\n', StringSplitOptions.RemoveEmptyEntries).Order(StringComparer.Ordinal).ToArray());
         roots["workspace"] = workspace;
         for (var i = 0; i < runtimes.Length; i++) roots["runtime-" + i] = runtimes[i];
         foreach (var name in new[] { "GraphExport", "EvaluationProbe" })

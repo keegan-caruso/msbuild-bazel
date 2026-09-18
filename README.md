@@ -97,6 +97,11 @@ package payloads and keeps mutable global caches outside build actions.
 [Split preparation objects](docs/preparation-components.md) also reuse unchanged
 source groups, graph metadata, and SDK evidence, with shaped-network measurements.
 
+The opt-in [Bazel-owned preparation lane](docs/bazel-owned-preparation.md) moves
+discovery behind Bazel's remote-cache lookup while retaining MSBuild, NuGet and
+the existing strict discovery sandbox. It wraps the pinned Nix SDK and declares
+its native runtime closure. The established workflow remains the default.
+
 ## Quick start
 
 Linux x86-64 or ARM64 (glibc), with Bash, curl, tar, gzip, sha256sum, and standard .NET runtime dependencies

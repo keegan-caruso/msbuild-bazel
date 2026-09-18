@@ -5,7 +5,7 @@ using ActionRunner;
 using NativeCache;
 
 internal sealed record RunnerFile(string Source, string Destination);
-internal sealed record RunnerRequest(string Entry, string Output, string Diagnostics, string Manifest, string Restore, RunnerFile[] Sources, RunnerFile[] Seeds, string? ReadProbe = null, string? NetworkProbe = null, string? WriteProbe = null);
+internal sealed record RunnerRequest(string Entry, string Output, string Diagnostics, string Manifest, string Restore, RunnerFile[] Sources, RunnerFile[] Seeds, string? ReadProbe = null, string? NetworkProbe = null, string? WriteProbe = null, string? PreparedPlan = null);
 internal sealed record PortableManifest(string Toolchain, Dictionary<string, DeclaredProject> Projects, string Policy = "native-qualified-v2");
 
 internal static class Program
@@ -22,6 +22,12 @@ internal static class Program
         {
             if (args is not ["--portable-request", var file]) throw new ArgumentException("expected --portable-request PATH");
             var request = JsonSerializer.Deserialize<RunnerRequest>(File.ReadAllText(file), Json)!;
+            if (request.PreparedPlan is not null)
+            {
+                if (request.Sources.Length != 0) throw new InvalidDataException("Prepared plan cannot also supply explicit sources");
+                var planSources = Path.Combine(request.PreparedPlan, "src");
+                request = request with { Sources = Directory.EnumerateFiles(planSources, "*", SearchOption.AllDirectories).Select(path => new RunnerFile(path, Path.GetRelativePath(planSources, path))).ToArray() };
+            }
             var output = Path.GetFullPath(request.Output);
             var diagnostics = Path.GetFullPath(request.Diagnostics);
             diagnosticsPath = diagnostics;

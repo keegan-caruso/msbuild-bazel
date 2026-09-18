@@ -512,3 +512,10 @@ remain distinct declared actions, and physical-machine/WAN validation remains op
 [Focused integrity profiling](integrity-workflow-profile.md) attributes approximately 1.22 seconds per Serilog invocation to repeated runtime scans, dominated by the SDK and LLVM. Six off/on pairs plus fresh/edit diagnostics preserve worker identities, scan counts and outputs. No scan-elision optimization is implemented.
 
 [Protected native sessions](protected-toolchain-session.md) add opt-in process-local reuse of audited system Nix roots. Candidate `4d025a0` reduces warm-worker hit medians from 2.055/4.944 to 0.680/3.338 seconds for diamond/Serilog. Mutable-input, controller/SDK identity and rejected-publication controls pass. The rules_go comparison points toward Bazel-owned discovery as the next architectural boundary; current reuse explicitly trusts privileged Nix administration/storage until session restart.
+
+[Bazel-owned preparation](bazel-owned-preparation.md) adds a cacheable preparation
+action whose declared tree feeds build and test, with the wrapped Nix SDK/runtime
+closure as Bazel inputs. It retains strict native discovery sandboxing, automatic
+seed priming and gated publication. This opt-in macOS slice keeps restore explicit;
+source edits currently rerun discovery, and Linux/default-workflow migration
+remain separate.

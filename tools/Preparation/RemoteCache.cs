@@ -127,12 +127,12 @@ internal sealed class RemoteCache : IDisposable
         }
         return value;
     }
-    public void Seeds(JsonNode catalog, JsonNode manifest, string destination)
+    public void Seeds(JsonNode catalog, JsonNode? manifest, string destination)
     {
         Directory.CreateDirectory(destination);
         Parallel.ForEach(catalog.AsArray().Select(n => n!), new ParallelOptions { MaxDegreeOfParallelism = 8 }, record =>
         {
-            if (record.String("toolchain") != manifest.String("toolchain") || manifest["projects"]?[record.String("project")]?["identity"]?.GetValue<string>() != record.String("inputs")) return;
+            if (manifest is not null && (record.String("toolchain") != manifest.String("toolchain") || manifest["projects"]?[record.String("project")]?["identity"]?.GetValue<string>() != record.String("inputs"))) return;
             try
             {
                 var files = Unpack(Fetch(record.String("blob"))); var result = ValidateBundle(files);

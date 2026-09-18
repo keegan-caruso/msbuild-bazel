@@ -37,6 +37,8 @@ internal static class Program
             var request = JsonNode.Parse(File.ReadAllText(args[2])) ?? throw new InvalidDataException("Empty request");
             switch (args[0])
             {
+                case "owned-workflow": Console.WriteLine(Json.Text(BazelOwnedWorkflow.Run(request))); break;
+                case "owned-prepare": BazelOwnedWorkflow.Prepare(request); break;
                 case "digest": Console.WriteLine(Json.Digest(request)); break;
                 case "workflow": Console.WriteLine(Json.Text(NativeWorkflow.Run(request))); break;
                 case "prepare": GraphPreparation.Run(request); break;

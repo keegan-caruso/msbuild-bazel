@@ -85,12 +85,16 @@ def _sdk_impl(ctx):
         if not ctx.attr.path.startswith("/nix/store/") or not path.startswith("/nix/store/") or ".." in path.split("/"):
             fail("external_imports require explicit Nix SDK import paths")
         ctx.symlink(path, "imports/" + str(index))
-    patterns = ["sdk/**"] + (["imports/**"] if ctx.attr.external_imports else [])
+    for index, path in enumerate(ctx.attr.runtime_roots):
+        if not path.startswith("/nix/store/") or ".." in path.split("/"):
+            fail("runtime_roots require explicit Nix store roots")
+        ctx.symlink(path, "runtime/" + str(index))
+    patterns = (["runtime/**"] if ctx.attr.runtime_roots else []) + ["sdk/**"] + (["imports/**"] if ctx.attr.external_imports else [])
     ctx.file("BUILD.bazel", 'filegroup(name="files", srcs=glob(' + json.encode(patterns) + ', exclude=["sdk/**/BUILD", "sdk/**/BUILD.bazel"], allow_empty=False), visibility=["//visibility:public"])\nexports_files(["sdk/dotnet"])\n')
 
 local_dotnet_sdk = repository_rule(
     implementation = _sdk_impl,
-    attrs = {"path": attr.string(mandatory = True), "external_imports": attr.string_list(default = [])},
+    attrs = {"path": attr.string(mandatory = True), "external_imports": attr.string_list(default = []), "runtime_roots": attr.string_list(default = [])},
     local = True,
 )
 

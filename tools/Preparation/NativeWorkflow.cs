@@ -314,14 +314,14 @@ internal static class NativeWorkflow
         foreach (var item in content) item.Value!.AsObject().Remove("mode");
         return content;
     }
-    private static int Execute(string executable, List<string> arguments, string cwd, string log)
+    internal static int Execute(string executable, List<string> arguments, string cwd, string log)
     {
         var start = new ProcessStartInfo(executable) { WorkingDirectory = cwd, RedirectStandardOutput = true, RedirectStandardError = true }; foreach (var argument in arguments) start.ArgumentList.Add(argument);
         using var process = Process.Start(start)!; var stdout = process.StandardOutput.ReadToEndAsync(); var stderr = process.StandardError.ReadToEndAsync();
         if (!process.WaitForExit(900000)) { process.Kill(true); throw new IOException("Build timed out"); }
         Task.WaitAll(stdout, stderr); File.WriteAllText(log, stdout.Result + stderr.Result); return process.ExitCode;
     }
-    private static List<JsonNode> Events(byte[] bytes)
+    internal static List<JsonNode> Events(byte[] bytes)
     {
         var reader = new Utf8JsonReader(bytes, new JsonReaderOptions { AllowMultipleValues = true }); var values = new List<JsonNode>();
         while (reader.Read()) values.Add(JsonNode.Parse(ref reader)!); return values;

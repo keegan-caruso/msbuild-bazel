@@ -8,7 +8,7 @@ return await GraphTest.Run(args);
 internal sealed record DataFile(string Source, string Destination, string Sha256);
 internal sealed record Request(int SchemaVersion, string Project, Dictionary<string, string> GlobalProperties,
     string[] Bundles, string RuntimeDirectory, string Assembly, DataFile[] TestData, string[] ExpectedTests,
-    string SdkRoot, string SourceRoot = "/_/workspace", string? NativeBundle = null, string? NativeInputs = null, string? NativeToolchain = null);
+    string SdkRoot, string SourceRoot = "/_/workspace", string? NativeBundle = null, string? NativeInputs = null, string? NativeToolchain = null, string? NativeManifest = null);
 internal sealed record Artifact(string Path, long Size, string Sha256);
 
 internal static class GraphTest
@@ -75,6 +75,13 @@ internal static class GraphTest
             if (request.SchemaVersion != 1 || expected.Length == 0 || expected.Distinct().Count() != expected.Length ||
                 !Relative(request.Project) || !Relative(request.RuntimeDirectory) || !Relative(request.Assembly) || request.Assembly.Contains('/')) throw new InvalidDataException("invalid test request");
             var runfiles = Environment.GetEnvironmentVariable("TEST_SRCDIR") ?? Directory.GetCurrentDirectory();
+            if (request.NativeManifest is not null)
+            {
+                if (request.NativeBundle is null || !string.IsNullOrEmpty(request.NativeInputs) || !string.IsNullOrEmpty(request.NativeToolchain)) throw new InvalidDataException("Ambiguous prepared test identity");
+                using var manifest = JsonDocument.Parse(File.ReadAllText(Resolve(runfiles, request.NativeManifest)));
+                if (manifest.RootElement.GetProperty("policy").GetString() != "evaluated-api-runtime-v2") throw new InvalidDataException("Unsupported prepared test identity");
+                request = request with { NativeInputs = manifest.RootElement.GetProperty("projects").GetProperty(request.Project).GetProperty("identity").GetString(), NativeToolchain = manifest.RootElement.GetProperty("toolchain").GetString() };
+            }
             var sdk = Resolve(runfiles, request.SdkRoot);
             var matches = new List<string>();
             var candidates = request.Bundles.Select(logical => Resolve(runfiles, logical));
