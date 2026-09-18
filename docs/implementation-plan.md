@@ -486,3 +486,8 @@ Bazel action-cache consumption and opt-in publication gated on successful tests,
 live-input validation and output validation. Fresh-workspace hits preserve forced
 tests; changed actions fall back to per-project reuse. Seeds remain declared
 inputs, so the qualified experiment explicitly primes the seeded action variant.
+
+[Persistent native cache hosting](native-cache-service.md) now provides a pinned
+macOS user launch agent with loopback access and an SSH-tunnel runbook. Local
+restart and disk-persistence acceptance passed; independent-worker validation
+still requires a second compatible Mac.
