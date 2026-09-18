@@ -496,3 +496,8 @@ still requires a second compatible Mac.
 workflow lane, namespace-isolated discovery, native Linux Bazel sandboxing and
 a producer-deletion/consumer-recovery harness using Apple containers. This is
 separate from physical-machine and cross-platform qualification.
+
+[Within-scan alias digest reuse](integrity-alias-reuse.md) removes repeated LLVM/
+ICU reads while retaining independent final validation. Exact manifest parity,
+mutation guards and repeated complete-workflow comparisons pass; remote-hit
+medians improved by 2.8–5.3% in the recorded run.
