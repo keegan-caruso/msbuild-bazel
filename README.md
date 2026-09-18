@@ -33,7 +33,8 @@ consumer bundles across fresh sandbox executions on macOS ARM64.
 
 **Runtime progress:** The [Nix runtime experiment](docs/native-runtime-findings.md)
 declares native libraries and signing tools. The [.NET action runner](docs/dotnet-runner-findings.md)
-uses the existing SDK; Python remains only in preparation and tests.
+uses the existing SDK. [Fresh preparation can also run in .NET](docs/python-removal.md#step-2-net-fresh-preparation);
+Python remains in the original preparation/workflow, bootstrap and test paths.
 The [runtime integrity extension](docs/native-runtime-integrity-findings.md)
 verifies declared payload hashes, tests copied-library changes and records loader
 diagnostics. The [loaded JIT experiment](docs/loader-runtime-findings.md) stages a

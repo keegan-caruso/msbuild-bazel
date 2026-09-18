@@ -19,7 +19,7 @@ dotnet_style_require_accessibility_modifiers = for_non_interface_members:suggest
 dotnet_style_readonly_field = true:suggestion
 
 # Enforce the selected rules only for repository-owned .NET tooling and tests.
-[{tools,tests/ActionRunner.Tests}/**.cs]
+[{tools,tests/ActionRunner.Tests,tests/Preparation.Tests}/**.cs]
 csharp_using_directive_placement = outside_namespace:warning
 csharp_style_namespace_declarations = file_scoped:warning
 dotnet_style_require_accessibility_modifiers = for_non_interface_members:warning
