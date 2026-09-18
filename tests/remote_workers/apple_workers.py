@@ -14,9 +14,10 @@ mkdir /controller
 tar -xf /input/source.tar -C /controller
 cd /controller
 export DOTNET_CLI_TELEMETRY_OPTOUT=1 DOTNET_SKIP_FIRST_TIME_EXPERIENCE=1
-for project in tools/*/*.csproj tests/Preparation.Tests/*.csproj; do
+for project in tools/*/*.csproj tests/Preparation.Tests/*.csproj tests/ActionRunner.Tests/*.csproj; do
     bash scripts/dotnet.sh build "$project" -c Release --nologo
 done
+bash scripts/dotnet.sh tests/ActionRunner.Tests/bin/Release/net10.0/ActionRunner.Tests.dll
 python3 -m unittest discover -s tests/dotnet_workflow -v
 python3 -m unittest discover -s tests/dotnet_preparation -v
 git init -q /upstream
