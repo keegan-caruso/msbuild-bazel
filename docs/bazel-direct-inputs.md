@@ -48,3 +48,16 @@ runs with tools built and restore completed. Serilog's warm median is 2.749 s.
 See the step [one](bazel-direct-inputs-step1-evidence.json) and
 [two](bazel-direct-inputs-step2-evidence.json) evidence. Full checks and the final
 combined qualification will be repeated after repository/project-action work.
+
+## Step 3: repository-owned setup
+
+Bazel now wraps the qualified Nix SDK/runtime closure and built tools as local repositories. NuGet archives come from the built-in NuGet cache or the public flat-container endpoint and are acquired through Bazel's repository cache. Reviewed signed-archive SHA256 pins are checked separately from NuGet restore content hashes. Extracted payloads and metadata are declared action inputs. The outer workflow no longer copies tool binaries or package payloads or queries the Nix closure each invocation. Restore remains explicit.
+
+Measured loopback results (seconds; three warm runs):
+
+| Workload | Cold + prime | Fresh hit | Warm median | Body edit |
+|---|---:|---:|---:|---:|
+| Diamond | 11.336 | 3.315 | 0.830 | 5.016 |
+| Serilog | 16.763 | 5.771 | 1.887 | 8.057 |
+
+Serilog warm median fell from step 2's 2.749 s to 1.887 s (31%). Body-edit change was small (8.248 to 8.057 s). These are sequential loopback measurements, not controlled A/B or WAN results. Both workloads retain raw DLL/PDB parity, source-role and undeclared-read rejection, and zero publication for failed tests or live source mutation. Owned code checks pass: 5 style, 32 preparation and 35 workflow tests (one Linux-only skip). Evidence: `bazel-direct-inputs-step3-evidence.json`.

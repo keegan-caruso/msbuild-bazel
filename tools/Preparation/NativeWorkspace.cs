@@ -23,7 +23,7 @@ internal sealed class NativeWorkspace(string destination)
         Copy(Path.Combine(repository, "bazel/native.MODULE.bazel.lock"), "MODULE.bazel.lock");
         foreach (var path in FileTree.Files(Path.Combine(plan, "src"))) Copy(path, "src/" + Path.GetRelativePath(Path.Combine(plan, "src"), path));
         foreach (var name in new[] { "restore.json", "manifest.json" }) Copy(Path.Combine(plan, name), name);
-        foreach (var name in new[] { "msbuild.bzl", "native_cache.bzl", "native_test.bzl" }) Copy(Path.Combine(repository, "bazel", name), name);
+        foreach (var name in new[] { "msbuild.bzl", "native_cache.bzl", "native_test.bzl", "input_paths.bzl" }) Copy(Path.Combine(repository, "bazel", name), name);
         foreach (var name in new[] { "NativeProjectCache", "TestRunner" })
             foreach (var suffix in new[] { ".dll", ".deps.json", ".runtimeconfig.json" }) Copy(Path.Combine(repository, "tools", name, "bin/Release/net10.0", name + suffix), "runner/" + name + suffix);
         if (seeds is not null && Directory.Exists(seeds))

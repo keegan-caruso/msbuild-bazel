@@ -6,12 +6,13 @@ namespace RulesMSBuild.Preparation;
 
 internal static class NuGetInputs
 {
-    public static JsonObject Stage(string source, string destination, string cache)
+    public static JsonObject Stage(string source, string destination, string cache, bool copyPackages = true)
     {
         foreach (var other in new[] { source, cache })
             if (Host.Within(destination, other) || Host.Within(other, destination)) throw new InvalidDataException("NuGet paths must be disjoint");
         if (Host.Real(destination) != Path.GetFullPath(destination)) throw new InvalidDataException("Linked NuGet destination");
         var before = FileTree.Snapshot(source); var packages = new HashSet<string>(StringComparer.Ordinal);
+        var locked = new JsonObject();
         var local = Path.Combine(source, ".nuget/packages");
         foreach (var (name, item) in before)
         {
@@ -19,19 +20,29 @@ internal static class NuGetInputs
             var assets = Json.Read(Path.Combine(source, name));
             var folders = assets["packageFolders"]!.AsObject().Select(p => Host.Real(p.Key)).ToHashSet(StringComparer.Ordinal);
             if (folders.Any(p => p != local && p != cache) || folders.Count > 1) throw new InvalidDataException("Restore uses a different or multiple NuGet caches");
-            if (!folders.Contains(cache) || cache == local) continue;
+            if (copyPackages && (!folders.Contains(cache) || cache == local)) continue;
             foreach (var library in assets["libraries"]!.AsObject().Select(p => p.Value!))
                 if (library.String("type") == "package")
                 {
                     var path = Host.Safe(library.String("path"));
                     if (path.Split('/').Length != 2) throw new InvalidDataException("Invalid package path");
                     packages.Add(path);
+                    var hash = copyPackages ? library["sha512"]?.GetValue<string>() ?? "" : library.String("sha512");
+                    if (locked[path] is { } previous && previous.GetValue<string>() != hash) throw new InvalidDataException("Conflicting NuGet archive hashes");
+                    locked[path] = hash;
                 }
         }
-        FileTree.Remove(destination); FileTree.Copy(source, destination);
+        FileTree.Remove(destination);
+        if (copyPackages) FileTree.Copy(source, destination);
+        else
+        {
+            Directory.CreateDirectory(destination);
+            foreach (var (name, item) in before)
+                if (!name.StartsWith(".nuget/packages/", StringComparison.Ordinal) && item!.String("kind") == "file") Host.Copy(Path.Combine(source, name), Path.Combine(destination, name));
+        }
         var packageRoot = Path.Combine(destination, ".nuget/packages"); Directory.CreateDirectory(packageRoot);
         long size = 0;
-        foreach (var package in packages.Order(StringComparer.Ordinal))
+        foreach (var package in (copyPackages ? packages : []).Order(StringComparer.Ordinal))
         {
             var original = Path.Combine(cache, package); var target = Path.Combine(packageRoot, package);
             if (!Directory.Exists(original)) throw new InvalidDataException("Missing NuGet package; run restore: " + package);
@@ -50,6 +61,6 @@ internal static class NuGetInputs
             File.WriteAllBytes(path, Encoding.UTF8.GetBytes(expression.Replace(text, m => replacements[m.Value])));
         }
         foreach (var path in Directory.GetFileSystemEntries(destination, "*", SearchOption.AllDirectories).Append(destination)) File.SetLastWriteTimeUtc(path, new DateTime(2000, 1, 1, 0, 0, 0, DateTimeKind.Utc));
-        return new JsonObject { ["staged"] = true, ["packages"] = packages.Count, ["bytes"] = size };
+        return new JsonObject { ["staged"] = true, ["packages"] = packages.Count, ["bytes"] = size, ["copied"] = copyPackages, ["locked"] = locked };
     }
 }

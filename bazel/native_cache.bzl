@@ -1,5 +1,7 @@
 """Opt-in native project cache with declared seeds and a sandboxed graph action."""
 
+load(":input_paths.bzl", "input_path")
+
 # buildifier: disable=name-conventions
 NativeBundle = provider(doc = "Sealed native project bundles and entry runtime.", fields = ["bundle"])
 
@@ -20,7 +22,7 @@ def _native_impl(ctx):
         "manifest": plan.path + "/manifest.json" if plan else ctx.file.manifest.path,
         "preparedPlan": plan.path if plan else None,
         "restore": plan.path + "/restore.json" if plan else ctx.file.restore.path,
-        "sources": [{"source": f.path, "destination": f.short_path.removeprefix("inputs/")} for f in ctx.files.direct_inputs] if ctx.files.direct_inputs else [{"source": f.path, "destination": f.short_path.removeprefix("src/")} for f in ctx.files.srcs],
+        "sources": [{"source": f.path, "destination": input_path(f)} for f in ctx.files.direct_inputs] if ctx.files.direct_inputs else [{"source": f.path, "destination": f.short_path.removeprefix("src/")} for f in ctx.files.srcs],
         "seeds": [{"source": f.path, "destination": f.short_path.removeprefix("seeds/")} for f in ctx.files.seeds],
         "readProbe": ctx.attr.read_probe or None,
         "networkProbe": ctx.attr.network_probe or None,
