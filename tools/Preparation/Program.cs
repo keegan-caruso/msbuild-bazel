@@ -39,6 +39,7 @@ internal static class Program
             {
                 case "owned-validate-layout": ProjectLayout.Validate(request); break;
                 case "owned-export-layout": Json.Write(request.String("output"), ProjectLayout.Capture(Json.Read(request.String("graph")))); break;
+                case "owned-locked-restore": LockedRestore.Run(request); break;
                 case "owned-normalize-restore": RestoreInputs.Run(request); break;
                 case "owned-workflow": Console.WriteLine(Json.Text(BazelOwnedWorkflow.Run(request))); break;
                 case "owned-bind-sources": NativePlan.BindSources(request); break;

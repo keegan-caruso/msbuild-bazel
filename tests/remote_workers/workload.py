@@ -35,7 +35,7 @@ def environment(source,packages):
         SHOULDLY_SOURCE_PATH_MAP=str(source)+'=/_/workspace')
 
 
-def fixture(base,kind,packages,checkout=None):
+def fixture(base,kind,packages,checkout=None,restore=True):
     base.mkdir(parents=True,exist_ok=False);source=base/'source'
     if kind=='diamond':
         graph=generate(source,4,'fan');props=source/'Directory.Build.props'
@@ -45,6 +45,7 @@ def fixture(base,kind,packages,checkout=None):
         archive=subprocess.check_output(['git','-C',str(checkout),'archive',REVISION])
         with tarfile.open(fileobj=io.BytesIO(archive)) as contents:contents.extractall(source,filter='data')
         entry=PROJECT
+    if not restore:return source
     config=next(p for p in source.iterdir() if p.name.lower()=='nuget.config')
     result=subprocess.run([str(SDK/'dotnet'),'msbuild',entry,'-t:Restore','-p:RestoreConfigFile='+str(config),'-p:Configuration=Release',
         '-p:TargetFramework=net10.0','-nodeReuse:false','-nologo'],cwd=source,env=environment(source,packages),capture_output=True,text=True,timeout=300)

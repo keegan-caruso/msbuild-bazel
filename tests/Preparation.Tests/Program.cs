@@ -11,6 +11,7 @@ try
     var request = Json.Read(args[1]);
     switch (args[0])
     {
+        case "describe-locks": Console.WriteLine(Json.Text(LockedRestore.Describe(request.String("workspace"), request.Array("projects").Select(item => item!.GetValue<string>())))); break;
         case "protected-store":
             {
                 var root = request.String("root"); var mutable = request.String("mutable");

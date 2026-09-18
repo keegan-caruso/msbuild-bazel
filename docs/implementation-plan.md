@@ -543,3 +543,9 @@ Single-entry project actions now use the public MSBuild build API and replay-onl
 private dependency projects, retaining real SDK target outputs and strict input
 validation. Qualification passes; 64-project total compile time improved 6.2%,
 while wall-time gains were modest. See the single-pass findings for scope.
+
+The optional locked-restore lane now removes the external worker restore prerequisite.
+Bazel consumes NuGet-generated lock files, acquires verified package archives and
+runs a strictly sandboxed, offline MSBuild Restore action. Fresh workers and body
+edits recover restore remotely. All 22 qualification cases and seven raw oracles
+pass, including stale-lock/source-read guards and zero failed-run publication.

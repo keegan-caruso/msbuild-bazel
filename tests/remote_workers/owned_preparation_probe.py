@@ -6,7 +6,7 @@ import time
 import threading
 from pathlib import Path
 from cache_service import CacheService
-from workload import ROOT,SDK,BAZEL,TESTS,fixture,mutate,raw,hashes,remove,shutdown
+from workload import ROOT,SDK,BAZEL,TESTS,fixture,mutate,raw,hashes,remove,shutdown,environment
 
 
 def metadata(folder):
@@ -19,10 +19,28 @@ def run(a):
     def save():(out/'report.json').write_text(json.dumps(report,indent=2)+'\n')
     try:
         for kind in a.workloads:
-            root=out/kind;root.mkdir();layout=None
+            root=out/kind;root.mkdir();layout=None;locks={}
+            if a.locked_restore:
+                assert a.project_actions and a.direct_checkout and a.layout_root
+                layout=root/'project-layout.json';layout.write_bytes((a.layout_root/kind/'project-layout.json').read_bytes())
+                setup=fixture(root/'lock-setup',kind,a.packages,a.checkout)
+                entry=json.loads(layout.read_text())['entry'];config=next(p for p in setup.iterdir() if p.name.lower()=='nuget.config')
+                command=[str(SDK/'dotnet'),'msbuild',entry,'-t:Restore','-p:RestorePackagesWithLockFile=true','-p:RestoreForce=true','-p:Configuration=Release','-p:TargetFramework=net10.0','-p:RestoreConfigFile='+str(config),'-nodeReuse:false','-nologo']
+                restored=subprocess.run(command,cwd=setup,env=environment(setup,a.packages),capture_output=True,text=True,timeout=300)
+                (root/'lock-setup/locks.log').write_text(restored.stdout+restored.stderr);assert restored.returncode==0
+                locks={str(p.relative_to(setup)):p.read_bytes() for p in setup.rglob('packages.lock.json')}
+                assert locks
+                remove(root/'lock-setup')
             with CacheService(a.cache_binary,root/'server') as server:
-                def invoke(label,key=None,edit=None,upload=True,probe=None,expect_failure=False,live=False,extra_source=False,source_role=False,reuse=None,keep_server=False):
-                    base=root/(reuse or label);source=base/'source' if reuse else fixture(base,kind,a.packages,a.checkout)
+                def invoke(label,key=None,edit=None,upload=True,probe=None,expect_failure=False,live=False,extra_source=False,source_role=False,reuse=None,keep_server=False,restore_control=None):
+                    base=root/(reuse or label);source=base/'source' if reuse else fixture(base,kind,a.packages,a.checkout,restore=not a.locked_restore)
+                    if a.locked_restore and not reuse:
+                        for name,data in locks.items():(source/name).write_bytes(data)
+                        assert not list(source.rglob('project.assets.json'))
+                    if restore_control:
+                        project=source/'N0000/N0000.csproj'
+                        extra='<ItemGroup><PackageReference Include="PolySharp" Version="1.15.0" /></ItemGroup>' if restore_control=='lock' else '<PropertyGroup><Value>$([System.IO.File]::ReadAllText(&quot;$(MSBuildThisFileDirectory)Value.cs&quot;))</Value></PropertyGroup>'
+                        project.write_text(project.read_text().replace('</Project>',extra+'</Project>'))
                     if edit:mutate(source,kind,edit)
                     if source_role:
                         project=source/'N0000/N0000.csproj'
@@ -32,6 +50,11 @@ def run(a):
                     if a.project_actions:request['project-actions']=True;request.pop('remote-endpoint')
                     if layout and not extra_source:request['project-layout']=str(layout)
                     if a.direct_checkout:request['direct-checkout']=True
+                    if a.locked_restore:
+                        request['locked-restore']=True
+                        if extra_source:
+                            updated=json.loads(layout.read_text());updated['projects']['N0000/N0000.csproj']['sources'].append('N0000/Added.cs');updated['projects']['N0000/N0000.csproj']['sources'].sort()
+                            changed_layout=base/'layout.json';changed_layout.write_text(json.dumps(updated));request['project-layout']=str(changed_layout)
                     if kind=='serilog':request['tests']=TESTS
                     if key:request['remote-snapshot']=key
                     if probe:
@@ -57,6 +80,10 @@ def run(a):
                         if value['accepted']==expect_failure or (p.returncode!=0)!=expect_failure:raise RuntimeError('Unexpected result: '+str(base/'command.log'))
                         if not expect_failure:
                             if a.direct_checkout:assert not (base/'state/g/inputs').exists() and not value['nuget']['staged']
+                            if a.locked_restore:
+                                assert not list(source.rglob('project.assets.json'))
+                                assert value['restoreOwnership']=='bazel-locked' and value['bazelInvocations']==1
+                                if label in ('fresh-hit','body-edit'):assert value['MsbuildLockedRestore']['remoteHits']==1 and value['MsbuildLockedRestore']['executed']==0
                             plans=[base/'state/g/bazel-bin'/name for name in ['prepare.discovery','prepare.plan']]
                             value['planBytes']=sum(p.stat().st_size for folder in plans for p in folder.rglob('*') if p.is_file())
                             assert all(not (folder/'src').exists() for folder in plans)
@@ -103,7 +130,13 @@ def run(a):
                     report['oracles'].append(dict(kind=kind,case='api',result=apiraw));save()
                 def puts():return sum(float(l.rsplit(' ',1)[1]) for l in server.read('/metrics').decode().splitlines() if l.startswith('http_request_duration_seconds_count{') and 'method="PUT"' in l)
                 if kind=='diamond':
-                    hidden=root/'hidden';hidden.write_text('undeclared');before=puts()
+                    if a.locked_restore:
+                        for control,message in [('lock','NU1004'),('source-read','Access to the path')]:
+                            before=puts();rejected=invoke('restore-'+control,expect_failure=True,restore_control=control)
+                            assert puts()==before and rejected['actionCache']['publishedObjects']==0
+                            assert rejected['MsbuildLockedRestore']['executed']==1 and rejected['MsbuildDiscover']['executed']==0
+                            assert message in (root/('restore-'+control)/'result/bazel.log').read_text()
+                    hidden=root/'hidden' ;hidden.write_text('undeclared');before=puts()
                     rejected=invoke('undeclared-read',key,probe=hidden,expect_failure=True)
                     assert puts()==before and rejected['actionCache']['publishedObjects']==0
                     assert 'Access to the path' in (root/'undeclared-read/result/bazel.log').read_text()
@@ -132,6 +165,8 @@ if __name__=='__main__':
     p=argparse.ArgumentParser(description=__doc__)
     for n in ['output','cache-binary','packages','checkout','bazel-install-cache','bazel-repository-cache']:p.add_argument('--'+n,type=Path,required=True)
     p.add_argument('--workloads',nargs='+',default=['diamond','serilog'])
+    p.add_argument('--locked-restore',action='store_true')
+    p.add_argument('--layout-root',type=Path)
     p.add_argument('--direct-checkout',action='store_true')
     p.add_argument('--declared-layout',action='store_true')
     p.add_argument('--project-actions',action='store_true')

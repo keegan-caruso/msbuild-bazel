@@ -160,3 +160,106 @@ removes repeated SDK evaluation but does not eliminate per-action MSBuild startu
 private input materialization or metadata composition. This is not evidence of a
 large overall speedup. Both fresh edits still execute one compile and recover 63
 remote compile results. See `bazel-single-pass-step3-evidence.json`.
+
+## 4. Bazel-owned locked NuGet restore
+
+Enable the complete path with these additional workflow fields:
+
+```json
+{
+  "project-actions": true,
+  "project-layout": "/path/to/project-layout.json",
+  "direct-checkout": true,
+  "locked-restore": true
+}
+```
+
+Keep real NuGet-generated `packages.lock.json` files beside every declared project
+and a root `NuGet.Config`. During initial setup or an intentional dependency update,
+run the pinned SDK's ordinary Restore with `RestorePackagesWithLockFile=true`,
+Release and net10.0, then generate/refresh the portable layout using the bootstrap
+workflow described above. Version the lock files and layout. Fresh workers need
+these declarations and sources, without `obj/project.assets.json` or a preceding
+restore. Existing checkout restore metadata is ignored by this mode.
+
+The controller reads package identities/hashes from the lock closure. The existing
+NuGet archive repository acquires verified archives (using the built-in NuGet cache
+first), and `MsbuildLockedRestore` runs real MSBuild Restore with locked mode in a
+private workspace. It emits the declared, normalized restore metadata consumed by
+discovery and compilation. No original-checkout paths occur in its request or
+outputs. Package acquisition remains a repository operation; restore itself has
+no network access. Vulnerability auditing is disabled in this offline action and
+remains a separate operation.
+
+The action uses a deny-by-default native sandbox with only the declared SDK/runtime
+and private workspace readable. C# names are present for evaluation, but reads of
+their contents are explicitly denied. Body edits can therefore reuse restore
+without silently substituting empty data for a content-dependent restore task.
+Every copied input, including lock files and package payloads, is checked unchanged
+after restore; unexpected generated files or missing declared outputs fail.
+The action initializes the new private NuGet cache's migration sentinel, avoiding
+a machine-wide `/tmp` mutex without exposing that directory to the sandbox. NuGet's
+[migration runner](https://github.com/NuGet/NuGet.Client/blob/dev/src/NuGet.Core/NuGet.Common/Migrations/MigrationRunner.cs)
+checks this sentinel before acquiring its global migration mutex.
+
+This is the existing qualified macOS ARM64/Nix, Release/net10.0 slice. General
+private feeds/credential providers, custom restore hooks, multi-configuration or
+RID-specific restores, and remote execution remain outside its qualification.
+The locked action requires a supplied layout; bootstrapping new declarations is
+an explicit setup/update operation. Cache consumption/publication retains the
+same complete-build/test and live-input gates.
+
+Validation: 22 qualification cases and seven raw-output oracles pass. Setup
+produces real NuGet locks once, then deletes that setup workspace. Every worker
+starts from source plus locks/layout without restore assets; the producer is
+subsequently deleted before consumers recover it. Fresh-hit and body-edit workers
+recover the restore action remotely; warm no-ops do not execute it. Both diamond
+and Serilog outputs match raw DLL/PDB and runtime metadata, with real Serilog
+approval tests forced on recovered outputs. Stale locks (NU1004), C# content reads,
+undeclared reads, unsupported source roles, failed tests and live mutation all
+reject with zero external cache PUTs.
+
+Owned build/style/format checks, 5 style tests, 32 preparation tests and 41 workflow
+tests (one Linux-only skip) pass. The new lock-input test covers the complete
+multi-framework package closure, project references, case normalization, conflicting
+hashes, malformed hashes, unsupported dependency types/version and missing locks.
+
+Reproduce the complete qualification by adding `--locked-restore --layout-root
+/path/to/prior/qualification` to the earlier `--project-actions --declared-layout
+--direct-checkout` command. The layout root contains the exported `diamond/` and
+`serilog/` layouts. The scale harness accepts the same options with the prior scale
+output as its layout root. Both harnesses create genuine lock files during setup;
+worker restore is then exclusively a Bazel action. This setup and package/archive
+cache availability are distinct from measured worker execution.
+
+### Final 64-project measurement
+
+The 10-case scale run and all three raw-output oracles pass. Unlike earlier
+measurements, worker Restore is included:
+
+| Case | Step 3 (external restore excluded) | Locked restore included |
+| --- | ---: | ---: |
+| Cold worker | 83.322s | 84.609s |
+| Fresh cache hit | 10.887s | 10.937s |
+| Warm no-op median (3) | 1.122s | 1.146s |
+| Warm shared edit | 4.120s | 4.274s |
+| Warm leaf edit | 2.844s | 2.862s |
+| Fresh shared edit | 12.644s | 11.877s |
+| Fresh leaf edit | 12.739s | 12.199s |
+
+Cold restore itself took 2.061s. Every fresh consumer recovered restore remotely;
+no warm edit executed it. Fresh edits compiled one project and recovered 63 remote
+compile results. Cold setup differs: step 3 bootstrapped a layout, while step 4
+uses a declared layout and includes restore, so cold figures are not an identical
+workload comparison. Fresh-hit and warm figures show little change; fresh edits
+improved 6.1%/4.2% in these single runs. The primary result is a complete remotely
+cacheable worker path without an external restore prerequisite. Evidence is in
+`bazel-single-pass-step4-evidence.json`.
+
+Across all four steps, the earlier per-project 64-project baseline versus the
+final lane is 12.143 -> 10.937s fresh hit, 1.507 -> 1.146s warm no-op median,
+4.549 -> 4.274s warm shared edit, 3.436 -> 2.862s warm leaf edit, and
+12.738/13.290 -> 11.877/12.199s fresh shared/leaf edits. These observations are
+modest improvements on one machine with a loopback cache, not statistical or WAN
+claims. The final lane additionally owns restore. This does not establish general
+raw-MSBuild speed parity or physical-machine/cross-platform cache qualification.

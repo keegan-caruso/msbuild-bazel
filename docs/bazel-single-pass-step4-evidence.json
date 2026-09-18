@@ -1,0 +1,1697 @@
+{
+  "qualification": {
+    "accepted": true,
+    "rawOracleCount": 7,
+    "cases": [
+      {
+        "kind": "diamond",
+        "case": "producer",
+        "result": {
+          "accepted": true,
+          "phases": {
+            "stagePackages": 0.001072,
+            "bazel": 12.7819294,
+            "leaseExit": 0.0627273
+          },
+          "sourceStaging": "direct-checkout",
+          "restoreOwnership": "bazel-locked",
+          "layoutSource": "declared",
+          "bazelInvocations": 1,
+          "MsbuildDiscover": {
+            "executed": 1,
+            "remoteHits": 0
+          },
+          "MsbuildCompileProject": {
+            "executed": 4,
+            "remoteHits": 0
+          },
+          "MsbuildComposeRuntime": {
+            "executed": 1,
+            "remoteHits": 0
+          },
+          "MsbuildValidateLayout": {
+            "executed": 1,
+            "remoteHits": 0
+          },
+          "MsbuildNormalizeRestore": {
+            "executed": 0,
+            "remoteHits": 0
+          },
+          "MsbuildLockedRestore": {
+            "executed": 1,
+            "remoteHits": 0
+          },
+          "compiles": 4,
+          "wallSeconds": 13.911157042020932,
+          "actionCache": {
+            "stagedObjects": 163,
+            "publishedObjects": 163,
+            "uploadedBytes": 1789494,
+            "downloadedBytes": 120,
+            "failures": 0
+          }
+        }
+      },
+      {
+        "kind": "diamond",
+        "case": "fresh-hit",
+        "result": {
+          "accepted": true,
+          "phases": {
+            "stagePackages": 0.0010003,
+            "bazel": 3.4470477,
+            "leaseExit": 0.0598426
+          },
+          "sourceStaging": "direct-checkout",
+          "restoreOwnership": "bazel-locked",
+          "layoutSource": "declared",
+          "bazelInvocations": 1,
+          "MsbuildDiscover": {
+            "executed": 0,
+            "remoteHits": 1
+          },
+          "MsbuildCompileProject": {
+            "executed": 0,
+            "remoteHits": 4
+          },
+          "MsbuildComposeRuntime": {
+            "executed": 0,
+            "remoteHits": 1
+          },
+          "MsbuildValidateLayout": {
+            "executed": 0,
+            "remoteHits": 1
+          },
+          "MsbuildNormalizeRestore": {
+            "executed": 0,
+            "remoteHits": 0
+          },
+          "MsbuildLockedRestore": {
+            "executed": 0,
+            "remoteHits": 1
+          },
+          "compiles": 0,
+          "wallSeconds": 3.864255750027951,
+          "actionCache": {
+            "stagedObjects": 0,
+            "publishedObjects": 0,
+            "uploadedBytes": 0,
+            "downloadedBytes": 236149,
+            "failures": 0
+          }
+        }
+      },
+      {
+        "kind": "diamond",
+        "case": "warm-0",
+        "result": {
+          "accepted": true,
+          "phases": {
+            "stagePackages": 0.0011012,
+            "bazel": 0.716348,
+            "leaseExit": 0.0518362
+          },
+          "sourceStaging": "direct-checkout",
+          "restoreOwnership": "bazel-locked",
+          "layoutSource": "declared",
+          "bazelInvocations": 1,
+          "MsbuildDiscover": {
+            "executed": 0,
+            "remoteHits": 0
+          },
+          "MsbuildCompileProject": {
+            "executed": 0,
+            "remoteHits": 0
+          },
+          "MsbuildComposeRuntime": {
+            "executed": 0,
+            "remoteHits": 0
+          },
+          "MsbuildValidateLayout": {
+            "executed": 0,
+            "remoteHits": 0
+          },
+          "MsbuildNormalizeRestore": {
+            "executed": 0,
+            "remoteHits": 0
+          },
+          "MsbuildLockedRestore": {
+            "executed": 0,
+            "remoteHits": 0
+          },
+          "compiles": 0,
+          "wallSeconds": 0.8881867079762742,
+          "actionCache": {
+            "stagedObjects": 0,
+            "publishedObjects": 0,
+            "uploadedBytes": 0,
+            "downloadedBytes": 0,
+            "failures": 0
+          }
+        }
+      },
+      {
+        "kind": "diamond",
+        "case": "warm-1",
+        "result": {
+          "accepted": true,
+          "phases": {
+            "stagePackages": 0.0010294,
+            "bazel": 0.5888766,
+            "leaseExit": 0.0462378
+          },
+          "sourceStaging": "direct-checkout",
+          "restoreOwnership": "bazel-locked",
+          "layoutSource": "declared",
+          "bazelInvocations": 1,
+          "MsbuildDiscover": {
+            "executed": 0,
+            "remoteHits": 0
+          },
+          "MsbuildCompileProject": {
+            "executed": 0,
+            "remoteHits": 0
+          },
+          "MsbuildComposeRuntime": {
+            "executed": 0,
+            "remoteHits": 0
+          },
+          "MsbuildValidateLayout": {
+            "executed": 0,
+            "remoteHits": 0
+          },
+          "MsbuildNormalizeRestore": {
+            "executed": 0,
+            "remoteHits": 0
+          },
+          "MsbuildLockedRestore": {
+            "executed": 0,
+            "remoteHits": 0
+          },
+          "compiles": 0,
+          "wallSeconds": 0.7502137909759767,
+          "actionCache": {
+            "stagedObjects": 0,
+            "publishedObjects": 0,
+            "uploadedBytes": 0,
+            "downloadedBytes": 0,
+            "failures": 0
+          }
+        }
+      },
+      {
+        "kind": "diamond",
+        "case": "warm-2",
+        "result": {
+          "accepted": true,
+          "phases": {
+            "stagePackages": 0.0009239,
+            "bazel": 0.5097567,
+            "leaseExit": 0.0681997
+          },
+          "sourceStaging": "direct-checkout",
+          "restoreOwnership": "bazel-locked",
+          "layoutSource": "declared",
+          "bazelInvocations": 1,
+          "MsbuildDiscover": {
+            "executed": 0,
+            "remoteHits": 0
+          },
+          "MsbuildCompileProject": {
+            "executed": 0,
+            "remoteHits": 0
+          },
+          "MsbuildComposeRuntime": {
+            "executed": 0,
+            "remoteHits": 0
+          },
+          "MsbuildValidateLayout": {
+            "executed": 0,
+            "remoteHits": 0
+          },
+          "MsbuildNormalizeRestore": {
+            "executed": 0,
+            "remoteHits": 0
+          },
+          "MsbuildLockedRestore": {
+            "executed": 0,
+            "remoteHits": 0
+          },
+          "compiles": 0,
+          "wallSeconds": 0.7178795829531737,
+          "actionCache": {
+            "stagedObjects": 0,
+            "publishedObjects": 0,
+            "uploadedBytes": 0,
+            "downloadedBytes": 0,
+            "failures": 0
+          }
+        }
+      },
+      {
+        "kind": "diamond",
+        "case": "body-edit",
+        "result": {
+          "accepted": true,
+          "phases": {
+            "stagePackages": 0.0010018,
+            "bazel": 5.58608,
+            "leaseExit": 0.0677176
+          },
+          "sourceStaging": "direct-checkout",
+          "restoreOwnership": "bazel-locked",
+          "layoutSource": "declared",
+          "bazelInvocations": 1,
+          "MsbuildDiscover": {
+            "executed": 0,
+            "remoteHits": 1
+          },
+          "MsbuildCompileProject": {
+            "executed": 1,
+            "remoteHits": 3
+          },
+          "MsbuildComposeRuntime": {
+            "executed": 1,
+            "remoteHits": 0
+          },
+          "MsbuildValidateLayout": {
+            "executed": 0,
+            "remoteHits": 1
+          },
+          "MsbuildNormalizeRestore": {
+            "executed": 0,
+            "remoteHits": 0
+          },
+          "MsbuildLockedRestore": {
+            "executed": 0,
+            "remoteHits": 1
+          },
+          "compiles": 1,
+          "wallSeconds": 6.024606082995888,
+          "actionCache": {
+            "stagedObjects": 0,
+            "publishedObjects": 0,
+            "uploadedBytes": 0,
+            "downloadedBytes": 745731,
+            "failures": 0
+          }
+        }
+      },
+      {
+        "kind": "diamond",
+        "case": "api-edit",
+        "result": {
+          "accepted": true,
+          "phases": {
+            "stagePackages": 0.0009507,
+            "bazel": 7.8958432,
+            "leaseExit": 0.0502531
+          },
+          "sourceStaging": "direct-checkout",
+          "restoreOwnership": "bazel-locked",
+          "layoutSource": "declared",
+          "bazelInvocations": 1,
+          "MsbuildDiscover": {
+            "executed": 0,
+            "remoteHits": 1
+          },
+          "MsbuildCompileProject": {
+            "executed": 4,
+            "remoteHits": 0
+          },
+          "MsbuildComposeRuntime": {
+            "executed": 1,
+            "remoteHits": 0
+          },
+          "MsbuildValidateLayout": {
+            "executed": 0,
+            "remoteHits": 1
+          },
+          "MsbuildNormalizeRestore": {
+            "executed": 0,
+            "remoteHits": 0
+          },
+          "MsbuildLockedRestore": {
+            "executed": 0,
+            "remoteHits": 1
+          },
+          "compiles": 4,
+          "wallSeconds": 8.28873366699554,
+          "actionCache": {
+            "stagedObjects": 0,
+            "publishedObjects": 0,
+            "uploadedBytes": 0,
+            "downloadedBytes": 1421278,
+            "failures": 0
+          }
+        }
+      },
+      {
+        "kind": "diamond",
+        "case": "restore-lock",
+        "result": {
+          "accepted": false,
+          "phases": {
+            "stagePackages": 0.0010455,
+            "bazel": 3.1460043
+          },
+          "sourceStaging": "direct-checkout",
+          "restoreOwnership": "bazel-locked",
+          "layoutSource": "declared",
+          "bazelInvocations": 1,
+          "MsbuildDiscover": {
+            "executed": 0,
+            "remoteHits": 0
+          },
+          "MsbuildCompileProject": {
+            "executed": 0,
+            "remoteHits": 0
+          },
+          "MsbuildComposeRuntime": {
+            "executed": 0,
+            "remoteHits": 0
+          },
+          "MsbuildValidateLayout": {
+            "executed": 0,
+            "remoteHits": 0
+          },
+          "MsbuildNormalizeRestore": {
+            "executed": 0,
+            "remoteHits": 0
+          },
+          "MsbuildLockedRestore": {
+            "executed": 1,
+            "remoteHits": 0
+          },
+          "wallSeconds": 3.2927978329826146,
+          "actionCache": {
+            "stagedObjects": 0,
+            "publishedObjects": 0,
+            "uploadedBytes": 0,
+            "downloadedBytes": 10,
+            "failures": 0
+          }
+        }
+      },
+      {
+        "kind": "diamond",
+        "case": "restore-source-read",
+        "result": {
+          "accepted": false,
+          "phases": {
+            "stagePackages": 0.0011759,
+            "bazel": 3.0189349
+          },
+          "sourceStaging": "direct-checkout",
+          "restoreOwnership": "bazel-locked",
+          "layoutSource": "declared",
+          "bazelInvocations": 1,
+          "MsbuildDiscover": {
+            "executed": 0,
+            "remoteHits": 0
+          },
+          "MsbuildCompileProject": {
+            "executed": 0,
+            "remoteHits": 0
+          },
+          "MsbuildComposeRuntime": {
+            "executed": 0,
+            "remoteHits": 0
+          },
+          "MsbuildValidateLayout": {
+            "executed": 0,
+            "remoteHits": 0
+          },
+          "MsbuildNormalizeRestore": {
+            "executed": 0,
+            "remoteHits": 0
+          },
+          "MsbuildLockedRestore": {
+            "executed": 1,
+            "remoteHits": 0
+          },
+          "wallSeconds": 3.204773167031817,
+          "actionCache": {
+            "stagedObjects": 0,
+            "publishedObjects": 0,
+            "uploadedBytes": 0,
+            "downloadedBytes": 10,
+            "failures": 0
+          }
+        }
+      },
+      {
+        "kind": "diamond",
+        "case": "undeclared-read",
+        "result": {
+          "accepted": false,
+          "phases": {
+            "stagePackages": 0.0010229,
+            "bazel": 2.8979439
+          },
+          "sourceStaging": "direct-checkout",
+          "restoreOwnership": "bazel-locked",
+          "layoutSource": "declared",
+          "bazelInvocations": 1,
+          "MsbuildDiscover": {
+            "executed": 0,
+            "remoteHits": 0
+          },
+          "MsbuildCompileProject": {
+            "executed": 0,
+            "remoteHits": 0
+          },
+          "MsbuildComposeRuntime": {
+            "executed": 0,
+            "remoteHits": 0
+          },
+          "MsbuildValidateLayout": {
+            "executed": 0,
+            "remoteHits": 0
+          },
+          "MsbuildNormalizeRestore": {
+            "executed": 0,
+            "remoteHits": 0
+          },
+          "MsbuildLockedRestore": {
+            "executed": 1,
+            "remoteHits": 0
+          },
+          "wallSeconds": 3.0533065000199713,
+          "actionCache": {
+            "stagedObjects": 0,
+            "publishedObjects": 0,
+            "uploadedBytes": 0,
+            "downloadedBytes": 10,
+            "failures": 0
+          }
+        }
+      },
+      {
+        "kind": "diamond",
+        "case": "source-role",
+        "result": {
+          "accepted": false,
+          "phases": {
+            "stagePackages": 0.0010241,
+            "bazel": 6.7789048
+          },
+          "sourceStaging": "direct-checkout",
+          "restoreOwnership": "bazel-locked",
+          "layoutSource": "declared",
+          "bazelInvocations": 1,
+          "MsbuildDiscover": {
+            "executed": 1,
+            "remoteHits": 0
+          },
+          "MsbuildCompileProject": {
+            "executed": 0,
+            "remoteHits": 0
+          },
+          "MsbuildComposeRuntime": {
+            "executed": 0,
+            "remoteHits": 0
+          },
+          "MsbuildValidateLayout": {
+            "executed": 0,
+            "remoteHits": 0
+          },
+          "MsbuildNormalizeRestore": {
+            "executed": 0,
+            "remoteHits": 0
+          },
+          "MsbuildLockedRestore": {
+            "executed": 1,
+            "remoteHits": 0
+          },
+          "wallSeconds": 6.956493792007677,
+          "actionCache": {
+            "stagedObjects": 20,
+            "publishedObjects": 0,
+            "uploadedBytes": 0,
+            "downloadedBytes": 20,
+            "failures": 0
+          }
+        }
+      },
+      {
+        "kind": "diamond",
+        "case": "added-source",
+        "result": {
+          "accepted": true,
+          "phases": {
+            "stagePackages": 0.0010685,
+            "bazel": 12.5357183,
+            "leaseExit": 0.0699479
+          },
+          "sourceStaging": "direct-checkout",
+          "restoreOwnership": "bazel-locked",
+          "layoutSource": "declared",
+          "bazelInvocations": 1,
+          "MsbuildDiscover": {
+            "executed": 1,
+            "remoteHits": 0
+          },
+          "MsbuildCompileProject": {
+            "executed": 4,
+            "remoteHits": 0
+          },
+          "MsbuildComposeRuntime": {
+            "executed": 1,
+            "remoteHits": 0
+          },
+          "MsbuildValidateLayout": {
+            "executed": 1,
+            "remoteHits": 0
+          },
+          "MsbuildNormalizeRestore": {
+            "executed": 0,
+            "remoteHits": 0
+          },
+          "MsbuildLockedRestore": {
+            "executed": 1,
+            "remoteHits": 0
+          },
+          "compiles": 4,
+          "wallSeconds": 12.988416875014082,
+          "actionCache": {
+            "stagedObjects": 0,
+            "publishedObjects": 0,
+            "uploadedBytes": 0,
+            "downloadedBytes": 120,
+            "failures": 0
+          }
+        }
+      },
+      {
+        "kind": "diamond",
+        "case": "live-mutation",
+        "result": {
+          "accepted": false,
+          "phases": {
+            "stagePackages": 0.0009599,
+            "bazel": 5.8468417,
+            "leaseExit": 0.0512714
+          },
+          "sourceStaging": "direct-checkout",
+          "restoreOwnership": "bazel-locked",
+          "layoutSource": "declared",
+          "bazelInvocations": 1,
+          "MsbuildDiscover": {
+            "executed": 0,
+            "remoteHits": 1
+          },
+          "MsbuildCompileProject": {
+            "executed": 1,
+            "remoteHits": 3
+          },
+          "MsbuildComposeRuntime": {
+            "executed": 1,
+            "remoteHits": 0
+          },
+          "MsbuildValidateLayout": {
+            "executed": 0,
+            "remoteHits": 1
+          },
+          "MsbuildNormalizeRestore": {
+            "executed": 0,
+            "remoteHits": 0
+          },
+          "MsbuildLockedRestore": {
+            "executed": 0,
+            "remoteHits": 1
+          },
+          "compiles": 1,
+          "wallSeconds": 6.27232583303703,
+          "actionCache": {
+            "stagedObjects": 48,
+            "publishedObjects": 0,
+            "uploadedBytes": 0,
+            "downloadedBytes": 745731,
+            "failures": 0
+          }
+        }
+      },
+      {
+        "kind": "serilog",
+        "case": "producer",
+        "result": {
+          "accepted": true,
+          "phases": {
+            "stagePackages": 0.0012707,
+            "bazel": 16.80917,
+            "leaseExit": 0.0760697
+          },
+          "sourceStaging": "direct-checkout",
+          "restoreOwnership": "bazel-locked",
+          "layoutSource": "declared",
+          "bazelInvocations": 1,
+          "MsbuildDiscover": {
+            "executed": 1,
+            "remoteHits": 0
+          },
+          "MsbuildCompileProject": {
+            "executed": 2,
+            "remoteHits": 0
+          },
+          "MsbuildComposeRuntime": {
+            "executed": 1,
+            "remoteHits": 0
+          },
+          "MsbuildValidateLayout": {
+            "executed": 1,
+            "remoteHits": 0
+          },
+          "MsbuildNormalizeRestore": {
+            "executed": 0,
+            "remoteHits": 0
+          },
+          "MsbuildLockedRestore": {
+            "executed": 1,
+            "remoteHits": 0
+          },
+          "compiles": 2,
+          "wallSeconds": 18.344536208023783,
+          "actionCache": {
+            "stagedObjects": 236,
+            "publishedObjects": 236,
+            "uploadedBytes": 10049921,
+            "downloadedBytes": 90,
+            "failures": 0
+          }
+        }
+      },
+      {
+        "kind": "serilog",
+        "case": "fresh-hit",
+        "result": {
+          "accepted": true,
+          "phases": {
+            "stagePackages": 0.0012441,
+            "bazel": 5.3194893,
+            "leaseExit": 0.0716028
+          },
+          "sourceStaging": "direct-checkout",
+          "restoreOwnership": "bazel-locked",
+          "layoutSource": "declared",
+          "bazelInvocations": 1,
+          "MsbuildDiscover": {
+            "executed": 0,
+            "remoteHits": 1
+          },
+          "MsbuildCompileProject": {
+            "executed": 0,
+            "remoteHits": 2
+          },
+          "MsbuildComposeRuntime": {
+            "executed": 0,
+            "remoteHits": 1
+          },
+          "MsbuildValidateLayout": {
+            "executed": 0,
+            "remoteHits": 1
+          },
+          "MsbuildNormalizeRestore": {
+            "executed": 0,
+            "remoteHits": 0
+          },
+          "MsbuildLockedRestore": {
+            "executed": 0,
+            "remoteHits": 1
+          },
+          "compiles": 0,
+          "wallSeconds": 5.747682917048223,
+          "actionCache": {
+            "stagedObjects": 0,
+            "publishedObjects": 0,
+            "uploadedBytes": 0,
+            "downloadedBytes": 21093249,
+            "failures": 0
+          }
+        }
+      },
+      {
+        "kind": "serilog",
+        "case": "warm-0",
+        "result": {
+          "accepted": true,
+          "phases": {
+            "stagePackages": 0.0013264,
+            "bazel": 1.5509765,
+            "leaseExit": 0.0716955
+          },
+          "sourceStaging": "direct-checkout",
+          "restoreOwnership": "bazel-locked",
+          "layoutSource": "declared",
+          "bazelInvocations": 1,
+          "MsbuildDiscover": {
+            "executed": 0,
+            "remoteHits": 0
+          },
+          "MsbuildCompileProject": {
+            "executed": 0,
+            "remoteHits": 0
+          },
+          "MsbuildComposeRuntime": {
+            "executed": 0,
+            "remoteHits": 0
+          },
+          "MsbuildValidateLayout": {
+            "executed": 0,
+            "remoteHits": 0
+          },
+          "MsbuildNormalizeRestore": {
+            "executed": 0,
+            "remoteHits": 0
+          },
+          "MsbuildLockedRestore": {
+            "executed": 0,
+            "remoteHits": 0
+          },
+          "compiles": 0,
+          "wallSeconds": 1.8001932500046678,
+          "actionCache": {
+            "stagedObjects": 0,
+            "publishedObjects": 0,
+            "uploadedBytes": 0,
+            "downloadedBytes": 0,
+            "failures": 0
+          }
+        }
+      },
+      {
+        "kind": "serilog",
+        "case": "warm-1",
+        "result": {
+          "accepted": true,
+          "phases": {
+            "stagePackages": 0.001331,
+            "bazel": 1.4380865,
+            "leaseExit": 0.0623886
+          },
+          "sourceStaging": "direct-checkout",
+          "restoreOwnership": "bazel-locked",
+          "layoutSource": "declared",
+          "bazelInvocations": 1,
+          "MsbuildDiscover": {
+            "executed": 0,
+            "remoteHits": 0
+          },
+          "MsbuildCompileProject": {
+            "executed": 0,
+            "remoteHits": 0
+          },
+          "MsbuildComposeRuntime": {
+            "executed": 0,
+            "remoteHits": 0
+          },
+          "MsbuildValidateLayout": {
+            "executed": 0,
+            "remoteHits": 0
+          },
+          "MsbuildNormalizeRestore": {
+            "executed": 0,
+            "remoteHits": 0
+          },
+          "MsbuildLockedRestore": {
+            "executed": 0,
+            "remoteHits": 0
+          },
+          "compiles": 0,
+          "wallSeconds": 1.6669944589957595,
+          "actionCache": {
+            "stagedObjects": 0,
+            "publishedObjects": 0,
+            "uploadedBytes": 0,
+            "downloadedBytes": 0,
+            "failures": 0
+          }
+        }
+      },
+      {
+        "kind": "serilog",
+        "case": "warm-2",
+        "result": {
+          "accepted": true,
+          "phases": {
+            "stagePackages": 0.0013604,
+            "bazel": 1.3502352,
+            "leaseExit": 0.0582063
+          },
+          "sourceStaging": "direct-checkout",
+          "restoreOwnership": "bazel-locked",
+          "layoutSource": "declared",
+          "bazelInvocations": 1,
+          "MsbuildDiscover": {
+            "executed": 0,
+            "remoteHits": 0
+          },
+          "MsbuildCompileProject": {
+            "executed": 0,
+            "remoteHits": 0
+          },
+          "MsbuildComposeRuntime": {
+            "executed": 0,
+            "remoteHits": 0
+          },
+          "MsbuildValidateLayout": {
+            "executed": 0,
+            "remoteHits": 0
+          },
+          "MsbuildNormalizeRestore": {
+            "executed": 0,
+            "remoteHits": 0
+          },
+          "MsbuildLockedRestore": {
+            "executed": 0,
+            "remoteHits": 0
+          },
+          "compiles": 0,
+          "wallSeconds": 1.5701077920384705,
+          "actionCache": {
+            "stagedObjects": 0,
+            "publishedObjects": 0,
+            "uploadedBytes": 0,
+            "downloadedBytes": 0,
+            "failures": 0
+          }
+        }
+      },
+      {
+        "kind": "serilog",
+        "case": "body-edit",
+        "result": {
+          "accepted": true,
+          "phases": {
+            "stagePackages": 0.001241,
+            "bazel": 8.5664375,
+            "leaseExit": 0.0628145
+          },
+          "sourceStaging": "direct-checkout",
+          "restoreOwnership": "bazel-locked",
+          "layoutSource": "declared",
+          "bazelInvocations": 1,
+          "MsbuildDiscover": {
+            "executed": 0,
+            "remoteHits": 1
+          },
+          "MsbuildCompileProject": {
+            "executed": 1,
+            "remoteHits": 1
+          },
+          "MsbuildComposeRuntime": {
+            "executed": 1,
+            "remoteHits": 0
+          },
+          "MsbuildValidateLayout": {
+            "executed": 0,
+            "remoteHits": 1
+          },
+          "MsbuildNormalizeRestore": {
+            "executed": 0,
+            "remoteHits": 0
+          },
+          "MsbuildLockedRestore": {
+            "executed": 0,
+            "remoteHits": 1
+          },
+          "compiles": 1,
+          "wallSeconds": 8.979214292019606,
+          "actionCache": {
+            "stagedObjects": 0,
+            "publishedObjects": 0,
+            "uploadedBytes": 0,
+            "downloadedBytes": 7295586,
+            "failures": 0
+          }
+        }
+      },
+      {
+        "kind": "serilog",
+        "case": "api-edit",
+        "result": {
+          "accepted": true,
+          "phases": {
+            "stagePackages": 0.001303,
+            "bazel": 15.6594185,
+            "leaseExit": 0.0611232
+          },
+          "sourceStaging": "direct-checkout",
+          "restoreOwnership": "bazel-locked",
+          "layoutSource": "declared",
+          "bazelInvocations": 1,
+          "MsbuildDiscover": {
+            "executed": 1,
+            "remoteHits": 0
+          },
+          "MsbuildCompileProject": {
+            "executed": 2,
+            "remoteHits": 0
+          },
+          "MsbuildComposeRuntime": {
+            "executed": 1,
+            "remoteHits": 0
+          },
+          "MsbuildValidateLayout": {
+            "executed": 0,
+            "remoteHits": 1
+          },
+          "MsbuildNormalizeRestore": {
+            "executed": 0,
+            "remoteHits": 0
+          },
+          "MsbuildLockedRestore": {
+            "executed": 1,
+            "remoteHits": 0
+          },
+          "compiles": 2,
+          "wallSeconds": 16.05654404097004,
+          "actionCache": {
+            "stagedObjects": 0,
+            "publishedObjects": 0,
+            "uploadedBytes": 0,
+            "downloadedBytes": 868435,
+            "failures": 0
+          }
+        }
+      },
+      {
+        "kind": "serilog",
+        "case": "failed-test",
+        "result": {
+          "accepted": false,
+          "phases": {
+            "stagePackages": 0.0012652,
+            "bazel": 14.4753868
+          },
+          "sourceStaging": "direct-checkout",
+          "restoreOwnership": "bazel-locked",
+          "layoutSource": "declared",
+          "bazelInvocations": 1,
+          "MsbuildDiscover": {
+            "executed": 1,
+            "remoteHits": 0
+          },
+          "MsbuildCompileProject": {
+            "executed": 2,
+            "remoteHits": 0
+          },
+          "MsbuildComposeRuntime": {
+            "executed": 0,
+            "remoteHits": 1
+          },
+          "MsbuildValidateLayout": {
+            "executed": 0,
+            "remoteHits": 1
+          },
+          "MsbuildNormalizeRestore": {
+            "executed": 0,
+            "remoteHits": 0
+          },
+          "MsbuildLockedRestore": {
+            "executed": 1,
+            "remoteHits": 0
+          },
+          "wallSeconds": 14.822817542008124,
+          "actionCache": {
+            "stagedObjects": 200,
+            "publishedObjects": 0,
+            "uploadedBytes": 0,
+            "downloadedBytes": 22432901,
+            "failures": 0
+          }
+        }
+      },
+      {
+        "kind": "serilog",
+        "case": "live-mutation",
+        "result": {
+          "accepted": false,
+          "phases": {
+            "stagePackages": 0.0012602,
+            "bazel": 8.5553287,
+            "leaseExit": 0.0459955
+          },
+          "sourceStaging": "direct-checkout",
+          "restoreOwnership": "bazel-locked",
+          "layoutSource": "declared",
+          "bazelInvocations": 1,
+          "MsbuildDiscover": {
+            "executed": 0,
+            "remoteHits": 1
+          },
+          "MsbuildCompileProject": {
+            "executed": 1,
+            "remoteHits": 1
+          },
+          "MsbuildComposeRuntime": {
+            "executed": 1,
+            "remoteHits": 0
+          },
+          "MsbuildValidateLayout": {
+            "executed": 0,
+            "remoteHits": 1
+          },
+          "MsbuildNormalizeRestore": {
+            "executed": 0,
+            "remoteHits": 0
+          },
+          "MsbuildLockedRestore": {
+            "executed": 0,
+            "remoteHits": 1
+          },
+          "compiles": 1,
+          "wallSeconds": 8.958487625000998,
+          "actionCache": {
+            "stagedObjects": 183,
+            "publishedObjects": 0,
+            "uploadedBytes": 0,
+            "downloadedBytes": 7295586,
+            "failures": 0
+          }
+        }
+      }
+    ]
+  },
+  "scale": {
+    "accepted": true,
+    "rawOracleCount": 3,
+    "cases": [
+      {
+        "nodes": 64,
+        "mode": "projects",
+        "case": "producer",
+        "result": {
+          "accepted": true,
+          "phases": {
+            "stagePackages": 0.0022905,
+            "bazel": 71.5887663,
+            "leaseExit": 0.1114453
+          },
+          "sourceStaging": "direct-checkout",
+          "restoreOwnership": "bazel-locked",
+          "layoutSource": "declared",
+          "bazelInvocations": 1,
+          "MsbuildDiscover": {
+            "executed": 1,
+            "remoteHits": 0
+          },
+          "MsbuildCompileProject": {
+            "executed": 64,
+            "remoteHits": 0
+          },
+          "MsbuildComposeRuntime": {
+            "executed": 1,
+            "remoteHits": 0
+          },
+          "MsbuildValidateLayout": {
+            "executed": 1,
+            "remoteHits": 0
+          },
+          "MsbuildNormalizeRestore": {
+            "executed": 0,
+            "remoteHits": 0
+          },
+          "MsbuildLockedRestore": {
+            "executed": 1,
+            "remoteHits": 0
+          },
+          "compiles": 64,
+          "wallSeconds": 84.60944925004151,
+          "actionExecutionSeconds": {
+            "MsbuildLockedRestore": {
+              "count": 1,
+              "total": 2.135,
+              "maximum": 2.135
+            },
+            "MsbuildDiscover": {
+              "count": 1,
+              "total": 13.305,
+              "maximum": 13.305
+            },
+            "MsbuildValidateLayout": {
+              "count": 1,
+              "total": 0.051,
+              "maximum": 0.051
+            },
+            "MsbuildBindProject": {
+              "count": 64,
+              "total": 11.296999999999999,
+              "maximum": 0.191
+            },
+            "MsbuildCompileProject": {
+              "count": 64,
+              "total": 64.823,
+              "maximum": 2.105
+            },
+            "MsbuildComposeRuntime": {
+              "count": 1,
+              "total": 0.284,
+              "maximum": 0.284
+            }
+          },
+          "rawParity": true,
+          "actionCache": {
+            "stagedObjects": 2143,
+            "publishedObjects": 2143,
+            "uploadedBytes": 136361875,
+            "downloadedBytes": 1320,
+            "failures": 0
+          }
+        }
+      },
+      {
+        "nodes": 64,
+        "mode": "projects",
+        "case": "fresh-hit",
+        "result": {
+          "accepted": true,
+          "phases": {
+            "stagePackages": 0.0021771,
+            "bazel": 9.4374041,
+            "leaseExit": 0.0787202
+          },
+          "sourceStaging": "direct-checkout",
+          "restoreOwnership": "bazel-locked",
+          "layoutSource": "declared",
+          "bazelInvocations": 1,
+          "MsbuildDiscover": {
+            "executed": 0,
+            "remoteHits": 1
+          },
+          "MsbuildCompileProject": {
+            "executed": 0,
+            "remoteHits": 64
+          },
+          "MsbuildComposeRuntime": {
+            "executed": 0,
+            "remoteHits": 1
+          },
+          "MsbuildValidateLayout": {
+            "executed": 0,
+            "remoteHits": 1
+          },
+          "MsbuildNormalizeRestore": {
+            "executed": 0,
+            "remoteHits": 0
+          },
+          "MsbuildLockedRestore": {
+            "executed": 0,
+            "remoteHits": 1
+          },
+          "compiles": 0,
+          "wallSeconds": 10.937247333000414,
+          "actionExecutionSeconds": {},
+          "rawParity": true,
+          "actionCache": {
+            "stagedObjects": 0,
+            "publishedObjects": 0,
+            "uploadedBytes": 0,
+            "downloadedBytes": 3892187,
+            "failures": 0
+          }
+        }
+      },
+      {
+        "nodes": 64,
+        "mode": "projects",
+        "case": "warm-0",
+        "result": {
+          "accepted": true,
+          "phases": {
+            "stagePackages": 0.0022238,
+            "bazel": 1.2030243,
+            "leaseExit": 0.0591475
+          },
+          "sourceStaging": "direct-checkout",
+          "restoreOwnership": "bazel-locked",
+          "layoutSource": "declared",
+          "bazelInvocations": 1,
+          "MsbuildDiscover": {
+            "executed": 0,
+            "remoteHits": 0
+          },
+          "MsbuildCompileProject": {
+            "executed": 0,
+            "remoteHits": 0
+          },
+          "MsbuildComposeRuntime": {
+            "executed": 0,
+            "remoteHits": 0
+          },
+          "MsbuildValidateLayout": {
+            "executed": 0,
+            "remoteHits": 0
+          },
+          "MsbuildNormalizeRestore": {
+            "executed": 0,
+            "remoteHits": 0
+          },
+          "MsbuildLockedRestore": {
+            "executed": 0,
+            "remoteHits": 0
+          },
+          "compiles": 0,
+          "wallSeconds": 1.4211432090378366,
+          "actionExecutionSeconds": {},
+          "rawParity": true,
+          "actionCache": {
+            "stagedObjects": 0,
+            "publishedObjects": 0,
+            "uploadedBytes": 0,
+            "downloadedBytes": 0,
+            "failures": 0
+          }
+        }
+      },
+      {
+        "nodes": 64,
+        "mode": "projects",
+        "case": "warm-1",
+        "result": {
+          "accepted": true,
+          "phases": {
+            "stagePackages": 0.0022248,
+            "bazel": 0.9328393,
+            "leaseExit": 0.0619787
+          },
+          "sourceStaging": "direct-checkout",
+          "restoreOwnership": "bazel-locked",
+          "layoutSource": "declared",
+          "bazelInvocations": 1,
+          "MsbuildDiscover": {
+            "executed": 0,
+            "remoteHits": 0
+          },
+          "MsbuildCompileProject": {
+            "executed": 0,
+            "remoteHits": 0
+          },
+          "MsbuildComposeRuntime": {
+            "executed": 0,
+            "remoteHits": 0
+          },
+          "MsbuildValidateLayout": {
+            "executed": 0,
+            "remoteHits": 0
+          },
+          "MsbuildNormalizeRestore": {
+            "executed": 0,
+            "remoteHits": 0
+          },
+          "MsbuildLockedRestore": {
+            "executed": 0,
+            "remoteHits": 0
+          },
+          "compiles": 0,
+          "wallSeconds": 1.1455657499609515,
+          "actionExecutionSeconds": {},
+          "rawParity": true,
+          "actionCache": {
+            "stagedObjects": 0,
+            "publishedObjects": 0,
+            "uploadedBytes": 0,
+            "downloadedBytes": 0,
+            "failures": 0
+          }
+        }
+      },
+      {
+        "nodes": 64,
+        "mode": "projects",
+        "case": "warm-2",
+        "result": {
+          "accepted": true,
+          "phases": {
+            "stagePackages": 0.0023147,
+            "bazel": 0.8491969,
+            "leaseExit": 0.0551065
+          },
+          "sourceStaging": "direct-checkout",
+          "restoreOwnership": "bazel-locked",
+          "layoutSource": "declared",
+          "bazelInvocations": 1,
+          "MsbuildDiscover": {
+            "executed": 0,
+            "remoteHits": 0
+          },
+          "MsbuildCompileProject": {
+            "executed": 0,
+            "remoteHits": 0
+          },
+          "MsbuildComposeRuntime": {
+            "executed": 0,
+            "remoteHits": 0
+          },
+          "MsbuildValidateLayout": {
+            "executed": 0,
+            "remoteHits": 0
+          },
+          "MsbuildNormalizeRestore": {
+            "executed": 0,
+            "remoteHits": 0
+          },
+          "MsbuildLockedRestore": {
+            "executed": 0,
+            "remoteHits": 0
+          },
+          "compiles": 0,
+          "wallSeconds": 1.0474440419930033,
+          "actionExecutionSeconds": {},
+          "rawParity": true,
+          "actionCache": {
+            "stagedObjects": 0,
+            "publishedObjects": 0,
+            "uploadedBytes": 0,
+            "downloadedBytes": 0,
+            "failures": 0
+          }
+        }
+      },
+      {
+        "nodes": 64,
+        "mode": "projects",
+        "case": "warm-shared-edit",
+        "result": {
+          "accepted": true,
+          "phases": {
+            "stagePackages": 0.0023924,
+            "bazel": 3.9896742,
+            "leaseExit": 0.0616237
+          },
+          "sourceStaging": "direct-checkout",
+          "restoreOwnership": "bazel-locked",
+          "layoutSource": "declared",
+          "bazelInvocations": 1,
+          "MsbuildDiscover": {
+            "executed": 0,
+            "remoteHits": 0
+          },
+          "MsbuildCompileProject": {
+            "executed": 1,
+            "remoteHits": 0
+          },
+          "MsbuildComposeRuntime": {
+            "executed": 1,
+            "remoteHits": 0
+          },
+          "MsbuildValidateLayout": {
+            "executed": 0,
+            "remoteHits": 0
+          },
+          "MsbuildNormalizeRestore": {
+            "executed": 0,
+            "remoteHits": 0
+          },
+          "MsbuildLockedRestore": {
+            "executed": 0,
+            "remoteHits": 0
+          },
+          "compiles": 1,
+          "wallSeconds": 4.273679124948103,
+          "actionExecutionSeconds": {
+            "MsbuildBindProject": {
+              "count": 1,
+              "total": 0.171,
+              "maximum": 0.171
+            },
+            "MsbuildCompileProject": {
+              "count": 1,
+              "total": 0.825,
+              "maximum": 0.825
+            },
+            "MsbuildComposeRuntime": {
+              "count": 1,
+              "total": 0.276,
+              "maximum": 0.276
+            }
+          },
+          "rawParity": true,
+          "actionCache": {
+            "stagedObjects": 0,
+            "publishedObjects": 0,
+            "uploadedBytes": 0,
+            "downloadedBytes": 18319615,
+            "failures": 0
+          }
+        }
+      },
+      {
+        "nodes": 64,
+        "mode": "projects",
+        "case": "warm-restored",
+        "result": {
+          "accepted": true,
+          "phases": {
+            "stagePackages": 0.0022417,
+            "bazel": 1.0602212,
+            "leaseExit": 0.0729381
+          },
+          "sourceStaging": "direct-checkout",
+          "restoreOwnership": "bazel-locked",
+          "layoutSource": "declared",
+          "bazelInvocations": 1,
+          "MsbuildDiscover": {
+            "executed": 0,
+            "remoteHits": 0
+          },
+          "MsbuildCompileProject": {
+            "executed": 0,
+            "remoteHits": 1
+          },
+          "MsbuildComposeRuntime": {
+            "executed": 0,
+            "remoteHits": 1
+          },
+          "MsbuildValidateLayout": {
+            "executed": 0,
+            "remoteHits": 0
+          },
+          "MsbuildNormalizeRestore": {
+            "executed": 0,
+            "remoteHits": 0
+          },
+          "MsbuildLockedRestore": {
+            "executed": 0,
+            "remoteHits": 0
+          },
+          "compiles": 0,
+          "wallSeconds": 1.369212791963946,
+          "actionExecutionSeconds": {},
+          "rawParity": true,
+          "actionCache": {
+            "stagedObjects": 0,
+            "publishedObjects": 0,
+            "uploadedBytes": 0,
+            "downloadedBytes": 2973360,
+            "failures": 0
+          }
+        }
+      },
+      {
+        "nodes": 64,
+        "mode": "projects",
+        "case": "warm-leaf-edit",
+        "result": {
+          "accepted": true,
+          "phases": {
+            "stagePackages": 0.0022451,
+            "bazel": 2.5614915,
+            "leaseExit": 0.0715798
+          },
+          "sourceStaging": "direct-checkout",
+          "restoreOwnership": "bazel-locked",
+          "layoutSource": "declared",
+          "bazelInvocations": 1,
+          "MsbuildDiscover": {
+            "executed": 0,
+            "remoteHits": 0
+          },
+          "MsbuildCompileProject": {
+            "executed": 1,
+            "remoteHits": 0
+          },
+          "MsbuildComposeRuntime": {
+            "executed": 1,
+            "remoteHits": 0
+          },
+          "MsbuildValidateLayout": {
+            "executed": 0,
+            "remoteHits": 0
+          },
+          "MsbuildNormalizeRestore": {
+            "executed": 0,
+            "remoteHits": 0
+          },
+          "MsbuildLockedRestore": {
+            "executed": 0,
+            "remoteHits": 0
+          },
+          "compiles": 1,
+          "wallSeconds": 2.862126749998424,
+          "actionExecutionSeconds": {
+            "MsbuildBindProject": {
+              "count": 1,
+              "total": 0.181,
+              "maximum": 0.181
+            },
+            "MsbuildCompileProject": {
+              "count": 1,
+              "total": 0.938,
+              "maximum": 0.938
+            },
+            "MsbuildComposeRuntime": {
+              "count": 1,
+              "total": 0.283,
+              "maximum": 0.283
+            }
+          },
+          "rawParity": true,
+          "actionCache": {
+            "stagedObjects": 0,
+            "publishedObjects": 0,
+            "uploadedBytes": 0,
+            "downloadedBytes": 126023,
+            "failures": 0
+          }
+        }
+      },
+      {
+        "nodes": 64,
+        "mode": "projects",
+        "case": "shared-edit",
+        "result": {
+          "accepted": true,
+          "phases": {
+            "stagePackages": 0.0021984,
+            "bazel": 10.4972281,
+            "leaseExit": 0.068626
+          },
+          "sourceStaging": "direct-checkout",
+          "restoreOwnership": "bazel-locked",
+          "layoutSource": "declared",
+          "bazelInvocations": 1,
+          "MsbuildDiscover": {
+            "executed": 0,
+            "remoteHits": 1
+          },
+          "MsbuildCompileProject": {
+            "executed": 1,
+            "remoteHits": 63
+          },
+          "MsbuildComposeRuntime": {
+            "executed": 1,
+            "remoteHits": 0
+          },
+          "MsbuildValidateLayout": {
+            "executed": 0,
+            "remoteHits": 1
+          },
+          "MsbuildNormalizeRestore": {
+            "executed": 0,
+            "remoteHits": 0
+          },
+          "MsbuildLockedRestore": {
+            "executed": 0,
+            "remoteHits": 1
+          },
+          "compiles": 1,
+          "wallSeconds": 11.877365915977862,
+          "actionExecutionSeconds": {
+            "MsbuildBindProject": {
+              "count": 1,
+              "total": 0.182,
+              "maximum": 0.182
+            },
+            "MsbuildCompileProject": {
+              "count": 1,
+              "total": 0.866,
+              "maximum": 0.866
+            },
+            "MsbuildComposeRuntime": {
+              "count": 1,
+              "total": 0.282,
+              "maximum": 0.282
+            }
+          },
+          "rawParity": true,
+          "actionCache": {
+            "stagedObjects": 0,
+            "publishedObjects": 0,
+            "uploadedBytes": 0,
+            "downloadedBytes": 19238442,
+            "failures": 0
+          }
+        }
+      },
+      {
+        "nodes": 64,
+        "mode": "projects",
+        "case": "leaf-edit",
+        "result": {
+          "accepted": true,
+          "phases": {
+            "stagePackages": 0.0021195,
+            "bazel": 10.727701,
+            "leaseExit": 0.0794458
+          },
+          "sourceStaging": "direct-checkout",
+          "restoreOwnership": "bazel-locked",
+          "layoutSource": "declared",
+          "bazelInvocations": 1,
+          "MsbuildDiscover": {
+            "executed": 0,
+            "remoteHits": 1
+          },
+          "MsbuildCompileProject": {
+            "executed": 1,
+            "remoteHits": 63
+          },
+          "MsbuildComposeRuntime": {
+            "executed": 1,
+            "remoteHits": 0
+          },
+          "MsbuildValidateLayout": {
+            "executed": 0,
+            "remoteHits": 1
+          },
+          "MsbuildNormalizeRestore": {
+            "executed": 0,
+            "remoteHits": 0
+          },
+          "MsbuildLockedRestore": {
+            "executed": 0,
+            "remoteHits": 1
+          },
+          "compiles": 1,
+          "wallSeconds": 12.199434708978515,
+          "actionExecutionSeconds": {
+            "MsbuildBindProject": {
+              "count": 1,
+              "total": 0.181,
+              "maximum": 0.181
+            },
+            "MsbuildCompileProject": {
+              "count": 1,
+              "total": 0.936,
+              "maximum": 0.936
+            },
+            "MsbuildComposeRuntime": {
+              "count": 1,
+              "total": 0.276,
+              "maximum": 0.276
+            }
+          },
+          "rawParity": true,
+          "actionCache": {
+            "stagedObjects": 0,
+            "publishedObjects": 0,
+            "uploadedBytes": 0,
+            "downloadedBytes": 19318461,
+            "failures": 0
+          }
+        }
+      }
+    ]
+  }
+}
