@@ -74,16 +74,29 @@ try
                 Console.WriteLine(Json.Text(new JsonObject { ["responses"] = responses, ["beforePublish"] = beforePublish, ["upstreamBefore"] = upstreamBefore, ["afterPublish"] = gate.Statistics }));
             }
             break;
+        case "alias-snapshot":
+            var aliasRoot = request.String("path"); var aliasProfile = new IntegrityProfile();
+            var aliasBaseline = FileTree.Snapshot(aliasRoot, true, deduplicateLinks: false);
+            var aliasActual = FileTree.Snapshot(aliasRoot, true, aliasProfile);
+            if (!JsonNode.DeepEquals(aliasActual, aliasBaseline)) throw new InvalidDataException("Alias manifests differ");
+            if (request["mutate"]?.GetValue<bool>() == true)
+            {
+                var file = Path.Combine(aliasRoot, "value"); var modified = File.GetLastWriteTimeUtc(file);
+                File.WriteAllText(file, "other"); File.SetLastWriteTimeUtc(file, modified);
+                FileTree.Verify(aliasRoot, aliasActual, true);
+            }
+            Console.WriteLine(Json.Text(aliasProfile.Report()));
+            break;
         case "integrity-profile":
             var roots = request.Array("roots").Select(n => n!.GetValue<string>()).ToArray();
-            var baseline = roots.ToDictionary(p => p, p => FileTree.Snapshot(p, true));
+            var baseline = roots.ToDictionary(p => p, p => FileTree.Snapshot(p, true, deduplicateLinks: false));
             var samples = new JsonArray();
             for (var iteration = 0; iteration < 5; iteration++)
             {
                 var profile = new IntegrityProfile();
                 var started = IntegrityProfile.Begin();
                 var beforeGc = Enumerable.Range(0, 3).Select(GC.CollectionCount).ToArray();
-                var actual = roots.ToDictionary(p => p, p => FileTree.Snapshot(p, true, profile));
+                var actual = roots.ToDictionary(p => p, p => FileTree.Snapshot(p, true, profile, request["deduplicateLinks"]?.GetValue<bool>() != false));
                 profile.End("snapshotTotal", started);
                 started = IntegrityProfile.Begin();
                 foreach (var root in roots) if (!JsonNode.DeepEquals(actual[root], baseline[root])) throw new InvalidDataException("Profile snapshot differs");

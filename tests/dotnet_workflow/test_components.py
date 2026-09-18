@@ -99,6 +99,16 @@ class Components(unittest.TestCase):
         for flag in ('mutate','differentExpectation','laterMutation'):
             value.write_text('value')
             self.assertIn('Leased inputs changed',self.invoke('verification',dict(request,**{flag:True}),False))
+    def test_alias_hash_reuse_preserves_records_and_rechecks_later_scans(self):
+        root=self.root/'tree';root.mkdir();(root/'value').write_text('value')
+        (root/'alias-a').symlink_to('value');(root/'alias-b').symlink_to('value')
+        value=self.invoke('alias-snapshot',dict(path=str(root)))
+        self.assertEqual(value['files'],3)
+        self.assertEqual(value['contentBytes'],15)
+        self.assertEqual(value['reusedFiles'],2)
+        self.assertEqual(value['reusedBytes'],10)
+        self.assertIn('Leased inputs changed',self.invoke('alias-snapshot',dict(path=str(root),mutate=True),False))
+
     def test_stream_hash_matches_sha256_across_buffer_boundaries(self):
         path=self.root/'value'
         for size in (0,1,65535,65536,65537,17*1024*1024+3):

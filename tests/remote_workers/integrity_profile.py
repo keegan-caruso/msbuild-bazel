@@ -10,12 +10,12 @@ import subprocess
 ROOT=Path(__file__).resolve().parents[2]
 
 
-def run(output,label):
+def run(output,label,deduplicate=True):
     output.mkdir(parents=True,exist_ok=False)
     # Resolve the wrapper exactly as Host.Real does before querying its closure.
     sdk=Path(os.environ['RULES_MSBUILD_DOTNET_ROOT']).resolve()
     roots=sorted(subprocess.check_output(['/nix/var/nix/profiles/default/bin/nix-store','-qR',str(sdk.parents[1])],text=True).splitlines())
-    request=output/'request.json';request.write_text(json.dumps(dict(roots=roots)))
+    request=output/'request.json';request.write_text(json.dumps(dict(roots=roots,deduplicateLinks=deduplicate)))
     process=subprocess.run([str(sdk/'dotnet'),str(ROOT/'tests/Preparation.Tests/bin/Release/net10.0/Preparation.Tests.dll'),
         'integrity-profile',str(request)],capture_output=True,text=True,check=True)
     report=json.loads(process.stdout)
@@ -30,4 +30,5 @@ def run(output,label):
 
 if __name__=='__main__':
     parser=argparse.ArgumentParser(description=__doc__);parser.add_argument('--output',type=Path,required=True);parser.add_argument('--label',required=True)
-    args=parser.parse_args();run(args.output,args.label)
+    parser.add_argument("--no-deduplicate-links",action="store_true")
+    args=parser.parse_args();run(args.output,args.label,not args.no_deduplicate_links)
