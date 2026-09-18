@@ -1,0 +1,103 @@
+{
+  "accepted": true,
+  "beforeRevision": "55d23bcf61d7ae92aa5811a29c4b6368c2913615",
+  "afterRevision": "318918bf5b77cb63702af945f33d70892bc54344",
+  "samples": [
+    {
+      "kind": "diamond",
+      "case": "body",
+      "repetition": 0,
+      "app": true,
+      "cache": true,
+      "runtime": true
+    },
+    {
+      "kind": "diamond",
+      "case": "body",
+      "repetition": 1,
+      "app": true,
+      "cache": true,
+      "runtime": true
+    },
+    {
+      "kind": "diamond",
+      "case": "body",
+      "repetition": 2,
+      "app": true,
+      "cache": true,
+      "runtime": true
+    },
+    {
+      "kind": "diamond",
+      "case": "unchanged",
+      "repetition": 0,
+      "app": true,
+      "cache": true,
+      "runtime": true
+    },
+    {
+      "kind": "diamond",
+      "case": "unchanged",
+      "repetition": 1,
+      "app": true,
+      "cache": true,
+      "runtime": true
+    },
+    {
+      "kind": "diamond",
+      "case": "unchanged",
+      "repetition": 2,
+      "app": true,
+      "cache": true,
+      "runtime": true
+    },
+    {
+      "kind": "serilog",
+      "case": "body",
+      "repetition": 0,
+      "app": true,
+      "cache": true,
+      "runtime": true
+    },
+    {
+      "kind": "serilog",
+      "case": "body",
+      "repetition": 1,
+      "app": true,
+      "cache": true,
+      "runtime": true
+    },
+    {
+      "kind": "serilog",
+      "case": "body",
+      "repetition": 2,
+      "app": true,
+      "cache": true,
+      "runtime": true
+    },
+    {
+      "kind": "serilog",
+      "case": "unchanged",
+      "repetition": 0,
+      "app": true,
+      "cache": true,
+      "runtime": true
+    },
+    {
+      "kind": "serilog",
+      "case": "unchanged",
+      "repetition": 1,
+      "app": true,
+      "cache": true,
+      "runtime": true
+    },
+    {
+      "kind": "serilog",
+      "case": "unchanged",
+      "repetition": 2,
+      "app": true,
+      "cache": true,
+      "runtime": true
+    }
+  ]
+}

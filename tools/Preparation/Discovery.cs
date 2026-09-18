@@ -136,9 +136,10 @@ internal sealed class Discovery
         return Absent.All(p => !Path.Exists(p));
     }
     public JsonObject Receipt(string entry, string plan) => new() { ["policy"] = Policy, ["context"] = Context, ["entry"] = entry, ["workspace"] = workspace, ["inputs"] = WorkspaceIdentity.DeepClone(), ["absent"] = Json.Strings(Absent), ["payload"] = Json.Digest(FileTree.Snapshot(plan)) };
-    public void Verify()
+    public void Verify(FileTree.Verification? verification = null)
     {
-        foreach (var (name, path) in roots) FileTree.Verify(path, identities[name], name.StartsWith("runtime-", StringComparison.Ordinal));
+        verification ??= new FileTree.Verification();
+        foreach (var (name, path) in roots) verification.Verify(path, identities[name], name.StartsWith("runtime-", StringComparison.Ordinal));
         if (Absent.Any(Path.Exists)) throw new InvalidDataException("External namespace changed during consumption");
     }
 }

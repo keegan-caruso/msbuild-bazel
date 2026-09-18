@@ -35,6 +35,75 @@ class Components(unittest.TestCase):
         if success:self.assertEqual(result.returncode,0,result.stderr)
         else:self.assertNotEqual(result.returncode,0);return result.stderr
         return json.loads(result.stdout) if result.stdout.strip() else None
+    def test_action_cache_defers_and_orders_publication(self):
+        import base64
+        data=b'cache payload';blob=sha(data);action='a'*64
+        put=lambda path,body:dict(method='PUT',path=path,body=base64.b64encode(body).decode())
+        with CacheServer(0) as server:
+            request=dict(endpoint=server.url+'/bazel',directory=str(self.root/'pending'),upload=True,publish=True,
+                         requests=[put('ac/'+action,b'action metadata'),put('cas/'+blob,data)],
+                         probeBeforePublish=['ac/'+action,'cas/'+blob])
+            value=self.invoke('action-cache-gate',request)
+            self.assertEqual(value['upstreamBefore'],[404,404])
+            self.assertEqual(value['beforePublish']['publishedObjects'],0)
+            self.assertEqual(value['afterPublish']['publishedObjects'],2)
+            self.assertEqual([e['path'] for e in server.events if e['method']=='PUT'],['/bazel/cas/'+blob,'/bazel/ac/'+action])
+            self.assertEqual(server.data['/bazel/cas/'+blob],data)
+    def test_action_cache_discard_readonly_and_bad_digest(self):
+        import base64
+        data=b'value';blob=sha(data)
+        for upload,path,expected in [(True,'cas/'+blob,200),(False,'cas/'+blob,403),(True,'cas/'+'0'*64,400),(True,'ac/not-a-digest',400)]:
+            with self.subTest(upload=upload,path=path), CacheServer(0) as server:
+                value=self.invoke('action-cache-gate',dict(endpoint=server.url+'/bazel',directory=str(self.root/str(expected)),upload=upload,publish=False,
+                    requests=[dict(method='PUT',path=path,body=base64.b64encode(data).decode())],probeBeforePublish=[]))
+                self.assertEqual(value['responses'][0]['status'],expected)
+                self.assertEqual(value['afterPublish']['publishedObjects'],0)
+                self.assertFalse(server.data)
+    def test_action_cache_never_publishes_ac_after_upload_failure(self):
+        import base64
+        data=b'value';blob=sha(data);action='a'*64
+        for corrupt in (False,True):
+            with self.subTest(corrupt=corrupt), CacheServer(0) as server:
+                if not corrupt:server.offline_prefixes=['/bazel/cas/']
+                body=b'corrupt' if corrupt else data
+                self.invoke('action-cache-gate',dict(endpoint=server.url+'/bazel',directory=str(self.root/str(corrupt)),upload=True,publish=True,
+                    requests=[dict(method='PUT',path='ac/'+action,body=base64.b64encode(b'metadata').decode()),
+                              dict(method='PUT',path='cas/'+blob,body=base64.b64encode(body).decode())],probeBeforePublish=[]),False)
+                self.assertFalse(server.data)
+                self.assertFalse(any(e['method']=='PUT' and '/ac/' in e['path'] for e in server.events))
+    def test_action_cache_reads_and_endpoint_validation(self):
+        import base64
+        data=b'value';blob=sha(data)
+        with CacheServer(0) as server:
+            server.data['/bazel/cas/'+blob]=data
+            value=self.invoke('action-cache-gate',dict(endpoint=server.url+'/bazel',directory=str(self.root/'read'),upload=False,publish=False,
+                requests=[dict(method='GET',path='cas/'+blob),dict(method='HEAD',path='cas/'+blob),dict(method='GET',path='ac/'+'0'*64)],probeBeforePublish=[]))
+            self.assertEqual([r['status'] for r in value['responses']],[200,200,404])
+            self.assertEqual(base64.b64decode(value['responses'][0]['body']),data)
+        for endpoint in ('file:///tmp/cache','grpc://localhost:9092','https://user:pass@example.test','https://example.test/?token=secret','https://example.test/#fragment'):
+            self.invoke('action-cache-endpoint',dict(endpoint=endpoint),False)
+        self.assertEqual(self.invoke('action-cache-endpoint',dict(endpoint='https://example.test/cache/')),'https://example.test/cache')
+    def test_verification_shares_reads_but_checks_each_expectation_and_pass(self):
+        source=self.root/'source';source.mkdir();value=source/'value'
+        value.write_text('value')
+        request=dict(path=str(source))
+        self.assertEqual(self.invoke('verification',request),dict(requests=2,scans=1))
+        self.assertEqual(self.invoke('verification',dict(request,linkedPolicy=True)),dict(requests=3,scans=2))
+        for flag in ('mutate','differentExpectation','laterMutation'):
+            value.write_text('value')
+            self.assertIn('Leased inputs changed',self.invoke('verification',dict(request,**{flag:True}),False))
+    def test_stream_hash_matches_sha256_across_buffer_boundaries(self):
+        path=self.root/'value'
+        for size in (0,1,65535,65536,65537,17*1024*1024+3):
+            data=(bytes(range(251))*(size//251+1))[:size];path.write_bytes(data)
+            self.assertEqual(self.invoke('hash-regular',dict(path=str(path))),dict(size=size,sha256=sha(data)))
+    def test_stream_hash_rejects_symlinks_and_special_files(self):
+        path=self.root/'value';path.write_bytes(b'value')
+        link=self.root/'link';link.symlink_to(path)
+        self.assertIn('Cannot open regular input',self.invoke('hash-regular',dict(path=str(link)),False))
+        fifo=self.root/'fifo';os.mkfifo(fifo)
+        self.assertIn('regular file',self.invoke('hash-regular',dict(path=str(fifo)),False))
+        self.assertIn('regular file',self.invoke('hash-regular',dict(path=str(self.root)),False))
     def test_snapshot_copy_modes_and_readonly_cleanup(self):
         source=self.root/'source';source.mkdir();(source/'value').write_bytes(b'value');(source/'empty').mkdir();(source/'empty').chmod(0o555)
         snapshot=self.invoke('snapshot',dict(path=str(source)))
@@ -137,3 +206,36 @@ class Components(unittest.TestCase):
                      entry='App.csproj',operation='build')
         self.assertIn('disjoint',self.invoke('workflow',request,False))
         self.assertFalse((self.root/'state').exists())
+
+    def worker_identity(self):
+        return dict(policy='darwin-arm64-worker-v1',scope='independent-qualified-workers',controllerSdkClosure='a'*64,
+                    execution=dict(os='macOS',osBuild='build',architecture='Arm64',cpuModel='model',cpuCount=10),
+                    systemTools={'bazel':'b'*64},environmentPolicy='fixed',hostPolicy='reviewed')
+
+    def test_worker_identity_accepts_equal_records_and_rejects_each_changed_role(self):
+        worker=self.worker_identity()
+        self.assertTrue(self.invoke('worker-compatible',dict(producer=worker,consumer=worker)))
+        for field in worker:
+            with self.subTest(field=field):
+                changed=json.loads(json.dumps(worker))
+                changed[field]='c'*64 if field=='controllerSdkClosure' else 'different'
+                self.invoke('worker-compatible',dict(producer=changed,consumer=worker),False)
+        self.invoke('worker-compatible',dict(producer=None,consumer=worker),False)
+
+    def test_incompatible_snapshot_stops_before_artifact_download(self):
+        worker=self.worker_identity();producer=json.loads(json.dumps(worker));producer['execution']['osBuild']='other'
+        snapshot=dict(policy='dotnet-native-snapshot-v1',worker=producer,preparation='d'*64,projects=[])
+        blob=json.dumps(snapshot).encode();key=sha(blob)
+        with CacheServer() as server:
+            server.data['/native/cas/'+key]=blob
+            error=self.invoke('worker-snapshot',dict(endpoint=server.url+'/native',digest=key,worker=worker),False)
+            self.assertIn('Incompatible worker',error)
+            self.assertEqual(len(server.events),1)
+
+    def test_remote_meter_matches_actual_requests_and_payload_bytes(self):
+        with CacheServer() as server:
+            data=b'downloaded';key=sha(data);server.data['/native/cas/'+key]=data
+            value=self.invoke('remote-meter',dict(endpoint=server.url+'/native',digest=key,data='uploaded'))
+            self.assertEqual(value['getRequests'],1);self.assertEqual(value['headRequests'],2);self.assertEqual(value['putRequests'],1)
+            self.assertEqual(value['downloadBytes'],len(data));self.assertEqual(value['uploadBytes'],len(b'uploaded'))
+            self.assertEqual(len(server.events),4);self.assertEqual(value['failures'],0)

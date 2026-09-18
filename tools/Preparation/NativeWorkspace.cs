@@ -19,8 +19,8 @@ internal sealed class NativeWorkspace(string destination)
         Directory.CreateDirectory(destination);
         var manifest = Json.Read(Path.Combine(plan, "manifest.json")); var entry = Json.Read(Path.Combine(plan, "entry.json")).String("entry");
         var module = "module(name = \"native_msbuild_workflow\")\n\nbazel_dep(name = \"platforms\", version = \"0.0.11\")\n\nlocal_dotnet_sdk = use_repo_rule(\"//:msbuild.bzl\", \"local_dotnet_sdk\")\n" + Starlark.Call("local_dotnet_sdk", new JsonObject { ["name"] = "dotnet", ["path"] = sdk, ["external_imports"] = Json.Strings(imports) });
-        if (File.Exists(Path.Combine(destination, "MODULE.bazel")) && File.ReadAllText(Path.Combine(destination, "MODULE.bazel")) != module) File.Delete(Path.Combine(destination, "MODULE.bazel.lock"));
         Write("MODULE.bazel", Encoding.UTF8.GetBytes(module));
+        Copy(Path.Combine(repository, "bazel/native.MODULE.bazel.lock"), "MODULE.bazel.lock");
         foreach (var path in FileTree.Files(Path.Combine(plan, "src"))) Copy(path, "src/" + Path.GetRelativePath(Path.Combine(plan, "src"), path));
         foreach (var name in new[] { "restore.json", "manifest.json" }) Copy(Path.Combine(plan, name), name);
         foreach (var name in new[] { "msbuild.bzl", "native_cache.bzl", "native_test.bzl" }) Copy(Path.Combine(repository, "bazel", name), name);

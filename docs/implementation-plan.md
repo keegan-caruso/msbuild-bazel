@@ -439,3 +439,50 @@ Build/Test. Shell/.NET bootstrap and validation need no Python. The migration
 record includes 13 producer-deleted/negative consumer cases and the remaining
 platform qualification limits. Python probes and reference implementations remain
 test-only; use `scripts/build.sh` and `scripts/prepare.sh` in production.
+
+## Independent workers
+
+[The compatible-worker contract](compatible-workers.md) binds SDK/task/runtime,
+Bazel and system-tool bytes plus conservative OS/hardware equivalence independently
+of output TFM/RID. Independent mode restricts remote consumption/publication to
+qualified discovery. Separate-host acceptance and new .NET timing measurements
+follow this identity step.
+
+[The pinned real-service harness](independent-remote-cache.md) now provides
+producer/consumer handoffs, same-machine rejection, transport accounting and
+passing same-host recovery/failed-test controls. Actual second-host acceptance
+still needs a compatible worker. [The new .NET measurements](dotnet-worker-performance.md)
+record 24 passing correctness comparisons and a missed end-to-end performance
+target; identity/lease verification and the Bazel phase dominate small-graph
+loopback recovery.
+
+[Cache-hit overhead](cache-hit-overhead.md) removes duplicate final integrity
+scans without retaining validation across invocations, separates optional Bazel
+installation reuse from consumer build state, and analyzes Bazel JSON traces to
+distinguish startup, registry downloads, analysis and cache-hit actions.
+
+[Pinned Bazel repository-cache reuse](bazel-repository-cache.md) stages a reviewed
+native module lockfile in error mode and exposes a separate verified download
+cache. Fresh native recovery, network-denied platform resolution, missing/corrupt
+objects and incomplete-lock rejection are covered by focused controls. The
+measurement protocol separates lockfile-only and shared-download effects while
+retaining fresh project build state and exact output/execution checks.
+
+[Streaming integrity checks](integrity-streaming.md) replace full-file buffering
+on hash-only paths with a bounded pooled buffer. Opt-in profiling separates I/O,
+hashing, allocations and manifest comparison; all 19 SDK-tree digests remain
+identical. Mutation and special-file controls pass, and repeated unprofiled
+unchanged/body-edit comparisons record the end-to-end improvement while retaining
+full validation and fresh consumer build state.
+
+[Bazel analysis and materialization](bazel-materialization.md) profiles startup,
+SDK package loading, sandbox/runfiles setup and native runner/test phases. It
+retains the existing shared complete SDK declarations after checking actual
+inputs, and removes redundant runtime export copies with sealed-output parity
+and repeated fresh-consumer measurements.
+
+[Whole-action HTTP cache integration](remote-action-cache.md) adds read-only
+Bazel action-cache consumption and opt-in publication gated on successful tests,
+live-input validation and output validation. Fresh-workspace hits preserve forced
+tests; changed actions fall back to per-project reuse. Seeds remain declared
+inputs, so the qualified experiment explicitly primes the seeded action variant.

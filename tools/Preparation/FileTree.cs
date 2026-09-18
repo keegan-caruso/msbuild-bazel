@@ -1,4 +1,6 @@
+using System.Buffers;
 using System.Runtime.InteropServices;
+using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json.Nodes;
 using Microsoft.Win32.SafeHandles;
@@ -7,21 +9,52 @@ namespace RulesMSBuild.Preparation;
 
 internal static class FileTree
 {
-    internal static byte[] ReadRegular(string path)
+    private static FileStream OpenRegular(string path)
     {
         var flags = OperatingSystem.IsMacOS() ? 0x104 : OperatingSystem.IsLinux() ? 0x20800 : throw new PlatformNotSupportedException();
         var fd = Open(path, flags);
         if (fd < 0) throw new IOException("Cannot open regular input: " + path);
-        using var handle = new SafeFileHandle((IntPtr)fd, true);
-        var buffer = Marshal.AllocHGlobal(512);
+        var handle = new SafeFileHandle((IntPtr)fd, true);
+        var buffer = IntPtr.Zero;
         try
         {
+            buffer = Marshal.AllocHGlobal(512);
             var status = OperatingSystem.IsMacOS() ? FStat(fd, buffer) : Statx(fd, "", 0x1000, 1, buffer);
             var mode = status == 0 ? (ushort)Marshal.ReadInt16(buffer, OperatingSystem.IsMacOS() ? 4 : 28) : 0;
             if ((mode & 0xf000) != 0x8000) throw new InvalidDataException("Input must be a regular file: " + path);
-            using var stream = new FileStream(handle, FileAccess.Read); using var data = new MemoryStream(); stream.CopyTo(data); return data.ToArray();
+            return new FileStream(handle, FileAccess.Read);
         }
-        finally { Marshal.FreeHGlobal(buffer); }
+        catch { handle.Dispose(); throw; }
+        finally { if (buffer != IntPtr.Zero) Marshal.FreeHGlobal(buffer); }
+    }
+    internal static byte[] ReadRegular(string path)
+    {
+        using var stream = OpenRegular(path); using var data = new MemoryStream(); stream.CopyTo(data); return data.ToArray();
+    }
+    internal static (long Length, string Digest) HashRegular(string path, IntegrityProfile? profile = null)
+    {
+        var started = profile is null ? default : IntegrityProfile.Begin();
+        using var stream = OpenRegular(path); profile?.End("open", started);
+        started = profile is null ? default : IntegrityProfile.Begin();
+        using var hash = IncrementalHash.CreateHash(HashAlgorithmName.SHA256); profile?.End("hash", started);
+        var buffer = ArrayPool<byte>.Shared.Rent(64 * 1024);
+        try
+        {
+            long length = 0;
+            while (true)
+            {
+                started = profile is null ? default : IntegrityProfile.Begin();
+                var count = stream.Read(buffer.AsSpan()); profile?.End("read", started);
+                if (count == 0) break;
+                length += count;
+                started = profile is null ? default : IntegrityProfile.Begin();
+                hash.AppendData(buffer.AsSpan(0, count)); profile?.End("hash", started);
+            }
+            started = profile is null ? default : IntegrityProfile.Begin();
+            var digest = Convert.ToHexStringLower(hash.GetHashAndReset()); profile?.End("hash", started);
+            return (length, digest);
+        }
+        finally { ArrayPool<byte>.Shared.Return(buffer); }
     }
     [DllImport("libc", EntryPoint = "open", SetLastError = true)]
     private static extern int Open(string path, int flags);
@@ -40,7 +73,7 @@ internal static class FileTree
         File.SetUnixFileMode(path, mode);
     }
     public static IEnumerable<string> Files(string root) => Directory.EnumerateFiles(root, "*", SearchOption.AllDirectories).Order(StringComparer.Ordinal);
-    public static JsonObject Snapshot(string root, bool followLinks = false)
+    public static JsonObject Snapshot(string root, bool followLinks = false, IntegrityProfile? profile = null)
     {
         var result = new JsonObject();
         var active = new HashSet<string>(StringComparer.Ordinal);
@@ -67,23 +100,38 @@ internal static class FileTree
             else
             {
                 var before = new FileInfo(path); var length = before.Length; var written = before.LastWriteTimeUtc;
-                var data = ReadRegular(path); var after = new FileInfo(path);
-                if (length != after.Length || written != after.LastWriteTimeUtc || mode != (int)Mode(path)) throw new InvalidDataException("Input changed while reading: " + path);
-                result[name] = new JsonObject { ["kind"] = "file", ["mode"] = mode, ["size"] = data.LongLength, ["sha256"] = Json.Sha(data) };
+                var content = HashRegular(path, profile);
+                if (profile is not null) { profile.Files++; profile.ContentBytes += content.Length; }
+                var after = new FileInfo(path);
+                if (length != content.Length || length != after.Length || written != after.LastWriteTimeUtc || mode != (int)Mode(path)) throw new InvalidDataException("Input changed while reading: " + path);
+                var started = profile is null ? default : IntegrityProfile.Begin();
+                result[name] = new JsonObject { ["kind"] = "file", ["mode"] = mode, ["size"] = content.Length, ["sha256"] = content.Digest };
+                profile?.End("fileManifest", started);
             }
         }
         Visit(root, ".");
         return result;
     }
-    public static void Verify(string root, JsonNode expected, bool followLinks = false)
+    // One instance belongs to one final validation pass. Every caller's original
+    // expectation is checked, even when callers share the same physical input.
+    internal sealed class Verification
     {
-        var actual = Snapshot(root, followLinks);
-        if (!JsonNode.DeepEquals(actual, expected))
+        private readonly Dictionary<(string Root, bool FollowLinks), JsonObject> snapshots = new();
+        public int Scans => snapshots.Count;
+        public int Requests { get; private set; }
+        public void Verify(string root, JsonNode expected, bool followLinks = false)
         {
-            var changed = actual.Select(p => p.Key).Union(expected.AsObject().Select(p => p.Key)).Where(k => !JsonNode.DeepEquals(actual[k], expected[k])).Take(5);
-            throw new InvalidDataException("Leased inputs changed: " + root + ": " + string.Join(", ", changed));
+            Requests++;
+            var key = (root, followLinks);
+            if (!snapshots.TryGetValue(key, out var actual)) snapshots[key] = actual = Snapshot(root, followLinks);
+            if (!JsonNode.DeepEquals(actual, expected))
+            {
+                var changed = actual.Select(p => p.Key).Union(expected.AsObject().Select(p => p.Key)).Where(k => !JsonNode.DeepEquals(actual[k], expected[k])).Take(5);
+                throw new InvalidDataException("Leased inputs changed: " + root + ": " + string.Join(", ", changed));
+            }
         }
     }
+    public static void Verify(string root, JsonNode expected, bool followLinks = false) => new Verification().Verify(root, expected, followLinks);
     public static void Copy(string source, string target, bool preserveModes = true)
     {
         if (new DirectoryInfo(source).LinkTarget is not null) throw new InvalidDataException("Linked source directory");

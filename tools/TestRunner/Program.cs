@@ -50,6 +50,9 @@ internal static class GraphTest
         var scratchParent = Environment.GetEnvironmentVariable("TEST_TMPDIR") ?? Path.GetTempPath();
         var scratch = Path.Combine(scratchParent, "msbuild-vstest-" + Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(scratch);
+        var phases = new Dictionary<string, double>();
+        var timer = Stopwatch.StartNew();
+        void Mark(string name) { phases[name] = timer.Elapsed.TotalSeconds; timer.Restart(); }
         var expected = Array.Empty<string>();
         var passed = false;
         var exitCode = -1;
@@ -103,6 +106,7 @@ internal static class GraphTest
                 if (payload.RootElement.GetProperty("project").GetString() == request.Project && Properties(payload.RootElement.GetProperty("properties"), request.GlobalProperties)) matches.Add(bundle);
             }
             if (matches.Count != 1) throw new InvalidDataException("test subject bundle missing or ambiguous");
+            Mark("selectBundle");
             var subject = matches[0];
             var runtime = Path.Combine(scratch, "runtime");
             Directory.CreateDirectory(runtime);
@@ -120,6 +124,7 @@ internal static class GraphTest
                 runtimeHashes.Add(destination, item.Sha256);
             }
             if (!File.Exists(Path.Combine(runtime, request.Assembly))) throw new InvalidDataException("test assembly missing from subject runtime");
+            Mark("verifyAndCopyRuntime");
             var workspace = Path.Combine(scratch, "workspace");
             Directory.CreateDirectory(Path.Combine(workspace, Path.GetDirectoryName(request.Project)!));
             foreach (var data in request.TestData)
@@ -155,6 +160,7 @@ internal static class GraphTest
                 ["SHOULDLY_SOURCE_PATH_MAP"] = workspace + "=" + request.SourceRoot
             }) info.Environment[pair.Key] = pair.Value;
             Console.WriteLine("RULES_MSBUILD_VSTEST_START:" + request.Project);
+            Mark("dataAndSetup");
             using var process = Process.Start(info) ?? throw new InvalidOperationException("VSTest failed to start");
             var stdout = process.StandardOutput.ReadToEndAsync();
             var stderr = process.StandardError.ReadToEndAsync();
@@ -163,6 +169,7 @@ internal static class GraphTest
             catch (OperationCanceledException) { timedOut = true; process.Kill(entireProcessTree: true); await process.WaitForExitAsync(); }
             exitCode = process.ExitCode;
             var log = await stdout + await stderr;
+            Mark("vstest");
             File.WriteAllText(Path.Combine(output, "test.log"), log);
             Console.Write(log);
             var trxPath = Path.Combine(output, "results.trx");
@@ -188,6 +195,7 @@ internal static class GraphTest
             File.WriteAllText(Path.Combine(output, "report.json"), JsonSerializer.Serialize(new
             {
                 schemaVersion = 1,
+                phases,
                 passed,
                 exitCode,
                 runnerExitCode = passed ? 0 : 1,
