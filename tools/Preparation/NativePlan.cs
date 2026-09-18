@@ -65,6 +65,39 @@ internal static class NativePlan
         FileTree.Copy(Path.Combine(prepared, "package-manifests"), Path.Combine(output, "package-manifests"));
         Json.Write(Path.Combine(output, "graph.json"), graph);
     }
+    public static void RequireSourceOnly(JsonNode graph, HashSet<string> names)
+    {
+        foreach (var item in graph.Array("nodes").SelectMany(n => n!.Array("inputs")).Concat(graph["graphInputs"] as JsonArray ?? []))
+            if (item!.String("path").StartsWith("workspace/", StringComparison.Ordinal) && names.Contains(Host.Relative(item.String("path"))) && item.String("kind") != "source")
+                throw new InvalidDataException("Source-content split requires a compile-only input: " + item!.String("path"));
+    }
+    public static void BindSources(JsonNode request)
+    {
+        var output = request.String("output"); var discovery = request.String("discovery");
+        // Bazel presents declared tree-artifact leaves as sandbox symlinks.
+        foreach (var path in FileTree.Files(discovery))
+        {
+            var target = Path.Combine(output, Path.GetRelativePath(discovery, path)); Host.Copy(Host.Real(path), target);
+            FileTree.SetMode(target, FileTree.Mode(target) | UnixFileMode.UserWrite);
+        }
+        var graph = Json.Read(Path.Combine(output, "graph.json"));
+        var sources = request.Array("sources").ToDictionary(n => Host.Safe(n!.String("destination")), n => n!.String("source"), StringComparer.Ordinal);
+        RequireSourceOnly(graph, sources.Keys.ToHashSet(StringComparer.Ordinal));
+        var hashes = sources.ToDictionary(p => "workspace/" + p.Key, p => FileTree.HashRegular(Host.Real(p.Value)).Digest, StringComparer.Ordinal);
+        foreach (var (name, source) in sources)
+            if (File.Exists(Path.Combine(output, "src", name))) Host.Copy(source, Path.Combine(output, "src", name));
+        foreach (var item in graph.Array("nodes").SelectMany(n => n!.Array("inputs")).Concat(graph["graphInputs"] as JsonArray ?? []))
+            if (hashes.TryGetValue(item!.String("path"), out var hash)) item!["sha256"] = hash;
+        var records = Json.Read(Path.Combine(output, "identity-records.json")); var manifest = Json.Read(Path.Combine(output, "manifest.json"));
+        foreach (var (project, record) in records.AsObject())
+        {
+            if (Json.Digest(record!) != manifest["projects"]![project]!.String("identity")) throw new InvalidDataException("Corrupt discovery identity");
+            foreach (var (name, hash) in hashes) if (record!["inputs"]!.AsObject().ContainsKey(name)) record["inputs"]![name] = hash;
+            record!["graphInputs"] = graph["graphInputs"]?.DeepClone() ?? new JsonArray();
+            manifest["projects"]![project]!["identity"] = Json.Digest(record);
+        }
+        Json.Write(Path.Combine(output, "identity-records.json"), records); Json.Write(Path.Combine(output, "manifest.json"), manifest); Json.Write(Path.Combine(output, "graph.json"), graph);
+    }
     public static JsonNode? Refresh(string plan, string workspace, JsonNode previous, JsonNode current)
     {
         var graph = Json.Read(Path.Combine(plan, "graph.json"));

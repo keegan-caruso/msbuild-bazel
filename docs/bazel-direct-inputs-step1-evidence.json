@@ -1,0 +1,349 @@
+{
+  "accepted": true,
+  "step": 1,
+  "parent": "132e99f77805d2099ee20e6c84a5a5c7295ebaf5",
+  "cases": [
+    {
+      "kind": "diamond",
+      "case": "producer",
+      "accepted": true,
+      "seconds": 11.354556500038598,
+      "discovery": {
+        "executed": 1,
+        "remoteHits": 0
+      },
+      "binding": {
+        "executed": 1,
+        "remoteHits": 0
+      },
+      "build": {
+        "executed": 1,
+        "remoteHits": 0
+      },
+      "compiles": 4
+    },
+    {
+      "kind": "diamond",
+      "case": "fresh-hit",
+      "accepted": true,
+      "seconds": 3.433766416972503,
+      "discovery": {
+        "executed": 0,
+        "remoteHits": 1
+      },
+      "binding": {
+        "executed": 0,
+        "remoteHits": 1
+      },
+      "build": {
+        "executed": 0,
+        "remoteHits": 1
+      },
+      "compiles": 0
+    },
+    {
+      "kind": "diamond",
+      "case": "warm-0",
+      "accepted": true,
+      "seconds": 1.0465137080173008,
+      "discovery": {
+        "executed": 0,
+        "remoteHits": 0
+      },
+      "binding": {
+        "executed": 0,
+        "remoteHits": 0
+      },
+      "build": {
+        "executed": 0,
+        "remoteHits": 0
+      },
+      "compiles": 0
+    },
+    {
+      "kind": "diamond",
+      "case": "warm-1",
+      "accepted": true,
+      "seconds": 0.9385968340211548,
+      "discovery": {
+        "executed": 0,
+        "remoteHits": 0
+      },
+      "binding": {
+        "executed": 0,
+        "remoteHits": 0
+      },
+      "build": {
+        "executed": 0,
+        "remoteHits": 0
+      },
+      "compiles": 0
+    },
+    {
+      "kind": "diamond",
+      "case": "warm-2",
+      "accepted": true,
+      "seconds": 0.9198134580510668,
+      "discovery": {
+        "executed": 0,
+        "remoteHits": 0
+      },
+      "binding": {
+        "executed": 0,
+        "remoteHits": 0
+      },
+      "build": {
+        "executed": 0,
+        "remoteHits": 0
+      },
+      "compiles": 0
+    },
+    {
+      "kind": "diamond",
+      "case": "body-edit",
+      "accepted": true,
+      "seconds": 5.139162375009619,
+      "discovery": {
+        "executed": 0,
+        "remoteHits": 1
+      },
+      "binding": {
+        "executed": 1,
+        "remoteHits": 0
+      },
+      "build": {
+        "executed": 1,
+        "remoteHits": 0
+      },
+      "compiles": 1
+    },
+    {
+      "kind": "diamond",
+      "case": "undeclared-read",
+      "accepted": false,
+      "seconds": 4.085604374995455,
+      "discovery": {
+        "executed": 1,
+        "remoteHits": 0
+      },
+      "binding": {
+        "executed": 0,
+        "remoteHits": 0
+      },
+      "build": {
+        "executed": 0,
+        "remoteHits": 0
+      },
+      "compiles": null
+    },
+    {
+      "kind": "diamond",
+      "case": "source-role",
+      "accepted": false,
+      "seconds": 6.323330499988515,
+      "discovery": {
+        "executed": 1,
+        "remoteHits": 0
+      },
+      "binding": {
+        "executed": 0,
+        "remoteHits": 0
+      },
+      "build": {
+        "executed": 0,
+        "remoteHits": 0
+      },
+      "compiles": null
+    },
+    {
+      "kind": "diamond",
+      "case": "added-source",
+      "accepted": true,
+      "seconds": 9.698840708006173,
+      "discovery": {
+        "executed": 1,
+        "remoteHits": 0
+      },
+      "binding": {
+        "executed": 1,
+        "remoteHits": 0
+      },
+      "build": {
+        "executed": 1,
+        "remoteHits": 0
+      },
+      "compiles": 4
+    },
+    {
+      "kind": "diamond",
+      "case": "live-mutation",
+      "accepted": false,
+      "seconds": 6.3798528329934925,
+      "discovery": {
+        "executed": 0,
+        "remoteHits": 1
+      },
+      "binding": {
+        "executed": 1,
+        "remoteHits": 0
+      },
+      "build": {
+        "executed": 1,
+        "remoteHits": 0
+      },
+      "compiles": 1
+    },
+    {
+      "kind": "serilog",
+      "case": "producer",
+      "accepted": true,
+      "seconds": 21.366603041009512,
+      "discovery": {
+        "executed": 1,
+        "remoteHits": 0
+      },
+      "binding": {
+        "executed": 1,
+        "remoteHits": 0
+      },
+      "build": {
+        "executed": 1,
+        "remoteHits": 0
+      },
+      "compiles": 2
+    },
+    {
+      "kind": "serilog",
+      "case": "fresh-hit",
+      "accepted": true,
+      "seconds": 6.871655250026379,
+      "discovery": {
+        "executed": 0,
+        "remoteHits": 1
+      },
+      "binding": {
+        "executed": 0,
+        "remoteHits": 1
+      },
+      "build": {
+        "executed": 0,
+        "remoteHits": 1
+      },
+      "compiles": 0
+    },
+    {
+      "kind": "serilog",
+      "case": "warm-0",
+      "accepted": true,
+      "seconds": 2.9980244589969516,
+      "discovery": {
+        "executed": 0,
+        "remoteHits": 0
+      },
+      "binding": {
+        "executed": 0,
+        "remoteHits": 0
+      },
+      "build": {
+        "executed": 0,
+        "remoteHits": 0
+      },
+      "compiles": 0
+    },
+    {
+      "kind": "serilog",
+      "case": "warm-1",
+      "accepted": true,
+      "seconds": 2.7349079999839887,
+      "discovery": {
+        "executed": 0,
+        "remoteHits": 0
+      },
+      "binding": {
+        "executed": 0,
+        "remoteHits": 0
+      },
+      "build": {
+        "executed": 0,
+        "remoteHits": 0
+      },
+      "compiles": 0
+    },
+    {
+      "kind": "serilog",
+      "case": "warm-2",
+      "accepted": true,
+      "seconds": 2.7165335419704206,
+      "discovery": {
+        "executed": 0,
+        "remoteHits": 0
+      },
+      "binding": {
+        "executed": 0,
+        "remoteHits": 0
+      },
+      "build": {
+        "executed": 0,
+        "remoteHits": 0
+      },
+      "compiles": 0
+    },
+    {
+      "kind": "serilog",
+      "case": "body-edit",
+      "accepted": true,
+      "seconds": 9.27550154196797,
+      "discovery": {
+        "executed": 0,
+        "remoteHits": 1
+      },
+      "binding": {
+        "executed": 1,
+        "remoteHits": 0
+      },
+      "build": {
+        "executed": 1,
+        "remoteHits": 0
+      },
+      "compiles": 1
+    },
+    {
+      "kind": "serilog",
+      "case": "failed-test",
+      "accepted": false,
+      "seconds": 11.46614008297911,
+      "discovery": {
+        "executed": 1,
+        "remoteHits": 0
+      },
+      "binding": {
+        "executed": 0,
+        "remoteHits": 1
+      },
+      "build": {
+        "executed": 0,
+        "remoteHits": 1
+      },
+      "compiles": null
+    },
+    {
+      "kind": "serilog",
+      "case": "live-mutation",
+      "accepted": false,
+      "seconds": 11.373239292006474,
+      "discovery": {
+        "executed": 0,
+        "remoteHits": 1
+      },
+      "binding": {
+        "executed": 1,
+        "remoteHits": 0
+      },
+      "build": {
+        "executed": 1,
+        "remoteHits": 0
+      },
+      "compiles": 1
+    }
+  ]
+}

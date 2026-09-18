@@ -38,6 +38,7 @@ internal static class Program
             switch (args[0])
             {
                 case "owned-workflow": Console.WriteLine(Json.Text(BazelOwnedWorkflow.Run(request))); break;
+                case "owned-bind-sources": NativePlan.BindSources(request); break;
                 case "owned-prepare": BazelOwnedWorkflow.Prepare(request); break;
                 case "digest": Console.WriteLine(Json.Digest(request)); break;
                 case "workflow": Console.WriteLine(Json.Text(NativeWorkflow.Run(request))); break;

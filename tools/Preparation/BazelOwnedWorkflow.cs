@@ -25,6 +25,11 @@ internal static class BazelOwnedWorkflow
         try
         {
             CopyInputs("controller", root); CopyInputs("sources", workspace);
+            foreach (var item in request.Array("sourceNames"))
+            {
+                var path = Path.Combine(workspace, Host.Safe(item!.GetValue<string>()));
+                Directory.CreateDirectory(Path.GetDirectoryName(path)!); File.WriteAllBytes(path, []);
+            }
             Directory.CreateDirectory(Path.Combine(workspace, ".nuget/packages"));
             foreach (var path in FileTree.Files(workspace).Where(FileTree.RestoreMetadata))
                 File.WriteAllText(path, File.ReadAllText(path).Replace("${WORKSPACE}", workspace, StringComparison.Ordinal));
@@ -40,6 +45,7 @@ internal static class BazelOwnedWorkflow
             var bound = Tools.ToDictionary(name => name, name => Tool(root, name), StringComparer.Ordinal);
             GraphPreparation.Run(new JsonObject { ["schemaVersion"] = 1, ["repository"] = root, ["workspace"] = workspace, ["manifest"] = graphPath, ["output"] = prepared, ["sdkRoot"] = sdk, ["sdkVersion"] = "10.0.400" }, bound, () => discovery.Export(request.String("entry")));
             NativePlan.Materialize(prepared, graph, output, toolchain); discovery.Verify();
+            NativePlan.RequireSourceOnly(graph, request.Array("sourceNames").Select(n => n!.GetValue<string>()).ToHashSet(StringComparer.Ordinal));
             Json.Write(Path.Combine(diagnostics, "report.json"), new JsonObject { ["accepted"] = true, ["seconds"] = clock.Elapsed.TotalSeconds, ["projects"] = graph.Array("nodes").Count });
         }
         finally { FileTree.Remove(scratch); }
@@ -106,7 +112,7 @@ internal static class BazelOwnedWorkflow
             Generate(root, generated, sdk, roots, entry, tests);
             var watched = new[] { inputs, controller, seeds }.Concat(tests is null ? [] : new[] { Path.Combine(generated, "test-data") }).ToDictionary(p => p, p => FileTree.Snapshot(p));
             var watchedFiles = Directory.GetFiles(generated).ToDictionary(p => p, p => Json.Sha(File.ReadAllBytes(p)));
-            var command = new List<string> { "--nosystem_rc", "--nohome_rc", "--noworkspace_rc", "--output_base=" + Path.Combine(state, "b"), "--output_user_root=" + Path.Combine(state, "u"), operation, "//:" + operation, "--incompatible_autoload_externally=", "--lockfile_mode=error", "--jobs=2", "--spawn_strategy=darwin-sandbox", "--strategy=MsbuildPrepare=local", "--execution_log_json_file=" + Path.Combine(output, "execution.json"), "--noshow_progress", "--color=no", "--curses=no" };
+            var command = new List<string> { "--nosystem_rc", "--nohome_rc", "--noworkspace_rc", "--output_base=" + Path.Combine(state, "b"), "--output_user_root=" + Path.Combine(state, "u"), operation, "//:" + operation, "--incompatible_autoload_externally=", "--lockfile_mode=error", "--jobs=2", "--spawn_strategy=darwin-sandbox", "--strategy=MsbuildDiscover=local", "--execution_log_json_file=" + Path.Combine(output, "execution.json"), "--noshow_progress", "--color=no", "--curses=no" };
             if (request["bazel-install-cache"] is { } install)
             {
                 var path = Path.Combine(Host.Real(install.GetValue<string>()), FileTree.HashRegular(Host.Real(bazel)).Digest); Directory.CreateDirectory(path);
@@ -122,11 +128,11 @@ internal static class BazelOwnedWorkflow
             else if (request["bazel-remote-upload"]?.GetValue<bool>() == true) throw new InvalidDataException("Upload requires cache endpoint");
             var code = Measure("bazel", () => NativeWorkflow.Execute(bazel, command, generated, Path.Combine(output, "bazel.log"))); report["exitCode"] = code;
             var events = File.Exists(Path.Combine(output, "execution.json")) ? NativeWorkflow.Events(File.ReadAllBytes(Path.Combine(output, "execution.json"))).ToArray() : [];
-            foreach (var mnemonic in new[] { "MsbuildPrepare", "MsbuildNativeCache" })
+            foreach (var mnemonic in new[] { "MsbuildDiscover", "MsbuildBindSources", "MsbuildNativeCache" })
             {
                 var actions = events.Where(n => n["mnemonic"]?.GetValue<string>() == mnemonic).ToArray();
                 var executed = actions.Where(n => n["cacheHit"]?.GetValue<bool>() != true).ToArray();
-                if (mnemonic == "MsbuildNativeCache" && executed.Any(n => n["runner"]?.GetValue<string>() != "darwin-sandbox")) throw new InvalidDataException("Native sandbox required");
+                if (mnemonic != "MsbuildDiscover" && executed.Any(n => n["runner"]?.GetValue<string>() != "darwin-sandbox")) throw new InvalidDataException("Native sandbox required");
                 report[mnemonic] = new JsonObject { ["executed"] = executed.Length, ["remoteHits"] = actions.Count(n => n["cacheHit"]?.GetValue<bool>() == true && n["runner"]?.GetValue<string>() == "remote cache hit") };
             }
             if (code != 0) throw new InvalidDataException("Bazel action/test failed; see bazel.log");

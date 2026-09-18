@@ -2,27 +2,46 @@
 
 def _prepare(ctx):
     plan = ctx.actions.declare_directory(ctx.label.name + ".plan")
+    discovery = ctx.actions.declare_directory(ctx.label.name + ".discovery")
+    bodies = [f for f in ctx.files.srcs if f.short_path.endswith(".cs") and not f.short_path.startswith("inputs/.nuget/") and "/obj/" not in f.short_path]
+    structural = [f for f in ctx.files.srcs if f not in bodies]
     diagnostics = ctx.actions.declare_directory(ctx.label.name + ".diagnostics")
     request = ctx.actions.declare_file(ctx.label.name + ".request.json")
     ctx.actions.write(request, json.encode({
         "entry": ctx.attr.project,
-        "output": plan.path,
+        "output": discovery.path,
+        "sourceNames": [f.short_path.removeprefix("inputs/") for f in bodies],
         "diagnostics": diagnostics.path,
         "host": ctx.file.host.path,
         "runtimeRoots": ctx.attr.runtime_roots,
-        "sources": [{"source": f.path, "destination": f.short_path.removeprefix("inputs/")} for f in ctx.files.srcs],
+        "sources": [{"source": f.path, "destination": f.short_path.removeprefix("inputs/")} for f in structural],
         "controller": [{"source": f.path, "destination": f.short_path.removeprefix("controller/")} for f in ctx.files.controller],
     }))
     ctx.actions.run(
         executable = ctx.executable.dotnet,
         arguments = [ctx.file.runner.path, "owned-prepare", "--request", request.path],
-        inputs = depset(ctx.files.srcs + ctx.files.controller + [ctx.file.host, ctx.file.runner, request], transitive = [ctx.attr.sdk[DefaultInfo].files]),
-        outputs = [plan, diagnostics],
+        inputs = depset(structural + ctx.files.controller + [ctx.file.host, ctx.file.runner, request], transitive = [ctx.attr.sdk[DefaultInfo].files]),
+        outputs = [discovery, diagnostics],
         env = {"PATH": "/usr/bin:/bin", "LANG": "en_US.UTF-8"},
-        mnemonic = "MsbuildPrepare",
+        mnemonic = "MsbuildDiscover",
         # Discovery starts its own stricter native sandbox. macOS forbids nested
         # sandbox-exec; keep this trusted staging process local but cacheable.
         execution_requirements = {"no-sandbox": "1", "no-remote-exec": "1"},
+    )
+    bind_request = ctx.actions.declare_file(ctx.label.name + ".bind.json")
+    ctx.actions.write(bind_request, json.encode({
+        "discovery": discovery.path,
+        "output": plan.path,
+        "sources": [{"source": f.path, "destination": f.short_path.removeprefix("inputs/")} for f in bodies],
+    }))
+    ctx.actions.run(
+        executable = ctx.executable.dotnet,
+        arguments = [ctx.file.runner.path, "owned-bind-sources", "--request", bind_request.path],
+        inputs = depset(bodies + ctx.files.controller + [ctx.file.runner, discovery, bind_request], transitive = [ctx.attr.sdk[DefaultInfo].files]),
+        outputs = [plan],
+        env = {"PATH": "/usr/bin:/bin", "LANG": "en_US.UTF-8"},
+        mnemonic = "MsbuildBindSources",
+        execution_requirements = {"block-network": "1", "no-remote-exec": "1"},
     )
     return [DefaultInfo(files = depset([plan]))]
 

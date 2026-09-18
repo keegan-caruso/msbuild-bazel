@@ -17,9 +17,12 @@ def run(a):
         for kind in a.workloads:
             root=out/kind;root.mkdir()
             with CacheService(a.cache_binary,root/'server') as server:
-                def invoke(label,key=None,edit=None,upload=True,probe=None,expect_failure=False,live=False,extra_source=False,reuse=None,keep_server=False):
+                def invoke(label,key=None,edit=None,upload=True,probe=None,expect_failure=False,live=False,extra_source=False,source_role=False,reuse=None,keep_server=False):
                     base=root/(reuse or label);source=base/'source' if reuse else fixture(base,kind,a.packages,a.checkout)
                     if edit:mutate(source,kind,edit)
+                    if source_role:
+                        project=source/'N0000/N0000.csproj'
+                        project.write_text(project.read_text().replace('</Project>', '<ItemGroup><AdditionalFiles Include="Value.cs" /></ItemGroup></Project>'))
                     if extra_source:(source/'N0000/Added.cs').write_text('public static class Added { public static int Value => 7; }\n')
                     request=dict(schemaVersion=1,repository=str(ROOT),sdkRoot=str(SDK),bazel=str(BAZEL),workspace=str(source),state=str(base/'state'),output=str(base/'result'),entry='N0003/N0003.csproj' if kind=='diamond' else 'test/Serilog.ApprovalTests/Serilog.ApprovalTests.csproj',operation='build' if kind=='diamond' else 'test',**{'nuget-packages':str(a.packages),'bazel-remote-cache':server.url,'bazel-remote-upload':upload,'remote-endpoint':server.url+'/native','bazel-install-cache':str(a.bazel_install_cache),'bazel-repository-cache':str(a.bazel_repository_cache)})
                     if kind=='serilog':request['tests']=TESTS
@@ -49,7 +52,7 @@ def run(a):
                             app=base/'state/g/bazel-bin/build.bundle/app';value['managedHashes']=hashes(app)
                             if kind=='diamond':value['applicationOutput']=subprocess.check_output([str(SDK/'dotnet'),str(app/'N0003.dll')],text=True).strip()
                             else:assert value['test']['passed']
-                        print(kind,label,value['accepted'],value.get('MsbuildPrepare'),value.get('MsbuildNativeCache'),value.get('compiles'),round(value['wallSeconds'],3),flush=True)
+                        print(kind,label,value['accepted'],value.get('MsbuildDiscover'),value.get('MsbuildNativeCache'),value.get('compiles'),round(value['wallSeconds'],3),flush=True)
                         save();return value
                     finally:
                         stopped.set()
@@ -58,15 +61,15 @@ def run(a):
                 p=invoke('producer');key=p['publishedSnapshot'];assert p['compiles']==(4 if kind=='diamond' else 2)
                 remove(root/'producer')
                 assert p['cachePrime']['accepted'] and p['cachePrime']['compiles']==0
-                hit=invoke('fresh-hit',key,upload=False,keep_server=True);assert hit['compiles']==0 and hit['MsbuildPrepare']['remoteHits']==1 and hit['MsbuildNativeCache']['remoteHits']==1
+                hit=invoke('fresh-hit',key,upload=False,keep_server=True);assert hit['compiles']==0 and hit['MsbuildDiscover']['remoteHits']==1 and hit['MsbuildBindSources']['remoteHits']==1 and hit['MsbuildNativeCache']['remoteHits']==1
                 assert hit['managedHashes']==p['managedHashes']
                 try:
                     for repetition in range(3):
                         (root/'fresh-hit/result').rename(root/'fresh-hit'/('result-'+str(repetition)))
                         warm=invoke('warm-'+str(repetition),key,upload=False,reuse='fresh-hit',keep_server=True)
-                        assert warm['MsbuildPrepare']['executed']==0 and warm['compiles']==0 and warm['managedHashes']==hit['managedHashes']
+                        assert warm['MsbuildDiscover']['executed']==0 and warm['compiles']==0 and warm['managedHashes']==hit['managedHashes']
                 finally:shutdown(root/'fresh-hit')
-                changed=invoke('body-edit',key,'body',upload=False);assert changed['compiles']==1 and changed['MsbuildPrepare']['executed']==1
+                changed=invoke('body-edit',key,'body',upload=False);assert changed['compiles']==1 and changed['MsbuildDiscover']['remoteHits']==1 and changed['MsbuildBindSources']['executed']==1
                 rb=root/'raw';rs=fixture(rb,kind,a.packages,a.checkout);ordinary=raw(rb,rs,kind,a.packages);assert ordinary['managedHashes']==hit['managedHashes']
                 mutate(rs,kind,'body');edited=raw(rb,rs,kind,a.packages,label='body');assert edited['managedHashes']==changed['managedHashes']
                 report['oracles'].extend([dict(kind=kind,case='unchanged',result=ordinary),dict(kind=kind,case='body',result=edited)]);save()
@@ -76,8 +79,11 @@ def run(a):
                     rejected=invoke('undeclared-read',key,probe=hidden,expect_failure=True)
                     assert puts()==before and rejected['actionCache']['publishedObjects']==0
                     assert 'Access to the path' in (root/'undeclared-read/result/bazel.log').read_text()
+                    before=puts();role=invoke('source-role',key,source_role=True,expect_failure=True)
+                    assert puts()==before and role['actionCache']['publishedObjects']==0
+                    assert 'compile-only input' in (root/'source-role/result/bazel.log').read_text()
                     added=invoke('added-source',key,upload=False,extra_source=True)
-                    assert added['MsbuildPrepare']['executed']==1 and added['compiles']>0
+                    assert added['MsbuildDiscover']['executed']==1 and added['compiles']>0
                     addedbase=root/'raw-added';addedsrc=fixture(addedbase,kind,a.packages,a.checkout)
                     (addedsrc/'N0000/Added.cs').write_text('public static class Added { public static int Value => 7; }\n')
                     addedraw=raw(addedbase,addedsrc,kind,a.packages)
