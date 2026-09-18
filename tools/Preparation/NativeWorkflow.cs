@@ -9,7 +9,7 @@ namespace RulesMSBuild.Preparation;
 internal static class NativeWorkflow
 {
     private static readonly string[] Tools = ["GraphExport", "EvaluationProbe", "ReplayPlugin", "ActionRunner", "NativeProjectCache", "TestRunner"];
-    private static readonly string[] Imports = ["/nix/store/dfhdbgnvv0jm1ld0hrzfaklgigvl7bzp-extra.targets", "/nix/store/hm53cqanyh9f8dl3bij21iyhvk1mlb30-sign-apphost.proj"];
+    private static readonly string[] Imports = OperatingSystem.IsLinux() ? [] : ["/nix/store/dfhdbgnvv0jm1ld0hrzfaklgigvl7bzp-extra.targets", "/nix/store/hm53cqanyh9f8dl3bij21iyhvk1mlb30-sign-apphost.proj"];
     private const string Owner = "dotnet-native-workflow-v1";
     public static JsonNode Arguments(string[] args)
     {
@@ -44,7 +44,9 @@ internal static class NativeWorkflow
         if (actionEndpoint is not null && !independent) throw new InvalidDataException("Action cache requires independent-workers identity");
         ActionCache? actionCache = null;
         if (operation is not ("build" or "test") || operation == "test" && tests is null) throw new InvalidDataException("Test requires explicit test declaration");
-        if (!OperatingSystem.IsMacOS()) throw new PlatformNotSupportedException("Native sandbox workflow is qualified on macOS only");
+        if (!OperatingSystem.IsMacOS() && !OperatingSystem.IsLinux()) throw new PlatformNotSupportedException("Native sandbox workflow requires macOS or Linux");
+        if (OperatingSystem.IsLinux()) LinuxPlatform.Require(sdk);
+        var sandbox = OperatingSystem.IsLinux() ? "linux-sandbox" : "darwin-sandbox";
         if (Path.Exists(output)) throw new IOException("Report output exists"); Directory.CreateDirectory(output);
         using var lease = Host.Lock(Path.Combine(state, "lease"));
         var owner = Path.Combine(state, "owner.json");
@@ -79,7 +81,7 @@ internal static class NativeWorkflow
                 var runtime = new JsonObject();
                 var runtimeRoots = sdk.StartsWith("/nix/store/", StringComparison.Ordinal)
                     ? Host.Run("/nix/var/nix/profiles/default/bin/nix-store", ["-qR", Path.GetDirectoryName(Path.GetDirectoryName(sdk))!], root).Split('\n', StringSplitOptions.RemoveEmptyEntries)
-                    : new[] { sdk };
+                    : OperatingSystem.IsLinux() ? new[] { sdk }.Concat(LinuxPlatform.Libraries).ToArray() : new[] { sdk };
                 foreach (var path in runtimeRoots.Order(StringComparer.Ordinal)) { watched[path] = FileTree.Snapshot(path, true); runtime[path] = Json.Digest(watched[path]); }
                 var identity = new JsonObject { ["policy"] = Owner, ["platform"] = RuntimeInformation.OSDescription, ["machine"] = RuntimeInformation.OSArchitecture.ToString(), ["sdk"] = Json.Digest(runtime) };
                 foreach (var (path, value) in watched.Where(p => Host.Within(p.Key, root))) identity[Path.GetRelativePath(root, path)] = Json.Digest(value);
@@ -162,7 +164,7 @@ internal static class NativeWorkflow
             var generated = Path.Combine(state, "g");
             Measure("stage", () => { new NativeWorkspace(generated).Generate(root, sdk, plan, workspace, tests, seeds, Imports); return true; });
             var execution = Path.Combine(output, "execution.json");
-            var command = new List<string> { "--nosystem_rc", "--nohome_rc", "--noworkspace_rc", "--output_base=" + Path.Combine(state, "b"), "--output_user_root=" + Path.Combine(state, "u"), operation, "//:" + operation, "--incompatible_autoload_externally=", "--lockfile_mode=error", "--jobs=2", "--spawn_strategy=darwin-sandbox", "--strategy=MsbuildNativeCache=darwin-sandbox", "--execution_log_json_file=" + execution, "--noshow_progress", "--color=no", "--curses=no" };
+            var command = new List<string> { "--nosystem_rc", "--nohome_rc", "--noworkspace_rc", "--output_base=" + Path.Combine(state, "b"), "--output_user_root=" + Path.Combine(state, "u"), operation, "//:" + operation, "--incompatible_autoload_externally=", "--lockfile_mode=error", "--jobs=2", "--spawn_strategy=" + sandbox, "--strategy=MsbuildNativeCache=" + sandbox, "--execution_log_json_file=" + execution, "--noshow_progress", "--color=no", "--curses=no" };
             if (request["bazel-install-cache"] is { } installCache)
             {
                 // Share only the extracted, binary-keyed Bazel distribution. The
@@ -192,7 +194,7 @@ internal static class NativeWorkflow
             var exitCode = Measure("bazel", () => Execute(bazel, command, generated, Path.Combine(output, "bazel.log"))); report["exitCode"] = exitCode;
             var actions = File.Exists(execution) ? Events(File.ReadAllBytes(execution)).ToArray() : [];
             var builds = actions.Where(n => n["mnemonic"]?.GetValue<string>() == "MsbuildNativeCache" && n["cacheHit"]?.GetValue<bool>() != true).ToArray();
-            if (builds.Any(n => n["runner"]?.GetValue<string>() != "darwin-sandbox")) throw new InvalidDataException("Native sandbox required");
+            if (builds.Any(n => n["runner"]?.GetValue<string>() != sandbox)) throw new InvalidDataException("Native sandbox required");
             report["remoteBuildHits"] = actions.Count(n => n["mnemonic"]?.GetValue<string>() == "MsbuildNativeCache" && n["cacheHit"]?.GetValue<bool>() == true && n["runner"]?.GetValue<string>() == "remote cache hit");
             report["buildActions"] = builds.Length; report["testActions"] = actions.Count(n => n["mnemonic"]?.GetValue<string>() == "TestRunner" && n["cacheHit"]?.GetValue<bool>() != true);
             report["compiles"] = builds.Length == 0 ? 0 : Json.Read(Path.Combine(generated, "bazel-bin/build.diagnostics/action.json"))["compiles"]!.DeepClone();

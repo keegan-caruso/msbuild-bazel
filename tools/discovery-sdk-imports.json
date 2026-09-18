@@ -103,6 +103,8 @@
     "/nix/store/f3kvj2nc26gn7rh5mnfnaa2dgy2p10v3-dotnet-sdk-10.0.400/share/dotnet/sdk/10.0.400/Sdks/Microsoft.SourceLink.GitHub/build/Microsoft.SourceLink.GitHub.targets": "059107ba3e4670028b0c038b19c606f3ae9d26d007b3939c54441def8a946984",
     "/nix/store/f3kvj2nc26gn7rh5mnfnaa2dgy2p10v3-dotnet-sdk-10.0.400/share/dotnet/sdk/10.0.400/Sdks/Microsoft.SourceLink.GitLab/build/Microsoft.SourceLink.GitLab.props": "30c2b92c9dd157d211238bf502802e6a8c55dac1eab0125f1e006d456a9eb75d",
     "/nix/store/f3kvj2nc26gn7rh5mnfnaa2dgy2p10v3-dotnet-sdk-10.0.400/share/dotnet/sdk/10.0.400/Sdks/Microsoft.SourceLink.GitLab/build/Microsoft.SourceLink.GitLab.targets": "c708182482beb469a330d5865068e9af779a2a600547ae277983d2dadc37da31",
-    "/nix/store/hm53cqanyh9f8dl3bij21iyhvk1mlb30-sign-apphost.proj": "3dc07bebc828c045714c81c3f60c0053ff8613a0c98b55bd02d0ad965eaada28"
+    "/nix/store/hm53cqanyh9f8dl3bij21iyhvk1mlb30-sign-apphost.proj": "3dc07bebc828c045714c81c3f60c0053ff8613a0c98b55bd02d0ad965eaada28",
+    "/opt/rules_msbuild-toolchain/.tools/dotnet/sdk/10.0.400/Microsoft.NETCoreSdk.BundledVersions.props": "85f064e78cb806cae24f31ddb48f9bc28bca380497a36df6481ab67b22522b54",
+    "/opt/rules_msbuild-toolchain/.tools/dotnet/sdk/10.0.400/Sdks/Microsoft.NET.Sdk/targets/Microsoft.NET.Sdk.targets": "7958c0c5010ec8d9092c079ccafac6eb7289db34829b6e2a33ba6eaefaaaa770"
   }
 }

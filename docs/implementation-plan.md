@@ -491,3 +491,8 @@ inputs, so the qualified experiment explicitly primes the seeded action variant.
 macOS user launch agent with loopback access and an SSH-tunnel runbook. Local
 restart and disk-persistence acceptance passed; independent-worker validation
 still requires a second compatible Mac.
+
+[Linux ARM64 cache workers](linux-cache-workers.md) adds the selected Ubuntu
+workflow lane, namespace-isolated discovery, native Linux Bazel sandboxing and
+a producer-deletion/consumer-recovery harness using Apple containers. This is
+separate from physical-machine and cross-platform qualification.

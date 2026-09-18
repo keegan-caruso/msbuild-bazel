@@ -11,7 +11,8 @@ internal static class FileTree
 {
     private static FileStream OpenRegular(string path)
     {
-        var flags = OperatingSystem.IsMacOS() ? 0x104 : OperatingSystem.IsLinux() ? 0x20800 : throw new PlatformNotSupportedException();
+        // Linux ARM64 uses a different O_NOFOLLOW value from Linux x86-64.
+        var flags = OperatingSystem.IsMacOS() ? 0x104 : OperatingSystem.IsLinux() ? RuntimeInformation.ProcessArchitecture == Architecture.Arm64 ? 0x8800 : 0x20800 : throw new PlatformNotSupportedException();
         var fd = Open(path, flags);
         if (fd < 0) throw new IOException("Cannot open regular input: " + path);
         var handle = new SafeFileHandle((IntPtr)fd, true);
