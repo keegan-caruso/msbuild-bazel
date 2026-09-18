@@ -21,11 +21,12 @@ internal sealed class State
     public string[] Requested { get; set; } = [];
 }
 
-// Explicit-input, package-free experimental cache; the owned probe is its only entry point.
+// Explicit-input cache for the qualified owned and evaluated graph policies.
 public sealed class NativeCachePlugin : ProjectCachePluginBase
 {
     private Session session = null!;
     private RemoteBundles? remote;
+    private bool apiRuntime;
     private Dictionary<string, State> states = [];
     private readonly ConcurrentBag<object> events = [];
     private readonly ConcurrentBag<(string Source, string Destination)> pending = [];
@@ -37,16 +38,35 @@ public sealed class NativeCachePlugin : ProjectCachePluginBase
     private string Expand(string value) => value.Replace("${WORKSPACE}", session.Workspace, StringComparison.Ordinal);
     private static string Assembly(string project) => Path.GetFileNameWithoutExtension(project);
     private static string Bin(string project) => Path.Combine(Path.GetDirectoryName(project)!, "bin/Release/net10.0");
-    private bool PackagePolicy => session.Policy == "evaluated-packages-v1";
-    private string DependencyIdentity(string bundle, string project) => Files.Hash(Path.Combine(bundle, PackagePolicy ? "artifacts.json" : Path.Combine("artifacts", Reference(project))));
+    private bool PackagePolicy => session.Policy == "evaluated-api-runtime-v2";
+    private string[] Closure(string project)
+    {
+        var selected = new HashSet<string>(StringComparer.Ordinal);
+        void Visit(string current)
+        {
+            if (!selected.Add(current)) return;
+            foreach (var dependency in session.Projects[current].Dependencies) Visit(dependency);
+        }
+        Visit(project);
+        return selected.Order(StringComparer.Ordinal).ToArray();
+    }
+    private string DependencyIdentity(string bundle, string project) => apiRuntime
+        ? EvaluatedBoundary.Identity(bundle, project, Closure(project), session.Projects[project].Dependencies.Order(StringComparer.Ordinal)
+            .Select(dependency => dependency + ":" + states[dependency].Completion.Task.Result.Api).ToArray())
+        : Files.Hash(Path.Combine(bundle, PackagePolicy ? "artifacts.json" : Path.Combine("artifacts", Reference(project))));
+    private void Compose(string bundle, string project, bool verifySelection = false) => EvaluatedBoundary.Compose(bundle, project,
+        Closure(project).Where(dependency => dependency != project).ToDictionary(dependency => dependency,
+            dependency => states[dependency].Completion.Task.Result.Bundle), session.Workspace, verifySelection);
     private static string Reference(string project) => Path.Combine(Path.GetDirectoryName(project)!, "obj/Release/net10.0/ref", Assembly(project) + ".dll");
 
     public override Task BeginBuildAsync(CacheContext context, PluginLoggerBase logger, CancellationToken token)
     {
         session = JsonSerializer.Deserialize<Session>(File.ReadAllText(Environment.GetEnvironmentVariable("NATIVE_CACHE_SESSION")!), Json)!;
-        if (session.Policy is not ("native-qualified-v2" or "evaluated-packages-v1")) throw new InvalidDataException("unknown native cache policy");
+        if (session.Policy is not ("native-qualified-v2" or "evaluated-api-runtime-v2")) throw new InvalidDataException("unknown native cache policy");
         if (context.Graph is null || !Directory.Exists(session.Scratch) || !session.Projects.ContainsKey(session.Entry))
             throw new InvalidDataException("native cache requires a qualified graph session");
+        if (PackagePolicy && session.Projects.Keys.Select(Assembly).Distinct(StringComparer.OrdinalIgnoreCase).Count() != session.Projects.Count)
+            throw new InvalidDataException("ambiguous project runtime assembly names");
         states = session.Projects.Keys.ToDictionary(project => project, _ => new State());
         if (!context.Graph.ProjectNodes.Select(node => Relative(node.ProjectInstance.FullPath)).Order().SequenceEqual(states.Keys.Order()))
             throw new InvalidDataException("declared and evaluated projects differ");
@@ -59,6 +79,17 @@ public sealed class NativeCachePlugin : ProjectCachePluginBase
                 !node.ProjectReferences.Select(child => Relative(child.ProjectInstance.FullPath)).Order().SequenceEqual(session.Projects[project].Dependencies.Order()))
                 throw new InvalidDataException("unqualified project configuration or edges");
         }
+        // Analyzer/build-order/interop references can consume implementation bytes.
+        // Preserve the conservative whole-artifact policy for those graphs.
+        var runtimeNames = session.Projects.Keys.SelectMany(project => new[] { ".dll", ".pdb", ".xml" }
+            .Select(extension => Assembly(project) + extension)).ToHashSet(StringComparer.OrdinalIgnoreCase);
+        apiRuntime = PackagePolicy && context.Graph.ProjectNodes.All(node => node.ProjectInstance.GetItems("ProjectReference").All(reference =>
+            reference.GetMetadataValue("OutputItemType").Length == 0 &&
+            !reference.GetMetadataValue("ReferenceOutputAssembly").Equals("false", StringComparison.OrdinalIgnoreCase) &&
+            !reference.GetMetadataValue("EmbedInteropTypes").Equals("true", StringComparison.OrdinalIgnoreCase)) &&
+            !node.ProjectInstance.Items.Any(item => item.ItemType is "Content" or "None" or "Compile" or "EmbeddedResource" &&
+                EvaluatedBoundary.CopiesProjectRuntime(item.GetMetadataValue("CopyToOutputDirectory"),
+                    [item.EvaluatedInclude, item.GetMetadataValue("TargetPath"), item.GetMetadataValue("Link")], runtimeNames)));
         VerifyInputs();
         if (session.Remote is not null) remote = new RemoteBundles(session.Remote, message => events.Add(new { kind = "remote", message }));
         return Task.CompletedTask;
@@ -113,6 +144,7 @@ public sealed class NativeCachePlugin : ProjectCachePluginBase
                     Files.Copy(Path.Combine(candidate, "artifacts", artifact.Path), Path.Combine(session.Workspace, artifact.Path));
                 }
                 var ready = new Ready(candidate, DependencyIdentity(candidate, project));
+                if (apiRuntime) Compose(candidate, project);
                 state.Completion.SetResult(ready);
                 events.Add(new { project, kind = "hit", key = state.Key });
                 return CacheResult.IndicateCacheHit(results.Targets.Select(pair => new PluginTargetResult(pair.Key,
@@ -162,6 +194,7 @@ public sealed class NativeCachePlugin : ProjectCachePluginBase
             if (!PackagePolicy) KeepOwnRuntimeMetadata(bundle, project);
             File.WriteAllText(Path.Combine(bundle, "results.json"), JsonSerializer.Serialize(new Results(project, state.Key, targets, session.Projects[project].Identity, session.Toolchain), Json));
             CompileBoundary.Seal(bundle);
+            if (apiRuntime) Compose(bundle, project, verifySelection: true);
             var api = DependencyIdentity(bundle, project);
             pending.Add((bundle, Path.Combine(session.Cache, state.Key)));
             state.Completion.SetResult(new Ready(bundle, api));
@@ -203,7 +236,8 @@ public sealed class NativeCachePlugin : ProjectCachePluginBase
         {
             if (states.Values.Any(state => !state.Completion.Task.IsCompletedSuccessfully)) throw new InvalidDataException("incomplete graph; no cache publication");
             VerifyInputs();
-            if (!PackagePolicy)
+            if (apiRuntime) Compose((await states[session.Entry].Completion.Task).Bundle, session.Entry);
+            else if (!PackagePolicy)
             {
                 var own = await states[session.Entry].Completion.Task;
                 var dependencies = await Task.WhenAll(states.Where(pair => pair.Key != session.Entry).Select(pair => pair.Value.Completion.Task));

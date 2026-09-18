@@ -1,5 +1,9 @@
 # Native-cache Serilog qualification
 
+This records the original conservative implementation policy. The subsequent
+[API/runtime boundary](native-api-runtime.md) versions the evaluated policy and
+separates ordinary project compilation reuse from current runtime composition.
+
 ## Step 1: evaluated inputs
 
 `tools/native_graph.py` adds an opt-in input path through the existing

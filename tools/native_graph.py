@@ -9,7 +9,7 @@ import tempfile
 from preparation_identity import digest
 from prepare_graph import prepare
 
-POLICY = 'evaluated-packages-v1'
+POLICY = 'evaluated-api-runtime-v2'
 
 
 def relative(value):
@@ -52,6 +52,7 @@ def materialize(prepared, graph, output, toolchain):
     if packages.exists():shutil.copytree(packages,output/'src/.nuget/packages',dirs_exist_ok=True)
     restore={}
     projects={}
+    records={}
     for identity,n in nodes.items():
         state=json.loads((prepared/'restore'/f'{identity}.json').read_text())
         # Only the SDK Build handoff. Restore-only receipts contain path-salted hashes.
@@ -78,8 +79,10 @@ def materialize(prepared, graph, output, toolchain):
         for name in ('global.json','NuGet.Config','NuGet.config','Directory.Build.props','Directory.Build.targets'):
             path=output/'src'/name
             if path.is_file():inputs['workspace/'+name]=hashlib.sha256(path.read_bytes()).hexdigest()
-        projects[relative(n['project'])]=dict(identity=digest(dict(policy=POLICY,inputs=inputs,restore=selected,packages=package_manifest,configuration=n['globalProperties'],graphInputs=graph.get('graphInputs',[]))),dependencies=[relative(nodes[d]['project']) for d in n['dependencies']])
+        records[relative(n['project'])]=dict(policy=POLICY,inputs=inputs,restore=selected,packages=package_manifest,configuration=n['globalProperties'],graphInputs=graph.get('graphInputs',[]))
+        projects[relative(n['project'])]=dict(identity=digest(records[relative(n['project'])]),dependencies=[relative(nodes[d]['project']) for d in n['dependencies']])
     manifest=dict(policy=POLICY,toolchain=toolchain,projects=projects)
+    (output/'identity-records.json').write_text(json.dumps(records,sort_keys=True)+'\n')
     (output/'manifest.json').write_text(json.dumps(manifest,sort_keys=True,indent=2)+'\n')
     (output/'restore.json').write_text(json.dumps(restore,sort_keys=True)+'\n')
     (output/'entry.json').write_text(json.dumps(dict(entry=relative(nodes[graph['entryPoints'][0]]['project'])))+'\n')
@@ -88,14 +91,58 @@ def materialize(prepared, graph, output, toolchain):
     return manifest
 
 
-def prepare_native(workspace, graph_path, output, *, toolchain):
+
+def refresh_sources(previous, workspace, graph, output, toolchain, *, certificate, previous_certificate, payload_sha256):
+    """Reuse a verified native payload for a qualified compile-content-only change.
+
+    The caller holds discovery/preparation leases. Re-derive the narrow graph
+    update here, verify copied bytes, and replace only the named C# inputs and
+    their project identities. Package archives/restore/imports cannot change.
+    """
+    from preparation_reuse import payload_identity
+    from preparation_source_update import refresh
+    old_graph = json.loads((previous / 'graph.json').read_text())
+    derived = refresh(previous_certificate, old_graph, certificate['identity'])
+    if derived is None or derived != (graph, certificate):
+        raise ValueError('native source refresh is not a qualified derivation')
+    qualify(graph)
+    shutil.copytree(previous, output)
+    if payload_identity(output) != payload_sha256:
+        raise ValueError('native payload changed during source refresh')
+    manifest = json.loads((output / 'manifest.json').read_text())
+    records = json.loads((output / 'identity-records.json').read_text())
+    if manifest['toolchain'] != toolchain or set(records) != set(manifest['projects']):
+        raise ValueError('native refresh identity mismatch')
+    for project, record in records.items():
+        if digest(record) != manifest['projects'][project]['identity']:
+            raise ValueError('native refresh record mismatch')
+    changed = set(certificate['derivation']['changedSources'])
+    inputs = graph.get('graphInputs', []) + [item for node in graph['nodes'] for item in node['inputs']]
+    hashes = {item['path']: item['sha256'] for item in inputs if item['path'] in changed}
+    for logical in changed:
+        path = relative(logical)
+        data = (workspace / path).read_bytes()
+        if hashlib.sha256(data).hexdigest() != hashes[logical]:
+            raise ValueError('native source changed during refresh')
+        (output / 'src' / path).write_bytes(data)
+    for project, record in records.items():
+        record['inputs'].update({path: value for path, value in hashes.items() if path in record['inputs']})
+        record['graphInputs'] = graph.get('graphInputs', [])
+        manifest['projects'][project]['identity'] = digest(record)
+    (output / 'identity-records.json').write_text(json.dumps(records, sort_keys=True) + '\n')
+    (output / 'manifest.json').write_text(json.dumps(manifest, sort_keys=True, indent=2) + '\n')
+    (output / 'graph.json').write_text(json.dumps(graph, indent=2) + '\n')
+    return manifest
+
+
+def prepare_native(workspace, graph_path, output, *, toolchain, environment=None, _prebuilt_tools=None):
     workspace,graph_path,output=map(lambda p:Path(p).resolve(),(workspace,graph_path,output))
     if len(toolchain)!=64 or any(c not in '0123456789abcdef' for c in toolchain):raise ValueError('explicit toolchain digest required')
     if output.exists():raise FileExistsError(output)
     qualify(json.loads(graph_path.read_text()))
     with tempfile.TemporaryDirectory(prefix='.native-plan-',dir=output.parent) as temp:
         root=Path(temp);validated=root/'validated'
-        graph=prepare(workspace,graph_path,validated)
+        graph=prepare(workspace,graph_path,validated,environment=environment,_prebuilt_tools=_prebuilt_tools)
         result=materialize(validated,graph,root/'payload',toolchain)
         (root/'payload').rename(output)
         return result

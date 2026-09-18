@@ -214,8 +214,20 @@ def probe(source, packages, output):
             # A private method changes implementation bytes without adding public API.
             body.write_text(original_body.replace('public static class Log\n{', 'public static class Log\n{\n    static int NativeCacheBodyProbe() => 42;'))
             assert body.read_text() != original_body
+            # Adding a method before an async method changes its generated state-machine
+            # name in reference metadata. It is not a stable-reference body control.
+            changed = prepare('private-member-edit', consumer)
+            build('private-member-edit', changed, 2)
+            catalog = snapshot.copy()
+            body.write_text(original_body.replace('public static bool IsEnabled(LogEventLevel level) => Logger.IsEnabled(level);',
+                                                 'public static bool IsEnabled(LogEventLevel level) => false;'))
             changed = prepare('body-edit', consumer)
-            edited = build('body-edit', changed, 2)
+            edited = build('body-edit', changed, 1)
+            def library_reference(bundle):
+                refs = list((bundle / 'cache').glob('*/artifacts/src/Serilog/obj/Release/net10.0/ref/Serilog.dll'))
+                assert len(refs) == 1
+                return hashlib.sha256(refs[0].read_bytes()).hexdigest()
+            assert library_reference(edited) == library_reference(recovered), 'body edit changed reference assembly'
             assert hashes(edited / 'app') == raw('body-raw', consumer)
             test('body-test', edited, consumer)
             body.write_text(original_body.replace('public static class Log\n{', 'public static class Log\n{\n    /// <summary>Cache invalidation acceptance probe.</summary>\n    public static int NativeCacheApiProbe() => 42;'))

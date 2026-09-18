@@ -8,7 +8,7 @@ return await GraphTest.Run(args);
 internal sealed record DataFile(string Source, string Destination, string Sha256);
 internal sealed record Request(int SchemaVersion, string Project, Dictionary<string, string> GlobalProperties,
     string[] Bundles, string RuntimeDirectory, string Assembly, DataFile[] TestData, string[] ExpectedTests,
-    string SdkRoot, string SourceRoot = "/_/workspace");
+    string SdkRoot, string SourceRoot = "/_/workspace", string? NativeBundle = null, string? NativeInputs = null, string? NativeToolchain = null);
 internal sealed record Artifact(string Path, long Size, string Sha256);
 
 internal static class GraphTest
@@ -74,14 +74,31 @@ internal static class GraphTest
             var runfiles = Environment.GetEnvironmentVariable("TEST_SRCDIR") ?? Directory.GetCurrentDirectory();
             var sdk = Resolve(runfiles, request.SdkRoot);
             var matches = new List<string>();
-            foreach (var logical in request.Bundles)
+            var candidates = request.Bundles.Select(logical => Resolve(runfiles, logical));
+            if (request.NativeBundle is not null)
             {
-                var bundle = Resolve(runfiles, logical);
+                if (request.Bundles.Length != 0 || request.NativeInputs is null || request.NativeToolchain is null ||
+                    request.GlobalProperties.Count != 2 || !request.GlobalProperties.TryGetValue("configuration", out var configuration) || configuration != "Release" ||
+                    !request.GlobalProperties.TryGetValue("targetframework", out var framework) || framework != "net10.0" ||
+                    request.RuntimeDirectory != Path.GetDirectoryName(request.Project) + "/bin/Release/net10.0")
+                    throw new InvalidDataException("invalid native test identity");
+                candidates = Directory.EnumerateDirectories(Path.Combine(Resolve(runfiles, request.NativeBundle), "runtime"));
+            }
+            foreach (var bundle in candidates)
+            {
                 using var seal = JsonDocument.Parse(File.ReadAllText(Path.Combine(bundle, "bundle.json")));
                 if (seal.RootElement.GetProperty("schemaVersion").GetInt32() != 1 ||
                     seal.RootElement.GetProperty("resultsSha256").GetString() != Hash(Path.Combine(bundle, "results.json")) ||
                     seal.RootElement.GetProperty("artifactsSha256").GetString() != Hash(Path.Combine(bundle, "artifacts.json"))) throw new InvalidDataException("test bundle metadata corrupt");
                 using var payload = JsonDocument.Parse(File.ReadAllText(Path.Combine(bundle, "results.json")));
+                if (request.NativeBundle is not null)
+                {
+                    if (payload.RootElement.GetProperty("project").GetString() == request.Project &&
+                        payload.RootElement.GetProperty("inputs").GetString() == request.NativeInputs &&
+                        payload.RootElement.GetProperty("toolchain").GetString() == request.NativeToolchain &&
+                        payload.RootElement.GetProperty("key").GetString() == Path.GetFileName(bundle)) matches.Add(bundle);
+                    continue;
+                }
                 if (payload.RootElement.GetProperty("schemaVersion").GetInt32() != 1 || payload.RootElement.GetProperty("sdkVersion").GetString() != "10.0.400" || payload.RootElement.GetProperty("targetFramework").GetString() != "net10.0") throw new InvalidDataException("test bundle identity/version mismatch");
                 if (payload.RootElement.GetProperty("project").GetString() == request.Project && Properties(payload.RootElement.GetProperty("properties"), request.GlobalProperties)) matches.Add(bundle);
             }

@@ -13,6 +13,7 @@ internal static class Program
     private static readonly JsonSerializerOptions Json = new() { PropertyNamingPolicy = JsonNamingPolicy.CamelCase, WriteIndented = true };
     public static async Task<int> Main(string[] args)
     {
+        string? scratch = null;
         try
         {
             if (args is not ["--portable-request", var file]) throw new ArgumentException("expected --portable-request PATH");
@@ -21,7 +22,7 @@ internal static class Program
             var diagnostics = Path.GetFullPath(request.Diagnostics);
             if (Directory.Exists(output) && Directory.EnumerateFileSystemEntries(output).Any())
                 throw new InvalidDataException("portable runner requires an empty output");
-            var scratch = Path.Combine(output, ".work");
+            scratch = Path.Combine(output, ".work");
             var workspace = Path.Combine(scratch, "w");
             var home = Path.Combine(scratch, "home"); Directory.CreateDirectory(home);
             Directory.CreateDirectory(workspace); Directory.CreateDirectory(diagnostics);
@@ -45,7 +46,7 @@ internal static class Program
             }
             var manifest = JsonSerializer.Deserialize<PortableManifest>(File.ReadAllText(request.Manifest), Json)!;
             var selection = "";
-            if (manifest.Policy == "evaluated-packages-v1")
+            if (manifest.Policy == "evaluated-api-runtime-v2")
             {
                 var document = new XElement("Project");
                 foreach (var (project, declared) in manifest.Projects)
@@ -90,6 +91,9 @@ internal static class Program
             foreach (var arg in new[] { "exec", Path.Combine(sdk, "sdk/10.0.400/MSBuild.dll"), request.Entry, "-t:Build", "-p:Configuration=Release", "-p:TargetFramework=net10.0", "-graphBuild", "-isolateProjects", "-m:2", "-nodeReuse:false", "-nologo", "-verbosity:normal", "-p:PathMap=" + workspace + "=/_/workspace", "-p:DirectoryBuildTargetsPath=" + targets }) start.ArgumentList.Add(arg);
             start.Environment.Clear();
             foreach (var (key, value) in PortableEnvironment.Create(sdk, home, scratch, workspace)) start.Environment[key] = value;
+            if (manifest.Policy == "evaluated-api-runtime-v2") start.Environment["MSBuildEnableWorkloadResolver"] = "false";
+            // Failed builds must not leave diagnostic FIFOs for Bazel to hash.
+            start.Environment["DOTNET_EnableDiagnostics"] = "0";
             start.Environment["NATIVE_CACHE_SESSION"] = sessionPath;
             using var process = Process.Start(start)!;
             var stdout = process.StandardOutput.ReadToEndAsync(); var stderr = process.StandardError.ReadToEndAsync();
@@ -98,7 +102,7 @@ internal static class Program
             var log = await stdout + await stderr;
             File.WriteAllText(Path.Combine(diagnostics, "build.log"), log);
             var compiles = log.Split('\n').Count(line => line.Contains("/Roslyn/bincore/csc", StringComparison.Ordinal) && line.Contains(" /noconfig ", StringComparison.Ordinal));
-            File.WriteAllText(Path.Combine(diagnostics, "action.json"), JsonSerializer.Serialize(new { compiles, exitCode = process.ExitCode, environmentPolicy = PortableEnvironment.Policy }, Json));
+            File.WriteAllText(Path.Combine(diagnostics, "action.json"), JsonSerializer.Serialize(new { compiles, exitCode = process.ExitCode, environmentPolicy = manifest.Policy == "evaluated-api-runtime-v2" ? "evaluated-net10-release-env-v1" : PortableEnvironment.Policy }, Json));
             if (process.ExitCode != 0) { Console.Error.WriteLine(log); return process.ExitCode; }
             // Export only bundles selected by this graph, never an accumulating history.
             var selected = JsonSerializer.Deserialize<JsonElement[]>(File.ReadAllText(report))!
@@ -106,10 +110,25 @@ internal static class Program
                 .Select(e => e.GetProperty("key").GetString()!).ToHashSet(StringComparer.Ordinal);
             foreach (var directory in Directory.EnumerateDirectories(cache))
                 if (!selected.Contains(Path.GetFileName(directory))) Directory.Delete(directory, true);
-            Files.CopyTree(Path.Combine(workspace, Path.GetDirectoryName(request.Entry)!, "bin/Release/net10.0"), Path.Combine(output, "app"));
+            // Compile cache bundles can contain historical copy-local implementations.
+            // Publish a separate sealed current runtime for test consumers.
+            var entryBundle = Directory.EnumerateDirectories(cache).Single(bundle =>
+                JsonSerializer.Deserialize<Results>(File.ReadAllText(Path.Combine(bundle, "results.json")), Json)!.Project == request.Entry);
+            CompileBoundary.Validate(entryBundle);
+            var runtime = Path.Combine(output, "runtime", Path.GetFileName(entryBundle));
+            Files.CopyTree(entryBundle, runtime);
+            var runtimeDirectory = Path.Combine(Path.GetDirectoryName(request.Entry)!, "bin/Release/net10.0");
+            Directory.Delete(Path.Combine(runtime, "artifacts", runtimeDirectory), true);
+            Files.CopyTree(Path.Combine(workspace, runtimeDirectory), Path.Combine(runtime, "artifacts", runtimeDirectory));
+            CompileBoundary.Seal(runtime);
+            Files.CopyTree(Path.Combine(runtime, "artifacts", runtimeDirectory), Path.Combine(output, "app"));
             Directory.Delete(scratch, true);
             return 0;
         }
         catch (Exception error) { Console.Error.WriteLine(error); return 1; }
+        finally
+        {
+            if (scratch is not null && Directory.Exists(scratch)) Directory.Delete(scratch, true);
+        }
     }
 }

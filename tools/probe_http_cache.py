@@ -1,22 +1,42 @@
 """Loopback-only experimental HTTP cache; deliberately not a production service."""
 import hashlib
+import math
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 import re
 import threading
 import time
 
 
+class Bandwidth:
+    """One shared payload budget per direction, across all concurrent requests."""
+    def __init__(self, mbps):
+        if not math.isfinite(mbps) or mbps < 0: raise ValueError('bandwidth must be finite and nonnegative')
+        self.rate = mbps * 1_000_000 / 8
+        self.lock = threading.Lock(); self.next = 0
+
+    def wait(self, size):
+        if not self.rate: return
+        with self.lock:
+            now = time.perf_counter()
+            self.next = max(now, self.next) + size / self.rate
+            deadline = self.next
+        time.sleep(max(0, deadline - time.perf_counter()))
+
+
 class CacheServer:
-    def __init__(self, delay_ms=0):
+    def __init__(self, delay_ms=0, download_mbps=0, upload_mbps=0):
+        if not math.isfinite(delay_ms) or delay_ms < 0: raise ValueError('delay must be finite and nonnegative')
         self.data = {}; self.events = []; self.lock = threading.Lock()
         self.delay_ms = delay_ms; self.offline = False; self.offline_prefixes = []
+        self.download = Bandwidth(download_mbps); self.upload = Bandwidth(upload_mbps)
         owner = self
         class Handler(BaseHTTPRequestHandler):
             protocol_version = 'HTTP/1.1'
             def log_message(self, *args): pass
+            def do_HEAD(self): self.handle_cache(False, head=True)
             def do_GET(self): self.handle_cache(False)
             def do_PUT(self): self.handle_cache(True)
-            def handle_cache(self, write):
+            def handle_cache(self, write, head=False):
                 start = time.perf_counter()
                 path = self.path
                 if not re.fullmatch(r'/(?:bazel/(?:ac|cas)|native/(?:index|cas))/[0-9a-f]{64}', path):
@@ -24,7 +44,12 @@ class CacheServer:
                 size = int(self.headers.get('Content-Length', '0'))
                 if size < 0 or size > 64 * 1024 * 1024:
                     self.send_error(413); return
-                body = self.rfile.read(size) if write else b''
+                chunks = []
+                if write:
+                    for offset in range(0, size, 65536):
+                        chunk = self.rfile.read(min(65536, size - offset))
+                        owner.upload.wait(len(chunk)); chunks.append(chunk)
+                body = b''.join(chunks)
                 time.sleep(owner.delay_ms / 1000)
                 with owner.lock:
                     status = 503 if owner.offline or any(path.startswith(prefix) for prefix in owner.offline_prefixes) else 200
@@ -35,9 +60,13 @@ class CacheServer:
                         elif path in owner.data: body = owner.data[path]
                         else: status = 404
                     response = b'' if write or status != 200 else body
-                    owner.events.append(dict(method=self.command,path=path,status=status,bytes=len(body) if write else len(response),seconds=time.perf_counter()-start))
                 self.send_response(status); self.send_header('Content-Length',str(len(response))); self.end_headers()
-                if response: self.wfile.write(response)
+                if response and not head:
+                    for offset in range(0, len(response), 65536):
+                        chunk = response[offset:offset + 65536]
+                        owner.download.wait(len(chunk)); self.wfile.write(chunk); self.wfile.flush()
+                with owner.lock:
+                    owner.events.append(dict(method=self.command,path=path,status=status,bytes=len(body) if write else 0 if head else len(response),seconds=time.perf_counter()-start))
         class Server(ThreadingHTTPServer):
             request_queue_size = 256
         self.server = Server(('127.0.0.1',0),Handler)

@@ -8,6 +8,7 @@
     <Compile Include="../ActionRunner/Files.cs" Link="Files.cs" />
     <Compile Include="../ActionRunner/Contracts.cs" Link="Contracts.cs" />
     <Compile Include="../ActionRunner/JsonFiles.cs" Link="JsonFiles.cs" />
+    <Compile Include="../ActionRunner/EvaluatedBoundary.cs" Link="EvaluatedBoundary.cs" />
     <Compile Include="../ActionRunner/CompileBoundary.cs" Link="CompileBoundary.cs" />
   </ItemGroup>
 </Project>

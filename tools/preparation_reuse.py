@@ -4,7 +4,7 @@ Use prepared_view through the end of consumption. Persisted JSON is never a leas
 The cache is owned local state, not an authenticated or remote artifact store.
 """
 import argparse
-from contextlib import contextmanager
+from contextlib import contextmanager, ExitStack
 import fcntl
 import hashlib
 import json
@@ -14,6 +14,8 @@ import shutil
 import sys
 import subprocess
 import uuid
+import tempfile
+import zipfile
 
 import discovery_contract as discovery
 import prepare_graph
@@ -33,12 +35,13 @@ def controller():
 CONTROLLER = controller()
 
 
-def tool_identity():
+def tool_identity(protected_store=None):
     if controller() != CONTROLLER:
         raise IdentityError('preparation controller changed; start a fresh process')
     roots = [ROOT / 'bazel', *[ROOT / 'tools' / name for name in
-             ('GraphExport', 'EvaluationProbe', 'ReplayPlugin', 'ActionRunner')]]
-    return dict(controller=CONTROLLER, trees={str(p): tree_snapshot(p)['sha256'] for p in roots},
+             ('GraphExport', 'EvaluationProbe', 'ReplayPlugin', 'ActionRunner', 'NativeProjectCache', 'TestRunner')]]
+    snapshot = tree_snapshot if protected_store is None else protected_store.snapshot
+    return dict(controller=CONTROLLER, trees={str(p): snapshot(p, [p])['sha256'] for p in roots},
                 sdk=str(prepare_graph.DOTNET_ROOT), python=dict(version=sys.version, executable=sys.executable,
                     executableSha256=hashlib.sha256(Path(sys.executable).read_bytes()).hexdigest()))
 
@@ -106,7 +109,7 @@ def verify_view(certificate, *, protected_store=None):
         raise IdentityError('external namespace changed before publication')
 
 
-def publish(state, workspace, graph_path, certificate, request, *, protected_store=None, compile_boundary=False):
+def publish(state, workspace, graph_path, certificate, request, *, protected_store=None, compile_boundary=False, native_toolchain=None, previous_native=None, imported_payload=None, imported_sha256=None):
     """Flush a complete generation before atomically switching the commit pointer."""
     generations = state / 'generations'
     generations.mkdir(exist_ok=True)
@@ -114,8 +117,25 @@ def publish(state, workspace, graph_path, certificate, request, *, protected_sto
     pending = generations / ('.pending-' + name)
     pending.mkdir()
     try:
-        prepare_graph._prepare(workspace, graph_path, pending / 'payload', _leased=True, compile_boundary=compile_boundary)
-        if tool_identity() != request['tools']:
+        if imported_payload is not None:
+            shutil.copytree(imported_payload, pending / 'payload')
+            if payload_identity(pending / 'payload') != imported_sha256:
+                raise IdentityError('remote payload changed during installation')
+        elif native_toolchain is None:
+            prepare_graph._prepare(workspace, graph_path, pending / 'payload', _leased=True, compile_boundary=compile_boundary)
+        elif previous_native is not None:
+            from native_graph import refresh_sources
+            generation, previous_manifest = previous_native
+            refresh_sources(generation / 'payload', workspace, json.loads(graph_path.read_text()),
+                pending / 'payload', native_toolchain, certificate=certificate,
+                previous_certificate=previous_manifest['certificate'], payload_sha256=previous_manifest['payloadSha256'])
+        else:
+            from native_graph import materialize
+            prepared = pending / 'evaluated'
+            graph = prepare_graph._prepare(workspace, graph_path, prepared, _leased=True)
+            materialize(prepared, graph, pending / 'payload', native_toolchain)
+            shutil.rmtree(prepared)
+        if tool_identity(protected_store) != request['tools']:
             raise IdentityError('preparation tools changed during materialization')
         manifest = dict(policy=POLICY, request=request, certificate=certificate,
                         payloadSha256=payload_identity(pending / 'payload'))
@@ -137,14 +157,18 @@ def publish(state, workspace, graph_path, certificate, request, *, protected_sto
 
 
 @contextmanager
-def fresh_view(source, output, entries, *, environment=None, tests=None, compile_boundary=False):
+def fresh_view(source, output, entries, *, environment=None, tests=None, compile_boundary=False, native_toolchain=None):
     """Existing uncached behavior for operations outside the qualified slice."""
     import tempfile
+    if native_toolchain is not None: environment = dict(os.environ, MSBuildEnableWorkloadResolver='false')
     with tempfile.TemporaryDirectory(prefix='fresh-export-', dir=output.parent) as directory:
         temporary = Path(directory)
         dotnet = prepare_graph.DOTNET_ROOT / 'dotnet'
-        subprocess.run([str(dotnet), 'build', str(ROOT / 'tools/GraphExport'), '-c', 'Release', '--nologo'],
-                       cwd=ROOT, env=environment, check=True)
+        # Native callers bind prebuilt tools before entering preparation.
+        # Rebuilding here would mutate the controller within that invocation.
+        if native_toolchain is None:
+            subprocess.run([str(dotnet), 'build', str(ROOT / 'tools/GraphExport'), '-c', 'Release', '--nologo'],
+                           cwd=ROOT, env=environment, check=True)
         graph = temporary / 'graph.json'
         request = temporary / 'request.json'
         request.write_text(json.dumps(dict(schemaVersion=1, workspace=str(source),
@@ -152,19 +176,28 @@ def fresh_view(source, output, entries, *, environment=None, tests=None, compile
             packageRoot=str(source / '.nuget/packages'), entryPoints=entries, output=str(graph))))
         subprocess.run([str(dotnet), str(ROOT / 'tools/GraphExport/bin/Release/net10.0/GraphExport.dll'),
                         '--request', str(request)], cwd=source, env=environment, check=True)
-        prepare_graph.prepare(source, graph, output, environment=environment, tests=tests, compile_boundary=compile_boundary)
+        if native_toolchain is None:
+            prepare_graph.prepare(source, graph, output, environment=environment, tests=tests, compile_boundary=compile_boundary)
+        else:
+            from native_graph import prepare_native
+            prepare_native(source, graph, output, toolchain=native_toolchain, environment=environment, _prebuilt_tools={name: ROOT / 'tools' / name / 'bin/Release/net10.0' / (name + '.dll') for name in ('GraphExport', 'ReplayPlugin')})
         yield dict(reused=False, discoveryExecuted=True, materializationExecuted=True,
-                   toolBuildsExecuted=True, reason='unsupported-request', workspace=str(output))
+                   toolBuildsExecuted=native_toolchain is None, reason='unsupported-request', workspace=str(output))
 
 
 @contextmanager
-def prepared_view(source, state, output, entries, *, environment=None, tests=None, protected_store=None, incremental_sources=False, compile_boundary=False):
+def prepared_view(source, state, output, entries, *, environment=None, tests=None, protected_store=None, incremental_sources=False, compile_boundary=False, native_toolchain=None, borrow_native=False, remote_preparation=None, nuget_cache=None):
     """Materialize a private consumer copy and retain both leases until it finishes.
 
     Tools must be prebuilt for reuse. Tests and custom environments take the fresh
     path. A cache hit skips evaluation, export, tool builds and materialization;
     input sealing/hashing, artifact verification and consumer copying still run.
     """
+    if borrow_native and native_toolchain is None:
+        raise IdentityError('borrowing requires native read-only consumption')
+    if native_toolchain is not None and (compile_boundary or tests is not None or environment is not None or
+            len(native_toolchain) != 64 or any(c not in '0123456789abcdef' for c in native_toolchain)):
+        raise IdentityError('native preparation requires an explicit digest and build-only default context')
     source, state, output = (Path(p).resolve() for p in (source, state, output))
     if output.exists(): raise FileExistsError(output)
     for left, right in ((source, state), (source, output), (state, output), (ROOT, state)):
@@ -175,11 +208,11 @@ def prepared_view(source, state, output, entries, *, environment=None, tests=Non
         all(set(e) == {'project', 'globalProperties'} and e['globalProperties'] ==
             {'Configuration': 'Release', 'TargetFramework': 'net10.0'} for e in entries))
     if not supported:
-        with fresh_view(source, output, entries, environment=environment, tests=tests, compile_boundary=compile_boundary) as result:
+        with fresh_view(source, output, entries, environment=environment, tests=tests, compile_boundary=compile_boundary, native_toolchain=native_toolchain) as result:
             yield result
         return
     state.mkdir(parents=True, exist_ok=True)
-    with (state / 'lease').open('a') as lease:
+    with (state / 'lease').open('a') as lease, ExitStack() as remote_stack:
         fcntl.flock(lease, fcntl.LOCK_EX)
         marker = state / 'owner.json'
         if not marker.exists():
@@ -193,56 +226,97 @@ def prepared_view(source, state, output, entries, *, environment=None, tests=Non
             if pending.is_symlink(): pending.unlink()
             else: shutil.rmtree(pending)
         request = dict(entries=entries, environment=environment, tests=tests,
-                       operation='prepare_graph', tools=tool_identity(), compileBoundary=compile_boundary)
-        if protected_store is not None: request['storePolicy'] = 'trusted-system-nix-session-v1'
+                       operation='prepare_graph', tools=tool_identity(protected_store), compileBoundary=compile_boundary)
+        if native_toolchain is not None: request['nativeToolchain'] = native_toolchain
+        if protected_store is not None: request['storePolicy'] = getattr(protected_store, 'policy', 'trusted-system-nix-session-v1')
         if incremental_sources: request['sourcePolicy'] = 'compile-content-only-v1'
         candidate, reason = read_candidate(state, request)
+        remote_metadata = None
+        if candidate is None and remote_preparation is not None:
+            import remote_preparation as portable
+            try:
+                directory = Path(remote_stack.enter_context(tempfile.TemporaryDirectory(prefix='.remote-', dir=state))) / 'generation'
+                remote_metadata = portable.download(*remote_preparation, directory, request, cache_roots=([nuget_cache] if nuget_cache is not None else []) + [source / '.nuget/packages'])
+                candidate = (directory, dict(policy=POLICY, request=request,
+                    certificate=remote_metadata['certificate'], payloadSha256=remote_metadata['payloadSha256']))
+            except (OSError, ValueError, KeyError, TypeError, zipfile.BadZipFile) as error:
+                remote_metadata = None
+                reason = 'remote-preparation-miss: ' + str(error)
         discovery_state = state / 'discovery'
 
+        @contextmanager
         def consume(generation, manifest, reused, reason, discovery_executed=None):
-            # Atomic publication of the caller's copy; builds never mutate cached bytes.
-            import tempfile
-            with tempfile.TemporaryDirectory(prefix='.consumer-', dir=output.parent) as directory:
-                staged = Path(directory) / 'workspace'
-                shutil.copytree(generation / 'payload', staged)
-                if payload_identity(staged) != manifest['payloadSha256']:
-                    raise IdentityError('prepared payload changed during copy')
-                if output.exists(): raise FileExistsError(output)
-                staged.rename(output)
-            return dict(reused=reused, discoveryExecuted=not reused if discovery_executed is None else discovery_executed,
-                        materializationExecuted=not reused, toolBuildsExecuted=False,
-                        reason=reason, workspace=str(output))
+            payload = generation / 'payload'
+            if borrow_native:
+                # Native staging only reads this view. The preparation lease is
+                # held until after its bytes are checked again at consumption exit.
+                workspace = payload
+            else:
+                import tempfile
+                with tempfile.TemporaryDirectory(prefix='.consumer-', dir=output.parent) as directory:
+                    staged = Path(directory) / 'workspace'
+                    shutil.copytree(payload, staged)
+                    if payload_identity(staged) != manifest['payloadSha256']:
+                        raise IdentityError('prepared payload changed during copy')
+                    if output.exists(): raise FileExistsError(output)
+                    staged.rename(output)
+                workspace = output
+            result = dict(reused=reused, discoveryExecuted=not reused if discovery_executed is None else discovery_executed,
+                       materializationExecuted=not reused, toolBuildsExecuted=False,
+                       reason=reason, workspace=str(workspace), sourceView=str(discovery_state / 'workspace'),
+                       borrowedPayload=borrow_native)
+            if remote_metadata is not None: result['remotePackages'] = remote_metadata['packageReuse']
+            yield result
+            if borrow_native and payload_identity(payload) != manifest['payloadSha256']:
+                raise IdentityError('prepared payload changed during consumption')
 
         if candidate:
             generation, manifest = candidate
             options = {'protected_store': protected_store} if protected_store is not None else {}
             if incremental_sources: options['candidate_graph'] = json.loads((generation / 'payload/graph.json').read_text())
-            with discovery.qualified_view(source, discovery_state, entries, candidate=manifest['certificate'], **options) as validation:
+            if remote_metadata is not None:
+                options['candidate_adapter'] = lambda previous, current, host: portable.rebase(remote_metadata, current, host)
+            with ExitStack() as candidate_stack:
+                try:
+                    validation = candidate_stack.enter_context(discovery.qualified_view(source, discovery_state, entries, candidate=manifest['certificate'], **options))
+                except (OSError, ValueError, KeyError, TypeError) as error:
+                    if remote_metadata is None: raise
+                    validation = {'unchanged': False}
+                    reason = 'remote-preparation-miss: ' + str(error)
+                if remote_metadata is not None and 'candidateCertificate' in validation:
+                    manifest = dict(manifest, certificate=validation['candidateCertificate'])
                 if validation['unchanged']:
-                    yield consume(generation, manifest, True, 'unchanged')
-                    if tool_identity() != request['tools']: raise IdentityError('tools changed during consumption')
+                    if remote_metadata is not None:
+                        generation = publish(state, discovery_state / 'workspace', generation / 'payload/graph.json', manifest['certificate'], request,
+                            protected_store=protected_store, native_toolchain=native_toolchain, imported_payload=generation / 'payload', imported_sha256=manifest['payloadSha256'])
+                        manifest = json.loads((generation / 'manifest.json').read_text())
+                    with consume(generation, manifest, True, 'remote-unchanged' if remote_metadata is not None else 'unchanged') as result: yield result
+                    if tool_identity(protected_store) != request['tools']: raise IdentityError('tools changed during consumption')
                     return
                 if validation.get('sourceContentUpdate'):
-                    generation = publish(state, discovery_state / 'workspace', discovery_state / 'output/graph.json', validation['certificate'], request, protected_store=protected_store, compile_boundary=compile_boundary)
+                    generation = publish(state, discovery_state / 'workspace', discovery_state / 'output/graph.json', validation['certificate'], request, protected_store=protected_store, compile_boundary=compile_boundary, native_toolchain=native_toolchain, previous_native=(generation, manifest) if native_toolchain is not None else None)
                     manifest = json.loads((generation / 'manifest.json').read_text())
-                    yield consume(generation, manifest, False, 'source-content-changed', discovery_executed=False)
-                    if tool_identity() != request['tools']: raise IdentityError('tools changed during consumption')
+                    with consume(generation, manifest, False, 'remote-source-content-changed' if remote_metadata is not None else 'source-content-changed', discovery_executed=False) as result:
+                        result['packagePayloadReused'] = native_toolchain is not None
+                        yield result
+                    if tool_identity(protected_store) != request['tools']: raise IdentityError('tools changed during consumption')
                     return
-            reason = 'discovery-inputs-changed'
+            if not str(reason).startswith('remote-preparation-miss:'): reason = 'discovery-inputs-changed'
         # Only qualification failures before the yield can choose fresh preparation.
         # Consumer exceptions must propagate; never retry a user's command.
-        from contextlib import ExitStack
         with ExitStack() as stack:
             try:
                 certificate = stack.enter_context(discovery.qualified_view(source, discovery_state, entries, **({"protected_store": protected_store} if protected_store is not None else {})))
-            except IdentityError:
-                with fresh_view(source, output, entries, environment=environment, tests=tests, compile_boundary=compile_boundary) as result:
+            except IdentityError as error:
+                fallback_reason = str(error)
+                with fresh_view(source, output, entries, environment=environment, tests=tests, compile_boundary=compile_boundary, native_toolchain=native_toolchain) as result:
+                    result['reason'] = 'qualification-fallback: ' + fallback_reason
                     yield result
                 return
-            generation = publish(state, discovery_state / 'workspace', discovery_state / 'output/graph.json', certificate, request, protected_store=protected_store, compile_boundary=compile_boundary)
+            generation = publish(state, discovery_state / 'workspace', discovery_state / 'output/graph.json', certificate, request, protected_store=protected_store, compile_boundary=compile_boundary, native_toolchain=native_toolchain)
             manifest = json.loads((generation / 'manifest.json').read_text())
-            yield consume(generation, manifest, False, reason)
-            if tool_identity() != request['tools']: raise IdentityError('tools changed during consumption')
+            with consume(generation, manifest, False, reason) as result: yield result
+            if tool_identity(protected_store) != request['tools']: raise IdentityError('tools changed during consumption')
 
 
 if __name__ == '__main__':

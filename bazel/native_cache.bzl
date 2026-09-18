@@ -1,4 +1,7 @@
-"""Owned package-free prototype: explicit cache seeds, network-blocked graph action."""
+"""Opt-in native project cache with declared seeds and a sandboxed graph action."""
+
+# buildifier: disable=name-conventions
+NativeBundle = provider(doc = "Sealed native project bundles and entry runtime.", fields = ["bundle"])
 
 def _native_impl(ctx):
     output = ctx.actions.declare_directory(ctx.label.name + ".bundle")
@@ -26,7 +29,7 @@ def _native_impl(ctx):
         mnemonic = "MsbuildNativeCache",
         execution_requirements = {"block-network": "1", "no-remote-exec": "1"},
     )
-    return [DefaultInfo(files = depset([output, diagnostics]))]
+    return [DefaultInfo(files = depset([output, diagnostics])), NativeBundle(bundle = output)]
 
 msbuild_native_cache = rule(implementation = _native_impl, attrs = {
     "project": attr.string(mandatory = True),

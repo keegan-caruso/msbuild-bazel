@@ -75,9 +75,24 @@ workers; see the [coverage matrix](docs/scenario-coverage.md) and
 The opt-in [native MSBuild project cache](docs/native-cache-serilog.md) now admits
 the pinned Serilog library and approval-test graph through verified evaluated
 inputs and package manifests. Native Bazel builds preserve SDK runtime outputs;
-explicit HTTP snapshots support fresh-workspace project recovery. Dependency
-implementation keys are conservative. This selected same-host macOS slice does
+explicit HTTP snapshots support fresh-workspace project recovery. The
+[API/runtime boundary](docs/native-api-runtime.md) reuses ordinary project
+compilation across unchanged-reference body edits and composes current runtime
+outputs separately. This selected same-host macOS slice does
 not qualify code coverage, arbitrary packages or cross-host remote caching.
+The [native Build/Test command](docs/native-workflow.md) adds normal Bazel test
+execution and opt-in leased preparation reuse. [Complete workflow measurements](docs/native-workflow-performance.md)
+separate default CLI costs from optional retained-controller behavior. The
+[overhead follow-up](docs/native-workflow-optimization.md) measures retained inputs,
+package reuse, identity sharing and larger graphs.
+
+[Remote preparation snapshots](docs/remote-preparation.md) let fresh consumers
+reuse qualified discovery and native plans through the normal workflow command,
+with explicit snapshot digests and current-input verification.
+[NuGet global-cache reuse](docs/nuget-cache-reuse.md) avoids retransferring verified
+package payloads and keeps mutable global caches outside build actions.
+[Split preparation objects](docs/preparation-components.md) also reuse unchanged
+source groups, graph metadata, and SDK evidence, with shaped-network measurements.
 
 ## Quick start
 

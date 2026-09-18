@@ -1,5 +1,9 @@
 # MSBuild / Bazel implementation plan
 
+The [evaluated API/runtime boundary](native-api-runtime.md) follows the changed
+HTTP-cache baseline, separating ordinary project compilation reuse from current
+runtime composition while retaining SDK/package metadata in dependency keys.
+
 ## Question
 
 Can Bazel cache and schedule configured .NET projects while each action uses MSBuild and consumes dependency artifacts plus MSBuild result metadata?
@@ -399,3 +403,27 @@ conservative dependency implementation keys. Input preparation, execution and
 upstream acceptance are separate commits. The pinned library and approval graph
 have native macOS sandbox, HTTP recovery, mutation, corruption and actual-test
 evidence, with the code-coverage and cross-host limitations recorded explicitly.
+
+The [native Build/Test workflow](native-workflow.md) adds an explicit native-cache
+command and a Bazel test rule consuming sealed outputs and declared test data.
+Leased native-plan reuse and [complete-workflow measurements](native-workflow-performance.md)
+are separate follow-up commits. The timing report distinguishes correctness
+acceptance from the explicit raw-MSBuild performance target.
+
+The [native workflow overhead follow-up](native-workflow-optimization.md) records
+separately measured generated-workspace retention, verified package reuse on C#
+edits, invocation identity sharing with final checks, and larger-graph comparisons.
+
+The [remote preparation workflow](remote-preparation.md) adds explicit immutable
+HTTP snapshots for discovery/native-plan reuse on fresh consumers. It retains
+leased validation, guarded source refresh and project reference-assembly
+invalidation, with producer-deleted correctness and end-to-end measurements.
+
+[NuGet global-cache reuse](nuget-cache-reuse.md) stages the restored package
+closure into private inputs and reconstructs split remote preparation package
+objects from verified local bytes, preserving the build input and publication checks.
+
+[Split preparation objects and network measurements](preparation-components.md)
+extend reuse to source groups, graph metadata, and SDK evidence. The HTTP probe
+shares bandwidth across concurrent transfers and measures unchanged, body-edit,
+and package-upgrade consumers under explicit latency and bandwidth limits.

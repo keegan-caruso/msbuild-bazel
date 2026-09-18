@@ -122,7 +122,7 @@ def nix_imports(inputs, sdk_root):
     return sorted(paths)
 
 
-def prepare(workspace, manifest, output, *, environment=None, tests=None, tool_framework=None, engine_root=None, sdk_root=None, sdk_version=None, compile_boundary=False):
+def prepare(workspace, manifest, output, *, environment=None, tests=None, tool_framework=None, engine_root=None, sdk_root=None, sdk_version=None, compile_boundary=False, _prebuilt_tools=None):
     """Publish only a completely validated plan; serialize shared adapter builds."""
     output = Path(output).resolve()
     if output.exists():
@@ -133,7 +133,7 @@ def prepare(workspace, manifest, output, *, environment=None, tests=None, tool_f
     with lock.open('a') as handle, tempfile.TemporaryDirectory(prefix='.graph-prepare-', dir=output.parent) as temporary:
         fcntl.flock(handle, fcntl.LOCK_EX)
         staged = Path(temporary) / 'workspace'
-        graph = _prepare(workspace, manifest, staged, environment=environment, tests=tests, tool_framework=tool_framework, engine_root=engine_root, sdk_root=sdk_root, sdk_version=sdk_version, compile_boundary=compile_boundary)
+        graph = _prepare(workspace, manifest, staged, environment=environment, tests=tests, tool_framework=tool_framework, engine_root=engine_root, sdk_root=sdk_root, sdk_version=sdk_version, compile_boundary=compile_boundary, _prebuilt_tools=_prebuilt_tools)
         # Never replace another preparation's committed plan, including an empty directory.
         if output.exists():
             raise FileExistsError(output)
@@ -141,7 +141,7 @@ def prepare(workspace, manifest, output, *, environment=None, tests=None, tool_f
         return graph
 
 
-def _prepare(workspace, manifest, output, *, environment=None, tests=None, tool_framework=None, engine_root=None, sdk_root=None, sdk_version=None, _leased=False, compile_boundary=False):
+def _prepare(workspace, manifest, output, *, environment=None, tests=None, tool_framework=None, engine_root=None, sdk_root=None, sdk_version=None, _leased=False, compile_boundary=False, _prebuilt_tools=None):
     if _leased and any(value is not None for value in (environment, tests, tool_framework, engine_root, sdk_root, sdk_version)):
         raise ValueError("leased preparation requires the qualified default toolchain")
     workspace, manifest, output = map(lambda p: Path(p).resolve(), (workspace, manifest, output))
@@ -231,15 +231,20 @@ def _prepare(workspace, manifest, output, *, environment=None, tests=None, tool_
             DOTNET_MSBUILD_SDK_RESOLVER_CLI_DIR=str(dotnet_root),
             DOTNET_MSBUILD_SDK_RESOLVER_SDKS_DIR=str(selected_sdk / 'Sdks'),
             DOTNET_MSBUILD_SDK_RESOLVER_SDKS_VER=sdk_version)
-        built_tools = {}
-        for name in ('GraphExport', 'ReplayPlugin', 'ActionRunner') + (('TestRunner',) if tests else ()):
-            arguments = msbuild_tool.build_arguments(ROOT / 'tools' / name, tool_framework, engine_root) if name in ('GraphExport', 'ReplayPlugin') else ['msbuild', str(ROOT / 'tools' / name), '-restore', '-target:Build', '-property:Configuration=Release', '-nologo']
-            result = subprocess.run([str(dotnet_root / 'dotnet'), 'exec', str(dotnet_root / 'sdk' / sdk_version / 'MSBuild.dll'), *arguments[1:]], cwd=ROOT, text=True, capture_output=True, env=environment)
-            (output / (name + '-build.log')).write_text(result.stdout + result.stderr)
-            if result.returncode:
-                raise RuntimeError(name + ' build failed: ' + result.stdout + result.stderr)
-            if name in ('GraphExport', 'ReplayPlugin'):
-                built_tools[name] = msbuild_tool.output_path(result.stdout, name)
+        if _prebuilt_tools is not None:
+            if set(_prebuilt_tools) != {'GraphExport', 'ReplayPlugin'} or any(not Path(p).is_file() for p in _prebuilt_tools.values()):
+                raise ValueError('missing bound preparation tools')
+            built_tools = {name: Path(path) for name, path in _prebuilt_tools.items()}
+        else:
+            built_tools = {}
+            for name in ('GraphExport', 'ReplayPlugin', 'ActionRunner') + (('TestRunner',) if tests else ()):
+                arguments = msbuild_tool.build_arguments(ROOT / 'tools' / name, tool_framework, engine_root) if name in ('GraphExport', 'ReplayPlugin') else ['msbuild', str(ROOT / 'tools' / name), '-restore', '-target:Build', '-property:Configuration=Release', '-nologo']
+                result = subprocess.run([str(dotnet_root / 'dotnet'), 'exec', str(dotnet_root / 'sdk' / sdk_version / 'MSBuild.dll'), *arguments[1:]], cwd=ROOT, text=True, capture_output=True, env=environment)
+                (output / (name + '-build.log')).write_text(result.stdout + result.stderr)
+                if result.returncode:
+                    raise RuntimeError(name + ' build failed: ' + result.stdout + result.stderr)
+                if name in ('GraphExport', 'ReplayPlugin'):
+                    built_tools[name] = msbuild_tool.output_path(result.stdout, name)
         # Hashes cover present inputs only. Re-evaluation also discovers new globs,
         # previously absent imports and changed conditional project references.
         request = output.parent / 'discovery-request.json'
@@ -281,7 +286,7 @@ def _prepare(workspace, manifest, output, *, environment=None, tests=None, tool_
     (output / 'graph.json').write_text(json.dumps(graph, indent=2))
     return graph
 
-def write_build(workspace, graph, output, tests=None, *, closures=None, compile_boundary=False):
+def write_build(workspace, graph, output, tests=None, *, closures=None, compile_boundary=False, _prebuilt_tools=None):
     """Materialize declarations from an already validated graph."""
     nodes = {node['id']: node for node in graph['nodes']}
     if closures is None:

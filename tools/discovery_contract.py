@@ -5,6 +5,7 @@ docs/discovery-contract.md for the deliberately restricted authored XML grammar.
 """
 from contextlib import contextmanager
 import fcntl
+import hashlib
 import json
 import os
 from pathlib import Path
@@ -36,15 +37,18 @@ PROPERTIES |= {'Description', 'Authors', 'Copyright', 'AssemblyVersion', 'Target
 SDK_SWITCHES = {'UseAppHost': 'false', 'UseSharedCompilation': 'false',
                 'EnableNETAnalyzers': 'false', 'Deterministic': 'true',
                 'DisableTransitiveProjectReferences': 'true'}
+# Optional discovery literal; not a required switch for the owned synthetic policy.
+QUALIFIED_SDK_SWITCHES = dict(SDK_SWITCHES, DeterministicSourcePaths='false')
 ITEMS = {'Compile', 'None', 'EmbeddedResource', 'Content', 'AdditionalFiles',
-         'BazelExtraInput', 'ProjectReference', 'Reference', 'PackageReference', 'Using'}
-QUALIFIED_PACKAGES = {'polysharp/1.15.0', 'microsoft.net.illink.tasks/10.0.11'}
+         'BazelExtraInput', 'ProjectReference', 'Reference', 'PackageReference', 'Using', 'RuntimeHostConfigurationOption'}
+TEST_PACKAGES = json.loads((ROOT / 'tools/discovery-test-packages.json').read_text())
+QUALIFIED_PACKAGES = {'polysharp/1.15.0', 'microsoft.net.illink.tasks/10.0.11'} | set(TEST_PACKAGES['packages'])
 PACKAGE_IMPORTS = {'build/PolySharp.targets', 'buildTransitive/PolySharp.targets',
                    'build/Microsoft.NET.ILLink.Tasks.props', 'build/Microsoft.NET.ILLink.Analyzers.props',
                    'build/Microsoft.NET.ILLink.targets'}
 SDK_IMPORTS = json.loads((ROOT / 'tools/discovery-sdk-imports.json').read_text())['imports']
 CONTROLLER_FILES = ('discovery_contract.py', 'preparation_identity.py', 'graph_packages.py',
-                    'pilot-package-policy.json', 'discovery-sdk-imports.json', 'protected_store.py', 'preparation_source_update.py')
+                    'pilot-package-policy.json', 'discovery-test-packages.json', 'discovery-sdk-imports.json', 'protected_store.py', 'preparation_source_update.py')
 CONTROLLER_DIGEST = digest({name: (ROOT / 'tools' / name).read_text() for name in CONTROLLER_FILES})
 
 
@@ -95,8 +99,8 @@ def check_xml(path):
             # cannot extend target execution or choose arbitrary SDKs.
             generated = path.name.endswith(('.nuget.g.props', '.nuget.g.targets'))
             generated_names = {'RestoreSuccess', 'RestoreTool', 'ProjectAssetsFile', 'NuGetPackageRoot',
-                               'NuGetPackageFolders', 'NuGetProjectStyle', 'NuGetToolVersion', 'PkgMicrosoft_NET_ILLink_Tasks'}
-            if name not in PROPERTIES and name not in SDK_SWITCHES and not (generated and name in generated_names): reject(name)
+                               'NuGetPackageFolders', 'NuGetProjectStyle', 'NuGetToolVersion', 'PkgMicrosoft_NET_ILLink_Tasks', 'Pkgxunit_analyzers'}
+            if name not in PROPERTIES and name not in QUALIFIED_SDK_SWITCHES and not (generated and name in generated_names): reject(name)
         elif parent == 'ItemGroup':
             generated = path.name.endswith(('.nuget.g.props', '.nuget.g.targets'))
             if name not in ITEMS and not (generated and name == 'SourceRoot'): reject(name)
@@ -106,12 +110,17 @@ def check_xml(path):
             # Metadata can change project-reference configuration or discovery
             # target hooks. Qualify such extensions separately.
             reject('nested metadata: ' + name)
+        if name == 'RuntimeHostConfigurationOption' and attrs != {
+                'Condition': "'$(PublishTrimmed)' == 'true'", 'Include': 'Serilog.Capturing.IsStructureValueSupported',
+                'Value': 'false', 'Trim': 'true'}:
+            reject('unqualified runtime configuration option')
         allowed_attrs = {'Condition', 'Label'}
         if name == 'Project': allowed_attrs |= {'Sdk', 'ToolsVersion'}
         if name == 'Import': allowed_attrs |= {'Project'}
         if parent == 'ItemGroup': allowed_attrs |= {'Include', 'Exclude', 'Remove', 'Update'}
         if name == 'None': allowed_attrs |= {'Pack', 'Visible', 'PackagePath'}
         if name == 'PackageReference': allowed_attrs |= {'Version', 'PrivateAssets'}
+        if name == 'RuntimeHostConfigurationOption': allowed_attrs |= {'Value', 'Trim'}
         if set(attrs) - allowed_attrs: reject('attributes on ' + name)
         for value in attrs.values(): expression(value)
         stack.append((name, []))
@@ -119,7 +128,7 @@ def check_xml(path):
     def end(name):
         _, fragments = stack.pop()
         value = ''.join(fragments)
-        if name in SDK_SWITCHES and value.strip() != SDK_SWITCHES[name]:
+        if name in QUALIFIED_SDK_SWITCHES and value.strip() != QUALIFIED_SDK_SWITCHES[name]:
             reject('unqualified SDK switch value: ' + name)
         expression(value)
 
@@ -213,7 +222,7 @@ def validate_certificate(value):
 
 
 @contextmanager
-def qualified_view(source, state, entries, *, candidate=None, protected_store=None, candidate_graph=None):
+def qualified_view(source, state, entries, *, candidate=None, protected_store=None, candidate_graph=None, candidate_adapter=None):
     """Capture one supported full GraphExport invocation; production reuse stays off."""
     if candidate is not None: validate_certificate(candidate)
     if CONTROLLER_DIGEST != digest({name: (ROOT / 'tools' / name).read_text() for name in CONTROLLER_FILES}):
@@ -272,10 +281,14 @@ def qualified_view(source, state, entries, *, candidate=None, protected_store=No
                     bootSession=subprocess.check_output(['/usr/sbin/sysctl', '-n', 'kern.bootsessionuuid'], text=True).strip(),
                     cpuCount=os.cpu_count())
         before = capture(roots, request=invocation, environment=env, host=host, protected_store=protected_store)
+        if candidate_adapter is not None:
+            candidate = candidate_adapter(candidate, before, host)
+            validate_certificate(candidate)
         if candidate is not None:
             unchanged = compare(candidate['identity'], before)['unchanged'] and not any(Path(path).exists() for path in candidate['externalAbsent'])
             result = dict(eligible=unchanged, unchanged=unchanged, reuseEnabled=False,
                           discoveryExecuted=False, identity=before, operation='GraphExport')
+            if candidate_adapter is not None: result['candidateCertificate'] = candidate
             if not unchanged and candidate_graph is not None and not any(Path(path).exists() for path in candidate['externalAbsent']):
                 from preparation_source_update import refresh
                 refreshed = refresh(candidate, candidate_graph, before)
@@ -335,6 +348,12 @@ def qualified_view(source, state, entries, *, candidate=None, protected_store=No
                         # files must not become an unqualified assembly closure.
                         raise IdentityError('unexpected package payload: ' + str(path))
                 trusted_packages.update(folder / name for name in archive_paths if name in PACKAGE_IMPORTS)
+                for name in archive_paths:
+                    expected = TEST_PACKAGES['imports'].get(package['path'] + '/' + name)
+                    if expected is not None:
+                        if hashlib.sha256((folder / name).read_bytes()).hexdigest() != expected:
+                            raise IdentityError('test-package discovery import differs from reviewed bytes')
+                        trusted_packages.add(folder / name)
         external_absent = set()
         for observation in evidence['rounds'][0]['observations']:
             path = Path(observation['path'])
