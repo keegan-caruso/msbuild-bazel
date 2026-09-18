@@ -6,12 +6,8 @@ namespace RulesMSBuild.Preparation;
 
 internal static class NuGetInputs
 {
-    public static JsonObject Stage(string source, string destination, string cache, bool copyPackages = true)
+    private static JsonObject Locked(string source, string cache, JsonObject before, bool copyPackages)
     {
-        foreach (var other in new[] { source, cache })
-            if (Host.Within(destination, other) || Host.Within(other, destination)) throw new InvalidDataException("NuGet paths must be disjoint");
-        if (Host.Real(destination) != Path.GetFullPath(destination)) throw new InvalidDataException("Linked NuGet destination");
-        var before = FileTree.Snapshot(source); var packages = new HashSet<string>(StringComparer.Ordinal);
         var locked = new JsonObject();
         var local = Path.Combine(source, ".nuget/packages");
         foreach (var (name, item) in before)
@@ -26,12 +22,25 @@ internal static class NuGetInputs
                 {
                     var path = Host.Safe(library.String("path"));
                     if (path.Split('/').Length != 2) throw new InvalidDataException("Invalid package path");
-                    packages.Add(path);
                     var hash = copyPackages ? library["sha512"]?.GetValue<string>() ?? "" : library.String("sha512");
                     if (locked[path] is { } previous && previous.GetValue<string>() != hash) throw new InvalidDataException("Conflicting NuGet archive hashes");
                     locked[path] = hash;
                 }
         }
+        return locked;
+    }
+    public static JsonObject Describe(string source, string cache, JsonObject before)
+    {
+        var locked = Locked(source, cache, before, false);
+        return new JsonObject { ["staged"] = false, ["packages"] = locked.Count, ["bytes"] = 0, ["copied"] = false, ["locked"] = locked };
+    }
+    public static JsonObject Stage(string source, string destination, string cache, bool copyPackages = true)
+    {
+        foreach (var other in new[] { source, cache })
+            if (Host.Within(destination, other) || Host.Within(other, destination)) throw new InvalidDataException("NuGet paths must be disjoint");
+        if (Host.Real(destination) != Path.GetFullPath(destination)) throw new InvalidDataException("Linked NuGet destination");
+        var before = FileTree.Snapshot(source); var locked = Locked(source, cache, before, copyPackages);
+        var packages = locked.Select(pair => pair.Key).ToHashSet(StringComparer.Ordinal);
         FileTree.Remove(destination);
         if (copyPackages) FileTree.Copy(source, destination);
         else

@@ -20,7 +20,11 @@ internal static class BazelOwnedWorkflow
         void CopyInputs(string field, string destination)
         {
             Directory.CreateDirectory(destination);
-            foreach (var item in request.Array(field)) Host.Copy(item!.String("source"), Path.Combine(destination, Host.Safe(item.String("destination"))));
+            foreach (var item in request.Array(field))
+            {
+                var path = Path.Combine(destination, Host.Safe(item!.String("destination"))); Host.Copy(item.String("source"), path);
+                FileTree.SetMode(path, FileTree.Mode(path) | UnixFileMode.UserWrite);
+            }
         }
         try
         {
@@ -52,7 +56,7 @@ internal static class BazelOwnedWorkflow
     }
     public static JsonNode Run(JsonNode request)
     {
-        var allowed = new HashSet<string>(["schemaVersion", "repository", "sdkRoot", "bazel", "workspace", "state", "entry", "output", "operation", "tests", "nuget-packages", "bazel-remote-cache", "bazel-remote-upload", "remote-endpoint", "remote-snapshot", "bazel-install-cache", "bazel-repository-cache", "project-actions", "project-layout"], StringComparer.Ordinal);
+        var allowed = new HashSet<string>(["schemaVersion", "repository", "sdkRoot", "bazel", "workspace", "state", "entry", "output", "operation", "tests", "nuget-packages", "bazel-remote-cache", "bazel-remote-upload", "remote-endpoint", "remote-snapshot", "bazel-install-cache", "bazel-repository-cache", "project-actions", "project-layout", "direct-checkout"], StringComparer.Ordinal);
         if (request["schemaVersion"]?.GetValue<int>() != 1 || request.AsObject().Any(p => !allowed.Contains(p.Key))) throw new InvalidDataException("Invalid Bazel-owned workflow request");
         var root = Host.Real(request.String("repository")); var source = Host.Real(request.String("workspace")); var state = Host.Real(request.String("state")); var output = Host.Real(request.String("output"));
         foreach (var (a, b) in new[] { (root, source), (root, state), (source, state), (output, source), (output, root), (output, state) })
@@ -62,6 +66,8 @@ internal static class BazelOwnedWorkflow
         if (!OperatingSystem.IsMacOS() || sdk != "/nix/store/f3kvj2nc26gn7rh5mnfnaa2dgy2p10v3-dotnet-sdk-10.0.400/share/dotnet") throw new InvalidDataException("Bazel-owned preparation currently requires the qualified macOS Nix SDK");
         var projectActions = request["project-actions"]?.GetValue<bool>() == true;
         if (projectActions && (request["remote-snapshot"] is not null || request["remote-endpoint"] is not null)) throw new InvalidDataException("Project actions use bazel-remote-cache, not native snapshot endpoints");
+        var directCheckout = request["direct-checkout"]?.GetValue<bool>() == true;
+        if (directCheckout && !projectActions) throw new InvalidDataException("Direct checkout requires project actions");
         var operation = request.String("operation"); var tests = request["tests"];
         if (operation is not ("build" or "test") || operation == "test" && tests is null) throw new InvalidDataException("Invalid operation/test declaration");
         if (Path.Exists(output)) throw new IOException("Output exists"); Directory.CreateDirectory(output);
@@ -86,8 +92,9 @@ internal static class BazelOwnedWorkflow
             if (declaredLayout is not null && !projectActions) throw new InvalidDataException("A declared layout requires project actions");
             var controllerOriginal = Tools.ToDictionary(name => Path.Combine(root, "tools", name, "bin/Release/net10.0"), name => FileTree.Snapshot(Path.Combine(root, "tools", name, "bin/Release/net10.0")));
             var inputs = Path.Combine(generated, "inputs");
-            report["nuget"] = Measure("stagePackages", () => NuGetInputs.Stage(source, inputs, Host.Real(request.String("nuget-packages")), copyPackages: false));
-            foreach (var path in FileTree.Files(inputs).Where(FileTree.RestoreMetadata))
+            report["nuget"] = Measure("stagePackages", () => directCheckout ? NuGetInputs.Describe(source, Host.Real(request.String("nuget-packages")), sourceIdentity) : NuGetInputs.Stage(source, inputs, Host.Real(request.String("nuget-packages")), copyPackages: false));
+            report["sourceStaging"] = directCheckout ? "direct-checkout" : "copied";
+            foreach (var path in (directCheckout ? [] : FileTree.Files(inputs).Where(FileTree.RestoreMetadata)))
             {
                 var text = File.ReadAllText(path).Replace(inputs, "${WORKSPACE}", StringComparison.Ordinal);
                 if (Path.GetFileName(path) == "project.nuget.cache")
@@ -112,8 +119,8 @@ internal static class BazelOwnedWorkflow
                 if (remote is null) throw new InvalidDataException("Snapshot requires endpoint");
                 var catalog = remote.Snapshot(snapshot.GetValue<string>(), worker); remote.Seeds(catalog["projects"]!, null, seeds);
             }
-            Generate(root, generated, sdk, request.String("nuget-packages"), report["nuget"]!["locked"]!, entry, tests);
-            var watched = new[] { inputs, seeds }.Concat(tests is null ? [] : new[] { Path.Combine(generated, "test-data") }).ToDictionary(p => p, p => FileTree.Snapshot(p));
+            Generate(root, generated, sdk, request.String("nuget-packages"), report["nuget"]!["locked"]!, entry, tests, declaredLayout, directCheckout ? source : null);
+            var watched = (directCheckout ? new[] { seeds } : new[] { inputs, seeds }).Concat(tests is null || directCheckout ? [] : new[] { Path.Combine(generated, "test-data") }).ToDictionary(p => p, p => FileTree.Snapshot(p));
             var watchedFiles = Directory.GetFiles(generated).ToDictionary(p => p, p => Json.Sha(File.ReadAllBytes(p)));
             var command = new List<string> { "--nosystem_rc", "--nohome_rc", "--noworkspace_rc", "--output_base=" + Path.Combine(state, "b"), "--output_user_root=" + Path.Combine(state, "u"), operation, "//:" + operation, "--incompatible_autoload_externally=", "--lockfile_mode=error", "--jobs=2", "--spawn_strategy=darwin-sandbox", "--strategy=MsbuildDiscover=local", "--execution_log_json_file=" + Path.Combine(output, "execution.json"), "--noshow_progress", "--color=no", "--curses=no" };
             if (request["bazel-install-cache"] is { } install)
@@ -132,7 +139,7 @@ internal static class BazelOwnedWorkflow
             var discoveryEvents = Array.Empty<JsonNode>();
             if (projectActions)
             {
-                var structural = FileTree.Snapshot(inputs);
+                var structural = directCheckout ? (JsonObject)sourceIdentity.DeepClone() : FileTree.Snapshot(inputs);
                 foreach (var (name, item) in structural)
                     if (name.EndsWith(".cs", StringComparison.Ordinal) && !name.Contains("/obj/", StringComparison.Ordinal) && item!.String("kind") == "file") { item!.AsObject().Remove("sha256"); item.AsObject().Remove("size"); }
                 var fingerprint = Json.Digest(new JsonObject { ["inputs"] = structural, ["packages"] = report["nuget"]!["locked"]!.DeepClone(), ["worker"] = worker.DeepClone(), ["entry"] = entry });
@@ -153,7 +160,7 @@ internal static class BazelOwnedWorkflow
                     Json.Write(layoutPath, new JsonObject { ["identity"] = fingerprint, ["graph"] = layout.DeepClone() });
                 }
                 Json.Write(Path.Combine(output, "project-layout.json"), layout);
-                Generate(root, generated, sdk, request.String("nuget-packages"), report["nuget"]!["locked"]!, entry, tests, layout);
+                if (declaredLayout is null) Generate(root, generated, sdk, request.String("nuget-packages"), report["nuget"]!["locked"]!, entry, tests, layout, directCheckout ? source : null);
                 report["bazelInvocations"] = report["layoutSource"]!.GetValue<string>() == "bootstrap" ? 2 : 1;
                 watchedFiles = Directory.GetFiles(generated).ToDictionary(path => path, path => Json.Sha(File.ReadAllBytes(path)));
                 report["cacheProtocol"] = "bazel-project-actions";
@@ -161,7 +168,7 @@ internal static class BazelOwnedWorkflow
             var code = Measure("bazel", () => NativeWorkflow.Execute(bazel, command, generated, Path.Combine(output, "bazel.log"))); report["exitCode"] = code;
             var events = File.Exists(Path.Combine(output, "execution.json")) ? NativeWorkflow.Events(File.ReadAllBytes(Path.Combine(output, "execution.json"))).ToArray() : [];
             events = discoveryEvents.Concat(events).ToArray();
-            foreach (var mnemonic in new[] { "MsbuildDiscover", "MsbuildBindSources", "MsbuildNativeCache", "MsbuildBindProject", "MsbuildCompileProject", "MsbuildComposeRuntime", "MsbuildValidateLayout" })
+            foreach (var mnemonic in new[] { "MsbuildDiscover", "MsbuildBindSources", "MsbuildNativeCache", "MsbuildBindProject", "MsbuildCompileProject", "MsbuildComposeRuntime", "MsbuildValidateLayout", "MsbuildNormalizeRestore" })
             {
                 var actions = events.Where(n => n["mnemonic"]?.GetValue<string>() == mnemonic).ToArray();
                 var executed = actions.Where(n => n["cacheHit"]?.GetValue<bool>() != true).ToArray();
@@ -240,15 +247,29 @@ internal static class BazelOwnedWorkflow
     {
         var worker = WorkerIdentity.Capture(previous.String("controllerSdkClosure"), bazel, root, true); worker["inputOwnership"] = "bazel-owned-preparation-v1"; return worker;
     }
-    private static void Generate(string root, string generated, string sdk, string packageCache, JsonNode packages, string entry, JsonNode? tests, JsonNode? layout = null)
+    private static void Generate(string root, string generated, string sdk, string packageCache, JsonNode packages, string entry, JsonNode? tests, JsonNode? layout = null, string? checkout = null)
     {
-        foreach (var name in new[] { "msbuild.bzl", "native_cache.bzl", "native_test.bzl", "preparation.bzl", "input_paths.bzl", "repositories.bzl", "project_actions.bzl" }) Host.Copy(Path.Combine(root, "bazel", name), Path.Combine(generated, name));
+        foreach (var name in new[] { "msbuild.bzl", "native_cache.bzl", "native_test.bzl", "preparation.bzl", "input_paths.bzl", "repositories.bzl", "project_actions.bzl", "restore_inputs.bzl" }) Host.Copy(Path.Combine(root, "bazel", name), Path.Combine(generated, name));
         Host.Copy(Path.Combine(root, "bazel/native.MODULE.bazel.lock"), Path.Combine(generated, "MODULE.bazel.lock"));
         File.WriteAllText(Path.Combine(generated, "MODULE.bazel"), "module(name = \"native_msbuild_workflow\")\nbazel_dep(name = \"platforms\", version = \"0.0.11\")\nlocal_dotnet_sdk = use_repo_rule(\"//:msbuild.bzl\", \"local_dotnet_sdk\")\n" + Starlark.Call("local_dotnet_sdk", new JsonObject { ["name"] = "dotnet", ["path"] = sdk, ["include_runtime_closure"] = true }));
         File.AppendAllText(Path.Combine(generated, "MODULE.bazel"), "owned_tools = use_repo_rule(\"//:repositories.bzl\", \"owned_tools\")\nnuget_archives = use_repo_rule(\"//:repositories.bzl\", \"nuget_archives\")\n" + Starlark.Call("owned_tools", new JsonObject { ["name"] = "owned_tools", ["root"] = root }) + Starlark.Call("nuget_archives", new JsonObject { ["name"] = "nuget", ["cache"] = packageCache, ["packages"] = Json.Canonical(packages), ["policy"] = "@owned_tools//:tools/pilot-package-policy.json" }));
         JsonArray Files(string directory) => Json.Strings(FileTree.Files(Path.Combine(generated, directory)).Select(p => Path.GetRelativePath(generated, p)));
-        JsonArray Inputs() { var result = Files("inputs"); result.Add("@nuget//:files"); return result; }
+        var inputRoot = checkout ?? Path.Combine(generated, "inputs");
+        var names = FileTree.Files(inputRoot).Select(path => Path.GetRelativePath(inputRoot, path)).Where(path => !path.StartsWith(".nuget/packages/", StringComparison.Ordinal)).ToArray();
+        string InputLabel(string path) => checkout is null ? "inputs/" + path : "@checkout//:workspace/" + path;
+        JsonArray Inputs()
+        {
+            var result = Json.Strings(names.Where(path => checkout is null || !FileTree.RestoreMetadata(path)).Select(InputLabel));
+            if (checkout is not null) result.Add(":restore_inputs");
+            result.Add("@nuget//:files"); return result;
+        }
         var build = "load(\":preparation.bzl\", \"msbuild_prepare\")\nload(\":native_cache.bzl\", \"msbuild_native_cache\")\nload(\":native_test.bzl\", \"native_test\")\n";
+        if (checkout is not null)
+        {
+            File.AppendAllText(Path.Combine(generated, "MODULE.bazel"), "checkout_inputs = use_repo_rule(\"//:repositories.bzl\", \"checkout_inputs\")\n" + Starlark.Call("checkout_inputs", new JsonObject { ["name"] = "checkout", ["root"] = checkout, ["files"] = Json.Strings(names) }));
+            build = "load(\":restore_inputs.bzl\", \"msbuild_normalize_restore\")\n" + build;
+            build += Starlark.Call("msbuild_normalize_restore", new JsonObject { ["name"] = "restore_inputs", ["srcs"] = Json.Strings(names.Where(FileTree.RestoreMetadata).Select(InputLabel)), ["workspace"] = checkout, ["cache"] = packageCache, ["runner"] = "@owned_tools//:tools/Preparation/bin/Release/net10.0/Preparation.dll", ["controller"] = Json.Strings(["@owned_tools//:files"]), ["sdk"] = "@dotnet//:files", ["dotnet"] = "@dotnet//:sdk/dotnet" });
+        }
         if (layout is not null) Json.Write(Path.Combine(generated, "project-layout.json"), layout);
         build += Starlark.Call("msbuild_prepare", new JsonObject { ["layout"] = layout is null ? null : "project-layout.json", ["name"] = "prepare", ["project"] = entry, ["srcs"] = Inputs(), ["controller"] = Json.Strings(["@owned_tools//:files"]), ["runner"] = "@owned_tools//:tools/Preparation/bin/Release/net10.0/Preparation.dll", ["host"] = "host.json", ["runtime_manifest"] = "@dotnet//:runtime-roots.json", ["sdk"] = "@dotnet//:files", ["dotnet"] = "@dotnet//:sdk/dotnet" });
         if (layout is null)
@@ -258,11 +279,11 @@ internal static class BazelOwnedWorkflow
             build = "load(\":project_actions.bzl\", \"msbuild_compile_project\", \"msbuild_compose_runtime\")\n" + build;
             var nodes = layout["projects"]!.AsObject();
             string Label(string project) => "project_" + Json.Sha(Encoding.UTF8.GetBytes(project));
-            var bodies = nodes.SelectMany(pair => pair.Value!.Array("sources")).Select(input => "inputs/" + input!.GetValue<string>()).ToHashSet(StringComparer.Ordinal);
+            var bodies = nodes.SelectMany(pair => pair.Value!.Array("sources")).Select(input => InputLabel(input!.GetValue<string>())).ToHashSet(StringComparer.Ordinal);
             foreach (var (project, node) in nodes)
             {
-                var sources = node!.Array("sources").Select(input => "inputs/" + input!.GetValue<string>());
-                var structural = Files("inputs").Select(value => value!.GetValue<string>()).Where(path => !bodies.Contains(path) && !path.EndsWith(".cs", StringComparison.Ordinal)).Append("@nuget//:files");
+                var sources = node!.Array("sources").Select(input => InputLabel(input!.GetValue<string>()));
+                var structural = Inputs().Select(value => value!.GetValue<string>()).Where(path => !bodies.Contains(path) && !path.EndsWith(".cs", StringComparison.Ordinal));
                 build += Starlark.Call("msbuild_compile_project", new JsonObject { ["name"] = Label(project), ["project"] = project, ["project_dependencies"] = node!["dependencies"]!.DeepClone(), ["dependencies"] = Json.Strings(node.Array("dependencies").Select(d => ":" + Label(d!.GetValue<string>()))), ["discovery"] = ":prepare", ["sources"] = Json.Strings(sources), ["structural"] = Json.Strings(structural), ["preparation"] = "@owned_tools//:tools/Preparation/bin/Release/net10.0/Preparation.dll", ["runner"] = "@owned_tools//:tools/NativeProjectCache/bin/Release/net10.0/NativeProjectCache.dll", ["runner_support"] = Json.Strings(["@owned_tools//:files"]), ["sdk"] = "@dotnet//:files", ["dotnet"] = "@dotnet//:sdk/dotnet" });
             }
             build += Starlark.Call("msbuild_compose_runtime", new JsonObject { ["name"] = "build", ["project"] = entry, ["entry"] = ":" + Label(entry), ["runner"] = "@owned_tools//:tools/NativeProjectCache/bin/Release/net10.0/NativeProjectCache.dll", ["runner_support"] = Json.Strings(["@owned_tools//:files"]), ["sdk"] = "@dotnet//:files", ["dotnet"] = "@dotnet//:sdk/dotnet" });
@@ -272,8 +293,10 @@ internal static class BazelOwnedWorkflow
             var data = new JsonArray(); var hashes = new JsonObject(); var testData = Path.Combine(generated, "test-data"); FileTree.Remove(testData); Directory.CreateDirectory(testData);
             foreach (var item in tests.Array("data"))
             {
-                var name = Host.Safe(item!.GetValue<string>()); var bytes = FileTree.ReadRegular(Path.Combine(generated, "inputs", name));
-                var path = Path.Combine(testData, name); Directory.CreateDirectory(Path.GetDirectoryName(path)!); File.WriteAllBytes(path, bytes); data.Add("test-data/" + name); hashes[name] = Json.Sha(bytes);
+                var name = Host.Safe(item!.GetValue<string>()); var bytes = FileTree.ReadRegular(Path.Combine(inputRoot, name));
+                if (checkout is null) { var path = Path.Combine(testData, name); Directory.CreateDirectory(Path.GetDirectoryName(path)!); File.WriteAllBytes(path, bytes); data.Add("test-data/" + name); }
+                else data.Add(InputLabel(name));
+                hashes[name] = Json.Sha(bytes);
             }
             build += Starlark.Call("native_test", new JsonObject { ["name"] = "test", ["subject"] = ":build", ["project"] = entry, ["prepared_plan"] = ":prepare", ["global_properties"] = new JsonObject { ["configuration"] = "Release", ["targetframework"] = "net10.0" }, ["runtime_directory"] = Path.Combine(Path.GetDirectoryName(entry)!, "bin/Release/net10.0"), ["assembly"] = Path.GetFileNameWithoutExtension(entry) + ".dll", ["data"] = data, ["data_hashes"] = hashes, ["expected_tests"] = tests["expectedTests"]!.DeepClone(), ["runner"] = "@owned_tools//:tools/TestRunner/bin/Release/net10.0/TestRunner.dll", ["runner_support"] = Json.Strings(["@owned_tools//:files"]), ["host_identity"] = "host.json", ["sdk"] = "@dotnet//:files", ["dotnet"] = "@dotnet//:sdk/dotnet", ["size"] = "small", ["timeout"] = "moderate" });
         }

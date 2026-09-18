@@ -52,3 +52,15 @@ def _nuget(ctx):
     ctx.file("BUILD.bazel", 'filegroup(name="files", srcs=glob(["packages/**"], allow_empty=True), visibility=["//visibility:public"])\n')
 
 nuget_archives = repository_rule(implementation = _nuget, attrs = {"cache": attr.string(mandatory = True), "packages": attr.string(mandatory = True), "policy": attr.label(mandatory = True)})
+
+def _checkout(ctx):
+    names = []
+    for path in ctx.attr.files:
+        if path.startswith("/") or ".." in path.split("/"):
+            fail("Invalid checkout input path")
+        name = "workspace/" + path
+        ctx.symlink(ctx.attr.root + "/" + path, name)
+        names.append(name)
+    ctx.file("BUILD.bazel", "exports_files(" + repr(names) + ")\n")
+
+checkout_inputs = repository_rule(implementation = _checkout, attrs = {"root": attr.string(mandatory = True), "files": attr.string_list()}, local = True)

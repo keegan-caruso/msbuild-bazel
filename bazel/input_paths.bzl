@@ -14,4 +14,6 @@ def input_path(file):
         path = "/".join(path.split("/")[2:])
         if path.startswith("packages/"):
             return ".nuget/" + path
-    return path.removeprefix("inputs/").removeprefix("controller/")
+        if path.startswith("workspace/"):
+            return path.removeprefix("workspace/")
+    return path.removeprefix("inputs/").removeprefix("controller/").removeprefix("restore_inputs.files/")

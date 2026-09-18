@@ -31,6 +31,7 @@ def run(a):
                     request=dict(schemaVersion=1,repository=str(ROOT),sdkRoot=str(SDK),bazel=str(BAZEL),workspace=str(source),state=str(base/'state'),output=str(base/'result'),entry='N0003/N0003.csproj' if kind=='diamond' else 'test/Serilog.ApprovalTests/Serilog.ApprovalTests.csproj',operation='build' if kind=='diamond' else 'test',**{'nuget-packages':str(a.packages),'bazel-remote-cache':server.url,'bazel-remote-upload':upload,'remote-endpoint':server.url+'/native','bazel-install-cache':str(a.bazel_install_cache),'bazel-repository-cache':str(a.bazel_repository_cache)})
                     if a.project_actions:request['project-actions']=True;request.pop('remote-endpoint')
                     if layout and not extra_source:request['project-layout']=str(layout)
+                    if a.direct_checkout:request['direct-checkout']=True
                     if kind=='serilog':request['tests']=TESTS
                     if key:request['remote-snapshot']=key
                     if probe:
@@ -55,6 +56,7 @@ def run(a):
                         report['cases'].append(dict(kind=kind,case=label,result=value));save()
                         if value['accepted']==expect_failure or (p.returncode!=0)!=expect_failure:raise RuntimeError('Unexpected result: '+str(base/'command.log'))
                         if not expect_failure:
+                            if a.direct_checkout:assert not (base/'state/g/inputs').exists() and not value['nuget']['staged']
                             plans=[base/'state/g/bazel-bin'/name for name in ['prepare.discovery','prepare.plan']]
                             value['planBytes']=sum(p.stat().st_size for folder in plans for p in folder.rglob('*') if p.is_file())
                             assert all(not (folder/'src').exists() for folder in plans)
@@ -130,6 +132,7 @@ if __name__=='__main__':
     p=argparse.ArgumentParser(description=__doc__)
     for n in ['output','cache-binary','packages','checkout','bazel-install-cache','bazel-repository-cache']:p.add_argument('--'+n,type=Path,required=True)
     p.add_argument('--workloads',nargs='+',default=['diamond','serilog'])
+    p.add_argument('--direct-checkout',action='store_true')
     p.add_argument('--declared-layout',action='store_true')
     p.add_argument('--project-actions',action='store_true')
     run(p.parse_args())

@@ -47,6 +47,7 @@ def run(a):
                         else:
                             request['remote-endpoint']=server.url+'/native'
                             if snapshot:request['remote-snapshot']=snapshot
+                        if a.direct_checkout:request['direct-checkout']=True
                         path=base/'request.json';path.write_text(json.dumps(request));begin=time.perf_counter()
                         try:
                             p=subprocess.run([str(SDK/'dotnet'),str(ROOT/'tools/Preparation/bin/Release/net10.0/Preparation.dll'),'owned-workflow','--request',str(path)],cwd=ROOT,capture_output=True,text=True,timeout=1800)
@@ -67,6 +68,7 @@ def run(a):
                             value['actionExecutionSeconds']={name:dict(count=len(times),total=sum(times),maximum=max(times)) for name,times in metrics.items()}
                             report['cases'].append(dict(nodes=count,mode=mode,case=label,result=value));save()
                             assert p.returncode==0 and value['accepted'],str(base/'command.log')
+                            if a.direct_checkout:assert not (base/'state/g/inputs').exists() and not value['nuget']['staged']
                             app=base/'state/g/bazel-bin/build.bundle/app'
                             assert subprocess.check_output([str(SDK/'dotnet'),str(app/(assembly+'.dll'))],text=True).strip()==oracle(graph['edges'],index)
                             assert hashes(app)==expected['unchanged' if index is None else 'shared' if index==0 else 'leaf']
@@ -104,6 +106,7 @@ if __name__=='__main__':
     p=argparse.ArgumentParser(description=__doc__)
     for name in ['output','cache-binary','packages','bazel-install-cache','bazel-repository-cache']:p.add_argument('--'+name,type=Path,required=True)
     p.add_argument('--nodes',nargs='+',type=int,default=[16,64]);p.add_argument('--shape',choices=['fan','chain'],default='fan')
+    p.add_argument('--direct-checkout',action='store_true')
     p.add_argument('--declared-layout',action='store_true')
     p.add_argument('--modes',nargs='+',choices=['whole','projects'],default=['whole','projects'])
     run(p.parse_args())

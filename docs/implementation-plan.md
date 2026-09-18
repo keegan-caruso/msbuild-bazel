@@ -534,3 +534,7 @@ performance target; small-graph parity is not the gate. See the
 The [single-pass follow-up](bazel-single-pass.md) introduces a portable MSBuild-generated
 project layout and a cacheable whole-layout validation action. A declared layout
 lets fresh workers use one Bazel invocation; stale declarations fail before publication.
+
+The direct-checkout slice exposes source files through a Bazel repository and
+normalizes restore metadata in a declared action. It removes controller source
+copying while retaining independent final input verification and publication gating.

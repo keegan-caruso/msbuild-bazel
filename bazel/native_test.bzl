@@ -1,5 +1,6 @@
 """Native VSTest execution consuming sealed graph outputs and declared test data."""
 
+load(":input_paths.bzl", "input_path")
 load(":native_cache.bzl", "NativeBundle")
 
 def _runfile(ctx, file):
@@ -16,7 +17,7 @@ def _native_test_impl(ctx):
     bundles = depset([bundle])
     data = []
     for file in ctx.files.data:
-        destination = file.short_path.removeprefix("test-data/")
+        destination = input_path(file).removeprefix("test-data/")
         if destination not in ctx.attr.data_hashes:
             fail("missing declared test data hash: " + destination)
         data.append({"source": _runfile(ctx, file), "destination": destination, "sha256": ctx.attr.data_hashes[destination]})

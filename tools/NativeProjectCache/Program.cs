@@ -79,6 +79,7 @@ internal static class Program
             {
                 if (!Files.ValidRelativePath(relative)) throw new InvalidDataException("invalid restore path");
                 var path = Path.Combine(workspace, relative); Directory.CreateDirectory(Path.GetDirectoryName(path)!);
+                if (File.Exists(path) && !OperatingSystem.IsWindows()) File.SetUnixFileMode(path, File.GetUnixFileMode(path) | UnixFileMode.UserWrite);
                 File.WriteAllText(path, contents.Replace("${WORKSPACE}", workspace, StringComparison.Ordinal).Replace("${SDK}", sdk, StringComparison.Ordinal).Replace("${HOME}", home, StringComparison.Ordinal));
             }
             Mark("sourceAndRestore");
