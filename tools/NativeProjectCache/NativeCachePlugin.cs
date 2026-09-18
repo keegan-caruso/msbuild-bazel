@@ -245,8 +245,19 @@ public sealed class NativeCachePlugin : ProjectCachePluginBase
                 CompileBoundary.Assemble(new RuntimeAssemblyRequest(own.Bundle, dependencies.Select(value => value.Bundle).ToArray(), composed));
                 Files.CopyTree(Path.Combine(composed, "artifacts", Bin(session.Entry)), Path.Combine(session.Workspace, Bin(session.Entry)));
             }
+            var publication = pending.ToDictionary(item => item.Destination, item => item.Source, StringComparer.Ordinal);
+            if (apiRuntime)
+                foreach (var (project, state) in states)
+                {
+                    var ready = await state.Completion.Task;
+                    var canonical = Path.Combine(session.Scratch, "canonical", state.Key!);
+                    var dependencies = Closure(project).Where(dependency => dependency != project)
+                        .ToDictionary(dependency => dependency, dependency => states[dependency].Completion.Task.Result.Bundle);
+                    if (EvaluatedBoundary.RefreshBundle(ready.Bundle, project, dependencies, canonical))
+                        publication[Path.Combine(session.Cache, state.Key!)] = canonical;
+                }
             Directory.CreateDirectory(session.Cache);
-            foreach (var (source, destination) in pending)
+            foreach (var (destination, source) in publication)
             {
                 // The qualified driver holds the cache lock for the whole session.
                 if (Directory.Exists(destination)) Directory.Delete(destination, true);

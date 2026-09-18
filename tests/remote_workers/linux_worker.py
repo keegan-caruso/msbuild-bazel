@@ -36,7 +36,7 @@ def run(args):
                 producer=build('cold',upload=True);snapshot=producer['remote']['publishedSnapshot']
                 assert producer['compiles']==(4 if kind=='diamond' else 2)
                 primer=build('primer',snapshot,upload=True)
-                assert primer['buildActions']==1 and primer['compiles']==0
+                assert primer['buildActions']==0 and primer['compiles']==0 and primer['remoteBuildHits']==1
                 report.setdefault('handoff',{})[kind]=dict(snapshot=snapshot,worker=producer['worker'],managedHashes=producer['managedHashes'])
             else:
                 source=handoff['handoff'][kind];snapshot=source['snapshot']

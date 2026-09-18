@@ -53,6 +53,31 @@ internal static class EvaluatedBoundary
         return Convert.ToHexStringLower(System.Security.Cryptography.SHA256.HashData(identity));
     }
 
+    // A compile hit may carry historical copy-local implementations. Publish
+    // current, valid runtime bytes so identical sources have identical seeds
+    // regardless of which project happened to compile in this invocation.
+    internal static bool RefreshBundle(string bundle, string project, Dictionary<string, string> dependencies, string output)
+    {
+        var own = CompileBoundary.Validate(bundle); var changed = false;
+        foreach (var (dependency, producer) in dependencies)
+        {
+            var artifacts = CompileBoundary.Validate(producer);
+            foreach (var extension in new[] { ".dll", ".pdb", ".xml" })
+            {
+                var selected = own.SingleOrDefault(item => item.Path == Path.Combine(Bin(project), Assembly(dependency) + extension));
+                if (selected is null) continue;
+                var current = artifacts.SingleOrDefault(item => item.Path == Path.Combine(Bin(dependency), Assembly(dependency) + extension))
+                    ?? throw new InvalidDataException("Current runtime artifact missing during seed refresh");
+                changed |= selected.Sha256 != current.Sha256;
+            }
+        }
+        if (!changed) return false;
+        Files.CopyTree(bundle, output);
+        Compose(bundle, project, dependencies, Path.Combine(output, "artifacts"));
+        CompileBoundary.Seal(output);
+        return true;
+    }
+
     internal static void Compose(string bundle, string project, Dictionary<string, string> dependencies, string workspace, bool verifySelection = false)
     {
         var own = CompileBoundary.Validate(bundle);

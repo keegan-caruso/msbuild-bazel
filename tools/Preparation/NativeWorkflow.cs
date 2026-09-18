@@ -43,6 +43,7 @@ internal static class NativeWorkflow
         if (actionUpload && actionEndpoint is null) throw new InvalidDataException("Action cache upload requires an endpoint");
         if (actionEndpoint is not null && !independent) throw new InvalidDataException("Action cache requires independent-workers identity");
         ActionCache? actionCache = null;
+        var publishActionCache = true;
         if (operation is not ("build" or "test") || operation == "test" && tests is null) throw new InvalidDataException("Test requires explicit test declaration");
         if (!OperatingSystem.IsMacOS() && !OperatingSystem.IsLinux()) throw new PlatformNotSupportedException("Native sandbox workflow requires macOS or Linux");
         if (OperatingSystem.IsLinux()) LinuxPlatform.Require(sdk);
@@ -207,6 +208,46 @@ internal static class NativeWorkflow
                 if (report["test"]!["passed"]?.GetValue<bool>() != true || report["test"]!["buildOrRestoreInvoked"]?.GetValue<bool>() != false) throw new InvalidDataException("Test acceptance failed");
             }
             var app = Path.Combine(generated, "bazel-bin/build.bundle/app"); var runtime = new JsonObject(); foreach (var file in FileTree.Files(app)) runtime[Path.GetRelativePath(app, file)] = Json.Sha(File.ReadAllBytes(file)); report["runtimeHashes"] = runtime;
+            var stagedCache = Path.Combine(temporary, "cache"); FileTree.Copy(Host.Real(Path.Combine(generated, "bazel-bin/build.bundle/cache")), stagedCache, preserveModes: false);
+            foreach (var folder in Directory.GetDirectories(stagedCache)) RemoteCache.ValidateBundle(FileTree.Files(folder).ToDictionary(p => Path.GetRelativePath(folder, p), File.ReadAllBytes, StringComparer.Ordinal));
+            if (actionUpload && !JsonNode.DeepEquals(CacheContent(Path.Combine(generated, "seeds")), CacheContent(stagedCache)))
+                Measure("primeActionCache", () =>
+                {
+                    var prime = new JsonObject { ["accepted"] = false }; report["cachePrime"] = prime;
+                    var bundle = Host.Real(Path.Combine(generated, "bazel-bin/build.bundle"));
+                    var diagnostics = Host.Real(Path.Combine(generated, "bazel-bin/build.diagnostics"));
+                    var backup = Path.Combine(temporary, "primary-bundle"); var backupDiagnostics = Path.Combine(temporary, "primary-diagnostics");
+                    FileTree.Copy(bundle, backup); FileTree.Copy(diagnostics, backupDiagnostics);
+                    var expectedApp = FileTree.Snapshot(app);
+                    try
+                    {
+                        new NativeWorkspace(generated).Generate(root, sdk, plan, workspace, tests, stagedCache, Imports);
+                        var primeLog = Path.Combine(output, "prime-execution.json");
+                        var primeCommand = command.Select(argument => argument == operation ? "build" : argument == "//:" + operation ? "//:build" : argument.StartsWith("--execution_log_json_file=", StringComparison.Ordinal) ? "--execution_log_json_file=" + primeLog : argument)
+                            .Where(argument => !argument.StartsWith("--test_output=", StringComparison.Ordinal) && !argument.StartsWith("--cache_test_results=", StringComparison.Ordinal)).ToList();
+                        var primeExit = Execute(bazel, primeCommand, generated, Path.Combine(output, "prime-bazel.log"));
+                        if (primeExit != 0) throw new InvalidDataException("Seeded cache priming failed; see prime-bazel.log");
+                        var primeActions = Events(File.ReadAllBytes(primeLog)).Where(n => n["mnemonic"]?.GetValue<string>() == "MsbuildNativeCache").ToArray();
+                        var primeBuilds = primeActions.Where(n => n["cacheHit"]?.GetValue<bool>() != true).ToArray();
+                        if (primeBuilds.Any(n => n["runner"]?.GetValue<string>() != sandbox)) throw new InvalidDataException("Priming requires native sandbox");
+                        var primeCompiles = primeBuilds.Length == 0 ? 0 : Json.Read(Path.Combine(diagnostics, "action.json"))["compiles"]!.GetValue<int>();
+                        if (primeCompiles != 0) throw new InvalidDataException("Seeded cache priming unexpectedly compiled");
+                        FileTree.Verify(app, expectedApp);
+                        if (!JsonNode.DeepEquals(CacheContent(Path.Combine(bundle, "cache")), CacheContent(stagedCache))) throw new InvalidDataException("Priming changed accepted project bundles");
+                        prime["accepted"] = true; prime["buildActions"] = primeBuilds.Length; prime["compiles"] = primeCompiles;
+                        prime["remoteBuildHits"] = primeActions.Count(n => n["cacheHit"]?.GetValue<bool>() == true && n["runner"]?.GetValue<string>() == "remote cache hit");
+                    }
+                    catch (Exception error)
+                    {
+                        // Warming is optional: retain the already tested build, and
+                        // discard all staged outer writes if its validation failed.
+                        publishActionCache = false; prime["error"] = error.Message; report["actionCachePublicationError"] = error.Message;
+                        FileTree.Remove(bundle); FileTree.Copy(backup, bundle);
+                        FileTree.Remove(diagnostics); FileTree.Copy(backupDiagnostics, diagnostics);
+                    }
+                    finally { FileTree.Remove(backup); FileTree.Remove(backupDiagnostics); }
+                    return true;
+                });
             Measure("leaseExit", () =>
             {
                 WorkerIdentity.RequireCompatible(worker, WorkerIdentity.Capture(controllerClosure!, bazel, root, independent));
@@ -215,8 +256,6 @@ internal static class NativeWorkflow
                 report["leaseVerification"] = new JsonObject { ["requests"] = verification.Requests, ["scans"] = verification.Scans };
                 foreach (var (path, hash) in watchedFiles) if (Json.Sha(File.ReadAllBytes(path)) != hash) throw new InvalidDataException("Controller policy/import changed during consumption"); return true;
             });
-            var stagedCache = Path.Combine(temporary, "cache"); FileTree.Copy(Host.Real(Path.Combine(generated, "bazel-bin/build.bundle/cache")), stagedCache, preserveModes: false);
-            foreach (var folder in Directory.GetDirectories(stagedCache)) RemoteCache.ValidateBundle(FileTree.Files(folder).ToDictionary(p => Path.GetRelativePath(folder, p), File.ReadAllBytes, StringComparer.Ordinal));
             FileTree.Remove(cache); Directory.Move(stagedCache, cache);
             if (receipt is not null)
             {
@@ -227,7 +266,7 @@ internal static class NativeWorkflow
                 report["remote"]!["publicationSkipped"] = "Independent-worker cache requires qualified discovery";
             else if (remote is not null)
                 Measure("remotePublish", () => { try { report["remote"]!["publishedSnapshot"] = remote.Publish(cache, receipt is null ? null : plan, receipt, worker); } catch (Exception error) { report["remote"]!["publicationError"] = error.Message; } return true; });
-            if (actionCache is not null)
+            if (actionCache is not null && publishActionCache)
                 Measure("actionCachePublish", () =>
                 {
                     try { actionCache.Publish(); }
@@ -243,6 +282,13 @@ internal static class NativeWorkflow
             report["seconds"] = timer.Elapsed.TotalSeconds; Json.Write(Path.Combine(output, "report.json"), report); FileTree.Remove(temporary);
         }
         return report;
+    }
+    private static JsonObject CacheContent(string root)
+    {
+        if (!Directory.Exists(root)) return new JsonObject();
+        var content = FileTree.Snapshot(root);
+        foreach (var item in content) item.Value!.AsObject().Remove("mode");
+        return content;
     }
     private static int Execute(string executable, List<string> arguments, string cwd, string log)
     {
