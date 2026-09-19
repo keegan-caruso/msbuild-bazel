@@ -77,6 +77,15 @@ class Components(unittest.TestCase):
         self.assertTrue(value['eligible']);self.assertEqual(value['hits'],2);self.assertEqual(value['roots'],1)
         self.assertEqual(value['fullScans'],3);self.assertEqual(value['restartHits'],0)
 
+    def test_generated_files_preserve_unchanged_mtime_and_repair_changes(self):
+        path=self.root/'BUILD.bazel';request=dict(path=str(path),text='expected')
+        self.invoke('write-generated',request)
+        os.utime(path,ns=(1000000000,1000000000));stamp=path.stat().st_mtime_ns
+        self.invoke('write-generated',request);self.assertEqual(path.stat().st_mtime_ns,stamp)
+        path.write_text('modified');os.utime(path,ns=(stamp,stamp))
+        self.invoke('write-generated',request);self.assertEqual(path.read_text(),'expected')
+        self.assertNotEqual(path.stat().st_mtime_ns,stamp)
+
     def test_action_cache_connection_limit_validation(self):
         with CacheServer(0) as server:
             for limit in (0,129):
