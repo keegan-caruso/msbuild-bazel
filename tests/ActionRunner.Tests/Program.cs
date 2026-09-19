@@ -29,6 +29,7 @@ try
          "output":"bundle","diagnostics":"diagnostics","dependency":null,"undeclared_probe":"",
          "native_manifest":null,"native_files":[]}
         """;
+    ReadOnlyPackageInputsTests.Run();
     StaticWebAssetsTests.Run();
     AssetRoleTests.Run();
     CompileBoundaryTests.Run();

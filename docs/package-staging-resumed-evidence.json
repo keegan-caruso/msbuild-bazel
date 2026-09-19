@@ -1,0 +1,200 @@
+{
+  "package-staging-resumed": [
+    {
+      "name": "copy-1",
+      "elapsed": 28.477047125000002,
+      "exitCode": 0,
+      "timings.json": {
+        "sourceAndRestore": 6.3536807,
+        "seedCopy": 1e-07,
+        "sessionSetup": 5.3162249,
+        "msbuild": 13.2757544,
+        "selectBundles": 0.0049943,
+        "cleanup": 3.4094659
+      },
+      "staging.json": {
+        "validationSeconds": 4.4686117,
+        "packageSeconds": 1.583624000000008,
+        "packageBytes": 2146600383,
+        "packageFiles": 12017,
+        "borrowed": false
+      },
+      "files": 6932
+    },
+    {
+      "name": "borrow-1",
+      "elapsed": 22.179217792000003,
+      "exitCode": 0,
+      "timings.json": {
+        "sourceAndRestore": 2.4320775,
+        "seedCopy": 2e-07,
+        "sessionSetup": 1.8228074,
+        "msbuild": 13.359702,
+        "selectBundles": 0.0040162,
+        "cleanup": 4.5332031
+      },
+      "staging.json": {
+        "validationSeconds": 1.5086294,
+        "packageSeconds": 0.6552099000000011,
+        "packageBytes": 2146600383,
+        "packageFiles": 12017,
+        "borrowed": true
+      },
+      "files": 6932
+    },
+    {
+      "name": "borrow-2",
+      "elapsed": 22.301134375000004,
+      "exitCode": 0,
+      "timings.json": {
+        "sourceAndRestore": 2.4826318,
+        "seedCopy": 1e-07,
+        "sessionSetup": 1.8354783,
+        "msbuild": 13.3826714,
+        "selectBundles": 0.0040241,
+        "cleanup": 4.5681441
+      },
+      "staging.json": {
+        "validationSeconds": 1.5562422,
+        "packageSeconds": 0.6667081999999985,
+        "packageBytes": 2146600383,
+        "packageFiles": 12017,
+        "borrowed": true
+      },
+      "files": 6932
+    },
+    {
+      "name": "copy-2",
+      "elapsed": 24.597349707999996,
+      "exitCode": 0,
+      "timings.json": {
+        "sourceAndRestore": 3.4246079,
+        "seedCopy": 1e-07,
+        "sessionSetup": 4.5256321,
+        "msbuild": 13.1584108,
+        "selectBundles": 0.0039819,
+        "cleanup": 3.4566062
+      },
+      "staging.json": {
+        "validationSeconds": 1.5507936,
+        "packageSeconds": 1.614613499999998,
+        "packageBytes": 2146600383,
+        "packageFiles": 12017,
+        "borrowed": false
+      },
+      "files": 6932
+    }
+  ],
+  "package-staging-warm": [
+    {
+      "name": "copy-1",
+      "elapsed": 24.37889475,
+      "exitCode": 0,
+      "timings.json": {
+        "sourceAndRestore": 3.3675314,
+        "seedCopy": 2e-07,
+        "sessionSetup": 4.5097689,
+        "msbuild": 13.0139125,
+        "selectBundles": 0.0040217,
+        "cleanup": 3.4562454
+      },
+      "staging.json": {
+        "validationSeconds": 1.5212243,
+        "packageSeconds": 1.58525559999999,
+        "packageBytes": 2146600383,
+        "packageFiles": 12017,
+        "borrowed": false
+      },
+      "files": 6932
+    },
+    {
+      "name": "borrow-1",
+      "elapsed": 22.22958225,
+      "exitCode": 0,
+      "timings.json": {
+        "sourceAndRestore": 2.4639784,
+        "seedCopy": 1e-07,
+        "sessionSetup": 1.8247346,
+        "msbuild": 13.321683,
+        "selectBundles": 0.0039443,
+        "cleanup": 4.5868607
+      },
+      "staging.json": {
+        "validationSeconds": 1.5399815,
+        "packageSeconds": 0.6660020000000009,
+        "packageBytes": 2146600383,
+        "packageFiles": 12017,
+        "borrowed": true
+      },
+      "files": 6932
+    },
+    {
+      "name": "borrow-2",
+      "elapsed": 22.189668333000007,
+      "exitCode": 0,
+      "timings.json": {
+        "sourceAndRestore": 2.4992841,
+        "seedCopy": 1e-07,
+        "sessionSetup": 1.816118,
+        "msbuild": 13.2690698,
+        "selectBundles": 0.0039785,
+        "cleanup": 4.5737684
+      },
+      "staging.json": {
+        "validationSeconds": 1.5486635,
+        "packageSeconds": 0.6738439999999977,
+        "packageBytes": 2146600383,
+        "packageFiles": 12017,
+        "borrowed": true
+      },
+      "files": 6932
+    },
+    {
+      "name": "copy-2",
+      "elapsed": 24.622691167,
+      "exitCode": 0,
+      "timings.json": {
+        "sourceAndRestore": 3.4475568,
+        "seedCopy": 1e-07,
+        "sessionSetup": 4.4928009,
+        "msbuild": 13.1914531,
+        "selectBundles": 0.0039485,
+        "cleanup": 3.459107
+      },
+      "staging.json": {
+        "validationSeconds": 1.5562594,
+        "packageSeconds": 1.61983199999999,
+        "packageBytes": 2146600383,
+        "packageFiles": 12017,
+        "borrowed": false
+      },
+      "files": 6932
+    }
+  ],
+  "package-staging-sandbox": [
+    {
+      "name": "borrow-sandbox",
+      "elapsed": 23.106650584,
+      "exitCode": 0,
+      "timings.json": {
+        "sourceAndRestore": 2.5035196,
+        "seedCopy": 0,
+        "sessionSetup": 1.8262186,
+        "msbuild": 14.1372734,
+        "selectBundles": 0.0041399,
+        "cleanup": 4.601315
+      },
+      "staging.json": {
+        "validationSeconds": 1.5480617,
+        "packageSeconds": 0.6774305000000025,
+        "packageBytes": 2146600383,
+        "packageFiles": 12017,
+        "borrowed": true
+      },
+      "files": 6932
+    }
+  ],
+  "allOutputsIdentical": true,
+  "files": 6932,
+  "sortedHashesSha256": "6c00435156609f6ed04929d5be635d60d5823c3caf451f9a947e81eb89ae5dfb"
+}

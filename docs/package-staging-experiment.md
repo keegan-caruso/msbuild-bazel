@@ -1,7 +1,7 @@
-# Package staging experiment — paused
+# Package staging experiment
 
-Status: experimental instrumentation and opt-in prototype, not qualified for
-production. Paused on 2026-09-19 at the user's request for disk cleanup.
+Status: measured opt-in prototype. Isolated action and read-only macOS sandbox
+checks pass; full-graph Bazel integration remains unqualified.
 
 ## Completed baseline
 
@@ -36,9 +36,9 @@ rehashed before successful runner return. Existing plugin input checks remain.
 Source and restore metadata still use private files.
 
 The owned NativeProjectCache project builds with zero warnings and errors.
-The first borrowed-input run was interrupted for the pause. There is no completed
-candidate timing, byte-parity result, sandbox qualification, or dedicated
-regression coverage yet. Do not enable the option by default on this evidence.
+At the earlier checkpoint, the first borrowed-input run was interrupted for the
+pause. Candidate timings and regression coverage were still outstanding. The
+completed resumed measurements and remaining limits are recorded below.
 
 The baseline suggests package copying alone has a modest ceiling on this final
 project: about 1.6 seconds, versus 4.4 seconds of initial payload validation.
@@ -46,7 +46,7 @@ This does not establish the corresponding full-graph savings. The earlier
 completed dependency-staging optimization remains documented in
 [compile-staging-performance.md](compile-staging-performance.md).
 
-## Resume
+## Original resume plan
 
 The four-run plan is copy, borrow, borrow, copy at identical output paths, with
 all outputs hashed after each invocation. Finish those measurements, test input
@@ -58,3 +58,42 @@ The instrumented baseline and exact hashes were saved under
 `/private/tmp/package-staging-evidence`. The current prepared inputs live under
 `/private/tmp/orchard-staging-state`; preserve them until measurements resume or
 regenerate them using the saved workflow request.
+
+## Resumed results (2026-09-19)
+
+Two copy/borrow/borrow/copy sequences completed at fixed output paths. The
+first copy invocation had extra filesystem-cache overhead, so the second warm
+sequence is the primary comparison:
+
+| Mode | Samples (seconds) | Median |
+| --- | --- | ---: |
+| Copy | 24.379, 24.623 | 24.501 |
+| Borrow read-only files | 22.230, 22.190 | 22.210 |
+
+The reduction is **2.291 seconds (9.35%)** for the CMS entry action, not a
+measured full-graph speedup. Package staging falls from about 1.60 to 0.67 s
+and session setup from about 4.50 to 1.82 s. Final validation/projection/cleanup
+rises from about 3.46 to 4.58 s because borrowed inputs are rehashed. Initial
+payload validation and existing plugin checks remain enabled.
+
+All eight measured runs and one subsequent sandbox run produced identical
+hashes for 6,932 files. The sandbox run used `sandbox-exec` to deny network
+access and writes beneath the declared-input execroot. It passed after the
+final metadata-write safeguard was added: restore metadata replaces a symlink
+with a private file before writing, so it cannot chmod or overwrite a borrowed
+package. This is a focused macOS sandbox check, not a full Bazel graph run.
+
+Regression tests verify writable-input rejection, unchanged-input acceptance,
+post-link mutation rejection, and cleanup preserving the original package.
+NativeProjectCache and ActionRunner.Tests build with warnings as errors; action
+runner contract/process tests and focused formatting checks pass.
+
+The option remains false by default and is not emitted by production Starlark.
+Retain the prototype for full-graph integration and acceptance, including actual
+Bazel sandbox symlinks and fresh remote recovery. The measured isolated gain
+justifies that next step; it does not justify enabling it unconditionally.
+
+Evidence and all phase timings: `package-staging-resumed-evidence.json`. Raw
+reports, hashes and logs remain in `/private/tmp/package-staging-resumed`,
+`/private/tmp/package-staging-warm`, and `/private/tmp/package-staging-sandbox`.
+The initial paused sections above describe the earlier checkpoint only.

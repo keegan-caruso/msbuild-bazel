@@ -7,6 +7,7 @@
     <UseAppHost>false</UseAppHost>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="../../tools/NativeProjectCache/ReadOnlyPackageInputs.cs" Link="ReadOnlyPackageInputs.cs" />
     <Compile Include="../../tools/NativeProjectCache/StaticWebAssets.cs" Link="StaticWebAssets.cs" />
     <Compile Include="../../tools/NativeProjectCache/RuntimeContract.cs" Link="RuntimeContract.cs" />
     <Compile Include="../../tools/NativeProjectCache/DependencyReplay.cs" Link="DependencyReplay.cs" />
