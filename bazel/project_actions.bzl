@@ -8,7 +8,7 @@ load(":preparation.bzl", "DiscoveryPlanInfo")
 ProjectBundleInfo = provider(doc = "Project API and runtime outputs with their transitive closures.", fields = ["api", "apis", "bundles"])
 
 def _project(ctx):
-    discovery = ctx.attr.discovery[DiscoveryPlanInfo].directory
+    discovery = ctx.attr.discovery[DiscoveryPlanInfo].projects.get(ctx.attr.project, ctx.attr.discovery[DiscoveryPlanInfo].directory)
     plan = ctx.actions.declare_directory(ctx.label.name + ".plan")
     output = ctx.actions.declare_directory(ctx.label.name + ".bundle")
     api = ctx.actions.declare_directory(ctx.label.name + ".api")

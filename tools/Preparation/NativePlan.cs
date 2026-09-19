@@ -27,7 +27,7 @@ internal static class NativePlan
         return nodes;
     }
     private static IEnumerable<string> Analyzers(JsonNode node) => (node["execution"]?["analyzerReferences"] as JsonArray ?? []).Select(value => value!.GetValue<string>());
-    public static void Materialize(string prepared, JsonNode graph, string output, string toolchain, bool includePayload = true, string? repository = null)
+    public static void Materialize(string prepared, JsonNode graph, string output, string toolchain, bool includePayload = true, string? repository = null, string? packageSource = null)
     {
         var nodes = Qualify(graph); Directory.CreateDirectory(output);
         var implementations = new HashSet<string>(StringComparer.Ordinal);
@@ -42,9 +42,11 @@ internal static class NativePlan
         var sourceRoot = Path.Combine(prepared, "src");
         var orchard = repository is null ? null : new OrchardProfile(repository, sourceRoot);
         if (includePayload) FileTree.Copy(sourceRoot, Path.Combine(output, "src"));
-        var packageRoot = Path.Combine(prepared, "packages");
+        if (includePayload && packageSource is not null) throw new InvalidDataException("Direct packages require metadata-only materialization");
+        var packageRoot = packageSource ?? Path.Combine(prepared, "packages");
         if (includePayload && Directory.Exists(packageRoot)) FileTree.Copy(packageRoot, Path.Combine(output, "src/.nuget/packages"));
         var restore = new JsonObject(); var projects = new JsonObject(); var records = new JsonObject();
+        var packageHashes = new Dictionary<string, (long Size, string Digest)>(StringComparer.Ordinal);
         foreach (var (id, node) in nodes)
         {
             var selected = new JsonObject();
@@ -54,8 +56,9 @@ internal static class NativePlan
             foreach (var package in packages.Array("packages"))
                 foreach (var file in package!.Array("files"))
                 {
-                    var bytes = File.ReadAllBytes(Path.Combine(packageRoot, Host.Safe(package.String("path")), Host.Safe(file!.String("path"))));
-                    if (bytes.LongLength != file!["size"]!.GetValue<long>() || Json.Sha(bytes) != file.String("sha256")) throw new InvalidDataException("Package payload changed");
+                    var path = Path.Combine(packageRoot, Host.Safe(package.String("path")), Host.Safe(file!.String("path")));
+                    if (!packageHashes.TryGetValue(path, out var hash)) packageHashes[path] = hash = FileTree.HashRegular(path);
+                    if (hash.Size != file!["size"]!.GetValue<long>() || hash.Digest != file.String("sha256")) throw new InvalidDataException("Package payload changed");
                 }
             var inputs = new JsonObject();
             foreach (var item in node.Array("inputs"))
@@ -85,7 +88,12 @@ internal static class NativePlan
         {
             var payload = new JsonObject();
             foreach (var path in FileTree.Files(sourceRoot)) payload[Path.GetRelativePath(sourceRoot, path)] = FileTree.HashRegular(path).Digest;
-            if (Directory.Exists(packageRoot)) foreach (var path in FileTree.Files(packageRoot)) payload[".nuget/packages/" + Path.GetRelativePath(packageRoot, path)] = FileTree.HashRegular(path).Digest;
+            foreach (var path in packageSource is not null ? packageHashes.Keys : Directory.Exists(packageRoot) ? FileTree.Files(packageRoot) : [])
+            {
+                var hash = FileTree.HashRegular(path);
+                if (packageHashes.TryGetValue(path, out var expected) && hash != expected) throw new InvalidDataException("Package payload changed");
+                payload[".nuget/packages/" + Path.GetRelativePath(packageRoot, path)] = hash.Digest;
+            }
             Json.Write(Path.Combine(output, "payload.json"), payload);
             Directory.CreateDirectory(Path.Combine(output, "project-records"));
             var bindings = new JsonObject();
@@ -114,10 +122,11 @@ internal static class NativePlan
             if (item!.String("path").StartsWith("workspace/", StringComparison.Ordinal) && sourceNames.Contains(Host.Relative(item.String("path"))) && item.String("kind") != "source")
                 throw new InvalidDataException("Source-content split requires a compile-only input: " + item!.String("path"));
     }
-    public static void BindSources(JsonNode request)
+    public static void BindSources(JsonNode request, IntegrityProfile? profile = null)
     {
         var output = request.String("output"); var discovery = request.String("discovery");
-        if (request["project"] is not null && File.Exists(Path.Combine(discovery, "binding-index.json"))) { BindProjectSources(request); return; }
+        if (request["project"] is not null && File.Exists(Path.Combine(discovery, "binding.json"))) { BindTemplate(request, profile); return; }
+        if (request["project"] is not null && File.Exists(Path.Combine(discovery, "binding-index.json"))) { BindProjectSources(request, profile); return; }
         var projectAction = request["project"] is not null;
         var input = projectAction ? discovery : output;
         Directory.CreateDirectory(output);
@@ -169,7 +178,7 @@ internal static class NativePlan
             Visit(project);
             foreach (var name in projects.Select(p => p.Key).ToArray()) if (!closure.Contains(name)) { projects.Remove(name); records.AsObject().Remove(name); }
             if (payload is null) throw new InvalidDataException("Project actions require direct payloads");
-            PrunePayload(payload, records, sources.Keys, graph["graphInputs"] as JsonArray ?? []);
+            payload = PrunePayload(payload, records.AsObject().Select(pair => pair.Value!), sources.Keys, graph["graphInputs"] as JsonArray ?? []);
             Json.Write(payloadPath, payload);
             // Dependencies replay captured target results without loading their
             // SDK or NuGet imports; only the selected project needs restore data.
@@ -180,7 +189,7 @@ internal static class NativePlan
         }
         Json.Write(Path.Combine(output, "identity-records.json"), records); Json.Write(Path.Combine(output, "manifest.json"), manifest); Json.Write(Path.Combine(output, "graph.json"), graph);
     }
-    private static void PrunePayload(JsonNode payload, JsonNode records, IEnumerable<string> sources, JsonArray graphInputs)
+    private static JsonNode PrunePayload(JsonNode payload, IEnumerable<JsonNode> records, IEnumerable<string> sources, JsonArray graphInputs)
     {
         var sourceNames = sources.ToHashSet(OperatingSystem.IsMacOS() ? StringComparer.OrdinalIgnoreCase : StringComparer.Ordinal);
         var requiredPayload = new HashSet<string>(StringComparer.Ordinal);
@@ -189,18 +198,84 @@ internal static class NativePlan
             if (logical.StartsWith("workspace/", StringComparison.Ordinal)) requiredPayload.Add(Host.Relative(logical));
             else if (logical.StartsWith("packages/", StringComparison.Ordinal)) requiredPayload.Add(".nuget/" + logical);
         }
-        foreach (var record in records.AsObject().Select(pair => pair.Value!))
+        foreach (var record in records)
         {
             foreach (var name in record["inputs"]!.AsObject().Select(pair => pair.Key)) Require(name);
             foreach (var package in record["packages"]!.Array("packages"))
                 foreach (var file in package!.Array("files")) requiredPayload.Add(".nuget/packages/" + package.String("path") + "/" + file!.String("path"));
         }
         foreach (var item in graphInputs) Require(item!.String("path"));
-        foreach (var name in payload.AsObject().Select(p => p.Key).ToArray())
-            if (!requiredPayload.Contains(name) || name.EndsWith(".cs", StringComparison.Ordinal) && !name.StartsWith(".nuget/", StringComparison.Ordinal) && !sourceNames.Contains(name)) payload.AsObject().Remove(name);
+        // Removing entries from JsonObject shifts its ordered storage each time.
+        // Build the selected map once instead of repeatedly compacting the full graph.
+        return new JsonObject(payload.AsObject().Where(pair => requiredPayload.Contains(pair.Key) &&
+            (!pair.Key.EndsWith(".cs", StringComparison.Ordinal) || pair.Key.StartsWith(".nuget/", StringComparison.Ordinal) || sourceNames.Contains(pair.Key)))
+            .Select(pair => KeyValuePair.Create(pair.Key, pair.Value?.DeepClone())));
     }
-    private static void BindProjectSources(JsonNode request)
+    public static void ProjectTemplates(string discovery, JsonObject outputs)
     {
+        var index = Json.Read(Path.Combine(discovery, "binding-index.json"));
+        if (index.String("policy") != "project-bindings-v1") throw new InvalidDataException("Unknown project binding policy");
+        var manifest = Json.Read(Path.Combine(discovery, "manifest.json")); var projects = manifest["projects"]!.AsObject();
+        if (!projects.Select(pair => pair.Key).ToHashSet(StringComparer.Ordinal).SetEquals(outputs.Select(pair => pair.Key))) throw new InvalidDataException("Project template layout differs from discovery");
+        var records = Json.Read(Path.Combine(discovery, "identity-records.json"));
+        foreach (var (project, record) in records.AsObject())
+            if (Json.Digest(record!) != projects[project]!.String("identity")) throw new InvalidDataException("Corrupt discovery identity");
+        var closures = GraphPreparation.Closures(projects.ToDictionary(pair => pair.Key, pair => pair.Value!, StringComparer.Ordinal));
+        var payload = Json.Read(Path.Combine(discovery, "payload.json")); var graphInputs = index.Array("graphInputs");
+        foreach (var (project, target) in outputs)
+        {
+            var output = target!.GetValue<string>(); Directory.CreateDirectory(output);
+            var sources = index["projects"]![project]!.Array("sources").Select(value => value!.GetValue<string>()).ToArray();
+            var sourceNames = sources.Select(name => "workspace/" + name).ToHashSet(OperatingSystem.IsMacOS() ? StringComparer.OrdinalIgnoreCase : StringComparer.Ordinal);
+            var globalSource = graphInputs.Any(input => sourceNames.Contains(input!.String("path")));
+            var closure = closures[project];
+            // Only records whose source hashes can change need to travel through binding.
+            // Linked sources may also occur in dependency records; preserve that behavior.
+            var mutable = new JsonObject(closure.Where(name => name == project || globalSource || records[name]!["inputs"]!.AsObject().Any(pair => sourceNames.Contains(pair.Key)))
+                .Select(name => KeyValuePair.Create<string, JsonNode?>(name, records[name]!.DeepClone())));
+            Json.Write(Path.Combine(output, "binding.json"), new JsonObject { ["policy"] = "project-template-v1", ["project"] = project, ["sources"] = Json.Strings(sources), ["records"] = mutable, ["graphInputs"] = graphInputs.DeepClone(), ["protectedSources"] = new JsonArray(index.Array("protectedSources").Where(value => sourceNames.Contains("workspace/" + value!.GetValue<string>())).Select(value => value!.DeepClone()).ToArray()) });
+            Json.Write(Path.Combine(output, "manifest.json"), new JsonObject { ["policy"] = manifest["policy"]!.DeepClone(), ["toolchain"] = manifest["toolchain"]!.DeepClone(), ["projects"] = new JsonObject(projects.Where(pair => closure.Contains(pair.Key)).Select(pair => KeyValuePair.Create<string, JsonNode?>(pair.Key, pair.Value!.DeepClone()))) });
+            Json.Write(Path.Combine(output, "payload.json"), PrunePayload(payload, closure.Select(name => records[name]!), sources, graphInputs));
+            Json.Write(Path.Combine(output, "restore.json"), records[project]!["restore"]!);
+            Json.Write(Path.Combine(output, "entry.json"), new JsonObject { ["entry"] = project });
+        }
+    }
+    private static void BindTemplate(JsonNode request, IntegrityProfile? profile)
+    {
+        var phase = IntegrityProfile.Begin();
+        var discovery = request.String("discovery"); var output = request.String("output"); var project = request.String("project");
+        var binding = Json.Read(Path.Combine(discovery, "binding.json"));
+        if (binding.String("policy") != "project-template-v1" || binding.String("project") != project) throw new InvalidDataException("Unknown or mismatched project template");
+        var manifest = Json.Read(Path.Combine(discovery, "manifest.json")); var projects = manifest["projects"]!.AsObject();
+        if (!projects.ContainsKey(project) || !projects[project]!.Array("dependencies").Select(value => value!.GetValue<string>()).Order().SequenceEqual(request.Array("dependencies").Select(value => value!.GetValue<string>()).Order())) throw new InvalidDataException("Project layout differs from discovery");
+        var comparer = OperatingSystem.IsMacOS() ? StringComparer.OrdinalIgnoreCase : StringComparer.Ordinal;
+        var sources = request.Array("sources").ToDictionary(item => Host.Safe(item!.String("destination")), item => item!.String("source"), comparer);
+        if (!binding.Array("sources").Select(value => value!.GetValue<string>()).ToHashSet(comparer).SetEquals(sources.Keys)) throw new InvalidDataException("Project source layout differs from discovery");
+        if (binding.Array("protectedSources").Any(value => sources.ContainsKey(value!.GetValue<string>()))) throw new InvalidDataException("Source-content split requires a compile-only input");
+        profile?.End("readTemplate", phase); phase = IntegrityProfile.Begin();
+        var hashes = sources.ToDictionary(pair => "workspace/" + pair.Key, pair => FileTree.HashRegular(Host.Real(pair.Value)).Digest, comparer);
+        var graphInputs = binding.Array("graphInputs");
+        foreach (var input in graphInputs) if (hashes.TryGetValue(input!.String("path"), out var hash)) input!["sha256"] = hash;
+        var records = binding["records"]!.AsObject();
+        if (!records.ContainsKey(project)) throw new InvalidDataException("Project template record missing");
+        foreach (var (selected, record) in records)
+        {
+            if (Json.Digest(record!) != projects[selected]!.String("identity")) throw new InvalidDataException("Corrupt discovery identity");
+            foreach (var name in record!["inputs"]!.AsObject().Select(pair => pair.Key).ToArray()) if (hashes.TryGetValue(name, out var hash)) record["inputs"]![name] = hash;
+            record["graphInputs"] = graphInputs.DeepClone(); projects[selected]!["identity"] = Json.Digest(record);
+        }
+        profile?.End("bindRecords", phase); phase = IntegrityProfile.Begin();
+        var payload = Json.Read(Path.Combine(discovery, "payload.json"));
+        foreach (var name in payload.AsObject().Select(pair => pair.Key).ToArray()) if (hashes.TryGetValue("workspace/" + name, out var hash)) payload[name] = hash;
+        Directory.CreateDirectory(output);
+        Json.Write(Path.Combine(output, "payload.json"), payload); Json.Write(Path.Combine(output, "manifest.json"), manifest);
+        Json.Write(Path.Combine(output, "restore.json"), records[project]!["restore"]!);
+        Json.Write(Path.Combine(output, "entry.json"), new JsonObject { ["entry"] = project });
+        profile?.End("writePlan", phase);
+    }
+    private static void BindProjectSources(JsonNode request, IntegrityProfile? profile)
+    {
+        var phase = IntegrityProfile.Begin();
         var discovery = request.String("discovery"); var output = request.String("output"); var project = request.String("project");
         var index = Json.Read(Path.Combine(discovery, "binding-index.json"));
         if (index.String("policy") != "project-bindings-v1") throw new InvalidDataException("Unknown project binding policy");
@@ -210,9 +285,11 @@ internal static class NativePlan
         var sources = request.Array("sources").ToDictionary(n => Host.Safe(n!.String("destination")), n => n!.String("source"), comparer);
         if (!index["projects"]![project]!.Array("sources").Select(value => value!.GetValue<string>()).ToHashSet(comparer).SetEquals(sources.Keys)) throw new InvalidDataException("Project source layout differs from discovery");
         if (index.Array("protectedSources").Any(value => sources.ContainsKey(value!.GetValue<string>()))) throw new InvalidDataException("Source-content split requires a compile-only input");
+        profile?.End("readIndexAndValidate", phase); phase = IntegrityProfile.Begin();
         var hashes = sources.ToDictionary(pair => "workspace/" + pair.Key, pair => FileTree.HashRegular(Host.Real(pair.Value)).Digest, comparer);
         var graphInputs = index.Array("graphInputs");
         foreach (var input in graphInputs) if (hashes.TryGetValue(input!.String("path"), out var hash)) input!["sha256"] = hash;
+        profile?.End("hashSources", phase); phase = IntegrityProfile.Begin();
         var records = new JsonObject();
         void Visit(string selected)
         {
@@ -226,14 +303,17 @@ internal static class NativePlan
         }
         Visit(project);
         foreach (var name in projects.Select(pair => pair.Key).ToArray()) if (!records.ContainsKey(name)) projects.Remove(name);
+        profile?.End("bindClosure", phase); phase = IntegrityProfile.Begin();
         var payload = Json.Read(Path.Combine(discovery, "payload.json"));
-        PrunePayload(payload, records, sources.Keys, graphInputs);
+        payload = PrunePayload(payload, records.AsObject().Select(pair => pair.Value!), sources.Keys, graphInputs);
         foreach (var name in payload.AsObject().Select(pair => pair.Key).ToArray()) if (hashes.TryGetValue("workspace/" + name, out var hash)) payload[name] = hash;
+        profile?.End("prunePayload", phase); phase = IntegrityProfile.Begin();
         Directory.CreateDirectory(output);
         Json.Write(Path.Combine(output, "payload.json"), payload);
         Json.Write(Path.Combine(output, "manifest.json"), manifest);
         Json.Write(Path.Combine(output, "restore.json"), records[project]!["restore"]!);
         Json.Write(Path.Combine(output, "entry.json"), new JsonObject { ["entry"] = project });
+        profile?.End("writePlan", phase);
     }
     public static JsonNode? Refresh(string plan, string workspace, JsonNode previous, JsonNode current)
     {

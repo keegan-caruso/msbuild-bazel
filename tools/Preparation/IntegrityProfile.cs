@@ -3,8 +3,8 @@ using System.Text.Json.Nodes;
 
 namespace RulesMSBuild.Preparation;
 
-// Opt-in instrumentation for the test bridge. Normal workflow calls do not
-// collect clocks or allocation counters, and this never changes validation.
+// Diagnostic phase timings and allocation counters for qualification and tests.
+// Reports never participate in action identities or change validation.
 internal sealed class IntegrityProfile
 {
     private readonly Dictionary<string, (double Seconds, long Bytes)> phases = new(StringComparer.Ordinal);

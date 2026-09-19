@@ -19,10 +19,14 @@ internal sealed class GraphPreparation
     private readonly Packages packages;
     private readonly IReadOnlyDictionary<string, string>? prebuilt;
     private readonly Func<JsonNode>? revalidate;
+    private readonly IntegrityProfile? profile;
+    private readonly bool packageMetadataOnly;
 
-    private GraphPreparation(JsonNode request, string output, IReadOnlyDictionary<string, string>? prebuilt, Func<JsonNode>? revalidate)
+    private GraphPreparation(JsonNode request, string output, IReadOnlyDictionary<string, string>? prebuilt, Func<JsonNode>? revalidate, IntegrityProfile? profile, bool packageMetadataOnly)
     {
         this.request = request;
+        this.profile = profile;
+        this.packageMetadataOnly = packageMetadataOnly;
         this.prebuilt = prebuilt;
         this.revalidate = revalidate;
         this.output = output;
@@ -38,11 +42,11 @@ internal sealed class GraphPreparation
         foreach (var node in graph.Array("nodes"))
             if (node is null || !nodes.TryAdd(node.String("id"), node)) throw new InvalidDataException("duplicate or empty graph nodes");
         if (nodes.Count == 0) throw new InvalidDataException("duplicate or empty graph nodes");
-        packages = new(workspace, output, root);
+        packages = new(workspace, output, root, writePayload: !packageMetadataOnly);
         ValidateNodes();
         closures = Closures(nodes);
     }
-    public static void Run(JsonNode request, IReadOnlyDictionary<string, string>? prebuilt = null, Func<JsonNode>? revalidate = null)
+    public static void Run(JsonNode request, IReadOnlyDictionary<string, string>? prebuilt = null, Func<JsonNode>? revalidate = null, IntegrityProfile? profile = null, bool packageMetadataOnly = false)
     {
         var allowed = new HashSet<string>(["schemaVersion", "repository", "workspace", "manifest", "output", "sdkRoot", "sdkVersion", "toolTargetFramework", "msbuildEngineRoot", "tests", "compileBoundary"], StringComparer.Ordinal);
         if (request["schemaVersion"]?.GetValue<int>() != 1 || request.AsObject().Any(p => !allowed.Contains(p.Key))) throw new InvalidDataException("unsupported preparation request");
@@ -57,7 +61,7 @@ internal sealed class GraphPreparation
         try
         {
             var stage = Path.Combine(temporary, "workspace");
-            var preparation = new GraphPreparation(request, stage, prebuilt, revalidate);
+            var preparation = new GraphPreparation(request, stage, prebuilt, revalidate, profile, packageMetadataOnly);
             preparation.Prepare();
             // Directory.Move refuses to overwrite even an empty committed directory.
             Directory.Move(stage, output);
@@ -137,6 +141,7 @@ internal sealed class GraphPreparation
     {
         var roots = new Dictionary<string, string> { ["workspace"] = workspace, ["dotnet"] = sdk, ["packages"] = Path.Combine(workspace, ".nuget/packages"), ["adapter"] = Path.Combine(root, "tools/GraphExport"), ["nix"] = "/nix/store" };
         var external = new HashSet<string>(StringComparer.Ordinal);
+        var hashes = new Dictionary<(string Path, bool Normalized), string>();
         foreach (var itemNode in (graph["graphInputs"] as JsonArray ?? []).Concat(nodes.Values.SelectMany(n => n.Array("inputs"))))
         {
             var item = itemNode!; var path = item.String("path"); var kind = item.String("kind"); var parts = path.Split('/', 2);
@@ -150,25 +155,34 @@ internal sealed class GraphPreparation
             var source = Path.Combine(inputRoot, logical);
             if (!File.Exists(source) || (parts[0] is "workspace" or "nix") && !Host.Within(Host.Real(source), inputRoot)) throw new InvalidDataException("missing-input: missing or escaping input: " + path);
             if (parts[0] == "workspace" && ("/" + logical).Contains("/obj/", StringComparison.Ordinal) && kind is not ("restore" or "import")) throw new InvalidDataException("unsupported declared obj input: " + path);
-            var bytes = File.ReadAllBytes(source);
-            if (kind == "restore" || kind == "import" && new[] { ".json", ".props", ".targets", ".xml", ".proj", ".csproj" }.Contains(Path.GetExtension(source).ToLowerInvariant()))
+            var normalized = kind == "restore" || kind == "import" && new[] { ".json", ".props", ".targets", ".xml", ".proj", ".csproj" }.Contains(Path.GetExtension(source).ToLowerInvariant());
+            if (!hashes.TryGetValue((source, normalized), out var digest))
             {
-                var text = File.ReadAllText(source);
-                if (Path.GetFileName(source) == "project.nuget.cache")
+                if (normalized)
                 {
-                    var cache = JsonNode.Parse(text)!;
-                    if (cache.AsObject().ContainsKey("dgSpecHash")) cache["dgSpecHash"] = "$NORMALIZED";
-                    text = cache.ToJsonString();
+                    var text = File.ReadAllText(source);
+                    if (Path.GetFileName(source) == "project.nuget.cache")
+                    {
+                        var cache = JsonNode.Parse(text)!;
+                        if (cache.AsObject().ContainsKey("dgSpecHash")) cache["dgSpecHash"] = "$NORMALIZED";
+                        text = cache.ToJsonString();
+                    }
+                    digest = Json.Sha(Encoding.UTF8.GetBytes(text.Replace(workspace, "$WORKSPACE", StringComparison.Ordinal).Replace(Path.Combine(workspace, ".nuget/packages"), "$PACKAGES", StringComparison.Ordinal).Replace(sdk, "$DOTNET", StringComparison.Ordinal)));
                 }
-                bytes = Encoding.UTF8.GetBytes(text.Replace(workspace, "$WORKSPACE", StringComparison.Ordinal).Replace(Path.Combine(workspace, ".nuget/packages"), "$PACKAGES", StringComparison.Ordinal).Replace(sdk, "$DOTNET", StringComparison.Ordinal));
+                else digest = FileTree.HashRegular(Host.Real(source)).Digest;
+                hashes.Add((source, normalized), digest);
             }
-            if (Json.Sha(bytes) != item.String("sha256")) throw new InvalidDataException((kind == "package" ? "hash-mismatch: " : "stale-manifest: ") + "stale graph input: " + path);
+            // Compare every expectation, even when the same file occurs in many projects.
+            // The independent graph export and discovery lease verification still follow.
+            if (digest != item.String("sha256")) throw new InvalidDataException((kind == "package" ? "hash-mismatch: " : "stale-manifest: ") + "stale graph input: " + path);
         }
         return external.Order(StringComparer.Ordinal).ToArray();
     }
     private void Prepare()
     {
+        var phase = IntegrityProfile.Begin();
         var external = ValidateInputs();
+        profile?.End("prepareValidateInputs", phase); phase = IntegrityProfile.Begin();
         if (graph["entryRequests"] is not JsonArray { Count: > 0 }) throw new InvalidDataException("graph discovery request missing; regenerate manifest");
         var compileBoundary = request["compileBoundary"]?.GetValue<bool>() ?? false;
         if (compileBoundary) CompileBoundary.Validate(workspace, graph, packages);
@@ -212,6 +226,7 @@ internal sealed class GraphPreparation
         if (revalidate is not null) Json.Write(refreshed, revalidate());
         else Host.Run(Path.Combine(sdk, "dotnet"), [built["GraphExport"], "--request", discoveryRequest], workspace, environment);
         if (!JsonNode.DeepEquals(Json.Read(refreshed), graph)) throw new InvalidDataException("stale-manifest: stale graph discovery: regenerate manifest");
+        profile?.End("prepareRevalidateGraph", phase); phase = IntegrityProfile.Begin();
         Host.Copy(built["ReplayPlugin"], Path.Combine(output, "ReplayPlugin.dll"));
         foreach (var suffix in new[] { ".dll", ".deps.json", ".runtimeconfig.json" }) Host.Copy(Path.ChangeExtension(built["ActionRunner"], null) + suffix, Path.Combine(output, "runner/ActionRunner" + suffix));
         foreach (var extension in new[] { "props", "targets" })
@@ -229,7 +244,9 @@ internal sealed class GraphPreparation
         File.WriteAllText(Path.Combine(output, "MODULE.bazel"), "module(name = \"msbuild_graph\")\n\nlocal_dotnet_sdk = use_repo_rule(\"//:msbuild.bzl\", \"local_dotnet_sdk\")\n" + Starlark.Call("local_dotnet_sdk", new JsonObject { ["name"] = "dotnet", ["path"] = sdk, ["external_imports"] = Json.Strings(external) }));
         Json.Write(Path.Combine(output, "host-identity.json"), new JsonObject { ["platform"] = RuntimeInformation.OSDescription, ["machine"] = RuntimeInformation.OSArchitecture.ToString(), ["dotnet"] = sdk, ["policyRevision"] = 2, ["controller"] = "dotnet-preparation-v1" });
         Directory.CreateDirectory(Path.Combine(output, "restore"));
+        profile?.End("prepareSupport", phase); phase = IntegrityProfile.Begin();
         WriteBuild(tests, compileBoundary, built.GetValueOrDefault("TestRunner"));
+        profile?.End("prepareWriteBuild", phase);
         Json.Write(Path.Combine(output, "graph.json"), graph);
     }
     internal static JsonObject FrameworkSelections(Dictionary<string, JsonNode> nodes, HashSet<string> closure)
@@ -294,6 +311,7 @@ internal sealed class GraphPreparation
             foreach (var source in sources) if (copied.Add(source)) Host.Copy(Path.Combine(workspace, source), Path.Combine(output, "src", source));
             var execution = Execution(node);
             var (manifest, packagePaths) = packages.Stage(Host.Relative(node.String("project")), Host.Relative(execution.String("assetsFile")), node.String("targetFramework"), id);
+            if (packageMetadataOnly) continue;
             var attributes = new JsonObject
             {
                 ["sdk_version"] = version,
@@ -320,6 +338,7 @@ internal sealed class GraphPreparation
             build.Append(Starlark.Call("graph_project", attributes));
         }
         packages.Verify();
+        if (packageMetadataOnly) return;
         build.Append(Starlark.Call("filegroup", new JsonObject { ["name"] = "all", ["srcs"] = Json.Strings(graph.Array("entryPoints").Select(n => ":node_" + n!.GetValue<string>()).Order(StringComparer.Ordinal)) }));
         if (tests is { Count: > 0 }) build.Append(TestDeclarations.Write(workspace, output, root, nodes, tests, testRunner!));
         File.WriteAllText(Path.Combine(output, "BUILD.bazel"), build.ToString());

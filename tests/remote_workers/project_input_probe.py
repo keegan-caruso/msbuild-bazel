@@ -28,10 +28,12 @@ def run(output, packages, repositories):
         assert result.returncode==0 and report['accepted'], label
         executions=[json.loads(line) for line in (output/label/'execution.json').read_text().splitlines() if line]
         compiled=sorted(item['targetLabel'] for item in executions if item['mnemonic']=='MsbuildCompileProject' and not item.get('cacheHit',False))
-        cases.append(dict(case=label,seconds=report['seconds'],compiles=report['compiles'],targets=compiled))
+        cases.append(dict(case=label,seconds=report['seconds'],compiles=report['compiles'],bindings=report['MsbuildBindProject']['executed'],targets=compiled))
         (output/'report.json').write_text(json.dumps(cases,indent=2))
         print(label,report['compiles'],round(report['seconds'],3),flush=True)
         assert report['compiles']==expected, cases[-1]
+        if label in ['linked-resource','local-import','shared-import','noop']:
+            assert report['MsbuildBindProject']['executed']==expected, cases[-1]
         if label in ['linked-resource','local-import']:
             expected_targets=sorted('//:project_'+hashlib.sha256(f'N{i:04}/N{i:04}.csproj'.encode()).hexdigest() for i in [1,3])
             assert compiled==expected_targets, compiled

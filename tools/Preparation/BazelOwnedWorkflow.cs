@@ -16,7 +16,7 @@ internal static class BazelOwnedWorkflow
         var output = Path.GetFullPath(request.String("output")); var scratch = Path.Combine(output, ".work");
         var root = Path.Combine(scratch, "repository"); var workspace = Path.Combine(scratch, "workspace");
         var diagnostics = Path.GetFullPath(request.String("diagnostics")); Directory.CreateDirectory(diagnostics);
-        var clock = Stopwatch.StartNew();
+        var clock = Stopwatch.StartNew(); var profile = new IntegrityProfile(); var phase = IntegrityProfile.Begin();
         void CopyInputs(string field, string destination)
         {
             Directory.CreateDirectory(destination);
@@ -37,20 +37,31 @@ internal static class BazelOwnedWorkflow
             Directory.CreateDirectory(Path.Combine(workspace, ".nuget/packages"));
             foreach (var path in FileTree.Files(workspace).Where(FileTree.RestoreMetadata))
                 File.WriteAllText(path, File.ReadAllText(path).Replace("${WORKSPACE}", workspace, StringComparison.Ordinal));
+            profile.End("stageInputs", phase); phase = IntegrityProfile.Begin();
             var sdk = Host.Real(Path.GetDirectoryName(Environment.ProcessPath!)!);
             var runtime = new Dictionary<string, JsonObject>(StringComparer.Ordinal);
             foreach (var path in (request["runtimeManifest"] is { } runtimeManifest ? Json.Read(runtimeManifest.GetValue<string>()).AsArray() : request.Array("runtimeRoots")).Select(n => n!.GetValue<string>())) runtime[path] = FileTree.Snapshot(path, true);
             var runtimeIdentity = new JsonObject(); foreach (var (path, snapshot) in runtime) runtimeIdentity[path] = Json.Digest(snapshot);
             var toolchain = Json.Digest(new JsonObject { ["policy"] = "bazel-owned-preparation-v1", ["runtime"] = runtimeIdentity, ["controller"] = Json.Digest(FileTree.Snapshot(root)), ["host"] = Json.Read(request.String("host")) });
+            profile.End("runtimeIdentity", phase); phase = IntegrityProfile.Begin();
             var discovery = new Discovery(root, sdk, workspace, Path.Combine(scratch, "discovery"), toolchain, runtime, declaredRuntimeRoots: runtime.Keys.ToArray());
-            var graph = discovery.Capture(request.String("entry")); NativePlan.Qualify(graph);
+            profile.End("discoverySetup", phase); phase = IntegrityProfile.Begin();
+            var graph = discovery.Capture(request.String("entry"), profile); NativePlan.Qualify(graph);
+            profile.End("discoveryCapture", phase); phase = IntegrityProfile.Begin();
             var graphPath = Path.Combine(scratch, "graph.json"); Json.Write(graphPath, graph);
             var prepared = Path.Combine(scratch, "prepared");
+            var directPackages = request["packageDirectories"] is JsonArray { Count: > 0 };
             var bound = Tools.ToDictionary(name => name, name => Tool(root, name), StringComparer.Ordinal);
-            GraphPreparation.Run(new JsonObject { ["schemaVersion"] = 1, ["repository"] = root, ["workspace"] = workspace, ["manifest"] = graphPath, ["output"] = prepared, ["sdkRoot"] = sdk, ["sdkVersion"] = "10.0.400" }, bound, () => discovery.Export(request.String("entry")));
-            NativePlan.Materialize(prepared, graph, output, toolchain, includePayload: false, repository: root); discovery.Verify();
+            GraphPreparation.Run(new JsonObject { ["schemaVersion"] = 1, ["repository"] = root, ["workspace"] = workspace, ["manifest"] = graphPath, ["output"] = prepared, ["sdkRoot"] = sdk, ["sdkVersion"] = "10.0.400" }, bound, discovery.RevalidateCaptured, profile, packageMetadataOnly: directPackages);
+            profile.End("graphPreparation", phase); phase = IntegrityProfile.Begin();
+            NativePlan.Materialize(prepared, graph, output, toolchain, includePayload: false, repository: root, packageSource: directPackages ? Path.Combine(workspace, ".nuget/packages") : null);
+            profile.End("materialize", phase); phase = IntegrityProfile.Begin();
+            if (request["projectOutputs"] is JsonObject projectOutputs) NativePlan.ProjectTemplates(output, projectOutputs);
+            profile.End("projectTemplates", phase); phase = IntegrityProfile.Begin();
+            discovery.Verify();
+            profile.End("finalVerify", phase);
             NativePlan.RequireSourceOnly(graph, request.Array("sourceNames").Select(n => n!.GetValue<string>()).ToHashSet(StringComparer.Ordinal));
-            Json.Write(Path.Combine(diagnostics, "report.json"), new JsonObject { ["accepted"] = true, ["seconds"] = clock.Elapsed.TotalSeconds, ["projects"] = graph.Array("nodes").Count });
+            Json.Write(Path.Combine(diagnostics, "report.json"), new JsonObject { ["accepted"] = true, ["seconds"] = clock.Elapsed.TotalSeconds, ["projects"] = graph.Array("nodes").Count, ["profile"] = profile.Report() });
         }
         finally { FileTree.Remove(scratch); }
     }
@@ -297,7 +308,7 @@ internal static class BazelOwnedWorkflow
                 build += Starlark.Call("msbuild_normalize_restore", new JsonObject { ["name"] = "restore_inputs", ["srcs"] = Json.Strings(names.Where(FileTree.RestoreMetadata).Select(InputLabel)), ["workspace"] = checkout, ["cache"] = packageCache, ["runner"] = "@owned_tools//:tools/Preparation/bin/Release/net10.0/Preparation.dll", ["controller"] = Json.Strings(["@owned_tools//:files"]), ["sdk"] = "@dotnet//:files", ["dotnet"] = "@dotnet//:sdk/dotnet" });
         }
         if (layout is not null) Json.Write(Path.Combine(generated, "project-layout.json"), layout);
-        build += Starlark.Call("msbuild_prepare", new JsonObject { ["package_set"] = packageActions ? ":nuget_packages" : null, ["layout"] = layout is null ? null : "project-layout.json", ["name"] = "prepare", ["project"] = entry, ["srcs"] = Inputs(), ["controller"] = Json.Strings(["@owned_tools//:files"]), ["runner"] = "@owned_tools//:tools/Preparation/bin/Release/net10.0/Preparation.dll", ["host"] = "host.json", ["runtime_manifest"] = "@dotnet//:runtime-roots.json", ["sdk"] = "@dotnet//:files", ["dotnet"] = "@dotnet//:sdk/dotnet" });
+        build += Starlark.Call("msbuild_prepare", new JsonObject { ["projects"] = layout is null ? new JsonArray() : Json.Strings(layout["projects"]!.AsObject().Select(pair => pair.Key)), ["package_set"] = packageActions ? ":nuget_packages" : null, ["layout"] = layout is null ? null : "project-layout.json", ["name"] = "prepare", ["project"] = entry, ["srcs"] = Inputs(), ["controller"] = Json.Strings(["@owned_tools//:files"]), ["runner"] = "@owned_tools//:tools/Preparation/bin/Release/net10.0/Preparation.dll", ["host"] = "host.json", ["runtime_manifest"] = "@dotnet//:runtime-roots.json", ["sdk"] = "@dotnet//:files", ["dotnet"] = "@dotnet//:sdk/dotnet" });
         if (layout is null)
             build += Starlark.Call("msbuild_native_cache", new JsonObject { ["name"] = "build", ["project"] = entry, ["prepared_plan"] = ":prepare", ["direct_inputs"] = Inputs(), ["seeds"] = Files("seeds"), ["runner"] = "@owned_tools//:tools/NativeProjectCache/bin/Release/net10.0/NativeProjectCache.dll", ["runner_support"] = Json.Strings(["@owned_tools//:files"]), ["sdk"] = "@dotnet//:files", ["dotnet"] = "@dotnet//:sdk/dotnet" });
         else

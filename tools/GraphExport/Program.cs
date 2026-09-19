@@ -469,7 +469,22 @@ internal static class GraphExporter
         var logical = NormalizeInputPath(request, path, workspaceOnly);
         if (logical.StartsWith("nix/", StringComparison.Ordinal) && kind != "import")
             throw new ExportException("path-escape", "external Nix inputs are limited to evaluated imports");
-        var hash = normalizeText ? HashNormalizedText(request, path) : HashFile(path);
+        var info = new FileInfo(path);
+        var stamp = (info.Length, info.LastWriteTimeUtc.Ticks, info.CreationTimeUtc.Ticks, info.Attributes);
+        var key = (path, normalizeText);
+        string hash;
+        if (request.InputHashes.TryGetValue(key, out var cached))
+        {
+            if (cached.Stamp != stamp) throw new ExportException("input-changed", "input changed during export: " + path);
+            hash = cached.Hash;
+        }
+        else
+        {
+            hash = normalizeText ? HashNormalizedText(request, path) : HashFile(path);
+            info.Refresh();
+            if (stamp != (info.Length, info.LastWriteTimeUtc.Ticks, info.CreationTimeUtc.Ticks, info.Attributes)) throw new ExportException("input-changed", "input changed while hashing: " + path);
+            request.InputHashes.Add(key, (stamp, hash));
+        }
         inputs[(kind, logical)] = new InputRecord(kind, logical, hash);
     }
 
@@ -567,6 +582,9 @@ internal sealed class ExportException(string code, string message) : Exception(m
 
 internal sealed class ExportRequest
 {
+    // One export only: normalized and raw views remain distinct, and every
+    // reference still passes path validation and checks the observed file stamp.
+    internal Dictionary<(string Path, bool Normalized), ((long Length, long Modified, long Created, FileAttributes Attributes) Stamp, string Hash)> InputHashes { get; } = [];
     public int SchemaVersion { get; set; }
     public string Workspace { get; set; } = "";
     public string DotnetRoot { get; set; } = "";

@@ -15,6 +15,7 @@ internal sealed class Discovery
     private readonly Dictionary<string, string> roots = new(StringComparer.Ordinal);
     private readonly Dictionary<string, JsonObject> identities = new(StringComparer.Ordinal);
     private readonly Dictionary<string, string> environment;
+    private JsonNode? capturedGraph;
     public JsonObject WorkspaceIdentity { get; }
     public JsonObject HostIdentity { get; }
     public string Context { get; }
@@ -63,13 +64,16 @@ internal sealed class Discovery
         Task.WaitAll(stdout, stderr); File.WriteAllText(Path.Combine(output, name + ".log"), stdout.Result + stderr.Result);
         if (process.ExitCode != 0) throw new InvalidDataException("Sandboxed discovery failed: " + stdout.Result + stderr.Result);
     }
-    public JsonNode Capture(string entry)
+    public JsonNode Capture(string entry, IntegrityProfile? profile = null)
     {
+        capturedGraph = null;
+        var phase = IntegrityProfile.Begin();
         var properties = new JsonObject { ["Configuration"] = "Release", ["TargetFramework"] = "net10.0" };
         var entries = new JsonArray(new JsonObject { ["project"] = entry, ["globalProperties"] = properties });
         var augmented = (JsonArray)entries.DeepClone(); var targets = Path.Combine(roots["GraphExport"], "Bazel.GraphExport.targets");
         augmented[0]!["globalProperties"]!["BazelGraphExport"] = "true"; augmented[0]!["globalProperties"]!["CustomAfterMicrosoftCommonTargets"] = targets; augmented[0]!["globalProperties"]!["RestorePackagesPath"] = Path.Combine(workspace, ".nuget/packages");
         Run("EvaluationProbe", new JsonObject { ["workspace"] = workspace, ["dotnetRoot"] = sdk, ["sdkVersion"] = "10.0.400", ["entryPoints"] = augmented, ["properties"] = Json.Strings(["ProjectAssetsFile", "TargetFramework", "IsCrossTargetingBuild"]), ["items"] = new JsonArray(), ["mode"] = "recorded", ["output"] = Path.Combine(output, "evaluation.json") });
+        profile?.End("evaluationProbe", phase); phase = IntegrityProfile.Begin();
         var evidence = Json.Read(Path.Combine(output, "evaluation.json"))["rounds"]![0]!;
         var absent = new HashSet<string>(StringComparer.Ordinal); var trusted = new HashSet<string>(StringComparer.Ordinal);
         var orchard = new OrchardProfile(root, workspace, sdk);
@@ -104,6 +108,7 @@ internal sealed class Discovery
             }
         }
         packageChecker.Verify();
+        profile?.End("packageQualification", phase); phase = IntegrityProfile.Begin();
         foreach (var observation in evidence.Array("observations"))
         {
             var path = observation!.String("path");
@@ -122,8 +127,12 @@ internal sealed class Discovery
                 else if (path != targets && !QualifiedImport(sdkImports, path, import.String("sha256"))) throw new InvalidDataException("Unqualified SDK import: " + path);
             }
         Absent = absent.Order(StringComparer.Ordinal).ToArray();
+        profile?.End("importQualification", phase); phase = IntegrityProfile.Begin();
         Run("GraphExport", new JsonObject { ["schemaVersion"] = 1, ["workspace"] = workspace, ["dotnetRoot"] = sdk, ["sdkVersion"] = "10.0.400", ["packageRoot"] = Path.Combine(workspace, ".nuget/packages"), ["entryPoints"] = entries, ["output"] = Path.Combine(output, "graph.json") });
-        Verify(); return Json.Read(Path.Combine(output, "graph.json"));
+        profile?.End("graphExport", phase); phase = IntegrityProfile.Begin();
+        Verify(); profile?.End("captureVerify", phase);
+        capturedGraph = Json.Read(Path.Combine(output, "graph.json"));
+        return capturedGraph.DeepClone();
     }
     private bool QualifiedImport(JsonNode reviewed, string path, string hash)
     {
@@ -133,6 +142,15 @@ internal sealed class Discovery
         // corresponding SDK-relative path. New imports still fail closed.
         var suffix = "/share/dotnet/" + Path.GetRelativePath(sdk, path);
         return reviewed.AsObject().Any(p => p.Key.EndsWith(suffix, StringComparison.Ordinal) && p.Value?.GetValue<string>() == hash);
+    }
+    public JsonNode RevalidateCaptured()
+    {
+        if (capturedGraph is null) throw new InvalidDataException("No qualified graph was captured by this discovery instance");
+        // This graph was just produced inside the owned action, not loaded from
+        // a caller-supplied manifest. Check the complete read closure and absent
+        // paths again before reusing it; the final consumption check also remains.
+        Verify();
+        return capturedGraph.DeepClone();
     }
     public JsonNode Export(string entry)
     {

@@ -198,10 +198,48 @@ try
             var orchardProfile = new OrchardProfile(request.String("repository"), request.String("workspace"), request.String("sdk"));
             Console.WriteLine(Json.Text(new JsonObject { ["accepted"] = orchardProfile.Accept(request.String("path"), request.String("sha256")), ["packages"] = Json.Strings(orchardProfile.Packages) }));
             break;
+        case "discovery-captured-control":
+            {
+                var guarded = new Discovery(request.String("repository"), request.String("sdk"), request.String("workspace"), request.String("output"), new string('a', 64), new Dictionary<string, JsonObject>());
+                var noCaptureRejected = false;
+                try { guarded.RevalidateCaptured(); } catch (InvalidDataException) { noCaptureRejected = true; }
+                var graph = guarded.Capture(request.String("entry")); var capturedExpected = Json.Digest(graph);
+                graph["tampered"] = true;
+                var copy = guarded.RevalidateCaptured(); var isolated = Json.Digest(copy) == capturedExpected;
+                copy["tampered"] = true; isolated &= Json.Digest(guarded.RevalidateCaptured()) == capturedExpected;
+                var controls = new JsonObject { ["noCaptureRejected"] = noCaptureRejected, ["isolatedCopies"] = isolated };
+                var body = request.String("body"); var bytes = File.ReadAllBytes(body); var written = File.GetLastWriteTimeUtc(body);
+                void Reject(string label, Action change, Action restore)
+                {
+                    var rejected = false;
+                    try { change(); try { guarded.RevalidateCaptured(); } catch (InvalidDataException) { rejected = true; } }
+                    finally { restore(); }
+                    controls[label] = rejected;
+                    if (Json.Digest(guarded.RevalidateCaptured()) != capturedExpected) throw new InvalidDataException("Restored discovery differs");
+                }
+                Reject("bodyChangedWithRestoredTimestamp", () => { var changed = (byte[])bytes.Clone(); changed[0] ^= 1; File.WriteAllBytes(body, changed); File.SetLastWriteTimeUtc(body, written); }, () => { File.WriteAllBytes(body, bytes); File.SetLastWriteTimeUtc(body, written); });
+                var added = Path.Combine(request.String("workspace"), "Added.cs");
+                Reject("sourceAdded", () => File.WriteAllText(added, "class Added {}"), () => File.Delete(added));
+                var toolInput = Path.Combine(request.String("output"), "tools/GraphExport/changed-input");
+                Reject("toolChanged", () => File.WriteAllText(toolInput, "changed"), () => File.Delete(toolInput));
+                var parent = Path.GetDirectoryName(request.String("workspace"))!;
+                var absent = guarded.Absent.FirstOrDefault(path => Path.GetDirectoryName(path) == parent) ?? throw new InvalidDataException("Expected parent absence was not observed");
+                Reject("externalAbsenceChanged", () => File.WriteAllText(absent, "<Project/>"), () => File.Delete(absent));
+                Console.WriteLine(Json.Text(controls));
+            }
+            break;
         case "discovery":
             var discovery = new Discovery(request.String("repository"), request.String("sdk"), request.String("workspace"), request.String("output"), new string('a', 64), new Dictionary<string, JsonObject>());
             var discovered = discovery.Capture(request.String("entry"));
             Console.WriteLine(Json.Text(new JsonObject { ["projects"] = discovered.Array("nodes").Count }));
+            break;
+        case "project-templates":
+            NativePlan.ProjectTemplates(request.String("discovery"), request["outputs"]!.AsObject());
+            break;
+        case "profile-bind-sources":
+            var bindingProfile = new IntegrityProfile();
+            NativePlan.BindSources(request, bindingProfile);
+            Console.WriteLine(Json.Text(bindingProfile.Report()));
             break;
         case "bind-sources":
             NativePlan.BindSources(request);

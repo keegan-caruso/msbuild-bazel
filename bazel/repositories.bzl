@@ -74,7 +74,7 @@ def _nuget(ctx):
                 temporary = destination + "/normalized-nuspec.tmp"
                 ctx.rename(path, temporary)
                 ctx.rename(temporary, destination + "/" + path.basename.lower())
-    ctx.file("BUILD.bazel", 'filegroup(name="files", srcs=glob(["packages/**"], allow_empty=True), visibility=["//visibility:public"])\nexports_files(glob(["packages/**/*.nupkg"]))\n')
+    ctx.file("BUILD.bazel", 'filegroup(name="files", srcs=glob(["packages/**"], allow_empty=True), visibility=["//visibility:public"])\nexports_files(glob(["packages/**/*.nupkg"], allow_empty=True))\n')
 
 nuget_archives = repository_rule(implementation = _nuget, attrs = {"cache": attr.string(mandatory = True), "packages": attr.string(mandatory = True), "policy": attr.label(mandatory = True), "archives_only": attr.bool(default = False)})
 

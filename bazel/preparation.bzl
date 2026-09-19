@@ -3,17 +3,19 @@
 load(":input_paths.bzl", "input_path")
 load(":nuget_package.bzl", "NugetPackageSetInfo", "package_files", "package_rows")
 
-DiscoveryPlanInfo = provider(doc = "Structural discovery tree shared by project bindings.", fields = ["directory", "validation"])
+DiscoveryPlanInfo = provider(doc = "Structural discovery tree shared by project bindings.", fields = ["directory", "validation", "projects"])
 
 def _prepare(ctx):
     plan = ctx.actions.declare_directory(ctx.label.name + ".plan")
     discovery = ctx.actions.declare_directory(ctx.label.name + ".discovery")
+    projects = {project: ctx.actions.declare_directory(ctx.label.name + ".projects/" + project + ".template") for project in ctx.attr.projects}
     bodies = [f for f in ctx.files.srcs if input_path(f).endswith(".cs") and not input_path(f).startswith(".nuget/") and "/obj/" not in input_path(f)]
     structural = [f for f in ctx.files.srcs if f not in bodies]
     diagnostics = ctx.actions.declare_directory(ctx.label.name + ".diagnostics")
     request = ctx.actions.declare_file(ctx.label.name + ".request.json")
     ctx.actions.write(request, json.encode({
         "entry": ctx.attr.project,
+        "projectOutputs": {project: output.path for project, output in projects.items()} if projects else None,
         "output": discovery.path,
         "packageDirectories": package_rows(ctx.attr.package_set),
         "sourceNames": [input_path(f) for f in bodies],
@@ -28,7 +30,7 @@ def _prepare(ctx):
         executable = ctx.executable.dotnet,
         arguments = [ctx.file.runner.path, "owned-prepare", "--request", request.path],
         inputs = depset(structural + package_files(ctx.attr.package_set) + ctx.files.runtime_manifest + ctx.files.controller + [ctx.file.host, ctx.file.runner, request], transitive = [ctx.attr.sdk[DefaultInfo].files]),
-        outputs = [discovery, diagnostics],
+        outputs = [discovery, diagnostics] + projects.values(),
         env = {"PATH": "/usr/bin:/bin", "LANG": "en_US.UTF-8"},
         mnemonic = "MsbuildDiscover",
         # Discovery starts its own stricter native sandbox. macOS forbids nested
@@ -65,9 +67,10 @@ def _prepare(ctx):
         mnemonic = "MsbuildBindSources",
         execution_requirements = {"block-network": "1", "no-remote-exec": "1"},
     )
-    return [DefaultInfo(files = depset([plan])), DiscoveryPlanInfo(directory = discovery, validation = validation), OutputGroupInfo(discovery = depset([discovery]))]
+    return [DefaultInfo(files = depset([plan])), DiscoveryPlanInfo(directory = discovery, validation = validation, projects = projects), OutputGroupInfo(discovery = depset([discovery]))]
 
 msbuild_prepare = rule(implementation = _prepare, attrs = {
+    "projects": attr.string_list(),
     "package_set": attr.label(providers = [NugetPackageSetInfo]),
     "layout": attr.label(allow_single_file = True),
     "project": attr.string(mandatory = True),
