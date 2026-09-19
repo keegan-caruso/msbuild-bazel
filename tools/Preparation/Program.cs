@@ -37,6 +37,7 @@ internal static class Program
             var request = JsonNode.Parse(File.ReadAllText(args[2])) ?? throw new InvalidDataException("Empty request");
             switch (args[0])
             {
+                case "owned-extract-package": PackageExtraction.Run(request); break;
                 case "owned-validate-layout": ProjectLayout.Validate(request); break;
                 case "owned-export-layout": Json.Write(request.String("output"), ProjectLayout.Capture(Json.Read(request.String("graph")))); break;
                 case "owned-locked-restore": LockedRestore.Run(request); break;
