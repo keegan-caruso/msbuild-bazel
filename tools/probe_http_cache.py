@@ -27,7 +27,7 @@ class CacheServer:
     def __init__(self, delay_ms=0, download_mbps=0, upload_mbps=0):
         if not math.isfinite(delay_ms) or delay_ms < 0: raise ValueError('delay must be finite and nonnegative')
         self.data = {}; self.events = []; self.lock = threading.Lock()
-        self.delay_ms = delay_ms; self.offline = False; self.offline_prefixes = []
+        self.delay_ms = delay_ms; self.offline = False; self.offline_prefixes = []; self.head_status = None
         self.download = Bandwidth(download_mbps); self.upload = Bandwidth(upload_mbps)
         owner = self
         class Handler(BaseHTTPRequestHandler):
@@ -53,6 +53,7 @@ class CacheServer:
                 time.sleep(owner.delay_ms / 1000)
                 with owner.lock:
                     status = 503 if owner.offline or any(path.startswith(prefix) for prefix in owner.offline_prefixes) else 200
+                    if head and owner.head_status is not None: status = owner.head_status
                     if status == 200:
                         if write:
                             if '/cas/' in path and hashlib.sha256(body).hexdigest() != path.rsplit('/',1)[1]: status = 400

@@ -21,7 +21,7 @@ internal sealed class ActionCache : IDisposable
     private readonly string endpoint, directory, prefix;
     private readonly bool upload;
     private readonly Task serving;
-    private long uploaded, downloaded, buffered, published, failures;
+    private long uploaded, downloaded, buffered, published, failures, reusedObjects, reusedBytes;
     private bool stopped;
     public string Url { get; }
     public JsonObject Statistics => new()
@@ -34,6 +34,8 @@ internal sealed class ActionCache : IDisposable
         ["stagedBytes"] = Interlocked.Read(ref buffered),
         ["publishedObjects"] = Interlocked.Read(ref published),
         ["uploadedBytes"] = Interlocked.Read(ref uploaded),
+        ["reusedObjects"] = Interlocked.Read(ref reusedObjects),
+        ["reusedBytes"] = Interlocked.Read(ref reusedBytes),
         ["downloadedBytes"] = Interlocked.Read(ref downloaded),
         ["failures"] = Interlocked.Read(ref failures)
     };
@@ -150,16 +152,47 @@ internal sealed class ActionCache : IDisposable
     {
         Stop();
         if (Interlocked.Read(ref failures) != 0) throw new InvalidDataException("Action cache transport failed; staged publication discarded");
-        // All referenced content is committed before an action result becomes visible.
-        foreach (var (relative, contentType) in staged.OrderBy(p => p.Key.StartsWith("ac/", StringComparison.Ordinal)).ThenBy(p => p.Key, StringComparer.Ordinal))
+        try
         {
-            using var input = File.OpenRead(Path.Combine(directory, relative));
+            // Probe only during accepted publication. A fresh HEAD avoids retaining
+            // assumptions across invocations or cache evictions. As with ordinary
+            // Bazel caches, eviction after publication can still cause a cache miss.
+            PublishGroup("cas/", checkExisting: true).GetAwaiter().GetResult();
+            // No action record is visible until every content operation succeeds.
+            PublishGroup("ac/", checkExisting: false).GetAwaiter().GetResult();
+        }
+        catch { Interlocked.Increment(ref failures); throw; }
+    }
+    private Task PublishGroup(string group, bool checkExisting) => Parallel.ForEachAsync(
+        staged.Where(pair => pair.Key.StartsWith(group, StringComparison.Ordinal)),
+        new ParallelOptions { MaxDegreeOfParallelism = 8 }, async (item, cancellation) =>
+        {
+            var (relative, contentType) = item;
+            var path = Path.Combine(directory, relative);
+            var length = new FileInfo(path).Length;
+            if (checkExisting)
+            {
+                using var probe = new HttpRequestMessage(HttpMethod.Head, endpoint + "/" + relative);
+                using var existing = await client.SendAsync(probe, HttpCompletionOption.ResponseHeadersRead, cancellation);
+                if (existing.StatusCode == HttpStatusCode.OK)
+                {
+                    if (existing.Content.Headers.ContentLength is { } size && size != length)
+                        throw new InvalidDataException("Remote CAS object size mismatch");
+                    Interlocked.Increment(ref reusedObjects); Interlocked.Add(ref reusedBytes, length);
+                    return;
+                }
+                // Older HTTP caches may not implement HEAD. Upload in that case;
+                // authentication, transport and server errors must fail closed.
+                if (existing.StatusCode is not (HttpStatusCode.NotFound or HttpStatusCode.MethodNotAllowed or HttpStatusCode.NotImplemented))
+                    throw new HttpRequestException("Remote CAS existence check failed: " + existing.StatusCode);
+            }
+            await using var input = File.OpenRead(path);
             using var request = new HttpRequestMessage(HttpMethod.Put, endpoint + "/" + relative) { Content = new StreamContent(input) };
             request.Content.Headers.ContentType = System.Net.Http.Headers.MediaTypeHeaderValue.Parse(contentType);
-            using var response = client.Send(request); response.EnsureSuccessStatusCode();
-            Interlocked.Increment(ref published); Interlocked.Add(ref uploaded, input.Length);
-        }
-    }
+            using var response = await client.SendAsync(request, cancellation); response.EnsureSuccessStatusCode();
+            Interlocked.Increment(ref published); Interlocked.Add(ref uploaded, length);
+        });
+
     public void Dispose()
     {
         Stop(); listener.Close(); client.Dispose();

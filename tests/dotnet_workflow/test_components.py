@@ -91,6 +91,46 @@ class Components(unittest.TestCase):
             self.assertEqual(value['afterPublish']['publishedObjects'],2)
             self.assertEqual([e['path'] for e in server.events if e['method']=='PUT'],['/bazel/cas/'+blob,'/bazel/ac/'+action])
             self.assertEqual(server.data['/bazel/cas/'+blob],data)
+    def test_action_cache_reuses_existing_cas_and_rechecks_each_publication(self):
+        import base64
+        data=b'existing';blob=sha(data);action='a'*64
+        with CacheServer(0) as server:
+            server.data['/bazel/cas/'+blob]=data
+            for attempt in range(2):
+                request=dict(endpoint=server.url+'/bazel',directory=str(self.root/str(attempt)),upload=True,publish=True,
+                    requests=[dict(method='PUT',path='cas/'+blob,body=base64.b64encode(data).decode()),
+                              dict(method='PUT',path='ac/'+action,body=base64.b64encode(b'metadata').decode())],probeBeforePublish=[])
+                value=self.invoke('action-cache-gate',request)['afterPublish']
+                self.assertEqual(value['reusedObjects'],1 if attempt==0 else 0)
+                self.assertEqual(value['reusedBytes'],len(data) if attempt==0 else 0)
+                self.assertEqual(value['publishedObjects'],1 if attempt==0 else 2)
+                self.assertEqual(server.data['/bazel/cas/'+blob],data)
+                del server.data['/bazel/cas/'+blob]
+            self.assertEqual(sum(e['method']=='PUT' and '/cas/' in e['path'] for e in server.events),1)
+
+    def test_action_cache_head_fallback_and_error_barrier(self):
+        import base64
+        data=b'value';blob=sha(data)
+        for status in (405,501,401,403,500,503,302,204):
+            with self.subTest(status=status), CacheServer(0) as server:
+                server.head_status=status
+                request=dict(endpoint=server.url+'/bazel',directory=str(self.root/str(status)),upload=True,publish=True,
+                    requests=[dict(method='PUT',path='cas/'+blob,body=base64.b64encode(data).decode()),
+                              dict(method='PUT',path='ac/'+'a'*64,body=base64.b64encode(b'metadata').decode())],probeBeforePublish=[])
+                self.invoke('action-cache-gate',request,status in (405,501))
+                self.assertEqual(any(e['method']=='PUT' and '/ac/' in e['path'] for e in server.events),status in (405,501))
+
+    def test_action_cache_rejects_existing_wrong_size(self):
+        import base64
+        data=b'value';blob=sha(data)
+        with CacheServer(0) as server:
+            server.data['/bazel/cas/'+blob]=b'wrong size'
+            request=dict(endpoint=server.url+'/bazel',directory=str(self.root/'pending'),upload=True,publish=True,
+                requests=[dict(method='PUT',path='cas/'+blob,body=base64.b64encode(data).decode()),
+                          dict(method='PUT',path='ac/'+'a'*64,body=base64.b64encode(b'metadata').decode())],probeBeforePublish=[])
+            self.assertIn('size mismatch',self.invoke('action-cache-gate',request,False))
+            self.assertFalse(any(e['method']=='PUT' for e in server.events))
+
     def test_action_cache_discard_readonly_and_bad_digest(self):
         import base64
         data=b'value';blob=sha(data)
