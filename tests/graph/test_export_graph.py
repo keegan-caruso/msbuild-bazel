@@ -220,6 +220,23 @@ class GraphExportAcceptance(unittest.TestCase):
         self.assertEqual(len({n["id"] for n in graph["nodes"]}), 2)
         self.assertEqual({n["globalProperties"]["configuration"] for n in graph["nodes"]}, {"Release", "Debug"})
 
+    def test_session_reuse_keeps_configured_input_resolution_separate(self):
+        project = self.work / "src/Shared/Shared.csproj"
+        project.write_text('<Project Sdk="Microsoft.NET.Sdk"><ItemGroup>'
+            '<BazelExtraInput Include="$(Configuration).txt"/></ItemGroup></Project>')
+        for configuration in ("Release", "Debug"):
+            (project.parent / (configuration + ".txt")).write_text(configuration)
+        self.restore()
+        entries = [{"project": "src/Shared/Shared.csproj", "globalProperties": {"Configuration": c}}
+                   for c in ("Release", "Debug")]
+        graph = self.export(entries=entries)
+        self.assertEqual(graph, self.export(entries=list(reversed(entries))))
+        for node in graph["nodes"]:
+            configuration = node["globalProperties"]["configuration"]
+            selected = [item["path"] for item in node["inputs"] if item["kind"] == "extra"]
+            self.assertEqual(selected, ["workspace/src/Shared/" + configuration + ".txt"])
+        self.assertFalse(list(self.work.glob("src/**/bin/**/*.dll")))
+
     def test_restored_relocation_is_byte_equivalent(self):
         self.restore()
         first = self.export()

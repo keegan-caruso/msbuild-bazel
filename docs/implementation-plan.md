@@ -612,3 +612,10 @@ checks pass. Full Orchard qualification and project-specific package sets follow
 actions to validated package closures. Native fresh-recovery/source-edit evidence
 shows the selected package materialized while an unrelated sibling package stays
 remote. The full Orchard benchmark is the remaining combined qualification.
+
+[Cold-build discovery session reuse](cold-build-performance.md) shares action-local
+MSBuild sessions for framework negotiation and resolved-input export. Paired Orchard
+exports remain byte-identical; full cold-workflow timing and runtime checks pass.
+The cross-cold-build byte comparison retains the known Razor path-dependent output
+limitation. Repeated compile-action staging and dependency validation remain the
+next performance target.

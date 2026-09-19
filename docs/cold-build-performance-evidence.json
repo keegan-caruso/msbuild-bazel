@@ -1,0 +1,1244 @@
+{
+  "baselineCommit": "965a333",
+  "orchardRevision": "04467a3438d4255627c1a478598a1585b3ff2947",
+  "export": {
+    "baselineSeconds": [
+      69.306,
+      67.17541541700484
+    ],
+    "candidateSeconds": [
+      22.582,
+      23.398612249991857
+    ],
+    "resolutionOnlySeconds": 66.377,
+    "byteIdentical": true,
+    "sha256": "7fa47388e65af75a7d0c41d2db21b0034e4cc34b6b50bf048034fa41f1ab57cc"
+  },
+  "baselineWorkflowSeconds": 707.3675994,
+  "workflow": {
+    "seconds": 662.9136057,
+    "phases": {
+      "sourceSnapshot": 2.9605244,
+      "stagePackages": 0.0331116,
+      "generate": 0.4082015,
+      "bazel": 636.0571049,
+      "leaseExit": 3.1617535,
+      "validateBundles": 0.3587089,
+      "publishActionCache": 18.100412
+    },
+    "compiles": 202,
+    "MsbuildDiscover": {
+      "executed": 1,
+      "remoteHits": 0
+    },
+    "MsbuildLockedRestore": {
+      "executed": 1,
+      "remoteHits": 0
+    },
+    "MsbuildBindProject": {
+      "executed": 202,
+      "remoteHits": 0
+    },
+    "MsbuildCompileProject": {
+      "executed": 202,
+      "remoteHits": 0
+    },
+    "NugetExtractPackage": {
+      "executed": 287,
+      "remoteHits": 0
+    },
+    "actionCache": {
+      "failures": 0,
+      "downloadedBytes": 6950,
+      "uploadedBytes": 108510595,
+      "reusedBytes": 2646084734,
+      "publishedObjects": 4956,
+      "reusedObjects": 12779
+    },
+    "applicationFiles": 3457,
+    "outputDifferences": [
+      "OrchardCore.Admin.dll",
+      "OrchardCore.Admin.pdb",
+      "OrchardCore.AdminDashboard.dll",
+      "OrchardCore.AdminDashboard.pdb",
+      "OrchardCore.AdminMenu.dll",
+      "OrchardCore.AdminMenu.pdb",
+      "OrchardCore.Alias.dll",
+      "OrchardCore.Alias.pdb",
+      "OrchardCore.Apis.GraphQL.dll",
+      "OrchardCore.Apis.GraphQL.pdb",
+      "OrchardCore.ArchiveLater.dll",
+      "OrchardCore.ArchiveLater.pdb",
+      "OrchardCore.AuditTrail.dll",
+      "OrchardCore.AuditTrail.pdb",
+      "OrchardCore.Autoroute.dll",
+      "OrchardCore.Autoroute.pdb",
+      "OrchardCore.AzureAI.dll",
+      "OrchardCore.AzureAI.pdb",
+      "OrchardCore.BackgroundTasks.dll",
+      "OrchardCore.BackgroundTasks.pdb",
+      "OrchardCore.ContentFields.dll",
+      "OrchardCore.ContentFields.pdb",
+      "OrchardCore.ContentLocalization.dll",
+      "OrchardCore.ContentLocalization.pdb",
+      "OrchardCore.ContentPreview.dll",
+      "OrchardCore.ContentPreview.pdb",
+      "OrchardCore.ContentTypes.dll",
+      "OrchardCore.ContentTypes.pdb",
+      "OrchardCore.Contents.dll",
+      "OrchardCore.Contents.pdb",
+      "OrchardCore.Cors.dll",
+      "OrchardCore.Cors.pdb",
+      "OrchardCore.CustomSettings.dll",
+      "OrchardCore.CustomSettings.pdb",
+      "OrchardCore.DataLocalization.dll",
+      "OrchardCore.DataLocalization.pdb",
+      "OrchardCore.Deployment.Remote.dll",
+      "OrchardCore.Deployment.Remote.pdb",
+      "OrchardCore.Deployment.dll",
+      "OrchardCore.Deployment.pdb",
+      "OrchardCore.Diagnostics.dll",
+      "OrchardCore.Diagnostics.pdb",
+      "OrchardCore.Elasticsearch.dll",
+      "OrchardCore.Elasticsearch.pdb",
+      "OrchardCore.Email.Azure.dll",
+      "OrchardCore.Email.Azure.pdb",
+      "OrchardCore.Email.Smtp.dll",
+      "OrchardCore.Email.Smtp.pdb",
+      "OrchardCore.Email.dll",
+      "OrchardCore.Email.pdb",
+      "OrchardCore.Facebook.dll",
+      "OrchardCore.Facebook.pdb",
+      "OrchardCore.Features.dll",
+      "OrchardCore.Features.pdb",
+      "OrchardCore.Flows.dll",
+      "OrchardCore.Flows.pdb",
+      "OrchardCore.Forms.dll",
+      "OrchardCore.Forms.pdb",
+      "OrchardCore.GitHub.dll",
+      "OrchardCore.GitHub.pdb",
+      "OrchardCore.Google.dll",
+      "OrchardCore.Google.pdb",
+      "OrchardCore.Html.dll",
+      "OrchardCore.Html.pdb",
+      "OrchardCore.Https.dll",
+      "OrchardCore.Https.pdb",
+      "OrchardCore.Indexing.dll",
+      "OrchardCore.Indexing.pdb",
+      "OrchardCore.Layers.dll",
+      "OrchardCore.Layers.pdb",
+      "OrchardCore.Liquid.dll",
+      "OrchardCore.Liquid.pdb",
+      "OrchardCore.Lists.dll",
+      "OrchardCore.Lists.pdb",
+      "OrchardCore.Localization.dll",
+      "OrchardCore.Localization.pdb",
+      "OrchardCore.Lucene.dll",
+      "OrchardCore.Lucene.pdb",
+      "OrchardCore.Markdown.dll",
+      "OrchardCore.Markdown.pdb",
+      "OrchardCore.Media.AmazonS3.dll",
+      "OrchardCore.Media.AmazonS3.pdb",
+      "OrchardCore.Media.Azure.dll",
+      "OrchardCore.Media.Azure.pdb",
+      "OrchardCore.Media.dll",
+      "OrchardCore.Media.pdb",
+      "OrchardCore.Menu.dll",
+      "OrchardCore.Menu.pdb",
+      "OrchardCore.Microsoft.Authentication.dll",
+      "OrchardCore.Microsoft.Authentication.pdb",
+      "OrchardCore.MiniProfiler.dll",
+      "OrchardCore.MiniProfiler.pdb",
+      "OrchardCore.Navigation.dll",
+      "OrchardCore.Navigation.pdb",
+      "OrchardCore.Notifications.dll",
+      "OrchardCore.Notifications.pdb",
+      "OrchardCore.OpenApi.dll",
+      "OrchardCore.OpenApi.pdb",
+      "OrchardCore.OpenId.dll",
+      "OrchardCore.OpenId.pdb",
+      "OrchardCore.Placements.dll",
+      "OrchardCore.Placements.pdb",
+      "OrchardCore.PublishLater.dll",
+      "OrchardCore.PublishLater.pdb",
+      "OrchardCore.Queries.dll",
+      "OrchardCore.Queries.pdb",
+      "OrchardCore.RateLimits.dll",
+      "OrchardCore.RateLimits.pdb",
+      "OrchardCore.ReCaptcha.dll",
+      "OrchardCore.ReCaptcha.pdb",
+      "OrchardCore.Recipes.dll",
+      "OrchardCore.Recipes.pdb",
+      "OrchardCore.ReverseProxy.dll",
+      "OrchardCore.ReverseProxy.pdb",
+      "OrchardCore.Roles.dll",
+      "OrchardCore.Roles.pdb",
+      "OrchardCore.Rules.dll",
+      "OrchardCore.Rules.pdb",
+      "OrchardCore.Search.dll",
+      "OrchardCore.Search.pdb",
+      "OrchardCore.Security.dll",
+      "OrchardCore.Security.pdb",
+      "OrchardCore.Seo.dll",
+      "OrchardCore.Seo.pdb",
+      "OrchardCore.Settings.dll",
+      "OrchardCore.Settings.pdb",
+      "OrchardCore.Setup.dll",
+      "OrchardCore.Setup.pdb",
+      "OrchardCore.Shortcodes.dll",
+      "OrchardCore.Shortcodes.pdb",
+      "OrchardCore.Sitemaps.dll",
+      "OrchardCore.Sitemaps.pdb",
+      "OrchardCore.Sms.Azure.dll",
+      "OrchardCore.Sms.Azure.pdb",
+      "OrchardCore.Sms.dll",
+      "OrchardCore.Sms.pdb",
+      "OrchardCore.Spatial.dll",
+      "OrchardCore.Spatial.pdb",
+      "OrchardCore.Taxonomies.dll",
+      "OrchardCore.Taxonomies.pdb",
+      "OrchardCore.Templates.dll",
+      "OrchardCore.Templates.pdb",
+      "OrchardCore.Tenants.dll",
+      "OrchardCore.Tenants.pdb",
+      "OrchardCore.Themes.dll",
+      "OrchardCore.Themes.pdb",
+      "OrchardCore.Title.dll",
+      "OrchardCore.Title.pdb",
+      "OrchardCore.Twitter.dll",
+      "OrchardCore.Twitter.pdb",
+      "OrchardCore.UrlRewriting.dll",
+      "OrchardCore.UrlRewriting.pdb",
+      "OrchardCore.Users.dll",
+      "OrchardCore.Users.pdb",
+      "OrchardCore.Widgets.dll",
+      "OrchardCore.Widgets.pdb",
+      "OrchardCore.Workflows.dll",
+      "OrchardCore.Workflows.pdb",
+      "SafeMode.dll",
+      "SafeMode.pdb",
+      "TheAdmin.dll",
+      "TheAdmin.pdb",
+      "TheTheme.dll",
+      "TheTheme.pdb"
+    ],
+    "runtimeStatus": 200,
+    "workflowAccepted": true,
+    "crossBuildByteParity": false,
+    "accepted": false
+  },
+  "discovery": {
+    "baseline": {
+      "accepted": true,
+      "seconds": 137.2773574,
+      "projects": 202,
+      "profile": {
+        "reusedFiles": 0,
+        "reusedBytes": 0,
+        "files": 0,
+        "contentBytes": 0,
+        "phases": {
+          "stageInputs": {
+            "seconds": 4.1052313,
+            "allocatedBytes": 1246437064
+          },
+          "runtimeIdentity": {
+            "seconds": 1.6566862,
+            "allocatedBytes": 95857888
+          },
+          "discoverySetup": {
+            "seconds": 6.2274208,
+            "allocatedBytes": 1400156288
+          },
+          "evaluationProbe": {
+            "seconds": 4.8516642,
+            "allocatedBytes": 45280
+          },
+          "packageQualification": {
+            "seconds": 9.4565405,
+            "allocatedBytes": 12445815800
+          },
+          "importQualification": {
+            "seconds": 0.2471801,
+            "allocatedBytes": 402707568
+          },
+          "graphExport": {
+            "seconds": 73.224615,
+            "allocatedBytes": 40248
+          },
+          "captureVerify": {
+            "seconds": 3.1766921,
+            "allocatedBytes": 147920808
+          },
+          "discoveryCapture": {
+            "seconds": 91.0957491,
+            "allocatedBytes": 13404078664
+          },
+          "prepareValidateInputs": {
+            "seconds": 7.8940973,
+            "allocatedBytes": 4237024592
+          },
+          "prepareRevalidateGraph": {
+            "seconds": 2.8914221,
+            "allocatedBytes": 784440664
+          },
+          "prepareSupport": {
+            "seconds": 0.0068327,
+            "allocatedBytes": 49480
+          },
+          "prepareWriteBuild": {
+            "seconds": 9.5878516,
+            "allocatedBytes": 14409762904
+          },
+          "graphPreparation": {
+            "seconds": 20.7070182,
+            "allocatedBytes": 20335492296
+          },
+          "materialize": {
+            "seconds": 5.904785,
+            "allocatedBytes": 9936175496
+          },
+          "projectTemplates": {
+            "seconds": 3.475296,
+            "allocatedBytes": 10924772840
+          },
+          "finalVerify": {
+            "seconds": 4.0414457,
+            "allocatedBytes": 147920880
+          }
+        }
+      }
+    },
+    "candidate": {
+      "accepted": true,
+      "seconds": 91.8154716,
+      "projects": 202,
+      "profile": {
+        "reusedFiles": 0,
+        "reusedBytes": 0,
+        "files": 0,
+        "contentBytes": 0,
+        "phases": {
+          "stageInputs": {
+            "seconds": 4.034551,
+            "allocatedBytes": 1251357784
+          },
+          "runtimeIdentity": {
+            "seconds": 1.6492526,
+            "allocatedBytes": 95869992
+          },
+          "discoverySetup": {
+            "seconds": 6.371741,
+            "allocatedBytes": 1403032520
+          },
+          "evaluationProbe": {
+            "seconds": 4.9502437,
+            "allocatedBytes": 57800
+          },
+          "packageQualification": {
+            "seconds": 9.5519042,
+            "allocatedBytes": 12464530064
+          },
+          "importQualification": {
+            "seconds": 0.2454422,
+            "allocatedBytes": 407041600
+          },
+          "graphExport": {
+            "seconds": 21.6799018,
+            "allocatedBytes": 40400
+          },
+          "captureVerify": {
+            "seconds": 3.750717,
+            "allocatedBytes": 148936960
+          },
+          "discoveryCapture": {
+            "seconds": 40.3661179,
+            "allocatedBytes": 13428155792
+          },
+          "prepareValidateInputs": {
+            "seconds": 10.0574497,
+            "allocatedBytes": 4282340264
+          },
+          "prepareRevalidateGraph": {
+            "seconds": 4.2563137,
+            "allocatedBytes": 785456472
+          },
+          "prepareSupport": {
+            "seconds": 0.0087868,
+            "allocatedBytes": 48712
+          },
+          "prepareWriteBuild": {
+            "seconds": 10.6934625,
+            "allocatedBytes": 14421955736
+          },
+          "graphPreparation": {
+            "seconds": 25.3297747,
+            "allocatedBytes": 20390079384
+          },
+          "materialize": {
+            "seconds": 6.0669945,
+            "allocatedBytes": 9938867936
+          },
+          "projectTemplates": {
+            "seconds": 3.5105928,
+            "allocatedBytes": 10924793600
+          },
+          "finalVerify": {
+            "seconds": 4.426746,
+            "allocatedBytes": 148936584
+          }
+        }
+      }
+    }
+  },
+  "compilePhaseAggregateSeconds": {
+    "selectBundles": 0.6888162000000001,
+    "msbuild": 477.57176880000014,
+    "sessionSetup": 138.05057980000007,
+    "sourceAndRestore": 106.22312210000007,
+    "seedCopy": 0.0020842,
+    "cleanup": 50.575717600000026
+  },
+  "parityClassification": [
+    {
+      "file": "OrchardCore.Admin.dll",
+      "methodIlAndSignatureRecordsEqual": true,
+      "resourcesEqual": true
+    },
+    {
+      "file": "OrchardCore.Admin.pdb",
+      "onlyKnownRazorPathAndGeneratedIdDifferences": true,
+      "documents": 11
+    },
+    {
+      "file": "OrchardCore.AdminDashboard.dll",
+      "methodIlAndSignatureRecordsEqual": true,
+      "resourcesEqual": true
+    },
+    {
+      "file": "OrchardCore.AdminDashboard.pdb",
+      "onlyKnownRazorPathAndGeneratedIdDifferences": true,
+      "documents": 19
+    },
+    {
+      "file": "OrchardCore.AdminMenu.dll",
+      "methodIlAndSignatureRecordsEqual": true,
+      "resourcesEqual": true
+    },
+    {
+      "file": "OrchardCore.AdminMenu.pdb",
+      "onlyKnownRazorPathAndGeneratedIdDifferences": true,
+      "documents": 18
+    },
+    {
+      "file": "OrchardCore.Alias.dll",
+      "methodIlAndSignatureRecordsEqual": true,
+      "resourcesEqual": true
+    },
+    {
+      "file": "OrchardCore.Alias.pdb",
+      "onlyKnownRazorPathAndGeneratedIdDifferences": true,
+      "documents": 4
+    },
+    {
+      "file": "OrchardCore.Apis.GraphQL.dll",
+      "methodIlAndSignatureRecordsEqual": true,
+      "resourcesEqual": true
+    },
+    {
+      "file": "OrchardCore.Apis.GraphQL.pdb",
+      "onlyKnownRazorPathAndGeneratedIdDifferences": true,
+      "documents": 2
+    },
+    {
+      "file": "OrchardCore.ArchiveLater.dll",
+      "methodIlAndSignatureRecordsEqual": true,
+      "resourcesEqual": true
+    },
+    {
+      "file": "OrchardCore.ArchiveLater.pdb",
+      "onlyKnownRazorPathAndGeneratedIdDifferences": true,
+      "documents": 4
+    },
+    {
+      "file": "OrchardCore.AuditTrail.dll",
+      "methodIlAndSignatureRecordsEqual": true,
+      "resourcesEqual": true
+    },
+    {
+      "file": "OrchardCore.AuditTrail.pdb",
+      "onlyKnownRazorPathAndGeneratedIdDifferences": true,
+      "documents": 24
+    },
+    {
+      "file": "OrchardCore.Autoroute.dll",
+      "methodIlAndSignatureRecordsEqual": true,
+      "resourcesEqual": true
+    },
+    {
+      "file": "OrchardCore.Autoroute.pdb",
+      "onlyKnownRazorPathAndGeneratedIdDifferences": true,
+      "documents": 3
+    },
+    {
+      "file": "OrchardCore.AzureAI.dll",
+      "methodIlAndSignatureRecordsEqual": true,
+      "resourcesEqual": true
+    },
+    {
+      "file": "OrchardCore.AzureAI.pdb",
+      "onlyKnownRazorPathAndGeneratedIdDifferences": true,
+      "documents": 16
+    },
+    {
+      "file": "OrchardCore.BackgroundTasks.dll",
+      "methodIlAndSignatureRecordsEqual": true,
+      "resourcesEqual": true
+    },
+    {
+      "file": "OrchardCore.BackgroundTasks.pdb",
+      "onlyKnownRazorPathAndGeneratedIdDifferences": true,
+      "documents": 3
+    },
+    {
+      "file": "OrchardCore.ContentFields.dll",
+      "methodIlAndSignatureRecordsEqual": true,
+      "resourcesEqual": true
+    },
+    {
+      "file": "OrchardCore.ContentFields.pdb",
+      "onlyKnownRazorPathAndGeneratedIdDifferences": true,
+      "documents": 116
+    },
+    {
+      "file": "OrchardCore.ContentLocalization.dll",
+      "methodIlAndSignatureRecordsEqual": true,
+      "resourcesEqual": true
+    },
+    {
+      "file": "OrchardCore.ContentLocalization.pdb",
+      "onlyKnownRazorPathAndGeneratedIdDifferences": true,
+      "documents": 9
+    },
+    {
+      "file": "OrchardCore.ContentPreview.dll",
+      "methodIlAndSignatureRecordsEqual": true,
+      "resourcesEqual": true
+    },
+    {
+      "file": "OrchardCore.ContentPreview.pdb",
+      "onlyKnownRazorPathAndGeneratedIdDifferences": true,
+      "documents": 6
+    },
+    {
+      "file": "OrchardCore.ContentTypes.dll",
+      "methodIlAndSignatureRecordsEqual": true,
+      "resourcesEqual": true
+    },
+    {
+      "file": "OrchardCore.ContentTypes.pdb",
+      "onlyKnownRazorPathAndGeneratedIdDifferences": true,
+      "documents": 34
+    },
+    {
+      "file": "OrchardCore.Contents.dll",
+      "methodIlAndSignatureRecordsEqual": true,
+      "resourcesEqual": true
+    },
+    {
+      "file": "OrchardCore.Contents.pdb",
+      "onlyKnownRazorPathAndGeneratedIdDifferences": true,
+      "documents": 142
+    },
+    {
+      "file": "OrchardCore.Cors.dll",
+      "methodIlAndSignatureRecordsEqual": true,
+      "resourcesEqual": true
+    },
+    {
+      "file": "OrchardCore.Cors.pdb",
+      "onlyKnownRazorPathAndGeneratedIdDifferences": true,
+      "documents": 3
+    },
+    {
+      "file": "OrchardCore.CustomSettings.dll",
+      "methodIlAndSignatureRecordsEqual": true,
+      "resourcesEqual": true
+    },
+    {
+      "file": "OrchardCore.CustomSettings.pdb",
+      "onlyKnownRazorPathAndGeneratedIdDifferences": true,
+      "documents": 6
+    },
+    {
+      "file": "OrchardCore.DataLocalization.dll",
+      "methodIlAndSignatureRecordsEqual": true,
+      "resourcesEqual": true
+    },
+    {
+      "file": "OrchardCore.DataLocalization.pdb",
+      "onlyKnownRazorPathAndGeneratedIdDifferences": true,
+      "documents": 9
+    },
+    {
+      "file": "OrchardCore.Deployment.Remote.dll",
+      "methodIlAndSignatureRecordsEqual": true,
+      "resourcesEqual": true
+    },
+    {
+      "file": "OrchardCore.Deployment.Remote.pdb",
+      "onlyKnownRazorPathAndGeneratedIdDifferences": true,
+      "documents": 7
+    },
+    {
+      "file": "OrchardCore.Deployment.dll",
+      "methodIlAndSignatureRecordsEqual": false,
+      "resourcesEqual": true
+    },
+    {
+      "file": "OrchardCore.Deployment.pdb",
+      "onlyKnownRazorPathAndGeneratedIdDifferences": true,
+      "documents": 25
+    },
+    {
+      "file": "OrchardCore.Diagnostics.dll",
+      "methodIlAndSignatureRecordsEqual": true,
+      "resourcesEqual": true
+    },
+    {
+      "file": "OrchardCore.Diagnostics.pdb",
+      "onlyKnownRazorPathAndGeneratedIdDifferences": true,
+      "documents": 8
+    },
+    {
+      "file": "OrchardCore.Elasticsearch.dll",
+      "methodIlAndSignatureRecordsEqual": false,
+      "resourcesEqual": true
+    },
+    {
+      "file": "OrchardCore.Elasticsearch.pdb",
+      "onlyKnownRazorPathAndGeneratedIdDifferences": true,
+      "documents": 24
+    },
+    {
+      "file": "OrchardCore.Email.Azure.dll",
+      "methodIlAndSignatureRecordsEqual": true,
+      "resourcesEqual": true
+    },
+    {
+      "file": "OrchardCore.Email.Azure.pdb",
+      "onlyKnownRazorPathAndGeneratedIdDifferences": true,
+      "documents": 2
+    },
+    {
+      "file": "OrchardCore.Email.Smtp.dll",
+      "methodIlAndSignatureRecordsEqual": true,
+      "resourcesEqual": true
+    },
+    {
+      "file": "OrchardCore.Email.Smtp.pdb",
+      "onlyKnownRazorPathAndGeneratedIdDifferences": true,
+      "documents": 2
+    },
+    {
+      "file": "OrchardCore.Email.dll",
+      "methodIlAndSignatureRecordsEqual": true,
+      "resourcesEqual": true
+    },
+    {
+      "file": "OrchardCore.Email.pdb",
+      "onlyKnownRazorPathAndGeneratedIdDifferences": true,
+      "documents": 7
+    },
+    {
+      "file": "OrchardCore.Facebook.dll",
+      "methodIlAndSignatureRecordsEqual": true,
+      "resourcesEqual": true
+    },
+    {
+      "file": "OrchardCore.Facebook.pdb",
+      "onlyKnownRazorPathAndGeneratedIdDifferences": true,
+      "documents": 17
+    },
+    {
+      "file": "OrchardCore.Features.dll",
+      "methodIlAndSignatureRecordsEqual": true,
+      "resourcesEqual": true
+    },
+    {
+      "file": "OrchardCore.Features.pdb",
+      "onlyKnownRazorPathAndGeneratedIdDifferences": true,
+      "documents": 5
+    },
+    {
+      "file": "OrchardCore.Flows.dll",
+      "methodIlAndSignatureRecordsEqual": true,
+      "resourcesEqual": true
+    },
+    {
+      "file": "OrchardCore.Flows.pdb",
+      "onlyKnownRazorPathAndGeneratedIdDifferences": true,
+      "documents": 29
+    },
+    {
+      "file": "OrchardCore.Forms.dll",
+      "methodIlAndSignatureRecordsEqual": true,
+      "resourcesEqual": true
+    },
+    {
+      "file": "OrchardCore.Forms.pdb",
+      "onlyKnownRazorPathAndGeneratedIdDifferences": true,
+      "documents": 40
+    },
+    {
+      "file": "OrchardCore.GitHub.dll",
+      "methodIlAndSignatureRecordsEqual": true,
+      "resourcesEqual": true
+    },
+    {
+      "file": "OrchardCore.GitHub.pdb",
+      "onlyKnownRazorPathAndGeneratedIdDifferences": true,
+      "documents": 3
+    },
+    {
+      "file": "OrchardCore.Google.dll",
+      "methodIlAndSignatureRecordsEqual": true,
+      "resourcesEqual": true
+    },
+    {
+      "file": "OrchardCore.Google.pdb",
+      "onlyKnownRazorPathAndGeneratedIdDifferences": true,
+      "documents": 10
+    },
+    {
+      "file": "OrchardCore.Html.dll",
+      "methodIlAndSignatureRecordsEqual": true,
+      "resourcesEqual": true
+    },
+    {
+      "file": "OrchardCore.Html.pdb",
+      "onlyKnownRazorPathAndGeneratedIdDifferences": true,
+      "documents": 16
+    },
+    {
+      "file": "OrchardCore.Https.dll",
+      "methodIlAndSignatureRecordsEqual": true,
+      "resourcesEqual": true
+    },
+    {
+      "file": "OrchardCore.Https.pdb",
+      "onlyKnownRazorPathAndGeneratedIdDifferences": true,
+      "documents": 2
+    },
+    {
+      "file": "OrchardCore.Indexing.dll",
+      "methodIlAndSignatureRecordsEqual": false,
+      "resourcesEqual": true
+    },
+    {
+      "file": "OrchardCore.Indexing.pdb",
+      "onlyKnownRazorPathAndGeneratedIdDifferences": true,
+      "documents": 24
+    },
+    {
+      "file": "OrchardCore.Layers.dll",
+      "methodIlAndSignatureRecordsEqual": true,
+      "resourcesEqual": true
+    },
+    {
+      "file": "OrchardCore.Layers.pdb",
+      "onlyKnownRazorPathAndGeneratedIdDifferences": true,
+      "documents": 12
+    },
+    {
+      "file": "OrchardCore.Liquid.dll",
+      "methodIlAndSignatureRecordsEqual": true,
+      "resourcesEqual": true
+    },
+    {
+      "file": "OrchardCore.Liquid.pdb",
+      "onlyKnownRazorPathAndGeneratedIdDifferences": true,
+      "documents": 4
+    },
+    {
+      "file": "OrchardCore.Lists.dll",
+      "methodIlAndSignatureRecordsEqual": true,
+      "resourcesEqual": true
+    },
+    {
+      "file": "OrchardCore.Lists.pdb",
+      "onlyKnownRazorPathAndGeneratedIdDifferences": true,
+      "documents": 18
+    },
+    {
+      "file": "OrchardCore.Localization.dll",
+      "methodIlAndSignatureRecordsEqual": true,
+      "resourcesEqual": true
+    },
+    {
+      "file": "OrchardCore.Localization.pdb",
+      "onlyKnownRazorPathAndGeneratedIdDifferences": true,
+      "documents": 4
+    },
+    {
+      "file": "OrchardCore.Lucene.dll",
+      "methodIlAndSignatureRecordsEqual": true,
+      "resourcesEqual": true
+    },
+    {
+      "file": "OrchardCore.Lucene.pdb",
+      "onlyKnownRazorPathAndGeneratedIdDifferences": true,
+      "documents": 21
+    },
+    {
+      "file": "OrchardCore.Markdown.dll",
+      "methodIlAndSignatureRecordsEqual": false,
+      "resourcesEqual": true
+    },
+    {
+      "file": "OrchardCore.Markdown.pdb",
+      "onlyKnownRazorPathAndGeneratedIdDifferences": true,
+      "documents": 19
+    },
+    {
+      "file": "OrchardCore.Media.AmazonS3.dll",
+      "methodIlAndSignatureRecordsEqual": true,
+      "resourcesEqual": true
+    },
+    {
+      "file": "OrchardCore.Media.AmazonS3.pdb",
+      "onlyKnownRazorPathAndGeneratedIdDifferences": true,
+      "documents": 2
+    },
+    {
+      "file": "OrchardCore.Media.Azure.dll",
+      "methodIlAndSignatureRecordsEqual": true,
+      "resourcesEqual": true
+    },
+    {
+      "file": "OrchardCore.Media.Azure.pdb",
+      "onlyKnownRazorPathAndGeneratedIdDifferences": true,
+      "documents": 2
+    },
+    {
+      "file": "OrchardCore.Media.dll",
+      "methodIlAndSignatureRecordsEqual": true,
+      "resourcesEqual": true
+    },
+    {
+      "file": "OrchardCore.Media.pdb",
+      "onlyKnownRazorPathAndGeneratedIdDifferences": true,
+      "documents": 28
+    },
+    {
+      "file": "OrchardCore.Menu.dll",
+      "methodIlAndSignatureRecordsEqual": true,
+      "resourcesEqual": true
+    },
+    {
+      "file": "OrchardCore.Menu.pdb",
+      "onlyKnownRazorPathAndGeneratedIdDifferences": true,
+      "documents": 24
+    },
+    {
+      "file": "OrchardCore.Microsoft.Authentication.dll",
+      "methodIlAndSignatureRecordsEqual": true,
+      "resourcesEqual": true
+    },
+    {
+      "file": "OrchardCore.Microsoft.Authentication.pdb",
+      "onlyKnownRazorPathAndGeneratedIdDifferences": true,
+      "documents": 11
+    },
+    {
+      "file": "OrchardCore.MiniProfiler.dll",
+      "methodIlAndSignatureRecordsEqual": true,
+      "resourcesEqual": true
+    },
+    {
+      "file": "OrchardCore.MiniProfiler.pdb",
+      "onlyKnownRazorPathAndGeneratedIdDifferences": true,
+      "documents": 1
+    },
+    {
+      "file": "OrchardCore.Navigation.dll",
+      "methodIlAndSignatureRecordsEqual": true,
+      "resourcesEqual": true
+    },
+    {
+      "file": "OrchardCore.Navigation.pdb",
+      "onlyKnownRazorPathAndGeneratedIdDifferences": true,
+      "documents": 5
+    },
+    {
+      "file": "OrchardCore.Notifications.dll",
+      "methodIlAndSignatureRecordsEqual": true,
+      "resourcesEqual": true
+    },
+    {
+      "file": "OrchardCore.Notifications.pdb",
+      "onlyKnownRazorPathAndGeneratedIdDifferences": true,
+      "documents": 23
+    },
+    {
+      "file": "OrchardCore.OpenApi.dll",
+      "methodIlAndSignatureRecordsEqual": true,
+      "resourcesEqual": true
+    },
+    {
+      "file": "OrchardCore.OpenApi.pdb",
+      "onlyKnownRazorPathAndGeneratedIdDifferences": true,
+      "documents": 2
+    },
+    {
+      "file": "OrchardCore.OpenId.dll",
+      "methodIlAndSignatureRecordsEqual": false,
+      "resourcesEqual": true
+    },
+    {
+      "file": "OrchardCore.OpenId.pdb",
+      "onlyKnownRazorPathAndGeneratedIdDifferences": true,
+      "documents": 22
+    },
+    {
+      "file": "OrchardCore.Placements.dll",
+      "methodIlAndSignatureRecordsEqual": true,
+      "resourcesEqual": true
+    },
+    {
+      "file": "OrchardCore.Placements.pdb",
+      "onlyKnownRazorPathAndGeneratedIdDifferences": true,
+      "documents": 8
+    },
+    {
+      "file": "OrchardCore.PublishLater.dll",
+      "methodIlAndSignatureRecordsEqual": true,
+      "resourcesEqual": true
+    },
+    {
+      "file": "OrchardCore.PublishLater.pdb",
+      "onlyKnownRazorPathAndGeneratedIdDifferences": true,
+      "documents": 4
+    },
+    {
+      "file": "OrchardCore.Queries.dll",
+      "methodIlAndSignatureRecordsEqual": true,
+      "resourcesEqual": true
+    },
+    {
+      "file": "OrchardCore.Queries.pdb",
+      "onlyKnownRazorPathAndGeneratedIdDifferences": true,
+      "documents": 23
+    },
+    {
+      "file": "OrchardCore.RateLimits.dll",
+      "methodIlAndSignatureRecordsEqual": true,
+      "resourcesEqual": true
+    },
+    {
+      "file": "OrchardCore.RateLimits.pdb",
+      "onlyKnownRazorPathAndGeneratedIdDifferences": true,
+      "documents": 24
+    },
+    {
+      "file": "OrchardCore.ReCaptcha.dll",
+      "methodIlAndSignatureRecordsEqual": true,
+      "resourcesEqual": true
+    },
+    {
+      "file": "OrchardCore.ReCaptcha.pdb",
+      "onlyKnownRazorPathAndGeneratedIdDifferences": true,
+      "documents": 6
+    },
+    {
+      "file": "OrchardCore.Recipes.dll",
+      "methodIlAndSignatureRecordsEqual": true,
+      "resourcesEqual": true
+    },
+    {
+      "file": "OrchardCore.Recipes.pdb",
+      "onlyKnownRazorPathAndGeneratedIdDifferences": true,
+      "documents": 2
+    },
+    {
+      "file": "OrchardCore.ReverseProxy.dll",
+      "methodIlAndSignatureRecordsEqual": true,
+      "resourcesEqual": true
+    },
+    {
+      "file": "OrchardCore.ReverseProxy.pdb",
+      "onlyKnownRazorPathAndGeneratedIdDifferences": true,
+      "documents": 3
+    },
+    {
+      "file": "OrchardCore.Roles.dll",
+      "methodIlAndSignatureRecordsEqual": true,
+      "resourcesEqual": true
+    },
+    {
+      "file": "OrchardCore.Roles.pdb",
+      "onlyKnownRazorPathAndGeneratedIdDifferences": true,
+      "documents": 19
+    },
+    {
+      "file": "OrchardCore.Rules.dll",
+      "methodIlAndSignatureRecordsEqual": true,
+      "resourcesEqual": true
+    },
+    {
+      "file": "OrchardCore.Rules.pdb",
+      "onlyKnownRazorPathAndGeneratedIdDifferences": true,
+      "documents": 42
+    },
+    {
+      "file": "OrchardCore.Search.dll",
+      "methodIlAndSignatureRecordsEqual": true,
+      "resourcesEqual": true
+    },
+    {
+      "file": "OrchardCore.Search.pdb",
+      "onlyKnownRazorPathAndGeneratedIdDifferences": true,
+      "documents": 12
+    },
+    {
+      "file": "OrchardCore.Security.dll",
+      "methodIlAndSignatureRecordsEqual": true,
+      "resourcesEqual": true
+    },
+    {
+      "file": "OrchardCore.Security.pdb",
+      "onlyKnownRazorPathAndGeneratedIdDifferences": true,
+      "documents": 4
+    },
+    {
+      "file": "OrchardCore.Seo.dll",
+      "methodIlAndSignatureRecordsEqual": true,
+      "resourcesEqual": true
+    },
+    {
+      "file": "OrchardCore.Seo.pdb",
+      "onlyKnownRazorPathAndGeneratedIdDifferences": true,
+      "documents": 7
+    },
+    {
+      "file": "OrchardCore.Settings.dll",
+      "methodIlAndSignatureRecordsEqual": true,
+      "resourcesEqual": true
+    },
+    {
+      "file": "OrchardCore.Settings.pdb",
+      "onlyKnownRazorPathAndGeneratedIdDifferences": true,
+      "documents": 21
+    },
+    {
+      "file": "OrchardCore.Setup.dll",
+      "methodIlAndSignatureRecordsEqual": true,
+      "resourcesEqual": true
+    },
+    {
+      "file": "OrchardCore.Setup.pdb",
+      "onlyKnownRazorPathAndGeneratedIdDifferences": true,
+      "documents": 3
+    },
+    {
+      "file": "OrchardCore.Shortcodes.dll",
+      "methodIlAndSignatureRecordsEqual": true,
+      "resourcesEqual": true
+    },
+    {
+      "file": "OrchardCore.Shortcodes.pdb",
+      "onlyKnownRazorPathAndGeneratedIdDifferences": true,
+      "documents": 11
+    },
+    {
+      "file": "OrchardCore.Sitemaps.dll",
+      "methodIlAndSignatureRecordsEqual": false,
+      "resourcesEqual": true
+    },
+    {
+      "file": "OrchardCore.Sitemaps.pdb",
+      "onlyKnownRazorPathAndGeneratedIdDifferences": true,
+      "documents": 22
+    },
+    {
+      "file": "OrchardCore.Sms.Azure.dll",
+      "methodIlAndSignatureRecordsEqual": true,
+      "resourcesEqual": true
+    },
+    {
+      "file": "OrchardCore.Sms.Azure.pdb",
+      "onlyKnownRazorPathAndGeneratedIdDifferences": true,
+      "documents": 2
+    },
+    {
+      "file": "OrchardCore.Sms.dll",
+      "methodIlAndSignatureRecordsEqual": true,
+      "resourcesEqual": true
+    },
+    {
+      "file": "OrchardCore.Sms.pdb",
+      "onlyKnownRazorPathAndGeneratedIdDifferences": true,
+      "documents": 8
+    },
+    {
+      "file": "OrchardCore.Spatial.dll",
+      "methodIlAndSignatureRecordsEqual": true,
+      "resourcesEqual": true
+    },
+    {
+      "file": "OrchardCore.Spatial.pdb",
+      "onlyKnownRazorPathAndGeneratedIdDifferences": true,
+      "documents": 7
+    },
+    {
+      "file": "OrchardCore.Taxonomies.dll",
+      "methodIlAndSignatureRecordsEqual": true,
+      "resourcesEqual": true
+    },
+    {
+      "file": "OrchardCore.Taxonomies.pdb",
+      "onlyKnownRazorPathAndGeneratedIdDifferences": true,
+      "documents": 25
+    },
+    {
+      "file": "OrchardCore.Templates.dll",
+      "methodIlAndSignatureRecordsEqual": true,
+      "resourcesEqual": true
+    },
+    {
+      "file": "OrchardCore.Templates.pdb",
+      "onlyKnownRazorPathAndGeneratedIdDifferences": true,
+      "documents": 14
+    },
+    {
+      "file": "OrchardCore.Tenants.dll",
+      "methodIlAndSignatureRecordsEqual": false,
+      "resourcesEqual": true
+    },
+    {
+      "file": "OrchardCore.Tenants.pdb",
+      "onlyKnownRazorPathAndGeneratedIdDifferences": true,
+      "documents": 35
+    },
+    {
+      "file": "OrchardCore.Themes.dll",
+      "methodIlAndSignatureRecordsEqual": true,
+      "resourcesEqual": true
+    },
+    {
+      "file": "OrchardCore.Themes.pdb",
+      "onlyKnownRazorPathAndGeneratedIdDifferences": true,
+      "documents": 17
+    },
+    {
+      "file": "OrchardCore.Title.dll",
+      "methodIlAndSignatureRecordsEqual": true,
+      "resourcesEqual": true
+    },
+    {
+      "file": "OrchardCore.Title.pdb",
+      "onlyKnownRazorPathAndGeneratedIdDifferences": true,
+      "documents": 8
+    },
+    {
+      "file": "OrchardCore.Twitter.dll",
+      "methodIlAndSignatureRecordsEqual": true,
+      "resourcesEqual": true
+    },
+    {
+      "file": "OrchardCore.Twitter.pdb",
+      "onlyKnownRazorPathAndGeneratedIdDifferences": true,
+      "documents": 7
+    },
+    {
+      "file": "OrchardCore.UrlRewriting.dll",
+      "methodIlAndSignatureRecordsEqual": true,
+      "resourcesEqual": true
+    },
+    {
+      "file": "OrchardCore.UrlRewriting.pdb",
+      "onlyKnownRazorPathAndGeneratedIdDifferences": true,
+      "documents": 15
+    },
+    {
+      "file": "OrchardCore.Users.dll",
+      "methodIlAndSignatureRecordsEqual": false,
+      "resourcesEqual": true
+    },
+    {
+      "file": "OrchardCore.Users.pdb",
+      "onlyKnownRazorPathAndGeneratedIdDifferences": true,
+      "documents": 170
+    },
+    {
+      "file": "OrchardCore.Widgets.dll",
+      "methodIlAndSignatureRecordsEqual": true,
+      "resourcesEqual": true
+    },
+    {
+      "file": "OrchardCore.Widgets.pdb",
+      "onlyKnownRazorPathAndGeneratedIdDifferences": true,
+      "documents": 18
+    },
+    {
+      "file": "OrchardCore.Workflows.dll",
+      "methodIlAndSignatureRecordsEqual": true,
+      "resourcesEqual": true
+    },
+    {
+      "file": "OrchardCore.Workflows.pdb",
+      "onlyKnownRazorPathAndGeneratedIdDifferences": true,
+      "documents": 92
+    },
+    {
+      "file": "SafeMode.dll",
+      "methodIlAndSignatureRecordsEqual": true,
+      "resourcesEqual": true
+    },
+    {
+      "file": "SafeMode.pdb",
+      "onlyKnownRazorPathAndGeneratedIdDifferences": true,
+      "documents": 2
+    },
+    {
+      "file": "TheAdmin.dll",
+      "methodIlAndSignatureRecordsEqual": false,
+      "resourcesEqual": true
+    },
+    {
+      "file": "TheAdmin.pdb",
+      "onlyKnownRazorPathAndGeneratedIdDifferences": true,
+      "documents": 21
+    },
+    {
+      "file": "TheTheme.dll",
+      "methodIlAndSignatureRecordsEqual": true,
+      "resourcesEqual": true
+    },
+    {
+      "file": "TheTheme.pdb",
+      "onlyKnownRazorPathAndGeneratedIdDifferences": true,
+      "documents": 33
+    }
+  ],
+  "interruptedAttempt": {
+    "reason": "disk headroom",
+    "seconds": 264.651002,
+    "publishedObjects": 0,
+    "includedInTiming": false
+  },
+  "tests": {
+    "graph": 23,
+    "codeStyle": 5,
+    "preparation": 33,
+    "workflow": 69,
+    "workflowSkipped": 1
+  },
+  "scope": "Single host macOS ARM64, SDK10.0.400, Bazel8.4.2, two jobs; empty action state, retained NuGet archives and repository download cache, loopback remote cache publication. No cleanup, tool builds or other benchmarks during timed run.",
+  "sourceHashes": {
+    "tools/GraphExport/Program.cs": "cd919ae2dce254acbe029e98bad79290b0322f80737a26ac3d45d6cc7af2b439",
+    "tools/GraphExport/ProjectGraphCompat.cs": "b7b90cc984153a62f14d141921e67aecaa20548f6dc768345e960c9469a56211",
+    "tools/GraphExport/ReferenceFrameworkNegotiation.cs": "19acab4daaca586c79789e6c5d1b959ed082734e5ef1857ef70ff9dea4642fba",
+    "tests/graph/test_export_graph.py": "0d614d518f42136e7f4acbe4a7437dce3668f723fcf63ba79b2302e3185ce938"
+  }
+}

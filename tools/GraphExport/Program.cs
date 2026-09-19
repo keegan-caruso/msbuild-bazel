@@ -181,7 +181,18 @@ internal static class GraphExporter
             throw new ExportException("unsupported-configured-transitive", "configured variants require the explicitly authored direct-edge graph");
         var ids = compilationNodes.ToDictionary(n => n, n => NodeId(request, n));
 
-        var nodes = compilationNodes.Select(node => ExportNode(request, node, ids)).OrderBy(n => n.Project, StringComparer.Ordinal).ThenBy(n => n.Id, StringComparer.Ordinal).ToList();
+        // Resolve each disposable project instance in one action-local build
+        // session. Recreating the engine for every node repeats SDK task loading
+        // and teardown across the graph; no state survives this export.
+        using var manager = new BuildManager();
+        var discoveryLog = new StringBuilder();
+        manager.BeginBuild(new BuildParameters { EnableNodeReuse = false, MaxNodeCount = 1, Loggers = [new Microsoft.Build.Logging.ConsoleLogger(Microsoft.Build.Framework.LoggerVerbosity.Minimal, text => discoveryLog.Append(text), null, null)] });
+        List<NodeRecord> nodes;
+        try
+        {
+            nodes = compilationNodes.Select(node => ExportNode(request, node, ids, manager, discoveryLog)).OrderBy(n => n.Project, StringComparer.Ordinal).ThenBy(n => n.Id, StringComparer.Ordinal).ToList();
+        }
+        finally { manager.EndBuild(); }
         PackageRestoreValidation.ValidateGraph(compilationNodes);
         var entryIds = new SortedSet<string>(StringComparer.Ordinal);
         foreach (var node in graph.EntryPointNodes)
@@ -206,7 +217,7 @@ internal static class GraphExporter
                 .ToList());
     }
 
-    private static NodeRecord ExportNode(ExportRequest request, ProjectGraphNode node, IReadOnlyDictionary<ProjectGraphNode, string> ids)
+    private static NodeRecord ExportNode(ExportRequest request, ProjectGraphNode node, IReadOnlyDictionary<ProjectGraphNode, string> ids, BuildManager manager, StringBuilder discoveryLog)
     {
         var instance = node.ProjectInstance;
         ValidateSupported(instance);
@@ -230,11 +241,9 @@ internal static class GraphExporter
 
         // Resolve SDK/package analyzer items in a disposable instance. No compilation
         // target runs, and the evaluated graph identity/restore contract stays intact.
-        using var manager = new BuildManager();
-        var discoveryLog = new StringBuilder();
-        var resolution = manager.Build(new BuildParameters { EnableNodeReuse = false, MaxNodeCount = 1, Loggers = [new Microsoft.Build.Logging.ConsoleLogger(Microsoft.Build.Framework.LoggerVerbosity.Minimal, text => discoveryLog.Append(text), null, null)] },
-            new BuildRequestData(instance.DeepCopy(), ["BazelGraphExportContract"], null,
-                BuildRequestDataFlags.ProvideProjectStateAfterBuild));
+        discoveryLog.Clear();
+        var resolution = manager.PendBuildRequest(new BuildRequestData(instance.DeepCopy(), ["BazelGraphExportContract"], null,
+            BuildRequestDataFlags.ProvideProjectStateAfterBuild)).Execute();
         if (resolution.OverallResult != BuildResultCode.Success || resolution.ProjectStateAfterBuild is null)
             throw new ExportException("input-discovery-failed", "SDK input resolution failed: " + instance.FullPath + "\n" + discoveryLog);
         var resolved = resolution.ProjectStateAfterBuild;

@@ -10,7 +10,8 @@ internal sealed class ProjectGraph
     public ProjectGraph(IEnumerable<ProjectGraphEntryPoint> entryPoints, ProjectCollection collection)
     {
         ArgumentNullException.ThrowIfNull(collection);
-        inner = new Microsoft.Build.Graph.ProjectGraph(entryPoints, collection, ReferenceFrameworkNegotiation.CreateProject, 1, CancellationToken.None);
+        using var negotiation = new ReferenceFrameworkNegotiation();
+        inner = new Microsoft.Build.Graph.ProjectGraph(entryPoints, collection, negotiation.CreateProject, 1, CancellationToken.None);
     }
 
     public IReadOnlyCollection<ProjectGraphNode> ProjectNodes => inner.ProjectNodes;

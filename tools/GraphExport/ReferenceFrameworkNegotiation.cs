@@ -4,11 +4,29 @@ using Microsoft.Build.Execution;
 using Microsoft.Build.Framework;
 using Microsoft.Build.Logging;
 
-internal static class ReferenceFrameworkNegotiation
+internal sealed class ReferenceFrameworkNegotiation : IDisposable
 {
-    private static readonly object ResolutionLock = new();
+    private readonly object resolutionLock = new();
+    private readonly BuildManager manager = new();
+    private readonly StringBuilder log = new();
 
-    public static ProjectInstance CreateProject(string path, Dictionary<string, string> globals, ProjectCollection collection)
+    internal ReferenceFrameworkNegotiation()
+    {
+        manager.BeginBuild(new BuildParameters
+        {
+            EnableNodeReuse = false,
+            MaxNodeCount = 1,
+            Loggers = [new ConsoleLogger(LoggerVerbosity.Minimal, text => log.Append(text), null, null)],
+        });
+    }
+
+    public void Dispose()
+    {
+        try { manager.EndBuild(); }
+        finally { manager.Dispose(); }
+    }
+
+    public ProjectInstance CreateProject(string path, Dictionary<string, string> globals, ProjectCollection collection)
     {
         var instance = new ProjectInstance(path, globals, null, collection);
         if (!path.EndsWith(".csproj", StringComparison.OrdinalIgnoreCase) ||
@@ -29,20 +47,14 @@ internal static class ReferenceFrameworkNegotiation
         // Let the pinned SDK negotiate references as ordinary MSBuild does. The
         // returned metadata shapes the graph only; source projects are unchanged.
         BuildResult result;
-        var log = new StringBuilder();
-        lock (ResolutionLock)
+        lock (resolutionLock)
         {
-            using var manager = new BuildManager();
-            result = manager.Build(new BuildParameters
-            {
-                EnableNodeReuse = false,
-                MaxNodeCount = 1,
-                Loggers = [new ConsoleLogger(LoggerVerbosity.Minimal, text => log.Append(text), null, null)],
-            }, new BuildRequestData(instance.DeepCopy(), ["PrepareProjectReferences"], null,
-                BuildRequestDataFlags.ProvideProjectStateAfterBuild));
+            log.Clear();
+            result = manager.PendBuildRequest(new BuildRequestData(instance.DeepCopy(), ["PrepareProjectReferences"], null,
+                BuildRequestDataFlags.ProvideProjectStateAfterBuild)).Execute();
+            if (result.OverallResult != BuildResultCode.Success || result.ProjectStateAfterBuild is null)
+                throw new ExportException("reference-framework-discovery-failed", "SDK reference negotiation failed: " + path + "\n" + log);
         }
-        if (result.OverallResult != BuildResultCode.Success || result.ProjectStateAfterBuild is null)
-            throw new ExportException("reference-framework-discovery-failed", "SDK reference negotiation failed: " + path + "\n" + log);
         var resolved = result.ProjectStateAfterBuild.GetItems("_MSBuildProjectReferenceExistent");
         foreach (var reference in instance.GetItems("ProjectReference"))
         {
