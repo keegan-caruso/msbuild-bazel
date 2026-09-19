@@ -247,13 +247,19 @@ internal static class PackageRestoreValidation
             var selected = PilotPackagePolicy.SelectedVersion(reference.EvaluatedInclude,
                 NuGetVersion.TryParse(version, out var normalizedRequested) ? normalizedRequested.ToNormalizedString() : version);
             var central = Central(project);
-            if (!VersionRange.TryParse(version, out var requestedRange) || requestedRange.IsFloating ||
+            var frameworkFloat = project.GetPropertyValue("TargetFramework") == "netstandard2.0" &&
+                reference.EvaluatedInclude.Equals("NETStandard.Library", StringComparison.OrdinalIgnoreCase) &&
+                reference.GetMetadataValue("IsImplicitlyDefined").Equals("true", StringComparison.OrdinalIgnoreCase) && version == "2.0.0-*";
+            if (frameworkFloat) selected = "2.0.0";
+            if (!VersionRange.TryParse(version, out var requestedRange) || requestedRange.IsFloating && !frameworkFloat ||
                 !central && (selected is null || !NuGetVersion.TryParse(selected, out _)))
                 throw new ExportException("unsupported-package", "exact inline version or qualified pilot version required: " + reference.EvaluatedInclude);
             var dependency = restored[reference.EvaluatedInclude];
             var savedVersion = dependency.GetProperty("version").GetString()!;
+            if (frameworkFloat && (!dependency.TryGetProperty("autoReferenced", out var implicitReference) || implicitReference.ValueKind != JsonValueKind.True))
+                throw new ExportException("stale-restore", "implicit framework package differs from restore");
             if (!VersionRange.TryParse(savedVersion, out var restoredRange) || !requestedRange.Equals(restoredRange) ||
-                (libraries is not null && (central
+                (libraries is not null && (central && !frameworkFloat
                     ? !libraries.Any(library => library.StartsWith(reference.EvaluatedInclude + "/", StringComparison.OrdinalIgnoreCase) &&
                         NuGetVersion.TryParse(library[(library.IndexOf('/') + 1)..], out var resolved) && requestedRange.Satisfies(resolved))
                     : !libraries.Contains(reference.EvaluatedInclude + "/" + NuGetVersion.Parse(selected!).ToNormalizedString()))))
@@ -265,7 +271,9 @@ internal static class PackageRestoreValidation
             foreach (var (name, allowed) in new[] { ("IncludeAssets", "all"), ("ExcludeAssets", "none") })
             {
                 var value = AssetFlags(reference.GetMetadataValue(name), allowed);
-                if (value != allowed && !(name == "IncludeAssets" && value == "analyzers;build"))
+                var globalReference = name == "IncludeAssets" && value == "analyzers;build;contentfiles;native;runtime" && currentPrivacy == "all" &&
+                    project.GetItems("GlobalPackageReference").Count(item => item.EvaluatedInclude.Equals(reference.EvaluatedInclude, StringComparison.OrdinalIgnoreCase)) == 1;
+                if (value != allowed && !(name == "IncludeAssets" && value == "analyzers;build") && !globalReference)
                     throw new ExportException("unsupported-package", "nondefault " + name + " is outside the managed package slice");
                 var restoredName = name == "IncludeAssets" ? "include" : "exclude";
                 var restoredFlags = dependency.TryGetProperty(restoredName, out var saved) ? AssetFlags(saved.GetString()!, allowed) : allowed;

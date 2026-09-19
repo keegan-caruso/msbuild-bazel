@@ -68,3 +68,16 @@ cases were exercised; the added resolved-version corruption control initially
 hit an earlier SDK missing-package check. With both real package versions present,
 it now reaches and passes the intended central-pin rejection. C# formatting is
 checked independently. Evidence includes `orchard-pilot-evidence.json`.
+
+### Step 2: generator restore metadata
+
+Orchard's unchanged netstandard2.0 generator now exports one configured node and
+873 declared inputs. The exporter accepts the SDK's specific implicit
+NETStandard.Library `2.0.0-*` request only with the auto-referenced restore marker
+and resolved 2.0.0 identity. Broader floating requests remain rejected. Evaluated
+GlobalPackageReference items retain the SDK's runtime/build/native/content/analyzer
+filter and PrivateAssets=All, with unchanged restore comparison.
+
+All four selected-framework tests and the focused global-package restore test
+pass. The generator export succeeds against the pinned real checkout. No build
+or remote-cache support claim follows from export alone.

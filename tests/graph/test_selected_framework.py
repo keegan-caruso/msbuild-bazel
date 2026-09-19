@@ -65,6 +65,23 @@ class SelectedReferenceFramework(unittest.TestCase):
         self.assertEqual(project.read_bytes(), declaration)
         self.assertFalse(list(self.work.glob('src/**/bin/**/*.dll')))
 
+    def test_netstandard_implicit_bounded_float_preserves_resolved_identity(self):
+        project = self.work / 'src/Shared/Shared.csproj'
+        project.write_text('<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup>'
+            '<TargetFramework>netstandard2.0</TargetFramework>'
+            '<NetStandardImplicitPackageVersion>2.0.0-*</NetStandardImplicitPackageVersion>'
+            '</PropertyGroup></Project>')
+        self.restore()
+        graph = self.export()
+        shared = next(node for node in graph['nodes'] if node['project'].endswith('/Shared.csproj'))
+        self.assertEqual(shared['targetFramework'], 'netstandard2.0')
+        self.assertTrue(any('/netstandard.library/2.0.0/' in item['path']
+            for item in shared['inputs']))
+        self.assertFalse(list(self.work.glob('src/**/bin/**/*.dll')))
+        project.write_text(project.read_text().replace('2.0.0-*', '2.*'))
+        self.restore()
+        self.export(error='unsupported-package')
+
     def test_unsupported_sdk_selection_still_rejects(self):
         self.configure_multitargeted_dependency('netstandard2.1;netstandard2.0')
         self.restore()

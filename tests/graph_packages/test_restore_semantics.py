@@ -210,6 +210,20 @@ class PackageRestoreSemantics(unittest.TestCase):
         central.write_text(central.read_text().replace('Version="1.0.0"', 'Version="1.0.1"'))
         self.export(error='stale-restore')
 
+    def test_global_package_reference_preserves_sdk_asset_filters(self):
+        central = self.centralize()
+        central.write_text(central.read_text().replace('</ItemGroup>',
+            '<GlobalPackageReference Include="RulesMsbuild.Leaf" Version="1.0.0" /></ItemGroup>'))
+        self.restore()
+        self.assert_current_prepares(['RulesMsbuild.Binary', 'RulesMsbuild.Leaf'])
+        assets = json.loads((self.project.parent / 'obj/project.assets.json').read_text())
+        dependency = assets['project']['frameworks']['net10.0']['dependencies']['RulesMsbuild.Leaf']
+        self.assertEqual(set(dependency['include'].lower().replace(' ', '').split(',')),
+            {'runtime', 'build', 'native', 'contentfiles', 'analyzers'})
+        self.assertEqual(dependency['suppressParent'].lower(), 'all')
+        central.write_text(central.read_text().replace('Version="1.0.0"', 'Version="1.0.1"'))
+        self.export(error='stale-restore')
+
     def test_consumer_snapshot_rejects_partial_private_assets_restore(self):
         self.partial_restore_control(lambda: configure(self.workspace, self.workspace / '.feed',
             private_assets='all'), [])
