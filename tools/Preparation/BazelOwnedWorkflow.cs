@@ -155,12 +155,13 @@ internal static class BazelOwnedWorkflow
             var discoveryEvents = Array.Empty<JsonNode>();
             if (projectActions)
             {
-                var structural = directCheckout ? (JsonObject)sourceIdentity.DeepClone() : FileTree.Snapshot(inputs);
-                foreach (var (name, item) in structural)
-                    if (name.EndsWith(".cs", StringComparison.Ordinal) && !name.Contains("/obj/", StringComparison.Ordinal) && item!.String("kind") == "file") { item!.AsObject().Remove("sha256"); item.AsObject().Remove("size"); }
-                var fingerprint = Json.Digest(new JsonObject { ["inputs"] = structural, ["packages"] = report["nuget"]!["locked"]!.DeepClone(), ["worker"] = worker.DeepClone(), ["entry"] = entry });
                 var layoutPath = Path.Combine(state, "project-layout.json");
                 var saved = File.Exists(layoutPath) ? Json.Read(layoutPath) : null;
+                var knownBodies = (declaredLayout ?? saved?["graph"])?["projects"]?.AsObject().SelectMany(pair => pair.Value!.Array("sources")).Select(value => value!.GetValue<string>()).ToHashSet(StringComparer.Ordinal) ?? [];
+                var structural = directCheckout ? (JsonObject)sourceIdentity.DeepClone() : FileTree.Snapshot(inputs);
+                foreach (var (name, item) in structural)
+                    if ((name.EndsWith(".cs", StringComparison.Ordinal) || knownBodies.Contains(name)) && !name.Contains("/obj/", StringComparison.Ordinal) && item!.String("kind") == "file") { item!.AsObject().Remove("sha256"); item.AsObject().Remove("size"); }
+                var fingerprint = Json.Digest(new JsonObject { ["inputs"] = structural.DeepClone(), ["packages"] = report["nuget"]!["locked"]!.DeepClone(), ["worker"] = worker.DeepClone(), ["entry"] = entry });
                 JsonNode layout;
                 if (declaredLayout is not null) { layout = declaredLayout; report["layoutSource"] = "declared"; }
                 else if (saved?["identity"]?.GetValue<string>() == fingerprint) { layout = saved["graph"]!; report["layoutSource"] = "local"; }
@@ -173,6 +174,9 @@ internal static class BazelOwnedWorkflow
                     if (discoveryCode != 0) { File.Copy(Path.Combine(output, "discovery-bazel.log"), Path.Combine(output, "bazel.log")); throw new InvalidDataException("Bazel graph discovery failed; see bazel.log"); }
                     discoveryEvents = NativeWorkflow.Events(File.ReadAllBytes(log)).ToArray();
                     layout = ProjectLayout.Capture(Json.Read(Path.Combine(generated, "bazel-bin/prepare.discovery/graph.json"))); report["layoutSource"] = "bootstrap";
+                    foreach (var name in layout["projects"]!.AsObject().SelectMany(pair => pair.Value!.Array("sources")).Select(value => value!.GetValue<string>()))
+                        if (structural[name] is JsonObject item) { item.Remove("sha256"); item.Remove("size"); }
+                    fingerprint = Json.Digest(new JsonObject { ["inputs"] = structural.DeepClone(), ["packages"] = report["nuget"]!["locked"]!.DeepClone(), ["worker"] = worker.DeepClone(), ["entry"] = entry });
                     Json.Write(layoutPath, new JsonObject { ["identity"] = fingerprint, ["graph"] = layout.DeepClone() });
                 }
                 Json.Write(Path.Combine(output, "project-layout.json"), layout);
@@ -281,6 +285,7 @@ internal static class BazelOwnedWorkflow
             if (checkout is not null) result.Add(":restore_inputs");
             foreach (var packageFile in packageFiles) result.Add(packageFile); return result;
         }
+        var resourceBodies = layout is null ? Array.Empty<string>() : layout["projects"]!.AsObject().SelectMany(pair => pair.Value!.Array("sources")).Select(value => value!.GetValue<string>()).Where(NativePlan.ResourcePath).Distinct(StringComparer.Ordinal).Order(StringComparer.Ordinal).ToArray();
         var build = "load(\":preparation.bzl\", \"msbuild_prepare\")\nload(\":native_cache.bzl\", \"msbuild_native_cache\")\nload(\":native_test.bzl\", \"native_test\")\n";
         if (packageActions)
         {
@@ -302,13 +307,13 @@ internal static class BazelOwnedWorkflow
             {
                 var configs = names.Where(name => !name.Contains('/') && name.Equals("NuGet.Config", StringComparison.OrdinalIgnoreCase)).ToArray();
                 if (configs.Length != 1) throw new InvalidDataException("Locked restore requires one root NuGet.Config");
-                build += Starlark.Call("msbuild_locked_restore", new JsonObject { ["package_set"] = packageActions ? ":nuget_packages" : null, ["name"] = "restore_inputs", ["srcs"] = Json.Strings(names.Select(InputLabel).Concat(packageFiles)), ["project"] = entry, ["projects"] = Json.Strings(layout!["projects"]!.AsObject().Select(pair => pair.Key)), ["config"] = configs[0], ["runtime_manifest"] = "@dotnet//:runtime-roots.json", ["runner"] = "@owned_tools//:tools/Preparation/bin/Release/net10.0/Preparation.dll", ["controller"] = Json.Strings(["@owned_tools//:files"]), ["sdk"] = "@dotnet//:files", ["dotnet"] = "@dotnet//:sdk/dotnet" });
+                build += Starlark.Call("msbuild_locked_restore", new JsonObject { ["resource_bodies"] = Json.Strings(resourceBodies), ["package_set"] = packageActions ? ":nuget_packages" : null, ["name"] = "restore_inputs", ["srcs"] = Json.Strings(names.Select(InputLabel).Concat(packageFiles)), ["project"] = entry, ["projects"] = Json.Strings(layout!["projects"]!.AsObject().Select(pair => pair.Key)), ["config"] = configs[0], ["runtime_manifest"] = "@dotnet//:runtime-roots.json", ["runner"] = "@owned_tools//:tools/Preparation/bin/Release/net10.0/Preparation.dll", ["controller"] = Json.Strings(["@owned_tools//:files"]), ["sdk"] = "@dotnet//:files", ["dotnet"] = "@dotnet//:sdk/dotnet" });
             }
             else
                 build += Starlark.Call("msbuild_normalize_restore", new JsonObject { ["name"] = "restore_inputs", ["srcs"] = Json.Strings(names.Where(FileTree.RestoreMetadata).Select(InputLabel)), ["workspace"] = checkout, ["cache"] = packageCache, ["runner"] = "@owned_tools//:tools/Preparation/bin/Release/net10.0/Preparation.dll", ["controller"] = Json.Strings(["@owned_tools//:files"]), ["sdk"] = "@dotnet//:files", ["dotnet"] = "@dotnet//:sdk/dotnet" });
         }
         if (layout is not null) Json.Write(Path.Combine(generated, "project-layout.json"), layout);
-        build += Starlark.Call("msbuild_prepare", new JsonObject { ["projects"] = layout is null ? new JsonArray() : Json.Strings(layout["projects"]!.AsObject().Select(pair => pair.Key)), ["package_set"] = packageActions ? ":nuget_packages" : null, ["layout"] = layout is null ? null : "project-layout.json", ["name"] = "prepare", ["project"] = entry, ["srcs"] = Inputs(), ["controller"] = Json.Strings(["@owned_tools//:files"]), ["runner"] = "@owned_tools//:tools/Preparation/bin/Release/net10.0/Preparation.dll", ["host"] = "host.json", ["runtime_manifest"] = "@dotnet//:runtime-roots.json", ["sdk"] = "@dotnet//:files", ["dotnet"] = "@dotnet//:sdk/dotnet" });
+        build += Starlark.Call("msbuild_prepare", new JsonObject { ["resource_bodies"] = Json.Strings(resourceBodies), ["projects"] = layout is null ? new JsonArray() : Json.Strings(layout["projects"]!.AsObject().Select(pair => pair.Key)), ["package_set"] = packageActions ? ":nuget_packages" : null, ["layout"] = layout is null ? null : "project-layout.json", ["name"] = "prepare", ["project"] = entry, ["srcs"] = Inputs(), ["controller"] = Json.Strings(["@owned_tools//:files"]), ["runner"] = "@owned_tools//:tools/Preparation/bin/Release/net10.0/Preparation.dll", ["host"] = "host.json", ["runtime_manifest"] = "@dotnet//:runtime-roots.json", ["sdk"] = "@dotnet//:files", ["dotnet"] = "@dotnet//:sdk/dotnet" });
         if (layout is null)
             build += Starlark.Call("msbuild_native_cache", new JsonObject { ["name"] = "build", ["project"] = entry, ["prepared_plan"] = ":prepare", ["direct_inputs"] = Inputs(), ["seeds"] = Files("seeds"), ["runner"] = "@owned_tools//:tools/NativeProjectCache/bin/Release/net10.0/NativeProjectCache.dll", ["runner_support"] = Json.Strings(["@owned_tools//:files"]), ["sdk"] = "@dotnet//:files", ["dotnet"] = "@dotnet//:sdk/dotnet" });
         else

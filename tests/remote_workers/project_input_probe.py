@@ -12,7 +12,7 @@ def run(output, packages, repositories):
     worker = output/'worker'
     source = fixture(worker, 'diamond', packages, restore=True)
     project = source/'N0001/N0001.csproj'
-    project.write_text(project.read_text().replace('</Project>', '<ItemGroup><EmbeddedResource Include="../Linked/probe.xml"><LogicalName>Probe.xml</LogicalName></EmbeddedResource></ItemGroup><Import Project="Local.props" /></Project>'))
+    project.write_text(project.read_text().replace('</Project>', '<ItemGroup><EmbeddedResource Include="../Linked/probe.xml"><LogicalName>Probe.xml</LogicalName></EmbeddedResource></ItemGroup><ItemGroup><EmbeddedResource Include="../Added/*.xml"><LogicalName>Extra.xml</LogicalName></EmbeddedResource></ItemGroup><Import Project="Local.props" /></Project>'))
     (source/'Linked').mkdir()
     resource = source/'Linked/probe.xml'; resource.write_text('<probe>before</probe>')
     local = source/'N0001/Local.props'; local.write_text('<Project><PropertyGroup><DefineConstants>LOCAL_ONE</DefineConstants></PropertyGroup></Project>')
@@ -28,14 +28,15 @@ def run(output, packages, repositories):
         assert result.returncode==0 and report['accepted'], label
         executions=[json.loads(line) for line in (output/label/'execution.json').read_text().splitlines() if line]
         compiled=sorted(item['targetLabel'] for item in executions if item['mnemonic']=='MsbuildCompileProject' and not item.get('cacheHit',False))
-        cases.append(dict(case=label,seconds=report['seconds'],compiles=report['compiles'],bindings=report['MsbuildBindProject']['executed'],targets=compiled))
+        cases.append(dict(case=label,seconds=report['seconds'],compiles=report['compiles'],bindings=report['MsbuildBindProject']['executed'],discovery=report['MsbuildDiscover']['executed'],targets=compiled))
         (output/'report.json').write_text(json.dumps(cases,indent=2))
         print(label,report['compiles'],round(report['seconds'],3),flush=True)
-        assert report['compiles']==expected, cases[-1]
+        if expected is not None: assert report['compiles']==expected, cases[-1]
         if label in ['linked-resource','local-import','shared-import','noop']:
-            assert report['MsbuildBindProject']['executed']==expected, cases[-1]
+            assert report['MsbuildBindProject']['executed']==(1 if label=='linked-resource' else expected), cases[-1]
+        if label=='linked-resource': assert report['MsbuildDiscover']['executed']==0, cases[-1]
         if label in ['linked-resource','local-import']:
-            expected_targets=sorted('//:project_'+hashlib.sha256(f'N{i:04}/N{i:04}.csproj'.encode()).hexdigest() for i in [1,3])
+            expected_targets=sorted('//:project_'+hashlib.sha256(f'N{i:04}/N{i:04}.csproj'.encode()).hexdigest() for i in ([1] if label=='linked-resource' else [1,3]))
             assert compiled==expected_targets, compiled
             assembly=worker/'state/g/bazel-bin/build.bundle/app/N0001.dll'
             assert b'<probe>after</probe>' in assembly.read_bytes(), 'Updated resource missing from compiled output'
@@ -46,7 +47,19 @@ def run(output, packages, repositories):
         # Establish the same generated declaration before mutation comparisons.
         invoke('declared',0)
         resource.write_text('<probe>after</probe>')
-        invoke('linked-resource',2)
+        invoke('linked-resource',1)
+        # Membership changes must still rerun discovery and refresh the local layout.
+        layout.unlink()
+        added=source/'Added/extra.xml';added.parent.mkdir();added.write_text('<extra>added resource</extra>')
+        report=invoke('resource-added',None)
+        assert report['MsbuildDiscover']['executed']>=1 and report['compiles']<=2
+        assembly=worker/'state/g/bazel-bin/build.bundle/app/N0001.dll'
+        assert b'<extra>added resource</extra>' in assembly.read_bytes()
+        added.unlink()
+        report=invoke('resource-removed',None)
+        assert report['MsbuildDiscover']['executed']>=1 and report['compiles']<=2
+        assert b'<extra>added resource</extra>' not in assembly.read_bytes()
+        layout.write_bytes((output/'resource-removed/project-layout.json').read_bytes())
         local.write_text(local.read_text().replace('LOCAL_ONE','LOCAL_TWO'))
         invoke('local-import',2)
         props=source/'Directory.Build.props'

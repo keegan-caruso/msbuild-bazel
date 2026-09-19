@@ -35,7 +35,7 @@ msbuild_normalize_restore = rule(implementation = _normalize, attrs = {
 })
 
 def _locked_restore(ctx):
-    bodies = [f for f in ctx.files.srcs if input_path(f).endswith(".cs") and not input_path(f).startswith(".nuget/") and "/obj/" not in input_path(f)]
+    bodies = [f for f in ctx.files.srcs if (input_path(f).endswith(".cs") or input_path(f) in ctx.attr.resource_bodies) and not input_path(f).startswith(".nuget/") and "/obj/" not in input_path(f)]
     structural = [f for f in ctx.files.srcs if f not in bodies]
     outputs = []
     declared = []
@@ -73,6 +73,7 @@ def _locked_restore(ctx):
     return [DefaultInfo(files = depset(outputs))]
 
 msbuild_locked_restore = rule(implementation = _locked_restore, attrs = {
+    "resource_bodies": attr.string_list(),
     "package_set": attr.label(providers = [NugetPackageSetInfo]),
     "srcs": attr.label_list(allow_files = True),
     "project": attr.string(mandatory = True),

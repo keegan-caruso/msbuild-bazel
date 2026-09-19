@@ -26,7 +26,7 @@ class ProjectTemplates(unittest.TestCase):
     def fixture(self, global_source=False):
         self.discovery = self.root/'discovery'; self.discovery.mkdir(); (self.discovery/'project-records').mkdir()
         empty = hashlib.sha256(b'').hexdigest()
-        self.sources = {'A.csproj': ['A.cs', 'Shared.cs'], 'B.csproj': ['B.cs', 'Shared.cs'], 'C.csproj': ['C.cs']}
+        self.sources = {'A.csproj': ['A.cs', 'Shared.cs', 'Shared.css', 'A.css'], 'B.csproj': ['B.cs', 'Shared.cs', 'Shared.css'], 'C.csproj': ['C.cs']}
         graph_inputs = [dict(path='workspace/Shared.cs', kind='source', sha256=empty)] if global_source else []
         self.records = {project: dict(inputs={'workspace/'+name: empty for name in names}, graphInputs=graph_inputs,
             packages=dict(packages=[]), restore={project+'/project.assets.json': project}) for project, names in self.sources.items()}
@@ -69,6 +69,10 @@ class ProjectTemplates(unittest.TestCase):
                     self.invoke('bind-sources', self.bind_request(self.discovery, project, legacy))
                     self.invoke('bind-sources', self.bind_request(outputs[project], project, scoped))
                     self.assertEqual(self.tree(legacy), self.tree(scoped))
+                    if project=='B.csproj':
+                        payload=json.loads((scoped/'payload.json').read_text())
+                        self.assertNotIn('A.css',payload)
+                        self.assertIn('A.txt',payload)
 
     def test_unrelated_template_stays_identical_after_resource_edit(self):
         with tempfile.TemporaryDirectory() as directory:

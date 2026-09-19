@@ -159,3 +159,17 @@ class SourceBinding(unittest.TestCase):
                 result=subprocess.run(command,capture_output=True,text=True,timeout=15)
                 self.assertNotEqual(result.returncode,0)
                 self.assertIn('compile-only input',result.stderr)
+
+    def test_resource_roles_reject_structural_aliases(self):
+        with tempfile.TemporaryDirectory() as folder:
+            root=Path(folder);graph_path=root/'graph.json';request=root/'request.json'
+            names=['Linked/probe.xml','App/site.css','App/View.cshtml']
+            graph=dict(nodes=[dict(inputs=[dict(path='workspace/'+name,kind='resource') for name in names])],graphInputs=[])
+            request.write_text(json.dumps(dict(graph=str(graph_path),sources=names)))
+            command=[str(Path(os.environ['RULES_MSBUILD_DOTNET_ROOT'])/'dotnet'),str(ROOT/'tests/Preparation.Tests/bin/Release/net10.0/Preparation.Tests.dll'),'require-source-only',str(request)]
+            graph_path.write_text(json.dumps(graph))
+            self.assertEqual(subprocess.run(command,capture_output=True).returncode,0)
+            for kind in ['import','project','restore','analyzer','additional']:
+                for name in ['Linked/probe.xml']+(['linked/PROBE.xml'] if os.uname().sysname=='Darwin' else []):
+                    graph['graphInputs']=[dict(path='workspace/'+name,kind=kind)];graph_path.write_text(json.dumps(graph))
+                    self.assertNotEqual(subprocess.run(command,capture_output=True).returncode,0,(kind,name))

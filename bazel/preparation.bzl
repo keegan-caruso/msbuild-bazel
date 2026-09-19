@@ -9,7 +9,7 @@ def _prepare(ctx):
     plan = ctx.actions.declare_directory(ctx.label.name + ".plan")
     discovery = ctx.actions.declare_directory(ctx.label.name + ".discovery")
     projects = {project: ctx.actions.declare_directory(ctx.label.name + ".projects/" + project + ".template") for project in ctx.attr.projects}
-    bodies = [f for f in ctx.files.srcs if input_path(f).endswith(".cs") and not input_path(f).startswith(".nuget/") and "/obj/" not in input_path(f)]
+    bodies = [f for f in ctx.files.srcs if (input_path(f).endswith(".cs") or input_path(f) in ctx.attr.resource_bodies) and not input_path(f).startswith(".nuget/") and "/obj/" not in input_path(f)]
     structural = [f for f in ctx.files.srcs if f not in bodies]
     diagnostics = ctx.actions.declare_directory(ctx.label.name + ".diagnostics")
     request = ctx.actions.declare_file(ctx.label.name + ".request.json")
@@ -70,6 +70,7 @@ def _prepare(ctx):
     return [DefaultInfo(files = depset([plan])), DiscoveryPlanInfo(directory = discovery, validation = validation, projects = projects), OutputGroupInfo(discovery = depset([discovery]))]
 
 msbuild_prepare = rule(implementation = _prepare, attrs = {
+    "resource_bodies": attr.string_list(),
     "projects": attr.string_list(),
     "package_set": attr.label(providers = [NugetPackageSetInfo]),
     "layout": attr.label(allow_single_file = True),

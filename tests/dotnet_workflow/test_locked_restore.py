@@ -37,15 +37,15 @@ class LockedRestore(unittest.TestCase):
     def test_large_source_set_denies_bodies_but_allows_restore_inputs(self):
         with tempfile.TemporaryDirectory() as folder:
             root=Path(folder).resolve();workspace=root/'obj/parent/workspace';workspace.mkdir(parents=True)
-            bodies=[f'Project{i}/Body.cs' for i in range(6000)]
-            request=root/'request.json';request.write_text(json.dumps(dict(workspace=str(workspace),bodies=bodies)))
+            bodies=[f'Project{i}/Body.cs' for i in range(6000)]+[f'Project{i}/wwwroot/site.css' for i in range(4000)]+['Linked/probe.xml']
+            request=root/'request.json';request.write_text(json.dumps(dict(workspace=str(workspace),bodies=bodies,structural=["Unrelated/site.css","Imports/settings.xml"])))
             command=[str(Path(os.environ['RULES_MSBUILD_DOTNET_ROOT'])/'dotnet'),str(ROOT/'tests/Preparation.Tests/bin/Release/net10.0/Preparation.Tests.dll'),'locked-source-profile',str(request)]
             policy=subprocess.run(command,capture_output=True,text=True,check=True).stdout
             profile=root/'sandbox.sb';profile.write_text('(version 1)\n(allow default)\n'+policy)
-            for name,allowed in [('Project0/Body.cs',False),('obj/Body.cs',False),('Project5999/Body.cs',False),('Project0/App.csproj',True),('Project0/obj/Generated.cs',True),('.nuget/packages/p/Source.cs',True)]:
+            for name,allowed in [('Project0/Body.cs',False),('obj/Body.cs',False),('Project5999/Body.cs',False),('Project0/wwwroot/site.css',False),('Project3999/wwwroot/site.css',False),('Unrelated/site.css',True),('Unknown/site.css',False),('Linked/probe.xml',False),('Imports/settings.xml',True),('.nuget/packages/p/Build.xml',True),('Project0/App.csproj',True),('Project0/obj/Generated.cs',True),('.nuget/packages/p/Source.cs',True)]:
                 path=workspace/name;path.parent.mkdir(parents=True,exist_ok=True);path.write_text('sentinel')
                 result=subprocess.run(['/usr/bin/sandbox-exec','-f',str(profile),'/bin/cat',str(path)],capture_output=True,text=True)
                 self.assertEqual(result.returncode==0,allowed,(name,result.stderr))
-            for name in ['escape.txt','.nuget/Source.cs','App/obj/Source.cs']:
+            for name in ['escape.bin','.nuget/Source.cs','App/obj/Source.cs']:
                 request.write_text(json.dumps(dict(workspace=str(workspace),bodies=[name])))
                 self.assertNotEqual(subprocess.run(command,capture_output=True).returncode,0)

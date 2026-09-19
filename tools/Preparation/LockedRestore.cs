@@ -6,17 +6,25 @@ namespace RulesMSBuild.Preparation;
 
 internal static class LockedRestore
 {
-    internal static string SourceReadDeny(string workspace, IEnumerable<string> bodies)
+    internal static string SourceReadDeny(string workspace, IEnumerable<string> bodies, IEnumerable<string>? structural = null)
     {
         // Match the Starlark body classifier without thousands of literal rules:
         // macOS's sandbox compiler cannot serialize a large per-file deny list.
-        foreach (var body in bodies)
+        var names = bodies.ToArray();
+        foreach (var body in names)
         {
             Host.Safe(body);
-            if (!body.EndsWith(".cs", StringComparison.Ordinal) || body.StartsWith(".nuget/", StringComparison.Ordinal) || body.Contains("/obj/", StringComparison.Ordinal))
+            if (!(body.EndsWith(".cs", StringComparison.Ordinal) || NativePlan.ResourcePath(body)) || body.StartsWith(".nuget/", StringComparison.Ordinal) || body.Contains("/obj/", StringComparison.Ordinal))
                 throw new InvalidDataException("Invalid locked restore source-body declaration");
         }
-        return "(deny file-read-data (require-all (subpath " + Json.Canonical(JsonValue.Create(workspace)) +
+        var resourceExtensions = names.Where(NativePlan.ResourcePath).Select(name => Path.GetExtension(name)).Distinct(StringComparer.Ordinal).Order(StringComparer.Ordinal).ToArray();
+        var exceptions = (structural ?? []).Where(NativePlan.ResourcePath).Select(Host.Safe).Distinct(StringComparer.Ordinal).Order(StringComparer.Ordinal).ToArray();
+        if (exceptions.Intersect(names, OperatingSystem.IsMacOS() ? StringComparer.OrdinalIgnoreCase : StringComparer.Ordinal).Any()) throw new InvalidDataException("Body also declared as structural input");
+        // Deny resource suffixes, retaining actual structural inputs (e.g. XML
+        // imports). This scales independently of the number of resource files.
+        var excludes = string.Join(" ", exceptions.Select(name => "(require-not (literal " + Json.Canonical(JsonValue.Create(Path.Combine(workspace, name))) + "))"));
+        var resourceRules = resourceExtensions.Length == 0 ? "" : "(deny file-read-data (require-all (subpath " + Json.Canonical(JsonValue.Create(workspace)) + ") (regex " + Json.Canonical(JsonValue.Create("(" + string.Join("|", resourceExtensions.Select(Regex.Escape)) + ")$")) + ") (require-not (subpath " + Json.Canonical(JsonValue.Create(Path.Combine(workspace, ".nuget"))) + ")) " + excludes + "))";
+        return resourceRules + "\n(deny file-read-data (require-all (subpath " + Json.Canonical(JsonValue.Create(workspace)) +
             ") (regex #\"[.]cs$\") (require-not (subpath " + Json.Canonical(JsonValue.Create(Path.Combine(workspace, ".nuget"))) +
             ")) (require-not (regex " + Json.Canonical(JsonValue.Create("^" + Regex.Escape(workspace) + "/.*/obj/")) + "))))";
     }
@@ -75,7 +83,7 @@ internal static class LockedRestore
             var before = FileTree.Files(workspace).ToDictionary(path => path, path => FileTree.HashRegular(path).Digest, StringComparer.Ordinal);
             var sdk = Host.Real(Path.GetDirectoryName(Environment.ProcessPath!)!);
             var runtime = Json.Read(request.String("runtimeManifest")).AsArray().Select(item => item!.GetValue<string>());
-            var profile = Discovery.Profile(runtime.Append(scratch), scratch) + "\n" + SourceReadDeny(workspace, bodies);
+            var profile = Discovery.Profile(runtime.Append(scratch), scratch) + "\n" + SourceReadDeny(workspace, bodies, request.Array("sources").Select(item => item!.String("destination")));
             var sandbox = Path.Combine(scratch, "sandbox.sb"); File.WriteAllText(sandbox, profile);
             var start = new ProcessStartInfo("/usr/bin/sandbox-exec") { WorkingDirectory = workspace, RedirectStandardOutput = true, RedirectStandardError = true };
             // Restore each project's authored frameworks. A global TargetFramework

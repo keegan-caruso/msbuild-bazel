@@ -4,7 +4,14 @@ namespace RulesMSBuild.Preparation;
 
 internal static class NativePlan
 {
-    public static bool SourceBody(JsonNode input) => input.String("kind") == "source" && input.String("path").StartsWith("workspace/", StringComparison.Ordinal) && !input.String("path").StartsWith("workspace/.nuget/", StringComparison.Ordinal) && !input.String("path").Contains("/obj/", StringComparison.Ordinal) && input.String("path").EndsWith(".cs", StringComparison.Ordinal);
+    private static readonly string[] ResourceExtensions = { ".css", ".js", ".xml", ".resx", ".cshtml", ".razor", ".html", ".htm", ".txt", ".svg", ".png", ".jpg", ".jpeg", ".gif", ".ico", ".woff", ".woff2", ".ttf", ".eot", ".liquid", ".po" };
+    public static bool ResourcePath(string path) => ResourceExtensions.Contains(Path.GetExtension(path), StringComparer.OrdinalIgnoreCase);
+    public static bool SourceBody(JsonNode input)
+    {
+        var path = input.String("path"); var kind = input.String("kind");
+        return path.StartsWith("workspace/", StringComparison.Ordinal) && !path.StartsWith("workspace/.nuget/", StringComparison.Ordinal) && !path.Contains("/obj/", StringComparison.Ordinal) &&
+            (kind == "source" && path.EndsWith(".cs", StringComparison.Ordinal) || kind is "resource" or "content" && ResourcePath(path));
+    }
     public const string Policy = "evaluated-api-runtime-v2";
     public static Dictionary<string, JsonNode> Qualify(JsonNode graph)
     {
@@ -104,7 +111,7 @@ internal static class NativePlan
                 Json.Write(Path.Combine(output, "project-records", id + ".json"), records[project]!);
             }
             var protectedSources = nodes.Values.SelectMany(node => node.Array("inputs")).Concat(graph["graphInputs"] as JsonArray ?? [])
-                .Where(input => input!.String("path").StartsWith("workspace/", StringComparison.Ordinal) && input.String("kind") != "source")
+                .Where(input => input!.String("path").StartsWith("workspace/", StringComparison.Ordinal) && !SourceBody(input!))
                 .Select(input => Host.Relative(input!.String("path"))).Distinct().Order(StringComparer.Ordinal);
             Json.Write(Path.Combine(output, "binding-index.json"), new JsonObject { ["policy"] = "project-bindings-v1", ["projects"] = bindings, ["protectedSources"] = Json.Strings(protectedSources), ["graphInputs"] = graph["graphInputs"]?.DeepClone() ?? new JsonArray() });
         }
@@ -119,7 +126,7 @@ internal static class NativePlan
     {
         var sourceNames = names.ToHashSet(OperatingSystem.IsMacOS() ? StringComparer.OrdinalIgnoreCase : StringComparer.Ordinal);
         foreach (var item in graph.Array("nodes").SelectMany(n => n!.Array("inputs")).Concat(graph["graphInputs"] as JsonArray ?? []))
-            if (item!.String("path").StartsWith("workspace/", StringComparison.Ordinal) && sourceNames.Contains(Host.Relative(item.String("path"))) && item.String("kind") != "source")
+            if (item!.String("path").StartsWith("workspace/", StringComparison.Ordinal) && sourceNames.Contains(Host.Relative(item.String("path"))) && !SourceBody(item!))
                 throw new InvalidDataException("Source-content split requires a compile-only input: " + item!.String("path"));
     }
     public static void BindSources(JsonNode request, IntegrityProfile? profile = null)
@@ -178,7 +185,7 @@ internal static class NativePlan
             Visit(project);
             foreach (var name in projects.Select(p => p.Key).ToArray()) if (!closure.Contains(name)) { projects.Remove(name); records.AsObject().Remove(name); }
             if (payload is null) throw new InvalidDataException("Project actions require direct payloads");
-            payload = PrunePayload(payload, records.AsObject().Select(pair => pair.Value!), sources.Keys, graph["graphInputs"] as JsonArray ?? []);
+            payload = PrunePayload(payload, records.AsObject().Select(pair => pair.Value!), sources.Keys, graph["graphInputs"] as JsonArray ?? [], graph.Array("nodes").SelectMany(node => node!.Array("inputs")).Where(input => SourceBody(input!)).Select(input => Host.Relative(input!.String("path"))));
             Json.Write(payloadPath, payload);
             // Dependencies replay captured target results without loading their
             // SDK or NuGet imports; only the selected project needs restore data.
@@ -189,9 +196,10 @@ internal static class NativePlan
         }
         Json.Write(Path.Combine(output, "identity-records.json"), records); Json.Write(Path.Combine(output, "manifest.json"), manifest); Json.Write(Path.Combine(output, "graph.json"), graph);
     }
-    private static JsonNode PrunePayload(JsonNode payload, IEnumerable<JsonNode> records, IEnumerable<string> sources, JsonArray graphInputs)
+    private static JsonNode PrunePayload(JsonNode payload, IEnumerable<JsonNode> records, IEnumerable<string> sources, JsonArray graphInputs, IEnumerable<string> bodies)
     {
         var sourceNames = sources.ToHashSet(OperatingSystem.IsMacOS() ? StringComparer.OrdinalIgnoreCase : StringComparer.Ordinal);
+        var bodyNames = bodies.ToHashSet(OperatingSystem.IsMacOS() ? StringComparer.OrdinalIgnoreCase : StringComparer.Ordinal);
         var requiredPayload = new HashSet<string>(StringComparer.Ordinal);
         void Require(string logical)
         {
@@ -208,7 +216,7 @@ internal static class NativePlan
         // Removing entries from JsonObject shifts its ordered storage each time.
         // Build the selected map once instead of repeatedly compacting the full graph.
         return new JsonObject(payload.AsObject().Where(pair => requiredPayload.Contains(pair.Key) &&
-            (!pair.Key.EndsWith(".cs", StringComparison.Ordinal) || pair.Key.StartsWith(".nuget/", StringComparison.Ordinal) || sourceNames.Contains(pair.Key)))
+            (!bodyNames.Contains(pair.Key) && !pair.Key.EndsWith(".cs", StringComparison.Ordinal) || pair.Key.StartsWith(".nuget/", StringComparison.Ordinal) || sourceNames.Contains(pair.Key)))
             .Select(pair => KeyValuePair.Create(pair.Key, pair.Value?.DeepClone())));
     }
     public static void ProjectTemplates(string discovery, JsonObject outputs)
@@ -235,7 +243,7 @@ internal static class NativePlan
                 .Select(name => KeyValuePair.Create<string, JsonNode?>(name, records[name]!.DeepClone())));
             Json.Write(Path.Combine(output, "binding.json"), new JsonObject { ["policy"] = "project-template-v1", ["project"] = project, ["sources"] = Json.Strings(sources), ["records"] = mutable, ["graphInputs"] = graphInputs.DeepClone(), ["protectedSources"] = new JsonArray(index.Array("protectedSources").Where(value => sourceNames.Contains("workspace/" + value!.GetValue<string>())).Select(value => value!.DeepClone()).ToArray()) });
             Json.Write(Path.Combine(output, "manifest.json"), new JsonObject { ["policy"] = manifest["policy"]!.DeepClone(), ["toolchain"] = manifest["toolchain"]!.DeepClone(), ["projects"] = new JsonObject(projects.Where(pair => closure.Contains(pair.Key)).Select(pair => KeyValuePair.Create<string, JsonNode?>(pair.Key, pair.Value!.DeepClone()))) });
-            Json.Write(Path.Combine(output, "payload.json"), PrunePayload(payload, closure.Select(name => records[name]!), sources, graphInputs));
+            Json.Write(Path.Combine(output, "payload.json"), PrunePayload(payload, closure.Select(name => records[name]!), sources, graphInputs, index["projects"]!.AsObject().SelectMany(pair => pair.Value!.Array("sources")).Select(value => value!.GetValue<string>())));
             Json.Write(Path.Combine(output, "restore.json"), records[project]!["restore"]!);
             Json.Write(Path.Combine(output, "entry.json"), new JsonObject { ["entry"] = project });
         }
@@ -305,7 +313,7 @@ internal static class NativePlan
         foreach (var name in projects.Select(pair => pair.Key).ToArray()) if (!records.ContainsKey(name)) projects.Remove(name);
         profile?.End("bindClosure", phase); phase = IntegrityProfile.Begin();
         var payload = Json.Read(Path.Combine(discovery, "payload.json"));
-        payload = PrunePayload(payload, records.AsObject().Select(pair => pair.Value!), sources.Keys, graphInputs);
+        payload = PrunePayload(payload, records.AsObject().Select(pair => pair.Value!), sources.Keys, graphInputs, index["projects"]!.AsObject().SelectMany(pair => pair.Value!.Array("sources")).Select(value => value!.GetValue<string>()));
         foreach (var name in payload.AsObject().Select(pair => pair.Key).ToArray()) if (hashes.TryGetValue("workspace/" + name, out var hash)) payload[name] = hash;
         profile?.End("prunePayload", phase); phase = IntegrityProfile.Begin();
         Directory.CreateDirectory(output);
