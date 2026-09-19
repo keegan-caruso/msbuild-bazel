@@ -21,12 +21,16 @@ focused R17 experiment, not qualification of the full supported-version/platform
 
 ## Current status and next step
 
-The [Orchard combined qualification](orchard-package-qualification.md) completes
-project structural scoping, asset/generator checks, NuGet extraction actions and
-project package scoping on the 202-project Release/Production graph. Fresh remote
-recovery takes 36.825 s with zero compilations and no extracted package files
-downloaded; median no-op is 6.489 s. Resource edits compile four projects but still
-pay for whole-graph discovery and binding. Cold and host C# edit costs remain high.
+The [discovery and binding optimization](discovery-binding-performance.md) follows
+the [Orchard combined qualification](orchard-package-qualification.md). On the
+202-project Release/Production graph, the stylesheet edit falls from 687.674 s to
+338.668 s, discovery from 329.407 s to 150.306 s, and binding executions from 202
+to four. Bazel consumes per-project discovery templates; repeated file hashing,
+package copying and the second same-action graph export are removed with input
+verification retained. Producer-deleted remote recovery takes 35.923 s with zero
+compilations, 3,457 identical application files and no extracted package files
+downloaded; median no-op is 6.441 s. Single graph export, host compilation,
+runtime composition and cache publication remain the next performance targets.
 
 
 The [local MVP release](local-mvp-release.md), **v0.1.0-mvp.1**, provides the
