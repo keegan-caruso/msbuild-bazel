@@ -30,4 +30,6 @@ uses Newtonsoft.Json 13.0.1 and PolySharp 1.15.0:
 
 The exported 202-project Orchard graph has a median package set of 34, minimum
 19, maximum 287. Total package references across compile declarations fall from
-57,974 to 9,888. Full Orchard execution and timing qualification follows.
+57,974 to 9,888. The [combined Orchard qualification](orchard-package-qualification.md) now passes
+producer-deleted remote recovery and all four changed-input cases. Fresh recovery
+is 36.825 s with zero extraction file downloads; median no-op is 6.489 s.

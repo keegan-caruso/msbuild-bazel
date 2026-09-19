@@ -43,7 +43,8 @@ only the prepared payload paths inside those declared directories and checks
 every selected file hash. It does not enumerate package files during Bazel
 analysis or substitute an undeclared global cache.
 
-The option remains explicit while the full Orchard graph is qualified. The
+The option remains explicit. The [combined Orchard qualification](orchard-package-qualification.md)
+now passes the full 202-project graph. The
 repository-extraction path remains available for comparison. Compile targets now use [project-specific package sets](project-package-inputs.md)
 when the layout contains validated package ownership. Older layouts retain the
 full set until regenerated.
@@ -70,8 +71,9 @@ using Newtonsoft.Json 13.0.1 and PolySharp 1.15.0 through the real owned pipelin
   Directory traversal/duplicate identities, staging overlap and changed package
   payload hashes have rejection controls.
 
-The cache is local loopback. Full Orchard and independent-machine/WAN performance
-remain unproven for this option. Archive downloads are still repository work;
+The cache is local loopback. Full Orchard results are recorded in the
+[combined qualification](orchard-package-qualification.md); independent-machine
+and WAN performance remain unproven for this option. Archive downloads are still repository work;
 this moves extraction and the resulting file trees into the action cache.
 
 Bazel's remote cache stores [action outputs](https://bazel.build/remote/caching),

@@ -21,6 +21,14 @@ focused R17 experiment, not qualification of the full supported-version/platform
 
 ## Current status and next step
 
+The [Orchard combined qualification](orchard-package-qualification.md) completes
+project structural scoping, asset/generator checks, NuGet extraction actions and
+project package scoping on the 202-project Release/Production graph. Fresh remote
+recovery takes 36.825 s with zero compilations and no extracted package files
+downloaded; median no-op is 6.489 s. Resource edits compile four projects but still
+pay for whole-graph discovery and binding. Cold and host C# edit costs remain high.
+
+
 The [local MVP release](local-mvp-release.md), **v0.1.0-mvp.1**, provides the
 pinned native macOS ARM64 Build/Test source release. Its
 [release sign-off](local-mvp-signoff.md) records a rerun on merged main,

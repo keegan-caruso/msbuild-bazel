@@ -38,7 +38,7 @@ this change does not silently assume that project evaluation never reads them.
   These small-fixture timings are correctness evidence, not Orchard speedup.
 - The exported Orchard layout has 202 projects. The Setup stylesheet belongs to
   four dependency closures, and the median project has 29 structural workspace
-  paths. These are declaration counts; execution/timing comparison is pending.
+  paths. These are declaration counts; execution results follow below.
 
 ## Requested sequence
 
@@ -76,3 +76,7 @@ Three consecutive no-ops took 19.066, 16.064 and 12.693 seconds (median
 16.064); all executed zero discovery, binding and compile actions. The older
 no-op sample was 13.396 seconds. These samples show warm-up variability and
 do not establish a no-op speedup.
+
+The subsequent [combined qualification](orchard-package-qualification.md) completes
+package integration/scoping and fresh remote recovery, and reports all final
+iteration timings. Its results supersede the pending follow-up status above.
