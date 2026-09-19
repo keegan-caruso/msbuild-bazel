@@ -125,10 +125,10 @@ class SourceBinding(unittest.TestCase):
             app, app_bundle = bundle('App', {'App/bin/Release/net10.0/App.dll': b'app', 'App/bin/Release/net10.0/Dep.dll': b'historical', 'App/Localization/fr/messages.po': b'bonjour'})
             unused, unused_bundle = bundle('Unused', {'Unused/bin/Release/net10.0/Unused.dll': b'unused'})
             original = {path: path.read_bytes() for parent in [dep, app, unused] for path in parent.rglob('*') if path.is_file()}
-            for corrupt in [False, True]:
+            for projected, corrupt in [(False, False), (True, False), (False, True), (True, True)]:
                 if corrupt: (unused_bundle/'artifacts/Unused/bin/Release/net10.0/Unused.dll').write_bytes(b'corrupt')
-                output = root/('corrupt' if corrupt else 'output'); request = root/'request.json'
-                request.write_text(json.dumps(dict(entry='App/App.csproj', output=str(output), bundles=[str(dep), str(app), str(unused)])))
+                output = root/f'output-{projected}-{corrupt}'; request = root/'request.json'
+                request.write_text(json.dumps(dict(entry='App/App.csproj', output=str(output), bundles=[] if projected else [str(dep), str(app), str(unused)], **(dict(entryBundle=str(app), runtimeBundles=[str(dep_bundle), str(unused_bundle)]) if projected else {}))))
                 p = subprocess.run([str(Path(os.environ['RULES_MSBUILD_DOTNET_ROOT'])/'dotnet'), str(ROOT/'tools/NativeProjectCache/bin/Release/net10.0/NativeProjectCache.dll'), '--compose-projects', str(request)], capture_output=True, text=True, timeout=30)
                 if corrupt:
                     self.assertNotEqual(p.returncode, 0)

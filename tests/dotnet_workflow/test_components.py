@@ -131,6 +131,24 @@ class Components(unittest.TestCase):
             self.assertIn('size mismatch',self.invoke('action-cache-gate',request,False))
             self.assertFalse(any(e['method']=='PUT' for e in server.events))
 
+    def test_action_cache_parallel_content_barrier(self):
+        import base64
+        blobs=[(sha(str(i).encode()),str(i).encode()) for i in range(12)]
+        for fail in (False,True):
+            with self.subTest(fail=fail), CacheServer(5) as server:
+                for digest,body in blobs[:3]:server.data['/bazel/cas/'+digest]=body
+                if fail:server.offline_prefixes=['/bazel/cas/'+blobs[-1][0]]
+                requests=[dict(method='PUT',path='ac/'+'a'*64,body=base64.b64encode(b'metadata').decode())]
+                requests += [dict(method='PUT',path='cas/'+digest,body=base64.b64encode(body).decode()) for digest,body in blobs]
+                request=dict(endpoint=server.url+'/bazel',directory=str(self.root/str(fail)),upload=True,publish=True,requests=requests,probeBeforePublish=[])
+                self.invoke('action-cache-gate',request,not fail)
+                puts=[e for e in server.events if e['method']=='PUT']
+                if fail:self.assertFalse(any('/ac/' in e['path'] for e in puts))
+                else:
+                    self.assertEqual(len(puts),10)
+                    self.assertIn('/ac/',puts[-1]['path'])
+                    self.assertTrue(all('/cas/' in e['path'] for e in puts[:-1]))
+
     def test_action_cache_discard_readonly_and_bad_digest(self):
         import base64
         data=b'value';blob=sha(data)

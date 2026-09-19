@@ -1,0 +1,602 @@
+{
+  "schemaVersion": 1,
+  "orchardRevision": "04467a3438d4255627c1a478598a1585b3ff2947",
+  "scope": "one macOS ARM64 host, loopback HTTP cache, shared pinned archive repository cache",
+  "profileCommit": "d324fd3",
+  "publicationCommit": "fa411a6",
+  "implementationFiles": {
+    "bazel/project_actions.bzl": "85c9da5e137ac3985a548284b114cc81ecd293eaa3f7732a6bec58bc07fe20df",
+    "tools/NativeProjectCache/Program.cs": "e196339d55e118de1fbcaf5fb524569d5e6d5c5d91a9a955e1ac1c7f6ffa58a8",
+    "tools/NativeProjectCache/ProjectActions.cs": "b8065bebbf11f1fe28b395566c47887bc8b1f2313329d72b1b5a865c4786a60e",
+    "tools/Preparation/ActionCache.cs": "aa88dcc835580167ee2d5223189c7eb08a7034484737127be007d6daf4d6a7cf",
+    "tools/Preparation/BazelOwnedWorkflow.cs": "9f4c01b3c9e50b499cfcc13432efeaffbc7a5a4df7bab5de52b5adf3fd22b02a"
+  },
+  "current": {
+    "cases": {
+      "producer": {
+        "accepted": true,
+        "seconds": 700.7512927,
+        "phases": {
+          "stagePackages": 0.0333874,
+          "bazel": 672.0806652,
+          "leaseExit": 3.0579231,
+          "validateBundles": 0.3807491,
+          "publishActionCache": 19.237484
+        },
+        "compiles": 202,
+        "NugetExtractPackage": {
+          "executed": 287,
+          "remoteHits": 0
+        },
+        "MsbuildDiscover": {
+          "executed": 1,
+          "remoteHits": 0
+        },
+        "MsbuildBindProject": {
+          "executed": 202,
+          "remoteHits": 0
+        },
+        "MsbuildCompileProject": {
+          "executed": 202,
+          "remoteHits": 0
+        },
+        "MsbuildComposeRuntime": {
+          "executed": 1,
+          "remoteHits": 0
+        },
+        "MsbuildLockedRestore": {
+          "executed": 1,
+          "remoteHits": 0
+        },
+        "actionCache": {
+          "publishedObjects": 5277,
+          "uploadedBytes": 108919458,
+          "downloadedBytes": 6950,
+          "failures": 0,
+          "reusedObjects": 12457,
+          "reusedBytes": 2645840056
+        }
+      },
+      "asset": {
+        "accepted": true,
+        "seconds": 21.8543008,
+        "phases": {
+          "stagePackages": 0.0377162,
+          "bazel": 18.9543161,
+          "leaseExit": 0.6768112,
+          "validateBundles": 0.3741677,
+          "publishActionCache": 0.1518375
+        },
+        "compiles": 1,
+        "NugetExtractPackage": {
+          "executed": 0,
+          "remoteHits": 0
+        },
+        "MsbuildDiscover": {
+          "executed": 0,
+          "remoteHits": 0
+        },
+        "MsbuildBindProject": {
+          "executed": 1,
+          "remoteHits": 0
+        },
+        "MsbuildCompileProject": {
+          "executed": 1,
+          "remoteHits": 0
+        },
+        "MsbuildComposeRuntime": {
+          "executed": 1,
+          "remoteHits": 0
+        },
+        "MsbuildLockedRestore": {
+          "executed": 0,
+          "remoteHits": 0
+        },
+        "actionCache": {
+          "publishedObjects": 25,
+          "uploadedBytes": 2391953,
+          "downloadedBytes": 30,
+          "failures": 0,
+          "reusedObjects": 3164,
+          "reusedBytes": 646357761
+        },
+        "runtime": {
+          "status": 200,
+          "packageHeader": true,
+          "packageAsset": true,
+          "packageRazor": true,
+          "checkoutsUnavailable": false
+        }
+      },
+      "razor": {
+        "accepted": true,
+        "seconds": 20.2264729,
+        "phases": {
+          "stagePackages": 0.036856,
+          "bazel": 17.4222454,
+          "leaseExit": 0.6541845,
+          "validateBundles": 0.3645493,
+          "publishActionCache": 0.1534903
+        },
+        "compiles": 1,
+        "NugetExtractPackage": {
+          "executed": 0,
+          "remoteHits": 0
+        },
+        "MsbuildDiscover": {
+          "executed": 0,
+          "remoteHits": 0
+        },
+        "MsbuildBindProject": {
+          "executed": 1,
+          "remoteHits": 0
+        },
+        "MsbuildCompileProject": {
+          "executed": 1,
+          "remoteHits": 0
+        },
+        "MsbuildComposeRuntime": {
+          "executed": 1,
+          "remoteHits": 0
+        },
+        "MsbuildLockedRestore": {
+          "executed": 0,
+          "remoteHits": 0
+        },
+        "actionCache": {
+          "publishedObjects": 25,
+          "uploadedBytes": 2392466,
+          "downloadedBytes": 30,
+          "failures": 0,
+          "reusedObjects": 3164,
+          "reusedBytes": 646357761
+        },
+        "runtime": {
+          "status": 200,
+          "packageHeader": true,
+          "packageAsset": true,
+          "packageRazor": true,
+          "checkoutsUnavailable": false
+        }
+      },
+      "fresh": {
+        "accepted": true,
+        "seconds": 34.5508263,
+        "phases": {
+          "stagePackages": 0.0347174,
+          "bazel": 28.2670437,
+          "leaseExit": 2.235375,
+          "validateBundles": 0.3682201,
+          "publishActionCache": 0.0028137
+        },
+        "compiles": 0,
+        "NugetExtractPackage": {
+          "executed": 0,
+          "remoteHits": 287
+        },
+        "MsbuildDiscover": {
+          "executed": 0,
+          "remoteHits": 1
+        },
+        "MsbuildBindProject": {
+          "executed": 0,
+          "remoteHits": 202
+        },
+        "MsbuildCompileProject": {
+          "executed": 0,
+          "remoteHits": 202
+        },
+        "MsbuildComposeRuntime": {
+          "executed": 0,
+          "remoteHits": 1
+        },
+        "MsbuildLockedRestore": {
+          "executed": 0,
+          "remoteHits": 1
+        },
+        "actionCache": {
+          "publishedObjects": 0,
+          "uploadedBytes": 0,
+          "downloadedBytes": 2016334359,
+          "failures": 0,
+          "reusedObjects": 0,
+          "reusedBytes": 0
+        },
+        "packageFilesDownloaded": 0,
+        "identicalApplicationFiles": 3457,
+        "runtime": {
+          "status": 200,
+          "packageHeader": true,
+          "packageAsset": true,
+          "packageRazor": true,
+          "checkoutsUnavailable": true
+        }
+      },
+      "noop-1": {
+        "accepted": true,
+        "seconds": 7.0923582,
+        "phases": {
+          "stagePackages": 0.0403186,
+          "bazel": 4.4936924,
+          "leaseExit": 0.6903508,
+          "validateBundles": 0.3792201,
+          "publishActionCache": 0.0026106
+        },
+        "compiles": 0,
+        "NugetExtractPackage": {
+          "executed": 0,
+          "remoteHits": 0
+        },
+        "MsbuildDiscover": {
+          "executed": 0,
+          "remoteHits": 0
+        },
+        "MsbuildBindProject": {
+          "executed": 0,
+          "remoteHits": 0
+        },
+        "MsbuildCompileProject": {
+          "executed": 0,
+          "remoteHits": 0
+        },
+        "MsbuildComposeRuntime": {
+          "executed": 0,
+          "remoteHits": 0
+        },
+        "MsbuildLockedRestore": {
+          "executed": 0,
+          "remoteHits": 0
+        },
+        "actionCache": {
+          "publishedObjects": 0,
+          "uploadedBytes": 0,
+          "downloadedBytes": 0,
+          "failures": 0,
+          "reusedObjects": 0,
+          "reusedBytes": 0
+        }
+      },
+      "noop-2": {
+        "accepted": true,
+        "seconds": 6.6976563,
+        "phases": {
+          "stagePackages": 0.0391488,
+          "bazel": 4.108355,
+          "leaseExit": 0.6962641,
+          "validateBundles": 0.3618765,
+          "publishActionCache": 0.0024935
+        },
+        "compiles": 0,
+        "NugetExtractPackage": {
+          "executed": 0,
+          "remoteHits": 0
+        },
+        "MsbuildDiscover": {
+          "executed": 0,
+          "remoteHits": 0
+        },
+        "MsbuildBindProject": {
+          "executed": 0,
+          "remoteHits": 0
+        },
+        "MsbuildCompileProject": {
+          "executed": 0,
+          "remoteHits": 0
+        },
+        "MsbuildComposeRuntime": {
+          "executed": 0,
+          "remoteHits": 0
+        },
+        "MsbuildLockedRestore": {
+          "executed": 0,
+          "remoteHits": 0
+        },
+        "actionCache": {
+          "publishedObjects": 0,
+          "uploadedBytes": 0,
+          "downloadedBytes": 0,
+          "failures": 0,
+          "reusedObjects": 0,
+          "reusedBytes": 0
+        }
+      },
+      "noop-3": {
+        "accepted": true,
+        "seconds": 6.5687742,
+        "phases": {
+          "stagePackages": 0.0400315,
+          "bazel": 3.9908447,
+          "leaseExit": 0.6949018,
+          "validateBundles": 0.3619095,
+          "publishActionCache": 0.002458
+        },
+        "compiles": 0,
+        "NugetExtractPackage": {
+          "executed": 0,
+          "remoteHits": 0
+        },
+        "MsbuildDiscover": {
+          "executed": 0,
+          "remoteHits": 0
+        },
+        "MsbuildBindProject": {
+          "executed": 0,
+          "remoteHits": 0
+        },
+        "MsbuildCompileProject": {
+          "executed": 0,
+          "remoteHits": 0
+        },
+        "MsbuildComposeRuntime": {
+          "executed": 0,
+          "remoteHits": 0
+        },
+        "MsbuildLockedRestore": {
+          "executed": 0,
+          "remoteHits": 0
+        },
+        "actionCache": {
+          "publishedObjects": 0,
+          "uploadedBytes": 0,
+          "downloadedBytes": 0,
+          "failures": 0,
+          "reusedObjects": 0,
+          "reusedBytes": 0
+        }
+      }
+    },
+    "scope": "one macOS ARM64 host, loopback HTTP cache, shared pinned archive repository cache",
+    "producerOutputsRemoved": true,
+    "accepted": true
+  },
+  "previous": {
+    "asset": {
+      "accepted": true,
+      "seconds": 53.0207807,
+      "phases": {
+        "stagePackages": 0.0334092,
+        "bazel": 23.6781541,
+        "leaseExit": 2.981816
+      },
+      "compiles": 1,
+      "NugetExtractPackage": {
+        "executed": 0,
+        "remoteHits": 0
+      },
+      "MsbuildDiscover": {
+        "executed": 0,
+        "remoteHits": 0
+      },
+      "MsbuildBindProject": {
+        "executed": 1,
+        "remoteHits": 0
+      },
+      "MsbuildCompileProject": {
+        "executed": 1,
+        "remoteHits": 0
+      },
+      "MsbuildComposeRuntime": {
+        "executed": 1,
+        "remoteHits": 0
+      },
+      "MsbuildLockedRestore": {
+        "executed": 0,
+        "remoteHits": 0
+      },
+      "actionCache": {
+        "publishedObjects": 3186,
+        "uploadedBytes": 648744945,
+        "downloadedBytes": 30,
+        "failures": 0
+      },
+      "runtime": {
+        "status": 200,
+        "packageHeader": true,
+        "packageAsset": true,
+        "packageRazor": true,
+        "checkoutsUnavailable": false
+      }
+    },
+    "razor": {
+      "accepted": true,
+      "seconds": 49.562471,
+      "phases": {
+        "stagePackages": 0.0404976,
+        "bazel": 22.071232,
+        "leaseExit": 3.0299137
+      },
+      "compiles": 1,
+      "NugetExtractPackage": {
+        "executed": 0,
+        "remoteHits": 0
+      },
+      "MsbuildDiscover": {
+        "executed": 0,
+        "remoteHits": 0
+      },
+      "MsbuildBindProject": {
+        "executed": 1,
+        "remoteHits": 0
+      },
+      "MsbuildCompileProject": {
+        "executed": 1,
+        "remoteHits": 0
+      },
+      "MsbuildComposeRuntime": {
+        "executed": 1,
+        "remoteHits": 0
+      },
+      "MsbuildLockedRestore": {
+        "executed": 0,
+        "remoteHits": 0
+      },
+      "actionCache": {
+        "publishedObjects": 3186,
+        "uploadedBytes": 648744948,
+        "downloadedBytes": 30,
+        "failures": 0
+      },
+      "runtime": {
+        "status": 200,
+        "packageHeader": true,
+        "packageAsset": true,
+        "packageRazor": true,
+        "checkoutsUnavailable": false
+      }
+    },
+    "fresh": {
+      "accepted": true,
+      "seconds": 37.808576,
+      "phases": {
+        "stagePackages": 0.0342187,
+        "bazel": 30.4793187,
+        "leaseExit": 2.9875352
+      },
+      "compiles": 0,
+      "NugetExtractPackage": {
+        "executed": 0,
+        "remoteHits": 287
+      },
+      "MsbuildDiscover": {
+        "executed": 0,
+        "remoteHits": 1
+      },
+      "MsbuildBindProject": {
+        "executed": 0,
+        "remoteHits": 202
+      },
+      "MsbuildCompileProject": {
+        "executed": 0,
+        "remoteHits": 202
+      },
+      "MsbuildComposeRuntime": {
+        "executed": 0,
+        "remoteHits": 1
+      },
+      "MsbuildLockedRestore": {
+        "executed": 0,
+        "remoteHits": 1
+      },
+      "actionCache": {
+        "publishedObjects": 0,
+        "uploadedBytes": 0,
+        "downloadedBytes": 2016046483,
+        "failures": 0
+      },
+      "packageFilesDownloaded": 0,
+      "identicalApplicationFiles": 3457,
+      "runtime": {
+        "status": 200,
+        "packageHeader": true,
+        "packageAsset": true,
+        "packageRazor": true,
+        "checkoutsUnavailable": true
+      }
+    }
+  },
+  "previousNoopMedian": 6.7544738,
+  "noopMedian": 6.6976563,
+  "changedProjects": {
+    "asset": {
+      "MsbuildBindProject": [
+        "src/OrchardCore.Modules/OrchardCore.Setup/OrchardCore.Setup.csproj"
+      ],
+      "MsbuildCompileProject": [
+        "src/OrchardCore.Modules/OrchardCore.Setup/OrchardCore.Setup.csproj"
+      ]
+    },
+    "razor": {
+      "MsbuildBindProject": [
+        "src/OrchardCore.Modules/OrchardCore.Setup/OrchardCore.Setup.csproj"
+      ],
+      "MsbuildCompileProject": [
+        "src/OrchardCore.Modules/OrchardCore.Setup/OrchardCore.Setup.csproj"
+      ]
+    }
+  },
+  "actionProcessingSeconds": {
+    "asset": {
+      "MsbuildBindProject": 0.339819,
+      "MsbuildCompileProject": 4.571795,
+      "MsbuildComposeRuntime": 7.966417
+    },
+    "razor": {
+      "MsbuildBindProject": 0.251095,
+      "MsbuildCompileProject": 4.103493,
+      "MsbuildComposeRuntime": 7.968006
+    }
+  },
+  "publicationReplay": {
+    "baseline": {
+      "validationSeconds": 0.3487012,
+      "stagingSeconds": 1.1830992,
+      "publicationSeconds": 20.5917614,
+      "cache": {
+        "uploadEnabled": true,
+        "stagingLimitBytes": 8589934592,
+        "lookupKeys": [],
+        "hitKeys": [],
+        "stagedObjects": 3139,
+        "stagedBytes": 647482042,
+        "publishedObjects": 3139,
+        "uploadedBytes": 647482042,
+        "downloadedBytes": 0,
+        "failures": 0
+      }
+    },
+    "reuse": {
+      "validationSeconds": 0.3618158,
+      "stagingSeconds": 1.2713353,
+      "publicationSeconds": 0.0563086,
+      "cache": {
+        "uploadEnabled": true,
+        "stagingLimitBytes": 8589934592,
+        "lookupKeys": [],
+        "hitKeys": [],
+        "stagedObjects": 3139,
+        "stagedBytes": 647482042,
+        "publishedObjects": 0,
+        "uploadedBytes": 0,
+        "reusedObjects": 3139,
+        "reusedBytes": 647482042,
+        "downloadedBytes": 0,
+        "failures": 0
+      }
+    }
+  },
+  "compositionReplay": {
+    "cases": [
+      {
+        "kind": "full",
+        "seconds": 4.041888290999999,
+        "identicalFiles": 10383
+      },
+      {
+        "kind": "projected",
+        "seconds": 3.4075422920000005,
+        "identicalFiles": 10383
+      },
+      {
+        "kind": "projected",
+        "seconds": 3.069819916,
+        "identicalFiles": 10383
+      },
+      {
+        "kind": "full",
+        "seconds": 3.3422494590000014,
+        "identicalFiles": 10383
+      }
+    ],
+    "scope": "serial direct composition replay of identical Orchard compile outputs; excludes Bazel sandbox setup and cache transport",
+    "fullInputs": {
+      "files": 15865,
+      "bytes": 707045472
+    },
+    "projectedInputs": {
+      "files": 4669,
+      "bytes": 672320482
+    },
+    "accepted": true
+  },
+  "coldTimingCaveat": "Retired benchmark state cleanup overlapped producer; no concurrent cleanup or builds during edit timings."
+}

@@ -6,7 +6,7 @@ using NativeCache;
 
 internal sealed record RunnerFile(string Source, string Destination);
 internal sealed record RunnerPackageDirectory(string Source, string Package);
-internal sealed record RunnerRequest(string Entry, string Output, string Diagnostics, string Manifest, string Restore, RunnerFile[] Sources, RunnerFile[] Seeds, string? ReadProbe = null, string? NetworkProbe = null, string? WriteProbe = null, string? PreparedPlan = null, bool ProjectAction = false, string? ApiOutput = null, string[]? Prebuilt = null, RunnerPackageDirectory[]? PackageDirectories = null);
+internal sealed record RunnerRequest(string Entry, string Output, string Diagnostics, string Manifest, string Restore, RunnerFile[] Sources, RunnerFile[] Seeds, string? ReadProbe = null, string? NetworkProbe = null, string? WriteProbe = null, string? PreparedPlan = null, bool ProjectAction = false, string? ApiOutput = null, string[]? Prebuilt = null, RunnerPackageDirectory[]? PackageDirectories = null, string? RuntimeOutput = null);
 internal sealed record PortableManifest(string Toolchain, Dictionary<string, DeclaredProject> Projects, string Policy = "native-qualified-v2");
 
 internal static class Program
@@ -215,6 +215,7 @@ internal static class Program
                 var identities = prebuilt!.ToDictionary(p => p.Key, p => ProjectActions.Read(p.Value).Key);
                 var identity = EvaluatedBoundary.Identity(entryBundle, request.Entry, manifest.Projects.Keys.Order(StringComparer.Ordinal).ToArray(), manifest.Projects[request.Entry].Dependencies.Order(StringComparer.Ordinal).Select(p => p + ":" + identities[p]).ToArray(), runtimeReferences: true, fullImplementation: manifest.Projects[request.Entry].Implementation);
                 ProjectActions.Project(entryBundle, request.ApiOutput, prebuilt!, identity, manifest.Projects[request.Entry].Implementation);
+                if (request.RuntimeOutput is not null) ProjectActions.Runtime(entryBundle, request.RuntimeOutput, entryArtifacts);
                 Directory.Delete(scratch, true); Mark("cleanup"); return 0;
             }
             var runtime = Path.Combine(output, "runtime", Path.GetFileName(entryBundle));

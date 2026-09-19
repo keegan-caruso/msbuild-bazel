@@ -21,6 +21,18 @@ focused R17 experiment, not qualification of the full supported-version/platform
 
 ## Current status and next step
 
+The [cache-publication and runtime-output follow-up](cache-publication-performance.md)
+reduces CSS/Razor edits to 21.854 / 20.226 seconds, from 53.021 / 49.562 seconds.
+Publication checks current remote CAS presence and uploads only missing blobs with
+bounded concurrency, preserving the content-before-action barrier. Each edit
+uploads about 2.39 MB instead of 648.7 MB. Smaller Bazel runtime projections reduce
+composition input files by 70.6%; paired direct composition is 12.3% faster with
+10,383 identical output files and modes. Producer-deleted recovery passes in
+34.551 seconds with 3,457 identical application files, no compilation and no
+extracted package downloads; no-op median is 6.698 seconds. Complete entry-output
+composition and local staging remain the next measured edit costs.
+
+
 The [resource-body optimization](resource-body-performance.md) moves evaluated
 resource contents into per-project Bazel binding actions. On the 202-project
 Orchard graph, CSS edits fall from 338.668 s to 53.021 s; Razor edits take 49.562 s.
@@ -28,7 +40,8 @@ Both execute one binding and one compilation, with zero restore/discovery.
 Namespace and import changes still invalidate discovery. Producer-deleted remote
 recovery takes 37.809 s with no compilation, 3,457 identical application files
 and no extracted package-file downloads; median no-op is 6.754 s. Runtime
-composition and cache publication are the next resource-edit performance targets.
+composition and cache publication measurements provide the baseline for the
+follow-up above.
 The [preceding discovery/binding work](discovery-binding-performance.md) retains
 the cold-discovery profiling and comparison baseline.
 

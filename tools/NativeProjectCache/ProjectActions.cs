@@ -2,7 +2,7 @@ using System.Text.Json;
 using System.Text.Json.Nodes;
 using ActionRunner;
 
-internal sealed record ComposeRequest(string Entry, string Output, string[] Bundles);
+internal sealed record ComposeRequest(string Entry, string Output, string[] Bundles, string? EntryBundle = null, string[]? RuntimeBundles = null);
 
 // Bazel compile dependencies carry a stable API projection. Real implementation
 // bytes are restored only by the final runtime action, without invoking MSBuild.
@@ -39,11 +39,29 @@ internal static class ProjectActions
         File.WriteAllText(Path.Combine(output, "results.json"), Canonical(metadata)!.ToJsonString(Options));
         CompileBoundary.Seal(output);
     }
+    internal static void Runtime(string bundle, string output, Artifact[] artifacts)
+    {
+        var results = Read(bundle);
+        var stem = Path.Combine(Bin(results.Project, results.TargetFramework), Assembly(results.Project));
+        var selected = artifacts.Where(item => item.Path == stem + ".dll" || item.Path == stem + ".pdb" || item.Path == stem + ".xml").ToArray();
+        if (!selected.Any(item => item.Path == stem + ".dll")) throw new InvalidDataException("Project runtime assembly missing");
+        if (Directory.Exists(output) && Directory.EnumerateFileSystemEntries(output).Any()) throw new InvalidDataException("Runtime projection requires an empty output");
+        foreach (var item in selected) Files.Copy(Path.Combine(bundle, "artifacts", item.Path), Path.Combine(output, "artifacts", item.Path));
+        Files.Copy(Path.Combine(bundle, "results.json"), Path.Combine(output, "results.json"));
+        CompileBoundary.Seal(output);
+    }
     internal static void Compose(string requestPath)
     {
         var request = JsonSerializer.Deserialize<ComposeRequest>(File.ReadAllText(requestPath), Options)!;
         if (Directory.Exists(request.Output) && Directory.EnumerateFileSystemEntries(request.Output).Any()) throw new InvalidDataException("Runtime composition requires an empty output");
-        var bundles = request.Bundles.Select(Bundle).ToDictionary(path => Read(path).Project, StringComparer.Ordinal);
+        var bundles = request.EntryBundle is null
+            ? request.Bundles.Select(Bundle).ToDictionary(path => Read(path).Project, StringComparer.Ordinal)
+            : (request.RuntimeBundles ?? []).ToDictionary(path => Read(path).Project, StringComparer.Ordinal);
+        if (request.EntryBundle is not null)
+        {
+            var entryBundle = Bundle(request.EntryBundle);
+            if (Read(entryBundle).Project != request.Entry || !bundles.TryAdd(request.Entry, entryBundle)) throw new InvalidDataException("Invalid runtime entry bundle");
+        }
         // Validate each producer once. Only the requested entry needs a composed
         // runtime; Bazel already owns every project's independent compile bundle.
         var artifacts = bundles.ToDictionary(pair => pair.Key, pair => CompileBoundary.Validate(pair.Value).ToDictionary(item => item.Path, StringComparer.Ordinal), StringComparer.Ordinal);
