@@ -184,6 +184,18 @@ try
         case "nuget":
             Console.WriteLine(Json.Text(NuGetInputs.Stage(request.String("source"), request.String("output"), request.String("cache"))));
             break;
+        case "orchard-profile":
+            var orchardProfile = new OrchardProfile(request.String("repository"), request.String("workspace"), request.String("sdk"));
+            Console.WriteLine(Json.Text(new JsonObject { ["accepted"] = orchardProfile.Accept(request.String("path"), request.String("sha256")), ["packages"] = Json.Strings(orchardProfile.Packages) }));
+            break;
+        case "discovery":
+            var discovery = new Discovery(request.String("repository"), request.String("sdk"), request.String("workspace"), request.String("output"), new string('a', 64), new Dictionary<string, JsonObject>());
+            var discovered = discovery.Capture(request.String("entry"));
+            Console.WriteLine(Json.Text(new JsonObject { ["projects"] = discovered.Array("nodes").Count }));
+            break;
+        case "bind-sources":
+            NativePlan.BindSources(request);
+            break;
         case "native-plan":
             NativePlan.Materialize(request.String("prepared"), request["graph"]!, request.String("output"), request.String("toolchain"), includePayload: request["includePayload"]?.GetValue<bool>() ?? true);
             break;
@@ -219,7 +231,7 @@ try
         case "package":
             var output = request.String("output");
             Directory.CreateDirectory(output);
-            var packages = new Packages(request.String("workspace"), output, request.String("repository"));
+            var packages = new Packages(request.String("workspace"), output, request.String("repository"), writePayload: request["writePayload"]?.GetValue<bool>() ?? true);
             var staged = packages.Stage("App/App.csproj", "App/obj/project.assets.json", "net10.0", "app");
             if (request["mutate"] is { } mutate) File.WriteAllText(mutate.GetValue<string>(), "corrupt");
             packages.Verify();

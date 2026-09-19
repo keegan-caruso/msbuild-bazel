@@ -202,6 +202,21 @@ class Components(unittest.TestCase):
         self.invoke('native-plan',dict(prepared=str(prepared),graph=graph,output=str(actual),toolchain='a'*64))
         for name in ('manifest.json','restore.json','entry.json','graph.json','identity-records.json'):
             self.assertEqual(json.loads((actual/name).read_text()),json.loads((expected/name).read_text()),name)
+    def test_orchard_profile_requires_exact_anchors_and_import_hashes(self):
+        repository=self.root/'repository';(repository/'tools').mkdir(parents=True)
+        workspace=self.root/'workspace';workspace.mkdir();anchor=workspace/'global.json';anchor.write_text('anchor')
+        sdk=self.root/'sdk';sdk.mkdir()
+        policy=dict(schemaVersion=1,anchors={'global.json':sha(b'anchor')},packages=['example/1.0'],imports={'workspace/App.csproj':sha(b'project'),'dotnet/sdk/target':sha(b'sdk'),'packages/example/1.0/build/t':sha(b'target')})
+        (repository/'tools/orchard-discovery-policy.json').write_text(json.dumps(policy))
+        def check(path,content):return self.invoke('orchard-profile',dict(repository=str(repository),workspace=str(workspace),sdk=str(sdk),path=str(path),sha256=sha(content)))
+        self.assertTrue(check(workspace/'App.csproj',b'project')['accepted'])
+        self.assertTrue(check(sdk/'sdk/target',b'sdk')['accepted'])
+        self.assertTrue(check(workspace/'.nuget/packages/example/1.0/build/t',b'target')['accepted'])
+        self.assertFalse(check(workspace/'App.csproj',b'changed')['accepted'])
+        self.assertFalse(check(workspace/'Other.csproj',b'project')['accepted'])
+        anchor.write_text('changed')
+        self.assertEqual(check(workspace/'App.csproj',b'project'),dict(accepted=False,packages=[]))
+
     def test_native_analyzers_preserve_executable_dependency_closure(self):
         import copy
         prepared,graph=self.native_fixture()
@@ -225,6 +240,20 @@ class Components(unittest.TestCase):
             self.assertEqual(projects[f'{name}/{name}.csproj']['targetFramework'],'netstandard2.0')
         app['execution']['analyzerReferences']=['workspace/Helper/Helper.csproj']
         self.assertIn('Analyzer reference is not a graph dependency',self.invoke('native-plan',dict(prepared=str(prepared),graph=graph,output=str(self.root/'bad'),toolchain='a'*64),False))
+
+    def test_indexed_binding_matches_legacy_and_checks_roles_and_identity(self):
+        prepared,graph=self.native_fixture();discovery=self.root/'discovery'
+        self.invoke('native-plan',dict(prepared=str(prepared),graph=graph,output=str(discovery),toolchain='a'*64,includePayload=False))
+        source=prepared/'src/App/App.cs';source.write_text('class A { public int Value => 7; }')
+        request=dict(discovery=str(discovery),project='App/App.csproj',dependencies=[],sources=[dict(source=str(source),destination='App/App.cs')])
+        self.invoke('bind-sources',dict(request,output=str(self.root/'indexed')))
+        index=discovery/'binding-index.json';saved=index.read_text();index.unlink()
+        self.invoke('bind-sources',dict(request,output=str(self.root/'legacy')))
+        for p in (self.root/'indexed').iterdir():self.assertEqual(json.loads(p.read_text()),json.loads((self.root/'legacy'/p.name).read_text()))
+        index.write_text(saved);value=json.loads(saved);value['protectedSources']=['App/App.cs'];index.write_text(json.dumps(value))
+        self.assertIn('compile-only input',self.invoke('bind-sources',dict(request,output=str(self.root/'role')),False))
+        index.write_text(saved);record=discovery/value['projects']['App/App.csproj']['record'];record.write_text('{}')
+        self.assertIn('Corrupt discovery identity',self.invoke('bind-sources',dict(request,output=str(self.root/'identity')),False))
 
     def refresh_fixture(self):
         prepared,graph=self.native_fixture();output=self.root/'plan';workspace=prepared/'src'

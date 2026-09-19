@@ -9,7 +9,7 @@ namespace RulesMSBuild.Preparation;
 internal static class BazelOwnedWorkflow
 {
     private static readonly string[] Tools = ["Preparation", "GraphExport", "EvaluationProbe", "ReplayPlugin", "ActionRunner", "NativeProjectCache", "TestRunner"];
-    private static readonly string[] Policies = ["pilot-package-policy.json", "discovery-test-packages.json", "discovery-sdk-imports.json"];
+    private static readonly string[] Policies = ["pilot-package-policy.json", "discovery-test-packages.json", "discovery-sdk-imports.json", "orchard-discovery-policy.json"];
     private static string Tool(string root, string name) => Path.Combine(root, "tools", name, "bin/Release/net10.0", name + ".dll");
     public static void Prepare(JsonNode request)
     {
@@ -290,11 +290,12 @@ internal static class BazelOwnedWorkflow
             var nodes = layout["projects"]!.AsObject();
             string Label(string project) => "project_" + Json.Sha(Encoding.UTF8.GetBytes(project));
             var bodies = nodes.SelectMany(pair => pair.Value!.Array("sources")).Select(input => InputLabel(input!.GetValue<string>())).ToHashSet(StringComparer.Ordinal);
+            var structural = Inputs().Select(value => value!.GetValue<string>()).Where(path => !bodies.Contains(path) && !path.EndsWith(".cs", StringComparison.Ordinal));
+            build += Starlark.Call("filegroup", new JsonObject { ["name"] = "project_structural_inputs", ["srcs"] = Json.Strings(structural) });
             foreach (var (project, node) in nodes)
             {
                 var sources = node!.Array("sources").Select(input => InputLabel(input!.GetValue<string>()));
-                var structural = Inputs().Select(value => value!.GetValue<string>()).Where(path => !bodies.Contains(path) && !path.EndsWith(".cs", StringComparison.Ordinal));
-                build += Starlark.Call("msbuild_compile_project", new JsonObject { ["name"] = Label(project), ["project"] = project, ["project_dependencies"] = node!["dependencies"]!.DeepClone(), ["dependencies"] = Json.Strings(node.Array("dependencies").Select(d => ":" + Label(d!.GetValue<string>()))), ["discovery"] = ":prepare", ["sources"] = Json.Strings(sources), ["structural"] = Json.Strings(structural), ["preparation"] = "@owned_tools//:tools/Preparation/bin/Release/net10.0/Preparation.dll", ["runner"] = "@owned_tools//:tools/NativeProjectCache/bin/Release/net10.0/NativeProjectCache.dll", ["runner_support"] = Json.Strings(["@owned_tools//:files"]), ["sdk"] = "@dotnet//:files", ["dotnet"] = "@dotnet//:sdk/dotnet" });
+                build += Starlark.Call("msbuild_compile_project", new JsonObject { ["name"] = Label(project), ["project"] = project, ["project_dependencies"] = node!["dependencies"]!.DeepClone(), ["dependencies"] = Json.Strings(node.Array("dependencies").Select(d => ":" + Label(d!.GetValue<string>()))), ["discovery"] = ":prepare", ["sources"] = Json.Strings(sources), ["structural"] = Json.Strings([":project_structural_inputs"]), ["preparation"] = "@owned_tools//:tools/Preparation/bin/Release/net10.0/Preparation.dll", ["runner"] = "@owned_tools//:tools/NativeProjectCache/bin/Release/net10.0/NativeProjectCache.dll", ["runner_support"] = Json.Strings(["@owned_tools//:files"]), ["sdk"] = "@dotnet//:files", ["dotnet"] = "@dotnet//:sdk/dotnet" });
             }
             build += Starlark.Call("msbuild_compose_runtime", new JsonObject { ["name"] = "build", ["project"] = entry, ["entry"] = ":" + Label(entry), ["runner"] = "@owned_tools//:tools/NativeProjectCache/bin/Release/net10.0/NativeProjectCache.dll", ["runner_support"] = Json.Strings(["@owned_tools//:files"]), ["sdk"] = "@dotnet//:files", ["dotnet"] = "@dotnet//:sdk/dotnet" });
         }

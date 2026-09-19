@@ -7,7 +7,7 @@ using System.Xml.Linq;
 
 namespace RulesMSBuild.Preparation;
 
-internal sealed class Packages(string workspace, string output, string root)
+internal sealed class Packages(string workspace, string output, string root, bool writePayload = true)
 {
     private readonly JsonNode pins = Json.Read(Path.Combine(root, "tools/pilot-package-policy.json"));
     private sealed record Stamp(long Length, long Written, long Created, FileAttributes Attributes, string Target);
@@ -130,8 +130,11 @@ internal sealed class Packages(string workspace, string output, string root)
             {
                 if (!seen.Add(name)) throw new InvalidDataException("duplicate archive entry: " + name);
                 var path = "packages/" + relative + "/" + name;
-                Directory.CreateDirectory(Path.GetDirectoryName(Path.Combine(output, path))!);
-                File.WriteAllBytes(Path.Combine(output, path), data);
+                if (writePayload)
+                {
+                    Directory.CreateDirectory(Path.GetDirectoryName(Path.Combine(output, path))!);
+                    File.WriteAllBytes(Path.Combine(output, path), data);
+                }
                 localPaths.Add(path);
                 files.Add(new JsonObject { ["path"] = name, ["size"] = data.Length, ["sha256"] = Json.Sha(data) });
             }
@@ -140,6 +143,7 @@ internal sealed class Packages(string workspace, string output, string root)
                 {
                     if (entry.FullName.EndsWith('/')) continue;
                     var name = entry.FullName.Replace("%2B", "+", StringComparison.OrdinalIgnoreCase);
+                    if (pin is not null) name = System.Text.RegularExpressions.Regex.Replace(name, "/{2,}", "/");
                     if (name.EndsWith(".nuspec", StringComparison.Ordinal)) name = name.ToLowerInvariant();
                     Host.Safe(name);
                     var parts = name.Split('/');

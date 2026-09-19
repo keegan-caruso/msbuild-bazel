@@ -69,18 +69,22 @@ internal sealed class Discovery
         var entries = new JsonArray(new JsonObject { ["project"] = entry, ["globalProperties"] = properties });
         var augmented = (JsonArray)entries.DeepClone(); var targets = Path.Combine(roots["GraphExport"], "Bazel.GraphExport.targets");
         augmented[0]!["globalProperties"]!["BazelGraphExport"] = "true"; augmented[0]!["globalProperties"]!["CustomAfterMicrosoftCommonTargets"] = targets; augmented[0]!["globalProperties"]!["RestorePackagesPath"] = Path.Combine(workspace, ".nuget/packages");
-        Run("EvaluationProbe", new JsonObject { ["workspace"] = workspace, ["dotnetRoot"] = sdk, ["sdkVersion"] = "10.0.400", ["entryPoints"] = augmented, ["properties"] = Json.Strings(["ProjectAssetsFile"]), ["items"] = new JsonArray(), ["mode"] = "recorded", ["output"] = Path.Combine(output, "evaluation.json") });
+        Run("EvaluationProbe", new JsonObject { ["workspace"] = workspace, ["dotnetRoot"] = sdk, ["sdkVersion"] = "10.0.400", ["entryPoints"] = augmented, ["properties"] = Json.Strings(["ProjectAssetsFile", "TargetFramework", "IsCrossTargetingBuild"]), ["items"] = new JsonArray(), ["mode"] = "recorded", ["output"] = Path.Combine(output, "evaluation.json") });
         var evidence = Json.Read(Path.Combine(output, "evaluation.json"))["rounds"]![0]!;
         var absent = new HashSet<string>(StringComparer.Ordinal); var trusted = new HashSet<string>(StringComparer.Ordinal);
+        var orchard = new OrchardProfile(root, workspace, sdk);
         var testPackages = Json.Read(Path.Combine(root, "tools/discovery-test-packages.json"));
-        var qualified = testPackages.Array("packages").Select(n => n!.GetValue<string>()).Concat(["polysharp/1.15.0", "microsoft.net.illink.tasks/10.0.11"]).ToHashSet(StringComparer.Ordinal);
+        var qualified = testPackages.Array("packages").Select(n => n!.GetValue<string>()).Concat(["polysharp/1.15.0", "microsoft.net.illink.tasks/10.0.11"]).Concat(orchard.Packages).ToHashSet(StringComparer.Ordinal);
         var imports = new HashSet<string>(["build/PolySharp.targets", "buildTransitive/PolySharp.targets", "build/Microsoft.NET.ILLink.Tasks.props", "build/Microsoft.NET.ILLink.Analyzers.props", "build/Microsoft.NET.ILLink.targets"], StringComparer.Ordinal);
-        var packageChecker = new Packages(workspace, Path.Combine(output, "verified"), root); var index = 0;
+        var packageChecker = new Packages(workspace, Path.Combine(output, "verified"), root, writePayload: false); var index = 0;
         foreach (var node in evidence.Array("nodes"))
         {
             var project = Path.GetRelativePath(workspace, node!.String("project")); var assets = Path.GetRelativePath(workspace, node!["values"]!.String("ProjectAssetsFile"));
-            if (packageChecker.Plan(Host.Safe(project), Host.Safe(assets), "net10.0").Any(p => !qualified.Contains(p.Key.ToLowerInvariant()))) throw new InvalidDataException("Discovery package behavior is not qualified");
-            var staged = packageChecker.Stage(project, assets, "net10.0", (index++).ToString(System.Globalization.CultureInfo.InvariantCulture));
+            var framework = node["values"]!.String("TargetFramework");
+            if (framework.Length == 0 && node["values"]!.String("IsCrossTargetingBuild").Equals("true", StringComparison.OrdinalIgnoreCase)) continue;
+            if (framework is not ("net10.0" or "netstandard2.0")) throw new InvalidDataException("Unqualified discovery framework");
+            if (packageChecker.Plan(Host.Safe(project), Host.Safe(assets), framework).Any(p => !qualified.Contains(p.Key.ToLowerInvariant()))) throw new InvalidDataException("Discovery package behavior is not qualified");
+            var staged = packageChecker.Stage(project, assets, framework, (index++).ToString(System.Globalization.CultureInfo.InvariantCulture));
             var manifest = Json.Read(Path.Combine(output, "verified", staged.Manifest));
             foreach (var package in manifest.Array("packages"))
             {
@@ -113,6 +117,7 @@ internal sealed class Discovery
             foreach (var import in node!.Array("imports"))
             {
                 var path = import!.String("path");
+                if (orchard.Accept(path, import.String("sha256"))) continue;
                 if (Host.Within(path, workspace)) { if (!trusted.Contains(path)) CompileBoundary.CheckXml(path); }
                 else if (path != targets && !QualifiedImport(sdkImports, path, import.String("sha256"))) throw new InvalidDataException("Unqualified SDK import: " + path);
             }

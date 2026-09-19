@@ -128,3 +128,27 @@ captured results. The two-project sample's bound consumer plan is 197,485 bytes
 versus 1,247,180 bytes in the complete discovery plan. Source-role, stale-edge,
 source-membership and immutable-template checks pass (five binding tests), as do
 the analyzer-closure and legacy identity compatibility tests.
+
+### Step 5: guarded full-host discovery and package preparation
+
+The pinned 202-project CMS host passes production sandboxed discovery and full
+C# graph preparation. A dedicated Orchard profile requires exact root anchors,
+project/import bytes, and the pinned SDK import set. It adds no general permission
+for arbitrary MSBuild XML. Generated NuGet package-path properties are admitted
+without relaxing expression restrictions. All 287 package identities are covered;
+266 additional archive pins record their exact hashes, payload roots and roles.
+
+The MessagePack analyzer archive contains repeated path separators. Normalization
+is allowed for pinned archives only; normalized duplicate entries and traversal
+remain rejected. Verification-only discovery checks every package payload and
+mutation without writing another copy of the entire NuGet closure. The targeted
+archive, mutation and profile rejection checks pass.
+
+The first full native execution attempt was intentionally interrupted before
+compilation when repeated whole-graph plan parsing and duplicate generated
+package copies became impractical. Indexed binding now reads only the selected
+project's dependency records and retains source-role and identity validation. Its
+output matches the legacy binder in the differential test. Payloads are limited
+to the dependency closure, and generated BUILD files share a structural filegroup.
+The full native build is still being qualified; these passing preparation checks
+are not evidence of a working CMS runtime or fresh-worker cache recovery.

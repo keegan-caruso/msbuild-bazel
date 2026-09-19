@@ -58,7 +58,7 @@ internal static class CompileBoundary
                 "Project" => name is "PropertyGroup" or "ItemGroup" or "Import" or "ImportGroup" or "Choose",
                 "Choose" => name is "When" or "Otherwise",
                 "When" or "Otherwise" or "ImportGroup" => name is "PropertyGroup" or "ItemGroup" or "Import" or "Choose",
-                "PropertyGroup" => Properties.Contains(name) || Switches.ContainsKey(name) || generated && name is "RestoreSuccess" or "RestoreTool" or "ProjectAssetsFile" or "NuGetPackageRoot" or "NuGetPackageFolders" or "NuGetProjectStyle" or "NuGetToolVersion" or "PkgMicrosoft_NET_ILLink_Tasks" or "Pkgxunit_analyzers",
+                "PropertyGroup" => Properties.Contains(name) || Switches.ContainsKey(name) || generated && name is "RestoreSuccess" or "RestoreTool" or "ProjectAssetsFile" or "NuGetPackageRoot" or "NuGetPackageFolders" or "NuGetProjectStyle" or "NuGetToolVersion" or "PkgMicrosoft_NET_ILLink_Tasks" or "Pkgxunit_analyzers" or "PkgAWSSDK_Core" or "PkgAWSSDK_S3" or "PkgGraphQL_Analyzers" or "PkgLucene_Net" or "PkgMicrosoft_Build_Tasks_Git" or "PkgMicrosoft_CodeAnalysis_Analyzers" or "PkgMicrosoft_CodeAnalysis_CSharp_CodeStyle" or "PkgMicrosoft_SourceLink_Common" or "PkgMicrosoft_SourceLink_GitHub" or "PkgStyleCop_Analyzers",
                 "ItemGroup" => Items.Contains(name) || generated && name == "SourceRoot",
                 "EmbeddedResource" => name == "LogicalName",
                 _ => false

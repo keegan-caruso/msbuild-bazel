@@ -106,6 +106,30 @@ class Components(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, 'archive disagrees'):
                 invoke('package', request, bridge=True)
 
+    def test_pinned_archive_normalization_and_verify_only_integrity(self):
+        import base64
+        import zipfile
+        with tempfile.TemporaryDirectory() as temporary:
+            root=Path(temporary).resolve()
+            payload,archive=analyzers.AnalyzerPackageIntegrity().make_package(root,'analyzers/dotnet/cs//Fixture.dll')
+            (root/'tools').mkdir()
+            def repin():
+                restore=base64.b64encode(hashlib.sha512(archive.read_bytes()).digest()).decode()
+                (root/'tools/pilot-package-policy.json').write_text(json.dumps({'fixture/1.0.0':dict(archiveSha256=hashlib.sha256(archive.read_bytes()).hexdigest(),restoreContentHash=restore)}))
+                assets=root/'App/obj/project.assets.json';value=json.loads(assets.read_text());value['libraries']['Fixture/1.0.0']['sha512']=restore;assets.write_text(json.dumps(value))
+            repin()
+            request=dict(repository=str(root),workspace=str(root),output=str(root/'verified'),writePayload=False)
+            result=json.loads(invoke('package',request,bridge=True))
+            self.assertIn('packages/fixture/1.0.0/analyzers/dotnet/cs/Fixture.dll',result['paths'])
+            self.assertFalse((root/'verified/packages').exists())
+            with self.assertRaisesRegex(ValueError,'package changed'):
+                invoke('package',dict(request,mutate=str(payload)),bridge=True)
+            payload.write_bytes(b'fixture-payload')
+            with zipfile.ZipFile(archive,'a') as z:z.writestr('analyzers/dotnet/cs/Fixture.dll',b'fixture-payload')
+            repin()
+            with self.assertRaisesRegex(ValueError,'duplicate archive entry'):
+                invoke('package',request,bridge=True)
+
     def test_compile_boundary_rejects_implementation_inputs(self):
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary).resolve()

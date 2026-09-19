@@ -110,7 +110,7 @@ internal static class NativeWorkflow
                 var identity = new JsonObject { ["policy"] = Owner, ["platform"] = RuntimeInformation.OSDescription, ["machine"] = RuntimeInformation.OSArchitecture.ToString(), ["sdk"] = Json.Digest(runtime) };
                 foreach (var (path, value) in watched.Where(p => Host.Within(p.Key, root))) identity[Path.GetRelativePath(root, path)] = Json.Digest(value);
                 foreach (var path in Imports) { watchedFiles[path] = Json.Sha(File.ReadAllBytes(path)); identity[path] = watchedFiles[path]; }
-                foreach (var path in new[] { "pilot-package-policy.json", "discovery-test-packages.json", "discovery-sdk-imports.json" }) { var full = Path.Combine(root, "tools", path); watchedFiles[full] = Json.Sha(File.ReadAllBytes(full)); identity[path] = watchedFiles[full]; }
+                foreach (var path in new[] { "pilot-package-policy.json", "discovery-test-packages.json", "discovery-sdk-imports.json", "orchard-discovery-policy.json" }) { var full = Path.Combine(root, "tools", path); watchedFiles[full] = Json.Sha(File.ReadAllBytes(full)); identity[path] = watchedFiles[full]; }
                 controllerClosure = Json.Digest(identity);
                 worker = Detail("identity", "workerCapture", bazel, () => WorkerIdentity.Capture(controllerClosure, bazel, root, independent));
                 report["worker"] = worker.DeepClone();

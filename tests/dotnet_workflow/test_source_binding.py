@@ -71,7 +71,7 @@ class SourceBinding(unittest.TestCase):
         with tempfile.TemporaryDirectory() as folder:
             root = Path(folder); template = root/'template'; template.mkdir()
             empty = hashlib.sha256(b'').hexdigest()
-            records = {name: dict(inputs={'workspace/'+source: empty}, graphInputs=[], restore={name+'/project.assets.json': name}) for name, source in [('A.csproj', 'A.cs'), ('B.csproj', 'B.cs')]}
+            records = {name: dict(inputs={'workspace/'+source: empty}, graphInputs=[], packages={'packages':[]}, restore={name+'/project.assets.json': name}) for name, source in [('A.csproj', 'A.cs'), ('B.csproj', 'B.cs')]}
             documents = {
                 'graph.json': dict(nodes=[dict(project='workspace/'+name, inputs=[dict(kind='source', path='workspace/'+name.replace('.csproj', '.cs'), sha256=empty)]) for name in records], graphInputs=[]),
                 'manifest.json': dict(projects={name: dict(identity=digest(record), dependencies=[] if name=='A.csproj' else ['A.csproj']) for name, record in records.items()}),

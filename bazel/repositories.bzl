@@ -4,7 +4,7 @@ def _tools(ctx):
     for name in ["Preparation", "GraphExport", "EvaluationProbe", "ReplayPlugin", "ActionRunner", "NativeProjectCache", "TestRunner"]:
         path = "tools/" + name + "/bin/Release/net10.0"
         ctx.symlink(ctx.attr.root + "/" + path, path)
-    for path in ["tools/GraphExport/Bazel.GraphExport.targets", "tools/pilot-package-policy.json", "tools/discovery-test-packages.json", "tools/discovery-sdk-imports.json", "tools/ActionRunner/Build/Action.props", "tools/ActionRunner/Build/Action.targets", "bazel/msbuild.bzl", "bazel/graph.bzl"]:
+    for path in ["tools/GraphExport/Bazel.GraphExport.targets", "tools/pilot-package-policy.json", "tools/discovery-test-packages.json", "tools/discovery-sdk-imports.json", "tools/orchard-discovery-policy.json", "tools/ActionRunner/Build/Action.props", "tools/ActionRunner/Build/Action.targets", "bazel/msbuild.bzl", "bazel/graph.bzl"]:
         ctx.symlink(ctx.attr.root + "/" + path, path)
     ctx.file("BUILD.bazel", 'filegroup(name="files", srcs=glob(["tools/**", "bazel/**"]), visibility=["//visibility:public"])\nexports_files(glob(["tools/**/*.dll", "tools/*.json"]))\n')
 
