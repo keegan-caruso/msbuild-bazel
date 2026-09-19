@@ -28,7 +28,7 @@ internal static class BazelOwnedWorkflow
         }
         try
         {
-            CopyInputs("controller", root); CopyInputs("sources", workspace);
+            CopyInputs("controller", root); CopyInputs("sources", workspace); PackageDirectories.Stage(request, workspace);
             foreach (var item in request.Array("sourceNames"))
             {
                 var path = Path.Combine(workspace, Host.Safe(item!.GetValue<string>()));
@@ -56,7 +56,7 @@ internal static class BazelOwnedWorkflow
     }
     public static JsonNode Run(JsonNode request)
     {
-        var allowed = new HashSet<string>(["schemaVersion", "repository", "sdkRoot", "bazel", "workspace", "state", "entry", "output", "operation", "tests", "nuget-packages", "bazel-remote-cache", "bazel-remote-upload", "remote-endpoint", "remote-snapshot", "bazel-install-cache", "bazel-repository-cache", "project-actions", "project-layout", "direct-checkout", "locked-restore"], StringComparer.Ordinal);
+        var allowed = new HashSet<string>(["schemaVersion", "repository", "sdkRoot", "bazel", "workspace", "state", "entry", "output", "operation", "tests", "nuget-packages", "bazel-remote-cache", "bazel-remote-upload", "remote-endpoint", "remote-snapshot", "bazel-install-cache", "bazel-repository-cache", "project-actions", "project-layout", "direct-checkout", "locked-restore", "package-actions"], StringComparer.Ordinal);
         if (request["schemaVersion"]?.GetValue<int>() != 1 || request.AsObject().Any(p => !allowed.Contains(p.Key))) throw new InvalidDataException("Invalid Bazel-owned workflow request");
         var root = Host.Real(request.String("repository")); var source = Host.Real(request.String("workspace")); var state = Host.Real(request.String("state")); var output = Host.Real(request.String("output"));
         foreach (var (a, b) in new[] { (root, source), (root, state), (source, state), (output, source), (output, root), (output, state) })
@@ -70,6 +70,8 @@ internal static class BazelOwnedWorkflow
         if (directCheckout && !projectActions) throw new InvalidDataException("Direct checkout requires project actions");
         var lockedRestore = request["locked-restore"]?.GetValue<bool>() == true;
         if (lockedRestore && (!directCheckout || request["project-layout"] is null)) throw new InvalidDataException("Locked restore requires direct checkout and a declared project layout");
+        var packageActions = request["package-actions"]?.GetValue<bool>() == true;
+        if (packageActions && !lockedRestore) throw new InvalidDataException("Package actions require locked restore and a declared project layout");
         var operation = request.String("operation"); var tests = request["tests"];
         if (operation is not ("build" or "test") || operation == "test" && tests is null) throw new InvalidDataException("Invalid operation/test declaration");
         if (Path.Exists(output)) throw new IOException("Output exists"); Directory.CreateDirectory(output);
@@ -122,7 +124,7 @@ internal static class BazelOwnedWorkflow
                 if (remote is null) throw new InvalidDataException("Snapshot requires endpoint");
                 var catalog = remote.Snapshot(snapshot.GetValue<string>(), worker); remote.Seeds(catalog["projects"]!, null, seeds);
             }
-            Generate(root, generated, sdk, request.String("nuget-packages"), report["nuget"]!["locked"]!, entry, tests, declaredLayout, directCheckout ? source : null, lockedRestore);
+            Generate(root, generated, sdk, request.String("nuget-packages"), report["nuget"]!["locked"]!, entry, tests, declaredLayout, directCheckout ? source : null, lockedRestore, packageActions);
             var watched = (directCheckout ? new[] { seeds } : new[] { inputs, seeds }).Concat(tests is null || directCheckout ? [] : new[] { Path.Combine(generated, "test-data") }).ToDictionary(p => p, p => FileTree.Snapshot(p));
             var watchedFiles = Directory.GetFiles(generated).ToDictionary(p => p, p => Json.Sha(File.ReadAllBytes(p)));
             var command = new List<string> { "--nosystem_rc", "--nohome_rc", "--noworkspace_rc", "--output_base=" + Path.Combine(state, "b"), "--output_user_root=" + Path.Combine(state, "u"), operation, "//:" + operation, "--incompatible_autoload_externally=", "--lockfile_mode=error", "--jobs=2", "--spawn_strategy=darwin-sandbox", "--strategy=MsbuildDiscover=local", "--strategy=MsbuildLockedRestore=local", "--execution_log_json_file=" + Path.Combine(output, "execution.json"), "--noshow_progress", "--color=no", "--curses=no" };
@@ -163,7 +165,7 @@ internal static class BazelOwnedWorkflow
                     Json.Write(layoutPath, new JsonObject { ["identity"] = fingerprint, ["graph"] = layout.DeepClone() });
                 }
                 Json.Write(Path.Combine(output, "project-layout.json"), layout);
-                if (declaredLayout is null) Generate(root, generated, sdk, request.String("nuget-packages"), report["nuget"]!["locked"]!, entry, tests, layout, directCheckout ? source : null, lockedRestore);
+                if (declaredLayout is null) Generate(root, generated, sdk, request.String("nuget-packages"), report["nuget"]!["locked"]!, entry, tests, layout, directCheckout ? source : null, lockedRestore, packageActions);
                 report["bazelInvocations"] = report["layoutSource"]!.GetValue<string>() == "bootstrap" ? 2 : 1;
                 watchedFiles = Directory.GetFiles(generated).ToDictionary(path => path, path => Json.Sha(File.ReadAllBytes(path)));
                 report["cacheProtocol"] = "bazel-project-actions";
@@ -171,7 +173,7 @@ internal static class BazelOwnedWorkflow
             var code = Measure("bazel", () => NativeWorkflow.Execute(bazel, command, generated, Path.Combine(output, "bazel.log"))); report["exitCode"] = code;
             var events = File.Exists(Path.Combine(output, "execution.json")) ? NativeWorkflow.Events(File.ReadAllBytes(Path.Combine(output, "execution.json"))).ToArray() : [];
             events = discoveryEvents.Concat(events).ToArray();
-            foreach (var mnemonic in new[] { "MsbuildDiscover", "MsbuildBindSources", "MsbuildNativeCache", "MsbuildBindProject", "MsbuildCompileProject", "MsbuildComposeRuntime", "MsbuildValidateLayout", "MsbuildNormalizeRestore", "MsbuildLockedRestore" })
+            foreach (var mnemonic in new[] { "MsbuildDiscover", "MsbuildBindSources", "MsbuildNativeCache", "MsbuildBindProject", "MsbuildCompileProject", "MsbuildComposeRuntime", "MsbuildValidateLayout", "MsbuildNormalizeRestore", "MsbuildLockedRestore", "NugetExtractPackage" })
             {
                 var actions = events.Where(n => n["mnemonic"]?.GetValue<string>() == mnemonic).ToArray();
                 var executed = actions.Where(n => n["cacheHit"]?.GetValue<bool>() != true).ToArray();
@@ -250,12 +252,13 @@ internal static class BazelOwnedWorkflow
     {
         var worker = WorkerIdentity.Capture(previous.String("controllerSdkClosure"), bazel, root, true); worker["inputOwnership"] = "bazel-owned-preparation-v1"; return worker;
     }
-    private static void Generate(string root, string generated, string sdk, string packageCache, JsonNode packages, string entry, JsonNode? tests, JsonNode? layout = null, string? checkout = null, bool lockedRestore = false)
+    private static void Generate(string root, string generated, string sdk, string packageCache, JsonNode packages, string entry, JsonNode? tests, JsonNode? layout = null, string? checkout = null, bool lockedRestore = false, bool packageActions = false)
     {
-        foreach (var name in new[] { "msbuild.bzl", "native_cache.bzl", "native_test.bzl", "preparation.bzl", "input_paths.bzl", "repositories.bzl", "project_actions.bzl", "restore_inputs.bzl" }) Host.Copy(Path.Combine(root, "bazel", name), Path.Combine(generated, name));
+        foreach (var name in new[] { "msbuild.bzl", "native_cache.bzl", "native_test.bzl", "preparation.bzl", "input_paths.bzl", "repositories.bzl", "project_actions.bzl", "restore_inputs.bzl", "nuget_package.bzl" }) Host.Copy(Path.Combine(root, "bazel", name), Path.Combine(generated, name));
         Host.Copy(Path.Combine(root, "bazel/native.MODULE.bazel.lock"), Path.Combine(generated, "MODULE.bazel.lock"));
         File.WriteAllText(Path.Combine(generated, "MODULE.bazel"), "module(name = \"native_msbuild_workflow\")\nbazel_dep(name = \"platforms\", version = \"0.0.11\")\nlocal_dotnet_sdk = use_repo_rule(\"//:msbuild.bzl\", \"local_dotnet_sdk\")\n" + Starlark.Call("local_dotnet_sdk", new JsonObject { ["name"] = "dotnet", ["path"] = sdk, ["include_runtime_closure"] = true }));
-        File.AppendAllText(Path.Combine(generated, "MODULE.bazel"), "owned_tools = use_repo_rule(\"//:repositories.bzl\", \"owned_tools\")\nnuget_archives = use_repo_rule(\"//:repositories.bzl\", \"nuget_archives\")\n" + Starlark.Call("owned_tools", new JsonObject { ["name"] = "owned_tools", ["root"] = root }) + Starlark.Call("nuget_archives", new JsonObject { ["name"] = "nuget", ["cache"] = packageCache, ["packages"] = Json.Canonical(packages), ["policy"] = "@owned_tools//:tools/pilot-package-policy.json" }));
+        File.AppendAllText(Path.Combine(generated, "MODULE.bazel"), "owned_tools = use_repo_rule(\"//:repositories.bzl\", \"owned_tools\")\nnuget_archives = use_repo_rule(\"//:repositories.bzl\", \"nuget_archives\")\n" + Starlark.Call("owned_tools", new JsonObject { ["name"] = "owned_tools", ["root"] = root }) + Starlark.Call("nuget_archives", new JsonObject { ["name"] = "nuget", ["cache"] = packageCache, ["packages"] = Json.Canonical(packages), ["policy"] = "@owned_tools//:tools/pilot-package-policy.json", ["archives_only"] = packageActions }));
+        var packageFiles = packageActions ? Array.Empty<string>() : new[] { "@nuget//:files" };
         JsonArray Files(string directory) => Json.Strings(FileTree.Files(Path.Combine(generated, directory)).Select(p => Path.GetRelativePath(generated, p)));
         var inputRoot = checkout ?? Path.Combine(generated, "inputs");
         var names = FileTree.Files(inputRoot).Select(path => Path.GetRelativePath(inputRoot, path)).Where(path => !path.StartsWith(".nuget/packages/", StringComparison.Ordinal) && (!lockedRestore || !FileTree.RestoreMetadata(path))).ToArray();
@@ -264,9 +267,21 @@ internal static class BazelOwnedWorkflow
         {
             var result = Json.Strings(names.Where(path => checkout is null || !FileTree.RestoreMetadata(path)).Select(InputLabel));
             if (checkout is not null) result.Add(":restore_inputs");
-            result.Add("@nuget//:files"); return result;
+            foreach (var packageFile in packageFiles) result.Add(packageFile); return result;
         }
         var build = "load(\":preparation.bzl\", \"msbuild_prepare\")\nload(\":native_cache.bzl\", \"msbuild_native_cache\")\nload(\":native_test.bzl\", \"native_test\")\n";
+        if (packageActions)
+        {
+            build = "load(\":nuget_package.bzl\", \"nuget_extract_package\", \"nuget_package_set\")\n" + build;
+            var pins = Json.Read(Path.Combine(root, "tools/pilot-package-policy.json"));
+            var labels = new List<string>();
+            foreach (var (package, hash) in packages.AsObject().OrderBy(pair => pair.Key, StringComparer.Ordinal))
+            {
+                var parts = package.Split('/'); var name = "nuget_" + Json.Sha(Encoding.UTF8.GetBytes(package)); labels.Add(":" + name);
+                build += Starlark.Call("nuget_extract_package", new JsonObject { ["name"] = name, ["package"] = package, ["archive"] = "@nuget//:packages/" + package + "/" + parts[0] + "." + parts[1] + ".nupkg", ["content_hash"] = hash!.DeepClone(), ["pin"] = pins[package] is { } pin ? Json.Canonical(pin) : "", ["runner"] = "@owned_tools//:tools/Preparation/bin/Release/net10.0/Preparation.dll", ["runner_support"] = Json.Strings(["@owned_tools//:files"]), ["runtime"] = "@dotnet//:files", ["dotnet"] = "@dotnet//:sdk/dotnet" });
+            }
+            build += Starlark.Call("nuget_package_set", new JsonObject { ["name"] = "nuget_packages", ["packages"] = Json.Strings(labels) });
+        }
         if (checkout is not null)
         {
             File.AppendAllText(Path.Combine(generated, "MODULE.bazel"), "checkout_inputs = use_repo_rule(\"//:repositories.bzl\", \"checkout_inputs\")\n" + Starlark.Call("checkout_inputs", new JsonObject { ["name"] = "checkout", ["root"] = checkout, ["files"] = Json.Strings(names) }));
@@ -275,13 +290,13 @@ internal static class BazelOwnedWorkflow
             {
                 var configs = names.Where(name => !name.Contains('/') && name.Equals("NuGet.Config", StringComparison.OrdinalIgnoreCase)).ToArray();
                 if (configs.Length != 1) throw new InvalidDataException("Locked restore requires one root NuGet.Config");
-                build += Starlark.Call("msbuild_locked_restore", new JsonObject { ["name"] = "restore_inputs", ["srcs"] = Json.Strings(names.Select(InputLabel).Append("@nuget//:files")), ["project"] = entry, ["projects"] = Json.Strings(layout!["projects"]!.AsObject().Select(pair => pair.Key)), ["config"] = configs[0], ["runtime_manifest"] = "@dotnet//:runtime-roots.json", ["runner"] = "@owned_tools//:tools/Preparation/bin/Release/net10.0/Preparation.dll", ["controller"] = Json.Strings(["@owned_tools//:files"]), ["sdk"] = "@dotnet//:files", ["dotnet"] = "@dotnet//:sdk/dotnet" });
+                build += Starlark.Call("msbuild_locked_restore", new JsonObject { ["package_set"] = packageActions ? ":nuget_packages" : null, ["name"] = "restore_inputs", ["srcs"] = Json.Strings(names.Select(InputLabel).Concat(packageFiles)), ["project"] = entry, ["projects"] = Json.Strings(layout!["projects"]!.AsObject().Select(pair => pair.Key)), ["config"] = configs[0], ["runtime_manifest"] = "@dotnet//:runtime-roots.json", ["runner"] = "@owned_tools//:tools/Preparation/bin/Release/net10.0/Preparation.dll", ["controller"] = Json.Strings(["@owned_tools//:files"]), ["sdk"] = "@dotnet//:files", ["dotnet"] = "@dotnet//:sdk/dotnet" });
             }
             else
                 build += Starlark.Call("msbuild_normalize_restore", new JsonObject { ["name"] = "restore_inputs", ["srcs"] = Json.Strings(names.Where(FileTree.RestoreMetadata).Select(InputLabel)), ["workspace"] = checkout, ["cache"] = packageCache, ["runner"] = "@owned_tools//:tools/Preparation/bin/Release/net10.0/Preparation.dll", ["controller"] = Json.Strings(["@owned_tools//:files"]), ["sdk"] = "@dotnet//:files", ["dotnet"] = "@dotnet//:sdk/dotnet" });
         }
         if (layout is not null) Json.Write(Path.Combine(generated, "project-layout.json"), layout);
-        build += Starlark.Call("msbuild_prepare", new JsonObject { ["layout"] = layout is null ? null : "project-layout.json", ["name"] = "prepare", ["project"] = entry, ["srcs"] = Inputs(), ["controller"] = Json.Strings(["@owned_tools//:files"]), ["runner"] = "@owned_tools//:tools/Preparation/bin/Release/net10.0/Preparation.dll", ["host"] = "host.json", ["runtime_manifest"] = "@dotnet//:runtime-roots.json", ["sdk"] = "@dotnet//:files", ["dotnet"] = "@dotnet//:sdk/dotnet" });
+        build += Starlark.Call("msbuild_prepare", new JsonObject { ["package_set"] = packageActions ? ":nuget_packages" : null, ["layout"] = layout is null ? null : "project-layout.json", ["name"] = "prepare", ["project"] = entry, ["srcs"] = Inputs(), ["controller"] = Json.Strings(["@owned_tools//:files"]), ["runner"] = "@owned_tools//:tools/Preparation/bin/Release/net10.0/Preparation.dll", ["host"] = "host.json", ["runtime_manifest"] = "@dotnet//:runtime-roots.json", ["sdk"] = "@dotnet//:files", ["dotnet"] = "@dotnet//:sdk/dotnet" });
         if (layout is null)
             build += Starlark.Call("msbuild_native_cache", new JsonObject { ["name"] = "build", ["project"] = entry, ["prepared_plan"] = ":prepare", ["direct_inputs"] = Inputs(), ["seeds"] = Files("seeds"), ["runner"] = "@owned_tools//:tools/NativeProjectCache/bin/Release/net10.0/NativeProjectCache.dll", ["runner_support"] = Json.Strings(["@owned_tools//:files"]), ["sdk"] = "@dotnet//:files", ["dotnet"] = "@dotnet//:sdk/dotnet" });
         else
@@ -296,9 +311,9 @@ internal static class BazelOwnedWorkflow
             {
                 var sources = node!.Array("sources").Select(input => InputLabel(input!.GetValue<string>()));
                 var projectStructural = node!["structural"] is JsonArray ownedInputs
-                    ? Json.Strings(ownedInputs.Select(value => InputLabel(value!.GetValue<string>())).Concat(names.Where(name => name is "global.json" or "NuGet.Config" or "NuGet.config" or "Directory.Build.props" or "Directory.Build.targets").Select(InputLabel)).Append("@nuget//:files").Distinct(StringComparer.Ordinal).Order(StringComparer.Ordinal))
+                    ? Json.Strings(ownedInputs.Select(value => InputLabel(value!.GetValue<string>())).Concat(names.Where(name => name is "global.json" or "NuGet.Config" or "NuGet.config" or "Directory.Build.props" or "Directory.Build.targets").Select(InputLabel)).Concat(packageFiles).Distinct(StringComparer.Ordinal).Order(StringComparer.Ordinal))
                     : Json.Strings([":project_structural_inputs"]);
-                build += Starlark.Call("msbuild_compile_project", new JsonObject { ["name"] = Label(project), ["project"] = project, ["project_dependencies"] = node!["dependencies"]!.DeepClone(), ["dependencies"] = Json.Strings(node.Array("dependencies").Select(d => ":" + Label(d!.GetValue<string>()))), ["discovery"] = ":prepare", ["sources"] = Json.Strings(sources), ["structural"] = projectStructural, ["preparation"] = "@owned_tools//:tools/Preparation/bin/Release/net10.0/Preparation.dll", ["runner"] = "@owned_tools//:tools/NativeProjectCache/bin/Release/net10.0/NativeProjectCache.dll", ["runner_support"] = Json.Strings(["@owned_tools//:files"]), ["sdk"] = "@dotnet//:files", ["dotnet"] = "@dotnet//:sdk/dotnet" });
+                build += Starlark.Call("msbuild_compile_project", new JsonObject { ["package_set"] = packageActions ? ":nuget_packages" : null, ["name"] = Label(project), ["project"] = project, ["project_dependencies"] = node!["dependencies"]!.DeepClone(), ["dependencies"] = Json.Strings(node.Array("dependencies").Select(d => ":" + Label(d!.GetValue<string>()))), ["discovery"] = ":prepare", ["sources"] = Json.Strings(sources), ["structural"] = projectStructural, ["preparation"] = "@owned_tools//:tools/Preparation/bin/Release/net10.0/Preparation.dll", ["runner"] = "@owned_tools//:tools/NativeProjectCache/bin/Release/net10.0/NativeProjectCache.dll", ["runner_support"] = Json.Strings(["@owned_tools//:files"]), ["sdk"] = "@dotnet//:files", ["dotnet"] = "@dotnet//:sdk/dotnet" });
             }
             build += Starlark.Call("msbuild_compose_runtime", new JsonObject { ["name"] = "build", ["project"] = entry, ["entry"] = ":" + Label(entry), ["runner"] = "@owned_tools//:tools/NativeProjectCache/bin/Release/net10.0/NativeProjectCache.dll", ["runner_support"] = Json.Strings(["@owned_tools//:files"]), ["sdk"] = "@dotnet//:files", ["dotnet"] = "@dotnet//:sdk/dotnet" });
         }

@@ -2,6 +2,7 @@
 
 load(":input_paths.bzl", "input_path")
 load(":native_cache.bzl", "NativeBundle")
+load(":nuget_package.bzl", "NugetPackageSetInfo", "package_files", "package_rows")
 load(":preparation.bzl", "DiscoveryPlanInfo")
 
 ProjectBundleInfo = provider(doc = "Project API and runtime outputs with their transitive closures.", fields = ["api", "apis", "bundles"])
@@ -39,6 +40,7 @@ def _project(ctx):
         "restore": plan.path + "/restore.json",
         "preparedPlan": plan.path,
         "sources": [{"source": f.path, "destination": input_path(f)} for f in ctx.files.sources + ctx.files.structural],
+        "packageDirectories": package_rows(ctx.attr.package_set),
         "seeds": [],
         "projectAction": True,
         "apiOutput": api.path,
@@ -47,7 +49,7 @@ def _project(ctx):
     ctx.actions.run(
         executable = ctx.executable.dotnet,
         arguments = [ctx.file.runner.path, "--portable-request", request.path],
-        inputs = depset(ctx.files.sources + ctx.files.structural + ctx.files.runner_support + [plan, request, ctx.file.runner], transitive = [dependencies, ctx.attr.sdk[DefaultInfo].files]),
+        inputs = depset(ctx.files.sources + ctx.files.structural + package_files(ctx.attr.package_set) + ctx.files.runner_support + [plan, request, ctx.file.runner], transitive = [dependencies, ctx.attr.sdk[DefaultInfo].files]),
         outputs = [output, api, diagnostics],
         env = {"PATH": "/usr/bin:/bin", "LANG": "en_US.UTF-8"},
         mnemonic = "MsbuildCompileProject",
@@ -56,6 +58,7 @@ def _project(ctx):
     return [DefaultInfo(files = depset([output])), ProjectBundleInfo(api = api, apis = depset([api], transitive = [dependencies]), bundles = depset([output], transitive = [dep[ProjectBundleInfo].bundles for dep in ctx.attr.dependencies]))]
 
 msbuild_compile_project = rule(implementation = _project, attrs = {
+    "package_set": attr.label(providers = [NugetPackageSetInfo]),
     "project": attr.string(mandatory = True),
     "project_dependencies": attr.string_list(),
     "discovery": attr.label(providers = [DiscoveryPlanInfo]),

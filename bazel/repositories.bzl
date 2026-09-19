@@ -57,6 +57,8 @@ def _nuget(ctx):
         if pin and pin.get("restoreContentHash") != digest:
             fail("NuGet restore hash differs from qualified pin: " + package)
         ctx.download(url = urls, output = destination + "/" + archive, sha256 = pin["archiveSha256"] if pin else "", integrity = "" if pin else "sha512-" + digest, canonical_id = package + ":" + digest)
+        if ctx.attr.archives_only:
+            continue
         checksum = ctx.execute(["/usr/bin/shasum", "-a", "512", str(ctx.path(destination + "/" + archive))])
         if checksum.return_code:
             fail("Cannot hash NuGet archive: " + checksum.stderr)
@@ -72,9 +74,9 @@ def _nuget(ctx):
                 temporary = destination + "/normalized-nuspec.tmp"
                 ctx.rename(path, temporary)
                 ctx.rename(temporary, destination + "/" + path.basename.lower())
-    ctx.file("BUILD.bazel", 'filegroup(name="files", srcs=glob(["packages/**"], allow_empty=True), visibility=["//visibility:public"])\n')
+    ctx.file("BUILD.bazel", 'filegroup(name="files", srcs=glob(["packages/**"], allow_empty=True), visibility=["//visibility:public"])\nexports_files(glob(["packages/**/*.nupkg"]))\n')
 
-nuget_archives = repository_rule(implementation = _nuget, attrs = {"cache": attr.string(mandatory = True), "packages": attr.string(mandatory = True), "policy": attr.label(mandatory = True)})
+nuget_archives = repository_rule(implementation = _nuget, attrs = {"cache": attr.string(mandatory = True), "packages": attr.string(mandatory = True), "policy": attr.label(mandatory = True), "archives_only": attr.bool(default = False)})
 
 def _checkout(ctx):
     names = []

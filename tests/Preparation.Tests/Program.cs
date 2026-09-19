@@ -11,6 +11,7 @@ try
     var request = Json.Read(args[1]);
     switch (args[0])
     {
+        case "stage-package-directories": PackageDirectories.Stage(request, request.String("workspace")); break;
         case "execute-trace": Console.WriteLine(NativeWorkflow.Execute(request.String("executable"), request.Array("arguments").Select(value => value!.GetValue<string>()).ToList(), request.String("cwd"), request.String("log"))); break;
         case "describe-locks": Console.WriteLine(Json.Text(LockedRestore.Describe(request.String("workspace"), request.Array("projects").Select(item => item!.GetValue<string>())))); break;
         case "locked-source-profile": Console.WriteLine(LockedRestore.SourceReadDeny(request.String("workspace"), request.Array("bodies").Select(item => item!.GetValue<string>()))); break;

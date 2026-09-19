@@ -1,0 +1,136 @@
+[
+  {
+    "seconds": 14.9091799,
+    "compiles": 4,
+    "NugetExtractPackage": {
+      "executed": 0,
+      "remoteHits": 0
+    },
+    "MsbuildCompileProject": {
+      "executed": 4,
+      "remoteHits": 0
+    },
+    "MsbuildDiscover": {
+      "executed": 1,
+      "remoteHits": 0
+    },
+    "MsbuildLockedRestore": {
+      "executed": 0,
+      "remoteHits": 0
+    },
+    "case": "legacy",
+    "applicationOutput": "11",
+    "hashes": {
+      "N0000.dll": "7628a4715f38e243b8962dae316b08ca2c3bb5ec36e4f5130e64500da93d23ce",
+      "N0000.pdb": "03205bc8721808470d037c25f7435922acc507614f86a3392f02a28f3bbae480",
+      "N0001.dll": "a23a31c825e20e6364fb6c3b0cd60f597701cd0be0f9f3d2bd10bd00c99b49c8",
+      "N0001.pdb": "80c3d9567513817b178139ebb2ba01ce72a9cd60cfd2123dd5b37904da75d785",
+      "N0002.dll": "04b780f0d66b347007d58589408d286e840863045fc6d9540a6d32572c9edb3c",
+      "N0002.pdb": "b1b007cc3514cb1069f421b0177dd89abe7f92b4420ec6520727511496b8e91e",
+      "N0003.dll": "ae93d5b9981ac76d2fc46902c2aedb4912b0ad2b624110e450320e581d589b4f",
+      "N0003.pdb": "e2461bdaee8b43d2da9f11a098e687fc0e00cbfbeb94e2b59a1b2b0eb8ec9b32",
+      "Newtonsoft.Json.dll": "72cf291d4bab0edd08a9b07c6173e1e7ad1abb7ab727fd7044bf6305d7515661"
+    }
+  },
+  {
+    "seconds": 14.9335422,
+    "compiles": 4,
+    "NugetExtractPackage": {
+      "executed": 2,
+      "remoteHits": 0
+    },
+    "MsbuildCompileProject": {
+      "executed": 4,
+      "remoteHits": 0
+    },
+    "MsbuildDiscover": {
+      "executed": 1,
+      "remoteHits": 0
+    },
+    "MsbuildLockedRestore": {
+      "executed": 1,
+      "remoteHits": 0
+    },
+    "case": "produced",
+    "applicationOutput": "11",
+    "hashes": {
+      "N0000.dll": "7628a4715f38e243b8962dae316b08ca2c3bb5ec36e4f5130e64500da93d23ce",
+      "N0000.pdb": "03205bc8721808470d037c25f7435922acc507614f86a3392f02a28f3bbae480",
+      "N0001.dll": "a23a31c825e20e6364fb6c3b0cd60f597701cd0be0f9f3d2bd10bd00c99b49c8",
+      "N0001.pdb": "80c3d9567513817b178139ebb2ba01ce72a9cd60cfd2123dd5b37904da75d785",
+      "N0002.dll": "04b780f0d66b347007d58589408d286e840863045fc6d9540a6d32572c9edb3c",
+      "N0002.pdb": "b1b007cc3514cb1069f421b0177dd89abe7f92b4420ec6520727511496b8e91e",
+      "N0003.dll": "ae93d5b9981ac76d2fc46902c2aedb4912b0ad2b624110e450320e581d589b4f",
+      "N0003.pdb": "e2461bdaee8b43d2da9f11a098e687fc0e00cbfbeb94e2b59a1b2b0eb8ec9b32",
+      "Newtonsoft.Json.dll": "72cf291d4bab0edd08a9b07c6173e1e7ad1abb7ab727fd7044bf6305d7515661"
+    }
+  },
+  {
+    "seconds": 3.7293744,
+    "compiles": 0,
+    "NugetExtractPackage": {
+      "executed": 0,
+      "remoteHits": 2
+    },
+    "MsbuildCompileProject": {
+      "executed": 0,
+      "remoteHits": 4
+    },
+    "MsbuildDiscover": {
+      "executed": 0,
+      "remoteHits": 1
+    },
+    "MsbuildLockedRestore": {
+      "executed": 0,
+      "remoteHits": 1
+    },
+    "case": "recovered",
+    "applicationOutput": "11",
+    "hashes": {
+      "N0000.dll": "7628a4715f38e243b8962dae316b08ca2c3bb5ec36e4f5130e64500da93d23ce",
+      "N0000.pdb": "03205bc8721808470d037c25f7435922acc507614f86a3392f02a28f3bbae480",
+      "N0001.dll": "a23a31c825e20e6364fb6c3b0cd60f597701cd0be0f9f3d2bd10bd00c99b49c8",
+      "N0001.pdb": "80c3d9567513817b178139ebb2ba01ce72a9cd60cfd2123dd5b37904da75d785",
+      "N0002.dll": "04b780f0d66b347007d58589408d286e840863045fc6d9540a6d32572c9edb3c",
+      "N0002.pdb": "b1b007cc3514cb1069f421b0177dd89abe7f92b4420ec6520727511496b8e91e",
+      "N0003.dll": "ae93d5b9981ac76d2fc46902c2aedb4912b0ad2b624110e450320e581d589b4f",
+      "N0003.pdb": "e2461bdaee8b43d2da9f11a098e687fc0e00cbfbeb94e2b59a1b2b0eb8ec9b32",
+      "Newtonsoft.Json.dll": "72cf291d4bab0edd08a9b07c6173e1e7ad1abb7ab727fd7044bf6305d7515661"
+    },
+    "emptyPackagePlaceholders": 2,
+    "packageFilesMaterialized": 0
+  },
+  {
+    "seconds": 3.5019171,
+    "compiles": 1,
+    "NugetExtractPackage": {
+      "executed": 0,
+      "remoteHits": 0
+    },
+    "MsbuildCompileProject": {
+      "executed": 1,
+      "remoteHits": 0
+    },
+    "MsbuildDiscover": {
+      "executed": 0,
+      "remoteHits": 0
+    },
+    "MsbuildLockedRestore": {
+      "executed": 0,
+      "remoteHits": 0
+    },
+    "case": "changed",
+    "applicationOutput": "21",
+    "hashes": {
+      "N0000.dll": "7628a4715f38e243b8962dae316b08ca2c3bb5ec36e4f5130e64500da93d23ce",
+      "N0000.pdb": "03205bc8721808470d037c25f7435922acc507614f86a3392f02a28f3bbae480",
+      "N0001.dll": "92accbedb58930a028753fbe3e487ae4d5fc57082cd481f1ff1d9ee319f610a9",
+      "N0001.pdb": "14e1babdaa4cc92bd1233ba2552dfd45c9a14f704e52cadcc22eb08f91a21d1f",
+      "N0002.dll": "04b780f0d66b347007d58589408d286e840863045fc6d9540a6d32572c9edb3c",
+      "N0002.pdb": "b1b007cc3514cb1069f421b0177dd89abe7f92b4420ec6520727511496b8e91e",
+      "N0003.dll": "ae93d5b9981ac76d2fc46902c2aedb4912b0ad2b624110e450320e581d589b4f",
+      "N0003.pdb": "e2461bdaee8b43d2da9f11a098e687fc0e00cbfbeb94e2b59a1b2b0eb8ec9b32",
+      "Newtonsoft.Json.dll": "72cf291d4bab0edd08a9b07c6173e1e7ad1abb7ab727fd7044bf6305d7515661"
+    }
+  }
+]

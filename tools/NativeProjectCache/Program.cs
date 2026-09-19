@@ -5,7 +5,8 @@ using ActionRunner;
 using NativeCache;
 
 internal sealed record RunnerFile(string Source, string Destination);
-internal sealed record RunnerRequest(string Entry, string Output, string Diagnostics, string Manifest, string Restore, RunnerFile[] Sources, RunnerFile[] Seeds, string? ReadProbe = null, string? NetworkProbe = null, string? WriteProbe = null, string? PreparedPlan = null, bool ProjectAction = false, string? ApiOutput = null, string[]? Prebuilt = null);
+internal sealed record RunnerPackageDirectory(string Source, string Package);
+internal sealed record RunnerRequest(string Entry, string Output, string Diagnostics, string Manifest, string Restore, RunnerFile[] Sources, RunnerFile[] Seeds, string? ReadProbe = null, string? NetworkProbe = null, string? WriteProbe = null, string? PreparedPlan = null, bool ProjectAction = false, string? ApiOutput = null, string[]? Prebuilt = null, RunnerPackageDirectory[]? PackageDirectories = null);
 internal sealed record PortableManifest(string Toolchain, Dictionary<string, DeclaredProject> Projects, string Policy = "native-qualified-v2");
 
 internal static class Program
@@ -46,25 +47,40 @@ internal static class Program
             Directory.CreateDirectory(workspace); Directory.CreateDirectory(diagnostics);
             var cache = Path.Combine(output, "cache"); Directory.CreateDirectory(cache);
             var sdk = Path.GetDirectoryName(Environment.ProcessPath!)!;
+            if (request.PackageDirectories is { Length: > 0 } && request.PreparedPlan is null) throw new InvalidDataException("Package directories require a prepared payload");
             if (request.PreparedPlan is not null)
             {
                 var payloadPath = Path.Combine(request.PreparedPlan, "payload.json");
                 if (File.Exists(payloadPath))
                 {
                     var declared = request.Sources.ToDictionary(input => input.Destination, input => input.Source, OperatingSystem.IsMacOS() ? StringComparer.OrdinalIgnoreCase : StringComparer.Ordinal);
+                    var packageDirectories = new Dictionary<string, string>(OperatingSystem.IsMacOS() ? StringComparer.OrdinalIgnoreCase : StringComparer.Ordinal);
+                    foreach (var directory in request.PackageDirectories ?? [])
+                    {
+                        if (!Files.ValidRelativePath(directory.Package) || directory.Package.Split('/').Length != 2 || directory.Package != directory.Package.ToLowerInvariant() || !packageDirectories.TryAdd(directory.Package, directory.Source)) throw new InvalidDataException("Invalid or duplicate package directory identity");
+                    }
+                    string? DeclaredSource(string name)
+                    {
+                        if (declared.TryGetValue(name, out var file)) return file;
+                        var parts = name.Split('/', 5);
+                        if (parts.Length != 5 || parts[0] != ".nuget" || parts[1] != "packages" || !packageDirectories.TryGetValue(parts[2] + "/" + parts[3], out var directory)) return null;
+                        var candidate = Path.Combine(directory, parts[4]);
+                        return File.Exists(candidate) ? candidate : null;
+                    }
                     var payload = JsonSerializer.Deserialize<Dictionary<string, string>>(File.ReadAllText(payloadPath), Json)!;
                     var selectedSources = new List<RunnerFile>();
                     foreach (var (name, hash) in payload)
                     {
                         if (!Files.ValidRelativePath(name)) throw new InvalidDataException("Invalid prepared payload path");
-                        if (!declared.TryGetValue(name, out var source))
+                        var source = DeclaredSource(name);
+                        if (source is null)
                         {
                             // NuGet omits ZIP packaging metadata from its installed cache.
                             // Recover only those known omissions from the declared archive.
                             var parts = name.Split('/', 5);
                             if (parts.Length != 5 || parts[0] != ".nuget" || parts[1] != "packages" ||
                                 !(parts[4] is "[Content_Types].xml" or "_rels/.rels" || parts[4].StartsWith("package/services/metadata/core-properties/", StringComparison.Ordinal)) ||
-                                !declared.TryGetValue(string.Join('/', parts.Take(4)) + "/" + parts[2] + "." + parts[3] + ".nupkg", out var archive)) throw new InvalidDataException("Missing declared package payload: " + name);
+                                DeclaredSource(string.Join('/', parts.Take(4)) + "/" + parts[2] + "." + parts[3] + ".nupkg") is not { } archive) throw new InvalidDataException("Missing declared package payload: " + name);
                             using var zip = System.IO.Compression.ZipFile.OpenRead(archive);
                             var entry = zip.GetEntry(parts[4]) ?? throw new InvalidDataException("Missing declared package archive entry: " + name);
                             source = Path.Combine(scratch, "package-inputs", name); Directory.CreateDirectory(Path.GetDirectoryName(source)!);
@@ -77,7 +93,7 @@ internal static class Program
                 }
                 else
                 {
-                    if (request.Sources.Length != 0) throw new InvalidDataException("Prepared plan cannot also supply explicit sources");
+                    if (request.Sources.Length != 0 || request.PackageDirectories is { Length: > 0 }) throw new InvalidDataException("Prepared plan cannot also supply explicit sources");
                     var planSources = Path.Combine(request.PreparedPlan, "src");
                     request = request with { Sources = Directory.EnumerateFiles(planSources, "*", SearchOption.AllDirectories).Select(path => new RunnerFile(path, Path.GetRelativePath(planSources, path))).ToArray() };
                 }

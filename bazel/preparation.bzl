@@ -1,6 +1,7 @@
 """Declared, cacheable MSBuild discovery and preparation."""
 
 load(":input_paths.bzl", "input_path")
+load(":nuget_package.bzl", "NugetPackageSetInfo", "package_files", "package_rows")
 
 DiscoveryPlanInfo = provider(doc = "Structural discovery tree shared by project bindings.", fields = ["directory", "validation"])
 
@@ -14,6 +15,7 @@ def _prepare(ctx):
     ctx.actions.write(request, json.encode({
         "entry": ctx.attr.project,
         "output": discovery.path,
+        "packageDirectories": package_rows(ctx.attr.package_set),
         "sourceNames": [input_path(f) for f in bodies],
         "diagnostics": diagnostics.path,
         "host": ctx.file.host.path,
@@ -25,7 +27,7 @@ def _prepare(ctx):
     ctx.actions.run(
         executable = ctx.executable.dotnet,
         arguments = [ctx.file.runner.path, "owned-prepare", "--request", request.path],
-        inputs = depset(structural + ctx.files.runtime_manifest + ctx.files.controller + [ctx.file.host, ctx.file.runner, request], transitive = [ctx.attr.sdk[DefaultInfo].files]),
+        inputs = depset(structural + package_files(ctx.attr.package_set) + ctx.files.runtime_manifest + ctx.files.controller + [ctx.file.host, ctx.file.runner, request], transitive = [ctx.attr.sdk[DefaultInfo].files]),
         outputs = [discovery, diagnostics],
         env = {"PATH": "/usr/bin:/bin", "LANG": "en_US.UTF-8"},
         mnemonic = "MsbuildDiscover",
@@ -66,6 +68,7 @@ def _prepare(ctx):
     return [DefaultInfo(files = depset([plan])), DiscoveryPlanInfo(directory = discovery, validation = validation), OutputGroupInfo(discovery = depset([discovery]))]
 
 msbuild_prepare = rule(implementation = _prepare, attrs = {
+    "package_set": attr.label(providers = [NugetPackageSetInfo]),
     "layout": attr.label(allow_single_file = True),
     "project": attr.string(mandatory = True),
     "srcs": attr.label_list(allow_files = True),

@@ -64,6 +64,7 @@ internal static class LockedRestore
                 var target = Path.Combine(workspace, Host.Safe(input!.String("destination")));
                 Host.Copy(input.String("source"), target); FileTree.SetMode(target, FileTree.Mode(target) | UnixFileMode.UserWrite);
             }
+            PackageDirectories.Stage(request, workspace);
             var bodies = request.Array("sourceNames").Select(item => Host.Safe(item!.GetValue<string>())).ToArray();
             foreach (var name in bodies)
             {

@@ -1,6 +1,7 @@
 """Normalize host-specific restore metadata as declared action outputs."""
 
 load(":input_paths.bzl", "input_path")
+load(":nuget_package.bzl", "NugetPackageSetInfo", "package_files", "package_rows")
 
 def _normalize(ctx):
     files = []
@@ -53,6 +54,7 @@ def _locked_restore(ctx):
         "projects": ctx.attr.projects,
         "config": ctx.attr.config,
         "sources": [{"source": f.path, "destination": input_path(f)} for f in structural],
+        "packageDirectories": package_rows(ctx.attr.package_set),
         "sourceNames": [input_path(f) for f in bodies],
         "outputs": declared,
         "diagnostics": diagnostics.path,
@@ -61,7 +63,7 @@ def _locked_restore(ctx):
     ctx.actions.run(
         executable = ctx.executable.dotnet,
         arguments = [ctx.file.runner.path, "owned-locked-restore", "--request", request.path],
-        inputs = depset(structural + ctx.files.controller + [ctx.file.runner, ctx.file.runtime_manifest, request], transitive = [ctx.attr.sdk[DefaultInfo].files]),
+        inputs = depset(structural + package_files(ctx.attr.package_set) + ctx.files.controller + [ctx.file.runner, ctx.file.runtime_manifest, request], transitive = [ctx.attr.sdk[DefaultInfo].files]),
         outputs = outputs + [diagnostics],
         env = {"PATH": "/usr/bin:/bin", "LANG": "en_US.UTF-8"},
         mnemonic = "MsbuildLockedRestore",
@@ -71,6 +73,7 @@ def _locked_restore(ctx):
     return [DefaultInfo(files = depset(outputs))]
 
 msbuild_locked_restore = rule(implementation = _locked_restore, attrs = {
+    "package_set": attr.label(providers = [NugetPackageSetInfo]),
     "srcs": attr.label_list(allow_files = True),
     "project": attr.string(mandatory = True),
     "projects": attr.string_list(mandatory = True),

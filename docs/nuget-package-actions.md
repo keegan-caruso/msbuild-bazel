@@ -33,19 +33,46 @@ recovery took 5.787s (0.29s critical path). These include startup and full decla
 SDK inputs, share the machine with Orchard qualification, and are not a speedup
 estimate for the 287-package graph. The cache is local loopback.
 
-## Integration still required
+## Owned workflow integration
 
-This rule is not wired into the owned Orchard workflow. Integrating it requires:
+The owned workflow now supports `"package-actions": true` with locked restore
+and a declared project layout. It downloads verified archives in the repository
+rule, emits one extraction target per locked package, and passes typed directory
+artifacts into restore, discovery and project compilation. Compilation resolves
+only the prepared payload paths inside those declared directories and checks
+every selected file hash. It does not enumerate package files during Bazel
+analysis or substitute an undeclared global cache.
 
-1. Separate archive acquisition from repository-time extraction.
-2. Pass declared package-directory artifacts through restore, discovery and
-   compilation, materializing contents only when an action executes.
-3. Preserve logical package paths, hash checks, input ownership and publication
-   validation; never substitute an undeclared global NuGet cache.
-4. Measure per-package versus batched actions and a minimal runtime tool input.
-   Extra action and SDK-input overhead could erase the extraction savings.
-5. Narrow each project's package dependencies and qualify the complete Orchard
-   producer/fresh-recovery path again before changing the default.
+The option remains explicit while the full Orchard graph is qualified. The
+repository-extraction path remains available for comparison. Package directories
+are still shared across all compile targets at this step; per-project package
+ownership is next.
+
+### Integrated acceptance
+
+`tests/remote_workers/package_action_probe.py` exercises a four-project graph
+using Newtonsoft.Json 13.0.1 and PolySharp 1.15.0 through the real owned pipeline:
+
+- Legacy repository extraction and package actions produce identical DLL/PDB
+  hashes and application output (`11`). Their recorded totals were 14.909 and
+  14.934 seconds respectively; these are small-fixture samples, not an Orchard
+  performance claim.
+- The package producer performs two native sandbox extraction actions and four
+  compilations, then its source and local Bazel state are deleted.
+- A different checkout with fresh Bazel state and a read-only HTTP cache recovers
+  both package actions and all compilations remotely in 3.729 seconds. Bazel
+  creates two empty package-directory placeholders but downloads zero extracted
+  package files (`--remote_download_outputs=toplevel`).
+- A subsequent source-body edit compiles one project, performs no extraction or
+  discovery, and produces the changed application output (`21`) in 3.502 seconds.
+- The full local check suite passes: 57 workflow tests, one Linux-only skip on
+  macOS, preparation/style checks and warning-free builds. Starlark checks pass.
+  Directory traversal/duplicate identities, staging overlap and changed package
+  payload hashes have rejection controls.
+
+The cache is local loopback. Full Orchard and independent-machine/WAN performance
+remain unproven for this option. Archive downloads are still repository work;
+this moves extraction and the resulting file trees into the action cache.
 
 Bazel's remote cache stores [action outputs](https://bazel.build/remote/caching),
 which is the reason to move extraction across this boundary. This does not replace

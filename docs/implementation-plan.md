@@ -563,3 +563,8 @@ compile declarations using validated MSBuild ownership. Native four-project
 mutation controls pass. The Orchard stylesheet edit now compiles four projects
 instead of 202 and takes 651.774 seconds instead of 1,108.482; runtime markers
 and unchanged-output checks pass. Whole-graph discovery remains expensive.
+
+[NuGet package actions](nuget-package-actions.md) now integrates cacheable package
+directories into the opt-in owned locked-restore workflow. Two-package native
+producer, producer-deleted fresh remote recovery, byte parity and source edit
+checks pass. Full Orchard qualification and project-specific package sets follow.

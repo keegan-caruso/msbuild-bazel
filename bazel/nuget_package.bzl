@@ -1,5 +1,44 @@
 """Cacheable package extraction; version resolution stays with locked NuGet restore."""
 
+NugetPackageInfo = provider(doc = "One verified extracted package.", fields = ["package", "directory"])
+NugetPackageSetInfo = provider(doc = "Declared NuGet package directory inputs.", fields = ["rows"])
+
+def package_rows(target):
+    """Return logical staging rows for an optional package set.
+
+    Args:
+        target: Package-set target or None.
+
+    Returns:
+        Package identities and declared directory paths.
+    """
+    return target[NugetPackageSetInfo].rows if target else []
+
+def package_files(target):
+    """Return declared directory inputs for an optional package set.
+
+    Args:
+        target: Package-set target or None.
+
+    Returns:
+        The package tree artifacts.
+    """
+    return target[DefaultInfo].files.to_list() if target else []
+
+def _set(ctx):
+    packages = {}
+    for target in ctx.attr.packages:
+        package = target[NugetPackageInfo]
+        if package.package in packages:
+            fail("Duplicate NuGet package: " + package.package)
+        packages[package.package] = package.directory
+    rows = [{"package": name, "source": packages[name].path} for name in sorted(packages)]
+    return [DefaultInfo(files = depset(packages.values())), NugetPackageSetInfo(rows = rows)]
+
+nuget_package_set = rule(implementation = _set, attrs = {
+    "packages": attr.label_list(providers = [NugetPackageInfo]),
+})
+
 def _extract(ctx):
     output = ctx.actions.declare_directory(ctx.label.name + ".package")
     request = ctx.actions.declare_file(ctx.label.name + ".request.json")
@@ -19,7 +58,7 @@ def _extract(ctx):
         mnemonic = "NugetExtractPackage",
         execution_requirements = {"block-network": "1", "no-remote-exec": "1"},
     )
-    return [DefaultInfo(files = depset([output]))]
+    return [DefaultInfo(files = depset([output])), NugetPackageInfo(package = ctx.attr.package, directory = output)]
 
 nuget_extract_package = rule(implementation = _extract, attrs = {
     "archive": attr.label(allow_single_file = True, mandatory = True),
