@@ -95,7 +95,7 @@ def package_plan(workspace, project, assets_file=None, target_framework=None):
                 raise ValueError('stale-restore: PrivateAssets differs from restore: ' + package_id)
         for name, allowed in (('IncludeAssets', 'all'), ('ExcludeAssets', 'none')):
             value = metadata(reference, name)
-            if value and '$(' not in value and '@(' not in value and ';'.join(sorted({flag.strip().lower() for flag in value.replace(',', ';').split(';') if flag.strip()})) not in ((allowed, 'analyzers;build') if name == 'IncludeAssets' else (allowed,)):
+            if value and '$(' not in value and '@(' not in value and ';'.join(sorted({flag.strip().lower() for flag in value.replace(',', ';').split(';') if flag.strip()})) not in ((allowed, 'analyzers;build') if name == 'IncludeAssets' else (allowed, 'build;buildtransitive')):
                 raise ValueError('unsupported-package: nondefault ' + name)
     if not libraries:
         return assets, libraries

@@ -101,29 +101,39 @@ internal static class PackageRestoreValidation
             !framework.TryGetProperty("projectReferences", out var restoredReferences))
             throw new ExportException("stale-restore", "restored direct project references missing: " + project.FullPath);
         var current = new HashSet<string>(StringComparer.Ordinal);
+        var privacyByProject = new Dictionary<string, string>(StringComparer.Ordinal);
         // Evaluated items are the direct declarations, unlike ProjectGraph edges
         // which can include SDK-inferred transitive references.
         foreach (var reference in project.GetItems("ProjectReference"))
         {
             if (NerdbankProject.IsReference(reference)) continue;
             var privateAssets = reference.GetMetadataValue("PrivateAssets").ToLowerInvariant();
-            if (privateAssets.Length != 0 && (!reference.GetMetadataValue("ReferenceOutputAssembly").Equals("false", StringComparison.OrdinalIgnoreCase) || (privateAssets != "all" && privateAssets != "contentfiles;build")))
+            if (privateAssets.Length != 0 && privateAssets != "none" && (!reference.GetMetadataValue("ReferenceOutputAssembly").Equals("false", StringComparison.OrdinalIgnoreCase) || (privateAssets != "all" && privateAssets != "contentfiles;build")))
                 throw new ExportException("unsupported-project-reference-restore", "unsupported PrivateAssets: " + project.FullPath);
             foreach (var metadata in new[] { "IncludeAssets", "ExcludeAssets" })
                 if (!string.IsNullOrEmpty(reference.GetMetadataValue(metadata)))
                     throw new ExportException("unsupported-project-reference-restore", "nondefault " + metadata + ": " + project.FullPath);
             if (IsRestoreReference(reference))
-                current.Add(CanonicalProjectPath(Path.GetFullPath(reference.EvaluatedInclude, Path.GetDirectoryName(project.FullPath)!)));
+            {
+                var path = CanonicalProjectPath(Path.GetFullPath(reference.EvaluatedInclude, Path.GetDirectoryName(project.FullPath)!));
+                current.Add(path);
+                if (privacyByProject.TryGetValue(path, out var previous) && previous != privateAssets)
+                    throw new ExportException("unsupported-project-reference-restore", "conflicting PrivateAssets: " + path);
+                privacyByProject[path] = privateAssets;
+            }
         }
         var restored = new HashSet<string>(StringComparer.Ordinal);
         foreach (var reference in restoredReferences.EnumerateObject())
         {
-            if (reference.Value.EnumerateObject().Any(property => property.Name != "projectPath"))
+            if (reference.Value.EnumerateObject().Any(property => property.Name is not ("projectPath" or "privateAssets")))
                 throw new ExportException("stale-restore", "unsupported saved project-reference metadata: " + project.FullPath);
             var path = CanonicalProjectPath(Path.GetFullPath(reference.Name, Path.GetDirectoryName(project.FullPath)!));
             if (!reference.Value.TryGetProperty("projectPath", out var recordedPath) ||
                 CanonicalProjectPath(Path.GetFullPath(recordedPath.GetString()!, Path.GetDirectoryName(project.FullPath)!)) != path)
                 throw new ExportException("stale-restore", "saved project-reference identity differs: " + project.FullPath);
+            var savedPrivacy = reference.Value.TryGetProperty("privateAssets", out var savedAssets) ? savedAssets.GetString()?.ToLowerInvariant() : "";
+            if (!privacyByProject.TryGetValue(path, out var currentPrivacy) || savedPrivacy != currentPrivacy)
+                throw new ExportException("stale-restore", "project reference PrivateAssets differs from restore: " + project.FullPath);
             restored.Add(path);
         }
         if (!current.SetEquals(restored))
@@ -268,17 +278,21 @@ internal static class PackageRestoreValidation
             var savedPrivacy = Privacy(dependency.TryGetProperty("suppressParent", out var privacy) ? privacy.GetString()! : "", "stale-restore");
             if (currentPrivacy != savedPrivacy)
                 throw new ExportException("stale-restore", "PrivateAssets differs from restore: " + reference.EvaluatedInclude);
+            var excludesBuild = AssetFlags(reference.GetMetadataValue("ExcludeAssets"), "none") == "build;buildtransitive" &&
+                AssetFlags(reference.GetMetadataValue("IncludeAssets"), "all") == "all";
             foreach (var (name, allowed) in new[] { ("IncludeAssets", "all"), ("ExcludeAssets", "none") })
             {
                 var value = AssetFlags(reference.GetMetadataValue(name), allowed);
+                // NuGet serializes ExcludeAssets as an effective include mask.
+                if (excludesBuild) value = name == "IncludeAssets" ? "analyzers;compile;contentfiles;native;runtime" : "none";
                 var globalReference = name == "IncludeAssets" && value == "analyzers;build;contentfiles;native;runtime" && currentPrivacy == "all" &&
                     project.GetItems("GlobalPackageReference").Count(item => item.EvaluatedInclude.Equals(reference.EvaluatedInclude, StringComparison.OrdinalIgnoreCase)) == 1;
-                if (value != allowed && !(name == "IncludeAssets" && value == "analyzers;build") && !globalReference)
+                if (value != allowed && !(name == "IncludeAssets" && value == "analyzers;build") && !globalReference && !excludesBuild)
                     throw new ExportException("unsupported-package", "nondefault " + name + " is outside the managed package slice");
                 var restoredName = name == "IncludeAssets" ? "include" : "exclude";
                 var restoredFlags = dependency.TryGetProperty(restoredName, out var saved) ? AssetFlags(saved.GetString()!, allowed) : allowed;
                 if (restoredFlags != value)
-                    throw new ExportException("stale-restore", name + " differs from restore: " + reference.EvaluatedInclude);
+                    throw new ExportException("stale-restore", name + " differs from restore: " + reference.EvaluatedInclude + " in " + project.FullPath);
             }
         }
     }

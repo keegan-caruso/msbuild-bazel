@@ -126,5 +126,27 @@
       "accepted": false,
       "error": "unsupported discovery XML: ModuleDefaultAssetExcludes"
     }
-  ]
+  ],
+  "generatorParity": {
+    "OrchardCore.SourceGenerators.deps.json": {
+      "raw": "69495c1f9dd7d728054ba0a133155e68f99e8bc9851c055df8e54ce1b08d79c7",
+      "bazel": "69495c1f9dd7d728054ba0a133155e68f99e8bc9851c055df8e54ce1b08d79c7",
+      "equal": true
+    },
+    "OrchardCore.SourceGenerators.xml": {
+      "raw": "aea94ba15335399f5c3acceb5ad21a171ec03ea55c8b7f082d98e927afc2fce2",
+      "bazel": "aea94ba15335399f5c3acceb5ad21a171ec03ea55c8b7f082d98e927afc2fce2",
+      "equal": true
+    },
+    "OrchardCore.SourceGenerators.dll": {
+      "raw": "b8b046c2297cd48507e0522952464217657acebaf9397cadf522caa0b7169c6b",
+      "bazel": "b8b046c2297cd48507e0522952464217657acebaf9397cadf522caa0b7169c6b",
+      "equal": true
+    },
+    "OrchardCore.SourceGenerators.pdb": {
+      "raw": "367ee34ea1ed546bf5757b1d16a41f4ac9582b5712b90d5e340b0a8e90433618",
+      "bazel": "367ee34ea1ed546bf5757b1d16a41f4ac9582b5712b90d5e340b0a8e90433618",
+      "equal": true
+    }
+  }
 }

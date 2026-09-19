@@ -1481,5 +1481,36 @@
     "restoreContentHash": "ns4mGqQd9a/MhP8m6w556vVlZIa0/MfUu03zrxjZC/jlr1uVCsUac8bkdB+Fs98Llbd56rRSo1eZH5VVmeGZyw==",
     "additionalRoots": [],
     "assetRoles": []
+  },
+  "microsoft.codeanalysis.csharp.codestyle/5.9.0": {
+    "archiveSha256": "ec699886cbbc1a59fb99f072b88ba58342c08e30f33099030923e6a06cc96f19",
+    "restoreContentHash": "3+kqzT9CJF9jq5U0wTtRsJIcP5+KnjRXFWgpc0epEvts7YtII6Fe2LaSVRFCLhM+Q6FCJUAC31DJQo4iFUPWtQ==",
+    "additionalRoots": [
+      "analyzers",
+      "build",
+      "tools"
+    ],
+    "assetRoles": [
+      "build"
+    ]
+  },
+  "netstandard.library/2.0.0": {
+    "archiveSha256": "3e9edf47295a8bc26b1353bef5319f20426b00e9a75932512d613ea8905a84ad",
+    "restoreContentHash": "7jnbRU+L08FXKMxqUflxEXtVymWvNOrS8yHgu9s6EM8Anr6T/wIX4nZ08j/u3Asz+tCufp3YVwFSEvFTPYmBPA==",
+    "additionalRoots": [
+      "build"
+    ],
+    "assetRoles": [
+      "build"
+    ]
+  },
+  "stylecop.analyzers/1.1.118": {
+    "archiveSha256": "0a30b57f9cf4b0fd7917a15e5ea2033ad64b1ea8239904f3a6c22b464c574442",
+    "restoreContentHash": "Onx6ovGSqXSK07n/0eM3ZusiNdB6cIlJdabQhWGgJp3Vooy9AaLS/tigeybOJAobqbtggTamoWndz72JscZBvw==",
+    "additionalRoots": [
+      "analyzers",
+      "tools"
+    ],
+    "assetRoles": []
   }
 }

@@ -324,6 +324,25 @@ class PackageRestoreSemantics(unittest.TestCase):
         self.project.write_text('<Project Sdk="Microsoft.NET.Sdk"><ItemGroup><ProjectReference Include="../Shared/Shared.csproj"/></ItemGroup></Project>')
         self.export(error='stale-restore')
 
+    def test_excluded_build_assets_match_effective_nuget_include_mask(self):
+        self.project.write_text(self.project.read_text().replace('Include="RulesMsbuild.Binary"',
+            'Include="RulesMsbuild.Binary" ExcludeAssets="build;buildTransitive"'))
+        self.restore()
+        self.assert_current_prepares(['RulesMsbuild.Binary', 'RulesMsbuild.Leaf'])
+        assets = json.loads((self.project.parent / 'obj/project.assets.json').read_text())
+        dependency = assets['project']['frameworks']['net10.0']['dependencies']['RulesMsbuild.Binary']
+        self.assertEqual(set(dependency['include'].lower().replace(' ', '').split(',')),
+            {'compile', 'runtime', 'native', 'contentfiles', 'analyzers'})
+        self.project.write_text(self.project.read_text().replace(' ExcludeAssets="build;buildTransitive"', ''))
+        self.export(error='stale-restore')
+
+    def test_project_private_assets_none_preserves_consumer_restore_snapshot(self):
+        self.project.write_text(self.project.read_text().replace('Include="../Shared/Shared.csproj"',
+            'Include="../Shared/Shared.csproj" PrivateAssets="none"'))
+        self.partial_restore_control(lambda: self.project.write_text(
+            self.project.read_text().replace(' PrivateAssets="none"', '')),
+            ['RulesMsbuild.Binary', 'RulesMsbuild.Leaf'])
+
     def test_nondefault_asset_filters_reject_explicitly(self):
         configure(self.workspace, self.workspace / '.feed')
         self.project.write_text(self.project.read_text().replace('Include="RulesMsbuild.Binary"', 'Include="RulesMsbuild.Binary" IncludeAssets="compile"'))

@@ -81,3 +81,25 @@ filter and PrivateAssets=All, with unchanged restore comparison.
 All four selected-framework tests and the focused global-package restore test
 pass. The generator export succeeds against the pinned real checkout. No build
 or remote-cache support claim follows from export alone.
+
+### Step 3: native generator build and NuGet build-asset exclusion
+
+The real generator now builds via production C# graph preparation and the native
+Bazel `graph_project` sandbox. Its DLL, PDB, XML documentation and deps.json are
+byte-identical to raw MSBuild using the same PathMap, Deterministic and in-process
+compiler settings. SourceLink and analyzers remain enabled as authored. Three
+additional archive pins cover CodeStyle 5.9.0, NETStandard.Library 2.0.0 and
+StyleCop 1.1.118; existing matching pins cover the other 16 packages.
+
+The full host's ExcludeAssets=build;buildTransitive declaration is also validated
+against NuGet's effective include mask, with a successful prepare and stale-restore
+negative control. Other unqualified filters remain rejected. The existing
+`graph_project` smoke test is not remote-cache qualification of the newer owned
+project-action pipeline; mixed-framework analyzer edges still need integration
+there. Native generator build: one darwin-sandbox action, 7.385s Bazel wall time
+including startup/analysis; this isolated sample is not a performance comparison.
+
+The full export then reached explicit ProjectReference PrivateAssets=none.
+Validation now checks that metadata in both the project's restore and each
+consumer snapshot. Its partial-restore negative control passes; removing the
+attribute requires a complete restore before graph publication.

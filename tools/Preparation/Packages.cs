@@ -86,7 +86,7 @@ internal sealed class Packages(string workspace, string output, string root)
                 var value = Metadata(name);
                 if (string.IsNullOrEmpty(value) || value.Contains("$(", StringComparison.Ordinal) || value.Contains("@(", StringComparison.Ordinal)) continue;
                 var flags = string.Join(';', value.Split([';', ','], StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries).Select(v => v.ToLowerInvariant()).Distinct().Order(StringComparer.Ordinal));
-                if (flags != allowed && !(name == "IncludeAssets" && flags == "analyzers;build")) throw new InvalidDataException("unsupported-package: nondefault " + name);
+                if (flags != allowed && !(name == "IncludeAssets" && flags == "analyzers;build") && !(name == "ExcludeAssets" && flags == "build;buildtransitive")) throw new InvalidDataException("unsupported-package: nondefault " + name);
             }
         }
         foreach (var (identity, library) in libraries)
