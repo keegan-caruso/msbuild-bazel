@@ -9,12 +9,12 @@ internal sealed record ComposeRequest(string Entry, string Output, string[] Bund
 internal static class ProjectActions
 {
     private static readonly JsonSerializerOptions Options = new() { PropertyNamingPolicy = JsonNamingPolicy.CamelCase, WriteIndented = true };
-    private static string Bin(string project) => Path.Combine(Path.GetDirectoryName(project)!, "bin/Release/net10.0");
+    private static string Bin(string project, string framework) => Path.Combine(Path.GetDirectoryName(project)!, "bin/Release", framework);
     private static string Assembly(string project) => Path.GetFileNameWithoutExtension(project);
     internal static Results Read(string bundle)
     {
         var result = JsonSerializer.Deserialize<Results>(File.ReadAllText(Path.Combine(bundle, "results.json")), Options) ?? throw new InvalidDataException("Missing project results");
-        if (!Files.ValidRelativePath(result.Project) || result.Key.Length != 64 || result.Key.Any(character => !char.IsAsciiHexDigit(character)) || string.IsNullOrEmpty(result.Inputs) || string.IsNullOrEmpty(result.Toolchain)) throw new InvalidDataException("Invalid project bundle identity");
+        if (result.TargetFramework is not ("net10.0" or "netstandard2.0") || !Files.ValidRelativePath(result.Project) || result.Key.Length != 64 || result.Key.Any(character => !char.IsAsciiHexDigit(character)) || string.IsNullOrEmpty(result.Inputs) || string.IsNullOrEmpty(result.Toolchain)) throw new InvalidDataException("Invalid project bundle identity");
         return result;
     }
     internal static string Bundle(string output) => Directory.GetDirectories(Path.Combine(output, "cache")).Single();
@@ -24,15 +24,15 @@ internal static class ProjectActions
         JsonArray value => new JsonArray(value.Select(Canonical).ToArray()),
         _ => node?.DeepClone()
     };
-    internal static void Project(string bundle, string output, Dictionary<string, string> dependencies, string identity)
+    internal static void Project(string bundle, string output, Dictionary<string, string> dependencies, string identity, bool fullImplementation = false)
     {
         var results = Read(bundle); var producers = new Dictionary<string, string>(dependencies, StringComparer.Ordinal) { [results.Project] = bundle };
-        var implementations = producers.Keys.SelectMany(project => new[] { ".dll", ".pdb", ".xml" }.Select(extension => KeyValuePair.Create(Path.Combine(Bin(results.Project), Assembly(project) + extension), project))).ToDictionary();
+        var implementations = producers.Keys.SelectMany(project => new[] { ".dll", ".pdb", ".xml" }.Select(extension => KeyValuePair.Create(Path.Combine(Bin(results.Project, results.TargetFramework), Assembly(project) + extension), project))).ToDictionary();
         foreach (var artifact in CompileBoundary.Validate(bundle))
         {
             var destination = Path.Combine(output, "artifacts", artifact.Path);
-            if (!implementations.TryGetValue(artifact.Path, out var project)) Files.Copy(Path.Combine(bundle, "artifacts", artifact.Path), destination);
-            else if (Path.GetExtension(artifact.Path) == ".dll") RuntimeContract.Write(Path.Combine(producers[project], "artifacts", Bin(project), Assembly(project) + ".dll"), destination);
+            if (fullImplementation || !implementations.TryGetValue(artifact.Path, out var project)) Files.Copy(Path.Combine(bundle, "artifacts", artifact.Path), destination);
+            else if (Path.GetExtension(artifact.Path) == ".dll") RuntimeContract.Write(Path.Combine(producers[project], "artifacts", Bin(project, Read(producers[project]).TargetFramework), Assembly(project) + ".dll"), destination);
             else { Directory.CreateDirectory(Path.GetDirectoryName(destination)!); File.WriteAllBytes(destination, []); }
         }
         var metadata = JsonSerializer.SerializeToNode(results with { Key = identity, Inputs = identity }, Options)!;
@@ -56,9 +56,9 @@ internal static class ProjectActions
         {
             foreach (var extension in new[] { ".dll", ".pdb", ".xml" })
             {
-                var destination = Path.Combine(Bin(request.Entry), Assembly(project) + extension);
+                var destination = Path.Combine(Bin(request.Entry, results[request.Entry].TargetFramework), Assembly(project) + extension);
                 if (!own.ContainsKey(destination)) continue;
-                var source = Path.Combine(Bin(project), Assembly(project) + extension);
+                var source = Path.Combine(Bin(project, results[project].TargetFramework), Assembly(project) + extension);
                 if (!artifacts[project].ContainsKey(source) || !replacements.TryAdd(destination, Path.Combine(bundle, "artifacts", source))) throw new InvalidDataException("Ambiguous or missing current runtime artifact");
             }
         }
@@ -69,6 +69,6 @@ internal static class ProjectActions
         CompileBoundary.Seal(entry);
         var runtime = Path.Combine(request.Output, "runtime", Path.GetFileName(entry));
         Files.CopyTree(entry, runtime);
-        Files.CopyTree(Path.Combine(runtime, "artifacts", Bin(request.Entry)), Path.Combine(request.Output, "app"));
+        Files.CopyTree(Path.Combine(runtime, "artifacts", Bin(request.Entry, results[request.Entry].TargetFramework)), Path.Combine(request.Output, "app"));
     }
 }

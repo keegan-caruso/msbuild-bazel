@@ -102,6 +102,8 @@ internal static class Program
             }
             Mark("seedCopy");
             var manifest = JsonSerializer.Deserialize<PortableManifest>(File.ReadAllText(request.Manifest), Json)!;
+            if (!request.ProjectAction && manifest.Projects.Values.Any(project => project.TargetFramework != "net10.0" || project.Implementation || (project.Analyzers?.Length ?? 0) != 0))
+                throw new InvalidDataException("Mixed frameworks and analyzer references require project actions");
             var selection = "";
             if (manifest.Policy == "evaluated-api-runtime-v2")
             {
@@ -118,7 +120,7 @@ internal static class Program
                     {
                         if (!manifest.Projects.ContainsKey(dependency)) throw new InvalidDataException("missing declared reference");
                         items.Add(new XElement("ProjectReference", new XAttribute("Update", Path.GetRelativePath(Path.GetDirectoryName(full)!, Path.Combine(workspace, dependency))),
-                            new XElement("SetTargetFramework", "TargetFramework=net10.0")));
+                            new XElement("SetTargetFramework", "TargetFramework=" + manifest.Projects[dependency].TargetFramework)));
                     }
                     document.Add(items);
                 }
@@ -130,7 +132,7 @@ internal static class Program
             var targets = Path.Combine(scratch, "Cache.targets");
             File.WriteAllText(targets, "<Project><PropertyGroup><_NativeOriginalTargets>$([MSBuild]::GetPathOfFileAbove('Directory.Build.targets', '$(MSBuildProjectDirectory)/'))</_NativeOriginalTargets></PropertyGroup>" +
                 "<Import Project=\"$(_NativeOriginalTargets)\" Condition=\"'$(_NativeOriginalTargets)' != ''\" />" +
-                selection + "<ItemGroup><ProjectCachePlugin Include=\"" + System.Security.SecurityElement.Escape(plugin) + "\" /></ItemGroup></Project>");
+                selection + "<Target Name=\"BazelUseInActionCompiler\" BeforeTargets=\"CoreCompile\"><PropertyGroup><UseSharedCompilation>false</UseSharedCompilation></PropertyGroup></Target><ItemGroup><ProjectCachePlugin Include=\"" + System.Security.SecurityElement.Escape(plugin) + "\" /></ItemGroup></Project>");
             var sessionPath = Path.Combine(scratch, "session.json");
             var pending = Path.Combine(scratch, "pending"); Directory.CreateDirectory(pending);
             var report = Path.Combine(diagnostics, "events.json");
@@ -174,7 +176,7 @@ internal static class Program
             Mark("msbuild");
             File.WriteAllText(Path.Combine(diagnostics, "build.log"), log);
             var compiles = log.Split('\n').Count(line => line.Contains("/Roslyn/bincore/csc", StringComparison.Ordinal) && line.Contains(" /noconfig ", StringComparison.Ordinal));
-            File.WriteAllText(Path.Combine(diagnostics, "action.json"), JsonSerializer.Serialize(new { compiles, exitCode = process.ExitCode, environmentPolicy = manifest.Policy == "evaluated-api-runtime-v2" ? "evaluated-net10-release-env-v1" : PortableEnvironment.Policy }, Json));
+            File.WriteAllText(Path.Combine(diagnostics, "action.json"), JsonSerializer.Serialize(new { compiles, exitCode = process.ExitCode, environmentPolicy = manifest.Policy == "evaluated-api-runtime-v2" ? "evaluated-selected-release-env-v2" : PortableEnvironment.Policy }, Json));
             if (process.ExitCode != 0) { Console.Error.WriteLine(log); return process.ExitCode; }
             // Export only bundles selected by this graph, never an accumulating history.
             var selected = JsonSerializer.Deserialize<JsonElement[]>(File.ReadAllText(report))!
@@ -192,8 +194,8 @@ internal static class Program
             {
                 if (compiles != 1 || request.ApiOutput is null) throw new InvalidDataException("A project action must compile exactly its entry");
                 var identities = prebuilt!.ToDictionary(p => p.Key, p => ProjectActions.Read(p.Value).Key);
-                var identity = EvaluatedBoundary.Identity(entryBundle, request.Entry, manifest.Projects.Keys.Order(StringComparer.Ordinal).ToArray(), manifest.Projects[request.Entry].Dependencies.Order(StringComparer.Ordinal).Select(p => p + ":" + identities[p]).ToArray(), runtimeReferences: true);
-                ProjectActions.Project(entryBundle, request.ApiOutput, prebuilt!, identity);
+                var identity = EvaluatedBoundary.Identity(entryBundle, request.Entry, manifest.Projects.Keys.Order(StringComparer.Ordinal).ToArray(), manifest.Projects[request.Entry].Dependencies.Order(StringComparer.Ordinal).Select(p => p + ":" + identities[p]).ToArray(), runtimeReferences: true, fullImplementation: manifest.Projects[request.Entry].Implementation);
+                ProjectActions.Project(entryBundle, request.ApiOutput, prebuilt!, identity, manifest.Projects[request.Entry].Implementation);
                 Directory.Delete(scratch, true); Mark("cleanup"); return 0;
             }
             var runtime = Path.Combine(output, "runtime", Path.GetFileName(entryBundle));

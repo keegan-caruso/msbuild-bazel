@@ -14,17 +14,31 @@ internal static class NativePlan
         foreach (var node in nodes.Values)
         {
             var project = Host.Relative(node.String("project")); var folder = Path.GetDirectoryName(project)!;
-            var properties = new JsonObject { ["configuration"] = "Release", ["targetframework"] = "net10.0" };
-            if (!projects.Add(project) || !JsonNode.DeepEquals(properties, node["globalProperties"]) || node.String("targetFramework") != "net10.0" || node.String("outputType") is not ("Library" or "Exe")) throw new InvalidDataException("Native graph requires unique Release/net10 projects");
-            var expected = new JsonArray(new JsonObject { ["kind"] = "assembly", ["path"] = "workspace/" + Path.Combine(folder, "bin/Release/net10.0", Path.GetFileNameWithoutExtension(project) + ".dll") });
-            if (Host.Relative(node["execution"]!.String("outputDirectory")) != Path.Combine(folder, "bin/Release/net10.0") || Host.Relative(node["execution"]!.String("referenceDirectory")) != Path.Combine(folder, "obj/Release/net10.0/ref") || !JsonNode.DeepEquals(expected, node["outputs"])) throw new InvalidDataException("Unqualified native output layout");
+            var framework = node.String("targetFramework"); var properties = node["globalProperties"]!.AsObject();
+            if (!projects.Add(project) || properties.String("configuration") != "Release" || properties.Any(pair => pair.Key is not ("configuration" or "targetframework")) ||
+                (properties["targetframework"]?.GetValue<string>() ?? framework) != framework || framework is not ("net10.0" or "netstandard2.0") || node.String("outputType") is not ("Library" or "Exe"))
+                throw new InvalidDataException("Native graph requires unique selected Release projects");
+            var expected = new JsonArray(new JsonObject { ["kind"] = "assembly", ["path"] = "workspace/" + Path.Combine(folder, "bin/Release", framework, Path.GetFileNameWithoutExtension(project) + ".dll") });
+            if (Host.Relative(node["execution"]!.String("outputDirectory")) != Path.Combine(folder, "bin/Release", framework) || Host.Relative(node["execution"]!.String("referenceDirectory")) != Path.Combine(folder, "obj/Release", framework, "ref") || !JsonNode.DeepEquals(expected, node["outputs"])) throw new InvalidDataException("Unqualified native output layout");
             if (node.Array("dependencies").Any(d => !nodes.ContainsKey(d!.GetValue<string>()))) throw new InvalidDataException("Missing graph dependency");
+            var dependencies = node.Array("dependencies").Select(d => nodes[d!.GetValue<string>()].String("project")).ToHashSet(StringComparer.Ordinal);
+            if (Analyzers(node).Any(project => !dependencies.Contains(project))) throw new InvalidDataException("Analyzer reference is not a graph dependency");
         }
         return nodes;
     }
+    private static IEnumerable<string> Analyzers(JsonNode node) => (node["execution"]?["analyzerReferences"] as JsonArray ?? []).Select(value => value!.GetValue<string>());
     public static void Materialize(string prepared, JsonNode graph, string output, string toolchain, bool includePayload = true)
     {
         var nodes = Qualify(graph); Directory.CreateDirectory(output);
+        var implementations = new HashSet<string>(StringComparer.Ordinal);
+        void RequireImplementation(JsonNode node)
+        {
+            if (!implementations.Add(node.String("project"))) return;
+            foreach (var dependency in node.Array("dependencies")) RequireImplementation(nodes[dependency!.GetValue<string>()]);
+        }
+        var analyzerProjects = nodes.Values.SelectMany(Analyzers).ToHashSet(StringComparer.Ordinal);
+        foreach (var node in nodes.Values)
+            if (analyzerProjects.Contains(node.String("project")) || node.String("targetFramework") != "net10.0") RequireImplementation(node);
         var sourceRoot = Path.Combine(prepared, "src");
         if (includePayload) FileTree.Copy(sourceRoot, Path.Combine(output, "src"));
         var packageRoot = Path.Combine(prepared, "packages");
@@ -57,8 +71,12 @@ internal static class NativePlan
                 if (File.Exists(Path.Combine(sourceRoot, name))) inputs["workspace/" + name] = Json.Sha(File.ReadAllBytes(Path.Combine(sourceRoot, name)));
             var project = Host.Relative(node.String("project"));
             var record = new JsonObject { ["policy"] = Policy, ["inputs"] = inputs, ["restore"] = selected, ["packages"] = packages, ["configuration"] = node["globalProperties"]!.DeepClone(), ["graphInputs"] = graph["graphInputs"]?.DeepClone() ?? new JsonArray() };
-            records[project] = record;
-            projects[project] = new JsonObject { ["identity"] = Json.Digest(record), ["dependencies"] = Json.Strings(node.Array("dependencies").Select(d => Host.Relative(nodes[d!.GetValue<string>()].String("project")))) };
+            var declaration = new JsonObject { ["dependencies"] = Json.Strings(node.Array("dependencies").Select(d => Host.Relative(nodes[d!.GetValue<string>()].String("project")))) };
+            if (node.String("targetFramework") != "net10.0") { record["targetFramework"] = node.String("targetFramework"); declaration["targetFramework"] = node.String("targetFramework"); }
+            if (implementations.Contains(node.String("project"))) { record["implementation"] = true; declaration["implementation"] = true; }
+            var analyzers = Analyzers(node).Select(Host.Relative).ToArray();
+            if (analyzers.Length != 0) { record["analyzers"] = Json.Strings(analyzers); declaration["analyzers"] = Json.Strings(analyzers); }
+            records[project] = record; declaration["identity"] = Json.Digest(record); projects[project] = declaration;
         }
         if (!includePayload)
         {
@@ -83,18 +101,24 @@ internal static class NativePlan
     public static void BindSources(JsonNode request)
     {
         var output = request.String("output"); var discovery = request.String("discovery");
+        var projectAction = request["project"] is not null;
+        var input = projectAction ? discovery : output;
+        Directory.CreateDirectory(output);
+        // Per-project actions need only the bound replay plan, not another copy
+        // of the complete graph and every project's package/identity metadata.
         // Bazel presents declared tree-artifact leaves as sandbox symlinks.
-        foreach (var path in FileTree.Files(discovery))
+        foreach (var path in projectAction ? [] : FileTree.Files(discovery))
         {
             var target = Path.Combine(output, Path.GetRelativePath(discovery, path)); Host.Copy(Host.Real(path), target);
             FileTree.SetMode(target, FileTree.Mode(target) | UnixFileMode.UserWrite);
         }
-        var graph = Json.Read(Path.Combine(output, "graph.json"));
+        var graph = Json.Read(Path.Combine(input, "graph.json"));
         var pathComparer = OperatingSystem.IsMacOS() ? StringComparer.OrdinalIgnoreCase : StringComparer.Ordinal;
         var sources = request.Array("sources").ToDictionary(n => Host.Safe(n!.String("destination")), n => n!.String("source"), pathComparer);
         RequireSourceOnly(graph, sources.Keys.ToHashSet(StringComparer.Ordinal));
         var payloadPath = Path.Combine(output, "payload.json");
-        var payload = File.Exists(payloadPath) ? Json.Read(payloadPath) : null;
+        var inputPayload = Path.Combine(input, "payload.json");
+        var payload = File.Exists(inputPayload) ? Json.Read(inputPayload) : null;
         var hashes = sources.ToDictionary(p => "workspace/" + p.Key, p => FileTree.HashRegular(Host.Real(p.Value)).Digest, pathComparer);
         foreach (var (name, source) in sources)
         {
@@ -108,7 +132,7 @@ internal static class NativePlan
         }
         foreach (var item in graph.Array("nodes").SelectMany(n => n!.Array("inputs")).Concat(graph["graphInputs"] as JsonArray ?? []))
             if (hashes.TryGetValue(item!.String("path"), out var hash)) item!["sha256"] = hash;
-        var records = Json.Read(Path.Combine(output, "identity-records.json")); var manifest = Json.Read(Path.Combine(output, "manifest.json"));
+        var records = Json.Read(Path.Combine(input, "identity-records.json")); var manifest = Json.Read(Path.Combine(input, "manifest.json"));
         foreach (var (project, record) in records.AsObject())
         {
             if (Json.Digest(record!) != manifest["projects"]![project]!.String("identity")) throw new InvalidDataException("Corrupt discovery identity");
@@ -131,9 +155,12 @@ internal static class NativePlan
             foreach (var name in payload.AsObject().Select(p => p.Key).ToArray())
                 if (name.EndsWith(".cs", StringComparison.Ordinal) && !name.StartsWith(".nuget/", StringComparison.Ordinal) && !sources.ContainsKey(name)) payload.AsObject().Remove(name);
             Json.Write(payloadPath, payload);
-            var restore = new JsonObject();
-            foreach (var record in records.AsObject().Select(p => p.Value!)) foreach (var (name, value) in record["restore"]!.AsObject()) restore[name] = value!.DeepClone();
-            Json.Write(Path.Combine(output, "restore.json"), restore); Json.Write(Path.Combine(output, "entry.json"), new JsonObject { ["entry"] = project });
+            // Dependencies replay captured target results without loading their
+            // SDK or NuGet imports; only the selected project needs restore data.
+            Json.Write(Path.Combine(output, "restore.json"), records[project]!["restore"]!);
+            Json.Write(Path.Combine(output, "entry.json"), new JsonObject { ["entry"] = project });
+            Json.Write(Path.Combine(output, "manifest.json"), manifest);
+            return;
         }
         Json.Write(Path.Combine(output, "identity-records.json"), records); Json.Write(Path.Combine(output, "manifest.json"), manifest); Json.Write(Path.Combine(output, "graph.json"), graph);
     }

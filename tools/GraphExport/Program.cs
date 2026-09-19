@@ -355,7 +355,10 @@ internal static class GraphExporter
                     .Select(reference => new SelectedReferenceRecord(
                         NormalizeWorkspaceRelative(request, reference.GetMetadataValue("FullPath")),
                         SelectedFramework(reference.GetMetadataValue("SetTargetFramework"))))
-                    .OrderBy(reference => reference.Project, StringComparer.Ordinal).ToList()),
+                    .OrderBy(reference => reference.Project, StringComparer.Ordinal).ToList(),
+                instance.GetItems("ProjectReference").Where(reference => reference.GetMetadataValue("OutputItemType").Equals("Analyzer", StringComparison.OrdinalIgnoreCase) &&
+                    reference.GetMetadataValue("ReferenceOutputAssembly").Equals("false", StringComparison.OrdinalIgnoreCase))
+                    .Select(reference => NormalizeWorkspaceRelative(request, reference.GetMetadataValue("FullPath"))).Distinct(StringComparer.Ordinal).Order(StringComparer.Ordinal).ToList()),
             new DiscoveryRecord(instance.GetPropertyValue("SignAssembly").Equals("true", StringComparison.OrdinalIgnoreCase),
                 instance.GetPropertyValue("PublicSign").Equals("true", StringComparison.OrdinalIgnoreCase),
                 instance.GetPropertyValue("DelaySign").Equals("true", StringComparison.OrdinalIgnoreCase)));
@@ -584,7 +587,7 @@ internal sealed record InputRecord(string Kind, string Path, string Sha256, Sort
 internal sealed record OutputRecord(string Kind, string Path);
 internal sealed record NodeRecord(string Id, string Project, SortedDictionary<string, string> GlobalProperties, string TargetFramework, string OutputType, List<string> Dependencies, List<InputRecord> Inputs, List<OutputRecord> Outputs, ExecutionRecord Execution, DiscoveryRecord Discovery);
 internal sealed record SelectedReferenceRecord(string Project, string TargetFramework);
-internal sealed record ExecutionRecord(string AssetsFile, string OutputDirectory, string ReferenceDirectory, List<SelectedReferenceRecord> SelectedReferences);
+internal sealed record ExecutionRecord(string AssetsFile, string OutputDirectory, string ReferenceDirectory, List<SelectedReferenceRecord> SelectedReferences, List<string>? AnalyzerReferences = null);
 internal sealed record Manifest(int SchemaVersion, ToolchainRecord Toolchain, List<string> EntryPoints, List<InputRecord> GraphInputs, List<NodeRecord> Nodes, List<EntryRequest> EntryRequests);
 
 internal sealed record DiscoveryRecord(bool SignAssembly, bool PublicSign, bool DelaySign);

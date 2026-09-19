@@ -103,3 +103,28 @@ The full export then reached explicit ProjectReference PrivateAssets=none.
 Validation now checks that metadata in both the project's restore and each
 consumer snapshot. Its partial-restore negative control passes; removing the
 attribute requires a complete restore before graph publication.
+
+### Step 4: mixed-framework executable analyzer dependencies
+
+The complete host now exports all 202 selected projects successfully. The native
+project-action path carries each selected framework and marks analyzer producers
+and their dependency closures as implementation dependencies. Their full sealed
+outputs remain executable, and implementation edits invalidate their consumers;
+ordinary libraries retain API-based reuse. Aggregate legacy mode still rejects
+these new graph capabilities.
+
+An unchanged real Orchard net10.0 HealthChecks.Abstractions consumer and its
+netstandard2.0 source generator build in six native Bazel sandbox actions. All
+four consumer outputs match raw MSBuild byte for byte. A controlled generator
+implementation edit emits an assembly metadata attribute: both compile actions
+rerun, the consumer DLL changes, and all four outputs again match raw MSBuild.
+These component tests do not bypass production discovery in the shipped path;
+the temporary harness starts with an already validated preparation. Full owned
+discovery, host runtime and independent remote-cache recovery remain open.
+
+Per-project binding now writes only the four files consumed by replay, including
+only the selected project's restore data. Dependency projects replay SDK-less
+captured results. The two-project sample's bound consumer plan is 197,485 bytes
+versus 1,247,180 bytes in the complete discovery plan. Source-role, stale-edge,
+source-membership and immutable-template checks pass (five binding tests), as do
+the analyzer-closure and legacy identity compatibility tests.

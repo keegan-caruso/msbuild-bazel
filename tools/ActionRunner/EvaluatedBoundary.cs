@@ -8,9 +8,15 @@ namespace ActionRunner;
 // project DLL/PDB/XML bytes are deferred to current-result runtime composition.
 internal static class EvaluatedBoundary
 {
-    private static string Bin(string project) => Path.Combine(Path.GetDirectoryName(project)!, "bin/Release/net10.0");
+    internal static string Framework(string bundle)
+    {
+        using var results = JsonDocument.Parse(File.ReadAllText(Path.Combine(bundle, "results.json")));
+        var framework = results.RootElement.TryGetProperty("targetFramework", out var value) ? value.GetString() : "net10.0";
+        return framework is "net10.0" or "netstandard2.0" ? framework : throw new InvalidDataException("Unqualified bundle framework");
+    }
+    private static string Bin(string project, string framework) => Path.Combine(Path.GetDirectoryName(project)!, "bin/Release", framework);
     private static string Assembly(string project) => Path.GetFileNameWithoutExtension(project);
-    private static string Reference(string project) => Path.Combine(Path.GetDirectoryName(project)!, "obj/Release/net10.0/ref", Assembly(project) + ".dll");
+    private static string Reference(string project, string framework) => Path.Combine(Path.GetDirectoryName(project)!, "obj/Release", framework, "ref", Assembly(project) + ".dll");
 
     internal static bool CopiesProjectRuntime(string copyPolicy, IEnumerable<string> paths, ISet<string> runtimeNames) =>
         copyPolicy.Length != 0 && !copyPolicy.Equals("Never", StringComparison.OrdinalIgnoreCase) &&
@@ -24,23 +30,36 @@ internal static class EvaluatedBoundary
         _ => value.Clone()
     };
 
-    internal static string Identity(string bundle, string project, string[] closure, string[] dependencies, bool runtimeReferences = false)
+    internal static string Identity(string bundle, string project, string[] closure, string[] dependencies, bool runtimeReferences = false, bool fullImplementation = false)
     {
-        var artifacts = CompileBoundary.Validate(bundle);
-        if (!artifacts.Any(item => item.Path == Reference(project)))
+        var artifacts = CompileBoundary.Validate(bundle); var framework = Framework(bundle);
+        if (fullImplementation)
+        {
+            using var fullResults = JsonDocument.Parse(File.ReadAllText(Path.Combine(bundle, "results.json")));
+            var content = JsonSerializer.SerializeToUtf8Bytes(new
+            {
+                policy = "implementation-dependency-v1",
+                framework,
+                artifacts = artifacts.OrderBy(item => item.Path, StringComparer.Ordinal),
+                targets = Canonical(fullResults.RootElement.GetProperty("targets")),
+                dependencies
+            });
+            return Convert.ToHexStringLower(System.Security.Cryptography.SHA256.HashData(content));
+        }
+        if (!artifacts.Any(item => item.Path == Reference(project, framework)))
             throw new InvalidDataException("evaluated reference assembly missing");
         var implementations = closure.SelectMany(dependency => new[] { ".dll", ".pdb", ".xml" }
-            .Select(extension => Path.Combine(Bin(project), Assembly(dependency) + extension))).ToHashSet(StringComparer.Ordinal);
+            .Select(extension => Path.Combine(Bin(project, framework), Assembly(dependency) + extension))).ToHashSet(StringComparer.Ordinal);
         // Do not classify a package asset as a project implementation merely
         // because their filenames collide. Such runtime selection needs its own
         // qualification rather than silently replacing the SDK's chosen asset.
-        using var metadata = JsonDocument.Parse(File.ReadAllText(Path.Combine(bundle, "artifacts", Bin(project), Assembly(project) + ".deps.json")));
+        using var metadata = JsonDocument.Parse(File.ReadAllText(Path.Combine(bundle, "artifacts", Bin(project, framework), Assembly(project) + ".deps.json")));
         var libraries = metadata.RootElement.GetProperty("libraries");
         foreach (var target in metadata.RootElement.GetProperty("targets").EnumerateObject())
             foreach (var library in target.Value.EnumerateObject())
                 if (libraries.GetProperty(library.Name).GetProperty("type").GetString() == "package" && library.Value.TryGetProperty("runtime", out var runtime))
                     foreach (var asset in runtime.EnumerateObject())
-                        if (implementations.Contains(Path.Combine(Bin(project), Path.GetFileName(asset.Name))))
+                        if (implementations.Contains(Path.Combine(Bin(project, framework), Path.GetFileName(asset.Name))))
                             throw new InvalidDataException("package and project runtime names collide");
         // Preserve membership, all reference bytes, SDK metadata, package assets
         // and replay target metadata. Propagate transitive compile contracts too.
@@ -73,15 +92,15 @@ internal static class EvaluatedBoundary
     // regardless of which project happened to compile in this invocation.
     internal static bool RefreshBundle(string bundle, string project, Dictionary<string, string> dependencies, string output)
     {
-        var own = CompileBoundary.Validate(bundle); var changed = false;
+        var own = CompileBoundary.Validate(bundle); var changed = false; var framework = Framework(bundle);
         foreach (var (dependency, producer) in dependencies)
         {
             var artifacts = CompileBoundary.Validate(producer);
             foreach (var extension in new[] { ".dll", ".pdb", ".xml" })
             {
-                var selected = own.SingleOrDefault(item => item.Path == Path.Combine(Bin(project), Assembly(dependency) + extension));
+                var selected = own.SingleOrDefault(item => item.Path == Path.Combine(Bin(project, framework), Assembly(dependency) + extension));
                 if (selected is null) continue;
-                var current = artifacts.SingleOrDefault(item => item.Path == Path.Combine(Bin(dependency), Assembly(dependency) + extension))
+                var current = artifacts.SingleOrDefault(item => item.Path == Path.Combine(Bin(dependency, Framework(producer)), Assembly(dependency) + extension))
                     ?? throw new InvalidDataException("Current runtime artifact missing during seed refresh");
                 changed |= selected.Sha256 != current.Sha256;
             }
@@ -96,17 +115,17 @@ internal static class EvaluatedBoundary
 
     internal static void Compose(string bundle, string project, Dictionary<string, string> dependencies, string workspace, bool verifySelection = false)
     {
-        var own = CompileBoundary.Validate(bundle);
+        var own = CompileBoundary.Validate(bundle); var framework = Framework(bundle);
         var replacements = new Dictionary<string, string>(StringComparer.Ordinal);
         foreach (var (dependency, producer) in dependencies)
         {
             var artifacts = CompileBoundary.Validate(producer);
-            var assembly = Path.Combine(Bin(dependency), Assembly(dependency) + ".dll");
+            var assembly = Path.Combine(Bin(dependency, Framework(producer)), Assembly(dependency) + ".dll");
             if (!artifacts.Any(item => item.Path == assembly))
                 throw new InvalidDataException("current project implementation missing");
             foreach (var extension in new[] { ".dll", ".pdb", ".xml" })
             {
-                var destination = Path.Combine(Bin(project), Assembly(dependency) + extension);
+                var destination = Path.Combine(Bin(project, framework), Assembly(dependency) + extension);
                 // Preserve the SDK's selected copy-local membership and layout.
                 var selected = own.SingleOrDefault(item => item.Path == destination);
                 if (selected is null) continue;

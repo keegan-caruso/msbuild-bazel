@@ -8,7 +8,7 @@ using Microsoft.Build.ProjectCache;
 using TaskItem = Microsoft.Build.Utilities.TaskItem;
 
 internal sealed record DeclaredFile(string Path, string Hash);
-internal sealed record DeclaredProject(string Identity, string[] Dependencies);
+internal sealed record DeclaredProject(string Identity, string[] Dependencies, string TargetFramework = "net10.0", bool Implementation = false, string[]? Analyzers = null);
 internal sealed record Session(string Workspace, string Cache, string Scratch, string Report, string Entry, string Toolchain,
     DeclaredFile[] Files, Dictionary<string, DeclaredProject> Projects, string? Remote = null, string? TargetsPath = null, string Policy = "native-qualified-v2", Dictionary<string, string>? Prebuilt = null);
 internal sealed record Ready(string Bundle, string Api);
@@ -35,7 +35,7 @@ public sealed class NativeCachePlugin : ProjectCachePluginBase
     private string Property(string key, string value) => key == "DirectoryBuildTargetsPath" && session.TargetsPath is not null && value == session.TargetsPath ? "${CACHE_TARGETS}" : Normalize(value);
     private string Expand(string value) => value.Replace("${WORKSPACE}", session.Workspace, StringComparison.Ordinal);
     private static string Assembly(string project) => Path.GetFileNameWithoutExtension(project);
-    private static string Bin(string project) => Path.Combine(Path.GetDirectoryName(project)!, "bin/Release/net10.0");
+    private string Bin(string project) => Path.Combine(Path.GetDirectoryName(project)!, "bin/Release", session.Projects[project].TargetFramework);
     private bool PackagePolicy => session.Policy == "evaluated-api-runtime-v2";
     private string[] Closure(string project)
     {
@@ -50,12 +50,12 @@ public sealed class NativeCachePlugin : ProjectCachePluginBase
     }
     private string DependencyIdentity(string bundle, string project) => apiRuntime
         ? EvaluatedBoundary.Identity(bundle, project, Closure(project), session.Projects[project].Dependencies.Order(StringComparer.Ordinal)
-            .Select(dependency => dependency + ":" + states[dependency].Completion.Task.Result.Api).ToArray(), runtimeReferences: session.Prebuilt is not null)
+            .Select(dependency => dependency + ":" + states[dependency].Completion.Task.Result.Api).ToArray(), runtimeReferences: session.Prebuilt is not null, fullImplementation: session.Projects[project].Implementation)
         : Files.Hash(Path.Combine(bundle, PackagePolicy ? "artifacts.json" : Path.Combine("artifacts", Reference(project))));
     private void Compose(string bundle, string project, bool verifySelection = false) => EvaluatedBoundary.Compose(bundle, project,
         Closure(project).Where(dependency => dependency != project).ToDictionary(dependency => dependency,
             dependency => states[dependency].Completion.Task.Result.Bundle), session.Workspace, verifySelection);
-    private static string Reference(string project) => Path.Combine(Path.GetDirectoryName(project)!, "obj/Release/net10.0/ref", Assembly(project) + ".dll");
+    private string Reference(string project) => Path.Combine(Path.GetDirectoryName(project)!, "obj/Release", session.Projects[project].TargetFramework, "ref", Assembly(project) + ".dll");
 
     public override Task BeginBuildAsync(CacheContext context, PluginLoggerBase logger, CancellationToken token)
     {
@@ -65,6 +65,11 @@ public sealed class NativeCachePlugin : ProjectCachePluginBase
             throw new InvalidDataException("native cache requires a qualified graph session");
         if (PackagePolicy && session.Projects.Keys.Select(Assembly).Distinct(StringComparer.OrdinalIgnoreCase).Count() != session.Projects.Count)
             throw new InvalidDataException("ambiguous project runtime assembly names");
+        if (session.Projects.Values.Any(project => project.TargetFramework is not ("net10.0" or "netstandard2.0") ||
+            project.TargetFramework == "netstandard2.0" && !project.Implementation ||
+            project.Implementation && project.Dependencies.Any(dependency => !session.Projects.TryGetValue(dependency, out var producer) || !producer.Implementation) ||
+            (project.Analyzers ?? []).Any(analyzer => !project.Dependencies.Contains(analyzer) || !session.Projects.TryGetValue(analyzer, out var producer) || !producer.Implementation)))
+            throw new InvalidDataException("Invalid framework or analyzer declaration");
         states = session.Projects.Keys.ToDictionary(project => project, _ => new State());
         if (context.Graph is not null)
         {
@@ -87,7 +92,7 @@ public sealed class NativeCachePlugin : ProjectCachePluginBase
                 var artifacts = CompileBoundary.Validate(bundle);
                 var results = ProjectActions.Read(bundle);
                 var identity = DependencyIdentity(bundle, project);
-                if (results.Project != project || results.Toolchain != session.Toolchain || results.Key != identity || results.Inputs != identity) throw new InvalidDataException("Invalid project API dependency: " + project);
+                if (results.TargetFramework != session.Projects[project].TargetFramework || results.Project != project || results.Toolchain != session.Toolchain || results.Key != identity || results.Inputs != identity) throw new InvalidDataException("Invalid project API dependency: " + project);
                 foreach (var artifact in artifacts)
                 {
                     if (!Allowed(project, artifact.Path)) throw new InvalidDataException("API artifact outside project outputs");
@@ -109,7 +114,7 @@ public sealed class NativeCachePlugin : ProjectCachePluginBase
     {
         var project = Relative(instance.FullPath);
         if (!session.Projects.TryGetValue(project, out var declared) ||
-            instance.GetPropertyValue("TargetFramework") != "net10.0" || instance.GetPropertyValue("Configuration") != "Release" ||
+            instance.GetPropertyValue("TargetFramework") != declared.TargetFramework || instance.GetPropertyValue("Configuration") != "Release" ||
             instance.GetPropertyValue("NETCoreSdkVersion") != "10.0.400" ||
             !(graphEdges ?? instance.GetItems("ProjectReference").Select(item => Relative(item.GetMetadataValue("FullPath"))).Distinct()).Order().SequenceEqual(declared.Dependencies.Order()))
             throw new InvalidDataException("unqualified project configuration or edges");
@@ -119,9 +124,11 @@ public sealed class NativeCachePlugin : ProjectCachePluginBase
     {
         var runtimeNames = session.Projects.Keys.SelectMany(project => new[] { ".dll", ".pdb", ".xml" }
             .Select(extension => Assembly(project) + extension)).ToHashSet(StringComparer.OrdinalIgnoreCase);
+        var analyzers = (session.Projects[Relative(instance.FullPath)].Analyzers ?? []).ToHashSet(StringComparer.Ordinal);
         return instance.GetItems("ProjectReference").All(reference =>
-            reference.GetMetadataValue("OutputItemType").Length == 0 &&
-            !reference.GetMetadataValue("ReferenceOutputAssembly").Equals("false", StringComparison.OrdinalIgnoreCase) &&
+            (analyzers.Contains(Relative(reference.GetMetadataValue("FullPath")))
+                ? reference.GetMetadataValue("OutputItemType").Equals("Analyzer", StringComparison.OrdinalIgnoreCase) && reference.GetMetadataValue("ReferenceOutputAssembly").Equals("false", StringComparison.OrdinalIgnoreCase)
+                : reference.GetMetadataValue("OutputItemType").Length == 0 && !reference.GetMetadataValue("ReferenceOutputAssembly").Equals("false", StringComparison.OrdinalIgnoreCase)) &&
             !reference.GetMetadataValue("EmbedInteropTypes").Equals("true", StringComparison.OrdinalIgnoreCase)) &&
             !instance.Items.Any(item => item.ItemType is "Content" or "None" or "Compile" or "EmbeddedResource" &&
                 EvaluatedBoundary.CopiesProjectRuntime(item.GetMetadataValue("CopyToOutputDirectory"),
@@ -147,7 +154,7 @@ public sealed class NativeCachePlugin : ProjectCachePluginBase
         {
             if (project != session.Entry) throw new InvalidDataException("Dependency replay must not query the compile plugin");
             ValidateProject(request.ProjectInstance);
-            if (!OrdinaryReferences(request.ProjectInstance)) throw new InvalidDataException("Project actions require ordinary API references");
+            if (!OrdinaryReferences(request.ProjectInstance)) throw new InvalidDataException("Project actions require declared ordinary or analyzer references");
             events.Add(new { project, kind = "entry-evaluated" });
         }
         var state = states[project];
@@ -176,7 +183,7 @@ public sealed class NativeCachePlugin : ProjectCachePluginBase
             {
                 var artifacts = CompileBoundary.Validate(candidate);
                 var results = JsonSerializer.Deserialize<Results>(File.ReadAllText(Path.Combine(candidate, "results.json")), Json) ?? throw new InvalidDataException("empty cached results");
-                if (results.Targets.Any(pair => pair.Value is null || pair.Value.Any(item => item is null || item.Metadata is null || item.Metadata.Values.Any(value => value is null))) || results.Key != state.Key || results.Project != project || results.Inputs != session.Projects[project].Identity || results.Toolchain != session.Toolchain || request.TargetNames.Any(target => !results.Targets.ContainsKey(target)))
+                if (results.Targets.Any(pair => pair.Value is null || pair.Value.Any(item => item is null || item.Metadata is null || item.Metadata.Values.Any(value => value is null))) || results.TargetFramework != session.Projects[project].TargetFramework || results.Key != state.Key || results.Project != project || results.Inputs != session.Projects[project].Identity || results.Toolchain != session.Toolchain || request.TargetNames.Any(target => !results.Targets.ContainsKey(target)))
                     throw new InvalidDataException("cached target identity mismatch");
                 foreach (var artifact in artifacts)
                 {
@@ -233,7 +240,7 @@ public sealed class NativeCachePlugin : ProjectCachePluginBase
                 if (Allowed(project, relative)) Files.Copy(file, Path.Combine(bundle, "artifacts", relative));
             }
             if (!PackagePolicy) KeepOwnRuntimeMetadata(bundle, project);
-            File.WriteAllText(Path.Combine(bundle, "results.json"), JsonSerializer.Serialize(new Results(project, state.Key, targets, session.Projects[project].Identity, session.Toolchain), Json));
+            File.WriteAllText(Path.Combine(bundle, "results.json"), JsonSerializer.Serialize(new Results(project, state.Key, targets, session.Projects[project].Identity, session.Toolchain, session.Projects[project].TargetFramework), Json));
             CompileBoundary.Seal(bundle);
             if (apiRuntime) Compose(bundle, project, verifySelection: true);
             var api = DependencyIdentity(bundle, project);

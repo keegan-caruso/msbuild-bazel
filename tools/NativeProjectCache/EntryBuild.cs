@@ -13,7 +13,7 @@ internal static class EntryBuild
         var properties = new Dictionary<string, string>
         {
             ["Configuration"] = "Release",
-            ["TargetFramework"] = "net10.0",
+            ["TargetFramework"] = session.Projects[session.Entry].TargetFramework,
             ["PathMap"] = session.Workspace + "=/_/workspace",
             ["DirectoryBuildTargetsPath"] = session.TargetsPath!
         };

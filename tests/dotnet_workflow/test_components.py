@@ -202,6 +202,30 @@ class Components(unittest.TestCase):
         self.invoke('native-plan',dict(prepared=str(prepared),graph=graph,output=str(actual),toolchain='a'*64))
         for name in ('manifest.json','restore.json','entry.json','graph.json','identity-records.json'):
             self.assertEqual(json.loads((actual/name).read_text()),json.loads((expected/name).read_text()),name)
+    def test_native_analyzers_preserve_executable_dependency_closure(self):
+        import copy
+        prepared,graph=self.native_fixture()
+        app=graph['nodes'][0]
+        for name,framework,deps in [('Generator','netstandard2.0',['helper']),('Helper','netstandard2.0',[])]:
+            node=copy.deepcopy(app);node.update(id=name.lower(),project=f'workspace/{name}/{name}.csproj',targetFramework=framework,dependencies=deps)
+            node['globalProperties']={'configuration':'Release'}
+            node['execution']={'outputDirectory':f'workspace/{name}/bin/Release/{framework}','referenceDirectory':f'workspace/{name}/obj/Release/{framework}/ref'}
+            node['outputs']=[{'kind':'assembly','path':f'workspace/{name}/bin/Release/{framework}/{name}.dll'}]
+            node['inputs']=[];graph['nodes'].append(node)
+            (prepared/'restore'/f'{name.lower()}.json').write_text('{}')
+            (prepared/'package-manifests'/f'{name.lower()}.json').write_text('{"packages":[]}')
+        app['dependencies']=['generator'];app['execution']['analyzerReferences']=['workspace/Generator/Generator.csproj']
+        output=self.root/'mixed'
+        self.invoke('native-plan',dict(prepared=str(prepared),graph=graph,output=str(output),toolchain='a'*64))
+        projects=json.loads((output/'manifest.json').read_text())['projects']
+        self.assertEqual(projects['App/App.csproj']['analyzers'],['Generator/Generator.csproj'])
+        self.assertNotIn('implementation',projects['App/App.csproj'])
+        for name in ('Generator','Helper'):
+            self.assertTrue(projects[f'{name}/{name}.csproj']['implementation'])
+            self.assertEqual(projects[f'{name}/{name}.csproj']['targetFramework'],'netstandard2.0')
+        app['execution']['analyzerReferences']=['workspace/Helper/Helper.csproj']
+        self.assertIn('Analyzer reference is not a graph dependency',self.invoke('native-plan',dict(prepared=str(prepared),graph=graph,output=str(self.root/'bad'),toolchain='a'*64),False))
+
     def refresh_fixture(self):
         prepared,graph=self.native_fixture();output=self.root/'plan';workspace=prepared/'src'
         self.invoke('native-plan',dict(prepared=str(prepared),graph=graph,output=str(output),toolchain='a'*64))
