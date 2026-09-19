@@ -1,5 +1,9 @@
 # MSBuild / Bazel implementation plan
 
+[Action-local validation and direct caching](action-local-cache-validation.md)
+passes a real small-graph producer-deleted recovery and failed-publication
+control. Its loopback measurements do not justify changing the gated default.
+
 The [evaluated API/runtime boundary](native-api-runtime.md) follows the changed
 HTTP-cache baseline, separating ordinary project compilation reuse from current
 runtime composition while retaining SDK/package metadata in dependency keys.

@@ -2,7 +2,7 @@ using System.Text.Json;
 using System.Text.Json.Nodes;
 using ActionRunner;
 
-internal sealed record ComposeRequest(string Entry, string Output, string[] Bundles, string? EntryBundle = null, string[]? RuntimeBundles = null, string? MetadataOutput = null);
+internal sealed record ComposeRequest(string Entry, string Output, string[] Bundles, string? EntryBundle = null, string[]? RuntimeBundles = null, string? MetadataOutput = null, bool ValidatePublication = false);
 
 // Bazel compile dependencies carry a stable API projection. Real implementation
 // bytes are restored only by the final runtime action, without invoking MSBuild.
@@ -11,6 +11,15 @@ internal static class ProjectActions
     private static readonly JsonSerializerOptions Options = new() { PropertyNamingPolicy = JsonNamingPolicy.CamelCase, WriteIndented = true };
     private static string Bin(string project, string framework) => Path.Combine(Path.GetDirectoryName(project)!, "bin/Release", framework);
     private static string Assembly(string project) => Path.GetFileNameWithoutExtension(project);
+    internal static void ValidatePublication(string metadata, string artifacts)
+    {
+        var files = Directory.EnumerateFiles(metadata, "*", SearchOption.AllDirectories)
+            .Where(path => !path.StartsWith(artifacts + Path.DirectorySeparatorChar, StringComparison.Ordinal))
+            .ToDictionary(path => Path.GetRelativePath(metadata, path), StringComparer.Ordinal);
+        foreach (var path in Directory.EnumerateFiles(artifacts, "*", SearchOption.AllDirectories))
+            files.Add("artifacts/" + Path.GetRelativePath(artifacts, path), path);
+        RulesMSBuild.BundleIntegrity.Validate(files.Keys, name => File.ReadAllBytes(files[name]));
+    }
     internal static Results Read(string bundle)
     {
         var result = JsonSerializer.Deserialize<Results>(File.ReadAllText(Path.Combine(bundle, "results.json")), Options) ?? throw new InvalidDataException("Missing project results");
@@ -109,6 +118,7 @@ internal static class ProjectActions
                 .Order(StringComparer.Ordinal).Select(path => new Artifact(Path.GetRelativePath(application, path), new FileInfo(path).Length, Files.Hash(path))).ToArray());
             JsonFiles.Write(Path.Combine(metadata, "bundle.json"), new BundleSeal(1, Files.Hash(Path.Combine(metadata, "results.json")), Files.Hash(Path.Combine(metadata, "artifacts.json"))));
             Files.NormalizeTree(metadata);
+            if (request.ValidatePublication) ValidatePublication(metadata, application);
             return;
         }
         var entry = Path.Combine(request.Output, "cache", results[request.Entry].Key);

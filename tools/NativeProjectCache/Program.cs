@@ -6,7 +6,7 @@ using NativeCache;
 
 internal sealed record RunnerFile(string Source, string Destination);
 internal sealed record RunnerPackageDirectory(string Source, string Package);
-internal sealed record RunnerRequest(string Entry, string Output, string Diagnostics, string Manifest, string Restore, RunnerFile[] Sources, RunnerFile[] Seeds, string? ReadProbe = null, string? NetworkProbe = null, string? WriteProbe = null, string? PreparedPlan = null, bool ProjectAction = false, string? ApiOutput = null, string[]? Prebuilt = null, RunnerPackageDirectory[]? PackageDirectories = null, string? RuntimeOutput = null, bool BorrowPackageInputs = false);
+internal sealed record RunnerRequest(string Entry, string Output, string Diagnostics, string Manifest, string Restore, RunnerFile[] Sources, RunnerFile[] Seeds, string? ReadProbe = null, string? NetworkProbe = null, string? WriteProbe = null, string? PreparedPlan = null, bool ProjectAction = false, string? ApiOutput = null, string[]? Prebuilt = null, RunnerPackageDirectory[]? PackageDirectories = null, string? RuntimeOutput = null, bool BorrowPackageInputs = false, bool ValidatePublication = false);
 internal sealed record PortableManifest(string Toolchain, Dictionary<string, DeclaredProject> Projects, string Policy = "native-qualified-v2");
 
 internal static class Program
@@ -235,6 +235,9 @@ internal static class Program
                 if (request.RuntimeOutput is not null) ProjectActions.Runtime(entryBundle, request.RuntimeOutput, entryArtifacts);
                 dependencyValidation.VerifyUnchanged();
                 borrowedPackages.VerifyUnchanged();
+                if (request.ValidatePublication)
+                    foreach (var bundle in new[] { entryBundle, request.ApiOutput, request.RuntimeOutput }.Where(path => path is not null))
+                        ProjectActions.ValidatePublication(bundle!, Path.Combine(bundle!, "artifacts"));
                 Directory.Delete(scratch, true); Mark("cleanup"); return 0;
             }
             var runtime = Path.Combine(output, "runtime", Path.GetFileName(entryBundle));

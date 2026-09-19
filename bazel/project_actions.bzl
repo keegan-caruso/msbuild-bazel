@@ -44,6 +44,7 @@ def _project(ctx):
         "packageDirectories": package_rows(ctx.attr.package_set),
         "seeds": [],
         "projectAction": True,
+        "validatePublication": ctx.attr.validate_publication,
         "apiOutput": api.path,
         "runtimeOutput": runtime.path,
         "prebuilt": [f.path for f in dependencies.to_list()],
@@ -61,6 +62,7 @@ def _project(ctx):
     return [DefaultInfo(files = depset([output])), ProjectBundleInfo(api = api, apis = depset([api], transitive = [dependencies]), bundle = output, runtimes = depset([runtime], transitive = [dependency_runtimes]), dependency_runtimes = dependency_runtimes)]
 
 msbuild_compile_project = rule(implementation = _project, attrs = {
+    "validate_publication": attr.bool(default = False),
     "package_set": attr.label(providers = [NugetPackageSetInfo]),
     "project": attr.string(mandatory = True),
     "project_dependencies": attr.string_list(),
@@ -81,7 +83,7 @@ def _runtime(ctx):
     entry = ctx.attr.entry[ProjectBundleInfo]
     bundles = entry.dependency_runtimes
     request = ctx.actions.declare_file(ctx.label.name + ".request.json")
-    ctx.actions.write(request, json.encode({"entry": ctx.attr.project, "output": output.path, "bundles": [], "entryBundle": entry.bundle.path, "runtimeBundles": [f.path for f in bundles.to_list()], "metadataOutput": metadata.path}))
+    ctx.actions.write(request, json.encode({"entry": ctx.attr.project, "output": output.path, "bundles": [], "entryBundle": entry.bundle.path, "runtimeBundles": [f.path for f in bundles.to_list()], "metadataOutput": metadata.path, "validatePublication": ctx.attr.validate_publication}))
     ctx.actions.run(
         executable = ctx.executable.dotnet,
         arguments = [ctx.file.runner.path, "--compose-projects", request.path],
@@ -94,6 +96,7 @@ def _runtime(ctx):
     return [DefaultInfo(files = depset([output, metadata])), NativeBundle(bundle = output, metadata = metadata)]
 
 msbuild_compose_runtime = rule(implementation = _runtime, attrs = {
+    "validate_publication": attr.bool(default = False),
     "entry": attr.label(providers = [ProjectBundleInfo], mandatory = True),
     "project": attr.string(mandatory = True),
     "runner": attr.label(allow_single_file = True, mandatory = True),

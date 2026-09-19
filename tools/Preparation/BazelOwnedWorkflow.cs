@@ -67,7 +67,7 @@ internal static class BazelOwnedWorkflow
     }
     public static JsonNode Run(JsonNode request)
     {
-        var allowed = new HashSet<string>(["schemaVersion", "repository", "sdkRoot", "bazel", "workspace", "state", "entry", "output", "operation", "tests", "nuget-packages", "bazel-remote-cache", "bazel-remote-upload", "remote-endpoint", "remote-snapshot", "bazel-install-cache", "bazel-repository-cache", "project-actions", "project-layout", "direct-checkout", "locked-restore", "package-actions", "bazel-remote-connections"], StringComparer.Ordinal);
+        var allowed = new HashSet<string>(["schemaVersion", "repository", "sdkRoot", "bazel", "workspace", "state", "entry", "output", "operation", "tests", "nuget-packages", "bazel-remote-cache", "bazel-remote-upload", "remote-endpoint", "remote-snapshot", "bazel-install-cache", "bazel-repository-cache", "project-actions", "project-layout", "direct-checkout", "locked-restore", "package-actions", "bazel-remote-connections", "experimental-direct-action-cache", "action-local-validation"], StringComparer.Ordinal);
         if (request["schemaVersion"]?.GetValue<int>() != 1 || request.AsObject().Any(p => !allowed.Contains(p.Key))) throw new InvalidDataException("Invalid Bazel-owned workflow request");
         var root = Host.Real(request.String("repository")); var source = Host.Real(request.String("workspace")); var state = Host.Real(request.String("state")); var output = Host.Real(request.String("output"));
         foreach (var (a, b) in new[] { (root, source), (root, state), (source, state), (output, source), (output, root), (output, state) })
@@ -77,6 +77,10 @@ internal static class BazelOwnedWorkflow
         if (!OperatingSystem.IsMacOS() || sdk != "/nix/store/f3kvj2nc26gn7rh5mnfnaa2dgy2p10v3-dotnet-sdk-10.0.400/share/dotnet") throw new InvalidDataException("Bazel-owned preparation currently requires the qualified macOS Nix SDK");
         var projectActions = request["project-actions"]?.GetValue<bool>() == true;
         if (projectActions && (request["remote-snapshot"] is not null || request["remote-endpoint"] is not null)) throw new InvalidDataException("Project actions use bazel-remote-cache, not native snapshot endpoints");
+        var directCache = request["experimental-direct-action-cache"]?.GetValue<bool>() == true;
+        if (directCache && (!projectActions || request["bazel-remote-cache"] is null)) throw new InvalidDataException("Direct cache experiment requires project actions and a cache endpoint");
+        var actionLocalValidation = directCache || request["action-local-validation"]?.GetValue<bool>() == true;
+        if (actionLocalValidation && !projectActions) throw new InvalidDataException("Action-local validation requires project actions");
         var directCheckout = request["direct-checkout"]?.GetValue<bool>() == true;
         if (directCheckout && !projectActions) throw new InvalidDataException("Direct checkout requires project actions");
         var lockedRestore = request["locked-restore"]?.GetValue<bool>() == true;
@@ -135,7 +139,7 @@ internal static class BazelOwnedWorkflow
                 if (remote is null) throw new InvalidDataException("Snapshot requires endpoint");
                 var catalog = remote.Snapshot(snapshot.GetValue<string>(), worker); remote.Seeds(catalog["projects"]!, null, seeds);
             }
-            Measure("generate", () => { Generate(root, generated, sdk, request.String("nuget-packages"), report["nuget"]!["locked"]!, entry, tests, declaredLayout, directCheckout ? source : null, lockedRestore, packageActions); return true; });
+            Measure("generate", () => { Generate(root, generated, sdk, request.String("nuget-packages"), report["nuget"]!["locked"]!, entry, tests, declaredLayout, directCheckout ? source : null, lockedRestore, packageActions, actionLocalValidation); return true; });
             var watched = (directCheckout ? new[] { seeds } : new[] { inputs, seeds }).Concat(tests is null || directCheckout ? [] : new[] { Path.Combine(generated, "test-data") }).ToDictionary(p => p, p => FileTree.Snapshot(p));
             var watchedFiles = Directory.GetFiles(generated).ToDictionary(p => p, p => Json.Sha(File.ReadAllBytes(p)));
             var command = new List<string> { "--nosystem_rc", "--nohome_rc", "--noworkspace_rc", "--output_base=" + Path.Combine(state, "b"), "--output_user_root=" + Path.Combine(state, "u"), operation, "//:" + operation, "--incompatible_autoload_externally=", "--lockfile_mode=error", "--jobs=2", "--spawn_strategy=darwin-sandbox", "--strategy=MsbuildDiscover=local", "--strategy=MsbuildLockedRestore=local", "--execution_log_json_file=" + Path.Combine(output, "execution.json"), "--noshow_progress", "--color=no", "--curses=no" };
@@ -148,10 +152,13 @@ internal static class BazelOwnedWorkflow
             if (operation == "test") command.AddRange(["--cache_test_results=no", "--test_output=errors"]);
             if (request["bazel-remote-cache"] is { } actionEndpoint)
             {
-                gate = new ActionCache(actionEndpoint.GetValue<string>(), Path.Combine(state, "pending-actions"), request["bazel-remote-upload"]?.GetValue<bool>() == true, connections: request["bazel-remote-connections"]?.GetValue<int>() ?? 8);
-                command.AddRange(["--remote_cache=" + gate.Url, "--remote_upload_local_results=" + (request["bazel-remote-upload"]?.GetValue<bool>() == true ? "true" : "false"), "--remote_cache_async=false", "--remote_verify_downloads=true", "--remote_download_outputs=" + (projectActions ? "toplevel" : "all")]);
+                if (!directCache) gate = new ActionCache(actionEndpoint.GetValue<string>(), Path.Combine(state, "pending-actions"), request["bazel-remote-upload"]?.GetValue<bool>() == true, connections: request["bazel-remote-connections"]?.GetValue<int>() ?? 8);
+                command.AddRange(["--remote_cache=" + (directCache ? ActionCache.Endpoint(actionEndpoint.GetValue<string>()) : gate!.Url), "--remote_upload_local_results=" + (request["bazel-remote-upload"]?.GetValue<bool>() == true ? "true" : "false"), "--remote_cache_async=false", "--remote_verify_downloads=true", "--remote_download_outputs=" + (projectActions ? "toplevel" : "all")]);
             }
-            else if (request["bazel-remote-upload"]?.GetValue<bool>() == true) throw new InvalidDataException("Upload requires cache endpoint");
+            if (directCache) command.Add("--experimental_guard_against_concurrent_changes");
+            report["actionLocalValidation"] = actionLocalValidation;
+            report["cachePublication"] = directCache ? "action-experimental" : "workflow-gated";
+            if (request["bazel-remote-cache"] is null && request["bazel-remote-upload"]?.GetValue<bool>() == true) throw new InvalidDataException("Upload requires cache endpoint");
             var discoveryEvents = Array.Empty<JsonNode>();
             if (projectActions)
             {
@@ -180,7 +187,7 @@ internal static class BazelOwnedWorkflow
                     Json.Write(layoutPath, new JsonObject { ["identity"] = fingerprint, ["graph"] = layout.DeepClone() });
                 }
                 Json.Write(Path.Combine(output, "project-layout.json"), layout);
-                if (declaredLayout is null) Generate(root, generated, sdk, request.String("nuget-packages"), report["nuget"]!["locked"]!, entry, tests, layout, directCheckout ? source : null, lockedRestore, packageActions);
+                if (declaredLayout is null) Generate(root, generated, sdk, request.String("nuget-packages"), report["nuget"]!["locked"]!, entry, tests, layout, directCheckout ? source : null, lockedRestore, packageActions, actionLocalValidation);
                 report["bazelInvocations"] = report["layoutSource"]!.GetValue<string>() == "bootstrap" ? 2 : 1;
                 watchedFiles = Directory.GetFiles(generated).ToDictionary(path => path, path => Json.Sha(File.ReadAllBytes(path)));
                 report["cacheProtocol"] = "bazel-project-actions";
@@ -285,7 +292,7 @@ internal static class BazelOwnedWorkflow
         if (File.Exists(path) && FileTree.ReadRegular(path).AsSpan().SequenceEqual(bytes)) return;
         File.WriteAllBytes(path, bytes);
     }
-    private static void Generate(string root, string generated, string sdk, string packageCache, JsonNode packages, string entry, JsonNode? tests, JsonNode? layout = null, string? checkout = null, bool lockedRestore = false, bool packageActions = false)
+    private static void Generate(string root, string generated, string sdk, string packageCache, JsonNode packages, string entry, JsonNode? tests, JsonNode? layout = null, string? checkout = null, bool lockedRestore = false, bool packageActions = false, bool actionLocalValidation = false)
     {
         foreach (var name in new[] { "msbuild.bzl", "native_cache.bzl", "native_test.bzl", "preparation.bzl", "input_paths.bzl", "repositories.bzl", "project_actions.bzl", "restore_inputs.bzl", "nuget_package.bzl" }) WriteGenerated(Path.Combine(generated, name), File.ReadAllText(Path.Combine(root, "bazel", name)));
         WriteGenerated(Path.Combine(generated, "MODULE.bazel.lock"), File.ReadAllText(Path.Combine(root, "bazel/native.MODULE.bazel.lock")));
@@ -357,9 +364,9 @@ internal static class BazelOwnedWorkflow
                     build += Starlark.Call("nuget_package_set", new JsonObject { ["name"] = packageSet, ["packages"] = Json.Strings(selected.Select(package => ":" + PackageLabel(package))) });
                     projectPackages = ":" + packageSet;
                 }
-                build += Starlark.Call("msbuild_compile_project", new JsonObject { ["package_set"] = projectPackages, ["name"] = Label(project), ["project"] = project, ["project_dependencies"] = node!["dependencies"]!.DeepClone(), ["dependencies"] = Json.Strings(node.Array("dependencies").Select(d => ":" + Label(d!.GetValue<string>()))), ["discovery"] = ":prepare", ["sources"] = Json.Strings(sources), ["structural"] = projectStructural, ["preparation"] = "@owned_tools//:tools/Preparation/bin/Release/net10.0/Preparation.dll", ["runner"] = "@owned_tools//:tools/NativeProjectCache/bin/Release/net10.0/NativeProjectCache.dll", ["runner_support"] = Json.Strings(["@owned_tools//:files"]), ["sdk"] = "@dotnet//:files", ["dotnet"] = "@dotnet//:sdk/dotnet" });
+                build += Starlark.Call("msbuild_compile_project", new JsonObject { ["package_set"] = projectPackages, ["validate_publication"] = actionLocalValidation, ["name"] = Label(project), ["project"] = project, ["project_dependencies"] = node!["dependencies"]!.DeepClone(), ["dependencies"] = Json.Strings(node.Array("dependencies").Select(d => ":" + Label(d!.GetValue<string>()))), ["discovery"] = ":prepare", ["sources"] = Json.Strings(sources), ["structural"] = projectStructural, ["preparation"] = "@owned_tools//:tools/Preparation/bin/Release/net10.0/Preparation.dll", ["runner"] = "@owned_tools//:tools/NativeProjectCache/bin/Release/net10.0/NativeProjectCache.dll", ["runner_support"] = Json.Strings(["@owned_tools//:files"]), ["sdk"] = "@dotnet//:files", ["dotnet"] = "@dotnet//:sdk/dotnet" });
             }
-            build += Starlark.Call("msbuild_compose_runtime", new JsonObject { ["name"] = "build", ["project"] = entry, ["entry"] = ":" + Label(entry), ["runner"] = "@owned_tools//:tools/NativeProjectCache/bin/Release/net10.0/NativeProjectCache.dll", ["runner_support"] = Json.Strings(["@owned_tools//:files"]), ["sdk"] = "@dotnet//:files", ["dotnet"] = "@dotnet//:sdk/dotnet" });
+            build += Starlark.Call("msbuild_compose_runtime", new JsonObject { ["validate_publication"] = actionLocalValidation, ["name"] = "build", ["project"] = entry, ["entry"] = ":" + Label(entry), ["runner"] = "@owned_tools//:tools/NativeProjectCache/bin/Release/net10.0/NativeProjectCache.dll", ["runner_support"] = Json.Strings(["@owned_tools//:files"]), ["sdk"] = "@dotnet//:files", ["dotnet"] = "@dotnet//:sdk/dotnet" });
         }
         if (tests is not null)
         {

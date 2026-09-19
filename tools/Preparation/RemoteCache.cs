@@ -94,25 +94,8 @@ internal sealed class RemoteCache : IDisposable
         }
         return files;
     }
-    internal static JsonNode ValidateBundle(Dictionary<string, byte[]> files)
-    {
-        try { return ValidateBundleCore(files); }
-        catch (Exception error) when (error is KeyNotFoundException or InvalidOperationException or ArgumentException or NullReferenceException or System.Text.Json.JsonException)
-        { throw new InvalidDataException("Invalid bundle metadata", error); }
-    }
-    private static JsonNode ValidateBundleCore(Dictionary<string, byte[]> files)
-    {
-        var seal = JsonNode.Parse(files["bundle.json"])!; var result = JsonNode.Parse(files["results.json"])!; var artifacts = JsonNode.Parse(files["artifacts.json"])!.AsArray();
-        if (seal["schemaVersion"]?.GetValue<int>() != 1 || seal.String("resultsSha256") != Json.Sha(files["results.json"]) || seal.String("artifactsSha256") != Json.Sha(files["artifacts.json"]) || artifacts.Count == 0) throw new InvalidDataException("Invalid bundle seal");
-        var expected = new HashSet<string>(["bundle.json", "results.json", "artifacts.json"], StringComparer.Ordinal);
-        foreach (var artifact in artifacts)
-        {
-            var path = "artifacts/" + Host.Safe(artifact!.String("path"));
-            if (!expected.Add(path) || !files.TryGetValue(path, out var bytes) || bytes.LongLength != artifact!["size"]!.GetValue<long>() || Json.Sha(bytes) != artifact.String("sha256")) throw new InvalidDataException("Invalid artifact bytes");
-        }
-        if (!expected.SetEquals(files.Keys)) throw new InvalidDataException("Undeclared bundle member");
-        Digest(result.String("key")); Digest(result.String("inputs")); Digest(result.String("toolchain")); Host.Safe(result.String("project")); return result;
-    }
+    internal static JsonNode ValidateBundle(Dictionary<string, byte[]> files) =>
+        BundleIntegrity.Validate(files.Keys, name => files[name]);
     public JsonNode Snapshot(string hash, JsonNode? worker = null)
     {
         var value = JsonNode.Parse(Fetch(hash))!;

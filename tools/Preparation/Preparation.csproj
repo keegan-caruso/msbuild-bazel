@@ -9,4 +9,5 @@
   <ItemGroup>
     <InternalsVisibleTo Include="Preparation.Tests" />
   </ItemGroup>
+  <ItemGroup><Compile Include="../BundleIntegrity.cs" Link="BundleIntegrity.cs" /></ItemGroup>
 </Project>
