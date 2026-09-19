@@ -24,7 +24,9 @@ internal static class PackageExtraction
         if (Directory.Exists(output) && Directory.EnumerateFileSystemEntries(output).Any()) throw new InvalidDataException("Package output must be empty");
         Directory.CreateDirectory(output);
         var archiveName = parts[0] + "." + parts[1] + ".nupkg";
-        var names = new HashSet<string>(OperatingSystem.IsMacOS() ? StringComparer.OrdinalIgnoreCase : StringComparer.Ordinal)
+        var comparer = OperatingSystem.IsMacOS() ? StringComparer.OrdinalIgnoreCase : StringComparer.Ordinal;
+        var directories = new Dictionary<string, string>(comparer);
+        var names = new HashSet<string>(comparer)
         {
             archiveName, archiveName + ".sha512", ".nupkg.metadata"
         };
@@ -35,10 +37,20 @@ internal static class PackageExtraction
         {
             var kind = (entry.ExternalAttributes >> 16) & 0xF000;
             if (kind is not (0 or 0x8000 or 0x4000)) throw new InvalidDataException("NuGet archive contains a non-regular entry");
-            var name = entry.FullName.Replace("%2B", "+", StringComparison.OrdinalIgnoreCase);
-            if (pin is not null) name = Regex.Replace(name, "/{2,}", "/");
-            var directory = name.EndsWith('/');
-            name = Host.Safe(directory ? name[..^1] : name);
+            var rawName = entry.FullName;
+            if (pin is not null) rawName = Regex.Replace(rawName, "/{2,}", "/");
+            var directory = rawName.EndsWith('/');
+            rawName = Host.Safe(directory ? rawName[..^1] : rawName);
+            var name = Host.Safe(rawName.Replace("%2B", "+", StringComparison.OrdinalIgnoreCase));
+            var segments = rawName.Split('/');
+            for (var count = 1; count <= segments.Length - (directory ? 0 : 1); count++)
+            {
+                var original = string.Join('/', segments.Take(count));
+                var normalized = original.Replace("%2B", "+", StringComparison.OrdinalIgnoreCase);
+                if (directories.TryGetValue(normalized, out var previous) && !comparer.Equals(previous, original))
+                    throw new InvalidDataException("Conflicting normalized NuGet directory: " + normalized);
+                directories[normalized] = original;
+            }
             if (directory) continue;
             if (!name.Contains('/') && name.EndsWith(".nuspec", StringComparison.OrdinalIgnoreCase)) name = name.ToLowerInvariant();
             if (!names.Add(name)) throw new InvalidDataException("Conflicting normalized NuGet path: " + name);

@@ -48,6 +48,7 @@ class PackageExtraction(unittest.TestCase):
         link = zipfile.ZipInfo('link'); link.create_system = 3; link.external_attr = (stat.S_IFLNK | 0o777) << 16
         cases = [([('../escape', 'bad')], None), ([('/absolute', 'bad')], None),
             ([('lib/net%2Bportable/a', 'one'), ('lib/net+portable/a', 'two')], None),
+            ([('lib/net%2Bportable/a', 'one'), ('lib/net+portable/b', 'two')], None),
             ([('.nupkg.metadata', 'bad')], None), ([(link, '../escape')], None),
             ([('lib/a', 'good')], base64.b64encode(bytes(64)).decode())]
         for entries, digest in cases:
