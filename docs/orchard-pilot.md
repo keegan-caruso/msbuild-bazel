@@ -217,3 +217,19 @@ and performs one lookup per input. The real graph with 5,615 declared source
 names passes in 0.726 seconds including JSON loading. A 6,000-source/10,000-import
 regression checks ordinary and case-aliased source/import rejection. This timing
 is for that check alone, not end-to-end preparation.
+
+### Step 8: bounded execution-log capture
+
+An interrupted owned build had already produced a 753 MB JSON execution log.
+The workflow now streams Bazel's full log through an owned, close-on-exec FIFO
+into `execution.json.gz`. It reads one action record at a time to produce
+`execution.json`, an action summary retaining metadata used by the existing
+sandbox, cache-hit and single-project validation gates. Large input/output
+arrays remain available in the compressed original. Discovery and priming logs
+use the same convention. The build timeout is one hour for the large cold graph.
+
+Focused tests cover large records, exact gzip round trips, malformed tails,
+failed capture, missing executables, no writer, and descriptor inheritance.
+The real pinned Bazel server also completed an executed-action capture without
+needing to shut down its persistent server. Full owned-tool checks passed before
+the final close-on-exec adjustment; focused tests and formatting passed after it.

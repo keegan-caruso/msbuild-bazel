@@ -316,10 +316,16 @@ internal static class NativeWorkflow
     }
     internal static int Execute(string executable, List<string> arguments, string cwd, string log)
     {
-        var start = new ProcessStartInfo(executable) { WorkingDirectory = cwd, RedirectStandardOutput = true, RedirectStandardError = true }; foreach (var argument in arguments) start.ArgumentList.Add(argument);
+        const string prefix = "--execution_log_json_file=";
+        var traceArgument = arguments.SingleOrDefault(argument => argument.StartsWith(prefix, StringComparison.Ordinal));
+        using var trace = traceArgument is null ? null : new ExecutionTrace(traceArgument[prefix.Length..]);
+        var start = new ProcessStartInfo(executable) { WorkingDirectory = cwd, RedirectStandardOutput = true, RedirectStandardError = true };
+        foreach (var argument in arguments) start.ArgumentList.Add(argument == traceArgument ? prefix + trace!.Pipe : argument);
         using var process = Process.Start(start)!; var stdout = process.StandardOutput.ReadToEndAsync(); var stderr = process.StandardError.ReadToEndAsync();
-        if (!process.WaitForExit(900000)) { process.Kill(true); throw new IOException("Build timed out"); }
-        Task.WaitAll(stdout, stderr); File.WriteAllText(log, stdout.Result + stderr.Result); return process.ExitCode;
+        if (!process.WaitForExit(3600000)) { process.Kill(true); process.WaitForExit(); throw new IOException("Build timed out after one hour"); }
+        Task.WaitAll(stdout, stderr); File.WriteAllText(log, stdout.Result + stderr.Result);
+        trace?.Complete();
+        return process.ExitCode;
     }
     internal static List<JsonNode> Events(byte[] bytes)
     {
