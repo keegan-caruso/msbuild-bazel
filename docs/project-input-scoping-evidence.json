@@ -1,0 +1,247 @@
+{
+  "nativeFixture": [
+    {
+      "case": "producer",
+      "seconds": 15.6848914,
+      "compiles": 4,
+      "targets": [
+        "//:project_5757fea5a8ffc0be05fa1061995bfe57ebf1577a670621f88fdb7717c3f0318f",
+        "//:project_7a020d7c7ed8277aca2550d03808059631485d406b0236a7b486db611c385917",
+        "//:project_82b3c5bccb557ab694031bce87316285027d4dbed74dc36a9dbd8e13b9454c84",
+        "//:project_fb8661534261fec9e6d033094bd2e92182f29e5bdcd394f3dbad7fe7ae6c80c0"
+      ]
+    },
+    {
+      "case": "declared",
+      "seconds": 0.915472,
+      "compiles": 0,
+      "targets": []
+    },
+    {
+      "case": "linked-resource",
+      "seconds": 7.4843988,
+      "compiles": 2,
+      "targets": [
+        "//:project_5757fea5a8ffc0be05fa1061995bfe57ebf1577a670621f88fdb7717c3f0318f",
+        "//:project_7a020d7c7ed8277aca2550d03808059631485d406b0236a7b486db611c385917"
+      ]
+    },
+    {
+      "case": "local-import",
+      "seconds": 7.4021019,
+      "compiles": 2,
+      "targets": [
+        "//:project_5757fea5a8ffc0be05fa1061995bfe57ebf1577a670621f88fdb7717c3f0318f",
+        "//:project_7a020d7c7ed8277aca2550d03808059631485d406b0236a7b486db611c385917"
+      ]
+    },
+    {
+      "case": "shared-import",
+      "seconds": 8.6799367,
+      "compiles": 4,
+      "targets": [
+        "//:project_5757fea5a8ffc0be05fa1061995bfe57ebf1577a670621f88fdb7717c3f0318f",
+        "//:project_7a020d7c7ed8277aca2550d03808059631485d406b0236a7b486db611c385917",
+        "//:project_82b3c5bccb557ab694031bce87316285027d4dbed74dc36a9dbd8e13b9454c84",
+        "//:project_fb8661534261fec9e6d033094bd2e92182f29e5bdcd394f3dbad7fe7ae6c80c0"
+      ]
+    },
+    {
+      "case": "noop",
+      "seconds": 0.646589,
+      "compiles": 0,
+      "targets": []
+    }
+  ],
+  "orchard": {
+    "scope": "same macOS ARM64 host and pinned Orchard graph; local Bazel state reused for edits",
+    "cases": {
+      "oldAsset": {
+        "accepted": true,
+        "seconds": 1108.4820555,
+        "compiles": 202,
+        "phases": {
+          "stagePackages": 0.0448167,
+          "bazel": 1037.3990173,
+          "leaseExit": 3.1403193
+        },
+        "MsbuildDiscover": {
+          "executed": 1,
+          "remoteHits": 0
+        },
+        "MsbuildBindProject": {
+          "executed": 202,
+          "remoteHits": 0
+        },
+        "MsbuildCompileProject": {
+          "executed": 202,
+          "remoteHits": 0
+        },
+        "MsbuildComposeRuntime": {
+          "executed": 1,
+          "remoteHits": 0
+        },
+        "MsbuildLockedRestore": {
+          "executed": 1,
+          "remoteHits": 0
+        }
+      },
+      "scopedBaseline": {
+        "accepted": true,
+        "seconds": 1096.9172764,
+        "compiles": 202,
+        "phases": {
+          "stagePackages": 0.0340585,
+          "bazel": 1028.6076139,
+          "leaseExit": 3.1355816
+        },
+        "MsbuildDiscover": {
+          "executed": 1,
+          "remoteHits": 0
+        },
+        "MsbuildBindProject": {
+          "executed": 202,
+          "remoteHits": 0
+        },
+        "MsbuildCompileProject": {
+          "executed": 202,
+          "remoteHits": 0
+        },
+        "MsbuildComposeRuntime": {
+          "executed": 1,
+          "remoteHits": 0
+        },
+        "MsbuildLockedRestore": {
+          "executed": 1,
+          "remoteHits": 0
+        }
+      },
+      "scopedAsset": {
+        "accepted": true,
+        "seconds": 651.7738135,
+        "compiles": 4,
+        "phases": {
+          "stagePackages": 0.0385321,
+          "bazel": 604.4956622,
+          "leaseExit": 3.1357876
+        },
+        "MsbuildDiscover": {
+          "executed": 1,
+          "remoteHits": 0
+        },
+        "MsbuildBindProject": {
+          "executed": 202,
+          "remoteHits": 0
+        },
+        "MsbuildCompileProject": {
+          "executed": 4,
+          "remoteHits": 0
+        },
+        "MsbuildComposeRuntime": {
+          "executed": 1,
+          "remoteHits": 0
+        },
+        "MsbuildLockedRestore": {
+          "executed": 1,
+          "remoteHits": 0
+        }
+      }
+    },
+    "runtime": {
+      "status": 200,
+      "csharpHeader": "changed-csharp",
+      "razorMarker": true,
+      "assetMarker": true,
+      "scopedAssetMarker": true
+    },
+    "outputComparison": {
+      "changed": [
+        "OrchardCore.Setup.dll",
+        "OrchardCore.Setup.pdb"
+      ],
+      "unchanged": 3455,
+      "total": 3457
+    },
+    "speedup": 1.7007158504075126,
+    "timeReductionPercent": 41.20123007259633,
+    "discoverySeconds": 305.3562318,
+    "expectedCompileProjects": [
+      "src/OrchardCore.Cms.Web/OrchardCore.Cms.Web.csproj",
+      "src/OrchardCore.Modules/OrchardCore.Setup/OrchardCore.Setup.csproj",
+      "src/OrchardCore/OrchardCore.Application.Cms.Core.Targets/OrchardCore.Application.Cms.Core.Targets.csproj",
+      "src/OrchardCore/OrchardCore.Application.Cms.Targets/OrchardCore.Application.Cms.Targets.csproj"
+    ],
+    "actualCompileProjects": [
+      "src/OrchardCore.Cms.Web/OrchardCore.Cms.Web.csproj",
+      "src/OrchardCore.Modules/OrchardCore.Setup/OrchardCore.Setup.csproj",
+      "src/OrchardCore/OrchardCore.Application.Cms.Core.Targets/OrchardCore.Application.Cms.Core.Targets.csproj",
+      "src/OrchardCore/OrchardCore.Application.Cms.Targets/OrchardCore.Application.Cms.Targets.csproj"
+    ],
+    "noops": [
+      {
+        "seconds": 19.0656352,
+        "compiles": 0,
+        "phases": {
+          "stagePackages": 0.0362549,
+          "bazel": 13.2629568,
+          "leaseExit": 2.9048611
+        },
+        "MsbuildDiscover": {
+          "executed": 0,
+          "remoteHits": 0
+        },
+        "MsbuildBindProject": {
+          "executed": 0,
+          "remoteHits": 0
+        },
+        "MsbuildCompileProject": {
+          "executed": 0,
+          "remoteHits": 0
+        }
+      },
+      {
+        "seconds": 16.0636035,
+        "compiles": 0,
+        "phases": {
+          "stagePackages": 0.0396908,
+          "bazel": 11.3534487,
+          "leaseExit": 2.9131497
+        },
+        "MsbuildDiscover": {
+          "executed": 0,
+          "remoteHits": 0
+        },
+        "MsbuildBindProject": {
+          "executed": 0,
+          "remoteHits": 0
+        },
+        "MsbuildCompileProject": {
+          "executed": 0,
+          "remoteHits": 0
+        }
+      },
+      {
+        "seconds": 12.6927997,
+        "compiles": 0,
+        "phases": {
+          "stagePackages": 0.0396354,
+          "bazel": 9.9796251,
+          "leaseExit": 0.6861359
+        },
+        "MsbuildDiscover": {
+          "executed": 0,
+          "remoteHits": 0
+        },
+        "MsbuildBindProject": {
+          "executed": 0,
+          "remoteHits": 0
+        },
+        "MsbuildCompileProject": {
+          "executed": 0,
+          "remoteHits": 0
+        }
+      }
+    ],
+    "noopMedianSeconds": 16.0636035
+  }
+}

@@ -557,3 +557,9 @@ workload: 202 projects, mixed application/generator frameworks, Razor/module
 assets and central transitive NuGet pinning. The raw baseline succeeds; adapter
 qualification is in progress. Follow its acceptance gates through independent
 remote-cache recovery and changed-input controls before claiming support.
+
+[Project-owned structural inputs](project-input-scoping.md) narrows generated
+compile declarations using validated MSBuild ownership. Native four-project
+mutation controls pass. The Orchard stylesheet edit now compiles four projects
+instead of 202 and takes 651.774 seconds instead of 1,108.482; runtime markers
+and unchanged-output checks pass. Whole-graph discovery remains expensive.
