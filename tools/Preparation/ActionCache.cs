@@ -10,7 +10,9 @@ namespace RulesMSBuild.Preparation;
 internal sealed class ActionCache : IDisposable
 {
     private const long ObjectLimit = 256L * 1024 * 1024;
-    private const long TotalLimit = 2L * 1024 * 1024 * 1024;
+    // Extracted NuGet trees plus project outputs exceed 2 GiB on large graphs.
+    internal const long DefaultTotalLimit = 8L * 1024 * 1024 * 1024;
+    private readonly long totalLimit;
     private readonly HttpClient client = new(new SocketsHttpHandler { AllowAutoRedirect = false, MaxConnectionsPerServer = 8 }) { Timeout = TimeSpan.FromSeconds(30) };
     private readonly HttpListener listener = new();
     private readonly ConcurrentBag<Task> requests = [];
@@ -25,6 +27,7 @@ internal sealed class ActionCache : IDisposable
     public JsonObject Statistics => new()
     {
         ["uploadEnabled"] = upload,
+        ["stagingLimitBytes"] = totalLimit,
         ["lookupKeys"] = Json.Strings(lookups.Keys.Order(StringComparer.Ordinal)),
         ["hitKeys"] = Json.Strings(lookups.Where(p => p.Value).Select(p => p.Key).Order(StringComparer.Ordinal)),
         ["stagedObjects"] = staged.Count,
@@ -41,8 +44,10 @@ internal sealed class ActionCache : IDisposable
             throw new InvalidDataException("Action cache requires an HTTP(S) endpoint without credentials, query or fragment");
         return uri.AbsoluteUri.TrimEnd('/');
     }
-    public ActionCache(string endpoint, string directory, bool upload)
+    public ActionCache(string endpoint, string directory, bool upload, long totalLimit = DefaultTotalLimit)
     {
+        if (totalLimit <= 0) throw new ArgumentOutOfRangeException(nameof(totalLimit));
+        this.totalLimit = totalLimit;
         this.endpoint = Endpoint(endpoint); this.directory = directory; this.upload = upload;
         Directory.CreateDirectory(directory);
         prefix = "/" + Guid.NewGuid().ToString("N") + "/";
@@ -95,7 +100,7 @@ internal sealed class ActionCache : IDisposable
                         while ((count = await request.InputStream.ReadAsync(buffer, timeout.Token)) != 0)
                         {
                             size += count;
-                            if (size > ObjectLimit || Interlocked.Add(ref buffered, count) > TotalLimit) throw new InvalidDataException("Cache upload limit exceeded");
+                            if (size > ObjectLimit || Interlocked.Add(ref buffered, count) > totalLimit) throw new InvalidDataException("Cache upload limit exceeded");
                             await file.WriteAsync(buffer.AsMemory(0, count), timeout.Token);
                         }
                     }

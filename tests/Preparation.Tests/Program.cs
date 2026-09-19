@@ -80,7 +80,7 @@ try
             Console.WriteLine(Json.Text(JsonValue.Create(ActionCache.Endpoint(request.String("endpoint")))));
             break;
         case "action-cache-gate":
-            using (var gate = new ActionCache(request.String("endpoint"), request.String("directory"), request["upload"]?.GetValue<bool>() == true))
+            using (var gate = new ActionCache(request.String("endpoint"), request.String("directory"), request["upload"]?.GetValue<bool>() == true, request["stagingLimitBytes"]?.GetValue<long>() ?? ActionCache.DefaultTotalLimit))
             using (var gateClient = new HttpClient())
             {
                 var responses = new JsonArray();

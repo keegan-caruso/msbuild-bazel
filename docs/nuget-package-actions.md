@@ -77,3 +77,13 @@ this moves extraction and the resulting file trees into the action cache.
 Bazel's remote cache stores [action outputs](https://bazel.build/remote/caching),
 which is the reason to move extraction across this boundary. This does not replace
 NuGet's resolver or by itself solve the 17-minute cold Orchard build.
+
+## Large-graph upload capacity
+
+The first combined Orchard producer compiled all 202 projects and extracted all
+287 packages, but the controller's 2 GiB staging cap rejected uploads. The run was
+correctly rejected and published no objects. The disk-backed staging cap is now
+8 GiB per invocation; the 256 MiB object cap and publish-after-acceptance gate
+remain enforced. A boundary test verifies acceptance at the cap and rejection
+without publication above it. Larger graphs may still require a configurable
+budget or different staging design; this is not an unlimited cache.

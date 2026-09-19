@@ -113,6 +113,25 @@ class Components(unittest.TestCase):
                               dict(method='PUT',path='cas/'+blob,body=base64.b64encode(body).decode())],probeBeforePublish=[]),False)
                 self.assertFalse(server.data)
                 self.assertFalse(any(e['method']=='PUT' and '/ac/' in e['path'] for e in server.events))
+    def test_action_cache_staging_limit_accepts_boundary_and_blocks_publication(self):
+        import base64
+        data=b'value';blob=sha(data)
+        for limit in (len(data),len(data)-1):
+            with self.subTest(limit=limit), CacheServer(0) as server:
+                request=dict(endpoint=server.url+'/bazel',directory=str(self.root/str(limit)),upload=True,publish=False,
+                    stagingLimitBytes=limit,requests=[dict(method='PUT',path='cas/'+blob,body=base64.b64encode(data).decode())],probeBeforePublish=[])
+                value=self.invoke('action-cache-gate',request)
+                self.assertEqual(value['responses'][0]['status'],200 if limit==len(data) else 400)
+                self.assertFalse(server.data)
+                request['publish']=True
+                if limit==len(data):
+                    value=self.invoke('action-cache-gate',request)
+                    self.assertEqual(value['afterPublish']['publishedObjects'],1)
+                    self.assertEqual(server.data['/bazel/cas/'+blob],data)
+                else:
+                    self.assertIn('staged publication discarded',self.invoke('action-cache-gate',request,False))
+                    self.assertFalse(server.data)
+
     def test_action_cache_reads_and_endpoint_validation(self):
         import base64
         data=b'value';blob=sha(data)
