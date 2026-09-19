@@ -156,13 +156,9 @@ internal static class Program
             var pending = Path.Combine(scratch, "pending"); Directory.CreateDirectory(pending);
             var report = Path.Combine(diagnostics, "events.json");
             var prebuilt = request.ProjectAction ? (request.Prebuilt ?? []).ToDictionary(path => ProjectActions.Read(path).Project, path => Path.GetFullPath(path), StringComparer.Ordinal) : null;
-            var dependencyIndex = 0;
+            var dependencyValidation = new CompileBoundary.ValidationScope();
             if (prebuilt is not null)
-                foreach (var project in prebuilt.Keys.ToArray())
-                {
-                    var dependencyCopy = Path.Combine(scratch, "dependencies", (dependencyIndex++).ToString(System.Globalization.CultureInfo.InvariantCulture));
-                    CompileBoundary.Validate(prebuilt[project]); Files.CopyTree(prebuilt[project], dependencyCopy); Files.NormalizeTree(dependencyCopy); prebuilt[project] = dependencyCopy;
-                }
+                foreach (var bundle in prebuilt.Values) dependencyValidation.Read(bundle);
             if (prebuilt is not null)
                 foreach (var (project, bundle) in prebuilt) DependencyReplay.Write(Path.Combine(workspace, project), ProjectActions.Read(bundle), workspace);
             var files = Directory.EnumerateFiles(workspace, "*", SearchOption.AllDirectories).Select(path => new DeclaredFile(Path.GetRelativePath(workspace, path), Files.Hash(path))).ToArray();
@@ -216,6 +212,7 @@ internal static class Program
                 var identity = EvaluatedBoundary.Identity(entryBundle, request.Entry, manifest.Projects.Keys.Order(StringComparer.Ordinal).ToArray(), manifest.Projects[request.Entry].Dependencies.Order(StringComparer.Ordinal).Select(p => p + ":" + identities[p]).ToArray(), runtimeReferences: true, fullImplementation: manifest.Projects[request.Entry].Implementation);
                 ProjectActions.Project(entryBundle, request.ApiOutput, prebuilt!, identity, manifest.Projects[request.Entry].Implementation);
                 if (request.RuntimeOutput is not null) ProjectActions.Runtime(entryBundle, request.RuntimeOutput, entryArtifacts);
+                dependencyValidation.VerifyUnchanged();
                 Directory.Delete(scratch, true); Mark("cleanup"); return 0;
             }
             var runtime = Path.Combine(output, "runtime", Path.GetFileName(entryBundle));

@@ -29,6 +29,11 @@ internal static class StaticWebAssetsTests
             StaticWebAssets.Restore(portable, restored, "/different/worker");
             StaticWebAssets.Capture(restored, second, "/different/worker");
             if (File.ReadAllText(portable) != File.ReadAllText(second)) throw new Exception("Static asset manifests depend on worker paths");
+            if (!OperatingSystem.IsWindows()) File.SetUnixFileMode(portable, UnixFileMode.UserRead | UnixFileMode.GroupRead | UnixFileMode.OtherRead);
+            var original = File.ReadAllText(portable);
+            StaticWebAssets.Restore(portable, restored, "/readonly/input/worker", normalize: true);
+            StaticWebAssets.Capture(restored, second, "/readonly/input/worker");
+            if (File.ReadAllText(portable) != original || File.ReadAllText(second) != original) throw new Exception("Read-only dependency restoration changed its input or portable contents");
             File.WriteAllText(source, manifest.Replace("OrchardCore.Queries/wwwroot", "changed/wwwroot", StringComparison.Ordinal));
             try { StaticWebAssets.Capture(source, second, workspace); throw new Exception("Corrupt manifest accepted"); }
             catch (InvalidDataException) { }

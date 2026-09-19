@@ -28,6 +28,17 @@ internal static class Files
             Copy(file, Path.Combine(destination, Path.GetRelativePath(source, file)));
     }
 
+    public static void CopyNormalized(string source, string destination)
+    {
+        Copy(source, destination);
+        if (!OperatingSystem.IsWindows())
+        {
+            var executable = (File.GetUnixFileMode(destination) & Executable) != 0;
+            File.SetUnixFileMode(destination, DefaultFileMode | (executable ? Executable : 0));
+        }
+        File.SetLastWriteTimeUtc(destination, DateTime.UnixEpoch);
+    }
+
     public static bool ValidRelativePath(string path) =>
         !string.IsNullOrEmpty(path) && !Path.IsPathRooted(path) && !path.Contains('\\') &&
         path.Split('/').All(part => part is not ".." and not "." and not "");

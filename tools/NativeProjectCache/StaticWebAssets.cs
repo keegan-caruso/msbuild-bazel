@@ -37,9 +37,10 @@ internal static class StaticWebAssets
         Files.Copy(source, destination);
         if (Manifest(source)) File.WriteAllText(destination, Rebase(File.ReadAllText(source), workspace, "/_/workspace"));
     }
-    internal static void Restore(string source, string destination, string workspace)
+    internal static void Restore(string source, string destination, string workspace, bool normalize = false)
     {
-        Files.Copy(source, destination);
+        if (normalize) Files.CopyNormalized(source, destination);
+        else Files.Copy(source, destination);
         if (Manifest(source)) File.WriteAllText(destination, Rebase(File.ReadAllText(source), "/_/workspace", workspace));
     }
 }

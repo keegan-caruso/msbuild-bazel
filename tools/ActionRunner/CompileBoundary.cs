@@ -8,6 +8,31 @@ internal sealed record RuntimeAssemblyRequest(string Own, string[] Dependencies,
 
 internal static class CompileBoundary
 {
+    // Only for sealed dependencies that remain immutable throughout one action.
+    // Call VerifyUnchanged before publishing any result derived from this scope.
+    internal sealed class ValidationScope
+    {
+        private readonly Dictionary<string, (Artifact[] Items, string Seal)> bundles = new(StringComparer.Ordinal);
+
+        internal Artifact[] Read(string bundle)
+        {
+            if (bundles.TryGetValue(bundle, out var prior)) return prior.Items;
+            var items = Validate(bundle);
+            bundles.Add(bundle, (items, Files.Hash(Path.Combine(bundle, "bundle.json"))));
+            return items;
+        }
+
+        internal void VerifyUnchanged()
+        {
+            foreach (var (bundle, prior) in bundles)
+            {
+                var current = Validate(bundle);
+                if (Files.Hash(Path.Combine(bundle, "bundle.json")) != prior.Seal || !current.SequenceEqual(prior.Items))
+                    throw new InvalidDataException("dependency bundle changed during build");
+            }
+        }
+    }
+
     internal static Artifact[] Validate(string bundle)
     {
         var seal = JsonFiles.Read<BundleSeal>(Path.Combine(bundle, "bundle.json"));

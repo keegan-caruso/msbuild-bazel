@@ -26,6 +26,8 @@ public sealed class NativeCachePlugin : ProjectCachePluginBase
     private RemoteBundles? remote;
     private bool apiRuntime;
     private Dictionary<string, State> states = [];
+    private CompileBoundary.ValidationScope dependencyValidation = new();
+    private HashSet<string> prebuiltBundles = [];
     private readonly ConcurrentBag<object> events = [];
     private readonly ConcurrentBag<(string Source, string Destination)> pending = [];
     private static readonly JsonSerializerOptions Json = new() { PropertyNamingPolicy = JsonNamingPolicy.CamelCase, WriteIndented = true, RespectRequiredConstructorParameters = true, RespectNullableAnnotations = true, AllowDuplicateProperties = false };
@@ -50,16 +52,20 @@ public sealed class NativeCachePlugin : ProjectCachePluginBase
     }
     private string DependencyIdentity(string bundle, string project) => apiRuntime
         ? EvaluatedBoundary.Identity(bundle, project, Closure(project), session.Projects[project].Dependencies.Order(StringComparer.Ordinal)
-            .Select(dependency => dependency + ":" + states[dependency].Completion.Task.Result.Api).ToArray(), runtimeReferences: session.Prebuilt is not null, fullImplementation: session.Projects[project].Implementation)
+            .Select(dependency => dependency + ":" + states[dependency].Completion.Task.Result.Api).ToArray(), runtimeReferences: session.Prebuilt is not null, fullImplementation: session.Projects[project].Implementation, validate: ValidateBundle)
         : Files.Hash(Path.Combine(bundle, PackagePolicy ? "artifacts.json" : Path.Combine("artifacts", Reference(project))));
     private void Compose(string bundle, string project, bool verifySelection = false) => EvaluatedBoundary.Compose(bundle, project,
         Closure(project).Where(dependency => dependency != project).ToDictionary(dependency => dependency,
-            dependency => states[dependency].Completion.Task.Result.Bundle), session.Workspace, verifySelection);
+            dependency => states[dependency].Completion.Task.Result.Bundle), session.Workspace, verifySelection, ValidateBundle);
+    private Artifact[] ValidateBundle(string bundle) => prebuiltBundles.Contains(bundle)
+        ? dependencyValidation.Read(bundle) : CompileBoundary.Validate(bundle);
     private string Reference(string project) => Path.Combine(Path.GetDirectoryName(project)!, "obj/Release", session.Projects[project].TargetFramework, "ref", Assembly(project) + ".dll");
 
     public override Task BeginBuildAsync(CacheContext context, PluginLoggerBase logger, CancellationToken token)
     {
         session = JsonSerializer.Deserialize<Session>(File.ReadAllText(Environment.GetEnvironmentVariable("NATIVE_CACHE_SESSION")!), Json)!;
+        dependencyValidation = new();
+        prebuiltBundles = [];
         if (session.Policy is not ("native-qualified-v2" or "evaluated-api-runtime-v2")) throw new InvalidDataException("unknown native cache policy");
         if ((context.Graph is null && session.Prebuilt is null) || !Directory.Exists(session.Scratch) || !session.Projects.ContainsKey(session.Entry))
             throw new InvalidDataException("native cache requires a qualified graph session");
@@ -81,6 +87,7 @@ public sealed class NativeCachePlugin : ProjectCachePluginBase
         else apiRuntime = PackagePolicy;
         if (session.Prebuilt is not null)
         {
+            prebuiltBundles = session.Prebuilt.Values.ToHashSet(StringComparer.Ordinal);
             if (!apiRuntime || !session.Prebuilt.Keys.Order().SequenceEqual(states.Keys.Where(p => p != session.Entry).Order())) throw new InvalidDataException("Project actions require a complete API dependency set");
             var visiting = new HashSet<string>(StringComparer.Ordinal);
             void Load(string project)
@@ -89,14 +96,14 @@ public sealed class NativeCachePlugin : ProjectCachePluginBase
                 if (!visiting.Add(project)) throw new InvalidDataException("Cyclic API dependencies");
                 foreach (var child in session.Projects[project].Dependencies) Load(child);
                 var bundle = session.Prebuilt[project];
-                var artifacts = CompileBoundary.Validate(bundle);
+                var artifacts = ValidateBundle(bundle);
                 var results = ProjectActions.Read(bundle);
                 var identity = DependencyIdentity(bundle, project);
                 if (results.TargetFramework != session.Projects[project].TargetFramework || results.OrchardModule != session.Projects[project].OrchardModule || results.OrchardApplication != session.Projects[project].OrchardApplication || results.Project != project || results.Toolchain != session.Toolchain || results.Key != identity || results.Inputs != identity) throw new InvalidDataException("Invalid project API dependency: " + project);
                 foreach (var artifact in artifacts)
                 {
                     if (!Allowed(project, artifact.Path)) throw new InvalidDataException("API artifact outside project outputs");
-                    StaticWebAssets.Restore(Path.Combine(bundle, "artifacts", artifact.Path), Path.Combine(session.Workspace, artifact.Path), session.Workspace);
+                    StaticWebAssets.Restore(Path.Combine(bundle, "artifacts", artifact.Path), Path.Combine(session.Workspace, artifact.Path), session.Workspace, normalize: true);
                 }
                 Compose(bundle, project);
                 states[project].Completion.SetResult(new Ready(bundle, identity));
@@ -305,9 +312,10 @@ public sealed class NativeCachePlugin : ProjectCachePluginBase
                     var canonical = Path.Combine(session.Scratch, "canonical", state.Key!);
                     var dependencies = Closure(project).Where(dependency => dependency != project)
                         .ToDictionary(dependency => dependency, dependency => states[dependency].Completion.Task.Result.Bundle);
-                    if (EvaluatedBoundary.RefreshBundle(ready.Bundle, project, dependencies, canonical))
+                    if (EvaluatedBoundary.RefreshBundle(ready.Bundle, project, dependencies, canonical, ValidateBundle))
                         publication[Path.Combine(session.Cache, state.Key!)] = canonical;
                 }
+            dependencyValidation.VerifyUnchanged();
             Directory.CreateDirectory(session.Cache);
             foreach (var (destination, source) in publication)
             {

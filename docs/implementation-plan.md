@@ -619,3 +619,12 @@ exports remain byte-identical; full cold-workflow timing and runtime checks pass
 The cross-cold-build byte comparison retains the known Razor path-dependent output
 limitation. Repeated compile-action staging and dependency validation remain the
 next performance target.
+
+[Compilation dependency staging](compile-staging-performance.md) now consumes
+sealed Bazel dependency bundles directly and reuses validation within each action,
+with complete integrity checks before publication. The final Orchard project has
+byte-identical same-path outputs and a measured 16.8% median action-time reduction;
+the full 202-project workflow improves 2.3% in single-run measurements and passes
+runtime checks. NuGet source-copy costs and the independent-build Razor path
+limitation remain; a further hash-reuse experiment was discarded without a clear
+overall timing benefit.

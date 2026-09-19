@@ -5,6 +5,7 @@ internal static class CompileBoundaryTests
 {
     public static void Run()
     {
+        ValidationScopeRejectsChangedDependencies();
         var root = Directory.CreateTempSubdirectory("compile-boundary-").FullName;
         try
         {
@@ -103,6 +104,65 @@ internal static class CompileBoundaryTests
             catch (InvalidDataException) { }
         }
         finally { Directory.Delete(root, recursive: true); }
+    }
+
+    private static void ValidationScopeRejectsChangedDependencies()
+    {
+        var root = Directory.CreateTempSubdirectory("dependency-validation-").FullName;
+        try
+        {
+            Directory.CreateDirectory(Path.Combine(root, "artifacts"));
+            var artifact = Path.Combine(root, "artifacts", "reference.dll");
+            File.WriteAllText(artifact, "original");
+            File.WriteAllText(Path.Combine(root, "results.json"), "{}");
+            CompileBoundary.Seal(root);
+            var scope = new CompileBoundary.ValidationScope();
+            scope.Read(root);
+            scope.Read(root);
+            scope.VerifyUnchanged();
+
+            var copy = Path.Combine(root, "staged", "reference.dll");
+            if (!OperatingSystem.IsWindows()) File.SetUnixFileMode(artifact, UnixFileMode.UserRead | UnixFileMode.UserExecute);
+            Files.CopyNormalized(artifact, copy);
+            if (File.GetLastWriteTimeUtc(copy) != DateTime.UnixEpoch) throw new InvalidOperationException("dependency copy timestamp was not normalized");
+            if (!OperatingSystem.IsWindows() && (File.GetUnixFileMode(copy) & (UnixFileMode.UserWrite | UnixFileMode.UserExecute)) != (UnixFileMode.UserWrite | UnixFileMode.UserExecute))
+                throw new InvalidOperationException("dependency copy permissions were not normalized");
+            File.WriteAllText(copy, "private copy");
+            if (File.ReadAllText(artifact) != "original") throw new InvalidOperationException("dependency copy aliases its input");
+            if (!OperatingSystem.IsWindows()) File.SetUnixFileMode(artifact, UnixFileMode.UserRead | UnixFileMode.UserWrite);
+
+            // Same length and timestamp must not evade the publication barrier.
+            var timestamp = File.GetLastWriteTimeUtc(artifact);
+            File.WriteAllText(artifact, "modified");
+            File.SetLastWriteTimeUtc(artifact, timestamp);
+            try
+            {
+                scope.VerifyUnchanged();
+                throw new InvalidOperationException("changed dependency accepted");
+            }
+            catch (InvalidDataException) { }
+
+            CompileBoundary.Seal(root);
+            try
+            {
+                scope.VerifyUnchanged();
+                throw new InvalidOperationException("resealed dependency accepted in original session");
+            }
+            catch (InvalidDataException) { }
+
+            var fresh = new CompileBoundary.ValidationScope();
+            fresh.Read(root);
+            fresh.VerifyUnchanged();
+            File.WriteAllText(Path.Combine(root, "results.json"), "{\"changed\":true}");
+            CompileBoundary.Seal(root);
+            try
+            {
+                fresh.VerifyUnchanged();
+                throw new InvalidOperationException("resealed dependency metadata accepted");
+            }
+            catch (InvalidDataException) { }
+        }
+        finally { Directory.Delete(root, true); }
     }
 
     private static string Write(string root, string name, string value)

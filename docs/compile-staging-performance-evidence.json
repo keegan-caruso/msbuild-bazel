@@ -1,0 +1,218 @@
+{
+  "schemaVersion": 1,
+  "baselineCommit": "d066b6d",
+  "scope": "Orchard final project, 201 dependency bundles, 287 package directories; sequential local action probes at the same output path; not sandboxed end-to-end workflow timings",
+  "samples": [
+    {
+      "name": "baseline-1",
+      "elapsed": null,
+      "phaseTotal": 31.4975712,
+      "phases": {
+        "sourceAndRestore": 5.4460801,
+        "seedCopy": 0,
+        "sessionSetup": 6.5733395,
+        "msbuild": 15.8894628,
+        "selectBundles": 0.0071477,
+        "cleanup": 3.5815411
+      },
+      "files": 6932
+    },
+    {
+      "name": "validation-1",
+      "elapsed": 28.392132958999998,
+      "phaseTotal": 28.3608743,
+      "phases": {
+        "sourceAndRestore": 5.2286599,
+        "seedCopy": 0,
+        "sessionSetup": 6.3441316,
+        "msbuild": 13.2862496,
+        "selectBundles": 0.006545,
+        "cleanup": 3.4952882
+      },
+      "files": 6932
+    },
+    {
+      "name": "baseline-2",
+      "elapsed": 30.592644708,
+      "phaseTotal": 30.5585154,
+      "phases": {
+        "sourceAndRestore": 5.2858552,
+        "seedCopy": 1e-07,
+        "sessionSetup": 6.0490473,
+        "msbuild": 15.7223057,
+        "selectBundles": 0.0062855,
+        "cleanup": 3.4950216
+      },
+      "files": 6932
+    },
+    {
+      "name": "validation-2",
+      "elapsed": 27.307192541999996,
+      "phaseTotal": 27.2742898,
+      "phases": {
+        "sourceAndRestore": 4.5491228,
+        "seedCopy": 0,
+        "sessionSetup": 5.8713886,
+        "msbuild": 13.3433406,
+        "selectBundles": 0.0062824,
+        "cleanup": 3.5041554
+      },
+      "files": 6932
+    },
+    {
+      "name": "direct-1",
+      "elapsed": 25.405075334,
+      "phaseTotal": 25.3731759,
+      "phases": {
+        "sourceAndRestore": 4.4418187,
+        "seedCopy": 1e-07,
+        "sessionSetup": 4.0392242,
+        "msbuild": 13.5787357,
+        "selectBundles": 0.0041758,
+        "cleanup": 3.3092214
+      },
+      "files": 6932
+    },
+    {
+      "name": "direct-2",
+      "elapsed": 25.527087790999996,
+      "phaseTotal": 25.495165300000004,
+      "phases": {
+        "sourceAndRestore": 4.3714796,
+        "seedCopy": 0,
+        "sessionSetup": 3.9818748,
+        "msbuild": 13.6035783,
+        "selectBundles": 0.0044568,
+        "cleanup": 3.5337758
+      },
+      "files": 6932
+    },
+    {
+      "name": "hash-reuse-1",
+      "elapsed": 26.301571791,
+      "phaseTotal": 26.270445799999997,
+      "phases": {
+        "sourceAndRestore": 5.3435107,
+        "seedCopy": 0,
+        "sessionSetup": 0.9216412,
+        "msbuild": 16.6414932,
+        "selectBundles": 0.00435,
+        "cleanup": 3.3594507
+      },
+      "files": 6932
+    },
+    {
+      "name": "baseline-3",
+      "elapsed": 30.569888166999995,
+      "phaseTotal": 30.534694700000003,
+      "phases": {
+        "sourceAndRestore": 5.2294207,
+        "seedCopy": 0,
+        "sessionSetup": 5.9645615,
+        "msbuild": 15.7963739,
+        "selectBundles": 0.0061515,
+        "cleanup": 3.5381871
+      },
+      "files": 6932
+    },
+    {
+      "name": "hash-reuse-2",
+      "elapsed": 25.462826,
+      "phaseTotal": 25.4297585,
+      "phases": {
+        "sourceAndRestore": 5.2384315,
+        "seedCopy": 0,
+        "sessionSetup": 0.8256826,
+        "msbuild": 16.029131,
+        "selectBundles": 0.0054746,
+        "cleanup": 3.3310388
+      },
+      "files": 6932
+    }
+  ],
+  "outputParity": {
+    "filesPerSample": 6932,
+    "allSamplesByteIdentical": true
+  },
+  "discardedExperiment": "Reuse prepared input hashes when constructing session file declarations: no measured overall improvement over direct dependency staging.",
+  "medians": {
+    "baseline": 30.5585154,
+    "validation": 27.81758205,
+    "direct": 25.4341706,
+    "hash-reuse": 25.850102149999998
+  },
+  "fullWorkflow": {
+    "seconds": 647.401685,
+    "phases": {
+      "sourceSnapshot": 3.2041845,
+      "stagePackages": 0.0328335,
+      "generate": 0.4161431,
+      "bazel": 618.9928628,
+      "leaseExit": 3.1810587,
+      "validateBundles": 0.3632693,
+      "publishActionCache": 18.6024262
+    },
+    "compiles": 202,
+    "MsbuildDiscover": {
+      "executed": 1,
+      "remoteHits": 0
+    },
+    "MsbuildLockedRestore": {
+      "executed": 1,
+      "remoteHits": 0
+    },
+    "MsbuildBindProject": {
+      "executed": 202,
+      "remoteHits": 0
+    },
+    "MsbuildCompileProject": {
+      "executed": 202,
+      "remoteHits": 0
+    },
+    "workflowAccepted": true,
+    "compilePhaseTotals": {
+      "sourceAndRestore": 107.82379040000004,
+      "seedCopy": 0.0020120999999999993,
+      "sessionSetup": 122.33036079999991,
+      "msbuild": 455.1455392999996,
+      "selectBundles": 0.6856742,
+      "cleanup": 47.596397199999984
+    },
+    "applicationComparison": {
+      "baselineFiles": 3457,
+      "candidateFiles": 3457,
+      "identical": 3293,
+      "different": 164,
+      "differingExtensions": {
+        ".dll": 82,
+        ".pdb": 82
+      },
+      "byteIdentical": false
+    },
+    "runtimeStatus": 200,
+    "runtimeMarkersVerified": [
+      "csharp",
+      "css",
+      "razor"
+    ],
+    "NugetExtractPackage": {
+      "executed": 287,
+      "remoteHits": 0
+    },
+    "actionCache": {
+      "uploadedBytes": 108289867,
+      "reusedBytes": 2646084734,
+      "failures": 0
+    },
+    "baselineSeconds": 662.9136057,
+    "secondsSaved": 15.511920699999905,
+    "percentSaved": 2.339961130171733,
+    "discoverySeconds": 98.2251612,
+    "notes": [
+      "Single full workflow run per implementation; not a controlled statistical speedup.",
+      "Fresh local Bazel state; retained verified NuGet archives, repository downloads and shared CAS content. Zero action cache hits.",
+      "Same Orchard source as prior cold run. Native macOS ARM64, SDK 10.0.400, Bazel 8.4.2, jobs=2.",
+      "Independent full-build byte parity remains false; no Razor path fix in this change."
+    ]
+  }
+}

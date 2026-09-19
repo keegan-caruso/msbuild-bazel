@@ -30,9 +30,9 @@ internal static class EvaluatedBoundary
         _ => value.Clone()
     };
 
-    internal static string Identity(string bundle, string project, string[] closure, string[] dependencies, bool runtimeReferences = false, bool fullImplementation = false)
+    internal static string Identity(string bundle, string project, string[] closure, string[] dependencies, bool runtimeReferences = false, bool fullImplementation = false, Func<string, Artifact[]>? validate = null)
     {
-        var artifacts = CompileBoundary.Validate(bundle); var framework = Framework(bundle);
+        var artifacts = (validate ?? CompileBoundary.Validate)(bundle); var framework = Framework(bundle);
         if (fullImplementation)
         {
             using var fullResults = JsonDocument.Parse(File.ReadAllText(Path.Combine(bundle, "results.json")));
@@ -90,12 +90,13 @@ internal static class EvaluatedBoundary
     // A compile hit may carry historical copy-local implementations. Publish
     // current, valid runtime bytes so identical sources have identical seeds
     // regardless of which project happened to compile in this invocation.
-    internal static bool RefreshBundle(string bundle, string project, Dictionary<string, string> dependencies, string output)
+    internal static bool RefreshBundle(string bundle, string project, Dictionary<string, string> dependencies, string output, Func<string, Artifact[]>? validate = null)
     {
-        var own = CompileBoundary.Validate(bundle); var changed = false; var framework = Framework(bundle);
+        validate ??= CompileBoundary.Validate;
+        var own = validate(bundle); var changed = false; var framework = Framework(bundle);
         foreach (var (dependency, producer) in dependencies)
         {
-            var artifacts = CompileBoundary.Validate(producer);
+            var artifacts = validate(producer);
             foreach (var extension in new[] { ".dll", ".pdb", ".xml" })
             {
                 var selected = own.SingleOrDefault(item => item.Path == Path.Combine(Bin(project, framework), Assembly(dependency) + extension));
@@ -108,18 +109,19 @@ internal static class EvaluatedBoundary
         if (!changed) return false;
         Files.CopyTree(bundle, output);
         Files.NormalizeTree(output);
-        Compose(bundle, project, dependencies, Path.Combine(output, "artifacts"));
+        Compose(bundle, project, dependencies, Path.Combine(output, "artifacts"), validate: validate);
         CompileBoundary.Seal(output);
         return true;
     }
 
-    internal static void Compose(string bundle, string project, Dictionary<string, string> dependencies, string workspace, bool verifySelection = false)
+    internal static void Compose(string bundle, string project, Dictionary<string, string> dependencies, string workspace, bool verifySelection = false, Func<string, Artifact[]>? validate = null)
     {
-        var own = CompileBoundary.Validate(bundle); var framework = Framework(bundle);
+        validate ??= CompileBoundary.Validate;
+        var own = validate(bundle); var framework = Framework(bundle);
         var replacements = new Dictionary<string, string>(StringComparer.Ordinal);
         foreach (var (dependency, producer) in dependencies)
         {
-            var artifacts = CompileBoundary.Validate(producer);
+            var artifacts = validate(producer);
             var assembly = Path.Combine(Bin(dependency, Framework(producer)), Assembly(dependency) + ".dll");
             if (!artifacts.Any(item => item.Path == assembly))
                 throw new InvalidDataException("current project implementation missing");
@@ -143,6 +145,6 @@ internal static class EvaluatedBoundary
         // Validate every producer before writing. Composition never mutates a
         // sealed compilation cache bundle or synthesizes NuGet/SDK metadata.
         foreach (var (destination, source) in replacements)
-            Files.Copy(source, Path.Combine(workspace, destination));
+            Files.CopyNormalized(source, Path.Combine(workspace, destination));
     }
 }
