@@ -46,6 +46,12 @@ class LockedRestore(unittest.TestCase):
                 path=workspace/name;path.parent.mkdir(parents=True,exist_ok=True);path.write_text('sentinel')
                 result=subprocess.run(['/usr/bin/sandbox-exec','-f',str(profile),'/bin/cat',str(path)],capture_output=True,text=True)
                 self.assertEqual(result.returncode==0,allowed,(name,result.stderr))
+            # Resource suffixes can also end project/directory names.
+            for name in ['Project.css','Another.CSS']:
+                directory=workspace/name;directory.mkdir();(directory/'Marker.txt').write_text('listed')
+                result=subprocess.run(['/usr/bin/sandbox-exec','-f',str(profile),'/bin/ls',str(directory)],capture_output=True,text=True)
+                self.assertEqual(result.returncode,0,result.stderr)
+                self.assertIn('Marker.txt',result.stdout)
             for name in ['escape.bin','.nuget/Source.cs','App/obj/Source.cs']:
                 request.write_text(json.dumps(dict(workspace=str(workspace),bodies=[name])))
                 self.assertNotEqual(subprocess.run(command,capture_output=True).returncode,0)

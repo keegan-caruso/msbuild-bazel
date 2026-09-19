@@ -23,7 +23,7 @@ internal static class LockedRestore
         // Deny resource suffixes, retaining actual structural inputs (e.g. XML
         // imports). This scales independently of the number of resource files.
         var excludes = string.Join(" ", exceptions.Select(name => "(require-not (literal " + Json.Canonical(JsonValue.Create(Path.Combine(workspace, name))) + "))"));
-        var resourceRules = resourceExtensions.Length == 0 ? "" : "(deny file-read-data (require-all (subpath " + Json.Canonical(JsonValue.Create(workspace)) + ") (regex " + Json.Canonical(JsonValue.Create("(" + string.Join("|", resourceExtensions.Select(Regex.Escape)) + ")$")) + ") (require-not (subpath " + Json.Canonical(JsonValue.Create(Path.Combine(workspace, ".nuget"))) + ")) " + excludes + "))";
+        var resourceRules = resourceExtensions.Length == 0 ? "" : "(deny file-read-data (require-all (vnode-type REGULAR-FILE) (subpath " + Json.Canonical(JsonValue.Create(workspace)) + ") (regex " + Json.Canonical(JsonValue.Create("(" + string.Join("|", resourceExtensions.Select(Regex.Escape)) + ")$")) + ") (require-not (subpath " + Json.Canonical(JsonValue.Create(Path.Combine(workspace, ".nuget"))) + ")) " + excludes + "))";
         return resourceRules + "\n(deny file-read-data (require-all (subpath " + Json.Canonical(JsonValue.Create(workspace)) +
             ") (regex #\"[.]cs$\") (require-not (subpath " + Json.Canonical(JsonValue.Create(Path.Combine(workspace, ".nuget"))) +
             ")) (require-not (regex " + Json.Canonical(JsonValue.Create("^" + Regex.Escape(workspace) + "/.*/obj/")) + "))))";
@@ -115,9 +115,11 @@ internal static class LockedRestore
             }) start.Environment[key] = value;
             using var process = Process.Start(start)!;
             var stdout = process.StandardOutput.ReadToEndAsync(); var stderr = process.StandardError.ReadToEndAsync();
-            if (!process.WaitForExit(180000)) { process.Kill(true); throw new InvalidDataException("Locked restore timed out"); }
+            var exited = process.WaitForExit(180000);
+            if (!exited) { process.Kill(true); process.WaitForExit(); }
             Task.WaitAll(stdout, stderr); var log = stdout.Result + stderr.Result;
             File.WriteAllText(Path.Combine(diagnostics, "restore.log"), log);
+            if (!exited) throw new InvalidDataException("Locked restore timed out; see restore.log");
             if (process.ExitCode != 0) throw new InvalidDataException("Sandboxed locked restore failed: " + log);
             foreach (var (path, hash) in before) if (FileTree.HashRegular(path).Digest != hash) throw new InvalidDataException("Restore modified a declared input: " + Path.GetRelativePath(workspace, path));
             var outputs = request.Array("outputs").ToDictionary(item => Host.Safe(item!.String("name")), item => item!.String("output"), StringComparer.Ordinal);
