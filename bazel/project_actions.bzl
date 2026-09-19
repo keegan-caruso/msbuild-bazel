@@ -77,20 +77,21 @@ msbuild_compile_project = rule(implementation = _project, attrs = {
 
 def _runtime(ctx):
     output = ctx.actions.declare_directory(ctx.label.name + ".bundle")
+    metadata = ctx.actions.declare_directory(ctx.label.name + ".metadata")
     entry = ctx.attr.entry[ProjectBundleInfo]
     bundles = entry.dependency_runtimes
     request = ctx.actions.declare_file(ctx.label.name + ".request.json")
-    ctx.actions.write(request, json.encode({"entry": ctx.attr.project, "output": output.path, "bundles": [], "entryBundle": entry.bundle.path, "runtimeBundles": [f.path for f in bundles.to_list()]}))
+    ctx.actions.write(request, json.encode({"entry": ctx.attr.project, "output": output.path, "bundles": [], "entryBundle": entry.bundle.path, "runtimeBundles": [f.path for f in bundles.to_list()], "metadataOutput": metadata.path}))
     ctx.actions.run(
         executable = ctx.executable.dotnet,
         arguments = [ctx.file.runner.path, "--compose-projects", request.path],
         inputs = depset([ctx.file.runner, request, entry.bundle] + ctx.files.runner_support, transitive = [bundles, ctx.attr.sdk[DefaultInfo].files]),
-        outputs = [output],
+        outputs = [output, metadata],
         env = {"PATH": "/usr/bin:/bin", "LANG": "en_US.UTF-8"},
         mnemonic = "MsbuildComposeRuntime",
         execution_requirements = {"block-network": "1", "no-remote-exec": "1"},
     )
-    return [DefaultInfo(files = depset([output])), NativeBundle(bundle = output)]
+    return [DefaultInfo(files = depset([output, metadata])), NativeBundle(bundle = output, metadata = metadata)]
 
 msbuild_compose_runtime = rule(implementation = _runtime, attrs = {
     "entry": attr.label(providers = [ProjectBundleInfo], mandatory = True),

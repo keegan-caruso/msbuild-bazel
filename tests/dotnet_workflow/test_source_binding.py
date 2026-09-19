@@ -125,10 +125,10 @@ class SourceBinding(unittest.TestCase):
             app, app_bundle = bundle('App', {'App/bin/Release/net10.0/App.dll': b'app', 'App/bin/Release/net10.0/Dep.dll': b'historical', 'App/Localization/fr/messages.po': b'bonjour'})
             unused, unused_bundle = bundle('Unused', {'Unused/bin/Release/net10.0/Unused.dll': b'unused'})
             original = {path: path.read_bytes() for parent in [dep, app, unused] for path in parent.rglob('*') if path.is_file()}
-            for projected, corrupt in [(False, False), (True, False), (False, True), (True, True)]:
+            for projected, canonical, corrupt in [(False, False, False), (True, False, False), (True, True, False), (False, False, True), (True, False, True), (True, True, True)]:
                 if corrupt: (unused_bundle/'artifacts/Unused/bin/Release/net10.0/Unused.dll').write_bytes(b'corrupt')
-                output = root/f'output-{projected}-{corrupt}'; request = root/'request.json'
-                request.write_text(json.dumps(dict(entry='App/App.csproj', output=str(output), bundles=[] if projected else [str(dep), str(app), str(unused)], **(dict(entryBundle=str(app), runtimeBundles=[str(dep_bundle), str(unused_bundle)]) if projected else {}))))
+                output = root/f'output-{projected}-{canonical}-{corrupt}'; request = root/'request.json'
+                request.write_text(json.dumps(dict(entry='App/App.csproj', output=str(output), bundles=[] if projected else [str(dep), str(app), str(unused)], metadataOutput=str(output)+'.metadata' if canonical else None, **(dict(entryBundle=str(app), runtimeBundles=[str(dep_bundle), str(unused_bundle)]) if projected else {}))))
                 p = subprocess.run([str(Path(os.environ['RULES_MSBUILD_DOTNET_ROOT'])/'dotnet'), str(ROOT/'tools/NativeProjectCache/bin/Release/net10.0/NativeProjectCache.dll'), '--compose-projects', str(request)], capture_output=True, text=True, timeout=30)
                 if corrupt:
                     self.assertNotEqual(p.returncode, 0)
@@ -139,8 +139,15 @@ class SourceBinding(unittest.TestCase):
                     self.assertEqual((output/'app/Dep.dll').read_bytes(), b'current')
                     self.assertEqual((output/'app/Localization/fr/messages.po').read_bytes(), b'bonjour')
                     self.assertTrue((output/'app/wwwroot/.rules_msbuild_keep').is_file())
-                    self.assertEqual(len(list((output/'cache').iterdir())), 1)
-                    self.assertEqual(len(list((output/'runtime').iterdir())), 1)
+                    if canonical:
+                        self.assertFalse((output/'cache').exists());self.assertFalse((output/'runtime').exists())
+                        metadata=Path(str(output)+'.metadata')
+                        artifacts=json.loads((metadata/'artifacts.json').read_text())
+                        self.assertEqual({a['path'] for a in artifacts},{'App.dll','Dep.dll','Localization/fr/messages.po','wwwroot/.rules_msbuild_keep'})
+                        for artifact in artifacts:self.assertEqual(hashlib.sha256((output/'app'/artifact['path']).read_bytes()).hexdigest(),artifact['sha256'])
+                    else:
+                        self.assertEqual(len(list((output/'cache').iterdir())), 1)
+                        self.assertEqual(len(list((output/'runtime').iterdir())), 1)
                     self.assertFalse((output/'app/Unused.dll').exists())
                     for path, content in original.items(): self.assertEqual(path.read_bytes(), content)
 

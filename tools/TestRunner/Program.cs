@@ -8,7 +8,7 @@ return await GraphTest.Run(args);
 internal sealed record DataFile(string Source, string Destination, string Sha256);
 internal sealed record Request(int SchemaVersion, string Project, Dictionary<string, string> GlobalProperties,
     string[] Bundles, string RuntimeDirectory, string Assembly, DataFile[] TestData, string[] ExpectedTests,
-    string SdkRoot, string SourceRoot = "/_/workspace", string? NativeBundle = null, string? NativeInputs = null, string? NativeToolchain = null, string? NativeManifest = null);
+    string SdkRoot, string SourceRoot = "/_/workspace", string? NativeBundle = null, string? NativeInputs = null, string? NativeToolchain = null, string? NativeManifest = null, string? NativeRuntimeMetadata = null);
 internal sealed record Artifact(string Path, long Size, string Sha256);
 
 internal static class GraphTest
@@ -74,6 +74,7 @@ internal static class GraphTest
             expected = request.ExpectedTests;
             if (request.SchemaVersion != 1 || expected.Length == 0 || expected.Distinct().Count() != expected.Length ||
                 !Relative(request.Project) || !Relative(request.RuntimeDirectory) || !Relative(request.Assembly) || request.Assembly.Contains('/')) throw new InvalidDataException("invalid test request");
+            if (request.NativeRuntimeMetadata is not null && request.NativeBundle is null) throw new InvalidDataException("Runtime metadata requires a native application");
             var runfiles = Environment.GetEnvironmentVariable("TEST_SRCDIR") ?? Directory.GetCurrentDirectory();
             if (request.NativeManifest is not null)
             {
@@ -92,7 +93,7 @@ internal static class GraphTest
                     !request.GlobalProperties.TryGetValue("targetframework", out var framework) || framework != "net10.0" ||
                     request.RuntimeDirectory != Path.GetDirectoryName(request.Project) + "/bin/Release/net10.0")
                     throw new InvalidDataException("invalid native test identity");
-                candidates = Directory.EnumerateDirectories(Path.Combine(Resolve(runfiles, request.NativeBundle), "runtime"));
+                candidates = request.NativeRuntimeMetadata is null ? Directory.EnumerateDirectories(Path.Combine(Resolve(runfiles, request.NativeBundle), "runtime")) : [Resolve(runfiles, request.NativeRuntimeMetadata)];
             }
             foreach (var bundle in candidates)
             {
@@ -106,7 +107,7 @@ internal static class GraphTest
                     if (payload.RootElement.GetProperty("project").GetString() == request.Project &&
                         payload.RootElement.GetProperty("inputs").GetString() == request.NativeInputs &&
                         payload.RootElement.GetProperty("toolchain").GetString() == request.NativeToolchain &&
-                        payload.RootElement.GetProperty("key").GetString() == Path.GetFileName(bundle)) matches.Add(bundle);
+                        (request.NativeRuntimeMetadata is not null || payload.RootElement.GetProperty("key").GetString() == Path.GetFileName(bundle))) matches.Add(bundle);
                     continue;
                 }
                 if (payload.RootElement.GetProperty("schemaVersion").GetInt32() != 1 || payload.RootElement.GetProperty("sdkVersion").GetString() != "10.0.400" || payload.RootElement.GetProperty("targetFramework").GetString() != "net10.0") throw new InvalidDataException("test bundle identity/version mismatch");
@@ -122,11 +123,11 @@ internal static class GraphTest
             foreach (var item in artifacts)
             {
                 if (!Relative(item.Path) || !paths.Add(item.Path)) throw new InvalidDataException("invalid or duplicate bundle artifact");
-                var source = Path.Combine(subject, "artifacts", item.Path);
+                var source = request.NativeRuntimeMetadata is null ? Path.Combine(subject, "artifacts", item.Path) : Path.Combine(Resolve(runfiles, request.NativeBundle!), "app", item.Path);
                 using (var stream = File.OpenRead(source))
                     if (stream.Length != item.Size || Convert.ToHexString(SHA256.HashData(stream)).ToLowerInvariant() != item.Sha256) throw new InvalidDataException("test runtime artifact corrupt: " + item.Path);
-                if (!item.Path.StartsWith(request.RuntimeDirectory + "/", StringComparison.Ordinal)) continue;
-                var destination = item.Path[(request.RuntimeDirectory.Length + 1)..];
+                if (request.NativeRuntimeMetadata is null && !item.Path.StartsWith(request.RuntimeDirectory + "/", StringComparison.Ordinal)) continue;
+                var destination = request.NativeRuntimeMetadata is null ? item.Path[(request.RuntimeDirectory.Length + 1)..] : item.Path;
                 Copy(source, Path.Combine(runtime, destination));
                 runtimeHashes.Add(destination, item.Sha256);
             }

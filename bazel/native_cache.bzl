@@ -3,7 +3,7 @@
 load(":input_paths.bzl", "input_path")
 
 # buildifier: disable=name-conventions
-NativeBundle = provider(doc = "Sealed native project bundles and entry runtime.", fields = ["bundle"])
+NativeBundle = provider(doc = "Sealed native project bundles and entry runtime.", fields = ["bundle", "metadata"])
 
 def _native_impl(ctx):
     output = ctx.actions.declare_directory(ctx.label.name + ".bundle")

@@ -2,7 +2,7 @@ using System.Text.Json;
 using System.Text.Json.Nodes;
 using ActionRunner;
 
-internal sealed record ComposeRequest(string Entry, string Output, string[] Bundles, string? EntryBundle = null, string[]? RuntimeBundles = null);
+internal sealed record ComposeRequest(string Entry, string Output, string[] Bundles, string? EntryBundle = null, string[]? RuntimeBundles = null, string? MetadataOutput = null);
 
 // Bazel compile dependencies carry a stable API projection. Real implementation
 // bytes are restored only by the final runtime action, without invoking MSBuild.
@@ -79,6 +79,37 @@ internal static class ProjectActions
                 var source = Path.Combine(Bin(project, results[project].TargetFramework), Assembly(project) + extension);
                 if (!artifacts[project].ContainsKey(source) || !replacements.TryAdd(destination, Path.Combine(bundle, "artifacts", source))) throw new InvalidDataException("Ambiguous or missing current runtime artifact");
             }
+        }
+        if (request.MetadataOutput is not null)
+        {
+            var bin = Bin(request.Entry, results[request.Entry].TargetFramework) + "/";
+            var localization = Path.GetDirectoryName(request.Entry)! + "/Localization/";
+            var application = Path.Combine(request.Output, "app"); Directory.CreateDirectory(application);
+            foreach (var item in own.Values)
+            {
+                var relative = item.Path.StartsWith(bin, StringComparison.Ordinal) ? item.Path[bin.Length..]
+                    : results[request.Entry].OrchardApplication && item.Path.StartsWith(localization, StringComparison.Ordinal) ? "Localization/" + item.Path[localization.Length..] : null;
+                if (relative is null) continue;
+                var source = replacements.GetValueOrDefault(item.Path, Path.Combine(bundles[request.Entry], "artifacts", item.Path));
+                var destination = Path.Combine(application, relative);
+                if (File.Exists(destination)) throw new InvalidDataException("Ambiguous application output");
+                Files.Copy(source, destination);
+            }
+            if (results[request.Entry].OrchardApplication)
+            {
+                Directory.CreateDirectory(Path.Combine(application, "wwwroot"));
+                using (File.Open(Path.Combine(application, "wwwroot/.rules_msbuild_keep"), FileMode.CreateNew)) { }
+            }
+            Files.NormalizeTree(request.Output);
+            var metadata = request.MetadataOutput;
+            if (Directory.Exists(metadata) && Directory.EnumerateFileSystemEntries(metadata).Any()) throw new InvalidDataException("Runtime metadata requires an empty output");
+            Directory.CreateDirectory(metadata);
+            Files.Copy(Path.Combine(bundles[request.Entry], "results.json"), Path.Combine(metadata, "results.json"));
+            JsonFiles.Write(Path.Combine(metadata, "artifacts.json"), Directory.EnumerateFiles(application, "*", SearchOption.AllDirectories)
+                .Order(StringComparer.Ordinal).Select(path => new Artifact(Path.GetRelativePath(application, path), new FileInfo(path).Length, Files.Hash(path))).ToArray());
+            JsonFiles.Write(Path.Combine(metadata, "bundle.json"), new BundleSeal(1, Files.Hash(Path.Combine(metadata, "results.json")), Files.Hash(Path.Combine(metadata, "artifacts.json"))));
+            Files.NormalizeTree(metadata);
+            return;
         }
         var entry = Path.Combine(request.Output, "cache", results[request.Entry].Key);
         Files.CopyTree(bundles[request.Entry], entry);

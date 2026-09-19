@@ -252,7 +252,15 @@ internal static class BazelOwnedWorkflow
             });
             Measure("validateBundles", () =>
             {
-                foreach (var folder in Directory.GetDirectories(bundleCache)) RemoteCache.ValidateBundle(FileTree.Files(folder).ToDictionary(p => Path.GetRelativePath(folder, p), File.ReadAllBytes));
+                if (projectActions)
+                {
+                    var metadata = Host.Real(Path.Combine(generated, "bazel-bin/build.metadata"));
+                    var files = FileTree.Files(metadata).ToDictionary(path => Path.GetRelativePath(metadata, path), File.ReadAllBytes);
+                    var app = Path.Combine(bundle, "app");
+                    foreach (var path in FileTree.Files(app)) files.Add("artifacts/" + Path.GetRelativePath(app, path), File.ReadAllBytes(path));
+                    RemoteCache.ValidateBundle(files);
+                }
+                else foreach (var folder in Directory.GetDirectories(bundleCache)) RemoteCache.ValidateBundle(FileTree.Files(folder).ToDictionary(p => Path.GetRelativePath(folder, p), File.ReadAllBytes));
                 return true;
             });
             if (!projectActions) { FileTree.Remove(cache); FileTree.Copy(bundleCache, cache, preserveModes: false); }

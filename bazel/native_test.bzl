@@ -14,7 +14,8 @@ def _native_test_impl(ctx):
     request = ctx.actions.declare_file(ctx.label.name + ".request.json")
     launcher = ctx.actions.declare_file(ctx.label.name + ".sh")
     bundle = ctx.attr.subject[NativeBundle].bundle
-    bundles = depset([bundle])
+    metadata = getattr(ctx.attr.subject[NativeBundle], "metadata", None)
+    bundles = depset([bundle] + ([metadata] if metadata else []))
     data = []
     for file in ctx.files.data:
         destination = input_path(file).removeprefix("test-data/")
@@ -27,6 +28,7 @@ def _native_test_impl(ctx):
         "globalProperties": ctx.attr.global_properties,
         "bundles": [],
         "nativeBundle": _runfile(ctx, bundle),
+        "nativeRuntimeMetadata": _runfile(ctx, metadata) if metadata else None,
         "nativeInputs": ctx.attr.native_inputs,
         "nativeManifest": _runfile(ctx, ctx.file.prepared_plan) + "/manifest.json" if ctx.file.prepared_plan else None,
         "nativeToolchain": ctx.attr.native_toolchain,
