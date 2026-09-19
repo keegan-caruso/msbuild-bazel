@@ -12,6 +12,14 @@ try
     switch (args[0])
     {
         case "describe-locks": Console.WriteLine(Json.Text(LockedRestore.Describe(request.String("workspace"), request.Array("projects").Select(item => item!.GetValue<string>())))); break;
+        case "locked-source-profile": Console.WriteLine(LockedRestore.SourceReadDeny(request.String("workspace"), request.Array("bodies").Select(item => item!.GetValue<string>()))); break;
+        case "require-source-only":
+            {
+                var watch = System.Diagnostics.Stopwatch.StartNew();
+                NativePlan.RequireSourceOnly(Json.Read(request.String("graph")), request.Array("sources").Select(item => item!.GetValue<string>()).ToHashSet(StringComparer.Ordinal));
+                Console.WriteLine(new JsonObject { ["accepted"] = true, ["seconds"] = watch.Elapsed.TotalSeconds }.ToJsonString());
+                break;
+            }
         case "protected-store":
             {
                 var root = request.String("root"); var mutable = request.String("mutable");
@@ -197,7 +205,7 @@ try
             NativePlan.BindSources(request);
             break;
         case "native-plan":
-            NativePlan.Materialize(request.String("prepared"), request["graph"]!, request.String("output"), request.String("toolchain"), includePayload: request["includePayload"]?.GetValue<bool>() ?? true);
+            NativePlan.Materialize(request.String("prepared"), request["graph"]!, request.String("output"), request.String("toolchain"), includePayload: request["includePayload"]?.GetValue<bool>() ?? true, repository: request["repository"]?.GetValue<string>());
             break;
         case "refresh":
             Console.WriteLine(Json.Text(NativePlan.Refresh(request.String("plan"), request.String("workspace"), request["before"]!, request["after"]!)));

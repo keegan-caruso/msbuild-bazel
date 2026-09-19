@@ -102,7 +102,7 @@ internal static class Program
             }
             Mark("seedCopy");
             var manifest = JsonSerializer.Deserialize<PortableManifest>(File.ReadAllText(request.Manifest), Json)!;
-            if (!request.ProjectAction && manifest.Projects.Values.Any(project => project.TargetFramework != "net10.0" || project.Implementation || (project.Analyzers?.Length ?? 0) != 0))
+            if (!request.ProjectAction && manifest.Projects.Values.Any(project => project.TargetFramework != "net10.0" || project.Implementation || project.OrchardModule || project.OrchardApplication || (project.Analyzers?.Length ?? 0) != 0))
                 throw new InvalidDataException("Mixed frameworks and analyzer references require project actions");
             var selection = "";
             if (manifest.Policy == "evaluated-api-runtime-v2")
@@ -128,11 +128,14 @@ internal static class Program
                 new XDocument(document).Save(path);
                 selection = "<PropertyGroup><AfterMicrosoftNETSdkTargets>$(AfterMicrosoftNETSdkTargets);" + System.Security.SecurityElement.Escape(path) + "</AfterMicrosoftNETSdkTargets></PropertyGroup>";
             }
+            var orchardTargets = manifest.Projects[request.Entry].OrchardModule
+                ? "<Target Name=\"BazelMapOrchardModuleAssets\" AfterTargets=\"OrchardCoreEmbedModuleAssets\"><ItemGroup><AssemblyAttribute Update=\"OrchardCore.Modules.Manifest.ModuleAssetAttribute\"><_Parameter1>$([System.String]::Copy('%(AssemblyAttribute._Parameter1)').Replace('" + System.Security.SecurityElement.Escape(workspace.Replace("'", "%27", StringComparison.Ordinal)) + "', '/_/workspace'))</_Parameter1></AssemblyAttribute></ItemGroup></Target>"
+                : "";
             var plugin = typeof(Program).Assembly.Location;
             var targets = Path.Combine(scratch, "Cache.targets");
             File.WriteAllText(targets, "<Project><PropertyGroup><_NativeOriginalTargets>$([MSBuild]::GetPathOfFileAbove('Directory.Build.targets', '$(MSBuildProjectDirectory)/'))</_NativeOriginalTargets></PropertyGroup>" +
                 "<Import Project=\"$(_NativeOriginalTargets)\" Condition=\"'$(_NativeOriginalTargets)' != ''\" />" +
-                selection + "<Target Name=\"BazelUseInActionCompiler\" BeforeTargets=\"CoreCompile\"><PropertyGroup><UseSharedCompilation>false</UseSharedCompilation></PropertyGroup></Target><ItemGroup><ProjectCachePlugin Include=\"" + System.Security.SecurityElement.Escape(plugin) + "\" /></ItemGroup></Project>");
+                selection + orchardTargets + "<Target Name=\"BazelUseInActionCompiler\" BeforeTargets=\"CoreCompile\"><PropertyGroup><UseSharedCompilation>false</UseSharedCompilation></PropertyGroup></Target><ItemGroup><ProjectCachePlugin Include=\"" + System.Security.SecurityElement.Escape(plugin) + "\" /></ItemGroup></Project>");
             var sessionPath = Path.Combine(scratch, "session.json");
             var pending = Path.Combine(scratch, "pending"); Directory.CreateDirectory(pending);
             var report = Path.Combine(diagnostics, "events.json");

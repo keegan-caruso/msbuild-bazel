@@ -33,6 +33,10 @@ upstream choose its frameworks succeeds. Do not force all projects to net10.0.
 
 ## Support work in progress
 
+The target is a Release/Production build-server workflow. Development hot reload
+is not part of this qualification. Build-worker paths in SDK-generated debug
+metadata are acceptable; recovered applications must not require those paths.
+
 Full support requires all of these gates, in order:
 
 1. Validate central package versions and transitive pinning against actual NuGet
@@ -152,3 +156,64 @@ output matches the legacy binder in the differential test. Payloads are limited
 to the dependency closure, and generated BUILD files share a structural filegroup.
 The full native build is still being qualified; these passing preparation checks
 are not evidence of a working CMS runtime or fresh-worker cache recovery.
+
+### Step 6: Web SDK result replay and Production runtime composition
+
+The complete 202-project host now compiles and composes in the native component
+harness. Producer results preserve the actual optional module/static-web-asset
+query targets. Bundles retain the three SDK intermediate static-asset manifests,
+with worker paths rebased on capture/replay. The pinned SDK's own manifest model
+validates and recomputes its path-dependent hash. Round-trip, different-worker,
+corruption and project-output ownership tests pass.
+
+The exact Orchard import profile enables two scoped capabilities. Modules map
+embedded development-source metadata to `/_/workspace` for the Production build.
+Applications retain generated Localization outputs. Runtime composition also
+preserves the empty `wwwroot` created by Orchard's application target; a marker
+keeps that directory present through file-only cache transports. This is needed
+by the media cache after site setup. Development physical-source reload is not
+qualified.
+
+An explicit upstream interceptor-generator patch replaces random generated class
+names with a location-derived digest; see `tests/fixtures/orchard/README.md`.
+With that patch, 134/136 artifacts in the 34-project theme chain exactly match
+raw MSBuild under the same Release source-path normalization. The remaining
+Queries DLL/PDB differences are explained by the standard Razor generator's
+embedded worker paths and generated tag-helper IDs. All 23 differing generated
+source documents match after accounting for those two differences. No custom
+Razor compiler or post-build assembly rewriting is used.
+
+The full component build preserved hashes for 808 own-project artifacts. Its
+resumed run took 645.077 seconds with 337 executed sandbox actions and existing
+component cache hits; it is neither a clean baseline nor a claimed speedup.
+The component harness does not establish owned-workflow or remote-cache support.
+
+The composed application served the setup page and embedded setup assets.
+The Blog recipe created a SQLite database. This exposed the missing empty web
+root; after adding it to the runtime copy, the home page, article, About page,
+theme CSS, JavaScript and favicon all returned HTTP 200. SQLite integrity was
+`ok` with 16 tables. The code fix has a composition regression test; qualification
+of a freshly composed owned-workflow bundle remains a separate gate.
+
+### Step 7: full-graph locked restore and repository acquisition
+
+Locked restore now leaves framework selection to the authored projects and
+accepts NuGet's `CentralTransitive` lock entries with the existing hash checks.
+The large graph overflowed macOS's sandbox compiler when each source body had a
+separate deny rule. An equivalent compact classification rule now blocks C# body
+reads while retaining package and generated `obj` inputs. A real sandbox test
+with 6,000 body declarations checks both denied and allowed reads, including a
+workspace beneath an `obj` parent directory.
+
+Bazel archive extraction now matches NuGet's `%2B` decoding in portable-framework
+paths. A real repository-rule test covers both case variants and rejects a
+collision with an already decoded path. The pinned Starlark checks pass. Locked restore and
+guarded full-graph capture have passed; build/cache publication and fresh-worker
+recovery are still being qualified.
+
+The final source-role check also exposed repeated linear scans of all source
+names for non-source inputs on macOS. It now constructs one case-insensitive set
+and performs one lookup per input. The real graph with 5,615 declared source
+names passes in 0.726 seconds including JSON loading. A 6,000-source/10,000-import
+regression checks ordinary and case-aliased source/import rejection. This timing
+is for that check alone, not end-to-end preparation.

@@ -21,6 +21,28 @@ def _base64(hexadecimal):
         result += alphabet[number % 64] if len(chunk) > 4 else "="
     return result
 
+def _normalize_package_paths(ctx, destination):
+    # NuGet decodes encoded '+' characters in portable framework directories.
+    # Keep this consistent with Packages.cs and reject normalization collisions.
+    pending = [ctx.path(destination)]
+    for _ in range(64):
+        children = []
+        for directory in pending:
+            for path in directory.readdir():
+                name = path.basename.replace("%2B", "+").replace("%2b", "+")
+                if name != path.basename:
+                    target = ctx.path(str(directory) + "/" + name)
+                    if target.exists:
+                        fail("Conflicting normalized NuGet path: " + str(target))
+                    ctx.rename(path, target)
+                    path = target
+                if path.is_dir:
+                    children.append(path)
+        pending = children
+        if not pending:
+            return
+    fail("NuGet archive directory nesting exceeds 64 levels")
+
 def _nuget(ctx):
     pins = json.decode(ctx.read(ctx.attr.policy))
     for package, digest in sorted(json.decode(ctx.attr.packages).items()):
@@ -40,6 +62,7 @@ def _nuget(ctx):
             fail("Cannot hash NuGet archive: " + checksum.stderr)
         archive_digest = _base64(checksum.stdout.split(" ")[0])
         ctx.extract(destination + "/" + archive, output = destination)
+        _normalize_package_paths(ctx, destination)
         ctx.file(destination + "/.nupkg.metadata", json.encode({"version": 2, "contentHash": digest, "source": "https://api.nuget.org/v3/index.json"}), executable = False)
         ctx.file(destination + "/" + archive + ".sha512", archive_digest, executable = False)
 

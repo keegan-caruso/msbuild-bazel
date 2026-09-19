@@ -148,5 +148,88 @@
       "bazel": "367ee34ea1ed546bf5757b1d16a41f4ac9582b5712b90d5e340b0a8e90433618",
       "equal": true
     }
+  },
+  "themeParity": {
+    "compared": 136,
+    "byteIdentical": 134,
+    "remainingArtifacts": [
+      "OrchardCore.Queries.dll",
+      "OrchardCore.Queries.pdb"
+    ],
+    "generatedSourceAnalysis": {
+      "differingDocuments": 23,
+      "unexplainedDifferences": [],
+      "acceptedDifferences": [
+        "worker paths in generated #line and checksum pragmas",
+        "Razor tag-helper generated unique IDs"
+      ]
+    }
+  },
+  "fullComponent": {
+    "projects": 202,
+    "ownArtifacts": 808,
+    "resumedBazelSeconds": 645.077,
+    "executedSandboxActions": 337,
+    "remoteQualification": false,
+    "runtime": {
+      "requests": [
+        {
+          "path": "/",
+          "status": 200,
+          "size": 7296,
+          "sha256": "f9304a26659ad916cf775d0da07b5c507893c796e1bad79b6589b7e527f7da6b"
+        },
+        {
+          "path": "/blog/post-1",
+          "status": 200,
+          "size": 8256,
+          "sha256": "fbbcef5e14f02c26e6b907b9ac10c5b01868342a6037bdbf49899a601e3b04a6"
+        },
+        {
+          "path": "/about",
+          "status": 200,
+          "size": 5979,
+          "sha256": "eaeee31d27666ac2900fd726e04aa6ae054c45152b77d57591d6809e80f30039"
+        },
+        {
+          "path": "/TheBlogTheme/favicon.ico",
+          "status": 200,
+          "size": 15086,
+          "sha256": "55f667cb189d1eb0ae5bbd8cea0c45373ad874b3f23596e08ba93592f985e668"
+        },
+        {
+          "path": "/OrchardCore.Resources/Vendor/fontawesome-free/css/all.min.css?v=4Lad8m4ZWW1Lgb9-sMVLYEfnIh7BjV1NQMEe79Pviks",
+          "status": 200,
+          "size": 90336,
+          "sha256": "e0b69df26e19596d4b81bf7eb0c54b6047e7221ec18d5d4d40c11eefd3ef8a4b"
+        },
+        {
+          "path": "/TheBlogTheme/css/styles.min.css?v=A69qS-ybrRlobwOeSv_vwknCvvF2hxtLtk-T61isXYQ",
+          "status": 200,
+          "size": 158346,
+          "sha256": "03af6a4bec9bad19686f039e4affefc249c2bef176871b4bb64f93eb58ac5d84"
+        },
+        {
+          "path": "/TheBlogTheme/css/bootstrap-oc.min.css?v=ElhrailGW32PedU24UpgPMaI-7Uzl3942KR1CvLB1N8",
+          "status": 200,
+          "size": 3702,
+          "sha256": "12586b6a29465b7d8f79d536e14a603cc688fbb533977f78d8a4750af2c1d4df"
+        },
+        {
+          "path": "/TheBlogTheme/js/scripts.min.js?v=5w95vB_tm0uEZTFX4DLIFES8Dff_cDEMi24YXfn7Muw",
+          "status": 200,
+          "size": 685,
+          "sha256": "e70f79bc1fed9b4b84653157e032c81444bc0df7ff70310c8b6e185df9fb32ec"
+        }
+      ],
+      "sqliteIntegrity": "ok",
+      "tables": 16,
+      "scope": "component runtime after applying required wwwroot directory repair; final owned bundle qualification pending"
+    }
+  },
+  "sourceRoleCheck": {
+    "sources": 5615,
+    "accepted": true,
+    "seconds": 0.7261771
   }
 }

@@ -27,7 +27,7 @@ internal static class NativePlan
         return nodes;
     }
     private static IEnumerable<string> Analyzers(JsonNode node) => (node["execution"]?["analyzerReferences"] as JsonArray ?? []).Select(value => value!.GetValue<string>());
-    public static void Materialize(string prepared, JsonNode graph, string output, string toolchain, bool includePayload = true)
+    public static void Materialize(string prepared, JsonNode graph, string output, string toolchain, bool includePayload = true, string? repository = null)
     {
         var nodes = Qualify(graph); Directory.CreateDirectory(output);
         var implementations = new HashSet<string>(StringComparer.Ordinal);
@@ -40,6 +40,7 @@ internal static class NativePlan
         foreach (var node in nodes.Values)
             if (analyzerProjects.Contains(node.String("project")) || node.String("targetFramework") != "net10.0") RequireImplementation(node);
         var sourceRoot = Path.Combine(prepared, "src");
+        var orchard = repository is null ? null : new OrchardProfile(repository, sourceRoot);
         if (includePayload) FileTree.Copy(sourceRoot, Path.Combine(output, "src"));
         var packageRoot = Path.Combine(prepared, "packages");
         if (includePayload && Directory.Exists(packageRoot)) FileTree.Copy(packageRoot, Path.Combine(output, "src/.nuget/packages"));
@@ -76,6 +77,8 @@ internal static class NativePlan
             if (implementations.Contains(node.String("project"))) { record["implementation"] = true; declaration["implementation"] = true; }
             var analyzers = Analyzers(node).Select(Host.Relative).ToArray();
             if (analyzers.Length != 0) { record["analyzers"] = Json.Strings(analyzers); declaration["analyzers"] = Json.Strings(analyzers); }
+            if (orchard?.OwnsImport(node, "src/OrchardCore/OrchardCore.Module.Targets/OrchardCore.Module.Targets.targets") == true) { record["orchardModule"] = true; declaration["orchardModule"] = true; }
+            if (orchard?.OwnsImport(node, "src/OrchardCore/OrchardCore.Application.Cms.Core.Targets/OrchardCore.Application.Cms.Core.Targets.targets") == true) { record["orchardApplication"] = true; declaration["orchardApplication"] = true; }
             records[project] = record; declaration["identity"] = Json.Digest(record); projects[project] = declaration;
         }
         if (!includePayload)
@@ -106,8 +109,9 @@ internal static class NativePlan
     }
     public static void RequireSourceOnly(JsonNode graph, HashSet<string> names)
     {
+        var sourceNames = names.ToHashSet(OperatingSystem.IsMacOS() ? StringComparer.OrdinalIgnoreCase : StringComparer.Ordinal);
         foreach (var item in graph.Array("nodes").SelectMany(n => n!.Array("inputs")).Concat(graph["graphInputs"] as JsonArray ?? []))
-            if (item!.String("path").StartsWith("workspace/", StringComparison.Ordinal) && (names.Contains(Host.Relative(item.String("path"))) || OperatingSystem.IsMacOS() && names.Any(name => name.Equals(Host.Relative(item.String("path")), StringComparison.OrdinalIgnoreCase))) && item.String("kind") != "source")
+            if (item!.String("path").StartsWith("workspace/", StringComparison.Ordinal) && sourceNames.Contains(Host.Relative(item.String("path"))) && item.String("kind") != "source")
                 throw new InvalidDataException("Source-content split requires a compile-only input: " + item!.String("path"));
     }
     public static void BindSources(JsonNode request)

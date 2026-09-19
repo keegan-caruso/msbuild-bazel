@@ -19,13 +19,17 @@ internal static class EntryBuild
         };
         using var collection = new ProjectCollection();
         var project = new ProjectInstance(Path.Combine(session.Workspace, session.Entry), properties, null, collection);
+        // Orchard's application target asks each reference for its module name.
+        // Capture it only when authored by that producer; SDK-less dependency
+        // replay must preserve both target presence and the actual returned items.
+        var targets = Targets.Split(';').Concat(new[] { "GetModuleProjectName", "GetStaticWebAssetsProjectConfiguration", "GetCurrentProjectBuildStaticWebAssetItems" }.Where(project.Targets.ContainsKey)).ToArray();
         using var manager = new BuildManager();
         var result = manager.Build(new BuildParameters(collection)
         {
             EnableNodeReuse = false,
             MaxNodeCount = 1,
             Loggers = [new ConsoleLogger(LoggerVerbosity.Normal)]
-        }, new BuildRequestData(project, Targets.Split(';')));
+        }, new BuildRequestData(project, targets));
         return result.OverallResult == BuildResultCode.Success ? 0 : 1;
     }
 }

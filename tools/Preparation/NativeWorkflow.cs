@@ -171,7 +171,7 @@ internal static class NativeWorkflow
                     }
                     NativePlan.Qualify(graph); var path = Path.Combine(temporary, "graph.json"); Json.Write(path, graph); var prepared = Path.Combine(temporary, "validated");
                     GraphPreparation.Run(new JsonObject { ["schemaVersion"] = 1, ["repository"] = root, ["workspace"] = workspace, ["manifest"] = path, ["output"] = prepared, ["sdkRoot"] = sdk, ["sdkVersion"] = "10.0.400" }, bound, discovery is null ? null : () => discovery.Export(entry));
-                    NativePlan.Materialize(prepared, graph, plan, toolchain);
+                    NativePlan.Materialize(prepared, graph, plan, toolchain, repository: root);
                 }
                 receipt = discovery?.Receipt(entry, plan);
                 return true;

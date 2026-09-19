@@ -8,7 +8,7 @@ using Microsoft.Build.ProjectCache;
 using TaskItem = Microsoft.Build.Utilities.TaskItem;
 
 internal sealed record DeclaredFile(string Path, string Hash);
-internal sealed record DeclaredProject(string Identity, string[] Dependencies, string TargetFramework = "net10.0", bool Implementation = false, string[]? Analyzers = null);
+internal sealed record DeclaredProject(string Identity, string[] Dependencies, string TargetFramework = "net10.0", bool Implementation = false, string[]? Analyzers = null, bool OrchardModule = false, bool OrchardApplication = false);
 internal sealed record Session(string Workspace, string Cache, string Scratch, string Report, string Entry, string Toolchain,
     DeclaredFile[] Files, Dictionary<string, DeclaredProject> Projects, string? Remote = null, string? TargetsPath = null, string Policy = "native-qualified-v2", Dictionary<string, string>? Prebuilt = null);
 internal sealed record Ready(string Bundle, string Api);
@@ -92,11 +92,11 @@ public sealed class NativeCachePlugin : ProjectCachePluginBase
                 var artifacts = CompileBoundary.Validate(bundle);
                 var results = ProjectActions.Read(bundle);
                 var identity = DependencyIdentity(bundle, project);
-                if (results.TargetFramework != session.Projects[project].TargetFramework || results.Project != project || results.Toolchain != session.Toolchain || results.Key != identity || results.Inputs != identity) throw new InvalidDataException("Invalid project API dependency: " + project);
+                if (results.TargetFramework != session.Projects[project].TargetFramework || results.OrchardModule != session.Projects[project].OrchardModule || results.OrchardApplication != session.Projects[project].OrchardApplication || results.Project != project || results.Toolchain != session.Toolchain || results.Key != identity || results.Inputs != identity) throw new InvalidDataException("Invalid project API dependency: " + project);
                 foreach (var artifact in artifacts)
                 {
                     if (!Allowed(project, artifact.Path)) throw new InvalidDataException("API artifact outside project outputs");
-                    Files.Copy(Path.Combine(bundle, "artifacts", artifact.Path), Path.Combine(session.Workspace, artifact.Path));
+                    StaticWebAssets.Restore(Path.Combine(bundle, "artifacts", artifact.Path), Path.Combine(session.Workspace, artifact.Path), session.Workspace);
                 }
                 Compose(bundle, project);
                 states[project].Completion.SetResult(new Ready(bundle, identity));
@@ -140,7 +140,8 @@ public sealed class NativeCachePlugin : ProjectCachePluginBase
         foreach (var file in session.Files)
             if (!Files.ValidRelativePath(file.Path) || Files.Hash(Path.Combine(session.Workspace, file.Path)) != file.Hash)
                 throw new InvalidDataException("declared input changed: " + file.Path);
-        var outputs = states.Keys.SelectMany(project => new[] { Bin(project) + "/", Path.Combine(Path.GetDirectoryName(project)!, "obj/Release") + "/" }).ToArray();
+        var outputs = states.Keys.SelectMany(project => new[] { Bin(project) + "/", Path.Combine(Path.GetDirectoryName(project)!, "obj/Release") + "/" }
+            .Concat(session.Projects[project].OrchardApplication ? new[] { Path.Combine(Path.GetDirectoryName(project)!, "Localization") + "/" } : [])).ToArray();
         var observed = Directory.EnumerateFiles(session.Workspace, "*", SearchOption.AllDirectories)
             .Select(Relative).Where(path => !outputs.Any(prefix => path.StartsWith(prefix, StringComparison.Ordinal))).Order();
         if (!observed.SequenceEqual(session.Files.Select(file => file.Path).Order()))
@@ -183,12 +184,12 @@ public sealed class NativeCachePlugin : ProjectCachePluginBase
             {
                 var artifacts = CompileBoundary.Validate(candidate);
                 var results = JsonSerializer.Deserialize<Results>(File.ReadAllText(Path.Combine(candidate, "results.json")), Json) ?? throw new InvalidDataException("empty cached results");
-                if (results.Targets.Any(pair => pair.Value is null || pair.Value.Any(item => item is null || item.Metadata is null || item.Metadata.Values.Any(value => value is null))) || results.TargetFramework != session.Projects[project].TargetFramework || results.Key != state.Key || results.Project != project || results.Inputs != session.Projects[project].Identity || results.Toolchain != session.Toolchain || request.TargetNames.Any(target => !results.Targets.ContainsKey(target)))
+                if (results.Targets.Any(pair => pair.Value is null || pair.Value.Any(item => item is null || item.Metadata is null || item.Metadata.Values.Any(value => value is null))) || results.TargetFramework != session.Projects[project].TargetFramework || results.OrchardModule != session.Projects[project].OrchardModule || results.OrchardApplication != session.Projects[project].OrchardApplication || results.Key != state.Key || results.Project != project || results.Inputs != session.Projects[project].Identity || results.Toolchain != session.Toolchain || request.TargetNames.Any(target => !results.Targets.ContainsKey(target)))
                     throw new InvalidDataException("cached target identity mismatch");
                 foreach (var artifact in artifacts)
                 {
                     if (!Allowed(project, artifact.Path)) throw new InvalidDataException("artifact outside own project outputs");
-                    Files.Copy(Path.Combine(candidate, "artifacts", artifact.Path), Path.Combine(session.Workspace, artifact.Path));
+                    StaticWebAssets.Restore(Path.Combine(candidate, "artifacts", artifact.Path), Path.Combine(session.Workspace, artifact.Path), session.Workspace);
                 }
                 var ready = new Ready(candidate, DependencyIdentity(candidate, project));
                 if (apiRuntime) Compose(candidate, project);
@@ -217,7 +218,9 @@ public sealed class NativeCachePlugin : ProjectCachePluginBase
         }).ToArray(), BuildResultCode.Success)).ToArray());
 
     private bool Allowed(string project, string path) => path == Reference(project) ||
+        (PackagePolicy && StaticWebAssets.Intermediate(project, session.Projects[project].TargetFramework, path)) ||
         (PackagePolicy && path.StartsWith(Bin(project) + "/", StringComparison.Ordinal)) ||
+        (PackagePolicy && session.Projects[project].OrchardApplication && path.StartsWith(Path.Combine(Path.GetDirectoryName(project)!, "Localization") + "/", StringComparison.Ordinal)) ||
         new[] { ".dll", ".pdb", ".xml", ".deps.json", ".runtimeconfig.json" }.Any(extension => path == Path.Combine(Bin(project), Assembly(project) + extension));
 
     public override Task HandleProjectFinishedAsync(FileAccessContext context, BuildResult result, PluginLoggerBase logger, CancellationToken token)
@@ -237,10 +240,10 @@ public sealed class NativeCachePlugin : ProjectCachePluginBase
             foreach (var file in Directory.EnumerateFiles(Path.Combine(session.Workspace, Path.GetDirectoryName(project)!), "*", SearchOption.AllDirectories))
             {
                 var relative = Relative(file);
-                if (Allowed(project, relative)) Files.Copy(file, Path.Combine(bundle, "artifacts", relative));
+                if (Allowed(project, relative)) StaticWebAssets.Capture(file, Path.Combine(bundle, "artifacts", relative), session.Workspace);
             }
             if (!PackagePolicy) KeepOwnRuntimeMetadata(bundle, project);
-            File.WriteAllText(Path.Combine(bundle, "results.json"), JsonSerializer.Serialize(new Results(project, state.Key, targets, session.Projects[project].Identity, session.Toolchain, session.Projects[project].TargetFramework), Json));
+            File.WriteAllText(Path.Combine(bundle, "results.json"), JsonSerializer.Serialize(new Results(project, state.Key, targets, session.Projects[project].Identity, session.Toolchain, session.Projects[project].TargetFramework, session.Projects[project].OrchardModule, session.Projects[project].OrchardApplication), Json));
             CompileBoundary.Seal(bundle);
             if (apiRuntime) Compose(bundle, project, verifySelection: true);
             var api = DependencyIdentity(bundle, project);

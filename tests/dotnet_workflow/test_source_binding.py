@@ -118,11 +118,11 @@ class SourceBinding(unittest.TestCase):
                     target = path/'artifacts'/relative; target.parent.mkdir(parents=True, exist_ok=True); target.write_bytes(content)
                     items.append(dict(path=relative, size=len(content), sha256=hashlib.sha256(content).hexdigest()))
                 (path/'artifacts.json').write_text(json.dumps(items))
-                (path/'results.json').write_text(json.dumps(dict(project=name+'/'+name+'.csproj', key=hashlib.sha256(name.encode()).hexdigest(), targets={}, inputs='fixture', toolchain='fixture')))
+                (path/'results.json').write_text(json.dumps(dict(project=name+'/'+name+'.csproj', key=hashlib.sha256(name.encode()).hexdigest(), targets={}, inputs='fixture', toolchain='fixture', orchardApplication=name=='App')))
                 (path/'bundle.json').write_text(json.dumps(dict(schemaVersion=1, resultsSha256=hashlib.sha256((path/'results.json').read_bytes()).hexdigest(), artifactsSha256=hashlib.sha256((path/'artifacts.json').read_bytes()).hexdigest())))
                 return parent, path
             dep, dep_bundle = bundle('Dep', {'Dep/bin/Release/net10.0/Dep.dll': b'current'})
-            app, app_bundle = bundle('App', {'App/bin/Release/net10.0/App.dll': b'app', 'App/bin/Release/net10.0/Dep.dll': b'historical'})
+            app, app_bundle = bundle('App', {'App/bin/Release/net10.0/App.dll': b'app', 'App/bin/Release/net10.0/Dep.dll': b'historical', 'App/Localization/fr/messages.po': b'bonjour'})
             unused, unused_bundle = bundle('Unused', {'Unused/bin/Release/net10.0/Unused.dll': b'unused'})
             original = {path: path.read_bytes() for parent in [dep, app, unused] for path in parent.rglob('*') if path.is_file()}
             for corrupt in [False, True]:
@@ -137,7 +137,25 @@ class SourceBinding(unittest.TestCase):
                 else:
                     self.assertEqual(p.returncode, 0, p.stderr)
                     self.assertEqual((output/'app/Dep.dll').read_bytes(), b'current')
+                    self.assertEqual((output/'app/Localization/fr/messages.po').read_bytes(), b'bonjour')
+                    self.assertTrue((output/'app/wwwroot/.rules_msbuild_keep').is_file())
                     self.assertEqual(len(list((output/'cache').iterdir())), 1)
                     self.assertEqual(len(list((output/'runtime').iterdir())), 1)
                     self.assertFalse((output/'app/Unused.dll').exists())
                     for path, content in original.items(): self.assertEqual(path.read_bytes(), content)
+
+    def test_large_source_role_set_preserves_case_and_non_source_rejection(self):
+        with tempfile.TemporaryDirectory() as folder:
+            root=Path(folder);sources=[f'Project{i}/Body.cs' for i in range(6000)]
+            graph=dict(nodes=[dict(inputs=[dict(path='workspace/'+name,kind='source') for name in sources])],graphInputs=[dict(path=f'workspace/Imports/{i}.targets',kind='import') for i in range(10000)])
+            graph_path=root/'graph.json';request=root/'request.json'
+            request.write_text(json.dumps(dict(graph=str(graph_path),sources=sources)))
+            command=[str(Path(os.environ['RULES_MSBUILD_DOTNET_ROOT'])/'dotnet'),str(ROOT/'tests/Preparation.Tests/bin/Release/net10.0/Preparation.Tests.dll'),'require-source-only',str(request)]
+            graph_path.write_text(json.dumps(graph))
+            result=subprocess.run(command,capture_output=True,text=True,timeout=15)
+            self.assertEqual(result.returncode,0,result.stderr)
+            for path in ['workspace/Project5999/Body.cs']+(['workspace/project5999/body.cs'] if os.uname().sysname=='Darwin' else []):
+                graph['graphInputs'][-1]=dict(path=path,kind='import');graph_path.write_text(json.dumps(graph))
+                result=subprocess.run(command,capture_output=True,text=True,timeout=15)
+                self.assertNotEqual(result.returncode,0)
+                self.assertIn('compile-only input',result.stderr)

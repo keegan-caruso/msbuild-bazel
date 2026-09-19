@@ -48,7 +48,7 @@ internal static class BazelOwnedWorkflow
             var prepared = Path.Combine(scratch, "prepared");
             var bound = Tools.ToDictionary(name => name, name => Tool(root, name), StringComparer.Ordinal);
             GraphPreparation.Run(new JsonObject { ["schemaVersion"] = 1, ["repository"] = root, ["workspace"] = workspace, ["manifest"] = graphPath, ["output"] = prepared, ["sdkRoot"] = sdk, ["sdkVersion"] = "10.0.400" }, bound, () => discovery.Export(request.String("entry")));
-            NativePlan.Materialize(prepared, graph, output, toolchain, includePayload: false); discovery.Verify();
+            NativePlan.Materialize(prepared, graph, output, toolchain, includePayload: false, repository: root); discovery.Verify();
             NativePlan.RequireSourceOnly(graph, request.Array("sourceNames").Select(n => n!.GetValue<string>()).ToHashSet(StringComparer.Ordinal));
             Json.Write(Path.Combine(diagnostics, "report.json"), new JsonObject { ["accepted"] = true, ["seconds"] = clock.Elapsed.TotalSeconds, ["projects"] = graph.Array("nodes").Count });
         }

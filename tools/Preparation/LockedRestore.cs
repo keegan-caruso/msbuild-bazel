@@ -1,10 +1,26 @@
 using System.Diagnostics;
 using System.Text.Json.Nodes;
+using System.Text.RegularExpressions;
 
 namespace RulesMSBuild.Preparation;
 
 internal static class LockedRestore
 {
+    internal static string SourceReadDeny(string workspace, IEnumerable<string> bodies)
+    {
+        // Match the Starlark body classifier without thousands of literal rules:
+        // macOS's sandbox compiler cannot serialize a large per-file deny list.
+        foreach (var body in bodies)
+        {
+            Host.Safe(body);
+            if (!body.EndsWith(".cs", StringComparison.Ordinal) || body.StartsWith(".nuget/", StringComparison.Ordinal) || body.Contains("/obj/", StringComparison.Ordinal))
+                throw new InvalidDataException("Invalid locked restore source-body declaration");
+        }
+        return "(deny file-read-data (require-all (subpath " + Json.Canonical(JsonValue.Create(workspace)) +
+            ") (regex #\"[.]cs$\") (require-not (subpath " + Json.Canonical(JsonValue.Create(Path.Combine(workspace, ".nuget"))) +
+            ")) (require-not (regex " + Json.Canonical(JsonValue.Create("^" + Regex.Escape(workspace) + "/.*/obj/")) + "))))";
+    }
+
     public static JsonObject Describe(string workspace, IEnumerable<string> projects)
     {
         var packages = new JsonObject();
@@ -18,7 +34,7 @@ internal static class LockedRestore
                 {
                     var type = item!.String("type");
                     if (type.Equals("Project", StringComparison.OrdinalIgnoreCase)) continue;
-                    if (type is not ("Direct" or "Transitive")) throw new InvalidDataException("Unsupported NuGet lock dependency type");
+                    if (type is not ("Direct" or "Transitive" or "CentralTransitive")) throw new InvalidDataException("Unsupported NuGet lock dependency type");
                     var key = Host.Safe((id + "/" + item.String("resolved")).ToLowerInvariant());
                     var hash = item.String("contentHash");
                     if (key.Split('/').Length != 2 || Convert.FromBase64String(hash).Length != 64) throw new InvalidDataException("Invalid NuGet lock identity");
@@ -58,10 +74,13 @@ internal static class LockedRestore
             var before = FileTree.Files(workspace).ToDictionary(path => path, path => FileTree.HashRegular(path).Digest, StringComparer.Ordinal);
             var sdk = Host.Real(Path.GetDirectoryName(Environment.ProcessPath!)!);
             var runtime = Json.Read(request.String("runtimeManifest")).AsArray().Select(item => item!.GetValue<string>());
-            var profile = Discovery.Profile(runtime.Append(scratch), scratch) + "\n" + string.Join('\n', bodies.Select(name => "(deny file-read-data (literal " + Json.Canonical(JsonValue.Create(Path.Combine(workspace, name))) + "))"));
+            var profile = Discovery.Profile(runtime.Append(scratch), scratch) + "\n" + SourceReadDeny(workspace, bodies);
             var sandbox = Path.Combine(scratch, "sandbox.sb"); File.WriteAllText(sandbox, profile);
             var start = new ProcessStartInfo("/usr/bin/sandbox-exec") { WorkingDirectory = workspace, RedirectStandardOutput = true, RedirectStandardError = true };
-            foreach (var argument in new[] { "-f", sandbox, Path.Combine(sdk, "dotnet"), "exec", Path.Combine(sdk, "sdk/10.0.400/MSBuild.dll"), Host.Safe(request.String("entry")), "-t:Restore", "-p:Configuration=Release", "-p:TargetFramework=net10.0", "-p:RestorePackagesWithLockFile=true", "-p:RestoreLockedMode=true", "-p:NuGetAudit=false", "-p:RestorePackagesPath=" + packages, "-p:RestoreConfigFile=" + Path.Combine(workspace, Host.Safe(request.String("config"))), "-nodeReuse:false", "-m:1", "-nologo", "-verbosity:minimal" }) start.ArgumentList.Add(argument);
+            // Restore each project's authored frameworks. A global TargetFramework
+            // incorrectly forces analyzer projects (for example netstandard2.0)
+            // to the application framework; discovery selects build nodes later.
+            foreach (var argument in new[] { "-f", sandbox, Path.Combine(sdk, "dotnet"), "exec", Path.Combine(sdk, "sdk/10.0.400/MSBuild.dll"), Host.Safe(request.String("entry")), "-t:Restore", "-p:Configuration=Release", "-p:RestorePackagesWithLockFile=true", "-p:RestoreLockedMode=true", "-p:NuGetAudit=false", "-p:RestorePackagesPath=" + packages, "-p:RestoreConfigFile=" + Path.Combine(workspace, Host.Safe(request.String("config"))), "-nodeReuse:false", "-m:1", "-nologo", "-verbosity:minimal" }) start.ArgumentList.Add(argument);
             start.Environment.Clear();
             foreach (var (key, value) in new Dictionary<string, string>
             {

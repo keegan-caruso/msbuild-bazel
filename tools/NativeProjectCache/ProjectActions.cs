@@ -70,5 +70,22 @@ internal static class ProjectActions
         var runtime = Path.Combine(request.Output, "runtime", Path.GetFileName(entry));
         Files.CopyTree(entry, runtime);
         Files.CopyTree(Path.Combine(runtime, "artifacts", Bin(request.Entry, results[request.Entry].TargetFramework)), Path.Combine(request.Output, "app"));
+        if (results[request.Entry].OrchardApplication)
+        {
+            // Orchard's qualified application target creates an empty wwwroot.
+            // ASP.NET initializes WebRootPath only if it exists; the media cache
+            // needs it after setup. A marker preserves it through file-only cache
+            // transports as well as ordinary copies of the composed application.
+            var webRoot = Path.Combine(request.Output, "app/wwwroot");
+            Directory.CreateDirectory(webRoot);
+            using (File.Open(Path.Combine(webRoot, ".rules_msbuild_keep"), FileMode.CreateNew)) { }
+            var localization = Path.Combine(runtime, "artifacts", Path.GetDirectoryName(request.Entry)!, "Localization");
+            if (Directory.Exists(localization))
+            {
+                var destination = Path.Combine(request.Output, "app/Localization");
+                if (Path.Exists(destination)) throw new InvalidDataException("Ambiguous localization output");
+                Files.CopyTree(localization, destination);
+            }
+        }
     }
 }
