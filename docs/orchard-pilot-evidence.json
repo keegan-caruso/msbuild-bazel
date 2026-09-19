@@ -381,6 +381,126 @@
           "downloadedBytes": 768315014,
           "failures": 0
         }
+      },
+      "changedRazor": {
+        "accepted": true,
+        "seconds": 1108.2247797,
+        "phases": {
+          "stagePackages": 0.0469253,
+          "bazel": 1040.0752378,
+          "leaseExit": 3.2452343
+        },
+        "compiles": 202,
+        "MsbuildDiscover": {
+          "executed": 1,
+          "remoteHits": 0
+        },
+        "MsbuildBindProject": {
+          "executed": 202,
+          "remoteHits": 0
+        },
+        "MsbuildCompileProject": {
+          "executed": 202,
+          "remoteHits": 0
+        },
+        "MsbuildComposeRuntime": {
+          "executed": 1,
+          "remoteHits": 0
+        },
+        "MsbuildLockedRestore": {
+          "executed": 1,
+          "remoteHits": 0
+        }
+      },
+      "changedAsset": {
+        "accepted": true,
+        "seconds": 1108.4820555,
+        "phases": {
+          "stagePackages": 0.0448167,
+          "bazel": 1037.3990173,
+          "leaseExit": 3.1403193
+        },
+        "compiles": 202,
+        "MsbuildDiscover": {
+          "executed": 1,
+          "remoteHits": 0
+        },
+        "MsbuildBindProject": {
+          "executed": 202,
+          "remoteHits": 0
+        },
+        "MsbuildCompileProject": {
+          "executed": 202,
+          "remoteHits": 0
+        },
+        "MsbuildComposeRuntime": {
+          "executed": 1,
+          "remoteHits": 0
+        },
+        "MsbuildLockedRestore": {
+          "executed": 1,
+          "remoteHits": 0
+        }
+      },
+      "scopedAsset": {
+        "accepted": true,
+        "seconds": 651.7738135,
+        "phases": {
+          "stagePackages": 0.0385321,
+          "bazel": 604.4956622,
+          "leaseExit": 3.1357876
+        },
+        "compiles": 4,
+        "MsbuildDiscover": {
+          "executed": 1,
+          "remoteHits": 0
+        },
+        "MsbuildBindProject": {
+          "executed": 202,
+          "remoteHits": 0
+        },
+        "MsbuildCompileProject": {
+          "executed": 4,
+          "remoteHits": 0
+        },
+        "MsbuildComposeRuntime": {
+          "executed": 1,
+          "remoteHits": 0
+        },
+        "MsbuildLockedRestore": {
+          "executed": 1,
+          "remoteHits": 0
+        }
+      },
+      "scopedGenerator": {
+        "accepted": true,
+        "seconds": 596.6097648,
+        "phases": {
+          "stagePackages": 0.0395145,
+          "bazel": 543.977824,
+          "leaseExit": 3.1620351
+        },
+        "compiles": 202,
+        "MsbuildDiscover": {
+          "executed": 0,
+          "remoteHits": 0
+        },
+        "MsbuildBindProject": {
+          "executed": 1,
+          "remoteHits": 0
+        },
+        "MsbuildCompileProject": {
+          "executed": 202,
+          "remoteHits": 0
+        },
+        "MsbuildComposeRuntime": {
+          "executed": 1,
+          "remoteHits": 0
+        },
+        "MsbuildLockedRestore": {
+          "executed": 0,
+          "remoteHits": 0
+        }
       }
     },
     "cacheParity": {
@@ -453,10 +573,41 @@
       "status": 200,
       "csharpHeader": "changed-csharp"
     },
-    "pending": [
-      "Razor invalidation",
-      "static asset invalidation",
-      "full graph generator invalidation"
-    ]
+    "pending": [],
+    "changedRazorRuntime": {
+      "status": 200,
+      "csharpHeader": "changed-csharp",
+      "razorMarker": true
+    },
+    "changedAssetRuntime": {
+      "status": 200,
+      "csharpHeader": "changed-csharp",
+      "razorMarker": true,
+      "assetMarker": true,
+      "scopedAssetMarker": true
+    },
+    "changedGeneratorRuntime": {
+      "status": 200,
+      "csharpHeader": "changed-csharp",
+      "razorMarker": true,
+      "assetMarker": true,
+      "scopedAssetMarker": true
+    },
+    "generatorConsumers": {
+      "marker": "QualificationInterceptor_",
+      "consumers": [
+        "OrchardCore.Navigation.Core.dll",
+        "OrchardCore.Navigation.dll",
+        "OrchardCore.Taxonomies.dll"
+      ],
+      "count": 3
+    },
+    "scope": {
+      "inputScopingRevision": "0dc17f1",
+      "earlierProducerAndFreshRecoveryRevision": "0e535cc",
+      "freshRecoveryAfterInputScoping": "pending later benchmark step",
+      "platform": "macOS ARM64, loopback cache",
+      "configuration": "pinned Orchard Production profile and deterministic interceptor patch"
+    }
   }
 }

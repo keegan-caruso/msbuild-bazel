@@ -56,7 +56,9 @@ The initial production XML guard rejects the Web SDK, root build properties,
 central package properties and Orchard module targets. A direct graph-export
 probe first rejects central transitive pinning. None of these guards has been
 removed to obtain a benchmark. Those initial blockers are resolved below. Owned build, remote recovery and
-Production runtime now pass; broader invalidation qualification is in progress.
+Production runtime and the C#, Razor, asset and generator mutation checks now pass.
+The current scoped graph still requires fresh-cache timing qualification in the
+next package-integration benchmark; acceptable performance remains open.
 
 ### Step 1: central transitive package pinning
 
@@ -287,3 +289,27 @@ restore, discovery and compile staging without expanding every file at analysis
 time, preserve archive/content hash validation and collision rejection, then
 narrow each project's package dependencies. This proposal is not implemented or
 included in the measurements above.
+
+
+### Step 10: project input scoping and remaining mutation controls
+
+The [input-scoping change](project-input-scoping.md), revision `0dc17f1`, reduces
+the Setup stylesheet edit from 202 compilations to four and from 1,108.482 to
+651.774 seconds. The runtime serves a marker added after the scoped baseline;
+only Setup's DLL/PDB changed among 3,457 application files. The previous C#
+response header and Razor marker still pass.
+
+A real generator implementation mutation changes emitted private class names
+from `Interceptor_` to `QualificationInterceptor_`. The owned build accepted
+202 compilations in 596.610 seconds, with one source-binding action and zero
+discovery executions. The new generated name appears in the Navigation.Core,
+Navigation and Taxonomies consumer assemblies. The rebuilt Production host
+returns HTTP 200 and serves all prior runtime markers. These mutation edits are
+qualification changes in the scratch checkout, not changes to the pinned
+upstream fixture or its deterministic-generator patch.
+
+This completes the previously pending asset and full-graph generator mutation
+checks. The earlier producer-free remote recovery evidence belongs to `0e535cc`;
+fresh recovery of the newer scoped/package graph must be requalified during the
+next benchmark step. The scope remains the pinned macOS ARM64 Production lane,
+not general Orchard/platform support. Discovery and binding remain expensive.
