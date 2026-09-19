@@ -7,6 +7,8 @@ import subprocess
 import sys
 import tempfile
 import unittest
+import zipfile
+import io
 from unittest.mock import patch
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -130,6 +132,83 @@ class PackageRestoreSemantics(unittest.TestCase):
         self.partial_restore_control(lambda: central.write_text(
             central.read_text().replace('[1.0.0]', '[1.0.1]')),
             ['RulesMsbuild.Binary', 'RulesMsbuild.Leaf'])
+
+    def transitive_centralize(self):
+        central = self.centralize()
+        central.write_text(central.read_text().replace('[1.0.0]', '1.0.0').replace(
+            '</PropertyGroup>', '<CentralPackageTransitivePinningEnabled>true</CentralPackageTransitivePinningEnabled></PropertyGroup>').replace(
+            '</ItemGroup>', '<PackageVersion Include="RulesMsbuild.Leaf" Version="1.0.1" /></ItemGroup>'))
+        # A real NuGet dependency range allows the central pin to upgrade Leaf.
+        package = self.workspace / '.feed/RulesMsbuild.Binary.1.0.0.nupkg'
+        output = io.BytesIO()
+        with zipfile.ZipFile(package) as source, zipfile.ZipFile(output, 'w') as target:
+            for info in source.infolist():
+                content = source.read(info.filename)
+                if info.filename.endswith('.nuspec'):
+                    content = content.replace(b'version="[1.0.0]"', b'version="[1.0.0,)"')
+                target.writestr(info, content)
+        package.write_bytes(output.getvalue())
+        return central
+
+    def test_central_transitive_pin_uses_real_nuget_resolution(self):
+        self.transitive_centralize()
+        self.restore()
+        self.assert_current_prepares(['RulesMsbuild.Binary', 'RulesMsbuild.Leaf'])
+        assets = json.loads((self.project.parent / 'obj/project.assets.json').read_text())
+        self.assertIn('RulesMsbuild.Leaf/1.0.1', assets['libraries'])
+        self.assertNotIn('RulesMsbuild.Leaf/1.0.0', assets['libraries'])
+
+    def test_central_transitive_pin_mutation_requires_restore(self):
+        central = self.transitive_centralize()
+        self.restore()
+        old = self.export()
+        central.write_text(central.read_text().replace('Version="1.0.1"', 'Version="1.0.0"'))
+        self.export(error='stale-restore')
+        with self.assertRaisesRegex(ValueError, 'stale-(restore|manifest)'):
+            prepare(self.workspace, old, self.evidence / 'rejected')
+        self.assertFalse((self.evidence / 'rejected').exists())
+        self.restore()
+        self.assert_current_prepares(['RulesMsbuild.Binary', 'RulesMsbuild.Leaf'])
+
+    def test_central_transitive_pin_partial_restore_rejects_consumer(self):
+        central = self.transitive_centralize()
+        self.partial_restore_control(lambda: central.write_text(
+            central.read_text().replace('Version="1.0.1"', 'Version="1.0.0"')),
+            ['RulesMsbuild.Binary', 'RulesMsbuild.Leaf'])
+
+    def test_resolved_package_below_central_pin_is_rejected(self):
+        central = self.transitive_centralize()
+        higher = central.read_text()
+        central.write_text(higher.replace('Version="1.0.1"', 'Version="1.0.0"'))
+        self.restore()
+        central.write_text(higher)
+        self.restore()
+        # Keep the requested version but corrupt the resolved identity. Checking
+        # only direct PackageReferences would miss this transitive dependency.
+        path = self.project.parent / 'obj/project.assets.json'
+        assets = json.loads(path.read_text())
+        for section in [assets['libraries'], *assets['targets'].values()]:
+            if 'RulesMsbuild.Leaf/1.0.1' in section:
+                section['RulesMsbuild.Leaf/1.0.0'] = section.pop('RulesMsbuild.Leaf/1.0.1')
+        path.write_text(json.dumps(assets))
+        self.export(error='resolved package violates central pin')
+
+    def test_central_pinning_toggle_requires_restore(self):
+        central = self.transitive_centralize()
+        self.restore()
+        self.export()
+        central.write_text(central.read_text().replace(
+            '<CentralPackageTransitivePinningEnabled>true', '<CentralPackageTransitivePinningEnabled>false'))
+        self.export(error='stale-restore')
+
+    def test_unused_central_version_change_requires_restore(self):
+        central = self.centralize()
+        central.write_text(central.read_text().replace('</ItemGroup>',
+            '<PackageVersion Include="Unused.Package" Version="1.0.0" /></ItemGroup>'))
+        self.restore()
+        self.export()
+        central.write_text(central.read_text().replace('Version="1.0.0"', 'Version="1.0.1"'))
+        self.export(error='stale-restore')
 
     def test_consumer_snapshot_rejects_partial_private_assets_restore(self):
         self.partial_restore_control(lambda: configure(self.workspace, self.workspace / '.feed',

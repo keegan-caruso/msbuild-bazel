@@ -1,0 +1,130 @@
+{
+  "raw": {
+    "revision": "04467a3438d4255627c1a478598a1585b3ff2947",
+    "entry": "src/OrchardCore.Cms.Web/OrchardCore.Cms.Web.csproj",
+    "sdk": "10.0.400",
+    "runs": [
+      {
+        "case": "restore",
+        "seconds": 21.793230334005784,
+        "exitCode": 0,
+        "command": [
+          "/nix/store/f3kvj2nc26gn7rh5mnfnaa2dgy2p10v3-dotnet-sdk-10.0.400/share/dotnet/dotnet",
+          "msbuild",
+          "src/OrchardCore.Cms.Web/OrchardCore.Cms.Web.csproj",
+          "-p:Configuration=Release",
+          "-m:2",
+          "-nodeReuse:false",
+          "-nologo",
+          "-t:Restore",
+          "-p:RestoreConfigFile=/private/tmp/orchard-pilot-upstream/NuGet.config"
+        ]
+      },
+      {
+        "case": "cold-build",
+        "seconds": 49.92053429200314,
+        "exitCode": 0,
+        "command": [
+          "/nix/store/f3kvj2nc26gn7rh5mnfnaa2dgy2p10v3-dotnet-sdk-10.0.400/share/dotnet/dotnet",
+          "msbuild",
+          "src/OrchardCore.Cms.Web/OrchardCore.Cms.Web.csproj",
+          "-p:Configuration=Release",
+          "-m:2",
+          "-nodeReuse:false",
+          "-nologo",
+          "-t:Build",
+          "-v:normal",
+          "-clp:PerformanceSummary"
+        ]
+      },
+      {
+        "case": "warm-0",
+        "seconds": 13.385032124991994,
+        "exitCode": 0,
+        "command": [
+          "/nix/store/f3kvj2nc26gn7rh5mnfnaa2dgy2p10v3-dotnet-sdk-10.0.400/share/dotnet/dotnet",
+          "msbuild",
+          "src/OrchardCore.Cms.Web/OrchardCore.Cms.Web.csproj",
+          "-p:Configuration=Release",
+          "-m:2",
+          "-nodeReuse:false",
+          "-nologo",
+          "-t:Build",
+          "-v:minimal"
+        ]
+      },
+      {
+        "case": "warm-1",
+        "seconds": 12.619128332997207,
+        "exitCode": 0,
+        "command": [
+          "/nix/store/f3kvj2nc26gn7rh5mnfnaa2dgy2p10v3-dotnet-sdk-10.0.400/share/dotnet/dotnet",
+          "msbuild",
+          "src/OrchardCore.Cms.Web/OrchardCore.Cms.Web.csproj",
+          "-p:Configuration=Release",
+          "-m:2",
+          "-nodeReuse:false",
+          "-nologo",
+          "-t:Build",
+          "-v:minimal"
+        ]
+      },
+      {
+        "case": "warm-2",
+        "seconds": 12.365060583979357,
+        "exitCode": 0,
+        "command": [
+          "/nix/store/f3kvj2nc26gn7rh5mnfnaa2dgy2p10v3-dotnet-sdk-10.0.400/share/dotnet/dotnet",
+          "msbuild",
+          "src/OrchardCore.Cms.Web/OrchardCore.Cms.Web.csproj",
+          "-p:Configuration=Release",
+          "-m:2",
+          "-nodeReuse:false",
+          "-nologo",
+          "-t:Build",
+          "-v:minimal"
+        ]
+      }
+    ]
+  },
+  "inventory": {
+    "revision": "04467a3438d4255627c1a478598a1585b3ff2947",
+    "projects": 202,
+    "evaluationNodesIncludingOuter": 404,
+    "frameworks": {
+      "net10.0": 201,
+      "netstandard2.0": 1
+    },
+    "compileItems": 5123,
+    "projectReferenceItems": 1400,
+    "analyzerProjectReferences": 200,
+    "packages": 287,
+    "packageRolesAcrossProjects": {
+      "build": 2136,
+      "runtimeTargets": 363,
+      "resource": 316
+    }
+  },
+  "initialBoundary": [
+    {
+      "path": "/private/tmp/orchard-pilot-upstream/src/OrchardCore.Cms.Web/OrchardCore.Cms.Web.csproj",
+      "accepted": false,
+      "error": "unsupported discovery XML: Project"
+    },
+    {
+      "path": "/private/tmp/orchard-pilot-upstream/Directory.Build.props",
+      "accepted": false,
+      "error": "unsupported discovery XML: AccelerateBuildsInVisualStudio"
+    },
+    {
+      "path": "/private/tmp/orchard-pilot-upstream/Directory.Packages.props",
+      "accepted": false,
+      "error": "unsupported discovery XML: ManagePackageVersionsCentrally"
+    },
+    {
+      "path": "/private/tmp/orchard-pilot-upstream/src/OrchardCore/OrchardCore.Module.Targets/OrchardCore.Module.Targets.targets",
+      "accepted": false,
+      "error": "unsupported discovery XML: ModuleDefaultAssetExcludes"
+    }
+  ]
+}

@@ -11,6 +11,7 @@ internal static class PackageRestoreValidation
             !restoreProject.TryGetProperty("frameworks", out var frameworks) ||
             !frameworks.TryGetProperty(project.GetPropertyValue("TargetFramework"), out var framework))
             throw new ExportException("stale-restore", "restored project framework metadata missing: " + project.FullPath);
+        ValidateCentralSettings(project, restoreProject);
         var selected = assets.GetProperty("targets").GetProperty(project.GetPropertyValue("TargetFramework"));
         var libraries = assets.GetProperty("libraries").EnumerateObject()
             .Where(library => library.Value.GetProperty("type").GetString() == "package" && selected.TryGetProperty(library.Name, out _))
@@ -85,6 +86,7 @@ internal static class PackageRestoreValidation
                         "consumer restore snapshot lacks configured dependency: " + owner.FullPath + " -> " + project.FullPath);
                 // Compare requested constraints, never resolved transitive versions:
                 // NuGet can legitimately resolve a different version in a consumer.
+                ValidateCentralSettings(project, saved);
                 ValidateProjectReferences(project, saved);
                 ValidateRequested(project, framework, null);
             }
@@ -152,19 +154,59 @@ internal static class PackageRestoreValidation
         return file.Exists ? file.ResolveLinkTarget(true)?.FullName ?? file.FullName : file.FullName;
     }
 
-    private static string RequestedSignature(ProjectInstance project) => JsonSerializer.Serialize(
-        project.GetItems("PackageReference").OrderBy(item => item.EvaluatedInclude, StringComparer.OrdinalIgnoreCase)
+    private static bool Central(ProjectInstance project) => project.GetPropertyValue("ManagePackageVersionsCentrally").Equals("true", StringComparison.OrdinalIgnoreCase);
+
+    private static SortedDictionary<string, string> CentralVersions(ProjectInstance project)
+    {
+        var result = new SortedDictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var item in project.GetItems("PackageVersion"))
+        {
+            var version = item.GetMetadataValue("Version");
+            if (!VersionRange.TryParse(version, out var range) || range.IsFloating || !result.TryAdd(item.EvaluatedInclude, range.ToNormalizedString()))
+                throw new ExportException("unsupported-package", "central package versions must be unique nonfloating ranges: " + item.EvaluatedInclude);
+        }
+        return result;
+    }
+
+    private static void ValidateCentralSettings(ProjectInstance project, JsonElement saved)
+    {
+        var central = Central(project);
+        var pinning = central && project.GetPropertyValue("CentralPackageTransitivePinningEnabled").Equals("true", StringComparison.OrdinalIgnoreCase);
+        var restore = saved.GetProperty("restore");
+        bool Enabled(string name) => restore.TryGetProperty(name, out var value) && value.ValueKind == JsonValueKind.True;
+        if (central != Enabled("centralPackageVersionsManagementEnabled") || pinning != Enabled("CentralPackageTransitivePinningEnabled"))
+            throw new ExportException("stale-restore", "central package policy differs from restore: " + project.FullPath);
+        if (!central) return;
+        var current = CentralVersions(project);
+        var framework = saved.GetProperty("frameworks").GetProperty(project.GetPropertyValue("TargetFramework"));
+        var restored = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        if (framework.TryGetProperty("centralPackageVersions", out var versions))
+            foreach (var item in versions.EnumerateObject())
+            {
+                if (!VersionRange.TryParse(item.Value.GetString() ?? "", out var range) || range.IsFloating || !restored.TryAdd(item.Name, range.ToNormalizedString()))
+                    throw new ExportException("stale-restore", "invalid restored central package version: " + item.Name);
+            }
+        if (current.Count != restored.Count || current.Any(pair => !restored.TryGetValue(pair.Key, out var version) || version != pair.Value))
+            throw new ExportException("stale-restore", "central package versions differ from restore: " + project.FullPath);
+    }
+
+    private static string RequestedSignature(ProjectInstance project) => JsonSerializer.Serialize(new
+    {
+        Central = Central(project),
+        Pinning = project.GetPropertyValue("CentralPackageTransitivePinningEnabled").ToLowerInvariant(),
+        Versions = Central(project) ? CentralVersions(project) : null,
+        References = project.GetItems("PackageReference").OrderBy(item => item.EvaluatedInclude, StringComparer.OrdinalIgnoreCase)
             .Select(item => new[] { item.EvaluatedInclude.ToLowerInvariant(), RequestedVersion(project, item).ToLowerInvariant(),
-                Privacy(item.GetMetadataValue("PrivateAssets"), "unsupported-package") }));
+                Privacy(item.GetMetadataValue("PrivateAssets"), "unsupported-package") })
+    });
 
     private static string RequestedVersion(ProjectInstance project, ProjectItemInstance reference)
     {
         var version = reference.GetMetadataValue("Version");
         var central = project.GetPropertyValue("ManagePackageVersionsCentrally").Equals("true", StringComparison.OrdinalIgnoreCase);
         if (!central) return version;
-        if (project.GetPropertyValue("CentralPackageTransitivePinningEnabled").Equals("true", StringComparison.OrdinalIgnoreCase) ||
-            reference.GetMetadataValue("VersionOverride").Length != 0)
-            throw new ExportException("unsupported-package", "central transitive pinning and version overrides are outside the qualified slice");
+        if (reference.GetMetadataValue("VersionOverride").Length != 0)
+            throw new ExportException("unsupported-package", "central version overrides are outside the qualified slice");
         // SDK implicit references keep their framework-supplied version.
         if (reference.GetMetadataValue("IsImplicitlyDefined").Equals("true", StringComparison.OrdinalIgnoreCase)) return version;
         if (version.Length != 0)
@@ -178,6 +220,16 @@ internal static class PackageRestoreValidation
 
     private static void ValidateRequested(ProjectInstance project, JsonElement framework, HashSet<string>? libraries)
     {
+        if (libraries is not null && Central(project) && project.GetPropertyValue("CentralPackageTransitivePinningEnabled").Equals("true", StringComparison.OrdinalIgnoreCase))
+        {
+            foreach (var (id, version) in CentralVersions(project))
+            {
+                var range = VersionRange.Parse(version);
+                foreach (var library in libraries.Where(library => library.StartsWith(id + "/", StringComparison.OrdinalIgnoreCase)))
+                    if (!NuGetVersion.TryParse(library[(library.IndexOf('/') + 1)..], out var resolved) || !range.Satisfies(resolved))
+                        throw new ExportException("stale-restore", "resolved package violates central pin: " + id);
+            }
+        }
         var references = project.GetItems("PackageReference").ToArray();
         var restored = new Dictionary<string, JsonElement>(StringComparer.OrdinalIgnoreCase);
         if (framework.TryGetProperty("dependencies", out var dependencies))
@@ -194,13 +246,17 @@ internal static class PackageRestoreValidation
             var version = RequestedVersion(project, reference);
             var selected = PilotPackagePolicy.SelectedVersion(reference.EvaluatedInclude,
                 NuGetVersion.TryParse(version, out var normalizedRequested) ? normalizedRequested.ToNormalizedString() : version);
-            if (selected is null || !NuGetVersion.TryParse(selected, out var selectedVersion) ||
-                !VersionRange.TryParse(version, out var requestedRange) || requestedRange.IsFloating)
+            var central = Central(project);
+            if (!VersionRange.TryParse(version, out var requestedRange) || requestedRange.IsFloating ||
+                !central && (selected is null || !NuGetVersion.TryParse(selected, out _)))
                 throw new ExportException("unsupported-package", "exact inline version or qualified pilot version required: " + reference.EvaluatedInclude);
             var dependency = restored[reference.EvaluatedInclude];
             var savedVersion = dependency.GetProperty("version").GetString()!;
             if (!VersionRange.TryParse(savedVersion, out var restoredRange) || !requestedRange.Equals(restoredRange) ||
-                (libraries is not null && !libraries.Contains(reference.EvaluatedInclude + "/" + selectedVersion.ToNormalizedString())))
+                (libraries is not null && (central
+                    ? !libraries.Any(library => library.StartsWith(reference.EvaluatedInclude + "/", StringComparison.OrdinalIgnoreCase) &&
+                        NuGetVersion.TryParse(library[(library.IndexOf('/') + 1)..], out var resolved) && requestedRange.Satisfies(resolved))
+                    : !libraries.Contains(reference.EvaluatedInclude + "/" + NuGetVersion.Parse(selected!).ToNormalizedString()))))
                 throw new ExportException("stale-restore", "package reference differs from restored version: " + reference.EvaluatedInclude);
             var currentPrivacy = Privacy(reference.GetMetadataValue("PrivateAssets"), "unsupported-package");
             var savedPrivacy = Privacy(dependency.TryGetProperty("suppressParent", out var privacy) ? privacy.GetString()! : "", "stale-restore");

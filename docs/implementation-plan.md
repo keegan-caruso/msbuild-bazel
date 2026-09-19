@@ -549,3 +549,11 @@ Bazel consumes NuGet-generated lock files, acquires verified package archives an
 runs a strictly sandboxed, offline MSBuild Restore action. Fresh workers and body
 edits recover restore remotely. All 22 qualification cases and seven raw oracles
 pass, including stale-lock/source-read guards and zero failed-run publication.
+
+## Orchard Core large-application support
+
+The [Orchard pilot](orchard-pilot.md) pins the full CMS host as the next real
+workload: 202 projects, mixed application/generator frameworks, Razor/module
+assets and central transitive NuGet pinning. The raw baseline succeeds; adapter
+qualification is in progress. Follow its acceptance gates through independent
+remote-cache recovery and changed-input controls before claiming support.
