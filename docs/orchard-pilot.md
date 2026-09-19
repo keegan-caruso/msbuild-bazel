@@ -55,8 +55,8 @@ Full support requires all of these gates, in order:
 The initial production XML guard rejects the Web SDK, root build properties,
 central package properties and Orchard module targets. A direct graph-export
 probe first rejects central transitive pinning. None of these guards has been
-removed to obtain a benchmark. This workload is not yet supported by the Bazel
-project-action pipeline.
+removed to obtain a benchmark. Those initial blockers are resolved below. Owned build, remote recovery and
+Production runtime now pass; broader invalidation qualification is in progress.
 
 ### Step 1: central transitive package pinning
 
@@ -237,3 +237,53 @@ The real pinned Bazel server also completed an executed-action capture without
 needing to shut down its persistent server. Empty/no-op traces remain valid;
 malformed binary records fail before publication. The reader rejects individual
 records larger than 256 MiB rather than allocating unbounded memory.
+
+
+### Step 9: owned build, remote recovery and runtime
+
+The actual owned workflow accepted all 202 project compilations, each under
+`darwin-sandbox` and each compiling exactly its entry. It composed the CMS host,
+validated the source/controller lease, and published 9,420 cache objects
+(1,244,023,126 uploaded bytes) only after acceptance.
+
+| Scenario | Seconds | Project compilations |
+| --- | ---: | ---: |
+| Guarded cold producer including upload | 1057.374 | 202 |
+| Fresh checkout and empty Bazel state, read-only remote cache | 64.679 | 0 |
+| Unchanged repeat on recovered worker | 13.396 | 0 |
+| Host-only C# body edit including composition/upload | 100.086 | 1 |
+
+The producer's local Bazel output base was removed before fresh recovery.
+All 202 project actions, discovery, and composition were remote hits. All 3,457
+application files (669,202,224 bytes) matched the producer exactly. With both
+original checkout paths temporarily unavailable, the recovered Production app
+created a SQLite Blog site, passed database integrity checking, and served home,
+article, About, CSS, JavaScript and favicon requests with HTTP 200. The web root
+came from the bundle; no manual repair was made. The C# change produced its
+expected HTTP response header and reused discovery.
+
+These are single-machine measurements against a loopback cache, not independent
+physical-server or WAN measurements. Cold cost is far above the earlier 49.921s
+raw build; no acceptable cold-performance claim follows. The guarded run includes
+extra isolation, validation and upload work, and uses isolated compilation.
+Warm no-op is close to the earlier 12.619s raw median. Fresh recovery is 16.3x
+faster than this guarded producer, but still takes longer than that raw clean
+build. Its Bazel profile includes 15.751s in NuGet repository acquisition and
+4.300s in output download; those are trace events, not an additive decomposition.
+
+### Proposed next boundary: cacheable NuGet package contents
+
+Archive acquisition is already in a Bazel repository rule. The current rule
+extracts all locked packages into one repository, so a fresh Bazel output base
+still performs that setup even when all compilation actions hit the remote cache.
+The next experiment should keep NuGet resolution/lock semantics and retain
+checksum-pinned archive inputs, then move extraction and path normalization into
+build actions producing declared package directories. Bazel's remote action cache
+can then store those outputs (see the [cache model](https://bazel.build/remote/caching)).
+
+Compare per-package actions with a small number of batches: extraction reuse must
+outweigh action and tool-input overhead. Pass package-directory artifacts through
+restore, discovery and compile staging without expanding every file at analysis
+time, preserve archive/content hash validation and collision rejection, then
+narrow each project's package dependencies. This proposal is not implemented or
+included in the measurements above.

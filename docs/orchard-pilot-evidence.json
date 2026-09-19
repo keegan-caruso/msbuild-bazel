@@ -231,5 +231,232 @@
     "sources": 5615,
     "accepted": true,
     "seconds": 0.7261771
+  },
+  "ownedQualification": {
+    "cases": {
+      "producer": {
+        "accepted": true,
+        "seconds": 1057.3744507,
+        "phases": {
+          "stagePackages": 0.0390885,
+          "bazel": 991.4954781,
+          "leaseExit": 3.0928696
+        },
+        "compiles": 202,
+        "MsbuildDiscover": {
+          "executed": 1,
+          "remoteHits": 0
+        },
+        "MsbuildBindProject": {
+          "executed": 202,
+          "remoteHits": 0
+        },
+        "MsbuildCompileProject": {
+          "executed": 202,
+          "remoteHits": 0
+        },
+        "MsbuildComposeRuntime": {
+          "executed": 1,
+          "remoteHits": 0
+        },
+        "MsbuildLockedRestore": {
+          "executed": 1,
+          "remoteHits": 0
+        },
+        "actionCache": {
+          "uploadEnabled": true,
+          "publishedObjects": 9420,
+          "uploadedBytes": 1244023126,
+          "downloadedBytes": 4080,
+          "failures": 0
+        }
+      },
+      "freshRecovery": {
+        "accepted": true,
+        "seconds": 64.6789415,
+        "phases": {
+          "stagePackages": 0.0399158,
+          "bazel": 56.6932486,
+          "leaseExit": 3.058931
+        },
+        "compiles": 0,
+        "MsbuildDiscover": {
+          "executed": 0,
+          "remoteHits": 1
+        },
+        "MsbuildBindProject": {
+          "executed": 0,
+          "remoteHits": 202
+        },
+        "MsbuildCompileProject": {
+          "executed": 0,
+          "remoteHits": 202
+        },
+        "MsbuildComposeRuntime": {
+          "executed": 0,
+          "remoteHits": 1
+        },
+        "MsbuildLockedRestore": {
+          "executed": 0,
+          "remoteHits": 1
+        },
+        "actionCache": {
+          "uploadEnabled": false,
+          "publishedObjects": 0,
+          "uploadedBytes": 0,
+          "downloadedBytes": 2014205013,
+          "failures": 0
+        }
+      },
+      "warmNoop": {
+        "accepted": true,
+        "seconds": 13.3956762,
+        "phases": {
+          "stagePackages": 0.0449439,
+          "bazel": 10.3198352,
+          "leaseExit": 0.6914933
+        },
+        "compiles": 0,
+        "MsbuildDiscover": {
+          "executed": 0,
+          "remoteHits": 0
+        },
+        "MsbuildBindProject": {
+          "executed": 0,
+          "remoteHits": 0
+        },
+        "MsbuildCompileProject": {
+          "executed": 0,
+          "remoteHits": 0
+        },
+        "MsbuildComposeRuntime": {
+          "executed": 0,
+          "remoteHits": 0
+        },
+        "MsbuildLockedRestore": {
+          "executed": 0,
+          "remoteHits": 0
+        },
+        "actionCache": {
+          "uploadEnabled": false,
+          "publishedObjects": 0,
+          "uploadedBytes": 0,
+          "downloadedBytes": 0,
+          "failures": 0
+        }
+      },
+      "changedCsharp": {
+        "accepted": true,
+        "seconds": 100.0864139,
+        "phases": {
+          "stagePackages": 0.0455312,
+          "bazel": 70.319327,
+          "leaseExit": 3.2544003
+        },
+        "compiles": 1,
+        "MsbuildDiscover": {
+          "executed": 0,
+          "remoteHits": 0
+        },
+        "MsbuildBindProject": {
+          "executed": 1,
+          "remoteHits": 0
+        },
+        "MsbuildCompileProject": {
+          "executed": 1,
+          "remoteHits": 0
+        },
+        "MsbuildComposeRuntime": {
+          "executed": 1,
+          "remoteHits": 0
+        },
+        "MsbuildLockedRestore": {
+          "executed": 0,
+          "remoteHits": 0
+        },
+        "actionCache": {
+          "uploadEnabled": true,
+          "publishedObjects": 3366,
+          "uploadedBytes": 657537970,
+          "downloadedBytes": 768315014,
+          "failures": 0
+        }
+      }
+    },
+    "cacheParity": {
+      "accepted": true,
+      "identicalFiles": 3457,
+      "identicalBytes": 669202224,
+      "producerLocalOutputsAbsent": true,
+      "freshCheckout": true,
+      "compiles": 0,
+      "projectRemoteHits": 202,
+      "seconds": 64.6789415
+    },
+    "runtime": {
+      "requests": [
+        {
+          "path": "/",
+          "status": 200,
+          "size": 7294,
+          "sha256": "4aa33cc40a782070975f6be4ef1f3c6baae12463674df850952cf76837607a9b"
+        },
+        {
+          "path": "/blog/post-1",
+          "status": 200,
+          "size": 8254,
+          "sha256": "9aaea48b74f927e57d8ef72b4b7b566d518aeee40dca41d33858f6fdde8e2dab"
+        },
+        {
+          "path": "/about",
+          "status": 200,
+          "size": 5979,
+          "sha256": "566a3d0ac28bb40b1d0a2426ab26ad9c44ca54d01638a1b3a0d0f46cd7fa3ef5"
+        },
+        {
+          "path": "/TheBlogTheme/favicon.ico",
+          "status": 200,
+          "size": 15086,
+          "sha256": "55f667cb189d1eb0ae5bbd8cea0c45373ad874b3f23596e08ba93592f985e668"
+        },
+        {
+          "path": "/OrchardCore.Resources/Vendor/fontawesome-free/css/all.min.css",
+          "status": 200,
+          "size": 90336,
+          "sha256": "e0b69df26e19596d4b81bf7eb0c54b6047e7221ec18d5d4d40c11eefd3ef8a4b"
+        },
+        {
+          "path": "/TheBlogTheme/css/styles.min.css",
+          "status": 200,
+          "size": 158346,
+          "sha256": "03af6a4bec9bad19686f039e4affefc249c2bef176871b4bb64f93eb58ac5d84"
+        },
+        {
+          "path": "/TheBlogTheme/css/bootstrap-oc.min.css",
+          "status": 200,
+          "size": 3702,
+          "sha256": "12586b6a29465b7d8f79d536e14a603cc688fbb533977f78d8a4750af2c1d4df"
+        },
+        {
+          "path": "/TheBlogTheme/js/scripts.min.js",
+          "status": 200,
+          "size": 685,
+          "sha256": "e70f79bc1fed9b4b84653157e032c81444bc0df7ff70310c8b6e185df9fb32ec"
+        }
+      ],
+      "sqliteIntegrity": "ok",
+      "tables": 16,
+      "webrootFromBundle": true,
+      "producerAndRecoveryCheckoutPathsUnavailable": true
+    },
+    "changedCsharpRuntime": {
+      "status": 200,
+      "csharpHeader": "changed-csharp"
+    },
+    "pending": [
+      "Razor invalidation",
+      "static asset invalidation",
+      "full graph generator invalidation"
+    ]
   }
 }
