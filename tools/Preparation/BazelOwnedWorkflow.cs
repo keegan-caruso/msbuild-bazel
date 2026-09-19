@@ -250,10 +250,14 @@ internal static class BazelOwnedWorkflow
                 foreach (var (path, hash) in watchedFiles.Concat(controllerFiles)) if (Json.Sha(File.ReadAllBytes(path)) != hash) throw new InvalidDataException("Declared controller input changed");
                 return true;
             });
-            foreach (var folder in Directory.GetDirectories(bundleCache)) RemoteCache.ValidateBundle(FileTree.Files(folder).ToDictionary(p => Path.GetRelativePath(folder, p), File.ReadAllBytes));
+            Measure("validateBundles", () =>
+            {
+                foreach (var folder in Directory.GetDirectories(bundleCache)) RemoteCache.ValidateBundle(FileTree.Files(folder).ToDictionary(p => Path.GetRelativePath(folder, p), File.ReadAllBytes));
+                return true;
+            });
             if (!projectActions) { FileTree.Remove(cache); FileTree.Copy(bundleCache, cache, preserveModes: false); }
             if (remote is not null) report["publishedSnapshot"] = remote.Publish(cache, null, null, worker);
-            gate?.Publish(); report["accepted"] = true;
+            Measure("publishActionCache", () => { gate?.Publish(); return true; }); report["accepted"] = true;
         }
         finally
         {

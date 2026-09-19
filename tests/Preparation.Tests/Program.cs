@@ -79,6 +79,28 @@ try
         case "action-cache-endpoint":
             Console.WriteLine(Json.Text(JsonValue.Create(ActionCache.Endpoint(request.String("endpoint")))));
             break;
+        case "profile-action-publication":
+            {
+                var bundle = request.String("bundle");
+                var watch = Stopwatch.StartNew();
+                foreach (var folder in Directory.GetDirectories(Path.Combine(bundle, "cache")))
+                    RemoteCache.ValidateBundle(FileTree.Files(folder).ToDictionary(path => Path.GetRelativePath(folder, path), File.ReadAllBytes));
+                var validationSeconds = watch.Elapsed.TotalSeconds;
+                var objects = FileTree.Files(bundle).GroupBy(path => FileTree.HashRegular(path).Digest).Select(group => (Digest: group.Key, Path: group.First())).ToArray();
+                using var gate = new ActionCache(request.String("endpoint"), request.String("directory"), true);
+                using var client = new HttpClient();
+                watch.Restart();
+                foreach (var item in objects)
+                {
+                    using var objectContent = new StreamContent(File.OpenRead(item.Path));
+                    using var response = await client.PutAsync(gate.Url + "cas/" + item.Digest, objectContent);
+                    response.EnsureSuccessStatusCode();
+                }
+                var stagingSeconds = watch.Elapsed.TotalSeconds;
+                watch.Restart(); gate.Publish();
+                Console.WriteLine(Json.Text(new JsonObject { ["validationSeconds"] = validationSeconds, ["stagingSeconds"] = stagingSeconds, ["publicationSeconds"] = watch.Elapsed.TotalSeconds, ["cache"] = gate.Statistics }));
+            }
+            break;
         case "action-cache-gate":
             using (var gate = new ActionCache(request.String("endpoint"), request.String("directory"), request["upload"]?.GetValue<bool>() == true, request["stagingLimitBytes"]?.GetValue<long>() ?? ActionCache.DefaultTotalLimit))
             using (var gateClient = new HttpClient())
