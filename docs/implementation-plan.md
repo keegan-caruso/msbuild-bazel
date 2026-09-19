@@ -21,6 +21,20 @@ focused R17 experiment, not qualification of the full supported-version/platform
 
 ## Current status and next step
 
+The [canonical-runtime, recovery and no-op follow-up](runtime-recovery-performance.md)
+reduces Orchard CSS/Razor edits to 12.889 / 12.028 seconds and no-op median to
+2.820 seconds. Composition emits one application tree plus sealed metadata;
+fresh recovery downloads 676.8 MB instead of 2.02 GB and completes in 29.353
+seconds with no compilation and 3,457 identical application files. Preserving
+unchanged generated inputs cuts the measured no-op Bazel phase to 0.259 seconds.
+Download concurrency is configurable, with an unchanged default of eight:
+32 connections help simulated latency but show no full-recovery benefit on this
+loopback run. Native input invalidation and the Serilog .NET 10 test/recovery/failure
+controls pass. Initial source capture, exit validation and generation now dominate
+no-op overhead; fresh-worker analysis and setup remain larger than network transfer
+in the measured local profile.
+
+
 The [cache-publication and runtime-output follow-up](cache-publication-performance.md)
 reduces CSS/Razor edits to 21.854 / 20.226 seconds, from 53.021 / 49.562 seconds.
 Publication checks current remote CAS presence and uploads only missing blobs with

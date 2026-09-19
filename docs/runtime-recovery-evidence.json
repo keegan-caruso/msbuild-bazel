@@ -1,0 +1,1298 @@
+{
+  "schemaVersion": 1,
+  "orchardRevision": "04467a3438d4255627c1a478598a1585b3ff2947",
+  "implementationCommits": [
+    "f421198",
+    "ac8c5ea",
+    "9615efe"
+  ],
+  "implementationFiles": {
+    "tools/NativeProjectCache/ProjectActions.cs": "49041b526d4d37a541d164927eb93190421de1c7a24d7a1f6bbdabcf17616f8b",
+    "tools/Preparation/BazelOwnedWorkflow.cs": "b4e759342a9cacf8938d0f03be3cc532a088cacfe12fa997b26413f094cab481",
+    "tools/Preparation/ActionCache.cs": "af51e3b55427de79e30c7e760d1dcd501c9740c5b1e149b4a3803906d6b01c9c",
+    "tools/TestRunner/Program.cs": "2505ab9e9e4f1a97b2a8929563b3df8d4b36d15d2bc0b0cace761608ffde8aaa",
+    "bazel/project_actions.bzl": "a26f66bf74d93989fbecf579644398fafaf012ff0ca4c6d1ba986fbf0e2aef94",
+    "bazel/native_test.bzl": "d10f76d4fe84faca06b3ac53a9867b62a48ded8cb33dfab16fff5a7a2cabb5dd",
+    "bazel/native_cache.bzl": "cd8b9e45b51777792abd48ce5fe102e0ad23f989f585e23fadf068175772aa30"
+  },
+  "current": {
+    "cases": {
+      "producer": {
+        "accepted": true,
+        "seconds": 707.3675994,
+        "phases": {
+          "sourceSnapshot": 3.2591765,
+          "stagePackages": 0.033426,
+          "generate": 0.4195222,
+          "bazel": 678.9432214,
+          "leaseExit": 3.118876,
+          "validateBundles": 0.3797908,
+          "publishActionCache": 18.632279
+        },
+        "compiles": 202,
+        "NugetExtractPackage": {
+          "executed": 287,
+          "remoteHits": 0
+        },
+        "MsbuildDiscover": {
+          "executed": 1,
+          "remoteHits": 0
+        },
+        "MsbuildBindProject": {
+          "executed": 202,
+          "remoteHits": 0
+        },
+        "MsbuildCompileProject": {
+          "executed": 202,
+          "remoteHits": 0
+        },
+        "MsbuildComposeRuntime": {
+          "executed": 1,
+          "remoteHits": 0
+        },
+        "MsbuildLockedRestore": {
+          "executed": 1,
+          "remoteHits": 0
+        },
+        "actionCache": {
+          "publishedObjects": 4957,
+          "uploadedBytes": 108286930,
+          "downloadedBytes": 6950,
+          "failures": 0,
+          "reusedObjects": 12778,
+          "reusedBytes": 2646084362,
+          "connections": 8,
+          "getRequests": 695,
+          "headRequests": 17040,
+          "downloadRequestSeconds": 0.270389492
+        }
+      },
+      "asset": {
+        "accepted": true,
+        "seconds": 12.8886532,
+        "phases": {
+          "sourceSnapshot": 0.6468549,
+          "stagePackages": 0.037491,
+          "generate": 0.505438,
+          "bazel": 10.0130809,
+          "leaseExit": 0.659955,
+          "validateBundles": 0.363302,
+          "publishActionCache": 0.1586846
+        },
+        "compiles": 1,
+        "NugetExtractPackage": {
+          "executed": 0,
+          "remoteHits": 0
+        },
+        "MsbuildDiscover": {
+          "executed": 0,
+          "remoteHits": 0
+        },
+        "MsbuildBindProject": {
+          "executed": 1,
+          "remoteHits": 0
+        },
+        "MsbuildCompileProject": {
+          "executed": 1,
+          "remoteHits": 0
+        },
+        "MsbuildComposeRuntime": {
+          "executed": 1,
+          "remoteHits": 0
+        },
+        "MsbuildLockedRestore": {
+          "executed": 0,
+          "remoteHits": 0
+        },
+        "actionCache": {
+          "publishedObjects": 26,
+          "uploadedBytes": 2179758,
+          "downloadedBytes": 30,
+          "failures": 0,
+          "reusedObjects": 3162,
+          "reusedBytes": 646261068,
+          "connections": 8,
+          "getRequests": 3,
+          "headRequests": 3185,
+          "downloadRequestSeconds": 0.012881418
+        },
+        "runtime": {
+          "status": 200,
+          "packageHeader": true,
+          "packageAsset": true,
+          "packageRazor": true,
+          "checkoutsUnavailable": false
+        }
+      },
+      "razor": {
+        "accepted": true,
+        "seconds": 12.0275499,
+        "phases": {
+          "sourceSnapshot": 0.6608933,
+          "stagePackages": 0.0376641,
+          "generate": 0.4823466,
+          "bazel": 9.1079026,
+          "leaseExit": 0.6672454,
+          "validateBundles": 0.3648783,
+          "publishActionCache": 0.190307
+        },
+        "compiles": 1,
+        "NugetExtractPackage": {
+          "executed": 0,
+          "remoteHits": 0
+        },
+        "MsbuildDiscover": {
+          "executed": 0,
+          "remoteHits": 0
+        },
+        "MsbuildBindProject": {
+          "executed": 1,
+          "remoteHits": 0
+        },
+        "MsbuildCompileProject": {
+          "executed": 1,
+          "remoteHits": 0
+        },
+        "MsbuildComposeRuntime": {
+          "executed": 1,
+          "remoteHits": 0
+        },
+        "MsbuildLockedRestore": {
+          "executed": 0,
+          "remoteHits": 0
+        },
+        "actionCache": {
+          "publishedObjects": 26,
+          "uploadedBytes": 2179762,
+          "downloadedBytes": 30,
+          "failures": 0,
+          "reusedObjects": 3162,
+          "reusedBytes": 646261068,
+          "connections": 8,
+          "getRequests": 3,
+          "headRequests": 3185,
+          "downloadRequestSeconds": 0.010271833
+        },
+        "runtime": {
+          "status": 200,
+          "packageHeader": true,
+          "packageAsset": true,
+          "packageRazor": true,
+          "checkoutsUnavailable": false
+        }
+      },
+      "fresh": {
+        "accepted": true,
+        "seconds": 29.3529315,
+        "phases": {
+          "sourceSnapshot": 2.9089449,
+          "stagePackages": 0.0340625,
+          "generate": 0.3980514,
+          "bazel": 24.6957577,
+          "leaseExit": 0.6611925,
+          "validateBundles": 0.3561238,
+          "publishActionCache": 0.0023905
+        },
+        "compiles": 0,
+        "NugetExtractPackage": {
+          "executed": 0,
+          "remoteHits": 287
+        },
+        "MsbuildDiscover": {
+          "executed": 0,
+          "remoteHits": 1
+        },
+        "MsbuildBindProject": {
+          "executed": 0,
+          "remoteHits": 202
+        },
+        "MsbuildCompileProject": {
+          "executed": 0,
+          "remoteHits": 202
+        },
+        "MsbuildComposeRuntime": {
+          "executed": 0,
+          "remoteHits": 1
+        },
+        "MsbuildLockedRestore": {
+          "executed": 0,
+          "remoteHits": 1
+        },
+        "actionCache": {
+          "publishedObjects": 0,
+          "uploadedBytes": 0,
+          "downloadedBytes": 676758230,
+          "failures": 0,
+          "reusedObjects": 0,
+          "reusedBytes": 0,
+          "connections": 8,
+          "getRequests": 5658,
+          "headRequests": 0,
+          "downloadRequestSeconds": 30.831080292
+        },
+        "packageFilesDownloaded": 0,
+        "identicalApplicationFiles": 3457,
+        "runtime": {
+          "status": 200,
+          "packageHeader": true,
+          "packageAsset": true,
+          "packageRazor": true,
+          "checkoutsUnavailable": true
+        }
+      },
+      "noop-1": {
+        "accepted": true,
+        "seconds": 3.1571839,
+        "phases": {
+          "sourceSnapshot": 0.6735041,
+          "stagePackages": 0.0401188,
+          "generate": 0.5057045,
+          "bazel": 0.5603805,
+          "leaseExit": 0.7011796,
+          "validateBundles": 0.35616,
+          "publishActionCache": 0.0024332
+        },
+        "compiles": 0,
+        "NugetExtractPackage": {
+          "executed": 0,
+          "remoteHits": 0
+        },
+        "MsbuildDiscover": {
+          "executed": 0,
+          "remoteHits": 0
+        },
+        "MsbuildBindProject": {
+          "executed": 0,
+          "remoteHits": 0
+        },
+        "MsbuildCompileProject": {
+          "executed": 0,
+          "remoteHits": 0
+        },
+        "MsbuildComposeRuntime": {
+          "executed": 0,
+          "remoteHits": 0
+        },
+        "MsbuildLockedRestore": {
+          "executed": 0,
+          "remoteHits": 0
+        },
+        "actionCache": {
+          "publishedObjects": 0,
+          "uploadedBytes": 0,
+          "downloadedBytes": 0,
+          "failures": 0,
+          "reusedObjects": 0,
+          "reusedBytes": 0,
+          "connections": 8,
+          "getRequests": 0,
+          "headRequests": 0,
+          "downloadRequestSeconds": 0
+        }
+      },
+      "noop-2": {
+        "accepted": true,
+        "seconds": 2.8199565,
+        "phases": {
+          "sourceSnapshot": 0.6688858,
+          "stagePackages": 0.0391175,
+          "generate": 0.5014311,
+          "bazel": 0.2593901,
+          "leaseExit": 0.675559,
+          "validateBundles": 0.3640192,
+          "publishActionCache": 0.0024306
+        },
+        "compiles": 0,
+        "NugetExtractPackage": {
+          "executed": 0,
+          "remoteHits": 0
+        },
+        "MsbuildDiscover": {
+          "executed": 0,
+          "remoteHits": 0
+        },
+        "MsbuildBindProject": {
+          "executed": 0,
+          "remoteHits": 0
+        },
+        "MsbuildCompileProject": {
+          "executed": 0,
+          "remoteHits": 0
+        },
+        "MsbuildComposeRuntime": {
+          "executed": 0,
+          "remoteHits": 0
+        },
+        "MsbuildLockedRestore": {
+          "executed": 0,
+          "remoteHits": 0
+        },
+        "actionCache": {
+          "publishedObjects": 0,
+          "uploadedBytes": 0,
+          "downloadedBytes": 0,
+          "failures": 0,
+          "reusedObjects": 0,
+          "reusedBytes": 0,
+          "connections": 8,
+          "getRequests": 0,
+          "headRequests": 0,
+          "downloadRequestSeconds": 0
+        }
+      },
+      "noop-3": {
+        "accepted": true,
+        "seconds": 2.7434314,
+        "phases": {
+          "sourceSnapshot": 0.6621935,
+          "stagePackages": 0.0411105,
+          "generate": 0.4515577,
+          "bazel": 0.2175768,
+          "leaseExit": 0.6866367,
+          "validateBundles": 0.3541076,
+          "publishActionCache": 0.0024774
+        },
+        "compiles": 0,
+        "NugetExtractPackage": {
+          "executed": 0,
+          "remoteHits": 0
+        },
+        "MsbuildDiscover": {
+          "executed": 0,
+          "remoteHits": 0
+        },
+        "MsbuildBindProject": {
+          "executed": 0,
+          "remoteHits": 0
+        },
+        "MsbuildCompileProject": {
+          "executed": 0,
+          "remoteHits": 0
+        },
+        "MsbuildComposeRuntime": {
+          "executed": 0,
+          "remoteHits": 0
+        },
+        "MsbuildLockedRestore": {
+          "executed": 0,
+          "remoteHits": 0
+        },
+        "actionCache": {
+          "publishedObjects": 0,
+          "uploadedBytes": 0,
+          "downloadedBytes": 0,
+          "failures": 0,
+          "reusedObjects": 0,
+          "reusedBytes": 0,
+          "connections": 8,
+          "getRequests": 0,
+          "headRequests": 0,
+          "downloadRequestSeconds": 0
+        }
+      },
+      "fresh32": {
+        "accepted": true,
+        "seconds": 29.6061525,
+        "phases": {
+          "sourceSnapshot": 2.8373003,
+          "stagePackages": 0.0360199,
+          "generate": 0.4090013,
+          "bazel": 23.7144229,
+          "leaseExit": 1.9504693,
+          "validateBundles": 0.3588825,
+          "publishActionCache": 0.0023523
+        },
+        "compiles": 0,
+        "NugetExtractPackage": {
+          "executed": 0,
+          "remoteHits": 287
+        },
+        "MsbuildDiscover": {
+          "executed": 0,
+          "remoteHits": 1
+        },
+        "MsbuildBindProject": {
+          "executed": 0,
+          "remoteHits": 202
+        },
+        "MsbuildCompileProject": {
+          "executed": 0,
+          "remoteHits": 202
+        },
+        "MsbuildComposeRuntime": {
+          "executed": 0,
+          "remoteHits": 1
+        },
+        "MsbuildLockedRestore": {
+          "executed": 0,
+          "remoteHits": 1
+        },
+        "actionCache": {
+          "publishedObjects": 0,
+          "uploadedBytes": 0,
+          "downloadedBytes": 676758230,
+          "failures": 0,
+          "reusedObjects": 0,
+          "reusedBytes": 0,
+          "connections": 32,
+          "getRequests": 5658,
+          "headRequests": 0,
+          "downloadRequestSeconds": 17.736431891
+        },
+        "identicalApplicationFiles": 3457,
+        "runtime": {
+          "status": 200,
+          "packageHeader": true,
+          "packageAsset": true,
+          "packageRazor": true,
+          "checkoutsUnavailable": true
+        },
+        "packageFilesDownloaded": 0
+      }
+    },
+    "scope": "one macOS ARM64 host, loopback HTTP cache, shared pinned archive repository cache",
+    "producerOutputsRemoved": true,
+    "accepted": true
+  },
+  "previous": {
+    "asset": {
+      "accepted": true,
+      "seconds": 21.8543008,
+      "phases": {
+        "stagePackages": 0.0377162,
+        "bazel": 18.9543161,
+        "leaseExit": 0.6768112,
+        "validateBundles": 0.3741677,
+        "publishActionCache": 0.1518375
+      },
+      "compiles": 1,
+      "NugetExtractPackage": {
+        "executed": 0,
+        "remoteHits": 0
+      },
+      "MsbuildDiscover": {
+        "executed": 0,
+        "remoteHits": 0
+      },
+      "MsbuildBindProject": {
+        "executed": 1,
+        "remoteHits": 0
+      },
+      "MsbuildCompileProject": {
+        "executed": 1,
+        "remoteHits": 0
+      },
+      "MsbuildComposeRuntime": {
+        "executed": 1,
+        "remoteHits": 0
+      },
+      "MsbuildLockedRestore": {
+        "executed": 0,
+        "remoteHits": 0
+      },
+      "actionCache": {
+        "publishedObjects": 25,
+        "uploadedBytes": 2391953,
+        "downloadedBytes": 30,
+        "failures": 0,
+        "reusedObjects": 3164,
+        "reusedBytes": 646357761
+      },
+      "runtime": {
+        "status": 200,
+        "packageHeader": true,
+        "packageAsset": true,
+        "packageRazor": true,
+        "checkoutsUnavailable": false
+      }
+    },
+    "razor": {
+      "accepted": true,
+      "seconds": 20.2264729,
+      "phases": {
+        "stagePackages": 0.036856,
+        "bazel": 17.4222454,
+        "leaseExit": 0.6541845,
+        "validateBundles": 0.3645493,
+        "publishActionCache": 0.1534903
+      },
+      "compiles": 1,
+      "NugetExtractPackage": {
+        "executed": 0,
+        "remoteHits": 0
+      },
+      "MsbuildDiscover": {
+        "executed": 0,
+        "remoteHits": 0
+      },
+      "MsbuildBindProject": {
+        "executed": 1,
+        "remoteHits": 0
+      },
+      "MsbuildCompileProject": {
+        "executed": 1,
+        "remoteHits": 0
+      },
+      "MsbuildComposeRuntime": {
+        "executed": 1,
+        "remoteHits": 0
+      },
+      "MsbuildLockedRestore": {
+        "executed": 0,
+        "remoteHits": 0
+      },
+      "actionCache": {
+        "publishedObjects": 25,
+        "uploadedBytes": 2392466,
+        "downloadedBytes": 30,
+        "failures": 0,
+        "reusedObjects": 3164,
+        "reusedBytes": 646357761
+      },
+      "runtime": {
+        "status": 200,
+        "packageHeader": true,
+        "packageAsset": true,
+        "packageRazor": true,
+        "checkoutsUnavailable": false
+      }
+    },
+    "fresh": {
+      "accepted": true,
+      "seconds": 34.5508263,
+      "phases": {
+        "stagePackages": 0.0347174,
+        "bazel": 28.2670437,
+        "leaseExit": 2.235375,
+        "validateBundles": 0.3682201,
+        "publishActionCache": 0.0028137
+      },
+      "compiles": 0,
+      "NugetExtractPackage": {
+        "executed": 0,
+        "remoteHits": 287
+      },
+      "MsbuildDiscover": {
+        "executed": 0,
+        "remoteHits": 1
+      },
+      "MsbuildBindProject": {
+        "executed": 0,
+        "remoteHits": 202
+      },
+      "MsbuildCompileProject": {
+        "executed": 0,
+        "remoteHits": 202
+      },
+      "MsbuildComposeRuntime": {
+        "executed": 0,
+        "remoteHits": 1
+      },
+      "MsbuildLockedRestore": {
+        "executed": 0,
+        "remoteHits": 1
+      },
+      "actionCache": {
+        "publishedObjects": 0,
+        "uploadedBytes": 0,
+        "downloadedBytes": 2016334359,
+        "failures": 0,
+        "reusedObjects": 0,
+        "reusedBytes": 0
+      },
+      "packageFilesDownloaded": 0,
+      "identicalApplicationFiles": 3457,
+      "runtime": {
+        "status": 200,
+        "packageHeader": true,
+        "packageAsset": true,
+        "packageRazor": true,
+        "checkoutsUnavailable": true
+      }
+    }
+  },
+  "noopMedian": 2.8199565,
+  "previousNoopMedian": 6.6976563,
+  "profiles": {
+    "asset": {
+      "actionProcessingSeconds": {
+        "MsbuildBindProject": 0.22312,
+        "MsbuildCompileProject": 4.244489,
+        "MsbuildComposeRuntime": 4.272589
+      },
+      "aggregateCategorySeconds": {
+        "build phase marker": 0.036,
+        "general information": 57.981925,
+        "bazel module processing": 0.043913,
+        "gc notification": 0.012,
+        "complete action execution": 0.12855,
+        "action processing": 8.741356,
+        "Conflict checking": 0.025261,
+        "remote action cache check": 0.019841,
+        "action count (local)": 7.142073,
+        "action dependency checking": 0.395749,
+        "Remote execution upload time": 0.764222,
+        "skyframe evaluator": 9.354635,
+        "critical path component": 9.143208999999999
+      }
+    },
+    "razor": {
+      "actionProcessingSeconds": {
+        "MsbuildBindProject": 0.202617,
+        "MsbuildCompileProject": 3.79184,
+        "MsbuildComposeRuntime": 4.241287
+      },
+      "aggregateCategorySeconds": {
+        "build phase marker": 0.023,
+        "general information": 52.411064999999994,
+        "bazel module processing": 0.0021609999999999997,
+        "gc notification": 0.01,
+        "complete action execution": 0.11657200000000001,
+        "action processing": 8.236674,
+        "remote action cache check": 0.015969,
+        "action count (local)": 6.663057,
+        "action dependency checking": 0.36993000000000004,
+        "Remote execution upload time": 0.78832,
+        "skyframe evaluator": 8.655617,
+        "critical path component": 8.616163
+      }
+    },
+    "fresh": {
+      "actionProcessingSeconds": {
+        "MsbuildComposeRuntime": 1.993358
+      },
+      "aggregateCategorySeconds": {
+        "build phase marker": 1.6360000000000001,
+        "general information": 103.39283500000002,
+        "gc notification": 0.23600000000000013,
+        "skyframe evaluator": 20.841037,
+        "bazel module processing": 0.5601330000000003,
+        "Fetching repository": 3.1584820000000002,
+        "package creation": 0.277873,
+        "complete action execution": 0.2831570000000001,
+        "action processing": 8.802035000000004,
+        "Starlark builtin function call": 0.6464030000000001,
+        "Starlark user function call": 3.807967,
+        "Starlark repository function call": 3.312988,
+        "Conflict checking": 0.038889,
+        "remote action cache check": 0.8185850000000001,
+        "Unknown event": 27.533716000000002,
+        "remote output download": 1.417358,
+        "critical path component": 3.656494
+      }
+    },
+    "fresh32": {
+      "actionProcessingSeconds": {
+        "MsbuildComposeRuntime": 2.071827
+      },
+      "aggregateCategorySeconds": {
+        "build phase marker": 1.117,
+        "general information": 100.37512600000005,
+        "gc notification": 0.23300000000000012,
+        "skyframe evaluator": 20.308136,
+        "bazel module processing": 0.5800339999999997,
+        "Fetching repository": 2.798363,
+        "package creation": 0.39142899999999997,
+        "Starlark user function call": 3.7946669999999996,
+        "complete action execution": 0.2689980000000002,
+        "action processing": 8.41044,
+        "Starlark builtin function call": 0.660051,
+        "Starlark repository function call": 2.837009,
+        "Conflict checking": 0.038076,
+        "remote action cache check": 0.6076929999999996,
+        "Unknown event": 26.13709,
+        "remote output download": 1.490106,
+        "critical path component": 3.670295
+      }
+    },
+    "noop-2": {
+      "actionProcessingSeconds": {},
+      "aggregateCategorySeconds": {
+        "build phase marker": 0.023,
+        "general information": 0.784855,
+        "gc notification": 0.004,
+        "bazel module processing": 0.001592,
+        "complete action execution": 0.00025,
+        "action processing": 0.000943,
+        "skyframe evaluator": 0.012411,
+        "critical path component": 0.001011
+      }
+    }
+  },
+  "changedProjects": {
+    "asset": {
+      "MsbuildBindProject": [
+        "src/OrchardCore.Modules/OrchardCore.Setup/OrchardCore.Setup.csproj"
+      ],
+      "MsbuildCompileProject": [
+        "src/OrchardCore.Modules/OrchardCore.Setup/OrchardCore.Setup.csproj"
+      ]
+    },
+    "razor": {
+      "MsbuildBindProject": [
+        "src/OrchardCore.Modules/OrchardCore.Setup/OrchardCore.Setup.csproj"
+      ],
+      "MsbuildCompileProject": [
+        "src/OrchardCore.Modules/OrchardCore.Setup/OrchardCore.Setup.csproj"
+      ]
+    }
+  },
+  "canonicalReplay": [
+    {
+      "canonical": false,
+      "seconds": 3.398004791,
+      "identicalApplicationFiles": 3457,
+      "outputFiles": 10383,
+      "outputBytes": 2009297460
+    },
+    {
+      "canonical": true,
+      "seconds": 2.539953249999999,
+      "identicalApplicationFiles": 3457,
+      "outputFiles": 3460,
+      "outputBytes": 669835299
+    },
+    {
+      "canonical": true,
+      "seconds": 2.5642849159999983,
+      "identicalApplicationFiles": 3457,
+      "outputFiles": 3460,
+      "outputBytes": 669835299
+    },
+    {
+      "canonical": false,
+      "seconds": 3.3861630829999996,
+      "identicalApplicationFiles": 3457,
+      "outputFiles": 10383,
+      "outputBytes": 2009297460
+    }
+  ],
+  "canonicalReplayScope": "Single-entry replay of retained composed Orchard entry; isolates output duplication, excludes dependency validation, Bazel and network.",
+  "downloadExperiment": [
+    {
+      "latencyMs": 0,
+      "connections": 8,
+      "seconds": 0.0355038,
+      "cache": {
+        "uploadEnabled": false,
+        "connections": 8,
+        "getRequests": 128,
+        "headRequests": 0,
+        "downloadRequestSeconds": 0.801740629,
+        "stagingLimitBytes": 8589934592,
+        "lookupKeys": [],
+        "hitKeys": [],
+        "stagedObjects": 0,
+        "stagedBytes": 0,
+        "publishedObjects": 0,
+        "uploadedBytes": 0,
+        "reusedObjects": 0,
+        "reusedBytes": 0,
+        "downloadedBytes": 8388608,
+        "failures": 0
+      }
+    },
+    {
+      "latencyMs": 0,
+      "connections": 32,
+      "seconds": 0.0338323,
+      "cache": {
+        "uploadEnabled": false,
+        "connections": 32,
+        "getRequests": 128,
+        "headRequests": 0,
+        "downloadRequestSeconds": 0.698739214,
+        "stagingLimitBytes": 8589934592,
+        "lookupKeys": [],
+        "hitKeys": [],
+        "stagedObjects": 0,
+        "stagedBytes": 0,
+        "publishedObjects": 0,
+        "uploadedBytes": 0,
+        "reusedObjects": 0,
+        "reusedBytes": 0,
+        "downloadedBytes": 8388608,
+        "failures": 0
+      }
+    },
+    {
+      "latencyMs": 0,
+      "connections": 32,
+      "seconds": 0.032412,
+      "cache": {
+        "uploadEnabled": false,
+        "connections": 32,
+        "getRequests": 128,
+        "headRequests": 0,
+        "downloadRequestSeconds": 0.566451791,
+        "stagingLimitBytes": 8589934592,
+        "lookupKeys": [],
+        "hitKeys": [],
+        "stagedObjects": 0,
+        "stagedBytes": 0,
+        "publishedObjects": 0,
+        "uploadedBytes": 0,
+        "reusedObjects": 0,
+        "reusedBytes": 0,
+        "downloadedBytes": 8388608,
+        "failures": 0
+      }
+    },
+    {
+      "latencyMs": 0,
+      "connections": 8,
+      "seconds": 0.0341565,
+      "cache": {
+        "uploadEnabled": false,
+        "connections": 8,
+        "getRequests": 128,
+        "headRequests": 0,
+        "downloadRequestSeconds": 0.784825588,
+        "stagingLimitBytes": 8589934592,
+        "lookupKeys": [],
+        "hitKeys": [],
+        "stagedObjects": 0,
+        "stagedBytes": 0,
+        "publishedObjects": 0,
+        "uploadedBytes": 0,
+        "reusedObjects": 0,
+        "reusedBytes": 0,
+        "downloadedBytes": 8388608,
+        "failures": 0
+      }
+    },
+    {
+      "latencyMs": 20,
+      "connections": 8,
+      "seconds": 0.4336075,
+      "cache": {
+        "uploadEnabled": false,
+        "connections": 8,
+        "getRequests": 128,
+        "headRequests": 0,
+        "downloadRequestSeconds": 19.82151462,
+        "stagingLimitBytes": 8589934592,
+        "lookupKeys": [],
+        "hitKeys": [],
+        "stagedObjects": 0,
+        "stagedBytes": 0,
+        "publishedObjects": 0,
+        "uploadedBytes": 0,
+        "reusedObjects": 0,
+        "reusedBytes": 0,
+        "downloadedBytes": 8388608,
+        "failures": 0
+      }
+    },
+    {
+      "latencyMs": 20,
+      "connections": 32,
+      "seconds": 0.1386212,
+      "cache": {
+        "uploadEnabled": false,
+        "connections": 32,
+        "getRequests": 128,
+        "headRequests": 0,
+        "downloadRequestSeconds": 5.621966377,
+        "stagingLimitBytes": 8589934592,
+        "lookupKeys": [],
+        "hitKeys": [],
+        "stagedObjects": 0,
+        "stagedBytes": 0,
+        "publishedObjects": 0,
+        "uploadedBytes": 0,
+        "reusedObjects": 0,
+        "reusedBytes": 0,
+        "downloadedBytes": 8388608,
+        "failures": 0
+      }
+    },
+    {
+      "latencyMs": 20,
+      "connections": 32,
+      "seconds": 0.1328482,
+      "cache": {
+        "uploadEnabled": false,
+        "connections": 32,
+        "getRequests": 128,
+        "headRequests": 0,
+        "downloadRequestSeconds": 5.654714211,
+        "stagingLimitBytes": 8589934592,
+        "lookupKeys": [],
+        "hitKeys": [],
+        "stagedObjects": 0,
+        "stagedBytes": 0,
+        "publishedObjects": 0,
+        "uploadedBytes": 0,
+        "reusedObjects": 0,
+        "reusedBytes": 0,
+        "downloadedBytes": 8388608,
+        "failures": 0
+      }
+    },
+    {
+      "latencyMs": 20,
+      "connections": 8,
+      "seconds": 0.4421478,
+      "cache": {
+        "uploadEnabled": false,
+        "connections": 8,
+        "getRequests": 128,
+        "headRequests": 0,
+        "downloadRequestSeconds": 20.273981991,
+        "stagingLimitBytes": 8589934592,
+        "lookupKeys": [],
+        "hitKeys": [],
+        "stagedObjects": 0,
+        "stagedBytes": 0,
+        "publishedObjects": 0,
+        "uploadedBytes": 0,
+        "reusedObjects": 0,
+        "reusedBytes": 0,
+        "downloadedBytes": 8388608,
+        "failures": 0
+      }
+    },
+    {
+      "latencyMs": 80,
+      "connections": 8,
+      "seconds": 1.4268684,
+      "cache": {
+        "uploadEnabled": false,
+        "connections": 8,
+        "getRequests": 128,
+        "headRequests": 0,
+        "downloadRequestSeconds": 69.718792544,
+        "stagingLimitBytes": 8589934592,
+        "lookupKeys": [],
+        "hitKeys": [],
+        "stagedObjects": 0,
+        "stagedBytes": 0,
+        "publishedObjects": 0,
+        "uploadedBytes": 0,
+        "reusedObjects": 0,
+        "reusedBytes": 0,
+        "downloadedBytes": 8388608,
+        "failures": 0
+      }
+    },
+    {
+      "latencyMs": 80,
+      "connections": 32,
+      "seconds": 0.3704078,
+      "cache": {
+        "uploadEnabled": false,
+        "connections": 32,
+        "getRequests": 128,
+        "headRequests": 0,
+        "downloadRequestSeconds": 19.345979083,
+        "stagingLimitBytes": 8589934592,
+        "lookupKeys": [],
+        "hitKeys": [],
+        "stagedObjects": 0,
+        "stagedBytes": 0,
+        "publishedObjects": 0,
+        "uploadedBytes": 0,
+        "reusedObjects": 0,
+        "reusedBytes": 0,
+        "downloadedBytes": 8388608,
+        "failures": 0
+      }
+    },
+    {
+      "latencyMs": 80,
+      "connections": 32,
+      "seconds": 0.3736048,
+      "cache": {
+        "uploadEnabled": false,
+        "connections": 32,
+        "getRequests": 128,
+        "headRequests": 0,
+        "downloadRequestSeconds": 19.363327962,
+        "stagingLimitBytes": 8589934592,
+        "lookupKeys": [],
+        "hitKeys": [],
+        "stagedObjects": 0,
+        "stagedBytes": 0,
+        "publishedObjects": 0,
+        "uploadedBytes": 0,
+        "reusedObjects": 0,
+        "reusedBytes": 0,
+        "downloadedBytes": 8388608,
+        "failures": 0
+      }
+    },
+    {
+      "latencyMs": 80,
+      "connections": 8,
+      "seconds": 1.4212632,
+      "cache": {
+        "uploadEnabled": false,
+        "connections": 8,
+        "getRequests": 128,
+        "headRequests": 0,
+        "downloadRequestSeconds": 69.798425657,
+        "stagingLimitBytes": 8589934592,
+        "lookupKeys": [],
+        "hitKeys": [],
+        "stagedObjects": 0,
+        "stagedBytes": 0,
+        "publishedObjects": 0,
+        "uploadedBytes": 0,
+        "reusedObjects": 0,
+        "reusedBytes": 0,
+        "downloadedBytes": 8388608,
+        "failures": 0
+      }
+    }
+  ],
+  "generatedRewriteExperiment": [
+    {
+      "variant": "rewritten",
+      "warmup": true,
+      "seconds": 7.030905334000001
+    },
+    {
+      "variant": "rewritten",
+      "warmup": false,
+      "seconds": 4.397719374999999
+    },
+    {
+      "variant": "rewritten",
+      "warmup": false,
+      "seconds": 3.975226375
+    },
+    {
+      "variant": "rewritten",
+      "warmup": false,
+      "seconds": 3.804617792
+    },
+    {
+      "variant": "stable",
+      "warmup": true,
+      "seconds": 0.23908554200000154
+    },
+    {
+      "variant": "stable",
+      "warmup": false,
+      "seconds": 0.20447383400000163
+    },
+    {
+      "variant": "stable",
+      "warmup": false,
+      "seconds": 0.20703983299999962
+    },
+    {
+      "variant": "stable",
+      "warmup": false,
+      "seconds": 0.20372712500000034
+    }
+  ],
+  "repositoryFlagExperiment": [
+    {
+      "variant": "local",
+      "warmup": true,
+      "seconds": 9.033258166000001
+    },
+    {
+      "variant": "local",
+      "warmup": false,
+      "seconds": 0.5340702079999993
+    },
+    {
+      "variant": "local",
+      "warmup": false,
+      "seconds": 0.2720082080000008
+    },
+    {
+      "variant": "local",
+      "warmup": false,
+      "seconds": 0.2379999589999997
+    },
+    {
+      "variant": "retained",
+      "warmup": true,
+      "seconds": 4.654797666
+    },
+    {
+      "variant": "retained",
+      "warmup": false,
+      "seconds": 0.259104958
+    },
+    {
+      "variant": "retained",
+      "warmup": false,
+      "seconds": 0.20622633400000012
+    },
+    {
+      "variant": "retained",
+      "warmup": false,
+      "seconds": 0.23115662499999878
+    }
+  ],
+  "nativeInputs": [
+    {
+      "case": "producer",
+      "seconds": 16.9212172,
+      "compiles": 4,
+      "bindings": 4,
+      "discovery": 2,
+      "targets": [
+        "//:project_5757fea5a8ffc0be05fa1061995bfe57ebf1577a670621f88fdb7717c3f0318f",
+        "//:project_7a020d7c7ed8277aca2550d03808059631485d406b0236a7b486db611c385917",
+        "//:project_82b3c5bccb557ab694031bce87316285027d4dbed74dc36a9dbd8e13b9454c84",
+        "//:project_fb8661534261fec9e6d033094bd2e92182f29e5bdcd394f3dbad7fe7ae6c80c0"
+      ]
+    },
+    {
+      "case": "declared",
+      "seconds": 0.3170425,
+      "compiles": 0,
+      "bindings": 0,
+      "discovery": 0,
+      "targets": []
+    },
+    {
+      "case": "linked-resource",
+      "seconds": 1.5752889,
+      "compiles": 1,
+      "bindings": 1,
+      "discovery": 0,
+      "targets": [
+        "//:project_5757fea5a8ffc0be05fa1061995bfe57ebf1577a670621f88fdb7717c3f0318f"
+      ]
+    },
+    {
+      "case": "resource-added",
+      "seconds": 10.6465878,
+      "compiles": 2,
+      "bindings": 2,
+      "discovery": 2,
+      "targets": [
+        "//:project_5757fea5a8ffc0be05fa1061995bfe57ebf1577a670621f88fdb7717c3f0318f",
+        "//:project_7a020d7c7ed8277aca2550d03808059631485d406b0236a7b486db611c385917"
+      ]
+    },
+    {
+      "case": "resource-removed",
+      "seconds": 10.3940884,
+      "compiles": 2,
+      "bindings": 2,
+      "discovery": 2,
+      "targets": [
+        "//:project_5757fea5a8ffc0be05fa1061995bfe57ebf1577a670621f88fdb7717c3f0318f",
+        "//:project_7a020d7c7ed8277aca2550d03808059631485d406b0236a7b486db611c385917"
+      ]
+    },
+    {
+      "case": "local-import",
+      "seconds": 6.2765599,
+      "compiles": 2,
+      "bindings": 2,
+      "discovery": 1,
+      "targets": [
+        "//:project_5757fea5a8ffc0be05fa1061995bfe57ebf1577a670621f88fdb7717c3f0318f",
+        "//:project_7a020d7c7ed8277aca2550d03808059631485d406b0236a7b486db611c385917"
+      ]
+    },
+    {
+      "case": "shared-import",
+      "seconds": 7.4279225,
+      "compiles": 4,
+      "bindings": 4,
+      "discovery": 1,
+      "targets": [
+        "//:project_5757fea5a8ffc0be05fa1061995bfe57ebf1577a670621f88fdb7717c3f0318f",
+        "//:project_7a020d7c7ed8277aca2550d03808059631485d406b0236a7b486db611c385917",
+        "//:project_82b3c5bccb557ab694031bce87316285027d4dbed74dc36a9dbd8e13b9454c84",
+        "//:project_fb8661534261fec9e6d033094bd2e92182f29e5bdcd394f3dbad7fe7ae6c80c0"
+      ]
+    },
+    {
+      "case": "noop",
+      "seconds": 0.2648755,
+      "compiles": 0,
+      "bindings": 0,
+      "discovery": 0,
+      "targets": []
+    }
+  ],
+  "serilog": {
+    "accepted": true,
+    "scope": "Pinned Serilog with library framework list narrowed to net10.0. Unmodified multi-framework fixture was rejected before compilation by discovery framework qualification.",
+    "cases": [
+      {
+        "case": "producer",
+        "accepted": true,
+        "seconds": 23.211149,
+        "compiles": 2,
+        "testPassed": true,
+        "published": 258
+      },
+      {
+        "case": "fresh-hit",
+        "accepted": true,
+        "seconds": 5.9115933,
+        "compiles": 0,
+        "testPassed": true,
+        "published": 0
+      },
+      {
+        "case": "warm-0",
+        "accepted": true,
+        "seconds": 1.3530938,
+        "compiles": 0,
+        "testPassed": true,
+        "published": 0
+      },
+      {
+        "case": "warm-1",
+        "accepted": true,
+        "seconds": 1.1735819,
+        "compiles": 0,
+        "testPassed": true,
+        "published": 0
+      },
+      {
+        "case": "warm-2",
+        "accepted": true,
+        "seconds": 1.2030089,
+        "compiles": 0,
+        "testPassed": true,
+        "published": 0
+      },
+      {
+        "case": "body-edit",
+        "accepted": true,
+        "seconds": 8.7648797,
+        "compiles": 1,
+        "testPassed": true,
+        "published": 0
+      },
+      {
+        "case": "api-edit",
+        "accepted": true,
+        "seconds": 15.7009528,
+        "compiles": 2,
+        "testPassed": true,
+        "published": 0
+      },
+      {
+        "case": "failed-test",
+        "accepted": false,
+        "seconds": 10.968415,
+        "compiles": null,
+        "testPassed": null,
+        "published": 0
+      },
+      {
+        "case": "live-mutation",
+        "accepted": false,
+        "seconds": 9.0069077,
+        "compiles": 1,
+        "testPassed": true,
+        "published": 0
+      }
+    ]
+  }
+}
