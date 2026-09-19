@@ -1,4 +1,5 @@
 using System.Collections.Concurrent;
+using System.Diagnostics;
 using System.Net;
 using System.Net.Sockets;
 using System.Text.Json.Nodes;
@@ -13,7 +14,8 @@ internal sealed class ActionCache : IDisposable
     // Extracted NuGet trees plus project outputs exceed 2 GiB on large graphs.
     internal const long DefaultTotalLimit = 8L * 1024 * 1024 * 1024;
     private readonly long totalLimit;
-    private readonly HttpClient client = new(new SocketsHttpHandler { AllowAutoRedirect = false, MaxConnectionsPerServer = 8 }) { Timeout = TimeSpan.FromSeconds(30) };
+    private readonly HttpClient client;
+    private readonly int connections;
     private readonly HttpListener listener = new();
     private readonly ConcurrentBag<Task> requests = [];
     private readonly ConcurrentDictionary<string, string> staged = new(StringComparer.Ordinal);
@@ -22,11 +24,16 @@ internal sealed class ActionCache : IDisposable
     private readonly bool upload;
     private readonly Task serving;
     private long uploaded, downloaded, buffered, published, failures, reusedObjects, reusedBytes;
+    private long getRequests, getTicks, headRequests;
     private bool stopped;
     public string Url { get; }
     public JsonObject Statistics => new()
     {
         ["uploadEnabled"] = upload,
+        ["connections"] = connections,
+        ["getRequests"] = Interlocked.Read(ref getRequests),
+        ["headRequests"] = Interlocked.Read(ref headRequests),
+        ["downloadRequestSeconds"] = (double)Interlocked.Read(ref getTicks) / Stopwatch.Frequency,
         ["stagingLimitBytes"] = totalLimit,
         ["lookupKeys"] = Json.Strings(lookups.Keys.Order(StringComparer.Ordinal)),
         ["hitKeys"] = Json.Strings(lookups.Where(p => p.Value).Select(p => p.Key).Order(StringComparer.Ordinal)),
@@ -46,9 +53,12 @@ internal sealed class ActionCache : IDisposable
             throw new InvalidDataException("Action cache requires an HTTP(S) endpoint without credentials, query or fragment");
         return uri.AbsoluteUri.TrimEnd('/');
     }
-    public ActionCache(string endpoint, string directory, bool upload, long totalLimit = DefaultTotalLimit)
+    public ActionCache(string endpoint, string directory, bool upload, long totalLimit = DefaultTotalLimit, int connections = 8)
     {
         if (totalLimit <= 0) throw new ArgumentOutOfRangeException(nameof(totalLimit));
+        if (connections is < 1 or > 128) throw new ArgumentOutOfRangeException(nameof(connections));
+        this.connections = connections;
+        client = new HttpClient(new SocketsHttpHandler { AllowAutoRedirect = false, MaxConnectionsPerServer = connections }) { Timeout = TimeSpan.FromSeconds(30) };
         this.totalLimit = totalLimit;
         this.endpoint = Endpoint(endpoint); this.directory = directory; this.upload = upload;
         Directory.CreateDirectory(directory);
@@ -115,6 +125,9 @@ internal sealed class ActionCache : IDisposable
             }
             else if (request.HttpMethod is "GET" or "HEAD")
             {
+                var started = Stopwatch.GetTimestamp();
+                if (request.HttpMethod == "GET") Interlocked.Increment(ref getRequests);
+                else Interlocked.Increment(ref headRequests);
                 using var message = new HttpRequestMessage(new HttpMethod(request.HttpMethod), endpoint + "/" + relative);
                 using var result = await client.SendAsync(message, HttpCompletionOption.ResponseHeadersRead, timeout.Token);
                 response.StatusCode = (int)result.StatusCode;
@@ -131,6 +144,7 @@ internal sealed class ActionCache : IDisposable
                         await response.OutputStream.WriteAsync(buffer.AsMemory(0, count), timeout.Token);
                         Interlocked.Add(ref downloaded, count);
                     }
+                    Interlocked.Add(ref getTicks, Stopwatch.GetTimestamp() - started);
                 }
             }
             else response.StatusCode = 405;
@@ -172,6 +186,7 @@ internal sealed class ActionCache : IDisposable
             var length = new FileInfo(path).Length;
             if (checkExisting)
             {
+                Interlocked.Increment(ref headRequests);
                 using var probe = new HttpRequestMessage(HttpMethod.Head, endpoint + "/" + relative);
                 using var existing = await client.SendAsync(probe, HttpCompletionOption.ResponseHeadersRead, cancellation);
                 if (existing.StatusCode == HttpStatusCode.OK)

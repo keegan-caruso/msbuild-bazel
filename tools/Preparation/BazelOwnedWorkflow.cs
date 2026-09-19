@@ -67,7 +67,7 @@ internal static class BazelOwnedWorkflow
     }
     public static JsonNode Run(JsonNode request)
     {
-        var allowed = new HashSet<string>(["schemaVersion", "repository", "sdkRoot", "bazel", "workspace", "state", "entry", "output", "operation", "tests", "nuget-packages", "bazel-remote-cache", "bazel-remote-upload", "remote-endpoint", "remote-snapshot", "bazel-install-cache", "bazel-repository-cache", "project-actions", "project-layout", "direct-checkout", "locked-restore", "package-actions"], StringComparer.Ordinal);
+        var allowed = new HashSet<string>(["schemaVersion", "repository", "sdkRoot", "bazel", "workspace", "state", "entry", "output", "operation", "tests", "nuget-packages", "bazel-remote-cache", "bazel-remote-upload", "remote-endpoint", "remote-snapshot", "bazel-install-cache", "bazel-repository-cache", "project-actions", "project-layout", "direct-checkout", "locked-restore", "package-actions", "bazel-remote-connections"], StringComparer.Ordinal);
         if (request["schemaVersion"]?.GetValue<int>() != 1 || request.AsObject().Any(p => !allowed.Contains(p.Key))) throw new InvalidDataException("Invalid Bazel-owned workflow request");
         var root = Host.Real(request.String("repository")); var source = Host.Real(request.String("workspace")); var state = Host.Real(request.String("state")); var output = Host.Real(request.String("output"));
         foreach (var (a, b) in new[] { (root, source), (root, state), (source, state), (output, source), (output, root), (output, state) })
@@ -148,7 +148,7 @@ internal static class BazelOwnedWorkflow
             if (operation == "test") command.AddRange(["--cache_test_results=no", "--test_output=errors"]);
             if (request["bazel-remote-cache"] is { } actionEndpoint)
             {
-                gate = new ActionCache(actionEndpoint.GetValue<string>(), Path.Combine(state, "pending-actions"), request["bazel-remote-upload"]?.GetValue<bool>() == true);
+                gate = new ActionCache(actionEndpoint.GetValue<string>(), Path.Combine(state, "pending-actions"), request["bazel-remote-upload"]?.GetValue<bool>() == true, connections: request["bazel-remote-connections"]?.GetValue<int>() ?? 8);
                 command.AddRange(["--remote_cache=" + gate.Url, "--remote_upload_local_results=" + (request["bazel-remote-upload"]?.GetValue<bool>() == true ? "true" : "false"), "--remote_cache_async=false", "--remote_verify_downloads=true", "--remote_download_outputs=" + (projectActions ? "toplevel" : "all")]);
             }
             else if (request["bazel-remote-upload"]?.GetValue<bool>() == true) throw new InvalidDataException("Upload requires cache endpoint");

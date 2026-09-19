@@ -79,6 +79,19 @@ try
         case "action-cache-endpoint":
             Console.WriteLine(Json.Text(JsonValue.Create(ActionCache.Endpoint(request.String("endpoint")))));
             break;
+        case "profile-action-downloads":
+            {
+                using var gate = new ActionCache(request.String("endpoint"), request.String("directory"), false, connections: request["connections"]!.GetValue<int>());
+                using var client = new HttpClient(new SocketsHttpHandler { MaxConnectionsPerServer = 64 });
+                var watch = Stopwatch.StartNew();
+                await Parallel.ForEachAsync(request.Array("objects"), new ParallelOptions { MaxDegreeOfParallelism = 64 }, async (item, token) =>
+                {
+                    var bytes = await client.GetByteArrayAsync(gate.Url + "cas/" + item!.GetValue<string>(), token);
+                    if (Json.Sha(bytes) != item.GetValue<string>()) throw new InvalidDataException("Downloaded content differs");
+                });
+                Console.WriteLine(Json.Text(new JsonObject { ["seconds"] = watch.Elapsed.TotalSeconds, ["cache"] = gate.Statistics }));
+            }
+            break;
         case "profile-action-publication":
             {
                 var bundle = request.String("bundle");

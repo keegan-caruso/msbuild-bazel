@@ -77,6 +77,14 @@ class Components(unittest.TestCase):
         self.assertTrue(value['eligible']);self.assertEqual(value['hits'],2);self.assertEqual(value['roots'],1)
         self.assertEqual(value['fullScans'],3);self.assertEqual(value['restartHits'],0)
 
+    def test_action_cache_connection_limit_validation(self):
+        with CacheServer(0) as server:
+            for limit in (0,129):
+                self.assertIn('connections',self.invoke('profile-action-downloads',dict(endpoint=server.url+'/bazel',directory=str(self.root/str(limit)),connections=limit,objects=[]),False))
+            value=self.invoke('profile-action-downloads',dict(endpoint=server.url+'/bazel',directory=str(self.root/'valid'),connections=32,objects=[]))
+            self.assertEqual(value['cache']['connections'],32)
+            self.assertEqual(value['cache']['getRequests'],0)
+
     def test_action_cache_defers_and_orders_publication(self):
         import base64
         data=b'cache payload';blob=sha(data);action='a'*64
