@@ -258,6 +258,7 @@ internal static class BazelOwnedWorkflow
         Host.Copy(Path.Combine(root, "bazel/native.MODULE.bazel.lock"), Path.Combine(generated, "MODULE.bazel.lock"));
         File.WriteAllText(Path.Combine(generated, "MODULE.bazel"), "module(name = \"native_msbuild_workflow\")\nbazel_dep(name = \"platforms\", version = \"0.0.11\")\nlocal_dotnet_sdk = use_repo_rule(\"//:msbuild.bzl\", \"local_dotnet_sdk\")\n" + Starlark.Call("local_dotnet_sdk", new JsonObject { ["name"] = "dotnet", ["path"] = sdk, ["include_runtime_closure"] = true }));
         File.AppendAllText(Path.Combine(generated, "MODULE.bazel"), "owned_tools = use_repo_rule(\"//:repositories.bzl\", \"owned_tools\")\nnuget_archives = use_repo_rule(\"//:repositories.bzl\", \"nuget_archives\")\n" + Starlark.Call("owned_tools", new JsonObject { ["name"] = "owned_tools", ["root"] = root }) + Starlark.Call("nuget_archives", new JsonObject { ["name"] = "nuget", ["cache"] = packageCache, ["packages"] = Json.Canonical(packages), ["policy"] = "@owned_tools//:tools/pilot-package-policy.json", ["archives_only"] = packageActions }));
+        string PackageLabel(string package) => "nuget_" + Json.Sha(Encoding.UTF8.GetBytes(package));
         var packageFiles = packageActions ? Array.Empty<string>() : new[] { "@nuget//:files" };
         JsonArray Files(string directory) => Json.Strings(FileTree.Files(Path.Combine(generated, directory)).Select(p => Path.GetRelativePath(generated, p)));
         var inputRoot = checkout ?? Path.Combine(generated, "inputs");
@@ -277,7 +278,7 @@ internal static class BazelOwnedWorkflow
             var labels = new List<string>();
             foreach (var (package, hash) in packages.AsObject().OrderBy(pair => pair.Key, StringComparer.Ordinal))
             {
-                var parts = package.Split('/'); var name = "nuget_" + Json.Sha(Encoding.UTF8.GetBytes(package)); labels.Add(":" + name);
+                var parts = package.Split('/'); var name = PackageLabel(package); labels.Add(":" + name);
                 build += Starlark.Call("nuget_extract_package", new JsonObject { ["name"] = name, ["package"] = package, ["archive"] = "@nuget//:packages/" + package + "/" + parts[0] + "." + parts[1] + ".nupkg", ["content_hash"] = hash!.DeepClone(), ["pin"] = pins[package] is { } pin ? Json.Canonical(pin) : "", ["runner"] = "@owned_tools//:tools/Preparation/bin/Release/net10.0/Preparation.dll", ["runner_support"] = Json.Strings(["@owned_tools//:files"]), ["runtime"] = "@dotnet//:files", ["dotnet"] = "@dotnet//:sdk/dotnet" });
             }
             build += Starlark.Call("nuget_package_set", new JsonObject { ["name"] = "nuget_packages", ["packages"] = Json.Strings(labels) });
@@ -313,7 +314,16 @@ internal static class BazelOwnedWorkflow
                 var projectStructural = node!["structural"] is JsonArray ownedInputs
                     ? Json.Strings(ownedInputs.Select(value => InputLabel(value!.GetValue<string>())).Concat(names.Where(name => name is "global.json" or "NuGet.Config" or "NuGet.config" or "Directory.Build.props" or "Directory.Build.targets").Select(InputLabel)).Concat(packageFiles).Distinct(StringComparer.Ordinal).Order(StringComparer.Ordinal))
                     : Json.Strings([":project_structural_inputs"]);
-                build += Starlark.Call("msbuild_compile_project", new JsonObject { ["package_set"] = packageActions ? ":nuget_packages" : null, ["name"] = Label(project), ["project"] = project, ["project_dependencies"] = node!["dependencies"]!.DeepClone(), ["dependencies"] = Json.Strings(node.Array("dependencies").Select(d => ":" + Label(d!.GetValue<string>()))), ["discovery"] = ":prepare", ["sources"] = Json.Strings(sources), ["structural"] = projectStructural, ["preparation"] = "@owned_tools//:tools/Preparation/bin/Release/net10.0/Preparation.dll", ["runner"] = "@owned_tools//:tools/NativeProjectCache/bin/Release/net10.0/NativeProjectCache.dll", ["runner_support"] = Json.Strings(["@owned_tools//:files"]), ["sdk"] = "@dotnet//:files", ["dotnet"] = "@dotnet//:sdk/dotnet" });
+                var projectPackages = packageActions ? ":nuget_packages" : null;
+                if (packageActions && node!["packages"] is JsonArray selectedPackages)
+                {
+                    var selected = selectedPackages.Select(value => value!.GetValue<string>()).ToArray();
+                    if (selected.Any(package => !packages.AsObject().ContainsKey(package))) throw new InvalidDataException("Project layout contains an unlocked package");
+                    var packageSet = Label(project) + "_packages";
+                    build += Starlark.Call("nuget_package_set", new JsonObject { ["name"] = packageSet, ["packages"] = Json.Strings(selected.Select(package => ":" + PackageLabel(package))) });
+                    projectPackages = ":" + packageSet;
+                }
+                build += Starlark.Call("msbuild_compile_project", new JsonObject { ["package_set"] = projectPackages, ["name"] = Label(project), ["project"] = project, ["project_dependencies"] = node!["dependencies"]!.DeepClone(), ["dependencies"] = Json.Strings(node.Array("dependencies").Select(d => ":" + Label(d!.GetValue<string>()))), ["discovery"] = ":prepare", ["sources"] = Json.Strings(sources), ["structural"] = projectStructural, ["preparation"] = "@owned_tools//:tools/Preparation/bin/Release/net10.0/Preparation.dll", ["runner"] = "@owned_tools//:tools/NativeProjectCache/bin/Release/net10.0/NativeProjectCache.dll", ["runner_support"] = Json.Strings(["@owned_tools//:files"]), ["sdk"] = "@dotnet//:files", ["dotnet"] = "@dotnet//:sdk/dotnet" });
             }
             build += Starlark.Call("msbuild_compose_runtime", new JsonObject { ["name"] = "build", ["project"] = entry, ["entry"] = ":" + Label(entry), ["runner"] = "@owned_tools//:tools/NativeProjectCache/bin/Release/net10.0/NativeProjectCache.dll", ["runner_support"] = Json.Strings(["@owned_tools//:files"]), ["sdk"] = "@dotnet//:files", ["dotnet"] = "@dotnet//:sdk/dotnet" });
         }

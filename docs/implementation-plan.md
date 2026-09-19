@@ -568,3 +568,8 @@ and unchanged-output checks pass. Whole-graph discovery remains expensive.
 directories into the opt-in owned locked-restore workflow. Two-package native
 producer, producer-deleted fresh remote recovery, byte parity and source edit
 checks pass. Full Orchard qualification and project-specific package sets follow.
+
+[Project-specific package inputs](project-package-inputs.md) narrows compile
+actions to validated package closures. Native fresh-recovery/source-edit evidence
+shows the selected package materialized while an unrelated sibling package stays
+remote. The full Orchard benchmark is the remaining combined qualification.

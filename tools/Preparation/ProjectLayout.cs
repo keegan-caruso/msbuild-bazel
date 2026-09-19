@@ -10,30 +10,46 @@ internal static class ProjectLayout
     {
         var nodes = NativePlan.Qualify(graph); var projects = new JsonObject();
         var graphInputs = graph["graphInputs"] as JsonArray ?? [];
-        IEnumerable<string> Structural(JsonNode node)
+        (string[] Structural, string[] Packages) Inputs(JsonNode node)
         {
             var visited = new HashSet<string>(StringComparer.Ordinal);
             var inputs = new HashSet<string>(StringComparer.Ordinal);
+            var packages = new HashSet<string>(StringComparer.Ordinal);
             void Add(JsonNode current)
             {
                 if (!visited.Add(current.String("id"))) return;
                 foreach (var input in current.Array("inputs").Concat(graphInputs))
+                {
+                    var logical = input!.String("path");
+                    if (input.String("kind") == "package")
+                    {
+                        var relative = logical.StartsWith("workspace/.nuget/packages/", StringComparison.Ordinal) ? logical["workspace/.nuget/packages/".Length..]
+                            : logical.StartsWith("packages/", StringComparison.Ordinal) ? logical["packages/".Length..] : throw new InvalidDataException("Unqualified package input path");
+                        var parts = Host.Safe(relative).Split('/');
+                        if (parts.Length < 3) throw new InvalidDataException("Package input must name a file");
+                        packages.Add(parts[0] + "/" + parts[1]);
+                    }
                     if (!NativePlan.SourceBody(input!) && input!.String("path").StartsWith("workspace/", StringComparison.Ordinal))
                     {
                         var path = Host.Relative(input.String("path"));
                         if (!path.Contains("/obj/", StringComparison.Ordinal) && !path.StartsWith(".nuget/", StringComparison.Ordinal)) inputs.Add(path);
                     }
+                }
                 foreach (var dependency in current.Array("dependencies")) Add(nodes[dependency!.GetValue<string>()]);
             }
-            Add(node); return inputs.Order(StringComparer.Ordinal);
+            Add(node); return (inputs.Order(StringComparer.Ordinal).ToArray(), packages.Order(StringComparer.Ordinal).ToArray());
         }
         foreach (var node in nodes.Values.OrderBy(node => node.String("project"), StringComparer.Ordinal))
+        {
+            var inputs = Inputs(node);
             projects[Host.Relative(node.String("project"))] = new JsonObject
             {
                 ["dependencies"] = Json.Strings(node.Array("dependencies").Select(id => Host.Relative(nodes[id!.GetValue<string>()].String("project"))).Order(StringComparer.Ordinal)),
-                ["structural"] = Json.Strings(Structural(node)),
+                ["structural"] = Json.Strings(inputs.Structural),
+                ["packages"] = Json.Strings(inputs.Packages),
                 ["sources"] = Json.Strings(node.Array("inputs").Where(input => NativePlan.SourceBody(input!)).Select(input => Host.Relative(input!.String("path"))).Distinct(StringComparer.Ordinal).Order(StringComparer.Ordinal))
             };
+        }
         return new JsonObject { ["schemaVersion"] = 1, ["configuration"] = "Release", ["targetFramework"] = "net10.0", ["entry"] = Host.Relative(nodes[graph.Array("entryPoints")[0]!.GetValue<string>()].String("project")), ["projects"] = projects };
     }
     public static JsonNode Read(string path, string entry)
@@ -47,6 +63,11 @@ internal static class ProjectLayout
             Host.Safe(project);
             foreach (var source in node!.Array("sources")) Host.Safe(source!.GetValue<string>());
             foreach (var input in node!["structural"] as JsonArray ?? []) Host.Safe(input!.GetValue<string>());
+            foreach (var package in node!["packages"] as JsonArray ?? [])
+            {
+                var name = Host.Safe(package!.GetValue<string>());
+                if (name.Split('/').Length != 2 || name != name.ToLowerInvariant()) throw new InvalidDataException("Invalid project package identity");
+            }
             foreach (var dependency in node.Array("dependencies")) if (!projects.ContainsKey(dependency!.GetValue<string>())) throw new InvalidDataException("Project layout dependency missing");
         }
         return layout;
@@ -58,7 +79,8 @@ internal static class ProjectLayout
         // Layouts exported before structural ownership was recorded retain the
         // conservative shared-input behavior until explicitly regenerated.
         foreach (var (project, node) in declared["projects"]!.AsObject())
-            if (node!["structural"] is null && actual["projects"]?[project] is JsonObject actualNode) actualNode.Remove("structural");
+            foreach (var field in new[] { "structural", "packages" })
+                if (node![field] is null && actual["projects"]?[project] is JsonObject actualNode) actualNode.Remove(field);
         if (!JsonNode.DeepEquals(actual, declared)) throw new InvalidDataException("Project layout differs from MSBuild discovery; regenerate the layout");
         Json.Write(request.String("output"), new JsonObject { ["validated"] = true });
     }

@@ -20,6 +20,9 @@ class ProjectLayout(unittest.TestCase):
             for item in graph['nodes']:
                 name=item['id']
                 item['inputs'] += [dict(kind='resource',path=f'workspace/{name}/View.cshtml'),dict(kind='import',path=f'workspace/{name}/Build.targets'),dict(kind='restore',path=f'workspace/{name}/obj/project.assets.json')]
+            graph['nodes'][0]['inputs'].append(dict(kind='package',path='workspace/.nuget/packages/package-a/1.0.0/lib/a.dll'))
+            graph['nodes'][1]['inputs'].append(dict(kind='package',path='packages/package-b/2.0.0/lib/b.dll'))
+            graph['nodes'][2]['inputs'].append(dict(kind='package',path='packages/unrelated/3.0.0/lib/c.dll'))
             graph['nodes'][1]['inputs'].append(dict(kind='content',path='workspace/Linked/site.css'))
             (discovery/'graph.json').write_text(json.dumps(graph))
             layout = root/'layout.json'
@@ -31,14 +34,19 @@ class ProjectLayout(unittest.TestCase):
             expected=json.loads(layout.read_text());self.assertNotIn(str(root),layout.read_text())
             self.assertEqual(expected['projects']['A/A.csproj']['structural'], ['A/Build.targets','A/View.cshtml','Shared.targets'])
             self.assertEqual(expected['projects']['B/B.csproj']['structural'], ['A/Build.targets','A/View.cshtml','B/Build.targets','B/View.cshtml','Linked/site.css','Shared.targets'])
+            self.assertEqual(expected['projects']['A/A.csproj']['packages'], ['package-a/1.0.0'])
+            self.assertEqual(expected['projects']['B/B.csproj']['packages'], ['package-a/1.0.0','package-b/2.0.0'])
             graph['nodes'][0]['inputs'][0]['sha256']='after';(discovery/'graph.json').write_text(json.dumps(graph))
-            for case in ['valid','legacy','edge','source','structural-missing','structural-extra','structural-escape','configuration','extra-project']:
+            for case in ['valid','legacy','edge','source','structural-missing','structural-extra','structural-escape','package-missing','package-extra','package-escape','configuration','extra-project']:
                 value=copy.deepcopy(expected)
                 if case=='legacy':
-                    for project in value['projects'].values(): project.pop('structural')
+                    for project in value['projects'].values(): project.pop('structural');project.pop('packages')
                 if case=='structural-missing':value['projects']['B/B.csproj']['structural'].remove('Linked/site.css')
                 if case=='structural-extra':value['projects']['B/B.csproj']['structural'].append('Unrelated/View.cshtml')
                 if case=='structural-escape':value['projects']['B/B.csproj']['structural'].append('../escape')
+                if case=='package-missing':value['projects']['B/B.csproj']['packages'].remove('package-a/1.0.0')
+                if case=='package-extra':value['projects']['B/B.csproj']['packages'].append('unrelated/3.0.0')
+                if case=='package-escape':value['projects']['B/B.csproj']['packages'].append('../escape')
                 if case=='edge':value['projects']['B/B.csproj']['dependencies']=[]
                 if case=='source':value['projects']['B/B.csproj']['sources'].append('B/Added.cs')
                 if case=='configuration':value['configuration']='Debug'

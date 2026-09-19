@@ -44,9 +44,9 @@ every selected file hash. It does not enumerate package files during Bazel
 analysis or substitute an undeclared global cache.
 
 The option remains explicit while the full Orchard graph is qualified. The
-repository-extraction path remains available for comparison. Package directories
-are still shared across all compile targets at this step; per-project package
-ownership is next.
+repository-extraction path remains available for comparison. Compile targets now use [project-specific package sets](project-package-inputs.md)
+when the layout contains validated package ownership. Older layouts retain the
+full set until regenerated.
 
 ### Integrated acceptance
 

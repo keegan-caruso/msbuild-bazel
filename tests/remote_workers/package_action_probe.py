@@ -1,5 +1,6 @@
 """Owned NuGet directory actions through restore, build and fresh remote recovery."""
 import argparse
+import hashlib
 import json
 from pathlib import Path
 import shutil
@@ -52,6 +53,12 @@ def run(a):
             value=recovery/'source/N0001/Value.cs';value.write_text(value.read_text().replace('("2")','("12")'))
             changed=invoke('changed',recovery,recovery/'source',True,'21',False)
             assert changed['compiles']==1 and changed['MsbuildDiscover']['executed']==0 and changed['NugetExtractPackage']['executed']==0
+            materialized={}
+            for package in ['newtonsoft.json/13.0.1','polysharp/1.15.0']:
+                tree=recovery/'state/g/bazel-bin'/('nuget_'+hashlib.sha256(package.encode()).hexdigest()+'.package')
+                materialized[package]=sum(file.is_file() for file in tree.rglob('*'))
+            assert materialized['newtonsoft.json/13.0.1']>0 and materialized['polysharp/1.15.0']==0,materialized
+            changed['packageFilesMaterialized']=materialized;(out/'report.json').write_text(json.dumps(records,indent=2))
         finally:
             for base in [out/'bootstrap',out/'producer',out/'recovery']:
                 if (base/'state/g').exists():shutdown(base)
