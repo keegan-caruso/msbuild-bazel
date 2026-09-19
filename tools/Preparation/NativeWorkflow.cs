@@ -320,7 +320,8 @@ internal static class NativeWorkflow
         var traceArgument = arguments.SingleOrDefault(argument => argument.StartsWith(prefix, StringComparison.Ordinal));
         using var trace = traceArgument is null ? null : new ExecutionTrace(traceArgument[prefix.Length..]);
         var start = new ProcessStartInfo(executable) { WorkingDirectory = cwd, RedirectStandardOutput = true, RedirectStandardError = true };
-        foreach (var argument in arguments) start.ArgumentList.Add(argument == traceArgument ? prefix + trace!.Pipe : argument);
+        foreach (var argument in arguments) start.ArgumentList.Add(argument == traceArgument ? "--execution_log_binary_file=" + trace!.Pipe : argument);
+        if (trace is not null) start.ArgumentList.Add("--execution_log_sort=false");
         using var process = Process.Start(start)!; var stdout = process.StandardOutput.ReadToEndAsync(); var stderr = process.StandardError.ReadToEndAsync();
         if (!process.WaitForExit(3600000)) { process.Kill(true); process.WaitForExit(); throw new IOException("Build timed out after one hour"); }
         Task.WaitAll(stdout, stderr); File.WriteAllText(log, stdout.Result + stderr.Result);

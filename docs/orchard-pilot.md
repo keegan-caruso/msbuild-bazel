@@ -221,15 +221,19 @@ is for that check alone, not end-to-end preparation.
 ### Step 8: bounded execution-log capture
 
 An interrupted owned build had already produced a 753 MB JSON execution log.
-The workflow now streams Bazel's full log through an owned, close-on-exec FIFO
-into `execution.json.gz`. It reads one action record at a time to produce
-`execution.json`, an action summary retaining metadata used by the existing
-sandbox, cache-hit and single-project validation gates. Large input/output
-arrays remain available in the compressed original. Discovery and priming logs
+The workflow now selects Bazel's unsorted binary log and streams it through an
+owned, close-on-exec FIFO into `execution.bin.gz`. A bounded reader selects the
+pinned `SpawnExec` validation fields, one record at a time, into `execution.json`.
+This action summary retains metadata used by the existing sandbox, cache-hit and
+single-project validation gates. Full inputs and outputs remain available in the
+compressed original. Bazel's JSON mode deletes the output before conversion and
+cannot use this FIFO mechanism; a real executed-action regression checks that
+capture is nonempty and contains the expected command and mnemonic. Discovery and priming logs
 use the same convention. The build timeout is one hour for the large cold graph.
 
 Focused tests cover large records, exact gzip round trips, malformed tails,
 failed capture, missing executables, no writer, and descriptor inheritance.
 The real pinned Bazel server also completed an executed-action capture without
-needing to shut down its persistent server. Full owned-tool checks passed before
-the final close-on-exec adjustment; focused tests and formatting passed after it.
+needing to shut down its persistent server. Empty/no-op traces remain valid;
+malformed binary records fail before publication. The reader rejects individual
+records larger than 256 MiB rather than allocating unbounded memory.
