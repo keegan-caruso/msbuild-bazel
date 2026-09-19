@@ -21,16 +21,16 @@ focused R17 experiment, not qualification of the full supported-version/platform
 
 ## Current status and next step
 
-The [discovery and binding optimization](discovery-binding-performance.md) follows
-the [Orchard combined qualification](orchard-package-qualification.md). On the
-202-project Release/Production graph, the stylesheet edit falls from 687.674 s to
-338.668 s, discovery from 329.407 s to 150.306 s, and binding executions from 202
-to four. Bazel consumes per-project discovery templates; repeated file hashing,
-package copying and the second same-action graph export are removed with input
-verification retained. Producer-deleted remote recovery takes 35.923 s with zero
-compilations, 3,457 identical application files and no extracted package files
-downloaded; median no-op is 6.441 s. Single graph export, host compilation,
-runtime composition and cache publication remain the next performance targets.
+The [resource-body optimization](resource-body-performance.md) moves evaluated
+resource contents into per-project Bazel binding actions. On the 202-project
+Orchard graph, CSS edits fall from 338.668 s to 53.021 s; Razor edits take 49.562 s.
+Both execute one binding and one compilation, with zero restore/discovery.
+Namespace and import changes still invalidate discovery. Producer-deleted remote
+recovery takes 37.809 s with no compilation, 3,457 identical application files
+and no extracted package-file downloads; median no-op is 6.754 s. Runtime
+composition and cache publication are the next resource-edit performance targets.
+The [preceding discovery/binding work](discovery-binding-performance.md) retains
+the cold-discovery profiling and comparison baseline.
 
 
 The [local MVP release](local-mvp-release.md), **v0.1.0-mvp.1**, provides the
