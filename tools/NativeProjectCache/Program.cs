@@ -6,7 +6,7 @@ using NativeCache;
 
 internal sealed record RunnerFile(string Source, string Destination);
 internal sealed record RunnerPackageDirectory(string Source, string Package);
-internal sealed record RunnerRequest(string Entry, string Output, string Diagnostics, string Manifest, string Restore, RunnerFile[] Sources, RunnerFile[] Seeds, string? ReadProbe = null, string? NetworkProbe = null, string? WriteProbe = null, string? PreparedPlan = null, bool ProjectAction = false, string? ApiOutput = null, string[]? Prebuilt = null, RunnerPackageDirectory[]? PackageDirectories = null, string? RuntimeOutput = null);
+internal sealed record RunnerRequest(string Entry, string Output, string Diagnostics, string Manifest, string Restore, RunnerFile[] Sources, RunnerFile[] Seeds, string? ReadProbe = null, string? NetworkProbe = null, string? WriteProbe = null, string? PreparedPlan = null, bool ProjectAction = false, string? ApiOutput = null, string[]? Prebuilt = null, RunnerPackageDirectory[]? PackageDirectories = null, string? RuntimeOutput = null, bool BorrowPackageInputs = false);
 internal sealed record PortableManifest(string Toolchain, Dictionary<string, DeclaredProject> Projects, string Policy = "native-qualified-v2");
 
 internal static class Program
@@ -48,6 +48,8 @@ internal static class Program
             var cache = Path.Combine(output, "cache"); Directory.CreateDirectory(cache);
             var sdk = Path.GetDirectoryName(Environment.ProcessPath!)!;
             if (request.PackageDirectories is { Length: > 0 } && request.PreparedPlan is null) throw new InvalidDataException("Package directories require a prepared payload");
+            var packageHashes = new Dictionary<string, string>(StringComparer.Ordinal);
+            var stagingTimer = Stopwatch.StartNew();
             if (request.PreparedPlan is not null)
             {
                 var payloadPath = Path.Combine(request.PreparedPlan, "payload.json");
@@ -88,6 +90,7 @@ internal static class Program
                         }
                         if (Files.Hash(source) != hash) throw new InvalidDataException("Prepared payload differs from declared input: " + name);
                         selectedSources.Add(new RunnerFile(source, name));
+                        if (request.ProjectAction && name.StartsWith(".nuget/packages/", StringComparison.Ordinal) && !Path.GetFullPath(source).StartsWith(scratch + Path.DirectorySeparatorChar, StringComparison.Ordinal)) packageHashes[name] = hash;
                     }
                     request = request with { Sources = selectedSources.ToArray() };
                 }
@@ -98,10 +101,26 @@ internal static class Program
                     request = request with { Sources = Directory.EnumerateFiles(planSources, "*", SearchOption.AllDirectories).Select(path => new RunnerFile(path, Path.GetRelativePath(planSources, path))).ToArray() };
                 }
             }
+            var validationSeconds = stagingTimer.Elapsed.TotalSeconds;
+            var packageSeconds = 0.0;
+            long packageBytes = 0;
+            var packageFiles = 0;
+            var borrowedPackages = new ReadOnlyPackageInputs();
             foreach (var input in request.Sources)
             {
                 if (!Files.ValidRelativePath(input.Destination)) throw new InvalidDataException("invalid source path");
-                Files.Copy(input.Source, Path.Combine(workspace, input.Destination));
+                var startCopy = Stopwatch.GetTimestamp();
+                var package = packageHashes.TryGetValue(input.Destination, out var packageHash);
+                if (request.BorrowPackageInputs && package)
+                    borrowedPackages.Link(input.Source, Path.Combine(workspace, input.Destination), packageHash!);
+                else
+                    Files.Copy(input.Source, Path.Combine(workspace, input.Destination));
+                if (package)
+                {
+                    packageSeconds += Stopwatch.GetElapsedTime(startCopy).TotalSeconds;
+                    packageBytes += new FileInfo(input.Source).Length;
+                    packageFiles++;
+                }
             }
             foreach (var (relative, contents) in JsonSerializer.Deserialize<Dictionary<string, string>>(File.ReadAllText(request.Restore))!)
             {
@@ -110,6 +129,7 @@ internal static class Program
                 if (File.Exists(path) && !OperatingSystem.IsWindows()) File.SetUnixFileMode(path, File.GetUnixFileMode(path) | UnixFileMode.UserWrite);
                 File.WriteAllText(path, contents.Replace("${WORKSPACE}", workspace, StringComparison.Ordinal).Replace("${SDK}", sdk, StringComparison.Ordinal).Replace("${HOME}", home, StringComparison.Ordinal));
             }
+            File.WriteAllText(Path.Combine(diagnostics, "staging.json"), JsonSerializer.Serialize(new { validationSeconds, packageSeconds, packageBytes, packageFiles, borrowed = request.BorrowPackageInputs }, Json));
             Mark("sourceAndRestore");
             foreach (var input in request.Seeds)
             {
@@ -213,6 +233,7 @@ internal static class Program
                 ProjectActions.Project(entryBundle, request.ApiOutput, prebuilt!, identity, manifest.Projects[request.Entry].Implementation);
                 if (request.RuntimeOutput is not null) ProjectActions.Runtime(entryBundle, request.RuntimeOutput, entryArtifacts);
                 dependencyValidation.VerifyUnchanged();
+                borrowedPackages.VerifyUnchanged();
                 Directory.Delete(scratch, true); Mark("cleanup"); return 0;
             }
             var runtime = Path.Combine(output, "runtime", Path.GetFileName(entryBundle));

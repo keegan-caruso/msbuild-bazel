@@ -1,0 +1,23 @@
+[
+  {
+    "name": "copy-1",
+    "elapsed": 28.735513416,
+    "exitCode": 0,
+    "timings.json": {
+      "sourceAndRestore": 6.249102,
+      "seedCopy": 1e-07,
+      "sessionSetup": 5.2430245,
+      "msbuild": 13.5278007,
+      "selectBundles": 0.020873,
+      "cleanup": 3.4627628
+    },
+    "staging.json": {
+      "validationSeconds": 4.353332,
+      "packageSeconds": 1.6226907999999913,
+      "packageBytes": 2146600383,
+      "packageFiles": 12017,
+      "borrowed": false
+    },
+    "files": 6932
+  }
+]
