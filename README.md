@@ -277,3 +277,10 @@ from the remaining package/configuration/test-rule and Bazel-version gates.
 - [Codex cloud environments](https://learn.chatgpt.com/docs/environments/cloud-environment)
 - [MSBuild static graph](https://github.com/dotnet/msbuild/blob/main/documentation/specs/static-graph.md)
 - [MSBuild Traversal](https://github.com/microsoft/MSBuildSdks/tree/main/src/Traversal)
+
+## Explicit BUILD API preview
+
+The opt-in [explicit Bazel rules](docs/explicit-bazel-rules.md) declare per-project
+inputs and dependencies directly, with generic MSBuild items and executable MTP
+tests. This path removes application-wide discovery; full Orchard adoption and
+performance qualification are still pending.

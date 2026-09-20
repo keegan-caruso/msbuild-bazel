@@ -696,6 +696,9 @@ The [finalized design](explicit-bazel-api-design.md) makes BUILD declarations
 own project edges, input membership, and configuration. Generic MSBuild item
 providers preserve SDK/custom-target behavior; executable tests run directly,
 including MTP. Ordinary builds no longer require application-wide discovery in
-the proposed architecture. This is design only: implementation and performance
-qualification remain pending. It supersedes further global-discovery optimization
-as the next architectural priority.
+the proposed architecture. The [first implementation](explicit-bazel-rules.md)
+now qualifies explicit assembly/item rules, executable MTP tests, reference-only
+consumer invalidation, and deleted-producer cache recovery on macOS and Linux.
+SDK/lock extensions, Orchard adoption, and performance qualification remain open.
+This supersedes further global-discovery optimization as the next architectural
+priority.

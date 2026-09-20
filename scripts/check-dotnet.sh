@@ -11,3 +11,5 @@ done
 python3 -m unittest discover -s tests/code_style -v
 python3 -m unittest discover -s tests/dotnet_preparation -v
 python3 -m unittest discover -s tests/dotnet_workflow -v
+
+python3 -m unittest discover -s tests/explicit_msbuild -v
