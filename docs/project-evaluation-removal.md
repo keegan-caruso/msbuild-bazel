@@ -1,12 +1,12 @@
 # Evaluation: work to remove or share
 
-Analysis based on `5c89f6f` plus opt-in evaluation profiling. The production
-collection/cache behavior is unchanged. The XML reuse option below was enabled
-only in a disposable Linux container using the checked-in experiment patch.
+Original analysis based on `5c89f6f` plus opt-in evaluation profiling. The initial
+experiment below ran in a disposable Linux container. Parsed-XML reuse is now
+enabled for persistent workers; see the production validation below.
 
 ## Main finding: reuse parsed SDK XML and target bodies
 
-Every evaluation currently constructs `new ProjectCollection()`. Its default is
+Before this change, every evaluation constructed `new ProjectCollection()`. Its default is
 not to reuse the process-wide ProjectRootElement cache. This repeats reading and
 parsing the same SDK imports across projects, and discards another useful cache:
 MSBuild stores an unexpanded `ProjectTargetInstance` on each parsed target element.
@@ -99,10 +99,10 @@ not a measured benefit in this experiment.
 
 ## Recommendation
 
-First production change: adopt parsed-XML reuse for the persistent worker, keeping
-fresh evaluated/build state and current tool invalidation. Qualify changed imports,
-configuration/framework switches, generated restore imports and long-lived memory
-behavior before broadening the supported scope. Retain the fresh-process fallback.
+Parsed-XML reuse is now enabled for the persistent worker, keeping fresh
+evaluated/build state and current tool invalidation. Changed imports, Release/Debug
+switches and generated restore inputs pass the controls below. Framework switches
+and long-lived memory behavior need further qualification before broadening scope. Retain the fresh-process fallback.
 Then profile the remaining property/target work before moving another metadata
 slice into Bazel. Removing all project evaluation is not justified by these results.
 
@@ -111,9 +111,9 @@ slice into Bazel. Removing all project evaluation is not justified by these resu
 Build ExplicitBuild and run `cold_profile.py` with
 `RULES_MSBUILD_SHARED_RESTORE=1`. `profile_build=True` now adds MSBuild evaluation
 pass/file/hotspot data and separates collection setup from evaluation. Run
-`summarize_evaluation.py` on the evidence directory. Apply
-`tests/explicit_msbuild/evaluation_xml_reuse.patch` only to a disposable checkout,
-rebuild the runner, and repeat into a new output directory.
+`summarize_evaluation.py` on the evidence directory. The current runner needs no
+patch. The historical prototype patch is available at commit `0d90ff3` under
+`tests/explicit_msbuild/evaluation_xml_reuse.patch`.
 
 Checked-in [baseline](evidence/project-evaluation/baseline.json),
 [experiment](evidence/project-evaluation/xml-reuse.json) and
@@ -134,4 +134,50 @@ project/import combinations or long-running cache memory behavior.
 The profiling additions pass `scripts/check-dotnet.sh` (including its pre-existing
 single environment-dependent skip), `git diff --check`, and experiment patch
 applicability checks. The temporary container was removed after saving evidence.
-No production cache default was enabled and no GitHub CI ran.
+That experiment did not enable production reuse. No GitHub CI ran.
+
+
+## Production enablement and validation
+
+`BuildProject` now enables `reuseProjectRootElementCache` only when running in the
+isolated persistent worker. Fresh-process execution retains the default. Each
+request still creates fresh collections, evaluated instances and build managers.
+The shared cache retains parsed XML and unexpanded target bodies, not build results
+or evaluated properties/items. Declared SDK/runner changes replace the worker;
+dynamic XML uses content-identified request paths. MSBuild controls eviction, so
+this avoids repeated work when entries remain cached rather than promising one
+parse forever.
+
+A new four-CPU Linux run of the same 129-project graph measured **13.58 / 12.47 s**
+uninstrumented, **13.02 s mean**: **23.1% less** than the earlier 16.94 s baseline.
+These are separate sequential cohorts, not randomized pairs. Raw MSBuild measured
+6.54 / 6.39 s, **6.46 s mean**, making the worker build **2.01x raw**. Initial
+startup/analysis adds 4.67 s; the first complete run takes **18.25 s**. Downloads
+and SDK provisioning remain excluded. Instrumented samples are kept separately
+because profiling adds overhead. This remains a package-free graph measurement.
+
+The new `xml_reuse.py` fixture runs after worker acceptance and covers an explicit
+custom import in the general per-project restore lane. It checks a same-size import
+edit with restored timestamp in the same worker, Release/Debug output, another
+import edit in the Debug worker, malformed XML rejection, and recovery in that
+same worker. Existing acceptance passes tool-key replacement, source edits,
+declaration rejection, sandbox negatives, deleted-producer relocated cache recovery
+and compilation afterward. The real 16-package MTP fixture passes/fails/recovers;
+protocol tests reject forged digests and arbitrary tool roots.
+
+```sh
+RULES_MSBUILD_SHARED_RESTORE=1 RULES_MSBUILD_EXPLICIT_WORKER=1 \
+  RULES_MSBUILD_CHECK_TOOL_RESTART=1 \
+  python3 tests/explicit_msbuild/acceptance.py /tmp/acceptance
+python3 tests/explicit_msbuild/xml_reuse.py /tmp/acceptance
+```
+
+[Timing/evaluation summary](evidence/project-evaluation/enabled.json),
+[import/configuration controls](evidence/project-evaluation/enabled-imports.json),
+[acceptance](evidence/project-evaluation/enabled-acceptance.json) and
+[MTP](evidence/project-evaluation/enabled-mtp.json) retain compact evidence.
+Full local logs are under `artifacts/worker-xml/`. These checks do not establish
+arbitrary import/plugin compatibility or package-heavy performance.
+
+Production enablement passes `scripts/check-dotnet.sh` (one existing
+environment-dependent skip) and `git diff --check`. No GitHub CI was run.

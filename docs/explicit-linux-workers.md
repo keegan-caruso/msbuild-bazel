@@ -17,7 +17,10 @@ worker key. OS libraries and selected host files remain part of the qualified
 execution platform, as in the original worker implementation.
 
 MSBuild and Roslyn stay loaded between requests. Every build uses new
-ProjectCollection/BuildManager objects. Distinct input identities use distinct
+ProjectCollection/BuildManager objects. Workers reuse MSBuild's parsed-XML cache
+and unexpanded target bodies while keeping evaluated properties/items and build
+results fresh. SDK/runner changes replace the worker; dynamic XML paths include
+input content identity. Distinct input identities use distinct
 paths to prevent stale compiler metadata when file lengths/timestamps coincide.
 The child restores its environment and working directory after requests. Failed
 builds return errors without poisoning the next request; timeouts terminate the
@@ -141,3 +144,7 @@ down by worker phase, MSBuild task/target, startup and scheduling.
 [Staging attribution and removal](worker-staging.md) moves tool classification to
 startup and removes unused per-request runner snapshots. Declared tool changes
 replace the worker; project inputs retain verified snapshots.
+
+[Project evaluation reuse](project-evaluation-removal.md) enables parsed-XML reuse
+with changed-import and configuration controls; the current cold-action mean is
+13.02 s for the 129-project package-free graph.

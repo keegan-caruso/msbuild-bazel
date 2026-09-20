@@ -725,4 +725,7 @@ cold-action mean falls from a fresh 18.99 s baseline to 16.96 s, while staging d
 [Project evaluation removal analysis](project-evaluation-removal.md) measures
 reusing parsed SDK XML and unexpanded target bodies through MSBuild's existing
 cache. A disposable experiment reduces cold actions from 16.94 s to 12.70 s with
-647 byte-identical outputs; production cache behavior remains unchanged.
+647 byte-identical outputs. Reuse is now enabled only in persistent workers; a
+fresh validation cohort averages 13.02 s versus raw MSBuild 6.46 s. Changed-import,
+configuration, failure/recovery, tool-replacement, sandbox/cache and MTP controls
+pass while evaluated/build state remains fresh per action.

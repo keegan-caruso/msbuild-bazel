@@ -1,0 +1,31 @@
+[
+  {
+    "case": "xml-first",
+    "output": "first:Release",
+    "processId": 14166
+  },
+  {
+    "case": "xml-same-size-time-import",
+    "output": "other:Release",
+    "processId": 14166
+  },
+  {
+    "case": "xml-debug",
+    "output": "other:Debug",
+    "processId": 14816
+  },
+  {
+    "case": "xml-debug-import",
+    "output": "first:Debug",
+    "processId": 14816
+  },
+  {
+    "case": "xml-bad-import",
+    "rejected": true
+  },
+  {
+    "case": "xml-recovered",
+    "output": "other:Debug",
+    "processId": 14816
+  }
+]

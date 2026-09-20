@@ -251,7 +251,9 @@ internal static class Program
         // been replaced by Bazel reference outputs before either target executes.
         foreach (var target in r.RestoreOnly ? new[] { "Restore" } : r.RestoreInput is not null ? new[] { "Build" } : new[] { "Restore", "Build" })
         {
-            using var collection = new ProjectCollection();
+            // Bazel replaces the worker when its declared SDK/tools change. Request
+            // XML lives at content-identified paths; evaluated/build state stays fresh.
+            using var collection = new ProjectCollection(null, null, null, ToolsetDefinitionLocations.Default, 1, false, false, false, reuseProjectRootElementCache: LinuxWorker.Isolated);
             if (profile is not null) collection.RegisterLogger(profile);
             profile?.Mark(target + "CollectionSetup");
             var instance = profile is null ? new ProjectInstance(path, properties, null, collection) : ProjectInstance.FromFile(path, new ProjectOptions { GlobalProperties = properties, ProjectCollection = collection, LoadSettings = ProjectLoadSettings.ProfileEvaluation });
