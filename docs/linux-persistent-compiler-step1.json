@@ -1,0 +1,113 @@
+{
+  "platform": "Ubuntu 22.04 ARM64, .NET 10.0.400, Bazel 8.4.2",
+  "cases": [
+    {
+      "label": "fresh-0",
+      "mode": "fresh",
+      "seconds": 0.8139422920000001,
+      "exitCode": 0
+    },
+    {
+      "label": "fresh-1",
+      "mode": "fresh",
+      "seconds": 0.7974919590000003,
+      "exitCode": 0
+    },
+    {
+      "label": "fresh-2",
+      "mode": "fresh",
+      "seconds": 0.8153560420000003,
+      "exitCode": 0
+    },
+    {
+      "label": "worker-0",
+      "mode": "worker",
+      "seconds": 0.8176647920000004,
+      "exitCode": 0
+    },
+    {
+      "label": "worker-1",
+      "mode": "worker",
+      "seconds": 0.11555350000000075,
+      "exitCode": 0
+    },
+    {
+      "label": "worker-2",
+      "mode": "worker",
+      "seconds": 0.12383404200000037,
+      "exitCode": 0
+    },
+    {
+      "label": "worker-3",
+      "mode": "worker",
+      "seconds": 0.11541633300000065,
+      "exitCode": 0
+    },
+    {
+      "label": "worker-4",
+      "mode": "worker",
+      "seconds": 0.12057687499999936,
+      "exitCode": 0
+    },
+    {
+      "label": "absolute-read",
+      "mode": "worker",
+      "seconds": 0.00541199999999975,
+      "exitCode": 1
+    },
+    {
+      "label": "write-input",
+      "mode": "worker",
+      "seconds": 0.0024103749999984103,
+      "exitCode": 1
+    },
+    {
+      "label": "digest-mismatch",
+      "mode": "worker",
+      "seconds": 0.004489792000001103,
+      "exitCode": 1
+    },
+    {
+      "label": "network",
+      "mode": "worker",
+      "seconds": 0.012454958999999377,
+      "exitCode": 1
+    },
+    {
+      "label": "source-edit",
+      "mode": "worker",
+      "seconds": 0.10648183400000022,
+      "exitCode": 0
+    },
+    {
+      "label": "compile-failure",
+      "mode": "worker",
+      "seconds": 0.09841291599999913,
+      "exitCode": 1
+    },
+    {
+      "label": "worker-after-failure",
+      "mode": "worker",
+      "seconds": 0.1202775840000001,
+      "exitCode": 0
+    }
+  ],
+  "bazel": [
+    {
+      "stagingSeconds": 0.0068294,
+      "verifiedBytes": 378291,
+      "processId": 657,
+      "identity": "2ebcf92be9b4c43af663c52337a2bcf547fc40eb8b7858bad42ec7ac2633febb",
+      "wallSeconds": 3.711568585
+    },
+    {
+      "stagingSeconds": 0.0026833,
+      "verifiedBytes": 378291,
+      "processId": 657,
+      "identity": "e3bfa7dbd81b7b94ed9c1efff966f668210c0bdfdbc92e0b2bc91f66c20d57d0",
+      "wallSeconds": 0.2611326250000001
+    }
+  ],
+  "freshMedianSeconds": 0.8139422920000001,
+  "warmMedianSeconds": 0.11806518750000006
+}

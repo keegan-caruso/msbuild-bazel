@@ -56,6 +56,7 @@ internal static class WorkerProbe
             Console.SetOut(log); Console.SetError(log);
             return (EntryBuild.Run(session), log.ToString());
         }
+        catch (Exception failure) { return (1, log.ToString() + failure); }
         finally
         {
             Console.SetOut(output); Console.SetError(error);

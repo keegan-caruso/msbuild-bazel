@@ -58,19 +58,30 @@ def _project(ctx):
         "runtimeOutput": runtime.path,
         "prebuilt": [f.path for f in dependencies.to_list()],
     }))
+    compile_args = [ctx.file.runner.path, "--portable-request", request.path]
+    compile_requirements = {"block-network": "1", "no-remote-exec": "1"}
+    if ctx.attr.linux_worker:
+        args = ctx.actions.args()
+        args.add(request.path)
+        args.use_param_file("@%s", use_always = True)
+        args.set_param_file_format("multiline")
+        compile_args = [ctx.file.runner.path, "--bazel-worker", args]
+        compile_requirements.update({"supports-workers": "1", "requires-worker-protocol": "json"})
     ctx.actions.run(
         executable = ctx.executable.dotnet,
-        arguments = [ctx.file.runner.path, "--portable-request", request.path],
+        arguments = compile_args,
+        tools = depset(ctx.files.runner_support + [ctx.file.runner], transitive = [ctx.attr.sdk[DefaultInfo].files]) if ctx.attr.linux_worker else [],
         inputs = depset(ctx.files.sources + ctx.files.structural + ctx.files.runner_support + [plan, request, ctx.file.runner], transitive = [dependencies, package_inputs, ctx.attr.sdk[DefaultInfo].files]),
         outputs = [output, api, runtime, diagnostics],
         env = {"PATH": "/usr/bin:/bin", "LANG": "en_US.UTF-8"},
         mnemonic = "MsbuildCompileProject",
-        execution_requirements = {"block-network": "1", "no-remote-exec": "1"},
+        execution_requirements = compile_requirements,
     )
     dependency_runtimes = depset(transitive = [dep[ProjectBundleInfo].runtimes for dep in ctx.attr.dependencies])
     return [DefaultInfo(files = depset([output])), ProjectBundleInfo(api = api, apis = depset([api], transitive = [dependencies]), bundle = output, runtimes = depset([runtime], transitive = [dependency_runtimes]), dependency_runtimes = dependency_runtimes, package_files = package_inputs if ctx.attr.package_origin_outputs else depset(), package_rows = packages.values() if ctx.attr.package_origin_outputs else [])]
 
 msbuild_compile_project = rule(implementation = _project, attrs = {
+    "linux_worker": attr.bool(default = False),
     "package_origin_outputs": attr.bool(default = False),
     "borrow_package_inputs": attr.bool(default = False),
     "validate_publication": attr.bool(default = False),

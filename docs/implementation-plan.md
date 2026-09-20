@@ -685,3 +685,5 @@ recovery and changed-input controls pass, with input validation retained.
 [Sequential worker measurements](worker-session.md) demonstrate reusable MSBuild
 hosting with byte-identical sampled outputs. Production integration remains off
 pending worker isolation qualification; the current macOS sandbox stays in place.
+
+- Linux opt-in persistent MSBuild/Roslyn worker: [execution boundary and qualification](linux-persistent-compiler.md).

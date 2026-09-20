@@ -54,6 +54,8 @@ internal static class Program
                 ConfigureEngine();
                 return EntryBuild.Run(entrySession);
             }
+            if (args is ["--bazel-worker", "--persistent_worker"]) return await LinuxWorker.Run();
+            if (args is ["--isolated-worker"]) return await LinuxWorker.Child();
             if (args is ["--worker-probe"]) { ConfigureEngine(); return await WorkerProbe.Run(); }
             if (args is ["--compose-projects", var compose]) { ProjectActions.Compose(compose); return 0; }
             if (args is not ["--portable-request", var file]) throw new ArgumentException("expected --portable-request PATH");
@@ -198,7 +200,7 @@ internal static class Program
             var targets = Path.Combine(scratch, "Cache.targets");
             File.WriteAllText(targets, "<Project><PropertyGroup><_NativeOriginalTargets>$([MSBuild]::GetPathOfFileAbove('Directory.Build.targets', '$(MSBuildProjectDirectory)/'))</_NativeOriginalTargets></PropertyGroup>" +
                 "<Import Project=\"$(_NativeOriginalTargets)\" Condition=\"'$(_NativeOriginalTargets)' != ''\" />" +
-                selection + orchardTargets + "<Target Name=\"BazelUseInActionCompiler\" BeforeTargets=\"CoreCompile\"><PropertyGroup><UseSharedCompilation>false</UseSharedCompilation></PropertyGroup></Target><ItemGroup><ProjectCachePlugin Include=\"" + System.Security.SecurityElement.Escape(plugin) + "\" /></ItemGroup></Project>");
+                selection + orchardTargets + "<Target Name=\"BazelUseInActionCompiler\" BeforeTargets=\"CoreCompile\"><PropertyGroup><UseSharedCompilation>" + (LinuxWorker.Isolated ? "true" : "false") + "</UseSharedCompilation></PropertyGroup></Target><ItemGroup><ProjectCachePlugin Include=\"" + System.Security.SecurityElement.Escape(plugin) + "\" /></ItemGroup></Project>");
             var sessionPath = Path.Combine(scratch, "session.json");
             var pending = Path.Combine(scratch, "pending"); Directory.CreateDirectory(pending);
             var report = Path.Combine(diagnostics, "events.json");
@@ -235,6 +237,9 @@ internal static class Program
             // Failed builds must not leave diagnostic FIFOs for Bazel to hash.
             start.Environment["DOTNET_EnableDiagnostics"] = "0";
             start.Environment["NATIVE_CACHE_SESSION"] = sessionPath;
+            if (LinuxWorker.Isolated)
+                foreach (var key in new[] { "TMPDIR", "TMP", "TEMP" }) start.Environment[key] = LinuxWorker.CompilerTemp;
+            if (request.ProfileMsbuild && LinuxWorker.Isolated) start.Environment["RoslynCommandLineLogFile"] = Path.Combine(diagnostics, "compiler-server.log");
             if (request.ProfileMsbuild) start.Environment["NATIVE_CACHE_PROFILE"] = Path.Combine(diagnostics, "msbuild-phases.json");
             Mark("sessionSetup");
             string log;
