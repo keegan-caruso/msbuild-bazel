@@ -14,10 +14,14 @@ internal static class LinuxWorker
     private sealed record Reply(int ExitCode, string Output, int RequestId = 0);
     private static readonly JsonSerializerOptions Json = Program.Json;
 
-    internal static async Task<int> Run()
+    internal static async Task<int> Run(string? toolManifest = null)
     {
         if (!OperatingSystem.IsLinux() || System.Runtime.InteropServices.RuntimeInformation.ProcessArchitecture != System.Runtime.InteropServices.Architecture.Arm64 || Path.GetDirectoryName(Environment.ProcessPath) != Sdk || !File.ReadAllText("/etc/os-release").Contains("VERSION_ID=\"22.04\"", StringComparison.Ordinal))
             throw new InvalidDataException("Explicit workers require the qualified Ubuntu 22.04 ARM64 SDK");
+        var toolTimer = Stopwatch.StartNew();
+        var tools = new WorkerTools(toolManifest, Sdk);
+        var startupToolSeconds = toolTimer.Elapsed.TotalSeconds;
+        var firstRequest = true;
         var execroot = Environment.CurrentDirectory;
         var root = Path.Combine(Path.GetTempPath(), "explicit-worker-" + Guid.NewGuid().ToString("N"));
         foreach (var name in new[] { "in", "out", "tools", "compiler" }) Directory.CreateDirectory(Path.Combine(root, name));
@@ -38,20 +42,25 @@ internal static class LinuxWorker
                     if (work.Cancel || work.Arguments is not [var requestPath]) throw new InvalidDataException("Expected one request; worker cancellation is unsupported");
                     var timer = Stopwatch.StartNew();
                     Clear(Path.Combine(root, "in")); Clear(Path.Combine(root, "out"));
-                    var identity = Convert.ToHexStringLower(SHA256.HashData(Encoding.UTF8.GetBytes(string.Join('\n', work.Inputs.OrderBy(i => i.Path, StringComparer.Ordinal).Select(i => i.Path + ":" + i.Digest)))));
+                    var identity = Convert.ToHexStringLower(SHA256.HashData(Encoding.UTF8.GetBytes(string.Join('\n', work.Inputs.Where(i => !tools.Contains(i.Path)).OrderBy(i => i.Path, StringComparer.Ordinal).Select(i => i.Path + ":" + i.Digest)))));
                     var identitySeconds = timer.Elapsed.TotalSeconds;
                     var inputRoot = Path.Combine(root, "in", identity); var raw = Path.Combine(inputRoot, "raw");
                     var declared = new HashSet<string>(StringComparer.Ordinal); store.Begin();
+                    double toolResolutionSeconds = 0, snapshotFileSeconds = 0;
+                    var toolInputs = 0; var stagedInputs = 0;
                     foreach (var input in work.Inputs)
                     {
-                        Program.Safe(input.Path);
                         if (!declared.Add(input.Path)) throw new InvalidDataException("Duplicate worker input");
                         var source = Path.Combine(execroot, input.Path);
-                        // The pinned SDK is a declared tool and read-only execution-platform input.
-                        if (Program.Real(source).StartsWith(Sdk + "/", StringComparison.Ordinal)) continue;
+                        // Tools already exist in the child's immutable startup mounts.
+                        // Exact inventory membership replaces per-request filesystem probing.
+                        if (tools.Contains(input.Path)) { toolInputs++; continue; }
+                        Program.Safe(input.Path);
                         var digest = Encoding.UTF8.GetString(Convert.FromBase64String(input.Digest));
                         if (digest.Length != 64 || digest.Any(c => !char.IsAsciiHexDigitLower(c))) throw new InvalidDataException("Expected SHA-256 worker input digest");
+                        var probe = Stopwatch.GetTimestamp();
                         store.Stage(source, Path.Combine(raw, input.Path), digest);
+                        snapshotFileSeconds += Stopwatch.GetElapsedTime(probe).TotalSeconds; stagedInputs++;
                     }
                     var snapshotSeconds = timer.Elapsed.TotalSeconds - identitySeconds;
                     string InputPath(string path)
@@ -94,7 +103,7 @@ internal static class LinuxWorker
                         foreach (var file in Directory.EnumerateFileSystemEntries(state, "*", SearchOption.AllDirectories))
                             if (File.GetAttributes(file).HasFlag(FileAttributes.ReparsePoint)) throw new InvalidDataException("Worker output contains a link");
                         Program.Publish(request, state);
-                        File.WriteAllText(Path.Combine(request.Diagnostics, "worker.json"), JsonSerializer.Serialize(new { processId = child.Id, identity, stagingSeconds, identitySeconds, snapshotSeconds, preparationSeconds = stagingSeconds - identitySeconds - snapshotSeconds, childSeconds, publicationSeconds = timer.Elapsed.TotalSeconds - stagingSeconds - childSeconds, store.VerifiedBytes, store.ReusedBytes }, Json));
+                        File.WriteAllText(Path.Combine(request.Diagnostics, "worker.json"), JsonSerializer.Serialize(new { processId = child.Id, identity, stagingSeconds, identitySeconds, snapshotSeconds, preparationSeconds = stagingSeconds - identitySeconds - snapshotSeconds, childSeconds, publicationSeconds = timer.Elapsed.TotalSeconds - stagingSeconds - childSeconds, toolResolutionSeconds, snapshotFileSeconds, toolInputs, stagedInputs, startupToolSeconds = firstRequest ? startupToolSeconds : 0, toolInventoryCount = tools.Count, store.VerifiedBytes, store.ReusedBytes, store.ReusedFiles }, Json));
                         if (File.Exists(Path.Combine(state, "compiler.log"))) File.Copy(Path.Combine(state, "compiler.log"), Path.Combine(request.Diagnostics, "compiler.log"), true);
                     }
                 }
@@ -103,6 +112,7 @@ internal static class LinuxWorker
                     if (error is TimeoutException && !child.HasExited) child.Kill(true);
                     reply = new Reply(1, error.ToString(), id);
                 }
+                firstRequest = false;
                 await Console.Out.WriteLineAsync(JsonSerializer.Serialize(reply, new JsonSerializerOptions(Json) { WriteIndented = false }));
                 await Console.Out.FlushAsync();
                 if (child.HasExited) return 1;

@@ -137,3 +137,7 @@ analysis. [HTTP samples](evidence/explicit-linux-workers/remote-results.json).
 
 The subsequent [cold-start profile](explicit-cold-profile.md) breaks these costs
 down by worker phase, MSBuild task/target, startup and scheduling.
+
+[Staging attribution and removal](worker-staging.md) moves tool classification to
+startup and removes unused per-request runner snapshots. Declared tool changes
+replace the worker; project inputs retain verified snapshots.

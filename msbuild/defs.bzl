@@ -134,12 +134,12 @@ def _project(ctx, executable = False, test = False, restore_only = False, projec
         params.add(request.path)
         params.use_param_file("@%s", use_always = True)
         params.set_param_file_format("multiline")
-        arguments = [tc.runner.path, "--bazel-worker", params]
+        arguments = [tc.runner.path, "--bazel-worker", "--tool-inputs=" + tc.worker_tools.path, params]
         requirements.update({"supports-workers": "1", "requires-worker-protocol": "json"})
     ctx.actions.run(
         executable = tc.dotnet,
         arguments = arguments,
-        tools = depset([tc.runner], transitive = [tc.sdk, tc.runner_support]) if ctx.attr.linux_worker else [],
+        tools = depset([tc.runner, tc.worker_tools], transitive = [tc.sdk, tc.runner_support]) if ctx.attr.linux_worker else [],
         inputs = depset(
             [project, request, tc.runner, tc.runtime_manifest] + ctx.files.srcs + ctx.files.msbuild_imports + ([restore.file] if restore else []),
             transitive = [tc.sdk, tc.runner_support, references, package_files] + [group[MSBuildItemsInfo].files for group in ctx.attr.items],

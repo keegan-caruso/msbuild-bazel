@@ -716,3 +716,8 @@ and a fail-closed boundary for unqualified project behavior.
 The same lane now validates captured original item declarations inside the required
 build/restore evaluation. Both measured changes reduce the 129-project cold-action
 mean from 25.37 s to 18.83 s; package-heavy restore remains per project.
+
+[Worker staging removal](worker-staging.md) removes repeated SDK path classification
+and unused runner snapshots by using Bazel's declared-tool lifecycle. The 129-project
+cold-action mean falls from a fresh 18.99 s baseline to 16.96 s, while staging drops
+91%; current-data verification and sandbox/cache controls remain intact.

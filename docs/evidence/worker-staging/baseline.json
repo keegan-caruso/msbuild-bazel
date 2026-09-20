@@ -1,0 +1,65 @@
+{
+  "runs": [
+    {
+      "case": "control-0",
+      "instrumented": false,
+      "startupAndAnalysisSeconds": 4.546014044,
+      "buildSeconds": 19.566687218000002,
+      "totalSeconds": 24.112701262,
+      "workerCount": 4
+    },
+    {
+      "case": "profile-1",
+      "instrumented": true,
+      "startupAndAnalysisSeconds": 1.9645506260000012,
+      "buildSeconds": 18.645986175,
+      "totalSeconds": 20.610536801000002,
+      "workerCount": 4
+    },
+    {
+      "case": "control-2",
+      "instrumented": false,
+      "startupAndAnalysisSeconds": 1.8655377930000014,
+      "buildSeconds": 18.423066883000004,
+      "totalSeconds": 20.288604676000006,
+      "workerCount": 4
+    },
+    {
+      "case": "profile-3",
+      "instrumented": true,
+      "startupAndAnalysisSeconds": 1.8884496260000105,
+      "buildSeconds": 18.866005841999993,
+      "totalSeconds": 20.754455468000003,
+      "workerCount": 4
+    },
+    {
+      "case": "raw-profile-0",
+      "buildSeconds": 7.29356012800001
+    },
+    {
+      "case": "raw-profile-1",
+      "buildSeconds": 6.875789045000005
+    }
+  ],
+  "meanSummedStagingCounters": {
+    "toolResolutionSeconds": 11.01905624999998,
+    "snapshotFileSeconds": 0.6060672,
+    "sdkInputs": 633003,
+    "stagedInputs": 3228,
+    "verifiedBytes": 52425880,
+    "reusedBytes": 1591404082,
+    "reusedFiles": 2419
+  },
+  "meanSummedWorkerSeconds": {
+    "identitySeconds": 1.1552403500000001,
+    "snapshotSeconds": 12.520973199999993,
+    "preparationSeconds": 1.7752066999999998,
+    "childSeconds": 41.64550274999998,
+    "publicationSeconds": 0.13735059999999963
+  },
+  "meanSummedPhaseSeconds": {
+    "BuildEvaluation": 12.755705150000004,
+    "declarationValidation": 0.16447934999999997,
+    "BuildExecution": 27.629021349999995
+  }
+}

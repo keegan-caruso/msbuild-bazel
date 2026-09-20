@@ -50,6 +50,8 @@ internal static class Program
     {
         try
         {
+            if (args is ["--bazel-worker", var toolInputs, "--persistent_worker"] && toolInputs.StartsWith("--tool-inputs=", StringComparison.Ordinal)) return LinuxWorker.Run(toolInputs["--tool-inputs=".Length..]).GetAwaiter().GetResult();
+            if (args is ["--bazel-worker", var toolArgument, var responseFile] && toolArgument.StartsWith("--tool-inputs=", StringComparison.Ordinal) && responseFile.StartsWith('@')) return Build(Read<Request>(File.ReadAllText(responseFile[1..]).Trim()));
             if (args is ["--bazel-worker", "--persistent_worker"]) return LinuxWorker.Run().GetAwaiter().GetResult();
             if (args is ["--isolated-worker"]) return LinuxWorker.Child().GetAwaiter().GetResult();
             if (args is ["--bazel-worker", var parameter] && parameter.StartsWith('@')) return Build(Read<Request>(File.ReadAllText(parameter[1..]).Trim()));

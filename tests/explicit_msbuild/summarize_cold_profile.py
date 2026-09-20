@@ -8,7 +8,7 @@ import statistics
 import sys
 
 root=Path(sys.argv[1]); results=json.loads((root/'results.json').read_text())
-phases=collections.defaultdict(list); cpu=collections.defaultdict(list); tasks=collections.defaultdict(float); targets=collections.defaultdict(float); worker=collections.defaultdict(list); groups=collections.defaultdict(list); traces=collections.defaultdict(list)
+phases=collections.defaultdict(list); cpu=collections.defaultdict(list); tasks=collections.defaultdict(float); targets=collections.defaultdict(float); worker=collections.defaultdict(list); groups=collections.defaultdict(list); traces=collections.defaultdict(list); staging=collections.defaultdict(list)
 profiles=[r for r in results if r.get('instrumented')]
 for result in profiles:
     records=json.loads((root/result['case']/'compilation.json').read_text())
@@ -25,6 +25,11 @@ for result in profiles:
     for record in json.loads((root/result['case']/'workers.json').read_text()):
         for name in ('identitySeconds','snapshotSeconds','preparationSeconds','childSeconds','publicationSeconds'):totals[name]+=record[name]
     for name,value in totals.items():worker[name].append(value)
+    counters=collections.Counter()
+    for record in json.loads((root/result['case']/'workers.json').read_text()):
+        for name in ('toolResolutionSeconds','snapshotFileSeconds','startupToolSeconds','sdkInputs','toolInputs','stagedInputs','verifiedBytes','reusedBytes','reusedFiles'):
+            if name in record:counters[name]+=record[name]
+    for name,value in counters.items():staging[name].append(value)
     trace=json.load(gzip.open(root/(result['case']+'.profile.gz'),'rt'))
     totals=collections.Counter()
     for event in trace['traceEvents']:
@@ -36,6 +41,7 @@ for file in sorted(root.glob('raw-profile-*.log')):
     for milliseconds,name,count in re.findall(r'^\s*(\d+)\s+ms\s+(.+?)\s+(\d+)\s+calls\s*$',text,re.M):raw_tasks[name].append(int(milliseconds)/1000)
 summary={
     'runs':results,
+    'meanSummedStagingCounters':{k:statistics.mean(v) for k,v in staging.items()},
     'meanSummedWorkerSeconds':{k:statistics.mean(v) for k,v in worker.items()},
     'meanSummedPhaseSeconds':{k:statistics.mean(v) for k,v in phases.items()},
     'meanSummedChildCpuSeconds':{k:statistics.mean(v) for k,v in cpu.items()},

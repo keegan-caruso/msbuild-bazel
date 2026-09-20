@@ -59,6 +59,11 @@ msbuild_test(name="Fails", args=["fail"], project="App.csproj", target_framework
         for build in workspace.rglob('BUILD.bazel'):
             text=build.read_text().replace('msbuild_library(', 'msbuild_library(restore="//:restore_lib", ').replace('msbuild_binary(', 'msbuild_binary(restore="//:restore_exe", ').replace('msbuild_test(', 'msbuild_test(restore="//:restore_exe", ')
             build.write_text(text)
+    tool_marker=None
+    if worker and os.environ.get('RULES_MSBUILD_CHECK_TOOL_RESTART') == '1':
+        tool_marker=ROOT/'tools/ExplicitBuild/bin/Release/net10.0/worker-key-control.txt'
+        assert not tool_marker.exists()
+        tool_marker.write_text('tool-v1')
     records=[]
     def actions(case, mnemonic="MSBuildAssembly"):
         text=(folder/(case+'.execution.json')).read_text()
@@ -110,6 +115,11 @@ msbuild_test(name="Fails", args=["fail"], project="App.csproj", target_framework
         recovered_worker=json.loads((workspace/'bazel-bin/Library/Library.diagnostics/worker.json').read_text())
         assert recovered_worker['processId'] == first_worker['processId']
         library.write_text(valid)
+    if tool_marker:
+        tool_marker.write_text('tool-v2')
+        assert '9:resource:runtime' in bazel('changed-worker-tool', 'run', '//App')
+        replaced=json.loads((workspace/'bazel-bin/Library/Library.diagnostics/worker.json').read_text())
+        assert replaced['processId'] != first_worker['processId'], replaced
     app=workspace/'App/App.csproj'; original=app.read_text(); app.write_text(original.replace('../Library/Library.csproj','../Missing/Missing.csproj'))
     assert 'ProjectReference declarations disagree' in bazel('missing-edge', 'build', '//App', success=False)
     app.write_text(original)
@@ -170,6 +180,7 @@ msbuild_test(name="Fails", args=["fail"], project="App.csproj", target_framework
         assert any(not a.get('cacheHit') for a in actions('restore-relocated-compile'))
     (folder/'report.json').write_text(json.dumps(records,indent=2))
     subprocess.run([str(BAZEL),'--output_user_root='+str(folder/'user'),'--output_base='+str(folder/'base'),'--ignore_all_rc_files','shutdown'],cwd=workspace,check=True)
+    if tool_marker: tool_marker.unlink()
 
 
 if __name__ == '__main__':
