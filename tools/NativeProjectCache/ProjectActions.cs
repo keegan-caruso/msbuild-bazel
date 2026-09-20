@@ -2,7 +2,7 @@ using System.Text.Json;
 using System.Text.Json.Nodes;
 using ActionRunner;
 
-internal sealed record ComposeRequest(string Entry, string Output, string[] Bundles, string? EntryBundle = null, string[]? RuntimeBundles = null, string? MetadataOutput = null, bool ValidatePublication = false);
+internal sealed record ComposeRequest(string Entry, string Output, string[] Bundles, string? EntryBundle = null, string[]? RuntimeBundles = null, string? MetadataOutput = null, bool ValidatePublication = false, RunnerPackageDirectory[]? PackageDirectories = null);
 
 // Bazel compile dependencies carry a stable API projection. Real implementation
 // bytes are restored only by the final runtime action, without invoking MSBuild.
@@ -71,9 +71,11 @@ internal static class ProjectActions
             var entryBundle = Bundle(request.EntryBundle);
             if (Read(entryBundle).Project != request.Entry || !bundles.TryAdd(request.Entry, entryBundle)) throw new InvalidDataException("Invalid runtime entry bundle");
         }
+        var packageOrigins = new PackageOriginBundles(Program.PackageSources(request.PackageDirectories ?? [], []));
+        if (request.MetadataOutput is null && bundles.Values.Any(PackageOriginBundles.IsSparse)) throw new InvalidDataException("Package origins require metadata runtime composition");
         // Validate each producer once. Only the requested entry needs a composed
         // runtime; Bazel already owns every project's independent compile bundle.
-        var artifacts = bundles.ToDictionary(pair => pair.Key, pair => CompileBoundary.Validate(pair.Value).ToDictionary(item => item.Path, StringComparer.Ordinal), StringComparer.Ordinal);
+        var artifacts = bundles.ToDictionary(pair => pair.Key, pair => packageOrigins.Read(pair.Value).ToDictionary(item => item.Path, StringComparer.Ordinal), StringComparer.Ordinal);
         var results = bundles.ToDictionary(pair => pair.Key, pair => Read(pair.Value), StringComparer.Ordinal);
         var toolchains = results.Values.Select(result => result.Toolchain).Distinct().ToArray();
         if (toolchains.Length != 1 || toolchains[0] is null) throw new InvalidDataException("Project toolchains differ");
@@ -86,7 +88,7 @@ internal static class ProjectActions
                 var destination = Path.Combine(Bin(request.Entry, results[request.Entry].TargetFramework), Assembly(project) + extension);
                 if (!own.ContainsKey(destination)) continue;
                 var source = Path.Combine(Bin(project, results[project].TargetFramework), Assembly(project) + extension);
-                if (!artifacts[project].ContainsKey(source) || !replacements.TryAdd(destination, Path.Combine(bundle, "artifacts", source))) throw new InvalidDataException("Ambiguous or missing current runtime artifact");
+                if (!artifacts[project].ContainsKey(source) || !replacements.TryAdd(destination, packageOrigins.Source(bundle, source))) throw new InvalidDataException("Ambiguous or missing current runtime artifact");
             }
         }
         if (request.MetadataOutput is not null)
@@ -99,7 +101,7 @@ internal static class ProjectActions
                 var relative = item.Path.StartsWith(bin, StringComparison.Ordinal) ? item.Path[bin.Length..]
                     : results[request.Entry].OrchardApplication && item.Path.StartsWith(localization, StringComparison.Ordinal) ? "Localization/" + item.Path[localization.Length..] : null;
                 if (relative is null) continue;
-                var source = replacements.GetValueOrDefault(item.Path, Path.Combine(bundles[request.Entry], "artifacts", item.Path));
+                var source = replacements.GetValueOrDefault(item.Path, packageOrigins.Source(bundles[request.Entry], item.Path));
                 var destination = Path.Combine(application, relative);
                 if (File.Exists(destination)) throw new InvalidDataException("Ambiguous application output");
                 Files.Copy(source, destination);
@@ -109,6 +111,7 @@ internal static class ProjectActions
                 Directory.CreateDirectory(Path.Combine(application, "wwwroot"));
                 using (File.Open(Path.Combine(application, "wwwroot/.rules_msbuild_keep"), FileMode.CreateNew)) { }
             }
+            packageOrigins.VerifyUnchanged();
             Files.NormalizeTree(request.Output);
             var metadata = request.MetadataOutput;
             if (Directory.Exists(metadata) && Directory.EnumerateFileSystemEntries(metadata).Any()) throw new InvalidDataException("Runtime metadata requires an empty output");

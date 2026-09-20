@@ -3,6 +3,18 @@ using System.Reflection;
 using System.Text.Json;
 using ActionRunner;
 
+if (args is ["--compact-package-bundles", var mappingPath, var hashesPath])
+{
+    var mapping = JsonSerializer.Deserialize<Dictionary<string, string>>(File.ReadAllText(mappingPath))!;
+    var hashes = JsonSerializer.Deserialize<Dictionary<string, string>>(File.ReadAllText(hashesPath))!;
+    foreach (var (input, output) in mapping)
+    {
+        Files.CopyTree(input, output);
+        PackageOriginBundles.Compact(output, hashes);
+    }
+    return 0;
+}
+
 if (args is ["--child", var mode])
 {
     switch (mode)
@@ -30,6 +42,7 @@ try
          "native_manifest":null,"native_files":[]}
         """;
     BundleIntegrityTests.Run();
+    PackageOriginTests.Run();
     ReadOnlyPackageInputsTests.Run();
     StaticWebAssetsTests.Run();
     AssetRoleTests.Run();

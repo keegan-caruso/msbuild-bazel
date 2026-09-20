@@ -22,16 +22,40 @@ internal static class BundleIntegrity
             var seal = JsonNode.Parse(read("bundle.json"))!;
             var result = JsonNode.Parse(read("results.json"))!;
             var artifacts = JsonNode.Parse(read("artifacts.json"))!.AsArray();
-            if (seal["schemaVersion"]?.GetValue<int>() != 1 || Text(seal, "resultsSha256") != Sha(read("results.json")) || Text(seal, "artifactsSha256") != Sha(read("artifacts.json")) || artifacts.Count == 0)
+            var version = seal["schemaVersion"]?.GetValue<int>();
+            if (version is not (1 or 3) || Text(seal, "resultsSha256") != Sha(read("results.json")) || Text(seal, "artifactsSha256") != Sha(read("artifacts.json")) || artifacts.Count == 0)
                 throw new InvalidDataException("Invalid bundle seal");
             var expected = new HashSet<string>(["bundle.json", "results.json", "artifacts.json"], StringComparer.Ordinal);
+            var origins = new Dictionary<string, string>(StringComparer.Ordinal);
+            if (version == 3)
+            {
+                if (Text(seal, "packageOriginsSha256") != Sha(read("package-origins.json"))) throw new InvalidDataException("Invalid package origins seal");
+                foreach (var origin in JsonNode.Parse(read("package-origins.json"))!.AsObject())
+                {
+                    var source = Safe(origin.Value!.GetValue<string>());
+                    if (source.Split('/').Length < 3) throw new InvalidDataException("Invalid package origin");
+                    origins.Add(Safe(origin.Key), source);
+                }
+                if (origins.Count == 0) throw new InvalidDataException("Empty package origins");
+                expected.Add("package-origins.json");
+            }
+            var logical = new HashSet<string>(StringComparer.Ordinal);
             foreach (var artifact in artifacts)
             {
-                var name = "artifacts/" + Safe(Text(artifact!, "path"));
+                var path = Safe(Text(artifact!, "path"));
+                if (!logical.Add(path)) throw new InvalidDataException("Duplicate artifact");
+                Digest(Text(artifact!, "sha256"));
+                if (origins.ContainsKey(path))
+                {
+                    if (artifact!["size"]!.GetValue<long>() <= 0) throw new InvalidDataException("Invalid package artifact size");
+                    continue;
+                }
+                var name = "artifacts/" + path;
                 if (!expected.Add(name) || !members.Contains(name)) throw new InvalidDataException("Invalid artifact bytes");
                 var bytes = read(name);
                 if (bytes.LongLength != artifact!["size"]!.GetValue<long>() || Sha(bytes) != Text(artifact, "sha256")) throw new InvalidDataException("Invalid artifact bytes");
             }
+            if (origins.Keys.Any(path => !logical.Contains(path))) throw new InvalidDataException("Undeclared package origin");
             if (!expected.SetEquals(members)) throw new InvalidDataException("Undeclared bundle member");
             foreach (var key in new[] { "key", "inputs", "toolchain" }) Digest(Text(result, key));
             Safe(Text(result, "project"));

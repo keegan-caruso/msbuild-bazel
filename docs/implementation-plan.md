@@ -647,3 +647,10 @@ entry validation through immutable lifetimes while retaining exit checks.
 
 [Replay placement](replay-placement.md) preserves output membership while selecting
 producer ownership once and eliminating overwritten copies and metadata parsing.
+
+## Package-origin project outputs
+
+[Package-origin outputs](package-origin-outputs.md) adds an opt-in sparse bundle
+format backed by declared Bazel package inputs. Native remote recovery and sparse
+dependency consumption pass. The Orchard entry/API pair omits 891 MB of duplicate
+package files; runtime package over-fetch keeps the feature disabled by default.

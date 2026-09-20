@@ -6,12 +6,26 @@ using NativeCache;
 
 internal sealed record RunnerFile(string Source, string Destination);
 internal sealed record RunnerPackageDirectory(string Source, string Package);
-internal sealed record RunnerRequest(string Entry, string Output, string Diagnostics, string Manifest, string Restore, RunnerFile[] Sources, RunnerFile[] Seeds, string? ReadProbe = null, string? NetworkProbe = null, string? WriteProbe = null, string? PreparedPlan = null, bool ProjectAction = false, string? ApiOutput = null, string[]? Prebuilt = null, RunnerPackageDirectory[]? PackageDirectories = null, string? RuntimeOutput = null, bool BorrowPackageInputs = false, bool ValidatePublication = false, bool ProfileMsbuild = false);
+internal sealed record RunnerRequest(string Entry, string Output, string Diagnostics, string Manifest, string Restore, RunnerFile[] Sources, RunnerFile[] Seeds, string? ReadProbe = null, string? NetworkProbe = null, string? WriteProbe = null, string? PreparedPlan = null, bool ProjectAction = false, string? ApiOutput = null, string[]? Prebuilt = null, RunnerPackageDirectory[]? PackageDirectories = null, string? RuntimeOutput = null, bool BorrowPackageInputs = false, bool ValidatePublication = false, bool ProfileMsbuild = false, bool PackageOriginOutputs = false);
 internal sealed record PortableManifest(string Toolchain, Dictionary<string, DeclaredProject> Projects, string Policy = "native-qualified-v2");
 
 internal static class Program
 {
     private static readonly JsonSerializerOptions Json = new() { PropertyNamingPolicy = JsonNamingPolicy.CamelCase, WriteIndented = true };
+    internal static Dictionary<string, string> PackageSources(IEnumerable<RunnerPackageDirectory> directories, IEnumerable<RunnerFile> files)
+    {
+        var result = new Dictionary<string, string>(StringComparer.Ordinal);
+        foreach (var directory in directories)
+        {
+            if (!Files.ValidRelativePath(directory.Package) || directory.Package.Split('/').Length != 2) throw new InvalidDataException("Invalid package directory identity");
+            foreach (var path in Directory.EnumerateFiles(directory.Source, "*", SearchOption.AllDirectories))
+                if (!result.TryAdd(directory.Package + "/" + Path.GetRelativePath(directory.Source, path), path)) throw new InvalidDataException("Duplicate package origin input");
+        }
+        foreach (var file in files.Where(file => file.Destination.StartsWith(".nuget/packages/", StringComparison.Ordinal)))
+            result[file.Destination[".nuget/packages/".Length..]] = file.Source;
+        return result;
+    }
+
     public static async Task<int> Main(string[] args)
     {
         string? scratch = null;
@@ -42,6 +56,7 @@ internal static class Program
             if (Directory.Exists(output) && Directory.EnumerateFileSystemEntries(output).Any())
                 throw new InvalidDataException("portable runner requires an empty output");
             scratch = Path.Combine(output, ".work");
+            if (request.PackageOriginOutputs && !request.ProjectAction) throw new InvalidDataException("Package origin outputs require project actions");
             var workspace = Path.Combine(scratch, "w");
             var home = Path.Combine(scratch, "home"); Directory.CreateDirectory(home);
             Directory.CreateDirectory(workspace); Directory.CreateDirectory(diagnostics);
@@ -138,6 +153,9 @@ internal static class Program
                 Files.Copy(input.Source, Path.Combine(cache, input.Destination));
             }
             Mark("seedCopy");
+            var needsPackageOrigins = request.PackageOriginOutputs || (request.Prebuilt ?? []).Any(PackageOriginBundles.IsSparse);
+            var packageSources = needsPackageOrigins ? PackageSources(request.PackageDirectories ?? [], request.Sources) : new Dictionary<string, string>(StringComparer.Ordinal);
+            var packageOrigins = new PackageOriginBundles(packageSources);
             var manifest = JsonSerializer.Deserialize<PortableManifest>(File.ReadAllText(request.Manifest), Json)!;
             if (!request.ProjectAction && manifest.Projects.Values.Any(project => project.TargetFramework != "net10.0" || project.Implementation || project.OrchardModule || project.OrchardApplication || (project.Analyzers?.Length ?? 0) != 0))
                 throw new InvalidDataException("Mixed frameworks and analyzer references require project actions");
@@ -176,7 +194,7 @@ internal static class Program
             var sessionPath = Path.Combine(scratch, "session.json");
             var pending = Path.Combine(scratch, "pending"); Directory.CreateDirectory(pending);
             var report = Path.Combine(diagnostics, "events.json");
-            var prebuilt = request.ProjectAction ? (request.Prebuilt ?? []).ToDictionary(path => ProjectActions.Read(path).Project, path => Path.GetFullPath(path), StringComparer.Ordinal) : null;
+            var prebuilt = request.ProjectAction ? (request.Prebuilt ?? []).Select((bundle, index) => packageOrigins.Expand(bundle, Path.Combine(scratch, "package-replay", index.ToString(System.Globalization.CultureInfo.InvariantCulture)))).ToDictionary(path => ProjectActions.Read(path).Project, path => Path.GetFullPath(path), StringComparer.Ordinal) : null;
             var dependencyValidation = new CompileBoundary.ValidationScope();
             Mark("sessionMetadata");
             if (prebuilt is not null)
@@ -249,7 +267,15 @@ internal static class Program
                 dependencyValidation.VerifyUnchanged();
                 Mark("dependencyRevalidation");
                 borrowedPackages.VerifyUnchanged();
+                packageOrigins.VerifyUnchanged();
                 Mark("packageRevalidation");
+                if (request.PackageOriginOutputs)
+                {
+                    var origins = packageHashes.ToDictionary(pair => pair.Key[".nuget/packages/".Length..], pair => pair.Value, StringComparer.Ordinal);
+                    var compacted = new[] { entryBundle, request.ApiOutput }.Select(bundle => PackageOriginBundles.Compact(bundle!, origins)).ToArray();
+                    File.WriteAllText(Path.Combine(diagnostics, "package-origins.json"), JsonSerializer.Serialize(new { files = compacted.Sum(item => item.Files), bytes = compacted.Sum(item => item.Bytes) }, Json));
+                    Mark("packageOutputCompaction");
+                }
                 if (request.ValidatePublication)
                     foreach (var bundle in new[] { entryBundle, request.ApiOutput, request.RuntimeOutput }.Where(path => path is not null))
                         ProjectActions.ValidatePublication(bundle!, Path.Combine(bundle!, "artifacts"));
