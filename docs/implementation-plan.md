@@ -687,3 +687,5 @@ hosting with byte-identical sampled outputs. Production integration remains off
 pending worker isolation qualification; the current macOS sandbox stays in place.
 
 - Linux opt-in persistent MSBuild/Roslyn worker: [execution boundary and qualification](linux-persistent-compiler.md).
+
+- [Direct prepared dependencies](direct-prepared-dependencies.md) replaces repeated dependency staging with validated input paths, retaining SDK metadata rebasing and recorded target queries. Enabled for project actions with a full-staging override.

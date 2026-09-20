@@ -27,6 +27,7 @@ def run(output):
     subprocess.run(['bash', 'scripts/dotnet.sh', 'build', 'tools/NativeProjectCache', '-c', 'Release', '--nologo', '-v:q'], cwd=ROOT, check=True)
     root = Path('/workspace/compiler-probe');root.mkdir()
     src = root/'src';src.mkdir()
+    generator_bundle=root/'generator;$(literal)@x'
     (src/'Library.csproj').write_text('<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup><TargetFramework>net10.0</TargetFramework><Deterministic>true</Deterministic><EnableDefaultCompileItems>false</EnableDefaultCompileItems></PropertyGroup><ItemGroup><Compile Include="Value.cs" /></ItemGroup></Project>')
     (src/'Value.cs').write_text('public static class Value { public static int Get() => 7; }\n')
     (src/'NuGet.Config').write_text('<configuration><packageSources><clear /></packageSources></configuration>')
@@ -56,7 +57,7 @@ def run(output):
         nonlocal baseline
         shutil.rmtree(root/'result', ignore_errors=True)
         request_file.write_text(json.dumps(dict(request, **(overrides or {}))))
-        inputs=[dict(path=str(p.relative_to(root)), digest=base64.b64encode(sha(p).encode()).decode()) for folder in [src,plan,root/'packages',root/'dependency'] for p in folder.rglob('*') if p.is_file()]
+        inputs=[dict(path=str(p.relative_to(root)), digest=base64.b64encode(sha(p).encode()).decode()) for folder in [src,plan,root/'packages',root/'dependency',generator_bundle] for p in folder.rglob('*') if p.is_file()]
         inputs.append(dict(path='request.json',digest=base64.b64encode(sha(request_file).encode()).decode()))
         if tamper:inputs[0]['digest']=base64.b64encode(b'0'*64).decode()
         begin=time.perf_counter()
@@ -100,11 +101,11 @@ def run(output):
         for i in range(5):invoke('worker-'+str(i),'worker')
         Path('/workspace/worker-secret').write_text('secret')
         invoke('absolute-read','worker',dict(readProbe='/workspace/worker-secret'),expected=1)
-        invoke('write-input','worker',dict(writeProbe='/worker/in/src/Value.cs'),expected=1)
+        invoke('write-input','worker',dict(writeProbe='/worker/in/forbidden'),expected=1)
         (plan/'temporary.txt').write_text('previous input')
-        invoke('temporary-present','worker')
+        prior=invoke('temporary-present','worker')
         (plan/'temporary.txt').unlink()
-        invoke('previous-input-read','worker',dict(readProbe='/worker/in/plan/temporary.txt'),expected=1)
+        invoke('previous-input-read','worker',dict(readProbe='/worker/in/'+prior['identity']+'/plan/temporary.txt'),expected=1)
         invoke('digest-mismatch','worker',expected=1,tamper=True)
         with socket.socket() as server:
             server.bind(('127.0.0.1',0));server.listen()
@@ -159,7 +160,9 @@ def run(output):
         request.update(entry='Consumer/Consumer.csproj',prebuilt=['dependency'])
     consumer_plan();worker=launch()
     try:
-        first=invoke('dependency-consumer','worker')
+        prior=invoke('staged-dependency-consumer','worker')
+        request['directDependencies']=True
+        first=invoke('dependency-consumer','worker');assert first['hashes']==prior['hashes']
         oracle=invoke('dependency-consumer-oracle','fresh');assert first['hashes']==oracle['hashes']
         artifact=next((dependency/'artifacts').rglob('*.dll'));data=artifact.read_bytes();artifact.write_bytes(b'corrupt')
         invoke('dependency-corrupt','worker',expected=1);artifact.write_bytes(data)
@@ -173,6 +176,56 @@ def run(output):
         consumer_plan();edited=invoke('consumer-api-edit','worker')
         oracle=invoke('consumer-api-edit-oracle','fresh');assert edited['hashes']==oracle['hashes']
     finally:worker.stdin.close();worker.wait(timeout=30)
+    # Real project analyzer, built against the pinned SDK Roslyn assemblies.
+    # The implementation must be loaded from the prepared input tree and a
+    # changed generator must not be served from Roslyn's earlier assembly cache.
+    generator=src/'Generator';generator.mkdir()
+    (generator/'Generator.csproj').write_text('<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup><TargetFramework>net10.0</TargetFramework></PropertyGroup><ItemGroup><Reference Include="Microsoft.CodeAnalysis"><HintPath>$(MSBuildBinPath)/Roslyn/bincore/Microsoft.CodeAnalysis.dll</HintPath><Private>false</Private></Reference><Reference Include="Microsoft.CodeAnalysis.CSharp"><HintPath>$(MSBuildBinPath)/Roslyn/bincore/Microsoft.CodeAnalysis.CSharp.dll</HintPath><Private>false</Private></Reference></ItemGroup></Project>')
+    generator_source='using Microsoft.CodeAnalysis; [Generator] public sealed class Emit : ISourceGenerator { public void Initialize(GeneratorInitializationContext c) {} public void Execute(GeneratorExecutionContext c) { c.AddSource("Generated.g.cs", "public static class Generated { public const int Value = 7; }"); } }'
+    (generator/'Emit.cs').write_text(generator_source)
+    project=consumer/'Consumer.csproj'
+    project.write_text(project.read_text().replace('</ItemGroup>','<ProjectReference Include="../Generator/Generator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" /></ItemGroup>'))
+    (consumer/'Use.cs').write_text('public static class Use { public static int Get() => Value.GetNumber() + Generated.Value; }')
+    subprocess.run([str(SDK/'dotnet'),'restore','Consumer/Consumer.csproj','--nologo'],cwd=src,check=True,capture_output=True)
+    for folder in list(src.rglob('obj')):
+        restore.update({str(p.relative_to(src)):p.read_text().replace(str(src),'${WORKSPACE}').replace(str(SDK),'${SDK}').replace('/root','${HOME}')
+                        for p in folder.glob('*') if p.name=='project.assets.json' or p.name.endswith(('.nuget.g.props','.nuget.g.targets'))})
+        shutil.rmtree(folder)
+    (plan/'restore.json').write_text(json.dumps(restore))
+    request['sources']=[dict(source='src/'+str(p.relative_to(src)),destination=str(p.relative_to(src))) for p in src.rglob('*') if p.is_file()]
+    worker=launch()
+    try:
+        def build_generator(label):
+            prepare();manifest=json.loads((plan/'manifest.json').read_text())
+            declaration=dict(identity=sha(plan/'payload.json'),dependencies=[],implementation=True)
+            manifest['projects']={'Generator/Generator.csproj':declaration}
+            (plan/'manifest.json').write_text(json.dumps(manifest))
+            request.update(entry='Generator/Generator.csproj',prebuilt=[],directDependencies=True)
+            invoke(label,'worker')
+            shutil.rmtree(generator_bundle,ignore_errors=True);shutil.copytree(root/'result/api',generator_bundle)
+            for dll in generator_bundle.rglob('*.dll'):os.utime(dll,ns=(0,0))
+            return declaration
+        analyzer=build_generator('generator-producer')
+        old_generator_size=(generator_bundle/'artifacts/Generator/bin/Release/net10.0/Generator.dll').stat().st_size
+        def analyzer_plan():
+            consumer_plan();manifest=json.loads((plan/'manifest.json').read_text())
+            manifest['projects']['Generator/Generator.csproj']=analyzer
+            manifest['projects']['Consumer/Consumer.csproj'].update(dependencies=['Library.csproj','Generator/Generator.csproj'],analyzers=['Generator/Generator.csproj'])
+            (plan/'manifest.json').write_text(json.dumps(manifest));request['prebuilt']=['dependency',generator_bundle.name]
+        analyzer_plan();request['directDependencies']=False
+        prior=invoke('staged-analyzer-consumer','worker')
+        request['directDependencies']=True
+        first=invoke('direct-analyzer-consumer','worker');assert first['hashes']==prior['hashes']
+        (generator/'Emit.cs').write_text(generator_source.replace('Value = 7','Value = 8'))
+        analyzer=build_generator('generator-body-edit');analyzer_plan()
+        assert (generator_bundle/'artifacts/Generator/bin/Release/net10.0/Generator.dll').stat().st_size==old_generator_size
+        edited=invoke('direct-analyzer-edit','worker');assert edited['hashes']!=first['hashes']
+        assert edited['preparedRoots'][generator_bundle.name]!=first['preparedRoots'][generator_bundle.name]
+        assert edited['preparedRoots']['dependency']==first['preparedRoots']['dependency']
+        request['directDependencies']=False
+        oracle=invoke('analyzer-edit-oracle','fresh');assert edited['hashes']==oracle['hashes']
+        request['directDependencies']=True
+    finally:worker.stdin.close();worker.wait(timeout=30)
     bazel(root, output, request)
     print('All controls passed',flush=True)
 
@@ -184,7 +237,7 @@ def bazel(root, output, request):
     (root/'dotnet').symlink_to(SDK/'dotnet')
     build='load(":probe.bzl", "compile")\nexports_files(["dotnet"])\n'
     for name in ['one','two']:
-        build+='compile(name='+repr(name)+', request_json='+repr(json.dumps(request))+', srcs=glob(["src/**", "plan/**", "packages/**", "dependency/**"]), support=glob(["tools/*"]), runner="tools/NativeProjectCache.dll", dotnet="dotnet")\n'
+        build+='compile(name='+repr(name)+', request_json='+repr(json.dumps(request))+', srcs=glob(["src/**", "plan/**", "packages/**", "dependency/**", "generator*/**"]), support=glob(["tools/*"]), runner="tools/NativeProjectCache.dll", dotnet="dotnet")\n'
     (root/'BUILD.bazel').write_text(build)
     startup=[os.environ['RULES_MSBUILD_BAZEL'],'--nosystem_rc','--nohome_rc','--noworkspace_rc','--output_base=/workspace/compiler-bazel']
     cache_root=output/'remote-cache';cache_root.mkdir()
@@ -215,6 +268,7 @@ def bazel(root, output, request):
             result=json.loads((root/'bazel-bin'/(name+'.diagnostics/worker.json')).read_text())
             result['wallSeconds']=time.perf_counter()-begin;results.append(result)
         assert results[0]['processId']==results[1]['processId'],results
+        assert results[0]['preparedRoots']==results[1]['preparedRoots'],results
         original={str(p.relative_to(root/'bazel-bin/one.output')):sha(p) for p in (root/'bazel-bin/one.output').rglob('*') if p.is_file()}
         subprocess.run(startup+['shutdown'],cwd=root,capture_output=True,check=True,timeout=60)
         remaining=list(Path('/tmp').glob('.msbuild-worker-*'))

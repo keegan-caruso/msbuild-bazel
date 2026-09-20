@@ -6,7 +6,7 @@ using NativeCache;
 
 internal sealed record RunnerFile(string Source, string Destination);
 internal sealed record RunnerPackageDirectory(string Source, string Package);
-internal sealed record RunnerRequest(string Entry, string Output, string Diagnostics, string Manifest, string Restore, RunnerFile[] Sources, RunnerFile[] Seeds, string? ReadProbe = null, string? NetworkProbe = null, string? WriteProbe = null, string? PreparedPlan = null, bool ProjectAction = false, string? ApiOutput = null, string[]? Prebuilt = null, RunnerPackageDirectory[]? PackageDirectories = null, string? RuntimeOutput = null, bool BorrowPackageInputs = false, bool ValidatePublication = false, bool ProfileMsbuild = false, bool PackageOriginOutputs = false);
+internal sealed record RunnerRequest(string Entry, string Output, string Diagnostics, string Manifest, string Restore, RunnerFile[] Sources, RunnerFile[] Seeds, string? ReadProbe = null, string? NetworkProbe = null, string? WriteProbe = null, string? PreparedPlan = null, bool ProjectAction = false, string? ApiOutput = null, string[]? Prebuilt = null, RunnerPackageDirectory[]? PackageDirectories = null, string? RuntimeOutput = null, bool BorrowPackageInputs = false, bool ValidatePublication = false, bool ProfileMsbuild = false, bool PackageOriginOutputs = false, bool DirectDependencies = false);
 internal sealed record PortableManifest(string Toolchain, Dictionary<string, DeclaredProject> Projects, string Policy = "native-qualified-v2");
 
 internal static class Program
@@ -211,14 +211,17 @@ internal static class Program
             if (prebuilt is not null)
                 foreach (var bundle in prebuilt.Values) dependencyValidation.Read(bundle);
             Mark("dependencyValidation");
+            var preparedDependencies = request.DirectDependencies && prebuilt is not null ? PreparedDependencies.Create(prebuilt, manifest.Projects.ToDictionary(pair => pair.Key, pair => pair.Value.Dependencies), dependencyValidation) : null;
             if (prebuilt is not null)
-                foreach (var (project, bundle) in prebuilt) DependencyReplay.Write(Path.Combine(workspace, project), ProjectActions.Read(bundle), workspace);
+                foreach (var (project, bundle) in prebuilt) DependencyReplay.Write(Path.Combine(workspace, project), ProjectActions.Read(bundle), workspace,
+                    preparedDependencies is null ? null : value => preparedDependencies.Expand(value, workspace));
+            File.WriteAllText(Path.Combine(diagnostics, "dependency-inputs.json"), JsonSerializer.Serialize(new { direct = preparedDependencies?.Direct.Count ?? 0, staged = preparedDependencies is null ? prebuilt?.Values.Sum(p => dependencyValidation.Read(p).Length) ?? 0 : preparedDependencies.Sources.Count - preparedDependencies.Direct.Count }, Json));
             Mark("dependencyReplayProjects");
             // Prepared package hashes survive copying. The plugin verifies the staged
             // bytes before accepting the build and again at exit, catching copy races.
             var files = Directory.EnumerateFiles(workspace, "*", SearchOption.AllDirectories).Select(path => new DeclaredFile(Path.GetRelativePath(workspace, path), packageHashes.TryGetValue(Path.GetRelativePath(workspace, path), out var verifiedPackageHash) ? verifiedPackageHash : Files.Hash(path))).ToArray();
             Mark("workspaceHashing");
-            var session = new Session(workspace, cache, pending, report, request.Entry, manifest.Toolchain, files, manifest.Projects, TargetsPath: targets, Policy: manifest.Policy, Prebuilt: prebuilt, BorrowedPackageInputs: borrowedPackages.Aliases(workspace));
+            var session = new Session(workspace, cache, pending, report, request.Entry, manifest.Toolchain, files, manifest.Projects, TargetsPath: targets, Policy: manifest.Policy, Prebuilt: prebuilt, BorrowedPackageInputs: borrowedPackages.Aliases(workspace), PreparedDependencies: preparedDependencies);
             File.WriteAllText(sessionPath, JsonSerializer.Serialize(session, Json));
             if (request.ReadProbe is not null) File.ReadAllText(request.ReadProbe);
             if (request.WriteProbe is not null) File.WriteAllText(request.WriteProbe, "unexpected write");

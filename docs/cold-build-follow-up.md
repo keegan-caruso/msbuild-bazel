@@ -64,3 +64,11 @@ compiler/host reuse, and 0.127s with input reuse as well. Mutation/isolation
 controls and producer-state-deleted HTTP action-cache recovery pass. These
 small action results do not replace the 574.434s full Orchard measurement;
 a new large-graph comparison is still required.
+
+## Direct prepared dependency follow-up
+
+[Direct dependency consumption](direct-prepared-dependencies.md) reduces the
+Orchard web entry action from a warmed 16.080s staged control to 14.008/14.004s,
+with all 6,932 files identical. It removes 11,045 of 11,799 dependency placements;
+the remaining 754 are SDK manifests requiring path rebasing. This is a measured
+12.9% action reduction, not an updated whole-graph or raw-MSBuild ratio.

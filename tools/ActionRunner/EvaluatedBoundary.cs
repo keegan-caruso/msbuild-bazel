@@ -115,15 +115,27 @@ internal static class EvaluatedBoundary
         return true;
     }
 
-    internal static Dictionary<string, string> RuntimeReplacements(string bundle, string project, Dictionary<string, string> dependencies, bool verifySelection = false, Func<string, Artifact[]>? validate = null)
+    // Scoped to a validated immutable dependency set, never shared with mutable
+    // output capture. Avoid reparsing/indexing each producer for every consumer.
+    internal sealed class RuntimeInputs(Func<string, Artifact[]> validate)
     {
-        validate ??= CompileBoundary.Validate;
-        var own = validate(bundle).ToDictionary(item => item.Path, StringComparer.Ordinal); var framework = Framework(bundle);
+        private readonly Dictionary<string, (Dictionary<string, Artifact> Artifacts, string Framework)> bundles = new(StringComparer.Ordinal);
+        internal (Dictionary<string, Artifact> Artifacts, string Framework) Get(string bundle)
+        {
+            if (!bundles.TryGetValue(bundle, out var found))
+                bundles.Add(bundle, found = (validate(bundle).ToDictionary(item => item.Path, StringComparer.Ordinal), Framework(bundle)));
+            return found;
+        }
+    }
+
+    internal static Dictionary<string, string> RuntimeReplacements(string bundle, string project, Dictionary<string, string> dependencies, bool verifySelection = false, Func<string, Artifact[]>? validate = null, RuntimeInputs? inputs = null)
+    {
+        inputs ??= new RuntimeInputs(validate ?? CompileBoundary.Validate);
+        var (own, framework) = inputs.Get(bundle);
         var replacements = new Dictionary<string, string>(StringComparer.Ordinal);
         foreach (var (dependency, producer) in dependencies)
         {
-            var artifacts = validate(producer).ToDictionary(item => item.Path, StringComparer.Ordinal);
-            var producerFramework = Framework(producer);
+            var (artifacts, producerFramework) = inputs.Get(producer);
             var assembly = Path.Combine(Bin(dependency, producerFramework), Assembly(dependency) + ".dll");
             if (!artifacts.ContainsKey(assembly))
                 throw new InvalidDataException("current project implementation missing");

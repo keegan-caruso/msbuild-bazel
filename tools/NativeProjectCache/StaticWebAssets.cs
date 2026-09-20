@@ -12,7 +12,7 @@ internal static class StaticWebAssets
         return new[] { "staticwebassets.build.json", "staticwebassets.build.endpoints.json", "staticwebassets.development.json" }
             .Any(name => path == Path.Combine(folder, name));
     }
-    private static bool Manifest(string path) => Path.GetFileName(path) is "staticwebassets.build.json" or "staticwebassets.build.endpoints.json" or "staticwebassets.development.json" ||
+    internal static bool NeedsRebase(string path) => Path.GetFileName(path) is "staticwebassets.build.json" or "staticwebassets.build.endpoints.json" or "staticwebassets.development.json" ||
         path.EndsWith(".staticwebassets.runtime.json", StringComparison.Ordinal) || path.EndsWith(".staticwebassets.endpoints.json", StringComparison.Ordinal);
     private static readonly Lazy<Type> ManifestType = new(() => Assembly.LoadFrom(Path.Combine(Path.GetDirectoryName(Environment.ProcessPath!)!, "sdk/10.0.400/Sdks/Microsoft.NET.Sdk.StaticWebAssets/tasks/net10.0/Microsoft.NET.Sdk.StaticWebAssets.Tasks.dll"))
         .GetType("Microsoft.AspNetCore.StaticWebAssets.Tasks.StaticWebAssetsManifest", throwOnError: true)!);
@@ -35,12 +35,12 @@ internal static class StaticWebAssets
     internal static void Capture(string source, string destination, string workspace)
     {
         Files.Copy(source, destination);
-        if (Manifest(source)) File.WriteAllText(destination, Rebase(File.ReadAllText(source), workspace, "/_/workspace"));
+        if (NeedsRebase(source)) File.WriteAllText(destination, Rebase(File.ReadAllText(source), workspace, "/_/workspace"));
     }
     internal static void Restore(string source, string destination, string workspace, bool normalize = false)
     {
         if (normalize) Files.CopyNormalized(source, destination);
         else Files.Copy(source, destination);
-        if (Manifest(source)) File.WriteAllText(destination, Rebase(File.ReadAllText(source), "/_/workspace", workspace));
+        if (NeedsRebase(source)) File.WriteAllText(destination, Rebase(File.ReadAllText(source), "/_/workspace", workspace));
     }
 }

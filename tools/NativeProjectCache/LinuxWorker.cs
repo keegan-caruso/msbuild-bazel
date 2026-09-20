@@ -73,6 +73,9 @@ internal static class LinuxWorker
                     if (request.Cancel || request.Arguments is not [var requestPath]) throw new InvalidDataException("Expected one request file; cancellation is unsupported");
                     var timer = Stopwatch.StartNew();
                     Clear(Path.Combine(root, "in")); Clear(Path.Combine(root, "out"));
+                    var identity = Convert.ToHexStringLower(SHA256.HashData(Encoding.UTF8.GetBytes(string.Join('\n', request.Inputs.OrderBy(i => i.Path, StringComparer.Ordinal).Select(i => i.Path + ":" + i.Digest)))));
+                    var inputRoot = Path.Combine(root, "in", identity);
+                    var inputPrefix = "/worker/in/" + identity + "/";
                     var declared = new HashSet<string>(StringComparer.Ordinal);
                     store.Begin();
                     var identities = new Dictionary<string, Files.VerifiedInput>(StringComparer.Ordinal);
@@ -85,20 +88,47 @@ internal static class LinuxWorker
                         if (real.StartsWith(Sdk + "/", StringComparison.Ordinal)) continue;
                         var digest = Encoding.UTF8.GetString(Convert.FromBase64String(input.Digest));
                         if (digest.Length != 64 || digest.Any(c => !char.IsAsciiHexDigitLower(c))) throw new InvalidDataException("Expected Bazel SHA-256 input identity");
-                        var target = Path.Combine(root, "in", input.Path);
-                        identities.Add("/worker/in/" + input.Path, store.Stage(source, target, digest));
+                        var target = Path.Combine(inputRoot, input.Path);
+                        identities.Add(inputPrefix + input.Path, store.Stage(source, target, digest));
                     }
                     if (!declared.Contains(requestPath)) throw new InvalidDataException("Request is not a declared input");
-                    var original = JsonSerializer.Deserialize<RunnerRequest>(File.ReadAllText(Path.Combine(root, "in", requestPath)), Json)!;
+                    var original = JsonSerializer.Deserialize<RunnerRequest>(File.ReadAllText(Path.Combine(inputRoot, requestPath)), Json)!;
                     if (!original.ProjectAction) throw new InvalidDataException("Worker accepts only per-project compilation");
+                    // Bundle/package identities keep shared reference paths stable
+                    // across consumers, but change them when any adjacent input
+                    // changes. Only this request's groups are visible in the child.
+                    var groups = (original.Prebuilt ?? []).Concat((original.PackageDirectories ?? []).Select(p => p.Source))
+                        .Distinct(StringComparer.Ordinal).ToDictionary(p => p, _ => new List<Input>(), StringComparer.Ordinal);
+                    if (groups.Keys.Any(p => !Files.ValidRelativePath(p))) throw new InvalidDataException("Invalid prepared input group");
+                    string? Group(string path)
+                    {
+                        for (var current = path; !string.IsNullOrEmpty(current); current = Path.GetDirectoryName(current))
+                            if (groups.ContainsKey(current)) return current;
+                        return null;
+                    }
+                    foreach (var group in groups.Keys)
+                        if (Group(Path.GetDirectoryName(group) ?? "") is not null) throw new InvalidDataException("Overlapping prepared input groups");
+                    foreach (var input in request.Inputs)
+                        if (Group(input.Path) is { } group) groups[group].Add(input);
+                    var preparedRoots = new Dictionary<string, string>(StringComparer.Ordinal);
+                    foreach (var (group, members) in groups)
+                    {
+                        if (members.Count == 0 || members.Any(p => p.Path == group)) throw new InvalidDataException("Prepared input group must contain declared files");
+                        var version = Convert.ToHexStringLower(SHA256.HashData(Encoding.UTF8.GetBytes("prepared-tree\n" + string.Join('\n', members.OrderBy(i => i.Path, StringComparer.Ordinal).Select(i => i.Path + ":" + i.Digest)))));
+                        var alias = Path.Combine(root, "in", version, group);
+                        Directory.CreateDirectory(Path.GetDirectoryName(alias)!);
+                        Directory.CreateSymbolicLink(alias, Path.GetRelativePath(Path.GetDirectoryName(alias)!, Path.Combine(inputRoot, group)));
+                        var prefix = "/worker/in/" + version + "/";
+                        preparedRoots.Add(group, prefix);
+                        foreach (var member in members) identities.Add(prefix + member.Path, identities[inputPrefix + member.Path]);
+                    }
                     string In(string path)
                     {
                         if (!Files.ValidRelativePath(path) || !declared.Any(p => p == path || p.StartsWith(path + "/", StringComparison.Ordinal))) throw new InvalidDataException("Undeclared action input: " + path);
-                        return "/worker/in/" + path;
+                        return (Group(path) is { } group ? preparedRoots[group] : inputPrefix) + path;
                     }
                     // Distinct content gets distinct compiler metadata-cache paths, even if
                     // source timestamps and sizes happen to be identical.
-                    var identity = Convert.ToHexStringLower(SHA256.HashData(Encoding.UTF8.GetBytes(string.Join('\n', request.Inputs.OrderBy(i => i.Path, StringComparer.Ordinal).Select(i => i.Path + ":" + i.Digest)))));
                     var destination = "/worker/out/" + identity;
                     var mapped = original with
                     {
@@ -140,7 +170,7 @@ internal static class LinuxWorker
                     if (response.ExitCode == 0)
                     {
                         Export("bundle", original.Output); Export("api", original.ApiOutput); Export("runtime", original.RuntimeOutput);
-                        File.WriteAllText(Path.Combine(execroot, original.Diagnostics, "worker.json"), JsonSerializer.Serialize(new { stagingSeconds, verifiedBytes = store.VerifiedBytes, reusedBytes = store.ReusedBytes, reusedFiles = store.ReusedFiles, processId = child.Id, identity }, Json));
+                        File.WriteAllText(Path.Combine(execroot, original.Diagnostics, "worker.json"), JsonSerializer.Serialize(new { stagingSeconds, verifiedBytes = store.VerifiedBytes, reusedBytes = store.ReusedBytes, reusedFiles = store.ReusedFiles, processId = child.Id, identity, preparedRoots }, Json));
                     }
                 }
                 catch (Exception error)

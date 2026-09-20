@@ -10,7 +10,7 @@ using TaskItem = Microsoft.Build.Utilities.TaskItem;
 internal sealed record DeclaredFile(string Path, string Hash);
 internal sealed record DeclaredProject(string Identity, string[] Dependencies, string TargetFramework = "net10.0", bool Implementation = false, string[]? Analyzers = null, bool OrchardModule = false, bool OrchardApplication = false);
 internal sealed record Session(string Workspace, string Cache, string Scratch, string Report, string Entry, string Toolchain,
-    DeclaredFile[] Files, Dictionary<string, DeclaredProject> Projects, string? Remote = null, string? TargetsPath = null, string Policy = "native-qualified-v2", Dictionary<string, string>? Prebuilt = null, Dictionary<string, string>? BorrowedPackageInputs = null);
+    DeclaredFile[] Files, Dictionary<string, DeclaredProject> Projects, string? Remote = null, string? TargetsPath = null, string Policy = "native-qualified-v2", Dictionary<string, string>? Prebuilt = null, Dictionary<string, string>? BorrowedPackageInputs = null, PreparedDependencies? PreparedDependencies = null);
 internal sealed record Ready(string Bundle, string Api);
 internal sealed class State
 {
@@ -28,28 +28,29 @@ public sealed class NativeCachePlugin : ProjectCachePluginBase
     private Dictionary<string, State> states = [];
     private CompileBoundary.ValidationScope dependencyValidation = new();
     private HashSet<string> prebuiltBundles = [];
+    private Dictionary<string, string[]> closures = [];
+    private (string Raw, string Escaped)[] preparedRoots = [];
     private readonly ConcurrentBag<object> events = [];
     private readonly ConcurrentBag<(string Source, string Destination)> pending = [];
     private static readonly JsonSerializerOptions Json = new() { PropertyNamingPolicy = JsonNamingPolicy.CamelCase, WriteIndented = true, RespectRequiredConstructorParameters = true, RespectNullableAnnotations = true, AllowDuplicateProperties = false };
     private static string Hash(string value) => Convert.ToHexStringLower(System.Security.Cryptography.SHA256.HashData(System.Text.Encoding.UTF8.GetBytes(value)));
     private string Relative(string path) => Path.GetRelativePath(session.Workspace, path);
-    private string Normalize(string value) => value.Replace(session.Workspace, "${WORKSPACE}", StringComparison.Ordinal);
+    private string Normalize(string value)
+    {
+        if (session.PreparedDependencies is not null && value.Contains("/artifacts/", StringComparison.Ordinal))
+            foreach (var (raw, escaped) in preparedRoots)
+            {
+                value = value.Replace(escaped, "${WORKSPACE}/", StringComparison.Ordinal);
+                if (raw != escaped) value = value.Replace(raw, "${WORKSPACE}/", StringComparison.Ordinal);
+            }
+        return value.Replace(session.Workspace, "${WORKSPACE}", StringComparison.Ordinal);
+    }
     private string Property(string key, string value) => key == "DirectoryBuildTargetsPath" && session.TargetsPath is not null && value == session.TargetsPath ? "${CACHE_TARGETS}" : Normalize(value);
     private string Expand(string value) => value.Replace("${WORKSPACE}", session.Workspace, StringComparison.Ordinal);
     private static string Assembly(string project) => Path.GetFileNameWithoutExtension(project);
     private string Bin(string project) => Path.Combine(Path.GetDirectoryName(project)!, "bin/Release", session.Projects[project].TargetFramework);
     private bool PackagePolicy => session.Policy == "evaluated-api-runtime-v2";
-    private string[] Closure(string project)
-    {
-        var selected = new HashSet<string>(StringComparer.Ordinal);
-        void Visit(string current)
-        {
-            if (!selected.Add(current)) return;
-            foreach (var dependency in session.Projects[current].Dependencies) Visit(dependency);
-        }
-        Visit(project);
-        return selected.Order(StringComparer.Ordinal).ToArray();
-    }
+    private string[] Closure(string project) => closures[project];
     private string DependencyIdentity(string bundle, string project) => apiRuntime
         ? EvaluatedBoundary.Identity(bundle, project, Closure(project), session.Projects[project].Dependencies.Order(StringComparer.Ordinal)
             .Select(dependency => dependency + ":" + states[dependency].Completion.Task.Result.Api).ToArray(), runtimeReferences: session.Prebuilt is not null, fullImplementation: session.Projects[project].Implementation, validate: ValidateBundle)
@@ -67,6 +68,9 @@ public sealed class NativeCachePlugin : ProjectCachePluginBase
     {
         using var profile = BuildProfile.Measure("pluginBegin");
         session = JsonSerializer.Deserialize<Session>(File.ReadAllText(Environment.GetEnvironmentVariable("NATIVE_CACHE_SESSION")!), Json)!;
+        preparedRoots = session.PreparedDependencies is null ? [] : session.Prebuilt!.Values
+            .Select(bundle => Path.Combine(bundle, "artifacts") + "/").Select(root => (root, DependencyReplay.EscapePath(root))).ToArray();
+        closures = session.PreparedDependencies?.Closures ?? PreparedDependencies.ProjectClosures(session.Projects.ToDictionary(pair => pair.Key, pair => pair.Value.Dependencies));
         dependencyValidation = new();
         prebuiltBundles = [];
         if (session.Policy is not ("native-qualified-v2" or "evaluated-api-runtime-v2")) throw new InvalidDataException("unknown native cache policy");
@@ -106,13 +110,14 @@ public sealed class NativeCachePlugin : ProjectCachePluginBase
                 if (results.TargetFramework != session.Projects[project].TargetFramework || results.OrchardModule != session.Projects[project].OrchardModule || results.OrchardApplication != session.Projects[project].OrchardApplication || results.Project != project || results.Toolchain != session.Toolchain || results.Key != identity || results.Inputs != identity) throw new InvalidDataException("Invalid project API dependency: " + project);
                 Dictionary<string, string> replacements;
                 using (BuildProfile.Measure("dependencyCompose"))
-                    replacements = EvaluatedBoundary.RuntimeReplacements(bundle, project,
+                    replacements = session.PreparedDependencies?.Sources ?? EvaluatedBoundary.RuntimeReplacements(bundle, project,
                         Closure(project).Where(dependency => dependency != project).ToDictionary(dependency => dependency,
                             dependency => states[dependency].Completion.Task.Result.Bundle), validate: ValidateBundle);
                 using (BuildProfile.Measure("dependencyRestore"))
                     foreach (var artifact in artifacts)
                     {
                         if (!Allowed(project, artifact.Path)) throw new InvalidDataException("API artifact outside project outputs");
+                        if (session.PreparedDependencies?.Direct.Contains(artifact.Path) == true) continue;
                         StaticWebAssets.Restore(replacements.GetValueOrDefault(artifact.Path, Path.Combine(bundle, "artifacts", artifact.Path)), Path.Combine(session.Workspace, artifact.Path), session.Workspace, normalize: true);
                     }
                 states[project].Completion.SetResult(new Ready(bundle, identity));

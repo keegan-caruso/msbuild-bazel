@@ -127,3 +127,7 @@ The next performance qualification is a large graph on this Linux worker path.
 
 Graceful Bazel shutdown also passed the assertion that no private broker stores
 remained before recovery (`artifacts/apple-container/run.j6dshD`).
+
+[Direct prepared dependencies](direct-prepared-dependencies.md) now adds
+content-versioned dependency/package tree paths shared across consumers, so
+Roslyn can safely reuse metadata while changed inputs receive new paths.

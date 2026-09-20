@@ -82,6 +82,14 @@ internal static class EvaluatedBoundaryTests
             var placements = EvaluatedBoundary.RuntimeReplacements(app, "App/App.csproj", new() { [project] = lib });
             if (placements.Count != 1 || placements["App/bin/Release/net10.0/Lib.dll"] != Path.Combine(lib, "artifacts/Lib/bin/Release/net10.0/Lib.dll"))
                 throw new InvalidOperationException("Placement plan changed runtime membership or producer ownership");
+            var graph = new Dictionary<string, string[]> { [project] = [], ["App/App.csproj"] = [project], ["Entry/Entry.csproj"] = ["App/App.csproj"] };
+            var prepared = PreparedDependencies.Create(new() { [project] = lib, ["App/App.csproj"] = app }, graph, new());
+            if (prepared.Direct.Any(path => path.StartsWith("App/", StringComparison.Ordinal)) ||
+                !prepared.Direct.Contains("Lib/bin/Release/net10.0/Lib.dll") ||
+                prepared.Sources["App/bin/Release/net10.0/Lib.dll"] != placements["App/bin/Release/net10.0/Lib.dll"])
+                throw new InvalidOperationException("Direct dependencies mixed stale adjacent runtime files with current producers");
+            try { PreparedDependencies.ProjectClosures(new Dictionary<string, string[]> { [project] = [project] }); throw new InvalidOperationException("Accepted dependency cycle"); }
+            catch (InvalidDataException) { }
             var singlePlacement = Path.Combine(root, "single-placement");
             foreach (var item in CompileBoundary.Validate(app))
                 Files.CopyNormalized(placements.GetValueOrDefault(item.Path, Path.Combine(app, "artifacts", item.Path)), Path.Combine(singlePlacement, item.Path));
@@ -102,6 +110,9 @@ internal static class EvaluatedBoundaryTests
                 throw new InvalidOperationException("seed refresh changed immutable input or package selection");
             if (EvaluatedBoundary.RefreshBundle(refreshed, "App/App.csproj", new() { [project] = lib }, Path.Combine(root, "unchanged")) || Directory.Exists(Path.Combine(root, "unchanged")))
                 throw new InvalidOperationException("current seeds were copied unnecessarily");
+            var currentPlan = PreparedDependencies.Create(new() { [project] = lib, ["App/App.csproj"] = refreshed }, graph, new());
+            if (!currentPlan.Direct.Contains("App/bin/Release/net10.0/App.dll") || !currentPlan.Direct.Contains("App/bin/Release/net10.0/Lib.dll"))
+                throw new InvalidOperationException("Equal prepared runtime contracts were staged again");
             Write(lib, "Lib/bin/Release/net10.0/Lib.dll", "corrupt");
             try
             {

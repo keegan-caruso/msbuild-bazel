@@ -53,6 +53,7 @@ def _project(ctx):
         "borrowPackageInputs": ctx.attr.borrow_package_inputs,
         "seeds": [],
         "projectAction": True,
+        "directDependencies": ctx.attr.direct_dependencies,
         "validatePublication": ctx.attr.validate_publication,
         "apiOutput": api.path,
         "runtimeOutput": runtime.path,
@@ -81,6 +82,7 @@ def _project(ctx):
     return [DefaultInfo(files = depset([output])), ProjectBundleInfo(api = api, apis = depset([api], transitive = [dependencies]), bundle = output, runtimes = depset([runtime], transitive = [dependency_runtimes]), dependency_runtimes = dependency_runtimes, package_files = package_inputs if ctx.attr.package_origin_outputs else depset(), package_rows = packages.values() if ctx.attr.package_origin_outputs else [])]
 
 msbuild_compile_project = rule(implementation = _project, attrs = {
+    "direct_dependencies": attr.bool(default = True),
     "linux_worker": attr.bool(default = False),
     "package_origin_outputs": attr.bool(default = False),
     "borrow_package_inputs": attr.bool(default = False),

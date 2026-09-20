@@ -4,9 +4,14 @@ using System.Xml.Linq;
 // outputs are supplied by Bazel; no imports, compiler or child builds run here.
 internal static class DependencyReplay
 {
-    internal static void Write(string path, Results results, string workspace)
+    internal static string EscapePath(string value) => value.AsSpan().IndexOfAny("%$@'();?*") < 0 ? value : string.Concat(value.Select(character => "%$@'();?*".Contains(character)
+        ? "%" + ((int)character).ToString("X2", System.Globalization.CultureInfo.InvariantCulture) : character.ToString()));
+    internal static string UnescapePath(string value) => !value.Contains('%') ? value : System.Text.RegularExpressions.Regex.Replace(value, "%([0-9a-fA-F]{2})",
+        match => ((char)Convert.ToInt32(match.Groups[1].Value, 16)).ToString());
+
+    internal static void Write(string path, Results results, string workspace, Func<string, string>? expand = null)
     {
-        string Expand(string value) => value.Replace("${WORKSPACE}", workspace, StringComparison.Ordinal)
+        string Expand(string value) => (expand is null ? value.Replace("${WORKSPACE}", workspace, StringComparison.Ordinal) : expand(value))
             .Replace("$", "%24", StringComparison.Ordinal).Replace("@", "%40", StringComparison.Ordinal);
         var document = new XElement("Project", new XAttribute("DefaultTargets", "Build"));
         var index = 0;
