@@ -17,6 +17,7 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('output', type=Path)
     parser.add_argument('--sizes', default='2,32,128')
+    parser.add_argument('--setup-only', action='store_true')
     parser.add_argument('--repeats', type=int, default=3)
     args = parser.parse_args()
     output = args.output.resolve(); output.mkdir(parents=True, exist_ok=True)
@@ -68,6 +69,7 @@ toolchain(name="registered",toolchain=":implementation",toolchain_type="@rules_m
         def bazel_flags(engine):
             return flags + (['--strategy=MSBuildAssembly=worker','--worker_max_instances=MSBuildAssembly=4'] if engine=='worker' else [])
         flags=['--jobs=4','--disk_cache=','--repository_cache='+os.environ.get('RULES_MSBUILD_REPOSITORY_CACHE','/tmp/repository-cache')]
+        if args.setup_only: continue
         # Resolve repositories/start server before timing; no project compilation.
         for engine in ('bazel','worker'):
             command(startup(engine)+['build','//App','--nobuild']+bazel_flags(engine),trees[engine],folder/(engine+'-bootstrap.log'))
@@ -107,6 +109,7 @@ toolchain(name="registered",toolchain=":implementation",toolchain_type="@rules_m
         raw_verify=folder/'raw-verify.log'
         command([SDK/'dotnet',raw/'App/bin/Release/net10.0/App.dll'],raw,raw_verify)
         assert raw_verify.read_text().strip() == expected, raw_verify
+    if args.setup_only: return
     summary=[]
     for size in map(int,args.sizes.split(',')):
         for case in ('cold','unchanged','leaf-body-edit'):

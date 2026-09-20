@@ -85,6 +85,7 @@ def _project(ctx, executable = False, test = False):
         data.append(struct(file = file, destination = destination))
     runtime_data = depset(data, transitive = [dep.runtime_data for dep in direct])
     ctx.actions.write(request, json.encode({
+        "profileBuild": ctx.attr.profile_build,
         "project": _file(ctx.file.project),
         "sources": [_file(file) for file in ctx.files.srcs],
         "imports": [_file(file) for file in ctx.files.msbuild_imports],
@@ -185,6 +186,7 @@ def _test(ctx):
 
 _ATTRS = {
     "linux_worker": attr.bool(default = False),
+    "profile_build": attr.bool(default = False),
     "project": attr.label(allow_single_file = [".csproj"], mandatory = True),
     "target_framework": attr.string(mandatory = True),
     "assembly_name": attr.string(),

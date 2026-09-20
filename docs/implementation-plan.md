@@ -705,3 +705,7 @@ priority.
 
 The explicit rules also offer [Linux persistent workers](explicit-linux-workers.md),
 with paired fresh-process/worker/raw-MSBuild graph timing and isolation controls.
+
+[Cold worker profiling](explicit-cold-profile.md) attributes the 129-project gap
+primarily to repeated project evaluation and restore metadata/graph preparation;
+compiler time is a minority of the measured action work.

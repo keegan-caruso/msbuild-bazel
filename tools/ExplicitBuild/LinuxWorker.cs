@@ -39,6 +39,7 @@ internal static class LinuxWorker
                     var timer = Stopwatch.StartNew();
                     Clear(Path.Combine(root, "in")); Clear(Path.Combine(root, "out"));
                     var identity = Convert.ToHexStringLower(SHA256.HashData(Encoding.UTF8.GetBytes(string.Join('\n', work.Inputs.OrderBy(i => i.Path, StringComparer.Ordinal).Select(i => i.Path + ":" + i.Digest)))));
+                    var identitySeconds = timer.Elapsed.TotalSeconds;
                     var inputRoot = Path.Combine(root, "in", identity); var raw = Path.Combine(inputRoot, "raw");
                     var declared = new HashSet<string>(StringComparer.Ordinal); store.Begin();
                     foreach (var input in work.Inputs)
@@ -52,6 +53,7 @@ internal static class LinuxWorker
                         if (digest.Length != 64 || digest.Any(c => !char.IsAsciiHexDigitLower(c))) throw new InvalidDataException("Expected SHA-256 worker input digest");
                         store.Stage(source, Path.Combine(raw, input.Path), digest);
                     }
+                    var snapshotSeconds = timer.Elapsed.TotalSeconds - identitySeconds;
                     string InputPath(string path)
                     {
                         Program.Safe(path);
@@ -82,6 +84,7 @@ internal static class LinuxWorker
                     var response = await child.StandardOutput.ReadLineAsync().WaitAsync(TimeSpan.FromMinutes(10), stopping.Token);
                     if (response is null) throw new IOException("Compiler child exited: " + await errors);
                     reply = JsonSerializer.Deserialize<Reply>(response, Json)! with { RequestId = id };
+                    var childSeconds = timer.Elapsed.TotalSeconds - stagingSeconds;
                     Directory.CreateDirectory(request.Diagnostics);
                     File.WriteAllText(Path.Combine(request.Diagnostics, "build.log"), reply.Output);
                     if (reply.ExitCode == 0)
@@ -90,7 +93,7 @@ internal static class LinuxWorker
                         foreach (var file in Directory.EnumerateFileSystemEntries(state, "*", SearchOption.AllDirectories))
                             if (File.GetAttributes(file).HasFlag(FileAttributes.ReparsePoint)) throw new InvalidDataException("Worker output contains a link");
                         Program.Publish(request, state);
-                        File.WriteAllText(Path.Combine(request.Diagnostics, "worker.json"), JsonSerializer.Serialize(new { processId = child.Id, identity, stagingSeconds, store.VerifiedBytes, store.ReusedBytes }, Json));
+                        File.WriteAllText(Path.Combine(request.Diagnostics, "worker.json"), JsonSerializer.Serialize(new { processId = child.Id, identity, stagingSeconds, identitySeconds, snapshotSeconds, preparationSeconds = stagingSeconds - identitySeconds - snapshotSeconds, childSeconds, publicationSeconds = timer.Elapsed.TotalSeconds - stagingSeconds - childSeconds, store.VerifiedBytes, store.ReusedBytes }, Json));
                         if (File.Exists(Path.Combine(state, "compiler.log"))) File.Copy(Path.Combine(state, "compiler.log"), Path.Combine(request.Diagnostics, "compiler.log"), true);
                     }
                 }

@@ -1,0 +1,42 @@
+[
+  {
+    "case": "control-0",
+    "instrumented": false,
+    "startupAndAnalysisSeconds": 4.81412521,
+    "buildSeconds": 25.366938554,
+    "totalSeconds": 30.181063764,
+    "workerCount": 4
+  },
+  {
+    "case": "profile-1",
+    "instrumented": true,
+    "startupAndAnalysisSeconds": 1.9048657089999992,
+    "buildSeconds": 24.919293845,
+    "totalSeconds": 26.824159553999998,
+    "workerCount": 4
+  },
+  {
+    "case": "control-2",
+    "instrumented": false,
+    "startupAndAnalysisSeconds": 1.9388492920000004,
+    "buildSeconds": 25.365852304000008,
+    "totalSeconds": 27.304701596000008,
+    "workerCount": 4
+  },
+  {
+    "case": "profile-3",
+    "instrumented": true,
+    "startupAndAnalysisSeconds": 1.9281885430000045,
+    "buildSeconds": 25.468479802999994,
+    "totalSeconds": 27.396668346,
+    "workerCount": 4
+  },
+  {
+    "case": "raw-profile-0",
+    "buildSeconds": 7.136430961000002
+  },
+  {
+    "case": "raw-profile-1",
+    "buildSeconds": 6.563898044999988
+  }
+]

@@ -134,3 +134,6 @@ local disk caching disabled. The 129-project median is **6.48 s**, versus **26.8
 for worker compilation. This recovery timing includes cache lookup/download and
 output materialization, but excludes the separately performed server startup and
 analysis. [HTTP samples](evidence/explicit-linux-workers/remote-results.json).
+
+The subsequent [cold-start profile](explicit-cold-profile.md) breaks these costs
+down by worker phase, MSBuild task/target, startup and scheduling.

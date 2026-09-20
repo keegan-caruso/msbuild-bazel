@@ -10,7 +10,7 @@ using Microsoft.Build.Logging;
 
 internal sealed record Input(string Source, string Path);
 internal sealed record Item(string Type, Input File, Dictionary<string, string> Metadata);
-internal sealed record Request(Input Project, Input[] Sources, Input[] Imports, Item[] Items, string[] Dependencies, string[] References, string Framework, string[] FrameworkReferences, string Assembly, bool Executable, string Configuration, Dictionary<string, string> Properties, string[] Defines, string Nullable, string LanguageVersion, bool AllowUnsafe, string Runtime, string Reference, string Diagnostics, string SdkVersion, string RuntimeManifest, PackageInput[] Packages, string[] DeclaredPackages, string[] CompilePackages, string[] BuildPackages, string[] AnalyzerPackages);
+internal sealed record Request(Input Project, Input[] Sources, Input[] Imports, Item[] Items, string[] Dependencies, string[] References, string Framework, string[] FrameworkReferences, string Assembly, bool Executable, string Configuration, Dictionary<string, string> Properties, string[] Defines, string Nullable, string LanguageVersion, bool AllowUnsafe, string Runtime, string Reference, string Diagnostics, string SdkVersion, string RuntimeManifest, PackageInput[] Packages, string[] DeclaredPackages, string[] CompilePackages, string[] BuildPackages, string[] AnalyzerPackages, bool ProfileBuild = false);
 internal sealed record Session(Request Request, string Workspace, string State, string Original, string Sdk, string ToolRoot);
 internal sealed record Launch(string Entry, string[] Dependencies, string Assembly, bool Test, Input[] Data);
 
@@ -117,6 +117,7 @@ internal static class Program
         foreach (var file in Directory.GetFiles(output, "*", SearchOption.AllDirectories))
             if (!referenceNames.Contains(Path.GetRelativePath(output, file))) Copy(file, Path.Combine(runtime, Path.GetRelativePath(output, file)));
         Copy(Path.Combine(state, "obj", "ref", r.Assembly + ".dll"), ReadPath(r.Reference));
+        if (File.Exists(Path.Combine(state, "compile-profile.json"))) File.Copy(Path.Combine(state, "compile-profile.json"), Path.Combine(diagnostics, "compile-profile.json"), true);
         File.WriteAllText(Path.Combine(diagnostics, "report.json"), JsonSerializer.Serialize(new { accepted = true, discovery = false, project = r.Project.Path }, Json));
     }
     private static Dictionary<string, string> Properties(Session s)
@@ -222,6 +223,7 @@ internal static class Program
     }
     private static int BuildProject(Session s)
     {
+        var profile = s.Request.ProfileBuild ? new CompileProfile() : null;
         var r = s.Request; var properties = Properties(s); var path = Path.Combine(s.Workspace, Safe(r.Project.Path));
         using (var collection = new ProjectCollection())
         {
@@ -255,14 +257,18 @@ internal static class Program
             var frameworks = evaluated.GetItems("FrameworkReference").Where(i => !i.GetMetadataValue("IsImplicitlyDefined").Equals("true", StringComparison.OrdinalIgnoreCase)).Select(i => i.EvaluatedInclude).ToHashSet(StringComparer.Ordinal);
             if (!frameworks.IsSubsetOf(r.FrameworkReferences.ToHashSet(StringComparer.Ordinal))) throw new InvalidDataException("Undeclared FrameworkReference");
         }
+        profile?.Mark("originalEvaluationAndValidation");
         // Restore operates only on this declared project; project references have
         // been replaced by Bazel reference outputs before either target executes.
         foreach (var target in new[] { "Restore", "Build" })
         {
             using var collection = new ProjectCollection();
             var instance = new ProjectInstance(path, properties, null, collection);
+            profile?.Mark(target + "Evaluation");
             using var manager = new BuildManager();
-            var result = manager.Build(new BuildParameters(collection) { EnableNodeReuse = false, MaxNodeCount = 1, Loggers = [new ConsoleLogger(LoggerVerbosity.Normal)] }, new BuildRequestData(instance, [target]));
+            var result = manager.Build(new BuildParameters(collection) { EnableNodeReuse = false, MaxNodeCount = 1, Loggers = profile is null ? [new ConsoleLogger(LoggerVerbosity.Normal)] : [new ConsoleLogger(LoggerVerbosity.Normal), profile] }, new BuildRequestData(instance, [target]));
+            profile?.Mark(target + "Execution");
+            profile?.Save(Path.Combine(s.State, "compile-profile.json"), r.Project.Path);
             if (result.OverallResult != BuildResultCode.Success) return 1;
         }
         return 0;
