@@ -6,7 +6,7 @@ using NativeCache;
 
 internal sealed record RunnerFile(string Source, string Destination);
 internal sealed record RunnerPackageDirectory(string Source, string Package);
-internal sealed record RunnerRequest(string Entry, string Output, string Diagnostics, string Manifest, string Restore, RunnerFile[] Sources, RunnerFile[] Seeds, string? ReadProbe = null, string? NetworkProbe = null, string? WriteProbe = null, string? PreparedPlan = null, bool ProjectAction = false, string? ApiOutput = null, string[]? Prebuilt = null, RunnerPackageDirectory[]? PackageDirectories = null, string? RuntimeOutput = null, bool BorrowPackageInputs = false, bool ValidatePublication = false);
+internal sealed record RunnerRequest(string Entry, string Output, string Diagnostics, string Manifest, string Restore, RunnerFile[] Sources, RunnerFile[] Seeds, string? ReadProbe = null, string? NetworkProbe = null, string? WriteProbe = null, string? PreparedPlan = null, bool ProjectAction = false, string? ApiOutput = null, string[]? Prebuilt = null, RunnerPackageDirectory[]? PackageDirectories = null, string? RuntimeOutput = null, bool BorrowPackageInputs = false, bool ValidatePublication = false, bool ProfileMsbuild = false);
 internal sealed record PortableManifest(string Toolchain, Dictionary<string, DeclaredProject> Projects, string Policy = "native-qualified-v2");
 
 internal static class Program
@@ -178,11 +178,15 @@ internal static class Program
             var report = Path.Combine(diagnostics, "events.json");
             var prebuilt = request.ProjectAction ? (request.Prebuilt ?? []).ToDictionary(path => ProjectActions.Read(path).Project, path => Path.GetFullPath(path), StringComparer.Ordinal) : null;
             var dependencyValidation = new CompileBoundary.ValidationScope();
+            Mark("sessionMetadata");
             if (prebuilt is not null)
                 foreach (var bundle in prebuilt.Values) dependencyValidation.Read(bundle);
+            Mark("dependencyValidation");
             if (prebuilt is not null)
                 foreach (var (project, bundle) in prebuilt) DependencyReplay.Write(Path.Combine(workspace, project), ProjectActions.Read(bundle), workspace);
+            Mark("dependencyReplayProjects");
             var files = Directory.EnumerateFiles(workspace, "*", SearchOption.AllDirectories).Select(path => new DeclaredFile(Path.GetRelativePath(workspace, path), Files.Hash(path))).ToArray();
+            Mark("workspaceHashing");
             var session = new Session(workspace, cache, pending, report, request.Entry, manifest.Toolchain, files, manifest.Projects, TargetsPath: targets, Policy: manifest.Policy, Prebuilt: prebuilt);
             File.WriteAllText(sessionPath, JsonSerializer.Serialize(session, Json));
             if (request.ReadProbe is not null) File.ReadAllText(request.ReadProbe);
@@ -203,6 +207,7 @@ internal static class Program
             // Failed builds must not leave diagnostic FIFOs for Bazel to hash.
             start.Environment["DOTNET_EnableDiagnostics"] = "0";
             start.Environment["NATIVE_CACHE_SESSION"] = sessionPath;
+            if (request.ProfileMsbuild) start.Environment["NATIVE_CACHE_PROFILE"] = Path.Combine(diagnostics, "msbuild-phases.json");
             Mark("sessionSetup");
             using var process = Process.Start(start)!;
             var stdout = process.StandardOutput.ReadToEndAsync(); var stderr = process.StandardError.ReadToEndAsync();
@@ -226,18 +231,25 @@ internal static class Program
             var entryBundle = Directory.EnumerateDirectories(cache).Single(bundle =>
                 JsonSerializer.Deserialize<Results>(File.ReadAllText(Path.Combine(bundle, "results.json")), Json)!.Project == request.Entry);
             var entryArtifacts = CompileBoundary.Validate(entryBundle);
+            Mark("validateEntry");
             if (request.ProjectAction)
             {
                 if (compiles != 1 || request.ApiOutput is null) throw new InvalidDataException("A project action must compile exactly its entry");
                 var identities = prebuilt!.ToDictionary(p => p.Key, p => ProjectActions.Read(p.Value).Key);
                 var identity = EvaluatedBoundary.Identity(entryBundle, request.Entry, manifest.Projects.Keys.Order(StringComparer.Ordinal).ToArray(), manifest.Projects[request.Entry].Dependencies.Order(StringComparer.Ordinal).Select(p => p + ":" + identities[p]).ToArray(), runtimeReferences: true, fullImplementation: manifest.Projects[request.Entry].Implementation);
+                Mark("apiIdentity");
                 ProjectActions.Project(entryBundle, request.ApiOutput, prebuilt!, identity, manifest.Projects[request.Entry].Implementation);
+                Mark("apiProjection");
                 if (request.RuntimeOutput is not null) ProjectActions.Runtime(entryBundle, request.RuntimeOutput, entryArtifacts);
+                Mark("runtimeProjection");
                 dependencyValidation.VerifyUnchanged();
+                Mark("dependencyRevalidation");
                 borrowedPackages.VerifyUnchanged();
+                Mark("packageRevalidation");
                 if (request.ValidatePublication)
                     foreach (var bundle in new[] { entryBundle, request.ApiOutput, request.RuntimeOutput }.Where(path => path is not null))
                         ProjectActions.ValidatePublication(bundle!, Path.Combine(bundle!, "artifacts"));
+                Mark("publicationValidation");
                 Directory.Delete(scratch, true); Mark("cleanup"); return 0;
             }
             var runtime = Path.Combine(output, "runtime", Path.GetFileName(entryBundle));

@@ -632,3 +632,8 @@ the full 202-project workflow improves 2.3% in single-run measurements and passe
 runtime checks. NuGet source-copy costs and the independent-build Razor path
 limitation remain; a further hash-reuse experiment was discarded without a clear
 overall timing benefit.
+
+## Orchard MSBuild phase attribution
+
+See [MSBuild phase profiling](msbuild-phase-profile.md) for same-host raw SDK comparison,
+plugin phase measurements and the Microsoft MSBuildCache implementation comparison.
