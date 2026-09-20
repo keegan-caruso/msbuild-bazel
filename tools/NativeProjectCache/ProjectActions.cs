@@ -33,11 +33,11 @@ internal static class ProjectActions
         JsonArray value => new JsonArray(value.Select(Canonical).ToArray()),
         _ => node?.DeepClone()
     };
-    internal static void Project(string bundle, string output, Dictionary<string, string> dependencies, string identity, bool fullImplementation = false)
+    internal static void Project(string bundle, string output, Dictionary<string, string> dependencies, string identity, bool fullImplementation = false, Func<string, Artifact[]>? validate = null)
     {
         var results = Read(bundle); var producers = new Dictionary<string, string>(dependencies, StringComparer.Ordinal) { [results.Project] = bundle };
         var implementations = producers.Keys.SelectMany(project => new[] { ".dll", ".pdb", ".xml" }.Select(extension => KeyValuePair.Create(Path.Combine(Bin(results.Project, results.TargetFramework), Assembly(project) + extension), project))).ToDictionary();
-        foreach (var artifact in CompileBoundary.Validate(bundle))
+        foreach (var artifact in (validate ?? CompileBoundary.Validate)(bundle))
         {
             var destination = Path.Combine(output, "artifacts", artifact.Path);
             if (fullImplementation || !implementations.TryGetValue(artifact.Path, out var project)) Files.Copy(Path.Combine(bundle, "artifacts", artifact.Path), destination);

@@ -57,7 +57,9 @@ public sealed class NativeCachePlugin : ProjectCachePluginBase
     private void Compose(string bundle, string project, bool verifySelection = false) => EvaluatedBoundary.Compose(bundle, project,
         Closure(project).Where(dependency => dependency != project).ToDictionary(dependency => dependency,
             dependency => states[dependency].Completion.Task.Result.Bundle), session.Workspace, verifySelection, ValidateBundle);
-    private Artifact[] ValidateBundle(string bundle) => prebuiltBundles.Contains(bundle)
+    // Private captured bundles remain sealed until the exit verification and move.
+    private Artifact[] ValidateBundle(string bundle) => prebuiltBundles.Contains(bundle) ||
+        session.Prebuilt is not null && bundle.StartsWith(session.Scratch + Path.DirectorySeparatorChar, StringComparison.Ordinal)
         ? dependencyValidation.Read(bundle) : CompileBoundary.Validate(bundle);
     private string Reference(string project) => Path.Combine(Path.GetDirectoryName(project)!, "obj/Release", session.Projects[project].TargetFramework, "ref", Assembly(project) + ".dll");
 

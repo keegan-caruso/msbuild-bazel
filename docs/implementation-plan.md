@@ -637,3 +637,8 @@ overall timing benefit.
 
 See [MSBuild phase profiling](msbuild-phase-profile.md) for same-host raw SDK comparison,
 plugin phase measurements and the Microsoft MSBuildCache implementation comparison.
+
+## Validation reuse
+
+[Validation reuse](validation-reuse.md) carries verified package hashes and sealed
+entry validation through immutable lifetimes while retaining exit checks.

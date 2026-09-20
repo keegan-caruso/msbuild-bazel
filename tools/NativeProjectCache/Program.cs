@@ -185,7 +185,9 @@ internal static class Program
             if (prebuilt is not null)
                 foreach (var (project, bundle) in prebuilt) DependencyReplay.Write(Path.Combine(workspace, project), ProjectActions.Read(bundle), workspace);
             Mark("dependencyReplayProjects");
-            var files = Directory.EnumerateFiles(workspace, "*", SearchOption.AllDirectories).Select(path => new DeclaredFile(Path.GetRelativePath(workspace, path), Files.Hash(path))).ToArray();
+            // Prepared package hashes survive copying. The plugin verifies the staged
+            // bytes before accepting the build and again at exit, catching copy races.
+            var files = Directory.EnumerateFiles(workspace, "*", SearchOption.AllDirectories).Select(path => new DeclaredFile(Path.GetRelativePath(workspace, path), packageHashes.TryGetValue(Path.GetRelativePath(workspace, path), out var verifiedPackageHash) ? verifiedPackageHash : Files.Hash(path))).ToArray();
             Mark("workspaceHashing");
             var session = new Session(workspace, cache, pending, report, request.Entry, manifest.Toolchain, files, manifest.Projects, TargetsPath: targets, Policy: manifest.Policy, Prebuilt: prebuilt);
             File.WriteAllText(sessionPath, JsonSerializer.Serialize(session, Json));
@@ -230,18 +232,20 @@ internal static class Program
             // Publish a separate sealed current runtime for test consumers.
             var entryBundle = Directory.EnumerateDirectories(cache).Single(bundle =>
                 JsonSerializer.Deserialize<Results>(File.ReadAllText(Path.Combine(bundle, "results.json")), Json)!.Project == request.Entry);
-            var entryArtifacts = CompileBoundary.Validate(entryBundle);
+            var outputValidation = new CompileBoundary.ValidationScope();
+            var entryArtifacts = outputValidation.Read(entryBundle);
             Mark("validateEntry");
             if (request.ProjectAction)
             {
                 if (compiles != 1 || request.ApiOutput is null) throw new InvalidDataException("A project action must compile exactly its entry");
                 var identities = prebuilt!.ToDictionary(p => p.Key, p => ProjectActions.Read(p.Value).Key);
-                var identity = EvaluatedBoundary.Identity(entryBundle, request.Entry, manifest.Projects.Keys.Order(StringComparer.Ordinal).ToArray(), manifest.Projects[request.Entry].Dependencies.Order(StringComparer.Ordinal).Select(p => p + ":" + identities[p]).ToArray(), runtimeReferences: true, fullImplementation: manifest.Projects[request.Entry].Implementation);
+                var identity = EvaluatedBoundary.Identity(entryBundle, request.Entry, manifest.Projects.Keys.Order(StringComparer.Ordinal).ToArray(), manifest.Projects[request.Entry].Dependencies.Order(StringComparer.Ordinal).Select(p => p + ":" + identities[p]).ToArray(), runtimeReferences: true, fullImplementation: manifest.Projects[request.Entry].Implementation, validate: outputValidation.Read);
                 Mark("apiIdentity");
-                ProjectActions.Project(entryBundle, request.ApiOutput, prebuilt!, identity, manifest.Projects[request.Entry].Implementation);
+                ProjectActions.Project(entryBundle, request.ApiOutput, prebuilt!, identity, manifest.Projects[request.Entry].Implementation, outputValidation.Read);
                 Mark("apiProjection");
                 if (request.RuntimeOutput is not null) ProjectActions.Runtime(entryBundle, request.RuntimeOutput, entryArtifacts);
                 Mark("runtimeProjection");
+                outputValidation.VerifyUnchanged();
                 dependencyValidation.VerifyUnchanged();
                 Mark("dependencyRevalidation");
                 borrowedPackages.VerifyUnchanged();
