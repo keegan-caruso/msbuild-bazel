@@ -12,6 +12,10 @@ The [borrowed-input validation follow-up](borrowed-input-validation.md) removes
 two redundant child byte scans under the existing parent action lease. The
 measured Orchard entry median improves only 1.8%; cross-action reuse remains open.
 
+The [discovery closure reuse](discovery-closure-reuse.md) removes repeated path
+checks and metadata/template work: paired Orchard discovery improves 7.9% with
+all 1,421 output files identical.
+
 ## Question
 
 Can Bazel cache and schedule configured .NET projects while each action uses MSBuild and consumes dependency artifacts plus MSBuild result metadata?

@@ -1,0 +1,436 @@
+{
+  "baselineMedianSeconds": 90.54390825050001,
+  "candidateMedianSeconds": 83.38462429149999,
+  "reductionPercent": 7.906974745548922,
+  "runs": [
+    {
+      "mode": "baseline",
+      "seconds": 92.511666417,
+      "identicalFiles": 1421,
+      "report": {
+        "accepted": true,
+        "seconds": 90.4344578,
+        "projects": 202,
+        "profile": {
+          "reusedFiles": 0,
+          "reusedBytes": 0,
+          "files": 0,
+          "contentBytes": 0,
+          "phases": {
+            "stageInputs": {
+              "seconds": 3.9303074,
+              "allocatedBytes": 1237679912
+            },
+            "runtimeIdentity": {
+              "seconds": 1.6870277,
+              "allocatedBytes": 95757848
+            },
+            "discoverySetup": {
+              "seconds": 6.5488811,
+              "allocatedBytes": 1373717344
+            },
+            "evaluationProbe": {
+              "seconds": 4.574256,
+              "allocatedBytes": 57760
+            },
+            "packageQualification": {
+              "seconds": 9.6060434,
+              "allocatedBytes": 12220580976
+            },
+            "importQualification": {
+              "seconds": 0.2393679,
+              "allocatedBytes": 354045832
+            },
+            "graphExport": {
+              "seconds": 20.7377896,
+              "allocatedBytes": 53120
+            },
+            "captureVerify": {
+              "seconds": 4.1864083,
+              "allocatedBytes": 138617584
+            },
+            "discoveryCapture": {
+              "seconds": 39.5006532,
+              "allocatedBytes": 13120904144
+            },
+            "prepareValidateInputs": {
+              "seconds": 8.2569315,
+              "allocatedBytes": 3565672032
+            },
+            "prepareRevalidateGraph": {
+              "seconds": 4.0580512,
+              "allocatedBytes": 775128280
+            },
+            "prepareSupport": {
+              "seconds": 0.0062478,
+              "allocatedBytes": 45928
+            },
+            "prepareWriteBuild": {
+              "seconds": 10.273178,
+              "allocatedBytes": 14241192768
+            },
+            "graphPreparation": {
+              "seconds": 22.9351078,
+              "allocatedBytes": 19484742848
+            },
+            "materialize": {
+              "seconds": 7.854478,
+              "allocatedBytes": 9911462144
+            },
+            "projectTemplates": {
+              "seconds": 3.4547088,
+              "allocatedBytes": 10923901104
+            },
+            "finalVerify": {
+              "seconds": 4.4654639,
+              "allocatedBytes": 138617968
+            }
+          }
+        }
+      }
+    },
+    {
+      "mode": "candidate",
+      "seconds": 83.78856741700001,
+      "identicalFiles": 1421,
+      "report": {
+        "accepted": true,
+        "seconds": 81.6482334,
+        "projects": 202,
+        "profile": {
+          "reusedFiles": 0,
+          "reusedBytes": 0,
+          "files": 0,
+          "contentBytes": 0,
+          "phases": {
+            "stageInputs": {
+              "seconds": 4.0256895,
+              "allocatedBytes": 1237740592
+            },
+            "runtimeIdentity": {
+              "seconds": 0.7255765,
+              "allocatedBytes": 95818008
+            },
+            "discoverySetup": {
+              "seconds": 6.1680585,
+              "allocatedBytes": 1373717336
+            },
+            "evaluationProbe": {
+              "seconds": 4.5124759,
+              "allocatedBytes": 57760
+            },
+            "packageQualification": {
+              "seconds": 8.8302414,
+              "allocatedBytes": 12217470096
+            },
+            "importQualification": {
+              "seconds": 0.2369577,
+              "allocatedBytes": 354040592
+            },
+            "graphExport": {
+              "seconds": 19.4316413,
+              "allocatedBytes": 53344
+            },
+            "captureVerify": {
+              "seconds": 3.8526205,
+              "allocatedBytes": 138617584
+            },
+            "discoveryCapture": {
+              "seconds": 37.0103757,
+              "allocatedBytes": 13117796400
+            },
+            "prepareValidateInputs": {
+              "seconds": 4.6327663,
+              "allocatedBytes": 2418697544
+            },
+            "prepareRevalidateGraph": {
+              "seconds": 4.0537824,
+              "allocatedBytes": 775128040
+            },
+            "prepareSupport": {
+              "seconds": 0.0046,
+              "allocatedBytes": 45928
+            },
+            "prepareWriteBuild": {
+              "seconds": 10.056222,
+              "allocatedBytes": 13363112424
+            },
+            "graphPreparation": {
+              "seconds": 19.0374738,
+              "allocatedBytes": 17455755480
+            },
+            "materialize": {
+              "seconds": 6.4052897,
+              "allocatedBytes": 9911449760
+            },
+            "projectTemplates": {
+              "seconds": 2.5935502,
+              "allocatedBytes": 8048127032
+            },
+            "finalVerify": {
+              "seconds": 5.6212181,
+              "allocatedBytes": 138617968
+            }
+          }
+        }
+      }
+    },
+    {
+      "mode": "candidate",
+      "seconds": 82.98068116599998,
+      "identicalFiles": 1421,
+      "report": {
+        "accepted": true,
+        "seconds": 80.8608151,
+        "projects": 202,
+        "profile": {
+          "reusedFiles": 0,
+          "reusedBytes": 0,
+          "files": 0,
+          "contentBytes": 0,
+          "phases": {
+            "stageInputs": {
+              "seconds": 4.0218136,
+              "allocatedBytes": 1237914976
+            },
+            "runtimeIdentity": {
+              "seconds": 0.7344518,
+              "allocatedBytes": 95837120
+            },
+            "discoverySetup": {
+              "seconds": 6.2122482,
+              "allocatedBytes": 1373713992
+            },
+            "evaluationProbe": {
+              "seconds": 4.4942666,
+              "allocatedBytes": 57872
+            },
+            "packageQualification": {
+              "seconds": 8.6964296,
+              "allocatedBytes": 12217521872
+            },
+            "importQualification": {
+              "seconds": 0.2325081,
+              "allocatedBytes": 354064352
+            },
+            "graphExport": {
+              "seconds": 19.5414886,
+              "allocatedBytes": 53120
+            },
+            "captureVerify": {
+              "seconds": 3.7185677,
+              "allocatedBytes": 138617584
+            },
+            "discoveryCapture": {
+              "seconds": 36.830076,
+              "allocatedBytes": 13117871824
+            },
+            "prepareValidateInputs": {
+              "seconds": 4.6791909,
+              "allocatedBytes": 2418695600
+            },
+            "prepareRevalidateGraph": {
+              "seconds": 4.0366896,
+              "allocatedBytes": 775128176
+            },
+            "prepareSupport": {
+              "seconds": 0.0038139,
+              "allocatedBytes": 45928
+            },
+            "prepareWriteBuild": {
+              "seconds": 9.8589274,
+              "allocatedBytes": 13363134528
+            },
+            "graphPreparation": {
+              "seconds": 18.8467171,
+              "allocatedBytes": 17455789840
+            },
+            "materialize": {
+              "seconds": 5.9106585,
+              "allocatedBytes": 9911471272
+            },
+            "projectTemplates": {
+              "seconds": 2.5106112,
+              "allocatedBytes": 8048126944
+            },
+            "finalVerify": {
+              "seconds": 5.7290693,
+              "allocatedBytes": 138617968
+            }
+          }
+        }
+      }
+    },
+    {
+      "mode": "baseline",
+      "seconds": 88.576150084,
+      "identicalFiles": 1421,
+      "report": {
+        "accepted": true,
+        "seconds": 86.4213592,
+        "projects": 202,
+        "profile": {
+          "reusedFiles": 0,
+          "reusedBytes": 0,
+          "files": 0,
+          "contentBytes": 0,
+          "phases": {
+            "stageInputs": {
+              "seconds": 4.2025545,
+              "allocatedBytes": 1237154232
+            },
+            "runtimeIdentity": {
+              "seconds": 0.7287378,
+              "allocatedBytes": 95843512
+            },
+            "discoverySetup": {
+              "seconds": 6.2601046,
+              "allocatedBytes": 1373709256
+            },
+            "evaluationProbe": {
+              "seconds": 4.499259,
+              "allocatedBytes": 57872
+            },
+            "packageQualification": {
+              "seconds": 8.6866657,
+              "allocatedBytes": 12217461032
+            },
+            "importQualification": {
+              "seconds": 0.230171,
+              "allocatedBytes": 354029208
+            },
+            "graphExport": {
+              "seconds": 19.2933688,
+              "allocatedBytes": 53120
+            },
+            "captureVerify": {
+              "seconds": 3.8929829,
+              "allocatedBytes": 138617584
+            },
+            "discoveryCapture": {
+              "seconds": 36.762168,
+              "allocatedBytes": 13117767688
+            },
+            "prepareValidateInputs": {
+              "seconds": 8.0019866,
+              "allocatedBytes": 3565668016
+            },
+            "prepareRevalidateGraph": {
+              "seconds": 4.0502662,
+              "allocatedBytes": 775136424
+            },
+            "prepareSupport": {
+              "seconds": 0.0056376,
+              "allocatedBytes": 45928
+            },
+            "prepareWriteBuild": {
+              "seconds": 10.219087,
+              "allocatedBytes": 14241046320
+            },
+            "graphPreparation": {
+              "seconds": 22.5828547,
+              "allocatedBytes": 19480668272
+            },
+            "materialize": {
+              "seconds": 6.589247,
+              "allocatedBytes": 9911445672
+            },
+            "projectTemplates": {
+              "seconds": 3.4730887,
+              "allocatedBytes": 10923911968
+            },
+            "finalVerify": {
+              "seconds": 5.7594762,
+              "allocatedBytes": 138617968
+            }
+          }
+        }
+      }
+    }
+  ],
+  "finalRootQualifiedMemoCheck": {
+    "seconds": 84.464526333,
+    "identicalFiles": 1421,
+    "report": {
+      "accepted": true,
+      "seconds": 82.3885102,
+      "projects": 202,
+      "profile": {
+        "reusedFiles": 0,
+        "reusedBytes": 0,
+        "files": 0,
+        "contentBytes": 0,
+        "phases": {
+          "stageInputs": {
+            "seconds": 4.1334191,
+            "allocatedBytes": 1238260568
+          },
+          "runtimeIdentity": {
+            "seconds": 0.7241532,
+            "allocatedBytes": 95892504
+          },
+          "discoverySetup": {
+            "seconds": 6.3284042,
+            "allocatedBytes": 1373726968
+          },
+          "evaluationProbe": {
+            "seconds": 4.573842,
+            "allocatedBytes": 58280
+          },
+          "packageQualification": {
+            "seconds": 9.5355652,
+            "allocatedBytes": 12217359704
+          },
+          "importQualification": {
+            "seconds": 0.2361483,
+            "allocatedBytes": 354041640
+          },
+          "graphExport": {
+            "seconds": 20.3613824,
+            "allocatedBytes": 53528
+          },
+          "captureVerify": {
+            "seconds": 4.3358253,
+            "allocatedBytes": 138617584
+          },
+          "discoveryCapture": {
+            "seconds": 39.1922122,
+            "allocatedBytes": 13117679608
+          },
+          "prepareValidateInputs": {
+            "seconds": 4.6407481,
+            "allocatedBytes": 2418702840
+          },
+          "prepareRevalidateGraph": {
+            "seconds": 4.0692207,
+            "allocatedBytes": 775136400
+          },
+          "prepareSupport": {
+            "seconds": 0.0050007,
+            "allocatedBytes": 45928
+          },
+          "prepareWriteBuild": {
+            "seconds": 10.1213164,
+            "allocatedBytes": 13363091592
+          },
+          "graphPreparation": {
+            "seconds": 19.163772,
+            "allocatedBytes": 17455748344
+          },
+          "materialize": {
+            "seconds": 6.0015437,
+            "allocatedBytes": 9911456928
+          },
+          "projectTemplates": {
+            "seconds": 2.5887398,
+            "allocatedBytes": 8048127248
+          },
+          "finalVerify": {
+            "seconds": 4.1963252,
+            "allocatedBytes": 138617432
+          }
+        }
+      }
+    }
+  }
+}

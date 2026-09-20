@@ -200,6 +200,18 @@ internal static class NativePlan
     {
         var sourceNames = sources.ToHashSet(OperatingSystem.IsMacOS() ? StringComparer.OrdinalIgnoreCase : StringComparer.Ordinal);
         var bodyNames = bodies.ToHashSet(OperatingSystem.IsMacOS() ? StringComparer.OrdinalIgnoreCase : StringComparer.Ordinal);
+        var requiredPayload = RequiredPayload(records, graphInputs);
+        return SelectPayload(payload, requiredPayload, sourceNames, bodyNames);
+    }
+    private static JsonNode SelectPayload(JsonNode payload, HashSet<string> requiredPayload, HashSet<string> sourceNames, HashSet<string> bodyNames)
+    {
+        // Preserve payload order for byte-identical template and legacy outputs.
+        return new JsonObject(payload.AsObject().Where(pair => requiredPayload.Contains(pair.Key) &&
+            (!bodyNames.Contains(pair.Key) && !pair.Key.EndsWith(".cs", StringComparison.Ordinal) || pair.Key.StartsWith(".nuget/", StringComparison.Ordinal) || sourceNames.Contains(pair.Key)))
+            .Select(pair => KeyValuePair.Create(pair.Key, pair.Value?.DeepClone())));
+    }
+    private static HashSet<string> RequiredPayload(IEnumerable<JsonNode> records, JsonArray graphInputs)
+    {
         var requiredPayload = new HashSet<string>(StringComparer.Ordinal);
         void Require(string logical)
         {
@@ -213,11 +225,7 @@ internal static class NativePlan
                 foreach (var file in package!.Array("files")) requiredPayload.Add(".nuget/packages/" + package.String("path") + "/" + file!.String("path"));
         }
         foreach (var item in graphInputs) Require(item!.String("path"));
-        // Removing entries from JsonObject shifts its ordered storage each time.
-        // Build the selected map once instead of repeatedly compacting the full graph.
-        return new JsonObject(payload.AsObject().Where(pair => requiredPayload.Contains(pair.Key) &&
-            (!bodyNames.Contains(pair.Key) && !pair.Key.EndsWith(".cs", StringComparison.Ordinal) || pair.Key.StartsWith(".nuget/", StringComparison.Ordinal) || sourceNames.Contains(pair.Key)))
-            .Select(pair => KeyValuePair.Create(pair.Key, pair.Value?.DeepClone())));
+        return requiredPayload;
     }
     public static void ProjectTemplates(string discovery, JsonObject outputs)
     {
@@ -230,6 +238,10 @@ internal static class NativePlan
             if (Json.Digest(record!) != projects[project]!.String("identity")) throw new InvalidDataException("Corrupt discovery identity");
         var closures = GraphPreparation.Closures(projects.ToDictionary(pair => pair.Key, pair => pair.Value!, StringComparer.Ordinal));
         var payload = Json.Read(Path.Combine(discovery, "payload.json")); var graphInputs = index.Array("graphInputs");
+        var pathComparer = OperatingSystem.IsMacOS() ? StringComparer.OrdinalIgnoreCase : StringComparer.Ordinal;
+        var bodyNames = index["projects"]!.AsObject().SelectMany(pair => pair.Value!.Array("sources")).Select(value => value!.GetValue<string>()).ToHashSet(pathComparer);
+        var requiredByProject = records.AsObject().ToDictionary(pair => pair.Key, pair => RequiredPayload([pair.Value!], []), StringComparer.Ordinal);
+        var globalPayload = RequiredPayload([], graphInputs);
         foreach (var (project, target) in outputs)
         {
             var output = target!.GetValue<string>(); Directory.CreateDirectory(output);
@@ -243,7 +255,9 @@ internal static class NativePlan
                 .Select(name => KeyValuePair.Create<string, JsonNode?>(name, records[name]!.DeepClone())));
             Json.Write(Path.Combine(output, "binding.json"), new JsonObject { ["policy"] = "project-template-v1", ["project"] = project, ["sources"] = Json.Strings(sources), ["records"] = mutable, ["graphInputs"] = graphInputs.DeepClone(), ["protectedSources"] = new JsonArray(index.Array("protectedSources").Where(value => sourceNames.Contains("workspace/" + value!.GetValue<string>())).Select(value => value!.DeepClone()).ToArray()) });
             Json.Write(Path.Combine(output, "manifest.json"), new JsonObject { ["policy"] = manifest["policy"]!.DeepClone(), ["toolchain"] = manifest["toolchain"]!.DeepClone(), ["projects"] = new JsonObject(projects.Where(pair => closure.Contains(pair.Key)).Select(pair => KeyValuePair.Create<string, JsonNode?>(pair.Key, pair.Value!.DeepClone()))) });
-            Json.Write(Path.Combine(output, "payload.json"), PrunePayload(payload, closure.Select(name => records[name]!), sources, graphInputs, index["projects"]!.AsObject().SelectMany(pair => pair.Value!.Array("sources")).Select(value => value!.GetValue<string>())));
+            var required = new HashSet<string>(globalPayload, StringComparer.Ordinal);
+            foreach (var name in closure) required.UnionWith(requiredByProject[name]);
+            Json.Write(Path.Combine(output, "payload.json"), SelectPayload(payload, required, sources.ToHashSet(pathComparer), bodyNames));
             Json.Write(Path.Combine(output, "restore.json"), records[project]!["restore"]!);
             Json.Write(Path.Combine(output, "entry.json"), new JsonObject { ["entry"] = project });
         }

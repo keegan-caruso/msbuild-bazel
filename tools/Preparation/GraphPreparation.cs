@@ -142,6 +142,7 @@ internal sealed class GraphPreparation
         var roots = new Dictionary<string, string> { ["workspace"] = workspace, ["dotnet"] = sdk, ["packages"] = Path.Combine(workspace, ".nuget/packages"), ["adapter"] = Path.Combine(root, "tools/GraphExport"), ["nix"] = "/nix/store" };
         var external = new HashSet<string>(StringComparer.Ordinal);
         var hashes = new Dictionary<(string Path, bool Normalized), string>();
+        var checkedPaths = new HashSet<string>(StringComparer.Ordinal);
         foreach (var itemNode in (graph["graphInputs"] as JsonArray ?? []).Concat(nodes.Values.SelectMany(n => n.Array("inputs"))))
         {
             var item = itemNode!; var path = item.String("path"); var kind = item.String("kind"); var parts = path.Split('/', 2);
@@ -153,7 +154,7 @@ internal sealed class GraphPreparation
                 external.Add("/nix/store/" + logical);
             }
             var source = Path.Combine(inputRoot, logical);
-            if (!File.Exists(source) || (parts[0] is "workspace" or "nix") && !Host.Within(Host.Real(source), inputRoot)) throw new InvalidDataException("missing-input: missing or escaping input: " + path);
+            if (checkedPaths.Add(path) && (!File.Exists(source) || (parts[0] is "workspace" or "nix") && !Host.Within(Host.Real(source), inputRoot))) throw new InvalidDataException("missing-input: missing or escaping input: " + path);
             if (parts[0] == "workspace" && ("/" + logical).Contains("/obj/", StringComparison.Ordinal) && kind is not ("restore" or "import")) throw new InvalidDataException("unsupported declared obj input: " + path);
             var normalized = kind == "restore" || kind == "import" && new[] { ".json", ".props", ".targets", ".xml", ".proj", ".csproj" }.Contains(Path.GetExtension(source).ToLowerInvariant());
             if (!hashes.TryGetValue((source, normalized), out var digest))
@@ -284,7 +285,10 @@ internal sealed class GraphPreparation
         foreach (var (id, node) in nodes.OrderBy(p => p.Key, StringComparer.Ordinal))
         {
             var sources = new HashSet<string>(StringComparer.Ordinal); var restore = new List<string>();
-            foreach (var reachable in closures[id].Order(StringComparer.Ordinal))
+            // Metadata-only preparation needs each node once, not a legacy rule
+            // with a separate transitive source/restore list for every node.
+            IEnumerable<string> reachableNodes = packageMetadataOnly ? new[] { id } : closures[id].Order(StringComparer.Ordinal);
+            foreach (var reachable in reachableNodes)
             {
                 var dependency = nodes[reachable];
                 foreach (var item in dependency.Array("inputs"))
