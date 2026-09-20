@@ -8,6 +8,10 @@ The [evaluated API/runtime boundary](native-api-runtime.md) follows the changed
 HTTP-cache baseline, separating ordinary project compilation reuse from current
 runtime composition while retaining SDK/package metadata in dependency keys.
 
+The [borrowed-input validation follow-up](borrowed-input-validation.md) removes
+two redundant child byte scans under the existing parent action lease. The
+measured Orchard entry median improves only 1.8%; cross-action reuse remains open.
+
 ## Question
 
 Can Bazel cache and schedule configured .NET projects while each action uses MSBuild and consumes dependency artifacts plus MSBuild result metadata?

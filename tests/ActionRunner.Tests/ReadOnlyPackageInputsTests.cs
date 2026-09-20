@@ -22,6 +22,24 @@ internal static class ReadOnlyPackageInputsTests
             File.SetUnixFileMode(source, UnixFileMode.UserRead);
             inputs.Link(source, Path.Combine(stage, "package"), Files.Hash(source));
             inputs.VerifyUnchanged();
+            ReadOnlyPackageInputs.VerifyAlias(Path.Combine(stage, "package"), source);
+            if (inputs.Aliases(stage).Count != 1) throw new InvalidOperationException("Borrowed alias missing");
+            var replacement = Path.Combine(root, "replacement");
+            File.WriteAllText(replacement, "original");
+            File.SetUnixFileMode(replacement, UnixFileMode.UserRead);
+            File.Delete(Path.Combine(stage, "package"));
+            File.CreateSymbolicLink(Path.Combine(stage, "package"), replacement);
+            try
+            {
+                ReadOnlyPackageInputs.VerifyAlias(Path.Combine(stage, "package"), source);
+                throw new InvalidOperationException("Retargeted package alias accepted");
+            }
+            catch (InvalidDataException) { }
+            File.Delete(Path.Combine(stage, "package"));
+            File.WriteAllText(Path.Combine(stage, "package"), "original");
+            if (inputs.Aliases(stage).Count != 0) throw new InvalidOperationException("Private replacement treated as borrowed");
+            File.Delete(Path.Combine(stage, "package"));
+            File.CreateSymbolicLink(Path.Combine(stage, "package"), source);
             if (File.ReadAllText(Path.Combine(stage, "package")) != "original") throw new InvalidOperationException("Package content changed");
             File.SetUnixFileMode(source, UnixFileMode.UserRead | UnixFileMode.UserWrite);
             File.WriteAllText(source, "modified");

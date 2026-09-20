@@ -215,7 +215,7 @@ internal static class Program
             // bytes before accepting the build and again at exit, catching copy races.
             var files = Directory.EnumerateFiles(workspace, "*", SearchOption.AllDirectories).Select(path => new DeclaredFile(Path.GetRelativePath(workspace, path), packageHashes.TryGetValue(Path.GetRelativePath(workspace, path), out var verifiedPackageHash) ? verifiedPackageHash : Files.Hash(path))).ToArray();
             Mark("workspaceHashing");
-            var session = new Session(workspace, cache, pending, report, request.Entry, manifest.Toolchain, files, manifest.Projects, TargetsPath: targets, Policy: manifest.Policy, Prebuilt: prebuilt);
+            var session = new Session(workspace, cache, pending, report, request.Entry, manifest.Toolchain, files, manifest.Projects, TargetsPath: targets, Policy: manifest.Policy, Prebuilt: prebuilt, BorrowedPackageInputs: borrowedPackages.Aliases(workspace));
             File.WriteAllText(sessionPath, JsonSerializer.Serialize(session, Json));
             if (request.ReadProbe is not null) File.ReadAllText(request.ReadProbe);
             if (request.WriteProbe is not null) File.WriteAllText(request.WriteProbe, "unexpected write");

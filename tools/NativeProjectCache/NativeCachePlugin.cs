@@ -10,7 +10,7 @@ using TaskItem = Microsoft.Build.Utilities.TaskItem;
 internal sealed record DeclaredFile(string Path, string Hash);
 internal sealed record DeclaredProject(string Identity, string[] Dependencies, string TargetFramework = "net10.0", bool Implementation = false, string[]? Analyzers = null, bool OrchardModule = false, bool OrchardApplication = false);
 internal sealed record Session(string Workspace, string Cache, string Scratch, string Report, string Entry, string Toolchain,
-    DeclaredFile[] Files, Dictionary<string, DeclaredProject> Projects, string? Remote = null, string? TargetsPath = null, string Policy = "native-qualified-v2", Dictionary<string, string>? Prebuilt = null);
+    DeclaredFile[] Files, Dictionary<string, DeclaredProject> Projects, string? Remote = null, string? TargetsPath = null, string Policy = "native-qualified-v2", Dictionary<string, string>? Prebuilt = null, Dictionary<string, string>? BorrowedPackageInputs = null);
 internal sealed record Ready(string Bundle, string Api);
 internal sealed class State
 {
@@ -156,8 +156,16 @@ public sealed class NativeCachePlugin : ProjectCachePluginBase
         using var profile = BuildProfile.Measure("verifyWorkspaceInputs");
         using (BuildProfile.Measure("verifyWorkspaceHashes"))
             foreach (var file in session.Files)
-                if (!Files.ValidRelativePath(file.Path) || Files.Hash(Path.Combine(session.Workspace, file.Path)) != file.Hash)
+            {
+                if (!Files.ValidRelativePath(file.Path)) throw new InvalidDataException("Invalid input path");
+                if (session.BorrowedPackageInputs?.TryGetValue(file.Path, out var source) == true)
+                {
+                    if (!file.Path.StartsWith(".nuget/packages/", StringComparison.Ordinal)) throw new InvalidDataException("Invalid borrowed package path");
+                    NativeCache.ReadOnlyPackageInputs.VerifyAlias(Path.Combine(session.Workspace, file.Path), source);
+                }
+                else if (Files.Hash(Path.Combine(session.Workspace, file.Path)) != file.Hash)
                     throw new InvalidDataException("declared input changed: " + file.Path);
+            }
         var outputs = states.Keys.SelectMany(project => new[] { Bin(project) + "/", Path.Combine(Path.GetDirectoryName(project)!, "obj/Release") + "/" }
             .Concat(session.Projects[project].OrchardApplication ? new[] { Path.Combine(Path.GetDirectoryName(project)!, "Localization") + "/" } : [])).ToArray();
         var observed = Directory.EnumerateFiles(session.Workspace, "*", SearchOption.AllDirectories)
