@@ -93,15 +93,16 @@ internal static class EvaluatedBoundary
     internal static bool RefreshBundle(string bundle, string project, Dictionary<string, string> dependencies, string output, Func<string, Artifact[]>? validate = null)
     {
         validate ??= CompileBoundary.Validate;
-        var own = validate(bundle); var changed = false; var framework = Framework(bundle);
+        var own = validate(bundle).ToDictionary(item => item.Path, StringComparer.Ordinal); var changed = false; var framework = Framework(bundle);
         foreach (var (dependency, producer) in dependencies)
         {
-            var artifacts = validate(producer);
+            var artifacts = validate(producer).ToDictionary(item => item.Path, StringComparer.Ordinal);
+            var producerFramework = Framework(producer);
             foreach (var extension in new[] { ".dll", ".pdb", ".xml" })
             {
-                var selected = own.SingleOrDefault(item => item.Path == Path.Combine(Bin(project, framework), Assembly(dependency) + extension));
+                var selected = own.GetValueOrDefault(Path.Combine(Bin(project, framework), Assembly(dependency) + extension));
                 if (selected is null) continue;
-                var current = artifacts.SingleOrDefault(item => item.Path == Path.Combine(Bin(dependency, Framework(producer)), Assembly(dependency) + extension))
+                var current = artifacts.GetValueOrDefault(Path.Combine(Bin(dependency, producerFramework), Assembly(dependency) + extension))
                     ?? throw new InvalidDataException("Current runtime artifact missing during seed refresh");
                 changed |= selected.Sha256 != current.Sha256;
             }
@@ -114,31 +115,38 @@ internal static class EvaluatedBoundary
         return true;
     }
 
-    internal static void Compose(string bundle, string project, Dictionary<string, string> dependencies, string workspace, bool verifySelection = false, Func<string, Artifact[]>? validate = null)
+    internal static Dictionary<string, string> RuntimeReplacements(string bundle, string project, Dictionary<string, string> dependencies, bool verifySelection = false, Func<string, Artifact[]>? validate = null)
     {
         validate ??= CompileBoundary.Validate;
-        var own = validate(bundle); var framework = Framework(bundle);
+        var own = validate(bundle).ToDictionary(item => item.Path, StringComparer.Ordinal); var framework = Framework(bundle);
         var replacements = new Dictionary<string, string>(StringComparer.Ordinal);
         foreach (var (dependency, producer) in dependencies)
         {
-            var artifacts = validate(producer);
-            var assembly = Path.Combine(Bin(dependency, Framework(producer)), Assembly(dependency) + ".dll");
-            if (!artifacts.Any(item => item.Path == assembly))
+            var artifacts = validate(producer).ToDictionary(item => item.Path, StringComparer.Ordinal);
+            var producerFramework = Framework(producer);
+            var assembly = Path.Combine(Bin(dependency, producerFramework), Assembly(dependency) + ".dll");
+            if (!artifacts.ContainsKey(assembly))
                 throw new InvalidDataException("current project implementation missing");
             foreach (var extension in new[] { ".dll", ".pdb", ".xml" })
             {
                 var destination = Path.Combine(Bin(project, framework), Assembly(dependency) + extension);
                 // Preserve the SDK's selected copy-local membership and layout.
-                var selected = own.SingleOrDefault(item => item.Path == destination);
+                var selected = own.GetValueOrDefault(destination);
                 if (selected is null) continue;
                 var source = Path.ChangeExtension(assembly, extension);
-                var original = artifacts.SingleOrDefault(item => item.Path == source);
+                var original = artifacts.GetValueOrDefault(source);
                 if (original is null || !replacements.TryAdd(destination, Path.Combine(producer, "artifacts", source)))
                     throw new InvalidDataException("ambiguous or missing current runtime artifact");
                 if (verifySelection && selected.Sha256 != original.Sha256)
                     throw new InvalidDataException("SDK output overrides a project runtime artifact");
             }
         }
+        return replacements;
+    }
+
+    internal static void Compose(string bundle, string project, Dictionary<string, string> dependencies, string workspace, bool verifySelection = false, Func<string, Artifact[]>? validate = null)
+    {
+        var replacements = RuntimeReplacements(bundle, project, dependencies, verifySelection, validate);
         // Establish producer ownership on fresh compilation before caching it.
         // A later hit can then safely refresh historical copy-local bytes.
         if (verifySelection) return;

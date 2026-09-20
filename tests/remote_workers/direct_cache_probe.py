@@ -61,17 +61,18 @@ def run(a):
                 materialized[package]=sum(file.is_file() for file in tree.rglob('*'))
             assert materialized['newtonsoft.json/13.0.1']>0 and materialized['polysharp/1.15.0']==0,materialized
             changed['packageFilesMaterialized']=materialized;(out/'report.json').write_text(json.dumps(records,indent=2))
-            with CacheService(a.cache_binary,out/'measure-gated-cache') as gated_cache, CacheService(a.cache_binary,out/'measure-direct-cache') as direct_cache:
-                modes={'gated':gated_cache,'direct':direct_cache}
-                for mode,cache in modes.items():
-                    invoke(mode+'-cold',out/mode,source,True,'11',direct=mode=='direct',endpoint=cache.url)
-                original=(source/'N0001/Value.cs').read_text()
-                for index in range(1,4):
-                    (source/'N0001/Value.cs').write_text(original.replace('("2")',f'("{2+10*index}")'))
-                    for mode in (['direct','gated'] if index%2 else ['gated','direct']):
-                        record=invoke(mode+'-changed-'+str(index),out/mode,source,True,str(11+10*index),direct=mode=='direct',endpoint=modes[mode].url)
-                        assert record['compiles']==1 and record['MsbuildDiscover']['executed']==0
-                (source/'N0001/Value.cs').write_text(original)
+            if not a.acceptance_only:
+                with CacheService(a.cache_binary,out/'measure-gated-cache') as gated_cache, CacheService(a.cache_binary,out/'measure-direct-cache') as direct_cache:
+                    modes={'gated':gated_cache,'direct':direct_cache}
+                    for mode,cache in modes.items():
+                        invoke(mode+'-cold',out/mode,source,True,'11',direct=mode=='direct',endpoint=cache.url)
+                    original=(source/'N0001/Value.cs').read_text()
+                    for index in range(1,4):
+                        (source/'N0001/Value.cs').write_text(original.replace('("2")',f'("{2+10*index}")'))
+                        for mode in (['direct','gated'] if index%2 else ['gated','direct']):
+                            record=invoke(mode+'-changed-'+str(index),out/mode,source,True,str(11+10*index),direct=mode=='direct',endpoint=modes[mode].url)
+                            assert record['compiles']==1 and record['MsbuildDiscover']['executed']==0
+                    (source/'N0001/Value.cs').write_text(original)
             controls=out/'publication-controls';controls.mkdir()
             publication_control(recovery/'state/g',controls,server.url,a.repositories.resolve())
         finally:
@@ -80,4 +81,4 @@ def run(a):
 
 
 if __name__=='__main__':
-    p=argparse.ArgumentParser();p.add_argument('--output',type=Path,required=True);p.add_argument('--repositories',type=Path,required=True);p.add_argument('--cache-binary',type=Path,required=True);run(p.parse_args())
+    p=argparse.ArgumentParser();p.add_argument('--output',type=Path,required=True);p.add_argument('--repositories',type=Path,required=True);p.add_argument('--cache-binary',type=Path,required=True);p.add_argument('--acceptance-only',action='store_true');run(p.parse_args())

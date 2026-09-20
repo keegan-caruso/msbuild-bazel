@@ -79,6 +79,15 @@ internal static class EvaluatedBoundaryTests
             }
             catch (InvalidDataException) { }
             if (Directory.Exists(workspace)) throw new InvalidOperationException("ambiguous fresh output wrote runtime files");
+            var placements = EvaluatedBoundary.RuntimeReplacements(app, "App/App.csproj", new() { [project] = lib });
+            if (placements.Count != 1 || placements["App/bin/Release/net10.0/Lib.dll"] != Path.Combine(lib, "artifacts/Lib/bin/Release/net10.0/Lib.dll"))
+                throw new InvalidOperationException("Placement plan changed runtime membership or producer ownership");
+            var singlePlacement = Path.Combine(root, "single-placement");
+            foreach (var item in CompileBoundary.Validate(app))
+                Files.CopyNormalized(placements.GetValueOrDefault(item.Path, Path.Combine(app, "artifacts", item.Path)), Path.Combine(singlePlacement, item.Path));
+            if (File.ReadAllText(Path.Combine(singlePlacement, "App/bin/Release/net10.0/Package.dll")) != "consumer package selection" ||
+                File.ReadAllText(Path.Combine(singlePlacement, "App/bin/Release/net10.0/Lib.dll")) != "current body with different length")
+                throw new InvalidOperationException("One-pass placement changed selected contents");
             EvaluatedBoundary.Compose(app, "App/App.csproj", new() { [project] = lib }, workspace);
             if (File.ReadAllText(Path.Combine(workspace, "App/bin/Release/net10.0/Lib.dll")) != "current body with different length")
                 throw new InvalidOperationException("runtime did not use current implementation");

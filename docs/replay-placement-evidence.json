@@ -1,0 +1,614 @@
+{
+  "medianSeconds": {
+    "baseline": 24.789461625,
+    "candidate": 22.878500208000006
+  },
+  "samples": [
+    {
+      "mode": "baseline",
+      "profile": true,
+      "seconds": 27.475455292,
+      "identicalFiles": 3463,
+      "phases": {
+        "sourceAndRestore": 6.3777387,
+        "seedCopy": 2e-07,
+        "sessionMetadata": 0.082298,
+        "dependencyValidation": 0.9905629,
+        "dependencyReplayProjects": 0.0717605,
+        "workspaceHashing": 0.3154471,
+        "sessionSetup": 0.005766,
+        "msbuild": 15.8690877,
+        "selectBundles": 0.0041853,
+        "validateEntry": 0.2542878,
+        "apiIdentity": 0.0356692,
+        "apiProjection": 1.2147012,
+        "runtimeProjection": 0.0032217,
+        "dependencyRevalidation": 0.5276111,
+        "packageRevalidation": 0.0001777,
+        "publicationValidation": 0.4912226,
+        "cleanup": 1.1829751
+      },
+      "msbuild": {
+        "entryEvaluation": {
+          "seconds": 0.1444132,
+          "calls": 1
+        },
+        "buildManager": {
+          "seconds": 15.6302305,
+          "calls": 1
+        }
+      },
+      "plugin": {
+        "pluginCapture": {
+          "seconds": 1.5638352,
+          "calls": 1
+        },
+        "dependencyRestore": {
+          "seconds": 1.7144882000000004,
+          "calls": 201
+        },
+        "endRefresh": {
+          "seconds": 1.1736767,
+          "calls": 1
+        },
+        "pluginBegin": {
+          "seconds": 8.3982781,
+          "calls": 1
+        },
+        "verifyWorkspaceHashes": {
+          "seconds": 5.1126974999999995,
+          "calls": 2
+        },
+        "endDependencyRevalidation": {
+          "seconds": 0.5242382,
+          "calls": 1
+        },
+        "captureCompose": {
+          "seconds": 0.2503124,
+          "calls": 1
+        },
+        "verifyWorkspaceNamespace": {
+          "seconds": 0.3296291,
+          "calls": 2
+        },
+        "captureFiles": {
+          "seconds": 0.4159165,
+          "calls": 1
+        },
+        "endCompose": {
+          "seconds": 0.116491,
+          "calls": 1
+        },
+        "pluginEnd": {
+          "seconds": 3.1080754,
+          "calls": 1
+        },
+        "captureIdentity": {
+          "seconds": 0.0085282,
+          "calls": 1
+        },
+        "verifyWorkspaceInputs": {
+          "seconds": 5.4427873,
+          "calls": 2
+        },
+        "dependencyValidate": {
+          "seconds": 0.33410049999999986,
+          "calls": 201
+        },
+        "dependencyCompose": {
+          "seconds": 1.9561186999999995,
+          "calls": 201
+        },
+        "captureSeal": {
+          "seconds": 0.8873995,
+          "calls": 1
+        }
+      }
+    },
+    {
+      "mode": "candidate",
+      "profile": true,
+      "seconds": 22.939262084,
+      "identicalFiles": 3463,
+      "phases": {
+        "sourceAndRestore": 5.5364902,
+        "seedCopy": 1e-07,
+        "sessionMetadata": 0.0203948,
+        "dependencyValidation": 0.302155,
+        "dependencyReplayProjects": 0.0301107,
+        "workspaceHashing": 0.3163029,
+        "sessionSetup": 0.0059127,
+        "msbuild": 12.92105,
+        "selectBundles": 0.0041582,
+        "validateEntry": 0.2587327,
+        "apiIdentity": 0.0361852,
+        "apiProjection": 1.2192918,
+        "runtimeProjection": 0.0030996,
+        "dependencyRevalidation": 0.5308277,
+        "packageRevalidation": 0.0001426,
+        "publicationValidation": 0.4910935,
+        "cleanup": 1.1991463
+      },
+      "msbuild": {
+        "entryEvaluation": {
+          "seconds": 0.1367287,
+          "calls": 1
+        },
+        "buildManager": {
+          "seconds": 12.6997515,
+          "calls": 1
+        }
+      },
+      "plugin": {
+        "pluginCapture": {
+          "seconds": 1.557617,
+          "calls": 1
+        },
+        "dependencyRestore": {
+          "seconds": 1.7472557000000009,
+          "calls": 201
+        },
+        "endRefresh": {
+          "seconds": 0.0053638,
+          "calls": 1
+        },
+        "pluginBegin": {
+          "seconds": 6.6331075,
+          "calls": 1
+        },
+        "verifyWorkspaceHashes": {
+          "seconds": 5.1174356,
+          "calls": 2
+        },
+        "endDependencyRevalidation": {
+          "seconds": 0.5186144,
+          "calls": 1
+        },
+        "captureCompose": {
+          "seconds": 0.2468045,
+          "calls": 1
+        },
+        "verifyWorkspaceNamespace": {
+          "seconds": 0.3220788,
+          "calls": 2
+        },
+        "captureFiles": {
+          "seconds": 0.3983385,
+          "calls": 1
+        },
+        "endCompose": {
+          "seconds": 0.1140963,
+          "calls": 1
+        },
+        "pluginEnd": {
+          "seconds": 1.9157108,
+          "calls": 1
+        },
+        "captureIdentity": {
+          "seconds": 0.0080949,
+          "calls": 1
+        },
+        "verifyWorkspaceInputs": {
+          "seconds": 5.4399397,
+          "calls": 2
+        },
+        "dependencyValidate": {
+          "seconds": 0.3295841000000001,
+          "calls": 201
+        },
+        "dependencyCompose": {
+          "seconds": 0.116719,
+          "calls": 201
+        },
+        "captureSeal": {
+          "seconds": 0.902684,
+          "calls": 1
+        }
+      }
+    },
+    {
+      "mode": "candidate",
+      "profile": true,
+      "seconds": 22.878500208000006,
+      "identicalFiles": 3463,
+      "phases": {
+        "sourceAndRestore": 5.3477851,
+        "seedCopy": 1e-07,
+        "sessionMetadata": 0.020785,
+        "dependencyValidation": 0.303687,
+        "dependencyReplayProjects": 0.0315002,
+        "workspaceHashing": 0.3191804,
+        "sessionSetup": 0.0059719,
+        "msbuild": 13.0020085,
+        "selectBundles": 0.004241,
+        "validateEntry": 0.2586752,
+        "apiIdentity": 0.0357888,
+        "apiProjection": 1.2205212,
+        "runtimeProjection": 0.0041234,
+        "dependencyRevalidation": 0.534795,
+        "packageRevalidation": 0.000148,
+        "publicationValidation": 0.4894237,
+        "cleanup": 1.2238675
+      },
+      "msbuild": {
+        "entryEvaluation": {
+          "seconds": 0.1353624,
+          "calls": 1
+        },
+        "buildManager": {
+          "seconds": 12.7747907,
+          "calls": 1
+        }
+      },
+      "plugin": {
+        "pluginCapture": {
+          "seconds": 1.547509,
+          "calls": 1
+        },
+        "dependencyRestore": {
+          "seconds": 1.7477332999999997,
+          "calls": 201
+        },
+        "endRefresh": {
+          "seconds": 0.0067445,
+          "calls": 1
+        },
+        "pluginBegin": {
+          "seconds": 6.6596543,
+          "calls": 1
+        },
+        "verifyWorkspaceHashes": {
+          "seconds": 5.1740092,
+          "calls": 2
+        },
+        "endDependencyRevalidation": {
+          "seconds": 0.5487876,
+          "calls": 1
+        },
+        "captureCompose": {
+          "seconds": 0.2490767,
+          "calls": 1
+        },
+        "verifyWorkspaceNamespace": {
+          "seconds": 0.3442731,
+          "calls": 2
+        },
+        "captureFiles": {
+          "seconds": 0.3933304,
+          "calls": 1
+        },
+        "endCompose": {
+          "seconds": 0.1193393,
+          "calls": 1
+        },
+        "pluginEnd": {
+          "seconds": 2.00689,
+          "calls": 1
+        },
+        "captureIdentity": {
+          "seconds": 0.0085615,
+          "calls": 1
+        },
+        "verifyWorkspaceInputs": {
+          "seconds": 5.5187515,
+          "calls": 2
+        },
+        "dependencyValidate": {
+          "seconds": 0.3192599,
+          "calls": 201
+        },
+        "dependencyCompose": {
+          "seconds": 0.12067710000000005,
+          "calls": 201
+        },
+        "captureSeal": {
+          "seconds": 0.8948739,
+          "calls": 1
+        }
+      }
+    },
+    {
+      "mode": "baseline",
+      "profile": true,
+      "seconds": 24.762929749999998,
+      "identicalFiles": 3463,
+      "phases": {
+        "sourceAndRestore": 4.6130043,
+        "seedCopy": 1e-07,
+        "sessionMetadata": 0.0209876,
+        "dependencyValidation": 0.2924226,
+        "dependencyReplayProjects": 0.029691,
+        "workspaceHashing": 0.3249327,
+        "sessionSetup": 0.0059913,
+        "msbuild": 15.6911899,
+        "selectBundles": 0.0051981,
+        "validateEntry": 0.256834,
+        "apiIdentity": 0.0315519,
+        "apiProjection": 1.2245791,
+        "runtimeProjection": 0.0037448,
+        "dependencyRevalidation": 0.5345293,
+        "packageRevalidation": 0.0001532,
+        "publicationValidation": 0.4992492,
+        "cleanup": 1.1951153
+      },
+      "msbuild": {
+        "entryEvaluation": {
+          "seconds": 0.1452109,
+          "calls": 1
+        },
+        "buildManager": {
+          "seconds": 15.4528615,
+          "calls": 1
+        }
+      },
+      "plugin": {
+        "pluginCapture": {
+          "seconds": 1.5557466,
+          "calls": 1
+        },
+        "dependencyRestore": {
+          "seconds": 1.6716149999999999,
+          "calls": 201
+        },
+        "endRefresh": {
+          "seconds": 1.1563132,
+          "calls": 1
+        },
+        "pluginBegin": {
+          "seconds": 8.2312502,
+          "calls": 1
+        },
+        "verifyWorkspaceHashes": {
+          "seconds": 5.0816146,
+          "calls": 2
+        },
+        "endDependencyRevalidation": {
+          "seconds": 0.5245257,
+          "calls": 1
+        },
+        "captureCompose": {
+          "seconds": 0.251257,
+          "calls": 1
+        },
+        "verifyWorkspaceNamespace": {
+          "seconds": 0.3129766,
+          "calls": 2
+        },
+        "captureFiles": {
+          "seconds": 0.4028426,
+          "calls": 1
+        },
+        "endCompose": {
+          "seconds": 0.1214858,
+          "calls": 1
+        },
+        "pluginEnd": {
+          "seconds": 3.0741803,
+          "calls": 1
+        },
+        "captureIdentity": {
+          "seconds": 0.0089368,
+          "calls": 1
+        },
+        "verifyWorkspaceInputs": {
+          "seconds": 5.3950604,
+          "calls": 2
+        },
+        "dependencyValidate": {
+          "seconds": 0.29278199999999993,
+          "calls": 201
+        },
+        "dependencyCompose": {
+          "seconds": 1.8979747999999999,
+          "calls": 201
+        },
+        "captureSeal": {
+          "seconds": 0.8911149,
+          "calls": 1
+        }
+      }
+    },
+    {
+      "mode": "baseline",
+      "profile": true,
+      "seconds": 24.789461625,
+      "identicalFiles": 3463,
+      "phases": {
+        "sourceAndRestore": 4.5939979,
+        "seedCopy": 0,
+        "sessionMetadata": 0.0206633,
+        "dependencyValidation": 0.2952155,
+        "dependencyReplayProjects": 0.0411473,
+        "workspaceHashing": 0.3203925,
+        "sessionSetup": 0.0062659,
+        "msbuild": 15.6874795,
+        "selectBundles": 0.0051777,
+        "validateEntry": 0.2558837,
+        "apiIdentity": 0.0314645,
+        "apiProjection": 1.2389711,
+        "runtimeProjection": 0.0033202,
+        "dependencyRevalidation": 0.529885,
+        "packageRevalidation": 0.0001337,
+        "publicationValidation": 0.4933529,
+        "cleanup": 1.203222
+      },
+      "msbuild": {
+        "entryEvaluation": {
+          "seconds": 0.1366561,
+          "calls": 1
+        },
+        "buildManager": {
+          "seconds": 15.4613174,
+          "calls": 1
+        }
+      },
+      "plugin": {
+        "pluginCapture": {
+          "seconds": 1.5605538,
+          "calls": 1
+        },
+        "dependencyRestore": {
+          "seconds": 1.6851037999999998,
+          "calls": 201
+        },
+        "endRefresh": {
+          "seconds": 1.1480272,
+          "calls": 1
+        },
+        "pluginBegin": {
+          "seconds": 8.2609007,
+          "calls": 1
+        },
+        "verifyWorkspaceHashes": {
+          "seconds": 5.0561504,
+          "calls": 2
+        },
+        "endDependencyRevalidation": {
+          "seconds": 0.5294149,
+          "calls": 1
+        },
+        "captureCompose": {
+          "seconds": 0.2474219,
+          "calls": 1
+        },
+        "verifyWorkspaceNamespace": {
+          "seconds": 0.32923179999999996,
+          "calls": 2
+        },
+        "captureFiles": {
+          "seconds": 0.400226,
+          "calls": 1
+        },
+        "endCompose": {
+          "seconds": 0.1201972,
+          "calls": 1
+        },
+        "pluginEnd": {
+          "seconds": 3.0836997,
+          "calls": 1
+        },
+        "captureIdentity": {
+          "seconds": 0.008773,
+          "calls": 1
+        },
+        "verifyWorkspaceInputs": {
+          "seconds": 5.3858126,
+          "calls": 2
+        },
+        "dependencyValidate": {
+          "seconds": 0.2970465999999999,
+          "calls": 201
+        },
+        "dependencyCompose": {
+          "seconds": 1.9239429999999995,
+          "calls": 201
+        },
+        "captureSeal": {
+          "seconds": 0.9025178,
+          "calls": 1
+        }
+      }
+    },
+    {
+      "mode": "candidate",
+      "profile": true,
+      "seconds": 22.145403208999994,
+      "identicalFiles": 3463,
+      "phases": {
+        "sourceAndRestore": 4.6355194,
+        "seedCopy": 1e-07,
+        "sessionMetadata": 0.0204171,
+        "dependencyValidation": 0.2948179,
+        "dependencyReplayProjects": 0.0442203,
+        "workspaceHashing": 0.3212677,
+        "sessionSetup": 0.0065531,
+        "msbuild": 12.9852123,
+        "selectBundles": 0.0042608,
+        "validateEntry": 0.2587797,
+        "apiIdentity": 0.0364782,
+        "apiProjection": 1.2384899,
+        "runtimeProjection": 0.0029197,
+        "dependencyRevalidation": 0.5324561,
+        "packageRevalidation": 0.0001416,
+        "publicationValidation": 0.4897579,
+        "cleanup": 1.1973513
+      },
+      "msbuild": {
+        "entryEvaluation": {
+          "seconds": 0.1366515,
+          "calls": 1
+        },
+        "buildManager": {
+          "seconds": 12.7594842,
+          "calls": 1
+        }
+      },
+      "plugin": {
+        "pluginCapture": {
+          "seconds": 1.5827411,
+          "calls": 1
+        },
+        "dependencyRestore": {
+          "seconds": 1.7863518,
+          "calls": 201
+        },
+        "endRefresh": {
+          "seconds": 0.0054131,
+          "calls": 1
+        },
+        "pluginBegin": {
+          "seconds": 6.6555274,
+          "calls": 1
+        },
+        "verifyWorkspaceHashes": {
+          "seconds": 5.1008024,
+          "calls": 2
+        },
+        "endDependencyRevalidation": {
+          "seconds": 0.5260045,
+          "calls": 1
+        },
+        "captureCompose": {
+          "seconds": 0.2472767,
+          "calls": 1
+        },
+        "verifyWorkspaceNamespace": {
+          "seconds": 0.3159828,
+          "calls": 2
+        },
+        "captureFiles": {
+          "seconds": 0.4097807,
+          "calls": 1
+        },
+        "endCompose": {
+          "seconds": 0.1139407,
+          "calls": 1
+        },
+        "pluginEnd": {
+          "seconds": 1.9229169,
+          "calls": 1
+        },
+        "captureIdentity": {
+          "seconds": 0.0084187,
+          "calls": 1
+        },
+        "verifyWorkspaceInputs": {
+          "seconds": 5.4172662,
+          "calls": 2
+        },
+        "dependencyValidate": {
+          "seconds": 0.33110660000000003,
+          "calls": 201
+        },
+        "dependencyCompose": {
+          "seconds": 0.12380900000000007,
+          "calls": 201
+        },
+        "captureSeal": {
+          "seconds": 0.9155788,
+          "calls": 1
+        }
+      }
+    }
+  ]
+}

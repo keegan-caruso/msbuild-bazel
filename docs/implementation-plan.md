@@ -642,3 +642,8 @@ plugin phase measurements and the Microsoft MSBuildCache implementation comparis
 
 [Validation reuse](validation-reuse.md) carries verified package hashes and sealed
 entry validation through immutable lifetimes while retaining exit checks.
+
+## One-pass replay placement
+
+[Replay placement](replay-placement.md) preserves output membership while selecting
+producer ownership once and eliminating overwritten copies and metadata parsing.

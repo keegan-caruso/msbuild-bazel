@@ -104,13 +104,17 @@ public sealed class NativeCachePlugin : ProjectCachePluginBase
                 var results = ProjectActions.Read(bundle);
                 var identity = DependencyIdentity(bundle, project);
                 if (results.TargetFramework != session.Projects[project].TargetFramework || results.OrchardModule != session.Projects[project].OrchardModule || results.OrchardApplication != session.Projects[project].OrchardApplication || results.Project != project || results.Toolchain != session.Toolchain || results.Key != identity || results.Inputs != identity) throw new InvalidDataException("Invalid project API dependency: " + project);
+                Dictionary<string, string> replacements;
+                using (BuildProfile.Measure("dependencyCompose"))
+                    replacements = EvaluatedBoundary.RuntimeReplacements(bundle, project,
+                        Closure(project).Where(dependency => dependency != project).ToDictionary(dependency => dependency,
+                            dependency => states[dependency].Completion.Task.Result.Bundle), validate: ValidateBundle);
                 using (BuildProfile.Measure("dependencyRestore"))
                     foreach (var artifact in artifacts)
                     {
                         if (!Allowed(project, artifact.Path)) throw new InvalidDataException("API artifact outside project outputs");
-                        StaticWebAssets.Restore(Path.Combine(bundle, "artifacts", artifact.Path), Path.Combine(session.Workspace, artifact.Path), session.Workspace, normalize: true);
+                        StaticWebAssets.Restore(replacements.GetValueOrDefault(artifact.Path, Path.Combine(bundle, "artifacts", artifact.Path)), Path.Combine(session.Workspace, artifact.Path), session.Workspace, normalize: true);
                     }
-                using (BuildProfile.Measure("dependencyCompose")) Compose(bundle, project);
                 states[project].Completion.SetResult(new Ready(bundle, identity));
                 visiting.Remove(project);
                 events.Add(new { project, kind = "dependency", key = identity });
