@@ -662,3 +662,9 @@ Bazel package files by default in the qualified owned project/package workflow,
 with an explicit copy-mode override. Paired Orchard entry actions save 11.5%; a
 single fresh full-graph comparison saves 35.6 seconds (5.45%). Native remote
 recovery and changed-input controls pass, with input validation retained.
+
+## MSBuild process reuse
+
+[Sequential worker measurements](worker-session.md) demonstrate reusable MSBuild
+hosting with byte-identical sampled outputs. Production integration remains off
+pending worker isolation qualification; the current macOS sandbox stays in place.

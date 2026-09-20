@@ -1,0 +1,1124 @@
+{
+  "batchMedians": {
+    "fresh": 37.299918833499994,
+    "worker": 32.73849420750001
+  },
+  "samples": [
+    {
+      "mode": "fresh",
+      "wallSeconds": 40.17376,
+      "actionSeconds": 39.579429125999994,
+      "samples": [
+        {
+          "project": "src/OrchardCore.Cms.Web/OrchardCore.Cms.Web.csproj",
+          "seconds": 23.300219666,
+          "identicalFiles": 6932,
+          "phases": {
+            "sourceAndRestore": 5.0628196,
+            "seedCopy": 0,
+            "sessionMetadata": 0.104907,
+            "dependencyValidation": 0.9289023,
+            "dependencyReplayProjects": 0.0731127,
+            "workspaceHashing": 0.3815648,
+            "sessionSetup": 0.0066256,
+            "msbuild": 11.4444614,
+            "selectBundles": 0.0061123,
+            "validateEntry": 0.256625,
+            "apiIdentity": 0.0307986,
+            "apiProjection": 1.0980219,
+            "runtimeProjection": 0.0034093,
+            "dependencyRevalidation": 0.5242732,
+            "packageRevalidation": 1.4213741,
+            "publicationValidation": 0.7531065,
+            "cleanup": 1.1697339
+          },
+          "msbuild": {
+            "entryEvaluation": {
+              "seconds": 0.1936469,
+              "calls": 1
+            },
+            "buildManager": {
+              "seconds": 11.1214618,
+              "calls": 1
+            }
+          }
+        },
+        {
+          "project": "src/OrchardCore.Modules/OrchardCore.DynamicCache/OrchardCore.DynamicCache.csproj",
+          "seconds": 2.1166748339999977,
+          "identicalFiles": 88,
+          "phases": {
+            "sourceAndRestore": 0.2283816,
+            "seedCopy": 1.3e-05,
+            "sessionMetadata": 0.0107786,
+            "dependencyValidation": 0.012371,
+            "dependencyReplayProjects": 0.0036631,
+            "workspaceHashing": 0.018947,
+            "sessionSetup": 0.0015971,
+            "msbuild": 1.5893656,
+            "selectBundles": 0.0034613,
+            "validateEntry": 0.0013592,
+            "apiIdentity": 0.0102501,
+            "apiProjection": 0.0183285,
+            "runtimeProjection": 0.0016689,
+            "dependencyRevalidation": 0.0054145,
+            "packageRevalidation": 0.0904528,
+            "publicationValidation": 0.0040908,
+            "cleanup": 0.0839675
+          },
+          "msbuild": {
+            "entryEvaluation": {
+              "seconds": 0.1024829,
+              "calls": 1
+            },
+            "buildManager": {
+              "seconds": 1.3981421,
+              "calls": 1
+            }
+          }
+        },
+        {
+          "project": "src/OrchardCore.Modules/OrchardCore.Media.ImageSharpV3/OrchardCore.Media.ImageSharpV3.csproj",
+          "seconds": 3.731653167000001,
+          "identicalFiles": 280,
+          "phases": {
+            "sourceAndRestore": 0.6016953,
+            "seedCopy": 7.8e-06,
+            "sessionMetadata": 0.0169339,
+            "dependencyValidation": 0.0605407,
+            "dependencyReplayProjects": 0.0068196,
+            "workspaceHashing": 0.05749,
+            "sessionSetup": 0.0021057,
+            "msbuild": 2.3449132,
+            "selectBundles": 0.0032793,
+            "validateEntry": 0.0039154,
+            "apiIdentity": 0.0132591,
+            "apiProjection": 0.0360253,
+            "runtimeProjection": 0.002427,
+            "dependencyRevalidation": 0.0331037,
+            "packageRevalidation": 0.3152427,
+            "publicationValidation": 0.0080899,
+            "cleanup": 0.1957626
+          },
+          "msbuild": {
+            "entryEvaluation": {
+              "seconds": 0.1000074,
+              "calls": 1
+            },
+            "buildManager": {
+              "seconds": 2.1689359,
+              "calls": 1
+            }
+          }
+        },
+        {
+          "project": "src/OrchardCore.Modules/OrchardCore.Security/OrchardCore.Security.csproj",
+          "seconds": 2.299623083,
+          "identicalFiles": 128,
+          "phases": {
+            "sourceAndRestore": 0.2264619,
+            "seedCopy": 8.1e-06,
+            "sessionMetadata": 0.0096334,
+            "dependencyValidation": 0.011303,
+            "dependencyReplayProjects": 0.003969,
+            "workspaceHashing": 0.020918,
+            "sessionSetup": 0.0015867,
+            "msbuild": 1.7632867,
+            "selectBundles": 0.0030054,
+            "validateEntry": 0.0017016,
+            "apiIdentity": 0.0107056,
+            "apiProjection": 0.0233416,
+            "runtimeProjection": 0.0020012,
+            "dependencyRevalidation": 0.0095205,
+            "packageRevalidation": 0.088314,
+            "publicationValidation": 0.0047059,
+            "cleanup": 0.0918272
+          },
+          "msbuild": {
+            "entryEvaluation": {
+              "seconds": 0.0964793,
+              "calls": 1
+            },
+            "buildManager": {
+              "seconds": 1.5820367,
+              "calls": 1
+            }
+          }
+        },
+        {
+          "project": "src/OrchardCore.Themes/TheAgencyTheme/TheAgencyTheme.csproj",
+          "seconds": 1.8908731670000023,
+          "identicalFiles": 88,
+          "phases": {
+            "sourceAndRestore": 0.2486315,
+            "seedCopy": 7.5e-06,
+            "sessionMetadata": 0.0089386,
+            "dependencyValidation": 0.0063001,
+            "dependencyReplayProjects": 0.0037475,
+            "workspaceHashing": 0.0329257,
+            "sessionSetup": 0.0016902,
+            "msbuild": 1.3296782,
+            "selectBundles": 0.0030771,
+            "validateEntry": 0.0020908,
+            "apiIdentity": 0.0094904,
+            "apiProjection": 0.0180781,
+            "runtimeProjection": 0.0036623,
+            "dependencyRevalidation": 0.0061813,
+            "packageRevalidation": 0.0915077,
+            "publicationValidation": 0.0055781,
+            "cleanup": 0.0913713
+          },
+          "msbuild": {
+            "entryEvaluation": {
+              "seconds": 0.0880793,
+              "calls": 1
+            },
+            "buildManager": {
+              "seconds": 1.1608758,
+              "calls": 1
+            }
+          }
+        },
+        {
+          "project": "src/OrchardCore/OrchardCore.Data.YesSql.Abstractions/OrchardCore.Data.YesSql.Abstractions.csproj",
+          "seconds": 1.6569806669999991,
+          "identicalFiles": 34,
+          "phases": {
+            "sourceAndRestore": 0.192586,
+            "seedCopy": 8.2e-06,
+            "sessionMetadata": 0.0077434,
+            "dependencyValidation": 0.0019583,
+            "dependencyReplayProjects": 0.0025806,
+            "workspaceHashing": 0.0177806,
+            "sessionSetup": 0.0019292,
+            "msbuild": 1.2259833,
+            "selectBundles": 0.00287,
+            "validateEntry": 0.0005669,
+            "apiIdentity": 0.0086589,
+            "apiProjection": 0.0145689,
+            "runtimeProjection": 0.0017228,
+            "dependencyRevalidation": 0.001285,
+            "packageRevalidation": 0.0820563,
+            "publicationValidation": 0.003019,
+            "cleanup": 0.0635677
+          },
+          "msbuild": {
+            "entryEvaluation": {
+              "seconds": 0.0858013,
+              "calls": 1
+            },
+            "buildManager": {
+              "seconds": 1.0648088,
+              "calls": 1
+            }
+          }
+        },
+        {
+          "project": "src/OrchardCore/OrchardCore.Infrastructure/OrchardCore.Infrastructure.csproj",
+          "seconds": 2.960224791999998,
+          "identicalFiles": 76,
+          "phases": {
+            "sourceAndRestore": 0.5001033,
+            "seedCopy": 7.8e-06,
+            "sessionMetadata": 0.0088615,
+            "dependencyValidation": 0.0065255,
+            "dependencyReplayProjects": 0.0033725,
+            "workspaceHashing": 0.0344689,
+            "sessionSetup": 0.0020913,
+            "msbuild": 1.9458703,
+            "selectBundles": 0.003018,
+            "validateEntry": 0.0012106,
+            "apiIdentity": 0.0098717,
+            "apiProjection": 0.0177119,
+            "runtimeProjection": 0.0018303,
+            "dependencyRevalidation": 0.0052362,
+            "packageRevalidation": 0.2443149,
+            "publicationValidation": 0.0043875,
+            "cleanup": 0.1430509
+          },
+          "msbuild": {
+            "entryEvaluation": {
+              "seconds": 0.0852782,
+              "calls": 1
+            },
+            "buildManager": {
+              "seconds": 1.7778437,
+              "calls": 1
+            }
+          }
+        },
+        {
+          "project": "src/OrchardCore/OrchardCore.ResourceManagement.Core/OrchardCore.ResourceManagement.Core.csproj",
+          "seconds": 1.6231797499999985,
+          "identicalFiles": 34,
+          "phases": {
+            "sourceAndRestore": 0.1882003,
+            "seedCopy": 7.4e-06,
+            "sessionMetadata": 0.0077285,
+            "dependencyValidation": 0.0018878,
+            "dependencyReplayProjects": 0.0025369,
+            "workspaceHashing": 0.0167013,
+            "sessionSetup": 0.0018318,
+            "msbuild": 1.1977008,
+            "selectBundles": 0.0029446,
+            "validateEntry": 0.0005475,
+            "apiIdentity": 0.0088256,
+            "apiProjection": 0.0147949,
+            "runtimeProjection": 0.0017382,
+            "dependencyRevalidation": 0.0013002,
+            "packageRevalidation": 0.0800982,
+            "publicationValidation": 0.0030097,
+            "cleanup": 0.0645055
+          },
+          "msbuild": {
+            "entryEvaluation": {
+              "seconds": 0.0863405,
+              "calls": 1
+            },
+            "buildManager": {
+              "seconds": 1.0278451,
+              "calls": 1
+            }
+          }
+        }
+      ]
+    },
+    {
+      "mode": "worker",
+      "wallSeconds": 33.760749749999995,
+      "actionSeconds": 32.83061104000003,
+      "samples": [
+        {
+          "project": "src/OrchardCore.Cms.Web/OrchardCore.Cms.Web.csproj",
+          "seconds": 19.380263625000005,
+          "identicalFiles": 6932,
+          "phases": {
+            "sourceAndRestore": 2.7717503,
+            "seedCopy": 0,
+            "sessionMetadata": 0.055799,
+            "dependencyValidation": 0.6234127,
+            "dependencyReplayProjects": 0.0289822,
+            "workspaceHashing": 0.3821936,
+            "sessionSetup": 0.005705,
+            "msbuild": 9.5921446,
+            "selectBundles": 0.0040457,
+            "validateEntry": 0.256434,
+            "apiIdentity": 0.0180928,
+            "apiProjection": 1.1193577,
+            "runtimeProjection": 0.0046336,
+            "dependencyRevalidation": 0.5360728,
+            "packageRevalidation": 1.8671123,
+            "publicationValidation": 0.8914167,
+            "cleanup": 1.2071921
+          },
+          "msbuild": {
+            "entryEvaluation": {
+              "seconds": 0.145049,
+              "calls": 1
+            },
+            "buildManager": {
+              "seconds": 9.427306,
+              "calls": 1
+            }
+          }
+        },
+        {
+          "project": "src/OrchardCore.Modules/OrchardCore.DynamicCache/OrchardCore.DynamicCache.csproj",
+          "seconds": 1.7926816250000002,
+          "identicalFiles": 88,
+          "phases": {
+            "sourceAndRestore": 0.2170224,
+            "seedCopy": 2e-07,
+            "sessionMetadata": 0.0040166,
+            "dependencyValidation": 0.0131628,
+            "dependencyReplayProjects": 0.0012405,
+            "workspaceHashing": 0.0172087,
+            "sessionSetup": 0.0004751,
+            "msbuild": 1.3492267,
+            "selectBundles": 0.0002854,
+            "validateEntry": 0.0009485,
+            "apiIdentity": 0.0008231,
+            "apiProjection": 0.010191,
+            "runtimeProjection": 0.0015273,
+            "dependencyRevalidation": 0.0046407,
+            "packageRevalidation": 0.0865561,
+            "publicationValidation": 0.0024191,
+            "cleanup": 0.0825142
+          },
+          "msbuild": {
+            "entryEvaluation": {
+              "seconds": 0.0558677,
+              "calls": 1
+            },
+            "buildManager": {
+              "seconds": 1.2904586,
+              "calls": 1
+            }
+          }
+        },
+        {
+          "project": "src/OrchardCore.Modules/OrchardCore.Media.ImageSharpV3/OrchardCore.Media.ImageSharpV3.csproj",
+          "seconds": 3.220663083000005,
+          "identicalFiles": 280,
+          "phases": {
+            "sourceAndRestore": 0.5666859,
+            "seedCopy": 0,
+            "sessionMetadata": 0.0092258,
+            "dependencyValidation": 0.056865,
+            "dependencyReplayProjects": 0.0050593,
+            "workspaceHashing": 0.0543302,
+            "sessionSetup": 0.0007523,
+            "msbuild": 1.9579361,
+            "selectBundles": 0.0003643,
+            "validateEntry": 0.003089,
+            "apiIdentity": 0.0024946,
+            "apiProjection": 0.0239622,
+            "runtimeProjection": 0.0019595,
+            "dependencyRevalidation": 0.0271272,
+            "packageRevalidation": 0.3120745,
+            "publicationValidation": 0.0059995,
+            "cleanup": 0.192429
+          },
+          "msbuild": {
+            "entryEvaluation": {
+              "seconds": 0.0492753,
+              "calls": 1
+            },
+            "buildManager": {
+              "seconds": 1.9072977,
+              "calls": 1
+            }
+          }
+        },
+        {
+          "project": "src/OrchardCore.Modules/OrchardCore.Security/OrchardCore.Security.csproj",
+          "seconds": 1.8433115410000056,
+          "identicalFiles": 128,
+          "phases": {
+            "sourceAndRestore": 0.2026323,
+            "seedCopy": 2e-07,
+            "sessionMetadata": 0.0021812,
+            "dependencyValidation": 0.0095013,
+            "dependencyReplayProjects": 0.0015364,
+            "workspaceHashing": 0.02151,
+            "sessionSetup": 0.0004405,
+            "msbuild": 1.3996372,
+            "selectBundles": 0.0002931,
+            "validateEntry": 0.0014662,
+            "apiIdentity": 0.0010292,
+            "apiProjection": 0.0098277,
+            "runtimeProjection": 0.0019506,
+            "dependencyRevalidation": 0.0084147,
+            "packageRevalidation": 0.0870344,
+            "publicationValidation": 0.0031244,
+            "cleanup": 0.0924525
+          },
+          "msbuild": {
+            "entryEvaluation": {
+              "seconds": 0.0375688,
+              "calls": 1
+            },
+            "buildManager": {
+              "seconds": 1.3610486,
+              "calls": 1
+            }
+          }
+        },
+        {
+          "project": "src/OrchardCore.Themes/TheAgencyTheme/TheAgencyTheme.csproj",
+          "seconds": 1.5188636250000087,
+          "identicalFiles": 88,
+          "phases": {
+            "sourceAndRestore": 0.2221375,
+            "seedCopy": 2e-07,
+            "sessionMetadata": 0.0016776,
+            "dependencyValidation": 0.0043979,
+            "dependencyReplayProjects": 0.0019485,
+            "workspaceHashing": 0.030692,
+            "sessionSetup": 0.0004092,
+            "msbuild": 1.0568722,
+            "selectBundles": 0.0002822,
+            "validateEntry": 0.0017567,
+            "apiIdentity": 0.000894,
+            "apiProjection": 0.0072032,
+            "runtimeProjection": 0.0030536,
+            "dependencyRevalidation": 0.0054152,
+            "packageRevalidation": 0.0900255,
+            "publicationValidation": 0.0040424,
+            "cleanup": 0.0878079
+          },
+          "msbuild": {
+            "entryEvaluation": {
+              "seconds": 0.0260331,
+              "calls": 1
+            },
+            "buildManager": {
+              "seconds": 1.0298937,
+              "calls": 1
+            }
+          }
+        },
+        {
+          "project": "src/OrchardCore/OrchardCore.Data.YesSql.Abstractions/OrchardCore.Data.YesSql.Abstractions.csproj",
+          "seconds": 1.2888217499999968,
+          "identicalFiles": 34,
+          "phases": {
+            "sourceAndRestore": 0.1717291,
+            "seedCopy": 2.02e-05,
+            "sessionMetadata": 0.0006712,
+            "dependencyValidation": 0.0007117,
+            "dependencyReplayProjects": 0.000343,
+            "workspaceHashing": 0.0136565,
+            "sessionSetup": 0.0004149,
+            "msbuild": 0.946493,
+            "selectBundles": 0.0002489,
+            "validateEntry": 0.0004532,
+            "apiIdentity": 0.0003615,
+            "apiProjection": 0.0027946,
+            "runtimeProjection": 0.0049807,
+            "dependencyRevalidation": 0.0010526,
+            "packageRevalidation": 0.0791084,
+            "publicationValidation": 0.0016167,
+            "cleanup": 0.0639355
+          },
+          "msbuild": {
+            "entryEvaluation": {
+              "seconds": 0.0218907,
+              "calls": 1
+            },
+            "buildManager": {
+              "seconds": 0.9237475,
+              "calls": 1
+            }
+          }
+        },
+        {
+          "project": "src/OrchardCore/OrchardCore.Infrastructure/OrchardCore.Infrastructure.csproj",
+          "seconds": 2.539314083000008,
+          "identicalFiles": 76,
+          "phases": {
+            "sourceAndRestore": 0.4742049,
+            "seedCopy": 2e-07,
+            "sessionMetadata": 0.0014697,
+            "dependencyValidation": 0.0050456,
+            "dependencyReplayProjects": 0.0008859,
+            "workspaceHashing": 0.0332278,
+            "sessionSetup": 0.0005546,
+            "msbuild": 1.621093,
+            "selectBundles": 0.0002718,
+            "validateEntry": 0.0010058,
+            "apiIdentity": 0.0085896,
+            "apiProjection": 0.0052233,
+            "runtimeProjection": 0.0014869,
+            "dependencyRevalidation": 0.0040282,
+            "packageRevalidation": 0.2391657,
+            "publicationValidation": 0.0023416,
+            "cleanup": 0.1404521
+          },
+          "msbuild": {
+            "entryEvaluation": {
+              "seconds": 0.029602,
+              "calls": 1
+            },
+            "buildManager": {
+              "seconds": 1.5902975,
+              "calls": 1
+            }
+          }
+        },
+        {
+          "project": "src/OrchardCore/OrchardCore.ResourceManagement.Core/OrchardCore.ResourceManagement.Core.csproj",
+          "seconds": 1.2466917080000002,
+          "identicalFiles": 34,
+          "phases": {
+            "sourceAndRestore": 0.1671257,
+            "seedCopy": 2e-07,
+            "sessionMetadata": 0.0005547,
+            "dependencyValidation": 0.0006321,
+            "dependencyReplayProjects": 0.0002706,
+            "workspaceHashing": 0.0140053,
+            "sessionSetup": 0.0003096,
+            "msbuild": 0.9151491,
+            "selectBundles": 0.0004029,
+            "validateEntry": 0.0003684,
+            "apiIdentity": 0.0002828,
+            "apiProjection": 0.0025135,
+            "runtimeProjection": 0.0013355,
+            "dependencyRevalidation": 0.000857,
+            "packageRevalidation": 0.0780891,
+            "publicationValidation": 0.0015274,
+            "cleanup": 0.0630159
+          },
+          "msbuild": {
+            "entryEvaluation": {
+              "seconds": 0.0223395,
+              "calls": 1
+            },
+            "buildManager": {
+              "seconds": 0.8919612,
+              "calls": 1
+            }
+          }
+        }
+      ]
+    },
+    {
+      "mode": "worker",
+      "wallSeconds": 33.57066670900001,
+      "actionSeconds": 32.646377375,
+      "samples": [
+        {
+          "project": "src/OrchardCore.Cms.Web/OrchardCore.Cms.Web.csproj",
+          "seconds": 19.19568625000001,
+          "identicalFiles": 6932,
+          "phases": {
+            "sourceAndRestore": 2.8196228,
+            "seedCopy": 1e-07,
+            "sessionMetadata": 0.0616519,
+            "dependencyValidation": 0.6620314,
+            "dependencyReplayProjects": 0.0310234,
+            "workspaceHashing": 0.3958367,
+            "sessionSetup": 0.0059,
+            "msbuild": 9.6281463,
+            "selectBundles": 0.0028913,
+            "validateEntry": 0.2581464,
+            "apiIdentity": 0.0177982,
+            "apiProjection": 1.130472,
+            "runtimeProjection": 0.0044362,
+            "dependencyRevalidation": 0.5358282,
+            "packageRevalidation": 1.5313386,
+            "publicationValidation": 0.8945285,
+            "cleanup": 1.1987411
+          },
+          "msbuild": {
+            "entryEvaluation": {
+              "seconds": 0.1435325,
+              "calls": 1
+            },
+            "buildManager": {
+              "seconds": 9.4597672,
+              "calls": 1
+            }
+          }
+        },
+        {
+          "project": "src/OrchardCore.Modules/OrchardCore.DynamicCache/OrchardCore.DynamicCache.csproj",
+          "seconds": 1.7985230839999957,
+          "identicalFiles": 88,
+          "phases": {
+            "sourceAndRestore": 0.2286545,
+            "seedCopy": 1e-07,
+            "sessionMetadata": 0.0040162,
+            "dependencyValidation": 0.0129705,
+            "dependencyReplayProjects": 0.0014271,
+            "workspaceHashing": 0.0171274,
+            "sessionSetup": 0.0004689,
+            "msbuild": 1.3419742,
+            "selectBundles": 0.0002977,
+            "validateEntry": 0.0009934,
+            "apiIdentity": 0.000824,
+            "apiProjection": 0.0075924,
+            "runtimeProjection": 0.0015375,
+            "dependencyRevalidation": 0.0048157,
+            "packageRevalidation": 0.087202,
+            "publicationValidation": 0.0024244,
+            "cleanup": 0.085827
+          },
+          "msbuild": {
+            "entryEvaluation": {
+              "seconds": 0.054457,
+              "calls": 1
+            },
+            "buildManager": {
+              "seconds": 1.2847803,
+              "calls": 1
+            }
+          }
+        },
+        {
+          "project": "src/OrchardCore.Modules/OrchardCore.Media.ImageSharpV3/OrchardCore.Media.ImageSharpV3.csproj",
+          "seconds": 3.2110025000000064,
+          "identicalFiles": 280,
+          "phases": {
+            "sourceAndRestore": 0.5597023,
+            "seedCopy": 2e-07,
+            "sessionMetadata": 0.00921,
+            "dependencyValidation": 0.0563373,
+            "dependencyReplayProjects": 0.0044115,
+            "workspaceHashing": 0.0549405,
+            "sessionSetup": 0.0006612,
+            "msbuild": 1.9396775,
+            "selectBundles": 0.0004226,
+            "validateEntry": 0.0066774,
+            "apiIdentity": 0.009439,
+            "apiProjection": 0.0284505,
+            "runtimeProjection": 0.0017235,
+            "dependencyRevalidation": 0.027345,
+            "packageRevalidation": 0.313467,
+            "publicationValidation": 0.006091,
+            "cleanup": 0.1921151
+          },
+          "msbuild": {
+            "entryEvaluation": {
+              "seconds": 0.0360682,
+              "calls": 1
+            },
+            "buildManager": {
+              "seconds": 1.9022259,
+              "calls": 1
+            }
+          }
+        },
+        {
+          "project": "src/OrchardCore.Modules/OrchardCore.Security/OrchardCore.Security.csproj",
+          "seconds": 1.8516788330000082,
+          "identicalFiles": 128,
+          "phases": {
+            "sourceAndRestore": 0.2070294,
+            "seedCopy": 0,
+            "sessionMetadata": 0.0022383,
+            "dependencyValidation": 0.009785,
+            "dependencyReplayProjects": 0.001401,
+            "workspaceHashing": 0.0193804,
+            "sessionSetup": 0.0003776,
+            "msbuild": 1.3985174,
+            "selectBundles": 0.000298,
+            "validateEntry": 0.0014109,
+            "apiIdentity": 0.0010224,
+            "apiProjection": 0.0118735,
+            "runtimeProjection": 0.0023019,
+            "dependencyRevalidation": 0.0088026,
+            "packageRevalidation": 0.0881859,
+            "publicationValidation": 0.0031546,
+            "cleanup": 0.0956254
+          },
+          "msbuild": {
+            "entryEvaluation": {
+              "seconds": 0.0380112,
+              "calls": 1
+            },
+            "buildManager": {
+              "seconds": 1.359521,
+              "calls": 1
+            }
+          }
+        },
+        {
+          "project": "src/OrchardCore.Themes/TheAgencyTheme/TheAgencyTheme.csproj",
+          "seconds": 1.4955722079999987,
+          "identicalFiles": 88,
+          "phases": {
+            "sourceAndRestore": 0.2242444,
+            "seedCopy": 1e-07,
+            "sessionMetadata": 0.0016943,
+            "dependencyValidation": 0.0045025,
+            "dependencyReplayProjects": 0.0010907,
+            "workspaceHashing": 0.0316626,
+            "sessionSetup": 0.0004154,
+            "msbuild": 1.0268799,
+            "selectBundles": 0.0002961,
+            "validateEntry": 0.0017751,
+            "apiIdentity": 0.000809,
+            "apiProjection": 0.0066533,
+            "runtimeProjection": 0.0031592,
+            "dependencyRevalidation": 0.0059868,
+            "packageRevalidation": 0.0893052,
+            "publicationValidation": 0.0040549,
+            "cleanup": 0.0927767
+          },
+          "msbuild": {
+            "entryEvaluation": {
+              "seconds": 0.0245655,
+              "calls": 1
+            },
+            "buildManager": {
+              "seconds": 1.0013375,
+              "calls": 1
+            }
+          }
+        },
+        {
+          "project": "src/OrchardCore/OrchardCore.Data.YesSql.Abstractions/OrchardCore.Data.YesSql.Abstractions.csproj",
+          "seconds": 1.2928856249999967,
+          "identicalFiles": 34,
+          "phases": {
+            "sourceAndRestore": 0.1742534,
+            "seedCopy": 2.55e-05,
+            "sessionMetadata": 0.0008092,
+            "dependencyValidation": 0.000714,
+            "dependencyReplayProjects": 0.0003045,
+            "workspaceHashing": 0.0143791,
+            "sessionSetup": 0.0004359,
+            "msbuild": 0.9497633,
+            "selectBundles": 0.0002503,
+            "validateEntry": 0.0003862,
+            "apiIdentity": 0.000358,
+            "apiProjection": 0.0026511,
+            "runtimeProjection": 0.0015782,
+            "dependencyRevalidation": 0.001148,
+            "packageRevalidation": 0.079116,
+            "publicationValidation": 0.0028972,
+            "cleanup": 0.0635711
+          },
+          "msbuild": {
+            "entryEvaluation": {
+              "seconds": 0.0246272,
+              "calls": 1
+            },
+            "buildManager": {
+              "seconds": 0.9242882,
+              "calls": 1
+            }
+          }
+        },
+        {
+          "project": "src/OrchardCore/OrchardCore.Infrastructure/OrchardCore.Infrastructure.csproj",
+          "seconds": 2.534085874999988,
+          "identicalFiles": 76,
+          "phases": {
+            "sourceAndRestore": 0.4752927,
+            "seedCopy": 2e-07,
+            "sessionMetadata": 0.001614,
+            "dependencyValidation": 0.0051299,
+            "dependencyReplayProjects": 0.0008704,
+            "workspaceHashing": 0.0331676,
+            "sessionSetup": 0.0005905,
+            "msbuild": 1.619521,
+            "selectBundles": 0.0002603,
+            "validateEntry": 0.0009251,
+            "apiIdentity": 0.0007608,
+            "apiProjection": 0.0061525,
+            "runtimeProjection": 0.0015782,
+            "dependencyRevalidation": 0.004069,
+            "packageRevalidation": 0.2394235,
+            "publicationValidation": 0.0023867,
+            "cleanup": 0.1420917
+          },
+          "msbuild": {
+            "entryEvaluation": {
+              "seconds": 0.0252654,
+              "calls": 1
+            },
+            "buildManager": {
+              "seconds": 1.5930956,
+              "calls": 1
+            }
+          }
+        },
+        {
+          "project": "src/OrchardCore/OrchardCore.ResourceManagement.Core/OrchardCore.ResourceManagement.Core.csproj",
+          "seconds": 1.2669429999999977,
+          "identicalFiles": 34,
+          "phases": {
+            "sourceAndRestore": 0.1715086,
+            "seedCopy": 2e-07,
+            "sessionMetadata": 0.0005815,
+            "dependencyValidation": 0.000653,
+            "dependencyReplayProjects": 0.0002675,
+            "workspaceHashing": 0.0137221,
+            "sessionSetup": 0.0003006,
+            "msbuild": 0.9311903,
+            "selectBundles": 0.0002343,
+            "validateEntry": 0.0004086,
+            "apiIdentity": 0.0002767,
+            "apiProjection": 0.0024532,
+            "runtimeProjection": 0.0013437,
+            "dependencyRevalidation": 0.0008538,
+            "packageRevalidation": 0.0787828,
+            "publicationValidation": 0.0016012,
+            "cleanup": 0.0624861
+          },
+          "msbuild": {
+            "entryEvaluation": {
+              "seconds": 0.0228675,
+              "calls": 1
+            },
+            "buildManager": {
+              "seconds": 0.9063055,
+              "calls": 1
+            }
+          }
+        }
+      ]
+    },
+    {
+      "mode": "fresh",
+      "wallSeconds": 35.915187667,
+      "actionSeconds": 35.020408540999995,
+      "samples": [
+        {
+          "project": "src/OrchardCore.Cms.Web/OrchardCore.Cms.Web.csproj",
+          "seconds": 18.721579333000008,
+          "identicalFiles": 6932,
+          "phases": {
+            "sourceAndRestore": 2.7998962,
+            "seedCopy": 0,
+            "sessionMetadata": 0.0605127,
+            "dependencyValidation": 0.6318734,
+            "dependencyReplayProjects": 0.0380767,
+            "workspaceHashing": 0.378974,
+            "sessionSetup": 0.0059015,
+            "msbuild": 10.008488,
+            "selectBundles": 0.0040873,
+            "validateEntry": 0.2584994,
+            "apiIdentity": 0.031055,
+            "apiProjection": 1.1144272,
+            "runtimeProjection": 0.0034704,
+            "dependencyRevalidation": 0.5318185,
+            "packageRevalidation": 1.1206405,
+            "publicationValidation": 0.5059951,
+            "cleanup": 1.1987124
+          },
+          "msbuild": {
+            "entryEvaluation": {
+              "seconds": 0.1600873,
+              "calls": 1
+            },
+            "buildManager": {
+              "seconds": 9.7627429,
+              "calls": 1
+            }
+          }
+        },
+        {
+          "project": "src/OrchardCore.Modules/OrchardCore.DynamicCache/OrchardCore.DynamicCache.csproj",
+          "seconds": 2.0668492079999936,
+          "identicalFiles": 88,
+          "phases": {
+            "sourceAndRestore": 0.2427003,
+            "seedCopy": 6.4e-06,
+            "sessionMetadata": 0.0086707,
+            "dependencyValidation": 0.0056996,
+            "dependencyReplayProjects": 0.0035997,
+            "workspaceHashing": 0.0187702,
+            "sessionSetup": 0.0015088,
+            "msbuild": 1.5368876,
+            "selectBundles": 0.0030324,
+            "validateEntry": 0.0012545,
+            "apiIdentity": 0.0102345,
+            "apiProjection": 0.0184595,
+            "runtimeProjection": 0.0021903,
+            "dependencyRevalidation": 0.0053532,
+            "packageRevalidation": 0.0903473,
+            "publicationValidation": 0.0041237,
+            "cleanup": 0.0843134
+          },
+          "msbuild": {
+            "entryEvaluation": {
+              "seconds": 0.1021618,
+              "calls": 1
+            },
+            "buildManager": {
+              "seconds": 1.3602928,
+              "calls": 1
+            }
+          }
+        },
+        {
+          "project": "src/OrchardCore.Modules/OrchardCore.Media.ImageSharpV3/OrchardCore.Media.ImageSharpV3.csproj",
+          "seconds": 3.7390563330000077,
+          "identicalFiles": 280,
+          "phases": {
+            "sourceAndRestore": 0.5769871,
+            "seedCopy": 1.33e-05,
+            "sessionMetadata": 0.0161552,
+            "dependencyValidation": 0.0541662,
+            "dependencyReplayProjects": 0.0067817,
+            "workspaceHashing": 0.0580787,
+            "sessionSetup": 0.0021171,
+            "msbuild": 2.3781468,
+            "selectBundles": 0.0031373,
+            "validateEntry": 0.0039677,
+            "apiIdentity": 0.013071,
+            "apiProjection": 0.0368174,
+            "runtimeProjection": 0.0021357,
+            "dependencyRevalidation": 0.0339488,
+            "packageRevalidation": 0.3151372,
+            "publicationValidation": 0.0081887,
+            "cleanup": 0.2023173
+          },
+          "msbuild": {
+            "entryEvaluation": {
+              "seconds": 0.100279,
+              "calls": 1
+            },
+            "buildManager": {
+              "seconds": 2.2031243,
+              "calls": 1
+            }
+          }
+        },
+        {
+          "project": "src/OrchardCore.Modules/OrchardCore.Security/OrchardCore.Security.csproj",
+          "seconds": 2.2972743330000185,
+          "identicalFiles": 128,
+          "phases": {
+            "sourceAndRestore": 0.2276608,
+            "seedCopy": 7.3e-06,
+            "sessionMetadata": 0.0093028,
+            "dependencyValidation": 0.0111677,
+            "dependencyReplayProjects": 0.0040504,
+            "workspaceHashing": 0.0209046,
+            "sessionSetup": 0.0016149,
+            "msbuild": 1.7575845,
+            "selectBundles": 0.0029453,
+            "validateEntry": 0.0017022,
+            "apiIdentity": 0.0105836,
+            "apiProjection": 0.0229475,
+            "runtimeProjection": 0.0021651,
+            "dependencyRevalidation": 0.0094424,
+            "packageRevalidation": 0.0893893,
+            "publicationValidation": 0.0048833,
+            "cleanup": 0.0935075
+          },
+          "msbuild": {
+            "entryEvaluation": {
+              "seconds": 0.0970958,
+              "calls": 1
+            },
+            "buildManager": {
+              "seconds": 1.5752043,
+              "calls": 1
+            }
+          }
+        },
+        {
+          "project": "src/OrchardCore.Themes/TheAgencyTheme/TheAgencyTheme.csproj",
+          "seconds": 1.9133132499999874,
+          "identicalFiles": 88,
+          "phases": {
+            "sourceAndRestore": 0.263107,
+            "seedCopy": 9.5e-06,
+            "sessionMetadata": 0.0095323,
+            "dependencyValidation": 0.0058577,
+            "dependencyReplayProjects": 0.0035464,
+            "workspaceHashing": 0.0326417,
+            "sessionSetup": 0.0016044,
+            "msbuild": 1.3343546,
+            "selectBundles": 0.0029708,
+            "validateEntry": 0.0020891,
+            "apiIdentity": 0.0096328,
+            "apiProjection": 0.017982,
+            "runtimeProjection": 0.0032735,
+            "dependencyRevalidation": 0.0062811,
+            "packageRevalidation": 0.0923168,
+            "publicationValidation": 0.0057408,
+            "cleanup": 0.094914
+          },
+          "msbuild": {
+            "entryEvaluation": {
+              "seconds": 0.0878942,
+              "calls": 1
+            },
+            "buildManager": {
+              "seconds": 1.1619585,
+              "calls": 1
+            }
+          }
+        },
+        {
+          "project": "src/OrchardCore/OrchardCore.Data.YesSql.Abstractions/OrchardCore.Data.YesSql.Abstractions.csproj",
+          "seconds": 1.6813679169999887,
+          "identicalFiles": 34,
+          "phases": {
+            "sourceAndRestore": 0.1946248,
+            "seedCopy": 8.1e-06,
+            "sessionMetadata": 0.0084071,
+            "dependencyValidation": 0.0019146,
+            "dependencyReplayProjects": 0.0025472,
+            "workspaceHashing": 0.016901,
+            "sessionSetup": 0.0018846,
+            "msbuild": 1.2485815,
+            "selectBundles": 0.0028932,
+            "validateEntry": 0.000585,
+            "apiIdentity": 0.0087915,
+            "apiProjection": 0.0143733,
+            "runtimeProjection": 0.0016738,
+            "dependencyRevalidation": 0.0013324,
+            "packageRevalidation": 0.0807449,
+            "publicationValidation": 0.0029269,
+            "cleanup": 0.0656017
+          },
+          "msbuild": {
+            "entryEvaluation": {
+              "seconds": 0.0851562,
+              "calls": 1
+            },
+            "buildManager": {
+              "seconds": 1.0873722,
+              "calls": 1
+            }
+          }
+        },
+        {
+          "project": "src/OrchardCore/OrchardCore.Infrastructure/OrchardCore.Infrastructure.csproj",
+          "seconds": 2.961147667000006,
+          "identicalFiles": 76,
+          "phases": {
+            "sourceAndRestore": 0.478765,
+            "seedCopy": 9.1e-06,
+            "sessionMetadata": 0.009179,
+            "dependencyValidation": 0.0071399,
+            "dependencyReplayProjects": 0.0034123,
+            "workspaceHashing": 0.0400327,
+            "sessionSetup": 0.0022976,
+            "msbuild": 1.9653076,
+            "selectBundles": 0.003004,
+            "validateEntry": 0.0011487,
+            "apiIdentity": 0.0101775,
+            "apiProjection": 0.0177411,
+            "runtimeProjection": 0.0018358,
+            "dependencyRevalidation": 0.0046421,
+            "packageRevalidation": 0.2413612,
+            "publicationValidation": 0.0039712,
+            "cleanup": 0.1435868
+          },
+          "msbuild": {
+            "entryEvaluation": {
+              "seconds": 0.0884462,
+              "calls": 1
+            },
+            "buildManager": {
+              "seconds": 1.7961949,
+              "calls": 1
+            }
+          }
+        },
+        {
+          "project": "src/OrchardCore/OrchardCore.ResourceManagement.Core/OrchardCore.ResourceManagement.Core.csproj",
+          "seconds": 1.6398204999999848,
+          "identicalFiles": 34,
+          "phases": {
+            "sourceAndRestore": 0.1977237,
+            "seedCopy": 9.2e-06,
+            "sessionMetadata": 0.0082346,
+            "dependencyValidation": 0.0019328,
+            "dependencyReplayProjects": 0.0025689,
+            "workspaceHashing": 0.0171689,
+            "sessionSetup": 0.0019006,
+            "msbuild": 1.20287,
+            "selectBundles": 0.0029065,
+            "validateEntry": 0.0005541,
+            "apiIdentity": 0.0088632,
+            "apiProjection": 0.014734,
+            "runtimeProjection": 0.0016657,
+            "dependencyRevalidation": 0.0012167,
+            "packageRevalidation": 0.0796887,
+            "publicationValidation": 0.0030082,
+            "cleanup": 0.0654267
+          },
+          "msbuild": {
+            "entryEvaluation": {
+              "seconds": 0.0851986,
+              "calls": 1
+            },
+            "buildManager": {
+              "seconds": 1.042222,
+              "calls": 1
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

@@ -9,6 +9,7 @@ internal static class EntryBuild
     internal const string Targets = "Build;GetCopyToOutputDirectoryItems;GetTargetFrameworksWithPlatformForSingleTargetFramework;GetNativeManifest;GetTargetFrameworks";
     internal static int Run(string path)
     {
+        BuildProfile.Reset();
         var session = JsonSerializer.Deserialize<Session>(File.ReadAllText(path), new JsonSerializerOptions { PropertyNameCaseInsensitive = true })!;
         var properties = new Dictionary<string, string>
         {

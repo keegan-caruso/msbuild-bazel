@@ -7,6 +7,7 @@ internal static class BuildProfile
 {
     private static readonly ConcurrentDictionary<string, (double Seconds, int Calls)> Totals = new();
     private static bool Enabled => Environment.GetEnvironmentVariable("NATIVE_CACHE_PROFILE") is not null;
+    internal static void Reset() => Totals.Clear();
     internal static IDisposable Measure(string name) => new Timing(name, Enabled);
     private sealed class Timing(string name, bool enabled) : IDisposable
     {

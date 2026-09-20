@@ -26,6 +26,20 @@ internal static class Program
         return result;
     }
 
+    internal static bool ReuseEntryProcess { get; set; }
+
+    internal static void ConfigureEngine()
+    {
+        var engine = Path.Combine(Path.GetDirectoryName(Environment.ProcessPath!)!, "sdk/10.0.400");
+        System.Runtime.Loader.AssemblyLoadContext.Default.Resolving += (context, name) =>
+        {
+            var candidate = Path.Combine(engine, name.Name + ".dll");
+            return File.Exists(candidate) ? context.LoadFromAssemblyPath(candidate) : null;
+        };
+        Environment.SetEnvironmentVariable("MSBUILD_EXE_PATH", Path.Combine(engine, "MSBuild.dll"));
+        Environment.SetEnvironmentVariable("MSBuildSDKsPath", Path.Combine(engine, "Sdks"));
+    }
+
     public static async Task<int> Main(string[] args)
     {
         string? scratch = null;
@@ -37,16 +51,10 @@ internal static class Program
         {
             if (args is ["--build-entry", var entrySession])
             {
-                var engine = Path.Combine(Path.GetDirectoryName(Environment.ProcessPath!)!, "sdk/10.0.400");
-                System.Runtime.Loader.AssemblyLoadContext.Default.Resolving += (context, name) =>
-                {
-                    var candidate = Path.Combine(engine, name.Name + ".dll");
-                    return File.Exists(candidate) ? context.LoadFromAssemblyPath(candidate) : null;
-                };
-                Environment.SetEnvironmentVariable("MSBUILD_EXE_PATH", Path.Combine(engine, "MSBuild.dll"));
-                Environment.SetEnvironmentVariable("MSBuildSDKsPath", Path.Combine(engine, "Sdks"));
+                ConfigureEngine();
                 return EntryBuild.Run(entrySession);
             }
+            if (args is ["--worker-probe"]) { ConfigureEngine(); return await WorkerProbe.Run(); }
             if (args is ["--compose-projects", var compose]) { ProjectActions.Compose(compose); return 0; }
             if (args is not ["--portable-request", var file]) throw new ArgumentException("expected --portable-request PATH");
             var request = JsonSerializer.Deserialize<RunnerRequest>(File.ReadAllText(file), Json)!;
@@ -229,16 +237,24 @@ internal static class Program
             start.Environment["NATIVE_CACHE_SESSION"] = sessionPath;
             if (request.ProfileMsbuild) start.Environment["NATIVE_CACHE_PROFILE"] = Path.Combine(diagnostics, "msbuild-phases.json");
             Mark("sessionSetup");
-            using var process = Process.Start(start)!;
-            var stdout = process.StandardOutput.ReadToEndAsync(); var stderr = process.StandardError.ReadToEndAsync();
-            try { await process.WaitForExitAsync().WaitAsync(TimeSpan.FromMinutes(10)); }
-            catch { process.Kill(true); throw; }
-            var log = await stdout + await stderr;
+            string log;
+            int exitCode;
+            if (ReuseEntryProcess && request.ProjectAction)
+                (exitCode, log) = WorkerProbe.Build(start, sessionPath);
+            else
+            {
+                using var process = Process.Start(start)!;
+                var stdout = process.StandardOutput.ReadToEndAsync(); var stderr = process.StandardError.ReadToEndAsync();
+                try { await process.WaitForExitAsync().WaitAsync(TimeSpan.FromMinutes(10)); }
+                catch { process.Kill(true); throw; }
+                log = await stdout + await stderr;
+                exitCode = process.ExitCode;
+            }
             Mark("msbuild");
             File.WriteAllText(Path.Combine(diagnostics, "build.log"), log);
             var compiles = log.Split('\n').Count(line => line.Contains("/Roslyn/bincore/csc", StringComparison.Ordinal) && line.Contains(" /noconfig ", StringComparison.Ordinal));
-            File.WriteAllText(Path.Combine(diagnostics, "action.json"), JsonSerializer.Serialize(new { compiles, exitCode = process.ExitCode, environmentPolicy = manifest.Policy == "evaluated-api-runtime-v2" ? "evaluated-selected-release-env-v2" : PortableEnvironment.Policy }, Json));
-            if (process.ExitCode != 0) { Console.Error.WriteLine(log); return process.ExitCode; }
+            File.WriteAllText(Path.Combine(diagnostics, "action.json"), JsonSerializer.Serialize(new { compiles, exitCode, environmentPolicy = manifest.Policy == "evaluated-api-runtime-v2" ? "evaluated-selected-release-env-v2" : PortableEnvironment.Policy }, Json));
+            if (exitCode != 0) { Console.Error.WriteLine(log); return exitCode; }
             // Export only bundles selected by this graph, never an accumulating history.
             var selected = JsonSerializer.Deserialize<JsonElement[]>(File.ReadAllText(report))!
                 .Where(e => e.GetProperty("kind").GetString() is "hit" or "miss")
