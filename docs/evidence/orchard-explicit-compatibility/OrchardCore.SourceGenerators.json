@@ -1,0 +1,69 @@
+{
+  "project": "src/OrchardCore/OrchardCore.SourceGenerators/OrchardCore.SourceGenerators.csproj",
+  "framework": "netstandard2.0",
+  "properties": {
+    "ManagePackageVersionsCentrally": "true",
+    "CentralPackageTransitivePinningEnabled": "true",
+    "LangVersion": "latest",
+    "Nullable": "",
+    "TargetFrameworks": "netstandard2.0",
+    "UsingMicrosoftNETSdkRazor": "",
+    "UsingMicrosoftNETSdkWeb": ""
+  },
+  "imports": [
+    "src/OrchardCore/Directory.Build.props",
+    "Directory.Build.props",
+    "src/OrchardCore.Build/TargetFrameworks.props",
+    "src/OrchardCore.Build/OrchardCore.Commons.props",
+    "Directory.Packages.props",
+    "src/OrchardCore/Directory.Build.targets",
+    "src/OrchardCore.Build/OrchardCore.Commons.targets"
+  ],
+  "references": [],
+  "packages": [
+    {
+      "include": "StyleCop.Analyzers",
+      "metadata": {
+        "PrivateAssets": "all"
+      }
+    },
+    {
+      "include": "NETStandard.Library",
+      "metadata": {
+        "Version": "2.0.0-*",
+        "IsImplicitlyDefined": "true",
+        "PrivateAssets": "All",
+        "Publish": "true"
+      }
+    },
+    {
+      "include": "Microsoft.CodeAnalysis.CSharp",
+      "metadata": {
+        "PrivateAssets": "all"
+      }
+    },
+    {
+      "include": "Microsoft.CodeAnalysis.Analyzers",
+      "metadata": {
+        "PrivateAssets": "all"
+      }
+    },
+    {
+      "include": "Microsoft.SourceLink.GitHub",
+      "metadata": {
+        "Version": "",
+        "IncludeAssets": "Runtime;Build;Native;contentFiles;Analyzers",
+        "PrivateAssets": "All"
+      }
+    },
+    {
+      "include": "Microsoft.CodeAnalysis.CSharp.CodeStyle",
+      "metadata": {
+        "Version": "",
+        "IncludeAssets": "Runtime;Build;Native;contentFiles;Analyzers",
+        "PrivateAssets": "All"
+      }
+    }
+  ],
+  "frameworks": []
+}

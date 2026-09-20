@@ -1,0 +1,18 @@
+Computing main repo mapping: 
+Loading: 
+Loading: 0 packages loaded
+Analyzing: target //:sourcegen (1 packages loaded, 0 targets configured)
+Analyzing: target //:sourcegen (1 packages loaded, 0 targets configured)
+
+INFO: Analyzed target //:sourcegen (1 packages loaded, 54 targets configured).
+ERROR: /orchard-work/BUILD.bazel:24:16: MSBuildAssembly sourcegen.reference/OrchardCore.SourceGenerators.dll failed: (Exit 1): dotnet failed: error executing MSBuildAssembly command (from target //:sourcegen) external/+_repo_rules+dotnet/sdk/dotnet external/rules_msbuild+/tools/ExplicitBuild/bin/Release/net10.0/ExplicitBuild.dll --bazel-worker ... (remaining 2 arguments skipped)
+System.IO.InvalidDataException: PrivateAssets package propagation is not qualified in this slice
+   at Program.ValidateDeclarations(Session s, ProjectInstance evaluated) in /workspace/tools/ExplicitBuild/Program.cs:line 317
+   at Program.BuildProject(Session s) in /workspace/tools/ExplicitBuild/Program.cs:line 263
+   at Program.Compile(Session s) in /workspace/tools/ExplicitBuild/Program.cs:line 244
+   at LinuxWorker.Child() in /workspace/tools/ExplicitBuild/LinuxWorker.cs:line 149
+Target //:sourcegen failed to build
+Use --verbose_failures to see the command lines of failed build steps.
+INFO: Elapsed time: 0.275s, Critical Path: 0.14s
+INFO: 2 processes: 40 action cache hit, 2 internal.
+ERROR: Build did NOT complete successfully

@@ -1,0 +1,17 @@
+warn: Microsoft.AspNetCore.DataProtection.KeyManagement.XmlKeyManager[35]
+      No XML encryptor configured. Key {f88a40ab-ca02-4ebc-bc80-0c904f7dce45} may be persisted to storage in unencrypted form.
+info: Microsoft.Hosting.Lifetime[14]
+      Now listening on: http://127.0.0.1:5087
+2026-09-20 13:34:22.0071|INFO|Microsoft.Hosting.Lifetime|Now listening on: http://127.0.0.1:5087
+info: Microsoft.Hosting.Lifetime[0]
+      Application started. Press Ctrl+C to shut down.
+2026-09-20 13:34:22.0124|INFO|Microsoft.Hosting.Lifetime|Application started. Press Ctrl+C to shut down.
+info: Microsoft.Hosting.Lifetime[0]
+      Hosting environment: Production
+2026-09-20 13:34:22.0124|INFO|Microsoft.Hosting.Lifetime|Hosting environment: Production
+info: Microsoft.Hosting.Lifetime[0]
+      Content root path: /orchard-work/src/OrchardCore.Cms.Web
+2026-09-20 13:34:22.0124|INFO|Microsoft.Hosting.Lifetime|Content root path: /orchard-work/src/OrchardCore.Cms.Web
+info: Microsoft.Hosting.Lifetime[0]
+      Application is shutting down...
+2026-09-20 13:34:23.2682|INFO|Microsoft.Hosting.Lifetime|Application is shutting down...

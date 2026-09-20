@@ -1,0 +1,82 @@
+{
+  "project": "src/OrchardCore.Cms.Web/OrchardCore.Cms.Web.csproj",
+  "framework": "net10.0",
+  "properties": {
+    "ManagePackageVersionsCentrally": "true",
+    "CentralPackageTransitivePinningEnabled": "true",
+    "LangVersion": "14.0",
+    "Nullable": "enable",
+    "TargetFrameworks": "net10.0",
+    "UsingMicrosoftNETSdkRazor": "true",
+    "UsingMicrosoftNETSdkWeb": "true"
+  },
+  "imports": [
+    "Directory.Build.props",
+    "src/OrchardCore.Build/TargetFrameworks.props",
+    "Directory.Packages.props",
+    "src/OrchardCore/OrchardCore.Application.Cms.Core.Targets/OrchardCore.Application.Cms.Core.Targets.props",
+    "src/OrchardCore/OrchardCore.Application.Cms.Core.Targets/OrchardCore.Application.Cms.Core.Targets.targets",
+    "src/OrchardCore/OrchardCore.Application.Targets/OrchardCore.Application.Targets.targets",
+    "src/OrchardCore.Build/OrchardCore.Commons.targets"
+  ],
+  "references": [
+    {
+      "include": "../OrchardCore/OrchardCore.Application.Cms.Targets/OrchardCore.Application.Cms.Targets.csproj",
+      "metadata": {
+        "Targets": "",
+        "OutputItemType": "",
+        "ReferenceSourceTarget": "ProjectReference",
+        "GlobalPropertiesToRemove": ";WebPublishProfileFile"
+      }
+    },
+    {
+      "include": "../OrchardCore/OrchardCore.Logging.NLog/OrchardCore.Logging.NLog.csproj",
+      "metadata": {
+        "Targets": "",
+        "OutputItemType": "",
+        "ReferenceSourceTarget": "ProjectReference",
+        "GlobalPropertiesToRemove": ";WebPublishProfileFile"
+      }
+    }
+  ],
+  "packages": [
+    {
+      "include": "StyleCop.Analyzers",
+      "metadata": {
+        "PrivateAssets": "all"
+      }
+    },
+    {
+      "include": "Microsoft.SourceLink.GitHub",
+      "metadata": {
+        "Version": "",
+        "IncludeAssets": "Runtime;Build;Native;contentFiles;Analyzers",
+        "PrivateAssets": "All"
+      }
+    },
+    {
+      "include": "Microsoft.CodeAnalysis.CSharp.CodeStyle",
+      "metadata": {
+        "Version": "",
+        "IncludeAssets": "Runtime;Build;Native;contentFiles;Analyzers",
+        "PrivateAssets": "All"
+      }
+    }
+  ],
+  "frameworks": [
+    {
+      "include": "Microsoft.NETCore.App",
+      "metadata": {
+        "IsImplicitlyDefined": "true",
+        "Pack": "false",
+        "PrivateAssets": "All"
+      }
+    },
+    {
+      "include": "Microsoft.AspNetCore.App",
+      "metadata": {
+        "IsImplicitlyDefined": "true"
+      }
+    }
+  ]
+}

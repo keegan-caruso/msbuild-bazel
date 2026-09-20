@@ -1,0 +1,48 @@
+Computing main repo mapping: 
+Loading: 
+Loading: 0 packages loaded
+Analyzing: target //:cpm_probe (1 packages loaded, 0 targets configured)
+Analyzing: target //:cpm_probe (1 packages loaded, 0 targets configured)
+
+INFO: Analyzed target //:cpm_probe (1 packages loaded, 9 targets configured).
+ERROR: /orchard-work/BUILD.bazel:24:16: MSBuildAssembly cpm_probe.reference/Probe.dll failed: (Exit 1): dotnet failed: error executing MSBuildAssembly command (from target //:cpm_probe) external/+_repo_rules+dotnet/sdk/dotnet external/rules_msbuild+/tools/ExplicitBuild/bin/Release/net10.0/ExplicitBuild.dll --bazel-worker ... (remaining 2 arguments skipped)
+Build started 9/20/2026 1:33:08 PM.
+Project "/tmp/explicit-worker-871d9ef2414b42b8a72c57a5f4d0add6/in/2b798f6146db95a7f4861931b958599b32a0c4d01478498b09797e3069951cda/workspace/CompatibilityProbe/Probe.csproj" on node 1 (Restore target(s)).
+_GetAllRestoreProjectPathItems:
+  Determining projects to restore...
+Project "/tmp/explicit-worker-871d9ef2414b42b8a72c57a5f4d0add6/in/2b798f6146db95a7f4861931b958599b32a0c4d01478498b09797e3069951cda/workspace/CompatibilityProbe/Probe.csproj" (1) is building "/tmp/explicit-worker-871d9ef2414b42b8a72c57a5f4d0add6/in/2b798f6146db95a7f4861931b958599b32a0c4d01478498b09797e3069951cda/workspace/CompatibilityProbe/Probe.csproj" (1:6) on node 1 (_GenerateProjectRestoreGraph target(s)).
+AddPrunePackageReferences:
+  Loading prune package data from PrunePackageData folder
+  Failed to load prune package data from PrunePackageData folder, loading from targeting packs instead
+  Looking for targeting packs in /opt/rules_msbuild-toolchain/.tools/dotnet/packs/Microsoft.NETCore.App.Ref
+  Pack directories found: /opt/rules_msbuild-toolchain/.tools/dotnet/packs/Microsoft.NETCore.App.Ref/10.0.11
+  Found package overrides file /opt/rules_msbuild-toolchain/.tools/dotnet/packs/Microsoft.NETCore.App.Ref/10.0.11/data/PackageOverrides.txt
+Done Building Project "/tmp/explicit-worker-871d9ef2414b42b8a72c57a5f4d0add6/in/2b798f6146db95a7f4861931b958599b32a0c4d01478498b09797e3069951cda/workspace/CompatibilityProbe/Probe.csproj" (_GenerateProjectRestoreGraph target(s)).
+Restore:
+  X.509 certificate chain validation will not have any trusted roots. Chain building will fail with an untrusted status.
+  X.509 certificate chain validation will not have any trusted roots. Chain building will fail with an untrusted status.
+/tmp/explicit-worker-871d9ef2414b42b8a72c57a5f4d0add6/in/2b798f6146db95a7f4861931b958599b32a0c4d01478498b09797e3069951cda/workspace/CompatibilityProbe/Probe.csproj : error NU1008: The following PackageReference items cannot define a value for Version: StyleCop.Analyzers. Projects using Central Package Management must define a Version value on a PackageVersion item. For more information, visit https://aka.ms/nuget/cpm/gettingstarted
+  Generating MSBuild file /tmp/explicit-worker-871d9ef2414b42b8a72c57a5f4d0add6/out/2b798f6146db95a7f4861931b958599b32a0c4d01478498b09797e3069951cda/obj/Probe.csproj.nuget.g.props.
+  Generating MSBuild file /tmp/explicit-worker-871d9ef2414b42b8a72c57a5f4d0add6/out/2b798f6146db95a7f4861931b958599b32a0c4d01478498b09797e3069951cda/obj/Probe.csproj.nuget.g.targets.
+  Writing assets file to disk. Path: /tmp/explicit-worker-871d9ef2414b42b8a72c57a5f4d0add6/out/2b798f6146db95a7f4861931b958599b32a0c4d01478498b09797e3069951cda/obj/project.assets.json
+  Failed to restore /tmp/explicit-worker-871d9ef2414b42b8a72c57a5f4d0add6/in/2b798f6146db95a7f4861931b958599b32a0c4d01478498b09797e3069951cda/workspace/CompatibilityProbe/Probe.csproj (in 14 ms).
+  
+  NuGet Config files used:
+      /tmp/explicit-worker-871d9ef2414b42b8a72c57a5f4d0add6/in/2b798f6146db95a7f4861931b958599b32a0c4d01478498b09797e3069951cda/workspace/NuGet.Config
+Done Building Project "/tmp/explicit-worker-871d9ef2414b42b8a72c57a5f4d0add6/in/2b798f6146db95a7f4861931b958599b32a0c4d01478498b09797e3069951cda/workspace/CompatibilityProbe/Probe.csproj" (Restore target(s)) -- FAILED.
+
+Build FAILED.
+
+"/tmp/explicit-worker-871d9ef2414b42b8a72c57a5f4d0add6/in/2b798f6146db95a7f4861931b958599b32a0c4d01478498b09797e3069951cda/workspace/CompatibilityProbe/Probe.csproj" (Restore target) (1) ->
+(Restore target) -> 
+  /tmp/explicit-worker-871d9ef2414b42b8a72c57a5f4d0add6/in/2b798f6146db95a7f4861931b958599b32a0c4d01478498b09797e3069951cda/workspace/CompatibilityProbe/Probe.csproj : error NU1008: The following PackageReference items cannot define a value for Version: StyleCop.Analyzers. Projects using Central Package Management must define a Version value on a PackageVersion item. For more information, visit https://aka.ms/nuget/cpm/gettingstarted
+
+    0 Warning(s)
+    1 Error(s)
+
+Time Elapsed 00:00:00.14
+Target //:cpm_probe failed to build
+Use --verbose_failures to see the command lines of failed build steps.
+INFO: Elapsed time: 0.309s, Critical Path: 0.21s
+INFO: 3 processes: 3 action cache hit, 3 internal.
+ERROR: Build did NOT complete successfully

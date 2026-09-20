@@ -1,0 +1,71 @@
+{
+  "project": "src/OrchardCore/OrchardCore.ContentPreview.Abstractions/OrchardCore.ContentPreview.Abstractions.csproj",
+  "framework": "net10.0",
+  "properties": {
+    "ManagePackageVersionsCentrally": "true",
+    "CentralPackageTransitivePinningEnabled": "true",
+    "LangVersion": "14.0",
+    "Nullable": "",
+    "TargetFrameworks": "net10.0",
+    "UsingMicrosoftNETSdkRazor": "",
+    "UsingMicrosoftNETSdkWeb": ""
+  },
+  "imports": [
+    "src/OrchardCore/Directory.Build.props",
+    "Directory.Build.props",
+    "src/OrchardCore.Build/TargetFrameworks.props",
+    "src/OrchardCore.Build/OrchardCore.Commons.props",
+    "Directory.Packages.props",
+    "src/OrchardCore/Directory.Build.targets",
+    "src/OrchardCore.Build/OrchardCore.Commons.targets"
+  ],
+  "references": [
+    {
+      "include": "/orchard-work/src/OrchardCore.Build//../OrchardCore/OrchardCore.SourceGenerators/OrchardCore.SourceGenerators.csproj",
+      "metadata": {
+        "Targets": "",
+        "OutputItemType": "Analyzer",
+        "ReferenceSourceTarget": "ProjectReference",
+        "ReferenceOutputAssembly": "false"
+      }
+    }
+  ],
+  "packages": [
+    {
+      "include": "StyleCop.Analyzers",
+      "metadata": {
+        "PrivateAssets": "all"
+      }
+    },
+    {
+      "include": "Microsoft.SourceLink.GitHub",
+      "metadata": {
+        "Version": "",
+        "IncludeAssets": "Runtime;Build;Native;contentFiles;Analyzers",
+        "PrivateAssets": "All"
+      }
+    },
+    {
+      "include": "Microsoft.CodeAnalysis.CSharp.CodeStyle",
+      "metadata": {
+        "Version": "",
+        "IncludeAssets": "Runtime;Build;Native;contentFiles;Analyzers",
+        "PrivateAssets": "All"
+      }
+    }
+  ],
+  "frameworks": [
+    {
+      "include": "Microsoft.NETCore.App",
+      "metadata": {
+        "IsImplicitlyDefined": "true",
+        "Pack": "false",
+        "PrivateAssets": "All"
+      }
+    },
+    {
+      "include": "Microsoft.AspNetCore.App",
+      "metadata": {}
+    }
+  ]
+}

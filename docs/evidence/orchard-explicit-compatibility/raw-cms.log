@@ -1,0 +1,412 @@
+  Determining projects to restore...
+  Restored /orchard-work/src/OrchardCore.Modules/OrchardCore.UrlRewriting/OrchardCore.UrlRewriting.csproj (in 739 ms).
+  Restored /orchard-work/src/OrchardCore.Modules/OrchardCore.Twitter/OrchardCore.Twitter.csproj (in 276 ms).
+  Restored /orchard-work/src/OrchardCore.Modules/OrchardCore.Widgets/OrchardCore.Widgets.csproj (in 1.07 sec).
+  Restored /orchard-work/src/OrchardCore.Modules/OrchardCore.Workflows/OrchardCore.Workflows.csproj (in 1.07 sec).
+  Restored /orchard-work/src/OrchardCore.Modules/OrchardCore.Title/OrchardCore.Title.csproj (in 37 ms).
+  Restored /orchard-work/src/OrchardCore.Modules/OrchardCore.Users/OrchardCore.Users.csproj (in 1.07 sec).
+  Restored /orchard-work/src/OrchardCore.Modules/OrchardCore.Themes/OrchardCore.Themes.csproj (in 6 ms).
+  Restored /orchard-work/src/OrchardCore.Modules/OrchardCore.Templates/OrchardCore.Templates.csproj (in 9 ms).
+  Restored /orchard-work/src/OrchardCore.Modules/OrchardCore.Taxonomies/OrchardCore.Taxonomies.csproj (in 10 ms).
+  Restored /orchard-work/src/OrchardCore.Modules/OrchardCore.Spatial/OrchardCore.Spatial.csproj (in 8 ms).
+  Restored /orchard-work/src/OrchardCore.Modules/OrchardCore.Sms/OrchardCore.Sms.csproj (in 11 ms).
+  Restored /orchard-work/src/OrchardCore.Modules/OrchardCore.SignalR/OrchardCore.SignalR.csproj (in 2 ms).
+  Restored /orchard-work/src/OrchardCore.Modules/OrchardCore.Sitemaps/OrchardCore.Sitemaps.csproj (in 10 ms).
+  Restored /orchard-work/src/OrchardCore.Modules/OrchardCore.Tenants/OrchardCore.Tenants.csproj (in 114 ms).
+  Restored /orchard-work/src/OrchardCore.Modules/OrchardCore.Shortcodes/OrchardCore.Shortcodes.csproj (in 85 ms).
+  Restored /orchard-work/src/OrchardCore.Modules/OrchardCore.Setup/OrchardCore.Setup.csproj (in 12 ms).
+  Restored /orchard-work/src/OrchardCore.Modules/OrchardCore.Settings/OrchardCore.Settings.csproj (in 12 ms).
+  Restored /orchard-work/src/OrchardCore.Modules/OrchardCore.Sms.Azure/OrchardCore.Sms.Azure.csproj (in 259 ms).
+  Restored /orchard-work/src/OrchardCore.Modules/OrchardCore.Seo/OrchardCore.Seo.csproj (in 16 ms).
+  Restored /orchard-work/src/OrchardCore.Modules/OrchardCore.Security/OrchardCore.Security.csproj (in 24 ms).
+  Restored /orchard-work/src/OrchardCore.Modules/OrchardCore.Search/OrchardCore.Search.csproj (in 8 ms).
+  Restored /orchard-work/src/OrchardCore.Modules/OrchardCore.SignalR.Azure/OrchardCore.SignalR.Azure.csproj (in 287 ms).
+  Restored /orchard-work/src/OrchardCore.Modules/OrchardCore.Roles/OrchardCore.Roles.csproj (in 11 ms).
+  Restored /orchard-work/src/OrchardCore.Modules/OrchardCore.SignalR.Redis/OrchardCore.SignalR.Redis.csproj (in 324 ms).
+  Restored /orchard-work/src/OrchardCore.Modules/OrchardCore.ResponseCompression/OrchardCore.ResponseCompression.csproj (in 1 ms).
+  Restored /orchard-work/src/OrchardCore.Modules/OrchardCore.ReverseProxy/OrchardCore.ReverseProxy.csproj (in 5 ms).
+  Restored /orchard-work/src/OrchardCore.Modules/OrchardCore.Redis/OrchardCore.Redis.csproj (in 2 ms).
+  Restored /orchard-work/src/OrchardCore.Modules/OrchardCore.Resources/OrchardCore.Resources.csproj (in 4 ms).
+  Restored /orchard-work/src/OrchardCore.Modules/OrchardCore.Recipes/OrchardCore.Recipes.csproj (in 5 ms).
+  Restored /orchard-work/src/OrchardCore.Modules/OrchardCore.ReCaptcha/OrchardCore.ReCaptcha.csproj (in 10 ms).
+  Restored /orchard-work/src/OrchardCore.Modules/OrchardCore.RateLimits/OrchardCore.RateLimits.csproj (in 7 ms).
+  Restored /orchard-work/src/OrchardCore.Modules/OrchardCore.PublishLater/OrchardCore.PublishLater.csproj (in 7 ms).
+  Restored /orchard-work/src/OrchardCore.Modules/OrchardCore.Placements/OrchardCore.Placements.csproj (in 5 ms).
+  Restored /orchard-work/src/OrchardCore.Modules/OrchardCore.Scripting/OrchardCore.Scripting.csproj (in 98 ms).
+  Restored /orchard-work/src/OrchardCore.Modules/OrchardCore.Rules/OrchardCore.Rules.csproj (in 87 ms).
+  Restored /orchard-work/src/OrchardCore.Modules/OrchardCore.Queries/OrchardCore.Queries.csproj (in 27 ms).
+  Restored /orchard-work/src/OrchardCore.Modules/OrchardCore.Notifications/OrchardCore.Notifications.csproj (in 13 ms).
+  Restored /orchard-work/src/OrchardCore.Modules/OrchardCore.Navigation/OrchardCore.Navigation.csproj (in 35 ms).
+  Restored /orchard-work/src/OrchardCore.Modules/OrchardCore.OpenApi/OrchardCore.OpenApi.csproj (in 147 ms).
+  Restored /orchard-work/src/OrchardCore.Modules/OrchardCore.Menu/OrchardCore.Menu.csproj (in 8 ms).
+  Restored /orchard-work/src/OrchardCore.Modules/OrchardCore.MiniProfiler/OrchardCore.MiniProfiler.csproj (in 160 ms).
+  Restored /orchard-work/src/OrchardCore.Modules/OrchardCore.Media.Indexing.Pdf/OrchardCore.Media.Indexing.Pdf.csproj (in 352 ms).
+  Restored /orchard-work/src/OrchardCore.Modules/OrchardCore.OpenId/OrchardCore.OpenId.csproj (in 605 ms).
+  Restored /orchard-work/src/OrchardCore.Modules/OrchardCore.Media/OrchardCore.Media.csproj (in 698 ms).
+  Restored /orchard-work/src/OrchardCore/OrchardCore.Infrastructure.Abstractions/OrchardCore.Infrastructure.Abstractions.csproj (in 5 ms).
+  Restored /orchard-work/src/OrchardCore/OrchardCore.Indexing.Core/OrchardCore.Indexing.Core.csproj (in 13 ms).
+  Restored /orchard-work/src/OrchardCore/OrchardCore.Indexing.Abstractions/OrchardCore.Indexing.Abstractions.csproj (in 10 ms).
+  Restored /orchard-work/src/OrchardCore.Modules/OrchardCore.Microsoft.Authentication/OrchardCore.Microsoft.Authentication.csproj (in 895 ms).
+  Restored /orchard-work/src/OrchardCore.Modules/OrchardCore.Media.ImageSharpV3/OrchardCore.Media.ImageSharpV3.csproj (in 312 ms).
+  Restored /orchard-work/src/OrchardCore.Modules/OrchardCore.XmlRpc/OrchardCore.XmlRpc.csproj (in 3 ms).
+  Restored /orchard-work/src/OrchardCore.Themes/SafeMode/SafeMode.csproj (in 26 ms).
+  Restored /orchard-work/src/OrchardCore.Themes/TheAdmin/TheAdmin.csproj (in 51 ms).
+  Restored /orchard-work/src/OrchardCore.Modules/OrchardCore.Markdown/OrchardCore.Markdown.csproj (in 80 ms).
+  Restored /orchard-work/src/OrchardCore.Modules/OrchardCore.Media.AmazonS3/OrchardCore.Media.AmazonS3.csproj (in 173 ms).
+  Restored /orchard-work/src/OrchardCore.Modules/OrchardCore.Media.Indexing.OpenXML/OrchardCore.Media.Indexing.OpenXML.csproj (in 678 ms).
+  Restored /orchard-work/src/OrchardCore.Modules/OrchardCore.Email/OrchardCore.Email.csproj (in 21 ms).
+  Restored /orchard-work/src/OrchardCore.Modules/OrchardCore.Facebook/OrchardCore.Facebook.csproj (in 95 ms).
+  Restored /orchard-work/src/OrchardCore.Modules/OrchardCore.Email.Azure/OrchardCore.Email.Azure.csproj (in 83 ms).
+  Restored /orchard-work/src/OrchardCore.Modules/OrchardCore.DynamicCache/OrchardCore.DynamicCache.csproj (in 10 ms).
+  Restored /orchard-work/src/OrchardCore.Modules/OrchardCore.Media.Azure/OrchardCore.Media.Azure.csproj (in 366 ms).
+  Restored /orchard-work/src/OrchardCore.Modules/OrchardCore.Diagnostics/OrchardCore.Diagnostics.csproj (in 14 ms).
+  Restored /orchard-work/src/OrchardCore.Modules/OrchardCore.Email.Smtp/OrchardCore.Email.Smtp.csproj (in 143 ms).
+  Restored /orchard-work/src/OrchardCore.Modules/OrchardCore.Deployment.Remote/OrchardCore.Deployment.Remote.csproj (in 17 ms).
+  Restored /orchard-work/src/OrchardCore.Modules/OrchardCore.Deployment/OrchardCore.Deployment.csproj (in 22 ms).
+  Restored /orchard-work/src/OrchardCore.Modules/OrchardCore.CustomSettings/OrchardCore.CustomSettings.csproj (in 11 ms).
+  Restored /orchard-work/src/OrchardCore.Modules/OrchardCore.DataLocalization/OrchardCore.DataLocalization.csproj (in 34 ms).
+  Restored /orchard-work/src/OrchardCore.Modules/OrchardCore.Cors/OrchardCore.Cors.csproj (in 21 ms).
+  Restored /orchard-work/src/OrchardCore.Modules/OrchardCore.Contents/OrchardCore.Contents.csproj (in 30 ms).
+  Restored /orchard-work/src/OrchardCore.Modules/OrchardCore.ContentPreview/OrchardCore.ContentPreview.csproj (in 14 ms).
+  Restored /orchard-work/src/OrchardCore.Modules/OrchardCore.ContentTypes/OrchardCore.ContentTypes.csproj (in 46 ms).
+  Restored /orchard-work/src/OrchardCore.Modules/OrchardCore.DataProtection.Azure/OrchardCore.DataProtection.Azure.csproj (in 150 ms).
+  Restored /orchard-work/src/OrchardCore.Modules/OrchardCore.ContentLocalization/OrchardCore.ContentLocalization.csproj (in 16 ms).
+  Restored /orchard-work/src/OrchardCore.Modules/OrchardCore.BackgroundTasks/OrchardCore.BackgroundTasks.csproj (in 14 ms).
+  Restored /orchard-work/src/OrchardCore.Modules/OrchardCore.ContentFields/OrchardCore.ContentFields.csproj (in 25 ms).
+  Restored /orchard-work/src/OrchardCore.Modules/OrchardCore.AutoSetup/OrchardCore.AutoSetup.csproj (in 5 ms).
+  Restored /orchard-work/src/OrchardCore.Modules/OrchardCore.Autoroute/OrchardCore.Autoroute.csproj (in 31 ms).
+  Restored /orchard-work/src/OrchardCore.Modules/OrchardCore.AuditTrail/OrchardCore.AuditTrail.csproj (in 11 ms).
+  Restored /orchard-work/src/OrchardCore.Modules/OrchardCore.ArchiveLater/OrchardCore.ArchiveLater.csproj (in 15 ms).
+  Restored /orchard-work/src/OrchardCore.Modules/OrchardCore.Antivirus/OrchardCore.Antivirus.csproj (in 4 ms).
+  Restored /orchard-work/src/OrchardCore.Modules/OrchardCore.Apis.GraphQL/OrchardCore.Apis.GraphQL.csproj (in 47 ms).
+  Restored /orchard-work/src/OrchardCore.Modules/OrchardCore.Alias/OrchardCore.Alias.csproj (in 20 ms).
+  Restored /orchard-work/src/OrchardCore.Modules/OrchardCore.AdminMenu/OrchardCore.AdminMenu.csproj (in 13 ms).
+  Restored /orchard-work/src/OrchardCore.Modules/OrchardCore.AdminDashboard/OrchardCore.AdminDashboard.csproj (in 13 ms).
+  Restored /orchard-work/src/OrchardCore.Modules/OrchardCore.Admin/OrchardCore.Admin.csproj (in 9 ms).
+  Restored /orchard-work/src/OrchardCore.Modules/OrchardCore.AzureAI/OrchardCore.AzureAI.csproj (in 171 ms).
+  Restored /orchard-work/src/OrchardCore/OrchardCore.HealthChecks.Abstractions/OrchardCore.HealthChecks.Abstractions.csproj (in 1 ms).
+  Restored /orchard-work/src/OrchardCore.Modules/OrchardCore.Elasticsearch/OrchardCore.Elasticsearch.csproj (in 507 ms).
+  Restored /orchard-work/src/OrchardCore/OrchardCore.Flows.Core/OrchardCore.Flows.Core.csproj (in 61 ms).
+  Restored /orchard-work/src/OrchardCore/OrchardCore.Html.Core/OrchardCore.Html.Core.csproj (in 80 ms).
+  Restored /orchard-work/src/OrchardCore/OrchardCore.FileStorage.FileSystem/OrchardCore.FileStorage.FileSystem.csproj (in 3 ms).
+  Restored /orchard-work/src/OrchardCore/OrchardCore.FileStorage.AzureBlob/OrchardCore.FileStorage.AzureBlob.csproj (in 4 ms).
+  Restored /orchard-work/src/OrchardCore/OrchardCore.FileStorage.AmazonS3/OrchardCore.FileStorage.AmazonS3.csproj (in 4 ms).
+  Restored /orchard-work/src/OrchardCore/OrchardCore.Feeds.Core/OrchardCore.Feeds.Core.csproj (in 2 ms).
+  Restored /orchard-work/src/OrchardCore/OrchardCore.FileStorage.Abstractions/OrchardCore.FileStorage.Abstractions.csproj (in 3 ms).
+  Restored /orchard-work/src/OrchardCore/OrchardCore.Feeds.Abstractions/OrchardCore.Feeds.Abstractions.csproj (in 2 ms).
+  Restored /orchard-work/src/OrchardCore/OrchardCore.Email.Core/OrchardCore.Email.Core.csproj (in 3 ms).
+  Restored /orchard-work/src/OrchardCore/OrchardCore.Features.Core/OrchardCore.Features.Core.csproj (in 6 ms).
+  Restored /orchard-work/src/OrchardCore/OrchardCore.Email.Abstractions/OrchardCore.Email.Abstractions.csproj (in 3 ms).
+  Restored /orchard-work/src/OrchardCore/OrchardCore.DynamicCache.Abstractions/OrchardCore.DynamicCache.Abstractions.csproj (in 5 ms).
+  Restored /orchard-work/src/OrchardCore/OrchardCore.Elasticsearch.Core/OrchardCore.Elasticsearch.Core.csproj (in 20 ms).
+  Restored /orchard-work/src/OrchardCore/OrchardCore.ContentFields.Core/OrchardCore.ContentFields.Core.csproj (in 3 ms).
+  Restored /orchard-work/src/OrchardCore/OrchardCore.DisplayManagement.Liquid/OrchardCore.DisplayManagement.Liquid.csproj (in 9 ms).
+  Restored /orchard-work/src/OrchardCore/OrchardCore.DisplayManagement/OrchardCore.DisplayManagement.csproj (in 7 ms).
+  Restored /orchard-work/src/OrchardCore/OrchardCore.Autoroute.Core/OrchardCore.Autoroute.Core.csproj (in 4 ms).
+  Restored /orchard-work/src/OrchardCore/OrchardCore.Application.Targets/OrchardCore.Application.Targets.csproj (in 4 ms).
+  Restored /orchard-work/src/OrchardCore/OrchardCore.AuditTrail.Abstractions/OrchardCore.AuditTrail.Abstractions.csproj (in 8 ms).
+  Restored /orchard-work/src/OrchardCore/OrchardCore.AzureAI.Core/OrchardCore.AzureAI.Core.csproj (in 20 ms).
+  Restored /orchard-work/src/OrchardCore/OrchardCore.Apis.GraphQL.Abstractions/OrchardCore.Apis.GraphQL.Abstractions.csproj (in 3 ms).
+  Restored /orchard-work/src/OrchardCore/OrchardCore.AdminMenu.Abstractions/OrchardCore.AdminMenu.Abstractions.csproj (in 43 ms).
+  Restored /orchard-work/src/OrchardCore/OrchardCore.Admin.Abstractions/OrchardCore.Admin.Abstractions.csproj (in 4 ms).
+  Restored /orchard-work/src/OrchardCore/OrchardCore.Abstractions/OrchardCore.Abstractions.csproj (in 1 ms).
+  Restored /orchard-work/src/OrchardCore.Themes/TheTheme/TheTheme.csproj (in 28 ms).
+  Restored /orchard-work/src/OrchardCore.Themes/TheComingSoonTheme/TheComingSoonTheme.csproj (in 6 ms).
+  Restored /orchard-work/src/OrchardCore.Themes/TheBlogTheme/TheBlogTheme.csproj (in 16 ms).
+  Restored /orchard-work/src/OrchardCore.Themes/TheAgencyTheme/TheAgencyTheme.csproj (in 6 ms).
+  Restored /orchard-work/src/OrchardCore/OrchardCore.DisplayManagement.Abstractions/OrchardCore.DisplayManagement.Abstractions.csproj (in 0.8 ms).
+  Restored /orchard-work/src/OrchardCore/OrchardCore.Deployment.Core/OrchardCore.Deployment.Core.csproj (in 6 ms).
+  Restored /orchard-work/src/OrchardCore/OrchardCore.Deployment.Abstractions/OrchardCore.Deployment.Abstractions.csproj (in 6 ms).
+  Restored /orchard-work/src/OrchardCore/OrchardCore.Data/OrchardCore.Data.csproj (in 2 ms).
+  Restored /orchard-work/src/OrchardCore/OrchardCore.Application.Cms.Core.Targets/OrchardCore.Application.Cms.Core.Targets.csproj (in 1.41 sec).
+  Restored /orchard-work/src/OrchardCore/OrchardCore.Data.YesSql/OrchardCore.Data.YesSql.csproj (in 4 ms).
+  Restored /orchard-work/src/OrchardCore/OrchardCore.Data.Abstractions/OrchardCore.Data.Abstractions.csproj (in 1 ms).
+  Restored /orchard-work/src/OrchardCore/OrchardCore.Data.YesSql.Abstractions/OrchardCore.Data.YesSql.Abstractions.csproj (in 2 ms).
+  Restored /orchard-work/src/OrchardCore/OrchardCore.Contents.TagHelpers/OrchardCore.Contents.TagHelpers.csproj (in 6 ms).
+  Restored /orchard-work/src/OrchardCore/OrchardCore.Contents.Core/OrchardCore.Contents.Core.csproj (in 9 ms).
+  Restored /orchard-work/src/OrchardCore/OrchardCore.ContentTypes.Abstractions/OrchardCore.ContentTypes.Abstractions.csproj (in 6 ms).
+  Restored /orchard-work/src/OrchardCore/OrchardCore.ContentManagement/OrchardCore.ContentManagement.csproj (in 9 ms).
+  Restored /orchard-work/src/OrchardCore/OrchardCore.ContentManagement.GraphQL/OrchardCore.ContentManagement.GraphQL.csproj (in 10 ms).
+  Restored /orchard-work/src/OrchardCore/OrchardCore.ContentManagement.Abstractions/OrchardCore.ContentManagement.Abstractions.csproj (in 2 ms).
+  Restored /orchard-work/src/OrchardCore/OrchardCore.ContentManagement.Display/OrchardCore.ContentManagement.Display.csproj (in 6 ms).
+  Restored /orchard-work/src/OrchardCore/OrchardCore.ContentLocalization.Abstractions/OrchardCore.ContentLocalization.Abstractions.csproj (in 3 ms).
+  Restored /orchard-work/src/OrchardCore.Modules/OrchardCore.Lucene/OrchardCore.Lucene.csproj (in 18 ms).
+  Restored /orchard-work/src/OrchardCore.Modules/OrchardCore.Localization/OrchardCore.Localization.csproj (in 15 ms).
+  Restored /orchard-work/src/OrchardCore.Modules/OrchardCore.Liquid/OrchardCore.Liquid.csproj (in 10 ms).
+  Restored /orchard-work/src/OrchardCore.Modules/OrchardCore.Lists/OrchardCore.Lists.csproj (in 18 ms).
+  Restored /orchard-work/src/OrchardCore.Modules/OrchardCore.Layers/OrchardCore.Layers.csproj (in 13 ms).
+  Restored /orchard-work/src/OrchardCore.Modules/OrchardCore.Https/OrchardCore.Https.csproj (in 9 ms).
+  Restored /orchard-work/src/OrchardCore.Modules/OrchardCore.Indexing/OrchardCore.Indexing.csproj (in 15 ms).
+  Restored /orchard-work/src/OrchardCore.Modules/OrchardCore.HomeRoute/OrchardCore.HomeRoute.csproj (in 4 ms).
+  Restored /orchard-work/src/OrchardCore.Modules/OrchardCore.HealthChecks/OrchardCore.HealthChecks.csproj (in 3 ms).
+  Restored /orchard-work/src/OrchardCore.Modules/OrchardCore.Html/OrchardCore.Html.csproj (in 16 ms).
+  Restored /orchard-work/src/OrchardCore.Modules/OrchardCore.Google/OrchardCore.Google.csproj (in 9 ms).
+  Restored /orchard-work/src/OrchardCore.Modules/OrchardCore.GitHub/OrchardCore.GitHub.csproj (in 10 ms).
+  Restored /orchard-work/src/OrchardCore.Modules/OrchardCore.Forms/OrchardCore.Forms.csproj (in 9 ms).
+  Restored /orchard-work/src/OrchardCore.Modules/OrchardCore.Feeds/OrchardCore.Feeds.csproj (in 7 ms).
+  Restored /orchard-work/src/OrchardCore.Modules/OrchardCore.Flows/OrchardCore.Flows.csproj (in 14 ms).
+  Restored /orchard-work/src/OrchardCore.Cms.Web/OrchardCore.Cms.Web.csproj (in 1.81 sec).
+  Restored /orchard-work/src/OrchardCore/OrchardCore.Application.Cms.Targets/OrchardCore.Application.Cms.Targets.csproj (in 1.63 sec).
+  Restored /orchard-work/src/OrchardCore/OrchardCore.XmlRpc.Abstractions/OrchardCore.XmlRpc.Abstractions.csproj (in 1 ms).
+  Restored /orchard-work/src/OrchardCore/OrchardCore/OrchardCore.csproj (in 4 ms).
+  Restored /orchard-work/src/OrchardCore/OrchardCore.Workflows.Abstractions/OrchardCore.Workflows.Abstractions.csproj (in 6 ms).
+  Restored /orchard-work/src/OrchardCore.Modules/OrchardCore.Features/OrchardCore.Features.csproj (in 11 ms).
+  Restored /orchard-work/src/OrchardCore/OrchardCore.Users.Abstractions/OrchardCore.Users.Abstractions.csproj (in 6 ms).
+  Restored /orchard-work/src/OrchardCore/OrchardCore.Theme.Targets/OrchardCore.Theme.Targets.csproj (in 2 ms).
+  Restored /orchard-work/src/OrchardCore/OrchardCore.UrlRewriting.Abstractions/OrchardCore.UrlRewriting.Abstractions.csproj (in 3 ms).
+  Restored /orchard-work/src/OrchardCore/OrchardCore.UrlRewriting.Core/OrchardCore.UrlRewriting.Core.csproj (in 4 ms).
+  Restored /orchard-work/src/OrchardCore/OrchardCore.Sms.Abstractions/OrchardCore.Sms.Abstractions.csproj (in 3 ms).
+  Restored /orchard-work/src/OrchardCore/OrchardCore.Sitemaps.Abstractions/OrchardCore.Sitemaps.Abstractions.csproj (in 18 ms).
+  Restored /orchard-work/src/OrchardCore/OrchardCore.Users.Core/OrchardCore.Users.Core.csproj (in 16 ms).
+  Restored /orchard-work/src/OrchardCore/OrchardCore.Shortcodes.Abstractions/OrchardCore.Shortcodes.Abstractions.csproj (in 2 ms).
+  Restored /orchard-work/src/OrchardCore/OrchardCore.Taxonomies.Core/OrchardCore.Taxonomies.Core.csproj (in 24 ms).
+  Restored /orchard-work/src/OrchardCore/OrchardCore.Setup.Core/OrchardCore.Setup.Core.csproj (in 5 ms).
+  Restored /orchard-work/src/OrchardCore/OrchardCore.Setup.Abstractions/OrchardCore.Setup.Abstractions.csproj (in 3 ms).
+  Restored /orchard-work/src/OrchardCore/OrchardCore.Sms.Core/OrchardCore.Sms.Core.csproj (in 30 ms).
+  Restored /orchard-work/src/OrchardCore/OrchardCore.Seo.Abstractions/OrchardCore.Seo.Abstractions.csproj (in 3 ms).
+  Restored /orchard-work/src/OrchardCore/OrchardCore.Search.Lucene.Abstractions/OrchardCore.Search.Lucene.Abstractions.csproj (in 3 ms).
+  Restored /orchard-work/src/OrchardCore/OrchardCore.Settings.Core/OrchardCore.Settings.Core.csproj (in 6 ms).
+  Restored /orchard-work/src/OrchardCore/OrchardCore.Scripting.JavaScript/OrchardCore.Scripting.JavaScript.csproj (in 3 ms).
+  Restored /orchard-work/src/OrchardCore/OrchardCore.Rules.Abstractions/OrchardCore.Rules.Abstractions.csproj (in 3 ms).
+  Restored /orchard-work/src/OrchardCore/OrchardCore.Roles.Core/OrchardCore.Roles.Core.csproj (in 3 ms).
+  Restored /orchard-work/src/OrchardCore/OrchardCore.Rules.Core/OrchardCore.Rules.Core.csproj (in 5 ms).
+  Restored /orchard-work/src/OrchardCore/OrchardCore.Roles.Abstractions/OrchardCore.Roles.Abstractions.csproj (in 3 ms).
+  Restored /orchard-work/src/OrchardCore/OrchardCore.ResourceManagement.Core/OrchardCore.ResourceManagement.Core.csproj (in 2 ms).
+  Restored /orchard-work/src/OrchardCore/OrchardCore.ResourceManagement.Abstractions/OrchardCore.ResourceManagement.Abstractions.csproj (in 0.8 ms).
+  Restored /orchard-work/src/OrchardCore/OrchardCore.ResourceManagement/OrchardCore.ResourceManagement.csproj (in 2 ms).
+  Restored /orchard-work/src/OrchardCore/OrchardCore.Search.Abstractions/OrchardCore.Search.Abstractions.csproj (in 10 ms).
+  Restored /orchard-work/src/OrchardCore/OrchardCore.Redis.Abstractions/OrchardCore.Redis.Abstractions.csproj (in 2 ms).
+  Restored /orchard-work/src/OrchardCore/OrchardCore.Recipes.Abstractions/OrchardCore.Recipes.Abstractions.csproj (in 2 ms).
+  Restored /orchard-work/src/OrchardCore/OrchardCore.Recipes.Core/OrchardCore.Recipes.Core.csproj (in 3 ms).
+  Restored /orchard-work/src/OrchardCore/OrchardCore.Queries.Core/OrchardCore.Queries.Core.csproj (in 3 ms).
+  Restored /orchard-work/src/OrchardCore/OrchardCore.ReCaptcha.Core/OrchardCore.ReCaptcha.Core.csproj (in 5 ms).
+  Restored /orchard-work/src/OrchardCore/OrchardCore.Queries.Abstractions/OrchardCore.Queries.Abstractions.csproj (in 2 ms).
+  Restored /orchard-work/src/OrchardCore/OrchardCore.OpenApi.Core/OrchardCore.OpenApi.Core.csproj (in 2 ms).
+  Restored /orchard-work/src/OrchardCore/OrchardCore.RateLimits.Core/OrchardCore.RateLimits.Core.csproj (in 10 ms).
+  Restored /orchard-work/src/OrchardCore/OrchardCore.Notifications.Abstractions/OrchardCore.Notifications.Abstractions.csproj (in 3 ms).
+  Restored /orchard-work/src/OrchardCore/OrchardCore.Mvc.Core/OrchardCore.Mvc.Core.csproj (in 2 ms).
+  Restored /orchard-work/src/OrchardCore/OrchardCore.Module.Targets/OrchardCore.Module.Targets.csproj (in 1 ms).
+  Restored /orchard-work/src/OrchardCore/OrchardCore.Navigation.Core/OrchardCore.Navigation.Core.csproj (in 6 ms).
+  Restored /orchard-work/src/OrchardCore/OrchardCore.MetaWeblog.Abstractions/OrchardCore.MetaWeblog.Abstractions.csproj (in 3 ms).
+  Restored /orchard-work/src/OrchardCore/OrchardCore.Notifications.Core/OrchardCore.Notifications.Core.csproj (in 17 ms).
+  Restored /orchard-work/src/OrchardCore/OrchardCore.Media.Core/OrchardCore.Media.Core.csproj (in 6 ms).
+  Restored /orchard-work/src/OrchardCore/OrchardCore.Markdown.Abstractions/OrchardCore.Markdown.Abstractions.csproj (in 1 ms).
+  Restored /orchard-work/src/OrchardCore/OrchardCore.Media.Abstractions/OrchardCore.Media.Abstractions.csproj (in 5 ms).
+  Restored /orchard-work/src/OrchardCore/OrchardCore.OpenId.Core/OrchardCore.OpenId.Core.csproj (in 31 ms).
+  Restored /orchard-work/src/OrchardCore/OrchardCore.Logging.NLog/OrchardCore.Logging.NLog.csproj (in 1 ms).
+  Restored /orchard-work/src/OrchardCore/OrchardCore.Liquid.Abstractions/OrchardCore.Liquid.Abstractions.csproj (in 1 ms).
+  Restored /orchard-work/src/OrchardCore/OrchardCore.Localization.Core/OrchardCore.Localization.Core.csproj (in 4 ms).
+  Restored /orchard-work/src/OrchardCore/OrchardCore.Localization.Abstractions/OrchardCore.Localization.Abstractions.csproj (in 15 ms).
+  Restored /orchard-work/src/OrchardCore/OrchardCore.Infrastructure/OrchardCore.Infrastructure.csproj (in 13 ms).
+  Restored /orchard-work/src/OrchardCore/OrchardCore.Lucene.Core/OrchardCore.Lucene.Core.csproj (in 20 ms).
+  2 of 202 projects are up-to-date for restore.
+  OrchardCore.SourceGenerators -> /orchard-work/src/OrchardCore/OrchardCore.SourceGenerators/bin/Release/netstandard2.0/OrchardCore.SourceGenerators.dll
+  OrchardCore.ContentPreview.Abstractions -> /orchard-work/src/OrchardCore/OrchardCore.ContentPreview.Abstractions/bin/Release/net10.0/OrchardCore.ContentPreview.Abstractions.dll
+  OrchardCore.DisplayManagement.Abstractions -> /orchard-work/src/OrchardCore/OrchardCore.DisplayManagement.Abstractions/bin/Release/net10.0/OrchardCore.DisplayManagement.Abstractions.dll
+  OrchardCore.XmlRpc.Abstractions -> /orchard-work/src/OrchardCore/OrchardCore.XmlRpc.Abstractions/bin/Release/net10.0/OrchardCore.XmlRpc.Abstractions.dll
+  OrchardCore.Abstractions -> /orchard-work/src/OrchardCore/OrchardCore.Abstractions/bin/Release/net10.0/OrchardCore.Abstractions.dll
+  OrchardCore.Feeds.Abstractions -> /orchard-work/src/OrchardCore/OrchardCore.Feeds.Abstractions/bin/Release/net10.0/OrchardCore.Feeds.Abstractions.dll
+  OrchardCore.HealthChecks.Abstractions -> /orchard-work/src/OrchardCore/OrchardCore.HealthChecks.Abstractions/bin/Release/net10.0/OrchardCore.HealthChecks.Abstractions.dll
+  OrchardCore.ResourceManagement.Abstractions -> /orchard-work/src/OrchardCore/OrchardCore.ResourceManagement.Abstractions/bin/Release/net10.0/OrchardCore.ResourceManagement.Abstractions.dll
+  OrchardCore.Logging.NLog -> /orchard-work/src/OrchardCore/OrchardCore.Logging.NLog/bin/Release/net10.0/OrchardCore.Logging.NLog.dll
+  OrchardCore.Redis.Abstractions -> /orchard-work/src/OrchardCore/OrchardCore.Redis.Abstractions/bin/Release/net10.0/OrchardCore.Redis.Abstractions.dll
+  OrchardCore.ResourceManagement.Core -> /orchard-work/src/OrchardCore/OrchardCore.ResourceManagement.Core/bin/Release/net10.0/OrchardCore.ResourceManagement.Core.dll
+  OrchardCore.Module.Targets -> /orchard-work/src/OrchardCore/OrchardCore.Module.Targets/bin/Release/net10.0/OrchardCore.Module.Targets.dll
+  OrchardCore.Markdown.Abstractions -> /orchard-work/src/OrchardCore/OrchardCore.Markdown.Abstractions/bin/Release/net10.0/OrchardCore.Markdown.Abstractions.dll
+  OrchardCore.Liquid.Abstractions -> /orchard-work/src/OrchardCore/OrchardCore.Liquid.Abstractions/bin/Release/net10.0/OrchardCore.Liquid.Abstractions.dll
+  OrchardCore.Mvc.Core -> /orchard-work/src/OrchardCore/OrchardCore.Mvc.Core/bin/Release/net10.0/OrchardCore.Mvc.Core.dll
+  OrchardCore.Theme.Targets -> /orchard-work/src/OrchardCore/OrchardCore.Theme.Targets/bin/Release/net10.0/OrchardCore.Theme.Targets.dll
+  OrchardCore.Data.Abstractions -> /orchard-work/src/OrchardCore/OrchardCore.Data.Abstractions/bin/Release/net10.0/OrchardCore.Data.Abstractions.dll
+  OrchardCore.Feeds.Core -> /orchard-work/src/OrchardCore/OrchardCore.Feeds.Core/bin/Release/net10.0/OrchardCore.Feeds.Core.dll
+  OrchardCore.SignalR.Azure -> /orchard-work/src/OrchardCore.Modules/OrchardCore.SignalR.Azure/bin/Release/net10.0/OrchardCore.SignalR.Azure.dll
+  OrchardCore.HealthChecks -> /orchard-work/src/OrchardCore.Modules/OrchardCore.HealthChecks/bin/Release/net10.0/OrchardCore.HealthChecks.dll
+  OrchardCore.ResourceManagement -> /orchard-work/src/OrchardCore/OrchardCore.ResourceManagement/bin/Release/net10.0/OrchardCore.ResourceManagement.dll
+  OrchardCore.DataProtection.Azure -> /orchard-work/src/OrchardCore.Modules/OrchardCore.DataProtection.Azure/bin/Release/net10.0/OrchardCore.DataProtection.Azure.dll
+  OrchardCore.ResponseCompression -> /orchard-work/src/OrchardCore.Modules/OrchardCore.ResponseCompression/bin/Release/net10.0/OrchardCore.ResponseCompression.dll
+  OrchardCore.Data.YesSql.Abstractions -> /orchard-work/src/OrchardCore/OrchardCore.Data.YesSql.Abstractions/bin/Release/net10.0/OrchardCore.Data.YesSql.Abstractions.dll
+  OrchardCore.Infrastructure.Abstractions -> /orchard-work/src/OrchardCore/OrchardCore.Infrastructure.Abstractions/bin/Release/net10.0/OrchardCore.Infrastructure.Abstractions.dll
+  OrchardCore.Data -> /orchard-work/src/OrchardCore/OrchardCore.Data/bin/Release/net10.0/OrchardCore.Data.dll
+  OrchardCore.Admin.Abstractions -> /orchard-work/src/OrchardCore/OrchardCore.Admin.Abstractions/bin/Release/net10.0/OrchardCore.Admin.Abstractions.dll
+  OrchardCore.Localization.Abstractions -> /orchard-work/src/OrchardCore/OrchardCore.Localization.Abstractions/bin/Release/net10.0/OrchardCore.Localization.Abstractions.dll
+  OrchardCore.Apis.GraphQL.Abstractions -> /orchard-work/src/OrchardCore/OrchardCore.Apis.GraphQL.Abstractions/bin/Release/net10.0/OrchardCore.Apis.GraphQL.Abstractions.dll
+  OrchardCore.Queries.Abstractions -> /orchard-work/src/OrchardCore/OrchardCore.Queries.Abstractions/bin/Release/net10.0/OrchardCore.Queries.Abstractions.dll
+  OrchardCore.OpenApi.Core -> /orchard-work/src/OrchardCore/OrchardCore.OpenApi.Core/bin/Release/net10.0/OrchardCore.OpenApi.Core.dll
+  OrchardCore.Rules.Abstractions -> /orchard-work/src/OrchardCore/OrchardCore.Rules.Abstractions/bin/Release/net10.0/OrchardCore.Rules.Abstractions.dll
+  OrchardCore.Sms.Abstractions -> /orchard-work/src/OrchardCore/OrchardCore.Sms.Abstractions/bin/Release/net10.0/OrchardCore.Sms.Abstractions.dll
+  OrchardCore.Scripting.JavaScript -> /orchard-work/src/OrchardCore/OrchardCore.Scripting.JavaScript/bin/Release/net10.0/OrchardCore.Scripting.JavaScript.dll
+  OrchardCore.UrlRewriting.Abstractions -> /orchard-work/src/OrchardCore/OrchardCore.UrlRewriting.Abstractions/bin/Release/net10.0/OrchardCore.UrlRewriting.Abstractions.dll
+  OrchardCore.DynamicCache.Abstractions -> /orchard-work/src/OrchardCore/OrchardCore.DynamicCache.Abstractions/bin/Release/net10.0/OrchardCore.DynamicCache.Abstractions.dll
+  OrchardCore.Roles.Abstractions -> /orchard-work/src/OrchardCore/OrchardCore.Roles.Abstractions/bin/Release/net10.0/OrchardCore.Roles.Abstractions.dll
+  OrchardCore.UrlRewriting.Core -> /orchard-work/src/OrchardCore/OrchardCore.UrlRewriting.Core/bin/Release/net10.0/OrchardCore.UrlRewriting.Core.dll
+  OrchardCore.Shortcodes.Abstractions -> /orchard-work/src/OrchardCore/OrchardCore.Shortcodes.Abstractions/bin/Release/net10.0/OrchardCore.Shortcodes.Abstractions.dll
+  OrchardCore.Redis -> /orchard-work/src/OrchardCore.Modules/OrchardCore.Redis/bin/Release/net10.0/OrchardCore.Redis.dll
+  OrchardCore.Scripting -> /orchard-work/src/OrchardCore.Modules/OrchardCore.Scripting/bin/Release/net10.0/OrchardCore.Scripting.dll
+  OrchardCore.Users.Abstractions -> /orchard-work/src/OrchardCore/OrchardCore.Users.Abstractions/bin/Release/net10.0/OrchardCore.Users.Abstractions.dll
+  OrchardCore.Recipes.Abstractions -> /orchard-work/src/OrchardCore/OrchardCore.Recipes.Abstractions/bin/Release/net10.0/OrchardCore.Recipes.Abstractions.dll
+  OrchardCore.Seo.Abstractions -> /orchard-work/src/OrchardCore/OrchardCore.Seo.Abstractions/bin/Release/net10.0/OrchardCore.Seo.Abstractions.dll
+  OrchardCore.Notifications.Abstractions -> /orchard-work/src/OrchardCore/OrchardCore.Notifications.Abstractions/bin/Release/net10.0/OrchardCore.Notifications.Abstractions.dll
+  OrchardCore.Email.Abstractions -> /orchard-work/src/OrchardCore/OrchardCore.Email.Abstractions/bin/Release/net10.0/OrchardCore.Email.Abstractions.dll
+  OrchardCore.ContentManagement.Abstractions -> /orchard-work/src/OrchardCore/OrchardCore.ContentManagement.Abstractions/bin/Release/net10.0/OrchardCore.ContentManagement.Abstractions.dll
+  OrchardCore.Data.YesSql -> /orchard-work/src/OrchardCore/OrchardCore.Data.YesSql/bin/Release/net10.0/OrchardCore.Data.YesSql.dll
+  OrchardCore.XmlRpc -> /orchard-work/src/OrchardCore.Modules/OrchardCore.XmlRpc/bin/Release/net10.0/OrchardCore.XmlRpc.dll
+  OrchardCore.FileStorage.Abstractions -> /orchard-work/src/OrchardCore/OrchardCore.FileStorage.Abstractions/bin/Release/net10.0/OrchardCore.FileStorage.Abstractions.dll
+  OrchardCore -> /orchard-work/src/OrchardCore/OrchardCore/bin/Release/net10.0/OrchardCore.dll
+  OrchardCore.Indexing.Abstractions -> /orchard-work/src/OrchardCore/OrchardCore.Indexing.Abstractions/bin/Release/net10.0/OrchardCore.Indexing.Abstractions.dll
+  OrchardCore.ContentLocalization.Abstractions -> /orchard-work/src/OrchardCore/OrchardCore.ContentLocalization.Abstractions/bin/Release/net10.0/OrchardCore.ContentLocalization.Abstractions.dll
+  OrchardCore.ContentFields.Core -> /orchard-work/src/OrchardCore/OrchardCore.ContentFields.Core/bin/Release/net10.0/OrchardCore.ContentFields.Core.dll
+  OrchardCore.MetaWeblog.Abstractions -> /orchard-work/src/OrchardCore/OrchardCore.MetaWeblog.Abstractions/bin/Release/net10.0/OrchardCore.MetaWeblog.Abstractions.dll
+  OrchardCore.Sitemaps.Abstractions -> /orchard-work/src/OrchardCore/OrchardCore.Sitemaps.Abstractions/bin/Release/net10.0/OrchardCore.Sitemaps.Abstractions.dll
+  OrchardCore.Autoroute.Core -> /orchard-work/src/OrchardCore/OrchardCore.Autoroute.Core/bin/Release/net10.0/OrchardCore.Autoroute.Core.dll
+  OrchardCore.Media.Abstractions -> /orchard-work/src/OrchardCore/OrchardCore.Media.Abstractions/bin/Release/net10.0/OrchardCore.Media.Abstractions.dll
+  OrchardCore.FileStorage.FileSystem -> /orchard-work/src/OrchardCore/OrchardCore.FileStorage.FileSystem/bin/Release/net10.0/OrchardCore.FileStorage.FileSystem.dll
+  OrchardCore.FileStorage.AmazonS3 -> /orchard-work/src/OrchardCore/OrchardCore.FileStorage.AmazonS3/bin/Release/net10.0/OrchardCore.FileStorage.AmazonS3.dll
+  OrchardCore.SignalR.Redis -> /orchard-work/src/OrchardCore.Modules/OrchardCore.SignalR.Redis/bin/Release/net10.0/OrchardCore.SignalR.Redis.dll
+  OrchardCore.FileStorage.AzureBlob -> /orchard-work/src/OrchardCore/OrchardCore.FileStorage.AzureBlob/bin/Release/net10.0/OrchardCore.FileStorage.AzureBlob.dll
+  OrchardCore.Search.Lucene.Abstractions -> /orchard-work/src/OrchardCore/OrchardCore.Search.Lucene.Abstractions/bin/Release/net10.0/OrchardCore.Search.Lucene.Abstractions.dll
+  OrchardCore.Roles.Core -> /orchard-work/src/OrchardCore/OrchardCore.Roles.Core/bin/Release/net10.0/OrchardCore.Roles.Core.dll
+  OrchardCore.Queries.Core -> /orchard-work/src/OrchardCore/OrchardCore.Queries.Core/bin/Release/net10.0/OrchardCore.Queries.Core.dll
+  OrchardCore.Recipes.Core -> /orchard-work/src/OrchardCore/OrchardCore.Recipes.Core/bin/Release/net10.0/OrchardCore.Recipes.Core.dll
+  OrchardCore.Setup.Abstractions -> /orchard-work/src/OrchardCore/OrchardCore.Setup.Abstractions/bin/Release/net10.0/OrchardCore.Setup.Abstractions.dll
+  OrchardCore.Media.Core -> /orchard-work/src/OrchardCore/OrchardCore.Media.Core/bin/Release/net10.0/OrchardCore.Media.Core.dll
+  OrchardCore.Flows.Core -> /orchard-work/src/OrchardCore/OrchardCore.Flows.Core/bin/Release/net10.0/OrchardCore.Flows.Core.dll
+  OrchardCore.OpenId.Core -> /orchard-work/src/OrchardCore/OrchardCore.OpenId.Core/bin/Release/net10.0/OrchardCore.OpenId.Core.dll
+  OrchardCore.Antivirus -> /orchard-work/src/OrchardCore.Modules/OrchardCore.Antivirus/bin/Release/net10.0/OrchardCore.Antivirus.dll
+  OrchardCore.Media.Indexing.OpenXML -> /orchard-work/src/OrchardCore.Modules/OrchardCore.Media.Indexing.OpenXML/bin/Release/net10.0/OrchardCore.Media.Indexing.OpenXML.dll
+  OrchardCore.Media.Indexing.Pdf -> /orchard-work/src/OrchardCore.Modules/OrchardCore.Media.Indexing.Pdf/bin/Release/net10.0/OrchardCore.Media.Indexing.Pdf.dll
+  OrchardCore.Infrastructure -> /orchard-work/src/OrchardCore/OrchardCore.Infrastructure/bin/Release/net10.0/OrchardCore.Infrastructure.dll
+  OrchardCore.Application.Targets -> /orchard-work/src/OrchardCore/OrchardCore.Application.Targets/bin/Release/net10.0/OrchardCore.Application.Targets.dll
+  OrchardCore.Localization.Core -> /orchard-work/src/OrchardCore/OrchardCore.Localization.Core/bin/Release/net10.0/OrchardCore.Localization.Core.dll
+  OrchardCore.AutoSetup -> /orchard-work/src/OrchardCore.Modules/OrchardCore.AutoSetup/bin/Release/net10.0/OrchardCore.AutoSetup.dll
+  OrchardCore.SignalR -> /orchard-work/src/OrchardCore.Modules/OrchardCore.SignalR/bin/Release/net10.0/OrchardCore.SignalR.dll
+  OrchardCore.Setup.Core -> /orchard-work/src/OrchardCore/OrchardCore.Setup.Core/bin/Release/net10.0/OrchardCore.Setup.Core.dll
+  OrchardCore.HomeRoute -> /orchard-work/src/OrchardCore.Modules/OrchardCore.HomeRoute/bin/Release/net10.0/OrchardCore.HomeRoute.dll
+  OrchardCore.Html.Core -> /orchard-work/src/OrchardCore/OrchardCore.Html.Core/bin/Release/net10.0/OrchardCore.Html.Core.dll
+  OrchardCore.DisplayManagement -> /orchard-work/src/OrchardCore/OrchardCore.DisplayManagement/bin/Release/net10.0/OrchardCore.DisplayManagement.dll
+  OrchardCore.Features.Core -> /orchard-work/src/OrchardCore/OrchardCore.Features.Core/bin/Release/net10.0/OrchardCore.Features.Core.dll
+  OrchardCore.Deployment.Abstractions -> /orchard-work/src/OrchardCore/OrchardCore.Deployment.Abstractions/bin/Release/net10.0/OrchardCore.Deployment.Abstractions.dll
+  OrchardCore.Navigation.Core -> /orchard-work/src/OrchardCore/OrchardCore.Navigation.Core/bin/Release/net10.0/OrchardCore.Navigation.Core.dll
+  OrchardCore.Email.Core -> /orchard-work/src/OrchardCore/OrchardCore.Email.Core/bin/Release/net10.0/OrchardCore.Email.Core.dll
+  OrchardCore.ContentManagement.Display -> /orchard-work/src/OrchardCore/OrchardCore.ContentManagement.Display/bin/Release/net10.0/OrchardCore.ContentManagement.Display.dll
+  OrchardCore.ReCaptcha.Core -> /orchard-work/src/OrchardCore/OrchardCore.ReCaptcha.Core/bin/Release/net10.0/OrchardCore.ReCaptcha.Core.dll
+  OrchardCore.Deployment.Core -> /orchard-work/src/OrchardCore/OrchardCore.Deployment.Core/bin/Release/net10.0/OrchardCore.Deployment.Core.dll
+  OrchardCore.Workflows.Abstractions -> /orchard-work/src/OrchardCore/OrchardCore.Workflows.Abstractions/bin/Release/net10.0/OrchardCore.Workflows.Abstractions.dll
+  TheAgencyTheme -> /orchard-work/src/OrchardCore.Themes/TheAgencyTheme/bin/Release/net10.0/TheAgencyTheme.dll
+  OrchardCore.Contents.TagHelpers -> /orchard-work/src/OrchardCore/OrchardCore.Contents.TagHelpers/bin/Release/net10.0/OrchardCore.Contents.TagHelpers.dll
+  OrchardCore.Settings.Core -> /orchard-work/src/OrchardCore/OrchardCore.Settings.Core/bin/Release/net10.0/OrchardCore.Settings.Core.dll
+  TheComingSoonTheme -> /orchard-work/src/OrchardCore.Themes/TheComingSoonTheme/bin/Release/net10.0/TheComingSoonTheme.dll
+  OrchardCore.ContentTypes.Abstractions -> /orchard-work/src/OrchardCore/OrchardCore.ContentTypes.Abstractions/bin/Release/net10.0/OrchardCore.ContentTypes.Abstractions.dll
+  OrchardCore.Feeds -> /orchard-work/src/OrchardCore.Modules/OrchardCore.Feeds/bin/Release/net10.0/OrchardCore.Feeds.dll
+  OrchardCore.AdminMenu.Abstractions -> /orchard-work/src/OrchardCore/OrchardCore.AdminMenu.Abstractions/bin/Release/net10.0/OrchardCore.AdminMenu.Abstractions.dll
+  OrchardCore.AuditTrail.Abstractions -> /orchard-work/src/OrchardCore/OrchardCore.AuditTrail.Abstractions/bin/Release/net10.0/OrchardCore.AuditTrail.Abstractions.dll
+  OrchardCore.ContentManagement -> /orchard-work/src/OrchardCore/OrchardCore.ContentManagement/bin/Release/net10.0/OrchardCore.ContentManagement.dll
+  OrchardCore.Settings -> /orchard-work/src/OrchardCore.Modules/OrchardCore.Settings/bin/Release/net10.0/OrchardCore.Settings.dll
+  OrchardCore.Email.Smtp -> /orchard-work/src/OrchardCore.Modules/OrchardCore.Email.Smtp/bin/Release/net10.0/OrchardCore.Email.Smtp.dll
+  OrchardCore.Https -> /orchard-work/src/OrchardCore.Modules/OrchardCore.Https/bin/Release/net10.0/OrchardCore.Https.dll
+  OrchardCore.Microsoft.Authentication -> /orchard-work/src/OrchardCore.Modules/OrchardCore.Microsoft.Authentication/bin/Release/net10.0/OrchardCore.Microsoft.Authentication.dll
+  OrchardCore.DisplayManagement.Liquid -> /orchard-work/src/OrchardCore/OrchardCore.DisplayManagement.Liquid/bin/Release/net10.0/OrchardCore.DisplayManagement.Liquid.dll
+  OrchardCore.Rules.Core -> /orchard-work/src/OrchardCore/OrchardCore.Rules.Core/bin/Release/net10.0/OrchardCore.Rules.Core.dll
+  OrchardCore.RateLimits.Core -> /orchard-work/src/OrchardCore/OrchardCore.RateLimits.Core/bin/Release/net10.0/OrchardCore.RateLimits.Core.dll
+  OrchardCore.MiniProfiler -> /orchard-work/src/OrchardCore.Modules/OrchardCore.MiniProfiler/bin/Release/net10.0/OrchardCore.MiniProfiler.dll
+  OrchardCore.Setup -> /orchard-work/src/OrchardCore.Modules/OrchardCore.Setup/bin/Release/net10.0/OrchardCore.Setup.dll
+  OrchardCore.Navigation -> /orchard-work/src/OrchardCore.Modules/OrchardCore.Navigation/bin/Release/net10.0/OrchardCore.Navigation.dll
+  OrchardCore.Diagnostics -> /orchard-work/src/OrchardCore.Modules/OrchardCore.Diagnostics/bin/Release/net10.0/OrchardCore.Diagnostics.dll
+  OrchardCore.Google -> /orchard-work/src/OrchardCore.Modules/OrchardCore.Google/bin/Release/net10.0/OrchardCore.Google.dll
+  OrchardCore.BackgroundTasks -> /orchard-work/src/OrchardCore.Modules/OrchardCore.BackgroundTasks/bin/Release/net10.0/OrchardCore.BackgroundTasks.dll
+  SafeMode -> /orchard-work/src/OrchardCore.Themes/SafeMode/bin/Release/net10.0/SafeMode.dll
+  OrchardCore.Themes -> /orchard-work/src/OrchardCore.Modules/OrchardCore.Themes/bin/Release/net10.0/OrchardCore.Themes.dll
+  OrchardCore.GitHub -> /orchard-work/src/OrchardCore.Modules/OrchardCore.GitHub/bin/Release/net10.0/OrchardCore.GitHub.dll
+  OrchardCore.Tenants -> /orchard-work/src/OrchardCore.Modules/OrchardCore.Tenants/bin/Release/net10.0/OrchardCore.Tenants.dll
+  OrchardCore.Security -> /orchard-work/src/OrchardCore.Modules/OrchardCore.Security/bin/Release/net10.0/OrchardCore.Security.dll
+  OrchardCore.Email.Azure -> /orchard-work/src/OrchardCore.Modules/OrchardCore.Email.Azure/bin/Release/net10.0/OrchardCore.Email.Azure.dll
+  OrchardCore.Resources -> /orchard-work/src/OrchardCore.Modules/OrchardCore.Resources/bin/Release/net10.0/OrchardCore.Resources.dll
+  OrchardCore.DynamicCache -> /orchard-work/src/OrchardCore.Modules/OrchardCore.DynamicCache/bin/Release/net10.0/OrchardCore.DynamicCache.dll
+  OrchardCore.Shortcodes -> /orchard-work/src/OrchardCore.Modules/OrchardCore.Shortcodes/bin/Release/net10.0/OrchardCore.Shortcodes.dll
+  OrchardCore.Contents.Core -> /orchard-work/src/OrchardCore/OrchardCore.Contents.Core/bin/Release/net10.0/OrchardCore.Contents.Core.dll
+  OrchardCore.Search.Abstractions -> /orchard-work/src/OrchardCore/OrchardCore.Search.Abstractions/bin/Release/net10.0/OrchardCore.Search.Abstractions.dll
+  OrchardCore.Taxonomies.Core -> /orchard-work/src/OrchardCore/OrchardCore.Taxonomies.Core/bin/Release/net10.0/OrchardCore.Taxonomies.Core.dll
+  OrchardCore.Admin -> /orchard-work/src/OrchardCore.Modules/OrchardCore.Admin/bin/Release/net10.0/OrchardCore.Admin.dll
+  OrchardCore.Indexing.Core -> /orchard-work/src/OrchardCore/OrchardCore.Indexing.Core/bin/Release/net10.0/OrchardCore.Indexing.Core.dll
+  OrchardCore.Twitter -> /orchard-work/src/OrchardCore.Modules/OrchardCore.Twitter/bin/Release/net10.0/OrchardCore.Twitter.dll
+  OrchardCore.RateLimits -> /orchard-work/src/OrchardCore.Modules/OrchardCore.RateLimits/bin/Release/net10.0/OrchardCore.RateLimits.dll
+  OrchardCore.ReverseProxy -> /orchard-work/src/OrchardCore.Modules/OrchardCore.ReverseProxy/bin/Release/net10.0/OrchardCore.ReverseProxy.dll
+  OrchardCore.ContentPreview -> /orchard-work/src/OrchardCore.Modules/OrchardCore.ContentPreview/bin/Release/net10.0/OrchardCore.ContentPreview.dll
+  OrchardCore.Email -> /orchard-work/src/OrchardCore.Modules/OrchardCore.Email/bin/Release/net10.0/OrchardCore.Email.dll
+  OrchardCore.ContentManagement.GraphQL -> /orchard-work/src/OrchardCore/OrchardCore.ContentManagement.GraphQL/bin/Release/net10.0/OrchardCore.ContentManagement.GraphQL.dll
+  OrchardCore.Forms -> /orchard-work/src/OrchardCore.Modules/OrchardCore.Forms/bin/Release/net10.0/OrchardCore.Forms.dll
+  OrchardCore.Widgets -> /orchard-work/src/OrchardCore.Modules/OrchardCore.Widgets/bin/Release/net10.0/OrchardCore.Widgets.dll
+  OrchardCore.Apis.GraphQL -> /orchard-work/src/OrchardCore.Modules/OrchardCore.Apis.GraphQL/bin/Release/net10.0/OrchardCore.Apis.GraphQL.dll
+  OrchardCore.Features -> /orchard-work/src/OrchardCore.Modules/OrchardCore.Features/bin/Release/net10.0/OrchardCore.Features.dll
+  OrchardCore.Title -> /orchard-work/src/OrchardCore.Modules/OrchardCore.Title/bin/Release/net10.0/OrchardCore.Title.dll
+  OrchardCore.Templates -> /orchard-work/src/OrchardCore.Modules/OrchardCore.Templates/bin/Release/net10.0/OrchardCore.Templates.dll
+  OrchardCore.ArchiveLater -> /orchard-work/src/OrchardCore.Modules/OrchardCore.ArchiveLater/bin/Release/net10.0/OrchardCore.ArchiveLater.dll
+  OrchardCore.PublishLater -> /orchard-work/src/OrchardCore.Modules/OrchardCore.PublishLater/bin/Release/net10.0/OrchardCore.PublishLater.dll
+  OrchardCore.AdminDashboard -> /orchard-work/src/OrchardCore.Modules/OrchardCore.AdminDashboard/bin/Release/net10.0/OrchardCore.AdminDashboard.dll
+  OrchardCore.Liquid -> /orchard-work/src/OrchardCore.Modules/OrchardCore.Liquid/bin/Release/net10.0/OrchardCore.Liquid.dll
+  OrchardCore.Html -> /orchard-work/src/OrchardCore.Modules/OrchardCore.Html/bin/Release/net10.0/OrchardCore.Html.dll
+  OrchardCore.Workflows -> /orchard-work/src/OrchardCore.Modules/OrchardCore.Workflows/bin/Release/net10.0/OrchardCore.Workflows.dll
+  OrchardCore.Sitemaps -> /orchard-work/src/OrchardCore.Modules/OrchardCore.Sitemaps/bin/Release/net10.0/OrchardCore.Sitemaps.dll
+  OrchardCore.Recipes -> /orchard-work/src/OrchardCore.Modules/OrchardCore.Recipes/bin/Release/net10.0/OrchardCore.Recipes.dll
+  OrchardCore.Deployment -> /orchard-work/src/OrchardCore.Modules/OrchardCore.Deployment/bin/Release/net10.0/OrchardCore.Deployment.dll
+  OrchardCore.AdminMenu -> /orchard-work/src/OrchardCore.Modules/OrchardCore.AdminMenu/bin/Release/net10.0/OrchardCore.AdminMenu.dll
+  OrchardCore.Placements -> /orchard-work/src/OrchardCore.Modules/OrchardCore.Placements/bin/Release/net10.0/OrchardCore.Placements.dll
+  OrchardCore.Users.Core -> /orchard-work/src/OrchardCore/OrchardCore.Users.Core/bin/Release/net10.0/OrchardCore.Users.Core.dll
+  OrchardCore.Facebook -> /orchard-work/src/OrchardCore.Modules/OrchardCore.Facebook/bin/Release/net10.0/OrchardCore.Facebook.dll
+  OrchardCore.Deployment.Remote -> /orchard-work/src/OrchardCore.Modules/OrchardCore.Deployment.Remote/bin/Release/net10.0/OrchardCore.Deployment.Remote.dll
+  OrchardCore.OpenId -> /orchard-work/src/OrchardCore.Modules/OrchardCore.OpenId/bin/Release/net10.0/OrchardCore.OpenId.dll
+  OrchardCore.Elasticsearch.Core -> /orchard-work/src/OrchardCore/OrchardCore.Elasticsearch.Core/bin/Release/net10.0/OrchardCore.Elasticsearch.Core.dll
+  OrchardCore.UrlRewriting -> /orchard-work/src/OrchardCore.Modules/OrchardCore.UrlRewriting/bin/Release/net10.0/OrchardCore.UrlRewriting.dll
+  OrchardCore.Markdown -> /orchard-work/src/OrchardCore.Modules/OrchardCore.Markdown/bin/Release/net10.0/OrchardCore.Markdown.dll
+  OrchardCore.CustomSettings -> /orchard-work/src/OrchardCore.Modules/OrchardCore.CustomSettings/bin/Release/net10.0/OrchardCore.CustomSettings.dll
+  OrchardCore.Rules -> /orchard-work/src/OrchardCore.Modules/OrchardCore.Rules/bin/Release/net10.0/OrchardCore.Rules.dll
+  OrchardCore.AuditTrail -> /orchard-work/src/OrchardCore.Modules/OrchardCore.AuditTrail/bin/Release/net10.0/OrchardCore.AuditTrail.dll
+  OrchardCore.Lucene.Core -> /orchard-work/src/OrchardCore/OrchardCore.Lucene.Core/bin/Release/net10.0/OrchardCore.Lucene.Core.dll
+  OrchardCore.Sms.Core -> /orchard-work/src/OrchardCore/OrchardCore.Sms.Core/bin/Release/net10.0/OrchardCore.Sms.Core.dll
+  OrchardCore.Notifications.Core -> /orchard-work/src/OrchardCore/OrchardCore.Notifications.Core/bin/Release/net10.0/OrchardCore.Notifications.Core.dll
+  OrchardCore.Alias -> /orchard-work/src/OrchardCore.Modules/OrchardCore.Alias/bin/Release/net10.0/OrchardCore.Alias.dll
+  OrchardCore.Queries -> /orchard-work/src/OrchardCore.Modules/OrchardCore.Queries/bin/Release/net10.0/OrchardCore.Queries.dll
+  TheBlogTheme -> /orchard-work/src/OrchardCore.Themes/TheBlogTheme/bin/Release/net10.0/TheBlogTheme.dll
+  OrchardCore.Layers -> /orchard-work/src/OrchardCore.Modules/OrchardCore.Layers/bin/Release/net10.0/OrchardCore.Layers.dll
+  OrchardCore.Localization -> /orchard-work/src/OrchardCore.Modules/OrchardCore.Localization/bin/Release/net10.0/OrchardCore.Localization.dll
+  OrchardCore.Sms.Azure -> /orchard-work/src/OrchardCore.Modules/OrchardCore.Sms.Azure/bin/Release/net10.0/OrchardCore.Sms.Azure.dll
+  OrchardCore.Cors -> /orchard-work/src/OrchardCore.Modules/OrchardCore.Cors/bin/Release/net10.0/OrchardCore.Cors.dll
+  OrchardCore.Notifications -> /orchard-work/src/OrchardCore.Modules/OrchardCore.Notifications/bin/Release/net10.0/OrchardCore.Notifications.dll
+  OrchardCore.ReCaptcha -> /orchard-work/src/OrchardCore.Modules/OrchardCore.ReCaptcha/bin/Release/net10.0/OrchardCore.ReCaptcha.dll
+  OrchardCore.Sms -> /orchard-work/src/OrchardCore.Modules/OrchardCore.Sms/bin/Release/net10.0/OrchardCore.Sms.dll
+  OrchardCore.Lucene -> /orchard-work/src/OrchardCore.Modules/OrchardCore.Lucene/bin/Release/net10.0/OrchardCore.Lucene.dll
+  OrchardCore.Users -> /orchard-work/src/OrchardCore.Modules/OrchardCore.Users/bin/Release/net10.0/OrchardCore.Users.dll
+  OrchardCore.ContentFields -> /orchard-work/src/OrchardCore.Modules/OrchardCore.ContentFields/bin/Release/net10.0/OrchardCore.ContentFields.dll
+  OrchardCore.Spatial -> /orchard-work/src/OrchardCore.Modules/OrchardCore.Spatial/bin/Release/net10.0/OrchardCore.Spatial.dll
+  OrchardCore.Indexing -> /orchard-work/src/OrchardCore.Modules/OrchardCore.Indexing/bin/Release/net10.0/OrchardCore.Indexing.dll
+  OrchardCore.Lists -> /orchard-work/src/OrchardCore.Modules/OrchardCore.Lists/bin/Release/net10.0/OrchardCore.Lists.dll
+  OrchardCore.ContentTypes -> /orchard-work/src/OrchardCore.Modules/OrchardCore.ContentTypes/bin/Release/net10.0/OrchardCore.ContentTypes.dll
+  OrchardCore.Autoroute -> /orchard-work/src/OrchardCore.Modules/OrchardCore.Autoroute/bin/Release/net10.0/OrchardCore.Autoroute.dll
+  OrchardCore.Search -> /orchard-work/src/OrchardCore.Modules/OrchardCore.Search/bin/Release/net10.0/OrchardCore.Search.dll
+  OrchardCore.Contents -> /orchard-work/src/OrchardCore.Modules/OrchardCore.Contents/bin/Release/net10.0/OrchardCore.Contents.dll
+  OrchardCore.Menu -> /orchard-work/src/OrchardCore.Modules/OrchardCore.Menu/bin/Release/net10.0/OrchardCore.Menu.dll
+  OrchardCore.ContentLocalization -> /orchard-work/src/OrchardCore.Modules/OrchardCore.ContentLocalization/bin/Release/net10.0/OrchardCore.ContentLocalization.dll
+  OrchardCore.AzureAI.Core -> /orchard-work/src/OrchardCore/OrchardCore.AzureAI.Core/bin/Release/net10.0/OrchardCore.AzureAI.Core.dll
+  OrchardCore.Flows -> /orchard-work/src/OrchardCore.Modules/OrchardCore.Flows/bin/Release/net10.0/OrchardCore.Flows.dll
+  OrchardCore.Roles -> /orchard-work/src/OrchardCore.Modules/OrchardCore.Roles/bin/Release/net10.0/OrchardCore.Roles.dll
+  OrchardCore.DataLocalization -> /orchard-work/src/OrchardCore.Modules/OrchardCore.DataLocalization/bin/Release/net10.0/OrchardCore.DataLocalization.dll
+  OrchardCore.Elasticsearch -> /orchard-work/src/OrchardCore.Modules/OrchardCore.Elasticsearch/bin/Release/net10.0/OrchardCore.Elasticsearch.dll
+  OrchardCore.Taxonomies -> /orchard-work/src/OrchardCore.Modules/OrchardCore.Taxonomies/bin/Release/net10.0/OrchardCore.Taxonomies.dll
+  OrchardCore.OpenApi -> /orchard-work/src/OrchardCore.Modules/OrchardCore.OpenApi/bin/Release/net10.0/OrchardCore.OpenApi.dll
+  OrchardCore.Seo -> /orchard-work/src/OrchardCore.Modules/OrchardCore.Seo/bin/Release/net10.0/OrchardCore.Seo.dll
+  OrchardCore.Media -> /orchard-work/src/OrchardCore.Modules/OrchardCore.Media/bin/Release/net10.0/OrchardCore.Media.dll
+  OrchardCore.AzureAI -> /orchard-work/src/OrchardCore.Modules/OrchardCore.AzureAI/bin/Release/net10.0/OrchardCore.AzureAI.dll
+  OrchardCore.Media.Azure -> /orchard-work/src/OrchardCore.Modules/OrchardCore.Media.Azure/bin/Release/net10.0/OrchardCore.Media.Azure.dll
+  OrchardCore.Media.AmazonS3 -> /orchard-work/src/OrchardCore.Modules/OrchardCore.Media.AmazonS3/bin/Release/net10.0/OrchardCore.Media.AmazonS3.dll
+  OrchardCore.Media.ImageSharpV3 -> /orchard-work/src/OrchardCore.Modules/OrchardCore.Media.ImageSharpV3/bin/Release/net10.0/OrchardCore.Media.ImageSharpV3.dll
+  TheAdmin -> /orchard-work/src/OrchardCore.Themes/TheAdmin/bin/Release/net10.0/TheAdmin.dll
+  TheTheme -> /orchard-work/src/OrchardCore.Themes/TheTheme/bin/Release/net10.0/TheTheme.dll
+  OrchardCore.Application.Cms.Core.Targets -> /orchard-work/src/OrchardCore/OrchardCore.Application.Cms.Core.Targets/bin/Release/net10.0/OrchardCore.Application.Cms.Core.Targets.dll
+  OrchardCore.Application.Cms.Targets -> /orchard-work/src/OrchardCore/OrchardCore.Application.Cms.Targets/bin/Release/net10.0/OrchardCore.Application.Cms.Targets.dll
+  OrchardCore.Cms.Web -> /orchard-work/src/OrchardCore.Cms.Web/bin/Release/net10.0/OrchardCore.Cms.Web.dll
+  Copying translation files: OrchardCore.Cms.Web
+  Copying translation files: OrchardCore.Cms.Web
+
+Build succeeded.
+    0 Warning(s)
+    0 Error(s)
+
+Time Elapsed 00:00:45.79

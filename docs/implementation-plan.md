@@ -735,3 +735,9 @@ manager setup, BeginBuild, request execution, EndBuild and disposal. Retaining
 manager/node infrastructure, SDK-only evaluation cache reuse, prepared reference
 metadata, and reduced logging did not establish a meaningful cold-build win.
 The runtime experiments were discarded; lifecycle profiling and evidence remain.
+
+[Orchard explicit-rule compatibility](orchard-explicit-compatibility.md) inventories
+the pinned 202-project CMS graph and confirms raw Linux build/startup. Explicit
+rules are blocked by private/central package semantics and project-built analyzer
+edges. Referenced-target metadata and Razor/module assets remain unqualified;
+Orchard performance measurement should follow those compatibility fixes.
