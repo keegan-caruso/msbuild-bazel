@@ -754,3 +754,8 @@ referenced-target metadata and Razor/module assets remain the next step.
 metadata handoff plus unchanged Orchard module/application targets and compiled
 Razor asset execution, including a deleted-producer/new-workspace cache control.
 Full CMS input declarations, startup, publish and remote-cache qualification remain.
+
+[Explicit package borrowing](explicit-package-borrowing.md) compares the current
+read-only package-tree reuse with a temporary byte-copy variant. On a 33-project
+Linux graph, borrowing reduces cold build time in all three pairs (9–19%) while
+preserving assembly hashes and runtime output. No production default changed.

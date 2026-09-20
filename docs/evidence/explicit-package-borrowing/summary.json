@@ -1,0 +1,57 @@
+{
+  "projects": 33,
+  "packages": 3,
+  "pairs": 3,
+  "summary": {
+    "cold": {
+      "copy": {
+        "wallSeconds": 10.447105671000003,
+        "preparationSeconds": 2.7560721000000004,
+        "snapshotSeconds": 1.3381256,
+        "childSeconds": 22.578442400000007,
+        "publicationSeconds": 0.8928268999999996
+      },
+      "borrow": {
+        "wallSeconds": 8.677818755000004,
+        "preparationSeconds": 0.4376621999999999,
+        "snapshotSeconds": 1.4095776999999998,
+        "childSeconds": 21.820391299999997,
+        "publicationSeconds": 0.5405554999999999
+      }
+    },
+    "noop": {
+      "copy": {
+        "wallSeconds": 1.0059973330000105,
+        "preparationSeconds": 0,
+        "snapshotSeconds": 0,
+        "childSeconds": 0,
+        "publicationSeconds": 0
+      },
+      "borrow": {
+        "wallSeconds": 1.0813179179999963,
+        "preparationSeconds": 0,
+        "snapshotSeconds": 0,
+        "childSeconds": 0,
+        "publicationSeconds": 0
+      }
+    },
+    "edit": {
+      "copy": {
+        "wallSeconds": 0.8997426679999876,
+        "preparationSeconds": 0.023718700000000002,
+        "snapshotSeconds": 0.007871000000000001,
+        "childSeconds": 0.10702650000000001,
+        "publicationSeconds": 0.006306800000000001
+      },
+      "borrow": {
+        "wallSeconds": 0.8009527920000039,
+        "preparationSeconds": 0.0018613999999999992,
+        "snapshotSeconds": 0.008735699999999999,
+        "childSeconds": 0.12852380000000002,
+        "publicationSeconds": 0.0039365000000000094
+      }
+    }
+  },
+  "outputParity": true,
+  "runtimeValue": 225
+}

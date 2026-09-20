@@ -1,0 +1,2 @@
+foreach (var file in Directory.GetFiles(Real(package.Directory), "*", SearchOption.AllDirectories))
+                Copy(file, Path.Combine(target, Path.GetRelativePath(Real(package.Directory), file)));
