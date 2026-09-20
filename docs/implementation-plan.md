@@ -741,3 +741,7 @@ the pinned 202-project CMS graph and confirms raw Linux build/startup. Explicit
 rules are blocked by private/central package semantics and project-built analyzer
 edges. Referenced-target metadata and Razor/module assets remain unqualified;
 Orchard performance measurement should follow those compatibility fixes.
+
+[Explicit package semantics](orchard-package-semantics.md) resolves central-version
+and private-package blockers, including the unchanged Orchard source generator.
+Project-built analyzer edges and module metadata remain next.

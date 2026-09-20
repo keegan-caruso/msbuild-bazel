@@ -46,7 +46,7 @@ msbuild_test(name="Mtp", project="Mtp.csproj", target_framework="net10.0", srcs=
     assert 'Microsoft.Testing.Platform v2 Runner' in passed, passed[-4000:]
     project=test/'Mtp.csproj'; original=project.read_text()
     project.write_text(original.replace('Version="4.0.0"','Version="4.0.0" PrivateAssets="all"'))
-    assert 'PrivateAssets package propagation' in bazel('mtp-package-metadata',False)
+    assert 'PrivateAssets disagrees' in bazel('mtp-package-metadata',False)
     project.write_text(original.replace('Version="4.0.0"','Version="0.0.1"'))
     assert 'PackageReference version disagrees with lock' in bazel('mtp-package-version',False)
     project.write_text(original)

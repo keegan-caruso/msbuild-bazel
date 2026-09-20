@@ -10,7 +10,7 @@ using Microsoft.Build.Logging;
 
 internal sealed record Input(string Source, string Path);
 internal sealed record Item(string Type, Input File, Dictionary<string, string> Metadata);
-internal sealed record Request(Input Project, Input[] Sources, Input[] Imports, Item[] Items, string[] Dependencies, string[] References, string Framework, string[] FrameworkReferences, string Assembly, bool Executable, string Configuration, Dictionary<string, string> Properties, string[] Defines, string Nullable, string LanguageVersion, bool AllowUnsafe, string Runtime, string Reference, string Diagnostics, string SdkVersion, string RuntimeManifest, PackageInput[] Packages, string[] DeclaredPackages, string[] CompilePackages, string[] BuildPackages, string[] AnalyzerPackages, bool ProfileBuild = false, string? RestoreInput = null, bool RestoreOnly = false);
+internal sealed record Request(Input Project, Input[] Sources, Input[] Imports, Item[] Items, string[] Dependencies, string[] References, string Framework, string[] FrameworkReferences, string Assembly, bool Executable, string Configuration, Dictionary<string, string> Properties, string[] Defines, string Nullable, string LanguageVersion, bool AllowUnsafe, string Runtime, string Reference, string Diagnostics, string SdkVersion, string RuntimeManifest, PackageInput[] Packages, string[] DeclaredPackages, string[] CompilePackages, string[] BuildPackages, string[] AnalyzerPackages, bool ProfileBuild = false, string? RestoreInput = null, bool RestoreOnly = false, Dictionary<string, string>? PackagePrivateAssets = null);
 internal sealed record Session(Request Request, string Workspace, string State, string Original, string Sdk, string ToolRoot);
 internal sealed record Launch(string Entry, string[] Dependencies, string Assembly, bool Test, Input[] Data);
 
@@ -184,7 +184,7 @@ internal static class Program
         // Bazel inputs. MSBuild copies condition-selected items and their metadata; validation
         // consumes these snapshots in the first evaluation already needed to build.
         var declarations = new XElement("ItemGroup");
-        foreach (var type in new[] { "Compile", "ProjectReference", "PackageReference", "Reference", "Analyzer", "FrameworkReference" })
+        foreach (var type in new[] { "Compile", "ProjectReference", "PackageReference", "PackageVersion", "Reference", "Analyzer", "FrameworkReference" })
         {
             declarations.Add(new XElement("_BazelOriginal" + type, new XAttribute("Remove", "@(_BazelOriginal" + type + ")")));
             declarations.Add(new XElement("_BazelOriginal" + type, new XAttribute("Include", "@(" + type + ")")));
@@ -212,14 +212,29 @@ internal static class Program
             }
             items.Add(element);
         }
+        items.Add(new XElement("Reference", new XAttribute("Include", "@(_BazelOriginalReference)")));
         foreach (var reference in Directory.GetFiles(references)) items.Add(new XElement("Reference", new XAttribute("Include", Path.GetFileNameWithoutExtension(reference)), new XElement("HintPath", Escape(reference)), new XElement("Private", "true")));
+        // Keep the original NuGet metadata, then pin the supplied closed package set.
+        // Only compile-visible inherited packages become new references; private
+        // producer packages may remain declared files without becoming consumer inputs.
+        foreach (var package in r.Packages.Where(p => r.CompilePackages.Contains(p.Id, StringComparer.OrdinalIgnoreCase)))
+            items.Add(new XElement("PackageReference", new XAttribute("Include", package.Id)));
+        items.Add(new XElement("PackageReference", new XAttribute("Remove", "@(_BazelOriginalPackageReference)")));
+        items.Add(new XElement("PackageReference", new XAttribute("Include", "@(_BazelOriginalPackageReference)")));
         foreach (var package in r.Packages)
         {
             var excluded = new List<string>();
             if (!r.CompilePackages.Contains(package.Id, StringComparer.OrdinalIgnoreCase)) excluded.AddRange(["compile", "runtime", "native", "contentFiles"]);
             if (!r.BuildPackages.Contains(package.Id, StringComparer.OrdinalIgnoreCase)) excluded.AddRange(["build", "buildTransitive", "buildMultitargeting"]);
             if (!r.AnalyzerPackages.Contains(package.Id, StringComparer.OrdinalIgnoreCase)) excluded.Add("analyzers");
-            items.Add(new XElement("PackageReference", new XAttribute("Include", package.Id), new XAttribute("Version", "[" + package.Version + "]"), new XAttribute("ExcludeAssets", string.Join(';', excluded))));
+            var central = "'$(ManagePackageVersionsCentrally)' == 'true' and '%(PackageReference.IsImplicitlyDefined)' != 'true'";
+            items.Add(new XElement("PackageReference", new XAttribute("Update", package.Id),
+                new XElement("Version", new XAttribute("Condition", central), ""),
+                new XElement("Version", new XAttribute("Condition", "!(" + central + ")"), "[" + package.Version + "]"),
+                new XElement("ExcludeAssets", "%(PackageReference.ExcludeAssets);" + string.Join(';', excluded))));
+            items.Add(new XElement("PackageVersion", new XAttribute("Remove", package.Id)));
+            items.Add(new XElement("PackageVersion", new XAttribute("Include", package.Id), new XAttribute("Version", "[" + package.Version + "]"),
+                new XAttribute("Condition", "'$(ManagePackageVersionsCentrally)' == 'true' and '@(PackageReference->WithMetadataValue('IsImplicitlyDefined', 'true')->WithMetadataValue('Identity', '" + package.Id + "'))' == ''")));
         }
         foreach (var framework in r.FrameworkReferences) items.Add(new XElement("FrameworkReference", new XAttribute("Include", framework)));
         root.Add(items);
@@ -289,6 +304,7 @@ internal static class Program
             profile?.Mark(target + "ManagerDispose");
             profile?.Save(Path.Combine(s.State, "compile-profile.json"), r.Project.Path);
             if (result.OverallResult != BuildResultCode.Success) return 1;
+            if (target == "Restore") PackageDeclarations.ValidateRestored(s);
         }
         if (r.RestoreOnly) PreparedRestore.Export(s);
         return 0;
@@ -306,16 +322,7 @@ internal static class Program
             foreach (var name in new[] { "ReferenceOutputAssembly", "BuildReference" })
                 if (dependency.GetMetadataValue(name) is { Length: > 0 } value && !value.Equals("true", StringComparison.OrdinalIgnoreCase)) throw new InvalidDataException("Unsupported ProjectReference metadata: " + name);
         }
-        foreach (var package in evaluated.GetItems("_BazelOriginalPackageReference"))
-        {
-            var declared = r.Packages.SingleOrDefault(p => p.Id.Equals(package.EvaluatedInclude, StringComparison.OrdinalIgnoreCase));
-            if (declared is null || !r.DeclaredPackages.Contains(declared.Id, StringComparer.OrdinalIgnoreCase)) throw new InvalidDataException("Undeclared PackageReference: " + package.EvaluatedInclude);
-            foreach (var name in new[] { "IncludeAssets", "ExcludeAssets", "Aliases", "VersionOverride", "GeneratePathProperty" })
-                if (package.GetMetadataValue(name).Length > 0) throw new InvalidDataException("Use explicit package roles; unsupported PackageReference metadata: " + name);
-            var version = package.GetMetadataValue("Version");
-            if (version.Length > 0 && version != declared.Version && version != "[" + declared.Version + "]") throw new InvalidDataException("PackageReference version disagrees with lock: " + package.EvaluatedInclude);
-            if (package.GetMetadataValue("PrivateAssets") is { Length: > 0 } privacy && !privacy.Equals("none", StringComparison.OrdinalIgnoreCase)) throw new InvalidDataException("PrivateAssets package propagation is not qualified in this slice");
-        }
+        PackageDeclarations.Validate(r, evaluated);
         foreach (var item in evaluated.GetItems("_BazelOriginalReference").Concat(evaluated.GetItems("_BazelOriginalAnalyzer")))
             if (!Path.GetFullPath(item.EvaluatedInclude, Path.GetDirectoryName(path)!).StartsWith(s.Sdk + "/", StringComparison.Ordinal)) throw new InvalidDataException("Undeclared assembly/analyzer dependency: " + item.EvaluatedInclude);
         var supplied = r.Sources.Select(f => Path.GetFullPath(Path.Combine(s.Workspace, Safe(f.Path)))).ToHashSet(StringComparer.Ordinal);

@@ -48,3 +48,7 @@ The graph scanner selects the first declared framework per project; this pinned
 closure has one each. It inventories evaluated project edges before restore, not
 all dynamic MSBuild target calls. Preserve runtime/Razor qualification as separate
 work after the confirmed blockers are fixed.
+
+The probe now expects the private/central package cases to succeed, using declared
+`.editorconfig` and analyzer AdditionalFiles inputs. Historical failure evidence
+in `docs/evidence/orchard-explicit-compatibility` describes the pre-fix baseline.

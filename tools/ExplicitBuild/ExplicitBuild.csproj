@@ -10,5 +10,6 @@
     <Reference Include="Microsoft.Build" HintPath="$(RulesMSBuildEngineRoot)/Microsoft.Build.dll" Private="true" />
     <Reference Include="Microsoft.Build.Framework" HintPath="$(RulesMSBuildEngineRoot)/Microsoft.Build.Framework.dll" Private="true" />
     <Reference Include="Microsoft.Build.Utilities.Core" HintPath="$(RulesMSBuildEngineRoot)/Microsoft.Build.Utilities.Core.dll" Private="true" />
+    <Reference Include="NuGet.Versioning" HintPath="$(RulesMSBuildEngineRoot)/NuGet.Versioning.dll" Private="true" />
   </ItemGroup>
 </Project>

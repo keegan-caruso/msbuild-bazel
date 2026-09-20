@@ -57,6 +57,12 @@ def _project(ctx, executable = False, test = False, restore_only = False, projec
     compile_targets = [dep for dep in ctx.attr.deps if MSBuildPackageInfo in dep]
     compile_packages = depset([row["id"] for dep in compile_targets for row in dep[MSBuildPackageInfo].rows], transitive = [dep.compile_packages for dep in direct])
     package_targets = compile_targets + ctx.attr.build_deps + ctx.attr.analyzers
+    private_packages = {key.lower(): value.lower() for key, value in ctx.attr.package_private_assets.items()}
+    direct_package_ids = {dep[MSBuildPackageInfo].id.lower(): True for dep in package_targets}
+    for key, value in private_packages.items():
+        if key not in direct_package_ids or value not in ["all", "none"]:
+            fail("package_private_assets requires a direct package and all or none: " + key)
+    exported_compile_packages = depset([row["id"] for dep in compile_targets if private_packages.get(dep[MSBuildPackageInfo].id.lower(), "none") != "all" for row in dep[MSBuildPackageInfo].rows], transitive = [dep.compile_packages for dep in direct])
     package_rows = {}
     for dep in package_targets:
         for row in dep[MSBuildPackageInfo].rows:
@@ -114,6 +120,7 @@ def _project(ctx, executable = False, test = False, restore_only = False, projec
         "properties": ctx.attr.msbuild_properties,
         "packages": package_rows.values(),
         "compilePackages": compile_packages.to_list(),
+        "packagePrivateAssets": private_packages,
         "declaredPackages": [dep[MSBuildPackageInfo].id for dep in package_targets],
         "buildPackages": [row["id"] for dep in ctx.attr.build_deps for row in dep[MSBuildPackageInfo].rows],
         "analyzerPackages": [row["id"] for dep in ctx.attr.analyzers for row in dep[MSBuildPackageInfo].rows],
@@ -162,7 +169,7 @@ def _project(ctx, executable = False, test = False, restore_only = False, projec
         runtimes = runtimes,
         packages = package_rows.values(),
         package_files = package_files,
-        compile_packages = compile_packages,
+        compile_packages = exported_compile_packages,
         runtime_data = runtime_data,
     )
     if not executable:
@@ -211,6 +218,7 @@ _ATTRS = {
     "items": attr.label_list(providers = [MSBuildItemsInfo]),
     "deps": attr.label_list(providers = [[MSBuildAssemblyInfo], [MSBuildPackageInfo]]),
     "build_deps": attr.label_list(providers = [MSBuildPackageInfo]),
+    "package_private_assets": attr.string_dict(),
     "analyzers": attr.label_list(providers = [MSBuildPackageInfo]),
     "framework_refs": attr.string_list(),
     "msbuild_imports": attr.label_list(allow_files = True),

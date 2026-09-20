@@ -151,7 +151,7 @@ contract is still required; this is not a universal hermetic toolchain claim.
 Initial project support is one C# SDK-style project with one root `Sdk` attribute,
 one TFM, matching-TFM project references, and framework-dependent output.
 Unsupported project-reference metadata and package metadata are rejected instead
-of silently reinterpreted. PrivateAssets propagation, central package management,
+of silently reinterpreted. Partial PrivateAssets masks,
 project-built analyzers/tools, external-repository project-relative paths,
 Windows, cross-compilation, publish/AOT and test protocol integration remain
 unqualified. Scalar MSBuild properties cannot override reserved paths or graph
@@ -166,3 +166,6 @@ remains open.
 The opt-in [shared restore input](explicit-restore-inputs.md) now removes per-project
 Restore from qualified plain package-free SDK projects. The general lane retains
 per-project Restore.
+
+[Central versions and private package declarations](orchard-package-semantics.md)
+are qualified with locked packages, original NuGet metadata, and Linux controls.
