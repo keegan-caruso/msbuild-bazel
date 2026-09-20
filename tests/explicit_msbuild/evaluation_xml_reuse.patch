@@ -1,0 +1,12 @@
+diff --git a/tools/ExplicitBuild/Program.cs b/tools/ExplicitBuild/Program.cs
+--- a/tools/ExplicitBuild/Program.cs
++++ b/tools/ExplicitBuild/Program.cs
+@@ -250,7 +250,7 @@
+         // been replaced by Bazel reference outputs before either target executes.
+         foreach (var target in r.RestoreOnly ? new[] { "Restore" } : r.RestoreInput is not null ? new[] { "Build" } : new[] { "Restore", "Build" })
+         {
+-            using var collection = new ProjectCollection();
++            using var collection = new ProjectCollection(null, null, null, ToolsetDefinitionLocations.Default, 1, false, false, false, reuseProjectRootElementCache: true);
+             if (profile is not null) collection.RegisterLogger(profile);
+             profile?.Mark(target + "CollectionSetup");
+             var instance = profile is null ? new ProjectInstance(path, properties, null, collection) : ProjectInstance.FromFile(path, new ProjectOptions { GlobalProperties = properties, ProjectCollection = collection, LoadSettings = ProjectLoadSettings.ProfileEvaluation });

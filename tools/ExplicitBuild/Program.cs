@@ -2,6 +2,7 @@ using System.Diagnostics;
 using System.Text.Json;
 using System.Xml;
 using System.Xml.Linq;
+using Microsoft.Build.Definition;
 using Microsoft.Build.Evaluation;
 using Microsoft.Build.Execution;
 using Microsoft.Build.Framework;
@@ -251,7 +252,9 @@ internal static class Program
         foreach (var target in r.RestoreOnly ? new[] { "Restore" } : r.RestoreInput is not null ? new[] { "Build" } : new[] { "Restore", "Build" })
         {
             using var collection = new ProjectCollection();
-            var instance = new ProjectInstance(path, properties, null, collection);
+            if (profile is not null) collection.RegisterLogger(profile);
+            profile?.Mark(target + "CollectionSetup");
+            var instance = profile is null ? new ProjectInstance(path, properties, null, collection) : ProjectInstance.FromFile(path, new ProjectOptions { GlobalProperties = properties, ProjectCollection = collection, LoadSettings = ProjectLoadSettings.ProfileEvaluation });
             profile?.Mark(target + "Evaluation");
             if (target == "Restore" || r.RestoreInput is not null)
             {

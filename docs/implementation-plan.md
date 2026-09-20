@@ -721,3 +721,8 @@ mean from 25.37 s to 18.83 s; package-heavy restore remains per project.
 and unused runner snapshots by using Bazel's declared-tool lifecycle. The 129-project
 cold-action mean falls from a fresh 18.99 s baseline to 16.96 s, while staging drops
 91%; current-data verification and sandbox/cache controls remain intact.
+
+[Project evaluation removal analysis](project-evaluation-removal.md) measures
+reusing parsed SDK XML and unexpanded target bodies through MSBuild's existing
+cache. A disposable experiment reduces cold actions from 16.94 s to 12.70 s with
+647 byte-identical outputs; production cache behavior remains unchanged.
