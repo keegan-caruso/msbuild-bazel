@@ -76,7 +76,7 @@ def run(case,expected=expected):
  p=subprocess.run([bazel,'--output_base='+str(base),'--ignore_all_rc_files','run','//ModuleApp','--repository_cache='+os.environ['RULES_MSBUILD_REPOSITORY_CACHE'],'--disk_cache='+str(run_root/'cache'),'--strategy=MSBuildAssembly=worker','--worker_max_instances=MSBuildAssembly=1'],cwd=workspace,capture_output=True,text=True,timeout=240)
  output=p.stdout+p.stderr;(folder/(case+'.log')).write_text(output)
  assert p.returncode==0 and p.stdout.strip()==expected,(case,output[-6500:])
- 
+
  if case=='module-relocated-cache': assert '2 disk cache hit' in output,output[-1500:]
  rows.append(dict(case=case,exit=p.returncode));print(case,p.returncode,flush=True)
 run('module-razor-assets')

@@ -1,10 +1,10 @@
-Computing main repo mapping: 
-Loading: 
+Computing main repo mapping:
+Loading:
 Loading: 0 packages loaded
 Analyzing: target //:leaf (1 packages loaded, 0 targets configured)
 Analyzing: target //:leaf (1 packages loaded, 0 targets configured)
 
-ERROR: /orchard-work/BUILD.bazel:25:16: in msbuild_library rule //:leaf: 
+ERROR: /orchard-work/BUILD.bazel:25:16: in msbuild_library rule //:leaf:
 Traceback (most recent call last):
 	File "/tmp/orchard-compat-base/external/rules_msbuild+/msbuild/defs.bzl", line 193, column 20, in _library
 		return _project(ctx)

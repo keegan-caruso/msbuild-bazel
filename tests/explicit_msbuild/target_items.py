@@ -30,7 +30,7 @@ def run(case,expected='first',error=None):
  p=subprocess.run([bazel,'--output_base='+str(base),'--ignore_all_rc_files','run','//LabelApp','--repository_cache='+os.environ['RULES_MSBUILD_REPOSITORY_CACHE'],'--disk_cache='+str(run_root/'cache'),'--strategy=MSBuildAssembly=worker','--worker_max_instances=MSBuildAssembly=1'],cwd=workspace,capture_output=True,text=True,timeout=240)
  output=p.stdout+p.stderr;(folder/(case+'.log')).write_text(output)
  assert (p.returncode==0 and p.stdout.strip()==expected) if error is None else (p.returncode!=0 and error in output),(case,output[-6000:])
- 
+
  if case=='target-cached-producer': assert '1 disk cache hit' in output,output[-1500:]
  rows.append(dict(case=case,exit=p.returncode));print(case,p.returncode,flush=True)
 run('target-handoff')

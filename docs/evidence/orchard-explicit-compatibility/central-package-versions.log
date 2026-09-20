@@ -1,5 +1,5 @@
-Computing main repo mapping: 
-Loading: 
+Computing main repo mapping:
+Loading:
 Loading: 0 packages loaded
 Analyzing: target //:cpm_probe (1 packages loaded, 0 targets configured)
 Analyzing: target //:cpm_probe (1 packages loaded, 0 targets configured)
@@ -26,7 +26,7 @@ Restore:
   Generating MSBuild file /tmp/explicit-worker-871d9ef2414b42b8a72c57a5f4d0add6/out/2b798f6146db95a7f4861931b958599b32a0c4d01478498b09797e3069951cda/obj/Probe.csproj.nuget.g.targets.
   Writing assets file to disk. Path: /tmp/explicit-worker-871d9ef2414b42b8a72c57a5f4d0add6/out/2b798f6146db95a7f4861931b958599b32a0c4d01478498b09797e3069951cda/obj/project.assets.json
   Failed to restore /tmp/explicit-worker-871d9ef2414b42b8a72c57a5f4d0add6/in/2b798f6146db95a7f4861931b958599b32a0c4d01478498b09797e3069951cda/workspace/CompatibilityProbe/Probe.csproj (in 14 ms).
-  
+
   NuGet Config files used:
       /tmp/explicit-worker-871d9ef2414b42b8a72c57a5f4d0add6/in/2b798f6146db95a7f4861931b958599b32a0c4d01478498b09797e3069951cda/workspace/NuGet.Config
 Done Building Project "/tmp/explicit-worker-871d9ef2414b42b8a72c57a5f4d0add6/in/2b798f6146db95a7f4861931b958599b32a0c4d01478498b09797e3069951cda/workspace/CompatibilityProbe/Probe.csproj" (Restore target(s)) -- FAILED.
@@ -34,7 +34,7 @@ Done Building Project "/tmp/explicit-worker-871d9ef2414b42b8a72c57a5f4d0add6/in/
 Build FAILED.
 
 "/tmp/explicit-worker-871d9ef2414b42b8a72c57a5f4d0add6/in/2b798f6146db95a7f4861931b958599b32a0c4d01478498b09797e3069951cda/workspace/CompatibilityProbe/Probe.csproj" (Restore target) (1) ->
-(Restore target) -> 
+(Restore target) ->
   /tmp/explicit-worker-871d9ef2414b42b8a72c57a5f4d0add6/in/2b798f6146db95a7f4861931b958599b32a0c4d01478498b09797e3069951cda/workspace/CompatibilityProbe/Probe.csproj : error NU1008: The following PackageReference items cannot define a value for Version: StyleCop.Analyzers. Projects using Central Package Management must define a Version value on a PackageVersion item. For more information, visit https://aka.ms/nuget/cpm/gettingstarted
 
     0 Warning(s)
