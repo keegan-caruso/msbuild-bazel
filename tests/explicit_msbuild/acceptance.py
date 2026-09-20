@@ -45,6 +45,13 @@ msbuild_binary(name="App", project="App.csproj", target_framework="net10.0", src
 msbuild_test(name="Tests", project="App.csproj", target_framework="net10.0", srcs=["Program.cs"], deps=["//Library"], items=[":resources"], data=["data.txt"])
 msbuild_test(name="Fails", args=["fail"], project="App.csproj", target_framework="net10.0", srcs=["Program.cs"], deps=["//Library"], items=[":resources"], data=["data.txt"])
 ''')
+    worker=os.environ.get('RULES_MSBUILD_EXPLICIT_WORKER') == '1'
+    if worker:
+        for build in workspace.rglob('BUILD.bazel'):
+            text=build.read_text()
+            for rule in ('msbuild_library','msbuild_binary','msbuild_test'):
+                text=text.replace(rule+'(', rule+'(linux_worker=True, ')
+            build.write_text(text)
     records=[]
     def actions(case):
         text=(folder/(case+'.execution.json')).read_text()
@@ -57,6 +64,7 @@ msbuild_test(name="Fails", args=["fail"], project="App.csproj", target_framework
         command=[str(BAZEL), '--output_user_root='+str(folder/'user'), '--output_base='+str(folder/'base'), '--ignore_all_rc_files', *args, '--repository_cache='+os.environ.get('RULES_MSBUILD_REPOSITORY_CACHE', str(folder/'repository-cache')), '--disk_cache='+str(folder/'disk-cache'), '--execution_log_json_file='+str(folder/(case+'.execution.json'))]
         if os.environ.get('RULES_MSBUILD_REMOTE_CACHE'):
             command += ['--disk_cache=', '--remote_cache='+os.environ['RULES_MSBUILD_REMOTE_CACHE'], '--remote_download_outputs=all']
+        if worker: command += ['--strategy=MSBuildAssembly=worker', '--worker_max_instances=MSBuildAssembly=1']
         p=subprocess.run(command, cwd=workspace, capture_output=True, text=True, timeout=240)
         (folder/(case+'.log')).write_text(p.stdout+p.stderr)
         assert (p.returncode == 0) == success, (case, (p.stdout+p.stderr)[-7000:])
@@ -69,12 +77,27 @@ msbuild_test(name="Fails", args=["fail"], project="App.csproj", target_framework
     bazel('filter', 'test', '//App:Tests', '--test_filter=unsupported', success=False)
     reference=workspace/'bazel-bin/Library/Library.reference/Library.dll'
     before=hashlib.sha256(reference.read_bytes()).hexdigest()
+    first_worker=json.loads((workspace/'bazel-bin/Library/Library.diagnostics/worker.json').read_text()) if worker else None
     library=workspace/'Library/Value.cs'; library.write_text('public static class Value { public static int Get() => 9; }')
     assert '9:resource:runtime' in bazel('body-edit', 'run', '//App')
     assert hashlib.sha256(reference.read_bytes()).hexdigest() == before
+    if worker:
+        second_worker=json.loads((workspace/'bazel-bin/Library/Library.diagnostics/worker.json').read_text())
+        assert first_worker['processId'] == second_worker['processId']
+        assert 'server processed compilation' in (workspace/'bazel-bin/Library/Library.diagnostics/build.log').read_text()
     changed=actions('body-edit')
     assert '//Library:Library' in {a['targetLabel'] for a in changed}, changed
     assert {a['targetLabel'] for a in changed if not a.get('cacheHit')} <= {'//Library:Library'}, changed
+    if worker:
+        valid=library.read_text(); timestamp=library.stat().st_mtime_ns
+        library.write_text('invalid C#')
+        bazel('worker-compile-failure','build','//App',success=False)
+        library.write_text(valid.replace('=> 9','=> 8'))
+        os.utime(library,ns=(timestamp,timestamp))
+        assert '8:resource:runtime' in bazel('worker-recovery','run','//App')
+        recovered_worker=json.loads((workspace/'bazel-bin/Library/Library.diagnostics/worker.json').read_text())
+        assert recovered_worker['processId'] == first_worker['processId']
+        library.write_text(valid)
     app=workspace/'App/App.csproj'; original=app.read_text(); app.write_text(original.replace('../Library/Library.csproj','../Missing/Missing.csproj'))
     assert 'ProjectReference declarations disagree' in bazel('missing-edge', 'build', '//App', success=False)
     app.write_text(original)

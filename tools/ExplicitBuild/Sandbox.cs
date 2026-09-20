@@ -33,6 +33,11 @@ internal static class Sandbox
             Add("--symlink", "usr/lib", "/lib", "--bind", state, state, "--chdir", workspace, "--");
         }
         else throw new PlatformNotSupportedException("Explicit MSBuild requires a qualified Linux/macOS sandbox");
+        SetEnvironment(start, workspace, state, sdk);
+        return start;
+    }
+    internal static void SetEnvironment(ProcessStartInfo start, string workspace, string state, string sdk)
+    {
         var migrations = Path.Combine(state, "data", "NuGet", "Migrations");
         Directory.CreateDirectory(migrations); File.WriteAllText(Path.Combine(migrations, "1"), "");
         start.WorkingDirectory = workspace; start.Environment.Clear();
@@ -59,6 +64,5 @@ internal static class Sandbox
             ["LANG"] = "en_US.UTF-8",
             ["TZ"] = "UTC",
         }) start.Environment[key] = value;
-        return start;
     }
 }

@@ -16,9 +16,9 @@ internal sealed record Launch(string Entry, string[] Dependencies, string Assemb
 
 internal static class Program
 {
-    private static readonly JsonSerializerOptions Json = new() { PropertyNameCaseInsensitive = true, PropertyNamingPolicy = JsonNamingPolicy.CamelCase, WriteIndented = true };
+    internal static readonly JsonSerializerOptions Json = new() { PropertyNameCaseInsensitive = true, PropertyNamingPolicy = JsonNamingPolicy.CamelCase, WriteIndented = true };
     private static string ReadPath(string value) => Path.GetFullPath(value);
-    private static string Real(string value)
+    internal static string Real(string value)
     {
         var full = Path.GetFullPath(value); var current = Path.GetPathRoot(full)!;
         foreach (var part in full[current.Length..].Split(Path.DirectorySeparatorChar, StringSplitOptions.RemoveEmptyEntries))
@@ -51,6 +51,9 @@ internal static class Program
     {
         try
         {
+            if (args is ["--bazel-worker", "--persistent_worker"]) return LinuxWorker.Run().GetAwaiter().GetResult();
+            if (args is ["--isolated-worker"]) return LinuxWorker.Child().GetAwaiter().GetResult();
+            if (args is ["--bazel-worker", var parameter] && parameter.StartsWith('@')) return Build(Read<Request>(File.ReadAllText(parameter[1..]).Trim()));
             if (args is ["extract", var extraction]) { Package.Extract(Read<PackageRequest>(extraction)); return 0; }
             if (args is ["build", var request]) return Build(Read<Request>(request));
             if (args is ["compile", var session]) return Compile(Read<Session>(session));
@@ -68,40 +71,53 @@ internal static class Program
         Directory.CreateDirectory(workspace); Directory.CreateDirectory(state);
         try
         {
-            foreach (var file in r.Sources.Concat(r.Imports).Concat(r.Items.Select(i => i.File)).Prepend(r.Project)) Copy(ReadPath(file.Source), Path.Combine(workspace, Safe(file.Path)));
-            var references = Path.Combine(workspace, ".references"); Directory.CreateDirectory(references);
-            foreach (var reference in r.References) Copy(ReadPath(reference), Path.Combine(references, Path.GetFileName(reference)));
-            var project = Path.Combine(workspace, Safe(r.Project.Path));
-            var original = Path.Combine(state, "original.xml"); File.Copy(project, original);
-            var packageRoot = Path.Combine(workspace, ".nuget", "packages"); Directory.CreateDirectory(packageRoot);
-            foreach (var package in r.Packages)
-            {
-                var target = Path.Combine(packageRoot, Safe(package.Id.ToLowerInvariant()), Safe(package.Version));
-                Directory.CreateDirectory(Path.GetDirectoryName(target)!);
-                Directory.CreateSymbolicLink(target, Real(package.Directory));
-            }
-            var config = Path.Combine(workspace, "NuGet.Config");
-            if (File.Exists(config)) throw new InvalidDataException("Explicit builds supply their own closed NuGet configuration");
-            File.WriteAllText(config, "<configuration><packageSources><clear /></packageSources></configuration>");
-            WriteProject(r, project, state, references);
-            var sdk = Path.GetDirectoryName(Environment.ProcessPath!)!;
-            var session = new Session(r, workspace, state, original, sdk, Real(AppContext.BaseDirectory.TrimEnd('/')));
+            var session = Prepare(r, workspace, state);
+            var sdk = session.Sdk;
             var sessionPath = Path.Combine(state, "session.json"); File.WriteAllText(sessionPath, JsonSerializer.Serialize(session, Json));
             var roots = Read<string[]>(r.RuntimeManifest);
             var start = Sandbox.Start(workspace, state, roots.Append(sdk).Append(session.ToolRoot).Concat(r.Packages.Select(p => Real(p.Directory))), sdk);
             start.ArgumentList.Add(Path.Combine(sdk, "dotnet")); start.ArgumentList.Add(Path.Combine(session.ToolRoot, "ExplicitBuild.dll")); start.ArgumentList.Add("compile"); start.ArgumentList.Add(sessionPath);
             var exit = Execute(start, Path.Combine(diagnostics, "build.log"));
             if (exit != 0) return exit;
-            var output = Path.Combine(state, "out"); var runtime = ReadPath(r.Runtime); Directory.CreateDirectory(runtime);
-            var referenceNames = r.References.Select(Path.GetFileName).ToHashSet(StringComparer.Ordinal);
-            if (referenceNames.Contains(r.Assembly + ".dll")) throw new InvalidDataException("Dependency assembly name conflicts with this project");
-            foreach (var file in Directory.GetFiles(output, "*", SearchOption.AllDirectories))
-                if (!referenceNames.Contains(Path.GetRelativePath(output, file))) Copy(file, Path.Combine(runtime, Path.GetRelativePath(output, file)));
-            Copy(Path.Combine(state, "obj", "ref", r.Assembly + ".dll"), ReadPath(r.Reference));
-            File.WriteAllText(Path.Combine(diagnostics, "report.json"), JsonSerializer.Serialize(new { accepted = true, discovery = false, project = r.Project.Path }, Json));
+            Publish(r, state);
             return 0;
         }
         finally { if (Directory.Exists(work)) Directory.Delete(work, true); }
+    }
+    internal static Session Prepare(Request r, string workspace, string state)
+    {
+        Safe(r.Assembly);
+        if (r.Assembly.Contains('/')) throw new InvalidDataException("Assembly name must be a filename");
+        Directory.CreateDirectory(workspace); Directory.CreateDirectory(state);
+        foreach (var file in r.Sources.Concat(r.Imports).Concat(r.Items.Select(i => i.File)).Prepend(r.Project)) Copy(ReadPath(file.Source), Path.Combine(workspace, Safe(file.Path)));
+        var references = Path.Combine(workspace, ".references"); Directory.CreateDirectory(references);
+        foreach (var reference in r.References) Copy(ReadPath(reference), Path.Combine(references, Path.GetFileName(reference)));
+        var project = Path.Combine(workspace, Safe(r.Project.Path));
+        var original = Path.Combine(state, "original.xml"); File.Copy(project, original);
+        var packageRoot = Path.Combine(workspace, ".nuget", "packages"); Directory.CreateDirectory(packageRoot);
+        foreach (var package in r.Packages)
+        {
+            var target = Path.Combine(packageRoot, Safe(package.Id.ToLowerInvariant()), Safe(package.Version));
+            Directory.CreateDirectory(Path.GetDirectoryName(target)!);
+            Directory.CreateSymbolicLink(target, Real(package.Directory));
+        }
+        var config = Path.Combine(workspace, "NuGet.Config");
+        if (File.Exists(config)) throw new InvalidDataException("Explicit builds supply their own closed NuGet configuration");
+        File.WriteAllText(config, "<configuration><packageSources><clear /></packageSources></configuration>");
+        if (!OperatingSystem.IsWindows()) File.SetUnixFileMode(project, UnixFileMode.UserRead | UnixFileMode.UserWrite);
+        WriteProject(r, project, state, references);
+        return new Session(r, workspace, state, original, Path.GetDirectoryName(Environment.ProcessPath!)!, Real(AppContext.BaseDirectory.TrimEnd('/')));
+    }
+    internal static void Publish(Request r, string state)
+    {
+        var diagnostics = ReadPath(r.Diagnostics); Directory.CreateDirectory(diagnostics);
+        var output = Path.Combine(state, "out"); var runtime = ReadPath(r.Runtime); Directory.CreateDirectory(runtime);
+        var referenceNames = r.References.Select(Path.GetFileName).ToHashSet(StringComparer.Ordinal);
+        if (referenceNames.Contains(r.Assembly + ".dll")) throw new InvalidDataException("Dependency assembly name conflicts with this project");
+        foreach (var file in Directory.GetFiles(output, "*", SearchOption.AllDirectories))
+            if (!referenceNames.Contains(Path.GetRelativePath(output, file))) Copy(file, Path.Combine(runtime, Path.GetRelativePath(output, file)));
+        Copy(Path.Combine(state, "obj", "ref", r.Assembly + ".dll"), ReadPath(r.Reference));
+        File.WriteAllText(Path.Combine(diagnostics, "report.json"), JsonSerializer.Serialize(new { accepted = true, discovery = false, project = r.Project.Path }, Json));
     }
     private static Dictionary<string, string> Properties(Session s)
     {
@@ -127,7 +143,7 @@ internal static class Program
             ["RestoreSources"] = "",
             ["NuGetAudit"] = "false",
             ["RestoreUseStaticGraphEvaluation"] = "false",
-            ["UseSharedCompilation"] = "false",
+            ["UseSharedCompilation"] = LinuxWorker.Isolated ? "true" : "false",
             ["Deterministic"] = "true",
             ["ProduceReferenceAssembly"] = "true",
             ["PathMap"] = s.Workspace + "=/_/workspace," + s.State + "=/_/state",
@@ -190,7 +206,7 @@ internal static class Program
             new XElement("ItemGroup", new XElement("FrameworkReference", new XAttribute("Remove", "@(FrameworkReference)")), new XElement("FrameworkReference", new XAttribute("Include", "@(_BazelFrameworkReferences)")))));
         xml.Save(path);
     }
-    private static int Compile(Session s)
+    internal static int Compile(Session s)
     {
         var sdkRoot = Path.Combine(s.Sdk, "sdk", s.Request.SdkVersion);
         System.Runtime.Loader.AssemblyLoadContext.Default.Resolving += (context, name) => File.Exists(Path.Combine(sdkRoot, name.Name + ".dll")) ? context.LoadFromAssemblyPath(Path.Combine(sdkRoot, name.Name + ".dll")) : null;

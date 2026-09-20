@@ -112,9 +112,19 @@ def _project(ctx, executable = False, test = False):
         "sdkVersion": tc.sdk_version,
         "runtimeManifest": tc.runtime_manifest.path,
     }))
+    arguments = [tc.runner.path, "build", request.path]
+    requirements = {"no-sandbox": "1", "no-remote-exec": "1"}
+    if ctx.attr.linux_worker:
+        params = ctx.actions.args()
+        params.add(request.path)
+        params.use_param_file("@%s", use_always = True)
+        params.set_param_file_format("multiline")
+        arguments = [tc.runner.path, "--bazel-worker", params]
+        requirements.update({"supports-workers": "1", "requires-worker-protocol": "json"})
     ctx.actions.run(
         executable = tc.dotnet,
-        arguments = [tc.runner.path, "build", request.path],
+        arguments = arguments,
+        tools = depset([tc.runner], transitive = [tc.sdk, tc.runner_support]) if ctx.attr.linux_worker else [],
         inputs = depset(
             [ctx.file.project, request, tc.runner, tc.runtime_manifest] + ctx.files.srcs + ctx.files.msbuild_imports,
             transitive = [tc.sdk, tc.runner_support, references, package_files] + [group[MSBuildItemsInfo].files for group in ctx.attr.items],
@@ -124,7 +134,7 @@ def _project(ctx, executable = False, test = False):
         env = {"LANG": "en_US.UTF-8"},
         # The runner stages only declared files and starts a deny-by-default
         # child sandbox. macOS does not permit nested sandbox-exec.
-        execution_requirements = {"no-sandbox": "1", "no-remote-exec": "1"},
+        execution_requirements = requirements,
     )
     info = MSBuildAssemblyInfo(
         project = _logical(ctx.file.project),
@@ -174,6 +184,7 @@ def _test(ctx):
     return _project(ctx, executable = True, test = True)
 
 _ATTRS = {
+    "linux_worker": attr.bool(default = False),
     "project": attr.label(allow_single_file = [".csproj"], mandatory = True),
     "target_framework": attr.string(mandatory = True),
     "assembly_name": attr.string(),

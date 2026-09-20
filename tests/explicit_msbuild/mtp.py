@@ -33,8 +33,11 @@ def run(folder, lock):
     (test/'BUILD.bazel').write_text('''load("@rules_msbuild//msbuild:defs.bzl", "msbuild_test")
 msbuild_test(name="Mtp", project="Mtp.csproj", target_framework="net10.0", srcs=["Tests.cs"], deps=["//packages:xunit.v3.mtp-v2"], build_deps=["//packages:xunit.v3.mtp-v2"], analyzers=["//packages:xunit.analyzers"], msbuild_properties={"UseMicrosoftTestingPlatformRunner":"true"}, size="small")
 ''')
+    if os.environ.get('RULES_MSBUILD_EXPLICIT_WORKER') == '1':
+        build_file=test/'BUILD.bazel'
+        build_file.write_text(build_file.read_text().replace('msbuild_test(', 'msbuild_test(linux_worker=True, '))
     def bazel(case, success=True):
-        p=subprocess.run([str(BAZEL),'--output_user_root='+str(folder/'user'),'--output_base='+str(folder/'base'),'--ignore_all_rc_files','test','//Mtp','--test_output=all','--repository_cache='+os.environ.get('RULES_MSBUILD_REPOSITORY_CACHE', str(folder/'repository-cache'))],cwd=workspace,capture_output=True,text=True,timeout=240)
+        p=subprocess.run([str(BAZEL),'--output_user_root='+str(folder/'user'),'--output_base='+str(folder/'base'),'--ignore_all_rc_files','test','//Mtp','--test_output=all','--strategy=MSBuildAssembly=worker,local','--worker_max_instances=MSBuildAssembly=1','--repository_cache='+os.environ.get('RULES_MSBUILD_REPOSITORY_CACHE', str(folder/'repository-cache'))],cwd=workspace,capture_output=True,text=True,timeout=240)
         output=p.stdout+p.stderr;(folder/(case+'.log')).write_text(output)
         assert (p.returncode==0)==success,(case,output[-8000:])
         print(case,p.returncode,flush=True)
