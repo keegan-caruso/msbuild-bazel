@@ -21,6 +21,10 @@ borrowed validation, discovery reuse and direct upload overlap. Full direct
 Orchard remains 574.4s versus 56.3s raw with compiler sharing; the cold target is
 not met. Exact producer-deleted remote recovery passes in 27.9s.
 
+The [Linux hardened-worker probe](linux-hardened-worker.md) now runs locally
+in Apple Container. Process reuse and several isolation controls pass, while
+absolute undeclared reads identify the remaining read-boundary requirement.
+
 ## Question
 
 Can Bazel cache and schedule configured .NET projects while each action uses MSBuild and consumes dependency artifacts plus MSBuild result metadata?

@@ -35,3 +35,8 @@ Reproduce with `tests/remote_workers/worker_session_probe.py`, supplying the ret
 Orchard execroot, a new output directory, the pinned dotnet path and the runner DLL.
 Raw evidence: `/private/tmp/worker-session-measure` and
 `/private/tmp/worker-recovery-control`. See [timings](worker-session-evidence.json).
+
+The [Linux container capability probe](linux-hardened-worker.md) now verifies
+actual hardened-worker reuse, input cleanup, write/network restrictions and the
+non-root blocked-path control. Absolute undeclared reads remain possible, so
+the stricter MSBuild read boundary still needs qualification before integration.

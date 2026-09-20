@@ -1,0 +1,27 @@
+{
+  "accepted": true,
+  "platform": "aarch64",
+  "requests": [
+    {
+      "pid": 2,
+      "request": 1,
+      "content": "first",
+      "previousInputReadable": false,
+      "absoluteUndeclaredReadable": true,
+      "blockedPathReadable": false,
+      "outsideWrite": false,
+      "network": false
+    },
+    {
+      "pid": 2,
+      "request": 2,
+      "content": "second",
+      "previousInputReadable": false,
+      "absoluteUndeclaredReadable": true,
+      "blockedPathReadable": false,
+      "outsideWrite": false,
+      "network": false
+    }
+  ],
+  "limitation": "Absolute undeclared host reads are measured, not assumed denied."
+}
