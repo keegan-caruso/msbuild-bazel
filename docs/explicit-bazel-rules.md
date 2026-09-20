@@ -162,3 +162,7 @@ Next: add pinned SDK/lock extensions; qualify generic Razor/resource imports and
 representative Orchard targets; then measure cold, unchanged, source-edit and
 remote-hit timings against raw MSBuild. The design's larger performance goal
 remains open.
+
+The opt-in [shared restore input](explicit-restore-inputs.md) now removes per-project
+Restore from qualified plain package-free SDK projects. The general lane retains
+per-project Restore.

@@ -11,7 +11,7 @@ ROOT=Path(__file__).resolve().parents[2]
 SDK=Path(os.environ['RULES_MSBUILD_DOTNET_ROOT'])
 BAZEL=Path(os.environ['RULES_MSBUILD_BAZEL'])
 output=Path(sys.argv[1]).resolve(); output.mkdir(parents=True,exist_ok=True)
-subprocess.run([sys.executable,str(ROOT/'tests/explicit_msbuild/perf.py'),str(output),'--sizes','128','--setup-only'],check=True)
+subprocess.run([sys.executable,str(ROOT/'tests/explicit_msbuild/perf.py'),str(output),'--sizes','128','--setup-only']+(['--shared-restore'] if os.environ.get('RULES_MSBUILD_SHARED_RESTORE') == '1' else []),check=True)
 folder=output/'128'; source=folder/'worker'; raw=folder/'raw'; results=[]
 base=folder/'worker-base'
 startup=[str(BAZEL),'--output_user_root='+str(folder/'user'),'--output_base='+str(base),'--ignore_all_rc_files']

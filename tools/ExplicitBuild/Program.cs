@@ -10,7 +10,7 @@ using Microsoft.Build.Logging;
 
 internal sealed record Input(string Source, string Path);
 internal sealed record Item(string Type, Input File, Dictionary<string, string> Metadata);
-internal sealed record Request(Input Project, Input[] Sources, Input[] Imports, Item[] Items, string[] Dependencies, string[] References, string Framework, string[] FrameworkReferences, string Assembly, bool Executable, string Configuration, Dictionary<string, string> Properties, string[] Defines, string Nullable, string LanguageVersion, bool AllowUnsafe, string Runtime, string Reference, string Diagnostics, string SdkVersion, string RuntimeManifest, PackageInput[] Packages, string[] DeclaredPackages, string[] CompilePackages, string[] BuildPackages, string[] AnalyzerPackages, bool ProfileBuild = false);
+internal sealed record Request(Input Project, Input[] Sources, Input[] Imports, Item[] Items, string[] Dependencies, string[] References, string Framework, string[] FrameworkReferences, string Assembly, bool Executable, string Configuration, Dictionary<string, string> Properties, string[] Defines, string Nullable, string LanguageVersion, bool AllowUnsafe, string Runtime, string Reference, string Diagnostics, string SdkVersion, string RuntimeManifest, PackageInput[] Packages, string[] DeclaredPackages, string[] CompilePackages, string[] BuildPackages, string[] AnalyzerPackages, bool ProfileBuild = false, string? RestoreInput = null, bool RestoreOnly = false);
 internal sealed record Session(Request Request, string Workspace, string State, string Original, string Sdk, string ToolRoot);
 internal sealed record Launch(string Entry, string[] Dependencies, string Assembly, bool Test, Input[] Data);
 
@@ -94,6 +94,7 @@ internal static class Program
         foreach (var reference in r.References) Copy(ReadPath(reference), Path.Combine(references, Path.GetFileName(reference)));
         var project = Path.Combine(workspace, Safe(r.Project.Path));
         var original = Path.Combine(state, "original.xml"); File.Copy(project, original);
+        if (r.RestoreInput is not null || r.RestoreOnly) PreparedRestore.Validate(r, original);
         var packageRoot = Path.Combine(workspace, ".nuget", "packages"); Directory.CreateDirectory(packageRoot);
         foreach (var package in r.Packages)
         {
@@ -106,11 +107,19 @@ internal static class Program
         File.WriteAllText(config, "<configuration><packageSources><clear /></packageSources></configuration>");
         if (!OperatingSystem.IsWindows()) File.SetUnixFileMode(project, UnixFileMode.UserRead | UnixFileMode.UserWrite);
         WriteProject(r, project, state, references);
-        return new Session(r, workspace, state, original, Path.GetDirectoryName(Environment.ProcessPath!)!, Real(AppContext.BaseDirectory.TrimEnd('/')));
+        var session = new Session(r, workspace, state, original, Path.GetDirectoryName(Environment.ProcessPath!)!, Real(AppContext.BaseDirectory.TrimEnd('/')));
+        if (r.RestoreInput is not null) PreparedRestore.Install(session);
+        return session;
     }
     internal static void Publish(Request r, string state)
     {
         var diagnostics = ReadPath(r.Diagnostics); Directory.CreateDirectory(diagnostics);
+        if (r.RestoreOnly)
+        {
+            Directory.CreateDirectory(ReadPath(r.Runtime));
+            Copy(Path.Combine(state, "restore.json"), ReadPath(r.Reference));
+            return;
+        }
         var output = Path.Combine(state, "out"); var runtime = ReadPath(r.Runtime); Directory.CreateDirectory(runtime);
         var referenceNames = r.References.Select(Path.GetFileName).ToHashSet(StringComparer.Ordinal);
         if (referenceNames.Contains(r.Assembly + ".dll")) throw new InvalidDataException("Dependency assembly name conflicts with this project");
@@ -260,7 +269,7 @@ internal static class Program
         profile?.Mark("originalEvaluationAndValidation");
         // Restore operates only on this declared project; project references have
         // been replaced by Bazel reference outputs before either target executes.
-        foreach (var target in new[] { "Restore", "Build" })
+        foreach (var target in r.RestoreOnly ? new[] { "Restore" } : r.RestoreInput is not null ? new[] { "Build" } : new[] { "Restore", "Build" })
         {
             using var collection = new ProjectCollection();
             var instance = new ProjectInstance(path, properties, null, collection);
@@ -271,6 +280,7 @@ internal static class Program
             profile?.Save(Path.Combine(s.State, "compile-profile.json"), r.Project.Path);
             if (result.OverallResult != BuildResultCode.Success) return 1;
         }
+        if (r.RestoreOnly) PreparedRestore.Export(s);
         return 0;
     }
     private static int Execute(ProcessStartInfo start, string? log = null)

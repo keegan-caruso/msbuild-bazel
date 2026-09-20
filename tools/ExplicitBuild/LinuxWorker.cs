@@ -70,6 +70,7 @@ internal static class LinuxWorker
                     var mapped = request with
                     {
                         Project = Map(request.Project),
+                        RestoreInput = request.RestoreInput is null ? null : InputPath(request.RestoreInput),
                         Sources = request.Sources.Select(Map).ToArray(),
                         Imports = request.Imports.Select(Map).ToArray(),
                         Items = request.Items.Select(i => i with { File = Map(i.File) }).ToArray(),

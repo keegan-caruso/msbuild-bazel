@@ -709,3 +709,7 @@ with paired fresh-process/worker/raw-MSBuild graph timing and isolation controls
 [Cold worker profiling](explicit-cold-profile.md) attributes the 129-project gap
 primarily to repeated project evaluation and restore metadata/graph preparation;
 compiler time is a minority of the measured action work.
+
+[Explicit shared restore inputs](explicit-restore-inputs.md) moves qualified
+package-free SDK restore into a reusable Bazel action, with cold-build measurements
+and a fail-closed boundary for unqualified project behavior.

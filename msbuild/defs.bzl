@@ -1,5 +1,7 @@
 """Explicit project graph, generic MSBuild items, and executable tests."""
 
+MSBuildRestoreInfo = provider("Qualified SDK restore metadata shared by matching projects.", fields = ["file", "framework", "configuration", "executable"])
+
 MSBuildPackageInfo = provider("Locked package extraction and dependency closure.", fields = ["id", "version", "directory", "rows", "files"])
 
 MSBuildAssemblyInfo = provider("Reference assembly and separate runtime dependency closure.", fields = ["project", "framework", "reference", "references", "runtime", "runtimes", "packages", "package_files", "compile_packages", "runtime_data"])
@@ -37,10 +39,14 @@ def _runfile(ctx, file):
         return file.short_path[3:]
     return ctx.workspace_name + "/" + file.short_path
 
-def _project(ctx, executable = False, test = False):
+def _configuration(ctx):
+    return "Debug" if ctx.var["COMPILATION_MODE"] == "dbg" else "Release"
+
+def _project(ctx, executable = False, test = False, restore_only = False, project = None):
+    project = project or ctx.file.project
     tc = ctx.toolchains[_TOOLCHAIN]
-    name = ctx.attr.assembly_name or ctx.file.project.basename.removesuffix(".csproj")
-    reference = ctx.actions.declare_file(ctx.label.name + ".reference/" + name + ".dll")
+    name = ctx.attr.assembly_name or project.basename.removesuffix(".csproj")
+    reference = ctx.actions.declare_file(ctx.label.name + ".restore.json" if restore_only else ctx.label.name + ".reference/" + name + ".dll")
     runtime = ctx.actions.declare_directory(ctx.label.name + ".runtime")
     diagnostics = ctx.actions.declare_directory(ctx.label.name + ".diagnostics")
     request = ctx.actions.declare_file(ctx.label.name + ".request.json")
@@ -84,9 +90,17 @@ def _project(ctx, executable = False, test = False):
         destination = used.get(file.path, logical.removeprefix(prefix) if logical.startswith(prefix) else logical)
         data.append(struct(file = file, destination = destination))
     runtime_data = depset(data, transitive = [dep.runtime_data for dep in direct])
+    restore = ctx.attr.restore[MSBuildRestoreInfo] if ctx.attr.restore else None
+    if restore:
+        if restore.framework != ctx.attr.target_framework or restore.configuration != _configuration(ctx) or restore.executable != executable:
+            fail("Shared restore framework/configuration/output kind must match the assembly")
+        if package_rows or ctx.attr.msbuild_imports or ctx.attr.framework_refs:
+            fail("Shared restore currently requires package-free projects without imports or framework_refs")
     ctx.actions.write(request, json.encode({
         "profileBuild": ctx.attr.profile_build,
-        "project": _file(ctx.file.project),
+        "restoreInput": restore.file.path if restore else None,
+        "restoreOnly": restore_only,
+        "project": _file(project),
         "sources": [_file(file) for file in ctx.files.srcs],
         "imports": [_file(file) for file in ctx.files.msbuild_imports],
         "items": items,
@@ -96,7 +110,7 @@ def _project(ctx, executable = False, test = False):
         "frameworkReferences": ctx.attr.framework_refs,
         "assembly": name,
         "executable": executable,
-        "configuration": "Debug" if ctx.var["COMPILATION_MODE"] == "dbg" else "Release",
+        "configuration": _configuration(ctx),
         "properties": ctx.attr.msbuild_properties,
         "packages": package_rows.values(),
         "compilePackages": compile_packages.to_list(),
@@ -127,18 +141,20 @@ def _project(ctx, executable = False, test = False):
         arguments = arguments,
         tools = depset([tc.runner], transitive = [tc.sdk, tc.runner_support]) if ctx.attr.linux_worker else [],
         inputs = depset(
-            [ctx.file.project, request, tc.runner, tc.runtime_manifest] + ctx.files.srcs + ctx.files.msbuild_imports,
+            [project, request, tc.runner, tc.runtime_manifest] + ctx.files.srcs + ctx.files.msbuild_imports + ([restore.file] if restore else []),
             transitive = [tc.sdk, tc.runner_support, references, package_files] + [group[MSBuildItemsInfo].files for group in ctx.attr.items],
         ),
         outputs = [reference, runtime, diagnostics],
-        mnemonic = "MSBuildAssembly",
+        mnemonic = "MSBuildRestore" if restore_only else "MSBuildAssembly",
         env = {"LANG": "en_US.UTF-8"},
         # The runner stages only declared files and starts a deny-by-default
         # child sandbox. macOS does not permit nested sandbox-exec.
         execution_requirements = requirements,
     )
+    if restore_only:
+        return [DefaultInfo(files = depset([reference])), MSBuildRestoreInfo(file = reference, framework = ctx.attr.target_framework, configuration = _configuration(ctx), executable = executable)]
     info = MSBuildAssemblyInfo(
-        project = _logical(ctx.file.project),
+        project = _logical(project),
         framework = ctx.attr.target_framework,
         reference = reference,
         references = references,
@@ -187,6 +203,7 @@ def _test(ctx):
 _ATTRS = {
     "linux_worker": attr.bool(default = False),
     "profile_build": attr.bool(default = False),
+    "restore": attr.label(providers = [MSBuildRestoreInfo]),
     "project": attr.label(allow_single_file = [".csproj"], mandatory = True),
     "target_framework": attr.string(mandatory = True),
     "assembly_name": attr.string(),
@@ -244,3 +261,13 @@ msbuild_nuget_package = rule(implementation = _package, attrs = {
     "archive_sha256": attr.string(mandatory = True),
     "deps": attr.label_list(providers = [MSBuildPackageInfo]),
 }, toolchains = [_TOOLCHAIN])
+
+def _restore(ctx):
+    project = ctx.actions.declare_file(ctx.label.name + "/BazelRestore.csproj")
+    ctx.actions.write(project, '<Project Sdk="Microsoft.NET.Sdk" />')
+    return _project(ctx, executable = ctx.attr.executable, restore_only = True, project = project)
+
+_RESTORE_ATTRS = dict(_ATTRS)
+_RESTORE_ATTRS.pop("project")
+_RESTORE_ATTRS["executable"] = attr.bool()
+msbuild_restore = rule(implementation = _restore, attrs = _RESTORE_ATTRS, toolchains = [_TOOLCHAIN])

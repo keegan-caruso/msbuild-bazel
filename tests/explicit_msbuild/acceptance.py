@@ -52,13 +52,20 @@ msbuild_test(name="Fails", args=["fail"], project="App.csproj", target_framework
             for rule in ('msbuild_library','msbuild_binary','msbuild_test'):
                 text=text.replace(rule+'(', rule+'(linux_worker=True, ')
             build.write_text(text)
+    shared_restore=os.environ.get('RULES_MSBUILD_SHARED_RESTORE') == '1'
+    if shared_restore:
+        with (workspace/'BUILD.bazel').open('a') as f:
+            f.write('load("@rules_msbuild//msbuild:defs.bzl", "msbuild_restore")\nmsbuild_restore(name="restore_lib",target_framework="net10.0",visibility=["//visibility:public"])\nmsbuild_restore(name="restore_exe",target_framework="net10.0",executable=True,visibility=["//visibility:public"])\n')
+        for build in workspace.rglob('BUILD.bazel'):
+            text=build.read_text().replace('msbuild_library(', 'msbuild_library(restore="//:restore_lib", ').replace('msbuild_binary(', 'msbuild_binary(restore="//:restore_exe", ').replace('msbuild_test(', 'msbuild_test(restore="//:restore_exe", ')
+            build.write_text(text)
     records=[]
-    def actions(case):
+    def actions(case, mnemonic="MSBuildAssembly"):
         text=(folder/(case+'.execution.json')).read_text()
         result=[]; decoder=json.JSONDecoder()
         while text.strip():
             row, end=decoder.raw_decode(text.lstrip()); text=text.lstrip()[end:]
-            if row.get('mnemonic') == 'MSBuildAssembly': result.append(row)
+            if row.get('mnemonic') == mnemonic: result.append(row)
         return result
     def bazel(case, *args, success=True):
         command=[str(BAZEL), '--output_user_root='+str(folder/'user'), '--output_base='+str(folder/'base'), '--ignore_all_rc_files', *args, '--repository_cache='+os.environ.get('RULES_MSBUILD_REPOSITORY_CACHE', str(folder/'repository-cache')), '--disk_cache='+str(folder/'disk-cache'), '--execution_log_json_file='+str(folder/(case+'.execution.json'))]
@@ -101,7 +108,19 @@ msbuild_test(name="Fails", args=["fail"], project="App.csproj", target_framework
     app=workspace/'App/App.csproj'; original=app.read_text(); app.write_text(original.replace('../Library/Library.csproj','../Missing/Missing.csproj'))
     assert 'ProjectReference declarations disagree' in bazel('missing-edge', 'build', '//App', success=False)
     app.write_text(original)
-    bazel('recovered', 'test', '//App:Tests', '--test_output=all')
+    if shared_restore:
+        app.write_text(original.replace('</Project>', '<PropertyGroup><RuntimeIdentifier>linux-arm64</RuntimeIdentifier></PropertyGroup></Project>'))
+        assert 'Shared restore requires' in bazel('restore-incompatible-property','build','//App',success=False)
+        app.write_text(original.replace('</Project>', '<Target Name="AlterRestore" BeforeTargets="Restore" /></Project>'))
+        assert 'Shared restore requires' in bazel('restore-custom-target','build','//App',success=False)
+        app.write_text(original)
+        build=workspace/'App/BUILD.bazel'; saved=build.read_text()
+        build.write_text(saved.replace('restore="//:restore_exe"','restore="//:restore_lib"'))
+        assert 'output kind must match' in bazel('restore-kind-mismatch','build','//App',success=False)
+        build.write_text(saved)
+        # General projects deliberately use the existing per-project restore lane.
+        build.write_text(saved.replace('restore="//:restore_exe", ', ''))
+    bazel('recovered' , 'test', '//App:Tests', '--test_output=all')
     # A declared custom target cannot read an undeclared host file or write sources.
     secret=folder/'undeclared.txt'; secret.write_text('must remain outside the sandbox')
     probe='<Target Name="BoundaryProbe" BeforeTargets="CoreCompile">{}</Target>'
@@ -110,6 +129,7 @@ msbuild_test(name="Fails", args=["fail"], project="App.csproj", target_framework
     app.write_text(original.replace('</Project>', probe.format('<WriteLinesToFile File="$(MSBuildProjectDirectory)/forbidden.txt" Lines="write" />')+'</Project>'))
     bazel('source-write', 'build', '//App', success=False)
     app.write_text(original)
+    if shared_restore: (workspace/'App/BUILD.bazel').write_text(saved)
     bazel('cache-seed', 'run', '//App')
     subprocess.run([str(BAZEL),'--output_user_root='+str(folder/'user'),'--output_base='+str(folder/'base'),'--ignore_all_rc_files','shutdown'], cwd=workspace,check=True)
     # Delete producer execution state and relocate the source before recovery.
@@ -123,6 +143,13 @@ msbuild_test(name="Fails", args=["fail"], project="App.csproj", target_framework
     recovered=actions('cache-recovery')
     assert {a['targetLabel'] for a in recovered} == {'//Library:Library','//App:App'}, recovered
     assert all(a.get('cacheHit') for a in recovered), recovered
+    if shared_restore:
+        restores=actions('cache-recovery', 'MSBuildRestore')
+        assert len(restores)==2 and all(a.get('cacheHit') for a in restores), restores
+        # Consume recovered restore metadata in an actual compilation at the new path.
+        (workspace/'App/Program.cs').write_text((workspace/'App/Program.cs').read_text()+'\n// relocation rebuild\n')
+        assert '9:resource:runtime' in bazel('restore-relocated-compile','run','//App')
+        assert any(not a.get('cacheHit') for a in actions('restore-relocated-compile'))
     (folder/'report.json').write_text(json.dumps(records,indent=2))
     subprocess.run([str(BAZEL),'--output_user_root='+str(folder/'user'),'--output_base='+str(folder/'base'),'--ignore_all_rc_files','shutdown'],cwd=workspace,check=True)
 

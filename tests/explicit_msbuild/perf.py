@@ -18,6 +18,7 @@ def main():
     parser.add_argument('output', type=Path)
     parser.add_argument('--sizes', default='2,32,128')
     parser.add_argument('--setup-only', action='store_true')
+    parser.add_argument('--shared-restore', action='store_true')
     parser.add_argument('--repeats', type=int, default=3)
     args = parser.parse_args()
     output = args.output.resolve(); output.mkdir(parents=True, exist_ok=True)
@@ -56,6 +57,12 @@ toolchain(name="registered",toolchain=":implementation",toolchain_type="@rules_m
         put(source/'App/App.csproj','<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup><TargetFramework>net10.0</TargetFramework><OutputType>Exe</OutputType><Nullable>enable</Nullable></PropertyGroup><ItemGroup><ProjectReference Include="../P0/P0.csproj" /></ItemGroup></Project>')
         put(source/'App/Program.cs','System.Console.WriteLine(P0.Get());')
         put(source/'App/BUILD.bazel','load("@rules_msbuild//msbuild:defs.bzl","msbuild_binary")\nmsbuild_binary(name="App",project="App.csproj",target_framework="net10.0",srcs=["Program.cs"],deps=["//P0"])\n')
+        if args.shared_restore:
+            with (source/'BUILD.bazel').open('a') as f:
+                f.write('load("@rules_msbuild//msbuild:defs.bzl", "msbuild_restore")\nmsbuild_restore(name="restore_lib",target_framework="net10.0",visibility=["//visibility:public"])\nmsbuild_restore(name="restore_exe",target_framework="net10.0",executable=True,visibility=["//visibility:public"])\n')
+            for build_file in source.rglob('BUILD.bazel'):
+                text=build_file.read_text().replace('msbuild_library(', 'msbuild_library(restore="//:restore_lib", ').replace('msbuild_binary(', 'msbuild_binary(restore="//:restore_exe", ')
+                build_file.write_text(text)
         raw=folder/'raw'; shutil.copytree(source,raw,dirs_exist_ok=True)
         worker=folder/'worker'; shutil.copytree(source,worker,dirs_exist_ok=True)
         for build_file in worker.rglob('BUILD.bazel'):
