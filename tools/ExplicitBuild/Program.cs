@@ -206,10 +206,16 @@ internal static class Program
             new XElement("ItemGroup", new XElement("FrameworkReference", new XAttribute("Remove", "@(FrameworkReference)")), new XElement("FrameworkReference", new XAttribute("Include", "@(_BazelFrameworkReferences)")))));
         xml.Save(path);
     }
+    private static string? engineRoot;
     internal static int Compile(Session s)
     {
         var sdkRoot = Path.Combine(s.Sdk, "sdk", s.Request.SdkVersion);
-        System.Runtime.Loader.AssemblyLoadContext.Default.Resolving += (context, name) => File.Exists(Path.Combine(sdkRoot, name.Name + ".dll")) ? context.LoadFromAssemblyPath(Path.Combine(sdkRoot, name.Name + ".dll")) : null;
+        if (engineRoot is null)
+        {
+            System.Runtime.Loader.AssemblyLoadContext.Default.Resolving += (context, name) => File.Exists(Path.Combine(sdkRoot, name.Name + ".dll")) ? context.LoadFromAssemblyPath(Path.Combine(sdkRoot, name.Name + ".dll")) : null;
+            engineRoot = sdkRoot;
+        }
+        else if (engineRoot != sdkRoot) throw new InvalidDataException("A worker cannot change SDK versions");
         Environment.SetEnvironmentVariable("MSBUILD_EXE_PATH", Path.Combine(sdkRoot, "MSBuild.dll"));
         Environment.SetEnvironmentVariable("MSBuildSDKsPath", Path.Combine(sdkRoot, "Sdks"));
         return BuildProject(s);

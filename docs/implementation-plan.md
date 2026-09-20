@@ -702,3 +702,6 @@ consumer invalidation, and deleted-producer cache recovery on macOS and Linux.
 SDK/lock extensions, Orchard adoption, and performance qualification remain open.
 This supersedes further global-discovery optimization as the next architectural
 priority.
+
+The explicit rules also offer [Linux persistent workers](explicit-linux-workers.md),
+with paired fresh-process/worker/raw-MSBuild graph timing and isolation controls.

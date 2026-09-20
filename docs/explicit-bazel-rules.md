@@ -138,6 +138,9 @@ sandboxes. One pre-existing environment-dependent test is skipped.
 
 ## Limits and next qualification
 
+The opt-in [Linux persistent worker](explicit-linux-workers.md) now reuses
+MSBuild and Roslyn while retaining a read-only input boundary.
+
 The compile child uses `sandbox-exec` on macOS and `bubblewrap` on Linux. The
 parent stages declared files outside Bazel's sandbox to avoid nested macOS
 sandboxing. Remote execution is disabled. The local OS runtime is still part of

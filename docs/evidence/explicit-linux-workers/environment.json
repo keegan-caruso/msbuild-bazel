@@ -1,0 +1,17 @@
+{
+  "platform": "Linux-6.18.35-aarch64-with-glibc2.35",
+  "baseCommit": "4b0fdec",
+  "sdk": "10.0.400",
+  "bazel": "8.4.2",
+  "vcpus": 4,
+  "memoryGiB": 6,
+  "sourceHashes": {
+    "tools/ExplicitBuild/SnapshotCache.cs": "6d661fef30594cfe8e7aa71cc18533a5ba3f70e86baa69f49301485972a540d4",
+    "tools/ExplicitBuild/Package.cs": "d9394afeaaf82a6d9ca6fd4d9fa882febda632ba0cd65f9d8f20a43c2d620d19",
+    "tools/ExplicitBuild/LinuxWorker.cs": "c55bbe2738532c9338795d1f0631c566da515f009bd8a2d2bf9ae5d4587ef68a",
+    "tools/ExplicitBuild/Sandbox.cs": "3ec8f89c9bcb41986f45ee80b19b8bd77c58c277814f369f2b70435588c54a87",
+    "tools/ExplicitBuild/Program.cs": "fb503af4e2d7a2a2c209f26a5dacc0b69938719af3e1e2541338a8136c78d437",
+    "msbuild/defs.bzl": "ccadf9fa3858fd92133bc60eb2431bdb3cd8fbd6893095e85445eb8183d3b716",
+    "tests/explicit_msbuild/perf.py": "6a7fb859517c110fbaab880332da7ec618922e31b6e10432c0a70fefb9767499"
+  }
+}

@@ -1,0 +1,56 @@
+[
+  {
+    "projects": 3,
+    "repetition": 0,
+    "seconds": 1.0396244590000379,
+    "remoteHits": 3
+  },
+  {
+    "projects": 3,
+    "repetition": 1,
+    "seconds": 1.0967652509999652,
+    "remoteHits": 3
+  },
+  {
+    "projects": 3,
+    "repetition": 2,
+    "seconds": 0.9993367499999977,
+    "remoteHits": 3
+  },
+  {
+    "projects": 33,
+    "repetition": 0,
+    "seconds": 2.4350135839999894,
+    "remoteHits": 33
+  },
+  {
+    "projects": 33,
+    "repetition": 1,
+    "seconds": 2.489378626000075,
+    "remoteHits": 33
+  },
+  {
+    "projects": 33,
+    "repetition": 2,
+    "seconds": 2.331025042999954,
+    "remoteHits": 33
+  },
+  {
+    "projects": 129,
+    "repetition": 0,
+    "seconds": 6.480117460999963,
+    "remoteHits": 129
+  },
+  {
+    "projects": 129,
+    "repetition": 1,
+    "seconds": 6.620074585999987,
+    "remoteHits": 129
+  },
+  {
+    "projects": 129,
+    "repetition": 2,
+    "seconds": 6.31630854499997,
+    "remoteHits": 129
+  }
+]
