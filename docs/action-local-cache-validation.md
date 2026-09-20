@@ -1,6 +1,6 @@
 # Action-local validation and direct-cache experiment
 
-Status: small-graph build/recovery and failed-publication controls passed;
+Status: small-graph controls and the linked large-graph recovery passed;
 measurements did not justify changing the default. Workflow-gated publication
 remains the default. `experimental-direct-action-cache` is an explicit experiment,
 not a qualified replacement for the existing cache trust boundary.
@@ -40,7 +40,9 @@ Action-local checks are opt-in with `action-local-validation`; direct mode
 automatically enables them. Both measured paths enable the same checks.
 The default workflow keeps its existing checks and avoids this additional pass.
 
-The experiment uses synchronous uploads, Bazel's concurrent-input-change guard,
+The [large-graph follow-up](action-upload-overlap.md) uses background uploads in
+direct mode (the original small-graph measurements below were synchronous).
+The experiment retains Bazel's concurrent-input-change guard,
 and verified downloads. It retains the qualified macOS Nix SDK restriction and
 requires project actions plus an explicit HTTP cache. It does not establish
 that the concurrent-change guard replaces our original-source/worker leases, or
@@ -113,6 +115,10 @@ Evidence: `action-local-cache-evidence.json`; raw traces and logs remain under
 environment and `tests/remote_workers/direct_cache_probe.py --output <new-dir>
 --repositories <repository-cache> --cache-binary <pinned-bazel-remote>`.
 
-Keep both new options off by default. Large-graph timings, source/worker mutation
-controls and a deliberate decision about per-action versus whole-workflow cache
-acceptance are required before a production rollout.
+Keep both new options off by default. Further source/worker mutation controls
+and a deliberate decision about per-action versus whole-workflow cache acceptance
+are required before a production rollout.
+
+The large-graph follow-up qualifies producer-deleted Orchard recovery but finds
+only a 1.8% fresh-build improvement in one pair. It retains the opt-in status and
+records the independent-build Razor variation explicitly.

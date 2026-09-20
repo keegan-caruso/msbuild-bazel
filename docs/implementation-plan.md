@@ -16,6 +16,11 @@ The [discovery closure reuse](discovery-closure-reuse.md) removes repeated path
 checks and metadata/template work: paired Orchard discovery improves 7.9% with
 all 1,421 output files identical.
 
+The [four cold-build experiments](cold-build-follow-up.md) measure host reuse,
+borrowed validation, discovery reuse and direct upload overlap. Full direct
+Orchard remains 574.4s versus 56.3s raw with compiler sharing; the cold target is
+not met. Exact producer-deleted remote recovery passes in 27.9s.
+
 ## Question
 
 Can Bazel cache and schedule configured .NET projects while each action uses MSBuild and consumes dependency artifacts plus MSBuild result metadata?

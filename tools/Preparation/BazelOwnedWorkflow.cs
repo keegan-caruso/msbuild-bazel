@@ -157,7 +157,7 @@ internal static class BazelOwnedWorkflow
             if (request["bazel-remote-cache"] is { } actionEndpoint)
             {
                 if (!directCache) gate = new ActionCache(actionEndpoint.GetValue<string>(), Path.Combine(state, "pending-actions"), request["bazel-remote-upload"]?.GetValue<bool>() == true, connections: request["bazel-remote-connections"]?.GetValue<int>() ?? 8);
-                command.AddRange(["--remote_cache=" + (directCache ? ActionCache.Endpoint(actionEndpoint.GetValue<string>()) : gate!.Url), "--remote_upload_local_results=" + (request["bazel-remote-upload"]?.GetValue<bool>() == true ? "true" : "false"), "--remote_cache_async=false", "--remote_verify_downloads=true", "--remote_download_outputs=" + (projectActions ? "toplevel" : "all")]);
+                command.AddRange(["--remote_cache=" + (directCache ? ActionCache.Endpoint(actionEndpoint.GetValue<string>()) : gate!.Url), "--remote_upload_local_results=" + (request["bazel-remote-upload"]?.GetValue<bool>() == true ? "true" : "false"), "--remote_cache_async=" + (directCache ? "true" : "false"), "--remote_verify_downloads=true", "--remote_download_outputs=" + (projectActions ? "toplevel" : "all")]);
             }
             if (directCache) command.Add("--experimental_guard_against_concurrent_changes");
             report["actionLocalValidation"] = actionLocalValidation;

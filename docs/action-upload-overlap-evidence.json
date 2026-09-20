@@ -1,0 +1,648 @@
+{
+  "runs": [
+    {
+      "mode": "gated",
+      "seconds": 585.0226366,
+      "compiles": 202,
+      "phases": {
+        "sourceSnapshot": 3.2465728,
+        "stagePackages": 0.0330502,
+        "generate": 0.4139268,
+        "bazel": 514.8682504,
+        "leaseExit": 3.1708955,
+        "validateBundles": 0.3899062,
+        "publishActionCache": 60.957313
+      },
+      "runtime": {
+        "status": 200,
+        "markers": [
+          "csharp",
+          "razor",
+          "css"
+        ]
+      },
+      "applicationFiles": 3457
+    },
+    {
+      "mode": "direct",
+      "seconds": 574.4337266,
+      "compiles": 202,
+      "phases": {
+        "sourceSnapshot": 2.8443632,
+        "stagePackages": 0.0338019,
+        "generate": 0.4178452,
+        "bazel": 567.1111728,
+        "leaseExit": 3.194246,
+        "validateBundles": 0.4142682,
+        "publishActionCache": 2.36e-05
+      },
+      "applicationFiles": 3457,
+      "runtime": {
+        "status": 200,
+        "markers": [
+          "csharp",
+          "razor",
+          "css"
+        ]
+      }
+    },
+    {
+      "mode": "direct-recovery",
+      "seconds": 27.8751099,
+      "compiles": 0,
+      "phases": {
+        "sourceSnapshot": 0.7466933,
+        "stagePackages": 0.0387347,
+        "generate": 0.4762705,
+        "bazel": 23.1162541,
+        "leaseExit": 2.8087257,
+        "validateBundles": 0.392988,
+        "publishActionCache": 1.87e-05
+      },
+      "applicationFiles": 3457,
+      "exactProducerRecovery": true,
+      "runtime": {
+        "status": 200,
+        "markers": [
+          "csharp",
+          "razor",
+          "css"
+        ]
+      }
+    },
+    {
+      "mode": "gated-recovery",
+      "seconds": 27.7002342,
+      "compiles": 0,
+      "phases": {
+        "sourceSnapshot": 0.6605266,
+        "stagePackages": 0.0368655,
+        "generate": 0.4697186,
+        "bazel": 23.0114511,
+        "leaseExit": 2.7920201,
+        "validateBundles": 0.410696,
+        "publishActionCache": 0.0030565
+      },
+      "applicationFiles": 3457,
+      "exactProducerRecovery": false,
+      "runtime": {
+        "status": 200,
+        "markers": [
+          "csharp",
+          "razor",
+          "css"
+        ]
+      }
+    }
+  ],
+  "trace": {
+    "gated": {
+      "compile": {
+        "traceEvents": 202,
+        "firstSeconds": 149.486912,
+        "lastSeconds": 507.048533,
+        "summedSeconds": 615.47914
+      },
+      "upload": {
+        "traceEvents": 11,
+        "firstSeconds": 6.961932,
+        "lastSeconds": 319.339099,
+        "summedSeconds": 2.150346
+      },
+      "packages": {
+        "traceEvents": 119,
+        "firstSeconds": 6.160041,
+        "lastSeconds": 35.208194,
+        "summedSeconds": 27.040415
+      }
+    },
+    "direct": {
+      "compile": {
+        "traceEvents": 202,
+        "firstSeconds": 179.689225,
+        "lastSeconds": 558.770572,
+        "summedSeconds": 645.688638
+      },
+      "upload": {
+        "traceEvents": 376,
+        "firstSeconds": 6.496246,
+        "lastSeconds": 563.030487,
+        "summedSeconds": 61.85348
+      },
+      "packages": {
+        "traceEvents": 267,
+        "firstSeconds": 5.636295,
+        "lastSeconds": 61.777912,
+        "summedSeconds": 105.573466
+      }
+    }
+  },
+  "independentBuildDifferences": [
+    "OrchardCore.Admin.dll",
+    "OrchardCore.Admin.pdb",
+    "OrchardCore.AdminDashboard.dll",
+    "OrchardCore.AdminDashboard.pdb",
+    "OrchardCore.AdminMenu.dll",
+    "OrchardCore.AdminMenu.pdb",
+    "OrchardCore.Alias.dll",
+    "OrchardCore.Alias.pdb",
+    "OrchardCore.Apis.GraphQL.dll",
+    "OrchardCore.Apis.GraphQL.pdb",
+    "OrchardCore.ArchiveLater.dll",
+    "OrchardCore.ArchiveLater.pdb",
+    "OrchardCore.AuditTrail.dll",
+    "OrchardCore.AuditTrail.pdb",
+    "OrchardCore.Autoroute.dll",
+    "OrchardCore.Autoroute.pdb",
+    "OrchardCore.AzureAI.dll",
+    "OrchardCore.AzureAI.pdb",
+    "OrchardCore.BackgroundTasks.dll",
+    "OrchardCore.BackgroundTasks.pdb",
+    "OrchardCore.ContentFields.dll",
+    "OrchardCore.ContentFields.pdb",
+    "OrchardCore.ContentLocalization.dll",
+    "OrchardCore.ContentLocalization.pdb",
+    "OrchardCore.ContentPreview.dll",
+    "OrchardCore.ContentPreview.pdb",
+    "OrchardCore.ContentTypes.dll",
+    "OrchardCore.ContentTypes.pdb",
+    "OrchardCore.Contents.dll",
+    "OrchardCore.Contents.pdb",
+    "OrchardCore.Cors.dll",
+    "OrchardCore.Cors.pdb",
+    "OrchardCore.CustomSettings.dll",
+    "OrchardCore.CustomSettings.pdb",
+    "OrchardCore.DataLocalization.dll",
+    "OrchardCore.DataLocalization.pdb",
+    "OrchardCore.Deployment.Remote.dll",
+    "OrchardCore.Deployment.Remote.pdb",
+    "OrchardCore.Deployment.dll",
+    "OrchardCore.Deployment.pdb",
+    "OrchardCore.Diagnostics.dll",
+    "OrchardCore.Diagnostics.pdb",
+    "OrchardCore.Elasticsearch.dll",
+    "OrchardCore.Elasticsearch.pdb",
+    "OrchardCore.Email.Azure.dll",
+    "OrchardCore.Email.Azure.pdb",
+    "OrchardCore.Email.Smtp.dll",
+    "OrchardCore.Email.Smtp.pdb",
+    "OrchardCore.Email.dll",
+    "OrchardCore.Email.pdb",
+    "OrchardCore.Facebook.dll",
+    "OrchardCore.Facebook.pdb",
+    "OrchardCore.Features.dll",
+    "OrchardCore.Features.pdb",
+    "OrchardCore.Flows.dll",
+    "OrchardCore.Flows.pdb",
+    "OrchardCore.Forms.dll",
+    "OrchardCore.Forms.pdb",
+    "OrchardCore.GitHub.dll",
+    "OrchardCore.GitHub.pdb",
+    "OrchardCore.Google.dll",
+    "OrchardCore.Google.pdb",
+    "OrchardCore.Html.dll",
+    "OrchardCore.Html.pdb",
+    "OrchardCore.Https.dll",
+    "OrchardCore.Https.pdb",
+    "OrchardCore.Indexing.dll",
+    "OrchardCore.Indexing.pdb",
+    "OrchardCore.Layers.dll",
+    "OrchardCore.Layers.pdb",
+    "OrchardCore.Liquid.dll",
+    "OrchardCore.Liquid.pdb",
+    "OrchardCore.Lists.dll",
+    "OrchardCore.Lists.pdb",
+    "OrchardCore.Localization.dll",
+    "OrchardCore.Localization.pdb",
+    "OrchardCore.Lucene.dll",
+    "OrchardCore.Lucene.pdb",
+    "OrchardCore.Markdown.dll",
+    "OrchardCore.Markdown.pdb",
+    "OrchardCore.Media.AmazonS3.dll",
+    "OrchardCore.Media.AmazonS3.pdb",
+    "OrchardCore.Menu.dll",
+    "OrchardCore.Menu.pdb",
+    "OrchardCore.Microsoft.Authentication.dll",
+    "OrchardCore.Microsoft.Authentication.pdb",
+    "OrchardCore.MiniProfiler.dll",
+    "OrchardCore.MiniProfiler.pdb",
+    "OrchardCore.Navigation.dll",
+    "OrchardCore.Navigation.pdb",
+    "OrchardCore.Notifications.dll",
+    "OrchardCore.Notifications.pdb",
+    "OrchardCore.OpenApi.dll",
+    "OrchardCore.OpenApi.pdb",
+    "OrchardCore.OpenId.dll",
+    "OrchardCore.OpenId.pdb",
+    "OrchardCore.Placements.dll",
+    "OrchardCore.Placements.pdb",
+    "OrchardCore.PublishLater.dll",
+    "OrchardCore.PublishLater.pdb",
+    "OrchardCore.Queries.dll",
+    "OrchardCore.Queries.pdb",
+    "OrchardCore.RateLimits.dll",
+    "OrchardCore.RateLimits.pdb",
+    "OrchardCore.ReCaptcha.dll",
+    "OrchardCore.ReCaptcha.pdb",
+    "OrchardCore.Recipes.dll",
+    "OrchardCore.Recipes.pdb",
+    "OrchardCore.ReverseProxy.dll",
+    "OrchardCore.ReverseProxy.pdb",
+    "OrchardCore.Roles.dll",
+    "OrchardCore.Roles.pdb",
+    "OrchardCore.Rules.dll",
+    "OrchardCore.Rules.pdb",
+    "OrchardCore.Search.dll",
+    "OrchardCore.Search.pdb",
+    "OrchardCore.Security.dll",
+    "OrchardCore.Security.pdb",
+    "OrchardCore.Settings.dll",
+    "OrchardCore.Settings.pdb",
+    "OrchardCore.Setup.dll",
+    "OrchardCore.Setup.pdb",
+    "OrchardCore.Shortcodes.dll",
+    "OrchardCore.Shortcodes.pdb",
+    "OrchardCore.Sitemaps.dll",
+    "OrchardCore.Sitemaps.pdb",
+    "OrchardCore.Sms.Azure.dll",
+    "OrchardCore.Sms.Azure.pdb",
+    "OrchardCore.Sms.dll",
+    "OrchardCore.Sms.pdb",
+    "OrchardCore.Spatial.dll",
+    "OrchardCore.Spatial.pdb",
+    "OrchardCore.Taxonomies.dll",
+    "OrchardCore.Taxonomies.pdb",
+    "OrchardCore.Templates.dll",
+    "OrchardCore.Templates.pdb",
+    "OrchardCore.Tenants.dll",
+    "OrchardCore.Tenants.pdb",
+    "OrchardCore.Themes.dll",
+    "OrchardCore.Themes.pdb",
+    "OrchardCore.Title.dll",
+    "OrchardCore.Title.pdb",
+    "OrchardCore.Twitter.dll",
+    "OrchardCore.Twitter.pdb",
+    "OrchardCore.UrlRewriting.dll",
+    "OrchardCore.UrlRewriting.pdb",
+    "OrchardCore.Users.dll",
+    "OrchardCore.Users.pdb",
+    "OrchardCore.Widgets.dll",
+    "OrchardCore.Widgets.pdb",
+    "OrchardCore.Workflows.dll",
+    "OrchardCore.Workflows.pdb",
+    "SafeMode.dll",
+    "SafeMode.pdb",
+    "TheTheme.dll",
+    "TheTheme.pdb"
+  ],
+  "debugSamples": [
+    {
+      "name": "OrchardCore.Diagnostics.dll",
+      "methodCount": 138,
+      "changedMethods": [],
+      "leftDocuments": [
+        {
+          "Key": "/_/workspace/src/OrchardCore.Modules/OrchardCore.Diagnostics/obj/Release/net10.0/Microsoft.CodeAnalysis.Razor.Compiler/Microsoft.NET.Sdk.Razor.SourceGenerators.RazorSourceGenerator/Views/Diagnostics/Error_cshtml.g.cs",
+          "Value": "2BB6BF3D6DEF49665794070F82B242BAA013A48A85D201968724A4D99ECD9674"
+        },
+        {
+          "Key": "/_/workspace/src/OrchardCore.Modules/OrchardCore.Diagnostics/obj/Release/net10.0/Microsoft.CodeAnalysis.Razor.Compiler/Microsoft.NET.Sdk.Razor.SourceGenerators.RazorSourceGenerator/Views/HttpError_BadRequest_cshtml.g.cs",
+          "Value": "FA7399F1D30B8E9CA7B18A032CDE64A7E66386CF16C67D854022CF1666A231E2"
+        },
+        {
+          "Key": "/_/workspace/src/OrchardCore.Modules/OrchardCore.Diagnostics/obj/Release/net10.0/Microsoft.CodeAnalysis.Razor.Compiler/Microsoft.NET.Sdk.Razor.SourceGenerators.RazorSourceGenerator/Views/HttpError_Forbidden_cshtml.g.cs",
+          "Value": "4C728A934C4BACAC994D1EE00FEBBAC9304CCA636B0DEF03B1E5931178A5DB99"
+        },
+        {
+          "Key": "/_/workspace/src/OrchardCore.Modules/OrchardCore.Diagnostics/obj/Release/net10.0/Microsoft.CodeAnalysis.Razor.Compiler/Microsoft.NET.Sdk.Razor.SourceGenerators.RazorSourceGenerator/Views/HttpError_NotFound_cshtml.g.cs",
+          "Value": "F4DA3FC817876EC5C9FDFE70C30E976A76DE6A5D7CA38A2661FB51CAFFC03471"
+        },
+        {
+          "Key": "/_/workspace/src/OrchardCore.Modules/OrchardCore.Diagnostics/obj/Release/net10.0/Microsoft.CodeAnalysis.Razor.Compiler/Microsoft.NET.Sdk.Razor.SourceGenerators.RazorSourceGenerator/Views/HttpError_TooManyRequests_cshtml.g.cs",
+          "Value": "875BC32ED391796ACE713B68CD8C5771D9C2CBD170AF5DC06C78B60AD8C532D7"
+        },
+        {
+          "Key": "/_/workspace/src/OrchardCore.Modules/OrchardCore.Diagnostics/obj/Release/net10.0/Microsoft.CodeAnalysis.Razor.Compiler/Microsoft.NET.Sdk.Razor.SourceGenerators.RazorSourceGenerator/Views/HttpError_Unauthorized_cshtml.g.cs",
+          "Value": "71EEC7A3EB232B2461BAF28AE07C3E8E7880F194E5B6036EFD1DDE4230B45FE2"
+        },
+        {
+          "Key": "/_/workspace/src/OrchardCore.Modules/OrchardCore.Diagnostics/obj/Release/net10.0/Microsoft.CodeAnalysis.Razor.Compiler/Microsoft.NET.Sdk.Razor.SourceGenerators.RazorSourceGenerator/Views/HttpError_cshtml.g.cs",
+          "Value": "8D9280E2F7B00BA966AD4C70C64DF49F0577030AFD90272E4150BC9DDC5B3920"
+        },
+        {
+          "Key": "/_/workspace/src/OrchardCore.Modules/OrchardCore.Diagnostics/obj/Release/net10.0/Microsoft.CodeAnalysis.Razor.Compiler/Microsoft.NET.Sdk.Razor.SourceGenerators.RazorSourceGenerator/Views/_ViewImports_cshtml.g.cs",
+          "Value": "1A64C7BD518DC9F09BAD8D95A160AD80E41F3B6E9F81DDE1C43885B227CF0B4B"
+        }
+      ],
+      "rightDocuments": [
+        {
+          "Key": "/_/workspace/src/OrchardCore.Modules/OrchardCore.Diagnostics/obj/Release/net10.0/Microsoft.CodeAnalysis.Razor.Compiler/Microsoft.NET.Sdk.Razor.SourceGenerators.RazorSourceGenerator/Views/Diagnostics/Error_cshtml.g.cs",
+          "Value": "B8D539267A6490688CE75AB95A43D77F0048070446762E8DA4F75A78168CDA99"
+        },
+        {
+          "Key": "/_/workspace/src/OrchardCore.Modules/OrchardCore.Diagnostics/obj/Release/net10.0/Microsoft.CodeAnalysis.Razor.Compiler/Microsoft.NET.Sdk.Razor.SourceGenerators.RazorSourceGenerator/Views/HttpError_BadRequest_cshtml.g.cs",
+          "Value": "0C79BA916483D6618CA98885E9A5754F5565C25E5EE91B3AA1BECE8D84C38417"
+        },
+        {
+          "Key": "/_/workspace/src/OrchardCore.Modules/OrchardCore.Diagnostics/obj/Release/net10.0/Microsoft.CodeAnalysis.Razor.Compiler/Microsoft.NET.Sdk.Razor.SourceGenerators.RazorSourceGenerator/Views/HttpError_Forbidden_cshtml.g.cs",
+          "Value": "1A177B5281C11F570BCA68344764668361090643CFEEF8A2AFF399EEC24B53CE"
+        },
+        {
+          "Key": "/_/workspace/src/OrchardCore.Modules/OrchardCore.Diagnostics/obj/Release/net10.0/Microsoft.CodeAnalysis.Razor.Compiler/Microsoft.NET.Sdk.Razor.SourceGenerators.RazorSourceGenerator/Views/HttpError_NotFound_cshtml.g.cs",
+          "Value": "A8DA352675EE43BA7B8285806EF8E2DFB32F638E8C5571E3C234B363FBD0149A"
+        },
+        {
+          "Key": "/_/workspace/src/OrchardCore.Modules/OrchardCore.Diagnostics/obj/Release/net10.0/Microsoft.CodeAnalysis.Razor.Compiler/Microsoft.NET.Sdk.Razor.SourceGenerators.RazorSourceGenerator/Views/HttpError_TooManyRequests_cshtml.g.cs",
+          "Value": "1FC367B4ADB3AF251452B961D35546DDD1B23CC7DD14CB99DEA3D82755DE8A10"
+        },
+        {
+          "Key": "/_/workspace/src/OrchardCore.Modules/OrchardCore.Diagnostics/obj/Release/net10.0/Microsoft.CodeAnalysis.Razor.Compiler/Microsoft.NET.Sdk.Razor.SourceGenerators.RazorSourceGenerator/Views/HttpError_Unauthorized_cshtml.g.cs",
+          "Value": "A3950ADDB0A5B4C0966F000C765810BA38DBC0DADE2AFC390D88F4534E1C042D"
+        },
+        {
+          "Key": "/_/workspace/src/OrchardCore.Modules/OrchardCore.Diagnostics/obj/Release/net10.0/Microsoft.CodeAnalysis.Razor.Compiler/Microsoft.NET.Sdk.Razor.SourceGenerators.RazorSourceGenerator/Views/HttpError_cshtml.g.cs",
+          "Value": "6F3EE83993C4B59B678C9E3972C8224A6B68D21532345A88766AD8C53E1AED56"
+        },
+        {
+          "Key": "/_/workspace/src/OrchardCore.Modules/OrchardCore.Diagnostics/obj/Release/net10.0/Microsoft.CodeAnalysis.Razor.Compiler/Microsoft.NET.Sdk.Razor.SourceGenerators.RazorSourceGenerator/Views/_ViewImports_cshtml.g.cs",
+          "Value": "DCD75CB71A34A33697B3C5E0EB3EFE6EC384F82108E229F815F6C5269ED197DB"
+        }
+      ]
+    },
+    {
+      "name": "OrchardCore.Notifications.dll",
+      "methodCount": 901,
+      "changedMethods": [],
+      "leftDocuments": [
+        {
+          "Key": "/_/workspace/src/OrchardCore.Modules/OrchardCore.Notifications/obj/Release/net10.0/Microsoft.CodeAnalysis.Razor.Compiler/Microsoft.NET.Sdk.Razor.SourceGenerators.RazorSourceGenerator/Views/Admin/List_cshtml.g.cs",
+          "Value": "5D91A699A843F02C5484D7BAE5522964D65118B530785B02FF6DEBF0A1B1C9AC"
+        },
+        {
+          "Key": "/_/workspace/src/OrchardCore.Modules/OrchardCore.Notifications/obj/Release/net10.0/Microsoft.CodeAnalysis.Razor.Compiler/Microsoft.NET.Sdk.Razor.SourceGenerators.RazorSourceGenerator/Views/Items/NotifyContentOwnerTask_Fields_Design_cshtml.g.cs",
+          "Value": "EFEBD6E7096A09039F3F11CA3AFFEC41C8B330884ABB1787EA51B5F42BFE2D70"
+        },
+        {
+          "Key": "/_/workspace/src/OrchardCore.Modules/OrchardCore.Notifications/obj/Release/net10.0/Microsoft.CodeAnalysis.Razor.Compiler/Microsoft.NET.Sdk.Razor.SourceGenerators.RazorSourceGenerator/Views/Items/NotifyContentOwnerTask_Fields_Edit_cshtml.g.cs",
+          "Value": "2A6D264B000ABC8E72B8122756BB8C21AC6B8699D36FF70DCD16CA58FB59BAE4"
+        },
+        {
+          "Key": "/_/workspace/src/OrchardCore.Modules/OrchardCore.Notifications/obj/Release/net10.0/Microsoft.CodeAnalysis.Razor.Compiler/Microsoft.NET.Sdk.Razor.SourceGenerators.RazorSourceGenerator/Views/Items/NotifyContentOwnerTask_Fields_Thumbnail_cshtml.g.cs",
+          "Value": "0DA982633E472F87CD3F5D28576564EC9D6F3A24477967AD62B55C65FF78F52E"
+        },
+        {
+          "Key": "/_/workspace/src/OrchardCore.Modules/OrchardCore.Notifications/obj/Release/net10.0/Microsoft.CodeAnalysis.Razor.Compiler/Microsoft.NET.Sdk.Razor.SourceGenerators.RazorSourceGenerator/Views/Items/NotifyUserTask_Fields_Design_cshtml.g.cs",
+          "Value": "7809F7E2D8C6E253D4BDB2A6F660D759FE409438CC23BAA40496BCA1096BA9A2"
+        },
+        {
+          "Key": "/_/workspace/src/OrchardCore.Modules/OrchardCore.Notifications/obj/Release/net10.0/Microsoft.CodeAnalysis.Razor.Compiler/Microsoft.NET.Sdk.Razor.SourceGenerators.RazorSourceGenerator/Views/Items/NotifyUserTask_Fields_Edit_cshtml.g.cs",
+          "Value": "D1CD3BD1C83C0C5A758875911559416082BE1EE35BD9BFA349CA01A7E95400E1"
+        },
+        {
+          "Key": "/_/workspace/src/OrchardCore.Modules/OrchardCore.Notifications/obj/Release/net10.0/Microsoft.CodeAnalysis.Razor.Compiler/Microsoft.NET.Sdk.Razor.SourceGenerators.RazorSourceGenerator/Views/Items/NotifyUserTask_Fields_Thumbnail_cshtml.g.cs",
+          "Value": "0C10F7CC88DCEA3AF74E7776518D57FE23C08DE4BAF2F026E7B260A2E89B1A67"
+        },
+        {
+          "Key": "/_/workspace/src/OrchardCore.Modules/OrchardCore.Notifications/obj/Release/net10.0/Microsoft.CodeAnalysis.Razor.Compiler/Microsoft.NET.Sdk.Razor.SourceGenerators.RazorSourceGenerator/Views/Items/NotifyUserTaskActivity_Fields_Edit_cshtml.g.cs",
+          "Value": "A4C80D3CB43912E142C4F00E9261C28C0D0BB4431622F926158CF8B4AD10BF48"
+        },
+        {
+          "Key": "/_/workspace/src/OrchardCore.Modules/OrchardCore.Notifications/obj/Release/net10.0/Microsoft.CodeAnalysis.Razor.Compiler/Microsoft.NET.Sdk.Razor.SourceGenerators.RazorSourceGenerator/Views/Notification_Header_cshtml.g.cs",
+          "Value": "2EB0A7A8B38499EDAA7189106BB0EA9FD3EB9D3A23101B4B11EA1B26762C4E5F"
+        },
+        {
+          "Key": "/_/workspace/src/OrchardCore.Modules/OrchardCore.Notifications/obj/Release/net10.0/Microsoft.CodeAnalysis.Razor.Compiler/Microsoft.NET.Sdk.Razor.SourceGenerators.RazorSourceGenerator/Views/Notification_SummaryAdmin_cshtml.g.cs",
+          "Value": "FD7FE1BD33FC77C05A9FB44CACAA1548B2A7FF561A195C4FF40193B07DA97A18"
+        },
+        {
+          "Key": "/_/workspace/src/OrchardCore.Modules/OrchardCore.Notifications/obj/Release/net10.0/Microsoft.CodeAnalysis.Razor.Compiler/Microsoft.NET.Sdk.Razor.SourceGenerators.RazorSourceGenerator/Views/NotificationsActions_SummaryAdmin_cshtml.g.cs",
+          "Value": "DADE69F1454CA0683BCDC3A09BADAC534C976992D59D55FEC2D1EF2E6D0CF648"
+        },
+        {
+          "Key": "/_/workspace/src/OrchardCore.Modules/OrchardCore.Notifications/obj/Release/net10.0/Microsoft.CodeAnalysis.Razor.Compiler/Microsoft.NET.Sdk.Razor.SourceGenerators.RazorSourceGenerator/Views/NotificationsAdminList_cshtml.g.cs",
+          "Value": "E06D1F4EFAB34F40A9EA15FB13900C7D6A715E804A709F82B3E8736A33F3A220"
+        },
+        {
+          "Key": "/_/workspace/src/OrchardCore.Modules/OrchardCore.Notifications/obj/Release/net10.0/Microsoft.CodeAnalysis.Razor.Compiler/Microsoft.NET.Sdk.Razor.SourceGenerators.RazorSourceGenerator/Views/NotificationsAdminList_Fields_BulkActions_cshtml.g.cs",
+          "Value": "E6AE1C888860B3DD2ADA6E64EF250F95F256737996F8CB51C23E733D764D542E"
+        },
+        {
+          "Key": "/_/workspace/src/OrchardCore.Modules/OrchardCore.Notifications/obj/Release/net10.0/Microsoft.CodeAnalysis.Razor.Compiler/Microsoft.NET.Sdk.Razor.SourceGenerators.RazorSourceGenerator/Views/NotificationsAdminListActionBarButtons_cshtml.g.cs",
+          "Value": "904F19DF063B837D0D311CBF82EF9DA3E8C04336158732AECB58895D9410AD5A"
+        },
+        {
+          "Key": "/_/workspace/src/OrchardCore.Modules/OrchardCore.Notifications/obj/Release/net10.0/Microsoft.CodeAnalysis.Razor.Compiler/Microsoft.NET.Sdk.Razor.SourceGenerators.RazorSourceGenerator/Views/NotificationsAdminListBulkActions_cshtml.g.cs",
+          "Value": "3D654F35B5A9DB2839A252C9C13BF25F4191E9612F7D76E19E9F63EDB229BFDA"
+        },
+        {
+          "Key": "/_/workspace/src/OrchardCore.Modules/OrchardCore.Notifications/obj/Release/net10.0/Microsoft.CodeAnalysis.Razor.Compiler/Microsoft.NET.Sdk.Razor.SourceGenerators.RazorSourceGenerator/Views/NotificationsAdminListFilters_cshtml.g.cs",
+          "Value": "991AB53C6F1BE579E8BD26B8B5543532E163611EF4C398B30E66C1BC29E15764"
+        },
+        {
+          "Key": "/_/workspace/src/OrchardCore.Modules/OrchardCore.Notifications/obj/Release/net10.0/Microsoft.CodeAnalysis.Razor.Compiler/Microsoft.NET.Sdk.Razor.SourceGenerators.RazorSourceGenerator/Views/NotificationsAdminListSearch_cshtml.g.cs",
+          "Value": "B2AEEA45DC3866C42326CADB08E82D6486CF0EB06FE4BC6EE57B3BC30448516B"
+        },
+        {
+          "Key": "/_/workspace/src/OrchardCore.Modules/OrchardCore.Notifications/obj/Release/net10.0/Microsoft.CodeAnalysis.Razor.Compiler/Microsoft.NET.Sdk.Razor.SourceGenerators.RazorSourceGenerator/Views/NotificationsAdminListSummary_cshtml.g.cs",
+          "Value": "3DC01CEE846068C08A09CEE54F33A92F678A036B28502681D4790A12478C80EC"
+        },
+        {
+          "Key": "/_/workspace/src/OrchardCore.Modules/OrchardCore.Notifications/obj/Release/net10.0/Microsoft.CodeAnalysis.Razor.Compiler/Microsoft.NET.Sdk.Razor.SourceGenerators.RazorSourceGenerator/Views/NotificationsButtonActions_SummaryAdmin_cshtml.g.cs",
+          "Value": "E41F1CB9983201CAD73131EFC6F192A9AD39F2EF8EF7067C4D10056E7E3B7A46"
+        },
+        {
+          "Key": "/_/workspace/src/OrchardCore.Modules/OrchardCore.Notifications/obj/Release/net10.0/Microsoft.CodeAnalysis.Razor.Compiler/Microsoft.NET.Sdk.Razor.SourceGenerators.RazorSourceGenerator/Views/NotificationsMeta_SummaryAdmin_cshtml.g.cs",
+          "Value": "6A29BE63E391187E86FB37698CCD5BC2A03F012FCD97FDD535584EC0586ECC5C"
+        },
+        {
+          "Key": "/_/workspace/src/OrchardCore.Modules/OrchardCore.Notifications/obj/Release/net10.0/Microsoft.CodeAnalysis.Razor.Compiler/Microsoft.NET.Sdk.Razor.SourceGenerators.RazorSourceGenerator/Views/UserNotificationNavbar_cshtml.g.cs",
+          "Value": "9F1543BD4470D3C334FC22D8E9FD54B9DB1703BEE4E1F8F515A05D2B42D4A319"
+        },
+        {
+          "Key": "/_/workspace/src/OrchardCore.Modules/OrchardCore.Notifications/obj/Release/net10.0/Microsoft.CodeAnalysis.Razor.Compiler/Microsoft.NET.Sdk.Razor.SourceGenerators.RazorSourceGenerator/Views/UserNotificationPreferencesPart_Edit_cshtml.g.cs",
+          "Value": "010866B10525841CC10F6CC6DA1F59F6149768FBA6E2DA579322624152D0120B"
+        },
+        {
+          "Key": "/_/workspace/src/OrchardCore.Modules/OrchardCore.Notifications/obj/Release/net10.0/Microsoft.CodeAnalysis.Razor.Compiler/Microsoft.NET.Sdk.Razor.SourceGenerators.RazorSourceGenerator/Views/_ViewImports_cshtml.g.cs",
+          "Value": "A31629369E57FAD83B45AA829C723D74876C1FC9841BD7BF0940B370499549C6"
+        }
+      ],
+      "rightDocuments": [
+        {
+          "Key": "/_/workspace/src/OrchardCore.Modules/OrchardCore.Notifications/obj/Release/net10.0/Microsoft.CodeAnalysis.Razor.Compiler/Microsoft.NET.Sdk.Razor.SourceGenerators.RazorSourceGenerator/Views/Admin/List_cshtml.g.cs",
+          "Value": "875419202BB7CF83A9D8862C916232F5D021FC58CFC42A38003D860C0F1F9040"
+        },
+        {
+          "Key": "/_/workspace/src/OrchardCore.Modules/OrchardCore.Notifications/obj/Release/net10.0/Microsoft.CodeAnalysis.Razor.Compiler/Microsoft.NET.Sdk.Razor.SourceGenerators.RazorSourceGenerator/Views/Items/NotifyContentOwnerTask_Fields_Design_cshtml.g.cs",
+          "Value": "69E0535450AE61B4695FD8BAE5BE92B26EAD22E99449A5F73868B8A07BA0C6A7"
+        },
+        {
+          "Key": "/_/workspace/src/OrchardCore.Modules/OrchardCore.Notifications/obj/Release/net10.0/Microsoft.CodeAnalysis.Razor.Compiler/Microsoft.NET.Sdk.Razor.SourceGenerators.RazorSourceGenerator/Views/Items/NotifyContentOwnerTask_Fields_Edit_cshtml.g.cs",
+          "Value": "FC8FF85A2C9A4346A6C1A491C6A0F25226935D3730E388B8C42E476684C94656"
+        },
+        {
+          "Key": "/_/workspace/src/OrchardCore.Modules/OrchardCore.Notifications/obj/Release/net10.0/Microsoft.CodeAnalysis.Razor.Compiler/Microsoft.NET.Sdk.Razor.SourceGenerators.RazorSourceGenerator/Views/Items/NotifyContentOwnerTask_Fields_Thumbnail_cshtml.g.cs",
+          "Value": "5451E8DABC61A74EB7D18BF0175165CD58C0E49D6746CDFDF6147E294F69B9FA"
+        },
+        {
+          "Key": "/_/workspace/src/OrchardCore.Modules/OrchardCore.Notifications/obj/Release/net10.0/Microsoft.CodeAnalysis.Razor.Compiler/Microsoft.NET.Sdk.Razor.SourceGenerators.RazorSourceGenerator/Views/Items/NotifyUserTask_Fields_Design_cshtml.g.cs",
+          "Value": "1EC54A3432AFDDD1AF6034B1EF2AE620363CB7AF92BEFE5B48636122E2B0E79C"
+        },
+        {
+          "Key": "/_/workspace/src/OrchardCore.Modules/OrchardCore.Notifications/obj/Release/net10.0/Microsoft.CodeAnalysis.Razor.Compiler/Microsoft.NET.Sdk.Razor.SourceGenerators.RazorSourceGenerator/Views/Items/NotifyUserTask_Fields_Edit_cshtml.g.cs",
+          "Value": "A888A42F07FE5B23E916DA9B369EE4E6338E9130D3DC51935D1C99FE567D13AD"
+        },
+        {
+          "Key": "/_/workspace/src/OrchardCore.Modules/OrchardCore.Notifications/obj/Release/net10.0/Microsoft.CodeAnalysis.Razor.Compiler/Microsoft.NET.Sdk.Razor.SourceGenerators.RazorSourceGenerator/Views/Items/NotifyUserTask_Fields_Thumbnail_cshtml.g.cs",
+          "Value": "41FA95603D61904EEFD4D55E2879C60CFDF247ACE60A336C0B19FAB5B10EAF4D"
+        },
+        {
+          "Key": "/_/workspace/src/OrchardCore.Modules/OrchardCore.Notifications/obj/Release/net10.0/Microsoft.CodeAnalysis.Razor.Compiler/Microsoft.NET.Sdk.Razor.SourceGenerators.RazorSourceGenerator/Views/Items/NotifyUserTaskActivity_Fields_Edit_cshtml.g.cs",
+          "Value": "F58DF20D668B0252CFD1825D91FC4DFA0080C228A952FDC8EE7797192D4F8E1E"
+        },
+        {
+          "Key": "/_/workspace/src/OrchardCore.Modules/OrchardCore.Notifications/obj/Release/net10.0/Microsoft.CodeAnalysis.Razor.Compiler/Microsoft.NET.Sdk.Razor.SourceGenerators.RazorSourceGenerator/Views/Notification_Header_cshtml.g.cs",
+          "Value": "03E8003C28ED9912910FF05FB3287DB6F1F46AA6DE05D6876BF34251789B0321"
+        },
+        {
+          "Key": "/_/workspace/src/OrchardCore.Modules/OrchardCore.Notifications/obj/Release/net10.0/Microsoft.CodeAnalysis.Razor.Compiler/Microsoft.NET.Sdk.Razor.SourceGenerators.RazorSourceGenerator/Views/Notification_SummaryAdmin_cshtml.g.cs",
+          "Value": "94C873EE1ABA5282802B56BC740828E8BBC0732CAAA1BA1DC40F7E85433AEA34"
+        },
+        {
+          "Key": "/_/workspace/src/OrchardCore.Modules/OrchardCore.Notifications/obj/Release/net10.0/Microsoft.CodeAnalysis.Razor.Compiler/Microsoft.NET.Sdk.Razor.SourceGenerators.RazorSourceGenerator/Views/NotificationsActions_SummaryAdmin_cshtml.g.cs",
+          "Value": "5E493D14F289E2DC2DC6BD805CB5FD94DA0FC6A93B37514BC240A77F4833E935"
+        },
+        {
+          "Key": "/_/workspace/src/OrchardCore.Modules/OrchardCore.Notifications/obj/Release/net10.0/Microsoft.CodeAnalysis.Razor.Compiler/Microsoft.NET.Sdk.Razor.SourceGenerators.RazorSourceGenerator/Views/NotificationsAdminList_cshtml.g.cs",
+          "Value": "D60923D0D3F40CAC16A33D7DA3E95A7BE8A7A4AD5C4AE55017190064909CE199"
+        },
+        {
+          "Key": "/_/workspace/src/OrchardCore.Modules/OrchardCore.Notifications/obj/Release/net10.0/Microsoft.CodeAnalysis.Razor.Compiler/Microsoft.NET.Sdk.Razor.SourceGenerators.RazorSourceGenerator/Views/NotificationsAdminList_Fields_BulkActions_cshtml.g.cs",
+          "Value": "E57253E1B14D91E642FBC0761C664480FB97E541F977F4D21025322BAB2379F8"
+        },
+        {
+          "Key": "/_/workspace/src/OrchardCore.Modules/OrchardCore.Notifications/obj/Release/net10.0/Microsoft.CodeAnalysis.Razor.Compiler/Microsoft.NET.Sdk.Razor.SourceGenerators.RazorSourceGenerator/Views/NotificationsAdminListActionBarButtons_cshtml.g.cs",
+          "Value": "8D6C1945643F2A2597E316EACF461DC2A622A9DB3DB7B6501F988237518893D3"
+        },
+        {
+          "Key": "/_/workspace/src/OrchardCore.Modules/OrchardCore.Notifications/obj/Release/net10.0/Microsoft.CodeAnalysis.Razor.Compiler/Microsoft.NET.Sdk.Razor.SourceGenerators.RazorSourceGenerator/Views/NotificationsAdminListBulkActions_cshtml.g.cs",
+          "Value": "A4FF92CEAE49AAC6045D0CC4BF6FCD17AF3099DB9A00926E4FD129E81B0610EF"
+        },
+        {
+          "Key": "/_/workspace/src/OrchardCore.Modules/OrchardCore.Notifications/obj/Release/net10.0/Microsoft.CodeAnalysis.Razor.Compiler/Microsoft.NET.Sdk.Razor.SourceGenerators.RazorSourceGenerator/Views/NotificationsAdminListFilters_cshtml.g.cs",
+          "Value": "CD42E405980C78D324FCF2047D21FED4110850875EB14347B91E2A066DCABD0A"
+        },
+        {
+          "Key": "/_/workspace/src/OrchardCore.Modules/OrchardCore.Notifications/obj/Release/net10.0/Microsoft.CodeAnalysis.Razor.Compiler/Microsoft.NET.Sdk.Razor.SourceGenerators.RazorSourceGenerator/Views/NotificationsAdminListSearch_cshtml.g.cs",
+          "Value": "F1085A9425FA21267FABBB039133ECA6ED165D6C527C820E901CF92F1BBAF76B"
+        },
+        {
+          "Key": "/_/workspace/src/OrchardCore.Modules/OrchardCore.Notifications/obj/Release/net10.0/Microsoft.CodeAnalysis.Razor.Compiler/Microsoft.NET.Sdk.Razor.SourceGenerators.RazorSourceGenerator/Views/NotificationsAdminListSummary_cshtml.g.cs",
+          "Value": "E4EEE0D996B53A0EF867FB149AAE2A2697859CF2C54404C5AAD3DF7981E1D805"
+        },
+        {
+          "Key": "/_/workspace/src/OrchardCore.Modules/OrchardCore.Notifications/obj/Release/net10.0/Microsoft.CodeAnalysis.Razor.Compiler/Microsoft.NET.Sdk.Razor.SourceGenerators.RazorSourceGenerator/Views/NotificationsButtonActions_SummaryAdmin_cshtml.g.cs",
+          "Value": "D6BC9B3188DE9BCD6C39C2592B20F03570A25A3AD3D01B80CCC67FE801DE96A5"
+        },
+        {
+          "Key": "/_/workspace/src/OrchardCore.Modules/OrchardCore.Notifications/obj/Release/net10.0/Microsoft.CodeAnalysis.Razor.Compiler/Microsoft.NET.Sdk.Razor.SourceGenerators.RazorSourceGenerator/Views/NotificationsMeta_SummaryAdmin_cshtml.g.cs",
+          "Value": "C48276D4BBBD54CD221CA419B797F9080678DCE8E9DCD3E4CA297299B421245E"
+        },
+        {
+          "Key": "/_/workspace/src/OrchardCore.Modules/OrchardCore.Notifications/obj/Release/net10.0/Microsoft.CodeAnalysis.Razor.Compiler/Microsoft.NET.Sdk.Razor.SourceGenerators.RazorSourceGenerator/Views/UserNotificationNavbar_cshtml.g.cs",
+          "Value": "7B64BC150FEC5FEC1937C16ED2EDC5DC18C52BC588E08E7321506B63BF497852"
+        },
+        {
+          "Key": "/_/workspace/src/OrchardCore.Modules/OrchardCore.Notifications/obj/Release/net10.0/Microsoft.CodeAnalysis.Razor.Compiler/Microsoft.NET.Sdk.Razor.SourceGenerators.RazorSourceGenerator/Views/UserNotificationPreferencesPart_Edit_cshtml.g.cs",
+          "Value": "0ED698CDF6A2D8BBEEAFAF0B0FC23EDE37DB37CF12A435A5E8B09A42EF163E03"
+        },
+        {
+          "Key": "/_/workspace/src/OrchardCore.Modules/OrchardCore.Notifications/obj/Release/net10.0/Microsoft.CodeAnalysis.Razor.Compiler/Microsoft.NET.Sdk.Razor.SourceGenerators.RazorSourceGenerator/Views/_ViewImports_cshtml.g.cs",
+          "Value": "1A14ACD70E4967D89955BD2B72FCC8E3DE408299E19F21DC643B4A40815E5200"
+        }
+      ]
+    },
+    {
+      "name": "OrchardCore.Setup.dll",
+      "methodCount": 293,
+      "changedMethods": [],
+      "leftDocuments": [
+        {
+          "Key": "/_/workspace/src/OrchardCore.Modules/OrchardCore.Setup/obj/Release/net10.0/Microsoft.CodeAnalysis.Razor.Compiler/Microsoft.NET.Sdk.Razor.SourceGenerators.RazorSourceGenerator/Views/Setup/Index_cshtml.g.cs",
+          "Value": "759D2892D76DB6FF71FAF8EBEB75352FCA65AA8D503B02ED7AD7CB4CEDE4EB94"
+        },
+        {
+          "Key": "/_/workspace/src/OrchardCore.Modules/OrchardCore.Setup/obj/Release/net10.0/Microsoft.CodeAnalysis.Razor.Compiler/Microsoft.NET.Sdk.Razor.SourceGenerators.RazorSourceGenerator/Views/_Layout_cshtml.g.cs",
+          "Value": "7B712B60862F2154AC2CD7F27DD4FFC1C297188C72A1C957FC1CAB3FA44B522E"
+        },
+        {
+          "Key": "/_/workspace/src/OrchardCore.Modules/OrchardCore.Setup/obj/Release/net10.0/Microsoft.CodeAnalysis.Razor.Compiler/Microsoft.NET.Sdk.Razor.SourceGenerators.RazorSourceGenerator/Views/_ViewImports_cshtml.g.cs",
+          "Value": "1A629572324A0042C2FD2402F06097AB63BD88413420B38D94F5AD79C60BF244"
+        }
+      ],
+      "rightDocuments": [
+        {
+          "Key": "/_/workspace/src/OrchardCore.Modules/OrchardCore.Setup/obj/Release/net10.0/Microsoft.CodeAnalysis.Razor.Compiler/Microsoft.NET.Sdk.Razor.SourceGenerators.RazorSourceGenerator/Views/Setup/Index_cshtml.g.cs",
+          "Value": "94D620BE2E69C869781BCE3876770ACD9611216D433D64CDB80D8E8ED238EDF3"
+        },
+        {
+          "Key": "/_/workspace/src/OrchardCore.Modules/OrchardCore.Setup/obj/Release/net10.0/Microsoft.CodeAnalysis.Razor.Compiler/Microsoft.NET.Sdk.Razor.SourceGenerators.RazorSourceGenerator/Views/_Layout_cshtml.g.cs",
+          "Value": "821DDCAB7FF43B37D10EDC8C6F9550148D3D41DD807962163D51756204F0D6CE"
+        },
+        {
+          "Key": "/_/workspace/src/OrchardCore.Modules/OrchardCore.Setup/obj/Release/net10.0/Microsoft.CodeAnalysis.Razor.Compiler/Microsoft.NET.Sdk.Razor.SourceGenerators.RazorSourceGenerator/Views/_ViewImports_cshtml.g.cs",
+          "Value": "A28839FD79792E92A81AC0C2447DA6F1ED8614F7FF8479ADDB2B2063798C39B2"
+        }
+      ]
+    }
+  ],
+  "publicationControls": [
+    {
+      "case": "valid",
+      "exitCode": 0,
+      "cacheHit": false
+    },
+    {
+      "case": "valid-recovery",
+      "exitCode": 0,
+      "cacheHit": true
+    },
+    {
+      "case": "invalid",
+      "exitCode": 1,
+      "cacheHit": false
+    },
+    {
+      "case": "invalid-retry",
+      "exitCode": 1,
+      "cacheHit": false
+    }
+  ],
+  "rawMSBuild": [
+    {
+      "case": "restore",
+      "seconds": 3.122361417,
+      "exitCode": 0
+    },
+    {
+      "case": "clean-unshared",
+      "seconds": 145.704236625,
+      "exitCode": 0,
+      "compilerCommandLines": 202
+    },
+    {
+      "case": "clean-shared",
+      "seconds": 56.32581937500001,
+      "exitCode": 0,
+      "compilerCommandLines": 202
+    }
+  ],
+  "rawRuntime": {
+    "status": 200,
+    "markers": [
+      "csharp",
+      "razor",
+      "css"
+    ]
+  }
+}

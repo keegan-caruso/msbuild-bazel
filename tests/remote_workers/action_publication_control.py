@@ -33,7 +33,7 @@ def run(generated, out, endpoint, repositories):
         (bundle/'bundle.json').write_text(json.dumps(dict(schemaVersion=1,resultsSha256=sha((bundle/'results.json').read_bytes()),artifactsSha256=sha((bundle/'artifacts.json').read_bytes()))))
         base=out/label;trace=out/(label+'-execution.json')
         startup=[str(BAZEL),'--nosystem_rc','--nohome_rc','--noworkspace_rc','--output_base='+str(base)]
-        command=startup+['build','//:publication_probe','--incompatible_autoload_externally=','--lockfile_mode=error','--spawn_strategy=darwin-sandbox','--remote_cache='+endpoint,'--remote_cache_async=false','--remote_upload_local_results=true','--remote_verify_downloads=true','--repository_cache='+str(repositories),'--execution_log_json_file='+str(trace),'--noshow_progress']
+        command=startup+['build','//:publication_probe','--incompatible_autoload_externally=','--lockfile_mode=error','--spawn_strategy=darwin-sandbox','--remote_cache='+endpoint,'--remote_cache_async=true','--remote_upload_local_results=true','--remote_verify_downloads=true','--repository_cache='+str(repositories),'--execution_log_json_file='+str(trace),'--noshow_progress']
         try:
             process=subprocess.run(command,cwd=generated,capture_output=True,text=True,timeout=180)
             (out/(label+'.log')).write_text(process.stdout+process.stderr)
