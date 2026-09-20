@@ -27,7 +27,22 @@ internal static class LinuxWorker
         return await WorkerProbe.Run();
     }
 
-    internal static async Task<int> Run()
+    internal static void BeginRequest()
+    {
+        if (!Isolated) return;
+        Files.ReadOnlyInputs = JsonSerializer.Deserialize<Dictionary<string, Files.VerifiedInput>>(File.ReadAllText("/worker/in/.worker-inputs.json"), Json);
+        Files.ReadOnlyHits = 0; Files.HashedBytes = 0;
+    }
+
+    internal static void EndRequest(string requestPath)
+    {
+        if (!Isolated) return;
+        var request = JsonSerializer.Deserialize<RunnerRequest>(File.ReadAllText(requestPath), Json)!;
+        if (Directory.Exists(request.Diagnostics)) File.WriteAllText(Path.Combine(request.Diagnostics, "input-validation.json"), JsonSerializer.Serialize(new { readOnlyHits = Files.ReadOnlyHits, hashedBytes = Files.HashedBytes }, Json));
+        Files.ReadOnlyInputs = null;
+    }
+
+    internal static async Task<int> Run(bool reuseInputs = true)
     {
         if (!OperatingSystem.IsLinux() || System.Runtime.InteropServices.RuntimeInformation.ProcessArchitecture != System.Runtime.InteropServices.Architecture.Arm64 ||
             Path.GetDirectoryName(Environment.ProcessPath) != Sdk || !File.ReadAllText("/etc/os-release").Contains("VERSION_ID=\"22.04\"", StringComparison.Ordinal))
@@ -40,11 +55,14 @@ internal static class LinuxWorker
         var runner = typeof(Program).Assembly.Location;
         foreach (var path in Directory.EnumerateFiles(Path.GetDirectoryName(runner)!))
             Files.Copy(path, Path.Combine(root, "tools", Path.GetFileName(path)));
+        var store = new WorkerInputs(Path.Combine(root, "cas"), reuseInputs);
         using var child = Start(root);
         var errors = child.StandardError.ReadToEndAsync();
+        using var stopping = new CancellationTokenSource();
+        using var terminate = System.Runtime.InteropServices.PosixSignalRegistration.Create(System.Runtime.InteropServices.PosixSignal.SIGTERM, context => { context.Cancel = true; stopping.Cancel(); });
         try
         {
-            while (await Console.In.ReadLineAsync() is { } line)
+            while (await Console.In.ReadLineAsync().WaitAsync(stopping.Token) is { } line)
             {
                 var id = 0;
                 Response response;
@@ -56,7 +74,8 @@ internal static class LinuxWorker
                     var timer = Stopwatch.StartNew();
                     Clear(Path.Combine(root, "in")); Clear(Path.Combine(root, "out"));
                     var declared = new HashSet<string>(StringComparer.Ordinal);
-                    long bytes = 0;
+                    store.Begin();
+                    var identities = new Dictionary<string, Files.VerifiedInput>(StringComparer.Ordinal);
                     foreach (var input in request.Inputs)
                     {
                         if (!Files.ValidRelativePath(input.Path) || !declared.Add(input.Path)) throw new InvalidDataException("Invalid or duplicate worker input: " + input.Path);
@@ -67,10 +86,7 @@ internal static class LinuxWorker
                         var digest = Encoding.UTF8.GetString(Convert.FromBase64String(input.Digest));
                         if (digest.Length != 64 || digest.Any(c => !char.IsAsciiHexDigitLower(c))) throw new InvalidDataException("Expected Bazel SHA-256 input identity");
                         var target = Path.Combine(root, "in", input.Path);
-                        Files.Copy(source, target);
-                        if (Files.Hash(target) != digest) throw new InvalidDataException("Worker input digest mismatch: " + input.Path);
-                        bytes += new FileInfo(target).Length;
-                        File.SetUnixFileMode(target, UnixFileMode.UserRead | UnixFileMode.GroupRead | UnixFileMode.OtherRead);
+                        identities.Add("/worker/in/" + input.Path, store.Stage(source, target, digest));
                     }
                     if (!declared.Contains(requestPath)) throw new InvalidDataException("Request is not a declared input");
                     var original = JsonSerializer.Deserialize<RunnerRequest>(File.ReadAllText(Path.Combine(root, "in", requestPath)), Json)!;
@@ -101,10 +117,13 @@ internal static class LinuxWorker
                     var mappedPath = Path.Combine(root, "in", ".worker-request.json");
                     if (File.Exists(mappedPath)) throw new InvalidDataException("Reserved input path");
                     File.WriteAllText(mappedPath, JsonSerializer.Serialize(mapped, Json));
+                    var indexPath = Path.Combine(root, "in", ".worker-inputs.json");
+                    if (File.Exists(indexPath)) throw new InvalidDataException("Reserved input path");
+                    File.WriteAllText(indexPath, JsonSerializer.Serialize(reuseInputs ? identities : null, Json));
                     var stagingSeconds = timer.Elapsed.TotalSeconds;
                     await child.StandardInput.WriteLineAsync(JsonSerializer.Serialize(new { RequestPath = "/worker/in/.worker-request.json", WorkingDirectory = "/worker/in" }));
                     await child.StandardInput.FlushAsync();
-                    var reply = await child.StandardOutput.ReadLineAsync().WaitAsync(TimeSpan.FromMinutes(10));
+                    var reply = await child.StandardOutput.ReadLineAsync().WaitAsync(TimeSpan.FromMinutes(10), stopping.Token);
                     if (reply is null) throw new IOException("Compiler worker exited: " + await errors);
                     response = JsonSerializer.Deserialize<Response>(reply, Json)! with { RequestId = id };
                     var actionRoot = Path.Combine(root, "out", identity);
@@ -121,7 +140,7 @@ internal static class LinuxWorker
                     if (response.ExitCode == 0)
                     {
                         Export("bundle", original.Output); Export("api", original.ApiOutput); Export("runtime", original.RuntimeOutput);
-                        File.WriteAllText(Path.Combine(execroot, original.Diagnostics, "worker.json"), JsonSerializer.Serialize(new { stagingSeconds, verifiedBytes = bytes, processId = child.Id, identity }, Json));
+                        File.WriteAllText(Path.Combine(execroot, original.Diagnostics, "worker.json"), JsonSerializer.Serialize(new { stagingSeconds, verifiedBytes = store.VerifiedBytes, reusedBytes = store.ReusedBytes, reusedFiles = store.ReusedFiles, processId = child.Id, identity }, Json));
                     }
                 }
                 catch (Exception error)
@@ -135,6 +154,7 @@ internal static class LinuxWorker
             }
             return 0;
         }
+        catch (OperationCanceledException) when (stopping.IsCancellationRequested) { return 0; }
         finally
         {
             if (!child.HasExited) child.Kill(true);

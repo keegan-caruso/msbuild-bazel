@@ -55,6 +55,7 @@ internal static class Program
                 return EntryBuild.Run(entrySession);
             }
             if (args is ["--bazel-worker", "--persistent_worker"]) return await LinuxWorker.Run();
+            if (args is ["--bazel-worker", "--disable-input-cache", "--persistent_worker"]) return await LinuxWorker.Run(reuseInputs: false);
             if (args is ["--isolated-worker"]) return await LinuxWorker.Child();
             if (args is ["--worker-probe"]) { ConfigureEngine(); return await WorkerProbe.Run(); }
             if (args is ["--compose-projects", var compose]) { ProjectActions.Compose(compose); return 0; }

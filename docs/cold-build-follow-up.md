@@ -53,3 +53,14 @@ still misses the performance goal.
 Evidence and limits are linked above. Reproduce the raw comparator with
 `tests/remote_workers/raw_full_graph_probe.py`; retained raw logs and binlogs are
 under `/private/tmp/action-upload-raw-msbuild`. No CI or main-branch merge was run.
+
+## Subsequent Linux worker implementation
+
+The original table above records the four earlier experiments. The
+[opt-in Linux persistent compiler worker](linux-persistent-compiler.md) now
+implements both MSBuild/Roslyn reuse and a bounded verified-input store.
+The 256 MiB synthetic package case measures 0.984s fresh actions, 0.490s with
+compiler/host reuse, and 0.127s with input reuse as well. Mutation/isolation
+controls and producer-state-deleted HTTP action-cache recovery pass. These
+small action results do not replace the 574.434s full Orchard measurement;
+a new large-graph comparison is still required.

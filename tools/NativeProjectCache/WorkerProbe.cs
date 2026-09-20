@@ -23,10 +23,12 @@ internal static class WorkerProbe
                 {
                     Console.SetOut(log); Console.SetError(log);
                     Environment.CurrentDirectory = request.WorkingDirectory;
+                    LinuxWorker.BeginRequest();
                     code = await Program.Main(["--portable-request", request.RequestPath]);
                 }
                 finally
                 {
+                    LinuxWorker.EndRequest(request.RequestPath);
                     Console.SetOut(output); Console.SetError(error);
                     Environment.CurrentDirectory = directory;
                 }

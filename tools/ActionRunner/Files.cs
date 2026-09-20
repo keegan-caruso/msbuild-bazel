@@ -7,9 +7,26 @@ internal static class Files
     private const UnixFileMode Executable = UnixFileMode.UserExecute | UnixFileMode.GroupExecute | UnixFileMode.OtherExecute;
     private const UnixFileMode DefaultFileMode = UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.GroupRead | UnixFileMode.OtherRead;
 
+    // Populated only by the isolated worker from the trusted broker's index.
+    internal sealed record VerifiedInput(long Size, string Hash);
+    internal static IReadOnlyDictionary<string, VerifiedInput>? ReadOnlyInputs { get; set; }
+    internal static long ReadOnlyHits { get; set; }
+    internal static long HashedBytes { get; set; }
+    private static VerifiedInput? Known(string path)
+    {
+        if (ReadOnlyInputs is not null && ReadOnlyInputs.TryGetValue(Path.GetFullPath(path), out var input))
+        {
+            ReadOnlyHits++;
+            return input;
+        }
+        return null;
+    }
+
     public static string Hash(string path)
     {
+        if (Known(path) is { } input) return input.Hash;
         using var stream = File.OpenRead(path);
+        HashedBytes += stream.Length;
         return Convert.ToHexStringLower(SHA256.HashData(stream));
     }
 
@@ -47,8 +64,14 @@ internal static class Files
     {
         if (!File.Exists(path))
             throw new InvalidDataException(error);
+        if (Known(path) is { } input)
+        {
+            if (input.Size != size || input.Hash != hash) throw new InvalidDataException(error);
+            return;
+        }
         // Bazel presents inputs as symlinks; stream length measures the payload, not the link itself.
         using var stream = File.OpenRead(path);
+        HashedBytes += stream.Length;
         if (stream.Length != size || Convert.ToHexStringLower(SHA256.HashData(stream)) != hash)
             throw new InvalidDataException(error);
     }

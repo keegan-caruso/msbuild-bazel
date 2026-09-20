@@ -7,6 +7,7 @@
     <UseAppHost>false</UseAppHost>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="../../tools/NativeProjectCache/WorkerInputs.cs" Link="WorkerInputs.cs" />
     <Compile Include="../../tools/NativeProjectCache/PackageOriginBundles.cs" Link="PackageOriginBundles.cs" />
     <Compile Include="../../tools/BundleIntegrity.cs" Link="BundleIntegrity.cs" />
     <Compile Include="../../tools/NativeProjectCache/ReadOnlyPackageInputs.cs" Link="ReadOnlyPackageInputs.cs" />

@@ -1,0 +1,586 @@
+{
+  "platform": "Ubuntu 22.04 ARM64, .NET 10.0.400, Bazel 8.4.2",
+  "payloadBytes": 268435456,
+  "warmActionMedians": {
+    "fresh": 0.7625800834999978,
+    "worker-no-cache": 0.1136628954999992,
+    "worker": 0.11490233350000523,
+    "fresh-package": 0.9837136670000035,
+    "worker-no-cache-package": 0.4900342079999973,
+    "worker-package": 0.12656529200000932
+  },
+  "cases": [
+    {
+      "label": "fresh-0",
+      "mode": "fresh",
+      "seconds": 0.7698865839999911,
+      "exitCode": 0,
+      "verifiedOutputFiles": 19
+    },
+    {
+      "label": "fresh-1",
+      "mode": "fresh",
+      "seconds": 0.7565155000000061,
+      "exitCode": 0,
+      "verifiedOutputFiles": 19
+    },
+    {
+      "label": "fresh-2",
+      "mode": "fresh",
+      "seconds": 0.7686446669999896,
+      "exitCode": 0,
+      "verifiedOutputFiles": 19
+    },
+    {
+      "label": "worker-no-cache-0",
+      "mode": "worker",
+      "seconds": 0.7812009999999958,
+      "exitCode": 0,
+      "readOnlyHits": 0,
+      "hashedBytes": 99330,
+      "stagingSeconds": 0.0065719,
+      "verifiedBytes": 24663,
+      "reusedBytes": 0,
+      "reusedFiles": 0,
+      "processId": 5332,
+      "identity": "167009b1659a642a35b2d720cbf639de7a956d5ed25ec86b310da1d6403295ad",
+      "verifiedOutputFiles": 19
+    },
+    {
+      "label": "worker-no-cache-1",
+      "mode": "worker",
+      "seconds": 0.1158389590000013,
+      "exitCode": 0,
+      "readOnlyHits": 0,
+      "hashedBytes": 99330,
+      "stagingSeconds": 0.0014366,
+      "verifiedBytes": 24663,
+      "reusedBytes": 0,
+      "reusedFiles": 0,
+      "processId": 5332,
+      "identity": "167009b1659a642a35b2d720cbf639de7a956d5ed25ec86b310da1d6403295ad",
+      "verifiedOutputFiles": 19
+    },
+    {
+      "label": "worker-no-cache-2",
+      "mode": "worker",
+      "seconds": 0.11351541599999848,
+      "exitCode": 0,
+      "readOnlyHits": 0,
+      "hashedBytes": 99330,
+      "stagingSeconds": 0.0007263,
+      "verifiedBytes": 24663,
+      "reusedBytes": 0,
+      "reusedFiles": 0,
+      "processId": 5332,
+      "identity": "167009b1659a642a35b2d720cbf639de7a956d5ed25ec86b310da1d6403295ad",
+      "verifiedOutputFiles": 19
+    },
+    {
+      "label": "worker-no-cache-3",
+      "mode": "worker",
+      "seconds": 0.09510366599999998,
+      "exitCode": 0,
+      "readOnlyHits": 0,
+      "hashedBytes": 99330,
+      "stagingSeconds": 0.0007111,
+      "verifiedBytes": 24663,
+      "reusedBytes": 0,
+      "reusedFiles": 0,
+      "processId": 5332,
+      "identity": "167009b1659a642a35b2d720cbf639de7a956d5ed25ec86b310da1d6403295ad",
+      "verifiedOutputFiles": 19
+    },
+    {
+      "label": "worker-no-cache-4",
+      "mode": "worker",
+      "seconds": 0.11381037499999991,
+      "exitCode": 0,
+      "readOnlyHits": 0,
+      "hashedBytes": 99330,
+      "stagingSeconds": 0.0008936,
+      "verifiedBytes": 24663,
+      "reusedBytes": 0,
+      "reusedFiles": 0,
+      "processId": 5332,
+      "identity": "167009b1659a642a35b2d720cbf639de7a956d5ed25ec86b310da1d6403295ad",
+      "verifiedOutputFiles": 19
+    },
+    {
+      "label": "worker-0",
+      "mode": "worker",
+      "seconds": 0.7830071260000011,
+      "exitCode": 0,
+      "readOnlyHits": 3,
+      "hashedBytes": 98933,
+      "stagingSeconds": 0.0070915,
+      "verifiedBytes": 24663,
+      "reusedBytes": 0,
+      "reusedFiles": 0,
+      "processId": 5399,
+      "identity": "167009b1659a642a35b2d720cbf639de7a956d5ed25ec86b310da1d6403295ad",
+      "verifiedOutputFiles": 19
+    },
+    {
+      "label": "worker-1",
+      "mode": "worker",
+      "seconds": 0.11570691700001134,
+      "exitCode": 0,
+      "readOnlyHits": 3,
+      "hashedBytes": 98933,
+      "stagingSeconds": 0.0013902,
+      "verifiedBytes": 0,
+      "reusedBytes": 24663,
+      "reusedFiles": 7,
+      "processId": 5399,
+      "identity": "167009b1659a642a35b2d720cbf639de7a956d5ed25ec86b310da1d6403295ad",
+      "verifiedOutputFiles": 19
+    },
+    {
+      "label": "worker-2",
+      "mode": "worker",
+      "seconds": 0.11409774999999911,
+      "exitCode": 0,
+      "readOnlyHits": 3,
+      "hashedBytes": 98933,
+      "stagingSeconds": 0.000607,
+      "verifiedBytes": 0,
+      "reusedBytes": 24663,
+      "reusedFiles": 7,
+      "processId": 5399,
+      "identity": "167009b1659a642a35b2d720cbf639de7a956d5ed25ec86b310da1d6403295ad",
+      "verifiedOutputFiles": 19
+    },
+    {
+      "label": "worker-3",
+      "mode": "worker",
+      "seconds": 0.10229625000000908,
+      "exitCode": 0,
+      "readOnlyHits": 3,
+      "hashedBytes": 98933,
+      "stagingSeconds": 0.0006243,
+      "verifiedBytes": 0,
+      "reusedBytes": 24663,
+      "reusedFiles": 7,
+      "processId": 5399,
+      "identity": "167009b1659a642a35b2d720cbf639de7a956d5ed25ec86b310da1d6403295ad",
+      "verifiedOutputFiles": 19
+    },
+    {
+      "label": "worker-4",
+      "mode": "worker",
+      "seconds": 0.11867054200000382,
+      "exitCode": 0,
+      "readOnlyHits": 3,
+      "hashedBytes": 98933,
+      "stagingSeconds": 0.0007044,
+      "verifiedBytes": 0,
+      "reusedBytes": 24663,
+      "reusedFiles": 7,
+      "processId": 5399,
+      "identity": "167009b1659a642a35b2d720cbf639de7a956d5ed25ec86b310da1d6403295ad",
+      "verifiedOutputFiles": 19
+    },
+    {
+      "label": "absolute-read",
+      "mode": "worker",
+      "seconds": 0.004569250000002967,
+      "exitCode": 1,
+      "verifiedOutputFiles": 0
+    },
+    {
+      "label": "write-input",
+      "mode": "worker",
+      "seconds": 0.00218645799999706,
+      "exitCode": 1,
+      "verifiedOutputFiles": 0
+    },
+    {
+      "label": "temporary-present",
+      "mode": "worker",
+      "seconds": 0.11774900000000343,
+      "exitCode": 0,
+      "readOnlyHits": 3,
+      "hashedBytes": 98933,
+      "stagingSeconds": 0.000462,
+      "verifiedBytes": 14,
+      "reusedBytes": 24663,
+      "reusedFiles": 7,
+      "processId": 5399,
+      "identity": "5a5e9c84c20edaf8fec87b373b8e68822984272a9396a35f15e2968437e25ab5",
+      "verifiedOutputFiles": 19
+    },
+    {
+      "label": "previous-input-read",
+      "mode": "worker",
+      "seconds": 0.002446458999997958,
+      "exitCode": 1,
+      "verifiedOutputFiles": 0
+    },
+    {
+      "label": "digest-mismatch",
+      "mode": "worker",
+      "seconds": 0.004266583000003266,
+      "exitCode": 1,
+      "verifiedOutputFiles": 0
+    },
+    {
+      "label": "network",
+      "mode": "worker",
+      "seconds": 0.012094000000004712,
+      "exitCode": 1,
+      "verifiedOutputFiles": 0
+    },
+    {
+      "label": "source-edit",
+      "mode": "worker",
+      "seconds": 0.10746187499999849,
+      "exitCode": 0,
+      "readOnlyHits": 3,
+      "hashedBytes": 98933,
+      "stagingSeconds": 0.0005274,
+      "verifiedBytes": 563,
+      "reusedBytes": 24100,
+      "reusedFiles": 4,
+      "processId": 5399,
+      "identity": "63f4e7f9a1dfb6f201baceed88ac224a3d3f12794c5f51250a03a707118cc860",
+      "verifiedOutputFiles": 19
+    },
+    {
+      "label": "edited-fresh",
+      "mode": "fresh",
+      "seconds": 0.8664499590000077,
+      "exitCode": 0,
+      "verifiedOutputFiles": 19
+    },
+    {
+      "label": "compile-failure",
+      "mode": "worker",
+      "seconds": 0.13517345900000066,
+      "exitCode": 1,
+      "verifiedOutputFiles": 0
+    },
+    {
+      "label": "worker-after-failure",
+      "mode": "worker",
+      "seconds": 0.12824904099998946,
+      "exitCode": 0,
+      "readOnlyHits": 3,
+      "hashedBytes": 98933,
+      "stagingSeconds": 0.0004604,
+      "verifiedBytes": 0,
+      "reusedBytes": 24663,
+      "reusedFiles": 7,
+      "processId": 5399,
+      "identity": "167009b1659a642a35b2d720cbf639de7a956d5ed25ec86b310da1d6403295ad",
+      "verifiedOutputFiles": 19
+    },
+    {
+      "label": "fresh-package-0",
+      "mode": "fresh",
+      "seconds": 0.994531459000001,
+      "exitCode": 0,
+      "verifiedOutputFiles": 19
+    },
+    {
+      "label": "fresh-package-1",
+      "mode": "fresh",
+      "seconds": 0.9837136670000035,
+      "exitCode": 0,
+      "verifiedOutputFiles": 19
+    },
+    {
+      "label": "fresh-package-2",
+      "mode": "fresh",
+      "seconds": 0.9830029580000001,
+      "exitCode": 0,
+      "verifiedOutputFiles": 19
+    },
+    {
+      "label": "fresh-package-3",
+      "mode": "fresh",
+      "seconds": 0.9845822090000098,
+      "exitCode": 0,
+      "verifiedOutputFiles": 19
+    },
+    {
+      "label": "worker-no-cache-package-0",
+      "mode": "worker",
+      "seconds": 1.131523915999992,
+      "exitCode": 0,
+      "readOnlyHits": 0,
+      "hashedBytes": 536970242,
+      "stagingSeconds": 0.1686392,
+      "verifiedBytes": 268460640,
+      "reusedBytes": 0,
+      "reusedFiles": 0,
+      "processId": 5702,
+      "identity": "e1822566ab0ceb2e9a812cf4f0016fd53902caccbab1d71e7e7a9253d3e16056",
+      "verifiedOutputFiles": 19
+    },
+    {
+      "label": "worker-no-cache-package-1",
+      "mode": "worker",
+      "seconds": 0.4900342079999973,
+      "exitCode": 0,
+      "readOnlyHits": 0,
+      "hashedBytes": 536970242,
+      "stagingSeconds": 0.1580102,
+      "verifiedBytes": 268460640,
+      "reusedBytes": 0,
+      "reusedFiles": 0,
+      "processId": 5702,
+      "identity": "e1822566ab0ceb2e9a812cf4f0016fd53902caccbab1d71e7e7a9253d3e16056",
+      "verifiedOutputFiles": 19
+    },
+    {
+      "label": "worker-no-cache-package-2",
+      "mode": "worker",
+      "seconds": 0.49265579199999365,
+      "exitCode": 0,
+      "readOnlyHits": 0,
+      "hashedBytes": 536970242,
+      "stagingSeconds": 0.1717862,
+      "verifiedBytes": 268460640,
+      "reusedBytes": 0,
+      "reusedFiles": 0,
+      "processId": 5702,
+      "identity": "e1822566ab0ceb2e9a812cf4f0016fd53902caccbab1d71e7e7a9253d3e16056",
+      "verifiedOutputFiles": 19
+    },
+    {
+      "label": "worker-no-cache-package-3",
+      "mode": "worker",
+      "seconds": 0.46803533399999253,
+      "exitCode": 0,
+      "readOnlyHits": 0,
+      "hashedBytes": 536970242,
+      "stagingSeconds": 0.172664,
+      "verifiedBytes": 268460640,
+      "reusedBytes": 0,
+      "reusedFiles": 0,
+      "processId": 5702,
+      "identity": "e1822566ab0ceb2e9a812cf4f0016fd53902caccbab1d71e7e7a9253d3e16056",
+      "verifiedOutputFiles": 19
+    },
+    {
+      "label": "worker-package-0",
+      "mode": "worker",
+      "seconds": 0.9111436670000046,
+      "exitCode": 0,
+      "readOnlyHits": 11,
+      "hashedBytes": 98933,
+      "stagingSeconds": 0.153486,
+      "verifiedBytes": 268460640,
+      "reusedBytes": 0,
+      "reusedFiles": 0,
+      "processId": 5766,
+      "identity": "e1822566ab0ceb2e9a812cf4f0016fd53902caccbab1d71e7e7a9253d3e16056",
+      "verifiedOutputFiles": 19
+    },
+    {
+      "label": "worker-package-1",
+      "mode": "worker",
+      "seconds": 0.12680887499999471,
+      "exitCode": 0,
+      "readOnlyHits": 11,
+      "hashedBytes": 98933,
+      "stagingSeconds": 0.0018175,
+      "verifiedBytes": 0,
+      "reusedBytes": 268460640,
+      "reusedFiles": 11,
+      "processId": 5766,
+      "identity": "e1822566ab0ceb2e9a812cf4f0016fd53902caccbab1d71e7e7a9253d3e16056",
+      "verifiedOutputFiles": 19
+    },
+    {
+      "label": "worker-package-2",
+      "mode": "worker",
+      "seconds": 0.12656529200000932,
+      "exitCode": 0,
+      "readOnlyHits": 11,
+      "hashedBytes": 98933,
+      "stagingSeconds": 0.000903,
+      "verifiedBytes": 0,
+      "reusedBytes": 268460640,
+      "reusedFiles": 11,
+      "processId": 5766,
+      "identity": "e1822566ab0ceb2e9a812cf4f0016fd53902caccbab1d71e7e7a9253d3e16056",
+      "verifiedOutputFiles": 19
+    },
+    {
+      "label": "worker-package-3",
+      "mode": "worker",
+      "seconds": 0.1094961670000032,
+      "exitCode": 0,
+      "readOnlyHits": 11,
+      "hashedBytes": 98933,
+      "stagingSeconds": 0.001073,
+      "verifiedBytes": 0,
+      "reusedBytes": 268460640,
+      "reusedFiles": 11,
+      "processId": 5766,
+      "identity": "e1822566ab0ceb2e9a812cf4f0016fd53902caccbab1d71e7e7a9253d3e16056",
+      "verifiedOutputFiles": 19
+    },
+    {
+      "label": "stale-package-payload",
+      "mode": "worker",
+      "seconds": 0.04603420799999469,
+      "exitCode": 1,
+      "verifiedOutputFiles": 0
+    },
+    {
+      "label": "package-edit",
+      "mode": "worker",
+      "seconds": 0.13667262500000277,
+      "exitCode": 0,
+      "readOnlyHits": 11,
+      "hashedBytes": 98933,
+      "stagingSeconds": 0.0009304,
+      "verifiedBytes": 915,
+      "reusedBytes": 268459725,
+      "reusedFiles": 9,
+      "processId": 5766,
+      "identity": "a34cf5d9747cd4b7fec0a77b931478dd0bec048119127bd84c75c72cadafc661",
+      "verifiedOutputFiles": 19
+    },
+    {
+      "label": "package-edit-oracle",
+      "mode": "fresh",
+      "seconds": 1.108179542000002,
+      "exitCode": 0,
+      "verifiedOutputFiles": 19
+    },
+    {
+      "label": "dependency-consumer",
+      "mode": "worker",
+      "seconds": 0.923598124999998,
+      "exitCode": 0,
+      "readOnlyHits": 27,
+      "hashedBytes": 138688,
+      "stagingSeconds": 0.1593812,
+      "verifiedBytes": 268497513,
+      "reusedBytes": 0,
+      "reusedFiles": 0,
+      "processId": 5905,
+      "identity": "329d91d1aead4b81525bf8beec386159640fa9fefebb7454f81c7f2a6610d6c5",
+      "verifiedOutputFiles": 23
+    },
+    {
+      "label": "dependency-consumer-oracle",
+      "mode": "fresh",
+      "seconds": 1.0247044169999953,
+      "exitCode": 0,
+      "verifiedOutputFiles": 23
+    },
+    {
+      "label": "dependency-corrupt",
+      "mode": "worker",
+      "seconds": 0.007615458000003628,
+      "exitCode": 1,
+      "verifiedOutputFiles": 0
+    },
+    {
+      "label": "producer-api-edit",
+      "mode": "worker",
+      "seconds": 0.12530270800000665,
+      "exitCode": 0,
+      "readOnlyHits": 13,
+      "hashedBytes": 122300,
+      "stagingSeconds": 0.0015885,
+      "verifiedBytes": 1975,
+      "reusedBytes": 268495376,
+      "reusedFiles": 16,
+      "processId": 5905,
+      "identity": "0f8ff384dc603c0a73ca0916b48706fdc03d45ca51b4c1d6edde72ca61ce4616",
+      "verifiedOutputFiles": 19
+    },
+    {
+      "label": "stale-consumer-api",
+      "mode": "worker",
+      "seconds": 0.17476974999999584,
+      "exitCode": 1,
+      "verifiedOutputFiles": 0
+    },
+    {
+      "label": "consumer-api-edit",
+      "mode": "worker",
+      "seconds": 0.12687620799999877,
+      "exitCode": 0,
+      "readOnlyHits": 27,
+      "hashedBytes": 138700,
+      "stagingSeconds": 0.0017021,
+      "verifiedBytes": 1317,
+      "reusedBytes": 268496208,
+      "reusedFiles": 17,
+      "processId": 5905,
+      "identity": "3f196337b439af1be56ef6d1e811bf676b6128852154eea4c3a3e3141130f375",
+      "verifiedOutputFiles": 23
+    },
+    {
+      "label": "consumer-api-edit-oracle",
+      "mode": "fresh",
+      "seconds": 1.1410186260000046,
+      "exitCode": 0,
+      "verifiedOutputFiles": 23
+    }
+  ],
+  "bazel": {
+    "builds": [
+      {
+        "stagingSeconds": 0.1518879,
+        "verifiedBytes": 268860577,
+        "reusedBytes": 0,
+        "reusedFiles": 0,
+        "processId": 6285,
+        "identity": "4f4e14991597a3d2d308c3a9a2e2620a2f95d3ddd14399bc56983cca914cec61",
+        "wallSeconds": 4.808780002999995
+      },
+      {
+        "stagingSeconds": 0.0033683,
+        "verifiedBytes": 957,
+        "reusedBytes": 268859620,
+        "reusedFiles": 24,
+        "processId": 6285,
+        "identity": "4459968cc8ff5a30057f5eaf73e08ebd964e3b3fc0c12ff73cac0ab3653b0679",
+        "wallSeconds": 1.3275462919999939
+      }
+    ],
+    "producerStateDeleted": true,
+    "remoteRecoveryIdentical": true
+  },
+  "checks": {
+    "ownedBuildAndStyle": true,
+    "pythonSuites": {
+      "passed": 105,
+      "platformSkipped": 3
+    },
+    "actionRunnerContractsIncludingLinuxEviction": true,
+    "gracefulShutdownStoreRemoved": true
+  },
+  "shutdownRecoveryConfirmation": {
+    "builds": [
+      {
+        "stagingSeconds": 0.1484868,
+        "verifiedBytes": 268861205,
+        "reusedBytes": 0,
+        "reusedFiles": 0,
+        "processId": 1457,
+        "identity": "72a67f801e46e685ce8ce52210bfdc564b7a2ef123a661ab6fddda2b1513ac52",
+        "wallSeconds": 5.586425794000004
+      },
+      {
+        "stagingSeconds": 0.0031517,
+        "verifiedBytes": 957,
+        "reusedBytes": 268860248,
+        "reusedFiles": 24,
+        "processId": 1457,
+        "identity": "707043f0cfc3f7201ec3191989fb653e8d0e628eae1763ffb56e662db3869ceb",
+        "wallSeconds": 1.4077300000000008
+      }
+    ],
+    "producerStateDeleted": true,
+    "remoteRecoveryIdentical": true
+  }
+}

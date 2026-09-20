@@ -44,6 +44,7 @@ try
     BundleIntegrityTests.Run();
     PackageOriginTests.Run();
     ReadOnlyPackageInputsTests.Run();
+    WorkerInputsTests.Run();
     StaticWebAssetsTests.Run();
     AssetRoleTests.Run();
     CompileBoundaryTests.Run();

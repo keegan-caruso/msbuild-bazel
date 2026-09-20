@@ -40,3 +40,7 @@ The [Linux container capability probe](linux-hardened-worker.md) now verifies
 actual hardened-worker reuse, input cleanup, write/network restrictions and the
 non-root blocked-path control. Absolute undeclared reads remain possible, so
 the stricter MSBuild read boundary still needs qualification before integration.
+
+A subsequent [Linux persistent compiler worker](linux-persistent-compiler.md)
+now provides the stricter read boundary and real Roslyn server sharing as an
+opt-in project rule. This earlier MSBuild-only prototype remains unchanged.
