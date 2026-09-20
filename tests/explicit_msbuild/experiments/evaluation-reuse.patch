@@ -1,0 +1,91 @@
+--- a/tools/ExplicitBuild/Program.cs
++++ b/tools/ExplicitBuild/Program.cs
+@@ -4,6 +4,7 @@
+ using System.Xml.Linq;
+ using Microsoft.Build.Definition;
+ using Microsoft.Build.Evaluation;
++using Microsoft.Build.Evaluation.Context;
+ using Microsoft.Build.Execution;
+ using Microsoft.Build.Framework;
+ using Microsoft.Build.Logging;
+@@ -165,6 +166,12 @@
+             ["AllowUnsafeBlocks"] = r.AllowUnsafe.ToString(),
+         };
+         if (r.Defines.Length > 0) result["DefineConstants"] = string.Join(';', r.Defines);
++        if (r.RestoreInput is not null)
++        {
++            result["ImportDirectoryBuildProps"] = "false";
++            result["ImportDirectoryBuildTargets"] = "false";
++            result["ImportDirectoryPackagesProps"] = "false";
++        }
+         foreach (var (name, value) in r.Properties)
+         {
+             XmlConvert.VerifyNCName(name);
+@@ -230,6 +237,7 @@
+         xml.Save(path);
+     }
+     private static string? engineRoot;
++    private static EvaluationContext? workerSdkContext;
+     internal static int Compile(Session s)
+     {
+         var sdkRoot = Path.Combine(s.Sdk, "sdk", s.Request.SdkVersion);
+@@ -256,37 +264,39 @@
+             using var collection = new ProjectCollection(null, null, null, ToolsetDefinitionLocations.Default, 1, false, false, false, reuseProjectRootElementCache: LinuxWorker.Isolated);
+             if (profile is not null) collection.RegisterLogger(profile);
+             profile?.Mark(target + "CollectionSetup");
+-            var instance = profile is null ? new ProjectInstance(path, properties, null, collection) : ProjectInstance.FromFile(path, new ProjectOptions { GlobalProperties = properties, ProjectCollection = collection, LoadSettings = ProjectLoadSettings.ProfileEvaluation });
++            // Qualified inputs forbid custom SDKs/imports/global.json. Share only SDK
++            // resolution; MSBuild still creates new filesystem/glob caches per evaluation.
++            var sdkContext = LinuxWorker.Isolated && r.RestoreInput is not null
++                ? workerSdkContext ??= EvaluationContext.Create(EvaluationContext.SharingPolicy.SharedSDKCache)
++                : null;
++            var instance = ProjectInstance.FromFile(path, new ProjectOptions { GlobalProperties = properties, ProjectCollection = collection, EvaluationContext = sdkContext, LoadSettings = profile is null ? ProjectLoadSettings.Default : ProjectLoadSettings.ProfileEvaluation });
+             profile?.Mark(target + "Evaluation");
+             if (target == "Restore" || r.RestoreInput is not null)
+             {
+                 ValidateDeclarations(s, instance);
+                 profile?.Mark("declarationValidation");
+             }
++            using var manager = new BuildManager();
++            var parameters = new BuildParameters(collection) { EnableNodeReuse = false, MaxNodeCount = 1, Loggers = profile is null ? [new ConsoleLogger(LoggerVerbosity.Normal)] : [new ConsoleLogger(LoggerVerbosity.Normal), profile] };
++            var request = new BuildRequestData(instance, [target]);
+             BuildResult result;
+-            using (var manager = new BuildManager())
++            if (profile is null) result = manager.Build(parameters, request);
++            else
+             {
+-                var parameters = new BuildParameters(collection) { EnableNodeReuse = false, MaxNodeCount = 1, Loggers = profile is null ? [new ConsoleLogger(LoggerVerbosity.Normal)] : [new ConsoleLogger(LoggerVerbosity.Normal), profile] };
+-                var request = new BuildRequestData(instance, [target]);
+-                if (profile is null) result = manager.Build(parameters, request);
+-                else
++                profile.Mark(target + "ManagerSetup");
++                manager.BeginBuild(parameters);
++                profile.Mark(target + "BeginBuild");
++                try
+                 {
+-                    profile.Mark(target + "ManagerSetup");
+-                    manager.BeginBuild(parameters);
+-                    profile.Mark(target + "BeginBuild");
+-                    try
+-                    {
+-                        result = manager.BuildRequest(request);
+-                        profile.Mark(target + "Request");
+-                    }
+-                    finally
+-                    {
+-                        manager.EndBuild();
+-                        profile.Mark(target + "EndBuild");
+-                    }
++                    result = manager.BuildRequest(request);
++                    profile.Mark(target + "Request");
++                }
++                finally
++                {
++                    manager.EndBuild();
++                    profile.Mark(target + "EndBuild");
+                 }
+             }
+-            profile?.Mark(target + "ManagerDispose");
+             profile?.Save(Path.Combine(s.State, "compile-profile.json"), r.Project.Path);
+             if (result.OverallResult != BuildResultCode.Success) return 1;
+         }

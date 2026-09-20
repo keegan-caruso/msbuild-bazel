@@ -52,6 +52,12 @@ msbuild_test(name="Fails", args=["fail"], project="App.csproj", target_framework
             for rule in ('msbuild_library','msbuild_binary','msbuild_test'):
                 text=text.replace(rule+'(', rule+'(linux_worker=True, ')
             build.write_text(text)
+    if os.environ.get('RULES_MSBUILD_PROFILE_BUILD') == '1':
+        for build in workspace.rglob('BUILD.bazel'):
+            text=build.read_text()
+            for rule in ('msbuild_library','msbuild_binary','msbuild_test'):
+                text=text.replace(rule+'(', rule+'(profile_build=True, ')
+            build.write_text(text)
     shared_restore=os.environ.get('RULES_MSBUILD_SHARED_RESTORE') == '1'
     if shared_restore:
         with (workspace/'BUILD.bazel').open('a') as f:
@@ -84,6 +90,13 @@ msbuild_test(name="Fails", args=["fail"], project="App.csproj", target_framework
         print(case,p.returncode,flush=True)
         return p.stdout+p.stderr
     assert '7:resource:runtime' in bazel('run', 'run', '//App')
+    if os.environ.get('RULES_MSBUILD_PROFILE_BUILD') == '1':
+        for name in ('Library','App'):
+            profile=json.loads((workspace/f'bazel-bin/{name}/{name}.diagnostics/compile-profile.json').read_text())
+            for target in (('Build',) if shared_restore else ('Restore','Build')):
+                for phase in ('ManagerSetup','BeginBuild','Request','EndBuild','ManagerDispose'):
+                    assert profile['phases'][target+phase]['wallSeconds'] >= 0, profile
+            assert profile['tasks']['Csc']['count'] == 1, profile
     resource_build=workspace/'App/BUILD.bazel'; resource_original=resource_build.read_text()
     for item_type,message in (('_bazeloriginalprojectreference','Reserved validation item type'),('analyzer','Dependency items require typed dependency attributes')):
         resource_build.write_text(resource_original.replace('item_type="EmbeddedResource"','item_type="'+item_type+'"'))

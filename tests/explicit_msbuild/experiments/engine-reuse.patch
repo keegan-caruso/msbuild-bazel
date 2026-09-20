@@ -1,0 +1,60 @@
+--- a/tools/ExplicitBuild/Program.cs
++++ b/tools/ExplicitBuild/Program.cs
+@@ -230,6 +230,7 @@
+         xml.Save(path);
+     }
+     private static string? engineRoot;
++    private static BuildManager? workerBuildManager;
+     internal static int Compile(Session s)
+     {
+         var sdkRoot = Path.Combine(s.Sdk, "sdk", s.Request.SdkVersion);
+@@ -263,30 +264,30 @@
+                 ValidateDeclarations(s, instance);
+                 profile?.Mark("declarationValidation");
+             }
++            // Only the qualified plain-SDK lane retains engine infrastructure.
++            // BeginBuild clears project/result caches; evaluated instances stay request-local.
++            using var ownedManager = LinuxWorker.Isolated && r.RestoreInput is not null ? null : new BuildManager();
++            var manager = ownedManager ?? (workerBuildManager ??= new BuildManager());
++            var parameters = new BuildParameters(collection) { ResetCaches = true, EnableNodeReuse = ownedManager is null, MaxNodeCount = 1, Loggers = profile is null ? [new ConsoleLogger(LoggerVerbosity.Normal)] : [new ConsoleLogger(LoggerVerbosity.Normal), profile] };
++            var request = new BuildRequestData(instance, [target]);
+             BuildResult result;
+-            using (var manager = new BuildManager())
++            if (profile is null) result = manager.Build(parameters, request);
++            else
+             {
+-                var parameters = new BuildParameters(collection) { EnableNodeReuse = false, MaxNodeCount = 1, Loggers = profile is null ? [new ConsoleLogger(LoggerVerbosity.Normal)] : [new ConsoleLogger(LoggerVerbosity.Normal), profile] };
+-                var request = new BuildRequestData(instance, [target]);
+-                if (profile is null) result = manager.Build(parameters, request);
+-                else
++                profile.Mark(target + "ManagerSetup");
++                manager.BeginBuild(parameters);
++                profile.Mark(target + "BeginBuild");
++                try
+                 {
+-                    profile.Mark(target + "ManagerSetup");
+-                    manager.BeginBuild(parameters);
+-                    profile.Mark(target + "BeginBuild");
+-                    try
+-                    {
+-                        result = manager.BuildRequest(request);
+-                        profile.Mark(target + "Request");
+-                    }
+-                    finally
+-                    {
+-                        manager.EndBuild();
+-                        profile.Mark(target + "EndBuild");
+-                    }
++                    result = manager.BuildRequest(request);
++                    profile.Mark(target + "Request");
++                }
++                finally
++                {
++                    manager.EndBuild();
++                    profile.Mark(target + "EndBuild");
+                 }
+             }
+-            profile?.Mark(target + "ManagerDispose");
+             profile?.Save(Path.Combine(s.State, "compile-profile.json"), r.Project.Path);
+             if (result.OverallResult != BuildResultCode.Success) return 1;
+         }

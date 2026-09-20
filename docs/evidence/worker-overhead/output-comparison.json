@@ -1,0 +1,27 @@
+[
+  {
+    "case": "manager-reuse",
+    "files": 647,
+    "changed": []
+  },
+  {
+    "case": "engine-reuse",
+    "files": 647,
+    "changed": []
+  },
+  {
+    "case": "evaluation-reuse",
+    "files": 647,
+    "changed": []
+  },
+  {
+    "case": "prepared-references",
+    "files": 647,
+    "changed": []
+  },
+  {
+    "case": "minimal-logging",
+    "files": 647,
+    "changed": []
+  }
+]

@@ -263,9 +263,30 @@ internal static class Program
                 ValidateDeclarations(s, instance);
                 profile?.Mark("declarationValidation");
             }
-            using var manager = new BuildManager();
-            var result = manager.Build(new BuildParameters(collection) { EnableNodeReuse = false, MaxNodeCount = 1, Loggers = profile is null ? [new ConsoleLogger(LoggerVerbosity.Normal)] : [new ConsoleLogger(LoggerVerbosity.Normal), profile] }, new BuildRequestData(instance, [target]));
-            profile?.Mark(target + "Execution");
+            BuildResult result;
+            using (var manager = new BuildManager())
+            {
+                var parameters = new BuildParameters(collection) { EnableNodeReuse = false, MaxNodeCount = 1, Loggers = profile is null ? [new ConsoleLogger(LoggerVerbosity.Normal)] : [new ConsoleLogger(LoggerVerbosity.Normal), profile] };
+                var request = new BuildRequestData(instance, [target]);
+                if (profile is null) result = manager.Build(parameters, request);
+                else
+                {
+                    profile.Mark(target + "ManagerSetup");
+                    manager.BeginBuild(parameters);
+                    profile.Mark(target + "BeginBuild");
+                    try
+                    {
+                        result = manager.BuildRequest(request);
+                        profile.Mark(target + "Request");
+                    }
+                    finally
+                    {
+                        manager.EndBuild();
+                        profile.Mark(target + "EndBuild");
+                    }
+                }
+            }
+            profile?.Mark(target + "ManagerDispose");
             profile?.Save(Path.Combine(s.State, "compile-profile.json"), r.Project.Path);
             if (result.OverallResult != BuildResultCode.Success) return 1;
         }

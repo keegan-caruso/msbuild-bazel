@@ -1,0 +1,109 @@
+{
+  "runs": [
+    {
+      "case": "control-0",
+      "instrumented": false,
+      "startupAndAnalysisSeconds": 4.631954253,
+      "buildSeconds": 13.450705546999998,
+      "totalSeconds": 18.0826598,
+      "workerCount": 4
+    },
+    {
+      "case": "profile-1",
+      "instrumented": true,
+      "startupAndAnalysisSeconds": 1.8845922929999972,
+      "buildSeconds": 14.547805423,
+      "totalSeconds": 16.432397715999997,
+      "workerCount": 4
+    },
+    {
+      "case": "control-2",
+      "instrumented": false,
+      "startupAndAnalysisSeconds": 1.8448492919999993,
+      "buildSeconds": 12.206633754999999,
+      "totalSeconds": 14.051483046999998,
+      "workerCount": 4
+    },
+    {
+      "case": "profile-3",
+      "instrumented": true,
+      "startupAndAnalysisSeconds": 1.862123625999999,
+      "buildSeconds": 14.590298840000003,
+      "totalSeconds": 16.452422466,
+      "workerCount": 4
+    },
+    {
+      "case": "raw-profile-0",
+      "buildSeconds": 6.745458419000002
+    },
+    {
+      "case": "raw-profile-1",
+      "buildSeconds": 6.313514211000012
+    }
+  ],
+  "meanSummedPhaseSeconds": {
+    "BuildCollectionSetup": 0.07397365,
+    "BuildEvaluation": 10.9394721,
+    "declarationValidation": 0.12562349999999994,
+    "BuildManagerSetup": 0.024659650000000033,
+    "BuildBeginBuild": 1.0655397500000006,
+    "BuildRequest": 20.909634600000004,
+    "BuildEndBuild": 3.1276415000000006
+  },
+  "meanSummedWorkerSeconds": {
+    "identitySeconds": 0.2723371,
+    "snapshotSeconds": 0.9426251000000003,
+    "preparationSeconds": 1.1265954000000002,
+    "childSeconds": 37.492868599999994,
+    "publicationSeconds": 0.07562319999999975
+  },
+  "meanSummedChildCpuSeconds": {
+    "BuildCollectionSetup": 0.0726525,
+    "BuildEvaluation": 7.802057000000001,
+    "declarationValidation": 0.05225650000000001,
+    "BuildManagerSetup": 0.022348499999999993,
+    "BuildBeginBuild": 0.5395359999999999,
+    "BuildRequest": 8.278381500000002,
+    "BuildEndBuild": 0.9348185000000003
+  },
+  "requestGroups": {
+    "subsequent": {
+      "count": 250,
+      "meanSeconds": 0.2590440568,
+      "medianSeconds": 0.2497235
+    },
+    "first": {
+      "count": 8,
+      "meanSeconds": 0.9715094125,
+      "medianSeconds": 0.9586225500000001
+    }
+  },
+  "topTasks": {
+    "Csc": 8.825437400000006,
+    "ResolveAssemblyReference": 1.5280079499999997,
+    "GenerateDepsFile": 0.44849815,
+    "ResolvePackageFileConflicts": 0.4212437499999998,
+    "ResolvePackageAssets": 0.38803154999999956,
+    "Copy": 0.3319219000000003,
+    "ProcessFrameworkReferences": 0.20767669999999994,
+    "ResolveTargetingPackAssets": 0.19044684999999997,
+    "CallTarget": 0.10867040000000007,
+    "WriteCodeFragment": 0.10169885000000012,
+    "MakeDir": 0.07966904999999999,
+    "WriteLinesToFile": 0.07766010000000005
+  },
+  "topTargets": {
+    "CoreCompile": 9.029948250000002,
+    "ResolveAssemblyReferences": 1.66155065,
+    "FindReferenceAssembliesForReferences": 1.1041780000000012,
+    "GenerateBuildDependencyFile": 0.6322683000000001,
+    "_HandlePackageFileConflicts": 0.6139538999999998,
+    "ResolvePackageAssets": 0.4897941,
+    "_CleanGetCurrentAndPriorFileWrites": 0.37744865000000033,
+    "ProcessFrameworkReferences": 0.37342604999999995,
+    "_CopyFilesMarkedCopyLocal": 0.29539719999999986,
+    "CopyFilesToOutputDirectory": 0.2513002,
+    "ResolveTargetingPackAssets": 0.22837155,
+    "ResolveFrameworkReferences": 0.17316314999999985
+  }
+}

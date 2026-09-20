@@ -729,3 +729,9 @@ cache. A disposable experiment reduces cold actions from 16.94 s to 12.70 s with
 fresh validation cohort averages 13.02 s versus raw MSBuild 6.46 s. Changed-import,
 configuration, failure/recovery, tool-replacement, sandbox/cache and MTP controls
 pass while evaluated/build state remains fresh per action.
+
+[Worker overhead experiments](worker-overhead-experiments.md) split MSBuild
+manager setup, BeginBuild, request execution, EndBuild and disposal. Retaining
+manager/node infrastructure, SDK-only evaluation cache reuse, prepared reference
+metadata, and reduced logging did not establish a meaningful cold-build win.
+The runtime experiments were discarded; lifecycle profiling and evidence remain.

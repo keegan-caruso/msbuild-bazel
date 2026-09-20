@@ -1,0 +1,38 @@
+{
+  "project": "App/App.csproj",
+  "requestNumber": 1,
+  "phases": {
+    "BuildCollectionSetup": {
+      "wallSeconds": 0.0087015,
+      "cpuSeconds": 0.008684
+    },
+    "BuildEvaluation": {
+      "wallSeconds": 0.1256635,
+      "cpuSeconds": 0.12639
+    },
+    "declarationValidation": {
+      "wallSeconds": 0.0008390999999999815,
+      "cpuSeconds": 0.000836
+    },
+    "BuildManagerSetup": {
+      "wallSeconds": 0.0012855999999999979,
+      "cpuSeconds": 0.001285
+    },
+    "BuildBeginBuild": {
+      "wallSeconds": 0.008899100000000021,
+      "cpuSeconds": 0.00905
+    },
+    "BuildRequest": {
+      "wallSeconds": 0.7452717,
+      "cpuSeconds": 0.16168
+    },
+    "BuildEndBuild": {
+      "wallSeconds": 0.0018037000000000747,
+      "cpuSeconds": 0.00312
+    },
+    "BuildManagerDispose": {
+      "wallSeconds": 0.00025249999999998884,
+      "cpuSeconds": 0.000251
+    }
+  }
+}
