@@ -50,6 +50,7 @@ def _project(ctx):
         "sources": [{"source": f.path, "destination": input_path(f)} for f in ctx.files.sources + ctx.files.structural],
         "packageDirectories": packages.values(),
         "packageOriginOutputs": ctx.attr.package_origin_outputs,
+        "borrowPackageInputs": ctx.attr.borrow_package_inputs,
         "seeds": [],
         "projectAction": True,
         "validatePublication": ctx.attr.validate_publication,
@@ -71,6 +72,7 @@ def _project(ctx):
 
 msbuild_compile_project = rule(implementation = _project, attrs = {
     "package_origin_outputs": attr.bool(default = False),
+    "borrow_package_inputs": attr.bool(default = False),
     "validate_publication": attr.bool(default = False),
     "package_set": attr.label(providers = [NugetPackageSetInfo]),
     "project": attr.string(mandatory = True),

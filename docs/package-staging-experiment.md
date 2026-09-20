@@ -1,7 +1,9 @@
 # Package staging experiment
 
-Status: measured opt-in prototype. Isolated action and read-only macOS sandbox
-checks pass; full-graph Bazel integration remains unqualified.
+Status: the prototype measurements below are retained as historical evidence.
+[Bazel integration and full-graph qualification](read-only-package-actions.md)
+now pass, and the qualified owned project/package workflow enables borrowing
+by default with an explicit copy-mode override.
 
 ## Completed baseline
 
@@ -88,10 +90,10 @@ post-link mutation rejection, and cleanup preserving the original package.
 NativeProjectCache and ActionRunner.Tests build with warnings as errors; action
 runner contract/process tests and focused formatting checks pass.
 
-The option remains false by default and is not emitted by production Starlark.
-Retain the prototype for full-graph integration and acceptance, including actual
-Bazel sandbox symlinks and fresh remote recovery. The measured isolated gain
-justifies that next step; it does not justify enabling it unconditionally.
+At this prototype checkpoint the option remained false by default and was not
+emitted by production Starlark. The subsequent integration and acceptance,
+including actual Bazel sandbox links and fresh remote recovery, are documented
+in [read-only package actions](read-only-package-actions.md).
 
 Evidence and all phase timings: `package-staging-resumed-evidence.json`. Raw
 reports, hashes and logs remain in `/private/tmp/package-staging-resumed`,

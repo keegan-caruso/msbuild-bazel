@@ -4,6 +4,7 @@ import json
 import os
 from pathlib import Path
 import subprocess
+import sys
 import tempfile
 import unittest
 
@@ -12,6 +13,21 @@ SDK=Path(os.environ['RULES_MSBUILD_DOTNET_ROOT'])
 
 
 class PackageDirectories(unittest.TestCase):
+    @unittest.skipUnless(sys.platform=='darwin','Owned workflow currently requires macOS')
+    def test_borrowing_requires_project_and_package_actions(self):
+        with tempfile.TemporaryDirectory() as folder:
+            root=Path(folder);source=root/'source';source.mkdir()
+            for projects,packages in [(False,False),(True,False),(False,True)]:
+                request=root/'request.json';request.write_text(json.dumps(dict(
+                    schemaVersion=1,repository=str(ROOT),workspace=str(source),state=str(root/'state'),
+                    output=str(root/'output'),sdkRoot=str(SDK),bazel=os.environ['RULES_MSBUILD_BAZEL'],
+                    entry='App.csproj',operation='build',
+                    **{'borrow-package-inputs':True,'project-actions':projects,'package-actions':packages})))
+                result=subprocess.run([str(SDK/'dotnet'),str(ROOT/'tools/Preparation/bin/Release/net10.0/Preparation.dll'),
+                    'owned-workflow','--request',str(request)],capture_output=True,text=True,timeout=30)
+                self.assertNotEqual(result.returncode,0)
+                self.assertIn('Borrowed package inputs require project and package actions',result.stderr)
+
     def test_staging_sandbox_links_and_rejection_controls(self):
         with tempfile.TemporaryDirectory() as folder:
             root=Path(folder);tree=root/'tree';tree.mkdir();real=root/'actual';real.write_bytes(b'package');real.chmod(0o444);(tree/'payload').symlink_to(real)

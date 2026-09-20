@@ -49,6 +49,7 @@ def run(a):
             request[field]=str(a.output/'action'/field)
             shutil.rmtree(request[field],ignore_errors=True)
         request.update(profileMsbuild=profile,validatePublication=True)
+        if a.borrow_package_inputs:request["borrowPackageInputs"]=mode=="candidate"
         if a.package_origin_outputs and mode=="candidate":
             request["packageOriginOutputs"]=True
             request["prebuilt"]=list(sparse.values())
@@ -69,6 +70,7 @@ def run(a):
         if profile:
             record['msbuild']=json.loads((diag/'msbuild-phases.json').read_text())
             record['plugin']=json.loads((diag/'msbuild-phases.json.plugin.json').read_text())
+        record['staging']=json.loads((diag/'staging.json').read_text())
         origin_report=diag/'package-origins.json'
         if origin_report.exists():record['packageOrigins']=json.loads(origin_report.read_text())
         records.append(record);(a.output/'report.json').write_text(json.dumps(records,indent=2)+'\n');print(json.dumps(record),flush=True)
@@ -78,5 +80,6 @@ if __name__=='__main__':
     p=argparse.ArgumentParser(description=__doc__)
     for name in ['request','execroot','output','dotnet','runner','baseline']:p.add_argument('--'+name,type=Path,required=True)
     p.add_argument('--package-origin-outputs',action='store_true')
+    p.add_argument('--borrow-package-inputs',action='store_true')
     p.add_argument('--test-helper',type=Path)
     run(p.parse_args())

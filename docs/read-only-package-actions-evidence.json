@@ -1,0 +1,1346 @@
+{
+  "entryAction": {
+    "medianSeconds": {
+      "baseline": 22.979001749999995,
+      "candidate": 20.325203416
+    },
+    "savedSeconds": 2.653798333999994,
+    "savedPercent": 11.548797301431923,
+    "samples": [
+      {
+        "mode": "baseline",
+        "profile": true,
+        "seconds": 24.714974584,
+        "identicalFiles": 6932,
+        "phases": {
+          "sourceAndRestore": 6.2583092,
+          "seedCopy": 0,
+          "sessionMetadata": 0.1134869,
+          "dependencyValidation": 0.9548229,
+          "dependencyReplayProjects": 0.0637477,
+          "workspaceHashing": 0.3206706,
+          "sessionSetup": 0.0061885,
+          "msbuild": 13.2120276,
+          "selectBundles": 0.0050267,
+          "validateEntry": 0.2543872,
+          "apiIdentity": 0.0299572,
+          "apiProjection": 1.2203172,
+          "runtimeProjection": 0.0040885,
+          "dependencyRevalidation": 0.5276697,
+          "packageRevalidation": 0.0006016,
+          "publicationValidation": 0.5041529,
+          "cleanup": 1.1897344
+        },
+        "msbuild": {
+          "entryEvaluation": {
+            "seconds": 0.1516288,
+            "calls": 1
+          },
+          "buildManager": {
+            "seconds": 12.969945,
+            "calls": 1
+          }
+        },
+        "plugin": {
+          "pluginCapture": {
+            "seconds": 1.6080175,
+            "calls": 1
+          },
+          "dependencyRestore": {
+            "seconds": 1.7833965000000007,
+            "calls": 201
+          },
+          "endRefresh": {
+            "seconds": 0.0059841,
+            "calls": 1
+          },
+          "pluginBegin": {
+            "seconds": 6.7331709,
+            "calls": 1
+          },
+          "verifyWorkspaceHashes": {
+            "seconds": 5.1835389,
+            "calls": 2
+          },
+          "endDependencyRevalidation": {
+            "seconds": 0.5392515,
+            "calls": 1
+          },
+          "captureCompose": {
+            "seconds": 0.2592661,
+            "calls": 1
+          },
+          "verifyWorkspaceNamespace": {
+            "seconds": 0.3267557,
+            "calls": 2
+          },
+          "captureFiles": {
+            "seconds": 0.4264826,
+            "calls": 1
+          },
+          "endCompose": {
+            "seconds": 0.1170622,
+            "calls": 1
+          },
+          "pluginEnd": {
+            "seconds": 1.958567,
+            "calls": 1
+          },
+          "captureIdentity": {
+            "seconds": 0.0083254,
+            "calls": 1
+          },
+          "verifyWorkspaceInputs": {
+            "seconds": 5.51074,
+            "calls": 2
+          },
+          "dependencyValidate": {
+            "seconds": 0.3290700999999999,
+            "calls": 201
+          },
+          "dependencyCompose": {
+            "seconds": 0.12457869999999993,
+            "calls": 201
+          },
+          "captureSeal": {
+            "seconds": 0.9122674,
+            "calls": 1
+          }
+        },
+        "staging": {
+          "validationSeconds": 4.4096243,
+          "packageSeconds": 1.5926990999999977,
+          "packageBytes": 2146600383,
+          "packageFiles": 12017,
+          "borrowed": false
+        }
+      },
+      {
+        "mode": "candidate",
+        "profile": true,
+        "seconds": 20.325203416,
+        "identicalFiles": 6932,
+        "phases": {
+          "sourceAndRestore": 4.5950759,
+          "seedCopy": 0,
+          "sessionMetadata": 0.0338133,
+          "dependencyValidation": 0.2957748,
+          "dependencyReplayProjects": 0.0302675,
+          "workspaceHashing": 0.3805058,
+          "sessionSetup": 0.0059109,
+          "msbuild": 10.0788981,
+          "selectBundles": 0.004403,
+          "validateEntry": 0.2596417,
+          "apiIdentity": 0.0308185,
+          "apiProjection": 1.2381133,
+          "runtimeProjection": 0.0046546,
+          "dependencyRevalidation": 0.53069,
+          "packageRevalidation": 1.1097892,
+          "publicationValidation": 0.5010538,
+          "cleanup": 1.1725477
+        },
+        "msbuild": {
+          "entryEvaluation": {
+            "seconds": 0.1559239,
+            "calls": 1
+          },
+          "buildManager": {
+            "seconds": 9.8379352,
+            "calls": 1
+          }
+        },
+        "plugin": {
+          "pluginCapture": {
+            "seconds": 1.5504035,
+            "calls": 1
+          },
+          "dependencyRestore": {
+            "seconds": 1.7461093000000005,
+            "calls": 201
+          },
+          "endRefresh": {
+            "seconds": 0.0067244,
+            "calls": 1
+          },
+          "pluginBegin": {
+            "seconds": 3.8534965,
+            "calls": 1
+          },
+          "verifyWorkspaceHashes": {
+            "seconds": 2.3286058,
+            "calls": 2
+          },
+          "endDependencyRevalidation": {
+            "seconds": 0.5207198,
+            "calls": 1
+          },
+          "captureCompose": {
+            "seconds": 0.2475308,
+            "calls": 1
+          },
+          "verifyWorkspaceNamespace": {
+            "seconds": 0.4281164,
+            "calls": 2
+          },
+          "captureFiles": {
+            "seconds": 0.3937702,
+            "calls": 1
+          },
+          "endCompose": {
+            "seconds": 0.116008,
+            "calls": 1
+          },
+          "pluginEnd": {
+            "seconds": 2.0077452,
+            "calls": 1
+          },
+          "captureIdentity": {
+            "seconds": 0.0082921,
+            "calls": 1
+          },
+          "verifyWorkspaceInputs": {
+            "seconds": 2.7571569,
+            "calls": 2
+          },
+          "dependencyValidate": {
+            "seconds": 0.32655619999999996,
+            "calls": 201
+          },
+          "dependencyCompose": {
+            "seconds": 0.12687149999999994,
+            "calls": 201
+          },
+          "captureSeal": {
+            "seconds": 0.8991682,
+            "calls": 1
+          }
+        },
+        "staging": {
+          "validationSeconds": 3.6575044,
+          "packageSeconds": 0.6653864000000035,
+          "packageBytes": 2146600383,
+          "packageFiles": 12017,
+          "borrowed": true
+        }
+      },
+      {
+        "mode": "candidate",
+        "profile": true,
+        "seconds": 18.187820541,
+        "identicalFiles": 6932,
+        "phases": {
+          "sourceAndRestore": 2.4467453,
+          "seedCopy": 0,
+          "sessionMetadata": 0.0332817,
+          "dependencyValidation": 0.2989017,
+          "dependencyReplayProjects": 0.030064,
+          "workspaceHashing": 0.3823231,
+          "sessionSetup": 0.0059351,
+          "msbuild": 10.1122994,
+          "selectBundles": 0.0041917,
+          "validateEntry": 0.2571181,
+          "apiIdentity": 0.030819,
+          "apiProjection": 1.239846,
+          "runtimeProjection": 0.0049471,
+          "dependencyRevalidation": 0.5262247,
+          "packageRevalidation": 1.107853,
+          "publicationValidation": 0.4999491,
+          "cleanup": 1.1758656
+        },
+        "msbuild": {
+          "entryEvaluation": {
+            "seconds": 0.1567282,
+            "calls": 1
+          },
+          "buildManager": {
+            "seconds": 9.863359,
+            "calls": 1
+          }
+        },
+        "plugin": {
+          "pluginCapture": {
+            "seconds": 1.5566978,
+            "calls": 1
+          },
+          "dependencyRestore": {
+            "seconds": 1.7376059000000006,
+            "calls": 201
+          },
+          "endRefresh": {
+            "seconds": 0.0063352,
+            "calls": 1
+          },
+          "pluginBegin": {
+            "seconds": 3.8545069,
+            "calls": 1
+          },
+          "verifyWorkspaceHashes": {
+            "seconds": 2.3383770000000004,
+            "calls": 2
+          },
+          "endDependencyRevalidation": {
+            "seconds": 0.5219417,
+            "calls": 1
+          },
+          "captureCompose": {
+            "seconds": 0.2464159,
+            "calls": 1
+          },
+          "verifyWorkspaceNamespace": {
+            "seconds": 0.4219916,
+            "calls": 2
+          },
+          "captureFiles": {
+            "seconds": 0.3882048,
+            "calls": 1
+          },
+          "endCompose": {
+            "seconds": 0.114034,
+            "calls": 1
+          },
+          "pluginEnd": {
+            "seconds": 2.0084371,
+            "calls": 1
+          },
+          "captureIdentity": {
+            "seconds": 0.008841,
+            "calls": 1
+          },
+          "verifyWorkspaceInputs": {
+            "seconds": 2.7608104,
+            "calls": 2
+          },
+          "dependencyValidate": {
+            "seconds": 0.3221002999999999,
+            "calls": 201
+          },
+          "dependencyCompose": {
+            "seconds": 0.1250972,
+            "calls": 201
+          },
+          "captureSeal": {
+            "seconds": 0.9116059,
+            "calls": 1
+          }
+        },
+        "staging": {
+          "validationSeconds": 1.5244837,
+          "packageSeconds": 0.6678164999999984,
+          "packageBytes": 2146600383,
+          "packageFiles": 12017,
+          "borrowed": true
+        }
+      },
+      {
+        "mode": "baseline",
+        "profile": true,
+        "seconds": 20.986087166999994,
+        "identicalFiles": 6932,
+        "phases": {
+          "sourceAndRestore": 3.4155684,
+          "seedCopy": 0,
+          "sessionMetadata": 0.0318073,
+          "dependencyValidation": 0.2994392,
+          "dependencyReplayProjects": 0.0330835,
+          "workspaceHashing": 0.3169091,
+          "sessionSetup": 0.0059643,
+          "msbuild": 13.0585023,
+          "selectBundles": 0.0043821,
+          "validateEntry": 0.2555281,
+          "apiIdentity": 0.0358814,
+          "apiProjection": 1.2260327,
+          "runtimeProjection": 0.0039973,
+          "dependencyRevalidation": 0.5334354,
+          "packageRevalidation": 0.0006085,
+          "publicationValidation": 0.4929257,
+          "cleanup": 1.2044619
+        },
+        "msbuild": {
+          "entryEvaluation": {
+            "seconds": 0.1446786,
+            "calls": 1
+          },
+          "buildManager": {
+            "seconds": 12.8285806,
+            "calls": 1
+          }
+        },
+        "plugin": {
+          "pluginCapture": {
+            "seconds": 1.565393,
+            "calls": 1
+          },
+          "dependencyRestore": {
+            "seconds": 1.7611209000000005,
+            "calls": 201
+          },
+          "endRefresh": {
+            "seconds": 0.005921,
+            "calls": 1
+          },
+          "pluginBegin": {
+            "seconds": 6.6787598,
+            "calls": 1
+          },
+          "verifyWorkspaceHashes": {
+            "seconds": 5.167515399999999,
+            "calls": 2
+          },
+          "endDependencyRevalidation": {
+            "seconds": 0.5413487,
+            "calls": 1
+          },
+          "captureCompose": {
+            "seconds": 0.2488161,
+            "calls": 1
+          },
+          "verifyWorkspaceNamespace": {
+            "seconds": 0.3378065,
+            "calls": 2
+          },
+          "captureFiles": {
+            "seconds": 0.3976615,
+            "calls": 1
+          },
+          "endCompose": {
+            "seconds": 0.1157037,
+            "calls": 1
+          },
+          "pluginEnd": {
+            "seconds": 1.9607267,
+            "calls": 1
+          },
+          "captureIdentity": {
+            "seconds": 0.0099936,
+            "calls": 1
+          },
+          "verifyWorkspaceInputs": {
+            "seconds": 5.5057757,
+            "calls": 2
+          },
+          "dependencyValidate": {
+            "seconds": 0.3210248,
+            "calls": 201
+          },
+          "dependencyCompose": {
+            "seconds": 0.12078910000000004,
+            "calls": 201
+          },
+          "captureSeal": {
+            "seconds": 0.9072578,
+            "calls": 1
+          }
+        },
+        "staging": {
+          "validationSeconds": 1.5297702,
+          "packageSeconds": 1.6151095999999925,
+          "packageBytes": 2146600383,
+          "packageFiles": 12017,
+          "borrowed": false
+        }
+      },
+      {
+        "mode": "baseline",
+        "profile": true,
+        "seconds": 22.979001749999995,
+        "identicalFiles": 6932,
+        "phases": {
+          "sourceAndRestore": 5.407118,
+          "seedCopy": 0,
+          "sessionMetadata": 0.0316616,
+          "dependencyValidation": 0.2899558,
+          "dependencyReplayProjects": 0.0290653,
+          "workspaceHashing": 0.3191116,
+          "sessionSetup": 0.0061294,
+          "msbuild": 13.0308899,
+          "selectBundles": 0.0049615,
+          "validateEntry": 0.2567867,
+          "apiIdentity": 0.0311773,
+          "apiProjection": 1.2570595,
+          "runtimeProjection": 0.0035763,
+          "dependencyRevalidation": 0.534706,
+          "packageRevalidation": 0.000596,
+          "publicationValidation": 0.500054,
+          "cleanup": 1.1955608
+        },
+        "msbuild": {
+          "entryEvaluation": {
+            "seconds": 0.1446034,
+            "calls": 1
+          },
+          "buildManager": {
+            "seconds": 12.790324,
+            "calls": 1
+          }
+        },
+        "plugin": {
+          "pluginCapture": {
+            "seconds": 1.5613962,
+            "calls": 1
+          },
+          "dependencyRestore": {
+            "seconds": 1.7624361,
+            "calls": 201
+          },
+          "endRefresh": {
+            "seconds": 0.0060981,
+            "calls": 1
+          },
+          "pluginBegin": {
+            "seconds": 6.6441478,
+            "calls": 1
+          },
+          "verifyWorkspaceHashes": {
+            "seconds": 5.1107474999999996,
+            "calls": 2
+          },
+          "endDependencyRevalidation": {
+            "seconds": 0.5286744,
+            "calls": 1
+          },
+          "captureCompose": {
+            "seconds": 0.2468272,
+            "calls": 1
+          },
+          "verifyWorkspaceNamespace": {
+            "seconds": 0.3290567,
+            "calls": 2
+          },
+          "captureFiles": {
+            "seconds": 0.4071079,
+            "calls": 1
+          },
+          "endCompose": {
+            "seconds": 0.1154954,
+            "calls": 1
+          },
+          "pluginEnd": {
+            "seconds": 1.9342968,
+            "calls": 1
+          },
+          "captureIdentity": {
+            "seconds": 0.008799,
+            "calls": 1
+          },
+          "verifyWorkspaceInputs": {
+            "seconds": 5.440265200000001,
+            "calls": 2
+          },
+          "dependencyValidate": {
+            "seconds": 0.3248022000000002,
+            "calls": 201
+          },
+          "dependencyCompose": {
+            "seconds": 0.1251585,
+            "calls": 201
+          },
+          "captureSeal": {
+            "seconds": 0.8969752,
+            "calls": 1
+          }
+        },
+        "staging": {
+          "validationSeconds": 3.4960647,
+          "packageSeconds": 1.635324499999992,
+          "packageBytes": 2146600383,
+          "packageFiles": 12017,
+          "borrowed": false
+        }
+      },
+      {
+        "mode": "candidate",
+        "profile": true,
+        "seconds": 20.377298917000005,
+        "identicalFiles": 6932,
+        "phases": {
+          "sourceAndRestore": 4.4982195,
+          "seedCopy": 1e-07,
+          "sessionMetadata": 0.0339215,
+          "dependencyValidation": 0.2983018,
+          "dependencyReplayProjects": 0.0305781,
+          "workspaceHashing": 0.3905477,
+          "sessionSetup": 0.0058315,
+          "msbuild": 10.169183,
+          "selectBundles": 0.0043285,
+          "validateEntry": 0.2577645,
+          "apiIdentity": 0.0315178,
+          "apiProjection": 1.25509,
+          "runtimeProjection": 0.0039312,
+          "dependencyRevalidation": 0.5305027,
+          "packageRevalidation": 1.1048881,
+          "publicationValidation": 0.5071985,
+          "cleanup": 1.1847274
+        },
+        "msbuild": {
+          "entryEvaluation": {
+            "seconds": 0.1553232,
+            "calls": 1
+          },
+          "buildManager": {
+            "seconds": 9.921842,
+            "calls": 1
+          }
+        },
+        "plugin": {
+          "pluginCapture": {
+            "seconds": 1.5631623,
+            "calls": 1
+          },
+          "dependencyRestore": {
+            "seconds": 1.7754263000000006,
+            "calls": 201
+          },
+          "endRefresh": {
+            "seconds": 0.0064453,
+            "calls": 1
+          },
+          "pluginBegin": {
+            "seconds": 3.9088776,
+            "calls": 1
+          },
+          "verifyWorkspaceHashes": {
+            "seconds": 2.3405571,
+            "calls": 2
+          },
+          "endDependencyRevalidation": {
+            "seconds": 0.5264891,
+            "calls": 1
+          },
+          "captureCompose": {
+            "seconds": 0.2473166,
+            "calls": 1
+          },
+          "verifyWorkspaceNamespace": {
+            "seconds": 0.4322493,
+            "calls": 2
+          },
+          "captureFiles": {
+            "seconds": 0.4044402,
+            "calls": 1
+          },
+          "endCompose": {
+            "seconds": 0.1150607,
+            "calls": 1
+          },
+          "pluginEnd": {
+            "seconds": 2.0118097,
+            "calls": 1
+          },
+          "captureIdentity": {
+            "seconds": 0.0105996,
+            "calls": 1
+          },
+          "verifyWorkspaceInputs": {
+            "seconds": 2.7732499,
+            "calls": 2
+          },
+          "dependencyValidate": {
+            "seconds": 0.3227002,
+            "calls": 201
+          },
+          "dependencyCompose": {
+            "seconds": 0.12494839999999997,
+            "calls": 201
+          },
+          "captureSeal": {
+            "seconds": 0.8990514,
+            "calls": 1
+          }
+        },
+        "staging": {
+          "validationSeconds": 3.5553302,
+          "packageSeconds": 0.670447000000005,
+          "packageBytes": 2146600383,
+          "packageFiles": 12017,
+          "borrowed": true
+        }
+      }
+    ]
+  },
+  "nativeAcceptance": [
+    {
+      "seconds": 18.9310254,
+      "compiles": 4,
+      "NugetExtractPackage": {
+        "executed": 0,
+        "remoteHits": 0
+      },
+      "MsbuildCompileProject": {
+        "executed": 4,
+        "remoteHits": 0
+      },
+      "MsbuildDiscover": {
+        "executed": 2,
+        "remoteHits": 0
+      },
+      "MsbuildLockedRestore": {
+        "executed": 0,
+        "remoteHits": 0
+      },
+      "case": "legacy",
+      "applicationOutput": "11",
+      "hashes": {
+        "N0000.dll": "7628a4715f38e243b8962dae316b08ca2c3bb5ec36e4f5130e64500da93d23ce",
+        "N0000.pdb": "03205bc8721808470d037c25f7435922acc507614f86a3392f02a28f3bbae480",
+        "N0001.dll": "a23a31c825e20e6364fb6c3b0cd60f597701cd0be0f9f3d2bd10bd00c99b49c8",
+        "N0001.pdb": "80c3d9567513817b178139ebb2ba01ce72a9cd60cfd2123dd5b37904da75d785",
+        "N0002.dll": "04b780f0d66b347007d58589408d286e840863045fc6d9540a6d32572c9edb3c",
+        "N0002.pdb": "b1b007cc3514cb1069f421b0177dd89abe7f92b4420ec6520727511496b8e91e",
+        "N0003.dll": "ae93d5b9981ac76d2fc46902c2aedb4912b0ad2b624110e450320e581d589b4f",
+        "N0003.pdb": "e2461bdaee8b43d2da9f11a098e687fc0e00cbfbeb94e2b59a1b2b0eb8ec9b32",
+        "Newtonsoft.Json.dll": "72cf291d4bab0edd08a9b07c6173e1e7ad1abb7ab727fd7044bf6305d7515661"
+      },
+      "cachePublication": "workflow-gated",
+      "phases": {
+        "sourceSnapshot": 0.0049494,
+        "stagePackages": 0.0015092,
+        "generate": 0.0071352,
+        "layout": 8.1875927,
+        "bazel": 9.8663718,
+        "leaseExit": 0.068638,
+        "validateBundles": 0.0020292,
+        "publishActionCache": 0.6763743
+      }
+    },
+    {
+      "seconds": 15.1024425,
+      "compiles": 4,
+      "NugetExtractPackage": {
+        "executed": 2,
+        "remoteHits": 0
+      },
+      "MsbuildCompileProject": {
+        "executed": 4,
+        "remoteHits": 0
+      },
+      "MsbuildDiscover": {
+        "executed": 1,
+        "remoteHits": 0
+      },
+      "MsbuildLockedRestore": {
+        "executed": 1,
+        "remoteHits": 0
+      },
+      "case": "produced",
+      "applicationOutput": "11",
+      "hashes": {
+        "N0000.dll": "7628a4715f38e243b8962dae316b08ca2c3bb5ec36e4f5130e64500da93d23ce",
+        "N0000.pdb": "03205bc8721808470d037c25f7435922acc507614f86a3392f02a28f3bbae480",
+        "N0001.dll": "a23a31c825e20e6364fb6c3b0cd60f597701cd0be0f9f3d2bd10bd00c99b49c8",
+        "N0001.pdb": "80c3d9567513817b178139ebb2ba01ce72a9cd60cfd2123dd5b37904da75d785",
+        "N0002.dll": "04b780f0d66b347007d58589408d286e840863045fc6d9540a6d32572c9edb3c",
+        "N0002.pdb": "b1b007cc3514cb1069f421b0177dd89abe7f92b4420ec6520727511496b8e91e",
+        "N0003.dll": "ae93d5b9981ac76d2fc46902c2aedb4912b0ad2b624110e450320e581d589b4f",
+        "N0003.pdb": "e2461bdaee8b43d2da9f11a098e687fc0e00cbfbeb94e2b59a1b2b0eb8ec9b32",
+        "Newtonsoft.Json.dll": "72cf291d4bab0edd08a9b07c6173e1e7ad1abb7ab727fd7044bf6305d7515661"
+      },
+      "cachePublication": "action-experimental",
+      "phases": {
+        "sourceSnapshot": 0.0050492,
+        "stagePackages": 0.0011951,
+        "generate": 0.0089289,
+        "bazel": 14.9091815,
+        "leaseExit": 0.1087301,
+        "validateBundles": 0.0023925,
+        "publishActionCache": 1.41e-05
+      },
+      "borrowedPackageFiles": 70
+    },
+    {
+      "seconds": 4.526504,
+      "compiles": 0,
+      "NugetExtractPackage": {
+        "executed": 0,
+        "remoteHits": 2
+      },
+      "MsbuildCompileProject": {
+        "executed": 0,
+        "remoteHits": 4
+      },
+      "MsbuildDiscover": {
+        "executed": 0,
+        "remoteHits": 1
+      },
+      "MsbuildLockedRestore": {
+        "executed": 0,
+        "remoteHits": 1
+      },
+      "case": "recovered",
+      "applicationOutput": "11",
+      "hashes": {
+        "N0000.dll": "7628a4715f38e243b8962dae316b08ca2c3bb5ec36e4f5130e64500da93d23ce",
+        "N0000.pdb": "03205bc8721808470d037c25f7435922acc507614f86a3392f02a28f3bbae480",
+        "N0001.dll": "a23a31c825e20e6364fb6c3b0cd60f597701cd0be0f9f3d2bd10bd00c99b49c8",
+        "N0001.pdb": "80c3d9567513817b178139ebb2ba01ce72a9cd60cfd2123dd5b37904da75d785",
+        "N0002.dll": "04b780f0d66b347007d58589408d286e840863045fc6d9540a6d32572c9edb3c",
+        "N0002.pdb": "b1b007cc3514cb1069f421b0177dd89abe7f92b4420ec6520727511496b8e91e",
+        "N0003.dll": "ae93d5b9981ac76d2fc46902c2aedb4912b0ad2b624110e450320e581d589b4f",
+        "N0003.pdb": "e2461bdaee8b43d2da9f11a098e687fc0e00cbfbeb94e2b59a1b2b0eb8ec9b32",
+        "Newtonsoft.Json.dll": "72cf291d4bab0edd08a9b07c6173e1e7ad1abb7ab727fd7044bf6305d7515661"
+      },
+      "cachePublication": "action-experimental",
+      "phases": {
+        "sourceSnapshot": 0.0040361,
+        "stagePackages": 0.0010842,
+        "generate": 0.0098607,
+        "bazel": 4.3722677,
+        "leaseExit": 0.0626592,
+        "validateBundles": 0.0020479,
+        "publishActionCache": 1.19e-05
+      },
+      "emptyPackagePlaceholders": 2,
+      "packageFilesMaterialized": 0
+    },
+    {
+      "seconds": 2.9170925,
+      "compiles": 1,
+      "NugetExtractPackage": {
+        "executed": 0,
+        "remoteHits": 0
+      },
+      "MsbuildCompileProject": {
+        "executed": 1,
+        "remoteHits": 0
+      },
+      "MsbuildDiscover": {
+        "executed": 0,
+        "remoteHits": 0
+      },
+      "MsbuildLockedRestore": {
+        "executed": 0,
+        "remoteHits": 0
+      },
+      "case": "changed",
+      "applicationOutput": "21",
+      "hashes": {
+        "N0000.dll": "7628a4715f38e243b8962dae316b08ca2c3bb5ec36e4f5130e64500da93d23ce",
+        "N0000.pdb": "03205bc8721808470d037c25f7435922acc507614f86a3392f02a28f3bbae480",
+        "N0001.dll": "92accbedb58930a028753fbe3e487ae4d5fc57082cd481f1ff1d9ee319f610a9",
+        "N0001.pdb": "14e1babdaa4cc92bd1233ba2552dfd45c9a14f704e52cadcc22eb08f91a21d1f",
+        "N0002.dll": "04b780f0d66b347007d58589408d286e840863045fc6d9540a6d32572c9edb3c",
+        "N0002.pdb": "b1b007cc3514cb1069f421b0177dd89abe7f92b4420ec6520727511496b8e91e",
+        "N0003.dll": "ae93d5b9981ac76d2fc46902c2aedb4912b0ad2b624110e450320e581d589b4f",
+        "N0003.pdb": "e2461bdaee8b43d2da9f11a098e687fc0e00cbfbeb94e2b59a1b2b0eb8ec9b32",
+        "Newtonsoft.Json.dll": "72cf291d4bab0edd08a9b07c6173e1e7ad1abb7ab727fd7044bf6305d7515661"
+      },
+      "cachePublication": "action-experimental",
+      "phases": {
+        "sourceSnapshot": 0.0044092,
+        "stagePackages": 0.0011146,
+        "generate": 0.0079344,
+        "bazel": 2.7566821,
+        "leaseExit": 0.0669862,
+        "validateBundles": 0.0020274,
+        "publishActionCache": 1.19e-05
+      },
+      "packageFilesMaterialized": {
+        "newtonsoft.json/13.0.1": 24,
+        "polysharp/1.15.0": 0
+      }
+    }
+  ],
+  "fullWorkflow": {
+    "samples": [
+      {
+        "mode": "copy",
+        "seconds": 652.48814,
+        "compiles": 202,
+        "phases": {
+          "sourceSnapshot": 3.0196477,
+          "stagePackages": 0.0323894,
+          "generate": 0.4095317,
+          "bazel": 582.6345346,
+          "leaseExit": 3.059826,
+          "validateBundles": 0.3869838,
+          "publishActionCache": 61.1805013
+        },
+        "compilePhaseTotals": {
+          "sourceAndRestore": 116.55130219999995,
+          "seedCopy": 0.002005599999999998,
+          "sessionMetadata": 1.7697029999999998,
+          "dependencyValidation": 3.8909395999999994,
+          "dependencyReplayProjects": 1.1595199,
+          "workspaceHashing": 7.5577844999999995,
+          "sessionSetup": 0.5101818999999999,
+          "msbuild": 505.2416821,
+          "selectBundles": 0.6896085000000001,
+          "validateEntry": 0.8247272999999997,
+          "apiIdentity": 2.479971800000003,
+          "apiProjection": 8.558224300000003,
+          "runtimeProjection": 0.8421959999999996,
+          "dependencyRevalidation": 3.913033599999999,
+          "packageRevalidation": 0.11729679999999995,
+          "publicationValidation": 0.0015970999999999995,
+          "cleanup": 30.355727399999996
+        },
+        "packageFiles": 279531,
+        "packageBytes": 57383869534,
+        "packageStagingSeconds": 51.92226650000001,
+        "payloadValidationSeconds": 51.686558,
+        "runtime": {
+          "status": 200,
+          "markers": [
+            "csharp",
+            "razor",
+            "css"
+          ]
+        },
+        "reportedPackagePathBytes": 62263159,
+        "packageByteCountNote": "Corrected sandbox symlink-length diagnostics by following declared package inputs; identical package selections in both modes."
+      },
+      {
+        "mode": "borrow",
+        "seconds": 616.924854,
+        "compiles": 202,
+        "phases": {
+          "sourceSnapshot": 2.8203985,
+          "stagePackages": 0.0336246,
+          "generate": 0.405912,
+          "bazel": 548.0535927,
+          "leaseExit": 3.0663002,
+          "validateBundles": 0.3921655,
+          "publishActionCache": 60.3952333
+        },
+        "compilePhaseTotals": {
+          "sourceAndRestore": 85.07194869999996,
+          "seedCopy": 0.0019507999999999997,
+          "sessionMetadata": 1.7542761000000002,
+          "dependencyValidation": 3.7335757000000007,
+          "dependencyReplayProjects": 1.1348131999999993,
+          "workspaceHashing": 9.995832799999999,
+          "sessionSetup": 0.4915103999999999,
+          "msbuild": 438.1516544999999,
+          "selectBundles": 0.6991380000000001,
+          "validateEntry": 0.8388706999999996,
+          "apiIdentity": 2.5003217999999983,
+          "apiProjection": 8.589486899999999,
+          "runtimeProjection": 0.8305506000000001,
+          "dependencyRevalidation": 3.9866005,
+          "packageRevalidation": 32.69494499999999,
+          "publicationValidation": 0.0018700000000000006,
+          "cleanup": 31.837821499999993
+        },
+        "packageFiles": 279531,
+        "packageBytes": 57383869534,
+        "packageStagingSeconds": 24.09437340000001,
+        "payloadValidationSeconds": 47.946613600000035,
+        "applicationComparison": {
+          "files": 3457,
+          "different": [
+            "OrchardCore.Notifications.pdb",
+            "OrchardCore.Facebook.pdb",
+            "OrchardCore.Diagnostics.dll",
+            "OrchardCore.Media.AmazonS3.pdb",
+            "OrchardCore.Setup.pdb",
+            "SafeMode.dll",
+            "OrchardCore.BackgroundTasks.pdb",
+            "OrchardCore.Deployment.Remote.dll",
+            "OrchardCore.Spatial.dll",
+            "OrchardCore.RateLimits.dll",
+            "OrchardCore.Twitter.pdb",
+            "OrchardCore.Seo.pdb",
+            "OrchardCore.Sms.dll",
+            "OrchardCore.Forms.dll",
+            "OrchardCore.Lists.pdb",
+            "OrchardCore.AuditTrail.dll",
+            "OrchardCore.Lucene.dll",
+            "OrchardCore.Sitemaps.dll",
+            "OrchardCore.Flows.pdb",
+            "OrchardCore.Navigation.pdb",
+            "TheTheme.dll",
+            "OrchardCore.Indexing.dll",
+            "OrchardCore.Taxonomies.pdb",
+            "OrchardCore.ReverseProxy.dll",
+            "OrchardCore.CustomSettings.pdb",
+            "OrchardCore.Apis.GraphQL.pdb",
+            "OrchardCore.AdminDashboard.dll",
+            "OrchardCore.Alias.dll",
+            "OrchardCore.Email.Azure.dll",
+            "OrchardCore.Google.pdb",
+            "OrchardCore.Email.Smtp.dll",
+            "OrchardCore.PublishLater.dll",
+            "OrchardCore.Admin.dll",
+            "OrchardCore.ContentFields.dll",
+            "OrchardCore.OpenApi.dll",
+            "OrchardCore.Security.pdb",
+            "OrchardCore.Media.dll",
+            "OrchardCore.Users.pdb",
+            "OrchardCore.Deployment.pdb",
+            "OrchardCore.ContentPreview.dll",
+            "OrchardCore.RateLimits.pdb",
+            "OrchardCore.Twitter.dll",
+            "OrchardCore.Spatial.pdb",
+            "OrchardCore.Lucene.pdb",
+            "OrchardCore.AuditTrail.pdb",
+            "OrchardCore.Lists.dll",
+            "OrchardCore.Forms.pdb",
+            "OrchardCore.Sms.pdb",
+            "OrchardCore.Seo.dll",
+            "OrchardCore.Sitemaps.pdb",
+            "OrchardCore.Facebook.dll",
+            "OrchardCore.Notifications.dll",
+            "OrchardCore.Media.AmazonS3.dll",
+            "OrchardCore.Diagnostics.pdb",
+            "OrchardCore.BackgroundTasks.dll",
+            "SafeMode.pdb",
+            "OrchardCore.Setup.dll",
+            "OrchardCore.Deployment.Remote.pdb",
+            "OrchardCore.AdminDashboard.pdb",
+            "OrchardCore.Apis.GraphQL.dll",
+            "OrchardCore.Email.Azure.pdb",
+            "OrchardCore.Alias.pdb",
+            "OrchardCore.ContentFields.pdb",
+            "OrchardCore.Admin.pdb",
+            "OrchardCore.PublishLater.pdb",
+            "OrchardCore.Email.Smtp.pdb",
+            "OrchardCore.Google.dll",
+            "OrchardCore.ContentPreview.pdb",
+            "OrchardCore.Deployment.dll",
+            "OrchardCore.Users.dll",
+            "OrchardCore.Media.pdb",
+            "OrchardCore.Security.dll",
+            "OrchardCore.OpenApi.pdb",
+            "OrchardCore.Navigation.dll",
+            "OrchardCore.Flows.dll",
+            "OrchardCore.Indexing.pdb",
+            "TheTheme.pdb",
+            "OrchardCore.Taxonomies.dll",
+            "OrchardCore.CustomSettings.dll",
+            "OrchardCore.ReverseProxy.pdb",
+            "OrchardCore.Html.dll",
+            "OrchardCore.Themes.dll",
+            "OrchardCore.ContentTypes.pdb",
+            "OrchardCore.Shortcodes.dll",
+            "OrchardCore.Queries.dll",
+            "OrchardCore.Workflows.dll",
+            "OrchardCore.AzureAI.pdb",
+            "OrchardCore.Title.pdb",
+            "OrchardCore.Autoroute.pdb",
+            "OrchardCore.Roles.pdb",
+            "OrchardCore.Cors.pdb",
+            "OrchardCore.AdminMenu.pdb",
+            "OrchardCore.Search.pdb",
+            "OrchardCore.Tenants.pdb",
+            "OrchardCore.Settings.dll",
+            "OrchardCore.Sms.Azure.dll",
+            "TheAdmin.dll",
+            "OrchardCore.Markdown.dll",
+            "OrchardCore.ArchiveLater.dll",
+            "OrchardCore.Placements.pdb",
+            "OrchardCore.Contents.dll",
+            "OrchardCore.Rules.pdb",
+            "OrchardCore.Elasticsearch.pdb",
+            "OrchardCore.Layers.dll",
+            "OrchardCore.Recipes.dll",
+            "OrchardCore.ContentLocalization.pdb",
+            "OrchardCore.MiniProfiler.pdb",
+            "OrchardCore.Features.dll",
+            "OrchardCore.Email.pdb",
+            "OrchardCore.Menu.dll",
+            "OrchardCore.ReCaptcha.dll",
+            "OrchardCore.GitHub.pdb",
+            "OrchardCore.DataLocalization.pdb",
+            "OrchardCore.Widgets.pdb",
+            "OrchardCore.UrlRewriting.dll",
+            "OrchardCore.Templates.dll",
+            "OrchardCore.Liquid.dll",
+            "OrchardCore.OpenId.pdb",
+            "OrchardCore.Localization.pdb",
+            "OrchardCore.Roles.dll",
+            "OrchardCore.Autoroute.dll",
+            "OrchardCore.Title.dll",
+            "OrchardCore.AzureAI.dll",
+            "OrchardCore.AdminMenu.dll",
+            "OrchardCore.Cors.dll",
+            "OrchardCore.Tenants.dll",
+            "OrchardCore.Search.dll",
+            "OrchardCore.Settings.pdb",
+            "OrchardCore.ContentTypes.dll",
+            "OrchardCore.Themes.pdb",
+            "OrchardCore.Html.pdb",
+            "OrchardCore.Shortcodes.pdb",
+            "OrchardCore.Queries.pdb",
+            "OrchardCore.Workflows.pdb",
+            "OrchardCore.DataLocalization.dll",
+            "OrchardCore.GitHub.dll",
+            "OrchardCore.ReCaptcha.pdb",
+            "OrchardCore.Menu.pdb",
+            "OrchardCore.Email.dll",
+            "OrchardCore.UrlRewriting.pdb",
+            "OrchardCore.Widgets.dll",
+            "OrchardCore.Localization.dll",
+            "OrchardCore.OpenId.dll",
+            "OrchardCore.Liquid.pdb",
+            "OrchardCore.Templates.pdb",
+            "OrchardCore.ArchiveLater.pdb",
+            "OrchardCore.Markdown.pdb",
+            "TheAdmin.pdb",
+            "OrchardCore.Sms.Azure.pdb",
+            "OrchardCore.Contents.pdb",
+            "OrchardCore.Placements.dll",
+            "OrchardCore.ContentLocalization.dll",
+            "OrchardCore.Recipes.pdb",
+            "OrchardCore.Layers.pdb",
+            "OrchardCore.Elasticsearch.dll",
+            "OrchardCore.Rules.dll",
+            "OrchardCore.Features.pdb",
+            "OrchardCore.MiniProfiler.dll"
+          ],
+          "identical": 3299
+        },
+        "runtime": {
+          "status": 200,
+          "markers": [
+            "csharp",
+            "razor",
+            "css"
+          ]
+        },
+        "reportedPackagePathBytes": 62263159,
+        "packageByteCountNote": "Corrected sandbox symlink-length diagnostics by following declared package inputs; identical package selections in both modes."
+      }
+    ],
+    "savedSeconds": 35.56328600000006,
+    "savedPercent": 5.45041109865998,
+    "scope": "One fresh full workflow per mode, same state path, distinct empty loopback caches, warm verified archives/repository download cache. SDK 10.0.400, Bazel 8.4.2, macOS ARM64, jobs=2. Runtime checks outside timer."
+  },
+  "defaultWithPackageOriginsAcceptance": [
+    {
+      "seconds": 19.8542381,
+      "compiles": 4,
+      "NugetExtractPackage": {
+        "executed": 0,
+        "remoteHits": 0
+      },
+      "MsbuildCompileProject": {
+        "executed": 4,
+        "remoteHits": 0
+      },
+      "MsbuildDiscover": {
+        "executed": 2,
+        "remoteHits": 0
+      },
+      "MsbuildLockedRestore": {
+        "executed": 0,
+        "remoteHits": 0
+      },
+      "case": "legacy",
+      "applicationOutput": "11",
+      "hashes": {
+        "N0000.dll": "7628a4715f38e243b8962dae316b08ca2c3bb5ec36e4f5130e64500da93d23ce",
+        "N0000.pdb": "03205bc8721808470d037c25f7435922acc507614f86a3392f02a28f3bbae480",
+        "N0001.dll": "a4de29d3216263bf171141c11926f5d0636ff7f7e2bb43de603bbf7e9e1ae985",
+        "N0001.pdb": "e2c8936288ab5c304202bcb2d357b4aba0434723ab1f0ac04b304ca0321fd69c",
+        "N0002.dll": "04b780f0d66b347007d58589408d286e840863045fc6d9540a6d32572c9edb3c",
+        "N0002.pdb": "b1b007cc3514cb1069f421b0177dd89abe7f92b4420ec6520727511496b8e91e",
+        "N0003.dll": "84c4c55756959566a994c64021946281a24f1ec8b88786218526931cb4c48da5",
+        "N0003.pdb": "5bff393847ec4c7bbff07f0ae6bd7c9e7f3d56c92da91fc1280fe6d9007fff93",
+        "Newtonsoft.Json.dll": "72cf291d4bab0edd08a9b07c6173e1e7ad1abb7ab727fd7044bf6305d7515661"
+      },
+      "cachePublication": "workflow-gated",
+      "phases": {
+        "sourceSnapshot": 0.0054508,
+        "stagePackages": 0.0017622,
+        "generate": 0.0090889,
+        "layout": 8.7490352,
+        "bazel": 10.2450698,
+        "leaseExit": 0.0504819,
+        "validateBundles": 0.0024642,
+        "publishActionCache": 0.6622503
+      }
+    },
+    {
+      "seconds": 15.9799125,
+      "compiles": 4,
+      "NugetExtractPackage": {
+        "executed": 2,
+        "remoteHits": 0
+      },
+      "MsbuildCompileProject": {
+        "executed": 4,
+        "remoteHits": 0
+      },
+      "MsbuildDiscover": {
+        "executed": 1,
+        "remoteHits": 0
+      },
+      "MsbuildLockedRestore": {
+        "executed": 1,
+        "remoteHits": 0
+      },
+      "case": "produced",
+      "applicationOutput": "11",
+      "hashes": {
+        "N0000.dll": "7628a4715f38e243b8962dae316b08ca2c3bb5ec36e4f5130e64500da93d23ce",
+        "N0000.pdb": "03205bc8721808470d037c25f7435922acc507614f86a3392f02a28f3bbae480",
+        "N0001.dll": "a4de29d3216263bf171141c11926f5d0636ff7f7e2bb43de603bbf7e9e1ae985",
+        "N0001.pdb": "e2c8936288ab5c304202bcb2d357b4aba0434723ab1f0ac04b304ca0321fd69c",
+        "N0002.dll": "04b780f0d66b347007d58589408d286e840863045fc6d9540a6d32572c9edb3c",
+        "N0002.pdb": "b1b007cc3514cb1069f421b0177dd89abe7f92b4420ec6520727511496b8e91e",
+        "N0003.dll": "84c4c55756959566a994c64021946281a24f1ec8b88786218526931cb4c48da5",
+        "N0003.pdb": "5bff393847ec4c7bbff07f0ae6bd7c9e7f3d56c92da91fc1280fe6d9007fff93",
+        "Newtonsoft.Json.dll": "72cf291d4bab0edd08a9b07c6173e1e7ad1abb7ab727fd7044bf6305d7515661"
+      },
+      "cachePublication": "action-experimental",
+      "phases": {
+        "sourceSnapshot": 0.004597,
+        "stagePackages": 0.0010702,
+        "generate": 0.009294,
+        "bazel": 15.8593077,
+        "leaseExit": 0.0467626,
+        "validateBundles": 0.0021746,
+        "publishActionCache": 1.23e-05
+      },
+      "borrowedPackageFiles": 70,
+      "packageOriginApiBundles": 2
+    },
+    {
+      "seconds": 3.6325386,
+      "compiles": 0,
+      "NugetExtractPackage": {
+        "executed": 0,
+        "remoteHits": 2
+      },
+      "MsbuildCompileProject": {
+        "executed": 0,
+        "remoteHits": 4
+      },
+      "MsbuildDiscover": {
+        "executed": 0,
+        "remoteHits": 1
+      },
+      "MsbuildLockedRestore": {
+        "executed": 0,
+        "remoteHits": 1
+      },
+      "case": "recovered",
+      "applicationOutput": "11",
+      "hashes": {
+        "N0000.dll": "7628a4715f38e243b8962dae316b08ca2c3bb5ec36e4f5130e64500da93d23ce",
+        "N0000.pdb": "03205bc8721808470d037c25f7435922acc507614f86a3392f02a28f3bbae480",
+        "N0001.dll": "a4de29d3216263bf171141c11926f5d0636ff7f7e2bb43de603bbf7e9e1ae985",
+        "N0001.pdb": "e2c8936288ab5c304202bcb2d357b4aba0434723ab1f0ac04b304ca0321fd69c",
+        "N0002.dll": "04b780f0d66b347007d58589408d286e840863045fc6d9540a6d32572c9edb3c",
+        "N0002.pdb": "b1b007cc3514cb1069f421b0177dd89abe7f92b4420ec6520727511496b8e91e",
+        "N0003.dll": "84c4c55756959566a994c64021946281a24f1ec8b88786218526931cb4c48da5",
+        "N0003.pdb": "5bff393847ec4c7bbff07f0ae6bd7c9e7f3d56c92da91fc1280fe6d9007fff93",
+        "Newtonsoft.Json.dll": "72cf291d4bab0edd08a9b07c6173e1e7ad1abb7ab727fd7044bf6305d7515661"
+      },
+      "cachePublication": "action-experimental",
+      "phases": {
+        "sourceSnapshot": 0.0041985,
+        "stagePackages": 0.0011269,
+        "generate": 0.0096947,
+        "bazel": 3.4650482,
+        "leaseExit": 0.0694842,
+        "validateBundles": 0.0021421,
+        "publishActionCache": 1.16e-05
+      },
+      "emptyPackagePlaceholders": 2,
+      "packageFilesMaterialized": 0
+    },
+    {
+      "seconds": 2.9590475,
+      "compiles": 1,
+      "NugetExtractPackage": {
+        "executed": 0,
+        "remoteHits": 0
+      },
+      "MsbuildCompileProject": {
+        "executed": 1,
+        "remoteHits": 0
+      },
+      "MsbuildDiscover": {
+        "executed": 0,
+        "remoteHits": 0
+      },
+      "MsbuildLockedRestore": {
+        "executed": 0,
+        "remoteHits": 0
+      },
+      "case": "changed",
+      "applicationOutput": "21",
+      "hashes": {
+        "N0000.dll": "7628a4715f38e243b8962dae316b08ca2c3bb5ec36e4f5130e64500da93d23ce",
+        "N0000.pdb": "03205bc8721808470d037c25f7435922acc507614f86a3392f02a28f3bbae480",
+        "N0001.dll": "46e412587e1ca7682aa9cb20578adb49cea316a901d30c20abfcfb6430d7ca93",
+        "N0001.pdb": "012a60fb435b945a327ffb165553209a68cceccded0e47808d6042972efdffaa",
+        "N0002.dll": "04b780f0d66b347007d58589408d286e840863045fc6d9540a6d32572c9edb3c",
+        "N0002.pdb": "b1b007cc3514cb1069f421b0177dd89abe7f92b4420ec6520727511496b8e91e",
+        "N0003.dll": "84c4c55756959566a994c64021946281a24f1ec8b88786218526931cb4c48da5",
+        "N0003.pdb": "5bff393847ec4c7bbff07f0ae6bd7c9e7f3d56c92da91fc1280fe6d9007fff93",
+        "Newtonsoft.Json.dll": "72cf291d4bab0edd08a9b07c6173e1e7ad1abb7ab727fd7044bf6305d7515661"
+      },
+      "cachePublication": "action-experimental",
+      "phases": {
+        "sourceSnapshot": 0.0045722,
+        "stagePackages": 0.0012287,
+        "generate": 0.0082364,
+        "bazel": 2.8362399,
+        "leaseExit": 0.0475633,
+        "validateBundles": 0.0020842,
+        "publishActionCache": 1.2e-05
+      },
+      "packageFilesMaterialized": {
+        "newtonsoft.json/13.0.1": 24,
+        "polysharp/1.15.0": 13
+      }
+    },
+    {
+      "seconds": 1.7743018,
+      "compiles": 1,
+      "NugetExtractPackage": {
+        "executed": 0,
+        "remoteHits": 0
+      },
+      "MsbuildCompileProject": {
+        "executed": 1,
+        "remoteHits": 0
+      },
+      "MsbuildDiscover": {
+        "executed": 0,
+        "remoteHits": 0
+      },
+      "MsbuildLockedRestore": {
+        "executed": 0,
+        "remoteHits": 0
+      },
+      "case": "changed-entry",
+      "applicationOutput": "31",
+      "hashes": {
+        "N0000.dll": "7628a4715f38e243b8962dae316b08ca2c3bb5ec36e4f5130e64500da93d23ce",
+        "N0000.pdb": "03205bc8721808470d037c25f7435922acc507614f86a3392f02a28f3bbae480",
+        "N0001.dll": "46e412587e1ca7682aa9cb20578adb49cea316a901d30c20abfcfb6430d7ca93",
+        "N0001.pdb": "012a60fb435b945a327ffb165553209a68cceccded0e47808d6042972efdffaa",
+        "N0002.dll": "04b780f0d66b347007d58589408d286e840863045fc6d9540a6d32572c9edb3c",
+        "N0002.pdb": "b1b007cc3514cb1069f421b0177dd89abe7f92b4420ec6520727511496b8e91e",
+        "N0003.dll": "b8377cf2e71aa33319e077a4258ac77c2b55f48db61dacbeb673648c24a0f992",
+        "N0003.pdb": "7d868a9fdf5b5879c69975da3f3ad4e8b17a6058aee95b6bb28b56f9045b4883",
+        "Newtonsoft.Json.dll": "72cf291d4bab0edd08a9b07c6173e1e7ad1abb7ab727fd7044bf6305d7515661"
+      },
+      "cachePublication": "action-experimental",
+      "phases": {
+        "sourceSnapshot": 0.0045811,
+        "stagePackages": 0.0010876,
+        "generate": 0.008164,
+        "bazel": 1.629058,
+        "leaseExit": 0.0598886,
+        "validateBundles": 0.002181,
+        "publishActionCache": 1.22e-05
+      }
+    }
+  ],
+  "checks": {
+    "workflow": {
+      "passed": 69,
+      "skipped": 1
+    },
+    "preparation": {
+      "passed": 33
+    },
+    "actionRunner": "passed",
+    "ownedBuilds": "warnings-as-errors passed",
+    "formatting": "passed",
+    "ciRun": false
+  }
+}

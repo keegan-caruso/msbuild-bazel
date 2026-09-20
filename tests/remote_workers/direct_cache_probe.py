@@ -29,6 +29,7 @@ def run(a):
             request=dict(schemaVersion=1,repository=str(ROOT),sdkRoot=str(SDK),bazel=str(BAZEL),workspace=str(checkout),state=str(base/'state'),output=str(out/label),entry='N0003/N0003.csproj',operation='build',**{'nuget-packages':str(packages),'project-actions':True,'direct-checkout':True,'bazel-repository-cache':str(a.repositories.resolve()),'bazel-remote-cache':endpoint or server.url,'bazel-remote-upload':upload})
             if layout.exists():request['project-layout']=str(layout)
             if actions and a.package_origin_outputs:request['package-origin-outputs']=True
+            if actions and a.borrow_package_inputs:request['borrow-package-inputs']=True
             if actions:request.update({'locked-restore':True,'package-actions':True,'experimental-direct-action-cache':direct,'action-local-validation':True})
             path=out/(label+'-request.json');path.write_text(json.dumps(request))
             with (out/(label+'.log')).open('w') as log:
@@ -48,6 +49,12 @@ def run(a):
             produced=invoke('produced',producer,producer/'source',True,'11')
             assert produced['NugetExtractPackage']==dict(executed=2,remoteHits=0)
             assert produced['hashes']==legacy['hashes']
+            if a.borrow_package_inputs or a.default_borrow_package_inputs:
+                staging=[json.loads(p.read_text()) for p in (producer/'state/g/bazel-bin').glob('project_*.diagnostics/staging.json')]
+                assert len(staging)==4 and all(r['borrowed'] for r in staging),staging
+                produced['borrowedPackageFiles']=sum(r['packageFiles'] for r in staging)
+                assert produced['borrowedPackageFiles']>0
+                (out/'report.json').write_text(json.dumps(records,indent=2))
             if a.package_origin_outputs:
                 seals=list((producer/'state/g/bazel-bin').glob('project_*.api/bundle.json'))
                 produced['packageOriginApiBundles']=sum(json.loads(p.read_text())['schemaVersion']==3 for p in seals)
@@ -97,4 +104,4 @@ def run(a):
 
 
 if __name__=='__main__':
-    p=argparse.ArgumentParser();p.add_argument('--output',type=Path,required=True);p.add_argument('--repositories',type=Path,required=True);p.add_argument('--cache-binary',type=Path,required=True);p.add_argument('--acceptance-only',action='store_true');p.add_argument('--package-origin-outputs',action='store_true');run(p.parse_args())
+    p=argparse.ArgumentParser();p.add_argument('--output',type=Path,required=True);p.add_argument('--repositories',type=Path,required=True);p.add_argument('--cache-binary',type=Path,required=True);p.add_argument('--acceptance-only',action='store_true');p.add_argument('--package-origin-outputs',action='store_true');p.add_argument('--borrow-package-inputs',action='store_true');p.add_argument('--default-borrow-package-inputs',action='store_true');run(p.parse_args())

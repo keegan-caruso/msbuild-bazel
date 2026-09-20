@@ -654,3 +654,11 @@ producer ownership once and eliminating overwritten copies and metadata parsing.
 format backed by declared Bazel package inputs. Native remote recovery and sparse
 dependency consumption pass. The Orchard entry/API pair omits 891 MB of duplicate
 package files; runtime package over-fetch keeps the feature disabled by default.
+
+## Read-only package inputs
+
+[Read-only package actions](read-only-package-actions.md) enables borrowing declared
+Bazel package files by default in the qualified owned project/package workflow,
+with an explicit copy-mode override. Paired Orchard entry actions save 11.5%; a
+single fresh full-graph comparison saves 35.6 seconds (5.45%). Native remote
+recovery and changed-input controls pass, with input validation retained.
