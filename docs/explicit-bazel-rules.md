@@ -152,7 +152,7 @@ Initial project support is one C# SDK-style project with one root `Sdk` attribut
 one TFM, matching-TFM project references, and framework-dependent output.
 Unsupported project-reference metadata and package metadata are rejected instead
 of silently reinterpreted. Partial PrivateAssets masks,
-project-built analyzers/tools, external-repository project-relative paths,
+arbitrary project-built MSBuild tasks, external-repository project-relative paths,
 Windows, cross-compilation, publish/AOT and test protocol integration remain
 unqualified. Scalar MSBuild properties cannot override reserved paths or graph
 controls. Generated files should be declared labels; SDK-generated compilation
@@ -169,3 +169,6 @@ per-project Restore.
 
 [Central versions and private package declarations](orchard-package-semantics.md)
 are qualified with locked packages, original NuGet metadata, and Linux controls.
+
+[Project-built analyzers](project-built-analyzers.md) can be listed in `analyzers`;
+their implementation closure is isolated from application compile/runtime deps.

@@ -84,6 +84,7 @@ internal static class LinuxWorker
                         Imports = request.Imports.Select(Map).ToArray(),
                         Items = request.Items.Select(i => i with { File = Map(i.File) }).ToArray(),
                         References = request.References.Select(InputPath).ToArray(),
+                        ProjectAnalyzers = request.ProjectAnalyzers?.Select(a => a with { Directories = a.Directories.Select(InputPath).ToArray() }).ToArray(),
                         Packages = request.Packages.Select(p => p with { Directory = InputPath(p.Directory) }).ToArray()
                     };
                     var state = Path.Combine(root, "out", identity);

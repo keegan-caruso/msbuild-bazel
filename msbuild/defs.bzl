@@ -56,7 +56,9 @@ def _project(ctx, executable = False, test = False, restore_only = False, projec
     direct = [dep[MSBuildAssemblyInfo] for dep in ctx.attr.deps if MSBuildAssemblyInfo in dep]
     compile_targets = [dep for dep in ctx.attr.deps if MSBuildPackageInfo in dep]
     compile_packages = depset([row["id"] for dep in compile_targets for row in dep[MSBuildPackageInfo].rows], transitive = [dep.compile_packages for dep in direct])
-    package_targets = compile_targets + ctx.attr.build_deps + ctx.attr.analyzers
+    analyzer_packages = [dep for dep in ctx.attr.analyzers if MSBuildPackageInfo in dep]
+    analyzer_projects = [dep[MSBuildAssemblyInfo] for dep in ctx.attr.analyzers if MSBuildAssemblyInfo in dep]
+    package_targets = compile_targets + ctx.attr.build_deps + analyzer_packages
     private_packages = {key.lower(): value.lower() for key, value in ctx.attr.package_private_assets.items()}
     direct_package_ids = {dep[MSBuildPackageInfo].id.lower(): True for dep in package_targets}
     for key, value in private_packages.items():
@@ -123,7 +125,8 @@ def _project(ctx, executable = False, test = False, restore_only = False, projec
         "packagePrivateAssets": private_packages,
         "declaredPackages": [dep[MSBuildPackageInfo].id for dep in package_targets],
         "buildPackages": [row["id"] for dep in ctx.attr.build_deps for row in dep[MSBuildPackageInfo].rows],
-        "analyzerPackages": [row["id"] for dep in ctx.attr.analyzers for row in dep[MSBuildPackageInfo].rows],
+        "analyzerPackages": [row["id"] for dep in analyzer_packages for row in dep[MSBuildPackageInfo].rows],
+        "projectAnalyzers": [{"project": dep.project, "assembly": dep.reference.basename, "directories": [dep.runtime.path] + [file.path for file in dep.runtimes.to_list()]} for dep in analyzer_projects],
         "defines": ctx.attr.defines,
         "nullable": ctx.attr.nullable,
         "languageVersion": ctx.attr.lang_version,
@@ -149,7 +152,7 @@ def _project(ctx, executable = False, test = False, restore_only = False, projec
         tools = depset([tc.runner, tc.worker_tools], transitive = [tc.sdk, tc.runner_support]) if ctx.attr.linux_worker else [],
         inputs = depset(
             [project, request, tc.runner, tc.runtime_manifest] + ctx.files.srcs + ctx.files.msbuild_imports + ([restore.file] if restore else []),
-            transitive = [tc.sdk, tc.runner_support, references, package_files] + [group[MSBuildItemsInfo].files for group in ctx.attr.items],
+            transitive = [depset([dep.runtime for dep in analyzer_projects], transitive = [dep.runtimes for dep in analyzer_projects]), tc.sdk, tc.runner_support, references, package_files] + [group[MSBuildItemsInfo].files for group in ctx.attr.items],
         ),
         outputs = [reference, runtime, diagnostics],
         mnemonic = "MSBuildRestore" if restore_only else "MSBuildAssembly",
@@ -219,7 +222,7 @@ _ATTRS = {
     "deps": attr.label_list(providers = [[MSBuildAssemblyInfo], [MSBuildPackageInfo]]),
     "build_deps": attr.label_list(providers = [MSBuildPackageInfo]),
     "package_private_assets": attr.string_dict(),
-    "analyzers": attr.label_list(providers = [MSBuildPackageInfo]),
+    "analyzers": attr.label_list(providers = [[MSBuildPackageInfo], [MSBuildAssemblyInfo]]),
     "framework_refs": attr.string_list(),
     "msbuild_imports": attr.label_list(allow_files = True),
     "msbuild_properties": attr.string_dict(),

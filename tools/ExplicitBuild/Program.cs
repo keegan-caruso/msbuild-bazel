@@ -9,8 +9,9 @@ using Microsoft.Build.Framework;
 using Microsoft.Build.Logging;
 
 internal sealed record Input(string Source, string Path);
+internal sealed record ProjectAnalyzer(string Project, string Assembly, string[] Directories);
 internal sealed record Item(string Type, Input File, Dictionary<string, string> Metadata);
-internal sealed record Request(Input Project, Input[] Sources, Input[] Imports, Item[] Items, string[] Dependencies, string[] References, string Framework, string[] FrameworkReferences, string Assembly, bool Executable, string Configuration, Dictionary<string, string> Properties, string[] Defines, string Nullable, string LanguageVersion, bool AllowUnsafe, string Runtime, string Reference, string Diagnostics, string SdkVersion, string RuntimeManifest, PackageInput[] Packages, string[] DeclaredPackages, string[] CompilePackages, string[] BuildPackages, string[] AnalyzerPackages, bool ProfileBuild = false, string? RestoreInput = null, bool RestoreOnly = false, Dictionary<string, string>? PackagePrivateAssets = null);
+internal sealed record Request(Input Project, Input[] Sources, Input[] Imports, Item[] Items, string[] Dependencies, string[] References, string Framework, string[] FrameworkReferences, string Assembly, bool Executable, string Configuration, Dictionary<string, string> Properties, string[] Defines, string Nullable, string LanguageVersion, bool AllowUnsafe, string Runtime, string Reference, string Diagnostics, string SdkVersion, string RuntimeManifest, PackageInput[] Packages, string[] DeclaredPackages, string[] CompilePackages, string[] BuildPackages, string[] AnalyzerPackages, bool ProfileBuild = false, string? RestoreInput = null, bool RestoreOnly = false, Dictionary<string, string>? PackagePrivateAssets = null, ProjectAnalyzer[]? ProjectAnalyzers = null);
 internal sealed record Session(Request Request, string Workspace, string State, string Original, string Sdk, string ToolRoot);
 internal sealed record Launch(string Entry, string[] Dependencies, string Assembly, bool Test, Input[] Data);
 
@@ -94,6 +95,7 @@ internal static class Program
         foreach (var file in r.Sources.Concat(r.Imports).Concat(r.Items.Select(i => i.File)).Prepend(r.Project)) Copy(ReadPath(file.Source), Path.Combine(workspace, Safe(file.Path)));
         var references = Path.Combine(workspace, ".references"); Directory.CreateDirectory(references);
         foreach (var reference in r.References) Copy(ReadPath(reference), Path.Combine(references, Path.GetFileName(reference)));
+        ProjectAnalyzers.Stage(r, workspace);
         var project = Path.Combine(workspace, Safe(r.Project.Path));
         var original = Path.Combine(state, "original.xml"); File.Copy(project, original);
         if (r.RestoreInput is not null || r.RestoreOnly) PreparedRestore.Validate(r, original);
@@ -237,6 +239,7 @@ internal static class Program
                 new XAttribute("Condition", "'$(ManagePackageVersionsCentrally)' == 'true' and '@(PackageReference->WithMetadataValue('IsImplicitlyDefined', 'true')->WithMetadataValue('Identity', '" + package.Id + "'))' == ''")));
         }
         foreach (var framework in r.FrameworkReferences) items.Add(new XElement("FrameworkReference", new XAttribute("Include", framework)));
+        foreach (var analyzer in ProjectAnalyzers.CompilerInputs(r, workspace)) items.Add(new XElement("Analyzer", new XAttribute("Include", Escape(analyzer))));
         root.Add(items);
         // Keep framework declarations unique when both project and BUILD name them.
         root.Add(new XElement("Target", new XAttribute("Name", "BazelUniqueFrameworks"), new XAttribute("BeforeTargets", "ProcessFrameworkReferences;CollectFrameworkReferences"),
@@ -313,15 +316,7 @@ internal static class Program
     {
         var r = s.Request;
         var path = Path.Combine(s.Workspace, Safe(r.Project.Path));
-        var actual = evaluated.GetItems("_BazelOriginalProjectReference").Select(i => Path.GetRelativePath(s.Workspace, Path.GetFullPath(i.EvaluatedInclude.Replace('\\', '/'), Path.GetDirectoryName(path)!))).ToHashSet(StringComparer.Ordinal);
-        if (!actual.SetEquals(r.Dependencies)) throw new InvalidDataException("ProjectReference declarations disagree with Bazel deps: " + string.Join(',', actual));
-        foreach (var dependency in evaluated.GetItems("_BazelOriginalProjectReference"))
-        {
-            foreach (var name in new[] { "Aliases", "SetTargetFramework", "SetConfiguration", "AdditionalProperties", "GlobalPropertiesToRemove", "OutputItemType" })
-                if (dependency.GetMetadataValue(name).Length > 0) throw new InvalidDataException("Unsupported ProjectReference metadata: " + name);
-            foreach (var name in new[] { "ReferenceOutputAssembly", "BuildReference" })
-                if (dependency.GetMetadataValue(name) is { Length: > 0 } value && !value.Equals("true", StringComparison.OrdinalIgnoreCase)) throw new InvalidDataException("Unsupported ProjectReference metadata: " + name);
-        }
+        ProjectAnalyzers.Validate(s, evaluated);
         PackageDeclarations.Validate(r, evaluated);
         foreach (var item in evaluated.GetItems("_BazelOriginalReference").Concat(evaluated.GetItems("_BazelOriginalAnalyzer")))
             if (!Path.GetFullPath(item.EvaluatedInclude, Path.GetDirectoryName(path)!).StartsWith(s.Sdk + "/", StringComparison.Ordinal)) throw new InvalidDataException("Undeclared assembly/analyzer dependency: " + item.EvaluatedInclude);

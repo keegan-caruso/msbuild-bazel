@@ -745,3 +745,7 @@ Orchard performance measurement should follow those compatibility fixes.
 [Explicit package semantics](orchard-package-semantics.md) resolves central-version
 and private-package blockers, including the unchanged Orchard source generator.
 Project-built analyzer edges and module metadata remain next.
+
+[Project-built analyzers](project-built-analyzers.md) adds separate tool edges and
+qualifies Orchard's netstandard2.0 generator on a net10.0 consumer. Generic
+referenced-target metadata and Razor/module assets remain the next step.

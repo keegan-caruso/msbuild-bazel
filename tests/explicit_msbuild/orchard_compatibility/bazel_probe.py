@@ -35,7 +35,7 @@ def run(case,text,label,expect):
  output=p.stdout+p.stderr;(evidence/(case+'.log')).write_text(output)
  assert (p.returncode==0) if expect is None else (p.returncode!=0 and expect in output),(case,output[-7000:])
  reports.append(dict(case=case,exit=p.returncode,expected=expect));print(case,expect,flush=True)
-run('analyzer-provider',base+rule('leaf',leaf,dict(analyzers=[':sourcegen'])),'//:leaf','MSBuildPackageInfo')
+run('analyzer-provider',base+rule('leaf',leaf,dict(analyzers=[':sourcegen']+[':'+p['include'].lower() for p in leaf['packages']],build_deps=[':'+p['include'].lower() for p in leaf['packages']],deps=[':'+p['include'].lower() for p in leaf['packages']],package_private_assets={p['include']:'all' for p in leaf['packages'] if p['metadata'].get('PrivateAssets','').lower()=='all'})),'//:leaf',None)
 run('generator-as-dependency',base+rule('leaf',leaf,dict(deps=[':sourcegen'])),'//:leaf','requires matching target frameworks')
 run('private-assets',base,'//:sourcegen',None)
 probe=root/'CompatibilityProbe';probe.mkdir(exist_ok=True)
