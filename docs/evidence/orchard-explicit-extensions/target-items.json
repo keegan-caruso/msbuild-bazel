@@ -1,0 +1,34 @@
+[
+  {
+    "case": "target-handoff",
+    "exit": 0
+  },
+  {
+    "case": "target-result-edit",
+    "exit": 0
+  },
+  {
+    "case": "target-not-exported",
+    "exit": 1
+  },
+  {
+    "case": "target-source-item-rejected",
+    "exit": 1
+  },
+  {
+    "case": "target-path-rejected",
+    "exit": 1
+  },
+  {
+    "case": "target-missing-in-project",
+    "exit": 1
+  },
+  {
+    "case": "target-recovery",
+    "exit": 0
+  },
+  {
+    "case": "target-cached-producer",
+    "exit": 0
+  }
+]

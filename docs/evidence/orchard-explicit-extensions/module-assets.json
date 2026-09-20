@@ -1,0 +1,18 @@
+[
+  {
+    "case": "module-razor-assets",
+    "exit": 0
+  },
+  {
+    "case": "module-resource-edit",
+    "exit": 0
+  },
+  {
+    "case": "module-razor-edit",
+    "exit": 0
+  },
+  {
+    "case": "module-relocated-cache",
+    "exit": 0
+  }
+]

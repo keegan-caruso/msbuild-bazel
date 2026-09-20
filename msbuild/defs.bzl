@@ -4,8 +4,8 @@ MSBuildRestoreInfo = provider("Qualified SDK restore metadata shared by matching
 
 MSBuildPackageInfo = provider("Locked package extraction and dependency closure.", fields = ["id", "version", "directory", "rows", "files"])
 
-MSBuildAssemblyInfo = provider("Reference assembly and separate runtime dependency closure.", fields = ["project", "framework", "reference", "references", "runtime", "runtimes", "packages", "package_files", "compile_packages", "runtime_data"])
-MSBuildItemsInfo = provider("Explicit MSBuild items with declared files and metadata.", fields = ["items", "files"])
+MSBuildAssemblyInfo = provider("Reference assembly and separate runtime dependency closure.", fields = ["project", "framework", "reference", "references", "runtime", "runtimes", "packages", "package_files", "compile_packages", "runtime_data", "target_output", "export_targets"])
+MSBuildItemsInfo = provider("Explicit MSBuild items with declared files and metadata.", fields = ["items", "files", "target_items"])
 _TOOLCHAIN = Label("//msbuild:toolchain_type")
 
 def _logical(file):
@@ -20,7 +20,7 @@ def _file(file):
 
 def _items(ctx):
     rows = [{"type": ctx.attr.item_type, "file": _file(file), "metadata": ctx.attr.metadata} for file in ctx.files.srcs]
-    return [DefaultInfo(files = depset(ctx.files.srcs)), MSBuildItemsInfo(items = rows, files = depset(ctx.files.srcs))]
+    return [DefaultInfo(files = depset(ctx.files.srcs)), MSBuildItemsInfo(items = rows, files = depset(ctx.files.srcs), target_items = [])]
 
 msbuild_items = rule(
     implementation = _items,
@@ -28,6 +28,27 @@ msbuild_items = rule(
         "item_type": attr.string(mandatory = True),
         "srcs": attr.label_list(allow_files = True),
         "metadata": attr.string_dict(),
+    },
+)
+
+def _target_items(ctx):
+    files = []
+    rows = []
+    for dep in ctx.attr.deps:
+        info = dep[MSBuildAssemblyInfo]
+        if ctx.attr.target not in info.export_targets:
+            fail("MSBuild target is not exported: " + ctx.attr.target)
+        files.append(info.target_output)
+        rows.append({"file": info.target_output.path, "target": ctx.attr.target, "type": ctx.attr.item_type, "beforeTargets": ctx.attr.before_targets})
+    return [DefaultInfo(files = depset(files)), MSBuildItemsInfo(items = [], files = depset(files), target_items = rows)]
+
+msbuild_target_items = rule(
+    implementation = _target_items,
+    attrs = {
+        "deps": attr.label_list(providers = [MSBuildAssemblyInfo]),
+        "target": attr.string(mandatory = True),
+        "item_type": attr.string(mandatory = True),
+        "before_targets": attr.string_list(),
     },
 )
 
@@ -50,9 +71,12 @@ def _project(ctx, executable = False, test = False, restore_only = False, projec
     runtime = ctx.actions.declare_directory(ctx.label.name + ".runtime")
     diagnostics = ctx.actions.declare_directory(ctx.label.name + ".diagnostics")
     request = ctx.actions.declare_file(ctx.label.name + ".request.json")
+    target_output = ctx.actions.declare_file(ctx.label.name + ".targets.json") if ctx.attr.export_targets else None
     items = []
+    target_items = []
     for group in ctx.attr.items:
         items.extend(group[MSBuildItemsInfo].items)
+        target_items.extend(group[MSBuildItemsInfo].target_items)
     direct = [dep[MSBuildAssemblyInfo] for dep in ctx.attr.deps if MSBuildAssemblyInfo in dep]
     compile_targets = [dep for dep in ctx.attr.deps if MSBuildPackageInfo in dep]
     compile_packages = depset([row["id"] for dep in compile_targets for row in dep[MSBuildPackageInfo].rows], transitive = [dep.compile_packages for dep in direct])
@@ -112,6 +136,9 @@ def _project(ctx, executable = False, test = False, restore_only = False, projec
         "sources": [_file(file) for file in ctx.files.srcs],
         "imports": [_file(file) for file in ctx.files.msbuild_imports],
         "items": items,
+        "targetInputs": target_items,
+        "targetExports": ctx.attr.export_targets,
+        "targetOutput": target_output.path if target_output else None,
         "dependencies": [dep.project for dep in direct],
         "references": [file.path for file in references.to_list()],
         "framework": ctx.attr.target_framework,
@@ -154,7 +181,7 @@ def _project(ctx, executable = False, test = False, restore_only = False, projec
             [project, request, tc.runner, tc.runtime_manifest] + ctx.files.srcs + ctx.files.msbuild_imports + ([restore.file] if restore else []),
             transitive = [depset([dep.runtime for dep in analyzer_projects], transitive = [dep.runtimes for dep in analyzer_projects]), tc.sdk, tc.runner_support, references, package_files] + [group[MSBuildItemsInfo].files for group in ctx.attr.items],
         ),
-        outputs = [reference, runtime, diagnostics],
+        outputs = [reference, runtime, diagnostics] + ([target_output] if target_output else []),
         mnemonic = "MSBuildRestore" if restore_only else "MSBuildAssembly",
         env = {"LANG": "en_US.UTF-8"},
         # The runner stages only declared files and starts a deny-by-default
@@ -174,9 +201,11 @@ def _project(ctx, executable = False, test = False, restore_only = False, projec
         package_files = package_files,
         compile_packages = exported_compile_packages,
         runtime_data = runtime_data,
+        target_output = target_output,
+        export_targets = ctx.attr.export_targets,
     )
     if not executable:
-        return [DefaultInfo(files = depset([runtime])), info, OutputGroupInfo(reference = depset([reference]), diagnostics = depset([diagnostics]))]
+        return [DefaultInfo(files = depset([runtime])), info, OutputGroupInfo(reference = depset([reference]), diagnostics = depset([diagnostics]), target_results = depset([target_output] if target_output else []))]
     launch_request = ctx.actions.declare_file(ctx.label.name + ".launch.json")
     ctx.actions.write(launch_request, json.encode({
         "entry": _runfile(ctx, runtime),
@@ -197,7 +226,7 @@ exec "$runfiles/"%s "$runfiles/"%s run "$runfiles/"%s "$@"
         files = [tc.dotnet, tc.runner, runtime, launch_request] + [row.file for row in runtime_data.to_list()],
         transitive_files = depset(transitive = [tc.sdk, tc.runner_support, runtimes]),
     )
-    return [DefaultInfo(executable = launcher, files = depset([runtime]), runfiles = runfiles), info, OutputGroupInfo(reference = depset([reference]), diagnostics = depset([diagnostics]))]
+    return [DefaultInfo(executable = launcher, files = depset([runtime]), runfiles = runfiles), info, OutputGroupInfo(reference = depset([reference]), diagnostics = depset([diagnostics]), target_results = depset([target_output] if target_output else []))]
 
 def _library(ctx):
     return _project(ctx)
@@ -219,6 +248,7 @@ _ATTRS = {
     "assembly_name": attr.string(),
     "srcs": attr.label_list(allow_files = True),
     "items": attr.label_list(providers = [MSBuildItemsInfo]),
+    "export_targets": attr.string_list_dict(),
     "deps": attr.label_list(providers = [[MSBuildAssemblyInfo], [MSBuildPackageInfo]]),
     "build_deps": attr.label_list(providers = [MSBuildPackageInfo]),
     "package_private_assets": attr.string_dict(),
@@ -274,6 +304,8 @@ msbuild_nuget_package = rule(implementation = _package, attrs = {
 }, toolchains = [_TOOLCHAIN])
 
 def _restore(ctx):
+    if ctx.attr.export_targets:
+        fail("Restore-only rules cannot export build target results")
     project = ctx.actions.declare_file(ctx.label.name + "/BazelRestore.csproj")
     ctx.actions.write(project, '<Project Sdk="Microsoft.NET.Sdk" />')
     return _project(ctx, executable = ctx.attr.executable, restore_only = True, project = project)

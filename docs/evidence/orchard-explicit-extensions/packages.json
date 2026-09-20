@@ -1,0 +1,30 @@
+[
+  {
+    "case": "private-library-consumer",
+    "exit": 0
+  },
+  {
+    "case": "private-compile-rejected",
+    "exit": 1
+  },
+  {
+    "case": "private-metadata-mismatch",
+    "exit": 1
+  },
+  {
+    "case": "public-compile",
+    "exit": 0
+  },
+  {
+    "case": "central-version-mismatch",
+    "exit": 1
+  },
+  {
+    "case": "central-version-range",
+    "exit": 0
+  },
+  {
+    "case": "package-recovered",
+    "exit": 0
+  }
+]

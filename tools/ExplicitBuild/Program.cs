@@ -11,7 +11,7 @@ using Microsoft.Build.Logging;
 internal sealed record Input(string Source, string Path);
 internal sealed record ProjectAnalyzer(string Project, string Assembly, string[] Directories);
 internal sealed record Item(string Type, Input File, Dictionary<string, string> Metadata);
-internal sealed record Request(Input Project, Input[] Sources, Input[] Imports, Item[] Items, string[] Dependencies, string[] References, string Framework, string[] FrameworkReferences, string Assembly, bool Executable, string Configuration, Dictionary<string, string> Properties, string[] Defines, string Nullable, string LanguageVersion, bool AllowUnsafe, string Runtime, string Reference, string Diagnostics, string SdkVersion, string RuntimeManifest, PackageInput[] Packages, string[] DeclaredPackages, string[] CompilePackages, string[] BuildPackages, string[] AnalyzerPackages, bool ProfileBuild = false, string? RestoreInput = null, bool RestoreOnly = false, Dictionary<string, string>? PackagePrivateAssets = null, ProjectAnalyzer[]? ProjectAnalyzers = null);
+internal sealed record Request(Input Project, Input[] Sources, Input[] Imports, Item[] Items, string[] Dependencies, string[] References, string Framework, string[] FrameworkReferences, string Assembly, bool Executable, string Configuration, Dictionary<string, string> Properties, string[] Defines, string Nullable, string LanguageVersion, bool AllowUnsafe, string Runtime, string Reference, string Diagnostics, string SdkVersion, string RuntimeManifest, PackageInput[] Packages, string[] DeclaredPackages, string[] CompilePackages, string[] BuildPackages, string[] AnalyzerPackages, bool ProfileBuild = false, string? RestoreInput = null, bool RestoreOnly = false, Dictionary<string, string>? PackagePrivateAssets = null, ProjectAnalyzer[]? ProjectAnalyzers = null, Dictionary<string, string[]>? TargetExports = null, string? TargetOutput = null, TargetInput[]? TargetInputs = null);
 internal sealed record Session(Request Request, string Workspace, string State, string Original, string Sdk, string ToolRoot);
 internal sealed record Launch(string Entry, string[] Dependencies, string Assembly, bool Test, Input[] Data);
 
@@ -124,6 +124,7 @@ internal static class Program
             Copy(Path.Combine(state, "restore.json"), ReadPath(r.Reference));
             return;
         }
+        if (r.TargetOutput is not null) Copy(Path.Combine(state, "targets.json"), ReadPath(r.TargetOutput));
         var output = Path.Combine(state, "out"); var runtime = ReadPath(r.Runtime); Directory.CreateDirectory(runtime);
         var referenceNames = r.References.Select(Path.GetFileName).ToHashSet(StringComparer.Ordinal);
         if (referenceNames.Contains(r.Assembly + ".dll")) throw new InvalidDataException("Dependency assembly name conflicts with this project");
@@ -241,6 +242,7 @@ internal static class Program
         foreach (var framework in r.FrameworkReferences) items.Add(new XElement("FrameworkReference", new XAttribute("Include", framework)));
         foreach (var analyzer in ProjectAnalyzers.CompilerInputs(r, workspace)) items.Add(new XElement("Analyzer", new XAttribute("Include", Escape(analyzer))));
         root.Add(items);
+        TargetItems.Inject(r, root);
         // Keep framework declarations unique when both project and BUILD name them.
         root.Add(new XElement("Target", new XAttribute("Name", "BazelUniqueFrameworks"), new XAttribute("BeforeTargets", "ProcessFrameworkReferences;CollectFrameworkReferences"),
             new XElement("RemoveDuplicates", new XAttribute("Inputs", "@(FrameworkReference)"), new XElement("Output", new XAttribute("TaskParameter", "Filtered"), new XAttribute("ItemName", "_BazelFrameworkReferences"))),
@@ -285,7 +287,8 @@ internal static class Program
             using (var manager = new BuildManager())
             {
                 var parameters = new BuildParameters(collection) { EnableNodeReuse = false, MaxNodeCount = 1, Loggers = profile is null ? [new ConsoleLogger(LoggerVerbosity.Normal)] : [new ConsoleLogger(LoggerVerbosity.Normal), profile] };
-                var request = new BuildRequestData(instance, [target]);
+                var targets = target == "Build" ? new[] { target }.Concat(r.TargetExports?.Keys ?? Enumerable.Empty<string>()).ToArray() : [target];
+                var request = new BuildRequestData(instance, targets);
                 if (profile is null) result = manager.Build(parameters, request);
                 else
                 {
@@ -308,6 +311,7 @@ internal static class Program
             profile?.Save(Path.Combine(s.State, "compile-profile.json"), r.Project.Path);
             if (result.OverallResult != BuildResultCode.Success) return 1;
             if (target == "Restore") PackageDeclarations.ValidateRestored(s);
+            if (target == "Build") TargetItems.Export(s, result);
         }
         if (r.RestoreOnly) PreparedRestore.Export(s);
         return 0;

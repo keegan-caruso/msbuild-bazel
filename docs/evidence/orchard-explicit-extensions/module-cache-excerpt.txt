@@ -1,0 +1,13 @@
+
+Build succeeded.
+    0 Warning(s)
+    0 Error(s)
+
+Time Elapsed 00:00:00.64
+INFO: Found 1 target...
+Target //ModuleApp:ModuleApp up-to-date:
+  bazel-bin/ModuleApp/ModuleApp.runtime
+INFO: Elapsed time: 3.875s, Critical Path: 1.27s
+INFO: 13 processes: 2 disk cache hit, 10 internal, 1 worker.
+INFO: Build completed successfully, 13 total actions
+INFO: Running command line: bazel-bin/ModuleApp/ModuleApp

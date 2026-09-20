@@ -1,0 +1,26 @@
+[
+  {
+    "case": "generator-execution",
+    "exit": 0
+  },
+  {
+    "case": "generator-tool-body-edit",
+    "exit": 0
+  },
+  {
+    "case": "generator-no-compile-leak",
+    "exit": 1
+  },
+  {
+    "case": "generator-role-mismatch",
+    "exit": 1
+  },
+  {
+    "case": "generator-recovery",
+    "exit": 0
+  },
+  {
+    "case": "generator-cached-tool",
+    "exit": 0
+  }
+]

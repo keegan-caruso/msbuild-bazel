@@ -749,3 +749,8 @@ Project-built analyzer edges and module metadata remain next.
 [Project-built analyzers](project-built-analyzers.md) adds separate tool edges and
 qualifies Orchard's netstandard2.0 generator on a net10.0 consumer. Generic
 referenced-target metadata and Razor/module assets remain the next step.
+
+[Explicit target-result items](msbuild-target-items.md) qualifies generic scalar
+metadata handoff plus unchanged Orchard module/application targets and compiled
+Razor asset execution, including a deleted-producer/new-workspace cache control.
+Full CMS input declarations, startup, publish and remote-cache qualification remain.

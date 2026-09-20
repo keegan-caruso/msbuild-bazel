@@ -70,7 +70,7 @@ internal static class LinuxWorker
                         return Path.Combine(raw, path);
                     }
                     var request = JsonSerializer.Deserialize<Request>(File.ReadAllText(InputPath(requestPath)), Json)!;
-                    foreach (var output in new[] { request.Reference, request.Runtime, request.Diagnostics })
+                    foreach (var output in new[] { request.Reference, request.Runtime, request.Diagnostics }.Concat(request.TargetOutput is null ? [] : new[] { request.TargetOutput }))
                     {
                         Program.Safe(output);
                         if (declared.Any(p => p == output || p.StartsWith(output + "/", StringComparison.Ordinal))) throw new InvalidDataException("Worker output overlaps inputs");
@@ -84,6 +84,7 @@ internal static class LinuxWorker
                         Imports = request.Imports.Select(Map).ToArray(),
                         Items = request.Items.Select(i => i with { File = Map(i.File) }).ToArray(),
                         References = request.References.Select(InputPath).ToArray(),
+                        TargetInputs = request.TargetInputs?.Select(i => i with { File = InputPath(i.File) }).ToArray(),
                         ProjectAnalyzers = request.ProjectAnalyzers?.Select(a => a with { Directories = a.Directories.Select(InputPath).ToArray() }).ToArray(),
                         Packages = request.Packages.Select(p => p with { Directory = InputPath(p.Directory) }).ToArray()
                     };

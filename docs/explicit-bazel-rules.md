@@ -172,3 +172,6 @@ are qualified with locked packages, original NuGet metadata, and Linux controls.
 
 [Project-built analyzers](project-built-analyzers.md) can be listed in `analyzers`;
 their implementation closure is isolated from application compile/runtime deps.
+
+[Explicit target-result items](msbuild-target-items.md) expose `export_targets` and
+`msbuild_target_items` for declared scalar metadata edges between assembly builds.
