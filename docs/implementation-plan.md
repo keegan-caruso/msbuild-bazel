@@ -689,3 +689,13 @@ pending worker isolation qualification; the current macOS sandbox stays in place
 - Linux opt-in persistent MSBuild/Roslyn worker: [execution boundary and qualification](linux-persistent-compiler.md).
 
 - [Direct prepared dependencies](direct-prepared-dependencies.md) replaces repeated dependency staging with validated input paths, retaining SDK metadata rebasing and recorded target queries. Enabled for project actions with a full-staging override.
+
+## Explicit Bazel API direction
+
+The [finalized design](explicit-bazel-api-design.md) makes BUILD declarations
+own project edges, input membership, and configuration. Generic MSBuild item
+providers preserve SDK/custom-target behavior; executable tests run directly,
+including MTP. Ordinary builds no longer require application-wide discovery in
+the proposed architecture. This is design only: implementation and performance
+qualification remain pending. It supersedes further global-discovery optimization
+as the next architectural priority.
