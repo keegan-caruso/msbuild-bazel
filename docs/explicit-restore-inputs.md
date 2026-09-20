@@ -72,3 +72,66 @@ edges, incompatible restore properties/targets/output kind, sandbox boundaries
 through the general lane, producer deletion/relocated cache hits, and actual
 compilation consuming recovered restore metadata at the new path. The .NET tool
 build and formatter checks passed. Detailed logs remain in `artifacts/`.
+
+## Step 2: validate declarations in the required evaluation
+
+The rewritten project copies original evaluated Compile, ProjectReference,
+PackageReference, Reference, Analyzer and FrameworkReference items into reserved
+`_BazelOriginal*` items before applying Bazel declarations. Conditions and item
+metadata are evaluated by MSBuild. The host validates these copies in the first
+required evaluation: Build for a shared-restore consumer, Restore for the general
+lane. It no longer constructs a separate original-project evaluation.
+
+Build still reevaluates after per-project Restore in the general lane, preserving
+new package-generated imports. Shared-restore consumers evaluate once because
+those inputs already exist. Generic item attributes cannot overwrite the reserved
+validation item types. Dependency agreement, unsupported metadata, package role
+and version checks, undeclared references/analyzers/sources, and explicit framework
+reference checks remain in place.
+
+### Measurements after step 2
+
+| Build-action wall time | Original | Shared restore | Both changes |
+| --- | ---: | ---: | ---: |
+| Uninstrumented mean | 25.37 s | 21.30 s | **18.83 s** |
+| Uninstrumented samples | 25.37 / 25.37 s | 21.38 / 21.21 s | 19.10 / 18.57 s |
+| Instrumented samples | 24.92 / 25.47 s | 21.33 / 22.32 s | 19.24 / 19.22 s |
+
+Evaluation reuse saves another **11.6%** relative to step 1. Combined, the cold
+build-action mean improves **25.8% (1.35x)**. First-workspace setup/analysis is
+4.45 s, making the first uninstrumented total 23.54 s versus 30.18 s originally.
+The final raw-MSBuild cohort takes 7.44 / 7.07 s (7.26 s mean): the action-build
+ratio is still **2.59x raw MSBuild**. These are small package-free projects, not
+an Orchard or package-heavy performance claim.
+
+The final profiles contain one Build evaluation per assembly, no Restore, and
+0.22 summed worker-seconds of declaration validation across 129 assemblies.
+Build evaluation totals 13.73 and Build execution 27.84 summed worker-seconds.
+These parallel durations are not additive to wall time. Snapshot/staging still
+costs 12.67 summed worker-seconds and was not optimized in this change.
+
+Evidence: [step 2 times](evidence/explicit-restore-inputs/step2-results.json),
+[step 2 profile](evidence/explicit-restore-inputs/step2-summary.json).
+
+### Final validation
+
+- Required `scripts/check.sh` and `scripts/check-dotnet.sh` pass. The latter
+  retains one pre-existing environment-dependent skip.
+- Linux shared-restore acceptance passes with workers and fresh processes:
+  resources/runtime data, executable tests, reference-stable body edits, declaration
+  mismatches, conditional edges, unsupported edge metadata, undeclared sources,
+  packages/references, sandbox negatives, cache recovery and relocated compilation.
+- Reserved validation item names and mixed-case typed dependency item names reject
+  generic-item overrides. Unsupported shared-restore properties, targets and output
+  kinds fail before compilation.
+- The general per-project restore lane builds the actual 16-package MTP fixture;
+  passing/failing/recovered tests and package metadata/version rejection pass.
+- Worker protocol rejects forged digests and undeclared inputs and recovers.
+- Both final profiles contain 129 projects with one evaluation and one Csc task
+  each, without per-project Restore. The measured graph executes and prints `64`.
+
+Compact [worker](evidence/explicit-restore-inputs/worker-acceptance.json),
+[fresh-process](evidence/explicit-restore-inputs/fresh-acceptance.json) and
+[MTP](evidence/explicit-restore-inputs/mtp-acceptance.json) reports are checked in.
+Detailed local logs/profiles remain under `artifacts/restore-step2/`. Temporary
+containers were removed after saving results. No GitHub CI was run.

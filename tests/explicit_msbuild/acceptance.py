@@ -79,6 +79,11 @@ msbuild_test(name="Fails", args=["fail"], project="App.csproj", target_framework
         print(case,p.returncode,flush=True)
         return p.stdout+p.stderr
     assert '7:resource:runtime' in bazel('run', 'run', '//App')
+    resource_build=workspace/'App/BUILD.bazel'; resource_original=resource_build.read_text()
+    for item_type,message in (('_bazeloriginalprojectreference','Reserved validation item type'),('analyzer','Dependency items require typed dependency attributes')):
+        resource_build.write_text(resource_original.replace('item_type="EmbeddedResource"','item_type="'+item_type+'"'))
+        assert message in bazel('reserved-item-'+item_type, 'build', '//App', success=False)
+    resource_build.write_text(resource_original)
     bazel('test', 'test', '//App:Tests', '--test_output=all')
     bazel('failure', 'test', '//App:Fails', '--test_output=all', success=False)
     bazel('filter', 'test', '//App:Tests', '--test_filter=unsupported', success=False)
@@ -108,6 +113,14 @@ msbuild_test(name="Fails", args=["fail"], project="App.csproj", target_framework
     app=workspace/'App/App.csproj'; original=app.read_text(); app.write_text(original.replace('../Library/Library.csproj','../Missing/Missing.csproj'))
     assert 'ProjectReference declarations disagree' in bazel('missing-edge', 'build', '//App', success=False)
     app.write_text(original)
+    # The combined evaluation must retain declaration checks before replacements.
+    app.write_text(original.replace('Include="../Library/Library.csproj"', 'Include="../Library/Library.csproj" Aliases="hidden"'))
+    assert 'Unsupported ProjectReference metadata' in bazel('edge-metadata', 'build', '//App', success=False)
+    app.write_text(original.replace('Include="../Library/Library.csproj"', 'Include="../Library/Library.csproj" Condition="false"'))
+    assert 'ProjectReference declarations disagree' in bazel('conditional-edge', 'build', '//App', success=False)
+    app.write_text(original.replace('</Project>', '<ItemGroup><Compile Include="undeclared.cs" /></ItemGroup></Project>'))
+    assert 'Undeclared Compile input' in bazel('undeclared-source', 'build', '//App', success=False)
+    app.write_text(original)
     if shared_restore:
         app.write_text(original.replace('</Project>', '<PropertyGroup><RuntimeIdentifier>linux-arm64</RuntimeIdentifier></PropertyGroup></Project>'))
         assert 'Shared restore requires' in bazel('restore-incompatible-property','build','//App',success=False)
@@ -120,7 +133,12 @@ msbuild_test(name="Fails", args=["fail"], project="App.csproj", target_framework
         build.write_text(saved)
         # General projects deliberately use the existing per-project restore lane.
         build.write_text(saved.replace('restore="//:restore_exe", ', ''))
-    bazel('recovered' , 'test', '//App:Tests', '--test_output=all')
+    bazel('recovered', 'test', '//App:Tests', '--test_output=all')
+    app.write_text(original.replace('</Project>', '<ItemGroup><PackageReference Include="Undeclared.Package" Version="1.0.0" /></ItemGroup></Project>'))
+    assert 'Undeclared PackageReference' in bazel('undeclared-package', 'build', '//App', success=False)
+    app.write_text(original.replace('</Project>', '<ItemGroup><Reference Include="undeclared.dll" /></ItemGroup></Project>'))
+    assert 'Undeclared assembly/analyzer dependency' in bazel('undeclared-reference', 'build', '//App', success=False)
+    app.write_text(original)
     # A declared custom target cannot read an undeclared host file or write sources.
     secret=folder/'undeclared.txt'; secret.write_text('must remain outside the sandbox')
     probe='<Target Name="BoundaryProbe" BeforeTargets="CoreCompile">{}</Target>'

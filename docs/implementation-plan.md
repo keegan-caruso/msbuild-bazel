@@ -713,3 +713,6 @@ compiler time is a minority of the measured action work.
 [Explicit shared restore inputs](explicit-restore-inputs.md) moves qualified
 package-free SDK restore into a reusable Bazel action, with cold-build measurements
 and a fail-closed boundary for unqualified project behavior.
+The same lane now validates captured original item declarations inside the required
+build/restore evaluation. Both measured changes reduce the 129-project cold-action
+mean from 25.37 s to 18.83 s; package-heavy restore remains per project.
