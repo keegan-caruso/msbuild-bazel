@@ -96,6 +96,9 @@ python3 tests/explicit_msbuild/remote_graph.py /tmp/remote-graph-check \
   --executor grpc://WORKER_IP:8980
 ```
 
+Standalone generation, binary/RID package assets, and a pinned Avalonia IDL slice
+are qualified separately in [remote generation and package inputs](remote-inputs.md).
+
 ## SDK-only remote execution
 
 Pass `--download-sdk` to the acceptance harness to select SDK 10.0.400 through

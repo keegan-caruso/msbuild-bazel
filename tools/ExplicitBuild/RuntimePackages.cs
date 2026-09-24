@@ -41,7 +41,9 @@ internal static class RuntimePackages
 
             files[path] = id;
             var package = session.Request.Packages.Single(p => p.Id.Equals(id, StringComparison.OrdinalIgnoreCase));
-            var relative = Program.Safe(Path.GetRelativePath(Program.Real(package.Directory), Program.Real(item.EvaluatedInclude)).Replace('\\', '/'));
+            // Request directories may be execroot-relative; the compiler runs in its workspace.
+            var packageRoot = Path.Combine(session.Workspace, ".nuget", "packages", Program.Safe(package.Id.ToLowerInvariant()), Program.Safe(package.Version));
+            var relative = Program.Safe(Path.GetRelativePath(Program.Real(packageRoot), Program.Real(item.EvaluatedInclude)).Replace('\\', '/'));
             sources[path] = new(package.Id, package.Version, relative);
         }
         var manifest = Path.Combine(output, Manifest);
