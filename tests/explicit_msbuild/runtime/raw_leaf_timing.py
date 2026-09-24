@@ -22,6 +22,7 @@ p = argparse.ArgumentParser(description=__doc__)
 for name in ['source', 'inventory', 'report']:
     p.add_argument(name, type=Path)
 p.add_argument('--repetitions', type=int, default=3)
+p.add_argument('--edit', choices=['body', 'api'], default='body')
 p.add_argument('--shared-compilation', choices=['true', 'false'], default='false')
 a = p.parse_args()
 assert a.repetitions >= 3
@@ -78,6 +79,11 @@ command = [str(sdk/'dotnet'), 'msbuild', str(traversal), '-t:Build', '-m:2', '-n
            *['-p:'+v for v in properties]]
 body = source/'src/libraries/System.IO.Pipelines/src/System/IO/Pipelines/PipeOptions.cs'
 saved = body.read_bytes()
+api = source/'src/libraries/System.IO.Pipelines/ref/System.IO.Pipelines.cs'
+saved_api = api.read_bytes()
+body_class = b'public class PipeOptions\n    {'
+api_class = b'public partial class PipeOptions\n    {'
+assert saved.count(body_class) == saved_api.count(api_class) == 1
 old = b'UseSynchronizationContext = useSynchronizationContext;'
 assert saved.count(old) == 1
 nonce = uuid.uuid4().hex
@@ -100,7 +106,7 @@ def run(case):
         row['implementationSha256'] = digest(implementation)
         row['referenceSha256'] = digest(reference)
     records.append(row)
-    (out/'report.json').write_text(json.dumps(dict(commit=commit, nonce=nonce, roots=selection['entries'], records=records), indent=2)+'\n')
+    (out/'report.json').write_text(json.dumps(dict(commit=commit, edit=a.edit, nonce=nonce, roots=selection['entries'], records=records), indent=2)+'\n')
     print({k: v for k, v in row.items() if k not in ['command']}, flush=True)
     result.check_returncode()
     return row
@@ -113,18 +119,27 @@ try:
     for i in range(a.repetitions):
         run('noop-'+str(i))
         replacement = old+(' GC.KeepAlive("raw-leaf-timing-'+nonce+'-'+str(i)+'");').encode()
-        body.write_bytes(saved.replace(old, replacement))
+        if a.edit == 'body':
+            body.write_bytes(saved.replace(old, replacement))
+        else:
+            # A constant changes public metadata, so consumer invalidation is observable.
+            member = ('\n        /// <summary>Benchmark invalidation control.</summary>\n        public const int BenchmarkProbe = '+str(int(nonce[:6], 16)+i)+';').encode()
+            body.write_bytes(saved.replace(body_class, body_class+member))
+            api.write_bytes(saved_api.replace(api_class, api_class+member))
         row = run('edit-'+str(i))
         assert any(c['project'] == entry for c in row['compiled']), 'Edited producer did not compile'
-        assert digest(reference) == public, 'Public contract changed'
+        assert (digest(reference) == public) == (a.edit == 'body'), 'Unexpected public contract identity'
         assert digest(implementation) != previous, 'Implementation output unchanged'
         previous = digest(implementation)
     body.write_bytes(saved)
+    api.write_bytes(saved_api)
     run('restore')
     assert digest(implementation) == original and digest(reference) == public, 'Restored output differs'
 finally:
     if body.read_bytes() != saved:
         body.write_bytes(saved)
+    if api.read_bytes() != saved_api:
+        api.write_bytes(saved_api)
 summary = {kind: {'wallMedianSeconds': statistics.median(r['wallSeconds'] for r in records if r['case'].startswith(kind+'-')),
                   'samples': [r['wallSeconds'] for r in records if r['case'].startswith(kind+'-')]}
            for kind in ['noop', 'edit']}
