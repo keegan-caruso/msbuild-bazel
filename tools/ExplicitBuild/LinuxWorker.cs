@@ -134,7 +134,7 @@ internal static class LinuxWorker
                     string ChildPath(string path) => path.StartsWith(root + "/", StringComparison.Ordinal) ? ChildRoot + path[root.Length..] : path;
                     var analyzerRoots = ProjectAnalyzers.WorkerRoots(mapped, Path.Combine(root, "in", "analyzers"),
                         path => inputDigests.TryGetValue(path, out var digest) ? digest : throw new InvalidDataException("Undeclared analyzer file: " + path));
-                    var prepared = Program.Prepare(mapped, Path.Combine(inputRoot, "workspace"), state, ChildPath, analyzerRoots);
+                    var prepared = BuildPreparation.Prepare(mapped, Path.Combine(inputRoot, "workspace"), state, ChildPath, analyzerRoots);
                     var session = prepared with
                     {
                         Request = MapInputs(mapped, ChildPath),
@@ -170,7 +170,7 @@ internal static class LinuxWorker
                             }
                         }
 
-                        Program.Publish(request, state);
+                        BuildOutputs.Publish(request, state);
                         File.WriteAllText(Path.Combine(request.Diagnostics, "worker.json"), JsonSerializer.Serialize(new
                         {
                             processId = child.Id,
@@ -293,7 +293,7 @@ internal static class LinuxWorker
                 Console.SetOut(log);
                 Console.SetError(log);
                 Environment.CurrentDirectory = session.Workspace;
-                exit = Program.Compile(session);
+                exit = ProjectCompilation.Compile(session);
             }
             catch (Exception exception) { log.WriteLine(exception); exit = 1; }
             finally
