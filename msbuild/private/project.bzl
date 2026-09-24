@@ -1,6 +1,6 @@
 """Register explicit project build actions and outputs."""
 
-load(":paths.bzl", _TOOLCHAIN = "TOOLCHAIN", _file = "input_file", _logical = "logical", _mapped_imports = "mapped_imports", _quote = "quote", _runfile = "runfile", _runtime_package = "runtime_package")
+load(":paths.bzl", _RUNTIME_TOOLCHAIN = "RUNTIME_TOOLCHAIN", _TOOLCHAIN = "TOOLCHAIN", _file = "input_file", _logical = "logical", _mapped_imports = "mapped_imports", _quote = "quote", _runfile = "runfile", _runtime_package = "runtime_package")
 load(":providers.bzl", "MSBuildAssemblyInfo", "MSBuildBindingInfo", "MSBuildItemsInfo", "MSBuildLayoutInfo", "MSBuildPackageInfo", "MSBuildPackageLockInfo", "MSBuildProjectOutputInfo", "MSBuildReferencePackInfo", "MSBuildRestoreInfo", "MSBuildRuntimeInfo", "MSBuildTestToolInfo", "MSBuildToolInfo")
 
 def _configuration(ctx):
@@ -267,9 +267,13 @@ def build_project(ctx, executable = False, test = False, restore_only = False, p
     if test and ctx.attr.test_runner:
         def_tool = ctx.attr.test_runner[MSBuildTestToolInfo]
     host = ctx.attr.runtime_host[MSBuildRuntimeInfo] if ctx.attr.runtime_host else None
+    if host == None and ctx.toolchains[_RUNTIME_TOOLCHAIN] != None:
+        host = ctx.toolchains[_RUNTIME_TOOLCHAIN].runtime
+    if host == None and tc.requires_runtime_toolchain:
+        fail("No SDK runtime matches the target platform; declare a compatible SDK platform or runtime_host")
     launch_request = ctx.actions.declare_file(ctx.label.name + ".launch.json")
     ctx.actions.write(launch_request, json.encode({
-        "runtimeHost": {"directory": _runfile(ctx, host.directory), "entryPoint": host.entry_point} if host else None,
+        "runtimeHost": {"directory": _runfile(ctx, host.directory), "entryPoint": host.entry_point, "launchMode": host.launch_mode, "runtimeIdentifier": host.runtime_identifier, "version": host.version, "environment": host.environment} if host else None,
         "entry": _runfile(ctx, runtime),
         "packages": [_runtime_package(row, ctx) for row in runtime_packages.to_list()],
         "dependencies": [_runfile(ctx, file) for file in runtimes.to_list()],
@@ -298,6 +302,6 @@ exec "$runfiles/"%s "$runfiles/"%s run "$runfiles/"%s "$@"
     ctx.actions.write(launcher, script, is_executable = True)
     runfiles = ctx.runfiles(
         files = [tc.dotnet, tc.runner, runtime, launch_request] + ([host.directory] if host else []) + [row.file for row in runtime_data.to_list()] + ([ctx.file.test_settings] if test and ctx.file.test_settings else []),
-        transitive_files = depset(transitive = [tc.sdk, tc.runner_support, runtimes, depset([row.directory for row in runtime_packages.to_list()])] + [tool[MSBuildTestToolInfo].files for tool in test_tools]),
+        transitive_files = depset(transitive = ([host.files] if host else []) + [tc.sdk, tc.runner_support, runtimes, depset([row.directory for row in runtime_packages.to_list()])] + [tool[MSBuildTestToolInfo].files for tool in test_tools]),
     )
     return ([RunEnvironmentInfo(environment = ctx.attr.env)] if test else []) + [DefaultInfo(executable = launcher, files = depset([runtime]), runfiles = runfiles), info, OutputGroupInfo(reference = depset([reference]), diagnostics = depset([diagnostics]), target_results = depset([target_output] if target_output else []))]

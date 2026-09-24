@@ -8,3 +8,5 @@ filegroup(
         "global.json",
     ],
 )
+
+exports_files([".editorconfig"])

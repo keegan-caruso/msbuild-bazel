@@ -22,13 +22,14 @@ internal static class LinuxWorker
 
     internal static async Task<int> Run(string? toolManifest = null)
     {
-        if (!OperatingSystem.IsLinux() || System.Runtime.InteropServices.RuntimeInformation.ProcessArchitecture != System.Runtime.InteropServices.Architecture.Arm64 || Path.GetDirectoryName(Environment.ProcessPath) != Sdk || !File.ReadAllText("/etc/os-release").Contains("VERSION_ID=\"22.04\"", StringComparison.Ordinal))
+        if (!OperatingSystem.IsLinux() || System.Runtime.InteropServices.RuntimeInformation.ProcessArchitecture != System.Runtime.InteropServices.Architecture.Arm64 || !File.ReadAllText("/etc/os-release").Contains("VERSION_ID=\"22.04\"", StringComparison.Ordinal))
         {
             throw new InvalidDataException("Explicit workers require the qualified Ubuntu 22.04 ARM64 SDK");
         }
 
+        var hostSdk = Program.Real(Path.GetDirectoryName(Environment.ProcessPath!)!);
         var toolTimer = Stopwatch.StartNew();
-        var tools = new WorkerTools(toolManifest, Sdk);
+        var tools = new WorkerTools(toolManifest, hostSdk);
         var startupToolSeconds = toolTimer.Elapsed.TotalSeconds;
         var firstRequest = true;
         var execroot = Environment.CurrentDirectory;
@@ -45,7 +46,7 @@ internal static class LinuxWorker
         }
 
         var store = new SnapshotCache(Path.Combine(root, "cas"));
-        using var child = Start(root);
+        using var child = Start(root, hostSdk);
         var errors = child.StandardError.ReadToEndAsync();
         using var stopping = new CancellationTokenSource();
         using var signal = System.Runtime.InteropServices.PosixSignalRegistration.Create(System.Runtime.InteropServices.PosixSignal.SIGTERM, context => { context.Cancel = true; stopping.Cancel(); });
@@ -131,7 +132,7 @@ internal static class LinuxWorker
                     }
                     var mapped = MapInputs(request, InputPath);
                     var state = Path.Combine(root, "out", identity);
-                    string ChildPath(string path) => path.StartsWith(root + "/", StringComparison.Ordinal) ? ChildRoot + path[root.Length..] : path;
+                    string ChildPath(string path) => path == hostSdk || path.StartsWith(hostSdk + "/", StringComparison.Ordinal) ? Sdk + path[hostSdk.Length..] : path.StartsWith(root + "/", StringComparison.Ordinal) ? ChildRoot + path[root.Length..] : path;
                     var analyzerRoots = ProjectAnalyzers.WorkerRoots(mapped, Path.Combine(root, "in", "analyzers"),
                         path => inputDigests.TryGetValue(path, out var digest) ? digest : throw new InvalidDataException("Undeclared analyzer file: " + path));
                     var prepared = BuildPreparation.Prepare(mapped, Path.Combine(inputRoot, "workspace"), state, ChildPath, analyzerRoots);
@@ -141,6 +142,7 @@ internal static class LinuxWorker
                         Workspace = ChildPath(prepared.Workspace),
                         State = ChildPath(state),
                         Original = ChildPath(prepared.Original),
+                        Sdk = Sdk,
                         ToolRoot = ChildRoot + "/tools"
                     };
                     var stagingSeconds = timer.Elapsed.TotalSeconds;
@@ -330,7 +332,7 @@ internal static class LinuxWorker
             }
         }
     }
-    private static Process Start(string root)
+    private static Process Start(string root, string hostSdk)
     {
         var start = new ProcessStartInfo("/usr/bin/bwrap") { RedirectStandardInput = true, RedirectStandardOutput = true, RedirectStandardError = true };
         void Add(params string[] values)
@@ -341,7 +343,8 @@ internal static class LinuxWorker
             }
         }
         Add("--die-with-parent", "--unshare-all", "--new-session", "--cap-drop", "ALL", "--proc", "/proc", "--dev", "/dev", "--tmpfs", "/tmp");
-        foreach (var path in new[] { Sdk, "/usr/lib", "/etc/os-release", "/etc/ld.so.cache", "/etc/passwd", "/etc/group" })
+        Add("--ro-bind", hostSdk, Sdk);
+        foreach (var path in new[] { "/usr/lib", "/etc/os-release", "/etc/ld.so.cache", "/etc/passwd", "/etc/group" })
         {
             Add("--ro-bind", path, path);
         }

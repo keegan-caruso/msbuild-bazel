@@ -1,4 +1,12 @@
 exports_files(
-    glob(["*.bzl"]),
+    glob(
+        ["*.bzl"],
+        exclude = ["sdk_bootstrap.bzl"],
+    ),
     visibility = ["//msbuild:__pkg__"],
+)
+
+exports_files(
+    ["sdk_bootstrap.bzl"],
+    visibility = ["//visibility:public"],
 )

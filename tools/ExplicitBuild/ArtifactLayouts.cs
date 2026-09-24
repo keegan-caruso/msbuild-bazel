@@ -1,9 +1,11 @@
+using System.Text.Json;
 using System.Xml;
 using Microsoft.Build.Execution;
 
-internal sealed record LayoutRequest(Input[] Files, string Output);
+internal sealed record LayoutRequest(string Output);
+internal sealed record LayoutEntry(string Source, string Path, bool Directory = false);
 internal sealed record LayoutBinding(string Directory, string Property);
-internal sealed record RuntimeHost(string Directory, string EntryPoint);
+internal sealed record RuntimeHost(string Directory, string EntryPoint, string LaunchMode = "dotnet", string RuntimeIdentifier = "", string Version = "", Dictionary<string, string>? Environment = null);
 
 internal static class ArtifactLayouts
 {
@@ -40,21 +42,22 @@ internal static class ArtifactLayouts
             Program.Copy(file, Path.Combine(destination, Program.Safe(Path.GetRelativePath(source, file))));
         }
     }
-    internal static void Compose(LayoutRequest request)
+    internal static void Compose(LayoutRequest request, string manifest)
     {
         Directory.CreateDirectory(request.Output);
-        foreach (var input in request.Files)
+        foreach (var line in File.ReadLines(manifest))
         {
-            var destination = input.Path == "." ? request.Output : Path.Combine(request.Output, Program.Safe(input.Path));
-            // Bazel may symlink the declared input itself into its sandbox.
-            var source = Program.Real(input.Source);
-            if (Directory.Exists(source))
+            var input = JsonSerializer.Deserialize<LayoutEntry>(line, Program.Json)!;
+            var destination = input.Directory && input.Path == "." ? request.Output : Path.Combine(request.Output, Program.Safe(input.Path));
+            if (input.Directory)
             {
-                CopyTree(source, destination);
+                Directory.CreateDirectory(destination);
             }
             else
             {
-                Program.Copy(source, destination);
+                // The manifest lists individual Bazel inputs. Sandbox symlinks
+                // are valid here; never recursively discover files through them.
+                Program.Copy(input.Source, destination);
             }
         }
     }

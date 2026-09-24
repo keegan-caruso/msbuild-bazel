@@ -2,7 +2,10 @@ package(default_visibility = ["//visibility:public"])
 
 toolchain_type(name = "toolchain_type")
 
+toolchain_type(name = "runtime_toolchain_type")
+
 exports_files([
     "defs.bzl",
+    "extensions.bzl",
     "toolchain.bzl",
 ])

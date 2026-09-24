@@ -44,7 +44,26 @@ internal static class ApplicationLaunch
                 throw new InvalidDataException("Missing declared runtime host: " + host);
             }
 
+            var mode = request.RuntimeHost?.LaunchMode ?? "dotnet";
+            if (mode is not ("dotnet" or "corerun"))
+            {
+                throw new InvalidDataException("Unsupported runtime launch mode: " + mode);
+            }
+            if (mode == "corerun" && request.TestOptions?.Protocol == "vstest")
+            {
+                throw new InvalidDataException("VSTest requires a dotnet runtime host");
+            }
+
             var start = new ProcessStartInfo(host) { WorkingDirectory = temporary };
+            foreach (var (name, value) in request.RuntimeHost?.Environment ?? [])
+            {
+                start.Environment[name] = value;
+            }
+            start.Environment.Remove("CORE_ROOT");
+            if (mode == "corerun")
+            {
+                start.Environment["CORE_ROOT"] = hostRoot;
+            }
             start.Environment["DOTNET_ROOT"] = hostRoot;
             start.Environment["DOTNET_HOST_PATH"] = host;
             foreach (var architecture in new[] { "X64", "X86", "ARM", "ARM64" })

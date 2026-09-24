@@ -69,7 +69,7 @@ internal static class BuildPreparation
         }
 
         ProjectDefinition.Write(r, project, references, compilerPath, analyzerRoots);
-        var session = new Session(r, workspace, state, original, Path.GetDirectoryName(Environment.ProcessPath!)!, Real(AppContext.BaseDirectory.TrimEnd('/')));
+        var session = new Session(r, workspace, state, original, Real(Path.GetDirectoryName(Environment.ProcessPath!)!), Real(AppContext.BaseDirectory.TrimEnd('/')));
         if (r.RestoreInput is not null)
         {
             PreparedRestore.Install(session, compilerPath);

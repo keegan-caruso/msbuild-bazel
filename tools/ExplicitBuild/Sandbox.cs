@@ -1,8 +1,17 @@
 using System.Diagnostics;
-using System.Text.Json;
 
 internal static class Sandbox
 {
+    // SBPL strings are not JSON: JSON's Unicode escapes change paths containing
+    // characters such as '+' in Bazel's canonical repository names.
+    private static string Quote(string value)
+    {
+        if (value.Any(char.IsControl))
+        {
+            throw new InvalidDataException("Sandbox paths cannot contain control characters");
+        }
+        return "\"" + value.Replace("\\", "\\\\", StringComparison.Ordinal).Replace("\"", "\\\"", StringComparison.Ordinal) + "\"";
+    }
     public static ProcessStartInfo Start(string workspace, string state, IEnumerable<string> runtime, string sdk)
     {
         var roots = runtime.Append(workspace).Select(Path.GetFullPath).Distinct(StringComparer.Ordinal).ToArray();
@@ -14,21 +23,21 @@ internal static class Sandbox
                 "(allow file-read* file-test-existence file-map-executable (subpath \"/System/Library\") (subpath \"/usr/lib\") (subpath \"/usr/share/icu\") (subpath \"/System/Volumes/Preboot/Cryptexes/OS\") (literal \"/bin/sh\") (literal \"/bin/bash\") (literal \"/private/var/select/sh\") (literal \"/dev/null\") (literal \"/dev/urandom\") (literal \"/dev/random\"))\n";
             foreach (var root in roots.Append(state))
             {
-                profile += "(allow file-read* file-test-existence file-map-executable (subpath " + JsonSerializer.Serialize(root) + "))\n";
+                profile += "(allow file-read* file-test-existence file-map-executable (subpath " + Quote(root) + "))\n";
                 for (var path = Path.GetDirectoryName(root); path is not null; path = Path.GetDirectoryName(path))
                 {
-                    profile += "(allow file-read-metadata file-test-existence (literal " + JsonSerializer.Serialize(path) + "))\n";
+                    profile += "(allow file-read-metadata file-test-existence (literal " + Quote(path) + "))\n";
                 }
             }
             foreach (var root in new[] { "/private/var/select/sh", "/bin/bash", "/System/Library", "/usr/lib", "/System/Volumes/Preboot/Cryptexes/OS/System/Library/dyld", "/System/Cryptexes/OS/System/Library/dyld" })
             {
                 for (var path = Path.GetDirectoryName(root); path is not null; path = Path.GetDirectoryName(path))
                 {
-                    profile += "(allow file-read-metadata file-test-existence (literal " + JsonSerializer.Serialize(path) + "))\n";
+                    profile += "(allow file-read-metadata file-test-existence (literal " + Quote(path) + "))\n";
                 }
             }
 
-            profile += "(allow file-write* (literal \"/dev/null\") (subpath " + JsonSerializer.Serialize(state) + "))\n";
+            profile += "(allow file-write* (literal \"/dev/null\") (subpath " + Quote(state) + "))\n";
             var pathToProfile = Path.Combine(state, "sandbox.sb");
             File.WriteAllText(pathToProfile, profile);
             start = new ProcessStartInfo("/usr/bin/sandbox-exec");

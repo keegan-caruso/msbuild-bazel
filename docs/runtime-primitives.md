@@ -87,9 +87,12 @@ it is not a runnable System.Private.CoreLib.
 
 `msbuild_layout(paths = {label: "destination", ...})` composes files and declared
 artifact directories in a separate cached action. `"."` merges a directory at the
-root. Destinations must be relative, conflicting contents fail, and links inside
-input trees fail. Byte-identical duplicate files are permitted. File modes are
-preserved, including native executable bits. Each label must produce one file or
+root. Destinations must be relative and conflicting contents fail. Byte-identical
+duplicate files are permitted. Bazel expands declared tree artifacts into an
+explicit file manifest; composition copies only those files, materializing sandbox
+links as regular files. It never discovers inputs by walking symlink targets.
+File modes are preserved, including native executable bits. Empty tree roots are
+supported; empty subdirectories are not a portable part of Bazel tree artifacts. Each label must produce one file or
 directory; use file labels/output groups for multi-output producers.
 
 `layout_bindings = {":bootstrap_layout": "BootstrapRoot"}` binds a project's
@@ -120,8 +123,19 @@ input, never a compilation input. `DOTNET_ROOT` and architecture-specific varian
 point at that tree, `DOTNET_HOST_PATH` selects its host, and multilevel lookup is
 disabled. A missing executable or
 runtime component fails; the runner does not substitute its compiler SDK host.
-The launch model can represent corerun, but current synthetic evidence executes
-actual copied **dotnet** hosts, not a source-built corerun.
+`launch_mode = "dotnet"` is the default and retains existing host-wrapper behavior.
+`launch_mode = "corerun"` sets `CORE_ROOT` to the selected layout before invoking
+its host. Both pass the application DLL followed by its arguments. VSTest with
+corerun is rejected because its separate testhost process needs a dotnet host;
+executable tests and MTP can use corerun.
+
+`msbuild_runtime` also accepts `runtime_identifier` and `version` identity metadata,
+`env` for literal child-process environment values, and `data` for additional
+runfiles. Host-selection variables (`CORE_ROOT`, `DOTNET_ROOT*`, `DOTNET_HOST_PATH`
+and `DOTNET_MULTILEVEL_LOOKUP`) are reserved. These settings affect the application
+process only, never the bootstrap SDK worker. Source runtime declarations should
+set `target_compatible_with` for their actual platform; identity strings alone do
+not configure or cross-compile a runtime.
 
 Compile-pack selection and runtime selection are independent. When implicit
 framework references are disabled, provide the runtime's required configuration
@@ -201,13 +215,135 @@ The Immutable net10 qualification adds three small generic capabilities/checks:
   retain many compiler servers. This setting changes process lifetime, not the
   compiler, analyzers or declared inputs.
 - Layout composition accepts real directory outputs from earlier Bazel actions.
-  It runs locally outside Bazel's symlink sandbox to inspect the actual producer
-  tree, retaining the rejection of links inside that tree. It remains an action
-  with explicit inputs/outputs and can use the remote cache. Remote execution
-  and filesystem sandboxing of the layout-copy process are not qualified.
+  Bazel expands their children at execution time through `Args` and
+  `DirectoryExpander`. The layout action is sandboxable and has no local-only
+  execution requirement. It needs only the declared host runtime and runner,
+  rather than the full SDK. See the sandbox qualification below.
 
 The managed suite now passes **41 cases on each of Bazel 8.8.0 and 9.2.0**,
 including reference chains, invalid compiler-sharing values, composition of a
 layout from another layout, and relocated producer-deleted cache recovery.
 See [follow-up evidence](runtime-framework-primitives-evidence.json). The earlier
 native and integration evidence above belongs to its original run.
+
+## Sandboxed layout composition
+
+Run the focused fixture after building the runner:
+
+```sh
+source scripts/env.sh
+python3 tests/explicit_msbuild/layout_sandbox.py /tmp/layout-sandbox-check
+# Optional: use --remote-cache http://CACHE:8080 for HTTP cache recovery.
+```
+
+The fixture forces sandbox execution for cold and edited builds, checks the
+execution log's runner, and uses a separate output base to verify cache recovery.
+It covers generated trees composed twice, paths with spaces, an explicitly
+declared source symlink, executable permissions and execution, empty layouts,
+content edits, conflicting destinations, and path escapes. Recovered output files
+must be regular files with executable permissions intact.
+
+Producer tree validity follows Bazel's tree-artifact contract; composition no
+longer attempts to distinguish producer links from sandbox-created links. The
+remaining strict tree walk is used when staging composed layouts into MSBuild,
+not when composing them.
+
+Qualified on macOS ARM64 and Linux ARM64 with Bazel **8.8.0 and 9.2.0**,
+using SDK 10.0.400. macOS used a disk cache; Linux used an HTTP cache. Both
+versions executed the layout actions in their native sandbox. The existing
+41-case runtime-primitives suite also passed on Linux ARM64 with Bazel 9.2.0,
+including generated imports, read-only staging and producer-deleted recovery.
+Remote execution eligibility is enabled, but this change does not claim an
+actual remote-executor qualification.
+
+## Downloaded and source-built runtime providers
+
+Declare a verified runtime dependency in `MODULE.bazel`:
+
+```starlark
+dotnet = use_extension("@rules_msbuild//msbuild:extensions.bzl", "dotnet")
+dotnet.runtime(name = "net10", version = "10.0.12")
+use_repo(dotnet, "net10")
+```
+
+Select `runtime_host = "@net10//:runtime"` on an executable or test. The alias uses
+Bazel's **target** platform constraints to select the application runtime. The
+build SDK remains independently selected for its execution platform. The catalog
+pins Microsoft archive URLs and SHA-512 integrity from
+[release metadata](https://builds.dotnet.microsoft.com/dotnet/release-metadata/10.0/releases.json).
+It includes 10.0.0 and 10.0.12 for Linux and macOS, ARM64 and x64; only ARM64 is
+execution-qualified here. `platforms = ["linux-arm64"]` limits the declared set.
+Unsupported platforms or unknown versions fail without selecting a host fallback.
+
+For a private mirror or custom distribution, use `dotnet.runtime_archive` with
+`name`, `version`, `platform`, `urls`, and mandatory `integrity` (Bazel SRI format).
+The archive must contain a dotnet runtime installation at its root. This supplies
+the same public `:runtime` target. Download/extraction uses Bazel's repository
+cache. No source compilation runs during repository evaluation.
+
+Source-built runtimes use the same provider:
+
+```starlark
+msbuild_runtime(
+    name = "source_runtime",
+    layout = ":core_runtime",
+    entry_point = "corerun",
+    launch_mode = "corerun",
+    runtime_identifier = "linux-arm64",
+    version = "10.0.0",
+    target_compatible_with = ["@platforms//os:linux", "@platforms//cpu:aarch64"],
+)
+```
+
+`:core_runtime` composes declared source-build outputs with `msbuild_layout`.
+There is no downloaded/source switch in the consuming rule. Compilation uses
+its separately declared reference pack and SDK. Editing the selected runtime
+invalidates dependent tests while preserving application compilation when its
+compile inputs are unchanged.
+
+### Qualification commands
+
+After building the runner and sourcing `scripts/env.sh`:
+
+```sh
+python3 tests/explicit_msbuild/runtime_downloads.py /tmp/runtime-download-check
+python3 -m unittest discover -s tests/sdk_repository -p test_runtime_repository.py -v
+```
+
+The first fixture runs an actual downloaded 10.0.0 runtime and a generated host
+wrapper through the same provider. It checks runtime identity, declared environment,
+no-op caching, runtime-only edits with zero compilation actions, host failure,
+and offline reuse after acquisition. The generated wrapper is synthetic; it is
+not a source build of CoreCLR. The repository tests check a verified custom archive,
+incorrect/missing integrity, and unsupported versions/platforms.
+
+`tests/explicit_msbuild/runtime/provider_host.py PREPARED OUTPUT` prepares a small
+corerun smoke test from the existing pinned v10.0.0 runtime qualification graph.
+It uses the graph's native CoreCLR/JIT/corerun/System.Native outputs and managed
+CoreLib/System.Runtime outputs, with no installed runtime payload. The application
+checks that CoreLib loads from the selected layout and sees the declared runtime
+environment and expected runtime payload marker. Build `//runtime:smoke` in the generated workspace. This is a consumer of the
+bounded source-build rules, not a general dotnet/runtime bootstrap command.
+
+The [SDK extension](development.md#using-the-rules-in-an-application) now acquires
+SDKs and registers their bundled runtime as the default. Complete source-runtime
+packaging, Windows/Mono/NativeAOT support, and rebuilding the entire SDK from source
+remain outside this runtime-provider change.
+
+Run `runtime/provider_controls.py WORKSPACE EVIDENCE --remote-cache URL` to check
+the prepared source fixture's no-op, runtime payload mutation and restoration.
+It preserves the original marker in a `finally` block. The Linux qualification
+container needs a child-process reaper when PID 1 does not reap orphaned processes.
+
+Qualification used SDK 10.0.400:
+
+- Shared-provider analysis: **28 tests** on Bazel 8.8.0 and 9.2.0.
+- Runner unit checks: **33 tests**, including dotnet/corerun environment isolation.
+- Archive validation: **5 tests** on each Bazel version.
+- Actual downloaded runtime and generated-host invalidation: macOS ARM64 and
+  Linux ARM64, both Bazel versions. Offline reuse was checked with `--nofetch`;
+  this does not claim a network-isolated build of arbitrary application dependencies.
+- Source-built corerun/CoreLib smoke: Linux ARM64, Bazel 9.2.0. Runtime payload
+  mutation reran and failed the test with **zero managed compilations**; restoring
+  it recovered the passing cached test. This did not measure a CoreLib source-body
+  edit or qualify the complete upstream runtime test suite.

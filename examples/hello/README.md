@@ -4,10 +4,10 @@ This is a small source-consumption example with no NuGet package dependencies.
 `Library` exports a message; `App` prints and checks it. The same program is an
 executable Bazel test: a nonzero process exit fails the test.
 
-From the rules repository root, after [setup](../../docs/development.md):
+From the rules repository root, with Bazelisk available (or after
+[developer setup](../../docs/development.md)):
 
 ```sh
-bash scripts/dotnet.sh build tools/ExplicitBuild -c Release -warnaserror
 python3 examples/hello/create.py /tmp/rules-msbuild-hello
 export RULES_MSBUILD_BAZEL="${RULES_MSBUILD_BAZEL:-$PWD/scripts/bazel-launcher.sh}"
 cd /tmp/rules-msbuild-hello
@@ -16,10 +16,11 @@ cd /tmp/rules-msbuild-hello
 ```
 
 Expected output: `Hello from MSBuild and Bazel`; the test passes. The destination
-must not exist. Set `RULES_MSBUILD_DOTNET_ROOT` before creating the example when
-using a separately installed SDK or the Nix shell. The script only copies these
-sources and writes explicit local SDK/rules toolchain declarations. It is not used
-by the build actions. Generated paths intentionally point to your checkout and SDK.
+must not exist. Bazel reads the copied `global.json`, downloads the verified SDK,
+builds the runner, and uses the SDK's bundled runtime. No local SDK installation
+or manual runner build is needed. The script only copies example sources and
+writes the module declaration; it is not part of build execution. The generated
+rules dependency points at this checkout.
 
 Read the generated `MODULE.bazel` and root `BUILD.bazel`, then the checked-in
 `Library/BUILD.bazel` and `App/BUILD.bazel`. ProjectReference and Bazel dependency
