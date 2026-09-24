@@ -33,7 +33,7 @@ results. The reports below provide detailed evidence and reproduction steps.
 | --- | --- |
 | Orchard | [Compatibility](orchard-explicit-compatibility.md), [performance](orchard-explicit-performance.md), [paths](orchard-stable-worker-paths.md), [packages](orchard-package-qualification.md) |
 | NBGV | [Version parity and remaining limits](nbgv-parity.md) |
-| Avalonia | [XAML graph](avalonia-xaml-subset.md), [HTTP recovery](avalonia-http-cache.md) |
+| Avalonia | [XAML graph](avalonia-xaml-subset.md), [HTTP recovery](avalonia-http-cache.md), [remote execution](avalonia-remote-execution.md) |
 | ASP.NET Core | [Integration](aspnetcore-integration.md), [larger graph](aspnetcore-large-graph.md), [cache profile](aspnetcore-cache-profile.md) |
 | dotnet/runtime | [Source-only host](runtime-source-host.md), [Pipelines suite](runtime-pipelines.md), [cold/recovery timing](runtime-cold-timing.md), [leaf edit](runtime-leaf-timing.md), [workflow](runtime-workflow.md), [JIT boundary](runtime-jit-bootstrap.md) |
 | Runner overhead | [Cold profile](explicit-cold-profile.md), [staging](worker-staging.md), [evaluation](project-evaluation-removal.md) |

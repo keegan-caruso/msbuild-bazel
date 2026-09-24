@@ -1,0 +1,250 @@
+{
+  "date": "2026-09-24",
+  "rulesBase": "1d0e91b3aef15d6f0d27014d697c54bbab8af719",
+  "upstream": "37fbd9655cc581ff5b1c6b1fb1be4e3118c889d0",
+  "sdk": "10.0.400",
+  "platform": "Ubuntu 22.04 Linux ARM64",
+  "executorInstalledSdk": false,
+  "localFallback": false,
+  "diskCache": false,
+  "localResultUploads": false,
+  "strictActionEnvironment": true,
+  "remoteDownloadOutputs": "all",
+  "jobs": 2,
+  "upstreamProjects": 11,
+  "sourceFiles": 1979,
+  "packageArchives": 71,
+  "upstreamDllsComparedOnRecovery": 24,
+  "rawSetupControls": {
+    "producer92": {
+      "restoreSeconds": 5.467,
+      "buildSeconds": 15.744
+    },
+    "producer88": {
+      "restoreSeconds": 5.955,
+      "buildSeconds": 11.738
+    },
+    "jobs": 4
+  },
+  "runs": [
+    {
+      "bazel": "bazel 8.8.0",
+      "role": "producer",
+      "cases": [
+        {
+          "case": "cold",
+          "wallSeconds": 68.235,
+          "compiled": [
+            "//:theme_test",
+            "//upstream:Avalonia.Analyzers",
+            "//upstream:Avalonia.Base",
+            "//upstream:Avalonia.Build.Tasks",
+            "//upstream:Avalonia.Controls",
+            "//upstream:Avalonia.Dialogs",
+            "//upstream:Avalonia.Markup",
+            "//upstream:Avalonia.Markup.Xaml",
+            "//upstream:Avalonia.Remote.Protocol",
+            "//upstream:Avalonia.Themes.Simple",
+            "//upstream:DevAnalyzers",
+            "//upstream:DevGenerators",
+            "//upstream:DevGenerators"
+          ],
+          "testsExecuted": [
+            "//:theme_test"
+          ],
+          "remoteExecuted": {
+            "DotnetSdkRuntime": 1,
+            "MSBuildAssembly": 13,
+            "MSBuildNugetExtract": 84,
+            "MSBuildRunnerBootstrap": 1,
+            "TestRunner": 2
+          },
+          "remoteCacheHits": {}
+        },
+        {
+          "case": "noop",
+          "wallSeconds": 0.34,
+          "compiled": [],
+          "testsExecuted": [],
+          "remoteExecuted": {},
+          "remoteCacheHits": {}
+        },
+        {
+          "case": "body",
+          "wallSeconds": 2.489,
+          "compiled": [
+            "//upstream:Avalonia.Remote.Protocol"
+          ],
+          "testsExecuted": [
+            "//:theme_test"
+          ],
+          "remoteExecuted": {
+            "MSBuildAssembly": 1,
+            "TestRunner": 2
+          },
+          "remoteCacheHits": {}
+        },
+        {
+          "case": "api",
+          "wallSeconds": 14.109,
+          "compiled": [
+            "//:theme_test",
+            "//upstream:Avalonia.Controls",
+            "//upstream:Avalonia.Dialogs",
+            "//upstream:Avalonia.Markup.Xaml",
+            "//upstream:Avalonia.Remote.Protocol",
+            "//upstream:Avalonia.Themes.Simple"
+          ],
+          "testsExecuted": [
+            "//:theme_test"
+          ],
+          "remoteExecuted": {
+            "MSBuildAssembly": 6,
+            "TestRunner": 2
+          },
+          "remoteCacheHits": {}
+        }
+      ]
+    },
+    {
+      "bazel": "bazel 8.8.0",
+      "role": "recovery",
+      "cases": [
+        {
+          "case": "independent-recovery",
+          "wallSeconds": 23.212,
+          "compiled": [],
+          "testsExecuted": [],
+          "remoteExecuted": {},
+          "remoteCacheHits": {
+            "DotnetSdkRuntime": 1,
+            "MSBuildAssembly": 13,
+            "MSBuildNugetExtract": 84,
+            "MSBuildRunnerBootstrap": 1,
+            "TestRunner": 2
+          }
+        }
+      ]
+    },
+    {
+      "bazel": "bazel 9.2.0",
+      "role": "producer",
+      "cases": [
+        {
+          "case": "cold",
+          "wallSeconds": 46.784,
+          "compiled": [
+            "//:theme_test",
+            "//upstream:Avalonia.Analyzers",
+            "//upstream:Avalonia.Base",
+            "//upstream:Avalonia.Build.Tasks",
+            "//upstream:Avalonia.Controls",
+            "//upstream:Avalonia.Dialogs",
+            "//upstream:Avalonia.Markup",
+            "//upstream:Avalonia.Markup.Xaml",
+            "//upstream:Avalonia.Remote.Protocol",
+            "//upstream:Avalonia.Themes.Simple",
+            "//upstream:DevAnalyzers",
+            "//upstream:DevGenerators",
+            "//upstream:DevGenerators"
+          ],
+          "testsExecuted": [
+            "//:theme_test"
+          ],
+          "remoteExecuted": {
+            "DotnetSdkRuntime": 1,
+            "MSBuildAssembly": 13,
+            "MSBuildNugetExtract": 84,
+            "MSBuildRunnerBootstrap": 1,
+            "TestRunner": 2
+          },
+          "remoteCacheHits": {}
+        },
+        {
+          "case": "noop",
+          "wallSeconds": 0.309,
+          "compiled": [],
+          "testsExecuted": [],
+          "remoteExecuted": {},
+          "remoteCacheHits": {}
+        },
+        {
+          "case": "body",
+          "wallSeconds": 2.33,
+          "compiled": [
+            "//upstream:Avalonia.Remote.Protocol"
+          ],
+          "testsExecuted": [
+            "//:theme_test"
+          ],
+          "remoteExecuted": {
+            "MSBuildAssembly": 1,
+            "TestRunner": 2
+          },
+          "remoteCacheHits": {}
+        },
+        {
+          "case": "api",
+          "wallSeconds": 14.141,
+          "compiled": [
+            "//:theme_test",
+            "//upstream:Avalonia.Controls",
+            "//upstream:Avalonia.Dialogs",
+            "//upstream:Avalonia.Markup.Xaml",
+            "//upstream:Avalonia.Remote.Protocol",
+            "//upstream:Avalonia.Themes.Simple"
+          ],
+          "testsExecuted": [
+            "//:theme_test"
+          ],
+          "remoteExecuted": {
+            "MSBuildAssembly": 6,
+            "TestRunner": 2
+          },
+          "remoteCacheHits": {}
+        }
+      ]
+    },
+    {
+      "bazel": "bazel 9.2.0",
+      "role": "recovery",
+      "cases": [
+        {
+          "case": "independent-recovery",
+          "wallSeconds": 24.08,
+          "compiled": [],
+          "testsExecuted": [],
+          "remoteExecuted": {},
+          "remoteCacheHits": {
+            "DotnetSdkRuntime": 1,
+            "MSBuildAssembly": 13,
+            "MSBuildNugetExtract": 84,
+            "MSBuildRunnerBootstrap": 1,
+            "TestRunner": 2
+          }
+        }
+      ]
+    }
+  ],
+  "rawParity": {
+    "referenceAssembliesCompared": 11,
+    "allReferencesByteEqual": true,
+    "resourcesEqual": true,
+    "compiledXamlMethodsEqual": true,
+    "rawAndBazelProbeOutputEqual": true,
+    "runtime": {
+      "type": "Avalonia.Themes.Simple.SimpleTheme",
+      "count": 1,
+      "resources": [
+        "!AvaloniaResources"
+      ]
+    }
+  },
+  "limits": [
+    "Runtime smoke probe, not authored upstream tests or native UI backends",
+    "Single qualification samples, not a matched performance benchmark",
+    "Action-cold disables remote action-cache reads; repository downloads and CAS may be warm",
+    "Fresh recovery downloads all outputs including intermediate package trees",
+    "TestRunner counts include test execution and XML generation"
+  ]
+}

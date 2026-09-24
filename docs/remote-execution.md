@@ -98,6 +98,10 @@ python3 tests/explicit_msbuild/remote_graph.py /tmp/remote-graph-check \
 
 Standalone generation, binary/RID package assets, and a pinned Avalonia IDL slice
 are qualified separately in [remote generation and package inputs](remote-inputs.md).
+The [11-project Avalonia theme graph](avalonia-remote-execution.md) extends this
+to real upstream compilation, runtime tests and independent cache recovery.
+Use `--incompatible_strict_action_env` for matching remote test keys across
+Bazel 8.8 clients: inherited client `PATH` values otherwise cause cache misses.
 
 ## SDK-only remote execution
 
