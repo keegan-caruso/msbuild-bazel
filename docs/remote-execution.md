@@ -59,6 +59,71 @@ worker acceptance also passes with the new attribute left at its default. That
 container required a child-process reaper to complete Bazel shutdown; the initial
 run stopped at shutdown and was not counted as a passing acceptance run.
 
+## Diamond, packages and task tools
+
+`tests/explicit_msbuild/remote_graph.py` extends the SDK-only path to a diamond:
+`Shared` feeds `Left` and `Right`, which feed an executable test; a second test
+consumes `Left`. A hash-pinned, source-content NuGet package feeds `Left`, and a
+separately compiled MSBuild task generates code in the diamond's test project.
+All compilation, task compilation, package extraction, and tests execute on the
+SDK-free ARM64 executor with local fallback disabled.
+
+The controls qualify both Bazel 8.8.0 and 9.2.0:
+
+- Cold: six compilations, including the task; the shared dependency compiles once.
+- No-op: no compilations or test executions.
+- Shared body edit: only `Shared` recompiles; its reference hash stays unchanged;
+  both tests rerun.
+- Shared API edit: both branches and both test consumers recompile.
+- Package content edit with updated declared hashes: the left branch and both
+  test consumers recompile; the independent right branch remains cached.
+- Task body edit: only the task and its consuming project recompile; only that
+  project's test reruns.
+- Missing task binding: the consuming compilation fails remotely at the missing
+  task path. Restoring the binding recovers its previous cached output.
+- Fresh output base: all observed actions, including NuGet extraction, recover
+  from remote cache; runtime DLL hashes match the prior build.
+
+Package extraction now permits remote execution and retains its network-blocking
+requirement. Archive hash, package identity and safe extraction checks are unchanged.
+The package control covers source content, not native/RID assets or every NuGet
+asset type. The task control covers declared in-compilation code generation;
+standalone generation actions and a real-project graph remain separate work.
+See [compact evidence](remote-graph-evidence.json).
+
+```sh
+python3 tests/explicit_msbuild/remote_graph.py /tmp/remote-graph-check \
+  --executor grpc://WORKER_IP:8980
+```
+
+## SDK-only remote execution
+
+Pass `--download-sdk` to the acceptance harness to select SDK 10.0.400 through
+`dotnet.sdk(global_json = "//:global.json")`. This mode needs neither a locally
+installed SDK nor a prebuilt runner. Repository acquisition still happens on the
+Bazel client; runner bootstrap is a normal declared action sent to the executor.
+
+The SDK-only synthetic passed on Linux ARM64 with **Bazel 8.8.0 and 9.2.0**. With
+remote reads and local fallback disabled, execution logs reported `remote` for
+`MSBuildRunnerBootstrap`, `DotnetSdkRuntime`, both `MSBuildAssembly` actions and
+`TestRunner`. The worker had no `/opt/rules_msbuild-toolchain` installation or host
+mounts. Local and remote compiler product hashes matched.
+
+Body-edit invalidation, unchanged reference assembly, remote test failure, fresh
+output-base cache recovery, and an unavailable-executor rejection also passed.
+Recovery includes the bootstrap/runtime actions, not only project compilation.
+See [SDK remote-execution evidence](sdk-remote-execution-evidence.json).
+
+```sh
+python3 tests/explicit_msbuild/remote_execution.py /tmp/sdk-remote-check \
+  --download-sdk --executor grpc://WORKER_IP:8980 \
+  --platform-image 47a9e2fed018-sdk-removed
+```
+
+Use the same qualified OS dependencies and nested sandbox permissions as the
+existing fixture. This expands SDK acquisition/bootstrap coverage; it does not
+qualify a real-project graph, another architecture, or persistent remote workers.
+
 ## Reproduce with Buildbarn
 
 The bounded service fixture under `tests/explicit_msbuild/buildbarn` adapts

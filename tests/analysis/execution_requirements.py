@@ -20,7 +20,7 @@ expected = {
     '//tests/analysis:layout': {},
     '//tests/analysis:root': {'no-sandbox': '1', 'no-remote-exec': '1'},
     '//tests/analysis:worker': {'no-sandbox': '1', 'supports-workers': '1', 'requires-worker-protocol': 'json'},
-    '//tests/analysis:package': {'block-network': '1', 'no-remote-exec': '1'},
+    '//tests/analysis:package': {'block-network': '1'},
 }
 seen = set()
 for action in graph['actions']:

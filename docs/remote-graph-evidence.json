@@ -1,0 +1,250 @@
+{
+  "platform": "Ubuntu 22.04 ARM64",
+  "sdk": "10.0.400",
+  "executorSdkInstalled": false,
+  "localFallback": false,
+  "reports": [
+    {
+      "bazel": "bazel 8.8.0",
+      "cases": [
+        {
+          "case": "cold",
+          "compiled": [
+            "//:Left",
+            "//:LeftTest",
+            "//:Right",
+            "//:Shared",
+            "//:Tasks",
+            "//:Tests"
+          ],
+          "testsExecuted": [
+            "//:LeftTest",
+            "//:Tests"
+          ],
+          "remoteExecutions": 13,
+          "remoteCacheHits": 0,
+          "packageExtraction": [
+            "remote"
+          ]
+        },
+        {
+          "case": "noop",
+          "compiled": [],
+          "testsExecuted": [],
+          "remoteExecutions": 0,
+          "remoteCacheHits": 0,
+          "packageExtraction": []
+        },
+        {
+          "case": "body",
+          "compiled": [
+            "//:Shared"
+          ],
+          "testsExecuted": [
+            "//:LeftTest",
+            "//:Tests"
+          ],
+          "remoteExecutions": 3,
+          "remoteCacheHits": 2,
+          "packageExtraction": []
+        },
+        {
+          "case": "api",
+          "compiled": [
+            "//:Left",
+            "//:LeftTest",
+            "//:Right",
+            "//:Shared",
+            "//:Tests"
+          ],
+          "testsExecuted": [
+            "//:LeftTest",
+            "//:Tests"
+          ],
+          "remoteExecutions": 7,
+          "remoteCacheHits": 2,
+          "packageExtraction": []
+        },
+        {
+          "case": "package-edit",
+          "compiled": [
+            "//:Left",
+            "//:LeftTest",
+            "//:Tests"
+          ],
+          "testsExecuted": [
+            "//:LeftTest",
+            "//:Tests"
+          ],
+          "remoteExecutions": 6,
+          "remoteCacheHits": 2,
+          "packageExtraction": [
+            "remote"
+          ]
+        },
+        {
+          "case": "task-edit",
+          "compiled": [
+            "//:Tasks",
+            "//:Tests"
+          ],
+          "testsExecuted": [
+            "//:Tests"
+          ],
+          "remoteExecutions": 3,
+          "remoteCacheHits": 1,
+          "packageExtraction": []
+        },
+        {
+          "case": "missing-binding",
+          "compiled": [
+            "//:Tests"
+          ],
+          "testsExecuted": [],
+          "remoteExecutions": 1,
+          "remoteCacheHits": 0,
+          "packageExtraction": []
+        },
+        {
+          "case": "restored",
+          "compiled": [],
+          "testsExecuted": [],
+          "remoteExecutions": 0,
+          "remoteCacheHits": 1,
+          "packageExtraction": []
+        },
+        {
+          "case": "fresh-recovery",
+          "compiled": [],
+          "testsExecuted": [],
+          "remoteExecutions": 0,
+          "remoteCacheHits": 13,
+          "packageExtraction": [
+            "remote cache hit"
+          ]
+        }
+      ]
+    },
+    {
+      "bazel": "bazel 9.2.0",
+      "cases": [
+        {
+          "case": "cold",
+          "compiled": [
+            "//:Left",
+            "//:LeftTest",
+            "//:Right",
+            "//:Shared",
+            "//:Tasks",
+            "//:Tests"
+          ],
+          "testsExecuted": [
+            "//:LeftTest",
+            "//:Tests"
+          ],
+          "remoteExecutions": 13,
+          "remoteCacheHits": 0,
+          "packageExtraction": [
+            "remote"
+          ]
+        },
+        {
+          "case": "noop",
+          "compiled": [],
+          "testsExecuted": [],
+          "remoteExecutions": 0,
+          "remoteCacheHits": 0,
+          "packageExtraction": []
+        },
+        {
+          "case": "body",
+          "compiled": [
+            "//:Shared"
+          ],
+          "testsExecuted": [
+            "//:LeftTest",
+            "//:Tests"
+          ],
+          "remoteExecutions": 3,
+          "remoteCacheHits": 2,
+          "packageExtraction": []
+        },
+        {
+          "case": "api",
+          "compiled": [
+            "//:Left",
+            "//:LeftTest",
+            "//:Right",
+            "//:Shared",
+            "//:Tests"
+          ],
+          "testsExecuted": [
+            "//:LeftTest",
+            "//:Tests"
+          ],
+          "remoteExecutions": 7,
+          "remoteCacheHits": 2,
+          "packageExtraction": []
+        },
+        {
+          "case": "package-edit",
+          "compiled": [
+            "//:Left",
+            "//:LeftTest",
+            "//:Tests"
+          ],
+          "testsExecuted": [
+            "//:LeftTest",
+            "//:Tests"
+          ],
+          "remoteExecutions": 6,
+          "remoteCacheHits": 2,
+          "packageExtraction": [
+            "remote"
+          ]
+        },
+        {
+          "case": "task-edit",
+          "compiled": [
+            "//:Tasks",
+            "//:Tests"
+          ],
+          "testsExecuted": [
+            "//:Tests"
+          ],
+          "remoteExecutions": 3,
+          "remoteCacheHits": 1,
+          "packageExtraction": []
+        },
+        {
+          "case": "missing-binding",
+          "compiled": [
+            "//:Tests"
+          ],
+          "testsExecuted": [],
+          "remoteExecutions": 1,
+          "remoteCacheHits": 0,
+          "packageExtraction": []
+        },
+        {
+          "case": "restored",
+          "compiled": [],
+          "testsExecuted": [],
+          "remoteExecutions": 0,
+          "remoteCacheHits": 1,
+          "packageExtraction": []
+        },
+        {
+          "case": "fresh-recovery",
+          "compiled": [],
+          "testsExecuted": [],
+          "remoteExecutions": 0,
+          "remoteCacheHits": 13,
+          "packageExtraction": [
+            "remote cache hit"
+          ]
+        }
+      ]
+    }
+  ]
+}

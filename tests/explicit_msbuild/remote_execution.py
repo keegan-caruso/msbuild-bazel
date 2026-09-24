@@ -14,15 +14,16 @@ p = argparse.ArgumentParser(description=__doc__)
 p.add_argument('output', type=Path)
 p.add_argument('--executor', required=True)
 p.add_argument('--platform-image', required=True)
+p.add_argument('--download-sdk', action='store_true', help='Acquire SDK and bootstrap runner through dotnet.sdk')
 a = p.parse_args()
 root = Path(__file__).resolve().parents[2]
 folder = a.output.resolve(); folder.mkdir(parents=True, exist_ok=False)
 w = folder/'workspace'; w.mkdir()
-sdk = os.environ['RULES_MSBUILD_DOTNET_ROOT']
+sdk = None if a.download_sdk else os.environ['RULES_MSBUILD_DOTNET_ROOT']
 bazel = os.environ['RULES_MSBUILD_BAZEL']
 versions = {
     'bazel': subprocess.check_output([bazel, '--version'], text=True).strip(),
-    'sdk': subprocess.check_output([str(Path(sdk)/'dotnet'), '--version'], text=True).strip(),
+    'sdk': '10.0.400' if a.download_sdk else subprocess.check_output([str(Path(sdk)/'dotnet'), '--version'], text=True).strip(),
 }
 assert versions['bazel'] in ['bazel 8.8.0', 'bazel 9.2.0'], versions
 assert versions['sdk'] == '10.0.400', versions
@@ -43,12 +44,25 @@ msbuild_library(name="Library",project="Library.csproj",srcs=["Value.cs"],target
 msbuild_items(name="resources",item_type="EmbeddedResource",srcs=["message.txt"],metadata={"LogicalName":"message"})
 msbuild_test(name="Tests",project="Tests.csproj",srcs=["Program.cs"],target_framework="net10.0",deps=[":Library"],items=[":resources"],data=["expected.txt"],linux_worker=True,allow_remote_execution=True)
 ''')
+if a.download_sdk:
+    put('MODULE.bazel', f'''module(name="remote_qualification")
+bazel_dep(name="rules_msbuild",version="0.0.0")
+local_path_override(module_name="rules_msbuild",path={json.dumps(str(root))})
+dotnet=use_extension("@rules_msbuild//msbuild:extensions.bzl","dotnet")
+dotnet.sdk(name="dotnet",global_json="//:global.json",platforms=["linux-arm64"])
+use_repo(dotnet,"dotnet")
+register_toolchains("@dotnet//:all")
+''')
+    put('global.json', '{"sdk":{"version":"10.0.400","rollForward":"disable"}}')
+    build = (w/'BUILD.bazel').read_text().splitlines()
+    put('BUILD.bazel', '\n'.join(line for line in build if not line.startswith(('load("@rules_msbuild//msbuild:toolchain.bzl"', 'msbuild_toolchain(', 'toolchain(')))+'\nexports_files(["global.json"])\n')
 put('Library.csproj','<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup><TargetFramework>net10.0</TargetFramework></PropertyGroup></Project>')
 put('Tests.csproj','<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup><TargetFramework>net10.0</TargetFramework><OutputType>Exe</OutputType></PropertyGroup><ItemGroup><ProjectReference Include="Library.csproj" /></ItemGroup></Project>')
 put('Value.cs','public static class Value { public static int Get() => 9; }')
 put('Program.cs','using System.IO; using System.Reflection; using var s=Assembly.GetExecutingAssembly().GetManifestResourceStream("message"); using var r=new StreamReader(s!); return Value.Get().ToString()+":"+r.ReadToEnd()==File.ReadAllText("expected.txt") ? 0 : 1;')
 put('message.txt','resource'); put('expected.txt','9:resource')
 records=[]
+bootstrap_mnemonics = ['MSBuildRunnerBootstrap', 'DotnetSdkRuntime'] if a.download_sdk else []
 def run(case, *, remote=True, fresh=False, cached=False, success=True, unavailable=False):
     base=folder/('recovery-base' if fresh else 'base')
     cmd=[bazel,'--batch','--host_jvm_args=-Xmx1024m','--output_base='+str(base),'--ignore_all_rc_files','test','//:Tests','--jobs=2','--disk_cache=','--test_output=errors','--execution_log_json_file='+str(folder/(case+'.execution.json'))]
@@ -62,7 +76,7 @@ def run(case, *, remote=True, fresh=False, cached=False, success=True, unavailab
     text=(folder/(case+'.execution.json')).read_text(); rows=[]; decoder=json.JSONDecoder()
     while text.strip():
         row,end=decoder.raw_decode(text.lstrip());text=text.lstrip()[end:]
-        if row.get('mnemonic') in ['MSBuildAssembly','TestRunner']:rows.append({k:row.get(k) for k in ['mnemonic','targetLabel','runner','cacheHit','exitCode']})
+        if row.get('mnemonic') in ['MSBuildAssembly','TestRunner']+bootstrap_mnemonics:rows.append({k:row.get(k) for k in ['mnemonic','targetLabel','runner','cacheHit','exitCode']})
     records.append(dict(case=case,exitCode=result.returncode,actions=rows))
     print(case,rows,flush=True)
     return rows
@@ -70,12 +84,13 @@ def run(case, *, remote=True, fresh=False, cached=False, success=True, unavailab
 def hashes():
     return {str(p.relative_to(w/'bazel-bin')):hashlib.sha256(p.read_bytes()).hexdigest() for p in sorted((w/'bazel-bin').rglob('*')) if p.is_file() and not p.name.endswith('.params') and any(x.endswith(('.runtime','.reference')) for x in p.parts)}
 rows=run('local',remote=False); baseline=hashes()
-assert rows and all(r['runner'] == 'local' for r in rows),rows
+assert rows and all(r['runner'] == 'local' for r in rows if r['mnemonic'] not in bootstrap_mnemonics),rows
 # A new output base and disabled remote reads force actual remote execution.
 rows=run('remote',fresh=True)
 assert rows and all(r['runner']=='remote' and not r['cacheHit'] for r in rows),rows
 assert {r['targetLabel'] for r in rows if r['mnemonic']=='MSBuildAssembly'}=={'//:Library','//:Tests'},rows
 assert hashes()==baseline, 'Local and remote products differ'
+assert set(bootstrap_mnemonics).issubset({r['mnemonic'] for r in rows}), rows
 reference=hashlib.sha256((w/'bazel-bin/Library.reference/Library.dll').read_bytes()).hexdigest()
 assert reference==baseline['Library.reference/Library.dll']
 # Use the same remote output base for incremental invalidation.
@@ -98,4 +113,4 @@ put('expected.txt','11:resource')
 put('Value.cs','public static class Value { public static int Get() => 12; }')
 rows=run('unavailable-executor',fresh=True,success=False,unavailable=True)
 assert not any(r['runner'] in ['local','worker','linux-sandbox','processwrapper-sandbox'] for r in rows),rows
-(folder/'report.json').write_text(json.dumps(dict(versions=versions,records=records,outputHashes=expected),indent=2)+'\n')
+(folder/'report.json').write_text(json.dumps(dict(versions=versions,downloadedSdk=a.download_sdk,records=records,outputHashes=expected),indent=2)+'\n')

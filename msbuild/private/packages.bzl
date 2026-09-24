@@ -15,7 +15,7 @@ def _package(ctx):
         outputs = [output],
         mnemonic = "MSBuildNugetExtract",
         env = {"LANG": "en_US.UTF-8"},
-        execution_requirements = {"block-network": "1", "no-remote-exec": "1"},
+        execution_requirements = {"block-network": "1"},
     )
     rows = {ctx.attr.package_id.lower(): {"id": ctx.attr.package_id, "version": ctx.attr.version, "directory": output.path}}
     for dep in ctx.attr.deps:
