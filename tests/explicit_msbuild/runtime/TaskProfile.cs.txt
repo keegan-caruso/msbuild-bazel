@@ -1,0 +1,41 @@
+using System.Text.Json;
+using Microsoft.Build.Framework;
+using Microsoft.Build.Logging;
+
+var projects = new Dictionary<(int, int), string>();
+var starts = new Dictionary<(int, int, int, int), (DateTime Time, string Project, string Framework, string Task)>();
+var tasks = new List<object>();
+var commands = new List<object>();
+var replay = new BinaryLogReplayEventSource();
+replay.ProjectStarted += (_, e) =>
+{
+    var framework = "";
+    if (e.GlobalProperties?.TryGetValue("TargetFramework", out var globalFramework) == true) framework = globalFramework;
+    if (e.Properties is not null)
+        foreach (System.Collections.DictionaryEntry property in e.Properties)
+            if (string.Equals(property.Key.ToString(), "TargetFramework", StringComparison.OrdinalIgnoreCase)) framework = property.Value?.ToString() ?? "";
+    projects[(e.BuildEventContext!.NodeId, e.BuildEventContext.ProjectContextId)] = framework;
+};
+static (int, int, int, int) Key(BuildEventContext c) => (c.NodeId, c.ProjectContextId, c.TargetId, c.TaskId);
+replay.TaskStarted += (_, e) =>
+{
+    var c = e.BuildEventContext!;
+    projects.TryGetValue((c.NodeId, c.ProjectContextId), out var framework);
+    starts[Key(c)] = (e.Timestamp, e.ProjectFile ?? "", framework ?? "", e.TaskName ?? "");
+};
+replay.TaskFinished += (_, e) =>
+{
+    if (starts.Remove(Key(e.BuildEventContext!), out var start))
+        tasks.Add(new { project = start.Project, framework = start.Framework, task = start.Task, seconds = (e.Timestamp - start.Time).TotalSeconds, succeeded = e.Succeeded });
+};
+replay.MessageRaised += (_, e) =>
+{
+    if (e is TaskCommandLineEventArgs command && command.TaskName is "Csc" or "Vbc")
+    {
+        var c = e.BuildEventContext!;
+        starts.TryGetValue(Key(c), out var task);
+        commands.Add(new { project = task.Project, framework = task.Framework, commandLine = command.CommandLine });
+    }
+};
+replay.Replay(args[0]);
+Console.WriteLine(JsonSerializer.Serialize(new { tasks, commands }));
