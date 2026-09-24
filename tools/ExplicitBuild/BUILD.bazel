@@ -1,0 +1,12 @@
+package(default_visibility = ["//visibility:public"])
+
+# Bootstrap-built tool payload; build with scripts/dotnet.sh before consuming.
+filegroup(
+    name = "files",
+    srcs = glob(
+        ["bin/Release/net10.0/*"],
+        allow_empty = False,
+    ),
+)
+
+exports_files(["bin/Release/net10.0/ExplicitBuild.dll"])
