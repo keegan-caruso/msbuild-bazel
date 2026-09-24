@@ -87,9 +87,12 @@ it is not a runnable System.Private.CoreLib.
 
 `msbuild_layout(paths = {label: "destination", ...})` composes files and declared
 artifact directories in a separate cached action. `"."` merges a directory at the
-root. Destinations must be relative, conflicting contents fail, and links inside
-input trees fail. Byte-identical duplicate files are permitted. File modes are
-preserved, including native executable bits. Each label must produce one file or
+root. Destinations must be relative and conflicting contents fail. Byte-identical
+duplicate files are permitted. Bazel expands declared tree artifacts into an
+explicit file manifest; composition copies only those files, materializing sandbox
+links as regular files. It never discovers inputs by walking symlink targets.
+File modes are preserved, including native executable bits. Empty tree roots are
+supported; empty subdirectories are not a portable part of Bazel tree artifacts. Each label must produce one file or
 directory; use file labels/output groups for multi-output producers.
 
 `layout_bindings = {":bootstrap_layout": "BootstrapRoot"}` binds a project's
@@ -201,13 +204,43 @@ The Immutable net10 qualification adds three small generic capabilities/checks:
   retain many compiler servers. This setting changes process lifetime, not the
   compiler, analyzers or declared inputs.
 - Layout composition accepts real directory outputs from earlier Bazel actions.
-  It runs locally outside Bazel's symlink sandbox to inspect the actual producer
-  tree, retaining the rejection of links inside that tree. It remains an action
-  with explicit inputs/outputs and can use the remote cache. Remote execution
-  and filesystem sandboxing of the layout-copy process are not qualified.
+  Bazel expands their children at execution time through `Args` and
+  `DirectoryExpander`. The layout action is sandboxable and has no local-only
+  execution requirement. It needs only the declared host runtime and runner,
+  rather than the full SDK. See the sandbox qualification below.
 
 The managed suite now passes **41 cases on each of Bazel 8.8.0 and 9.2.0**,
 including reference chains, invalid compiler-sharing values, composition of a
 layout from another layout, and relocated producer-deleted cache recovery.
 See [follow-up evidence](runtime-framework-primitives-evidence.json). The earlier
 native and integration evidence above belongs to its original run.
+
+## Sandboxed layout composition
+
+Run the focused fixture after building the runner:
+
+```sh
+source scripts/env.sh
+python3 tests/explicit_msbuild/layout_sandbox.py /tmp/layout-sandbox-check
+# Optional: use --remote-cache http://CACHE:8080 for HTTP cache recovery.
+```
+
+The fixture forces sandbox execution for cold and edited builds, checks the
+execution log's runner, and uses a separate output base to verify cache recovery.
+It covers generated trees composed twice, paths with spaces, an explicitly
+declared source symlink, executable permissions and execution, empty layouts,
+content edits, conflicting destinations, and path escapes. Recovered output files
+must be regular files with executable permissions intact.
+
+Producer tree validity follows Bazel's tree-artifact contract; composition no
+longer attempts to distinguish producer links from sandbox-created links. The
+remaining strict tree walk is used when staging composed layouts into MSBuild,
+not when composing them.
+
+Qualified on macOS ARM64 and Linux ARM64 with Bazel **8.8.0 and 9.2.0**,
+using SDK 10.0.400. macOS used a disk cache; Linux used an HTTP cache. Both
+versions executed the layout actions in their native sandbox. The existing
+41-case runtime-primitives suite also passed on Linux ARM64 with Bazel 9.2.0,
+including generated imports, read-only staging and producer-deleted recovery.
+Remote execution eligibility is enabled, but this change does not claim an
+actual remote-executor qualification.

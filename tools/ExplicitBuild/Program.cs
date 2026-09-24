@@ -79,9 +79,9 @@ internal static class Program
                 AssemblyContracts.Pair(Read<AssemblyPair>(pair));
                 return 0;
             }
-            if (args is ["layout", var layout])
+            if (args is ["layout", var layout, var manifest] && manifest.StartsWith('@'))
             {
-                ArtifactLayouts.Compose(Read<LayoutRequest>(layout));
+                ArtifactLayouts.Compose(Read<LayoutRequest>(layout), manifest[1..]);
                 return 0;
             }
             if (args is ["extract", var extraction])

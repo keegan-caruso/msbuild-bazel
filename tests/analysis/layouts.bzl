@@ -9,7 +9,7 @@ def _layout(env, targets):
     env.expect.that_file(targets.runtime[MSBuildRuntimeInfo].directory).equals(layout)
     env.expect.that_str(targets.runtime[MSBuildRuntimeInfo].entry_point).equals("dotnet")
     env.expect.that_collection(paths(action(targets.layout, "MSBuildLayout").inputs)).contains("tests/analysis/dotnet")
-    env.expect.that_str(request(targets.layout, ".layout.json")["files"][0]["path"]).equals("dotnet")
+    env.expect.that_str(request(targets.layout, ".layout.json")["output"]).equals(layout.path)
     env.expect.that_collection(targets.pack[MSBuildReferencePackInfo].references.to_list()).contains(targets.leaf[MSBuildAssemblyInfo].reference)
 
 def layout_tests(name):

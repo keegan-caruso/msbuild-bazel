@@ -11,12 +11,13 @@ assert version in (expected, expected + '- (@non-git)'), (version, expected)
 print('Checking execution requirements with ' + version)
 result = subprocess.check_output([
     'bash', 'scripts/bazel.sh', 'aquery',
-    'mnemonic("MSBuild(Assembly|NugetExtract)", set(//tests/analysis:root //tests/analysis:worker //tests/analysis:package))',
+    'mnemonic("MSBuild(Assembly|NugetExtract|Layout)", set(//tests/analysis:root //tests/analysis:worker //tests/analysis:package //tests/analysis:layout))',
     '--output=jsonproto', '--lockfile_mode=off',
 ], cwd=ROOT, text=True)
 graph = json.loads(result)
 labels = {row['id']: row['label'] for row in graph['targets']}
 expected = {
+    '//tests/analysis:layout': {},
     '//tests/analysis:root': {'no-sandbox': '1', 'no-remote-exec': '1'},
     '//tests/analysis:worker': {'no-sandbox': '1', 'supports-workers': '1', 'requires-worker-protocol': 'json'},
     '//tests/analysis:package': {'block-network': '1', 'no-remote-exec': '1'},
