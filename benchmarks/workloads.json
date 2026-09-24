@@ -1,0 +1,27 @@
+{
+  "synthetic": {
+    "target": "//:benchmark",
+    "jobs": 2,
+    "workers": 0
+  },
+  "orchard": {
+    "target": "//:OrchardCore.Cms.Web",
+    "jobs": 4,
+    "workers": 2
+  },
+  "avalonia": {
+    "target": "//upstream:benchmark",
+    "jobs": 4,
+    "workers": 4
+  },
+  "aspnetcore": {
+    "target": "//upstream:benchmark",
+    "jobs": 2,
+    "workers": 2
+  },
+  "runtime": {
+    "target": null,
+    "jobs": 2,
+    "workers": 1
+  }
+}

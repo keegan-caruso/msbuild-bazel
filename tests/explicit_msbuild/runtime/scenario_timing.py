@@ -4,8 +4,10 @@ import hashlib
 import json
 import os
 from pathlib import Path
+import sys
+sys.path.insert(0, str(Path(__file__).resolve().parents[3]))
+from benchmarks.measure import command as timed_command
 import subprocess
-import time
 
 from timing_tools import verify_tools
 
@@ -52,10 +54,7 @@ def execution_rows(path):
 
 def run(case,verb,extra=()):
     command=start+[verb,*targets,*flags,*extra,'--execution_log_json_file='+str(out/(case+'.execution.json')),'--build_event_json_file='+str(out/(case+'.bep')),'--profile='+str(out/(case+'.profile.json.gz'))]
-    begin=time.monotonic()
-    with (out/(case+'.log')).open('w') as log:
-        result=subprocess.run(command,cwd=w,stdout=log,stderr=subprocess.STDOUT,timeout=2400)
-    wall=time.monotonic()-begin
+    result,wall=timed_command(command,w,out/(case+'.log'),timeout=2400)
     row=dict(case=case,wallSeconds=round(wall,3),exitCode=result.returncode,command=command)
     records.append(row)
     (out/'report.json').write_text(json.dumps(dict(scenario=a.scenario,managedOnly=a.managed_only,workers=a.workers,toolchain=toolchain,records=records),indent=2)+'\n')

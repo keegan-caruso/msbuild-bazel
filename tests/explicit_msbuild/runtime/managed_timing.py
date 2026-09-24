@@ -9,8 +9,10 @@ import collections
 import hashlib
 import json
 from pathlib import Path
+import sys
+sys.path.insert(0, str(Path(__file__).resolve().parents[3]))
+from benchmarks.measure import command as timed_command
 import subprocess
-import time
 
 from timing_tools import verify_tools
 
@@ -47,10 +49,7 @@ if a.case in ['cold', 'seed']:
 if a.memory_limit_mb:
     command += ['--experimental_total_worker_memory_limit_mb='+str(a.memory_limit_mb),
                 '--experimental_shrink_worker_pool', '--experimental_worker_metrics_poll_interval=1s']
-start = time.monotonic()
-with (out/'build.log').open('w') as log:
-    result = subprocess.run(command, cwd=w, stdout=log, stderr=subprocess.STDOUT, timeout=2400)
-wall = time.monotonic() - start
+result,wall=timed_command(command,w,out/'build.log',timeout=2400)
 report = dict(case=a.case, wallSeconds=round(wall, 3), exitCode=result.returncode, filesystemTrimOutsideTiming=a.trim, toolchain=tools, roots=entries, command=command)
 (out/'report.json').write_text(json.dumps(report, indent=2)+'\n')
 result.check_returncode()

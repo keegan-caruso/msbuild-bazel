@@ -1,9 +1,14 @@
 """Check execution requirements, which Bazel's Starlark Action API omits."""
 import json
+import os
 from pathlib import Path
 import subprocess
 
 ROOT = Path(__file__).resolve().parents[2]
+version = subprocess.check_output(['bash', 'scripts/bazel.sh', '--version'], cwd=ROOT, text=True).strip()
+expected = 'bazel ' + os.environ.get('USE_BAZEL_VERSION', (ROOT/'.bazelversion').read_text().strip())
+assert version in (expected, expected + '- (@non-git)'), (version, expected)
+print('Checking execution requirements with ' + version)
 result = subprocess.check_output([
     'bash', 'scripts/bazel.sh', 'aquery',
     'mnemonic("MSBuild(Assembly|NugetExtract)", set(//tests/analysis:root //tests/analysis:worker //tests/analysis:package))',

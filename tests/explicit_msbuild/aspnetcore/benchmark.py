@@ -7,9 +7,10 @@ import hashlib
 import json
 import os
 from pathlib import Path
-import subprocess
 import sys
-import time
+sys.path.insert(0, str(Path(__file__).resolve().parents[3]))
+from benchmarks.measure import command as timed_command
+import subprocess
 from spawn_log import actions
 
 source, workspace, base, baseline, output = map(lambda p: Path(p).resolve(), sys.argv[1:6])
@@ -22,9 +23,8 @@ bazel_only = sys.argv[6:] == ['--bazel-only']
 assert not sys.argv[6:] or bazel_only
 rows = [row for row in json.loads((output/'timings.json').read_text()) if row['case'].startswith('raw-')] if bazel_only else []
 def run(case,command,cwd):
-    start=time.perf_counter()
-    with (output/(case+'.log')).open('w') as log: result=subprocess.run(list(map(str,command)),cwd=cwd,stdout=log,stderr=subprocess.STDOUT)
-    row=dict(case=case,seconds=time.perf_counter()-start,exitCode=result.returncode)
+    result,seconds=timed_command(command,cwd,output/(case+'.log'))
+    row=dict(case=case,seconds=seconds,exitCode=result.returncode)
     rows.append(row);(output/'timings.json').write_text(json.dumps(rows,indent=2)+'\n');print(json.dumps(row),flush=True)
     assert result.returncode==0,case
     return row
