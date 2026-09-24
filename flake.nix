@@ -1,64 +1,44 @@
 {
-  description = "Pinned tools for rules_msbuild";
+  description = "Optional development tools for rules_msbuild";
 
-  # Pin Nix packaging utilities independently of the SDK and Bazel releases.
   inputs.nixpkgs.url = "github:NixOS/nixpkgs/74c7dbb8e8adc9fdd3e734d7fd85f36f5421a2f9";
-
   inputs.nixpkgs-dotnet.url = "github:NixOS/nixpkgs/nixpkgs-unstable";
 
   outputs = { nixpkgs, nixpkgs-dotnet, ... }:
     let
       systems = [ "aarch64-darwin" "x86_64-linux" ];
-      forAllSystems = nixpkgs.lib.genAttrs systems;
       pins = builtins.fromJSON (builtins.readFile ./scripts/toolchains.json);
     in {
-      devShells = forAllSystems (system:
+      devShells = nixpkgs.lib.genAttrs systems (system:
         let
           pkgs = import nixpkgs { inherit system; };
-          # Use the upstream binary SDK on both platforms, as setup.sh does.
           dotnetPkgs = import nixpkgs-dotnet { inherit system; };
           dotnet = dotnetPkgs.dotnetCorePackages.sdk_10_0-bin;
-          bazelPins = builtins.fromJSON (builtins.readFile ./nix/bazel-versions.json);
-          linuxBazelPins = (builtins.fromJSON (builtins.readFile ./nix/bazel-linux-versions.json)) // {
-            ${pins.bazel.version} = { inherit (pins.bazel) url sha256; };
+          launcher = if system == "aarch64-darwin" then pins.bazelisk.platforms.osx-arm64 else pins.bazelisk;
+          bazelisk = pkgs.stdenvNoCC.mkDerivation {
+            pname = "bazelisk";
+            inherit (pins.bazelisk) version;
+            src = pkgs.fetchurl { inherit (launcher) url sha256; };
+            dontUnpack = true;
+            dontStrip = true;
+            installPhase = ''
+              mkdir -p "$out/bin"
+              cp "$src" "$out/bin/bazelisk"
+              chmod +x "$out/bin/bazelisk"
+              ln -s bazelisk "$out/bin/bazel"
+            '';
           };
-          availableBazelPins = if system == "aarch64-darwin" then bazelPins else linuxBazelPins;
-          releaseBazel = version:
-            pkgs.stdenvNoCC.mkDerivation {
-              pname = "bazel-release";
-              inherit version;
-              src = pkgs.fetchurl availableBazelPins.${version};
-              nativeBuildInputs = pkgs.lib.optionals pkgs.stdenv.isLinux [ pkgs.autoPatchelfHook pkgs.makeWrapper ];
-              buildInputs = pkgs.lib.optionals pkgs.stdenv.isLinux [ pkgs.stdenv.cc.cc.lib pkgs.zlib ];
-              # Use Nix's JDK on Linux: the embedded JDK expects /lib64 loaders.
-              postFixup = pkgs.lib.optionalString pkgs.stdenv.isLinux ''
-                wrapProgram "$out/bin/bazel" --add-flags "--server_javabase=${dotnetPkgs.jdk25_headless}"
-              '';
-              dontUnpack = true;
-              dontStrip = true;
-              installPhase = ''
-                mkdir -p "$out/bin"
-                cp "$src" "$out/bin/bazel"
-                chmod +x "$out/bin/bazel"
-              '';
-            };
-          mkShell = bazel: expectedVersion:
-            assert dotnet.version == pins.dotnet.version;
-            assert bazel.version == expectedVersion;
-            pkgs.mkShell {
-              packages = [ dotnet bazel pkgs.python3 pkgs.bash pkgs.git pkgs.curl ];
-              RULES_MSBUILD_DOTNET_ROOT = "${dotnet}/share/dotnet";
-              RULES_MSBUILD_BAZEL = "${bazel}/bin/bazel";
-              RULES_MSBUILD_BAZEL_VERSION = expectedVersion;
-              DOTNET_ROOT = "${dotnet}/share/dotnet";
-              DOTNET_CLI_TELEMETRY_OPTOUT = "1";
-              DOTNET_NOLOGO = "1";
-            };
         in {
-          default = mkShell (releaseBazel pins.bazel.version) pins.bazel.version;
-        } // (builtins.listToAttrs (map (version: {
-            name = "bazel-" + builtins.replaceStrings [ "." ] [ "_" ] version;
-            value = mkShell (releaseBazel version) version;
-          }) (builtins.attrNames availableBazelPins))));
+          default = assert dotnet.version == pins.dotnet.version; pkgs.mkShell {
+            packages = [ dotnet bazelisk pkgs.python3 pkgs.bash pkgs.git pkgs.curl ];
+            # The development wrapper pulls unrelated tools into the runtime closure.
+            # Explicit actions consume the pinned SDK itself.
+            RULES_MSBUILD_DOTNET_ROOT = "${dotnet.unwrapped}/share/dotnet";
+            RULES_MSBUILD_BAZELISK = "${bazelisk}/bin/bazelisk";
+            DOTNET_ROOT = "${dotnet.unwrapped}/share/dotnet";
+            DOTNET_CLI_TELEMETRY_OPTOUT = "1";
+            DOTNET_NOLOGO = "1";
+          };
+        });
     };
 }
