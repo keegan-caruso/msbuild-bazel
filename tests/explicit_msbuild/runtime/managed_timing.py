@@ -19,15 +19,18 @@ for name in ['workspace', 'selection', 'base', 'report']:
     p.add_argument(name, type=Path)
 p.add_argument('--case', choices=['cold', 'warm', 'seed', 'recovery'], required=True)
 p.add_argument('--cache', default='')
+p.add_argument('--expect-reference-hashes', type=Path, help='Require exact declared assembly parity with a prior run')
 a = p.parse_args()
 w, base, out = a.workspace.resolve(), a.base.resolve(), a.report.resolve()
 assert not out.exists(), 'Report must be new'
-if a.case in ['cold', 'recovery']:
-    assert not base.exists(), 'Cold/recovery requires a fresh output base'
+if a.case in ['cold', 'seed', 'recovery']:
+    assert not base.exists(), 'Cold/seed/recovery requires a fresh output base'
 if a.case in ['seed', 'recovery']:
     assert a.cache, 'Seed/recovery requires an HTTP cache'
 out.mkdir(parents=True)
 tools = verify_tools('9.2.0', cwd=out)
+runner = Path(__file__).resolve().parents[3]/'tools/ExplicitBuild/bin/Release/net10.0/ExplicitBuild.dll'
+tools['runnerSha256'] = hashlib.sha256(runner.read_bytes()).hexdigest()
 entries = json.loads(a.selection.read_text())['entries']
 targets = ['//upstream:' + e['project'].removesuffix('.csproj').replace('/', '_') + '_' + e['framework'] for e in entries]
 command = [tools['bazelExecutable'], '--host_jvm_args=-Xmx1536m', '--output_base='+str(base), '--ignore_all_rc_files', 'build', *targets,
@@ -62,11 +65,17 @@ for path in profiles:
         phases[key] += row.get(key, 0)
 report['recordedWorkerProfiles'] = len(profiles)
 report['recordedWorkerPhaseSeconds'] = dict(phases)
+# Hash declared assemblies only. Bazel also leaves local .params files beside
+# outputs; those are action inputs and are not downloaded from the remote cache.
 hashes = {}
-for path in sorted((w/'bazel-bin/upstream').glob('*.reference/*')):
+for path in sorted((w/'bazel-bin/upstream').glob('*.reference/*.dll')):
     if path.is_file():
         hashes[str(path.relative_to(w/'bazel-bin'))] = hashlib.sha256(path.read_bytes()).hexdigest()
 assert hashes
+if a.expect_reference_hashes is not None:
+    expected = json.loads(a.expect_reference_hashes.read_text())
+    assert hashes == expected, 'Reference assembly hashes differ from the expected run'
+    report['referenceParity'] = True
 (out/'reference-hashes.json').write_text(json.dumps(hashes, indent=2)+'\n')
 (out/'report.json').write_text(json.dumps(report, indent=2)+'\n')
 print(json.dumps(dict(wallSeconds=report['wallSeconds'], runners=runners, recordedWorkerPhaseSeconds=dict(phases))), flush=True)

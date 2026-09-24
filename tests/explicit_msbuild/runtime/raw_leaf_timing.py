@@ -1,4 +1,4 @@
-"""Time raw MSBuild body edits over the qualified runtime slice's configured roots.
+"""Time raw MSBuild body or API edits over the qualified runtime slice's configured roots.
 
 Requires a pristine pinned upstream checkout with outputs already primed using
 subset_prepare.py's raw commands, and its cumulative inventory/selection files.

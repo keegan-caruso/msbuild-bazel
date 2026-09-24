@@ -25,8 +25,9 @@ reference = w/'bazel-bin/upstream/src_libraries_System.IO.Pipelines_ref_System.I
 implementation = w/'bazel-bin/upstream/src_libraries_System.IO.Pipelines_src_System.IO.Pipelines_net10.0.runtime/System.IO.Pipelines.dll'
 def digest(path):
     return hashlib.sha256(path.read_bytes()).hexdigest()
-def run(name):
-    subprocess.run([sys.executable, str(Path(__file__).with_name('managed_timing.py')), str(w), str(a.selection), str(a.base), str(out/name), '--case', 'warm'], check=True)
+def run(name, success=True):
+    result = subprocess.run([sys.executable, str(Path(__file__).with_name('managed_timing.py')), str(w), str(a.selection), str(a.base), str(out/name), '--case', 'warm'])
+    assert (result.returncode == 0) == success, (name, result.returncode)
     r = json.loads((out/name/'report.json').read_text())
     r['sample'] = name
     records.append(r)
@@ -53,6 +54,16 @@ try:
         api.write_bytes(saved_api)
         run('restore-'+kind)
         assert digest(reference) == public and digest(implementation) == original, 'Restored bytes differ'
+    body.write_bytes(saved + b'\n#error Intentional compiler recovery control\n')
+    run('compile-error', success=False)
+    assert 'error CS1029' in (out/'compile-error/build.log').read_text()
+    body.write_bytes(saved.replace(old, old+(' GC.KeepAlive("recovery-'+nonce+'");').encode()))
+    recovered = run('compile-after-error')
+    assert recovered['runners'].get('worker', 0) > 0
+    assert digest(reference) == public and digest(implementation) != original
+    body.write_bytes(saved)
+    run('restore-after-error')
+    assert digest(reference) == public and digest(implementation) == original
 finally:
     body.write_bytes(saved)
     api.write_bytes(saved_api)

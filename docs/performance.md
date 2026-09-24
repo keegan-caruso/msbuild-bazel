@@ -6,7 +6,8 @@ speedup that describes all three scenarios.
 
 These are recorded results from pinned qualification workloads, not a benchmark
 of every commit on main. Detailed reports below retain commands, samples and
-machine-readable evidence. No new measurements were taken for this summary.
+machine-readable evidence. The runtime managed results include a fresh post-cleanup
+baseline and the compiler-reuse change described below.
 
 ## Warm builds and edits
 
@@ -22,17 +23,17 @@ workload. These rows measure builds, not test execution.
 | Orchard, setup-module CSS edit | 15.46 s | 11.80 s | One run; four projects rebuild |
 | ASP.NET Core, no-op | 0.21 s | 11.85 s | Medians of three; 220 projects / 275 framework builds |
 | ASP.NET Core, ObjectPool body edit | 0.97 s | 13.31 s | One run; one selected framework target recompiles |
-| Runtime, Pipelines body edit | 3.495 s | 11.274 s | Medians of three; retained Bazel server/worker versus shared raw compiler |
+| Runtime, Pipelines body edit | 2.081 s | 11.576 s | Medians of three; compiler reuse, retained server/workers |
+| Runtime, Pipelines API edit | 7.970 s | 13.945 s | Medians of three; four Bazel managed actions execute |
 
-Runtime's verified Bazel 9.2 repeat is **3.23× faster** than its separately
-captured raw baseline. Raw covers managed outputs; Bazel also checks native
-products and updates the host layout. Batch Bazel takes 9.691 s for the same edit,
-so keeping the server and worker alive matters.
+The current runtime body edit is **5.56× faster** than raw MSBuild; the API edit
+is **1.75× faster**. Both sides build the same managed roots, excluding native
+products, host composition and test execution. Current no-op medians are 0.168 s
+for Bazel and 10.965 s for raw MSBuild.
 
 Sources: [Orchard](orchard-explicit-performance.md),
-[ASP.NET Core](aspnetcore-large-graph.md),
-[runtime version-verified repeat](runtime-cache-diagnosis.md) and
-[raw runtime comparison](runtime-leaf-timing.md).
+[ASP.NET Core](aspnetcore-large-graph.md), and
+[current runtime comparison](runtime-cold-timing.md).
 
 ## Cold compilation
 
@@ -45,10 +46,14 @@ below before comparing ratios.
 | --- | ---: | ---: | --- |
 | Orchard CMS | 128.59 s | 70.15 s | 202 projects; Bazel includes package extraction, raw includes local-feed restore |
 | ASP.NET Core managed graph | 136.63 s | 44.55 s | Original paired clean-output observations; two build slots each, warm downloads |
-| Runtime managed roots | 492.09 s | 139.59 s | Same 38 configured roots / 253 project paths; two workers or nodes; raw restore separately took 72.04 s |
+| Runtime managed roots | 259.96 s | 139.31 s | Same 38 configured roots / 253 project paths; compiler reuse; raw restore separately took 73.83 s |
 
 These are single observations, not repeated medians. Runtime's managed comparison
-is **3.53× raw build time**, excluding raw restore. Its full host build takes
+is **1.87× raw build time**, excluding raw restore. Compiler reuse reduced the
+fresh Bazel baseline from 465.67 to 259.96 s (**44.2% less time**). This changes
+the runtime fixture’s explicit compiler properties, not the generic rule API.
+It retains substantial compiler memory: 10.23 GiB aggregate RSS observed in a
+16 GiB VM. The earlier full host build takes
 788.57 s with one worker and includes native products and host composition; that
 is not the matched managed-only comparison.
 
@@ -83,6 +88,7 @@ is different from executing tests.
 | ASP.NET Core | 11.39 s median of three | Fresh bases in a warm VM; all 578 actions recovered |
 | ASP.NET Core, independent VM | 15.23 s, one run | Producer VM deleted; recovered assemblies and composed package files match |
 | Avalonia themes + IDL | 9.28 s median of three | Independent consumer, producer stopped; 98 hits, no compilation/generation; 254 artifacts match |
+| Runtime managed roots, compiler reuse | 10.89 s, one run | Independent consumer, producer stopped; 671 hits, no compilation; 394 reference DLLs match |
 | Runtime host | 28.45 s, one run | Producer stopped; all build actions recovered; 2,806 output hashes match |
 
 Runtime then recovered seven cached test results in 7.63 s. Forcing actual test

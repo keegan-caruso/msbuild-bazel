@@ -1,0 +1,69 @@
+using System.Reflection.Metadata;
+using System.Reflection.PortableExecutable;
+using System.Text.Json;
+
+// Diagnostic comparison across action configurations. This ignores MVIDs and
+// PE debug records; exact hashes are still required for remote-cache recovery.
+var roots = args;
+var files = Files(roots[0]).ToArray();
+if (files.Length == 0 || !files.SequenceEqual(Files(roots[1])))
+    throw new InvalidOperationException("Assembly sets are empty or differ");
+var rows = new List<object>();
+var valid = true;
+foreach (var relative in files)
+{
+    using var a = new PEReader(File.OpenRead(Path.Combine(roots[0], relative)));
+    using var b = new PEReader(File.OpenRead(Path.Combine(roots[1], relative)));
+    if (!a.HasMetadata || !b.HasMetadata)
+        throw new InvalidOperationException("Not managed: " + relative);
+    var x = a.GetMetadataReader();
+    var y = b.GetMetadataReader();
+    var metadata = Metadata(a, x).SequenceEqual(Metadata(b, y));
+    var resources = Resources(a).SequenceEqual(Resources(b));
+    var methods = x.MethodDefinitions.Count == y.MethodDefinitions.Count;
+    foreach (var handle in x.MethodDefinitions)
+    {
+        var left = x.GetMethodDefinition(handle).RelativeVirtualAddress;
+        var right = y.GetMethodDefinition(handle).RelativeVirtualAddress;
+        if (left == 0 || right == 0)
+        {
+            methods &= left == right;
+            continue;
+        }
+        var leftSize = a.GetMethodBody(left).Size;
+        var rightSize = b.GetMethodBody(right).Size;
+        methods &= leftSize == rightSize && a.GetSectionData(left).GetContent(0, leftSize)
+            .SequenceEqual(b.GetSectionData(right).GetContent(0, rightSize));
+    }
+    valid &= metadata && methods && resources;
+    rows.Add(new { file = relative, metadataIgnoringMvid = metadata, methodBodies = methods, resources });
+}
+Console.WriteLine(JsonSerializer.Serialize(rows, new JsonSerializerOptions { WriteIndented = true }));
+return valid ? 0 : 1;
+
+static IEnumerable<string> Files(string root) => new[] { "*.reference", "*.runtime" }
+    .SelectMany(pattern => Directory.GetDirectories(root, pattern))
+    .SelectMany(dir => Directory.GetFiles(dir, "*.dll", SearchOption.AllDirectories))
+    .Select(file => Path.GetRelativePath(root, file)).Order();
+
+static byte[] Metadata(PEReader pe, MetadataReader reader)
+{
+    var bytes = pe.GetMetadata().GetContent().ToArray();
+    var guid = reader.GetGuid(reader.GetModuleDefinition().Mvid).ToByteArray();
+    var count = 0;
+    for (var i = 0; i <= bytes.Length - guid.Length; i++)
+    {
+        if (!bytes.AsSpan(i, guid.Length).SequenceEqual(guid)) continue;
+        bytes.AsSpan(i, guid.Length).Clear();
+        count++;
+    }
+    if (count != 1) throw new InvalidOperationException("Unexpected MVID occurrences: " + count);
+    return bytes;
+}
+
+static byte[] Resources(PEReader pe)
+{
+    var directory = pe.PEHeaders.CorHeader!.ResourcesDirectory;
+    return directory.Size == 0 ? [] : pe.GetSectionData(directory.RelativeVirtualAddress)
+        .GetContent(0, directory.Size).ToArray();
+}

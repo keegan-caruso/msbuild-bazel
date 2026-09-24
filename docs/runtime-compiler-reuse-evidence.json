@@ -1,0 +1,371 @@
+{
+  "dateUtc": "2026-09-24",
+  "baselineRulesCommit": "0c1522814ce5a8a074ddcb5198a0ce4fc9a1ffa3",
+  "runtimeCommit": "60629d14374c56f1cb51819049ad1fa529307f8d",
+  "platform": "Ubuntu 22.04 Linux ARM64 Apple containers",
+  "cpus": 8,
+  "memoryGiB": 16,
+  "jobs": 2,
+  "workerMaxInstances": 2,
+  "rawNodes": 2,
+  "sdkVersion": "10.0.400",
+  "bazelVersion": "9.2.0",
+  "bazelSha256": "049dd21f40ad979db11c3ee68c96a42ce75f1185e69ac61ab20de1501427a410",
+  "runnerSha256": "8b31fdbcdfef5692bafd277cf614d775af325dca5869d2f09c602707743de0e7",
+  "configuredRoots": [
+    {
+      "project": "src/libraries/System.Collections.Immutable/tests/System.Collections.Immutable.Tests.csproj",
+      "framework": "net10.0"
+    },
+    {
+      "project": "src/libraries/System.Collections/tests/System.Collections.Tests.csproj",
+      "framework": "net10.0"
+    },
+    {
+      "project": "src/libraries/System.Linq/tests/System.Linq.Tests.csproj",
+      "framework": "net10.0"
+    },
+    {
+      "project": "src/libraries/System.Threading/tests/System.Threading.Tests.csproj",
+      "framework": "net10.0"
+    },
+    {
+      "project": "src/libraries/System.Runtime/tests/System.Threading.Tasks.Tests/System.Threading.Tasks.Tests.csproj",
+      "framework": "net10.0"
+    },
+    {
+      "project": "src/libraries/System.Runtime/tests/System.IO.FileSystem.Tests/System.IO.FileSystem.Tests.csproj",
+      "framework": "net10.0-unix"
+    },
+    {
+      "project": "src/libraries/System.Net.Sockets/tests/FunctionalTests/System.Net.Sockets.Tests.csproj",
+      "framework": "net10.0-unix"
+    },
+    {
+      "project": "src/libraries/System.Net.Sockets/src/System.Net.Sockets.csproj",
+      "framework": "net10.0-unix"
+    },
+    {
+      "project": "src/libraries/System.IO.Pipelines/src/System.IO.Pipelines.csproj",
+      "framework": "net10.0"
+    },
+    {
+      "project": "src/libraries/System.Text.Encodings.Web/src/System.Text.Encodings.Web.csproj",
+      "framework": "net10.0"
+    },
+    {
+      "project": "src/libraries/System.Text.Json/src/System.Text.Json.csproj",
+      "framework": "net10.0"
+    },
+    {
+      "project": "src/libraries/System.Security.Cryptography/src/System.Security.Cryptography.csproj",
+      "framework": "net10.0-unix"
+    },
+    {
+      "project": "src/libraries/System.IO.Compression/src/System.IO.Compression.csproj",
+      "framework": "net10.0-unix"
+    },
+    {
+      "project": "src/libraries/System.Console/src/System.Console.csproj",
+      "framework": "net10.0-unix"
+    },
+    {
+      "project": "src/libraries/System.IO.MemoryMappedFiles/src/System.IO.MemoryMappedFiles.csproj",
+      "framework": "net10.0-unix"
+    },
+    {
+      "project": "src/libraries/System.IO.Pipes/src/System.IO.Pipes.csproj",
+      "framework": "net10.0-unix"
+    },
+    {
+      "project": "src/libraries/System.IO.FileSystem.DriveInfo/src/System.IO.FileSystem.DriveInfo.csproj",
+      "framework": "net10.0-unix"
+    },
+    {
+      "project": "src/libraries/System.Diagnostics.Process/src/System.Diagnostics.Process.csproj",
+      "framework": "net10.0-linux"
+    },
+    {
+      "project": "src/libraries/System.Net.Http/src/System.Net.Http.csproj",
+      "framework": "net10.0-linux"
+    },
+    {
+      "project": "src/libraries/Microsoft.CSharp/src/Microsoft.CSharp.csproj",
+      "framework": "net10.0"
+    },
+    {
+      "project": "src/libraries/System.Linq.AsyncEnumerable/src/System.Linq.AsyncEnumerable.csproj",
+      "framework": "net10.0"
+    },
+    {
+      "project": "src/libraries/shims/System.Core/src/System.Core.csproj",
+      "framework": "net10.0-linux"
+    },
+    {
+      "project": "src/libraries/shims/System.Diagnostics.Debug/src/System.Diagnostics.Debug.csproj",
+      "framework": "net10.0-linux"
+    },
+    {
+      "project": "src/libraries/shims/System.Globalization/src/System.Globalization.csproj",
+      "framework": "net10.0-linux"
+    },
+    {
+      "project": "src/libraries/shims/System.IO.FileSystem/src/System.IO.FileSystem.csproj",
+      "framework": "net10.0-linux"
+    },
+    {
+      "project": "src/libraries/shims/System.IO/src/System.IO.csproj",
+      "framework": "net10.0-linux"
+    },
+    {
+      "project": "src/libraries/shims/System.Reflection.Extensions/src/System.Reflection.Extensions.csproj",
+      "framework": "net10.0-linux"
+    },
+    {
+      "project": "src/libraries/shims/System.Reflection/src/System.Reflection.csproj",
+      "framework": "net10.0-linux"
+    },
+    {
+      "project": "src/libraries/shims/System.Resources.ResourceManager/src/System.Resources.ResourceManager.csproj",
+      "framework": "net10.0-linux"
+    },
+    {
+      "project": "src/libraries/shims/System.Runtime.Extensions/src/System.Runtime.Extensions.csproj",
+      "framework": "net10.0-linux"
+    },
+    {
+      "project": "src/libraries/shims/System.Runtime.InteropServices.RuntimeInformation/src/System.Runtime.InteropServices.RuntimeInformation.csproj",
+      "framework": "net10.0-linux"
+    },
+    {
+      "project": "src/libraries/shims/System.Text.Encoding/src/System.Text.Encoding.csproj",
+      "framework": "net10.0-linux"
+    },
+    {
+      "project": "src/libraries/shims/System.Threading.Tasks.Extensions/src/System.Threading.Tasks.Extensions.csproj",
+      "framework": "net10.0-linux"
+    },
+    {
+      "project": "src/libraries/shims/System.Threading.Tasks/src/System.Threading.Tasks.csproj",
+      "framework": "net10.0-linux"
+    },
+    {
+      "project": "src/libraries/shims/System.Xml/src/System.Xml.csproj",
+      "framework": "net10.0-linux"
+    },
+    {
+      "project": "src/libraries/shims/System/src/System.csproj",
+      "framework": "net10.0-linux"
+    },
+    {
+      "project": "src/libraries/shims/mscorlib/src/mscorlib.csproj",
+      "framework": "net10.0-linux"
+    },
+    {
+      "project": "src/libraries/shims/netstandard/src/netstandard.csproj",
+      "framework": "net10.0-linux"
+    }
+  ],
+  "projectPaths": 253,
+  "configuredNodes": 273,
+  "scope": "Managed reference output group; excludes native build, host composition, tests, acquisition and declaration preparation",
+  "coldBaseline": {
+    "wallSeconds": 465.67,
+    "runners": {
+      "total": 1345,
+      "internal": 674,
+      "linux-sandbox": 277,
+      "local": 120,
+      "worker": 274
+    },
+    "recordedWorkerProfiles": 274,
+    "recordedWorkerPhaseSeconds": {
+      "identitySeconds": 9.269760600000003,
+      "snapshotSeconds": 27.513322100000014,
+      "preparationSeconds": 14.006607800000003,
+      "childSeconds": 820.2102097,
+      "publicationSeconds": 0.365675800000004
+    }
+  },
+  "coldOptimized": {
+    "wallSeconds": 259.958,
+    "runners": {
+      "total": 1345,
+      "internal": 674,
+      "linux-sandbox": 277,
+      "local": 120,
+      "worker": 274
+    },
+    "recordedWorkerProfiles": 274,
+    "recordedWorkerPhaseSeconds": {
+      "identitySeconds": 10.355950399999992,
+      "snapshotSeconds": 33.12453649999999,
+      "preparationSeconds": 17.968743400000008,
+      "childSeconds": 401.9030459999999,
+      "publicationSeconds": 0.9017598000000012
+    }
+  },
+  "coldSamplesPerConfiguration": 1,
+  "rawCold": {
+    "restoreSeconds": 73.829,
+    "buildSeconds": 139.311,
+    "noopSeconds": 11.116
+  },
+  "rawCompilerCalls": 364,
+  "rawNoopCompilerCalls": 0,
+  "baselineEdits": {
+    "noop": {
+      "samples": [
+        0.217,
+        0.166,
+        0.165
+      ],
+      "median": 0.166
+    },
+    "body": {
+      "samples": [
+        3.307,
+        3.148,
+        3.041
+      ],
+      "median": 3.148
+    },
+    "api": {
+      "samples": [
+        11.065,
+        11.383,
+        10.834
+      ],
+      "median": 11.065
+    }
+  },
+  "optimizedEdits": {
+    "noop": {
+      "samples": [
+        0.22,
+        0.168,
+        0.166
+      ],
+      "median": 0.168
+    },
+    "body": {
+      "samples": [
+        2.163,
+        1.874,
+        2.081
+      ],
+      "median": 2.081
+    },
+    "api": {
+      "samples": [
+        8.961,
+        7.97,
+        7.789
+      ],
+      "median": 7.97
+    }
+  },
+  "rawBody": {
+    "noop": {
+      "wallMedianSeconds": 10.965,
+      "samples": [
+        10.965,
+        11.421,
+        10.766
+      ]
+    },
+    "edit": {
+      "wallMedianSeconds": 11.576,
+      "samples": [
+        12.088,
+        11.12,
+        11.576
+      ]
+    }
+  },
+  "rawApi": {
+    "noop": {
+      "wallMedianSeconds": 11.165,
+      "samples": [
+        11.312,
+        11.165,
+        10.718
+      ]
+    },
+    "edit": {
+      "wallMedianSeconds": 13.945,
+      "samples": [
+        13.758,
+        14.45,
+        13.945
+      ]
+    }
+  },
+  "baselineRecovery": {
+    "wallSeconds": 15.962,
+    "runners": {
+      "total": 1345,
+      "remote cache hit": 671,
+      "internal": 674
+    },
+    "producerStopped": true,
+    "checkoutAndRulesRelocated": true,
+    "freshOutputBase": true,
+    "diskCache": false,
+    "remoteDownloadOutputs": "all",
+    "cacheNetwork": "Private VM bridge, not WAN",
+    "exactReferenceHashes": 394,
+    "referenceManifestSha256": "57915b20b7b6b929e4c47e0d53f031a5ac01d6f7099a520b3ade2cba06e9ac84"
+  },
+  "diagnosticComparison": {
+    "managedDlls": 609,
+    "metadataExceptMvidEqual": true,
+    "completeMethodBodiesEqual": true,
+    "managedResourcesEqual": true,
+    "excludes": [
+      "PE debug records",
+      "PDB contents"
+    ],
+    "bitwiseParityAcrossConfigurations": false
+  },
+  "compilerMemory": {
+    "sampleIntervalSeconds": 5,
+    "peakProcessCount": 11,
+    "peakAggregateRssGiB": 10.234,
+    "note": "Aggregate RSS can count shared pages repeatedly; no lifetime memory bound established"
+  },
+  "controls": {
+    "bodyActionCount": 1,
+    "apiActionCount": 4,
+    "bodyReferencePreserved": true,
+    "apiReferenceChanged": true,
+    "originalOutputHashesRestored": true,
+    "compileError": "CS1029",
+    "validEditAfterErrorCompiles": true
+  },
+  "initialTrial": {
+    "wallSeconds": 264.912,
+    "changedDeclarations": 266,
+    "note": "Trial missed seven test declarations; excluded from final cold sample"
+  },
+  "baselineSeedTimingExcluded": "Untimed copy and cleanup overlapped seed; seed only used for correctness",
+  "compilerPolicyCommit": "5420380",
+  "optimizedSeedTimingExcluded": "Seed is a correctness run; scratch cleanup overlaps it.",
+  "optimizedRecovery": {
+    "wallSeconds": 10.887,
+    "runners": {
+      "total": 1345,
+      "remote cache hit": 671,
+      "internal": 674
+    },
+    "producerStopped": true,
+    "checkoutAndRulesRelocated": true,
+    "freshOutputBase": true,
+    "diskCache": false,
+    "remoteDownloadOutputs": "all",
+    "cacheNetwork": "Private VM bridge, not WAN",
+    "exactReferenceHashes": 394,
+    "referenceManifestSha256": "5582a643cc5c8d11fbbd07c558bf5907c52576d398bcc94a3503a4ba0ad2da53",
+    "note": "Do not interpret the difference from baseline recovery as an optimization speedup: OS/cache-server warmth was not controlled between recoveries."
+  }
+}
