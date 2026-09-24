@@ -3,6 +3,9 @@
 `linux_worker = True` opts `msbuild_library`, `msbuild_binary`, and `msbuild_test`
 into the sequential Bazel JSON worker. Run with
 `--strategy=MSBuildAssembly=worker --worker_max_instances=MSBuildAssembly=4`.
+SDKs acquired with `dotnet.sdk` are supported; the worker mounts the declared SDK
+at a stable internal path. See [SDK worker qualification](development.md#sdk-remote-cache-and-worker-controls).
+
 The initial execution platform is the pinned Ubuntu 22.04 ARM64 image with .NET
 10.0.400 and bubblewrap. Fresh-process builds remain the default. Remote execution
 remains disabled; action-cache hits do not start compiler workers.

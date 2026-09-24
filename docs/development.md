@@ -58,6 +58,27 @@ tests pass on both Bazel versions. Linux containers must allow nested user/mount
 namespaces; `scripts/run-apple-container.sh` supplies the required Apple container
 configuration. x64 execution and cross-compilation remain unqualified.
 
+### SDK remote-cache and worker controls
+
+`tests/explicit_msbuild/sdk_cache_workers.py` provides `seed`, `recover`, and
+`workers` modes. On Linux ARM64/Bazel 9.2, a fresh independent container at a
+different checkout/output path recovered runner bootstrap, SDK runtime assembly,
+both library/test compilations, and the test results from HTTP cache. Consumer
+uploads and the disk cache were disabled; no compilation ran in the consumer.
+
+Persistent-worker controls passed on Bazel 8.8 and 9.2 with the downloaded SDK.
+Cold builds compiled both projects; no-op builds compiled neither. A library body
+edit compiled only the library and reran the failing dependent test; an API edit
+recompiled both projects and rejected the incompatible caller. The same worker
+process handled edits. Changing SDK 10.0.400 to 10.0.401 replaced the worker,
+recompiled both projects, and ran the test on runtime 10.0.12.
+
+The worker validates declared tool inputs against the actual SDK directory and
+mounts that SDK read-only at its stable internal path. The host no longer needs
+the SDK installed at the image's historical path. Ubuntu 22.04 ARM64 and enabled
+nested namespaces remain required. These checks qualify remote **caching**, not
+remote execution of SDK bootstrap or a new worker platform.
+
 ## Repository development setup
 
 Supported bootstrap hosts are macOS ARM64 and Linux x86-64/ARM64 with glibc.
