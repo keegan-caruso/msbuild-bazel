@@ -1,0 +1,179 @@
+{
+  "cause": "Apple Container exec -e retained the image Bazel 8.4.2 setting instead of the requested 9.2.0 path",
+  "imageBazel": "/opt/rules_msbuild-toolchain/.tools/bin/bazel",
+  "seedRepository": "+local_dotnet_sdk+dotnet",
+  "invalidatedRepository": "+_repo_rules+dotnet",
+  "wrongVersionRejected": true,
+  "toolchain": {
+    "sdkVersion": "10.0.400",
+    "sdkRoot": "/opt/rules_msbuild-toolchain/.tools/dotnet",
+    "bazelVersion": "9.2.0",
+    "bazelExecutable": "/tmp/bazel-9.2.0",
+    "bazelSha256": "049dd21f40ad979db11c3ee68c96a42ce75f1185e69ac61ab20de1501427a410"
+  },
+  "summary": {
+    "batch": {
+      "noop": {
+        "wallMedianSeconds": 5.446,
+        "bazelMedianSeconds": 5.088
+      },
+      "edit": {
+        "wallMedianSeconds": 9.691,
+        "bazelMedianSeconds": 9.081
+      }
+    },
+    "server": {
+      "noop": {
+        "wallMedianSeconds": 0.166,
+        "bazelMedianSeconds": 0.121
+      },
+      "edit": {
+        "wallMedianSeconds": 3.495,
+        "bazelMedianSeconds": 3.4
+      }
+    }
+  },
+  "measurements": [
+    {
+      "mode": "batch",
+      "case": "prime",
+      "wallSeconds": 12.175,
+      "bazelSeconds": 11.009,
+      "criticalPathSeconds": 0.61,
+      "compiled": []
+    },
+    {
+      "mode": "batch",
+      "case": "noop-0",
+      "wallSeconds": 5.446,
+      "bazelSeconds": 5.088,
+      "criticalPathSeconds": 0.12,
+      "compiled": []
+    },
+    {
+      "mode": "batch",
+      "case": "edit-0",
+      "wallSeconds": 9.53,
+      "bazelSeconds": 9.049,
+      "criticalPathSeconds": 4.21,
+      "compiled": [
+        "//upstream:src_libraries_System.IO.Pipelines_src_System.IO.Pipelines_net10.0"
+      ]
+    },
+    {
+      "mode": "batch",
+      "case": "noop-1",
+      "wallSeconds": 5.378,
+      "bazelSeconds": 5.032,
+      "criticalPathSeconds": 0.11,
+      "compiled": []
+    },
+    {
+      "mode": "batch",
+      "case": "edit-1",
+      "wallSeconds": 9.776,
+      "bazelSeconds": 9.261,
+      "criticalPathSeconds": 4.33,
+      "compiled": [
+        "//upstream:src_libraries_System.IO.Pipelines_src_System.IO.Pipelines_net10.0"
+      ]
+    },
+    {
+      "mode": "batch",
+      "case": "noop-2",
+      "wallSeconds": 5.772,
+      "bazelSeconds": 5.361,
+      "criticalPathSeconds": 0.13,
+      "compiled": []
+    },
+    {
+      "mode": "batch",
+      "case": "edit-2",
+      "wallSeconds": 9.691,
+      "bazelSeconds": 9.081,
+      "criticalPathSeconds": 4.4,
+      "compiled": [
+        "//upstream:src_libraries_System.IO.Pipelines_src_System.IO.Pipelines_net10.0"
+      ]
+    },
+    {
+      "mode": "batch",
+      "case": "restore",
+      "wallSeconds": 6.154,
+      "bazelSeconds": 5.685,
+      "criticalPathSeconds": 0.72,
+      "compiled": []
+    },
+    {
+      "mode": "server",
+      "case": "prime",
+      "wallSeconds": 5.756,
+      "bazelSeconds": 5.676,
+      "criticalPathSeconds": 0.15,
+      "compiled": []
+    },
+    {
+      "mode": "server",
+      "case": "noop-0",
+      "wallSeconds": 0.228,
+      "bazelSeconds": 0.172,
+      "criticalPathSeconds": 0.0,
+      "compiled": []
+    },
+    {
+      "mode": "server",
+      "case": "edit-0",
+      "wallSeconds": 4.955,
+      "bazelSeconds": 4.777,
+      "criticalPathSeconds": 4.57,
+      "compiled": [
+        "//upstream:src_libraries_System.IO.Pipelines_src_System.IO.Pipelines_net10.0"
+      ]
+    },
+    {
+      "mode": "server",
+      "case": "noop-1",
+      "wallSeconds": 0.166,
+      "bazelSeconds": 0.121,
+      "criticalPathSeconds": 0.0,
+      "compiled": []
+    },
+    {
+      "mode": "server",
+      "case": "edit-1",
+      "wallSeconds": 3.495,
+      "bazelSeconds": 3.4,
+      "criticalPathSeconds": 3.22,
+      "compiled": [
+        "//upstream:src_libraries_System.IO.Pipelines_src_System.IO.Pipelines_net10.0"
+      ]
+    },
+    {
+      "mode": "server",
+      "case": "noop-2",
+      "wallSeconds": 0.117,
+      "bazelSeconds": 0.095,
+      "criticalPathSeconds": 0.0,
+      "compiled": []
+    },
+    {
+      "mode": "server",
+      "case": "edit-2",
+      "wallSeconds": 3.434,
+      "bazelSeconds": 3.325,
+      "criticalPathSeconds": 3.15,
+      "compiled": [
+        "//upstream:src_libraries_System.IO.Pipelines_src_System.IO.Pipelines_net10.0"
+      ]
+    },
+    {
+      "mode": "server",
+      "case": "restore",
+      "wallSeconds": 0.62,
+      "bazelSeconds": 0.563,
+      "criticalPathSeconds": 0.41,
+      "compiled": []
+    }
+  ],
+  "artifacts": "/private/tmp/corrected-leaf-timing-evidence/corrected-leaf-timing"
+}

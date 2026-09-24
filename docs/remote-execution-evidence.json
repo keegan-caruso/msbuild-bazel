@@ -1,0 +1,498 @@
+{
+  "platform": "Linux ARM64; separate SDK-free worker",
+  "reports": {
+    "9.2": {
+      "records": [
+        {
+          "case": "local",
+          "exitCode": 0,
+          "actions": [
+            {
+              "mnemonic": "MSBuildAssembly",
+              "targetLabel": "//:Library",
+              "runner": "local",
+              "cacheHit": false,
+              "exitCode": 0
+            },
+            {
+              "mnemonic": "MSBuildAssembly",
+              "targetLabel": "//:Tests",
+              "runner": "local",
+              "cacheHit": false,
+              "exitCode": 0
+            },
+            {
+              "mnemonic": "TestRunner",
+              "targetLabel": "//:Tests",
+              "runner": "local",
+              "cacheHit": false,
+              "exitCode": 0
+            },
+            {
+              "mnemonic": "TestRunner",
+              "targetLabel": "//:Tests",
+              "runner": "local",
+              "cacheHit": false,
+              "exitCode": 0
+            }
+          ]
+        },
+        {
+          "case": "remote",
+          "exitCode": 0,
+          "actions": [
+            {
+              "mnemonic": "MSBuildAssembly",
+              "targetLabel": "//:Library",
+              "runner": "remote",
+              "cacheHit": false,
+              "exitCode": 0
+            },
+            {
+              "mnemonic": "MSBuildAssembly",
+              "targetLabel": "//:Tests",
+              "runner": "remote",
+              "cacheHit": false,
+              "exitCode": 0
+            },
+            {
+              "mnemonic": "TestRunner",
+              "targetLabel": "//:Tests",
+              "runner": "remote",
+              "cacheHit": false,
+              "exitCode": 0
+            },
+            {
+              "mnemonic": "TestRunner",
+              "targetLabel": "//:Tests",
+              "runner": "remote",
+              "cacheHit": false,
+              "exitCode": 0
+            }
+          ]
+        },
+        {
+          "case": "body-edit",
+          "exitCode": 0,
+          "actions": [
+            {
+              "mnemonic": "MSBuildAssembly",
+              "targetLabel": "//:Library",
+              "runner": "remote",
+              "cacheHit": false,
+              "exitCode": 0
+            },
+            {
+              "mnemonic": "TestRunner",
+              "targetLabel": "//:Tests",
+              "runner": "remote",
+              "cacheHit": false,
+              "exitCode": 0
+            },
+            {
+              "mnemonic": "TestRunner",
+              "targetLabel": "//:Tests",
+              "runner": "remote cache hit",
+              "cacheHit": true,
+              "exitCode": 0
+            }
+          ]
+        },
+        {
+          "case": "recover",
+          "exitCode": 0,
+          "actions": [
+            {
+              "mnemonic": "MSBuildAssembly",
+              "targetLabel": "//:Library",
+              "runner": "remote cache hit",
+              "cacheHit": true,
+              "exitCode": 0
+            },
+            {
+              "mnemonic": "MSBuildAssembly",
+              "targetLabel": "//:Tests",
+              "runner": "remote cache hit",
+              "cacheHit": true,
+              "exitCode": 0
+            },
+            {
+              "mnemonic": "TestRunner",
+              "targetLabel": "//:Tests",
+              "runner": "remote cache hit",
+              "cacheHit": true,
+              "exitCode": 0
+            },
+            {
+              "mnemonic": "TestRunner",
+              "targetLabel": "//:Tests",
+              "runner": "remote cache hit",
+              "cacheHit": true,
+              "exitCode": 0
+            }
+          ]
+        },
+        {
+          "case": "test-failure",
+          "exitCode": 3,
+          "actions": [
+            {
+              "mnemonic": "TestRunner",
+              "targetLabel": "//:Tests",
+              "runner": "remote",
+              "cacheHit": false,
+              "exitCode": 1
+            },
+            {
+              "mnemonic": "TestRunner",
+              "targetLabel": "//:Tests",
+              "runner": "remote",
+              "cacheHit": false,
+              "exitCode": 0
+            }
+          ]
+        },
+        {
+          "case": "unavailable-executor",
+          "exitCode": 34,
+          "actions": []
+        }
+      ],
+      "outputHashes": {
+        "Library.reference/Library.dll": "3fb02537d0839e85a82fe557f67b555f475d1a0774194d2f22159887f48edb55",
+        "Library.runtime/.rules-msbuild-package-files.json": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+        "Library.runtime/.rules-msbuild-packages.json": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+        "Library.runtime/Library.deps.json": "32b47d956586f402b8f9dda63c7cf6c58634321123a94d08d7172817cf44bff3",
+        "Library.runtime/Library.dll": "d4e67be940819f7f00c7e559a9d71cb48af5c7e40aa09144032e0df371bccbfb",
+        "Library.runtime/Library.pdb": "6ffaa44646b088b63d8b369b9251dec451de7552a85d89cab42c14a35ca13d04",
+        "Tests.reference/Tests.dll": "f63d7f911160f8a0b243e3125d5fe66f423e3f5e5127eb272514aa7e20bfc5dd",
+        "Tests.runtime/.rules-msbuild-package-files.json": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+        "Tests.runtime/.rules-msbuild-packages.json": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+        "Tests.runtime/Tests": "15e03603868a8c19476b40178b4c96e4bb7814f40e074374dfd49b841627d711",
+        "Tests.runtime/Tests.deps.json": "ab520243f3fa182b67d1e90c30aab2728ddce908eaed01b96dc6dc65645f5d65",
+        "Tests.runtime/Tests.dll": "8aacaf46ee1c4c308bcd1c25fe18680e2774eb9fa866f28d9f653e270f7ce7aa",
+        "Tests.runtime/Tests.pdb": "df8e7f32877c73e257f56ca3ed07d946fb8c366bffe299eb18f4a9c11032e83c",
+        "Tests.runtime/Tests.runtimeconfig.json": "9950d4583cfc9a106857c0d5b8a75b53e8774852b57b80bc3823a74d44a4d87f"
+      }
+    },
+    "8.8": {
+      "records": [
+        {
+          "case": "local",
+          "exitCode": 0,
+          "actions": [
+            {
+              "mnemonic": "MSBuildAssembly",
+              "targetLabel": "//:Library",
+              "runner": "local",
+              "cacheHit": false,
+              "exitCode": 0
+            },
+            {
+              "mnemonic": "MSBuildAssembly",
+              "targetLabel": "//:Tests",
+              "runner": "local",
+              "cacheHit": false,
+              "exitCode": 0
+            },
+            {
+              "mnemonic": "TestRunner",
+              "targetLabel": "//:Tests",
+              "runner": "local",
+              "cacheHit": false,
+              "exitCode": 0
+            },
+            {
+              "mnemonic": "TestRunner",
+              "targetLabel": "//:Tests",
+              "runner": "local",
+              "cacheHit": false,
+              "exitCode": 0
+            }
+          ]
+        },
+        {
+          "case": "remote",
+          "exitCode": 0,
+          "actions": [
+            {
+              "mnemonic": "MSBuildAssembly",
+              "targetLabel": "//:Library",
+              "runner": "remote",
+              "cacheHit": false,
+              "exitCode": 0
+            },
+            {
+              "mnemonic": "MSBuildAssembly",
+              "targetLabel": "//:Tests",
+              "runner": "remote",
+              "cacheHit": false,
+              "exitCode": 0
+            },
+            {
+              "mnemonic": "TestRunner",
+              "targetLabel": "//:Tests",
+              "runner": "remote",
+              "cacheHit": false,
+              "exitCode": 0
+            },
+            {
+              "mnemonic": "TestRunner",
+              "targetLabel": "//:Tests",
+              "runner": "remote",
+              "cacheHit": false,
+              "exitCode": 0
+            }
+          ]
+        },
+        {
+          "case": "body-edit",
+          "exitCode": 0,
+          "actions": [
+            {
+              "mnemonic": "MSBuildAssembly",
+              "targetLabel": "//:Library",
+              "runner": "remote",
+              "cacheHit": false,
+              "exitCode": 0
+            },
+            {
+              "mnemonic": "TestRunner",
+              "targetLabel": "//:Tests",
+              "runner": "remote",
+              "cacheHit": false,
+              "exitCode": 0
+            },
+            {
+              "mnemonic": "TestRunner",
+              "targetLabel": "//:Tests",
+              "runner": "remote cache hit",
+              "cacheHit": true,
+              "exitCode": 0
+            }
+          ]
+        },
+        {
+          "case": "recover",
+          "exitCode": 0,
+          "actions": [
+            {
+              "mnemonic": "MSBuildAssembly",
+              "targetLabel": "//:Library",
+              "runner": "remote cache hit",
+              "cacheHit": true,
+              "exitCode": 0
+            },
+            {
+              "mnemonic": "MSBuildAssembly",
+              "targetLabel": "//:Tests",
+              "runner": "remote cache hit",
+              "cacheHit": true,
+              "exitCode": 0
+            },
+            {
+              "mnemonic": "TestRunner",
+              "targetLabel": "//:Tests",
+              "runner": "remote cache hit",
+              "cacheHit": true,
+              "exitCode": 0
+            },
+            {
+              "mnemonic": "TestRunner",
+              "targetLabel": "//:Tests",
+              "runner": "remote cache hit",
+              "cacheHit": true,
+              "exitCode": 0
+            }
+          ]
+        },
+        {
+          "case": "test-failure",
+          "exitCode": 3,
+          "actions": [
+            {
+              "mnemonic": "TestRunner",
+              "targetLabel": "//:Tests",
+              "runner": "remote",
+              "cacheHit": false,
+              "exitCode": 1
+            },
+            {
+              "mnemonic": "TestRunner",
+              "targetLabel": "//:Tests",
+              "runner": "remote",
+              "cacheHit": false,
+              "exitCode": 0
+            }
+          ]
+        },
+        {
+          "case": "unavailable-executor",
+          "exitCode": 34,
+          "actions": []
+        }
+      ],
+      "outputHashes": {
+        "Library.reference/Library.dll": "3fb02537d0839e85a82fe557f67b555f475d1a0774194d2f22159887f48edb55",
+        "Library.runtime/.rules-msbuild-package-files.json": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+        "Library.runtime/.rules-msbuild-packages.json": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+        "Library.runtime/Library.deps.json": "32b47d956586f402b8f9dda63c7cf6c58634321123a94d08d7172817cf44bff3",
+        "Library.runtime/Library.dll": "d4e67be940819f7f00c7e559a9d71cb48af5c7e40aa09144032e0df371bccbfb",
+        "Library.runtime/Library.pdb": "6ffaa44646b088b63d8b369b9251dec451de7552a85d89cab42c14a35ca13d04",
+        "Tests.reference/Tests.dll": "f63d7f911160f8a0b243e3125d5fe66f423e3f5e5127eb272514aa7e20bfc5dd",
+        "Tests.runtime/.rules-msbuild-package-files.json": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+        "Tests.runtime/.rules-msbuild-packages.json": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+        "Tests.runtime/Tests": "15e03603868a8c19476b40178b4c96e4bb7814f40e074374dfd49b841627d711",
+        "Tests.runtime/Tests.deps.json": "ab520243f3fa182b67d1e90c30aab2728ddce908eaed01b96dc6dc65645f5d65",
+        "Tests.runtime/Tests.dll": "8aacaf46ee1c4c308bcd1c25fe18680e2774eb9fa866f28d9f653e270f7ce7aa",
+        "Tests.runtime/Tests.pdb": "df8e7f32877c73e257f56ca3ed07d946fb8c366bffe299eb18f4a9c11032e83c",
+        "Tests.runtime/Tests.runtimeconfig.json": "9950d4583cfc9a106857c0d5b8a75b53e8774852b57b80bc3823a74d44a4d87f"
+      }
+    }
+  },
+  "artifact": {
+    "path": "/private/tmp/runtime-remote-execution-evidence.tar.gz",
+    "sha256": "fb8ee810fc45ba453c9b351d39662d0a972da6f96fcff29ad6a4656f72e8eb8a"
+  },
+  "worker": {
+    "architecture": "aarch64",
+    "os": "Ubuntu 22.04.5 LTS",
+    "sdkDirectoryExists": false,
+    "bubblewrapProbeExitCode": 0,
+    "baseImage": "sha256:47a9e2fed01824f5470f26e75a2fb74017acc1967c637e7793be028f31a8aeee",
+    "serverBinaries": [
+      {
+        "image": "ghcr.io/buildbarn/bb-worker",
+        "index": "sha256:4cc65f0dd716fd0942ccc0fdd770421065b7f3bf55062a184c4376e4c0a4a13e",
+        "platformManifest": "sha256:8c5f5bc8453342df0007583dc9b1d87565d462f75b946e19a3fb64e73b06dc42",
+        "binary": "bb_worker",
+        "sha256": "d8171b4cfead3ac33cf2564c2697af2027a6c5e3925584ee51e0fbdb5a2ccc32"
+      },
+      {
+        "image": "ghcr.io/buildbarn/bb-scheduler",
+        "index": "sha256:95417d159b5b9f17a6c915fec43603be51c553f68de439a9affcfe811bd0c6da",
+        "platformManifest": "sha256:d4b86335ad839dfd3b0fc99b324013e9b2a6e6b1d6f3e4d097240e7dcfc6ef67",
+        "binary": "bb_scheduler",
+        "sha256": "c74ec4d4be820f9d15844855375df74470390caf830badc5eb0a523989c3bdb8"
+      },
+      {
+        "image": "ghcr.io/buildbarn/bb-storage",
+        "index": "sha256:36201141f924865ddbea1bc518c4f98dd0dbb744181ef34f9f5e864d3dcf43f8",
+        "platformManifest": "sha256:a62b023e4b4376fd2dc613672424c2ed77a250ce259b402e6f560f4b37fa2bd3",
+        "binary": "bb_storage",
+        "sha256": "afbc3f539859b2490be8badf8d7b787505626f04d889212f4df546b66f6b60c4"
+      },
+      {
+        "image": "ghcr.io/buildbarn/bb-runner-bare",
+        "index": "sha256:016c8b2d586ef6cfaa1b1af5d1c663a7a163cea01b88b11ceaf03471cef21107",
+        "platformManifest": "sha256:9439ad79d2ba2be713a077b5b3c16ec028d47f4bdbfc5ba398df862a200e9929",
+        "binary": "bb_runner",
+        "sha256": "c078e9a7b002b57d76b25cce3fe47cd28ca1767d73ad0fb8f485b3614b3b4851"
+      }
+    ]
+  },
+  "defaultWorkerRegression": [
+    {
+      "case": "run",
+      "exitCode": 0
+    },
+    {
+      "case": "reserved-item-_bazeloriginalprojectreference",
+      "exitCode": 1
+    },
+    {
+      "case": "reserved-item-analyzer",
+      "exitCode": 1
+    },
+    {
+      "case": "test",
+      "exitCode": 0
+    },
+    {
+      "case": "failure",
+      "exitCode": 3
+    },
+    {
+      "case": "filter",
+      "exitCode": 3
+    },
+    {
+      "case": "body-edit",
+      "exitCode": 0
+    },
+    {
+      "case": "worker-compile-failure",
+      "exitCode": 1
+    },
+    {
+      "case": "worker-recovery",
+      "exitCode": 0
+    },
+    {
+      "case": "missing-edge",
+      "exitCode": 1
+    },
+    {
+      "case": "edge-metadata",
+      "exitCode": 1
+    },
+    {
+      "case": "absent-global-removal",
+      "exitCode": 0
+    },
+    {
+      "case": "active-global-removal",
+      "exitCode": 1
+    },
+    {
+      "case": "conditional-edge",
+      "exitCode": 1
+    },
+    {
+      "case": "undeclared-source",
+      "exitCode": 1
+    },
+    {
+      "case": "forged-package-source",
+      "exitCode": 1
+    },
+    {
+      "case": "recovered",
+      "exitCode": 0
+    },
+    {
+      "case": "undeclared-package",
+      "exitCode": 1
+    },
+    {
+      "case": "undeclared-reference",
+      "exitCode": 1
+    },
+    {
+      "case": "undeclared-read",
+      "exitCode": 1
+    },
+    {
+      "case": "source-write",
+      "exitCode": 1
+    },
+    {
+      "case": "cache-seed",
+      "exitCode": 0
+    },
+    {
+      "case": "cache-recovery",
+      "exitCode": 0
+    }
+  ],
+  "validation": {
+    "pythonSyntax": "passed",
+    "changedStarlarkBuildifier": "passed",
+    "defaultWorkerAcceptance": "passed with child-subreaper supervisor; initial container PID 1 did not reap Bazel on shutdown",
+    "bazelChecksums": {
+      "8.8.0": "861bc2fb6adb9db2e1daa409d4503605475d374ff63c25fe96b3330063151fd5",
+      "9.2.0": "049dd21f40ad979db11c3ee68c96a42ce75f1185e69ac61ab20de1501427a410"
+    },
+    "repositoryToolchainAndStarlark": "passed"
+  }
+}

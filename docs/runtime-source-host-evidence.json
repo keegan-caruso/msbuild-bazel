@@ -1,0 +1,224 @@
+{
+  "frameworkVersion": "10.0.0",
+  "managed": 121,
+  "private": 1,
+  "native": 8,
+  "excluded": [
+    "Microsoft.VisualBasic.Core.dll",
+    "Microsoft.VisualBasic.dll",
+    "System.AppContext.dll",
+    "System.Buffers.dll",
+    "System.ComponentModel.Annotations.dll",
+    "System.ComponentModel.DataAnnotations.dll",
+    "System.Configuration.dll",
+    "System.Data.DataSetExtensions.dll",
+    "System.Data.dll",
+    "System.Diagnostics.Tools.dll",
+    "System.Drawing.dll",
+    "System.Dynamic.Runtime.dll",
+    "System.Formats.Tar.dll",
+    "System.Globalization.Calendars.dll",
+    "System.Globalization.Extensions.dll",
+    "System.IO.Compression.FileSystem.dll",
+    "System.IO.FileSystem.Primitives.dll",
+    "System.IO.UnmanagedMemoryStream.dll",
+    "System.Net.Http.Json.dll",
+    "System.Net.ServerSentEvents.dll",
+    "System.Net.ServicePoint.dll",
+    "System.Net.dll",
+    "System.Numerics.dll",
+    "System.Resources.Reader.dll",
+    "System.Runtime.CompilerServices.Unsafe.dll",
+    "System.Runtime.Handles.dll",
+    "System.Runtime.InteropServices.JavaScript.dll",
+    "System.Runtime.Serialization.dll",
+    "System.Security.Cryptography.Algorithms.dll",
+    "System.Security.Cryptography.Cng.dll",
+    "System.Security.Cryptography.Csp.dll",
+    "System.Security.Cryptography.Encoding.dll",
+    "System.Security.Cryptography.OpenSsl.dll",
+    "System.Security.Cryptography.Primitives.dll",
+    "System.Security.Cryptography.X509Certificates.dll",
+    "System.Security.Principal.dll",
+    "System.Security.SecureString.dll",
+    "System.Security.dll",
+    "System.ServiceModel.Web.dll",
+    "System.ServiceProcess.dll",
+    "System.Text.Encoding.CodePages.dll",
+    "System.Threading.Tasks.Dataflow.dll",
+    "System.Threading.Timer.dll",
+    "System.Transactions.dll",
+    "System.ValueTuple.dll",
+    "System.Web.dll",
+    "System.Windows.dll",
+    "System.Xml.Linq.dll",
+    "System.Xml.Serialization.dll",
+    "System.Xml.XmlDocument.dll",
+    "WindowsBase.dll",
+    "libSystem.Globalization.Native.so",
+    "libSystem.Net.Security.Native.so",
+    "libclrgc.so",
+    "libclrgcexp.so",
+    "libcoreclrtraceptprovider.so",
+    "libmscordaccore.so",
+    "libmscordbi.so"
+  ],
+  "installed": [],
+  "tests": [
+    {
+      "assembly": "System.Collections.Immutable.Tests",
+      "cases": 22544,
+      "passed": 22544,
+      "skipped": 0,
+      "normalizedNamesAndOutcomesMatch": true,
+      "processEntries": {
+        "vstest.console": 1,
+        "datacollector": 1,
+        "testhost": 1
+      }
+    },
+    {
+      "assembly": "System.Collections.Tests",
+      "cases": 33438,
+      "passed": 33438,
+      "skipped": 0,
+      "normalizedNamesAndOutcomesMatch": true,
+      "processEntries": {
+        "vstest.console": 1,
+        "datacollector": 1,
+        "testhost": 1
+      }
+    },
+    {
+      "assembly": "System.IO.Pipelines.Tests",
+      "cases": 577,
+      "passed": 577,
+      "skipped": 0,
+      "normalizedNamesAndOutcomesMatch": true,
+      "processEntries": {
+        "vstest.console": 1,
+        "datacollector": 1,
+        "testhost": 1
+      }
+    },
+    {
+      "assembly": "System.Linq.Tests",
+      "cases": 52186,
+      "passed": 52178,
+      "skipped": 8,
+      "normalizedNamesAndOutcomesMatch": true,
+      "processEntries": {
+        "vstest.console": 1,
+        "datacollector": 1,
+        "testhost": 1
+      }
+    },
+    {
+      "assembly": "System.Net.Sockets.Tests",
+      "cases": 153,
+      "passed": 153,
+      "skipped": 0,
+      "normalizedNamesAndOutcomesMatch": true,
+      "processEntries": {
+        "vstest.console": 1,
+        "datacollector": 1,
+        "testhost": 1
+      }
+    },
+    {
+      "assembly": "System.IO.FileSystem.Tests",
+      "cases": 8716,
+      "passed": 8662,
+      "skipped": 54,
+      "normalizedNamesAndOutcomesMatch": true,
+      "processEntries": {
+        "vstest.console": 1,
+        "datacollector": 1,
+        "testhost": 1,
+        "Microsoft.DotNet.RemoteExecutor": 63
+      }
+    },
+    {
+      "assembly": "System.Threading.Tasks.Tests",
+      "cases": 811,
+      "passed": 809,
+      "skipped": 2,
+      "normalizedNamesAndOutcomesMatch": true,
+      "processEntries": {
+        "vstest.console": 1,
+        "datacollector": 1,
+        "testhost": 1,
+        "Microsoft.DotNet.RemoteExecutor": 2
+      }
+    },
+    {
+      "assembly": "System.Threading.Tests",
+      "cases": 591,
+      "passed": 591,
+      "skipped": 0,
+      "normalizedNamesAndOutcomesMatch": true,
+      "processEntries": {
+        "vstest.console": 1,
+        "datacollector": 1,
+        "testhost": 1,
+        "Microsoft.DotNet.RemoteExecutor": 7
+      }
+    }
+  ],
+  "seed": {
+    "seed": true,
+    "nativeActions": 5,
+    "nativeCacheHits": 5,
+    "assemblyActions": 281,
+    "assemblyCacheHits": 281,
+    "layoutActions": 121,
+    "layoutCacheHits": 120,
+    "cachedTests": false,
+    "forcedExecutionPassed": false
+  },
+  "outputCount": 2758,
+  "binaryCount": 131,
+  "controls": [
+    {
+      "case": "source-host",
+      "exitCode": 0,
+      "expectedSuccess": true
+    },
+    {
+      "case": "excluded-sdk-fallback",
+      "exitCode": -6,
+      "expectedSuccess": false
+    }
+  ],
+  "artifacts": [
+    {
+      "path": "/private/tmp/runtime-source-host-inputs.tar.gz",
+      "sha256": "3a05deef49c1cce4a583e63d4e3e3f1ef4216fe6b492509f8e3dc25b84f40ec3"
+    },
+    {
+      "path": "/private/tmp/runtime-source-host-producer-evidence.tar.gz",
+      "sha256": "0b2ae8ab4905590c77e11facad1a18f8d4dcdbd01c714ee8d9ec2fef69cabfba"
+    },
+    {
+      "path": "/private/tmp/runtime-source-host-consumer-evidence.tar.gz",
+      "sha256": "fed489cb4ad271a05b995c715ecc2ec89f2079f9381e972220bd0e1863f1efd7"
+    }
+  ],
+  "recovery": {
+    "seed": false,
+    "nativeActions": 5,
+    "nativeCacheHits": 5,
+    "assemblyActions": 281,
+    "assemblyCacheHits": 281,
+    "layoutActions": 121,
+    "layoutCacheHits": 121,
+    "cachedTests": true,
+    "forcedExecutionPassed": true,
+    "producerStopped": true,
+    "relocatedWorkspace": true,
+    "allOutputHashesMatch": true,
+    "outputCount": 2758,
+    "installedComponentsObserved": 0,
+    "exactInventoryAndForbiddenFallbackControlsPassed": true
+  }
+}

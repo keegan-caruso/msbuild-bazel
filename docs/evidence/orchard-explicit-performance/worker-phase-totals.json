@@ -1,0 +1,47 @@
+{
+  "baseline": {
+    "projects": 202,
+    "snapshotSeconds": 69.7102835,
+    "preparationSeconds": 14.7912127,
+    "childSeconds": 199.28831169999998,
+    "publicationSeconds": 18.4140071,
+    "identitySeconds": 13.394947299999995,
+    "verifiedBytes": 7465118736
+  },
+  "indexed": {
+    "projects": 202,
+    "snapshotSeconds": 50.840915900000006,
+    "preparationSeconds": 7.617007699999996,
+    "childSeconds": 187.04930310000006,
+    "publicationSeconds": 15.5683152,
+    "identitySeconds": 8.334503300000002,
+    "verifiedBytes": 7783411286
+  },
+  "final": {
+    "projects": 202,
+    "snapshotSeconds": 47.26452980000001,
+    "preparationSeconds": 8.1818488,
+    "childSeconds": 179.89008449999986,
+    "publicationSeconds": 9.832351300000004,
+    "identitySeconds": 8.123140999999997,
+    "verifiedBytes": 7568175410
+  },
+  "cache4": {
+    "projects": 202,
+    "snapshotSeconds": 31.497563800000005,
+    "preparationSeconds": 6.252545800000001,
+    "childSeconds": 177.28639839999997,
+    "publicationSeconds": 10.877551999999998,
+    "identitySeconds": 8.7331189,
+    "verifiedBytes": 3325266513
+  },
+  "qualified": {
+    "projects": 202,
+    "snapshotSeconds": 30.666711000000003,
+    "preparationSeconds": 6.947274500000002,
+    "childSeconds": 153.42963209999996,
+    "publicationSeconds": 11.986290799999995,
+    "identitySeconds": 6.1198079000000005,
+    "verifiedBytes": 3465389651
+  }
+}

@@ -1,0 +1,167 @@
+{
+  "upstream": "aspnetcore",
+  "revision": "7387de91234d3ef751fa50b3d1bfede4130213ff",
+  "sdk": "10.0.400",
+  "bazel": "9.2.0",
+  "platform": "Ubuntu 22.04 ARM64",
+  "cpus": 4,
+  "memoryGiB": 8,
+  "entryProjects": 185,
+  "projectFiles": 220,
+  "frameworkTargets": 275,
+  "compiledFrameworkTargets": 275,
+  "parity": {
+    "resourcesMatched": 275,
+    "referenceBytesMatched": 95,
+    "generatedPathHashDifferences": [
+      "Microsoft.AspNetCore.Components_net10.0",
+      "Microsoft.AspNetCore.Identity_net10.0",
+      "Microsoft.AspNetCore.Routing_net10.0",
+      "Microsoft.AspNetCore.Server.Kestrel.Core_net10.0"
+    ],
+    "inspectedReferenceMetadataMatched": 99
+  },
+  "regressions": {
+    "validation/report.json": 9,
+    "validation/project-restore-report.json": 3,
+    "validation/package-report.json": 14,
+    "validation/analyzer-report.json": 8,
+    "sdk-validation/report.json": 5,
+    "spawnLogUnitTests": 3
+  },
+  "timings": [
+    {
+      "case": "raw-clean",
+      "seconds": 5.678870835999987,
+      "exitCode": 0
+    },
+    {
+      "case": "raw-clean-output",
+      "seconds": 44.55469239599995,
+      "exitCode": 0
+    },
+    {
+      "case": "raw-noop-0",
+      "seconds": 12.177805170999932,
+      "exitCode": 0
+    },
+    {
+      "case": "raw-noop-1",
+      "seconds": 11.852109506000033,
+      "exitCode": 0
+    },
+    {
+      "case": "raw-noop-2",
+      "seconds": 10.981803506000006,
+      "exitCode": 0
+    },
+    {
+      "case": "raw-body-edit",
+      "seconds": 13.307678839999994,
+      "exitCode": 0
+    },
+    {
+      "case": "raw-revert",
+      "seconds": 11.79027908899991,
+      "exitCode": 0
+    },
+    {
+      "case": "bazel-clean",
+      "seconds": 1.1337880839999954,
+      "exitCode": 0
+    },
+    {
+      "case": "bazel-clean-output",
+      "seconds": 136.627906854,
+      "exitCode": 0
+    },
+    {
+      "case": "bazel-noop-0",
+      "seconds": 1.2023857089999979,
+      "exitCode": 0,
+      "assemblyActionsExecuted": 0,
+      "assemblyActionCacheHits": 0,
+      "executedOutputs": []
+    },
+    {
+      "case": "bazel-noop-1",
+      "seconds": 0.21109570900000563,
+      "exitCode": 0,
+      "assemblyActionsExecuted": 0,
+      "assemblyActionCacheHits": 0,
+      "executedOutputs": []
+    },
+    {
+      "case": "bazel-noop-2",
+      "seconds": 0.14913020799997412,
+      "exitCode": 0,
+      "assemblyActionsExecuted": 0,
+      "assemblyActionCacheHits": 0,
+      "executedOutputs": []
+    },
+    {
+      "case": "bazel-body-edit",
+      "seconds": 0.9715462919999993,
+      "exitCode": 0,
+      "assemblyActionsExecuted": 1,
+      "assemblyActionCacheHits": 0,
+      "executedOutputs": [
+        [
+          "bazel-out/aarch64-fastbuild/bin/upstream/Microsoft.Extensions.ObjectPool_net10.0.diagnostics",
+          "bazel-out/aarch64-fastbuild/bin/upstream/Microsoft.Extensions.ObjectPool_net10.0.reference/Microsoft.Extensions.ObjectPool.dll",
+          "bazel-out/aarch64-fastbuild/bin/upstream/Microsoft.Extensions.ObjectPool_net10.0.restore-project.json",
+          "bazel-out/aarch64-fastbuild/bin/upstream/Microsoft.Extensions.ObjectPool_net10.0.runtime"
+        ]
+      ]
+    },
+    {
+      "case": "bazel-revert",
+      "seconds": 0.764151666999993,
+      "exitCode": 0,
+      "assemblyActionsExecuted": 1,
+      "assemblyActionCacheHits": 0,
+      "executedOutputs": [
+        [
+          "bazel-out/aarch64-fastbuild/bin/upstream/Microsoft.Extensions.ObjectPool_net10.0.diagnostics",
+          "bazel-out/aarch64-fastbuild/bin/upstream/Microsoft.Extensions.ObjectPool_net10.0.reference/Microsoft.Extensions.ObjectPool.dll",
+          "bazel-out/aarch64-fastbuild/bin/upstream/Microsoft.Extensions.ObjectPool_net10.0.restore-project.json",
+          "bazel-out/aarch64-fastbuild/bin/upstream/Microsoft.Extensions.ObjectPool_net10.0.runtime"
+        ]
+      ]
+    }
+  ],
+  "measurementNotes": [
+    "Raw and Bazel run serially in equivalent 4 CPU / 8 GiB Linux VMs.",
+    "Clean-output and edit cases are single successful observations; no-op values have three samples.",
+    "Tools and package downloads are warm; Bazel clean-output includes locked package extraction.",
+    "Cold Bazel execution logging is disabled; no-op/edit logs are unsorted and streamed.",
+    "Failed heap-exhaustion and host-disk-exhaustion runs are excluded."
+  ],
+  "frameworkDistribution": {
+    "netstandard2.0": 30,
+    "net10.0": 212,
+    "net462": 23,
+    "net472": 7,
+    "netstandard2.1": 3
+  },
+  "lockedArchives": 274,
+  "remoteCache": {
+    "server": "bazel-remote 2.6.2",
+    "protocol": "HTTP",
+    "producerWorkspace": "/work/bazel",
+    "consumerWorkspace": "/consumer/project",
+    "independentContainers": true,
+    "producerRemovedBeforeConsumer": true,
+    "consumerUploadsEnabled": false,
+    "consumerLocalActionCacheEmpty": true,
+    "consumerWallSeconds": 29.432981805000004,
+    "consumerBazelReportedSeconds": 23.011,
+    "assemblyActions": 278,
+    "assemblyRemoteCacheHits": 278,
+    "assemblyExecutions": 0,
+    "totalRemoteCacheHits": 578,
+    "declaredOutputFilesCompared": 15733,
+    "allComparedBytesMatch": true,
+    "excludedProducerParameterInputs": 275
+  }
+}

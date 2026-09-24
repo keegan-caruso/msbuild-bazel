@@ -1,0 +1,55 @@
+[
+  {
+    "case": "initial",
+    "output": "1.2.2-beta+83f371ac31\n1.2.0.0\n1.2.2-beta",
+    "referenceHash": "a5c562725f1d637f04b0ccbdb382f833ee4a342d69de60683549b25bd7d27ece",
+    "properties": 25,
+    "gitVisibleToCompilation": false
+  },
+  {
+    "case": "unchanged",
+    "output": "1.2.2-beta+83f371ac31\n1.2.0.0\n1.2.2-beta",
+    "referenceHash": "a5c562725f1d637f04b0ccbdb382f833ee4a342d69de60683549b25bd7d27ece",
+    "properties": 25,
+    "gitVisibleToCompilation": false
+  },
+  {
+    "case": "new-commit",
+    "output": "1.2.3-beta+d0fc660924\n1.2.0.0\n1.2.3-beta",
+    "referenceHash": "8ef2eb3274724f0b0ce7a5efe1ca552c8efad7418dced911e7991ae8ae26b477",
+    "properties": 25,
+    "gitVisibleToCompilation": false
+  },
+  {
+    "case": "branch-switch",
+    "output": "1.2.3-beta+d0fc660924\n1.2.0.0\n1.2.3-beta-gd0fc660924",
+    "referenceHash": "8ef2eb3274724f0b0ce7a5efe1ca552c8efad7418dced911e7991ae8ae26b477",
+    "properties": 25,
+    "gitVisibleToCompilation": false
+  },
+  {
+    "case": "public-release",
+    "output": "1.2.3-beta+d0fc660924\n1.2.0.0\n1.2.3-beta",
+    "referenceHash": "8ef2eb3274724f0b0ce7a5efe1ca552c8efad7418dced911e7991ae8ae26b477",
+    "properties": 25,
+    "gitVisibleToCompilation": false
+  },
+  {
+    "case": "policy-edit",
+    "output": "2.1.0-beta+d0fc660924\n2.1.0.0\n2.1.0-beta-gd0fc660924",
+    "referenceHash": "62f38bd71e18a48bf7b8627f7c33301cfcabcd48532c27336b5f2d04775d5a30",
+    "properties": 25,
+    "gitVisibleToCompilation": false
+  },
+  {
+    "case": "inherited-policy",
+    "output": "2.1.0-beta+d0fc660924\n2.1.0.0\n2.1.0-beta-gd0fc660924",
+    "referenceHash": "62f38bd71e18a48bf7b8627f7c33301cfcabcd48532c27336b5f2d04775d5a30",
+    "properties": 25,
+    "gitVisibleToCompilation": false
+  },
+  {
+    "case": "deleted-git-producer-cache-recovery",
+    "cacheHit": true
+  }
+]

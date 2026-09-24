@@ -1,0 +1,915 @@
+{
+  "platform": "Linux ARM64",
+  "sdk": "10.0.400",
+  "bazel": [
+    "9.2.0",
+    "8.8.0"
+  ],
+  "synthetic": {
+    "mtp": [
+      {
+        "case": "pass",
+        "exit": 0,
+        "tests": 4,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 1
+      },
+      {
+        "case": "failure",
+        "exit": 3,
+        "tests": 4,
+        "failures": 1,
+        "errors": 0,
+        "skipped": 1
+      },
+      {
+        "case": "crash",
+        "exit": 3,
+        "tests": 1,
+        "failures": 0,
+        "errors": 1,
+        "skipped": 0
+      },
+      {
+        "case": "filter",
+        "exit": 0,
+        "tests": 1,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "case": "empty",
+        "exit": 3,
+        "tests": 1,
+        "failures": 0,
+        "errors": 1,
+        "skipped": 0
+      },
+      {
+        "case": "timeout",
+        "exit": 3,
+        "tests": 1,
+        "failures": 0,
+        "errors": 1,
+        "skipped": 0
+      },
+      {
+        "case": "recovered",
+        "exit": 0,
+        "tests": 4,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 1
+      }
+    ],
+    "vstest": [
+      {
+        "case": "Xunit-pass",
+        "exit": 0,
+        "tests": 4,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 1
+      },
+      {
+        "case": "Xunit-filter",
+        "exit": 0,
+        "tests": 1,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "case": "Xunit-failure",
+        "exit": 3,
+        "tests": 4,
+        "failures": 1,
+        "errors": 0,
+        "skipped": 1
+      },
+      {
+        "case": "Xunit-empty",
+        "exit": 3,
+        "tests": 1,
+        "failures": 0,
+        "errors": 1,
+        "skipped": 0
+      },
+      {
+        "case": "Nunit-pass",
+        "exit": 0,
+        "tests": 4,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 1
+      },
+      {
+        "case": "Nunit-filter",
+        "exit": 0,
+        "tests": 1,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "case": "Nunit-failure",
+        "exit": 3,
+        "tests": 4,
+        "failures": 1,
+        "errors": 0,
+        "skipped": 1
+      },
+      {
+        "case": "Nunit-empty",
+        "exit": 3,
+        "tests": 1,
+        "failures": 0,
+        "errors": 1,
+        "skipped": 0
+      },
+      {
+        "case": "Mstest-pass",
+        "exit": 0,
+        "tests": 4,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 1
+      },
+      {
+        "case": "Mstest-filter",
+        "exit": 0,
+        "tests": 1,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "case": "Mstest-failure",
+        "exit": 3,
+        "tests": 4,
+        "failures": 1,
+        "errors": 0,
+        "skipped": 1
+      },
+      {
+        "case": "Mstest-empty",
+        "exit": 3,
+        "tests": 1,
+        "failures": 0,
+        "errors": 1,
+        "skipped": 0
+      }
+    ],
+    "cache": [
+      {
+        "case": "cache-seed",
+        "status": "PASSED",
+        "cachedLocally": false,
+        "cachedRemotely": false,
+        "strategy": "linux-sandbox",
+        "actions": {
+          "FileWrite": 19,
+          "MSBuildNugetExtract": 14,
+          "MSBuildAssembly": 2,
+          "SymlinkTree": 1,
+          "RepoMappingManifest": 1,
+          "SourceSymlinkManifest": 1,
+          "TestRunner": 1,
+          "BazelWorkspaceStatusAction": 1,
+          "RunfilesTree": 1,
+          "ExecutableSymlink": 0
+        },
+        "runners": {
+          "total": 41,
+          "internal": 24,
+          "linux-sandbox": 15,
+          "worker": 2
+        }
+      },
+      {
+        "case": "unchanged",
+        "status": "PASSED",
+        "cachedLocally": true,
+        "cachedRemotely": false,
+        "strategy": null,
+        "actions": {
+          "BazelWorkspaceStatusAction": 1,
+          "MSBuildAssembly": 0,
+          "SymlinkTree": 0,
+          "RepoMappingManifest": 0,
+          "SourceSymlinkManifest": 0,
+          "TestRunner": 0,
+          "FileWrite": 0,
+          "ExecutableSymlink": 0,
+          "RunfilesTree": 0,
+          "MSBuildNugetExtract": 0
+        },
+        "runners": {
+          "total": 1,
+          "internal": 1
+        }
+      },
+      {
+        "case": "body-edit",
+        "status": "FAILED",
+        "cachedLocally": false,
+        "cachedRemotely": false,
+        "strategy": "linux-sandbox",
+        "actions": {
+          "MSBuildAssembly": 1,
+          "TestRunner": 1,
+          "BazelWorkspaceStatusAction": 1,
+          "RunfilesTree": 1,
+          "SymlinkTree": 0,
+          "RepoMappingManifest": 0,
+          "SourceSymlinkManifest": 0,
+          "FileWrite": 0,
+          "ExecutableSymlink": 0,
+          "MSBuildNugetExtract": 0
+        },
+        "runners": {
+          "total": 4,
+          "internal": 2,
+          "linux-sandbox": 1,
+          "worker": 1
+        }
+      },
+      {
+        "case": "body-recovered",
+        "status": "PASSED",
+        "cachedLocally": false,
+        "cachedRemotely": true,
+        "strategy": "remote cache hit",
+        "actions": {
+          "MSBuildAssembly": 1,
+          "TestRunner": 1,
+          "BazelWorkspaceStatusAction": 1,
+          "RunfilesTree": 1,
+          "SymlinkTree": 0,
+          "RepoMappingManifest": 0,
+          "SourceSymlinkManifest": 0,
+          "FileWrite": 0,
+          "ExecutableSymlink": 0,
+          "MSBuildNugetExtract": 0
+        },
+        "runners": {
+          "total": 4,
+          "remote cache hit": 2,
+          "internal": 2
+        }
+      },
+      {
+        "case": "data-edit",
+        "status": "FAILED",
+        "cachedLocally": false,
+        "cachedRemotely": false,
+        "strategy": "linux-sandbox",
+        "actions": {
+          "TestRunner": 1,
+          "BazelWorkspaceStatusAction": 1,
+          "RunfilesTree": 1,
+          "MSBuildAssembly": 0,
+          "SymlinkTree": 0,
+          "RepoMappingManifest": 0,
+          "SourceSymlinkManifest": 0,
+          "FileWrite": 0,
+          "ExecutableSymlink": 0,
+          "MSBuildNugetExtract": 0
+        },
+        "runners": {
+          "total": 3,
+          "internal": 2,
+          "linux-sandbox": 1
+        }
+      },
+      {
+        "case": "data-recovered",
+        "status": "PASSED",
+        "cachedLocally": false,
+        "cachedRemotely": true,
+        "strategy": "remote cache hit",
+        "actions": {
+          "TestRunner": 1,
+          "BazelWorkspaceStatusAction": 1,
+          "RunfilesTree": 1,
+          "MSBuildAssembly": 0,
+          "SymlinkTree": 0,
+          "RepoMappingManifest": 0,
+          "SourceSymlinkManifest": 0,
+          "FileWrite": 0,
+          "ExecutableSymlink": 0,
+          "MSBuildNugetExtract": 0
+        },
+        "runners": {
+          "total": 3,
+          "remote cache hit": 1,
+          "internal": 2
+        }
+      },
+      {
+        "case": "settings-edit",
+        "status": "FAILED",
+        "cachedLocally": false,
+        "cachedRemotely": false,
+        "strategy": "linux-sandbox",
+        "actions": {
+          "TestRunner": 1,
+          "BazelWorkspaceStatusAction": 1,
+          "RunfilesTree": 1,
+          "MSBuildAssembly": 0,
+          "SymlinkTree": 0,
+          "RepoMappingManifest": 0,
+          "SourceSymlinkManifest": 0,
+          "FileWrite": 0,
+          "ExecutableSymlink": 0,
+          "MSBuildNugetExtract": 0
+        },
+        "runners": {
+          "total": 3,
+          "internal": 2,
+          "linux-sandbox": 1
+        }
+      },
+      {
+        "case": "settings-recovered",
+        "status": "PASSED",
+        "cachedLocally": false,
+        "cachedRemotely": true,
+        "strategy": "remote cache hit",
+        "actions": {
+          "TestRunner": 1,
+          "BazelWorkspaceStatusAction": 1,
+          "RunfilesTree": 1,
+          "MSBuildAssembly": 0,
+          "SymlinkTree": 0,
+          "RepoMappingManifest": 0,
+          "SourceSymlinkManifest": 0,
+          "FileWrite": 0,
+          "ExecutableSymlink": 0,
+          "MSBuildNugetExtract": 0
+        },
+        "runners": {
+          "total": 3,
+          "remote cache hit": 1,
+          "internal": 2
+        }
+      },
+      {
+        "case": "filter-only",
+        "status": "PASSED",
+        "cachedLocally": false,
+        "cachedRemotely": false,
+        "strategy": "linux-sandbox",
+        "actions": {
+          "TestRunner": 1,
+          "BazelWorkspaceStatusAction": 1,
+          "MSBuildAssembly": 0,
+          "SymlinkTree": 0,
+          "RepoMappingManifest": 0,
+          "SourceSymlinkManifest": 0,
+          "FileWrite": 0,
+          "ExecutableSymlink": 0,
+          "RunfilesTree": 0,
+          "MSBuildNugetExtract": 0
+        },
+        "runners": {
+          "total": 2,
+          "internal": 1,
+          "linux-sandbox": 1
+        }
+      },
+      {
+        "case": "final-seed",
+        "status": "PASSED",
+        "cachedLocally": false,
+        "cachedRemotely": true,
+        "strategy": "remote cache hit",
+        "actions": {
+          "TestRunner": 1,
+          "BazelWorkspaceStatusAction": 1,
+          "MSBuildAssembly": 0,
+          "SymlinkTree": 0,
+          "RepoMappingManifest": 0,
+          "SourceSymlinkManifest": 0,
+          "FileWrite": 0,
+          "ExecutableSymlink": 0,
+          "RunfilesTree": 0,
+          "MSBuildNugetExtract": 0
+        },
+        "runners": {
+          "total": 2,
+          "remote cache hit": 1,
+          "internal": 1
+        }
+      }
+    ],
+    "controls": [
+      {
+        "case": "extra-baseline",
+        "exit": 0,
+        "actions": {
+          "FileWrite": 19,
+          "MSBuildNugetExtract": 14,
+          "MSBuildAssembly": 2,
+          "SymlinkTree": 1,
+          "RepoMappingManifest": 1,
+          "SourceSymlinkManifest": 1,
+          "TestRunner": 1,
+          "BazelWorkspaceStatusAction": 1,
+          "RunfilesTree": 1,
+          "ExecutableSymlink": 0
+        }
+      },
+      {
+        "case": "mtp-allow-empty",
+        "exit": 0,
+        "actions": {
+          "TestRunner": 1,
+          "BazelWorkspaceStatusAction": 1,
+          "FileWrite": 1,
+          "RunfilesTree": 1,
+          "MSBuildAssembly": 0,
+          "SymlinkTree": 0,
+          "RepoMappingManifest": 0,
+          "SourceSymlinkManifest": 0,
+          "ExecutableSymlink": 0,
+          "MSBuildNugetExtract": 0
+        }
+      },
+      {
+        "case": "missing-runner",
+        "exit": 3,
+        "actions": {
+          "TestRunner": 1,
+          "BazelWorkspaceStatusAction": 1,
+          "FileWrite": 1,
+          "RunfilesTree": 1,
+          "MSBuildAssembly": 0,
+          "SymlinkTree": 0,
+          "RepoMappingManifest": 0,
+          "SourceSymlinkManifest": 0,
+          "ExecutableSymlink": 0,
+          "MSBuildNugetExtract": 0
+        }
+      },
+      {
+        "case": "missing-adapter",
+        "exit": 3,
+        "actions": {
+          "TestRunner": 1,
+          "BazelWorkspaceStatusAction": 1,
+          "FileWrite": 1,
+          "RunfilesTree": 1,
+          "MSBuildAssembly": 0,
+          "SymlinkTree": 0,
+          "RepoMappingManifest": 0,
+          "SourceSymlinkManifest": 0,
+          "ExecutableSymlink": 0,
+          "MSBuildNugetExtract": 0
+        }
+      },
+      {
+        "case": "no-shards",
+        "exit": 3,
+        "actions": {
+          "TestRunner": 2,
+          "BazelWorkspaceStatusAction": 1,
+          "FileWrite": 1,
+          "RunfilesTree": 1,
+          "MSBuildAssembly": 0,
+          "SymlinkTree": 0,
+          "RepoMappingManifest": 0,
+          "SourceSymlinkManifest": 0,
+          "ExecutableSymlink": 0,
+          "MSBuildNugetExtract": 0
+        }
+      },
+      {
+        "case": "extra-recovered",
+        "exit": 0,
+        "actions": {
+          "TestRunner": 1,
+          "BazelWorkspaceStatusAction": 1,
+          "MSBuildAssembly": 0,
+          "SymlinkTree": 0,
+          "RepoMappingManifest": 0,
+          "SourceSymlinkManifest": 0,
+          "FileWrite": 0,
+          "ExecutableSymlink": 0,
+          "RunfilesTree": 0,
+          "MSBuildNugetExtract": 0
+        }
+      }
+    ],
+    "mtp88": [
+      {
+        "case": "pass",
+        "exit": 0,
+        "tests": 4,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 1
+      },
+      {
+        "case": "failure",
+        "exit": 3,
+        "tests": 4,
+        "failures": 1,
+        "errors": 0,
+        "skipped": 1
+      },
+      {
+        "case": "crash",
+        "exit": 3,
+        "tests": 1,
+        "failures": 0,
+        "errors": 1,
+        "skipped": 0
+      },
+      {
+        "case": "filter",
+        "exit": 0,
+        "tests": 1,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "case": "empty",
+        "exit": 3,
+        "tests": 1,
+        "failures": 0,
+        "errors": 1,
+        "skipped": 0
+      },
+      {
+        "case": "timeout",
+        "exit": 3,
+        "tests": 1,
+        "failures": 0,
+        "errors": 1,
+        "skipped": 0
+      },
+      {
+        "case": "recovered",
+        "exit": 0,
+        "tests": 4,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 1
+      }
+    ],
+    "vstest88": [
+      {
+        "case": "Xunit-pass",
+        "exit": 0,
+        "tests": 4,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 1
+      },
+      {
+        "case": "Xunit-filter",
+        "exit": 0,
+        "tests": 1,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "case": "Xunit-failure",
+        "exit": 3,
+        "tests": 4,
+        "failures": 1,
+        "errors": 0,
+        "skipped": 1
+      },
+      {
+        "case": "Xunit-empty",
+        "exit": 3,
+        "tests": 1,
+        "failures": 0,
+        "errors": 1,
+        "skipped": 0
+      },
+      {
+        "case": "Nunit-pass",
+        "exit": 0,
+        "tests": 4,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 1
+      },
+      {
+        "case": "Nunit-filter",
+        "exit": 0,
+        "tests": 1,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "case": "Nunit-failure",
+        "exit": 3,
+        "tests": 4,
+        "failures": 1,
+        "errors": 0,
+        "skipped": 1
+      },
+      {
+        "case": "Nunit-empty",
+        "exit": 3,
+        "tests": 1,
+        "failures": 0,
+        "errors": 1,
+        "skipped": 0
+      },
+      {
+        "case": "Mstest-pass",
+        "exit": 0,
+        "tests": 4,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 1
+      },
+      {
+        "case": "Mstest-filter",
+        "exit": 0,
+        "tests": 1,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "case": "Mstest-failure",
+        "exit": 3,
+        "tests": 4,
+        "failures": 1,
+        "errors": 0,
+        "skipped": 1
+      },
+      {
+        "case": "Mstest-empty",
+        "exit": 3,
+        "tests": 1,
+        "failures": 0,
+        "errors": 1,
+        "skipped": 0
+      }
+    ],
+    "independentCache": [
+      {
+        "case": "independent-cache",
+        "status": "PASSED",
+        "cachedLocally": false,
+        "cachedRemotely": true,
+        "strategy": "remote cache hit",
+        "actions": {
+          "FileWrite": 19,
+          "MSBuildNugetExtract": 14,
+          "MSBuildAssembly": 2,
+          "SymlinkTree": 1,
+          "RepoMappingManifest": 1,
+          "SourceSymlinkManifest": 1,
+          "TestRunner": 1,
+          "BazelWorkspaceStatusAction": 1,
+          "RunfilesTree": 1,
+          "ExecutableSymlink": 0
+        },
+        "runners": {
+          "total": 41,
+          "remote cache hit": 17,
+          "internal": 24
+        }
+      }
+    ]
+  },
+  "realProjects": [
+    {
+      "repository": "https://github.com/serilog/serilog.git",
+      "revision": "bebc7719004f76187ae72e64ce138ec2540f2070",
+      "framework": "net10.0",
+      "results": [
+        {
+          "project": "test/Serilog.Tests/Serilog.Tests.csproj",
+          "cases": 816,
+          "outcomes": {
+            "Passed": 815,
+            "Failed": 1
+          },
+          "sameNamesAndOutcomes": false,
+          "rawOutcomes": {
+            "Passed": 816
+          }
+        }
+      ]
+    },
+    {
+      "repository": "https://github.com/spectreconsole/spectre.console.git",
+      "revision": "76b673337fe9d03ec41d0498987e53c4d5e7b33a",
+      "framework": "net10.0",
+      "results": [
+        {
+          "project": "src/Spectre.Console.Ansi.Tests/Spectre.Console.Ansi.Tests.csproj",
+          "cases": 454,
+          "outcomes": {
+            "Passed": 454
+          },
+          "sameNamesAndOutcomes": true,
+          "rawOutcomes": {
+            "Passed": 454
+          }
+        },
+        {
+          "project": "src/Spectre.Console.Tests/Spectre.Console.Tests.csproj",
+          "cases": 742,
+          "outcomes": {
+            "Failed": 250,
+            "Passed": 492
+          },
+          "sameNamesAndOutcomes": false,
+          "rawOutcomes": {
+            "Passed": 742
+          }
+        }
+      ]
+    },
+    {
+      "repository": "https://github.com/dotnet/aspnetcore",
+      "revision": "7387de91234d3ef751fa50b3d1bfede4130213ff",
+      "framework": "net10.0",
+      "exitCode": 3,
+      "results": [
+        {
+          "name": "Microsoft.Net.Http.Headers.Tests_net10.0",
+          "project": "src/Http/Headers/test/Microsoft.Net.Http.Headers.Tests.csproj",
+          "assembly": "Microsoft.Net.Http.Headers.Tests",
+          "tests": 1796,
+          "outcomes": {
+            "Passed": 1796
+          },
+          "rawOutcomes": {
+            "Passed": 1796
+          },
+          "sameNamesAndOutcomes": true
+        },
+        {
+          "name": "Microsoft.AspNetCore.Http.Abstractions.Tests_net10.0",
+          "project": "src/Http/Http.Abstractions/test/Microsoft.AspNetCore.Http.Abstractions.Tests.csproj",
+          "assembly": "Microsoft.AspNetCore.Http.Abstractions.Tests",
+          "tests": 714,
+          "outcomes": {
+            "Passed": 714
+          },
+          "rawOutcomes": {
+            "Passed": 714
+          },
+          "sameNamesAndOutcomes": true
+        },
+        {
+          "name": "Microsoft.AspNetCore.Http.Extensions.Tests_net10.0",
+          "project": "src/Http/Http.Extensions/test/Microsoft.AspNetCore.Http.Extensions.Tests.csproj",
+          "assembly": "Microsoft.AspNetCore.Http.Extensions.Tests",
+          "tests": 2098,
+          "outcomes": {
+            "Passed": 2043,
+            "Failed": 53,
+            "NotExecuted": 2
+          },
+          "rawOutcomes": {
+            "Passed": 2096,
+            "NotExecuted": 2
+          },
+          "sameNamesAndOutcomes": false
+        },
+        {
+          "name": "Microsoft.AspNetCore.Http.Results.Tests_net10.0",
+          "project": "src/Http/Http.Results/test/Microsoft.AspNetCore.Http.Results.Tests.csproj",
+          "assembly": "Microsoft.AspNetCore.Http.Results.Tests",
+          "tests": 1052,
+          "outcomes": {
+            "Passed": 1050,
+            "NotExecuted": 2
+          },
+          "rawOutcomes": {
+            "Passed": 1050,
+            "NotExecuted": 2
+          },
+          "sameNamesAndOutcomes": true
+        },
+        {
+          "name": "Microsoft.AspNetCore.Http.Tests_net10.0",
+          "project": "src/Http/Http/test/Microsoft.AspNetCore.Http.Tests.csproj",
+          "assembly": "Microsoft.AspNetCore.Http.Tests",
+          "tests": 265,
+          "outcomes": {
+            "Passed": 258,
+            "NotExecuted": 7
+          },
+          "rawOutcomes": {
+            "Passed": 258,
+            "NotExecuted": 7
+          },
+          "sameNamesAndOutcomes": true
+        },
+        {
+          "name": "Microsoft.AspNetCore.Mvc.Routing.Abstractions.Tests_net10.0",
+          "project": "src/Http/Routing.Abstractions/test/Microsoft.AspNetCore.Mvc.Routing.Abstractions.Tests.csproj",
+          "assembly": "Microsoft.AspNetCore.Mvc.Routing.Abstractions.Tests",
+          "tests": 12,
+          "outcomes": {
+            "Passed": 12
+          },
+          "rawOutcomes": {
+            "Passed": 12
+          },
+          "sameNamesAndOutcomes": true
+        },
+        {
+          "name": "Microsoft.AspNetCore.WebUtilities.Tests_net10.0",
+          "project": "src/Http/WebUtilities/test/Microsoft.AspNetCore.WebUtilities.Tests.csproj",
+          "assembly": "Microsoft.AspNetCore.WebUtilities.Tests",
+          "tests": 478,
+          "outcomes": {
+            "Passed": 478
+          },
+          "rawOutcomes": {
+            "Passed": 478
+          },
+          "sameNamesAndOutcomes": true
+        },
+        {
+          "name": "Microsoft.AspNetCore.DataProtection.Abstractions.Tests_net10.0",
+          "project": "src/DataProtection/Abstractions/test/Microsoft.AspNetCore.DataProtection.Abstractions.Tests.csproj",
+          "assembly": "Microsoft.AspNetCore.DataProtection.Abstractions.Tests",
+          "tests": 27,
+          "outcomes": {
+            "Passed": 27
+          },
+          "rawOutcomes": {
+            "Passed": 27
+          },
+          "sameNamesAndOutcomes": true
+        },
+        {
+          "name": "Microsoft.AspNetCore.Cryptography.Internal.Tests_net10.0",
+          "project": "src/DataProtection/Cryptography.Internal/test/Microsoft.AspNetCore.Cryptography.Internal.Tests.csproj",
+          "assembly": "Microsoft.AspNetCore.Cryptography.Internal.Tests",
+          "tests": 38,
+          "outcomes": {
+            "Passed": 29,
+            "NotExecuted": 9
+          },
+          "rawOutcomes": {
+            "Passed": 29,
+            "NotExecuted": 9
+          },
+          "sameNamesAndOutcomes": true
+        },
+        {
+          "name": "Microsoft.AspNetCore.Cryptography.KeyDerivation.Tests_net10.0",
+          "project": "src/DataProtection/Cryptography.KeyDerivation/test/Microsoft.AspNetCore.Cryptography.KeyDerivation.Tests.csproj",
+          "assembly": "Microsoft.AspNetCore.Cryptography.KeyDerivation.Tests",
+          "tests": 43,
+          "outcomes": {
+            "NotExecuted": 20,
+            "Passed": 23
+          },
+          "rawOutcomes": {
+            "NotExecuted": 20,
+            "Passed": 23
+          },
+          "sameNamesAndOutcomes": true
+        },
+        {
+          "name": "Microsoft.AspNetCore.RequestDecompression.Tests_net10.0",
+          "project": "src/Middleware/RequestDecompression/test/Microsoft.AspNetCore.RequestDecompression.Tests.csproj",
+          "assembly": "Microsoft.AspNetCore.RequestDecompression.Tests",
+          "tests": 43,
+          "outcomes": {
+            "Passed": 43
+          },
+          "rawOutcomes": {
+            "Passed": 43
+          },
+          "sameNamesAndOutcomes": true
+        },
+        {
+          "name": "Microsoft.AspNetCore.ResponseCompression.Tests_net10.0",
+          "project": "src/Middleware/ResponseCompression/test/Microsoft.AspNetCore.ResponseCompression.Tests.csproj",
+          "assembly": "Microsoft.AspNetCore.ResponseCompression.Tests",
+          "tests": 126,
+          "outcomes": {
+            "Passed": 126
+          },
+          "rawOutcomes": {
+            "Passed": 126
+          },
+          "sameNamesAndOutcomes": true
+        }
+      ]
+    }
+  ]
+}

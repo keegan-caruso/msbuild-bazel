@@ -1,0 +1,110 @@
+{
+  "platform": "Ubuntu 22.04 ARM64; two Apple containers on one Mac",
+  "sdk": "10.0.400",
+  "bazel": "9.2.0",
+  "cache": "bazel-remote 2.6.2 over HTTP",
+  "producerWorkspace": "/tmp/avalonia-real-1/bazel",
+  "consumerWorkspace": "/work/relocated-avalonia",
+  "seedSeconds": 49.25633077200018,
+  "baselineSeconds": [
+    8.958653004000013,
+    9.866356795999991,
+    9.282046503999936
+  ],
+  "baselineMedianSeconds": 9.282046503999936,
+  "baselineActions": 13,
+  "baselineExecuted": 0,
+  "artifactCount": 254,
+  "artifactDigest": "a80a9221fdfc16da48f93b28118665a3887fd353c3812fcf2717fbc203ad5491",
+  "cases": {
+    "idl": {
+      "firstSeconds": 9.128497087000028,
+      "firstExecuted": [
+        "//upstream:cache_idl"
+      ],
+      "firstCacheHits": 12,
+      "independentExecutionBytesEqual": true,
+      "recoverySeconds": 9.288438754000026,
+      "recoveryActions": 13,
+      "recoveryExecuted": 0,
+      "recoveryBytesEqual": true,
+      "runtime": {
+        "type": "Avalonia.Themes.Simple.SimpleTheme",
+        "count": 1,
+        "resources": [
+          "!AvaloniaResources"
+        ]
+      },
+      "artifactDigest": "9d33b1da8b9ed46c4b97a3b235fc45e5fe0dc9f6337fa389457b27d4b97d9a09",
+      "changedArtifacts": [
+        "aarch64-fastbuild/bin/upstream/cache_idl.generated/Interop.Generated.cs"
+      ]
+    },
+    "xaml": {
+      "firstSeconds": 10.922049296000012,
+      "firstExecuted": [
+        "//upstream:Avalonia.Themes.Simple"
+      ],
+      "firstCacheHits": 12,
+      "independentExecutionBytesEqual": true,
+      "recoverySeconds": 8.413508421000074,
+      "recoveryActions": 13,
+      "recoveryExecuted": 0,
+      "recoveryBytesEqual": true,
+      "runtime": {
+        "type": "Avalonia.Themes.Simple.SimpleTheme",
+        "count": 2,
+        "resources": [
+          "!AvaloniaResources"
+        ]
+      },
+      "artifactDigest": "ee3350b76b3a78f69f46efde7c1a6d2f32b4092105d024705d51213da4341993",
+      "changedArtifacts": [
+        "aarch64-fastbuild/bin/upstream/Avalonia.Themes.Simple.runtime/Avalonia.Themes.Simple.dll",
+        "aarch64-fastbuild/bin/upstream/Avalonia.Themes.Simple.runtime/Avalonia.Themes.Simple.pdb"
+      ]
+    },
+    "tool": {
+      "firstSeconds": 22.936475594,
+      "firstExecuted": [
+        "//upstream:Avalonia.Build.Tasks",
+        "//upstream:Avalonia.Base",
+        "//upstream:Avalonia.Dialogs",
+        "//upstream:Avalonia.Themes.Simple"
+      ],
+      "firstCacheHits": 9,
+      "independentExecutionBytesEqual": true,
+      "recoverySeconds": 8.661101712000004,
+      "recoveryActions": 13,
+      "recoveryExecuted": 0,
+      "recoveryBytesEqual": true,
+      "runtime": {
+        "type": "Avalonia.Themes.Simple.SimpleTheme",
+        "count": 1,
+        "resources": [
+          "!AvaloniaResources"
+        ]
+      },
+      "artifactDigest": "2d049733b82396af0d3d8d307ac14c35009325eed5266cb5751235eeb958af87",
+      "changedArtifacts": [
+        "aarch64-fastbuild/bin/upstream/Avalonia.Dialogs.runtime/Avalonia.Dialogs.dll",
+        "aarch64-fastbuild/bin/upstream/Avalonia.Dialogs.runtime/Avalonia.Dialogs.pdb",
+        "aarch64-fastbuild/bin/upstream/Avalonia.Themes.Simple.runtime/Avalonia.Themes.Simple.dll",
+        "aarch64-fastbuild/bin/upstream/Avalonia.Themes.Simple.runtime/Avalonia.Themes.Simple.pdb",
+        "aarch64-opt-exec/bin/upstream/Avalonia.Build.Tasks.runtime/Avalonia.Build.Tasks.dll",
+        "aarch64-opt-exec/bin/upstream/Avalonia.Build.Tasks.runtime/Avalonia.Build.Tasks.pdb"
+      ]
+    }
+  },
+  "cacheStatus": {
+    "CurrSize": 193400832,
+    "UncompressedSize": 417509376,
+    "ReservedSize": 0,
+    "MaxSize": 4294967296,
+    "NumFiles": 3119,
+    "ServerTime": 1789941934,
+    "GitCommit": "3cb3084b57542c260860a484afcfe69557f6b27c",
+    "GitTags": "v2.6.2",
+    "NumGoroutines": 110
+  }
+}

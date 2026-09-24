@@ -1,0 +1,475 @@
+{
+  "platform": "linux-arm64",
+  "cpus": 8,
+  "memoryGiB": 16,
+  "bazel": "9.2.0",
+  "sdk": "10.0.400",
+  "runtimeCommit": "60629d14374c56f1cb51819049ad1fa529307f8d",
+  "target": "//upstream:src_libraries_System.IO.Pipelines_src_System.IO.Pipelines_net10.0",
+  "buildTargetCount": 7,
+  "testsExecuted": 0,
+  "repetitionsPerMode": 3,
+  "summary": {
+    "batch": {
+      "noop": {
+        "wallMedianSeconds": 5.581,
+        "bazelMedianSeconds": 5.215
+      },
+      "edit": {
+        "wallMedianSeconds": 10.235,
+        "bazelMedianSeconds": 9.729
+      }
+    },
+    "server": {
+      "noop": {
+        "wallMedianSeconds": 0.167,
+        "bazelMedianSeconds": 0.125
+      },
+      "edit": {
+        "wallMedianSeconds": 3.426,
+        "bazelMedianSeconds": 3.378
+      }
+    }
+  },
+  "measurements": [
+    {
+      "mode": "batch",
+      "case": "prime",
+      "wallSeconds": 5.67,
+      "bazelSeconds": 5.185,
+      "criticalPathSeconds": 0.26,
+      "compiled": []
+    },
+    {
+      "mode": "batch",
+      "case": "noop-0",
+      "wallSeconds": 5.421,
+      "bazelSeconds": 5.075,
+      "criticalPathSeconds": 0.12,
+      "compiled": []
+    },
+    {
+      "mode": "batch",
+      "case": "edit-0",
+      "wallSeconds": 9.586,
+      "bazelSeconds": 9.041,
+      "criticalPathSeconds": 4.6,
+      "compiled": [
+        "//upstream:src_libraries_System.IO.Pipelines_src_System.IO.Pipelines_net10.0"
+      ]
+    },
+    {
+      "mode": "batch",
+      "case": "noop-1",
+      "wallSeconds": 5.832,
+      "bazelSeconds": 5.448,
+      "criticalPathSeconds": 0.13,
+      "compiled": []
+    },
+    {
+      "mode": "batch",
+      "case": "edit-1",
+      "wallSeconds": 10.235,
+      "bazelSeconds": 9.729,
+      "criticalPathSeconds": 4.68,
+      "compiled": [
+        "//upstream:src_libraries_System.IO.Pipelines_src_System.IO.Pipelines_net10.0"
+      ]
+    },
+    {
+      "mode": "batch",
+      "case": "noop-2",
+      "wallSeconds": 5.581,
+      "bazelSeconds": 5.215,
+      "criticalPathSeconds": 0.12,
+      "compiled": []
+    },
+    {
+      "mode": "batch",
+      "case": "edit-2",
+      "wallSeconds": 10.456,
+      "bazelSeconds": 9.886,
+      "criticalPathSeconds": 4.85,
+      "compiled": [
+        "//upstream:src_libraries_System.IO.Pipelines_src_System.IO.Pipelines_net10.0"
+      ]
+    },
+    {
+      "mode": "batch",
+      "case": "restore",
+      "wallSeconds": 8.226,
+      "bazelSeconds": 7.63,
+      "criticalPathSeconds": 0.98,
+      "compiled": []
+    },
+    {
+      "mode": "server",
+      "case": "prime",
+      "wallSeconds": 6.798,
+      "bazelSeconds": 6.738,
+      "criticalPathSeconds": 0.15,
+      "compiled": []
+    },
+    {
+      "mode": "server",
+      "case": "noop-0",
+      "wallSeconds": 0.216,
+      "bazelSeconds": 0.198,
+      "criticalPathSeconds": 0.0,
+      "compiled": []
+    },
+    {
+      "mode": "server",
+      "case": "edit-0",
+      "wallSeconds": 4.985,
+      "bazelSeconds": 4.821,
+      "criticalPathSeconds": 4.61,
+      "compiled": [
+        "//upstream:src_libraries_System.IO.Pipelines_src_System.IO.Pipelines_net10.0"
+      ]
+    },
+    {
+      "mode": "server",
+      "case": "noop-1",
+      "wallSeconds": 0.167,
+      "bazelSeconds": 0.125,
+      "criticalPathSeconds": 0.0,
+      "compiled": []
+    },
+    {
+      "mode": "server",
+      "case": "edit-1",
+      "wallSeconds": 3.426,
+      "bazelSeconds": 3.378,
+      "criticalPathSeconds": 3.19,
+      "compiled": [
+        "//upstream:src_libraries_System.IO.Pipelines_src_System.IO.Pipelines_net10.0"
+      ]
+    },
+    {
+      "mode": "server",
+      "case": "noop-2",
+      "wallSeconds": 0.117,
+      "bazelSeconds": 0.094,
+      "criticalPathSeconds": 0.0,
+      "compiled": []
+    },
+    {
+      "mode": "server",
+      "case": "edit-2",
+      "wallSeconds": 3.361,
+      "bazelSeconds": 3.275,
+      "criticalPathSeconds": 3.12,
+      "compiled": [
+        "//upstream:src_libraries_System.IO.Pipelines_src_System.IO.Pipelines_net10.0"
+      ]
+    },
+    {
+      "mode": "server",
+      "case": "restore",
+      "wallSeconds": 0.618,
+      "bazelSeconds": 0.535,
+      "criticalPathSeconds": 0.38,
+      "compiled": []
+    }
+  ],
+  "criticalPathComponents": {
+    "batch-edit-0": [
+      {
+        "action": "action 'Writing file upstream/archive_microsoft.net.compilers.toolset_5.0.0-2.25509.106.package.json [for tool]'",
+        "seconds": 0.000248
+      },
+      {
+        "action": "action 'MSBuildNugetExtract upstream/archive_microsoft.net.compilers.toolset_5.0.0-2.25509.106.package [for tool]'",
+        "seconds": 0.013603
+      },
+      {
+        "action": "action 'MSBuildAssembly upstream/src_tools_illink_src_linker_ref_Mono.Linker_net10.0.reference/illink.dll [for tool]'",
+        "seconds": 0.002043
+      },
+      {
+        "action": "action 'MSBuildLayout upstream/src_tools_illink_src_linker_Mono.Linker_net10.0_contract_layout.layout [for tool]'",
+        "seconds": 0.001712
+      },
+      {
+        "action": "action 'MSBuildAssembly upstream/src_tools_illink_src_linker_Mono.Linker_net10.0.reference/illink.dll [for tool]'",
+        "seconds": 0.002483
+      },
+      {
+        "action": "action 'MSBuildAssemblyPair upstream/src_tools_illink_src_linker_Mono.Linker_net10.0_paired.reference/illink.dll [for tool]'",
+        "seconds": 0.001405
+      },
+      {
+        "action": "action 'MSBuildAssembly upstream/src_tools_illink_src_ILLink.Tasks_ILLink.Tasks_net10.0.reference/ILLink.Tasks.dll [for tool]'",
+        "seconds": 0.001802
+      },
+      {
+        "action": "action 'MSBuildAssembly upstream/src_libraries_System.Private.CoreLib_ref_System.Private.CoreLib_net10.0.reference/System.Private.CoreLib.dll'",
+        "seconds": 0.002283
+      },
+      {
+        "action": "action 'MSBuildLayout upstream/src_coreclr_System.Private.CoreLib_System.Private.CoreLib_net10.0_contract_layout.layout'",
+        "seconds": 0.001994
+      },
+      {
+        "action": "action 'MSBuildAssembly upstream/src_coreclr_System.Private.CoreLib_System.Private.CoreLib_net10.0.reference/System.Private.CoreLib.dll'",
+        "seconds": 0.008207
+      },
+      {
+        "action": "action 'MSBuildAssemblyPair upstream/src_coreclr_System.Private.CoreLib_System.Private.CoreLib_net10.0_paired.reference/System.Private.CoreLib.dll'",
+        "seconds": 0.001856
+      },
+      {
+        "action": "action 'MSBuildAssembly upstream/src_libraries_System.Private.Uri_src_System.Private.Uri_net10.0.reference/System.Private.Uri.dll'",
+        "seconds": 0.001777
+      },
+      {
+        "action": "action 'MSBuildAssembly upstream/src_libraries_System.Runtime_src_System.Runtime_net10.0.reference/System.Runtime.dll'",
+        "seconds": 0.004655
+      },
+      {
+        "action": "action 'MSBuildAssemblyPair upstream/src_libraries_System.Runtime_src_System.Runtime_net10.0_paired.reference/System.Runtime.dll'",
+        "seconds": 0.001556
+      },
+      {
+        "action": "action 'MSBuildAssembly upstream/src_libraries_System.IO.Pipelines_src_System.IO.Pipelines_net10.0.reference/System.IO.Pipelines.dll'",
+        "seconds": 4.318952
+      },
+      {
+        "action": "action 'MSBuildAssemblyPair upstream/src_libraries_System.IO.Pipelines_src_System.IO.Pipelines_net10.0_paired.reference/System.IO.Pipelines.dll'",
+        "seconds": 0.00171
+      },
+      {
+        "action": "action 'MSBuildAssembly upstream/src_libraries_System.Text.Json_src_System.Text.Json_net10.0.reference/System.Text.Json.dll'",
+        "seconds": 0.003477
+      },
+      {
+        "action": "action 'MSBuildLayout runtime/tree.layout'",
+        "seconds": 0.198611
+      },
+      {
+        "action": "runfiles for //upstream:src_libraries_System.Linq_tests_System.Linq.Tests_net10.0",
+        "seconds": 0.027724
+      }
+    ],
+    "batch-edit-1": [
+      {
+        "action": "action 'Writing file upstream/archive_microsoft.net.compilers.toolset_5.0.0-2.25509.106.package.json [for tool]'",
+        "seconds": 0.000476
+      },
+      {
+        "action": "action 'MSBuildNugetExtract upstream/archive_microsoft.net.compilers.toolset_5.0.0-2.25509.106.package [for tool]'",
+        "seconds": 0.019965
+      },
+      {
+        "action": "action 'MSBuildAssembly upstream/src_tools_illink_src_linker_ref_Mono.Linker_net10.0.reference/illink.dll [for tool]'",
+        "seconds": 0.002079
+      },
+      {
+        "action": "action 'MSBuildLayout upstream/src_tools_illink_src_linker_Mono.Linker_net10.0_contract_layout.layout [for tool]'",
+        "seconds": 0.00213
+      },
+      {
+        "action": "action 'MSBuildAssembly upstream/src_tools_illink_src_linker_Mono.Linker_net10.0.reference/illink.dll [for tool]'",
+        "seconds": 0.004022
+      },
+      {
+        "action": "action 'MSBuildAssemblyPair upstream/src_tools_illink_src_linker_Mono.Linker_net10.0_paired.reference/illink.dll [for tool]'",
+        "seconds": 0.002404
+      },
+      {
+        "action": "action 'MSBuildAssembly upstream/src_tools_illink_src_ILLink.Tasks_ILLink.Tasks_net10.0.reference/ILLink.Tasks.dll [for tool]'",
+        "seconds": 0.002881
+      },
+      {
+        "action": "action 'MSBuildAssembly upstream/src_libraries_System.Private.CoreLib_ref_System.Private.CoreLib_net10.0.reference/System.Private.CoreLib.dll'",
+        "seconds": 0.002523
+      },
+      {
+        "action": "action 'MSBuildLayout upstream/src_coreclr_System.Private.CoreLib_System.Private.CoreLib_net10.0_contract_layout.layout'",
+        "seconds": 0.002126
+      },
+      {
+        "action": "action 'MSBuildAssembly upstream/src_coreclr_System.Private.CoreLib_System.Private.CoreLib_net10.0.reference/System.Private.CoreLib.dll'",
+        "seconds": 0.008935
+      },
+      {
+        "action": "action 'MSBuildAssemblyPair upstream/src_coreclr_System.Private.CoreLib_System.Private.CoreLib_net10.0_paired.reference/System.Private.CoreLib.dll'",
+        "seconds": 0.002195
+      },
+      {
+        "action": "action 'MSBuildAssembly upstream/src_libraries_System.Private.Uri_src_System.Private.Uri_net10.0.reference/System.Private.Uri.dll'",
+        "seconds": 0.001949
+      },
+      {
+        "action": "action 'MSBuildAssembly upstream/src_libraries_System.Runtime_src_System.Runtime_net10.0.reference/System.Runtime.dll'",
+        "seconds": 0.005681
+      },
+      {
+        "action": "action 'MSBuildAssemblyPair upstream/src_libraries_System.Runtime_src_System.Runtime_net10.0_paired.reference/System.Runtime.dll'",
+        "seconds": 0.001475
+      },
+      {
+        "action": "action 'MSBuildAssembly upstream/src_libraries_System.IO.Pipelines_src_System.IO.Pipelines_net10.0.reference/System.IO.Pipelines.dll'",
+        "seconds": 4.323238
+      },
+      {
+        "action": "action 'MSBuildAssemblyPair upstream/src_libraries_System.IO.Pipelines_src_System.IO.Pipelines_net10.0_paired.reference/System.IO.Pipelines.dll'",
+        "seconds": 0.001888
+      },
+      {
+        "action": "action 'MSBuildAssembly upstream/src_libraries_System.Text.Json_src_System.Text.Json_net10.0.reference/System.Text.Json.dll'",
+        "seconds": 0.006165
+      },
+      {
+        "action": "action 'MSBuildLayout runtime/tree.layout'",
+        "seconds": 0.268258
+      },
+      {
+        "action": "runfiles for //upstream:src_libraries_System.Net.Sockets_tests_FunctionalTests_System.Net.Sockets.Tests_net10.0-unix",
+        "seconds": 0.024445
+      }
+    ],
+    "batch-edit-2": [
+      {
+        "action": "action 'Writing file upstream/archive_microsoft.net.compilers.toolset_5.0.0-2.25509.106.package.json [for tool]'",
+        "seconds": 0.000308
+      },
+      {
+        "action": "action 'MSBuildNugetExtract upstream/archive_microsoft.net.compilers.toolset_5.0.0-2.25509.106.package [for tool]'",
+        "seconds": 0.031608
+      },
+      {
+        "action": "action 'MSBuildAssembly upstream/src_tools_illink_src_linker_ref_Mono.Linker_net10.0.reference/illink.dll [for tool]'",
+        "seconds": 0.003032
+      },
+      {
+        "action": "action 'MSBuildLayout upstream/src_tools_illink_src_linker_Mono.Linker_net10.0_contract_layout.layout [for tool]'",
+        "seconds": 0.001776
+      },
+      {
+        "action": "action 'MSBuildAssembly upstream/src_tools_illink_src_linker_Mono.Linker_net10.0.reference/illink.dll [for tool]'",
+        "seconds": 0.00347
+      },
+      {
+        "action": "action 'MSBuildAssemblyPair upstream/src_tools_illink_src_linker_Mono.Linker_net10.0_paired.reference/illink.dll [for tool]'",
+        "seconds": 0.007278
+      },
+      {
+        "action": "action 'MSBuildAssembly upstream/src_tools_illink_src_ILLink.Tasks_ILLink.Tasks_net10.0.reference/ILLink.Tasks.dll [for tool]'",
+        "seconds": 0.001819
+      },
+      {
+        "action": "action 'MSBuildAssembly upstream/src_libraries_System.Private.CoreLib_ref_System.Private.CoreLib_net10.0.reference/System.Private.CoreLib.dll'",
+        "seconds": 0.002956
+      },
+      {
+        "action": "action 'MSBuildLayout upstream/src_coreclr_System.Private.CoreLib_System.Private.CoreLib_net10.0_contract_layout.layout'",
+        "seconds": 0.002377
+      },
+      {
+        "action": "action 'MSBuildAssembly upstream/src_coreclr_System.Private.CoreLib_System.Private.CoreLib_net10.0.reference/System.Private.CoreLib.dll'",
+        "seconds": 0.009542
+      },
+      {
+        "action": "action 'MSBuildAssemblyPair upstream/src_coreclr_System.Private.CoreLib_System.Private.CoreLib_net10.0_paired.reference/System.Private.CoreLib.dll'",
+        "seconds": 0.002049
+      },
+      {
+        "action": "action 'MSBuildAssembly upstream/src_libraries_System.Private.Uri_src_System.Private.Uri_net10.0.reference/System.Private.Uri.dll'",
+        "seconds": 0.002331
+      },
+      {
+        "action": "action 'MSBuildAssembly upstream/src_libraries_System.Runtime_src_System.Runtime_net10.0.reference/System.Runtime.dll'",
+        "seconds": 0.005921
+      },
+      {
+        "action": "action 'MSBuildAssemblyPair upstream/src_libraries_System.Runtime_src_System.Runtime_net10.0_paired.reference/System.Runtime.dll'",
+        "seconds": 0.00167
+      },
+      {
+        "action": "action 'MSBuildAssembly upstream/src_libraries_System.IO.Pipelines_src_System.IO.Pipelines_net10.0.reference/System.IO.Pipelines.dll'",
+        "seconds": 4.385547
+      },
+      {
+        "action": "action 'MSBuildAssemblyPair upstream/src_libraries_System.IO.Pipelines_src_System.IO.Pipelines_net10.0_paired.reference/System.IO.Pipelines.dll'",
+        "seconds": 0.00449
+      },
+      {
+        "action": "action 'MSBuildAssembly upstream/src_libraries_System.Text.Json_src_System.Text.Json_net10.0.reference/System.Text.Json.dll'",
+        "seconds": 0.005234
+      },
+      {
+        "action": "action 'MSBuildLayout runtime/tree.layout'",
+        "seconds": 0.338744
+      },
+      {
+        "action": "runfiles for //upstream:src_libraries_System.Runtime_tests_System.IO.FileSystem.Tests_System.IO.FileSystem.Tests_net10.0-unix",
+        "seconds": 0.043078
+      }
+    ],
+    "server-edit-0": [
+      {
+        "action": "action 'MSBuildAssembly upstream/src_libraries_System.IO.Pipelines_src_System.IO.Pipelines_net10.0.reference/System.IO.Pipelines.dll'",
+        "seconds": 4.364143
+      },
+      {
+        "action": "action 'MSBuildAssemblyPair upstream/src_libraries_System.IO.Pipelines_src_System.IO.Pipelines_net10.0_paired.reference/System.IO.Pipelines.dll'",
+        "seconds": 0.001822
+      },
+      {
+        "action": "action 'MSBuildLayout runtime/tree.layout'",
+        "seconds": 0.216783
+      },
+      {
+        "action": "runfiles for //upstream:src_libraries_System.Collections_tests_System.Collections.Tests_net10.0",
+        "seconds": 0.022309
+      }
+    ],
+    "server-edit-1": [
+      {
+        "action": "action 'MSBuildAssembly upstream/src_libraries_System.IO.Pipelines_src_System.IO.Pipelines_net10.0.reference/System.IO.Pipelines.dll'",
+        "seconds": 3.00642
+      },
+      {
+        "action": "action 'MSBuildAssemblyPair upstream/src_libraries_System.IO.Pipelines_src_System.IO.Pipelines_net10.0_paired.reference/System.IO.Pipelines.dll'",
+        "seconds": 0.001727
+      },
+      {
+        "action": "action 'MSBuildLayout runtime/tree.layout'",
+        "seconds": 0.153245
+      },
+      {
+        "action": "runfiles for //upstream:src_libraries_System.Linq_tests_System.Linq.Tests_net10.0",
+        "seconds": 0.027865
+      }
+    ],
+    "server-edit-2": [
+      {
+        "action": "action 'MSBuildAssembly upstream/src_libraries_System.IO.Pipelines_src_System.IO.Pipelines_net10.0.reference/System.IO.Pipelines.dll'",
+        "seconds": 2.966059
+      },
+      {
+        "action": "action 'MSBuildAssemblyPair upstream/src_libraries_System.IO.Pipelines_src_System.IO.Pipelines_net10.0_paired.reference/System.IO.Pipelines.dll'",
+        "seconds": 0.00128
+      },
+      {
+        "action": "action 'MSBuildLayout runtime/tree.layout'",
+        "seconds": 0.137842
+      },
+      {
+        "action": "runfiles for //upstream:src_libraries_System.Collections_tests_System.Collections.Tests_net10.0",
+        "seconds": 0.015189
+      }
+    ]
+  },
+  "verification": {
+    "restoredOutputHashesMatchQualifiedSeed": {
+      "runtime": "e4334851f1f08d3d56f613ab24d3197f8d01c2269dce0064715b0557f06781a0",
+      "reference": "cef3a2ebb4cdde603bdb60561cbc6aa6a5f48b4f295e9573767c97670f83057a"
+    },
+    "sourceRestored": true,
+    "completedMeasurements": 16,
+    "shutdownTimedOutAfterMeasurements": true
+  }
+}

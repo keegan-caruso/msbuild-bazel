@@ -1,0 +1,66 @@
+{
+  "runs": [
+    {
+      "case": "control-0",
+      "instrumented": false,
+      "startupAndAnalysisSeconds": 4.578698169000001,
+      "buildSeconds": 17.082888925,
+      "totalSeconds": 21.661587093999998,
+      "workerCount": 4
+    },
+    {
+      "case": "profile-1",
+      "instrumented": true,
+      "startupAndAnalysisSeconds": 1.9133612499999977,
+      "buildSeconds": 17.018152674,
+      "totalSeconds": 18.931513923999997,
+      "workerCount": 4
+    },
+    {
+      "case": "control-2",
+      "instrumented": false,
+      "startupAndAnalysisSeconds": 1.8689879169999983,
+      "buildSeconds": 16.838475132999996,
+      "totalSeconds": 18.707463049999994,
+      "workerCount": 4
+    },
+    {
+      "case": "profile-3",
+      "instrumented": true,
+      "startupAndAnalysisSeconds": 1.880119042000004,
+      "buildSeconds": 16.754836757999996,
+      "totalSeconds": 18.6349558,
+      "workerCount": 4
+    },
+    {
+      "case": "raw-profile-0",
+      "buildSeconds": 6.97643296199999
+    },
+    {
+      "case": "raw-profile-1",
+      "buildSeconds": 6.709530459999996
+    }
+  ],
+  "meanSummedStagingCounters": {
+    "toolResolutionSeconds": 0,
+    "snapshotFileSeconds": 0.51398305,
+    "startupToolSeconds": 0.2851642,
+    "toolInputs": 634809,
+    "stagedInputs": 1551,
+    "verifiedBytes": 1862008,
+    "reusedBytes": 5635978,
+    "reusedFiles": 756
+  },
+  "meanSummedWorkerSeconds": {
+    "identitySeconds": 0.27466714999999997,
+    "snapshotSeconds": 1.1184154500000005,
+    "preparationSeconds": 1.34668685,
+    "childSeconds": 44.520012949999995,
+    "publicationSeconds": 0.19869729999999985
+  },
+  "meanSummedPhaseSeconds": {
+    "BuildEvaluation": 14.808315699999998,
+    "declarationValidation": 0.15395655000000005,
+    "BuildExecution": 28.544842900000013
+  }
+}

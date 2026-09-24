@@ -1,0 +1,388 @@
+{
+  "runtimeCommit": "60629d14374c56f1cb51819049ad1fa529307f8d",
+  "sdk": "10.0.400",
+  "bazel": "9.2.0",
+  "platform": "linux-arm64",
+  "newProject": "src/libraries/System.IO.Pipelines/tests/System.IO.Pipelines.Tests.csproj",
+  "newFramework": "net10.0",
+  "tests": [
+    {
+      "assembly": "System.Collections.Immutable.Tests",
+      "cases": 22544,
+      "passed": 22544,
+      "skipped": 0,
+      "exactNamesMatch": false,
+      "normalizedNamesAndOutcomesMatch": true,
+      "processEntries": {
+        "vstest.console": 1,
+        "datacollector": 1,
+        "testhost": 1
+      }
+    },
+    {
+      "assembly": "System.Collections.Tests",
+      "cases": 33438,
+      "passed": 33438,
+      "skipped": 0,
+      "exactNamesMatch": false,
+      "normalizedNamesAndOutcomesMatch": true,
+      "processEntries": {
+        "vstest.console": 1,
+        "datacollector": 1,
+        "testhost": 1
+      }
+    },
+    {
+      "assembly": "System.IO.Pipelines.Tests",
+      "cases": 577,
+      "passed": 577,
+      "skipped": 0,
+      "exactNamesMatch": true,
+      "normalizedNamesAndOutcomesMatch": true,
+      "processEntries": {
+        "vstest.console": 1,
+        "datacollector": 1,
+        "testhost": 1
+      }
+    },
+    {
+      "assembly": "System.Linq.Tests",
+      "cases": 52186,
+      "passed": 52178,
+      "skipped": 8,
+      "exactNamesMatch": true,
+      "normalizedNamesAndOutcomesMatch": true,
+      "processEntries": {
+        "vstest.console": 1,
+        "datacollector": 1,
+        "testhost": 1
+      }
+    },
+    {
+      "assembly": "System.Net.Sockets.Tests",
+      "cases": 153,
+      "passed": 153,
+      "skipped": 0,
+      "exactNamesMatch": true,
+      "normalizedNamesAndOutcomesMatch": true,
+      "processEntries": {
+        "vstest.console": 1,
+        "datacollector": 1,
+        "testhost": 1
+      }
+    },
+    {
+      "assembly": "System.IO.FileSystem.Tests",
+      "cases": 8716,
+      "passed": 8662,
+      "skipped": 54,
+      "exactNamesMatch": false,
+      "normalizedNamesAndOutcomesMatch": true,
+      "processEntries": {
+        "vstest.console": 1,
+        "datacollector": 1,
+        "testhost": 1,
+        "Microsoft.DotNet.RemoteExecutor": 63
+      }
+    },
+    {
+      "assembly": "System.Threading.Tasks.Tests",
+      "cases": 811,
+      "passed": 809,
+      "skipped": 2,
+      "exactNamesMatch": false,
+      "normalizedNamesAndOutcomesMatch": true,
+      "processEntries": {
+        "vstest.console": 1,
+        "datacollector": 1,
+        "testhost": 1,
+        "Microsoft.DotNet.RemoteExecutor": 2
+      }
+    },
+    {
+      "assembly": "System.Threading.Tests",
+      "cases": 591,
+      "passed": 591,
+      "skipped": 0,
+      "exactNamesMatch": false,
+      "normalizedNamesAndOutcomesMatch": true,
+      "processEntries": {
+        "vstest.console": 1,
+        "datacollector": 1,
+        "testhost": 1,
+        "Microsoft.DotNet.RemoteExecutor": 7
+      }
+    }
+  ],
+  "passed": 118952,
+  "skipped": 64,
+  "observedProcesses": 96,
+  "installedComponentsObserved": [],
+  "seed": {
+    "seed": true,
+    "nativeActions": 5,
+    "nativeCacheHits": 5,
+    "assemblyActions": 281,
+    "assemblyCacheHits": 280,
+    "layoutActions": 121,
+    "layoutCacheHits": 121,
+    "cachedTests": false,
+    "forcedExecutionPassed": false
+  },
+  "consumer": {
+    "seed": false,
+    "nativeActions": 5,
+    "nativeCacheHits": 5,
+    "assemblyActions": 281,
+    "assemblyCacheHits": 281,
+    "layoutActions": 121,
+    "layoutCacheHits": 121,
+    "cachedTests": true,
+    "forcedExecutionPassed": true
+  },
+  "matchedOutputFiles": 2815,
+  "producerStoppedDuringRecovery": true,
+  "consumerWorkspaceRelocated": true,
+  "editControls": [
+    {
+      "case": "noop",
+      "exitCode": 0,
+      "built": [],
+      "testsExecuted": []
+    },
+    {
+      "case": "wrong-corelib",
+      "exitCode": 3,
+      "built": [],
+      "testsExecuted": [
+        "//upstream:src_libraries_System.Collections.Immutable_tests_System.Collections.Immutable.Tests_net10.0",
+        "//upstream:src_libraries_System.Collections_tests_System.Collections.Tests_net10.0",
+        "//upstream:src_libraries_System.IO.Pipelines_tests_System.IO.Pipelines.Tests_net10.0",
+        "//upstream:src_libraries_System.Linq_tests_System.Linq.Tests_net10.0",
+        "//upstream:src_libraries_System.Net.Sockets_tests_FunctionalTests_System.Net.Sockets.Tests_net10.0-unix",
+        "//upstream:src_libraries_System.Runtime_tests_System.IO.FileSystem.Tests_System.IO.FileSystem.Tests_net10.0-unix",
+        "//upstream:src_libraries_System.Runtime_tests_System.Threading.Tasks.Tests_System.Threading.Tasks.Tests_net10.0",
+        "//upstream:src_libraries_System.Threading_tests_System.Threading.Tests_net10.0"
+      ]
+    },
+    {
+      "case": "restore-expectation",
+      "exitCode": 0,
+      "built": [],
+      "testsExecuted": []
+    },
+    {
+      "case": "implementation-edit",
+      "exitCode": 0,
+      "built": [
+        "//upstream:src_libraries_System.IO.Pipelines_src_System.IO.Pipelines_net10.0",
+        "//upstream:src_libraries_System.IO.Pipelines_tests_System.IO.Pipelines.Tests_net10.0"
+      ],
+      "testsExecuted": [
+        "//upstream:src_libraries_System.Collections.Immutable_tests_System.Collections.Immutable.Tests_net10.0",
+        "//upstream:src_libraries_System.Collections_tests_System.Collections.Tests_net10.0",
+        "//upstream:src_libraries_System.IO.Pipelines_tests_System.IO.Pipelines.Tests_net10.0",
+        "//upstream:src_libraries_System.Linq_tests_System.Linq.Tests_net10.0",
+        "//upstream:src_libraries_System.Net.Sockets_tests_FunctionalTests_System.Net.Sockets.Tests_net10.0-unix",
+        "//upstream:src_libraries_System.Runtime_tests_System.IO.FileSystem.Tests_System.IO.FileSystem.Tests_net10.0-unix",
+        "//upstream:src_libraries_System.Runtime_tests_System.Threading.Tasks.Tests_System.Threading.Tasks.Tests_net10.0",
+        "//upstream:src_libraries_System.Threading_tests_System.Threading.Tests_net10.0"
+      ]
+    },
+    {
+      "case": "restore-implementation",
+      "exitCode": 0,
+      "built": [],
+      "testsExecuted": []
+    }
+  ],
+  "nativeControl": {
+    "toolchain": {
+      "sdkVersion": "10.0.400",
+      "sdkRoot": "/opt/rules_msbuild-toolchain/.tools/dotnet"
+    },
+    "records": [
+      {
+        "component": "native",
+        "seconds": 100.595,
+        "exitCode": 0,
+        "command": [
+          "/opt/rules_msbuild-toolchain/.tools/dotnet/dotnet",
+          "/work/pipelines/raw-native-build/driver/bin/Release/net10.0/Task.dll",
+          "/work/pipelines/bazel/native/bwrap",
+          "/work/pipelines/bazel/native/toolchain.tar",
+          "/work/pipelines/bazel/native/source.tar",
+          "/source/build-native.sh",
+          "/work/pipelines/raw-native-build/native/runtime.tar",
+          "/work/pipelines/raw-native-build/native/libcoreclr.so",
+          "/work/pipelines/raw-native-build/native/libclrjit.so",
+          "/work/pipelines/raw-native-build/native/corerun"
+        ],
+        "sourceSha256": "a8ae6bfffbc52fee2939dd0796118227ed9a107d325a0c2070fe27f426a739b5",
+        "products": {
+          "libcoreclr.so": "1c32d9fc424c397a7760b48327c39eec4302ce3117c079a71ebe97296bf9dd38",
+          "libclrjit.so": "a0c699ba308084e039b13dde5a016969360dade4d614c3cc5a8f7b0a265d8a35",
+          "corerun": "b09fe2a15f6054bd0425ebfbc2e4c07d8d890eae53b38b3ae404a4380b5a1435"
+        }
+      },
+      {
+        "component": "native_compression",
+        "seconds": 13.435,
+        "exitCode": 0,
+        "command": [
+          "/opt/rules_msbuild-toolchain/.tools/dotnet/dotnet",
+          "/work/pipelines/raw-native-build/driver/bin/Release/net10.0/Task.dll",
+          "/work/pipelines/bazel/native_compression/bwrap",
+          "/work/pipelines/bazel/native_compression/toolchain.tar",
+          "/work/pipelines/bazel/native_compression/source.tar",
+          "/source/build-native.sh",
+          "/work/pipelines/raw-native-build/native_compression/runtime.tar",
+          "/work/pipelines/raw-native-build/native_compression/libSystem.IO.Compression.Native.so"
+        ],
+        "sourceSha256": "17f01461c435a0e6d5ec236d5e123734c8bfb10ff3f599a689f2e183609fd5db",
+        "products": {
+          "libSystem.IO.Compression.Native.so": "7d60472a1905d9650f8b48ef0ae1d56c76518fe45575b2905895829fc3b8131c"
+        }
+      },
+      {
+        "component": "native_crypto",
+        "seconds": 10.412,
+        "exitCode": 0,
+        "command": [
+          "/opt/rules_msbuild-toolchain/.tools/dotnet/dotnet",
+          "/work/pipelines/raw-native-build/driver/bin/Release/net10.0/Task.dll",
+          "/work/pipelines/bazel/native_crypto/bwrap",
+          "/work/pipelines/bazel/native_crypto/toolchain.tar",
+          "/work/pipelines/bazel/native_crypto/source.tar",
+          "/source/build-native.sh",
+          "/work/pipelines/raw-native-build/native_crypto/runtime.tar",
+          "/work/pipelines/raw-native-build/native_crypto/libSystem.Security.Cryptography.Native.OpenSsl.so"
+        ],
+        "sourceSha256": "3b317d3540ef1f31bdee2a15d74a202780b3466c1d04b0fbf28537038ab95a30",
+        "products": {
+          "libSystem.Security.Cryptography.Native.OpenSsl.so": "49e2624adb9899fd4465a37a8f32f487e402cc55349fcb93facc7e98034352da"
+        }
+      },
+      {
+        "component": "native_host",
+        "seconds": 9.485,
+        "exitCode": 0,
+        "command": [
+          "/opt/rules_msbuild-toolchain/.tools/dotnet/dotnet",
+          "/work/pipelines/raw-native-build/driver/bin/Release/net10.0/Task.dll",
+          "/work/pipelines/bazel/native_host/bwrap",
+          "/work/pipelines/bazel/native_host/toolchain.tar",
+          "/work/pipelines/bazel/native_host/source.tar",
+          "/source/build-native.sh",
+          "/work/pipelines/raw-native-build/native_host/runtime.tar",
+          "/work/pipelines/raw-native-build/native_host/dotnet",
+          "/work/pipelines/raw-native-build/native_host/libhostfxr.so",
+          "/work/pipelines/raw-native-build/native_host/libhostpolicy.so"
+        ],
+        "sourceSha256": "660288eaf1cbcbaffaa5f4f45c08962509918396714fd1936da339653744b9ba",
+        "products": {
+          "dotnet": "c934aebe959f06abaef51e81e1c3eccd489c20bce61d4d4578e1efb05eff75d3",
+          "libhostfxr.so": "569c4f8bd86441f82fd1348d421187ed134e09bd70ee8ee133ec6dfbd137511c",
+          "libhostpolicy.so": "3e00a692c5256f8372d7baa91f174f1a8e067d4078e7d022b2e314b3a44d6d7a"
+        }
+      },
+      {
+        "component": "native_support",
+        "seconds": 10.588,
+        "exitCode": 0,
+        "command": [
+          "/opt/rules_msbuild-toolchain/.tools/dotnet/dotnet",
+          "/work/pipelines/raw-native-build/driver/bin/Release/net10.0/Task.dll",
+          "/work/pipelines/bazel/native_support/bwrap",
+          "/work/pipelines/bazel/native_support/toolchain.tar",
+          "/work/pipelines/bazel/native_support/source.tar",
+          "/source/build-native.sh",
+          "/work/pipelines/raw-native-build/native_support/runtime.tar",
+          "/work/pipelines/raw-native-build/native_support/libSystem.Native.so"
+        ],
+        "sourceSha256": "44f658ce327dc2c10259e052300f092aa8be2004adc0fcd2229650136bfb4539",
+        "products": {
+          "libSystem.Native.so": "f7dd5fb2acca9b4ed94b2a2f8125845e45378cde3690824014718b2a6a45d47a"
+        }
+      }
+    ]
+  },
+  "rawTests": [
+    {
+      "assembly": "System.Collections.Immutable.Tests",
+      "exitCode": 0,
+      "seconds": 10.04
+    },
+    {
+      "assembly": "System.Collections.Tests",
+      "exitCode": 0,
+      "seconds": 10.842
+    },
+    {
+      "assembly": "System.IO.Pipelines.Tests",
+      "exitCode": 0,
+      "seconds": 3.036
+    },
+    {
+      "assembly": "System.Linq.Tests",
+      "exitCode": 0,
+      "seconds": 15.208
+    },
+    {
+      "assembly": "System.Net.Sockets.Tests",
+      "exitCode": 0,
+      "seconds": 4.863
+    },
+    {
+      "assembly": "System.IO.FileSystem.Tests",
+      "exitCode": 0,
+      "seconds": 11.919
+    },
+    {
+      "assembly": "System.Threading.Tasks.Tests",
+      "exitCode": 0,
+      "seconds": 9.395
+    },
+    {
+      "assembly": "System.Threading.Tests",
+      "exitCode": 0,
+      "seconds": 12.358
+    }
+  ],
+  "setup": [
+    {
+      "case": "raw-0",
+      "seconds": 7.101,
+      "exitCode": 0
+    },
+    {
+      "case": "inventory-build",
+      "seconds": 0.776,
+      "exitCode": 0
+    },
+    {
+      "case": "inventory",
+      "seconds": 100.404,
+      "exitCode": 0
+    },
+    {
+      "case": "declarations",
+      "seconds": 18.678,
+      "exitCode": 0
+    }
+  ],
+  "artifacts": {
+    "/private/tmp/runtime-pipelines-inputs.tar.gz": {
+      "bytes": 863341052,
+      "sha256": "5edfe8f62c45a2b539ecb44bd4913faa3e795c87d6d591f4b88e876621af4a2d"
+    },
+    "/private/tmp/runtime-pipelines-producer-evidence.tar.gz": {
+      "bytes": 237918023,
+      "sha256": "6b964160376f110e6ed1e4f0f1cad5b354ffae3ab8af0a20ddc5cab29fcd85ea"
+    },
+    "/private/tmp/runtime-pipelines-consumer-evidence.tar.gz": {
+      "bytes": 203849558,
+      "sha256": "28b8e6be3ebf91db38b3eb64c0e5b3fac04bac237829a8a9c70a7c03dd3e5f31"
+    }
+  }
+}

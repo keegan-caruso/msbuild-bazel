@@ -1,0 +1,650 @@
+[
+  {
+    "libraries": 2,
+    "projects": 3,
+    "case": "cold",
+    "engine": "bazel",
+    "repetition": 0,
+    "seconds": 3.7862505019999997
+  },
+  {
+    "libraries": 2,
+    "projects": 3,
+    "case": "cold",
+    "engine": "worker",
+    "repetition": 0,
+    "seconds": 2.63345696
+  },
+  {
+    "libraries": 2,
+    "projects": 3,
+    "case": "cold",
+    "engine": "raw",
+    "repetition": 0,
+    "seconds": 1.676073000999999
+  },
+  {
+    "libraries": 2,
+    "projects": 3,
+    "case": "cold",
+    "engine": "raw",
+    "repetition": 1,
+    "seconds": 1.4529156249999993
+  },
+  {
+    "libraries": 2,
+    "projects": 3,
+    "case": "cold",
+    "engine": "worker",
+    "repetition": 1,
+    "seconds": 2.445649001000003
+  },
+  {
+    "libraries": 2,
+    "projects": 3,
+    "case": "cold",
+    "engine": "bazel",
+    "repetition": 1,
+    "seconds": 3.6922923350000048
+  },
+  {
+    "libraries": 2,
+    "projects": 3,
+    "case": "cold",
+    "engine": "bazel",
+    "repetition": 2,
+    "seconds": 3.3871157519999997
+  },
+  {
+    "libraries": 2,
+    "projects": 3,
+    "case": "cold",
+    "engine": "worker",
+    "repetition": 2,
+    "seconds": 2.379896625999997
+  },
+  {
+    "libraries": 2,
+    "projects": 3,
+    "case": "cold",
+    "engine": "raw",
+    "repetition": 2,
+    "seconds": 1.543739875
+  },
+  {
+    "libraries": 2,
+    "projects": 3,
+    "case": "unchanged",
+    "engine": "bazel",
+    "repetition": 0,
+    "seconds": 0.09535495800000149
+  },
+  {
+    "libraries": 2,
+    "projects": 3,
+    "case": "unchanged",
+    "engine": "worker",
+    "repetition": 0,
+    "seconds": 0.10211174999999884
+  },
+  {
+    "libraries": 2,
+    "projects": 3,
+    "case": "unchanged",
+    "engine": "raw",
+    "repetition": 0,
+    "seconds": 0.6983146669999982
+  },
+  {
+    "libraries": 2,
+    "projects": 3,
+    "case": "unchanged",
+    "engine": "raw",
+    "repetition": 1,
+    "seconds": 0.647216499999999
+  },
+  {
+    "libraries": 2,
+    "projects": 3,
+    "case": "unchanged",
+    "engine": "worker",
+    "repetition": 1,
+    "seconds": 0.07345354099999923
+  },
+  {
+    "libraries": 2,
+    "projects": 3,
+    "case": "unchanged",
+    "engine": "bazel",
+    "repetition": 1,
+    "seconds": 0.11792112599999882
+  },
+  {
+    "libraries": 2,
+    "projects": 3,
+    "case": "unchanged",
+    "engine": "bazel",
+    "repetition": 2,
+    "seconds": 0.08158704199999534
+  },
+  {
+    "libraries": 2,
+    "projects": 3,
+    "case": "unchanged",
+    "engine": "worker",
+    "repetition": 2,
+    "seconds": 0.07743541700000378
+  },
+  {
+    "libraries": 2,
+    "projects": 3,
+    "case": "unchanged",
+    "engine": "raw",
+    "repetition": 2,
+    "seconds": 0.6457746250000014
+  },
+  {
+    "libraries": 2,
+    "projects": 3,
+    "case": "leaf-body-edit",
+    "engine": "bazel",
+    "repetition": 0,
+    "seconds": 1.0502692499999995
+  },
+  {
+    "libraries": 2,
+    "projects": 3,
+    "case": "leaf-body-edit",
+    "engine": "worker",
+    "repetition": 0,
+    "seconds": 0.4077473330000032
+  },
+  {
+    "libraries": 2,
+    "projects": 3,
+    "case": "leaf-body-edit",
+    "engine": "raw",
+    "repetition": 0,
+    "seconds": 0.698281791999996
+  },
+  {
+    "libraries": 2,
+    "projects": 3,
+    "case": "leaf-body-edit",
+    "engine": "raw",
+    "repetition": 1,
+    "seconds": 0.752278625999999
+  },
+  {
+    "libraries": 2,
+    "projects": 3,
+    "case": "leaf-body-edit",
+    "engine": "worker",
+    "repetition": 1,
+    "seconds": 0.34876216700000384
+  },
+  {
+    "libraries": 2,
+    "projects": 3,
+    "case": "leaf-body-edit",
+    "engine": "bazel",
+    "repetition": 1,
+    "seconds": 1.1070729169999964
+  },
+  {
+    "libraries": 2,
+    "projects": 3,
+    "case": "leaf-body-edit",
+    "engine": "bazel",
+    "repetition": 2,
+    "seconds": 0.9791398340000015
+  },
+  {
+    "libraries": 2,
+    "projects": 3,
+    "case": "leaf-body-edit",
+    "engine": "worker",
+    "repetition": 2,
+    "seconds": 0.27133987499999535
+  },
+  {
+    "libraries": 2,
+    "projects": 3,
+    "case": "leaf-body-edit",
+    "engine": "raw",
+    "repetition": 2,
+    "seconds": 0.6574648340000024
+  },
+  {
+    "libraries": 32,
+    "projects": 33,
+    "case": "cold",
+    "engine": "bazel",
+    "repetition": 0,
+    "seconds": 13.48161896500001
+  },
+  {
+    "libraries": 32,
+    "projects": 33,
+    "case": "cold",
+    "engine": "worker",
+    "repetition": 0,
+    "seconds": 10.890896088000005
+  },
+  {
+    "libraries": 32,
+    "projects": 33,
+    "case": "cold",
+    "engine": "raw",
+    "repetition": 0,
+    "seconds": 4.196305543999998
+  },
+  {
+    "libraries": 32,
+    "projects": 33,
+    "case": "cold",
+    "engine": "raw",
+    "repetition": 1,
+    "seconds": 2.9319929600000023
+  },
+  {
+    "libraries": 32,
+    "projects": 33,
+    "case": "cold",
+    "engine": "worker",
+    "repetition": 1,
+    "seconds": 11.855524130999996
+  },
+  {
+    "libraries": 32,
+    "projects": 33,
+    "case": "cold",
+    "engine": "bazel",
+    "repetition": 1,
+    "seconds": 15.667647757000012
+  },
+  {
+    "libraries": 32,
+    "projects": 33,
+    "case": "cold",
+    "engine": "bazel",
+    "repetition": 2,
+    "seconds": 13.368442047999991
+  },
+  {
+    "libraries": 32,
+    "projects": 33,
+    "case": "cold",
+    "engine": "worker",
+    "repetition": 2,
+    "seconds": 11.007155172000012
+  },
+  {
+    "libraries": 32,
+    "projects": 33,
+    "case": "cold",
+    "engine": "raw",
+    "repetition": 2,
+    "seconds": 3.725058294000007
+  },
+  {
+    "libraries": 32,
+    "projects": 33,
+    "case": "unchanged",
+    "engine": "bazel",
+    "repetition": 0,
+    "seconds": 0.1680445000000077
+  },
+  {
+    "libraries": 32,
+    "projects": 33,
+    "case": "unchanged",
+    "engine": "worker",
+    "repetition": 0,
+    "seconds": 0.3869459579999841
+  },
+  {
+    "libraries": 32,
+    "projects": 33,
+    "case": "unchanged",
+    "engine": "raw",
+    "repetition": 0,
+    "seconds": 1.779375459000022
+  },
+  {
+    "libraries": 32,
+    "projects": 33,
+    "case": "unchanged",
+    "engine": "raw",
+    "repetition": 1,
+    "seconds": 1.4005484589999924
+  },
+  {
+    "libraries": 32,
+    "projects": 33,
+    "case": "unchanged",
+    "engine": "worker",
+    "repetition": 1,
+    "seconds": 0.0999555829999963
+  },
+  {
+    "libraries": 32,
+    "projects": 33,
+    "case": "unchanged",
+    "engine": "bazel",
+    "repetition": 1,
+    "seconds": 0.2286038760000224
+  },
+  {
+    "libraries": 32,
+    "projects": 33,
+    "case": "unchanged",
+    "engine": "bazel",
+    "repetition": 2,
+    "seconds": 0.24781295899998668
+  },
+  {
+    "libraries": 32,
+    "projects": 33,
+    "case": "unchanged",
+    "engine": "worker",
+    "repetition": 2,
+    "seconds": 0.2463803750000011
+  },
+  {
+    "libraries": 32,
+    "projects": 33,
+    "case": "unchanged",
+    "engine": "raw",
+    "repetition": 2,
+    "seconds": 1.3223295840000162
+  },
+  {
+    "libraries": 32,
+    "projects": 33,
+    "case": "leaf-body-edit",
+    "engine": "bazel",
+    "repetition": 0,
+    "seconds": 1.164381249999991
+  },
+  {
+    "libraries": 32,
+    "projects": 33,
+    "case": "leaf-body-edit",
+    "engine": "worker",
+    "repetition": 0,
+    "seconds": 0.4024949589999949
+  },
+  {
+    "libraries": 32,
+    "projects": 33,
+    "case": "leaf-body-edit",
+    "engine": "raw",
+    "repetition": 0,
+    "seconds": 1.4010472090000121
+  },
+  {
+    "libraries": 32,
+    "projects": 33,
+    "case": "leaf-body-edit",
+    "engine": "raw",
+    "repetition": 1,
+    "seconds": 1.2505146250000223
+  },
+  {
+    "libraries": 32,
+    "projects": 33,
+    "case": "leaf-body-edit",
+    "engine": "worker",
+    "repetition": 1,
+    "seconds": 0.3849475830000131
+  },
+  {
+    "libraries": 32,
+    "projects": 33,
+    "case": "leaf-body-edit",
+    "engine": "bazel",
+    "repetition": 1,
+    "seconds": 1.122292334000008
+  },
+  {
+    "libraries": 32,
+    "projects": 33,
+    "case": "leaf-body-edit",
+    "engine": "bazel",
+    "repetition": 2,
+    "seconds": 1.074229709000008
+  },
+  {
+    "libraries": 32,
+    "projects": 33,
+    "case": "leaf-body-edit",
+    "engine": "worker",
+    "repetition": 2,
+    "seconds": 0.29430654199998685
+  },
+  {
+    "libraries": 32,
+    "projects": 33,
+    "case": "leaf-body-edit",
+    "engine": "raw",
+    "repetition": 2,
+    "seconds": 1.2595153760000244
+  },
+  {
+    "libraries": 128,
+    "projects": 129,
+    "case": "cold",
+    "engine": "bazel",
+    "repetition": 0,
+    "seconds": 46.13441910499998
+  },
+  {
+    "libraries": 128,
+    "projects": 129,
+    "case": "cold",
+    "engine": "worker",
+    "repetition": 0,
+    "seconds": 26.802568137000037
+  },
+  {
+    "libraries": 128,
+    "projects": 129,
+    "case": "cold",
+    "engine": "raw",
+    "repetition": 0,
+    "seconds": 7.9360607529999925
+  },
+  {
+    "libraries": 128,
+    "projects": 129,
+    "case": "cold",
+    "engine": "raw",
+    "repetition": 1,
+    "seconds": 7.232021046
+  },
+  {
+    "libraries": 128,
+    "projects": 129,
+    "case": "cold",
+    "engine": "worker",
+    "repetition": 1,
+    "seconds": 27.517402137000033
+  },
+  {
+    "libraries": 128,
+    "projects": 129,
+    "case": "cold",
+    "engine": "bazel",
+    "repetition": 1,
+    "seconds": 45.785331563
+  },
+  {
+    "libraries": 128,
+    "projects": 129,
+    "case": "cold",
+    "engine": "bazel",
+    "repetition": 2,
+    "seconds": 44.73069835399997
+  },
+  {
+    "libraries": 128,
+    "projects": 129,
+    "case": "cold",
+    "engine": "worker",
+    "repetition": 2,
+    "seconds": 26.04001055399999
+  },
+  {
+    "libraries": 128,
+    "projects": 129,
+    "case": "cold",
+    "engine": "raw",
+    "repetition": 2,
+    "seconds": 8.336597003999998
+  },
+  {
+    "libraries": 128,
+    "projects": 129,
+    "case": "unchanged",
+    "engine": "bazel",
+    "repetition": 0,
+    "seconds": 0.4575500409999904
+  },
+  {
+    "libraries": 128,
+    "projects": 129,
+    "case": "unchanged",
+    "engine": "worker",
+    "repetition": 0,
+    "seconds": 0.7426262089999796
+  },
+  {
+    "libraries": 128,
+    "projects": 129,
+    "case": "unchanged",
+    "engine": "raw",
+    "repetition": 0,
+    "seconds": 5.13399408600003
+  },
+  {
+    "libraries": 128,
+    "projects": 129,
+    "case": "unchanged",
+    "engine": "raw",
+    "repetition": 1,
+    "seconds": 3.7312533349999626
+  },
+  {
+    "libraries": 128,
+    "projects": 129,
+    "case": "unchanged",
+    "engine": "worker",
+    "repetition": 1,
+    "seconds": 0.10590750000000071
+  },
+  {
+    "libraries": 128,
+    "projects": 129,
+    "case": "unchanged",
+    "engine": "bazel",
+    "repetition": 1,
+    "seconds": 0.10956183299998656
+  },
+  {
+    "libraries": 128,
+    "projects": 129,
+    "case": "unchanged",
+    "engine": "bazel",
+    "repetition": 2,
+    "seconds": 0.08116287500001818
+  },
+  {
+    "libraries": 128,
+    "projects": 129,
+    "case": "unchanged",
+    "engine": "worker",
+    "repetition": 2,
+    "seconds": 0.10552462499998683
+  },
+  {
+    "libraries": 128,
+    "projects": 129,
+    "case": "unchanged",
+    "engine": "raw",
+    "repetition": 2,
+    "seconds": 3.5043252099999904
+  },
+  {
+    "libraries": 128,
+    "projects": 129,
+    "case": "leaf-body-edit",
+    "engine": "bazel",
+    "repetition": 0,
+    "seconds": 1.1504010419999986
+  },
+  {
+    "libraries": 128,
+    "projects": 129,
+    "case": "leaf-body-edit",
+    "engine": "worker",
+    "repetition": 0,
+    "seconds": 0.41619666700000835
+  },
+  {
+    "libraries": 128,
+    "projects": 129,
+    "case": "leaf-body-edit",
+    "engine": "raw",
+    "repetition": 0,
+    "seconds": 3.5895626259999744
+  },
+  {
+    "libraries": 128,
+    "projects": 129,
+    "case": "leaf-body-edit",
+    "engine": "raw",
+    "repetition": 1,
+    "seconds": 3.6241285840000046
+  },
+  {
+    "libraries": 128,
+    "projects": 129,
+    "case": "leaf-body-edit",
+    "engine": "worker",
+    "repetition": 1,
+    "seconds": 0.5182015839999963
+  },
+  {
+    "libraries": 128,
+    "projects": 129,
+    "case": "leaf-body-edit",
+    "engine": "bazel",
+    "repetition": 1,
+    "seconds": 1.1603986670000381
+  },
+  {
+    "libraries": 128,
+    "projects": 129,
+    "case": "leaf-body-edit",
+    "engine": "bazel",
+    "repetition": 2,
+    "seconds": 1.080316750999998
+  },
+  {
+    "libraries": 128,
+    "projects": 129,
+    "case": "leaf-body-edit",
+    "engine": "worker",
+    "repetition": 2,
+    "seconds": 0.3161783750000495
+  },
+  {
+    "libraries": 128,
+    "projects": 129,
+    "case": "leaf-body-edit",
+    "engine": "raw",
+    "repetition": 2,
+    "seconds": 3.6848077519999833
+  }
+]

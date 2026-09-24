@@ -1,0 +1,120 @@
+{
+  "projects": [
+    {
+      "project": "src/Avalonia.Themes.Simple/Avalonia.Themes.Simple.csproj",
+      "framework": "net8.0",
+      "referenceHash": "4c9ba70ed876aaf04e8cd96b53b527d47648a1708961e9efd6a1fd64c3e324b7",
+      "referenceBytesEqual": true,
+      "runtimeBytesEqual": false,
+      "resources": [
+        {
+          "name": "!AvaloniaResources",
+          "hash": "CBE89F68B8FA7464870BB18B4482FC459E5F1F25E573C02E100D5799E1F71AAF"
+        }
+      ],
+      "compiledXamlMethods": 118
+    },
+    {
+      "project": "src/Avalonia.Base/Avalonia.Base.csproj",
+      "framework": "net8.0",
+      "referenceHash": "ebf768c1717a68906dfd8315cc0baee652a4df02c2fd225c27bed00d47119df2",
+      "referenceBytesEqual": true,
+      "runtimeBytesEqual": false,
+      "resources": [],
+      "compiledXamlMethods": 0
+    },
+    {
+      "project": "src/Avalonia.Controls/Avalonia.Controls.csproj",
+      "framework": "net8.0",
+      "referenceHash": "ba995c22b022cefbd33637b551a76d14abda38461b7d503f1722e02eb9ff2ad0",
+      "referenceBytesEqual": true,
+      "runtimeBytesEqual": false,
+      "resources": [],
+      "compiledXamlMethods": 0
+    },
+    {
+      "project": "src/Avalonia.Dialogs/Avalonia.Dialogs.csproj",
+      "framework": "net8.0",
+      "referenceHash": "62eb3d20774ac96ddad21531d31a0fe202ec1d7addf23f400f477d22c0541e1d",
+      "referenceBytesEqual": true,
+      "runtimeBytesEqual": false,
+      "resources": [
+        {
+          "name": "!AvaloniaResources",
+          "hash": "B2824AD6D21D0C1D03E57B10068164E8FA9EB3A9235A0688DB81F4655E82EE29"
+        }
+      ],
+      "compiledXamlMethods": 8
+    },
+    {
+      "project": "src/Markup/Avalonia.Markup.Xaml/Avalonia.Markup.Xaml.csproj",
+      "framework": "net8.0",
+      "referenceHash": "da8819ec4581de8eab66d10aa3f8924efc41a29664d6e26e8665485827fbace6",
+      "referenceBytesEqual": true,
+      "runtimeBytesEqual": false,
+      "resources": [],
+      "compiledXamlMethods": 0
+    },
+    {
+      "project": "src/tools/DevAnalyzers/DevAnalyzers.csproj",
+      "framework": "netstandard2.0",
+      "referenceHash": "23559fadd3546efcaabdabc5858b0e72add2d16245bf7f54ff4b745bd8bf1bb8",
+      "referenceBytesEqual": true,
+      "runtimeBytesEqual": false,
+      "resources": [],
+      "compiledXamlMethods": 0
+    },
+    {
+      "project": "src/tools/Avalonia.Analyzers/Avalonia.Analyzers.csproj",
+      "framework": "netstandard2.0",
+      "referenceHash": "dd17468f9e5a3a5a90fdb6dad8dc1e2186498318160f4af4c55e67780925e69a",
+      "referenceBytesEqual": true,
+      "runtimeBytesEqual": false,
+      "resources": [],
+      "compiledXamlMethods": 0
+    },
+    {
+      "project": "src/tools/DevGenerators/DevGenerators.csproj",
+      "framework": "netstandard2.0",
+      "referenceHash": "034fdd71924a94e1eecf2bbf2dc1b93c2b3e716c4e3333ace45189acb903e65c",
+      "referenceBytesEqual": true,
+      "runtimeBytesEqual": false,
+      "resources": [],
+      "compiledXamlMethods": 0
+    },
+    {
+      "project": "src/Avalonia.Build.Tasks/Avalonia.Build.Tasks.csproj",
+      "framework": "netstandard2.0",
+      "referenceHash": "2242941042f080c61cb83fd487f2feb4309d5d01affff9db4736114883671956",
+      "referenceBytesEqual": true,
+      "runtimeBytesEqual": false,
+      "resources": [],
+      "compiledXamlMethods": 0
+    },
+    {
+      "project": "src/Avalonia.Remote.Protocol/Avalonia.Remote.Protocol.csproj",
+      "framework": "net8.0",
+      "referenceHash": "fc07eb852569f59387f2a243d3984ba0cc5bde56cd704e402eea16824babf2f4",
+      "referenceBytesEqual": true,
+      "runtimeBytesEqual": false,
+      "resources": [],
+      "compiledXamlMethods": 0
+    },
+    {
+      "project": "src/Markup/Avalonia.Markup/Avalonia.Markup.csproj",
+      "framework": "net8.0",
+      "referenceHash": "587daeea793d3e0b77beecf4df2dd2ec5126a084bf750811faf05df529a282a2",
+      "referenceBytesEqual": true,
+      "runtimeBytesEqual": false,
+      "resources": [],
+      "compiledXamlMethods": 0
+    }
+  ],
+  "runtime": {
+    "type": "Avalonia.Themes.Simple.SimpleTheme",
+    "count": 1,
+    "resources": [
+      "!AvaloniaResources"
+    ]
+  }
+}

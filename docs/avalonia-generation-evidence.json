@@ -1,0 +1,32 @@
+[
+  {
+    "idl": "src/Avalonia.Native/avn.idl",
+    "sha256": "82bba83a6ee4e848871bc7737a6d85dd2a2c69f18fce23cf3437814f0f392cdd",
+    "bytes": 663126
+  },
+  {
+    "idl": "src/Windows/Avalonia.Win32/Win32Com/win32.idl",
+    "sha256": "6a5c0ea3cd8bfedeb6c830fdb731c64104ed28921da2ea9da0da019c8487aa75",
+    "bytes": 140659
+  },
+  {
+    "idl": "src/Windows/Avalonia.Win32/WinRT/winrt.idl",
+    "sha256": "ecf21631c552ef3fc3ac9dc8f05be47521cd2867a5d6770352d864bbc9a7072c",
+    "bytes": 651703
+  },
+  {
+    "idl": "src/Windows/Avalonia.Win32/DirectX/directx.idl",
+    "sha256": "03dac9615c789958552b708ea5e75bdfb9248a656eabda2ddae69d160c1aba94",
+    "bytes": 286693
+  },
+  {
+    "idl": "src/Windows/Avalonia.Win32/DComposition/dcomp.idl",
+    "sha256": "1bfd0a9b3215a766066f9d3b99ed17d9221730b64a07c0e274ee567e8f39fee9",
+    "bytes": 173842
+  },
+  {
+    "readOnlySources": true,
+    "missingOutputRejected": true,
+    "relocatedCacheHit": true
+  }
+]

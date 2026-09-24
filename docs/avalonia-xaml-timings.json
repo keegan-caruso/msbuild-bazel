@@ -1,0 +1,42 @@
+[
+  {
+    "case": "raw-noop-0",
+    "seconds": 0.8219155010001487
+  },
+  {
+    "case": "bazel-noop-0",
+    "seconds": 4.287377460999778
+  },
+  {
+    "case": "raw-noop-1",
+    "seconds": 0.6595896670000911
+  },
+  {
+    "case": "bazel-noop-1",
+    "seconds": 0.19426462499995978
+  },
+  {
+    "case": "raw-noop-2",
+    "seconds": 0.6276868329996432
+  },
+  {
+    "case": "bazel-noop-2",
+    "seconds": 0.1363010420000137
+  },
+  {
+    "case": "raw-xaml-edit",
+    "seconds": 2.0083549170003607
+  },
+  {
+    "case": "bazel-xaml-edit",
+    "seconds": 3.101116792999619
+  },
+  {
+    "case": "raw-xaml-revert",
+    "seconds": 1.9166715840001416
+  },
+  {
+    "case": "bazel-xaml-revert",
+    "seconds": 0.19253875000003973
+  }
+]

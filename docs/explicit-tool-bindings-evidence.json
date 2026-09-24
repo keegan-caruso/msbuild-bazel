@@ -1,0 +1,42 @@
+[
+  {
+    "case": "initial",
+    "exit": 0
+  },
+  {
+    "case": "tool-dependency-body-edit",
+    "exit": 0
+  },
+  {
+    "case": "wrong-role",
+    "exit": 1
+  },
+  {
+    "case": "undeclared-tool",
+    "exit": 1
+  },
+  {
+    "case": "reserved-property",
+    "exit": 1
+  },
+  {
+    "case": "missing-entry",
+    "exit": 1
+  },
+  {
+    "case": "unsafe-entry",
+    "exit": 1
+  },
+  {
+    "case": "overridden-binding",
+    "exit": 1
+  },
+  {
+    "case": "recovered",
+    "exit": 0
+  },
+  {
+    "case": "deleted-producer-cache-recovery",
+    "exit": 0
+  }
+]

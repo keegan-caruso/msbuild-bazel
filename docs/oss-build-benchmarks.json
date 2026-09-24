@@ -1,0 +1,941 @@
+{
+  "environment": {
+    "platform": "Linux-6.18.35-aarch64-with-glibc2.35",
+    "cpuCount": 5,
+    "sdk": "10.0.400",
+    "bazel": "bazel 9.2.0",
+    "bazelSha256": "049dd21f40ad979db11c3ee68c96a42ce75f1185e69ac61ab20de1501427a410",
+    "memoryInfo": "MemTotal:        8265248 kB"
+  },
+  "frameworkPacks": [
+    {
+      "id": "Microsoft.NETCore.App.Ref",
+      "version": "8.0.30",
+      "sha256": "02fbce7941477e456d31000ca8056b2449af904cb1e06e8591e6592e3dba7012"
+    },
+    {
+      "id": "Microsoft.AspNetCore.App.Ref",
+      "version": "8.0.30",
+      "sha256": "f90fc703f81364b00e1db8b47d77b83b85de5901ff8d4582d1344213886ec931"
+    }
+  ],
+  "projects": {
+    "serilog": {
+      "configuration": {
+        "repository": "https://github.com/serilog/serilog.git",
+        "commit": "bebc7719004f76187ae72e64ce138ec2540f2070",
+        "framework": "net10.0",
+        "entries": [
+          "src/Serilog/Serilog.csproj"
+        ],
+        "properties": {
+          "DebugType": "portable",
+          "ProduceReferenceAssembly": "true",
+          "NuGetAudit": "false"
+        }
+      },
+      "graph": {
+        "projects": 1,
+        "packageTargets": 2,
+        "sourceFiles": 113,
+        "entries": [
+          "src/Serilog/Serilog.csproj"
+        ]
+      },
+      "samples": [
+        {
+          "repetition": 0,
+          "engine": "raw",
+          "case": "cold",
+          "seconds": 1.64139395899997
+        },
+        {
+          "repetition": 0,
+          "engine": "raw",
+          "case": "noop",
+          "seconds": 0.5243174580000414
+        },
+        {
+          "repetition": 0,
+          "engine": "raw",
+          "case": "body-edit",
+          "seconds": 1.1115450839999994,
+          "referenceUnchanged": true
+        },
+        {
+          "repetition": 0,
+          "engine": "bazel",
+          "case": "cold",
+          "seconds": 6.848008378000031,
+          "assemblyActions": 1,
+          "uncachedAssemblyActions": 1
+        },
+        {
+          "repetition": 0,
+          "engine": "bazel",
+          "case": "noop",
+          "seconds": 0.4703492919998098,
+          "assemblyActions": 0,
+          "uncachedAssemblyActions": 0
+        },
+        {
+          "repetition": 0,
+          "engine": "bazel",
+          "case": "body-edit",
+          "seconds": 1.263480250999919,
+          "referenceUnchanged": true,
+          "assemblyActions": 1,
+          "uncachedAssemblyActions": 1
+        },
+        {
+          "repetition": 1,
+          "engine": "bazel",
+          "case": "cold",
+          "seconds": 4.480818001999978,
+          "assemblyActions": 1,
+          "uncachedAssemblyActions": 1
+        },
+        {
+          "repetition": 1,
+          "engine": "bazel",
+          "case": "noop",
+          "seconds": 0.21726012499993885,
+          "assemblyActions": 0,
+          "uncachedAssemblyActions": 0
+        },
+        {
+          "repetition": 1,
+          "engine": "bazel",
+          "case": "body-edit",
+          "seconds": 1.2423842499999864,
+          "referenceUnchanged": true,
+          "assemblyActions": 1,
+          "uncachedAssemblyActions": 1
+        },
+        {
+          "repetition": 1,
+          "engine": "raw",
+          "case": "cold",
+          "seconds": 1.6501945420000084
+        },
+        {
+          "repetition": 1,
+          "engine": "raw",
+          "case": "noop",
+          "seconds": 0.5248188750001646
+        },
+        {
+          "repetition": 1,
+          "engine": "raw",
+          "case": "body-edit",
+          "seconds": 1.1450814580000497,
+          "referenceUnchanged": true
+        },
+        {
+          "repetition": 2,
+          "engine": "raw",
+          "case": "cold",
+          "seconds": 1.603107250999983
+        },
+        {
+          "repetition": 2,
+          "engine": "raw",
+          "case": "noop",
+          "seconds": 0.5293169589999707
+        },
+        {
+          "repetition": 2,
+          "engine": "raw",
+          "case": "body-edit",
+          "seconds": 1.080231958000013,
+          "referenceUnchanged": true
+        },
+        {
+          "repetition": 2,
+          "engine": "bazel",
+          "case": "cold",
+          "seconds": 4.482435626999859,
+          "assemblyActions": 1,
+          "uncachedAssemblyActions": 1
+        },
+        {
+          "repetition": 2,
+          "engine": "bazel",
+          "case": "noop",
+          "seconds": 0.16808641700004046,
+          "assemblyActions": 0,
+          "uncachedAssemblyActions": 0
+        },
+        {
+          "repetition": 2,
+          "engine": "bazel",
+          "case": "body-edit",
+          "seconds": 1.177738126000122,
+          "referenceUnchanged": true,
+          "assemblyActions": 1,
+          "uncachedAssemblyActions": 1
+        },
+        {
+          "engine": "bazel",
+          "case": "remote-recovery",
+          "seconds": 4.592916003000028,
+          "assemblyCacheHits": 1,
+          "matchingRuntimeFiles": 5,
+          "producerDeleted": true
+        }
+      ],
+      "medians": [
+        {
+          "case": "cold",
+          "raw": 1.64139395899997,
+          "bazel": 4.482435626999859,
+          "bazelOverRaw": 2.7308712831688573
+        },
+        {
+          "case": "noop",
+          "raw": 0.5248188750001646,
+          "bazel": 0.21726012499993885,
+          "bazelOverRaw": 0.41397162973582213
+        },
+        {
+          "case": "body-edit",
+          "raw": 1.1115450839999994,
+          "bazel": 1.2423842499999864,
+          "bazelOverRaw": 1.1177092750292683
+        }
+      ],
+      "referenceComparison": {
+        "raw": {
+          "Serilog.dll": "6938902b76016313ff00c7610ee52555cc1f253afc46550ff435237a2bebc0f2"
+        },
+        "bazel": {
+          "Serilog.dll": "6938902b76016313ff00c7610ee52555cc1f253afc46550ff435237a2bebc0f2"
+        },
+        "identical": true
+      },
+      "packageLock": {
+        "Microsoft.NET.ILLink.Tasks/10.0.11": {
+          "sha256": "28ee7ccf5c4bdfe67823c8e0ea62232174f61e224d77e7c6ef5caa1413ac0a76",
+          "contentHash": "hMVB326ViZa64sqR9bxmf4oB41LMuaTrGRfihXZw3dylFRFfZPutLwJrKZmdisSvBcNM6kfuY7vtj9vdR9IbuA=="
+        },
+        "PolySharp/1.15.0": {
+          "sha256": "9c7fd43995b85fddc55042da0ed78cbc4116a1f5f8be28b87b9f633aac7d2538",
+          "contentHash": "RI7vQM7i4Yt5tabZYePJqxU+J4Q2CC9C8svmnKbBJSiDEM7cGEFlP5LaaLk+IW24lD08WFwKYeydaEtwed808w=="
+        }
+      },
+      "frameworkSelections": [
+        {
+          "project": "src/Serilog/Serilog.csproj",
+          "previous": [
+            "$(TargetFrameworks);net10.0;net9.0;net8.0;net6.0;netstandard2.0"
+          ],
+          "selected": "net10.0"
+        }
+      ]
+    },
+    "spectre": {
+      "configuration": {
+        "repository": "https://github.com/spectreconsole/spectre.console.git",
+        "commit": "76b673337fe9d03ec41d0498987e53c4d5e7b33a",
+        "framework": "net10.0",
+        "entries": [
+          "src/Spectre.Console/Spectre.Console.csproj"
+        ],
+        "properties": {
+          "MinVerSkip": "true",
+          "DebugType": "portable",
+          "ProduceReferenceAssembly": "true",
+          "NuGetAudit": "false"
+        },
+        "patches": [
+          {
+            "path": "src/Spectre.Console/Spectre.Console.csproj",
+            "before": "<CompilerGeneratedFilesOutputPath>Generated</CompilerGeneratedFilesOutputPath>",
+            "after": "<CompilerGeneratedFilesOutputPath>$(IntermediateOutputPath)Generated</CompilerGeneratedFilesOutputPath>"
+          },
+          {
+            "path": "src/Spectre.Console.Ansi/Spectre.Console.Ansi.csproj",
+            "before": "<CompilerGeneratedFilesOutputPath>Generated</CompilerGeneratedFilesOutputPath>",
+            "after": "<CompilerGeneratedFilesOutputPath>$(IntermediateOutputPath)Generated</CompilerGeneratedFilesOutputPath>"
+          },
+          {
+            "path": "src/Spectre.Console/Spectre.Console.csproj",
+            "before": "<Compile Remove=\"$(CompilerGeneratedFilesOutputPath)/**/*.cs\" />",
+            "after": "<Compile Remove=\"Generated/**/*.cs;$(CompilerGeneratedFilesOutputPath)/**/*.cs\" />"
+          },
+          {
+            "path": "src/Spectre.Console.Ansi/Spectre.Console.Ansi.csproj",
+            "before": "<Compile Remove=\"$(CompilerGeneratedFilesOutputPath)/**/*.cs\" />",
+            "after": "<Compile Remove=\"Generated/**/*.cs;$(CompilerGeneratedFilesOutputPath)/**/*.cs\" />"
+          }
+        ],
+        "edit": {
+          "path": "src/Spectre.Console.Ansi/ColorTable.cs",
+          "before": "Color number must be between 0 and 255",
+          "assembly": "Spectre.Console.Ansi"
+        }
+      },
+      "graph": {
+        "projects": 3,
+        "packageTargets": 26,
+        "sourceFiles": 338,
+        "entries": [
+          "src/Spectre.Console/Spectre.Console.csproj"
+        ]
+      },
+      "samples": [
+        {
+          "repetition": 0,
+          "engine": "raw",
+          "case": "cold",
+          "seconds": 5.542501586000071
+        },
+        {
+          "repetition": 0,
+          "engine": "raw",
+          "case": "noop",
+          "seconds": 0.622804374999987
+        },
+        {
+          "repetition": 0,
+          "engine": "raw",
+          "case": "body-edit",
+          "seconds": 1.3345296249999592,
+          "referenceUnchanged": true
+        },
+        {
+          "repetition": 0,
+          "engine": "bazel",
+          "case": "cold",
+          "seconds": 13.27823850599998,
+          "assemblyActions": 3,
+          "uncachedAssemblyActions": 3
+        },
+        {
+          "repetition": 0,
+          "engine": "bazel",
+          "case": "noop",
+          "seconds": 0.6367858329999763,
+          "assemblyActions": 0,
+          "uncachedAssemblyActions": 0
+        },
+        {
+          "repetition": 0,
+          "engine": "bazel",
+          "case": "body-edit",
+          "seconds": 1.051986209000006,
+          "referenceUnchanged": true,
+          "assemblyActions": 1,
+          "uncachedAssemblyActions": 1
+        },
+        {
+          "repetition": 1,
+          "engine": "bazel",
+          "case": "cold",
+          "seconds": 11.568213964000051,
+          "assemblyActions": 3,
+          "uncachedAssemblyActions": 3
+        },
+        {
+          "repetition": 1,
+          "engine": "bazel",
+          "case": "noop",
+          "seconds": 0.2674689999998918,
+          "assemblyActions": 0,
+          "uncachedAssemblyActions": 0
+        },
+        {
+          "repetition": 1,
+          "engine": "bazel",
+          "case": "body-edit",
+          "seconds": 1.1781634589999612,
+          "referenceUnchanged": true,
+          "assemblyActions": 1,
+          "uncachedAssemblyActions": 1
+        },
+        {
+          "repetition": 1,
+          "engine": "raw",
+          "case": "cold",
+          "seconds": 4.547743043000082
+        },
+        {
+          "repetition": 1,
+          "engine": "raw",
+          "case": "noop",
+          "seconds": 0.6331985419999455
+        },
+        {
+          "repetition": 1,
+          "engine": "raw",
+          "case": "body-edit",
+          "seconds": 1.1482963339999515,
+          "referenceUnchanged": true
+        },
+        {
+          "repetition": 2,
+          "engine": "raw",
+          "case": "cold",
+          "seconds": 5.334031960999937
+        },
+        {
+          "repetition": 2,
+          "engine": "raw",
+          "case": "noop",
+          "seconds": 0.6749853750000057
+        },
+        {
+          "repetition": 2,
+          "engine": "raw",
+          "case": "body-edit",
+          "seconds": 1.3052658340000107,
+          "referenceUnchanged": true
+        },
+        {
+          "repetition": 2,
+          "engine": "bazel",
+          "case": "cold",
+          "seconds": 11.024999922000006,
+          "assemblyActions": 3,
+          "uncachedAssemblyActions": 3
+        },
+        {
+          "repetition": 2,
+          "engine": "bazel",
+          "case": "noop",
+          "seconds": 0.2220907499997793,
+          "assemblyActions": 0,
+          "uncachedAssemblyActions": 0
+        },
+        {
+          "repetition": 2,
+          "engine": "bazel",
+          "case": "body-edit",
+          "seconds": 0.7697312499999498,
+          "referenceUnchanged": true,
+          "assemblyActions": 1,
+          "uncachedAssemblyActions": 1
+        },
+        {
+          "engine": "bazel",
+          "case": "remote-recovery",
+          "seconds": 6.528322627999842,
+          "assemblyCacheHits": 3,
+          "matchingRuntimeFiles": 58,
+          "producerDeleted": true
+        }
+      ],
+      "medians": [
+        {
+          "case": "cold",
+          "raw": 5.334031960999937,
+          "bazel": 11.568213964000051,
+          "bazelOverRaw": 2.1687560270695174
+        },
+        {
+          "case": "noop",
+          "raw": 0.6331985419999455,
+          "bazel": 0.2674689999998918,
+          "bazelOverRaw": 0.42240937440426835
+        },
+        {
+          "case": "body-edit",
+          "raw": 1.3052658340000107,
+          "bazel": 1.051986209000006,
+          "bazelOverRaw": 0.8059555238461849
+        }
+      ],
+      "referenceComparison": {
+        "raw": {
+          "Spectre.Console.dll": "cc82d3c1865e344b056923d0d2f6325fa9bf63aeb97469d6e88ca2b7813c33cf",
+          "Spectre.Console.Ansi.dll": "b1edf35bfce4cc9ad3e16a6f7333d9883409c00fd7e761672214c650903ccca6",
+          "Spectre.Console.SourceGenerator.dll": "fa066937c05afa409928a906ad59f128ce5f7baad5d4c0ad5fcd804cc75bda20"
+        },
+        "bazel": {
+          "Spectre.Console.SourceGenerator.dll": "3ecdcf20580eec93b07b269b58cb5fe7032109bc77eadf20008ea9e8b26681c5",
+          "Spectre.Console.Ansi.dll": "1e3b3ff3162066cae6893054bb2d5ffafbefd874a2e139921ef9a75cc38101ff",
+          "Spectre.Console.dll": "8ceeb900041ec3a61808544117b99362727602489462bb93405090429c65d51b"
+        },
+        "identical": false
+      },
+      "packageLock": {
+        "IsExternalInit/1.0.3": {
+          "sha256": "51fc86ae3fa101fb2f4bf47bb65ba04d3a03fff6b1f45cb409a99e8a7467d405",
+          "contentHash": "jAMHC4QvXRql/fmQQybPc0gLKXTACK9pfLw3sNB1Y5LZapChArKhXMo84sMkhl6VfCgcbinqB/JDU0S4EQ/Q1w=="
+        },
+        "Microsoft.Bcl.AsyncInterfaces/10.0.8": {
+          "sha256": "c7c1c2eb869bacdf419a59d806cc04cc70a50c459c1c09ec91e68c5fd37cfd04",
+          "contentHash": "FzE/KnOmwCmg2KMPjuyevkS5fAzNt2DBLSJs3HsJ+I/CoBSW6i0mighH6ryZ8JHQhNLxMK04X7J8BTt0kEG5/g=="
+        },
+        "Microsoft.Build.Tasks.Git/10.0.300": {
+          "sha256": "71dbf22be5c1130c7df74eac515e91c1dfd566e4523698ce65b055bcc7f37959",
+          "contentHash": "vXEACa8Z0lNBLimattYIQX6AQdl3vnTOtX8Ej6ne7n61tqFw63pdwebQiC5Z7vGfb1kaqVMZiepgmfZjtT/b4A=="
+        },
+        "Microsoft.CodeAnalysis.Analyzers/5.3.0": {
+          "sha256": "7948d4ecc0de91c6c3431501bad7162bbb221f1e879ab81d0cc2e7a4661154b3",
+          "contentHash": "v9jPlSs/fE7AU2/eZOw5EUzq0JOaWgP+2gghwIP2XbbTv56PZZZsy1QgEiMa3jjO8hR8SN1+NJvG1xxHL2FDgw=="
+        },
+        "Microsoft.CodeAnalysis.CSharp/5.3.0": {
+          "sha256": "0378f19591327e0127f6e9e1a10a9b3ac034c1dfe603c69a93a75196ee661c85",
+          "contentHash": "TD8ulDx0+qjf3oi5gcToiNaxVGzn0rsPN0hCQOq+skYGgugKGLVl8obs0KxrxAOx2xkjySbOcEBumgJ0uhzzgA=="
+        },
+        "Microsoft.CodeAnalysis.Common/5.3.0": {
+          "sha256": "3b94556ea0165cbd8570236d9fe74f01527fe5a89ac5cf27416a23252b31eb5c",
+          "contentHash": "lt42ETYkJrzJrf99jQ9n7xnanR/ETh92o6LX03kTjQKfKFrJGm5/+4OQJyIz8Kj4/ClbeZ3kvxytsyds4jQ5Tg=="
+        },
+        "Microsoft.NET.ILLink.Tasks/10.0.11": {
+          "sha256": "28ee7ccf5c4bdfe67823c8e0ea62232174f61e224d77e7c6ef5caa1413ac0a76",
+          "contentHash": "hMVB326ViZa64sqR9bxmf4oB41LMuaTrGRfihXZw3dylFRFfZPutLwJrKZmdisSvBcNM6kfuY7vtj9vdR9IbuA=="
+        },
+        "Microsoft.NETCore.Platforms/1.1.0": {
+          "sha256": "15e338d24b5c39b4099389cc612841eb51ff13c07bb4829f97d39b27420e7023",
+          "contentHash": "a/iSwnRZb+LHFk49hQOyThh/ZNC3vsbZsF65XwQIb863qF6msmhdQtxGXFL28Ob2NsCz/drEj28BJd/YPpLRBg=="
+        },
+        "Microsoft.SourceLink.Common/10.0.300": {
+          "sha256": "2c643ceef6c7b4f1e782a38686f84de5105edad4c8eb6dbf37391aa6409691f1",
+          "contentHash": "qecmQ3tWgnYRvdrJ4VxIucx7xjxeeT66fAuSVvUbHifajqclW5Dp/nOJMf2DZQOR2Ai9dCNYJX8X2nST8JgNig=="
+        },
+        "Microsoft.SourceLink.GitHub/10.0.300": {
+          "sha256": "6ea24929af22808d1ead98d441264943de4b247b1cf5720c371199ddbdb47c5f",
+          "contentHash": "rkZ3NJMC21EnDFvlSsRsNVYC4t2QzcOalSAhceqJx6Zsg+U6fNh/cE8RajWYVuHPRoPjLLm9sj2P8N3J6sCQJg=="
+        },
+        "MinVer/7.0.0": {
+          "sha256": "723efe7363219fcf258e72dea60ff41cc3c9b68e724d349bb2989afd346ed5eb",
+          "contentHash": "y6bHmVna6XputVcL573+MPYpANfuD47ihdQU/5Sorw6PBYdPgtXrr1qTk8UMR7WGFJvlFUZY7W5skwfll/KvCQ=="
+        },
+        "NETStandard.Library/2.0.3": {
+          "sha256": "3eb87644f79bcffb3c0331dbdac3c7837265f2cdf58a7bfd93e431776f77c9ba",
+          "contentHash": "548M6mnBSJWxsIlkQHfbzoYxpiYFXZZSL00p4GHYv8PkiqFBnnT68mW5mGEsA/ch9fDO9GkPgkFQpWiXZN7mAQ=="
+        },
+        "Roslynator.Analyzers/4.15.0": {
+          "sha256": "34008397c6eee465f34badaec12a461a169c42baac7e7b06f174a0f9c4bde2b6",
+          "contentHash": "xRJQH6MW5XphhAwGCXfh+/qJFcb7x/0VoX8y9dJjDHU4609CFDL6ARemlKBLZQy4j56EGVVMigGBtFSG3IPDfw=="
+        },
+        "System.Buffers/4.6.1": {
+          "sha256": "b00451e91d016fbec091ad1e361f3a7015e1d91d4047f7e48a74455b2a673d79",
+          "contentHash": "qve/dFwECwehSWlZmpkrrlIeATCvo/Hw2koyMrUVcDBy5gXAQrnwX8pHEoqgj8DgkrWuWW1DrQbFqoMbo+Fvrg=="
+        },
+        "System.Collections.Immutable/9.0.0": {
+          "sha256": "fbaab954c7a87396e6e1616ca15ea705703d755e696bf3b8c96fa039d8bcc9a7",
+          "contentHash": "z/Oo7nxWmZ0Y578vj8EUVrFJZ3DX6OMuUGlgeYgeeUZOFGT89XfaM8fDFMvJy6+mOIqW6ux5NdNzEnlTnQGJ7A=="
+        },
+        "System.IO.Hashing/10.0.8": {
+          "sha256": "9ec0ccbc2bc078a0b2a79eba884ca9dc93967d09d33e00d4ddd205320d2250bd",
+          "contentHash": "L9nWWbSqcJJUztEEn6OjV/f2Tab1cg0qqK9f3Vic7pcKeVGu/BsvaZQDT/EKarhVeSWArSKx4A8ITg/uEmlulQ=="
+        },
+        "System.IO.Pipelines/10.0.8": {
+          "sha256": "ffb2ea06886cc3f67aff6b4350aa0b8d0c91f2611bbe4e2f536b7cdc4701d9a8",
+          "contentHash": "jrBzkIgn/+Ul7ODVXy5uBYhlXpEVHx57VUtLigfw0pq2r+xu3dv/F0aWi7y3C/w3GSk6mhvoX3RfKcWJT372UA=="
+        },
+        "System.Memory/4.6.3": {
+          "sha256": "26078aeb758c9ae985e8bf851f973026061da6a5eb4837204d0c2d2204c72955",
+          "contentHash": "NXcNYlWoXe5cz9sb8Huo6x2dCZVYkhwKtgE00n/MoI8V4ZI/7/t+EI5bOhQFlZfFjjqM8+U6prjU/aARt7H/tA=="
+        },
+        "System.Numerics.Vectors/4.6.1": {
+          "sha256": "2bc500a86dcb02f2032d6d877f9e2d6e9e4a79080e57239b4198679d4031f2c7",
+          "contentHash": "/rkvpUeUPlCY/2qYVQKiUsj5IKaXZcy2+SQAGAfemAdyEF5AgIgYOFNSTMWDXo09JWFX9HB+wV1yCyi2Mwi3TA=="
+        },
+        "System.Reflection.Metadata/9.0.0": {
+          "sha256": "6af1166dc0a1ed7829b127ac9d1dff4a0c568bfe82e4ec6347cf497ff49f4634",
+          "contentHash": "jz+Y2m/CpdPvdjCNRigiWJYKFusdkfJlxDx4V5cWX2TubAMaz5CZpODBD/P2+20SpWvmZG6J3UYjl+R2Yg7yFw=="
+        },
+        "System.Runtime.CompilerServices.Unsafe/6.1.2": {
+          "sha256": "5f6a7f53af3465f92beb6da873ebe0e496206c313313b98badee4355a6b25937",
+          "contentHash": "t2aXWJZBkAkRrTOnw31OBELKEVSDD5YvC3O5dXaHFsR66/nRTKm1y3Iq6NwFI5u5IlKrWYfdan66V+GKKkY8hQ=="
+        },
+        "System.Text.Encoding.CodePages/8.0.0": {
+          "sha256": "7e308b41cd4f456d08c7921995d8345cabfe2750ea3d27eef698ccc8d069edd1",
+          "contentHash": "d9rfaxpz7u+1BQem129eOiDgrn0/VQw0kmWuTg1V8K5PDvG0G+CN2BB5io4B27p04sqsdGtRWLjiPXIlI9Rz7Q=="
+        },
+        "System.Text.Encodings.Web/10.0.8": {
+          "sha256": "1c683035acc525cf0f3e18c0de9e0fdd981cfd983c28e93ed2eaee58f1eea373",
+          "contentHash": "+12d6rO4RtdcCK8z6+/NSiTTZnFP0yUYBpwTvdv/BYhtfk2LhHlKoH3Sql4HYYJ2Bbd5FNMwAeaNuAuahw4ADw=="
+        },
+        "System.Text.Json/10.0.8": {
+          "sha256": "4535f3d313d06a5872c912d78aeeab79297e76c517139f06ce36263cff7e8585",
+          "contentHash": "/1j17Re9pweKke6RitNVUZh0Cnz4pcWzHSZOy9xaE0VimowsBPnRRovYV07N7jOUmVj4Y0KWq/aBzvT1zutSaw=="
+        },
+        "System.Threading.Tasks.Extensions/4.6.3": {
+          "sha256": "1abc92c7517a021ead7e79d0b7f3c70be75bce0fac7cfe3b38e157d32245ff1a",
+          "contentHash": "zWRHXIBnbfzQE1SamNoW9X5NjEcW/JNAtvVxGKd3bcg71wQVmoI3pDq+WUa2A+temXSNCm7707hmAFwwcYlK0A=="
+        },
+        "Wcwidth.Sources/4.0.1": {
+          "sha256": "908211f8102324a5b674a9b4eecf9733a72e4676185f1783727d0f8b53bba156",
+          "contentHash": "XphSDeLoiKZRWqVKlH5PvUI667NTKvnjoEi+MfZ/c2DYkDfq/e0Gv1YK78CYR767slxVK3wnXYujNNrSSEfrGA=="
+        }
+      },
+      "frameworkSelections": [
+        {
+          "project": "src/Spectre.Console.Ansi.Tests/Spectre.Console.Ansi.Tests.csproj",
+          "previous": [
+            "net10.0;net9.0;net8.0"
+          ],
+          "selected": "net10.0"
+        },
+        {
+          "project": "src/Spectre.Console/Spectre.Console.csproj",
+          "previous": [
+            "net10.0;net9.0;net8.0;netstandard2.0"
+          ],
+          "selected": "net10.0"
+        },
+        {
+          "project": "src/Spectre.Console.Ansi/Spectre.Console.Ansi.csproj",
+          "previous": [
+            "net10.0;net9.0;net8.0;netstandard2.0"
+          ],
+          "selected": "net10.0"
+        },
+        {
+          "project": "src/Extensions/Spectre.Console.ImageSharp/Spectre.Console.ImageSharp.csproj",
+          "previous": [
+            "net10.0;net9.0;net8.0"
+          ],
+          "selected": "net10.0"
+        },
+        {
+          "project": "src/Extensions/Spectre.Console.Json/Spectre.Console.Json.csproj",
+          "previous": [
+            "net10.0;net9.0;net8.0;netstandard2.0"
+          ],
+          "selected": "net10.0"
+        },
+        {
+          "project": "src/Spectre.Console.Testing/Spectre.Console.Testing.csproj",
+          "previous": [
+            "net10.0;net9.0;net8.0;netstandard2.0"
+          ],
+          "selected": "net10.0"
+        },
+        {
+          "project": "src/Benchmarks/Benchmarks.csproj",
+          "previous": [
+            "net10.0;net9.0;net8.0"
+          ],
+          "selected": "net10.0"
+        },
+        {
+          "project": "src/Spectre.Console.Tests/Spectre.Console.Tests.csproj",
+          "previous": [
+            "net10.0;net9.0;net8.0"
+          ],
+          "selected": "net10.0"
+        }
+      ]
+    },
+    "polly": {
+      "configuration": {
+        "repository": "https://github.com/App-vNext/Polly.git",
+        "commit": "74bf31fff0e0907034994be4df22424aa71818f1",
+        "framework": "net8.0",
+        "entries": [
+          "src/Polly.Extensions/Polly.Extensions.csproj",
+          "src/Polly.RateLimiting/Polly.RateLimiting.csproj",
+          "src/Polly.Testing/Polly.Testing.csproj"
+        ],
+        "properties": {
+          "MinVerSkip": "true",
+          "UseArtifactsOutput": "false",
+          "DebugType": "portable",
+          "ProduceReferenceAssembly": "true",
+          "NuGetAudit": "false"
+        },
+        "edit": {
+          "path": "src/Polly.Core/VoidResult.cs",
+          "before": "\"void\"",
+          "assembly": "Polly.Core"
+        }
+      },
+      "graph": {
+        "projects": 4,
+        "packageTargets": 16,
+        "sourceFiles": 205,
+        "entries": [
+          "src/Polly.Extensions/Polly.Extensions.csproj",
+          "src/Polly.RateLimiting/Polly.RateLimiting.csproj",
+          "src/Polly.Testing/Polly.Testing.csproj"
+        ]
+      },
+      "samples": [
+        {
+          "repetition": 0,
+          "engine": "raw",
+          "case": "cold",
+          "seconds": 4.221987334999994
+        },
+        {
+          "repetition": 0,
+          "engine": "raw",
+          "case": "noop",
+          "seconds": 0.6226070419997995
+        },
+        {
+          "repetition": 0,
+          "engine": "raw",
+          "case": "body-edit",
+          "seconds": 3.2290785440000036,
+          "referenceUnchanged": true
+        },
+        {
+          "repetition": 0,
+          "engine": "bazel",
+          "case": "cold",
+          "seconds": 13.302208172999826,
+          "assemblyActions": 4,
+          "uncachedAssemblyActions": 4
+        },
+        {
+          "repetition": 0,
+          "engine": "bazel",
+          "case": "noop",
+          "seconds": 0.43316950000007637,
+          "assemblyActions": 0,
+          "uncachedAssemblyActions": 0
+        },
+        {
+          "repetition": 0,
+          "engine": "bazel",
+          "case": "body-edit",
+          "seconds": 4.618643335000115,
+          "referenceUnchanged": true,
+          "assemblyActions": 1,
+          "uncachedAssemblyActions": 1
+        },
+        {
+          "repetition": 1,
+          "engine": "bazel",
+          "case": "cold",
+          "seconds": 11.00361904700003,
+          "assemblyActions": 4,
+          "uncachedAssemblyActions": 4
+        },
+        {
+          "repetition": 1,
+          "engine": "bazel",
+          "case": "noop",
+          "seconds": 0.1662925420000647,
+          "assemblyActions": 0,
+          "uncachedAssemblyActions": 0
+        },
+        {
+          "repetition": 1,
+          "engine": "bazel",
+          "case": "body-edit",
+          "seconds": 4.19493921000003,
+          "referenceUnchanged": true,
+          "assemblyActions": 1,
+          "uncachedAssemblyActions": 1
+        },
+        {
+          "repetition": 1,
+          "engine": "raw",
+          "case": "cold",
+          "seconds": 4.230494626999871
+        },
+        {
+          "repetition": 1,
+          "engine": "raw",
+          "case": "noop",
+          "seconds": 0.6888196669999616
+        },
+        {
+          "repetition": 1,
+          "engine": "raw",
+          "case": "body-edit",
+          "seconds": 3.3698292100000344,
+          "referenceUnchanged": true
+        },
+        {
+          "repetition": 2,
+          "engine": "raw",
+          "case": "cold",
+          "seconds": 4.25100962700003
+        },
+        {
+          "repetition": 2,
+          "engine": "raw",
+          "case": "noop",
+          "seconds": 0.6241625410000324
+        },
+        {
+          "repetition": 2,
+          "engine": "raw",
+          "case": "body-edit",
+          "seconds": 3.3838672520000728,
+          "referenceUnchanged": true
+        },
+        {
+          "repetition": 2,
+          "engine": "bazel",
+          "case": "cold",
+          "seconds": 11.053175963000058,
+          "assemblyActions": 4,
+          "uncachedAssemblyActions": 4
+        },
+        {
+          "repetition": 2,
+          "engine": "bazel",
+          "case": "noop",
+          "seconds": 0.17044270900009906,
+          "assemblyActions": 0,
+          "uncachedAssemblyActions": 0
+        },
+        {
+          "repetition": 2,
+          "engine": "bazel",
+          "case": "body-edit",
+          "seconds": 4.15435929299997,
+          "referenceUnchanged": true,
+          "assemblyActions": 1,
+          "uncachedAssemblyActions": 1
+        },
+        {
+          "engine": "bazel",
+          "case": "remote-recovery",
+          "seconds": 7.412196670000185,
+          "assemblyCacheHits": 4,
+          "matchingRuntimeFiles": 25,
+          "producerDeleted": true
+        }
+      ],
+      "medians": [
+        {
+          "case": "cold",
+          "raw": 4.230494626999871,
+          "bazel": 11.053175963000058,
+          "bazelOverRaw": 2.6127384472861537
+        },
+        {
+          "case": "noop",
+          "raw": 0.6241625410000324,
+          "bazel": 0.17044270900009906,
+          "bazelOverRaw": 0.2730742359626644
+        },
+        {
+          "case": "body-edit",
+          "raw": 3.3698292100000344,
+          "bazel": 4.19493921000003,
+          "bazelOverRaw": 1.2448521716030785
+        }
+      ],
+      "referenceComparison": {
+        "raw": {
+          "Polly.Extensions.dll": "ca4bead24a171de61d46f53b95753bb6c6f437d9fcab4085545067736a7325e9",
+          "Polly.RateLimiting.dll": "38b82f0af71357ddcd54b5dd98787716ffbaa6809033e36cb95e7220d13e85db",
+          "Polly.Testing.dll": "94e155569947d0dc60997f8564440b7d08e96102a36887821aacb455a44ce07d",
+          "Polly.Core.dll": "2567da01948bedc582353333596065173badc6de9a0cdc73745d775d6a414ca6"
+        },
+        "bazel": {
+          "Polly.Core.dll": "2567da01948bedc582353333596065173badc6de9a0cdc73745d775d6a414ca6",
+          "Polly.RateLimiting.dll": "38b82f0af71357ddcd54b5dd98787716ffbaa6809033e36cb95e7220d13e85db",
+          "Polly.Testing.dll": "94e155569947d0dc60997f8564440b7d08e96102a36887821aacb455a44ce07d",
+          "Polly.Extensions.dll": "ca4bead24a171de61d46f53b95753bb6c6f437d9fcab4085545067736a7325e9"
+        },
+        "identical": true
+      },
+      "packageLock": {
+        "Microsoft.CodeAnalysis.BannedApiAnalyzers/4.14.0": {
+          "sha256": "7fbb2fb6792ae312d38c6563ea4359d59185095fd1112b0cf86259984a5ece1e",
+          "contentHash": "8MR+kZdz0Eh+O3blXItwnJcs1hAL9YXMQ+WCE9wu53q1WqPJPemxrLwROtK0NFPo70V3+m9R4Ty4iDm2pn0YAQ=="
+        },
+        "Microsoft.CodeAnalysis.PublicApiAnalyzers/4.14.0": {
+          "sha256": "b8f68d76fc24dee550ad118c0e001826e412843910023045986cb80e0ca9cbf6",
+          "contentHash": "mL5ldsxV/mfvOBvUDJHNjR3Dzn/30h969pstjWQ1T+eJAdRDrF70tB+sFdZ05owqmB7+XVHzLrQYGetxlOxoAQ=="
+        },
+        "Microsoft.Extensions.DependencyInjection.Abstractions/8.0.0": {
+          "sha256": "ef92b31065a36d110b7332690a226e6fe96d35430c6f3e40ff529053ee5d80ff",
+          "contentHash": "lLwF7Sl1UQlWXZzfyQEIfuH6CDAt2jkxBryaC9c4Tw3CtsLxI8G9U/zga6vb+oRdxtIqFjxLBkbFJR3MWurCgg=="
+        },
+        "Microsoft.Extensions.Logging.Abstractions/8.0.0": {
+          "sha256": "26675d8de83c5394be8814f046554054b7881f1738cabacd82a54c381ec48cce",
+          "contentHash": "UKCt2W0w2QWA+44ColzqCqFfTSJ0Qnm1rP4YzIVot0QCqgYtXbE8xYh6CL/STgfLyIsvwQ7o7sLDft87zaf4pw=="
+        },
+        "Microsoft.Extensions.Options/8.0.0": {
+          "sha256": "9f69b82527a040a51394eb0a2d95141c728cabddba789d30f4df46f88dc5a05c",
+          "contentHash": "HABAgqEy57daDJWs7zV4pNXbQsVeCZbkC5W2Y+moPFog7Ugahdt1Z//34949u6an1P5cgl3HzpXelWaJr6FsWg=="
+        },
+        "Microsoft.Extensions.Primitives/8.0.0": {
+          "sha256": "154f2a8f70d1f1b0dd73573e59e199c7f3c265eaaa9ddc1e64cf5ea5ca578d2a",
+          "contentHash": "H1R1yj084YRjRW3RNa+sUC1vgv6m5OSBSmH4ZhbDSN7PKLc9FcK7J20aPAOepgZPdeEyn286ZMqjUg1wq5LDLQ=="
+        },
+        "Microsoft.NET.ILLink.Tasks/8.0.30": {
+          "sha256": "91edab8b85d0b0e4bfdae0c04946913f9c84d1ddfde180faba9d78b4d5a205e4",
+          "contentHash": "q8cwD52JNMGzYXGT3KLES6Aoi77QM8DfgGoDeHeJAhmsXcWxyMb0m4ultGeU0QeG7pO4meD9pr/M7ieUF7Il+w=="
+        },
+        "MinVer/6.0.0": {
+          "sha256": "eb6fd48021578b588898d23124c19e944871564a0a71d95db3112e1a8e483047",
+          "contentHash": "XYkT13GeqY+9JHj/NHDDhCYvsYOcA9vr/y1+bDrJFfOp0FG/JUgVQifdwnClHJCT8WFxBdYROJGtOSPHcX+Y+w=="
+        },
+        "Polly.Core/8.5.2": {
+          "sha256": "3c0c2c5aaac289e09fffb63cedf57b5cc2a8698d9a6c240db48fb8a32c8c89f9",
+          "contentHash": "g+hJi5hTsadLYfDfxReqg4Bh7TQJgoOHQKKKPhVQQ860dWn/Yf0A4KXthRK4G8aj41aXcxZNagWkwRA3dz8wzQ=="
+        },
+        "Polly.Extensions/8.5.2": {
+          "sha256": "1765e594178818f08fb35d57ef81c6fd529934633036cd44cb3a00cf34d11b80",
+          "contentHash": "zhWXvD5P93c685dk5Yo7MvX4tmk2Fcrsj/vYj1nsTX/qkVOWe7+wunxV3t8CDBTrUcubuWh1PulgV0eTo9c0sg=="
+        },
+        "Polly.RateLimiting/8.5.2": {
+          "sha256": "b744caddcfc5b3e4b3967432d945060dfd9c5b0222ffba7589598d154495b959",
+          "contentHash": "b2a5q2zGrjJSunr/w2XsXj16MCT7+k1PayxmBFCcfVHwjTFBCfXjYZbKxnr8hkIG1Os9RC/ivZ8nxqUgZLX6QA=="
+        },
+        "Polly.Testing/8.5.2": {
+          "sha256": "4187fb7408c337d53e25ec0ae4c3c39b509a69e7cbf606458089a0b6e2132022",
+          "contentHash": "tN8Ee84iwUdCcsbu+BzO1NRtwBHDyLL52c25MMqpl5aARuYin2KYeE3JYYNXLIXdIIiasCEjRM6d1pELzMTyjg=="
+        },
+        "SonarAnalyzer.CSharp/10.15.0.120848": {
+          "sha256": "ce666b1e1a916c9ab70dc03b3e5a3a379ea08f3ee18bb0d7c24d5efcd4864305",
+          "contentHash": "YLaizKSbUjX917aqamn6WH0Wty5K/xPIqXkahFbpsxGwmuXhElz+MChZBHumnDDGGVvpbtAQfrTqD/8yUH5C8g=="
+        },
+        "StyleCop.Analyzers.Unstable/1.2.0.556": {
+          "sha256": "695a29edaf6bf97d91b191138278019b7a903c42223c15a01f389c1924c4ca67",
+          "contentHash": "Dp+65xPS0waQuzMecwimGYlO4mwTeYhV7AolKbMkaNZ/vPK8HwKqDzrn5oUdK1lWhO9BUkWqgRm5sbfVjDCRaw=="
+        },
+        "StyleCop.Analyzers/1.2.0-beta.556": {
+          "sha256": "f7b61841caf9bd9c53be2dfaeb4f1e524035c1beb1965650ed47176e3ad821f5",
+          "contentHash": "CBY/YGHrwm6puAaagun1ddZWpQ8dkpntqHT0EHcx6y4CtRLyAfHDTGmD2SuuzW7l6ZKqa2HHiulJCn/dvdUYgg=="
+        },
+        "System.Threading.RateLimiting/8.0.0": {
+          "sha256": "28e11612de99b61bd91c9d96a7bd1df6706106b3eaa1b1900e2dadc2529887fc",
+          "contentHash": "ixhwz8JQm1n+6qf8WzbMMfhBAT51Kq0U/71YGhR2bGyDnDERdGbmQF6A8HDwpkp+ntVie832Yiz9xmPs63OPKA=="
+        }
+      },
+      "frameworkSelections": [
+        {
+          "project": "src/Polly.RateLimiting/Polly.RateLimiting.csproj",
+          "previous": [
+            "net8.0;net6.0;netstandard2.0;net472;net462"
+          ],
+          "selected": "net8.0"
+        },
+        {
+          "project": "src/Polly.Extensions/Polly.Extensions.csproj",
+          "previous": [
+            "net8.0;net6.0;netstandard2.0;net472;net462"
+          ],
+          "selected": "net8.0"
+        },
+        {
+          "project": "src/Polly.Testing/Polly.Testing.csproj",
+          "previous": [
+            "net8.0;netstandard2.0"
+          ],
+          "selected": "net8.0"
+        },
+        {
+          "project": "src/Polly.Core/Polly.Core.csproj",
+          "previous": [
+            "net8.0;net6.0;netstandard2.0;net472;net462"
+          ],
+          "selected": "net8.0"
+        },
+        {
+          "project": "src/Polly/Polly.csproj",
+          "previous": [
+            "net6.0;netstandard2.0;net472;net462"
+          ],
+          "selected": "net8.0"
+        }
+      ]
+    }
+  }
+}

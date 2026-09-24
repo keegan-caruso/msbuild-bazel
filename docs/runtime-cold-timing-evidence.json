@@ -1,0 +1,2037 @@
+{
+  "platform": "linux-arm64",
+  "cpus": 8,
+  "memoryGiB": 16,
+  "runtimeCommit": "60629d14374c56f1cb51819049ad1fa529307f8d",
+  "sdk": "10.0.400",
+  "bazel": "9.2.0",
+  "scope": "Same 38 configured managed roots; full host recorded separately",
+  "recovery": {
+    "scenario": "recovery",
+    "toolchain": {
+      "sdkVersion": "10.0.400",
+      "sdkRoot": "/opt/rules_msbuild-toolchain/.tools/dotnet",
+      "bazelVersion": "9.2.0",
+      "bazelExecutable": "/tmp/bazel-9.2.0",
+      "bazelSha256": "049dd21f40ad979db11c3ee68c96a42ce75f1185e69ac61ab20de1501427a410"
+    },
+    "records": [
+      {
+        "case": "build",
+        "wallSeconds": 28.451,
+        "exitCode": 0,
+        "command": [
+          "/tmp/bazel-9.2.0",
+          "--batch",
+          "--host_jvm_args=-Xmx1536m",
+          "--output_base=/work/fresh-recovery-base-1",
+          "--ignore_all_rc_files",
+          "build",
+          "//upstream:src_libraries_System.Collections.Immutable_tests_System.Collections.Immutable.Tests_net10.0",
+          "//upstream:src_libraries_System.Collections_tests_System.Collections.Tests_net10.0",
+          "//upstream:src_libraries_System.Linq_tests_System.Linq.Tests_net10.0",
+          "//upstream:src_libraries_System.Net.Sockets_tests_FunctionalTests_System.Net.Sockets.Tests_net10.0-unix",
+          "//upstream:src_libraries_System.Runtime_tests_System.IO.FileSystem.Tests_System.IO.FileSystem.Tests_net10.0-unix",
+          "//upstream:src_libraries_System.Runtime_tests_System.Threading.Tasks.Tests_System.Threading.Tasks.Tests_net10.0",
+          "//upstream:src_libraries_System.Threading_tests_System.Threading.Tests_net10.0",
+          "--jobs=2",
+          "--strategy=MSBuildAssembly=worker",
+          "--worker_max_instances=MSBuildAssembly=1",
+          "--disk_cache=",
+          "--remote_cache=http://192.168.64.142:8080",
+          "--remote_upload_local_results=false",
+          "--remote_download_outputs=all",
+          "--execution_log_json_file=/work/fresh-recovery-1/build.execution.json",
+          "--build_event_json_file=/work/fresh-recovery-1/build.bep",
+          "--profile=/work/fresh-recovery-1/build.profile.json.gz"
+        ],
+        "actions": {
+          "MSBuildAssembly": {
+            "total": 280,
+            "cacheHits": 280
+          },
+          "MSBuildNugetExtract": {
+            "total": 149,
+            "cacheHits": 149
+          },
+          "RuntimeNative": {
+            "total": 5,
+            "cacheHits": 5
+          },
+          "MSBuildLayout": {
+            "total": 121,
+            "cacheHits": 121
+          },
+          "MSBuildAssemblyPair": {
+            "total": 129,
+            "cacheHits": 129
+          }
+        },
+        "tests": []
+      },
+      {
+        "case": "cached-tests",
+        "wallSeconds": 7.628,
+        "exitCode": 0,
+        "command": [
+          "/tmp/bazel-9.2.0",
+          "--batch",
+          "--host_jvm_args=-Xmx1536m",
+          "--output_base=/work/fresh-recovery-base-1",
+          "--ignore_all_rc_files",
+          "test",
+          "//upstream:src_libraries_System.Collections.Immutable_tests_System.Collections.Immutable.Tests_net10.0",
+          "//upstream:src_libraries_System.Collections_tests_System.Collections.Tests_net10.0",
+          "//upstream:src_libraries_System.Linq_tests_System.Linq.Tests_net10.0",
+          "//upstream:src_libraries_System.Net.Sockets_tests_FunctionalTests_System.Net.Sockets.Tests_net10.0-unix",
+          "//upstream:src_libraries_System.Runtime_tests_System.IO.FileSystem.Tests_System.IO.FileSystem.Tests_net10.0-unix",
+          "//upstream:src_libraries_System.Runtime_tests_System.Threading.Tasks.Tests_System.Threading.Tasks.Tests_net10.0",
+          "//upstream:src_libraries_System.Threading_tests_System.Threading.Tests_net10.0",
+          "--jobs=2",
+          "--strategy=MSBuildAssembly=worker",
+          "--worker_max_instances=MSBuildAssembly=1",
+          "--disk_cache=",
+          "--remote_cache=http://192.168.64.142:8080",
+          "--remote_upload_local_results=false",
+          "--remote_download_outputs=all",
+          "--execution_log_json_file=/work/fresh-recovery-1/cached-tests.execution.json",
+          "--build_event_json_file=/work/fresh-recovery-1/cached-tests.bep",
+          "--profile=/work/fresh-recovery-1/cached-tests.profile.json.gz"
+        ],
+        "actions": {
+          "TestRunner": {
+            "total": 7,
+            "cacheHits": 7
+          }
+        },
+        "tests": [
+          {
+            "status": "PASSED",
+            "cachedLocally": null,
+            "executionInfo": {
+              "strategy": "remote cache hit",
+              "timingBreakdown": {
+                "child": [
+                  {
+                    "name": "parseTime",
+                    "time": "0s"
+                  },
+                  {
+                    "name": "fetchTime",
+                    "time": "0.032s"
+                  },
+                  {
+                    "name": "queueTime",
+                    "time": "0s"
+                  },
+                  {
+                    "name": "uploadTime",
+                    "time": "0s"
+                  },
+                  {
+                    "name": "setupTime",
+                    "time": "0s"
+                  },
+                  {
+                    "name": "executionWallTime",
+                    "time": "0s"
+                  },
+                  {
+                    "name": "processOutputsTime",
+                    "time": "0s"
+                  },
+                  {
+                    "name": "networkTime",
+                    "time": "0s"
+                  }
+                ],
+                "name": "totalTime",
+                "time": "0.132s"
+              },
+              "cachedRemotely": true
+            }
+          },
+          {
+            "status": "PASSED",
+            "cachedLocally": null,
+            "executionInfo": {
+              "strategy": "remote cache hit",
+              "timingBreakdown": {
+                "child": [
+                  {
+                    "name": "parseTime",
+                    "time": "0s"
+                  },
+                  {
+                    "name": "fetchTime",
+                    "time": "0.033s"
+                  },
+                  {
+                    "name": "queueTime",
+                    "time": "0s"
+                  },
+                  {
+                    "name": "uploadTime",
+                    "time": "0s"
+                  },
+                  {
+                    "name": "setupTime",
+                    "time": "0s"
+                  },
+                  {
+                    "name": "executionWallTime",
+                    "time": "0s"
+                  },
+                  {
+                    "name": "processOutputsTime",
+                    "time": "0s"
+                  },
+                  {
+                    "name": "networkTime",
+                    "time": "0s"
+                  }
+                ],
+                "name": "totalTime",
+                "time": "0.147s"
+              },
+              "cachedRemotely": true
+            }
+          },
+          {
+            "status": "PASSED",
+            "cachedLocally": null,
+            "executionInfo": {
+              "strategy": "remote cache hit",
+              "timingBreakdown": {
+                "child": [
+                  {
+                    "name": "parseTime",
+                    "time": "0s"
+                  },
+                  {
+                    "name": "fetchTime",
+                    "time": "0.136s"
+                  },
+                  {
+                    "name": "queueTime",
+                    "time": "0s"
+                  },
+                  {
+                    "name": "uploadTime",
+                    "time": "0s"
+                  },
+                  {
+                    "name": "setupTime",
+                    "time": "0s"
+                  },
+                  {
+                    "name": "executionWallTime",
+                    "time": "0s"
+                  },
+                  {
+                    "name": "processOutputsTime",
+                    "time": "0s"
+                  },
+                  {
+                    "name": "networkTime",
+                    "time": "0s"
+                  }
+                ],
+                "name": "totalTime",
+                "time": "0.168s"
+              },
+              "cachedRemotely": true
+            }
+          },
+          {
+            "status": "PASSED",
+            "cachedLocally": null,
+            "executionInfo": {
+              "strategy": "remote cache hit",
+              "timingBreakdown": {
+                "child": [
+                  {
+                    "name": "parseTime",
+                    "time": "0s"
+                  },
+                  {
+                    "name": "fetchTime",
+                    "time": "0.134s"
+                  },
+                  {
+                    "name": "queueTime",
+                    "time": "0s"
+                  },
+                  {
+                    "name": "uploadTime",
+                    "time": "0s"
+                  },
+                  {
+                    "name": "setupTime",
+                    "time": "0s"
+                  },
+                  {
+                    "name": "executionWallTime",
+                    "time": "0s"
+                  },
+                  {
+                    "name": "processOutputsTime",
+                    "time": "0s"
+                  },
+                  {
+                    "name": "networkTime",
+                    "time": "0s"
+                  }
+                ],
+                "name": "totalTime",
+                "time": "0.166s"
+              },
+              "cachedRemotely": true
+            }
+          },
+          {
+            "status": "PASSED",
+            "cachedLocally": null,
+            "executionInfo": {
+              "strategy": "remote cache hit",
+              "timingBreakdown": {
+                "child": [
+                  {
+                    "name": "parseTime",
+                    "time": "0s"
+                  },
+                  {
+                    "name": "fetchTime",
+                    "time": "0.014s"
+                  },
+                  {
+                    "name": "queueTime",
+                    "time": "0s"
+                  },
+                  {
+                    "name": "uploadTime",
+                    "time": "0s"
+                  },
+                  {
+                    "name": "setupTime",
+                    "time": "0s"
+                  },
+                  {
+                    "name": "executionWallTime",
+                    "time": "0s"
+                  },
+                  {
+                    "name": "processOutputsTime",
+                    "time": "0s"
+                  },
+                  {
+                    "name": "networkTime",
+                    "time": "0s"
+                  }
+                ],
+                "name": "totalTime",
+                "time": "0.037s"
+              },
+              "cachedRemotely": true
+            }
+          },
+          {
+            "status": "PASSED",
+            "cachedLocally": null,
+            "executionInfo": {
+              "strategy": "remote cache hit",
+              "timingBreakdown": {
+                "child": [
+                  {
+                    "name": "parseTime",
+                    "time": "0s"
+                  },
+                  {
+                    "name": "fetchTime",
+                    "time": "0.122s"
+                  },
+                  {
+                    "name": "queueTime",
+                    "time": "0s"
+                  },
+                  {
+                    "name": "uploadTime",
+                    "time": "0s"
+                  },
+                  {
+                    "name": "setupTime",
+                    "time": "0s"
+                  },
+                  {
+                    "name": "executionWallTime",
+                    "time": "0s"
+                  },
+                  {
+                    "name": "processOutputsTime",
+                    "time": "0s"
+                  },
+                  {
+                    "name": "networkTime",
+                    "time": "0s"
+                  }
+                ],
+                "name": "totalTime",
+                "time": "0.141s"
+              },
+              "cachedRemotely": true
+            }
+          },
+          {
+            "status": "PASSED",
+            "cachedLocally": null,
+            "executionInfo": {
+              "strategy": "remote cache hit",
+              "timingBreakdown": {
+                "child": [
+                  {
+                    "name": "parseTime",
+                    "time": "0s"
+                  },
+                  {
+                    "name": "fetchTime",
+                    "time": "0.082s"
+                  },
+                  {
+                    "name": "queueTime",
+                    "time": "0s"
+                  },
+                  {
+                    "name": "uploadTime",
+                    "time": "0s"
+                  },
+                  {
+                    "name": "setupTime",
+                    "time": "0s"
+                  },
+                  {
+                    "name": "executionWallTime",
+                    "time": "0s"
+                  },
+                  {
+                    "name": "processOutputsTime",
+                    "time": "0s"
+                  },
+                  {
+                    "name": "networkTime",
+                    "time": "0s"
+                  }
+                ],
+                "name": "totalTime",
+                "time": "0.190s"
+              },
+              "cachedRemotely": true
+            }
+          }
+        ]
+      },
+      {
+        "case": "forced-tests",
+        "wallSeconds": 54.899,
+        "exitCode": 0,
+        "command": [
+          "/tmp/bazel-9.2.0",
+          "--batch",
+          "--host_jvm_args=-Xmx1536m",
+          "--output_base=/work/fresh-recovery-base-1",
+          "--ignore_all_rc_files",
+          "test",
+          "//upstream:src_libraries_System.Collections.Immutable_tests_System.Collections.Immutable.Tests_net10.0",
+          "//upstream:src_libraries_System.Collections_tests_System.Collections.Tests_net10.0",
+          "//upstream:src_libraries_System.Linq_tests_System.Linq.Tests_net10.0",
+          "//upstream:src_libraries_System.Net.Sockets_tests_FunctionalTests_System.Net.Sockets.Tests_net10.0-unix",
+          "//upstream:src_libraries_System.Runtime_tests_System.IO.FileSystem.Tests_System.IO.FileSystem.Tests_net10.0-unix",
+          "//upstream:src_libraries_System.Runtime_tests_System.Threading.Tasks.Tests_System.Threading.Tasks.Tests_net10.0",
+          "//upstream:src_libraries_System.Threading_tests_System.Threading.Tests_net10.0",
+          "--jobs=2",
+          "--strategy=MSBuildAssembly=worker",
+          "--worker_max_instances=MSBuildAssembly=1",
+          "--disk_cache=",
+          "--remote_cache=http://192.168.64.142:8080",
+          "--remote_upload_local_results=false",
+          "--remote_download_outputs=all",
+          "--nocache_test_results",
+          "--execution_log_json_file=/work/fresh-recovery-1/forced-tests.execution.json",
+          "--build_event_json_file=/work/fresh-recovery-1/forced-tests.bep",
+          "--profile=/work/fresh-recovery-1/forced-tests.profile.json.gz"
+        ],
+        "actions": {
+          "TestRunner": {
+            "total": 7,
+            "cacheHits": 0
+          }
+        },
+        "tests": [
+          {
+            "status": "PASSED",
+            "cachedLocally": null,
+            "executionInfo": {
+              "strategy": "linux-sandbox",
+              "timingBreakdown": {
+                "child": [
+                  {
+                    "name": "parseTime",
+                    "time": "0s"
+                  },
+                  {
+                    "name": "fetchTime",
+                    "time": "0s"
+                  },
+                  {
+                    "name": "queueTime",
+                    "time": "0s"
+                  },
+                  {
+                    "name": "uploadTime",
+                    "time": "0s"
+                  },
+                  {
+                    "name": "setupTime",
+                    "time": "0s"
+                  },
+                  {
+                    "name": "executionWallTime",
+                    "time": "5.184s"
+                  },
+                  {
+                    "name": "processOutputsTime",
+                    "time": "0s"
+                  },
+                  {
+                    "name": "networkTime",
+                    "time": "0s"
+                  }
+                ],
+                "name": "totalTime",
+                "time": "5.184s"
+              }
+            }
+          },
+          {
+            "status": "PASSED",
+            "cachedLocally": null,
+            "executionInfo": {
+              "strategy": "linux-sandbox",
+              "timingBreakdown": {
+                "child": [
+                  {
+                    "name": "parseTime",
+                    "time": "0s"
+                  },
+                  {
+                    "name": "fetchTime",
+                    "time": "0s"
+                  },
+                  {
+                    "name": "queueTime",
+                    "time": "0s"
+                  },
+                  {
+                    "name": "uploadTime",
+                    "time": "0s"
+                  },
+                  {
+                    "name": "setupTime",
+                    "time": "0s"
+                  },
+                  {
+                    "name": "executionWallTime",
+                    "time": "10.944s"
+                  },
+                  {
+                    "name": "processOutputsTime",
+                    "time": "0s"
+                  },
+                  {
+                    "name": "networkTime",
+                    "time": "0s"
+                  }
+                ],
+                "name": "totalTime",
+                "time": "10.944s"
+              }
+            }
+          },
+          {
+            "status": "PASSED",
+            "cachedLocally": null,
+            "executionInfo": {
+              "strategy": "linux-sandbox",
+              "timingBreakdown": {
+                "child": [
+                  {
+                    "name": "parseTime",
+                    "time": "0s"
+                  },
+                  {
+                    "name": "fetchTime",
+                    "time": "0s"
+                  },
+                  {
+                    "name": "queueTime",
+                    "time": "0s"
+                  },
+                  {
+                    "name": "uploadTime",
+                    "time": "0s"
+                  },
+                  {
+                    "name": "setupTime",
+                    "time": "0s"
+                  },
+                  {
+                    "name": "executionWallTime",
+                    "time": "13.957s"
+                  },
+                  {
+                    "name": "processOutputsTime",
+                    "time": "0s"
+                  },
+                  {
+                    "name": "networkTime",
+                    "time": "0s"
+                  }
+                ],
+                "name": "totalTime",
+                "time": "13.957s"
+              }
+            }
+          },
+          {
+            "status": "PASSED",
+            "cachedLocally": null,
+            "executionInfo": {
+              "strategy": "linux-sandbox",
+              "timingBreakdown": {
+                "child": [
+                  {
+                    "name": "parseTime",
+                    "time": "0s"
+                  },
+                  {
+                    "name": "fetchTime",
+                    "time": "0s"
+                  },
+                  {
+                    "name": "queueTime",
+                    "time": "0s"
+                  },
+                  {
+                    "name": "uploadTime",
+                    "time": "0s"
+                  },
+                  {
+                    "name": "setupTime",
+                    "time": "0s"
+                  },
+                  {
+                    "name": "executionWallTime",
+                    "time": "10.940s"
+                  },
+                  {
+                    "name": "processOutputsTime",
+                    "time": "0s"
+                  },
+                  {
+                    "name": "networkTime",
+                    "time": "0s"
+                  }
+                ],
+                "name": "totalTime",
+                "time": "10.940s"
+              }
+            }
+          },
+          {
+            "status": "PASSED",
+            "cachedLocally": null,
+            "executionInfo": {
+              "strategy": "linux-sandbox",
+              "timingBreakdown": {
+                "child": [
+                  {
+                    "name": "parseTime",
+                    "time": "0s"
+                  },
+                  {
+                    "name": "fetchTime",
+                    "time": "0s"
+                  },
+                  {
+                    "name": "queueTime",
+                    "time": "0s"
+                  },
+                  {
+                    "name": "uploadTime",
+                    "time": "0s"
+                  },
+                  {
+                    "name": "setupTime",
+                    "time": "0s"
+                  },
+                  {
+                    "name": "executionWallTime",
+                    "time": "12.468s"
+                  },
+                  {
+                    "name": "processOutputsTime",
+                    "time": "0s"
+                  },
+                  {
+                    "name": "networkTime",
+                    "time": "0s"
+                  }
+                ],
+                "name": "totalTime",
+                "time": "12.468s"
+              }
+            }
+          },
+          {
+            "status": "PASSED",
+            "cachedLocally": null,
+            "executionInfo": {
+              "strategy": "linux-sandbox",
+              "timingBreakdown": {
+                "child": [
+                  {
+                    "name": "parseTime",
+                    "time": "0s"
+                  },
+                  {
+                    "name": "fetchTime",
+                    "time": "0s"
+                  },
+                  {
+                    "name": "queueTime",
+                    "time": "0s"
+                  },
+                  {
+                    "name": "uploadTime",
+                    "time": "0s"
+                  },
+                  {
+                    "name": "setupTime",
+                    "time": "0s"
+                  },
+                  {
+                    "name": "executionWallTime",
+                    "time": "12.822s"
+                  },
+                  {
+                    "name": "processOutputsTime",
+                    "time": "0s"
+                  },
+                  {
+                    "name": "networkTime",
+                    "time": "0s"
+                  }
+                ],
+                "name": "totalTime",
+                "time": "12.822s"
+              }
+            }
+          },
+          {
+            "status": "PASSED",
+            "cachedLocally": null,
+            "executionInfo": {
+              "strategy": "linux-sandbox",
+              "timingBreakdown": {
+                "child": [
+                  {
+                    "name": "parseTime",
+                    "time": "0s"
+                  },
+                  {
+                    "name": "fetchTime",
+                    "time": "0s"
+                  },
+                  {
+                    "name": "queueTime",
+                    "time": "0s"
+                  },
+                  {
+                    "name": "uploadTime",
+                    "time": "0s"
+                  },
+                  {
+                    "name": "setupTime",
+                    "time": "0s"
+                  },
+                  {
+                    "name": "executionWallTime",
+                    "time": "16.206s"
+                  },
+                  {
+                    "name": "processOutputsTime",
+                    "time": "0s"
+                  },
+                  {
+                    "name": "networkTime",
+                    "time": "0s"
+                  }
+                ],
+                "name": "totalTime",
+                "time": "16.206s"
+              }
+            }
+          }
+        ]
+      }
+    ]
+  },
+  "fullCold": {
+    "scenario": "cold",
+    "toolchain": {
+      "sdkVersion": "10.0.400",
+      "sdkRoot": "/opt/rules_msbuild-toolchain/.tools/dotnet",
+      "bazelVersion": "9.2.0",
+      "bazelExecutable": "/tmp/bazel-9.2.0",
+      "bazelSha256": "049dd21f40ad979db11c3ee68c96a42ce75f1185e69ac61ab20de1501427a410"
+    },
+    "records": [
+      {
+        "case": "build",
+        "wallSeconds": 788.57,
+        "exitCode": 0,
+        "command": [
+          "/tmp/bazel-9.2.0",
+          "--batch",
+          "--host_jvm_args=-Xmx1536m",
+          "--output_base=/work/cold-build-base-1",
+          "--ignore_all_rc_files",
+          "build",
+          "//upstream:src_libraries_System.Collections.Immutable_tests_System.Collections.Immutable.Tests_net10.0",
+          "//upstream:src_libraries_System.Collections_tests_System.Collections.Tests_net10.0",
+          "//upstream:src_libraries_System.Linq_tests_System.Linq.Tests_net10.0",
+          "//upstream:src_libraries_System.Net.Sockets_tests_FunctionalTests_System.Net.Sockets.Tests_net10.0-unix",
+          "//upstream:src_libraries_System.Runtime_tests_System.IO.FileSystem.Tests_System.IO.FileSystem.Tests_net10.0-unix",
+          "//upstream:src_libraries_System.Runtime_tests_System.Threading.Tasks.Tests_System.Threading.Tasks.Tests_net10.0",
+          "//upstream:src_libraries_System.Threading_tests_System.Threading.Tests_net10.0",
+          "--jobs=2",
+          "--strategy=MSBuildAssembly=worker",
+          "--worker_max_instances=MSBuildAssembly=1",
+          "--disk_cache=",
+          "--remote_cache=",
+          "--remote_upload_local_results=false",
+          "--remote_download_outputs=all",
+          "--execution_log_json_file=/work/cold-build-1/build.execution.json",
+          "--build_event_json_file=/work/cold-build-1/build.bep",
+          "--profile=/work/cold-build-1/build.profile.json.gz"
+        ],
+        "actions": {
+          "MSBuildAssembly": {
+            "total": 280,
+            "cacheHits": 0
+          },
+          "MSBuildNugetExtract": {
+            "total": 149,
+            "cacheHits": 0
+          },
+          "RuntimeNative": {
+            "total": 5,
+            "cacheHits": 0
+          },
+          "MSBuildLayout": {
+            "total": 121,
+            "cacheHits": 0
+          },
+          "MSBuildAssemblyPair": {
+            "total": 129,
+            "cacheHits": 0
+          }
+        },
+        "tests": []
+      }
+    ]
+  },
+  "managedCold": {
+    "scenario": "cold",
+    "managedOnly": true,
+    "workers": 2,
+    "toolchain": {
+      "sdkVersion": "10.0.400",
+      "sdkRoot": "/opt/rules_msbuild-toolchain/.tools/dotnet",
+      "bazelVersion": "9.2.0",
+      "bazelExecutable": "/tmp/bazel-9.2.0",
+      "bazelSha256": "049dd21f40ad979db11c3ee68c96a42ce75f1185e69ac61ab20de1501427a410"
+    },
+    "records": [
+      {
+        "case": "build",
+        "wallSeconds": 492.092,
+        "exitCode": 0,
+        "command": [
+          "/tmp/bazel-9.2.0",
+          "--batch",
+          "--host_jvm_args=-Xmx1536m",
+          "--output_base=/work/cold-managed-base-3",
+          "--ignore_all_rc_files",
+          "build",
+          "//upstream:src_libraries_System.Collections.Immutable_tests_System.Collections.Immutable.Tests_net10.0",
+          "//upstream:src_libraries_System.Collections_tests_System.Collections.Tests_net10.0",
+          "//upstream:src_libraries_System.Linq_tests_System.Linq.Tests_net10.0",
+          "//upstream:src_libraries_System.Threading_tests_System.Threading.Tests_net10.0",
+          "//upstream:src_libraries_System.Runtime_tests_System.Threading.Tasks.Tests_System.Threading.Tasks.Tests_net10.0",
+          "//upstream:src_libraries_System.Runtime_tests_System.IO.FileSystem.Tests_System.IO.FileSystem.Tests_net10.0-unix",
+          "//upstream:src_libraries_System.Net.Sockets_tests_FunctionalTests_System.Net.Sockets.Tests_net10.0-unix",
+          "//upstream:src_libraries_System.Net.Sockets_src_System.Net.Sockets_net10.0-unix",
+          "//upstream:src_libraries_System.IO.Pipelines_src_System.IO.Pipelines_net10.0",
+          "//upstream:src_libraries_System.Text.Encodings.Web_src_System.Text.Encodings.Web_net10.0",
+          "//upstream:src_libraries_System.Text.Json_src_System.Text.Json_net10.0",
+          "//upstream:src_libraries_System.Security.Cryptography_src_System.Security.Cryptography_net10.0-unix",
+          "//upstream:src_libraries_System.IO.Compression_src_System.IO.Compression_net10.0-unix",
+          "//upstream:src_libraries_System.Console_src_System.Console_net10.0-unix",
+          "//upstream:src_libraries_System.IO.MemoryMappedFiles_src_System.IO.MemoryMappedFiles_net10.0-unix",
+          "//upstream:src_libraries_System.IO.Pipes_src_System.IO.Pipes_net10.0-unix",
+          "//upstream:src_libraries_System.IO.FileSystem.DriveInfo_src_System.IO.FileSystem.DriveInfo_net10.0-unix",
+          "//upstream:src_libraries_System.Diagnostics.Process_src_System.Diagnostics.Process_net10.0-linux",
+          "//upstream:src_libraries_System.Net.Http_src_System.Net.Http_net10.0-linux",
+          "//upstream:src_libraries_Microsoft.CSharp_src_Microsoft.CSharp_net10.0",
+          "//upstream:src_libraries_System.Linq.AsyncEnumerable_src_System.Linq.AsyncEnumerable_net10.0",
+          "//upstream:src_libraries_shims_System.Core_src_System.Core_net10.0-linux",
+          "//upstream:src_libraries_shims_System.Diagnostics.Debug_src_System.Diagnostics.Debug_net10.0-linux",
+          "//upstream:src_libraries_shims_System.Globalization_src_System.Globalization_net10.0-linux",
+          "//upstream:src_libraries_shims_System.IO.FileSystem_src_System.IO.FileSystem_net10.0-linux",
+          "//upstream:src_libraries_shims_System.IO_src_System.IO_net10.0-linux",
+          "//upstream:src_libraries_shims_System.Reflection.Extensions_src_System.Reflection.Extensions_net10.0-linux",
+          "//upstream:src_libraries_shims_System.Reflection_src_System.Reflection_net10.0-linux",
+          "//upstream:src_libraries_shims_System.Resources.ResourceManager_src_System.Resources.ResourceManager_net10.0-linux",
+          "//upstream:src_libraries_shims_System.Runtime.Extensions_src_System.Runtime.Extensions_net10.0-linux",
+          "//upstream:src_libraries_shims_System.Runtime.InteropServices.RuntimeInformation_src_System.Runtime.InteropServices.RuntimeInformation_net10.0-linux",
+          "//upstream:src_libraries_shims_System.Text.Encoding_src_System.Text.Encoding_net10.0-linux",
+          "//upstream:src_libraries_shims_System.Threading.Tasks.Extensions_src_System.Threading.Tasks.Extensions_net10.0-linux",
+          "//upstream:src_libraries_shims_System.Threading.Tasks_src_System.Threading.Tasks_net10.0-linux",
+          "//upstream:src_libraries_shims_System.Xml_src_System.Xml_net10.0-linux",
+          "//upstream:src_libraries_shims_System_src_System_net10.0-linux",
+          "//upstream:src_libraries_shims_mscorlib_src_mscorlib_net10.0-linux",
+          "//upstream:src_libraries_shims_netstandard_src_netstandard_net10.0-linux",
+          "--jobs=2",
+          "--strategy=MSBuildAssembly=worker",
+          "--worker_max_instances=MSBuildAssembly=2",
+          "--disk_cache=",
+          "--remote_cache=",
+          "--remote_upload_local_results=false",
+          "--remote_download_outputs=all",
+          "--output_groups=reference",
+          "--execution_log_json_file=/work/cold-managed-3/build.execution.json",
+          "--build_event_json_file=/work/cold-managed-3/build.bep",
+          "--profile=/work/cold-managed-3/build.profile.json.gz"
+        ],
+        "actions": {
+          "MSBuildNugetExtract": {
+            "total": 148,
+            "cacheHits": 0
+          },
+          "MSBuildAssembly": {
+            "total": 274,
+            "cacheHits": 0
+          },
+          "MSBuildLayout": {
+            "total": 120,
+            "cacheHits": 0
+          },
+          "MSBuildAssemblyPair": {
+            "total": 129,
+            "cacheHits": 0
+          }
+        },
+        "tests": []
+      }
+    ]
+  },
+  "raw": {
+    "toolchain": {
+      "sdkVersion": "10.0.400",
+      "sdkRoot": "/opt/rules_msbuild-toolchain/.tools/dotnet"
+    },
+    "commit": "60629d14374c56f1cb51819049ad1fa529307f8d",
+    "roots": [
+      {
+        "project": "src/libraries/System.Collections.Immutable/tests/System.Collections.Immutable.Tests.csproj",
+        "framework": "net10.0"
+      },
+      {
+        "project": "src/libraries/System.Collections/tests/System.Collections.Tests.csproj",
+        "framework": "net10.0"
+      },
+      {
+        "project": "src/libraries/System.Linq/tests/System.Linq.Tests.csproj",
+        "framework": "net10.0"
+      },
+      {
+        "project": "src/libraries/System.Threading/tests/System.Threading.Tests.csproj",
+        "framework": "net10.0"
+      },
+      {
+        "project": "src/libraries/System.Runtime/tests/System.Threading.Tasks.Tests/System.Threading.Tasks.Tests.csproj",
+        "framework": "net10.0"
+      },
+      {
+        "project": "src/libraries/System.Runtime/tests/System.IO.FileSystem.Tests/System.IO.FileSystem.Tests.csproj",
+        "framework": "net10.0-unix"
+      },
+      {
+        "project": "src/libraries/System.Net.Sockets/tests/FunctionalTests/System.Net.Sockets.Tests.csproj",
+        "framework": "net10.0-unix"
+      },
+      {
+        "project": "src/libraries/System.Net.Sockets/src/System.Net.Sockets.csproj",
+        "framework": "net10.0-unix"
+      },
+      {
+        "project": "src/libraries/System.IO.Pipelines/src/System.IO.Pipelines.csproj",
+        "framework": "net10.0"
+      },
+      {
+        "project": "src/libraries/System.Text.Encodings.Web/src/System.Text.Encodings.Web.csproj",
+        "framework": "net10.0"
+      },
+      {
+        "project": "src/libraries/System.Text.Json/src/System.Text.Json.csproj",
+        "framework": "net10.0"
+      },
+      {
+        "project": "src/libraries/System.Security.Cryptography/src/System.Security.Cryptography.csproj",
+        "framework": "net10.0-unix"
+      },
+      {
+        "project": "src/libraries/System.IO.Compression/src/System.IO.Compression.csproj",
+        "framework": "net10.0-unix"
+      },
+      {
+        "project": "src/libraries/System.Console/src/System.Console.csproj",
+        "framework": "net10.0-unix"
+      },
+      {
+        "project": "src/libraries/System.IO.MemoryMappedFiles/src/System.IO.MemoryMappedFiles.csproj",
+        "framework": "net10.0-unix"
+      },
+      {
+        "project": "src/libraries/System.IO.Pipes/src/System.IO.Pipes.csproj",
+        "framework": "net10.0-unix"
+      },
+      {
+        "project": "src/libraries/System.IO.FileSystem.DriveInfo/src/System.IO.FileSystem.DriveInfo.csproj",
+        "framework": "net10.0-unix"
+      },
+      {
+        "project": "src/libraries/System.Diagnostics.Process/src/System.Diagnostics.Process.csproj",
+        "framework": "net10.0-linux"
+      },
+      {
+        "project": "src/libraries/System.Net.Http/src/System.Net.Http.csproj",
+        "framework": "net10.0-linux"
+      },
+      {
+        "project": "src/libraries/Microsoft.CSharp/src/Microsoft.CSharp.csproj",
+        "framework": "net10.0"
+      },
+      {
+        "project": "src/libraries/System.Linq.AsyncEnumerable/src/System.Linq.AsyncEnumerable.csproj",
+        "framework": "net10.0"
+      },
+      {
+        "project": "src/libraries/shims/System.Core/src/System.Core.csproj",
+        "framework": "net10.0-linux"
+      },
+      {
+        "project": "src/libraries/shims/System.Diagnostics.Debug/src/System.Diagnostics.Debug.csproj",
+        "framework": "net10.0-linux"
+      },
+      {
+        "project": "src/libraries/shims/System.Globalization/src/System.Globalization.csproj",
+        "framework": "net10.0-linux"
+      },
+      {
+        "project": "src/libraries/shims/System.IO.FileSystem/src/System.IO.FileSystem.csproj",
+        "framework": "net10.0-linux"
+      },
+      {
+        "project": "src/libraries/shims/System.IO/src/System.IO.csproj",
+        "framework": "net10.0-linux"
+      },
+      {
+        "project": "src/libraries/shims/System.Reflection.Extensions/src/System.Reflection.Extensions.csproj",
+        "framework": "net10.0-linux"
+      },
+      {
+        "project": "src/libraries/shims/System.Reflection/src/System.Reflection.csproj",
+        "framework": "net10.0-linux"
+      },
+      {
+        "project": "src/libraries/shims/System.Resources.ResourceManager/src/System.Resources.ResourceManager.csproj",
+        "framework": "net10.0-linux"
+      },
+      {
+        "project": "src/libraries/shims/System.Runtime.Extensions/src/System.Runtime.Extensions.csproj",
+        "framework": "net10.0-linux"
+      },
+      {
+        "project": "src/libraries/shims/System.Runtime.InteropServices.RuntimeInformation/src/System.Runtime.InteropServices.RuntimeInformation.csproj",
+        "framework": "net10.0-linux"
+      },
+      {
+        "project": "src/libraries/shims/System.Text.Encoding/src/System.Text.Encoding.csproj",
+        "framework": "net10.0-linux"
+      },
+      {
+        "project": "src/libraries/shims/System.Threading.Tasks.Extensions/src/System.Threading.Tasks.Extensions.csproj",
+        "framework": "net10.0-linux"
+      },
+      {
+        "project": "src/libraries/shims/System.Threading.Tasks/src/System.Threading.Tasks.csproj",
+        "framework": "net10.0-linux"
+      },
+      {
+        "project": "src/libraries/shims/System.Xml/src/System.Xml.csproj",
+        "framework": "net10.0-linux"
+      },
+      {
+        "project": "src/libraries/shims/System/src/System.csproj",
+        "framework": "net10.0-linux"
+      },
+      {
+        "project": "src/libraries/shims/mscorlib/src/mscorlib.csproj",
+        "framework": "net10.0-linux"
+      },
+      {
+        "project": "src/libraries/shims/netstandard/src/netstandard.csproj",
+        "framework": "net10.0-linux"
+      }
+    ],
+    "records": [
+      {
+        "case": "restore-0",
+        "wallSeconds": 1.433,
+        "exitCode": 0,
+        "command": [
+          "/opt/rules_msbuild-toolchain/.tools/dotnet/dotnet",
+          "msbuild",
+          "src/libraries/System.Collections.Immutable/tests/System.Collections.Immutable.Tests.csproj",
+          "-t:Restore",
+          "-m:2",
+          "-nr:true",
+          "-p:Configuration=Release",
+          "-p:TargetArchitecture=arm64",
+          "-p:TargetOS=linux",
+          "-p:UseLocalTargetingRuntimePack=false",
+          "-p:RestoreUseStaticGraphEvaluation=false",
+          "-p:NuGetAudit=false",
+          "-p:UseSharedCompilation=true",
+          "-p:NetCoreSdkRoot=/opt/rules_msbuild-toolchain/.tools/dotnet/sdk/10.0.400",
+          "-bl:/work/raw-cold-2/restore-0.binlog"
+        ]
+      },
+      {
+        "case": "restore-1",
+        "wallSeconds": 1.142,
+        "exitCode": 0,
+        "command": [
+          "/opt/rules_msbuild-toolchain/.tools/dotnet/dotnet",
+          "msbuild",
+          "src/libraries/System.Collections/tests/System.Collections.Tests.csproj",
+          "-t:Restore",
+          "-m:2",
+          "-nr:true",
+          "-p:Configuration=Release",
+          "-p:TargetArchitecture=arm64",
+          "-p:TargetOS=linux",
+          "-p:UseLocalTargetingRuntimePack=false",
+          "-p:RestoreUseStaticGraphEvaluation=false",
+          "-p:NuGetAudit=false",
+          "-p:UseSharedCompilation=true",
+          "-p:NetCoreSdkRoot=/opt/rules_msbuild-toolchain/.tools/dotnet/sdk/10.0.400",
+          "-bl:/work/raw-cold-2/restore-1.binlog"
+        ]
+      },
+      {
+        "case": "restore-2",
+        "wallSeconds": 0.683,
+        "exitCode": 0,
+        "command": [
+          "/opt/rules_msbuild-toolchain/.tools/dotnet/dotnet",
+          "msbuild",
+          "src/libraries/System.Linq/tests/System.Linq.Tests.csproj",
+          "-t:Restore",
+          "-m:2",
+          "-nr:true",
+          "-p:Configuration=Release",
+          "-p:TargetArchitecture=arm64",
+          "-p:TargetOS=linux",
+          "-p:UseLocalTargetingRuntimePack=false",
+          "-p:RestoreUseStaticGraphEvaluation=false",
+          "-p:NuGetAudit=false",
+          "-p:UseSharedCompilation=true",
+          "-p:NetCoreSdkRoot=/opt/rules_msbuild-toolchain/.tools/dotnet/sdk/10.0.400",
+          "-bl:/work/raw-cold-2/restore-2.binlog"
+        ]
+      },
+      {
+        "case": "restore-3",
+        "wallSeconds": 0.732,
+        "exitCode": 0,
+        "command": [
+          "/opt/rules_msbuild-toolchain/.tools/dotnet/dotnet",
+          "msbuild",
+          "src/libraries/System.Threading/tests/System.Threading.Tests.csproj",
+          "-t:Restore",
+          "-m:2",
+          "-nr:true",
+          "-p:Configuration=Release",
+          "-p:TargetArchitecture=arm64",
+          "-p:TargetOS=linux",
+          "-p:UseLocalTargetingRuntimePack=false",
+          "-p:RestoreUseStaticGraphEvaluation=false",
+          "-p:NuGetAudit=false",
+          "-p:UseSharedCompilation=true",
+          "-p:NetCoreSdkRoot=/opt/rules_msbuild-toolchain/.tools/dotnet/sdk/10.0.400",
+          "-bl:/work/raw-cold-2/restore-3.binlog"
+        ]
+      },
+      {
+        "case": "restore-4",
+        "wallSeconds": 0.691,
+        "exitCode": 0,
+        "command": [
+          "/opt/rules_msbuild-toolchain/.tools/dotnet/dotnet",
+          "msbuild",
+          "src/libraries/System.Runtime/tests/System.Threading.Tasks.Tests/System.Threading.Tasks.Tests.csproj",
+          "-t:Restore",
+          "-m:2",
+          "-nr:true",
+          "-p:Configuration=Release",
+          "-p:TargetArchitecture=arm64",
+          "-p:TargetOS=linux",
+          "-p:UseLocalTargetingRuntimePack=false",
+          "-p:RestoreUseStaticGraphEvaluation=false",
+          "-p:NuGetAudit=false",
+          "-p:UseSharedCompilation=true",
+          "-p:NetCoreSdkRoot=/opt/rules_msbuild-toolchain/.tools/dotnet/sdk/10.0.400",
+          "-bl:/work/raw-cold-2/restore-4.binlog"
+        ]
+      },
+      {
+        "case": "restore-5",
+        "wallSeconds": 2.393,
+        "exitCode": 0,
+        "command": [
+          "/opt/rules_msbuild-toolchain/.tools/dotnet/dotnet",
+          "msbuild",
+          "src/libraries/System.Runtime/tests/System.IO.FileSystem.Tests/System.IO.FileSystem.Tests.csproj",
+          "-t:Restore",
+          "-m:2",
+          "-nr:true",
+          "-p:Configuration=Release",
+          "-p:TargetArchitecture=arm64",
+          "-p:TargetOS=linux",
+          "-p:UseLocalTargetingRuntimePack=false",
+          "-p:RestoreUseStaticGraphEvaluation=false",
+          "-p:NuGetAudit=false",
+          "-p:UseSharedCompilation=true",
+          "-p:NetCoreSdkRoot=/opt/rules_msbuild-toolchain/.tools/dotnet/sdk/10.0.400",
+          "-bl:/work/raw-cold-2/restore-5.binlog"
+        ]
+      },
+      {
+        "case": "restore-6",
+        "wallSeconds": 0.844,
+        "exitCode": 0,
+        "command": [
+          "/opt/rules_msbuild-toolchain/.tools/dotnet/dotnet",
+          "msbuild",
+          "src/libraries/System.Net.Sockets/tests/FunctionalTests/System.Net.Sockets.Tests.csproj",
+          "-t:Restore",
+          "-m:2",
+          "-nr:true",
+          "-p:Configuration=Release",
+          "-p:TargetArchitecture=arm64",
+          "-p:TargetOS=linux",
+          "-p:UseLocalTargetingRuntimePack=false",
+          "-p:RestoreUseStaticGraphEvaluation=false",
+          "-p:NuGetAudit=false",
+          "-p:UseSharedCompilation=true",
+          "-p:NetCoreSdkRoot=/opt/rules_msbuild-toolchain/.tools/dotnet/sdk/10.0.400",
+          "-bl:/work/raw-cold-2/restore-6.binlog"
+        ]
+      },
+      {
+        "case": "restore-7",
+        "wallSeconds": 1.943,
+        "exitCode": 0,
+        "command": [
+          "/opt/rules_msbuild-toolchain/.tools/dotnet/dotnet",
+          "msbuild",
+          "src/libraries/System.Net.Sockets/src/System.Net.Sockets.csproj",
+          "-t:Restore",
+          "-m:2",
+          "-nr:true",
+          "-p:Configuration=Release",
+          "-p:TargetArchitecture=arm64",
+          "-p:TargetOS=linux",
+          "-p:UseLocalTargetingRuntimePack=false",
+          "-p:RestoreUseStaticGraphEvaluation=false",
+          "-p:NuGetAudit=false",
+          "-p:UseSharedCompilation=true",
+          "-p:NetCoreSdkRoot=/opt/rules_msbuild-toolchain/.tools/dotnet/sdk/10.0.400",
+          "-bl:/work/raw-cold-2/restore-7.binlog"
+        ]
+      },
+      {
+        "case": "restore-8",
+        "wallSeconds": 1.196,
+        "exitCode": 0,
+        "command": [
+          "/opt/rules_msbuild-toolchain/.tools/dotnet/dotnet",
+          "msbuild",
+          "src/libraries/System.IO.Pipelines/src/System.IO.Pipelines.csproj",
+          "-t:Restore",
+          "-m:2",
+          "-nr:true",
+          "-p:Configuration=Release",
+          "-p:TargetArchitecture=arm64",
+          "-p:TargetOS=linux",
+          "-p:UseLocalTargetingRuntimePack=false",
+          "-p:RestoreUseStaticGraphEvaluation=false",
+          "-p:NuGetAudit=false",
+          "-p:UseSharedCompilation=true",
+          "-p:NetCoreSdkRoot=/opt/rules_msbuild-toolchain/.tools/dotnet/sdk/10.0.400",
+          "-bl:/work/raw-cold-2/restore-8.binlog"
+        ]
+      },
+      {
+        "case": "restore-9",
+        "wallSeconds": 1.292,
+        "exitCode": 0,
+        "command": [
+          "/opt/rules_msbuild-toolchain/.tools/dotnet/dotnet",
+          "msbuild",
+          "src/libraries/System.Text.Encodings.Web/src/System.Text.Encodings.Web.csproj",
+          "-t:Restore",
+          "-m:2",
+          "-nr:true",
+          "-p:Configuration=Release",
+          "-p:TargetArchitecture=arm64",
+          "-p:TargetOS=linux",
+          "-p:UseLocalTargetingRuntimePack=false",
+          "-p:RestoreUseStaticGraphEvaluation=false",
+          "-p:NuGetAudit=false",
+          "-p:UseSharedCompilation=true",
+          "-p:NetCoreSdkRoot=/opt/rules_msbuild-toolchain/.tools/dotnet/sdk/10.0.400",
+          "-bl:/work/raw-cold-2/restore-9.binlog"
+        ]
+      },
+      {
+        "case": "restore-10",
+        "wallSeconds": 3.448,
+        "exitCode": 0,
+        "command": [
+          "/opt/rules_msbuild-toolchain/.tools/dotnet/dotnet",
+          "msbuild",
+          "src/libraries/System.Text.Json/src/System.Text.Json.csproj",
+          "-t:Restore",
+          "-m:2",
+          "-nr:true",
+          "-p:Configuration=Release",
+          "-p:TargetArchitecture=arm64",
+          "-p:TargetOS=linux",
+          "-p:UseLocalTargetingRuntimePack=false",
+          "-p:RestoreUseStaticGraphEvaluation=false",
+          "-p:NuGetAudit=false",
+          "-p:UseSharedCompilation=true",
+          "-p:NetCoreSdkRoot=/opt/rules_msbuild-toolchain/.tools/dotnet/sdk/10.0.400",
+          "-bl:/work/raw-cold-2/restore-10.binlog"
+        ]
+      },
+      {
+        "case": "restore-11",
+        "wallSeconds": 2.398,
+        "exitCode": 0,
+        "command": [
+          "/opt/rules_msbuild-toolchain/.tools/dotnet/dotnet",
+          "msbuild",
+          "src/libraries/System.Security.Cryptography/src/System.Security.Cryptography.csproj",
+          "-t:Restore",
+          "-m:2",
+          "-nr:true",
+          "-p:Configuration=Release",
+          "-p:TargetArchitecture=arm64",
+          "-p:TargetOS=linux",
+          "-p:UseLocalTargetingRuntimePack=false",
+          "-p:RestoreUseStaticGraphEvaluation=false",
+          "-p:NuGetAudit=false",
+          "-p:UseSharedCompilation=true",
+          "-p:NetCoreSdkRoot=/opt/rules_msbuild-toolchain/.tools/dotnet/sdk/10.0.400",
+          "-bl:/work/raw-cold-2/restore-11.binlog"
+        ]
+      },
+      {
+        "case": "restore-12",
+        "wallSeconds": 1.092,
+        "exitCode": 0,
+        "command": [
+          "/opt/rules_msbuild-toolchain/.tools/dotnet/dotnet",
+          "msbuild",
+          "src/libraries/System.IO.Compression/src/System.IO.Compression.csproj",
+          "-t:Restore",
+          "-m:2",
+          "-nr:true",
+          "-p:Configuration=Release",
+          "-p:TargetArchitecture=arm64",
+          "-p:TargetOS=linux",
+          "-p:UseLocalTargetingRuntimePack=false",
+          "-p:RestoreUseStaticGraphEvaluation=false",
+          "-p:NuGetAudit=false",
+          "-p:UseSharedCompilation=true",
+          "-p:NetCoreSdkRoot=/opt/rules_msbuild-toolchain/.tools/dotnet/sdk/10.0.400",
+          "-bl:/work/raw-cold-2/restore-12.binlog"
+        ]
+      },
+      {
+        "case": "restore-13",
+        "wallSeconds": 1.24,
+        "exitCode": 0,
+        "command": [
+          "/opt/rules_msbuild-toolchain/.tools/dotnet/dotnet",
+          "msbuild",
+          "src/libraries/System.Console/src/System.Console.csproj",
+          "-t:Restore",
+          "-m:2",
+          "-nr:true",
+          "-p:Configuration=Release",
+          "-p:TargetArchitecture=arm64",
+          "-p:TargetOS=linux",
+          "-p:UseLocalTargetingRuntimePack=false",
+          "-p:RestoreUseStaticGraphEvaluation=false",
+          "-p:NuGetAudit=false",
+          "-p:UseSharedCompilation=true",
+          "-p:NetCoreSdkRoot=/opt/rules_msbuild-toolchain/.tools/dotnet/sdk/10.0.400",
+          "-bl:/work/raw-cold-2/restore-13.binlog"
+        ]
+      },
+      {
+        "case": "restore-14",
+        "wallSeconds": 1.038,
+        "exitCode": 0,
+        "command": [
+          "/opt/rules_msbuild-toolchain/.tools/dotnet/dotnet",
+          "msbuild",
+          "src/libraries/System.IO.MemoryMappedFiles/src/System.IO.MemoryMappedFiles.csproj",
+          "-t:Restore",
+          "-m:2",
+          "-nr:true",
+          "-p:Configuration=Release",
+          "-p:TargetArchitecture=arm64",
+          "-p:TargetOS=linux",
+          "-p:UseLocalTargetingRuntimePack=false",
+          "-p:RestoreUseStaticGraphEvaluation=false",
+          "-p:NuGetAudit=false",
+          "-p:UseSharedCompilation=true",
+          "-p:NetCoreSdkRoot=/opt/rules_msbuild-toolchain/.tools/dotnet/sdk/10.0.400",
+          "-bl:/work/raw-cold-2/restore-14.binlog"
+        ]
+      },
+      {
+        "case": "restore-15",
+        "wallSeconds": 1.983,
+        "exitCode": 0,
+        "command": [
+          "/opt/rules_msbuild-toolchain/.tools/dotnet/dotnet",
+          "msbuild",
+          "src/libraries/System.IO.Pipes/src/System.IO.Pipes.csproj",
+          "-t:Restore",
+          "-m:2",
+          "-nr:true",
+          "-p:Configuration=Release",
+          "-p:TargetArchitecture=arm64",
+          "-p:TargetOS=linux",
+          "-p:UseLocalTargetingRuntimePack=false",
+          "-p:RestoreUseStaticGraphEvaluation=false",
+          "-p:NuGetAudit=false",
+          "-p:UseSharedCompilation=true",
+          "-p:NetCoreSdkRoot=/opt/rules_msbuild-toolchain/.tools/dotnet/sdk/10.0.400",
+          "-bl:/work/raw-cold-2/restore-15.binlog"
+        ]
+      },
+      {
+        "case": "restore-16",
+        "wallSeconds": 1.042,
+        "exitCode": 0,
+        "command": [
+          "/opt/rules_msbuild-toolchain/.tools/dotnet/dotnet",
+          "msbuild",
+          "src/libraries/System.IO.FileSystem.DriveInfo/src/System.IO.FileSystem.DriveInfo.csproj",
+          "-t:Restore",
+          "-m:2",
+          "-nr:true",
+          "-p:Configuration=Release",
+          "-p:TargetArchitecture=arm64",
+          "-p:TargetOS=linux",
+          "-p:UseLocalTargetingRuntimePack=false",
+          "-p:RestoreUseStaticGraphEvaluation=false",
+          "-p:NuGetAudit=false",
+          "-p:UseSharedCompilation=true",
+          "-p:NetCoreSdkRoot=/opt/rules_msbuild-toolchain/.tools/dotnet/sdk/10.0.400",
+          "-bl:/work/raw-cold-2/restore-16.binlog"
+        ]
+      },
+      {
+        "case": "restore-17",
+        "wallSeconds": 3.193,
+        "exitCode": 0,
+        "command": [
+          "/opt/rules_msbuild-toolchain/.tools/dotnet/dotnet",
+          "msbuild",
+          "src/libraries/System.Diagnostics.Process/src/System.Diagnostics.Process.csproj",
+          "-t:Restore",
+          "-m:2",
+          "-nr:true",
+          "-p:Configuration=Release",
+          "-p:TargetArchitecture=arm64",
+          "-p:TargetOS=linux",
+          "-p:UseLocalTargetingRuntimePack=false",
+          "-p:RestoreUseStaticGraphEvaluation=false",
+          "-p:NuGetAudit=false",
+          "-p:UseSharedCompilation=true",
+          "-p:NetCoreSdkRoot=/opt/rules_msbuild-toolchain/.tools/dotnet/sdk/10.0.400",
+          "-bl:/work/raw-cold-2/restore-17.binlog"
+        ]
+      },
+      {
+        "case": "restore-18",
+        "wallSeconds": 4.411,
+        "exitCode": 0,
+        "command": [
+          "/opt/rules_msbuild-toolchain/.tools/dotnet/dotnet",
+          "msbuild",
+          "src/libraries/System.Net.Http/src/System.Net.Http.csproj",
+          "-t:Restore",
+          "-m:2",
+          "-nr:true",
+          "-p:Configuration=Release",
+          "-p:TargetArchitecture=arm64",
+          "-p:TargetOS=linux",
+          "-p:UseLocalTargetingRuntimePack=false",
+          "-p:RestoreUseStaticGraphEvaluation=false",
+          "-p:NuGetAudit=false",
+          "-p:UseSharedCompilation=true",
+          "-p:NetCoreSdkRoot=/opt/rules_msbuild-toolchain/.tools/dotnet/sdk/10.0.400",
+          "-bl:/work/raw-cold-2/restore-18.binlog"
+        ]
+      },
+      {
+        "case": "restore-19",
+        "wallSeconds": 2.032,
+        "exitCode": 0,
+        "command": [
+          "/opt/rules_msbuild-toolchain/.tools/dotnet/dotnet",
+          "msbuild",
+          "src/libraries/Microsoft.CSharp/src/Microsoft.CSharp.csproj",
+          "-t:Restore",
+          "-m:2",
+          "-nr:true",
+          "-p:Configuration=Release",
+          "-p:TargetArchitecture=arm64",
+          "-p:TargetOS=linux",
+          "-p:UseLocalTargetingRuntimePack=false",
+          "-p:RestoreUseStaticGraphEvaluation=false",
+          "-p:NuGetAudit=false",
+          "-p:UseSharedCompilation=true",
+          "-p:NetCoreSdkRoot=/opt/rules_msbuild-toolchain/.tools/dotnet/sdk/10.0.400",
+          "-bl:/work/raw-cold-2/restore-19.binlog"
+        ]
+      },
+      {
+        "case": "restore-20",
+        "wallSeconds": 1.581,
+        "exitCode": 0,
+        "command": [
+          "/opt/rules_msbuild-toolchain/.tools/dotnet/dotnet",
+          "msbuild",
+          "src/libraries/System.Linq.AsyncEnumerable/src/System.Linq.AsyncEnumerable.csproj",
+          "-t:Restore",
+          "-m:2",
+          "-nr:true",
+          "-p:Configuration=Release",
+          "-p:TargetArchitecture=arm64",
+          "-p:TargetOS=linux",
+          "-p:UseLocalTargetingRuntimePack=false",
+          "-p:RestoreUseStaticGraphEvaluation=false",
+          "-p:NuGetAudit=false",
+          "-p:UseSharedCompilation=true",
+          "-p:NetCoreSdkRoot=/opt/rules_msbuild-toolchain/.tools/dotnet/sdk/10.0.400",
+          "-bl:/work/raw-cold-2/restore-20.binlog"
+        ]
+      },
+      {
+        "case": "restore-21",
+        "wallSeconds": 3.643,
+        "exitCode": 0,
+        "command": [
+          "/opt/rules_msbuild-toolchain/.tools/dotnet/dotnet",
+          "msbuild",
+          "src/libraries/shims/System.Core/src/System.Core.csproj",
+          "-t:Restore",
+          "-m:2",
+          "-nr:true",
+          "-p:Configuration=Release",
+          "-p:TargetArchitecture=arm64",
+          "-p:TargetOS=linux",
+          "-p:UseLocalTargetingRuntimePack=false",
+          "-p:RestoreUseStaticGraphEvaluation=false",
+          "-p:NuGetAudit=false",
+          "-p:UseSharedCompilation=true",
+          "-p:NetCoreSdkRoot=/opt/rules_msbuild-toolchain/.tools/dotnet/sdk/10.0.400",
+          "-bl:/work/raw-cold-2/restore-21.binlog"
+        ]
+      },
+      {
+        "case": "restore-22",
+        "wallSeconds": 0.878,
+        "exitCode": 0,
+        "command": [
+          "/opt/rules_msbuild-toolchain/.tools/dotnet/dotnet",
+          "msbuild",
+          "src/libraries/shims/System.Diagnostics.Debug/src/System.Diagnostics.Debug.csproj",
+          "-t:Restore",
+          "-m:2",
+          "-nr:true",
+          "-p:Configuration=Release",
+          "-p:TargetArchitecture=arm64",
+          "-p:TargetOS=linux",
+          "-p:UseLocalTargetingRuntimePack=false",
+          "-p:RestoreUseStaticGraphEvaluation=false",
+          "-p:NuGetAudit=false",
+          "-p:UseSharedCompilation=true",
+          "-p:NetCoreSdkRoot=/opt/rules_msbuild-toolchain/.tools/dotnet/sdk/10.0.400",
+          "-bl:/work/raw-cold-2/restore-22.binlog"
+        ]
+      },
+      {
+        "case": "restore-23",
+        "wallSeconds": 0.848,
+        "exitCode": 0,
+        "command": [
+          "/opt/rules_msbuild-toolchain/.tools/dotnet/dotnet",
+          "msbuild",
+          "src/libraries/shims/System.Globalization/src/System.Globalization.csproj",
+          "-t:Restore",
+          "-m:2",
+          "-nr:true",
+          "-p:Configuration=Release",
+          "-p:TargetArchitecture=arm64",
+          "-p:TargetOS=linux",
+          "-p:UseLocalTargetingRuntimePack=false",
+          "-p:RestoreUseStaticGraphEvaluation=false",
+          "-p:NuGetAudit=false",
+          "-p:UseSharedCompilation=true",
+          "-p:NetCoreSdkRoot=/opt/rules_msbuild-toolchain/.tools/dotnet/sdk/10.0.400",
+          "-bl:/work/raw-cold-2/restore-23.binlog"
+        ]
+      },
+      {
+        "case": "restore-24",
+        "wallSeconds": 0.834,
+        "exitCode": 0,
+        "command": [
+          "/opt/rules_msbuild-toolchain/.tools/dotnet/dotnet",
+          "msbuild",
+          "src/libraries/shims/System.IO.FileSystem/src/System.IO.FileSystem.csproj",
+          "-t:Restore",
+          "-m:2",
+          "-nr:true",
+          "-p:Configuration=Release",
+          "-p:TargetArchitecture=arm64",
+          "-p:TargetOS=linux",
+          "-p:UseLocalTargetingRuntimePack=false",
+          "-p:RestoreUseStaticGraphEvaluation=false",
+          "-p:NuGetAudit=false",
+          "-p:UseSharedCompilation=true",
+          "-p:NetCoreSdkRoot=/opt/rules_msbuild-toolchain/.tools/dotnet/sdk/10.0.400",
+          "-bl:/work/raw-cold-2/restore-24.binlog"
+        ]
+      },
+      {
+        "case": "restore-25",
+        "wallSeconds": 0.882,
+        "exitCode": 0,
+        "command": [
+          "/opt/rules_msbuild-toolchain/.tools/dotnet/dotnet",
+          "msbuild",
+          "src/libraries/shims/System.IO/src/System.IO.csproj",
+          "-t:Restore",
+          "-m:2",
+          "-nr:true",
+          "-p:Configuration=Release",
+          "-p:TargetArchitecture=arm64",
+          "-p:TargetOS=linux",
+          "-p:UseLocalTargetingRuntimePack=false",
+          "-p:RestoreUseStaticGraphEvaluation=false",
+          "-p:NuGetAudit=false",
+          "-p:UseSharedCompilation=true",
+          "-p:NetCoreSdkRoot=/opt/rules_msbuild-toolchain/.tools/dotnet/sdk/10.0.400",
+          "-bl:/work/raw-cold-2/restore-25.binlog"
+        ]
+      },
+      {
+        "case": "restore-26",
+        "wallSeconds": 0.83,
+        "exitCode": 0,
+        "command": [
+          "/opt/rules_msbuild-toolchain/.tools/dotnet/dotnet",
+          "msbuild",
+          "src/libraries/shims/System.Reflection.Extensions/src/System.Reflection.Extensions.csproj",
+          "-t:Restore",
+          "-m:2",
+          "-nr:true",
+          "-p:Configuration=Release",
+          "-p:TargetArchitecture=arm64",
+          "-p:TargetOS=linux",
+          "-p:UseLocalTargetingRuntimePack=false",
+          "-p:RestoreUseStaticGraphEvaluation=false",
+          "-p:NuGetAudit=false",
+          "-p:UseSharedCompilation=true",
+          "-p:NetCoreSdkRoot=/opt/rules_msbuild-toolchain/.tools/dotnet/sdk/10.0.400",
+          "-bl:/work/raw-cold-2/restore-26.binlog"
+        ]
+      },
+      {
+        "case": "restore-27",
+        "wallSeconds": 0.829,
+        "exitCode": 0,
+        "command": [
+          "/opt/rules_msbuild-toolchain/.tools/dotnet/dotnet",
+          "msbuild",
+          "src/libraries/shims/System.Reflection/src/System.Reflection.csproj",
+          "-t:Restore",
+          "-m:2",
+          "-nr:true",
+          "-p:Configuration=Release",
+          "-p:TargetArchitecture=arm64",
+          "-p:TargetOS=linux",
+          "-p:UseLocalTargetingRuntimePack=false",
+          "-p:RestoreUseStaticGraphEvaluation=false",
+          "-p:NuGetAudit=false",
+          "-p:UseSharedCompilation=true",
+          "-p:NetCoreSdkRoot=/opt/rules_msbuild-toolchain/.tools/dotnet/sdk/10.0.400",
+          "-bl:/work/raw-cold-2/restore-27.binlog"
+        ]
+      },
+      {
+        "case": "restore-28",
+        "wallSeconds": 0.894,
+        "exitCode": 0,
+        "command": [
+          "/opt/rules_msbuild-toolchain/.tools/dotnet/dotnet",
+          "msbuild",
+          "src/libraries/shims/System.Resources.ResourceManager/src/System.Resources.ResourceManager.csproj",
+          "-t:Restore",
+          "-m:2",
+          "-nr:true",
+          "-p:Configuration=Release",
+          "-p:TargetArchitecture=arm64",
+          "-p:TargetOS=linux",
+          "-p:UseLocalTargetingRuntimePack=false",
+          "-p:RestoreUseStaticGraphEvaluation=false",
+          "-p:NuGetAudit=false",
+          "-p:UseSharedCompilation=true",
+          "-p:NetCoreSdkRoot=/opt/rules_msbuild-toolchain/.tools/dotnet/sdk/10.0.400",
+          "-bl:/work/raw-cold-2/restore-28.binlog"
+        ]
+      },
+      {
+        "case": "restore-29",
+        "wallSeconds": 0.824,
+        "exitCode": 0,
+        "command": [
+          "/opt/rules_msbuild-toolchain/.tools/dotnet/dotnet",
+          "msbuild",
+          "src/libraries/shims/System.Runtime.Extensions/src/System.Runtime.Extensions.csproj",
+          "-t:Restore",
+          "-m:2",
+          "-nr:true",
+          "-p:Configuration=Release",
+          "-p:TargetArchitecture=arm64",
+          "-p:TargetOS=linux",
+          "-p:UseLocalTargetingRuntimePack=false",
+          "-p:RestoreUseStaticGraphEvaluation=false",
+          "-p:NuGetAudit=false",
+          "-p:UseSharedCompilation=true",
+          "-p:NetCoreSdkRoot=/opt/rules_msbuild-toolchain/.tools/dotnet/sdk/10.0.400",
+          "-bl:/work/raw-cold-2/restore-29.binlog"
+        ]
+      },
+      {
+        "case": "restore-30",
+        "wallSeconds": 0.835,
+        "exitCode": 0,
+        "command": [
+          "/opt/rules_msbuild-toolchain/.tools/dotnet/dotnet",
+          "msbuild",
+          "src/libraries/shims/System.Runtime.InteropServices.RuntimeInformation/src/System.Runtime.InteropServices.RuntimeInformation.csproj",
+          "-t:Restore",
+          "-m:2",
+          "-nr:true",
+          "-p:Configuration=Release",
+          "-p:TargetArchitecture=arm64",
+          "-p:TargetOS=linux",
+          "-p:UseLocalTargetingRuntimePack=false",
+          "-p:RestoreUseStaticGraphEvaluation=false",
+          "-p:NuGetAudit=false",
+          "-p:UseSharedCompilation=true",
+          "-p:NetCoreSdkRoot=/opt/rules_msbuild-toolchain/.tools/dotnet/sdk/10.0.400",
+          "-bl:/work/raw-cold-2/restore-30.binlog"
+        ]
+      },
+      {
+        "case": "restore-31",
+        "wallSeconds": 0.825,
+        "exitCode": 0,
+        "command": [
+          "/opt/rules_msbuild-toolchain/.tools/dotnet/dotnet",
+          "msbuild",
+          "src/libraries/shims/System.Text.Encoding/src/System.Text.Encoding.csproj",
+          "-t:Restore",
+          "-m:2",
+          "-nr:true",
+          "-p:Configuration=Release",
+          "-p:TargetArchitecture=arm64",
+          "-p:TargetOS=linux",
+          "-p:UseLocalTargetingRuntimePack=false",
+          "-p:RestoreUseStaticGraphEvaluation=false",
+          "-p:NuGetAudit=false",
+          "-p:UseSharedCompilation=true",
+          "-p:NetCoreSdkRoot=/opt/rules_msbuild-toolchain/.tools/dotnet/sdk/10.0.400",
+          "-bl:/work/raw-cold-2/restore-31.binlog"
+        ]
+      },
+      {
+        "case": "restore-32",
+        "wallSeconds": 0.847,
+        "exitCode": 0,
+        "command": [
+          "/opt/rules_msbuild-toolchain/.tools/dotnet/dotnet",
+          "msbuild",
+          "src/libraries/shims/System.Threading.Tasks.Extensions/src/System.Threading.Tasks.Extensions.csproj",
+          "-t:Restore",
+          "-m:2",
+          "-nr:true",
+          "-p:Configuration=Release",
+          "-p:TargetArchitecture=arm64",
+          "-p:TargetOS=linux",
+          "-p:UseLocalTargetingRuntimePack=false",
+          "-p:RestoreUseStaticGraphEvaluation=false",
+          "-p:NuGetAudit=false",
+          "-p:UseSharedCompilation=true",
+          "-p:NetCoreSdkRoot=/opt/rules_msbuild-toolchain/.tools/dotnet/sdk/10.0.400",
+          "-bl:/work/raw-cold-2/restore-32.binlog"
+        ]
+      },
+      {
+        "case": "restore-33",
+        "wallSeconds": 0.847,
+        "exitCode": 0,
+        "command": [
+          "/opt/rules_msbuild-toolchain/.tools/dotnet/dotnet",
+          "msbuild",
+          "src/libraries/shims/System.Threading.Tasks/src/System.Threading.Tasks.csproj",
+          "-t:Restore",
+          "-m:2",
+          "-nr:true",
+          "-p:Configuration=Release",
+          "-p:TargetArchitecture=arm64",
+          "-p:TargetOS=linux",
+          "-p:UseLocalTargetingRuntimePack=false",
+          "-p:RestoreUseStaticGraphEvaluation=false",
+          "-p:NuGetAudit=false",
+          "-p:UseSharedCompilation=true",
+          "-p:NetCoreSdkRoot=/opt/rules_msbuild-toolchain/.tools/dotnet/sdk/10.0.400",
+          "-bl:/work/raw-cold-2/restore-33.binlog"
+        ]
+      },
+      {
+        "case": "restore-34",
+        "wallSeconds": 4.793,
+        "exitCode": 0,
+        "command": [
+          "/opt/rules_msbuild-toolchain/.tools/dotnet/dotnet",
+          "msbuild",
+          "src/libraries/shims/System.Xml/src/System.Xml.csproj",
+          "-t:Restore",
+          "-m:2",
+          "-nr:true",
+          "-p:Configuration=Release",
+          "-p:TargetArchitecture=arm64",
+          "-p:TargetOS=linux",
+          "-p:UseLocalTargetingRuntimePack=false",
+          "-p:RestoreUseStaticGraphEvaluation=false",
+          "-p:NuGetAudit=false",
+          "-p:UseSharedCompilation=true",
+          "-p:NetCoreSdkRoot=/opt/rules_msbuild-toolchain/.tools/dotnet/sdk/10.0.400",
+          "-bl:/work/raw-cold-2/restore-34.binlog"
+        ]
+      },
+      {
+        "case": "restore-35",
+        "wallSeconds": 6.968,
+        "exitCode": 0,
+        "command": [
+          "/opt/rules_msbuild-toolchain/.tools/dotnet/dotnet",
+          "msbuild",
+          "src/libraries/shims/System/src/System.csproj",
+          "-t:Restore",
+          "-m:2",
+          "-nr:true",
+          "-p:Configuration=Release",
+          "-p:TargetArchitecture=arm64",
+          "-p:TargetOS=linux",
+          "-p:UseLocalTargetingRuntimePack=false",
+          "-p:RestoreUseStaticGraphEvaluation=false",
+          "-p:NuGetAudit=false",
+          "-p:UseSharedCompilation=true",
+          "-p:NetCoreSdkRoot=/opt/rules_msbuild-toolchain/.tools/dotnet/sdk/10.0.400",
+          "-bl:/work/raw-cold-2/restore-35.binlog"
+        ]
+      },
+      {
+        "case": "restore-36",
+        "wallSeconds": 3.702,
+        "exitCode": 0,
+        "command": [
+          "/opt/rules_msbuild-toolchain/.tools/dotnet/dotnet",
+          "msbuild",
+          "src/libraries/shims/mscorlib/src/mscorlib.csproj",
+          "-t:Restore",
+          "-m:2",
+          "-nr:true",
+          "-p:Configuration=Release",
+          "-p:TargetArchitecture=arm64",
+          "-p:TargetOS=linux",
+          "-p:UseLocalTargetingRuntimePack=false",
+          "-p:RestoreUseStaticGraphEvaluation=false",
+          "-p:NuGetAudit=false",
+          "-p:UseSharedCompilation=true",
+          "-p:NetCoreSdkRoot=/opt/rules_msbuild-toolchain/.tools/dotnet/sdk/10.0.400",
+          "-bl:/work/raw-cold-2/restore-36.binlog"
+        ]
+      },
+      {
+        "case": "restore-37",
+        "wallSeconds": 6.951,
+        "exitCode": 0,
+        "command": [
+          "/opt/rules_msbuild-toolchain/.tools/dotnet/dotnet",
+          "msbuild",
+          "src/libraries/shims/netstandard/src/netstandard.csproj",
+          "-t:Restore",
+          "-m:2",
+          "-nr:true",
+          "-p:Configuration=Release",
+          "-p:TargetArchitecture=arm64",
+          "-p:TargetOS=linux",
+          "-p:UseLocalTargetingRuntimePack=false",
+          "-p:RestoreUseStaticGraphEvaluation=false",
+          "-p:NuGetAudit=false",
+          "-p:UseSharedCompilation=true",
+          "-p:NetCoreSdkRoot=/opt/rules_msbuild-toolchain/.tools/dotnet/sdk/10.0.400",
+          "-bl:/work/raw-cold-2/restore-37.binlog"
+        ]
+      },
+      {
+        "case": "build",
+        "wallSeconds": 139.588,
+        "exitCode": 0,
+        "command": [
+          "/opt/rules_msbuild-toolchain/.tools/dotnet/dotnet",
+          "msbuild",
+          "/work/raw-cold-2/selected.proj",
+          "-t:Build",
+          "-m:2",
+          "-nr:true",
+          "-p:Configuration=Release",
+          "-p:TargetArchitecture=arm64",
+          "-p:TargetOS=linux",
+          "-p:UseLocalTargetingRuntimePack=false",
+          "-p:RestoreUseStaticGraphEvaluation=false",
+          "-p:NuGetAudit=false",
+          "-p:UseSharedCompilation=true",
+          "-p:NetCoreSdkRoot=/opt/rules_msbuild-toolchain/.tools/dotnet/sdk/10.0.400",
+          "-bl:/work/raw-cold-2/build.binlog"
+        ]
+      },
+      {
+        "case": "noop",
+        "wallSeconds": 11.021,
+        "exitCode": 0,
+        "command": [
+          "/opt/rules_msbuild-toolchain/.tools/dotnet/dotnet",
+          "msbuild",
+          "/work/raw-cold-2/selected.proj",
+          "-t:Build",
+          "-m:2",
+          "-nr:true",
+          "-p:Configuration=Release",
+          "-p:TargetArchitecture=arm64",
+          "-p:TargetOS=linux",
+          "-p:UseLocalTargetingRuntimePack=false",
+          "-p:RestoreUseStaticGraphEvaluation=false",
+          "-p:NuGetAudit=false",
+          "-p:UseSharedCompilation=true",
+          "-p:NetCoreSdkRoot=/opt/rules_msbuild-toolchain/.tools/dotnet/sdk/10.0.400",
+          "-bl:/work/raw-cold-2/noop.binlog"
+        ]
+      }
+    ]
+  },
+  "rawSummary": {
+    "restoreSeconds": 72.037,
+    "buildSeconds": 139.588,
+    "noopSeconds": 11.021
+  },
+  "compilationCoverage": {
+    "bazelActions": 274,
+    "bazelConfiguredTargets": 273,
+    "rawCompilerCalls": 364,
+    "rawProjects": 253,
+    "bazelProjects": 253,
+    "sameProjectPaths": true,
+    "bazelOnly": [],
+    "rawOnly": [],
+    "rawFrameworkMetadataIncomplete": true
+  },
+  "coldSeedComparison": {
+    "seedFiles": 2806,
+    "coldFiles": 2806,
+    "different": [],
+    "extra": []
+  },
+  "installedLoads": {
+    "note": "Observed loads include startup-hook and test-runner dependencies, not just test bodies.",
+    "components": []
+  },
+  "managedColdRatio": 3.525317362523999,
+  "limits": [
+    "Single cold observations, not medians. Acquisition and declaration generation excluded.",
+    "Raw restore is measured separately and visits authored frameworks without forcing a root framework into tooling.",
+    "Full host uses one worker; matched managed comparison uses two workers/two MSBuild nodes.",
+    "Raw binlog framework metadata is incomplete; the same 253 project paths compiled on both sides.",
+    "Execution logs and profiles are written during timing.",
+    "Stopped exploratory Bazel managed runs and failed forced-framework raw restore are excluded.",
+    "Private VM HTTP network; no remote execution or native x64 qualification."
+  ],
+  "artifacts": {
+    "/private/tmp/runtime-cold-timing-evidence.tar.gz": {
+      "bytes": 541302615,
+      "sha256": "03efecdbc93154a8021678ddb4b634b69379c567e32fe50ecc150ed13b03803a"
+    },
+    "/private/tmp/runtime-raw-cold-evidence.tar.gz": {
+      "bytes": 124747765,
+      "sha256": "17006d0c2bf1c0ad1e1dec4c25e25152504c6ee7b8447c72f332c094766c503d"
+    }
+  }
+}

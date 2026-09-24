@@ -1,0 +1,749 @@
+{
+  "platform": "linux-arm64",
+  "cpus": 8,
+  "memoryGiB": 16,
+  "sdk": "10.0.400",
+  "runtimeCommit": "60629d14374c56f1cb51819049ad1fa529307f8d",
+  "rawBuildSlots": 2,
+  "rawRoots": [
+    {
+      "project": "src/libraries/System.Collections.Immutable/tests/System.Collections.Immutable.Tests.csproj",
+      "framework": "net10.0"
+    },
+    {
+      "project": "src/libraries/System.Collections/tests/System.Collections.Tests.csproj",
+      "framework": "net10.0"
+    },
+    {
+      "project": "src/libraries/System.Linq/tests/System.Linq.Tests.csproj",
+      "framework": "net10.0"
+    },
+    {
+      "project": "src/libraries/System.Threading/tests/System.Threading.Tests.csproj",
+      "framework": "net10.0"
+    },
+    {
+      "project": "src/libraries/System.Runtime/tests/System.Threading.Tasks.Tests/System.Threading.Tasks.Tests.csproj",
+      "framework": "net10.0"
+    },
+    {
+      "project": "src/libraries/System.Runtime/tests/System.IO.FileSystem.Tests/System.IO.FileSystem.Tests.csproj",
+      "framework": "net10.0-unix"
+    },
+    {
+      "project": "src/libraries/System.Net.Sockets/tests/FunctionalTests/System.Net.Sockets.Tests.csproj",
+      "framework": "net10.0-unix"
+    },
+    {
+      "project": "src/libraries/System.Net.Sockets/src/System.Net.Sockets.csproj",
+      "framework": "net10.0-unix"
+    },
+    {
+      "project": "src/libraries/System.IO.Pipelines/src/System.IO.Pipelines.csproj",
+      "framework": "net10.0"
+    },
+    {
+      "project": "src/libraries/System.Text.Encodings.Web/src/System.Text.Encodings.Web.csproj",
+      "framework": "net10.0"
+    },
+    {
+      "project": "src/libraries/System.Text.Json/src/System.Text.Json.csproj",
+      "framework": "net10.0"
+    },
+    {
+      "project": "src/libraries/System.Security.Cryptography/src/System.Security.Cryptography.csproj",
+      "framework": "net10.0-unix"
+    },
+    {
+      "project": "src/libraries/System.IO.Compression/src/System.IO.Compression.csproj",
+      "framework": "net10.0-unix"
+    },
+    {
+      "project": "src/libraries/System.Console/src/System.Console.csproj",
+      "framework": "net10.0-unix"
+    },
+    {
+      "project": "src/libraries/System.IO.MemoryMappedFiles/src/System.IO.MemoryMappedFiles.csproj",
+      "framework": "net10.0-unix"
+    },
+    {
+      "project": "src/libraries/System.IO.Pipes/src/System.IO.Pipes.csproj",
+      "framework": "net10.0-unix"
+    },
+    {
+      "project": "src/libraries/System.IO.FileSystem.DriveInfo/src/System.IO.FileSystem.DriveInfo.csproj",
+      "framework": "net10.0-unix"
+    },
+    {
+      "project": "src/libraries/System.Diagnostics.Process/src/System.Diagnostics.Process.csproj",
+      "framework": "net10.0-linux"
+    },
+    {
+      "project": "src/libraries/System.Net.Http/src/System.Net.Http.csproj",
+      "framework": "net10.0-linux"
+    },
+    {
+      "project": "src/libraries/Microsoft.CSharp/src/Microsoft.CSharp.csproj",
+      "framework": "net10.0"
+    },
+    {
+      "project": "src/libraries/System.Linq.AsyncEnumerable/src/System.Linq.AsyncEnumerable.csproj",
+      "framework": "net10.0"
+    },
+    {
+      "project": "src/libraries/shims/System.Core/src/System.Core.csproj",
+      "framework": "net10.0-linux"
+    },
+    {
+      "project": "src/libraries/shims/System.Diagnostics.Debug/src/System.Diagnostics.Debug.csproj",
+      "framework": "net10.0-linux"
+    },
+    {
+      "project": "src/libraries/shims/System.Globalization/src/System.Globalization.csproj",
+      "framework": "net10.0-linux"
+    },
+    {
+      "project": "src/libraries/shims/System.IO.FileSystem/src/System.IO.FileSystem.csproj",
+      "framework": "net10.0-linux"
+    },
+    {
+      "project": "src/libraries/shims/System.IO/src/System.IO.csproj",
+      "framework": "net10.0-linux"
+    },
+    {
+      "project": "src/libraries/shims/System.Reflection.Extensions/src/System.Reflection.Extensions.csproj",
+      "framework": "net10.0-linux"
+    },
+    {
+      "project": "src/libraries/shims/System.Reflection/src/System.Reflection.csproj",
+      "framework": "net10.0-linux"
+    },
+    {
+      "project": "src/libraries/shims/System.Resources.ResourceManager/src/System.Resources.ResourceManager.csproj",
+      "framework": "net10.0-linux"
+    },
+    {
+      "project": "src/libraries/shims/System.Runtime.Extensions/src/System.Runtime.Extensions.csproj",
+      "framework": "net10.0-linux"
+    },
+    {
+      "project": "src/libraries/shims/System.Runtime.InteropServices.RuntimeInformation/src/System.Runtime.InteropServices.RuntimeInformation.csproj",
+      "framework": "net10.0-linux"
+    },
+    {
+      "project": "src/libraries/shims/System.Text.Encoding/src/System.Text.Encoding.csproj",
+      "framework": "net10.0-linux"
+    },
+    {
+      "project": "src/libraries/shims/System.Threading.Tasks.Extensions/src/System.Threading.Tasks.Extensions.csproj",
+      "framework": "net10.0-linux"
+    },
+    {
+      "project": "src/libraries/shims/System.Threading.Tasks/src/System.Threading.Tasks.csproj",
+      "framework": "net10.0-linux"
+    },
+    {
+      "project": "src/libraries/shims/System.Xml/src/System.Xml.csproj",
+      "framework": "net10.0-linux"
+    },
+    {
+      "project": "src/libraries/shims/System/src/System.csproj",
+      "framework": "net10.0-linux"
+    },
+    {
+      "project": "src/libraries/shims/mscorlib/src/mscorlib.csproj",
+      "framework": "net10.0-linux"
+    },
+    {
+      "project": "src/libraries/shims/netstandard/src/netstandard.csproj",
+      "framework": "net10.0-linux"
+    }
+  ],
+  "rawOutputCoverage": {
+    "expected": 129,
+    "missing": []
+  },
+  "raw": {
+    "freshCompiler": {
+      "summary": {
+        "noop": {
+          "wallMedianSeconds": 10.865,
+          "samples": [
+            10.865,
+            10.767,
+            11.123
+          ]
+        },
+        "edit": {
+          "wallMedianSeconds": 12.172,
+          "samples": [
+            12.144,
+            12.377,
+            12.172
+          ]
+        }
+      },
+      "nonce": "36a7e8292b734f5e9854eca1a609bf6d",
+      "rootCount": 38,
+      "driverSha256": "cb47113a9462928feb84b444414a48a82245303bbbe01dec20351df722c0f5ab",
+      "measurements": [
+        {
+          "case": "prime",
+          "wallSeconds": 12.392,
+          "exitCode": 0,
+          "command": [
+            "/opt/rules_msbuild-toolchain/.tools/dotnet/dotnet",
+            "msbuild",
+            "/work/raw-timing/measured-fresh-compiler/selected.proj",
+            "-t:Build",
+            "-m:2",
+            "-nr:true",
+            "-p:Configuration=Release",
+            "-p:TargetArchitecture=arm64",
+            "-p:TargetOS=linux",
+            "-p:UseLocalTargetingRuntimePack=false",
+            "-p:RestoreUseStaticGraphEvaluation=false",
+            "-p:NuGetAudit=false",
+            "-p:UseSharedCompilation=false",
+            "-p:NetCoreSdkRoot=/opt/rules_msbuild-toolchain/.tools/dotnet/sdk/10.0.400",
+            "-bl:/work/raw-timing/measured-fresh-compiler/prime.binlog"
+          ],
+          "compiled": [
+            {
+              "project": "src/libraries/System.IO.Pipelines/src/System.IO.Pipelines.csproj",
+              "framework": "",
+              "task": "Csc"
+            }
+          ],
+          "compilerServerMessages": [
+            "CompilerServer: tool - using command line tool by design '/opt/rules_msbuild-toolchain/.tools/dotnet/dotnet' - System.IO.Pipelines (net10.0)"
+          ],
+          "implementationSha256": "b0e088d75cc8c15851e17dbb001745a99851fb79941aa3beaa03412ad1027ec2",
+          "referenceSha256": "cdb60e76c9909e85c388575cf1931beda12137906c2eca4ec9a087be1a567c46"
+        },
+        {
+          "case": "noop-0",
+          "wallSeconds": 10.865,
+          "exitCode": 0,
+          "command": [
+            "/opt/rules_msbuild-toolchain/.tools/dotnet/dotnet",
+            "msbuild",
+            "/work/raw-timing/measured-fresh-compiler/selected.proj",
+            "-t:Build",
+            "-m:2",
+            "-nr:true",
+            "-p:Configuration=Release",
+            "-p:TargetArchitecture=arm64",
+            "-p:TargetOS=linux",
+            "-p:UseLocalTargetingRuntimePack=false",
+            "-p:RestoreUseStaticGraphEvaluation=false",
+            "-p:NuGetAudit=false",
+            "-p:UseSharedCompilation=false",
+            "-p:NetCoreSdkRoot=/opt/rules_msbuild-toolchain/.tools/dotnet/sdk/10.0.400",
+            "-bl:/work/raw-timing/measured-fresh-compiler/noop-0.binlog"
+          ],
+          "compiled": [],
+          "compilerServerMessages": [],
+          "implementationSha256": "b0e088d75cc8c15851e17dbb001745a99851fb79941aa3beaa03412ad1027ec2",
+          "referenceSha256": "cdb60e76c9909e85c388575cf1931beda12137906c2eca4ec9a087be1a567c46"
+        },
+        {
+          "case": "edit-0",
+          "wallSeconds": 12.144,
+          "exitCode": 0,
+          "command": [
+            "/opt/rules_msbuild-toolchain/.tools/dotnet/dotnet",
+            "msbuild",
+            "/work/raw-timing/measured-fresh-compiler/selected.proj",
+            "-t:Build",
+            "-m:2",
+            "-nr:true",
+            "-p:Configuration=Release",
+            "-p:TargetArchitecture=arm64",
+            "-p:TargetOS=linux",
+            "-p:UseLocalTargetingRuntimePack=false",
+            "-p:RestoreUseStaticGraphEvaluation=false",
+            "-p:NuGetAudit=false",
+            "-p:UseSharedCompilation=false",
+            "-p:NetCoreSdkRoot=/opt/rules_msbuild-toolchain/.tools/dotnet/sdk/10.0.400",
+            "-bl:/work/raw-timing/measured-fresh-compiler/edit-0.binlog"
+          ],
+          "compiled": [
+            {
+              "project": "src/libraries/System.IO.Pipelines/src/System.IO.Pipelines.csproj",
+              "framework": "",
+              "task": "Csc"
+            }
+          ],
+          "compilerServerMessages": [
+            "CompilerServer: tool - using command line tool by design '/opt/rules_msbuild-toolchain/.tools/dotnet/dotnet' - System.IO.Pipelines (net10.0)"
+          ],
+          "implementationSha256": "3329b0fb99d969a5fc0d42ad932a2b6286237c94e454a2df8d1b2ce447874163",
+          "referenceSha256": "cdb60e76c9909e85c388575cf1931beda12137906c2eca4ec9a087be1a567c46"
+        },
+        {
+          "case": "noop-1",
+          "wallSeconds": 10.767,
+          "exitCode": 0,
+          "command": [
+            "/opt/rules_msbuild-toolchain/.tools/dotnet/dotnet",
+            "msbuild",
+            "/work/raw-timing/measured-fresh-compiler/selected.proj",
+            "-t:Build",
+            "-m:2",
+            "-nr:true",
+            "-p:Configuration=Release",
+            "-p:TargetArchitecture=arm64",
+            "-p:TargetOS=linux",
+            "-p:UseLocalTargetingRuntimePack=false",
+            "-p:RestoreUseStaticGraphEvaluation=false",
+            "-p:NuGetAudit=false",
+            "-p:UseSharedCompilation=false",
+            "-p:NetCoreSdkRoot=/opt/rules_msbuild-toolchain/.tools/dotnet/sdk/10.0.400",
+            "-bl:/work/raw-timing/measured-fresh-compiler/noop-1.binlog"
+          ],
+          "compiled": [],
+          "compilerServerMessages": [],
+          "implementationSha256": "3329b0fb99d969a5fc0d42ad932a2b6286237c94e454a2df8d1b2ce447874163",
+          "referenceSha256": "cdb60e76c9909e85c388575cf1931beda12137906c2eca4ec9a087be1a567c46"
+        },
+        {
+          "case": "edit-1",
+          "wallSeconds": 12.377,
+          "exitCode": 0,
+          "command": [
+            "/opt/rules_msbuild-toolchain/.tools/dotnet/dotnet",
+            "msbuild",
+            "/work/raw-timing/measured-fresh-compiler/selected.proj",
+            "-t:Build",
+            "-m:2",
+            "-nr:true",
+            "-p:Configuration=Release",
+            "-p:TargetArchitecture=arm64",
+            "-p:TargetOS=linux",
+            "-p:UseLocalTargetingRuntimePack=false",
+            "-p:RestoreUseStaticGraphEvaluation=false",
+            "-p:NuGetAudit=false",
+            "-p:UseSharedCompilation=false",
+            "-p:NetCoreSdkRoot=/opt/rules_msbuild-toolchain/.tools/dotnet/sdk/10.0.400",
+            "-bl:/work/raw-timing/measured-fresh-compiler/edit-1.binlog"
+          ],
+          "compiled": [
+            {
+              "project": "src/libraries/System.IO.Pipelines/src/System.IO.Pipelines.csproj",
+              "framework": "",
+              "task": "Csc"
+            }
+          ],
+          "compilerServerMessages": [
+            "CompilerServer: tool - using command line tool by design '/opt/rules_msbuild-toolchain/.tools/dotnet/dotnet' - System.IO.Pipelines (net10.0)"
+          ],
+          "implementationSha256": "e268b15e257de914a80aa9fade6315579c25d82a853c5a92c9b015d66d7f8bd5",
+          "referenceSha256": "cdb60e76c9909e85c388575cf1931beda12137906c2eca4ec9a087be1a567c46"
+        },
+        {
+          "case": "noop-2",
+          "wallSeconds": 11.123,
+          "exitCode": 0,
+          "command": [
+            "/opt/rules_msbuild-toolchain/.tools/dotnet/dotnet",
+            "msbuild",
+            "/work/raw-timing/measured-fresh-compiler/selected.proj",
+            "-t:Build",
+            "-m:2",
+            "-nr:true",
+            "-p:Configuration=Release",
+            "-p:TargetArchitecture=arm64",
+            "-p:TargetOS=linux",
+            "-p:UseLocalTargetingRuntimePack=false",
+            "-p:RestoreUseStaticGraphEvaluation=false",
+            "-p:NuGetAudit=false",
+            "-p:UseSharedCompilation=false",
+            "-p:NetCoreSdkRoot=/opt/rules_msbuild-toolchain/.tools/dotnet/sdk/10.0.400",
+            "-bl:/work/raw-timing/measured-fresh-compiler/noop-2.binlog"
+          ],
+          "compiled": [],
+          "compilerServerMessages": [],
+          "implementationSha256": "e268b15e257de914a80aa9fade6315579c25d82a853c5a92c9b015d66d7f8bd5",
+          "referenceSha256": "cdb60e76c9909e85c388575cf1931beda12137906c2eca4ec9a087be1a567c46"
+        },
+        {
+          "case": "edit-2",
+          "wallSeconds": 12.172,
+          "exitCode": 0,
+          "command": [
+            "/opt/rules_msbuild-toolchain/.tools/dotnet/dotnet",
+            "msbuild",
+            "/work/raw-timing/measured-fresh-compiler/selected.proj",
+            "-t:Build",
+            "-m:2",
+            "-nr:true",
+            "-p:Configuration=Release",
+            "-p:TargetArchitecture=arm64",
+            "-p:TargetOS=linux",
+            "-p:UseLocalTargetingRuntimePack=false",
+            "-p:RestoreUseStaticGraphEvaluation=false",
+            "-p:NuGetAudit=false",
+            "-p:UseSharedCompilation=false",
+            "-p:NetCoreSdkRoot=/opt/rules_msbuild-toolchain/.tools/dotnet/sdk/10.0.400",
+            "-bl:/work/raw-timing/measured-fresh-compiler/edit-2.binlog"
+          ],
+          "compiled": [
+            {
+              "project": "src/libraries/System.IO.Pipelines/src/System.IO.Pipelines.csproj",
+              "framework": "",
+              "task": "Csc"
+            }
+          ],
+          "compilerServerMessages": [
+            "CompilerServer: tool - using command line tool by design '/opt/rules_msbuild-toolchain/.tools/dotnet/dotnet' - System.IO.Pipelines (net10.0)"
+          ],
+          "implementationSha256": "516faddd084ce9ba7f9cc34bd0d99b2f32761d6fffb7d25afbfc4cccb140e579",
+          "referenceSha256": "cdb60e76c9909e85c388575cf1931beda12137906c2eca4ec9a087be1a567c46"
+        },
+        {
+          "case": "restore",
+          "wallSeconds": 11.977,
+          "exitCode": 0,
+          "command": [
+            "/opt/rules_msbuild-toolchain/.tools/dotnet/dotnet",
+            "msbuild",
+            "/work/raw-timing/measured-fresh-compiler/selected.proj",
+            "-t:Build",
+            "-m:2",
+            "-nr:true",
+            "-p:Configuration=Release",
+            "-p:TargetArchitecture=arm64",
+            "-p:TargetOS=linux",
+            "-p:UseLocalTargetingRuntimePack=false",
+            "-p:RestoreUseStaticGraphEvaluation=false",
+            "-p:NuGetAudit=false",
+            "-p:UseSharedCompilation=false",
+            "-p:NetCoreSdkRoot=/opt/rules_msbuild-toolchain/.tools/dotnet/sdk/10.0.400",
+            "-bl:/work/raw-timing/measured-fresh-compiler/restore.binlog"
+          ],
+          "compiled": [
+            {
+              "project": "src/libraries/System.IO.Pipelines/src/System.IO.Pipelines.csproj",
+              "framework": "",
+              "task": "Csc"
+            }
+          ],
+          "compilerServerMessages": [
+            "CompilerServer: tool - using command line tool by design '/opt/rules_msbuild-toolchain/.tools/dotnet/dotnet' - System.IO.Pipelines (net10.0)"
+          ],
+          "implementationSha256": "b0e088d75cc8c15851e17dbb001745a99851fb79941aa3beaa03412ad1027ec2",
+          "referenceSha256": "cdb60e76c9909e85c388575cf1931beda12137906c2eca4ec9a087be1a567c46"
+        }
+      ]
+    },
+    "sharedCompiler": {
+      "summary": {
+        "noop": {
+          "wallMedianSeconds": 10.761,
+          "samples": [
+            10.722,
+            10.912,
+            10.761
+          ]
+        },
+        "edit": {
+          "wallMedianSeconds": 11.274,
+          "samples": [
+            11.166,
+            11.276,
+            11.274
+          ]
+        }
+      },
+      "nonce": "8833915776504aff98524d56c412fde6",
+      "rootCount": 38,
+      "driverSha256": "13cadbd9a7f18f53f327b829e1bec74e9e00c47955442388ba7f318fc70e9b08",
+      "measurements": [
+        {
+          "case": "prime",
+          "wallSeconds": 12.846,
+          "exitCode": 0,
+          "command": [
+            "/opt/rules_msbuild-toolchain/.tools/dotnet/dotnet",
+            "msbuild",
+            "/work/raw-timing/measured-shared-compiler/selected.proj",
+            "-t:Build",
+            "-m:2",
+            "-nr:true",
+            "-p:Configuration=Release",
+            "-p:TargetArchitecture=arm64",
+            "-p:TargetOS=linux",
+            "-p:UseLocalTargetingRuntimePack=false",
+            "-p:RestoreUseStaticGraphEvaluation=false",
+            "-p:NuGetAudit=false",
+            "-p:UseSharedCompilation=true",
+            "-p:NetCoreSdkRoot=/opt/rules_msbuild-toolchain/.tools/dotnet/sdk/10.0.400",
+            "-bl:/work/raw-timing/measured-shared-compiler/prime.binlog"
+          ],
+          "compiled": [
+            {
+              "project": "src/libraries/System.IO.Pipelines/src/System.IO.Pipelines.csproj",
+              "framework": "",
+              "task": "Csc"
+            }
+          ],
+          "compilerServerMessages": [
+            "CompilerServer: server - server processed compilation - System.IO.Pipelines (net10.0)"
+          ],
+          "implementationSha256": "b0e088d75cc8c15851e17dbb001745a99851fb79941aa3beaa03412ad1027ec2",
+          "referenceSha256": "cdb60e76c9909e85c388575cf1931beda12137906c2eca4ec9a087be1a567c46"
+        },
+        {
+          "case": "noop-0",
+          "wallSeconds": 10.722,
+          "exitCode": 0,
+          "command": [
+            "/opt/rules_msbuild-toolchain/.tools/dotnet/dotnet",
+            "msbuild",
+            "/work/raw-timing/measured-shared-compiler/selected.proj",
+            "-t:Build",
+            "-m:2",
+            "-nr:true",
+            "-p:Configuration=Release",
+            "-p:TargetArchitecture=arm64",
+            "-p:TargetOS=linux",
+            "-p:UseLocalTargetingRuntimePack=false",
+            "-p:RestoreUseStaticGraphEvaluation=false",
+            "-p:NuGetAudit=false",
+            "-p:UseSharedCompilation=true",
+            "-p:NetCoreSdkRoot=/opt/rules_msbuild-toolchain/.tools/dotnet/sdk/10.0.400",
+            "-bl:/work/raw-timing/measured-shared-compiler/noop-0.binlog"
+          ],
+          "compiled": [],
+          "compilerServerMessages": [],
+          "implementationSha256": "b0e088d75cc8c15851e17dbb001745a99851fb79941aa3beaa03412ad1027ec2",
+          "referenceSha256": "cdb60e76c9909e85c388575cf1931beda12137906c2eca4ec9a087be1a567c46"
+        },
+        {
+          "case": "edit-0",
+          "wallSeconds": 11.166,
+          "exitCode": 0,
+          "command": [
+            "/opt/rules_msbuild-toolchain/.tools/dotnet/dotnet",
+            "msbuild",
+            "/work/raw-timing/measured-shared-compiler/selected.proj",
+            "-t:Build",
+            "-m:2",
+            "-nr:true",
+            "-p:Configuration=Release",
+            "-p:TargetArchitecture=arm64",
+            "-p:TargetOS=linux",
+            "-p:UseLocalTargetingRuntimePack=false",
+            "-p:RestoreUseStaticGraphEvaluation=false",
+            "-p:NuGetAudit=false",
+            "-p:UseSharedCompilation=true",
+            "-p:NetCoreSdkRoot=/opt/rules_msbuild-toolchain/.tools/dotnet/sdk/10.0.400",
+            "-bl:/work/raw-timing/measured-shared-compiler/edit-0.binlog"
+          ],
+          "compiled": [
+            {
+              "project": "src/libraries/System.IO.Pipelines/src/System.IO.Pipelines.csproj",
+              "framework": "",
+              "task": "Csc"
+            }
+          ],
+          "compilerServerMessages": [
+            "CompilerServer: server - server processed compilation - System.IO.Pipelines (net10.0)"
+          ],
+          "implementationSha256": "8798e31096174c9723adbb47f9246ff504871e7651917e051ae761e51113cce9",
+          "referenceSha256": "cdb60e76c9909e85c388575cf1931beda12137906c2eca4ec9a087be1a567c46"
+        },
+        {
+          "case": "noop-1",
+          "wallSeconds": 10.912,
+          "exitCode": 0,
+          "command": [
+            "/opt/rules_msbuild-toolchain/.tools/dotnet/dotnet",
+            "msbuild",
+            "/work/raw-timing/measured-shared-compiler/selected.proj",
+            "-t:Build",
+            "-m:2",
+            "-nr:true",
+            "-p:Configuration=Release",
+            "-p:TargetArchitecture=arm64",
+            "-p:TargetOS=linux",
+            "-p:UseLocalTargetingRuntimePack=false",
+            "-p:RestoreUseStaticGraphEvaluation=false",
+            "-p:NuGetAudit=false",
+            "-p:UseSharedCompilation=true",
+            "-p:NetCoreSdkRoot=/opt/rules_msbuild-toolchain/.tools/dotnet/sdk/10.0.400",
+            "-bl:/work/raw-timing/measured-shared-compiler/noop-1.binlog"
+          ],
+          "compiled": [],
+          "compilerServerMessages": [],
+          "implementationSha256": "8798e31096174c9723adbb47f9246ff504871e7651917e051ae761e51113cce9",
+          "referenceSha256": "cdb60e76c9909e85c388575cf1931beda12137906c2eca4ec9a087be1a567c46"
+        },
+        {
+          "case": "edit-1",
+          "wallSeconds": 11.276,
+          "exitCode": 0,
+          "command": [
+            "/opt/rules_msbuild-toolchain/.tools/dotnet/dotnet",
+            "msbuild",
+            "/work/raw-timing/measured-shared-compiler/selected.proj",
+            "-t:Build",
+            "-m:2",
+            "-nr:true",
+            "-p:Configuration=Release",
+            "-p:TargetArchitecture=arm64",
+            "-p:TargetOS=linux",
+            "-p:UseLocalTargetingRuntimePack=false",
+            "-p:RestoreUseStaticGraphEvaluation=false",
+            "-p:NuGetAudit=false",
+            "-p:UseSharedCompilation=true",
+            "-p:NetCoreSdkRoot=/opt/rules_msbuild-toolchain/.tools/dotnet/sdk/10.0.400",
+            "-bl:/work/raw-timing/measured-shared-compiler/edit-1.binlog"
+          ],
+          "compiled": [
+            {
+              "project": "src/libraries/System.IO.Pipelines/src/System.IO.Pipelines.csproj",
+              "framework": "",
+              "task": "Csc"
+            }
+          ],
+          "compilerServerMessages": [
+            "CompilerServer: server - server processed compilation - System.IO.Pipelines (net10.0)"
+          ],
+          "implementationSha256": "7c52264edcb217a14de6dee340c7c44b0b0fecdaa29f9c2cd5dc6ff987635008",
+          "referenceSha256": "cdb60e76c9909e85c388575cf1931beda12137906c2eca4ec9a087be1a567c46"
+        },
+        {
+          "case": "noop-2",
+          "wallSeconds": 10.761,
+          "exitCode": 0,
+          "command": [
+            "/opt/rules_msbuild-toolchain/.tools/dotnet/dotnet",
+            "msbuild",
+            "/work/raw-timing/measured-shared-compiler/selected.proj",
+            "-t:Build",
+            "-m:2",
+            "-nr:true",
+            "-p:Configuration=Release",
+            "-p:TargetArchitecture=arm64",
+            "-p:TargetOS=linux",
+            "-p:UseLocalTargetingRuntimePack=false",
+            "-p:RestoreUseStaticGraphEvaluation=false",
+            "-p:NuGetAudit=false",
+            "-p:UseSharedCompilation=true",
+            "-p:NetCoreSdkRoot=/opt/rules_msbuild-toolchain/.tools/dotnet/sdk/10.0.400",
+            "-bl:/work/raw-timing/measured-shared-compiler/noop-2.binlog"
+          ],
+          "compiled": [],
+          "compilerServerMessages": [],
+          "implementationSha256": "7c52264edcb217a14de6dee340c7c44b0b0fecdaa29f9c2cd5dc6ff987635008",
+          "referenceSha256": "cdb60e76c9909e85c388575cf1931beda12137906c2eca4ec9a087be1a567c46"
+        },
+        {
+          "case": "edit-2",
+          "wallSeconds": 11.274,
+          "exitCode": 0,
+          "command": [
+            "/opt/rules_msbuild-toolchain/.tools/dotnet/dotnet",
+            "msbuild",
+            "/work/raw-timing/measured-shared-compiler/selected.proj",
+            "-t:Build",
+            "-m:2",
+            "-nr:true",
+            "-p:Configuration=Release",
+            "-p:TargetArchitecture=arm64",
+            "-p:TargetOS=linux",
+            "-p:UseLocalTargetingRuntimePack=false",
+            "-p:RestoreUseStaticGraphEvaluation=false",
+            "-p:NuGetAudit=false",
+            "-p:UseSharedCompilation=true",
+            "-p:NetCoreSdkRoot=/opt/rules_msbuild-toolchain/.tools/dotnet/sdk/10.0.400",
+            "-bl:/work/raw-timing/measured-shared-compiler/edit-2.binlog"
+          ],
+          "compiled": [
+            {
+              "project": "src/libraries/System.IO.Pipelines/src/System.IO.Pipelines.csproj",
+              "framework": "",
+              "task": "Csc"
+            }
+          ],
+          "compilerServerMessages": [
+            "CompilerServer: server - server processed compilation - System.IO.Pipelines (net10.0)"
+          ],
+          "implementationSha256": "569f78c1c473e4e71766054400002d0504340213b48799e274a7a1213c345d84",
+          "referenceSha256": "cdb60e76c9909e85c388575cf1931beda12137906c2eca4ec9a087be1a567c46"
+        },
+        {
+          "case": "restore",
+          "wallSeconds": 11.171,
+          "exitCode": 0,
+          "command": [
+            "/opt/rules_msbuild-toolchain/.tools/dotnet/dotnet",
+            "msbuild",
+            "/work/raw-timing/measured-shared-compiler/selected.proj",
+            "-t:Build",
+            "-m:2",
+            "-nr:true",
+            "-p:Configuration=Release",
+            "-p:TargetArchitecture=arm64",
+            "-p:TargetOS=linux",
+            "-p:UseLocalTargetingRuntimePack=false",
+            "-p:RestoreUseStaticGraphEvaluation=false",
+            "-p:NuGetAudit=false",
+            "-p:UseSharedCompilation=true",
+            "-p:NetCoreSdkRoot=/opt/rules_msbuild-toolchain/.tools/dotnet/sdk/10.0.400",
+            "-bl:/work/raw-timing/measured-shared-compiler/restore.binlog"
+          ],
+          "compiled": [
+            {
+              "project": "src/libraries/System.IO.Pipelines/src/System.IO.Pipelines.csproj",
+              "framework": "",
+              "task": "Csc"
+            }
+          ],
+          "compilerServerMessages": [
+            "CompilerServer: server - server processed compilation - System.IO.Pipelines (net10.0)"
+          ],
+          "implementationSha256": "b0e088d75cc8c15851e17dbb001745a99851fb79941aa3beaa03412ad1027ec2",
+          "referenceSha256": "cdb60e76c9909e85c388575cf1931beda12137906c2eca4ec9a087be1a567c46"
+        }
+      ]
+    }
+  },
+  "priorBazelSummary": {
+    "batch": {
+      "noop": {
+        "wallMedianSeconds": 5.581,
+        "bazelMedianSeconds": 5.215
+      },
+      "edit": {
+        "wallMedianSeconds": 10.235,
+        "bazelMedianSeconds": 9.729
+      }
+    },
+    "server": {
+      "noop": {
+        "wallMedianSeconds": 0.167,
+        "bazelMedianSeconds": 0.125
+      },
+      "edit": {
+        "wallMedianSeconds": 3.426,
+        "bazelMedianSeconds": 3.378
+      }
+    }
+  },
+  "priorBazelEvidence": "runtime-leaf-timing-evidence.json",
+  "comparison": {
+    "separateCaptures": true,
+    "rawSharedToBazelServerRatio": 3.291,
+    "rawSharedToBazelBatchRatio": 1.102
+  },
+  "limits": [
+    "Warm managed build; no tests or restore in samples.",
+    "Raw traversal does not rebuild native products or compose the test-host layout; Bazel checks those actions and updates the layout.",
+    "Optional Bazel refresh rebuilt its baseline and was stopped before sampling; comparison uses the prior capture.",
+    "No cold-build comparison."
+  ],
+  "artifacts": "/private/tmp/runtime-raw-leaf-timing-evidence"
+}

@@ -1,0 +1,1596 @@
+{
+  "scope": {
+    "projects": 220,
+    "frameworkTargets": 275,
+    "assemblyActions": 278,
+    "extractionActions": 300,
+    "cpu": 4,
+    "memoryGiB": 8,
+    "bazel": "9.2.0",
+    "sdk": "10.0.400",
+    "platform": "Ubuntu 22.04 ARM64"
+  },
+  "runs": {
+    "baseline-cold": {
+      "seconds": 150.078302777,
+      "exitCode": 0,
+      "aggregateTaskSeconds": {
+        "": 0.0,
+        "build phase marker": 0.442,
+        "general information": 1148.4385389999948,
+        "gc notification": 1.3059999999999983,
+        "skyframe evaluator": 149.226265,
+        "bazel module processing": 54.96334100000003,
+        "Fetching repository": 5.764416,
+        "package creation": 0.32148199999999993,
+        "Starlark user function call": 5.932662,
+        "Starlark thread context": 5.654699,
+        "Starlark builtin function call": 5.343913,
+        "Starlark repository function call": 5.573143,
+        "complete action execution": 4.3139769999999995,
+        "action processing": 280.42996299999993,
+        "Conflict checking": 0.046382,
+        "VFS md5": 4.436021,
+        "remote action cache check": 15.039991,
+        "action count (local)": 250.17972499999996,
+        "Remote execution upload time": 114.18136599999997,
+        "setting up inputs for worker": 4.919771000000004,
+        "waiting for response from worker": 205.6272430000001,
+        "copying outputs from worker": 0.004403,
+        "critical path component": 16.392491999999997
+      },
+      "aggregateOperations": {
+        "checkOutputs": 3.3909320000000025,
+        "MerkleTreeComputer.buildForSpawn": 4.808553999999997,
+        "sandbox.filterInputsAndDirsToCreate": 7.284838999999999,
+        "sandbox.createFileSystem": 8.731180999999992,
+        "subprocess.run": 31.25332000000002
+      },
+      "timingMetrics": {
+        "cpuTimeInMs": "70330",
+        "wallTimeInMs": "149559",
+        "analysisPhaseTimeInMs": "3574",
+        "executionPhaseTimeInMs": "142670",
+        "actionsExecutionStartInMs": "6832",
+        "criticalPathTime": "16.392500426s"
+      },
+      "artifactMetrics": {
+        "sourceArtifactsRead": {
+          "sizeInBytes": "1184598120",
+          "count": 12494
+        },
+        "outputArtifactsSeen": {
+          "sizeInBytes": "3969858490",
+          "count": 30340
+        },
+        "outputArtifactsFromActionCache": {},
+        "topLevelArtifacts": {
+          "sizeInBytes": "1892949722",
+          "count": 20238
+        }
+      },
+      "networkMetrics": {
+        "systemNetworkStats": {
+          "bytesSent": "1983387999",
+          "bytesRecv": "40032662",
+          "packetsSent": "105924",
+          "packetsRecv": "93475",
+          "peakBytesSentPerSec": "417013101",
+          "peakBytesRecvPerSec": "35537355",
+          "peakPacketsSentPerSec": "14822",
+          "peakPacketsRecvPerSec": "27463"
+        }
+      },
+      "runners": [
+        {
+          "name": "total",
+          "count": 1293
+        },
+        {
+          "name": "internal",
+          "count": 715
+        },
+        {
+          "name": "linux-sandbox",
+          "count": 300,
+          "execKind": "Local"
+        },
+        {
+          "name": "worker",
+          "count": 278,
+          "execKind": "Worker"
+        }
+      ]
+    },
+    "baseline-cache": {
+      "seconds": 18.889214509,
+      "exitCode": 0,
+      "aggregateTaskSeconds": {
+        "": 0.0,
+        "build phase marker": 0.647,
+        "general information": 108.37432800000013,
+        "skyframe evaluator": 17.843075,
+        "bazel module processing": 1.553887,
+        "Fetching repository": 0.198762,
+        "gc notification": 0.3360000000000002,
+        "package creation": 0.42888400000000004,
+        "Starlark user function call": 0.339323,
+        "Starlark thread context": 0.131491,
+        "complete action execution": 3.7126180000000004,
+        "action processing": 24.495183,
+        "Starlark builtin function call": 0.096395,
+        "Conflict checking": 0.034882,
+        "VFS md5": 0.9911530000000003,
+        "remote action cache check": 2.8732580000000003,
+        "remote output download": 10.893036000000004,
+        "critical path component": 1.5540580000000002
+      },
+      "aggregateOperations": {
+        "checkOutputs": 3.230672000000003,
+        "MerkleTreeComputer.buildForSpawn": 3.3198490000000036,
+        "Remote.parseActionResultMetadata": 1.0877489999999996,
+        "Remote.download": 9.554354999999994
+      },
+      "timingMetrics": {
+        "cpuTimeInMs": "45670",
+        "wallTimeInMs": "18195",
+        "analysisPhaseTimeInMs": "1838",
+        "executionPhaseTimeInMs": "15262",
+        "actionsExecutionStartInMs": "2911",
+        "criticalPathTime": "1.554061583s"
+      },
+      "artifactMetrics": {
+        "sourceArtifactsRead": {
+          "sizeInBytes": "1184598120",
+          "count": 12494
+        },
+        "outputArtifactsSeen": {
+          "sizeInBytes": "3969858490",
+          "count": 30340
+        },
+        "outputArtifactsFromActionCache": {},
+        "topLevelArtifacts": {
+          "sizeInBytes": "1892949722",
+          "count": 20238
+        }
+      },
+      "networkMetrics": {
+        "systemNetworkStats": {
+          "bytesSent": "14397360",
+          "bytesRecv": "1838065440",
+          "packetsSent": "117743",
+          "packetsRecv": "237506",
+          "peakBytesSentPerSec": "2861240",
+          "peakBytesRecvPerSec": "432340861",
+          "peakPacketsSentPerSec": "26940",
+          "peakPacketsRecvPerSec": "46888"
+        }
+      },
+      "runners": [
+        {
+          "name": "total",
+          "count": 1293
+        },
+        {
+          "name": "remote cache hit",
+          "count": 578,
+          "execKind": "Remote"
+        },
+        {
+          "name": "internal",
+          "count": 715
+        }
+      ]
+    },
+    "baseline-minimal": {
+      "seconds": 9.471305919999963,
+      "exitCode": 0,
+      "aggregateTaskSeconds": {
+        "": 0.0,
+        "build phase marker": 0.735,
+        "general information": 43.63745000000002,
+        "gc notification": 0.2570000000000001,
+        "skyframe evaluator": 8.375155,
+        "bazel module processing": 0.6779780000000001,
+        "Fetching repository": 0.22926100000000008,
+        "package creation": 0.465433,
+        "Starlark user function call": 0.489713,
+        "Starlark thread context": 0.231659,
+        "complete action execution": 0.9337610000000007,
+        "action processing": 6.476955999999994,
+        "Starlark builtin function call": 0.076099,
+        "Conflict checking": 0.039561,
+        "VFS md5": 0.339276,
+        "remote action cache check": 0.9520569999999995,
+        "remote output download": 0.037129999999999996,
+        "critical path component": 0.276396
+      },
+      "aggregateOperations": {
+        "checkOutputs": 0.6107380000000001,
+        "MerkleTreeComputer.buildForSpawn": 3.112261000000001,
+        "Remote.parseActionResultMetadata": 0.494595,
+        "Remote.download": 0.23363699999999984
+      },
+      "timingMetrics": {
+        "cpuTimeInMs": "25340",
+        "wallTimeInMs": "8694",
+        "analysisPhaseTimeInMs": "1785",
+        "executionPhaseTimeInMs": "5939",
+        "actionsExecutionStartInMs": "2733",
+        "criticalPathTime": "0.276405667s"
+      },
+      "artifactMetrics": {
+        "sourceArtifactsRead": {
+          "sizeInBytes": "1184598120",
+          "count": 12494
+        },
+        "outputArtifactsSeen": {
+          "sizeInBytes": "3969858490",
+          "count": 30340
+        },
+        "outputArtifactsFromActionCache": {},
+        "topLevelArtifacts": {
+          "sizeInBytes": "1892949722",
+          "count": 20238
+        }
+      },
+      "networkMetrics": {
+        "systemNetworkStats": {
+          "bytesSent": "545836",
+          "bytesRecv": "4490765",
+          "packetsSent": "2729",
+          "packetsRecv": "4929",
+          "peakBytesSentPerSec": "224038",
+          "peakBytesRecvPerSec": "2519665",
+          "peakPacketsSentPerSec": "1111",
+          "peakPacketsRecvPerSec": "2043"
+        }
+      },
+      "runners": [
+        {
+          "name": "total",
+          "count": 1293
+        },
+        {
+          "name": "remote cache hit",
+          "count": 578,
+          "execKind": "Remote"
+        },
+        {
+          "name": "internal",
+          "count": 715
+        }
+      ]
+    },
+    "baseline-cache-concurrency": {
+      "seconds": 15.910620506999976,
+      "exitCode": 0,
+      "aggregateTaskSeconds": {
+        "": 0.0,
+        "build phase marker": 0.444,
+        "general information": 549.2362359999956,
+        "skyframe evaluator": 15.103822,
+        "bazel module processing": 0.6448849999999999,
+        "Fetching repository": 0.22350700000000004,
+        "gc notification": 0.39000000000000024,
+        "package creation": 0.36592800000000003,
+        "Starlark user function call": 0.39353899999999997,
+        "Starlark thread context": 0.17137,
+        "complete action execution": 10.064115999999995,
+        "action processing": 307.11912500000005,
+        "Starlark builtin function call": 0.080604,
+        "Conflict checking": 0.035894,
+        "VFS md5": 8.889728000000003,
+        "action dependency checking": 0.06046,
+        "Remote execution setup": 6.550628,
+        "remote action cache check": 87.26304399999994,
+        "remote output download": 187.537642,
+        "critical path component": 5.746982999999999
+      },
+      "aggregateOperations": {
+        "checkOutputs": 7.620743999999998,
+        "MerkleTreeComputer.buildForSpawn": 9.402055999999996,
+        "Remote.parseActionResultMetadata": 65.82924199999998,
+        "Remote.download": 108.96095300000007
+      },
+      "timingMetrics": {
+        "cpuTimeInMs": "50790",
+        "wallTimeInMs": "15431",
+        "analysisPhaseTimeInMs": "1811",
+        "executionPhaseTimeInMs": "12594",
+        "actionsExecutionStartInMs": "2809",
+        "criticalPathTime": "5.746990296s"
+      },
+      "artifactMetrics": {
+        "sourceArtifactsRead": {
+          "sizeInBytes": "1184598120",
+          "count": 12494
+        },
+        "outputArtifactsSeen": {
+          "sizeInBytes": "3969858490",
+          "count": 30340
+        },
+        "outputArtifactsFromActionCache": {},
+        "topLevelArtifacts": {
+          "sizeInBytes": "1892949722",
+          "count": 20238
+        }
+      },
+      "networkMetrics": {
+        "systemNetworkStats": {
+          "bytesSent": "13232430",
+          "bytesRecv": "1838664059",
+          "packetsSent": "99974",
+          "packetsRecv": "222748",
+          "peakBytesSentPerSec": "2756116",
+          "peakBytesRecvPerSec": "492279634",
+          "peakPacketsSentPerSec": "16978",
+          "peakPacketsRecvPerSec": "50954"
+        }
+      },
+      "runners": [
+        {
+          "name": "total",
+          "count": 1293
+        },
+        {
+          "name": "remote cache hit",
+          "count": 578,
+          "execKind": "Remote"
+        },
+        {
+          "name": "internal",
+          "count": 715
+        }
+      ]
+    },
+    "runtime-inputs-cold": {
+      "seconds": 158.54634507299994,
+      "exitCode": 0,
+      "aggregateTaskSeconds": {
+        "": 0.0,
+        "build phase marker": 0.433,
+        "general information": 1241.2365749999933,
+        "skyframe evaluator": 157.647794,
+        "bazel module processing": 0.6751349999999997,
+        "Fetching repository": 0.17040800000000014,
+        "gc notification": 1.0040000000000004,
+        "package creation": 0.42600099999999996,
+        "Starlark user function call": 0.37631500000000007,
+        "Starlark thread context": 0.145698,
+        "complete action execution": 4.939403,
+        "action processing": 305.93913299999997,
+        "Starlark builtin function call": 0.096786,
+        "Conflict checking": 0.035495,
+        "VFS md5": 3.6235779999999975,
+        "action count (local)": 292.3298590000001,
+        "Remote execution upload time": 285.7934989999999,
+        "setting up inputs for worker": 5.839355000000002,
+        "waiting for response from worker": 236.40206400000005,
+        "copying outputs from worker": 0.0062039999999999994,
+        "action dependency checking": 0.017485,
+        "critical path component": 22.664638
+      },
+      "aggregateOperations": {
+        "checkOutputs": 3.7409719999999984,
+        "MerkleTreeComputer.buildForSpawn": 3.6589779999999994,
+        "sandbox.filterInputsAndDirsToCreate": 0.35291300000000003,
+        "sandbox.createFileSystem": 0.6256270000000002,
+        "subprocess.run": 50.12021600000003
+      },
+      "timingMetrics": {
+        "cpuTimeInMs": "58860",
+        "wallTimeInMs": "158034",
+        "analysisPhaseTimeInMs": "1771",
+        "executionPhaseTimeInMs": "155246",
+        "actionsExecutionStartInMs": "2730",
+        "criticalPathTime": "22.664647344s"
+      },
+      "artifactMetrics": {
+        "sourceArtifactsRead": {
+          "sizeInBytes": "1184598120",
+          "count": 12494
+        },
+        "outputArtifactsSeen": {
+          "sizeInBytes": "3969853542",
+          "count": 30340
+        },
+        "outputArtifactsFromActionCache": {},
+        "topLevelArtifacts": {
+          "sizeInBytes": "1892947966",
+          "count": 20238
+        }
+      },
+      "networkMetrics": {
+        "systemNetworkStats": {
+          "bytesSent": "1982574166",
+          "bytesRecv": "5520354",
+          "packetsSent": "99001",
+          "packetsRecv": "67324",
+          "peakBytesSentPerSec": "356850918",
+          "peakBytesRecvPerSec": "378394",
+          "peakPacketsSentPerSec": "8645",
+          "peakPacketsRecvPerSec": "5230"
+        }
+      },
+      "runners": [
+        {
+          "name": "total",
+          "count": 1293
+        },
+        {
+          "name": "internal",
+          "count": 715
+        },
+        {
+          "name": "linux-sandbox",
+          "count": 300,
+          "execKind": "Local"
+        },
+        {
+          "name": "worker",
+          "count": 278,
+          "execKind": "Worker"
+        }
+      ]
+    },
+    "runtime-inputs-cache": {
+      "seconds": 17.891785300000038,
+      "exitCode": 0,
+      "aggregateTaskSeconds": {
+        "": 0.0,
+        "build phase marker": 0.639,
+        "general information": 101.878705,
+        "skyframe evaluator": 16.863678,
+        "bazel module processing": 1.4669199999999996,
+        "Fetching repository": 0.22629600000000002,
+        "gc notification": 0.3560000000000002,
+        "package creation": 0.40963499999999997,
+        "Starlark user function call": 0.543713,
+        "Starlark thread context": 0.2899,
+        "complete action execution": 3.1939060000000015,
+        "action processing": 23.343598000000007,
+        "Starlark builtin function call": 0.105595,
+        "Conflict checking": 0.037896,
+        "VFS md5": 1.1995329999999997,
+        "remote action cache check": 3.3269089999999975,
+        "remote output download": 11.136402000000006,
+        "critical path component": 0.7031459999999999
+      },
+      "aggregateOperations": {
+        "checkOutputs": 2.6237399999999975,
+        "MerkleTreeComputer.buildForSpawn": 2.327714999999999,
+        "Remote.parseActionResultMetadata": 1.0272949999999992,
+        "Remote.download": 9.275255999999995
+      },
+      "timingMetrics": {
+        "cpuTimeInMs": "46420",
+        "wallTimeInMs": "17203",
+        "analysisPhaseTimeInMs": "1854",
+        "executionPhaseTimeInMs": "14272",
+        "actionsExecutionStartInMs": "2907",
+        "criticalPathTime": "0.703148666s"
+      },
+      "artifactMetrics": {
+        "sourceArtifactsRead": {
+          "sizeInBytes": "1184598120",
+          "count": 12494
+        },
+        "outputArtifactsSeen": {
+          "sizeInBytes": "3969853542",
+          "count": 30340
+        },
+        "outputArtifactsFromActionCache": {},
+        "topLevelArtifacts": {
+          "sizeInBytes": "1892947966",
+          "count": 20238
+        }
+      },
+      "networkMetrics": {
+        "systemNetworkStats": {
+          "bytesSent": "12931746",
+          "bytesRecv": "1838090270",
+          "packetsSent": "95558",
+          "packetsRecv": "223268",
+          "peakBytesSentPerSec": "2204423",
+          "peakBytesRecvPerSec": "449781091",
+          "peakPacketsSentPerSec": "13456",
+          "peakPacketsRecvPerSec": "38840"
+        }
+      },
+      "runners": [
+        {
+          "name": "total",
+          "count": 1293
+        },
+        {
+          "name": "remote cache hit",
+          "count": 578,
+          "execKind": "Remote"
+        },
+        {
+          "name": "internal",
+          "count": 715
+        }
+      ]
+    },
+    "package-outputs-cold": {
+      "seconds": 153.492937278,
+      "exitCode": 0,
+      "aggregateTaskSeconds": {
+        "": 0.0,
+        "build phase marker": 0.652,
+        "general information": 1189.7745579999964,
+        "gc notification": 1.0730000000000004,
+        "skyframe evaluator": 152.34666600000003,
+        "bazel module processing": 0.6695519999999996,
+        "Fetching repository": 0.16015400000000007,
+        "package creation": 0.4141100000000001,
+        "Starlark user function call": 0.178177,
+        "Starlark thread context": 0.080981,
+        "complete action execution": 3.947783999999997,
+        "action processing": 292.94361900000007,
+        "Starlark builtin function call": 0.09358,
+        "Conflict checking": 0.039374000000000006,
+        "VFS md5": 3.781912,
+        "action count (local)": 277.3249249999999,
+        "Remote execution upload time": 337.67989799999975,
+        "setting up inputs for worker": 6.075852,
+        "waiting for response from worker": 230.50150499999995,
+        "copying outputs from worker": 0.005492999999999996,
+        "critical path component": 19.027023
+      },
+      "aggregateOperations": {
+        "checkOutputs": 2.8517520000000003,
+        "MerkleTreeComputer.buildForSpawn": 3.7986980000000026,
+        "sandbox.filterInputsAndDirsToCreate": 0.3811449999999998,
+        "sandbox.createFileSystem": 2.0786309999999983,
+        "subprocess.run": 38.76032300000001
+      },
+      "timingMetrics": {
+        "cpuTimeInMs": "56340",
+        "wallTimeInMs": "152762",
+        "analysisPhaseTimeInMs": "1802",
+        "executionPhaseTimeInMs": "149905",
+        "actionsExecutionStartInMs": "2774",
+        "criticalPathTime": "19.027030383s"
+      },
+      "artifactMetrics": {
+        "sourceArtifactsRead": {
+          "sizeInBytes": "1184604144",
+          "count": 12494
+        },
+        "outputArtifactsSeen": {
+          "sizeInBytes": "2939270733",
+          "count": 19293
+        },
+        "outputArtifactsFromActionCache": {},
+        "topLevelArtifacts": {
+          "sizeInBytes": "2416656589",
+          "count": 17208
+        }
+      },
+      "networkMetrics": {
+        "systemNetworkStats": {
+          "bytesSent": "1982672202",
+          "bytesRecv": "5929265",
+          "packetsSent": "101019",
+          "packetsRecv": "73384",
+          "peakBytesSentPerSec": "371836251",
+          "peakBytesRecvPerSec": "475659",
+          "peakPacketsSentPerSec": "8697",
+          "peakPacketsRecvPerSec": "6470"
+        }
+      },
+      "runners": [
+        {
+          "name": "total",
+          "count": 1293
+        },
+        {
+          "name": "internal",
+          "count": 715
+        },
+        {
+          "name": "linux-sandbox",
+          "count": 300,
+          "execKind": "Local"
+        },
+        {
+          "name": "worker",
+          "count": 278,
+          "execKind": "Worker"
+        }
+      ]
+    },
+    "package-outputs-cache": {
+      "seconds": 15.03807838199998,
+      "exitCode": 0,
+      "aggregateTaskSeconds": {
+        "": 0.0,
+        "build phase marker": 0.648,
+        "general information": 83.055984,
+        "skyframe evaluator": 13.985039,
+        "bazel module processing": 1.4567239999999992,
+        "Fetching repository": 0.3248010000000002,
+        "gc notification": 0.3120000000000001,
+        "package creation": 0.5053099999999998,
+        "Starlark user function call": 0.3624339999999999,
+        "Starlark thread context": 0.258105,
+        "complete action execution": 2.7137569999999984,
+        "action processing": 17.91526600000001,
+        "Starlark builtin function call": 0.102539,
+        "Conflict checking": 0.033356000000000004,
+        "VFS md5": 1.00903,
+        "remote action cache check": 2.740603000000003,
+        "remote output download": 7.107506999999997,
+        "critical path component": 0.6197069999999999
+      },
+      "aggregateOperations": {
+        "checkOutputs": 2.245465000000001,
+        "MerkleTreeComputer.buildForSpawn": 2.274600999999999,
+        "Remote.parseActionResultMetadata": 0.9404469999999999,
+        "Remote.download": 7.011127000000003
+      },
+      "timingMetrics": {
+        "cpuTimeInMs": "39890",
+        "wallTimeInMs": "14340",
+        "analysisPhaseTimeInMs": "1882",
+        "executionPhaseTimeInMs": "11410",
+        "actionsExecutionStartInMs": "2904",
+        "criticalPathTime": "0.619713042s"
+      },
+      "artifactMetrics": {
+        "sourceArtifactsRead": {
+          "sizeInBytes": "1184604144",
+          "count": 12494
+        },
+        "outputArtifactsSeen": {
+          "sizeInBytes": "2939270733",
+          "count": 19293
+        },
+        "outputArtifactsFromActionCache": {},
+        "topLevelArtifacts": {
+          "sizeInBytes": "2416656589",
+          "count": 17208
+        }
+      },
+      "networkMetrics": {
+        "systemNetworkStats": {
+          "bytesSent": "8478073",
+          "bytesRecv": "1360817502",
+          "packetsSent": "65267",
+          "packetsRecv": "132448",
+          "peakBytesSentPerSec": "1861454",
+          "peakBytesRecvPerSec": "404120658",
+          "peakPacketsSentPerSec": "12998",
+          "peakPacketsRecvPerSec": "27586"
+        }
+      },
+      "runners": [
+        {
+          "name": "total",
+          "count": 1293
+        },
+        {
+          "name": "remote cache hit",
+          "count": 578,
+          "execKind": "Remote"
+        },
+        {
+          "name": "internal",
+          "count": 715
+        }
+      ]
+    },
+    "package-outputs-concurrency": {
+      "seconds": 12.831491130999893,
+      "exitCode": 0,
+      "aggregateTaskSeconds": {
+        "": 0.0,
+        "build phase marker": 0.758,
+        "general information": 394.2999419999975,
+        "gc notification": 0.3480000000000002,
+        "skyframe evaluator": 11.69479,
+        "bazel module processing": 0.5863279999999998,
+        "Fetching repository": 0.1838080000000001,
+        "package creation": 0.508803,
+        "Starlark user function call": 0.48917599999999994,
+        "Starlark thread context": 0.27706200000000003,
+        "complete action execution": 11.784311000000006,
+        "action processing": 235.95337200000003,
+        "Starlark builtin function call": 0.078776,
+        "Conflict checking": 0.032624,
+        "VFS md5": 12.985926000000003,
+        "remote action cache check": 66.62018700000003,
+        "remote output download": 132.95101500000007,
+        "Remote execution setup": 0.208805,
+        "critical path component": 4.3594740000000005
+      },
+      "aggregateOperations": {
+        "checkOutputs": 6.085968000000003,
+        "MerkleTreeComputer.buildForSpawn": 6.367028000000006,
+        "Remote.parseActionResultMetadata": 34.479433000000036,
+        "Remote.download": 78.66001399999999
+      },
+      "timingMetrics": {
+        "cpuTimeInMs": "42950",
+        "wallTimeInMs": "12021",
+        "analysisPhaseTimeInMs": "1921",
+        "executionPhaseTimeInMs": "9118",
+        "actionsExecutionStartInMs": "2882",
+        "criticalPathTime": "4.359477294s"
+      },
+      "artifactMetrics": {
+        "sourceArtifactsRead": {
+          "sizeInBytes": "1184604144",
+          "count": 12494
+        },
+        "outputArtifactsSeen": {
+          "sizeInBytes": "2939270733",
+          "count": 19293
+        },
+        "outputArtifactsFromActionCache": {},
+        "topLevelArtifacts": {
+          "sizeInBytes": "2416656589",
+          "count": 17208
+        }
+      },
+      "networkMetrics": {
+        "systemNetworkStats": {
+          "bytesSent": "8765424",
+          "bytesRecv": "1366262409",
+          "packetsSent": "68729",
+          "packetsRecv": "135150",
+          "peakBytesSentPerSec": "2287991",
+          "peakBytesRecvPerSec": "533338850",
+          "peakPacketsSentPerSec": "17212",
+          "peakPacketsRecvPerSec": "35081"
+        }
+      },
+      "runners": [
+        {
+          "name": "total",
+          "count": 1293
+        },
+        {
+          "name": "remote cache hit",
+          "count": 578,
+          "execKind": "Remote"
+        },
+        {
+          "name": "internal",
+          "count": 715
+        }
+      ]
+    }
+  },
+  "before": {
+    "outputs": {
+      ".package": {
+        "files": 12734,
+        "bytes": 2685326337
+      },
+      ".reference": {
+        "files": 556,
+        "bytes": 12080389
+      },
+      ".runtime": {
+        "files": 15222,
+        "bytes": 1213032703
+      },
+      ".diagnostics": {
+        "files": 1112,
+        "bytes": 51199524
+      }
+    },
+    "runtimeUniqueFiles": 2356,
+    "runtimeUniqueBytes": 245430158,
+    "packageOutputs": {
+      "sdkSelected": {
+        "files": 11325,
+        "bytes": 1033633600
+      }
+    },
+    "workerTotals": {
+      "stagingSeconds": 36.8343656,
+      "identitySeconds": 5.011671900000002,
+      "snapshotSeconds": 27.43650959999998,
+      "preparationSeconds": 4.3861840999999995,
+      "childSeconds": 163.4591228,
+      "publicationSeconds": 2.0619959999999997,
+      "startupToolSeconds": 0.19116560000000002,
+      "VerifiedBytes": 0,
+      "ReusedBytes": 0
+    },
+    "workers": 278
+  },
+  "after": {
+    "outputs": {
+      ".package": {
+        "files": 12734,
+        "bytes": 2685326337
+      },
+      ".reference": {
+        "files": 556,
+        "bytes": 12080389
+      },
+      ".runtime": {
+        "files": 4175,
+        "bytes": 181861915
+      },
+      ".diagnostics": {
+        "files": 1112,
+        "bytes": 51207934
+      }
+    },
+    "runtimeUniqueFiles": 1770,
+    "runtimeUniqueBytes": 80487126,
+    "packageOutputs": {},
+    "workerTotals": {
+      "stagingSeconds": 45.795361700000015,
+      "identitySeconds": 6.760357700000003,
+      "snapshotSeconds": 33.67300609999999,
+      "preparationSeconds": 5.3619979,
+      "childSeconds": 180.2558178,
+      "publicationSeconds": 0.8522721999999998,
+      "startupToolSeconds": 0.30124819999999997,
+      "VerifiedBytes": 0,
+      "ReusedBytes": 0
+    },
+    "workers": 278
+  },
+  "compositionParity": {
+    "packageFiles": 11325,
+    "bytes": 1033633600,
+    "allMatchPreviousPublishedBytes": true
+  },
+  "rawParity": {
+    "resources": 275,
+    "references": 99,
+    "byteIdenticalReferences": 95
+  },
+  "independent": {
+    "seconds": 15.227872506999997,
+    "assemblyActions": 278,
+    "assemblyCacheHits": 278,
+    "matchingPublishedFiles": 4708,
+    "producerRemoved": true,
+    "composedPackageFiles": 11325,
+    "composedPackageBytes": 1033633600
+  },
+  "fixtures": {
+    "profile/fixtures/acceptance/report.json": 21,
+    "profile/fixtures/acceptance/package-report.json": 14,
+    "profile/fixtures/acceptance/analyzer-report.json": 8,
+    "profile/fixtures/tools/report.json": 10,
+    "profile/fixtures/outputs/report.json": 9,
+    "sdkPackages": 5
+  },
+  "alternatingComparison": {
+    "summary": {
+      "baseline": {
+        "seconds": [
+          15.574838298999993,
+          15.283719423000008,
+          15.091135799
+        ],
+        "medianSeconds": 15.283719423000008
+      },
+      "final": {
+        "seconds": [
+          11.51785975499999,
+          11.075230629999993,
+          11.392145172
+        ],
+        "medianSeconds": 11.392145172
+      }
+    },
+    "runs": {
+      "baseline-0.json": {
+        "seconds": 15.574838298999993,
+        "runners": {
+          "total": 1293,
+          "remote cache hit": 578,
+          "internal": 715
+        },
+        "timing": {
+          "cpuTimeInMs": "44240",
+          "wallTimeInMs": "15099",
+          "analysisPhaseTimeInMs": "1761",
+          "executionPhaseTimeInMs": "12426",
+          "actionsExecutionStartInMs": "2647",
+          "criticalPathTime": "1.023583668s"
+        },
+        "artifacts": {
+          "sourceArtifactsRead": {
+            "sizeInBytes": "1184598120",
+            "count": 12494
+          },
+          "outputArtifactsSeen": {
+            "sizeInBytes": "3969853543",
+            "count": 30340
+          },
+          "outputArtifactsFromActionCache": {},
+          "topLevelArtifacts": {
+            "sizeInBytes": "1892947966",
+            "count": 20238
+          }
+        },
+        "network": {
+          "systemNetworkStats": {
+            "bytesSent": "13005342",
+            "bytesRecv": "1837868953",
+            "packetsSent": "96676",
+            "packetsRecv": "227392",
+            "peakBytesSentPerSec": "2735726",
+            "peakBytesRecvPerSec": "462794124",
+            "peakPacketsSentPerSec": "16447",
+            "peakPacketsRecvPerSec": "48955"
+          }
+        },
+        "aggregateTaskSeconds": {
+          "": 0.0,
+          "build phase marker": 0.444,
+          "general information": 92.1412230000002,
+          "gc notification": 0.3610000000000002,
+          "skyframe evaluator": 14.805101,
+          "bazel module processing": 0.6734679999999998,
+          "Fetching repository": 0.22423600000000005,
+          "package creation": 0.504211,
+          "Starlark user function call": 0.524165,
+          "Starlark thread context": 0.244312,
+          "complete action execution": 2.5767870000000004,
+          "action processing": 21.10575399999997,
+          "Starlark builtin function call": 0.069867,
+          "Conflict checking": 0.037148999999999995,
+          "VFS md5": 0.8155070000000002,
+          "remote action cache check": 3.2471189999999996,
+          "remote output download": 8.562425000000003,
+          "critical path component": 1.02358
+        },
+        "aggregateOperations": {
+          "Action.execute": 17.133308000000007,
+          "ParallelEvaluator.eval": 14.807163000000001,
+          "buildTargets": 14.725357,
+          "runAnalysisAndExecutionPhase": 14.308045,
+          "skyframeExecutor.evaluateBuildDriverKeys": 14.198768,
+          "Remote.download": 8.238622999999993,
+          "MerkleTreeComputer.buildForSpawn": 3.3603709999999993,
+          "checkOutputs": 2.117206999999999,
+          "postprocessing.run": 1.1902510000000004,
+          "Remote.parseActionResultMetadata": 0.9366869999999997,
+          "action.prepare": 0.4529230000000002,
+          "evaluateTargetPatterns": 0.352438,
+          "createConfigurations": 0.089628,
+          "BuildDriverFunction.checkActionConflicts": 0.037268,
+          "handleDiffs": 0.021021,
+          "skyframeExecutor.collectActionLookupValuesInBuild": 0.014203,
+          "prepareForExecution": 0.010898,
+          "RemoteModule.beforeCommand": 0.010337,
+          "BazelBuildEventServiceModule.beforeCommand": 0.010001,
+          "BuildStartingEvent": 0.009801
+        }
+      },
+      "final-0.json": {
+        "seconds": 11.51785975499999,
+        "runners": {
+          "total": 1293,
+          "remote cache hit": 578,
+          "internal": 715
+        },
+        "timing": {
+          "cpuTimeInMs": "40090",
+          "wallTimeInMs": "11026",
+          "analysisPhaseTimeInMs": "1839",
+          "executionPhaseTimeInMs": "8212",
+          "actionsExecutionStartInMs": "2791",
+          "criticalPathTime": "2.979128044s"
+        },
+        "artifacts": {
+          "sourceArtifactsRead": {
+            "sizeInBytes": "1184604144",
+            "count": 12494
+          },
+          "outputArtifactsSeen": {
+            "sizeInBytes": "2939270734",
+            "count": 19293
+          },
+          "outputArtifactsFromActionCache": {},
+          "topLevelArtifacts": {
+            "sizeInBytes": "2416656589",
+            "count": 17208
+          }
+        },
+        "network": {
+          "systemNetworkStats": {
+            "bytesSent": "8675862",
+            "bytesRecv": "1366356465",
+            "packetsSent": "67374",
+            "packetsRecv": "135858",
+            "peakBytesSentPerSec": "2281284",
+            "peakBytesRecvPerSec": "610127525",
+            "peakPacketsSentPerSec": "17554",
+            "peakPacketsRecvPerSec": "39547"
+          }
+        },
+        "aggregateTaskSeconds": {
+          "": 0.0,
+          "build phase marker": 0.433,
+          "general information": 361.6361809999967,
+          "skyframe evaluator": 10.684326,
+          "bazel module processing": 0.742777,
+          "Fetching repository": 0.21605800000000006,
+          "gc notification": 0.30200000000000016,
+          "package creation": 0.5320080000000001,
+          "Starlark user function call": 0.6042959999999999,
+          "Starlark thread context": 0.252067,
+          "complete action execution": 9.494580000000003,
+          "action processing": 213.73319500000025,
+          "Starlark builtin function call": 0.185475,
+          "Conflict checking": 0.030324999999999998,
+          "VFS md5": 10.391473000000003,
+          "action dependency checking": 0.056945,
+          "Remote execution setup": 3.865020000000001,
+          "remote action cache check": 68.25896399999998,
+          "remote output download": 117.50565099999983,
+          "critical path component": 2.979125
+        },
+        "aggregateOperations": {
+          "Action.execute": 199.90474199999997,
+          "Remote.download": 70.33147399999999,
+          "Remote.parseActionResultMetadata": 33.30685499999995,
+          "ParallelEvaluator.eval": 10.697035999999999,
+          "buildTargets": 10.640432,
+          "runAnalysisAndExecutionPhase": 10.195279,
+          "skyframeExecutor.evaluateBuildDriverKeys": 10.050362,
+          "MerkleTreeComputer.buildForSpawn": 5.823509,
+          "checkOutputs": 5.558199000000003,
+          "action.prepare": 2.6507179999999946,
+          "postprocessing.run": 1.7137459999999998,
+          "evaluateTargetPatterns": 0.362214,
+          "createConfigurations": 0.10969,
+          "outputService.finalizeAction": 0.04953000000000012,
+          "BuildDriverFunction.checkActionConflicts": 0.030486,
+          "skyframeExecutor.collectActionLookupValuesInBuild": 0.02936,
+          "handleDiffs": 0.014553,
+          "prepareForExecution": 0.013259,
+          "RemoteModule.beforeCommand": 0.010471,
+          "BazelBuildEventServiceModule.beforeCommand": 0.010454
+        }
+      },
+      "baseline-1.json": {
+        "seconds": 15.283719423000008,
+        "runners": {
+          "total": 1293,
+          "remote cache hit": 578,
+          "internal": 715
+        },
+        "timing": {
+          "cpuTimeInMs": "41830",
+          "wallTimeInMs": "14809",
+          "analysisPhaseTimeInMs": "1772",
+          "executionPhaseTimeInMs": "12046",
+          "actionsExecutionStartInMs": "2727",
+          "criticalPathTime": "1.017875291s"
+        },
+        "artifacts": {
+          "sourceArtifactsRead": {
+            "sizeInBytes": "1184598120",
+            "count": 12494
+          },
+          "outputArtifactsSeen": {
+            "sizeInBytes": "3969853543",
+            "count": 30340
+          },
+          "outputArtifactsFromActionCache": {},
+          "topLevelArtifacts": {
+            "sizeInBytes": "1892947966",
+            "count": 20238
+          }
+        },
+        "network": {
+          "systemNetworkStats": {
+            "bytesSent": "12869581",
+            "bytesRecv": "1830045411",
+            "packetsSent": "95605",
+            "packetsRecv": "220809",
+            "peakBytesSentPerSec": "2460885",
+            "peakBytesRecvPerSec": "452850325",
+            "peakPacketsSentPerSec": "15420",
+            "peakPacketsRecvPerSec": "44585"
+          }
+        },
+        "aggregateTaskSeconds": {
+          "": 0.0,
+          "build phase marker": 0.432,
+          "general information": 90.6006380000001,
+          "skyframe evaluator": 14.472715,
+          "bazel module processing": 0.7319219999999999,
+          "Fetching repository": 0.18447200000000008,
+          "gc notification": 0.3190000000000002,
+          "package creation": 0.5250739999999999,
+          "Starlark user function call": 0.585815,
+          "Starlark thread context": 0.312924,
+          "complete action execution": 2.2915469999999987,
+          "action processing": 20.73598,
+          "Starlark builtin function call": 0.23003400000000002,
+          "Conflict checking": 0.043761999999999995,
+          "VFS md5": 0.5476270000000001,
+          "remote action cache check": 2.9038979999999994,
+          "remote output download": 8.847120000000004,
+          "critical path component": 1.017867
+        },
+        "aggregateOperations": {
+          "Action.execute": 17.06465499999999,
+          "ParallelEvaluator.eval": 14.474988,
+          "buildTargets": 14.396968,
+          "runAnalysisAndExecutionPhase": 13.964212,
+          "skyframeExecutor.evaluateBuildDriverKeys": 13.831105,
+          "Remote.download": 8.196274999999996,
+          "MerkleTreeComputer.buildForSpawn": 3.365426999999998,
+          "checkOutputs": 1.8730670000000003,
+          "postprocessing.run": 1.1602849999999993,
+          "Remote.parseActionResultMetadata": 1.0103949999999993,
+          "action.prepare": 0.5397199999999996,
+          "evaluateTargetPatterns": 0.364076,
+          "createConfigurations": 0.109356,
+          "BuildDriverFunction.checkActionConflicts": 0.043988,
+          "skyframeExecutor.collectActionLookupValuesInBuild": 0.020563,
+          "handleDiffs": 0.017695,
+          "prepareForExecution": 0.014224,
+          "BuildStartingEvent": 0.011726,
+          "BazelBuildEventServiceModule.beforeCommand": 0.011597,
+          "RemoteModule.beforeCommand": 0.010851
+        }
+      },
+      "final-1.json": {
+        "seconds": 11.075230629999993,
+        "runners": {
+          "total": 1293,
+          "remote cache hit": 578,
+          "internal": 715
+        },
+        "timing": {
+          "cpuTimeInMs": "38570",
+          "wallTimeInMs": "10594",
+          "analysisPhaseTimeInMs": "1869",
+          "executionPhaseTimeInMs": "7754",
+          "actionsExecutionStartInMs": "2814",
+          "criticalPathTime": "3.479562792s"
+        },
+        "artifacts": {
+          "sourceArtifactsRead": {
+            "sizeInBytes": "1184604144",
+            "count": 12494
+          },
+          "outputArtifactsSeen": {
+            "sizeInBytes": "2939270734",
+            "count": 19293
+          },
+          "outputArtifactsFromActionCache": {},
+          "topLevelArtifacts": {
+            "sizeInBytes": "2416656589",
+            "count": 17208
+          }
+        },
+        "network": {
+          "systemNetworkStats": {
+            "bytesSent": "8251195",
+            "bytesRecv": "1349789000",
+            "packetsSent": "64227",
+            "packetsRecv": "128874",
+            "peakBytesSentPerSec": "2048373",
+            "peakBytesRecvPerSec": "476703083",
+            "peakPacketsSentPerSec": "16357",
+            "peakPacketsRecvPerSec": "31523"
+          }
+        },
+        "aggregateTaskSeconds": {
+          "": 0.0,
+          "build phase marker": 0.429,
+          "general information": 346.5711659999982,
+          "skyframe evaluator": 10.266228,
+          "bazel module processing": 0.7730619999999998,
+          "Fetching repository": 0.2133900000000001,
+          "gc notification": 0.29300000000000015,
+          "package creation": 0.44289300000000004,
+          "Starlark user function call": 0.625947,
+          "Starlark thread context": 0.29649,
+          "complete action execution": 21.821261000000057,
+          "action processing": 204.87748900000003,
+          "Starlark builtin function call": 0.138635,
+          "Conflict checking": 0.037947,
+          "VFS md5": 5.575523000000001,
+          "action dependency checking": 0.05094,
+          "remote action cache check": 67.42302800000004,
+          "remote output download": 100.60908399999998,
+          "Remote execution setup": 1.9240840000000006,
+          "critical path component": 3.479558
+        },
+        "aggregateOperations": {
+          "Action.execute": 180.35838099999998,
+          "Remote.download": 70.65871999999985,
+          "Remote.parseActionResultMetadata": 27.743098999999983,
+          "checkOutputs": 18.650231000000005,
+          "ParallelEvaluator.eval": 10.268409,
+          "buildTargets": 10.193572,
+          "runAnalysisAndExecutionPhase": 9.779957,
+          "skyframeExecutor.evaluateBuildDriverKeys": 9.644945,
+          "MerkleTreeComputer.buildForSpawn": 5.567270999999997,
+          "postprocessing.run": 1.6421239999999993,
+          "action.prepare": 1.359493,
+          "evaluateTargetPatterns": 0.349167,
+          "createConfigurations": 0.109876,
+          "BuildDriverFunction.checkActionConflicts": 0.038339,
+          "skyframeExecutor.collectActionLookupValuesInBuild": 0.024154,
+          "prepareForExecution": 0.015293,
+          "handleDiffs": 0.014747,
+          "RemoteModule.beforeCommand": 0.012567,
+          "BuildStartingEvent": 0.010917,
+          "BazelBuildEventServiceModule.beforeCommand": 0.009992
+        }
+      },
+      "baseline-2.json": {
+        "seconds": 15.091135799,
+        "runners": {
+          "total": 1293,
+          "remote cache hit": 578,
+          "internal": 715
+        },
+        "timing": {
+          "cpuTimeInMs": "43960",
+          "wallTimeInMs": "14602",
+          "analysisPhaseTimeInMs": "1818",
+          "executionPhaseTimeInMs": "11751",
+          "actionsExecutionStartInMs": "2824",
+          "criticalPathTime": "0.679075997s"
+        },
+        "artifacts": {
+          "sourceArtifactsRead": {
+            "sizeInBytes": "1184598120",
+            "count": 12494
+          },
+          "outputArtifactsSeen": {
+            "sizeInBytes": "3969853543",
+            "count": 30340
+          },
+          "outputArtifactsFromActionCache": {},
+          "topLevelArtifacts": {
+            "sizeInBytes": "1892947966",
+            "count": 20238
+          }
+        },
+        "network": {
+          "systemNetworkStats": {
+            "bytesSent": "12896784",
+            "bytesRecv": "1834097136",
+            "packetsSent": "95513",
+            "packetsRecv": "222009",
+            "peakBytesSentPerSec": "2421560",
+            "peakBytesRecvPerSec": "453476406",
+            "peakPacketsSentPerSec": "16301",
+            "peakPacketsRecvPerSec": "41973"
+          }
+        },
+        "aggregateTaskSeconds": {
+          "": 0.0,
+          "build phase marker": 0.444,
+          "general information": 88.84566199999999,
+          "skyframe evaluator": 14.294211,
+          "bazel module processing": 0.7341560000000006,
+          "Fetching repository": 0.20030300000000004,
+          "gc notification": 0.3420000000000002,
+          "package creation": 0.5547810000000001,
+          "Starlark user function call": 0.445704,
+          "Starlark thread context": 0.169812,
+          "complete action execution": 2.4392800000000014,
+          "action processing": 20.253504,
+          "Starlark builtin function call": 0.114176,
+          "Conflict checking": 0.045179,
+          "VFS md5": 0.931081,
+          "remote action cache check": 2.653543000000001,
+          "remote output download": 8.497444,
+          "critical path component": 0.6790680000000001
+        },
+        "aggregateOperations": {
+          "Action.execute": 16.520608000000006,
+          "ParallelEvaluator.eval": 14.296146,
+          "buildTargets": 14.205108,
+          "runAnalysisAndExecutionPhase": 13.724282,
+          "skyframeExecutor.evaluateBuildDriverKeys": 13.591603,
+          "Remote.download": 8.015441000000003,
+          "MerkleTreeComputer.buildForSpawn": 3.4121579999999967,
+          "checkOutputs": 2.043904,
+          "Remote.parseActionResultMetadata": 1.1209410000000002,
+          "postprocessing.run": 1.0413309999999998,
+          "evaluateTargetPatterns": 0.417572,
+          "createConfigurations": 0.106647,
+          "action.prepare": 0.10162000000000002,
+          "BuildDriverFunction.checkActionConflicts": 0.045314,
+          "skyframeExecutor.collectActionLookupValuesInBuild": 0.024681,
+          "prepareForExecution": 0.016365,
+          "handleDiffs": 0.013949,
+          "BazelBuildEventServiceModule.beforeCommand": 0.012101,
+          "BuildStartingEvent": 0.011315,
+          "RemoteModule.beforeCommand": 0.010519
+        }
+      },
+      "final-2.json": {
+        "seconds": 11.392145172,
+        "runners": {
+          "total": 1293,
+          "remote cache hit": 578,
+          "internal": 715
+        },
+        "timing": {
+          "cpuTimeInMs": "39900",
+          "wallTimeInMs": "10912",
+          "analysisPhaseTimeInMs": "1819",
+          "executionPhaseTimeInMs": "8115",
+          "actionsExecutionStartInMs": "2770",
+          "criticalPathTime": "3.139695127s"
+        },
+        "artifacts": {
+          "sourceArtifactsRead": {
+            "sizeInBytes": "1184604144",
+            "count": 12494
+          },
+          "outputArtifactsSeen": {
+            "sizeInBytes": "2939270734",
+            "count": 19293
+          },
+          "outputArtifactsFromActionCache": {},
+          "topLevelArtifacts": {
+            "sizeInBytes": "2416656589",
+            "count": 17208
+          }
+        },
+        "network": {
+          "systemNetworkStats": {
+            "bytesSent": "8612370",
+            "bytesRecv": "1365952070",
+            "packetsSent": "66456",
+            "packetsRecv": "136233",
+            "peakBytesSentPerSec": "2136112",
+            "peakBytesRecvPerSec": "570185314",
+            "peakPacketsSentPerSec": "17014",
+            "peakPacketsRecvPerSec": "33042"
+          }
+        },
+        "aggregateTaskSeconds": {
+          "": 0.0,
+          "build phase marker": 0.442,
+          "general information": 365.5613589999969,
+          "skyframe evaluator": 10.591714000000001,
+          "bazel module processing": 0.644988,
+          "Fetching repository": 0.19066500000000003,
+          "gc notification": 0.3190000000000002,
+          "package creation": 0.39417399999999997,
+          "Starlark user function call": 0.36501399999999995,
+          "Starlark thread context": 0.146289,
+          "complete action execution": 14.871977000000014,
+          "action processing": 218.84044400000013,
+          "Starlark builtin function call": 0.079164,
+          "Conflict checking": 0.035211,
+          "VFS md5": 7.254477000000001,
+          "action dependency checking": 0.036696,
+          "Remote execution setup": 1.906447,
+          "remote action cache check": 68.28526500000004,
+          "remote output download": 119.52165600000002,
+          "critical path component": 3.139692
+        },
+        "aggregateOperations": {
+          "Action.execute": 199.77597000000023,
+          "Remote.download": 70.03969500000008,
+          "Remote.parseActionResultMetadata": 37.99891899999998,
+          "ParallelEvaluator.eval": 10.593751000000001,
+          "buildTargets": 10.500365,
+          "runAnalysisAndExecutionPhase": 10.082742,
+          "skyframeExecutor.evaluateBuildDriverKeys": 9.948741,
+          "checkOutputs": 6.2105,
+          "MerkleTreeComputer.buildForSpawn": 5.645208000000003,
+          "action.prepare": 2.5524859999999974,
+          "postprocessing.run": 1.474456999999999,
+          "evaluateTargetPatterns": 0.351121,
+          "createConfigurations": 0.10971,
+          "outputService.finalizeAction": 0.04941499999999998,
+          "BuildDriverFunction.checkActionConflicts": 0.035382,
+          "prepareForExecution": 0.015019,
+          "skyframeExecutor.collectActionLookupValuesInBuild": 0.014912,
+          "handleDiffs": 0.014518,
+          "BazelBuildEventServiceModule.beforeCommand": 0.011466,
+          "BuildStartingEvent": 0.011039
+        }
+      }
+    },
+    "localCpuLimit": 2,
+    "baselineJobs": 2,
+    "finalJobs": 32,
+    "freshOutputBases": true,
+    "warmVmAndRepositoryDownloadCache": true,
+    "sameTraceInstrumentation": true
+  },
+  "finalCold32": {
+    "seconds": 129.909579727,
+    "runners": {
+      "total": 1293,
+      "internal": 715,
+      "linux-sandbox": 300,
+      "worker": 278
+    },
+    "timing": {
+      "cpuTimeInMs": "52920",
+      "wallTimeInMs": "129403",
+      "analysisPhaseTimeInMs": "1829",
+      "executionPhaseTimeInMs": "126535",
+      "actionsExecutionStartInMs": "2823",
+      "criticalPathTime": "91.441041416s"
+    },
+    "artifacts": {
+      "sourceArtifactsRead": {
+        "sizeInBytes": "1184604144",
+        "count": 12494
+      },
+      "outputArtifactsSeen": {
+        "sizeInBytes": "2939266511",
+        "count": 19293
+      },
+      "outputArtifactsFromActionCache": {},
+      "topLevelArtifacts": {
+        "sizeInBytes": "2416656913",
+        "count": 17208
+      }
+    },
+    "network": {
+      "systemNetworkStats": {
+        "bytesSent": "1982027497",
+        "bytesRecv": "5844695",
+        "packetsSent": "101806",
+        "packetsRecv": "71985",
+        "peakBytesSentPerSec": "281561273",
+        "peakBytesRecvPerSec": "531572",
+        "peakPacketsSentPerSec": "10055",
+        "peakPacketsRecvPerSec": "7635"
+      }
+    },
+    "aggregateTaskSeconds": {
+      "": 0.0,
+      "build phase marker": 0.442,
+      "general information": 5081.523613000043,
+      "skyframe evaluator": 129.050079,
+      "bazel module processing": 0.7114780000000002,
+      "Fetching repository": 0.1693250000000001,
+      "gc notification": 1.1280000000000003,
+      "package creation": 0.5078539999999998,
+      "Starlark user function call": 0.671291,
+      "Starlark thread context": 0.38618399999999997,
+      "complete action execution": 5.797428000000006,
+      "action processing": 2812.258067,
+      "Starlark builtin function call": 0.187759,
+      "Conflict checking": 0.046186000000000005,
+      "VFS md5": 9.827371000000003,
+      "action dependency checking": 0.108118,
+      "Remote execution setup": 1.532751,
+      "action count (local)": 250.126222,
+      "action resource lock": 2539.2582460000003,
+      "Remote execution upload time": 465.7440869999996,
+      "setting up inputs for worker": 6.033819999999997,
+      "waiting for response from worker": 195.59216999999992,
+      "copying outputs from worker": 0.004118999999999998,
+      "critical path component": 91.441033
+    },
+    "aggregateOperations": {
+      "Action.execute": 2803.3214480000006,
+      "ParallelEvaluator.eval": 129.052413,
+      "buildTargets": 128.969972,
+      "runAnalysisAndExecutionPhase": 128.505639,
+      "skyframeExecutor.evaluateBuildDriverKeys": 128.36698,
+      "subprocess.run": 45.91950200000004,
+      "MSBuildAssembly worker MSBuildAssembly upstream/Microsoft.AspNetCore.Identity_net10.0.reference/Microsoft.AspNetCore.Identity.dll": 12.95034,
+      "MSBuildAssembly worker MSBuildAssembly upstream/Microsoft.AspNetCore.SignalR.Specification.Tests_net10.0.reference/Microsoft.AspNetCore.SignalR.Specification.Tests.dll": 12.305081,
+      "MSBuildAssembly worker MSBuildAssembly upstream/Microsoft.AspNetCore.Server.IIS_net10.0.reference/Microsoft.AspNetCore.Server.IIS.dll": 12.102657,
+      "MSBuildAssembly worker MSBuildAssembly upstream/Microsoft.AspNetCore.Authentication.Twitter_net10.0.reference/Microsoft.AspNetCore.Authentication.Twitter.dll": 12.011321,
+      "MSBuildAssembly worker MSBuildAssembly upstream/Microsoft.AspNetCore.Authentication.MicrosoftAccount_net10.0.reference/Microsoft.AspNetCore.Authentication.MicrosoftAccount.dll": 11.93958,
+      "MSBuildAssembly worker MSBuildAssembly upstream/Microsoft.AspNetCore.SignalR.Tests.Utils_net10.0.reference/Microsoft.AspNetCore.SignalR.Tests.Utils.dll": 11.867745,
+      "MSBuildAssembly worker MSBuildAssembly upstream/Microsoft.AspNetCore.RequestDecompression.Tests_net10.0.reference/Microsoft.AspNetCore.RequestDecompression.Tests.dll": 11.729033,
+      "MSBuildAssembly worker MSBuildAssembly upstream/Microsoft.AspNetCore.SignalR_net10.0.reference/Microsoft.AspNetCore.SignalR.dll": 11.678151,
+      "MSBuildAssembly worker MSBuildAssembly upstream/Microsoft.AspNetCore.Components.Endpoints_net10.0.reference/Microsoft.AspNetCore.Components.Endpoints.dll": 11.661984,
+      "MSBuildAssembly worker MSBuildAssembly upstream/Microsoft.AspNetCore.Session.Tests_net10.0.reference/Microsoft.AspNetCore.Session.Tests.dll": 11.634284,
+      "MSBuildAssembly worker MSBuildAssembly upstream/Microsoft.AspNetCore.Server.Kestrel.Transport.Quic.Tests_net10.0.reference/Microsoft.AspNetCore.Server.Kestrel.Transport.Quic.Tests.dll": 11.607062,
+      "MSBuildAssembly worker MSBuildAssembly upstream/Microsoft.AspNetCore.Authentication.OpenIdConnect_net10.0.reference/Microsoft.AspNetCore.Authentication.OpenIdConnect.dll": 11.507058,
+      "MSBuildAssembly worker MSBuildAssembly upstream/Microsoft.AspNetCore.Mvc.DataAnnotations_net10.0.reference/Microsoft.AspNetCore.Mvc.DataAnnotations.dll": 11.461165,
+      "MSBuildAssembly worker MSBuildAssembly upstream/Microsoft.AspNetCore.Mvc.Testing_net10.0.reference/Microsoft.AspNetCore.Mvc.Testing.dll": 11.424294
+    }
+  },
+  "baselineColdControlled": {
+    "seconds": 141.241482523,
+    "runners": {
+      "total": 1293,
+      "internal": 715,
+      "linux-sandbox": 300,
+      "worker": 278
+    },
+    "timing": {
+      "cpuTimeInMs": "60370",
+      "wallTimeInMs": "140636",
+      "analysisPhaseTimeInMs": "1857",
+      "executionPhaseTimeInMs": "137756",
+      "actionsExecutionStartInMs": "2833",
+      "criticalPathTime": "16.567458881s"
+    },
+    "artifacts": {
+      "sourceArtifactsRead": {
+        "sizeInBytes": "1184598120",
+        "count": 12494
+      },
+      "outputArtifactsSeen": {
+        "sizeInBytes": "3969854812",
+        "count": 30340
+      },
+      "outputArtifactsFromActionCache": {},
+      "topLevelArtifacts": {
+        "sizeInBytes": "1892949002",
+        "count": 20238
+      }
+    },
+    "network": {
+      "systemNetworkStats": {
+        "bytesSent": "1982530444",
+        "bytesRecv": "5630422",
+        "packetsSent": "99504",
+        "packetsRecv": "68995",
+        "peakBytesSentPerSec": "1130364460",
+        "peakBytesRecvPerSec": "1618058",
+        "peakPacketsSentPerSec": "30441",
+        "peakPacketsRecvPerSec": "22153"
+      }
+    },
+    "aggregateTaskSeconds": {
+      "": 0.0,
+      "build phase marker": 0.535,
+      "general information": 1097.7558529999953,
+      "skyframe evaluator": 140.272346,
+      "bazel module processing": 1.2016840000000002,
+      "Fetching repository": 0.177548,
+      "gc notification": 0.7660000000000006,
+      "package creation": 0.5705560000000001,
+      "Starlark user function call": 0.5820439999999999,
+      "Starlark thread context": 0.257167,
+      "complete action execution": 4.103778999999998,
+      "action processing": 268.8504849999998,
+      "VFS md5": 3.6734169999999993,
+      "Starlark builtin function call": 0.190505,
+      "Conflict checking": 0.03115,
+      "action count (local)": 251.95698999999988,
+      "Remote execution upload time": 301.67929500000037,
+      "setting up inputs for worker": 4.271297999999997,
+      "waiting for response from worker": 205.30462600000007,
+      "copying outputs from worker": 0.0039590000000000024,
+      "critical path component": 16.56745
+    },
+    "aggregateOperations": {
+      "Action.execute": 259.99070900000027,
+      "ParallelEvaluator.eval": 140.27477199999996,
+      "buildTargets": 140.200453,
+      "runAnalysisAndExecutionPhase": 139.760551,
+      "skyframeExecutor.evaluateBuildDriverKeys": 139.620462,
+      "subprocess.run": 34.04382799999998,
+      "sandbox.createFileSystem": 7.544801999999995,
+      "sandbox.filterInputsAndDirsToCreate": 5.673633999999998,
+      "MSBuildAssembly worker MSBuildAssembly upstream/Microsoft.AspNetCore.Http.RequestDelegateGenerator_netstandard2.0.reference/Microsoft.AspNetCore.Http.RequestDelegateGenerator.dll": 4.798045,
+      "MerkleTreeComputer.buildForSpawn": 4.429599000000001,
+      "MSBuildAssembly worker MSBuildAssembly upstream/Microsoft.AspNetCore.Components_net10.0.reference/Microsoft.AspNetCore.Components.dll": 3.480233,
+      "MSBuildAssembly worker MSBuildAssembly upstream/Microsoft.AspNetCore.Mvc.Core.Test_net10.0.reference/Microsoft.AspNetCore.Mvc.Core.Test.dll": 3.350615,
+      "checkOutputs": 3.279275999999999,
+      "MSBuildAssembly worker MSBuildAssembly upstream/Microsoft.AspNetCore.Server.Kestrel.Core_net10.0.reference/Microsoft.AspNetCore.Server.Kestrel.Core.dll": 3.159792,
+      "MSBuildAssembly worker MSBuildAssembly upstream/Microsoft.AspNetCore.DataProtection.Abstractions_netstandard2.0.reference/Microsoft.AspNetCore.DataProtection.Abstractions.dll": 3.089704,
+      "MSBuildAssembly worker MSBuildAssembly upstream/Microsoft.AspNetCore.Server.HttpSys_net10.0.reference/Microsoft.AspNetCore.Server.HttpSys.dll": 2.896326,
+      "build upload manifest": 2.892409999999998,
+      "MSBuildAssembly worker MSBuildAssembly upstream/Microsoft.AspNetCore.Server.IIS_net10.0.reference/Microsoft.AspNetCore.Server.IIS.dll": 2.679952,
+      "MSBuildAssembly worker MSBuildAssembly upstream/Microsoft.AspNetCore.Http.Extensions.Tests_net10.0.reference/Microsoft.AspNetCore.Http.Extensions.Tests.dll": 2.618116,
+      "Worker metrics collection": 2.4071789999999984
+    }
+  },
+  "coldReduction": 0.08023069847170927
+}

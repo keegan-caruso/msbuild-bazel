@@ -1,0 +1,9 @@
+load("@rules_msbuild//msbuild:defs.bzl", "msbuild_library")
+
+msbuild_library(
+    name = "Library",
+    srcs = ["Message.cs"],
+    project = "Library.csproj",
+    target_framework = "net10.0",
+    visibility = ["//visibility:public"],
+)

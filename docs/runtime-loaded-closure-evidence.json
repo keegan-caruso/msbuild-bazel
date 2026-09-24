@@ -1,0 +1,366 @@
+{
+  "runtimeCommit": "60629d14374c56f1cb51819049ad1fa529307f8d",
+  "platform": "linux-arm64",
+  "sdk": "10.0.400",
+  "bazel": "9.2.0",
+  "toolchainImage": "sha256:47a9e2fed01824f5470f26e75a2fb74017acc1967c637e7793be028f31a8aeee",
+  "selectedFrameworkNodes": 273,
+  "host": {
+    "sharedManaged": 121,
+    "privateManaged": 1,
+    "nativeProducts": 8
+  },
+  "producer": {
+    "nativeActions": 5,
+    "nativeCacheHits": 5,
+    "assemblyActions": 280,
+    "assemblyCacheHits": 280,
+    "layoutActions": 121,
+    "layoutCacheHits": 121,
+    "outputFiles": 2806,
+    "cachedTestResults": 7
+  },
+  "tests": [
+    {
+      "assembly": "System.Collections.Immutable.Tests",
+      "cases": 22544,
+      "passed": 22544,
+      "skipped": 0,
+      "exactNamesMatch": false,
+      "normalizedNamesAndOutcomesMatch": true,
+      "processEntries": {
+        "vstest.console": 1,
+        "datacollector": 1,
+        "testhost": 1
+      }
+    },
+    {
+      "assembly": "System.Collections.Tests",
+      "cases": 33438,
+      "passed": 33438,
+      "skipped": 0,
+      "exactNamesMatch": false,
+      "normalizedNamesAndOutcomesMatch": true,
+      "processEntries": {
+        "vstest.console": 1,
+        "datacollector": 1,
+        "testhost": 1
+      }
+    },
+    {
+      "assembly": "System.Linq.Tests",
+      "cases": 52186,
+      "passed": 52178,
+      "skipped": 8,
+      "exactNamesMatch": true,
+      "normalizedNamesAndOutcomesMatch": true,
+      "processEntries": {
+        "vstest.console": 1,
+        "datacollector": 1,
+        "testhost": 1
+      }
+    },
+    {
+      "assembly": "System.Net.Sockets.Tests",
+      "cases": 153,
+      "passed": 153,
+      "skipped": 0,
+      "exactNamesMatch": true,
+      "normalizedNamesAndOutcomesMatch": true,
+      "processEntries": {
+        "vstest.console": 1,
+        "datacollector": 1,
+        "testhost": 1
+      }
+    },
+    {
+      "assembly": "System.IO.FileSystem.Tests",
+      "cases": 8716,
+      "passed": 8662,
+      "skipped": 54,
+      "exactNamesMatch": false,
+      "normalizedNamesAndOutcomesMatch": true,
+      "processEntries": {
+        "vstest.console": 1,
+        "datacollector": 1,
+        "testhost": 1,
+        "Microsoft.DotNet.RemoteExecutor": 63
+      }
+    },
+    {
+      "assembly": "System.Threading.Tasks.Tests",
+      "cases": 811,
+      "passed": 809,
+      "skipped": 2,
+      "exactNamesMatch": false,
+      "normalizedNamesAndOutcomesMatch": true,
+      "processEntries": {
+        "vstest.console": 1,
+        "datacollector": 1,
+        "testhost": 1,
+        "Microsoft.DotNet.RemoteExecutor": 2
+      }
+    },
+    {
+      "assembly": "System.Threading.Tests",
+      "cases": 591,
+      "passed": 591,
+      "skipped": 0,
+      "exactNamesMatch": false,
+      "normalizedNamesAndOutcomesMatch": true,
+      "processEntries": {
+        "vstest.console": 1,
+        "datacollector": 1,
+        "testhost": 1,
+        "Microsoft.DotNet.RemoteExecutor": 7
+      }
+    }
+  ],
+  "observedProcesses": 93,
+  "observedSourceBuiltComponents": [
+    "Microsoft.CSharp.dll",
+    "Microsoft.Win32.Primitives.dll",
+    "Microsoft.Win32.Registry.dll",
+    "System.Collections.Concurrent.dll",
+    "System.Collections.Immutable.dll",
+    "System.Collections.NonGeneric.dll",
+    "System.Collections.Specialized.dll",
+    "System.Collections.dll",
+    "System.ComponentModel.EventBasedAsync.dll",
+    "System.ComponentModel.Primitives.dll",
+    "System.ComponentModel.TypeConverter.dll",
+    "System.ComponentModel.dll",
+    "System.Console.dll",
+    "System.Core.dll",
+    "System.Data.Common.dll",
+    "System.Diagnostics.Debug.dll",
+    "System.Diagnostics.DiagnosticSource.dll",
+    "System.Diagnostics.Process.dll",
+    "System.Diagnostics.StackTrace.dll",
+    "System.Diagnostics.TraceSource.dll",
+    "System.Diagnostics.Tracing.dll",
+    "System.Globalization.dll",
+    "System.IO.Compression.dll",
+    "System.IO.FileSystem.DriveInfo.dll",
+    "System.IO.FileSystem.dll",
+    "System.IO.MemoryMappedFiles.dll",
+    "System.IO.Pipelines.dll",
+    "System.IO.Pipes.dll",
+    "System.IO.dll",
+    "System.Linq.AsyncEnumerable.dll",
+    "System.Linq.Expressions.dll",
+    "System.Linq.Queryable.dll",
+    "System.Linq.dll",
+    "System.Memory.dll",
+    "System.Net.Http.dll",
+    "System.Net.NameResolution.dll",
+    "System.Net.Primitives.dll",
+    "System.Net.Sockets.dll",
+    "System.Numerics.Vectors.dll",
+    "System.ObjectModel.dll",
+    "System.Private.CoreLib.dll",
+    "System.Private.DataContractSerialization.dll",
+    "System.Private.Uri.dll",
+    "System.Private.Xml.Linq.dll",
+    "System.Private.Xml.dll",
+    "System.Reflection.Emit.ILGeneration.dll",
+    "System.Reflection.Emit.Lightweight.dll",
+    "System.Reflection.Emit.dll",
+    "System.Reflection.Extensions.dll",
+    "System.Reflection.Metadata.dll",
+    "System.Reflection.Primitives.dll",
+    "System.Reflection.dll",
+    "System.Resources.ResourceManager.dll",
+    "System.Runtime.Extensions.dll",
+    "System.Runtime.InteropServices.RuntimeInformation.dll",
+    "System.Runtime.InteropServices.dll",
+    "System.Runtime.Intrinsics.dll",
+    "System.Runtime.Loader.dll",
+    "System.Runtime.Numerics.dll",
+    "System.Runtime.Serialization.Formatters.dll",
+    "System.Runtime.Serialization.Primitives.dll",
+    "System.Runtime.Serialization.Xml.dll",
+    "System.Runtime.dll",
+    "System.Security.Claims.dll",
+    "System.Security.Cryptography.dll",
+    "System.Security.Principal.Windows.dll",
+    "System.Text.Encoding.Extensions.dll",
+    "System.Text.Encoding.dll",
+    "System.Text.Encodings.Web.dll",
+    "System.Text.Json.dll",
+    "System.Text.RegularExpressions.dll",
+    "System.Threading.Tasks.Extensions.dll",
+    "System.Threading.Tasks.Parallel.dll",
+    "System.Threading.Tasks.dll",
+    "System.Threading.Thread.dll",
+    "System.Threading.ThreadPool.dll",
+    "System.Threading.dll",
+    "System.Xml.ReaderWriter.dll",
+    "System.Xml.XDocument.dll",
+    "System.Xml.XPath.dll",
+    "System.Xml.dll",
+    "System.dll",
+    "dotnet",
+    "libSystem.IO.Compression.Native.so",
+    "libSystem.Native.so",
+    "libSystem.Security.Cryptography.Native.OpenSsl.so",
+    "libclrjit.so",
+    "libcoreclr.so",
+    "libhostfxr.so",
+    "libhostpolicy.so",
+    "mscorlib.dll",
+    "netstandard.dll"
+  ],
+  "declaredSourceBuiltButNotObserved": [
+    "System.Diagnostics.Contracts.dll",
+    "System.Diagnostics.FileVersionInfo.dll",
+    "System.Diagnostics.TextWriterTraceListener.dll",
+    "System.Drawing.Primitives.dll",
+    "System.Formats.Asn1.dll",
+    "System.IO.Compression.Brotli.dll",
+    "System.IO.Compression.ZipFile.dll",
+    "System.IO.FileSystem.AccessControl.dll",
+    "System.IO.FileSystem.Watcher.dll",
+    "System.IO.IsolatedStorage.dll",
+    "System.IO.Pipes.AccessControl.dll",
+    "System.Linq.Parallel.dll",
+    "System.Net.HttpListener.dll",
+    "System.Net.Mail.dll",
+    "System.Net.NetworkInformation.dll",
+    "System.Net.Ping.dll",
+    "System.Net.Quic.dll",
+    "System.Net.Requests.dll",
+    "System.Net.Security.dll",
+    "System.Net.WebClient.dll",
+    "System.Net.WebHeaderCollection.dll",
+    "System.Net.WebProxy.dll",
+    "System.Net.WebSockets.Client.dll",
+    "System.Net.WebSockets.dll",
+    "System.Reflection.DispatchProxy.dll",
+    "System.Reflection.TypeExtensions.dll",
+    "System.Resources.Writer.dll",
+    "System.Runtime.CompilerServices.VisualC.dll",
+    "System.Runtime.Serialization.Json.dll",
+    "System.Security.AccessControl.dll",
+    "System.Threading.AccessControl.dll",
+    "System.Threading.Channels.dll",
+    "System.Threading.Overlapped.dll",
+    "System.Transactions.Local.dll",
+    "System.Web.HttpUtility.dll",
+    "System.Xml.XPath.XDocument.dll",
+    "System.Xml.XmlSerializer.dll"
+  ],
+  "installedRuntimeComponents": [],
+  "controls": {
+    "contract": [
+      {
+        "case": "baseline",
+        "exitCode": 0,
+        "expectedMissingMember": null
+      },
+      {
+        "case": "missing-contract-api",
+        "exitCode": 1,
+        "expectedMissingMember": "QualificationMissingMember"
+      },
+      {
+        "case": "restore-contract",
+        "exitCode": 0,
+        "expectedMissingMember": null
+      }
+    ],
+    "managed": [
+      {
+        "case": "noop",
+        "exitCode": 0,
+        "built": [],
+        "testsExecuted": 0
+      },
+      {
+        "case": "wrong-corelib",
+        "exitCode": 3,
+        "built": [],
+        "testsExecuted": 7
+      },
+      {
+        "case": "restore-expectation",
+        "exitCode": 0,
+        "built": [],
+        "testsExecuted": 0
+      },
+      {
+        "case": "implementation-edit",
+        "exitCode": 0,
+        "built": [
+          "//upstream:src_libraries_System.IO.Pipelines_src_System.IO.Pipelines_net10.0"
+        ],
+        "testsExecuted": 7
+      },
+      {
+        "case": "restore-implementation",
+        "exitCode": 0,
+        "built": [],
+        "testsExecuted": 0
+      }
+    ],
+    "native": [
+      {
+        "case": "noop",
+        "exitCode": 0,
+        "built": [],
+        "testsExecuted": 0
+      },
+      {
+        "case": "wrong-corelib",
+        "exitCode": 3,
+        "built": [],
+        "testsExecuted": 7
+      },
+      {
+        "case": "restore-expectation",
+        "exitCode": 0,
+        "built": [],
+        "testsExecuted": 0
+      },
+      {
+        "case": "native-version-edit",
+        "exitCode": 0,
+        "built": [
+          "//native_crypto:runtime"
+        ],
+        "testsExecuted": 7
+      },
+      {
+        "case": "restore-native",
+        "exitCode": 0,
+        "built": [],
+        "testsExecuted": 0
+      }
+    ]
+  },
+  "genericRegressionCases": {
+    "8.8.0": {
+      "configuredRestore": 7,
+      "platformContracts": 21
+    },
+    "9.2.0": {
+      "configuredRestore": 7,
+      "platformContracts": 21
+    }
+  },
+  "independentRecovery": {
+    "nativeActions": 5,
+    "nativeCacheHits": 5,
+    "assemblyActions": 280,
+    "assemblyCacheHits": 280,
+    "layoutActions": 121,
+    "layoutCacheHits": 121,
+    "cachedTests": true,
+    "forcedExecutionPassed": true,
+    "outputFiles": 2806,
+    "outputHashesMatchProducer": true,
+    "producerStoppedBeforeRecovery": true,
+    "observedProcesses": 93,
+    "installedRuntimeComponents": []
+  }
+}

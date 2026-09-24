@@ -1,0 +1,548 @@
+{
+  "sourceCommit": "60629d14374c56f1cb51819049ad1fa529307f8d",
+  "workflow": [
+    {
+      "commands": [
+        {
+          "case": "raw-build",
+          "exitCode": 0
+        },
+        {
+          "case": "raw-test",
+          "exitCode": 0
+        },
+        {
+          "case": "inventory-build",
+          "exitCode": 0
+        },
+        {
+          "case": "inventory",
+          "exitCode": 0
+        },
+        {
+          "case": "declarations",
+          "exitCode": 0
+        },
+        {
+          "case": "smoke-setup",
+          "exitCode": 0
+        },
+        {
+          "case": "bazel-test",
+          "exitCode": 0
+        }
+      ],
+      "bazel": "bazel 8.8.0",
+      "sdk": "10.0.400",
+      "runtime": "10.0.11",
+      "platform": "linux-arm64",
+      "testRunner": "Microsoft.TestPlatform.CLI/17.14.1",
+      "testCount": 514,
+      "testCaseNamesAndOutcomesMatch": true,
+      "usesUpstreamGeneratedSettings": true,
+      "smokeLoadedBazelImplementationSha256": "e77093f95ba5c1022effbd7b55e5ca7caebe80c48058e1b1fa434bccd2559ae2",
+      "sourceUnchanged": true
+    },
+    {
+      "commands": [
+        {
+          "case": "raw-build",
+          "exitCode": 0
+        },
+        {
+          "case": "raw-test",
+          "exitCode": 0
+        },
+        {
+          "case": "inventory-build",
+          "exitCode": 0
+        },
+        {
+          "case": "inventory",
+          "exitCode": 0
+        },
+        {
+          "case": "declarations",
+          "exitCode": 0
+        },
+        {
+          "case": "smoke-setup",
+          "exitCode": 0
+        },
+        {
+          "case": "bazel-test",
+          "exitCode": 0
+        }
+      ],
+      "bazel": "bazel 9.2.0",
+      "sdk": "10.0.400",
+      "runtime": "10.0.11",
+      "platform": "linux-arm64",
+      "testRunner": "Microsoft.TestPlatform.CLI/17.14.1",
+      "testCount": 514,
+      "testCaseNamesAndOutcomesMatch": true,
+      "usesUpstreamGeneratedSettings": true,
+      "smokeLoadedBazelImplementationSha256": "e77093f95ba5c1022effbd7b55e5ca7caebe80c48058e1b1fa434bccd2559ae2",
+      "sourceUnchanged": true
+    }
+  ],
+  "apiAndInvalidation": [
+    {
+      "case": "baseline",
+      "exitCode": 0,
+      "compiled": [],
+      "testsExecuted": []
+    },
+    {
+      "case": "contract-implementation",
+      "exitCode": 0
+    },
+    {
+      "case": "raw-bazel-contract",
+      "exitCode": 0
+    },
+    {
+      "case": "raw-bazel-implementation",
+      "exitCode": 0
+    },
+    {
+      "case": "noop",
+      "exitCode": 0,
+      "compiled": [],
+      "testsExecuted": []
+    },
+    {
+      "case": "body-edit",
+      "exitCode": 0,
+      "compiled": [
+        "//upstream:src_libraries_Microsoft.Extensions.Primitives_src_Microsoft.Extensions.Primitives_net10.0"
+      ],
+      "testsExecuted": [
+        "//smoke:smoke",
+        "//upstream:src_libraries_Microsoft.Extensions.Primitives_tests_Microsoft.Extensions.Primitives.Tests_net10.0"
+      ]
+    },
+    {
+      "case": "body-revert",
+      "exitCode": 0,
+      "compiled": [
+        "//upstream:src_libraries_Microsoft.Extensions.Primitives_src_Microsoft.Extensions.Primitives_net10.0"
+      ],
+      "testsExecuted": [
+        "//smoke:smoke",
+        "//upstream:src_libraries_Microsoft.Extensions.Primitives_tests_Microsoft.Extensions.Primitives.Tests_net10.0"
+      ]
+    },
+    {
+      "case": "contract-edit",
+      "exitCode": 0,
+      "compiled": [
+        "//upstream:src_libraries_Microsoft.Extensions.Primitives_ref_Microsoft.Extensions.Primitives_net10.0",
+        "//upstream:src_libraries_Microsoft.Extensions.Primitives_src_Microsoft.Extensions.Primitives_net10.0",
+        "//smoke:smoke",
+        "//upstream:src_libraries_Microsoft.Extensions.Primitives_tests_Microsoft.Extensions.Primitives.Tests_net10.0"
+      ],
+      "testsExecuted": [
+        "//smoke:smoke",
+        "//upstream:src_libraries_Microsoft.Extensions.Primitives_tests_Microsoft.Extensions.Primitives.Tests_net10.0"
+      ]
+    },
+    {
+      "case": "contract-drift-rejected",
+      "exitCode": 1
+    },
+    {
+      "case": "contract-revert",
+      "exitCode": 0,
+      "compiled": [
+        "//upstream:src_libraries_Microsoft.Extensions.Primitives_ref_Microsoft.Extensions.Primitives_net10.0",
+        "//upstream:src_libraries_Microsoft.Extensions.Primitives_src_Microsoft.Extensions.Primitives_net10.0",
+        "//smoke:smoke",
+        "//upstream:src_libraries_Microsoft.Extensions.Primitives_tests_Microsoft.Extensions.Primitives.Tests_net10.0"
+      ],
+      "testsExecuted": [
+        "//smoke:smoke",
+        "//upstream:src_libraries_Microsoft.Extensions.Primitives_tests_Microsoft.Extensions.Primitives.Tests_net10.0"
+      ]
+    },
+    {
+      "case": "runtime-edit",
+      "exitCode": 0,
+      "compiled": [],
+      "testsExecuted": [
+        "//smoke:smoke",
+        "//upstream:src_libraries_Microsoft.Extensions.Primitives_tests_Microsoft.Extensions.Primitives.Tests_net10.0"
+      ]
+    },
+    {
+      "case": "runtime-revert",
+      "exitCode": 0,
+      "compiled": [],
+      "testsExecuted": [
+        "//smoke:smoke",
+        "//upstream:src_libraries_Microsoft.Extensions.Primitives_tests_Microsoft.Extensions.Primitives.Tests_net10.0"
+      ]
+    },
+    {
+      "case": "shared-test-source",
+      "exitCode": 0,
+      "compiled": [
+        "//upstream:src_libraries_Microsoft.Extensions.Primitives_tests_Microsoft.Extensions.Primitives.Tests_net10.0"
+      ],
+      "testsExecuted": [
+        "//upstream:src_libraries_Microsoft.Extensions.Primitives_tests_Microsoft.Extensions.Primitives.Tests_net10.0"
+      ]
+    },
+    {
+      "case": "shared-test-source-revert",
+      "exitCode": 0,
+      "compiled": [
+        "//upstream:src_libraries_Microsoft.Extensions.Primitives_tests_Microsoft.Extensions.Primitives.Tests_net10.0"
+      ],
+      "testsExecuted": [
+        "//upstream:src_libraries_Microsoft.Extensions.Primitives_tests_Microsoft.Extensions.Primitives.Tests_net10.0"
+      ]
+    },
+    {
+      "case": "linker-task-source",
+      "exitCode": 0,
+      "compiled": [
+        "//upstream:src_tools_illink_src_ILLink.Tasks_ILLink.Tasks_net10.0",
+        "//upstream:src_libraries_Microsoft.Extensions.Primitives_ref_Microsoft.Extensions.Primitives_net10.0",
+        "//upstream:src_libraries_Microsoft.Extensions.Primitives_src_Microsoft.Extensions.Primitives_net10.0"
+      ],
+      "testsExecuted": []
+    },
+    {
+      "case": "linker-task-source-revert",
+      "exitCode": 0,
+      "compiled": [
+        "//upstream:src_tools_illink_src_ILLink.Tasks_ILLink.Tasks_net10.0",
+        "//upstream:src_libraries_Microsoft.Extensions.Primitives_ref_Microsoft.Extensions.Primitives_net10.0",
+        "//upstream:src_libraries_Microsoft.Extensions.Primitives_src_Microsoft.Extensions.Primitives_net10.0"
+      ],
+      "testsExecuted": []
+    }
+  ],
+  "taskHostSynthetic": [
+    {
+      "case": "initial",
+      "exit": 0
+    },
+    {
+      "case": "sdk-root-override",
+      "exit": 1
+    },
+    {
+      "case": "tool-configuration-mismatch",
+      "exit": 1
+    },
+    {
+      "case": "tool-framework-mismatch",
+      "exit": 1
+    },
+    {
+      "case": "configured-tool-recovered",
+      "exit": 0
+    },
+    {
+      "case": "tool-dependency-body-edit",
+      "exit": 0
+    },
+    {
+      "case": "wrong-role",
+      "exit": 1
+    },
+    {
+      "case": "undeclared-tool",
+      "exit": 1
+    },
+    {
+      "case": "reserved-property",
+      "exit": 1
+    },
+    {
+      "case": "missing-entry",
+      "exit": 1
+    },
+    {
+      "case": "unsafe-entry",
+      "exit": 1
+    },
+    {
+      "case": "overridden-binding",
+      "exit": 1
+    },
+    {
+      "case": "recovered",
+      "exit": 0
+    },
+    {
+      "case": "deleted-producer-cache-recovery",
+      "exit": 0
+    }
+  ],
+  "testProtocols": [
+    {
+      "case": "Xunit-pass",
+      "exit": 0,
+      "tests": 4,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 1
+    },
+    {
+      "case": "Xunit-filter",
+      "exit": 0,
+      "tests": 1,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "case": "Xunit-failure",
+      "exit": 3,
+      "tests": 4,
+      "failures": 1,
+      "errors": 0,
+      "skipped": 1
+    },
+    {
+      "case": "Xunit-empty",
+      "exit": 3,
+      "tests": 1,
+      "failures": 0,
+      "errors": 1,
+      "skipped": 0
+    },
+    {
+      "case": "Nunit-pass",
+      "exit": 0,
+      "tests": 4,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 1
+    },
+    {
+      "case": "Nunit-filter",
+      "exit": 0,
+      "tests": 1,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "case": "Nunit-failure",
+      "exit": 3,
+      "tests": 4,
+      "failures": 1,
+      "errors": 0,
+      "skipped": 1
+    },
+    {
+      "case": "Nunit-empty",
+      "exit": 3,
+      "tests": 1,
+      "failures": 0,
+      "errors": 1,
+      "skipped": 0
+    },
+    {
+      "case": "Mstest-pass",
+      "exit": 0,
+      "tests": 4,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 1
+    },
+    {
+      "case": "Mstest-filter",
+      "exit": 0,
+      "tests": 1,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "case": "Mstest-failure",
+      "exit": 3,
+      "tests": 4,
+      "failures": 1,
+      "errors": 0,
+      "skipped": 1
+    },
+    {
+      "case": "Mstest-empty",
+      "exit": 3,
+      "tests": 1,
+      "failures": 0,
+      "errors": 1,
+      "skipped": 0
+    }
+  ],
+  "independentHttpRecovery": {
+    "cacheVersion": "bazel-remote 2.6.2",
+    "producerStopped": true,
+    "producerWorkspace": "/tmp/tests-bazel",
+    "consumerWorkspace": "/different/checkout",
+    "diskCache": false,
+    "cases": [
+      {
+        "case": "baseline",
+        "seed": false,
+        "assemblyActions": 11,
+        "assemblyCacheHits": 11,
+        "cachedTests": true,
+        "forcedExecutionPassed": true,
+        "hashes": {
+          "upstream/src_libraries_Common_tests_TestUtilities_TestUtilities_net8.0.reference/TestUtilities.dll": "11bf71a3f591fff8932ab9f2c4ab932d74dc4761288c017702db3db9ea238d57",
+          "upstream/src_libraries_Common_tests_TestUtilities_TestUtilities_net8.0.runtime/.rules-msbuild-package-files.json": "eb18d899b0924c6ee241352b59749a504e0dc043d2fce904b1a067d1f5b43470",
+          "upstream/src_libraries_Common_tests_TestUtilities_TestUtilities_net8.0.runtime/.rules-msbuild-packages.json": "18796c23c9b006932aca5345d7b0d08ed3e50b7d3d77e00b821ed6b8e88181b3",
+          "upstream/src_libraries_Common_tests_TestUtilities_TestUtilities_net8.0.runtime/TestUtilities.deps.json": "c8deb34938b764a7f2568f17bb822f8c304a79805eaf6aefce6adcf4589cf5d3",
+          "upstream/src_libraries_Common_tests_TestUtilities_TestUtilities_net8.0.runtime/TestUtilities.dll": "11bf71a3f591fff8932ab9f2c4ab932d74dc4761288c017702db3db9ea238d57",
+          "upstream/src_libraries_Common_tests_TestUtilities_TestUtilities_net8.0.runtime/TestUtilities.pdb": "10f88967abe137f397a308ff0f99e531199e61217bb79efe9e80c4a9defaa455",
+          "upstream/src_libraries_Microsoft.Extensions.Primitives_ref_Microsoft.Extensions.Primitives_net10.0.reference/Microsoft.Extensions.Primitives.dll": "474b4dc59451fe22d0e55aa4404ababe888d86adae427725c5797729994b4d45",
+          "upstream/src_libraries_Microsoft.Extensions.Primitives_src_Microsoft.Extensions.Primitives_net10.0.reference/Microsoft.Extensions.Primitives.dll": "e77093f95ba5c1022effbd7b55e5ca7caebe80c48058e1b1fa434bccd2559ae2",
+          "upstream/src_libraries_Microsoft.Extensions.Primitives_src_Microsoft.Extensions.Primitives_net10.0.runtime/.rules-msbuild-package-files.json": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+          "upstream/src_libraries_Microsoft.Extensions.Primitives_src_Microsoft.Extensions.Primitives_net10.0.runtime/.rules-msbuild-packages.json": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+          "upstream/src_libraries_Microsoft.Extensions.Primitives_src_Microsoft.Extensions.Primitives_net10.0.runtime/Microsoft.Extensions.Primitives.deps.json": "a5088ec716e53bfd3a7b517791cd1d0e1550074971e1a3b35491b26fe6bc7591",
+          "upstream/src_libraries_Microsoft.Extensions.Primitives_src_Microsoft.Extensions.Primitives_net10.0.runtime/Microsoft.Extensions.Primitives.dll": "e77093f95ba5c1022effbd7b55e5ca7caebe80c48058e1b1fa434bccd2559ae2",
+          "upstream/src_libraries_Microsoft.Extensions.Primitives_src_Microsoft.Extensions.Primitives_net10.0.runtime/Microsoft.Extensions.Primitives.pdb": "27232260a1f57c8354b7fd9dc7981e1a03ffd731108a1268b1d942bc653b04ca",
+          "upstream/src_libraries_Microsoft.Extensions.Primitives_src_Microsoft.Extensions.Primitives_net10.0.runtime/Microsoft.Extensions.Primitives.xml": "17b84b994cf3ec05252028062f66238ed303a5abacd0bde513720707702a5b5b",
+          "upstream/src_libraries_Microsoft.Extensions.Primitives_tests_Microsoft.Extensions.Primitives.Tests_net10.0.reference/Microsoft.Extensions.Primitives.Tests.dll": "678e5eba659f6b7fb6205b6c624c71cb7d6edca81175ed1edaf7c8bd898c4d0d",
+          "upstream/src_libraries_Microsoft.Extensions.Primitives_tests_Microsoft.Extensions.Primitives.Tests_net10.0.runtime/.rules-msbuild-package-files.json": "7f34f7a7aa6988df7b773c559ca2f4a14d894f36851112849dc725eb919f6cdc",
+          "upstream/src_libraries_Microsoft.Extensions.Primitives_tests_Microsoft.Extensions.Primitives.Tests_net10.0.runtime/.rules-msbuild-packages.json": "3a2f0c0b822fae59e8c169f8b91acc74391e17feecda0e30ad9b1a9e62efa345",
+          "upstream/src_libraries_Microsoft.Extensions.Primitives_tests_Microsoft.Extensions.Primitives.Tests_net10.0.runtime/.runsettings": "cb106a06c5952a1812c857615ea775620edc5fd05d2b1a5cb9c7c7355e891a8d",
+          "upstream/src_libraries_Microsoft.Extensions.Primitives_tests_Microsoft.Extensions.Primitives.Tests_net10.0.runtime/Microsoft.Extensions.Primitives.Tests.deps.json": "706401cb597c9a625a9dc3e216cdfc5f25c7070fd9c66d777cf4221b130bfe8e",
+          "upstream/src_libraries_Microsoft.Extensions.Primitives_tests_Microsoft.Extensions.Primitives.Tests_net10.0.runtime/Microsoft.Extensions.Primitives.Tests.dll": "678e5eba659f6b7fb6205b6c624c71cb7d6edca81175ed1edaf7c8bd898c4d0d",
+          "upstream/src_libraries_Microsoft.Extensions.Primitives_tests_Microsoft.Extensions.Primitives.Tests_net10.0.runtime/Microsoft.Extensions.Primitives.Tests.pdb": "38c3cbb17c7ca64a6d88d03914c7a5a08653682ee4dc966cc5393e6ec1f02b7f",
+          "upstream/src_libraries_Microsoft.Extensions.Primitives_tests_Microsoft.Extensions.Primitives.Tests_net10.0.runtime/Microsoft.Extensions.Primitives.Tests.runtimeconfig.json": "7695ae16eca3b4879c7da41367530585a64817a4f4f7c6d6697d29a12ba55df4",
+          "upstream/src_libraries_Microsoft.Extensions.Primitives_tests_Microsoft.Extensions.Primitives.Tests_net10.0.runtime/xunit.runner.json": "3a457e5b5980c3a2a97e026f779687ec037b454dbb0d30547bb2f329087bba0d",
+          "upstream/src_tools_illink_src_ILLink.RoslynAnalyzer_ILLink.RoslynAnalyzer_netstandard2.0.reference/ILLink.RoslynAnalyzer.dll": "1216aa29a4564cdaf5a7432f28e68b4cc1488a79fc250a7b42a0428cc0d93a64",
+          "upstream/src_tools_illink_src_ILLink.RoslynAnalyzer_ILLink.RoslynAnalyzer_netstandard2.0.runtime/.rules-msbuild-package-files.json": "bc3ae11222e9e14614deafa722fcf0e848c477ca3a45eb0b055bf11416ac8101",
+          "upstream/src_tools_illink_src_ILLink.RoslynAnalyzer_ILLink.RoslynAnalyzer_netstandard2.0.runtime/.rules-msbuild-packages.json": "ea5943508ad6bff5f238449ab278330ee765c767853f7f6792aa1d0661d446e4",
+          "upstream/src_tools_illink_src_ILLink.RoslynAnalyzer_ILLink.RoslynAnalyzer_netstandard2.0.runtime/ILLink.RoslynAnalyzer.deps.json": "18599bd69e65d97bdd5f23874612731dedcdd14374c3081dfdad71ca3673d4f9",
+          "upstream/src_tools_illink_src_ILLink.RoslynAnalyzer_ILLink.RoslynAnalyzer_netstandard2.0.runtime/ILLink.RoslynAnalyzer.dll": "1216aa29a4564cdaf5a7432f28e68b4cc1488a79fc250a7b42a0428cc0d93a64",
+          "upstream/src_tools_illink_src_ILLink.RoslynAnalyzer_ILLink.RoslynAnalyzer_netstandard2.0.runtime/ILLink.RoslynAnalyzer.pdb": "ba13c293f6d5b40be83f7906c17e4a39da1bf040b58dc5c83a2a0a10da3aa8a8",
+          "smoke/smoke.reference/Smoke.dll": "681b04ddeadf575fe7b305471ab8ddbaf3bcba975bcf3c0a5f417c4398b88c6b",
+          "smoke/smoke.runtime/.rules-msbuild-package-files.json": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+          "smoke/smoke.runtime/.rules-msbuild-packages.json": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+          "smoke/smoke.runtime/Smoke": "2d09f3a7da733c0d18f5f23f7084fd01c0a4d00e336e2eea47f2049d78932c8b",
+          "smoke/smoke.runtime/Smoke.deps.json": "47a8c1a6cb13fc5a0cc3cfb64284e5c6d437246bdb7555cf9d78179f19a6f76a",
+          "smoke/smoke.runtime/Smoke.dll": "fb5d451d9542d4ab18c59ba07775cb2674f409ae66ca7a5333335e81dc1ba5ef",
+          "smoke/smoke.runtime/Smoke.pdb": "46a496940be0220269becf9409e27d0a6304fa91e876605add7917f3523aa4be",
+          "smoke/smoke.runtime/Smoke.runtimeconfig.json": "9950d4583cfc9a106857c0d5b8a75b53e8774852b57b80bc3823a74d44a4d87f"
+        }
+      },
+      {
+        "case": "body",
+        "seed": false,
+        "assemblyActions": 11,
+        "assemblyCacheHits": 11,
+        "cachedTests": true,
+        "forcedExecutionPassed": true,
+        "hashes": {
+          "upstream/src_libraries_Common_tests_TestUtilities_TestUtilities_net8.0.reference/TestUtilities.dll": "11bf71a3f591fff8932ab9f2c4ab932d74dc4761288c017702db3db9ea238d57",
+          "upstream/src_libraries_Common_tests_TestUtilities_TestUtilities_net8.0.runtime/.rules-msbuild-package-files.json": "eb18d899b0924c6ee241352b59749a504e0dc043d2fce904b1a067d1f5b43470",
+          "upstream/src_libraries_Common_tests_TestUtilities_TestUtilities_net8.0.runtime/.rules-msbuild-packages.json": "18796c23c9b006932aca5345d7b0d08ed3e50b7d3d77e00b821ed6b8e88181b3",
+          "upstream/src_libraries_Common_tests_TestUtilities_TestUtilities_net8.0.runtime/TestUtilities.deps.json": "c8deb34938b764a7f2568f17bb822f8c304a79805eaf6aefce6adcf4589cf5d3",
+          "upstream/src_libraries_Common_tests_TestUtilities_TestUtilities_net8.0.runtime/TestUtilities.dll": "11bf71a3f591fff8932ab9f2c4ab932d74dc4761288c017702db3db9ea238d57",
+          "upstream/src_libraries_Common_tests_TestUtilities_TestUtilities_net8.0.runtime/TestUtilities.pdb": "10f88967abe137f397a308ff0f99e531199e61217bb79efe9e80c4a9defaa455",
+          "upstream/src_libraries_Microsoft.Extensions.Primitives_ref_Microsoft.Extensions.Primitives_net10.0.reference/Microsoft.Extensions.Primitives.dll": "474b4dc59451fe22d0e55aa4404ababe888d86adae427725c5797729994b4d45",
+          "upstream/src_libraries_Microsoft.Extensions.Primitives_src_Microsoft.Extensions.Primitives_net10.0.reference/Microsoft.Extensions.Primitives.dll": "af7ce59a0a075a9bdbe811bf62afb13a0d1efb4f93148a01ceb6d2215d696d48",
+          "upstream/src_libraries_Microsoft.Extensions.Primitives_src_Microsoft.Extensions.Primitives_net10.0.runtime/.rules-msbuild-package-files.json": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+          "upstream/src_libraries_Microsoft.Extensions.Primitives_src_Microsoft.Extensions.Primitives_net10.0.runtime/.rules-msbuild-packages.json": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+          "upstream/src_libraries_Microsoft.Extensions.Primitives_src_Microsoft.Extensions.Primitives_net10.0.runtime/Microsoft.Extensions.Primitives.deps.json": "a5088ec716e53bfd3a7b517791cd1d0e1550074971e1a3b35491b26fe6bc7591",
+          "upstream/src_libraries_Microsoft.Extensions.Primitives_src_Microsoft.Extensions.Primitives_net10.0.runtime/Microsoft.Extensions.Primitives.dll": "af7ce59a0a075a9bdbe811bf62afb13a0d1efb4f93148a01ceb6d2215d696d48",
+          "upstream/src_libraries_Microsoft.Extensions.Primitives_src_Microsoft.Extensions.Primitives_net10.0.runtime/Microsoft.Extensions.Primitives.pdb": "d7ffe62407069499b903afb2a3ba02fee0b61300676920847105d7f165956a83",
+          "upstream/src_libraries_Microsoft.Extensions.Primitives_src_Microsoft.Extensions.Primitives_net10.0.runtime/Microsoft.Extensions.Primitives.xml": "17b84b994cf3ec05252028062f66238ed303a5abacd0bde513720707702a5b5b",
+          "upstream/src_libraries_Microsoft.Extensions.Primitives_tests_Microsoft.Extensions.Primitives.Tests_net10.0.reference/Microsoft.Extensions.Primitives.Tests.dll": "678e5eba659f6b7fb6205b6c624c71cb7d6edca81175ed1edaf7c8bd898c4d0d",
+          "upstream/src_libraries_Microsoft.Extensions.Primitives_tests_Microsoft.Extensions.Primitives.Tests_net10.0.runtime/.rules-msbuild-package-files.json": "7f34f7a7aa6988df7b773c559ca2f4a14d894f36851112849dc725eb919f6cdc",
+          "upstream/src_libraries_Microsoft.Extensions.Primitives_tests_Microsoft.Extensions.Primitives.Tests_net10.0.runtime/.rules-msbuild-packages.json": "3a2f0c0b822fae59e8c169f8b91acc74391e17feecda0e30ad9b1a9e62efa345",
+          "upstream/src_libraries_Microsoft.Extensions.Primitives_tests_Microsoft.Extensions.Primitives.Tests_net10.0.runtime/.runsettings": "cb106a06c5952a1812c857615ea775620edc5fd05d2b1a5cb9c7c7355e891a8d",
+          "upstream/src_libraries_Microsoft.Extensions.Primitives_tests_Microsoft.Extensions.Primitives.Tests_net10.0.runtime/Microsoft.Extensions.Primitives.Tests.deps.json": "706401cb597c9a625a9dc3e216cdfc5f25c7070fd9c66d777cf4221b130bfe8e",
+          "upstream/src_libraries_Microsoft.Extensions.Primitives_tests_Microsoft.Extensions.Primitives.Tests_net10.0.runtime/Microsoft.Extensions.Primitives.Tests.dll": "678e5eba659f6b7fb6205b6c624c71cb7d6edca81175ed1edaf7c8bd898c4d0d",
+          "upstream/src_libraries_Microsoft.Extensions.Primitives_tests_Microsoft.Extensions.Primitives.Tests_net10.0.runtime/Microsoft.Extensions.Primitives.Tests.pdb": "38c3cbb17c7ca64a6d88d03914c7a5a08653682ee4dc966cc5393e6ec1f02b7f",
+          "upstream/src_libraries_Microsoft.Extensions.Primitives_tests_Microsoft.Extensions.Primitives.Tests_net10.0.runtime/Microsoft.Extensions.Primitives.Tests.runtimeconfig.json": "7695ae16eca3b4879c7da41367530585a64817a4f4f7c6d6697d29a12ba55df4",
+          "upstream/src_libraries_Microsoft.Extensions.Primitives_tests_Microsoft.Extensions.Primitives.Tests_net10.0.runtime/xunit.runner.json": "3a457e5b5980c3a2a97e026f779687ec037b454dbb0d30547bb2f329087bba0d",
+          "upstream/src_tools_illink_src_ILLink.RoslynAnalyzer_ILLink.RoslynAnalyzer_netstandard2.0.reference/ILLink.RoslynAnalyzer.dll": "1216aa29a4564cdaf5a7432f28e68b4cc1488a79fc250a7b42a0428cc0d93a64",
+          "upstream/src_tools_illink_src_ILLink.RoslynAnalyzer_ILLink.RoslynAnalyzer_netstandard2.0.runtime/.rules-msbuild-package-files.json": "bc3ae11222e9e14614deafa722fcf0e848c477ca3a45eb0b055bf11416ac8101",
+          "upstream/src_tools_illink_src_ILLink.RoslynAnalyzer_ILLink.RoslynAnalyzer_netstandard2.0.runtime/.rules-msbuild-packages.json": "ea5943508ad6bff5f238449ab278330ee765c767853f7f6792aa1d0661d446e4",
+          "upstream/src_tools_illink_src_ILLink.RoslynAnalyzer_ILLink.RoslynAnalyzer_netstandard2.0.runtime/ILLink.RoslynAnalyzer.deps.json": "18599bd69e65d97bdd5f23874612731dedcdd14374c3081dfdad71ca3673d4f9",
+          "upstream/src_tools_illink_src_ILLink.RoslynAnalyzer_ILLink.RoslynAnalyzer_netstandard2.0.runtime/ILLink.RoslynAnalyzer.dll": "1216aa29a4564cdaf5a7432f28e68b4cc1488a79fc250a7b42a0428cc0d93a64",
+          "upstream/src_tools_illink_src_ILLink.RoslynAnalyzer_ILLink.RoslynAnalyzer_netstandard2.0.runtime/ILLink.RoslynAnalyzer.pdb": "ba13c293f6d5b40be83f7906c17e4a39da1bf040b58dc5c83a2a0a10da3aa8a8",
+          "smoke/smoke.reference/Smoke.dll": "681b04ddeadf575fe7b305471ab8ddbaf3bcba975bcf3c0a5f417c4398b88c6b",
+          "smoke/smoke.runtime/.rules-msbuild-package-files.json": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+          "smoke/smoke.runtime/.rules-msbuild-packages.json": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+          "smoke/smoke.runtime/Smoke": "2d09f3a7da733c0d18f5f23f7084fd01c0a4d00e336e2eea47f2049d78932c8b",
+          "smoke/smoke.runtime/Smoke.deps.json": "47a8c1a6cb13fc5a0cc3cfb64284e5c6d437246bdb7555cf9d78179f19a6f76a",
+          "smoke/smoke.runtime/Smoke.dll": "fb5d451d9542d4ab18c59ba07775cb2674f409ae66ca7a5333335e81dc1ba5ef",
+          "smoke/smoke.runtime/Smoke.pdb": "46a496940be0220269becf9409e27d0a6304fa91e876605add7917f3523aa4be",
+          "smoke/smoke.runtime/Smoke.runtimeconfig.json": "9950d4583cfc9a106857c0d5b8a75b53e8774852b57b80bc3823a74d44a4d87f"
+        }
+      },
+      {
+        "case": "api",
+        "seed": false,
+        "assemblyActions": 11,
+        "assemblyCacheHits": 11,
+        "cachedTests": true,
+        "forcedExecutionPassed": true,
+        "hashes": {
+          "upstream/src_libraries_Common_tests_TestUtilities_TestUtilities_net8.0.reference/TestUtilities.dll": "11bf71a3f591fff8932ab9f2c4ab932d74dc4761288c017702db3db9ea238d57",
+          "upstream/src_libraries_Common_tests_TestUtilities_TestUtilities_net8.0.runtime/.rules-msbuild-package-files.json": "eb18d899b0924c6ee241352b59749a504e0dc043d2fce904b1a067d1f5b43470",
+          "upstream/src_libraries_Common_tests_TestUtilities_TestUtilities_net8.0.runtime/.rules-msbuild-packages.json": "18796c23c9b006932aca5345d7b0d08ed3e50b7d3d77e00b821ed6b8e88181b3",
+          "upstream/src_libraries_Common_tests_TestUtilities_TestUtilities_net8.0.runtime/TestUtilities.deps.json": "c8deb34938b764a7f2568f17bb822f8c304a79805eaf6aefce6adcf4589cf5d3",
+          "upstream/src_libraries_Common_tests_TestUtilities_TestUtilities_net8.0.runtime/TestUtilities.dll": "11bf71a3f591fff8932ab9f2c4ab932d74dc4761288c017702db3db9ea238d57",
+          "upstream/src_libraries_Common_tests_TestUtilities_TestUtilities_net8.0.runtime/TestUtilities.pdb": "10f88967abe137f397a308ff0f99e531199e61217bb79efe9e80c4a9defaa455",
+          "upstream/src_libraries_Microsoft.Extensions.Primitives_ref_Microsoft.Extensions.Primitives_net10.0.reference/Microsoft.Extensions.Primitives.dll": "d9732e82fe5da9851d92c081147fe11a522a07341f37749354ebd2dca30b6c10",
+          "upstream/src_libraries_Microsoft.Extensions.Primitives_src_Microsoft.Extensions.Primitives_net10.0.reference/Microsoft.Extensions.Primitives.dll": "7366480c7790189529cc05ab3fb92b066efbb1ce1eb549c41058a0752ef2eb11",
+          "upstream/src_libraries_Microsoft.Extensions.Primitives_src_Microsoft.Extensions.Primitives_net10.0.runtime/.rules-msbuild-package-files.json": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+          "upstream/src_libraries_Microsoft.Extensions.Primitives_src_Microsoft.Extensions.Primitives_net10.0.runtime/.rules-msbuild-packages.json": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+          "upstream/src_libraries_Microsoft.Extensions.Primitives_src_Microsoft.Extensions.Primitives_net10.0.runtime/Microsoft.Extensions.Primitives.deps.json": "a5088ec716e53bfd3a7b517791cd1d0e1550074971e1a3b35491b26fe6bc7591",
+          "upstream/src_libraries_Microsoft.Extensions.Primitives_src_Microsoft.Extensions.Primitives_net10.0.runtime/Microsoft.Extensions.Primitives.dll": "7366480c7790189529cc05ab3fb92b066efbb1ce1eb549c41058a0752ef2eb11",
+          "upstream/src_libraries_Microsoft.Extensions.Primitives_src_Microsoft.Extensions.Primitives_net10.0.runtime/Microsoft.Extensions.Primitives.pdb": "7efd025f5e58054530763772b439dc903ffc0b6add82ea019080d5a5907e0b52",
+          "upstream/src_libraries_Microsoft.Extensions.Primitives_src_Microsoft.Extensions.Primitives_net10.0.runtime/Microsoft.Extensions.Primitives.xml": "a02995376d97d60e6c279163cc7d9236f6655ab583454c870cdfd1cafcca4fa8",
+          "upstream/src_libraries_Microsoft.Extensions.Primitives_tests_Microsoft.Extensions.Primitives.Tests_net10.0.reference/Microsoft.Extensions.Primitives.Tests.dll": "e66c356ab10037c72c22dae0be4ebdb30be7ddde3b08ddc1068284e8f54b1060",
+          "upstream/src_libraries_Microsoft.Extensions.Primitives_tests_Microsoft.Extensions.Primitives.Tests_net10.0.runtime/.rules-msbuild-package-files.json": "7f34f7a7aa6988df7b773c559ca2f4a14d894f36851112849dc725eb919f6cdc",
+          "upstream/src_libraries_Microsoft.Extensions.Primitives_tests_Microsoft.Extensions.Primitives.Tests_net10.0.runtime/.rules-msbuild-packages.json": "3a2f0c0b822fae59e8c169f8b91acc74391e17feecda0e30ad9b1a9e62efa345",
+          "upstream/src_libraries_Microsoft.Extensions.Primitives_tests_Microsoft.Extensions.Primitives.Tests_net10.0.runtime/.runsettings": "1fabd9d43b4702841731a5a2e1338551268fa8a51e5dc566be01176c3d821f3b",
+          "upstream/src_libraries_Microsoft.Extensions.Primitives_tests_Microsoft.Extensions.Primitives.Tests_net10.0.runtime/Microsoft.Extensions.Primitives.Tests.deps.json": "706401cb597c9a625a9dc3e216cdfc5f25c7070fd9c66d777cf4221b130bfe8e",
+          "upstream/src_libraries_Microsoft.Extensions.Primitives_tests_Microsoft.Extensions.Primitives.Tests_net10.0.runtime/Microsoft.Extensions.Primitives.Tests.dll": "e66c356ab10037c72c22dae0be4ebdb30be7ddde3b08ddc1068284e8f54b1060",
+          "upstream/src_libraries_Microsoft.Extensions.Primitives_tests_Microsoft.Extensions.Primitives.Tests_net10.0.runtime/Microsoft.Extensions.Primitives.Tests.pdb": "0d0c7ce5d473ffd1e7eebcf633e8e7d37040e2516cae33ad98458c64ee25340f",
+          "upstream/src_libraries_Microsoft.Extensions.Primitives_tests_Microsoft.Extensions.Primitives.Tests_net10.0.runtime/Microsoft.Extensions.Primitives.Tests.runtimeconfig.json": "7695ae16eca3b4879c7da41367530585a64817a4f4f7c6d6697d29a12ba55df4",
+          "upstream/src_libraries_Microsoft.Extensions.Primitives_tests_Microsoft.Extensions.Primitives.Tests_net10.0.runtime/xunit.runner.json": "3a457e5b5980c3a2a97e026f779687ec037b454dbb0d30547bb2f329087bba0d",
+          "upstream/src_tools_illink_src_ILLink.RoslynAnalyzer_ILLink.RoslynAnalyzer_netstandard2.0.reference/ILLink.RoslynAnalyzer.dll": "1216aa29a4564cdaf5a7432f28e68b4cc1488a79fc250a7b42a0428cc0d93a64",
+          "upstream/src_tools_illink_src_ILLink.RoslynAnalyzer_ILLink.RoslynAnalyzer_netstandard2.0.runtime/.rules-msbuild-package-files.json": "bc3ae11222e9e14614deafa722fcf0e848c477ca3a45eb0b055bf11416ac8101",
+          "upstream/src_tools_illink_src_ILLink.RoslynAnalyzer_ILLink.RoslynAnalyzer_netstandard2.0.runtime/.rules-msbuild-packages.json": "ea5943508ad6bff5f238449ab278330ee765c767853f7f6792aa1d0661d446e4",
+          "upstream/src_tools_illink_src_ILLink.RoslynAnalyzer_ILLink.RoslynAnalyzer_netstandard2.0.runtime/ILLink.RoslynAnalyzer.deps.json": "18599bd69e65d97bdd5f23874612731dedcdd14374c3081dfdad71ca3673d4f9",
+          "upstream/src_tools_illink_src_ILLink.RoslynAnalyzer_ILLink.RoslynAnalyzer_netstandard2.0.runtime/ILLink.RoslynAnalyzer.dll": "1216aa29a4564cdaf5a7432f28e68b4cc1488a79fc250a7b42a0428cc0d93a64",
+          "upstream/src_tools_illink_src_ILLink.RoslynAnalyzer_ILLink.RoslynAnalyzer_netstandard2.0.runtime/ILLink.RoslynAnalyzer.pdb": "ba13c293f6d5b40be83f7906c17e4a39da1bf040b58dc5c83a2a0a10da3aa8a8",
+          "smoke/smoke.reference/Smoke.dll": "681b04ddeadf575fe7b305471ab8ddbaf3bcba975bcf3c0a5f417c4398b88c6b",
+          "smoke/smoke.runtime/.rules-msbuild-package-files.json": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+          "smoke/smoke.runtime/.rules-msbuild-packages.json": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+          "smoke/smoke.runtime/Smoke": "2d09f3a7da733c0d18f5f23f7084fd01c0a4d00e336e2eea47f2049d78932c8b",
+          "smoke/smoke.runtime/Smoke.deps.json": "47a8c1a6cb13fc5a0cc3cfb64284e5c6d437246bdb7555cf9d78179f19a6f76a",
+          "smoke/smoke.runtime/Smoke.dll": "a485ac5592f45598f3ebdd4aaa77197bc4b7f5a8eb7d8c1fd433469d930aa1b8",
+          "smoke/smoke.runtime/Smoke.pdb": "f370a57d717cb822b9cde9ee505e92445e8219dff2f393d6ff407d07e9d70ff3",
+          "smoke/smoke.runtime/Smoke.runtimeconfig.json": "9950d4583cfc9a106857c0d5b8a75b53e8774852b57b80bc3823a74d44a4d87f"
+        }
+      }
+    ]
+  },
+  "settingsValidation": [
+    {
+      "case": "settings-conflict",
+      "exit": 1
+    },
+    {
+      "case": "settings-escape",
+      "exit": 1
+    }
+  ],
+  "ownedChecks": {
+    "dotnetBuildAndFormat": true,
+    "unitTests": 37,
+    "starlarkLint": true
+  }
+}

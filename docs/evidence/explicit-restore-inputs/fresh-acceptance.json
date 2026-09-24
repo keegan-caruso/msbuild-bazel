@@ -1,0 +1,90 @@
+[
+  {
+    "case": "run",
+    "exitCode": 0
+  },
+  {
+    "case": "reserved-item-_bazeloriginalprojectreference",
+    "exitCode": 1
+  },
+  {
+    "case": "reserved-item-analyzer",
+    "exitCode": 1
+  },
+  {
+    "case": "test",
+    "exitCode": 0
+  },
+  {
+    "case": "failure",
+    "exitCode": 3
+  },
+  {
+    "case": "filter",
+    "exitCode": 3
+  },
+  {
+    "case": "body-edit",
+    "exitCode": 0
+  },
+  {
+    "case": "missing-edge",
+    "exitCode": 1
+  },
+  {
+    "case": "edge-metadata",
+    "exitCode": 1
+  },
+  {
+    "case": "conditional-edge",
+    "exitCode": 1
+  },
+  {
+    "case": "undeclared-source",
+    "exitCode": 1
+  },
+  {
+    "case": "restore-incompatible-property",
+    "exitCode": 1
+  },
+  {
+    "case": "restore-custom-target",
+    "exitCode": 1
+  },
+  {
+    "case": "restore-kind-mismatch",
+    "exitCode": 1
+  },
+  {
+    "case": "recovered",
+    "exitCode": 0
+  },
+  {
+    "case": "undeclared-package",
+    "exitCode": 1
+  },
+  {
+    "case": "undeclared-reference",
+    "exitCode": 1
+  },
+  {
+    "case": "undeclared-read",
+    "exitCode": 1
+  },
+  {
+    "case": "source-write",
+    "exitCode": 1
+  },
+  {
+    "case": "cache-seed",
+    "exitCode": 0
+  },
+  {
+    "case": "cache-recovery",
+    "exitCode": 0
+  },
+  {
+    "case": "restore-relocated-compile",
+    "exitCode": 0
+  }
+]

@@ -1,0 +1,11 @@
+{
+  "seconds": 15.455577299000083,
+  "referenceChanged": true,
+  "projects": [
+    "OrchardCore.Setup",
+    "OrchardCore.Application.Cms.Core.Targets",
+    "OrchardCore.Application.Cms.Targets",
+    "OrchardCore.Cms.Web"
+  ],
+  "rawSeconds": 11.803019963999986
+}

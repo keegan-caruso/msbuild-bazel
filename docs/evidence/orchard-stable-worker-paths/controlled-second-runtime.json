@@ -1,0 +1,30 @@
+[
+  {
+    "path": "/",
+    "status": 200,
+    "bytes": 50175,
+    "contentType": "text/html; charset=utf-8",
+    "sha256": "1411b14dddf80b7b784f96bd98fe849e495b462a3150292e0a88073e8a05d126"
+  },
+  {
+    "path": "/OrchardCore.Setup/Styles/setup.min.css",
+    "status": 200,
+    "bytes": 259485,
+    "contentType": "text/css",
+    "sha256": "f2ef0e79a938781eb7b4108d68e5ebd809e4d6f6687c77dad058a95b559a2fa8"
+  },
+  {
+    "path": "/OrchardCore.Setup/Scripts/setup/setup.min.js",
+    "status": 200,
+    "bytes": 8267,
+    "contentType": "text/javascript",
+    "sha256": "0ae0a82143492a81c236e0e7006cb10b9832d31b9c3c46eb8e26ca5f5af261d9"
+  },
+  {
+    "path": "/OrchardCore.Resources/Vendor/fontawesome-free/css/all.min.css",
+    "status": 200,
+    "bytes": 90336,
+    "contentType": "text/css",
+    "sha256": "e0b69df26e19596d4b81bf7eb0c54b6047e7221ec18d5d4d40c11eefd3ef8a4b"
+  }
+]

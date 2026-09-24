@@ -1,0 +1,624 @@
+{
+  "platform": "Linux ARM64 (Apple Container)",
+  "sdk": "10.0.400",
+  "implementationRevision": "5bee4a729e99963ab10acaff4a8c8937c0a17761",
+  "cache": "producer-deleted relocated disk-cache recovery; no HTTP/independent-machine claim",
+  "runs": {
+    "9.2.0": [
+      {
+        "case": "baseline",
+        "exitCode": 0,
+        "compiled": [
+          "//Friend:target",
+          "//Library:target"
+        ],
+        "cacheHits": [],
+        "testExecuted": true,
+        "testStatuses": [
+          "PASSED"
+        ],
+        "witness": "value=7;constant=3;implementation=8D25A511245BDE2D72438849543D5E3679C83231FAC5C54EDA8C7EEBFF531AC0"
+      },
+      {
+        "case": "unchanged",
+        "exitCode": 0,
+        "compiled": [],
+        "cacheHits": [],
+        "testExecuted": false,
+        "testStatuses": [
+          "PASSED"
+        ],
+        "witness": "value=7;constant=3;implementation=8D25A511245BDE2D72438849543D5E3679C83231FAC5C54EDA8C7EEBFF531AC0"
+      },
+      {
+        "case": "nonfriend",
+        "exitCode": 1,
+        "compiled": [
+          "//Stranger:target"
+        ],
+        "cacheHits": [],
+        "testExecuted": false,
+        "testStatuses": []
+      },
+      {
+        "case": "body-edit",
+        "exitCode": 3,
+        "compiled": [
+          "//Library:target"
+        ],
+        "cacheHits": [],
+        "testExecuted": true,
+        "testStatuses": [
+          "FAILED"
+        ],
+        "witness": "value=8;constant=3;implementation=81030D37FE5B73E00DE41012FA9BC575423CA652F97E765CCBE1D47D793771CD"
+      },
+      {
+        "case": "body-recovered",
+        "exitCode": 0,
+        "compiled": [],
+        "cacheHits": [
+          "//Library:target"
+        ],
+        "testExecuted": false,
+        "testStatuses": [
+          "PASSED"
+        ],
+        "witness": "value=7;constant=3;implementation=8D25A511245BDE2D72438849543D5E3679C83231FAC5C54EDA8C7EEBFF531AC0"
+      },
+      {
+        "case": "signature",
+        "exitCode": 1,
+        "compiled": [
+          "//Friend:target",
+          "//Library:target"
+        ],
+        "cacheHits": [],
+        "testExecuted": false,
+        "testStatuses": []
+      },
+      {
+        "case": "signature-recovered",
+        "exitCode": 0,
+        "compiled": [],
+        "cacheHits": [
+          "//Friend:target",
+          "//Library:target"
+        ],
+        "testExecuted": false,
+        "testStatuses": [
+          "PASSED"
+        ],
+        "witness": "value=7;constant=3;implementation=8D25A511245BDE2D72438849543D5E3679C83231FAC5C54EDA8C7EEBFF531AC0"
+      },
+      {
+        "case": "constant",
+        "exitCode": 3,
+        "compiled": [
+          "//Friend:target",
+          "//Library:target"
+        ],
+        "cacheHits": [],
+        "testExecuted": true,
+        "testStatuses": [
+          "FAILED"
+        ],
+        "witness": "value=7;constant=4;implementation=F0DF4D8B48B8D0453D1473A39F67E314E872FCDE2F7B3EDB4977557BD8EF9F4E"
+      },
+      {
+        "case": "constant-recovered",
+        "exitCode": 0,
+        "compiled": [],
+        "cacheHits": [
+          "//Friend:target",
+          "//Library:target"
+        ],
+        "testExecuted": false,
+        "testStatuses": [
+          "PASSED"
+        ],
+        "witness": "value=7;constant=3;implementation=8D25A511245BDE2D72438849543D5E3679C83231FAC5C54EDA8C7EEBFF531AC0"
+      },
+      {
+        "case": "constraint",
+        "exitCode": 1,
+        "compiled": [
+          "//Friend:target",
+          "//Library:target"
+        ],
+        "cacheHits": [],
+        "testExecuted": false,
+        "testStatuses": []
+      },
+      {
+        "case": "constraint-recovered",
+        "exitCode": 0,
+        "compiled": [],
+        "cacheHits": [
+          "//Friend:target",
+          "//Library:target"
+        ],
+        "testExecuted": false,
+        "testStatuses": [
+          "PASSED"
+        ],
+        "witness": "value=7;constant=3;implementation=8D25A511245BDE2D72438849543D5E3679C83231FAC5C54EDA8C7EEBFF531AC0"
+      },
+      {
+        "case": "grant-removed",
+        "exitCode": 1,
+        "compiled": [
+          "//Friend:target",
+          "//Library:target"
+        ],
+        "cacheHits": [],
+        "testExecuted": false,
+        "testStatuses": []
+      },
+      {
+        "case": "grant-removed-recovered",
+        "exitCode": 0,
+        "compiled": [],
+        "cacheHits": [
+          "//Friend:target",
+          "//Library:target"
+        ],
+        "testExecuted": false,
+        "testStatuses": [
+          "PASSED"
+        ],
+        "witness": "value=7;constant=3;implementation=8D25A511245BDE2D72438849543D5E3679C83231FAC5C54EDA8C7EEBFF531AC0"
+      },
+      {
+        "case": "grant-renamed",
+        "exitCode": 1,
+        "compiled": [
+          "//Friend:target",
+          "//Library:target"
+        ],
+        "cacheHits": [],
+        "testExecuted": false,
+        "testStatuses": []
+      },
+      {
+        "case": "grant-renamed-recovered",
+        "exitCode": 0,
+        "compiled": [],
+        "cacheHits": [
+          "//Friend:target",
+          "//Library:target"
+        ],
+        "testExecuted": false,
+        "testStatuses": [
+          "PASSED"
+        ],
+        "witness": "value=7;constant=3;implementation=8D25A511245BDE2D72438849543D5E3679C83231FAC5C54EDA8C7EEBFF531AC0"
+      },
+      {
+        "case": "sdk-item",
+        "exitCode": 0,
+        "compiled": [
+          "//Friend:target",
+          "//Library:target"
+        ],
+        "cacheHits": [],
+        "testExecuted": true,
+        "testStatuses": [
+          "PASSED"
+        ],
+        "witness": "value=7;constant=3;implementation=1647F9697523598DBA5F31872056A1AA579362F84236576BF7D78A7737B3B104"
+      },
+      {
+        "case": "sdk-item-recovered",
+        "exitCode": 0,
+        "compiled": [],
+        "cacheHits": [
+          "//Friend:target",
+          "//Library:target"
+        ],
+        "testExecuted": false,
+        "testStatuses": [
+          "PASSED"
+        ],
+        "witness": "value=7;constant=3;implementation=8D25A511245BDE2D72438849543D5E3679C83231FAC5C54EDA8C7EEBFF531AC0"
+      },
+      {
+        "case": "signed",
+        "exitCode": 0,
+        "compiled": [
+          "//Friend:target",
+          "//Library:target"
+        ],
+        "cacheHits": [],
+        "testExecuted": true,
+        "testStatuses": [
+          "PASSED"
+        ],
+        "witness": "value=7;constant=3;implementation=980DB31335EDB86E43C5FD7F70F43EE031E7EC763EF30B7702A4F64B6C56D4B8"
+      },
+      {
+        "case": "wrong-key",
+        "exitCode": 1,
+        "compiled": [
+          "//Friend:target"
+        ],
+        "cacheHits": [],
+        "testExecuted": false,
+        "testStatuses": []
+      },
+      {
+        "case": "signed-recovered",
+        "exitCode": 0,
+        "compiled": [],
+        "cacheHits": [
+          "//Friend:target"
+        ],
+        "testExecuted": false,
+        "testStatuses": [
+          "PASSED"
+        ],
+        "witness": "value=7;constant=3;implementation=980DB31335EDB86E43C5FD7F70F43EE031E7EC763EF30B7702A4F64B6C56D4B8"
+      },
+      {
+        "case": "unsigned-recovered",
+        "exitCode": 0,
+        "compiled": [],
+        "cacheHits": [
+          "//Friend:target",
+          "//Library:target"
+        ],
+        "testExecuted": false,
+        "testStatuses": [
+          "PASSED"
+        ],
+        "witness": "value=7;constant=3;implementation=8D25A511245BDE2D72438849543D5E3679C83231FAC5C54EDA8C7EEBFF531AC0"
+      },
+      {
+        "case": "relocated-recovery",
+        "exitCode": 0,
+        "compiled": [],
+        "cacheHits": [
+          "//Friend:target",
+          "//Library:target"
+        ],
+        "testExecuted": true,
+        "testStatuses": [
+          "PASSED"
+        ],
+        "witness": "value=7;constant=3;implementation=8D25A511245BDE2D72438849543D5E3679C83231FAC5C54EDA8C7EEBFF531AC0"
+      },
+      {
+        "case": "relocated-body-edit",
+        "exitCode": 3,
+        "compiled": [
+          "//Library:target"
+        ],
+        "cacheHits": [],
+        "testExecuted": true,
+        "testStatuses": [
+          "FAILED"
+        ],
+        "witness": "value=9;constant=3;implementation=D8DFA28D7349B04DFA78E96BA3AF9F89EB13F8DD13C81267ACDED7062BB63496"
+      },
+      {
+        "case": "relocated-grant-rejection",
+        "exitCode": 1,
+        "compiled": [
+          "//Friend:target",
+          "//Library:target"
+        ],
+        "cacheHits": [],
+        "testExecuted": false,
+        "testStatuses": []
+      }
+    ],
+    "8.8.0": [
+      {
+        "case": "baseline",
+        "exitCode": 0,
+        "compiled": [
+          "//Friend:target",
+          "//Library:target"
+        ],
+        "cacheHits": [],
+        "testExecuted": true,
+        "testStatuses": [
+          "PASSED"
+        ],
+        "witness": "value=7;constant=3;implementation=8D25A511245BDE2D72438849543D5E3679C83231FAC5C54EDA8C7EEBFF531AC0"
+      },
+      {
+        "case": "unchanged",
+        "exitCode": 0,
+        "compiled": [],
+        "cacheHits": [],
+        "testExecuted": false,
+        "testStatuses": [
+          "PASSED"
+        ],
+        "witness": "value=7;constant=3;implementation=8D25A511245BDE2D72438849543D5E3679C83231FAC5C54EDA8C7EEBFF531AC0"
+      },
+      {
+        "case": "nonfriend",
+        "exitCode": 1,
+        "compiled": [
+          "//Stranger:target"
+        ],
+        "cacheHits": [],
+        "testExecuted": false,
+        "testStatuses": []
+      },
+      {
+        "case": "body-edit",
+        "exitCode": 3,
+        "compiled": [
+          "//Library:target"
+        ],
+        "cacheHits": [],
+        "testExecuted": true,
+        "testStatuses": [
+          "FAILED"
+        ],
+        "witness": "value=8;constant=3;implementation=81030D37FE5B73E00DE41012FA9BC575423CA652F97E765CCBE1D47D793771CD"
+      },
+      {
+        "case": "body-recovered",
+        "exitCode": 0,
+        "compiled": [],
+        "cacheHits": [
+          "//Library:target"
+        ],
+        "testExecuted": false,
+        "testStatuses": [
+          "PASSED"
+        ],
+        "witness": "value=7;constant=3;implementation=8D25A511245BDE2D72438849543D5E3679C83231FAC5C54EDA8C7EEBFF531AC0"
+      },
+      {
+        "case": "signature",
+        "exitCode": 1,
+        "compiled": [
+          "//Friend:target",
+          "//Library:target"
+        ],
+        "cacheHits": [],
+        "testExecuted": false,
+        "testStatuses": []
+      },
+      {
+        "case": "signature-recovered",
+        "exitCode": 0,
+        "compiled": [],
+        "cacheHits": [
+          "//Friend:target",
+          "//Library:target"
+        ],
+        "testExecuted": false,
+        "testStatuses": [
+          "PASSED"
+        ],
+        "witness": "value=7;constant=3;implementation=8D25A511245BDE2D72438849543D5E3679C83231FAC5C54EDA8C7EEBFF531AC0"
+      },
+      {
+        "case": "constant",
+        "exitCode": 3,
+        "compiled": [
+          "//Friend:target",
+          "//Library:target"
+        ],
+        "cacheHits": [],
+        "testExecuted": true,
+        "testStatuses": [
+          "FAILED"
+        ],
+        "witness": "value=7;constant=4;implementation=F0DF4D8B48B8D0453D1473A39F67E314E872FCDE2F7B3EDB4977557BD8EF9F4E"
+      },
+      {
+        "case": "constant-recovered",
+        "exitCode": 0,
+        "compiled": [],
+        "cacheHits": [
+          "//Friend:target",
+          "//Library:target"
+        ],
+        "testExecuted": false,
+        "testStatuses": [
+          "PASSED"
+        ],
+        "witness": "value=7;constant=3;implementation=8D25A511245BDE2D72438849543D5E3679C83231FAC5C54EDA8C7EEBFF531AC0"
+      },
+      {
+        "case": "constraint",
+        "exitCode": 1,
+        "compiled": [
+          "//Friend:target",
+          "//Library:target"
+        ],
+        "cacheHits": [],
+        "testExecuted": false,
+        "testStatuses": []
+      },
+      {
+        "case": "constraint-recovered",
+        "exitCode": 0,
+        "compiled": [],
+        "cacheHits": [
+          "//Friend:target",
+          "//Library:target"
+        ],
+        "testExecuted": false,
+        "testStatuses": [
+          "PASSED"
+        ],
+        "witness": "value=7;constant=3;implementation=8D25A511245BDE2D72438849543D5E3679C83231FAC5C54EDA8C7EEBFF531AC0"
+      },
+      {
+        "case": "grant-removed",
+        "exitCode": 1,
+        "compiled": [
+          "//Friend:target",
+          "//Library:target"
+        ],
+        "cacheHits": [],
+        "testExecuted": false,
+        "testStatuses": []
+      },
+      {
+        "case": "grant-removed-recovered",
+        "exitCode": 0,
+        "compiled": [],
+        "cacheHits": [
+          "//Friend:target",
+          "//Library:target"
+        ],
+        "testExecuted": false,
+        "testStatuses": [
+          "PASSED"
+        ],
+        "witness": "value=7;constant=3;implementation=8D25A511245BDE2D72438849543D5E3679C83231FAC5C54EDA8C7EEBFF531AC0"
+      },
+      {
+        "case": "grant-renamed",
+        "exitCode": 1,
+        "compiled": [
+          "//Friend:target",
+          "//Library:target"
+        ],
+        "cacheHits": [],
+        "testExecuted": false,
+        "testStatuses": []
+      },
+      {
+        "case": "grant-renamed-recovered",
+        "exitCode": 0,
+        "compiled": [],
+        "cacheHits": [
+          "//Friend:target",
+          "//Library:target"
+        ],
+        "testExecuted": false,
+        "testStatuses": [
+          "PASSED"
+        ],
+        "witness": "value=7;constant=3;implementation=8D25A511245BDE2D72438849543D5E3679C83231FAC5C54EDA8C7EEBFF531AC0"
+      },
+      {
+        "case": "sdk-item",
+        "exitCode": 0,
+        "compiled": [
+          "//Friend:target",
+          "//Library:target"
+        ],
+        "cacheHits": [],
+        "testExecuted": true,
+        "testStatuses": [
+          "PASSED"
+        ],
+        "witness": "value=7;constant=3;implementation=1647F9697523598DBA5F31872056A1AA579362F84236576BF7D78A7737B3B104"
+      },
+      {
+        "case": "sdk-item-recovered",
+        "exitCode": 0,
+        "compiled": [],
+        "cacheHits": [
+          "//Friend:target",
+          "//Library:target"
+        ],
+        "testExecuted": false,
+        "testStatuses": [
+          "PASSED"
+        ],
+        "witness": "value=7;constant=3;implementation=8D25A511245BDE2D72438849543D5E3679C83231FAC5C54EDA8C7EEBFF531AC0"
+      },
+      {
+        "case": "signed",
+        "exitCode": 0,
+        "compiled": [
+          "//Friend:target",
+          "//Library:target"
+        ],
+        "cacheHits": [],
+        "testExecuted": true,
+        "testStatuses": [
+          "PASSED"
+        ],
+        "witness": "value=7;constant=3;implementation=475F6A2E17A6F74F7C4A62F5E8C9633EF3C7A1C053A034D0B43C777BBE768573"
+      },
+      {
+        "case": "wrong-key",
+        "exitCode": 1,
+        "compiled": [
+          "//Friend:target"
+        ],
+        "cacheHits": [],
+        "testExecuted": false,
+        "testStatuses": []
+      },
+      {
+        "case": "signed-recovered",
+        "exitCode": 0,
+        "compiled": [],
+        "cacheHits": [
+          "//Friend:target"
+        ],
+        "testExecuted": false,
+        "testStatuses": [
+          "PASSED"
+        ],
+        "witness": "value=7;constant=3;implementation=475F6A2E17A6F74F7C4A62F5E8C9633EF3C7A1C053A034D0B43C777BBE768573"
+      },
+      {
+        "case": "unsigned-recovered",
+        "exitCode": 0,
+        "compiled": [],
+        "cacheHits": [
+          "//Friend:target",
+          "//Library:target"
+        ],
+        "testExecuted": false,
+        "testStatuses": [
+          "PASSED"
+        ],
+        "witness": "value=7;constant=3;implementation=8D25A511245BDE2D72438849543D5E3679C83231FAC5C54EDA8C7EEBFF531AC0"
+      },
+      {
+        "case": "relocated-recovery",
+        "exitCode": 0,
+        "compiled": [],
+        "cacheHits": [
+          "//Friend:target",
+          "//Library:target"
+        ],
+        "testExecuted": true,
+        "testStatuses": [
+          "PASSED"
+        ],
+        "witness": "value=7;constant=3;implementation=8D25A511245BDE2D72438849543D5E3679C83231FAC5C54EDA8C7EEBFF531AC0"
+      },
+      {
+        "case": "relocated-body-edit",
+        "exitCode": 3,
+        "compiled": [
+          "//Library:target"
+        ],
+        "cacheHits": [],
+        "testExecuted": true,
+        "testStatuses": [
+          "FAILED"
+        ],
+        "witness": "value=9;constant=3;implementation=D8DFA28D7349B04DFA78E96BA3AF9F89EB13F8DD13C81267ACDED7062BB63496"
+      },
+      {
+        "case": "relocated-grant-rejection",
+        "exitCode": 1,
+        "compiled": [
+          "//Friend:target",
+          "//Library:target"
+        ],
+        "cacheHits": [],
+        "testExecuted": false,
+        "testStatuses": []
+      }
+    ]
+  }
+}

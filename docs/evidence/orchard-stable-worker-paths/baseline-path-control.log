@@ -1,0 +1,4 @@
+Traceback (most recent call last):
+  File "/baseline/tests/explicit_msbuild/worker_path_stability.py", line 51, in <module>
+    assert results[0] == results[1], results
+AssertionError: [{'reference/Library.dll': 'd7c14115b4c8d38aad8f295bdf6840d096f76edb4dc866d48e339740fc6fb4f4', 'runtime/Library.dll': '900fd0efc28024d955a0278b777220dcd4df355f1844e1a0b029e5c88e3ff379', 'runtime/Library.pdb': '0cf9d2f0dc56969242b2418f430881a7bd021198b25a9a025f521fe159d2fbcc'}, {'reference/Library.dll': 'f3736dbc8313e3da9162f0ade05674e1b91feac0845182994d197d0e6709d26e', 'runtime/Library.dll': '6671ba4d6468e5918d078940c8423c53893b36031745585463bcd2f8024b0e76', 'runtime/Library.pdb': 'e258114a59de4728d679f600390bedffe577a43fa04e42ac557840797ac6ad1d'}]

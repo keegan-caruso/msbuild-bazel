@@ -1,0 +1,26 @@
+[
+  {
+    "case": "initial",
+    "output": "upstream-reference\n1.0.0.0",
+    "referenceHash": "f8a5fa087aba0d8ec5331f9d43f8354c4e83313b49a8f714831257bd032fbbde",
+    "generated": {
+      "Directory.Build.props": "f668458bba53efa3bad4557d8b55d326912bf759fa13ff0e4a1eb4af14ae7302",
+      "Directory.Build.targets": "b3a897da5bf63426fde62bbc47ca2742f9cb1260d77c24556bcbaabbb27cf2fa",
+      "dotnet-tools.json": "4d89932e6df088bb4f4dc70e9d9ec723f78661f704bd2ac559f1b68863d63d21"
+    }
+  },
+  {
+    "case": "template-edit",
+    "output": "upstream-reference\n2.0.0.0",
+    "referenceHash": "0c8511a3e984a4bfd93c004879df57cd75b40b663f1d2d37090948057a02177d",
+    "generated": {
+      "Directory.Build.props": "72485e7408513e11b4cb8c98997f5201f9b3ea434f6a39e7337c6b3944b97f11",
+      "Directory.Build.targets": "b3a897da5bf63426fde62bbc47ca2742f9cb1260d77c24556bcbaabbb27cf2fa",
+      "dotnet-tools.json": "4d89932e6df088bb4f4dc70e9d9ec723f78661f704bd2ac559f1b68863d63d21"
+    }
+  },
+  {
+    "case": "binding-controls-and-relocated-cache-recovery",
+    "cacheHits": 2
+  }
+]

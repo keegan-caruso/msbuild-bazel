@@ -1,0 +1,8 @@
+{
+  "freshWorkers": 2,
+  "matching": {
+    "reference/Library.dll": "b43ad59b4c3de576370b0962533c9a7017781df7e9961b9eb88179da94c930cc",
+    "runtime/Library.dll": "75b77147b89c5dfcc85cb2c759cad7053e4128306264f61b7026750a916081bc",
+    "runtime/Library.pdb": "bf69a3330588970e517b4f00d839ff41e5592e48ca9fea41ae9654f598ea39ba"
+  }
+}

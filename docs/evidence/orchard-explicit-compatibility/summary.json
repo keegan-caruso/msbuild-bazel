@@ -1,0 +1,73 @@
+{
+  "orchardCommit": "04467a3438d4255627c1a478598a1585b3ff2947",
+  "rulesCommit": "ad86a0c",
+  "entry": "src/OrchardCore.Cms.Web/OrchardCore.Cms.Web.csproj",
+  "configuration": "Release",
+  "sdk": "10.0.400",
+  "platform": "Ubuntu 22.04 Linux ARM64, four CPUs, 6 GiB",
+  "projectCount": 202,
+  "frameworks": {
+    "net10.0": 201,
+    "netstandard2.0": 1
+  },
+  "sdks": {
+    "Microsoft.NET.Sdk.Web": 1,
+    "Microsoft.NET.Sdk": 113,
+    "Microsoft.NET.Sdk.Razor": 88
+  },
+  "centralPackageProjects": 202,
+  "privatePackageProjects": 202,
+  "analyzerProjectConsumers": 200,
+  "projectEdges": 1400,
+  "repositoryImportFiles": [
+    "Directory.Build.props",
+    "Directory.Packages.props",
+    "src/OrchardCore.Build/OrchardCore.Commons.props",
+    "src/OrchardCore.Build/OrchardCore.Commons.targets",
+    "src/OrchardCore.Build/TargetFrameworks.props",
+    "src/OrchardCore.Modules/Directory.Build.props",
+    "src/OrchardCore.Modules/Directory.Build.targets",
+    "src/OrchardCore.Themes/Directory.Build.props",
+    "src/OrchardCore.Themes/Directory.Build.targets",
+    "src/OrchardCore/Directory.Build.props",
+    "src/OrchardCore/Directory.Build.targets",
+    "src/OrchardCore/OrchardCore.Application.Cms.Core.Targets/OrchardCore.Application.Cms.Core.Targets.props",
+    "src/OrchardCore/OrchardCore.Application.Cms.Core.Targets/OrchardCore.Application.Cms.Core.Targets.targets",
+    "src/OrchardCore/OrchardCore.Application.Targets/OrchardCore.Application.Targets.targets",
+    "src/OrchardCore/OrchardCore.Module.Targets/OrchardCore.Module.Targets.props",
+    "src/OrchardCore/OrchardCore.Module.Targets/OrchardCore.Module.Targets.targets",
+    "src/OrchardCore/OrchardCore.Theme.Targets/OrchardCore.Theme.Targets.props"
+  ],
+  "probes": [
+    {
+      "case": "analyzer-provider",
+      "exit": 1,
+      "expected": "MSBuildPackageInfo"
+    },
+    {
+      "case": "generator-as-dependency",
+      "exit": 1,
+      "expected": "requires matching target frameworks"
+    },
+    {
+      "case": "private-assets",
+      "exit": 1,
+      "expected": "PrivateAssets package propagation"
+    },
+    {
+      "case": "central-package-versions",
+      "exit": 1,
+      "expected": "NU1008"
+    }
+  ],
+  "rawControl": {
+    "leafBuild": "passed; zero warnings/errors",
+    "cmsBuild": "passed; zero warnings/errors",
+    "httpSmoke": {
+      "status": 200,
+      "url": "http://127.0.0.1:5087/",
+      "bodyBytes": 50175
+    },
+    "timingQualified": false
+  }
+}

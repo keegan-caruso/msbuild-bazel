@@ -1,0 +1,26 @@
+[
+  {
+    "case": "cold",
+    "seconds": 163.02812982500018
+  },
+  {
+    "case": "noop",
+    "seconds": 1.883393500999773
+  },
+  {
+    "case": "body-edit",
+    "seconds": 2.2581932929997492
+  },
+  {
+    "case": "raw-cold",
+    "seconds": 70.151588532
+  },
+  {
+    "case": "raw-noop",
+    "seconds": 13.58630963099995
+  },
+  {
+    "case": "raw-body-edit",
+    "seconds": 10.845746088999931
+  }
+]

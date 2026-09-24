@@ -1,0 +1,11 @@
+[
+  {
+    "case": "seed",
+    "seconds": 169.24751303800008
+  },
+  {
+    "case": "relocated-recovery-all-outputs",
+    "seconds": 36.99853689199995,
+    "remoteHits": 489
+  }
+]

@@ -1,0 +1,1049 @@
+{
+  "note": "Observed loads include startup-hook and test-runner dependencies, not just test bodies.",
+  "components": [
+    {
+      "file": "System.IO.Pipelines.dll",
+      "processes": 93,
+      "suites": [
+        "System.Collections.Immutable.Tests",
+        "System.Collections.Tests",
+        "System.IO.FileSystem.Tests",
+        "System.Linq.Tests",
+        "System.Net.Sockets.Tests",
+        "System.Threading.Tasks.Tests",
+        "System.Threading.Tests"
+      ],
+      "processEntries": {
+        "vstest.console": 7,
+        "datacollector": 7,
+        "testhost": 7,
+        "Microsoft.DotNet.RemoteExecutor": 72
+      }
+    },
+    {
+      "file": "System.Reflection.Emit.ILGeneration.dll",
+      "processes": 93,
+      "suites": [
+        "System.Collections.Immutable.Tests",
+        "System.Collections.Tests",
+        "System.IO.FileSystem.Tests",
+        "System.Linq.Tests",
+        "System.Net.Sockets.Tests",
+        "System.Threading.Tasks.Tests",
+        "System.Threading.Tests"
+      ],
+      "processEntries": {
+        "vstest.console": 7,
+        "datacollector": 7,
+        "testhost": 7,
+        "Microsoft.DotNet.RemoteExecutor": 72
+      }
+    },
+    {
+      "file": "System.Reflection.Emit.Lightweight.dll",
+      "processes": 93,
+      "suites": [
+        "System.Collections.Immutable.Tests",
+        "System.Collections.Tests",
+        "System.IO.FileSystem.Tests",
+        "System.Linq.Tests",
+        "System.Net.Sockets.Tests",
+        "System.Threading.Tasks.Tests",
+        "System.Threading.Tests"
+      ],
+      "processEntries": {
+        "vstest.console": 7,
+        "datacollector": 7,
+        "testhost": 7,
+        "Microsoft.DotNet.RemoteExecutor": 72
+      }
+    },
+    {
+      "file": "System.Reflection.Primitives.dll",
+      "processes": 93,
+      "suites": [
+        "System.Collections.Immutable.Tests",
+        "System.Collections.Tests",
+        "System.IO.FileSystem.Tests",
+        "System.Linq.Tests",
+        "System.Net.Sockets.Tests",
+        "System.Threading.Tasks.Tests",
+        "System.Threading.Tests"
+      ],
+      "processEntries": {
+        "vstest.console": 7,
+        "datacollector": 7,
+        "testhost": 7,
+        "Microsoft.DotNet.RemoteExecutor": 72
+      }
+    },
+    {
+      "file": "System.Security.Cryptography.dll",
+      "processes": 93,
+      "suites": [
+        "System.Collections.Immutable.Tests",
+        "System.Collections.Tests",
+        "System.IO.FileSystem.Tests",
+        "System.Linq.Tests",
+        "System.Net.Sockets.Tests",
+        "System.Threading.Tasks.Tests",
+        "System.Threading.Tests"
+      ],
+      "processEntries": {
+        "vstest.console": 7,
+        "datacollector": 7,
+        "testhost": 7,
+        "Microsoft.DotNet.RemoteExecutor": 72
+      }
+    },
+    {
+      "file": "System.Text.Encoding.Extensions.dll",
+      "processes": 93,
+      "suites": [
+        "System.Collections.Immutable.Tests",
+        "System.Collections.Tests",
+        "System.IO.FileSystem.Tests",
+        "System.Linq.Tests",
+        "System.Net.Sockets.Tests",
+        "System.Threading.Tasks.Tests",
+        "System.Threading.Tests"
+      ],
+      "processEntries": {
+        "vstest.console": 7,
+        "datacollector": 7,
+        "testhost": 7,
+        "Microsoft.DotNet.RemoteExecutor": 72
+      }
+    },
+    {
+      "file": "System.Text.Encodings.Web.dll",
+      "processes": 93,
+      "suites": [
+        "System.Collections.Immutable.Tests",
+        "System.Collections.Tests",
+        "System.IO.FileSystem.Tests",
+        "System.Linq.Tests",
+        "System.Net.Sockets.Tests",
+        "System.Threading.Tasks.Tests",
+        "System.Threading.Tests"
+      ],
+      "processEntries": {
+        "vstest.console": 7,
+        "datacollector": 7,
+        "testhost": 7,
+        "Microsoft.DotNet.RemoteExecutor": 72
+      }
+    },
+    {
+      "file": "System.Text.Json.dll",
+      "processes": 93,
+      "suites": [
+        "System.Collections.Immutable.Tests",
+        "System.Collections.Tests",
+        "System.IO.FileSystem.Tests",
+        "System.Linq.Tests",
+        "System.Net.Sockets.Tests",
+        "System.Threading.Tasks.Tests",
+        "System.Threading.Tests"
+      ],
+      "processEntries": {
+        "vstest.console": 7,
+        "datacollector": 7,
+        "testhost": 7,
+        "Microsoft.DotNet.RemoteExecutor": 72
+      }
+    },
+    {
+      "file": "libSystem.Security.Cryptography.Native.OpenSsl.so",
+      "processes": 93,
+      "suites": [
+        "System.Collections.Immutable.Tests",
+        "System.Collections.Tests",
+        "System.IO.FileSystem.Tests",
+        "System.Linq.Tests",
+        "System.Net.Sockets.Tests",
+        "System.Threading.Tasks.Tests",
+        "System.Threading.Tests"
+      ],
+      "processEntries": {
+        "vstest.console": 7,
+        "datacollector": 7,
+        "testhost": 7,
+        "Microsoft.DotNet.RemoteExecutor": 72
+      }
+    },
+    {
+      "file": "System.Console.dll",
+      "processes": 80,
+      "suites": [
+        "System.Collections.Immutable.Tests",
+        "System.Collections.Tests",
+        "System.IO.FileSystem.Tests",
+        "System.Linq.Tests",
+        "System.Net.Sockets.Tests",
+        "System.Threading.Tasks.Tests",
+        "System.Threading.Tests"
+      ],
+      "processEntries": {
+        "vstest.console": 7,
+        "testhost": 1,
+        "Microsoft.DotNet.RemoteExecutor": 72
+      }
+    },
+    {
+      "file": "System.ComponentModel.Primitives.dll",
+      "processes": 30,
+      "suites": [
+        "System.Collections.Immutable.Tests",
+        "System.Collections.Tests",
+        "System.IO.FileSystem.Tests",
+        "System.Linq.Tests",
+        "System.Net.Sockets.Tests",
+        "System.Threading.Tasks.Tests",
+        "System.Threading.Tests"
+      ],
+      "processEntries": {
+        "vstest.console": 7,
+        "datacollector": 7,
+        "testhost": 7,
+        "Microsoft.DotNet.RemoteExecutor": 9
+      }
+    },
+    {
+      "file": "System.Diagnostics.Process.dll",
+      "processes": 30,
+      "suites": [
+        "System.Collections.Immutable.Tests",
+        "System.Collections.Tests",
+        "System.IO.FileSystem.Tests",
+        "System.Linq.Tests",
+        "System.Net.Sockets.Tests",
+        "System.Threading.Tasks.Tests",
+        "System.Threading.Tests"
+      ],
+      "processEntries": {
+        "vstest.console": 7,
+        "datacollector": 7,
+        "testhost": 7,
+        "Microsoft.DotNet.RemoteExecutor": 9
+      }
+    },
+    {
+      "file": "System.Linq.Expressions.dll",
+      "processes": 23,
+      "suites": [
+        "System.Collections.Immutable.Tests",
+        "System.Collections.Tests",
+        "System.IO.FileSystem.Tests",
+        "System.Linq.Tests",
+        "System.Net.Sockets.Tests",
+        "System.Threading.Tasks.Tests",
+        "System.Threading.Tests"
+      ],
+      "processEntries": {
+        "vstest.console": 7,
+        "datacollector": 7,
+        "testhost": 7,
+        "Microsoft.DotNet.RemoteExecutor": 2
+      }
+    },
+    {
+      "file": "System.ComponentModel.TypeConverter.dll",
+      "processes": 21,
+      "suites": [
+        "System.Collections.Immutable.Tests",
+        "System.Collections.Tests",
+        "System.IO.FileSystem.Tests",
+        "System.Linq.Tests",
+        "System.Net.Sockets.Tests",
+        "System.Threading.Tasks.Tests",
+        "System.Threading.Tests"
+      ],
+      "processEntries": {
+        "vstest.console": 7,
+        "datacollector": 7,
+        "testhost": 7
+      }
+    },
+    {
+      "file": "System.ComponentModel.dll",
+      "processes": 21,
+      "suites": [
+        "System.Collections.Immutable.Tests",
+        "System.Collections.Tests",
+        "System.IO.FileSystem.Tests",
+        "System.Linq.Tests",
+        "System.Net.Sockets.Tests",
+        "System.Threading.Tasks.Tests",
+        "System.Threading.Tests"
+      ],
+      "processEntries": {
+        "vstest.console": 7,
+        "datacollector": 7,
+        "testhost": 7
+      }
+    },
+    {
+      "file": "System.Data.Common.dll",
+      "processes": 21,
+      "suites": [
+        "System.Collections.Immutable.Tests",
+        "System.Collections.Tests",
+        "System.IO.FileSystem.Tests",
+        "System.Linq.Tests",
+        "System.Net.Sockets.Tests",
+        "System.Threading.Tasks.Tests",
+        "System.Threading.Tests"
+      ],
+      "processEntries": {
+        "vstest.console": 7,
+        "datacollector": 7,
+        "testhost": 7
+      }
+    },
+    {
+      "file": "System.Diagnostics.TraceSource.dll",
+      "processes": 21,
+      "suites": [
+        "System.Collections.Immutable.Tests",
+        "System.Collections.Tests",
+        "System.IO.FileSystem.Tests",
+        "System.Linq.Tests",
+        "System.Net.Sockets.Tests",
+        "System.Threading.Tasks.Tests",
+        "System.Threading.Tests"
+      ],
+      "processEntries": {
+        "vstest.console": 7,
+        "datacollector": 7,
+        "testhost": 7
+      }
+    },
+    {
+      "file": "System.IO.MemoryMappedFiles.dll",
+      "processes": 21,
+      "suites": [
+        "System.Collections.Immutable.Tests",
+        "System.Collections.Tests",
+        "System.IO.FileSystem.Tests",
+        "System.Linq.Tests",
+        "System.Net.Sockets.Tests",
+        "System.Threading.Tasks.Tests",
+        "System.Threading.Tests"
+      ],
+      "processEntries": {
+        "vstest.console": 7,
+        "datacollector": 7,
+        "testhost": 7
+      }
+    },
+    {
+      "file": "System.ObjectModel.dll",
+      "processes": 21,
+      "suites": [
+        "System.Collections.Immutable.Tests",
+        "System.Collections.Tests",
+        "System.IO.FileSystem.Tests",
+        "System.Linq.Tests",
+        "System.Net.Sockets.Tests",
+        "System.Threading.Tasks.Tests",
+        "System.Threading.Tests"
+      ],
+      "processEntries": {
+        "vstest.console": 7,
+        "datacollector": 7,
+        "testhost": 7
+      }
+    },
+    {
+      "file": "System.Private.Xml.dll",
+      "processes": 21,
+      "suites": [
+        "System.Collections.Immutable.Tests",
+        "System.Collections.Tests",
+        "System.IO.FileSystem.Tests",
+        "System.Linq.Tests",
+        "System.Net.Sockets.Tests",
+        "System.Threading.Tasks.Tests",
+        "System.Threading.Tests"
+      ],
+      "processEntries": {
+        "vstest.console": 7,
+        "datacollector": 7,
+        "testhost": 7
+      }
+    },
+    {
+      "file": "System.Reflection.Metadata.dll",
+      "processes": 21,
+      "suites": [
+        "System.Collections.Immutable.Tests",
+        "System.Collections.Tests",
+        "System.IO.FileSystem.Tests",
+        "System.Linq.Tests",
+        "System.Net.Sockets.Tests",
+        "System.Threading.Tasks.Tests",
+        "System.Threading.Tests"
+      ],
+      "processEntries": {
+        "vstest.console": 7,
+        "datacollector": 7,
+        "testhost": 7
+      }
+    },
+    {
+      "file": "System.Runtime.Loader.dll",
+      "processes": 21,
+      "suites": [
+        "System.Collections.Immutable.Tests",
+        "System.Collections.Tests",
+        "System.IO.FileSystem.Tests",
+        "System.Linq.Tests",
+        "System.Net.Sockets.Tests",
+        "System.Threading.Tasks.Tests",
+        "System.Threading.Tests"
+      ],
+      "processEntries": {
+        "vstest.console": 7,
+        "datacollector": 7,
+        "testhost": 7
+      }
+    },
+    {
+      "file": "System.Runtime.Numerics.dll",
+      "processes": 21,
+      "suites": [
+        "System.Collections.Immutable.Tests",
+        "System.Collections.Tests",
+        "System.IO.FileSystem.Tests",
+        "System.Linq.Tests",
+        "System.Net.Sockets.Tests",
+        "System.Threading.Tasks.Tests",
+        "System.Threading.Tests"
+      ],
+      "processEntries": {
+        "vstest.console": 7,
+        "datacollector": 7,
+        "testhost": 7
+      }
+    },
+    {
+      "file": "System.Runtime.Serialization.Primitives.dll",
+      "processes": 21,
+      "suites": [
+        "System.Collections.Immutable.Tests",
+        "System.Collections.Tests",
+        "System.IO.FileSystem.Tests",
+        "System.Linq.Tests",
+        "System.Net.Sockets.Tests",
+        "System.Threading.Tasks.Tests",
+        "System.Threading.Tests"
+      ],
+      "processEntries": {
+        "vstest.console": 7,
+        "datacollector": 7,
+        "testhost": 7
+      }
+    },
+    {
+      "file": "System.Xml.ReaderWriter.dll",
+      "processes": 21,
+      "suites": [
+        "System.Collections.Immutable.Tests",
+        "System.Collections.Tests",
+        "System.IO.FileSystem.Tests",
+        "System.Linq.Tests",
+        "System.Net.Sockets.Tests",
+        "System.Threading.Tasks.Tests",
+        "System.Threading.Tests"
+      ],
+      "processEntries": {
+        "vstest.console": 7,
+        "datacollector": 7,
+        "testhost": 7
+      }
+    },
+    {
+      "file": "netstandard.dll",
+      "processes": 21,
+      "suites": [
+        "System.Collections.Immutable.Tests",
+        "System.Collections.Tests",
+        "System.IO.FileSystem.Tests",
+        "System.Linq.Tests",
+        "System.Net.Sockets.Tests",
+        "System.Threading.Tasks.Tests",
+        "System.Threading.Tests"
+      ],
+      "processEntries": {
+        "vstest.console": 7,
+        "datacollector": 7,
+        "testhost": 7
+      }
+    },
+    {
+      "file": "System.Runtime.Serialization.Formatters.dll",
+      "processes": 20,
+      "suites": [
+        "System.Collections.Immutable.Tests",
+        "System.Collections.Tests",
+        "System.IO.FileSystem.Tests",
+        "System.Linq.Tests",
+        "System.Net.Sockets.Tests",
+        "System.Threading.Tasks.Tests",
+        "System.Threading.Tests"
+      ],
+      "processEntries": {
+        "vstest.console": 7,
+        "datacollector": 7,
+        "testhost": 6
+      }
+    },
+    {
+      "file": "System.IO.Pipes.dll",
+      "processes": 19,
+      "suites": [
+        "System.Collections.Immutable.Tests",
+        "System.Collections.Tests",
+        "System.IO.FileSystem.Tests",
+        "System.Linq.Tests",
+        "System.Net.Sockets.Tests",
+        "System.Threading.Tasks.Tests",
+        "System.Threading.Tests"
+      ],
+      "processEntries": {
+        "vstest.console": 7,
+        "testhost": 3,
+        "Microsoft.DotNet.RemoteExecutor": 9
+      }
+    },
+    {
+      "file": "mscorlib.dll",
+      "processes": 15,
+      "suites": [
+        "System.Collections.Immutable.Tests",
+        "System.Collections.Tests",
+        "System.IO.FileSystem.Tests",
+        "System.Linq.Tests",
+        "System.Net.Sockets.Tests",
+        "System.Threading.Tasks.Tests",
+        "System.Threading.Tests"
+      ],
+      "processEntries": {
+        "vstest.console": 7,
+        "datacollector": 7,
+        "testhost": 1
+      }
+    },
+    {
+      "file": "System.Private.Xml.Linq.dll",
+      "processes": 14,
+      "suites": [
+        "System.Collections.Immutable.Tests",
+        "System.Collections.Tests",
+        "System.IO.FileSystem.Tests",
+        "System.Linq.Tests",
+        "System.Net.Sockets.Tests",
+        "System.Threading.Tasks.Tests",
+        "System.Threading.Tests"
+      ],
+      "processEntries": {
+        "vstest.console": 7,
+        "testhost": 7
+      }
+    },
+    {
+      "file": "System.Text.RegularExpressions.dll",
+      "processes": 14,
+      "suites": [
+        "System.Collections.Immutable.Tests",
+        "System.Collections.Tests",
+        "System.IO.FileSystem.Tests",
+        "System.Linq.Tests",
+        "System.Net.Sockets.Tests",
+        "System.Threading.Tasks.Tests",
+        "System.Threading.Tests"
+      ],
+      "processEntries": {
+        "vstest.console": 7,
+        "testhost": 7
+      }
+    },
+    {
+      "file": "System.Threading.Tasks.Extensions.dll",
+      "processes": 14,
+      "suites": [
+        "System.Collections.Immutable.Tests",
+        "System.Collections.Tests",
+        "System.IO.FileSystem.Tests",
+        "System.Linq.Tests",
+        "System.Net.Sockets.Tests",
+        "System.Threading.Tasks.Tests",
+        "System.Threading.Tests"
+      ],
+      "processEntries": {
+        "vstest.console": 7,
+        "testhost": 7
+      }
+    },
+    {
+      "file": "System.Xml.XDocument.dll",
+      "processes": 14,
+      "suites": [
+        "System.Collections.Immutable.Tests",
+        "System.Collections.Tests",
+        "System.IO.FileSystem.Tests",
+        "System.Linq.Tests",
+        "System.Net.Sockets.Tests",
+        "System.Threading.Tasks.Tests",
+        "System.Threading.Tests"
+      ],
+      "processEntries": {
+        "vstest.console": 7,
+        "testhost": 7
+      }
+    },
+    {
+      "file": "System.Xml.dll",
+      "processes": 14,
+      "suites": [
+        "System.Collections.Immutable.Tests",
+        "System.Collections.Tests",
+        "System.IO.FileSystem.Tests",
+        "System.Linq.Tests",
+        "System.Net.Sockets.Tests",
+        "System.Threading.Tasks.Tests",
+        "System.Threading.Tests"
+      ],
+      "processEntries": {
+        "vstest.console": 7,
+        "datacollector": 7
+      }
+    },
+    {
+      "file": "System.Diagnostics.StackTrace.dll",
+      "processes": 11,
+      "suites": [
+        "System.Collections.Immutable.Tests",
+        "System.Collections.Tests",
+        "System.IO.FileSystem.Tests",
+        "System.Linq.Tests",
+        "System.Net.Sockets.Tests",
+        "System.Threading.Tasks.Tests",
+        "System.Threading.Tests"
+      ],
+      "processEntries": {
+        "vstest.console": 7,
+        "testhost": 4
+      }
+    },
+    {
+      "file": "System.IO.Compression.dll",
+      "processes": 10,
+      "suites": [
+        "System.Collections.Immutable.Tests",
+        "System.Collections.Tests",
+        "System.IO.FileSystem.Tests",
+        "System.Linq.Tests",
+        "System.Net.Sockets.Tests",
+        "System.Threading.Tasks.Tests",
+        "System.Threading.Tests"
+      ],
+      "processEntries": {
+        "vstest.console": 7,
+        "testhost": 3
+      }
+    },
+    {
+      "file": "libSystem.IO.Compression.Native.so",
+      "processes": 10,
+      "suites": [
+        "System.Collections.Immutable.Tests",
+        "System.Collections.Tests",
+        "System.IO.FileSystem.Tests",
+        "System.Linq.Tests",
+        "System.Net.Sockets.Tests",
+        "System.Threading.Tasks.Tests",
+        "System.Threading.Tests"
+      ],
+      "processEntries": {
+        "vstest.console": 7,
+        "testhost": 3
+      }
+    },
+    {
+      "file": "System.Reflection.Emit.dll",
+      "processes": 8,
+      "suites": [
+        "System.Collections.Immutable.Tests",
+        "System.Collections.Tests",
+        "System.IO.FileSystem.Tests",
+        "System.Linq.Tests",
+        "System.Net.Sockets.Tests",
+        "System.Threading.Tasks.Tests",
+        "System.Threading.Tests"
+      ],
+      "processEntries": {
+        "vstest.console": 7,
+        "testhost": 1
+      }
+    },
+    {
+      "file": "System.Collections.Specialized.dll",
+      "processes": 7,
+      "suites": [
+        "System.Collections.Immutable.Tests",
+        "System.Collections.Tests",
+        "System.IO.FileSystem.Tests",
+        "System.Linq.Tests",
+        "System.Net.Sockets.Tests",
+        "System.Threading.Tasks.Tests",
+        "System.Threading.Tests"
+      ],
+      "processEntries": {
+        "vstest.console": 7
+      }
+    },
+    {
+      "file": "System.ComponentModel.EventBasedAsync.dll",
+      "processes": 7,
+      "suites": [
+        "System.Collections.Immutable.Tests",
+        "System.Collections.Tests",
+        "System.IO.FileSystem.Tests",
+        "System.Linq.Tests",
+        "System.Net.Sockets.Tests",
+        "System.Threading.Tasks.Tests",
+        "System.Threading.Tests"
+      ],
+      "processEntries": {
+        "datacollector": 7
+      }
+    },
+    {
+      "file": "System.Diagnostics.Debug.dll",
+      "processes": 7,
+      "suites": [
+        "System.Collections.Immutable.Tests",
+        "System.Collections.Tests",
+        "System.IO.FileSystem.Tests",
+        "System.Linq.Tests",
+        "System.Net.Sockets.Tests",
+        "System.Threading.Tasks.Tests",
+        "System.Threading.Tests"
+      ],
+      "processEntries": {
+        "testhost": 7
+      }
+    },
+    {
+      "file": "System.Globalization.dll",
+      "processes": 7,
+      "suites": [
+        "System.Collections.Immutable.Tests",
+        "System.Collections.Tests",
+        "System.IO.FileSystem.Tests",
+        "System.Linq.Tests",
+        "System.Net.Sockets.Tests",
+        "System.Threading.Tasks.Tests",
+        "System.Threading.Tests"
+      ],
+      "processEntries": {
+        "testhost": 7
+      }
+    },
+    {
+      "file": "System.IO.FileSystem.dll",
+      "processes": 7,
+      "suites": [
+        "System.Collections.Immutable.Tests",
+        "System.Collections.Tests",
+        "System.IO.FileSystem.Tests",
+        "System.Linq.Tests",
+        "System.Net.Sockets.Tests",
+        "System.Threading.Tasks.Tests",
+        "System.Threading.Tests"
+      ],
+      "processEntries": {
+        "testhost": 7
+      }
+    },
+    {
+      "file": "System.IO.dll",
+      "processes": 7,
+      "suites": [
+        "System.Collections.Immutable.Tests",
+        "System.Collections.Tests",
+        "System.IO.FileSystem.Tests",
+        "System.Linq.Tests",
+        "System.Net.Sockets.Tests",
+        "System.Threading.Tasks.Tests",
+        "System.Threading.Tests"
+      ],
+      "processEntries": {
+        "testhost": 7
+      }
+    },
+    {
+      "file": "System.Net.Http.dll",
+      "processes": 7,
+      "suites": [
+        "System.Collections.Immutable.Tests",
+        "System.Collections.Tests",
+        "System.IO.FileSystem.Tests",
+        "System.Linq.Tests",
+        "System.Net.Sockets.Tests",
+        "System.Threading.Tasks.Tests",
+        "System.Threading.Tests"
+      ],
+      "processEntries": {
+        "testhost": 7
+      }
+    },
+    {
+      "file": "System.Private.DataContractSerialization.dll",
+      "processes": 7,
+      "suites": [
+        "System.Collections.Immutable.Tests",
+        "System.Collections.Tests",
+        "System.IO.FileSystem.Tests",
+        "System.Linq.Tests",
+        "System.Net.Sockets.Tests",
+        "System.Threading.Tasks.Tests",
+        "System.Threading.Tests"
+      ],
+      "processEntries": {
+        "vstest.console": 7
+      }
+    },
+    {
+      "file": "System.Reflection.Extensions.dll",
+      "processes": 7,
+      "suites": [
+        "System.Collections.Immutable.Tests",
+        "System.Collections.Tests",
+        "System.IO.FileSystem.Tests",
+        "System.Linq.Tests",
+        "System.Net.Sockets.Tests",
+        "System.Threading.Tasks.Tests",
+        "System.Threading.Tests"
+      ],
+      "processEntries": {
+        "testhost": 7
+      }
+    },
+    {
+      "file": "System.Reflection.dll",
+      "processes": 7,
+      "suites": [
+        "System.Collections.Immutable.Tests",
+        "System.Collections.Tests",
+        "System.IO.FileSystem.Tests",
+        "System.Linq.Tests",
+        "System.Net.Sockets.Tests",
+        "System.Threading.Tasks.Tests",
+        "System.Threading.Tests"
+      ],
+      "processEntries": {
+        "testhost": 7
+      }
+    },
+    {
+      "file": "System.Resources.ResourceManager.dll",
+      "processes": 7,
+      "suites": [
+        "System.Collections.Immutable.Tests",
+        "System.Collections.Tests",
+        "System.IO.FileSystem.Tests",
+        "System.Linq.Tests",
+        "System.Net.Sockets.Tests",
+        "System.Threading.Tasks.Tests",
+        "System.Threading.Tests"
+      ],
+      "processEntries": {
+        "testhost": 7
+      }
+    },
+    {
+      "file": "System.Runtime.Extensions.dll",
+      "processes": 7,
+      "suites": [
+        "System.Collections.Immutable.Tests",
+        "System.Collections.Tests",
+        "System.IO.FileSystem.Tests",
+        "System.Linq.Tests",
+        "System.Net.Sockets.Tests",
+        "System.Threading.Tasks.Tests",
+        "System.Threading.Tests"
+      ],
+      "processEntries": {
+        "testhost": 7
+      }
+    },
+    {
+      "file": "System.Runtime.InteropServices.RuntimeInformation.dll",
+      "processes": 7,
+      "suites": [
+        "System.Collections.Immutable.Tests",
+        "System.Collections.Tests",
+        "System.IO.FileSystem.Tests",
+        "System.Linq.Tests",
+        "System.Net.Sockets.Tests",
+        "System.Threading.Tasks.Tests",
+        "System.Threading.Tests"
+      ],
+      "processEntries": {
+        "testhost": 7
+      }
+    },
+    {
+      "file": "System.Runtime.Serialization.Xml.dll",
+      "processes": 7,
+      "suites": [
+        "System.Collections.Immutable.Tests",
+        "System.Collections.Tests",
+        "System.IO.FileSystem.Tests",
+        "System.Linq.Tests",
+        "System.Net.Sockets.Tests",
+        "System.Threading.Tasks.Tests",
+        "System.Threading.Tests"
+      ],
+      "processEntries": {
+        "vstest.console": 7
+      }
+    },
+    {
+      "file": "System.Text.Encoding.dll",
+      "processes": 7,
+      "suites": [
+        "System.Collections.Immutable.Tests",
+        "System.Collections.Tests",
+        "System.IO.FileSystem.Tests",
+        "System.Linq.Tests",
+        "System.Net.Sockets.Tests",
+        "System.Threading.Tasks.Tests",
+        "System.Threading.Tests"
+      ],
+      "processEntries": {
+        "testhost": 7
+      }
+    },
+    {
+      "file": "System.Threading.Tasks.dll",
+      "processes": 7,
+      "suites": [
+        "System.Collections.Immutable.Tests",
+        "System.Collections.Tests",
+        "System.IO.FileSystem.Tests",
+        "System.Linq.Tests",
+        "System.Net.Sockets.Tests",
+        "System.Threading.Tasks.Tests",
+        "System.Threading.Tests"
+      ],
+      "processEntries": {
+        "testhost": 7
+      }
+    },
+    {
+      "file": "System.Xml.XPath.dll",
+      "processes": 7,
+      "suites": [
+        "System.Collections.Immutable.Tests",
+        "System.Collections.Tests",
+        "System.IO.FileSystem.Tests",
+        "System.Linq.Tests",
+        "System.Net.Sockets.Tests",
+        "System.Threading.Tasks.Tests",
+        "System.Threading.Tests"
+      ],
+      "processEntries": {
+        "vstest.console": 7
+      }
+    },
+    {
+      "file": "Microsoft.Win32.Registry.dll",
+      "processes": 6,
+      "suites": [
+        "System.Collections.Immutable.Tests",
+        "System.Collections.Tests",
+        "System.IO.FileSystem.Tests",
+        "System.Linq.Tests",
+        "System.Threading.Tasks.Tests",
+        "System.Threading.Tests"
+      ],
+      "processEntries": {
+        "testhost": 6
+      }
+    },
+    {
+      "file": "Microsoft.CSharp.dll",
+      "processes": 2,
+      "suites": [
+        "System.Threading.Tasks.Tests"
+      ],
+      "processEntries": {
+        "Microsoft.DotNet.RemoteExecutor": 2
+      }
+    },
+    {
+      "file": "System.Core.dll",
+      "processes": 1,
+      "suites": [
+        "System.Collections.Tests"
+      ],
+      "processEntries": {
+        "testhost": 1
+      }
+    },
+    {
+      "file": "System.IO.FileSystem.DriveInfo.dll",
+      "processes": 1,
+      "suites": [
+        "System.IO.FileSystem.Tests"
+      ],
+      "processEntries": {
+        "testhost": 1
+      }
+    },
+    {
+      "file": "System.Linq.AsyncEnumerable.dll",
+      "processes": 1,
+      "suites": [
+        "System.Threading.Tasks.Tests"
+      ],
+      "processEntries": {
+        "testhost": 1
+      }
+    },
+    {
+      "file": "System.Linq.Queryable.dll",
+      "processes": 1,
+      "suites": [
+        "System.Linq.Tests"
+      ],
+      "processEntries": {
+        "testhost": 1
+      }
+    },
+    {
+      "file": "System.Threading.Tasks.Parallel.dll",
+      "processes": 1,
+      "suites": [
+        "System.IO.FileSystem.Tests"
+      ],
+      "processEntries": {
+        "testhost": 1
+      }
+    },
+    {
+      "file": "System.dll",
+      "processes": 1,
+      "suites": [
+        "System.Collections.Tests"
+      ],
+      "processEntries": {
+        "testhost": 1
+      }
+    }
+  ]
+}

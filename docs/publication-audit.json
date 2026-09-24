@@ -1,0 +1,117 @@
+{
+  "date": "2026-09-23",
+  "remoteMain": "46d7f37b5cf36e62453a2a511697562107ce6ee2",
+  "visibility": "private",
+  "scanner": {
+    "name": "Gitleaks",
+    "version": "8.30.1",
+    "darwinArm64ArchiveSha256": "b40ab0ae55c505963e365f271a8d3846efbc170aa17f2607f13df610a9aeb6a5",
+    "redacted": true,
+    "archiveDepth": 6
+  },
+  "history": {
+    "commits": 366,
+    "alerts": 404,
+    "reviewedDigestFalsePositives": 395,
+    "reviewedProseFalsePositives": 9,
+    "unresolved": 0,
+    "refs": [
+      "refs/heads/codex/action-local-cache-validation 26dafdbc625d3ce66cd7e54ee6699df9ede949a0",
+      "refs/heads/codex/async-cache-upload-benchmark 36647ab602286c3d755f7a94844a63fc7fb526e8",
+      "refs/heads/codex/bazel-test 6d460984fbb2c11d01bbcc8b7e4d142b8f8c8e73",
+      "refs/heads/codex/cache-publication 449b5c330ddeacd0cb16b3014faf083a6eafaf30",
+      "refs/heads/codex/cache-review 75eb6be292a1decd4e5744c265d2e87e5c675204",
+      "refs/heads/codex/canonical-seeds 42a75288e5d099ef7bc58858f14f71f8b78585d3",
+      "refs/heads/codex/clean-history 5bee4a729e99963ab10acaff4a8c8937c0a17761",
+      "refs/heads/codex/compile-input-audit 9aa544d95d88f359bc403b8163d00ce25494db46",
+      "refs/heads/codex/explicit-msbuild-rules 4b0fdec225e3a874ae5cc678217e8a406a0cd67c",
+      "refs/heads/codex/incremental-preparation e986cbeb140f4cf22400665d08d9137d59d82101",
+      "refs/heads/codex/linux-worker-input-identities 8c79411a2a20c45bc929cfe28cc7536d77fbb996",
+      "refs/heads/codex/local-mvp-release de7220cda507268e8123ea09b17ca66fafe8c1f1",
+      "refs/heads/codex/merge-new-model 95edc28abb5537c3e65f7e504d87259ff1f51057",
+      "refs/heads/codex/msbuild-native-cache e39e726f77b7c6bbc821990825f739c7ea7234cf",
+      "refs/heads/codex/mvp-performance-qualification 3bdb903e6c52c810d58fddfe355cf16b355ce8de",
+      "refs/heads/codex/mvp-support-contract fed67608700000166627cf4f0552254389141a90",
+      "refs/heads/codex/orchard-target-handoff 84d1d2c94c9512423e76b8c9f46617edb06b8ff1",
+      "refs/heads/codex/package-input-staging 6fc9301cbeaadc8b4a8028210ba5e253ead60b04",
+      "refs/heads/codex/razor-hermetic-sandbox 07a316dce614ee7a88fe0bb2a4936e95af650b13",
+      "refs/heads/codex/readonly-package-graph ab7741f07fd850e30699424f51efc2f16a8d421d",
+      "refs/heads/codex/remove-production-python 59defb744fe73146ae462f49433ab1c1d6fdeea1",
+      "refs/heads/codex/remove-worker-tool-staging 5c89f6f530039a0bd3fd3553c310e047f03bd1d5",
+      "refs/heads/codex/runtime-docs-cleanup 4c2f686fccd0cf4a14177390b288f3b65c057f08",
+      "refs/heads/codex/runtime-raw-timing eea51a7959071ad2e09715c5d39ed2b74cd63945",
+      "refs/heads/codex/runtime-recovery 965a333aeaa861a66d03333bab9ae903ec353349",
+      "refs/heads/main 46d7f37b5cf36e62453a2a511697562107ce6ee2",
+      "refs/pull/1/head 236faa62fc4d920cc7839e9cd1ff2872ceb5cef4",
+      "refs/pull/2/head e2fd474cb25e018220d2ac452850d38547bfa938",
+      "refs/pull/3/head 23415e4797c18123bf6fc09174484653db2297bf",
+      "refs/pull/4/head 5ca8a1e3cc7caec1562cc1872d847c416b22f3ea",
+      "refs/pull/66/head fed67608700000166627cf4f0552254389141a90",
+      "refs/pull/67/head 3bdb903e6c52c810d58fddfe355cf16b355ce8de",
+      "refs/pull/68/head e986cbeb140f4cf22400665d08d9137d59d82101",
+      "refs/pull/69/head de7220cda507268e8123ea09b17ca66fafe8c1f1",
+      "refs/pull/70/head a669a4058df293d57fb66eacc7c17e9bfc5577c1",
+      "refs/pull/71/head 75eb6be292a1decd4e5744c265d2e87e5c675204",
+      "refs/pull/72/head 42a75288e5d099ef7bc58858f14f71f8b78585d3",
+      "refs/pull/73/head 95edc28abb5537c3e65f7e504d87259ff1f51057"
+    ],
+    "historicalTagObjects": [
+      "c8962b73eb835caf66b786c917b7573b100099fc"
+    ]
+  },
+  "worktree": {
+    "alerts": 136,
+    "reviewedDigestFalsePositives": 133,
+    "reviewedProseFalsePositives": 3,
+    "unresolved": 0
+  },
+  "release": {
+    "assets": 5,
+    "alerts": 30,
+    "reviewedDigestFalsePositives": 29,
+    "reviewedCacheNameFalsePositives": 1,
+    "unresolved": 0,
+    "sourceCommit": "c4708f6b1e480725ff8001734fa3eae0eb47e59d"
+  },
+  "actionsArtifacts": {
+    "downloaded": 136,
+    "bytes": 170321743,
+    "alerts": 0
+  },
+  "workflowLogs": {
+    "listedRuns": 284,
+    "downloaded": 175,
+    "notFound": 109,
+    "alerts": 0
+  },
+  "metadata": {
+    "issueAndPullRecords": 73,
+    "issueComments": 1,
+    "reviewComments": 0,
+    "alerts": 0
+  },
+  "validation": {
+    "runnerBuild": "passed, zero warnings/errors",
+    "helloRun": "passed",
+    "helloTest": "passed",
+    "libraryBodyEditNegative": "expected test failure",
+    "toolchainAndStarlark": "passed",
+    "ciDispatchUnitTests": 5,
+    "githubWorkflowsStarted": false
+  },
+  "localEvidenceDirectory": "/private/tmp/msbuild-public-audit",
+  "reportHashes": {
+    "history-findings.json": "7d4e92eafe874bbea7537d3ea1c32f5644c1dd8c1ca6f3bcfaf9a054eb410f52",
+    "metadata-findings.json": "37517e5f3dc66819f61f5a7bb8ace1921282415f10551d2defa5c3eb0985b570",
+    "release-findings.json": "68d87d20c55544da405f4fe5573f716c0d24643c7602238018e54266c070cc75",
+    "logs-findings.json": "37517e5f3dc66819f61f5a7bb8ace1921282415f10551d2defa5c3eb0985b570",
+    "worktree-findings.json": "be396ed0c6b8c6666ba36a152810a29f01f00a1a09a55f1652103f78db9e28bc",
+    "actions-findings.json": "37517e5f3dc66819f61f5a7bb8ace1921282415f10551d2defa5c3eb0985b570"
+  },
+  "limits": [
+    "Signature scans do not prove absence of secrets or inspect arbitrary binary contents.",
+    "109 workflow log archives returned HTTP 404 and were not audited.",
+    "Remote settings, visibility, refs and release assets were not changed."
+  ],
+  "snapshotNote": "Pre-publication audit snapshot; historical tag provenance is recorded by object ID rather than tag name."
+}

@@ -1,0 +1,18 @@
+load("@rules_msbuild//msbuild:defs.bzl", "msbuild_binary", "msbuild_test")
+
+msbuild_binary(
+    name = "App",
+    srcs = ["Program.cs"],
+    project = "App.csproj",
+    target_framework = "net10.0",
+    deps = ["//Library"],
+)
+
+# Executable tests pass when the process exits with status zero.
+msbuild_test(
+    name = "Tests",
+    srcs = ["Program.cs"],
+    project = "App.csproj",
+    target_framework = "net10.0",
+    deps = ["//Library"],
+)

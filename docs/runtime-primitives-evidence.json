@@ -1,0 +1,1289 @@
+{
+  "platform": "Linux ARM64 (Apple Container)",
+  "sdk": "10.0.400",
+  "runtime": "10.0.11",
+  "suites": {
+    "9.2.0": {
+      "managed": [
+        {
+          "case": "contract-implementation",
+          "exitCode": 0,
+          "compiled": [
+            "//:consumer",
+            "//:contract",
+            "//:impl"
+          ],
+          "testExecuted": true,
+          "executedActions": [
+            "MSBuildAssembly://:contract",
+            "MSBuildAssembly://:impl",
+            "MSBuildAssemblyPair://:pair",
+            "MSBuildAssembly://:consumer"
+          ]
+        },
+        {
+          "case": "implementation-body",
+          "exitCode": 3,
+          "compiled": [
+            "//:impl"
+          ],
+          "testExecuted": true,
+          "executedActions": [
+            "MSBuildAssembly://:impl"
+          ]
+        },
+        {
+          "case": "body-recovery",
+          "exitCode": 0,
+          "compiled": [],
+          "testExecuted": false,
+          "executedActions": []
+        },
+        {
+          "case": "contract-api",
+          "exitCode": 1,
+          "compiled": [
+            "//:consumer",
+            "//:contract"
+          ],
+          "testExecuted": false,
+          "executedActions": [
+            "MSBuildAssembly://:contract",
+            "MSBuildAssemblyPair://:pair",
+            "MSBuildAssembly://:consumer"
+          ]
+        },
+        {
+          "case": "configuration-mismatch",
+          "exitCode": 1,
+          "compiled": [
+            "//:consumer"
+          ],
+          "testExecuted": false,
+          "executedActions": [
+            "MSBuildAssembly://:consumer"
+          ]
+        },
+        {
+          "case": "feature-mismatch",
+          "exitCode": 1,
+          "compiled": [
+            "//:consumer"
+          ],
+          "testExecuted": false,
+          "executedActions": [
+            "MSBuildAssembly://:consumer"
+          ]
+        },
+        {
+          "case": "identity-mismatch",
+          "exitCode": 1,
+          "compiled": [],
+          "testExecuted": false,
+          "executedActions": []
+        },
+        {
+          "case": "unpaired-contract",
+          "exitCode": 1,
+          "compiled": [],
+          "testExecuted": false,
+          "executedActions": []
+        },
+        {
+          "case": "recovered",
+          "exitCode": 0,
+          "compiled": [],
+          "testExecuted": false,
+          "executedActions": []
+        },
+        {
+          "case": "assembly-version-mismatch",
+          "exitCode": 1,
+          "compiled": [
+            "//:impl"
+          ],
+          "testExecuted": false,
+          "executedActions": [
+            "MSBuildAssembly://:impl",
+            "MSBuildAssemblyPair://:pair"
+          ]
+        },
+        {
+          "case": "friend-hidden-by-contract",
+          "exitCode": 1,
+          "compiled": [
+            "//:consumer",
+            "//:impl"
+          ],
+          "testExecuted": false,
+          "executedActions": [
+            "MSBuildAssembly://:impl",
+            "MSBuildAssembly://:consumer"
+          ]
+        },
+        {
+          "case": "friend-implementation-edge",
+          "exitCode": 0,
+          "compiled": [
+            "//:consumer"
+          ],
+          "testExecuted": true,
+          "executedActions": [
+            "MSBuildAssembly://:consumer"
+          ]
+        },
+        {
+          "case": "removed-global-property",
+          "exitCode": 0,
+          "compiled": [
+            "//:consumer"
+          ],
+          "testExecuted": false,
+          "executedActions": [
+            "MSBuildAssembly://:consumer"
+          ]
+        },
+        {
+          "case": "removed-property-mismatch",
+          "exitCode": 1,
+          "compiled": [
+            "//:consumer",
+            "//:impl"
+          ],
+          "testExecuted": false,
+          "executedActions": [
+            "MSBuildAssembly://:impl",
+            "MSBuildAssembly://:consumer"
+          ]
+        },
+        {
+          "case": "changed-producer-configuration",
+          "exitCode": 0,
+          "compiled": [
+            "//:consumer",
+            "//:impl"
+          ],
+          "testExecuted": true,
+          "executedActions": [
+            "MSBuildAssembly://:impl",
+            "MSBuildAssembly://:consumer"
+          ]
+        },
+        {
+          "case": "type-forwarder",
+          "exitCode": 0,
+          "compiled": [
+            "//:consumer",
+            "//:contract",
+            "//:dest",
+            "//:impl"
+          ],
+          "testExecuted": true,
+          "executedActions": [
+            "MSBuildAssembly://:dest",
+            "MSBuildAssembly://:contract",
+            "MSBuildAssembly://:impl",
+            "MSBuildAssemblyPair://:pair",
+            "MSBuildAssembly://:consumer"
+          ]
+        },
+        {
+          "case": "forwarded-implementation-body",
+          "exitCode": 3,
+          "compiled": [
+            "//:dest"
+          ],
+          "testExecuted": true,
+          "executedActions": [
+            "MSBuildAssembly://:dest"
+          ]
+        },
+        {
+          "case": "producer-property-override",
+          "exitCode": 1,
+          "compiled": [
+            "//:impl"
+          ],
+          "testExecuted": false,
+          "executedActions": [
+            "MSBuildAssembly://:impl"
+          ]
+        },
+        {
+          "case": "authored-reference-attribute",
+          "exitCode": 0,
+          "compiled": [
+            "//:contract"
+          ],
+          "testExecuted": false,
+          "executedActions": [
+            "MSBuildAssembly://:contract"
+          ]
+        },
+        {
+          "case": "declared-runtime",
+          "exitCode": 0,
+          "compiled": [
+            "//:consumer"
+          ],
+          "testExecuted": true,
+          "executedActions": [
+            "MSBuildAssembly://:consumer",
+            "MSBuildLayout://:host_tree"
+          ]
+        },
+        {
+          "case": "runtime-only-mutation",
+          "exitCode": 3,
+          "compiled": [],
+          "testExecuted": true,
+          "executedActions": [
+            "MSBuildLayout://:host_tree"
+          ]
+        },
+        {
+          "case": "runtime-recovered",
+          "exitCode": 0,
+          "compiled": [],
+          "testExecuted": false,
+          "executedActions": []
+        },
+        {
+          "case": "missing-runtime",
+          "exitCode": 3,
+          "compiled": [],
+          "testExecuted": true,
+          "executedActions": []
+        },
+        {
+          "case": "second-runtime-tree",
+          "exitCode": 3,
+          "compiled": [],
+          "testExecuted": true,
+          "executedActions": [
+            "MSBuildLayout://:host_tree_two"
+          ]
+        },
+        {
+          "case": "missing-runtime-component",
+          "exitCode": 3,
+          "compiled": [],
+          "testExecuted": true,
+          "executedActions": [
+            "MSBuildLayout://:host_tree"
+          ]
+        },
+        {
+          "case": "explicit-framework-pack",
+          "exitCode": 0,
+          "compiled": [
+            "//:consumer",
+            "//:marker"
+          ],
+          "testExecuted": true,
+          "executedActions": [
+            "MSBuildAssembly://:marker",
+            "MSBuildAssembly://:consumer"
+          ]
+        },
+        {
+          "case": "pack-api-mutation",
+          "exitCode": 3,
+          "compiled": [
+            "//:consumer",
+            "//:marker"
+          ],
+          "testExecuted": true,
+          "executedActions": [
+            "MSBuildAssembly://:marker",
+            "MSBuildAssembly://:consumer"
+          ]
+        },
+        {
+          "case": "absent-pack",
+          "exitCode": 1,
+          "compiled": [
+            "//:consumer"
+          ],
+          "testExecuted": false,
+          "executedActions": [
+            "MSBuildAssembly://:consumer"
+          ]
+        },
+        {
+          "case": "no-installed-pack-fallback",
+          "exitCode": 1,
+          "compiled": [
+            "//:consumer"
+          ],
+          "testExecuted": false,
+          "executedActions": [
+            "MSBuildAssembly://:consumer"
+          ]
+        },
+        {
+          "case": "no-standard-library",
+          "exitCode": 0,
+          "compiled": [
+            "//:core"
+          ],
+          "testExecuted": false,
+          "executedActions": [
+            "MSBuildAssembly://:core"
+          ]
+        },
+        {
+          "case": "generated-layout",
+          "exitCode": 0,
+          "compiled": [
+            "//:consumer"
+          ],
+          "testExecuted": false,
+          "executedActions": [
+            "MSBuildGenerate://:bootstrap",
+            "MSBuildLayout://:bootstrap_layout",
+            "MSBuildAssembly://:consumer"
+          ]
+        },
+        {
+          "case": "generated-layout-mutation",
+          "exitCode": 1,
+          "compiled": [
+            "//:consumer"
+          ],
+          "testExecuted": false,
+          "executedActions": [
+            "MSBuildGenerate://:bootstrap",
+            "MSBuildLayout://:bootstrap_layout",
+            "MSBuildAssembly://:consumer"
+          ]
+        },
+        {
+          "case": "layout-collision",
+          "exitCode": 1,
+          "compiled": [],
+          "testExecuted": false,
+          "executedActions": [
+            "MSBuildLayout://:bootstrap_layout"
+          ]
+        },
+        {
+          "case": "unsafe-layout-destination",
+          "exitCode": 1,
+          "compiled": [],
+          "testExecuted": false,
+          "executedActions": [
+            "MSBuildLayout://:bootstrap_layout"
+          ]
+        },
+        {
+          "case": "missing-generated-output",
+          "exitCode": 1,
+          "compiled": [],
+          "testExecuted": false,
+          "executedActions": [
+            "MSBuildGenerate://:bootstrap"
+          ]
+        },
+        {
+          "case": "read-only-layout",
+          "exitCode": 1,
+          "compiled": [
+            "//:consumer"
+          ],
+          "testExecuted": false,
+          "executedActions": [
+            "MSBuildAssembly://:consumer"
+          ]
+        },
+        {
+          "case": "layout-recovered",
+          "exitCode": 0,
+          "compiled": [],
+          "testExecuted": false,
+          "executedActions": []
+        },
+        {
+          "case": "producer-deleted-recovery",
+          "exitCode": 0,
+          "compiled": [],
+          "testExecuted": true,
+          "executedActions": []
+        }
+      ],
+      "native": [
+        {
+          "case": "native-pinvoke",
+          "exitCode": 0,
+          "built": [
+            "//:consumer",
+            "//:shim",
+            "//:task"
+          ],
+          "testExecuted": true
+        },
+        {
+          "case": "header-mutation",
+          "exitCode": 3,
+          "built": [
+            "//:shim"
+          ],
+          "testExecuted": true
+        },
+        {
+          "case": "header-recovered",
+          "exitCode": 0,
+          "built": [],
+          "testExecuted": false
+        },
+        {
+          "case": "native-tool-mutation",
+          "exitCode": 0,
+          "built": [
+            "//:shim"
+          ],
+          "testExecuted": false
+        },
+        {
+          "case": "missing-tool-closure",
+          "exitCode": 1,
+          "built": [
+            "//:shim"
+          ],
+          "testExecuted": false
+        },
+        {
+          "case": "missing-native-entry",
+          "exitCode": 1,
+          "built": [
+            "//:shim"
+          ],
+          "testExecuted": false
+        },
+        {
+          "case": "recovered",
+          "exitCode": 0,
+          "built": [],
+          "testExecuted": false
+        },
+        {
+          "case": "producer-deleted-native-recovery",
+          "exitCode": 0,
+          "built": [],
+          "testExecuted": true
+        }
+      ],
+      "runtimeWitness": [
+        "corelib=BBC5D2FDAF3CAC9EE5573A28DA5C082F138A45326FF66E142521780782F9902B",
+        "runtime=$FIXTURE/base/execroot/_main/bazel-out/aarch64-fastbuild/bin/host_tree.layout",
+        "native-runtime=$FIXTURE/base/execroot/_main/bazel-out/aarch64-fastbuild/bin/host_tree.layout/shared/Microsoft.NETCore.App/10.0.11/libcoreclr.so;sha256=82A98BD37027FABED3B7ADEA90866408430FE44967EF5EFD0B1F39C06918E8B1"
+      ],
+      "nativeTools": {
+        "gcc": "6c3baa3d21eea32b960de4ad2d366d484ce1dd837eb85f4904e656758bfa1a6b",
+        "cc1": "e9821f99072309d8679fc7c07716bdefd183672a47c9450c99c388011ebe644b",
+        "as": "9882c4e62a95d50f1c5f47dcca1dd05827ad9efd331163e56d51047c27689364",
+        "ld": "d6447dfaf033b28bf151475c972d0bf236223aa49214450d2ac04c009c9d3010"
+      }
+    },
+    "8.8.0": {
+      "managed": [
+        {
+          "case": "contract-implementation",
+          "exitCode": 0,
+          "compiled": [
+            "//:consumer",
+            "//:contract",
+            "//:impl"
+          ],
+          "testExecuted": true,
+          "executedActions": [
+            "MSBuildAssembly://:contract",
+            "MSBuildAssembly://:impl",
+            "MSBuildAssemblyPair://:pair",
+            "MSBuildAssembly://:consumer"
+          ]
+        },
+        {
+          "case": "implementation-body",
+          "exitCode": 3,
+          "compiled": [
+            "//:impl"
+          ],
+          "testExecuted": true,
+          "executedActions": [
+            "MSBuildAssembly://:impl"
+          ]
+        },
+        {
+          "case": "body-recovery",
+          "exitCode": 0,
+          "compiled": [],
+          "testExecuted": false,
+          "executedActions": []
+        },
+        {
+          "case": "contract-api",
+          "exitCode": 1,
+          "compiled": [
+            "//:consumer",
+            "//:contract"
+          ],
+          "testExecuted": false,
+          "executedActions": [
+            "MSBuildAssembly://:contract",
+            "MSBuildAssemblyPair://:pair",
+            "MSBuildAssembly://:consumer"
+          ]
+        },
+        {
+          "case": "configuration-mismatch",
+          "exitCode": 1,
+          "compiled": [
+            "//:consumer"
+          ],
+          "testExecuted": false,
+          "executedActions": [
+            "MSBuildAssembly://:consumer"
+          ]
+        },
+        {
+          "case": "feature-mismatch",
+          "exitCode": 1,
+          "compiled": [
+            "//:consumer"
+          ],
+          "testExecuted": false,
+          "executedActions": [
+            "MSBuildAssembly://:consumer"
+          ]
+        },
+        {
+          "case": "identity-mismatch",
+          "exitCode": 1,
+          "compiled": [],
+          "testExecuted": false,
+          "executedActions": []
+        },
+        {
+          "case": "unpaired-contract",
+          "exitCode": 1,
+          "compiled": [],
+          "testExecuted": false,
+          "executedActions": []
+        },
+        {
+          "case": "recovered",
+          "exitCode": 0,
+          "compiled": [],
+          "testExecuted": false,
+          "executedActions": []
+        },
+        {
+          "case": "assembly-version-mismatch",
+          "exitCode": 1,
+          "compiled": [
+            "//:impl"
+          ],
+          "testExecuted": false,
+          "executedActions": [
+            "MSBuildAssembly://:impl",
+            "MSBuildAssemblyPair://:pair"
+          ]
+        },
+        {
+          "case": "friend-hidden-by-contract",
+          "exitCode": 1,
+          "compiled": [
+            "//:consumer",
+            "//:impl"
+          ],
+          "testExecuted": false,
+          "executedActions": [
+            "MSBuildAssembly://:impl",
+            "MSBuildAssembly://:consumer"
+          ]
+        },
+        {
+          "case": "friend-implementation-edge",
+          "exitCode": 0,
+          "compiled": [
+            "//:consumer"
+          ],
+          "testExecuted": true,
+          "executedActions": [
+            "MSBuildAssembly://:consumer"
+          ]
+        },
+        {
+          "case": "removed-global-property",
+          "exitCode": 0,
+          "compiled": [
+            "//:consumer"
+          ],
+          "testExecuted": false,
+          "executedActions": [
+            "MSBuildAssembly://:consumer"
+          ]
+        },
+        {
+          "case": "removed-property-mismatch",
+          "exitCode": 1,
+          "compiled": [
+            "//:consumer",
+            "//:impl"
+          ],
+          "testExecuted": false,
+          "executedActions": [
+            "MSBuildAssembly://:impl",
+            "MSBuildAssembly://:consumer"
+          ]
+        },
+        {
+          "case": "changed-producer-configuration",
+          "exitCode": 0,
+          "compiled": [
+            "//:consumer",
+            "//:impl"
+          ],
+          "testExecuted": true,
+          "executedActions": [
+            "MSBuildAssembly://:impl",
+            "MSBuildAssembly://:consumer"
+          ]
+        },
+        {
+          "case": "type-forwarder",
+          "exitCode": 0,
+          "compiled": [
+            "//:consumer",
+            "//:contract",
+            "//:dest",
+            "//:impl"
+          ],
+          "testExecuted": true,
+          "executedActions": [
+            "MSBuildAssembly://:dest",
+            "MSBuildAssembly://:contract",
+            "MSBuildAssembly://:impl",
+            "MSBuildAssemblyPair://:pair",
+            "MSBuildAssembly://:consumer"
+          ]
+        },
+        {
+          "case": "forwarded-implementation-body",
+          "exitCode": 3,
+          "compiled": [
+            "//:dest"
+          ],
+          "testExecuted": true,
+          "executedActions": [
+            "MSBuildAssembly://:dest"
+          ]
+        },
+        {
+          "case": "producer-property-override",
+          "exitCode": 1,
+          "compiled": [
+            "//:impl"
+          ],
+          "testExecuted": false,
+          "executedActions": [
+            "MSBuildAssembly://:impl"
+          ]
+        },
+        {
+          "case": "authored-reference-attribute",
+          "exitCode": 0,
+          "compiled": [
+            "//:contract"
+          ],
+          "testExecuted": false,
+          "executedActions": [
+            "MSBuildAssembly://:contract"
+          ]
+        },
+        {
+          "case": "declared-runtime",
+          "exitCode": 0,
+          "compiled": [
+            "//:consumer"
+          ],
+          "testExecuted": true,
+          "executedActions": [
+            "MSBuildAssembly://:consumer",
+            "MSBuildLayout://:host_tree"
+          ]
+        },
+        {
+          "case": "runtime-only-mutation",
+          "exitCode": 3,
+          "compiled": [],
+          "testExecuted": true,
+          "executedActions": [
+            "MSBuildLayout://:host_tree"
+          ]
+        },
+        {
+          "case": "runtime-recovered",
+          "exitCode": 0,
+          "compiled": [],
+          "testExecuted": false,
+          "executedActions": []
+        },
+        {
+          "case": "missing-runtime",
+          "exitCode": 3,
+          "compiled": [],
+          "testExecuted": true,
+          "executedActions": []
+        },
+        {
+          "case": "second-runtime-tree",
+          "exitCode": 3,
+          "compiled": [],
+          "testExecuted": true,
+          "executedActions": [
+            "MSBuildLayout://:host_tree_two"
+          ]
+        },
+        {
+          "case": "missing-runtime-component",
+          "exitCode": 3,
+          "compiled": [],
+          "testExecuted": true,
+          "executedActions": [
+            "MSBuildLayout://:host_tree"
+          ]
+        },
+        {
+          "case": "explicit-framework-pack",
+          "exitCode": 0,
+          "compiled": [
+            "//:consumer",
+            "//:marker"
+          ],
+          "testExecuted": true,
+          "executedActions": [
+            "MSBuildAssembly://:marker",
+            "MSBuildAssembly://:consumer"
+          ]
+        },
+        {
+          "case": "pack-api-mutation",
+          "exitCode": 3,
+          "compiled": [
+            "//:consumer",
+            "//:marker"
+          ],
+          "testExecuted": true,
+          "executedActions": [
+            "MSBuildAssembly://:marker",
+            "MSBuildAssembly://:consumer"
+          ]
+        },
+        {
+          "case": "absent-pack",
+          "exitCode": 1,
+          "compiled": [
+            "//:consumer"
+          ],
+          "testExecuted": false,
+          "executedActions": [
+            "MSBuildAssembly://:consumer"
+          ]
+        },
+        {
+          "case": "no-installed-pack-fallback",
+          "exitCode": 1,
+          "compiled": [
+            "//:consumer"
+          ],
+          "testExecuted": false,
+          "executedActions": [
+            "MSBuildAssembly://:consumer"
+          ]
+        },
+        {
+          "case": "no-standard-library",
+          "exitCode": 0,
+          "compiled": [
+            "//:core"
+          ],
+          "testExecuted": false,
+          "executedActions": [
+            "MSBuildAssembly://:core"
+          ]
+        },
+        {
+          "case": "generated-layout",
+          "exitCode": 0,
+          "compiled": [
+            "//:consumer"
+          ],
+          "testExecuted": false,
+          "executedActions": [
+            "MSBuildGenerate://:bootstrap",
+            "MSBuildLayout://:bootstrap_layout",
+            "MSBuildAssembly://:consumer"
+          ]
+        },
+        {
+          "case": "generated-layout-mutation",
+          "exitCode": 1,
+          "compiled": [
+            "//:consumer"
+          ],
+          "testExecuted": false,
+          "executedActions": [
+            "MSBuildGenerate://:bootstrap",
+            "MSBuildLayout://:bootstrap_layout",
+            "MSBuildAssembly://:consumer"
+          ]
+        },
+        {
+          "case": "layout-collision",
+          "exitCode": 1,
+          "compiled": [],
+          "testExecuted": false,
+          "executedActions": [
+            "MSBuildLayout://:bootstrap_layout"
+          ]
+        },
+        {
+          "case": "unsafe-layout-destination",
+          "exitCode": 1,
+          "compiled": [],
+          "testExecuted": false,
+          "executedActions": [
+            "MSBuildLayout://:bootstrap_layout"
+          ]
+        },
+        {
+          "case": "missing-generated-output",
+          "exitCode": 1,
+          "compiled": [],
+          "testExecuted": false,
+          "executedActions": [
+            "MSBuildGenerate://:bootstrap"
+          ]
+        },
+        {
+          "case": "read-only-layout",
+          "exitCode": 1,
+          "compiled": [
+            "//:consumer"
+          ],
+          "testExecuted": false,
+          "executedActions": [
+            "MSBuildAssembly://:consumer"
+          ]
+        },
+        {
+          "case": "layout-recovered",
+          "exitCode": 0,
+          "compiled": [],
+          "testExecuted": false,
+          "executedActions": []
+        },
+        {
+          "case": "producer-deleted-recovery",
+          "exitCode": 0,
+          "compiled": [],
+          "testExecuted": true,
+          "executedActions": []
+        }
+      ],
+      "native": [
+        {
+          "case": "native-pinvoke",
+          "exitCode": 0,
+          "built": [
+            "//:consumer",
+            "//:shim",
+            "//:task"
+          ],
+          "testExecuted": true
+        },
+        {
+          "case": "header-mutation",
+          "exitCode": 3,
+          "built": [
+            "//:shim"
+          ],
+          "testExecuted": true
+        },
+        {
+          "case": "header-recovered",
+          "exitCode": 0,
+          "built": [],
+          "testExecuted": false
+        },
+        {
+          "case": "native-tool-mutation",
+          "exitCode": 0,
+          "built": [
+            "//:shim"
+          ],
+          "testExecuted": false
+        },
+        {
+          "case": "missing-tool-closure",
+          "exitCode": 1,
+          "built": [
+            "//:shim"
+          ],
+          "testExecuted": false
+        },
+        {
+          "case": "missing-native-entry",
+          "exitCode": 1,
+          "built": [
+            "//:shim"
+          ],
+          "testExecuted": false
+        },
+        {
+          "case": "recovered",
+          "exitCode": 0,
+          "built": [],
+          "testExecuted": false
+        },
+        {
+          "case": "producer-deleted-native-recovery",
+          "exitCode": 0,
+          "built": [],
+          "testExecuted": true
+        }
+      ],
+      "runtimeWitness": [
+        "corelib=BBC5D2FDAF3CAC9EE5573A28DA5C082F138A45326FF66E142521780782F9902B",
+        "runtime=$FIXTURE/base/execroot/_main/bazel-out/aarch64-fastbuild/bin/host_tree.layout",
+        "native-runtime=$FIXTURE/base/execroot/_main/bazel-out/aarch64-fastbuild/bin/host_tree.layout/shared/Microsoft.NETCore.App/10.0.11/libcoreclr.so;sha256=82A98BD37027FABED3B7ADEA90866408430FE44967EF5EFD0B1F39C06918E8B1"
+      ],
+      "nativeTools": {
+        "gcc": "6c3baa3d21eea32b960de4ad2d366d484ce1dd837eb85f4904e656758bfa1a6b",
+        "cc1": "e9821f99072309d8679fc7c07716bdefd183672a47c9450c99c388011ebe644b",
+        "as": "9882c4e62a95d50f1c5f47dcca1dd05827ad9efd331163e56d51047c27689364",
+        "ld": "d6447dfaf033b28bf151475c972d0bf236223aa49214450d2ac04c009c9d3010"
+      }
+    }
+  },
+  "checks": {
+    "check-dotnet.sh": "passed (36 tests)",
+    "check.sh --toolchain-only": "passed",
+    "buildifier": "passed",
+    "workerAcceptanceBazel9.2": "passed (23 scenarios)",
+    "internalsVisibleToBazel9.2": "passed (24 scenarios including signed friends and forced recovery)"
+  },
+  "scope": "synthetic primitives; disk cache; no dotnet/runtime build or remote execution",
+  "regressions": {
+    "friendAssemblies": [
+      {
+        "case": "baseline",
+        "exitCode": 0,
+        "compiled": [
+          "//Friend:target",
+          "//Library:target"
+        ],
+        "cacheHits": [],
+        "testExecuted": true,
+        "testStatuses": [
+          "PASSED"
+        ],
+        "witness": "value=7;constant=3;implementation=8D25A511245BDE2D72438849543D5E3679C83231FAC5C54EDA8C7EEBFF531AC0"
+      },
+      {
+        "case": "unchanged",
+        "exitCode": 0,
+        "compiled": [],
+        "cacheHits": [],
+        "testExecuted": false,
+        "testStatuses": [
+          "PASSED"
+        ],
+        "witness": "value=7;constant=3;implementation=8D25A511245BDE2D72438849543D5E3679C83231FAC5C54EDA8C7EEBFF531AC0"
+      },
+      {
+        "case": "nonfriend",
+        "exitCode": 1,
+        "compiled": [
+          "//Stranger:target"
+        ],
+        "cacheHits": [],
+        "testExecuted": false,
+        "testStatuses": []
+      },
+      {
+        "case": "body-edit",
+        "exitCode": 3,
+        "compiled": [
+          "//Library:target"
+        ],
+        "cacheHits": [],
+        "testExecuted": true,
+        "testStatuses": [
+          "FAILED"
+        ],
+        "witness": "value=8;constant=3;implementation=81030D37FE5B73E00DE41012FA9BC575423CA652F97E765CCBE1D47D793771CD"
+      },
+      {
+        "case": "body-recovered",
+        "exitCode": 0,
+        "compiled": [],
+        "cacheHits": [
+          "//Library:target"
+        ],
+        "testExecuted": false,
+        "testStatuses": [
+          "PASSED"
+        ],
+        "witness": "value=7;constant=3;implementation=8D25A511245BDE2D72438849543D5E3679C83231FAC5C54EDA8C7EEBFF531AC0"
+      },
+      {
+        "case": "signature",
+        "exitCode": 1,
+        "compiled": [
+          "//Friend:target",
+          "//Library:target"
+        ],
+        "cacheHits": [],
+        "testExecuted": false,
+        "testStatuses": []
+      },
+      {
+        "case": "signature-recovered",
+        "exitCode": 0,
+        "compiled": [],
+        "cacheHits": [
+          "//Friend:target",
+          "//Library:target"
+        ],
+        "testExecuted": false,
+        "testStatuses": [
+          "PASSED"
+        ],
+        "witness": "value=7;constant=3;implementation=8D25A511245BDE2D72438849543D5E3679C83231FAC5C54EDA8C7EEBFF531AC0"
+      },
+      {
+        "case": "constant",
+        "exitCode": 3,
+        "compiled": [
+          "//Friend:target",
+          "//Library:target"
+        ],
+        "cacheHits": [],
+        "testExecuted": true,
+        "testStatuses": [
+          "FAILED"
+        ],
+        "witness": "value=7;constant=4;implementation=F0DF4D8B48B8D0453D1473A39F67E314E872FCDE2F7B3EDB4977557BD8EF9F4E"
+      },
+      {
+        "case": "constant-recovered",
+        "exitCode": 0,
+        "compiled": [],
+        "cacheHits": [
+          "//Friend:target",
+          "//Library:target"
+        ],
+        "testExecuted": false,
+        "testStatuses": [
+          "PASSED"
+        ],
+        "witness": "value=7;constant=3;implementation=8D25A511245BDE2D72438849543D5E3679C83231FAC5C54EDA8C7EEBFF531AC0"
+      },
+      {
+        "case": "constraint",
+        "exitCode": 1,
+        "compiled": [
+          "//Friend:target",
+          "//Library:target"
+        ],
+        "cacheHits": [],
+        "testExecuted": false,
+        "testStatuses": []
+      },
+      {
+        "case": "constraint-recovered",
+        "exitCode": 0,
+        "compiled": [],
+        "cacheHits": [
+          "//Friend:target",
+          "//Library:target"
+        ],
+        "testExecuted": false,
+        "testStatuses": [
+          "PASSED"
+        ],
+        "witness": "value=7;constant=3;implementation=8D25A511245BDE2D72438849543D5E3679C83231FAC5C54EDA8C7EEBFF531AC0"
+      },
+      {
+        "case": "grant-removed",
+        "exitCode": 1,
+        "compiled": [
+          "//Friend:target",
+          "//Library:target"
+        ],
+        "cacheHits": [],
+        "testExecuted": false,
+        "testStatuses": []
+      },
+      {
+        "case": "grant-removed-recovered",
+        "exitCode": 0,
+        "compiled": [],
+        "cacheHits": [
+          "//Friend:target",
+          "//Library:target"
+        ],
+        "testExecuted": false,
+        "testStatuses": [
+          "PASSED"
+        ],
+        "witness": "value=7;constant=3;implementation=8D25A511245BDE2D72438849543D5E3679C83231FAC5C54EDA8C7EEBFF531AC0"
+      },
+      {
+        "case": "grant-renamed",
+        "exitCode": 1,
+        "compiled": [
+          "//Friend:target",
+          "//Library:target"
+        ],
+        "cacheHits": [],
+        "testExecuted": false,
+        "testStatuses": []
+      },
+      {
+        "case": "grant-renamed-recovered",
+        "exitCode": 0,
+        "compiled": [],
+        "cacheHits": [
+          "//Friend:target",
+          "//Library:target"
+        ],
+        "testExecuted": false,
+        "testStatuses": [
+          "PASSED"
+        ],
+        "witness": "value=7;constant=3;implementation=8D25A511245BDE2D72438849543D5E3679C83231FAC5C54EDA8C7EEBFF531AC0"
+      },
+      {
+        "case": "sdk-item",
+        "exitCode": 0,
+        "compiled": [
+          "//Friend:target",
+          "//Library:target"
+        ],
+        "cacheHits": [],
+        "testExecuted": true,
+        "testStatuses": [
+          "PASSED"
+        ],
+        "witness": "value=7;constant=3;implementation=1647F9697523598DBA5F31872056A1AA579362F84236576BF7D78A7737B3B104"
+      },
+      {
+        "case": "sdk-item-recovered",
+        "exitCode": 0,
+        "compiled": [],
+        "cacheHits": [
+          "//Friend:target",
+          "//Library:target"
+        ],
+        "testExecuted": false,
+        "testStatuses": [
+          "PASSED"
+        ],
+        "witness": "value=7;constant=3;implementation=8D25A511245BDE2D72438849543D5E3679C83231FAC5C54EDA8C7EEBFF531AC0"
+      },
+      {
+        "case": "signed",
+        "exitCode": 0,
+        "compiled": [
+          "//Friend:target",
+          "//Library:target"
+        ],
+        "cacheHits": [],
+        "testExecuted": true,
+        "testStatuses": [
+          "PASSED"
+        ],
+        "witness": "value=7;constant=3;implementation=09C1BE4B4C7D519E61A25EE42E88F2F055ECA6DB37B6F770F94DA94E81E19F81"
+      },
+      {
+        "case": "wrong-key",
+        "exitCode": 1,
+        "compiled": [
+          "//Friend:target"
+        ],
+        "cacheHits": [],
+        "testExecuted": false,
+        "testStatuses": []
+      },
+      {
+        "case": "signed-recovered",
+        "exitCode": 0,
+        "compiled": [],
+        "cacheHits": [
+          "//Friend:target"
+        ],
+        "testExecuted": false,
+        "testStatuses": [
+          "PASSED"
+        ],
+        "witness": "value=7;constant=3;implementation=09C1BE4B4C7D519E61A25EE42E88F2F055ECA6DB37B6F770F94DA94E81E19F81"
+      },
+      {
+        "case": "unsigned-recovered",
+        "exitCode": 0,
+        "compiled": [],
+        "cacheHits": [
+          "//Friend:target",
+          "//Library:target"
+        ],
+        "testExecuted": false,
+        "testStatuses": [
+          "PASSED"
+        ],
+        "witness": "value=7;constant=3;implementation=8D25A511245BDE2D72438849543D5E3679C83231FAC5C54EDA8C7EEBFF531AC0"
+      },
+      {
+        "case": "relocated-recovery",
+        "exitCode": 0,
+        "compiled": [],
+        "cacheHits": [
+          "//Friend:target",
+          "//Library:target"
+        ],
+        "testExecuted": true,
+        "testStatuses": [
+          "PASSED"
+        ],
+        "witness": "value=7;constant=3;implementation=8D25A511245BDE2D72438849543D5E3679C83231FAC5C54EDA8C7EEBFF531AC0"
+      },
+      {
+        "case": "relocated-body-edit",
+        "exitCode": 3,
+        "compiled": [
+          "//Library:target"
+        ],
+        "cacheHits": [],
+        "testExecuted": true,
+        "testStatuses": [
+          "FAILED"
+        ],
+        "witness": "value=9;constant=3;implementation=D8DFA28D7349B04DFA78E96BA3AF9F89EB13F8DD13C81267ACDED7062BB63496"
+      },
+      {
+        "case": "relocated-grant-rejection",
+        "exitCode": 1,
+        "compiled": [
+          "//Friend:target",
+          "//Library:target"
+        ],
+        "cacheHits": [],
+        "testExecuted": false,
+        "testStatuses": []
+      }
+    ]
+  }
+}
