@@ -1,0 +1,64 @@
+name: Linux validation
+# Run GitHub CI only when explicitly requested.
+on:
+  workflow_dispatch:
+    inputs:
+      scope:
+        description: Validation scope (full includes quick)
+        type: choice
+        required: true
+        default: quick
+        options:
+          - quick
+          - full
+permissions:
+  contents: read
+jobs:
+  linux:
+    # One runner shares acquisition and tooling builds; full stops if quick fails.
+    # Native Bazel sandboxing needs unprivileged user namespaces.
+    runs-on: ubuntu-22.04
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - name: Restore pinned tool downloads
+        id: tool-downloads
+        uses: actions/cache/restore@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
+        with:
+          path: .cache/downloads
+          key: linux-tools-${{ runner.arch }}-${{ hashFiles('scripts/toolchains.json', 'scripts/setup.sh', 'scripts/toolchain-pins.sh', 'global.json', '.bazelversion') }}
+      - name: Restore repository tooling NuGet packages
+        id: tooling-nuget
+        uses: actions/cache/restore@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
+        with:
+          path: .cache/nuget/packages
+          key: linux-tooling-nuget-${{ runner.arch }}-${{ hashFiles('global.json', 'tools/**/*.csproj', 'Directory.Build.*', 'NuGet.Config') }}
+      - name: Install pinned tools and check source
+        run: bash scripts/setup.sh
+      - name: Verify repeatable setup
+        run: bash scripts/setup.sh
+      - name: Save verified tool downloads
+        if: steps.tool-downloads.outputs.cache-hit != 'true'
+        uses: actions/cache/save@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
+        with:
+          path: .cache/downloads
+          key: ${{ steps.tool-downloads.outputs.cache-primary-key }}
+      - name: Quick checks
+        run: bash scripts/ci-linux.sh quick
+      - name: Save repository tooling NuGet packages
+        if: steps.tooling-nuget.outputs.cache-hit != 'true'
+        uses: actions/cache/save@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
+        with:
+          path: .cache/nuget/packages
+          key: ${{ steps.tooling-nuget.outputs.cache-primary-key }}
+      - name: Full acceptance
+        if: inputs.scope == 'full'
+        run: bash scripts/ci-linux.sh acceptance
+      - name: Retain validation evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: linux-${{ inputs.scope }}-evidence
+          retention-days: 7
+          path: /tmp/msbuild-explicit-ci.*/**
+          if-no-files-found: ignore

@@ -1,0 +1,16 @@
+<Project>
+  <!-- These inputs describe the adapter tools, not the projects they build. -->
+  <PropertyGroup>
+    <RulesMSBuildToolTargetFramework Condition="'$(RulesMSBuildToolTargetFramework)' == ''">net10.0</RulesMSBuildToolTargetFramework>
+    <RulesMSBuildEngineRoot Condition="'$(RulesMSBuildEngineRoot)' == ''">$(MSBuildBinPath)</RulesMSBuildEngineRoot>
+    <TargetFramework>$(RulesMSBuildToolTargetFramework)</TargetFramework>
+  </PropertyGroup>
+  <Target Name="ValidateMSBuildToolInputs" BeforeTargets="PrepareForBuild">
+    <Error Condition="'$(RulesMSBuildToolTargetFramework)' != 'net10.0' and '$(RulesMSBuildToolTargetFramework)' != 'net11.0'"
+           Text="Unsupported RulesMSBuildToolTargetFramework=$(RulesMSBuildToolTargetFramework); select net10.0 or net11.0." />
+    <Error Condition="'$(TargetFramework)' != '$(RulesMSBuildToolTargetFramework)'"
+           Text="TargetFramework must match the explicit RulesMSBuildToolTargetFramework input." />
+    <Error Condition="!Exists('$(RulesMSBuildEngineRoot)/Microsoft.Build.dll') or !Exists('$(RulesMSBuildEngineRoot)/Microsoft.Build.Framework.dll') or !Exists('$(RulesMSBuildEngineRoot)/Microsoft.Build.Utilities.Core.dll')"
+           Text="RulesMSBuildEngineRoot=$(RulesMSBuildEngineRoot) must contain the selected MSBuild engine assemblies." />
+  </Target>
+</Project>

@@ -1,0 +1,10 @@
+# Environment scaffold only; this target does not compile .NET.
+filegroup(
+    name = "repo_setup",
+    srcs = [
+        ".bazelversion",
+        "AGENTS.md",
+        "README.md",
+        "global.json",
+    ],
+)

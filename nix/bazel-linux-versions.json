@@ -1,0 +1,6 @@
+{
+  "8.8.0": {
+    "url": "https://releases.bazel.build/8.8.0/release/bazel-8.8.0-linux-x86_64",
+    "sha256": "ca189f994f632c91c275443b8571652e3ea190fc2437a5798121ba7e5a9a2f29"
+  }
+}

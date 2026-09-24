@@ -1,0 +1,14 @@
+{
+  "7.7.1": {
+    "url": "https://releases.bazel.build/7.7.1/release/bazel-7.7.1-darwin-arm64",
+    "sha256": "fe8a1ee9064e94afae075c0dd4efb453db9c1373b9df12fecbff8479d408eb08"
+  },
+  "8.8.0": {
+    "url": "https://releases.bazel.build/8.8.0/release/bazel-8.8.0-darwin-arm64",
+    "sha256": "f0ac192aba2ccaa373cdfd527d4c407cc492c1296a2f11a4b67563e4d5aa9acb"
+  },
+  "9.2.0": {
+    "url": "https://releases.bazel.build/9.2.0/release/bazel-9.2.0-darwin-arm64",
+    "sha256": "dd466352a3e4d3581b8898740ee1ff208866ccbe25f8d367c5dcb950219587e6"
+  }
+}

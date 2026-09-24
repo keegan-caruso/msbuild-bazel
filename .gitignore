@@ -1,0 +1,16 @@
+.tools/
+.cache/
+artifacts/
+**/bin/
+**/obj/
+/bazel-*
+*.binlog
+__pycache__/
+*.pyc
+
+# Local credentials and environment overrides
+.env
+.env.*
+!.env.example
+*.pfx
+*.p12
