@@ -54,17 +54,6 @@ def run(folder):
                 shutil.copyfile(xml,folder/(name+'.xml'));root=ET.parse(xml).getroot()
                 assert len(root.findall('.//testcase'))==count,(name,ET.tostring(root))
                 rows.append(dict(case=name,exit=p.returncode,tests=count,failures=len(root.findall('.//failure')),errors=len(root.findall('.//error')),skipped=len(root.findall('.//skipped'))));print(rows[-1],flush=True)
-        build=workspace/'Vstest/Xunit/BUILD.bazel';original=build.read_text()
-        try:
-            for case,replacement,error in [
-                ('settings-conflict','test_settings="settings.runsettings",test_settings_output="generated.runsettings",','Declare either test_settings or test_settings_output'),
-                ('settings-escape','test_settings_output="../outside.runsettings",','test_settings_output must be a safe relative path'),
-            ]:
-                build.write_text(original.replace('test_settings="settings.runsettings",',replacement))
-                p=command(startup+['test','//Vstest/Xunit'],workspace,folder/(case+'.log'))
-                assert p.returncode!=0 and error in p.stdout+p.stderr,(case,p.stdout+p.stderr)
-                rows.append(dict(case=case,exit=p.returncode));print(rows[-1],flush=True)
-        finally:build.write_text(original)
     finally:
         (folder/'vstest-results.json').write_text(json.dumps(rows,indent=2)+'\n')
         subprocess.run(startup+['shutdown'],cwd=workspace,check=True)

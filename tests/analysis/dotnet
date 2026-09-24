@@ -1,0 +1,3 @@
+#!/bin/sh
+echo 'Analysis-only SDK must never execute' >&2
+exit 99

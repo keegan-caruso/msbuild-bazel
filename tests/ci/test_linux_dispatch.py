@@ -47,6 +47,7 @@ if os.environ.get('CI_TEST_FAIL') in args:
         result, calls = self.run_phase('quick')
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertTrue(any('scripts/check-dotnet.sh' in call for call in calls))
+        self.assertTrue(any('scripts/check-analysis.sh' in call for call in calls))
         self.assertTrue(any('tests/sdk_repository' in call for call in calls))
         self.assertFalse(any('tests/explicit_msbuild/acceptance.py' in call for call in calls))
 
