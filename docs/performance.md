@@ -285,3 +285,34 @@ The [11-project Avalonia remote run](avalonia-remote-execution.md) records
 action-cold build/test, warm edits and independent cache recovery separately.
 Those single samples include remote bootstrap, extraction and output transfer;
 they are correctness-run timings, not a matched raw-MSBuild performance claim.
+
+Repeated fresh-consumer Avalonia measurements with a warm repository cache give
+13.42 s median for full downloads and 9.57 s for top-level downloads (three
+samples each). Received traffic falls from 927.09 MB to 2.91 MB. See the
+[profile and qualification](avalonia-remote-execution.md#repeated-recovery-profile);
+startup and analysis dominate the remaining time.
+
+## Project facade analysis
+
+A 200-project synthetic tree with two frameworks per project compares facade
+dependencies with direct variant labels. Three fresh-server samples per mode on
+macOS ARM64, Bazel 9.2.0, with repository acquisition warmed, measured median
+analysis of **965 ms explicit / 1,261 ms facade**. Configured targets increased
+from **841 to 1,241**, and registered assembly actions from **201 to 401**.
+No compilation executed (`--nobuild`); this measures analysis, not build latency.
+The facade samples ranged from 866 to 1,746 ms, so the time difference is an
+illustrative cost, not a stable overhead prediction. Structural counts show the
+additional variants being analyzed. Execution qualification separately verifies
+that unselected variants do not compile when a consumer uses the facade.
+
+Use direct variant labels where this extra analysis matters. Both interfaces use
+the same explicit assembly rules and cache boundaries. Reproduce with:
+
+```sh
+source scripts/env.sh
+python3 tests/explicit_msbuild/profile_facades.py /tmp/facade-analysis \
+  --projects 200 --repetitions 3
+```
+
+See [compact evidence](project-facade-evidence.json) for analysis samples and the
+remote synthetic qualification.

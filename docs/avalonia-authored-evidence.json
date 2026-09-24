@@ -1,0 +1,72 @@
+{
+  "upstream": "37fbd9655cc581ff5b1c6b1fb1be4e3118c889d0",
+  "project": "Avalonia.Generators.Tests",
+  "sdk": "10.0.400",
+  "targetFramework": "net8.0",
+  "runtimeMajor": 10,
+  "rollForward": "Major",
+  "platform": "Ubuntu 22.04 ARM64",
+  "executorInstalledSdk": false,
+  "runner": "Microsoft.TestPlatform.CLI 17.14.1",
+  "adapter": "xunit.runner.visualstudio 2.8.2",
+  "runs": [
+    {
+      "bazel": "bazel 8.8.0",
+      "parity": {
+        "projects": 15,
+        "cases": 59,
+        "rawAndRemoteNamesAndOutcomesEqual": true,
+        "outcomes": {
+          "Passed": 59
+        },
+        "negativeControl": {
+          "failed": 45,
+          "referenceUnchanged": true
+        }
+      },
+      "compiledOnCold": 16,
+      "bodyOnlyCompiled": [
+        [
+          "MSBuildAssembly",
+          "//upstream:Avalonia.Generators"
+        ]
+      ],
+      "restorationExecuted": [],
+      "restorationTestsExecuted": [],
+      "independentRecoveryActions": 122,
+      "independentRecoveryAllCached": true,
+      "recoveredNamesAndOutcomesMatch": true
+    },
+    {
+      "bazel": "bazel 9.2.0",
+      "parity": {
+        "projects": 15,
+        "cases": 59,
+        "rawAndRemoteNamesAndOutcomesEqual": true,
+        "outcomes": {
+          "Passed": 59
+        },
+        "negativeControl": {
+          "failed": 45,
+          "referenceUnchanged": true
+        }
+      },
+      "compiledOnCold": 16,
+      "bodyOnlyCompiled": [
+        [
+          "MSBuildAssembly",
+          "//upstream:Avalonia.Generators"
+        ]
+      ],
+      "restorationExecuted": [],
+      "restorationTestsExecuted": [],
+      "independentRecoveryActions": 122,
+      "independentRecoveryAllCached": true,
+      "recoveredNamesAndOutcomesMatch": true
+    }
+  ],
+  "unqualifiedMarkupSuite": {
+    "rawPassed": 287,
+    "reason": "Test fixture inventory keys nodes by project path and loses required framework variants; rule rejects netstandard2.0 helper referencing net8.0 dependency."
+  }
+}

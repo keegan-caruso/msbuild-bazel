@@ -6,6 +6,45 @@ evaluates a project, or compiles. The test action consumes implementation/runtim
 closures; reference assemblies remain compilation inputs only. Consequently a
 body-only dependency edit can rerun tests without recompiling their assemblies.
 
+## Tests across frameworks
+
+`msbuild_test_project` expands the same explicit inputs into one `msbuild_test`
+per framework and a native Bazel `test_suite`:
+
+```starlark
+load("@rules_msbuild//msbuild:defs.bzl", "msbuild_test_project")
+
+msbuild_test_project(
+    name = "CoreTests",
+    project = "CoreTests.csproj",
+    target_frameworks = ["net8.0", "net10.0"],
+    srcs = ["Tests.cs"],
+    deps = [":Core"],
+    test_protocol = "vstest",
+    test_runner = ":vstest",
+    test_adapters = [":xunit_adapter"],
+)
+```
+
+`bazel test :CoreTests` runs both tests; `:CoreTests_net8_0` and
+`:CoreTests_net10_0` remain individually addressable. The macro shares the
+[project facade's override semantics](explicit-bazel-rules.md#project-facade).
+Runner, adapter, runtime host, package and source inputs remain explicit. Runtime
+selection is independent of the compile TFM; declare any required roll-forward
+policy through the existing test environment or runtime host.
+
+The remote synthetic `tests/explicit_msbuild/project_facades.py` covers exact and
+.NET Standard fallback selection, aggregate test execution, shared and
+variant-specific body edits with unchanged public references, restoration, and
+fresh-output-base cache recovery. Its `net10.0-windows` variant uses only portable
+managed APIs on Linux; it does not qualify Windows execution or Windows APIs.
+Run it against the [qualified worker](remote-execution.md):
+
+```sh
+python3 tests/explicit_msbuild/project_facades.py /tmp/facades \
+  --executor grpc://WORKER_IP:8980
+```
+
 ## Protocols
 
 - `test_protocol = "executable"` (the compatibility default): execute the managed

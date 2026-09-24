@@ -1,5 +1,6 @@
 load("//msbuild:toolchain.bzl", "msbuild_toolchain")
 load(":assemblies.bzl", "assembly_tests")
+load(":facades.bzl", "facade_tests")
 load(":inputs.bzl", "input_tests")
 load(":layouts.bzl", "layout_tests")
 load(":validation.bzl", "validation_tests")
@@ -37,3 +38,5 @@ input_tests(name = "inputs")
 validation_tests(name = "validation")
 
 layout_tests(name = "layouts")
+
+facade_tests(name = "facades")

@@ -19,8 +19,9 @@ Its installed SDK directory is removed; it receives the SDK, runner, packages,
 tools and sources through Bazel action inputs. Local fallback and local cache
 uploads are disabled. Strict action environment is enabled: without it, Bazel
 8.8 inherited client-specific Bazelisk/SDK paths in the test action `PATH`,
-causing a test-cache miss after relocation even when every compilation hit. This is a selected graph and a runtime smoke test, not
-Avalonia's authored test suite, native UI backends, or whole-repository support.
+causing a test-cache miss after relocation even when every compilation hit.
+The theme fixture is a runtime smoke test; the authored suite below extends test
+coverage. Neither qualifies native UI backends or whole-repository support.
 
 ## Controls
 
@@ -103,3 +104,111 @@ python3 tests/explicit_msbuild/avalonia/remote_execution.py \
 
 The local rules override is rewritten for the consumer. Reports and execution
 logs are written to the output directory; raw parity is `/tmp/theme/parity.json`.
+
+## Reduced-download qualification
+
+`tests/explicit_msbuild/avalonia/downloads.py` starts a fresh consumer output base
+for each of `all`, `toplevel` and `minimal`, using the completed remote fixture's
+workspace and seeded instance. Each mode must recover the test from cache,
+launch it locally with `bazel run`, then correctly rebuild and rerun the test
+following body and API changes. Test sources remain unchanged.
+
+```sh
+python3 tests/explicit_msbuild/avalonia/downloads.py /consumer/theme /tmp/downloads \
+  --executor grpc://WORKER_IP:8980
+```
+
+The full-output parity fixture still uses `all` to inspect every DLL. Reduced
+modes verify runtime behavior and execution logs instead of forcing all the
+intermediate files to download for hash checks. Local launch is a separate case:
+it can fetch runtime inputs that a cached remote test did not need locally.
+
+All three modes pass recovery, local launch and both edits on Bazel 8.8 and 9.2.
+The 8.8 materialization check found 84 extracted archives after `all` recovery
+and zero after `toplevel`/`minimal` recovery. A later local launch can download
+additional inputs. Single-run timings are exploratory; use the repeated profile
+below before attributing a speedup to download policy.
+
+### Repeated recovery profile
+
+Bazel 9.2, three fresh-server samples per mode, rotating mode order on the same
+ARM64 consumer. Every sample recovered all 101 remote actions; the repository
+cache and worker CAS were already warm. No local launch runs inside this timing.
+
+| Mode | Median wall time | Client bytes received | Download interval union |
+| --- | ---: | ---: | ---: |
+| `all` | 13.42 s | 927.09 MB | 3.78 s |
+| `toplevel` | 9.57 s | 2.91 MB | 0.08 s |
+| `minimal` | 9.93 s | 2.90 MB | 0.07 s |
+
+`toplevel` reduced recovery time by about **29%** and client traffic by **99.7%**
+in these matched samples. There is no demonstrated advantage for `minimal` over
+`toplevel` here. Prefer `--remote_download_outputs=toplevel` for normal usage;
+retain `all` for complete-output parity checks. This test-target result does not
+predict transfer size for applications with large top-level outputs.
+
+For `toplevel`, median analysis time was 3.19 s, other in-command work 2.75 s,
+and time outside the command (including client/server startup) 1.81 s. The
+execution phase, which includes cache recovery, was 1.90 s. Cache-lookup intervals
+covered 0.35 s and Merkle-tree construction 0.21 s. These trace intervals overlap;
+they must not be added to phase times. Independently calculated medians also
+need not sum to median wall time. Remaining time is mainly startup and analysis,
+not bulk downloads. Network counters cover all non-loopback client traffic,
+including RPCs, rather than only CAS payloads.
+
+```sh
+python3 tests/explicit_msbuild/avalonia/profile_recovery.py \
+  /consumer/theme /tmp/recovery-profile --executor grpc://WORKER_IP:8980
+python3 tests/explicit_msbuild/avalonia/summarize_recovery.py /tmp/recovery-profile
+```
+
+The driver records BEP metrics, JSON traces, command logs and container network
+counters. See [compact measurements](avalonia-download-evidence.json).
+
+## Authored test suite
+
+`tests/explicit_msbuild/avalonia/authored_tests.py` qualifies the complete authored
+`Avalonia.Generators.Tests` suite, with no test filter or source changes for the
+baseline. Its graph contains 15 projects and 2,254 evaluated source files. The
+checkout must include its pinned submodules, including DataGrid revision
+`85a0b32ef6d963c1d67619ca3e2f6da0bc43ac9a` used by Diagnostics resources.
+
+The suite keeps its `net8.0` target. Raw and Bazel executions both use the declared
+SDK's .NET 10 runtime with explicit `DOTNET_ROLL_FORWARD=Major`; this does not
+qualify execution on a .NET 8 runtime. VSTest CLI 17.14.1 is checksum-pinned and
+the upstream xUnit adapter is 2.8.2. Executable test compilation is retained.
+
+Both Bazel 8.8.0 and 9.2.0 passed all 59 authored tests with matching raw/remote
+names and outcomes. The negative control rebuilt only the generator and failed
+45 tests while preserving its reference assembly. Restoring the source recovered
+the passing result from cache. Each independent consumer recovered all 122
+recorded actions from cache and the same 59 passing results. See the
+[qualification evidence](avalonia-authored-evidence.json).
+
+```sh
+git -C /path/to/pinned/avalonia submodule update --init --recursive
+python3 tests/explicit_msbuild/avalonia/setup.py /path/to/pinned/avalonia /tmp/authored \
+  --entry tests/Avalonia.Generators.Tests/Avalonia.Generators.Tests.csproj
+python3 tests/explicit_msbuild/avalonia/authored_tests.py /tmp/authored /tmp/authored-rbe \
+  --executor grpc://WORKER_IP:8980
+```
+
+The fixture compares individual raw/remote TRX names and outcomes. A deliberate
+body-only exception in `XamlXViewResolver.ResolveView` must rebuild only the
+generator, preserve its reference hash and cause authored tests to fail.
+Restoring the source must recover the passing result. Full downloads are used
+where reference hashes are inspected; no-op/restoration/recovery use `toplevel`.
+For independent recovery, copy only `/tmp/authored/bazel` without `bazel-*` links
+and run the same script with the copied workspace and `--recover`.
+
+### Remaining framework-variant boundary
+
+An initial `Avalonia.Markup.UnitTests` raw control passed all 287 tests, but its
+remote fixture was rejected: `Avalonia.UnitTests` targets `netstandard2.0`, while
+the fixture had selected `net8.0` dependencies. The current test inventory keys
+nodes only by project path, so it cannot export both framework variants of one
+project. The rule's framework check correctly rejects the incompatible edge.
+Closing this boundary requires fixture nodes/labels keyed by project plus global
+properties and explicit framework-compatible edges, followed by runtime-closure
+qualification. Retargeting the helper or suppressing validation is not part of
+this qualification. The generator suite does not require that mixed graph.

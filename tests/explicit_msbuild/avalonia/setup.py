@@ -1,11 +1,12 @@
-"""Prepare an actual Avalonia Simple theme graph; setup is outside build timing."""
-import json,os,shutil,subprocess,sys,time
+"""Prepare a pinned Avalonia graph (Simple theme by default); setup is outside build timing."""
+import argparse,json,os,shutil,subprocess,sys,time
 from pathlib import Path
-rules=Path(__file__).resolve().parents[3];checkout=Path(sys.argv[1]);dest=Path(sys.argv[2]);dest.mkdir(parents=True);source=dest/'source';sdk=Path(os.environ['RULES_MSBUILD_DOTNET_ROOT'])
+p=argparse.ArgumentParser(description=__doc__);p.add_argument('checkout',type=Path);p.add_argument('destination',type=Path);p.add_argument('--entry',default='src/Avalonia.Themes.Simple/Avalonia.Themes.Simple.csproj');a=p.parse_args()
+rules=Path(__file__).resolve().parents[3];checkout=a.checkout.resolve();dest=a.destination.resolve();dest.mkdir(parents=True);source=dest/'source';sdk=Path(os.environ['RULES_MSBUILD_DOTNET_ROOT'])
 assert subprocess.check_output(['git','-C',checkout,'rev-parse','HEAD'],text=True).strip()=='37fbd9655cc581ff5b1c6b1fb1be4e3118c889d0'
-shutil.copytree(checkout,source,ignore=shutil.ignore_patterns('.git','bin','obj','artifacts'))
+shutil.copytree(checkout,source,ignore=shutil.ignore_patterns('.git','bin','obj','artifacts','._*'))
 globaljson=source/'global.json';data=json.loads(globaljson.read_text());data['sdk']={'version':'10.0.400','rollForward':'disable'};globaljson.write_text(json.dumps(data))
-config={'sourceSubdir':'upstream','entries':['src/Avalonia.Themes.Simple/Avalonia.Themes.Simple.csproj'],'properties':{'AvsSkipBuildingLegacyTargetFrameworks':'True','DebugType':'portable','ProduceReferenceAssembly':'true','NuGetAudit':'false'}}
+config={'sourceSubdir':'upstream','entries':[a.entry],'properties':{'AvsSkipBuildingLegacyTargetFrameworks':'True','DebugType':'portable','ProduceReferenceAssembly':'true','NuGetAudit':'false'}}
 (dest/'config.json').write_text(json.dumps(config,indent=2))
 props=['-p:'+k+'='+v for k,v in config['properties'].items()]+['-p:RestorePackagesPath='+str(dest/'nuget')]
 entry=source/config['entries'][0]

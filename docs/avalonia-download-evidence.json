@@ -1,0 +1,91 @@
+{
+  "medians": {
+    "all": {
+      "seconds": 13.419,
+      "receivedBytes": 927091024,
+      "sentBytes": 2083436,
+      "cacheHits": 101,
+      "commandSeconds": 11.73,
+      "outsideCommandSeconds": 1.706,
+      "analysisSeconds": 3.183,
+      "executionSeconds": 5.389,
+      "otherCommandSeconds": 3.063,
+      "cacheLookupUnionSeconds": 0.624,
+      "downloadUnionSeconds": 3.777,
+      "merkleUnionSeconds": 0.325,
+      "sourceBytesRead": 778729752
+    },
+    "minimal": {
+      "seconds": 9.931,
+      "receivedBytes": 2904418,
+      "sentBytes": 292072,
+      "cacheHits": 101,
+      "commandSeconds": 7.933,
+      "outsideCommandSeconds": 1.998,
+      "analysisSeconds": 3.259,
+      "executionSeconds": 1.829,
+      "otherCommandSeconds": 2.885,
+      "cacheLookupUnionSeconds": 0.339,
+      "downloadUnionSeconds": 0.07,
+      "merkleUnionSeconds": 0.222,
+      "sourceBytesRead": 778729752
+    },
+    "toplevel": {
+      "seconds": 9.573,
+      "receivedBytes": 2906213,
+      "sentBytes": 290811,
+      "cacheHits": 101,
+      "commandSeconds": 7.83,
+      "outsideCommandSeconds": 1.807,
+      "analysisSeconds": 3.193,
+      "executionSeconds": 1.905,
+      "otherCommandSeconds": 2.752,
+      "cacheLookupUnionSeconds": 0.353,
+      "downloadUnionSeconds": 0.08,
+      "merkleUnionSeconds": 0.21,
+      "sourceBytesRead": 778729752
+    }
+  },
+  "notes": [
+    "Fresh server/output base; repository cache and worker CAS may be warm.",
+    "Network counters include non-loopback client traffic, not only CAS payloads.",
+    "Trace union durations overlap each other and phases; do not add them.",
+    "Outside-command time includes client/server startup and finalization."
+  ],
+  "wallSamples": {
+    "all": [
+      13.082,
+      13.419,
+      14.263
+    ],
+    "minimal": [
+      9.931,
+      9.236,
+      10.397
+    ],
+    "toplevel": [
+      9.383,
+      9.573,
+      10.654
+    ]
+  },
+  "bazel": "9.2.0",
+  "sdk": "10.0.400",
+  "platform": "Ubuntu 22.04 ARM64",
+  "qualificationBaselines": [
+    "8.8.0",
+    "9.2.0"
+  ],
+  "qualifiedModes": [
+    "all",
+    "toplevel",
+    "minimal"
+  ],
+  "controls": [
+    "remote cache recovery",
+    "local bazel run",
+    "body-only rebuild and dependent test",
+    "API rebuild and dependent test"
+  ],
+  "cacheHitsPerRecovery": 101
+}

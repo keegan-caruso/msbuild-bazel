@@ -31,9 +31,11 @@ use_repo(dotnet,"dotnet")
 register_toolchains("@dotnet//:all")
 ''')
 
-    def run(self,case,targets,expected,*,command='test',cold=False,error=None,tests=None):
+    def run(self,case,targets,expected,*,command='test',cold=False,error=None,tests=None,downloads="all",extra_args=()):
         execution=self.folder/(case+'.execution.json')
-        cmd=[self.bazel,'--output_base='+str(self.base),'--ignore_all_rc_files',command,*targets,'--jobs=2','--lockfile_mode=off','--incompatible_strict_action_env','--disk_cache=','--remote_executor='+self.executor,'--remote_cache='+self.executor,'--remote_instance_name='+self.instance,'--noremote_local_fallback','--spawn_strategy=remote','--remote_accept_cached='+str(not cold).lower(),'--remote_upload_local_results=false','--remote_download_outputs=all','--remote_default_exec_properties=ISA=aarch64','--remote_default_exec_properties=OSFamily=linux','--remote_default_exec_properties=rules_msbuild_image=47a9e2fed018-sdk-removed','--execution_log_json_file='+str(execution)]
+        cmd=[self.bazel,'--output_base='+str(self.base),'--ignore_all_rc_files',command,*targets,'--jobs=2','--lockfile_mode=off','--incompatible_strict_action_env','--disk_cache=','--remote_executor='+self.executor,'--remote_cache='+self.executor,'--remote_instance_name='+self.instance,'--noremote_local_fallback','--spawn_strategy=remote','--remote_accept_cached='+str(not cold).lower(),'--remote_upload_local_results=false','--remote_download_outputs='+downloads,'--remote_default_exec_properties=ISA=aarch64','--remote_default_exec_properties=OSFamily=linux','--remote_default_exec_properties=rules_msbuild_image=47a9e2fed018-sdk-removed','--execution_log_json_file='+str(execution)]
+        assert downloads in ['all','toplevel','minimal'], downloads
+        cmd+=list(extra_args)
         if command=='test':cmd+=['--test_output=errors']
         start=time.perf_counter()
         result=subprocess.run(cmd,cwd=self.workspace,text=True,capture_output=True,timeout=900)

@@ -10,6 +10,7 @@ There is no whole-graph discovery/preparation/replay step on this path.
 | Capability | Contract and evidence |
 | --- | --- |
 | Libraries, binaries, packages and explicit configuration | [Rule API](explicit-bazel-rules.md) |
+| Project facades and per-framework test suites | [Facade API](explicit-bazel-rules.md#project-facade), [test suites](bazel-test.md#tests-across-frameworks) |
 | Executable, MTP and VSTest tests | [Test API and invalidation](bazel-test.md) |
 | Opt-in Linux remote compilation and tests | [SDK-free ARM64 worker qualification](remote-execution.md) |
 | Persistent compiler workers with stable input paths | [Linux workers](explicit-linux-workers.md), [path limits](orchard-stable-worker-paths.md) |
