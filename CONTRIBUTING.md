@@ -13,7 +13,7 @@ for a suspected vulnerability.
 ## Development
 
 1. Fork/clone the repository and create a focused branch.
-2. Follow [development setup](docs/development.md) or use the pinned Nix shell.
+2. Follow [development setup](docs/development.md) with standard bootstrap or the optional pinned Nix shell.
 3. Keep production rules generic. Make sources, dependency edges, tools and
    configuration explicit in Bazel; retain MSBuild's SDK behavior.
 4. Add a small synthetic control for changed behavior, including invalidation or

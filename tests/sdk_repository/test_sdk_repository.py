@@ -8,7 +8,7 @@ import tempfile
 import unittest
 
 ROOT = Path(__file__).resolve().parents[2]
-BAZEL = Path(os.environ.get('RULES_MSBUILD_BAZEL', ROOT / '.tools/bin/bazel'))
+BAZEL = Path(os.environ.get('RULES_MSBUILD_BAZEL', ROOT / 'scripts/bazel-launcher.sh'))
 
 
 class SdkRepository(unittest.TestCase):

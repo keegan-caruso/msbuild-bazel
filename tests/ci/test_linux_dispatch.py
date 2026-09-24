@@ -16,6 +16,7 @@ class LinuxDispatchTests(unittest.TestCase):
         self.temporary = tempfile.TemporaryDirectory()
         self.addCleanup(self.temporary.cleanup)
         self.root = Path(self.temporary.name)
+        (self.root / '.bazelversion').write_text('9.2.0\n')
         (self.root / 'scripts').mkdir()
         shutil.copy(ROOT / 'scripts/ci-linux.sh', self.root / 'scripts/ci-linux.sh')
         shutil.copy(ROOT / 'scripts/env.sh', self.root / 'scripts/env.sh')

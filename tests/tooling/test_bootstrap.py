@@ -21,15 +21,16 @@ class Bootstrap(unittest.TestCase):
         self.temp = tempfile.TemporaryDirectory()
         self.addCleanup(self.temp.cleanup)
         self.root = Path(self.temp.name)
+        (self.root/'.bazelversion').write_text('9.2.0\n')
         scripts = self.root / 'scripts'
         scripts.mkdir()
-        for name in ('setup.sh', 'env.sh', 'tooling.sh', 'dotnet.sh', 'check.sh'):
+        for name in ('setup.sh', 'env.sh', 'tooling.sh', 'dotnet.sh', 'check.sh', 'bazel-launcher.sh'):
             shutil.copy(ROOT / 'scripts' / name, scripts / name)
         commands = self.root / 'commands'
         commands.mkdir()
         for name in ('bash', 'dirname', 'mkdir', 'cat', 'mv', 'rm', 'cp', 'chmod', 'mktemp', 'tar', 'gzip'):
             (commands / name).symlink_to(shutil.which(name))
-        self.script(commands / 'uname', 'case "$1" in -s) echo Linux;; -m) echo x86_64;; esac')
+        self.script(commands / 'uname', 'case "$1" in -s) echo "${BOOTSTRAP_OS:-Linux}";; -m) echo "${BOOTSTRAP_ARCH:-x86_64}";; esac')
         if shutil.which('sha256sum'):
             (commands / 'sha256sum').symlink_to(shutil.which('sha256sum'))
         else:
@@ -50,10 +51,10 @@ cp "$BOOTSTRAP_FIXTURE/$source" "$output"''')
             value.addfile(member, io.BytesIO(binary))
         bazel = self.root / 'bazel'; bazel.write_bytes(b'#!/bin/sh\nexit 0\n')
         self.hashes = {name: hashlib.sha256(path.read_bytes()).hexdigest()
-                       for name, path in [('dotnet', archive), ('bazel', bazel)]}
+                       for name, path in [('dotnet', archive), ('bazelisk', bazel)]}
         (scripts / 'toolchain-pins.sh').write_text('\n'.join(
             f'{name}_version=test\n{name}_url=https://fixture/{filename}\n{name}_sha256={self.hashes[name]}'
-            for name, filename in [('dotnet', 'sdk.tar.gz'), ('bazel', 'bazel')]) + '\n')
+            for name, filename in [('dotnet', 'sdk.tar.gz'), ('bazelisk', 'bazel')]) + '\n')
         self.log = self.root / 'log'
         self.env = dict(os.environ, PATH=str(commands), BOOTSTRAP_FIXTURE=str(self.root), BOOTSTRAP_LOG=str(self.log))
         for key in ('RULES_MSBUILD_DOTNET_ROOT', 'RULES_MSBUILD_BAZEL', 'RULES_MSBUILD_CONTAINER_PREBUILT'):
@@ -69,7 +70,7 @@ cp "$BOOTSTRAP_FIXTURE/$source" "$output"''')
     def test_installs_verified_tools_and_repeat_skips_download(self):
         first = self.run_setup(); self.assertEqual(first.returncode, 0, first.stderr)
         self.assertTrue(os.access(self.root / '.tools/dotnet/dotnet', os.X_OK))
-        self.assertTrue(os.access(self.root / '.tools/bin/bazel', os.X_OK))
+        self.assertTrue(os.access(self.root / '.tools/bin/bazelisk', os.X_OK))
         for name, expected in self.hashes.items():
             self.assertEqual((self.root / f'.tools/{name}.sha256').read_text().strip(), expected)
         second = self.run_setup(); self.assertEqual(second.returncode, 0, second.stderr)
@@ -84,3 +85,10 @@ cp "$BOOTSTRAP_FIXTURE/$source" "$output"''')
         self.assertFalse((self.root / '.tools/dotnet').exists())
         self.assertFalse((self.root / '.cache/downloads' / self.hashes['dotnet']).exists())
         self.assertNotIn('dotnet', self.log.read_text())
+
+    def test_macos_bootstrap_uses_portable_extraction_and_checksums(self):
+        self.env.update(BOOTSTRAP_OS='Darwin', BOOTSTRAP_ARCH='arm64')
+        result = self.run_setup()
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertTrue((self.root/'.tools/dotnet/dotnet').is_file())
+        self.assertTrue((self.root/'.tools/bin/bazelisk').is_file())

@@ -26,7 +26,7 @@ class ToolChecks(unittest.TestCase):
         self.bazel = self.root/'bazel'
         self.executable(self.bazel, 'bazel 8.8.0')
         self.env = dict(os.environ, DOTNET_ROOT=str(self.sdk), RULES_MSBUILD_BAZEL=str(self.bazel), RULES_MSBUILD_BAZEL_VERSION='8.8.0')
-        self.env.pop('RULES_MSBUILD_CONTAINER_PREBUILT', None)
+        self.env.pop('USE_BAZEL_VERSION', None)
 
     def executable(self, path, value):
         path.write_text('#!/bin/sh\necho "'+value+'"\n'); path.chmod(0o755)

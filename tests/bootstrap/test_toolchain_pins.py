@@ -26,10 +26,19 @@ class ToolchainPinsTests(unittest.TestCase):
             self.assertIn('linux-arm64', pin['url'])
 
     def test_unknown_architecture_does_not_fall_back_to_x64(self):
-        with self.assertRaisesRegex(ValueError, 'Unsupported Linux architecture'):
+        with self.assertRaisesRegex(ValueError, 'Unsupported bootstrap platform'):
             select(self.pins, 'riscv64')
 
     def test_missing_arm_pin_does_not_fall_back_to_x64(self):
         del self.pins['dotnet']['platforms']['linux-arm64']
         with self.assertRaises(KeyError):
             select(self.pins, 'aarch64')
+
+    def test_macos_selects_native_downloads(self):
+        selected = select(self.pins, 'arm64', 'Darwin')
+        self.assertIn('osx-arm64', selected['dotnet']['url'])
+        self.assertIn('darwin-arm64', selected['bazelisk']['url'])
+
+    def test_unknown_operating_system_is_rejected(self):
+        with self.assertRaises(ValueError):
+            select(self.pins, 'arm64', 'Windows')

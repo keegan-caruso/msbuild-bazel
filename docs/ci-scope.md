@@ -21,7 +21,7 @@ Those qualification commands live in their individual reports.
 
 The Linux workflow uses one Ubuntu 22.04 job with a 90-minute timeout. It runs
 setup twice, then quick, and optionally acceptance when `full` is selected.
-Verified tool downloads and repository-tool NuGet packages have separate caches.
+Bootstrap downloads and the Bazelisk cache are cached separately from repository-tool NuGet packages.
 Fixture package roots, bin/obj directories and Bazel action caches are excluded.
 Acceptance evidence under `/tmp/msbuild-explicit-ci.*` is uploaded for seven days.
 A restored download cache is not evidence of a network-fresh bootstrap.
@@ -29,7 +29,7 @@ A restored download cache is not evidence of a network-fresh bootstrap.
 ## Nix
 
 The separate Ubuntu 22.04 workflow enters the pinned Nix shell, acquires Starlark
-validation tooling, checks tool pins, then runs `ci-linux.sh full`. Its timeout is
+validation tooling, checks tool pins, then runs `ci-linux.sh quick`. Its timeout is
 30 minutes. A workflow definition describes checks to run, not a passing result.
 
 For local setup, see [development](development.md). For native Linux ARM64 checks
