@@ -150,3 +150,27 @@ versions and a 9.2.0 query using the upstream embedded JVM. Full application
 acceptance remains unqualified there: the compilation sandbox could not open
 `/lib64/ld-linux-x86-64.so.2` under Rosetta. Native x86-64 application sandbox
 qualification remains separate work. No GitHub CI was dispatched.
+
+## Rule tests
+
+Run `bash scripts/check-analysis.sh` for SDK-free rule checks on the selected
+Bazel version. `rules_testing` covers provider propagation, compile versus runtime
+inputs, output groups, runfiles, packages, tools, generation, restore and invalid
+attribute combinations. A small `aquery` check covers execution requirements,
+which Bazel does not expose through the Starlark Action API.
+
+The fake SDK is registered only as a root-module development toolchain. Its
+launcher always fails if executed; consumer modules do not inherit it. Fixtures
+are manual targets, so the analysis suite does not build their outputs.
+
+Quick checks and the shared version matrix run this suite. Real compilation,
+MSBuild-discovered input validation, worker recovery, sandboxing, test protocol
+execution and edit/cache invalidation remain integration checks. The settings
+conflict/escape and tool binding/path rejection cases moved out of the VSTest
+and tool integration scripts into analysis tests.
+
+Qualification: all 25 analysis tests and execution-requirement checks passed on
+macOS ARM64 and Linux ARM64 with Bazel 8.8.0 and 9.2.0. The full macOS version
+matrix also passed owned-code checks, SDK repository tests and real-build
+acceptance, including edit invalidation and cache recovery. No production rule
+implementation changed in this migration.

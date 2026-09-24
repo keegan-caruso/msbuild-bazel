@@ -43,7 +43,7 @@ def main():
         selected = dict(env, USE_BAZEL_VERSION=version, RULES_MSBUILD_BAZEL_VERSION=version)
         for name, command in [
             ('check', ['bash', 'scripts/check.sh']),
-            ('query', ['bash', 'scripts/bazel.sh', 'query', '//:repo_setup', '--noshow_progress', '--lockfile_mode=off']),
+            ('analysis', ['bash', 'scripts/check-analysis.sh']),
             ('sdk-repository', ['python3', '-m', 'unittest', 'discover', '-s', 'tests/sdk_repository', '-v']),
             ('acceptance', ['python3', 'tests/explicit_msbuild/acceptance.py', str(output/version)]),
         ]:

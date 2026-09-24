@@ -1,0 +1,39 @@
+load("//msbuild:toolchain.bzl", "msbuild_toolchain")
+load(":assemblies.bzl", "assembly_tests")
+load(":inputs.bzl", "input_tests")
+load(":layouts.bzl", "layout_tests")
+load(":validation.bzl", "validation_tests")
+
+# Deliberately unusable at execution: analysis tests must not compile .NET.
+msbuild_toolchain(
+    name = "fake_sdk",
+    dotnet = "dotnet",
+    runner = "Runner.dll",
+    runtime_manifest = "runtime.json",
+    sdk = ":sdk_files",
+    tags = ["manual"],
+)
+
+filegroup(
+    name = "sdk_files",
+    srcs = [
+        "dotnet",
+        "sdk.txt",
+    ],
+    tags = ["manual"],
+)
+
+toolchain(
+    name = "toolchain",
+    tags = ["manual"],
+    toolchain = ":fake_sdk",
+    toolchain_type = "//msbuild:toolchain_type",
+)
+
+assembly_tests(name = "assemblies")
+
+input_tests(name = "inputs")
+
+validation_tests(name = "validation")
+
+layout_tests(name = "layouts")
