@@ -285,3 +285,9 @@ The [11-project Avalonia remote run](avalonia-remote-execution.md) records
 action-cold build/test, warm edits and independent cache recovery separately.
 Those single samples include remote bootstrap, extraction and output transfer;
 they are correctness-run timings, not a matched raw-MSBuild performance claim.
+
+Repeated fresh-consumer Avalonia measurements with a warm repository cache give
+13.42 s median for full downloads and 9.57 s for top-level downloads (three
+samples each). Received traffic falls from 927.09 MB to 2.91 MB. See the
+[profile and qualification](avalonia-remote-execution.md#repeated-recovery-profile);
+startup and analysis dominate the remaining time.

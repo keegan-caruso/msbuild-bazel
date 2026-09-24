@@ -19,8 +19,9 @@ Its installed SDK directory is removed; it receives the SDK, runner, packages,
 tools and sources through Bazel action inputs. Local fallback and local cache
 uploads are disabled. Strict action environment is enabled: without it, Bazel
 8.8 inherited client-specific Bazelisk/SDK paths in the test action `PATH`,
-causing a test-cache miss after relocation even when every compilation hit. This is a selected graph and a runtime smoke test, not
-Avalonia's authored test suite, native UI backends, or whole-repository support.
+causing a test-cache miss after relocation even when every compilation hit.
+The theme fixture is a runtime smoke test; the authored suite below extends test
+coverage. Neither qualifies native UI backends or whole-repository support.
 
 ## Controls
 
@@ -163,3 +164,51 @@ python3 tests/explicit_msbuild/avalonia/summarize_recovery.py /tmp/recovery-prof
 
 The driver records BEP metrics, JSON traces, command logs and container network
 counters. See [compact measurements](avalonia-download-evidence.json).
+
+## Authored test suite
+
+`tests/explicit_msbuild/avalonia/authored_tests.py` qualifies the complete authored
+`Avalonia.Generators.Tests` suite, with no test filter or source changes for the
+baseline. Its graph contains 15 projects and 2,254 evaluated source files. The
+checkout must include its pinned submodules, including DataGrid revision
+`85a0b32ef6d963c1d67619ca3e2f6da0bc43ac9a` used by Diagnostics resources.
+
+The suite keeps its `net8.0` target. Raw and Bazel executions both use the declared
+SDK's .NET 10 runtime with explicit `DOTNET_ROLL_FORWARD=Major`; this does not
+qualify execution on a .NET 8 runtime. VSTest CLI 17.14.1 is checksum-pinned and
+the upstream xUnit adapter is 2.8.2. Executable test compilation is retained.
+
+Both Bazel 8.8.0 and 9.2.0 passed all 59 authored tests with matching raw/remote
+names and outcomes. The negative control rebuilt only the generator and failed
+45 tests while preserving its reference assembly. Restoring the source recovered
+the passing result from cache. Each independent consumer recovered all 122
+recorded actions from cache and the same 59 passing results. See the
+[qualification evidence](avalonia-authored-evidence.json).
+
+```sh
+git -C /path/to/pinned/avalonia submodule update --init --recursive
+python3 tests/explicit_msbuild/avalonia/setup.py /path/to/pinned/avalonia /tmp/authored \
+  --entry tests/Avalonia.Generators.Tests/Avalonia.Generators.Tests.csproj
+python3 tests/explicit_msbuild/avalonia/authored_tests.py /tmp/authored /tmp/authored-rbe \
+  --executor grpc://WORKER_IP:8980
+```
+
+The fixture compares individual raw/remote TRX names and outcomes. A deliberate
+body-only exception in `XamlXViewResolver.ResolveView` must rebuild only the
+generator, preserve its reference hash and cause authored tests to fail.
+Restoring the source must recover the passing result. Full downloads are used
+where reference hashes are inspected; no-op/restoration/recovery use `toplevel`.
+For independent recovery, copy only `/tmp/authored/bazel` without `bazel-*` links
+and run the same script with the copied workspace and `--recover`.
+
+### Remaining framework-variant boundary
+
+An initial `Avalonia.Markup.UnitTests` raw control passed all 287 tests, but its
+remote fixture was rejected: `Avalonia.UnitTests` targets `netstandard2.0`, while
+the fixture had selected `net8.0` dependencies. The current test inventory keys
+nodes only by project path, so it cannot export both framework variants of one
+project. The rule's framework check correctly rejects the incompatible edge.
+Closing this boundary requires fixture nodes/labels keyed by project plus global
+properties and explicit framework-compatible edges, followed by runtime-closure
+qualification. Retargeting the helper or suppressing validation is not part of
+this qualification. The generator suite does not require that mixed graph.
