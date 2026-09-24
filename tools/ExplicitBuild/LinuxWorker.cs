@@ -129,7 +129,7 @@ internal static class LinuxWorker
                     var mapped = MapInputs(request, InputPath);
                     var state = Path.Combine(root, "out", identity);
                     string ChildPath(string path) => path.StartsWith(root + "/", StringComparison.Ordinal) ? ChildRoot + path[root.Length..] : path;
-                    var prepared = Program.Prepare(mapped, Path.Combine(inputRoot, "workspace"), state, ChildPath);
+                    var prepared = BuildPreparation.Prepare(mapped, Path.Combine(inputRoot, "workspace"), state, ChildPath);
                     var session = prepared with
                     {
                         Request = MapInputs(mapped, ChildPath),
@@ -165,7 +165,7 @@ internal static class LinuxWorker
                             }
                         }
 
-                        Program.Publish(request, state);
+                        BuildOutputs.Publish(request, state);
                         File.WriteAllText(Path.Combine(request.Diagnostics, "worker.json"), JsonSerializer.Serialize(new
                         {
                             processId = child.Id,
@@ -289,7 +289,7 @@ internal static class LinuxWorker
                 Console.SetOut(log);
                 Console.SetError(log);
                 Environment.CurrentDirectory = session.Workspace;
-                exit = Program.Compile(session);
+                exit = ProjectCompilation.Compile(session);
             }
             catch (Exception exception) { log.WriteLine(exception); exit = 1; }
             finally
