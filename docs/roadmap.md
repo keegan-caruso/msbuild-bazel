@@ -16,9 +16,9 @@ The trackers below describe remaining work, not promises of platform support.
    [observed boundary](runtime-jit-bootstrap.md).
 3. **Expand remote execution — [#43](https://github.com/keegan-caruso/msbuild-bazel/issues/43),
    [#44](https://github.com/keegan-caruso/msbuild-bazel/issues/44).**
-   The SDK-free ARM64 synthetic, including downloaded SDK runner bootstrap,
-   passes on both Bazel baselines. Add a diamond,
-   missing/changed tool controls, packages, tasks and generation before a real graph.
+   SDK-only bootstrap, diamond invalidation, source-content packages and declared
+   task controls pass on the SDK-free ARM64 executor with both Bazel baselines.
+   Add standalone generation and wider package assets before a real graph.
 4. **Make source-dependent tests relocatable — [#9](https://github.com/keegan-caruso/msbuild-bazel/issues/9).**
    Preserve declared baseline/source inputs without relying on embedded absolute
    checkout paths or making the build root writable. Current Serilog, Spectre and
