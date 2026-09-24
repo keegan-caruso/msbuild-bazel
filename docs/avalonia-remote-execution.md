@@ -127,3 +127,39 @@ The 8.8 materialization check found 84 extracted archives after `all` recovery
 and zero after `toplevel`/`minimal` recovery. A later local launch can download
 additional inputs. Single-run timings are exploratory; use the repeated profile
 below before attributing a speedup to download policy.
+
+### Repeated recovery profile
+
+Bazel 9.2, three fresh-server samples per mode, rotating mode order on the same
+ARM64 consumer. Every sample recovered all 101 remote actions; the repository
+cache and worker CAS were already warm. No local launch runs inside this timing.
+
+| Mode | Median wall time | Client bytes received | Download interval union |
+| --- | ---: | ---: | ---: |
+| `all` | 13.42 s | 927.09 MB | 3.78 s |
+| `toplevel` | 9.57 s | 2.91 MB | 0.08 s |
+| `minimal` | 9.93 s | 2.90 MB | 0.07 s |
+
+`toplevel` reduced recovery time by about **29%** and client traffic by **99.7%**
+in these matched samples. There is no demonstrated advantage for `minimal` over
+`toplevel` here. Prefer `--remote_download_outputs=toplevel` for normal usage;
+retain `all` for complete-output parity checks. This test-target result does not
+predict transfer size for applications with large top-level outputs.
+
+For `toplevel`, median analysis time was 3.19 s, other in-command work 2.75 s,
+and time outside the command (including client/server startup) 1.81 s. The
+execution phase, which includes cache recovery, was 1.90 s. Cache-lookup intervals
+covered 0.35 s and Merkle-tree construction 0.21 s. These trace intervals overlap;
+they must not be added to phase times. Independently calculated medians also
+need not sum to median wall time. Remaining time is mainly startup and analysis,
+not bulk downloads. Network counters cover all non-loopback client traffic,
+including RPCs, rather than only CAS payloads.
+
+```sh
+python3 tests/explicit_msbuild/avalonia/profile_recovery.py \
+  /consumer/theme /tmp/recovery-profile --executor grpc://WORKER_IP:8980
+python3 tests/explicit_msbuild/avalonia/summarize_recovery.py /tmp/recovery-profile
+```
+
+The driver records BEP metrics, JSON traces, command logs and container network
+counters. See [compact measurements](avalonia-download-evidence.json).
