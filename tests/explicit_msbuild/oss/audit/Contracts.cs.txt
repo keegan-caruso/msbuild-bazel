@@ -1,0 +1,55 @@
+using System.Reflection;
+using System.Runtime.Loader;
+using System.Text.Json;
+using System.Xml;
+using Microsoft.Build.Construction;
+using Microsoft.Build.Execution;
+
+// Audit the existing rule contract without adapting either upstream repository.
+var tool = Path.GetFullPath(args[0]);
+var sdk = Path.Combine(Environment.GetEnvironmentVariable("RULES_MSBUILD_DOTNET_ROOT")!, "sdk/10.0.400");
+AssemblyLoadContext.Default.Resolving += (context, name) =>
+{
+    var file = new[] { Path.Combine(tool, name.Name + ".dll"), Path.Combine(sdk, name.Name + ".dll") }.FirstOrDefault(File.Exists);
+    return file is null ? null : context.LoadFromAssemblyPath(file);
+};
+var assembly = AssemblyLoadContext.Default.LoadFromAssemblyPath(Path.Combine(tool, "ExplicitBuild.dll"));
+var requestType = assembly.GetType("Request")!;
+var sessionType = assembly.GetType("Session")!;
+var rows = new List<object>();
+void Check(string name, string reference, bool analyzer, Dictionary<string, string> properties, string? expected, bool validateAll = false)
+{
+    var request = JsonSerializer.Deserialize(JsonSerializer.Serialize(new
+    {
+        project = new { source = "/audit/App/App.csproj", path = "App/App.csproj" },
+        dependencies = analyzer ? Array.Empty<string>() : new[] { "Task/Task.csproj" },
+        projectAnalyzers = analyzer ? new[] { new { project = "Task/Task.csproj", assembly = "Task.dll", directories = Array.Empty<string>() } } : null,
+        packages = Array.Empty<object>(), compilePackages = Array.Empty<string>(), buildPackages = Array.Empty<string>(), analyzerPackages = Array.Empty<string>(), declaredPackages = Array.Empty<string>(), sources = Array.Empty<object>(), frameworkReferences = Array.Empty<string>(),
+        properties, framework = "net8.0", configuration = "Release", assembly = "App",
+        nullable = "enable", languageVersion = "default", defines = Array.Empty<string>(),
+    }), requestType, new JsonSerializerOptions { PropertyNameCaseInsensitive = true })!;
+    var session = Activator.CreateInstance(sessionType, request, "/audit", "/state", "/original", "/sdk", tool)!;
+    string? error = null;
+    try
+    {
+        if (properties.Count > 0)
+            assembly.GetType("Program")!.GetMethod("Properties", BindingFlags.NonPublic | BindingFlags.Static)!.Invoke(null, new[] { session });
+        else
+        {
+            using var reader = XmlReader.Create(new StringReader("<Project><ItemGroup>" + reference + "</ItemGroup></Project>"));
+            var project = new ProjectInstance(ProjectRootElement.Create(reader));
+            assembly.GetType(validateAll ? "Program" : "ProjectAnalyzers")!.GetMethod(validateAll ? "ValidateDeclarations" : "Validate", BindingFlags.NonPublic | BindingFlags.Static)!.Invoke(null, new object[] { session, project });
+        }
+    }
+    catch (TargetInvocationException e) { error = e.InnerException!.Message; }
+    if (expected is null ? error is not null : error is null || !error.Contains(expected))
+        throw new Exception(name + ": unexpected result " + error);
+    rows.Add(new { name, accepted = error is null, error });
+}
+Check("ordinary-project-reference", "<_BazelOriginalProjectReference Include=\"../Task/Task.csproj\" />", false, new(), null);
+Check("analyzer-project-reference", "<_BazelOriginalProjectReference Include=\"../Task/Task.csproj\" ReferenceOutputAssembly=\"false\" OutputItemType=\"Analyzer\" />", true, new(), null);
+Check("build-only-project-reference", "<_BazelOriginalProjectReference Include=\"../Task/Task.csproj\" ReferenceOutputAssembly=\"false\" PrivateAssets=\"all\" />", false, new(), "analyzer role disagrees");
+Check("build-only-misclassified-as-analyzer", "<_BazelOriginalProjectReference Include=\"../Task/Task.csproj\" ReferenceOutputAssembly=\"false\" />", true, new(), "analyzer role disagrees");
+Check("task-assembly-path-property", "", false, new() { ["AvaloniaBuildTasksLocation"] = "/tools/Avalonia.Build.Tasks.dll" }, "Reserved or file-valued");
+Check("reference-awaiting-target-time-package-resolution", "<_BazelOriginalProjectReference Include=\"../Task/Task.csproj\" /><_BazelOriginalReference Include=\"Microsoft.Extensions.Options\" />", false, new(), "Undeclared assembly/analyzer dependency", true);
+Console.WriteLine(JsonSerializer.Serialize(rows, new JsonSerializerOptions { WriteIndented = true }));

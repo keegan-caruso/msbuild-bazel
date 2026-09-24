@@ -1,0 +1,23 @@
+using System.Text.Json;
+using Microsoft.Build.Evaluation;
+var sdk=Environment.GetEnvironmentVariable("RULES_MSBUILD_DOTNET_ROOT")!+"/sdk/10.0.400";
+System.Runtime.Loader.AssemblyLoadContext.Default.Resolving += (c,n)=>File.Exists(sdk+"/"+n.Name+".dll")?c.LoadFromAssemblyPath(sdk+"/"+n.Name+".dll"):null;
+Environment.SetEnvironmentVariable("MSBUILD_EXE_PATH",sdk+"/MSBuild.dll");
+Environment.SetEnvironmentVariable("MSBuildSDKsPath",sdk+"/Sdks");
+Scan(args[0],args[1],args[2]);
+static void Scan(string root,string entry,string output)
+{
+ var seen=new HashSet<string>();var queue=new Queue<string>();queue.Enqueue(Path.Combine(root,entry));var rows=new List<object>();
+ while(queue.TryDequeue(out var path))
+ {
+  path=Path.GetFullPath(path);if(!seen.Add(path))continue;
+  using var collection=new ProjectCollection();
+  var p=collection.LoadProject(path,new Dictionary<string,string>{{"Configuration","Release"}},null);
+  var framework=p.GetPropertyValue("TargetFramework");if(framework.Length==0)framework=p.GetPropertyValue("TargetFrameworks").Split(';')[0];
+  p.SetGlobalProperty("TargetFramework",framework);p.ReevaluateIfNecessary();
+  object[] Items(string type)=>p.GetItems(type).Select(i=>(object)new {include=i.EvaluatedInclude,metadata=i.Metadata.ToDictionary(m=>m.Name,m=>m.EvaluatedValue)}).ToArray();
+  var refs=p.GetItems("ProjectReference").Select(i=>Path.GetFullPath(i.EvaluatedInclude.Replace('\\','/'),Path.GetDirectoryName(path)!)).ToArray();foreach(var r in refs)queue.Enqueue(r);
+  rows.Add(new {project=Path.GetRelativePath(root,path),framework,properties=new[]{"ManagePackageVersionsCentrally","CentralPackageTransitivePinningEnabled","LangVersion","Nullable","TargetFrameworks","UsingMicrosoftNETSdkRazor","UsingMicrosoftNETSdkWeb"}.ToDictionary(x=>x,x=>p.GetPropertyValue(x)),imports=p.Imports.Select(i=>i.ImportedProject.FullPath).Where(x=>x.StartsWith(root+"/")).Select(x=>Path.GetRelativePath(root,x)).ToArray(),references=Items("ProjectReference"),packages=Items("PackageReference"),frameworks=Items("FrameworkReference"),compile=Items("Compile"),additional=Items("AdditionalFiles")});
+ }
+ File.WriteAllText(output,JsonSerializer.Serialize(rows,new JsonSerializerOptions{WriteIndented=true}));Console.WriteLine($"Evaluated {rows.Count} projects");
+}

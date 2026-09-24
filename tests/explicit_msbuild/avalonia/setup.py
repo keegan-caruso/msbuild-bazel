@@ -1,0 +1,25 @@
+"""Prepare an actual Avalonia Simple theme graph; setup is outside build timing."""
+import json,os,shutil,subprocess,sys,time
+from pathlib import Path
+rules=Path(__file__).resolve().parents[3];checkout=Path(sys.argv[1]);dest=Path(sys.argv[2]);dest.mkdir(parents=True);source=dest/'source';sdk=Path(os.environ['RULES_MSBUILD_DOTNET_ROOT'])
+assert subprocess.check_output(['git','-C',checkout,'rev-parse','HEAD'],text=True).strip()=='37fbd9655cc581ff5b1c6b1fb1be4e3118c889d0'
+shutil.copytree(checkout,source,ignore=shutil.ignore_patterns('.git','bin','obj','artifacts'))
+globaljson=source/'global.json';data=json.loads(globaljson.read_text());data['sdk']={'version':'10.0.400','rollForward':'disable'};globaljson.write_text(json.dumps(data))
+config={'sourceSubdir':'upstream','entries':['src/Avalonia.Themes.Simple/Avalonia.Themes.Simple.csproj'],'properties':{'AvsSkipBuildingLegacyTargetFrameworks':'True','DebugType':'portable','ProduceReferenceAssembly':'true','NuGetAudit':'false'}}
+(dest/'config.json').write_text(json.dumps(config,indent=2))
+props=['-p:'+k+'='+v for k,v in config['properties'].items()]+['-p:RestorePackagesPath='+str(dest/'nuget')]
+entry=source/config['entries'][0]
+for name,args in [('restore',['restore',entry]),('raw-cold',['build',entry,'-f','net8.0','-c','Release','--no-restore','-m:4'])]:
+ start=time.perf_counter()
+ with (dest/(name+'.log')).open('w') as log:r=subprocess.run([sdk/'dotnet',*args,*props],cwd=source,stdout=log,stderr=subprocess.STDOUT)
+ print(name,r.returncode,round(time.perf_counter()-start,3),flush=True);r.check_returncode()
+probe=dest/'probe';probe.mkdir();shutil.copyfile(rules/'tests/explicit_msbuild/oss/Inventory.csproj.txt',probe/'Inventory.csproj')
+code=(rules/'tests/explicit_msbuild/oss/Inventory.cs.txt').read_text().replace('"EditorConfigFiles"','"EditorConfigFiles","AvaloniaResource","AvaloniaXaml"')
+(probe/'Program.cs').write_text(code)
+subprocess.run([sdk/'dotnet','build',probe/'Inventory.csproj','-c','Release'],check=True)
+subprocess.run([sdk/'dotnet',probe/'bin/Release/net10.0/Inventory.dll',source,dest/'config.json',dest/'inventory.json'],check=True)
+
+rows=json.loads((dest/'inventory.json').read_text())
+config['toolBindings']={r['project']:{'AvaloniaBuildTasksLocation':'src/Avalonia.Build.Tasks/Avalonia.Build.Tasks.csproj'} for r in rows if 'build/BuildTargets.targets' in r['imports']}
+(dest/'config.json').write_text(json.dumps(config,indent=2))
+subprocess.run([sys.executable,rules/'tests/explicit_msbuild/oss/prepare.py',dest,rules],check=True)

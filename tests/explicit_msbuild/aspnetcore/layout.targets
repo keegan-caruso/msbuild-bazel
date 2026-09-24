@@ -1,0 +1,22 @@
+<Project>
+  <!-- The raw benchmark's .dotnet symlink points at this same declared SDK.
+       Use its physical pack location inside the read-only worker namespace. -->
+  <PropertyGroup>
+    <NetCoreTargetingPackRoot>$([System.IO.Path]::GetFullPath('$(MSBuildToolsPath)/../../packs'))/</NetCoreTargetingPackRoot>
+  </PropertyGroup>
+  <!-- Bazel-supplied reference assemblies are already resolved. Keep the
+       repository's package resolver focused on its remaining bare references. -->
+  <Target Name="HoldExplicitReferences" BeforeTargets="ResolveCustomReferences">
+    <ItemGroup>
+      <_ExplicitResolvedReference Include="@(Reference->HasMetadata('HintPath'))" />
+      <_ExplicitResolvedReference Include="@(Reference->WithMetadataValue('_BazelFrameworkAssembly', 'true'))" />
+      <Reference Remove="@(_ExplicitResolvedReference)" />
+    </ItemGroup>
+  </Target>
+  <Target Name="RestoreExplicitReferences" AfterTargets="ResolveCustomReferences">
+    <ItemGroup>
+      <Reference Include="@(_ExplicitResolvedReference)" />
+      <_ExplicitResolvedReference Remove="@(_ExplicitResolvedReference)" />
+    </ItemGroup>
+  </Target>
+</Project>

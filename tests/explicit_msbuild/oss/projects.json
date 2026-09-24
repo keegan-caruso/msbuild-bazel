@@ -1,0 +1,73 @@
+{
+  "serilog": {
+    "repository": "https://github.com/serilog/serilog.git",
+    "commit": "bebc7719004f76187ae72e64ce138ec2540f2070",
+    "framework": "net10.0",
+    "entries": [
+      "src/Serilog/Serilog.csproj"
+    ],
+    "properties": {},
+    "edit": {
+      "path": "src/Serilog/Configuration/LoggerFilterConfiguration.cs",
+      "before": "Null filter is not allowed.",
+      "assembly": "Serilog"
+    }
+  },
+  "spectre": {
+    "repository": "https://github.com/spectreconsole/spectre.console.git",
+    "commit": "76b673337fe9d03ec41d0498987e53c4d5e7b33a",
+    "framework": "net10.0",
+    "entries": [
+      "src/Spectre.Console/Spectre.Console.csproj"
+    ],
+    "properties": {
+      "MinVerSkip": "true"
+    },
+    "patches": [
+      {
+        "path": "src/Spectre.Console/Spectre.Console.csproj",
+        "before": "<CompilerGeneratedFilesOutputPath>Generated</CompilerGeneratedFilesOutputPath>",
+        "after": "<CompilerGeneratedFilesOutputPath>$(IntermediateOutputPath)Generated</CompilerGeneratedFilesOutputPath>"
+      },
+      {
+        "path": "src/Spectre.Console.Ansi/Spectre.Console.Ansi.csproj",
+        "before": "<CompilerGeneratedFilesOutputPath>Generated</CompilerGeneratedFilesOutputPath>",
+        "after": "<CompilerGeneratedFilesOutputPath>$(IntermediateOutputPath)Generated</CompilerGeneratedFilesOutputPath>"
+      },
+      {
+        "path": "src/Spectre.Console/Spectre.Console.csproj",
+        "before": "<Compile Remove=\"$(CompilerGeneratedFilesOutputPath)/**/*.cs\" />",
+        "after": "<Compile Remove=\"Generated/**/*.cs;$(CompilerGeneratedFilesOutputPath)/**/*.cs\" />"
+      },
+      {
+        "path": "src/Spectre.Console.Ansi/Spectre.Console.Ansi.csproj",
+        "before": "<Compile Remove=\"$(CompilerGeneratedFilesOutputPath)/**/*.cs\" />",
+        "after": "<Compile Remove=\"Generated/**/*.cs;$(CompilerGeneratedFilesOutputPath)/**/*.cs\" />"
+      }
+    ],
+    "edit": {
+      "path": "src/Spectre.Console.Ansi/ColorTable.cs",
+      "before": "Color number must be between 0 and 255",
+      "assembly": "Spectre.Console.Ansi"
+    }
+  },
+  "polly": {
+    "repository": "https://github.com/App-vNext/Polly.git",
+    "commit": "74bf31fff0e0907034994be4df22424aa71818f1",
+    "framework": "net8.0",
+    "entries": [
+      "src/Polly.Extensions/Polly.Extensions.csproj",
+      "src/Polly.RateLimiting/Polly.RateLimiting.csproj",
+      "src/Polly.Testing/Polly.Testing.csproj"
+    ],
+    "properties": {
+      "MinVerSkip": "true",
+      "UseArtifactsOutput": "false"
+    },
+    "edit": {
+      "path": "src/Polly.Core/VoidResult.cs",
+      "before": "\"void\"",
+      "assembly": "Polly.Core"
+    }
+  }
+}

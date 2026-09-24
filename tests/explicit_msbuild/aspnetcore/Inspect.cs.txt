@@ -1,0 +1,10 @@
+using System.Reflection;
+using System.Reflection.Metadata;
+using System.Reflection.PortableExecutable;
+using System.Runtime.Loader;
+using System.Security.Cryptography;
+using System.Text.Json;
+using var stream=File.OpenRead(args[0]);using var pe=new PEReader(stream);var md=pe.GetMetadataReader();
+var types=md.TypeDefinitions.Select(h=>{var t=md.GetTypeDefinition(h);return new {name=md.GetString(t.Namespace)+"."+md.GetString(t.Name),attributes=(int)t.Attributes,methods=t.GetMethods().Select(mh=>{var m=md.GetMethodDefinition(mh);return new {name=md.GetString(m.Name),attributes=(int)m.Attributes,signature=Convert.ToHexString(md.GetBlobBytes(m.Signature))};}).ToArray(),fields=t.GetFields().Select(fh=>{var f=md.GetFieldDefinition(fh);return new {name=md.GetString(f.Name),attributes=(int)f.Attributes,signature=Convert.ToHexString(md.GetBlobBytes(f.Signature))};}).ToArray()};}).ToArray();
+var resources=md.ManifestResources.Select(h=>{var r=md.GetManifestResource(h);var name=md.GetString(r.Name);if(!r.Implementation.IsNil)return new {name,hash="external"};var bytes=pe.GetSectionData(pe.PEHeaders.CorHeader!.ResourcesDirectory.RelativeVirtualAddress).GetReader((int)r.Offset,pe.PEHeaders.CorHeader.ResourcesDirectory.Size-(int)r.Offset);var size=bytes.ReadInt32();return new{name,hash=Convert.ToHexString(SHA256.HashData(bytes.ReadBytes(size)))};}).ToArray();
+Console.WriteLine(JsonSerializer.Serialize(new {types,resources}));
