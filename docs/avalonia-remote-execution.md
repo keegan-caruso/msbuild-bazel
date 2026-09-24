@@ -103,3 +103,27 @@ python3 tests/explicit_msbuild/avalonia/remote_execution.py \
 
 The local rules override is rewritten for the consumer. Reports and execution
 logs are written to the output directory; raw parity is `/tmp/theme/parity.json`.
+
+## Reduced-download qualification
+
+`tests/explicit_msbuild/avalonia/downloads.py` starts a fresh consumer output base
+for each of `all`, `toplevel` and `minimal`, using the completed remote fixture's
+workspace and seeded instance. Each mode must recover the test from cache,
+launch it locally with `bazel run`, then correctly rebuild and rerun the test
+following body and API changes. Test sources remain unchanged.
+
+```sh
+python3 tests/explicit_msbuild/avalonia/downloads.py /consumer/theme /tmp/downloads \
+  --executor grpc://WORKER_IP:8980
+```
+
+The full-output parity fixture still uses `all` to inspect every DLL. Reduced
+modes verify runtime behavior and execution logs instead of forcing all the
+intermediate files to download for hash checks. Local launch is a separate case:
+it can fetch runtime inputs that a cached remote test did not need locally.
+
+All three modes pass recovery, local launch and both edits on Bazel 8.8 and 9.2.
+The 8.8 materialization check found 84 extracted archives after `all` recovery
+and zero after `toplevel`/`minimal` recovery. A later local launch can download
+additional inputs. Single-run timings are exploratory; use the repeated profile
+below before attributing a speedup to download policy.
