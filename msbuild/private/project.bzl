@@ -1,6 +1,6 @@
 """Register explicit project build actions and outputs."""
 
-load(":paths.bzl", _TOOLCHAIN = "TOOLCHAIN", _file = "input_file", _logical = "logical", _mapped_imports = "mapped_imports", _quote = "quote", _runfile = "runfile", _runtime_package = "runtime_package")
+load(":paths.bzl", _RUNTIME_TOOLCHAIN = "RUNTIME_TOOLCHAIN", _TOOLCHAIN = "TOOLCHAIN", _file = "input_file", _logical = "logical", _mapped_imports = "mapped_imports", _quote = "quote", _runfile = "runfile", _runtime_package = "runtime_package")
 load(":providers.bzl", "MSBuildAssemblyInfo", "MSBuildBindingInfo", "MSBuildItemsInfo", "MSBuildLayoutInfo", "MSBuildPackageInfo", "MSBuildPackageLockInfo", "MSBuildProjectOutputInfo", "MSBuildReferencePackInfo", "MSBuildRestoreInfo", "MSBuildRuntimeInfo", "MSBuildTestToolInfo", "MSBuildToolInfo")
 
 def _configuration(ctx):
@@ -267,6 +267,10 @@ def build_project(ctx, executable = False, test = False, restore_only = False, p
     if test and ctx.attr.test_runner:
         def_tool = ctx.attr.test_runner[MSBuildTestToolInfo]
     host = ctx.attr.runtime_host[MSBuildRuntimeInfo] if ctx.attr.runtime_host else None
+    if host == None and ctx.toolchains[_RUNTIME_TOOLCHAIN] != None:
+        host = ctx.toolchains[_RUNTIME_TOOLCHAIN].runtime
+    if host == None and tc.requires_runtime_toolchain:
+        fail("No SDK runtime matches the target platform; declare a compatible SDK platform or runtime_host")
     launch_request = ctx.actions.declare_file(ctx.label.name + ".launch.json")
     ctx.actions.write(launch_request, json.encode({
         "runtimeHost": {"directory": _runfile(ctx, host.directory), "entryPoint": host.entry_point, "launchMode": host.launch_mode, "runtimeIdentifier": host.runtime_identifier, "version": host.version, "environment": host.environment} if host else None,

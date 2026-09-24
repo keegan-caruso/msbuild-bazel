@@ -1,6 +1,9 @@
-"""Verified runtime downloads sharing the source-built runtime provider."""
+"""Verified SDK acquisition and downloaded/source-built runtime integration."""
 
+load("//msbuild/private:global_json.bzl", "global_json_version")
 load("//msbuild/private:runtime_downloads.bzl", "RUNTIME_DOWNLOADS")
+load("//msbuild/private:sdk_downloads.bzl", "SDK_DOWNLOADS")
+load("//msbuild/private:sdk_repositories.bzl", "SDK_PLATFORMS", "sdk_archive", "sdk_toolchains")
 
 _PLATFORMS = {
     "linux-arm64": ["@platforms//os:linux", "@platforms//cpu:aarch64"],
@@ -61,6 +64,25 @@ _runtime_aliases = repository_rule(implementation = _aliases, attrs = {"reposito
 def _runtimes(ctx):
     names = {}
     for mod in ctx.modules:
+        for sdk in mod.tags.sdk:
+            if sdk.name in names:
+                fail("Duplicate SDK/runtime repository name: " + sdk.name)
+            names[sdk.name] = True
+            if bool(sdk.version) == bool(sdk.global_json):
+                fail("Specify exactly one of sdk.version or sdk.global_json")
+            version = global_json_version(ctx.read(sdk.global_json)) if sdk.global_json else sdk.version
+            if version not in SDK_DOWNLOADS:
+                fail("Unknown pinned SDK version: " + version)
+            if not sdk.platforms or len(sdk.platforms) != len({p: True for p in sdk.platforms}):
+                fail("SDK platforms must be nonempty and unique")
+            repositories = {}
+            for platform in sdk.platforms:
+                if platform not in SDK_PLATFORMS:
+                    fail("Unsupported SDK platform: " + platform)
+                name = sdk.name + "_" + platform.replace("-", "_")
+                repositories[platform] = name
+                sdk_archive(name = name, version = version, runtime_version = SDK_DOWNLOADS[version]["runtime"], platform = platform, **SDK_DOWNLOADS[version]["platforms"][platform])
+            sdk_toolchains(name = sdk.name, repositories = repositories)
         for runtime in mod.tags.runtime:
             if runtime.name in names:
                 fail("Duplicate runtime repository name: " + runtime.name)
@@ -99,7 +121,14 @@ _custom_runtime = tag_class(attrs = {
     "integrity": attr.string(mandatory = True),
 })
 
+_dotnet_sdk = tag_class(attrs = {
+    "name": attr.string(mandatory = True),
+    "version": attr.string(),
+    "global_json": attr.label(),
+    "platforms": attr.string_list(default = ["linux-arm64", "linux-x64", "osx-arm64", "osx-x64"]),
+})
+
 dotnet = module_extension(
     implementation = _runtimes,
-    tag_classes = {"runtime": _dotnet_runtime, "runtime_archive": _custom_runtime},
+    tag_classes = {"sdk": _dotnet_sdk, "runtime": _dotnet_runtime, "runtime_archive": _custom_runtime},
 )

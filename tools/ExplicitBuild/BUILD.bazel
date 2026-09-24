@@ -5,8 +5,18 @@ filegroup(
     name = "files",
     srcs = glob(
         ["bin/Release/net10.0/*"],
-        allow_empty = False,
+        allow_empty = True,
     ),
 )
 
 exports_files(["bin/Release/net10.0/ExplicitBuild.dll"])
+
+filegroup(
+    name = "sources",
+    srcs = glob(["*.cs"]) + [
+        "ExplicitBuild.csproj",
+        "//:.editorconfig",
+        "//tools:Directory.Build.props",
+        "//tools:MSBuildTool.props",
+    ],
+)

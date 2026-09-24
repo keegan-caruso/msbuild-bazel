@@ -325,7 +325,8 @@ checks that CoreLib loads from the selected layout and sees the declared runtime
 environment and expected runtime payload marker. Build `//runtime:smoke` in the generated workspace. This is a consumer of the
 bounded source-build rules, not a general dotnet/runtime bootstrap command.
 
-SDK acquisition, automatic default runtime-toolchain registration, complete runtime
+The [SDK extension](development.md#using-the-rules-in-an-application) now acquires
+SDKs and registers their bundled runtime as the default. Complete source-runtime
 packaging, Windows/Mono/NativeAOT support, and rebuilding the entire SDK from source
 remain outside this runtime-provider change.
 

@@ -1,6 +1,6 @@
 """Assembly, test, generation and restore rule definitions."""
 
-load(":paths.bzl", _TOOLCHAIN = "TOOLCHAIN")
+load(":paths.bzl", _RUNTIME_TOOLCHAIN = "RUNTIME_TOOLCHAIN", _TOOLCHAIN = "TOOLCHAIN")
 load(":project.bzl", _project = "build_project")
 load(":providers.bzl", "MSBuildAssemblyInfo", "MSBuildBindingInfo", "MSBuildItemsInfo", "MSBuildLayoutInfo", "MSBuildPackageInfo", "MSBuildPackageLockInfo", "MSBuildProjectOutputInfo", "MSBuildReferencePackInfo", "MSBuildRestoreInfo", "MSBuildRuntimeInfo", "MSBuildTestToolInfo", "MSBuildToolInfo")
 
@@ -75,7 +75,7 @@ _ATTRS = {
 }
 
 msbuild_library = rule(implementation = _library, attrs = _ATTRS, toolchains = [_TOOLCHAIN])
-msbuild_binary = rule(implementation = _binary, attrs = _ATTRS, toolchains = [_TOOLCHAIN], executable = True)
+msbuild_binary = rule(implementation = _binary, attrs = _ATTRS, toolchains = [_TOOLCHAIN, config_common.toolchain_type(_RUNTIME_TOOLCHAIN, mandatory = False)], executable = True)
 _TEST_ATTRS = dict(_ATTRS, **{
     "test_protocol": attr.string(default = "executable", values = ["executable", "mtp", "vstest"]),
     "test_settings": attr.label(allow_single_file = True),
@@ -89,7 +89,7 @@ _TEST_ATTRS = dict(_ATTRS, **{
     "test_runner": attr.label(providers = [MSBuildTestToolInfo]),
     "test_adapters": attr.label_list(providers = [MSBuildTestToolInfo]),
 })
-msbuild_test = rule(implementation = _test, attrs = _TEST_ATTRS, toolchains = [_TOOLCHAIN], test = True)
+msbuild_test = rule(implementation = _test, attrs = _TEST_ATTRS, toolchains = [_TOOLCHAIN, config_common.toolchain_type(_RUNTIME_TOOLCHAIN, mandatory = False)], test = True)
 
 def _generate(ctx):
     if ctx.attr.restore or ctx.attr.export_targets:

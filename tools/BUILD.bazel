@@ -1,0 +1,4 @@
+exports_files([
+    "Directory.Build.props",
+    "MSBuildTool.props",
+])

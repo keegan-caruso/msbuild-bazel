@@ -1,6 +1,64 @@
 # Development and toolchains
 
-## Standard setup
+## Using the rules in an application
+
+With Bazelisk available and `rules_msbuild` declared as a module dependency:
+
+```starlark
+# MODULE.bazel
+dotnet = use_extension("@rules_msbuild//msbuild:extensions.bzl", "dotnet")
+dotnet.sdk(name = "dotnet", global_json = "//:global.json")
+use_repo(dotnet, "dotnet")
+register_toolchains("@dotnet//:all")
+```
+
+Export `global.json` from the root BUILD file with `exports_files(["global.json"])`.
+Alternatively use `version = "10.0.400"` instead of `global_json`. Bazel downloads
+verified SDK archives, builds the runner from declared sources, and supplies the
+bundled runtime for applications and tests. `runtime_host` remains an explicit
+override. No manual SDK or runner installation is required for this workflow.
+See the [runnable example](../examples/hello/README.md).
+
+The pinned SDK catalog currently contains **10.0.400 and 10.0.401** for Linux
+(glibc) and macOS, ARM64/x64. Acquisition and execution are qualified on ARM64;
+x64 archive declarations do not establish execution qualification. Compilation
+still requires the OS sandbox dependencies listed below. SDK selection follows
+the execution platform; the default application runtime follows the target
+platform. Cross-compilation is not qualified.
+
+`global.json` is an explicit tracked input; there is no parent-directory search.
+JSON comments are supported. `sdk.version` is required; `rollForward` may be
+omitted, `patch`, or `disable`. These acquire the exact requested catalog pin;
+there is no search for installed SDKs or fallback to a newer pin. Policies such
+as `latestFeature`, machine-local `paths`, non-SDK settings such as `msbuild-sdks`
+and `test`, and unknown pins fail explicitly. Boolean `allowPrerelease` is
+validated; the current catalog contains stable SDKs only. `$schema` and a string
+`sdk.errorMessage` are accepted metadata. Other settings remain explicit Bazel
+inputs and attributes. SDK acquisition does not configure workloads or NuGet
+package resolution.
+
+### SDK acquisition qualification
+
+The SDK fixture (`tests/explicit_msbuild/sdk_extension.py`) covers exact version
+and tracked `global.json` selection, runner bootstrap, application/test execution,
+offline reuse, explicit runtime override, SDK pin changes, and rejection of
+unsupported target platforms, selection policies and unknown versions. It passed
+on macOS ARM64 and Linux ARM64 with Bazel 8.8.0 and 9.2.0. The SDK-only hello
+application and test also passed on macOS ARM64 with Bazel 9.2.0.
+
+Run the fixture in a fresh directory after selecting Bazel through `scripts/env.sh`:
+
+```sh
+source scripts/env.sh
+python3 tests/explicit_msbuild/sdk_extension.py /tmp/sdk-qualification
+```
+
+SDK repository validation covers nine selection/error cases; the 28 rule-analysis
+tests pass on both Bazel versions. Linux containers must allow nested user/mount
+namespaces; `scripts/run-apple-container.sh` supplies the required Apple container
+configuration. x64 execution and cross-compilation remain unqualified.
+
+## Repository development setup
 
 Supported bootstrap hosts are macOS ARM64 and Linux x86-64/ARM64 with glibc.
 Install Bash, curl, tar, gzip, Git, Python 3, and either `shasum` or `sha256sum`.
