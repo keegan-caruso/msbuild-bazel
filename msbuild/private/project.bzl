@@ -1,7 +1,8 @@
 """Register explicit project build actions and outputs."""
 
 load(":paths.bzl", _RUNTIME_TOOLCHAIN = "RUNTIME_TOOLCHAIN", _TOOLCHAIN = "TOOLCHAIN", _file = "input_file", _logical = "logical", _mapped_imports = "mapped_imports", _quote = "quote", _runfile = "runfile", _runtime_package = "runtime_package")
-load(":providers.bzl", "MSBuildAssemblyInfo", "MSBuildBindingInfo", "MSBuildItemsInfo", "MSBuildLayoutInfo", "MSBuildPackageInfo", "MSBuildPackageLockInfo", "MSBuildProjectOutputInfo", "MSBuildReferencePackInfo", "MSBuildRestoreInfo", "MSBuildRuntimeInfo", "MSBuildTestToolInfo", "MSBuildToolInfo")
+load(":providers.bzl", "MSBuildAssemblyInfo", "MSBuildBindingInfo", "MSBuildItemsInfo", "MSBuildLayoutInfo", "MSBuildPackageInfo", "MSBuildPackageLockInfo", "MSBuildProjectInfo", "MSBuildProjectOutputInfo", "MSBuildReferencePackInfo", "MSBuildRestoreInfo", "MSBuildRuntimeInfo", "MSBuildTestToolInfo", "MSBuildToolInfo")
+load(":variants.bzl", "select_assembly")
 
 def _configuration(ctx):
     return ctx.attr.configuration or ("Debug" if ctx.var["COMPILATION_MODE"] == "dbg" else "Release")
@@ -46,7 +47,7 @@ def build_project(ctx, executable = False, test = False, restore_only = False, p
     for group in ctx.attr.items:
         items.extend(group[MSBuildItemsInfo].items)
         target_items.extend(group[MSBuildItemsInfo].target_items)
-    direct = [dep[MSBuildAssemblyInfo] for dep in ctx.attr.deps if MSBuildAssemblyInfo in dep]
+    direct = [select_assembly(dep, ctx.attr.target_framework) for dep in ctx.attr.deps if MSBuildAssemblyInfo in dep or MSBuildProjectInfo in dep]
     if ctx.attr.output_mode != "reference" and any([dep.output_mode == "reference" for dep in direct]):
         fail("Reference-only dependencies require msbuild_assembly with an implementation")
     compile_targets = [dep for dep in ctx.attr.deps if MSBuildPackageInfo in dep] + ctx.attr.reference_packages

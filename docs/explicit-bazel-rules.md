@@ -96,6 +96,59 @@ assembly action. It uses only declared packages and an empty feed list, with
 network access denied. Removing this remaining per-project work is a future
 optimization, not a result claimed here.
 
+## Project facade
+
+`msbuild_project` declares library variants and an aggregate target. Dependencies
+can name the aggregate; the consumer selects one framework during Bazel analysis.
+Sources, imports, packages and framework-dependent conditions remain explicit.
+
+```starlark
+load("@rules_msbuild//msbuild:defs.bzl", "msbuild_project")
+
+msbuild_project(
+    name = "Core",
+    project = "Core.csproj",
+    target_frameworks = ["netstandard2.1", "net10.0"],
+    srcs = ["Common.cs"],
+    deps = [":Utilities"],
+    framework_overrides = {
+        "netstandard2.1": {"package_lock": ":standard_lock"},
+        "net10.0": {"srcs": ["Modern.cs"], "deps": [":ModernDependency"]},
+    },
+)
+```
+
+This generates `:Core_netstandard2_1`, `:Core_net10_0`, and `:Core`. Variant names
+replace dots in the TFM with underscores; other characters are retained. Building
+`:Core` builds every variant. Using `deps = [":Core"]` builds only the selected
+variant and its action dependencies. `MSBuildProjectInfo.variants` exposes a
+TFM-to-`MSBuildAssemblyInfo` map to rule authors.
+
+Selection prefers an exact TFM, then the highest compatible version in the same
+family, then .NET Standard for modern .NET. Automatic fallback covers plain
+`net5.0` and newer and `netstandard1.0`–`netstandard2.1`. Platform-qualified,
+legacy and other TFMs require an exact match or an explicit variant label;
+the existing SDK compatibility checks still apply to explicit edges. Framework
+selection does not choose an execution runtime or change roll-forward policy.
+
+`target_frameworks` and override keys must be literal, distinct declarations.
+Common attributes accept ordinary `select()` values. Overrides extend list
+attributes such as `srcs`, `deps`, `defines` and `data`; scalar and dictionary
+attributes replace the common value. In particular, a property dictionary is
+replaced, not merged. Override keys must name declared frameworks and cannot
+change project identity or visibility. Package locks and reference packs remain
+declared inputs; the facade does not acquire them or evaluate `.csproj` files.
+
+Only `deps` selects a project facade. Tools, analyzers, paired assemblies and
+project-output bindings should name explicit variants. Different configurations
+of the same TFM use separate facade declarations or explicit rules. The facade
+does not resolve conflicting assembly implementations where graph branches meet.
+This does not close the mixed-framework Avalonia fixture inventory boundary.
+
+All exposed variants are analyzed, including their dependencies, so each must
+have a valid declaration. Direct variant labels avoid that additional analysis.
+See the [200-project measurement](performance.md#project-facade-analysis).
+
 ## Example
 
 ```starlark

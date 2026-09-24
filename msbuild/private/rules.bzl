@@ -2,7 +2,7 @@
 
 load(":paths.bzl", _RUNTIME_TOOLCHAIN = "RUNTIME_TOOLCHAIN", _TOOLCHAIN = "TOOLCHAIN")
 load(":project.bzl", _project = "build_project")
-load(":providers.bzl", "MSBuildAssemblyInfo", "MSBuildBindingInfo", "MSBuildItemsInfo", "MSBuildLayoutInfo", "MSBuildPackageInfo", "MSBuildPackageLockInfo", "MSBuildProjectOutputInfo", "MSBuildReferencePackInfo", "MSBuildRestoreInfo", "MSBuildRuntimeInfo", "MSBuildTestToolInfo", "MSBuildToolInfo")
+load(":providers.bzl", "MSBuildAssemblyInfo", "MSBuildBindingInfo", "MSBuildItemsInfo", "MSBuildLayoutInfo", "MSBuildPackageInfo", "MSBuildPackageLockInfo", "MSBuildProjectInfo", "MSBuildProjectOutputInfo", "MSBuildReferencePackInfo", "MSBuildRestoreInfo", "MSBuildRuntimeInfo", "MSBuildTestToolInfo", "MSBuildToolInfo")
 
 def _library(ctx):
     return _project(ctx)
@@ -48,7 +48,7 @@ _ATTRS = {
     "directories": attr.string_list(),
     "items": attr.label_list(providers = [MSBuildItemsInfo]),
     "export_targets": attr.string_list_dict(),
-    "deps": attr.label_list(providers = [[MSBuildAssemblyInfo], [MSBuildPackageInfo]]),
+    "deps": attr.label_list(providers = [[MSBuildAssemblyInfo], [MSBuildProjectInfo], [MSBuildPackageInfo]]),
     "transitive_compile_references": attr.bool(default = True),
     "tools": attr.label_list(providers = [MSBuildToolInfo], cfg = "exec"),
     "project_outputs": attr.label_list(providers = [MSBuildProjectOutputInfo]),

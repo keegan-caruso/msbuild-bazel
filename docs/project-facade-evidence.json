@@ -1,0 +1,276 @@
+{
+  "analysis": {
+    "bazel": "bazel 9.2.0",
+    "platform": "macOS ARM64",
+    "projects": 200,
+    "frameworks": 2,
+    "repetitions": 3,
+    "compilationExecuted": false,
+    "repositoryAcquisition": "warm",
+    "servers": "fresh per sample",
+    "summary": {
+      "explicit": {
+        "analysisMs": 965,
+        "configuredTargets": 841
+      },
+      "facade": {
+        "analysisMs": 1261,
+        "configuredTargets": 1241
+      }
+    },
+    "samples": [
+      {
+        "mode": "explicit",
+        "analysisMs": 826,
+        "configuredTargets": 841,
+        "assemblyActionsCreated": 201
+      },
+      {
+        "mode": "facade",
+        "analysisMs": 1746,
+        "configuredTargets": 1241,
+        "assemblyActionsCreated": 401
+      },
+      {
+        "mode": "facade",
+        "analysisMs": 1261,
+        "configuredTargets": 1241,
+        "assemblyActionsCreated": 401
+      },
+      {
+        "mode": "explicit",
+        "analysisMs": 965,
+        "configuredTargets": 841,
+        "assemblyActionsCreated": 201
+      },
+      {
+        "mode": "explicit",
+        "analysisMs": 1061,
+        "configuredTargets": 841,
+        "assemblyActionsCreated": 201
+      },
+      {
+        "mode": "facade",
+        "analysisMs": 866,
+        "configuredTargets": 1241,
+        "assemblyActionsCreated": 401
+      }
+    ]
+  },
+  "remote": [
+    {
+      "bazel": "bazel 8.8.0",
+      "platform": "Ubuntu 22.04 ARM64",
+      "sdk": "10.0.400",
+      "executorInstalledSdk": false,
+      "recovery": "fresh output base on the same client",
+      "unchangedReferenceAfterBodyEdits": true,
+      "cases": [
+        {
+          "case": "selected",
+          "compiled": [
+            [
+              "MSBuildAssembly",
+              "//:Multi_net10_0"
+            ],
+            [
+              "MSBuildAssembly",
+              "//:Portable_netstandard2_1"
+            ],
+            [
+              "MSBuildAssembly",
+              "//:Tests_net10_0"
+            ]
+          ],
+          "testsExecuted": [
+            "//:Tests_net10_0"
+          ]
+        },
+        {
+          "case": "suite",
+          "compiled": [
+            [
+              "MSBuildAssembly",
+              "//:Multi_net10_0-windows"
+            ],
+            [
+              "MSBuildAssembly",
+              "//:Tests_net10_0-windows"
+            ]
+          ],
+          "testsExecuted": [
+            "//:Tests_net10_0-windows"
+          ]
+        },
+        {
+          "case": "noop",
+          "compiled": [],
+          "testsExecuted": []
+        },
+        {
+          "case": "body-failure",
+          "compiled": [
+            [
+              "MSBuildAssembly",
+              "//:Multi_net10_0"
+            ],
+            [
+              "MSBuildAssembly",
+              "//:Multi_net10_0-windows"
+            ]
+          ],
+          "testsExecuted": [
+            "//:Tests_net10_0",
+            "//:Tests_net10_0-windows"
+          ]
+        },
+        {
+          "case": "restore",
+          "compiled": [],
+          "testsExecuted": []
+        },
+        {
+          "case": "variant-only-failure",
+          "compiled": [
+            [
+              "MSBuildAssembly",
+              "//:Multi_net10_0"
+            ]
+          ],
+          "testsExecuted": [
+            "//:Tests_net10_0"
+          ]
+        },
+        {
+          "case": "variant-restored",
+          "compiled": [],
+          "testsExecuted": []
+        },
+        {
+          "case": "aggregate",
+          "compiled": [
+            [
+              "MSBuildAssembly",
+              "//:Multi_netstandard2_1"
+            ]
+          ],
+          "testsExecuted": []
+        },
+        {
+          "case": "fresh-recovery",
+          "compiled": [],
+          "testsExecuted": []
+        }
+      ],
+      "recoveredActions": 12,
+      "allRecoveryActionsCached": true
+    },
+    {
+      "bazel": "bazel 9.2.0",
+      "platform": "Ubuntu 22.04 ARM64",
+      "sdk": "10.0.400",
+      "executorInstalledSdk": false,
+      "recovery": "fresh output base on the same client",
+      "unchangedReferenceAfterBodyEdits": true,
+      "cases": [
+        {
+          "case": "selected",
+          "compiled": [
+            [
+              "MSBuildAssembly",
+              "//:Multi_net10_0"
+            ],
+            [
+              "MSBuildAssembly",
+              "//:Portable_netstandard2_1"
+            ],
+            [
+              "MSBuildAssembly",
+              "//:Tests_net10_0"
+            ]
+          ],
+          "testsExecuted": [
+            "//:Tests_net10_0"
+          ]
+        },
+        {
+          "case": "suite",
+          "compiled": [
+            [
+              "MSBuildAssembly",
+              "//:Multi_net10_0-windows"
+            ],
+            [
+              "MSBuildAssembly",
+              "//:Tests_net10_0-windows"
+            ]
+          ],
+          "testsExecuted": [
+            "//:Tests_net10_0-windows"
+          ]
+        },
+        {
+          "case": "noop",
+          "compiled": [],
+          "testsExecuted": []
+        },
+        {
+          "case": "body-failure",
+          "compiled": [
+            [
+              "MSBuildAssembly",
+              "//:Multi_net10_0"
+            ],
+            [
+              "MSBuildAssembly",
+              "//:Multi_net10_0-windows"
+            ]
+          ],
+          "testsExecuted": [
+            "//:Tests_net10_0",
+            "//:Tests_net10_0-windows"
+          ]
+        },
+        {
+          "case": "restore",
+          "compiled": [],
+          "testsExecuted": []
+        },
+        {
+          "case": "variant-only-failure",
+          "compiled": [
+            [
+              "MSBuildAssembly",
+              "//:Multi_net10_0"
+            ]
+          ],
+          "testsExecuted": [
+            "//:Tests_net10_0"
+          ]
+        },
+        {
+          "case": "variant-restored",
+          "compiled": [],
+          "testsExecuted": []
+        },
+        {
+          "case": "aggregate",
+          "compiled": [
+            [
+              "MSBuildAssembly",
+              "//:Multi_netstandard2_1"
+            ]
+          ],
+          "testsExecuted": []
+        },
+        {
+          "case": "fresh-recovery",
+          "compiled": [],
+          "testsExecuted": []
+        }
+      ],
+      "recoveredActions": 12,
+      "allRecoveryActionsCached": true
+    }
+  ]
+}
