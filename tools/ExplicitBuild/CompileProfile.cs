@@ -19,6 +19,8 @@ internal sealed class CompileProfile : ILogger
         }
     }
     private readonly List<object> evaluations = new();
+    private readonly List<string> compilerMessages = new();
+    private readonly HashSet<string> compilerTasks = new(StringComparer.Ordinal);
     private readonly Dictionary<string, Sample> phases = new(StringComparer.Ordinal);
     private readonly Dictionary<string, Aggregate> targets = new(StringComparer.Ordinal);
     private readonly Dictionary<string, Aggregate> tasks = new(StringComparer.Ordinal);
@@ -90,11 +92,44 @@ internal sealed class CompileProfile : ILogger
         };
         source.TargetStarted += (_, e) => Start(Key("target", e.BuildEventContext), e.Timestamp);
         source.TargetFinished += (_, e) => Stop(Key("target", e.BuildEventContext), e.TargetName ?? "", e.Timestamp, targets);
-        source.TaskStarted += (_, e) => Start(Key("task", e.BuildEventContext), e.Timestamp);
-        source.TaskFinished += (_, e) => Stop(Key("task", e.BuildEventContext), e.TaskName ?? "", e.Timestamp, tasks);
+        source.TaskStarted += (_, e) =>
+        {
+            Start(Key("task", e.BuildEventContext), e.Timestamp);
+            if (e.TaskName is "Csc" or "Vbc")
+            {
+                lock (gate)
+                {
+                    compilerTasks.Add(Key("task", e.BuildEventContext));
+                }
+            }
+        };
+        source.MessageRaised += (_, e) =>
+        {
+            // ReportAnalyzer emits low-importance messages that the normal build
+            // log omits. Keep diagnostic text only while a compiler task is active.
+            if (e is TaskCommandLineEventArgs || e.Message is not { Length: > 0 and <= 4096 } message)
+            {
+                return;
+            }
+            lock (gate)
+            {
+                if (compilerTasks.Contains(Key("task", e.BuildEventContext)))
+                {
+                    compilerMessages.Add(message);
+                }
+            }
+        };
+        source.TaskFinished += (_, e) =>
+        {
+            Stop(Key("task", e.BuildEventContext), e.TaskName ?? "", e.Timestamp, tasks);
+            lock (gate)
+            {
+                compilerTasks.Remove(Key("task", e.BuildEventContext));
+            }
+        };
     }
     public void Shutdown()
     {
     }
-    internal void Save(string path, string project) => File.WriteAllText(path, JsonSerializer.Serialize(new { project, requestNumber, phases, targets, tasks, evaluations }, Program.Json));
+    internal void Save(string path, string project) => File.WriteAllText(path, JsonSerializer.Serialize(new { project, requestNumber, phases, targets, tasks, evaluations, compilerMessages }, Program.Json));
 }

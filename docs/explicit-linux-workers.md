@@ -35,6 +35,30 @@ This supports trusted build tasks. It is not isolation between mutually hostile
 managed tasks in the same process. Ordinary fresh-process execution retains its
 separate sandbox for each build.
 
+## Memory and scratch lifetime
+
+Compiler reuse retains metadata and analyzer state. Bazel 9.2 can bound idle
+worker retention using its native lifecycle controls:
+
+```text
+--experimental_total_worker_memory_limit_mb=4096
+--experimental_shrink_worker_pool
+--experimental_worker_metrics_poll_interval=1s
+```
+
+Choose the budget for the machine and graph; 4096 MB is a qualification setting,
+not a rule default. This is a soft process-tree budget. Deferred eviction waits
+for the active request to finish, and replacement workers pay startup costs.
+The total idle limit alone can miss workers that are busy during every poll.
+Do not confuse it with the individual active-worker kill limit. See
+[runtime memory measurements](runtime-cold-timing.md#compiler-attribution-and-retained-memory).
+
+Each worker holds an OS file lease for its scratch directory. Normal shutdown
+removes it; a subsequent worker reclaims unlocked state left by an interrupted
+worker. Live leases remain untouched. State lives beneath a private, owned,
+non-symlink `$TMPDIR/rules-msbuild-workers-<uid>` directory. Cleanup does not scan
+arbitrary temporary directories or infer liveness from reusable process IDs.
+
 ## Qualification
 
 In the pinned Linux image, build the tool and run:
@@ -42,6 +66,7 @@ In the pinned Linux image, build the tool and run:
 ```sh
 bash scripts/dotnet.sh build tools/ExplicitBuild -c Release -warnaserror
 python3 tests/explicit_msbuild/worker_protocol.py
+python3 tests/explicit_msbuild/worker_directory.py
 python3 tests/explicit_msbuild/worker_path_stability.py
 RULES_MSBUILD_EXPLICIT_WORKER=1 \
   python3 tests/explicit_msbuild/acceptance.py /tmp/explicit-worker-check

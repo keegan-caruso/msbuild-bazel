@@ -32,7 +32,8 @@ internal static class LinuxWorker
         var startupToolSeconds = toolTimer.Elapsed.TotalSeconds;
         var firstRequest = true;
         var execroot = Environment.CurrentDirectory;
-        var root = Path.Combine(Path.GetTempPath(), "explicit-worker-" + Guid.NewGuid().ToString("N"));
+        using var directory = new WorkerDirectory();
+        var root = directory.Root;
         foreach (var name in new[] { "in", "out", "tools", "compiler" })
         {
             Directory.CreateDirectory(Path.Combine(root, name));
@@ -71,6 +72,7 @@ internal static class LinuxWorker
                     var inputRoot = Path.Combine(root, "in", identity);
                     var raw = Path.Combine(inputRoot, "raw");
                     var declared = new HashSet<string>(StringComparer.Ordinal);
+                    var inputDigests = new Dictionary<string, string>(StringComparer.Ordinal);
                     var declaredDirectories = new HashSet<string>(StringComparer.Ordinal);
                     store.Begin();
                     double snapshotFileSeconds = 0;
@@ -103,6 +105,7 @@ internal static class LinuxWorker
 
                         var probe = Stopwatch.GetTimestamp();
                         store.Stage(source, Path.Combine(raw, input.Path), digest);
+                        inputDigests.Add(Path.Combine(raw, input.Path), digest);
                         snapshotFileSeconds += Stopwatch.GetElapsedTime(probe).TotalSeconds;
                         stagedInputs++;
                     }
@@ -129,7 +132,9 @@ internal static class LinuxWorker
                     var mapped = MapInputs(request, InputPath);
                     var state = Path.Combine(root, "out", identity);
                     string ChildPath(string path) => path.StartsWith(root + "/", StringComparison.Ordinal) ? ChildRoot + path[root.Length..] : path;
-                    var prepared = BuildPreparation.Prepare(mapped, Path.Combine(inputRoot, "workspace"), state, ChildPath);
+                    var analyzerRoots = ProjectAnalyzers.WorkerRoots(mapped, Path.Combine(root, "in", "analyzers"),
+                        path => inputDigests.TryGetValue(path, out var digest) ? digest : throw new InvalidDataException("Undeclared analyzer file: " + path));
+                    var prepared = BuildPreparation.Prepare(mapped, Path.Combine(inputRoot, "workspace"), state, ChildPath, analyzerRoots);
                     var session = prepared with
                     {
                         Request = MapInputs(mapped, ChildPath),
@@ -219,7 +224,6 @@ internal static class LinuxWorker
             }
 
             await child.WaitForExitAsync();
-            Directory.Delete(root, true);
         }
     }
     private static Request MapInputs(Request request, Func<string, string> map)

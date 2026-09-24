@@ -17,6 +17,15 @@ not resolve a project-built helper in the execution test. Native DLLs are not
 passed as analyzers. Conflicting assembly identities between independently loaded
 analyzers and native tool dependency behavior are not qualified by this slice.
 
+Linux workers stage project analyzers at a content-addressed path for the entire
+load group: entry assembly, declared runtime closure, logical names and verified
+input digests. Editing only a consumer keeps that path stable, allowing Roslyn to
+reuse its loaded analyzer. A helper/resource change changes the whole group's
+path. Every request recreates only its declared groups beneath the read-only
+input mount; earlier groups are not left visible. Registrations from different
+groups are never deduplicated by DLL name: doing so broke runtime generator
+dependency resolution in the qualification experiment.
+
 ## Linux evidence
 
 SDK 10.0.400, Bazel 8.4.2, ARM64, persistent workers:
@@ -27,6 +36,8 @@ SDK 10.0.400, Bazel 8.4.2, ARM64, persistent workers:
   helper body edits invalidate the consumer, tools do not become application
   compile references, role mismatches reject, and a fresh Bazel output tree can
   compile a changed consumer using cached generator/helper outputs.
+  The Bazel 8.8/9.2 controls additionally check stable consumer-edit paths, changed
+  helper paths, and removal of a preceding request's group in a retained worker.
 - Existing worker/shared-restore isolation and deleted-producer cache controls
   remain the regression suite; the Orchard compatibility probe includes the new
   successful analyzer edge and retains the ordinary cross-framework rejection.

@@ -47,7 +47,7 @@ for index in range(2):
         files = ['reference/Library.dll', 'runtime/Library.dll', 'runtime/Library.pdb']
         results.append({name: hashlib.sha256((root/name).read_bytes()).hexdigest() for name in files})
         payload = (root/'runtime/Library.dll').read_bytes()
-        stable_paths.append(b'/__rules_msbuild/in/' in payload and b'explicit-worker-' not in payload and str(root).encode() not in payload)
+        stable_paths.append(b'/__rules_msbuild/in/' in payload and b'explicit-worker-' not in payload and b'rules-msbuild-workers-' not in payload and str(root).encode() not in payload)
 assert results[0] == results[1], results
 assert all(stable_paths), 'Missing embedded stable physical path'
 print(json.dumps(dict(freshWorkers=2, matching=results[0]), indent=2))

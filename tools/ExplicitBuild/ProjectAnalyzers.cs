@@ -1,15 +1,36 @@
+using System.Security.Cryptography;
+using System.Text;
+using System.Text.Json;
 using Microsoft.Build.Execution;
 
 internal static class ProjectAnalyzers
 {
-    internal static IEnumerable<string> Paths(Request request, string workspace) =>
-        (request.ProjectAnalyzers ?? []).Select((a, i) => Path.Combine(workspace, ".analyzers", i.ToString(System.Globalization.CultureInfo.InvariantCulture), Program.Safe(a.Assembly)));
+    private static IEnumerable<string> Paths(Request request, string workspace, string[]? roots) =>
+        (request.ProjectAnalyzers ?? []).Select((a, i) => Path.Combine(roots is null ? Path.Combine(workspace, ".analyzers", i.ToString(System.Globalization.CultureInfo.InvariantCulture)) : roots[i], Program.Safe(a.Assembly)));
 
-    internal static IEnumerable<string> CompilerInputs(Request request, string workspace)
+    // Stable tool paths reuse Roslyn's loaded analyzer closure across consumer edits.
+    // The broker recreates only this request's declared files under its read-only
+    // input mount. Include every closure file so helper/resource changes invalidate
+    // the complete load group; never merge registrations from different groups.
+    internal static string[] WorkerRoots(Request request, string root, Func<string, string> digest) =>
+        (request.ProjectAnalyzers ?? []).Select(analyzer =>
+        {
+            var files = analyzer.Directories.SelectMany(directory => RuntimePackages.Files(directory, analyzer.Packages ?? []))
+                .Select(file => file.Path + ":" + digest(file.Source)).Distinct(StringComparer.Ordinal).Order(StringComparer.Ordinal).ToArray();
+            var identity = JsonSerializer.Serialize(new
+            {
+                version = 1,
+                analyzer.Assembly,
+                files
+            });
+            return Path.Combine(root, Convert.ToHexStringLower(SHA256.HashData(Encoding.UTF8.GetBytes(identity))));
+        }).ToArray();
+
+    internal static IEnumerable<string> CompilerInputs(Request request, string workspace, string[]? roots = null)
     {
         // Roslyn registers dependency locations from /analyzer inputs; merely
         // placing a helper next to the entry assembly does not register it.
-        foreach (var entry in Paths(request, workspace))
+        foreach (var entry in Paths(request, workspace, roots))
         {
             foreach (var file in Directory.GetFiles(Path.GetDirectoryName(entry)!, "*.dll"))
             {
@@ -23,9 +44,9 @@ internal static class ProjectAnalyzers
         }
     }
 
-    internal static void Stage(Request request, string workspace)
+    internal static void Stage(Request request, string workspace, string[]? roots = null)
     {
-        var paths = Paths(request, workspace).ToArray();
+        var paths = Paths(request, workspace, roots).ToArray();
         for (var i = 0; i < paths.Length; i++)
         {
             var analyzer = request.ProjectAnalyzers![i];

@@ -5,7 +5,7 @@ using static Program;
 
 internal static class ProjectDefinition
 {
-    internal static void Write(Request r, string path, string references, Func<string, string> compilerPath)
+    internal static void Write(Request r, string path, string references, Func<string, string> compilerPath, string[]? analyzerRoots)
     {
         var xml = XDocument.Load(path);
         var root = xml.Root!;
@@ -131,7 +131,7 @@ internal static class ProjectDefinition
             items.Add(new XElement("FrameworkReference", new XAttribute("Include", framework)));
         }
 
-        foreach (var analyzer in ProjectAnalyzers.CompilerInputs(r, workspace))
+        foreach (var analyzer in ProjectAnalyzers.CompilerInputs(r, workspace, analyzerRoots))
         {
             items.Add(new XElement("Analyzer", new XAttribute("Include", Escape(compilerPath(analyzer)))));
         }

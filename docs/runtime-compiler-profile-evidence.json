@@ -1,0 +1,430 @@
+{
+  "date": "2026-09-24",
+  "baseRevision": "b7ab4cff494d486f1403a9883cb2a481d7035395",
+  "platform": {
+    "os": "Ubuntu 22.04",
+    "architecture": "ARM64",
+    "sdk": "10.0.400",
+    "bazel": "9.2.0",
+    "image": "sha256:47a9e2fed01824f5470f26e75a2fb74017acc1967c637e7793be028f31a8aeee",
+    "host": "Apple M4, 10 CPU cores, 16 GiB RAM",
+    "buildVmCpu": 8,
+    "buildVmMemoryGiB": 8,
+    "cacheVmMemoryGiB": 1,
+    "concurrentBuildVms": 1,
+    "hostSwap": "Existing inactive swap remained; observed usage declined or stayed flat throughout these measurements. Earlier overcommitted timing trials are excluded."
+  },
+  "productionSourceSha256": {
+    "tools/ExplicitBuild/CompileProfile.cs": "605a5fb29be3d84411c063a1de2045592878f32fcc50a27b2590c0b9715f9f4e",
+    "tools/ExplicitBuild/LinuxWorker.cs": "f231e072545b48bf5c6bd1eca2a330e78c0491ea5ce80d0476be7ff02c0a0f7a",
+    "tools/ExplicitBuild/Program.cs": "22a0bed8925e03af30d84315285083198eead2fdcdabcf425c1f0d21db356fb8",
+    "tools/ExplicitBuild/ProjectAnalyzers.cs": "c6ecb01e7c9e68c8cd0ef8a4fe4a61f93389deb4b6f78a19a31e56bb9ac15873",
+    "tools/ExplicitBuild/WorkerDirectory.cs": "ed1480c49d6b9d5122f29da70a55978399ade69c87c5178214d8e99ab69dc59e"
+  },
+  "diagnosticAttribution": {
+    "conditions": "Cumulative inclusive task times, not additive wall time. Bazel profiling and ReportAnalyzer enabled; raw prior accepted binlog replay. Attribution only, not a controlled performance pair. Collected before correction of host VM overcommit; not headline timing.",
+    "tasks": [
+      {
+        "task": "Csc",
+        "bazelSeconds": 251.6712,
+        "bazelCount": 365,
+        "rawSeconds": 62.4462,
+        "rawCount": 364
+      },
+      {
+        "task": "ILLink",
+        "bazelSeconds": 100.43,
+        "bazelCount": 99,
+        "rawSeconds": 78.4036,
+        "rawCount": 99
+      },
+      {
+        "task": "Microsoft.DotNet.ApiCompat.Task.ValidateAssembliesTask",
+        "bazelSeconds": 10.576236900000001,
+        "bazelCount": 55,
+        "rawSeconds": 6.4303947999999975,
+        "rawCount": 54
+      },
+      {
+        "task": "CombineLinkerXmlFiles",
+        "bazelSeconds": 6.8022,
+        "bazelCount": 100,
+        "rawSeconds": 0.3211,
+        "rawCount": 100
+      },
+      {
+        "task": "RestoreTask",
+        "bazelSeconds": 4.7649,
+        "bazelCount": 274,
+        "rawSeconds": 0,
+        "rawCount": 0
+      },
+      {
+        "task": "Copy",
+        "bazelSeconds": 2.1621,
+        "bazelCount": 3893,
+        "rawSeconds": 0.4924,
+        "rawCount": 2051
+      },
+      {
+        "task": "ResolveAssemblyReference",
+        "bazelSeconds": 0.6386,
+        "bazelCount": 271,
+        "rawSeconds": 0.3203,
+        "rawCount": 270
+      }
+    ],
+    "analyzerTiming": {
+      "project": "System.Private.CoreLib",
+      "cscWallSeconds": 17.479,
+      "totalAnalyzerConcurrentSeconds": 66.321,
+      "totalGeneratorConcurrentSeconds": 1.577,
+      "examples": {
+        "ILLink.RoslynAnalyzer": 19.472,
+        "Microsoft.CodeAnalysis.CSharp": 16.371,
+        "Microsoft.CodeAnalysis.CSharp.CodeStyle": 11.262
+      },
+      "note": "Analyzer elapsed-time sums overlap across threads; these are neither CPU time nor additive wall-clock segments."
+    }
+  },
+  "runtime": {
+    "sourceRevision": "60629d14374c56f1cb51819049ad1fa529307f8d",
+    "roots": 38,
+    "projectPaths": 253,
+    "configurations": 273,
+    "managedActions": 274,
+    "jobs": 2,
+    "maxWorkers": 2,
+    "nativeWorkerBudgetMb": 4096,
+    "deferredEviction": true,
+    "metricsPoll": "1s",
+    "control": "Same current runner, with only project analyzer paths reverted to per-consumer locations. Scratch leases and profiling code remain identical.",
+    "samples": [
+      {
+        "case": "runtime-control",
+        "seconds": 313.209,
+        "runnerSha256": "1af568df1ab19aae5819d1264211f658a4fa4923c2d40f11aa54fee7a1b15c62",
+        "runners": {
+          "total": 1345,
+          "internal": 674,
+          "linux-sandbox": 277,
+          "local": 120,
+          "worker": 274
+        },
+        "workerPhaseSeconds": {
+          "identitySeconds": 5.743958600000002,
+          "snapshotSeconds": 29.2180868,
+          "preparationSeconds": 8.3701868,
+          "childSeconds": 298.6242316,
+          "publicationSeconds": 0.27937850000000064
+        }
+      },
+      {
+        "case": "runtime-candidate",
+        "seconds": 301.828,
+        "runnerSha256": "f6ccdcc55ff2b0681ab9a3b01614e7bb37154d3ec495d806d4d79ec53b266a42",
+        "runners": {
+          "total": 1345,
+          "internal": 674,
+          "linux-sandbox": 277,
+          "local": 120,
+          "worker": 274
+        },
+        "workerPhaseSeconds": {
+          "identitySeconds": 6.5456428,
+          "snapshotSeconds": 30.244362899999995,
+          "preparationSeconds": 8.811605600000004,
+          "childSeconds": 288.8045703000002,
+          "publicationSeconds": 0.27397489999999997
+        }
+      },
+      {
+        "case": "runtime-control-repeat",
+        "seconds": 322.604,
+        "runnerSha256": "1af568df1ab19aae5819d1264211f658a4fa4923c2d40f11aa54fee7a1b15c62",
+        "runners": {
+          "total": 1345,
+          "internal": 674,
+          "linux-sandbox": 277,
+          "local": 120,
+          "worker": 274
+        },
+        "workerPhaseSeconds": {
+          "identitySeconds": 6.9014184,
+          "snapshotSeconds": 30.033370599999987,
+          "preparationSeconds": 8.891879199999995,
+          "childSeconds": 307.4363737000001,
+          "publicationSeconds": 0.30059700000000034
+        }
+      }
+    ],
+    "candidateReductionAgainstControlMeanPercent": 5.058,
+    "sampleLimit": "Two controls bracket one candidate. Modest configuration-specific gain; not a general speedup or a closed cold-build gap.",
+    "raw": {
+      "restoreSeconds": 72.688,
+      "buildSeconds": 139.748,
+      "noopSeconds": 10.975,
+      "compiledInvocations": 364,
+      "noopCompiledInvocations": 0
+    },
+    "candidateToRawBuildRatio": 2.16,
+    "diagnosticAssemblyComparison": {
+      "files": 609,
+      "allPassed": true,
+      "excludes": [
+        "MVID",
+        "PE debug records",
+        "PDB"
+      ]
+    }
+  },
+  "memory": {
+    "iterations": 40,
+    "nativeWorkerBudgetMb": 1024,
+    "deferredEviction": true,
+    "medianEditSeconds": 1.521,
+    "maxPostBuildCompilerRssMiB": 503.484375,
+    "maxPostBuildCompilerPssMiB": 468.767578125,
+    "evictedAfterEdits": [
+      10,
+      20,
+      31
+    ],
+    "replacementEditSeconds": [
+      4.166,
+      3.951,
+      3.882
+    ],
+    "sourceRestored": true,
+    "implementationRestored": true,
+    "referenceUnchanged": true,
+    "scope": "Compiler descendants of the selected Bazel server, sampled after builds and a two-second untimed idle interval. Excludes other worker/JVM memory and active-build peaks; native budget counts worker process trees. Prime starts with no retained compiler. 1024 MB is a stress setting, not a recommendation."
+  },
+  "earlierMemoryControls": {
+    "conditions": "16 GiB build VM before host-overcommit correction, with differing initial retained state. Behavior controls only; elapsed times excluded.",
+    "results": {
+      "unlimited": {
+        "iterations": 40,
+        "sourceRestored": true,
+        "outputRestored": true,
+        "maxIdleCompilerRssMiB": 8261.4375,
+        "maxIdleCompilerPssMiB": 7670.185546875
+      },
+      "idle": {
+        "iterations": 40,
+        "sourceRestored": true,
+        "outputRestored": true,
+        "maxIdleCompilerRssMiB": 4954.6953125,
+        "maxIdleCompilerPssMiB": 4770.6494140625
+      },
+      "shrink": {
+        "iterations": 40,
+        "sourceRestored": true,
+        "outputRestored": true,
+        "maxIdleCompilerRssMiB": 551.5078125,
+        "maxIdleCompilerPssMiB": 516.7275390625
+      }
+    }
+  },
+  "largeGraphs": {
+    "orchard": {
+      "sourceRevision": "04467a3438d4255627c1a478598a1585b3ff2947",
+      "jobs": 4,
+      "maxWorkers": 2,
+      "nativeWorkerBudgetMb": 4096,
+      "runnerSha256": "f6ccdcc55ff2b0681ab9a3b01614e7bb37154d3ec495d806d4d79ec53b266a42",
+      "samples": [
+        {
+          "case": "cold",
+          "seconds": 129.24,
+          "runners": {
+            "total": 986,
+            "internal": 497,
+            "linux-sandbox": 287,
+            "worker": 202
+          }
+        },
+        {
+          "case": "noop",
+          "seconds": 0.829,
+          "runners": {
+            "total": 1,
+            "internal": 1
+          }
+        },
+        {
+          "case": "body",
+          "seconds": 1.097,
+          "runners": {
+            "total": 3,
+            "internal": 2,
+            "worker": 1
+          }
+        },
+        {
+          "case": "api",
+          "seconds": 105.688,
+          "runners": {
+            "total": 195,
+            "internal": 2,
+            "worker": 193
+          }
+        }
+      ],
+      "bodyEditReferenceParity": true,
+      "editedLeafReferenceRestored": true,
+      "sourceRestored": true,
+      "downstreamReferencesDifferentAfterApiRestore": 65,
+      "seed": {
+        "seconds": 129.631,
+        "workers": 4,
+        "runners": {
+          "total": 986,
+          "internal": 497,
+          "linux-sandbox": 287,
+          "worker": 202
+        }
+      },
+      "recovery": {
+        "seconds": 25.05,
+        "runners": {
+          "total": 986,
+          "remote cache hit": 489,
+          "internal": 497
+        },
+        "producerStopped": true,
+        "independentVm": true,
+        "relocatedCheckoutAndRules": true,
+        "freshOutputBase": true,
+        "diskCache": false,
+        "downloadAllOutputs": true,
+        "uploadLocalResults": false,
+        "outputManifest": {
+          "files": 1576,
+          "sha256": "b9b8a7517bc13fee8eb0c7b5a30e7853b8d1b8ebb5da1457cd02a36107502506"
+        },
+        "exactOutputParity": true
+      },
+      "samplesPerCase": 1,
+      "runtimeSmoke": {
+        "setupRazorPage": true,
+        "embeddedAssetCount": 3,
+        "producerConsumerAssetHashesEqual": true
+      },
+      "referenceChurnNote": "Known upstream random interceptor names and physical input paths. This is not fresh-compilation byte parity; cache recovery requires exact bytes."
+    },
+    "aspnetcore": {
+      "sourceRevision": "7387de91234d3ef751fa50b3d1bfede4130213ff",
+      "jobs": 4,
+      "maxWorkers": 2,
+      "nativeWorkerBudgetMb": 4096,
+      "runnerSha256": "f6ccdcc55ff2b0681ab9a3b01614e7bb37154d3ec495d806d4d79ec53b266a42",
+      "samples": [
+        {
+          "case": "cold",
+          "seconds": 124.884,
+          "runners": {
+            "total": 1293,
+            "internal": 715,
+            "linux-sandbox": 300,
+            "worker": 278
+          }
+        },
+        {
+          "case": "noop",
+          "seconds": 0.829,
+          "runners": {
+            "total": 1,
+            "internal": 1
+          }
+        },
+        {
+          "case": "body",
+          "seconds": 0.721,
+          "runners": {
+            "total": 2,
+            "internal": 1,
+            "worker": 1
+          }
+        },
+        {
+          "case": "api",
+          "seconds": 77.578,
+          "runners": {
+            "total": 131,
+            "internal": 1,
+            "worker": 130
+          }
+        }
+      ],
+      "bodyEditReferenceParity": true,
+      "editedLeafReferenceRestored": true,
+      "sourceRestored": true,
+      "downstreamReferencesDifferentAfterApiRestore": 0,
+      "seed": {
+        "seconds": 147.327,
+        "workers": 2,
+        "runners": {
+          "total": 1293,
+          "internal": 715,
+          "linux-sandbox": 300,
+          "worker": 278
+        }
+      },
+      "recovery": {
+        "seconds": 11.707,
+        "runners": {
+          "total": 1293,
+          "remote cache hit": 578,
+          "internal": 715
+        },
+        "producerStopped": true,
+        "independentVm": true,
+        "relocatedCheckoutAndRules": true,
+        "freshOutputBase": true,
+        "diskCache": false,
+        "downloadAllOutputs": true,
+        "uploadLocalResults": false,
+        "outputManifest": {
+          "files": 4433,
+          "sha256": "4af05e753c3e76d7889c907afbceda0aa47ff9d51a1528a31c6affc73c2002df"
+        },
+        "exactOutputParity": true
+      },
+      "samplesPerCase": 1
+    }
+  },
+  "validation": {
+    "ownedDotnetBuildStyleAndTests": true,
+    "toolchainShellAndStarlark": true,
+    "scratchLeases": [
+      "SIGKILL reclaim",
+      "active workers preserved",
+      "graceful cleanup",
+      "unsafe mode rejected",
+      "wrong owner rejected",
+      "symlink parent rejected"
+    ],
+    "workerProtocol": true,
+    "freshWorkerReferenceRuntimePdbParity": true,
+    "byBazel": {
+      "9.2": {
+        "acceptanceCases": 23,
+        "expandedAnalyzerCases": 13,
+        "stableConsumerEditPath": true,
+        "helperChangeInvalidatesGroup": true,
+        "retainedWorkerRemovesOldGroup": true,
+        "analyzerInputsReadOnly": true
+      },
+      "8.8": {
+        "acceptanceCases": 23,
+        "expandedAnalyzerCases": 13,
+        "stableConsumerEditPath": true,
+        "helperChangeInvalidatesGroup": true,
+        "retainedWorkerRemovesOldGroup": true,
+        "analyzerInputsReadOnly": true
+      }
+    },
+    "ciDispatched": false
+  }
+}

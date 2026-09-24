@@ -2,7 +2,7 @@ using static Program;
 
 internal static class BuildPreparation
 {
-    internal static Session Prepare(Request r, string workspace, string state, Func<string, string>? compilerPath = null)
+    internal static Session Prepare(Request r, string workspace, string state, Func<string, string>? compilerPath = null, string[]? analyzerRoots = null)
     {
         compilerPath ??= path => path;
         Safe(r.Assembly);
@@ -37,7 +37,7 @@ internal static class BuildPreparation
         }
 
         ArtifactLayouts.Stage(r, workspace);
-        ProjectAnalyzers.Stage(r, workspace);
+        ProjectAnalyzers.Stage(r, workspace, analyzerRoots);
         BuildTools.Stage(r, workspace);
         ProjectOutputs.Stage(r, workspace);
         var project = Path.Combine(workspace, Safe(r.Project.Path));
@@ -68,7 +68,7 @@ internal static class BuildPreparation
             File.SetUnixFileMode(project, UnixFileMode.UserRead | UnixFileMode.UserWrite);
         }
 
-        ProjectDefinition.Write(r, project, references, compilerPath);
+        ProjectDefinition.Write(r, project, references, compilerPath, analyzerRoots);
         var session = new Session(r, workspace, state, original, Path.GetDirectoryName(Environment.ProcessPath!)!, Real(AppContext.BaseDirectory.TrimEnd('/')));
         if (r.RestoreInput is not null)
         {

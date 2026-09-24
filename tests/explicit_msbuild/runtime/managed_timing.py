@@ -19,8 +19,12 @@ for name in ['workspace', 'selection', 'base', 'report']:
     p.add_argument(name, type=Path)
 p.add_argument('--case', choices=['cold', 'warm', 'seed', 'recovery'], required=True)
 p.add_argument('--cache', default='')
+p.add_argument('--memory-limit-mb', type=int, default=0, help='Bazel native worker budget with deferred eviction (MB)')
+p.add_argument('--trim', action='store_true', help='Run Linux fstrim / after timing (requires permission)')
 p.add_argument('--expect-reference-hashes', type=Path, help='Require exact declared assembly parity with a prior run')
 a = p.parse_args()
+if a.memory_limit_mb < 0:
+    p.error('The worker memory limit must be nonnegative')
 w, base, out = a.workspace.resolve(), a.base.resolve(), a.report.resolve()
 assert not out.exists(), 'Report must be new'
 if a.case in ['cold', 'seed', 'recovery']:
@@ -40,13 +44,18 @@ command = [tools['bazelExecutable'], '--host_jvm_args=-Xmx1536m', '--output_base
            '--build_event_json_file='+str(out/'build.bep'), '--profile='+str(out/'trace.json.gz')]
 if a.case in ['cold', 'seed']:
     command += ['--remote_accept_cached=false']
+if a.memory_limit_mb:
+    command += ['--experimental_total_worker_memory_limit_mb='+str(a.memory_limit_mb),
+                '--experimental_shrink_worker_pool', '--experimental_worker_metrics_poll_interval=1s']
 start = time.monotonic()
 with (out/'build.log').open('w') as log:
     result = subprocess.run(command, cwd=w, stdout=log, stderr=subprocess.STDOUT, timeout=2400)
 wall = time.monotonic() - start
-report = dict(case=a.case, wallSeconds=round(wall, 3), exitCode=result.returncode, toolchain=tools, roots=entries, command=command)
+report = dict(case=a.case, wallSeconds=round(wall, 3), exitCode=result.returncode, filesystemTrimOutsideTiming=a.trim, toolchain=tools, roots=entries, command=command)
 (out/'report.json').write_text(json.dumps(report, indent=2)+'\n')
 result.check_returncode()
+if a.trim:
+    subprocess.run(['fstrim', '/'], check=True)
 events = [json.loads(line) for line in (out/'build.bep').read_text().splitlines()]
 metrics = next(e['buildMetrics'] for e in events if 'buildMetrics' in e)
 runners = {r['name']: int(r['count']) for r in metrics['actionSummary'].get('runnerCount', [])}

@@ -4,9 +4,12 @@ Use the [current support summary](implementation-plan.md) for what is qualified.
 The trackers below describe remaining work, not promises of platform support.
 
 1. **Reduce cold-build overhead — [#13](https://github.com/keegan-caruso/msbuild-bazel/issues/13).**
-   The matched managed runtime graph takes 492.09 s versus 139.59 s raw MSBuild
-   (3.53× slower). Profile per-project work and remove duplication while preserving
-   explicit action inputs. Keep warm edits, acquisition and remote recovery separate.
+   The latest single-VM comparison is 301.83 s versus 139.75 s raw build time
+   (2.16×), with an 8-GiB VM and a 4096-MB worker budget; restore is separate.
+   Stable analyzer groups save about 5% versus matching controls. Compiler work
+   remains dominant. See [conditions and evidence](runtime-cold-timing.md).
+   Keep warm edits, acquisition and remote recovery separate.
+
 2. **Qualify the first authored JIT test — [#74](https://github.com/keegan-caruso/msbuild-bazel/issues/74).**
    Establish raw bootstrap parity, then declare the shared test dependencies and
    wrapper generator. Preserve the authored exit-code contract. See the
