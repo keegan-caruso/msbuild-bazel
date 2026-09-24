@@ -1,0 +1,71 @@
+--- a/tools/ExplicitBuild/Program.cs
++++ b/tools/ExplicitBuild/Program.cs
+@@ -212,7 +212,18 @@
+             }
+             items.Add(element);
+         }
+-        foreach (var reference in Directory.GetFiles(references)) items.Add(new XElement("Reference", new XAttribute("Include", Path.GetFileNameWithoutExtension(reference)), new XElement("HintPath", Escape(reference)), new XElement("Private", "true")));
++        foreach (var reference in Directory.GetFiles(references))
++        {
++            var item = new XElement("Reference", new XAttribute("Include", Path.GetFileNameWithoutExtension(reference)), new XElement("HintPath", Escape(reference)), new XElement("Private", "true"));
++            // Bazel supplies the complete project-reference closure and these files
++            // are already reference assemblies. Let RAR retain SDK conflict handling.
++            if (r.RestoreInput is not null)
++            {
++                item.Add(new XElement("ExternallyResolved", "true"));
++                item.Add(new XElement("ReferenceAssembly", Escape(reference)));
++            }
++            items.Add(item);
++        }
+         foreach (var package in r.Packages)
+         {
+             var excluded = new List<string>();
+@@ -263,30 +274,27 @@
+                 ValidateDeclarations(s, instance);
+                 profile?.Mark("declarationValidation");
+             }
++            using var manager = new BuildManager();
++            var parameters = new BuildParameters(collection) { EnableNodeReuse = false, MaxNodeCount = 1, Loggers = profile is null ? [new ConsoleLogger(LoggerVerbosity.Normal)] : [new ConsoleLogger(LoggerVerbosity.Normal), profile] };
++            var request = new BuildRequestData(instance, [target]);
+             BuildResult result;
+-            using (var manager = new BuildManager())
+-            {
+-                var parameters = new BuildParameters(collection) { EnableNodeReuse = false, MaxNodeCount = 1, Loggers = profile is null ? [new ConsoleLogger(LoggerVerbosity.Normal)] : [new ConsoleLogger(LoggerVerbosity.Normal), profile] };
+-                var request = new BuildRequestData(instance, [target]);
+-                if (profile is null) result = manager.Build(parameters, request);
+-                else
++            if (profile is null) result = manager.Build(parameters, request);
++            else
++            {
++                profile.Mark(target + "ManagerSetup");
++                manager.BeginBuild(parameters);
++                profile.Mark(target + "BeginBuild");
++                try
+                 {
+-                    profile.Mark(target + "ManagerSetup");
+-                    manager.BeginBuild(parameters);
+-                    profile.Mark(target + "BeginBuild");
+-                    try
+-                    {
+-                        result = manager.BuildRequest(request);
+-                        profile.Mark(target + "Request");
+-                    }
+-                    finally
+-                    {
+-                        manager.EndBuild();
+-                        profile.Mark(target + "EndBuild");
+-                    }
++                    result = manager.BuildRequest(request);
++                    profile.Mark(target + "Request");
+                 }
+-            }
+-            profile?.Mark(target + "ManagerDispose");
++                finally
++                {
++                    manager.EndBuild();
++                    profile.Mark(target + "EndBuild");
++                }
++            }
+             profile?.Save(Path.Combine(s.State, "compile-profile.json"), r.Project.Path);
+             if (result.OverallResult != BuildResultCode.Success) return 1;
+         }

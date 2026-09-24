@@ -1,0 +1,43 @@
+{
+  globalWithDiagnosticsHttpServer(listenAddress): {
+    diagnosticsHttpServer: {
+      httpServers: [{
+        listenAddresses: [listenAddress],
+        authenticationPolicy: { allow: {} },
+      }],
+      enablePrometheus: true,
+      enablePprof: true,
+      enableActiveSpans: true,
+    },
+  },
+
+  blobstore: {
+    contentAddressableStorage: {
+      grpc: {
+        client: { address: 'localhost:8981' },
+      },
+    },
+    actionCache: {
+      completenessChecking: {
+        backend: {
+          grpc: {
+            client: { address: 'localhost:8981' },
+          },
+        },
+        maximumTotalTreeSizeBytes: 64 * 1024 * 1024,
+      },
+    },
+  },
+  fileSystemAccessCache: {
+    grpc: {
+      client: { address: 'localhost:8981' },
+    },
+  },
+  initialSizeClassCache: {
+    grpc: {
+      client: { address: 'localhost:8981' },
+    },
+  },
+  browserUrl: 'http://localhost:8081/browser',
+  maximumMessageSizeBytes: 2 * 1024 * 1024,
+}

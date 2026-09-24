@@ -1,0 +1,30 @@
+[
+  {
+    "image": "ghcr.io/buildbarn/bb-worker",
+    "index": "sha256:4cc65f0dd716fd0942ccc0fdd770421065b7f3bf55062a184c4376e4c0a4a13e",
+    "platformManifest": "sha256:8c5f5bc8453342df0007583dc9b1d87565d462f75b946e19a3fb64e73b06dc42",
+    "binary": "bb_worker",
+    "sha256": "d8171b4cfead3ac33cf2564c2697af2027a6c5e3925584ee51e0fbdb5a2ccc32"
+  },
+  {
+    "image": "ghcr.io/buildbarn/bb-scheduler",
+    "index": "sha256:95417d159b5b9f17a6c915fec43603be51c553f68de439a9affcfe811bd0c6da",
+    "platformManifest": "sha256:d4b86335ad839dfd3b0fc99b324013e9b2a6e6b1d6f3e4d097240e7dcfc6ef67",
+    "binary": "bb_scheduler",
+    "sha256": "c74ec4d4be820f9d15844855375df74470390caf830badc5eb0a523989c3bdb8"
+  },
+  {
+    "image": "ghcr.io/buildbarn/bb-storage",
+    "index": "sha256:36201141f924865ddbea1bc518c4f98dd0dbb744181ef34f9f5e864d3dcf43f8",
+    "platformManifest": "sha256:a62b023e4b4376fd2dc613672424c2ed77a250ce259b402e6f560f4b37fa2bd3",
+    "binary": "bb_storage",
+    "sha256": "afbc3f539859b2490be8badf8d7b787505626f04d889212f4df546b66f6b60c4"
+  },
+  {
+    "image": "ghcr.io/buildbarn/bb-runner-bare",
+    "index": "sha256:016c8b2d586ef6cfaa1b1af5d1c663a7a163cea01b88b11ceaf03471cef21107",
+    "platformManifest": "sha256:9439ad79d2ba2be713a077b5b3c16ec028d47f4bdbfc5ba398df862a200e9929",
+    "binary": "bb_runner",
+    "sha256": "c078e9a7b002b57d76b25cce3fe47cd28ca1767d73ad0fb8f485b3614b3b4851"
+  }
+]

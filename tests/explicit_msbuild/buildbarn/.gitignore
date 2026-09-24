@@ -1,0 +1,5 @@
+/bin/
+/storage-*/
+/worker/
+/*.log
+/pids.json
