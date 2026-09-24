@@ -14,10 +14,10 @@ def verify_tools(expected_bazel=None, cwd=None):
     if expected_bazel is not None:
         bazel = Path(os.environ['RULES_MSBUILD_BAZEL']).resolve()
         version = subprocess.check_output(
-            [bazel, '--batch', '--ignore_all_rc_files', 'version', '--gnu_format'],
+            [bazel, '--version'],
             cwd=cwd, text=True).strip()
         if version != 'bazel '+expected_bazel:
             raise RuntimeError(f'Expected Bazel {expected_bazel}; selected {version} at {bazel}')
         result.update(bazelVersion=expected_bazel, bazelExecutable=str(bazel),
-                      bazelSha256=hashlib.sha256(bazel.read_bytes()).hexdigest())
+                      bazelLauncherSha256=hashlib.sha256(bazel.read_bytes()).hexdigest())
     return result

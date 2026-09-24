@@ -11,4 +11,6 @@ case "${RULES_MSBUILD_BAZEL_MODE:-server}" in
     batch) startup=(--batch) ;;
     *) echo 'RULES_MSBUILD_BAZEL_MODE must be batch or server.' >&2; exit 2 ;;
 esac
+# Bazel handles --version before parsing startup options.
+if [[ "${1:-}" == --version ]]; then exec "$RULES_MSBUILD_BAZEL" "$@"; fi
 exec "$RULES_MSBUILD_BAZEL" "${startup[@]}" "$@"

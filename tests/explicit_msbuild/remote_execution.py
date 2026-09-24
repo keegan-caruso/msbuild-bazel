@@ -21,7 +21,7 @@ w = folder/'workspace'; w.mkdir()
 sdk = os.environ['RULES_MSBUILD_DOTNET_ROOT']
 bazel = os.environ['RULES_MSBUILD_BAZEL']
 versions = {
-    'bazel': subprocess.check_output([bazel, '--batch', 'version', '--gnu_format'], text=True).strip(),
+    'bazel': subprocess.check_output([bazel, '--version'], text=True).strip(),
     'sdk': subprocess.check_output([str(Path(sdk)/'dotnet'), '--version'], text=True).strip(),
 }
 assert versions['bazel'] in ['bazel 8.8.0', 'bazel 9.2.0'], versions

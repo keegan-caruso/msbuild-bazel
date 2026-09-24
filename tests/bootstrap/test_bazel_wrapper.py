@@ -35,3 +35,7 @@ class BazelWrapperTests(unittest.TestCase):
                                      '--output_user_root=/tmp/test-user', 'version'),
                          ['--batch', '--output_base=/tmp/test-base',
                           '--output_user_root=/tmp/test-user', 'version'])
+
+    def test_version_is_forwarded_without_server_startup_options(self):
+        for mode in ('server', 'batch'):
+            self.assertEqual(self.invoke(mode, '--version'), ['--version'])

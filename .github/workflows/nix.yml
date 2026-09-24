@@ -5,7 +5,7 @@ on:
 permissions:
   contents: read
 jobs:
-  boundary:
+  development:
     # Native Bazel sandboxing needs unprivileged user namespaces.
     runs-on: ubuntu-22.04
     timeout-minutes: 30
@@ -21,10 +21,3 @@ jobs:
         run: nix develop --no-update-lock-file -c bash scripts/check.sh
       - name: Development environment checks
         run: nix develop --no-update-lock-file -c bash scripts/ci-linux.sh quick
-      - name: Retain available check evidence
-        if: always()
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
-        with:
-          name: nix-explicit-evidence
-          path: /tmp/**/msbuild-explicit-ci.*/**
-          if-no-files-found: ignore
