@@ -4,5 +4,6 @@ toolchain_type(name = "toolchain_type")
 
 exports_files([
     "defs.bzl",
+    "extensions.bzl",
     "toolchain.bzl",
 ])
