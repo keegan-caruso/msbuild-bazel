@@ -5,7 +5,7 @@ using Microsoft.Build.Execution;
 internal sealed record LayoutRequest(string Output);
 internal sealed record LayoutEntry(string Source, string Path, bool Directory = false);
 internal sealed record LayoutBinding(string Directory, string Property);
-internal sealed record RuntimeHost(string Directory, string EntryPoint);
+internal sealed record RuntimeHost(string Directory, string EntryPoint, string LaunchMode = "dotnet", string RuntimeIdentifier = "", string Version = "", Dictionary<string, string>? Environment = null);
 
 internal static class ArtifactLayouts
 {

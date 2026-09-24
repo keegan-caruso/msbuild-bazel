@@ -40,12 +40,29 @@ def _runtime(ctx):
     path = ctx.attr.entry_point
     if path.startswith("/") or "\\" in path or any([p in ["", ".", ".."] for p in path.split("/")]):
         fail("Runtime entry_point must be a safe relative path")
+    for name in ctx.attr.env:
+        if not name or any([c not in "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789_" for c in name.elems()]) or name.startswith("DOTNET_ROOT") or name in ["DOTNET_HOST_PATH", "DOTNET_MULTILEVEL_LOOKUP", "CORE_ROOT"]:
+            fail("Reserved or invalid runtime environment variable: " + name)
     directory = ctx.attr.layout[MSBuildLayoutInfo].directory
-    return [DefaultInfo(files = depset([directory])), MSBuildRuntimeInfo(directory = directory, entry_point = path)]
+    files = depset([directory] + ctx.files.data)
+    return [DefaultInfo(files = files), MSBuildRuntimeInfo(
+        directory = directory,
+        entry_point = path,
+        launch_mode = ctx.attr.launch_mode,
+        runtime_identifier = ctx.attr.runtime_identifier,
+        version = ctx.attr.version,
+        environment = ctx.attr.env,
+        files = files,
+    )]
 
 msbuild_runtime = rule(implementation = _runtime, attrs = {
     "layout": attr.label(mandatory = True, providers = [MSBuildLayoutInfo]),
     "entry_point": attr.string(mandatory = True),
+    "launch_mode": attr.string(default = "dotnet", values = ["dotnet", "corerun"]),
+    "runtime_identifier": attr.string(),
+    "version": attr.string(),
+    "env": attr.string_dict(),
+    "data": attr.label_list(allow_files = True),
 })
 
 def _reference_pack(ctx):

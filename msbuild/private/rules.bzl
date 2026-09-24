@@ -21,6 +21,8 @@ def _test(ctx):
     if ctx.attr.test_diagnostics and ctx.attr.test_protocol != "vstest":
         fail("test_diagnostics currently requires VSTest")
     if ctx.attr.test_protocol == "vstest":
+        if ctx.attr.runtime_host and ctx.attr.runtime_host[MSBuildRuntimeInfo].launch_mode == "corerun":
+            fail("VSTest requires a dotnet runtime host")
         if not ctx.attr.test_runner:
             fail("VSTest requires an explicit test_runner")
         if ctx.attr.test_filter_argument:
