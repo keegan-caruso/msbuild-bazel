@@ -9,7 +9,7 @@ From the rules repository root, after [setup](../../docs/development.md):
 ```sh
 bash scripts/dotnet.sh build tools/ExplicitBuild -c Release -warnaserror
 python3 examples/hello/create.py /tmp/rules-msbuild-hello
-export RULES_MSBUILD_BAZEL="${RULES_MSBUILD_BAZEL:-$PWD/.tools/bin/bazel}"
+export RULES_MSBUILD_BAZEL="${RULES_MSBUILD_BAZEL:-$PWD/scripts/bazel-launcher.sh}"
 cd /tmp/rules-msbuild-hello
 "$RULES_MSBUILD_BAZEL" run //App
 "$RULES_MSBUILD_BAZEL" test //App:Tests
