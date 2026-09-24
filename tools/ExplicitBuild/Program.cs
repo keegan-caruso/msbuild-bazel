@@ -167,7 +167,7 @@ internal static class Program
             }
         }
     }
-    internal static Session Prepare(Request r, string workspace, string state, Func<string, string>? compilerPath = null)
+    internal static Session Prepare(Request r, string workspace, string state, Func<string, string>? compilerPath = null, string[]? analyzerRoots = null)
     {
         compilerPath ??= path => path;
         Safe(r.Assembly);
@@ -202,7 +202,7 @@ internal static class Program
         }
 
         ArtifactLayouts.Stage(r, workspace);
-        ProjectAnalyzers.Stage(r, workspace);
+        ProjectAnalyzers.Stage(r, workspace, analyzerRoots);
         BuildTools.Stage(r, workspace);
         ProjectOutputs.Stage(r, workspace);
         var project = Path.Combine(workspace, Safe(r.Project.Path));
@@ -233,7 +233,7 @@ internal static class Program
             File.SetUnixFileMode(project, UnixFileMode.UserRead | UnixFileMode.UserWrite);
         }
 
-        WriteProject(r, project, references, compilerPath);
+        WriteProject(r, project, references, compilerPath, analyzerRoots);
         var session = new Session(r, workspace, state, original, Path.GetDirectoryName(Environment.ProcessPath!)!, Real(AppContext.BaseDirectory.TrimEnd('/')));
         if (r.RestoreInput is not null)
         {
@@ -372,7 +372,7 @@ internal static class Program
         GeneratedFiles.Bind(s, result);
         return result;
     }
-    private static void WriteProject(Request r, string path, string references, Func<string, string> compilerPath)
+    private static void WriteProject(Request r, string path, string references, Func<string, string> compilerPath, string[]? analyzerRoots)
     {
         var xml = XDocument.Load(path);
         var root = xml.Root!;
@@ -498,7 +498,7 @@ internal static class Program
             items.Add(new XElement("FrameworkReference", new XAttribute("Include", framework)));
         }
 
-        foreach (var analyzer in ProjectAnalyzers.CompilerInputs(r, workspace))
+        foreach (var analyzer in ProjectAnalyzers.CompilerInputs(r, workspace, analyzerRoots))
         {
             items.Add(new XElement("Analyzer", new XAttribute("Include", Escape(compilerPath(analyzer)))));
         }

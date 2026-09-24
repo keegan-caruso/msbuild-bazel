@@ -1,5 +1,6 @@
 """Project-built generator execution, tool dependency loading and invalidation."""
 import json
+import re
 import os
 from pathlib import Path
 import subprocess
@@ -29,19 +30,31 @@ put('GeneratedApp/BUILD.bazel', rule('msbuild_binary','GeneratedApp',analyzers=[
 rows=[]
 base=folder/'analyzer-base'
 def run(case, expected='7', error=None):
-    p=subprocess.run([bazel,'--output_base='+str(base),'--ignore_all_rc_files','run','//GeneratedApp','--repository_cache='+os.environ['RULES_MSBUILD_REPOSITORY_CACHE'],'--disk_cache='+str(folder/'analyzer-cache'),'--strategy=MSBuildAssembly=worker','--worker_max_instances=MSBuildAssembly=1'],cwd=workspace,capture_output=True,text=True,timeout=240)
+    p=subprocess.run([bazel,'--output_base='+str(base),'--ignore_all_rc_files','run','//GeneratedApp','--repository_cache='+os.environ['RULES_MSBUILD_REPOSITORY_CACHE'],'--disk_cache='+str(folder/'analyzer-cache'),'--strategy=MSBuildAssembly=worker','--worker_max_instances=MSBuildAssembly=1','--output_groups=+diagnostics'],cwd=workspace,capture_output=True,text=True,timeout=240)
     output=p.stdout+p.stderr
     (folder/(case+'.log')).write_text(output)
     assert (p.returncode==0 and p.stdout.strip()==expected) if error is None else (p.returncode!=0 and error in output),(case,output[-6000:])
-    rows.append(dict(case=case,exit=p.returncode));print(case,p.returncode,flush=True)
-run('generator-execution')
+    row=dict(case=case,exit=p.returncode)
+    if error is None:
+        log=(workspace/'bazel-bin/GeneratedApp/GeneratedApp.diagnostics/compiler.log').read_text()
+        matches=re.findall(r'/analyzer:([^\s\"\']+/Generator\.dll)',log)
+        assert matches, case
+        row['analyzerPath']=matches[-1]
+    rows.append(row);print(case,p.returncode,flush=True)
+    return row
+initial=run('generator-execution')
+put('GeneratedApp/Code.cs','// Consumer-only edit.\nSystem.Console.WriteLine(Made.Value);')
+consumer_edit=run('generator-consumer-body-edit')
+assert consumer_edit['analyzerPath']==initial['analyzerPath'], 'Unchanged analyzer closure changed physical path'
+put('GeneratedApp/Code.cs','System.Console.WriteLine(Made.Value);')
 for name, before, after in [('configuration','Configuration=Release','Configuration=Debug'),('framework','TargetFramework=net10.0','TargetFramework=net9.0')]:
     put('GeneratedApp/GeneratedApp.csproj',consumer.replace(before,after))
     run('analyzer-'+name+'-mismatch',error='Configured ProjectReference disagrees')
 put('GeneratedApp/GeneratedApp.csproj',consumer)
 run('configured-analyzer-recovered')
 put('ToolHelper/Code.cs',helper.replace('=> 7;', '=> 8;'))
-run('generator-tool-body-edit','8')
+changed=run('generator-tool-body-edit','8')
+assert changed['analyzerPath']!=initial['analyzerPath'], 'Changed helper reused the old analyzer load group'
 put('GeneratedApp/Code.cs','System.Console.WriteLine(ToolHelper.Text());')
 run('generator-no-compile-leak',error='CS0103')
 put('GeneratedApp/Code.cs','System.Console.WriteLine(Made.Value);')
@@ -64,6 +77,14 @@ put('GeneratedApp/BUILD.bazel', 'load("@rules_msbuild//msbuild:defs.bzl","msbuil
 put('GeneratedApp/Value.txt','9')
 run('relative-additional-file','9')
 put('GeneratedApp/Value.txt','10')
-run('additional-file-edit','10')
+additional_changed=run('additional-file-edit','10')
+(folder/'analyzer-report.json').write_text(json.dumps(rows,indent=2))
+
+# Keep the worker alive: the next request must remove this previous load group.
+old_path=additional_changed['analyzerPath']
+put('Generator/Code.cs', 'using Microsoft.CodeAnalysis; [Generator] public class Generator : ISourceGenerator { public void Initialize(GeneratorInitializationContext c) {} public void Execute(GeneratorExecutionContext c) { if (System.IO.File.Exists('+json.dumps(old_path)+')) throw new System.Exception("Old analyzer group remains visible"); try { System.IO.Directory.CreateDirectory("/__rules_msbuild/in/analyzers/forbidden"); } catch (System.IO.IOException) { c.AddSource("Made.g.cs", ToolHelper.Text()); return; } catch (System.UnauthorizedAccessException) { c.AddSource("Made.g.cs", ToolHelper.Text()); return; } throw new System.Exception("Analyzer inputs are writable"); } }')
+put('GeneratedApp/GeneratedApp.csproj',consumer)
+put('GeneratedApp/BUILD.bazel',rule('msbuild_binary','GeneratedApp',analyzers=['//Generator']))
+run('analyzer-group-read-only-and-no-stale-files','8')
 subprocess.run([bazel,'--output_base='+str(base),'--ignore_all_rc_files','shutdown'],cwd=workspace,check=True)
 (folder/'analyzer-report.json').write_text(json.dumps(rows,indent=2))
