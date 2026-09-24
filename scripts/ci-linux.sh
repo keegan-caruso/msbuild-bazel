@@ -11,6 +11,7 @@ if [[ "$scope" != acceptance ]]; then
     git diff --check
     python3 -m unittest discover -s tests/ci -v
     python3 -m unittest discover -s tests/bootstrap -v
+    python3 -m unittest discover -s tests/benchmarks -v
     bash scripts/check-analysis.sh
     bash scripts/check-dotnet.sh
     python3 -m unittest discover -s tests/sdk_repository -v

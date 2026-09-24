@@ -4,10 +4,12 @@ import hashlib
 import json
 import os
 from pathlib import Path
+import sys
+sys.path.insert(0, str(Path(__file__).resolve().parents[3]))
+from benchmarks.measure import command as timed_command
 import re
 import statistics
 import subprocess
-import time
 import uuid
 
 from timing_tools import verify_tools
@@ -31,9 +33,7 @@ def run(mode,case):
     prefix=[os.environ['RULES_MSBUILD_BAZEL']]+(['--batch'] if mode=='batch' else [])+['--host_jvm_args=-Xmx1536m','--output_base='+str(a.base.resolve()),'--ignore_all_rc_files']
     stem=out/(mode+'-'+case);execution=stem.with_suffix('.execution.json')
     command=prefix+['build',*targets,'--jobs=2','--strategy=MSBuildAssembly=worker','--worker_max_instances=MSBuildAssembly=1','--remote_cache='+a.cache,'--remote_upload_local_results=false','--remote_download_outputs=all','--disk_cache=','--execution_log_json_file='+str(execution),'--profile='+str(stem.with_suffix('.profile.json.gz'))]
-    start=time.monotonic()
-    with stem.with_suffix('.log').open('w') as log:result=subprocess.run(command,cwd=w,stdout=log,stderr=subprocess.STDOUT,timeout=600)
-    wall=time.monotonic()-start
+    result,wall=timed_command(command,w,stem.with_suffix('.log'),timeout=600)
     assert result.returncode==0,(case,stem.with_suffix('.log'))
     log=stem.with_suffix('.log').read_text();match=re.search(r'Elapsed time: ([0-9.]+)s, Critical Path: ([0-9.]+)s',log);assert match
     data=execution.read_text();decoder=json.JSONDecoder();offset=0;actions=[]

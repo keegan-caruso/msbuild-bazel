@@ -9,10 +9,12 @@ import hashlib
 import json
 import os
 from pathlib import Path
+import sys
+sys.path.insert(0, str(Path(__file__).resolve().parents[3]))
+from benchmarks.measure import command as timed_command
 import shutil
 import statistics
 import subprocess
-import time
 import uuid
 import xml.etree.ElementTree as ET
 
@@ -94,10 +96,7 @@ def digest(path):
 
 def run(case):
     cmd = command+['-bl:'+str(out/(case+'.binlog'))]
-    start = time.monotonic()
-    with (out/(case+'.log')).open('w') as log:
-        result = subprocess.run(cmd, cwd=source, stdout=log, stderr=subprocess.STDOUT, timeout=1800)
-    wall = time.monotonic()-start
+    result,wall=timed_command(cmd,source,out/(case+'.log'),timeout=1800)
     row = dict(case=case, wallSeconds=round(wall, 3), exitCode=result.returncode, command=cmd)
     if result.returncode == 0:
         row.update(json.loads(subprocess.check_output([sdk/'dotnet', reader_dll, out/(case+'.binlog')], text=True)))

@@ -10,12 +10,14 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 import json
 import os
 from pathlib import Path
+import sys
+sys.path.insert(0, str(Path(__file__).resolve().parents[3]))
+from benchmarks.measure import command as timed_command
 import re
 import shutil
 import statistics
 import subprocess
 import threading
-import time
 import uuid
 
 RULES=Path(__file__).resolve().parents[3]
@@ -36,9 +38,7 @@ def main():
  rawcmd=[str(SDK/'dotnet'),'build','Benchmark.slnx','-c','Release','-m:4','-p:RestorePackagesPath=/tmp/nuget','--nologo']+['-p:'+k+'='+v for k,v in config['properties'].items()]
  rows=[];api={};orig=(raw/edit['path']).read_text();assert orig.count(edit['before'])==1
  def command(name,command,cwd):
-  start=time.perf_counter()
-  with (evidence/(name+'.log')).open('w') as log:p=subprocess.run(list(map(str,command)),cwd=cwd,stdout=log,stderr=subprocess.STDOUT,timeout=600)
-  seconds=time.perf_counter()-start
+  p,seconds=timed_command(command,cwd,evidence/(name+'.log'),timeout=600)
   assert p.returncode==0,(name,(evidence/(name+'.log')).read_text()[-4500:])
   return seconds
  def record(row):

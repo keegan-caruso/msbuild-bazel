@@ -7,10 +7,11 @@ import hashlib
 import json
 import os
 from pathlib import Path
+import sys
+sys.path.insert(0, str(Path(__file__).resolve().parents[3]))
+from benchmarks.measure import command as timed_command
 import shutil
 import subprocess
-import sys
-import time
 
 source = Path(sys.argv[1]).resolve()
 evidence = Path(sys.argv[2]).resolve()
@@ -23,10 +24,7 @@ flags = ['--repository_cache=/tmp/repository-cache', '--disk_cache=', '--jobs=4'
 rows = []
 
 def run(case, command):
-    start = time.perf_counter()
-    with (evidence/(variant+'-'+case+'.log')).open('w') as log:
-        p = subprocess.run(list(map(str, command)), cwd=source, stdout=log, stderr=subprocess.STDOUT, timeout=900)
-    elapsed = time.perf_counter()-start
+    p, elapsed = timed_command(command, source, evidence/(variant+'-'+case+'.log'), timeout=900)
     if p.returncode:
         raise RuntimeError(f'{case} failed; see log')
     return elapsed

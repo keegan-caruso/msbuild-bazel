@@ -3,8 +3,10 @@ import argparse
 import json
 import shutil
 from pathlib import Path
+import sys
+sys.path.insert(0, str(Path(__file__).resolve().parents[3]))
+from benchmarks.measure import command as timed_command
 import subprocess
-import time
 import xml.etree.ElementTree as ET
 
 from timing_tools import verify_tools
@@ -25,10 +27,8 @@ flags=['-p:'+v for v in properties]
 
 def run(case,args):
     command=[str(sdk/'dotnet'),'msbuild',*map(str,args),'-m:2','-nr:true',*flags,'-bl:'+str(out/(case+'.binlog'))]
-    start=time.monotonic()
-    with (out/(case+'.log')).open('w') as log:
-        result=subprocess.run(command,cwd=source,stdout=log,stderr=subprocess.STDOUT,timeout=2400)
-    row=dict(case=case,wallSeconds=round(time.monotonic()-start,3),exitCode=result.returncode,command=command)
+    result,wall=timed_command(command,source,out/(case+'.log'),timeout=2400)
+    row=dict(case=case,wallSeconds=round(wall,3),exitCode=result.returncode,command=command)
     records.append(row)
     (out/'report.json').write_text(json.dumps(dict(toolchain=tools,commit=commit,roots=entries,records=records),indent=2)+'\n')
     print({k:v for k,v in row.items() if k!='command'},flush=True);result.check_returncode()

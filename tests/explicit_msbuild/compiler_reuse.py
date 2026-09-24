@@ -9,9 +9,11 @@ import hashlib
 import json
 import os
 from pathlib import Path
+import sys
+sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
+from benchmarks.measure import command as timed_command
 import shutil
 import subprocess
-import time
 import uuid
 
 p = argparse.ArgumentParser(description=__doc__)
@@ -52,10 +54,8 @@ def save():
 
 def build(case):
     command = startup+['build', target, '--build_event_json_file='+str(out/(case+'.bep'))]+flags
-    start = time.monotonic()
-    with (out/(case+'.log')).open('w') as log:
-        result = subprocess.run(command, cwd=w, stdout=log, stderr=subprocess.STDOUT, timeout=1200)
-    row = dict(case=case, seconds=time.monotonic()-start, exitCode=result.returncode, command=command)
+    result,wall=timed_command(command,w,out/(case+'.log'),timeout=1200)
+    row = dict(case=case, seconds=wall, exitCode=result.returncode, command=command)
     rows.append(row); save(); result.check_returncode()
     if a.trim:
         subprocess.run(['fstrim', '/'], check=True)
