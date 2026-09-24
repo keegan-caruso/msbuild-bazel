@@ -1,0 +1,549 @@
+{
+  "platform": "Ubuntu 22.04 ARM64",
+  "sdk": "10.0.400",
+  "executorSdkInstalled": false,
+  "localFallback": false,
+  "reports": [
+    {
+      "fixture": "assets-88",
+      "bazel": "bazel 8.8.0",
+      "cases": [
+        {
+          "case": "cold",
+          "executed": [
+            [
+              "MSBuildAssembly",
+              "//:test"
+            ]
+          ],
+          "tests": [
+            "//:test"
+          ],
+          "remoteActions": 6,
+          "cacheHits": 0
+        },
+        {
+          "case": "noop",
+          "executed": [],
+          "tests": [],
+          "remoteActions": 0,
+          "cacheHits": 0
+        },
+        {
+          "case": "native-change",
+          "executed": [
+            [
+              "MSBuildAssembly",
+              "//:test"
+            ]
+          ],
+          "tests": [
+            "//:test"
+          ],
+          "remoteActions": 3,
+          "cacheHits": 1
+        },
+        {
+          "case": "missing-native",
+          "executed": [
+            [
+              "MSBuildAssembly",
+              "//:test"
+            ]
+          ],
+          "tests": [
+            "//:test"
+          ],
+          "remoteActions": 4,
+          "cacheHits": 0
+        },
+        {
+          "case": "restored",
+          "executed": [],
+          "tests": [],
+          "remoteActions": 0,
+          "cacheHits": 4
+        }
+      ]
+    },
+    {
+      "fixture": "assets-92",
+      "bazel": "bazel 9.2.0",
+      "cases": [
+        {
+          "case": "cold",
+          "executed": [
+            [
+              "MSBuildAssembly",
+              "//:test"
+            ]
+          ],
+          "tests": [
+            "//:test"
+          ],
+          "remoteActions": 6,
+          "cacheHits": 0
+        },
+        {
+          "case": "noop",
+          "executed": [],
+          "tests": [],
+          "remoteActions": 0,
+          "cacheHits": 0
+        },
+        {
+          "case": "native-change",
+          "executed": [
+            [
+              "MSBuildAssembly",
+              "//:test"
+            ]
+          ],
+          "tests": [
+            "//:test"
+          ],
+          "remoteActions": 3,
+          "cacheHits": 1
+        },
+        {
+          "case": "missing-native",
+          "executed": [
+            [
+              "MSBuildAssembly",
+              "//:test"
+            ]
+          ],
+          "tests": [
+            "//:test"
+          ],
+          "remoteActions": 4,
+          "cacheHits": 0
+        },
+        {
+          "case": "restored",
+          "executed": [],
+          "tests": [],
+          "remoteActions": 0,
+          "cacheHits": 4
+        }
+      ]
+    },
+    {
+      "fixture": "assets-recovery",
+      "bazel": "bazel 9.2.0",
+      "cases": [
+        {
+          "case": "independent-recovery",
+          "executed": [],
+          "tests": [],
+          "remoteActions": 0,
+          "cacheHits": 6
+        }
+      ]
+    },
+    {
+      "fixture": "avalonia-88",
+      "bazel": "bazel 8.8.0",
+      "cases": [
+        {
+          "case": "idl-0",
+          "executed": [
+            [
+              "MSBuildGenerate",
+              "//:generate"
+            ]
+          ],
+          "tests": [],
+          "remoteActions": 3,
+          "cacheHits": 0
+        },
+        {
+          "case": "idl-1",
+          "executed": [
+            [
+              "MSBuildGenerate",
+              "//:generate"
+            ]
+          ],
+          "tests": [],
+          "remoteActions": 1,
+          "cacheHits": 0
+        },
+        {
+          "case": "idl-2",
+          "executed": [
+            [
+              "MSBuildGenerate",
+              "//:generate"
+            ]
+          ],
+          "tests": [],
+          "remoteActions": 1,
+          "cacheHits": 0
+        },
+        {
+          "case": "idl-3",
+          "executed": [
+            [
+              "MSBuildGenerate",
+              "//:generate"
+            ]
+          ],
+          "tests": [],
+          "remoteActions": 1,
+          "cacheHits": 0
+        },
+        {
+          "case": "idl-4",
+          "executed": [
+            [
+              "MSBuildGenerate",
+              "//:generate"
+            ]
+          ],
+          "tests": [],
+          "remoteActions": 1,
+          "cacheHits": 0
+        }
+      ]
+    },
+    {
+      "fixture": "avalonia-92",
+      "bazel": "bazel 9.2.0",
+      "cases": [
+        {
+          "case": "idl-0",
+          "executed": [
+            [
+              "MSBuildGenerate",
+              "//:generate"
+            ]
+          ],
+          "tests": [],
+          "remoteActions": 3,
+          "cacheHits": 0
+        },
+        {
+          "case": "idl-1",
+          "executed": [
+            [
+              "MSBuildGenerate",
+              "//:generate"
+            ]
+          ],
+          "tests": [],
+          "remoteActions": 1,
+          "cacheHits": 0
+        },
+        {
+          "case": "idl-2",
+          "executed": [
+            [
+              "MSBuildGenerate",
+              "//:generate"
+            ]
+          ],
+          "tests": [],
+          "remoteActions": 1,
+          "cacheHits": 0
+        },
+        {
+          "case": "idl-3",
+          "executed": [
+            [
+              "MSBuildGenerate",
+              "//:generate"
+            ]
+          ],
+          "tests": [],
+          "remoteActions": 1,
+          "cacheHits": 0
+        },
+        {
+          "case": "idl-4",
+          "executed": [
+            [
+              "MSBuildGenerate",
+              "//:generate"
+            ]
+          ],
+          "tests": [],
+          "remoteActions": 1,
+          "cacheHits": 0
+        }
+      ]
+    },
+    {
+      "fixture": "avalonia-recovery",
+      "bazel": "bazel 9.2.0",
+      "cases": [
+        {
+          "case": "independent-recovery",
+          "executed": [],
+          "tests": [],
+          "remoteActions": 0,
+          "cacheHits": 3
+        }
+      ]
+    },
+    {
+      "fixture": "generation-88",
+      "bazel": "bazel 8.8.0",
+      "cases": [
+        {
+          "case": "cold",
+          "executed": [
+            [
+              "MSBuildAssembly",
+              "//:Tasks"
+            ],
+            [
+              "MSBuildAssembly",
+              "//:test"
+            ],
+            [
+              "MSBuildGenerate",
+              "//:generate"
+            ]
+          ],
+          "tests": [
+            "//:test"
+          ],
+          "remoteActions": 7,
+          "cacheHits": 0
+        },
+        {
+          "case": "noop",
+          "executed": [],
+          "tests": [],
+          "remoteActions": 0,
+          "cacheHits": 0
+        },
+        {
+          "case": "consumer-edit",
+          "executed": [
+            [
+              "MSBuildAssembly",
+              "//:test"
+            ]
+          ],
+          "tests": [
+            "//:test"
+          ],
+          "remoteActions": 2,
+          "cacheHits": 1
+        },
+        {
+          "case": "input-edit",
+          "executed": [
+            [
+              "MSBuildAssembly",
+              "//:test"
+            ],
+            [
+              "MSBuildGenerate",
+              "//:generate"
+            ]
+          ],
+          "tests": [
+            "//:test"
+          ],
+          "remoteActions": 3,
+          "cacheHits": 1
+        },
+        {
+          "case": "tool-edit",
+          "executed": [
+            [
+              "MSBuildAssembly",
+              "//:Tasks"
+            ],
+            [
+              "MSBuildAssembly",
+              "//:test"
+            ],
+            [
+              "MSBuildGenerate",
+              "//:generate"
+            ]
+          ],
+          "tests": [
+            "//:test"
+          ],
+          "remoteActions": 4,
+          "cacheHits": 1
+        },
+        {
+          "case": "missing-input",
+          "executed": [
+            [
+              "MSBuildGenerate",
+              "//:generate"
+            ]
+          ],
+          "tests": [],
+          "remoteActions": 1,
+          "cacheHits": 0
+        },
+        {
+          "case": "restored",
+          "executed": [],
+          "tests": [],
+          "remoteActions": 0,
+          "cacheHits": 1
+        }
+      ]
+    },
+    {
+      "fixture": "generation-92",
+      "bazel": "bazel 9.2.0",
+      "cases": [
+        {
+          "case": "cold",
+          "executed": [
+            [
+              "MSBuildAssembly",
+              "//:Tasks"
+            ],
+            [
+              "MSBuildAssembly",
+              "//:test"
+            ],
+            [
+              "MSBuildGenerate",
+              "//:generate"
+            ]
+          ],
+          "tests": [
+            "//:test"
+          ],
+          "remoteActions": 7,
+          "cacheHits": 0
+        },
+        {
+          "case": "noop",
+          "executed": [],
+          "tests": [],
+          "remoteActions": 0,
+          "cacheHits": 0
+        },
+        {
+          "case": "consumer-edit",
+          "executed": [
+            [
+              "MSBuildAssembly",
+              "//:test"
+            ]
+          ],
+          "tests": [
+            "//:test"
+          ],
+          "remoteActions": 2,
+          "cacheHits": 1
+        },
+        {
+          "case": "input-edit",
+          "executed": [
+            [
+              "MSBuildAssembly",
+              "//:test"
+            ],
+            [
+              "MSBuildGenerate",
+              "//:generate"
+            ]
+          ],
+          "tests": [
+            "//:test"
+          ],
+          "remoteActions": 3,
+          "cacheHits": 1
+        },
+        {
+          "case": "tool-edit",
+          "executed": [
+            [
+              "MSBuildAssembly",
+              "//:Tasks"
+            ],
+            [
+              "MSBuildAssembly",
+              "//:test"
+            ],
+            [
+              "MSBuildGenerate",
+              "//:generate"
+            ]
+          ],
+          "tests": [
+            "//:test"
+          ],
+          "remoteActions": 4,
+          "cacheHits": 1
+        },
+        {
+          "case": "missing-input",
+          "executed": [
+            [
+              "MSBuildGenerate",
+              "//:generate"
+            ]
+          ],
+          "tests": [],
+          "remoteActions": 1,
+          "cacheHits": 0
+        },
+        {
+          "case": "restored",
+          "executed": [],
+          "tests": [],
+          "remoteActions": 0,
+          "cacheHits": 1
+        }
+      ]
+    },
+    {
+      "fixture": "generation-recovery",
+      "bazel": "bazel 9.2.0",
+      "cases": [
+        {
+          "case": "independent-recovery",
+          "executed": [],
+          "tests": [],
+          "remoteActions": 0,
+          "cacheHits": 7
+        }
+      ]
+    }
+  ],
+  "avaloniaParity": {
+    "commit": "37fbd9655cc581ff5b1c6b1fb1be4e3118c889d0",
+    "files": [
+      {
+        "input": "src/Avalonia.Native/avn.idl",
+        "sha256": "82bba83a6ee4e848871bc7737a6d85dd2a2c69f18fce23cf3437814f0f392cdd",
+        "bytes": 663126
+      },
+      {
+        "input": "src/Windows/Avalonia.Win32/Win32Com/win32.idl",
+        "sha256": "6a5c0ea3cd8bfedeb6c830fdb731c64104ed28921da2ea9da0da019c8487aa75",
+        "bytes": 140659
+      },
+      {
+        "input": "src/Windows/Avalonia.Win32/WinRT/winrt.idl",
+        "sha256": "ecf21631c552ef3fc3ac9dc8f05be47521cd2867a5d6770352d864bbc9a7072c",
+        "bytes": 651703
+      },
+      {
+        "input": "src/Windows/Avalonia.Win32/DirectX/directx.idl",
+        "sha256": "03dac9615c789958552b708ea5e75bdfb9248a656eabda2ddae69d160c1aba94",
+        "bytes": 286693
+      },
+      {
+        "input": "src/Windows/Avalonia.Win32/DComposition/dcomp.idl",
+        "sha256": "1bfd0a9b3215a766066f9d3b99ed17d9221730b64a07c0e274ee567e8f39fee9",
+        "bytes": 173842
+      }
+    ]
+  }
+}

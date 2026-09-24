@@ -18,7 +18,8 @@ The trackers below describe remaining work, not promises of platform support.
    [#44](https://github.com/keegan-caruso/msbuild-bazel/issues/44).**
    SDK-only bootstrap, diamond invalidation, source-content packages and declared
    task controls pass on the SDK-free ARM64 executor with both Bazel baselines.
-   Add standalone generation and wider package assets before a real graph.
+   Standalone generation, binary/native package inputs and five Avalonia IDLs
+   also pass; next qualify a compiled upstream dependency slice.
 4. **Make source-dependent tests relocatable — [#9](https://github.com/keegan-caruso/msbuild-bazel/issues/9).**
    Preserve declared baseline/source inputs without relying on embedded absolute
    checkout paths or making the build root writable. Current Serilog, Spectre and
