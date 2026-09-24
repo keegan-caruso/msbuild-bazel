@@ -76,8 +76,9 @@ recompiled both projects, and ran the test on runtime 10.0.12.
 The worker validates declared tool inputs against the actual SDK directory and
 mounts that SDK read-only at its stable internal path. The host no longer needs
 the SDK installed at the image's historical path. Ubuntu 22.04 ARM64 and enabled
-nested namespaces remain required. These checks qualify remote **caching**, not
-remote execution of SDK bootstrap or a new worker platform.
+nested namespaces remain required. These controls qualify remote **caching**.
+SDK bootstrap and compilation also have separate [remote-execution qualification](remote-execution.md#sdk-only-remote-execution);
+other worker platforms remain unqualified.
 
 ## Repository development setup
 
