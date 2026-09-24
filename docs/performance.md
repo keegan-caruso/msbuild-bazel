@@ -278,3 +278,10 @@ qualification used one worker with `--memory-limit-mb 4096` in the 8 GiB VM. An
 initial unbudgeted two-worker API run stalled under memory pressure and was
 stopped; it is not successful timing evidence. Use the existing worker-memory
 controls for long edit sequences on constrained machines.
+
+## Remote Avalonia qualification
+
+The [11-project Avalonia remote run](avalonia-remote-execution.md) records
+action-cold build/test, warm edits and independent cache recovery separately.
+Those single samples include remote bootstrap, extraction and output transfer;
+they are correctness-run timings, not a matched raw-MSBuild performance claim.
