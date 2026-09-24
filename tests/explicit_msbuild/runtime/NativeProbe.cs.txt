@@ -1,0 +1,46 @@
+using System;
+using System.IO;
+using System.Linq;
+using System.Reflection;
+using System.Security.Cryptography;
+using System.Text.Json;
+
+public static class StartupHook
+{
+    public static void Initialize()
+    {
+        string entry = Assembly.GetEntryAssembly()?.GetName().Name ?? "";
+        if (entry != "testhost" && entry != "Smoke") return;
+        string root = Environment.GetEnvironmentVariable("QUALIFICATION_NATIVE")!;
+        var paths = File.ReadAllLines("/proc/self/maps")
+            .Select(line => line.Split(' ', StringSplitOptions.RemoveEmptyEntries).Last())
+            .Where(path => path.StartsWith('/')).Distinct().ToArray();
+        Check(typeof(object).Assembly.Location, Path.Combine(root, "System.Private.CoreLib.dll"), entry);
+        foreach (string name in new[] { "libcoreclr.so", "libclrjit.so" })
+        {
+            string actual = paths.Single(path => Path.GetFileName(path) == name);
+            Check(actual, Path.Combine(root, name), entry);
+        }
+        AppDomain.CurrentDomain.AssemblyLoad += (_, e) => CheckImmutable(e.LoadedAssembly, entry);
+        foreach (Assembly assembly in AppDomain.CurrentDomain.GetAssemblies()) CheckImmutable(assembly, entry);
+    }
+    private static void CheckImmutable(Assembly assembly, string entry)
+    {
+        if (assembly.GetName().Name == "System.Collections.Immutable")
+            Check(assembly.Location, Environment.GetEnvironmentVariable("QUALIFICATION_IMMUTABLE")!, entry);
+    }
+    private static void Check(string actualPath, string expectedPath, string entry)
+    {
+        string expected = Convert.ToHexString(SHA256.HashData(File.ReadAllBytes(expectedPath)));
+        if (Path.GetFileName(actualPath) == "System.Private.CoreLib.dll")
+            expected = Environment.GetEnvironmentVariable("QUALIFICATION_CORELIB_SHA256") ?? expected;
+        string actual = Convert.ToHexString(SHA256.HashData(File.ReadAllBytes(actualPath)));
+        if (actual != expected) Environment.FailFast("Qualification loaded wrong binary: " + actualPath);
+        string folder = Environment.GetEnvironmentVariable("TEST_UNDECLARED_OUTPUTS_DIR")!;
+        Directory.CreateDirectory(folder);
+        string name = Path.GetFileNameWithoutExtension(actualPath);
+        if (name == "System.Collections.Immutable") name = "immutable";
+        File.WriteAllText(Path.Combine(folder, "loaded-" + name + "-" + Environment.ProcessId + ".json"),
+            JsonSerializer.Serialize(new { entry, path = actualPath, sha256 = actual, expectedPath }));
+    }
+}

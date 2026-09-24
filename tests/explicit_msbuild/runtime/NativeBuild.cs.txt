@@ -1,0 +1,55 @@
+using System;
+using System.Diagnostics;
+using System.Formats.Tar;
+using System.IO;
+using System.Linq;
+
+// Qualification adapter: all native programs, headers and sources are declared
+// archives. The nested namespace exposes only those inputs and writable scratch.
+public sealed class NativeBuild
+{
+    public string Sandbox { get; set; } = null!;
+    public string Toolchain { get; set; } = null!;
+    public string Sources { get; set; } = null!;
+    public string Script { get; set; } = null!;
+    public string Output { get; set; } = null!;
+    public string[] Products { get; set; } = [];
+    public static void Main(string[] args)
+    {
+        if (args.Length < 6) throw new ArgumentException("Expected sandbox, toolchain, sources, script, archive and product outputs");
+        new NativeBuild { Sandbox = Path.GetFullPath(args[0]), Toolchain = Path.GetFullPath(args[1]), Sources = Path.GetFullPath(args[2]), Script = args[3], Output = Path.GetFullPath(args[4]), Products = args.Skip(5).Select(Path.GetFullPath).ToArray() }.Execute();
+    }
+    public bool Execute()
+    {
+        var scratch = Path.Combine(Path.GetDirectoryName(Output)!, "native-scratch");
+        var root = Path.Combine(scratch, "root");
+        var source = Path.Combine(scratch, "source");
+        if (Directory.Exists(scratch)) Directory.Delete(scratch, true);
+        Directory.CreateDirectory(root);
+        Directory.CreateDirectory(source);
+        try
+        {
+            TarFile.ExtractToDirectory(Toolchain, root, false);
+            TarFile.ExtractToDirectory(Sources, source, false);
+            var start = new ProcessStartInfo(Sandbox) { RedirectStandardOutput = true, RedirectStandardError = true };
+            foreach (var arg in new[] { "--die-with-parent", "--unshare-all", "--new-session", "--cap-drop", "ALL",
+                "--ro-bind", root, "/", "--bind", source, "/source", "--proc", "/proc", "--dev", "/dev",
+                "--tmpfs", "/tmp", "--chdir", "/source", "--clearenv", "--setenv", "PATH", "/usr/bin:/bin",
+                "--setenv", "HOME", "/tmp", "--setenv", "LANG", "C.UTF-8", "--", "/bin/bash", Script })
+                start.ArgumentList.Add(arg);
+            using var child = Process.Start(start)!;
+            child.OutputDataReceived += (_, e) => { if (e.Data != null) Console.WriteLine(e.Data); };
+            child.ErrorDataReceived += (_, e) => { if (e.Data != null) Console.WriteLine(e.Data); };
+            child.BeginOutputReadLine(); child.BeginErrorReadLine(); child.WaitForExit();
+            if (child.ExitCode != 0) throw new Exception("Declared native build failed: " + child.ExitCode);
+            File.Copy(Path.Combine(source, "result.tar"), Output, true);
+            foreach (var destination in Products)
+                File.Copy(Path.Combine(source, "result", Path.GetFileName(destination)), destination, true);
+            return true;
+        }
+        finally
+        {
+            if (Directory.Exists(scratch)) Directory.Delete(scratch, true);
+        }
+    }
+}

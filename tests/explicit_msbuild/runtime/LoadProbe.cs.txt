@@ -1,0 +1,30 @@
+using System;
+using System.IO;
+using System.Reflection;
+using System.Security.Cryptography;
+using System.Text.Json;
+
+// Qualification-only startup hook; upstream test sources stay unchanged.
+public static class StartupHook
+{
+    public static void Initialize()
+    {
+        string entry = Assembly.GetEntryAssembly()?.GetName().Name ?? "";
+        if (entry != "testhost" && entry != "Smoke") return;
+        AppDomain.CurrentDomain.AssemblyLoad += (_, e) => Check(e.LoadedAssembly, entry);
+        foreach (Assembly assembly in AppDomain.CurrentDomain.GetAssemblies()) Check(assembly, entry);
+    }
+
+    private static void Check(Assembly assembly, string entry)
+    {
+        if (assembly.GetName().Name != "System.Collections.Immutable") return;
+        string expectedPath = Environment.GetEnvironmentVariable("QUALIFICATION_IMMUTABLE")!;
+        string expected = Convert.ToHexString(SHA256.HashData(File.ReadAllBytes(expectedPath)));
+        string actual = Convert.ToHexString(SHA256.HashData(File.ReadAllBytes(assembly.Location)));
+        if (actual != expected) Environment.FailFast("Qualification loaded the wrong Immutable assembly: " + assembly.Location);
+        string folder = Environment.GetEnvironmentVariable("TEST_UNDECLARED_OUTPUTS_DIR")!;
+        Directory.CreateDirectory(folder);
+        File.WriteAllText(Path.Combine(folder, "loaded-immutable-" + Environment.ProcessId + ".json"),
+            JsonSerializer.Serialize(new { entry, path = assembly.Location, sha256 = actual, expectedPath }));
+    }
+}

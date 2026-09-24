@@ -1,0 +1,62 @@
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+using System.Reflection;
+using System.Security.Cryptography;
+using System.Text.Json;
+
+// Test-only observer. Every observed framework file is compared with the declared
+// host, and post-run verification compares rebuilt files with their producers.
+public static class StartupHook
+{
+    private static readonly object Gate = new();
+    private static readonly Dictionary<string, object> Loaded = new();
+    private static Dictionary<string, string[]> Expected = null!;
+    private static string Root = "";
+    private static string Entry = "";
+    public static void Initialize()
+    {
+        Root = Environment.GetEnvironmentVariable("QUALIFICATION_HOST_ROOT")!;
+        if (string.IsNullOrEmpty(Root)) return;
+        Entry = Assembly.GetEntryAssembly()?.GetName().Name ?? "";
+        Expected = JsonSerializer.Deserialize<Dictionary<string, string[]>>(File.ReadAllText(Path.Combine(Root, "runtime-inventory.json")))!;
+        AppDomain.CurrentDomain.AssemblyLoad += (_, e) => CheckAssembly(e.LoadedAssembly);
+        foreach (var assembly in AppDomain.CurrentDomain.GetAssemblies()) CheckAssembly(assembly);
+        CheckNative();
+        Save();
+        AppDomain.CurrentDomain.ProcessExit += (_, _) => { CheckNative(); Save(); };
+    }
+    private static void CheckAssembly(Assembly assembly)
+    {
+        if (!assembly.IsDynamic && !string.IsNullOrEmpty(assembly.Location)) Check(assembly.Location);
+    }
+    private static void CheckNative()
+    {
+        foreach (string path in File.ReadAllLines("/proc/self/maps").Select(line => line.Split(' ', StringSplitOptions.RemoveEmptyEntries).Last()).Where(path => path.StartsWith('/')).Distinct())
+            Check(path);
+        Check(Environment.ProcessPath!);
+    }
+    private static void Check(string path)
+    {
+        string name = Path.GetFileName(path);
+        if (!Expected.TryGetValue(name, out string[]? relatives)) return;
+        lock (Gate)
+        {
+            string actual = Convert.ToHexString(SHA256.HashData(File.ReadAllBytes(path)));
+            string? relative = relatives.FirstOrDefault(candidate => Convert.ToHexString(SHA256.HashData(File.ReadAllBytes(Path.Combine(Root, candidate)))) == actual);
+            bool wrongOverride = name == "System.Private.CoreLib.dll" && Environment.GetEnvironmentVariable("QUALIFICATION_CORELIB_SHA256") is string forced && forced != actual;
+            if (relative is null || wrongOverride) Environment.FailFast("Qualification loaded wrong binary: " + path);
+            Loaded[name] = new { path, sha256 = actual, expectedPath = relative };
+        }
+    }
+    private static void Save()
+    {
+        lock (Gate)
+        {
+            string folder = Environment.GetEnvironmentVariable("TEST_UNDECLARED_OUTPUTS_DIR")!;
+            Directory.CreateDirectory(folder);
+            File.WriteAllText(Path.Combine(folder, "runtime-" + Environment.ProcessId + ".json"), JsonSerializer.Serialize(new { entry = Entry, files = Loaded.ToDictionary(pair => pair.Key, pair => pair.Value) }));
+        }
+    }
+}

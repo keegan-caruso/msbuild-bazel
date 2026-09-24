@@ -1,0 +1,23 @@
+<Project>
+  <!-- Qualification adapter: retain upstream binplace copies inside action state.
+       Separate Bazel layout actions compose the shared packs. -->
+  <ItemGroup>
+    <BinPlaceTargetFrameworks Update="@(BinPlaceTargetFrameworks)">
+      <RefPath>$(IntermediateOutputPath)binplace/ref/%(Identity)/</RefPath>
+      <RuntimePath>$(IntermediateOutputPath)binplace/runtime/%(Identity)/</RuntimePath>
+    </BinPlaceTargetFrameworks>
+    <!-- Generator binplace directories are explicit items rather than framework
+         metadata. Preserve their copies in action state as well. -->
+    <_QualificationBinPlaceDir Include="@(BinPlaceDir)" />
+    <BinPlaceDir Remove="@(BinPlaceDir)" />
+    <BinPlaceDir Include="@(_QualificationBinPlaceDir->'$(IntermediateOutputPath)binplace/generators/')" />
+    <_DebugSymbolToMove Update="@(_DebugSymbolToMove)"
+                        Destination="$(IntermediateOutputPath)binplace/PDB/%(FolderName)/%(Filename)%(Extension)" />
+    <!-- APICompat suppression identities describe a framework, not the physical
+         parent directory used to stage the contract inside an action. -->
+    <ApiCompatLeftAssembliesTransformationPattern Update="$(_ApiCompatCaptureGroupPattern)"
+                                                   ReplacementString="ref/$(TargetFramework)/$2" />
+    <ApiCompatRightAssembliesTransformationPattern Update="$(_ApiCompatCaptureGroupPattern)"
+                                                    ReplacementString="lib/$(TargetFramework)/$2" />
+  </ItemGroup>
+</Project>

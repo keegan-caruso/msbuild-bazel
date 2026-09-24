@@ -1,0 +1,57 @@
+using System.Text.Json;
+using Microsoft.Build.Evaluation;
+using Microsoft.Build.Graph;
+using Microsoft.Build.Execution;
+using Microsoft.Build.Framework;
+var sdk = Environment.GetEnvironmentVariable("RULES_MSBUILD_DOTNET_ROOT")! + "/sdk/10.0.400";
+System.Runtime.Loader.AssemblyLoadContext.Default.Resolving += (c,n) => File.Exists(sdk+"/"+n.Name+".dll") ? c.LoadFromAssemblyPath(sdk+"/"+n.Name+".dll") : null;
+Environment.SetEnvironmentVariable("MSBUILD_EXE_PATH", sdk+"/MSBuild.dll");
+Environment.SetEnvironmentVariable("MSBuildSDKsPath", sdk+"/Sdks");
+Scan(Path.GetFullPath(args[0]), args[1], args[2]);
+static void Scan(string root, string selection, string output)
+{
+    var selected = JsonDocument.Parse(File.ReadAllText(selection)).RootElement;
+    var entries = selected.GetProperty("entries");
+    var framework = selected.TryGetProperty("framework", out var requested) ? requested.GetString()! : "net10.0";
+    using var collection = new ProjectCollection();
+    var graph = new ProjectGraph(entries.EnumerateArray().Select(e => new ProjectGraphEntryPoint(Path.Combine(root,e.ValueKind == JsonValueKind.String ? e.GetString()! : e.GetProperty("project").GetString()!), new Dictionary<string,string>{{"Configuration","Release"},{"TargetFramework",e.ValueKind == JsonValueKind.String ? framework : e.GetProperty("framework").GetString()!},{"TargetArchitecture","arm64"},{"TargetOS","linux"},{"UseLocalTargetingRuntimePack","false"}})), collection, null);
+    var rows = graph.ProjectNodes.Select(n => {
+        var p=n.ProjectInstance;
+        var directProjects=p.GetItems("ProjectReference").Select(i=>Path.GetFullPath(i.EvaluatedInclude,Path.GetDirectoryName(p.FullPath)!)).ToHashSet(StringComparer.Ordinal);
+        var resolved = new Dictionary<string,string>(StringComparer.Ordinal);
+        if (p.GetPropertyValue("TargetFramework").Length > 0 && p.GetItems("ProjectReference").Count > 0)
+        {
+            var result = BuildManager.DefaultBuildManager.Build(new BuildParameters(collection),
+                new BuildRequestData(p, new[]{"AssignProjectConfiguration", "_SplitProjectReferencesByFileExistence", "_GetProjectReferenceTargetFrameworkProperties"}, null, BuildRequestDataFlags.ProvideProjectStateAfterBuild));
+            if (result.OverallResult != BuildResultCode.Success) throw new InvalidDataException("Could not resolve project frameworks: " + p.FullPath);
+            foreach (var item in (result.ProjectStateAfterBuild ?? throw new InvalidDataException("No resolved project state")).GetItems("_MSBuildProjectReferenceExistent"))
+            {
+                var requestedFramework = item.GetMetadataValue("NearestTargetFramework");
+                var configured = item.GetMetadataValue("SetTargetFramework");
+                if (configured.StartsWith("TargetFramework=") && !configured.Contains(';')) requestedFramework = configured[16..];
+                if (requestedFramework.Length > 0) resolved[Path.GetFullPath(item.EvaluatedInclude, Path.GetDirectoryName(p.FullPath)!)] = requestedFramework;
+            }
+        }
+        string Selected(IGrouping<string,ProjectGraphNode> group)
+        {
+            var candidates=group.Select(d=>d.ProjectInstance.GetPropertyValue("TargetFramework")).Distinct().ToArray();
+            if (p.GetPropertyValue("TargetFramework").Length == 0) return "";
+            if (resolved.TryGetValue(group.Key,out var selected))
+            {
+                if (!candidates.Contains(selected)) throw new InvalidDataException("Resolved framework absent from graph: " + group.Key + " " + selected);
+                return selected;
+            }
+            if (candidates.Length != 1) throw new InvalidDataException("Ambiguous framework from " + p.FullPath + ": " + group.Key + " " + string.Join(",",candidates));
+            return candidates[0];
+        }
+        object[] Items(string name) => p.GetItems(name).Select(i => (object)new {include=i.EvaluatedInclude,metadata=i.Metadata.ToDictionary(m=>m.Name,m=>m.EvaluatedValue)}).ToArray();
+        return new {project=Path.GetRelativePath(root,p.FullPath),framework=p.GetPropertyValue("TargetFramework"),globals=p.GlobalProperties,assets=p.GetPropertyValue("ProjectAssetsFile"),
+            properties=new[]{"TargetFrameworks","LangVersion","Nullable","AssemblyName","RootNamespace","AllowUnsafeBlocks","AssemblyOriginatorKeyFile","OutputType","UseAppHost","IsTestProject","ExcludeFromBuild","EnableDefaultCompileItems","IntermediateOutputPath","OutputPath","CompatibilitySuppressionFilePath","ApiExclusionListPath","CompileUsingReferenceAssemblies","ILLinkDescriptorsXml","ILLinkSubstitutionsXml","ILLinkLinkAttributesXml","ILLinkSubstitutionsLibraryBuildXml"}.ToDictionary(x=>x,x=>p.GetPropertyValue(x)),
+            imports=p.ImportPaths, references=Items("ProjectReference"),packages=Items("PackageReference"),bareReferences=Items("Reference"),frameworks=Items("FrameworkReference"),compile=Items("Compile"),
+            selectedEdges=n.ProjectReferences.Where(d=>d.ProjectInstance.GetPropertyValue("TargetFramework").Length>0 && directProjects.Contains(d.ProjectInstance.FullPath)).GroupBy(d=>d.ProjectInstance.FullPath).Select(g=>new {project=Path.GetRelativePath(root,g.Key),framework=Selected(g)}).ToArray(),
+            edges=n.ProjectReferences.Select(d=>new{project=Path.GetRelativePath(root,d.ProjectInstance.FullPath),framework=d.ProjectInstance.GetPropertyValue("TargetFramework"),globals=d.ProjectInstance.GlobalProperties}).ToArray(),
+            items=new[]{"EmbeddedResource","Content","None","AdditionalFiles","GlobalAnalyzerConfigFiles","EditorConfigFiles","_ILLinkDescriptorsFilePaths","ILLinkDescriptorsXmls","ILLinkSubstitutionsXmls","ILLinkLinkAttributesXmls","ILLinkDescriptorsLibraryBuildXml","ILLinkSuppressionsXmls","RdXmlFile","ApiCompatSuppressionFile"}.ToDictionary(t=>t,t=>Items(t))};
+    }).ToArray();
+    File.WriteAllText(output,JsonSerializer.Serialize(rows,new JsonSerializerOptions{WriteIndented=true}));
+    Console.WriteLine($"Evaluated {rows.Length} configured graph nodes, {rows.Select(r=>r.project).Distinct().Count()} project files, {rows.Count(r=>r.framework.Length>0)} framework nodes");
+}

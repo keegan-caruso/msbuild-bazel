@@ -1,0 +1,34 @@
+using System.Text.Json;
+using Microsoft.Build.Framework;
+using Microsoft.Build.Logging;
+
+var projects = new Dictionary<(int Node, int Project), string>();
+var compiled = new List<object>();
+var compilerServerMessages = new List<string>();
+var replay = new BinaryLogReplayEventSource();
+replay.ProjectStarted += (_, e) =>
+{
+    var context = e.BuildEventContext!;
+    var framework = "";
+    if (e.GlobalProperties?.TryGetValue("TargetFramework", out var globalFramework) == true)
+        framework = globalFramework;
+    if (e.Properties is not null)
+        foreach (System.Collections.DictionaryEntry property in e.Properties)
+            if (string.Equals(property.Key.ToString(), "TargetFramework", StringComparison.OrdinalIgnoreCase))
+                framework = property.Value?.ToString() ?? "";
+    projects[(context.NodeId, context.ProjectContextId)] = framework;
+};
+replay.TaskStarted += (_, e) =>
+{
+    if (e.TaskName is not ("Csc" or "Vbc")) return;
+    var context = e.BuildEventContext!;
+    projects.TryGetValue((context.NodeId, context.ProjectContextId), out var framework);
+    compiled.Add(new { project = e.ProjectFile, framework, task = e.TaskName });
+};
+replay.MessageRaised += (_, e) =>
+{
+    if (e.Message?.Contains("CompilerServer:", StringComparison.OrdinalIgnoreCase) == true)
+        compilerServerMessages.Add(e.Message);
+};
+replay.Replay(args[0]);
+Console.WriteLine(JsonSerializer.Serialize(new { compiled, compilerServerMessages }));

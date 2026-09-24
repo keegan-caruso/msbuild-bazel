@@ -1,0 +1,171 @@
+{
+  "commit": "60629d14374c56f1cb51819049ad1fa529307f8d",
+  "slices": [
+    {
+      "name": "collections",
+      "framework": "net10.0",
+      "entries": [
+        "src/libraries/System.Collections.Immutable/tests/System.Collections.Immutable.Tests.csproj",
+        "src/libraries/System.Collections/tests/System.Collections.Tests.csproj",
+        "src/libraries/System.Linq/tests/System.Linq.Tests.csproj"
+      ]
+    },
+    {
+      "name": "threading",
+      "framework": "net10.0",
+      "entries": [
+        "src/libraries/System.Threading/tests/System.Threading.Tests.csproj",
+        "src/libraries/System.Runtime/tests/System.Threading.Tasks.Tests/System.Threading.Tasks.Tests.csproj"
+      ]
+    },
+    {
+      "name": "filesystem",
+      "framework": "net10.0-unix",
+      "entries": [
+        "src/libraries/System.Runtime/tests/System.IO.FileSystem.Tests/System.IO.FileSystem.Tests.csproj"
+      ]
+    },
+    {
+      "name": "sockets",
+      "framework": "net10.0-unix",
+      "entries": [
+        "src/libraries/System.Net.Sockets/tests/FunctionalTests/System.Net.Sockets.Tests.csproj",
+        "src/libraries/System.Net.Sockets/src/System.Net.Sockets.csproj"
+      ],
+      "filters": {
+        "src/libraries/System.Net.Sockets/tests/FunctionalTests/System.Net.Sockets.Tests.csproj": "FullyQualifiedName~System.Net.Sockets.Tests.NetworkStreamTest"
+      }
+    },
+    {
+      "name": "host",
+      "framework": "net10.0",
+      "entries": []
+    },
+    {
+      "name": "loaded-common",
+      "framework": "net10.0",
+      "entries": [
+        "src/libraries/System.IO.Pipelines/src/System.IO.Pipelines.csproj",
+        "src/libraries/System.Text.Encodings.Web/src/System.Text.Encodings.Web.csproj",
+        "src/libraries/System.Text.Json/src/System.Text.Json.csproj",
+        "src/libraries/System.ComponentModel.Primitives/src/System.ComponentModel.Primitives.csproj"
+      ]
+    },
+    {
+      "name": "loaded-platform",
+      "framework": "net10.0-unix",
+      "entries": [
+        {
+          "project": "src/libraries/System.Security.Cryptography/src/System.Security.Cryptography.csproj",
+          "framework": "net10.0-unix"
+        },
+        {
+          "project": "src/libraries/System.IO.Compression/src/System.IO.Compression.csproj",
+          "framework": "net10.0-unix"
+        },
+        {
+          "project": "src/libraries/System.Console/src/System.Console.csproj",
+          "framework": "net10.0-unix"
+        },
+        {
+          "project": "src/libraries/System.IO.MemoryMappedFiles/src/System.IO.MemoryMappedFiles.csproj",
+          "framework": "net10.0-unix"
+        },
+        {
+          "project": "src/libraries/System.IO.Pipes/src/System.IO.Pipes.csproj",
+          "framework": "net10.0-unix"
+        },
+        {
+          "project": "src/libraries/System.IO.FileSystem.DriveInfo/src/System.IO.FileSystem.DriveInfo.csproj",
+          "framework": "net10.0-unix"
+        },
+        {
+          "project": "src/libraries/System.Diagnostics.Process/src/System.Diagnostics.Process.csproj",
+          "framework": "net10.0-linux"
+        },
+        {
+          "project": "src/libraries/System.Net.Http/src/System.Net.Http.csproj",
+          "framework": "net10.0-linux"
+        }
+      ],
+      "removeRoots": [
+        "src/libraries/System.ComponentModel.Primitives/src/System.ComponentModel.Primitives.csproj"
+      ]
+    },
+    {
+      "name": "loaded-libraries",
+      "framework": "net10.0",
+      "entries": [
+        "src/libraries/System.Data.Common/src/System.Data.Common.csproj",
+        "src/libraries/System.Runtime.Serialization.Xml/src/System.Runtime.Serialization.Xml.csproj",
+        "src/libraries/System.Xml.XPath/src/System.Xml.XPath.csproj",
+        "src/libraries/System.ComponentModel.EventBasedAsync/src/System.ComponentModel.EventBasedAsync.csproj",
+        "src/libraries/Microsoft.CSharp/src/Microsoft.CSharp.csproj",
+        "src/libraries/System.Threading.Tasks.Parallel/src/System.Threading.Tasks.Parallel.csproj",
+        "src/libraries/System.Linq.AsyncEnumerable/src/System.Linq.AsyncEnumerable.csproj",
+        "src/libraries/System.Linq.Queryable/src/System.Linq.Queryable.csproj"
+      ]
+    },
+    {
+      "name": "loaded-shims",
+      "framework": "net10.0-linux",
+      "entries": [
+        "src/libraries/shims/System.Core/src/System.Core.csproj",
+        "src/libraries/shims/System.Diagnostics.Debug/src/System.Diagnostics.Debug.csproj",
+        "src/libraries/shims/System.Globalization/src/System.Globalization.csproj",
+        "src/libraries/shims/System.IO.FileSystem/src/System.IO.FileSystem.csproj",
+        "src/libraries/shims/System.IO/src/System.IO.csproj",
+        "src/libraries/shims/System.Reflection.Extensions/src/System.Reflection.Extensions.csproj",
+        "src/libraries/shims/System.Reflection/src/System.Reflection.csproj",
+        "src/libraries/shims/System.Resources.ResourceManager/src/System.Resources.ResourceManager.csproj",
+        "src/libraries/shims/System.Runtime.Extensions/src/System.Runtime.Extensions.csproj",
+        "src/libraries/shims/System.Runtime.InteropServices.RuntimeInformation/src/System.Runtime.InteropServices.RuntimeInformation.csproj",
+        "src/libraries/shims/System.Text.Encoding/src/System.Text.Encoding.csproj",
+        "src/libraries/shims/System.Threading.Tasks.Extensions/src/System.Threading.Tasks.Extensions.csproj",
+        "src/libraries/shims/System.Threading.Tasks/src/System.Threading.Tasks.csproj",
+        "src/libraries/shims/System.Xml/src/System.Xml.csproj",
+        "src/libraries/shims/System/src/System.csproj",
+        "src/libraries/shims/mscorlib/src/mscorlib.csproj",
+        "src/libraries/shims/netstandard/src/netstandard.csproj"
+      ],
+      "removeRoots": [
+        "src/libraries/System.Data.Common/src/System.Data.Common.csproj",
+        "src/libraries/System.Runtime.Serialization.Xml/src/System.Runtime.Serialization.Xml.csproj",
+        "src/libraries/System.Xml.XPath/src/System.Xml.XPath.csproj",
+        "src/libraries/System.ComponentModel.EventBasedAsync/src/System.ComponentModel.EventBasedAsync.csproj",
+        "src/libraries/System.Threading.Tasks.Parallel/src/System.Threading.Tasks.Parallel.csproj",
+        "src/libraries/System.Linq.Queryable/src/System.Linq.Queryable.csproj"
+      ]
+    },
+    {
+      "name": "pipelines",
+      "framework": "net10.0",
+      "entries": [
+        "src/libraries/System.IO.Pipelines/tests/System.IO.Pipelines.Tests.csproj"
+      ]
+    }
+  ],
+  "hostFrameworks": {
+    "System.Net.Primitives": "net10.0-unix",
+    "System.Security.Cryptography": "net10.0-unix",
+    "System.IO.Compression": "net10.0-unix",
+    "System.IO.MemoryMappedFiles": "net10.0-unix",
+    "System.Console": "net10.0-unix",
+    "System.IO.Pipes": "net10.0-unix",
+    "System.IO.FileSystem.DriveInfo": "net10.0-unix",
+    "System.Diagnostics.Process": "net10.0-linux",
+    "System.Net.Http": "net10.0-linux",
+    "System.Net.NameResolution": "net10.0-unix",
+    "System.Net.Sockets": "net10.0-unix",
+    "System.Diagnostics.FileVersionInfo": "net10.0-unix",
+    "System.IO.Compression.Brotli": "net10.0-unix",
+    "System.Net.Security": "net10.0-linux",
+    "System.Net.NetworkInformation": "net10.0-linux",
+    "System.Net.Quic": "net10.0-linux",
+    "System.Net.Requests": "net10.0-unix",
+    "System.Net.WebSockets": "net10.0-unix"
+  },
+  "privateFrameworks": {
+    "System.Runtime.Serialization.Formatters": "net8.0"
+  }
+}
