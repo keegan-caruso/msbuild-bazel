@@ -6,8 +6,42 @@ speedup that describes all three scenarios.
 
 These are recorded results from pinned qualification workloads, not a benchmark
 of every commit on main. Detailed reports below retain commands, samples and
-machine-readable evidence. The runtime managed results include a fresh post-cleanup
+machine-readable evidence. The runtime managed results include a post-cleanup
 baseline and the compiler-reuse change described below.
+
+A later audit found that the host has 16 GiB RAM, while some historical runtime
+experiments allocated a 16 GiB build VM alongside other VMs. Treat those elapsed
+times as observations subject to host memory pressure. The
+[follow-up qualification](runtime-cold-timing.md#compiler-attribution-and-retained-memory)
+separates diagnostic runs from a single, memory-budgeted build VM.
+
+## Latest compiler and memory qualification
+
+On one **8-CPU/8-GiB Linux ARM64 VM**, runtime cold compilation takes
+**301.83 s**, versus **313.21/322.60 s** with per-consumer analyzer paths:
+about **5% less time** than the control mean. Both use two jobs/workers and a
+4096-MB native worker budget. Raw MSBuild takes **139.75 s**, with **72.69 s**
+restore separately: the candidate remains **2.16× raw build time**. These are
+two controls and one candidate, not a general speedup claim.
+
+The same VM also qualifies these large graphs with four jobs, two workers and
+the same memory budget. Each timing is one observation; raw was not rerun for
+these two graphs in this series.
+
+| Workload | Cold | Body edit | API edit | Independent HTTP recovery |
+| --- | ---: | ---: | ---: | ---: |
+| Orchard, 202 actions | 129.24 s | 1.10 s | 105.69 s | 25.05 s |
+| ASP.NET Core slice, 278 actions | 124.88 s | 0.72 s | 77.58 s | 11.71 s |
+
+Both recoveries execute no compilation and match every checked producer output
+(1,576 Orchard / 4,433 ASP.NET files). Orchard's recovered Razor page and assets
+pass. A separate 40-edit runtime stress run with a 1024-MB budget completes
+three worker evictions; median edits take 1.52 s and sampled post-build compiler RSS peaks
+at 503 MiB. This excludes other worker/JVM memory and active-build peaks.
+
+See [conditions, controls and limits](runtime-cold-timing.md#matched-single-vm-compiler-comparison)
+and [compact evidence](runtime-compiler-profile-evidence.json). The older samples
+below use different resource settings and retain their original comparison scope.
 
 ## Warm builds and edits
 
@@ -26,9 +60,9 @@ workload. These rows measure builds, not test execution.
 | Runtime, Pipelines body edit | 2.081 s | 11.576 s | Medians of three; compiler reuse, retained server/workers |
 | Runtime, Pipelines API edit | 7.970 s | 13.945 s | Medians of three; four Bazel managed actions execute |
 
-The current runtime body edit is **5.56× faster** than raw MSBuild; the API edit
+The recorded runtime body edit is **5.56× faster** than raw MSBuild; the API edit
 is **1.75× faster**. Both sides build the same managed roots, excluding native
-products, host composition and test execution. Current no-op medians are 0.168 s
+products, host composition and test execution. Its no-op medians are 0.168 s
 for Bazel and 10.965 s for raw MSBuild.
 
 Sources: [Orchard](orchard-explicit-performance.md),

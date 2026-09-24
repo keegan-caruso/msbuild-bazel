@@ -1,6 +1,12 @@
 # Runtime cold-build and recovery timing
 
-## Current managed baseline and compiler reuse
+## Earlier managed baseline and compiler reuse
+
+**Measurement caveat:** a later host audit found 16 GiB physical RAM. The earlier
+16 GiB build VM and other running VMs could overcommit it. The historical samples
+below remain recorded observations, not a healthy build-server performance
+guarantee. The follow-up compiler experiments explicitly separate overcommitted
+diagnostics from measurements with one memory-budgeted build VM.
 
 The post-cleanup main revision `0c1522814ce5a8a074ddcb5198a0ce4fc9a1ffa3`
 was measured again against the same pinned runtime source and 38 managed roots.
@@ -84,6 +90,151 @@ paths are relocated. Do not attribute the difference from 15.962 s to compiler
 reuse: filesystem/cache-server warmth was not controlled between recovery trials.
 
 See [compact measurements and validation](runtime-compiler-reuse-evidence.json).
+
+### Compiler attribution and retained memory
+
+A detailed replay/profile of the same managed roots records **365 Csc tasks** on
+Bazel versus **364** on raw MSBuild; ILLink executes **99 times** on each side.
+The problem is largely the cost of those tasks, rather than a multiplied count
+of project compilations. Summed Csc time is **251.67 s versus 62.45 s**; ILLink is
+**100.43 s versus 78.40 s**. Bazel's build had evaluation profiling and
+`ReportAnalyzer` enabled while the raw figures come from its accepted cold
+binlog. These are diagnostic, cumulative task times, not an isolated speedup
+comparison or additive wall-clock segments. Nested task totals overlap.
+These profiles were collected before correcting host VM overcommit; use them to
+locate work, not to forecast compiler latency on an adequately sized server.
+
+`runtime/TaskProfile.cs.txt` replays a raw binlog with task/project/framework
+attribution and compiler commands. The runner's opt-in `profile_build` report
+also captures compiler task messages, including low-importance analyzer timing
+text when the project explicitly sets `ReportAnalyzer=true`. Normal builds keep
+profiling disabled.
+
+Bazel's **total idle-worker limit alone is insufficient for a sequence of short
+single-action builds**: the repeatedly used worker can be busy at every poll.
+Bazel 9.2's `--experimental_shrink_worker_pool` marks it for eviction when its
+request finishes. This uses Bazel's worker lifecycle; the runner needs no separate
+recycling protocol. See the [pinned implementation](https://github.com/bazelbuild/bazel/blob/9.2.0/src/main/java/com/google/devtools/build/lib/worker/WorkerLifecycleManager.java).
+
+Project-built analyzer groups now use a path derived from their complete,
+verified runtime closure. Consumer-only changes no longer force a new analyzer
+load location. Helper changes still invalidate the whole group; package/SDK
+analyzer locations are unchanged. The broker removes preceding request inputs,
+and all current analyzer inputs remain read-only. See
+[the load-group contract and controls](project-built-analyzers.md).
+
+The memory stress experiment uses 40 unique Pipelines body edits per mode. It
+checks unchanged reference hashes, changed implementations and exact restoration.
+The 1024 MB budget deliberately triggers eviction; it is **not a recommended default**.
+
+```text
+--experimental_total_worker_memory_limit_mb=1024
+--experimental_shrink_worker_pool
+--experimental_worker_metrics_poll_interval=1s
+```
+
+With deferred eviction, observed post-build compiler RSS stayed below **552 MiB**
+after the first eviction; four evictions completed safely. Replacement builds
+cost **4.12–6.29 s** and the median edit was **1.61 s**. Without the limit, the
+40-edit run retained as much as **8.07 GiB** of aggregate compiler RSS after the
+full graph. The runs start from different retained state and are not a matched
+speedup comparison. RSS/PSS samples cover compiler descendants of the selected
+Bazel server, not all workers/JVM memory or an active-build peak. The native
+budget counts worker process trees and is a soft limit, not a hard RSS cap.
+These initial stress runs also predate correction of host VM overcommit. Their
+eviction and output checks establish behavior; their edit times are exploratory.
+
+`runtime/memory_soak.py` reproduces this experiment; use `--memory-limit-mb` and
+`--shrink-pool` for the bounded variant. It restores source even on failure and
+stops issuing edits when the VM's available memory drops below its configured
+floor. A two-second idle observation interval is outside build timing. The
+active-worker kill option (`--experimental_worker_memory_limit_mb`) is not used:
+it can interrupt compilation. The result qualifies these controls on Bazel 9.2;
+it does not establish a universal budget or a lifetime bound without eviction.
+
+### Matched single-VM compiler comparison
+
+With the host overcommit corrected, the path-policy control took **313.209 s**
+and **322.604 s**, bracketing the candidate at **301.828 s**. Each fresh output
+base executed exactly 274 managed actions without cache hits. Both policies use
+the same compiler-sharing properties, scratch leases, disabled MSBuild profiling,
+two jobs/workers and a 4096-MB native worker budget with deferred eviction.
+The control changes only project analyzer paths back to per-consumer locations.
+
+The candidate is **3.6–6.4% faster**, or **5.1% below the mean of the controls**.
+This is a modest configuration-specific result: two controls and one candidate,
+not a broad benchmark or evidence that the cold-build gap is closed. Summed
+MSBuild-child time falls from 298.62/307.44 s to 288.80 s. Snapshot/preparation
+costs do not improve. All 609 DLLs pass the diagnostic metadata/method/resource
+comparison described above; it excludes module IDs and PE debug/PDB data.
+
+Raw MSBuild on the same VM takes **139.748 s** to build the same roots, after
+**72.688 s** of separately measured restore; its no-op is **10.975 s**. The
+candidate is **2.16× raw build time**. This bounded-worker result is not directly
+comparable to the earlier 16-GiB/unlimited-worker sample at 259.958 s.
+
+The initial overcommitted trials (322.05/333.12 s control, 295.78 s candidate)
+are excluded from this comparison. Their apparent 8–11% gain is not a headline
+result. The same applies to interrupted, disk-full and fixture-setup failures.
+
+The final 8-GiB run completes **40 unique edits** with the 1024-MB stress budget.
+Median edit time is **1.521 s**; post-build compiler RSS peaks at **503.5 MiB**
+(PSS **468.8 MiB**). Deferred eviction completes after edits 10, 20 and 31;
+replacement edits take **3.88–4.17 s**. Public references remain unchanged and
+restoring source restores the exact implementation bytes. These are sampled
+compiler totals, not an active-build peak or the entire process-tree budget.
+Scratch-lease controls additionally cover SIGKILL reclamation, preservation of
+live workers, normal cleanup and rejection of unsafe parent directories.
+
+### Large-graph edit qualification
+
+The follow-up uses one 8-CPU/8-GiB Ubuntu 22.04 ARM64 build VM on a 16-GiB Apple
+M4 host, plus the 1-GiB HTTP cache VM. Other build VMs are stopped. SDK 10.0.400,
+Bazel 9.2.0, four jobs, two worker instances and a 4096-MB native worker budget
+with deferred eviction are fixed. Host swap usage declined during these runs.
+SDKs, packages and declarations are prepared before timing; cold builds use new
+output bases and no local/remote action-cache hits. These are single observations.
+
+| Workload | Managed actions | Cold | No-op | Body edit | API edit |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| Orchard CMS | 202 | 129.240 s | 0.829 s | 1.097 s | 105.688 s |
+| ASP.NET Core slice | 278 | 124.884 s | 0.829 s | 0.721 s | 77.578 s |
+
+Both body edits execute one action and preserve all public reference hashes.
+The API edits execute 193 Orchard actions and 130 ASP.NET actions. ASP.NET's
+test updates its authored public-API baseline alongside the C# change; all
+reference hashes restore exactly. Orchard's edited leaf restores exactly, but
+65 downstream references differ after recompilation, consistent with its previously
+documented [generator randomness and embedded input paths](orchard-stable-worker-paths.md).
+This is separate from exact producer/consumer cache-output parity.
+
+Orchard's setup Razor page and three embedded assets pass after restoration.
+A separate cache seed with four configured workers also compiles all 202 actions
+and passes those runtime checks. It takes 129.631 s including uploads; ASP.NET's
+two-worker seed takes 147.327 s. These do not establish a speedup over historical
+runs with different hardware/resource settings. Filesystem trimming is outside
+headline timing; Orchard's restore control included maintenance and is not a
+performance sample.
+
+With that producer stopped, a new VM at relocated checkout/rule paths recovers
+Orchard in **25.050 s** (489 remote hits) and ASP.NET in **11.707 s** (578 hits).
+There is no compilation or package extraction. All **1,576 Orchard** and
+**4,433 ASP.NET** declared reference/runtime file hashes match their respective
+producers. Recovered Orchard renders the setup page and serves the same three
+assets. Both consumers have fresh output bases, no disk cache, full downloads
+and local-result uploads disabled. This is a local VM-network cache, not a WAN.
+
+Final Linux acceptance and expanded analyzer controls pass on Bazel **8.8/9.2**,
+including consumer-only path stability, helper invalidation, cached tool reuse
+and retained-worker input isolation. Owned .NET build/style/tests and the
+toolchain/Starlark checks pass; no CI was dispatched. See
+[compact compiler, memory and graph evidence](runtime-compiler-profile-evidence.json).
+
+`tests/explicit_msbuild/compiler_reuse.py` runs these controls on prepared
+fixtures. Use `--edits --memory-limit-mb 4096` for compilation/invalidation,
+`--cache URL` with a fresh base to seed, and `--recovery --cache URL
+--expect-hashes PRODUCER_HASHES` in a relocated independent VM. `--trim` optionally
+returns freed Linux filesystem blocks to the VM host outside measured calls.
 
 ### Reproduce the managed comparison
 
