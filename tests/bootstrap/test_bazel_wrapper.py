@@ -14,6 +14,7 @@ class BazelWrapperTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             (root / 'scripts').mkdir()
+            (root / '.bazelversion').write_text('9.2.0\n')
             for name in ('bazel.sh', 'env.sh'):
                 shutil.copyfile(ROOT / 'scripts' / name, root / 'scripts' / name)
             executable = root / 'fake-bazel'

@@ -3,12 +3,18 @@ set -euo pipefail
 source "$(dirname -- "${BASH_SOURCE[0]}")/env.sh"
 cd "$REPO_ROOT"
 case "$(uname -s):$(uname -m)" in
-    Linux:x86_64|Linux:aarch64|Linux:arm64) ;;
-    *) echo 'The bootstrap supports Linux x86-64 and ARM64 only.' >&2; exit 1 ;;
+    Linux:x86_64|Linux:aarch64|Linux:arm64|Darwin:arm64) ;;
+    *) echo 'The bootstrap supports Linux x86-64/ARM64 and macOS ARM64.' >&2; exit 1 ;;
 esac
-for prerequisite in curl tar sha256sum; do
+for prerequisite in curl tar; do
     command -v "$prerequisite" >/dev/null || { echo "Missing prerequisite: $prerequisite" >&2; exit 1; }
 done
+if command -v shasum >/dev/null; then
+    checksum=(shasum -a 256)
+else
+    command -v sha256sum >/dev/null || { echo "Missing shasum or sha256sum" >&2; exit 1; }
+    checksum=(sha256sum)
+fi
 source scripts/toolchain-pins.sh
 mkdir -p .cache/downloads .tools/bin
 install_tool() {
@@ -22,7 +28,7 @@ install_tool() {
         curl --fail --location --silent --show-error --retry 3 --connect-timeout 20 --max-time 300 "$url" --output "$archive.partial"
         mv "$archive.partial" "$archive"
     fi
-    if ! printf '%s  %s\n' "$hash" "$archive" | sha256sum --check --status; then
+    if [[ "$("${checksum[@]}" "$archive")" != "$hash  $archive" ]]; then
         rm -f "$archive"
         echo "Checksum mismatch for $name; removed download." >&2
         exit 1
@@ -40,6 +46,6 @@ install_tool() {
     printf '%s\n' "$hash" > "$stamp"
 }
 install_tool dotnet "$dotnet_version" "$dotnet_url" "$dotnet_sha256" "$REPO_ROOT/.tools/dotnet/dotnet"
-install_tool bazel "$bazel_version" "$bazel_url" "$bazel_sha256" "$REPO_ROOT/.tools/bin/bazel"
+install_tool bazelisk "$bazelisk_version" "$bazelisk_url" "$bazelisk_sha256" "$REPO_ROOT/.tools/bin/bazelisk"
 bash scripts/tooling.sh setup-starlark
 bash scripts/check.sh "$@"

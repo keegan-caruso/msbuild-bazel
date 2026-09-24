@@ -1,6 +1,3 @@
-using System.Runtime.InteropServices;
-using System.Text.Json.Nodes;
-
 namespace RulesMSBuild.Tooling;
 
 internal static class Program
@@ -25,18 +22,18 @@ internal static class Program
         var command = args[1];
         var pins = Json.Read(Path.Combine(root, "scripts/toolchains.json"));
         var version = Json.Read(Path.Combine(root, "global.json"))["sdk"]!.String("version");
-        if (pins["dotnet"]!.String("version") != version || pins["bazel"]!.String("version") != File.ReadAllText(Path.Combine(root, ".bazelversion")).Trim())
+        if (pins["dotnet"]!.String("version") != version)
         {
             throw new InvalidDataException("Toolchain pins differ");
         }
 
         var shellPins = File.ReadAllText(Path.Combine(root, "scripts/toolchain-pins.sh"));
-        foreach (var name in new[] { "dotnet", "bazel" })
+        foreach (var name in new[] { "dotnet", "bazelisk" })
         {
-            foreach (var arch in new[] { "x64", "arm64" })
+            foreach (var arch in new[] { "linux-x64", "linux-arm64", "osx-arm64" })
             {
                 var pin = pins[name]!;
-                var platform = pin["platforms"]?["linux-" + arch];
+                var platform = pin["platforms"]?[arch];
                 foreach (var field in new[] { "version", "url", "sha256" })
                 {
                     var value = (platform?[field] ?? pin[field])!.GetValue<string>();
@@ -53,35 +50,9 @@ internal static class Program
             }
         }
 
-        var starlark = Json.Read(Path.Combine(root, "scripts/starlark-tools.json"))["buildifier"]!;
-        var os = OperatingSystem.IsMacOS() ? "Darwin" : OperatingSystem.IsLinux() ? "Linux" : throw new PlatformNotSupportedException();
-        var architecture = RuntimeInformation.OSArchitecture == Architecture.Arm64 ? os == "Darwin" ? "arm64" : "aarch64" : "x86_64";
-        var artifact = starlark["platforms"]![os + "-" + architecture]!;
-        var binary = Path.Combine(root, ".tools/bin/buildifier");
         if (command == "setup-starlark")
         {
-            if (!File.Exists(binary) || Json.Sha(File.ReadAllBytes(binary)) != artifact.String("sha256"))
-            {
-                Directory.CreateDirectory(Path.GetDirectoryName(binary)!);
-                var temporary = binary + "." + Guid.NewGuid().ToString("N");
-                try
-                {
-                    Host.Run("curl", ["--fail", "--location", "--silent", "--show-error", "--retry", "3", "--connect-timeout", "20", "--max-time", "300", artifact.String("url"), "--output", temporary], root);
-                    if (Json.Sha(File.ReadAllBytes(temporary)) != artifact.String("sha256"))
-                    {
-                        throw new InvalidDataException("Buildifier checksum mismatch");
-                    }
-
-                    if (!OperatingSystem.IsWindows())
-                    {
-                        File.SetUnixFileMode(temporary, (UnixFileMode)493);
-                    }
-
-                    File.Move(temporary, binary, true);
-                }
-                finally { File.Delete(temporary); }
-            }
-            Console.WriteLine("Verified Buildifier " + starlark.String("version"));
+            StarlarkTools.Setup(root);
             return;
         }
         if (command != "check")
@@ -95,26 +66,12 @@ internal static class Program
             throw new InvalidDataException("SDK version differs");
         }
 
-        var bazel = Environment.GetEnvironmentVariable("RULES_MSBUILD_BAZEL") ?? Path.Combine(root, ".tools/bin/bazel");
-        var actual = Host.Run(bazel, ["--batch", "version", "--gnu_format"], root).Trim();
-        var expected = "bazel " + (Environment.GetEnvironmentVariable("RULES_MSBUILD_BAZEL_VERSION") ?? pins["bazel"]!.String("version"));
+        var bazel = Environment.GetEnvironmentVariable("RULES_MSBUILD_BAZEL") ?? Path.Combine(root, "scripts/bazel-launcher.sh");
+        var actual = Host.Run(bazel, ["--version"], root).Trim();
+        var expected = "bazel " + (Environment.GetEnvironmentVariable("USE_BAZEL_VERSION") ?? Environment.GetEnvironmentVariable("RULES_MSBUILD_BAZEL_VERSION") ?? File.ReadAllText(Path.Combine(root, ".bazelversion")).Trim());
         if (actual != expected && actual != expected + "- (@non-git)")
         {
             throw new InvalidDataException("Bazel version differs: " + actual);
-        }
-
-        if (Environment.GetEnvironmentVariable("RULES_MSBUILD_CONTAINER_PREBUILT") == "1")
-        {
-            foreach (var name in new[] { "dotnet", "bazel" })
-            {
-                var pin = pins[name]!;
-                var hash = pin["platforms"]?["linux-" + (RuntimeInformation.OSArchitecture == Architecture.Arm64 ? "arm64" : "x64")]?["sha256"] ?? pin["sha256"];
-                var stamp = name == "dotnet" ? Path.Combine(Path.GetDirectoryName(sdk)!, "dotnet.sha256") : Path.Combine(Path.GetDirectoryName(Path.GetDirectoryName(bazel))!, "bazel.sha256");
-                if (File.ReadAllText(stamp).Trim() != hash!.GetValue<string>())
-                {
-                    throw new InvalidDataException("Prebuilt tool pin differs");
-                }
-            }
         }
 
         if (args.Skip(2).Contains("--toolchain-only"))
@@ -122,10 +79,7 @@ internal static class Program
             Console.WriteLine("Toolchain checks passed");
             return;
         }
-        if (!File.Exists(binary) || Json.Sha(File.ReadAllBytes(binary)) != artifact.String("sha256"))
-        {
-            throw new InvalidDataException("Run bash scripts/tooling.sh setup-starlark");
-        }
+        var binary = StarlarkTools.Buildifier(root);
 
         IEnumerable<string> files;
         bool IsStarlark(string path) => path.EndsWith(".bzl", StringComparison.Ordinal) || Path.GetFileName(path) is "BUILD" or "BUILD.bazel" or "MODULE.bazel";
