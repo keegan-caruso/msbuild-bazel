@@ -121,6 +121,15 @@ when their own targets require it. `test_runner` and `test_adapters` are VSTest-
 - Writable staging is private under `TEST_TMPDIR`. The runtime closure contains
   declared assemblies, native/package files and data. No host package cache is
   consulted by the launcher.
+- `test_working_directory` selects a safe relative directory inside that staging
+  tree (the root remains the default). Assemblies and their runtime closure are
+  staged there too, so VSTest launches its test host in the selected directory.
+  Declare inputs with `data_paths`; their
+  destinations, `test_output_dirs`, and `test_settings_output` remain relative to
+  the staging root. This supports checkout-shaped test data without exposing the
+  build checkout. For `test_working_directory = "tests"`, map data to
+  `tests/input.txt` and declare output directories such as `tests/logs`. Reports
+  still go to Bazel test outputs.
 - stdout/stderr stream directly. SIGTERM/SIGINT terminate the child process tree;
   cancellation is always failure. Bazel owns timeout, retries and scheduling.
 - TRX becomes per-case XML at `XML_OUTPUT_FILE`; TRX and attachments written in

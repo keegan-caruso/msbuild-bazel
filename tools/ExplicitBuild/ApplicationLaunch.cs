@@ -12,7 +12,9 @@ internal static class ApplicationLaunch
 
         var root = Environment.GetEnvironmentVariable("RULES_MSBUILD_RUNFILES") ?? throw new InvalidDataException("Missing runfiles root");
         var temporary = Path.Combine(Environment.GetEnvironmentVariable("TEST_TMPDIR") ?? Path.GetTempPath(), "msbuild-run-" + Guid.NewGuid().ToString("N"));
-        Directory.CreateDirectory(temporary);
+        var runtimeDirectory = request.Test && request.TestOptions?.WorkingDirectory is { } workingDirectory
+            ? Path.Combine(temporary, Safe(workingDirectory)) : temporary;
+        Directory.CreateDirectory(runtimeDirectory);
         try
         {
             var entryPackages = RuntimePackages.Read(Path.Combine(root, Safe(request.Entry)));
@@ -34,7 +36,7 @@ internal static class ApplicationLaunch
                     {
                         continue;
                     }
-                    Copy(file.Source, Path.Combine(temporary, relative));
+                    Copy(file.Source, Path.Combine(runtimeDirectory, relative));
                 }
             }
             foreach (var file in request.Data)
@@ -59,7 +61,7 @@ internal static class ApplicationLaunch
                 throw new InvalidDataException("VSTest requires a dotnet runtime host");
             }
 
-            var start = new ProcessStartInfo(host) { WorkingDirectory = temporary };
+            var start = new ProcessStartInfo(host) { WorkingDirectory = runtimeDirectory };
             foreach (var (name, value) in request.RuntimeHost?.Environment ?? [])
             {
                 start.Environment[name] = value;
@@ -77,7 +79,7 @@ internal static class ApplicationLaunch
             }
 
             start.Environment["DOTNET_MULTILEVEL_LOOKUP"] = "0";
-            start.ArgumentList.Add(Path.Combine(temporary, Safe(request.Assembly) + ".dll"));
+            start.ArgumentList.Add(Path.Combine(runtimeDirectory, Safe(request.Assembly) + ".dll"));
             foreach (var arg in args)
             {
                 start.ArgumentList.Add(arg);
@@ -85,7 +87,7 @@ internal static class ApplicationLaunch
 
             if (request.Test)
             {
-                return TestExecution.Run(start, request.TestOptions ?? new(), root);
+                return TestExecution.Run(start, request.TestOptions ?? new(), root, temporary);
             }
 
             using var process = Process.Start(start)!;
