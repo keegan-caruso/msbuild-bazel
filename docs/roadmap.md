@@ -21,8 +21,8 @@ The trackers below describe remaining work, not promises of platform support.
    Standalone generation, binary/native package inputs and five Avalonia IDLs
    also pass. The [11-project Avalonia theme graph](avalonia-remote-execution.md)
    adds remote compilation, runtime tests and independent recovery. The authored
-   generator suite adds raw test parity and failure/restoration controls. Next
-   represent mixed-framework fixture graphs or qualify a second executor platform.
+   generator and mixed-framework Markup suites add raw test parity, edit controls
+   and independent recovery. Next qualify a second executor platform.
 4. **Make source-dependent tests relocatable — [#9](https://github.com/keegan-caruso/msbuild-bazel/issues/9).**
    Preserve declared baseline/source inputs without relying on embedded absolute
    checkout paths or making the build root writable. Current Serilog, Spectre and

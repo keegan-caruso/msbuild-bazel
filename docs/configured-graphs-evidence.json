@@ -1,0 +1,791 @@
+{
+  "platform": "linux-arm64",
+  "sdk": "10.0.400",
+  "executor": "SDK-free Ubuntu 22.04 ARM64 Buildbarn worker; two execution slots; local fallback disabled",
+  "notes": [
+    "Qualification wall times, not a controlled performance comparison; some synthetic work ran concurrently.",
+    "Producer and consumer use separate Apple container disks and different workspace paths."
+  ],
+  "inventoryControls": {
+    "configuredNodes": 3,
+    "edgeOverrides": true,
+    "removedProperties": true,
+    "sharedChild": true,
+    "stableNodeIds": true
+  },
+  "synthetic": {
+    "88": {
+      "remote": {
+        "bazel": "bazel 8.8.0",
+        "cases": [
+          {
+            "case": "ambiguous-diamond",
+            "seconds": 41.516,
+            "compiled": [
+              "//:App",
+              "//:Core_net10_0_2f0f555cc14f",
+              "//:Core_netstandard2_1_4ad77cd219b2",
+              "//:Helper"
+            ],
+            "testsExecuted": [],
+            "actions": 7,
+            "cacheHits": 0,
+            "mnemonics": {
+              "DotnetSdkRuntime": 1,
+              "MSBuildRunnerBootstrap": 1,
+              "MSBuildAssembly": 4,
+              "MSBuildNugetExtract": 1
+            }
+          },
+          {
+            "case": "selected-diamond",
+            "seconds": 4.414,
+            "compiled": [
+              "//:App"
+            ],
+            "testsExecuted": [
+              "//:App"
+            ],
+            "actions": 3,
+            "cacheHits": 0,
+            "mnemonics": {
+              "MSBuildAssembly": 1,
+              "TestRunner": 2
+            }
+          },
+          {
+            "case": "noop",
+            "seconds": 0.183,
+            "compiled": [],
+            "testsExecuted": [],
+            "actions": 0,
+            "cacheHits": 0,
+            "mnemonics": {}
+          },
+          {
+            "case": "body-edit",
+            "seconds": 2.903,
+            "compiled": [
+              "//:Core_net10_0_2f0f555cc14f",
+              "//:Core_netstandard2_1_4ad77cd219b2"
+            ],
+            "testsExecuted": [
+              "//:App"
+            ],
+            "actions": 4,
+            "cacheHits": 0,
+            "mnemonics": {
+              "MSBuildAssembly": 2,
+              "TestRunner": 2
+            }
+          },
+          {
+            "case": "body-restored",
+            "seconds": 0.293,
+            "compiled": [],
+            "testsExecuted": [],
+            "actions": 4,
+            "cacheHits": 4,
+            "mnemonics": {
+              "MSBuildAssembly": 2,
+              "TestRunner": 2
+            }
+          },
+          {
+            "case": "api-edit",
+            "seconds": 5.978,
+            "compiled": [
+              "//:App",
+              "//:Core_net10_0_2f0f555cc14f",
+              "//:Core_netstandard2_1_4ad77cd219b2",
+              "//:Helper"
+            ],
+            "testsExecuted": [
+              "//:App"
+            ],
+            "actions": 6,
+            "cacheHits": 1,
+            "mnemonics": {
+              "MSBuildAssembly": 4,
+              "TestRunner": 2
+            }
+          },
+          {
+            "case": "api-restored",
+            "seconds": 0.423,
+            "compiled": [],
+            "testsExecuted": [],
+            "actions": 6,
+            "cacheHits": 6,
+            "mnemonics": {
+              "MSBuildAssembly": 4,
+              "TestRunner": 2
+            }
+          },
+          {
+            "case": "identity-mismatch",
+            "seconds": 2.29,
+            "compiled": [
+              "//:App",
+              "//:Core_net10_0_2f0f555cc14f",
+              "//:Core_netstandard2_1_4ad77cd219b2"
+            ],
+            "testsExecuted": [],
+            "actions": 3,
+            "cacheHits": 0,
+            "mnemonics": {
+              "MSBuildAssembly": 3
+            }
+          },
+          {
+            "case": "identity-restored",
+            "seconds": 0.302,
+            "compiled": [],
+            "testsExecuted": [],
+            "actions": 3,
+            "cacheHits": 3,
+            "mnemonics": {
+              "MSBuildAssembly": 3
+            }
+          },
+          {
+            "case": "fresh-recovery",
+            "seconds": 13.725,
+            "compiled": [],
+            "testsExecuted": [],
+            "actions": 9,
+            "cacheHits": 9,
+            "mnemonics": {
+              "DotnetSdkRuntime": 1,
+              "TestRunner": 2,
+              "MSBuildRunnerBootstrap": 1,
+              "MSBuildAssembly": 4,
+              "MSBuildNugetExtract": 1
+            }
+          }
+        ]
+      },
+      "worker": [
+        {
+          "case": "worker-selected",
+          "exitCode": 0,
+          "assemblies": 4
+        },
+        {
+          "case": "worker-noop",
+          "exitCode": 0,
+          "assemblies": 0
+        },
+        {
+          "case": "worker-identity-mismatch",
+          "exitCode": 1,
+          "assemblies": 3
+        }
+      ],
+      "rawOutput": "10:10"
+    },
+    "92": {
+      "remote": {
+        "bazel": "bazel 9.2.0",
+        "cases": [
+          {
+            "case": "ambiguous-diamond",
+            "seconds": 18.306,
+            "compiled": [
+              "//:App",
+              "//:Core_net10_0_2f0f555cc14f",
+              "//:Core_netstandard2_1_4ad77cd219b2",
+              "//:Helper"
+            ],
+            "testsExecuted": [],
+            "actions": 7,
+            "cacheHits": 0,
+            "mnemonics": {
+              "DotnetSdkRuntime": 1,
+              "MSBuildRunnerBootstrap": 1,
+              "MSBuildAssembly": 4,
+              "MSBuildNugetExtract": 1
+            }
+          },
+          {
+            "case": "selected-diamond",
+            "seconds": 1.886,
+            "compiled": [
+              "//:App"
+            ],
+            "testsExecuted": [
+              "//:App"
+            ],
+            "actions": 3,
+            "cacheHits": 0,
+            "mnemonics": {
+              "MSBuildAssembly": 1,
+              "TestRunner": 2
+            }
+          },
+          {
+            "case": "noop",
+            "seconds": 0.122,
+            "compiled": [],
+            "testsExecuted": [],
+            "actions": 0,
+            "cacheHits": 0,
+            "mnemonics": {}
+          },
+          {
+            "case": "body-edit",
+            "seconds": 2.052,
+            "compiled": [
+              "//:Core_net10_0_2f0f555cc14f",
+              "//:Core_netstandard2_1_4ad77cd219b2"
+            ],
+            "testsExecuted": [
+              "//:App"
+            ],
+            "actions": 4,
+            "cacheHits": 0,
+            "mnemonics": {
+              "MSBuildAssembly": 2,
+              "TestRunner": 2
+            }
+          },
+          {
+            "case": "body-restored",
+            "seconds": 0.425,
+            "compiled": [],
+            "testsExecuted": [],
+            "actions": 4,
+            "cacheHits": 4,
+            "mnemonics": {
+              "MSBuildAssembly": 2,
+              "TestRunner": 2
+            }
+          },
+          {
+            "case": "api-edit",
+            "seconds": 3.931,
+            "compiled": [
+              "//:App",
+              "//:Core_net10_0_2f0f555cc14f",
+              "//:Core_netstandard2_1_4ad77cd219b2",
+              "//:Helper"
+            ],
+            "testsExecuted": [
+              "//:App"
+            ],
+            "actions": 6,
+            "cacheHits": 1,
+            "mnemonics": {
+              "MSBuildAssembly": 4,
+              "TestRunner": 2
+            }
+          },
+          {
+            "case": "api-restored",
+            "seconds": 0.356,
+            "compiled": [],
+            "testsExecuted": [],
+            "actions": 6,
+            "cacheHits": 6,
+            "mnemonics": {
+              "MSBuildAssembly": 4,
+              "TestRunner": 2
+            }
+          },
+          {
+            "case": "identity-mismatch",
+            "seconds": 1.627,
+            "compiled": [
+              "//:App",
+              "//:Core_net10_0_2f0f555cc14f",
+              "//:Core_netstandard2_1_4ad77cd219b2"
+            ],
+            "testsExecuted": [],
+            "actions": 3,
+            "cacheHits": 0,
+            "mnemonics": {
+              "MSBuildAssembly": 3
+            }
+          },
+          {
+            "case": "identity-restored",
+            "seconds": 0.226,
+            "compiled": [],
+            "testsExecuted": [],
+            "actions": 3,
+            "cacheHits": 3,
+            "mnemonics": {
+              "MSBuildAssembly": 3
+            }
+          },
+          {
+            "case": "fresh-recovery",
+            "seconds": 17.869,
+            "compiled": [],
+            "testsExecuted": [],
+            "actions": 9,
+            "cacheHits": 9,
+            "mnemonics": {
+              "DotnetSdkRuntime": 1,
+              "TestRunner": 2,
+              "MSBuildRunnerBootstrap": 1,
+              "MSBuildAssembly": 4,
+              "MSBuildNugetExtract": 1
+            }
+          }
+        ]
+      },
+      "worker": [
+        {
+          "case": "worker-selected",
+          "exitCode": 0,
+          "assemblies": 4
+        },
+        {
+          "case": "worker-noop",
+          "exitCode": 0,
+          "assemblies": 0
+        },
+        {
+          "case": "worker-identity-mismatch",
+          "exitCode": 1,
+          "assemblies": 3
+        }
+      ],
+      "rawOutput": "10:10"
+    }
+  },
+  "privateReferences": [
+    {
+      "case": "private-runtime",
+      "exitCode": 0
+    },
+    {
+      "case": "private-compiler-rejected",
+      "exitCode": 1
+    },
+    {
+      "case": "restored",
+      "exitCode": 0
+    },
+    {
+      "case": "visibility-mismatch",
+      "exitCode": 1
+    }
+  ],
+  "restoreRegression": [
+    {
+      "case": "two-configurations",
+      "exitCode": 0,
+      "compiled": [
+        "//:app",
+        "//:left",
+        "//:right",
+        "//:shared_neutral",
+        "//:shared_platform"
+      ],
+      "testsExecuted": [
+        "//:app"
+      ]
+    },
+    {
+      "case": "noop",
+      "exitCode": 0,
+      "compiled": [],
+      "testsExecuted": []
+    },
+    {
+      "case": "body-edit",
+      "exitCode": 3,
+      "compiled": [
+        "//:shared_neutral",
+        "//:shared_platform"
+      ],
+      "testsExecuted": [
+        "//:app"
+      ]
+    },
+    {
+      "case": "restore",
+      "exitCode": 0,
+      "compiled": [],
+      "testsExecuted": []
+    },
+    {
+      "case": "paired-configurations",
+      "exitCode": 0,
+      "compiled": [
+        "//:app",
+        "//:contract_neutral",
+        "//:contract_platform",
+        "//:left",
+        "//:right"
+      ],
+      "testsExecuted": [
+        "//:app"
+      ]
+    },
+    {
+      "case": "paired-configurations-shared-package-identity",
+      "exitCode": 0,
+      "compiled": [
+        "//:app",
+        "//:left",
+        "//:right",
+        "//:shared_neutral",
+        "//:shared_platform"
+      ],
+      "testsExecuted": [
+        "//:app"
+      ]
+    },
+    {
+      "case": "paired-and-direct-implementation-views",
+      "exitCode": 0,
+      "compiled": [
+        "//:app",
+        "//:extra",
+        "//:right"
+      ],
+      "testsExecuted": [
+        "//:app"
+      ]
+    }
+  ],
+  "avalonia": {
+    "revision": "37fbd9655cc581ff5b1c6b1fb1be4e3118c889d0",
+    "suite": "Avalonia.Markup.UnitTests",
+    "framework": "net8.0",
+    "runtime": "10.0.11 with DOTNET_ROLL_FORWARD=Major",
+    "declarations": {
+      "projects": 25,
+      "packageTargets": 107,
+      "sourceFiles": 3894,
+      "entries": [
+        "tests/Avalonia.Markup.UnitTests/Avalonia.Markup.UnitTests.csproj"
+      ]
+    },
+    "outcomesSha256": "75b0d9859294265471723a1d7714693aa20efb0618b2b04a9bd2c486ca71c9ec",
+    "versions": {
+      "88": {
+        "parity": {
+          "projects": 25,
+          "cases": 287,
+          "rawAndRemoteNamesAndOutcomesEqual": true,
+          "outcomes": {
+            "Passed": 287
+          },
+          "negativeControl": {
+            "failed": 43,
+            "referenceUnchanged": true,
+            "referenceHashes": {
+              "//upstream:Avalonia.Markup_net8_0_3fcfa43b5dbd": "587daeea793d3e0b77beecf4df2dd2ec5126a084bf750811faf05df529a282a2",
+              "//upstream:Avalonia.Markup_netstandard2_0_09a35806c9d6": "731f3fc537d821351351137cd9d3c94d3fee53132242f80a076b04a140192d8e"
+            }
+          }
+        },
+        "remote": {
+          "bazel": "bazel 8.8.0",
+          "cases": [
+            {
+              "case": "remote-suite",
+              "seconds": 94.162,
+              "compiled": [
+                "//upstream:Avalonia",
+                "//upstream:Avalonia.Analyzers",
+                "//upstream:Avalonia.Base_net8_0_f2f2d054c8bf",
+                "//upstream:Avalonia.Base_netstandard2_0_6e354ab23b26",
+                "//upstream:Avalonia.Build.Tasks",
+                "//upstream:Avalonia.Build.Tasks",
+                "//upstream:Avalonia.Controls_net8_0_44f997dfdf5a",
+                "//upstream:Avalonia.Controls_netstandard2_0_b1990f47262a",
+                "//upstream:Avalonia.DesignerSupport",
+                "//upstream:Avalonia.Dialogs",
+                "//upstream:Avalonia.Generators",
+                "//upstream:Avalonia.Headless",
+                "//upstream:Avalonia.Markup.UnitTests",
+                "//upstream:Avalonia.Markup.Xaml",
+                "//upstream:Avalonia.Markup_net8_0_3fcfa43b5dbd",
+                "//upstream:Avalonia.Markup_netstandard2_0_09a35806c9d6",
+                "//upstream:Avalonia.Metal",
+                "//upstream:Avalonia.MicroCom",
+                "//upstream:Avalonia.OpenGL",
+                "//upstream:Avalonia.Remote.Protocol_net8_0_a7c9f8002895",
+                "//upstream:Avalonia.Remote.Protocol_netstandard2_0_0b658db985b6",
+                "//upstream:Avalonia.Themes.Simple",
+                "//upstream:Avalonia.UnitTests",
+                "//upstream:Avalonia.Vulkan",
+                "//upstream:DevAnalyzers",
+                "//upstream:DevGenerators",
+                "//upstream:DevGenerators"
+              ],
+              "testsExecuted": [
+                "//upstream:Avalonia.Markup.UnitTests"
+              ],
+              "actions": 168,
+              "cacheHits": 0,
+              "mnemonics": {
+                "DotnetSdkRuntime": 1,
+                "TestRunner": 1,
+                "MSBuildRunnerBootstrap": 1,
+                "MSBuildNugetExtract": 138,
+                "MSBuildAssembly": 27
+              }
+            },
+            {
+              "case": "noop",
+              "seconds": 1.032,
+              "compiled": [],
+              "testsExecuted": [],
+              "actions": 0,
+              "cacheHits": 0,
+              "mnemonics": {}
+            },
+            {
+              "case": "body-failure",
+              "seconds": 6.175,
+              "compiled": [
+                "//upstream:Avalonia.Markup_net8_0_3fcfa43b5dbd",
+                "//upstream:Avalonia.Markup_netstandard2_0_09a35806c9d6"
+              ],
+              "testsExecuted": [
+                "//upstream:Avalonia.Markup.UnitTests"
+              ],
+              "actions": 3,
+              "cacheHits": 0,
+              "mnemonics": {
+                "MSBuildAssembly": 2,
+                "TestRunner": 1
+              }
+            },
+            {
+              "case": "restored",
+              "seconds": 0.9,
+              "compiled": [],
+              "testsExecuted": [],
+              "actions": 3,
+              "cacheHits": 3,
+              "mnemonics": {
+                "MSBuildAssembly": 2,
+                "TestRunner": 1
+              }
+            },
+            {
+              "case": "api-edit",
+              "seconds": 16.544,
+              "compiled": [
+                "//upstream:Avalonia",
+                "//upstream:Avalonia.DesignerSupport",
+                "//upstream:Avalonia.Dialogs",
+                "//upstream:Avalonia.Headless",
+                "//upstream:Avalonia.Markup.UnitTests",
+                "//upstream:Avalonia.Markup.Xaml",
+                "//upstream:Avalonia.Markup_net8_0_3fcfa43b5dbd",
+                "//upstream:Avalonia.Markup_netstandard2_0_09a35806c9d6",
+                "//upstream:Avalonia.Themes.Simple",
+                "//upstream:Avalonia.UnitTests"
+              ],
+              "testsExecuted": [
+                "//upstream:Avalonia.Markup.UnitTests"
+              ],
+              "actions": 11,
+              "cacheHits": 0,
+              "mnemonics": {
+                "MSBuildAssembly": 10,
+                "TestRunner": 1
+              }
+            },
+            {
+              "case": "api-restored",
+              "seconds": 1.129,
+              "compiled": [],
+              "testsExecuted": [],
+              "actions": 11,
+              "cacheHits": 11,
+              "mnemonics": {
+                "MSBuildAssembly": 10,
+                "TestRunner": 1
+              }
+            }
+          ]
+        },
+        "independentRecovery": {
+          "case": "independent-recovery",
+          "seconds": 23.368,
+          "actions": 168,
+          "cacheHits": 168,
+          "compiled": [],
+          "testsExecuted": [],
+          "mnemonics": {
+            "DotnetSdkRuntime": 1,
+            "TestRunner": 1,
+            "MSBuildRunnerBootstrap": 1,
+            "MSBuildNugetExtract": 138,
+            "MSBuildAssembly": 27
+          },
+          "authoredOutcomesEqual": true
+        }
+      },
+      "92": {
+        "parity": {
+          "projects": 25,
+          "cases": 287,
+          "rawAndRemoteNamesAndOutcomesEqual": true,
+          "outcomes": {
+            "Passed": 287
+          },
+          "negativeControl": {
+            "failed": 43,
+            "referenceUnchanged": true,
+            "referenceHashes": {
+              "//upstream:Avalonia.Markup_net8_0_3fcfa43b5dbd": "587daeea793d3e0b77beecf4df2dd2ec5126a084bf750811faf05df529a282a2",
+              "//upstream:Avalonia.Markup_netstandard2_0_09a35806c9d6": "731f3fc537d821351351137cd9d3c94d3fee53132242f80a076b04a140192d8e"
+            }
+          }
+        },
+        "remote": {
+          "bazel": "bazel 9.2.0",
+          "cases": [
+            {
+              "case": "remote-suite",
+              "seconds": 110.729,
+              "compiled": [
+                "//upstream:Avalonia",
+                "//upstream:Avalonia.Analyzers",
+                "//upstream:Avalonia.Base_net8_0_f2f2d054c8bf",
+                "//upstream:Avalonia.Base_netstandard2_0_6e354ab23b26",
+                "//upstream:Avalonia.Build.Tasks",
+                "//upstream:Avalonia.Build.Tasks",
+                "//upstream:Avalonia.Controls_net8_0_44f997dfdf5a",
+                "//upstream:Avalonia.Controls_netstandard2_0_b1990f47262a",
+                "//upstream:Avalonia.DesignerSupport",
+                "//upstream:Avalonia.Dialogs",
+                "//upstream:Avalonia.Generators",
+                "//upstream:Avalonia.Headless",
+                "//upstream:Avalonia.Markup.UnitTests",
+                "//upstream:Avalonia.Markup.Xaml",
+                "//upstream:Avalonia.Markup_net8_0_3fcfa43b5dbd",
+                "//upstream:Avalonia.Markup_netstandard2_0_09a35806c9d6",
+                "//upstream:Avalonia.Metal",
+                "//upstream:Avalonia.MicroCom",
+                "//upstream:Avalonia.OpenGL",
+                "//upstream:Avalonia.Remote.Protocol_net8_0_a7c9f8002895",
+                "//upstream:Avalonia.Remote.Protocol_netstandard2_0_0b658db985b6",
+                "//upstream:Avalonia.Themes.Simple",
+                "//upstream:Avalonia.UnitTests",
+                "//upstream:Avalonia.Vulkan",
+                "//upstream:DevAnalyzers",
+                "//upstream:DevGenerators",
+                "//upstream:DevGenerators"
+              ],
+              "testsExecuted": [
+                "//upstream:Avalonia.Markup.UnitTests"
+              ],
+              "actions": 168,
+              "cacheHits": 0,
+              "mnemonics": {
+                "DotnetSdkRuntime": 1,
+                "TestRunner": 1,
+                "MSBuildRunnerBootstrap": 1,
+                "MSBuildNugetExtract": 138,
+                "MSBuildAssembly": 27
+              }
+            },
+            {
+              "case": "noop",
+              "seconds": 1.434,
+              "compiled": [],
+              "testsExecuted": [],
+              "actions": 0,
+              "cacheHits": 0,
+              "mnemonics": {}
+            },
+            {
+              "case": "body-failure",
+              "seconds": 6.614,
+              "compiled": [
+                "//upstream:Avalonia.Markup_net8_0_3fcfa43b5dbd",
+                "//upstream:Avalonia.Markup_netstandard2_0_09a35806c9d6"
+              ],
+              "testsExecuted": [
+                "//upstream:Avalonia.Markup.UnitTests"
+              ],
+              "actions": 3,
+              "cacheHits": 0,
+              "mnemonics": {
+                "MSBuildAssembly": 2,
+                "TestRunner": 1
+              }
+            },
+            {
+              "case": "restored",
+              "seconds": 0.967,
+              "compiled": [],
+              "testsExecuted": [],
+              "actions": 3,
+              "cacheHits": 3,
+              "mnemonics": {
+                "MSBuildAssembly": 2,
+                "TestRunner": 1
+              }
+            },
+            {
+              "case": "api-edit",
+              "seconds": 18.412,
+              "compiled": [
+                "//upstream:Avalonia",
+                "//upstream:Avalonia.DesignerSupport",
+                "//upstream:Avalonia.Dialogs",
+                "//upstream:Avalonia.Headless",
+                "//upstream:Avalonia.Markup.UnitTests",
+                "//upstream:Avalonia.Markup.Xaml",
+                "//upstream:Avalonia.Markup_net8_0_3fcfa43b5dbd",
+                "//upstream:Avalonia.Markup_netstandard2_0_09a35806c9d6",
+                "//upstream:Avalonia.Themes.Simple",
+                "//upstream:Avalonia.UnitTests"
+              ],
+              "testsExecuted": [
+                "//upstream:Avalonia.Markup.UnitTests"
+              ],
+              "actions": 11,
+              "cacheHits": 0,
+              "mnemonics": {
+                "MSBuildAssembly": 10,
+                "TestRunner": 1
+              }
+            },
+            {
+              "case": "api-restored",
+              "seconds": 1.079,
+              "compiled": [],
+              "testsExecuted": [],
+              "actions": 11,
+              "cacheHits": 11,
+              "mnemonics": {
+                "MSBuildAssembly": 10,
+                "TestRunner": 1
+              }
+            }
+          ]
+        },
+        "independentRecovery": {
+          "case": "independent-recovery",
+          "seconds": 55.35,
+          "actions": 168,
+          "cacheHits": 168,
+          "compiled": [],
+          "testsExecuted": [],
+          "mnemonics": {
+            "DotnetSdkRuntime": 1,
+            "TestRunner": 1,
+            "MSBuildRunnerBootstrap": 1,
+            "MSBuildNugetExtract": 138,
+            "MSBuildAssembly": 27
+          },
+          "authoredOutcomesEqual": true
+        }
+      }
+    }
+  },
+  "implementationCommit": "420779d"
+}

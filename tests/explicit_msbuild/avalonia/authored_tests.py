@@ -21,6 +21,7 @@ p.add_argument('prepared', type=Path)
 p.add_argument('output', type=Path)
 p.add_argument('--executor', required=True)
 p.add_argument('--recover', action='store_true')
+p.add_argument('--suite', choices=['generator', 'markup'], default='generator')
 a = p.parse_args()
 a.prepared = a.prepared.resolve()
 workspace = a.prepared if a.recover else a.prepared / 'bazel'
@@ -29,7 +30,8 @@ if not a.recover:
     instance.write_text('avalonia-authored/' + a.output.name)
 f = RemoteFixture(a.output, a.executor, workspace, instance=instance.read_text())
 f.sdk()
-target = '//upstream:Avalonia.Generators.Tests'
+suite = 'Avalonia.Generators.Tests' if a.suite == 'generator' else 'Avalonia.Markup.UnitTests'
+target = '//upstream:' + suite
 
 def outcomes(path):
     ns = {'t': 'http://microsoft.com/schemas/VisualStudio/TeamTest/2010'}
@@ -42,7 +44,7 @@ def serialize(results):
     return [list(k) + [v] for k, v in sorted(results.items())]
 
 def remote_outcomes():
-    folder = workspace / 'bazel-testlogs/upstream/Avalonia.Generators.Tests/test.outputs'
+    folder = workspace / ('bazel-testlogs/upstream/' + suite + '/test.outputs')
     # Bazel may zip undeclared outputs, depending on the selected baseline.
     if (folder / 'results.trx').exists():
         return outcomes(folder / 'results.trx')
@@ -69,7 +71,7 @@ assert digest == '3aabba2641a165f8274fbad94ed1c4e2a004877d37b2ddfab89962487f3dce
 runner = a.prepared / 'test-runner'
 with zipfile.ZipFile(archive) as z:
     z.extractall(runner)
-raw = a.prepared / 'source/tests/Avalonia.Generators.Tests/bin/Release/net8.0/Avalonia.Generators.Tests.dll'
+raw = a.prepared / ('source/tests/' + suite + '/bin/Release/net8.0/' + suite + '.dll')
 raw_results = a.prepared / 'authored-raw'
 with (f.folder / 'raw-tests.log').open('w') as log:
     subprocess.run([sdk, runner / 'contentFiles/any/net9.0/vstest.console.dll', raw,
@@ -88,8 +90,8 @@ lines = [line for line in lines if not line.startswith(('load("@rules_msbuild//m
 lines = [line.replace(',allow_remote_execution=True', '').replace('linux_worker=True', 'linux_worker=True,allow_remote_execution=True') for line in lines]
 lines.insert(0, 'load("@rules_msbuild//msbuild:defs.bzl","msbuild_test","msbuild_test_tool")')
 for i, line in enumerate(lines):
-    if line.startswith(('msbuild_library(name="Avalonia.Generators.Tests",', 'msbuild_binary(name="Avalonia.Generators.Tests",')):
-        lines[i] = line.replace(line.split('(')[0] + '(', 'msbuild_test(', 1)[:-1] + ',test_protocol="vstest",test_output_type="exe",test_runner=":authored_runner",test_adapters=[":authored_adapter"],env={"DOTNET_ROLL_FORWARD":"Major"},size="large")'
+    if line.startswith(('msbuild_library(name="' + suite + '",', 'msbuild_binary(name="' + suite + '",')):
+        lines[i] = line.replace(line.split('(')[0] + '(', 'msbuild_test(', 1)[:-1] + ',test_protocol="vstest",test_output_type="' + ('exe' if a.suite == 'generator' else 'library') + '",test_runner=":authored_runner",test_adapters=[":authored_adapter"],env={"DOTNET_ROLL_FORWARD":"Major"},size="large")'
         break
 else:
     raise AssertionError('Prepared graph must contain the authored test project')
@@ -100,32 +102,96 @@ lines += [
 ]
 build.write_text('\n'.join(lines) + '\n')
 rows = json.loads((a.prepared / 'inventory.json').read_text())
-compiled = [('MSBuildAssembly', '//upstream:' + Path(r['project']).stem) for r in rows]
-compiled.append(('MSBuildAssembly', '//upstream:DevGenerators'))
-source = workspace / 'upstream/src/tools/Avalonia.Generators/Common/XamlXViewResolver.cs'
+labels = json.loads((a.prepared / 'labels.json').read_text())
+by = {row['id']: row for row in rows}
+# Track the execution transition on tools, including dependencies shared with
+# the target configuration. Analyzers retain their declared configuration.
+configured = set()
+def visit(node, context):
+    if (node, context) in configured:
+        return
+    configured.add((node, context))
+    row = by[node]
+    for edge in row['references']:
+        metadata = edge['metadata']
+        tool = metadata.get('ReferenceOutputAssembly', '').lower() == 'false' and metadata.get('OutputItemType') != 'Analyzer'
+        visit(edge['node'], 'exec' if tool else context)
+    bindings = json.loads((a.prepared / 'config.json').read_text()).get('toolBindings', {}).get(row['project'], {})
+    for project in bindings.values():
+        candidates = [r['id'] for r in rows if r['project'] == project]
+        assert len(candidates) == 1, candidates
+        visit(candidates[0], 'exec')
+for row in rows:
+    if row['entry']:
+        visit(row['id'], 'target')
+compiled = [('MSBuildAssembly', '//upstream:' + labels[node]) for node, _ in configured]
+if a.suite == 'generator':
+    source = workspace / 'upstream/src/tools/Avalonia.Generators/Common/XamlXViewResolver.cs'
+    signature = 'public ResolvedView? ResolveView(string xaml)\n    {'
+    negative = '\n            if (xaml.Length > 0) throw new InvalidOperationException("remote-authored-negative");'
+    changed = [r['id'] for r in rows if Path(r['project']).stem == 'Avalonia.Generators']
+else:
+    # Only choose among variants actually present in the declared dependency
+    # graph. These are fixture declarations, never a production preference.
+    groups = {}
+    for row in rows:
+        groups.setdefault(row['project'], []).append(row)
+    selected = []
+    for variants in groups.values():
+        if len(variants) > 1:
+            modern = [r for r in variants if r['framework'] == 'net8.0']
+            assert len(modern) == 1, variants
+            selected.append(':' + labels[modern[0]['id']])
+    build.write_text(build.read_text().replace('msbuild_test(name="' + suite + '",',
+        'msbuild_test(name="' + suite + '",assembly_selections=' + json.dumps(selected) + ','))
+    source = workspace / 'upstream/src/Markup/Avalonia.Markup/Data/Binding.cs'
+    signature = 'public Binding()\n        {'
+    negative = '\n            throw new InvalidOperationException("remote-authored-negative");'
+    changed = [r['id'] for r in rows if Path(r['project']).stem == 'Avalonia.Markup']
 original = source.read_text()
-signature = 'public ResolvedView? ResolveView(string xaml)\n    {'
 assert original.count(signature) == 1
+body_compiled = [('MSBuildAssembly', '//upstream:' + labels[node]) for node, _ in configured if node in changed]
+
 try:
     f.run('remote-suite', [target], compiled, cold=True, tests=[target], downloads='all')
     actual = remote_outcomes()
     assert actual == expected, serialize(expected - actual) + serialize(actual - expected)
-    reference = workspace / 'bazel-bin/upstream/Avalonia.Generators.reference/Avalonia.Generators.dll'
-    before = hashlib.sha256(reference.read_bytes()).hexdigest()
+    references = {labels[node]: workspace / ('bazel-bin/upstream/' + labels[node] + '.reference/' + by[node]['properties']['AssemblyName'] + '.dll') for node in changed}
+    def reference_hashes():
+        return {label: hashlib.sha256(path.read_bytes()).hexdigest() for label, path in references.items()}
+    before = reference_hashes()
     f.run('noop', [target], [], tests=[], downloads='toplevel')
-    source.write_text(original.replace(signature, signature + '\n            if (xaml.Length > 0) throw new InvalidOperationException("remote-authored-negative");'))
-    f.run('body-failure', [target], [('MSBuildAssembly', '//upstream:Avalonia.Generators')],
+    source.write_text(original.replace(signature, signature + negative))
+    f.run('body-failure', [target], body_compiled,
           tests=[target], error='remote-authored-negative', downloads='all')
     failed = remote_outcomes()
     assert any(outcome == 'Failed' for _, outcome in failed)
-    assert hashlib.sha256(reference.read_bytes()).hexdigest() == before
+    assert reference_hashes() == before
     source.write_text(original)
     f.run('restored', [target], [], tests=[], downloads='toplevel')
     assert remote_outcomes() == expected
+    if a.suite == 'markup':
+        # An API addition propagates through compiler references. Unchanged
+        # downstream references stop propagation unless another direct changed
+        # reference is in that consumer's transitive compiler closure.
+        affected = set(changed)
+        while True:
+            expanded = affected | {r['id'] for r in rows if any(e['node'] in affected for e in r['references'])}
+            if expanded == affected:
+                break
+            affected = expanded
+        api_compiled = [('MSBuildAssembly', '//upstream:' + labels[node]) for node, _ in configured if node in affected]
+        source.write_text(original.replace('public class Binding : BindingBase\n    {',
+            'public class Binding : BindingBase\n    {\n        /// <summary>Qualification API addition.</summary>\n        public static int QualificationMarker() => 42;'))
+        f.run('api-edit', [target], api_compiled, tests=[target], downloads='all')
+        assert remote_outcomes() == expected
+        source.write_text(original)
+        f.run('api-restored', [target], [], tests=[], downloads='toplevel')
+        assert remote_outcomes() == expected
     f.put('authored-outcomes.json', json.dumps(serialize(expected), indent=2) + '\n')
     report = dict(projects=len(rows),cases=sum(expected.values()),rawAndRemoteNamesAndOutcomesEqual=True,
                   outcomes=dict(Counter(outcome for (_,outcome), count in expected.items() for _ in range(count))),
-                  negativeControl=dict(failed=sum(count for (_,outcome),count in failed.items() if outcome == 'Failed'),referenceUnchanged=True))
+                  negativeControl=dict(failed=sum(count for (_,outcome),count in failed.items() if outcome == 'Failed'),referenceUnchanged=True,referenceHashes=before))
     (f.folder / 'parity.json').write_text(json.dumps(report, indent=2) + '\n')
 finally:
     source.write_text(original)
