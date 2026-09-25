@@ -71,7 +71,7 @@ for row in rows:
  project_packages[row['id']]={name:':'+closure(name) for name in locked}
  locks[row['id']]=call('msbuild_package_lock',name=label(row['id'])+'_lock',packages=[':'+archive_label(key) for key,_ in locked.values()])
 header+=list(package_rules.values())+list(closure_rules.values())+list(locks.values())
-metadata_names=['Link','LogicalName','CopyToOutputDirectory','CopyToPublishDirectory','TargetPath','Culture','WithCulture','Generator','LastGenOutput','DependentUpon']
+metadata_names=['Link','LogicalName','CopyToOutputDirectory','CopyToPublishDirectory','TargetPath','Culture','WithCulture','Generator','LastGenOutput','DependentUpon'] + config.get('itemMetadata',[])
 tool_projects={ref['node'] for row in rows for ref in row['references'] if ref['metadata'].get('ReferenceOutputAssembly','').lower()=='false' and ref['metadata'].get('OutputItemType','')!='Analyzer'}
 for row in rows:
  for project in config.get('toolBindings',{}).get(row['id'],config.get('toolBindings',{}).get(row['project'],{})).values(): tool_projects.add(producer(row,project))

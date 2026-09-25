@@ -1,0 +1,410 @@
+{
+  "platform": "linux-arm64",
+  "sdk": "10.0.400",
+  "avalonia": {
+    "version": "11.3.12",
+    "commit": "37fbd9655cc581ff5b1c6b1fb1be4e3118c889d0",
+    "dataGridCommit": "85a0b32ef6d963c1d67619ca3e2f6da0bc43ac9a"
+  },
+  "executor": "SDK-free Ubuntu 22.04 ARM64 Buildbarn worker; local fallback disabled",
+  "graph": {
+    "entries": 13,
+    "distinctProjectFiles": 40,
+    "configuredProjectNodes": 53
+  },
+  "versions": {
+    "9.2.0": {
+      "bazel": "bazel 9.2.0",
+      "configuredProjects": 53,
+      "compilationActions": 55,
+      "generationActions": 5,
+      "suites": {
+        "Avalonia.Base.UnitTests": {
+          "Passed": 2334,
+          "NotExecuted": 14
+        },
+        "Avalonia.Controls.UnitTests": {
+          "Passed": 2421,
+          "NotExecuted": 1
+        },
+        "Avalonia.Markup.Xaml.UnitTests": {
+          "Passed": 580,
+          "NotExecuted": 1
+        },
+        "Avalonia.Skia.UnitTests": {
+          "Passed": 257,
+          "NotExecuted": 9
+        },
+        "Avalonia.Skia.RenderTests": {
+          "Passed": 290,
+          "NotExecuted": 17
+        }
+      },
+      "rawAndRemoteNamesAndOutcomesEqual": true,
+      "cases": [
+        {
+          "case": "remote-slice",
+          "actions": 291,
+          "byMnemonic": {
+            "DotnetSdkRuntime": 1,
+            "TestRunner": 5,
+            "MSBuildRunnerBootstrap": 1,
+            "MSBuildNugetExtract": 224,
+            "MSBuildAssembly": 55,
+            "MSBuildGenerate": 5
+          },
+          "cacheHits": 0,
+          "compilationOrGeneration": 60,
+          "testTargets": 5
+        },
+        {
+          "case": "noop",
+          "actions": 0,
+          "byMnemonic": {},
+          "cacheHits": 0,
+          "compilationOrGeneration": 0,
+          "testTargets": 0
+        }
+      ],
+      "outcomeSha256": {
+        "Avalonia.Base.UnitTests": "e3d714f6d777731c3124b123d845fab8b9c427411f034c872300d6b740bb8c19",
+        "Avalonia.Controls.UnitTests": "8bd4a046d37c7dcbb7bfb9f623f981735690350a1b8dbfd17de2772055d79dc7",
+        "Avalonia.Markup.Xaml.UnitTests": "e40f9c9a45bc402b78a76ac4d4559282bfb936c9d551c38e4649fba85bbfb6f7",
+        "Avalonia.Skia.UnitTests": "7e5cc65aaae77958bbcbbe8e6bbee4bc218eb2696f39c06fe0a3c679098ee5a9",
+        "Avalonia.Skia.RenderTests": "c7317eef949edb2a90b44e271c79fa1ee2bafaad660795e2d498925e3131a56f"
+      },
+      "independentRecovery": {
+        "cases": [
+          {
+            "case": "independent-recovery",
+            "actions": 291,
+            "byMnemonic": {
+              "DotnetSdkRuntime": 1,
+              "TestRunner": 5,
+              "MSBuildRunnerBootstrap": 1,
+              "MSBuildNugetExtract": 224,
+              "MSBuildAssembly": 55,
+              "MSBuildGenerate": 5
+            },
+            "cacheHits": 291,
+            "compilationOrGeneration": 0,
+            "testTargets": 0
+          }
+        ],
+        "testNamesAndOutcomesEqual": true,
+        "separateClientDisk": true,
+        "sourceOnlyTransfer": true
+      }
+    },
+    "8.8.0": {
+      "bazel": "bazel 8.8.0",
+      "configuredProjects": 53,
+      "compilationActions": 55,
+      "generationActions": 5,
+      "suites": {
+        "Avalonia.Base.UnitTests": {
+          "Passed": 2334,
+          "NotExecuted": 14
+        },
+        "Avalonia.Controls.UnitTests": {
+          "Passed": 2421,
+          "NotExecuted": 1
+        },
+        "Avalonia.Markup.Xaml.UnitTests": {
+          "Passed": 580,
+          "NotExecuted": 1
+        },
+        "Avalonia.Skia.UnitTests": {
+          "Passed": 257,
+          "NotExecuted": 9
+        },
+        "Avalonia.Skia.RenderTests": {
+          "Passed": 290,
+          "NotExecuted": 17
+        }
+      },
+      "rawAndRemoteNamesAndOutcomesEqual": true,
+      "cases": [
+        {
+          "case": "remote-slice",
+          "actions": 291,
+          "byMnemonic": {
+            "DotnetSdkRuntime": 1,
+            "TestRunner": 5,
+            "MSBuildRunnerBootstrap": 1,
+            "MSBuildNugetExtract": 224,
+            "MSBuildAssembly": 55,
+            "MSBuildGenerate": 5
+          },
+          "cacheHits": 0,
+          "compilationOrGeneration": 60,
+          "testTargets": 5
+        },
+        {
+          "case": "noop",
+          "actions": 0,
+          "byMnemonic": {},
+          "cacheHits": 0,
+          "compilationOrGeneration": 0,
+          "testTargets": 0
+        }
+      ],
+      "outcomeSha256": {
+        "Avalonia.Base.UnitTests": "e3d714f6d777731c3124b123d845fab8b9c427411f034c872300d6b740bb8c19",
+        "Avalonia.Controls.UnitTests": "8bd4a046d37c7dcbb7bfb9f623f981735690350a1b8dbfd17de2772055d79dc7",
+        "Avalonia.Markup.Xaml.UnitTests": "e40f9c9a45bc402b78a76ac4d4559282bfb936c9d551c38e4649fba85bbfb6f7",
+        "Avalonia.Skia.UnitTests": "7e5cc65aaae77958bbcbbe8e6bbee4bc218eb2696f39c06fe0a3c679098ee5a9",
+        "Avalonia.Skia.RenderTests": "c7317eef949edb2a90b44e271c79fa1ee2bafaad660795e2d498925e3131a56f"
+      },
+      "independentRecovery": {
+        "cases": [
+          {
+            "case": "independent-recovery",
+            "actions": 291,
+            "byMnemonic": {
+              "DotnetSdkRuntime": 1,
+              "TestRunner": 5,
+              "MSBuildRunnerBootstrap": 1,
+              "MSBuildNugetExtract": 224,
+              "MSBuildAssembly": 55,
+              "MSBuildGenerate": 5
+            },
+            "cacheHits": 291,
+            "compilationOrGeneration": 0,
+            "testTargets": 0
+          }
+        ],
+        "testNamesAndOutcomesEqual": true,
+        "separateClientDisk": true,
+        "sourceOnlyTransfer": true
+      }
+    }
+  },
+  "managedArtifactParity": {
+    "configuredProjects": 26,
+    "compilationActions": 28,
+    "references": [
+      {
+        "label": "Avalonia.Themes.Fluent",
+        "framework": "net8.0",
+        "referenceSha256": "2299bcca6a5a8ad514a821ecf642289bc7198d4a173130381e97e898a5ba9d75",
+        "referenceConfigurations": 1,
+        "resources": 1,
+        "compiledXamlMethods": 128
+      },
+      {
+        "label": "Avalonia.Controls.ColorPicker",
+        "framework": "net8.0",
+        "referenceSha256": "e1e88f59df79fd1ac2380d088abccded5cd5dd480b8bcbfc6af73d294841b7ed",
+        "referenceConfigurations": 1,
+        "resources": 13,
+        "compiledXamlMethods": 33
+      },
+      {
+        "label": "Avalonia.Diagnostics",
+        "framework": "net8.0",
+        "referenceSha256": "3c0a45f70eb0bfe7d606c67c2d2bae57eb6b2d15bb913ed4764939cfb060465f",
+        "referenceConfigurations": 1,
+        "resources": 1,
+        "compiledXamlMethods": 351
+      },
+      {
+        "label": "Avalonia.Fonts.Inter",
+        "framework": "net8.0",
+        "referenceSha256": "f763d9c0f53f299cf860fc30cbe9d63d60fbf098b21454f2542e9c39cecf6f06",
+        "referenceConfigurations": 1,
+        "resources": 1,
+        "compiledXamlMethods": 0
+      },
+      {
+        "label": "Avalonia.Headless.XUnit",
+        "framework": "net8.0",
+        "referenceSha256": "ded2d7ea2e7175119f3ba011e1b870cfdcfa2bd5f5279fd451225f93ec0fb461",
+        "referenceConfigurations": 1,
+        "resources": 0,
+        "compiledXamlMethods": 0
+      },
+      {
+        "label": "Avalonia.Headless.NUnit",
+        "framework": "net8.0",
+        "referenceSha256": "5611ffba994a85eb6fd72c007e8da18361e21554065ff5fa32c004d4fe2e3500",
+        "referenceConfigurations": 1,
+        "resources": 0,
+        "compiledXamlMethods": 0
+      },
+      {
+        "label": "Avalonia.Headless.Vnc",
+        "framework": "net8.0",
+        "referenceSha256": "268393146cbf86a4c0977b154ba7feb480b87f1b31d2e698f1160d417c83ef1b",
+        "referenceConfigurations": 1,
+        "resources": 0,
+        "compiledXamlMethods": 0
+      },
+      {
+        "label": "Avalonia.Base",
+        "framework": "net8.0",
+        "referenceSha256": "ebf768c1717a68906dfd8315cc0baee652a4df02c2fd225c27bed00d47119df2",
+        "referenceConfigurations": 1,
+        "resources": 0,
+        "compiledXamlMethods": 0
+      },
+      {
+        "label": "Avalonia.Controls",
+        "framework": "net8.0",
+        "referenceSha256": "ba995c22b022cefbd33637b551a76d14abda38461b7d503f1722e02eb9ff2ad0",
+        "referenceConfigurations": 1,
+        "resources": 0,
+        "compiledXamlMethods": 0
+      },
+      {
+        "label": "Avalonia.Dialogs",
+        "framework": "net8.0",
+        "referenceSha256": "62eb3d20774ac96ddad21531d31a0fe202ec1d7addf23f400f477d22c0541e1d",
+        "referenceConfigurations": 1,
+        "resources": 1,
+        "compiledXamlMethods": 8
+      },
+      {
+        "label": "Avalonia.Markup.Xaml",
+        "framework": "net8.0",
+        "referenceSha256": "da8819ec4581de8eab66d10aa3f8924efc41a29664d6e26e8665485827fbace6",
+        "referenceConfigurations": 1,
+        "resources": 0,
+        "compiledXamlMethods": 0
+      },
+      {
+        "label": "DevAnalyzers",
+        "framework": "netstandard2.0",
+        "referenceSha256": "23559fadd3546efcaabdabc5858b0e72add2d16245bf7f54ff4b745bd8bf1bb8",
+        "referenceConfigurations": 1,
+        "resources": 0,
+        "compiledXamlMethods": 0
+      },
+      {
+        "label": "Avalonia.Analyzers",
+        "framework": "netstandard2.0",
+        "referenceSha256": "dd17468f9e5a3a5a90fdb6dad8dc1e2186498318160f4af4c55e67780925e69a",
+        "referenceConfigurations": 1,
+        "resources": 0,
+        "compiledXamlMethods": 0
+      },
+      {
+        "label": "Avalonia.Remote.Protocol",
+        "framework": "net8.0",
+        "referenceSha256": "fc07eb852569f59387f2a243d3984ba0cc5bde56cd704e402eea16824babf2f4",
+        "referenceConfigurations": 1,
+        "resources": 0,
+        "compiledXamlMethods": 0
+      },
+      {
+        "label": "Avalonia.Markup",
+        "framework": "net8.0",
+        "referenceSha256": "587daeea793d3e0b77beecf4df2dd2ec5126a084bf750811faf05df529a282a2",
+        "referenceConfigurations": 1,
+        "resources": 0,
+        "compiledXamlMethods": 0
+      },
+      {
+        "label": "Avalonia.Themes.Simple",
+        "framework": "net8.0",
+        "referenceSha256": "4c9ba70ed876aaf04e8cd96b53b527d47648a1708961e9efd6a1fd64c3e324b7",
+        "referenceConfigurations": 1,
+        "resources": 1,
+        "compiledXamlMethods": 118
+      },
+      {
+        "label": "Avalonia.Headless",
+        "framework": "net8.0",
+        "referenceSha256": "4dbdd58c41b0dddb312e68fd3ddc054e21d8490a08b71fb67062adf287cd3bec",
+        "referenceConfigurations": 1,
+        "resources": 0,
+        "compiledXamlMethods": 0
+      },
+      {
+        "label": "DevGenerators",
+        "framework": "netstandard2.0",
+        "referenceSha256": "034fdd71924a94e1eecf2bbf2dc1b93c2b3e716c4e3333ace45189acb903e65c",
+        "referenceConfigurations": 2,
+        "resources": 0,
+        "compiledXamlMethods": 0
+      },
+      {
+        "label": "Avalonia.Build.Tasks",
+        "framework": "netstandard2.0",
+        "referenceSha256": "2242941042f080c61cb83fd487f2feb4309d5d01affff9db4736114883671956",
+        "referenceConfigurations": 2,
+        "resources": 0,
+        "compiledXamlMethods": 0
+      },
+      {
+        "label": "Avalonia",
+        "framework": "net8.0",
+        "referenceSha256": "a631785dbc052cc6385a83b9ef162d0ac9a7feeee165c62eb9712ac870337bb0",
+        "referenceConfigurations": 1,
+        "resources": 0,
+        "compiledXamlMethods": 0
+      },
+      {
+        "label": "Avalonia.DesignerSupport",
+        "framework": "net8.0",
+        "referenceSha256": "6d8cdf5ded2c7f8f1bd56480cc2c99718261d177c6cd3faf50b0d0e1ac60c267",
+        "referenceConfigurations": 1,
+        "resources": 0,
+        "compiledXamlMethods": 0
+      },
+      {
+        "label": "Avalonia.OpenGL",
+        "framework": "net8.0",
+        "referenceSha256": "451b97e9fe3b4caa3cc6d48232302a15bc22bb478d81ece83c05be6a42c859fb",
+        "referenceConfigurations": 1,
+        "resources": 0,
+        "compiledXamlMethods": 0
+      },
+      {
+        "label": "Avalonia.Metal",
+        "framework": "net8.0",
+        "referenceSha256": "295e63bcd5862bfa9a4e54de2c928fe7f167da25d4a781bc56f7b1acc3f3074b",
+        "referenceConfigurations": 1,
+        "resources": 0,
+        "compiledXamlMethods": 0
+      },
+      {
+        "label": "Avalonia.Vulkan",
+        "framework": "net8.0",
+        "referenceSha256": "dbc0857957d0f0809b9f54366fa74a0193e4448f28f3f3e469a0150057f44ae8",
+        "referenceConfigurations": 1,
+        "resources": 0,
+        "compiledXamlMethods": 0
+      },
+      {
+        "label": "Avalonia.Generators",
+        "framework": "netstandard2.0",
+        "referenceSha256": "b825808f97a8502bc2817dcedae88a0cae1db6155dccf8e6225678dbcd320a51",
+        "referenceConfigurations": 1,
+        "resources": 0,
+        "compiledXamlMethods": 0
+      },
+      {
+        "label": "Avalonia.MicroCom",
+        "framework": "netstandard2.0",
+        "referenceSha256": "9b9609708e8004a8c6f5d9ccbad9b5347956a38aeea524da4aabdd4e032bc544",
+        "referenceConfigurations": 1,
+        "resources": 0,
+        "compiledXamlMethods": 0
+      }
+    ]
+  },
+  "validation": {
+    "analysisTestsPerBazelVersion": 41,
+    "explicitBuildUnitTests": 35,
+    "vstestControls": 12,
+    "scaffoldAndDotnetChecksPassed": true
+  },
+  "notes": [
+    "Correctness qualification; no performance comparison.",
+    "Raw and Bazel test names and outcomes match; names and outcomes also match across both Bazel versions.",
+    "All five IDL generator outputs match raw bytes.",
+    "Desktop COM-stub reference bytes are not asserted equal; compiler-generated file-local type names contain path hashes.",
+    "Desktop compilation and Linux CPU offscreen rendering do not qualify display windows, GPU drivers, Windows/macOS execution, mobile, browser, or packaging."
+  ]
+}

@@ -144,6 +144,11 @@ The Apple test container used `--init --masked-path NONE --read-only-path NONE`
 so its kernel permitted the nested bubblewrap namespace. Verify this first:
 `bwrap --ro-bind / / --unshare-all -- /bin/true`.
 Start with eight CPUs and 8 GiB memory; the fixture registers two execution slots.
+The worker read cache uses an 8 GiB block device, allowing the 126 MiB Windows SDK
+documentation input used by Avalonia Desktop. The former 4 GiB configuration
+rejected individual blobs larger than approximately 108 MiB. When changing this
+size, stop the worker and use a fresh worker CAS directory; retain the central
+storage and action cache.
 
 The fixture is an unauthenticated private qualification service, not a production
 hosting configuration. Use it only on an isolated test network. The worker
