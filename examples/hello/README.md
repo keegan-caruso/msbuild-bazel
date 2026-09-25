@@ -35,3 +35,20 @@ to make the test pass again.
 This example uses local compilation. Consult the [worker guide](../../docs/explicit-linux-workers.md),
 [test API](../../docs/bazel-test.md) and [remote execution guide](../../docs/remote-execution.md)
 for those separate configurations and qualification boundaries.
+
+## Generate the graph with sync
+
+To use the same sources with synchronized library/application declarations:
+
+```sh
+python3 examples/hello/create.py /tmp/rules-msbuild-hello-sync --sync
+cd /tmp/rules-msbuild-hello-sync
+bazel run //:App_App
+bazel test //:Tests
+bazel run //:sync -- --check
+```
+
+This mode omits the per-project BUILD files, invokes the Bazel sync target, and
+loads `projects.generated.bzl` from the authored root BUILD. The executable test
+remains a short authored declaration consuming the generated library target.
+No repository script is part of the normal application build.

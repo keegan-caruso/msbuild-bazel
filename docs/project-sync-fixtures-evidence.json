@@ -1,0 +1,232 @@
+{
+  "platform": "macOS ARM64",
+  "sdk": "10.0.400",
+  "scope": "Correctness only; no performance measurements",
+  "hello": {
+    "bazel": "9.2.0",
+    "generatedLibraryAndApplication": true,
+    "executableTest": true,
+    "check": true
+  },
+  "vstest": {
+    "9.2.0": [
+      {
+        "case": "Xunit-pass",
+        "exit": 0,
+        "tests": 4,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 1
+      },
+      {
+        "case": "Xunit-filter",
+        "exit": 0,
+        "tests": 1,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "case": "Xunit-failure",
+        "exit": 3,
+        "tests": 4,
+        "failures": 1,
+        "errors": 0,
+        "skipped": 1
+      },
+      {
+        "case": "Xunit-empty",
+        "exit": 3,
+        "tests": 1,
+        "failures": 0,
+        "errors": 1,
+        "skipped": 0
+      },
+      {
+        "case": "Nunit-pass",
+        "exit": 0,
+        "tests": 4,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 1
+      },
+      {
+        "case": "Nunit-filter",
+        "exit": 0,
+        "tests": 1,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "case": "Nunit-failure",
+        "exit": 3,
+        "tests": 4,
+        "failures": 1,
+        "errors": 0,
+        "skipped": 1
+      },
+      {
+        "case": "Nunit-empty",
+        "exit": 3,
+        "tests": 1,
+        "failures": 0,
+        "errors": 1,
+        "skipped": 0
+      },
+      {
+        "case": "Mstest-pass",
+        "exit": 0,
+        "tests": 4,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 1
+      },
+      {
+        "case": "Mstest-filter",
+        "exit": 0,
+        "tests": 1,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "case": "Mstest-failure",
+        "exit": 3,
+        "tests": 4,
+        "failures": 1,
+        "errors": 0,
+        "skipped": 1
+      },
+      {
+        "case": "Mstest-empty",
+        "exit": 3,
+        "tests": 1,
+        "failures": 0,
+        "errors": 1,
+        "skipped": 0
+      }
+    ],
+    "8.8.0": [
+      {
+        "case": "Xunit-pass",
+        "exit": 0,
+        "tests": 4,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 1
+      },
+      {
+        "case": "Xunit-filter",
+        "exit": 0,
+        "tests": 1,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "case": "Xunit-failure",
+        "exit": 3,
+        "tests": 4,
+        "failures": 1,
+        "errors": 0,
+        "skipped": 1
+      },
+      {
+        "case": "Xunit-empty",
+        "exit": 3,
+        "tests": 1,
+        "failures": 0,
+        "errors": 1,
+        "skipped": 0
+      },
+      {
+        "case": "Nunit-pass",
+        "exit": 0,
+        "tests": 4,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 1
+      },
+      {
+        "case": "Nunit-filter",
+        "exit": 0,
+        "tests": 1,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "case": "Nunit-failure",
+        "exit": 3,
+        "tests": 4,
+        "failures": 1,
+        "errors": 0,
+        "skipped": 1
+      },
+      {
+        "case": "Nunit-empty",
+        "exit": 3,
+        "tests": 1,
+        "failures": 0,
+        "errors": 1,
+        "skipped": 0
+      },
+      {
+        "case": "Mstest-pass",
+        "exit": 0,
+        "tests": 4,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 1
+      },
+      {
+        "case": "Mstest-filter",
+        "exit": 0,
+        "tests": 1,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "case": "Mstest-failure",
+        "exit": 3,
+        "tests": 4,
+        "failures": 1,
+        "errors": 0,
+        "skipped": 1
+      },
+      {
+        "case": "Mstest-empty",
+        "exit": 3,
+        "tests": 1,
+        "failures": 0,
+        "errors": 1,
+        "skipped": 0
+      }
+    ]
+  },
+  "mtp": {
+    "bazel": "9.2.0",
+    "cases": [
+      {
+        "case": "pass",
+        "tests": 4,
+        "failures": 0,
+        "skipped": 1
+      },
+      {
+        "case": "failure",
+        "tests": 4,
+        "failures": 1,
+        "skipped": 1
+      },
+      {
+        "case": "restore",
+        "tests": 4,
+        "failures": 0,
+        "skipped": 1
+      }
+    ]
+  }
+}
