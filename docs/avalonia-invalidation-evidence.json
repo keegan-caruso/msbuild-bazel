@@ -1,0 +1,300 @@
+{
+  "platform": "linux-arm64",
+  "sdk": "10.0.400",
+  "versions": {
+    "8.8.0": {
+      "cases": [
+        {
+          "case": "baseline-recovery",
+          "executed": [],
+          "tests": [],
+          "actions": 291,
+          "cacheHits": 291
+        },
+        {
+          "case": "idl-edit",
+          "executed": [
+            [
+              "MSBuildAssembly",
+              "//upstream:Avalonia.Desktop"
+            ],
+            [
+              "MSBuildAssembly",
+              "//upstream:Avalonia.Native"
+            ],
+            [
+              "MSBuildGenerate",
+              "//upstream:desktop_idl_4"
+            ]
+          ],
+          "tests": [],
+          "actions": 3,
+          "cacheHits": 0
+        },
+        {
+          "case": "idl-edit-restored",
+          "executed": [],
+          "tests": [],
+          "actions": 3,
+          "cacheHits": 3
+        },
+        {
+          "case": "xaml-resource-edit",
+          "executed": [
+            [
+              "MSBuildAssembly",
+              "//upstream:Avalonia.Themes.Simple_net8_0_0caeea827ca4"
+            ],
+            [
+              "MSBuildAssembly",
+              "//upstream:Avalonia.Themes.Simple_netstandard2_0_b4ab3a281b90"
+            ]
+          ],
+          "tests": [
+            "//upstream:Avalonia.Base.UnitTests",
+            "//upstream:Avalonia.Controls.UnitTests",
+            "//upstream:Avalonia.Markup.Xaml.UnitTests",
+            "//upstream:Avalonia.Skia.RenderTests",
+            "//upstream:Avalonia.Skia.UnitTests"
+          ],
+          "actions": 10,
+          "cacheHits": 3
+        },
+        {
+          "case": "xaml-resource-edit-restored",
+          "executed": [],
+          "tests": [],
+          "actions": 7,
+          "cacheHits": 7
+        },
+        {
+          "case": "baseline-negative",
+          "executed": [],
+          "tests": [
+            "//upstream:Avalonia.Skia.RenderTests"
+          ],
+          "actions": 3,
+          "cacheHits": 2
+        },
+        {
+          "case": "baseline-negative-restored",
+          "executed": [],
+          "tests": [],
+          "actions": 1,
+          "cacheHits": 1
+        },
+        {
+          "case": "native-negative",
+          "executed": [],
+          "tests": [
+            "//upstream:Avalonia.Skia.RenderTests",
+            "//upstream:Avalonia.Skia.UnitTests"
+          ],
+          "actions": 2,
+          "cacheHits": 0
+        },
+        {
+          "case": "native-negative-restored",
+          "executed": [],
+          "tests": [],
+          "actions": 2,
+          "cacheHits": 2
+        }
+      ],
+      "mutations": [
+        {
+          "case": "idl-edit",
+          "input": "upstream/src/Avalonia.Native/avn.idl",
+          "before": "99e0c1b4ebd881d9f1601c5800c807b7333ffc1ab6754de88d26aec88d45c365",
+          "after": "254662b436dca5f8bfd61693b291b08846606b2a3b66bab45b46e76bb48efce9",
+          "negativeControl": false,
+          "outputChanged": true,
+          "referenceChanged": true
+        },
+        {
+          "case": "xaml-resource-edit",
+          "input": "upstream/src/Avalonia.Themes.Simple/Controls/Button.xaml",
+          "before": "7d12daf07473613aee0161d1bd288dee6fb015083fa52695da07399b46043fcc",
+          "after": "a6b2b60581f9b437e928d897aa0b3beedc6350d7f1736d2ec1625da7ddceb0d6",
+          "negativeControl": false,
+          "outputChanged": true,
+          "referenceChanged": false
+        },
+        {
+          "case": "baseline-negative",
+          "input": "upstream/tests/TestFiles/Skia/OpacityMask/Opacity_Mask_Masks_Element.expected.png",
+          "before": "43326962e85bec84c1d29c384cb5d31e8b046adace9c89eb0fab794bc99406d7",
+          "after": "1157ecbc2e90c21767ff639f8f9387edf167fc7e9a8f4f17bf9cd0a3821b5e97",
+          "negativeControl": true,
+          "outputChanged": false,
+          "referenceChanged": null
+        },
+        {
+          "case": "native-negative",
+          "input": "upstream/native-tests/libfontconfig.so.1",
+          "before": "c163c9d320099602fc847e3c35d10c52b10b98db45ae910f743894e44f4539ee",
+          "after": "f34e3c1cfd31778e2095894c3977e1c62d2bb12354270b5f66674432e4f77da5",
+          "negativeControl": true,
+          "outputChanged": false,
+          "referenceChanged": null
+        }
+      ],
+      "failedCases": {
+        "baseline-negative": {
+          "Avalonia.Skia.RenderTests": 1
+        },
+        "native-negative": {
+          "Avalonia.Skia.RenderTests": 286,
+          "Avalonia.Skia.UnitTests": 7
+        }
+      }
+    },
+    "9.2.0": {
+      "cases": [
+        {
+          "case": "baseline-recovery",
+          "executed": [],
+          "tests": [],
+          "actions": 291,
+          "cacheHits": 291
+        },
+        {
+          "case": "idl-edit",
+          "executed": [
+            [
+              "MSBuildAssembly",
+              "//upstream:Avalonia.Desktop"
+            ],
+            [
+              "MSBuildAssembly",
+              "//upstream:Avalonia.Native"
+            ],
+            [
+              "MSBuildGenerate",
+              "//upstream:desktop_idl_4"
+            ]
+          ],
+          "tests": [],
+          "actions": 3,
+          "cacheHits": 0
+        },
+        {
+          "case": "idl-edit-restored",
+          "executed": [],
+          "tests": [],
+          "actions": 3,
+          "cacheHits": 3
+        },
+        {
+          "case": "xaml-resource-edit",
+          "executed": [
+            [
+              "MSBuildAssembly",
+              "//upstream:Avalonia.Themes.Simple_net8_0_0caeea827ca4"
+            ],
+            [
+              "MSBuildAssembly",
+              "//upstream:Avalonia.Themes.Simple_netstandard2_0_b4ab3a281b90"
+            ]
+          ],
+          "tests": [
+            "//upstream:Avalonia.Base.UnitTests",
+            "//upstream:Avalonia.Controls.UnitTests",
+            "//upstream:Avalonia.Markup.Xaml.UnitTests",
+            "//upstream:Avalonia.Skia.RenderTests",
+            "//upstream:Avalonia.Skia.UnitTests"
+          ],
+          "actions": 10,
+          "cacheHits": 3
+        },
+        {
+          "case": "xaml-resource-edit-restored",
+          "executed": [],
+          "tests": [],
+          "actions": 7,
+          "cacheHits": 7
+        },
+        {
+          "case": "baseline-negative",
+          "executed": [],
+          "tests": [
+            "//upstream:Avalonia.Skia.RenderTests"
+          ],
+          "actions": 3,
+          "cacheHits": 2
+        },
+        {
+          "case": "baseline-negative-restored",
+          "executed": [],
+          "tests": [],
+          "actions": 1,
+          "cacheHits": 1
+        },
+        {
+          "case": "native-negative",
+          "executed": [],
+          "tests": [
+            "//upstream:Avalonia.Skia.RenderTests",
+            "//upstream:Avalonia.Skia.UnitTests"
+          ],
+          "actions": 2,
+          "cacheHits": 0
+        },
+        {
+          "case": "native-negative-restored",
+          "executed": [],
+          "tests": [],
+          "actions": 2,
+          "cacheHits": 2
+        }
+      ],
+      "mutations": [
+        {
+          "case": "idl-edit",
+          "input": "upstream/src/Avalonia.Native/avn.idl",
+          "before": "99e0c1b4ebd881d9f1601c5800c807b7333ffc1ab6754de88d26aec88d45c365",
+          "after": "ca49b92cf003161c999c90a1c9975c5bcecf8d6ce208eba442f3d44dc0a4d809",
+          "negativeControl": false,
+          "outputChanged": true,
+          "referenceChanged": true
+        },
+        {
+          "case": "xaml-resource-edit",
+          "input": "upstream/src/Avalonia.Themes.Simple/Controls/Button.xaml",
+          "before": "7d12daf07473613aee0161d1bd288dee6fb015083fa52695da07399b46043fcc",
+          "after": "53ed017b96f915363162da66a47d0cfc6b0e3ec53f9f91fc86720403ade200ab",
+          "negativeControl": false,
+          "outputChanged": true,
+          "referenceChanged": false
+        },
+        {
+          "case": "baseline-negative",
+          "input": "upstream/tests/TestFiles/Skia/OpacityMask/Opacity_Mask_Masks_Element.expected.png",
+          "before": "43326962e85bec84c1d29c384cb5d31e8b046adace9c89eb0fab794bc99406d7",
+          "after": "8779a3ecd0fd0710e0e5a652a97aabbb7ecf33f3a1a31b52c746aa9947b1f08b",
+          "negativeControl": true,
+          "outputChanged": false,
+          "referenceChanged": null
+        },
+        {
+          "case": "native-negative",
+          "input": "upstream/native-tests/libfontconfig.so.1",
+          "before": "c163c9d320099602fc847e3c35d10c52b10b98db45ae910f743894e44f4539ee",
+          "after": "457649dcb7eac00bc4676231f82dfcfeed85685eeba5672c49b61d4ade076622",
+          "negativeControl": true,
+          "outputChanged": false,
+          "referenceChanged": null
+        }
+      ],
+      "failedCases": {
+        "baseline-negative": {
+          "Avalonia.Skia.RenderTests": 1
+        },
+        "native-negative": {
+          "Avalonia.Skia.RenderTests": 286,
+          "Avalonia.Skia.UnitTests": 75
+        }
+      }
+    }
+  }
+}
