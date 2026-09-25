@@ -38,17 +38,18 @@ fi
 runfiles="${RUNFILES_DIR:-$0.runfiles}"
 export DOTNET_ROOT="$runfiles/"%s
 export DOTNET_NOLOGO=1 DOTNET_CLI_TELEMETRY_OPTOUT=1
-exec "$runfiles/"%s "$runfiles/"%s "$BUILD_WORKSPACE_DIRECTORY" "$DOTNET_ROOT/sdk/"%s %s "$@"
+exec "$runfiles/"%s "$runfiles/"%s "$BUILD_WORKSPACE_DIRECTORY" "$DOTNET_ROOT/sdk/"%s %s %s "$@"
 """ % (
         _quote(_runfile(ctx, tc.dotnet).rsplit("/", 1)[0]),
         _quote(_runfile(ctx, tc.dotnet)),
         _quote(_runfile(ctx, payload) + "/ProjectSync.dll"),
         _quote(tc.sdk_version),
         " ".join([_quote(project) for project in ctx.attr.projects]),
+        '--mappings "$runfiles/"' + _quote(_runfile(ctx, ctx.file.mappings)) if ctx.file.mappings else "",
     ), is_executable = True)
     return [DefaultInfo(
         executable = launcher,
-        runfiles = ctx.runfiles(files = [payload, tc.dotnet], transitive_files = tc.sdk),
+        runfiles = ctx.runfiles(files = [payload, tc.dotnet] + ([ctx.file.mappings] if ctx.file.mappings else []), transitive_files = tc.sdk),
     )]
 
 _sync = rule(
@@ -57,17 +58,19 @@ _sync = rule(
     toolchains = [_TOOLCHAIN],
     attrs = {
         "projects": attr.string_list(mandatory = True),
+        "mappings": attr.label(allow_single_file = [".json"]),
         "_sources": attr.label(default = Label("//tools/ProjectSync:sources")),
         "_project": attr.label(default = Label("//tools/ProjectSync:ProjectSync.csproj"), allow_single_file = True),
     },
 )
 
-def msbuild_sync(name, projects, **kwargs):
+def msbuild_sync(name, projects, mappings = None, **kwargs):
     """Declare a tool that evaluates local projects and writes projects.generated.bzl.
 
     Args:
         name: Runnable target name, conventionally sync.
         projects: Workspace-relative entry csproj paths, not labels. References are discovered at run time.
+        mappings: Optional JSON file with explicit package and test bindings.
         **kwargs: Common Bazel attributes such as visibility and tags.
     """
     if not projects:
@@ -75,4 +78,4 @@ def msbuild_sync(name, projects, **kwargs):
     for project in projects:
         if project.startswith("/") or "\\" in project or any([part in ["", ".", ".."] for part in project.split("/")]) or not project.endswith(".csproj"):
             fail("Expected a workspace-relative csproj path: " + project)
-    _sync(name = name, projects = projects, **kwargs)
+    _sync(name = name, projects = projects, mappings = mappings, **kwargs)

@@ -1,5 +1,6 @@
 """Black-box MSBuild evaluation and BUILD synchronization controls."""
 import os
+import json
 from pathlib import Path
 import subprocess
 import tempfile
@@ -95,3 +96,57 @@ class ProjectSyncTests(unittest.TestCase):
         (self.root / 'Core/BUILD.bazel').unlink()
         self.put('Core/Core.csproj', '<Project Sdk="Microsoft.NET.Sdk"><ItemGroup><Compile Include="Generated.cs"/></ItemGroup></Project>')
         self.assertIn('generator binding', self.run_sync('Core/Core.csproj', success=False))
+
+    def test_explicit_package_and_test_bindings(self):
+        self.put('Core/Core.csproj', '<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup><IsTestProject>true</IsTestProject></PropertyGroup><ItemGroup><PackageReference Include="Example" Version="1.2.3"/></ItemGroup></Project>')
+        mapping = dict(packages={'Example/1.2.3':dict(label='//packages:example',roles=['deps','build_deps'],analyzers=['//packages:analyzer'])},tests={'Core/Core.csproj':dict(protocol='vstest',runner='//tools:runner',adapters=['//tools:adapter'])})
+        self.put('sync.json', json.dumps(mapping))
+        self.run_sync('Core/Core.csproj', '--mappings', 'sync.json')
+        output = (self.root/'projects.generated.bzl').read_text()
+        for fragment in ['msbuild_test_project(', '//packages:example', '//packages:analyzer', '//tools:runner', '//tools:adapter', '"build_deps"']:
+            self.assertIn(fragment, output)
+        mapping['tests']['Core/Core.csproj']['environment']={'CASE':'changed'}
+        self.put('sync.json', json.dumps(mapping))
+        self.assertIn('stale', self.run_sync('Core/Core.csproj', '--mappings', 'sync.json', '--check', success=False))
+        mapping['packages'] = {'Example/9.9.9':mapping['packages']['Example/1.2.3']}
+        self.put('sync.json', json.dumps(mapping))
+        self.assertIn('exact package mapping', self.run_sync('Core/Core.csproj', '--mappings', 'sync.json', success=False))
+        self.assertEqual(output, (self.root/'projects.generated.bzl').read_text())
+
+    def test_central_version_mapping(self):
+        self.put('Directory.Packages.props', '<Project><PropertyGroup><ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally></PropertyGroup><ItemGroup><PackageVersion Include="Example" Version="1.2.3"/></ItemGroup></Project>')
+        self.put('Core/Core.csproj', '<Project Sdk="Microsoft.NET.Sdk"><ItemGroup><PackageReference Include="Example"/></ItemGroup></Project>')
+        self.put('sync.json', json.dumps(dict(packages={'Example/1.2.3':dict(label='//packages:example',roles=['deps'])})))
+        self.run_sync('Core/Core.csproj', '--mappings', 'sync.json')
+        output = (self.root/'projects.generated.bzl').read_text()
+        self.assertIn('Directory.Packages.props', output)
+        self.assertIn('//packages:example', output)
+
+    def test_mapping_validation(self):
+        cases = [
+            (dict(typo={}), 'could not be mapped'),
+            (dict(packages={'Example/1':dict(label='not-a-label',roles=['deps'])}), 'Bazel label'),
+            (dict(packages={'Example/1':dict(label='//packages:example',roles=[])}), 'explicit deps'),
+            (dict(tests={'Core/Core.csproj':dict(protocol='vstest')}), 'Bazel label'),
+            (dict(tests={'Core/Core.csproj':dict(protocol='mtp',runner='//tools:runner')}), 'VSTest-only'),
+            (dict(tests={'Missing.csproj':dict(protocol='executable')}), 'reachable project'),
+        ]
+        for mapping, message in cases:
+            self.put('sync.json', json.dumps(mapping))
+            self.assertIn(message, self.run_sync('Core/Core.csproj', '--mappings', 'sync.json', success=False))
+
+    def test_executable_test_mapping(self):
+        self.put('Core/Core.csproj', '<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup><OutputType>Exe</OutputType></PropertyGroup></Project>')
+        self.put('sync.json', json.dumps(dict(tests={'Core/Core.csproj':dict(protocol='executable')})))
+        self.run_sync('Core/Core.csproj', '--mappings', 'sync.json')
+        self.assertIn('"test_protocol": "executable"', (self.root/'projects.generated.bzl').read_text())
+
+    def test_mapped_properties_are_evaluated(self):
+        self.put('Core/Core.csproj', '<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup><AssemblyName>Custom.Name</AssemblyName></PropertyGroup><ItemGroup Condition="\'$(IncludeExtra)\' != \'true\'"><Compile Remove="Extra.cs"/></ItemGroup></Project>')
+        self.put('Core/Extra.cs', 'public class Extra {}')
+        self.put('sync.json', json.dumps(dict(tests={'Core/Core.csproj':dict(protocol='executable',outputType='exe',properties={'IncludeExtra':'true'})})))
+        self.run_sync('Core/Core.csproj', '--mappings', 'sync.json')
+        output = (self.root/'projects.generated.bzl').read_text()
+        self.assertIn('Core/Extra.cs', output)
+        self.assertIn('Custom.Name', output)
+        self.assertIn('"test_output_type": "exe"', output)

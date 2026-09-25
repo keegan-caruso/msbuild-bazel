@@ -58,11 +58,11 @@ def qualify(name,checkout,folder,synthetic):
     run([SDK/'dotnet',probe/'bin/Release/net10.0/Inventory.dll',source,folder/'config.json',folder/'inventory.json'],folder,folder/'inventory.log')
     if (folder/'bazel').exists():shutil.rmtree(folder/'bazel')
     run([sys.executable,RULES/'tests/explicit_msbuild/oss/prepare.py',folder,RULES],folder,folder/'prepare.log')
-    workspace=folder/'bazel';build=workspace/'BUILD.bazel';text=build.read_text();text='load("@rules_msbuild//msbuild:defs.bzl","msbuild_test","msbuild_test_tool")\n'+text
+    workspace=folder/'bazel';build=workspace/'BUILD.bazel';text=build.read_text();text='load("@rules_msbuild//msbuild:defs.bzl","msbuild_test")\nload("@rules_msbuild//tests/support:vstest.bzl","vstest_tools")\n'+text
     runner=synthetic/'vstest-lock/packages/microsoft.testplatform.cli/17.14.1/microsoft.testplatform.cli.17.14.1.nupkg'
     shutil.copyfile(runner,workspace/'locked-packages'/runner.name)
     text+='msbuild_nuget_package(name="test_runner_package",package_id="Microsoft.TestPlatform.CLI",version="17.14.1",archive="locked-packages/'+runner.name+'",archive_sha256="'+hashlib.sha256(runner.read_bytes()).hexdigest()+'",content_hash="'+base64.b64encode(hashlib.sha512(runner.read_bytes()).digest()).decode()+'")\n'
-    text+='msbuild_test_tool(name="test_runner",package=":test_runner_package",path="contentFiles/any/net9.0/vstest.console.dll")\n'
+    adapters = {}
     inventory=json.loads((folder/'inventory.json').read_text());test_names=[]
     for entry in entries:
         label=Path(entry).stem;test_names.append(label)
@@ -72,12 +72,13 @@ def qualify(name,checkout,folder,synthetic):
         with zipfile.ZipFile(archive) as z:
             paths=[str(Path(n).parent) for n in z.namelist() if n.endswith('xunit.runner.visualstudio.testadapter.dll') and '/net4' not in n]
         assert len(paths)==1,paths
-        text+='msbuild_test_tool(name="'+label+'_adapter",package=":archive_'+key.replace('/','_').lower()+'",path="'+paths[0]+'")\n'
+        adapters[label] = dict(package=':archive_'+key.replace('/','_').lower(),path=paths[0])
         lines=text.splitlines()
         for i,line in enumerate(lines):
             if line.startswith(('msbuild_library(name="'+label+'",','msbuild_binary(name="'+label+'",')):
-                lines[i]=line.replace(line.split('(')[0]+'(','msbuild_test(',1)[:-1]+',test_protocol="vstest",test_runner=":test_runner",test_adapters=[":'+label+'_adapter"],size="large")'
+                lines[i]=line.replace(line.split('(')[0]+'(','msbuild_test(',1)[:-1]+',test_protocol="vstest",test_runner=":tools_runner",test_adapters=[":tools_'+label+'"],size="large")'
         text='\n'.join(lines)+'\n'
+    text+='vstest_tools(name="tools",runner_package=":test_runner_package",runner_path="contentFiles/any/net9.0/vstest.console.dll",adapters='+json.dumps(adapters)+')\n'
     build.write_text(text)
     startup=[BAZEL,'--host_jvm_args=-Xmx768m','--output_base='+str(folder/'base'),'--ignore_all_rc_files'];report=[]
     try:
