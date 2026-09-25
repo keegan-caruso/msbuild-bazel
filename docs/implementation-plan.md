@@ -9,6 +9,7 @@ There is no whole-graph discovery/preparation/replay step on this path.
 
 | Capability | Contract and evidence |
 | --- | --- |
+| Local project-to-BUILD synchronization (initial package-free slice) | [Generator and limits](project-sync.md) |
 | Libraries, binaries, packages and explicit configuration | [Rule API](explicit-bazel-rules.md) |
 | Configured dependency selection and private project references | [API and qualification](configured-graphs.md) |
 | Project facades and per-framework test suites | [Facade API](explicit-bazel-rules.md#project-facade), [test suites](bazel-test.md#tests-across-frameworks) |
