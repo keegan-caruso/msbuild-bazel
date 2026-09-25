@@ -2,6 +2,7 @@
 
 load(":paths.bzl", _TOOLCHAIN = "TOOLCHAIN")
 load(":providers.bzl", "MSBuildAssemblyInfo")
+load(":selection.bzl", "restore_key")
 
 def _assembly(ctx):
     contract = ctx.attr.contract[MSBuildAssemblyInfo]
@@ -21,18 +22,21 @@ def _assembly(ctx):
         if key in packages and packages[key] != row:
             fail("Conflicting contract/implementation package: " + key)
         packages[key] = row
+    key = restore_key(implementation.framework, contract.reference_framework, implementation.configuration, implementation.properties)
     tc = ctx.toolchains[_TOOLCHAIN]
     reference_source = implementation.reference if ctx.attr.use_implementation_reference else contract.reference
     reference = ctx.actions.declare_file(ctx.label.name + ".reference/" + contract.assembly + ".dll")
     restore_project = ctx.actions.declare_file(ctx.label.name + ".restore-project.json")
     request = ctx.actions.declare_file(ctx.label.name + ".pair.json")
-    ctx.actions.write(request, json.encode({"contract": reference_source.path, "contractIdentity": contract.identity.path, "implementationIdentity": implementation.identity.path, "output": reference.path, "contractRestore": contract.restore_project.path, "implementationRestore": implementation.restore_project.path, "restoreOutput": restore_project.path}))
+    ctx.actions.write(request, json.encode({"contract": reference_source.path, "contractIdentity": contract.identity.path, "implementationIdentity": implementation.identity.path, "output": reference.path, "contractRestore": contract.restore_project.path, "implementationRestore": implementation.restore_project.path, "restoreOutput": restore_project.path, "restoreKey": key}))
     ctx.actions.run(executable = tc.dotnet, arguments = [tc.runner.path, "pair", request.path], inputs = depset([request, tc.runner, reference_source, contract.identity, implementation.identity, contract.restore_project, implementation.restore_project], transitive = [tc.sdk, tc.runner_support]), outputs = [reference, restore_project], mnemonic = "MSBuildAssemblyPair")
     return [DefaultInfo(files = depset([implementation.runtime, reference])), MSBuildAssemblyInfo(
+        selections = depset(transitive = [contract.selections, implementation.selections]),
+        dependency_nodes = depset(transitive = [contract.dependency_nodes, implementation.dependency_nodes]),
         project = implementation.project,
         framework = implementation.framework,
         reference_framework = contract.reference_framework,
-        restore_key = implementation.framework + "/" + contract.reference_framework,
+        restore_key = key,
         configuration = implementation.configuration,
         properties = implementation.properties,
         assembly = implementation.assembly,

@@ -3,6 +3,7 @@ load(":assemblies.bzl", "assembly_tests")
 load(":facades.bzl", "facade_tests")
 load(":inputs.bzl", "input_tests")
 load(":layouts.bzl", "layout_tests")
+load(":selection.bzl", "selection_tests")
 load(":validation.bzl", "validation_tests")
 
 # Deliberately unusable at execution: analysis tests must not compile .NET.
@@ -40,3 +41,5 @@ validation_tests(name = "validation")
 layout_tests(name = "layouts")
 
 facade_tests(name = "facades")
+
+selection_tests(name = "selection")

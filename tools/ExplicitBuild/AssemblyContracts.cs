@@ -3,7 +3,7 @@ using System.Reflection.Metadata;
 using System.Reflection.PortableExecutable;
 using System.Text.Json;
 
-internal sealed record AssemblyPair(string Contract, string ContractIdentity, string ImplementationIdentity, string Output, string ContractRestore, string ImplementationRestore, string RestoreOutput);
+internal sealed record AssemblyPair(string Contract, string ContractIdentity, string ImplementationIdentity, string Output, string ContractRestore, string ImplementationRestore, string RestoreOutput, string? RestoreKey = null);
 internal sealed record AssemblyIdentity(string Name, bool ReferenceOnly);
 
 internal static class AssemblyContracts
@@ -33,6 +33,18 @@ internal static class AssemblyContracts
         }
         File.WriteAllText(output, JsonSerializer.Serialize(new AssemblyIdentity(AssemblyName.GetAssemblyName(assembly).FullName, referenceOnly), Program.Json));
     }
+    internal static void ValidateSelections(AssemblySelection[] selections)
+    {
+        foreach (var selection in selections)
+        {
+            var selected = JsonSerializer.Deserialize<AssemblyIdentity>(File.ReadAllText(selection.Selected), Program.Json)!;
+            var candidate = JsonSerializer.Deserialize<AssemblyIdentity>(File.ReadAllText(selection.Candidate), Program.Json)!;
+            if (selected.Name != candidate.Name || selected.ReferenceOnly)
+            {
+                throw new InvalidDataException("Selected assembly identity differs from the configured dependency: " + selected.Name + " / " + candidate.Name);
+            }
+        }
+    }
     internal static void Pair(AssemblyPair request)
     {
         var contract = JsonSerializer.Deserialize<AssemblyIdentity>(File.ReadAllText(request.ContractIdentity), Program.Json)!;
@@ -46,6 +58,7 @@ internal static class AssemblyContracts
         var implementationRestore = JsonSerializer.Deserialize<RestoreProject>(File.ReadAllText(request.ImplementationRestore), Program.Json)!;
         var restore = implementationRestore with
         {
+            ConfigurationKey = request.RestoreKey,
             RestoreFramework = contractRestore.RestoreFramework ?? contractRestore.Framework,
             FrameworkProperties = contractRestore.FrameworkProperties
         };

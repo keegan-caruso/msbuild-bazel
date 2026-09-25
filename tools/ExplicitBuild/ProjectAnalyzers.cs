@@ -123,6 +123,15 @@ internal static class ProjectAnalyzers
             }
 
             ConfiguredDependencies.Validate(request, dependency, Logical(dependency), evaluated);
+            if (request.Dependencies.Contains(Logical(dependency)))
+            {
+                var privateAssets = dependency.GetMetadataValue("PrivateAssets").ToLowerInvariant();
+                var implementation = (request.ImplementationDependencies ?? []).Contains(Logical(dependency));
+                if (implementation ? privateAssets != "all" : privateAssets is not ("" or "none"))
+                {
+                    throw new InvalidDataException("ProjectReference PrivateAssets disagrees with Bazel implementation_deps: " + Logical(dependency));
+                }
+            }
             var build = dependency.GetMetadataValue("BuildReference");
             if (build.Length > 0 && !build.Equals("true", StringComparison.OrdinalIgnoreCase))
             {
