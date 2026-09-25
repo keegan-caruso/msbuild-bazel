@@ -36,6 +36,9 @@ version, 35 runner unit tests, and 12 xUnit/NUnit/MSTest controls. Repository an
 .NET style checks passed. [Compact evidence](avalonia-expanded-evidence.json)
 records action counts, outcome digests, and managed artifact comparisons.
 
+Follow-up [edit contracts and Headless qualification](avalonia-correctness.md)
+check the declared dependencies beyond cold builds and recovery.
+
 ## Inputs and boundaries
 
 The source is Avalonia **11.3.12**, commit
