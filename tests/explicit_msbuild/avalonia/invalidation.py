@@ -7,6 +7,7 @@ import sys
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from remote_support import RemoteFixture
+from native_repository import register as register_native
 from suite_support import serialize, test_outcomes
 
 p = argparse.ArgumentParser(description=__doc__)
@@ -19,6 +20,7 @@ workspace = a.workspace.resolve()
 saved = json.loads((workspace / 'expanded-qualification.json').read_text())
 f = RemoteFixture(a.output, a.executor, workspace, instance=a.instance or saved['instance'])
 f.sdk()
+register_native(workspace)
 root = workspace / 'upstream'
 targets = saved['targets']
 suites = sorted(saved['outcomes'])
@@ -50,9 +52,21 @@ def edit(case, path, replacement, expected, tests, *, error=None, changed_output
         if reference:
             assert (digest(reference) != ref_before) == reference_changes, (case, 'unexpected reference change')
         if error:
-            failures = {suite: sum(count for (_, outcome), count in test_outcomes(workspace, suite).items() if outcome == 'Failed') for suite in suites if '//upstream:'+suite in tests}
-            assert any(failures.values()), (case, failures)
-            (f.folder/(case+'-outcomes.json')).write_text(json.dumps({suite:serialize(test_outcomes(workspace,suite)) for suite in failures},indent=2)+'\n')
+            failures = {}
+            for suite in suites:
+                if '//upstream:' + suite not in tests:
+                    continue
+                log = (workspace / ('bazel-testlogs/upstream/' + suite + '/test.log')).read_text()
+                if case == 'native-negative' and 'Test Run Aborted.' in log:
+                    assert 'native-tests/libfontconfig.so.1: file too short' in log, suite
+                    failures[suite] = {'aborted': True, 'reason': 'declared Fontconfig input is corrupt'}
+                    (f.folder / (case + '-' + suite + '.log')).write_text(log)
+                else:
+                    results = test_outcomes(workspace, suite)
+                    assert any(outcome == 'Failed' and count for (_, outcome), count in results.items()), suite
+                    failures[suite] = serialize(results)
+            assert failures, case
+            (f.folder / (case + '-outcomes.json')).write_text(json.dumps(failures, indent=2) + '\n')
         else:
             parity()
         evidence.append(dict(case=case,input=path.relative_to(workspace).as_posix(),before=hashlib.sha256(original).hexdigest(),after=digest(path),negativeControl=bool(error),outputChanged=bool(changed_output),referenceChanged=reference_changes if reference else None))
@@ -84,9 +98,23 @@ try:
          reference=workspace/('bazel-bin/upstream/'+theme_labels[0]+'.reference/Avalonia.Themes.Simple.dll'))
     path = root / 'tests/TestFiles/Skia/OpacityMask/Opacity_Mask_Masks_Element.expected.png'
     edit('baseline-negative', path, ('qualification-invalid-png-'+variant).encode(), [], ['//upstream:Avalonia.Skia.RenderTests'], error='FAILED')
-    path = root / 'native-tests/libfontconfig.so.1'
-    edit('native-negative', path, ('qualification-invalid-library-'+variant).encode(), [],
-         ['//upstream:Avalonia.Skia.UnitTests','//upstream:Avalonia.Skia.RenderTests'], error='FAILED')
+    native_tests = ['//upstream:Avalonia.Skia.UnitTests','//upstream:Avalonia.Skia.RenderTests']
+    if (workspace / 'native-packages.json').exists():
+        # Override the declared label; never mutate Bazel's external repository cache.
+        corrupt = root / 'native-tests/qualification-invalid.so'
+        assert not corrupt.exists()
+        corrupt.write_bytes(('qualification-invalid-library-'+variant).encode())
+        try:
+            build = root / 'BUILD.bazel'
+            original = build.read_bytes()
+            label = b'@avalonia_native//:libfontconfig.so.1'
+            assert label in original
+            edit('native-negative', build, original.replace(label, b'native-tests/qualification-invalid.so'), [], native_tests, error='FAILED')
+        finally:
+            corrupt.unlink()
+    else:
+        path = root / 'native-tests/libfontconfig.so.1'
+        edit('native-negative', path, ('qualification-invalid-library-'+variant).encode(), [], native_tests, error='FAILED')
     (f.folder/'invalidation.json').write_text(json.dumps(evidence,indent=2)+'\n')
 finally:
     for path, original in originals.items():
