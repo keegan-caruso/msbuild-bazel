@@ -16,6 +16,7 @@ internal static class ApplicationLaunch
         try
         {
             var entryPackages = RuntimePackages.Read(Path.Combine(root, Safe(request.Entry)));
+            var framework = RuntimePackages.FrameworkFiles(Path.Combine(root, Safe(request.Entry)));
             var packageInputs = (request.Packages ?? []).Select(p => p with { Directory = Path.Combine(root, Safe(p.Directory)) }).ToArray();
             foreach (var directory in request.Dependencies.Prepend(request.Entry))
             {
@@ -29,6 +30,10 @@ internal static class ApplicationLaunch
                         continue;
                     }
 
+                    if (directory != request.Entry && packages.ContainsKey(relative) && RuntimePackages.SuppliedByFramework(file, framework))
+                    {
+                        continue;
+                    }
                     Copy(file.Source, Path.Combine(temporary, relative));
                 }
             }

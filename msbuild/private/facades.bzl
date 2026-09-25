@@ -6,6 +6,8 @@ load(":variants.bzl", "project_group")
 _LIST_ATTRIBUTES = [
     "srcs",
     "deps",
+    "assembly_selections",
+    "implementation_deps",
     "items",
     "analyzers",
     "tools",

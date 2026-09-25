@@ -17,7 +17,7 @@ class RuntimePackages(unittest.TestCase):
         cls.directory = tempfile.TemporaryDirectory()
         cls.root = Path(cls.directory.name)
         (cls.root/'App.csproj').write_text('<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup><TargetFramework>net10.0</TargetFramework><OutputType>Exe</OutputType></PropertyGroup></Project>')
-        (cls.root/'Program.cs').write_text('System.Console.WriteLine("runtime-ok");')
+        (cls.root/'Program.cs').write_text('System.Console.WriteLine(System.IO.File.Exists("System.Numerics.Vectors.dll") ? "framework-staged" : "runtime-ok");')
         p = subprocess.run([str(SDK/'dotnet'), 'build', str(cls.root/'App.csproj'), '-c', 'Release', '-p:NuGetAudit=false'], capture_output=True, text=True)
         assert p.returncode == 0, p.stdout+p.stderr
 
@@ -70,3 +70,28 @@ class RuntimePackages(unittest.TestCase):
         result = self.launch('Package', 'package', unsafe=True)
         self.assertNotEqual(result.returncode, 0)
         self.assertIn('Unsafe logical path', result.stderr)
+
+    def test_framework_suppresses_only_older_inherited_package_assemblies(self):
+        assembly = next((SDK/'shared/Microsoft.NETCore.App').glob('10.*/System.Numerics.Vectors.dll'))
+        for version, package, expected in [('11.0.0.0', True, 'runtime-ok'), ('10.0.0.0', True, 'framework-staged'), ('9.0.0.0', True, 'framework-staged'), ('11.0.0.0', False, 'framework-staged')]:
+            with self.subTest(version=version, package=package), tempfile.TemporaryDirectory() as directory:
+                root = Path(directory)
+                shutil.copytree(self.root/'bin/Release/net10.0', root/'entry')
+                (root/'dependency').mkdir()
+                for name in ['entry', 'dependency']:
+                    (root/name/'.rules-msbuild-packages.json').write_text('{}')
+                    (root/name/'.rules-msbuild-package-files.json').write_text('{}')
+                (root/'entry/.rules-msbuild-framework-files.json').write_text(json.dumps({'System.Numerics.Vectors.dll': version}))
+                packages = []
+                if package:
+                    (root/'package').mkdir()
+                    shutil.copyfile(assembly, root/'package/System.Numerics.Vectors.dll')
+                    (root/'dependency/.rules-msbuild-packages.json').write_text(json.dumps({'System.Numerics.Vectors.dll': 'Vectors'}))
+                    (root/'dependency/.rules-msbuild-package-files.json').write_text(json.dumps({'System.Numerics.Vectors.dll': dict(id='Vectors', version='1.0.0', path='System.Numerics.Vectors.dll')}))
+                    packages.append(dict(id='Vectors', version='1.0.0', directory='package'))
+                else:
+                    shutil.copyfile(assembly, root/'dependency/System.Numerics.Vectors.dll')
+                (root/'launch.json').write_text(json.dumps(dict(entry='entry', dependencies=['dependency'], assembly='App', test=False, data=[], packages=packages)))
+                result = subprocess.run([str(SDK/'dotnet'), str(ROOT/'tools/ExplicitBuild/bin/Release/net10.0/ExplicitBuild.dll'), 'run', str(root/'launch.json')], env=dict(os.environ, RULES_MSBUILD_RUNFILES=str(root)), capture_output=True, text=True)
+                self.assertEqual(result.returncode, 0, result.stderr)
+                self.assertEqual(result.stdout.strip(), expected)

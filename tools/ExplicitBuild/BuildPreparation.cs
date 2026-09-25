@@ -7,6 +7,7 @@ internal static class BuildPreparation
         compilerPath ??= path => path;
         Safe(r.Assembly);
         FrameworkReferences.Validate(r);
+        AssemblyContracts.ValidateSelections(r.AssemblySelections ?? []);
         if (r.Assembly.Contains('/'))
         {
             throw new InvalidDataException("Assembly name must be a filename");

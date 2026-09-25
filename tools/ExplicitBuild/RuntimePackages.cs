@@ -1,3 +1,4 @@
+using System.Reflection;
 using System.Text.Json;
 using Microsoft.Build.Execution;
 
@@ -6,6 +7,7 @@ using Microsoft.Build.Execution;
 internal static class RuntimePackages
 {
     internal const string Manifest = ".rules-msbuild-packages.json";
+    internal const string FrameworkManifest = ".rules-msbuild-framework-files.json";
     internal const string FilesManifest = ".rules-msbuild-package-files.json";
     internal sealed record PackageFile(string Id, string Version, string Path);
     internal static void Export(Session session, ProjectInstance project)
@@ -46,6 +48,28 @@ internal static class RuntimePackages
             var relative = Program.Safe(Path.GetRelativePath(Program.Real(packageRoot), Program.Real(item.EvaluatedInclude)).Replace('\\', '/'));
             sources[path] = new(package.Id, package.Version, relative);
         }
+        var frameworkFiles = new Dictionary<string, Version>(StringComparer.Ordinal);
+        foreach (var platform in project.GetItems("PackageConflictPlatformManifests"))
+        {
+            foreach (var line in File.ReadLines(platform.EvaluatedInclude))
+            {
+                var fields = line.Split('|');
+                if (fields.Length >= 3 && Version.TryParse(fields[2], out var version))
+                {
+                    var name = Program.Safe(fields[0]);
+                    if (!frameworkFiles.TryGetValue(name, out var previous) || version > previous)
+                    {
+                        frameworkFiles[name] = version;
+                    }
+                }
+            }
+        }
+        var frameworkManifest = Path.Combine(output, FrameworkManifest);
+        if (File.Exists(frameworkManifest))
+        {
+            throw new InvalidDataException("Reserved runtime output: " + FrameworkManifest);
+        }
+        File.WriteAllText(frameworkManifest, JsonSerializer.Serialize(frameworkFiles.ToDictionary(p => p.Key, p => p.Value.ToString()), Program.Json));
         var manifest = Path.Combine(output, Manifest);
         if (File.Exists(manifest))
         {
@@ -63,12 +87,32 @@ internal static class RuntimePackages
     }
     internal static Dictionary<string, string> Read(string directory) => JsonSerializer.Deserialize<Dictionary<string, string>>(File.ReadAllText(Path.Combine(directory, Manifest)), Program.Json)!;
     internal static Dictionary<string, PackageFile> ReadFiles(string directory) => JsonSerializer.Deserialize<Dictionary<string, PackageFile>>(File.ReadAllText(Path.Combine(directory, FilesManifest)), Program.Json)!;
+    internal static Dictionary<string, string> FrameworkFiles(string directory)
+    {
+        var path = Path.Combine(directory, FrameworkManifest);
+        return File.Exists(path) ? JsonSerializer.Deserialize<Dictionary<string, string>>(File.ReadAllText(path), Program.Json)! : [];
+    }
+    internal static bool SuppliedByFramework(Input file, Dictionary<string, string> framework)
+    {
+        if (!framework.TryGetValue(file.Path, out var version))
+        {
+            return false;
+        }
+        try
+        {
+            // Only strictly older managed package assemblies are discarded.
+            // Equal/newer versions and non-package collisions keep normal checks.
+            var assembly = AssemblyName.GetAssemblyName(file.Source);
+            return assembly.Name + ".dll" == file.Path && assembly.Version < Version.Parse(version);
+        }
+        catch (BadImageFormatException) { return false; }
+    }
     internal static IEnumerable<Input> Files(string directory, PackageInput[] packages)
     {
         foreach (var file in Directory.GetFiles(directory, "*", SearchOption.AllDirectories))
         {
             var relative = Path.GetRelativePath(directory, file);
-            if (relative is not Manifest and not FilesManifest)
+            if (relative is not Manifest and not FilesManifest and not FrameworkManifest)
             {
                 yield return new(file, relative);
             }

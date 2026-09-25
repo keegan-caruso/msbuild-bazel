@@ -247,6 +247,7 @@ internal static class LinuxWorker
             FrameworkInputs = request.FrameworkInputs?.Select(map).ToArray(),
             LayoutBindings = request.LayoutBindings?.Select(b => b with { Directory = map(b.Directory) }).ToArray(),
             RestoreProjects = request.RestoreProjects?.Select(map).ToArray(),
+            AssemblySelections = request.AssemblySelections?.Select(s => s with { Selected = map(s.Selected), Candidate = map(s.Candidate), RestoreProject = map(s.RestoreProject) }).ToArray(),
             TargetInputs = request.TargetInputs?.Select(i => i with { File = map(i.File) }).ToArray(),
             BuildTools = request.BuildTools?.Select(t => t with { Directories = t.Directories.Select(map).ToArray(), Packages = t.Packages?.Select(p => p with { Directory = map(p.Directory) }).ToArray(), Data = t.Data.Select(d => d with { Source = map(d.Source) }).ToArray() }).ToArray(),
             ProjectAnalyzers = request.ProjectAnalyzers?.Select(a => a with { Directories = a.Directories.Select(map).ToArray(), Packages = a.Packages?.Select(p => p with { Directory = map(p.Directory) }).ToArray() }).ToArray(),

@@ -49,6 +49,8 @@ _ATTRS = {
     "items": attr.label_list(providers = [MSBuildItemsInfo]),
     "export_targets": attr.string_list_dict(),
     "deps": attr.label_list(providers = [[MSBuildAssemblyInfo], [MSBuildProjectInfo], [MSBuildPackageInfo]]),
+    "implementation_deps": attr.label_list(providers = [[MSBuildAssemblyInfo], [MSBuildProjectInfo]]),
+    "assembly_selections": attr.label_list(providers = [MSBuildAssemblyInfo]),
     "transitive_compile_references": attr.bool(default = True),
     "tools": attr.label_list(providers = [MSBuildToolInfo], cfg = "exec"),
     "project_outputs": attr.label_list(providers = [MSBuildProjectOutputInfo]),
