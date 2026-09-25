@@ -1,26 +1,93 @@
+using System.Security.Cryptography;
+using System.Text;
 using System.Text.Json;
 using Microsoft.Build.Evaluation;
-var sdk=Environment.GetEnvironmentVariable("RULES_MSBUILD_DOTNET_ROOT")!+"/sdk/10.0.400";
-System.Runtime.Loader.AssemblyLoadContext.Default.Resolving += (c,n)=>File.Exists(sdk+"/"+n.Name+".dll")?c.LoadFromAssemblyPath(sdk+"/"+n.Name+".dll"):null;
-Environment.SetEnvironmentVariable("MSBUILD_EXE_PATH",sdk+"/MSBuild.dll");
-Environment.SetEnvironmentVariable("MSBuildSDKsPath",sdk+"/Sdks");
-Scan(Path.GetFullPath(args[0]),args[1],args[2]);
-static void Scan(string root,string config,string output)
+using Microsoft.Build.Execution;
+using Microsoft.Build.Framework;
+using Microsoft.Build.Logging;
+
+var sdk = Environment.GetEnvironmentVariable("RULES_MSBUILD_DOTNET_ROOT")! + "/sdk/10.0.400";
+System.Runtime.Loader.AssemblyLoadContext.Default.Resolving += (c, n) => File.Exists(sdk + "/" + n.Name + ".dll") ? c.LoadFromAssemblyPath(sdk + "/" + n.Name + ".dll") : null;
+Environment.SetEnvironmentVariable("MSBUILD_EXE_PATH", sdk + "/MSBuild.dll");
+Environment.SetEnvironmentVariable("MSBuildSDKsPath", sdk + "/Sdks");
+Scan(Path.GetFullPath(args[0]), args[1], args[2]);
+
+static void Scan(string root, string config, string output)
 {
- var settings=JsonDocument.Parse(File.ReadAllText(config)).RootElement;
- var globals=settings.GetProperty("properties").EnumerateObject().ToDictionary(p=>p.Name,p=>p.Value.GetString()!);
- globals["Configuration"]="Release";
- var seen=new HashSet<string>();var queue=new Queue<string>(settings.GetProperty("entries").EnumerateArray().Select(x=>Path.Combine(root,x.GetString()!)));var rows=new List<object>();
- while(queue.TryDequeue(out var path))
- {
-  path=Path.GetFullPath(path);if(!seen.Add(path))continue;
-  using var collection=new ProjectCollection();
-  var p=collection.LoadProject(path,globals,null);
-  var framework=p.GetPropertyValue("TargetFramework");if(framework.Length==0)framework=p.GetPropertyValue("TargetFrameworks").Split(';')[0];
-  p.SetGlobalProperty("TargetFramework",framework);p.ReevaluateIfNecessary();
-  object[] Items(string type)=>p.GetItems(type).Select(i=>(object)new {include=i.EvaluatedInclude,metadata=i.Metadata.ToDictionary(m=>m.Name,m=>m.EvaluatedValue)}).ToArray();
-  var refs=p.GetItems("ProjectReference").Select(i=>Path.GetFullPath(i.EvaluatedInclude.Replace('\\','/'),Path.GetDirectoryName(path)!)).ToArray();foreach(var r in refs)queue.Enqueue(r);
-  rows.Add(new {project=Path.GetRelativePath(root,path),framework,assets=p.GetPropertyValue("ProjectAssetsFile"),properties=new[]{"LangVersion","Nullable","AssemblyName","RootNamespace","AllowUnsafeBlocks","AssemblyOriginatorKeyFile","OutputType"}.ToDictionary(x=>x,x=>p.GetPropertyValue(x)),imports=p.Imports.Select(i=>i.ImportedProject.FullPath).Where(x=>x.StartsWith(root+"/")).Select(x=>Path.GetRelativePath(root,x)).ToArray(),references=Items("ProjectReference"),packages=Items("PackageReference"),frameworks=Items("FrameworkReference"),compile=Items("Compile"),items=new[]{"EmbeddedResource","Content","None","AdditionalFiles","GlobalAnalyzerConfigFiles","EditorConfigFiles"}.ToDictionary(t=>t,t=>Items(t))});
- }
- File.WriteAllText(output,JsonSerializer.Serialize(rows,new JsonSerializerOptions{WriteIndented=true}));Console.WriteLine($"Evaluated {rows.Count} projects");
+    var settings = JsonDocument.Parse(File.ReadAllText(config)).RootElement;
+    var globals = settings.GetProperty("properties").EnumerateObject().ToDictionary(p => p.Name, p => p.Value.GetString()!, StringComparer.OrdinalIgnoreCase);
+    globals.TryAdd("Configuration", "Release");
+    using var collection = new ProjectCollection();
+    using var manager = new BuildManager();
+    var nodes = new Dictionary<string, (Project Project, Dictionary<string, string> Globals)>();
+    var queue = new Queue<string>();
+    var rows = new List<object>();
+    string Key(string path, Dictionary<string, string> properties) => Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(JsonSerializer.Serialize(new { project = Path.GetRelativePath(root, path), properties = properties.OrderBy(p => p.Key, StringComparer.OrdinalIgnoreCase).Select(p => new[] { p.Key.ToLowerInvariant(), p.Value }) })))).ToLowerInvariant();
+    string Add(string path, Dictionary<string, string> properties)
+    {
+        path = Path.GetFullPath(path);
+        if (!path.StartsWith(root + "/", StringComparison.Ordinal)) throw new InvalidOperationException("Fixture project is outside the source root: " + path);
+        properties = new(properties, StringComparer.OrdinalIgnoreCase);
+        var project = collection.LoadProject(path, properties, null);
+        var framework = project.GetPropertyValue("TargetFramework");
+        if (framework.Length == 0) throw new InvalidOperationException("Select TargetFramework explicitly for fixture entry: " + path);
+        // The generated assembly rule always declares its evaluated framework.
+        properties["TargetFramework"] = framework;
+        var key = Key(path, properties);
+        if (!nodes.ContainsKey(key))
+        {
+            project = collection.LoadProject(path, properties, null);
+            nodes.Add(key, (project, properties));
+            queue.Enqueue(key);
+        }
+        return key;
+    }
+    var entries = settings.GetProperty("entries").EnumerateArray().Select(entry =>
+    {
+        var properties = new Dictionary<string, string>(globals, StringComparer.OrdinalIgnoreCase);
+        if (settings.TryGetProperty("framework", out var framework)) properties["TargetFramework"] = framework.GetString()!;
+        if (entry.ValueKind == JsonValueKind.Object)
+            foreach (var property in entry.GetProperty("properties").EnumerateObject()) properties[property.Name] = property.Value.GetString()!;
+        return Add(Path.Combine(root, entry.ValueKind == JsonValueKind.String ? entry.GetString()! : entry.GetProperty("project").GetString()!), properties);
+    }).ToHashSet();
+    manager.BeginBuild(new BuildParameters(collection) { MaxNodeCount = 1, EnableNodeReuse = false, Loggers = [new ConsoleLogger(LoggerVerbosity.Minimal)] });
+    try
+    {
+        while (queue.TryDequeue(out var id))
+        {
+            var (p, properties) = nodes[id];
+            var result = manager.BuildRequest(new BuildRequestData(p.CreateProjectInstance(), ["PrepareProjectReferences"], null, BuildRequestDataFlags.ProvideProjectStateAfterBuild));
+            if (result.OverallResult != BuildResultCode.Success) throw new InvalidOperationException("Reference preparation failed: " + p.FullPath);
+            var state = result.ProjectStateAfterBuild ?? throw new InvalidOperationException("Missing prepared project state");
+            if (state.GetItems("_MSBuildProjectReferenceNonexistent").Count != 0) throw new InvalidOperationException("Missing project reference: " + p.FullPath);
+            object[] Items(string type) => p.GetItems(type).Select(i => (object)new { include = i.EvaluatedInclude, metadata = i.Metadata.ToDictionary(m => m.Name, m => m.EvaluatedValue) }).ToArray();
+            // SDK preparation can add transitive references from assets. Keep authored
+            // edges only; the Bazel closure already supplies their transitive inputs.
+            string ReferencePath(string include) => Path.GetFullPath(include.Replace('\\', '/'), Path.GetDirectoryName(p.FullPath)!);
+            var declared = p.GetItems("ProjectReference").Select(edge => ReferencePath(edge.EvaluatedInclude)).ToHashSet(StringComparer.Ordinal);
+            var references = state.GetItems("_MSBuildProjectReferenceExistent").Where(edge => declared.Contains(ReferencePath(edge.EvaluatedInclude))).Select(edge =>
+            {
+                var child = new Dictionary<string, string>(properties, StringComparer.OrdinalIgnoreCase);
+                void Remove(string value) { foreach (var name in value.Split(';', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)) child.Remove(ProjectCollection.Unescape(name)); }
+                void Assign(string value)
+                {
+                    foreach (var assignment in value.Split(';', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+                    {
+                        var separator = assignment.IndexOf('=');
+                        if (separator <= 0) throw new InvalidOperationException("Invalid project reference property: " + assignment);
+                        child[ProjectCollection.Unescape(assignment[..separator])] = ProjectCollection.Unescape(assignment[(separator + 1)..]);
+                    }
+                }
+                Remove(edge.GetMetadataValue("GlobalPropertiesToRemove") + ";" + state.GetPropertyValue("_GlobalPropertiesToRemoveFromProjectReferences"));
+                foreach (var metadata in new[] { "SetConfiguration", "SetPlatform", "SetTargetFramework", "Properties", "AdditionalProperties" }) Assign(edge.GetMetadataValue(metadata));
+                Remove(edge.GetMetadataValue("UndefineProperties"));
+                var path = Path.GetFullPath(edge.EvaluatedInclude.Replace('\\', '/'), Path.GetDirectoryName(p.FullPath)!);
+                return new { include = edge.EvaluatedInclude, node = Add(path, child), metadata = edge.Metadata.ToDictionary(m => m.Name, m => m.EvaluatedValue) };
+            }).ToArray();
+            rows.Add(new { id, entry = entries.Contains(id), project = Path.GetRelativePath(root, p.FullPath), framework = p.GetPropertyValue("TargetFramework"), globalProperties = properties, assets = p.GetPropertyValue("ProjectAssetsFile"), properties = new[] { "LangVersion", "Nullable", "AssemblyName", "RootNamespace", "AllowUnsafeBlocks", "AssemblyOriginatorKeyFile", "OutputType" }.ToDictionary(x => x, p.GetPropertyValue), imports = p.Imports.Select(i => i.ImportedProject.FullPath).Where(x => x.StartsWith(root + "/")).Select(x => Path.GetRelativePath(root, x)).ToArray(), references, packages = Items("PackageReference"), frameworks = Items("FrameworkReference"), compile = Items("Compile"), items = new[] { "EmbeddedResource", "Content", "None", "AdditionalFiles", "GlobalAnalyzerConfigFiles", "EditorConfigFiles" }.ToDictionary(t => t, Items) });
+        }
+    }
+    finally { manager.EndBuild(); }
+    File.WriteAllText(output, JsonSerializer.Serialize(rows, new JsonSerializerOptions { WriteIndented = true }));
+    Console.WriteLine($"Evaluated {rows.Count} configured projects");
 }

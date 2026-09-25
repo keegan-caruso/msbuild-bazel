@@ -6,7 +6,7 @@ rules=Path(__file__).resolve().parents[3];checkout=a.checkout.resolve();dest=a.d
 assert subprocess.check_output(['git','-C',checkout,'rev-parse','HEAD'],text=True).strip()=='37fbd9655cc581ff5b1c6b1fb1be4e3118c889d0'
 shutil.copytree(checkout,source,ignore=shutil.ignore_patterns('.git','bin','obj','artifacts','._*'))
 globaljson=source/'global.json';data=json.loads(globaljson.read_text());data['sdk']={'version':'10.0.400','rollForward':'disable'};globaljson.write_text(json.dumps(data))
-config={'sourceSubdir':'upstream','entries':[a.entry],'properties':{'AvsSkipBuildingLegacyTargetFrameworks':'True','DebugType':'portable','ProduceReferenceAssembly':'true','NuGetAudit':'false'}}
+config={'sourceSubdir':'upstream','framework':'net8.0','entries':[a.entry],'properties':{'AvsSkipBuildingLegacyTargetFrameworks':'True','DebugType':'portable','ProduceReferenceAssembly':'true','NuGetAudit':'false'}}
 (dest/'config.json').write_text(json.dumps(config,indent=2))
 props=['-p:'+k+'='+v for k,v in config['properties'].items()]+['-p:RestorePackagesPath='+str(dest/'nuget')]
 entry=source/config['entries'][0]
