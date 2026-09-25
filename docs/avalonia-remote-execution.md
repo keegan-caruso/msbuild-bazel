@@ -201,14 +201,55 @@ where reference hashes are inspected; no-op/restoration/recovery use `toplevel`.
 For independent recovery, copy only `/tmp/authored/bazel` without `bazel-*` links
 and run the same script with the copied workspace and `--recover`.
 
-### Remaining framework-variant boundary
+### Mixed-framework Markup suite
 
-An initial `Avalonia.Markup.UnitTests` raw control passed all 287 tests, but its
-remote fixture was rejected: `Avalonia.UnitTests` targets `netstandard2.0`, while
-the fixture had selected `net8.0` dependencies. The current test inventory keys
-nodes only by project path, so it cannot export both framework variants of one
-project. The rule's framework check correctly rejects the incompatible edge.
-Closing this boundary requires fixture nodes/labels keyed by project plus global
-properties and explicit framework-compatible edges, followed by runtime-closure
-qualification. Retargeting the helper or suppressing validation is not part of
-this qualification. The generator suite does not require that mixed graph.
+The configured fixture now qualifies `Avalonia.Markup.UnitTests` without retargeting
+its `netstandard2.0` helper. It preserves **25 configured project nodes**,
+**107 package targets** and **3,894 evaluated source entries**. Four projects have
+both net8.0 and .NET Standard variants. Target/execution configurations require
+27 compilation actions, including separate build-task and generator instances.
+
+Both Bazel **8.8.0 and 9.2.0** pass all **287 authored tests**, matching raw MSBuild
+by individual test name and outcome. There is no baseline test filter or source
+patch. The SDK/runtime and VSTest pins are the same as the generator qualification
+above; Markup retains its library output type.
+
+The fixture declares the modern variant at each mixed-framework convergence and
+honors private project compiler dependencies. Runtime staging excludes strictly
+older inherited package assemblies listed in the application's SDK platform
+manifest. These are [generic rule contracts](configured-graphs.md), not Avalonia
+exceptions.
+
+| Control | Observed result on both baselines |
+| --- | --- |
+| No-op | No compilation or test execution |
+| Body exception in `Binding()` | Both Markup variants rebuild; 43 tests fail; reference hash unchanged |
+| Restore body | Passing compile/test outputs recovered from cache |
+| Add public API to `Binding` | 10 affected projects rebuild; all 287 tests pass |
+| Restore API | Passing compile/test outputs recovered from cache |
+
+On each baseline, an independent consumer with a different workspace path and
+fresh output base recovered **all 168 recorded actions** from the remote cache,
+including the same 287 passing test results. Neither compilation nor tests ran
+on the consumer. The producer and consumer had separate disks and no shared mount.
+
+See [compact evidence](configured-graphs-evidence.json) for per-case actions and
+qualification wall times. These runs establish correctness and cache behavior,
+not a controlled raw/remote performance comparison. The raw control and remote
+execution use different scheduling and cache conditions.
+
+```sh
+python3 tests/explicit_msbuild/avalonia/setup.py /path/to/pinned/avalonia /tmp/markup \
+  --entry tests/Avalonia.Markup.UnitTests/Avalonia.Markup.UnitTests.csproj
+USE_BAZEL_VERSION=9.2.0 python3 tests/explicit_msbuild/avalonia/authored_tests.py \
+  /tmp/markup /tmp/markup-rbe92 --suite markup --executor grpc://WORKER_IP:8980
+```
+
+Repeat with `USE_BAZEL_VERSION=8.8.0` and a new output directory. For independent
+recovery, copy only the prepared `bazel` workspace without `bazel-*` links, and
+run `authored_tests.py` with `--suite markup --recover` against a fresh output
+base. The workspace records its remote instance and expected test outcomes.
+
+This qualifies the selected Markup suite on Linux ARM64, not all Avalonia projects,
+.NET 8 runtime execution, platform-specific graphics, or arbitrary framework
+variant unification. See [configured graph limits](configured-graphs.md#scope).

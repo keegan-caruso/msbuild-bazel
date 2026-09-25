@@ -142,12 +142,72 @@ declared inputs; the facade does not acquire them or evaluate `.csproj` files.
 Only `deps` selects a project facade. Tools, analyzers, paired assemblies and
 project-output bindings should name explicit variants. Different configurations
 of the same TFM use separate facade declarations or explicit rules. The facade
-does not resolve conflicting assembly implementations where graph branches meet.
-This does not close the mixed-framework Avalonia fixture inventory boundary.
+does not automatically resolve conflicting implementations where graph branches
+meet. Use the explicit selection below when those variants share an assembly
+identity.
 
 All exposed variants are analyzed, including their dependencies, so each must
 have a valid declaration. Direct variant labels avoid that additional analysis.
 See the [200-project measurement](performance.md#project-facade-analysis).
+
+## Private project compiler dependencies
+
+Use `implementation_deps` for a project reference with `PrivateAssets="all"`.
+These dependencies are available to the declaring project's compiler but their
+references and compile packages are not exported through that edge. Their runtime
+closure remains available, matching the SDK's project build behavior. All normal
+inputs, configuration checks and action dependencies still apply. The fixture
+inventory emits this attribute from resolved project-reference metadata.
+
+Use `deps` for public project references; its evaluated `PrivateAssets` must be
+absent or `none`. A mismatch fails during validation. Partial asset lists are not
+supported by this project-dependency contract. Package visibility continues to
+use `package_private_assets`.
+
+## Configured branches and assembly selection
+
+A helper can compile against `Core/netstandard2.1` while an application uses
+`Core/net10.0`. Keep both configured producers and their original compilation
+edges. At the convergence point, declare the implementation that the consumer
+will compile and run against:
+
+```starlark
+msbuild_library(
+    name = "Helper",
+    project = "Helper.csproj",
+    target_framework = "netstandard2.1",
+    deps = [":Core_netstandard2_1"],
+)
+msbuild_binary(
+    name = "App",
+    project = "App.csproj",
+    target_framework = "net10.0",
+    deps = [":Core_net10_0", ":Helper"],
+    assembly_selections = [":Core_net10_0"],
+)
+```
+
+`assembly_selections` accepts explicit assembly variants, including paired
+assemblies. It replaces competing compiler references and runtime artifacts at
+that consumer and propagates the choice to downstream consumers. It leaves the
+helper's own compilation unchanged. Restore metadata retains framework-specific
+edges under the selected project identity, so the application's dependency
+manifest describes the selected runtime assembly.
+
+A selection must already occur in the active dependency closure, come from the
+same project, and agree with direct `deps`. Conflicting inherited choices require
+an explicit choice at their convergence point. Full assembly identity (name,
+version, culture and public key token) and NuGet project name/version must match.
+Different global properties and configurations remain distinct restore nodes,
+even when their TFMs match. Without a selection, conflicting artifacts retain the
+existing collision checks.
+
+This is an explicit compatibility assertion, not an API-superset check. Validate
+that the selected implementation supports the APIs used by every branch. The
+selection does not prune variant-specific package, data or descendant closures;
+those retain their existing conflict checks. It is not automatic MSBuild assembly
+conflict resolution. See [configured graph qualification](configured-graphs.md)
+for raw parity, edit and recovery controls.
 
 ## Example
 
