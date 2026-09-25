@@ -1,0 +1,319 @@
+{
+  "platform": "linux-arm64",
+  "sdk": "10.0.400",
+  "results": {
+    "smoke": {
+      "bazel": "bazel 9.2.0",
+      "configuredProjects": 25,
+      "compilationActions": 27,
+      "generationActions": 0,
+      "suites": {
+        "Qualification.Headless.XUnit": {
+          "Passed": 2
+        },
+        "Qualification.Headless.NUnit": {
+          "Passed": 2
+        }
+      },
+      "rawAndRemoteNamesAndOutcomesEqual": true,
+      "cases": [
+        {
+          "case": "remote-slice",
+          "executed": [
+            [
+              "MSBuildAssembly",
+              "//upstream:Avalonia"
+            ],
+            [
+              "MSBuildAssembly",
+              "//upstream:Avalonia.Analyzers"
+            ],
+            [
+              "MSBuildAssembly",
+              "//upstream:Avalonia.Base"
+            ],
+            [
+              "MSBuildAssembly",
+              "//upstream:Avalonia.Build.Tasks"
+            ],
+            [
+              "MSBuildAssembly",
+              "//upstream:Avalonia.Build.Tasks"
+            ],
+            [
+              "MSBuildAssembly",
+              "//upstream:Avalonia.Controls"
+            ],
+            [
+              "MSBuildAssembly",
+              "//upstream:Avalonia.DesignerSupport"
+            ],
+            [
+              "MSBuildAssembly",
+              "//upstream:Avalonia.Dialogs"
+            ],
+            [
+              "MSBuildAssembly",
+              "//upstream:Avalonia.Generators"
+            ],
+            [
+              "MSBuildAssembly",
+              "//upstream:Avalonia.Headless"
+            ],
+            [
+              "MSBuildAssembly",
+              "//upstream:Avalonia.Headless.NUnit"
+            ],
+            [
+              "MSBuildAssembly",
+              "//upstream:Avalonia.Headless.Vnc"
+            ],
+            [
+              "MSBuildAssembly",
+              "//upstream:Avalonia.Headless.XUnit"
+            ],
+            [
+              "MSBuildAssembly",
+              "//upstream:Avalonia.Markup"
+            ],
+            [
+              "MSBuildAssembly",
+              "//upstream:Avalonia.Markup.Xaml"
+            ],
+            [
+              "MSBuildAssembly",
+              "//upstream:Avalonia.Metal"
+            ],
+            [
+              "MSBuildAssembly",
+              "//upstream:Avalonia.MicroCom"
+            ],
+            [
+              "MSBuildAssembly",
+              "//upstream:Avalonia.OpenGL"
+            ],
+            [
+              "MSBuildAssembly",
+              "//upstream:Avalonia.Remote.Protocol"
+            ],
+            [
+              "MSBuildAssembly",
+              "//upstream:Avalonia.Skia"
+            ],
+            [
+              "MSBuildAssembly",
+              "//upstream:Avalonia.Themes.Simple"
+            ],
+            [
+              "MSBuildAssembly",
+              "//upstream:Avalonia.Vulkan"
+            ],
+            [
+              "MSBuildAssembly",
+              "//upstream:DevAnalyzers"
+            ],
+            [
+              "MSBuildAssembly",
+              "//upstream:DevGenerators"
+            ],
+            [
+              "MSBuildAssembly",
+              "//upstream:DevGenerators"
+            ],
+            [
+              "MSBuildAssembly",
+              "//upstream:Qualification.Headless.NUnit"
+            ],
+            [
+              "MSBuildAssembly",
+              "//upstream:Qualification.Headless.XUnit"
+            ]
+          ],
+          "tests": [
+            "//upstream:Qualification.Headless.NUnit",
+            "//upstream:Qualification.Headless.XUnit"
+          ],
+          "actions": 234,
+          "cacheHits": 0
+        },
+        {
+          "case": "noop",
+          "executed": [],
+          "tests": [],
+          "actions": 0,
+          "cacheHits": 0
+        }
+      ]
+    },
+    "upstream": {
+      "bazel": "bazel 9.2.0",
+      "configuredProjects": 26,
+      "compilationActions": 28,
+      "generationActions": 0,
+      "suites": {
+        "Avalonia.Headless.XUnit.PerTest.UnitTests": {
+          "Passed": 66,
+          "NotExecuted": 1
+        },
+        "Avalonia.Headless.XUnit.PerAssembly.UnitTests": {
+          "Passed": 66,
+          "NotExecuted": 1
+        },
+        "Avalonia.Headless.NUnit.PerTest.UnitTests": {
+          "Passed": 66,
+          "NotExecuted": 1
+        },
+        "Avalonia.Headless.NUnit.PerAssembly.UnitTests": {
+          "Passed": 66,
+          "NotExecuted": 1
+        }
+      },
+      "rawAndRemoteNamesAndOutcomesEqual": true,
+      "cases": [
+        {
+          "case": "remote-slice",
+          "executed": [],
+          "tests": [
+            "//upstream:Avalonia.Headless.NUnit.PerAssembly.UnitTests",
+            "//upstream:Avalonia.Headless.NUnit.PerTest.UnitTests",
+            "//upstream:Avalonia.Headless.XUnit.PerAssembly.UnitTests",
+            "//upstream:Avalonia.Headless.XUnit.PerTest.UnitTests"
+          ],
+          "actions": 183,
+          "cacheHits": 179
+        },
+        {
+          "case": "noop",
+          "executed": [],
+          "tests": [],
+          "actions": 0,
+          "cacheHits": 0
+        }
+      ]
+    },
+    "stability": {
+      "suite": "Avalonia.Headless.NUnit.PerAssembly.UnitTests",
+      "case": "Should_Not_Crash_On_CombinedGeometry",
+      "remoteColdFailures": 2,
+      "remoteUncachedIsolatedRepeatsPassed": 3,
+      "rawSerialRepeatsPassed": 3,
+      "rawConcurrentRepeats": [
+        {
+          "run": 0,
+          "exitCode": 1,
+          "failures": [
+            "Should_Not_Crash_On_CombinedGeometry"
+          ]
+        },
+        {
+          "run": 1,
+          "exitCode": 1,
+          "failures": [
+            "Should_Not_Crash_On_CombinedGeometry"
+          ]
+        },
+        {
+          "run": 2,
+          "exitCode": 0,
+          "failures": []
+        },
+        {
+          "run": 3,
+          "exitCode": 0,
+          "failures": []
+        },
+        {
+          "run": 4,
+          "exitCode": 0,
+          "failures": []
+        },
+        {
+          "run": 5,
+          "exitCode": 0,
+          "failures": []
+        },
+        {
+          "run": 6,
+          "exitCode": 1,
+          "failures": [
+            "Should_Not_Crash_On_CombinedGeometry"
+          ]
+        },
+        {
+          "run": 7,
+          "exitCode": 0,
+          "failures": []
+        },
+        {
+          "run": 8,
+          "exitCode": 0,
+          "failures": []
+        },
+        {
+          "run": 9,
+          "exitCode": 0,
+          "failures": []
+        },
+        {
+          "run": 10,
+          "exitCode": 0,
+          "failures": []
+        },
+        {
+          "run": 11,
+          "exitCode": 0,
+          "failures": []
+        },
+        {
+          "run": 12,
+          "exitCode": 0,
+          "failures": []
+        },
+        {
+          "run": 13,
+          "exitCode": 1,
+          "failures": [
+            "Should_Not_Crash_On_CombinedGeometry"
+          ]
+        },
+        {
+          "run": 14,
+          "exitCode": 1,
+          "failures": [
+            "Should_Not_Crash_On_CombinedGeometry"
+          ]
+        },
+        {
+          "run": 15,
+          "exitCode": 0,
+          "failures": []
+        },
+        {
+          "run": 16,
+          "exitCode": 1,
+          "failures": [
+            "Should_Not_Crash_On_CombinedGeometry"
+          ]
+        },
+        {
+          "run": 17,
+          "exitCode": 0,
+          "failures": []
+        },
+        {
+          "run": 18,
+          "exitCode": 0,
+          "failures": []
+        },
+        {
+          "run": 19,
+          "exitCode": 0,
+          "failures": []
+        }
+      ],
+      "testsPatched": false,
+      "testsFiltered": false,
+      "automaticRetries": false
+    }
+  }
+}

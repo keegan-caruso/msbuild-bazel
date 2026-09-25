@@ -22,6 +22,7 @@ p.add_argument('output', type=Path)
 p.add_argument('--executor', required=True)
 p.add_argument('--test', action='append', default=[], help='Entry project assembly name; other entries are build-only')
 p.add_argument('--recover', action='store_true')
+p.add_argument('--reuse-compilation-from', help='Existing producer instance; requires all compilation/generation to be cached and executes tests afresh')
 a = p.parse_args()
 a.prepared = a.prepared.resolve()
 workspace = a.prepared if a.recover else a.prepared / 'bazel'
@@ -46,11 +47,14 @@ roots = [r for r in rows if r['entry']]
 by_suite = {labels[r['id']]: r for r in roots}
 assert set(a.test) <= set(by_suite), (a.test, list(by_suite))
 targets = ['//upstream:' + labels[r['id']] for r in roots]
-instance = 'avalonia-expanded/' + a.output.name
+instance = a.reuse_compilation_from or 'avalonia-expanded/' + a.output.name
 f = RemoteFixture(a.output, a.executor, workspace, instance=instance)
 f.sdk()
 expected = {}
-native_data, native_env = prepare_native(a.prepared) if any(name.startswith('Avalonia.Skia.') for name in a.test) else ({}, {})
+def uses_native(name):
+    return name.startswith(('Avalonia.Skia.', 'Avalonia.Headless.', 'Qualification.Headless.'))
+
+native_data, native_env = prepare_native(a.prepared) if any(uses_native(name) for name in a.test) else ({}, {})
 try:
     if a.test:
         archive, digest, runner = runner_package(a.prepared)
@@ -61,7 +65,7 @@ try:
             with (f.folder / ('raw-' + suite + '.log')).open('w') as log:
                 result = subprocess.run([Path(os.environ['RULES_MSBUILD_DOTNET_ROOT']) / 'dotnet', runner, raw,
                     '/Logger:trx;LogFileName=results.trx', '/ResultsDirectory:' + str(results)],
-                    cwd=a.prepared / 'source/tests', env=dict(os.environ, DOTNET_ROLL_FORWARD='Major', **(native_env if suite.startswith('Avalonia.Skia.') else {})), stdout=log, stderr=subprocess.STDOUT)
+                    cwd=a.prepared / 'source/tests', env=dict(os.environ, DOTNET_ROLL_FORWARD='Major', **(native_env if uses_native(suite) else {})), stdout=log, stderr=subprocess.STDOUT)
             expected[suite] = outcomes(results / 'results.trx')
             summary = dict(Counter(outcome for (_, outcome), count in expected[suite].items() for _ in range(count)))
             print('raw', suite, summary, flush=True)
@@ -92,9 +96,9 @@ try:
             rule = 'msbuild_test'
             attrs.update(use_apphost=False, test_protocol='vstest',
                          test_output_type='exe' if row['properties']['OutputType'] == 'Exe' else 'library',
-                         test_runner=':expanded_runner', test_adapters=[':expanded_adapter'],
+                         test_runner=':expanded_runner', test_adapters=[':expanded_nunit_adapter' if '.NUnit' in name else ':expanded_adapter'],
                          env={'DOTNET_ROLL_FORWARD':'Major'}, size='large')
-            if name.startswith('Avalonia.Skia.'):
+            if uses_native(name):
                 attrs['test_working_directory'] = 'tests'
                 attrs['data_paths'] = dict(native_data)
                 attrs['env'].update(LD_LIBRARY_PATH='native-tests', FONTCONFIG_PATH='native-tests', FONTCONFIG_FILE='fonts.conf')
@@ -107,15 +111,17 @@ try:
         lines += [
             'msbuild_nuget_package(name="expanded_runner_package",package_id="Microsoft.TestPlatform.CLI",version="17.14.1",archive="locked-packages/' + archive.name + '",archive_sha256="' + digest + '",content_hash="' + base64.b64encode(hashlib.sha512(archive.read_bytes()).digest()).decode() + '")',
             'msbuild_test_tool(name="expanded_runner",package=":expanded_runner_package",path="contentFiles/any/net9.0/vstest.console.dll")',
-            'msbuild_test_tool(name="expanded_adapter",package=":archive_xunit.runner.visualstudio_2.8.2",path="build/net6.0")',
+            *(['msbuild_test_tool(name="expanded_adapter",package=":archive_xunit.runner.visualstudio_2.8.2",path="build/net6.0")'] if any('.NUnit' not in name for name in a.test) else []),
         ]
+    if any('.NUnit' in name for name in a.test):
+        lines.append('msbuild_test_tool(name="expanded_nunit_adapter",package=":archive_nunit3testadapter_4.4.2",path="build/netcoreapp3.1")')
     build.write_text('\n'.join(lines) + '\n')
     configured = configured_nodes(rows, config, [r['id'] for r in roots])
     compiled = [('MSBuildAssembly', '//upstream:' + labels[node]) for node, _ in configured]
     generated = json.loads((a.prepared / 'expanded-generators.json').read_text()) if (a.prepared / 'expanded-generators.json').exists() else []
     compiled += [('MSBuildGenerate', '//upstream:' + row['label']) for row in generated]
     command = 'test' if a.test else 'build'
-    f.run('remote-slice', targets, compiled, cold=True, tests=sorted('//upstream:' + name for name in a.test), command=command)
+    f.run('remote-slice', targets, [] if a.reuse_compilation_from else compiled, cold=not a.reuse_compilation_from, tests=sorted('//upstream:' + name for name in a.test), command=command, extra_args=['--nocache_test_results'] if a.reuse_compilation_from and a.test else [])
     for suite, raw in expected.items():
         actual = test_outcomes(workspace, suite)
         assert actual == raw, (suite, serialize(raw - actual), serialize(actual - raw))

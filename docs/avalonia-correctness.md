@@ -36,3 +36,49 @@ Set `USE_BAZEL_VERSION` to the producer's version. `--instance` can select anoth
 producer cache namespace containing the same inputs. Use a fresh result directory;
 its name distinguishes mutation bytes so earlier runs cannot cache the edit
 controls themselves.
+
+## Headless execution
+
+On Bazel 9.2.0, two small source-built controls pass under both XUnit and NUnit:
+UI-thread access, text input and offscreen frame capture; and VNC framebuffer
+capture plus a loopback RFB handshake. TurboJPEG is a declared runtime dependency
+of the pinned VNC session. This does not qualify password authentication, remote
+network deployment, or all VNC encodings.
+
+All four upstream Headless suites (XUnit/NUnit, per-test/per-assembly isolation)
+have a passing raw/remote comparison: **264 passes and 4 skips** across 26
+configured projects. The subsequent no-op executes nothing. The small controls
+add **4 passes** across 25 configured projects. See
+[Headless evidence](avalonia-headless-evidence.json).
+
+**Stability limit:** NUnit's per-assembly
+`Should_Not_Crash_On_CombinedGeometry` intermittently captures a null frame.
+It failed in two remote cold runs and in **6 of 20 unmodified raw runs** with two
+concurrent processes. Three isolated remote repeats and three serial raw repeats
+passed. The full passing comparison followed cached compilation and executed all
+tests afresh. No test is patched, filtered, or automatically retried; a failing
+raw or remote run still fails the qualification command. Passing parity does not
+establish a flake-free upstream suite.
+
+```sh
+python3 tests/explicit_msbuild/avalonia/setup.py /path/to/avalonia /tmp/headless-smoke \
+  --headless-controls
+python3 tests/explicit_msbuild/avalonia/expanded.py /tmp/headless-smoke /tmp/smoke-results \
+  --test Qualification.Headless.XUnit --test Qualification.Headless.NUnit \
+  --executor grpc://WORKER_IP:8980
+
+python3 tests/explicit_msbuild/avalonia/setup.py /path/to/avalonia /tmp/headless \
+  --entry tests/Avalonia.Headless.XUnit.PerTest.UnitTests/Avalonia.Headless.XUnit.PerTest.UnitTests.csproj \
+  --entry tests/Avalonia.Headless.XUnit.PerAssembly.UnitTests/Avalonia.Headless.XUnit.PerAssembly.UnitTests.csproj \
+  --entry tests/Avalonia.Headless.NUnit.PerTest.UnitTests/Avalonia.Headless.NUnit.PerTest.UnitTests.csproj \
+  --entry tests/Avalonia.Headless.NUnit.PerAssembly.UnitTests/Avalonia.Headless.NUnit.PerAssembly.UnitTests.csproj
+python3 tests/explicit_msbuild/avalonia/expanded.py /tmp/headless /tmp/headless-results \
+  --test Avalonia.Headless.XUnit.PerTest.UnitTests \
+  --test Avalonia.Headless.XUnit.PerAssembly.UnitTests \
+  --test Avalonia.Headless.NUnit.PerTest.UnitTests \
+  --test Avalonia.Headless.NUnit.PerAssembly.UnitTests --executor grpc://WORKER_IP:8980
+```
+
+For a separate test-execution check against already-cached compilation, pass
+`--reuse-compilation-from PRODUCER_INSTANCE`. It asserts zero executed compilation
+or generation actions and explicitly reruns tests. It is not a cold-build result.

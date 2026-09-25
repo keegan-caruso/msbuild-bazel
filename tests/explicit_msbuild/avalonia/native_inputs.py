@@ -23,7 +23,10 @@ FONTCONFIG = '''<?xml version="1.0"?>
 def prepare(prepared):
     root = prepared / 'native-tests'
     declarations = {}
-    rows = json.loads(Path(__file__).with_name('native-inputs.json').read_text())
+    inventory = json.loads((prepared / 'inventory.json').read_text())
+    headless = any(r['entry'] and 'Headless' in r['properties']['AssemblyName'] for r in inventory)
+    rows = [row for row in json.loads(Path(__file__).with_name('native-inputs.json').read_text()) if headless or not row.get('headlessOnly')]
+
     for row in rows:
         source = Path(row['source'])
         assert source.exists(), ('Missing pinned Ubuntu ARM64 test input', source)
@@ -35,7 +38,7 @@ def prepare(prepared):
     (root / 'fonts.conf').write_text(FONTCONFIG)
     # VSTest sets the raw test host's cwd beside its assembly too.
     for row in json.loads((prepared / 'inventory.json').read_text()):
-        if row['entry'] and row['properties']['AssemblyName'].startswith('Avalonia.Skia.'):
+        if row['entry'] and row['properties']['AssemblyName'].startswith(('Avalonia.Skia.', 'Avalonia.Headless.', 'Qualification.Headless.')):
             raw_link = prepared / 'source' / Path(row['project']).parent / 'bin/Release' / row['framework'] / 'native-tests'
             if not raw_link.exists():
                 raw_link.symlink_to(root, target_is_directory=True)

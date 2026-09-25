@@ -68,5 +68,11 @@
     "source": "/usr/share/fonts/truetype/dejavu/DejaVuSerif.ttf",
     "destination": "fonts/DejaVuSerif.ttf",
     "sha256": "3731a19f2b50d86d81dd1a1effcd81492ed1fa44f6ea904792dd98fdae9b3dfe"
+  },
+  {
+    "source": "/usr/lib/aarch64-linux-gnu/libturbojpeg.so.0",
+    "destination": "libturbojpeg.so",
+    "sha256": "7aff9f95459048afcf24b4768552b4211cff65c0bf006b3be4a0dead5e75be58",
+    "headlessOnly": true
   }
 ]
