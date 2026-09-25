@@ -5,6 +5,9 @@ compilation and HTTP caching to execution on an SDK-free Buildbarn worker.
 The production rules remain generic; the upstream-specific declarations and
 controls live in `tests/explicit_msbuild/avalonia/remote_execution.py`.
 
+The [expanded qualification](avalonia-expanded.md) adds Base/Controls/XAML tests,
+Fluent/Diagnostics/headless libraries, and Desktop/Skia generation and rendering.
+
 ## Scope
 
 The fixture pins Avalonia `37fbd9655cc581ff5b1c6b1fb1be4e3118c889d0` (v11.3.12)

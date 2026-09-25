@@ -24,7 +24,8 @@ local os = std.extVar('OS');
               source: {
                 file: {
                   path: 'worker/cas/blocks',
-                  sizeBytes: 4 * 1024 * 1024 * 1024,
+                  // Keep a block larger than the 126 MiB Win32 SDK documentation blob.
+                  sizeBytes: 8 * 1024 * 1024 * 1024,
                 },
               },
               spareBlocks: 3,

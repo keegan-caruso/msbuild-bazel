@@ -32,7 +32,8 @@ combinations; availability of an API does not qualify every upstream project.
 - **NBGV, Avalonia and ASP.NET Core:** declared task/generation integration and
   selected upstream slices. See [NBGV parity](nbgv-parity.md),
   [Avalonia XAML](avalonia-xaml-subset.md),
-  [Avalonia remote compilation](avalonia-remote-execution.md) and
+  [Avalonia remote compilation](avalonia-remote-execution.md),
+  [expanded Avalonia suites and Desktop](avalonia-expanded.md), and
   [ASP.NET Core graph](aspnetcore-large-graph.md). These are not whole-repository support claims.
 - **dotnet/runtime v10.0.0:** eight selected suites, **118,952 passes / 64 skips**,
   raw/Bazel outcome parity and no installed runtime components loaded in the
@@ -56,7 +57,7 @@ establish support for other platforms, the entire runtime repository, JIT stress
 NativeAOT, Mono/WASM, cross-compilation or crossgen/R2R. Native products are built
 locally in a declared namespace; HTTP cache recovery does not qualify remote
 execution of that graph. Separate [remote-execution qualification](remote-execution.md)
-covers bounded managed fixtures and the Avalonia theme slice on an SDK-free
+covers bounded managed fixtures and the expanded Avalonia slices on an SDK-free
 ARM64 worker with Bazel 8.8.0 and 9.2.0.
 See [platform scope](platform-validation-scope.md) and
 [next steps](roadmap.md).
