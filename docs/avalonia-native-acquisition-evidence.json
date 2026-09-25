@@ -1,0 +1,417 @@
+{
+  "platform": "Linux ARM64 / Ubuntu 22.04; SDK-free remote executor",
+  "scope": "Correctness qualification; no performance conclusions",
+  "lock": "tests/explicit_msbuild/avalonia/native-packages.json",
+  "lockSha256": "f43cc112cb18904dacd61c1b22ffa1ddd2dce29d0b01314d20d6d876049d8320",
+  "acquisition92": {
+    "bazel": "bazel 9.2.0",
+    "cases": [
+      {
+        "case": "download",
+        "packages": 9,
+        "files": 15,
+        "allFileHashesMatchLock": true
+      },
+      {
+        "case": "offline-recovery",
+        "packages": 9,
+        "files": 15,
+        "allFileHashesMatchLock": true
+      },
+      {
+        "case": "bad-digest",
+        "rejected": true
+      }
+    ]
+  },
+  "acquisition88": {
+    "bazel": "bazel 8.8.0",
+    "cases": [
+      {
+        "case": "download",
+        "packages": 9,
+        "files": 15,
+        "allFileHashesMatchLock": true
+      },
+      {
+        "case": "offline-recovery",
+        "packages": 9,
+        "files": 15,
+        "allFileHashesMatchLock": true
+      },
+      {
+        "case": "bad-digest",
+        "rejected": true
+      }
+    ]
+  },
+  "headless88": {
+    "bazel": "bazel 8.8.0",
+    "configuredProjects": 25,
+    "compilationActions": 27,
+    "generationActions": 0,
+    "suites": {
+      "Qualification.Headless.XUnit": {
+        "Passed": 2
+      },
+      "Qualification.Headless.NUnit": {
+        "Passed": 2
+      }
+    },
+    "rawAndRemoteNamesAndOutcomesEqual": true,
+    "cases": [
+      {
+        "case": "remote-slice",
+        "executed": [
+          [
+            "MSBuildAssembly",
+            "//upstream:Avalonia"
+          ],
+          [
+            "MSBuildAssembly",
+            "//upstream:Avalonia.Analyzers"
+          ],
+          [
+            "MSBuildAssembly",
+            "//upstream:Avalonia.Base"
+          ],
+          [
+            "MSBuildAssembly",
+            "//upstream:Avalonia.Build.Tasks"
+          ],
+          [
+            "MSBuildAssembly",
+            "//upstream:Avalonia.Build.Tasks"
+          ],
+          [
+            "MSBuildAssembly",
+            "//upstream:Avalonia.Controls"
+          ],
+          [
+            "MSBuildAssembly",
+            "//upstream:Avalonia.DesignerSupport"
+          ],
+          [
+            "MSBuildAssembly",
+            "//upstream:Avalonia.Dialogs"
+          ],
+          [
+            "MSBuildAssembly",
+            "//upstream:Avalonia.Generators"
+          ],
+          [
+            "MSBuildAssembly",
+            "//upstream:Avalonia.Headless"
+          ],
+          [
+            "MSBuildAssembly",
+            "//upstream:Avalonia.Headless.NUnit"
+          ],
+          [
+            "MSBuildAssembly",
+            "//upstream:Avalonia.Headless.Vnc"
+          ],
+          [
+            "MSBuildAssembly",
+            "//upstream:Avalonia.Headless.XUnit"
+          ],
+          [
+            "MSBuildAssembly",
+            "//upstream:Avalonia.Markup"
+          ],
+          [
+            "MSBuildAssembly",
+            "//upstream:Avalonia.Markup.Xaml"
+          ],
+          [
+            "MSBuildAssembly",
+            "//upstream:Avalonia.Metal"
+          ],
+          [
+            "MSBuildAssembly",
+            "//upstream:Avalonia.MicroCom"
+          ],
+          [
+            "MSBuildAssembly",
+            "//upstream:Avalonia.OpenGL"
+          ],
+          [
+            "MSBuildAssembly",
+            "//upstream:Avalonia.Remote.Protocol"
+          ],
+          [
+            "MSBuildAssembly",
+            "//upstream:Avalonia.Skia"
+          ],
+          [
+            "MSBuildAssembly",
+            "//upstream:Avalonia.Themes.Simple"
+          ],
+          [
+            "MSBuildAssembly",
+            "//upstream:Avalonia.Vulkan"
+          ],
+          [
+            "MSBuildAssembly",
+            "//upstream:DevAnalyzers"
+          ],
+          [
+            "MSBuildAssembly",
+            "//upstream:DevGenerators"
+          ],
+          [
+            "MSBuildAssembly",
+            "//upstream:DevGenerators"
+          ],
+          [
+            "MSBuildAssembly",
+            "//upstream:Qualification.Headless.NUnit"
+          ],
+          [
+            "MSBuildAssembly",
+            "//upstream:Qualification.Headless.XUnit"
+          ]
+        ],
+        "tests": [
+          "//upstream:Qualification.Headless.NUnit",
+          "//upstream:Qualification.Headless.XUnit"
+        ],
+        "actions": 234,
+        "cacheHits": 0
+      },
+      {
+        "case": "noop",
+        "executed": [],
+        "tests": [],
+        "actions": 0,
+        "cacheHits": 0
+      }
+    ]
+  },
+  "expanded92": {
+    "bazel": "bazel 9.2.0",
+    "cases": [
+      {
+        "case": "compilation-recovery",
+        "executed": [],
+        "tests": [],
+        "observedActions": 286,
+        "cacheHits": 286
+      },
+      {
+        "case": "remote-slice",
+        "executed": [],
+        "tests": [
+          "//upstream:Avalonia.Base.UnitTests",
+          "//upstream:Avalonia.Controls.UnitTests",
+          "//upstream:Avalonia.Markup.Xaml.UnitTests",
+          "//upstream:Avalonia.Skia.RenderTests",
+          "//upstream:Avalonia.Skia.UnitTests"
+        ],
+        "observedActions": 5,
+        "cacheHits": 0
+      },
+      {
+        "case": "noop",
+        "executed": [],
+        "tests": [],
+        "observedActions": 0,
+        "cacheHits": 0
+      }
+    ],
+    "configuredProjects": 53,
+    "compilationActions": 55,
+    "generationActions": 5,
+    "suites": {
+      "Avalonia.Base.UnitTests": {
+        "Passed": 2334,
+        "NotExecuted": 14
+      },
+      "Avalonia.Controls.UnitTests": {
+        "Passed": 2421,
+        "NotExecuted": 1
+      },
+      "Avalonia.Markup.Xaml.UnitTests": {
+        "Passed": 580,
+        "NotExecuted": 1
+      },
+      "Avalonia.Skia.UnitTests": {
+        "Passed": 257,
+        "NotExecuted": 9
+      },
+      "Avalonia.Skia.RenderTests": {
+        "Passed": 290,
+        "NotExecuted": 17
+      }
+    },
+    "rawAndRemoteNamesAndOutcomesEqual": true,
+    "assemblies": []
+  },
+  "invalidation92": {
+    "bazel": "bazel 9.2.0",
+    "cases": [
+      {
+        "case": "baseline-recovery",
+        "executed": [],
+        "tests": [],
+        "observedActions": 291,
+        "cacheHits": 291
+      },
+      {
+        "case": "idl-edit",
+        "executed": [
+          [
+            "MSBuildAssembly",
+            "//upstream:Avalonia.Desktop"
+          ],
+          [
+            "MSBuildAssembly",
+            "//upstream:Avalonia.Native"
+          ],
+          [
+            "MSBuildGenerate",
+            "//upstream:desktop_idl_4"
+          ]
+        ],
+        "tests": [],
+        "observedActions": 3,
+        "cacheHits": 0
+      },
+      {
+        "case": "idl-edit-restored",
+        "executed": [],
+        "tests": [],
+        "observedActions": 3,
+        "cacheHits": 3
+      },
+      {
+        "case": "xaml-resource-edit",
+        "executed": [
+          [
+            "MSBuildAssembly",
+            "//upstream:Avalonia.Themes.Simple_net8_0_0caeea827ca4"
+          ],
+          [
+            "MSBuildAssembly",
+            "//upstream:Avalonia.Themes.Simple_netstandard2_0_b4ab3a281b90"
+          ]
+        ],
+        "tests": [
+          "//upstream:Avalonia.Base.UnitTests",
+          "//upstream:Avalonia.Controls.UnitTests",
+          "//upstream:Avalonia.Markup.Xaml.UnitTests",
+          "//upstream:Avalonia.Skia.RenderTests",
+          "//upstream:Avalonia.Skia.UnitTests"
+        ],
+        "observedActions": 10,
+        "cacheHits": 3
+      },
+      {
+        "case": "xaml-resource-edit-restored",
+        "executed": [],
+        "tests": [],
+        "observedActions": 7,
+        "cacheHits": 7
+      },
+      {
+        "case": "baseline-negative",
+        "executed": [],
+        "tests": [
+          "//upstream:Avalonia.Skia.RenderTests"
+        ],
+        "observedActions": 3,
+        "cacheHits": 2
+      },
+      {
+        "case": "baseline-negative-restored",
+        "executed": [],
+        "tests": [],
+        "observedActions": 1,
+        "cacheHits": 1
+      },
+      {
+        "case": "native-negative",
+        "executed": [],
+        "tests": [
+          "//upstream:Avalonia.Skia.RenderTests",
+          "//upstream:Avalonia.Skia.UnitTests"
+        ],
+        "observedActions": 2,
+        "cacheHits": 0
+      },
+      {
+        "case": "native-negative-restored",
+        "executed": [],
+        "tests": [],
+        "observedActions": 2,
+        "cacheHits": 2
+      }
+    ],
+    "edits": [
+      {
+        "case": "idl-edit",
+        "input": "upstream/src/Avalonia.Native/avn.idl",
+        "before": "99e0c1b4ebd881d9f1601c5800c807b7333ffc1ab6754de88d26aec88d45c365",
+        "after": "1256e65d2d86d7deee185e03ead4b0637af57cd6fef5e70a55f948b601542f80",
+        "negativeControl": false,
+        "outputChanged": true,
+        "referenceChanged": true
+      },
+      {
+        "case": "xaml-resource-edit",
+        "input": "upstream/src/Avalonia.Themes.Simple/Controls/Button.xaml",
+        "before": "7d12daf07473613aee0161d1bd288dee6fb015083fa52695da07399b46043fcc",
+        "after": "5c30aab74b5fd4cfc5557b60c33229f8574f2a9ab0bf2ff031c03127827cc932",
+        "negativeControl": false,
+        "outputChanged": true,
+        "referenceChanged": false
+      },
+      {
+        "case": "baseline-negative",
+        "input": "upstream/tests/TestFiles/Skia/OpacityMask/Opacity_Mask_Masks_Element.expected.png",
+        "before": "43326962e85bec84c1d29c384cb5d31e8b046adace9c89eb0fab794bc99406d7",
+        "after": "16de02384c1522bf52ea040ce0496a4bf5700a2b9423d63c460c0a7be233b7d7",
+        "negativeControl": true,
+        "outputChanged": false,
+        "referenceChanged": null
+      },
+      {
+        "case": "native-negative",
+        "input": "upstream/BUILD.bazel",
+        "before": "4d62388aef9d6d85a0b88cfc71511dcdfd3e3ff3f043d0e1da7ba4c90f25d92c",
+        "after": "7aa862514a793352762b3c3967d52063b8716e5e0e4084c13d15e19d28df23b0",
+        "negativeControl": true,
+        "outputChanged": false,
+        "referenceChanged": null
+      }
+    ]
+  },
+  "independentRecoveries": {
+    "all92": {
+      "bazel": "bazel 9.2.0",
+      "cases": [
+        {
+          "case": "independent-recovery",
+          "executed": [],
+          "tests": [],
+          "observedActions": 291,
+          "cacheHits": 291
+        }
+      ],
+      "producerTestNamesAndOutcomesEqual": true
+    },
+    "headless88": {
+      "bazel": "bazel 8.8.0",
+      "cases": [
+        {
+          "case": "independent-recovery",
+          "executed": [],
+          "tests": [],
+          "observedActions": 234,
+          "cacheHits": 234
+        }
+      ],
+      "producerTestNamesAndOutcomesEqual": true
+    }
+  }
+}

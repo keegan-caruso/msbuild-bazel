@@ -23,8 +23,9 @@ the original bytes in a `finally` block.
 
 The IDL changes its generated output and friend-visible reference contract.
 The XAML changes the runtime assembly while preserving reference bytes. The
-negative controls must produce failing test cases, not merely a failed Bazel
-command. Every restoration must recover the original passing outcomes without
+negative controls must produce failing test cases or, for the corrupt native
+library, an aborted test host that reports the exact Fontconfig loader error.
+An unrelated failed Bazel command does not satisfy the control. Every restoration must recover the original passing outcomes without
 executing compilation, generation, or tests.
 
 ```sh
@@ -81,4 +82,57 @@ python3 tests/explicit_msbuild/avalonia/expanded.py /tmp/headless /tmp/headless-
 
 For a separate test-execution check against already-cached compilation, pass
 `--reuse-compilation-from PRODUCER_INSTANCE`. It asserts zero executed compilation
-or generation actions and explicitly reruns tests. It is not a cold-build result.
+or generation actions: it recovers compilation first, then disables remote cache
+reads for the test invocation. Successful test results can still be published.
+It does not use `--nocache_test_results`, which prevented remote reuse in the
+initial harness control. This mode is not a cold-build result.
+
+## Native input acquisition
+
+The fixture now uses `native_packages.bzl`, a repository rule built from Bazel's
+[download and extraction APIs](https://bazel.build/versions/8.0.0/rules/lib/builtins/repository_ctx).
+`native-packages.json` pins package URLs, versions, archive SHA-256 digests,
+exported paths, and expected file hashes. The rule extracts Debian archives and
+their data archives with Bazel APIs, then exports individual file labels. It
+invokes no host package manager, shell, Python, or native executable.
+
+Fontconfig and its dependencies plus six DejaVu fonts come from eight locked
+Ubuntu packages; the VNC graph adds a ninth, TurboJPEG. The client and executor
+still supply the qualified platform's base C runtime. This is not a
+cross-platform sysroot or a promise that these ARM64 files work on other targets.
+No downloaded libraries or fonts are committed to this repository.
+
+Remote tests consume `@avalonia_native` file labels through `data_paths`. Raw
+controls copy and hash-check those same acquired files. The old reads from the
+client's `/usr/lib` and `/usr/share/fonts` are removed. Previously copied native
+files are removed from prepared source workspaces. Independent recovery registers
+the copied repository declaration again after relocating the rules checkout.
+
+The new lock updates libexpat and libuuid to downloadable Ubuntu patch versions;
+all other library/font bytes match the previous controls. Acquisition controls
+pass on **Bazel 8.8.0 and 9.2.0**: fresh download, identical exported bytes with
+repository downloads disabled and a shared repository cache, and rejection of an
+incorrect archive checksum.
+
+```sh
+python3 tests/explicit_msbuild/avalonia/native_repository_controls.py \
+  /tmp/fresh-native-controls
+```
+
+The edit fixture overrides the native file's declared label with a corrupt local
+input for its negative control. It never edits Bazel's external repository cache.
+
+With repository-acquired inputs, the five-suite, 53-configured-project graph on
+Bazel 9.2.0 matches raw MSBuild/VSTest at **5,882 passes / 42 skips**. Compilation
+is recovered from cache for this check; all five suites execute afresh, followed
+by a no-op with no executed actions. All four edit/restoration controls pass.
+A separate source-only client recovers all **291 observed actions** from the
+remote cache and verifies the same individual test outcomes.
+
+On Bazel 8.8.0, the smaller Headless/VNC control qualifies a cold build of
+25 configured projects (27 compilation actions), four passing tests, and a
+no-op. This does not claim the entire expanded graph was rerun on 8.8 with the
+new package lock. The upstream Headless NUnit stability limit above still applies.
+The separate Bazel 8.8 client also recovers every observed action from cache and
+matches all four test outcomes. [Native acquisition evidence](avalonia-native-acquisition-evidence.json)
+records the version-specific scope, action counts, and edit/restoration checks.

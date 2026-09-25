@@ -33,7 +33,8 @@ combinations; availability of an API does not qualify every upstream project.
   selected upstream slices. See [NBGV parity](nbgv-parity.md),
   [Avalonia XAML](avalonia-xaml-subset.md),
   [Avalonia remote compilation](avalonia-remote-execution.md),
-  [expanded Avalonia suites and Desktop](avalonia-expanded.md), and
+  [expanded Avalonia suites and Desktop](avalonia-expanded.md),
+  [Avalonia edit/Headless/native-input controls](avalonia-correctness.md), and
   [ASP.NET Core graph](aspnetcore-large-graph.md). These are not whole-repository support claims.
 - **dotnet/runtime v10.0.0:** eight selected suites, **118,952 passes / 64 skips**,
   raw/Bazel outcome parity and no installed runtime components loaded in the

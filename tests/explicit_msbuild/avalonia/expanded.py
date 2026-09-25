@@ -14,6 +14,7 @@ import sys
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from remote_support import RemoteFixture
 from native_inputs import prepare as prepare_native
+from native_repository import register as register_native
 from suite_support import assembly_parity, configured_nodes, outcomes, runner_package, selections, serialize, test_outcomes
 
 p = argparse.ArgumentParser(description=__doc__)
@@ -31,6 +32,7 @@ if a.recover:
     saved = json.loads(manifest.read_text())
     f = RemoteFixture(a.output, a.executor, workspace, instance=saved['instance'])
     f.sdk()
+    register_native(workspace)
     try:
         actions = f.run('independent-recovery', saved['targets'], [], tests=[], downloads='toplevel', command='test' if saved['outcomes'] else 'build')
         assert actions and all(x['cacheHit'] for x in actions)
@@ -54,8 +56,8 @@ expected = {}
 def uses_native(name):
     return name.startswith(('Avalonia.Skia.', 'Avalonia.Headless.', 'Qualification.Headless.'))
 
-native_data, native_env = prepare_native(a.prepared) if any(uses_native(name) for name in a.test) else ({}, {})
 try:
+    native_data, native_env = prepare_native(a.prepared, f) if any(uses_native(name) for name in a.test) else ({}, {})
     if a.test:
         archive, digest, runner = runner_package(a.prepared)
         for suite in a.test:
@@ -121,7 +123,12 @@ try:
     generated = json.loads((a.prepared / 'expanded-generators.json').read_text()) if (a.prepared / 'expanded-generators.json').exists() else []
     compiled += [('MSBuildGenerate', '//upstream:' + row['label']) for row in generated]
     command = 'test' if a.test else 'build'
-    f.run('remote-slice', targets, [] if a.reuse_compilation_from else compiled, cold=not a.reuse_compilation_from, tests=sorted('//upstream:' + name for name in a.test), command=command, extra_args=['--nocache_test_results'] if a.reuse_compilation_from and a.test else [])
+    if a.reuse_compilation_from:
+        # Populate the local compilation cache first. Disabling remote cache
+        # reads on the following test invocation then reruns tests without
+        # suppressing publication of their successful results.
+        f.run('compilation-recovery', targets, [], tests=[], command='build')
+    f.run('remote-slice', targets, [] if a.reuse_compilation_from else compiled, cold=True, tests=sorted('//upstream:' + name for name in a.test), command=command)
     for suite, raw in expected.items():
         actual = test_outcomes(workspace, suite)
         assert actual == raw, (suite, serialize(raw - actual), serialize(actual - raw))
