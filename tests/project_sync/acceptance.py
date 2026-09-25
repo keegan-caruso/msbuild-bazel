@@ -42,16 +42,41 @@ dotnet.sdk(name="dotnet",version="10.0.400")
 use_repo(dotnet,"dotnet")
 register_toolchains("@dotnet//:all")
 ''')
-sync = ['bash', str(ROOT / 'scripts/project-sync.sh'), str(workspace), 'App/App.csproj']
-subprocess.run(sync, check=True)
+authored = 'load("@rules_msbuild//msbuild:sync.bzl", "msbuild_sync")\nmsbuild_sync(name="sync", projects=["App/App.csproj"])\n'
+put('BUILD.bazel', authored)
 bazel = os.environ.get('RULES_MSBUILD_BAZEL', str(ROOT / 'scripts/bazel-launcher.sh'))
-command = [bazel, '--batch', '--output_user_root=' + str(root / 'user'), '--output_base=' + str(root / 'base'), 'run', '//:App_App']
-for name, expected in [('initial', 'value=7'), ('props-edit', 'value=9')]:
-    if name == 'props-edit':
-        put('Shared.props', '<Project><PropertyGroup><Platform>x64</Platform><DefineConstants Condition="\'$(Platform)\' == \'AnyCPU\'">SECOND</DefineConstants></PropertyGroup></Project>')
-    # This property edit changes compilation, not the generated source/dependency graph.
-    subprocess.run(sync + ['--check'], check=True)
-    result = subprocess.run(command, cwd=workspace, capture_output=True, text=True)
+startup = [bazel, '--output_user_root=' + str(root / 'user'), '--output_base=' + str(root / 'base')]
+# Exercise the app-facing interface with no installed dotnet on PATH.
+env = {k:v for k,v in os.environ.items() if not k.startswith(('DOTNET', 'MSBuild', 'MSBUILD')) and k not in ['RULES_MSBUILD_DOTNET_ROOT', 'NUGET_PACKAGES']}
+env['PATH'] = '/usr/bin:/bin:/usr/sbin:/sbin'
+
+
+def run(name, args, expected=None, success=True):
+    result = subprocess.run(startup + args, cwd=workspace, env=env, capture_output=True, text=True)
     (root / (name + '.log')).write_text(result.stdout + result.stderr)
-    assert result.returncode == 0 and expected in result.stdout, (name, result.stdout, result.stderr[-3000:])
-print('Generated app and imported-property edit passed')
+    assert (result.returncode == 0) == success, (name, result.stdout, result.stderr[-3000:])
+    if expected:
+        assert expected in result.stdout + result.stderr, (name, result.stdout, result.stderr[-3000:])
+
+
+try:
+    run('bootstrap', ['run', '//:sync'])
+    assert (workspace / 'BUILD.bazel').read_text() == authored
+    authored = 'load(":projects.generated.bzl", "app_projects")\n' + authored + 'app_projects()\n'
+    put('BUILD.bazel', authored)
+    for name, expected in [('initial', 'value=7'), ('props-edit', 'value=9')]:
+        if name == 'props-edit':
+            put('Shared.props', '<Project><PropertyGroup><Platform>x64</Platform><DefineConstants Condition="\'$(Platform)\' == \'AnyCPU\'">SECOND</DefineConstants></PropertyGroup></Project>')
+        run(name + '-check', ['run', '//:sync', '--', '--check'])
+        run(name, ['run', '//:App_App'], expected)
+    original = (workspace / 'projects.generated.bzl').read_bytes()
+    put('Core/Added.cs', 'public class Added {}')
+    run('stale', ['run', '//:sync', '--', '--check'], 'stale', success=False)
+    assert (workspace / 'projects.generated.bzl').read_bytes() == original
+    run('resync', ['run', '//:sync'])
+    assert 'Core/Added.cs' in (workspace / 'projects.generated.bzl').read_text()
+    assert (workspace / 'BUILD.bazel').read_text() == authored
+    run('resynced-app', ['run', '//:App_App'], 'value=9')
+finally:
+    subprocess.run(startup + ['shutdown'], cwd=workspace, env=env, check=True)
+print('Bazel sync bootstrap, check, props edit, stale source, resync and app execution passed')

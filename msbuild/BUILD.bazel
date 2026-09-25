@@ -7,5 +7,6 @@ toolchain_type(name = "runtime_toolchain_type")
 exports_files([
     "defs.bzl",
     "extensions.bzl",
+    "sync.bzl",
     "toolchain.bzl",
 ])
