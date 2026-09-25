@@ -7,6 +7,7 @@ separates qualified behavior from [remaining work](roadmap.md).
 ## Use the rules
 
 - [Build inputs and rule API](explicit-bazel-rules.md)
+- [Project-to-BUILD synchronization](project-sync.md)
 - [Configured graphs and private dependencies](configured-graphs.md)
 - [Executable, MTP and VSTest tests](bazel-test.md)
 - [Linux persistent workers](explicit-linux-workers.md) and [remote execution](remote-execution.md)
