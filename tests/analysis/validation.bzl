@@ -12,6 +12,8 @@ def validation_tests(name):
     for case, attrs, message in [
         ("settings_conflict", {"test_settings": "settings.xml", "test_settings_output": "generated.xml"}, "Declare either test_settings or test_settings_output"),
         ("settings_escape", {"test_settings_output": "../outside.xml"}, "test_settings_output must be a safe relative path"),
+        ("working_directory_escape", {"test_working_directory": "../outside"}, "test_working_directory must be a safe relative path"),
+        ("working_directory_absolute", {"test_working_directory": "/tmp/tests"}, "test_working_directory must be a safe relative path"),
         ("sharding", {"shard_count": 2}, "Executable tests do not yet support sharding"),
         ("vstest_runner", {"test_protocol": "vstest"}, "VSTest requires an explicit test_runner"),
         ("diagnostics", {"test_diagnostics": True}, "test_diagnostics currently requires VSTest"),

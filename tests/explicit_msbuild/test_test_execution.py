@@ -23,6 +23,7 @@ var output=args[Array.IndexOf(args,"--results-directory")+1];
 var mode=Environment.GetEnvironmentVariable("MODE");
 Console.WriteLine("started");
 if(mode=="hang") Thread.Sleep(120000);
+if(mode=="cwd" && Path.GetFileName(Directory.GetCurrentDirectory())!="tests") throw new Exception("wrong cwd");
 if(mode=="missing") return 0;
 var xml=File.ReadAllText("input.trx");
 File.WriteAllText(Path.Combine(output,"results.trx"),xml);
@@ -34,12 +35,12 @@ return mode=="nonzero" ? 17 : 0;
     @classmethod
     def tearDownClass(cls): cls.directory.cleanup()
 
-    def launch(self, trx, mode='', allow_empty=False, cancel=False, settings_output=None):
+    def launch(self, trx, mode='', allow_empty=False, cancel=False, settings_output=None, working_directory=None):
         with tempfile.TemporaryDirectory() as directory:
             root=Path(directory)
             (root/'input.trx').write_text(trx)
             (root/'settings.json').write_text('{}')
-            (root/'launch.json').write_text(json.dumps(dict(entry='bin/Release/net10.0',dependencies=[],assembly='App',test=True,data=[dict(source='input.trx',path='input.trx'),dict(source='settings.json',path='settings.json')],testOptions=dict(protocol='mtp',allowEmpty=allow_empty,settingsOutput=settings_output))))
+            (root/'launch.json').write_text(json.dumps(dict(entry='bin/Release/net10.0',dependencies=[],assembly='App',test=True,data=[dict(source='input.trx',path=(working_directory+'/' if working_directory else '')+'input.trx'),dict(source='settings.json',path='settings.json')],testOptions=dict(protocol='mtp',allowEmpty=allow_empty,settingsOutput=settings_output,workingDirectory=working_directory))))
             # Use a runfiles root containing the fake app and declared report payload.
             import shutil
             shutil.copytree(self.root/'bin',root/'bin')
@@ -65,6 +66,12 @@ return mode=="nonzero" ? 17 : 0;
         code,xml,_=self.launch(trx,settings_output='absent.json')
         self.assertNotEqual(code,0)
         self.assertIn('Missing declared test settings',xml.find('.//error').get('message'))
+
+    def test_relative_working_directory_preserves_settings_and_reporting(self):
+        trx=self.report('<UnitTestResult testName="passes" outcome="Passed"/>')
+        code,xml,_=self.launch(trx,mode='cwd',settings_output='settings.json',working_directory='tests')
+        self.assertEqual(code,0)
+        self.assertEqual(len(xml.findall('.//testcase')),1)
 
     def test_missing_and_malformed_reports_fail(self):
         for mode,trx in [('missing',''),('', '<broken'),('', '<TestRun/>')]:

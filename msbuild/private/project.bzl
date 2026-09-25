@@ -302,6 +302,7 @@ def build_project(ctx, executable = False, test = False, restore_only = False, p
             "allowEmpty": ctx.attr.allow_empty_tests,
             "diagnostics": ctx.attr.test_diagnostics,
             "outputDirectories": ctx.attr.test_output_dirs,
+            "workingDirectory": ctx.attr.test_working_directory or None,
             "runner": _runfile(ctx, def_tool.directory) + "/" + def_tool.path if def_tool else None,
             "adapters": [_runfile(ctx, tool[MSBuildTestToolInfo].directory) + "/" + tool[MSBuildTestToolInfo].path for tool in ctx.attr.test_adapters],
         } if test else None,

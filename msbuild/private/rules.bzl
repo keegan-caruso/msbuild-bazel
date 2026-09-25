@@ -13,9 +13,10 @@ def _binary(ctx):
 def _test(ctx):
     if ctx.attr.test_settings and ctx.attr.test_settings_output:
         fail("Declare either test_settings or test_settings_output")
-    path = ctx.attr.test_settings_output
-    if path and (path.startswith("/") or "\\" in path or any([part in ["", ".", ".."] for part in path.split("/")])):
-        fail("test_settings_output must be a safe relative path")
+    for attribute in ["test_settings_output", "test_working_directory"]:
+        path = getattr(ctx.attr, attribute)
+        if path and (path.startswith("/") or "\\" in path or any([part in ["", ".", ".."] for part in path.split("/")])):
+            fail(attribute + " must be a safe relative path")
     if ctx.attr.shard_count > 1:
         fail("Executable tests do not yet support sharding")
     if ctx.attr.test_diagnostics and ctx.attr.test_protocol != "vstest":
@@ -88,6 +89,7 @@ _TEST_ATTRS = dict(_ATTRS, **{
     "test_diagnostics": attr.bool(),
     "test_output_type": attr.string(default = "library", values = ["library", "exe"]),
     "test_output_dirs": attr.string_list(),
+    "test_working_directory": attr.string(),
     "test_runner": attr.label(providers = [MSBuildTestToolInfo]),
     "test_adapters": attr.label_list(providers = [MSBuildTestToolInfo]),
 })

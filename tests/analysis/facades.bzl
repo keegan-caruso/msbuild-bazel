@@ -29,6 +29,7 @@ def _overrides(env, targets):
 
 def _test_variant(env, target):
     env.expect.that_str(request(target, ".launch.json")["testOptions"]["protocol"]).equals("mtp")
+    env.expect.that_str(request(target, ".launch.json")["testOptions"]["workingDirectory"]).equals("tests")
     env.expect.that_dict(target[RunEnvironmentInfo].environment).contains_exactly({"MODE": "test"})
     env.expect.that_bool(target[DefaultInfo].files_to_run.executable != None).equals(True)
 
@@ -57,7 +58,7 @@ def facade_tests(name):
         tags = ["manual"],
     )
     analysis_test(name = name + "_overrides_test", targets = {"base": ":" + name + "_overrides_netstandard2_1", "modern": ":" + name + "_overrides_net10_0"}, impl = _overrides)
-    msbuild_test_project(name = name + "_tests", project = "FacadeTests.csproj", target_frameworks = ["net8.0", "net10.0"], deps = [":" + name], test_protocol = "mtp", env = {"MODE": "test"}, tags = ["manual"])
+    msbuild_test_project(name = name + "_tests", project = "FacadeTests.csproj", target_frameworks = ["net8.0", "net10.0"], deps = [":" + name], test_protocol = "mtp", test_working_directory = "tests", env = {"MODE": "test"}, tags = ["manual"])
     analysis_test(name = name + "_test_launcher", target = ":" + name + "_tests_net10_0", impl = _test_variant)
     for suffix, framework in [("incompatible", "netstandard1.0"), ("platform", "net8.0-windows7.0")]:
         subject = name + "_" + suffix

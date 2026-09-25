@@ -4,7 +4,7 @@ using System.Runtime.InteropServices;
 using System.Xml;
 using System.Xml.Linq;
 
-internal sealed record TestOptions(string Protocol = "executable", string? Settings = null, string FilterArgument = "", bool AllowEmpty = false, string? Runner = null, string[]? Adapters = null, bool Diagnostics = false, string[]? OutputDirectories = null, string? SettingsOutput = null);
+internal sealed record TestOptions(string Protocol = "executable", string? Settings = null, string FilterArgument = "", bool AllowEmpty = false, string? Runner = null, string[]? Adapters = null, bool Diagnostics = false, string[]? OutputDirectories = null, string? SettingsOutput = null, string? WorkingDirectory = null);
 
 internal static class TestExecution
 {
@@ -35,16 +35,21 @@ internal static class TestExecution
             Program.Safe(options.SettingsOutput);
         }
 
+        if (options.WorkingDirectory is not null)
+        {
+            Program.Safe(options.WorkingDirectory);
+        }
+
         if (options.FilterArgument is not ("" or "--filter" or "--filter-query"))
         {
             throw new InvalidDataException("Unsupported MTP filter argument");
         }
     }
 
-    internal static int Run(ProcessStartInfo start, TestOptions options, string runfiles)
+    internal static int Run(ProcessStartInfo start, TestOptions options, string runfiles, string stagingRoot)
     {
         var protocol = options.Protocol;
-        var output = Environment.GetEnvironmentVariable("TEST_UNDECLARED_OUTPUTS_DIR") ?? Path.Combine(start.WorkingDirectory, "test-results");
+        var output = Environment.GetEnvironmentVariable("TEST_UNDECLARED_OUTPUTS_DIR") ?? Path.Combine(stagingRoot, "test-results");
         output = Path.GetFullPath(output);
         Directory.CreateDirectory(output);
         var report = Path.Combine(output, "results.trx");
@@ -57,7 +62,7 @@ internal static class TestExecution
             {
                 var relative = Program.Safe(directory);
                 var target = Path.Combine(output, "files", relative);
-                var link = Path.Combine(start.WorkingDirectory, relative);
+                var link = Path.Combine(stagingRoot, relative);
                 if (Directory.Exists(link) || File.Exists(link))
                 {
                     throw new InvalidDataException("Test output directory collides with a runtime input: " + relative);
@@ -68,7 +73,7 @@ internal static class TestExecution
                 Directory.CreateSymbolicLink(link, target);
             }
             var settings = options.SettingsOutput is not null
-                ? Path.Combine(start.WorkingDirectory, Program.Safe(options.SettingsOutput))
+                ? Path.Combine(stagingRoot, Program.Safe(options.SettingsOutput))
                 : options.Settings is not null ? Path.Combine(runfiles, Program.Safe(options.Settings)) : null;
             if (settings is not null && !File.Exists(settings))
             {
