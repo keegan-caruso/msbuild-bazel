@@ -22,19 +22,20 @@ internal sealed class Generator(string root, string sdk)
         {
             generator.Visit(Path.GetFullPath(project, root));
         }
-        var text = Header + "load(\"@rules_msbuild//msbuild:defs.bzl\", \"msbuild_binary\", \"msbuild_project\")\n\n" + string.Join("\n", generator.declarations.Values);
-        var output = Path.Combine(root, "BUILD.bazel");
+        var body = string.Join("\n", generator.declarations.Values);
+        var text = Header + "load(\"@rules_msbuild//msbuild:defs.bzl\", \"msbuild_binary\", \"msbuild_project\")\n\n" + "def app_projects():\n    if native.package_name():\n        fail(\"app_projects must be called from the workspace root\")\n" + string.Join("\n", body.TrimEnd().Split('\n').Select(line => line.Length == 0 ? "" : "    " + line)) + "\n";
+        var output = Path.Combine(root, "projects.generated.bzl");
         if (check)
         {
             if (!File.Exists(output) || File.ReadAllText(output) != text)
             {
-                throw new InvalidDataException("BUILD.bazel is stale; rerun ProjectSync without --check");
+                throw new InvalidDataException("projects.generated.bzl is stale; rerun ProjectSync without --check");
             }
             return;
         }
-        if (File.Exists(Path.Combine(root, "BUILD")) || (File.Exists(output) && !File.ReadAllText(output).StartsWith(Header, StringComparison.Ordinal)))
+        if (File.Exists(output) && !File.ReadAllText(output).StartsWith(Header, StringComparison.Ordinal))
         {
-            throw new InvalidDataException("Refusing to overwrite an authored BUILD.bazel");
+            throw new InvalidDataException("Refusing to overwrite an authored projects.generated.bzl");
         }
         var temporary = output + "." + Guid.NewGuid().ToString("N") + ".tmp";
         try

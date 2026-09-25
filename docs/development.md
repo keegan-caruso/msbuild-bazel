@@ -37,6 +37,12 @@ validated; the current catalog contains stable SDKs only. `$schema` and a string
 inputs and attributes. SDK acquisition does not configure workloads or NuGet
 package resolution.
 
+### Generating project declarations
+
+Use the [`msbuild_sync` macro](project-sync.md) to run project synchronization with
+`bazel run //:sync`. Bazel supplies the generator and SDK; the tool writes a
+separate generated declaration file and preserves your authored BUILD file.
+
 ### SDK acquisition qualification
 
 The SDK fixture (`tests/explicit_msbuild/sdk_extension.py`) covers exact version
