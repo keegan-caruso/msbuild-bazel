@@ -1,0 +1,99 @@
+using System;
+using System.IO;
+using System.Net;
+using System.Net.Sockets;
+using System.Text;
+using System.Threading.Tasks;
+using Avalonia;
+using Avalonia.Controls;
+using Avalonia.Headless;
+using Avalonia.Headless.Vnc;
+using Avalonia.Media;
+using Avalonia.Themes.Simple;
+using Avalonia.Threading;
+using RemoteViewing.Vnc;
+using RemoteViewing.Vnc.Server;
+#if XUNIT
+using Xunit;
+using Avalonia.Headless.XUnit;
+#else
+using NUnit.Framework;
+using Avalonia.Headless.NUnit;
+#endif
+[assembly: AvaloniaTestApplication(typeof(TestApp))]
+public class TestApp : Application
+{
+    public TestApp() { Styles.Add(new SimpleTheme()); }
+    public static AppBuilder BuildAvaloniaApp() => AppBuilder.Configure<TestApp>().UseSkia()
+        .UseHeadless(new AvaloniaHeadlessPlatformOptions { UseHeadlessDrawing = false });
+}
+public class Smoke
+{
+    static void Check(bool value) { if (!value) throw new Exception("Headless control failed"); }
+#if XUNIT
+    [AvaloniaFact]
+#else
+    [AvaloniaTest, Timeout(15000)]
+#endif
+    public void InputAndRendering()
+    {
+        Check(Dispatcher.UIThread.CheckAccess());
+        var text = new TextBox();
+        var window = new Window { Width = 120, Height = 40, Content = text };
+        try
+        {
+            window.Show();
+            Check(text.Focus());
+            window.KeyTextInput("declared-input");
+            Check(text.Text == "declared-input");
+            using var frame = window.CaptureRenderedFrame();
+            Check(frame != null && frame.PixelSize.Width == 120 && frame.PixelSize.Height == 40);
+        }
+        finally { window.Close(); }
+    }
+#if XUNIT
+    [AvaloniaFact]
+#else
+    [AvaloniaTest, Timeout(15000)]
+#endif
+    public void VncFramebufferAndHandshake()
+    {
+        var window = new Window { Width = 32, Height = 24, Background = Brushes.Red };
+        var session = new VncServerSession(new VncPasswordChallenge(), Microsoft.Extensions.Logging.Abstractions.NullLogger.Instance);
+        using var listener = new TcpListener(IPAddress.Loopback, 0);
+        try
+        {
+            window.Show();
+            using var rendered = window.CaptureRenderedFrame();
+            Check(rendered != null);
+            var source = new HeadlessVncFramebufferSource(session, window);
+            var frame = source.Capture();
+            Check(frame.Width == 32 && frame.Height == 24);
+            Check(Array.Exists(frame.GetBuffer(), b => b != 0));
+            session.SetFramebufferSource(source);
+            listener.Start();
+            using var client = new TcpClient();
+            client.Connect((IPEndPoint)listener.LocalEndpoint);
+            using var server = listener.AcceptTcpClient();
+            var connection = Task.Run(() => session.Connect(server.GetStream(), new VncServerSessionOptions { AuthenticationMethod = AuthenticationMethod.None }));
+            var stream = client.GetStream();
+            stream.ReadTimeout = 5000;
+            byte[] Read(int n) { var bytes = new byte[n]; stream.ReadExactly(bytes); return bytes; }
+            var greeting = Read(12);
+            Check(Encoding.ASCII.GetString(greeting).StartsWith("RFB 003."));
+            stream.Write(Encoding.ASCII.GetBytes("RFB 003.008\n"));
+            var types = Read(Read(1)[0]);
+            Check(Array.IndexOf(types, (byte)1) >= 0);
+            stream.WriteByte(1);
+            Check(Array.TrueForAll(Read(4), b => b == 0));
+            stream.WriteByte(1);
+            var init = Read(24);
+            Check((init[0] * 256 + init[1]) == 32 && (init[2] * 256 + init[3]) == 24);
+            int length = (init[20] << 24) | (init[21] << 16) | (init[22] << 8) | init[23];
+            Check(length > 0 && length < 1024);
+            Check(Encoding.UTF8.GetString(Read(length)) == "Avalonia");
+            Check(connection.Wait(TimeSpan.FromSeconds(5)));
+        }
+        finally { session.Close(); window.Close(); }
+    }
+}

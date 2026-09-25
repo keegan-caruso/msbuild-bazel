@@ -75,8 +75,8 @@ Desktop compilation includes managed Windows/macOS/X11 backends. It does **not**
 qualify running Windows or macOS UI, opening Linux display windows, GPU drivers,
 Android/iOS workloads, browser/WASM, packaging, or every sample. Skia rendering
 coverage is offscreen CPU rendering. Headless XUnit/NUnit/VNC libraries are
-compiled and compared; that does not qualify VNC networking or every runner
-integration. Raw/Bazel reference-byte equality is asserted for the managed-library
+compiled and compared here; follow-up [Headless execution](avalonia-correctness.md#headless-execution)
+adds runner suites and a bounded VNC loopback control. Raw/Bazel reference-byte equality is asserted for the managed-library
 slice. It is not claimed for Desktop COM stubs: `Avalonia.Win32.Automation` has
 compiler-generated file-local type names containing path hashes. Its inspected
 type/member metadata matches after normalizing only those hashes.

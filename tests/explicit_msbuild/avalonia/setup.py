@@ -1,7 +1,7 @@
 """Prepare a pinned Avalonia graph (Simple theme by default); setup is outside build timing."""
 import argparse,json,os,shutil,subprocess,sys,time
 from pathlib import Path
-p=argparse.ArgumentParser(description=__doc__);p.add_argument('checkout',type=Path);p.add_argument('destination',type=Path);p.add_argument('--entry',action='append');a=p.parse_args()
+p=argparse.ArgumentParser(description=__doc__);p.add_argument('checkout',type=Path);p.add_argument('destination',type=Path);p.add_argument('--entry',action='append');p.add_argument('--headless-controls',action='store_true');a=p.parse_args()
 rules=Path(__file__).resolve().parents[3];checkout=a.checkout.resolve();dest=a.destination.resolve();dest.mkdir(parents=True);source=dest/'source';sdk=Path(os.environ['RULES_MSBUILD_DOTNET_ROOT'])
 assert subprocess.check_output(['git','-C',checkout,'rev-parse','HEAD'],text=True).strip()=='37fbd9655cc581ff5b1c6b1fb1be4e3118c889d0'
 subprocess.run(['git','-C',checkout,'diff','--exit-code','HEAD'],check=True,stdout=subprocess.DEVNULL)
@@ -11,7 +11,11 @@ if (data_grid/'.git').exists():
  subprocess.run(['git','-C',data_grid,'diff','--exit-code','HEAD'],check=True,stdout=subprocess.DEVNULL)
 shutil.copytree(checkout,source,ignore=shutil.ignore_patterns('.git','bin','obj','artifacts','._*'))
 globaljson=source/'global.json';data=json.loads(globaljson.read_text());data['sdk']={'version':'10.0.400','rollForward':'disable'};globaljson.write_text(json.dumps(data))
-config={'sourceSubdir':'upstream','itemMetadata':['DBusGeneratorMode'],'framework':'net8.0','entries':a.entry or ['src/Avalonia.Themes.Simple/Avalonia.Themes.Simple.csproj'],'properties':{'AvsSkipBuildingLegacyTargetFrameworks':'True','DebugType':'portable','ProduceReferenceAssembly':'true','NuGetAudit':'false'}}
+entries=a.entry or ([] if a.headless_controls else ['src/Avalonia.Themes.Simple/Avalonia.Themes.Simple.csproj'])
+if a.headless_controls:
+ from headless_controls import install
+ entries=entries+install(source)
+config={'sourceSubdir':'upstream','itemMetadata':['DBusGeneratorMode'],'framework':'net8.0','entries':entries,'properties':{'AvsSkipBuildingLegacyTargetFrameworks':'True','DebugType':'portable','ProduceReferenceAssembly':'true','NuGetAudit':'false'}}
 (dest/'config.json').write_text(json.dumps(config,indent=2))
 props=['-p:'+k+'='+v for k,v in config['properties'].items()]+['-p:RestorePackagesPath='+str(dest/'nuget')]
 for index, entry in enumerate(config['entries']):
