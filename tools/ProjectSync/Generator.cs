@@ -190,6 +190,7 @@ internal sealed class Generator(string root, string sdk, Mappings mappings, Work
                 attributes.AppendLine("            " + Quote(role) + ": " + List(roles[role].Concat(role == "tools" ? projectBinding.Tools : [])) + ",");
             }
             attributes.AppendLine("            \"reference_projects\": " + JsonSerializer.Serialize(projectBinding.References.Where(p => p.Value.Role == "compile").ToDictionary(p => p.Value.Label, p => p.Key)) + ",");
+            attributes.AppendLine("            \"assembly_selections\": " + List(projectBinding.AssemblySelections) + ",");
             attributes.AppendLine("            \"bindings\": " + List(projectBinding.Bindings) + ",");
             attributes.AppendLine("            \"adapter_imports\": " + List(projectBinding.AdapterImports) + ",");
             attributes.AppendLine("            \"layout_bindings\": " + JsonSerializer.Serialize(projectBinding.LayoutBindings) + ",");
@@ -370,7 +371,7 @@ internal sealed class Generator(string root, string sdk, Mappings mappings, Work
                 {
                     continue;
                 }
-                var allowed = type == "Compile" ? new[] { "Link", "LinkBase", "Visible" } : new[] { "Link", "LinkBase", "LogicalName", "ManifestResourceName", "Culture", "WithCulture", "CopyToOutputDirectory", "CopyToPublishDirectory", "TargetPath", "Visible", "Pack", "PackagePath", "CopyToBuildDirectory", "GenerateSource", "ClassName", "Generator", "Namespace", "GenerateResourcesCodeAsConstants", "StronglyTypedClassName", "StronglyTypedNamespace", "DependentUpon", "LastGenOutput" };
+                var allowed = type == "Compile" ? new[] { "Link", "LinkBase", "Visible", "DesignTime", "AutoGen", "DependentUpon", "CopyToOutputDirectory", "CopyToPublishDirectory", "TargetPath" } : new[] { "Link", "LinkBase", "LogicalName", "ManifestResourceName", "Culture", "WithCulture", "CopyToOutputDirectory", "CopyToPublishDirectory", "TargetPath", "Visible", "Pack", "PackagePath", "CopyToBuildDirectory", "GenerateSource", "ClassName", "Generator", "Namespace", "GenerateResourcesCodeAsConstants", "StronglyTypedClassName", "StronglyTypedNamespace", "DependentUpon", "LastGenOutput" };
                 foreach (var metadata in item.Metadata.Where(m => !IsSdk(m.Xml.ContainingProject.FullPath)))
                 {
                     if (!allowed.Contains(metadata.Name, StringComparer.Ordinal) || metadata.Name == "GenerateSource" && binding.Documents.Count == 0)
@@ -438,14 +439,14 @@ internal sealed class Generator(string root, string sdk, Mappings mappings, Work
         }
         foreach (var item in project.AllEvaluatedItems.Where(i => !IsSdk(i.Xml.ContainingProject.FullPath)))
         {
-            if (!binding.EvaluationItems.Contains(item.ItemType, StringComparer.Ordinal) && item.ItemType is not "InternalsVisibleTo" and not "Compile" and not "None" and not "ProjectReference" and not "PackageReference" and not "PackageVersion" and not "Content" and not "EmbeddedResource" and not "Reference" and not "FrameworkReference" and not "Analyzer" and not "AdditionalFiles" and not "EditorConfigFiles" and not "GlobalAnalyzerConfigFiles")
+            if (!binding.EvaluationItems.Contains(item.ItemType, StringComparer.Ordinal) && item.ItemType is not "InternalsVisibleTo" and not "Compile" and not "None" and not "ProjectReference" and not "PackageReference" and not "PackageVersion" and not "Content" and not "EmbeddedResource" and not "Reference" and not "FrameworkReference" and not "Analyzer" and not "AdditionalFiles" and not "EditorConfigFiles" and not "GlobalAnalyzerConfigFiles" and not "Using")
             {
                 throw new InvalidDataException("Item requires explicit mapping: " + item.ItemType);
             }
         }
         foreach (var item in project.GetItems("Compile"))
         {
-            if (item.Metadata.Any(m => !IsSdk(m.Xml.ContainingProject.FullPath) && m.Name is not "Link" and not "LinkBase" and not "Visible"))
+            if (item.Metadata.Any(m => !IsSdk(m.Xml.ContainingProject.FullPath) && m.Name is not "Link" and not "LinkBase" and not "Visible" and not "DesignTime" and not "AutoGen" and not "DependentUpon" and not "CopyToOutputDirectory" and not "CopyToPublishDirectory" and not "TargetPath"))
             {
                 throw new InvalidDataException("Compile metadata requires explicit mapping: " + item.EvaluatedInclude);
             }
@@ -471,6 +472,13 @@ internal sealed class Generator(string root, string sdk, Mappings mappings, Work
                 throw new InvalidDataException("Custom tasks require declared tools or package_lock: " + logical);
             }
             contracts[logical] = digest;
+        }
+        foreach (var item in project.GetItems("Using"))
+        {
+            if (item.Metadata.Any(m => m.Name is not "Alias" and not "Static"))
+            {
+                throw new InvalidDataException("Unsupported Using metadata: " + item.EvaluatedInclude);
+            }
         }
         foreach (var friend in project.GetItems("InternalsVisibleTo"))
         {

@@ -15,24 +15,7 @@ ns={'t':'http://microsoft.com/schemas/VisualStudio/TeamTest/2010'}
 raw_cases=Counter((t.get('testName'),t.get('outcome')) for t in ET.parse(raw/'results/results.trx').getroot().findall('.//t:UnitTestResult',ns))
 testlog=workspace/'bazel-testlogs/upstream'/name
 cases=Counter((t.get('name'),'Failed' if t.find('failure') is not None or t.find('error') is not None else 'NotExecuted' if t.find('skipped') is not None else 'Passed') for t in ET.parse(testlog/'test.xml').getroot().findall('.//testcase'))
-# Int32StringData deliberately shuffles with Guid.NewGuid(), so its four
-# theory methods have unstable, truncated parameter displays. Preserve the
-# per-method multiplicity/outcomes; compare every other case's full display.
-shuffled={
-    'System.Collections.Frozen.Tests.FrozenFromKnownValuesTests.FrozenDictionary_Int32String',
-    'System.Collections.Frozen.Tests.FrozenFromKnownValuesTests.FrozenSet_Int32String',
-    'System.Collections.Frozen.Tests.FrozenDictionaryAlternateLookupTests.AlternateLookup_Int32_AlternateKeyString',
-    'System.Collections.Frozen.Tests.FrozenSetAlternateLookupTests.AlternateLookup_Int32_AlternateKeyString',
-}
-def normalized(rows):
-    result=Counter()
-    for (name,outcome),count in rows.items():
-        method=name.split('(',1)[0]
-        if method in shuffled:name=method
-        elif method in ['System.Collections.Tests.DebugView_Tests.TestDebuggerAttributes_Null','System.Collections.Tests.DebugView_Tests.TestDebuggerAttributes_Dictionary']:
-            name=name.replace('obj: [[b, B], [a, 1]]','obj: [[a, 1], [b, B]]')
-        result[name,outcome]+=count
-    return result
+from case_names import normalized, shuffled
 assert normalized(cases)==normalized(raw_cases),(normalized(cases)-normalized(raw_cases),normalized(raw_cases)-normalized(cases))
 assert sum(cases.values())==22544 and all(outcome=='Passed' for _,outcome in cases)
 proofs={}

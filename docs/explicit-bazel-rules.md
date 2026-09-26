@@ -198,6 +198,9 @@ A selection must already occur in the active dependency closure, come from the
 same project, and agree with direct `deps`. Conflicting inherited choices require
 an explicit choice at their convergence point. Full assembly identity (name,
 version, culture and public key token) and NuGet project name/version must match.
+Reference-only dependency contracts carried by paired assemblies remain subject
+to identity validation, but are not competing runtime projects when their runtime
+artifacts are absent from the active closure.
 Different global properties and configurations remain distinct restore nodes,
 even when their TFMs match. Without a selection, conflicting artifacts retain the
 existing collision checks.

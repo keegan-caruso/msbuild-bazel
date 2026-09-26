@@ -19,8 +19,9 @@ filegroup(name = "runner", srcs = [":runner_payload"], output_group = "runner")
 msbuild_toolchain(name = "sdk_toolchain", dotnet = "sdk/dotnet", sdk = ":files", runner = ":runner", runner_support = [":runner_payload"], runtime_manifest = "runtime-roots.json", sdk_version = %s, requires_runtime_toolchain = True)
 filegroup(name = "runtime_files", srcs = ["sdk/dotnet"] + glob(["sdk/host/**", "sdk/shared/**"]))
 sdk_runtime(name = "runtime", dotnet = "sdk/dotnet", files = ":runtime_files", runtime_identifier = %s, version = %s)
+sdk_runtime(name = "sdk_host", dotnet = "sdk/dotnet", files = ":files", runtime_identifier = %s, version = %s)
 sdk_runtime_toolchain(name = "runtime_toolchain", runtime = ":runtime")
-""" % (json.encode(str(ctx.attr._bootstrap)), json.encode(str(ctx.attr._toolchain)), json.encode(str(ctx.attr._project)), json.encode(str(ctx.attr._sources)), json.encode(ctx.attr.version), json.encode(ctx.attr.platform), json.encode(ctx.attr.runtime_version)))
+""" % (json.encode(str(ctx.attr._bootstrap)), json.encode(str(ctx.attr._toolchain)), json.encode(str(ctx.attr._project)), json.encode(str(ctx.attr._sources)), json.encode(ctx.attr.version), json.encode(ctx.attr.platform), json.encode(ctx.attr.runtime_version), json.encode(ctx.attr.platform), json.encode(ctx.attr.runtime_version)))
 
 sdk_archive = repository_rule(
     implementation = _sdk_archive,
@@ -40,6 +41,7 @@ sdk_archive = repository_rule(
 def _sdk_toolchains(ctx):
     rows = ['package(default_visibility = ["//visibility:public"])']
     choices = {}
+    sdk_hosts = {}
     for platform, repo in ctx.attr.repositories.items():
         constraints = json.encode(SDK_PLATFORMS[platform])
         name = platform.replace("-", "_")
@@ -47,7 +49,9 @@ def _sdk_toolchains(ctx):
         rows.append("toolchain(name=%s, toolchain=%s, toolchain_type=%s, target_compatible_with=%s)" % (json.encode("runtime_" + name), json.encode("@" + repo + "//:runtime_toolchain"), json.encode(str(ctx.attr._runtime_type)), constraints))
         rows.append("config_setting(name=%s, constraint_values=%s)" % (json.encode(name), constraints))
         choices[":" + name] = "@" + repo + "//:runtime"
+        sdk_hosts[":" + name] = "@" + repo + "//:sdk_host"
     rows.append("alias(name=\"runtime\", actual=select(%s, no_match_error=\"No SDK runtime for the target platform\"))" % json.encode(choices))
+    rows.append("alias(name=\"sdk_host\", actual=select(%s, no_match_error=\"No SDK host for the target platform\"))" % json.encode(sdk_hosts))
     ctx.file("BUILD.bazel", "\n".join(rows) + "\n")
 
 sdk_toolchains = repository_rule(

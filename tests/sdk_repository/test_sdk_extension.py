@@ -26,6 +26,7 @@ class SdkExtension(unittest.TestCase):
                 self.assertEqual(result.returncode,0,output)
                 self.assertIn('sdk_linux_arm64',output)
                 self.assertIn('runtime_osx_arm64',output)
+                self.assertIn('@dotnet//:sdk_host',output)
 
     def test_exact_version(self):
         self.check('version="10.0.400"')

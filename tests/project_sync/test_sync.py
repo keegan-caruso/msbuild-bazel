@@ -287,6 +287,21 @@ class ProjectSyncTests(unittest.TestCase):
         (self.root/'runfiles/sdk/key.snk').unlink()
         self.assertIn('Missing signing key', self.run_sync('Core/Core.csproj', '--inputs', str(self.root/'inputs.json'), '--runfiles', str(self.root/'runfiles'), success=False))
 
+    def test_checked_in_generated_source_and_using(self):
+        self.put('Core/Generated.cs', 'class Generated {}')
+        self.put('Core/Core.csproj', '<Project Sdk="Microsoft.NET.Sdk"><ItemGroup><Compile Update="Generated.cs" DesignTime="True" AutoGen="True" DependentUpon="Generated.tt"/><Using Include="System.Math" Static="true"/><Using Include="System.String" Alias="Text"/></ItemGroup></Project>')
+        self.run_sync('Core/Core.csproj')
+        self.assertIn('Core/Generated.cs', (self.root/'projects.generated.bzl').read_text())
+        self.put('Core/Core.csproj', '<Project Sdk="Microsoft.NET.Sdk"><ItemGroup><Using Include="System" Unknown="true"/></ItemGroup></Project>')
+        self.assertIn('Unsupported Using metadata', self.run_sync('Core/Core.csproj', success=False))
+
+    def test_explicit_assembly_selections(self):
+        self.put('sync.json', json.dumps(dict(projects={'Core/Core.csproj': dict(assemblySelections=[':chosen'])})))
+        self.run_sync('Core/Core.csproj', '--mappings', 'sync.json')
+        self.assertIn('"assembly_selections": [":chosen"]', (self.root/'projects.generated.bzl').read_text())
+        self.put('sync.json', json.dumps(dict(projects={'Core/Core.csproj': dict(assemblySelections=['not-a-label'])})))
+        self.assertIn('label', self.run_sync('Core/Core.csproj', '--mappings', 'sync.json', success=False).lower())
+
     def test_generated_test_settings(self):
         self.put('sync.json', json.dumps(dict(tests={'Core/Core.csproj': dict(protocol='vstest', runner=':runner', settingsOutput='.runsettings')})))
         self.run_sync('Core/Core.csproj', '--mappings', 'sync.json')

@@ -11,7 +11,7 @@ def assembly_node(info):
     Returns:
         A compact dependency node.
     """
-    return struct(project = info.project, assembly = info.assembly, reference = info.reference, runtime = info.runtime, identity = info.identity, restore_project = info.restore_project)
+    return struct(project = info.project, reference_only = info.output_mode == "reference", assembly = info.assembly, reference = info.reference, runtime = info.runtime, identity = info.identity, restore_project = info.restore_project)
 
 def select_closure(ctx, nodes, references, runtime_references, runtimes, direct):
     """Apply declared choices without changing the compilation of dependencies.
@@ -55,7 +55,11 @@ def select_closure(ctx, nodes, references, runtime_references, runtimes, direct)
             fail("Selected implementation is not in the active runtime closure: " + selected.project)
         if not any([n.reference == selected.reference and n.runtime == selected.runtime for n in matches]):
             fail("Assembly selection must name an existing configured dependency: " + selected.project)
-        if any([n.project != selected.project for n in matches]):
+
+        # Paired contracts carry reference-only dependency projects which do not
+        # contribute runtime artifacts. Keep their identity checks, but do not
+        # mistake them for competing implementations from unrelated projects.
+        if any([n.project != selected.project and not (n.reference_only and n.runtime not in active_runtimes) for n in matches]):
             fail("Assembly selection cannot replace a different project: " + selected.assembly)
         choices[selected.assembly + ".dll"] = selected.reference
         for node in matches:

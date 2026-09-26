@@ -281,6 +281,13 @@ The archive must contain a dotnet runtime installation at its root. This supplie
 the same public `:runtime` target. Download/extraction uses Bazel's repository
 cache. No source compilation runs during repository evaluation.
 
+For tests or tools that invoke SDK compilers (for example, a T4 freshness test),
+select `runtime_host = "@dotnet//:sdk_host"` from a `dotnet.sdk` declaration. It
+stages the complete pinned SDK for the target platform, including its runtime.
+This costs more input data than `@dotnet//:runtime` and is opt-in; it does not
+change the build toolchain or find an SDK from the host environment. See the
+[Http.Abstractions qualification](project-sync-expanded.md).
+
 Source-built runtimes use the same provider:
 
 ```starlark
