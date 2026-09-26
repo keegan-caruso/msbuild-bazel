@@ -99,7 +99,7 @@ internal static class MappingDefaults
         Members(value, path);
         foreach (var (name, node) in value)
         {
-            if (node is null && !name.Equals("referencePack", StringComparison.OrdinalIgnoreCase) && !name.Equals("runtimeHost", StringComparison.OrdinalIgnoreCase) && !name.Equals("packageLock", StringComparison.OrdinalIgnoreCase) && !name.Equals("useAppHost", StringComparison.OrdinalIgnoreCase))
+            if (node is null && !name.Equals("referencePack", StringComparison.OrdinalIgnoreCase) && !name.Equals("runtimeHost", StringComparison.OrdinalIgnoreCase) && !name.Equals("packageLock", StringComparison.OrdinalIgnoreCase) && !name.Equals("useAppHost", StringComparison.OrdinalIgnoreCase) && !name.Equals("transitiveCompileReferences", StringComparison.OrdinalIgnoreCase))
             {
                 throw new InvalidDataException("Null mapping field: " + path + "." + name);
             }

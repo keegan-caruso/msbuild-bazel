@@ -47,7 +47,10 @@ internal sealed class ProjectBinding
     {
         get; set;
     }
-    public bool TransitiveCompileReferences { get; set; } = true;
+    public bool? TransitiveCompileReferences
+    {
+        get; set;
+    }
     public Dictionary<string, string[]> PackageReferencePaths { get; set; } = [];
     public Dictionary<string, ReferenceBinding> References { get; set; } = [];
     public Dictionary<string, ReferenceBinding> ProjectReferences { get; set; } = [];
