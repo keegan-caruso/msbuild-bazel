@@ -1,7 +1,8 @@
 # Planned work
 
 The active priority is complete generated graphs, independent remote-cache recovery,
-then developer experience and broader qualification. All stages below are **planned**;
+then developer experience and broader qualification. Stage 1 is **complete**;
+stages 2–8 remain **planned**;
 [current support](implementation-plan.md) records what is already measured.
 This sequence starts from local commit `d4a64b4`, not an assertion that the work has
 already reached `main`. Review and integrate the accumulated changes before basing
@@ -31,6 +32,8 @@ needed, proving new behavior with a small synthetic before applying it upstream.
 Keep the existing tests and explicit input boundaries intact throughout.
 
 ### 1. Generate the complete Http.Abstractions graph
+
+**Complete:** [full graph and clean-driver evidence](project-sync-http-full.md).
 
 **Depends on:** the starting baseline.
 

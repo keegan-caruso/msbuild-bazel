@@ -1,5 +1,8 @@
 # Generated Http.Abstractions and Immutable qualification
 
+This records the original hybrid baseline. The [complete generated HTTP graph](project-sync-http-full.md)
+supersedes its HTTP coverage and verifies the self-contained combined driver.
+
 The next two pinned upstream slices now build and test through `msbuild_sync` on
 **Linux ARM64, SDK 10.0.400, Bazel 9.2.0, Release/net10.0**. Revisions are unchanged
 from the [initial inventory](project-sync-upstream.md).

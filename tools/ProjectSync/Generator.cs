@@ -171,7 +171,8 @@ internal sealed class Generator(string root, string sdk, Mappings mappings, Work
             var dependencies = roles["deps"].Concat(packages["deps"]).ToArray();
             var attributes = new StringBuilder();
             attributes.AppendLine("            \"package_private_assets\": " + JsonSerializer.Serialize(privacy) + ",");
-            attributes.AppendLine("            \"srcs\": " + List(sources.Where(p => !view.Labels.ContainsKey(p))) + ",");
+            // Analyzer behavior on partial types can depend on evaluated source order.
+            attributes.AppendLine("            \"srcs\": " + JsonSerializer.Serialize(sources.Where(p => !view.Labels.ContainsKey(p)).Distinct(StringComparer.Ordinal)) + ",");
             attributes.AppendLine("            \"source_paths\": " + JsonSerializer.Serialize(view.Bindings(sources)) + ",");
             attributes.AppendLine("            \"deps\": " + List(dependencies) + ",");
             attributes.AppendLine("            \"items\": " + List(InputItems(project, relative, tfm, projectBinding, usedItemPaths).Concat(projectBinding.Items)) + ",");
@@ -371,7 +372,7 @@ internal sealed class Generator(string root, string sdk, Mappings mappings, Work
                 {
                     continue;
                 }
-                var allowed = type == "Compile" ? new[] { "Link", "LinkBase", "Visible", "DesignTime", "AutoGen", "DependentUpon", "CopyToOutputDirectory", "CopyToPublishDirectory", "TargetPath" } : new[] { "Link", "LinkBase", "LogicalName", "ManifestResourceName", "Culture", "WithCulture", "CopyToOutputDirectory", "CopyToPublishDirectory", "TargetPath", "Visible", "Pack", "PackagePath", "CopyToBuildDirectory", "GenerateSource", "ClassName", "Generator", "Namespace", "GenerateResourcesCodeAsConstants", "StronglyTypedClassName", "StronglyTypedNamespace", "DependentUpon", "LastGenOutput" };
+                var allowed = type == "Compile" ? new[] { "Link", "LinkBase", "Visible", "DesignTime", "AutoGen", "DependentUpon", "CopyToOutputDirectory", "CopyToPublishDirectory", "TargetPath" } : new[] { "Link", "LinkBase", "LogicalName", "ManifestResourceName", "Culture", "WithCulture", "CopyToOutputDirectory", "CopyToPublishDirectory", "TargetPath", "Visible", "Pack", "PackagePath", "CopyToBuildDirectory", "GenerateSource", "ClassName", "Generator", "Language", "Namespace", "GenerateResourcesCodeAsConstants", "StronglyTypedClassName", "StronglyTypedNamespace", "DependentUpon", "LastGenOutput" };
                 foreach (var metadata in item.Metadata.Where(m => !IsSdk(m.Xml.ContainingProject.FullPath)))
                 {
                     if (!allowed.Contains(metadata.Name, StringComparer.Ordinal) || metadata.Name == "GenerateSource" && binding.Documents.Count == 0)

@@ -1,0 +1,11 @@
+{
+  "src/Servers/IIS/IIS/src/Microsoft.AspNetCore.Server.IIS.csproj": {
+    "sha256": "b9e61c32a096906b3d1775f6c0de4ccfcd6ab16095a6a6960366c3c78eb34d6b",
+    "targets": [
+      "ValidateNativeComponentsBuilt",
+      "AddPackNativeComponents",
+      "AddRunNativeComponents"
+    ],
+    "tasks": []
+  }
+}

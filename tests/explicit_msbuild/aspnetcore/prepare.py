@@ -48,7 +48,7 @@ def logical(row, value):
         p = source / Path(row['project']).parent / p
     p = p.resolve()
     return p.relative_to(source).as_posix() if p.is_relative_to(source) else None
-packages = {}; closures = {}; declarations = []; manifest = {}; blocked = {}
+packages = {}; closures = {}; declarations = []; manifest = {}; blocked = {}; project_bindings = {}
 for row in rows:
     name = label(row['project'], row['framework'])
     assets = json.loads(Path(row['assets']).read_text())
@@ -127,9 +127,15 @@ for row in rows:
         blocked[name] = unsupported
         declarations.append(call('unsupported_project',name=name,reason='Unsupported project output role: '+json.dumps(unsupported)))
         continue
-    declarations.append(call('msbuild_binary' if row['properties']['OutputType']=='Exe' else 'msbuild_library',**attrs))
+    kind = 'msbuild_binary' if row['properties']['OutputType']=='Exe' else 'msbuild_library'
+    if os.environ.get('RULES_MSBUILD_SYNC_INPUTS_ONLY') == '1':
+        project_bindings[name] = dict(rule=kind, attributes=attrs)
+    else:
+        declarations.append(call(kind, **attrs))
 header.append('load(":qualification.bzl", "unsupported_project")')
 (root/'qualification.bzl').write_text('def _unsupported(ctx):\n    fail(ctx.attr.reason)\nunsupported_project = rule(implementation=_unsupported, attrs={"reason":attr.string()})\n')
+if project_bindings:
+    (workspace/'project-bindings.json').write_text(json.dumps(project_bindings, indent=2) + '\n')
 (workspace/'blocked.json').write_text(json.dumps(blocked,indent=2)+'\n')
 (root/'BUILD.bazel').write_text('\n'.join(header+list(packages.values())+list(closures.values())+declarations)+ '\n'+call('filegroup',name='benchmark',srcs=[':'+label(r['project'],r['framework']) for r in rows])+'\n')
 (workspace/'MODULE.bazel').write_text('module(name="aspnetcore_scale")\nbazel_dep(name="rules_msbuild",version="0.0.0")\nlocal_path_override(module_name="rules_msbuild",path='+json.dumps(str(rules))+')\nsdk=use_repo_rule("@rules_msbuild//bazel:msbuild.bzl","local_dotnet_sdk")\nsdk(name="dotnet",path='+json.dumps(os.environ['RULES_MSBUILD_DOTNET_ROOT'])+',include_runtime_closure=False)\nregister_toolchains("//upstream:registered")\n')

@@ -1,4 +1,4 @@
-"""Migrate Http.Abstractions and its tests; retain explicit dependency producers.
+"""Generate the complete selected Http.Abstractions graph through ProjectSync.
 
 Inputs: authored ASP.NET workspace, evaluation inventory, prepared ObjectPool
 workspace (for its already-qualified bootstrap and test tooling). No generated
@@ -14,10 +14,11 @@ outer, inventory, bootstrap = map(lambda p: Path(p).resolve(), sys.argv[1:])
 root = outer / 'upstream'
 rules = Path(__file__).resolve().parents[3]
 rows = json.loads(inventory.read_text())
-assert all(r.get('framework') == 'net10.0' for r in rows), rows
+assert all("error" not in r for r in rows), rows
 reviewed = json.loads(Path(__file__).with_name('objectpool-contracts.json').read_text())
+reviewed.update(json.loads(Path(__file__).with_name('http-contracts.json').read_text()))
 bootstrap_mapping = json.loads((bootstrap / 'sync.json').read_text())
-bookkeeping = next(iter(bootstrap_mapping['projects'].values()))['evaluationItems']
+bookkeeping = next(iter(bootstrap_mapping['projects'].values()))['evaluationItems'] + ['BaselinePackageReference', '_InvalidReferenceToNonSharedFxAssembly', 'Components', 'InProcessComponents', 'RunInProcessComponents', 'RunShimComponents', 'ShimComponents', 'SupportedPlatform', 'UpToDateCheckInput']
 
 def call(rule, **attrs):
     return rule + '(' + ','.join(k + '=' + (str(v) if isinstance(v, bool) else json.dumps(v)) for k, v in attrs.items()) + ')'
@@ -32,19 +33,27 @@ def records(path):
     return result
 
 old = records(root / 'BUILD.bazel')
+if (outer / 'project-bindings.json').exists():
+    old.update({name: (value['rule'], value['attributes']) for name, value in json.loads((outer / 'project-bindings.json').read_text()).items()})
 extras = records(bootstrap / 'BUILD.bazel')
 def qualify(value):
-    if isinstance(value, str): return ':bootstrap_' + value[1:] if value.startswith(':') else value
+    if isinstance(value, str):
+        if value.startswith(':'): return ':bootstrap_' + value[1:]
+        if value.startswith('locked-packages/'): return 'bootstrap-packages/' + value.removeprefix('locked-packages/')
+        return value
     if isinstance(value, list): return [qualify(v) for v in value]
     if isinstance(value, dict): return {qualify(k): qualify(v) for k, v in value.items()}
     return value
 
 extras = {name: (rule, dict(qualify(attrs), name='bootstrap_' + name)) for name, (rule, attrs) in extras.items()}
 inputs = extras['sync'][1]['inputs']
-projects = {row['project'] for row in rows}
-selected = {attrs['project']: attrs for rule, attrs in old.values() if attrs.get('project') in projects}
-assert len(selected) == 2
-shutil.copytree(bootstrap / 'locked-packages', root / 'locked-packages', dirs_exist_ok=True)
+assemblies = [attrs for rule, attrs in old.values() if rule in ['msbuild_library', 'msbuild_binary']]
+selected = {attrs['project']: attrs for attrs in assemblies}
+assert len(selected) == len(assemblies) == 44, 'This slice requires 44 distinct configured project paths'
+projects = set(selected)
+rows = [row for row in rows if row['project'] in selected and row['framework'] == selected[row['project']]['target_framework']]
+assert len(rows) == len(selected), (len(rows), len(selected))
+shutil.copytree(bootstrap / 'locked-packages', root / 'bootstrap-packages', dirs_exist_ok=True)
 shutil.copyfile(bootstrap / 'bootstrap.targets', root / 'bootstrap.targets')
 shutil.copyfile(bootstrap / 'layout.targets', root / 'layout.targets')
 # Replace captured bootstrap files with the declared generation action everywhere.
@@ -58,14 +67,9 @@ for name, (rule, attrs) in old.items():
     if rule in ['msbuild_toolchain', 'toolchain'] or name == 'benchmark': continue
     assert rule != 'unsupported_project', attrs
     if attrs.get('project') in projects:
-        generated = attrs['project'].removesuffix('.csproj').replace('/', '_') + '_net10_0'
+        generated = attrs['project'].removesuffix('.csproj').replace('/', '_') + '_' + attrs['target_framework'].replace('.', '_')
         lines.append(call('alias', name=name, actual=':' + generated))
         continue
-    if rule in ['msbuild_library', 'msbuild_binary']:
-        attrs['msbuild_properties'].pop('WarningsNotAsErrors', None)
-        attrs['msbuild_imports'] = [p for p in attrs['msbuild_imports'] if p not in inputs.values()]
-        attrs['import_paths'] = inputs
-        attrs['directories'] = [p.removeprefix('upstream/') for p in attrs['directories']]
     # Copied NuGet.config is test data, not the restore configuration.
     if rule == 'msbuild_items' and attrs.get('srcs') == ['NuGet.config']:
         attrs.pop('srcs'); attrs['paths'] = {':NuGet.config': 'qualification-data/NuGet.config'}
@@ -76,7 +80,10 @@ locked = {label for rule, attrs in old.values() if rule == 'msbuild_package_lock
 for row in rows:
     project = row['project']; previous = selected[project]
     locked.update(old[previous['package_lock'][1:]][1]['packages'])
-    binding = dict(targetFrameworks=['net10.0'], properties={k: v for k, v in previous['msbuild_properties'].items() if k != 'WarningsNotAsErrors'}, adapterImports=[':layout.targets'], directories=['artifacts/installers/Release','artifacts/VSSetup/Release'], documents={}, references={}, projectReferences={}, evaluationItems=bookkeeping)
+    binding = dict(targetFrameworks=[row['framework']], properties={k: v for k, v in previous['msbuild_properties'].items() if k != 'WarningsNotAsErrors'}, adapterImports=[':layout.targets'], directories=['artifacts/installers/Release','artifacts/VSSetup/Release'], documents={}, references={}, projectReferences={}, evaluationItems=bookkeeping)
+    # None items can feed package generators (for example CsWin32 NativeMethods.txt)
+    # even when they are not copied to the final output. Keep those task inputs explicit.
+    binding['items'] = [label for label in previous['items'] if old[label[1:]][1]['item_type'] == 'None' and not any(k in old[label[1:]][1].get('metadata', {}) for k in ['CopyToOutputDirectory', 'CopyToPublishDirectory'])]
     for doc in row['documents']:
         if not (doc['targets'] or doc['tasks']): continue
         contract = {k: doc[k] for k in ['sha256', 'targets', 'tasks']}
@@ -90,10 +97,15 @@ for row in rows:
         if ref['type'] == 'ProjectReference':
             source = next(p for p in Path(row['assets']).parents if p.name == 'artifacts').parent
             path = (source / Path(project).parent / identity.replace('\\', '/')).resolve().relative_to(source).as_posix()
-            candidates = [d for d in previous['deps'] if old[d[1:]][1].get('project') == path]
+            candidates = []
+            for role, attribute in [('compile', 'deps'), ('analyzer', 'analyzers'), ('tool', 'tools'), ('output', 'project_outputs')]:
+                for label in previous[attribute]:
+                    attrs = old[label[1:]][1]
+                    producer = old[attrs['assembly'][1:]][1] if role in ['tool', 'output'] else attrs
+                    if producer.get('project') == path:
+                        candidates.append(dict(role=role, label=label))
             assert len(candidates) == 1, (identity, candidates)
-            path = old[candidates[0][1:]][1]['project']
-            binding['projectReferences'][path] = dict(role='compile', label=candidates[0])
+            binding['projectReferences'][path] = candidates[0]
         if ref['type'] not in ['Reference', 'PackageReference']: continue
         candidates = []
         for label in previous['deps'] + previous['reference_packages']:
@@ -110,9 +122,11 @@ for row in rows:
             mapping['packages'][identity + '/' + package['version']] = dict(label=label, roles=['deps','build_deps','analyzers'])
     if '/test/' in project:
         binding['runtimeHost'] = '@dotnet//:sdk_host'
-        binding['itemPaths'] = {'NuGet.config': 'qualification-data/NuGet.config'}
+        if any(i['type'] in ['Content', 'None'] and i['include'].replace('\\', '/').endswith('NuGet.config') for i in row['items']):
+            binding['itemPaths'] = {'NuGet.config': 'qualification-data/NuGet.config'}
         mapping['tests'][project] = dict(protocol='vstest', runner=':bootstrap_vstest', adapters=[':bootstrap_xunit'], outputDirectories=['test-logs'])
     mapping['projects'][project] = binding
+mapping['packages']['NETStandard.Library/2.0.3'] = dict(label=':archive_netstandard.library_2.0.3', roles=['build_deps'])
 for name in ['vstest_package', 'vstest', 'xunit']: lines.append(call(extras[name][0], **extras[name][1]))
 lines.append(call('msbuild_package_lock', name='sync_packages', packages=sorted(locked)))
 lines.append(call('msbuild_sync', name='sync', projects=sorted(projects), mappings='sync.json', inputs=inputs, package_lock=':sync_packages'))
