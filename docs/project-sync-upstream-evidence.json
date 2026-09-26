@@ -1,0 +1,197 @@
+{
+  "scope": "Pinned source inspection and local generator evaluation; not build/test qualification",
+  "repositories": [
+    {
+      "repository": "aspnetcore",
+      "commit": "7387de91234d3ef751fa50b3d1bfede4130213ff",
+      "projects": [
+        {
+          "project": "src/ObjectPool/src/Microsoft.Extensions.ObjectPool.csproj",
+          "sha256": "dd61968681c0c2629b6d409a80d946aee96d7e5c085a173ff24bd6b3300c6464",
+          "sdk": "Microsoft.NET.Sdk",
+          "exitCode": 1,
+          "diagnostic": "The imported project \"<checkout>/artifacts/bin/GenerateFiles/Directory.Build.props\" was not found. Confirm that the expression in the Import declaration \"artifacts/bin/GenerateFiles/Directory.Build.props\", which evaluated to \"artifacts/bin/GenerateFiles/Directory.Build.props\", is correct, and that the file exists on disk.  <checkout>/Directory.Build.props",
+          "sourceItemTypes": [
+            "Compile",
+            "InternalsVisibleTo"
+          ],
+          "sourceMetadataNames": [
+            "LinkBase"
+          ]
+        },
+        {
+          "project": "src/ObjectPool/test/Microsoft.Extensions.ObjectPool.Tests.csproj",
+          "sha256": "f4158fa8273b1ff719945b7140976bca0f936e5b6644c325dd7caa5c790a806d",
+          "sdk": "Microsoft.NET.Sdk",
+          "exitCode": 1,
+          "diagnostic": "The imported project \"<checkout>/artifacts/bin/GenerateFiles/Directory.Build.props\" was not found. Confirm that the expression in the Import declaration \"artifacts/bin/GenerateFiles/Directory.Build.props\", which evaluated to \"artifacts/bin/GenerateFiles/Directory.Build.props\", is correct, and that the file exists on disk.  <checkout>/Directory.Build.props",
+          "sourceItemTypes": [
+            "Reference"
+          ],
+          "sourceMetadataNames": []
+        },
+        {
+          "project": "src/Http/Http.Abstractions/src/Microsoft.AspNetCore.Http.Abstractions.csproj",
+          "sha256": "da960c106c1bc204f53f8c9e504f4375421807b9a72e95fadaa0a61b17d92e1f",
+          "sdk": "Microsoft.NET.Sdk",
+          "exitCode": 1,
+          "diagnostic": "The imported project \"<checkout>/artifacts/bin/GenerateFiles/Directory.Build.props\" was not found. Confirm that the expression in the Import declaration \"artifacts/bin/GenerateFiles/Directory.Build.props\", which evaluated to \"artifacts/bin/GenerateFiles/Directory.Build.props\", is correct, and that the file exists on disk.  <checkout>/Directory.Build.props",
+          "sourceItemTypes": [
+            "Compile",
+            "InternalsVisibleTo",
+            "None",
+            "Reference",
+            "Service"
+          ],
+          "sourceMetadataNames": [
+            "AutoGen",
+            "DependentUpon",
+            "DesignTime",
+            "Generator",
+            "LastGenOutput",
+            "Link",
+            "LinkBase"
+          ]
+        }
+      ]
+    },
+    {
+      "repository": "runtime",
+      "commit": "60629d14374c56f1cb51819049ad1fa529307f8d",
+      "projects": [
+        {
+          "project": "src/libraries/System.IO.Pipelines/src/System.IO.Pipelines.csproj",
+          "sha256": "bc0266641fcb0c729ba39e73f6893e69f273892847e2be6f9b7390deefc0f0fa",
+          "sdk": "Microsoft.NET.Sdk",
+          "exitCode": 1,
+          "diagnostic": "Item requires explicit mapping: WorkloadSdkBandVersions",
+          "sourceItemTypes": [
+            "Compile",
+            "PackageReference",
+            "ProjectReference"
+          ],
+          "sourceMetadataNames": [
+            "Link",
+            "Version"
+          ]
+        },
+        {
+          "project": "src/libraries/System.IO.Pipelines/tests/System.IO.Pipelines.Tests.csproj",
+          "sha256": "f84d224a3cf62e50003f2e4e7a03ba2aa30d6a973679504b08b593cf40b7632b",
+          "sdk": "Microsoft.NET.Sdk",
+          "exitCode": 1,
+          "diagnostic": "Item requires explicit mapping: WorkloadSdkBandVersions",
+          "sourceItemTypes": [
+            "Compile",
+            "PackageReference",
+            "ProjectReference"
+          ],
+          "sourceMetadataNames": [
+            "SkipUseReferenceAssembly",
+            "Version"
+          ]
+        },
+        {
+          "project": "src/libraries/System.Collections.Immutable/src/System.Collections.Immutable.csproj",
+          "sha256": "cedfe75506e02aa33cafb228841139f03655464f2dff16787a318cc9b3dae410",
+          "sdk": "Microsoft.NET.Sdk",
+          "exitCode": 1,
+          "diagnostic": "Item requires explicit mapping: WorkloadSdkBandVersions",
+          "sourceItemTypes": [
+            "Compile",
+            "PackageReference",
+            "ProjectReference"
+          ],
+          "sourceMetadataNames": [
+            "Link",
+            "Version"
+          ]
+        }
+      ]
+    }
+  ],
+  "syntheticValidation": {
+    "platform": "macOS ARM64",
+    "sdk": "10.0.400",
+    "generatorControls": 20,
+    "runnerUnitTests": 35,
+    "bazel": {
+      "8.8.0": [
+        {
+          "case": "pack",
+          "exit": 0
+        },
+        {
+          "case": "sync",
+          "exit": 0
+        },
+        {
+          "case": "build-run",
+          "exit": 0
+        },
+        {
+          "case": "check",
+          "exit": 0
+        },
+        {
+          "case": "resource-edit",
+          "exit": 0
+        },
+        {
+          "case": "private-consumer-rejected",
+          "exit": 1
+        },
+        {
+          "case": "privacy-drift",
+          "exit": 1
+        },
+        {
+          "case": "resync",
+          "exit": 0
+        },
+        {
+          "case": "public-consumer",
+          "exit": 0
+        }
+      ],
+      "9.2.0": [
+        {
+          "case": "pack",
+          "exit": 0
+        },
+        {
+          "case": "sync",
+          "exit": 0
+        },
+        {
+          "case": "build-run",
+          "exit": 0
+        },
+        {
+          "case": "check",
+          "exit": 0
+        },
+        {
+          "case": "resource-edit",
+          "exit": 0
+        },
+        {
+          "case": "private-consumer-rejected",
+          "exit": 1
+        },
+        {
+          "case": "privacy-drift",
+          "exit": 1
+        },
+        {
+          "case": "resync",
+          "exit": 0
+        },
+        {
+          "case": "public-consumer",
+          "exit": 0
+        }
+      ]
+    }
+  }
+}
