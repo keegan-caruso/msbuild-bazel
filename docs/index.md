@@ -10,7 +10,7 @@ separates qualified behavior from the [ordered delivery plan](roadmap.md).
 
 - [Build inputs and rule API](explicit-bazel-rules.md)
 - [Project-to-BUILD synchronization](project-sync.md) and [generated Orchard/Avalonia qualification](project-sync-broader-graphs.md)
-- [Configured graphs and private dependencies](configured-graphs.md)
+- [Configured graphs and private dependencies](configured-graphs.md), [incremental reference boundaries](reference-invalidation.md)
 - [Executable, MTP and VSTest tests](bazel-test.md)
 - [Linux persistent workers](explicit-linux-workers.md) and [remote execution](remote-execution.md)
 - [Build task tools](explicit-tool-bindings.md), [generation](explicit-generation.md),

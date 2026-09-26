@@ -1,0 +1,3145 @@
+{
+  "schemaVersion": 1,
+  "environment": {
+    "platform": "Linux ARM64",
+    "sdk": "10.0.400",
+    "producerCpu": 6,
+    "producerMemoryGiB": 10,
+    "jobs": 2,
+    "maxWorkers": 2,
+    "workerMemoryLimitMb": 4096,
+    "configuration": "Release",
+    "framework": "net10.0",
+    "cacheMemoryGiB": 1,
+    "concurrentBuildVms": 1
+  },
+  "matrix": {
+    "8.8.0": [
+      {
+        "graph": "transitive",
+        "width": 1,
+        "forcedTransitive": false,
+        "case": "body",
+        "repetition": 0,
+        "bazelSeconds": 0.405,
+        "rawSeconds": 0.463,
+        "compiled": [
+          "C_C_net10_0"
+        ],
+        "referenceChanged": {
+          "C": false,
+          "B": false,
+          "A0": false
+        },
+        "rawReferenceChanged": {
+          "C": false,
+          "B": false,
+          "A0": false
+        }
+      },
+      {
+        "graph": "transitive",
+        "width": 1,
+        "forcedTransitive": false,
+        "case": "body",
+        "repetition": 1,
+        "bazelSeconds": 0.269,
+        "rawSeconds": 0.405,
+        "compiled": [
+          "C_C_net10_0"
+        ],
+        "referenceChanged": {
+          "C": false,
+          "B": false,
+          "A0": false
+        },
+        "rawReferenceChanged": {
+          "C": false,
+          "B": false,
+          "A0": false
+        }
+      },
+      {
+        "graph": "transitive",
+        "width": 1,
+        "forcedTransitive": false,
+        "case": "body",
+        "repetition": 2,
+        "bazelSeconds": 0.235,
+        "rawSeconds": 0.407,
+        "compiled": [
+          "C_C_net10_0"
+        ],
+        "referenceChanged": {
+          "C": false,
+          "B": false,
+          "A0": false
+        },
+        "rawReferenceChanged": {
+          "C": false,
+          "B": false,
+          "A0": false
+        }
+      },
+      {
+        "graph": "transitive",
+        "width": 1,
+        "forcedTransitive": false,
+        "case": "addition",
+        "repetition": 0,
+        "bazelSeconds": 0.492,
+        "rawSeconds": 0.472,
+        "compiled": [
+          "A0_A0_net10_0",
+          "B_B_net10_0",
+          "C_C_net10_0"
+        ],
+        "referenceChanged": {
+          "C": true,
+          "B": false,
+          "A0": false
+        },
+        "rawReferenceChanged": {
+          "C": true,
+          "B": false,
+          "A0": false
+        }
+      },
+      {
+        "graph": "transitive",
+        "width": 1,
+        "forcedTransitive": false,
+        "case": "addition",
+        "repetition": 1,
+        "bazelSeconds": 0.526,
+        "rawSeconds": 0.358,
+        "compiled": [
+          "A0_A0_net10_0",
+          "B_B_net10_0",
+          "C_C_net10_0"
+        ],
+        "referenceChanged": {
+          "C": true,
+          "B": false,
+          "A0": false
+        },
+        "rawReferenceChanged": {
+          "C": true,
+          "B": false,
+          "A0": false
+        }
+      },
+      {
+        "graph": "transitive",
+        "width": 1,
+        "forcedTransitive": false,
+        "case": "addition",
+        "repetition": 2,
+        "bazelSeconds": 0.474,
+        "rawSeconds": 0.378,
+        "compiled": [
+          "A0_A0_net10_0",
+          "B_B_net10_0",
+          "C_C_net10_0"
+        ],
+        "referenceChanged": {
+          "C": true,
+          "B": false,
+          "A0": false
+        },
+        "rawReferenceChanged": {
+          "C": true,
+          "B": false,
+          "A0": false
+        }
+      },
+      {
+        "graph": "transitive",
+        "width": 1,
+        "forcedTransitive": false,
+        "case": "constant",
+        "repetition": 0,
+        "bazelSeconds": 0.431,
+        "rawSeconds": 0.47,
+        "compiled": [
+          "A0_A0_net10_0",
+          "B_B_net10_0",
+          "C_C_net10_0"
+        ],
+        "referenceChanged": {
+          "C": true,
+          "B": true,
+          "A0": true
+        },
+        "rawReferenceChanged": {
+          "C": true,
+          "B": true,
+          "A0": true
+        }
+      },
+      {
+        "graph": "transitive",
+        "width": 1,
+        "forcedTransitive": false,
+        "case": "constant",
+        "repetition": 1,
+        "bazelSeconds": 0.479,
+        "rawSeconds": 0.368,
+        "compiled": [
+          "A0_A0_net10_0",
+          "B_B_net10_0",
+          "C_C_net10_0"
+        ],
+        "referenceChanged": {
+          "C": true,
+          "B": true,
+          "A0": true
+        },
+        "rawReferenceChanged": {
+          "C": true,
+          "B": true,
+          "A0": true
+        }
+      },
+      {
+        "graph": "transitive",
+        "width": 1,
+        "forcedTransitive": false,
+        "case": "constant",
+        "repetition": 2,
+        "bazelSeconds": 0.417,
+        "rawSeconds": 0.365,
+        "compiled": [
+          "A0_A0_net10_0",
+          "B_B_net10_0",
+          "C_C_net10_0"
+        ],
+        "referenceChanged": {
+          "C": true,
+          "B": true,
+          "A0": true
+        },
+        "rawReferenceChanged": {
+          "C": true,
+          "B": true,
+          "A0": true
+        }
+      },
+      {
+        "graph": "private",
+        "width": 1,
+        "forcedTransitive": false,
+        "case": "body",
+        "repetition": 0,
+        "bazelSeconds": 0.285,
+        "rawSeconds": 0.449,
+        "compiled": [
+          "C_C_net10_0"
+        ],
+        "referenceChanged": {
+          "C": false,
+          "B": false,
+          "A0": false
+        },
+        "rawReferenceChanged": {
+          "C": false,
+          "B": false,
+          "A0": false
+        }
+      },
+      {
+        "graph": "private",
+        "width": 1,
+        "forcedTransitive": false,
+        "case": "body",
+        "repetition": 1,
+        "bazelSeconds": 0.183,
+        "rawSeconds": 0.351,
+        "compiled": [
+          "C_C_net10_0"
+        ],
+        "referenceChanged": {
+          "C": false,
+          "B": false,
+          "A0": false
+        },
+        "rawReferenceChanged": {
+          "C": false,
+          "B": false,
+          "A0": false
+        }
+      },
+      {
+        "graph": "private",
+        "width": 1,
+        "forcedTransitive": false,
+        "case": "body",
+        "repetition": 2,
+        "bazelSeconds": 0.172,
+        "rawSeconds": 0.436,
+        "compiled": [
+          "C_C_net10_0"
+        ],
+        "referenceChanged": {
+          "C": false,
+          "B": false,
+          "A0": false
+        },
+        "rawReferenceChanged": {
+          "C": false,
+          "B": false,
+          "A0": false
+        }
+      },
+      {
+        "graph": "private",
+        "width": 1,
+        "forcedTransitive": false,
+        "case": "addition",
+        "repetition": 0,
+        "bazelSeconds": 0.31,
+        "rawSeconds": 0.466,
+        "compiled": [
+          "B_B_net10_0",
+          "C_C_net10_0"
+        ],
+        "referenceChanged": {
+          "C": true,
+          "B": false,
+          "A0": false
+        },
+        "rawReferenceChanged": {
+          "C": true,
+          "B": false,
+          "A0": false
+        }
+      },
+      {
+        "graph": "private",
+        "width": 1,
+        "forcedTransitive": false,
+        "case": "addition",
+        "repetition": 1,
+        "bazelSeconds": 0.324,
+        "rawSeconds": 0.358,
+        "compiled": [
+          "B_B_net10_0",
+          "C_C_net10_0"
+        ],
+        "referenceChanged": {
+          "C": true,
+          "B": false,
+          "A0": false
+        },
+        "rawReferenceChanged": {
+          "C": true,
+          "B": false,
+          "A0": false
+        }
+      },
+      {
+        "graph": "private",
+        "width": 1,
+        "forcedTransitive": false,
+        "case": "addition",
+        "repetition": 2,
+        "bazelSeconds": 0.303,
+        "rawSeconds": 0.373,
+        "compiled": [
+          "B_B_net10_0",
+          "C_C_net10_0"
+        ],
+        "referenceChanged": {
+          "C": true,
+          "B": false,
+          "A0": false
+        },
+        "rawReferenceChanged": {
+          "C": true,
+          "B": false,
+          "A0": false
+        }
+      },
+      {
+        "graph": "private",
+        "width": 1,
+        "forcedTransitive": false,
+        "case": "constant",
+        "repetition": 0,
+        "bazelSeconds": 0.388,
+        "rawSeconds": 0.544,
+        "compiled": [
+          "A0_A0_net10_0",
+          "B_B_net10_0",
+          "C_C_net10_0"
+        ],
+        "referenceChanged": {
+          "C": true,
+          "B": true,
+          "A0": true
+        },
+        "rawReferenceChanged": {
+          "C": true,
+          "B": true,
+          "A0": true
+        }
+      },
+      {
+        "graph": "private",
+        "width": 1,
+        "forcedTransitive": false,
+        "case": "constant",
+        "repetition": 1,
+        "bazelSeconds": 0.764,
+        "rawSeconds": 0.388,
+        "compiled": [
+          "A0_A0_net10_0",
+          "B_B_net10_0",
+          "C_C_net10_0"
+        ],
+        "referenceChanged": {
+          "C": true,
+          "B": true,
+          "A0": true
+        },
+        "rawReferenceChanged": {
+          "C": true,
+          "B": true,
+          "A0": true
+        }
+      },
+      {
+        "graph": "private",
+        "width": 1,
+        "forcedTransitive": false,
+        "case": "constant",
+        "repetition": 2,
+        "bazelSeconds": 0.382,
+        "rawSeconds": 0.353,
+        "compiled": [
+          "A0_A0_net10_0",
+          "B_B_net10_0",
+          "C_C_net10_0"
+        ],
+        "referenceChanged": {
+          "C": true,
+          "B": true,
+          "A0": true
+        },
+        "rawReferenceChanged": {
+          "C": true,
+          "B": true,
+          "A0": true
+        }
+      },
+      {
+        "graph": "direct",
+        "width": 1,
+        "forcedTransitive": false,
+        "case": "body",
+        "repetition": 0,
+        "bazelSeconds": 0.299,
+        "rawSeconds": 0.41,
+        "compiled": [
+          "C_C_net10_0"
+        ],
+        "referenceChanged": {
+          "C": false,
+          "B": false,
+          "A0": false
+        },
+        "rawReferenceChanged": {
+          "C": false,
+          "B": false,
+          "A0": false
+        }
+      },
+      {
+        "graph": "direct",
+        "width": 1,
+        "forcedTransitive": false,
+        "case": "body",
+        "repetition": 1,
+        "bazelSeconds": 0.257,
+        "rawSeconds": 0.332,
+        "compiled": [
+          "C_C_net10_0"
+        ],
+        "referenceChanged": {
+          "C": false,
+          "B": false,
+          "A0": false
+        },
+        "rawReferenceChanged": {
+          "C": false,
+          "B": false,
+          "A0": false
+        }
+      },
+      {
+        "graph": "direct",
+        "width": 1,
+        "forcedTransitive": false,
+        "case": "body",
+        "repetition": 2,
+        "bazelSeconds": 0.223,
+        "rawSeconds": 0.407,
+        "compiled": [
+          "C_C_net10_0"
+        ],
+        "referenceChanged": {
+          "C": false,
+          "B": false,
+          "A0": false
+        },
+        "rawReferenceChanged": {
+          "C": false,
+          "B": false,
+          "A0": false
+        }
+      },
+      {
+        "graph": "direct",
+        "width": 1,
+        "forcedTransitive": false,
+        "case": "addition",
+        "repetition": 0,
+        "bazelSeconds": 0.293,
+        "rawSeconds": 0.421,
+        "compiled": [
+          "B_B_net10_0",
+          "C_C_net10_0"
+        ],
+        "referenceChanged": {
+          "C": true,
+          "B": false,
+          "A0": false
+        },
+        "rawReferenceChanged": {
+          "C": true,
+          "B": false,
+          "A0": false
+        }
+      },
+      {
+        "graph": "direct",
+        "width": 1,
+        "forcedTransitive": false,
+        "case": "addition",
+        "repetition": 1,
+        "bazelSeconds": 0.295,
+        "rawSeconds": 0.348,
+        "compiled": [
+          "B_B_net10_0",
+          "C_C_net10_0"
+        ],
+        "referenceChanged": {
+          "C": true,
+          "B": false,
+          "A0": false
+        },
+        "rawReferenceChanged": {
+          "C": true,
+          "B": false,
+          "A0": false
+        }
+      },
+      {
+        "graph": "direct",
+        "width": 1,
+        "forcedTransitive": false,
+        "case": "addition",
+        "repetition": 2,
+        "bazelSeconds": 0.281,
+        "rawSeconds": 0.401,
+        "compiled": [
+          "B_B_net10_0",
+          "C_C_net10_0"
+        ],
+        "referenceChanged": {
+          "C": true,
+          "B": false,
+          "A0": false
+        },
+        "rawReferenceChanged": {
+          "C": true,
+          "B": false,
+          "A0": false
+        }
+      },
+      {
+        "graph": "direct",
+        "width": 1,
+        "forcedTransitive": false,
+        "case": "constant",
+        "repetition": 0,
+        "bazelSeconds": 0.375,
+        "rawSeconds": 0.419,
+        "compiled": [
+          "A0_A0_net10_0",
+          "B_B_net10_0",
+          "C_C_net10_0"
+        ],
+        "referenceChanged": {
+          "C": true,
+          "B": true,
+          "A0": true
+        },
+        "rawReferenceChanged": {
+          "C": true,
+          "B": true,
+          "A0": true
+        }
+      },
+      {
+        "graph": "direct",
+        "width": 1,
+        "forcedTransitive": false,
+        "case": "constant",
+        "repetition": 1,
+        "bazelSeconds": 0.38,
+        "rawSeconds": 0.341,
+        "compiled": [
+          "A0_A0_net10_0",
+          "B_B_net10_0",
+          "C_C_net10_0"
+        ],
+        "referenceChanged": {
+          "C": true,
+          "B": true,
+          "A0": true
+        },
+        "rawReferenceChanged": {
+          "C": true,
+          "B": true,
+          "A0": true
+        }
+      },
+      {
+        "graph": "direct",
+        "width": 1,
+        "forcedTransitive": false,
+        "case": "constant",
+        "repetition": 2,
+        "bazelSeconds": 0.411,
+        "rawSeconds": 0.401,
+        "compiled": [
+          "A0_A0_net10_0",
+          "B_B_net10_0",
+          "C_C_net10_0"
+        ],
+        "referenceChanged": {
+          "C": true,
+          "B": true,
+          "A0": true
+        },
+        "rawReferenceChanged": {
+          "C": true,
+          "B": true,
+          "A0": true
+        }
+      },
+      {
+        "graph": "transitive",
+        "width": 8,
+        "forcedTransitive": false,
+        "case": "body",
+        "repetition": 0,
+        "bazelSeconds": 0.294,
+        "rawSeconds": 0.552,
+        "compiled": [
+          "C_C_net10_0"
+        ],
+        "referenceChanged": {
+          "C": false,
+          "B": false,
+          "A0": false
+        },
+        "rawReferenceChanged": {
+          "C": false,
+          "B": false,
+          "A0": false
+        }
+      },
+      {
+        "graph": "transitive",
+        "width": 8,
+        "forcedTransitive": false,
+        "case": "body",
+        "repetition": 1,
+        "bazelSeconds": 0.232,
+        "rawSeconds": 0.496,
+        "compiled": [
+          "C_C_net10_0"
+        ],
+        "referenceChanged": {
+          "C": false,
+          "B": false,
+          "A0": false
+        },
+        "rawReferenceChanged": {
+          "C": false,
+          "B": false,
+          "A0": false
+        }
+      },
+      {
+        "graph": "transitive",
+        "width": 8,
+        "forcedTransitive": false,
+        "case": "body",
+        "repetition": 2,
+        "bazelSeconds": 0.188,
+        "rawSeconds": 0.53,
+        "compiled": [
+          "C_C_net10_0"
+        ],
+        "referenceChanged": {
+          "C": false,
+          "B": false,
+          "A0": false
+        },
+        "rawReferenceChanged": {
+          "C": false,
+          "B": false,
+          "A0": false
+        }
+      },
+      {
+        "graph": "transitive",
+        "width": 8,
+        "forcedTransitive": false,
+        "case": "addition",
+        "repetition": 0,
+        "bazelSeconds": 1.02,
+        "rawSeconds": 0.904,
+        "compiled": [
+          "A0_A0_net10_0",
+          "A1_A1_net10_0",
+          "A2_A2_net10_0",
+          "A3_A3_net10_0",
+          "A4_A4_net10_0",
+          "A5_A5_net10_0",
+          "A6_A6_net10_0",
+          "A7_A7_net10_0",
+          "B_B_net10_0",
+          "C_C_net10_0"
+        ],
+        "referenceChanged": {
+          "C": true,
+          "B": false,
+          "A0": false
+        },
+        "rawReferenceChanged": {
+          "C": true,
+          "B": false,
+          "A0": false
+        }
+      },
+      {
+        "graph": "transitive",
+        "width": 8,
+        "forcedTransitive": false,
+        "case": "addition",
+        "repetition": 1,
+        "bazelSeconds": 0.874,
+        "rawSeconds": 0.529,
+        "compiled": [
+          "A0_A0_net10_0",
+          "A1_A1_net10_0",
+          "A2_A2_net10_0",
+          "A3_A3_net10_0",
+          "A4_A4_net10_0",
+          "A5_A5_net10_0",
+          "A6_A6_net10_0",
+          "A7_A7_net10_0",
+          "B_B_net10_0",
+          "C_C_net10_0"
+        ],
+        "referenceChanged": {
+          "C": true,
+          "B": false,
+          "A0": false
+        },
+        "rawReferenceChanged": {
+          "C": true,
+          "B": false,
+          "A0": false
+        }
+      },
+      {
+        "graph": "transitive",
+        "width": 8,
+        "forcedTransitive": false,
+        "case": "addition",
+        "repetition": 2,
+        "bazelSeconds": 0.984,
+        "rawSeconds": 0.59,
+        "compiled": [
+          "A0_A0_net10_0",
+          "A1_A1_net10_0",
+          "A2_A2_net10_0",
+          "A3_A3_net10_0",
+          "A4_A4_net10_0",
+          "A5_A5_net10_0",
+          "A6_A6_net10_0",
+          "A7_A7_net10_0",
+          "B_B_net10_0",
+          "C_C_net10_0"
+        ],
+        "referenceChanged": {
+          "C": true,
+          "B": false,
+          "A0": false
+        },
+        "rawReferenceChanged": {
+          "C": true,
+          "B": false,
+          "A0": false
+        }
+      },
+      {
+        "graph": "transitive",
+        "width": 8,
+        "forcedTransitive": false,
+        "case": "constant",
+        "repetition": 0,
+        "bazelSeconds": 1.057,
+        "rawSeconds": 0.634,
+        "compiled": [
+          "A0_A0_net10_0",
+          "A1_A1_net10_0",
+          "A2_A2_net10_0",
+          "A3_A3_net10_0",
+          "A4_A4_net10_0",
+          "A5_A5_net10_0",
+          "A6_A6_net10_0",
+          "A7_A7_net10_0",
+          "B_B_net10_0",
+          "C_C_net10_0"
+        ],
+        "referenceChanged": {
+          "C": true,
+          "B": true,
+          "A0": true
+        },
+        "rawReferenceChanged": {
+          "C": true,
+          "B": true,
+          "A0": true
+        }
+      },
+      {
+        "graph": "transitive",
+        "width": 8,
+        "forcedTransitive": false,
+        "case": "constant",
+        "repetition": 1,
+        "bazelSeconds": 0.882,
+        "rawSeconds": 0.507,
+        "compiled": [
+          "A0_A0_net10_0",
+          "A1_A1_net10_0",
+          "A2_A2_net10_0",
+          "A3_A3_net10_0",
+          "A4_A4_net10_0",
+          "A5_A5_net10_0",
+          "A6_A6_net10_0",
+          "A7_A7_net10_0",
+          "B_B_net10_0",
+          "C_C_net10_0"
+        ],
+        "referenceChanged": {
+          "C": true,
+          "B": true,
+          "A0": true
+        },
+        "rawReferenceChanged": {
+          "C": true,
+          "B": true,
+          "A0": true
+        }
+      },
+      {
+        "graph": "transitive",
+        "width": 8,
+        "forcedTransitive": false,
+        "case": "constant",
+        "repetition": 2,
+        "bazelSeconds": 1.066,
+        "rawSeconds": 0.818,
+        "compiled": [
+          "A0_A0_net10_0",
+          "A1_A1_net10_0",
+          "A2_A2_net10_0",
+          "A3_A3_net10_0",
+          "A4_A4_net10_0",
+          "A5_A5_net10_0",
+          "A6_A6_net10_0",
+          "A7_A7_net10_0",
+          "B_B_net10_0",
+          "C_C_net10_0"
+        ],
+        "referenceChanged": {
+          "C": true,
+          "B": true,
+          "A0": true
+        },
+        "rawReferenceChanged": {
+          "C": true,
+          "B": true,
+          "A0": true
+        }
+      },
+      {
+        "graph": "private",
+        "width": 8,
+        "forcedTransitive": false,
+        "case": "body",
+        "repetition": 0,
+        "bazelSeconds": 0.296,
+        "rawSeconds": 0.58,
+        "compiled": [
+          "C_C_net10_0"
+        ],
+        "referenceChanged": {
+          "C": false,
+          "B": false,
+          "A0": false
+        },
+        "rawReferenceChanged": {
+          "C": false,
+          "B": false,
+          "A0": false
+        }
+      },
+      {
+        "graph": "private",
+        "width": 8,
+        "forcedTransitive": false,
+        "case": "body",
+        "repetition": 1,
+        "bazelSeconds": 0.187,
+        "rawSeconds": 0.467,
+        "compiled": [
+          "C_C_net10_0"
+        ],
+        "referenceChanged": {
+          "C": false,
+          "B": false,
+          "A0": false
+        },
+        "rawReferenceChanged": {
+          "C": false,
+          "B": false,
+          "A0": false
+        }
+      },
+      {
+        "graph": "private",
+        "width": 8,
+        "forcedTransitive": false,
+        "case": "body",
+        "repetition": 2,
+        "bazelSeconds": 0.183,
+        "rawSeconds": 0.518,
+        "compiled": [
+          "C_C_net10_0"
+        ],
+        "referenceChanged": {
+          "C": false,
+          "B": false,
+          "A0": false
+        },
+        "rawReferenceChanged": {
+          "C": false,
+          "B": false,
+          "A0": false
+        }
+      },
+      {
+        "graph": "private",
+        "width": 8,
+        "forcedTransitive": false,
+        "case": "addition",
+        "repetition": 0,
+        "bazelSeconds": 0.307,
+        "rawSeconds": 0.545,
+        "compiled": [
+          "B_B_net10_0",
+          "C_C_net10_0"
+        ],
+        "referenceChanged": {
+          "C": true,
+          "B": false,
+          "A0": false
+        },
+        "rawReferenceChanged": {
+          "C": true,
+          "B": false,
+          "A0": false
+        }
+      },
+      {
+        "graph": "private",
+        "width": 8,
+        "forcedTransitive": false,
+        "case": "addition",
+        "repetition": 1,
+        "bazelSeconds": 0.316,
+        "rawSeconds": 0.428,
+        "compiled": [
+          "B_B_net10_0",
+          "C_C_net10_0"
+        ],
+        "referenceChanged": {
+          "C": true,
+          "B": false,
+          "A0": false
+        },
+        "rawReferenceChanged": {
+          "C": true,
+          "B": false,
+          "A0": false
+        }
+      },
+      {
+        "graph": "private",
+        "width": 8,
+        "forcedTransitive": false,
+        "case": "addition",
+        "repetition": 2,
+        "bazelSeconds": 0.292,
+        "rawSeconds": 0.473,
+        "compiled": [
+          "B_B_net10_0",
+          "C_C_net10_0"
+        ],
+        "referenceChanged": {
+          "C": true,
+          "B": false,
+          "A0": false
+        },
+        "rawReferenceChanged": {
+          "C": true,
+          "B": false,
+          "A0": false
+        }
+      },
+      {
+        "graph": "private",
+        "width": 8,
+        "forcedTransitive": false,
+        "case": "constant",
+        "repetition": 0,
+        "bazelSeconds": 1.136,
+        "rawSeconds": 0.735,
+        "compiled": [
+          "A0_A0_net10_0",
+          "A1_A1_net10_0",
+          "A2_A2_net10_0",
+          "A3_A3_net10_0",
+          "A4_A4_net10_0",
+          "A5_A5_net10_0",
+          "A6_A6_net10_0",
+          "A7_A7_net10_0",
+          "B_B_net10_0",
+          "C_C_net10_0"
+        ],
+        "referenceChanged": {
+          "C": true,
+          "B": true,
+          "A0": true
+        },
+        "rawReferenceChanged": {
+          "C": true,
+          "B": true,
+          "A0": true
+        }
+      },
+      {
+        "graph": "private",
+        "width": 8,
+        "forcedTransitive": false,
+        "case": "constant",
+        "repetition": 1,
+        "bazelSeconds": 0.841,
+        "rawSeconds": 0.517,
+        "compiled": [
+          "A0_A0_net10_0",
+          "A1_A1_net10_0",
+          "A2_A2_net10_0",
+          "A3_A3_net10_0",
+          "A4_A4_net10_0",
+          "A5_A5_net10_0",
+          "A6_A6_net10_0",
+          "A7_A7_net10_0",
+          "B_B_net10_0",
+          "C_C_net10_0"
+        ],
+        "referenceChanged": {
+          "C": true,
+          "B": true,
+          "A0": true
+        },
+        "rawReferenceChanged": {
+          "C": true,
+          "B": true,
+          "A0": true
+        }
+      },
+      {
+        "graph": "private",
+        "width": 8,
+        "forcedTransitive": false,
+        "case": "constant",
+        "repetition": 2,
+        "bazelSeconds": 0.874,
+        "rawSeconds": 0.596,
+        "compiled": [
+          "A0_A0_net10_0",
+          "A1_A1_net10_0",
+          "A2_A2_net10_0",
+          "A3_A3_net10_0",
+          "A4_A4_net10_0",
+          "A5_A5_net10_0",
+          "A6_A6_net10_0",
+          "A7_A7_net10_0",
+          "B_B_net10_0",
+          "C_C_net10_0"
+        ],
+        "referenceChanged": {
+          "C": true,
+          "B": true,
+          "A0": true
+        },
+        "rawReferenceChanged": {
+          "C": true,
+          "B": true,
+          "A0": true
+        }
+      },
+      {
+        "graph": "direct",
+        "width": 8,
+        "forcedTransitive": false,
+        "case": "body",
+        "repetition": 0,
+        "bazelSeconds": 0.295,
+        "rawSeconds": 0.644,
+        "compiled": [
+          "C_C_net10_0"
+        ],
+        "referenceChanged": {
+          "C": false,
+          "B": false,
+          "A0": false
+        },
+        "rawReferenceChanged": {
+          "C": false,
+          "B": false,
+          "A0": false
+        }
+      },
+      {
+        "graph": "direct",
+        "width": 8,
+        "forcedTransitive": false,
+        "case": "body",
+        "repetition": 1,
+        "bazelSeconds": 0.212,
+        "rawSeconds": 0.474,
+        "compiled": [
+          "C_C_net10_0"
+        ],
+        "referenceChanged": {
+          "C": false,
+          "B": false,
+          "A0": false
+        },
+        "rawReferenceChanged": {
+          "C": false,
+          "B": false,
+          "A0": false
+        }
+      },
+      {
+        "graph": "direct",
+        "width": 8,
+        "forcedTransitive": false,
+        "case": "body",
+        "repetition": 2,
+        "bazelSeconds": 0.174,
+        "rawSeconds": 0.541,
+        "compiled": [
+          "C_C_net10_0"
+        ],
+        "referenceChanged": {
+          "C": false,
+          "B": false,
+          "A0": false
+        },
+        "rawReferenceChanged": {
+          "C": false,
+          "B": false,
+          "A0": false
+        }
+      },
+      {
+        "graph": "direct",
+        "width": 8,
+        "forcedTransitive": false,
+        "case": "addition",
+        "repetition": 0,
+        "bazelSeconds": 0.284,
+        "rawSeconds": 0.559,
+        "compiled": [
+          "B_B_net10_0",
+          "C_C_net10_0"
+        ],
+        "referenceChanged": {
+          "C": true,
+          "B": false,
+          "A0": false
+        },
+        "rawReferenceChanged": {
+          "C": true,
+          "B": false,
+          "A0": false
+        }
+      },
+      {
+        "graph": "direct",
+        "width": 8,
+        "forcedTransitive": false,
+        "case": "addition",
+        "repetition": 1,
+        "bazelSeconds": 0.262,
+        "rawSeconds": 0.447,
+        "compiled": [
+          "B_B_net10_0",
+          "C_C_net10_0"
+        ],
+        "referenceChanged": {
+          "C": true,
+          "B": false,
+          "A0": false
+        },
+        "rawReferenceChanged": {
+          "C": true,
+          "B": false,
+          "A0": false
+        }
+      },
+      {
+        "graph": "direct",
+        "width": 8,
+        "forcedTransitive": false,
+        "case": "addition",
+        "repetition": 2,
+        "bazelSeconds": 0.324,
+        "rawSeconds": 0.532,
+        "compiled": [
+          "B_B_net10_0",
+          "C_C_net10_0"
+        ],
+        "referenceChanged": {
+          "C": true,
+          "B": false,
+          "A0": false
+        },
+        "rawReferenceChanged": {
+          "C": true,
+          "B": false,
+          "A0": false
+        }
+      },
+      {
+        "graph": "direct",
+        "width": 8,
+        "forcedTransitive": false,
+        "case": "constant",
+        "repetition": 0,
+        "bazelSeconds": 1.161,
+        "rawSeconds": 0.809,
+        "compiled": [
+          "A0_A0_net10_0",
+          "A1_A1_net10_0",
+          "A2_A2_net10_0",
+          "A3_A3_net10_0",
+          "A4_A4_net10_0",
+          "A5_A5_net10_0",
+          "A6_A6_net10_0",
+          "A7_A7_net10_0",
+          "B_B_net10_0",
+          "C_C_net10_0"
+        ],
+        "referenceChanged": {
+          "C": true,
+          "B": true,
+          "A0": true
+        },
+        "rawReferenceChanged": {
+          "C": true,
+          "B": true,
+          "A0": true
+        }
+      },
+      {
+        "graph": "direct",
+        "width": 8,
+        "forcedTransitive": false,
+        "case": "constant",
+        "repetition": 1,
+        "bazelSeconds": 1.062,
+        "rawSeconds": 0.534,
+        "compiled": [
+          "A0_A0_net10_0",
+          "A1_A1_net10_0",
+          "A2_A2_net10_0",
+          "A3_A3_net10_0",
+          "A4_A4_net10_0",
+          "A5_A5_net10_0",
+          "A6_A6_net10_0",
+          "A7_A7_net10_0",
+          "B_B_net10_0",
+          "C_C_net10_0"
+        ],
+        "referenceChanged": {
+          "C": true,
+          "B": true,
+          "A0": true
+        },
+        "rawReferenceChanged": {
+          "C": true,
+          "B": true,
+          "A0": true
+        }
+      },
+      {
+        "graph": "direct",
+        "width": 8,
+        "forcedTransitive": false,
+        "case": "constant",
+        "repetition": 2,
+        "bazelSeconds": 0.893,
+        "rawSeconds": 0.587,
+        "compiled": [
+          "A0_A0_net10_0",
+          "A1_A1_net10_0",
+          "A2_A2_net10_0",
+          "A3_A3_net10_0",
+          "A4_A4_net10_0",
+          "A5_A5_net10_0",
+          "A6_A6_net10_0",
+          "A7_A7_net10_0",
+          "B_B_net10_0",
+          "C_C_net10_0"
+        ],
+        "referenceChanged": {
+          "C": true,
+          "B": true,
+          "A0": true
+        },
+        "rawReferenceChanged": {
+          "C": true,
+          "B": true,
+          "A0": true
+        }
+      }
+    ],
+    "9.2.0": [
+      {
+        "graph": "transitive",
+        "width": 1,
+        "case": "body",
+        "repetition": 0,
+        "bazelSeconds": 0.895,
+        "rawSeconds": 0.493,
+        "compiled": [
+          "C_C_net10_0"
+        ],
+        "referenceChanged": {
+          "C": false,
+          "B": false,
+          "A0": false
+        },
+        "rawReferenceChanged": {
+          "C": false,
+          "B": false,
+          "A0": false
+        }
+      },
+      {
+        "graph": "transitive",
+        "width": 1,
+        "case": "body",
+        "repetition": 1,
+        "bazelSeconds": 0.261,
+        "rawSeconds": 0.388,
+        "compiled": [
+          "C_C_net10_0"
+        ],
+        "referenceChanged": {
+          "C": false,
+          "B": false,
+          "A0": false
+        },
+        "rawReferenceChanged": {
+          "C": false,
+          "B": false,
+          "A0": false
+        }
+      },
+      {
+        "graph": "transitive",
+        "width": 1,
+        "case": "body",
+        "repetition": 2,
+        "bazelSeconds": 0.202,
+        "rawSeconds": 0.424,
+        "compiled": [
+          "C_C_net10_0"
+        ],
+        "referenceChanged": {
+          "C": false,
+          "B": false,
+          "A0": false
+        },
+        "rawReferenceChanged": {
+          "C": false,
+          "B": false,
+          "A0": false
+        }
+      },
+      {
+        "graph": "transitive",
+        "width": 1,
+        "case": "addition",
+        "repetition": 0,
+        "bazelSeconds": 0.439,
+        "rawSeconds": 0.439,
+        "compiled": [
+          "A0_A0_net10_0",
+          "B_B_net10_0",
+          "C_C_net10_0"
+        ],
+        "referenceChanged": {
+          "C": true,
+          "B": false,
+          "A0": false
+        },
+        "rawReferenceChanged": {
+          "C": true,
+          "B": false,
+          "A0": false
+        }
+      },
+      {
+        "graph": "transitive",
+        "width": 1,
+        "case": "addition",
+        "repetition": 1,
+        "bazelSeconds": 0.516,
+        "rawSeconds": 0.353,
+        "compiled": [
+          "A0_A0_net10_0",
+          "B_B_net10_0",
+          "C_C_net10_0"
+        ],
+        "referenceChanged": {
+          "C": true,
+          "B": false,
+          "A0": false
+        },
+        "rawReferenceChanged": {
+          "C": true,
+          "B": false,
+          "A0": false
+        }
+      },
+      {
+        "graph": "transitive",
+        "width": 1,
+        "case": "addition",
+        "repetition": 2,
+        "bazelSeconds": 0.446,
+        "rawSeconds": 0.393,
+        "compiled": [
+          "A0_A0_net10_0",
+          "B_B_net10_0",
+          "C_C_net10_0"
+        ],
+        "referenceChanged": {
+          "C": true,
+          "B": false,
+          "A0": false
+        },
+        "rawReferenceChanged": {
+          "C": true,
+          "B": false,
+          "A0": false
+        }
+      },
+      {
+        "graph": "transitive",
+        "width": 1,
+        "case": "constant",
+        "repetition": 0,
+        "bazelSeconds": 0.439,
+        "rawSeconds": 0.434,
+        "compiled": [
+          "A0_A0_net10_0",
+          "B_B_net10_0",
+          "C_C_net10_0"
+        ],
+        "referenceChanged": {
+          "C": true,
+          "B": true,
+          "A0": true
+        },
+        "rawReferenceChanged": {
+          "C": true,
+          "B": true,
+          "A0": true
+        }
+      },
+      {
+        "graph": "transitive",
+        "width": 1,
+        "case": "constant",
+        "repetition": 1,
+        "bazelSeconds": 0.387,
+        "rawSeconds": 0.362,
+        "compiled": [
+          "A0_A0_net10_0",
+          "B_B_net10_0",
+          "C_C_net10_0"
+        ],
+        "referenceChanged": {
+          "C": true,
+          "B": true,
+          "A0": true
+        },
+        "rawReferenceChanged": {
+          "C": true,
+          "B": true,
+          "A0": true
+        }
+      },
+      {
+        "graph": "transitive",
+        "width": 1,
+        "case": "constant",
+        "repetition": 2,
+        "bazelSeconds": 0.389,
+        "rawSeconds": 0.361,
+        "compiled": [
+          "A0_A0_net10_0",
+          "B_B_net10_0",
+          "C_C_net10_0"
+        ],
+        "referenceChanged": {
+          "C": true,
+          "B": true,
+          "A0": true
+        },
+        "rawReferenceChanged": {
+          "C": true,
+          "B": true,
+          "A0": true
+        }
+      },
+      {
+        "graph": "private",
+        "width": 1,
+        "case": "body",
+        "repetition": 0,
+        "bazelSeconds": 0.289,
+        "rawSeconds": 0.395,
+        "compiled": [
+          "C_C_net10_0"
+        ],
+        "referenceChanged": {
+          "C": false,
+          "B": false,
+          "A0": false
+        },
+        "rawReferenceChanged": {
+          "C": false,
+          "B": false,
+          "A0": false
+        }
+      },
+      {
+        "graph": "private",
+        "width": 1,
+        "case": "body",
+        "repetition": 1,
+        "bazelSeconds": 0.194,
+        "rawSeconds": 0.365,
+        "compiled": [
+          "C_C_net10_0"
+        ],
+        "referenceChanged": {
+          "C": false,
+          "B": false,
+          "A0": false
+        },
+        "rawReferenceChanged": {
+          "C": false,
+          "B": false,
+          "A0": false
+        }
+      },
+      {
+        "graph": "private",
+        "width": 1,
+        "case": "body",
+        "repetition": 2,
+        "bazelSeconds": 0.189,
+        "rawSeconds": 0.382,
+        "compiled": [
+          "C_C_net10_0"
+        ],
+        "referenceChanged": {
+          "C": false,
+          "B": false,
+          "A0": false
+        },
+        "rawReferenceChanged": {
+          "C": false,
+          "B": false,
+          "A0": false
+        }
+      },
+      {
+        "graph": "private",
+        "width": 1,
+        "case": "addition",
+        "repetition": 0,
+        "bazelSeconds": 0.776,
+        "rawSeconds": 0.369,
+        "compiled": [
+          "B_B_net10_0",
+          "C_C_net10_0"
+        ],
+        "referenceChanged": {
+          "C": true,
+          "B": false,
+          "A0": false
+        },
+        "rawReferenceChanged": {
+          "C": true,
+          "B": false,
+          "A0": false
+        }
+      },
+      {
+        "graph": "private",
+        "width": 1,
+        "case": "addition",
+        "repetition": 1,
+        "bazelSeconds": 0.32,
+        "rawSeconds": 0.351,
+        "compiled": [
+          "B_B_net10_0",
+          "C_C_net10_0"
+        ],
+        "referenceChanged": {
+          "C": true,
+          "B": false,
+          "A0": false
+        },
+        "rawReferenceChanged": {
+          "C": true,
+          "B": false,
+          "A0": false
+        }
+      },
+      {
+        "graph": "private",
+        "width": 1,
+        "case": "addition",
+        "repetition": 2,
+        "bazelSeconds": 0.279,
+        "rawSeconds": 0.398,
+        "compiled": [
+          "B_B_net10_0",
+          "C_C_net10_0"
+        ],
+        "referenceChanged": {
+          "C": true,
+          "B": false,
+          "A0": false
+        },
+        "rawReferenceChanged": {
+          "C": true,
+          "B": false,
+          "A0": false
+        }
+      },
+      {
+        "graph": "private",
+        "width": 1,
+        "case": "constant",
+        "repetition": 0,
+        "bazelSeconds": 0.364,
+        "rawSeconds": 0.474,
+        "compiled": [
+          "A0_A0_net10_0",
+          "B_B_net10_0",
+          "C_C_net10_0"
+        ],
+        "referenceChanged": {
+          "C": true,
+          "B": true,
+          "A0": true
+        },
+        "rawReferenceChanged": {
+          "C": true,
+          "B": true,
+          "A0": true
+        }
+      },
+      {
+        "graph": "private",
+        "width": 1,
+        "case": "constant",
+        "repetition": 1,
+        "bazelSeconds": 0.395,
+        "rawSeconds": 0.362,
+        "compiled": [
+          "A0_A0_net10_0",
+          "B_B_net10_0",
+          "C_C_net10_0"
+        ],
+        "referenceChanged": {
+          "C": true,
+          "B": true,
+          "A0": true
+        },
+        "rawReferenceChanged": {
+          "C": true,
+          "B": true,
+          "A0": true
+        }
+      },
+      {
+        "graph": "private",
+        "width": 1,
+        "case": "constant",
+        "repetition": 2,
+        "bazelSeconds": 0.387,
+        "rawSeconds": 0.358,
+        "compiled": [
+          "A0_A0_net10_0",
+          "B_B_net10_0",
+          "C_C_net10_0"
+        ],
+        "referenceChanged": {
+          "C": true,
+          "B": true,
+          "A0": true
+        },
+        "rawReferenceChanged": {
+          "C": true,
+          "B": true,
+          "A0": true
+        }
+      },
+      {
+        "graph": "direct",
+        "width": 1,
+        "case": "body",
+        "repetition": 0,
+        "bazelSeconds": 0.291,
+        "rawSeconds": 0.39,
+        "compiled": [
+          "C_C_net10_0"
+        ],
+        "referenceChanged": {
+          "C": false,
+          "B": false,
+          "A0": false
+        },
+        "rawReferenceChanged": {
+          "C": false,
+          "B": false,
+          "A0": false
+        }
+      },
+      {
+        "graph": "direct",
+        "width": 1,
+        "case": "body",
+        "repetition": 1,
+        "bazelSeconds": 0.225,
+        "rawSeconds": 0.344,
+        "compiled": [
+          "C_C_net10_0"
+        ],
+        "referenceChanged": {
+          "C": false,
+          "B": false,
+          "A0": false
+        },
+        "rawReferenceChanged": {
+          "C": false,
+          "B": false,
+          "A0": false
+        }
+      },
+      {
+        "graph": "direct",
+        "width": 1,
+        "case": "body",
+        "repetition": 2,
+        "bazelSeconds": 0.205,
+        "rawSeconds": 0.379,
+        "compiled": [
+          "C_C_net10_0"
+        ],
+        "referenceChanged": {
+          "C": false,
+          "B": false,
+          "A0": false
+        },
+        "rawReferenceChanged": {
+          "C": false,
+          "B": false,
+          "A0": false
+        }
+      },
+      {
+        "graph": "direct",
+        "width": 1,
+        "case": "addition",
+        "repetition": 0,
+        "bazelSeconds": 0.272,
+        "rawSeconds": 0.418,
+        "compiled": [
+          "B_B_net10_0",
+          "C_C_net10_0"
+        ],
+        "referenceChanged": {
+          "C": true,
+          "B": false,
+          "A0": false
+        },
+        "rawReferenceChanged": {
+          "C": true,
+          "B": false,
+          "A0": false
+        }
+      },
+      {
+        "graph": "direct",
+        "width": 1,
+        "case": "addition",
+        "repetition": 1,
+        "bazelSeconds": 0.325,
+        "rawSeconds": 0.364,
+        "compiled": [
+          "B_B_net10_0",
+          "C_C_net10_0"
+        ],
+        "referenceChanged": {
+          "C": true,
+          "B": false,
+          "A0": false
+        },
+        "rawReferenceChanged": {
+          "C": true,
+          "B": false,
+          "A0": false
+        }
+      },
+      {
+        "graph": "direct",
+        "width": 1,
+        "case": "addition",
+        "repetition": 2,
+        "bazelSeconds": 0.256,
+        "rawSeconds": 0.414,
+        "compiled": [
+          "B_B_net10_0",
+          "C_C_net10_0"
+        ],
+        "referenceChanged": {
+          "C": true,
+          "B": false,
+          "A0": false
+        },
+        "rawReferenceChanged": {
+          "C": true,
+          "B": false,
+          "A0": false
+        }
+      },
+      {
+        "graph": "direct",
+        "width": 1,
+        "case": "constant",
+        "repetition": 0,
+        "bazelSeconds": 0.367,
+        "rawSeconds": 0.424,
+        "compiled": [
+          "A0_A0_net10_0",
+          "B_B_net10_0",
+          "C_C_net10_0"
+        ],
+        "referenceChanged": {
+          "C": true,
+          "B": true,
+          "A0": true
+        },
+        "rawReferenceChanged": {
+          "C": true,
+          "B": true,
+          "A0": true
+        }
+      },
+      {
+        "graph": "direct",
+        "width": 1,
+        "case": "constant",
+        "repetition": 1,
+        "bazelSeconds": 0.36,
+        "rawSeconds": 0.332,
+        "compiled": [
+          "A0_A0_net10_0",
+          "B_B_net10_0",
+          "C_C_net10_0"
+        ],
+        "referenceChanged": {
+          "C": true,
+          "B": true,
+          "A0": true
+        },
+        "rawReferenceChanged": {
+          "C": true,
+          "B": true,
+          "A0": true
+        }
+      },
+      {
+        "graph": "direct",
+        "width": 1,
+        "case": "constant",
+        "repetition": 2,
+        "bazelSeconds": 0.376,
+        "rawSeconds": 0.374,
+        "compiled": [
+          "A0_A0_net10_0",
+          "B_B_net10_0",
+          "C_C_net10_0"
+        ],
+        "referenceChanged": {
+          "C": true,
+          "B": true,
+          "A0": true
+        },
+        "rawReferenceChanged": {
+          "C": true,
+          "B": true,
+          "A0": true
+        }
+      },
+      {
+        "graph": "transitive",
+        "width": 8,
+        "case": "body",
+        "repetition": 0,
+        "bazelSeconds": 0.253,
+        "rawSeconds": 0.605,
+        "compiled": [
+          "C_C_net10_0"
+        ],
+        "referenceChanged": {
+          "C": false,
+          "B": false,
+          "A0": false
+        },
+        "rawReferenceChanged": {
+          "C": false,
+          "B": false,
+          "A0": false
+        }
+      },
+      {
+        "graph": "transitive",
+        "width": 8,
+        "case": "body",
+        "repetition": 1,
+        "bazelSeconds": 0.182,
+        "rawSeconds": 0.477,
+        "compiled": [
+          "C_C_net10_0"
+        ],
+        "referenceChanged": {
+          "C": false,
+          "B": false,
+          "A0": false
+        },
+        "rawReferenceChanged": {
+          "C": false,
+          "B": false,
+          "A0": false
+        }
+      },
+      {
+        "graph": "transitive",
+        "width": 8,
+        "case": "body",
+        "repetition": 2,
+        "bazelSeconds": 0.173,
+        "rawSeconds": 0.523,
+        "compiled": [
+          "C_C_net10_0"
+        ],
+        "referenceChanged": {
+          "C": false,
+          "B": false,
+          "A0": false
+        },
+        "rawReferenceChanged": {
+          "C": false,
+          "B": false,
+          "A0": false
+        }
+      },
+      {
+        "graph": "transitive",
+        "width": 8,
+        "case": "addition",
+        "repetition": 0,
+        "bazelSeconds": 0.931,
+        "rawSeconds": 0.895,
+        "compiled": [
+          "A0_A0_net10_0",
+          "A1_A1_net10_0",
+          "A2_A2_net10_0",
+          "A3_A3_net10_0",
+          "A4_A4_net10_0",
+          "A5_A5_net10_0",
+          "A6_A6_net10_0",
+          "A7_A7_net10_0",
+          "B_B_net10_0",
+          "C_C_net10_0"
+        ],
+        "referenceChanged": {
+          "C": true,
+          "B": false,
+          "A0": false
+        },
+        "rawReferenceChanged": {
+          "C": true,
+          "B": false,
+          "A0": false
+        }
+      },
+      {
+        "graph": "transitive",
+        "width": 8,
+        "case": "addition",
+        "repetition": 1,
+        "bazelSeconds": 0.814,
+        "rawSeconds": 0.527,
+        "compiled": [
+          "A0_A0_net10_0",
+          "A1_A1_net10_0",
+          "A2_A2_net10_0",
+          "A3_A3_net10_0",
+          "A4_A4_net10_0",
+          "A5_A5_net10_0",
+          "A6_A6_net10_0",
+          "A7_A7_net10_0",
+          "B_B_net10_0",
+          "C_C_net10_0"
+        ],
+        "referenceChanged": {
+          "C": true,
+          "B": false,
+          "A0": false
+        },
+        "rawReferenceChanged": {
+          "C": true,
+          "B": false,
+          "A0": false
+        }
+      },
+      {
+        "graph": "transitive",
+        "width": 8,
+        "case": "addition",
+        "repetition": 2,
+        "bazelSeconds": 0.85,
+        "rawSeconds": 0.583,
+        "compiled": [
+          "A0_A0_net10_0",
+          "A1_A1_net10_0",
+          "A2_A2_net10_0",
+          "A3_A3_net10_0",
+          "A4_A4_net10_0",
+          "A5_A5_net10_0",
+          "A6_A6_net10_0",
+          "A7_A7_net10_0",
+          "B_B_net10_0",
+          "C_C_net10_0"
+        ],
+        "referenceChanged": {
+          "C": true,
+          "B": false,
+          "A0": false
+        },
+        "rawReferenceChanged": {
+          "C": true,
+          "B": false,
+          "A0": false
+        }
+      },
+      {
+        "graph": "transitive",
+        "width": 8,
+        "case": "constant",
+        "repetition": 0,
+        "bazelSeconds": 0.959,
+        "rawSeconds": 0.594,
+        "compiled": [
+          "A0_A0_net10_0",
+          "A1_A1_net10_0",
+          "A2_A2_net10_0",
+          "A3_A3_net10_0",
+          "A4_A4_net10_0",
+          "A5_A5_net10_0",
+          "A6_A6_net10_0",
+          "A7_A7_net10_0",
+          "B_B_net10_0",
+          "C_C_net10_0"
+        ],
+        "referenceChanged": {
+          "C": true,
+          "B": true,
+          "A0": true
+        },
+        "rawReferenceChanged": {
+          "C": true,
+          "B": true,
+          "A0": true
+        }
+      },
+      {
+        "graph": "transitive",
+        "width": 8,
+        "case": "constant",
+        "repetition": 1,
+        "bazelSeconds": 0.816,
+        "rawSeconds": 0.495,
+        "compiled": [
+          "A0_A0_net10_0",
+          "A1_A1_net10_0",
+          "A2_A2_net10_0",
+          "A3_A3_net10_0",
+          "A4_A4_net10_0",
+          "A5_A5_net10_0",
+          "A6_A6_net10_0",
+          "A7_A7_net10_0",
+          "B_B_net10_0",
+          "C_C_net10_0"
+        ],
+        "referenceChanged": {
+          "C": true,
+          "B": true,
+          "A0": true
+        },
+        "rawReferenceChanged": {
+          "C": true,
+          "B": true,
+          "A0": true
+        }
+      },
+      {
+        "graph": "transitive",
+        "width": 8,
+        "case": "constant",
+        "repetition": 2,
+        "bazelSeconds": 1.111,
+        "rawSeconds": 0.895,
+        "compiled": [
+          "A0_A0_net10_0",
+          "A1_A1_net10_0",
+          "A2_A2_net10_0",
+          "A3_A3_net10_0",
+          "A4_A4_net10_0",
+          "A5_A5_net10_0",
+          "A6_A6_net10_0",
+          "A7_A7_net10_0",
+          "B_B_net10_0",
+          "C_C_net10_0"
+        ],
+        "referenceChanged": {
+          "C": true,
+          "B": true,
+          "A0": true
+        },
+        "rawReferenceChanged": {
+          "C": true,
+          "B": true,
+          "A0": true
+        }
+      },
+      {
+        "graph": "private",
+        "width": 8,
+        "case": "body",
+        "repetition": 0,
+        "bazelSeconds": 0.238,
+        "rawSeconds": 0.564,
+        "compiled": [
+          "C_C_net10_0"
+        ],
+        "referenceChanged": {
+          "C": false,
+          "B": false,
+          "A0": false
+        },
+        "rawReferenceChanged": {
+          "C": false,
+          "B": false,
+          "A0": false
+        }
+      },
+      {
+        "graph": "private",
+        "width": 8,
+        "case": "body",
+        "repetition": 1,
+        "bazelSeconds": 0.209,
+        "rawSeconds": 0.534,
+        "compiled": [
+          "C_C_net10_0"
+        ],
+        "referenceChanged": {
+          "C": false,
+          "B": false,
+          "A0": false
+        },
+        "rawReferenceChanged": {
+          "C": false,
+          "B": false,
+          "A0": false
+        }
+      },
+      {
+        "graph": "private",
+        "width": 8,
+        "case": "body",
+        "repetition": 2,
+        "bazelSeconds": 0.184,
+        "rawSeconds": 0.529,
+        "compiled": [
+          "C_C_net10_0"
+        ],
+        "referenceChanged": {
+          "C": false,
+          "B": false,
+          "A0": false
+        },
+        "rawReferenceChanged": {
+          "C": false,
+          "B": false,
+          "A0": false
+        }
+      },
+      {
+        "graph": "private",
+        "width": 8,
+        "case": "addition",
+        "repetition": 0,
+        "bazelSeconds": 0.265,
+        "rawSeconds": 0.541,
+        "compiled": [
+          "B_B_net10_0",
+          "C_C_net10_0"
+        ],
+        "referenceChanged": {
+          "C": true,
+          "B": false,
+          "A0": false
+        },
+        "rawReferenceChanged": {
+          "C": true,
+          "B": false,
+          "A0": false
+        }
+      },
+      {
+        "graph": "private",
+        "width": 8,
+        "case": "addition",
+        "repetition": 1,
+        "bazelSeconds": 0.27,
+        "rawSeconds": 0.463,
+        "compiled": [
+          "B_B_net10_0",
+          "C_C_net10_0"
+        ],
+        "referenceChanged": {
+          "C": true,
+          "B": false,
+          "A0": false
+        },
+        "rawReferenceChanged": {
+          "C": true,
+          "B": false,
+          "A0": false
+        }
+      },
+      {
+        "graph": "private",
+        "width": 8,
+        "case": "addition",
+        "repetition": 2,
+        "bazelSeconds": 0.285,
+        "rawSeconds": 0.494,
+        "compiled": [
+          "B_B_net10_0",
+          "C_C_net10_0"
+        ],
+        "referenceChanged": {
+          "C": true,
+          "B": false,
+          "A0": false
+        },
+        "rawReferenceChanged": {
+          "C": true,
+          "B": false,
+          "A0": false
+        }
+      },
+      {
+        "graph": "private",
+        "width": 8,
+        "case": "constant",
+        "repetition": 0,
+        "bazelSeconds": 0.925,
+        "rawSeconds": 0.757,
+        "compiled": [
+          "A0_A0_net10_0",
+          "A1_A1_net10_0",
+          "A2_A2_net10_0",
+          "A3_A3_net10_0",
+          "A4_A4_net10_0",
+          "A5_A5_net10_0",
+          "A6_A6_net10_0",
+          "A7_A7_net10_0",
+          "B_B_net10_0",
+          "C_C_net10_0"
+        ],
+        "referenceChanged": {
+          "C": true,
+          "B": true,
+          "A0": true
+        },
+        "rawReferenceChanged": {
+          "C": true,
+          "B": true,
+          "A0": true
+        }
+      },
+      {
+        "graph": "private",
+        "width": 8,
+        "case": "constant",
+        "repetition": 1,
+        "bazelSeconds": 0.827,
+        "rawSeconds": 0.516,
+        "compiled": [
+          "A0_A0_net10_0",
+          "A1_A1_net10_0",
+          "A2_A2_net10_0",
+          "A3_A3_net10_0",
+          "A4_A4_net10_0",
+          "A5_A5_net10_0",
+          "A6_A6_net10_0",
+          "A7_A7_net10_0",
+          "B_B_net10_0",
+          "C_C_net10_0"
+        ],
+        "referenceChanged": {
+          "C": true,
+          "B": true,
+          "A0": true
+        },
+        "rawReferenceChanged": {
+          "C": true,
+          "B": true,
+          "A0": true
+        }
+      },
+      {
+        "graph": "private",
+        "width": 8,
+        "case": "constant",
+        "repetition": 2,
+        "bazelSeconds": 0.859,
+        "rawSeconds": 0.569,
+        "compiled": [
+          "A0_A0_net10_0",
+          "A1_A1_net10_0",
+          "A2_A2_net10_0",
+          "A3_A3_net10_0",
+          "A4_A4_net10_0",
+          "A5_A5_net10_0",
+          "A6_A6_net10_0",
+          "A7_A7_net10_0",
+          "B_B_net10_0",
+          "C_C_net10_0"
+        ],
+        "referenceChanged": {
+          "C": true,
+          "B": true,
+          "A0": true
+        },
+        "rawReferenceChanged": {
+          "C": true,
+          "B": true,
+          "A0": true
+        }
+      },
+      {
+        "graph": "direct",
+        "width": 8,
+        "case": "body",
+        "repetition": 0,
+        "bazelSeconds": 0.232,
+        "rawSeconds": 0.536,
+        "compiled": [
+          "C_C_net10_0"
+        ],
+        "referenceChanged": {
+          "C": false,
+          "B": false,
+          "A0": false
+        },
+        "rawReferenceChanged": {
+          "C": false,
+          "B": false,
+          "A0": false
+        }
+      },
+      {
+        "graph": "direct",
+        "width": 8,
+        "case": "body",
+        "repetition": 1,
+        "bazelSeconds": 0.199,
+        "rawSeconds": 0.479,
+        "compiled": [
+          "C_C_net10_0"
+        ],
+        "referenceChanged": {
+          "C": false,
+          "B": false,
+          "A0": false
+        },
+        "rawReferenceChanged": {
+          "C": false,
+          "B": false,
+          "A0": false
+        }
+      },
+      {
+        "graph": "direct",
+        "width": 8,
+        "case": "body",
+        "repetition": 2,
+        "bazelSeconds": 0.179,
+        "rawSeconds": 0.529,
+        "compiled": [
+          "C_C_net10_0"
+        ],
+        "referenceChanged": {
+          "C": false,
+          "B": false,
+          "A0": false
+        },
+        "rawReferenceChanged": {
+          "C": false,
+          "B": false,
+          "A0": false
+        }
+      },
+      {
+        "graph": "direct",
+        "width": 8,
+        "case": "addition",
+        "repetition": 0,
+        "bazelSeconds": 0.268,
+        "rawSeconds": 0.505,
+        "compiled": [
+          "B_B_net10_0",
+          "C_C_net10_0"
+        ],
+        "referenceChanged": {
+          "C": true,
+          "B": false,
+          "A0": false
+        },
+        "rawReferenceChanged": {
+          "C": true,
+          "B": false,
+          "A0": false
+        }
+      },
+      {
+        "graph": "direct",
+        "width": 8,
+        "case": "addition",
+        "repetition": 1,
+        "bazelSeconds": 0.269,
+        "rawSeconds": 0.444,
+        "compiled": [
+          "B_B_net10_0",
+          "C_C_net10_0"
+        ],
+        "referenceChanged": {
+          "C": true,
+          "B": false,
+          "A0": false
+        },
+        "rawReferenceChanged": {
+          "C": true,
+          "B": false,
+          "A0": false
+        }
+      },
+      {
+        "graph": "direct",
+        "width": 8,
+        "case": "addition",
+        "repetition": 2,
+        "bazelSeconds": 0.278,
+        "rawSeconds": 0.529,
+        "compiled": [
+          "B_B_net10_0",
+          "C_C_net10_0"
+        ],
+        "referenceChanged": {
+          "C": true,
+          "B": false,
+          "A0": false
+        },
+        "rawReferenceChanged": {
+          "C": true,
+          "B": false,
+          "A0": false
+        }
+      },
+      {
+        "graph": "direct",
+        "width": 8,
+        "case": "constant",
+        "repetition": 0,
+        "bazelSeconds": 0.971,
+        "rawSeconds": 0.759,
+        "compiled": [
+          "A0_A0_net10_0",
+          "A1_A1_net10_0",
+          "A2_A2_net10_0",
+          "A3_A3_net10_0",
+          "A4_A4_net10_0",
+          "A5_A5_net10_0",
+          "A6_A6_net10_0",
+          "A7_A7_net10_0",
+          "B_B_net10_0",
+          "C_C_net10_0"
+        ],
+        "referenceChanged": {
+          "C": true,
+          "B": true,
+          "A0": true
+        },
+        "rawReferenceChanged": {
+          "C": true,
+          "B": true,
+          "A0": true
+        }
+      },
+      {
+        "graph": "direct",
+        "width": 8,
+        "case": "constant",
+        "repetition": 1,
+        "bazelSeconds": 0.877,
+        "rawSeconds": 0.565,
+        "compiled": [
+          "A0_A0_net10_0",
+          "A1_A1_net10_0",
+          "A2_A2_net10_0",
+          "A3_A3_net10_0",
+          "A4_A4_net10_0",
+          "A5_A5_net10_0",
+          "A6_A6_net10_0",
+          "A7_A7_net10_0",
+          "B_B_net10_0",
+          "C_C_net10_0"
+        ],
+        "referenceChanged": {
+          "C": true,
+          "B": true,
+          "A0": true
+        },
+        "rawReferenceChanged": {
+          "C": true,
+          "B": true,
+          "A0": true
+        }
+      },
+      {
+        "graph": "direct",
+        "width": 8,
+        "case": "constant",
+        "repetition": 2,
+        "bazelSeconds": 0.858,
+        "rawSeconds": 0.555,
+        "compiled": [
+          "A0_A0_net10_0",
+          "A1_A1_net10_0",
+          "A2_A2_net10_0",
+          "A3_A3_net10_0",
+          "A4_A4_net10_0",
+          "A5_A5_net10_0",
+          "A6_A6_net10_0",
+          "A7_A7_net10_0",
+          "B_B_net10_0",
+          "C_C_net10_0"
+        ],
+        "referenceChanged": {
+          "C": true,
+          "B": true,
+          "A0": true
+        },
+        "rawReferenceChanged": {
+          "C": true,
+          "B": true,
+          "A0": true
+        }
+      }
+    ]
+  },
+  "forcedTransitiveControl": {
+    "bazel": "9.2.0",
+    "samples": [
+      {
+        "graph": "direct",
+        "width": 8,
+        "forcedTransitive": true,
+        "case": "body",
+        "repetition": 0,
+        "bazelSeconds": 0.702,
+        "rawSeconds": 0.618,
+        "compiled": [
+          "C_C_net10_0"
+        ],
+        "referenceChanged": {
+          "C": false,
+          "B": false,
+          "A0": false
+        },
+        "rawReferenceChanged": {
+          "C": false,
+          "B": false,
+          "A0": false
+        }
+      },
+      {
+        "graph": "direct",
+        "width": 8,
+        "forcedTransitive": true,
+        "case": "body",
+        "repetition": 1,
+        "bazelSeconds": 0.323,
+        "rawSeconds": 0.522,
+        "compiled": [
+          "C_C_net10_0"
+        ],
+        "referenceChanged": {
+          "C": false,
+          "B": false,
+          "A0": false
+        },
+        "rawReferenceChanged": {
+          "C": false,
+          "B": false,
+          "A0": false
+        }
+      },
+      {
+        "graph": "direct",
+        "width": 8,
+        "forcedTransitive": true,
+        "case": "body",
+        "repetition": 2,
+        "bazelSeconds": 0.294,
+        "rawSeconds": 0.627,
+        "compiled": [
+          "C_C_net10_0"
+        ],
+        "referenceChanged": {
+          "C": false,
+          "B": false,
+          "A0": false
+        },
+        "rawReferenceChanged": {
+          "C": false,
+          "B": false,
+          "A0": false
+        }
+      },
+      {
+        "graph": "direct",
+        "width": 8,
+        "forcedTransitive": true,
+        "case": "addition",
+        "repetition": 0,
+        "bazelSeconds": 1.771,
+        "rawSeconds": 0.804,
+        "compiled": [
+          "A0_A0_net10_0",
+          "A1_A1_net10_0",
+          "A2_A2_net10_0",
+          "A3_A3_net10_0",
+          "A4_A4_net10_0",
+          "A5_A5_net10_0",
+          "A6_A6_net10_0",
+          "A7_A7_net10_0",
+          "B_B_net10_0",
+          "C_C_net10_0"
+        ],
+        "referenceChanged": {
+          "C": true,
+          "B": false,
+          "A0": false
+        },
+        "rawReferenceChanged": {
+          "C": true,
+          "B": false,
+          "A0": false
+        }
+      },
+      {
+        "graph": "direct",
+        "width": 8,
+        "forcedTransitive": true,
+        "case": "addition",
+        "repetition": 1,
+        "bazelSeconds": 1.012,
+        "rawSeconds": 0.571,
+        "compiled": [
+          "A0_A0_net10_0",
+          "A1_A1_net10_0",
+          "A2_A2_net10_0",
+          "A3_A3_net10_0",
+          "A4_A4_net10_0",
+          "A5_A5_net10_0",
+          "A6_A6_net10_0",
+          "A7_A7_net10_0",
+          "B_B_net10_0",
+          "C_C_net10_0"
+        ],
+        "referenceChanged": {
+          "C": true,
+          "B": false,
+          "A0": false
+        },
+        "rawReferenceChanged": {
+          "C": true,
+          "B": false,
+          "A0": false
+        }
+      },
+      {
+        "graph": "direct",
+        "width": 8,
+        "forcedTransitive": true,
+        "case": "addition",
+        "repetition": 2,
+        "bazelSeconds": 0.898,
+        "rawSeconds": 0.518,
+        "compiled": [
+          "A0_A0_net10_0",
+          "A1_A1_net10_0",
+          "A2_A2_net10_0",
+          "A3_A3_net10_0",
+          "A4_A4_net10_0",
+          "A5_A5_net10_0",
+          "A6_A6_net10_0",
+          "A7_A7_net10_0",
+          "B_B_net10_0",
+          "C_C_net10_0"
+        ],
+        "referenceChanged": {
+          "C": true,
+          "B": false,
+          "A0": false
+        },
+        "rawReferenceChanged": {
+          "C": true,
+          "B": false,
+          "A0": false
+        }
+      },
+      {
+        "graph": "direct",
+        "width": 8,
+        "forcedTransitive": true,
+        "case": "constant",
+        "repetition": 0,
+        "bazelSeconds": 0.846,
+        "rawSeconds": 0.539,
+        "compiled": [
+          "A0_A0_net10_0",
+          "A1_A1_net10_0",
+          "A2_A2_net10_0",
+          "A3_A3_net10_0",
+          "A4_A4_net10_0",
+          "A5_A5_net10_0",
+          "A6_A6_net10_0",
+          "A7_A7_net10_0",
+          "B_B_net10_0",
+          "C_C_net10_0"
+        ],
+        "referenceChanged": {
+          "C": true,
+          "B": true,
+          "A0": true
+        },
+        "rawReferenceChanged": {
+          "C": true,
+          "B": true,
+          "A0": true
+        }
+      },
+      {
+        "graph": "direct",
+        "width": 8,
+        "forcedTransitive": true,
+        "case": "constant",
+        "repetition": 1,
+        "bazelSeconds": 1.097,
+        "rawSeconds": 0.528,
+        "compiled": [
+          "A0_A0_net10_0",
+          "A1_A1_net10_0",
+          "A2_A2_net10_0",
+          "A3_A3_net10_0",
+          "A4_A4_net10_0",
+          "A5_A5_net10_0",
+          "A6_A6_net10_0",
+          "A7_A7_net10_0",
+          "B_B_net10_0",
+          "C_C_net10_0"
+        ],
+        "referenceChanged": {
+          "C": true,
+          "B": true,
+          "A0": true
+        },
+        "rawReferenceChanged": {
+          "C": true,
+          "B": true,
+          "A0": true
+        }
+      },
+      {
+        "graph": "direct",
+        "width": 8,
+        "forcedTransitive": true,
+        "case": "constant",
+        "repetition": 2,
+        "bazelSeconds": 0.951,
+        "rawSeconds": 0.679,
+        "compiled": [
+          "A0_A0_net10_0",
+          "A1_A1_net10_0",
+          "A2_A2_net10_0",
+          "A3_A3_net10_0",
+          "A4_A4_net10_0",
+          "A5_A5_net10_0",
+          "A6_A6_net10_0",
+          "A7_A7_net10_0",
+          "B_B_net10_0",
+          "C_C_net10_0"
+        ],
+        "referenceChanged": {
+          "C": true,
+          "B": true,
+          "A0": true
+        },
+        "rawReferenceChanged": {
+          "C": true,
+          "B": true,
+          "A0": true
+        }
+      }
+    ],
+    "scope": "Explicit mapping reproduces prior input mode, not an older binary"
+  },
+  "seedControls": {
+    "8.8.0": {
+      "records": [
+        {
+          "case": "initial",
+          "exitCode": 0,
+          "compiled": [
+            "A_A_net10_0",
+            "App_App_net10_0",
+            "B_B_net10_0",
+            "C_C_net10_0"
+          ],
+          "tested": [
+            "App_App_net10_0"
+          ],
+          "remoteHits": 0
+        },
+        {
+          "case": "body-failure",
+          "exitCode": 3,
+          "compiled": [
+            "C_C_net10_0"
+          ],
+          "tested": [
+            "App_App_net10_0"
+          ],
+          "remoteHits": 0
+        },
+        {
+          "case": "body-repair",
+          "exitCode": 0,
+          "compiled": [],
+          "tested": [],
+          "remoteHits": 3
+        },
+        {
+          "case": "direct-use",
+          "exitCode": 1,
+          "compiled": [
+            "A_A_net10_0"
+          ],
+          "tested": [],
+          "remoteHits": 0
+        },
+        {
+          "case": "direct-use-repair",
+          "exitCode": 0,
+          "compiled": [],
+          "tested": [
+            "App_App_net10_0"
+          ],
+          "remoteHits": 3
+        },
+        {
+          "case": "direct-use-revert",
+          "exitCode": 0,
+          "compiled": [],
+          "tested": [],
+          "remoteHits": 4
+        },
+        {
+          "case": "exposed-type",
+          "exitCode": 1,
+          "compiled": [
+            "A_A_net10_0"
+          ],
+          "tested": [],
+          "remoteHits": 1
+        },
+        {
+          "case": "exposed-type-repair",
+          "exitCode": 0,
+          "compiled": [],
+          "tested": [
+            "App_App_net10_0"
+          ],
+          "remoteHits": 3
+        },
+        {
+          "case": "exposed-type-revert",
+          "exitCode": 0,
+          "compiled": [],
+          "tested": [],
+          "remoteHits": 5
+        }
+      ],
+      "ACompilerInputs": [
+        "B.dll"
+      ],
+      "generatedUnchanged": true,
+      "independentRecovery": false,
+      "payloadFiles": 365,
+      "payloadManifestSha256": "e56d419f6f5bf81a56b58a444e4cb17fd8ba40e2782f76390652397e4535c1e3"
+    },
+    "9.2.0": {
+      "records": [
+        {
+          "case": "initial",
+          "exitCode": 0,
+          "compiled": [
+            "A_A_net10_0",
+            "App_App_net10_0",
+            "B_B_net10_0",
+            "C_C_net10_0"
+          ],
+          "tested": [
+            "App_App_net10_0"
+          ],
+          "remoteHits": 0
+        },
+        {
+          "case": "body-failure",
+          "exitCode": 3,
+          "compiled": [
+            "C_C_net10_0"
+          ],
+          "tested": [
+            "App_App_net10_0"
+          ],
+          "remoteHits": 0
+        },
+        {
+          "case": "body-repair",
+          "exitCode": 0,
+          "compiled": [],
+          "tested": [],
+          "remoteHits": 3
+        },
+        {
+          "case": "direct-use",
+          "exitCode": 1,
+          "compiled": [
+            "A_A_net10_0"
+          ],
+          "tested": [],
+          "remoteHits": 0
+        },
+        {
+          "case": "direct-use-repair",
+          "exitCode": 0,
+          "compiled": [],
+          "tested": [
+            "App_App_net10_0"
+          ],
+          "remoteHits": 3
+        },
+        {
+          "case": "direct-use-revert",
+          "exitCode": 0,
+          "compiled": [],
+          "tested": [],
+          "remoteHits": 4
+        },
+        {
+          "case": "exposed-type",
+          "exitCode": 1,
+          "compiled": [
+            "A_A_net10_0"
+          ],
+          "tested": [],
+          "remoteHits": 1
+        },
+        {
+          "case": "exposed-type-repair",
+          "exitCode": 0,
+          "compiled": [],
+          "tested": [
+            "App_App_net10_0"
+          ],
+          "remoteHits": 3
+        },
+        {
+          "case": "exposed-type-revert",
+          "exitCode": 0,
+          "compiled": [],
+          "tested": [],
+          "remoteHits": 5
+        }
+      ],
+      "ACompilerInputs": [
+        "B.dll"
+      ],
+      "generatedUnchanged": true,
+      "independentRecovery": false,
+      "payloadFiles": 365,
+      "payloadManifestSha256": "e56d419f6f5bf81a56b58a444e4cb17fd8ba40e2782f76390652397e4535c1e3"
+    }
+  },
+  "limitations": [
+    "Synthetic libraries; no new upstream API-edit timing claim",
+    "Hash matrix samples C, B and A0; action counts cover all consumers",
+    "Direct-only executable and test compilation remains unsupported",
+    "Remote-cache recovery does not qualify remote execution"
+  ],
+  "checks": {
+    "toolchainAndStarlark": "passed",
+    "ownedDotnetStyleAndTests": "passed",
+    "projectSyncTests": 53
+  },
+  "independentRecovery": {
+    "8.8.0": {
+      "records": [
+        {
+          "case": "initial",
+          "exitCode": 0,
+          "compiled": [],
+          "tested": [],
+          "remoteHits": 8
+        },
+        {
+          "case": "forced",
+          "exitCode": 0,
+          "compiled": [],
+          "tested": [
+            "App_App_net10_0"
+          ],
+          "remoteHits": 1
+        }
+      ],
+      "ACompilerInputs": [
+        "B.dll"
+      ],
+      "generatedUnchanged": true,
+      "independentRecovery": true,
+      "payloadFiles": 365,
+      "payloadManifestSha256": "e56d419f6f5bf81a56b58a444e4cb17fd8ba40e2782f76390652397e4535c1e3"
+    },
+    "9.2.0": {
+      "records": [
+        {
+          "case": "initial",
+          "exitCode": 0,
+          "compiled": [],
+          "tested": [],
+          "remoteHits": 8
+        },
+        {
+          "case": "forced",
+          "exitCode": 0,
+          "compiled": [],
+          "tested": [
+            "App_App_net10_0"
+          ],
+          "remoteHits": 1
+        }
+      ],
+      "ACompilerInputs": [
+        "B.dll"
+      ],
+      "generatedUnchanged": true,
+      "independentRecovery": true,
+      "payloadFiles": 365,
+      "payloadManifestSha256": "e56d419f6f5bf81a56b58a444e4cb17fd8ba40e2782f76390652397e4535c1e3"
+    }
+  }
+}

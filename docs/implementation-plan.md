@@ -11,7 +11,7 @@ There is no whole-graph discovery/preparation/replay step on this path.
 | --- | --- |
 | Local project-to-BUILD synchronization and explicit test/package mappings | [Generator and limits](project-sync.md), [upstream inventory](project-sync-upstream.md), [explicit sync contracts](project-sync-bindings.md), [generated upstream qualification](project-sync-upstream-qualification.md), [Http.Abstractions/Immutable baseline](project-sync-expanded.md), [complete generated HTTP graph](project-sync-http-full.md), [complete generated Immutable graph](project-sync-immutable-full.md), [independent generated-graph cache recovery](project-sync-remote-cache.md), [generated Orchard/Avalonia graphs](project-sync-broader-graphs.md), [everyday change controls](project-sync-mutations.md), [paired workflow costs](project-sync-workflow-costs.md) |
 | Libraries, binaries, packages and explicit configuration | [Rule API](explicit-bazel-rules.md) |
-| Configured dependency selection and private project references | [API and qualification](configured-graphs.md) |
+| Configured dependency selection and private project references | [API and qualification](configured-graphs.md), [incremental reference boundaries](reference-invalidation.md) |
 | Project facades and per-framework test suites | [Facade API](explicit-bazel-rules.md#project-facade), [test suites](bazel-test.md#tests-across-frameworks) |
 | Executable, MTP and VSTest tests | [Test API and invalidation](bazel-test.md) |
 | Opt-in Linux remote compilation and tests | [SDK-free ARM64 worker qualification](remote-execution.md) |
