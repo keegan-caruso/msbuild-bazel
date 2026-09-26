@@ -1,0 +1,18 @@
+module(name = "hello_msbuild")
+
+bazel_dep(name = "rules_msbuild", version = "0.0.0")
+
+# Copy this example next to the pinned rules checkout; see README.md.
+local_path_override(
+    module_name = "rules_msbuild",
+    path = "../msbuild-bazel",
+)
+
+dotnet = use_extension("@rules_msbuild//msbuild:extensions.bzl", "dotnet")
+dotnet.sdk(
+    name = "dotnet",
+    global_json = "//:global.json",
+)
+use_repo(dotnet, "dotnet")
+
+register_toolchains("@dotnet//:all")

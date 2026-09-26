@@ -17,7 +17,7 @@ Alternatively use `version = "10.0.400"` instead of `global_json`. Bazel downloa
 verified SDK archives, builds the runner from declared sources, and supplies the
 bundled runtime for applications and tests. `runtime_host` remains an explicit
 override. No manual SDK or runner installation is required for this workflow.
-See the [runnable example](../examples/hello/README.md).
+See the [SDK-and-sync quickstart](../examples/quickstart/README.md).
 
 The pinned SDK catalog currently contains **10.0.400 and 10.0.401** for Linux
 (glibc) and macOS, ARM64/x64. Acquisition and execution are qualified on ARM64;
@@ -30,8 +30,10 @@ platform. Cross-compilation is not qualified.
 JSON comments are supported. `sdk.version` is required; `rollForward` may be
 omitted, `patch`, or `disable`. These acquire the exact requested catalog pin;
 there is no search for installed SDKs or fallback to a newer pin. Policies such
-as `latestFeature`, machine-local `paths`, non-SDK settings such as `msbuild-sdks`
-and `test`, and unknown pins fail explicitly. Boolean `allowPrerelease` is
+as `latestFeature`, machine-local `paths`, the `test` field, and unknown pins
+fail explicitly. A string-to-string `msbuild-sdks` map is accepted as metadata;
+custom SDK imports still require declared package inputs/`package_lock`. It does
+not trigger ambient SDK resolution or package acquisition. Boolean `allowPrerelease` is
 validated; the current catalog contains stable SDKs only. `$schema` and a string
 `sdk.errorMessage` are accepted metadata. Other settings remain explicit Bazel
 inputs and attributes. SDK acquisition does not configure workloads or NuGet
@@ -114,7 +116,7 @@ Use wrappers from each new shell. For Python fixtures that read tool variables:
 source scripts/env.sh
 ```
 
-Continue with the [runnable example](../examples/hello/README.md).
+Continue with the [SDK-and-sync quickstart](../examples/quickstart/README.md).
 
 ## Bazel versions
 

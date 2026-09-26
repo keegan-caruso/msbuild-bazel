@@ -8,9 +8,10 @@ published runner package or Bazel Central Registry release.
 
 ## Get started
 
-Follow the [setup guide](docs/development.md), then run the
-[library, application and test example](examples/hello/README.md).
-Declare projects with [`msbuild/defs.bzl`](msbuild/defs.bzl).
+Use the [SDK-and-sync quickstart](examples/quickstart/README.md): select an SDK
+with `global.json`, keep normal `.csproj` files, and build/test the committed Bazel
+graph. Bazel supplies .NET; no repository setup script is required.
+See [adoption and upgrades](docs/adoption.md) or [contributor setup](docs/development.md).
 
 Supported baselines: .NET SDK **10.0.400**, Bazel **8.8.0 / 9.2.0** (default).
 Platform and workload limits are listed in [current support](docs/implementation-plan.md).

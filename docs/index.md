@@ -1,10 +1,12 @@
 # Documentation
 
-Start with the [runnable example](../examples/hello/README.md), then the
+Start with the [runnable example](../examples/quickstart/README.md), then the
 [rule API](explicit-bazel-rules.md). [Current support](implementation-plan.md)
 separates qualified behavior from the [ordered delivery plan](roadmap.md).
 
 ## Use the rules
+
+- [Adoption, upgrades and distribution](adoption.md)
 
 - [Build inputs and rule API](explicit-bazel-rules.md)
 - [Project-to-BUILD synchronization](project-sync.md) and [generated Orchard/Avalonia qualification](project-sync-broader-graphs.md)

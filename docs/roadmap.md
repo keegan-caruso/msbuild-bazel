@@ -1,12 +1,11 @@
 # Planned work
 
 The active priority is complete generated graphs, independent remote-cache recovery,
-then developer experience and broader qualification. Stages 1–7 are **complete**;
-stage 8 remains **planned**;
+then developer experience and broader qualification. Stages 1–8 are **complete**;
+step 9 is the planned incremental-performance follow-up;
 [current support](implementation-plan.md) records what is already measured.
-This sequence starts from local commit `d4a64b4`, not an assertion that the work has
-already reached `main`. Review and integrate the accumulated changes before basing
-new work on a different branch.
+The sequence started from commit `d4a64b4`; the reports below preserve that
+baseline and the evidence added by each step.
 
 ## Starting point
 
@@ -174,6 +173,8 @@ and retain only meaningful measured improvements.
 
 ### 8. Prepare a coherent external adoption path
 
+**Complete:** [quickstart, independent consumers and distribution proposal](adoption.md).
+
 **Depends on:** stages 4–7.
 
 - Make the primary quickstart use the supported SDK/global.json and sync workflow,
@@ -188,6 +189,39 @@ second cache consumer by following the docs alone. Links and examples agree with
 current behavior, and the distribution/versioning proposal is reviewable.
 This stage prepares adoption; it does not publish a release or change repository
 visibility.
+
+### 9. Improve incremental API edits across a broader scenario matrix
+
+**Planned follow-up after steps 1–8 are integrated.** Body and API edit latency is
+our primary performance goal; cold builds are secondary. Start from the paired
+[Orchard results](project-sync-workflow-costs.md), where body edits beat raw MSBuild
+but the single broad API edit takes 4.82× its time. Do not generalize that one case.
+
+- Sample leaf, intermediate and widely shared projects in small synthetic graphs
+  and the qualified Orchard, Avalonia, ASP.NET Core and runtime slices. Include
+  narrow/deep and broad dependency graphs, not just one high-fan-out library.
+- Measure body-only changes, public member additions/removals, signature changes,
+  internal/friend-assembly changes, and edits whose downstream public reference
+  remains stable. Include compatible and deliberately failing callers, then repair
+  and revert. Match the actual build/test scope with raw MSBuild.
+- Separate warm-local edits, fresh consumers of the previously seeded cache, and
+  cache reversion. Count compilations, reference changes, dependent tests and
+  unrelated cache hits. Record worker/compiler reuse, memory pressure, evaluation,
+  verification/staging and transfer costs alongside wall time.
+- Use at least three repetitions per retained scenario, alternate build-system
+  order, keep resource limits/pins fixed, report median/range and raw ratios, and
+  exclude bootstrap from warm edit samples. Re-run noisy cases before drawing a
+  conclusion. Do not collapse diverse edits into one speedup number.
+- Profile the largest repeatable gaps. Remove unnecessary invalidation/repeated
+  work before micro-optimizing it; prove each candidate with a small synthetic,
+  then re-run the matrix and independent cache/test controls.
+
+**Done when:** the expanded matrix identifies why incremental API edits are slow,
+retained fixes materially improve the affected scenarios without regressing body
+edits or correctness, and remaining gaps are explicit. The initial proposed API
+latency gate is below 2× raw on the expensive qualified cases, with the existing
+body-edit advantage preserved; report actual results rather than treating this
+proposed gate as achieved. This step is not part of the current eight-step merge.
 
 ## Evidence and delivery rules
 
