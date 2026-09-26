@@ -66,7 +66,7 @@ try:
                     item['name']=name;count+=n
         assert count==53,count
         return data
-    comparisons=[];binroot=base/'execroot/_main/bazel-out' 
+    comparisons=[];binroot=base/'execroot/_main/bazel-out'
     for row in rows:
         name=row['properties']['AssemblyName'];label=labels[row['id']];raw=prepared/'source'/Path(row['project']).parent
         reference=raw/'obj/Release'/row['framework']/'ref'/(name+'.dll')

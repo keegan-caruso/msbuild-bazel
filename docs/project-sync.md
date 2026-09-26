@@ -6,6 +6,9 @@ property values. Ordinary Bazel builds do not invoke it.
 
 ## App developer setup
 
+The [copyable quickstart](../examples/quickstart/README.md) already commits its
+generated graph. The steps below add synchronization to an existing application.
+
 Declare `rules_msbuild` and its SDK toolchain in `MODULE.bazel` as described in
 [SDK setup](development.md). No local .NET installation or rules checkout is
 needed to run synchronization; Bazel builds the generator from the dependency's

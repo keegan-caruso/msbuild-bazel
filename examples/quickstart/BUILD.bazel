@@ -1,0 +1,15 @@
+load("@rules_msbuild//msbuild:sync.bzl", "msbuild_sync")
+load(":projects.generated.bzl", "app_projects")
+
+exports_files(["global.json"])
+
+msbuild_sync(
+    name = "sync",
+    mappings = "sync.json",
+    projects = [
+        "App/App.csproj",
+        "Tests/Tests.csproj",
+    ],
+)
+
+app_projects()

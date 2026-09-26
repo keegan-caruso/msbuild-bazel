@@ -1,0 +1,470 @@
+{
+  "platform": "linux-arm64",
+  "sdk": "10.0.400",
+  "producerStoppedDuringRecovery": true,
+  "sourceOnlyTransfer": true,
+  "noMounts": true,
+  "installedSdkHidden": true,
+  "plainBazelisk": true,
+  "example": "examples/quickstart",
+  "checks": {
+    "starlark": true,
+    "ownedDotnetAndStyle": true,
+    "syncAndNameTests": 51,
+    "runnerTests": 36,
+    "toolingTests": 7,
+    "styleTests": 5
+  },
+  "runs": [
+    {
+      "bazel": "9.2.0",
+      "mode": "seed",
+      "ambientDotnetOnPath": false,
+      "generatedUnchanged": true,
+      "generatedSha256": "dffab6c1f7abccd05e509b0116a576b6a1d8203ac991621f14a70a37baa146e2",
+      "outputFiles": 360,
+      "outputManifestSha256": "757c05e2c1ae5ecf6a4ffd38b04b7ff897b0fd46e98abfbd8da77d378281546a",
+      "records": [
+        {
+          "case": "sync",
+          "exitCode": 0,
+          "actions": [
+            {
+              "mnemonic": "MSBuildSyncBootstrap",
+              "targetLabel": "//:sync",
+              "cacheHit": true,
+              "runner": "remote cache hit"
+            }
+          ]
+        },
+        {
+          "case": "app",
+          "exitCode": 0,
+          "actions": [
+            {
+              "mnemonic": "DotnetSdkRuntime",
+              "targetLabel": "@@rules_msbuild++dotnet+dotnet_linux_arm64//:runtime",
+              "cacheHit": true,
+              "runner": "remote cache hit"
+            },
+            {
+              "mnemonic": "MSBuildRunnerBootstrap",
+              "targetLabel": "@@rules_msbuild++dotnet+dotnet_linux_arm64//:runner_payload",
+              "cacheHit": true,
+              "runner": "remote cache hit"
+            },
+            {
+              "mnemonic": "MSBuildAssembly",
+              "targetLabel": "//:Library_Library_net10_0",
+              "cacheHit": true,
+              "runner": "remote cache hit"
+            },
+            {
+              "mnemonic": "MSBuildAssembly",
+              "targetLabel": "//:App_App",
+              "cacheHit": true,
+              "runner": "remote cache hit"
+            }
+          ]
+        },
+        {
+          "case": "test",
+          "exitCode": 0,
+          "actions": [
+            {
+              "mnemonic": "MSBuildAssembly",
+              "targetLabel": "//:Tests_Tests_net10_0",
+              "cacheHit": true,
+              "runner": "remote cache hit"
+            },
+            {
+              "mnemonic": "TestRunner",
+              "targetLabel": "//:Tests_Tests_net10_0",
+              "cacheHit": true,
+              "runner": "remote cache hit"
+            },
+            {
+              "mnemonic": "TestRunner",
+              "targetLabel": "//:Tests_Tests_net10_0",
+              "cacheHit": true,
+              "runner": "remote cache hit"
+            }
+          ]
+        },
+        {
+          "case": "noop",
+          "exitCode": 0,
+          "actions": []
+        },
+        {
+          "case": "body-failure",
+          "exitCode": 3,
+          "actions": [
+            {
+              "mnemonic": "MSBuildAssembly",
+              "targetLabel": "//:Library_Library_net10_0",
+              "cacheHit": false,
+              "runner": "local"
+            },
+            {
+              "mnemonic": "TestRunner",
+              "targetLabel": "//:Tests_Tests_net10_0",
+              "cacheHit": false,
+              "runner": "linux-sandbox"
+            },
+            {
+              "mnemonic": "TestRunner",
+              "targetLabel": "//:Tests_Tests_net10_0",
+              "cacheHit": false,
+              "runner": "linux-sandbox"
+            }
+          ]
+        },
+        {
+          "case": "repair",
+          "exitCode": 0,
+          "actions": [
+            {
+              "mnemonic": "MSBuildAssembly",
+              "targetLabel": "//:Library_Library_net10_0",
+              "cacheHit": true,
+              "runner": "remote cache hit"
+            },
+            {
+              "mnemonic": "TestRunner",
+              "targetLabel": "//:Tests_Tests_net10_0",
+              "cacheHit": true,
+              "runner": "remote cache hit"
+            },
+            {
+              "mnemonic": "TestRunner",
+              "targetLabel": "//:Tests_Tests_net10_0",
+              "cacheHit": true,
+              "runner": "remote cache hit"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "bazel": "9.2.0",
+      "mode": "recovery",
+      "ambientDotnetOnPath": false,
+      "generatedUnchanged": true,
+      "generatedSha256": "dffab6c1f7abccd05e509b0116a576b6a1d8203ac991621f14a70a37baa146e2",
+      "outputFiles": 360,
+      "outputManifestSha256": "757c05e2c1ae5ecf6a4ffd38b04b7ff897b0fd46e98abfbd8da77d378281546a",
+      "records": [
+        {
+          "case": "sync",
+          "exitCode": 0,
+          "actions": [
+            {
+              "mnemonic": "MSBuildSyncBootstrap",
+              "targetLabel": "//:sync",
+              "cacheHit": true,
+              "runner": "remote cache hit"
+            }
+          ]
+        },
+        {
+          "case": "app",
+          "exitCode": 0,
+          "actions": [
+            {
+              "mnemonic": "DotnetSdkRuntime",
+              "targetLabel": "@@rules_msbuild++dotnet+dotnet_linux_arm64//:runtime",
+              "cacheHit": true,
+              "runner": "remote cache hit"
+            },
+            {
+              "mnemonic": "MSBuildRunnerBootstrap",
+              "targetLabel": "@@rules_msbuild++dotnet+dotnet_linux_arm64//:runner_payload",
+              "cacheHit": true,
+              "runner": "remote cache hit"
+            },
+            {
+              "mnemonic": "MSBuildAssembly",
+              "targetLabel": "//:Library_Library_net10_0",
+              "cacheHit": true,
+              "runner": "remote cache hit"
+            },
+            {
+              "mnemonic": "MSBuildAssembly",
+              "targetLabel": "//:App_App",
+              "cacheHit": true,
+              "runner": "remote cache hit"
+            }
+          ]
+        },
+        {
+          "case": "test",
+          "exitCode": 0,
+          "actions": [
+            {
+              "mnemonic": "MSBuildAssembly",
+              "targetLabel": "//:Tests_Tests_net10_0",
+              "cacheHit": true,
+              "runner": "remote cache hit"
+            },
+            {
+              "mnemonic": "TestRunner",
+              "targetLabel": "//:Tests_Tests_net10_0",
+              "cacheHit": true,
+              "runner": "remote cache hit"
+            },
+            {
+              "mnemonic": "TestRunner",
+              "targetLabel": "//:Tests_Tests_net10_0",
+              "cacheHit": true,
+              "runner": "remote cache hit"
+            }
+          ]
+        },
+        {
+          "case": "forced-test",
+          "exitCode": 0,
+          "actions": [
+            {
+              "mnemonic": "TestRunner",
+              "targetLabel": "//:Tests_Tests_net10_0",
+              "cacheHit": false,
+              "runner": "linux-sandbox"
+            },
+            {
+              "mnemonic": "TestRunner",
+              "targetLabel": "//:Tests_Tests_net10_0",
+              "cacheHit": true,
+              "runner": "remote cache hit"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "bazel": "8.8.0",
+      "mode": "seed",
+      "ambientDotnetOnPath": false,
+      "generatedUnchanged": true,
+      "generatedSha256": "dffab6c1f7abccd05e509b0116a576b6a1d8203ac991621f14a70a37baa146e2",
+      "outputFiles": 360,
+      "outputManifestSha256": "757c05e2c1ae5ecf6a4ffd38b04b7ff897b0fd46e98abfbd8da77d378281546a",
+      "records": [
+        {
+          "case": "sync",
+          "exitCode": 0,
+          "actions": [
+            {
+              "mnemonic": "MSBuildSyncBootstrap",
+              "targetLabel": "//:sync",
+              "cacheHit": false,
+              "runner": "linux-sandbox"
+            }
+          ]
+        },
+        {
+          "case": "app",
+          "exitCode": 0,
+          "actions": [
+            {
+              "mnemonic": "DotnetSdkRuntime",
+              "targetLabel": "@@rules_msbuild++dotnet+dotnet_linux_arm64//:runtime",
+              "cacheHit": false,
+              "runner": "linux-sandbox"
+            },
+            {
+              "mnemonic": "MSBuildRunnerBootstrap",
+              "targetLabel": "@@rules_msbuild++dotnet+dotnet_linux_arm64//:runner_payload",
+              "cacheHit": false,
+              "runner": "linux-sandbox"
+            },
+            {
+              "mnemonic": "MSBuildAssembly",
+              "targetLabel": "//:Library_Library_net10_0",
+              "cacheHit": false,
+              "runner": "local"
+            },
+            {
+              "mnemonic": "MSBuildAssembly",
+              "targetLabel": "//:App_App",
+              "cacheHit": false,
+              "runner": "local"
+            }
+          ]
+        },
+        {
+          "case": "test",
+          "exitCode": 0,
+          "actions": [
+            {
+              "mnemonic": "MSBuildAssembly",
+              "targetLabel": "//:Tests_Tests_net10_0",
+              "cacheHit": false,
+              "runner": "local"
+            },
+            {
+              "mnemonic": "TestRunner",
+              "targetLabel": "//:Tests_Tests_net10_0",
+              "cacheHit": false,
+              "runner": "linux-sandbox"
+            },
+            {
+              "mnemonic": "TestRunner",
+              "targetLabel": "//:Tests_Tests_net10_0",
+              "cacheHit": false,
+              "runner": "linux-sandbox"
+            }
+          ]
+        },
+        {
+          "case": "noop",
+          "exitCode": 0,
+          "actions": []
+        },
+        {
+          "case": "body-failure",
+          "exitCode": 3,
+          "actions": [
+            {
+              "mnemonic": "MSBuildAssembly",
+              "targetLabel": "//:Library_Library_net10_0",
+              "cacheHit": false,
+              "runner": "local"
+            },
+            {
+              "mnemonic": "TestRunner",
+              "targetLabel": "//:Tests_Tests_net10_0",
+              "cacheHit": false,
+              "runner": "linux-sandbox"
+            },
+            {
+              "mnemonic": "TestRunner",
+              "targetLabel": "//:Tests_Tests_net10_0",
+              "cacheHit": false,
+              "runner": "linux-sandbox"
+            }
+          ]
+        },
+        {
+          "case": "repair",
+          "exitCode": 0,
+          "actions": [
+            {
+              "mnemonic": "MSBuildAssembly",
+              "targetLabel": "//:Library_Library_net10_0",
+              "cacheHit": true,
+              "runner": "remote cache hit"
+            },
+            {
+              "mnemonic": "TestRunner",
+              "targetLabel": "//:Tests_Tests_net10_0",
+              "cacheHit": true,
+              "runner": "remote cache hit"
+            },
+            {
+              "mnemonic": "TestRunner",
+              "targetLabel": "//:Tests_Tests_net10_0",
+              "cacheHit": true,
+              "runner": "remote cache hit"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "bazel": "8.8.0",
+      "mode": "recovery",
+      "ambientDotnetOnPath": false,
+      "generatedUnchanged": true,
+      "generatedSha256": "dffab6c1f7abccd05e509b0116a576b6a1d8203ac991621f14a70a37baa146e2",
+      "outputFiles": 360,
+      "outputManifestSha256": "757c05e2c1ae5ecf6a4ffd38b04b7ff897b0fd46e98abfbd8da77d378281546a",
+      "records": [
+        {
+          "case": "sync",
+          "exitCode": 0,
+          "actions": [
+            {
+              "mnemonic": "MSBuildSyncBootstrap",
+              "targetLabel": "//:sync",
+              "cacheHit": true,
+              "runner": "remote cache hit"
+            }
+          ]
+        },
+        {
+          "case": "app",
+          "exitCode": 0,
+          "actions": [
+            {
+              "mnemonic": "DotnetSdkRuntime",
+              "targetLabel": "@@rules_msbuild++dotnet+dotnet_linux_arm64//:runtime",
+              "cacheHit": true,
+              "runner": "remote cache hit"
+            },
+            {
+              "mnemonic": "MSBuildRunnerBootstrap",
+              "targetLabel": "@@rules_msbuild++dotnet+dotnet_linux_arm64//:runner_payload",
+              "cacheHit": true,
+              "runner": "remote cache hit"
+            },
+            {
+              "mnemonic": "MSBuildAssembly",
+              "targetLabel": "//:Library_Library_net10_0",
+              "cacheHit": true,
+              "runner": "remote cache hit"
+            },
+            {
+              "mnemonic": "MSBuildAssembly",
+              "targetLabel": "//:App_App",
+              "cacheHit": true,
+              "runner": "remote cache hit"
+            }
+          ]
+        },
+        {
+          "case": "test",
+          "exitCode": 0,
+          "actions": [
+            {
+              "mnemonic": "MSBuildAssembly",
+              "targetLabel": "//:Tests_Tests_net10_0",
+              "cacheHit": true,
+              "runner": "remote cache hit"
+            },
+            {
+              "mnemonic": "TestRunner",
+              "targetLabel": "//:Tests_Tests_net10_0",
+              "cacheHit": true,
+              "runner": "remote cache hit"
+            },
+            {
+              "mnemonic": "TestRunner",
+              "targetLabel": "//:Tests_Tests_net10_0",
+              "cacheHit": true,
+              "runner": "remote cache hit"
+            }
+          ]
+        },
+        {
+          "case": "forced-test",
+          "exitCode": 0,
+          "actions": [
+            {
+              "mnemonic": "TestRunner",
+              "targetLabel": "//:Tests_Tests_net10_0",
+              "cacheHit": false,
+              "runner": "linux-sandbox"
+            },
+            {
+              "mnemonic": "TestRunner",
+              "targetLabel": "//:Tests_Tests_net10_0",
+              "cacheHit": true,
+              "runner": "remote cache hit"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

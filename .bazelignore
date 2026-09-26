@@ -2,3 +2,4 @@
 .cache
 artifacts
 examples/hello
+examples/quickstart

@@ -1,0 +1,7 @@
+{
+  "tests": {
+    "Tests/Tests.csproj": {
+      "protocol": "executable"
+    }
+  }
+}

@@ -102,6 +102,8 @@ add them to obtain wall time** or subtract them directly from the bounded result
 | Worker identity/cleanup | 8.97 | Request identity and clearing previous request trees |
 | MSBuild Copy tasks | 9.31 | Nested within build-request time |
 
+Incremental body and API edits are the primary performance scorecard. Preserve
+the body-edit improvement; prioritize the API-edit regression over cold-build work.
 Keep native worker-memory controls on large graphs. Next investigate compiler
 state reuse during API invalidation, then repeated input-tree materialization and
 restore/evaluation costs. Preserve the reference, test, read-only-input and remote
@@ -159,9 +161,9 @@ declarations). The optimized generator then produced exactly the control's bytes
 This migration is separate from the shared-document optimization; no test-name
 normalization was added.
 
-The next proposed performance gates are to reduce cold build below 1.5× raw and
-API edits below 2× raw on this same graph/resource protocol, without regressing
-remote recovery or correctness. These are future targets, not achieved results.
+The next proposed performance gate is to reduce API edits below 2× raw while
+retaining the body-edit advantage on this same graph/resource protocol, without
+regressing remote recovery or correctness. Cold build below 1.5× raw is secondary. These are future targets, not achieved results.
 Re-run paired samples after each candidate; a result inside the existing variation
 is insufficient evidence to retain a more complex optimization.
 
