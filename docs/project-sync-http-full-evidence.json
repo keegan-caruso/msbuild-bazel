@@ -1,0 +1,240 @@
+{
+  "platform": "linux-arm64",
+  "sdk": "10.0.400",
+  "bazel": "9.2.0",
+  "aspnetRevision": "7387de91234d3ef751fa50b3d1bfede4130213ff",
+  "runtimeRevision": "60629d14374c56f1cb51819049ad1fa529307f8d",
+  "generatedHttpProducers": 44,
+  "http": [
+    {
+      "case": "baseline",
+      "exitCode": 0
+    },
+    {
+      "case": "raw-parity",
+      "tests": 714,
+      "outcomes": {
+        "Passed": 714
+      }
+    },
+    {
+      "case": "warm",
+      "exitCode": 0
+    },
+    {
+      "case": "body-edit",
+      "exitCode": 0
+    },
+    {
+      "case": "body-edit-reference",
+      "unchanged": true
+    },
+    {
+      "case": "restored",
+      "exitCode": 0
+    },
+    {
+      "case": "contract-drift",
+      "exitCode": 1
+    }
+  ],
+  "httpGraph": [
+    {
+      "case": "repeat-sync",
+      "exitCode": 0
+    },
+    {
+      "case": "check",
+      "exitCode": 0
+    },
+    {
+      "case": "generated-producers",
+      "count": 44
+    },
+    {
+      "case": "api-edit",
+      "exitCode": 0
+    },
+    {
+      "case": "api-invalidation",
+      "referenceChanged": true,
+      "testsExecuted": true
+    },
+    {
+      "case": "api-restored",
+      "exitCode": 0
+    },
+    {
+      "case": "missing-source",
+      "exitCode": 1
+    },
+    {
+      "case": "repaired",
+      "exitCode": 0
+    }
+  ],
+  "immutableRegression": [
+    {
+      "case": "baseline",
+      "exitCode": 0
+    },
+    {
+      "case": "baseline-source-assembly",
+      "sha256": "758312B5B8D6FA7AE5B9E0F8360DACDD5DF38401F9414F2D9F95F49038A1B63F"
+    },
+    {
+      "case": "display-normalization",
+      "exactDisplayNamesMatch": false,
+      "shuffledCases": 32
+    },
+    {
+      "case": "raw-parity",
+      "tests": 22544,
+      "outcomes": {
+        "Passed": 22544
+      }
+    },
+    {
+      "case": "warm",
+      "exitCode": 0
+    },
+    {
+      "case": "warm-source-assembly",
+      "sha256": "758312B5B8D6FA7AE5B9E0F8360DACDD5DF38401F9414F2D9F95F49038A1B63F"
+    },
+    {
+      "case": "body-edit",
+      "exitCode": 0
+    },
+    {
+      "case": "body-edit-source-assembly",
+      "sha256": "52B86E17428198FD6F6BCC4162192BC5993EA368A80F5A77B958A919D01BB194"
+    },
+    {
+      "case": "body-edit-reference",
+      "unchanged": true
+    },
+    {
+      "case": "restored",
+      "exitCode": 0
+    },
+    {
+      "case": "restored-source-assembly",
+      "sha256": "758312B5B8D6FA7AE5B9E0F8360DACDD5DF38401F9414F2D9F95F49038A1B63F"
+    },
+    {
+      "case": "contract-drift",
+      "exitCode": 1
+    }
+  ],
+  "smallAppBazelVersions": [
+    "8.8.0",
+    "9.2.0"
+  ],
+  "cleanDriver": [
+    {
+      "case": "runner-acquisition",
+      "exitCode": 0
+    },
+    {
+      "case": "aspnet-bootstrap",
+      "exitCode": 0
+    },
+    {
+      "case": "objectpool-restore",
+      "exitCode": 0
+    },
+    {
+      "case": "bootstrap-inventory",
+      "exitCode": 0
+    },
+    {
+      "case": "http-raw",
+      "exitCode": 0
+    },
+    {
+      "case": "http-inventory-build",
+      "exitCode": 0
+    },
+    {
+      "case": "http-graph",
+      "exitCode": 0
+    },
+    {
+      "case": "http-prepare",
+      "exitCode": 0
+    },
+    {
+      "case": "http-evaluation",
+      "exitCode": 0
+    },
+    {
+      "case": "bootstrap",
+      "exitCode": 0
+    },
+    {
+      "case": "http-mapping",
+      "exitCode": 0
+    },
+    {
+      "case": "http-sync",
+      "exitCode": 0
+    },
+    {
+      "case": "http-controls",
+      "exitCode": 0
+    },
+    {
+      "case": "http-graph-controls",
+      "exitCode": 0
+    },
+    {
+      "case": "http-shutdown",
+      "exitCode": 0
+    },
+    {
+      "case": "immutable-raw-build",
+      "exitCode": 0
+    },
+    {
+      "case": "immutable-raw-tests",
+      "exitCode": 0
+    },
+    {
+      "case": "immutable-inventory-build",
+      "exitCode": 0
+    },
+    {
+      "case": "immutable-graph",
+      "exitCode": 0
+    },
+    {
+      "case": "immutable-prepare",
+      "exitCode": 0
+    },
+    {
+      "case": "immutable-evaluation",
+      "exitCode": 0
+    },
+    {
+      "case": "immutable-mapping",
+      "exitCode": 0
+    },
+    {
+      "case": "immutable-sync",
+      "exitCode": 0
+    },
+    {
+      "case": "immutable-host",
+      "exitCode": 0
+    },
+    {
+      "case": "immutable-controls",
+      "exitCode": 0
+    },
+    {
+      "case": "immutable-shutdown",
+      "exitCode": 0
+    }
+  ]
+}

@@ -189,15 +189,24 @@ class ProjectSyncTests(unittest.TestCase):
         self.put('Shared/Shared.cs', 'class Shared {}')
         self.put('Core/message.txt', 'hello')
         self.put('Core/options.txt', 'options')
-        self.put('Core/Core.csproj', '<Project Sdk="Microsoft.NET.Sdk"><ItemGroup><Compile Include="../Shared/Shared.cs" Link="Shared/Shared.cs"/><EmbeddedResource Include="message.txt" LogicalName="Probe.Message"/><AdditionalFiles Include="options.txt"/><None Update="options.txt" CopyToOutputDirectory="PreserveNewest"/></ItemGroup></Project>')
+        self.put('Core/Core.csproj', '<Project Sdk="Microsoft.NET.Sdk"><ItemGroup><Compile Include="../Shared/Shared.cs" Link="Shared/Shared.cs"/><EmbeddedResource Include="message.txt" LogicalName="Probe.Message" Language="CSharp"/><AdditionalFiles Include="options.txt"/><None Update="options.txt" CopyToOutputDirectory="PreserveNewest"/></ItemGroup></Project>')
         self.run_sync('Core/Core.csproj')
         output = (self.root/'projects.generated.bzl').read_text()
-        for fragment in ['item_type = "Compile"', '"Link":"Shared/Shared.cs"', 'item_type = "EmbeddedResource"', '"LogicalName":"Probe.Message"', 'item_type = "AdditionalFiles"', '"CopyToOutputDirectory":"PreserveNewest"']:
+        for fragment in ['item_type = "Compile"', '"Link":"Shared/Shared.cs"', 'item_type = "EmbeddedResource"', '"LogicalName":"Probe.Message"', '"Language":"CSharp"', 'item_type = "AdditionalFiles"', '"CopyToOutputDirectory":"PreserveNewest"']:
             self.assertIn(fragment, output)
         self.run_sync('Core/Core.csproj', '--check')
         self.put('Core/Core.csproj', '<Project Sdk="Microsoft.NET.Sdk"><ItemGroup><EmbeddedResource Include="message.txt" LogicalName="Probe.Changed"/></ItemGroup></Project>')
         self.assertIn('stale', self.run_sync('Core/Core.csproj', '--check', success=False))
         self.assertEqual(output, (self.root/'projects.generated.bzl').read_text())
+
+    def test_compile_order_matches_evaluation(self):
+        self.put('Core/Second.cs', 'partial class Core {}')
+        self.put('Core/First.cs', 'partial class Core {}')
+        self.put('Core/Core.csproj', '<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup><EnableDefaultCompileItems>false</EnableDefaultCompileItems></PropertyGroup><ItemGroup><Compile Include="Second.cs;First.cs"/></ItemGroup></Project>')
+        self.run_sync('Core/Core.csproj')
+        output = (self.root / 'projects.generated.bzl').read_text()
+        self.assertIn('"srcs": ["Core/Second.cs","Core/First.cs"]', output)
+        self.run_sync('Core/Core.csproj', '--check')
 
     def test_unsupported_item_metadata_is_rejected(self):
         for item, metadata in [('Compile', 'Custom'), ('EmbeddedResource', 'GenerateSource')]:
