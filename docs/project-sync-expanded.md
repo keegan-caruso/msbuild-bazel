@@ -87,3 +87,4 @@ HTTP worker server. Final checks used the stable repository definition.
   qualified complete source-built host.
 - Most dependency producers remain authored. Wider generator migration, independent
   cache consumers and the macOS MSBuild task-host limitation remain follow-ups.
+  The [ordered delivery plan](roadmap.md) defines their scope and completion criteria.
