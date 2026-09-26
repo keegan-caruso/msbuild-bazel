@@ -350,8 +350,8 @@ SDKs/workloads, cross-platform configuration matrices and Gazelle integration
 remain follow-up work. Environment-dependent evaluation and absolute-path
 property functions remain limitations of local synchronization. Complete generated
 HTTP and Immutable graphs have
-[Linux correctness qualification](project-sync-immutable-full.md). Independent
-remote-cache recovery remains a separate roadmap stage. See
+[Linux correctness qualification](project-sync-immutable-full.md) and
+[independent HTTP-cache recovery](project-sync-remote-cache.md). See
 [blocker qualification](project-sync-bindings.md) for the small contract controls.
 
 ## Validation
