@@ -21,6 +21,10 @@ def _closure(env, targets):
     env.expect.that_collection(direct.inputs.to_list()).contains(middle.reference)
     env.expect.that_collection(direct.inputs.to_list()).not_contains(leaf.reference)
 
+    # NuGet still needs the transitive restore graph even with a compile boundary.
+    env.expect.that_collection(direct.inputs.to_list()).contains_at_least([leaf.restore_project, middle.restore_project])
+    env.expect.that_collection(paths(compile.inputs)).not_contains("tests/analysis/payload.txt")
+
 def _worker(env, target):
     compile = action(target, "MSBuildAssembly")
     env.expect.that_collection(compile.argv).contains("--bazel-worker")

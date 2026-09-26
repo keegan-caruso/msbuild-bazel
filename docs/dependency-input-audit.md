@@ -33,10 +33,73 @@ semantics is justified by this audit.
   legacy fallback host must retain all installed shared frameworks, including
   ASP.NET Core. Separately declared platform runtime closure files must remain.
 
-## Validation plan
+## Validation
 
-Assert action/runfiles membership in analysis tests. Exercise body/API edits,
-runtime data, task/analyzer helper changes, fresh execution, worker reuse and
-cache replay using small synthetic projects. Record results below before merging.
+The [recorded evidence](dependency-input-evidence.json) covers Linux ARM64,
+SDK 10.0.400, and Bazel 8.8.0 / 9.2.0. Both Bazel versions pass 43 analysis tests
+and the eight scenarios below. Runtime/tool/analyzer and test protocol suites
+ran on 9.2.0. Repository style, warning and unit checks passed (101 unit tests).
 Full SDK retention for compilation and whole NuGet package trees are deliberate
 limits, not claims that every file in those trees is necessary.
+
+
+| Scenario | Compilations executed | Test executed |
+| --- | --- | --- |
+| Baseline | Leaf, middle, app | Yes |
+| No-op | None | No |
+| Leaf body edit | Leaf | Yes; observed changed return value |
+| Leaf API addition | Leaf, middle, app | Yes |
+| Runtime-data edit | None | Yes; observed changed file contents |
+| SDK-only file edit | Leaf, middle, app | No; output bytes unchanged |
+| Fresh output base and empty cache | Leaf, middle, app | Yes |
+| Another output base, seeded disk cache | None (three explicit cache hits) | No |
+
+The body edit retains the compiler process and reference hashes. The API case
+retains middle's reference bytes but app still consumes the leaf reference through
+the SDK's normal transitive closure. Fresh execution uses a different compiler
+process and matches every reference and runtime payload hash. The app loads a real
+ASP.NET Core framework assembly with SDK and reference-pack files absent from its
+runfiles. These are correctness/invalidation observations, not timing benchmarks.
+
+Additional controls passed: 41 runtime/paired-contract cases (including friend
+access, type forwarding, runtime-only changes and relocated cache recovery),
+12 task-binding cases (helper body edits with unchanged references and deleted
+producer recovery), 13 analyzer cases (helper edits, AdditionalFiles and stale
+load-group rejection), seven MTP cases and 12 VSTest cases across xUnit, NUnit
+and MSTest. Expected compilation/test failures are asserted negative controls.
+
+The installed SDK inventory contains 4,907 files / 671,718,586 bytes. Its shared
+application runtime subset contains 335 files / 118,708,269 bytes; the runner's
+CoreCLR subset contains 191 files / 88,697,475 bytes. These inventory sizes exclude
+our runner, application payloads and separately declared platform closure files;
+they do not measure bytes actually transferred from a cache.
+
+### Reproduce
+
+Use a disposable Linux container with an init process, the pinned SDK, and the
+repository's Bazel wrapper. `dependency_inputs.py` temporarily adds an SDK marker;
+do not run it concurrently with other builds sharing that SDK.
+
+```sh
+bash scripts/dotnet.sh build tools/ExplicitBuild/ExplicitBuild.csproj -c Release
+bash scripts/bazel.sh test //tests/analysis:all
+USE_BAZEL_VERSION=8.8.0 bash scripts/bazel.sh --output_base=/tmp/analysis8 test //tests/analysis:all
+python3 tests/explicit_msbuild/dependency_inputs.py /tmp/inputs9
+USE_BAZEL_VERSION=8.8.0 python3 tests/explicit_msbuild/dependency_inputs.py /tmp/inputs8
+python3 tests/explicit_msbuild/runtime_primitives.py /tmp/runtime-inputs
+python3 tests/explicit_msbuild/tool_bindings.py /tmp/task-inputs
+python3 tests/explicit_msbuild/protocol.py /tmp/test-inputs
+python3 tests/explicit_msbuild/vstest.py /tmp/test-inputs
+bash scripts/check.sh
+bash scripts/check-dotnet.sh
+```
+
+For the analyzer suite, create an empty `src` workspace with the same MODULE and
+registered local toolchain as the dependency-input fixture, set
+`RULES_MSBUILD_REPOSITORY_CACHE`, then run
+`python3 tests/explicit_msbuild/project_analyzers.py /tmp/analyzer-inputs`.
+
+The new cold/replay comparison uses the same source location and separate output
+bases with disk caching. It does not establish a new remote execution or HTTP
+cache qualification, nor complete Orchard compatibility. No GitHub CI was
+dispatched.

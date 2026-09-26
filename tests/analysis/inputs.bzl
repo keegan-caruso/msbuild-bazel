@@ -16,6 +16,8 @@ def _inputs(env, targets):
     # Tools are in the execution configuration; inspect their paths, not File identity.
     env.expect.that_bool(any([f.short_path == "tests/analysis/task.runtime" for f in inputs])).equals(True)
     env.expect.that_collection(target[MSBuildAssemblyInfo].runtimes.to_list()).contains_none_of([targets["analyzer"][MSBuildAssemblyInfo].runtime])
+    env.expect.that_collection(paths(action(target, "MSBuildAssembly").inputs)).contains_at_least(["tests/analysis/analyzer_helper.runtime", "tests/analysis/task_helper.runtime"])
+    env.expect.that_collection(paths(action(target, "MSBuildAssembly").inputs)).contains_none_of(["tests/analysis/analyzer.reference/analyzer.dll", "tests/analysis/analyzer_helper.reference/analyzer_helper.dll", "tests/analysis/task.reference/task.dll", "tests/analysis/task_helper.reference/task_helper.dll"])
     row = request(target)
     env.expect.that_collection(row["declaredPackages"]).contains_exactly(["Example"])
     env.expect.that_str(row["fileBindings"][0]["property"]).equals("TaskLocation")
@@ -50,8 +52,10 @@ def input_tests(name):
     """
     msbuild_nuget_package(name = "package", package_id = "Example", version = "1.0.0", archive = "example.nupkg", content_hash = "fixture", archive_sha256 = "fixture", tags = ["manual"])
     msbuild_package_lock(name = "lock", packages = [":package"], tags = ["manual"])
-    library("analyzer")
-    library("task")
+    library("analyzer_helper")
+    library("task_helper")
+    library("analyzer", deps = [":analyzer_helper"])
+    library("task", deps = [":task_helper"])
     msbuild_tool(name = "tool", assembly = ":task", tags = ["manual"])
     msbuild_file_binding(name = "binding", tool = ":tool", property_name = "TaskLocation", tags = ["manual"])
     msbuild_items(name = "resources", item_type = "EmbeddedResource", srcs = ["resource.txt"], metadata = {"LogicalName": "message"}, tags = ["manual"])
