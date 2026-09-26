@@ -2,7 +2,7 @@
 
 Start with the [runnable example](../examples/hello/README.md), then the
 [rule API](explicit-bazel-rules.md). [Current support](implementation-plan.md)
-separates qualified behavior from [remaining work](roadmap.md).
+separates qualified behavior from the [ordered delivery plan](roadmap.md).
 
 ## Use the rules
 
