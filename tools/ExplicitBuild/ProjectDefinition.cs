@@ -60,6 +60,7 @@ internal static class ProjectDefinition
         // evaluated metadata; replacing project sources must not discard them.
         items.Add(new XElement("Compile", new XAttribute("Include", "@(_BazelOriginalCompile->WithMetadataValue('NuGetItemType', 'Compile'))")));
 
+        var sourcePaths = r.Sources.Select(source => source.Path).ToHashSet(StringComparer.Ordinal);
         foreach (var item in r.Items)
         {
             if (new[] { "ProjectReference", "Reference", "Analyzer", "PackageReference", "FrameworkReference" }.Contains(item.Type, StringComparer.OrdinalIgnoreCase))
@@ -68,9 +69,10 @@ internal static class ProjectDefinition
             }
 
             var itemPath = Path.Combine(workspace, Safe(item.File.Path));
-            var include = item.Type is "AdditionalFiles" or "GlobalAnalyzerConfigFiles" or "EditorConfigFiles"
+            var sourceMetadata = item.Type == "Compile" && sourcePaths.Contains(item.File.Path);
+            var include = sourceMetadata || item.Type is "AdditionalFiles" or "GlobalAnalyzerConfigFiles" or "EditorConfigFiles"
                 ? compilerPath(itemPath) : Path.GetRelativePath(Path.GetDirectoryName(path)!, itemPath);
-            var element = new XElement(item.Type, new XAttribute("Include", Escape(include)));
+            var element = new XElement(item.Type, new XAttribute(sourceMetadata ? "Update" : "Include", Escape(include)));
             foreach (var (name, value) in item.Metadata)
             {
                 XmlConvert.VerifyNCName(name);

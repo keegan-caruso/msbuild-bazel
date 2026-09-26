@@ -70,7 +70,7 @@ def msbuild_sync(name, projects, mappings = None, **kwargs):
     Args:
         name: Runnable target name, conventionally sync.
         projects: Workspace-relative entry csproj paths, not labels. References are discovered at run time.
-        mappings: Optional JSON file with explicit package and test bindings.
+        mappings: Optional JSON file with project settings and explicit package/test bindings.
         **kwargs: Common Bazel attributes such as visibility and tags.
     """
     if not projects:

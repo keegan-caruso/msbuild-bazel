@@ -155,11 +155,53 @@ Reserved evaluation properties cannot override Release/AnyCPU or framework
 selection. For MTP, explicitly declare its TRX reporting package/build role.
 Unknown mapping fields and invalid protocol/runner combinations fail explicitly.
 
+## Selecting a repository slice
+
+Use `projects` in the same mappings file for per-project configuration:
+
+```json
+{
+  "projects": {
+    "src/Core/Core.csproj": {
+      "targetFrameworks": ["net10.0"],
+      "properties": {"Flavor": "portable"}
+    }
+  }
+}
+```
+
+The framework list selects a subset of the **evaluated declared frameworks**;
+unknown frameworks fail. Omitting it keeps every declared framework. Properties
+are applied both during evaluation and in the generated `msbuild_properties`.
+They are local to that project, not silently propagated through its dependency
+graph. Give dependencies their own mappings where needed. Project and test
+properties combine; conflicting values fail. Reserved configuration/framework
+properties still cannot be overridden through the property dictionary. Stale or
+unreachable project mappings fail before writing output.
+
+`Compile` inputs can carry `Link` and `LinkBase`. Existing `EmbeddedResource`,
+`AdditionalFiles`, `Content` and copied `None` inputs emit `msbuild_items` with
+explicit file labels. Supported metadata is `Link`, `LinkBase`, `LogicalName`,
+`ManifestResourceName`, `Culture`, `WithCulture`, `CopyToOutputDirectory`,
+`CopyToPublishDirectory` and `TargetPath`. Source items retain only Link/LinkBase.
+Metadata requiring generation, such as `GenerateSource`, is rejected. Missing
+files still require a generator binding; sync never runs a generation target.
+Ordinary uncopied `None` files remain outside build inputs.
+
+Package `PrivateAssets=all/none` becomes `package_private_assets`; comparisons
+are case-insensitive. Boolean `IsImplicitlyDefined` and `GeneratePathProperty`
+metadata are accepted and remain in the original project consumed by MSBuild.
+Partial privacy masks, IncludeAssets/ExcludeAssets and VersionOverride remain
+unsupported. Exact package version/role bindings are still mandatory.
+
+See the [ASP.NET Core/runtime inventory](project-sync-upstream.md) for concrete
+remaining integration gates and synthetic validation commands.
+
 ## Explicit limits
 
 The generator accepts `Microsoft.NET.Sdk` libraries, single-framework console
 applications, and explicitly mapped tests/packages. It still rejects custom
-targets/tasks, custom items, resources/content, explicit user analyzer items,
+targets/tasks, custom items, generated resources, explicit user analyzer items,
 explicit framework/assembly references, special project-reference metadata and
 missing/generated sources. These require mappings the tool does not yet provide.
 Normal SDK analyzers and the implicit .NET Core framework are retained. Imports

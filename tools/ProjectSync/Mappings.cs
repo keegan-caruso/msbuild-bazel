@@ -11,6 +11,12 @@ internal sealed class PackageBinding
     public string[] Analyzers { get; set; } = [];
 }
 
+internal sealed class ProjectBinding
+{
+    public string[] TargetFrameworks { get; set; } = [];
+    public Dictionary<string, string> Properties { get; set; } = [];
+}
+
 internal sealed class TestBinding
 {
     public string Protocol { get; set; } = "";
@@ -45,6 +51,7 @@ internal sealed class Mappings
 {
     public Dictionary<string, PackageBinding> Packages { get; set; } = [];
     public Dictionary<string, TestBinding> Tests { get; set; } = [];
+    public Dictionary<string, ProjectBinding> Projects { get; set; } = [];
 
     internal static Mappings Read(string? path)
     {
@@ -62,9 +69,20 @@ internal sealed class Mappings
                 Label(label);
             }
         }
+        foreach (var (project, binding) in mappings.Projects)
+        {
+            ProjectPath(project);
+            Properties(binding.Properties);
+            if (binding.TargetFrameworks.Any(tfm => tfm.Length == 0 || tfm.Any(c => !char.IsAsciiLetterLower(c) && !char.IsAsciiDigit(c) && c is not '.' and not '-')) || binding.TargetFrameworks.Distinct(StringComparer.Ordinal).Count() != binding.TargetFrameworks.Length)
+            {
+                throw new InvalidDataException("Expected distinct lowercase target frameworks: " + project);
+            }
+        }
         foreach (var (project, test) in mappings.Tests)
         {
-            if (Path.IsPathRooted(project) || project.Split('/').Any(p => p is "" or "." or "..") || !project.EndsWith(".csproj", StringComparison.Ordinal) || test.Protocol is not "vstest" and not "mtp" and not "executable")
+            ProjectPath(project);
+            Properties(test.Properties);
+            if (test.Protocol is not "vstest" and not "mtp" and not "executable")
             {
                 throw new InvalidDataException("Test mappings require a workspace-relative csproj and explicit protocol: " + project);
             }
@@ -80,12 +98,54 @@ internal sealed class Mappings
             {
                 throw new InvalidDataException("Runner and adapters are VSTest-only: " + project);
             }
-            if (test.OutputType is not null and not "exe" and not "library" || test.Properties.Keys.Any(k => new[] { "Platform", "Configuration", "TargetFramework", "TargetFrameworks", "OutputType", "ImportProjectExtensionProps", "ImportProjectExtensionTargets" }.Contains(k, StringComparer.OrdinalIgnoreCase)))
+            if (test.OutputType is not null and not "exe" and not "library")
             {
                 throw new InvalidDataException("Invalid test output type or reserved evaluation property: " + project);
             }
         }
         return mappings;
+    }
+
+    private static void ProjectPath(string project)
+    {
+        if (Path.IsPathRooted(project) || project.Contains('\\') || project.Split('/').Any(p => p is "" or "." or "..") || !project.EndsWith(".csproj", StringComparison.Ordinal))
+        {
+            throw new InvalidDataException("Expected a workspace-relative csproj: " + project);
+        }
+    }
+
+    private static void Properties(Dictionary<string, string> properties)
+    {
+        var keys = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var key in properties.Keys)
+        {
+            System.Xml.XmlConvert.VerifyNCName(key);
+            if (!keys.Add(key) || new[] { "Platform", "Configuration", "TargetFramework", "TargetFrameworks", "OutputType", "ImportProjectExtensionProps", "ImportProjectExtensionTargets" }.Contains(key, StringComparer.OrdinalIgnoreCase))
+            {
+                throw new InvalidDataException("Duplicate or reserved evaluation property: " + key);
+            }
+        }
+    }
+
+    internal Dictionary<string, string> ProjectProperties(string project, TestBinding? test)
+    {
+        var properties = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase) { ["Platform"] = "AnyCPU" };
+        if (Projects.TryGetValue(project, out var binding))
+        {
+            foreach (var (key, value) in binding.Properties)
+            {
+                properties.Add(key, value);
+            }
+        }
+        foreach (var (key, value) in test?.Properties ?? [])
+        {
+            if (properties.TryGetValue(key, out var previous) && previous != value)
+            {
+                throw new InvalidDataException("Conflicting project/test evaluation property: " + key);
+            }
+            properties[key] = value;
+        }
+        return properties;
     }
 
     private static void Label(string label)
@@ -101,12 +161,25 @@ internal sealed class Mappings
         var attributes = new Dictionary<string, List<string>> { ["deps"] = [], ["build_deps"] = [], ["analyzers"] = [] };
         foreach (var package in project.GetItems("PackageReference"))
         {
-            foreach (var metadata in package.DirectMetadata)
+            foreach (var metadata in package.Metadata)
             {
-                if (metadata.Name != "Version")
+                if (metadata.Name is not "Version" and not "PrivateAssets" and not "IsImplicitlyDefined" and not "GeneratePathProperty")
                 {
                     throw new InvalidDataException("PackageReference metadata requires explicit mapping: " + metadata.Name);
                 }
+            }
+            foreach (var flag in new[] { "IsImplicitlyDefined", "GeneratePathProperty" })
+            {
+                var value = package.GetMetadataValue(flag);
+                if (value.Length != 0 && !bool.TryParse(value, out _))
+                {
+                    throw new InvalidDataException("Invalid PackageReference metadata: " + flag);
+                }
+            }
+            var privacy = package.GetMetadataValue("PrivateAssets").ToLowerInvariant();
+            if (privacy is not "" and not "all" and not "none")
+            {
+                throw new InvalidDataException("PackageReference PrivateAssets requires all or none: " + package.EvaluatedInclude);
             }
             var version = package.GetMetadataValue("Version");
             if (version.Length == 0 && project.GetPropertyValue("ManagePackageVersionsCentrally").Equals("true", StringComparison.OrdinalIgnoreCase))
@@ -123,6 +196,10 @@ internal sealed class Mappings
         }
         return attributes;
     }
+
+    internal static Dictionary<string, string> PackagePrivacy(Project project) => project.GetItems("PackageReference")
+        .Where(item => item.GetMetadataValue("PrivateAssets").Length != 0)
+        .ToDictionary(item => item.EvaluatedInclude, item => item.GetMetadataValue("PrivateAssets").ToLowerInvariant(), StringComparer.OrdinalIgnoreCase);
 
     internal static Dictionary<string, object> TestAttributes(TestBinding test, string outputType)
     {
@@ -151,7 +228,6 @@ internal sealed class Mappings
         attributes["test_output_dirs"] = test.OutputDirectories;
         attributes["data_paths"] = test.DataPaths;
         attributes["env"] = test.Environment;
-        attributes["msbuild_properties"] = new Dictionary<string, string>(test.Properties) { ["Platform"] = "AnyCPU" };
         return attributes;
     }
 }
