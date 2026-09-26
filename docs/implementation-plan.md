@@ -48,6 +48,9 @@ combinations; availability of an API does not qualify every upstream project.
 
 ## Performance
 
+The [dependency input audit](dependency-input-audit.md) records artifact roles,
+consumers and input reductions that preserve MSBuild semantics.
+
 See [performance](performance.md) for cold builds, warm edits and remote-cache
 recovery versus raw MSBuild, with measurement conditions and detailed evidence.
 

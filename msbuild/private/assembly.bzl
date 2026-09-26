@@ -29,7 +29,7 @@ def _assembly(ctx):
     restore_project = ctx.actions.declare_file(ctx.label.name + ".restore-project.json")
     request = ctx.actions.declare_file(ctx.label.name + ".pair.json")
     ctx.actions.write(request, json.encode({"contract": reference_source.path, "contractIdentity": contract.identity.path, "implementationIdentity": implementation.identity.path, "output": reference.path, "contractRestore": contract.restore_project.path, "implementationRestore": implementation.restore_project.path, "restoreOutput": restore_project.path, "restoreKey": key}))
-    ctx.actions.run(executable = tc.dotnet, arguments = [tc.runner.path, "pair", request.path], inputs = depset([request, tc.runner, reference_source, contract.identity, implementation.identity, contract.restore_project, implementation.restore_project], transitive = [tc.sdk, tc.runner_support]), outputs = [reference, restore_project], mnemonic = "MSBuildAssemblyPair")
+    ctx.actions.run(executable = tc.dotnet, arguments = [tc.runner.path, "pair", request.path], inputs = depset([request, tc.runner, reference_source, contract.identity, implementation.identity, contract.restore_project, implementation.restore_project], transitive = [tc.runtime, tc.runner_support]), outputs = [reference, restore_project], mnemonic = "MSBuildAssemblyPair")
     return [DefaultInfo(files = depset([implementation.runtime, reference])), MSBuildAssemblyInfo(
         selections = depset(transitive = [contract.selections, implementation.selections]),
         dependency_nodes = depset(transitive = [contract.dependency_nodes, implementation.dependency_nodes]),

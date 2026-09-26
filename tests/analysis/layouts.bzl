@@ -19,6 +19,7 @@ def _runtime_launch(env, targets):
     env.expect.that_dict(host.environment).contains_exactly({"RUNTIME_TEST": "yes"})
     env.expect.that_collection(action(targets.app, "MSBuildAssembly").inputs.to_list()).not_contains(host.directory)
     env.expect.that_collection(targets.app[DefaultInfo].default_runfiles.files.to_list()).contains_at_least(host.files.to_list())
+    env.expect.that_collection([f.short_path for f in targets.app[DefaultInfo].default_runfiles.files.to_list()]).contains_none_of(["tests/analysis/sdk.txt", "tests/analysis/shared/Microsoft.AspNetCore.App/mock"])
     launch = request(targets.app, ".launch.json")["runtimeHost"]
     env.expect.that_str(launch["launchMode"]).equals("corerun")
     env.expect.that_str(launch["version"]).equals("10.0.0")
