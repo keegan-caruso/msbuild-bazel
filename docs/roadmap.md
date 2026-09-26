@@ -1,8 +1,8 @@
 # Planned work
 
 The active priority is complete generated graphs, independent remote-cache recovery,
-then developer experience and broader qualification. Stages 1–5 are **complete**;
-stages 6–8 remain **planned**;
+then developer experience and broader qualification. Stages 1–6 are **complete**;
+stages 7–8 remain **planned**;
 [current support](implementation-plan.md) records what is already measured.
 This sequence starts from local commit `d4a64b4`, not an assertion that the work has
 already reached `main`. Review and integrate the accumulated changes before basing
@@ -137,6 +137,8 @@ controls, and recover independently from cache. Report exactly which projects an
 platforms were exercised; this is not a promise to build all of Avalonia.
 
 ### 6. Validate everyday project changes
+
+**Complete:** [mutation, invalidation and repair evidence](project-sync-mutations.md).
 
 **Depends on:** stages 4–5; small mutation fixtures may be developed earlier.
 

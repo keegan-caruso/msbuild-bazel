@@ -1,0 +1,369 @@
+{
+  "platform": "linux-arm64",
+  "sdk": "10.0.400",
+  "bazel": [
+    "8.8.0",
+    "9.2.0"
+  ],
+  "matrix": [
+    {
+      "case": "initial",
+      "staleDetected": false,
+      "rejected": null,
+      "preservedOnFailure": false
+    },
+    {
+      "case": "initial",
+      "compiled": [
+        "App_App_net10_0",
+        "Core_Core_net10_0",
+        "Generator_Generator",
+        "Other_Other_net10_0"
+      ],
+      "tested": [
+        "App_App_net10_0",
+        "Other_Other_net10_0"
+      ],
+      "failed": false
+    },
+    {
+      "case": "noop",
+      "compiled": [],
+      "tested": [],
+      "failed": false
+    },
+    {
+      "case": "body",
+      "staleDetected": false,
+      "rejected": null,
+      "preservedOnFailure": false
+    },
+    {
+      "case": "body",
+      "compiled": [
+        "Core_Core_net10_0"
+      ],
+      "tested": [
+        "App_App_net10_0"
+      ],
+      "failed": false
+    },
+    {
+      "case": "body-reverted",
+      "compiled": [],
+      "tested": [],
+      "failed": false
+    },
+    {
+      "case": "source-added",
+      "staleDetected": true,
+      "rejected": null,
+      "preservedOnFailure": true
+    },
+    {
+      "case": "source-added",
+      "compiled": [
+        "App_App_net10_0",
+        "Core_Core_net10_0"
+      ],
+      "tested": [
+        "App_App_net10_0"
+      ],
+      "failed": false
+    },
+    {
+      "case": "source-removed",
+      "staleDetected": true,
+      "rejected": null,
+      "preservedOnFailure": true
+    },
+    {
+      "case": "source-removed",
+      "compiled": [],
+      "tested": [],
+      "failed": false
+    },
+    {
+      "case": "project-reference-added",
+      "staleDetected": true,
+      "rejected": null,
+      "preservedOnFailure": true
+    },
+    {
+      "case": "project-reference-added",
+      "compiled": [
+        "App_App_net10_0",
+        "Core_Core_net10_0",
+        "Extra_Extra_net10_0"
+      ],
+      "tested": [
+        "App_App_net10_0"
+      ],
+      "failed": false
+    },
+    {
+      "case": "project-reference-removed",
+      "staleDetected": true,
+      "rejected": null,
+      "preservedOnFailure": true
+    },
+    {
+      "case": "project-reference-removed",
+      "compiled": [],
+      "tested": [],
+      "failed": false
+    },
+    {
+      "case": "project-deleted",
+      "staleDetected": false,
+      "rejected": null,
+      "preservedOnFailure": false
+    },
+    {
+      "case": "project-deleted",
+      "compiled": [],
+      "tested": [],
+      "failed": false
+    },
+    {
+      "case": "props-condition",
+      "staleDetected": false,
+      "rejected": null,
+      "preservedOnFailure": false
+    },
+    {
+      "case": "props-condition",
+      "compiled": [
+        "Core_Core_net10_0"
+      ],
+      "tested": [
+        "App_App_net10_0"
+      ],
+      "failed": false
+    },
+    {
+      "case": "props-reverted",
+      "compiled": [],
+      "tested": [],
+      "failed": false
+    },
+    {
+      "case": "framework-added",
+      "staleDetected": true,
+      "rejected": null,
+      "preservedOnFailure": true
+    },
+    {
+      "case": "framework-added",
+      "compiled": [
+        "Core_Core_net10_0"
+      ],
+      "tested": [],
+      "failed": false
+    },
+    {
+      "case": "framework-removed",
+      "staleDetected": true,
+      "rejected": null,
+      "preservedOnFailure": true
+    },
+    {
+      "case": "framework-removed",
+      "compiled": [],
+      "tested": [],
+      "failed": false
+    },
+    {
+      "case": "missing-project",
+      "staleDetected": false,
+      "rejected": "Missing",
+      "preservedOnFailure": true
+    },
+    {
+      "case": "missing-project-repaired",
+      "staleDetected": false,
+      "rejected": null,
+      "preservedOnFailure": false
+    },
+    {
+      "case": "repaired",
+      "compiled": [],
+      "tested": [],
+      "failed": false
+    },
+    {
+      "case": "analyzer-body",
+      "compiled": [
+        "App_App_net10_0",
+        "Generator_Generator"
+      ],
+      "tested": [
+        "App_App_net10_0"
+      ],
+      "failed": false
+    },
+    {
+      "case": "analyzer-reverted",
+      "compiled": [],
+      "tested": [],
+      "failed": false
+    },
+    {
+      "case": "test-data",
+      "compiled": [],
+      "tested": [
+        "App_App_net10_0"
+      ],
+      "failed": false
+    },
+    {
+      "case": "test-failure",
+      "compiled": [],
+      "tested": [
+        "App_App_net10_0"
+      ],
+      "failed": true
+    },
+    {
+      "case": "test-repaired",
+      "compiled": [],
+      "tested": [],
+      "failed": false
+    },
+    {
+      "case": "runtime-host",
+      "compiled": [],
+      "tested": [
+        "App_App_net10_0"
+      ],
+      "failed": false
+    },
+    {
+      "case": "runtime-host-failure",
+      "compiled": [],
+      "tested": [
+        "App_App_net10_0"
+      ],
+      "failed": true
+    },
+    {
+      "case": "runtime-host-repaired",
+      "compiled": [],
+      "tested": [],
+      "failed": false
+    }
+  ],
+  "additionalRuns": [
+    {
+      "bazel": "8.8.0",
+      "fixture": "package_locks",
+      "exitCode": 0
+    },
+    {
+      "bazel": "8.8.0",
+      "fixture": "roles",
+      "exitCode": 0
+    },
+    {
+      "bazel": "9.2.0",
+      "fixture": "package_locks",
+      "exitCode": 0
+    },
+    {
+      "bazel": "9.2.0",
+      "fixture": "roles",
+      "exitCode": 0
+    }
+  ],
+  "packageUpgrade": [
+    {
+      "case": "app1",
+      "compiled": [
+        "//:App1_App1"
+      ]
+    },
+    {
+      "case": "app2",
+      "compiled": [
+        "//:App2_App2"
+      ]
+    },
+    {
+      "case": "framework-specific-inputs",
+      "compiled": [
+        "//:Multi_Multi_net10_0",
+        "//:Multi_Multi_netstandard2_1"
+      ]
+    },
+    {
+      "case": "central-transitive-diamond",
+      "compiled": [
+        "//:Diamond_Diamond"
+      ]
+    },
+    {
+      "case": "upgraded-app",
+      "compiled": [
+        "//:App1_App1"
+      ]
+    },
+    {
+      "case": "unchanged-app",
+      "compiled": []
+    },
+    {
+      "case": "upgrade-reverted-app",
+      "compiled": []
+    }
+  ],
+  "taskRepair": [
+    {
+      "case": "sync",
+      "exit": 0
+    },
+    {
+      "case": "run",
+      "exit": 0
+    },
+    {
+      "case": "task-input-edit",
+      "exit": 0
+    },
+    {
+      "case": "task-body-edit",
+      "exit": 0
+    },
+    {
+      "case": "friend-body-edit",
+      "exit": 0
+    },
+    {
+      "case": "sync-signed",
+      "exit": 0
+    },
+    {
+      "case": "signed-friend",
+      "exit": 0
+    },
+    {
+      "case": "wrong-key-rejected",
+      "exit": 1
+    },
+    {
+      "case": "resync-stranger",
+      "exit": 0
+    },
+    {
+      "case": "nonfriend-rejected",
+      "exit": 1
+    },
+    {
+      "case": "contract-drift",
+      "exit": 1
+    },
+    {
+      "case": "contract-repaired",
+      "exit": 0
+    }
+  ]
+}

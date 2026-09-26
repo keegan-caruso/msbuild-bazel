@@ -48,3 +48,5 @@ provenance, not public artifact downloads.
 Older implementations, superseded designs and intermediate experiments are linked
 from [history](history.md), rather than duplicated in this tree. See the
 [issue review](issue-review-2026-09-23.md) for tracker dispositions.
+
+- [Everyday synchronization changes](project-sync-mutations.md) — edit, stale check, repair and cache reversion.

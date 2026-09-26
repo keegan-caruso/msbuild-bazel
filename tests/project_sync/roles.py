@@ -78,8 +78,12 @@ try:
  put('App/App.csproj',app.replace('<AssemblyName>Friend</AssemblyName>','<AssemblyName>Stranger</AssemblyName>'))
  run('resync-stranger',['run','//:sync'])
  run('nonfriend-rejected',['build','//:App_App','--jobs=2'],error='CS0117')
+ generated=(workspace/'projects.generated.bzl').read_bytes()
  put('App/Logic.targets',logic+'\n')
  run('contract-drift',['run','//:sync'],error='contract changed')
+ assert (workspace/'projects.generated.bzl').read_bytes()==generated
+ put('App/Logic.targets',logic)
+ run('contract-repaired',['run','//:sync','--','--check'])
 finally:
  subprocess.run(cmd+['shutdown'],cwd=workspace,check=True)
  (folder/'results.json').write_text(json.dumps(rows,indent=2)+'\n')
