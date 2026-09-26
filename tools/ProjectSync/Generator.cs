@@ -137,6 +137,7 @@ internal sealed class Generator(string root, string sdk, Mappings mappings, Work
         }
         var variants = new List<(string Framework, string Kind, string Attributes)>();
         var activeDocuments = new HashSet<string>(StringComparer.Ordinal);
+        var usedItemPaths = new HashSet<string>(StringComparer.Ordinal);
         foreach (var tfm in tfms)
         {
             globals["TargetFramework"] = tfm;
@@ -144,7 +145,7 @@ internal sealed class Generator(string root, string sdk, Mappings mappings, Work
             Validate(project, test, projectBinding);
             activeDocuments.UnionWith(project.Imports.Select(i => i.ImportedProject.FullPath).Append(project.FullPath).Where(p => !IsSdk(p)).Select(p => Path.GetRelativePath(root, p).Replace('\\', '/')));
             var packages = mappings.PackageAttributes(project);
-            var privacy = Mappings.PackagePrivacy(project);
+            var privacy = Mappings.PackagePrivacy(project, projectBinding);
             var imports = project.Imports.Select(i => i.ImportedProject.FullPath).Where(p => !IsSdk(p) && !view.IsPackage(p)).Select(Relative).ToArray();
             if (view.PackageLock is not null && File.Exists(Path.Combine(root, "global.json")))
             {
@@ -173,7 +174,7 @@ internal sealed class Generator(string root, string sdk, Mappings mappings, Work
             attributes.AppendLine("            \"srcs\": " + List(sources.Where(p => !view.Labels.ContainsKey(p))) + ",");
             attributes.AppendLine("            \"source_paths\": " + JsonSerializer.Serialize(view.Bindings(sources)) + ",");
             attributes.AppendLine("            \"deps\": " + List(dependencies) + ",");
-            attributes.AppendLine("            \"items\": " + List(InputItems(project, relative, tfm).Concat(projectBinding.Items)) + ",");
+            attributes.AppendLine("            \"items\": " + List(InputItems(project, relative, tfm, projectBinding, usedItemPaths).Concat(projectBinding.Items)) + ",");
             attributes.AppendLine("            \"msbuild_imports\": " + List(imports.Where(p => !view.Labels.ContainsKey(p))) + ",");
             attributes.AppendLine("            \"import_paths\": " + JsonSerializer.Serialize(view.Bindings(imports)) + ",");
             if (view.PackageLock is not null)
@@ -216,6 +217,10 @@ internal sealed class Generator(string root, string sdk, Mappings mappings, Work
             attributes.AppendLine("            \"allow_unsafe\": " + (project.GetPropertyValue("AllowUnsafeBlocks").Equals("true", StringComparison.OrdinalIgnoreCase) ? "True" : "False") + ",");
             attributes.AppendLine("            \"use_apphost\": " + (project.GetPropertyValue("UseAppHost").Equals("true", StringComparison.OrdinalIgnoreCase) ? "True" : "False") + ",");
             variants.Add((tfm, project.GetPropertyValue("OutputType"), attributes.ToString()));
+        }
+        if (projectBinding.ItemPaths.Keys.Except(usedItemPaths, StringComparer.Ordinal).Any())
+        {
+            throw new InvalidDataException("Item path mapping does not match evaluated file items: " + relative);
         }
         if (projectBinding.Documents.Keys.Except(activeDocuments, StringComparer.Ordinal).Any())
         {
@@ -261,7 +266,7 @@ internal sealed class Generator(string root, string sdk, Mappings mappings, Work
 
     private Dictionary<string, List<string>> References(Project project, ProjectBinding binding)
     {
-        var roles = new[] { "deps", "implementation_deps", "analyzers", "tools", "project_outputs", "reference_packages", "framework_assemblies" }.ToDictionary(role => role, _ => new List<string>(), StringComparer.Ordinal);
+        var roles = new[] { "deps", "implementation_deps", "analyzers", "tools", "project_outputs", "reference_packages", "framework_assemblies", "build_deps" }.ToDictionary(role => role, _ => new List<string>(), StringComparer.Ordinal);
         var observed = new HashSet<string>(StringComparer.Ordinal);
         foreach (var item in project.GetItems("ProjectReference"))
         {
@@ -322,6 +327,10 @@ internal sealed class Generator(string root, string sdk, Mappings mappings, Work
                 _ => throw new InvalidDataException("Bare references require package/framework bindings: " + item.EvaluatedInclude)
             };
             roles[role].Add(bound.Role == "framework" ? item.EvaluatedInclude : bound.Label);
+            foreach (var assetRole in bound.Roles)
+            {
+                roles[assetRole].Add(bound.Label);
+            }
         }
         if (binding.References.Keys.Except(observed, StringComparer.Ordinal).Any())
         {
@@ -330,7 +339,7 @@ internal sealed class Generator(string root, string sdk, Mappings mappings, Work
         return roles;
     }
 
-    private IEnumerable<string> InputItems(Project project, string relative, string framework)
+    private IEnumerable<string> InputItems(Project project, string relative, string framework, ProjectBinding binding, HashSet<string> usedItemPaths)
     {
         var signingKey = project.GetPropertyValue("AssemblyOriginatorKeyFile");
         if (signingKey.Length != 0)
@@ -340,22 +349,31 @@ internal sealed class Generator(string root, string sdk, Mappings mappings, Work
             {
                 throw new InvalidDataException("Missing signing key input: " + keyPath);
             }
-            var keyName = "_sync_key_" + Convert.ToHexStringLower(System.Security.Cryptography.SHA256.HashData(Encoding.UTF8.GetBytes(keyPath)));
-            itemDeclarations[keyName] = "msbuild_items(\n    name = " + Quote(keyName) + ",\n    item_type = \"None\",\n    srcs = " + List(view.Labels.ContainsKey(keyPath) ? [] : [keyPath]) + ",\n    paths = " + JsonSerializer.Serialize(view.Bindings([keyPath])) + ",\n)\n";
-            yield return ":" + keyName;
+            if (!view.IsPackage(Path.Combine(root, keyPath)))
+            {
+                var keyName = "_sync_key_" + Convert.ToHexStringLower(System.Security.Cryptography.SHA256.HashData(Encoding.UTF8.GetBytes(keyPath)));
+                itemDeclarations[keyName] = "msbuild_items(\n    name = " + Quote(keyName) + ",\n    item_type = \"None\",\n    srcs = " + List(view.Labels.ContainsKey(keyPath) ? [] : [keyPath]) + ",\n    paths = " + JsonSerializer.Serialize(view.Bindings([keyPath])) + ",\n)\n";
+                yield return ":" + keyName;
+            }
         }
-        foreach (var type in new[] { "Compile", "EmbeddedResource", "AdditionalFiles", "Content", "None" })
+        foreach (var type in new[] { "Compile", "EmbeddedResource", "AdditionalFiles", "EditorConfigFiles", "GlobalAnalyzerConfigFiles", "Content", "None" })
         {
             foreach (var item in project.GetItems(type))
             {
+                // SDK config discovery includes absent ancestor candidates. Only
+                // existing files are compiler inputs; authored missing files fail.
+                if (type is "EditorConfigFiles" or "GlobalAnalyzerConfigFiles" && IsSdk(item.Xml.ContainingProject.FullPath) && (!File.Exists(item.GetMetadataValue("FullPath")) || IsSdk(item.GetMetadataValue("FullPath"))))
+                {
+                    continue;
+                }
                 if (type == "Compile" && !item.Metadata.Any(m => m.Name is "Link" or "LinkBase") || type == "None" && item.GetMetadataValue("CopyToOutputDirectory") is "" or "Never" && item.GetMetadataValue("CopyToPublishDirectory") is "" or "Never")
                 {
                     continue;
                 }
-                var allowed = type == "Compile" ? new[] { "Link", "LinkBase" } : new[] { "Link", "LinkBase", "LogicalName", "ManifestResourceName", "Culture", "WithCulture", "CopyToOutputDirectory", "CopyToPublishDirectory", "TargetPath" };
+                var allowed = type == "Compile" ? new[] { "Link", "LinkBase", "Visible" } : new[] { "Link", "LinkBase", "LogicalName", "ManifestResourceName", "Culture", "WithCulture", "CopyToOutputDirectory", "CopyToPublishDirectory", "TargetPath", "Visible", "Pack", "PackagePath", "CopyToBuildDirectory", "GenerateSource", "ClassName", "Generator", "Namespace", "GenerateResourcesCodeAsConstants", "StronglyTypedClassName", "StronglyTypedNamespace", "DependentUpon", "LastGenOutput" };
                 foreach (var metadata in item.Metadata.Where(m => !IsSdk(m.Xml.ContainingProject.FullPath)))
                 {
-                    if (!allowed.Contains(metadata.Name, StringComparer.Ordinal))
+                    if (!allowed.Contains(metadata.Name, StringComparer.Ordinal) || metadata.Name == "GenerateSource" && binding.Documents.Count == 0)
                     {
                         throw new InvalidDataException(type + " metadata requires explicit binding: " + metadata.Name);
                     }
@@ -379,12 +397,24 @@ internal sealed class Generator(string root, string sdk, Mappings mappings, Work
                 {
                     throw new InvalidDataException("Missing input requires a generator binding: " + path);
                 }
+                var paths = view.Bindings([path]);
+                if (binding.ItemPaths.TryGetValue(path, out var destination))
+                {
+                    usedItemPaths.Add(path);
+                    if (type == "Compile")
+                    {
+                        throw new InvalidDataException("Compile path remapping requires a source binding");
+                    }
+
+                    paths[view.Labels.GetValueOrDefault(path, ":" + path)] = destination;
+                }
                 var identity = JsonSerializer.Serialize(new
                 {
                     relative,
                     framework,
                     type,
                     path,
+                    paths,
                     metadataValues
                 });
                 var name = "_sync_item_" + Convert.ToHexStringLower(System.Security.Cryptography.SHA256.HashData(Encoding.UTF8.GetBytes(identity)));
@@ -393,7 +423,7 @@ internal sealed class Generator(string root, string sdk, Mappings mappings, Work
                     throw new InvalidDataException("Target name collision: " + name);
                 }
                 names[name] = identity;
-                itemDeclarations[name] = "msbuild_items(\n    name = " + Quote(name) + ",\n    item_type = " + Quote(type) + ",\n    srcs = " + List(view.Labels.ContainsKey(path) ? [] : [path]) + ",\n    paths = " + JsonSerializer.Serialize(view.Bindings([path])) + ",\n    metadata = " + JsonSerializer.Serialize(metadataValues) + ",\n)\n";
+                itemDeclarations[name] = "msbuild_items(\n    name = " + Quote(name) + ",\n    item_type = " + Quote(type) + ",\n    srcs = " + List(paths.Count != 0 ? [] : [path]) + ",\n    paths = " + JsonSerializer.Serialize(paths) + ",\n    metadata = " + JsonSerializer.Serialize(metadataValues) + ",\n)\n";
                 yield return ":" + name;
             }
         }
@@ -408,14 +438,14 @@ internal sealed class Generator(string root, string sdk, Mappings mappings, Work
         }
         foreach (var item in project.AllEvaluatedItems.Where(i => !IsSdk(i.Xml.ContainingProject.FullPath)))
         {
-            if (!binding.EvaluationItems.Contains(item.ItemType, StringComparer.Ordinal) && item.ItemType is not "InternalsVisibleTo" and not "Compile" and not "None" and not "ProjectReference" and not "PackageReference" and not "PackageVersion" and not "Content" and not "EmbeddedResource" and not "Reference" and not "FrameworkReference" and not "Analyzer" and not "AdditionalFiles")
+            if (!binding.EvaluationItems.Contains(item.ItemType, StringComparer.Ordinal) && item.ItemType is not "InternalsVisibleTo" and not "Compile" and not "None" and not "ProjectReference" and not "PackageReference" and not "PackageVersion" and not "Content" and not "EmbeddedResource" and not "Reference" and not "FrameworkReference" and not "Analyzer" and not "AdditionalFiles" and not "EditorConfigFiles" and not "GlobalAnalyzerConfigFiles")
             {
                 throw new InvalidDataException("Item requires explicit mapping: " + item.ItemType);
             }
         }
         foreach (var item in project.GetItems("Compile"))
         {
-            if (item.Metadata.Any(m => !IsSdk(m.Xml.ContainingProject.FullPath) && m.Name is not "Link" and not "LinkBase"))
+            if (item.Metadata.Any(m => !IsSdk(m.Xml.ContainingProject.FullPath) && m.Name is not "Link" and not "LinkBase" and not "Visible"))
             {
                 throw new InvalidDataException("Compile metadata requires explicit mapping: " + item.EvaluatedInclude);
             }
@@ -444,7 +474,7 @@ internal sealed class Generator(string root, string sdk, Mappings mappings, Work
         }
         foreach (var friend in project.GetItems("InternalsVisibleTo"))
         {
-            if (friend.Metadata.Any(m => m.Name is not "Key" and not "AllInternalsVisible"))
+            if (friend.Metadata.Any(m => m.Name is not "Key" and not "AllInternalsVisible" and not "Visible"))
             {
                 throw new InvalidDataException("Unsupported InternalsVisibleTo metadata: " + friend.EvaluatedInclude);
             }

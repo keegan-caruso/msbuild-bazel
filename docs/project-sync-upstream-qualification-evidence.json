@@ -1,0 +1,152 @@
+{
+  "sdk": "10.0.400",
+  "runtime": "10.0.11",
+  "bazel": "9.2.0",
+  "configuration": "Release/net10.0",
+  "scope": "Correctness qualification; no timing or remote-cache claim",
+  "objectPool": {
+    "macosArm64": [
+      {
+        "case": "baseline",
+        "exitCode": 0
+      },
+      {
+        "case": "raw-parity",
+        "tests": 18,
+        "outcomes": {
+          "Passed": 18
+        }
+      },
+      {
+        "case": "warm",
+        "exitCode": 0
+      },
+      {
+        "case": "body-edit",
+        "exitCode": 0
+      },
+      {
+        "case": "body-edit-reference",
+        "unchanged": true
+      },
+      {
+        "case": "restored",
+        "exitCode": 0
+      },
+      {
+        "case": "contract-drift",
+        "exitCode": 1
+      }
+    ],
+    "linuxArm64": [
+      {
+        "case": "baseline",
+        "exitCode": 0
+      },
+      {
+        "case": "raw-parity",
+        "tests": 18,
+        "outcomes": {
+          "Passed": 18
+        }
+      },
+      {
+        "case": "warm",
+        "exitCode": 0
+      },
+      {
+        "case": "body-edit",
+        "exitCode": 0
+      },
+      {
+        "case": "body-edit-reference",
+        "unchanged": true
+      },
+      {
+        "case": "restored",
+        "exitCode": 0
+      },
+      {
+        "case": "contract-drift",
+        "exitCode": 1
+      }
+    ]
+  },
+  "pipelines": {
+    "linuxArm64": [
+      {
+        "case": "baseline",
+        "exitCode": 0
+      },
+      {
+        "case": "baseline-source-assembly",
+        "sha256": "73C904E79DE29594EAAFF367A22423DFC17E4C250B33E15A7049210ADDA55DCA"
+      },
+      {
+        "case": "raw-parity",
+        "tests": 577,
+        "outcomes": {
+          "Passed": 577
+        }
+      },
+      {
+        "case": "warm",
+        "exitCode": 0
+      },
+      {
+        "case": "warm-source-assembly",
+        "sha256": "73C904E79DE29594EAAFF367A22423DFC17E4C250B33E15A7049210ADDA55DCA"
+      },
+      {
+        "case": "body-edit",
+        "exitCode": 0
+      },
+      {
+        "case": "body-edit-source-assembly",
+        "sha256": "4C54792530148D166A9E2C19FBC74B7F3D2BC2006955A312156783E7140FD4D7"
+      },
+      {
+        "case": "body-edit-reference",
+        "unchanged": true
+      },
+      {
+        "case": "restored",
+        "exitCode": 0
+      },
+      {
+        "case": "restored-source-assembly",
+        "sha256": "73C904E79DE29594EAAFF367A22423DFC17E4C250B33E15A7049210ADDA55DCA"
+      },
+      {
+        "case": "contract-drift",
+        "exitCode": 1
+      }
+    ],
+    "macosArm64": {
+      "rawTestsPassed": 577,
+      "generatedSync": "passed",
+      "generatedBuild": "blocked by sandboxed MSBuild task-host startup"
+    }
+  },
+  "graph": {
+    "objectPoolGenerated": 3,
+    "pipelinesGenerated": 2,
+    "pipelinesAuthoredDependencies": 25
+  },
+  "host": "Installed pinned runtime with source-built Pipelines substitution",
+  "regressions": {
+    "macosArm64": {
+      "style": 5,
+      "tooling": 7,
+      "runner": 35,
+      "generator": 29
+    },
+    "linuxArm64": {
+      "style": 5,
+      "tooling": 7,
+      "runner": 35,
+      "generator": 29
+    },
+    "toolchainAndStarlark": "passed on macOS ARM64"
+  }
+}

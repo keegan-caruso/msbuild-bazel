@@ -1,0 +1,281 @@
+{
+  ".nuget/packages/microsoft.dotnet.arcade.sdk/10.0.0-beta.25509.106/sdk/sdk.targets": {
+    "sha256": "abd01ad5224db1659d90254d489447bb4da4550d8d5bf089dca438999044efff",
+    "targets": [
+      "__WriteToolsetLocation"
+    ],
+    "tasks": []
+  },
+  ".nuget/packages/microsoft.dotnet.arcade.sdk/10.0.0-beta.25509.106/tools/generatechecksums.targets": {
+    "sha256": "c86442d48e4027505980a52c501269aa7e8f43091d5165474a8854f1c530a3d3",
+    "targets": [
+      "GenerateChecksums"
+    ],
+    "tasks": [
+      "Microsoft.DotNet.Arcade.Sdk.GenerateChecksums"
+    ]
+  },
+  ".nuget/packages/microsoft.dotnet.arcade.sdk/10.0.0-beta.25509.106/tools/generateinternalsvisibleto.targets": {
+    "sha256": "6a845ae0e8b210ecce297e6d788324f4a907b35b2f6bf8f4fe2cfb94abeb8e5b",
+    "targets": [
+      "PrepareGenerateInternalsVisibleToFile",
+      "GenerateInternalsVisibleToFile"
+    ],
+    "tasks": []
+  },
+  ".nuget/packages/microsoft.dotnet.arcade.sdk/10.0.0-beta.25509.106/tools/generateresxsource.targets": {
+    "sha256": "f3e6ee210a005c52aca1a9befebff4b901f4d7aaa04e009432ae5e2d2e8c82cd",
+    "targets": [
+      "_GenerateResxSource",
+      "_CustomizeResourceNames",
+      "_BatchGenerateResxSource",
+      "_GetEmbeddedResourcesWithSourceGeneration"
+    ],
+    "tasks": [
+      "Microsoft.DotNet.Arcade.Sdk.GenerateResxSource"
+    ]
+  },
+  ".nuget/packages/microsoft.dotnet.arcade.sdk/10.0.0-beta.25509.106/tools/projectdefaults.targets": {
+    "sha256": "2128768e061a812e728f93ccd7ee662c696ac5c8a1e19bca4859d482c5a7995e",
+    "targets": [
+      "Deploy"
+    ],
+    "tasks": []
+  },
+  ".nuget/packages/microsoft.dotnet.arcade.sdk/10.0.0-beta.25509.106/tools/repositoryinfo.targets": {
+    "sha256": "4166d9be40e8f8ee58201d60ce0684ce4082dd61b62a5cbe358bd976940f877a",
+    "targets": [
+      "_TranslateAzureDevOpsUrlToGitHubUrl",
+      "_AddSourcePackageSourceLinkFile",
+      "_CalculateGenerateSourcePackageSourceLinkFileOutputs",
+      "_GenerateSourcePackageSourceLinkFile",
+      "_RepositoryValidation"
+    ],
+    "tasks": [
+      "Microsoft.DotNet.Arcade.Sdk.GenerateSourcePackageSourceLinkTargetsFile"
+    ]
+  },
+  ".nuget/packages/microsoft.dotnet.arcade.sdk/10.0.0-beta.25509.106/tools/strongname.targets": {
+    "sha256": "7121282159a8be944f86075e5c42be26ad77098cbde43e6e552543a3174dc6ab",
+    "targets": [
+      "VerifyBuildFlags"
+    ],
+    "tasks": []
+  },
+  ".nuget/packages/microsoft.dotnet.arcade.sdk/10.0.0-beta.25509.106/tools/targetframeworkfilters.beforecommontargets.targets": {
+    "sha256": "903a6c54d347f084a38ae33abfcd2ac007e877ecb7662b2c68c7bebd7b37a160",
+    "targets": [
+      "FlagNetStandard1xDependencies"
+    ],
+    "tasks": []
+  },
+  ".nuget/packages/microsoft.dotnet.arcade.sdk/10.0.0-beta.25509.106/tools/version.targets": {
+    "sha256": "8c63a9ff0c6456e2eb8cfce9a012589defe77394d5de7a4353cf5d9500deaf7d",
+    "targets": [
+      "_InitializeAssemblyVersion",
+      "GenerateNativeVersionFile"
+    ],
+    "tasks": [
+      "Microsoft.DotNet.Arcade.Sdk.CalculateAssemblyAndFileVersions"
+    ]
+  },
+  ".nuget/packages/microsoft.dotnet.arcade.sdk/10.0.0-beta.25509.106/tools/workarounds.targets": {
+    "sha256": "3a6d6237066c033025375386a1d4f173918fe7528664cb530145f4ca5c411298",
+    "targets": [
+      "ForceGenerationOfBindingRedirects",
+      "InitializeStandardNuspecProperties",
+      "_InitializeNuspecRepositoryInformationPropertiesWorkaround",
+      "_AddSourceFilesToSourcePackage"
+    ],
+    "tasks": []
+  },
+  "Directory.Build.targets": {
+    "sha256": "e6f4a5d182b430088919c681036a121de957023ab10b1833c991cdee7efbbd68",
+    "targets": [
+      "ValidateTargetOSLowercase",
+      "ValidateReferenceAssemblyProjectTargetFramework",
+      "UpdateExperimentalRefAssemblyFileVersion",
+      "HandleReferenceAssemblyAttributeForProjectReferences",
+      "FilterTransitiveProjectReferences",
+      "FilterImplicitAssemblyReferences"
+    ],
+    "tasks": []
+  },
+  "eng/codeOptimization.targets": {
+    "sha256": "f0e9c9b0407d1108bf5f00302d08a65878088ac83a861b20c449ae697f5bfe0e",
+    "targets": [
+      "SetApplyNgenOptimization",
+      "AddReadyToRunPgoOptions"
+    ],
+    "tasks": []
+  },
+  "eng/generators.targets": {
+    "sha256": "ab59b6eea295f43e0526d8de235ab56f188d3101a72fbf83a8beb5289248c819",
+    "targets": [
+      "ConfigureGenerators",
+      "ConfigureLibraryImportGenerator"
+    ],
+    "tasks": []
+  },
+  "eng/illink.targets": {
+    "sha256": "a1f43573cf47b25e2d1a0cbc3eae3d1757a7cead1fd9712da8bce260ba7c0ae4",
+    "targets": [
+      "AnnotateTargetPathWithILLinkSuppressionsXmlsProp",
+      "_EmbedILLinkXmls",
+      "_CombineILLinkDescriptorsXmls",
+      "GenerateResourcesSubstitutionFile",
+      "_CombineILLinkSubstitutionsXmls",
+      "_CombineILLinkLinkAttributesXmls",
+      "PrepareForAssembliesTrim",
+      "ILLinkTrimAssembly",
+      "_CreateILLinkTrimAssemblyReports"
+    ],
+    "tasks": [
+      "CombineLinkerXmlFiles",
+      "ILLink"
+    ]
+  },
+  "eng/intellisense.targets": {
+    "sha256": "409b1225e30d7fd0956a689d3a355197f57360ca236d67f73b107d0e8ccfaf4a",
+    "targets": [
+      "ValidateIntellisensePackageXmlFilePathExists",
+      "PrepareIntellisensePackageXmlFile",
+      "ChangeDocumentationFileForPackaging",
+      "AnnotateTargetPathWithTargetPlatformMonikerWithDocFileItem"
+    ],
+    "tasks": []
+  },
+  "eng/liveBuilds.targets": {
+    "sha256": "7b3ba15a15a99c1d667cb0260bf60a737fd27ab91a3beeb13828c58f7b66a420",
+    "targets": [
+      "ResolveRuntimeFilesFromLocalBuild",
+      "EnsureLocalArtifactsExist",
+      "EnsureLocalOSGroupConfigurationArchitectureSpecificArtifactsExist",
+      "ResolveLibrariesRefAssembliesFromLocalBuild",
+      "ResolveLibrariesRuntimeFilesFromLocalBuild",
+      "ResolveLibrariesFromLocalBuild"
+    ],
+    "tasks": []
+  },
+  "eng/packaging.targets": {
+    "sha256": "cab1a4a998eaeb5f6f74d892501f33c7c5b771a54a60964c15264900e65395f9",
+    "targets": [
+      "AddRuntimeSpecificFilesToPackage",
+      "IncludeAnalyzersInPackage",
+      "IncludeMultiTargetRoslynComponentTargetsInPackage",
+      "GenerateMultiTargetRoslynComponentTargetsFile",
+      "AddNETStandardCompatErrorFileForPackaging",
+      "IncludeProjectReferencesWithPackAttributeInPackage",
+      "AddBuildOutputToToolsPackage",
+      "ValidatePackageReadmeExists"
+    ],
+    "tasks": []
+  },
+  "eng/references.targets": {
+    "sha256": "83ee66e50433f01e5da638a79f1c83106febd264818a1e1b149b8b233db991f0",
+    "targets": [
+      "ReplaceCoreLibSrcWithRefAssemblyForCompilation"
+    ],
+    "tasks": []
+  },
+  "eng/resolveContract.targets": {
+    "sha256": "a3a29fd8b9f1fe06f101f64617ae60c087bec16983b88f254ae8b502e11a3c18",
+    "targets": [
+      "AddResolvedMatchingContractToCompileInput",
+      "AnnotateTargetPathWithTargetPlatformMonikerWithReferenceAssembly",
+      "GenerateConditionalTypeLists",
+      "SetGenAPIProperties"
+    ],
+    "tasks": []
+  },
+  "eng/targetingpacks.targets": {
+    "sha256": "26e731060f1e5c2ec2c29486e40c54167d9bb2a8d0d24ef39ee774369e0dd8d1",
+    "targets": [
+      "UpdateLocalTargetingAndRuntimePack",
+      "UpdateLocalCrossgen2Pack",
+      "UpdateLocalAppHostPack",
+      "UpdateRuntimeFrameworkVersion"
+    ],
+    "tasks": []
+  },
+  "eng/testing/coverage.targets": {
+    "sha256": "70603f87a98782015322600a236364ae9ad39c2712149d63dd55fb60b02518c3",
+    "targets": [
+      "SetupCoverageFilter",
+      "AddCoverageCommand",
+      "GenerateCoverageReport",
+      "ClearTestResults"
+    ],
+    "tasks": []
+  },
+  "eng/testing/runsettings.targets": {
+    "sha256": "883094fdcea7edf0bd47cf91c4ea006bedcb2cc444a86825ba5fe4a73d7542ce",
+    "targets": [
+      "GenerateRunSettingsFile"
+    ],
+    "tasks": []
+  },
+  "eng/testing/tests.targets": {
+    "sha256": "7f5737e205d2b4e53f7444d8ee8701c0b89f032ea1df81ac4a4ca4f7bb44a2ec",
+    "targets": [
+      "ArchiveTests",
+      "ZipTestArchive",
+      "GenerateRunScript",
+      "RunTests",
+      "Test"
+    ],
+    "tasks": [
+      "GenerateRunScript"
+    ]
+  },
+  "eng/testing/xunit/xunit.console.targets": {
+    "sha256": "40ed731102e57e708a5d6e79928e25861e660f988259b3456e6f633cfd25b759",
+    "targets": [
+      "OverwriteDesktopTestRunnerConfigs",
+      "CopyRunnerToOutputDirectory"
+    ],
+    "tasks": []
+  },
+  "eng/toolAot.targets": {
+    "sha256": "5f7ff2c405579a14ab25c0004cbe41132d09e9b1952df834ab660c31c14b04f6",
+    "targets": [
+      "LocateNativeCompiler"
+    ],
+    "tasks": []
+  },
+  "eng/versioning.targets": {
+    "sha256": "edf65094b4c6951c452b58839d384f20157f832746c732ba580cd878d584e47c",
+    "targets": [
+      "CalculateIncludeDllSafeSearchPathAttribute",
+      "AddOSPlatformAttributes",
+      "RemoveSupportedOSTargetPlatformAttributeFromProjects",
+      "GenerateRuntimeVersionFile",
+      "GenerateNativeSourcelinkFile",
+      "_CreateIntermediateOutputPath",
+      "_CopyGeneratedSourcelinkFile",
+      "_VerifyNativeSourceLinkFileExists"
+    ],
+    "tasks": []
+  },
+  "src/libraries/Directory.Build.targets": {
+    "sha256": "b3c8cbc0c786ef178605172525dc240d3a1d45c9eaea6c83abf0248b3e86c2d9",
+    "targets": [
+      "ResolveMatchingContract",
+      "RemoveTargetingPackIncrementalClean"
+    ],
+    "tasks": []
+  },
+  "src/tools/illink/src/ILLink.Tasks/build/Microsoft.NET.ILLink.targets": {
+    "sha256": "51a7b261b990227d617814f2c434a1db06e39b25542dd290430a85cc6588bc96",
+    "targets": [
+      "ILLink",
+      "_RunILLink",
+      "PrepareForILLink",
+      "_ComputeManagedAssemblyToLink"
+    ],
+    "tasks": [
+      "ILLink",
+      "ComputeManagedAssemblies"
+    ]
+  }
+}

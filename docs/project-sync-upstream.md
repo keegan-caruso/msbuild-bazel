@@ -2,7 +2,8 @@
 
 This is a compatibility inventory and small-fixture qualification, **not a new
 upstream build/test qualification**. Existing handwritten upstream adapters remain
-independent of `msbuild_sync`.
+independent of `msbuild_sync`. The later [generated upstream qualification](project-sync-upstream-qualification.md)
+records ObjectPool/Pipelines builds and tests.
 
 ## Pinned starting slices
 

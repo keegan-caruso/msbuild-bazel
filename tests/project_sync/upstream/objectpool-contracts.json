@@ -1,0 +1,207 @@
+{
+  ".nuget/packages/microsoft.dotnet.arcade.sdk/10.0.0-beta.25515.111/sdk/sdk.targets": {
+    "sha256": "abd01ad5224db1659d90254d489447bb4da4550d8d5bf089dca438999044efff",
+    "targets": [
+      "__WriteToolsetLocation"
+    ],
+    "tasks": []
+  },
+  ".nuget/packages/microsoft.dotnet.arcade.sdk/10.0.0-beta.25515.111/tools/generatechecksums.targets": {
+    "sha256": "c86442d48e4027505980a52c501269aa7e8f43091d5165474a8854f1c530a3d3",
+    "targets": [
+      "GenerateChecksums"
+    ],
+    "tasks": [
+      "Microsoft.DotNet.Arcade.Sdk.GenerateChecksums"
+    ]
+  },
+  ".nuget/packages/microsoft.dotnet.arcade.sdk/10.0.0-beta.25515.111/tools/generateinternalsvisibleto.targets": {
+    "sha256": "6a845ae0e8b210ecce297e6d788324f4a907b35b2f6bf8f4fe2cfb94abeb8e5b",
+    "targets": [
+      "PrepareGenerateInternalsVisibleToFile",
+      "GenerateInternalsVisibleToFile"
+    ],
+    "tasks": []
+  },
+  ".nuget/packages/microsoft.dotnet.arcade.sdk/10.0.0-beta.25515.111/tools/generateresxsource.targets": {
+    "sha256": "f3e6ee210a005c52aca1a9befebff4b901f4d7aaa04e009432ae5e2d2e8c82cd",
+    "targets": [
+      "_GenerateResxSource",
+      "_CustomizeResourceNames",
+      "_BatchGenerateResxSource",
+      "_GetEmbeddedResourcesWithSourceGeneration"
+    ],
+    "tasks": [
+      "Microsoft.DotNet.Arcade.Sdk.GenerateResxSource"
+    ]
+  },
+  ".nuget/packages/microsoft.dotnet.arcade.sdk/10.0.0-beta.25515.111/tools/performance.targets": {
+    "sha256": "180139b14de2a893da6c99f7d26e188ee9667ea324ac665fcbebf14926fb673c",
+    "targets": [
+      "PerformanceTest"
+    ],
+    "tasks": []
+  },
+  ".nuget/packages/microsoft.dotnet.arcade.sdk/10.0.0-beta.25515.111/tools/projectdefaults.targets": {
+    "sha256": "2128768e061a812e728f93ccd7ee662c696ac5c8a1e19bca4859d482c5a7995e",
+    "targets": [
+      "Deploy"
+    ],
+    "tasks": []
+  },
+  ".nuget/packages/microsoft.dotnet.arcade.sdk/10.0.0-beta.25515.111/tools/repositoryinfo.targets": {
+    "sha256": "4166d9be40e8f8ee58201d60ce0684ce4082dd61b62a5cbe358bd976940f877a",
+    "targets": [
+      "_TranslateAzureDevOpsUrlToGitHubUrl",
+      "_AddSourcePackageSourceLinkFile",
+      "_CalculateGenerateSourcePackageSourceLinkFileOutputs",
+      "_GenerateSourcePackageSourceLinkFile",
+      "_RepositoryValidation"
+    ],
+    "tasks": [
+      "Microsoft.DotNet.Arcade.Sdk.GenerateSourcePackageSourceLinkTargetsFile"
+    ]
+  },
+  ".nuget/packages/microsoft.dotnet.arcade.sdk/10.0.0-beta.25515.111/tools/strongname.targets": {
+    "sha256": "7121282159a8be944f86075e5c42be26ad77098cbde43e6e552543a3174dc6ab",
+    "targets": [
+      "VerifyBuildFlags"
+    ],
+    "tasks": []
+  },
+  ".nuget/packages/microsoft.dotnet.arcade.sdk/10.0.0-beta.25515.111/tools/targetframeworkfilters.beforecommontargets.targets": {
+    "sha256": "903a6c54d347f084a38ae33abfcd2ac007e877ecb7662b2c68c7bebd7b37a160",
+    "targets": [
+      "FlagNetStandard1xDependencies"
+    ],
+    "tasks": []
+  },
+  ".nuget/packages/microsoft.dotnet.arcade.sdk/10.0.0-beta.25515.111/tools/tests.targets": {
+    "sha256": "6c00d442ce19175b6a4461c0454450ec5518c87734b7a49dc8bbc4f35c2f4266",
+    "targets": [
+      "ErrorForMissingTestRunner",
+      "Test",
+      "IntegrationTest",
+      "_InnerGetTestsToRun",
+      "_OuterGetTestsToRun"
+    ],
+    "tasks": []
+  },
+  ".nuget/packages/microsoft.dotnet.arcade.sdk/10.0.0-beta.25515.111/tools/version.targets": {
+    "sha256": "8c63a9ff0c6456e2eb8cfce9a012589defe77394d5de7a4353cf5d9500deaf7d",
+    "targets": [
+      "_InitializeAssemblyVersion",
+      "GenerateNativeVersionFile"
+    ],
+    "tasks": [
+      "Microsoft.DotNet.Arcade.Sdk.CalculateAssemblyAndFileVersions"
+    ]
+  },
+  ".nuget/packages/microsoft.dotnet.arcade.sdk/10.0.0-beta.25515.111/tools/workarounds.targets": {
+    "sha256": "3a6d6237066c033025375386a1d4f173918fe7528664cb530145f4ca5c411298",
+    "targets": [
+      "ForceGenerationOfBindingRedirects",
+      "InitializeStandardNuspecProperties",
+      "_InitializeNuspecRepositoryInformationPropertiesWorkaround",
+      "_AddSourceFilesToSourcePackage"
+    ],
+    "tasks": []
+  },
+  ".nuget/packages/microsoft.dotnet.arcade.sdk/10.0.0-beta.25515.111/tools/xunit/xunit.runner.targets": {
+    "sha256": "b78371f7d0f2179e886d677e8f49156b7acd692d86f94204a7d6915f22a5c3c2",
+    "targets": [
+      "RunTests"
+    ],
+    "tasks": []
+  },
+  "Directory.Build.targets": {
+    "sha256": "d90ac858a0b0b625e911cc4d0f305c878e6faf0148bb3661443ec9439ee5cba7",
+    "targets": [
+      "_CopySymbolsToArtifacts",
+      "_RemoveAspNetCoreAppInternalAssetsReference"
+    ],
+    "tasks": []
+  },
+  "artifacts/bin/GenerateFiles/Directory.Build.targets": {
+    "sha256": "1283655a749b25c800cf76f51520700ac959c6e0eff8c90e53a533ee6dc0c91a",
+    "targets": [
+      "ResolveLiveBuiltAspnetCoreKnownFramework",
+      "_FixKnownILLinkPack"
+    ],
+    "tasks": []
+  },
+  "eng/Workarounds.targets": {
+    "sha256": "1cbfe8876fcf3d40cc984c6720c3d654020521edc8c7fce71d16e8725aed7a7a",
+    "targets": [
+      "_WorkaroundNetStandard",
+      "_UpdateRazorGenerateAssemblyReferences",
+      "_RemoveDuplicateLoggingSourceGenerator"
+    ],
+    "tasks": []
+  },
+  "eng/targets/CSharp.Common.targets": {
+    "sha256": "d087e6a876bb4019900d0b8d61017ca26b6253851dfe48a86af688660cc6e66c",
+    "targets": [
+      "_CheckIgnoredPublicApiFiles",
+      "_RemovePublicApiAnalyzer",
+      "_RestorePublicApiAnalyzer",
+      "GetCustomAssemblyAttributes",
+      "_RemoveReferenceAssembly",
+      "ValidateBenchmarks"
+    ],
+    "tasks": []
+  },
+  "eng/targets/Helix.targets": {
+    "sha256": "26ecfaa7e03bcdcb669b4be34dbef95d0573b51e36d68c0f18702c715f19af94",
+    "targets": [
+      "Helix",
+      "CreateHelixPayload",
+      "_SetCreateHelixPayload",
+      "_CreateHelixWorkItem",
+      "_CreateHelixPayloadInner"
+    ],
+    "tasks": []
+  },
+  "eng/targets/Packaging.targets": {
+    "sha256": "fc572afb7f1c080d79e44b09e4c40e3211a2f578821d35ab4793a41e16749451",
+    "targets": [
+      "EnsureBaselineIsUpdated",
+      "_GetPackageVersionInfo",
+      "_AppendRepositoryUrlToPackageDescription"
+    ],
+    "tasks": []
+  },
+  "eng/targets/ResolveReferences.targets": {
+    "sha256": "a5e979f099196520dc1d6f9030e09a7274bd5f0c5242ed625ced4b9b0dd4cd87",
+    "targets": [
+      "_CheckForReferenceBoundaries",
+      "_WarnAboutRedundantRef",
+      "ResolveCustomReferences",
+      "RemoveExtensionsCompileAssets",
+      "GetReferencesProvided",
+      "_GetReferencesProvided",
+      "_CustomCollectProjectReference"
+    ],
+    "tasks": []
+  },
+  "eng/tools/RepoTasks/RepoTasks.tasks": {
+    "sha256": "4ce85e34d8ade8add3709ce874e9a4ae30b53981872fbf68c78c4f4eb61716a8",
+    "targets": [],
+    "tasks": [
+      "RepoTasks.GenerateGuid",
+      "RepoTasks.GetMsiProperty",
+      "RepoTasks.GenerateSharedFrameworkDepsFile",
+      "RepoTasks.CreateFrameworkListFile",
+      "RepoTasks.RemoveSharedFrameworkDependencies",
+      "RepoTasks.GenerateTestDevCert",
+      "DownloadFile"
+    ]
+  },
+  "src/Testing/src/build/Microsoft.AspNetCore.InternalTesting.props": {
+    "sha256": "71d7148d212d673b13356d7fd1fe039dcc9012cde27dce7c7757ec04cf046627",
+    "targets": [
+      "SetLoggingTestingAssemblyAttributes"
+    ],
+    "tasks": []
+  }
+}
