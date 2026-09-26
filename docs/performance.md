@@ -15,7 +15,18 @@ times as observations subject to host memory pressure. The
 [follow-up qualification](runtime-cold-timing.md#compiler-attribution-and-retained-memory)
 separates diagnostic runs from a single, memory-budgeted build VM.
 
-## Latest generated Orchard workflow
+## Orchard reference-boundary follow-up
+
+[Testing merged PR #92 on Orchard](orchard-reference-boundaries.md) preserves the
+202-project graph. Three paired incremental samples give median Bazel/raw times
+of **0.719/12.752 s no-op**, **2.686/11.016 s body**, and **154.178/29.798 s API**.
+Body edits compile one project; API additions still compile 193. Orchard does not
+opt out of transitive references, and content-dependent asset paths change 87
+module/theme reference assemblies. The follow-up uses a local disk cache and
+alternates build systems; do not treat its difference from the older protocol as
+an isolated regression or speedup. See the report for ranges and limits.
+
+## Generated Orchard workflow baseline
 
 The [generated-graph workflow report](project-sync-workflow-costs.md) compares
 202 projects on one 6-CPU/10-GiB Linux ARM64 VM, SDK 10.0.400, Bazel 9.2.0,

@@ -126,6 +126,8 @@ local caches. The SDK is acquired through the declared Bazel toolchain.
 This proves a library reference boundary and fixes synchronization of an explicit
 SDK setting. It does not automatically prune ordinary transitive graphs, measure
 remote execution, qualify direct-only binaries, or improve the recorded 202-project
-Orchard API timing. Step 9 still needs representative upstream API edits and
+Orchard API timing. The [Orchard follow-up](orchard-reference-boundaries.md)
+confirms unchanged transitive declarations and measures asset-path metadata churn.
+Step 9 still needs representative upstream API edits and
 profiling of the expensive cases, including edits that genuinely propagate through
 many reference assemblies. Keep those measurements separate from this synthetic.
