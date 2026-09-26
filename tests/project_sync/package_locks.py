@@ -62,11 +62,23 @@ put('sync.json', json.dumps(mapping)); put('BUILD.bazel', authored)
 put('MODULE.bazel', 'module(name="sync_locks")\nbazel_dep(name="rules_msbuild",version="0.0.0")\nlocal_path_override(module_name="rules_msbuild",path=' + json.dumps(str(rules)) + ')\ndotnet=use_extension("@rules_msbuild//msbuild:extensions.bzl","dotnet")\ndotnet.sdk(name="dotnet",version="10.0.400")\nuse_repo(dotnet,"dotnet")\nregister_toolchains("@dotnet//:all")\n')
 shutil.copyfile(rules / '.bazelversion', w / '.bazelversion')
 cmd = [os.environ['RULES_MSBUILD_BAZEL'], '--output_base=' + str(root / 'base'), '--ignore_all_rc_files']
-def run(name, args, expected=None, error=None):
+records = []
+def run(name, args, expected=None, error=None, compiled=None):
+    execution = root / (name + '.execution.json')
+    if args[1] != '//:sync':
+        args = args + ['--disk_cache=' + str(root / 'cache'), '--execution_log_json_file=' + str(execution)]
     p = subprocess.run(cmd + args, cwd=w, text=True, capture_output=True)
     output = p.stdout + p.stderr; (root / (name + '.log')).write_text(output)
     assert (p.returncode == 0) if error is None else (p.returncode != 0 and error in output), output[-5000:]
     if expected is not None: assert p.stdout.strip().splitlines()[-1] == expected, output[-2000:]
+    if execution.exists():
+        text = execution.read_text().strip(); decoder = json.JSONDecoder(); builds = []
+        while text:
+            row, end = decoder.raw_decode(text); text = text[end:].lstrip()
+            if row.get('mnemonic') == 'MSBuildAssembly' and not row.get('cacheHit'): builds.append(row['targetLabel'])
+        if compiled is not None: assert sorted(builds) == sorted(compiled), (name, builds, compiled)
+        records.append(dict(case=name, compiled=builds))
+        (root / 'results.json').write_text(json.dumps(records, indent=2) + '\n')
     print(name, p.returncode, flush=True)
 try:
     run('sync', ['run', '//:sync', '--jobs=2'])
@@ -84,5 +96,29 @@ try:
     mapping['projects']['App2/App2.csproj']['packageLock'] = ':lock2'
     put('sync.json', json.dumps(mapping))
     run('repair', ['run', '//:sync', '--', '--check'])
+    # Upgrade one existing consumer; the other versioned branch stays cached.
+    baseline = (w / 'projects.generated.bzl').read_bytes()
+    project = (w / 'App1/App1.csproj').read_text()
+    put('App1/App1.csproj', project.replace('1.0.0', '2.0.0'))
+    saved_package = mapping['packages'].pop('Dependency/2.0.0')
+    put('sync.json', json.dumps(mapping))
+    run('upgrade-missing-mapping', ['run', '//:sync'], error='exact package mapping')
+    mapping['packages']['Dependency/2.0.0'] = saved_package
+    assert (w / 'projects.generated.bzl').read_bytes() == baseline
+    mapping['projects']['App1/App1.csproj']['packageLock'] = ':lock2'
+    put('sync.json', json.dumps(mapping))
+    run('upgrade-stale', ['run', '//:sync', '--', '--check'], error='stale')
+    assert (w / 'projects.generated.bzl').read_bytes() == baseline
+    run('upgrade-sync', ['run', '//:sync'])
+    run('upgraded-app', ['run', '//:App1_App1', '--jobs=2'], expected='2', compiled=['//:App1_App1'])
+    run('unchanged-app', ['run', '//:App2_App2', '--jobs=2'], expected='2', compiled=[])
+    put('App1/App1.csproj', project)
+    mapping['projects']['App1/App1.csproj']['packageLock'] = ':lock1'
+    put('sync.json', json.dumps(mapping))
+    run('upgrade-reverted-sync', ['run', '//:sync'])
+    assert (w / 'projects.generated.bzl').read_bytes() == baseline
+    run('upgrade-reverted-app', ['run', '//:App1_App1', '--jobs=2'], expected='1', compiled=[])
+    run('upgrade-reverted-check', ['run', '//:sync', '--', '--check'])
+
 finally:
     subprocess.run(cmd + ['shutdown'], cwd=w, check=True)
