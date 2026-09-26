@@ -164,6 +164,8 @@ def build_project(ctx, executable = False, test = False, restore_only = False, p
             fail("Select one configuration per dependency project: " + tool.project)
         dependency_properties[tool.project] = tool.properties
     ctx.actions.write(request, json.encode({
+        # Internal qualification gate; not part of the supported rule API.
+        "experimentalWorkerProject": str(ctx.label) if ctx.attr.linux_worker and ctx.var.get("rules_msbuild_stable_path_prototype") == "1" else None,
         "restoreKey": restore_key(ctx.attr.target_framework, ctx.attr.target_framework, _configuration(ctx), ctx.attr.msbuild_properties),
         "implementationReferences": [dep.project for dep in direct if dep.implementation_reference],
         "implementationDependencies": [dep.project for dep in implementation],

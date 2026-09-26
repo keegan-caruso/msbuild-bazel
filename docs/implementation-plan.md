@@ -15,7 +15,7 @@ There is no whole-graph discovery/preparation/replay step on this path.
 | Project facades and per-framework test suites | [Facade API](explicit-bazel-rules.md#project-facade), [test suites](bazel-test.md#tests-across-frameworks) |
 | Executable, MTP and VSTest tests | [Test API and invalidation](bazel-test.md) |
 | Opt-in Linux remote compilation and tests | [SDK-free ARM64 worker qualification](remote-execution.md) |
-| Persistent compiler workers with stable input paths | [Linux workers](explicit-linux-workers.md), [path limits](orchard-stable-worker-paths.md) |
+| Persistent compiler workers with stable input paths | [Linux workers](explicit-linux-workers.md), [path limits](orchard-stable-worker-paths.md), [stable-path prototype](stable-project-paths.md) |
 | Declared MSBuild task tools and generation | [Tool bindings](explicit-tool-bindings.md), [generation](explicit-generation.md) |
 | Project-built analyzers and target-result items | [Analyzers](project-built-analyzers.md), [target items](msbuild-target-items.md) |
 | Shared restore inputs and package trees | [Restore inputs](explicit-restore-inputs.md), [package borrowing](explicit-package-borrowing.md) |

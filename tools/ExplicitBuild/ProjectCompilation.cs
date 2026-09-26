@@ -37,8 +37,9 @@ internal static class ProjectCompilation
         foreach (var target in r.RestoreOnly ? new[] { "Restore" } : r.RestoreInput is not null ? new[] { "Build" } : new[] { "Restore", "Build" })
         {
             // Bazel replaces the worker when its declared SDK/tools change. Request
-            // XML lives at content-identified paths; evaluated/build state stays fresh.
-            using var collection = new ProjectCollection(null, null, null, ToolsetDefinitionLocations.Default, 1, false, false, false, reuseProjectRootElementCache: LinuxWorker.Isolated);
+            // XML lives at content-identified paths unless the stable-path prototype
+            // is enabled. Mutable stable XML must never enter the shared root cache.
+            using var collection = new ProjectCollection(null, null, null, ToolsetDefinitionLocations.Default, 1, false, false, false, reuseProjectRootElementCache: LinuxWorker.Isolated && r.ExperimentalWorkerProject is null);
             if (profile is not null)
             {
                 collection.RegisterLogger(profile);
