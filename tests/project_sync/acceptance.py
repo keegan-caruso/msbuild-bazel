@@ -70,7 +70,7 @@ try:
         run(name + '-check', ['run', '//:sync', '--', '--check'])
         run(name, ['run', '//:App_App'], expected)
     # A configured Platform must agree between evaluation and compilation.
-    put('sync.json', json.dumps({'projects': {'Core/Core.csproj': {'platform': 'arm64'}, 'App/App.csproj': {'platform': 'arm64'}}}))
+    put('sync.json', json.dumps({'projectDefaults': {'platform': 'arm64'}}))
     authored = authored.replace('projects=["App/App.csproj"])', 'projects=["App/App.csproj"], mappings="sync.json")')
     put('BUILD.bazel', authored)
     put('Shared.props', '<Project><PropertyGroup><DefineConstants Condition="\'$(Platform)\' == \'arm64\'">FIRST</DefineConstants></PropertyGroup></Project>')

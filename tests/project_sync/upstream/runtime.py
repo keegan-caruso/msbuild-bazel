@@ -11,6 +11,9 @@ from pathlib import Path
 import shutil
 import sys
 
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+from defaults import compact
+
 outer, graph_file, evaluated_file = map(lambda p:Path(p).resolve(),sys.argv[1:4])
 target_os=sys.argv[4]
 rules=Path(__file__).resolve().parents[3]
@@ -161,11 +164,11 @@ for label in sorted(sync_bindings): visit_tool(label)
 if tool_projects:
     assert all(not mapping['projects'][p]['bindings'] for p in tool_projects), 'Task bootstrap itself needs a declared external tool'
     bootstrap = dict(mapping, projects={p:mapping['projects'][p] for p in sorted(tool_projects)}, tests={})
-    (root/'sync-tools.json').write_text(json.dumps(bootstrap, indent=2)+'\n')
+    (root/'sync-tools.json').write_text(json.dumps(compact(bootstrap), indent=2)+'\n')
     kept.append(call('msbuild_sync', name='sync_tools', projects=sorted(tool_projects), mappings='sync-tools.json', package_lock=':sync_packages'))
 kept.insert(0,'load("@rules_msbuild//msbuild:sync.bzl","msbuild_sync")')
 kept.append(call('msbuild_package_lock',name='sync_packages',packages=sorted(locked)))
 kept.append(call('msbuild_sync',name='sync',projects=sorted(projects),mappings='sync.json',package_lock=':sync_packages',bindings=sorted(sync_bindings)))
 (root/'BUILD.bazel').write_text('\n'.join(kept)+'\n')
-(root/'sync.json').write_text(json.dumps(mapping,indent=2)+'\n')
+(root/'sync.json').write_text(json.dumps(compact(mapping),indent=2)+'\n')
 print(root)

@@ -10,6 +10,9 @@ from pathlib import Path
 import shutil
 import sys
 
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+from defaults import compact
+
 outer, inventory, bootstrap = map(lambda p: Path(p).resolve(), sys.argv[1:])
 root = outer / 'upstream'
 rules = Path(__file__).resolve().parents[3]
@@ -131,7 +134,7 @@ for name in ['vstest_package', 'vstest', 'xunit']: lines.append(call(extras[name
 lines.append(call('msbuild_package_lock', name='sync_packages', packages=sorted(locked)))
 lines.append(call('msbuild_sync', name='sync', projects=sorted(projects), mappings='sync.json', inputs=inputs, package_lock=':sync_packages'))
 (root / 'BUILD.bazel').write_text('\n'.join(lines) + '\n')
-(root / 'sync.json').write_text(json.dumps(mapping, indent=2) + '\n')
+(root / 'sync.json').write_text(json.dumps(compact(mapping), indent=2) + '\n')
 shutil.copyfile(bootstrap / 'MODULE.bazel', root / 'MODULE.bazel')
 shutil.copyfile(rules / '.bazelversion', root / '.bazelversion')
 print(root)

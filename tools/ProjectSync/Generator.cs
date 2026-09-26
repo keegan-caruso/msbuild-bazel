@@ -11,6 +11,7 @@ internal sealed class Generator(string root, string sdk, Mappings mappings, Work
     private readonly SortedDictionary<string, string> itemDeclarations = new(StringComparer.Ordinal);
     private readonly Dictionary<string, string> names = new(StringComparer.Ordinal);
     private readonly SortedDictionary<string, string> contracts = new(StringComparer.Ordinal);
+    private readonly Dictionary<string, string> activeFrameworks = new(StringComparer.Ordinal);
     private readonly HashSet<string> visiting = new(StringComparer.Ordinal);
 
     internal static void Run(string root, string sdk, string[] projects, bool check, Mappings mappings, WorkspaceView view, string outputRoot)
@@ -86,6 +87,19 @@ internal sealed class Generator(string root, string sdk, Mappings mappings, Work
     private string Visit(string path)
     {
         var relative = Relative(path);
+        try
+        {
+            return VisitProject(path);
+        }
+        catch (Exception error) when (error is InvalidDataException or ArgumentException or Microsoft.Build.Exceptions.InvalidProjectFileException)
+        {
+            throw new InvalidDataException("Project " + relative + " [Configuration=Release, Platform=" + mappings.ForProject(relative).Platform + ", TargetFramework=" + activeFrameworks.GetValueOrDefault(path, "evaluation") + "]: " + error.Message, error);
+        }
+    }
+
+    private string VisitProject(string path)
+    {
+        var relative = Relative(path);
         var name = Path.ChangeExtension(relative, null).Replace('/', '_');
         if (names.TryGetValue(name, out var previous) && previous != path)
         {
@@ -102,7 +116,7 @@ internal sealed class Generator(string root, string sdk, Mappings mappings, Work
         }
         mappings.Tests.TryGetValue(relative, out var test);
         using var collection = new ProjectCollection();
-        var projectBinding = mappings.Projects.GetValueOrDefault(relative) ?? new ProjectBinding();
+        var projectBinding = mappings.ForProject(relative);
         var properties = mappings.ProjectProperties(relative, test);
         var globals = new Dictionary<string, string>(properties, StringComparer.OrdinalIgnoreCase) { ["Configuration"] = "Release", ["ImportProjectExtensionProps"] = "false", ["ImportProjectExtensionTargets"] = "false" };
         foreach (var (nameOfProperty, value) in view.ToolProperties(projectBinding.Bindings))
@@ -127,19 +141,20 @@ internal sealed class Generator(string root, string sdk, Mappings mappings, Work
         {
             throw new InvalidDataException("No evaluated target frameworks: " + relative);
         }
-        if (mappings.Projects.TryGetValue(relative, out var binding) && binding.TargetFrameworks.Length != 0)
+        if (projectBinding.TargetFrameworks.Length != 0)
         {
-            if (binding.TargetFrameworks.Except(tfms, StringComparer.Ordinal).Any())
+            if (projectBinding.TargetFrameworks.Except(tfms, StringComparer.Ordinal).Any())
             {
                 throw new InvalidDataException("Selected target framework is not declared by project: " + relative);
             }
-            tfms = binding.TargetFrameworks.Order(StringComparer.Ordinal).ToArray();
+            tfms = projectBinding.TargetFrameworks.Order(StringComparer.Ordinal).ToArray();
         }
         var variants = new List<(string Framework, string Kind, string Attributes)>();
         var activeDocuments = new HashSet<string>(StringComparer.Ordinal);
         var usedItemPaths = new HashSet<string>(StringComparer.Ordinal);
         foreach (var tfm in tfms)
         {
+            activeFrameworks[path] = tfm;
             globals["TargetFramework"] = tfm;
             var project = new Project(path, globals, null, collection);
             Validate(project, test, projectBinding);
@@ -265,6 +280,7 @@ internal sealed class Generator(string root, string sdk, Mappings mappings, Work
         declaration.AppendLine(")");
         declarations[relative] = declaration.ToString();
         visiting.Remove(path);
+        activeFrameworks.Remove(path);
         return name;
     }
 
@@ -311,7 +327,7 @@ internal sealed class Generator(string root, string sdk, Mappings mappings, Work
             {
                 if (item.Metadata.Any(m => !IsSdk(m.Xml.ContainingProject.FullPath)))
                 {
-                    throw new InvalidDataException("ProjectReference metadata requires explicit mapping: " + path);
+                    throw new InvalidDataException("ProjectReference metadata requires explicit mapping: " + path + "; declare projectReferences[\"" + path + "\"] with its intended role");
                 }
                 roles["deps"].Add(":" + Visit(item.GetMetadataValue("FullPath")));
             }
@@ -471,7 +487,7 @@ internal sealed class Generator(string root, string sdk, Mappings mappings, Work
         {
             if (!binding.EvaluationItems.Contains(item.ItemType, StringComparer.Ordinal) && item.ItemType is not "InternalsVisibleTo" and not "Compile" and not "None" and not "ProjectReference" and not "PackageReference" and not "PackageVersion" and not "Content" and not "EmbeddedResource" and not "Reference" and not "FrameworkReference" and not "Analyzer" and not "AdditionalFiles" and not "EditorConfigFiles" and not "GlobalAnalyzerConfigFiles" and not "Using")
             {
-                throw new InvalidDataException("Item requires explicit mapping: " + item.ItemType);
+                throw new InvalidDataException("Item requires explicit mapping: " + item.ItemType + " Include=\"" + item.EvaluatedInclude + "\" from " + Relative(item.Xml.ContainingProject.FullPath) + "; declare evaluationItems for reviewed bookkeeping or an explicit input binding");
             }
         }
         foreach (var item in project.GetItems("Compile"))
@@ -490,7 +506,7 @@ internal sealed class Generator(string root, string sdk, Mappings mappings, Work
                 {
                     continue;
                 }
-                throw new InvalidDataException("Custom targets/tasks require explicit bindings: " + logical);
+                throw new InvalidDataException("Custom targets/tasks require explicit bindings: " + logical + "; declare documents[\"" + logical + "\"] with reviewed sha256, targets, tasks and inputs");
             }
             var digest = Convert.ToHexStringLower(System.Security.Cryptography.SHA256.HashData(File.ReadAllBytes(document.FullPath)));
             if (contract.Sha256 != digest || !document.Targets.Select(t => t.Name).ToHashSet(StringComparer.Ordinal).SetEquals(contract.Targets) || !document.UsingTasks.Select(t => t.TaskName).ToHashSet(StringComparer.Ordinal).SetEquals(contract.Tasks))
