@@ -20,7 +20,10 @@ filegroup(
     name = "sdk_files",
     srcs = [
         "dotnet",
+        "host/fxr/mock",
         "sdk.txt",
+        "shared/Microsoft.AspNetCore.App/mock",
+        "shared/Microsoft.NETCore.App/mock",
     ],
     tags = ["manual"],
 )

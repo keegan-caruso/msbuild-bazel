@@ -331,6 +331,6 @@ exec "$runfiles/"%s "$runfiles/"%s run "$runfiles/"%s "$@"
     ctx.actions.write(launcher, script, is_executable = True)
     runfiles = ctx.runfiles(
         files = [tc.dotnet, tc.runner, runtime, launch_request] + ([host.directory] if host else []) + [row.file for row in runtime_data.to_list()] + ([ctx.file.test_settings] if test and ctx.file.test_settings else []),
-        transitive_files = depset(transitive = ([host.files] if host else []) + [tc.sdk, tc.runner_support, runtimes, depset([row.directory for row in runtime_packages.to_list()])] + [tool[MSBuildTestToolInfo].files for tool in test_tools]),
+        transitive_files = depset(transitive = ([host.files] if host else []) + [tc.runtime if host else tc.application_runtime, tc.runner_support, runtimes, depset([row.directory for row in runtime_packages.to_list()])] + [tool[MSBuildTestToolInfo].files for tool in test_tools]),
     )
     return ([RunEnvironmentInfo(environment = ctx.attr.env)] if test else []) + [DefaultInfo(executable = launcher, files = depset([runtime]), runfiles = runfiles), info, OutputGroupInfo(reference = depset([reference]), diagnostics = depset([diagnostics]), target_results = depset([target_output] if target_output else []))]

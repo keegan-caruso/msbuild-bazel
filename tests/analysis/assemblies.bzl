@@ -34,6 +34,9 @@ def _launch(env, targets):
         data = paths(target[DefaultInfo].default_runfiles.files)
         env.expect.that_collection(data).contains_at_least(["tests/analysis/payload.txt", "tests/analysis/leaf.runtime"])
         env.expect.that_bool(target[DefaultInfo].files_to_run.executable != None).equals(True)
+        env.expect.that_collection(data).not_contains("tests/analysis/sdk.txt")
+        env.expect.that_collection(data).contains_at_least(["tests/analysis/shared/Microsoft.NETCore.App/mock", "tests/analysis/shared/Microsoft.AspNetCore.App/mock"])
+        env.expect.that_collection(paths(action(target, "MSBuildAssembly").inputs)).contains("tests/analysis/sdk.txt")
         launch = request(target, ".launch.json")
         env.expect.that_bool(launch["test"]).equals(name == "test")
     test = targets["test"]
@@ -43,6 +46,9 @@ def _launch(env, targets):
 def _pair(env, targets):
     targets = {k: getattr(targets, k) for k in dir(targets)}
     contract, implementation, pair = [targets[k][MSBuildAssemblyInfo] for k in ["contract", "implementation", "pair"]]
+    pair_inputs = paths(action(targets["pair"], "MSBuildAssemblyPair").inputs)
+    env.expect.that_collection(pair_inputs).contains("tests/analysis/shared/Microsoft.NETCore.App/mock")
+    env.expect.that_collection(pair_inputs).contains_none_of(["tests/analysis/sdk.txt", "tests/analysis/shared/Microsoft.AspNetCore.App/mock"])
     env.expect.that_str(pair.output_mode).equals("paired")
     env.expect.that_file(pair.runtime).equals(implementation.runtime)
     env.expect.that_collection(action(targets["pair"], "MSBuildAssemblyPair").inputs.to_list()).contains(contract.reference)
