@@ -1,8 +1,8 @@
 # Planned work
 
 The active priority is complete generated graphs, independent remote-cache recovery,
-then developer experience and broader qualification. Stages 1–2 are **complete**;
-stages 3–8 remain **planned**;
+then developer experience and broader qualification. Stages 1–3 are **complete**;
+stages 4–8 remain **planned**;
 [current support](implementation-plan.md) records what is already measured.
 This sequence starts from local commit `d4a64b4`, not an assertion that the work has
 already reached `main`. Review and integrate the accumulated changes before basing
@@ -76,6 +76,8 @@ and ambiguous-assembly rejection must pass. Do not broaden normalization to hide
 new differences.
 
 ### 3. Prove independent HTTP-cache recovery
+
+**Complete:** [independent recovery and edit evidence](project-sync-remote-cache.md).
 
 **Depends on:** stages 1–2.
 
