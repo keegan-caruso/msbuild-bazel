@@ -95,7 +95,8 @@ internal sealed class WorkspaceView : IDisposable
                 Directory.CreateSymbolicLink(destination, source);
             }
             // A missing SDK must not fall back to a user's feeds/cache.
-            var config = Path.Combine(temporary, "NuGet.Config");
+            var configName = Directory.EnumerateFiles(root).Select(Path.GetFileName).FirstOrDefault(name => name!.Equals("NuGet.Config", StringComparison.OrdinalIgnoreCase)) ?? "NuGet.Config";
+            var config = Path.Combine(temporary, configName);
             File.Delete(config);
             File.WriteAllText(config, "<configuration><packageSources><clear/></packageSources><fallbackPackageFolders><clear/></fallbackPackageFolders></configuration>");
             Environment.SetEnvironmentVariable("NUGET_PACKAGES", packageRoot);

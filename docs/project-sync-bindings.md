@@ -3,7 +3,8 @@
 The five generator blocker areas now have explicit inputs/mappings and small
 end-to-end controls. This qualifies the primitives, **not generated builds of
 ASP.NET Core or dotnet/runtime**. The authored upstream adapters retain their
-separate qualification. See [API and limits](project-sync.md).
+separate qualification. The later [upstream qualification](project-sync-upstream-qualification.md)
+applies these contracts to ObjectPool and Pipelines. See [API and limits](project-sync.md).
 
 ## Changes and evidence
 
@@ -65,7 +66,7 @@ native filesystem: placing its sandbox on the host-mounted evidence directory
 failed with `inaccessibleHelperDir (Permission denied)`. Keep logs/results on the
 host mount and copy them after the native-filesystem run.
 
-## Upstream checkpoint
+## Historical upstream checkpoint
 
 Pinned revisions are unchanged from the [initial inventory](project-sync-upstream.md).
 ASP.NET's real `GenerateDirectoryBuildFiles` target now succeeds in a disposable
@@ -107,8 +108,7 @@ python3 tests/project_sync/evaluation_inventory.py /checkout/runtime /tmp/runtim
   src/libraries/System.IO.Pipelines/tests/System.IO.Pipelines.Tests.csproj
 ```
 
-Next integration work is to review those imports, distinguish bookkeeping from
-real file/tool inputs, and author the package/bootstrap/reference contracts for
-ObjectPool plus tests. Then do the same for Pipelines with its existing source-built
-runtime providers. Do not bulk-convert every inventoried item into `evaluationItems`
-or auto-approve document hashes: that would hide the remaining compatibility work.
+The subsequent [upstream qualification](project-sync-upstream-qualification.md)
+reviews these contracts and builds/tests ObjectPool plus Pipelines entries. Wider
+graphs still need explicit review; do not bulk-convert inventoried items into
+`evaluationItems` or auto-approve document hashes.

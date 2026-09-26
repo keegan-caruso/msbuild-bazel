@@ -10,7 +10,7 @@ Inventory();
 void Inventory()
 {
     var root = Path.GetFullPath(args[1]);
-    string Logical(string path) => path.StartsWith(root + "/", StringComparison.Ordinal) ? Path.GetRelativePath(root, path) : path.StartsWith(sdk + "/", StringComparison.Ordinal) ? "<sdk>/" + Path.GetRelativePath(sdk, path) : "<external>/" + Path.GetFileName(path);
+    string Logical(string path) => path.StartsWith(root + "/", StringComparison.Ordinal) ? Path.GetRelativePath(root, path) : path.StartsWith(sdk + "/", StringComparison.Ordinal) ? "<sdk>/" + Path.GetRelativePath(sdk, path) : path.Contains("/packages/", StringComparison.Ordinal) ? ".nuget/packages/" + path.Split("/packages/", 2)[1] : "<external>/" + Path.GetFileName(path);
     var result = new List<object>();
     foreach (var entry in args.Skip(3))
     {
@@ -18,6 +18,7 @@ void Inventory()
         {
             using var collection = new ProjectCollection();
             var globals = new Dictionary<string, string> { ["Configuration"] = "Release", ["Platform"] = "AnyCPU", ["ImportProjectExtensionProps"] = "false", ["ImportProjectExtensionTargets"] = "false" };
+            foreach (var pair in JsonSerializer.Deserialize<Dictionary<string, string>>(Environment.GetEnvironmentVariable("RULES_MSBUILD_INVENTORY_PROPERTIES") ?? "{}")!) globals[pair.Key] = pair.Value;
             var outer = new Project(Path.Combine(root, entry), globals, null, collection);
             var frameworks = outer.GetPropertyValue("TargetFrameworks");
             if (frameworks.Length == 0) frameworks = outer.GetPropertyValue("TargetFramework");
@@ -28,6 +29,8 @@ void Inventory()
                 var documents = project.Imports.Select(i => i.ImportedProject).Append(project.Xml).Where(d => !d.FullPath.StartsWith(sdk + "/", StringComparison.Ordinal)).DistinctBy(d => d.FullPath).ToArray();
                 result.Add(new {
                     project = entry, framework,
+                    assets = project.GetPropertyValue("ProjectAssetsFile"),
+                    items = project.AllEvaluatedItems.Where(i => !i.Xml.ContainingProject.FullPath.StartsWith(sdk + "/", StringComparison.Ordinal)).Select(i => new { type = i.ItemType, include = i.EvaluatedInclude, metadata = i.Metadata.ToDictionary(m => m.Name, m => m.EvaluatedValue) }).ToArray(),
                     customItems = project.AllEvaluatedItems.Where(i => !i.Xml.ContainingProject.FullPath.StartsWith(sdk + "/", StringComparison.Ordinal)).GroupBy(i => i.ItemType).OrderBy(g => g.Key).ToDictionary(g => g.Key, g => g.Count()),
                     documents = documents.Select(d => new { path = Logical(d.FullPath), sha256 = Convert.ToHexStringLower(System.Security.Cryptography.SHA256.HashData(File.ReadAllBytes(d.FullPath))), targets = d.Targets.Select(t => t.Name).ToArray(), tasks = d.UsingTasks.Select(t => t.TaskName).ToArray() }).ToArray(),
                     references = project.GetItems("Reference").Select(i => i.EvaluatedInclude).ToArray(),

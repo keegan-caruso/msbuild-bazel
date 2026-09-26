@@ -245,6 +245,55 @@ class ProjectSyncTests(unittest.TestCase):
             self.run_sync('Core/Core.csproj','--inputs',str(self.root/'inputs.json'),'--runfiles',str(runfiles),success=False)
             self.assertEqual(original,(self.root/'projects.generated.bzl').read_text())
 
+    def test_analyzer_config_and_content_paths(self):
+        self.put('Core/rules.globalconfig', 'is_global = true\n')
+        self.put('NuGet.config', '<configuration/>')
+        self.put('Core/Core.csproj', '<Project Sdk="Microsoft.NET.Sdk"><ItemGroup><EditorConfigFiles Include="rules.globalconfig"/><Content Include="../NuGet.config" Link="NuGet.config" CopyToOutputDirectory="PreserveNewest" Visible="false" Pack="true"/></ItemGroup></Project>')
+        mapping = dict(projects={'Core/Core.csproj': dict(itemPaths={'NuGet.config': 'data/NuGet.config'})})
+        self.put('sync.json', json.dumps(mapping))
+        self.run_sync('Core/Core.csproj', '--mappings', 'sync.json')
+        output = (self.root/'projects.generated.bzl').read_text()
+        self.assertIn('"EditorConfigFiles"', output)
+        self.assertIn('":NuGet.config":"data/NuGet.config"', output)
+        self.assertIn('"Visible":"false"', output)
+        mapping['projects']['Core/Core.csproj']['itemPaths'] = {'missing.txt': 'data/missing.txt'}
+        self.put('sync.json', json.dumps(mapping))
+        self.assertIn('does not match evaluated', self.run_sync('Core/Core.csproj', '--mappings', 'sync.json', success=False))
+        (self.root/'Core/rules.globalconfig').unlink()
+        self.assertIn('Missing input', self.run_sync('Core/Core.csproj', success=False))
+
+    def test_package_reference_asset_roles(self):
+        self.put('Core/Core.csproj', '<Project Sdk="Microsoft.NET.Sdk"><ItemGroup><Reference Include="Analyzer.Package" PrivateAssets="all" ExcludeAssets="compile"/></ItemGroup></Project>')
+        mapping = dict(projects={'Core/Core.csproj': dict(references={'Analyzer.Package': dict(role='package', label=':analyzer', roles=['build_deps', 'analyzers'])})})
+        self.put('sync.json', json.dumps(mapping))
+        self.run_sync('Core/Core.csproj', '--mappings', 'sync.json')
+        output = (self.root/'projects.generated.bzl').read_text()
+        self.assertIn('"build_deps": [":analyzer"]', output)
+        self.assertIn('"analyzers": [":analyzer"]', output)
+        self.assertIn('"Analyzer.Package":"all"', output)
+        mapping['projects']['Core/Core.csproj']['references']['Analyzer.Package']['role'] = 'compile'
+        self.put('sync.json', json.dumps(mapping))
+        self.assertIn('asset roles require', self.run_sync('Core/Core.csproj', '--mappings', 'sync.json', success=False))
+
+    def test_locked_sdk_signing_key(self):
+        self.put('runfiles/sdk/key.snk', 'fixture-key')
+        self.put('Core/Core.csproj', '<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup><AssemblyOriginatorKeyFile>../.nuget/packages/example.sdk/1.0.0/key.snk</AssemblyOriginatorKeyFile></PropertyGroup></Project>')
+        manifest = dict(inputs=[], packages=[dict(id='Example.Sdk',version='1.0.0',runfile='sdk')], packageLock=':lock')
+        self.put('inputs.json', json.dumps(manifest))
+        self.run_sync('Core/Core.csproj', '--inputs', str(self.root/'inputs.json'), '--runfiles', str(self.root/'runfiles'))
+        output = (self.root/'projects.generated.bzl').read_text()
+        self.assertIn('"package_lock": ":lock"', output)
+        self.assertNotIn('key.snk', output)
+        (self.root/'runfiles/sdk/key.snk').unlink()
+        self.assertIn('Missing signing key', self.run_sync('Core/Core.csproj', '--inputs', str(self.root/'inputs.json'), '--runfiles', str(self.root/'runfiles'), success=False))
+
+    def test_generated_test_settings(self):
+        self.put('sync.json', json.dumps(dict(tests={'Core/Core.csproj': dict(protocol='vstest', runner=':runner', settingsOutput='.runsettings')})))
+        self.run_sync('Core/Core.csproj', '--mappings', 'sync.json')
+        self.assertIn('"test_settings_output": ".runsettings"', (self.root/'projects.generated.bzl').read_text())
+        self.put('sync.json', json.dumps(dict(tests={'Core/Core.csproj': dict(protocol='vstest', runner=':runner', settings='a.runsettings', settingsOutput='.runsettings')})))
+        self.assertIn('either settings', self.run_sync('Core/Core.csproj', '--mappings', 'sync.json', success=False))
+
     def test_explicit_reference_roles(self):
         self.put('Core/Core.csproj', '<Project Sdk="Microsoft.NET.Sdk"><ItemGroup><Reference Include="Other"/><ProjectReference Include="../Generator/Generator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false"/></ItemGroup></Project>')
         mapping=dict(projects={'Core/Core.csproj':dict(references={'Other':dict(role='compile',label=':other')},projectReferences={'Generator/Generator.csproj':dict(role='analyzer',label=':generator')})})

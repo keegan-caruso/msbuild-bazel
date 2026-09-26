@@ -179,14 +179,21 @@ properties combine; conflicting values fail. Reserved configuration/framework
 properties still cannot be overridden through the property dictionary. Stale or
 unreachable project mappings fail before writing output.
 
-`Compile` inputs can carry `Link` and `LinkBase`. Existing `EmbeddedResource`,
-`AdditionalFiles`, `Content` and copied `None` inputs emit `msbuild_items` with
-explicit file labels. Supported metadata is `Link`, `LinkBase`, `LogicalName`,
-`ManifestResourceName`, `Culture`, `WithCulture`, `CopyToOutputDirectory`,
-`CopyToPublishDirectory` and `TargetPath`. Source items retain only Link/LinkBase.
-Metadata requiring generation, such as `GenerateSource`, is rejected. Missing
-files still require a generator binding; sync never runs a generation target.
-Ordinary uncopied `None` files remain outside build inputs.
+`Compile` inputs can carry `Link`, `LinkBase` and `Visible`. Existing
+`EmbeddedResource`, `AdditionalFiles`, `EditorConfigFiles`,
+`GlobalAnalyzerConfigFiles`, `Content` and copied `None` inputs emit explicit
+`msbuild_items`. File metadata includes links, resource names/culture, copy paths,
+packaging/visibility and resource-generator settings. `GenerateSource` requires a
+reviewed custom-document contract. Missing files still require a generator binding;
+sync never runs a generation target. Ordinary uncopied `None` files remain outside
+build inputs. Missing SDK-discovered ancestor analyzer-config candidates are skipped;
+missing authored configs fail.
+
+`itemPaths` maps a workspace-relative file to a safe logical staging path, preserving
+its item metadata. For example, `{ "NuGet.config": "test-data/NuGet.config" }`
+separates copied test content from restore configuration. Stale paths fail; Compile
+remapping uses source bindings instead. Signing keys inside a declared NuGet SDK
+package are owned by its package lock; workspace keys remain explicit file inputs.
 
 Package `PrivateAssets` accepts NuGet asset masks, including partial masks.
 `IncludeAssets`, `ExcludeAssets` and central `VersionOverride` remain in the
@@ -194,11 +201,11 @@ original project. An override must match an exact package binding and is rejecte
 when `CentralPackageVersionOverrideEnabled=false`. Unknown asset names fail.
 Dependency restore records preserve package edges and their asset metadata rather
 than promoting inherited packages into direct references. Boolean
-`IsImplicitlyDefined` and `GeneratePathProperty` are retained too. Exact package
-version/role bindings are still mandatory.
+`IsImplicitlyDefined`, `GeneratePathProperty`, `Publish` and `AllowExplicitVersion`
+are retained too. Exact package version/role bindings are still mandatory.
 
-See the [ASP.NET Core/runtime inventory](project-sync-upstream.md) for concrete
-remaining integration gates and synthetic validation commands.
+See [upstream qualification](project-sync-upstream-qualification.md) for measured
+ObjectPool/Pipelines coverage and remaining integration gates.
 
 ## Bootstrap, reference and task bindings
 
@@ -240,6 +247,7 @@ Per-project mappings can declare:
 | Field | Meaning |
 | --- | --- |
 | `references` | Bare assembly identity → `{ "role": "compile"/"package"/"framework", "label": ":producer" }`; framework uses the declared assembly identity |
+| `itemPaths` | Workspace file → logical staged path for non-Compile file items |
 | `projectReferences` | Workspace-relative project path → role and label; roles are `compile`, `private`, `analyzer`, `tool`, `output` |
 | `tools`, `bindings`, `items`, `adapterImports` | Authored labels for existing rule primitives |
 | `outputMode` | `sdk`, `reference` or `implementation` |
@@ -276,6 +284,12 @@ additional input files:
   }
 }
 ```
+
+Bare package reference bindings may add `roles: ["build_deps", "analyzers"]`
+to retain the package's build/analyzer assets alongside its reference assets. Their
+`PrivateAssets` metadata is retained. Extra roles on other reference kinds fail.
+Test mappings may use `settingsOutput` for a generated relative `.runsettings`
+output; it is mutually exclusive with the existing `settings` input label.
 
 The corresponding `msbuild_file_binding` must also appear in the sync rule's
 `bindings` so evaluation sees the declared managed tool. Sync runs no task.

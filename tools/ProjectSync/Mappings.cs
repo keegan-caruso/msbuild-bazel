@@ -13,6 +13,7 @@ internal sealed class PackageBinding
 
 internal sealed class ReferenceBinding
 {
+    public string[] Roles { get; set; } = [];
     public string Role { get; set; } = "";
     public string Label { get; set; } = "";
 }
@@ -42,6 +43,7 @@ internal sealed class ProjectBinding
     public string[] Tools { get; set; } = [];
     public string[] Bindings { get; set; } = [];
     public string[] Items { get; set; } = [];
+    public Dictionary<string, string> ItemPaths { get; set; } = [];
     public string[] AdapterImports { get; set; } = [];
     public string[] Directories { get; set; } = [];
     public Dictionary<string, string> LayoutBindings { get; set; } = [];
@@ -59,6 +61,10 @@ internal sealed class TestBinding
     }
     public string[] Adapters { get; set; } = [];
     public string? OutputType
+    {
+        get; set;
+    }
+    public string? SettingsOutput
     {
         get; set;
     }
@@ -106,6 +112,11 @@ internal sealed class Mappings
         {
             ProjectPath(project);
             Properties(binding.Properties);
+            foreach (var (source, destination) in binding.ItemPaths)
+            {
+                WorkspaceView.Safe(source);
+                WorkspaceView.Safe(destination);
+            }
             if (binding.OutputMode is not "sdk" and not "reference" and not "implementation")
             {
                 throw new InvalidDataException("Invalid output mode: " + project);
@@ -119,6 +130,10 @@ internal sealed class Mappings
                 if (identity.Length == 0 || reference.Role is not "compile" and not "private" and not "analyzer" and not "tool" and not "output" and not "package" and not "framework")
                 {
                     throw new InvalidDataException("Invalid explicit reference role: " + identity);
+                }
+                if (reference.Roles.Any(role => role is not "build_deps" and not "analyzers") || reference.Roles.Length != 0 && reference.Role != "package")
+                {
+                    throw new InvalidDataException("Additional asset roles require a package reference binding");
                 }
                 if (reference.Role != "framework")
                 {
@@ -134,6 +149,15 @@ internal sealed class Mappings
         {
             ProjectPath(project);
             Properties(test.Properties);
+            if (test.Settings is not null && test.SettingsOutput is not null)
+            {
+                throw new InvalidDataException("Declare either settings or settingsOutput: " + project);
+            }
+            if (test.SettingsOutput is not null)
+            {
+                WorkspaceView.Safe(test.SettingsOutput);
+            }
+
             if (test.Protocol is not "vstest" and not "mtp" and not "executable")
             {
                 throw new InvalidDataException("Test mappings require a workspace-relative csproj and explicit protocol: " + project);
@@ -215,12 +239,12 @@ internal sealed class Mappings
         {
             foreach (var metadata in package.Metadata)
             {
-                if (metadata.Name is not "Version" and not "PrivateAssets" and not "IsImplicitlyDefined" and not "GeneratePathProperty" and not "IncludeAssets" and not "ExcludeAssets" and not "VersionOverride")
+                if (metadata.Name is not "Version" and not "PrivateAssets" and not "IsImplicitlyDefined" and not "GeneratePathProperty" and not "IncludeAssets" and not "ExcludeAssets" and not "VersionOverride" and not "Publish" and not "AllowExplicitVersion")
                 {
                     throw new InvalidDataException("PackageReference metadata requires explicit mapping: " + metadata.Name);
                 }
             }
-            foreach (var flag in new[] { "IsImplicitlyDefined", "GeneratePathProperty" })
+            foreach (var flag in new[] { "IsImplicitlyDefined", "GeneratePathProperty", "Publish", "AllowExplicitVersion" })
             {
                 var value = package.GetMetadataValue(flag);
                 if (value.Length != 0 && !bool.TryParse(value, out _))
@@ -260,7 +284,7 @@ internal sealed class Mappings
         return attributes;
     }
 
-    internal static Dictionary<string, string> PackagePrivacy(Project project) => project.GetItems("PackageReference")
+    internal static Dictionary<string, string> PackagePrivacy(Project project, ProjectBinding binding) => project.GetItems("PackageReference").Concat(project.GetItems("Reference").Where(item => binding.References.TryGetValue(item.EvaluatedInclude, out var reference) && reference.Role == "package"))
         .Where(item => item.GetMetadataValue("PrivateAssets").Length != 0)
         .ToDictionary(item => item.EvaluatedInclude, item => item.GetMetadataValue("PrivateAssets").ToLowerInvariant(), StringComparer.OrdinalIgnoreCase);
 
@@ -276,6 +300,11 @@ internal sealed class Mappings
             attributes["test_runner"] = test.Runner;
             attributes["test_adapters"] = test.Adapters;
         }
+        if (test.SettingsOutput is not null)
+        {
+            attributes["test_settings_output"] = test.SettingsOutput;
+        }
+
         if (test.Settings is not null)
         {
             attributes["test_settings"] = test.Settings;
