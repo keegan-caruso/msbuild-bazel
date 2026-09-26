@@ -1,0 +1,466 @@
+{
+  "platform": "linux-arm64",
+  "sdk": "10.0.400",
+  "bazel": {
+    "phase": "bazel",
+    "slots": 2,
+    "workerMemoryMb": 4096,
+    "profileControl": false,
+    "repetitions": 2,
+    "records": [
+      {
+        "case": "initial-sync",
+        "seconds": 34.947
+      },
+      {
+        "case": "unchanged-sync-0",
+        "seconds": 16.514
+      },
+      {
+        "case": "unchanged-sync-1",
+        "seconds": 15.459
+      },
+      {
+        "case": "normal-cold-0",
+        "seconds": 159.633,
+        "executed": {
+          "DotnetSdkRuntime": 1,
+          "MSBuildRunnerBootstrap": 1,
+          "MSBuildNugetExtract": 287,
+          "MSBuildAssembly": 202
+        },
+        "cumulativeActionSeconds": {
+          "DotnetSdkRuntime": 0.423,
+          "MSBuildRunnerBootstrap": 1.707,
+          "MSBuildNugetExtract": 23.366999999999987,
+          "MSBuildAssembly": 254.5709999999999
+        }
+      },
+      {
+        "case": "noop-0",
+        "seconds": 0.535,
+        "executed": {},
+        "cumulativeActionSeconds": {}
+      },
+      {
+        "case": "body-0",
+        "seconds": 2.314,
+        "executed": {
+          "MSBuildAssembly": 1
+        },
+        "cumulativeActionSeconds": {
+          "MSBuildAssembly": 1.169
+        }
+      },
+      {
+        "case": "body-repair-0",
+        "seconds": 1.376,
+        "executed": {
+          "MSBuildAssembly": 1
+        },
+        "cumulativeActionSeconds": {
+          "MSBuildAssembly": 0.702
+        }
+      },
+      {
+        "case": "api-0",
+        "seconds": 127.153,
+        "executed": {
+          "MSBuildAssembly": 193
+        },
+        "cumulativeActionSeconds": {
+          "MSBuildAssembly": 228.68999999999997
+        }
+      },
+      {
+        "case": "normal-cold-1",
+        "seconds": 165.115,
+        "executed": {
+          "DotnetSdkRuntime": 1,
+          "MSBuildRunnerBootstrap": 1,
+          "MSBuildNugetExtract": 287,
+          "MSBuildAssembly": 202
+        },
+        "cumulativeActionSeconds": {
+          "DotnetSdkRuntime": 0.38,
+          "MSBuildRunnerBootstrap": 1.83,
+          "MSBuildNugetExtract": 21.288000000000004,
+          "MSBuildAssembly": 257.7370000000001
+        }
+      },
+      {
+        "case": "noop-1",
+        "seconds": 0.632,
+        "executed": {},
+        "cumulativeActionSeconds": {}
+      },
+      {
+        "case": "body-1",
+        "seconds": 3.821,
+        "executed": {
+          "MSBuildAssembly": 1
+        },
+        "cumulativeActionSeconds": {
+          "MSBuildAssembly": 3.092
+        }
+      },
+      {
+        "case": "body-repair-1",
+        "seconds": 2.367,
+        "executed": {
+          "MSBuildAssembly": 1
+        },
+        "cumulativeActionSeconds": {
+          "MSBuildAssembly": 1.71
+        }
+      },
+      {
+        "case": "api-1",
+        "seconds": 138.356,
+        "executed": {
+          "MSBuildAssembly": 193
+        },
+        "cumulativeActionSeconds": {
+          "MSBuildAssembly": 249.4590000000001
+        }
+      }
+    ]
+  },
+  "graph": {
+    "projects": 202,
+    "orchardCommit": "04467a3438d4255627c1a478598a1585b3ff2947"
+  },
+  "resources": {
+    "vmCpus": 6,
+    "vmMemoryGiB": 10,
+    "buildSlots": 2,
+    "workerMemoryMb": 4096
+  },
+  "raw": {
+    "phase": "raw",
+    "slots": 2,
+    "workerMemoryMb": 4096,
+    "profileControl": false,
+    "repetitions": 2,
+    "records": [
+      {
+        "case": "raw-restore-0",
+        "seconds": 3.673
+      },
+      {
+        "case": "raw-cold-0",
+        "seconds": 63.704
+      },
+      {
+        "case": "raw-noop-0",
+        "seconds": 11.454
+      },
+      {
+        "case": "raw-body-0",
+        "seconds": 11.195
+      },
+      {
+        "case": "raw-api-0",
+        "seconds": 28.0
+      },
+      {
+        "case": "raw-restore-1",
+        "seconds": 3.471
+      },
+      {
+        "case": "raw-cold-1",
+        "seconds": 70.55
+      },
+      {
+        "case": "raw-noop-1",
+        "seconds": 10.883
+      },
+      {
+        "case": "raw-body-1",
+        "seconds": 10.725
+      },
+      {
+        "case": "raw-api-1",
+        "seconds": 27.074
+      }
+    ]
+  },
+  "oneWorkerControl": {
+    "phase": "bazel",
+    "slots": 2,
+    "workers": 1,
+    "workerMemoryMb": 4096,
+    "profileControl": false,
+    "repetitions": 1,
+    "records": [
+      {
+        "case": "initial-sync",
+        "seconds": 39.106
+      },
+      {
+        "case": "unchanged-sync-0",
+        "seconds": 16.172
+      },
+      {
+        "case": "normal-cold-0",
+        "seconds": 183.724,
+        "executed": {
+          "DotnetSdkRuntime": 1,
+          "MSBuildRunnerBootstrap": 1,
+          "MSBuildNugetExtract": 287,
+          "MSBuildAssembly": 202
+        },
+        "cumulativeActionSeconds": {
+          "DotnetSdkRuntime": 0.382,
+          "MSBuildRunnerBootstrap": 1.835,
+          "MSBuildNugetExtract": 22.11099999999999,
+          "MSBuildAssembly": 302.464
+        }
+      },
+      {
+        "case": "noop-0",
+        "seconds": 0.484,
+        "executed": {},
+        "cumulativeActionSeconds": {}
+      },
+      {
+        "case": "body-0",
+        "seconds": 2.528,
+        "executed": {
+          "MSBuildAssembly": 1
+        },
+        "cumulativeActionSeconds": {
+          "MSBuildAssembly": 1.696
+        }
+      },
+      {
+        "case": "body-repair-0",
+        "seconds": 1.378,
+        "executed": {
+          "MSBuildAssembly": 1
+        },
+        "cumulativeActionSeconds": {
+          "MSBuildAssembly": 0.741
+        }
+      },
+      {
+        "case": "api-0",
+        "seconds": 142.095,
+        "executed": {
+          "MSBuildAssembly": 193
+        },
+        "cumulativeActionSeconds": {
+          "MSBuildAssembly": 257.644
+        }
+      }
+    ]
+  },
+  "syncControlSeconds": [
+    16.514,
+    15.459,
+    16.172
+  ],
+  "syncCandidate": {
+    "records": [
+      {
+        "case": "warmup",
+        "seconds": 16.662,
+        "exitCode": 0
+      },
+      {
+        "case": "1",
+        "seconds": 8.686,
+        "exitCode": 0
+      },
+      {
+        "case": "2",
+        "seconds": 8.347,
+        "exitCode": 0
+      },
+      {
+        "case": "3",
+        "seconds": 8.392,
+        "exitCode": 0
+      }
+    ],
+    "generatedSha256": "ba0e096a064c46ec29c35a206197aab720b534f9cb409fd5b845d5bbb4c94ff0",
+    "generatedUnchanged": true
+  },
+  "validation": {
+    "syncAndNameTests": 51,
+    "mutationBazelVersions": [
+      "8.8.0",
+      "9.2.0"
+    ],
+    "httpExactOutcomes": 714,
+    "immutableNormalizedOutcomes": 22544,
+    "immutableLoadedSourceProbe": true,
+    "avaloniaGeneratedUnchanged": true,
+    "orchardGeneratedUnchanged": true,
+    "preStage5ItemOrderMigration": {
+      "httpDeclarations": 44,
+      "immutableDeclarations": 22,
+      "controlRevision": "f1801cb",
+      "candidateMatchesControl": true
+    }
+  },
+  "independentRecovery": {
+    "acquisition": {
+      "archives": 287,
+      "bytes": 454042134,
+      "seconds": 23.808,
+      "allHashesMatch": true
+    },
+    "producerStopped": true,
+    "noMounts": true,
+    "ambientSdkHidden": true,
+    "warmup": "all-1",
+    "samples": [
+      {
+        "sample": "all-1",
+        "mode": "all",
+        "records": [
+          {
+            "case": "recover",
+            "seconds": 31.912,
+            "exitCode": 0,
+            "guestNetworkBytes": {
+              "rx": 1388082952,
+              "tx": 9555965
+            }
+          },
+          {
+            "case": "sync",
+            "seconds": 10.003,
+            "exitCode": 0,
+            "guestNetworkBytes": {
+              "rx": 6594507,
+              "tx": 65437
+            }
+          }
+        ],
+        "actions": 491,
+        "remoteHits": 491,
+        "materializedHashes": 4528,
+        "runfilesHashes": 21223,
+        "smokeEndpoints": 4
+      },
+      {
+        "sample": "toplevel-1",
+        "mode": "toplevel",
+        "records": [
+          {
+            "case": "recover",
+            "seconds": 22.248,
+            "exitCode": 0,
+            "guestNetworkBytes": {
+              "rx": 1074703312,
+              "tx": 7099560
+            }
+          },
+          {
+            "case": "sync",
+            "seconds": 10.442,
+            "exitCode": 0,
+            "guestNetworkBytes": {
+              "rx": 26371494,
+              "tx": 216792
+            }
+          }
+        ],
+        "actions": 491,
+        "remoteHits": 491,
+        "materializedHashes": 4319,
+        "runfilesHashes": 21223,
+        "smokeEndpoints": 4
+      },
+      {
+        "sample": "all-2",
+        "mode": "all",
+        "records": [
+          {
+            "case": "recover",
+            "seconds": 23.57,
+            "exitCode": 0,
+            "guestNetworkBytes": {
+              "rx": 1107950422,
+              "tx": 7815241
+            }
+          },
+          {
+            "case": "sync",
+            "seconds": 10.426,
+            "exitCode": 0,
+            "guestNetworkBytes": {
+              "rx": 6594183,
+              "tx": 65875
+            }
+          }
+        ],
+        "actions": 491,
+        "remoteHits": 491,
+        "materializedHashes": 4528,
+        "runfilesHashes": 21223,
+        "smokeEndpoints": 4
+      },
+      {
+        "sample": "toplevel-2",
+        "mode": "toplevel",
+        "records": [
+          {
+            "case": "recover",
+            "seconds": 22.447,
+            "exitCode": 0,
+            "guestNetworkBytes": {
+              "rx": 1074749146,
+              "tx": 7199934
+            }
+          },
+          {
+            "case": "sync",
+            "seconds": 11.054,
+            "exitCode": 0,
+            "guestNetworkBytes": {
+              "rx": 26374823,
+              "tx": 223842
+            }
+          }
+        ],
+        "actions": 491,
+        "remoteHits": 491,
+        "materializedHashes": 4319,
+        "runfilesHashes": 21223,
+        "smokeEndpoints": 4
+      },
+      {
+        "sample": "all-3",
+        "mode": "all",
+        "records": [
+          {
+            "case": "recover",
+            "seconds": 22.613,
+            "exitCode": 0,
+            "guestNetworkBytes": {
+              "rx": 1107896984,
+              "tx": 7795729
+            }
+          },
+          {
+            "case": "sync",
+            "seconds": 9.983,
+            "exitCode": 0,
+            "guestNetworkBytes": {
+              "rx": 6601156,
+              "tx": 65797
+            }
+          }
+        ],
+        "actions": 491,
+        "remoteHits": 491,
+        "materializedHashes": 4528,
+        "runfilesHashes": 21223,
+        "smokeEndpoints": 4
+      }
+    ]
+  }
+}

@@ -49,4 +49,5 @@ Older implementations, superseded designs and intermediate experiments are linke
 from [history](history.md), rather than duplicated in this tree. See the
 [issue review](issue-review-2026-09-23.md) for tracker dispositions.
 
+- [Generated workflow costs](project-sync-workflow-costs.md) — paired raw builds, synchronization and independent recovery.
 - [Everyday synchronization changes](project-sync-mutations.md) — edit, stale check, repair and cache reversion.
