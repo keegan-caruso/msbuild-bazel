@@ -123,6 +123,11 @@ internal static class ProjectAnalyzers
             }
 
             ConfiguredDependencies.Validate(request, dependency, Logical(dependency), evaluated);
+            var skipReference = dependency.GetMetadataValue("SkipUseReferenceAssembly");
+            if (skipReference.Length != 0 && (!bool.TryParse(skipReference, out var skip) || skip && !(request.ImplementationReferences ?? []).Contains(Logical(dependency))))
+            {
+                throw new InvalidDataException("SkipUseReferenceAssembly requires an implementation-reference producer: " + Logical(dependency));
+            }
             if (request.Dependencies.Contains(Logical(dependency)))
             {
                 var privateAssets = dependency.GetMetadataValue("PrivateAssets").ToLowerInvariant();

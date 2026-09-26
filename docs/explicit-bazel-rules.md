@@ -370,3 +370,16 @@ for downstream applications. Binaries/tests reject this option: omitting their
 transitive references can omit entries from the SDK runtime dependency manifest. This
 option does not change package asset selection or resolve conflicting direct
 assembly identities. See `tests/explicit_msbuild/direct_references.py`.
+
+## Authored reference identities and generated file paths
+
+`reference_projects = {":core": "Core"}` binds an exact bare MSBuild `Reference`
+identity to a project provider. The provider assembly name must match. This is an
+explicit public compile/runtime dependency, not assembly discovery. Existing
+`reference_packages` and `framework_assemblies` serve package/framework identities.
+
+`source_paths = {":generated": "src/Generated.cs"}` stages a single-file producer
+at an explicit project-relative-to-workspace logical path. `msbuild_items` accepts
+the same mapping as `paths` for generated resources/content. `import_paths` retains
+its existing role for generated imports. These mappings are emitted by
+[project synchronization](project-sync.md) when it consumes declared producers.

@@ -11,9 +11,42 @@ internal sealed class PackageBinding
     public string[] Analyzers { get; set; } = [];
 }
 
+internal sealed class ReferenceBinding
+{
+    public string Role { get; set; } = "";
+    public string Label { get; set; } = "";
+}
+
+internal sealed class DocumentBinding
+{
+    public string Sha256 { get; set; } = "";
+    public string[] Targets { get; set; } = [];
+    public string[] Tasks { get; set; } = [];
+    public string[] Inputs { get; set; } = [];
+}
+
 internal sealed class ProjectBinding
 {
     public string[] TargetFrameworks { get; set; } = [];
+    public Dictionary<string, ReferenceBinding> References { get; set; } = [];
+    public Dictionary<string, ReferenceBinding> ProjectReferences { get; set; } = [];
+    public string OutputMode { get; set; } = "sdk";
+    public string? ReferencePack
+    {
+        get; set;
+    }
+    public string? RuntimeHost
+    {
+        get; set;
+    }
+    public string[] Tools { get; set; } = [];
+    public string[] Bindings { get; set; } = [];
+    public string[] Items { get; set; } = [];
+    public string[] AdapterImports { get; set; } = [];
+    public string[] Directories { get; set; } = [];
+    public Dictionary<string, string> LayoutBindings { get; set; } = [];
+    public Dictionary<string, DocumentBinding> Documents { get; set; } = [];
+    public string[] EvaluationItems { get; set; } = [];
     public Dictionary<string, string> Properties { get; set; } = [];
 }
 
@@ -73,6 +106,25 @@ internal sealed class Mappings
         {
             ProjectPath(project);
             Properties(binding.Properties);
+            if (binding.OutputMode is not "sdk" and not "reference" and not "implementation")
+            {
+                throw new InvalidDataException("Invalid output mode: " + project);
+            }
+            foreach (var label in binding.Tools.Concat(binding.LayoutBindings.Keys).Concat(binding.Bindings).Concat(binding.Items).Concat(binding.AdapterImports).Concat(binding.ReferencePack is null ? [] : new[] { binding.ReferencePack }).Concat(binding.RuntimeHost is null ? [] : new[] { binding.RuntimeHost }))
+            {
+                Label(label);
+            }
+            foreach (var (identity, reference) in binding.References.Concat(binding.ProjectReferences))
+            {
+                if (identity.Length == 0 || reference.Role is not "compile" and not "private" and not "analyzer" and not "tool" and not "output" and not "package" and not "framework")
+                {
+                    throw new InvalidDataException("Invalid explicit reference role: " + identity);
+                }
+                if (reference.Role != "framework")
+                {
+                    Label(reference.Label);
+                }
+            }
             if (binding.TargetFrameworks.Any(tfm => tfm.Length == 0 || tfm.Any(c => !char.IsAsciiLetterLower(c) && !char.IsAsciiDigit(c) && c is not '.' and not '-')) || binding.TargetFrameworks.Distinct(StringComparer.Ordinal).Count() != binding.TargetFrameworks.Length)
             {
                 throw new InvalidDataException("Expected distinct lowercase target frameworks: " + project);
@@ -163,7 +215,7 @@ internal sealed class Mappings
         {
             foreach (var metadata in package.Metadata)
             {
-                if (metadata.Name is not "Version" and not "PrivateAssets" and not "IsImplicitlyDefined" and not "GeneratePathProperty")
+                if (metadata.Name is not "Version" and not "PrivateAssets" and not "IsImplicitlyDefined" and not "GeneratePathProperty" and not "IncludeAssets" and not "ExcludeAssets" and not "VersionOverride")
                 {
                     throw new InvalidDataException("PackageReference metadata requires explicit mapping: " + metadata.Name);
                 }
@@ -176,12 +228,23 @@ internal sealed class Mappings
                     throw new InvalidDataException("Invalid PackageReference metadata: " + flag);
                 }
             }
-            var privacy = package.GetMetadataValue("PrivateAssets").ToLowerInvariant();
-            if (privacy is not "" and not "all" and not "none")
+            foreach (var mask in new[] { "PrivateAssets", "IncludeAssets", "ExcludeAssets" })
             {
-                throw new InvalidDataException("PackageReference PrivateAssets requires all or none: " + package.EvaluatedInclude);
+                var values = package.GetMetadataValue(mask).ToLowerInvariant().Split(';', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries);
+                if (values.Any(value => value is not "all" and not "none" and not "compile" and not "runtime" and not "native" and not "contentfiles" and not "analyzers" and not "build" and not "buildtransitive" and not "buildmultitargeting") || values.Length > 1 && values.Any(value => value is "all" or "none"))
+                {
+                    throw new InvalidDataException("Invalid PackageReference asset mask: " + mask);
+                }
             }
-            var version = package.GetMetadataValue("Version");
+            var version = package.GetMetadataValue("VersionOverride");
+            if (version.Length != 0 && project.GetPropertyValue("CentralPackageVersionOverrideEnabled").Equals("false", StringComparison.OrdinalIgnoreCase))
+            {
+                throw new InvalidDataException("Central package version overrides are disabled");
+            }
+            if (version.Length == 0)
+            {
+                version = package.GetMetadataValue("Version");
+            }
             if (version.Length == 0 && project.GetPropertyValue("ManagePackageVersionsCentrally").Equals("true", StringComparison.OrdinalIgnoreCase))
             {
                 version = project.GetItems("PackageVersion").SingleOrDefault(i => i.EvaluatedInclude.Equals(package.EvaluatedInclude, StringComparison.OrdinalIgnoreCase))?.GetMetadataValue("Version") ?? "";

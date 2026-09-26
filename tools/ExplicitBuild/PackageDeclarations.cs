@@ -19,6 +19,24 @@ internal static class PackageDeclarations
             throw new InvalidDataException("PackageReference version disagrees with lock: " + id);
         }
     }
+    private static HashSet<string> Assets(string value)
+    {
+        var result = value.ToLowerInvariant().Split(';', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries).ToHashSet(StringComparer.Ordinal);
+        var known = new[] { "compile", "runtime", "native", "contentfiles", "analyzers", "build", "buildtransitive", "buildmultitargeting" };
+        if (result.SetEquals(["all"]))
+        {
+            return known.ToHashSet(StringComparer.Ordinal);
+        }
+        if (result.SetEquals(["none"]))
+        {
+            return [];
+        }
+        if (result.Any(asset => !known.Contains(asset, StringComparer.Ordinal)))
+        {
+            throw new InvalidDataException("Invalid package asset mask: " + value);
+        }
+        return result;
+    }
     internal static void Validate(Request r, ProjectInstance evaluated)
     {
         var packages = r.Packages.ToDictionary(p => p.Id, StringComparer.OrdinalIgnoreCase);
@@ -30,7 +48,7 @@ internal static class PackageDeclarations
                 throw new InvalidDataException("Undeclared PackageReference: " + item.EvaluatedInclude);
             }
 
-            foreach (var name in new[] { "Aliases", "VersionOverride" })
+            foreach (var name in new[] { "Aliases" })
             {
                 if (item.GetMetadataValue(name).Length > 0)
                 {
@@ -44,14 +62,14 @@ internal static class PackageDeclarations
                 throw new InvalidDataException("Invalid PackageReference GeneratePathProperty: " + package.Id);
             }
 
-            Version(item.GetMetadataValue("Version"), package.Version, package.Id);
+            Version(item.GetMetadataValue("VersionOverride").Length == 0 ? item.GetMetadataValue("Version") : item.GetMetadataValue("VersionOverride"), package.Version, package.Id);
             var actual = item.GetMetadataValue("PrivateAssets").ToLowerInvariant();
             if (actual.Length == 0)
             {
                 actual = "none";
             }
 
-            if (actual is not ("all" or "none") || actual != privacy.GetValueOrDefault(package.Id, "none"))
+            if (!Assets(actual).SetEquals(Assets(privacy.GetValueOrDefault(package.Id, "none"))))
             {
                 throw new InvalidDataException("PackageReference PrivateAssets disagrees with package_private_assets: " + package.Id);
             }
@@ -67,9 +85,9 @@ internal static class PackageDeclarations
 
         foreach (var item in evaluated.GetItems("_BazelOriginalPackageVersion"))
         {
-            if (referencedPackages.Contains(item.EvaluatedInclude) && packages.TryGetValue(item.EvaluatedInclude, out var package))
+            if (referencedPackages.Contains(item.EvaluatedInclude) && !evaluated.GetItems("_BazelOriginalPackageReference").Any(reference => reference.EvaluatedInclude.Equals(item.EvaluatedInclude, StringComparison.OrdinalIgnoreCase) && reference.GetMetadataValue("VersionOverride").Length != 0) && packages.TryGetValue(item.EvaluatedInclude, out var package))
             {
-                Version(item.GetMetadataValue("Version"), package.Version, package.Id);
+                Version(item.GetMetadataValue("VersionOverride").Length == 0 ? item.GetMetadataValue("Version") : item.GetMetadataValue("VersionOverride"), package.Version, package.Id);
             }
         }
     }

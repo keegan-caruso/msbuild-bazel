@@ -62,7 +62,7 @@ existing output. The generated `app_projects()` must also be called from the roo
 Project paths are strings rather than labels: sync deliberately evaluates the
 current checkout at **run time**, using `BUILD_WORKSPACE_DIRECTORY`. It can find
 new source files and imports without first declaring them as inputs to itself.
-Only the generator bootstrap is a cached build action. Project evaluation and
+The generator bootstrap and declared input producers are cached build actions. Project evaluation and
 writes are explicit local developer operations, never remote build actions.
 Use a host-compatible SDK execution platform for this local tool; cross-platform
 execution configurations are not qualified.
@@ -188,30 +188,123 @@ Metadata requiring generation, such as `GenerateSource`, is rejected. Missing
 files still require a generator binding; sync never runs a generation target.
 Ordinary uncopied `None` files remain outside build inputs.
 
-Package `PrivateAssets=all/none` becomes `package_private_assets`; comparisons
-are case-insensitive. Boolean `IsImplicitlyDefined` and `GeneratePathProperty`
-metadata are accepted and remain in the original project consumed by MSBuild.
-Partial privacy masks, IncludeAssets/ExcludeAssets and VersionOverride remain
-unsupported. Exact package version/role bindings are still mandatory.
+Package `PrivateAssets` accepts NuGet asset masks, including partial masks.
+`IncludeAssets`, `ExcludeAssets` and central `VersionOverride` remain in the
+original project. An override must match an exact package binding and is rejected
+when `CentralPackageVersionOverrideEnabled=false`. Unknown asset names fail.
+Dependency restore records preserve package edges and their asset metadata rather
+than promoting inherited packages into direct references. Boolean
+`IsImplicitlyDefined` and `GeneratePathProperty` are retained too. Exact package
+version/role bindings are still mandatory.
 
 See the [ASP.NET Core/runtime inventory](project-sync-upstream.md) for concrete
 remaining integration gates and synthetic validation commands.
 
+## Bootstrap, reference and task bindings
+
+For generated imports/sources/resources and NuGet SDKs:
+
+```starlark
+msbuild_sync(
+    name = "sync",
+    projects = ["src/App/App.csproj"],
+    mappings = "sync.json",
+    inputs = {
+        ":generated_props": "artifacts/generated.props",
+        ":generated_source": "artifacts/Generated.cs",
+    },
+    package_lock = ":repository_packages",
+    bindings = [":build_tasks_path"],
+)
+```
+
+Each `inputs` label supplies exactly one file. For `msbuild_generate` with several
+outputs, select each file using a `filegroup(output_group = "relative/output")`.
+Bazel builds these producers before synchronization. A temporary evaluation view
+places the files at their logical paths without writing into the source checkout.
+Generated declarations retain the producer labels in `source_paths`, `import_paths`
+or `msbuild_items(paths = {...})`; they never contain temporary evaluation paths.
+Missing producers, source collisions and unsafe paths fail.
+
+`package_lock` supplies the complete declared NuGet package set, including imported
+SDKs. The view clears package feeds/fallback folders and uses only those package
+directories. A missing SDK fails instead of downloading it. The `msbuild-sdks`
+section of `global.json` is accepted by SDK acquisition, but its packages must be
+bound separately; it is not a download instruction. Repository-specific global.json
+fields beyond the supported SDK fields still require explicit SDK version setup.
+The direct maintainer CLI without an input manifest retains its original local
+filesystem evaluation behavior.
+
+Per-project mappings can declare:
+
+| Field | Meaning |
+| --- | --- |
+| `references` | Bare assembly identity → `{ "role": "compile"/"package"/"framework", "label": ":producer" }`; framework uses the declared assembly identity |
+| `projectReferences` | Workspace-relative project path → role and label; roles are `compile`, `private`, `analyzer`, `tool`, `output` |
+| `tools`, `bindings`, `items`, `adapterImports` | Authored labels for existing rule primitives |
+| `outputMode` | `sdk`, `reference` or `implementation` |
+| `referencePack`, `runtimeHost` | Explicit existing reference-pack/runtime providers |
+| `directories`, `layoutBindings` | Existing logical-directory and layout-property contracts |
+| `documents` | Reviewed contracts for imported/project XML containing targets/tasks |
+| `evaluationItems` | Explicit item kinds used as repository bookkeeping; this does **not** declare file inputs |
+
+A mapped project edge uses its authored label. It does not recursively generate
+that producer; include the producer among `projects` if it should also be synced.
+Unmapped ordinary project edges retain recursive generation. Role/metadata
+mismatches fail. A private dependency controls propagation; selecting an
+implementation assembly is a separate decision. `SkipUseReferenceAssembly=true`
+requires an explicitly selected implementation-reference producer.
+
+Custom document contracts name the exact SHA-256, target names, task names and
+additional input files:
+
+```json
+{
+  "projects": {
+    "src/App/App.csproj": {
+      "tools": [":build_tasks"],
+      "bindings": [":build_tasks_path"],
+      "documents": {
+        "eng/Generate.targets": {
+          "sha256": "<sha256 of the reviewed file>",
+          "targets": ["Generate"],
+          "tasks": ["Example.GenerateTask"],
+          "inputs": ["eng/generation-input.txt"]
+        }
+      }
+    }
+  }
+}
+```
+
+The corresponding `msbuild_file_binding` must also appear in the sync rule's
+`bindings` so evaluation sees the declared managed tool. Sync runs no task.
+Package task documents use paths under `.nuget/packages/<id>/<version>/...`.
+Changed hashes/target lists/task lists and stale document paths fail. These are
+**authored completeness contracts**, not a proof that arbitrary target code is
+hermetic. Declare all files/tools/layouts that those targets consume. Property
+functions expecting a merged tool-directory layout are not qualified.
+
+SDK `InternalsVisibleTo` declarations are retained. `AssemblyOriginatorKeyFile`
+is a required tracked input even when it is an uncopied `None` file. The synthetic suite checks signed friends and wrong-key rejection; signed upstream
+builds are not yet qualified.
+
 ## Explicit limits
 
 The generator accepts `Microsoft.NET.Sdk` libraries, single-framework console
-applications, and explicitly mapped tests/packages. It still rejects custom
-targets/tasks, custom items, generated resources, explicit user analyzer items,
-explicit framework/assembly references, special project-reference metadata and
-missing/generated sources. These require mappings the tool does not yet provide.
-Normal SDK analyzers and the implicit .NET Core framework are retained. Imports
-outside the workspace or SDK also fail explicitly.
+applications, and explicitly mapped tests/packages. Custom targets/tasks and
+repository item kinds need the contracts above. Explicit user `Analyzer` and
+`FrameworkReference` items still need further integration; normal SDK analyzers
+and the implicit .NET Core framework are retained. Bare assembly bindings are
+separate from framework-reference resolution. Imports outside the workspace,
+selected SDK or closed package set fail.
 
 Multi-framework applications, existing per-project BUILD packages, arbitrary
-SDKs/workloads, package-specific generation, cross-platform configuration matrices,
-and a Gazelle integration remain follow-up work. Package bindings are qualified
-with the test frameworks below, not arbitrary NuGet build logic.
-No Linux, remote-cache, or large-repository qualification is claimed for this tool.
+SDKs/workloads, cross-platform configuration matrices and Gazelle integration
+remain follow-up work. Environment-dependent evaluation and absolute-path
+property functions remain limitations of local synchronization. No remote-cache
+or large-repository qualification is claimed for the new generator contracts.
+See [blocker qualification](project-sync-bindings.md) for measured coverage.
 
 ## Validation
 

@@ -24,6 +24,7 @@ internal static class ProjectDefinition
         }
 
         ReferencePackages.Inject(r, root);
+        ReferenceProjects.Inject(r, root);
         root.Add(new XElement("ItemGroup", (r.FrameworkAssemblies ?? []).Select(name => new XElement("Reference", new XAttribute("Update", Escape(name)), new XElement("_BazelFrameworkAssembly", "true")))));
         // Preserve the original evaluated declarations before replacing them with
         // Bazel inputs. MSBuild copies condition-selected items and their metadata; validation
@@ -94,7 +95,7 @@ internal static class ProjectDefinition
         // Keep the original NuGet metadata, then pin the supplied closed package set.
         // Only compile-visible inherited packages become new references; private
         // producer packages may remain declared files without becoming consumer inputs.
-        foreach (var package in r.Packages.Where(p => r.CompilePackages.Contains(p.Id, StringComparer.OrdinalIgnoreCase)))
+        foreach (var package in r.Packages.Where(p => r.DeclaredPackages.Contains(p.Id, StringComparer.OrdinalIgnoreCase) && r.CompilePackages.Contains(p.Id, StringComparer.OrdinalIgnoreCase)))
         {
             items.Add(new XElement("PackageReference", new XAttribute("Include", package.Id)));
         }

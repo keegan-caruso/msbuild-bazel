@@ -22,11 +22,29 @@ internal static class Program
             var projects = new List<string>();
             string? mappings = null;
             var check = false;
+            string? inputs = null;
+            string? runfiles = null;
             for (var i = 2; i < args.Length; i++)
             {
                 if (args[i] == "--check")
                 {
                     check = true;
+                }
+                else if (args[i] is "--inputs" or "--runfiles")
+                {
+                    var option = args[i];
+                    if (++i == args.Length)
+                    {
+                        throw new ArgumentException(option + " requires a path");
+                    }
+                    if (option == "--inputs")
+                    {
+                        inputs = Path.GetFullPath(args[i]);
+                    }
+                    else
+                    {
+                        runfiles = Path.GetFullPath(args[i]);
+                    }
                 }
                 else if (args[i] == "--mappings")
                 {
@@ -45,7 +63,9 @@ internal static class Program
                     projects.Add(args[i]);
                 }
             }
-            Generator.Run(Path.GetFullPath(args[0]), sdk, projects.ToArray(), check, Mappings.Read(mappings));
+            var root = Path.GetFullPath(args[0]);
+            using var view = WorkspaceView.Create(root, inputs, runfiles);
+            Generator.Run(view.Root, sdk, projects.ToArray(), check, Mappings.Read(mappings), view, root);
             return 0;
         }
         catch (Exception error)

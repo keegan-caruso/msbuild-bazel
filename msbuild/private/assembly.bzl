@@ -41,6 +41,7 @@ def _assembly(ctx):
         properties = implementation.properties,
         assembly = implementation.assembly,
         output_mode = "paired",
+        implementation_reference = ctx.attr.use_implementation_reference or contract.implementation_reference,
         identity = implementation.identity,
         reference = reference,
         references = implementation.references if ctx.attr.use_implementation_reference else contract.references,
