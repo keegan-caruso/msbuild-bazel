@@ -82,6 +82,26 @@ class ProjectSyncTests(unittest.TestCase):
             self.assertIn(error, self.run_sync('Core/Core.csproj', '--mappings', 'sync.json', success=False))
             self.assertEqual(output, (self.root / 'projects.generated.bzl').read_text())
 
+    def test_shared_imports_keep_project_globals_and_refresh_between_runs(self):
+        import ast
+        self.put('Shared.props', """<Project><ItemGroup><Compile Remove="*.cs"/><Compile Include="$(Flavor).cs"/></ItemGroup></Project>""")
+        for name in ['Core', 'Other']:
+            self.put(name + '/' + name + '.csproj', '<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup><EnableDefaultCompileItems>false</EnableDefaultCompileItems></PropertyGroup></Project>')
+            for flavor in ['First', 'Second']:
+                self.put(name + '/' + flavor + '.cs', 'class ' + flavor + ' {}')
+        mapping = dict(projects={name + '/' + name + '.csproj': dict(properties={'Flavor': flavor}) for name, flavor in [('Core', 'First'), ('Other', 'Second')]})
+        self.put('sync.json', json.dumps(mapping))
+        args = ['Core/Core.csproj', 'Other/Other.csproj', '--mappings', 'sync.json']
+        self.run_sync(*args)
+        def sources():
+            calls = [node for node in ast.walk(ast.parse((self.root / 'projects.generated.bzl').read_text())) if isinstance(node, ast.Call) and isinstance(node.func, ast.Name) and node.func.id == 'msbuild_project']
+            return {attrs['project']: attrs['framework_overrides']['net10.0']['srcs'] for node in calls for attrs in [{k.arg: ast.literal_eval(k.value) for k in node.keywords}]}
+        self.assertEqual(sources(), {'Core/Core.csproj': ['Core/First.cs'], 'Other/Other.csproj': ['Other/Second.cs']})
+        self.put('Shared.props', '<Project><ItemGroup><Compile Include="Second.cs"/></ItemGroup></Project>')
+        self.assertIn('stale', self.run_sync(*args, '--check', success=False))
+        self.run_sync(*args)
+        self.assertEqual(sources(), {'Core/Core.csproj': ['Core/Second.cs'], 'Other/Other.csproj': ['Other/Second.cs']})
+
     def test_starlark_strings_preserve_unicode_quotes_and_literal_escapes(self):
         import ast
         self.put('Core/é中😀.cs', 'class UnicodeFile {}')

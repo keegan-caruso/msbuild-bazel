@@ -1,8 +1,8 @@
 # Planned work
 
 The active priority is complete generated graphs, independent remote-cache recovery,
-then developer experience and broader qualification. Stages 1–6 are **complete**;
-stages 7–8 remain **planned**;
+then developer experience and broader qualification. Stages 1–7 are **complete**;
+stage 8 remains **planned**;
 [current support](implementation-plan.md) records what is already measured.
 This sequence starts from local commit `d4a64b4`, not an assertion that the work has
 already reached `main`. Review and integrate the accumulated changes before basing
@@ -154,6 +154,8 @@ Reverting a change must recover the earlier graph and reusable outputs. Keep sma
 synthetics for each contract and representative mutations on the larger graphs.
 
 ### 7. Measure and reduce end-to-end workflow costs
+
+**Complete:** [paired costs, optimization and independent recovery](project-sync-workflow-costs.md).
 
 **Depends on:** stable workflows from stages 3–6.
 

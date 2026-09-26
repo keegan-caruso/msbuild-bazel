@@ -20,8 +20,11 @@ for name in ['workspace', 'base', 'raw', 'report']:
 parser.add_argument('--family', choices=['http', 'immutable', 'orchard', 'avalonia'], required=True)
 parser.add_argument('--cache', required=True)
 parser.add_argument('--seed', action='store_true')
+parser.add_argument('--download-mode', choices=['all', 'toplevel'], default='all')
 parser.add_argument('--expect', type=Path)
 a = parser.parse_args()
+if a.download_mode != 'all' and a.family != 'orchard':
+    parser.error('Top-level download comparison currently requires the Orchard application graph')
 w, base, raw, report = [p.resolve() for p in [a.workspace, a.base, a.raw, a.report]]
 report.parent.mkdir(parents=True, exist_ok=True)
 if not a.seed:
@@ -29,16 +32,24 @@ if not a.seed:
 target = '//:' + dict(http='src_Http_Http.Abstractions_test_Microsoft.AspNetCore.Http.Abstractions.Tests_net10_0', immutable='src_libraries_System.Collections.Immutable_tests_System.Collections.Immutable.Tests_net10_0', orchard='src_OrchardCore.Cms.Web_OrchardCore.Cms.Web').get(a.family, '')
 targets = json.loads(raw.read_text())['targets'] if a.family == 'avalonia' else [target]
 start = [os.environ['RULES_MSBUILD_BAZEL'], '--host_jvm_args=-Xmx1536m', '--output_base=' + str(base), '--ignore_all_rc_files']
-flags = ['--jobs=2', '--disk_cache=', '--remote_cache=' + a.cache, '--remote_upload_local_results=' + str(a.seed).lower(), '--remote_download_outputs=all']
+flags = ['--jobs=2', '--disk_cache=', '--remote_cache=' + a.cache, '--remote_upload_local_results=' + str(a.seed).lower(), '--remote_download_outputs=' + a.download_mode]
 records = []
+
+def network_bytes():
+    root = Path('/sys/class/net')
+    if not root.exists(): return None
+    return {key: sum(int((p / 'statistics' / (key + '_bytes')).read_text()) for p in root.iterdir() if p.name != 'lo') for key in ['rx', 'tx']}
 
 def run(name, command, extra=()):
     execution = report.with_suffix('.' + name + '.execution.json')
     bep = report.with_suffix('.' + name + '.bep')
+    before = network_bytes()
     began = time.monotonic()
     with report.with_suffix('.' + name + '.log').open('w') as log:
         result = subprocess.run(start + command + flags + ['--execution_log_json_file=' + str(execution), '--build_event_json_file=' + str(bep), *extra], cwd=w, stdout=log, stderr=subprocess.STDOUT, timeout=1800)
-    records.append(dict(case=name, seconds=round(time.monotonic() - began, 3), exitCode=result.returncode))
+    elapsed = round(time.monotonic() - began, 3)
+    after = network_bytes()
+    records.append(dict(case=name, seconds=elapsed, exitCode=result.returncode, guestNetworkBytes={k: after[k] - before[k] for k in before} if before else None))
     print(name, records[-1], flush=True)
     assert result.returncode == 0, report.with_suffix('.' + name + '.log')
     text = execution.read_text(); decoder = json.JSONDecoder(); offset = 0; actions = []
@@ -103,8 +114,27 @@ try:
         if any(part.endswith(('.reference', '.runtime', '.layout', '.generated')) for part in relative.parts):
             hashes[str(relative)] = hashlib.sha256(path.read_bytes()).hexdigest()
     assert hashes
+    # Compare the complete application's declared runfiles even when Bazel is
+    # allowed to leave intermediate outputs in CAS. Skip only the local manifest
+    # containing physical checkout paths; file contents must remain exact.
+    runtime_hashes = {}
+    if a.family == 'orchard':
+        runfiles = w / 'bazel-bin' / (target.split(':')[1] + '.runfiles')
+        for directory, _, files in os.walk(runfiles, followlinks=True):
+            for name in files:
+                path = Path(directory) / name
+                if path == runfiles / 'MANIFEST': continue
+                runtime_hashes[path.relative_to(runfiles).as_posix()] = hashlib.sha256(path.read_bytes()).hexdigest()
+        assert runtime_hashes
     if a.expect:
-        assert hashes == json.loads(a.expect.read_text())['hashes'], 'Recovered output hashes differ'
+        expected = json.loads(a.expect.read_text())
+        if a.download_mode == 'all':
+            assert hashes == expected['hashes'], 'Recovered output hashes differ'
+        else:
+            assert a.family == 'orchard' and expected.get('runfilesHashes'), 'Top-level comparison requires a complete application runfiles seed'
+            assert all(expected['hashes'].get(path) == digest for path, digest in hashes.items()), 'Materialized output differs'
+        if expected.get('runfilesHashes'):
+            assert runtime_hashes == expected['runfilesHashes'], 'Recovered application runfiles differ'
     cached_count = verify()
     if not a.seed and a.family != 'orchard':
         forced, _ = run('execute', ['test', *targets], ['--nocache_test_results'])
@@ -117,6 +147,6 @@ try:
     if not a.seed:
         assert all(r.get('cacheHit') for r in sync_actions), 'Relocated sync rebuilt a declared tool'
     action_rows = [{key: r.get(key) for key in ['mnemonic', 'targetLabel', 'listedOutputs', 'cacheHit', 'runner', 'remoteCacheable']} for r in actions]
-    report.write_text(json.dumps(dict(family=a.family, seed=a.seed, records=records, actions=action_rows, syncActions=[{key:r.get(key) for key in ['mnemonic','targetLabel','cacheHit','runner']} for r in sync_actions], tests=cached_count if a.family != 'orchard' else None, smokeEndpoints=cached_count if a.family == 'orchard' else None, cachedTests=not a.seed and a.family != 'orchard', forcedExecution=not a.seed and a.family != 'orchard', hashes=hashes), indent=2) + '\n')
+    report.write_text(json.dumps(dict(family=a.family, seed=a.seed, downloadMode=a.download_mode, runfilesHashes=runtime_hashes, records=records, actions=action_rows, syncActions=[{key:r.get(key) for key in ['mnemonic','targetLabel','cacheHit','runner']} for r in sync_actions], tests=cached_count if a.family != 'orchard' else None, smokeEndpoints=cached_count if a.family == 'orchard' else None, cachedTests=not a.seed and a.family != 'orchard', forcedExecution=not a.seed and a.family != 'orchard', hashes=hashes), indent=2) + '\n')
 finally:
     subprocess.run(start + ['shutdown'], cwd=w, check=True)
