@@ -6,7 +6,8 @@ using Microsoft.Build.Execution;
 
 // Dependency projects publish their evaluated NuGet identity once. Consumers
 // supply graph records to NuGet; they never reload dependency SDK projects.
-internal sealed record RestoreProject(string Project, string Framework, string Name, string Version, string Assembly, string[] Dependencies, Dictionary<string, string> FrameworkProperties, Dictionary<string, string>? DependencyKeys = null, string? RestoreFramework = null, string? ConfigurationKey = null);
+internal sealed record RestorePackage(string Id, string Version, Dictionary<string, string> Metadata);
+internal sealed record RestoreProject(string Project, string Framework, string Name, string Version, string Assembly, string[] Dependencies, Dictionary<string, string> FrameworkProperties, Dictionary<string, string>? DependencyKeys = null, string? RestoreFramework = null, string? ConfigurationKey = null, RestorePackage[]? Packages = null);
 internal static class ProjectRestore
 {
     internal static void Export(Session session, ProjectInstance project)
@@ -17,6 +18,12 @@ internal static class ProjectRestore
             .ToDictionary(name => name, project.GetPropertyValue);
         var request = session.Request;
         var identity = new RestoreProject(request.Project.Path, request.Framework, value.GetProperty("restore").GetProperty("projectName").GetString()!, value.GetProperty("version").GetString()!, request.Assembly, request.Dependencies, properties, DependencyKeys(request), request.Framework, request.RestoreKey);
+        var packageRows = request.Packages.ToDictionary(p => p.Id, StringComparer.OrdinalIgnoreCase);
+        var metadataNames = new[] { "IncludeAssets", "ExcludeAssets", "PrivateAssets" };
+        identity = identity with
+        {
+            Packages = project.GetItems("PackageReference").Where(item => packageRows.ContainsKey(item.EvaluatedInclude)).Select(item => new RestorePackage(item.EvaluatedInclude, packageRows[item.EvaluatedInclude].Version, metadataNames.Where(name => item.GetMetadataValue(name).Length != 0).ToDictionary(name => name, item.GetMetadataValue))).ToArray()
+        };
         File.WriteAllText(Path.Combine(session.State, "project-restore.json"), JsonSerializer.Serialize(identity, Program.Json));
     }
     private static Dictionary<string, string> DependencyKeys(Request request) => request.Dependencies.ToDictionary(
@@ -82,6 +89,17 @@ internal static class ProjectRestore
             items.Add(framework);
         }
         target.Add(items);
+        foreach (var project in graphProjects)
+        {
+            var packageItems = "_BazelPackages_" + KeyPath(project.Project + Key(project));
+            var declarations = new XElement("ItemGroup", new XElement(packageItems, new XAttribute("Remove", "@(" + packageItems + ")")));
+            foreach (var package in project.Packages ?? [])
+            {
+                declarations.Add(new XElement(packageItems, new XAttribute("Include", Program.Escape(package.Id)), Metadata("Version", "[" + package.Version + "]"), package.Metadata.Select(pair => Metadata(pair.Key, pair.Value))));
+            }
+            target.Add(declarations);
+            target.Add(new XElement("GetRestorePackageReferencesTask", new XAttribute("ProjectUniqueName", ProjectPath(project.Project, Key(project))), new XAttribute("PackageReferences", "@(" + packageItems + ")"), new XAttribute("TargetFrameworks", project.RestoreFramework ?? project.Framework), new XElement("Output", new XAttribute("TaskParameter", "RestoreGraphItems"), new XAttribute("ItemName", "_RestoreGraphEntry"))));
+        }
         void References(string parent, string framework, IEnumerable<string> dependencies, Dictionary<string, string>? configured)
         {
             foreach (var dependency in dependencies)

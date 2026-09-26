@@ -55,8 +55,14 @@ def global_json_version(text):
     if type(data) != "dict" or type(data.get("sdk")) != "dict":
         fail("global.json requires an sdk object with an exact version")
     for key in data:
-        if key not in ["sdk", "$schema"]:
+        if key not in ["sdk", "$schema", "msbuild-sdks"]:
             fail("Unsupported global.json field: " + key + "; declare non-SDK behavior explicitly in Bazel")
+    msbuild_sdks = data.get("msbuild-sdks", {})
+    if type(msbuild_sdks) != "dict" or any([type(name) != "string" or not name or type(value) != "string" or not value for name, value in msbuild_sdks.items()]):
+        fail("global.json msbuild-sdks must map SDK names to explicit versions")
+
+    # These select MSBuild imports, not the dotnet SDK. Compilation/sync must
+    # separately provide their packages through a declared package_lock.
     sdk = data["sdk"]
     for key in sdk:
         if key not in ["version", "rollForward", "allowPrerelease", "errorMessage"]:

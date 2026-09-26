@@ -1,6 +1,7 @@
 """Black-box MSBuild evaluation and BUILD synchronization controls."""
 import os
 import json
+import hashlib
 from pathlib import Path
 import subprocess
 import tempfile
@@ -210,7 +211,7 @@ class ProjectSyncTests(unittest.TestCase):
             self.run_sync('Core/Core.csproj', '--mappings', 'sync.json')
             self.assertIn('"Example":"'+privacy.lower()+'"', (self.root/'projects.generated.bzl').read_text())
         original = (self.root/'projects.generated.bzl').read_text()
-        for metadata in ['PrivateAssets="compile"', 'ExcludeAssets="compile"', 'GeneratePathProperty="maybe"', 'VersionOverride="2.0.0"']:
+        for metadata in ['PrivateAssets="invalid"', 'ExcludeAssets="invalid"', 'GeneratePathProperty="maybe"', 'VersionOverride="2.0.0"']:
             self.put('Core/Core.csproj', f'<Project Sdk="Microsoft.NET.Sdk"><ItemGroup><PackageReference Include="Example" Version="1.2.3" {metadata}/></ItemGroup></Project>')
             self.run_sync('Core/Core.csproj', '--mappings', 'sync.json', success=False)
             self.assertEqual(original, (self.root/'projects.generated.bzl').read_text())
@@ -222,7 +223,70 @@ class ProjectSyncTests(unittest.TestCase):
         self.put('Core/Core.csproj', '<Project Sdk="Microsoft.NET.Sdk"><ItemDefinitionGroup><Compile><Custom>true</Custom></Compile></ItemDefinitionGroup></Project>')
         self.assertIn('metadata requires explicit', self.run_sync('Core/Core.csproj', success=False))
 
-    def test_inherited_package_metadata_is_not_silently_ignored(self):
-        self.put('Core/Core.csproj', '<Project Sdk="Microsoft.NET.Sdk"><ItemDefinitionGroup><PackageReference><ExcludeAssets>compile</ExcludeAssets></PackageReference></ItemDefinitionGroup><ItemGroup><PackageReference Include="Example" Version="1.2.3"/></ItemGroup></Project>')
+    def test_invalid_inherited_package_metadata_is_not_silently_ignored(self):
+        self.put('Core/Core.csproj', '<Project Sdk="Microsoft.NET.Sdk"><ItemDefinitionGroup><PackageReference><ExcludeAssets>invalid</ExcludeAssets></PackageReference></ItemDefinitionGroup><ItemGroup><PackageReference Include="Example" Version="1.2.3"/></ItemGroup></Project>')
         self.put('sync.json', json.dumps(dict(packages={'Example/1.2.3':dict(label='//packages:example',roles=['deps'])})))
         self.assertIn('ExcludeAssets', self.run_sync('Core/Core.csproj', '--mappings', 'sync.json', success=False))
+
+    def test_declared_bootstrap_view(self):
+        runfiles = self.root/'runfiles'
+        self.put('runfiles/generated.props', '<Project><PropertyGroup><Nullable>disable</Nullable></PropertyGroup></Project>')
+        self.put('Core/Core.csproj', '<Project Sdk="Microsoft.NET.Sdk"><Import Project="../generated.props"/></Project>')
+        manifest = dict(inputs=[dict(path='generated.props',label=':bootstrap',runfile='generated.props')],packages=[],packageLock=None)
+        self.put('inputs.json', json.dumps(manifest))
+        self.run_sync('Core/Core.csproj', '--inputs', str(self.root/'inputs.json'), '--runfiles', str(runfiles))
+        text=(self.root/'projects.generated.bzl').read_text()
+        self.assertIn('":bootstrap":"generated.props"', text)
+        self.assertNotIn('msbuild-sync-', text)
+        self.assertFalse((self.root/'generated.props').exists())
+        original=text
+        for path in ['../outside.props','Core/Core.csproj']:
+            manifest['inputs'][0]['path']=path;self.put('inputs.json',json.dumps(manifest))
+            self.run_sync('Core/Core.csproj','--inputs',str(self.root/'inputs.json'),'--runfiles',str(runfiles),success=False)
+            self.assertEqual(original,(self.root/'projects.generated.bzl').read_text())
+
+    def test_explicit_reference_roles(self):
+        self.put('Core/Core.csproj', '<Project Sdk="Microsoft.NET.Sdk"><ItemGroup><Reference Include="Other"/><ProjectReference Include="../Generator/Generator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false"/></ItemGroup></Project>')
+        mapping=dict(projects={'Core/Core.csproj':dict(references={'Other':dict(role='compile',label=':other')},projectReferences={'Generator/Generator.csproj':dict(role='analyzer',label=':generator')})})
+        self.put('sync.json',json.dumps(mapping));self.run_sync('Core/Core.csproj','--mappings','sync.json')
+        text=(self.root/'projects.generated.bzl').read_text()
+        self.assertIn('"reference_projects": {":other":"Other"}',text)
+        self.assertIn('"analyzers": [":generator"]',text)
+        mapping['projects']['Core/Core.csproj']['projectReferences']['Generator/Generator.csproj']['role']='compile'
+        self.put('sync.json',json.dumps(mapping))
+        self.assertIn('role disagrees',self.run_sync('Core/Core.csproj','--mappings','sync.json',success=False))
+
+    def test_custom_document_contract(self):
+        xml='<Project Sdk="Microsoft.NET.Sdk"><Target Name="Generate" BeforeTargets="CoreCompile"/></Project>'
+        self.put('Core/Core.csproj',xml)
+        mapping=dict(projects={'Core/Core.csproj':dict(documents={'Core/Core.csproj':dict(sha256=hashlib.sha256(xml.encode()).hexdigest(),targets=['Generate'],tasks=[],inputs=[])})})
+        self.put('sync.json',json.dumps(mapping));self.run_sync('Core/Core.csproj','--mappings','sync.json')
+        original=(self.root/'projects.generated.bzl').read_text()
+        self.assertIn('# Contract Core/Core.csproj',original)
+        mapping['projects']['Core/Core.csproj']['documents']['unused.targets'] = dict(sha256='0'*64, targets=[], tasks=[], inputs=[])
+        self.put('sync.json',json.dumps(mapping))
+        self.assertIn('does not match evaluated imports',self.run_sync('Core/Core.csproj','--mappings','sync.json',success=False))
+        del mapping['projects']['Core/Core.csproj']['documents']['unused.targets']
+        self.put('sync.json',json.dumps(mapping))
+        self.put('Core/Core.csproj','<Project Sdk="Microsoft.NET.Sdk"/>')
+        self.assertIn('contract changed',self.run_sync('Core/Core.csproj','--mappings','sync.json',success=False))
+        self.put('Core/Core.csproj',xml+'\n')
+        self.assertIn('contract changed',self.run_sync('Core/Core.csproj','--mappings','sync.json',success=False))
+        self.assertEqual(original,(self.root/'projects.generated.bzl').read_text())
+
+    def test_friend_and_signing_inputs(self):
+        self.put('Core/key.snk','fixture-placeholder')
+        self.put('Core/Core.csproj','<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup><AssemblyOriginatorKeyFile>key.snk</AssemblyOriginatorKeyFile></PropertyGroup><ItemGroup><InternalsVisibleTo Include="Friend"/></ItemGroup></Project>')
+        self.run_sync('Core/Core.csproj')
+        self.assertIn('Core/key.snk',(self.root/'projects.generated.bzl').read_text())
+        (self.root/'Core/key.snk').unlink()
+        self.assertIn('Missing signing key',self.run_sync('Core/Core.csproj',success=False))
+
+    def test_package_masks_and_version_override(self):
+        self.put('Directory.Packages.props','<Project><PropertyGroup><ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally></PropertyGroup><ItemGroup><PackageVersion Include="Example" Version="2.0.0"/></ItemGroup></Project>')
+        self.put('Core/Core.csproj','<Project Sdk="Microsoft.NET.Sdk"><ItemGroup><PackageReference Include="Example" VersionOverride="1.0.0" PrivateAssets="compile" IncludeAssets="compile;runtime" ExcludeAssets="build"/></ItemGroup></Project>')
+        self.put('sync.json',json.dumps(dict(packages={'Example/1.0.0':dict(label=':example',roles=['deps'])})))
+        self.run_sync('Core/Core.csproj','--mappings','sync.json')
+        self.assertIn('"Example":"compile"',(self.root/'projects.generated.bzl').read_text())
+        self.put('Directory.Packages.props','<Project><PropertyGroup><ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally><CentralPackageVersionOverrideEnabled>false</CentralPackageVersionOverrideEnabled></PropertyGroup></Project>')
+        self.assertIn('overrides are disabled',self.run_sync('Core/Core.csproj','--mappings','sync.json',success=False))

@@ -49,6 +49,13 @@ def build_project(ctx, executable = False, test = False, restore_only = False, p
         items.extend(group[MSBuildItemsInfo].items)
         target_items.extend(group[MSBuildItemsInfo].target_items)
     public = [select_assembly(dep, ctx.attr.target_framework) for dep in ctx.attr.deps if MSBuildAssemblyInfo in dep or MSBuildProjectInfo in dep]
+    bound_projects = {}
+    for target, reference_name in ctx.attr.reference_projects.items():
+        info = select_assembly(target, ctx.attr.target_framework)
+        if reference_name != info.assembly or reference_name in bound_projects:
+            fail("reference_projects requires a unique matching assembly name: " + reference_name)
+        bound_projects[reference_name] = info.project
+        public.append(info)
     implementation = [select_assembly(dep, ctx.attr.target_framework) for dep in ctx.attr.implementation_deps]
     direct = public + implementation
     if ctx.attr.output_mode != "reference" and any([dep.output_mode == "reference" for dep in direct]):
@@ -76,8 +83,8 @@ def build_project(ctx, executable = False, test = False, restore_only = False, p
     private_packages = {key.lower(): value.lower() for key, value in ctx.attr.package_private_assets.items()}
     direct_package_ids = {dep[MSBuildPackageInfo].id.lower(): True for dep in package_targets}
     for key, value in private_packages.items():
-        if key not in direct_package_ids or value not in ["all", "none"]:
-            fail("package_private_assets requires a direct package and all or none: " + key)
+        if key not in direct_package_ids or any([part.strip() not in ["all", "none", "compile", "runtime", "native", "contentfiles", "analyzers", "build", "buildtransitive", "buildmultitargeting"] for part in value.split(";")]):
+            fail("package_private_assets requires a direct package and a valid asset mask: " + key)
     exported_compile_packages = depset([dep[MSBuildPackageInfo].id for dep in compile_targets if private_packages.get(dep[MSBuildPackageInfo].id.lower(), "none") != "all"], transitive = [dep.compile_packages for dep in public])
     package_rows = {}
     for dep in package_targets:
@@ -158,6 +165,7 @@ def build_project(ctx, executable = False, test = False, restore_only = False, p
         dependency_properties[tool.project] = tool.properties
     ctx.actions.write(request, json.encode({
         "restoreKey": restore_key(ctx.attr.target_framework, ctx.attr.target_framework, _configuration(ctx), ctx.attr.msbuild_properties),
+        "implementationReferences": [dep.project for dep in direct if dep.implementation_reference],
         "implementationDependencies": [dep.project for dep in implementation],
         "assemblySelections": selected.checks,
         "profileBuild": ctx.attr.profile_build,
@@ -166,7 +174,8 @@ def build_project(ctx, executable = False, test = False, restore_only = False, p
         "restoreProjectOutput": restore_project.path if restore_project else None,
         "restoreProjects": [file.path for file in restore_projects.to_list()],
         "project": _file(project),
-        "sources": [_file(file) for file in ctx.files.srcs],
+        "referenceProjects": bound_projects,
+        "sources": [_file(file) for file in ctx.files.srcs] + _mapped_imports(ctx, ctx.attr.source_paths),
         "directories": ctx.attr.directories,
         "imports": [_file(file) for file in ctx.files.msbuild_imports] + _mapped_imports(ctx),
         "referencePackages": [dep[MSBuildPackageInfo].id for dep in ctx.attr.reference_packages],
@@ -233,7 +242,7 @@ def build_project(ctx, executable = False, test = False, restore_only = False, p
         arguments = arguments,
         tools = depset([tc.runner, tc.worker_tools], transitive = [tc.sdk, tc.runner_support]) if ctx.attr.linux_worker else [],
         inputs = depset(
-            [project, request, tc.runner, tc.runtime_manifest] + selected.files + ctx.files.srcs + ctx.files.msbuild_imports + ctx.files.import_paths + ctx.files.adapter_imports + ([restore.file] if restore else []),
+            [project, request, tc.runner, tc.runtime_manifest] + selected.files + ctx.files.srcs + ctx.files.source_paths + ctx.files.msbuild_imports + ctx.files.import_paths + ctx.files.adapter_imports + ([restore.file] if restore else []),
             transitive = [depset([p.assembly.reference if p.artifact == "reference" else p.assembly.runtime for p in project_outputs]), depset([dep.runtime for dep in analyzer_projects] + [row.directory for dep in analyzer_projects for row in dep.runtime_packages.to_list()], transitive = [dep.runtimes for dep in analyzer_projects]), tc.sdk, tc.runner_support, compiler_references, runtime_only_references, pack_files, depset([target[MSBuildLayoutInfo].directory for target in ctx.attr.layout_bindings]), package_files, restore_projects] + [group[MSBuildItemsInfo].files for group in ctx.attr.items] + [tool.files for tool in build_tools],
         ),
         outputs = ([diagnostics] + generated.values()) if generate else [reference, runtime, diagnostics] + ([identity] if identity else []) + ([restore_project] if restore_project else []) + ([target_output] if target_output else []),
@@ -258,6 +267,7 @@ def build_project(ctx, executable = False, test = False, restore_only = False, p
         properties = ctx.attr.msbuild_properties,
         assembly = name,
         output_mode = ctx.attr.output_mode,
+        implementation_reference = ctx.attr.output_mode == "implementation",
         identity = identity,
         reference = reference,
         references = exported_references,

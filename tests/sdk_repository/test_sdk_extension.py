@@ -52,5 +52,9 @@ class SdkExtension(unittest.TestCase):
     def test_non_sdk_fields_rejected(self):
         self.check(contents='{"sdk":{"version":"10.0.400"},"test":{"runner":"Microsoft.Testing.Platform"}}',error='Unsupported global.json field: test')
 
+    def test_msbuild_sdks(self):
+        self.check(contents='{"sdk":{"version":"10.0.400"},"msbuild-sdks":{"Example.Sdk":"1.0.0"}}')
+        self.check(contents='{"sdk":{"version":"10.0.400"},"msbuild-sdks":{"Example.Sdk":42}}',error="msbuild-sdks")
+
     def test_unknown_pin(self):
         self.check('version="99.0.100"',error='Unknown pinned SDK version')

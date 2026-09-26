@@ -125,6 +125,7 @@ internal static class ProjectCompilation
 
         ProjectAnalyzers.Validate(s, evaluated);
         ReferencePackages.Validate(r, evaluated);
+        ReferenceProjects.Validate(r, evaluated);
         PackageDeclarations.Validate(r, evaluated);
         var allowedReferences = FrameworkReferences.ValidateAssemblies(s, evaluated);
         allowedReferences.UnionWith(PackageAssemblyReferences.Validate(s, evaluated));

@@ -21,6 +21,10 @@ Source inspection uses these original project files plus root `Directory.Build.*
 `eng/Analyzers.targets`, `eng/testing/xunit/xunit.props` and the library-level
 imports (runtime). The inventory does not pretend XML inspection resolves conditions.
 
+The [explicit binding follow-up](project-sync-bindings.md) implements the five
+primitive blocker areas and records the post-bootstrap checkpoint. The matrix
+below describes the original inventory, before that follow-up.
+
 ## Observed first failures
 
 On macOS ARM64 with SDK 10.0.400, the unbootstrapped ASP.NET Core checkout fails

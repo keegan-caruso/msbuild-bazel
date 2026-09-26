@@ -1,0 +1,670 @@
+{
+  "scope": "Synthetic contract qualification; not upstream generated-graph build/test qualification",
+  "sdk": "10.0.400",
+  "runs": [
+    {
+      "platform": "macos-arm64",
+      "bazel": "9.2.0",
+      "bootstrap": [
+        {
+          "case": "bootstrap",
+          "exit": 0
+        },
+        {
+          "case": "run",
+          "exit": 0
+        },
+        {
+          "case": "producer-edit",
+          "exit": 0
+        },
+        {
+          "case": "check",
+          "exit": 0
+        },
+        {
+          "case": "missing-sdk",
+          "exit": 1
+        }
+      ],
+      "roles": [
+        {
+          "case": "sync",
+          "exit": 0
+        },
+        {
+          "case": "run",
+          "exit": 0
+        },
+        {
+          "case": "task-input-edit",
+          "exit": 0
+        },
+        {
+          "case": "task-body-edit",
+          "exit": 0
+        },
+        {
+          "case": "friend-body-edit",
+          "exit": 0
+        },
+        {
+          "case": "sync-signed",
+          "exit": 0
+        },
+        {
+          "case": "signed-friend",
+          "exit": 0
+        },
+        {
+          "case": "wrong-key-rejected",
+          "exit": 1
+        },
+        {
+          "case": "resync-stranger",
+          "exit": 0
+        },
+        {
+          "case": "nonfriend-rejected",
+          "exit": 1
+        },
+        {
+          "case": "contract-drift",
+          "exit": 1
+        }
+      ],
+      "implementation": [
+        {
+          "case": "sync",
+          "exit": 0
+        },
+        {
+          "case": "implementation",
+          "exit": 0
+        },
+        {
+          "case": "implementation-body-edit",
+          "exit": 0
+        },
+        {
+          "case": "resync-contract",
+          "exit": 0
+        },
+        {
+          "case": "wrong-artifact-rejected",
+          "exit": 1
+        }
+      ],
+      "assets": [
+        {
+          "case": "private-compile-runtime-visible",
+          "compile": true,
+          "run": true,
+          "rawBazelParity": true
+        },
+        {
+          "case": "private-compile-direct-rejected",
+          "compile": false,
+          "run": null,
+          "rawBazelParity": true
+        },
+        {
+          "case": "private-runtime-compile-visible",
+          "compile": true,
+          "run": false,
+          "rawBazelParity": true
+        },
+        {
+          "case": "exclude-compile",
+          "compile": false,
+          "run": null,
+          "rawBazelParity": true
+        },
+        {
+          "case": "exclude-runtime",
+          "compile": true,
+          "run": false,
+          "rawBazelParity": true
+        },
+        {
+          "case": "include-compile-only",
+          "compile": true,
+          "run": false,
+          "rawBazelParity": true
+        },
+        {
+          "case": "private-tooling-assets",
+          "compile": true,
+          "run": true,
+          "rawBazelParity": true
+        },
+        {
+          "case": "central-version-override",
+          "compile": true,
+          "run": true,
+          "rawBazelParity": true
+        }
+      ]
+    },
+    {
+      "platform": "linux-arm64",
+      "bazel": "9.2.0",
+      "bootstrapProducer": "genrule (before MSBuild producer extension)",
+      "bootstrap": [
+        {
+          "case": "bootstrap",
+          "exit": 0
+        },
+        {
+          "case": "run",
+          "exit": 0
+        },
+        {
+          "case": "producer-edit",
+          "exit": 0
+        },
+        {
+          "case": "check",
+          "exit": 0
+        },
+        {
+          "case": "missing-sdk",
+          "exit": 1
+        }
+      ],
+      "roles": "Unsigned task/friend controls; signing qualified separately on 8.8.0",
+      "roleCases": [
+        {
+          "case": "sync",
+          "exit": 0
+        },
+        {
+          "case": "run",
+          "exit": 0
+        },
+        {
+          "case": "task-input-edit",
+          "exit": 0
+        },
+        {
+          "case": "task-body-edit",
+          "exit": 0
+        },
+        {
+          "case": "friend-body-edit",
+          "exit": 0
+        },
+        {
+          "case": "resync-stranger",
+          "exit": 0
+        },
+        {
+          "case": "nonfriend-rejected",
+          "exit": 1
+        },
+        {
+          "case": "contract-drift",
+          "exit": 1
+        }
+      ],
+      "implementation": [
+        {
+          "case": "sync",
+          "exit": 0
+        },
+        {
+          "case": "implementation",
+          "exit": 0
+        },
+        {
+          "case": "implementation-body-edit",
+          "exit": 0
+        },
+        {
+          "case": "resync-contract",
+          "exit": 0
+        },
+        {
+          "case": "wrong-artifact-rejected",
+          "exit": 1
+        }
+      ],
+      "assets": [
+        {
+          "case": "private-compile-runtime-visible",
+          "compile": true,
+          "run": true,
+          "rawBazelParity": true
+        },
+        {
+          "case": "private-compile-direct-rejected",
+          "compile": false,
+          "run": null,
+          "rawBazelParity": true
+        },
+        {
+          "case": "private-runtime-compile-visible",
+          "compile": true,
+          "run": false,
+          "rawBazelParity": true
+        },
+        {
+          "case": "exclude-compile",
+          "compile": false,
+          "run": null,
+          "rawBazelParity": true
+        },
+        {
+          "case": "exclude-runtime",
+          "compile": true,
+          "run": false,
+          "rawBazelParity": true
+        },
+        {
+          "case": "include-compile-only",
+          "compile": true,
+          "run": false,
+          "rawBazelParity": true
+        },
+        {
+          "case": "private-tooling-assets",
+          "compile": true,
+          "run": true,
+          "rawBazelParity": true
+        },
+        {
+          "case": "central-version-override",
+          "compile": true,
+          "run": true,
+          "rawBazelParity": true
+        }
+      ]
+    },
+    {
+      "platform": "linux-arm64",
+      "bazel": "8.8.0",
+      "storage": "native guest filesystem",
+      "bootstrapProducer": "msbuild_generate props/resource plus source genrule",
+      "bootstrap": [
+        {
+          "case": "bootstrap",
+          "exit": 0
+        },
+        {
+          "case": "run",
+          "exit": 0
+        },
+        {
+          "case": "producer-edit",
+          "exit": 0
+        },
+        {
+          "case": "check",
+          "exit": 0
+        },
+        {
+          "case": "missing-sdk",
+          "exit": 1
+        }
+      ],
+      "roles": [
+        {
+          "case": "sync",
+          "exit": 0
+        },
+        {
+          "case": "run",
+          "exit": 0
+        },
+        {
+          "case": "task-input-edit",
+          "exit": 0
+        },
+        {
+          "case": "task-body-edit",
+          "exit": 0
+        },
+        {
+          "case": "friend-body-edit",
+          "exit": 0
+        },
+        {
+          "case": "sync-signed",
+          "exit": 0
+        },
+        {
+          "case": "signed-friend",
+          "exit": 0
+        },
+        {
+          "case": "wrong-key-rejected",
+          "exit": 1
+        },
+        {
+          "case": "resync-stranger",
+          "exit": 0
+        },
+        {
+          "case": "nonfriend-rejected",
+          "exit": 1
+        },
+        {
+          "case": "contract-drift",
+          "exit": 1
+        }
+      ],
+      "implementation": [
+        {
+          "case": "sync",
+          "exit": 0
+        },
+        {
+          "case": "implementation",
+          "exit": 0
+        },
+        {
+          "case": "implementation-body-edit",
+          "exit": 0
+        },
+        {
+          "case": "resync-contract",
+          "exit": 0
+        },
+        {
+          "case": "wrong-artifact-rejected",
+          "exit": 1
+        }
+      ]
+    }
+  ],
+  "upstreamEvaluation": [
+    {
+      "repository": "aspnet",
+      "project": "src/ObjectPool/src/Microsoft.Extensions.ObjectPool.csproj",
+      "framework": "net10.0",
+      "customDocumentCount": 19,
+      "itemKinds": [
+        "_CompilationOnlyReference",
+        "_LatestRuntimePackageReference",
+        "_OriginalReferences",
+        "_TransitiveExternalAspNetCoreAppReference",
+        "AspNetCoreAppReference",
+        "AspNetCoreAppReferenceAndPackage",
+        "AspNetCoreShippingAssembly",
+        "Compile",
+        "CreateDirectory",
+        "ExternalAspNetCoreAppReference",
+        "InternalsVisibleTo",
+        "LatestPackageReference",
+        "None",
+        "PackageReference",
+        "ProjectReferenceProvider",
+        "Reference",
+        "RemoteAssetBaseURL",
+        "RequiresDelayedBuild"
+      ],
+      "bareReferences": [
+        "Microsoft.CodeAnalysis.PublicApiAnalyzers"
+      ],
+      "projectReferences": [],
+      "missingSources": []
+    },
+    {
+      "repository": "aspnet",
+      "project": "src/ObjectPool/test/Microsoft.Extensions.ObjectPool.Tests.csproj",
+      "framework": "net10.0",
+      "customDocumentCount": 22,
+      "itemKinds": [
+        "_ImplicitPackageReference",
+        "_LatestRuntimePackageReference",
+        "_OriginalReferences",
+        "_TestArchitectureItems",
+        "_TransitiveExternalAspNetCoreAppReference",
+        "AspNetCoreAppReference",
+        "AspNetCoreAppReferenceAndPackage",
+        "AspNetCoreShippingAssembly",
+        "Compile",
+        "Content",
+        "ContentWithTargetPath",
+        "CreateDirectory",
+        "ExternalAspNetCoreAppReference",
+        "HelixAvailablePlatform",
+        "HelixAvailableTargetQueue",
+        "HelixContent",
+        "HelixProjectPlatform",
+        "LatestPackageReference",
+        "PackageReference",
+        "ProjectReference",
+        "ProjectReferenceProvider",
+        "Reference",
+        "RemoteAssetBaseURL",
+        "RequiresDelayedBuild",
+        "Service"
+      ],
+      "bareReferences": [
+        "Moq",
+        "NETStandard.Library"
+      ],
+      "projectReferences": [
+        "src/Testing/src/Microsoft.AspNetCore.InternalTesting.csproj",
+        "src/ObjectPool/src/Microsoft.Extensions.ObjectPool.csproj"
+      ],
+      "missingSources": []
+    },
+    {
+      "repository": "aspnet",
+      "project": "src/Http/Http.Abstractions/src/Microsoft.AspNetCore.Http.Abstractions.csproj",
+      "framework": "net10.0",
+      "customDocumentCount": 19,
+      "itemKinds": [
+        "_LatestRuntimePackageReference",
+        "_OriginalReferences",
+        "_TransitiveExternalAspNetCoreAppReference",
+        "AspNetCoreAppReference",
+        "AspNetCoreAppReferenceAndPackage",
+        "AspNetCoreShippingAssembly",
+        "Compile",
+        "CreateDirectory",
+        "ExternalAspNetCoreAppReference",
+        "InternalsVisibleTo",
+        "LatestPackageReference",
+        "PackageReference",
+        "ProjectReference",
+        "ProjectReferenceProvider",
+        "Reference",
+        "RemoteAssetBaseURL",
+        "RequiresDelayedBuild",
+        "Service"
+      ],
+      "bareReferences": [
+        "Microsoft.Extensions.Logging.Abstractions",
+        "Microsoft.Extensions.DependencyInjection.Abstractions",
+        "Microsoft.CodeAnalysis.PublicApiAnalyzers"
+      ],
+      "projectReferences": [
+        "src/Http/Http.Features/src/Microsoft.AspNetCore.Http.Features.csproj",
+        "src/Http/Headers/src/Microsoft.Net.Http.Headers.csproj"
+      ],
+      "missingSources": []
+    },
+    {
+      "repository": "runtime",
+      "project": "src/libraries/System.IO.Pipelines/src/System.IO.Pipelines.csproj",
+      "framework": "net10.0",
+      "customDocumentCount": 24,
+      "itemKinds": [
+        "_CrossToolSubset",
+        "_frameworkProjectReference",
+        "_projectReferenceWithFilename",
+        "_ProjectReferenceWithOriginalIdentity",
+        "AdditionalLibPackageExcludes",
+        "AdditionalSymbolPackageExcludes",
+        "ApiCompatContractAssemblyReferences",
+        "ApiCompatExcludeAttributesFile",
+        "ApiCompatLeftAssembliesTransformationPattern",
+        "ApiCompatRightAssembliesTransformationPattern",
+        "AspNetCoreAppLibrary",
+        "AssemblyAttribute",
+        "BinPlaceTargetFrameworks",
+        "Compile",
+        "CompilerVisibleProperty",
+        "CorehostProjectToBuild",
+        "CoverageExcludeByFile",
+        "CoverageIncludeDirectory",
+        "EditorConfigFiles",
+        "EmbeddedResource",
+        "ILLinkSubstitutionsXmls",
+        "InstallerProjectToBuild",
+        "NetCoreAppLibrary",
+        "NetCoreAppLibraryGenerator",
+        "NetFxReference",
+        "NETStandardCompatError",
+        "None",
+        "PackageDownload",
+        "PackageReference",
+        "PkgprojProjectToBuild",
+        "ProjectExclusions",
+        "ProjectReference",
+        "ProjectToBuild",
+        "SharedFrameworkProjectToBuild",
+        "SourceRoot",
+        "SubsetName",
+        "SupportedNETCoreAppTargetFramework",
+        "SupportedPlatform",
+        "TestProjectToBuild",
+        "WindowsDesktopCoreAppLibrary",
+        "WorkloadSdkBandVersions"
+      ],
+      "bareReferences": [],
+      "projectReferences": [
+        "src/libraries/System.Collections/src/System.Collections.csproj",
+        "src/libraries/System.Memory/src/System.Memory.csproj",
+        "src/libraries/System.Runtime/src/System.Runtime.csproj",
+        "src/libraries/System.Threading/src/System.Threading.csproj",
+        "src/libraries/System.Threading.ThreadPool/src/System.Threading.ThreadPool.csproj",
+        "src/libraries/System.IO.Pipelines/ref/System.IO.Pipelines.csproj",
+        "src/tools/illink/src/ILLink.Tasks/ILLink.Tasks.csproj",
+        "src/tools/illink/src/ILLink.RoslynAnalyzer/ILLink.RoslynAnalyzer.csproj"
+      ],
+      "missingSources": []
+    },
+    {
+      "repository": "runtime",
+      "project": "src/libraries/System.IO.Pipelines/tests/System.IO.Pipelines.Tests.csproj",
+      "framework": "net10.0",
+      "customDocumentCount": 23,
+      "itemKinds": [
+        "_CrossToolSubset",
+        "_frameworkProjectReference",
+        "_projectReferenceExcludedWithFilename",
+        "_projectReferenceWithFilename",
+        "_ProjectReferenceWithOriginalIdentity",
+        "AdditionalLibPackageExcludes",
+        "AdditionalSymbolPackageExcludes",
+        "AspNetCoreAppLibrary",
+        "AssemblyAttribute",
+        "BinPlaceTargetFrameworks",
+        "Compile",
+        "CompilerVisibleProperty",
+        "CorehostProjectToBuild",
+        "CoverageExcludeByFile",
+        "CoverageIncludeDirectory",
+        "EditorConfigFiles",
+        "InstallerProjectToBuild",
+        "MonoAotCrossCompiler",
+        "NetCoreAppLibrary",
+        "NetCoreAppLibraryGenerator",
+        "NetFxReference",
+        "None",
+        "PackageReference",
+        "PkgprojProjectToBuild",
+        "ProjectExclusions",
+        "ProjectReference",
+        "ProjectToBuild",
+        "SetScriptCommands",
+        "SharedFrameworkProjectToBuild",
+        "SourceRoot",
+        "SubsetName",
+        "SupportedNETCoreAppTargetFramework",
+        "SupportedPlatform",
+        "TestProjectToBuild",
+        "WindowsDesktopCoreAppLibrary",
+        "WorkloadSdkBandVersions"
+      ],
+      "bareReferences": [],
+      "projectReferences": [
+        "src/libraries/Common/tests/TestUtilities/TestUtilities.csproj",
+        "src/libraries/System.IO.Pipelines/src/System.IO.Pipelines.csproj",
+        "src/libraries/Common/tests/StreamConformanceTests/StreamConformanceTests.csproj"
+      ],
+      "missingSources": []
+    },
+    {
+      "repository": "runtime",
+      "project": "src/libraries/System.Collections.Immutable/src/System.Collections.Immutable.csproj",
+      "framework": "net10.0",
+      "customDocumentCount": 24,
+      "itemKinds": [
+        "_CrossToolSubset",
+        "_frameworkProjectReference",
+        "_projectReferenceExcludedWithFilename",
+        "_projectReferenceWithFilename",
+        "_ProjectReferenceWithOriginalIdentity",
+        "AdditionalLibPackageExcludes",
+        "AdditionalSymbolPackageExcludes",
+        "ApiCompatContractAssemblyReferences",
+        "ApiCompatExcludeAttributesFile",
+        "ApiCompatLeftAssembliesTransformationPattern",
+        "ApiCompatRightAssembliesTransformationPattern",
+        "AspNetCoreAppLibrary",
+        "AssemblyAttribute",
+        "BinPlaceTargetFrameworks",
+        "Compile",
+        "CompilerVisibleProperty",
+        "CorehostProjectToBuild",
+        "CoverageExcludeByFile",
+        "CoverageIncludeDirectory",
+        "EditorConfigFiles",
+        "EmbeddedResource",
+        "EnabledGenerators",
+        "ILLinkSubstitutionsXmls",
+        "InstallerProjectToBuild",
+        "NetCoreAppLibrary",
+        "NetCoreAppLibraryGenerator",
+        "NetFxReference",
+        "NETStandardCompatError",
+        "None",
+        "PackageDownload",
+        "PackageReference",
+        "PkgprojProjectToBuild",
+        "ProjectExclusions",
+        "ProjectReference",
+        "ProjectToBuild",
+        "SharedFrameworkProjectToBuild",
+        "SourceRoot",
+        "SubsetName",
+        "SupportedNETCoreAppTargetFramework",
+        "SupportedPlatform",
+        "TestProjectToBuild",
+        "WindowsDesktopCoreAppLibrary",
+        "WorkloadSdkBandVersions"
+      ],
+      "bareReferences": [],
+      "projectReferences": [
+        "src/libraries/System.Collections/src/System.Collections.csproj",
+        "src/libraries/System.Linq/src/System.Linq.csproj",
+        "src/libraries/System.Memory/src/System.Memory.csproj",
+        "src/libraries/System.Runtime/src/System.Runtime.csproj",
+        "src/libraries/System.Runtime.InteropServices/src/System.Runtime.InteropServices.csproj",
+        "src/libraries/System.Threading/src/System.Threading.csproj",
+        "src/libraries/System.Runtime.InteropServices/gen/Microsoft.Interop.SourceGeneration/Microsoft.Interop.SourceGeneration.csproj",
+        "src/libraries/System.Runtime.InteropServices/gen/LibraryImportGenerator/LibraryImportGenerator.csproj",
+        "src/libraries/System.Runtime.InteropServices/gen/ComInterfaceGenerator/ComInterfaceGenerator.csproj",
+        "src/libraries/System.Collections.Immutable/ref/System.Collections.Immutable.csproj",
+        "src/tools/illink/src/ILLink.Tasks/ILLink.Tasks.csproj",
+        "src/tools/illink/src/ILLink.RoslynAnalyzer/ILLink.RoslynAnalyzer.csproj"
+      ],
+      "missingSources": []
+    }
+  ]
+}

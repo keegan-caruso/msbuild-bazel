@@ -1,6 +1,6 @@
 """Declared items, project outputs and build tool bindings."""
 
-load(":paths.bzl", _file = "input_file")
+load(":paths.bzl", _file = "input_file", _mapped = "mapped_imports")
 load(":providers.bzl", "MSBuildAssemblyInfo", "MSBuildBindingInfo", "MSBuildItemsInfo", "MSBuildProjectOutputInfo", "MSBuildToolInfo")
 
 def _project_output(ctx):
@@ -55,13 +55,16 @@ msbuild_file_binding = rule(
 
 def _items(ctx):
     rows = [{"type": ctx.attr.item_type, "file": _file(file), "metadata": ctx.attr.metadata} for file in ctx.files.srcs]
-    return [DefaultInfo(files = depset(ctx.files.srcs)), MSBuildItemsInfo(items = rows, files = depset(ctx.files.srcs), target_items = [])]
+    rows.extend([{"type": ctx.attr.item_type, "file": file, "metadata": ctx.attr.metadata} for file in _mapped(ctx, ctx.attr.paths)])
+    files = depset(ctx.files.srcs + ctx.files.paths)
+    return [DefaultInfo(files = files), MSBuildItemsInfo(items = rows, files = files, target_items = [])]
 
 msbuild_items = rule(
     implementation = _items,
     attrs = {
         "item_type": attr.string(mandatory = True),
         "srcs": attr.label_list(allow_files = True),
+        "paths": attr.label_keyed_string_dict(allow_files = True),
         "metadata": attr.string_dict(),
     },
 )
