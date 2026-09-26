@@ -193,7 +193,9 @@ visibility.
 ### 9. Improve incremental API edits across a broader scenario matrix
 
 **In progress:** [reference-boundary matrix and sync fix](reference-invalidation.md)
-are complete; broader upstream API-edit profiling remains. Body and API edit latency is
+are complete. The [Orchard follow-up](orchard-reference-boundaries.md) confirms
+transitive-reference requirements and measures content-dependent asset-path churn;
+fixing those boundaries and broader upstream API-edit profiling remain. Body and API edit latency is
 our primary performance goal; cold builds are secondary. Start from the paired
 [Orchard results](project-sync-workflow-costs.md), where body edits beat raw MSBuild
 but the single broad API edit takes 4.82× its time. Do not generalize that one case.

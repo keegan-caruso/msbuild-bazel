@@ -1,0 +1,1117 @@
+{
+  "platform": "Ubuntu 22.04 Linux ARM64 in Apple Container",
+  "sdk": "10.0.400",
+  "cpus": 6,
+  "memoryGiB": 10,
+  "jobs": 2,
+  "workers": 1,
+  "actionCaches": "disk and remote disabled",
+  "timingScope": "Single diagnostic samples; some independent runs overlapped. Not performance qualification.",
+  "sourceSha256": {
+    "msbuild/private/project.bzl": "1b6fc06684b0eacb93a88b3c6cac80529d6fa7047cd6682b374998289583edd5",
+    "tools/ExplicitBuild/BuildRequest.cs": "f69e8033cc9db32ab9f2358c3c73b3c5edf53bb9651271e1a000c44de9618608",
+    "tools/ExplicitBuild/StableWorkerPaths.cs": "3b2980fd0b353625c53b1060ac6e60900a7b77e4d1b79c8d165c69280ea06ae5",
+    "tools/ExplicitBuild/LinuxWorker.cs": "c946599b5b227f175650a0c93105e78caa3398c2b1cc66467bf3934424090585",
+    "tools/ExplicitBuild/ProjectCompilation.cs": "faeb8cf4aeedcafe8a7f3ddadeb87125b025198e7f405332c648bac94532f49c",
+    "tools/ExplicitBuild/Program.cs": "b4e193517f8260a4ae3c1253a469b331500c0e8e9d94706ae38c2a60c0c7a6db",
+    "tests/explicit_msbuild/stable_worker_projects.py": "32105adfb2c1530d27e1a157549096d07a12e07e11741d7e4eda3ccc99275a4b"
+  },
+  "runs": [
+    {
+      "bazel": "9.2.0",
+      "legacy": true,
+      "transitive": false,
+      "sameWorker": true,
+      "baselineReferences": {
+        "C": "13613e2468c250d2070cc71bfe07e019fef0d8801fa5abdc99347b88b20a44a1",
+        "B": "a57316c194c4f7e9873092d8d1c4af44d85cc9d1f9e32a1658fa629a27833476",
+        "A": "f0223afa5529f5f14d30b7aa33a2174207513e60e1ecb2f23325e44ee69c0cab",
+        "Fan": "2c3119e2d9670b7b326a363ba165efaed3d3e2adefdb3219257b5f4ae61c168e"
+      },
+      "baselinePayloads": {
+        "C": {
+          "C.dll": "8d9fab4bff807ad08e0376724ec0ccdc0846dd88b1684255e962259245f0d267",
+          "C.pdb": "449558aa734bc764d69be9c4dd1a42ec2bf0e8ab7f4d187b9c2fbcabc25f470a"
+        },
+        "B": {
+          "B.dll": "c25642dd2ec0f257117c9dcb3159a8b6ccf913c518768476f28a07aa8387afbb",
+          "B.pdb": "255a0e9eef35c143b0a210e690127899ae242b8fdb9836d46fa4f67506baec17"
+        },
+        "A": {
+          "A.dll": "89e09efccafa9248a3e729f82c260c0beff9fc85168912b75ca531655e3dae4d",
+          "A.pdb": "d3f6e6e5669138e196b9a2837a9d8d1dc578042c4f4d0c492c26922fa2e08658"
+        },
+        "Fan": {
+          "Fan.dll": "c686826803ab66fac1cd666d514feb539caaf149d09c94994dd175778aef635e",
+          "Fan.pdb": "598c3996c32d0c8ca168131f0a7d6161bbf5a2b1e1416de13c4611d65b4c2d12"
+        }
+      },
+      "cases": [
+        {
+          "case": "baseline",
+          "seconds": 12.416,
+          "compiled": [
+            "A",
+            "B",
+            "C",
+            "Fan",
+            "Test",
+            "Unrelated"
+          ],
+          "testExecuted": true,
+          "exitCode": 0,
+          "referenceChanged": {
+            "C": false,
+            "B": false,
+            "A": false,
+            "Fan": false
+          }
+        },
+        {
+          "case": "noop",
+          "seconds": 0.206,
+          "compiled": [],
+          "testExecuted": false,
+          "exitCode": 0,
+          "referenceChanged": {
+            "C": false,
+            "B": false,
+            "A": false,
+            "Fan": false
+          }
+        },
+        {
+          "case": "body",
+          "seconds": 0.607,
+          "compiled": [
+            "C"
+          ],
+          "testExecuted": true,
+          "exitCode": 3,
+          "referenceChanged": {
+            "C": false,
+            "B": false,
+            "A": false,
+            "Fan": false
+          }
+        },
+        {
+          "case": "body-revert",
+          "seconds": 0.459,
+          "compiled": [
+            "C"
+          ],
+          "testExecuted": true,
+          "exitCode": 0,
+          "referenceChanged": {
+            "C": false,
+            "B": false,
+            "A": false,
+            "Fan": false
+          }
+        },
+        {
+          "case": "unused-api",
+          "seconds": 1.129,
+          "compiled": [
+            "A",
+            "B",
+            "C",
+            "Fan",
+            "Test"
+          ],
+          "testExecuted": true,
+          "exitCode": 0,
+          "referenceChanged": {
+            "C": true,
+            "B": true,
+            "A": false,
+            "Fan": false
+          }
+        },
+        {
+          "case": "propagated-constant",
+          "seconds": 1.175,
+          "compiled": [
+            "A",
+            "B",
+            "C",
+            "Fan",
+            "Test"
+          ],
+          "testExecuted": true,
+          "exitCode": 0,
+          "referenceChanged": {
+            "C": true,
+            "B": true,
+            "A": true,
+            "Fan": true
+          }
+        }
+      ]
+    },
+    {
+      "bazel": "9.2.0",
+      "legacy": false,
+      "transitive": false,
+      "sameWorker": true,
+      "baselineReferences": {
+        "C": "13613e2468c250d2070cc71bfe07e019fef0d8801fa5abdc99347b88b20a44a1",
+        "B": "b33aeb481965bc41ab37cb739e8c8e0291c5932d0fa8da0deba3923e5b14deec",
+        "A": "f0223afa5529f5f14d30b7aa33a2174207513e60e1ecb2f23325e44ee69c0cab",
+        "Fan": "2c3119e2d9670b7b326a363ba165efaed3d3e2adefdb3219257b5f4ae61c168e"
+      },
+      "baselinePayloads": {
+        "C": {
+          "C.dll": "8d9fab4bff807ad08e0376724ec0ccdc0846dd88b1684255e962259245f0d267",
+          "C.pdb": "449558aa734bc764d69be9c4dd1a42ec2bf0e8ab7f4d187b9c2fbcabc25f470a"
+        },
+        "B": {
+          "B.dll": "8e869cb0c32b6c4e05241191c4391e54d87d284056813f9f793ef70295c59b39",
+          "B.pdb": "42940d674f29e2b95c6a3ab67b95e5f55bf502e7ec4f934858d50f9e0af0702e"
+        },
+        "A": {
+          "A.dll": "83b7362bdba8343f4c6496053607322fd75754565edd486a647bff32cc7600da",
+          "A.pdb": "3f935677333602c9d6fb4b0b77d2bd1e8c1ef018cad421c0173666767461a728"
+        },
+        "Fan": {
+          "Fan.dll": "d3fef0579f3b8883a3d8255e440d753e98e55f5161b9d69d3cf869f3b2d4c918",
+          "Fan.pdb": "799e7286904d7f3b44ba152a40e275d6d560526655ebcabe74faa35ec52e85eb"
+        }
+      },
+      "cases": [
+        {
+          "case": "baseline",
+          "seconds": 13.215,
+          "compiled": [
+            "A",
+            "B",
+            "C",
+            "Fan",
+            "Test",
+            "Unrelated"
+          ],
+          "testExecuted": true,
+          "exitCode": 0,
+          "referenceChanged": {
+            "C": false,
+            "B": false,
+            "A": false,
+            "Fan": false
+          }
+        },
+        {
+          "case": "noop",
+          "seconds": 0.392,
+          "compiled": [],
+          "testExecuted": false,
+          "exitCode": 0,
+          "referenceChanged": {
+            "C": false,
+            "B": false,
+            "A": false,
+            "Fan": false
+          }
+        },
+        {
+          "case": "body",
+          "seconds": 0.98,
+          "compiled": [
+            "C"
+          ],
+          "testExecuted": true,
+          "exitCode": 3,
+          "referenceChanged": {
+            "C": false,
+            "B": false,
+            "A": false,
+            "Fan": false
+          }
+        },
+        {
+          "case": "body-revert",
+          "seconds": 0.974,
+          "compiled": [
+            "C"
+          ],
+          "testExecuted": true,
+          "exitCode": 0,
+          "referenceChanged": {
+            "C": false,
+            "B": false,
+            "A": false,
+            "Fan": false
+          }
+        },
+        {
+          "case": "unused-api",
+          "seconds": 1.027,
+          "compiled": [
+            "B",
+            "C",
+            "Test"
+          ],
+          "testExecuted": true,
+          "exitCode": 0,
+          "referenceChanged": {
+            "C": true,
+            "B": false,
+            "A": false,
+            "Fan": false
+          }
+        },
+        {
+          "case": "propagated-constant",
+          "seconds": 2.215,
+          "compiled": [
+            "A",
+            "B",
+            "C",
+            "Fan",
+            "Test"
+          ],
+          "testExecuted": true,
+          "exitCode": 0,
+          "referenceChanged": {
+            "C": true,
+            "B": true,
+            "A": true,
+            "Fan": true
+          }
+        },
+        {
+          "case": "same-size-time-import",
+          "seconds": 0.558,
+          "compiled": [
+            "B"
+          ],
+          "testExecuted": true,
+          "exitCode": 0,
+          "referenceChanged": {
+            "C": true,
+            "B": true,
+            "A": true,
+            "Fan": true
+          }
+        },
+        {
+          "case": "resource-content",
+          "seconds": 0.63,
+          "compiled": [
+            "B"
+          ],
+          "testExecuted": true,
+          "exitCode": 0,
+          "referenceChanged": {
+            "C": true,
+            "B": true,
+            "A": true,
+            "Fan": true
+          }
+        },
+        {
+          "case": "resource-removed",
+          "seconds": 2.296,
+          "compiled": [
+            "A",
+            "B",
+            "Fan",
+            "Test"
+          ],
+          "testExecuted": true,
+          "exitCode": 0,
+          "referenceChanged": {
+            "C": true,
+            "B": true,
+            "A": true,
+            "Fan": true
+          }
+        },
+        {
+          "case": "resource-readded",
+          "seconds": 1.501,
+          "compiled": [
+            "A",
+            "B",
+            "Fan",
+            "Test"
+          ],
+          "testExecuted": true,
+          "exitCode": 0,
+          "referenceChanged": {
+            "C": true,
+            "B": true,
+            "A": true,
+            "Fan": true
+          }
+        },
+        {
+          "case": "resource-rename",
+          "seconds": 2.303,
+          "compiled": [
+            "A",
+            "B",
+            "Fan",
+            "Test"
+          ],
+          "testExecuted": true,
+          "exitCode": 0,
+          "referenceChanged": {
+            "C": true,
+            "B": true,
+            "A": true,
+            "Fan": true
+          }
+        },
+        {
+          "case": "invalid-xml",
+          "seconds": 0.268,
+          "compiled": [
+            "B"
+          ],
+          "testExecuted": false,
+          "exitCode": 1,
+          "referenceChanged": {
+            "C": true,
+            "A": true,
+            "Fan": true
+          }
+        },
+        {
+          "case": "xml-recovered",
+          "seconds": 0.512,
+          "compiled": [
+            "B"
+          ],
+          "testExecuted": true,
+          "exitCode": 0,
+          "referenceChanged": {
+            "C": true,
+            "B": true,
+            "A": true,
+            "Fan": true
+          }
+        },
+        {
+          "case": "exposed-producer",
+          "seconds": 1.446,
+          "compiled": [
+            "A",
+            "B",
+            "C",
+            "Fan",
+            "Test"
+          ],
+          "testExecuted": true,
+          "exitCode": 0,
+          "referenceChanged": {
+            "C": true,
+            "B": true,
+            "A": false,
+            "Fan": false
+          }
+        },
+        {
+          "case": "missing-required-reference",
+          "seconds": 0.554,
+          "compiled": [
+            "A"
+          ],
+          "testExecuted": false,
+          "exitCode": 1,
+          "referenceChanged": {
+            "C": true,
+            "B": true,
+            "Fan": false
+          }
+        },
+        {
+          "case": "explicit-reference-repair",
+          "seconds": 1.394,
+          "compiled": [
+            "A",
+            "Test"
+          ],
+          "testExecuted": true,
+          "exitCode": 0,
+          "referenceChanged": {
+            "C": true,
+            "B": true,
+            "A": true,
+            "Fan": false
+          }
+        },
+        {
+          "case": "custom-task-rejected",
+          "seconds": 0.173,
+          "compiled": [
+            "B"
+          ],
+          "testExecuted": false,
+          "exitCode": 1,
+          "referenceChanged": {
+            "C": true,
+            "A": true,
+            "Fan": false
+          }
+        },
+        {
+          "case": "task-rejection-recovered",
+          "seconds": 0.426,
+          "compiled": [
+            "B"
+          ],
+          "testExecuted": false,
+          "exitCode": 0,
+          "referenceChanged": {
+            "C": true,
+            "B": true,
+            "A": true,
+            "Fan": false
+          }
+        }
+      ]
+    },
+    {
+      "bazel": "9.2.0",
+      "legacy": false,
+      "transitive": true,
+      "sameWorker": true,
+      "baselineReferences": {
+        "C": "13613e2468c250d2070cc71bfe07e019fef0d8801fa5abdc99347b88b20a44a1",
+        "B": "b33aeb481965bc41ab37cb739e8c8e0291c5932d0fa8da0deba3923e5b14deec",
+        "A": "f0223afa5529f5f14d30b7aa33a2174207513e60e1ecb2f23325e44ee69c0cab",
+        "Fan": "2c3119e2d9670b7b326a363ba165efaed3d3e2adefdb3219257b5f4ae61c168e"
+      },
+      "baselinePayloads": {
+        "C": {
+          "C.dll": "8d9fab4bff807ad08e0376724ec0ccdc0846dd88b1684255e962259245f0d267",
+          "C.pdb": "449558aa734bc764d69be9c4dd1a42ec2bf0e8ab7f4d187b9c2fbcabc25f470a"
+        },
+        "B": {
+          "B.dll": "8e869cb0c32b6c4e05241191c4391e54d87d284056813f9f793ef70295c59b39",
+          "B.pdb": "42940d674f29e2b95c6a3ab67b95e5f55bf502e7ec4f934858d50f9e0af0702e"
+        },
+        "A": {
+          "A.dll": "29a9a4a311c97d57ce6824a6d0a8b08f5221a0cef2e7c576d7764a06666faaab",
+          "A.pdb": "aab654e72ad103f340f6ace2ff29298227e329e975389abd0404fbbb1c677e6c"
+        },
+        "Fan": {
+          "Fan.dll": "47976bb6a0e8d642bf08036a09c3aab7d763a17ff9c0d7395c6670eeecc15a48",
+          "Fan.pdb": "aec6e09eff0fc7d99d28d18fb1c11a83cbbde3655cc323db27bf124562ca309e"
+        }
+      },
+      "cases": [
+        {
+          "case": "baseline",
+          "seconds": 18.78,
+          "compiled": [
+            "A",
+            "B",
+            "C",
+            "Fan",
+            "Test",
+            "Unrelated"
+          ],
+          "testExecuted": true,
+          "exitCode": 0,
+          "referenceChanged": {
+            "C": false,
+            "B": false,
+            "A": false,
+            "Fan": false
+          }
+        },
+        {
+          "case": "noop",
+          "seconds": 0.203,
+          "compiled": [],
+          "testExecuted": false,
+          "exitCode": 0,
+          "referenceChanged": {
+            "C": false,
+            "B": false,
+            "A": false,
+            "Fan": false
+          }
+        },
+        {
+          "case": "body",
+          "seconds": 0.686,
+          "compiled": [
+            "C"
+          ],
+          "testExecuted": true,
+          "exitCode": 3,
+          "referenceChanged": {
+            "C": false,
+            "B": false,
+            "A": false,
+            "Fan": false
+          }
+        },
+        {
+          "case": "body-revert",
+          "seconds": 0.626,
+          "compiled": [
+            "C"
+          ],
+          "testExecuted": true,
+          "exitCode": 0,
+          "referenceChanged": {
+            "C": false,
+            "B": false,
+            "A": false,
+            "Fan": false
+          }
+        },
+        {
+          "case": "unused-api",
+          "seconds": 1.546,
+          "compiled": [
+            "A",
+            "B",
+            "C",
+            "Fan",
+            "Test"
+          ],
+          "testExecuted": true,
+          "exitCode": 0,
+          "referenceChanged": {
+            "C": true,
+            "B": false,
+            "A": false,
+            "Fan": false
+          }
+        },
+        {
+          "case": "propagated-constant",
+          "seconds": 1.288,
+          "compiled": [
+            "A",
+            "B",
+            "C",
+            "Fan",
+            "Test"
+          ],
+          "testExecuted": true,
+          "exitCode": 0,
+          "referenceChanged": {
+            "C": true,
+            "B": true,
+            "A": true,
+            "Fan": true
+          }
+        },
+        {
+          "case": "same-size-time-import",
+          "seconds": 0.47,
+          "compiled": [
+            "B"
+          ],
+          "testExecuted": true,
+          "exitCode": 0,
+          "referenceChanged": {
+            "C": true,
+            "B": true,
+            "A": true,
+            "Fan": true
+          }
+        },
+        {
+          "case": "resource-content",
+          "seconds": 0.412,
+          "compiled": [
+            "B"
+          ],
+          "testExecuted": true,
+          "exitCode": 0,
+          "referenceChanged": {
+            "C": true,
+            "B": true,
+            "A": true,
+            "Fan": true
+          }
+        },
+        {
+          "case": "resource-removed",
+          "seconds": 0.938,
+          "compiled": [
+            "A",
+            "B",
+            "Fan",
+            "Test"
+          ],
+          "testExecuted": true,
+          "exitCode": 0,
+          "referenceChanged": {
+            "C": true,
+            "B": true,
+            "A": true,
+            "Fan": true
+          }
+        },
+        {
+          "case": "resource-readded",
+          "seconds": 0.958,
+          "compiled": [
+            "A",
+            "B",
+            "Fan",
+            "Test"
+          ],
+          "testExecuted": true,
+          "exitCode": 0,
+          "referenceChanged": {
+            "C": true,
+            "B": true,
+            "A": true,
+            "Fan": true
+          }
+        },
+        {
+          "case": "resource-rename",
+          "seconds": 0.946,
+          "compiled": [
+            "A",
+            "B",
+            "Fan",
+            "Test"
+          ],
+          "testExecuted": true,
+          "exitCode": 0,
+          "referenceChanged": {
+            "C": true,
+            "B": true,
+            "A": true,
+            "Fan": true
+          }
+        },
+        {
+          "case": "invalid-xml",
+          "seconds": 0.225,
+          "compiled": [
+            "B"
+          ],
+          "testExecuted": false,
+          "exitCode": 1,
+          "referenceChanged": {
+            "C": true,
+            "A": true,
+            "Fan": true
+          }
+        },
+        {
+          "case": "xml-recovered",
+          "seconds": 0.386,
+          "compiled": [
+            "B"
+          ],
+          "testExecuted": true,
+          "exitCode": 0,
+          "referenceChanged": {
+            "C": true,
+            "B": true,
+            "A": true,
+            "Fan": true
+          }
+        },
+        {
+          "case": "exposed-producer",
+          "seconds": 1.216,
+          "compiled": [
+            "A",
+            "B",
+            "C",
+            "Fan",
+            "Test"
+          ],
+          "testExecuted": true,
+          "exitCode": 0,
+          "referenceChanged": {
+            "C": true,
+            "B": true,
+            "A": false,
+            "Fan": false
+          }
+        },
+        {
+          "case": "exposed-consumer",
+          "seconds": 0.546,
+          "compiled": [
+            "A",
+            "Test"
+          ],
+          "testExecuted": true,
+          "exitCode": 0,
+          "referenceChanged": {
+            "C": true,
+            "B": true,
+            "A": true,
+            "Fan": false
+          }
+        },
+        {
+          "case": "custom-task-rejected",
+          "seconds": 0.182,
+          "compiled": [
+            "B"
+          ],
+          "testExecuted": false,
+          "exitCode": 1,
+          "referenceChanged": {
+            "C": true,
+            "A": true,
+            "Fan": false
+          }
+        },
+        {
+          "case": "task-rejection-recovered",
+          "seconds": 0.264,
+          "compiled": [
+            "B"
+          ],
+          "testExecuted": false,
+          "exitCode": 0,
+          "referenceChanged": {
+            "C": true,
+            "B": true,
+            "A": true,
+            "Fan": false
+          }
+        }
+      ]
+    },
+    {
+      "bazel": "8.8.0",
+      "legacy": false,
+      "transitive": false,
+      "sameWorker": true,
+      "baselineReferences": {
+        "C": "13613e2468c250d2070cc71bfe07e019fef0d8801fa5abdc99347b88b20a44a1",
+        "B": "b33aeb481965bc41ab37cb739e8c8e0291c5932d0fa8da0deba3923e5b14deec",
+        "A": "f0223afa5529f5f14d30b7aa33a2174207513e60e1ecb2f23325e44ee69c0cab",
+        "Fan": "2c3119e2d9670b7b326a363ba165efaed3d3e2adefdb3219257b5f4ae61c168e"
+      },
+      "baselinePayloads": {
+        "C": {
+          "C.dll": "8d9fab4bff807ad08e0376724ec0ccdc0846dd88b1684255e962259245f0d267",
+          "C.pdb": "449558aa734bc764d69be9c4dd1a42ec2bf0e8ab7f4d187b9c2fbcabc25f470a"
+        },
+        "B": {
+          "B.dll": "8e869cb0c32b6c4e05241191c4391e54d87d284056813f9f793ef70295c59b39",
+          "B.pdb": "42940d674f29e2b95c6a3ab67b95e5f55bf502e7ec4f934858d50f9e0af0702e"
+        },
+        "A": {
+          "A.dll": "83b7362bdba8343f4c6496053607322fd75754565edd486a647bff32cc7600da",
+          "A.pdb": "3f935677333602c9d6fb4b0b77d2bd1e8c1ef018cad421c0173666767461a728"
+        },
+        "Fan": {
+          "Fan.dll": "d3fef0579f3b8883a3d8255e440d753e98e55f5161b9d69d3cf869f3b2d4c918",
+          "Fan.pdb": "799e7286904d7f3b44ba152a40e275d6d560526655ebcabe74faa35ec52e85eb"
+        }
+      },
+      "cases": [
+        {
+          "case": "baseline",
+          "seconds": 13.499,
+          "compiled": [
+            "A",
+            "B",
+            "C",
+            "Fan",
+            "Test",
+            "Unrelated"
+          ],
+          "testExecuted": true,
+          "exitCode": 0,
+          "referenceChanged": {
+            "C": false,
+            "B": false,
+            "A": false,
+            "Fan": false
+          }
+        },
+        {
+          "case": "noop",
+          "seconds": 0.201,
+          "compiled": [],
+          "testExecuted": false,
+          "exitCode": 0,
+          "referenceChanged": {
+            "C": false,
+            "B": false,
+            "A": false,
+            "Fan": false
+          }
+        },
+        {
+          "case": "body",
+          "seconds": 0.674,
+          "compiled": [
+            "C"
+          ],
+          "testExecuted": true,
+          "exitCode": 3,
+          "referenceChanged": {
+            "C": false,
+            "B": false,
+            "A": false,
+            "Fan": false
+          }
+        },
+        {
+          "case": "body-revert",
+          "seconds": 0.566,
+          "compiled": [
+            "C"
+          ],
+          "testExecuted": true,
+          "exitCode": 0,
+          "referenceChanged": {
+            "C": false,
+            "B": false,
+            "A": false,
+            "Fan": false
+          }
+        },
+        {
+          "case": "unused-api",
+          "seconds": 1.135,
+          "compiled": [
+            "B",
+            "C",
+            "Test"
+          ],
+          "testExecuted": true,
+          "exitCode": 0,
+          "referenceChanged": {
+            "C": true,
+            "B": false,
+            "A": false,
+            "Fan": false
+          }
+        },
+        {
+          "case": "propagated-constant",
+          "seconds": 1.251,
+          "compiled": [
+            "A",
+            "B",
+            "C",
+            "Fan",
+            "Test"
+          ],
+          "testExecuted": true,
+          "exitCode": 0,
+          "referenceChanged": {
+            "C": true,
+            "B": true,
+            "A": true,
+            "Fan": true
+          }
+        },
+        {
+          "case": "same-size-time-import",
+          "seconds": 0.436,
+          "compiled": [
+            "B"
+          ],
+          "testExecuted": true,
+          "exitCode": 0,
+          "referenceChanged": {
+            "C": true,
+            "B": true,
+            "A": true,
+            "Fan": true
+          }
+        },
+        {
+          "case": "resource-content",
+          "seconds": 0.431,
+          "compiled": [
+            "B"
+          ],
+          "testExecuted": true,
+          "exitCode": 0,
+          "referenceChanged": {
+            "C": true,
+            "B": true,
+            "A": true,
+            "Fan": true
+          }
+        },
+        {
+          "case": "resource-removed",
+          "seconds": 1.286,
+          "compiled": [
+            "A",
+            "B",
+            "Fan",
+            "Test"
+          ],
+          "testExecuted": true,
+          "exitCode": 0,
+          "referenceChanged": {
+            "C": true,
+            "B": true,
+            "A": true,
+            "Fan": true
+          }
+        },
+        {
+          "case": "resource-readded",
+          "seconds": 1.563,
+          "compiled": [
+            "A",
+            "B",
+            "Fan",
+            "Test"
+          ],
+          "testExecuted": true,
+          "exitCode": 0,
+          "referenceChanged": {
+            "C": true,
+            "B": true,
+            "A": true,
+            "Fan": true
+          }
+        },
+        {
+          "case": "resource-rename",
+          "seconds": 1.098,
+          "compiled": [
+            "A",
+            "B",
+            "Fan",
+            "Test"
+          ],
+          "testExecuted": true,
+          "exitCode": 0,
+          "referenceChanged": {
+            "C": true,
+            "B": true,
+            "A": true,
+            "Fan": true
+          }
+        },
+        {
+          "case": "invalid-xml",
+          "seconds": 0.188,
+          "compiled": [
+            "B"
+          ],
+          "testExecuted": false,
+          "exitCode": 1,
+          "referenceChanged": {
+            "C": true,
+            "A": true,
+            "Fan": true
+          }
+        },
+        {
+          "case": "xml-recovered",
+          "seconds": 0.424,
+          "compiled": [
+            "B"
+          ],
+          "testExecuted": true,
+          "exitCode": 0,
+          "referenceChanged": {
+            "C": true,
+            "B": true,
+            "A": true,
+            "Fan": true
+          }
+        },
+        {
+          "case": "exposed-producer",
+          "seconds": 1.138,
+          "compiled": [
+            "A",
+            "B",
+            "C",
+            "Fan",
+            "Test"
+          ],
+          "testExecuted": true,
+          "exitCode": 0,
+          "referenceChanged": {
+            "C": true,
+            "B": true,
+            "A": false,
+            "Fan": false
+          }
+        },
+        {
+          "case": "missing-required-reference",
+          "seconds": 0.274,
+          "compiled": [
+            "A"
+          ],
+          "testExecuted": false,
+          "exitCode": 1,
+          "referenceChanged": {
+            "C": true,
+            "B": true,
+            "Fan": false
+          }
+        },
+        {
+          "case": "explicit-reference-repair",
+          "seconds": 0.607,
+          "compiled": [
+            "A",
+            "Test"
+          ],
+          "testExecuted": true,
+          "exitCode": 0,
+          "referenceChanged": {
+            "C": true,
+            "B": true,
+            "A": true,
+            "Fan": false
+          }
+        },
+        {
+          "case": "custom-task-rejected",
+          "seconds": 0.172,
+          "compiled": [
+            "B"
+          ],
+          "testExecuted": false,
+          "exitCode": 1,
+          "referenceChanged": {
+            "C": true,
+            "A": true,
+            "Fan": false
+          }
+        },
+        {
+          "case": "task-rejection-recovered",
+          "seconds": 0.283,
+          "compiled": [
+            "B"
+          ],
+          "testExecuted": false,
+          "exitCode": 0,
+          "referenceChanged": {
+            "C": true,
+            "B": true,
+            "A": true,
+            "Fan": false
+          }
+        }
+      ]
+    }
+  ],
+  "cleanupValidation": {
+    "bazel": "9.2.0",
+    "result": "All 18 direct-reference cases passed after extracting fixture construction and request validation. Release build and format verification passed.",
+    "sourceSha256": {
+      "tools/ExplicitBuild/StableWorkerPaths.cs": "c5c1d9682eb0f1ea97e2081325290e0a074fe66f1ab28a2be14e3cd7ed857e00",
+      "tests/explicit_msbuild/stable_worker_projects.py": "b89e999cab7a96541d1a6ecbd8ad1e1f96c470ec96010716587189583e3301f4",
+      "tests/explicit_msbuild/stable_worker_fixture.py": "d07c9d086bdf5625c5c0bf34b6cc581ec76d33d93bd2bb17b930b2ad2021610f"
+    }
+  }
+}

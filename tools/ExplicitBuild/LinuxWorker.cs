@@ -131,11 +131,18 @@ internal static class LinuxWorker
                         }
                     }
                     var mapped = MapInputs(request, InputPath);
-                    var state = Path.Combine(root, "out", identity);
-                    string ChildPath(string path) => path == hostSdk || path.StartsWith(hostSdk + "/", StringComparison.Ordinal) ? Sdk + path[hostSdk.Length..] : path.StartsWith(root + "/", StringComparison.Ordinal) ? ChildRoot + path[root.Length..] : path;
+                    var projectKey = mapped.ExperimentalWorkerProject is null ? null : StableWorkerPaths.ProjectKey(mapped);
+                    var workspace = projectKey is null ? Path.Combine(inputRoot, "workspace") : Path.Combine(root, "in", "projects", projectKey);
+                    var state = Path.Combine(root, "out", projectKey ?? identity);
+                    var referencePaths = projectKey is null ? new Dictionary<string, string>(StringComparer.Ordinal) : StableWorkerPaths.StageReferences(mapped, workspace, Path.Combine(root, "in", "artifacts"), inputDigests);
+                    string ChildPath(string path)
+                    {
+                        path = referencePaths.GetValueOrDefault(path, path);
+                        return path == hostSdk || path.StartsWith(hostSdk + "/", StringComparison.Ordinal) ? Sdk + path[hostSdk.Length..] : path.StartsWith(root + "/", StringComparison.Ordinal) ? ChildRoot + path[root.Length..] : path;
+                    }
                     var analyzerRoots = ProjectAnalyzers.WorkerRoots(mapped, Path.Combine(root, "in", "analyzers"),
                         path => inputDigests.TryGetValue(path, out var digest) ? digest : throw new InvalidDataException("Undeclared analyzer file: " + path));
-                    var prepared = BuildPreparation.Prepare(mapped, Path.Combine(inputRoot, "workspace"), state, ChildPath, analyzerRoots);
+                    var prepared = BuildPreparation.Prepare(mapped, workspace, state, ChildPath, analyzerRoots);
                     var session = prepared with
                     {
                         Request = MapInputs(mapped, ChildPath),
@@ -177,6 +184,8 @@ internal static class LinuxWorker
                         {
                             processId = child.Id,
                             identity,
+                            projectKey,
+                            workspace = ChildPath(workspace),
                             stagingSeconds,
                             identitySeconds,
                             snapshotSeconds,

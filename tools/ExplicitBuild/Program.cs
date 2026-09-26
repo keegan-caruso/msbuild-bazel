@@ -110,6 +110,11 @@ internal static class Program
     }
     private static int Build(Request r)
     {
+        if (r.ExperimentalWorkerProject is not null)
+        {
+            throw new InvalidDataException("Stable-path prototype requires the isolated Linux worker");
+        }
+
         Safe(r.Assembly);
         if (r.Assembly.Contains('/'))
         {
