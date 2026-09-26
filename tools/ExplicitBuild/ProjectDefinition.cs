@@ -126,9 +126,20 @@ internal static class ProjectDefinition
                 new XElement("Version", new XAttribute("Condition", "!(" + central + ")"), "[" + package.Version + "]"),
                 new XElement("ExcludeAssets", "%(PackageReference.ExcludeAssets);" + string.Join(';', excluded))));
             items.Add(new XElement("PackageVersion", new XAttribute("Remove", package.Id)));
+            var direct = "'@(PackageReference->WithMetadataValue('Identity', '" + package.Id + "'))' != ''";
+            // With central transitive pinning, preserve the selected closure version
+            // even when NuGet cannot find a lower candidate in the closed feed.
+            var transitive = r.CompilePackages.Concat(r.BuildPackages).Concat(r.AnalyzerPackages).Contains(package.Id, StringComparer.OrdinalIgnoreCase)
+                ? " or '$(CentralPackageTransitivePinningEnabled)' == 'true'" : "";
             items.Add(new XElement("PackageVersion", new XAttribute("Include", package.Id), new XAttribute("Version", "[" + package.Version + "]"),
-                new XAttribute("Condition", "'$(ManagePackageVersionsCentrally)' == 'true' and '@(PackageReference->WithMetadataValue('Identity', '" + package.Id + "'))' != '' and '@(PackageReference->WithMetadataValue('IsImplicitlyDefined', 'true')->WithMetadataValue('Identity', '" + package.Id + "'))' == ''")));
+                new XAttribute("Condition", "'$(ManagePackageVersionsCentrally)' == 'true' and (" + direct + transitive + ") and '@(PackageReference->WithMetadataValue('IsImplicitlyDefined', 'true')->WithMetadataValue('Identity', '" + package.Id + "'))' == ''")));
         }
+        // SDK targets may add implicit references after evaluation. Remove only
+        // our synthetic central pins for those references; an authored central
+        // version must still receive NuGet's normal NU1009 rejection.
+        root.Add(new XElement("Target", new XAttribute("Name", "_BazelImplicitCentralPins"), new XAttribute("BeforeTargets", "_GenerateRestoreGraphProjectEntry"),
+            new XElement("ItemGroup", r.Packages.Select(package => new XElement("PackageVersion", new XAttribute("Remove", package.Id),
+                new XAttribute("Condition", "'@(PackageReference->WithMetadataValue('IsImplicitlyDefined', 'true')->WithMetadataValue('Identity', '" + package.Id + "'))' != '' and '@(_BazelOriginalPackageVersion->WithMetadataValue('Identity', '" + package.Id + "'))' == ''"))))));
         foreach (var framework in r.FrameworkReferences)
         {
             items.Add(new XElement("FrameworkReference", new XAttribute("Include", framework)));

@@ -1,0 +1,843 @@
+{
+  "stage": 5,
+  "status": "complete",
+  "platform": "linux-arm64",
+  "sdk": "10.0.400",
+  "upstreamBazel": "9.2.0",
+  "producer": {
+    "cpus": 6,
+    "memoryGiB": 10
+  },
+  "consumer": {
+    "cpus": 4,
+    "memoryGiB": 8,
+    "mounts": [],
+    "producerStopped": true,
+    "workspaceRelocated": true,
+    "emptyOutputBase": true
+  },
+  "synthetics": [
+    {
+      "bazel": "8.8.0",
+      "fixture": "web",
+      "exitCode": 0
+    },
+    {
+      "bazel": "8.8.0",
+      "fixture": "package_locks",
+      "exitCode": 0
+    },
+    {
+      "bazel": "8.8.0",
+      "fixture": "framework_pruning",
+      "exitCode": 0
+    },
+    {
+      "bazel": "8.8.0",
+      "fixture": "generated_directories",
+      "exitCode": 0
+    },
+    {
+      "bazel": "8.8.0",
+      "fixture": "private_restore",
+      "exitCode": 0
+    },
+    {
+      "bazel": "8.8.0",
+      "fixture": "selected_restore",
+      "exitCode": 0
+    },
+    {
+      "bazel": "9.2.0",
+      "fixture": "web",
+      "exitCode": 0
+    },
+    {
+      "bazel": "9.2.0",
+      "fixture": "package_locks",
+      "exitCode": 0
+    },
+    {
+      "bazel": "9.2.0",
+      "fixture": "framework_pruning",
+      "exitCode": 0
+    },
+    {
+      "bazel": "9.2.0",
+      "fixture": "generated_directories",
+      "exitCode": 0
+    },
+    {
+      "bazel": "9.2.0",
+      "fixture": "private_restore",
+      "exitCode": 0
+    },
+    {
+      "bazel": "9.2.0",
+      "fixture": "selected_restore",
+      "exitCode": 0
+    }
+  ],
+  "checks": {
+    "style": 5,
+    "tooling": 7,
+    "runner": 36,
+    "syncAndNames": 50,
+    "analysis": {
+      "platform": "macos-arm64",
+      "bazel": [
+        "8.8.0",
+        "9.2.0"
+      ],
+      "testsPerVersion": 43,
+      "executionRequirements": true
+    },
+    "toolchainAndStarlark": true
+  },
+  "avalonia": {
+    "commit": "37fbd9655cc581ff5b1c6b1fb1be4e3118c889d0",
+    "graph": {
+      "configuredNodes": 53,
+      "projectPaths": 40,
+      "configuredNodesEqual": true,
+      "dependencyEdgesEqual": true,
+      "compileInputsEqual": true,
+      "packagePrivacyEqual": true,
+      "compilerItemInputsEqual": true,
+      "compilerItemOrderEqual": true,
+      "edges": {
+        "deps": 271,
+        "implementation_deps": 2,
+        "analyzers": 210,
+        "build_deps": 134,
+        "tools": 12,
+        "bindings": 10
+      }
+    },
+    "referenceConfigurations": 55,
+    "normalizedPrivateComTypeNames": 53,
+    "testOutcomes": {
+      "Avalonia.Base.UnitTests": {
+        "Passed": 2334,
+        "NotExecuted": 14,
+        "Failed": 0
+      },
+      "Avalonia.Controls.UnitTests": {
+        "Passed": 2421,
+        "NotExecuted": 1,
+        "Failed": 0
+      },
+      "Avalonia.Markup.Xaml.UnitTests": {
+        "Passed": 580,
+        "NotExecuted": 1,
+        "Failed": 0
+      },
+      "Avalonia.Skia.UnitTests": {
+        "Passed": 257,
+        "NotExecuted": 9,
+        "Failed": 0
+      },
+      "Avalonia.Skia.RenderTests": {
+        "Passed": 290,
+        "NotExecuted": 17,
+        "Failed": 0
+      }
+    },
+    "rawParity": true,
+    "mutations": [
+      {
+        "case": "baseline",
+        "seconds": 19.884,
+        "executed": [],
+        "rawParity": true,
+        "referenceChanged": null
+      },
+      {
+        "case": "body",
+        "seconds": 32.348,
+        "executed": [
+          [
+            "MSBuildAssembly",
+            "//:upstream_src_Avalonia.Remote.Protocol_Avalonia.Remote.Protocol_net8_0"
+          ],
+          [
+            "MSBuildAssembly",
+            "//:upstream_src_Avalonia.Remote.Protocol_Avalonia.Remote.Protocol_netstandard2_0"
+          ],
+          [
+            "TestRunner",
+            "//:upstream_tests_Avalonia.Base.UnitTests_Avalonia.Base.UnitTests_net8_0"
+          ],
+          [
+            "TestRunner",
+            "//:upstream_tests_Avalonia.Controls.UnitTests_Avalonia.Controls.UnitTests_net8_0"
+          ],
+          [
+            "TestRunner",
+            "//:upstream_tests_Avalonia.Markup.Xaml.UnitTests_Avalonia.Markup.Xaml.UnitTests_net8_0"
+          ],
+          [
+            "TestRunner",
+            "//:upstream_tests_Avalonia.Skia.RenderTests_Avalonia.Skia.RenderTests_net8_0"
+          ],
+          [
+            "TestRunner",
+            "//:upstream_tests_Avalonia.Skia.UnitTests_Avalonia.Skia.UnitTests_net8_0"
+          ]
+        ],
+        "rawParity": true,
+        "referenceChanged": false
+      },
+      {
+        "case": "body-reverted",
+        "seconds": 1.206,
+        "executed": [],
+        "rawParity": true,
+        "referenceChanged": null
+      },
+      {
+        "case": "api",
+        "seconds": 107.901,
+        "executed": [
+          [
+            "MSBuildAssembly",
+            "//:upstream_src_Avalonia.Remote.Protocol_Avalonia.Remote.Protocol_net8_0"
+          ],
+          [
+            "MSBuildAssembly",
+            "//:upstream_src_Avalonia.Controls_Avalonia.Controls_net8_0"
+          ],
+          [
+            "MSBuildAssembly",
+            "//:upstream_src_Avalonia.Fonts.Inter_Avalonia.Fonts.Inter_net8_0"
+          ],
+          [
+            "MSBuildAssembly",
+            "//:upstream_src_Avalonia.Metal_Avalonia.Metal_net8_0"
+          ],
+          [
+            "MSBuildAssembly",
+            "//:upstream_src_Avalonia.OpenGL_Avalonia.OpenGL_net8_0"
+          ],
+          [
+            "MSBuildAssembly",
+            "//:upstream_src_Avalonia.Remote.Protocol_Avalonia.Remote.Protocol_netstandard2_0"
+          ],
+          [
+            "MSBuildAssembly",
+            "//:upstream_src_Avalonia.Controls_Avalonia.Controls_netstandard2_0"
+          ],
+          [
+            "MSBuildAssembly",
+            "//:upstream_src_Avalonia.Metal_Avalonia.Metal_netstandard2_0"
+          ],
+          [
+            "MSBuildAssembly",
+            "//:upstream_src_Avalonia.OpenGL_Avalonia.OpenGL_netstandard2_0"
+          ],
+          [
+            "MSBuildAssembly",
+            "//:upstream_src_Avalonia.Vulkan_Avalonia.Vulkan_net8_0"
+          ],
+          [
+            "MSBuildAssembly",
+            "//:upstream_src_Avalonia.Vulkan_Avalonia.Vulkan_netstandard2_0"
+          ],
+          [
+            "MSBuildAssembly",
+            "//:upstream_src_Markup_Avalonia.Markup.Xaml_Avalonia.Markup.Xaml_net8_0"
+          ],
+          [
+            "MSBuildAssembly",
+            "//:upstream_src_Avalonia.Controls.ColorPicker_Avalonia.Controls.ColorPicker_net8_0"
+          ],
+          [
+            "MSBuildAssembly",
+            "//:upstream_src_Avalonia.DesignerSupport_Avalonia.DesignerSupport_net8_0"
+          ],
+          [
+            "MSBuildAssembly",
+            "//:upstream_src_Avalonia.Dialogs_Avalonia.Dialogs_net8_0"
+          ],
+          [
+            "MSBuildAssembly",
+            "//:upstream_packages_Avalonia_Avalonia_net8_0"
+          ],
+          [
+            "MSBuildAssembly",
+            "//:upstream_src_Avalonia.FreeDesktop_Avalonia.FreeDesktop_net8_0"
+          ],
+          [
+            "MSBuildAssembly",
+            "//:upstream_src_Avalonia.Native_Avalonia.Native_net8_0"
+          ],
+          [
+            "MSBuildAssembly",
+            "//:upstream_src_Avalonia.Themes.Fluent_Avalonia.Themes.Fluent_net8_0"
+          ],
+          [
+            "MSBuildAssembly",
+            "//:upstream_src_Avalonia.Themes.Simple_Avalonia.Themes.Simple_net8_0"
+          ],
+          [
+            "MSBuildAssembly",
+            "//:upstream_src_Avalonia.Diagnostics_Avalonia.Diagnostics_net8_0"
+          ],
+          [
+            "MSBuildAssembly",
+            "//:upstream_src_Headless_Avalonia.Headless_Avalonia.Headless_net8_0"
+          ],
+          [
+            "MSBuildAssembly",
+            "//:upstream_src_Headless_Avalonia.Headless.NUnit_Avalonia.Headless.NUnit_net8_0"
+          ],
+          [
+            "MSBuildAssembly",
+            "//:upstream_src_Headless_Avalonia.Headless.Vnc_Avalonia.Headless.Vnc_net8_0"
+          ],
+          [
+            "MSBuildAssembly",
+            "//:upstream_src_Headless_Avalonia.Headless.XUnit_Avalonia.Headless.XUnit_net8_0"
+          ],
+          [
+            "MSBuildAssembly",
+            "//:upstream_src_Markup_Avalonia.Markup.Xaml.Loader_Avalonia.Markup.Xaml.Loader_net8_0"
+          ],
+          [
+            "MSBuildAssembly",
+            "//:upstream_src_Markup_Avalonia.Markup.Xaml_Avalonia.Markup.Xaml_netstandard2_0"
+          ],
+          [
+            "MSBuildAssembly",
+            "//:upstream_src_Avalonia.DesignerSupport_Avalonia.DesignerSupport_netstandard2_0"
+          ],
+          [
+            "MSBuildAssembly",
+            "//:upstream_src_Avalonia.Dialogs_Avalonia.Dialogs_netstandard2_0"
+          ],
+          [
+            "MSBuildAssembly",
+            "//:upstream_packages_Avalonia_Avalonia_netstandard2_0"
+          ],
+          [
+            "MSBuildAssembly",
+            "//:upstream_src_Avalonia.Themes.Simple_Avalonia.Themes.Simple_netstandard2_0"
+          ],
+          [
+            "MSBuildAssembly",
+            "//:upstream_src_Headless_Avalonia.Headless_Avalonia.Headless_netstandard2_0"
+          ],
+          [
+            "MSBuildAssembly",
+            "//:upstream_src_Skia_Avalonia.Skia_Avalonia.Skia_net8_0"
+          ],
+          [
+            "MSBuildAssembly",
+            "//:upstream_src_Avalonia.X11_Avalonia.X11_net8_0"
+          ],
+          [
+            "MSBuildAssembly",
+            "//:upstream_src_Windows_Avalonia.Win32.Automation_Avalonia.Win32.Automation_net8_0"
+          ],
+          [
+            "MSBuildAssembly",
+            "//:upstream_src_Windows_Avalonia.Win32_Avalonia.Win32_net8_0"
+          ],
+          [
+            "MSBuildAssembly",
+            "//:upstream_src_Avalonia.Desktop_Avalonia.Desktop_net8_0"
+          ],
+          [
+            "MSBuildAssembly",
+            "//:upstream_tests_Avalonia.UnitTests_Avalonia.UnitTests_netstandard2_0"
+          ],
+          [
+            "MSBuildAssembly",
+            "//:upstream_tests_Avalonia.Base.UnitTests_Avalonia.Base.UnitTests_net8_0"
+          ],
+          [
+            "MSBuildAssembly",
+            "//:upstream_tests_Avalonia.Controls.UnitTests_Avalonia.Controls.UnitTests_net8_0"
+          ],
+          [
+            "MSBuildAssembly",
+            "//:upstream_tests_Avalonia.Markup.Xaml.UnitTests_Avalonia.Markup.Xaml.UnitTests_net8_0"
+          ],
+          [
+            "MSBuildAssembly",
+            "//:upstream_tests_Avalonia.Skia.RenderTests_Avalonia.Skia.RenderTests_net8_0"
+          ],
+          [
+            "MSBuildAssembly",
+            "//:upstream_tests_Avalonia.Skia.UnitTests_Avalonia.Skia.UnitTests_net8_0"
+          ],
+          [
+            "TestRunner",
+            "//:upstream_tests_Avalonia.Base.UnitTests_Avalonia.Base.UnitTests_net8_0"
+          ],
+          [
+            "TestRunner",
+            "//:upstream_tests_Avalonia.Controls.UnitTests_Avalonia.Controls.UnitTests_net8_0"
+          ],
+          [
+            "TestRunner",
+            "//:upstream_tests_Avalonia.Markup.Xaml.UnitTests_Avalonia.Markup.Xaml.UnitTests_net8_0"
+          ],
+          [
+            "TestRunner",
+            "//:upstream_tests_Avalonia.Skia.RenderTests_Avalonia.Skia.RenderTests_net8_0"
+          ],
+          [
+            "TestRunner",
+            "//:upstream_tests_Avalonia.Skia.UnitTests_Avalonia.Skia.UnitTests_net8_0"
+          ]
+        ],
+        "rawParity": true,
+        "referenceChanged": true
+      },
+      {
+        "case": "api-reverted",
+        "seconds": 6.204,
+        "executed": [],
+        "rawParity": true,
+        "referenceChanged": null
+      },
+      {
+        "case": "xaml",
+        "seconds": 29.747,
+        "executed": [
+          [
+            "MSBuildAssembly",
+            "//:upstream_src_Avalonia.Themes.Simple_Avalonia.Themes.Simple_net8_0"
+          ],
+          [
+            "MSBuildAssembly",
+            "//:upstream_src_Avalonia.Themes.Simple_Avalonia.Themes.Simple_netstandard2_0"
+          ],
+          [
+            "TestRunner",
+            "//:upstream_tests_Avalonia.Base.UnitTests_Avalonia.Base.UnitTests_net8_0"
+          ],
+          [
+            "TestRunner",
+            "//:upstream_tests_Avalonia.Controls.UnitTests_Avalonia.Controls.UnitTests_net8_0"
+          ],
+          [
+            "TestRunner",
+            "//:upstream_tests_Avalonia.Markup.Xaml.UnitTests_Avalonia.Markup.Xaml.UnitTests_net8_0"
+          ],
+          [
+            "TestRunner",
+            "//:upstream_tests_Avalonia.Skia.RenderTests_Avalonia.Skia.RenderTests_net8_0"
+          ],
+          [
+            "TestRunner",
+            "//:upstream_tests_Avalonia.Skia.UnitTests_Avalonia.Skia.UnitTests_net8_0"
+          ]
+        ],
+        "rawParity": true,
+        "referenceChanged": null
+      },
+      {
+        "case": "xaml-reverted",
+        "seconds": 1.078,
+        "executed": [],
+        "rawParity": true,
+        "referenceChanged": null
+      },
+      {
+        "case": "idl",
+        "seconds": 6.77,
+        "executed": [
+          [
+            "MSBuildGenerate",
+            "//:desktop_idl_4"
+          ],
+          [
+            "MSBuildAssembly",
+            "//:upstream_src_Avalonia.Native_Avalonia.Native_net8_0"
+          ],
+          [
+            "MSBuildAssembly",
+            "//:upstream_src_Avalonia.Desktop_Avalonia.Desktop_net8_0"
+          ]
+        ],
+        "rawParity": true,
+        "referenceChanged": null
+      },
+      {
+        "case": "idl-reverted",
+        "seconds": 0.704,
+        "executed": [],
+        "rawParity": true,
+        "referenceChanged": null
+      }
+    ],
+    "recovery": {
+      "acquisition": {
+        "archives": 194,
+        "bytes": 357743692,
+        "seconds": 21.002,
+        "allHashesMatch": true
+      },
+      "records": [
+        {
+          "case": "recover",
+          "seconds": 31.319,
+          "exitCode": 0
+        },
+        {
+          "case": "execute",
+          "seconds": 16.1,
+          "exitCode": 0
+        },
+        {
+          "case": "sync",
+          "seconds": 4.321,
+          "exitCode": 0
+        }
+      ],
+      "actions": {
+        "DotnetSdkRuntime": 1,
+        "TestRunner": 5,
+        "MSBuildRunnerBootstrap": 1,
+        "MSBuildNugetExtract": 224,
+        "MSBuildGenerate": 5,
+        "MSBuildAssembly": 55
+      },
+      "allActionsRemoteHits": true,
+      "outputHashesCompared": 5356,
+      "outputManifestSha256": "b2c096c1232632f32ceab090d77e8e1f474046bda858fa3e7e005179f09f6b06",
+      "cachedTests": true,
+      "forcedExecution": true,
+      "syncActions": [
+        {
+          "mnemonic": "MSBuildSyncBootstrap",
+          "targetLabel": "//:sync",
+          "cacheHit": true,
+          "runner": "remote cache hit"
+        }
+      ]
+    },
+    "missingSourcePreservesGenerated": true,
+    "repairedSyncCheck": true
+  },
+  "orchard": {
+    "commit": "04467a3438d4255627c1a478598a1585b3ff2947",
+    "graph": {
+      "projects": 202,
+      "configuredNodesEqual": true,
+      "dependencyEdgesEqual": true,
+      "compileInputsEqual": true,
+      "packagePrivacyEqual": true,
+      "evaluatedFrameworkReferencesEqual": true,
+      "edges": {
+        "deps": 1915,
+        "implementation_deps": 0,
+        "analyzers": 915,
+        "build_deps": 715,
+        "tools": 0,
+        "bindings": 0,
+        "framework_refs": 193
+      }
+    },
+    "mutations": [
+      {
+        "case": "body",
+        "rebuilt": [
+          "//:src_OrchardCore_OrchardCore.Abstractions_OrchardCore.Abstractions_net10_0"
+        ],
+        "referenceChanged": false,
+        "unrebuiltAssemblies": 201,
+        "renderedEndpoints": 4,
+        "embeddedResourceMatchesInput": true
+      },
+      {
+        "case": "body-reverted",
+        "rebuilt": [],
+        "referenceChanged": false,
+        "unrebuiltAssemblies": 202,
+        "renderedEndpoints": 4,
+        "embeddedResourceMatchesInput": true
+      },
+      {
+        "case": "api",
+        "rebuilt": [
+          "//:src_OrchardCore.Cms.Web_OrchardCore.Cms.Web",
+          "//:src_OrchardCore.Modules_OrchardCore.AdminDashboard_OrchardCore.AdminDashboard_net10_0",
+          "//:src_OrchardCore.Modules_OrchardCore.AdminMenu_OrchardCore.AdminMenu_net10_0",
+          "//:src_OrchardCore.Modules_OrchardCore.Admin_OrchardCore.Admin_net10_0",
+          "//:src_OrchardCore.Modules_OrchardCore.Alias_OrchardCore.Alias_net10_0",
+          "//:src_OrchardCore.Modules_OrchardCore.Antivirus_OrchardCore.Antivirus_net10_0",
+          "//:src_OrchardCore.Modules_OrchardCore.Apis.GraphQL_OrchardCore.Apis.GraphQL_net10_0",
+          "//:src_OrchardCore.Modules_OrchardCore.ArchiveLater_OrchardCore.ArchiveLater_net10_0",
+          "//:src_OrchardCore.Modules_OrchardCore.AuditTrail_OrchardCore.AuditTrail_net10_0",
+          "//:src_OrchardCore.Modules_OrchardCore.AutoSetup_OrchardCore.AutoSetup_net10_0",
+          "//:src_OrchardCore.Modules_OrchardCore.Autoroute_OrchardCore.Autoroute_net10_0",
+          "//:src_OrchardCore.Modules_OrchardCore.AzureAI_OrchardCore.AzureAI_net10_0",
+          "//:src_OrchardCore.Modules_OrchardCore.BackgroundTasks_OrchardCore.BackgroundTasks_net10_0",
+          "//:src_OrchardCore.Modules_OrchardCore.ContentFields_OrchardCore.ContentFields_net10_0",
+          "//:src_OrchardCore.Modules_OrchardCore.ContentLocalization_OrchardCore.ContentLocalization_net10_0",
+          "//:src_OrchardCore.Modules_OrchardCore.ContentPreview_OrchardCore.ContentPreview_net10_0",
+          "//:src_OrchardCore.Modules_OrchardCore.ContentTypes_OrchardCore.ContentTypes_net10_0",
+          "//:src_OrchardCore.Modules_OrchardCore.Contents_OrchardCore.Contents_net10_0",
+          "//:src_OrchardCore.Modules_OrchardCore.Cors_OrchardCore.Cors_net10_0",
+          "//:src_OrchardCore.Modules_OrchardCore.CustomSettings_OrchardCore.CustomSettings_net10_0",
+          "//:src_OrchardCore.Modules_OrchardCore.DataLocalization_OrchardCore.DataLocalization_net10_0",
+          "//:src_OrchardCore.Modules_OrchardCore.DataProtection.Azure_OrchardCore.DataProtection.Azure_net10_0",
+          "//:src_OrchardCore.Modules_OrchardCore.Deployment.Remote_OrchardCore.Deployment.Remote_net10_0",
+          "//:src_OrchardCore.Modules_OrchardCore.Deployment_OrchardCore.Deployment_net10_0",
+          "//:src_OrchardCore.Modules_OrchardCore.Diagnostics_OrchardCore.Diagnostics_net10_0",
+          "//:src_OrchardCore.Modules_OrchardCore.DynamicCache_OrchardCore.DynamicCache_net10_0",
+          "//:src_OrchardCore.Modules_OrchardCore.Elasticsearch_OrchardCore.Elasticsearch_net10_0",
+          "//:src_OrchardCore.Modules_OrchardCore.Email.Azure_OrchardCore.Email.Azure_net10_0",
+          "//:src_OrchardCore.Modules_OrchardCore.Email.Smtp_OrchardCore.Email.Smtp_net10_0",
+          "//:src_OrchardCore.Modules_OrchardCore.Email_OrchardCore.Email_net10_0",
+          "//:src_OrchardCore.Modules_OrchardCore.Facebook_OrchardCore.Facebook_net10_0",
+          "//:src_OrchardCore.Modules_OrchardCore.Features_OrchardCore.Features_net10_0",
+          "//:src_OrchardCore.Modules_OrchardCore.Feeds_OrchardCore.Feeds_net10_0",
+          "//:src_OrchardCore.Modules_OrchardCore.Flows_OrchardCore.Flows_net10_0",
+          "//:src_OrchardCore.Modules_OrchardCore.Forms_OrchardCore.Forms_net10_0",
+          "//:src_OrchardCore.Modules_OrchardCore.GitHub_OrchardCore.GitHub_net10_0",
+          "//:src_OrchardCore.Modules_OrchardCore.Google_OrchardCore.Google_net10_0",
+          "//:src_OrchardCore.Modules_OrchardCore.HealthChecks_OrchardCore.HealthChecks_net10_0",
+          "//:src_OrchardCore.Modules_OrchardCore.HomeRoute_OrchardCore.HomeRoute_net10_0",
+          "//:src_OrchardCore.Modules_OrchardCore.Html_OrchardCore.Html_net10_0",
+          "//:src_OrchardCore.Modules_OrchardCore.Https_OrchardCore.Https_net10_0",
+          "//:src_OrchardCore.Modules_OrchardCore.Indexing_OrchardCore.Indexing_net10_0",
+          "//:src_OrchardCore.Modules_OrchardCore.Layers_OrchardCore.Layers_net10_0",
+          "//:src_OrchardCore.Modules_OrchardCore.Liquid_OrchardCore.Liquid_net10_0",
+          "//:src_OrchardCore.Modules_OrchardCore.Lists_OrchardCore.Lists_net10_0",
+          "//:src_OrchardCore.Modules_OrchardCore.Localization_OrchardCore.Localization_net10_0",
+          "//:src_OrchardCore.Modules_OrchardCore.Lucene_OrchardCore.Lucene_net10_0",
+          "//:src_OrchardCore.Modules_OrchardCore.Markdown_OrchardCore.Markdown_net10_0",
+          "//:src_OrchardCore.Modules_OrchardCore.Media.AmazonS3_OrchardCore.Media.AmazonS3_net10_0",
+          "//:src_OrchardCore.Modules_OrchardCore.Media.Azure_OrchardCore.Media.Azure_net10_0",
+          "//:src_OrchardCore.Modules_OrchardCore.Media.ImageSharpV3_OrchardCore.Media.ImageSharpV3_net10_0",
+          "//:src_OrchardCore.Modules_OrchardCore.Media.Indexing.OpenXML_OrchardCore.Media.Indexing.OpenXML_net10_0",
+          "//:src_OrchardCore.Modules_OrchardCore.Media.Indexing.Pdf_OrchardCore.Media.Indexing.Pdf_net10_0",
+          "//:src_OrchardCore.Modules_OrchardCore.Media_OrchardCore.Media_net10_0",
+          "//:src_OrchardCore.Modules_OrchardCore.Menu_OrchardCore.Menu_net10_0",
+          "//:src_OrchardCore.Modules_OrchardCore.Microsoft.Authentication_OrchardCore.Microsoft.Authentication_net10_0",
+          "//:src_OrchardCore.Modules_OrchardCore.MiniProfiler_OrchardCore.MiniProfiler_net10_0",
+          "//:src_OrchardCore.Modules_OrchardCore.Navigation_OrchardCore.Navigation_net10_0",
+          "//:src_OrchardCore.Modules_OrchardCore.Notifications_OrchardCore.Notifications_net10_0",
+          "//:src_OrchardCore.Modules_OrchardCore.OpenApi_OrchardCore.OpenApi_net10_0",
+          "//:src_OrchardCore.Modules_OrchardCore.OpenId_OrchardCore.OpenId_net10_0",
+          "//:src_OrchardCore.Modules_OrchardCore.Placements_OrchardCore.Placements_net10_0",
+          "//:src_OrchardCore.Modules_OrchardCore.PublishLater_OrchardCore.PublishLater_net10_0",
+          "//:src_OrchardCore.Modules_OrchardCore.Queries_OrchardCore.Queries_net10_0",
+          "//:src_OrchardCore.Modules_OrchardCore.RateLimits_OrchardCore.RateLimits_net10_0",
+          "//:src_OrchardCore.Modules_OrchardCore.ReCaptcha_OrchardCore.ReCaptcha_net10_0",
+          "//:src_OrchardCore.Modules_OrchardCore.Recipes_OrchardCore.Recipes_net10_0",
+          "//:src_OrchardCore.Modules_OrchardCore.Redis_OrchardCore.Redis_net10_0",
+          "//:src_OrchardCore.Modules_OrchardCore.Resources_OrchardCore.Resources_net10_0",
+          "//:src_OrchardCore.Modules_OrchardCore.ResponseCompression_OrchardCore.ResponseCompression_net10_0",
+          "//:src_OrchardCore.Modules_OrchardCore.ReverseProxy_OrchardCore.ReverseProxy_net10_0",
+          "//:src_OrchardCore.Modules_OrchardCore.Roles_OrchardCore.Roles_net10_0",
+          "//:src_OrchardCore.Modules_OrchardCore.Rules_OrchardCore.Rules_net10_0",
+          "//:src_OrchardCore.Modules_OrchardCore.Scripting_OrchardCore.Scripting_net10_0",
+          "//:src_OrchardCore.Modules_OrchardCore.Search_OrchardCore.Search_net10_0",
+          "//:src_OrchardCore.Modules_OrchardCore.Security_OrchardCore.Security_net10_0",
+          "//:src_OrchardCore.Modules_OrchardCore.Seo_OrchardCore.Seo_net10_0",
+          "//:src_OrchardCore.Modules_OrchardCore.Settings_OrchardCore.Settings_net10_0",
+          "//:src_OrchardCore.Modules_OrchardCore.Setup_OrchardCore.Setup_net10_0",
+          "//:src_OrchardCore.Modules_OrchardCore.Shortcodes_OrchardCore.Shortcodes_net10_0",
+          "//:src_OrchardCore.Modules_OrchardCore.SignalR.Azure_OrchardCore.SignalR.Azure_net10_0",
+          "//:src_OrchardCore.Modules_OrchardCore.SignalR.Redis_OrchardCore.SignalR.Redis_net10_0",
+          "//:src_OrchardCore.Modules_OrchardCore.SignalR_OrchardCore.SignalR_net10_0",
+          "//:src_OrchardCore.Modules_OrchardCore.Sitemaps_OrchardCore.Sitemaps_net10_0",
+          "//:src_OrchardCore.Modules_OrchardCore.Sms.Azure_OrchardCore.Sms.Azure_net10_0",
+          "//:src_OrchardCore.Modules_OrchardCore.Sms_OrchardCore.Sms_net10_0",
+          "//:src_OrchardCore.Modules_OrchardCore.Spatial_OrchardCore.Spatial_net10_0",
+          "//:src_OrchardCore.Modules_OrchardCore.Taxonomies_OrchardCore.Taxonomies_net10_0",
+          "//:src_OrchardCore.Modules_OrchardCore.Templates_OrchardCore.Templates_net10_0",
+          "//:src_OrchardCore.Modules_OrchardCore.Tenants_OrchardCore.Tenants_net10_0",
+          "//:src_OrchardCore.Modules_OrchardCore.Themes_OrchardCore.Themes_net10_0",
+          "//:src_OrchardCore.Modules_OrchardCore.Title_OrchardCore.Title_net10_0",
+          "//:src_OrchardCore.Modules_OrchardCore.Twitter_OrchardCore.Twitter_net10_0",
+          "//:src_OrchardCore.Modules_OrchardCore.UrlRewriting_OrchardCore.UrlRewriting_net10_0",
+          "//:src_OrchardCore.Modules_OrchardCore.Users_OrchardCore.Users_net10_0",
+          "//:src_OrchardCore.Modules_OrchardCore.Widgets_OrchardCore.Widgets_net10_0",
+          "//:src_OrchardCore.Modules_OrchardCore.Workflows_OrchardCore.Workflows_net10_0",
+          "//:src_OrchardCore.Modules_OrchardCore.XmlRpc_OrchardCore.XmlRpc_net10_0",
+          "//:src_OrchardCore.Themes_SafeMode_SafeMode_net10_0",
+          "//:src_OrchardCore.Themes_TheAdmin_TheAdmin_net10_0",
+          "//:src_OrchardCore.Themes_TheAgencyTheme_TheAgencyTheme_net10_0",
+          "//:src_OrchardCore.Themes_TheBlogTheme_TheBlogTheme_net10_0",
+          "//:src_OrchardCore.Themes_TheComingSoonTheme_TheComingSoonTheme_net10_0",
+          "//:src_OrchardCore.Themes_TheTheme_TheTheme_net10_0",
+          "//:src_OrchardCore_OrchardCore.Abstractions_OrchardCore.Abstractions_net10_0",
+          "//:src_OrchardCore_OrchardCore.Admin.Abstractions_OrchardCore.Admin.Abstractions_net10_0",
+          "//:src_OrchardCore_OrchardCore.AdminMenu.Abstractions_OrchardCore.AdminMenu.Abstractions_net10_0",
+          "//:src_OrchardCore_OrchardCore.Apis.GraphQL.Abstractions_OrchardCore.Apis.GraphQL.Abstractions_net10_0",
+          "//:src_OrchardCore_OrchardCore.Application.Cms.Core.Targets_OrchardCore.Application.Cms.Core.Targets_net10_0",
+          "//:src_OrchardCore_OrchardCore.Application.Cms.Targets_OrchardCore.Application.Cms.Targets_net10_0",
+          "//:src_OrchardCore_OrchardCore.Application.Targets_OrchardCore.Application.Targets_net10_0",
+          "//:src_OrchardCore_OrchardCore.AuditTrail.Abstractions_OrchardCore.AuditTrail.Abstractions_net10_0",
+          "//:src_OrchardCore_OrchardCore.Autoroute.Core_OrchardCore.Autoroute.Core_net10_0",
+          "//:src_OrchardCore_OrchardCore.AzureAI.Core_OrchardCore.AzureAI.Core_net10_0",
+          "//:src_OrchardCore_OrchardCore.ContentFields.Core_OrchardCore.ContentFields.Core_net10_0",
+          "//:src_OrchardCore_OrchardCore.ContentLocalization.Abstractions_OrchardCore.ContentLocalization.Abstractions_net10_0",
+          "//:src_OrchardCore_OrchardCore.ContentManagement.Abstractions_OrchardCore.ContentManagement.Abstractions_net10_0",
+          "//:src_OrchardCore_OrchardCore.ContentManagement.Display_OrchardCore.ContentManagement.Display_net10_0",
+          "//:src_OrchardCore_OrchardCore.ContentManagement.GraphQL_OrchardCore.ContentManagement.GraphQL_net10_0",
+          "//:src_OrchardCore_OrchardCore.ContentManagement_OrchardCore.ContentManagement_net10_0",
+          "//:src_OrchardCore_OrchardCore.ContentTypes.Abstractions_OrchardCore.ContentTypes.Abstractions_net10_0",
+          "//:src_OrchardCore_OrchardCore.Contents.Core_OrchardCore.Contents.Core_net10_0",
+          "//:src_OrchardCore_OrchardCore.Contents.TagHelpers_OrchardCore.Contents.TagHelpers_net10_0",
+          "//:src_OrchardCore_OrchardCore.Data.Abstractions_OrchardCore.Data.Abstractions_net10_0",
+          "//:src_OrchardCore_OrchardCore.Data.YesSql.Abstractions_OrchardCore.Data.YesSql.Abstractions_net10_0",
+          "//:src_OrchardCore_OrchardCore.Data.YesSql_OrchardCore.Data.YesSql_net10_0",
+          "//:src_OrchardCore_OrchardCore.Data_OrchardCore.Data_net10_0",
+          "//:src_OrchardCore_OrchardCore.Deployment.Abstractions_OrchardCore.Deployment.Abstractions_net10_0",
+          "//:src_OrchardCore_OrchardCore.Deployment.Core_OrchardCore.Deployment.Core_net10_0",
+          "//:src_OrchardCore_OrchardCore.DisplayManagement.Liquid_OrchardCore.DisplayManagement.Liquid_net10_0",
+          "//:src_OrchardCore_OrchardCore.DisplayManagement_OrchardCore.DisplayManagement_net10_0",
+          "//:src_OrchardCore_OrchardCore.DynamicCache.Abstractions_OrchardCore.DynamicCache.Abstractions_net10_0",
+          "//:src_OrchardCore_OrchardCore.Elasticsearch.Core_OrchardCore.Elasticsearch.Core_net10_0",
+          "//:src_OrchardCore_OrchardCore.Email.Abstractions_OrchardCore.Email.Abstractions_net10_0",
+          "//:src_OrchardCore_OrchardCore.Email.Core_OrchardCore.Email.Core_net10_0",
+          "//:src_OrchardCore_OrchardCore.Features.Core_OrchardCore.Features.Core_net10_0",
+          "//:src_OrchardCore_OrchardCore.FileStorage.Abstractions_OrchardCore.FileStorage.Abstractions_net10_0",
+          "//:src_OrchardCore_OrchardCore.FileStorage.AmazonS3_OrchardCore.FileStorage.AmazonS3_net10_0",
+          "//:src_OrchardCore_OrchardCore.FileStorage.AzureBlob_OrchardCore.FileStorage.AzureBlob_net10_0",
+          "//:src_OrchardCore_OrchardCore.FileStorage.FileSystem_OrchardCore.FileStorage.FileSystem_net10_0",
+          "//:src_OrchardCore_OrchardCore.Flows.Core_OrchardCore.Flows.Core_net10_0",
+          "//:src_OrchardCore_OrchardCore.Html.Core_OrchardCore.Html.Core_net10_0",
+          "//:src_OrchardCore_OrchardCore.Indexing.Abstractions_OrchardCore.Indexing.Abstractions_net10_0",
+          "//:src_OrchardCore_OrchardCore.Indexing.Core_OrchardCore.Indexing.Core_net10_0",
+          "//:src_OrchardCore_OrchardCore.Infrastructure.Abstractions_OrchardCore.Infrastructure.Abstractions_net10_0",
+          "//:src_OrchardCore_OrchardCore.Infrastructure_OrchardCore.Infrastructure_net10_0",
+          "//:src_OrchardCore_OrchardCore.Liquid.Abstractions_OrchardCore.Liquid.Abstractions_net10_0",
+          "//:src_OrchardCore_OrchardCore.Localization.Abstractions_OrchardCore.Localization.Abstractions_net10_0",
+          "//:src_OrchardCore_OrchardCore.Localization.Core_OrchardCore.Localization.Core_net10_0",
+          "//:src_OrchardCore_OrchardCore.Logging.NLog_OrchardCore.Logging.NLog_net10_0",
+          "//:src_OrchardCore_OrchardCore.Lucene.Core_OrchardCore.Lucene.Core_net10_0",
+          "//:src_OrchardCore_OrchardCore.Media.Abstractions_OrchardCore.Media.Abstractions_net10_0",
+          "//:src_OrchardCore_OrchardCore.Media.Core_OrchardCore.Media.Core_net10_0",
+          "//:src_OrchardCore_OrchardCore.MetaWeblog.Abstractions_OrchardCore.MetaWeblog.Abstractions_net10_0",
+          "//:src_OrchardCore_OrchardCore.Module.Targets_OrchardCore.Module.Targets_net10_0",
+          "//:src_OrchardCore_OrchardCore.Mvc.Core_OrchardCore.Mvc.Core_net10_0",
+          "//:src_OrchardCore_OrchardCore.Navigation.Core_OrchardCore.Navigation.Core_net10_0",
+          "//:src_OrchardCore_OrchardCore.Notifications.Abstractions_OrchardCore.Notifications.Abstractions_net10_0",
+          "//:src_OrchardCore_OrchardCore.Notifications.Core_OrchardCore.Notifications.Core_net10_0",
+          "//:src_OrchardCore_OrchardCore.OpenApi.Core_OrchardCore.OpenApi.Core_net10_0",
+          "//:src_OrchardCore_OrchardCore.OpenId.Core_OrchardCore.OpenId.Core_net10_0",
+          "//:src_OrchardCore_OrchardCore.Queries.Abstractions_OrchardCore.Queries.Abstractions_net10_0",
+          "//:src_OrchardCore_OrchardCore.Queries.Core_OrchardCore.Queries.Core_net10_0",
+          "//:src_OrchardCore_OrchardCore.RateLimits.Core_OrchardCore.RateLimits.Core_net10_0",
+          "//:src_OrchardCore_OrchardCore.ReCaptcha.Core_OrchardCore.ReCaptcha.Core_net10_0",
+          "//:src_OrchardCore_OrchardCore.Recipes.Abstractions_OrchardCore.Recipes.Abstractions_net10_0",
+          "//:src_OrchardCore_OrchardCore.Recipes.Core_OrchardCore.Recipes.Core_net10_0",
+          "//:src_OrchardCore_OrchardCore.Redis.Abstractions_OrchardCore.Redis.Abstractions_net10_0",
+          "//:src_OrchardCore_OrchardCore.ResourceManagement.Core_OrchardCore.ResourceManagement.Core_net10_0",
+          "//:src_OrchardCore_OrchardCore.ResourceManagement_OrchardCore.ResourceManagement_net10_0",
+          "//:src_OrchardCore_OrchardCore.Roles.Abstractions_OrchardCore.Roles.Abstractions_net10_0",
+          "//:src_OrchardCore_OrchardCore.Roles.Core_OrchardCore.Roles.Core_net10_0",
+          "//:src_OrchardCore_OrchardCore.Rules.Abstractions_OrchardCore.Rules.Abstractions_net10_0",
+          "//:src_OrchardCore_OrchardCore.Rules.Core_OrchardCore.Rules.Core_net10_0",
+          "//:src_OrchardCore_OrchardCore.Scripting.JavaScript_OrchardCore.Scripting.JavaScript_net10_0",
+          "//:src_OrchardCore_OrchardCore.Search.Abstractions_OrchardCore.Search.Abstractions_net10_0",
+          "//:src_OrchardCore_OrchardCore.Search.Lucene.Abstractions_OrchardCore.Search.Lucene.Abstractions_net10_0",
+          "//:src_OrchardCore_OrchardCore.Seo.Abstractions_OrchardCore.Seo.Abstractions_net10_0",
+          "//:src_OrchardCore_OrchardCore.Settings.Core_OrchardCore.Settings.Core_net10_0",
+          "//:src_OrchardCore_OrchardCore.Setup.Abstractions_OrchardCore.Setup.Abstractions_net10_0",
+          "//:src_OrchardCore_OrchardCore.Setup.Core_OrchardCore.Setup.Core_net10_0",
+          "//:src_OrchardCore_OrchardCore.Shortcodes.Abstractions_OrchardCore.Shortcodes.Abstractions_net10_0",
+          "//:src_OrchardCore_OrchardCore.Sitemaps.Abstractions_OrchardCore.Sitemaps.Abstractions_net10_0",
+          "//:src_OrchardCore_OrchardCore.Sms.Abstractions_OrchardCore.Sms.Abstractions_net10_0",
+          "//:src_OrchardCore_OrchardCore.Sms.Core_OrchardCore.Sms.Core_net10_0",
+          "//:src_OrchardCore_OrchardCore.Taxonomies.Core_OrchardCore.Taxonomies.Core_net10_0",
+          "//:src_OrchardCore_OrchardCore.Theme.Targets_OrchardCore.Theme.Targets_net10_0",
+          "//:src_OrchardCore_OrchardCore.UrlRewriting.Abstractions_OrchardCore.UrlRewriting.Abstractions_net10_0",
+          "//:src_OrchardCore_OrchardCore.UrlRewriting.Core_OrchardCore.UrlRewriting.Core_net10_0",
+          "//:src_OrchardCore_OrchardCore.Users.Abstractions_OrchardCore.Users.Abstractions_net10_0",
+          "//:src_OrchardCore_OrchardCore.Users.Core_OrchardCore.Users.Core_net10_0",
+          "//:src_OrchardCore_OrchardCore.Workflows.Abstractions_OrchardCore.Workflows.Abstractions_net10_0",
+          "//:src_OrchardCore_OrchardCore_OrchardCore_net10_0"
+        ],
+        "referenceChanged": true,
+        "unrebuiltAssemblies": 9,
+        "renderedEndpoints": 4,
+        "embeddedResourceMatchesInput": true
+      },
+      {
+        "case": "api-reverted",
+        "rebuilt": [],
+        "referenceChanged": false,
+        "unrebuiltAssemblies": 202,
+        "renderedEndpoints": 4,
+        "embeddedResourceMatchesInput": true
+      },
+      {
+        "case": "resource",
+        "rebuilt": [
+          "//:src_OrchardCore.Cms.Web_OrchardCore.Cms.Web",
+          "//:src_OrchardCore.Modules_OrchardCore.Setup_OrchardCore.Setup_net10_0",
+          "//:src_OrchardCore_OrchardCore.Application.Cms.Core.Targets_OrchardCore.Application.Cms.Core.Targets_net10_0",
+          "//:src_OrchardCore_OrchardCore.Application.Cms.Targets_OrchardCore.Application.Cms.Targets_net10_0"
+        ],
+        "coreReferenceChanged": false,
+        "setupReferenceChanged": true,
+        "unrebuiltAssemblies": 198,
+        "renderedEndpoints": 4,
+        "embeddedResourceMatchesInput": true
+      },
+      {
+        "case": "resource-reverted",
+        "rebuilt": [],
+        "coreReferenceChanged": false,
+        "setupReferenceChanged": false,
+        "unrebuiltAssemblies": 202,
+        "renderedEndpoints": 4,
+        "embeddedResourceMatchesInput": true
+      }
+    ],
+    "mutationRuns": [
+      "body/API with restoration",
+      "resource with restoration and missing-source repair"
+    ],
+    "missingSourcePreservesGenerated": true,
+    "repairedSyncCheck": true,
+    "recovery": {
+      "acquisition": {
+        "archives": 287,
+        "bytes": 454042134,
+        "seconds": 27.102,
+        "allHashesMatch": true
+      },
+      "records": [
+        {
+          "case": "recover",
+          "seconds": 43.979,
+          "exitCode": 0
+        },
+        {
+          "case": "sync",
+          "seconds": 19.23,
+          "exitCode": 0
+        }
+      ],
+      "actions": {
+        "DotnetSdkRuntime": 1,
+        "MSBuildRunnerBootstrap": 1,
+        "MSBuildNugetExtract": 287,
+        "MSBuildAssembly": 202
+      },
+      "allActionsRemoteHits": true,
+      "outputHashesCompared": 4528,
+      "outputManifestSha256": "0574f30ad55b41137e365defefb12c35d20428c7c46359f4579c33acb245eee9",
+      "smokeEndpoints": 4,
+      "staticAssetsEqualToRaw": 3,
+      "syncActions": [
+        {
+          "mnemonic": "MSBuildSyncBootstrap",
+          "targetLabel": "//:sync",
+          "cacheHit": true,
+          "runner": "remote cache hit"
+        }
+      ]
+    }
+  }
+}

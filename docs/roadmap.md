@@ -1,8 +1,8 @@
 # Planned work
 
 The active priority is complete generated graphs, independent remote-cache recovery,
-then developer experience and broader qualification. Stages 1–4 are **complete**;
-stages 5–8 remain **planned**;
+then developer experience and broader qualification. Stages 1–5 are **complete**;
+stages 6–8 remain **planned**;
 [current support](implementation-plan.md) records what is already measured.
 This sequence starts from local commit `d4a64b4`, not an assertion that the work has
 already reached `main`. Review and integrate the accumulated changes before basing
@@ -118,6 +118,8 @@ conditions still fail. Do not auto-approve custom-document hashes or discover
 ambient tools to make configuration shorter.
 
 ### 5. Qualify broader real-world graphs
+
+**Complete:** [generated Orchard/Avalonia graphs and independent recovery](project-sync-broader-graphs.md).
 
 **Depends on:** stages 3–4.
 

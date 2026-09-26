@@ -6,13 +6,21 @@ namespace RulesMSBuild.ProjectSync;
 internal sealed record SyncInput(string Path, string Label, string Runfile);
 internal sealed record SyncPackage(string Id, string Version, string Runfile);
 internal sealed record SyncBinding(string Label, string Property, string[] Runfiles, string Entry);
-internal sealed record SyncInputs(SyncInput[] Inputs, SyncPackage[] Packages, string? PackageLock, SyncBinding[]? Bindings = null);
+internal sealed record SyncPackageLock(string Label, string[] Packages);
+internal sealed record SyncInputs(SyncInput[] Inputs, SyncPackage[] Packages, string? PackageLock, SyncBinding[]? Bindings = null, SyncPackageLock[]? PackageLocks = null);
 
 // A local evaluation view only. No MSBuild targets execute here; normal builds
 // consume producer labels and the same logical paths, never this temporary root.
 internal sealed class WorkspaceView : IDisposable
 {
     private readonly string? temporary;
+    private readonly Dictionary<string, string> packageSources = new(StringComparer.Ordinal);
+    private readonly Dictionary<string, (string Label, HashSet<string> Packages)> packageLocks = new(StringComparer.Ordinal);
+    private readonly HashSet<string> visiblePackages = new(StringComparer.Ordinal);
+    internal string? DefaultPackageLock
+    {
+        get;
+    }
     private readonly Dictionary<string, (string Property, string Value)> bindings = new(StringComparer.Ordinal);
     internal string Root
     {
@@ -20,7 +28,7 @@ internal sealed class WorkspaceView : IDisposable
     }
     internal string? PackageLock
     {
-        get;
+        get; private set;
     }
     internal Dictionary<string, string> Labels { get; } = new(StringComparer.Ordinal);
 
@@ -28,7 +36,7 @@ internal sealed class WorkspaceView : IDisposable
     {
         Root = root;
         this.temporary = temporary;
-        PackageLock = packageLock;
+        DefaultPackageLock = packageLock;
     }
 
     internal static string Safe(string path)
@@ -86,14 +94,20 @@ internal sealed class WorkspaceView : IDisposable
             {
                 var identity = Safe(package.Id.ToLowerInvariant() + "/" + package.Version.ToLowerInvariant());
                 var source = Path.Combine(runfiles, Safe(package.Runfile));
-                var destination = Path.Combine(packageRoot, identity);
-                if (!Directory.Exists(source) || Path.Exists(destination))
+                if (!Directory.Exists(source) || !view.packageSources.TryAdd(identity, source))
                 {
                     throw new InvalidDataException("Missing or conflicting SDK package: " + identity);
                 }
-                Directory.CreateDirectory(Path.GetDirectoryName(destination)!);
-                Directory.CreateSymbolicLink(destination, source);
             }
+            foreach (var packageLock in inputs.PackageLocks ?? (inputs.PackageLock is null ? [] : new[] { new SyncPackageLock(inputs.PackageLock, view.packageSources.Keys.ToArray()) }))
+            {
+                var members = packageLock.Packages.Select(p => Safe(p.ToLowerInvariant())).ToHashSet(StringComparer.Ordinal);
+                if (members.Any(p => !view.packageSources.ContainsKey(p)) || !view.packageLocks.TryAdd(LabelKey(packageLock.Label), (packageLock.Label, members)))
+                {
+                    throw new InvalidDataException("Missing or conflicting sync package lock: " + packageLock.Label);
+                }
+            }
+            view.SelectPackageLock(inputs.PackageLock);
             // A missing SDK must not fall back to a user's feeds/cache.
             var configName = Directory.EnumerateFiles(root).Select(Path.GetFileName).FirstOrDefault(name => name!.Equals("NuGet.Config", StringComparison.OrdinalIgnoreCase)) ?? "NuGet.Config";
             var config = Path.Combine(temporary, configName);
@@ -108,6 +122,41 @@ internal sealed class WorkspaceView : IDisposable
             view.Dispose();
             throw;
         }
+    }
+
+    internal void SelectPackageLock(string? label)
+    {
+        var wanted = new HashSet<string>(StringComparer.Ordinal);
+        string? selected = null;
+        if (label is not null)
+        {
+            if (!packageLocks.TryGetValue(LabelKey(label), out var packageLock))
+            {
+                throw new InvalidDataException("Project packageLock must also be a declared sync package lock: " + label);
+            }
+            wanted = packageLock.Packages;
+            selected = packageLock.Label;
+        }
+        var packageRoot = Path.Combine(Root, ".nuget", "packages");
+        foreach (var identity in visiblePackages.Except(wanted, StringComparer.Ordinal).ToArray())
+        {
+            var path = Path.Combine(packageRoot, identity);
+            Directory.Delete(path);
+            var parent = Path.GetDirectoryName(path)!;
+            if (!Directory.EnumerateFileSystemEntries(parent).Any())
+            {
+                Directory.Delete(parent);
+            }
+            visiblePackages.Remove(identity);
+        }
+        foreach (var identity in wanted.Except(visiblePackages, StringComparer.Ordinal))
+        {
+            var path = Path.Combine(packageRoot, identity);
+            Directory.CreateDirectory(Path.GetDirectoryName(path)!);
+            Directory.CreateSymbolicLink(path, packageSources[identity]);
+            visiblePackages.Add(identity);
+        }
+        PackageLock = selected;
     }
 
     private static void CopySources(string source, string destination)

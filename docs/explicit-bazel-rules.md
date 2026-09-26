@@ -45,6 +45,10 @@ CMS qualification and raw MSBuild measurements are documented in
   rules; the lock is an input, not a dependency solver.
 - `framework_refs` propagate through project dependencies. `directories` declares
   empty logical workspace-relative directories required by original targets.
+  `generated_directories = {"App/Generated": "data"}` redirects a reviewed
+  source-relative output directory into writable action state and publishes it
+  under the runtime tree. Input overlap, output collisions and generated links
+  fail; this does not make declared inputs writable.
   Resource/content paths remain relative to their project so `RelativeDir` metadata
   works. Compiler additional files and analyzer configuration use absolute sandbox paths.
 - `deps` enables compile/runtime package assets; `build_deps` and `analyzers` enable

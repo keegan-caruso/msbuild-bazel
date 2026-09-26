@@ -31,13 +31,31 @@ internal sealed class DocumentBinding
 
 internal sealed class ProjectBinding
 {
+    public Dictionary<string, ProjectBinding> FrameworkOverrides { get; set; } = [];
+    public Dictionary<string, PackageBinding> Packages { get; set; } = [];
     public string[] TargetFrameworks { get; set; } = [];
     public string Platform { get; set; } = "AnyCPU";
+    public bool LinuxWorker
+    {
+        get; set;
+    }
+    public bool ProfileBuild
+    {
+        get; set;
+    }
+    public bool? UseAppHost
+    {
+        get; set;
+    }
     public bool TransitiveCompileReferences { get; set; } = true;
     public Dictionary<string, string[]> PackageReferencePaths { get; set; } = [];
     public Dictionary<string, ReferenceBinding> References { get; set; } = [];
     public Dictionary<string, ReferenceBinding> ProjectReferences { get; set; } = [];
     public string OutputMode { get; set; } = "sdk";
+    public string? PackageLock
+    {
+        get; set;
+    }
     public string? ReferencePack
     {
         get; set;
@@ -53,8 +71,11 @@ internal sealed class ProjectBinding
     public Dictionary<string, string> ItemPaths { get; set; } = [];
     public string[] AdapterImports { get; set; } = [];
     public string[] Directories { get; set; } = [];
+    public Dictionary<string, string> GeneratedDirectories { get; set; } = [];
     public Dictionary<string, string> LayoutBindings { get; set; } = [];
     public Dictionary<string, DocumentBinding> Documents { get; set; } = [];
+    public Dictionary<string, string[]> InputItems { get; set; } = [];
+    public Dictionary<string, string[]> ExportTargets { get; set; } = [];
     public string[] EvaluationItems { get; set; } = [];
     public Dictionary<string, string> Properties { get; set; } = [];
 }
@@ -103,30 +124,44 @@ internal sealed class Mappings
     internal static Mappings Read(string? path)
     {
         var mappings = path is null ? new Mappings() : JsonSerializer.Deserialize<Mappings>(MappingDefaults.Expand(File.ReadAllText(path)), new JsonSerializerOptions { PropertyNameCaseInsensitive = true, UnmappedMemberHandling = JsonUnmappedMemberHandling.Disallow }) ?? throw new InvalidDataException("Empty sync mappings");
-        var identities = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-        foreach (var (identity, binding) in mappings.Packages)
-        {
-            if (!identities.Add(identity) || identity.Split('/') is not [var id, var version] || id.Length == 0 || version.Length == 0 || binding.Roles.Length == 0 || binding.Roles.Any(r => r is not "deps" and not "build_deps" and not "analyzers"))
-            {
-                throw new InvalidDataException("Package mappings require unique ID/version keys and explicit deps/build_deps/analyzers roles: " + identity);
-            }
-            Label(binding.Label);
-            foreach (var label in binding.Analyzers)
-            {
-                Label(label);
-            }
-        }
+        ValidatePackages(mappings.Packages);
         foreach (var project in mappings.Projects.Keys)
         {
             ProjectPath(project);
         }
-        foreach (var (project, binding) in mappings.Projects.Append(new KeyValuePair<string, ProjectBinding>("projectDefaults", mappings.ProjectDefaults)))
+        foreach (var (project, binding) in mappings.Projects.Append(new KeyValuePair<string, ProjectBinding>("projectDefaults", mappings.ProjectDefaults)).SelectMany(p => p.Value.FrameworkOverrides.Select(v => new KeyValuePair<string, ProjectBinding>(p.Key + " [" + v.Key + "]", v.Value)).Prepend(p)))
         {
             if (string.IsNullOrWhiteSpace(binding.Platform))
             {
                 throw new InvalidDataException("Project platform must be explicit and nonempty: " + project);
             }
             Properties(binding.Properties);
+            ValidatePackages(binding.Packages);
+            foreach (var (type, metadata) in binding.InputItems)
+            {
+                System.Xml.XmlConvert.VerifyNCName(type);
+                if (type.StartsWith("_Bazel", StringComparison.OrdinalIgnoreCase) || new[] { "Compile", "ProjectReference", "Reference", "Analyzer", "PackageReference", "PackageVersion", "FrameworkReference" }.Contains(type, StringComparer.OrdinalIgnoreCase))
+                {
+                    throw new InvalidDataException("Use dependency/source mappings for input item type: " + type);
+                }
+                foreach (var name in metadata)
+                {
+                    System.Xml.XmlConvert.VerifyNCName(name);
+                }
+            }
+            foreach (var (source, destination) in binding.GeneratedDirectories)
+            {
+                WorkspaceView.Safe(source);
+                WorkspaceView.Safe(destination);
+            }
+            foreach (var (target, outputs) in binding.ExportTargets)
+            {
+                System.Xml.XmlConvert.VerifyNCName(target);
+                foreach (var output in outputs)
+                {
+                    WorkspaceView.Safe(output);
+                }
+            }
             foreach (var (package, paths) in binding.PackageReferencePaths)
             {
                 if (package.Length == 0 || package.Any(c => !char.IsAsciiLetterOrDigit(c) && c is not '.' and not '-' and not '_') || paths.Length == 0)
@@ -147,7 +182,7 @@ internal sealed class Mappings
             {
                 throw new InvalidDataException("Invalid output mode: " + project);
             }
-            foreach (var label in binding.Tools.Concat(binding.AssemblySelections).Concat(binding.LayoutBindings.Keys).Concat(binding.Bindings).Concat(binding.Items).Concat(binding.AdapterImports).Concat(binding.ReferencePack is null ? [] : new[] { binding.ReferencePack }).Concat(binding.RuntimeHost is null ? [] : new[] { binding.RuntimeHost }))
+            foreach (var label in binding.Tools.Concat(binding.AssemblySelections).Concat(binding.LayoutBindings.Keys).Concat(binding.Bindings).Concat(binding.Items).Concat(binding.AdapterImports).Concat(binding.ReferencePack is null ? [] : new[] { binding.ReferencePack }).Concat(binding.RuntimeHost is null ? [] : new[] { binding.RuntimeHost }).Concat(binding.PackageLock is null ? [] : new[] { binding.PackageLock }))
             {
                 Label(label);
             }
@@ -237,7 +272,7 @@ internal sealed class Mappings
         foreach (var key in properties.Keys)
         {
             System.Xml.XmlConvert.VerifyNCName(key);
-            if (!keys.Add(key) || new[] { "Platform", "Configuration", "TargetFramework", "TargetFrameworks", "OutputType", "ImportProjectExtensionProps", "ImportProjectExtensionTargets" }.Contains(key, StringComparer.OrdinalIgnoreCase))
+            if (!keys.Add(key) || new[] { "Platform", "Configuration", "TargetFramework", "TargetFrameworks", "OutputType", "UseAppHost", "ImportProjectExtensionProps", "ImportProjectExtensionTargets" }.Contains(key, StringComparer.OrdinalIgnoreCase))
             {
                 throw new InvalidDataException("Duplicate or reserved evaluation property: " + key);
             }
@@ -246,10 +281,11 @@ internal sealed class Mappings
 
     internal ProjectBinding ForProject(string project) => Projects.GetValueOrDefault(project) ?? ProjectDefaults;
 
-    internal Dictionary<string, string> ProjectProperties(string project, TestBinding? test)
+    internal Dictionary<string, string> ProjectProperties(string project, TestBinding? test, ProjectBinding? binding = null)
     {
-        var properties = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase) { ["Platform"] = ForProject(project).Platform };
-        foreach (var (key, value) in ForProject(project).Properties)
+        binding ??= ForProject(project);
+        var properties = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase) { ["Platform"] = binding.Platform };
+        foreach (var (key, value) in binding.Properties)
         {
             properties.Add(key, value);
         }
@@ -272,7 +308,24 @@ internal sealed class Mappings
         }
     }
 
-    internal Dictionary<string, List<string>> PackageAttributes(Project project)
+    private static void ValidatePackages(Dictionary<string, PackageBinding> packages)
+    {
+        var identities = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var (identity, binding) in packages)
+        {
+            if (!identities.Add(identity) || identity.Split('/') is not [var id, var version] || id.Length == 0 || version.Length == 0 || binding.Roles.Length == 0 || binding.Roles.Any(r => r is not "deps" and not "build_deps" and not "analyzers"))
+            {
+                throw new InvalidDataException("Package mappings require unique ID/version keys and explicit deps/build_deps/analyzers roles: " + identity);
+            }
+            Label(binding.Label);
+            foreach (var label in binding.Analyzers)
+            {
+                Label(label);
+            }
+        }
+    }
+
+    internal Dictionary<string, List<string>> PackageAttributes(Project project, ProjectBinding projectBinding)
     {
         var attributes = new Dictionary<string, List<string>> { ["deps"] = [], ["build_deps"] = [], ["analyzers"] = [] };
         foreach (var package in project.GetItems("PackageReference"))
@@ -314,7 +367,7 @@ internal sealed class Mappings
                 version = project.GetItems("PackageVersion").SingleOrDefault(i => i.EvaluatedInclude.Equals(package.EvaluatedInclude, StringComparison.OrdinalIgnoreCase))?.GetMetadataValue("Version") ?? "";
             }
             var identity = package.EvaluatedInclude + "/" + version;
-            var binding = Packages.FirstOrDefault(p => p.Key.Equals(identity, StringComparison.OrdinalIgnoreCase)).Value ?? throw new InvalidDataException("PackageReference requires an exact package mapping: " + identity);
+            var binding = projectBinding.Packages.FirstOrDefault(p => p.Key.Equals(identity, StringComparison.OrdinalIgnoreCase)).Value ?? Packages.FirstOrDefault(p => p.Key.Equals(identity, StringComparison.OrdinalIgnoreCase)).Value ?? throw new InvalidDataException("PackageReference requires an exact package mapping: " + identity);
             foreach (var role in binding.Roles)
             {
                 attributes[role].Add(binding.Label);

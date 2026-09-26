@@ -140,6 +140,37 @@ appropriate authored package targets. A missing exact mapping or unsupported
 PackageReference metadata fails before output changes. A package mapping table
 can contain entries unused by a particular selected project graph.
 
+Projects can select different locked package sets and dependency closures:
+
+```starlark
+msbuild_sync(
+    name = "sync",
+    projects = ["App/App.csproj"],
+    mappings = "sync.json",
+    package_lock = ":app_packages",
+    package_locks = [":generator_packages"],
+)
+```
+
+```json
+{
+  "projects": {
+    "Generator/Generator.csproj": {
+      "packageLock": ":generator_packages",
+      "packages": {
+        "Example/1.0.0": {"label": ":generator_example", "roles": ["deps"]}
+      }
+    }
+  }
+}
+```
+
+`packageLock` must name a lock declared on the sync target. Evaluation exposes
+only the selected lock's packages for each project, restoring the caller's selection
+when following references. A project `packages` entry replaces the shared package
+binding for that ID/version; this supports the same package with different resolved
+transitive dependencies. Both lock contents and dependency producers remain explicit.
+
 Test keys are exact workspace-relative project paths. `protocol` is required:
 `vstest`, `mtp`, or `executable`. Only VSTest accepts `runner` and `adapters`.
 Mapped projects generate `msbuild_test_project` declarations. An evaluated test
@@ -191,6 +222,18 @@ reviewed custom-document contract. Missing files still require a generator bindi
 sync never runs a generation target. Ordinary uncopied `None` files remain outside
 build inputs. Missing SDK-discovered ancestor analyzer-config candidates are skipped;
 missing authored configs fail.
+
+`inputItems` explicitly declares additional file item kinds and any additional
+metadata names, for example `{"RazorGenerate": [], "AvaloniaResource": ["Link"]}`.
+Every evaluated file must exist or have a declared producer. Listing `None` here
+also includes uncopied `None` items, so use it only when those files participate in
+the build. `evaluationItems` is for non-file bookkeeping and never declares inputs.
+
+The first-party Web and Razor SDKs retain their framework references and SDK build
+behavior. `exportTargets`, for example `{"Describe": []}`, exposes a reviewed
+project target through the existing target-result contract; consumers bind it with
+`msbuild_target_items`. Sync verifies target availability without executing it.
+`linuxWorker` and `profileBuild` select the corresponding build-rule options.
 
 `itemPaths` maps a workspace-relative file to a safe logical staging path, preserving
 its item metadata. For example, `{ "NuGet.config": "test-data/NuGet.config" }`
@@ -450,3 +493,33 @@ cases passing their expected contracts on Bazel 8.8.0 and 9.2.0, and the three
 MTP pass/failure/restoration cases on 9.2.0. These checks ran on macOS ARM64.
 The upstream Serilog/Spectre preparation now uses the shared macro; their full
 suites were not rerun for this declaration-only refactor.
+
+### Framework-specific contracts and generated directories
+
+`projects[path].frameworkOverrides[tfm]` overlays the selected framework's
+project mapping. Scalars and lists replace inherited values; dictionaries merge
+by exact key, replacing each binding record as a whole. This supports different
+package locks, tool bindings, inputs and properties for a multi-targeted project.
+Override keys must name selected frameworks. Overrides cannot nest or change
+`targetFrameworks`. Synchronization still evaluates each selected configuration
+and rejects unused or invalid bindings.
+
+For a reviewed SDK target that writes to a literal source-relative directory,
+`generatedDirectories` maps its workspace-relative directory to a runtime-output
+subdirectory. For example:
+
+```json
+{"generatedDirectories": {"App/Generated": "data"}}
+```
+
+This emits `generated_directories = {"App/Generated": "data"}`. The runner links
+the declared path to writable action state before compilation and publishes its
+contents into the runtime tree. Inputs remain read-only in Linux workers.
+Overlapping inputs, overlapping mappings, reserved paths, runtime-output
+collisions and target-created output links are rejected. Declare only generated
+files here; source files and test data remain ordinary inputs.
+
+`useAppHost` optionally overrides the SDK apphost decision for a project or
+framework variant and emits the rule’s `use_apphost` attribute. Use it with an
+explicit test `outputType` when a package changes those settings after evaluation.
+Do not pass reserved `UseAppHost` through the general `properties` dictionary.

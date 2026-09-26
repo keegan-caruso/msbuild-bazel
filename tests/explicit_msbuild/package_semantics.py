@@ -41,7 +41,7 @@ cmd=[bazel,'--output_base='+str(folder/'private-base'),'--ignore_all_rc_files'];
 def run(case,error=None):
  p=subprocess.run(cmd+['run','//PrivateConsumer','--repository_cache='+os.environ['RULES_MSBUILD_REPOSITORY_CACHE'],'--disk_cache=','--strategy=MSBuildAssembly=worker','--worker_max_instances=MSBuildAssembly=1'],cwd=workspace,capture_output=True,text=True,timeout=240)
  output=p.stdout+p.stderr;(folder/(case+'.log')).write_text(output)
- assert (p.returncode==0 and p.stdout.strip()=='7') if error is None else (p.returncode!=0 and error in output),(case,output[-5000:])
+ assert (p.returncode==0 and p.stdout.strip().splitlines()[-1:]==['7']) if error is None else (p.returncode!=0 and error in output),(case,output[-5000:])
  rows.append(dict(case=case,exit=p.returncode));print(case,p.returncode,flush=True)
 run('private-library-consumer')
 (app/'Program.cs').write_text('System.Console.WriteLine(HiddenType.Get());')
@@ -71,6 +71,10 @@ run('invalid-generated-package-path','Invalid PackageReference GeneratePathPrope
 (lib/'Value.cs').write_text('public static class PrivateValue { public static int Get() => 7; }')
 (lib/'BUILD.bazel').write_text(build.replace('deps=["//private-packages:hidden"]','build_deps=["//private-packages:hidden"]'))
 run('late-implicit-package-central-management')
+(lib/'Directory.Packages.props').write_text('<Project><PropertyGroup><ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally><CentralPackageTransitivePinningEnabled>true</CentralPackageTransitivePinningEnabled></PropertyGroup></Project>')
+run('late-implicit-package-central-transitive-management')
+(lib/'Directory.Packages.props').write_text(props)
+run('authored-implicit-central-version-rejected', 'NU1009')
 # A restore-only baseline download is independent of an unused central version.
 (lib/'Directory.Packages.props').write_text(props.replace('Version="1.0.0"','Version="2.0.0"'))
 (lib/'PrivateLibrary.csproj').write_text('<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup><TargetFramework>net10.0</TargetFramework></PropertyGroup><ItemGroup><PackageDownload Include="Hidden" Version="[1.0.0]" /></ItemGroup></Project>')

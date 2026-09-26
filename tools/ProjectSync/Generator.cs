@@ -80,20 +80,26 @@ internal sealed class Generator(string root, string sdk, Mappings mappings, Work
         return relative;
     }
 
-    private static string Quote(string value) => JsonSerializer.Serialize(value);
+    private static string Quote(string value) => StarlarkLiteral.Serialize(value);
     private static string List(IEnumerable<string> values) => "[" + string.Join(", ", values.Distinct(StringComparer.Ordinal).Order(StringComparer.Ordinal).Select(Quote)) + "]";
     private bool IsSdk(string path) => Path.GetFullPath(path).StartsWith(sdk + Path.DirectorySeparatorChar, StringComparison.Ordinal);
 
     private string Visit(string path)
     {
         var relative = Relative(path);
+        var previousLock = view.PackageLock;
         try
         {
+            view.SelectPackageLock(mappings.ForProject(relative).PackageLock ?? view.DefaultPackageLock);
             return VisitProject(path);
         }
         catch (Exception error) when (error is InvalidDataException or ArgumentException or Microsoft.Build.Exceptions.InvalidProjectFileException)
         {
             throw new InvalidDataException("Project " + relative + " [Configuration=Release, Platform=" + mappings.ForProject(relative).Platform + ", TargetFramework=" + activeFrameworks.GetValueOrDefault(path, "evaluation") + "]: " + error.Message, error);
+        }
+        finally
+        {
+            view.SelectPackageLock(previousLock);
         }
     }
 
@@ -130,6 +136,10 @@ internal sealed class Generator(string root, string sdk, Mappings mappings, Work
                 globals["OutputType"] = test.OutputType == "exe" ? "Exe" : "Library";
             }
         }
+        if (projectBinding.UseAppHost is { } useAppHost)
+        {
+            globals["UseAppHost"] = useAppHost.ToString();
+        }
         var outer = new Project(path, globals, null, collection);
         var frameworks = outer.GetPropertyValue("TargetFrameworks");
         if (frameworks.Length == 0)
@@ -149,17 +159,43 @@ internal sealed class Generator(string root, string sdk, Mappings mappings, Work
             }
             tfms = projectBinding.TargetFrameworks.Order(StringComparer.Ordinal).ToArray();
         }
+        if (projectBinding.FrameworkOverrides.Keys.Except(tfms, StringComparer.Ordinal).Any())
+        {
+            throw new InvalidDataException("Framework override does not match selected frameworks: " + relative);
+        }
+        var baseBinding = projectBinding;
         var variants = new List<(string Framework, string Kind, string Attributes)>();
         var activeDocuments = new HashSet<string>(StringComparer.Ordinal);
         var usedItemPaths = new HashSet<string>(StringComparer.Ordinal);
         foreach (var tfm in tfms)
         {
             activeFrameworks[path] = tfm;
-            globals["TargetFramework"] = tfm;
-            var project = new Project(path, globals, null, collection);
+            projectBinding = baseBinding.FrameworkOverrides.GetValueOrDefault(tfm) ?? baseBinding;
+            view.SelectPackageLock(projectBinding.PackageLock ?? view.DefaultPackageLock);
+            var variantProperties = mappings.ProjectProperties(relative, test, projectBinding);
+            var variantGlobals = new Dictionary<string, string>(variantProperties, StringComparer.OrdinalIgnoreCase)
+            {
+                ["Configuration"] = "Release",
+                ["ImportProjectExtensionProps"] = "false",
+                ["ImportProjectExtensionTargets"] = "false",
+                ["TargetFramework"] = tfm
+            };
+            foreach (var (property, value) in view.ToolProperties(projectBinding.Bindings))
+            {
+                variantGlobals.Add(property, value);
+            }
+            if (test?.OutputType is not null)
+            {
+                variantGlobals["OutputType"] = test.OutputType == "exe" ? "Exe" : "Library";
+            }
+            if (projectBinding.UseAppHost is { } variantUseAppHost)
+            {
+                variantGlobals["UseAppHost"] = variantUseAppHost.ToString();
+            }
+            var project = new Project(path, variantGlobals, null, collection);
             Validate(project, test, projectBinding);
             activeDocuments.UnionWith(project.Imports.Select(i => i.ImportedProject.FullPath).Append(project.FullPath).Where(p => !IsSdk(p)).Select(p => Path.GetRelativePath(root, p).Replace('\\', '/')));
-            var packages = mappings.PackageAttributes(project);
+            var packages = mappings.PackageAttributes(project, projectBinding);
             var privacy = Mappings.PackagePrivacy(project, projectBinding);
             var imports = project.Imports.Select(i => i.ImportedProject.FullPath).Where(p => !IsSdk(p) && !view.IsPackage(p)).Select(Relative).ToArray();
             if (view.PackageLock is not null && File.Exists(Path.Combine(root, "global.json")))
@@ -185,16 +221,37 @@ internal sealed class Generator(string root, string sdk, Mappings mappings, Work
             var roles = References(project, projectBinding);
             var dependencies = roles["deps"].Concat(packages["deps"]).ToArray();
             var attributes = new StringBuilder();
-            attributes.AppendLine("            \"package_private_assets\": " + JsonSerializer.Serialize(privacy) + ",");
-            attributes.AppendLine("            \"package_reference_paths\": " + JsonSerializer.Serialize(projectBinding.PackageReferencePaths) + ",");
+            if (!variantProperties.OrderBy(p => p.Key, StringComparer.Ordinal).SequenceEqual(properties.OrderBy(p => p.Key, StringComparer.Ordinal)))
+            {
+                attributes.AppendLine("            \"msbuild_properties\": " + StarlarkLiteral.Serialize(variantProperties) + ",");
+            }
+            attributes.AppendLine("            \"package_private_assets\": " + StarlarkLiteral.Serialize(privacy) + ",");
+            attributes.AppendLine("            \"package_reference_paths\": " + StarlarkLiteral.Serialize(projectBinding.PackageReferencePaths) + ",");
             attributes.AppendLine("            \"transitive_compile_references\": " + (projectBinding.TransitiveCompileReferences ? "True" : "False") + ",");
+            if (projectBinding.LinuxWorker)
+            {
+                attributes.AppendLine("            \"linux_worker\": True,");
+            }
+            if (projectBinding.ProfileBuild)
+            {
+                attributes.AppendLine("            \"profile_build\": True,");
+            }
+            var frameworkReferences = project.GetItems("FrameworkReference").Where(i => (i.EvaluatedInclude is not "Microsoft.NETCore.App" and not "NETStandard.Library") || !i.GetMetadataValue("IsImplicitlyDefined").Equals("true", StringComparison.OrdinalIgnoreCase)).Select(i => i.EvaluatedInclude).ToArray();
+            if (frameworkReferences.Length != 0)
+            {
+                attributes.AppendLine("            \"framework_refs\": " + List(frameworkReferences) + ",");
+            }
+            if (projectBinding.ExportTargets.Count != 0)
+            {
+                attributes.AppendLine("            \"export_targets\": " + StarlarkLiteral.Serialize(projectBinding.ExportTargets) + ",");
+            }
             // Analyzer behavior on partial types can depend on evaluated source order.
-            attributes.AppendLine("            \"srcs\": " + JsonSerializer.Serialize(sources.Where(p => !view.Labels.ContainsKey(p)).Distinct(StringComparer.Ordinal)) + ",");
-            attributes.AppendLine("            \"source_paths\": " + JsonSerializer.Serialize(view.Bindings(sources)) + ",");
+            attributes.AppendLine("            \"srcs\": " + StarlarkLiteral.Serialize(sources.Where(p => !view.Labels.ContainsKey(p)).Distinct(StringComparer.Ordinal)) + ",");
+            attributes.AppendLine("            \"source_paths\": " + StarlarkLiteral.Serialize(view.Bindings(sources)) + ",");
             attributes.AppendLine("            \"deps\": " + List(dependencies) + ",");
-            attributes.AppendLine("            \"items\": " + List(InputItems(project, relative, tfm, projectBinding, usedItemPaths).Concat(projectBinding.Items).Concat(roles["items"])) + ",");
+            attributes.AppendLine("            \"items\": " + StarlarkLiteral.Serialize(InputItems(project, relative, tfm, projectBinding, usedItemPaths).Concat(projectBinding.Items).Concat(roles["items"]).Distinct(StringComparer.Ordinal).ToArray()) + ",");
             attributes.AppendLine("            \"msbuild_imports\": " + List(imports.Where(p => !view.Labels.ContainsKey(p))) + ",");
-            attributes.AppendLine("            \"import_paths\": " + JsonSerializer.Serialize(view.Bindings(imports)) + ",");
+            attributes.AppendLine("            \"import_paths\": " + StarlarkLiteral.Serialize(view.Bindings(imports)) + ",");
             if (view.PackageLock is not null)
             {
                 attributes.AppendLine("            \"package_lock\": " + Quote(view.PackageLock) + ",");
@@ -207,12 +264,16 @@ internal sealed class Generator(string root, string sdk, Mappings mappings, Work
             {
                 attributes.AppendLine("            " + Quote(role) + ": " + List(roles[role].Concat(role == "tools" ? projectBinding.Tools : [])) + ",");
             }
-            attributes.AppendLine("            \"reference_projects\": " + JsonSerializer.Serialize(projectBinding.References.Where(p => p.Value.Role == "compile").ToDictionary(p => p.Value.Label, p => p.Key)) + ",");
+            attributes.AppendLine("            \"reference_projects\": " + StarlarkLiteral.Serialize(projectBinding.References.Where(p => p.Value.Role == "compile").ToDictionary(p => p.Value.Label, p => p.Key)) + ",");
             attributes.AppendLine("            \"assembly_selections\": " + List(projectBinding.AssemblySelections) + ",");
             attributes.AppendLine("            \"bindings\": " + List(projectBinding.Bindings) + ",");
             attributes.AppendLine("            \"adapter_imports\": " + List(projectBinding.AdapterImports) + ",");
-            attributes.AppendLine("            \"layout_bindings\": " + JsonSerializer.Serialize(projectBinding.LayoutBindings) + ",");
+            attributes.AppendLine("            \"layout_bindings\": " + StarlarkLiteral.Serialize(projectBinding.LayoutBindings) + ",");
             attributes.AppendLine("            \"directories\": " + List(projectBinding.Directories) + ",");
+            if (projectBinding.GeneratedDirectories.Count != 0)
+            {
+                attributes.AppendLine("            \"generated_directories\": " + StarlarkLiteral.Serialize(projectBinding.GeneratedDirectories) + ",");
+            }
             attributes.AppendLine("            \"output_mode\": " + Quote(projectBinding.OutputMode) + ",");
             if (projectBinding.ReferencePack is not null)
             {
@@ -226,7 +287,7 @@ internal sealed class Generator(string root, string sdk, Mappings mappings, Work
             {
                 foreach (var (key, value) in Mappings.TestAttributes(test, project.GetPropertyValue("OutputType")))
                 {
-                    attributes.AppendLine("            " + Quote(key) + ": " + JsonSerializer.Serialize(value) + ",");
+                    attributes.AppendLine("            " + Quote(key) + ": " + StarlarkLiteral.Serialize(value) + ",");
                 }
             }
             attributes.AppendLine("            \"assembly_name\": " + Quote(project.GetPropertyValue("AssemblyName")) + ",");
@@ -237,11 +298,11 @@ internal sealed class Generator(string root, string sdk, Mappings mappings, Work
             attributes.AppendLine("            \"use_apphost\": " + (project.GetPropertyValue("UseAppHost").Equals("true", StringComparison.OrdinalIgnoreCase) ? "True" : "False") + ",");
             variants.Add((tfm, project.GetPropertyValue("OutputType"), attributes.ToString()));
         }
-        if (projectBinding.ItemPaths.Keys.Except(usedItemPaths, StringComparer.Ordinal).Any())
+        if (baseBinding.FrameworkOverrides.Values.Prepend(baseBinding).SelectMany(b => b.ItemPaths.Keys).Except(usedItemPaths, StringComparer.Ordinal).Any())
         {
             throw new InvalidDataException("Item path mapping does not match evaluated file items: " + relative);
         }
-        if (projectBinding.Documents.Keys.Except(activeDocuments, StringComparer.Ordinal).Any())
+        if (baseBinding.FrameworkOverrides.Values.Prepend(baseBinding).SelectMany(b => b.Documents.Keys).Except(activeDocuments, StringComparer.Ordinal).Any())
         {
             throw new InvalidDataException("Custom document mapping does not match evaluated imports: " + relative);
         }
@@ -255,14 +316,18 @@ internal sealed class Generator(string root, string sdk, Mappings mappings, Work
         declaration.AppendLine("    name = " + Quote(name) + ",");
         declaration.AppendLine("    project = " + Quote(relative) + ",");
         declaration.AppendLine("    configuration = \"Release\",");
-        declaration.AppendLine("    msbuild_properties = " + JsonSerializer.Serialize(properties) + ",");
+        declaration.AppendLine("    msbuild_properties = " + StarlarkLiteral.Serialize(binary ? mappings.ProjectProperties(relative, test, projectBinding) : properties) + ",");
         if (binary)
         {
             declaration.AppendLine("    target_framework = " + Quote(tfms[0]) + ",");
             foreach (var line in variants[0].Attributes.Split('\n', StringSplitOptions.RemoveEmptyEntries))
             {
                 var colon = line.IndexOf(':');
-                declaration.AppendLine("    " + JsonSerializer.Deserialize<string>(line[..colon].Trim()) + " =" + line[(colon + 1)..]);
+                var attribute = JsonSerializer.Deserialize<string>(line[..colon].Trim());
+                if (attribute != "msbuild_properties")
+                {
+                    declaration.AppendLine("    " + attribute + " =" + line[(colon + 1)..]);
+                }
             }
         }
         else
@@ -399,11 +464,11 @@ internal sealed class Generator(string root, string sdk, Mappings mappings, Work
             if (!view.IsPackage(Path.Combine(root, keyPath)))
             {
                 var keyName = "_sync_key_" + Convert.ToHexStringLower(System.Security.Cryptography.SHA256.HashData(Encoding.UTF8.GetBytes(keyPath)));
-                itemDeclarations[keyName] = "msbuild_items(\n    name = " + Quote(keyName) + ",\n    item_type = \"None\",\n    srcs = " + List(view.Labels.ContainsKey(keyPath) ? [] : [keyPath]) + ",\n    paths = " + JsonSerializer.Serialize(view.Bindings([keyPath])) + ",\n)\n";
+                itemDeclarations[keyName] = "msbuild_items(\n    name = " + Quote(keyName) + ",\n    item_type = \"None\",\n    srcs = " + List(view.Labels.ContainsKey(keyPath) ? [] : [keyPath]) + ",\n    paths = " + StarlarkLiteral.Serialize(view.Bindings([keyPath])) + ",\n)\n";
                 yield return ":" + keyName;
             }
         }
-        foreach (var type in new[] { "Compile", "EmbeddedResource", "AdditionalFiles", "EditorConfigFiles", "GlobalAnalyzerConfigFiles", "Content", "None" })
+        foreach (var type in new[] { "Compile", "EmbeddedResource", "AdditionalFiles", "EditorConfigFiles", "GlobalAnalyzerConfigFiles", "Content", "None" }.Concat(binding.InputItems.Keys).Distinct(StringComparer.Ordinal))
         {
             foreach (var item in project.GetItems(type))
             {
@@ -413,20 +478,20 @@ internal sealed class Generator(string root, string sdk, Mappings mappings, Work
                 {
                     continue;
                 }
-                if (type == "Compile" && !item.Metadata.Any(m => m.Name is "Link" or "LinkBase") || type == "None" && item.GetMetadataValue("CopyToOutputDirectory") is "" or "Never" && item.GetMetadataValue("CopyToPublishDirectory") is "" or "Never")
+                if (type == "Compile" && !item.Metadata.Any(m => m.Name is "Link" or "LinkBase" or "SubType") || type == "None" && !binding.InputItems.ContainsKey(type) && item.GetMetadataValue("CopyToOutputDirectory") is "" or "Never" && item.GetMetadataValue("CopyToPublishDirectory") is "" or "Never")
                 {
                     continue;
                 }
-                var allowed = type == "Compile" ? new[] { "Link", "LinkBase", "Visible", "DesignTime", "AutoGen", "DependentUpon", "CopyToOutputDirectory", "CopyToPublishDirectory", "TargetPath" } : new[] { "Link", "LinkBase", "LogicalName", "ManifestResourceName", "Culture", "WithCulture", "CopyToOutputDirectory", "CopyToPublishDirectory", "TargetPath", "Visible", "Pack", "PackagePath", "CopyToBuildDirectory", "GenerateSource", "ClassName", "Generator", "Language", "SubType", "Namespace", "GenerateResourcesCodeAsConstants", "StronglyTypedClassName", "StronglyTypedNamespace", "DependentUpon", "LastGenOutput" };
+                var allowed = type == "Compile" ? new[] { "Link", "LinkBase", "SubType", "Visible", "DesignTime", "AutoGen", "DependentUpon", "CopyToOutputDirectory", "CopyToPublishDirectory", "TargetPath" } : new[] { "Link", "LinkBase", "LogicalName", "ManifestResourceName", "Culture", "WithCulture", "CopyToOutputDirectory", "CopyToPublishDirectory", "TargetPath", "Visible", "Pack", "PackagePath", "CopyToBuildDirectory", "GenerateSource", "ClassName", "Generator", "Language", "SubType", "Namespace", "GenerateResourcesCodeAsConstants", "StronglyTypedClassName", "StronglyTypedNamespace", "DependentUpon", "LastGenOutput" };
                 foreach (var metadata in item.Metadata.Where(m => !IsSdk(m.Xml.ContainingProject.FullPath)))
                 {
-                    if (!allowed.Contains(metadata.Name, StringComparer.Ordinal) || metadata.Name == "GenerateSource" && binding.Documents.Count == 0)
+                    if (!allowed.Contains(metadata.Name, StringComparer.Ordinal) && !(binding.InputItems.GetValueOrDefault(type) ?? []).Contains(metadata.Name, StringComparer.Ordinal) || metadata.Name == "GenerateSource" && binding.Documents.Count == 0)
                     {
                         throw new InvalidDataException(type + " metadata requires explicit binding: " + metadata.Name);
                     }
                 }
                 var metadataValues = new SortedDictionary<string, string>(StringComparer.Ordinal);
-                foreach (var key in allowed)
+                foreach (var key in allowed.Concat(binding.InputItems.GetValueOrDefault(type) ?? []).Distinct(StringComparer.Ordinal))
                 {
                     var value = item.GetMetadataValue(key);
                     if (value.Length == 0)
@@ -470,7 +535,7 @@ internal sealed class Generator(string root, string sdk, Mappings mappings, Work
                     throw new InvalidDataException("Target name collision: " + name);
                 }
                 names[name] = identity;
-                itemDeclarations[name] = "msbuild_items(\n    name = " + Quote(name) + ",\n    item_type = " + Quote(type) + ",\n    srcs = " + List(paths.Count != 0 ? [] : [path]) + ",\n    paths = " + JsonSerializer.Serialize(paths) + ",\n    metadata = " + JsonSerializer.Serialize(metadataValues) + ",\n)\n";
+                itemDeclarations[name] = "msbuild_items(\n    name = " + Quote(name) + ",\n    item_type = " + Quote(type) + ",\n    srcs = " + List(paths.Count != 0 ? [] : [path]) + ",\n    paths = " + StarlarkLiteral.Serialize(paths) + ",\n    metadata = " + StarlarkLiteral.Serialize(metadataValues) + ",\n)\n";
                 yield return ":" + name;
             }
         }
@@ -479,20 +544,20 @@ internal sealed class Generator(string root, string sdk, Mappings mappings, Work
     private void Validate(Project project, TestBinding? test, ProjectBinding binding)
     {
         var documents = project.Imports.Select(i => i.ImportedProject).Append(project.Xml).Where(p => !IsSdk(p.FullPath)).DistinctBy(p => p.FullPath).ToArray();
-        if (project.Xml.Sdk != "Microsoft.NET.Sdk")
+        if (project.Xml.Sdk is not "Microsoft.NET.Sdk" and not "Microsoft.NET.Sdk.Web" and not "Microsoft.NET.Sdk.Razor")
         {
-            throw new InvalidDataException("Only Microsoft.NET.Sdk is supported: " + project.FullPath);
+            throw new InvalidDataException("Only Microsoft.NET.Sdk, Microsoft.NET.Sdk.Web and Microsoft.NET.Sdk.Razor are supported: " + project.FullPath);
         }
         foreach (var item in project.AllEvaluatedItems.Where(i => !IsSdk(i.Xml.ContainingProject.FullPath)))
         {
-            if (!binding.EvaluationItems.Contains(item.ItemType, StringComparer.Ordinal) && item.ItemType is not "InternalsVisibleTo" and not "Compile" and not "None" and not "ProjectReference" and not "PackageReference" and not "PackageVersion" and not "Content" and not "EmbeddedResource" and not "Reference" and not "FrameworkReference" and not "Analyzer" and not "AdditionalFiles" and not "EditorConfigFiles" and not "GlobalAnalyzerConfigFiles" and not "Using")
+            if (!binding.EvaluationItems.Contains(item.ItemType, StringComparer.Ordinal) && !binding.InputItems.ContainsKey(item.ItemType) && item.ItemType is not "InternalsVisibleTo" and not "Compile" and not "None" and not "ProjectReference" and not "PackageReference" and not "PackageVersion" and not "Content" and not "EmbeddedResource" and not "Reference" and not "FrameworkReference" and not "Analyzer" and not "AdditionalFiles" and not "EditorConfigFiles" and not "GlobalAnalyzerConfigFiles" and not "Using")
             {
                 throw new InvalidDataException("Item requires explicit mapping: " + item.ItemType + " Include=\"" + item.EvaluatedInclude + "\" from " + Relative(item.Xml.ContainingProject.FullPath) + "; declare evaluationItems for reviewed bookkeeping or an explicit input binding");
             }
         }
         foreach (var item in project.GetItems("Compile"))
         {
-            if (item.Metadata.Any(m => !IsSdk(m.Xml.ContainingProject.FullPath) && m.Name is not "Link" and not "LinkBase" and not "Visible" and not "DesignTime" and not "AutoGen" and not "DependentUpon" and not "CopyToOutputDirectory" and not "CopyToPublishDirectory" and not "TargetPath"))
+            if (item.Metadata.Any(m => !IsSdk(m.Xml.ContainingProject.FullPath) && m.Name is not "Link" and not "LinkBase" and not "SubType" and not "Visible" and not "DesignTime" and not "AutoGen" and not "DependentUpon" and not "CopyToOutputDirectory" and not "CopyToPublishDirectory" and not "TargetPath"))
             {
                 throw new InvalidDataException("Compile metadata requires explicit mapping: " + item.EvaluatedInclude);
             }
@@ -537,11 +602,22 @@ internal sealed class Generator(string root, string sdk, Mappings mappings, Work
         {
             throw new InvalidDataException("Test project requires an explicit test protocol: " + project.FullPath);
         }
-        foreach (var type in new[] { "FrameworkReference", "Analyzer" })
+        foreach (var framework in project.GetItems("FrameworkReference"))
         {
-            if (project.GetItems(type).Any(item => !(type == "FrameworkReference" && item.EvaluatedInclude == "Microsoft.NETCore.App" && item.GetMetadataValue("IsImplicitlyDefined") == "true") && !(type == "Analyzer" && IsSdk(item.GetMetadataValue("FullPath")))))
+            if (framework.Metadata.Any(m => !IsSdk(m.Xml.ContainingProject.FullPath) && m.Name != "IsImplicitlyDefined"))
             {
-                throw new InvalidDataException(type + " requires explicit bindings: " + project.FullPath);
+                throw new InvalidDataException("FrameworkReference metadata requires explicit support: " + framework.EvaluatedInclude);
+            }
+        }
+        if (project.GetItems("Analyzer").Any(item => !IsSdk(item.GetMetadataValue("FullPath"))))
+        {
+            throw new InvalidDataException("Analyzer requires explicit bindings: " + project.FullPath);
+        }
+        foreach (var target in binding.ExportTargets.Keys)
+        {
+            if (!project.Targets.ContainsKey(target))
+            {
+                throw new InvalidDataException("Export target is not declared in the evaluated project: " + target);
             }
         }
     }

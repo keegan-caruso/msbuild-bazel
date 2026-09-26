@@ -17,7 +17,7 @@ import xml.etree.ElementTree as ET
 parser = argparse.ArgumentParser(description=__doc__)
 for name in ['workspace', 'base', 'raw', 'report']:
     parser.add_argument(name, type=Path)
-parser.add_argument('--family', choices=['http', 'immutable'], required=True)
+parser.add_argument('--family', choices=['http', 'immutable', 'orchard', 'avalonia'], required=True)
 parser.add_argument('--cache', required=True)
 parser.add_argument('--seed', action='store_true')
 parser.add_argument('--expect', type=Path)
@@ -26,7 +26,8 @@ w, base, raw, report = [p.resolve() for p in [a.workspace, a.base, a.raw, a.repo
 report.parent.mkdir(parents=True, exist_ok=True)
 if not a.seed:
     assert a.expect and not base.exists(), 'Consumer requires a seed report and an empty output base'
-target = '//:' + ('src_Http_Http.Abstractions_test_Microsoft.AspNetCore.Http.Abstractions.Tests_net10_0' if a.family == 'http' else 'src_libraries_System.Collections.Immutable_tests_System.Collections.Immutable.Tests_net10_0')
+target = '//:' + dict(http='src_Http_Http.Abstractions_test_Microsoft.AspNetCore.Http.Abstractions.Tests_net10_0', immutable='src_libraries_System.Collections.Immutable_tests_System.Collections.Immutable.Tests_net10_0', orchard='src_OrchardCore.Cms.Web_OrchardCore.Cms.Web').get(a.family, '')
+targets = json.loads(raw.read_text())['targets'] if a.family == 'avalonia' else [target]
 start = [os.environ['RULES_MSBUILD_BAZEL'], '--host_jvm_args=-Xmx1536m', '--output_base=' + str(base), '--ignore_all_rc_files']
 flags = ['--jobs=2', '--disk_cache=', '--remote_cache=' + a.cache, '--remote_upload_local_results=' + str(a.seed).lower(), '--remote_download_outputs=all']
 records = []
@@ -50,9 +51,24 @@ def run(name, command, extra=()):
     return actions, [json.loads(line) for line in bep.read_text().splitlines()]
 
 def verify():
+    if a.family == 'orchard':
+        smoke = Path(__file__).resolve().parents[2] / 'explicit_msbuild/orchard_compatibility/smoke.py'
+        name = report.stem + '-smoke'
+        subprocess.run([sys.executable, smoke, w, report.parent, name, '--target', target.split(':')[1]], check=True)
+        actual = json.loads((report.parent / (name + '.json')).read_text())
+        expected = json.loads(raw.read_text())
+        assert [(r['path'], r['status'], r['contentType']) for r in actual] == [(r['path'], r['status'], r['contentType']) for r in expected]
+        assert actual[1:] == expected[1:], 'Embedded assets differ from raw MSBuild'
+        return len(actual)
     ns = {'t': 'http://microsoft.com/schemas/VisualStudio/TeamTest/2010'}
     def results(path):
         return Counter((r.get('testName'), r.get('outcome')) for r in ET.parse(path).findall('.//t:UnitTestResult', ns))
+    if a.family == 'avalonia':
+        baseline = json.loads(raw.read_text())
+        for suite, label in baseline['testTargets'].items():
+            actual = results(w / 'bazel-testlogs' / label.split(':')[1] / 'test.outputs/results.trx')
+            assert actual == Counter({(name, outcome): count for name, outcome, count in baseline['outcomes'][suite]}), suite
+        return sum(row[2] for rows in baseline['outcomes'].values() for row in rows)
     actual = results(w / 'bazel-testlogs' / target.split(':')[1] / 'test.outputs/results.trx')
     expected = results(raw)
     if a.family == 'immutable':
@@ -70,13 +86,14 @@ def verify():
 try:
     if a.seed and base.exists():
         subprocess.run(start + ['clean'], cwd=w, check=True, stdout=subprocess.DEVNULL)
-    actions, events = run('recover', ['test', target])
+    actions, events = run('recover', ['build' if a.family == 'orchard' else 'test', *targets])
     selected = [r for r in actions if r.get('mnemonic') != 'TestRunner']
     assert any(r.get('mnemonic') == 'MSBuildAssembly' for r in selected)
     if not a.seed:
         assert all(r.get('cacheHit') for r in selected), [(r.get('mnemonic'), r.get('targetLabel'), r.get('runner')) for r in selected if not r.get('cacheHit')]
-        tests = [e['testResult'] for e in events if 'testResult' in e]
-        assert len(tests) == 1 and tests[0].get('executionInfo', {}).get('cachedRemotely'), tests
+        if a.family != 'orchard':
+            tests = [e['testResult'] for e in events if 'testResult' in e]
+            assert len(tests) == (5 if a.family == 'avalonia' else 1) and all(t.get('executionInfo', {}).get('cachedRemotely') for t in tests), tests
     hashes = {}
     outputs = w / 'bazel-out'
     for path in sorted(outputs.rglob('*')):
@@ -89,8 +106,8 @@ try:
     if a.expect:
         assert hashes == json.loads(a.expect.read_text())['hashes'], 'Recovered output hashes differ'
     cached_count = verify()
-    if not a.seed:
-        forced, _ = run('execute', ['test', target], ['--nocache_test_results'])
+    if not a.seed and a.family != 'orchard':
+        forced, _ = run('execute', ['test', *targets], ['--nocache_test_results'])
         assert not any(r.get('mnemonic') != 'TestRunner' and not r.get('cacheHit') for r in forced), [(r.get('mnemonic'), r.get('targetLabel')) for r in forced if not r.get('cacheHit')]
         assert any(r.get('mnemonic') == 'TestRunner' and not r.get('cacheHit') for r in forced)
         assert verify() == cached_count
@@ -100,6 +117,6 @@ try:
     if not a.seed:
         assert all(r.get('cacheHit') for r in sync_actions), 'Relocated sync rebuilt a declared tool'
     action_rows = [{key: r.get(key) for key in ['mnemonic', 'targetLabel', 'listedOutputs', 'cacheHit', 'runner', 'remoteCacheable']} for r in actions]
-    report.write_text(json.dumps(dict(family=a.family, seed=a.seed, records=records, actions=action_rows, syncActions=[{key:r.get(key) for key in ['mnemonic','targetLabel','cacheHit','runner']} for r in sync_actions], tests=cached_count, cachedTests=not a.seed, forcedExecution=not a.seed, hashes=hashes), indent=2) + '\n')
+    report.write_text(json.dumps(dict(family=a.family, seed=a.seed, records=records, actions=action_rows, syncActions=[{key:r.get(key) for key in ['mnemonic','targetLabel','cacheHit','runner']} for r in sync_actions], tests=cached_count if a.family != 'orchard' else None, smokeEndpoints=cached_count if a.family == 'orchard' else None, cachedTests=not a.seed and a.family != 'orchard', forcedExecution=not a.seed and a.family != 'orchard', hashes=hashes), indent=2) + '\n')
 finally:
     subprocess.run(start + ['shutdown'], cwd=w, check=True)

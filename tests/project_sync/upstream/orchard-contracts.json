@@ -1,0 +1,43 @@
+{
+  "src/OrchardCore/OrchardCore.Application.Cms.Core.Targets/OrchardCore.Application.Cms.Core.Targets.targets": {
+    "sha256": "ae6439845c5e0fef53ac82d25d415ddf2ee61185359178a0363d0268752822c5",
+    "targets": [
+      "EnsureRequiredDirectoriesExist",
+      "CopyPackageTranslationFiles",
+      "PublishTranslationFiles"
+    ],
+    "tasks": []
+  },
+  "src/OrchardCore/OrchardCore.Application.Targets/OrchardCore.Application.Targets.targets": {
+    "sha256": "d7e8268a23cf5d20d969b9f84a60fc2c5fb97ede7f7b3120346d7f5f2105cd25",
+    "targets": [
+      "ResolveModuleProjectReferences",
+      "NoWarnOnRazorViewImportedTypeConflicts"
+    ],
+    "tasks": []
+  },
+  "src/OrchardCore.Cms.Web/OrchardCore.Cms.Web.csproj": {
+    "sha256": "5df059c8c8ca7b93b30b02447611faea4279d449d7d11ae8a4434f345e427144",
+    "targets": [
+      "EnsureWwwRootExists"
+    ],
+    "tasks": []
+  },
+  "src/OrchardCore/OrchardCore.Module.Targets/OrchardCore.Module.Targets.targets": {
+    "sha256": "68d9295222fa7a7b2c9cb5f82e5496ffaae81abcc25def0b4f333c1fd21b7234",
+    "targets": [
+      "EnsureRazorSdk",
+      "NoWarnOnRazorViewImportedTypeConflicts",
+      "OrchardCoreEmbedModuleAssets",
+      "UpdateModuleAssets",
+      "GetModuleProjectName",
+      "OrchardCoreFilterFeatures",
+      "OrchardCoreFilterModules",
+      "OrchardCoreErrorsFeatureNoErrors",
+      "OrchardCoreEmbedFeatures",
+      "OrchardCoreErrorsModuleAtMostOne",
+      "OrchardCoreEmbedModules"
+    ],
+    "tasks": []
+  }
+}

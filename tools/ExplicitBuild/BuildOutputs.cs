@@ -46,6 +46,8 @@ internal static class BuildOutputs
             }
         }
 
+        GeneratedDirectories.Publish(r, state, runtime);
+
         Copy(r.OutputMode == "sdk" ? Path.Combine(state, "obj", "ref", r.Assembly + ".dll") : Path.Combine(output, r.Assembly + ".dll"), ReadPath(r.Reference));
         if (r.IdentityOutput is not null)
         {

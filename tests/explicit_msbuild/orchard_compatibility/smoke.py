@@ -1,4 +1,5 @@
 """Check full CMS setup Razor rendering and embedded assets without creating a tenant."""
+import argparse
 import hashlib
 import json
 import os
@@ -9,11 +10,18 @@ import time
 import urllib.error
 import urllib.request
 
-source = Path(sys.argv[1]).resolve()
-evidence = Path(sys.argv[2]).resolve()
-name = sys.argv[3]
-raw = '--raw' in sys.argv
-command = [str(Path(os.environ['RULES_MSBUILD_DOTNET_ROOT'])/'dotnet'), str(source/'src/OrchardCore.Cms.Web/bin/Release/net10.0/OrchardCore.Cms.Web.dll')] if raw else [str(source/'bazel-bin/OrchardCore.Cms.Web')]
+parser = argparse.ArgumentParser(description=__doc__)
+parser.add_argument('source', type=Path)
+parser.add_argument('evidence', type=Path)
+parser.add_argument('name')
+parser.add_argument('--raw', action='store_true')
+parser.add_argument('--target', default='OrchardCore.Cms.Web')
+args = parser.parse_args()
+source = args.source.resolve()
+evidence = args.evidence.resolve()
+name = args.name
+raw = args.raw
+command = [str(Path(os.environ['RULES_MSBUILD_DOTNET_ROOT'])/'dotnet'), str(source/'src/OrchardCore.Cms.Web/bin/Release/net10.0/OrchardCore.Cms.Web.dll')] if raw else [str(source/'bazel-bin'/args.target)]
 paths = ['/', '/OrchardCore.Setup/Styles/setup.min.css', '/OrchardCore.Setup/Scripts/setup/setup.min.js', '/OrchardCore.Resources/Vendor/fontawesome-free/css/all.min.css']
 rows = []
 with (evidence/(name+'.log')).open('w') as log:

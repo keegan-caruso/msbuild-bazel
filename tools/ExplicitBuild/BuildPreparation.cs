@@ -76,6 +76,7 @@ internal static class BuildPreparation
             PreparedRestore.Install(session, compilerPath);
         }
 
+        GeneratedDirectories.Prepare(r, workspace, state, compilerPath);
         return session;
     }
 }

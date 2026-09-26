@@ -177,6 +177,7 @@ def build_project(ctx, executable = False, test = False, restore_only = False, p
         "referenceProjects": bound_projects,
         "sources": [_file(file) for file in ctx.files.srcs] + _mapped_imports(ctx, ctx.attr.source_paths),
         "directories": ctx.attr.directories,
+        "generatedDirectories": ctx.attr.generated_directories,
         "imports": [_file(file) for file in ctx.files.msbuild_imports] + _mapped_imports(ctx),
         "referencePackages": [dep[MSBuildPackageInfo].id for dep in ctx.attr.reference_packages],
         "packageReferencePaths": ctx.attr.package_reference_paths,
