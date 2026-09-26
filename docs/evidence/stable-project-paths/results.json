@@ -1104,5 +1104,14 @@
         }
       ]
     }
-  ]
+  ],
+  "cleanupValidation": {
+    "bazel": "9.2.0",
+    "result": "All 18 direct-reference cases passed after extracting fixture construction and request validation. Release build and format verification passed.",
+    "sourceSha256": {
+      "tools/ExplicitBuild/StableWorkerPaths.cs": "c5c1d9682eb0f1ea97e2081325290e0a074fe66f1ab28a2be14e3cd7ed857e00",
+      "tests/explicit_msbuild/stable_worker_projects.py": "b89e999cab7a96541d1a6ecbd8ad1e1f96c470ec96010716587189583e3301f4",
+      "tests/explicit_msbuild/stable_worker_fixture.py": "d07c9d086bdf5625c5c0bf34b6cc581ec76d33d93bd2bb17b930b2ad2021610f"
+    }
+  }
 }

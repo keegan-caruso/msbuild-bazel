@@ -46,7 +46,8 @@ For an unused public API addition to C:
 | Stable paths, transitive references | Identical | Both rebuild, as required by their inputs | C, B, A, Fan, Test |
 
 Bazel performed the scheduling; the harness does not simulate an action cache or
-skip builds itself. Disk and remote action caches were disabled; normal local incremental state was retained. The Test compilation remains
+skip builds itself. Disk and remote action caches were disabled; normal local
+incremental state was retained. The Test compilation remains
 necessary on this API edit because its compiler input set includes C.
 
 Additional passing controls:
