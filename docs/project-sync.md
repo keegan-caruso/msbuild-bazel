@@ -347,7 +347,7 @@ Per-project mappings can declare:
 | `projectReferences` | Workspace-relative project path → role and label; roles are `compile`, `private`, `analyzer`, `tool`, `output`, or explicit `items` |
 | `platform` | Explicit MSBuild platform used during evaluation and compilation; defaults to `AnyCPU` |
 | `packageReferencePaths` | Package ID → exact package-relative compiler DLL paths; requires the declared package lock for file references |
-| `transitiveCompileReferences` | Whether compilation includes transitive assembly references; defaults to `true` |
+| `transitiveCompileReferences` | Optional boolean override; otherwise follow evaluated `DisableTransitiveProjectReferences` (normally transitive). `null` restores inference |
 | `tools`, `bindings`, `items`, `adapterImports` | Authored labels for existing rule primitives |
 | `outputMode` | `sdk`, `reference` or `implementation` |
 | `referencePack`, `runtimeHost` | Explicit existing reference-pack/runtime providers; `@dotnet//:sdk_host` includes the SDK for compiler-invoking tests |

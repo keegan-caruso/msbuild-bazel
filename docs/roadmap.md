@@ -2,7 +2,7 @@
 
 The active priority is complete generated graphs, independent remote-cache recovery,
 then developer experience and broader qualification. Stages 1–8 are **complete**;
-step 9 is the planned incremental-performance follow-up;
+step 9 is in progress, starting with explicit reference boundaries;
 [current support](implementation-plan.md) records what is already measured.
 The sequence started from commit `d4a64b4`; the reports below preserve that
 baseline and the evidence added by each step.
@@ -192,7 +192,8 @@ visibility.
 
 ### 9. Improve incremental API edits across a broader scenario matrix
 
-**Planned follow-up after steps 1–8 are integrated.** Body and API edit latency is
+**In progress:** [reference-boundary matrix and sync fix](reference-invalidation.md)
+are complete; broader upstream API-edit profiling remains. Body and API edit latency is
 our primary performance goal; cold builds are secondary. Start from the paired
 [Orchard results](project-sync-workflow-costs.md), where body edits beat raw MSBuild
 but the single broad API edit takes 4.82× its time. Do not generalize that one case.

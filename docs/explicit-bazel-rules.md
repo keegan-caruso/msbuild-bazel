@@ -376,7 +376,10 @@ direct reference set; any additionally required assembly must be listed in
 for downstream applications. Binaries/tests reject this option: omitting their
 transitive references can omit entries from the SDK runtime dependency manifest. This
 option does not change package asset selection or resolve conflicting direct
-assembly identities. See `tests/explicit_msbuild/direct_references.py`.
+assembly identities. Sync infers this mode for libraries whose evaluated
+`DisableTransitiveProjectReferences` is `true`; explicit `transitiveCompileReferences`
+mappings override that inference. See [reference invalidation](reference-invalidation.md)
+for repeated chain/fan-out, failure/repair and cache controls.
 
 ## Authored reference identities and generated file paths
 
