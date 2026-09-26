@@ -229,7 +229,12 @@ internal sealed class Generator(string root, string sdk, Mappings mappings, Work
             }
             attributes.AppendLine("            \"package_private_assets\": " + StarlarkLiteral.Serialize(privacy) + ",");
             attributes.AppendLine("            \"package_reference_paths\": " + StarlarkLiteral.Serialize(projectBinding.PackageReferencePaths) + ",");
-            attributes.AppendLine("            \"transitive_compile_references\": " + (projectBinding.TransitiveCompileReferences ? "True" : "False") + ",");
+            var transitiveReferences = projectBinding.TransitiveCompileReferences ?? !project.GetPropertyValue("DisableTransitiveProjectReferences").Equals("true", StringComparison.OrdinalIgnoreCase);
+            if (!transitiveReferences && (test is not null || project.GetPropertyValue("OutputType").Equals("Exe", StringComparison.OrdinalIgnoreCase) || project.GetPropertyValue("OutputType").Equals("WinExe", StringComparison.OrdinalIgnoreCase)))
+            {
+                throw new InvalidDataException("Direct-only compilation references are supported only for libraries; executable/test runtime manifests still require transitive references");
+            }
+            attributes.AppendLine("            \"transitive_compile_references\": " + (transitiveReferences ? "True" : "False") + ",");
             if (projectBinding.LinuxWorker)
             {
                 attributes.AppendLine("            \"linux_worker\": True,");

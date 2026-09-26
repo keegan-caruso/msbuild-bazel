@@ -82,6 +82,37 @@ class ProjectSyncTests(unittest.TestCase):
             self.assertIn(error, self.run_sync('Core/Core.csproj', '--mappings', 'sync.json', success=False))
             self.assertEqual(output, (self.root / 'projects.generated.bzl').read_text())
 
+    def test_transitive_references_follow_evaluated_framework_properties(self):
+        import ast
+        self.put('Core/Core.csproj', '<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup><TargetFramework/><TargetFrameworks>net9.0;net10.0</TargetFrameworks></PropertyGroup><Import Project="Refs.props"/></Project>')
+        self.put('Core/Refs.props', """<Project><PropertyGroup Condition="'$(TargetFramework)' == 'net10.0'"><DisableTransitiveProjectReferences>TrUe</DisableTransitiveProjectReferences></PropertyGroup></Project>""")
+        def modes():
+            self.run_sync('Core/Core.csproj', '--mappings', 'sync.json')
+            calls = [n for n in ast.walk(ast.parse((self.root / 'projects.generated.bzl').read_text())) if isinstance(n, ast.Call) and isinstance(n.func, ast.Name) and n.func.id == 'msbuild_project']
+            attrs = {k.arg: ast.literal_eval(k.value) for k in calls[0].keywords}
+            return {tfm: values['transitive_compile_references'] for tfm, values in attrs['framework_overrides'].items()}
+        self.put('sync.json', '{}')
+        self.assertEqual(modes(), {'net9.0': True, 'net10.0': False})
+        self.put('sync.json', json.dumps(dict(projectDefaults=dict(transitiveCompileReferences=False), projects={'Core/Core.csproj': dict(transitiveCompileReferences=True, frameworkOverrides={'net10.0': dict(transitiveCompileReferences=None)})})))
+        self.assertEqual(modes(), {'net9.0': True, 'net10.0': False})
+        self.put('Core/Refs.props', '<Project/>')
+        before = (self.root / 'projects.generated.bzl').read_bytes()
+        self.assertIn('stale', self.run_sync('Core/Core.csproj', '--mappings', 'sync.json', '--check', success=False))
+        self.assertEqual(before, (self.root / 'projects.generated.bzl').read_bytes())
+        self.assertEqual(modes(), {'net9.0': True, 'net10.0': True})
+        self.put('sync.json', json.dumps(dict(projectDefaults=dict(transitiveCompileReferences=False))))
+        self.assertEqual(modes(), {'net9.0': False, 'net10.0': False})
+
+    def test_direct_only_executable_reports_runtime_boundary_without_overwrite(self):
+        self.run_sync('Core/Core.csproj')
+        before = (self.root / 'projects.generated.bzl').read_bytes()
+        self.put('Core/Core.csproj', '<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup><OutputType>Exe</OutputType><DisableTransitiveProjectReferences>true</DisableTransitiveProjectReferences></PropertyGroup></Project>')
+        self.assertIn('runtime manifests', self.run_sync('Core/Core.csproj', success=False))
+        self.assertEqual(before, (self.root / 'projects.generated.bzl').read_bytes())
+        self.put('sync.json', json.dumps(dict(projects={'Core/Core.csproj': dict(transitiveCompileReferences=True)})))
+        self.run_sync('Core/Core.csproj', '--mappings', 'sync.json')
+        self.assertIn('transitive_compile_references = True', (self.root / 'projects.generated.bzl').read_text())
+
     def test_shared_imports_keep_project_globals_and_refresh_between_runs(self):
         import ast
         self.put('Shared.props', """<Project><ItemGroup><Compile Remove="*.cs"/><Compile Include="$(Flavor).cs"/></ItemGroup></Project>""")
