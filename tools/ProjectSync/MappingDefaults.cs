@@ -8,7 +8,7 @@ internal static class MappingDefaults
 {
     private static readonly HashSet<string> Dictionaries = new(StringComparer.OrdinalIgnoreCase)
     {
-        "properties", "documents", "references", "projectReferences", "packageReferencePaths", "itemPaths", "layoutBindings"
+        "properties", "documents", "references", "projectReferences", "packageReferencePaths", "itemPaths", "layoutBindings", "inputItems", "exportTargets", "packages", "generatedDirectories", "frameworkOverrides"
     };
 
     internal static string Expand(string text)
@@ -48,10 +48,50 @@ internal static class MappingDefaults
                         merged[existing] = value?.DeepClone();
                     }
                 }
+                ExpandFrameworks(merged, project);
                 projects[project] = merged;
             }
         }
+        ExpandFrameworks(defaults, "projectDefaults");
         return root.ToJsonString();
+    }
+
+    private static void ExpandFrameworks(JsonObject binding, string path)
+    {
+        if (Member(binding, "frameworkOverrides") is not JsonObject overrides)
+        {
+            return;
+        }
+        foreach (var (framework, node) in overrides.ToArray())
+        {
+            var specific = node as JsonObject ?? throw new InvalidDataException("Expected a framework override object: " + path + "." + framework);
+            Binding(specific, path + "." + framework);
+            if (specific.Any(p => p.Key.Equals("frameworkOverrides", StringComparison.OrdinalIgnoreCase) || p.Key.Equals("targetFrameworks", StringComparison.OrdinalIgnoreCase)))
+            {
+                throw new InvalidDataException("Framework overrides cannot select or nest frameworks: " + path + "." + framework);
+            }
+            var merged = new JsonObject();
+            foreach (var (key, value) in binding.Where(p => !p.Key.Equals("frameworkOverrides", StringComparison.OrdinalIgnoreCase)))
+            {
+                merged[key] = value?.DeepClone();
+            }
+            foreach (var (key, value) in specific)
+            {
+                var existing = merged.Select(p => p.Key).FirstOrDefault(k => k.Equals(key, StringComparison.OrdinalIgnoreCase)) ?? key;
+                if (Dictionaries.Contains(key) && merged[existing] is JsonObject inherited && value is JsonObject replacements)
+                {
+                    foreach (var (identity, replacement) in replacements)
+                    {
+                        inherited[identity] = replacement?.DeepClone();
+                    }
+                }
+                else
+                {
+                    merged[existing] = value?.DeepClone();
+                }
+            }
+            overrides[framework] = merged;
+        }
     }
 
     private static void Binding(JsonObject value, string path)
@@ -59,7 +99,7 @@ internal static class MappingDefaults
         Members(value, path);
         foreach (var (name, node) in value)
         {
-            if (node is null && !name.Equals("referencePack", StringComparison.OrdinalIgnoreCase) && !name.Equals("runtimeHost", StringComparison.OrdinalIgnoreCase))
+            if (node is null && !name.Equals("referencePack", StringComparison.OrdinalIgnoreCase) && !name.Equals("runtimeHost", StringComparison.OrdinalIgnoreCase) && !name.Equals("packageLock", StringComparison.OrdinalIgnoreCase) && !name.Equals("useAppHost", StringComparison.OrdinalIgnoreCase))
             {
                 throw new InvalidDataException("Null mapping field: " + path + "." + name);
             }

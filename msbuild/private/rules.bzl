@@ -48,6 +48,7 @@ _ATTRS = {
     "source_paths": attr.label_keyed_string_dict(allow_files = True),
     "srcs": attr.label_list(allow_files = True),
     "directories": attr.string_list(),
+    "generated_directories": attr.string_dict(),
     "items": attr.label_list(providers = [MSBuildItemsInfo]),
     "export_targets": attr.string_list_dict(),
     "deps": attr.label_list(providers = [[MSBuildAssemblyInfo], [MSBuildProjectInfo], [MSBuildPackageInfo]]),
