@@ -69,6 +69,13 @@ try:
             put('Shared.props', '<Project><PropertyGroup><Platform>x64</Platform><DefineConstants Condition="\'$(Platform)\' == \'AnyCPU\'">SECOND</DefineConstants></PropertyGroup></Project>')
         run(name + '-check', ['run', '//:sync', '--', '--check'])
         run(name, ['run', '//:App_App'], expected)
+    # A configured Platform must agree between evaluation and compilation.
+    put('sync.json', json.dumps({'projects': {'Core/Core.csproj': {'platform': 'arm64'}, 'App/App.csproj': {'platform': 'arm64'}}}))
+    authored = authored.replace('projects=["App/App.csproj"])', 'projects=["App/App.csproj"], mappings="sync.json")')
+    put('BUILD.bazel', authored)
+    put('Shared.props', '<Project><PropertyGroup><DefineConstants Condition="\'$(Platform)\' == \'arm64\'">FIRST</DefineConstants></PropertyGroup></Project>')
+    run('platform-sync', ['run', '//:sync'])
+    run('platform-app', ['run', '//:App_App'], 'value=7')
     original = (workspace / 'projects.generated.bzl').read_bytes()
     put('Core/Added.cs', 'public class Added {}')
     run('stale', ['run', '//:sync', '--', '--check'], 'stale', success=False)
@@ -76,7 +83,7 @@ try:
     run('resync', ['run', '//:sync'])
     assert 'Core/Added.cs' in (workspace / 'projects.generated.bzl').read_text()
     assert (workspace / 'BUILD.bazel').read_text() == authored
-    run('resynced-app', ['run', '//:App_App'], 'value=9')
+    run('resynced-app', ['run', '//:App_App'], 'value=7')
 finally:
     subprocess.run(startup + ['shutdown'], cwd=workspace, env=env, check=True)
 print('Bazel sync bootstrap, check, props edit, stale source, resync and app execution passed')

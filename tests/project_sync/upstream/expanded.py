@@ -37,7 +37,7 @@ def inventory_tool(name, family, source, entry):
     (probe / 'selection.json').write_text(json.dumps(dict(entries=[entry], framework='net10.0')))
     run(name + '-inventory-build', [dotnet, 'build', probe / 'Inventory.csproj', '-c', 'Release'])
     run(name + '-graph', [dotnet, probe / 'bin/Release/net10.0/Inventory.dll', source, probe / 'selection.json', probe / 'inventory.json'])
-    run(name + '-prepare', [sys.executable, old / 'prepare.py', source, probe / 'inventory.json', out / name, rules], env=dict(os.environ, RULES_MSBUILD_VSTEST_ARCHIVE=str(prior / 'vstest.nupkg'), RULES_MSBUILD_SYNC_INPUTS_ONLY='1' if family == 'aspnetcore' else '0'))
+    run(name + '-prepare', [sys.executable, old / 'prepare.py', source, probe / 'inventory.json', out / name, rules], env=dict(os.environ, RULES_MSBUILD_VSTEST_ARCHIVE=str(prior / 'vstest.nupkg'), RULES_MSBUILD_SYNC_INPUTS_ONLY='1'))
     return probe
 
 for source, revision in [(aspnet, '7387de91234d3ef751fa50b3d1bfede4130213ff'), (runtime, '60629d14374c56f1cb51819049ad1fa529307f8d')]:
@@ -67,16 +67,19 @@ run('http-controls', [sys.executable, here / 'controls.py', work, base, out / 'h
 run('http-graph-controls', [sys.executable, here / 'http_graph_controls.py', work, base, out / 'http-graph-controls'])
 run('http-shutdown', startup + ['shutdown'], work)
 assembly = 'System.Collections.Immutable'
-library = 'src/libraries/' + assembly + '/src/' + assembly + '.csproj'
 tests = 'src/libraries/' + assembly + '/tests/' + assembly + '.Tests.csproj'
 run('immutable-raw-build', [dotnet, 'build', runtime / tests, '-c', 'Release', '-p:TargetFramework=net10.0', '-p:TargetArchitecture=arm64', '-p:TargetOS=linux', '-p:UseLocalTargetingRuntimePack=false', '-p:RestoreUseStaticGraphEvaluation=false', '-p:NuGetAudit=false', '-p:UseSharedCompilation=false', '-p:NetCoreSdkRoot=' + str(sdk / 'sdk/10.0.400')])
 run('immutable-raw-tests', [sys.executable, here / 'runtime_raw.py', runtime, out / 'immutable-raw', prior / 'vstest.nupkg', assembly])
 probe = inventory_tool('immutable', 'runtime', runtime, tests)
-run('immutable-evaluation', [sys.executable, here.parent / 'evaluation_inventory.py', runtime, out / 'immutable-evaluation.json', library, tests], env=dict(os.environ, RULES_MSBUILD_INVENTORY_PROPERTIES='{"TargetArchitecture":"arm64","TargetOS":"linux","UseLocalTargetingRuntimePack":"false"}'))
+immutable_projects = [v['attributes']['project'] for v in json.loads((out / 'immutable/project-bindings.json').read_text()).values()]
+run('immutable-evaluation', [sys.executable, here.parent / 'evaluation_inventory.py', runtime, out / 'immutable-evaluation.json', *sorted(set(immutable_projects))], env=dict(os.environ, RULES_MSBUILD_INVENTORY_PROPERTIES='{"TargetArchitecture":"arm64","TargetOS":"linux","UseLocalTargetingRuntimePack":"false"}', RULES_MSBUILD_INVENTORY_PROJECT_PROPERTIES='{"src/coreclr/System.Private.CoreLib/System.Private.CoreLib.csproj":{"Platform":"arm64"}}'))
 run('immutable-mapping', [sys.executable, here / 'runtime.py', out / 'immutable', probe / 'inventory.json', out / 'immutable-evaluation.json', 'linux'])
 work = out / 'immutable/upstream'; base = out / 'immutable-base'
 startup = [bazel, '--output_base=' + str(base), '--ignore_all_rc_files']
+run('immutable-tool-sync', startup + ['run', '//:sync_tools', '--jobs=2'], work)
+p = work / 'BUILD.bazel'; p.write_text('load(":projects.generated.bzl","app_projects")\n' + p.read_text() + '\napp_projects()\n')
 run('immutable-sync', startup + ['run', '//:sync', '--jobs=2'], work)
 run('immutable-host', [sys.executable, here / 'runtime_host.py', work, assembly])
-run('immutable-controls', [sys.executable, here / 'controls.py', work, base, out / 'immutable-raw/results/results.trx', out / 'immutable-controls', '//:src_libraries_System.Collections.Immutable_tests_System.Collections.Immutable.Tests_net10_0', 'src/libraries/System.Collections.Immutable/src/Validation/Requires.cs', 'throw new ArgumentNullException(parameterName);', 'GC.KeepAlive(typeof(Requires)); throw new ArgumentNullException(parameterName);', 'src_libraries_System.Collections.Immutable_ref_System.Collections.Immutable_net10.0', assembly])
+run('immutable-controls', [sys.executable, here / 'controls.py', work, base, out / 'immutable-raw/results/results.trx', out / 'immutable-controls', '//:src_libraries_System.Collections.Immutable_tests_System.Collections.Immutable.Tests_net10_0', 'src/libraries/System.Collections.Immutable/src/Validation/Requires.cs', 'throw new ArgumentNullException(parameterName);', 'GC.KeepAlive(typeof(Requires)); throw new ArgumentNullException(parameterName);', 'src_libraries_System.Collections.Immutable_ref_System.Collections.Immutable_net10_0', assembly])
+run('immutable-graph-controls', [sys.executable, here / 'runtime_graph_controls.py', work, base, out / 'immutable-graph-controls'])
 run('immutable-shutdown', startup + ['shutdown'], work)

@@ -171,11 +171,13 @@ internal sealed class Generator(string root, string sdk, Mappings mappings, Work
             var dependencies = roles["deps"].Concat(packages["deps"]).ToArray();
             var attributes = new StringBuilder();
             attributes.AppendLine("            \"package_private_assets\": " + JsonSerializer.Serialize(privacy) + ",");
+            attributes.AppendLine("            \"package_reference_paths\": " + JsonSerializer.Serialize(projectBinding.PackageReferencePaths) + ",");
+            attributes.AppendLine("            \"transitive_compile_references\": " + (projectBinding.TransitiveCompileReferences ? "True" : "False") + ",");
             // Analyzer behavior on partial types can depend on evaluated source order.
             attributes.AppendLine("            \"srcs\": " + JsonSerializer.Serialize(sources.Where(p => !view.Labels.ContainsKey(p)).Distinct(StringComparer.Ordinal)) + ",");
             attributes.AppendLine("            \"source_paths\": " + JsonSerializer.Serialize(view.Bindings(sources)) + ",");
             attributes.AppendLine("            \"deps\": " + List(dependencies) + ",");
-            attributes.AppendLine("            \"items\": " + List(InputItems(project, relative, tfm, projectBinding, usedItemPaths).Concat(projectBinding.Items)) + ",");
+            attributes.AppendLine("            \"items\": " + List(InputItems(project, relative, tfm, projectBinding, usedItemPaths).Concat(projectBinding.Items).Concat(roles["items"])) + ",");
             attributes.AppendLine("            \"msbuild_imports\": " + List(imports.Where(p => !view.Labels.ContainsKey(p))) + ",");
             attributes.AppendLine("            \"import_paths\": " + JsonSerializer.Serialize(view.Bindings(imports)) + ",");
             if (view.PackageLock is not null)
@@ -268,7 +270,7 @@ internal sealed class Generator(string root, string sdk, Mappings mappings, Work
 
     private Dictionary<string, List<string>> References(Project project, ProjectBinding binding)
     {
-        var roles = new[] { "deps", "implementation_deps", "analyzers", "tools", "project_outputs", "reference_packages", "framework_assemblies", "build_deps" }.ToDictionary(role => role, _ => new List<string>(), StringComparer.Ordinal);
+        var roles = new[] { "deps", "implementation_deps", "analyzers", "tools", "project_outputs", "reference_packages", "framework_assemblies", "build_deps", "items" }.ToDictionary(role => role, _ => new List<string>(), StringComparer.Ordinal);
         var observed = new HashSet<string>(StringComparer.Ordinal);
         foreach (var item in project.GetItems("ProjectReference"))
         {
@@ -283,6 +285,7 @@ internal sealed class Generator(string root, string sdk, Mappings mappings, Work
                     "analyzer" => "analyzers",
                     "tool" => "tools",
                     "output" => "project_outputs",
+                    "items" => "items",
                     _ => throw new InvalidDataException("Invalid ProjectReference role: " + bound.Role)
                 };
                 var output = item.GetMetadataValue("OutputItemType");
@@ -291,7 +294,18 @@ internal sealed class Generator(string root, string sdk, Mappings mappings, Work
                 {
                     throw new InvalidDataException("ProjectReference role disagrees with mapping: " + path);
                 }
-                roles[attribute].Add(bound.Label);
+                if (bound.Role == "items")
+                {
+                    if (output != bound.OutputItemType || item.GetMetadataValue("Targets") != bound.Targets || !reference.Equals("false", StringComparison.OrdinalIgnoreCase))
+                    {
+                        throw new InvalidDataException("ProjectReference item output disagrees with mapping: " + path);
+                    }
+                    roles[attribute].AddRange(bound.Labels);
+                }
+                else
+                {
+                    roles[attribute].Add(bound.Label);
+                }
             }
             else
             {
@@ -309,6 +323,21 @@ internal sealed class Generator(string root, string sdk, Mappings mappings, Work
         observed.Clear();
         foreach (var item in project.GetItems("Reference"))
         {
+            if (Path.IsPathRooted(item.EvaluatedInclude) && view.IsPackage(Path.GetFullPath(item.EvaluatedInclude)))
+            {
+                var identity = Relative(item.EvaluatedInclude);
+                var parts = identity.Split('/');
+                var assetPath = string.Join('/', parts.Skip(4));
+                if (view.PackageLock is null || parts.Length < 5 || !binding.PackageReferencePaths.TryGetValue(parts[2], out var assets) || !assets.Contains(assetPath, StringComparer.Ordinal) || !File.Exists(item.EvaluatedInclude))
+                {
+                    throw new InvalidDataException("Package file Reference requires an existing locked package reference path: " + identity);
+                }
+                if (item.Metadata.Any(m => m.Name is "HintPath" or "Aliases" or "SpecificVersion" or "EmbedInteropTypes"))
+                {
+                    throw new InvalidDataException("Unsupported package file Reference metadata: " + identity);
+                }
+                continue;
+            }
             observed.Add(item.EvaluatedInclude);
             if (!binding.References.TryGetValue(item.EvaluatedInclude, out var bound))
             {
@@ -372,7 +401,7 @@ internal sealed class Generator(string root, string sdk, Mappings mappings, Work
                 {
                     continue;
                 }
-                var allowed = type == "Compile" ? new[] { "Link", "LinkBase", "Visible", "DesignTime", "AutoGen", "DependentUpon", "CopyToOutputDirectory", "CopyToPublishDirectory", "TargetPath" } : new[] { "Link", "LinkBase", "LogicalName", "ManifestResourceName", "Culture", "WithCulture", "CopyToOutputDirectory", "CopyToPublishDirectory", "TargetPath", "Visible", "Pack", "PackagePath", "CopyToBuildDirectory", "GenerateSource", "ClassName", "Generator", "Language", "Namespace", "GenerateResourcesCodeAsConstants", "StronglyTypedClassName", "StronglyTypedNamespace", "DependentUpon", "LastGenOutput" };
+                var allowed = type == "Compile" ? new[] { "Link", "LinkBase", "Visible", "DesignTime", "AutoGen", "DependentUpon", "CopyToOutputDirectory", "CopyToPublishDirectory", "TargetPath" } : new[] { "Link", "LinkBase", "LogicalName", "ManifestResourceName", "Culture", "WithCulture", "CopyToOutputDirectory", "CopyToPublishDirectory", "TargetPath", "Visible", "Pack", "PackagePath", "CopyToBuildDirectory", "GenerateSource", "ClassName", "Generator", "Language", "SubType", "Namespace", "GenerateResourcesCodeAsConstants", "StronglyTypedClassName", "StronglyTypedNamespace", "DependentUpon", "LastGenOutput" };
                 foreach (var metadata in item.Metadata.Where(m => !IsSdk(m.Xml.ContainingProject.FullPath)))
                 {
                     if (!allowed.Contains(metadata.Name, StringComparer.Ordinal) || metadata.Name == "GenerateSource" && binding.Documents.Count == 0)

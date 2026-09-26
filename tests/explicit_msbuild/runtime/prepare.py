@@ -81,7 +81,7 @@ def logical(row, value):
         p = source / Path(row['project']).parent / p
     p = p.resolve()
     return p.relative_to(source).as_posix() if p.is_relative_to(source) else None
-packages = {}; closures = {}; declarations = []; manifest = {}; blocked = {}
+packages = {}; closures = {}; declarations = []; manifest = {}; blocked = {}; project_bindings = {}
 paired = {}; contract_layouts = {}; forwarding_contracts = set()
 for row in rows:
     if '/ref/' in row['project']:
@@ -286,9 +286,13 @@ for row in rows:
             settings.write(path,encoding='utf-8',xml_declaration=True)
             attrs.pop('test_settings_output')
             attrs['test_settings']=path.relative_to(root).as_posix()
-        declarations.append(call('msbuild_test',**attrs))
+        kind = 'msbuild_test'
     else:
-        declarations.append(call('msbuild_binary' if row['properties']['OutputType']=='Exe' else 'msbuild_library',**attrs))
+        kind = 'msbuild_binary' if row['properties']['OutputType']=='Exe' else 'msbuild_library'
+    if os.environ.get('RULES_MSBUILD_SYNC_INPUTS_ONLY') == '1':
+        project_bindings[name] = dict(rule=kind, attributes=attrs)
+    else:
+        declarations.append(call(kind, **attrs))
 if any(r['properties']['IsTestProject'].lower()=='true' for r in rows):
     runner=Path(os.environ['RULES_MSBUILD_VSTEST_ARCHIVE'])
     data=runner.read_bytes()
@@ -308,6 +312,8 @@ if any(r['properties']['IsTestProject'].lower()=='true' for r in rows):
 header.append('load(":qualification.bzl", "unsupported_project")')
 (root/'qualification.bzl').write_text('def _unsupported(ctx):\n    fail(ctx.attr.reason)\nunsupported_project = rule(implementation=_unsupported, attrs={"reason":attr.string()})\n')
 (workspace/'blocked.json').write_text(json.dumps(blocked,indent=2)+'\n')
+if project_bindings:
+    (workspace/'project-bindings.json').write_text(json.dumps(project_bindings, indent=2)+'\n')
 (root/'BUILD.bazel').write_text('\n'.join(header+list(packages.values())+list(closures.values())+declarations)+ '\n'+call('filegroup',name='benchmark',testonly=any(r['properties']['IsTestProject'].lower()=='true' for r in rows),srcs=[':'+label(r['project'],r['framework']) for r in rows])+'\n')
 (workspace/'MODULE.bazel').write_text('module(name="runtime_reference")\nbazel_dep(name="rules_msbuild",version="0.0.0")\nlocal_path_override(module_name="rules_msbuild",path='+json.dumps(str(rules))+')\nsdk=use_repo_rule("@rules_msbuild//bazel:msbuild.bzl","local_dotnet_sdk")\nsdk(name="dotnet",path='+json.dumps(os.environ['RULES_MSBUILD_DOTNET_ROOT'])+',include_runtime_closure=False)\nregister_toolchains("//upstream:registered")\n')
 (workspace/'package-lock.json').write_text(json.dumps(manifest,indent=2)+'\n')
