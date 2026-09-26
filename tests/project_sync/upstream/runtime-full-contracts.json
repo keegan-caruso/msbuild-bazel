@@ -1,0 +1,62 @@
+{
+  "src/coreclr/Directory.Build.targets": {
+    "sha256": "97eb6ae9f09c70133e9a523bf7cd0058fc1459a1010957483b30303eb628a077",
+    "targets": [
+      "MoveSymbolFiles"
+    ],
+    "tasks": []
+  },
+  ".nuget/packages/microsoft.dotnet.arcade.sdk/10.0.0-beta.25509.106/tools/tests.targets": {
+    "sha256": "6c00d442ce19175b6a4461c0454450ec5518c87734b7a49dc8bbc4f35c2f4266",
+    "targets": [
+      "ErrorForMissingTestRunner",
+      "Test",
+      "IntegrationTest",
+      "_InnerGetTestsToRun",
+      "_OuterGetTestsToRun"
+    ],
+    "tasks": []
+  },
+  ".nuget/packages/microsoft.dotnet.arcade.sdk/10.0.0-beta.25509.106/tools/performance.targets": {
+    "sha256": "180139b14de2a893da6c99f7d26e188ee9667ea324ac665fcbebf14926fb673c",
+    "targets": [
+      "PerformanceTest"
+    ],
+    "tasks": []
+  },
+  "src/coreclr/System.Private.CoreLib/CreateRuntimeRootILLinkDescriptorFile.targets": {
+    "sha256": "0aad6979cd0fe0efdd5778a6063653811bf8f14d776fc88bf0d8368f1da845c9",
+    "targets": [
+      "_CreateILLinkRuntimeRootDescriptorFile",
+      "_CombineILLinkTrimXmlFilePaths"
+    ],
+    "tasks": [
+      "CreateRuntimeRootILLinkDescriptorFile",
+      "CombineLinkerXmlFiles"
+    ]
+  },
+  "eng/generatorProjects.targets": {
+    "sha256": "9b221652703e5c0376d8ecfa7b41eefdb63d32bcb7779dff8e519b1eb75d6c03",
+    "targets": [
+      "GetAnalyzerPackFiles"
+    ],
+    "tasks": []
+  },
+  "src/tools/illink/src/ILLink.Tasks/ILLink.Tasks.csproj": {
+    "sha256": "f771be85e205a675648d365f8f6ef616f481279f710bd7cc49edf484ea91c58a",
+    "targets": [
+      "FixPackageRuntimeConfigPath"
+    ],
+    "tasks": []
+  },
+  "src/tools/illink/src/linker/Mono.Linker.csproj": {
+    "sha256": "63d67d9452c2c22f7e690398d465ddece9c6ac7e3ce32a3d9e96c881ea5262c3",
+    "targets": [
+      "_ComputePackRuntimeConfigFilePath",
+      "GeneratePackageRuntimeConfig",
+      "AddPackageRuntimeConfigToCopyItemsForReferencingProjects",
+      "_AddReferenceAssemblyToPackage"
+    ],
+    "tasks": []
+  }
+}

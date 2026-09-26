@@ -21,4 +21,10 @@ paths={p.relative_to(host).as_posix():p.relative_to(host).as_posix() for p in ho
 paths['//:src_libraries_'+assembly+'_src_'+assembly+'_net10_0']=framework
 paths['//load_probe:probe']='probe'
 (host/'BUILD.bazel').write_text('load("@rules_msbuild//msbuild:defs.bzl","msbuild_layout","msbuild_runtime")\nmsbuild_layout(name="tree",paths='+json.dumps(paths)+')\nmsbuild_runtime(name="host",layout=":tree",entry_point="host.sh",visibility=["//visibility:public"])\n')
-p=root/'BUILD.bazel';p.write_text('package(default_visibility=["//visibility:public"])\nload(":projects.generated.bzl","app_projects")\n'+p.read_text()+'\napp_projects()\n')
+p=root/'BUILD.bazel'
+text=p.read_text()
+if 'load(":projects.generated.bzl","app_projects")' not in text:
+    text='load(":projects.generated.bzl","app_projects")\n'+text
+if '\napp_projects()\n' not in text:
+    text+='\napp_projects()\n'
+p.write_text('package(default_visibility=["//visibility:public"])\n'+text)

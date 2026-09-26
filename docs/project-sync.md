@@ -252,7 +252,10 @@ Per-project mappings can declare:
 | --- | --- |
 | `references` | Bare assembly identity → `{ "role": "compile"/"package"/"framework", "label": ":producer" }`; framework uses the declared assembly identity |
 | `itemPaths` | Workspace file → logical staged path for non-Compile file items |
-| `projectReferences` | Workspace-relative project path → role and label; roles are `compile`, `private`, `analyzer`, `tool`, `output` |
+| `projectReferences` | Workspace-relative project path → role and label; roles are `compile`, `private`, `analyzer`, `tool`, `output`, or explicit `items` |
+| `platform` | Explicit MSBuild platform used during evaluation and compilation; defaults to `AnyCPU` |
+| `packageReferencePaths` | Package ID → exact package-relative compiler DLL paths; requires the declared package lock for file references |
+| `transitiveCompileReferences` | Whether compilation includes transitive assembly references; defaults to `true` |
 | `tools`, `bindings`, `items`, `adapterImports` | Authored labels for existing rule primitives |
 | `outputMode` | `sdk`, `reference` or `implementation` |
 | `referencePack`, `runtimeHost` | Explicit existing reference-pack/runtime providers; `@dotnet//:sdk_host` includes the SDK for compiler-invoking tests |
@@ -290,6 +293,30 @@ additional input files:
 }
 ```
 
+A project reference that supplies source/data items instead of an assembly can use
+an explicit item contract:
+
+```json
+{
+  "role": "items",
+  "labels": [":contract_sources"],
+  "outputItemType": "ContractSources",
+  "targets": "SourceFilesProjectOutputGroup"
+}
+```
+
+The labels provide existing `msbuild_items` inputs. Sync requires matching
+`OutputItemType`, `Targets` and `ReferenceOutputAssembly="false"` metadata; it does
+not execute that target or infer its outputs. Changes to the requested output
+contract fail until the mapping is updated.
+
+For a path-qualified NuGet `Reference`, select the exact file through
+`packageReferencePaths` (for example, `"example": ["ref/net8.0/Example.dll"]`).
+Sync verifies that the evaluated reference exists in the locked package view and
+matches that selection. It remains a file reference; it is not converted into a
+same-name `PackageReference`. Absolute paths and parent traversal in the selection
+are rejected. Package acquisition and versions remain explicit in `package_lock`.
+
 Bare package reference bindings may add `roles: ["build_deps", "analyzers"]`
 to retain the package's build/analyzer assets alongside its reference assets. Their
 `PrivateAssets` metadata is retained. Extra roles on other reference kinds fail.
@@ -321,9 +348,11 @@ selected SDK or closed package set fail.
 Multi-framework applications, existing per-project BUILD packages, arbitrary
 SDKs/workloads, cross-platform configuration matrices and Gazelle integration
 remain follow-up work. Environment-dependent evaluation and absolute-path
-property functions remain limitations of local synchronization. No remote-cache
-or large-repository qualification is claimed for the new generator contracts.
-See [blocker qualification](project-sync-bindings.md) for measured coverage.
+property functions remain limitations of local synchronization. Complete generated
+HTTP and Immutable graphs have
+[Linux correctness qualification](project-sync-immutable-full.md). Independent
+remote-cache recovery remains a separate roadmap stage. See
+[blocker qualification](project-sync-bindings.md) for the small contract controls.
 
 ## Validation
 

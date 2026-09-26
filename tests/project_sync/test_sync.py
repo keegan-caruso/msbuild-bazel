@@ -189,10 +189,10 @@ class ProjectSyncTests(unittest.TestCase):
         self.put('Shared/Shared.cs', 'class Shared {}')
         self.put('Core/message.txt', 'hello')
         self.put('Core/options.txt', 'options')
-        self.put('Core/Core.csproj', '<Project Sdk="Microsoft.NET.Sdk"><ItemGroup><Compile Include="../Shared/Shared.cs" Link="Shared/Shared.cs"/><EmbeddedResource Include="message.txt" LogicalName="Probe.Message" Language="CSharp"/><AdditionalFiles Include="options.txt"/><None Update="options.txt" CopyToOutputDirectory="PreserveNewest"/></ItemGroup></Project>')
+        self.put('Core/Core.csproj', '<Project Sdk="Microsoft.NET.Sdk"><ItemGroup><Compile Include="../Shared/Shared.cs" Link="Shared/Shared.cs"/><EmbeddedResource Include="message.txt" LogicalName="Probe.Message" Language="CSharp" SubType="Designer"/><AdditionalFiles Include="options.txt"/><None Update="options.txt" CopyToOutputDirectory="PreserveNewest"/></ItemGroup></Project>')
         self.run_sync('Core/Core.csproj')
         output = (self.root/'projects.generated.bzl').read_text()
-        for fragment in ['item_type = "Compile"', '"Link":"Shared/Shared.cs"', 'item_type = "EmbeddedResource"', '"LogicalName":"Probe.Message"', '"Language":"CSharp"', 'item_type = "AdditionalFiles"', '"CopyToOutputDirectory":"PreserveNewest"']:
+        for fragment in ['item_type = "Compile"', '"Link":"Shared/Shared.cs"', 'item_type = "EmbeddedResource"', '"LogicalName":"Probe.Message"', '"Language":"CSharp"', '"SubType":"Designer"', 'item_type = "AdditionalFiles"', '"CopyToOutputDirectory":"PreserveNewest"']:
             self.assertIn(fragment, output)
         self.run_sync('Core/Core.csproj', '--check')
         self.put('Core/Core.csproj', '<Project Sdk="Microsoft.NET.Sdk"><ItemGroup><EmbeddedResource Include="message.txt" LogicalName="Probe.Changed"/></ItemGroup></Project>')
@@ -283,6 +283,57 @@ class ProjectSyncTests(unittest.TestCase):
         mapping['projects']['Core/Core.csproj']['references']['Analyzer.Package']['role'] = 'compile'
         self.put('sync.json', json.dumps(mapping))
         self.assertIn('asset roles require', self.run_sync('Core/Core.csproj', '--mappings', 'sync.json', success=False))
+
+    def test_project_platform_controls_evaluation_and_build(self):
+        self.put('Core/Arm.cs', 'class Arm {}')
+        self.put('Core/Core.csproj', '''<Project Sdk="Microsoft.NET.Sdk"><ItemGroup Condition="'$(Platform)' != 'arm64'"><Compile Remove="Arm.cs"/></ItemGroup></Project>''')
+        self.run_sync('Core/Core.csproj')
+        self.assertNotIn('Core/Arm.cs', (self.root/'projects.generated.bzl').read_text())
+        self.put('sync.json', json.dumps(dict(projects={'Core/Core.csproj': dict(platform='arm64')})))
+        self.run_sync('Core/Core.csproj', '--mappings', 'sync.json')
+        output = (self.root/'projects.generated.bzl').read_text()
+        self.assertIn('"Platform":"arm64"', output)
+        self.assertIn('Core/Arm.cs', output)
+        self.assertIn('stale', self.run_sync('Core/Core.csproj', '--check', success=False))
+        self.assertEqual(output, (self.root/'projects.generated.bzl').read_text())
+
+    def test_project_reference_item_outputs_are_explicit(self):
+        self.put('Contract/Contract.csproj', '<Project Sdk="Microsoft.NET.Sdk"/>')
+        self.put('Contract/Contract.cs', 'public class Contract {}')
+        text = '<Project Sdk="Microsoft.NET.Sdk"><ItemGroup><ProjectReference Include="../Contract/Contract.csproj" ReferenceOutputAssembly="false" OutputItemType="ContractSources" Targets="SourceFilesProjectOutputGroup"/></ItemGroup></Project>'
+        self.put('Core/Core.csproj', text)
+        binding = dict(role='items', labels=[':contract_sources'], outputItemType='ContractSources', targets='SourceFilesProjectOutputGroup')
+        mapping = dict(projects={'Core/Core.csproj': dict(projectReferences={'Contract/Contract.csproj': binding})})
+        self.put('sync.json', json.dumps(mapping))
+        self.run_sync('Core/Core.csproj', '--mappings', 'sync.json')
+        output = (self.root/'projects.generated.bzl').read_text()
+        self.assertIn('"items": [":contract_sources"]', output)
+        self.assertIn('"deps": []', output)
+        for before, after in [('SourceFilesProjectOutputGroup', 'Build'), ('ContractSources', 'OtherSources'), ('ReferenceOutputAssembly="false"', 'ReferenceOutputAssembly="true"')]:
+            self.put('Core/Core.csproj', text.replace(before, after))
+            self.assertIn('disagrees', self.run_sync('Core/Core.csproj', '--mappings', 'sync.json', success=False))
+            self.assertEqual(output, (self.root/'projects.generated.bzl').read_text())
+
+    def test_package_qualified_reference_paths(self):
+        self.put('runfiles/example/ref/net8.0/Example.dll', 'evaluation-only fixture')
+        self.put('Core/Core.csproj', '<Project Sdk="Microsoft.NET.Sdk"><ItemGroup><Reference Include="$(MSBuildProjectDirectory)/../.nuget/packages/example/1.0.0/ref/net8.0/Example.dll"/></ItemGroup></Project>')
+        manifest = dict(inputs=[], packages=[dict(id='Example', version='1.0.0', runfile='example')], packageLock=':lock')
+        self.put('inputs.json', json.dumps(manifest))
+        binding = dict(packageReferencePaths={'example': ['ref/net8.0/Example.dll']}, transitiveCompileReferences=False)
+        self.put('sync.json', json.dumps(dict(projects={'Core/Core.csproj': binding})))
+        args = ['Core/Core.csproj', '--mappings', 'sync.json', '--inputs', str(self.root/'inputs.json'), '--runfiles', str(self.root/'runfiles')]
+        self.run_sync(*args)
+        output = (self.root/'projects.generated.bzl').read_text()
+        self.assertIn('"package_reference_paths": {"example":["ref/net8.0/Example.dll"]}', output)
+        self.assertIn('"reference_packages": []', output)
+        self.assertIn('"transitive_compile_references": False', output)
+        self.assertNotIn(str(self.root), output)
+        self.run_sync(*args, '--check')
+        for path in ['../outside.dll', '/outside.dll', 'ref/../outside.dll']:
+            binding['packageReferencePaths']['example'] = [path]
+            self.put('sync.json', json.dumps(dict(projects={'Core/Core.csproj': binding})))
+            self.assertIn('safe relative', self.run_sync(*args, success=False))
+            self.assertEqual(output, (self.root/'projects.generated.bzl').read_text())
 
     def test_locked_sdk_signing_key(self):
         self.put('runfiles/sdk/key.snk', 'fixture-key')

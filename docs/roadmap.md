@@ -1,8 +1,8 @@
 # Planned work
 
 The active priority is complete generated graphs, independent remote-cache recovery,
-then developer experience and broader qualification. Stage 1 is **complete**;
-stages 2–8 remain **planned**;
+then developer experience and broader qualification. Stages 1–2 are **complete**;
+stages 3–8 remain **planned**;
 [current support](implementation-plan.md) records what is already measured.
 This sequence starts from local commit `d4a64b4`, not an assertion that the work has
 already reached `main`. Review and integrate the accumulated changes before basing
@@ -55,6 +55,8 @@ passes, all 714 raw/Bazel test outcomes match, and body-edit, API-edit, missing-
 and contract-drift controls pass. Record any intentional graph-count change.
 
 ### 2. Generate the complete Immutable graph
+
+**Complete:** [full graph and clean-driver evidence](project-sync-immutable-full.md).
 
 **Depends on:** stage 1's traversal and configured-node support.
 

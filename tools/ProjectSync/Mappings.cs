@@ -13,6 +13,9 @@ internal sealed class PackageBinding
 
 internal sealed class ReferenceBinding
 {
+    public string[] Labels { get; set; } = [];
+    public string OutputItemType { get; set; } = "";
+    public string Targets { get; set; } = "";
     public string[] Roles { get; set; } = [];
     public string Role { get; set; } = "";
     public string Label { get; set; } = "";
@@ -29,6 +32,9 @@ internal sealed class DocumentBinding
 internal sealed class ProjectBinding
 {
     public string[] TargetFrameworks { get; set; } = [];
+    public string Platform { get; set; } = "AnyCPU";
+    public bool TransitiveCompileReferences { get; set; } = true;
+    public Dictionary<string, string[]> PackageReferencePaths { get; set; } = [];
     public Dictionary<string, ReferenceBinding> References { get; set; } = [];
     public Dictionary<string, ReferenceBinding> ProjectReferences { get; set; } = [];
     public string OutputMode { get; set; } = "sdk";
@@ -112,7 +118,22 @@ internal sealed class Mappings
         foreach (var (project, binding) in mappings.Projects)
         {
             ProjectPath(project);
+            if (string.IsNullOrWhiteSpace(binding.Platform))
+            {
+                throw new InvalidDataException("Project platform must be explicit and nonempty: " + project);
+            }
             Properties(binding.Properties);
+            foreach (var (package, paths) in binding.PackageReferencePaths)
+            {
+                if (package.Length == 0 || package.Any(c => !char.IsAsciiLetterOrDigit(c) && c is not '.' and not '-' and not '_') || paths.Length == 0)
+                {
+                    throw new InvalidDataException("Package reference paths require a package ID and explicit paths: " + project);
+                }
+                foreach (var assetPath in paths)
+                {
+                    WorkspaceView.Safe(assetPath);
+                }
+            }
             foreach (var (source, destination) in binding.ItemPaths)
             {
                 WorkspaceView.Safe(source);
@@ -128,7 +149,7 @@ internal sealed class Mappings
             }
             foreach (var (identity, reference) in binding.References.Concat(binding.ProjectReferences))
             {
-                if (identity.Length == 0 || reference.Role is not "compile" and not "private" and not "analyzer" and not "tool" and not "output" and not "package" and not "framework")
+                if (identity.Length == 0 || reference.Role is not "compile" and not "private" and not "analyzer" and not "tool" and not "output" and not "package" and not "framework" and not "items")
                 {
                     throw new InvalidDataException("Invalid explicit reference role: " + identity);
                 }
@@ -136,7 +157,22 @@ internal sealed class Mappings
                 {
                     throw new InvalidDataException("Additional asset roles require a package reference binding");
                 }
-                if (reference.Role != "framework")
+                if (reference.Role == "items")
+                {
+                    if (reference.Label.Length != 0 || reference.Labels.Length == 0 || reference.OutputItemType.Length == 0 || reference.Targets.Length == 0)
+                    {
+                        throw new InvalidDataException("Item project references require labels, outputItemType and targets: " + identity);
+                    }
+                    foreach (var itemLabel in reference.Labels)
+                    {
+                        Label(itemLabel);
+                    }
+                }
+                else if (reference.Labels.Length != 0 || reference.OutputItemType.Length != 0 || reference.Targets.Length != 0)
+                {
+                    throw new InvalidDataException("Item output contracts require the items role: " + identity);
+                }
+                if (reference.Role is not "framework" and not "items")
                 {
                     Label(reference.Label);
                 }
@@ -206,7 +242,7 @@ internal sealed class Mappings
 
     internal Dictionary<string, string> ProjectProperties(string project, TestBinding? test)
     {
-        var properties = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase) { ["Platform"] = "AnyCPU" };
+        var properties = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase) { ["Platform"] = Projects.GetValueOrDefault(project)?.Platform ?? "AnyCPU" };
         if (Projects.TryGetValue(project, out var binding))
         {
             foreach (var (key, value) in binding.Properties)

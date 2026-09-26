@@ -19,6 +19,8 @@ void Inventory()
             using var collection = new ProjectCollection();
             var globals = new Dictionary<string, string> { ["Configuration"] = "Release", ["Platform"] = "AnyCPU", ["ImportProjectExtensionProps"] = "false", ["ImportProjectExtensionTargets"] = "false" };
             foreach (var pair in JsonSerializer.Deserialize<Dictionary<string, string>>(Environment.GetEnvironmentVariable("RULES_MSBUILD_INVENTORY_PROPERTIES") ?? "{}")!) globals[pair.Key] = pair.Value;
+            var perProject = JsonSerializer.Deserialize<Dictionary<string, Dictionary<string, string>>>(Environment.GetEnvironmentVariable("RULES_MSBUILD_INVENTORY_PROJECT_PROPERTIES") ?? "{}")!;
+            foreach (var pair in perProject.GetValueOrDefault(entry) ?? []) globals[pair.Key] = pair.Value;
             var outer = new Project(Path.Combine(root, entry), globals, null, collection);
             var frameworks = outer.GetPropertyValue("TargetFrameworks");
             if (frameworks.Length == 0) frameworks = outer.GetPropertyValue("TargetFramework");
