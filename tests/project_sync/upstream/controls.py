@@ -9,7 +9,8 @@ import sys
 import xml.etree.ElementTree as ET
 
 workspace,base,raw,out=map(lambda p:Path(p).resolve(),sys.argv[1:5])
-target,source,needle,replacement,assembly=sys.argv[5:]
+target,source,needle,replacement,assembly=sys.argv[5:10]
+loaded_assembly=sys.argv[10] if len(sys.argv)>10 else ('System.IO.Pipelines' if 'Pipelines' in target else None)
 replacement=replacement.replace("\\n", "\n")
 out.mkdir(parents=True,exist_ok=False)
 rules=Path(__file__).resolve().parents[3]
@@ -27,9 +28,9 @@ def test(name):
     run(name,['test',target,'--jobs=2','--test_output=errors','--build_event_json_file='+str(out/(name+'.bep'))])
     records=[json.loads(line) for line in (out/(name+'.bep')).read_text().splitlines()]
     tests=[e['testResult'] for e in records if 'testResult' in e];assert len(tests)==1
-    proofs=list((workspace/'bazel-testlogs'/target.split(':')[1]/'test.outputs').glob('loaded-pipelines-*.json'))
-    if 'Pipelines' in target:
-        built=workspace/'bazel-bin/src_libraries_System.IO.Pipelines_src_System.IO.Pipelines_net10_0.runtime/System.IO.Pipelines.dll'
+    proofs=list((workspace/'bazel-testlogs'/target.split(':')[1]/'test.outputs').glob('loaded-source-*.json'))
+    if loaded_assembly:
+        built=workspace/('bazel-bin/src_libraries_'+loaded_assembly+'_src_'+loaded_assembly+'_net10_0.runtime/'+loaded_assembly+'.dll')
         expected=hashlib.sha256(built.read_bytes()).hexdigest().upper()
         assert proofs and all(json.loads(p.read_text())['sha256']==expected for p in proofs)
         rows.append({'case':name+'-source-assembly','sha256':expected})
@@ -39,7 +40,14 @@ try:
     test('baseline')
     target_name=target.split(':')[1]
     actual=results(workspace/'bazel-testlogs'/target_name/'test.outputs/results.trx')
-    assert actual==results(raw),(actual-results(raw),results(raw)-actual)
+    expected=results(raw)
+    compare=lambda cases:cases
+    if loaded_assembly == 'System.Collections.Immutable':
+        sys.path.insert(0,str(rules/'tests/explicit_msbuild/runtime'))
+        from case_names import normalized, shuffled
+        compare=normalized
+        rows.append({'case':'display-normalization','exactDisplayNamesMatch':actual==expected,'shuffledCases':sum(n for (name,_),n in actual.items() if name.split('(',1)[0] in shuffled)})
+    assert compare(actual)==compare(expected),(compare(actual)-compare(expected),compare(expected)-compare(actual))
     rows.append({'case':'raw-parity','tests':sum(actual.values()),'outcomes':dict(Counter(outcome for (_,outcome),n in actual.items() for _ in range(n)))})
     assert test('warm').get('cachedLocally'), 'Test result not cached'
     ref=workspace/'bazel-bin'/(assembly+'.reference')

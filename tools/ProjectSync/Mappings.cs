@@ -42,6 +42,7 @@ internal sealed class ProjectBinding
     }
     public string[] Tools { get; set; } = [];
     public string[] Bindings { get; set; } = [];
+    public string[] AssemblySelections { get; set; } = [];
     public string[] Items { get; set; } = [];
     public Dictionary<string, string> ItemPaths { get; set; } = [];
     public string[] AdapterImports { get; set; } = [];
@@ -121,7 +122,7 @@ internal sealed class Mappings
             {
                 throw new InvalidDataException("Invalid output mode: " + project);
             }
-            foreach (var label in binding.Tools.Concat(binding.LayoutBindings.Keys).Concat(binding.Bindings).Concat(binding.Items).Concat(binding.AdapterImports).Concat(binding.ReferencePack is null ? [] : new[] { binding.ReferencePack }).Concat(binding.RuntimeHost is null ? [] : new[] { binding.RuntimeHost }))
+            foreach (var label in binding.Tools.Concat(binding.AssemblySelections).Concat(binding.LayoutBindings.Keys).Concat(binding.Bindings).Concat(binding.Items).Concat(binding.AdapterImports).Concat(binding.ReferencePack is null ? [] : new[] { binding.ReferencePack }).Concat(binding.RuntimeHost is null ? [] : new[] { binding.RuntimeHost }))
             {
                 Label(label);
             }

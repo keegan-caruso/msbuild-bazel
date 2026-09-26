@@ -1,4 +1,4 @@
-"""Migrate Pipelines' library/tests to sync; keep explicit dependency producers.
+"""Migrate selected runtime library/tests to sync; keep explicit dependency producers.
 
 Inputs: workspace from runtime/prepare.py, raw graph inventory, evaluation-only
 sync inventory, target OS. This changes authored fixture setup, never the output
@@ -16,9 +16,10 @@ target_os=sys.argv[4]
 rules=Path(__file__).resolve().parents[3]
 root=outer/'upstream'
 graph={(r['project'],r['framework']):r for r in json.loads(graph_file.read_text()) if r['framework']}
+contract_file=Path(__file__).with_name('runtime-contracts.json')
 evaluated=[r for r in json.loads(evaluated_file.read_text()) if r.get('framework')=='net10.0']
 projects={r['project'] for r in evaluated}
-reviewed=json.loads(Path(__file__).with_name('pipelines-contracts.json').read_text())
+reviewed=json.loads(contract_file.read_text())
 def call(rule,**attrs):return rule+'('+','.join(k+'='+(str(v) if isinstance(v,bool) else json.dumps(v)) for k,v in attrs.items())+')'
 def tag(project):return project.removesuffix('.csproj').replace('/','_')
 text=(root/'BUILD.bazel').read_text();records={};kept=[];selected={}
@@ -59,7 +60,7 @@ for row in evaluated:
     binding={'targetFrameworks':['net10.0'],'outputMode':'implementation','properties':properties,'adapterImports':[':layout.targets'],'documents':{},'projectReferences':{},'bindings':previous.get('bindings',[]),'layoutBindings':previous.get('layout_bindings',{}),'evaluationItems':[]}
     # Reviewed categories: repository subset routing, packaging/binplace,
     # APICompat transforms, compiler-visible scalar settings and test launch.
-    known='WorkloadSdkBandVersions SubsetName SupportedPlatform SupportedNETCoreAppTargetFramework NetCoreAppLibrary NetCoreAppLibraryGenerator AspNetCoreAppLibrary WindowsDesktopCoreAppLibrary CorehostProjectToBuild InstallerProjectToBuild PkgprojProjectToBuild ProjectToBuild SharedFrameworkProjectToBuild TestProjectToBuild ProjectExclusions _CrossToolSubset _frameworkProjectReference _projectReferenceWithFilename _projectReferenceExcludedWithFilename _ProjectReferenceWithOriginalIdentity AdditionalLibPackageExcludes AdditionalSymbolPackageExcludes ApiCompatContractAssemblyReferences ApiCompatExcludeAttributesFile ApiCompatLeftAssembliesTransformationPattern ApiCompatRightAssembliesTransformationPattern AssemblyAttribute BinPlaceTargetFrameworks CompilerVisibleProperty CoverageExcludeByFile CoverageIncludeDirectory ILLinkSubstitutionsXmls NetFxReference NETStandardCompatError PackageDownload SourceRoot MonoAotCrossCompiler SetScriptCommands'.split()
+    known='WorkloadSdkBandVersions SubsetName SupportedPlatform SupportedNETCoreAppTargetFramework NetCoreAppLibrary NetCoreAppLibraryGenerator AspNetCoreAppLibrary WindowsDesktopCoreAppLibrary CorehostProjectToBuild InstallerProjectToBuild PkgprojProjectToBuild ProjectToBuild SharedFrameworkProjectToBuild TestProjectToBuild ProjectExclusions _CrossToolSubset _frameworkProjectReference _projectReferenceWithFilename _projectReferenceExcludedWithFilename _ProjectReferenceWithOriginalIdentity AdditionalLibPackageExcludes AdditionalSymbolPackageExcludes ApiCompatContractAssemblyReferences ApiCompatExcludeAttributesFile ApiCompatLeftAssembliesTransformationPattern ApiCompatRightAssembliesTransformationPattern AssemblyAttribute BinPlaceTargetFrameworks CompilerVisibleProperty CoverageExcludeByFile CoverageIncludeDirectory ILLinkSubstitutionsXmls NetFxReference NETStandardCompatError PackageDownload SourceRoot MonoAotCrossCompiler SetScriptCommands EnabledGenerators RdXmlFile'.split()
     binding['evaluationItems']=known
     for doc in row['documents']:
         if doc['targets'] or doc['tasks']:
@@ -68,7 +69,13 @@ for row in evaluated:
             binding['documents'][doc['path']]=dict(observed)
     # Retain the previously qualified non-item file inputs (APICompat, link
     # templates, settings and reference project definitions).
-    binding['documents']['Directory.Build.targets']['inputs']=previous['msbuild_imports']
+    binding['documents']['Directory.Build.targets']['inputs']=list(previous['msbuild_imports'])
+    # NativeAOT-only directives remain declared files even in this JIT slice.
+    for item in row['items']:
+        if item['type'] == 'RdXmlFile':
+            path=(root/Path(project).parent/item['include'].replace('\\','/')).resolve().relative_to(root).as_posix()
+            assert (root/path).is_file(), path
+            binding['documents']['Directory.Build.targets']['inputs'].append(path)
     for ref in row['items']:
         if ref['type']!='ProjectReference':continue
         path=Path(ref['include'].replace('\\','/'))
@@ -94,6 +101,10 @@ for row in evaluated:
     mapping['projects'][project]=binding;sync_bindings.update(binding['bindings'])
     if '/tests/' in project:
         binding['runtimeHost']='//runtime:host'
+        if project == 'src/libraries/System.Collections.Immutable/tests/System.Collections.Immutable.Tests.csproj':
+            # TestUtilities and Immutable reach both the direct implementation
+            # and its public contract pair. Select the reviewed pair explicitly.
+            binding['assemblySelections']=[':src_libraries_'+name+'_src_'+name+'_net10.0_paired' for name in ['System.Collections','System.Threading']]
         mapping['tests'][project]={'protocol':'vstest','outputType':'exe','runner':previous['test_runner'],'adapters':previous['test_adapters'],'settingsOutput':'.runsettings'}
 kept.insert(0,'load("@rules_msbuild//msbuild:sync.bzl","msbuild_sync")')
 kept.append(call('msbuild_package_lock',name='sync_packages',packages=sorted(locked)))

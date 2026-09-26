@@ -179,7 +179,10 @@ properties combine; conflicting values fail. Reserved configuration/framework
 properties still cannot be overridden through the property dictionary. Stale or
 unreachable project mappings fail before writing output.
 
-`Compile` inputs can carry `Link`, `LinkBase` and `Visible`. Existing
+`Compile` inputs can carry `Link`, `LinkBase`, `Visible`, `DesignTime`, `AutoGen`,
+`DependentUpon`, `CopyToOutputDirectory`, `CopyToPublishDirectory` and `TargetPath`.
+Checked-in generated sources remain ordinary declared inputs. `Using` items retain
+namespace, `Alias` and `Static` settings; other metadata fails. Existing
 `EmbeddedResource`, `AdditionalFiles`, `EditorConfigFiles`,
 `GlobalAnalyzerConfigFiles`, `Content` and copied `None` inputs emit explicit
 `msbuild_items`. File metadata includes links, resource names/culture, copy paths,
@@ -205,7 +208,8 @@ than promoting inherited packages into direct references. Boolean
 are retained too. Exact package version/role bindings are still mandatory.
 
 See [upstream qualification](project-sync-upstream-qualification.md) for measured
-ObjectPool/Pipelines coverage and remaining integration gates.
+ObjectPool/Pipelines coverage, the [Http.Abstractions/Immutable extension](project-sync-expanded.md),
+and remaining integration gates.
 
 ## Bootstrap, reference and task bindings
 
@@ -251,7 +255,8 @@ Per-project mappings can declare:
 | `projectReferences` | Workspace-relative project path → role and label; roles are `compile`, `private`, `analyzer`, `tool`, `output` |
 | `tools`, `bindings`, `items`, `adapterImports` | Authored labels for existing rule primitives |
 | `outputMode` | `sdk`, `reference` or `implementation` |
-| `referencePack`, `runtimeHost` | Explicit existing reference-pack/runtime providers |
+| `referencePack`, `runtimeHost` | Explicit existing reference-pack/runtime providers; `@dotnet//:sdk_host` includes the SDK for compiler-invoking tests |
+| `assemblySelections` | Explicit labels for the existing `assembly_selections` convergence contract |
 | `directories`, `layoutBindings` | Existing logical-directory and layout-property contracts |
 | `documents` | Reviewed contracts for imported/project XML containing targets/tasks |
 | `evaluationItems` | Explicit item kinds used as repository bookkeeping; this does **not** declare file inputs |

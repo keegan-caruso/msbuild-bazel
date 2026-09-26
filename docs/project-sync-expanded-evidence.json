@@ -1,0 +1,130 @@
+{
+  "platform": "Linux ARM64",
+  "sdk": "10.0.400",
+  "bazel": "9.2.0",
+  "configuration": "Release/net10.0",
+  "http": {
+    "generatedProjects": 2,
+    "authoredDependencies": 42,
+    "controls": [
+      {
+        "case": "baseline",
+        "exitCode": 0
+      },
+      {
+        "case": "raw-parity",
+        "tests": 714,
+        "outcomes": {
+          "Passed": 714
+        }
+      },
+      {
+        "case": "warm",
+        "exitCode": 0
+      },
+      {
+        "case": "body-edit",
+        "exitCode": 0
+      },
+      {
+        "case": "body-edit-reference",
+        "unchanged": true
+      },
+      {
+        "case": "restored",
+        "exitCode": 0
+      },
+      {
+        "case": "contract-drift",
+        "exitCode": 1
+      }
+    ],
+    "runtimeOnlyHost": {
+      "passed": 713,
+      "failed": 1,
+      "reason": "T4 compiler requires SDK"
+    },
+    "sdkHost": {
+      "passed": 714,
+      "failed": 0
+    }
+  },
+  "immutable": {
+    "generatedProjects": 2,
+    "authoredDependencies": 34,
+    "controls": [
+      {
+        "case": "baseline",
+        "exitCode": 0
+      },
+      {
+        "case": "baseline-source-assembly",
+        "sha256": "20256F6BB644B01CB11E98044D8D9C48024D03B0634BC32099286801ADC45D0F"
+      },
+      {
+        "case": "display-normalization",
+        "exactDisplayNamesMatch": false,
+        "shuffledCases": 32
+      },
+      {
+        "case": "raw-parity",
+        "tests": 22544,
+        "outcomes": {
+          "Passed": 22544
+        }
+      },
+      {
+        "case": "warm",
+        "exitCode": 0
+      },
+      {
+        "case": "warm-source-assembly",
+        "sha256": "20256F6BB644B01CB11E98044D8D9C48024D03B0634BC32099286801ADC45D0F"
+      },
+      {
+        "case": "body-edit",
+        "exitCode": 0
+      },
+      {
+        "case": "body-edit-source-assembly",
+        "sha256": "59EE42CCD794196E86904BE69CA6022857BFCBFB64357FAD765AD59C393612C0"
+      },
+      {
+        "case": "body-edit-reference",
+        "unchanged": true
+      },
+      {
+        "case": "restored",
+        "exitCode": 0
+      },
+      {
+        "case": "restored-source-assembly",
+        "sha256": "20256F6BB644B01CB11E98044D8D9C48024D03B0634BC32099286801ADC45D0F"
+      },
+      {
+        "case": "contract-drift",
+        "exitCode": 1
+      }
+    ],
+    "host": "Installed Microsoft.NETCore.App 10.0.11 with source-built Immutable replacement"
+  },
+  "regressions": {
+    "macosArm64": {
+      "style": 5,
+      "tooling": 7,
+      "runner": 35,
+      "generator": 31,
+      "caseNameNormalization": 1,
+      "bazelAnalysis": 43,
+      "sdkExtension": 10,
+      "toolchainAndStarlark": "passed"
+    },
+    "linuxArm64": {
+      "style": 5,
+      "tooling": 7,
+      "runner": 35,
+      "generator": 31,
+      "caseNameNormalization": 1
+    }
+  }
+}

@@ -37,17 +37,17 @@ run('objectpool-controls',[sys.executable,here/'controls.py',work,base,out/'obje
 run('objectpool-shutdown',[bazel,'--output_base='+str(base),'--ignore_all_rc_files','shutdown'],work)
 pipetest='src/libraries/System.IO.Pipelines/tests/System.IO.Pipelines.Tests.csproj'
 run('pipelines-raw-build',[dotnet,'build',runtime/pipetest,'-c','Release','-p:TargetFramework=net10.0','-p:TargetArchitecture=arm64','-p:TargetOS=linux','-p:UseLocalTargetingRuntimePack=false','-p:RestoreUseStaticGraphEvaluation=false','-p:NuGetAudit=false','-p:UseSharedCompilation=false','-p:NetCoreSdkRoot='+str(sdk/'sdk/10.0.400')])
-run('pipelines-raw-tests',[sys.executable,here/'pipelines_raw.py',runtime,out/'pipelines-raw',runner])
+run('pipelines-raw-tests',[sys.executable,here/'runtime_raw.py',runtime,out/'pipelines-raw',runner])
 probe=out/'inventory';probe.mkdir();old=rules/'tests/explicit_msbuild/runtime'
 (probe/'Inventory.csproj').write_text((old/'Inventory.csproj.txt').read_text());(probe/'Program.cs').write_text((old/'Inventory.cs.txt').read_text());(probe/'selection.json').write_text(json.dumps(dict(entries=[pipetest],framework='net10.0')))
 run('pipelines-inventory-build',[dotnet,'build',probe/'Inventory.csproj','-c','Release'])
 run('pipelines-graph',[dotnet,probe/'bin/Release/net10.0/Inventory.dll',runtime,probe/'selection.json',probe/'inventory.json'])
 run('pipelines-authored',[sys.executable,old/'prepare.py',runtime,probe/'inventory.json',out/'pipelines',rules],env=dict(os.environ,RULES_MSBUILD_VSTEST_ARCHIVE=str(runner)))
 run('pipelines-evaluation',[sys.executable,here.parent/'evaluation_inventory.py',runtime,out/'pipelines-evaluation.json','src/libraries/System.IO.Pipelines/src/System.IO.Pipelines.csproj',pipetest],env=dict(os.environ,RULES_MSBUILD_INVENTORY_PROPERTIES='{"TargetArchitecture":"arm64","TargetOS":"linux","UseLocalTargetingRuntimePack":"false"}'))
-run('pipelines-mapping',[sys.executable,here/'pipelines.py',out/'pipelines',probe/'inventory.json',out/'pipelines-evaluation.json','linux'])
+run('pipelines-mapping',[sys.executable,here/'runtime.py',out/'pipelines',probe/'inventory.json',out/'pipelines-evaluation.json','linux'])
 work=out/'pipelines/upstream';base=out/'pipelines-base'
 run('pipelines-sync',[bazel,'--output_base='+str(base),'--ignore_all_rc_files','run','//:sync','--jobs=2'],work)
-run('pipelines-host',[sys.executable,here/'pipelines_host.py',work])
+run('pipelines-host',[sys.executable,here/'runtime_host.py',work])
 run('pipelines-test',[bazel,'--output_base='+str(base),'--ignore_all_rc_files','test','//:src_libraries_System.IO.Pipelines_tests_System.IO.Pipelines.Tests','--jobs=2','--test_output=errors'],work)
 
 run('pipelines-controls',[sys.executable,here/'controls.py',work,base,out/'pipelines-raw/results/results.trx',out/'pipelines-controls','//:src_libraries_System.IO.Pipelines_tests_System.IO.Pipelines.Tests_net10_0','src/libraries/System.IO.Pipelines/src/System/IO/Pipelines/ThrowHelper.cs','internal static void ThrowArgumentNullException(ExceptionArgument argument) => throw CreateArgumentNullException(argument);','internal static void ThrowArgumentNullException(ExceptionArgument argument) { GC.KeepAlive(typeof(ThrowHelper)); throw CreateArgumentNullException(argument); }','src_libraries_System.IO.Pipelines_ref_System.IO.Pipelines_net10.0'])

@@ -69,8 +69,9 @@ qualification, not cold-build benchmarks.
   build fails to start an out-of-process MSBuild task host. Linux qualification
   preserves task behavior and sandboxing. macOS generated build/test is unqualified.
 - Linux evidence is ARM64, not x86-64. No GitHub CI was dispatched.
-- Only net10.0/Release and these selected graphs are covered. Http.Abstractions,
-  Immutable and wider graphs remain follow-ups.
+- Only net10.0/Release and these selected graphs are covered. Http.Abstractions and
+  Immutable are covered by the subsequent [expanded qualification](project-sync-expanded.md);
+  wider graphs remain follow-ups.
 - Complex repositories still author package, bootstrap, custom-target and tool
   contracts. The generator does not infer task side effects or execute targets.
 - Warm local caching and declared inputs do not establish remote-cache portability

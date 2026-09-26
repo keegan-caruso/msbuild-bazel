@@ -1,7 +1,7 @@
 """Configured assembly choices preserve explicit compiler and runtime inputs."""
 
 load("@rules_testing//lib:analysis_test.bzl", "analysis_test")
-load("//msbuild:defs.bzl", "MSBuildAssemblyInfo", "msbuild_binary", "msbuild_library")
+load("//msbuild:defs.bzl", "MSBuildAssemblyInfo", "msbuild_assembly", "msbuild_binary", "msbuild_library")
 load(":helpers.bzl", "action", "failure_test", "request")
 
 def _selected(env, targets):
@@ -47,3 +47,21 @@ def selection_tests(name):
     msbuild_library(name = name + "_private", project = "Helper.csproj", target_framework = "net10.0", implementation_deps = [":" + name + "_modern"], tags = ["manual"])
     msbuild_binary(name = name + "_private_outer", project = "Outer.csproj", target_framework = "net10.0", deps = [":" + name + "_private"], tags = ["manual"])
     analysis_test(name = name + "_private_inputs", targets = {"hidden": ":" + name + "_modern", "middle": ":" + name + "_private", "outer": ":" + name + "_private_outer"}, impl = _private)
+
+    msbuild_library(name = name + "_contract_dep", project = "Root.csproj", assembly_name = "Core", target_framework = "net10.0", output_mode = "reference", tags = ["manual"])
+    msbuild_library(name = name + "_contract", project = "Outer.csproj", assembly_name = "Helper", target_framework = "net10.0", output_mode = "reference", deps = [":" + name + "_contract_dep"], tags = ["manual"])
+    msbuild_assembly(name = name + "_pair", contract = ":" + name + "_contract", implementation = ":" + name + "_private", tags = ["manual"])
+    msbuild_binary(name = name + "_paired_consumer", project = "Outer.csproj", target_framework = "net10.0", deps = [":" + name + "_pair"], assembly_selections = [":" + name + "_modern"], tags = ["manual"])
+    analysis_test(name = name + "_paired_contract_selection", targets = {"consumer": ":" + name + "_paired_consumer", "selected": ":" + name + "_modern", "contract": ":" + name + "_contract_dep"}, impl = _paired)
+    msbuild_library(name = name + "_unrelated", project = "Root.csproj", assembly_name = "Core", target_framework = "net10.0", tags = ["manual"])
+    msbuild_library(name = name + "_unrelated_helper", project = "Helper.csproj", target_framework = "net10.0", deps = [":" + name + "_unrelated"], tags = ["manual"])
+    msbuild_library(name = name + "_unrelated_consumer", project = "Outer.csproj", target_framework = "net10.0", deps = [":" + name + "_modern", ":" + name + "_unrelated_helper"], assembly_selections = [":" + name + "_modern"], tags = ["manual"])
+    failure_test(name + "_unrelated_test", ":" + name + "_unrelated_consumer", "Assembly selection cannot replace a different project")
+
+def _paired(env, targets):
+    selected = targets.selected[MSBuildAssemblyInfo]
+    contract = targets.contract[MSBuildAssemblyInfo]
+    data = request(targets.consumer)
+    env.expect.that_collection(data["runtimeReferences"]).not_contains(contract.reference.path)
+    env.expect.that_collection(action(targets.consumer, "MSBuildAssembly").inputs.to_list()).contains_at_least([selected.identity, contract.identity])
+    env.expect.that_bool(len(data["assemblySelections"]) == 2).equals(True)
