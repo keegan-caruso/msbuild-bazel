@@ -1,8 +1,8 @@
 # Planned work
 
 The active priority is complete generated graphs, independent remote-cache recovery,
-then developer experience and broader qualification. Stages 1–3 are **complete**;
-stages 4–8 remain **planned**;
+then developer experience and broader qualification. Stages 1–4 are **complete**;
+stages 5–8 remain **planned**;
 [current support](implementation-plan.md) records what is already measured.
 This sequence starts from local commit `d4a64b4`, not an assertion that the work has
 already reached `main`. Review and integrate the accumulated changes before basing
@@ -99,6 +99,8 @@ NuGet cache or producer filesystem supplies missing inputs. State any remaining
 path sensitivity explicitly; remote caching does not qualify remote execution.
 
 ### 4. Simplify configuration and diagnostics
+
+**Complete:** [defaults, diagnostics and equivalence evidence](project-sync-defaults.md).
 
 **Depends on:** the concrete repetition and failures found in stages 1–3.
 

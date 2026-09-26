@@ -168,7 +168,7 @@ class ProjectSyncTests(unittest.TestCase):
     def test_project_property_and_mapping_rejections(self):
         for mapping, error in [
             ({'Core/Core.csproj':dict(properties={'TargetFramework':'net9.0'})}, 'reserved'),
-            ({'Core/Core.csproj':dict(properties={'Flavor':'a', 'flavor':'b'})}, 'Duplicate'),
+            ({'Core/Core.csproj':dict(properties={'Flavor':'a', 'flavor':'b'})}, 'Ambiguous'),
             ({'Core/Core.csproj':dict(targetFrameworks=['net10.0','net10.0'])}, 'distinct'),
             ({'Core/Core.csproj':dict(targetFrameworks=['NET10.0'])}, 'lowercase'),
             ({'Missing.csproj':dict(properties={})}, 'reachable'),
@@ -283,6 +283,67 @@ class ProjectSyncTests(unittest.TestCase):
         mapping['projects']['Core/Core.csproj']['references']['Analyzer.Package']['role'] = 'compile'
         self.put('sync.json', json.dumps(mapping))
         self.assertIn('asset roles require', self.run_sync('Core/Core.csproj', '--mappings', 'sync.json', success=False))
+
+    def test_project_defaults_preserve_flat_graph_and_explicit_precedence(self):
+        self.put('App/App.csproj', '<Project Sdk="Microsoft.NET.Sdk"><ItemGroup><ProjectReference Include="../Core/Core.csproj"/></ItemGroup></Project>')
+        defaults = dict(platform='AnyCPU', properties={'Flavor': 'base', 'Common': 'yes'}, adapterImports=[':adapter'], evaluationItems=['Bookkeeping'], transitiveCompileReferences=False)
+        core = dict(defaults, platform='arm64', properties={'Flavor': 'special', 'Common': 'yes'}, adapterImports=[], transitiveCompileReferences=True)
+        self.put('sync.json', json.dumps(dict(projects={'App/App.csproj': defaults, 'Core/Core.csproj': core})))
+        self.run_sync('App/App.csproj', '--mappings', 'sync.json')
+        output = (self.root/'projects.generated.bzl').read_bytes()
+        # Unlisted reachable projects also receive defaults; explicit empty lists
+        # and booleans override inherited values rather than being appended.
+        self.put('sync.json', json.dumps(dict(projectDefaults=defaults, projects={'Core/Core.csproj': dict(platform='arm64', properties={'Flavor': 'special'}, adapterImports=[], transitiveCompileReferences=True)})))
+        self.run_sync('App/App.csproj', '--mappings', 'sync.json', '--check')
+        self.assertEqual(output, (self.root/'projects.generated.bzl').read_bytes())
+        self.run_sync('App/App.csproj', '--mappings', 'sync.json')
+        self.assertEqual(output, (self.root/'projects.generated.bzl').read_bytes())
+
+    def test_default_document_contracts_remain_reviewed_and_stale_checked(self):
+        logic = '<Project><Target Name="Reviewed"/></Project>'
+        self.put('Core/Logic.targets', logic)
+        self.put('Core/Core.csproj', '<Project Sdk="Microsoft.NET.Sdk"><Import Project="Logic.targets"/></Project>')
+        contract = dict(sha256=hashlib.sha256(logic.encode()).hexdigest(), targets=['Reviewed'], tasks=[])
+        mapping = dict(projectDefaults=dict(documents={'Core/Logic.targets': contract}))
+        self.put('sync.json', json.dumps(mapping))
+        self.run_sync('Core/Core.csproj', '--mappings', 'sync.json')
+        output = (self.root/'projects.generated.bzl').read_bytes()
+        mapping['projects'] = {'Core/Core.csproj': dict(documents={'Core/Logic.targets': dict(targets=['Reviewed'])})}
+        self.put('sync.json', json.dumps(mapping))
+        self.assertIn('contract changed', self.run_sync('Core/Core.csproj', '--mappings', 'sync.json', success=False))
+        self.assertEqual(output, (self.root/'projects.generated.bzl').read_bytes())
+        del mapping['projects']
+        self.put('sync.json', json.dumps(mapping))
+        self.put('Core/Core.csproj', '<Project Sdk="Microsoft.NET.Sdk"/>')
+        self.assertIn('does not match evaluated imports', self.run_sync('Core/Core.csproj', '--mappings', 'sync.json', success=False))
+        self.assertEqual(output, (self.root/'projects.generated.bzl').read_bytes())
+
+    def test_ambiguous_defaults_and_unsafe_values_fail_without_replacing_output(self):
+        self.run_sync('Core/Core.csproj')
+        output = (self.root/'projects.generated.bzl').read_bytes()
+        cases = [
+            ('{"projectDefaults":{"platform":"arm64","platform":"AnyCPU"}}', 'Duplicate mapping key'),
+            ('{"projectDefaults":{"platform":"arm64","Platform":"AnyCPU"}}', 'Ambiguous mapping member'),
+            ('{"projectDefaults":null}', 'must be an object'),
+            ('{"projectDefaults":{"properties":{"Flavor":"one","flavor":"two"}}}', 'Ambiguous mapping member'),
+            ('{"projectDefaults":{"packageReferencePaths":{"Example":["../outside.dll"]}}}', 'safe relative'),
+            ('{"projectDefaults":{"bindings":["ambient-tool"]}}', 'explicit Bazel label'),
+            ('{"projectDefaults":{"unknown":true}}', 'could not be mapped'),
+        ]
+        for text, diagnostic in cases:
+            self.put('sync.json', text)
+            self.assertIn(diagnostic, self.run_sync('Core/Core.csproj', '--mappings', 'sync.json', success=False))
+            self.assertEqual(output, (self.root/'projects.generated.bzl').read_bytes())
+
+    def test_failure_names_project_configuration_item_and_mapping(self):
+        self.put('Core/Core.csproj', '<Project Sdk="Microsoft.NET.Sdk"><ItemGroup><CustomInput Include="input.txt"/></ItemGroup></Project>')
+        diagnostic = self.run_sync('Core/Core.csproj', success=False)
+        for fragment in ['Core/Core.csproj', 'Configuration=Release', 'Platform=AnyCPU', 'TargetFramework=net10.0', 'CustomInput', 'input.txt', 'evaluationItems']:
+            self.assertIn(fragment, diagnostic)
+        self.put('Core/Core.csproj', '<Project Sdk="Microsoft.NET.Sdk"><Target Name="Generate"/></Project>')
+        diagnostic = self.run_sync('Core/Core.csproj', success=False)
+        for fragment in ['Core/Core.csproj', 'TargetFramework=net10.0', 'documents[', 'sha256']:
+            self.assertIn(fragment, diagnostic)
 
     def test_project_platform_controls_evaluation_and_build(self):
         self.put('Core/Arm.cs', 'class Arm {}')

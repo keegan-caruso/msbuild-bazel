@@ -1,0 +1,53 @@
+{
+  "scope": "Linux ARM64, SDK 10.0.400; upstream declarations on Bazel 9.2.0; small application acceptance on 8.8.0 and 9.2.0",
+  "graphs": {
+    "http": {
+      "projects": 44,
+      "beforeBytes": 522340,
+      "afterBytes": 162705,
+      "reductionPercent": 68.9,
+      "generatedSha256": "8340407635615b534c72bf975b2136d2fd61b5b41d9a3fffa1341825d38686f5",
+      "generatedBytesUnchanged": true,
+      "controls": [
+        {
+          "case": "check",
+          "exitCode": 0
+        },
+        {
+          "case": "repeat",
+          "exitCode": 0
+        }
+      ]
+    },
+    "immutable": {
+      "projects": 36,
+      "beforeBytes": 531126,
+      "afterBytes": 285161,
+      "reductionPercent": 46.3,
+      "generatedSha256": "c25d1692bac32a4173db8c0b5c6cf0111016dbbd97e6231ca781b13362086fc3",
+      "generatedBytesUnchanged": true,
+      "controls": [
+        {
+          "case": "check",
+          "exitCode": 0
+        },
+        {
+          "case": "repeat",
+          "exitCode": 0
+        }
+      ]
+    }
+  },
+  "checks": {
+    "dotnetBuildAndStyle": "passed",
+    "styleTests": 5,
+    "toolingTests": 7,
+    "runnerTests": 35,
+    "syncAndNormalizationTests": 40,
+    "scaffoldAndStarlark": "passed",
+    "smallApplicationAcceptance": [
+      "8.8.0",
+      "9.2.0"
+    ]
+  }
+}

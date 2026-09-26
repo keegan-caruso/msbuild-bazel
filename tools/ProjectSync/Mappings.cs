@@ -95,13 +95,14 @@ internal sealed class TestBinding
 
 internal sealed class Mappings
 {
+    public ProjectBinding ProjectDefaults { get; set; } = new();
     public Dictionary<string, PackageBinding> Packages { get; set; } = [];
     public Dictionary<string, TestBinding> Tests { get; set; } = [];
     public Dictionary<string, ProjectBinding> Projects { get; set; } = [];
 
     internal static Mappings Read(string? path)
     {
-        var mappings = path is null ? new Mappings() : JsonSerializer.Deserialize<Mappings>(File.ReadAllText(path), new JsonSerializerOptions { PropertyNameCaseInsensitive = true, UnmappedMemberHandling = JsonUnmappedMemberHandling.Disallow }) ?? throw new InvalidDataException("Empty sync mappings");
+        var mappings = path is null ? new Mappings() : JsonSerializer.Deserialize<Mappings>(MappingDefaults.Expand(File.ReadAllText(path)), new JsonSerializerOptions { PropertyNameCaseInsensitive = true, UnmappedMemberHandling = JsonUnmappedMemberHandling.Disallow }) ?? throw new InvalidDataException("Empty sync mappings");
         var identities = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         foreach (var (identity, binding) in mappings.Packages)
         {
@@ -115,9 +116,12 @@ internal sealed class Mappings
                 Label(label);
             }
         }
-        foreach (var (project, binding) in mappings.Projects)
+        foreach (var project in mappings.Projects.Keys)
         {
             ProjectPath(project);
+        }
+        foreach (var (project, binding) in mappings.Projects.Append(new KeyValuePair<string, ProjectBinding>("projectDefaults", mappings.ProjectDefaults)))
+        {
             if (string.IsNullOrWhiteSpace(binding.Platform))
             {
                 throw new InvalidDataException("Project platform must be explicit and nonempty: " + project);
@@ -240,15 +244,14 @@ internal sealed class Mappings
         }
     }
 
+    internal ProjectBinding ForProject(string project) => Projects.GetValueOrDefault(project) ?? ProjectDefaults;
+
     internal Dictionary<string, string> ProjectProperties(string project, TestBinding? test)
     {
-        var properties = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase) { ["Platform"] = Projects.GetValueOrDefault(project)?.Platform ?? "AnyCPU" };
-        if (Projects.TryGetValue(project, out var binding))
+        var properties = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase) { ["Platform"] = ForProject(project).Platform };
+        foreach (var (key, value) in ForProject(project).Properties)
         {
-            foreach (var (key, value) in binding.Properties)
-            {
-                properties.Add(key, value);
-            }
+            properties.Add(key, value);
         }
         foreach (var (key, value) in test?.Properties ?? [])
         {

@@ -246,6 +246,52 @@ fields beyond the supported SDK fields still require explicit SDK version setup.
 The direct maintainer CLI without an input manifest retains its original local
 filesystem evaluation behavior.
 
+### Shared project defaults
+
+`projectDefaults` applies to every reachable project, including projects without
+an entry in `projects`. Keep ordinary SDK/global.json setup unchanged; defaults
+are optional when a graph repeats reviewed configuration:
+
+```json
+{
+  "projectDefaults": {
+    "platform": "AnyCPU",
+    "properties": { "RepositoryMode": "managed" },
+    "adapterImports": [":layout.targets"]
+  },
+  "projects": {
+    "Tools/Tool.csproj": {
+      "properties": { "RepositoryMode": "tool" },
+      "adapterImports": []
+    }
+  }
+}
+```
+
+Explicit project values win over defaults. Scalars and lists replace inherited
+values; an empty list clears a default list. Dictionaries merge by exact key.
+Each dictionary value replaces the complete inherited record: overriding a
+`documents` entry requires its complete reviewed hash/target/task contract.
+Dictionary fields are `properties`, `documents`, `references`, `projectReferences`,
+`packageReferencePaths`, `itemPaths` and `layoutBindings`. An empty dictionary
+inherits its default entries; null dictionary entries are rejected. Use defaults
+only for contracts applicable to every reachable project. Nullable `runtimeHost`
+and `referencePack` can be explicitly cleared with null.
+
+Duplicate JSON keys and ambiguous field/property casing fail. Unknown members,
+unsafe paths, unreviewed targets and stale reference/import bindings retain their
+existing rejection rules. Test properties retain conflict checking against the
+resulting project properties. Defaults do not approve document hashes or add
+ambient tool discovery.
+
+Errors identify the project, Release configuration, platform and current target
+framework, followed by the offending input/import and mapping guidance. A failure
+during outer evaluation reports `TargetFramework=evaluation` because its configured
+framework is not yet known. Failed sync preserves the previous generated file.
+
+See [defaults qualification](project-sync-defaults.md) for unchanged declarations
+and measured mapping-size reductions on the two generated graphs.
+
 Per-project mappings can declare:
 
 | Field | Meaning |
