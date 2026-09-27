@@ -7,6 +7,9 @@ import stat
 import subprocess
 import sys
 
+sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "tests"))
+from fixture_sdk import sdk_declarations
+
 ROOT = Path(__file__).resolve().parents[2]
 p = argparse.ArgumentParser(description=__doc__)
 p.add_argument('directory', type=Path)
@@ -26,11 +29,7 @@ def put(name, text):
 put('MODULE.bazel', f'''module(name="layout_sandbox")
 bazel_dep(name="rules_msbuild",version="0.0.0")
 local_path_override(module_name="rules_msbuild",path={json.dumps(str(ROOT))})
-dotnet=use_extension("@rules_msbuild//msbuild:extensions.bzl","dotnet")
-dotnet.sdk(name="dotnet",version="10.0.400")
-use_repo(dotnet,"dotnet")
-register_toolchains("@dotnet//:all")
-''')
+''' + sdk_declarations())
 put('trees.bzl', '''def _tree(ctx):
     tree = ctx.actions.declare_directory(ctx.label.name)
     ctx.actions.run_shell(

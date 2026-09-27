@@ -10,6 +10,10 @@ import os
 from pathlib import Path
 import subprocess
 
+import sys
+sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "tests"))
+from fixture_sdk import sdk_declarations
+
 p = argparse.ArgumentParser(description=__doc__)
 p.add_argument('output', type=Path)
 p.add_argument('--executor', required=True)
@@ -32,11 +36,7 @@ def put(name, text):
 put('MODULE.bazel', f'''module(name="remote_qualification")
 bazel_dep(name="rules_msbuild",version="0.0.0")
 local_path_override(module_name="rules_msbuild",path={json.dumps(str(root))})
-dotnet=use_extension("@rules_msbuild//msbuild:extensions.bzl","dotnet")
-dotnet.sdk(name="dotnet",version="10.0.400")
-use_repo(dotnet,"dotnet")
-register_toolchains("@dotnet//:all")
-''')
+''' + sdk_declarations())
 put('BUILD.bazel', '''load("@rules_msbuild//msbuild:defs.bzl","msbuild_library","msbuild_test","msbuild_items")
 msbuild_library(name="Library",project="Library.csproj",srcs=["Value.cs"],target_framework="net10.0",linux_worker=True,allow_remote_execution=True)
 msbuild_items(name="resources",item_type="EmbeddedResource",srcs=["message.txt"],metadata={"LogicalName":"message"})

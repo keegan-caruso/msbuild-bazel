@@ -1,8 +1,11 @@
 """Create an SDK-style chain with explicit BUILD inputs and no NuGet downloads."""
 import argparse
 import json
-import os
 from pathlib import Path
+
+import sys
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "tests"))
+from fixture_sdk import sdk_declarations
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -11,15 +14,10 @@ def prepare(output, count):
     if count < 2:
         raise ValueError('Use at least two projects')
     output.mkdir(parents=True, exist_ok=False)
-    sdk = Path(os.environ['RULES_MSBUILD_DOTNET_ROOT']).resolve()
     (output/'MODULE.bazel').write_text('''module(name="benchmark_fixture")
 bazel_dep(name="rules_msbuild", version="0.0.0")
 local_path_override(module_name="rules_msbuild", path=%s)
-dotnet=use_extension("@rules_msbuild//msbuild:extensions.bzl","dotnet")
-dotnet.sdk(name="dotnet",version="10.0.400")
-use_repo(dotnet,"dotnet")
-register_toolchains("@dotnet//:all")
-''' % (json.dumps(str(ROOT))))
+''' % json.dumps(str(ROOT)) + sdk_declarations())
     (output/'BUILD.bazel').write_text('''alias(name="benchmark",actual="//P%d")
 ''' % (count - 1))
     for i in range(count):

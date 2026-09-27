@@ -16,6 +16,9 @@ import xml.etree.ElementTree as ET
 
 from compiler_reuse import compiler_properties
 
+sys.path.insert(0, str(Path(__file__).resolve().parents[3] / "tests"))
+from fixture_sdk import sdk_declarations
+
 source, inventory, workspace, rules = map(lambda p: Path(p).resolve(), sys.argv[1:])
 sdk_version = json.loads((rules/'global.json').read_text())['sdk']['version']
 framework_rows = [r for r in json.loads(inventory.read_text()) if r['framework']]
@@ -316,7 +319,7 @@ header.append('load(":qualification.bzl", "unsupported_project")')
 if project_bindings:
     (workspace/'project-bindings.json').write_text(json.dumps(project_bindings, indent=2)+'\n')
 (root/'BUILD.bazel').write_text('\n'.join(header+list(packages.values())+list(closures.values())+declarations)+ '\n'+call('filegroup',name='benchmark',testonly=any(r['properties']['IsTestProject'].lower()=='true' for r in rows),srcs=[':'+label(r['project'],r['framework']) for r in rows])+'\n')
-(workspace/'MODULE.bazel').write_text('module(name="runtime_reference")\nbazel_dep(name="rules_msbuild",version="0.0.0")\nlocal_path_override(module_name="rules_msbuild",path='+json.dumps(str(rules))+')\ndotnet=use_extension("@rules_msbuild//msbuild:extensions.bzl","dotnet")\ndotnet.sdk(name="dotnet",version="10.0.400")\nuse_repo(dotnet,"dotnet")\nregister_toolchains("@dotnet//:all")\n')
+(workspace/'MODULE.bazel').write_text('module(name="runtime_reference")\nbazel_dep(name="rules_msbuild",version="0.0.0")\nlocal_path_override(module_name="rules_msbuild",path='+json.dumps(str(rules))+')\n' + sdk_declarations() + '')
 (workspace/'package-lock.json').write_text(json.dumps(manifest,indent=2)+'\n')
 print('Declared',len(rows),'framework nodes,',len(packages),'packages',flush=True)
 

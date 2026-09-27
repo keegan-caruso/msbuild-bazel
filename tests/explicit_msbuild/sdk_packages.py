@@ -9,6 +9,9 @@ import subprocess
 import sys
 import zipfile
 
+sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "tests"))
+from fixture_sdk import sdk_declarations
+
 rules = Path(__file__).resolve().parents[2]
 folder = Path(sys.argv[1]).resolve()
 folder.mkdir(parents=True)
@@ -19,11 +22,7 @@ bazel = os.environ['RULES_MSBUILD_BAZEL']
 (workspace/'MODULE.bazel').write_text(f'''module(name="sdk_packages")
 bazel_dep(name="rules_msbuild",version="0.0.0")
 local_path_override(module_name="rules_msbuild",path={json.dumps(str(rules))})
-dotnet=use_extension("@rules_msbuild//msbuild:extensions.bzl","dotnet")
-dotnet.sdk(name="dotnet",version="10.0.400")
-use_repo(dotnet,"dotnet")
-register_toolchains("@dotnet//:all")
-''')
+''' + sdk_declarations())
 header = '''load("@rules_msbuild//msbuild:defs.bzl","msbuild_binary","msbuild_nuget_package","msbuild_package_lock")
 '''
 for version in ['1.0.0','2.0.0']:

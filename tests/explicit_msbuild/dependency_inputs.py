@@ -10,6 +10,9 @@ from pathlib import Path
 import subprocess
 import sys
 
+sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "tests"))
+from fixture_sdk import sdk_declarations
+
 root = Path(__file__).resolve().parents[2]
 sdk = Path(os.environ['RULES_MSBUILD_DOTNET_ROOT'])
 bazel = os.environ['RULES_MSBUILD_BAZEL']
@@ -81,11 +84,7 @@ def run(case, compiled, tested, value=1, data="first"):
 put('MODULE.bazel', f'''module(name="dependency_inputs")
 bazel_dep(name="rules_msbuild",version="0.0.0")
 local_path_override(module_name="rules_msbuild",path={json.dumps(str(root))})
-dotnet=use_extension("@rules_msbuild//msbuild:extensions.bzl","dotnet")
-dotnet.sdk(name="dotnet",version="10.0.400")
-use_repo(dotnet,"dotnet")
-register_toolchains("@dotnet//:all")
-''')
+''' + sdk_declarations())
 put('BUILD.bazel', '''load("@rules_msbuild//msbuild:defs.bzl","msbuild_library","msbuild_test")
 msbuild_library(name="leaf",project="Leaf/Leaf.csproj",srcs=["Leaf/Code.cs"],target_framework="net10.0",linux_worker=True,data=["payload.txt"])
 msbuild_library(name="middle",project="Middle/Middle.csproj",srcs=["Middle/Code.cs"],target_framework="net10.0",deps=[":leaf"],linux_worker=True)

@@ -13,6 +13,10 @@ import statistics
 import subprocess
 import time
 
+import sys
+sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "tests"))
+from fixture_sdk import sdk_declarations
+
 parser=argparse.ArgumentParser()
 parser.add_argument('--output',type=Path,required=True)
 parser.add_argument('--feed',type=Path,required=True)
@@ -47,7 +51,7 @@ for key,record in target.items():
  name,version=key.split('/');archive_name=name.lower()+'.'+version+'.nupkg';archive=work/'nuget'/name.lower()/version/archive_name;shutil.copyfile(archive,packages/archive_name)
  package_rules.append('msbuild_nuget_package('+','.join(k+'='+json.dumps(v) for k,v in dict(name=name.lower(),package_id=name,version=version,archive=archive_name,archive_sha256=hashlib.sha256(archive.read_bytes()).hexdigest(),content_hash=assets['libraries'][key]['sha512'],deps=[':'+x.lower() for x in record.get('dependencies',{})],visibility=['//visibility:public']).items())+')')
 (packages/'BUILD.bazel').write_text('\n'.join(package_rules))
-(workspace/'MODULE.bazel').write_text('module(name="borrow_benchmark")\nbazel_dep(name="rules_msbuild",version="0.0.0")\nlocal_path_override(module_name="rules_msbuild",path='+json.dumps(str(root))+')\ndotnet=use_extension("@rules_msbuild//msbuild:extensions.bzl","dotnet")\ndotnet.sdk(name="dotnet",version="10.0.400")\nuse_repo(dotnet,"dotnet")\nregister_toolchains("//:registered", "@dotnet//:all")\n')
+(workspace/'MODULE.bazel').write_text('module(name="borrow_benchmark")\nbazel_dep(name="rules_msbuild",version="0.0.0")\nlocal_path_override(module_name="rules_msbuild",path='+json.dumps(str(root))+')\n' + sdk_declarations(extra_toolchains=("//:registered",)) + '')
 (toolroot/'BUILD.bazel').write_text('package(default_visibility=["//visibility:public"])\nfilegroup(name="borrow",srcs=glob(["borrow/*"]))\nfilegroup(name="copy",srcs=glob(["copy/*"]))\nexports_files(["borrow/ExplicitBuild.dll","copy/ExplicitBuild.dll"])\n')
 for index in range(args.projects):
  d=workspace/('P'+str(index));d.mkdir()

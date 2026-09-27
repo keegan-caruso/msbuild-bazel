@@ -6,6 +6,10 @@ from pathlib import Path
 import platform
 import subprocess
 
+import sys
+sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "tests"))
+from fixture_sdk import sdk_declarations
+
 ROOT = Path(__file__).resolve().parents[2]
 p = argparse.ArgumentParser(description=__doc__)
 p.add_argument('directory', type=Path)
@@ -24,11 +28,7 @@ local_path_override(module_name="rules_msbuild", path={json.dumps(str(ROOT))})
 dotnet=use_extension("@rules_msbuild//msbuild:extensions.bzl", "dotnet")
 dotnet.runtime(name="net10", version="10.0.0", platforms=[{json.dumps(rid)}])
 use_repo(dotnet, "net10")
-dotnet=use_extension("@rules_msbuild//msbuild:extensions.bzl","dotnet")
-dotnet.sdk(name="sdk",version="10.0.400")
-use_repo(dotnet,"sdk")
-register_toolchains("@sdk//:all")
-''')
+''' + sdk_declarations(name='sdk'))
 (w/'adapt.bzl').write_text('''load("@rules_msbuild//msbuild:defs.bzl", "MSBuildRuntimeInfo", "MSBuildLayoutInfo")
 def _tree(ctx):
     directory=ctx.attr.runtime[MSBuildRuntimeInfo].directory

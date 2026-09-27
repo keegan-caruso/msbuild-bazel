@@ -1,6 +1,9 @@
 """Pinned ASP.NET Core bootstrap and reference-resolution integration slice."""
 import base64,hashlib,json,os,shutil,subprocess,sys
 from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "tests"))
+from fixture_sdk import sdk_declarations
 ROOT=Path(__file__).resolve().parents[2];folder=Path(sys.argv[1]).resolve();folder.mkdir(parents=True);src=folder/'src';src.mkdir();raw=folder/'raw';raw.mkdir();sdk=Path(os.environ['RULES_MSBUILD_DOTNET_ROOT']);bazel=os.environ['RULES_MSBUILD_BAZEL'];upstream=Path(sys.argv[2]);packages=folder/'nuget';rows=[]
 def call(args,cwd=None,ok=True):
  p=subprocess.run(list(map(str,args)),cwd=cwd or src,capture_output=True,text=True,timeout=240)
@@ -23,11 +26,7 @@ call([sdk/'dotnet','restore','Package.csproj','-p:RestorePackagesPath='+str(pack
 module=f'''module(name="aspnetcore_integration")
 bazel_dep(name="rules_msbuild",version="0.0.0")
 local_path_override(module_name="rules_msbuild",path={json.dumps(str(ROOT))})
-dotnet=use_extension("@rules_msbuild//msbuild:extensions.bzl","dotnet")
-dotnet.sdk(name="dotnet",version="10.0.400")
-use_repo(dotnet,"dotnet")
-register_toolchains("@dotnet//:all")
-''';(src/'MODULE.bazel').write_text(module)
+''' + sdk_declarations();(src/'MODULE.bazel').write_text(module)
 build='''load("@rules_msbuild//msbuild:defs.bzl","msbuild_generate","msbuild_binary","msbuild_nuget_package","msbuild_package_lock")
 '''
 for label,id,v,sha in [('templating','Microsoft.DotNet.Build.Tasks.Templating',version,'2f633353a3929728e4d4b1211973922c01f6c906fbf888103ff7ba708b62982d'),('primitives','Microsoft.Extensions.Primitives','10.0.0','0eea74f0a729b4b8e59e9379b79ffffa9e27f0551381102ae27ff0d6ceaeb3e2'),('netref','Microsoft.NETCore.App.Ref','10.0.0','8f2b6f7741a571640ba2598dddb9c15ca8a3a0020240d024f2ce1ed264fa0a9b'),('nethost','Microsoft.NETCore.App.Host.linux-arm64','10.0.0','44b0d61bbe076831487e7d23c90a05ea27f56a90b7d62e564ebc57a7cf4d0038')]:

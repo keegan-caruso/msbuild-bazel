@@ -5,6 +5,9 @@ from pathlib import Path
 import subprocess
 import sys
 
+sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "tests"))
+from fixture_sdk import sdk_declarations
+
 root=Path(__file__).resolve().parents[2];out=Path(sys.argv[1]).resolve();w=out/'source';w.mkdir(parents=True)
 sdk=Path(os.environ['RULES_MSBUILD_DOTNET_ROOT']);bazel=os.environ['RULES_MSBUILD_BAZEL']
 def put(name,text):
@@ -27,11 +30,7 @@ put('App/Code.cs',original.replace('Middle.Value','Hidden.Value'));raw('raw-hidd
 put('MODULE.bazel',f'''module(name="implementation_deps")
 bazel_dep(name="rules_msbuild",version="0.0.0")
 local_path_override(module_name="rules_msbuild",path={json.dumps(str(root))})
-dotnet=use_extension("@rules_msbuild//msbuild:extensions.bzl","dotnet")
-dotnet.sdk(name="dotnet",version="10.0.400")
-use_repo(dotnet,"dotnet")
-register_toolchains("@dotnet//:all")
-''')
+''' + sdk_declarations())
 put('BUILD.bazel','''load("@rules_msbuild//msbuild:defs.bzl","msbuild_library","msbuild_test")
 msbuild_library(name="Hidden",project="Hidden/Hidden.csproj",srcs=["Hidden/Code.cs"],target_framework="net10.0",linux_worker=True)
 msbuild_library(name="Middle",project="Middle/Middle.csproj",srcs=["Middle/Code.cs"],implementation_deps=[":Hidden"],target_framework="net10.0",linux_worker=True)

@@ -7,6 +7,9 @@ import shutil
 import subprocess
 import sys
 
+sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "tests"))
+from fixture_sdk import sdk_declarations
+
 ROOT = Path(__file__).resolve().parents[2]
 SDK = Path(os.environ['RULES_MSBUILD_DOTNET_ROOT'])
 BAZEL = Path(os.environ['RULES_MSBUILD_BAZEL'])
@@ -20,12 +23,8 @@ def run(folder):
     put('MODULE.bazel', f'''module(name = "explicit_acceptance")
 bazel_dep(name = "rules_msbuild", version = "0.0.0")
 local_path_override(module_name = "rules_msbuild", path = {json.dumps(str(ROOT))})
-dotnet=use_extension("@rules_msbuild//msbuild:extensions.bzl","dotnet")
-dotnet.sdk(name="dotnet",version="10.0.400")
-use_repo(dotnet,"dotnet")
-register_toolchains("@dotnet//:all")
-''')
-    put('BUILD.bazel', '''''')
+''' + sdk_declarations())
+    put('BUILD.bazel', '')
     project = '<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup><TargetFramework>net10.0</TargetFramework>{}</PropertyGroup>{}</Project>'
     put('Library/Library.csproj', project.format('', ''))
     put('Library/library-data.txt', 'dependency-data')

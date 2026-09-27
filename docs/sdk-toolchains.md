@@ -59,3 +59,13 @@ Owned-code/unit suites and all 43 analysis tests passed on macOS ARM64/Bazel
 Generated SDK directory artifacts are also expanded and validated against the
 SDK root in the worker's startup inventory. This preserves exact per-file worker
 input matching without requiring analysis-time knowledge of generated contents.
+
+## Step 5: shared ordinary fixture acquisition
+
+`tests/fixture_sdk.py` emits the common SDK declaration and registration, limited
+to the fixture's actual platform. The fixture's project and dependency BUILD
+files remain authored in each test. Specialized version-selection, global.json,
+remote-platform and producer tests retain their explicit SDK declarations.
+
+Benchmark workspace generation and the shared-helper acceptance fixture passed
+on macOS ARM64/Bazel 9.2.0, including build/test/edit/rejection/cache controls.

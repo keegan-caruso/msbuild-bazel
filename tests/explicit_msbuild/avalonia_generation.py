@@ -1,6 +1,9 @@
 """Exercise upstream Avalonia IDLs with pinned MicroCom through generic generation."""
 import base64,hashlib,json,os,shutil,subprocess,sys
 from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "tests"))
+from fixture_sdk import sdk_declarations
 ROOT=Path(__file__).resolve().parents[2];folder=Path(sys.argv[1]).resolve();folder.mkdir(parents=True);src=folder/'src';src.mkdir();raw=folder/'raw';raw.mkdir();sdk=Path(os.environ['RULES_MSBUILD_DOTNET_ROOT']);bazel=os.environ['RULES_MSBUILD_BAZEL'];upstream=Path(sys.argv[2]);rows=[]
 def call(args,cwd=src,ok=True):
  p=subprocess.run(list(map(str,args)),cwd=cwd,capture_output=True,text=True,timeout=240)
@@ -16,11 +19,7 @@ archive=packages/'microcom.codegenerator.msbuild/0.11.0/microcom.codegenerator.m
 (src/'MODULE.bazel').write_text(f'''module(name="avalonia_generation")
 bazel_dep(name="rules_msbuild",version="0.0.0")
 local_path_override(module_name="rules_msbuild",path={json.dumps(str(ROOT))})
-dotnet=use_extension("@rules_msbuild//msbuild:extensions.bzl","dotnet")
-dotnet.sdk(name="dotnet",version="10.0.400")
-use_repo(dotnet,"dotnet")
-register_toolchains("@dotnet//:all")
-''')
+''' + sdk_declarations())
 build='''load("@rules_msbuild//msbuild:defs.bzl","msbuild_generate","msbuild_items","msbuild_nuget_package")
 '''+f'msbuild_nuget_package(name="microcom",package_id="MicroCom.CodeGenerator.MSBuild",version="0.11.0",archive="microcom.nupkg",archive_sha256="{digest}",content_hash="{base64.b64encode(hashlib.sha512(archive.read_bytes()).digest()).decode()}")\n'+'''msbuild_items(name="idl",item_type="MicroComIdl",srcs=["input.idl"])
 msbuild_generate(name="generate",project="Generate.csproj",target_framework="net10.0",build_deps=[":microcom"],package_private_assets={"MicroCom.CodeGenerator.MSBuild":"all"},items=[":idl"],adapter_imports=["adapter.targets"],targets=["GenerateMicroComItems"],outputs=["Interop.Generated.cs"],output_properties={"GeneratedSource":"Interop.Generated.cs"},linux_worker=True)

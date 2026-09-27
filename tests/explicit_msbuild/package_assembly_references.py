@@ -8,6 +8,9 @@ import subprocess
 import sys
 import zipfile
 
+sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "tests"))
+from fixture_sdk import sdk_declarations
+
 rules = Path(__file__).resolve().parents[2]
 folder = Path(sys.argv[1]).resolve(); folder.mkdir(parents=True)
 workspace = folder/'src'; workspace.mkdir()
@@ -25,11 +28,7 @@ data = archive.read_bytes()
 (workspace/'MODULE.bazel').write_text(f'''module(name="package_assemblies")
 bazel_dep(name="rules_msbuild",version="0.0.0")
 local_path_override(module_name="rules_msbuild",path={json.dumps(str(rules))})
-dotnet=use_extension("@rules_msbuild//msbuild:extensions.bzl","dotnet")
-dotnet.sdk(name="dotnet",version="10.0.400")
-use_repo(dotnet,"dotnet")
-register_toolchains("@dotnet//:all")
-''')
+''' + sdk_declarations())
 header = f'''load("@rules_msbuild//msbuild:defs.bzl","msbuild_binary","msbuild_nuget_package","msbuild_package_lock")
 msbuild_nuget_package(name="archive",package_id="Fixture.Library",version="1.0.0",archive="fixture.nupkg",archive_sha256="{hashlib.sha256(data).hexdigest()}",content_hash="{base64.b64encode(hashlib.sha512(data).digest()).decode()}")
 msbuild_package_lock(name="lock",packages=[":archive"])

@@ -5,6 +5,9 @@ from pathlib import Path
 import subprocess
 import sys
 
+sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "tests"))
+from fixture_sdk import sdk_declarations
+
 root=Path(__file__).resolve().parents[2];out=Path(sys.argv[1]).resolve();w=out/'source';w.mkdir(parents=True)
 sdk=os.environ['RULES_MSBUILD_DOTNET_ROOT'];bazel=os.environ['RULES_MSBUILD_BAZEL']
 def put(name,text):
@@ -12,11 +15,7 @@ def put(name,text):
 put('MODULE.bazel',f'''module(name="configured_restore")
 bazel_dep(name="rules_msbuild",version="0.0.0")
 local_path_override(module_name="rules_msbuild",path={json.dumps(str(root))})
-dotnet=use_extension("@rules_msbuild//msbuild:extensions.bzl","dotnet")
-dotnet.sdk(name="dotnet",version="10.0.400")
-use_repo(dotnet,"dotnet")
-register_toolchains("@dotnet//:all")
-''')
+''' + sdk_declarations())
 project='<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup><TargetFramework>FRAMEWORK</TargetFramework></PropertyGroup>REFERENCES</Project>'
 put('shared/Shared.csproj','<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup><TargetFrameworks>net10.0;net10.0-windows</TargetFrameworks><AssemblyName Condition="$(TargetFramework)==net10.0">SharedNeutral</AssemblyName><AssemblyName Condition="$(TargetFramework)==net10.0-windows">SharedPlatform</AssemblyName></PropertyGroup></Project>')
 source='public static class SharedApi { public static int Read() {\n#if WINDOWS\nreturn 11;\n#else\nreturn 7;\n#endif\n} }'

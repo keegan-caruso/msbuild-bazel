@@ -5,6 +5,9 @@ The capture/adapter writer here is test scaffolding, not a production status bri
 import base64,hashlib,json,os,shutil,subprocess,sys
 from pathlib import Path
 from xml.etree import ElementTree as ET
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "tests"))
+from fixture_sdk import sdk_declarations
 ROOT=Path(__file__).resolve().parents[2];folder=Path(sys.argv[1]).resolve();folder.mkdir(parents=True)
 sdk=Path(os.environ['RULES_MSBUILD_DOTNET_ROOT']);bazel=os.environ['RULES_MSBUILD_BAZEL'];raw=folder/'raw';raw.mkdir();workspace=folder/'src';workspace.mkdir();rows=[]
 version='3.10.94';archive_hash='a56dde9219f9a0743bba1f66f8c4dbf36e5a6e8dbb22cbe8eb5c8efbbc144b6e';packages=folder/'nuget'
@@ -27,11 +30,7 @@ shutil.copyfile(archive,workspace/'nbgv.nupkg')
 (workspace/'MODULE.bazel').write_text(f'''module(name="nbgv_parity")
 bazel_dep(name="rules_msbuild",version="0.0.0")
 local_path_override(module_name="rules_msbuild",path={json.dumps(str(ROOT))})
-dotnet=use_extension("@rules_msbuild//msbuild:extensions.bzl","dotnet")
-dotnet.sdk(name="dotnet",version="10.0.400")
-use_repo(dotnet,"dotnet")
-register_toolchains("@dotnet//:all")
-''')
+''' + sdk_declarations())
 (workspace/'BUILD.bazel').write_text('''load("@rules_msbuild//msbuild:defs.bzl","msbuild_binary","msbuild_nuget_package")
 '''+f'msbuild_nuget_package(name="nbgv",package_id="Nerdbank.GitVersioning",version="{version}",archive="nbgv.nupkg",archive_sha256="{archive_hash}",content_hash="{base64.b64encode(hashlib.sha512(archive.read_bytes()).digest()).decode()}")\n'+'''msbuild_binary(name="App",project="App.csproj",target_framework="net10.0",srcs=["Program.cs"],build_deps=[":nbgv"],package_private_assets={"Nerdbank.GitVersioning":"all"},adapter_imports=["version.targets"],msbuild_imports=["version.json"],linux_worker=True)
 ''')

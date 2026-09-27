@@ -11,6 +11,9 @@ from pathlib import Path
 import shutil
 import sys
 
+sys.path.insert(0, str(Path(__file__).resolve().parents[3] / "tests"))
+from fixture_sdk import sdk_declarations
+
 folder=Path(sys.argv[1]).resolve(); rules=Path(sys.argv[2]).resolve()
 source=folder/'source'; workspace=folder/'bazel'; config=json.loads((folder/'config.json').read_text()); root=workspace/config.get('sourceSubdir','')
 rows=json.loads((folder/'inventory.json').read_text()); by={r['id']:r for r in rows}
@@ -112,7 +115,7 @@ for row in rows:
  header.append(call('msbuild_binary' if row['properties']['OutputType']=='Exe' else 'msbuild_library',**attrs))
 header.append('filegroup(name="benchmark",srcs='+json.dumps([':'+label(row['id']) for row in rows if row['entry']])+')')
 (root/'BUILD.bazel').write_text('\n'.join(header)+'\n')
-(workspace/'MODULE.bazel').write_text('module(name="oss_explicit")\nbazel_dep(name="rules_msbuild",version="0.0.0")\nlocal_path_override(module_name="rules_msbuild",path='+json.dumps(str(rules))+')\ndotnet=use_extension("@rules_msbuild//msbuild:extensions.bzl","dotnet")\ndotnet.sdk(name="dotnet",version="10.0.400")\nuse_repo(dotnet,"dotnet")\nregister_toolchains("@dotnet//:all")\n')
+(workspace/'MODULE.bazel').write_text('module(name="oss_explicit")\nbazel_dep(name="rules_msbuild",version="0.0.0")\nlocal_path_override(module_name="rules_msbuild",path='+json.dumps(str(rules))+')\n' + sdk_declarations() + '')
 summary=dict(projects=len(rows),packageTargets=len(package_rules),sourceFiles=sum(len(r['compile']) for r in rows),entries=config['entries'])
 (folder/'package-lock.json').write_text(json.dumps(package_manifest,indent=2)+'\n')
 (folder/'labels.json').write_text(json.dumps(labels,indent=2)+'\n')

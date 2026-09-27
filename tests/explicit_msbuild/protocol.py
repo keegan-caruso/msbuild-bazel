@@ -8,6 +8,9 @@ import subprocess
 import sys
 import xml.etree.ElementTree as ET
 
+sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "tests"))
+from fixture_sdk import sdk_declarations
+
 RULES = Path(__file__).resolve().parents[2]
 SDK = Path(os.environ['RULES_MSBUILD_DOTNET_ROOT'])
 BAZEL = Path(os.environ['RULES_MSBUILD_BAZEL'])
@@ -38,12 +41,8 @@ def setup(folder):
     (workspace/'MODULE.bazel').write_text(f'''module(name="test_protocol")
 bazel_dep(name="rules_msbuild", version="0.0.0")
 local_path_override(module_name="rules_msbuild", path={json.dumps(str(RULES))})
-dotnet=use_extension("@rules_msbuild//msbuild:extensions.bzl","dotnet")
-dotnet.sdk(name="dotnet",version="10.0.400")
-use_repo(dotnet,"dotnet")
-register_toolchains("@dotnet//:all")
-''')
-    (workspace/'BUILD.bazel').write_text('''''')
+''' + sdk_declarations())
+    (workspace/'BUILD.bazel').write_text('')
     test = workspace/'Mtp'; test.mkdir(exist_ok=True)
     project = '''<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup><TargetFramework>net10.0</TargetFramework><OutputType>Exe</OutputType><UseMicrosoftTestingPlatformRunner>true</UseMicrosoftTestingPlatformRunner></PropertyGroup><ItemGroup><PackageReference Include="xunit.v3.mtp-v2" Version="4.0.0"/><PackageReference Include="Microsoft.Testing.Extensions.TrxReport" Version="2.3.3"/></ItemGroup></Project>'''
     (test/'Mtp.csproj').write_text(project)

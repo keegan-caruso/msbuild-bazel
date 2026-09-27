@@ -1,15 +1,15 @@
 import json,os,hashlib,shutil,subprocess
 from pathlib import Path
+
+import sys
+sys.path.insert(0, str(Path(__file__).resolve().parents[3] / "tests"))
+from fixture_sdk import sdk_declarations
 root=Path('/orchard-work'); sdk=os.environ['RULES_MSBUILD_DOTNET_ROOT'];bazel=os.environ['RULES_MSBUILD_BAZEL'];evidence=Path('/evidence')
 rows=json.loads((evidence/'evaluated.json').read_text());by={Path(x['project']).stem:x for x in rows}
 (root/'MODULE.bazel').write_text(f'''module(name="orchard_compatibility")
 bazel_dep(name="rules_msbuild",version="0.0.0")
 local_path_override(module_name="rules_msbuild",path="/workspace")
-dotnet=use_extension("@rules_msbuild//msbuild:extensions.bzl","dotnet")
-dotnet.sdk(name="dotnet",version="10.0.400")
-use_repo(dotnet,"dotnet")
-register_toolchains("@dotnet//:all")
-''')
+''' + sdk_declarations())
 header='''load("@rules_msbuild//msbuild:defs.bzl","msbuild_library","msbuild_nuget_package","msbuild_items")
 '''
 generator=by['OrchardCore.SourceGenerators'];leaf=by['OrchardCore.ContentPreview.Abstractions']

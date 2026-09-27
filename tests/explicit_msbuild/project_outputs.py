@@ -6,6 +6,9 @@ from pathlib import Path
 import subprocess
 import sys
 
+sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "tests"))
+from fixture_sdk import sdk_declarations
+
 rules=Path(__file__).resolve().parents[2]
 folder=Path(sys.argv[1]).resolve();folder.mkdir(parents=True)
 workspace=folder/'src';workspace.mkdir()
@@ -13,11 +16,7 @@ sdk=Path(os.environ['RULES_MSBUILD_DOTNET_ROOT']);bazel=os.environ['RULES_MSBUIL
 (workspace/'MODULE.bazel').write_text(f'''module(name="project_outputs")
 bazel_dep(name="rules_msbuild",version="0.0.0")
 local_path_override(module_name="rules_msbuild",path={json.dumps(str(rules))})
-dotnet=use_extension("@rules_msbuild//msbuild:extensions.bzl","dotnet")
-dotnet.sdk(name="dotnet",version="10.0.400")
-use_repo(dotnet,"dotnet")
-register_toolchains("@dotnet//:all")
-''')
+''' + sdk_declarations())
 header='''load("@rules_msbuild//msbuild:defs.bzl","msbuild_library","msbuild_binary","msbuild_project_output")
 msbuild_library(name="Plugin",project="Plugin/Plugin.csproj",srcs=["Plugin/Plugin.cs"],target_framework="net10.0",linux_worker=True)
 msbuild_project_output(name="content",assembly=":Plugin",item_type="Content",metadata={"CopyToOutputDirectory":"PreserveNewest"})

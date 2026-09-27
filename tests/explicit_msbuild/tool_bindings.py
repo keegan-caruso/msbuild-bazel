@@ -1,6 +1,9 @@
 """Real MSBuild task, dependency edits, binding failures and independent cache recovery."""
 import base64,hashlib,json,os,shutil,subprocess,sys,urllib.request
 from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "tests"))
+from fixture_sdk import sdk_declarations
 ROOT=Path(__file__).resolve().parents[2];folder=Path(sys.argv[1]).resolve();folder.mkdir(parents=True)
 mixed='--mixed-roles' in sys.argv
 workspace=folder/'src';workspace.mkdir();sdk=Path(os.environ['RULES_MSBUILD_DOTNET_ROOT']);bazel=os.environ['RULES_MSBUILD_BAZEL'];base=folder/'base'
@@ -9,12 +12,8 @@ def put(path,text):
 put('MODULE.bazel',f'''module(name="tool_bindings")
 bazel_dep(name="rules_msbuild",version="0.0.0")
 local_path_override(module_name="rules_msbuild",path={json.dumps(str(ROOT))})
-dotnet=use_extension("@rules_msbuild//msbuild:extensions.bzl","dotnet")
-dotnet.sdk(name="dotnet",version="10.0.400")
-use_repo(dotnet,"dotnet")
-register_toolchains("@dotnet//:all")
-''')
-put('BUILD.bazel','''''')
+''' + sdk_declarations())
+put('BUILD.bazel','')
 project='<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup><TargetFramework>net10.0</TargetFramework>{}</PropertyGroup>{}</Project>'
 put('Helper/Helper.csproj',project.format('',''))
 put('Helper/Helper.cs','public static class Helper { public static string Value() => "first"; }')

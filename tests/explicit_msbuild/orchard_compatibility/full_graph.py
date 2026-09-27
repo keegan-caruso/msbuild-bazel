@@ -9,6 +9,9 @@ from pathlib import Path
 import shutil
 import sys
 
+sys.path.insert(0, str(Path(__file__).resolve().parents[3] / "tests"))
+from fixture_sdk import sdk_declarations
+
 root=Path(sys.argv[1]).resolve();inventory=Path(sys.argv[2]);rules=Path(sys.argv[3]).resolve()
 sdk=os.environ['RULES_MSBUILD_DOTNET_ROOT'];rows=json.loads(inventory.read_text());by={r['project']:r for r in rows}
 packages=root/'locked-packages';packages.mkdir(exist_ok=True)
@@ -73,5 +76,5 @@ for row in rows:
  if row['module']:attrs['export_targets']={'GetModuleProjectName':[]}
  header.append(call('msbuild_binary' if row==rows[0] else 'msbuild_library',**attrs))
 (root/'BUILD.bazel').write_text('\n'.join(header)+'\n')
-(root/'MODULE.bazel').write_text('module(name="orchard_explicit")\nbazel_dep(name="rules_msbuild",version="0.0.0")\nlocal_path_override(module_name="rules_msbuild",path='+json.dumps(str(rules))+')\ndotnet=use_extension("@rules_msbuild//msbuild:extensions.bzl","dotnet")\ndotnet.sdk(name="dotnet",version="10.0.400")\nuse_repo(dotnet,"dotnet")\nregister_toolchains("@dotnet//:all")\n')
+(root/'MODULE.bazel').write_text('module(name="orchard_explicit")\nbazel_dep(name="rules_msbuild",version="0.0.0")\nlocal_path_override(module_name="rules_msbuild",path='+json.dumps(str(rules))+')\n' + sdk_declarations() + '')
 print(json.dumps(dict(projects=len(rows),packageTargets=len(package_rules),itemTargets=len(header)-len(rows)-len(package_rules)-4)))
