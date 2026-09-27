@@ -87,6 +87,10 @@ XML
     if component == 'source-build-reference-packages':
         extra_trees.append('prereqs/packages/reference')
     extra = ' '.join('--extra-tree ' + path for path in extra_trees)
+    # FSharp's local-build Xliff update calls UpdateXlf in an inner
+    # netstandard2.1 build where the target is absent. Its upstream --ci mode
+    # disables only that local translation-file update for this release build.
+    component_mode = '--ci ' if component == 'fsharp' else ''
     return f'''set -euo pipefail
 export DOTNET_PROCESSOR_COUNT=1 DOTNET_CLI_TELEMETRY_OPTOUT=1 DOTNET_GENERATE_ASPNET_CERTIFICATE=false NuGetAudit=false
 {patch}
@@ -94,7 +98,7 @@ export DOTNET_PROCESSOR_COUNT=1 DOTNET_CLI_TELEMETRY_OPTOUT=1 DOTNET_GENERATE_AS
 if [ -d /tmp/component-inputs ]; then cp -a /tmp/component-inputs/. /source/; fi
 ./build.sh -sb --projects /source/eng/tools/tasks/Microsoft.DotNet.UnifiedBuild.Tasks/Microsoft.DotNet.UnifiedBuild.Tasks.csproj {common} > utility-build.log 2>&1 || {{ tail -100 utility-build.log; exit 1; }}
 {extraction}
-/usr/bin/time -v -o build.time ./build.sh -sb --projects /source/repo-projects/{component}.proj {common} /p:BuildProjectReferences=false /p:BuildInParallel=false > build.log 2>&1 || {{ tail -120 build.log; exit 1; }}
+/usr/bin/time -v -o build.time ./build.sh -sb {component_mode}--projects /source/repo-projects/{component}.proj {common} /p:BuildProjectReferences=false /p:BuildInParallel=false > build.log 2>&1 || {{ tail -120 build.log; exit 1; }}
 mkdir result
 python3 .qualification/component_outputs.py /source {component} result/component.tar {extra}
 tar -cf result.tar *.log build.time result/component.json artifacts/log artifacts/obj/manifests/Release/{component}
