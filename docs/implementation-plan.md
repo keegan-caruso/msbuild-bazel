@@ -78,3 +78,7 @@ execution, incremental controls and independent HTTP cache recovery. See the
 
 The [Bazel-managed SDK migration](sdk-toolchains.md) records removal of host-path
 SDK setup and the shared downloaded/source-produced artifact contract.
+
+The [SDK source-build qualification](source-sdk.md) tracks the pinned whole-SDK
+baseline and staged Bazel integration separately from the completed SDK artifact
+consumer contract.
