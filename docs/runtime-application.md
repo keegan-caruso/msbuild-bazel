@@ -43,9 +43,15 @@ The managed prerequisite build and configured inventory now pass. Removing a
 redundant CoreLib root preserves the configuration already reached through
 upstream references. Generated declarations contain 262 managed nodes and 90
 package inputs; the source-only host selects 121 managed and eight native
-products, with no runtime test projects. The fresh Bazel build is in progress.
-The fresh app workflow has not yet passed acceptance; existing source-host test
-results in [runtime-source-host.md](runtime-source-host.md) are separate evidence.
+products, with no runtime test projects. Project references with
+`PrivateAssets="all"` are emitted as `implementation_deps`, matching upstream
+visibility. The full Bazel build and app execution now pass.
+
+The launcher loads 28 source-built components, and all 130 host binaries
+(including the qualification probe) match their declared producers. Removing
+CoreCLR fails even when the installed SDK runtime is advertised. Runtime and app
+body-edit controls pass, including restoration of the original hashes. Independent
+HTTP cache recovery is still being validated.
 
 Preparation command, in a provisioned Linux ARM64 environment:
 
@@ -58,9 +64,8 @@ python3 tests/explicit_msbuild/runtime/application_prepare.py \
 The output retains per-stage logs. Its `workspace/app/BUILD.bazel` selects
 `//runtime:app_host`, whose entry point is the source-built `dotnet` executable.
 
-Validation so far: Python syntax checks and BUILD formatting pass; the sample
-executes successfully on the installed SDK runtime as a smoke control. The fresh
-Bazel build was interrupted by host disk exhaustion. Its outputs were discarded,
-completed audit containers were reclaimed, and the build restarted with
-`--jobs=1`. Source-host application execution, incremental controls and independent
-cache recovery remain unverified.
+Validation so far: Python syntax checks and BUILD formatting pass. The initial
+cold build exhausted host disk space; interrupted output bases were discarded.
+Reclaiming unused filesystem blocks and old Bazel caches provided enough space
+for the complete source build. This environment setup cost is not a build-time
+benchmark.

@@ -156,7 +156,7 @@ for row in rows:
         memo[package_id] = ':'+tag
         return ':'+tag
     declarations.append(call('msbuild_package_lock',name=name+'_lock',packages=[':'+archive_label(k) for k,_ in locked.values()]))
-    deps=[]; analyzers=[]; tools=[]; outputs=[]; unsupported=[]; bindings=[]; source_outputs=[]
+    deps=[]; implementation_deps=[]; analyzers=[]; tools=[]; outputs=[]; unsupported=[]; bindings=[]; source_outputs=[]
     corelib_project='src/coreclr/System.Private.CoreLib/System.Private.CoreLib.csproj'
     # Runtime's HandleReferenceAssemblyAttributeForProjectReferences selects
     # implementation facades when compiling against CoreLib. Its subsequent
@@ -197,9 +197,12 @@ for row in rows:
         else:
             use_implementation=ref['metadata'].get('SkipUseReferenceAssembly','').lower() == 'true' or (implementation_references and row['properties'].get('CompileUsingReferenceAssemblies','').lower()!='true' and project != corelib_project)
             platform_implementation='-' in candidates[0]['framework'] and candidates[0]['framework']!=row['framework']
+            private_assets=ref['metadata'].get('PrivateAssets','').lower()
+            assert private_assets in ('', 'none', 'all'), (project, private_assets)
+            destination=implementation_deps if private_assets=='all' else deps
             if use_implementation and platform_implementation and dep[1:] in paired:
-                deps.append(':'+paired[dep[1:]]+'_implementation_reference')
-            else:deps.append(dep if use_implementation else ':'+paired.get(dep[1:],dep[1:]))
+                destination.append(':'+paired[dep[1:]]+'_implementation_reference')
+            else:destination.append(dep if use_implementation else ':'+paired.get(dep[1:],dep[1:]))
     package_reference_paths = {}
     for reference in row['bareReferences']:
         if reference['metadata'].get('NuGetPackageId'): continue
@@ -250,7 +253,7 @@ for row in rows:
             meta={k:v for k,v in item['metadata'].items() if k in ['Link','LogicalName','CopyToOutputDirectory','CopyToPublishDirectory','TargetPath','Culture','WithCulture','Generator','LastGenOutput','DependentUpon','GenerateSource','StronglyTypedClassName','StronglyTypedNamespace','Namespace','ClassName','ExcludeFromManifest','GenerateResourcesCodeAsConstants','ManifestResourceName','LinkBase'] and v}
             tag=name+'_'+kind+'_'+str(i)
             declarations.append(call('msbuild_items',name=tag,item_type=kind,srcs=[path],metadata=meta));items.append(':'+tag)
-    attrs=dict(name=name,adapter_imports=["layout.targets"],package_reference_paths=package_reference_paths,project=row['project'],target_framework=row['framework'],assembly_name=row['properties']['AssemblyName'],srcs=sources,items=items,use_apphost=row['properties']['UseAppHost'].lower()=='true',tools=tools,bindings=bindings,project_outputs=outputs,deps=sorted(set(deps+pkg)),analyzers=analyzers+allpkg,build_deps=allpkg,reference_packages=bound,framework_assemblies=[p['include'] for p in row['bareReferences'] if p['include'].lower() not in locked and not Path(p['include']).is_absolute()],package_lock=':'+name+'_lock',package_private_assets={p['include']:p['metadata']['PrivateAssets'].lower() for p in row['packages']+reference_packages if p['metadata'].get('PrivateAssets')},framework_refs=[p['include'] for p in row['frameworks'] if p['metadata'].get('IsImplicitlyDefined','').lower()!='true'],msbuild_imports=sorted(imports),output_mode='reference' if '/ref/' in row['project'] else 'implementation',configuration='Release',msbuild_properties={**compiler_properties(locked,manifest,sdk_version),'RootNamespace':row['properties']['RootNamespace'],'TargetArchitecture':'arm64','TargetOS':'linux','UseLocalTargetingRuntimePack':'false','RepositoryCommit':'60629d14374c56f1cb51819049ad1fa529307f8d','SourceRevisionId':'60629d14374c56f1cb51819049ad1fa529307f8d'},lang_version=row['properties']['LangVersion'] or 'default',nullable=row['properties']['Nullable'] or 'disable',allow_unsafe=row['properties']['AllowUnsafeBlocks'].lower()=='true',linux_worker=True)
+    attrs=dict(name=name,adapter_imports=["layout.targets"],package_reference_paths=package_reference_paths,project=row['project'],target_framework=row['framework'],assembly_name=row['properties']['AssemblyName'],srcs=sources,items=items,use_apphost=row['properties']['UseAppHost'].lower()=='true',tools=tools,bindings=bindings,project_outputs=outputs,deps=sorted(set(deps+pkg)),implementation_deps=sorted(set(implementation_deps)),analyzers=analyzers+allpkg,build_deps=allpkg,reference_packages=bound,framework_assemblies=[p['include'] for p in row['bareReferences'] if p['include'].lower() not in locked and not Path(p['include']).is_absolute()],package_lock=':'+name+'_lock',package_private_assets={p['include']:p['metadata']['PrivateAssets'].lower() for p in row['packages']+reference_packages if p['metadata'].get('PrivateAssets')},framework_refs=[p['include'] for p in row['frameworks'] if p['metadata'].get('IsImplicitlyDefined','').lower()!='true'],msbuild_imports=sorted(imports),output_mode='reference' if '/ref/' in row['project'] else 'implementation',configuration='Release',msbuild_properties={**compiler_properties(locked,manifest,sdk_version),'RootNamespace':row['properties']['RootNamespace'],'TargetArchitecture':'arm64','TargetOS':'linux','UseLocalTargetingRuntimePack':'false','RepositoryCommit':'60629d14374c56f1cb51819049ad1fa529307f8d','SourceRevisionId':'60629d14374c56f1cb51819049ad1fa529307f8d'},lang_version=row['properties']['LangVersion'] or 'default',nullable=row['properties']['Nullable'] or 'disable',allow_unsafe=row['properties']['AllowUnsafeBlocks'].lower()=='true',linux_worker=True)
     if implementation_references:
         # Upstream shared framework references are private and RAR dependency
         # discovery is disabled. CoreLib consumers author their direct inputs.
