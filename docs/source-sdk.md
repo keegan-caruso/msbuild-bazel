@@ -137,3 +137,39 @@ package versions are recorded, but an immutable image containing those additions
 has not yet been qualified. The current exploratory run uses development version
 metadata; the repeatable script pins release build ID `20251023.11` from the
 hashed release manifest. Final release-version qualification is still required.
+
+## Configured repository graph
+
+After upstream preparation, run the evaluation probe in the Linux build
+container:
+
+```sh
+python3 tests/source_sdk/evaluate_graph.py /path/to/vmr /tmp/configured-sdk.json
+```
+
+It validates the pinned definitions, then asks MSBuild for evaluated
+`RepositoryReference`, `ProjectReference`, environment items, and build arguments.
+It retains references with `BuildReference=false`; the reported SDK dependency
+order includes only enabled edges. These are evaluation results, not a complete
+execution plan: targets still discover package-version props, manifests, and
+shipping/non-shipping assets.
+
+Measured Linux ARM64 / Release source-only configurations:
+
+| Selection | SDK dependency closure |
+| --- | ---: |
+| Shared components enabled | 22 repositories |
+| `--shared-components=false` | 10 repositories |
+| `--build-pass=2` | SDK only; other references retained as excluded |
+
+This confirms that shared-component and build-pass conditions materially change
+the graph and must be evaluated by MSBuild.
+
+The synthetic generated-package cases and all three real NoTargets cases also
+passed on Linux ARM64 with Bazel 9.2.0. Apple Container masks under `/proc` and
+`/sys` prevented nested sandbox mounts. Qualification used a **private mount
+namespace** with those child mounts removed; Bubblewrap and Bazel's Linux
+sandbox remained enabled. An init/subreaper (`tini -s`) was needed to reap Bazel
+server processes when testing inside the container whose main process is
+`sleep`. The first synthetic run completed its five assertions but its shutdown
+failed without that reaper; the real NoTargets run exited successfully with it.
