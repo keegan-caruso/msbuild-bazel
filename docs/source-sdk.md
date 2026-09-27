@@ -424,7 +424,7 @@ does not change the selected archive bytes. Extending this selector and output
 contracts to the other 19 components, then assembling the SDK from their Bazel
 outputs, remains future work. Full SDK production above still uses one action.
 The generator now reads the configured graph produced by MSBuild evaluation;
-`--through` selects a prefix of its SDK dependency order. It rejects a mismatched
+`--through` selects one component and its transitive dependencies. It rejects a mismatched
 source revision, configuration, missing dependency or native archive containing
 private host material. This is graph generation for qualification; the selected
 component's build remains an upstream MSBuild invocation.
@@ -450,7 +450,7 @@ The generator now consumes `evaluate_graph.py`'s MSBuild-evaluated repository
 graph instead of naming dependency edges in Python. It validates the pinned
 revision, Release/ARM64 source-only configuration, complete build pass, and
 topological dependency order before producing Bazel actions. An explicit
-`--through` argument selects a prefix of the evaluated SDK order. The native
+`--through` argument selects one component and its dependency closure. The native
 archive is supplied separately and must exclude private host material.
 
 The first extension through **Cecil** passed on Linux ARM64 / Bazel 9.2.0.
@@ -458,5 +458,33 @@ SBRP and Arcade were remote cache hits; only Cecil ran locally. Its inner build
 took **7.62 seconds**, and the entire fresh Bazel invocation took **62.04
 seconds**, including toolchain recovery and staging. Cecil published its
 manifest and `Microsoft.DotNet.Cecil.0.11.5-alpha.25523.111.nupkg` in a declared
-component bundle. This prefix contains **three** components; CommandLine follows
-Cecil in the evaluated SDK order.
+component bundle. Cecil's closure contains **three** components; CommandLine
+follows Cecil in the evaluated SDK order.
+
+The next selected closure, **Runtime**, passed with SBRP, Arcade and Cecil from
+the HTTP cache; CommandLine and Runtime ran locally. Runtime published 146 files
+totaling 1,343,985,144 bytes, including Linux native packs and framework
+packages. Its inner build took **22:22.92**, and the fresh Bazel invocation took
+**24:25.37**. This is a cold component build with `DOTNET_PROCESSOR_COUNT=1`;
+there is no paired coarse-SDK timing from the same conditions.
+
+XDT exposed a missing output boundary: its source-built SDK resolver needed the
+extracted `Microsoft.Build.NoTargets` directory, while the earlier SBRP bundle
+only carried its package. SBRP now declares the extracted NoTargets and Traversal
+SDK directories as side outputs. A baseline bundle check retained all 15 files
+from those directories. The XDT retry passed: its own build took **6.82 seconds**;
+the Bazel invocation took **4:34.15** because SBRP and Arcade rebuilt after the
+output contract changed. The first XDT attempt failed with `MSB4242` and is not
+reported as a pass.
+
+The graph generator can extend an existing qualification workspace. It verifies
+the evaluated graph, bootstrap/native inputs and existing generated scripts,
+then adds only new source archives and targets. This preserves local Bazel action
+state and avoids duplicating large runtime inputs for each slice.
+
+**SymReader** then passed from the extended workspace. Its upstream build took
+**8.06 seconds** and the Bazel invocation took **50.74 seconds**. It published
+its manifest and `Microsoft.DiaSymReader.2.2.0-beta.25523.111.nupkg`. Because
+SBRP's output contract changed after the Runtime measurement, a cumulative
+build must requalify Runtime and its downstream consumers against the new SBRP
+bundle; the earlier Runtime pass remains evidence for its original input set.

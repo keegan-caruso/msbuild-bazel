@@ -17,12 +17,13 @@ class ComponentGraphTests(unittest.TestCase):
                 'Configuration': 'Release',
                 'TargetArchitecture': 'arm64',
             },
-            'sdkDependencyOrder': ['base', 'tool', 'app'],
+            'sdkDependencyOrder': ['base', 'tool', 'independent', 'app'],
             'nodes': {
                 'base': {'Items': {'RepositoryReference': []}},
                 'tool': {'Items': {'RepositoryReference': [
                     {'Identity': 'base'}, {'Identity': 'app', 'BuildReference': 'false'},
                 ]}},
+                'independent': {'Items': {'RepositoryReference': [{'Identity': 'base'}]}},
                 'app': {'Items': {'RepositoryReference': [{'Identity': 'tool'}]}},
             },
         }
@@ -30,6 +31,8 @@ class ComponentGraphTests(unittest.TestCase):
     def test_evaluated_conditions_and_edges(self):
         self.assertEqual(selected_nodes(self.graph(), 'app', 'revision'),
                          {'base': [], 'tool': ['base'], 'app': ['tool']})
+        self.assertEqual(selected_nodes(self.graph(), 'independent', 'revision'),
+                         {'base': [], 'independent': ['base']})
 
     def test_rejects_drift_and_missing_dependencies(self):
         graph = self.graph()
