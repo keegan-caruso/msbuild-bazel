@@ -51,8 +51,8 @@ The definition inventory, synthetic generated-package handoff, and real
 NoTargets source-package handoff have passed. Acquisition of the pinned source
 archive succeeded (about 460 MiB compressed, 3.3 GiB extracted). The full upstream
 development-version baseline and produced-SDK consumer checks passed. The complete
-Bazel component graph and self-hosting remain unqualified; produced-SDK consumers
-have separate cache-recovery evidence below.
+Bazel component graph remains unqualified. Self-hosting and produced-SDK consumer
+cache recovery have separate evidence below.
 
 Upstream references: [VMR build instructions](https://github.com/dotnet/dotnet/tree/b0f34d51fccc69fd334253924abd8d6853fad7aa#building),
 [source-build requirements](https://github.com/dotnet/source-build/blob/main/Documentation/system-requirements.md).
@@ -266,3 +266,37 @@ incremental builds: splitting its 22-component closure still requires explicit
 handoff of upstream asset manifests, package-version props, SDK overrides and
 shipping/non-shipping package directories. The configured graph probe and the
 small generated-package producers provide the starting points for that work.
+
+## Self-hosting and payload comparison
+
+A fresh extraction of the same VMR revision and IdentityModel patch rebuilt the
+SDK using the first build's SDK and previously source-built artifact bundle.
+The upstream build succeeded with zero warnings/errors in **26:08.16**, using
+`DOTNET_PROCESSOR_COUNT=2` and `--clean-while-building`. The initial RC2-bootstrap
+build took 25:38.77. These are development-version qualification runs, not an
+isolated bootstrap performance comparison.
+
+```sh
+./prep-source-build.sh --no-sdk --no-bootstrap --no-artifacts --no-prebuilts \
+  --with-sdk /path/to/first-sdk
+# Preparation also needs the first produced artifact archive under
+# prereqs/packages/archive/Private.SourceBuilt.Artifacts.Selfhost.tar.gz.
+DOTNET_PROCESSOR_COUNT=2 ./build.sh -sb --clean-while-building \
+  --with-sdk /path/to/first-sdk --with-packages /path/to/first-artifacts \
+  --source-repository https://github.com/dotnet/dotnet \
+  --source-version b0f34d51fccc69fd334253924abd8d6853fad7aa \
+  --configuration Release --arch arm64 /p:BuildInParallel=false
+python3 tests/source_sdk/compare_payloads.py first-sdk.tar.gz second-sdk.tar.gz comparison.json
+```
+
+The second SDK reports the same SDK/runtime versions. Registering that second
+archive with `generated_sdk.py` passed app build, fetching-disabled reuse, body
+edit test failure, and API edit compilation failure. Its archive digest is in
+[the evidence summary](source-sdk-evidence.json).
+
+Payload comparison ignores tar/gzip metadata and compares file bytes, modes and
+link targets: both SDKs contain 5,143 files, with 3,873 identical and 1,270 changed;
+none were added or removed. **The SDK payloads are not byte-identical.** Bootstrap
+SDK/packages and workspace path differ between the builds, so this is a
+self-hosting comparison, not a reproducibility test with identical inputs.
+The cause of the changed binaries has not been isolated.

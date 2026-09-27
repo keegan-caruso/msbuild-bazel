@@ -32,7 +32,7 @@
     "upstream SDK build is not yet a Bazel component graph",
     "development version baseline differs from pinned release build ID",
     "native apt additions recorded but immutable environment not yet qualified",
-    "no SDK source-component cache or self-hosting claim"
+    "no SDK source-component cache claim; self-hosting payloads differ"
   ],
   "consumerCache": {
     "seedSeconds": 34.55,
@@ -44,5 +44,29 @@
     "sameBuildMachine": true,
     "forcedTests": 3,
     "allRecoverySpawnsCacheHits": true
+  },
+  "selfHosting": {
+    "exitCode": 0,
+    "wallSeconds": 1568.16,
+    "maxRssKiB": 2145576,
+    "sdkVersion": "10.0.100-dev",
+    "runtimeVersion": "10.0.0-dev",
+    "archiveSha256": "800ef3a049a55e38f8353b99b88a29b09f3d285b515079296c48f62debed5d8f",
+    "consumerCases": {
+      "build": 0,
+      "nofetchReuse": 0,
+      "bodyEditTestFailure": 3,
+      "apiEditCompileFailure": 1
+    },
+    "payloadComparison": {
+      "firstFiles": 5143,
+      "secondFiles": 5143,
+      "identicalFiles": 3873,
+      "changedFiles": 1270,
+      "addedFiles": 0,
+      "removedFiles": 0,
+      "byteIdentical": false,
+      "identicalBuildInputs": false
+    }
   }
 }
