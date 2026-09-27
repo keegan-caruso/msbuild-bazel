@@ -300,3 +300,26 @@ none were added or removed. **The SDK payloads are not byte-identical.** Bootstr
 SDK/packages and workspace path differ between the builds, so this is a
 self-hosting comparison, not a reproducibility test with identical inputs.
 The cause of the changed binaries has not been isolated.
+
+## Component output boundary
+
+`tests/source_sdk/component_outputs.py` packages one component's original asset
+manifests and only the files they identify, preserving VMR-relative paths.
+Current manifests provide `PipelineArtifactPath`; the version-3 package manifests
+used by WPF and WinForms use the upstream shipping/non-shipping package layout.
+Missing artifacts, paths escaping the source root, and mismatched repository
+origins are rejected. Manifest contents remain unchanged for upstream MSBuild to
+interpret package versions and SDK overrides.
+
+```sh
+python3 tests/source_sdk/component_outputs.py /path/to/baseline arcade arcade.tar
+python3 tests/source_sdk/component_outputs.py /path/to/baseline source-build-reference-packages sbrp.tar
+```
+
+Auditing all 22 evaluated components in the successful development baseline found
+410 retained files totaling 2,489,239,575 bytes, with no missing artifact paths.
+This includes manifests as well as packages and blobs. Synthetic checks cover
+stable bundle metadata, both manifest formats, missing files and path/origin
+rejection. Bundle creation also passed on actual Arcade, SBRP and CommandLine
+outputs. This proves artifact inventory and bundling; a new component build
+consuming those bundles remains a separate qualification.
