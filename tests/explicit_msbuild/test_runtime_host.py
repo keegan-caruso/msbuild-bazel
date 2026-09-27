@@ -23,6 +23,8 @@ class RuntimeHost(unittest.TestCase):
             host.chmod(0o755)
             request = dict(entry='app', dependencies=[], assembly='App', test=False, data=[],
                            runtimeHost=dict(directory='host', entryPoint='launch', launchMode=mode, environment={'MARKER': 'declared'}))
+            if mode is None:
+                request.pop('runtimeHost')
             (root/'launch.json').write_text(json.dumps(request))
             env = dict(os.environ, RULES_MSBUILD_RUNFILES=str(root), CORE_ROOT='/ambient')
             result = subprocess.run([str(SDK/'dotnet'), str(ROOT/'tools/ExplicitBuild/bin/Release/net10.0/ExplicitBuild.dll'),
@@ -46,3 +48,8 @@ class RuntimeHost(unittest.TestCase):
         result, _ = self.launch('unknown')
         self.assertNotEqual(result.returncode, 0)
         self.assertIn('Unsupported runtime launch mode', result.stderr)
+
+    def test_missing_host_does_not_fall_back_to_runner_sdk(self):
+        result, _ = self.launch(None)
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn('Missing declared runtime host', result.stderr)

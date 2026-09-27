@@ -79,7 +79,6 @@ try:
         assert 'expanded_runner_package' not in build.read_text()
         snapshot.write_text(build.read_text())
     lines = snapshot.read_text().splitlines()
-    lines = [line for line in lines if not line.startswith(('load("@rules_msbuild//msbuild:toolchain', 'msbuild_toolchain(', 'toolchain('))]
     lines = [line.replace(',allow_remote_execution=True', '').replace('linux_worker=True', 'linux_worker=True,allow_remote_execution=True') for line in lines]
     lines.insert(0, 'load("@rules_msbuild//msbuild:defs.bzl","msbuild_test","msbuild_test_tool")')
     by_name = {labels[r['id']]: r for r in rows}

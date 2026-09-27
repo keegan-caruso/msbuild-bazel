@@ -65,7 +65,6 @@ if a.executor:
  workspace=out/'bazel'
  build=workspace/'BUILD.bazel'
  lines=build.read_text().splitlines()
- lines=[line for line in lines if not line.startswith(('load("@rules_msbuild//msbuild:toolchain','msbuild_toolchain(','toolchain('))]
  lines=[line.replace('"msbuild_library","msbuild_binary",','"msbuild_library","msbuild_binary","msbuild_test",').replace('linux_worker=True','linux_worker=True,allow_remote_execution=True') for line in lines]
  lines=[line.replace('msbuild_binary(name="App",','msbuild_test(name="App",') if line.startswith('msbuild_binary(name="App",') else line for line in lines]
  original='\n'.join(lines)+'\n'

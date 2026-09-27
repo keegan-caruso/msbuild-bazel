@@ -8,6 +8,9 @@ import subprocess
 import sys
 import xml.etree.ElementTree as ET
 
+sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "tests"))
+from fixture_sdk import sdk_declarations
+
 RULES = Path(__file__).resolve().parents[2]
 SDK = Path(os.environ['RULES_MSBUILD_DOTNET_ROOT'])
 BAZEL = Path(os.environ['RULES_MSBUILD_BAZEL'])
@@ -38,14 +41,8 @@ def setup(folder):
     (workspace/'MODULE.bazel').write_text(f'''module(name="test_protocol")
 bazel_dep(name="rules_msbuild", version="0.0.0")
 local_path_override(module_name="rules_msbuild", path={json.dumps(str(RULES))})
-sdk = use_repo_rule("@rules_msbuild//bazel:msbuild.bzl", "local_dotnet_sdk")
-sdk(name="dotnet", path={json.dumps(str(SDK))})
-register_toolchains("//:registered")
-''')
-    (workspace/'BUILD.bazel').write_text('''load("@rules_msbuild//msbuild:toolchain.bzl", "msbuild_toolchain")
-msbuild_toolchain(name="implementation", dotnet="@dotnet//:sdk/dotnet", sdk="@dotnet//:files", runner="@rules_msbuild//tools/ExplicitBuild:bin/Release/net10.0/ExplicitBuild.dll", runner_support=["@rules_msbuild//tools/ExplicitBuild:files"], runtime_manifest="@dotnet//:runtime-roots.json")
-toolchain(name="registered", toolchain=":implementation", toolchain_type="@rules_msbuild//msbuild:toolchain_type")
-''')
+''' + sdk_declarations())
+    (workspace/'BUILD.bazel').write_text('')
     test = workspace/'Mtp'; test.mkdir(exist_ok=True)
     project = '''<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup><TargetFramework>net10.0</TargetFramework><OutputType>Exe</OutputType><UseMicrosoftTestingPlatformRunner>true</UseMicrosoftTestingPlatformRunner></PropertyGroup><ItemGroup><PackageReference Include="xunit.v3.mtp-v2" Version="4.0.0"/><PackageReference Include="Microsoft.Testing.Extensions.TrxReport" Version="2.3.3"/></ItemGroup></Project>'''
     (test/'Mtp.csproj').write_text(project)

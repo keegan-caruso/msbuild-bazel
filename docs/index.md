@@ -53,3 +53,5 @@ from [history](history.md), rather than duplicated in this tree. See the
 
 - [Generated workflow costs](project-sync-workflow-costs.md) — paired raw builds, synchronization and independent recovery.
 - [Everyday synchronization changes](project-sync-mutations.md) — edit, stale check, repair and cache reversion.
+
+- [Bazel-managed SDK toolchains](sdk-toolchains.md): downloaded and generated artifacts, fixture migration and validation.

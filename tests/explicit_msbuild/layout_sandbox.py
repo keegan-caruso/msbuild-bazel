@@ -7,6 +7,9 @@ import stat
 import subprocess
 import sys
 
+sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "tests"))
+from fixture_sdk import sdk_declarations
+
 ROOT = Path(__file__).resolve().parents[2]
 p = argparse.ArgumentParser(description=__doc__)
 p.add_argument('directory', type=Path)
@@ -26,10 +29,7 @@ def put(name, text):
 put('MODULE.bazel', f'''module(name="layout_sandbox")
 bazel_dep(name="rules_msbuild",version="0.0.0")
 local_path_override(module_name="rules_msbuild",path={json.dumps(str(ROOT))})
-sdk=use_repo_rule("@rules_msbuild//bazel:msbuild.bzl","local_dotnet_sdk")
-sdk(name="dotnet",path={json.dumps(str(sdk))})
-register_toolchains("//:registered")
-''')
+''' + sdk_declarations())
 put('trees.bzl', '''def _tree(ctx):
     tree = ctx.actions.declare_directory(ctx.label.name)
     ctx.actions.run_shell(
@@ -45,11 +45,8 @@ def _empty(ctx):
     return [DefaultInfo(files = depset([tree]))]
 empty = rule(implementation = _empty)
 ''')
-header = '''load("@rules_msbuild//msbuild:toolchain.bzl", "msbuild_toolchain")
-load("@rules_msbuild//msbuild:defs.bzl", "msbuild_layout")
+header = '''load("@rules_msbuild//msbuild:defs.bzl", "msbuild_layout")
 load(":trees.bzl", "tree", "empty")
-msbuild_toolchain(name="implementation",dotnet="@dotnet//:sdk/dotnet",sdk="@dotnet//:files",runner="@rules_msbuild//tools/ExplicitBuild:bin/Release/net10.0/ExplicitBuild.dll",runner_support=["@rules_msbuild//tools/ExplicitBuild:files"],runtime_manifest="@dotnet//:runtime-roots.json")
-toolchain(name="registered",toolchain=":implementation",toolchain_type="@rules_msbuild//msbuild:toolchain_type")
 tree(name="generated", src="value.txt")
 empty(name="empty")
 msbuild_layout(name="first", paths={":generated": ".", ":empty": "empty", "alias.txt": "file with spaces.txt"})

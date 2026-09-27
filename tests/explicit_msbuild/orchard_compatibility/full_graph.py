@@ -9,10 +9,13 @@ from pathlib import Path
 import shutil
 import sys
 
+sys.path.insert(0, str(Path(__file__).resolve().parents[3] / "tests"))
+from fixture_sdk import sdk_declarations
+
 root=Path(sys.argv[1]).resolve();inventory=Path(sys.argv[2]);rules=Path(sys.argv[3]).resolve()
 sdk=os.environ['RULES_MSBUILD_DOTNET_ROOT'];rows=json.loads(inventory.read_text());by={r['project']:r for r in rows}
 packages=root/'locked-packages';packages.mkdir(exist_ok=True)
-header=['load("@rules_msbuild//msbuild:toolchain.bzl","msbuild_toolchain")','load("@rules_msbuild//msbuild:defs.bzl","msbuild_library","msbuild_binary","msbuild_nuget_package","msbuild_items","msbuild_target_items","msbuild_nuget_dependencies","msbuild_package_lock")', 'msbuild_toolchain(name="implementation",dotnet="@dotnet//:sdk/dotnet",sdk="@dotnet//:files",runner="@rules_msbuild//tools/ExplicitBuild:bin/Release/net10.0/ExplicitBuild.dll",runner_support=["@rules_msbuild//tools/ExplicitBuild:files"],runtime_manifest="@dotnet//:runtime-roots.json")','toolchain(name="registered",toolchain=":implementation",toolchain_type="@rules_msbuild//msbuild:toolchain_type")']
+header=['load("@rules_msbuild//msbuild:defs.bzl","msbuild_library","msbuild_binary","msbuild_nuget_package","msbuild_items","msbuild_target_items","msbuild_nuget_dependencies","msbuild_package_lock")', ]
 def call(rule,**args):return rule+'('+','.join(k+'='+str(v) if isinstance(v,bool) else k+'='+json.dumps(v) for k,v in args.items())+')'
 def label(project):return Path(project).stem
 package_rules={};project_packages={};locks={};closure_rules={}
@@ -73,5 +76,5 @@ for row in rows:
  if row['module']:attrs['export_targets']={'GetModuleProjectName':[]}
  header.append(call('msbuild_binary' if row==rows[0] else 'msbuild_library',**attrs))
 (root/'BUILD.bazel').write_text('\n'.join(header)+'\n')
-(root/'MODULE.bazel').write_text('module(name="orchard_explicit")\nbazel_dep(name="rules_msbuild",version="0.0.0")\nlocal_path_override(module_name="rules_msbuild",path='+json.dumps(str(rules))+')\nsdk=use_repo_rule("@rules_msbuild//bazel:msbuild.bzl","local_dotnet_sdk")\nsdk(name="dotnet",path='+json.dumps(sdk)+')\nregister_toolchains("//:registered")\n')
+(root/'MODULE.bazel').write_text('module(name="orchard_explicit")\nbazel_dep(name="rules_msbuild",version="0.0.0")\nlocal_path_override(module_name="rules_msbuild",path='+json.dumps(str(rules))+')\n' + sdk_declarations() + '')
 print(json.dumps(dict(projects=len(rows),packageTargets=len(package_rules),itemTargets=len(header)-len(rows)-len(package_rules)-4)))

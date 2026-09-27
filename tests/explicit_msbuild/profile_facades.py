@@ -21,7 +21,7 @@ root = Path(__file__).resolve().parents[2]
 (w / 'MODULE.bazel').write_text('module(name="facade_profile")\nbazel_dep(name="rules_msbuild",version="0.0.0")\nlocal_path_override(module_name="rules_msbuild",path=' + json.dumps(str(root)) + ')\nregister_toolchains("//:registered")\n')
 lines = ['''load("@rules_msbuild//msbuild:defs.bzl", "msbuild_library", "msbuild_project")
 load("@rules_msbuild//msbuild:toolchain.bzl", "msbuild_toolchain")
-msbuild_toolchain(name="fake",dotnet="dotnet",sdk=":sdk",runner="Runner.dll",runtime_manifest="runtime.json")
+msbuild_toolchain(name="fake",dotnet="dotnet",sdk=":sdk",runner="Runner.dll")
 filegroup(name="sdk",srcs=["sdk.txt"])
 toolchain(name="registered",toolchain=":fake",toolchain_type="@rules_msbuild//msbuild:toolchain_type")
 ''']

@@ -10,6 +10,9 @@ import shutil
 import subprocess
 import sys
 
+sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "tests"))
+from fixture_sdk import sdk_declarations
+
 ROOT=Path(__file__).resolve().parents[2]
 SDK=Path(os.environ['RULES_MSBUILD_DOTNET_ROOT']);BAZEL=os.environ['RULES_MSBUILD_BAZEL']
 folder=Path(sys.argv[1]).resolve();folder.mkdir(parents=True);workspace=folder/'source';workspace.mkdir()
@@ -18,19 +21,13 @@ def put(path,text):
 put('MODULE.bazel',f'''module(name="native_components")
 bazel_dep(name="rules_msbuild",version="0.0.0")
 local_path_override(module_name="rules_msbuild",path={json.dumps(str(ROOT))})
-sdk=use_repo_rule("@rules_msbuild//bazel:msbuild.bzl","local_dotnet_sdk")
-sdk(name="dotnet",path={json.dumps(str(SDK))})
-register_toolchains("//:registered")
-''')
+''' + sdk_declarations())
 compiler=Path(shutil.which('gcc')).resolve()
 tools={'gcc':compiler,'cc1':Path(subprocess.check_output([compiler,'-print-prog-name=cc1'],text=True).strip()),'as':Path(shutil.which('as')).resolve(),'ld':Path(shutil.which('ld')).resolve()}
 for name,path in tools.items():
     dest=workspace/'native-tools'/name;dest.parent.mkdir(exist_ok=True);shutil.copy2(path,dest)
 (folder/'tool-identities.json').write_text(json.dumps({n:hashlib.sha256(p.read_bytes()).hexdigest() for n,p in tools.items()},indent=2))
-build='''load("@rules_msbuild//msbuild:toolchain.bzl","msbuild_toolchain")
-load("@rules_msbuild//msbuild:defs.bzl","msbuild_library","msbuild_test","msbuild_tool","msbuild_file_binding","msbuild_native_tool","msbuild_layout","msbuild_generate")
-msbuild_toolchain(name="implementation",dotnet="@dotnet//:sdk/dotnet",sdk="@dotnet//:files",runner="@rules_msbuild//tools/ExplicitBuild:bin/Release/net10.0/ExplicitBuild.dll",runner_support=["@rules_msbuild//tools/ExplicitBuild:files"],runtime_manifest="@dotnet//:runtime-roots.json")
-toolchain(name="registered",toolchain=":implementation",toolchain_type="@rules_msbuild//msbuild:toolchain_type")
+build='''load("@rules_msbuild//msbuild:defs.bzl","msbuild_library","msbuild_test","msbuild_tool","msbuild_file_binding","msbuild_native_tool","msbuild_layout","msbuild_generate")
 msbuild_layout(name="compiler_tree",paths={"native-tools/gcc":"gcc","native-tools/cc1":"cc1","native-tools/as":"as","native-tools/ld":"ld"})
 msbuild_native_tool(name="compiler",layout=":compiler_tree",entry_point="gcc")
 msbuild_file_binding(name="compiler_binding",tool=":compiler",property_name="NativeCompiler")

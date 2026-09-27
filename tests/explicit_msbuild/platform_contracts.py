@@ -5,6 +5,9 @@ from pathlib import Path
 import subprocess
 import sys
 
+sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "tests"))
+from fixture_sdk import sdk_declarations
+
 root=Path(__file__).resolve().parents[2];out=Path(sys.argv[1]).resolve();w=out/'source';w.mkdir(parents=True)
 sdk=os.environ['RULES_MSBUILD_DOTNET_ROOT'];bazel=os.environ['RULES_MSBUILD_BAZEL']
 def put(name,text):
@@ -12,20 +15,14 @@ def put(name,text):
 put('MODULE.bazel',f'''module(name="platform_contracts")
 bazel_dep(name="rules_msbuild",version="0.0.0")
 local_path_override(module_name="rules_msbuild",path={json.dumps(str(root))})
-sdk=use_repo_rule("@rules_msbuild//bazel:msbuild.bzl","local_dotnet_sdk")
-sdk(name="dotnet",path={json.dumps(sdk)})
-register_toolchains("//:registered")
-''')
+''' + sdk_declarations())
 project='<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup><TargetFramework>net10.0</TargetFramework></PropertyGroup>{}</Project>'
 put('ref/Ref.csproj',project.format(''));put('impl/Impl.csproj',project.format(''))
 put('ref/Code.cs','public static class Api { public static int Read() => throw null; }')
 put('impl/Code.cs','public static class Api { public static int Read() => 7; }')
 put('app/App.csproj',project.format('<ItemGroup><ProjectReference Include="../impl/Impl.csproj" SetTargetFramework="TargetFramework=net10.0-windows" /></ItemGroup>'))
 put('app/Code.cs','return Api.Read()==7 ? 0 : 1;')
-header='''load("@rules_msbuild//msbuild:toolchain.bzl","msbuild_toolchain")
-load("@rules_msbuild//msbuild:defs.bzl","msbuild_library","msbuild_assembly","msbuild_test")
-msbuild_toolchain(name="implementation",dotnet="@dotnet//:sdk/dotnet",sdk="@dotnet//:files",runner="@rules_msbuild//tools/ExplicitBuild:bin/Release/net10.0/ExplicitBuild.dll",runner_support=["@rules_msbuild//tools/ExplicitBuild:files"],runtime_manifest="@dotnet//:runtime-roots.json")
-toolchain(name="registered",toolchain=":implementation",toolchain_type="@rules_msbuild//msbuild:toolchain_type")
+header='''load("@rules_msbuild//msbuild:defs.bzl","msbuild_library","msbuild_assembly","msbuild_test")
 msbuild_library(name="contract",project="ref/Ref.csproj",assembly_name="Pair",srcs=["ref/Code.cs"],target_framework="CONTRACT",output_mode="reference",linux_worker=True)
 msbuild_library(name="impl",project="impl/Impl.csproj",assembly_name="Pair",srcs=["impl/Code.cs"],target_framework="IMPLEMENTATION",output_mode="implementation",linux_worker=True)
 msbuild_assembly(name="pair",contract=":contract",implementation=":impl")

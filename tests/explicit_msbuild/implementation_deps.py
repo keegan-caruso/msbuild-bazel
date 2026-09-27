@@ -5,6 +5,9 @@ from pathlib import Path
 import subprocess
 import sys
 
+sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "tests"))
+from fixture_sdk import sdk_declarations
+
 root=Path(__file__).resolve().parents[2];out=Path(sys.argv[1]).resolve();w=out/'source';w.mkdir(parents=True)
 sdk=Path(os.environ['RULES_MSBUILD_DOTNET_ROOT']);bazel=os.environ['RULES_MSBUILD_BAZEL']
 def put(name,text):
@@ -27,14 +30,8 @@ put('App/Code.cs',original.replace('Middle.Value','Hidden.Value'));raw('raw-hidd
 put('MODULE.bazel',f'''module(name="implementation_deps")
 bazel_dep(name="rules_msbuild",version="0.0.0")
 local_path_override(module_name="rules_msbuild",path={json.dumps(str(root))})
-sdk=use_repo_rule("@rules_msbuild//bazel:msbuild.bzl","local_dotnet_sdk")
-sdk(name="dotnet",path={json.dumps(str(sdk))})
-register_toolchains("//:registered")
-''')
-put('BUILD.bazel','''load("@rules_msbuild//msbuild:toolchain.bzl","msbuild_toolchain")
-load("@rules_msbuild//msbuild:defs.bzl","msbuild_library","msbuild_test")
-msbuild_toolchain(name="implementation",dotnet="@dotnet//:sdk/dotnet",sdk="@dotnet//:files",runner="@rules_msbuild//tools/ExplicitBuild:bin/Release/net10.0/ExplicitBuild.dll",runner_support=["@rules_msbuild//tools/ExplicitBuild:files"],runtime_manifest="@dotnet//:runtime-roots.json")
-toolchain(name="registered",toolchain=":implementation",toolchain_type="@rules_msbuild//msbuild:toolchain_type")
+''' + sdk_declarations())
+put('BUILD.bazel','''load("@rules_msbuild//msbuild:defs.bzl","msbuild_library","msbuild_test")
 msbuild_library(name="Hidden",project="Hidden/Hidden.csproj",srcs=["Hidden/Code.cs"],target_framework="net10.0",linux_worker=True)
 msbuild_library(name="Middle",project="Middle/Middle.csproj",srcs=["Middle/Code.cs"],implementation_deps=[":Hidden"],target_framework="net10.0",linux_worker=True)
 msbuild_test(name="App",project="App/App.csproj",srcs=["App/Code.cs"],deps=[":Middle"],target_framework="net10.0",use_apphost=False,linux_worker=True)

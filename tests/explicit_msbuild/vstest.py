@@ -9,13 +9,16 @@ import xml.etree.ElementTree as ET
 
 from protocol import RULES, SDK, BAZEL, command, packages
 
+sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "tests"))
+from fixture_sdk import sdk_declarations
+
 
 def setup(folder, synchronized=False):
     workspace=folder/'src'
     workspace.mkdir(parents=True, exist_ok=True)
     mappings=dict(packages={}, tests={})
     if synchronized:
-        (workspace/'MODULE.bazel').write_text('module(name="synced_vstest")\nbazel_dep(name="rules_msbuild",version="0.0.0")\nlocal_path_override(module_name="rules_msbuild",path='+json.dumps(str(RULES))+')\ndotnet=use_extension("@rules_msbuild//msbuild:extensions.bzl","dotnet")\ndotnet.sdk(name="dotnet",version="10.0.400")\nuse_repo(dotnet,"dotnet")\nregister_toolchains("@dotnet//:all")\n')
+        (workspace/'MODULE.bazel').write_text('module(name="synced_vstest")\nbazel_dep(name="rules_msbuild",version="0.0.0")\nlocal_path_override(module_name="rules_msbuild",path='+json.dumps(str(RULES))+')\n' + sdk_declarations() + '')
     # Reuse the MTP workspace/toolchain; keep framework package graphs independent.
     lock=folder/'vstest-lock';lock.mkdir(exist_ok=True)
     versions={'Microsoft.NET.Test.Sdk':'17.14.1','Microsoft.TestPlatform.CLI':'17.14.1','xunit':'2.9.3','xunit.runner.visualstudio':'3.1.1','NUnit':'4.3.2','NUnit3TestAdapter':'5.0.0','MSTest.TestFramework':'3.8.3','MSTest.TestAdapter':'3.8.3'}

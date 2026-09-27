@@ -1,18 +1,16 @@
 import json,os,hashlib,shutil,subprocess
 from pathlib import Path
+
+import sys
+sys.path.insert(0, str(Path(__file__).resolve().parents[3] / "tests"))
+from fixture_sdk import sdk_declarations
 root=Path('/orchard-work'); sdk=os.environ['RULES_MSBUILD_DOTNET_ROOT'];bazel=os.environ['RULES_MSBUILD_BAZEL'];evidence=Path('/evidence')
 rows=json.loads((evidence/'evaluated.json').read_text());by={Path(x['project']).stem:x for x in rows}
 (root/'MODULE.bazel').write_text(f'''module(name="orchard_compatibility")
 bazel_dep(name="rules_msbuild",version="0.0.0")
 local_path_override(module_name="rules_msbuild",path="/workspace")
-sdk=use_repo_rule("@rules_msbuild//bazel:msbuild.bzl","local_dotnet_sdk")
-sdk(name="dotnet",path={json.dumps(sdk)})
-register_toolchains("//:registered")
-''')
-header='''load("@rules_msbuild//msbuild:toolchain.bzl","msbuild_toolchain")
-load("@rules_msbuild//msbuild:defs.bzl","msbuild_library","msbuild_nuget_package","msbuild_items")
-msbuild_toolchain(name="implementation",dotnet="@dotnet//:sdk/dotnet",sdk="@dotnet//:files",runner="@rules_msbuild//tools/ExplicitBuild:bin/Release/net10.0/ExplicitBuild.dll",runner_support=["@rules_msbuild//tools/ExplicitBuild:files"],runtime_manifest="@dotnet//:runtime-roots.json")
-toolchain(name="registered",toolchain=":implementation",toolchain_type="@rules_msbuild//msbuild:toolchain_type")
+''' + sdk_declarations())
+header='''load("@rules_msbuild//msbuild:defs.bzl","msbuild_library","msbuild_nuget_package","msbuild_items")
 '''
 generator=by['OrchardCore.SourceGenerators'];leaf=by['OrchardCore.ContentPreview.Abstractions']
 assets=json.loads((root/Path(generator['project']).parent/'obj/project.assets.json').read_text());target=next(iter(assets['targets'].values()))

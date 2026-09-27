@@ -20,6 +20,7 @@ class LinuxDispatchTests(unittest.TestCase):
         (self.root / 'scripts').mkdir()
         shutil.copy(ROOT / 'scripts/ci-linux.sh', self.root / 'scripts/ci-linux.sh')
         shutil.copy(ROOT / 'scripts/env.sh', self.root / 'scripts/env.sh')
+        shutil.copy(ROOT / 'scripts/validation.sh', self.root / 'scripts/validation.sh')
         commands = self.root / 'commands'
         commands.mkdir()
         for name in ('git', 'bash', 'python3'):

@@ -32,7 +32,7 @@ for index in range(2):
             assembly='Library', executable=False, configuration='Release', properties={},
             defines=[], nullable='enable', languageVersion='latest', allowUnsafe=False,
             runtime='runtime', reference='reference/Library.dll', diagnostics='diagnostics',
-            sdkVersion='10.0.400', runtimeManifest='', packages=[], declaredPackages=[],
+            sdkVersion='10.0.400', packages=[], declaredPackages=[],
             compilePackages=[], buildPackages=[], analyzerPackages=[])
         (root/'request.json').write_text(json.dumps(request))
         inputs = [dict(path=name, digest=base64.b64encode(hashlib.sha256((root/name).read_bytes()).hexdigest().encode()).decode())

@@ -27,6 +27,16 @@ internal sealed class WorkerTools
                 throw new InvalidDataException("Worker tool is outside its pinned root: " + path);
             }
 
+            if (Directory.Exists(path))
+            {
+                foreach (var file in Directory.EnumerateFiles(path, "*", SearchOption.AllDirectories))
+                {
+                    Add(file, expectedRoot);
+                }
+
+                return;
+            }
+
             if (!File.Exists(path))
             {
                 throw new InvalidDataException("Missing worker tool: " + path);

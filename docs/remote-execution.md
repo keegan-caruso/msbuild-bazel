@@ -105,8 +105,8 @@ Bazel 8.8 clients: inherited client `PATH` values otherwise cause cache misses.
 
 ## SDK-only remote execution
 
-Pass `--download-sdk` to the acceptance harness to select SDK 10.0.400 through
-`dotnet.sdk(global_json = "//:global.json")`. This mode needs neither a locally
+The acceptance harness selects SDK 10.0.400 through
+`dotnet.sdk(global_json = "//:global.json")`. It needs neither a locally
 installed SDK nor a prebuilt runner. Repository acquisition still happens on the
 Bazel client; runner bootstrap is a normal declared action sent to the executor.
 
@@ -123,7 +123,7 @@ See [SDK remote-execution evidence](sdk-remote-execution-evidence.json).
 
 ```sh
 python3 tests/explicit_msbuild/remote_execution.py /tmp/sdk-remote-check \
-  --download-sdk --executor grpc://WORKER_IP:8980 \
+  --executor grpc://WORKER_IP:8980 \
   --platform-image 47a9e2fed018-sdk-removed
 ```
 

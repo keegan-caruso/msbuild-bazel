@@ -6,6 +6,10 @@ from pathlib import Path
 import platform
 import subprocess
 
+import sys
+sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "tests"))
+from fixture_sdk import sdk_declarations
+
 ROOT = Path(__file__).resolve().parents[2]
 p = argparse.ArgumentParser(description=__doc__)
 p.add_argument('directory', type=Path)
@@ -24,10 +28,7 @@ local_path_override(module_name="rules_msbuild", path={json.dumps(str(ROOT))})
 dotnet=use_extension("@rules_msbuild//msbuild:extensions.bzl", "dotnet")
 dotnet.runtime(name="net10", version="10.0.0", platforms=[{json.dumps(rid)}])
 use_repo(dotnet, "net10")
-sdk=use_repo_rule("@rules_msbuild//bazel:msbuild.bzl", "local_dotnet_sdk")
-sdk(name="sdk", path={json.dumps(sdk)})
-register_toolchains("//:registered")
-''')
+''' + sdk_declarations(name='sdk'))
 (w/'adapt.bzl').write_text('''load("@rules_msbuild//msbuild:defs.bzl", "MSBuildRuntimeInfo", "MSBuildLayoutInfo")
 def _tree(ctx):
     directory=ctx.attr.runtime[MSBuildRuntimeInfo].directory
@@ -39,11 +40,8 @@ def _host(ctx):
     return [DefaultInfo(files=depset([host]))]
 generated_host=rule(implementation=_host, attrs={"script":attr.string()})
 ''')
-header='''load("@rules_msbuild//msbuild:toolchain.bzl", "msbuild_toolchain")
-load("@rules_msbuild//msbuild:defs.bzl", "msbuild_layout", "msbuild_runtime", "msbuild_test")
+header='''load("@rules_msbuild//msbuild:defs.bzl", "msbuild_layout", "msbuild_runtime", "msbuild_test")
 load(":adapt.bzl", "runtime_tree", "generated_host")
-msbuild_toolchain(name="implementation",dotnet="@sdk//:sdk/dotnet",sdk="@sdk//:files",runner="@rules_msbuild//tools/ExplicitBuild:bin/Release/net10.0/ExplicitBuild.dll",runner_support=["@rules_msbuild//tools/ExplicitBuild:files"],runtime_manifest="@sdk//:runtime-roots.json")
-toolchain(name="registered",toolchain=":implementation",toolchain_type="@rules_msbuild//msbuild:toolchain_type")
 runtime_tree(name="downloaded_tree",runtime="@net10//:runtime")
 msbuild_layout(name="generated_tree",paths={":downloaded_tree":".",":wrapper":"host.sh"})
 msbuild_runtime(name="generated_runtime",layout=":generated_tree",entry_point="host.sh",env={"RUNTIME_MARKER":"declared"},version="10.0.0")

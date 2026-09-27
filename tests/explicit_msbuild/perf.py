@@ -8,6 +8,10 @@ import statistics
 import subprocess
 import time
 
+import sys
+sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "tests"))
+from fixture_sdk import sdk_declarations
+
 ROOT = Path(__file__).resolve().parents[2]
 SDK = Path(os.environ['RULES_MSBUILD_DOTNET_ROOT'])
 BAZEL = Path(os.environ['RULES_MSBUILD_BAZEL'])
@@ -38,14 +42,8 @@ def main():
         put(source/'MODULE.bazel', f'''module(name="explicit_perf")
 bazel_dep(name="rules_msbuild",version="0.0.0")
 local_path_override(module_name="rules_msbuild",path={json.dumps(str(ROOT))})
-sdk=use_repo_rule("@rules_msbuild//bazel:msbuild.bzl","local_dotnet_sdk")
-sdk(name="dotnet",path={json.dumps(str(SDK))})
-register_toolchains("//:registered")
-''')
-        put(source/'BUILD.bazel', '''load("@rules_msbuild//msbuild:toolchain.bzl","msbuild_toolchain")
-msbuild_toolchain(name="implementation",dotnet="@dotnet//:sdk/dotnet",sdk="@dotnet//:files",runner="@rules_msbuild//tools/ExplicitBuild:bin/Release/net10.0/ExplicitBuild.dll",runner_support=["@rules_msbuild//tools/ExplicitBuild:files"],runtime_manifest="@dotnet//:runtime-roots.json")
-toolchain(name="registered",toolchain=":implementation",toolchain_type="@rules_msbuild//msbuild:toolchain_type")
-''')
+''' + sdk_declarations())
+        put(source/'BUILD.bazel', '')
         put(source/'NuGet.Config','<configuration><packageSources><clear /></packageSources></configuration>')
         for i in range(size):
             name=f'P{i}'; children=[x for x in (2*i+1,2*i+2) if x<size]

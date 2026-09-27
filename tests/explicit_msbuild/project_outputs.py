@@ -6,6 +6,9 @@ from pathlib import Path
 import subprocess
 import sys
 
+sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "tests"))
+from fixture_sdk import sdk_declarations
+
 rules=Path(__file__).resolve().parents[2]
 folder=Path(sys.argv[1]).resolve();folder.mkdir(parents=True)
 workspace=folder/'src';workspace.mkdir()
@@ -13,14 +16,8 @@ sdk=Path(os.environ['RULES_MSBUILD_DOTNET_ROOT']);bazel=os.environ['RULES_MSBUIL
 (workspace/'MODULE.bazel').write_text(f'''module(name="project_outputs")
 bazel_dep(name="rules_msbuild",version="0.0.0")
 local_path_override(module_name="rules_msbuild",path={json.dumps(str(rules))})
-sdk=use_repo_rule("@rules_msbuild//bazel:msbuild.bzl","local_dotnet_sdk")
-sdk(name="dotnet",path={json.dumps(str(sdk))})
-register_toolchains("//:registered")
-''')
-header='''load("@rules_msbuild//msbuild:toolchain.bzl","msbuild_toolchain")
-load("@rules_msbuild//msbuild:defs.bzl","msbuild_library","msbuild_binary","msbuild_project_output")
-msbuild_toolchain(name="implementation",dotnet="@dotnet//:sdk/dotnet",sdk="@dotnet//:files",runner="@rules_msbuild//tools/ExplicitBuild:bin/Release/net10.0/ExplicitBuild.dll",runner_support=["@rules_msbuild//tools/ExplicitBuild:files"],runtime_manifest="@dotnet//:runtime-roots.json")
-toolchain(name="registered",toolchain=":implementation",toolchain_type="@rules_msbuild//msbuild:toolchain_type")
+''' + sdk_declarations())
+header='''load("@rules_msbuild//msbuild:defs.bzl","msbuild_library","msbuild_binary","msbuild_project_output")
 msbuild_library(name="Plugin",project="Plugin/Plugin.csproj",srcs=["Plugin/Plugin.cs"],target_framework="net10.0",linux_worker=True)
 msbuild_project_output(name="content",assembly=":Plugin",item_type="Content",metadata={"CopyToOutputDirectory":"PreserveNewest"})
 msbuild_binary(name="App",project="App/App.csproj",srcs=["App/Program.cs"],target_framework="net10.0",project_outputs=[":content"],framework_assemblies=["System.Text.Json"],use_apphost=False,linux_worker=True)

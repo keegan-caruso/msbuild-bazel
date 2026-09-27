@@ -272,11 +272,9 @@ python3 -m unittest discover -s tests/explicit_msbuild -v
 python3 tests/explicit_msbuild/acceptance.py /tmp/explicit-acceptance
 ```
 
-The acceptance harness writes a complete `MODULE.bazel` and registered toolchain
-using the existing `local_dotnet_sdk` repository rule. It is also a concrete
-bootstrap example for a local SDK. Runner binaries are built beforehand.
-Applications can instead use the [SDK extension](development.md#using-the-rules-in-an-application)
-to acquire the SDK and build the runner through Bazel.
+The acceptance harness writes a complete `MODULE.bazel` using the SDK extension.
+It acquires a verified SDK and bootstraps the runner through Bazel. Source SDK
+producers can use [the shared artifact contract](sdk-toolchains.md).
 
 For the real MTP application, acquire the test packages outside the build action:
 

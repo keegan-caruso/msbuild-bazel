@@ -44,14 +44,15 @@ internal static class ApplicationLaunch
                 Copy(Path.Combine(root, Safe(file.Source)), Path.Combine(temporary, Safe(file.Path)));
             }
 
-            var hostRoot = request.RuntimeHost is null ? Path.GetDirectoryName(Environment.ProcessPath!)! : Path.Combine(root, Safe(request.RuntimeHost.Directory));
-            var host = request.RuntimeHost is null ? Environment.ProcessPath! : Path.Combine(hostRoot, Safe(request.RuntimeHost.EntryPoint));
+            var runtimeHost = request.RuntimeHost ?? throw new InvalidDataException("Missing declared runtime host");
+            var hostRoot = Path.Combine(root, Safe(runtimeHost.Directory));
+            var host = Path.Combine(hostRoot, Safe(runtimeHost.EntryPoint));
             if (!File.Exists(host))
             {
                 throw new InvalidDataException("Missing declared runtime host: " + host);
             }
 
-            var mode = request.RuntimeHost?.LaunchMode ?? "dotnet";
+            var mode = runtimeHost.LaunchMode;
             if (mode is not ("dotnet" or "corerun"))
             {
                 throw new InvalidDataException("Unsupported runtime launch mode: " + mode);
@@ -62,7 +63,7 @@ internal static class ApplicationLaunch
             }
 
             var start = new ProcessStartInfo(host) { WorkingDirectory = runtimeDirectory };
-            foreach (var (name, value) in request.RuntimeHost?.Environment ?? [])
+            foreach (var (name, value) in runtimeHost.Environment ?? [])
             {
                 start.Environment[name] = value;
             }

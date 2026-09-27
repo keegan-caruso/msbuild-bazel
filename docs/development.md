@@ -139,10 +139,9 @@ Bazel binary, set `RULES_MSBUILD_BAZEL_VERSION` to its expected version.
 cache, defaulting to `.cache/bazelisk`. Benchmark reports record the actual Bazel
 version and identify the launcher hash separately from a Bazel binary hash.
 
-The optional Nix environment and Nix-specific SDK closure attributes have been
-removed. Existing local SDK declarations should use only `path`; remove
-`include_runtime_closure`, `runtime_roots`, and `external_imports`. Use a standard
-SDK installation or the SDK extension above. Historical Nix results below describe
+Host-path SDK repositories and the optional Nix environment have been removed.
+Use the SDK extension above for acquisition, or supply Bazel-produced SDK
+artifacts through [the shared SDK contract](sdk-toolchains.md). Historical Nix results below describe
 the earlier migration, not a currently supported setup.
 
 ## BUILD-file tooling
@@ -247,7 +246,7 @@ matrix also passed owned-code checks, SDK repository tests and real-build
 acceptance, including edit invalidation and cache recovery. No production rule
 implementation changed in this migration.
 
-### Native setup after Nix removal
+### Native setup after Nix removal (historical)
 
 On macOS ARM64 with SDK 10.0.400, the following checks passed using the standard
 bootstrap, without a Nix shell:

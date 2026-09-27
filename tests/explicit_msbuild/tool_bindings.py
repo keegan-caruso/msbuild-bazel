@@ -1,6 +1,9 @@
 """Real MSBuild task, dependency edits, binding failures and independent cache recovery."""
 import base64,hashlib,json,os,shutil,subprocess,sys,urllib.request
 from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "tests"))
+from fixture_sdk import sdk_declarations
 ROOT=Path(__file__).resolve().parents[2];folder=Path(sys.argv[1]).resolve();folder.mkdir(parents=True)
 mixed='--mixed-roles' in sys.argv
 workspace=folder/'src';workspace.mkdir();sdk=Path(os.environ['RULES_MSBUILD_DOTNET_ROOT']);bazel=os.environ['RULES_MSBUILD_BAZEL'];base=folder/'base'
@@ -9,14 +12,8 @@ def put(path,text):
 put('MODULE.bazel',f'''module(name="tool_bindings")
 bazel_dep(name="rules_msbuild",version="0.0.0")
 local_path_override(module_name="rules_msbuild",path={json.dumps(str(ROOT))})
-sdk=use_repo_rule("@rules_msbuild//bazel:msbuild.bzl","local_dotnet_sdk")
-sdk(name="dotnet",path={json.dumps(str(sdk))})
-register_toolchains("//:registered")
-''')
-put('BUILD.bazel','''load("@rules_msbuild//msbuild:toolchain.bzl","msbuild_toolchain")
-msbuild_toolchain(name="implementation",dotnet="@dotnet//:sdk/dotnet",sdk="@dotnet//:files",runner="@rules_msbuild//tools/ExplicitBuild:bin/Release/net10.0/ExplicitBuild.dll",runner_support=["@rules_msbuild//tools/ExplicitBuild:files"],runtime_manifest="@dotnet//:runtime-roots.json")
-toolchain(name="registered",toolchain=":implementation",toolchain_type="@rules_msbuild//msbuild:toolchain_type")
-''')
+''' + sdk_declarations())
+put('BUILD.bazel','')
 project='<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup><TargetFramework>net10.0</TargetFramework>{}</PropertyGroup>{}</Project>'
 put('Helper/Helper.csproj',project.format('',''))
 put('Helper/Helper.cs','public static class Helper { public static string Value() => "first"; }')

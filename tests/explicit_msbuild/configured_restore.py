@@ -5,6 +5,9 @@ from pathlib import Path
 import subprocess
 import sys
 
+sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "tests"))
+from fixture_sdk import sdk_declarations
+
 root=Path(__file__).resolve().parents[2];out=Path(sys.argv[1]).resolve();w=out/'source';w.mkdir(parents=True)
 sdk=os.environ['RULES_MSBUILD_DOTNET_ROOT'];bazel=os.environ['RULES_MSBUILD_BAZEL']
 def put(name,text):
@@ -12,10 +15,7 @@ def put(name,text):
 put('MODULE.bazel',f'''module(name="configured_restore")
 bazel_dep(name="rules_msbuild",version="0.0.0")
 local_path_override(module_name="rules_msbuild",path={json.dumps(str(root))})
-sdk=use_repo_rule("@rules_msbuild//bazel:msbuild.bzl","local_dotnet_sdk")
-sdk(name="dotnet",path={json.dumps(sdk)})
-register_toolchains("//:registered")
-''')
+''' + sdk_declarations())
 project='<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup><TargetFramework>FRAMEWORK</TargetFramework></PropertyGroup>REFERENCES</Project>'
 put('shared/Shared.csproj','<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup><TargetFrameworks>net10.0;net10.0-windows</TargetFrameworks><AssemblyName Condition="$(TargetFramework)==net10.0">SharedNeutral</AssemblyName><AssemblyName Condition="$(TargetFramework)==net10.0-windows">SharedPlatform</AssemblyName></PropertyGroup></Project>')
 source='public static class SharedApi { public static int Read() {\n#if WINDOWS\nreturn 11;\n#else\nreturn 7;\n#endif\n} }'
@@ -25,10 +25,7 @@ for name,framework in [('left','net10.0'),('right','net10.0-windows')]:
     put(name+'/Code.cs','public static class '+name.title()+' { public static int Read() => SharedApi.Read(); }')
 put('app/App.csproj',project.replace('FRAMEWORK','net10.0-windows').replace('REFERENCES','<ItemGroup><ProjectReference Include="../left/Left.csproj"/><ProjectReference Include="../right/Right.csproj"/></ItemGroup>'))
 put('app/Code.cs','return Left.Read()==7 && Right.Read()==11 ? 0 : 1;')
-put('BUILD.bazel','''load("@rules_msbuild//msbuild:toolchain.bzl","msbuild_toolchain")
-load("@rules_msbuild//msbuild:defs.bzl","msbuild_library","msbuild_test")
-msbuild_toolchain(name="implementation",dotnet="@dotnet//:sdk/dotnet",sdk="@dotnet//:files",runner="@rules_msbuild//tools/ExplicitBuild:bin/Release/net10.0/ExplicitBuild.dll",runner_support=["@rules_msbuild//tools/ExplicitBuild:files"],runtime_manifest="@dotnet//:runtime-roots.json")
-toolchain(name="registered",toolchain=":implementation",toolchain_type="@rules_msbuild//msbuild:toolchain_type")
+put('BUILD.bazel','''load("@rules_msbuild//msbuild:defs.bzl","msbuild_library","msbuild_test")
 msbuild_library(name="shared_neutral",project="shared/Shared.csproj",assembly_name="SharedNeutral",srcs=["shared/Code.cs"],target_framework="net10.0",linux_worker=True)
 msbuild_library(name="shared_platform",project="shared/Shared.csproj",assembly_name="SharedPlatform",srcs=["shared/Code.cs"],target_framework="net10.0-windows",linux_worker=True)
 msbuild_library(name="left",project="left/Left.csproj",srcs=["left/Code.cs"],deps=[":shared_neutral"],target_framework="net10.0",linux_worker=True)

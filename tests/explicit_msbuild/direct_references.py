@@ -5,6 +5,9 @@ from pathlib import Path
 import subprocess
 import sys
 
+sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "tests"))
+from fixture_sdk import sdk_declarations
+
 root=Path(__file__).resolve().parents[2];out=Path(sys.argv[1]).resolve();w=out/'source';w.mkdir(parents=True)
 sdk=os.environ['RULES_MSBUILD_DOTNET_ROOT'];bazel=os.environ['RULES_MSBUILD_BAZEL']
 def put(name,text):
@@ -12,18 +15,12 @@ def put(name,text):
 put('MODULE.bazel',f'''module(name="direct_references")
 bazel_dep(name="rules_msbuild",version="0.0.0")
 local_path_override(module_name="rules_msbuild",path={json.dumps(str(root))})
-sdk=use_repo_rule("@rules_msbuild//bazel:msbuild.bzl","local_dotnet_sdk")
-sdk(name="dotnet",path={json.dumps(sdk)})
-register_toolchains("//:registered")
-''')
+''' + sdk_declarations())
 project='<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup><TargetFramework>net10.0</TargetFramework></PropertyGroup>{}</Project>'
 put('leaf/Leaf.csproj',project.format(''));put('leaf/Code.cs','public static class Leaf { public static int Value => 7; }')
 put('middle/Middle.csproj',project.format('<ItemGroup><ProjectReference Include="../leaf/Leaf.csproj" /></ItemGroup>'))
 put('middle/Code.cs','public static class Middle { public static int Read() => Leaf.Value; }')
-header='''load("@rules_msbuild//msbuild:toolchain.bzl","msbuild_toolchain")
-load("@rules_msbuild//msbuild:defs.bzl","msbuild_library","msbuild_test")
-msbuild_toolchain(name="implementation",dotnet="@dotnet//:sdk/dotnet",sdk="@dotnet//:files",runner="@rules_msbuild//tools/ExplicitBuild:bin/Release/net10.0/ExplicitBuild.dll",runner_support=["@rules_msbuild//tools/ExplicitBuild:files"],runtime_manifest="@dotnet//:runtime-roots.json")
-toolchain(name="registered",toolchain=":implementation",toolchain_type="@rules_msbuild//msbuild:toolchain_type")
+header='''load("@rules_msbuild//msbuild:defs.bzl","msbuild_library","msbuild_test")
 msbuild_library(name="leaf",project="leaf/Leaf.csproj",srcs=["leaf/Code.cs"],target_framework="net10.0",linux_worker=True)
 msbuild_library(name="middle",project="middle/Middle.csproj",srcs=["middle/Code.cs"],deps=[":leaf"],target_framework="net10.0",linux_worker=True)
 '''

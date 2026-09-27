@@ -1,8 +1,11 @@
 """Create an SDK-style chain with explicit BUILD inputs and no NuGet downloads."""
 import argparse
 import json
-import os
 from pathlib import Path
+
+import sys
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "tests"))
+from fixture_sdk import sdk_declarations
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -11,18 +14,11 @@ def prepare(output, count):
     if count < 2:
         raise ValueError('Use at least two projects')
     output.mkdir(parents=True, exist_ok=False)
-    sdk = Path(os.environ['RULES_MSBUILD_DOTNET_ROOT']).resolve()
     (output/'MODULE.bazel').write_text('''module(name="benchmark_fixture")
 bazel_dep(name="rules_msbuild", version="0.0.0")
 local_path_override(module_name="rules_msbuild", path=%s)
-sdk = use_repo_rule("@rules_msbuild//bazel:msbuild.bzl", "local_dotnet_sdk")
-sdk(name="dotnet", path=%s)
-register_toolchains("//:registered")
-''' % (json.dumps(str(ROOT)), json.dumps(str(sdk))))
-    (output/'BUILD.bazel').write_text('''load("@rules_msbuild//msbuild:toolchain.bzl", "msbuild_toolchain")
-msbuild_toolchain(name="sdk", dotnet="@dotnet//:sdk/dotnet", sdk="@dotnet//:files", runner="@rules_msbuild//tools/ExplicitBuild:bin/Release/net10.0/ExplicitBuild.dll", runner_support=["@rules_msbuild//tools/ExplicitBuild:files"], runtime_manifest="@dotnet//:runtime-roots.json")
-toolchain(name="registered",toolchain=":sdk",toolchain_type="@rules_msbuild//msbuild:toolchain_type")
-alias(name="benchmark",actual="//P%d")
+''' % json.dumps(str(ROOT)) + sdk_declarations())
+    (output/'BUILD.bazel').write_text('''alias(name="benchmark",actual="//P%d")
 ''' % (count - 1))
     for i in range(count):
         folder = output/('P'+str(i)); folder.mkdir()

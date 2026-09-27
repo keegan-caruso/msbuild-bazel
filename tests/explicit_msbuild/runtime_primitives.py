@@ -6,6 +6,9 @@ import shutil
 import subprocess
 import sys
 
+sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "tests"))
+from fixture_sdk import sdk_declarations
+
 ROOT=Path(__file__).resolve().parents[2]
 SDK=Path(os.environ['RULES_MSBUILD_DOTNET_ROOT'])
 BAZEL=os.environ['RULES_MSBUILD_BAZEL']
@@ -17,14 +20,8 @@ def put(path,text):
 put('MODULE.bazel',f'''module(name="runtime_primitives")
 bazel_dep(name="rules_msbuild",version="0.0.0")
 local_path_override(module_name="rules_msbuild",path={json.dumps(str(ROOT))})
-sdk=use_repo_rule("@rules_msbuild//bazel:msbuild.bzl","local_dotnet_sdk")
-sdk(name="dotnet",path={json.dumps(str(SDK))})
-register_toolchains("//:registered")
-''')
-header='''load("@rules_msbuild//msbuild:toolchain.bzl","msbuild_toolchain")
-load("@rules_msbuild//msbuild:defs.bzl","msbuild_library","msbuild_test","msbuild_assembly","msbuild_layout","msbuild_runtime","msbuild_reference_pack","msbuild_generate","msbuild_items")
-msbuild_toolchain(name="implementation",dotnet="@dotnet//:sdk/dotnet",sdk="@dotnet//:files",runner="@rules_msbuild//tools/ExplicitBuild:bin/Release/net10.0/ExplicitBuild.dll",runner_support=["@rules_msbuild//tools/ExplicitBuild:files"],runtime_manifest="@dotnet//:runtime-roots.json")
-toolchain(name="registered",toolchain=":implementation",toolchain_type="@rules_msbuild//msbuild:toolchain_type")
+''' + sdk_declarations())
+header='''load("@rules_msbuild//msbuild:defs.bzl","msbuild_library","msbuild_test","msbuild_assembly","msbuild_layout","msbuild_runtime","msbuild_reference_pack","msbuild_generate","msbuild_items")
 msbuild_library(name="contract",project="ref/Contract.csproj",assembly_name="Pair",srcs=["ref/Code.cs"],target_framework="net10.0",output_mode="reference",linux_worker=True)
 msbuild_library(name="impl",project="src/Impl.csproj",assembly_name="Pair",srcs=["src/Code.cs"],target_framework="net10.0",output_mode="implementation",configuration="Release",msbuild_properties={"Feature":"Chosen"},linux_worker=True)
 msbuild_assembly(name="pair",contract=":contract",implementation=":impl")

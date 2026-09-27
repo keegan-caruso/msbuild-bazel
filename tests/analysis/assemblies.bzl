@@ -39,7 +39,7 @@ def _launch(env, targets):
         env.expect.that_collection(data).contains_at_least(["tests/analysis/payload.txt", "tests/analysis/leaf.runtime"])
         env.expect.that_bool(target[DefaultInfo].files_to_run.executable != None).equals(True)
         env.expect.that_collection(data).not_contains("tests/analysis/sdk.txt")
-        env.expect.that_collection(data).contains_at_least(["tests/analysis/shared/Microsoft.NETCore.App/mock", "tests/analysis/shared/Microsoft.AspNetCore.App/mock"])
+        env.expect.that_collection(data).contains_at_least(["tests/analysis/shared/Microsoft.NETCore.App/mock", "tests/analysis/fake_runtime.runtime"])
         env.expect.that_collection(paths(action(target, "MSBuildAssembly").inputs)).contains("tests/analysis/sdk.txt")
         launch = request(target, ".launch.json")
         env.expect.that_bool(launch["test"]).equals(name == "test")

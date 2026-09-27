@@ -5,6 +5,9 @@ The capture/adapter writer here is test scaffolding, not a production status bri
 import base64,hashlib,json,os,shutil,subprocess,sys
 from pathlib import Path
 from xml.etree import ElementTree as ET
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "tests"))
+from fixture_sdk import sdk_declarations
 ROOT=Path(__file__).resolve().parents[2];folder=Path(sys.argv[1]).resolve();folder.mkdir(parents=True)
 sdk=Path(os.environ['RULES_MSBUILD_DOTNET_ROOT']);bazel=os.environ['RULES_MSBUILD_BAZEL'];raw=folder/'raw';raw.mkdir();workspace=folder/'src';workspace.mkdir();rows=[]
 version='3.10.94';archive_hash='a56dde9219f9a0743bba1f66f8c4dbf36e5a6e8dbb22cbe8eb5c8efbbc144b6e';packages=folder/'nuget'
@@ -27,14 +30,8 @@ shutil.copyfile(archive,workspace/'nbgv.nupkg')
 (workspace/'MODULE.bazel').write_text(f'''module(name="nbgv_parity")
 bazel_dep(name="rules_msbuild",version="0.0.0")
 local_path_override(module_name="rules_msbuild",path={json.dumps(str(ROOT))})
-sdk=use_repo_rule("@rules_msbuild//bazel:msbuild.bzl","local_dotnet_sdk")
-sdk(name="dotnet",path={json.dumps(str(sdk))})
-register_toolchains("//:registered")
-''')
-(workspace/'BUILD.bazel').write_text('''load("@rules_msbuild//msbuild:toolchain.bzl","msbuild_toolchain")
-load("@rules_msbuild//msbuild:defs.bzl","msbuild_binary","msbuild_nuget_package")
-msbuild_toolchain(name="implementation",dotnet="@dotnet//:sdk/dotnet",sdk="@dotnet//:files",runner="@rules_msbuild//tools/ExplicitBuild:bin/Release/net10.0/ExplicitBuild.dll",runner_support=["@rules_msbuild//tools/ExplicitBuild:files"],runtime_manifest="@dotnet//:runtime-roots.json")
-toolchain(name="registered",toolchain=":implementation",toolchain_type="@rules_msbuild//msbuild:toolchain_type")
+''' + sdk_declarations())
+(workspace/'BUILD.bazel').write_text('''load("@rules_msbuild//msbuild:defs.bzl","msbuild_binary","msbuild_nuget_package")
 '''+f'msbuild_nuget_package(name="nbgv",package_id="Nerdbank.GitVersioning",version="{version}",archive="nbgv.nupkg",archive_sha256="{archive_hash}",content_hash="{base64.b64encode(hashlib.sha512(archive.read_bytes()).digest()).decode()}")\n'+'''msbuild_binary(name="App",project="App.csproj",target_framework="net10.0",srcs=["Program.cs"],build_deps=[":nbgv"],package_private_assets={"Nerdbank.GitVersioning":"all"},adapter_imports=["version.targets"],msbuild_imports=["version.json"],linux_worker=True)
 ''')
 base=folder/'base';startup=[bazel,'--output_base='+str(base),'--ignore_all_rc_files'];flags=['--repository_cache='+os.environ['RULES_MSBUILD_REPOSITORY_CACHE'],'--disk_cache='+str(folder/'cache'),'--strategy=MSBuildAssembly=worker','--worker_max_instances=MSBuildAssembly=1']

@@ -56,13 +56,17 @@ sdk_runner = rule(
 )
 
 def _runtime(ctx):
+    for file in ctx.files.files:
+        if not file.path.startswith(ctx.executable.dotnet.dirname + "/"):
+            fail("SDK artifacts must be rooted beside dotnet: " + file.path)
     output = ctx.actions.declare_directory(ctx.label.name + ".runtime")
     args = ctx.actions.args()
     args.add(ctx.executable.dotnet.dirname)
     args.add(output.path)
-    args.add_all(ctx.files.files)
+    files = [file for file in ctx.files.files if not ctx.attr.runtime_only or file == ctx.executable.dotnet or file.path[len(ctx.executable.dotnet.dirname) + 1:].split("/")[0] in ["host", "shared"]]
+    args.add_all(files)
     ctx.actions.run_shell(
-        inputs = ctx.files.files,
+        inputs = files,
         outputs = [output],
         arguments = [args],
         command = """set -eu
@@ -92,6 +96,7 @@ sdk_runtime = rule(
     attrs = {
         "dotnet": attr.label(allow_single_file = True, executable = True, cfg = "target", mandatory = True),
         "files": attr.label(mandatory = True),
+        "runtime_only": attr.bool(default = False),
         "runtime_identifier": attr.string(mandatory = True),
         "version": attr.string(mandatory = True),
     },

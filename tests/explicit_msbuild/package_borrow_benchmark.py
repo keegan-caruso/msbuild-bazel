@@ -13,6 +13,10 @@ import statistics
 import subprocess
 import time
 
+import sys
+sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "tests"))
+from fixture_sdk import sdk_declarations
+
 parser=argparse.ArgumentParser()
 parser.add_argument('--output',type=Path,required=True)
 parser.add_argument('--feed',type=Path,required=True)
@@ -47,7 +51,7 @@ for key,record in target.items():
  name,version=key.split('/');archive_name=name.lower()+'.'+version+'.nupkg';archive=work/'nuget'/name.lower()/version/archive_name;shutil.copyfile(archive,packages/archive_name)
  package_rules.append('msbuild_nuget_package('+','.join(k+'='+json.dumps(v) for k,v in dict(name=name.lower(),package_id=name,version=version,archive=archive_name,archive_sha256=hashlib.sha256(archive.read_bytes()).hexdigest(),content_hash=assets['libraries'][key]['sha512'],deps=[':'+x.lower() for x in record.get('dependencies',{})],visibility=['//visibility:public']).items())+')')
 (packages/'BUILD.bazel').write_text('\n'.join(package_rules))
-(workspace/'MODULE.bazel').write_text('module(name="borrow_benchmark")\nbazel_dep(name="rules_msbuild",version="0.0.0")\nlocal_path_override(module_name="rules_msbuild",path='+json.dumps(str(root))+')\nsdk=use_repo_rule("@rules_msbuild//bazel:msbuild.bzl","local_dotnet_sdk")\nsdk(name="dotnet",path='+json.dumps(str(sdk))+')\nregister_toolchains("//:registered")\n')
+(workspace/'MODULE.bazel').write_text('module(name="borrow_benchmark")\nbazel_dep(name="rules_msbuild",version="0.0.0")\nlocal_path_override(module_name="rules_msbuild",path='+json.dumps(str(root))+')\n' + sdk_declarations(extra_toolchains=("//:registered",)) + '')
 (toolroot/'BUILD.bazel').write_text('package(default_visibility=["//visibility:public"])\nfilegroup(name="borrow",srcs=glob(["borrow/*"]))\nfilegroup(name="copy",srcs=glob(["copy/*"]))\nexports_files(["borrow/ExplicitBuild.dll","copy/ExplicitBuild.dll"])\n')
 for index in range(args.projects):
  d=workspace/('P'+str(index));d.mkdir()
@@ -62,7 +66,7 @@ rows=[];hashes={}
 for pair in range(args.pairs):
  for mode in (['borrow','copy'] if pair%2==0 else ['copy','borrow']):
   (workspace/'P0/Code.cs').write_text('public static class P0 { public static int Get() => int.Parse(Microsoft.CodeAnalysis.CSharp.SyntaxFactory.Literal(7).ValueText); }')
-  (workspace/'BUILD.bazel').write_text('load("@rules_msbuild//msbuild:toolchain.bzl","msbuild_toolchain")\nmsbuild_toolchain(name="implementation",dotnet="@dotnet//:sdk/dotnet",sdk="@dotnet//:files",runner="//tools:'+mode+'/ExplicitBuild.dll",runner_support=["//tools:'+mode+'"],runtime_manifest="@dotnet//:runtime-roots.json")\ntoolchain(name="registered",toolchain=":implementation",toolchain_type="@rules_msbuild//msbuild:toolchain_type")')
+  (workspace/'BUILD.bazel').write_text('load("@rules_msbuild//msbuild:toolchain.bzl","msbuild_toolchain")\nmsbuild_toolchain(name="implementation",dotnet="@dotnet//:dotnet",sdk="@dotnet//:files",runner="//tools:'+mode+'/ExplicitBuild.dll",runner_support=["//tools:'+mode+'"])\ntoolchain(name="registered",toolchain=":implementation",toolchain_type="@rules_msbuild//msbuild:toolchain_type")')
   base=work/('base-'+mode+'-'+str(pair));prefix=[bazel,'--output_base='+str(base),'--ignore_all_rc_files']
   flags=['--repository_cache='+cache,'--disk_cache=','--jobs=4','--strategy=MSBuildAssembly=worker','--worker_max_instances=MSBuildAssembly=4','--noshow_progress','--color=no','--curses=no']
   # Acquisition/extraction and repository initialization are outside timed builds.

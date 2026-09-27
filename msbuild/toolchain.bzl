@@ -2,14 +2,14 @@
 
 def _toolchain(ctx):
     # Runtime-only runner operations do not execute MSBuild. Keep the host and
-    # CoreCLR runtime, plus any separately declared platform runtime closure.
+    # CoreCLR runtime. A generated shared/ directory may group frameworks together.
     # Compilation still receives the complete SDK below.
     sdk_root = ctx.executable.dotnet.dirname + "/"
-    runtime = depset([file for file in ctx.attr.sdk[DefaultInfo].files.to_list() if not file.path.startswith(sdk_root) or file == ctx.executable.dotnet or file.path.startswith(sdk_root + "host/") or file.path.startswith(sdk_root + "shared/Microsoft.NETCore.App/")])
+    for file in ctx.files.sdk:
+        if not file.path.startswith(sdk_root):
+            fail("SDK artifacts must be rooted beside dotnet: " + file.path)
+    runtime = depset([file for file in ctx.attr.sdk[DefaultInfo].files.to_list() if file == ctx.executable.dotnet or file.path == sdk_root + "host" or file.path.startswith(sdk_root + "host/") or file.path == sdk_root + "shared" or file.path == sdk_root + "shared/Microsoft.NETCore.App" or file.path.startswith(sdk_root + "shared/Microsoft.NETCore.App/")])
 
-    # Legacy application launch uses this host when no runtime is selected.
-    # Retain every shared framework (for example ASP.NET Core), but no SDK.
-    application_runtime = depset([file for file in ctx.attr.sdk[DefaultInfo].files.to_list() if not file.path.startswith(sdk_root) or file == ctx.executable.dotnet or file.path.startswith(sdk_root + "host/") or file.path.startswith(sdk_root + "shared/")])
     worker_tools = ctx.actions.declare_file(ctx.label.name + ".worker-tools.json")
     ctx.actions.write(worker_tools, json.encode({
         "sdk": [file.path for file in ctx.attr.sdk[DefaultInfo].files.to_list()],
@@ -20,12 +20,9 @@ def _toolchain(ctx):
         dotnet = ctx.executable.dotnet,
         sdk = ctx.attr.sdk[DefaultInfo].files,
         runtime = runtime,
-        application_runtime = application_runtime,
         runner = ctx.file.runner,
         runner_support = depset(ctx.files.runner_support),
         sdk_version = ctx.attr.sdk_version,
-        requires_runtime_toolchain = ctx.attr.requires_runtime_toolchain,
-        runtime_manifest = ctx.file.runtime_manifest,
     )]
 
 msbuild_toolchain = rule(
@@ -35,8 +32,6 @@ msbuild_toolchain = rule(
         "sdk": attr.label(mandatory = True, cfg = "exec"),
         "runner": attr.label(allow_single_file = True, mandatory = True, cfg = "exec"),
         "runner_support": attr.label_list(allow_files = True, cfg = "exec"),
-        "runtime_manifest": attr.label(allow_single_file = True, mandatory = True, cfg = "exec"),
         "sdk_version": attr.string(default = "10.0.400"),
-        "requires_runtime_toolchain": attr.bool(default = False),
     },
 )

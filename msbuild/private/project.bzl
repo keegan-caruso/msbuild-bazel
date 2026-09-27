@@ -227,7 +227,6 @@ def build_project(ctx, executable = False, test = False, restore_only = False, p
         "reference": reference.path if reference else diagnostics.path,
         "diagnostics": diagnostics.path,
         "sdkVersion": tc.sdk_version,
-        "runtimeManifest": tc.runtime_manifest.path,
     }))
     arguments = [tc.runner.path, "build", request.path]
     requirements = {"no-sandbox": "1"}
@@ -245,7 +244,7 @@ def build_project(ctx, executable = False, test = False, restore_only = False, p
         arguments = arguments,
         tools = depset([tc.runner, tc.worker_tools], transitive = [tc.sdk, tc.runner_support]) if ctx.attr.linux_worker else [],
         inputs = depset(
-            [project, request, tc.runner, tc.runtime_manifest] + selected.files + ctx.files.srcs + ctx.files.source_paths + ctx.files.msbuild_imports + ctx.files.import_paths + ctx.files.adapter_imports + ([restore.file] if restore else []),
+            [project, request, tc.runner] + selected.files + ctx.files.srcs + ctx.files.source_paths + ctx.files.msbuild_imports + ctx.files.import_paths + ctx.files.adapter_imports + ([restore.file] if restore else []),
             transitive = [depset([p.assembly.reference if p.artifact == "reference" else p.assembly.runtime for p in project_outputs]), depset([dep.runtime for dep in analyzer_projects] + [row.directory for dep in analyzer_projects for row in dep.runtime_packages.to_list()], transitive = [dep.runtimes for dep in analyzer_projects]), tc.sdk, tc.runner_support, compiler_references, runtime_only_references, pack_files, depset([target[MSBuildLayoutInfo].directory for target in ctx.attr.layout_bindings]), package_files, restore_projects] + [group[MSBuildItemsInfo].files for group in ctx.attr.items] + [tool.files for tool in build_tools],
         ),
         outputs = ([diagnostics] + generated.values()) if generate else [reference, runtime, diagnostics] + ([identity] if identity else []) + ([restore_project] if restore_project else []) + ([target_output] if target_output else []),
@@ -297,11 +296,11 @@ def build_project(ctx, executable = False, test = False, restore_only = False, p
     host = ctx.attr.runtime_host[MSBuildRuntimeInfo] if ctx.attr.runtime_host else None
     if host == None and ctx.toolchains[_RUNTIME_TOOLCHAIN] != None:
         host = ctx.toolchains[_RUNTIME_TOOLCHAIN].runtime
-    if host == None and tc.requires_runtime_toolchain:
+    if host == None:
         fail("No SDK runtime matches the target platform; declare a compatible SDK platform or runtime_host")
     launch_request = ctx.actions.declare_file(ctx.label.name + ".launch.json")
     ctx.actions.write(launch_request, json.encode({
-        "runtimeHost": {"directory": _runfile(ctx, host.directory), "entryPoint": host.entry_point, "launchMode": host.launch_mode, "runtimeIdentifier": host.runtime_identifier, "version": host.version, "environment": host.environment} if host else None,
+        "runtimeHost": {"directory": _runfile(ctx, host.directory), "entryPoint": host.entry_point, "launchMode": host.launch_mode, "runtimeIdentifier": host.runtime_identifier, "version": host.version, "environment": host.environment},
         "entry": _runfile(ctx, runtime),
         "packages": [_runtime_package(row, ctx) for row in runtime_packages.to_list()],
         "dependencies": [_runfile(ctx, file) for file in runtimes.to_list()],
@@ -330,7 +329,7 @@ exec "$runfiles/"%s "$runfiles/"%s run "$runfiles/"%s "$@"
 """ % (_quote(_runfile(ctx, tc.dotnet)), _quote(_runfile(ctx, tc.runner)), _quote(_runfile(ctx, launch_request)))
     ctx.actions.write(launcher, script, is_executable = True)
     runfiles = ctx.runfiles(
-        files = [tc.dotnet, tc.runner, runtime, launch_request] + ([host.directory] if host else []) + [row.file for row in runtime_data.to_list()] + ([ctx.file.test_settings] if test and ctx.file.test_settings else []),
-        transitive_files = depset(transitive = ([host.files] if host else []) + [tc.runtime if host else tc.application_runtime, tc.runner_support, runtimes, depset([row.directory for row in runtime_packages.to_list()])] + [tool[MSBuildTestToolInfo].files for tool in test_tools]),
+        files = [tc.dotnet, tc.runner, runtime, launch_request] + [host.directory] + [row.file for row in runtime_data.to_list()] + ([ctx.file.test_settings] if test and ctx.file.test_settings else []),
+        transitive_files = depset(transitive = [host.files] + [tc.runtime, tc.runner_support, runtimes, depset([row.directory for row in runtime_packages.to_list()])] + [tool[MSBuildTestToolInfo].files for tool in test_tools]),
     )
     return ([RunEnvironmentInfo(environment = ctx.attr.env)] if test else []) + [DefaultInfo(executable = launcher, files = depset([runtime]), runfiles = runfiles), info, OutputGroupInfo(reference = depset([reference]), diagnostics = depset([diagnostics]), target_results = depset([target_output] if target_output else []))]
