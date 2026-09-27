@@ -14,7 +14,7 @@ ROOT = Path(__file__).resolve().parents[2]
 
 
 class PackageIntegrity(unittest.TestCase):
-    def extract(self, mutation=None):
+    def extract(self, mutation=None, generated=False):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             data = io.BytesIO()
@@ -30,12 +30,18 @@ class PackageIntegrity(unittest.TestCase):
             request = dict(id='Wrong' if mutation == 'identity' else 'Example', version='1.0.0',
                 archive=str(root/'input.nupkg'), contentHash=base64.b64encode(hashlib.sha512(payload).digest()).decode(),
                 archiveSha256='0'*64 if mutation == 'hash' else hashlib.sha256(payload).hexdigest(), output=str(root/'output'))
+            if generated:
+                request.update(generated=True, contentHash='', archiveSha256='')
             (root/'request.json').write_text(json.dumps(request))
             result = subprocess.run([str(Path(os.environ.get('RULES_MSBUILD_DOTNET_ROOT', ROOT/'.tools/dotnet'))/'dotnet'),
                 str(ROOT/'tools/ExplicitBuild/bin/Release/net10.0/ExplicitBuild.dll'), 'extract', str(root/'request.json')], capture_output=True, text=True)
             if mutation in (None, 'separators', 'metadata', 'normalized-version'):
                 self.assertEqual(result.returncode, 0, result.stderr)
                 self.assertEqual((root/'output/lib/net10.0/Example.dll').read_bytes(), b'fixture')
+                if generated:
+                    expected = base64.b64encode(hashlib.sha512(payload).digest()).decode()
+                    self.assertEqual((root/'output/example.1.0.0.nupkg.sha512').read_text(), expected)
+                    self.assertEqual(json.loads((root/'output/.nupkg.metadata').read_text())['contentHash'], expected)
             else:
                 self.assertNotEqual(result.returncode, 0)
                 self.assertIn({'hash': 'locked archive hash', 'identity': 'identity differs', 'version': 'identity differs', 'prerelease': 'identity differs', 'traversal': 'Unsafe logical path', 'collision': 'Duplicate package entry'}[mutation], result.stderr)
@@ -52,6 +58,15 @@ class PackageIntegrity(unittest.TestCase):
 
     def test_prerelease_does_not_match_release(self):
         self.extract('prerelease')
+
+    def test_generated_content_hash(self):
+        self.extract(generated=True)
+
+    def test_generated_wrong_identity(self):
+        self.extract('identity', generated=True)
+
+    def test_generated_path_traversal(self):
+        self.extract('traversal', generated=True)
 
     def test_valid_archive(self):
         self.extract()

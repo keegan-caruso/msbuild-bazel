@@ -55,3 +55,50 @@ is claimed here.
 
 Upstream references: [VMR build instructions](https://github.com/dotnet/dotnet/tree/b0f34d51fccc69fd334253924abd8d6853fad7aa#building),
 [source-build requirements](https://github.com/dotnet/source-build/blob/main/Documentation/system-requirements.md).
+
+## Generated package handoff
+
+`msbuild_generated_nuget_package` consumes a declared Bazel action's `.nupkg`
+output. Package ID and version remain explicit analysis-time inputs; the NuGet
+content hash is computed from the produced bytes during extraction. Source-file
+archives are rejected by this rule. Acquired archives still use
+`msbuild_nuget_package` with mandatory SHA-256 and NuGet content hashes.
+
+```python
+msbuild_generated_nuget_package(
+    name = "source_package",
+    package_id = "Source.Package",
+    version = "1.0.0",
+    archive = ":pack",
+)
+```
+
+Use this package in `deps`, `build_deps`, or other existing package roles and in
+an explicit `msbuild_package_lock`. Declaring a package in the lock alone does
+not authorize it as a project's direct dependency.
+
+The `tests/source_sdk/package_handoff.py` synthetic uses actual SDK `Pack`
+through `msbuild_generate`, then consumes the resulting package offline. On
+macOS ARM64 / Bazel 9.2.0 / downloaded SDK 10.0.400, initial execution and body-edit
+execution passed; mismatched package identity, missing producer output, and a
+source-file archive were rejected. Thirteen package extraction unit checks also
+passed, including the new generated content-hash, identity and path controls.
+This establishes the handoff mechanism, not a real upstream SDK component build.
+
+## Upstream baseline issues
+
+The initial preparation failed because the minimal toolchain image lacked
+`file`. Adding the pinned source's native prerequisites and `file` allowed its
+binary scan to complete; it removed 743 disallowed checked-in binaries.
+
+The first source build failed in IdentityModel: its wall-clock-derived file
+version became `8.0.0.70927`, exceeding the valid revision range. The qualification
+patch in `tests/source_sdk/patches/identitymodel-file-version.patch` passes
+`FileVersion=<declared release version>.0` to that component's nested builds.
+It does not disable compiler warnings or source-build binary checks.
+
+Retrying the failed tree exposed external-package patch stamps surviving while
+`PrepareInnerClone` recopied original source files. The current attempt uses a
+fresh extraction and fresh package state. The bootstrap archive and SDK are the
+only reused build inputs. `tests/source_sdk/baseline.sh` records the commands for
+a fresh source tree; native package versions must be retained with its evidence.
