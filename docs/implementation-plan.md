@@ -69,3 +69,9 @@ See [platform scope](platform-validation-scope.md) and
 
 Older implementations and experiments are available through [history](history.md).
 Use the [documentation index](index.md) for current guides.
+
+## Source-built runtime application goal
+
+A normal app now runs on a selected source-built runtime, including SDK-absent
+execution, incremental controls and independent HTTP cache recovery. See the
+[qualified workflow and scope](runtime-application.md).

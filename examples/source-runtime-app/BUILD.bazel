@@ -1,0 +1,11 @@
+load("@rules_msbuild//msbuild:defs.bzl", "msbuild_binary")
+
+msbuild_binary(
+    name = "app",
+    srcs = ["Program.cs"],
+    linux_worker = True,
+    project = "App.csproj",
+    runtime_host = "//runtime:app_host",
+    target_framework = "net10.0",
+    use_apphost = False,
+)

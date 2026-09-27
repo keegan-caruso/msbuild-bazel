@@ -3,3 +3,4 @@
 artifacts
 examples/hello
 examples/quickstart
+examples/source-runtime-app
