@@ -1,71 +1,91 @@
 # Run an app on a source-built runtime
 
-## Goal
+An ordinary SDK-style app now builds with Bazel and runs on a selected runtime
+built from dotnet/runtime source. `bazel run //app:app` exercises JSON, gzip,
+asynchronous stream reading and SHA-256. The application uses the existing
+`runtime_host` attribute; no application-specific rule changes are required.
 
-Build a pinned dotnet/runtime revision with Bazel and run an ordinary SDK-style
-application on the resulting runtime. Preserve upstream MSBuild semantics and
-make the runtime an explicit application execution dependency.
-
-The first platform is Linux ARM64, using runtime v10.0.0
+The qualification uses Linux ARM64, runtime v10.0.0
 (`60629d14374c56f1cb51819049ad1fa529307f8d`), SDK 10.0.400 and Bazel 9.2.0.
-The SDK remains a bootstrap compiler and targeting-pack input. Operating-system
-libraries remain platform inputs. Neither may substitute installed .NET runtime
-binaries into the application's selected host.
+The composed framework directory is `10.0.0`; the source build identifies itself
+as `.NET 10.0.0-dev`.
 
-## Acceptance
+## Verified behavior
 
-1. Build CoreLib, the required managed libraries, CoreCLR, JIT, dotnet host and
-   required native support libraries from declared source/tool inputs.
-2. Compose these products with `msbuild_layout` and expose `msbuild_runtime`.
-3. `bazel run //app:app` successfully exercises JSON, gzip and cryptography.
-4. Compare every host binary with its source producer and verify the actual
-   process loads the selected runtime. Include a rejected fallback control.
-5. Verify that runtime edits invalidate execution inputs while preserving an
-   unchanged app compilation; app edits preserve runtime build results.
-6. Recover the outputs in an independent cache consumer and run the app again.
+- All **130 host binaries** match their declared source producers: 121 managed
+  framework assemblies, eight native binaries and the qualification probe.
+- The app loads **28 source-built components**, including CoreLib, CoreCLR, JIT,
+  dotnet, hostfxr, hostpolicy and native compression/cryptography support.
+- Direct execution succeeds with only the host, app and OS directories mounted.
+  The installed SDK, build checkout and package cache are inaccessible.
+- Removing CoreCLR fails with exit code **135**, even when an installed SDK
+  runtime is advertised. It does not silently fall back.
 
-This is a usable selected runtime, not a claim that all dotnet/runtime projects,
-platforms or framework components are supported.
+Incremental controls retain upstream semantics:
 
-## Work in progress
+| Edit | Recompiled | Result |
+| --- | --- | --- |
+| None | Nothing | No executed actions |
+| `Console.WriteLine` body | `System.Console` and its `mscorlib` implementation-reference consumer | App behavior changes; `App.dll` and the Console contract remain unchanged |
+| App greeting | App only | Every host binary remains unchanged |
+| Revert either edit | Affected targets | Original binary hashes restored |
 
-`tests/explicit_msbuild/runtime/application_prepare.py` prepares a standalone
-workspace from the pinned checkout. It reuses the qualification inventory and
-source-host composition without bringing along the runtime test projects.
-Preparation acquires packages and evaluates upstream projects; Bazel owns the
-resulting declared managed and native builds. Temporary installed-host metadata
-is used for component selection and then removed by `source_host.py`.
+An independent container at a different workspace path, with the producer
+stopped, recovered **270 managed actions, five native actions and 120 layouts**
+from HTTP cache. Disk caching and consumer uploads were disabled. All **2,834
+assembly, native and layout output hashes** matched. Both app launch modes and
+the missing-CoreCLR control passed again on the recovered outputs.
 
-The initial preparation attempt incorrectly propagated platform-specific target
-frameworks into build-tool restore. Restore now evaluates the outer projects
-before the selected framework builds, as in the existing raw runtime benchmark.
-The managed prerequisite build and configured inventory now pass. Removing a
-redundant CoreLib root preserves the configuration already reached through
-upstream references. Generated declarations contain 262 managed nodes and 90
-package inputs; the source-only host selects 121 managed and eight native
-products, with no runtime test projects. Project references with
-`PrivateAssets="all"` are emitted as `implementation_deps`, matching upstream
-visibility. The full Bazel build and app execution now pass.
+See [compact evidence](runtime-application-evidence.json). Recorded incremental
+times are single build/verification samples, not a performance benchmark.
 
-The launcher loads 28 source-built components, and all 130 host binaries
-(including the qualification probe) match their declared producers. Removing
-CoreCLR fails even when the installed SDK runtime is advertised. Runtime and app
-body-edit controls pass, including restoration of the original hashes. Independent
-HTTP cache recovery is still being validated.
+## Reproduce
 
-Preparation command, in a provisioned Linux ARM64 environment:
+Use a Linux ARM64 environment with the pinned SDK/Bazel tools. Native preparation
+also needs clang, CMake, make, Python headers, bubblewrap and development packages
+for ICU, unwind, LTTng, NUMA, OpenSSL, zlib and Kerberos. User namespaces must work.
+The native preparer captures compiler tools/headers as explicit archives; native
+build actions run upstream scripts in a filesystem and network namespace.
+
+From this repository, with a clean checkout of the pinned runtime revision:
 
 ```sh
 export RULES_MSBUILD_DOTNET_ROOT=/path/to/pinned/dotnet
+export RULES_MSBUILD_BAZEL="$PWD/scripts/bazel-launcher.sh"
+bash scripts/dotnet.sh build tools/ExplicitBuild/ExplicitBuild.csproj -c Release
 python3 tests/explicit_msbuild/runtime/application_prepare.py \
   /path/to/runtime /path/to/new-output
 ```
 
-The output retains per-stage logs. Its `workspace/app/BUILD.bazel` selects
-`//runtime:app_host`, whose entry point is the source-built `dotnet` executable.
+Preparation restores and builds upstream prerequisites, evaluates the configured
+graph, and emits explicit declarations. Raw build outputs are excluded from the
+Bazel workspace. Project references with `PrivateAssets="all"` become
+`implementation_deps`. A temporary installed-host inventory selects framework
+components; `source_host.py` then removes every installed runtime binary.
 
-Validation so far: Python syntax checks and BUILD formatting pass. The initial
-cold build exhausted host disk space; interrupted output bases were discarded.
-Reclaiming unused filesystem blocks and old Bazel caches provided enough space
-for the complete source build. This environment setup cost is not a build-time
-benchmark.
+In the resulting `workspace` directory:
+
+```sh
+"$RULES_MSBUILD_BAZEL" --output_base=/path/to/base run //app:app \
+  --jobs=2 --strategy=MSBuildAssembly=worker \
+  --worker_max_instances=MSBuildAssembly=1
+```
+
+The example's [BUILD file](../examples/source-runtime-app/BUILD.bazel) sets
+`runtime_host = "//runtime:app_host"`. That target exposes an `msbuild_layout`
+through `msbuild_runtime`, using the source-built `dotnet` entry point.
+
+The scripts beside `application_prepare.py` provide the remaining checks:
+`application_verify.py` verifies binary identities and isolation;
+`application_incremental.py` exercises edits and restores sources;
+`application_cache.py` seeds or recovers an HTTP cache using an empty output base.
+Each accepts `--help` and retains reports/logs in the requested output directory.
+
+## Scope
+
+This is a reproducible qualification workflow for a selected runtime, not a
+complete redistributable framework or source-built SDK. Build tools, the rules'
+launcher and targeting packs still use the bootstrap SDK. Direct execution of
+the built app needs only the composed runtime and OS libraries. Other framework
+components require additional declared producers and qualification; this does
+not establish support for every app, runtime project or platform.
