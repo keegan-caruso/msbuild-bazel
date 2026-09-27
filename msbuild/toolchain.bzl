@@ -2,13 +2,13 @@
 
 def _toolchain(ctx):
     # Runtime-only runner operations do not execute MSBuild. Keep the host and
-    # CoreCLR runtime, plus any separately declared platform runtime closure.
+    # CoreCLR runtime. A generated shared/ directory may group frameworks together.
     # Compilation still receives the complete SDK below.
     sdk_root = ctx.executable.dotnet.dirname + "/"
     for file in ctx.files.sdk:
         if not file.path.startswith(sdk_root):
             fail("SDK artifacts must be rooted beside dotnet: " + file.path)
-    runtime = depset([file for file in ctx.attr.sdk[DefaultInfo].files.to_list() if not file.path.startswith(sdk_root) or file == ctx.executable.dotnet or file.path == sdk_root + "host" or file.path.startswith(sdk_root + "host/") or file.path == sdk_root + "shared" or file.path == sdk_root + "shared/Microsoft.NETCore.App" or file.path.startswith(sdk_root + "shared/Microsoft.NETCore.App/")])
+    runtime = depset([file for file in ctx.attr.sdk[DefaultInfo].files.to_list() if file == ctx.executable.dotnet or file.path == sdk_root + "host" or file.path.startswith(sdk_root + "host/") or file.path == sdk_root + "shared" or file.path == sdk_root + "shared/Microsoft.NETCore.App" or file.path.startswith(sdk_root + "shared/Microsoft.NETCore.App/")])
 
     worker_tools = ctx.actions.declare_file(ctx.label.name + ".worker-tools.json")
     ctx.actions.write(worker_tools, json.encode({

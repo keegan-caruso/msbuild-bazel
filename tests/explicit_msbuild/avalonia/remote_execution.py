@@ -56,7 +56,6 @@ if a.recover:
 
 build = f.workspace / 'upstream/BUILD.bazel'
 lines = build.read_text().splitlines()
-lines = [line for line in lines if not line.startswith(('load("@rules_msbuild//msbuild:toolchain', 'msbuild_toolchain(', 'toolchain('))]
 lines = [line.replace(',allow_remote_execution=True', '').replace('linux_worker=True', 'linux_worker=True,allow_remote_execution=True') for line in lines]
 # The probe lives outside upstream's Directory.Build.* imports.
 lines = [line for line in lines if not line.startswith('package(')]

@@ -88,3 +88,58 @@ On Linux ARM64/Bazel 9.2.0, the synthetic generated SDK passed build/test and
 body/API edits through a persistent worker, exercising directory inventory
 expansion. These are bounded artifact-contract tests, not whole-SDK source-build
 or cross-compilation qualification. No GitHub CI was dispatched.
+
+## Source-produced SDK usage
+
+An SDK producer exposes the executable and complete SDK payload as labels:
+
+```starlark
+load("@rules_msbuild//msbuild:sdk.bzl", "msbuild_sdk")
+
+msbuild_sdk(
+    name = "source_sdk",
+    dotnet = "//sdk:dotnet",
+    files = ["//sdk:payload"],
+    sdk_version = "10.0.400",
+    runtime_version = "10.0.11",
+    runtime_identifier = "linux-arm64",
+)
+```
+
+For a declaration in `//toolchains`, register these in `MODULE.bazel`:
+
+```starlark
+register_toolchains(
+    "//toolchains:source_sdk_registered",
+    "//toolchains:source_sdk_runtime_registered",
+)
+```
+
+The payload includes dotnet and preserves SDK-relative directories such as
+`sdk/`, `host/`, `shared/` and `packs/`. The labels may identify generated files
+and generated directory artifacts. Neither acquisition nor analysis reads a host
+SDK path. A complete upstream SDK source producer is not implemented by this
+macro; it is an integration point for that producer.
+
+Applications can still select a separately source-built runtime with
+`runtime_host`, independently of the SDK used to compile them.
+
+## Independent HTTP-cache recovery
+
+Linux ARM64/Bazel 9.2.0 qualification used separate containers and different
+checkout/output paths. With the producer stopped, an empty consumer output base
+recovered runner bootstrap, SDK runtime assembly, both managed compilations and
+test results from HTTP cache. No compilation ran in the consumer. Disk caching
+and consumer uploads were disabled. See [compact evidence](sdk-toolchains-evidence.json).
+
+Reproduce with `tests/explicit_msbuild/sdk_cache_workers.py --mode seed|recover`
+and `--cache <HTTP URL>` in independent environments. Use
+`tests/explicit_msbuild/generated_sdk.py <fresh-directory>` for generated artifact
+handoff, adding `--worker` on qualified Linux workers. The ordinary matrix is
+`python3 scripts/test-bazel-matrix.py --output <fresh-directory>`.
+
+Final review also removed obsolete host-SDK switching/rewriting in the remote
+fixture. Its default now uses the existing SDK-only declaration and includes
+bootstrap actions in its assertions. Declaration generation and syntax were
+checked; the REAPI suite was not rerun for this migration. HTTP cache recovery
+above does not substitute for remote-execution qualification.
