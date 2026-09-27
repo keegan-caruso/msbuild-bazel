@@ -69,3 +69,9 @@ See [platform scope](platform-validation-scope.md) and
 
 Older implementations and experiments are available through [history](history.md).
 Use the [documentation index](index.md) for current guides.
+
+## Source-built runtime application goal
+
+The next end-to-end goal is to build the selected runtime from source and run a
+normal app on it. See [scope and acceptance](runtime-application.md). Fresh
+qualification is in progress; the application workflow is not yet validated.
