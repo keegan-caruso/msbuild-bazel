@@ -589,14 +589,15 @@ consumer checks follow; the identical-input repeat above was not byte-identical.
 
 ## Component-produced SDK consumer and recovery
 
-With `--sdk-consumer`, the generator extracts the SDK archive from the final
-component bundle, creates an SDK layout, registers it through `msbuild_sdk`,
-and builds a normal SDK-style library and console app with `msbuild_library`
-and `msbuild_test`. The downloaded controller SDK still compiles the source
-action driver; the app toolchain uses the component-produced SDK. The app test
-passed and printed `SDK_FROM_COMPONENTS=10.0.0`. The logged library and app
-`MSBuildAssembly` actions both invoke `layout/dotnet`, and the test launch
-manifest selects `produced_runtime.runtime/dotnet`.
+With `--sdk-consumer`, the generator registers the component-produced SDK
+through `msbuild_sdk` and builds a normal SDK-style library and console app
+with `msbuild_library` and `msbuild_test`. The downloaded controller SDK still
+compiles the source action driver; the app toolchain uses the
+component-produced SDK. The first consumer qualification extracted the SDK
+archive from the component bundle in two later actions. Its app test passed
+and printed `SDK_FROM_COMPONENTS=10.0.0`. The logged library and app
+`MSBuildAssembly` actions both invoked `layout/dotnet`, and the test launch
+manifest selected `produced_runtime.runtime/dotnet`.
 
 The Linux ARM64 seed run took **7:09.87**: 20 component actions were HTTP
 cache hits, while Razor and SDK ran locally and uploaded to a writable cache.
@@ -631,3 +632,42 @@ bundle digest matched. Forcing the test process to execute then passed in
 **18.42 seconds** and printed the same runtime version, while build actions
 stayed cached. These runs used the same machine and an HTTP cache in a separate
 Apple container; they do not qualify remote execution.
+
+The subsequent direct-layout variant declares `dotnet`, the top-level SDK
+files, and each SDK directory as outputs of the SDK component action. Its
+SDK-specific driver expands the upstream `.tar.gz` straight into those Bazel
+outputs after MSBuild finishes. The component bundle remains an output for
+dependency handoff and evidence. The separate archive-member and layout
+extraction actions are gone. Other components retain the original driver so
+their action cache keys are unchanged. Apple Container's masked child mounts
+under `/proc` and `/sys` still require the private mount namespace described
+above for nested Bubblewrap; the SDK driver keeps its normal `--proc` mount.
+This remains a same-machine qualification, not remote-execution evidence.
+
+For Apple Container, run the Bazel command above inside this mount setup:
+
+```sh
+unshare -m sh -c '
+  mount --make-rprivate /
+  for child in /proc/keys /proc/timer_list /proc/bus /proc/fs /proc/irq /proc/sys /sys/fs/cgroup /sys/firmware; do
+    umount "$child"
+  done
+  exec tini -s -- bazelisk --batch test //:smoke --jobs=1 --disk_cache= \
+    --remote_cache=http://cache:8080 --remote_cache_async=false \
+    --remote_download_outputs=all --test_output=all
+'
+```
+
+The direct-layout Linux ARM64 seed passed in **313.835 seconds** with one local
+SDK component action and cached upstream components. It declared 4,786 SDK
+files beneath four top-level file outputs and eight directory outputs. Both
+library and app compilation used `sdk.layout/dotnet`; the test printed
+`SDK_FROM_COMPONENTS=10.0.0`. A new workspace and Bazel output/user roots, with
+disk cache and uploads disabled, recovered all **31** logged actions from the
+HTTP cache in **40.312 seconds**. That included all **22** component producers;
+the recovered component bundle SHA-256 matched the seed at
+`b9c79ae5393fc5215af934bfa75fa10af7b35c9248e42ced6aa044a0e16937f6`.
+Forcing the recovered test process to execute passed in **13.298 seconds**
+while its build actions stayed cached. These timings are incremental/cache
+observations, not a matched cold comparison with raw MSBuild or the previous
+archive path.

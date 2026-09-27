@@ -80,6 +80,7 @@ The [Bazel-managed SDK migration](sdk-toolchains.md) records removal of host-pat
 SDK setup and the shared downloaded/source-produced artifact contract.
 
 The [SDK source-build qualification](source-sdk.md) now builds the pinned
-22-component graph on Linux ARM64, runs an app with its SDK, and recovers all
-component actions from an HTTP cache. This remains a pinned qualification;
+22-component graph on Linux ARM64, emits the SDK layout as declared component
+outputs, runs an app with that SDK, and recovers all component actions and the
+layout from an HTTP cache. This remains a pinned qualification;
 general source-built SDK distribution and byte-identical output are open.

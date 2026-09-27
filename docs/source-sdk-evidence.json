@@ -186,6 +186,28 @@
     "initialConsumerAttemptInterruptedByHostDiskExhaustion": true,
     "remoteExecutionQualified": false
   },
+  "directSdkLayout": {
+    "platform": "Ubuntu 22.04 ARM64 Apple Container",
+    "bazelVersion": "9.2.0",
+    "sdkOutputFiles": 4786,
+    "declaredTopLevelFiles": 4,
+    "declaredDirectories": 8,
+    "compilerSdk": "bazel-out/aarch64-opt-exec/bin/sdk.layout/dotnet",
+    "appOutput": "SDK_FROM_COMPONENTS=10.0.0",
+    "seedWallSeconds": 313.835,
+    "seedLocalComponentActions": ["sdk"],
+    "freshRecoveryWallSeconds": 40.312,
+    "freshRecoveryLoggedActions": 31,
+    "freshRecoveryRemoteHits": 31,
+    "freshRecoveryComponentHits": 22,
+    "remoteUploadsEnabledInRecovery": false,
+    "localDiskCacheEnabledInRecovery": false,
+    "recoveredComponentBundleSha256": "b9c79ae5393fc5215af934bfa75fa10af7b35c9248e42ced6aa044a0e16937f6",
+    "forcedRecoveredTestWallSeconds": 13.298,
+    "forcedRecoveredTestExecuted": true,
+    "sameBuildMachine": true,
+    "remoteExecutionQualified": false
+  },
   "componentGraph": {
     "components": [
       "source-build-reference-packages",
