@@ -98,6 +98,16 @@
       "consumerBodyEditSeconds": 16.54,
       "consumerApiEditSeconds": 16.27,
       "sdkRebuiltForConsumerEdits": false
+    },
+    "consumerCases": {
+      "build": 0,
+      "nofetchReuse": 0,
+      "bodyEditTestFailure": 3,
+      "apiEditCompileFailure": 1,
+      "generatedPackage": 0,
+      "razorRendering": 0,
+      "publish": 0,
+      "executePublishedApp": 0
     }
   }
 }

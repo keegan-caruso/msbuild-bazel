@@ -264,7 +264,9 @@ with Bazel 9.2.0: **28:45.043** end-to-end, including **27:09.79** inside upstre
 `build.sh`. The SDK reports `10.0.100`, MSBuild `18.0.2`, and runtime/ASP.NET
 `10.0.0`; the final prebuilt-package check found zero files. Component probes ran
 concurrently, and the baseline used development branding, so these runs do not
-isolate Bazel overhead. The produced archive digest is in the evidence summary.
+isolate Bazel overhead. The produced archive digest is in the evidence summary. The same archive also
+passed all eight produced-SDK consumer checks above, including generated NuGet
+packages, Razor rendering and execution of a framework-dependent publish.
 
 Source/native/bootstrap archive timestamps use a fixed 1980 date because NuGet
 rejects pre-1980 ZIP timestamps. Source archive rewriting also clears stale PAX
