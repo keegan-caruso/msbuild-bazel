@@ -31,6 +31,8 @@ def _sdk_toolchains(ctx):
     rows = ['package(default_visibility = ["//visibility:public"])']
     choices = {}
     sdk_hosts = {}
+    sdk_files = {}
+    executables = {}
     for platform, repo in ctx.attr.repositories.items():
         constraints = json.encode(SDK_PLATFORMS[platform])
         name = platform.replace("-", "_")
@@ -39,8 +41,12 @@ def _sdk_toolchains(ctx):
         rows.append("config_setting(name=%s, constraint_values=%s)" % (json.encode(name), constraints))
         choices[":" + name] = "@" + repo + "//:sdk_runtime"
         sdk_hosts[":" + name] = "@" + repo + "//:sdk_host"
+        sdk_files[":" + name] = "@" + repo + "//:files"
+        executables[":" + name] = "@" + repo + "//:sdk/dotnet"
     rows.append("alias(name=\"runtime\", actual=select(%s, no_match_error=\"No SDK runtime for the target platform\"))" % json.encode(choices))
     rows.append("alias(name=\"sdk_host\", actual=select(%s, no_match_error=\"No SDK host for the target platform\"))" % json.encode(sdk_hosts))
+    rows.append("alias(name=\"files\", actual=select(%s))" % json.encode(sdk_files))
+    rows.append("alias(name=\"dotnet\", actual=select(%s))" % json.encode(executables))
     ctx.file("BUILD.bazel", "\n".join(rows) + "\n")
 
 sdk_toolchains = repository_rule(

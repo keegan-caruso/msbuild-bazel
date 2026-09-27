@@ -12,8 +12,8 @@ docs/explicit-linux-workers.md and docs/orchard-stable-worker-paths.md for limit
 Bazel 8.8.0 and 9.2.0 are supported baselines; 9.2.0 remains the default.
 
 The old discovery/replay implementations and dependent tests have been removed.
-Toolchain checks use standalone tools/Tooling. Keep local_dotnet_sdk in
-bazel/msbuild.bzl: explicit builds still use it. Historical commands require the
+Toolchain checks use standalone tools/Tooling. SDK toolchains consume verified
+archives or declared Bazel-produced artifacts; do not add host-path SDK repositories. Historical commands require the
 revisions recorded in docs/history.md. GitHub CI runs only
 when explicitly requested. Read README.md and docs/implementation-plan.md before
 implementing changes.

@@ -50,14 +50,12 @@ def setup(folder):
     put('MODULE.bazel', f'''module(name="ivt_qualification")
 bazel_dep(name="rules_msbuild",version="0.0.0")
 local_path_override(module_name="rules_msbuild",path={json.dumps(str(ROOT))})
-sdk=use_repo_rule("@rules_msbuild//bazel:msbuild.bzl","local_dotnet_sdk")
-sdk(name="dotnet",path={json.dumps(str(SDK))})
-register_toolchains("//:registered")
+dotnet=use_extension("@rules_msbuild//msbuild:extensions.bzl","dotnet")
+dotnet.sdk(name="dotnet",version="10.0.400")
+use_repo(dotnet,"dotnet")
+register_toolchains("@dotnet//:all")
 ''')
-    put('BUILD.bazel', '''load("@rules_msbuild//msbuild:toolchain.bzl","msbuild_toolchain")
-msbuild_toolchain(name="implementation",dotnet="@dotnet//:sdk/dotnet",sdk="@dotnet//:files",runner="@rules_msbuild//tools/ExplicitBuild:bin/Release/net10.0/ExplicitBuild.dll",runner_support=["@rules_msbuild//tools/ExplicitBuild:files"])
-toolchain(name="registered",toolchain=":implementation",toolchain_type="@rules_msbuild//msbuild:toolchain_type")
-''')
+    put('BUILD.bazel', '''''')
     for name, assembly, code in [('Library','Fixture.Library',LIBRARY),('Friend','Fixture.Tests',TEST),('Stranger','Fixture.Stranger','return Secrets.Get();')]:
         properties='<TargetFramework>net10.0</TargetFramework><AssemblyName>'+assembly+'</AssemblyName>'
         if name != 'Library': properties += '<OutputType>Exe</OutputType>'

@@ -65,10 +65,8 @@ shutil.copytree(source, root, ignore=shutil.ignore_patterns('.git', '.dotnet', '
 archive_root = root / 'locked-packages'
 archive_root.mkdir()
 shutil.copyfile(Path(__file__).with_name('layout.targets'), root/'layout.targets')
-header = ['load("@rules_msbuild//msbuild:toolchain.bzl", "msbuild_toolchain")',
-          'load("@rules_msbuild//msbuild:defs.bzl", "msbuild_library", "msbuild_binary", "msbuild_nuget_package", "msbuild_nuget_dependencies", "msbuild_package_lock", "msbuild_items", "msbuild_tool", "msbuild_project_output", "msbuild_assembly", "msbuild_file_binding", "msbuild_test", "msbuild_test_tool", "msbuild_layout", "msbuild_runtime")',
-          'msbuild_toolchain(name="implementation",dotnet="@dotnet//:sdk/dotnet",sdk="@dotnet//:files",runner="@rules_msbuild//tools/ExplicitBuild:bin/Release/net10.0/ExplicitBuild.dll",runner_support=["@rules_msbuild//tools/ExplicitBuild:files"])',
-          'toolchain(name="registered",toolchain=":implementation",toolchain_type="@rules_msbuild//msbuild:toolchain_type")']
+header = ['load("@rules_msbuild//msbuild:defs.bzl", "msbuild_library", "msbuild_binary", "msbuild_nuget_package", "msbuild_nuget_dependencies", "msbuild_package_lock", "msbuild_items", "msbuild_tool", "msbuild_project_output", "msbuild_assembly", "msbuild_file_binding", "msbuild_test", "msbuild_test_tool", "msbuild_layout", "msbuild_runtime")',
+          ]
 def call(rule, **args):
     return rule + '(' + ','.join(k+'='+(str(v) if isinstance(v,bool) else json.dumps(v)) for k,v in args.items()) + ')'
 def label(project, framework):
@@ -318,7 +316,7 @@ header.append('load(":qualification.bzl", "unsupported_project")')
 if project_bindings:
     (workspace/'project-bindings.json').write_text(json.dumps(project_bindings, indent=2)+'\n')
 (root/'BUILD.bazel').write_text('\n'.join(header+list(packages.values())+list(closures.values())+declarations)+ '\n'+call('filegroup',name='benchmark',testonly=any(r['properties']['IsTestProject'].lower()=='true' for r in rows),srcs=[':'+label(r['project'],r['framework']) for r in rows])+'\n')
-(workspace/'MODULE.bazel').write_text('module(name="runtime_reference")\nbazel_dep(name="rules_msbuild",version="0.0.0")\nlocal_path_override(module_name="rules_msbuild",path='+json.dumps(str(rules))+')\nsdk=use_repo_rule("@rules_msbuild//bazel:msbuild.bzl","local_dotnet_sdk")\nsdk(name="dotnet",path='+json.dumps(os.environ['RULES_MSBUILD_DOTNET_ROOT'])+')\nregister_toolchains("//upstream:registered")\n')
+(workspace/'MODULE.bazel').write_text('module(name="runtime_reference")\nbazel_dep(name="rules_msbuild",version="0.0.0")\nlocal_path_override(module_name="rules_msbuild",path='+json.dumps(str(rules))+')\ndotnet=use_extension("@rules_msbuild//msbuild:extensions.bzl","dotnet")\ndotnet.sdk(name="dotnet",version="10.0.400")\nuse_repo(dotnet,"dotnet")\nregister_toolchains("@dotnet//:all")\n')
 (workspace/'package-lock.json').write_text(json.dumps(manifest,indent=2)+'\n')
 print('Declared',len(rows),'framework nodes,',len(packages),'packages',flush=True)
 

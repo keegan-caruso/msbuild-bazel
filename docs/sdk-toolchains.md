@@ -32,3 +32,15 @@ failing test, and an API edit rejected by compilation on macOS ARM64/Bazel 9.2.0
 Its synthetic action repackages a pinned SDK into a generated executable and
 six directory artifacts. This proves artifact handoff, not compilation of the
 entire dotnet SDK from source.
+
+## Step 3: retire host-path acquisition
+
+Ordinary fixture and benchmark graphs now use `dotnet.sdk`; the old
+`local_dotnet_sdk` repository and its tests are removed. The deliberate runner
+comparison benchmark retains a custom runner with downloaded SDK labels.
+`dotnet` and `files` aliases expose those declared artifacts without host paths.
+Contributor bootstrap remains available for tooling and upstream preparation.
+
+The migrated acceptance fixture passed build/run/test, body edits, declared-input
+rejection and independent output-base disk-cache recovery on macOS ARM64/Bazel
+9.2.0. Remote caching is a separate qualification gate below.

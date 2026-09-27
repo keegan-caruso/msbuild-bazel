@@ -19,7 +19,7 @@ by_project={}
 for row in rows: by_project.setdefault(row['project'],[]).append(row['id'])
 shutil.copytree(source,root,ignore=shutil.ignore_patterns('bin','obj','.git','artifacts'),dirs_exist_ok=False)
 packages=root/'locked-packages'; packages.mkdir()
-header=['load("@rules_msbuild//msbuild:toolchain.bzl","msbuild_toolchain")','load("@rules_msbuild//msbuild:defs.bzl","msbuild_library","msbuild_binary","msbuild_nuget_package","msbuild_items","msbuild_nuget_dependencies","msbuild_package_lock","msbuild_tool","msbuild_file_binding")', 'msbuild_toolchain(name="implementation",dotnet="@dotnet//:sdk/dotnet",sdk="@dotnet//:files",runner="@rules_msbuild//tools/ExplicitBuild:bin/Release/net10.0/ExplicitBuild.dll",runner_support=["@rules_msbuild//tools/ExplicitBuild:files"])','toolchain(name="registered",toolchain=":implementation",toolchain_type="@rules_msbuild//msbuild:toolchain_type")']
+header=['load("@rules_msbuild//msbuild:defs.bzl","msbuild_library","msbuild_binary","msbuild_nuget_package","msbuild_items","msbuild_nuget_dependencies","msbuild_package_lock","msbuild_tool","msbuild_file_binding")', ]
 def call(rule,**args):
  def encode(v):return str(v) if isinstance(v,bool) else json.dumps(v)
  return rule+'('+','.join(k+'='+encode(v) for k,v in args.items())+')'
@@ -112,7 +112,7 @@ for row in rows:
  header.append(call('msbuild_binary' if row['properties']['OutputType']=='Exe' else 'msbuild_library',**attrs))
 header.append('filegroup(name="benchmark",srcs='+json.dumps([':'+label(row['id']) for row in rows if row['entry']])+')')
 (root/'BUILD.bazel').write_text('\n'.join(header)+'\n')
-(workspace/'MODULE.bazel').write_text('module(name="oss_explicit")\nbazel_dep(name="rules_msbuild",version="0.0.0")\nlocal_path_override(module_name="rules_msbuild",path='+json.dumps(str(rules))+')\nsdk=use_repo_rule("@rules_msbuild//bazel:msbuild.bzl","local_dotnet_sdk")\nsdk(name="dotnet",path='+json.dumps(os.environ['RULES_MSBUILD_DOTNET_ROOT'])+')\nregister_toolchains("//'+config.get('sourceSubdir','')+':registered")\n')
+(workspace/'MODULE.bazel').write_text('module(name="oss_explicit")\nbazel_dep(name="rules_msbuild",version="0.0.0")\nlocal_path_override(module_name="rules_msbuild",path='+json.dumps(str(rules))+')\ndotnet=use_extension("@rules_msbuild//msbuild:extensions.bzl","dotnet")\ndotnet.sdk(name="dotnet",version="10.0.400")\nuse_repo(dotnet,"dotnet")\nregister_toolchains("@dotnet//:all")\n')
 summary=dict(projects=len(rows),packageTargets=len(package_rules),sourceFiles=sum(len(r['compile']) for r in rows),entries=config['entries'])
 (folder/'package-lock.json').write_text(json.dumps(package_manifest,indent=2)+'\n')
 (folder/'labels.json').write_text(json.dumps(labels,indent=2)+'\n')
