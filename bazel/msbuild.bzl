@@ -2,8 +2,7 @@
 
 def _sdk_impl(ctx):
     ctx.symlink(ctx.attr.path, "sdk")
-    ctx.file("runtime-roots.json", "[]")
-    ctx.file("BUILD.bazel", 'filegroup(name="files", srcs=glob(["sdk/**"], exclude=["sdk/**/BUILD", "sdk/**/BUILD.bazel"], allow_empty=False), visibility=["//visibility:public"])\nexports_files(["sdk/dotnet", "runtime-roots.json"])\n')
+    ctx.file("BUILD.bazel", 'filegroup(name="files", srcs=glob(["sdk/**"], exclude=["sdk/**/BUILD", "sdk/**/BUILD.bazel"], allow_empty=False), visibility=["//visibility:public"])\nexports_files(["sdk/dotnet"])\n')
 
 local_dotnet_sdk = repository_rule(
     implementation = _sdk_impl,

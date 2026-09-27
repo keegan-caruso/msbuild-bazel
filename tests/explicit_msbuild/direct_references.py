@@ -22,7 +22,7 @@ put('middle/Middle.csproj',project.format('<ItemGroup><ProjectReference Include=
 put('middle/Code.cs','public static class Middle { public static int Read() => Leaf.Value; }')
 header='''load("@rules_msbuild//msbuild:toolchain.bzl","msbuild_toolchain")
 load("@rules_msbuild//msbuild:defs.bzl","msbuild_library","msbuild_test")
-msbuild_toolchain(name="implementation",dotnet="@dotnet//:sdk/dotnet",sdk="@dotnet//:files",runner="@rules_msbuild//tools/ExplicitBuild:bin/Release/net10.0/ExplicitBuild.dll",runner_support=["@rules_msbuild//tools/ExplicitBuild:files"],runtime_manifest="@dotnet//:runtime-roots.json")
+msbuild_toolchain(name="implementation",dotnet="@dotnet//:sdk/dotnet",sdk="@dotnet//:files",runner="@rules_msbuild//tools/ExplicitBuild:bin/Release/net10.0/ExplicitBuild.dll",runner_support=["@rules_msbuild//tools/ExplicitBuild:files"])
 toolchain(name="registered",toolchain=":implementation",toolchain_type="@rules_msbuild//msbuild:toolchain_type")
 msbuild_library(name="leaf",project="leaf/Leaf.csproj",srcs=["leaf/Code.cs"],target_framework="net10.0",linux_worker=True)
 msbuild_library(name="middle",project="middle/Middle.csproj",srcs=["middle/Code.cs"],deps=[":leaf"],target_framework="net10.0",linux_worker=True)

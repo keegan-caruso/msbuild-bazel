@@ -62,7 +62,7 @@ rows=[];hashes={}
 for pair in range(args.pairs):
  for mode in (['borrow','copy'] if pair%2==0 else ['copy','borrow']):
   (workspace/'P0/Code.cs').write_text('public static class P0 { public static int Get() => int.Parse(Microsoft.CodeAnalysis.CSharp.SyntaxFactory.Literal(7).ValueText); }')
-  (workspace/'BUILD.bazel').write_text('load("@rules_msbuild//msbuild:toolchain.bzl","msbuild_toolchain")\nmsbuild_toolchain(name="implementation",dotnet="@dotnet//:sdk/dotnet",sdk="@dotnet//:files",runner="//tools:'+mode+'/ExplicitBuild.dll",runner_support=["//tools:'+mode+'"],runtime_manifest="@dotnet//:runtime-roots.json")\ntoolchain(name="registered",toolchain=":implementation",toolchain_type="@rules_msbuild//msbuild:toolchain_type")')
+  (workspace/'BUILD.bazel').write_text('load("@rules_msbuild//msbuild:toolchain.bzl","msbuild_toolchain")\nmsbuild_toolchain(name="implementation",dotnet="@dotnet//:sdk/dotnet",sdk="@dotnet//:files",runner="//tools:'+mode+'/ExplicitBuild.dll",runner_support=["//tools:'+mode+'"])\ntoolchain(name="registered",toolchain=":implementation",toolchain_type="@rules_msbuild//msbuild:toolchain_type")')
   base=work/('base-'+mode+'-'+str(pair));prefix=[bazel,'--output_base='+str(base),'--ignore_all_rc_files']
   flags=['--repository_cache='+cache,'--disk_cache=','--jobs=4','--strategy=MSBuildAssembly=worker','--worker_max_instances=MSBuildAssembly=4','--noshow_progress','--color=no','--curses=no']
   # Acquisition/extraction and repository initialization are outside timed builds.

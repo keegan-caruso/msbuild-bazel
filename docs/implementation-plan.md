@@ -75,3 +75,6 @@ Use the [documentation index](index.md) for current guides.
 A normal app now runs on a selected source-built runtime, including SDK-absent
 execution, incremental controls and independent HTTP cache recovery. See the
 [qualified workflow and scope](runtime-application.md).
+
+The [Bazel-managed SDK migration](sdk-toolchains.md) records removal of host-path
+SDK setup and the shared downloaded/source-produced artifact contract.

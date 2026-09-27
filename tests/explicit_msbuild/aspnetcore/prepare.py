@@ -34,7 +34,7 @@ for name in ['Directory.Build.props', 'Directory.Build.targets']:
     shutil.copyfile(source / path, root / path)
 header = ['load("@rules_msbuild//msbuild:toolchain.bzl", "msbuild_toolchain")',
           'load("@rules_msbuild//msbuild:defs.bzl", "msbuild_library", "msbuild_binary", "msbuild_nuget_package", "msbuild_nuget_dependencies", "msbuild_package_lock", "msbuild_items", "msbuild_tool", "msbuild_project_output")',
-          'msbuild_toolchain(name="implementation",dotnet="@dotnet//:sdk/dotnet",sdk="@dotnet//:files",runner="@rules_msbuild//tools/ExplicitBuild:bin/Release/net10.0/ExplicitBuild.dll",runner_support=["@rules_msbuild//tools/ExplicitBuild:files"],runtime_manifest="@dotnet//:runtime-roots.json")',
+          'msbuild_toolchain(name="implementation",dotnet="@dotnet//:sdk/dotnet",sdk="@dotnet//:files",runner="@rules_msbuild//tools/ExplicitBuild:bin/Release/net10.0/ExplicitBuild.dll",runner_support=["@rules_msbuild//tools/ExplicitBuild:files"])',
           'toolchain(name="registered",toolchain=":implementation",toolchain_type="@rules_msbuild//msbuild:toolchain_type")']
 def call(rule, **args):
     return rule + '(' + ','.join(k+'='+(str(v) if isinstance(v,bool) else json.dumps(v)) for k,v in args.items()) + ')'

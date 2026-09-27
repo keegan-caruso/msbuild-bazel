@@ -25,7 +25,7 @@ register_toolchains("//:registered")
 ''')
 header = '''load("@rules_msbuild//msbuild:toolchain.bzl","msbuild_toolchain")
 load("@rules_msbuild//msbuild:defs.bzl","msbuild_binary","msbuild_nuget_package","msbuild_package_lock")
-msbuild_toolchain(name="implementation",dotnet="@dotnet//:sdk/dotnet",sdk="@dotnet//:files",runner="@rules_msbuild//tools/ExplicitBuild:bin/Release/net10.0/ExplicitBuild.dll",runner_support=["@rules_msbuild//tools/ExplicitBuild:files"],runtime_manifest="@dotnet//:runtime-roots.json")
+msbuild_toolchain(name="implementation",dotnet="@dotnet//:sdk/dotnet",sdk="@dotnet//:files",runner="@rules_msbuild//tools/ExplicitBuild:bin/Release/net10.0/ExplicitBuild.dll",runner_support=["@rules_msbuild//tools/ExplicitBuild:files"])
 toolchain(name="registered",toolchain=":implementation",toolchain_type="@rules_msbuild//msbuild:toolchain_type")
 '''
 for version in ['1.0.0','2.0.0']:

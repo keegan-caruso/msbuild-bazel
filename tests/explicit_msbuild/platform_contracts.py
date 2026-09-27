@@ -24,7 +24,7 @@ put('app/App.csproj',project.format('<ItemGroup><ProjectReference Include="../im
 put('app/Code.cs','return Api.Read()==7 ? 0 : 1;')
 header='''load("@rules_msbuild//msbuild:toolchain.bzl","msbuild_toolchain")
 load("@rules_msbuild//msbuild:defs.bzl","msbuild_library","msbuild_assembly","msbuild_test")
-msbuild_toolchain(name="implementation",dotnet="@dotnet//:sdk/dotnet",sdk="@dotnet//:files",runner="@rules_msbuild//tools/ExplicitBuild:bin/Release/net10.0/ExplicitBuild.dll",runner_support=["@rules_msbuild//tools/ExplicitBuild:files"],runtime_manifest="@dotnet//:runtime-roots.json")
+msbuild_toolchain(name="implementation",dotnet="@dotnet//:sdk/dotnet",sdk="@dotnet//:files",runner="@rules_msbuild//tools/ExplicitBuild:bin/Release/net10.0/ExplicitBuild.dll",runner_support=["@rules_msbuild//tools/ExplicitBuild:files"])
 toolchain(name="registered",toolchain=":implementation",toolchain_type="@rules_msbuild//msbuild:toolchain_type")
 msbuild_library(name="contract",project="ref/Ref.csproj",assembly_name="Pair",srcs=["ref/Code.cs"],target_framework="CONTRACT",output_mode="reference",linux_worker=True)
 msbuild_library(name="impl",project="impl/Impl.csproj",assembly_name="Pair",srcs=["impl/Code.cs"],target_framework="IMPLEMENTATION",output_mode="implementation",linux_worker=True)

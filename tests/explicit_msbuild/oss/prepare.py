@@ -19,7 +19,7 @@ by_project={}
 for row in rows: by_project.setdefault(row['project'],[]).append(row['id'])
 shutil.copytree(source,root,ignore=shutil.ignore_patterns('bin','obj','.git','artifacts'),dirs_exist_ok=False)
 packages=root/'locked-packages'; packages.mkdir()
-header=['load("@rules_msbuild//msbuild:toolchain.bzl","msbuild_toolchain")','load("@rules_msbuild//msbuild:defs.bzl","msbuild_library","msbuild_binary","msbuild_nuget_package","msbuild_items","msbuild_nuget_dependencies","msbuild_package_lock","msbuild_tool","msbuild_file_binding")', 'msbuild_toolchain(name="implementation",dotnet="@dotnet//:sdk/dotnet",sdk="@dotnet//:files",runner="@rules_msbuild//tools/ExplicitBuild:bin/Release/net10.0/ExplicitBuild.dll",runner_support=["@rules_msbuild//tools/ExplicitBuild:files"],runtime_manifest="@dotnet//:runtime-roots.json")','toolchain(name="registered",toolchain=":implementation",toolchain_type="@rules_msbuild//msbuild:toolchain_type")']
+header=['load("@rules_msbuild//msbuild:toolchain.bzl","msbuild_toolchain")','load("@rules_msbuild//msbuild:defs.bzl","msbuild_library","msbuild_binary","msbuild_nuget_package","msbuild_items","msbuild_nuget_dependencies","msbuild_package_lock","msbuild_tool","msbuild_file_binding")', 'msbuild_toolchain(name="implementation",dotnet="@dotnet//:sdk/dotnet",sdk="@dotnet//:files",runner="@rules_msbuild//tools/ExplicitBuild:bin/Release/net10.0/ExplicitBuild.dll",runner_support=["@rules_msbuild//tools/ExplicitBuild:files"])','toolchain(name="registered",toolchain=":implementation",toolchain_type="@rules_msbuild//msbuild:toolchain_type")']
 def call(rule,**args):
  def encode(v):return str(v) if isinstance(v,bool) else json.dumps(v)
  return rule+'('+','.join(k+'='+encode(v) for k,v in args.items())+')'

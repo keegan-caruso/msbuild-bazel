@@ -55,7 +55,7 @@ sdk(name="dotnet",path={json.dumps(str(SDK))})
 register_toolchains("//:registered")
 ''')
     put('BUILD.bazel', '''load("@rules_msbuild//msbuild:toolchain.bzl","msbuild_toolchain")
-msbuild_toolchain(name="implementation",dotnet="@dotnet//:sdk/dotnet",sdk="@dotnet//:files",runner="@rules_msbuild//tools/ExplicitBuild:bin/Release/net10.0/ExplicitBuild.dll",runner_support=["@rules_msbuild//tools/ExplicitBuild:files"],runtime_manifest="@dotnet//:runtime-roots.json")
+msbuild_toolchain(name="implementation",dotnet="@dotnet//:sdk/dotnet",sdk="@dotnet//:files",runner="@rules_msbuild//tools/ExplicitBuild:bin/Release/net10.0/ExplicitBuild.dll",runner_support=["@rules_msbuild//tools/ExplicitBuild:files"])
 toolchain(name="registered",toolchain=":implementation",toolchain_type="@rules_msbuild//msbuild:toolchain_type")
 ''')
     for name, assembly, code in [('Library','Fixture.Library',LIBRARY),('Friend','Fixture.Tests',TEST),('Stranger','Fixture.Stranger','return Secrets.Get();')]:

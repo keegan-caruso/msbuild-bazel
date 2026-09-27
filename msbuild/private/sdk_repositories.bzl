@@ -9,14 +9,13 @@ SDK_PLATFORMS = {
 
 def _sdk_archive(ctx):
     ctx.download_and_extract(url = ctx.attr.urls, integrity = ctx.attr.integrity, output = "sdk", canonical_id = ctx.attr.integrity)
-    ctx.file("runtime-roots.json", "[]")
     ctx.file("BUILD.bazel", """load(%s, "sdk_runner", "sdk_runtime", "sdk_runtime_toolchain")
 load(%s, "msbuild_toolchain")
 package(default_visibility = ["//visibility:public"])
 filegroup(name = "files", srcs = glob(["sdk/**"], exclude = ["sdk/**/BUILD", "sdk/**/BUILD.bazel"]))
 sdk_runner(name = "runner_payload", dotnet = "sdk/dotnet", sdk = ":files", project = %s, sources = %s)
 filegroup(name = "runner", srcs = [":runner_payload"], output_group = "runner")
-msbuild_toolchain(name = "sdk_toolchain", dotnet = "sdk/dotnet", sdk = ":files", runner = ":runner", runner_support = [":runner_payload"], runtime_manifest = "runtime-roots.json", sdk_version = %s, requires_runtime_toolchain = True)
+msbuild_toolchain(name = "sdk_toolchain", dotnet = "sdk/dotnet", sdk = ":files", runner = ":runner", runner_support = [":runner_payload"], sdk_version = %s, requires_runtime_toolchain = True)
 filegroup(name = "runtime_files", srcs = ["sdk/dotnet"] + glob(["sdk/host/**", "sdk/shared/**"]))
 sdk_runtime(name = "runtime", dotnet = "sdk/dotnet", files = ":runtime_files", runtime_identifier = %s, version = %s)
 sdk_runtime(name = "sdk_host", dotnet = "sdk/dotnet", files = ":files", runtime_identifier = %s, version = %s)

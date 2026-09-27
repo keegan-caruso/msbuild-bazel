@@ -227,7 +227,6 @@ def build_project(ctx, executable = False, test = False, restore_only = False, p
         "reference": reference.path if reference else diagnostics.path,
         "diagnostics": diagnostics.path,
         "sdkVersion": tc.sdk_version,
-        "runtimeManifest": tc.runtime_manifest.path,
     }))
     arguments = [tc.runner.path, "build", request.path]
     requirements = {"no-sandbox": "1"}
@@ -245,7 +244,7 @@ def build_project(ctx, executable = False, test = False, restore_only = False, p
         arguments = arguments,
         tools = depset([tc.runner, tc.worker_tools], transitive = [tc.sdk, tc.runner_support]) if ctx.attr.linux_worker else [],
         inputs = depset(
-            [project, request, tc.runner, tc.runtime_manifest] + selected.files + ctx.files.srcs + ctx.files.source_paths + ctx.files.msbuild_imports + ctx.files.import_paths + ctx.files.adapter_imports + ([restore.file] if restore else []),
+            [project, request, tc.runner] + selected.files + ctx.files.srcs + ctx.files.source_paths + ctx.files.msbuild_imports + ctx.files.import_paths + ctx.files.adapter_imports + ([restore.file] if restore else []),
             transitive = [depset([p.assembly.reference if p.artifact == "reference" else p.assembly.runtime for p in project_outputs]), depset([dep.runtime for dep in analyzer_projects] + [row.directory for dep in analyzer_projects for row in dep.runtime_packages.to_list()], transitive = [dep.runtimes for dep in analyzer_projects]), tc.sdk, tc.runner_support, compiler_references, runtime_only_references, pack_files, depset([target[MSBuildLayoutInfo].directory for target in ctx.attr.layout_bindings]), package_files, restore_projects] + [group[MSBuildItemsInfo].files for group in ctx.attr.items] + [tool.files for tool in build_tools],
         ),
         outputs = ([diagnostics] + generated.values()) if generate else [reference, runtime, diagnostics] + ([identity] if identity else []) + ([restore_project] if restore_project else []) + ([target_output] if target_output else []),

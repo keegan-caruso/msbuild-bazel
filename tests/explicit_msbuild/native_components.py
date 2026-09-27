@@ -29,7 +29,7 @@ for name,path in tools.items():
 (folder/'tool-identities.json').write_text(json.dumps({n:hashlib.sha256(p.read_bytes()).hexdigest() for n,p in tools.items()},indent=2))
 build='''load("@rules_msbuild//msbuild:toolchain.bzl","msbuild_toolchain")
 load("@rules_msbuild//msbuild:defs.bzl","msbuild_library","msbuild_test","msbuild_tool","msbuild_file_binding","msbuild_native_tool","msbuild_layout","msbuild_generate")
-msbuild_toolchain(name="implementation",dotnet="@dotnet//:sdk/dotnet",sdk="@dotnet//:files",runner="@rules_msbuild//tools/ExplicitBuild:bin/Release/net10.0/ExplicitBuild.dll",runner_support=["@rules_msbuild//tools/ExplicitBuild:files"],runtime_manifest="@dotnet//:runtime-roots.json")
+msbuild_toolchain(name="implementation",dotnet="@dotnet//:sdk/dotnet",sdk="@dotnet//:files",runner="@rules_msbuild//tools/ExplicitBuild:bin/Release/net10.0/ExplicitBuild.dll",runner_support=["@rules_msbuild//tools/ExplicitBuild:files"])
 toolchain(name="registered",toolchain=":implementation",toolchain_type="@rules_msbuild//msbuild:toolchain_type")
 msbuild_layout(name="compiler_tree",paths={"native-tools/gcc":"gcc","native-tools/cc1":"cc1","native-tools/as":"as","native-tools/ld":"ld"})
 msbuild_native_tool(name="compiler",layout=":compiler_tree",entry_point="gcc")

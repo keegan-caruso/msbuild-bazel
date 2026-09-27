@@ -29,7 +29,7 @@ register_toolchains("//:registered")
 ''';(src/'MODULE.bazel').write_text(module)
 build='''load("@rules_msbuild//msbuild:toolchain.bzl","msbuild_toolchain")
 load("@rules_msbuild//msbuild:defs.bzl","msbuild_generate","msbuild_binary","msbuild_nuget_package","msbuild_package_lock")
-msbuild_toolchain(name="implementation",dotnet="@dotnet//:sdk/dotnet",sdk="@dotnet//:files",runner="@rules_msbuild//tools/ExplicitBuild:bin/Release/net10.0/ExplicitBuild.dll",runner_support=["@rules_msbuild//tools/ExplicitBuild:files"],runtime_manifest="@dotnet//:runtime-roots.json")
+msbuild_toolchain(name="implementation",dotnet="@dotnet//:sdk/dotnet",sdk="@dotnet//:files",runner="@rules_msbuild//tools/ExplicitBuild:bin/Release/net10.0/ExplicitBuild.dll",runner_support=["@rules_msbuild//tools/ExplicitBuild:files"])
 toolchain(name="registered",toolchain=":implementation",toolchain_type="@rules_msbuild//msbuild:toolchain_type")
 '''
 for label,id,v,sha in [('templating','Microsoft.DotNet.Build.Tasks.Templating',version,'2f633353a3929728e4d4b1211973922c01f6c906fbf888103ff7ba708b62982d'),('primitives','Microsoft.Extensions.Primitives','10.0.0','0eea74f0a729b4b8e59e9379b79ffffa9e27f0551381102ae27ff0d6ceaeb3e2'),('netref','Microsoft.NETCore.App.Ref','10.0.0','8f2b6f7741a571640ba2598dddb9c15ca8a3a0020240d024f2ce1ed264fa0a9b'),('nethost','Microsoft.NETCore.App.Host.linux-arm64','10.0.0','44b0d61bbe076831487e7d23c90a05ea27f56a90b7d62e564ebc57a7cf4d0038')]:

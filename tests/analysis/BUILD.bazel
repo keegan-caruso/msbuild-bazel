@@ -11,7 +11,6 @@ msbuild_toolchain(
     name = "fake_sdk",
     dotnet = "dotnet",
     runner = "Runner.dll",
-    runtime_manifest = "runtime.json",
     sdk = ":sdk_files",
     tags = ["manual"],
 )

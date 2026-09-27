@@ -27,7 +27,7 @@ put('app/App.csproj',project.replace('FRAMEWORK','net10.0-windows').replace('REF
 put('app/Code.cs','return Left.Read()==7 && Right.Read()==11 ? 0 : 1;')
 put('BUILD.bazel','''load("@rules_msbuild//msbuild:toolchain.bzl","msbuild_toolchain")
 load("@rules_msbuild//msbuild:defs.bzl","msbuild_library","msbuild_test")
-msbuild_toolchain(name="implementation",dotnet="@dotnet//:sdk/dotnet",sdk="@dotnet//:files",runner="@rules_msbuild//tools/ExplicitBuild:bin/Release/net10.0/ExplicitBuild.dll",runner_support=["@rules_msbuild//tools/ExplicitBuild:files"],runtime_manifest="@dotnet//:runtime-roots.json")
+msbuild_toolchain(name="implementation",dotnet="@dotnet//:sdk/dotnet",sdk="@dotnet//:files",runner="@rules_msbuild//tools/ExplicitBuild:bin/Release/net10.0/ExplicitBuild.dll",runner_support=["@rules_msbuild//tools/ExplicitBuild:files"])
 toolchain(name="registered",toolchain=":implementation",toolchain_type="@rules_msbuild//msbuild:toolchain_type")
 msbuild_library(name="shared_neutral",project="shared/Shared.csproj",assembly_name="SharedNeutral",srcs=["shared/Code.cs"],target_framework="net10.0",linux_worker=True)
 msbuild_library(name="shared_platform",project="shared/Shared.csproj",assembly_name="SharedPlatform",srcs=["shared/Code.cs"],target_framework="net10.0-windows",linux_worker=True)

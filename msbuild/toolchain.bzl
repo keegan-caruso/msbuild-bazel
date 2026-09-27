@@ -25,7 +25,6 @@ def _toolchain(ctx):
         runner_support = depset(ctx.files.runner_support),
         sdk_version = ctx.attr.sdk_version,
         requires_runtime_toolchain = ctx.attr.requires_runtime_toolchain,
-        runtime_manifest = ctx.file.runtime_manifest,
     )]
 
 msbuild_toolchain = rule(
@@ -35,7 +34,6 @@ msbuild_toolchain = rule(
         "sdk": attr.label(mandatory = True, cfg = "exec"),
         "runner": attr.label(allow_single_file = True, mandatory = True, cfg = "exec"),
         "runner_support": attr.label_list(allow_files = True, cfg = "exec"),
-        "runtime_manifest": attr.label(allow_single_file = True, mandatory = True, cfg = "exec"),
         "sdk_version": attr.string(default = "10.0.400"),
         "requires_runtime_toolchain": attr.bool(default = False),
     },
