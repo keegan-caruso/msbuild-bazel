@@ -51,7 +51,8 @@ The definition inventory, synthetic generated-package handoff, and real
 NoTargets source-package handoff have passed. Acquisition of the pinned source
 archive succeeded (about 460 MiB compressed, 3.3 GiB extracted). The full upstream
 development-version baseline and produced-SDK consumer checks passed. The complete
-Bazel component graph, cache recovery and self-hosting remain unqualified.
+Bazel component graph and self-hosting remain unqualified; produced-SDK consumers
+have separate cache-recovery evidence below.
 
 Upstream references: [VMR build instructions](https://github.com/dotnet/dotnet/tree/b0f34d51fccc69fd334253924abd8d6853fad7aa#building),
 [source-build requirements](https://github.com/dotnet/source-build/blob/main/Documentation/system-requirements.md).
@@ -212,3 +213,26 @@ The publish case required exposing `executable=True` on `msbuild_generate` so it
 can preserve executable semantics while invoking custom targets. This small
 publish fixture does not qualify general deployment, self-contained publish,
 trimming, AOT, workloads, or other distributions/architectures.
+
+## Produced-SDK remote-cache recovery
+
+`tests/source_sdk/cache_recovery.py` seeds an HTTP cache with remote reads
+disabled, then copies the consumer sources to another workspace and uses fresh
+Bazel output/user roots, no local disk cache, and read-only remote-cache access.
+Every logged recovery action must be a cache hit. Recovered artifact hashes
+must agree with the producer, and a final invocation forces all three tests to
+execute. Test XML generation is counted separately from actual test execution.
+
+```sh
+python3 tests/source_sdk/cache_recovery.py /tmp/source-sdk-consumer \
+  /tmp/source-sdk-cache --cache http://cache-host:8080
+```
+
+With the pinned `bazel-remote` cache in a separate Apple Container, the measured
+Bazel 9.2.0 runs took 34.55s to seed, 17.84s to recover, and 6.98s to force tests.
+These wall times include batch Bazel startup and concurrent upstream self-hosting
+work. They are correctness measurements, not an isolated performance comparison.
+The recovered actions include SDK extraction, runner bootstrap, package generation
+and extraction, application compilation and tests. Recovery used another path
+in the same Linux VM, not another build machine. This does not establish cache
+behavior for the SDK source-component graph itself.

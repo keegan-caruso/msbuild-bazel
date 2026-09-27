@@ -32,6 +32,17 @@
     "upstream SDK build is not yet a Bazel component graph",
     "development version baseline differs from pinned release build ID",
     "native apt additions recorded but immutable environment not yet qualified",
-    "no source SDK remote-cache recovery or self-hosting claim"
-  ]
+    "no SDK source-component cache or self-hosting claim"
+  ],
+  "consumerCache": {
+    "seedSeconds": 34.55,
+    "recoverySeconds": 17.84,
+    "forcedTestsSeconds": 6.98,
+    "freshWorkspace": true,
+    "freshBazelState": true,
+    "localDiskCache": false,
+    "sameBuildMachine": true,
+    "forcedTests": 3,
+    "allRecoverySpawnsCacheHits": true
+  }
 }
