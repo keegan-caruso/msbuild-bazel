@@ -173,7 +173,13 @@
         "cecil",
         "runtime",
         "xdt",
-        "symreader"
+        "symreader",
+        "roslyn",
+        "msbuild",
+        "nuget-client",
+        "aspnetcore",
+        "deployment-tools",
+        "fsharp"
       ],
       "cecil": {
         "componentCount": 3,
@@ -214,7 +220,64 @@
         "bundleFiles": 2,
         "bundleSha256": "e2d40691cfb5f0c4b3e2f3c400baf8400a886878968cab448f2b27a6053346eb"
       },
-      "cumulativeGraphAfterSbrpOutputChangeQualified": false,
+    "cumulativeGraphAfterSbrpOutputChangeQualified": true,
+    "cumulativeGraphThroughRoslyn": {
+      "componentCount": 8,
+      "exitCode": 0,
+      "bazelWallSeconds": 1751.87,
+      "runtimeInnerBuildSeconds": 1356.41,
+      "runtimeBundleFiles": 146,
+      "runtimeBundleBytes": 1343987291,
+      "runtimeBundleSha256": "0746a10db77c1318ab9cdf405583132d3579fdf91b4c9c7d91d0f485af3bfd90",
+      "roslynInnerBuildSeconds": 138.87,
+      "roslynBundleFiles": 26,
+      "roslynBundleBytes": 62131566,
+      "roslynBundleSha256": "a775ec66e0d8856e355d82a022b462b4a47d53ed58a9fda405866e46329e67a6",
+      "freshRemoteRecoveryQualified": false
+    },
+    "msbuild": {
+      "exitCode": 0,
+      "bazelWallSeconds": 93.86,
+      "innerBuildSeconds": 40.32,
+      "bundleFiles": 8,
+      "bundleBytes": 7530906,
+      "bundleSha256": "3a36be8e6922b4b5423a7883d5b60744c2f05fcc476d56dd7c31d1e6b380db0c"
+    },
+    "nugetClient": {
+      "exitCode": 0,
+      "bazelWallSeconds": 121.87,
+      "innerBuildSeconds": 26.89,
+      "bundleFiles": 20,
+      "bundleBytes": 3242645,
+      "bundleSha256": "431c456cf1ad588be29889e0433ef427bff5a9bfad04a60e753af35cf3ca2625"
+    },
+    "aspnetcore": {
+      "exitCode": 0,
+      "bazelWallSeconds": 229.81,
+      "innerBuildSeconds": 167.45,
+      "bundleFiles": 55,
+      "bundleBytes": 377211788,
+      "bundleSha256": "127f3b1511a670ec4ace31afcfddac26c545f50d7a90f3f3440b1ca1c5ab3e1b"
+    },
+    "deploymentTools": {
+      "exitCode": 0,
+      "bazelWallSeconds": 48.6,
+      "innerBuildSeconds": 6.19,
+      "bundleFiles": 2,
+      "bundleBytes": 82838,
+      "bundleSha256": "e7690fe6d4630f8b9579bbd32bcc0b2df9e3d1bb741978532b3955ad660359bf"
+    },
+    "fsharp": {
+      "initialExitCode": 1,
+      "initialFailure": "MSB4057 UpdateXlf absent in FSharp.Core netstandard2.1 inner build",
+      "resolvedBy": "upstream --ci mode on FSharp component build",
+      "exitCode": 0,
+      "bazelWallSeconds": 313.61,
+      "innerBuildSeconds": 266.42,
+      "bundleFiles": 2,
+      "bundleBytes": 47619596,
+      "bundleSha256": "473546e4aceb40c15811f417bbd50fc47510eb92c63549eb646c348707527e0a"
+    },
       "builtSdkItemEvaluation": {
         "sourceBuildReferencePackages": [
           "Microsoft.Build.NoTargets",

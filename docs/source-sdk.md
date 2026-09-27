@@ -498,3 +498,35 @@ its manifest and `Microsoft.DiaSymReader.2.2.0-beta.25523.111.nupkg`. Because
 SBRP's output contract changed after the Runtime measurement, a cumulative
 build must requalify Runtime and its downstream consumers against the new SBRP
 bundle; the earlier Runtime pass remains evidence for its original input set.
+
+The cumulative closure through **Roslyn** now passes with the expanded SBRP and
+Arcade SDK-layout outputs. Runtime rebuilt under these declared inputs in
+**22:36.41** of upstream build time and emitted 146 files totaling 1,343,987,291
+bytes. SymReader rebuilt after its dependency bundle changed. Roslyn then built
+in **2:18.87**, publishing 26 files totaling 62,131,566 bytes. The entire Bazel
+invocation took **29:11.87**, including the runtime rebuild and all staging.
+This qualifies eight components together; it does not yet qualify the full
+22-component SDK graph or a fresh remote-cache recovery of it.
+
+**MSBuild** and **NuGetClient** then passed as separate actions in that order.
+MSBuild's upstream build took **40.32 seconds** and its Bazel invocation
+**1:33.86**; its eight-file bundle contained 7,530,906 bytes. NuGetClient's
+upstream build took **26.89 seconds** and its Bazel invocation **2:01.87**;
+its 20-file bundle contained 3,242,645 bytes. The NuGetClient invocation also
+rebuilt XDT after its predecessor output contract changed. The cumulative
+qualified workspace now has ten components.
+
+**ASP.NET Core** passed next in **2:47.45** upstream and **3:49.81** Bazel wall
+time, publishing 55 files totaling 377,211,788 bytes. **DeploymentTools**
+passed in **6.19 seconds** upstream and **48.60 seconds** Bazel wall time,
+publishing its manifest and package.
+
+The first isolated **FSharp** run failed late in packaging: an inner
+`FSharp.Core` netstandard2.1 build requested `UpdateXlf`, which it did not
+import. The pinned FSharp source documents Linux Xliff limitations. Its
+upstream `--ci` option disables local translation-file updates for release
+builds. Passing that option to the FSharp component build resolved the failure
+without changing other components' scripts. The retry passed in **4:26.42**
+upstream and **5:13.61** Bazel wall time and published its manifest and
+FSharp package. This is a component-specific upstream build mode, recorded as
+an explicit action input.

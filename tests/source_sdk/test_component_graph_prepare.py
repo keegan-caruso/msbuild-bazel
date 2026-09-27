@@ -56,6 +56,10 @@ class ComponentGraphTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, 'Invalid built SDK'):
             script('tool', [], ['../outside'])
 
+    def test_fsharp_uses_upstream_ci_mode_for_xliff(self):
+        self.assertIn('./build.sh -sb --ci --projects /source/repo-projects/fsharp.proj', script('fsharp', ['arcade'], []))
+        self.assertNotIn('./build.sh -sb --ci --projects', script('arcade', [], []))
+
     def test_only_new_sdk_items_allow_graph_migration(self):
         current = self.graph()
         previous = self.graph()
