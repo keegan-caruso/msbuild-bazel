@@ -69,3 +69,22 @@ remote-platform and producer tests retain their explicit SDK declarations.
 
 Benchmark workspace generation and the shared-helper acceptance fixture passed
 on macOS ARM64/Bazel 9.2.0, including build/test/edit/rejection/cache controls.
+
+## Step 6: shared validation phases
+
+`scripts/validation.sh common` runs version-independent checks once;
+`version` runs the selected Bazel toolchain/analysis/repository checks;
+`acceptance <fresh-directory>` runs real builds and cache controls. Manual CI and
+`test-bazel-matrix.py` invoke these same phases. The five CI dispatch controls
+passed, including fail-fast behavior and acceptance without repeated common checks.
+
+The complete shared matrix passed on macOS ARM64 for Bazel 8.8.0 and 9.2.0:
+common checks, all 43 rule-analysis tests per version, SDK/runtime repository
+checks, and real build/test/edit/rejection/cache acceptance. The generated-SDK
+synthetic passed on both versions. SDK-extension qualification also passed SDK
+pin changes, offline reuse, explicit runtime overrides and unsupported settings.
+
+On Linux ARM64/Bazel 9.2.0, the synthetic generated SDK passed build/test and
+body/API edits through a persistent worker, exercising directory inventory
+expansion. These are bounded artifact-contract tests, not whole-SDK source-build
+or cross-compilation qualification. No GitHub CI was dispatched.

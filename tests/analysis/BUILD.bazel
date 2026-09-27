@@ -1,4 +1,7 @@
 load("//msbuild:toolchain.bzl", "msbuild_toolchain")
+
+# Exercise SDK runtime assembly without executing the fake SDK.
+# buildifier: disable=bzl-visibility
 load("//msbuild/private:sdk_bootstrap.bzl", "sdk_runtime", "sdk_runtime_toolchain")
 load(":assemblies.bzl", "assembly_tests")
 load(":facades.bzl", "facade_tests")

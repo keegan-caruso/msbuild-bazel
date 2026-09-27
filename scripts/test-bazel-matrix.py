@@ -32,20 +32,13 @@ def main():
         print(name, result.returncode, flush=True)
         return result.returncode == 0
 
-    for name, command in [
-        ('setup-starlark', ['bash', 'scripts/tooling.sh', 'setup-starlark']),
-        ('runner', ['bash', 'scripts/check-dotnet.sh']),
-        ('bootstrap', ['python3', '-m', 'unittest', 'discover', '-s', 'tests/bootstrap', '-v']),
-    ]:
-        if not run(name, command, env):
-            return 1
+    if not run('common', ['bash', 'scripts/validation.sh', 'common'], env):
+        return 1
     for version in args.versions:
         selected = dict(env, USE_BAZEL_VERSION=version, RULES_MSBUILD_BAZEL_VERSION=version)
         for name, command in [
-            ('check', ['bash', 'scripts/check.sh']),
-            ('analysis', ['bash', 'scripts/check-analysis.sh']),
-            ('sdk-repository', ['python3', '-m', 'unittest', 'discover', '-s', 'tests/sdk_repository', '-v']),
-            ('acceptance', ['python3', 'tests/explicit_msbuild/acceptance.py', str(output/version)]),
+            ('checks', ['bash', 'scripts/validation.sh', 'version']),
+            ('acceptance', ['bash', 'scripts/validation.sh', 'acceptance', str(output/version)]),
         ]:
             if not run(version+'-'+name, command, selected):
                 break

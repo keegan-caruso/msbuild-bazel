@@ -10,9 +10,14 @@ After `bash scripts/setup.sh`, use [ci-linux.sh](../scripts/ci-linux.sh):
 
 | Command | Checks |
 | --- | --- |
-| `bash scripts/ci-linux.sh quick` | Diff whitespace, CI/bootstrap unit tests, scaffold Bazel query, owned .NET style/build checks and SDK repository tests |
-| `bash scripts/ci-linux.sh acceptance` | Explicit-rule acceptance in a fresh temporary directory; requires the tools and runner already built |
+| `bash scripts/ci-linux.sh quick` | Shared common and version phases: whitespace, unit/style checks, rule analysis and SDK repositories |
+| `bash scripts/ci-linux.sh acceptance` | Explicit-rule acceptance in a fresh temporary directory; requires bootstrap tools; Bazel builds its runner |
 | `bash scripts/ci-linux.sh full` | Quick, then acceptance |
+
+`scripts/validation.sh` owns the `common`, `version`, and `acceptance` phases.
+`ci-linux.sh quick` runs common plus version; the version matrix runs common once
+and version/acceptance for each selected Bazel baseline. Local contributors can
+invoke the same phases directly after setup.
 
 Quick restores/builds repository tooling. Full adds the explicit acceptance
 fixture; it does not run every upstream benchmark, worker probe or runtime suite.
