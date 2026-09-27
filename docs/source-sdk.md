@@ -405,7 +405,10 @@ and the app build/test. These are qualification timings, without a paired raw
 MSBuild comparison.
 
 ```sh
-python3 tests/source_sdk/component_graph_prepare.py /path/to/source-action /tmp/component-graph
+python3 tests/source_sdk/evaluate_graph.py /path/to/pinned-vmr /tmp/evaluated-graph.json
+python3 tests/source_sdk/component_graph_prepare.py /path/to/source-action /tmp/component-graph \
+  --graph /tmp/evaluated-graph.json --native-tools /path/to/reviewed-native.tar \
+  --through command-line-api
 # In the generated workspace, with the Linux namespace prerequisites above:
 bazelisk --batch test //:consumer --jobs=1 --disk_cache= --remote_cache=http://cache:8080 \
   --remote_cache_async=false --remote_download_outputs=all
@@ -420,6 +423,11 @@ their implementation files. Small tests prove that another component's body edit
 does not change the selected archive bytes. Extending this selector and output
 contracts to the other 19 components, then assembling the SDK from their Bazel
 outputs, remains future work. Full SDK production above still uses one action.
+The generator now reads the configured graph produced by MSBuild evaluation;
+`--through` selects a prefix of its SDK dependency order. It rejects a mismatched
+source revision, configuration, missing dependency or native archive containing
+private host material. This is graph generation for qualification; the selected
+component's build remains an upstream MSBuild invocation.
 
 The source-component edit/cache checks passed:
 
@@ -435,3 +443,20 @@ remote uploads disabled; all three recovered component bundle hashes matched.
 The HTTP cache ran in a separate container. This qualifies remote caching, not
 remote execution. Edit times include fresh archive extraction and preparation;
 the prototype does not retain a warm MSBuild component workspace.
+
+## Configured component graph expansion
+
+The generator now consumes `evaluate_graph.py`'s MSBuild-evaluated repository
+graph instead of naming dependency edges in Python. It validates the pinned
+revision, Release/ARM64 source-only configuration, complete build pass, and
+topological dependency order before producing Bazel actions. An explicit
+`--through` argument selects a prefix of the evaluated SDK order. The native
+archive is supplied separately and must exclude private host material.
+
+The first extension through **Cecil** passed on Linux ARM64 / Bazel 9.2.0.
+SBRP and Arcade were remote cache hits; only Cecil ran locally. Its inner build
+took **7.62 seconds**, and the entire fresh Bazel invocation took **62.04
+seconds**, including toolchain recovery and staging. Cecil published its
+manifest and `Microsoft.DotNet.Cecil.0.11.5-alpha.25523.111.nupkg` in a declared
+component bundle. This prefix contains **three** components; CommandLine follows
+Cecil in the evaluated SDK order.
