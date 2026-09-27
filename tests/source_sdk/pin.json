@@ -52,5 +52,21 @@
   "sourceArchive": {
     "url": "https://codeload.github.com/dotnet/dotnet/tar.gz/b0f34d51fccc69fd334253924abd8d6853fad7aa",
     "sha256": "6edf2462f7fe97b408145229b35f8382e602eb34f9ff9c7228fe6e961c768f84"
+  },
+  "releaseManifest": {
+    "url": "https://github.com/dotnet/dotnet/releases/download/v10.0.100/release.json",
+    "sha256": "b3e85fc5226c1727afca22c04f7cce920988dd2c59e0cd273c6704cee9a0e6b4",
+    "officialBuildId": "20251023.11",
+    "sdkVersion": "10.0.100",
+    "runtimeVersion": "10.0.0"
+  },
+  "noTargetsInputHashes": {
+    "ManualNuspec.targets": "1ab2cc21e580e04ef9f66ef5064e845e9e9d83f346a3265286dd3fae3a8d9ed8",
+    "payload/MSBuild-NuGet-Icon.png": "645fdfca48ddaea673600066fc90fb538c3dc6ed110d47e138cef8d5369a4a27",
+    "payload/Microsoft.Build.NoTargets.3.7.0.csproj": "fc3e92b8c0d373ad36830dd0ea41261b4a0a68620dd75da9204ff7ada087beb7",
+    "payload/Sdk/DisableCopyFilesMarkedCopyLocal.targets": "61a418eba4f45eec7d8741601f9b29f8f2fd67d47b082922c9a801ae6bb970d4",
+    "payload/Sdk/Sdk.props": "fdc2d977f49aba97be928593716d71a853d1dde0079eea473e6aa34f92037252",
+    "payload/Sdk/Sdk.targets": "44f4689677fc2aa3cefa4abf559daf05cf04ce4b4f801cf7b38736ecc9fb6bdd",
+    "payload/microsoft.build.notargets.nuspec": "57e2780825ca5a60baf455197b043f7bdcaeb39719478c854af727979ebcbad1"
   }
 }

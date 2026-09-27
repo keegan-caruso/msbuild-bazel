@@ -47,11 +47,11 @@ elements into Bazel would omit behavior.
 7. Measure body/API edits and independent remote-cache recovery at another path.
 8. Rebuild with the produced SDK; separately measure reproducibility.
 
-Only the definition inventory and its two negative/semantic checks have passed
-so far. Acquisition of the pinned source archive succeeded (about 460 MiB
-compressed, 3.3 GiB extracted). Upstream bootstrap preparation is in progress.
-No full SDK baseline, Bazel component build, cache recovery or self-hosting result
-is claimed here.
+The definition inventory, synthetic generated-package handoff, and real
+NoTargets source-package handoff have passed. Acquisition of the pinned source
+archive succeeded (about 460 MiB compressed, 3.3 GiB extracted). The full upstream
+baseline remains in progress. No complete Bazel SDK build, cache recovery or
+self-hosting result is claimed here.
 
 Upstream references: [VMR build instructions](https://github.com/dotnet/dotnet/tree/b0f34d51fccc69fd334253924abd8d6853fad7aa#building),
 [source-build requirements](https://github.com/dotnet/source-build/blob/main/Documentation/system-requirements.md).
@@ -102,3 +102,38 @@ Retrying the failed tree exposed external-package patch stamps surviving while
 fresh extraction and fresh package state. The bootstrap archive and SDK are the
 only reused build inputs. `tests/source_sdk/baseline.sh` records the commands for
 a fresh source tree; native package versions must be retained with its evidence.
+
+## Real NoTargets source-package slice
+
+`tests/source_sdk/notargets_handoff.py` packages the pinned upstream
+`Microsoft.Build.NoTargets` 3.7.0 text payload using its original project, nuspec,
+and `ManualNuspec.targets`. A small adapter supplies the upstream text-package
+settings. This proves source package production and consumption, not the entire
+Arcade/reference-package build.
+
+The input directory contains `payload/`, copied from
+`src/source-build-reference-packages/src/textOnlyPackages/src/microsoft.build.notargets/3.7.0/`,
+and `ManualNuspec.targets`, copied from that repository's `eng/` directory.
+The fixture checks each input against `pin.json` before use.
+
+```sh
+RULES_MSBUILD_BAZEL="$PWD/.tools/bin/bazelisk" USE_BAZEL_VERSION=9.2.0 \
+  python3 tests/source_sdk/notargets_handoff.py /path/to/inputs /tmp/notargets-source
+```
+
+On macOS ARM64, the consumer imported the generated SDK successfully. Requesting
+an unavailable version failed. Changing the producer's `UsingMicrosoftNoTargetsSdk`
+property caused the consumer to rebuild and fail its assertion, proving that the
+SDK implementation is an input to the consumer.
+
+This exposed a projection bug: root `Sdk="Name/Version"` syntax cannot be copied
+verbatim into an explicit `Import` element. The runner now uses MSBuild's
+`SdkReference` parser to preserve the name, version, and minimum-version fields
+on both implicit SDK imports.
+
+The baseline limits `DOTNET_PROCESSOR_COUNT` to two after a six-processor attempt
+exhausted the 8 GiB VM's practical memory budget and was interrupted. Native apt
+package versions are recorded, but an immutable image containing those additions
+has not yet been qualified. The current exploratory run uses development version
+metadata; the repeatable script pins release build ID `20251023.11` from the
+hashed release manifest. Final release-version qualification is still required.
