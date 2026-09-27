@@ -5,6 +5,6 @@
        <BuildCommandArgs>$(BuildCommandArgs) $(RedirectRepoOutputToLog)</BuildCommandArgs>
        <BuildCommandArgs>$(BuildCommandArgs) /p:Version=$(AzureActiveDirectoryIdentityModelExtensionsForDotNetReleaseVersion)</BuildCommandArgs>
 +      <BuildCommandArgs>$(BuildCommandArgs) /p:FileVersion=$(AzureActiveDirectoryIdentityModelExtensionsForDotNetReleaseVersion).0</BuildCommandArgs>
- 
+
        <PackCommandArgs>$(BuildCommandArgs) --output $(ProjectDirectory)pack</PackCommandArgs>
      </PropertyGroup>
