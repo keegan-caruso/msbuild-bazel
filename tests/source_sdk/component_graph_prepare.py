@@ -1,4 +1,4 @@
-"""Prepare a configured prefix of the SDK component graph for qualification.
+"""Prepare a configured SDK component closure for qualification.
 
 Each source archive contains its own implementation, shared Arcade scripts, and
 VMR/project metadata. MSBuild's evaluated repository graph supplies the edges.
@@ -7,10 +7,10 @@ import argparse
 import json
 import os
 from pathlib import Path
-import shutil
 import tarfile
 
 from component_sources import select
+from inventory import digest
 
 
 def selected_nodes(graph, through, revision):
@@ -26,21 +26,34 @@ def selected_nodes(graph, through, revision):
     order = graph['sdkDependencyOrder']
     if through not in order or len(set(order)) != len(order):
         raise ValueError('Missing target or duplicate component in evaluated order: ' + through)
-    selected = order[:order.index(through) + 1]
-    nodes = {}
-    for name in selected:
+    dependencies_by_name = {}
+    for name in order:
         dependencies = [item['Identity'] for item in graph['nodes'][name]['Items']['RepositoryReference']
                         if item.get('BuildReference', 'true').lower() != 'false']
-        if any(dependency not in nodes for dependency in dependencies):
+        if any(dependency not in dependencies_by_name for dependency in dependencies):
             raise ValueError('Evaluated dependency is missing or out of order: ' + name)
-        nodes[name] = dependencies
-    return nodes
+        dependencies_by_name[name] = dependencies
+    required = set()
+
+    def visit(name):
+        if name in required:
+            return
+        required.add(name)
+        for dependency in dependencies_by_name[name]:
+            visit(dependency)
+
+    visit(through)
+    return {name: dependencies_by_name[name] for name in order if name in required}
 
 
 def validate_native_archive(path):
     with tarfile.open(path) as native:
         if any(item.name == 'etc/ssl/private' or item.name.startswith('etc/ssl/private/') for item in native):
             raise ValueError('Native tool archive includes private host material')
+
+
+def same_input(first, second):
+    return os.path.samefile(first, second) or digest(first) == digest(second)
 
 
 def script(component, dependencies):
@@ -57,7 +70,9 @@ XML
 ./build.sh -sb --projects /source/extract-dependency-tools.proj {common} > dependency-tools.log 2>&1 || {{ tail -100 dependency-tools.log; exit 1; }}
 '''
     patch = 'patch -p1 < identitymodel.patch' if component == 'source-build-reference-packages' else ''
-    extra = '--extra-tree prereqs/packages/reference' if component == 'source-build-reference-packages' else ''
+    extra = ('--extra-tree prereqs/packages/reference '
+             '--extra-tree artifacts/source-built-sdks/Microsoft.Build.NoTargets '
+             '--extra-tree artifacts/source-built-sdks/Microsoft.Build.Traversal') if component == 'source-build-reference-packages' else ''
     return f'''set -euo pipefail
 export DOTNET_PROCESSOR_COUNT=1 DOTNET_CLI_TELEMETRY_OPTOUT=1 DOTNET_GENERATE_ASPNET_CERTIFICATE=false NuGetAudit=false
 {patch}
@@ -78,7 +93,8 @@ def main():
     parser.add_argument('directory', type=Path)
     parser.add_argument('--graph', type=Path, required=True, help='Output of evaluate_graph.py for the pinned Release/arm64 source build')
     parser.add_argument('--native-tools', type=Path, required=True, help='Reviewed native tool archive; excludes private host material')
-    parser.add_argument('--through', default='command-line-api', help='Last component to include in evaluated SDK order')
+    parser.add_argument('--through', default='command-line-api', help='Selected component and its evaluated dependency closure')
+    parser.add_argument('--extend', action='store_true', help='Add a component closure to an existing generated workspace')
     args = parser.parse_args()
     here = Path(__file__).resolve().parent
     root, work = args.source_action.resolve(), args.directory.resolve()
@@ -86,24 +102,54 @@ def main():
     graph = json.loads(args.graph.read_text())
     nodes = selected_nodes(graph, args.through, pin['sourceRevision'])
     validate_native_archive(args.native_tools)
-    work.mkdir(parents=True, exist_ok=False)
-    (work / 'evaluated-graph.json').write_text(json.dumps(graph, indent=2) + '\n')
-    os.link(args.native_tools.resolve(), work / 'native.tar')
-    for name in ['bootstrap.tar', 'bwrap', 'Driver.csproj']:
-        os.link(root / name, work / name)
-    shutil.copyfile(here.parents[1] / 'tests/explicit_msbuild/runtime/NativeBuild.cs.txt', work / 'Driver.cs')
-    for name in ['source_action.bzl', 'component_action.bzl']:
-        shutil.copyfile(here / name, work / name)
+    existing = set()
+    if args.extend:
+        if not work.is_dir() or json.loads((work / 'evaluated-graph.json').read_text()) != graph:
+            raise ValueError('Existing workspace has a different evaluated graph')
+        if not same_input(work / 'native.tar', args.native_tools):
+            raise ValueError('Existing workspace has a different native archive')
+        for name in ['bootstrap.tar', 'bwrap', 'Driver.csproj']:
+            if not same_input(work / name, root / name):
+                raise ValueError('Existing workspace has a different input: ' + name)
+        existing = {path.stem for path in work.glob('*.sh')}
+        all_nodes = selected_nodes(graph, 'sdk', pin['sourceRevision'])
+        if not existing <= all_nodes.keys():
+            raise ValueError('Existing workspace contains an unknown component')
+        required = set(nodes) | existing
+        nodes = {name: dependencies for name, dependencies in all_nodes.items() if name in required}
+    else:
+        work.mkdir(parents=True, exist_ok=False)
+        (work / 'evaluated-graph.json').write_text(json.dumps(graph, indent=2) + '\n')
+        os.link(args.native_tools.resolve(), work / 'native.tar')
+        for name in ['bootstrap.tar', 'bwrap', 'Driver.csproj']:
+            os.link(root / name, work / name)
     module = (root / 'MODULE.bazel').read_text()
     module = '\n'.join(line for line in module.splitlines() if 'register_toolchains(' not in line)
-    (work / 'MODULE.bazel').write_text(module + '\nregister_toolchains("@controller//:all")\n')
+    module += '\nregister_toolchains("@controller//:all")\n'
+    fixed_inputs = {"Driver.cs": (here.parents[1] / 'tests/explicit_msbuild/runtime/NativeBuild.cs.txt').read_bytes(),
+                    "source_action.bzl": (here / 'source_action.bzl').read_bytes(),
+                    "component_action.bzl": (here / 'component_action.bzl').read_bytes(),
+                    "MODULE.bazel": module.encode()}
+    for name, data in fixed_inputs.items():
+        path = work / name
+        if args.extend:
+            if path.read_bytes() != data:
+                raise ValueError('Existing workspace has a different input: ' + name)
+        else:
+            path.write_bytes(data)
     helpers = [here / name for name in ['component_outputs.py', 'inventory.py', 'source_action_prepare.py']]
     build = ['load(":source_action.bzl", "native_driver")', 'load(":component_action.bzl", "source_component", "component_package")',
              'load("@rules_msbuild//msbuild:defs.bzl", "msbuild_generated_nuget_package", "msbuild_package_lock", "msbuild_test")',
              'native_driver(name="driver",driver_sdk="@controller//:sdk_host",driver_project="Driver.csproj",driver_source="Driver.cs")']
     for name, dependencies in nodes.items():
-        select(root / 'sources.tar', name, work / (name + '.tar'), helpers)
-        (work / (name + '.sh')).write_text(script(name, dependencies))
+        source = work / (name + '.tar')
+        command = work / (name + '.sh')
+        if name in existing:
+            if not source.is_file() or command.read_text() != script(name, dependencies):
+                raise ValueError('Existing component input differs from evaluated graph: ' + name)
+        else:
+            select(root / 'sources.tar', name, source, helpers)
+            command.write_text(script(name, dependencies))
         build.append('source_component(name=%s,driver=":driver",sources=%s,script=%s,deps=%s,native_tools="native.tar",bootstrap="bootstrap.tar",sandbox="bwrap",exec_compatible_with=["@platforms//os:linux","@platforms//cpu:aarch64"])' %
                      (json.dumps(name), json.dumps(name + '.tar'), json.dumps(name + '.sh'), json.dumps([':' + item for item in dependencies])))
     build.append('filegroup(name="components",srcs=%s)' % json.dumps([':' + name for name in nodes]))
@@ -114,9 +160,12 @@ def main():
             'msbuild_package_lock(name="lock",packages=[":package"])',
             'msbuild_test(name="consumer",project="App.csproj",srcs=["App.cs"],package_lock=":lock",deps=[":package"],target_framework="net10.0",use_apphost=False)',
         ])
-        (work / 'App.csproj').write_text('<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup><TargetFramework>net10.0</TargetFramework></PropertyGroup><ItemGroup><PackageReference Include="System.CommandLine" Version="2.0.0" /></ItemGroup></Project>')
-        (work / 'App.cs').write_text('var command = new System.CommandLine.RootCommand("qualification"); System.Console.WriteLine(command.Options.Count); return command.Options.Count == 2 ? 0 : 1;')
-    (work / 'BUILD.bazel').write_text('\n'.join(build) + '\n')
+        if not (work / 'App.csproj').exists():
+            (work / 'App.csproj').write_text('<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup><TargetFramework>net10.0</TargetFramework></PropertyGroup><ItemGroup><PackageReference Include="System.CommandLine" Version="2.0.0" /></ItemGroup></Project>')
+            (work / 'App.cs').write_text('var command = new System.CommandLine.RootCommand("qualification"); System.Console.WriteLine(command.Options.Count); return command.Options.Count == 2 ? 0 : 1;')
+    build_file = work / 'BUILD.bazel'
+    if not args.extend or build_file.read_text() != '\n'.join(build) + '\n':
+        build_file.write_text('\n'.join(build) + '\n')
     print(work, flush=True)
 
 

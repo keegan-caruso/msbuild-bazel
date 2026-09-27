@@ -169,14 +169,52 @@
     },
     "fullSdkGraph": false,
     "evaluatedGraphExpansion": {
-      "through": "cecil",
-      "componentCount": 3,
-      "exitCode": 0,
-      "bazelWallSeconds": 62.04,
-      "cecilInnerBuildSeconds": 7.62,
-      "cachedPredecessorActions": 2,
-      "cecilBundleFiles": 2,
-      "cecilBundleSha256": "76b67d2767b6056057deba853b5bc8e619176336160451eebbedc85047fa89de"
+      "qualifiedThrough": [
+        "cecil",
+        "runtime",
+        "xdt",
+        "symreader"
+      ],
+      "cecil": {
+        "componentCount": 3,
+        "exitCode": 0,
+        "bazelWallSeconds": 62.04,
+        "innerBuildSeconds": 7.62,
+        "cachedPredecessorActions": 2,
+        "bundleFiles": 2,
+        "bundleSha256": "76b67d2767b6056057deba853b5bc8e619176336160451eebbedc85047fa89de"
+      },
+      "runtime": {
+        "componentCount": 5,
+        "exitCode": 0,
+        "bazelWallSeconds": 1465.37,
+        "innerBuildSeconds": 1342.92,
+        "cachedPredecessorActions": 3,
+        "locallyBuiltPredecessors": [
+          "command-line-api"
+        ],
+        "bundleFiles": 146,
+        "bundleBytes": 1343985144,
+        "bundleSha256": "f0aff4bf49fc83ace81f82f3950ea45f2c0b4a3e1d9285731a211910686fcdf3"
+      },
+      "xdt": {
+        "initialExitCode": 1,
+        "initialFailure": "MSB4242: source-built Microsoft.Build.NoTargets SDK layout absent",
+        "resolvedBy": "declared SBRP side-output trees for NoTargets and Traversal",
+        "exitCode": 0,
+        "bazelWallSeconds": 274.15,
+        "innerBuildSeconds": 6.82,
+        "bundleFiles": 2,
+        "bundleSha256": "d649453155e495a67d8f1bc377cdd58f39b1bd471d8b8815e8bbe006f59c6061"
+      },
+      "symreader": {
+        "exitCode": 0,
+        "bazelWallSeconds": 50.74,
+        "innerBuildSeconds": 8.06,
+        "bundleFiles": 2,
+        "bundleSha256": "e2d40691cfb5f0c4b3e2f3c400baf8400a886878968cab448f2b27a6053346eb"
+      },
+      "cumulativeGraphAfterSbrpOutputChangeQualified": false
     }
   }
 }
