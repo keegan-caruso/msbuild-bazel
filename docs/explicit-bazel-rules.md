@@ -10,6 +10,9 @@ CMS qualification and raw MSBuild measurements are documented in
 
 - `msbuild_library`, `msbuild_binary`, and `msbuild_test` declare each project's
   sources, dependencies, SDK framework references, imports, configuration and items.
+- `msbuild_generate(executable = True, ...)` runs declared generation targets
+  with executable output semantics, for example a framework-dependent `Publish`
+  target. The default remains library output.
 - `msbuild_items` carries a generic item type and metadata, including resource
   logical names. No application-specific item rules are introduced.
 - Each assembly action invokes MSBuild for **one project**. Original project edges

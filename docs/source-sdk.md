@@ -50,8 +50,8 @@ elements into Bazel would omit behavior.
 The definition inventory, synthetic generated-package handoff, and real
 NoTargets source-package handoff have passed. Acquisition of the pinned source
 archive succeeded (about 460 MiB compressed, 3.3 GiB extracted). The full upstream
-baseline remains in progress. No complete Bazel SDK build, cache recovery or
-self-hosting result is claimed here.
+development-version baseline and produced-SDK consumer checks passed. The complete
+Bazel component graph, cache recovery and self-hosting remain unqualified.
 
 Upstream references: [VMR build instructions](https://github.com/dotnet/dotnet/tree/b0f34d51fccc69fd334253924abd8d6853fad7aa#building),
 [source-build requirements](https://github.com/dotnet/source-build/blob/main/Documentation/system-requirements.md).
@@ -134,7 +134,7 @@ on both implicit SDK imports.
 The baseline limits `DOTNET_PROCESSOR_COUNT` to two after a six-processor attempt
 exhausted the 8 GiB VM's practical memory budget and was interrupted. Native apt
 package versions are recorded, but an immutable image containing those additions
-has not yet been qualified. The current exploratory run uses development version
+has not yet been qualified. The successful exploratory run uses development version
 metadata; the repeatable script pins release build ID `20251023.11` from the
 hashed release manifest. Final release-version qualification is still required.
 
@@ -173,3 +173,42 @@ sandbox remained enabled. An init/subreaper (`tini -s`) was needed to reap Bazel
 server processes when testing inside the container whose main process is
 `sleep`. The first synthetic run completed its five assertions but its shutdown
 failed without that reaper; the real NoTargets run exited successfully with it.
+
+## Full upstream baseline and produced-SDK consumers
+
+The bounded upstream build succeeded with zero reported warnings/errors in
+**25m 38.77s** wall time. This excludes source acquisition and preparation, and
+includes `--clean-while-building`. GNU time reported maximum resident set size
+2,258,448 KiB; this is not the aggregate peak memory of the container. The SDK
+archive is identified in [the evidence summary](source-sdk-evidence.json).
+Upstream's final check found zero files in its prebuilt-packages directory.
+
+The produced Ubuntu 22.04 ARM64 SDK reports SDK `10.0.100-dev`, MSBuild `18.0.2`,
+and both Microsoft.NETCore.App and Microsoft.AspNetCore.App `10.0.0-dev`.
+This is an actual upstream source build, with the IdentityModel patch above.
+It is not yet a Bazel build of the full SDK component graph.
+
+```sh
+python3 tests/explicit_msbuild/generated_sdk.py /tmp/source-sdk-consumer \
+  --archive /path/to/dotnet-sdk-10.0.100-dev-ubuntu.22.04-arm64.tar.gz \
+  --sdk-version 10.0.100-dev --runtime-version 10.0.0-dev
+python3 tests/source_sdk/consumer_scenarios.py /tmp/source-sdk-consumer
+```
+
+The archive mode registers only the produced SDK, retaining its host, SDK,
+reference packs, shared frameworks, workload metadata, templates, `dnx`, and
+license files. The runner is compiled with that SDK. Bazel 9.2.0 on the qualified
+Linux container passed:
+
+- Library-to-app build and test execution using the produced runtime.
+- Cached reuse with fetching disabled (`--nofetch`); this is not fresh offline
+  reconstruction or remote-cache recovery.
+- A body edit causing the test to fail, and an API edit causing compilation to fail.
+- SDK `Pack`, generated package extraction, restore and consumer test execution.
+- Razor generation, ASP.NET framework resolution, and actual view rendering.
+- Framework-dependent `Publish` and execution of the published app.
+
+The publish case required exposing `executable=True` on `msbuild_generate` so it
+can preserve executable semantics while invoking custom targets. This small
+publish fixture does not qualify general deployment, self-contained publish,
+trimming, AOT, workloads, or other distributions/architectures.

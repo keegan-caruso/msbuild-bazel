@@ -1,0 +1,37 @@
+{
+  "schemaVersion": 1,
+  "sourceRevision": "b0f34d51fccc69fd334253924abd8d6853fad7aa",
+  "platform": "Ubuntu 22.04 ARM64",
+  "baseline": {
+    "exitCode": 0,
+    "wallSeconds": 1538.77,
+    "maxRssKiB": 2258448,
+    "dotnetProcessorCount": 2,
+    "cleanWhileBuilding": true,
+    "versionMode": "development",
+    "prebuiltPackageFiles": 0
+  },
+  "sdk": {
+    "version": "10.0.100-dev",
+    "runtimeVersion": "10.0.0-dev",
+    "msbuildVersion": "18.0.2",
+    "archiveSha256": "a396c8b6511e630138bc6bf19849d7f6dadbde1fcedac9358bedfb6870e133eb"
+  },
+  "bazelVersion": "9.2.0",
+  "consumerCases": {
+    "build": 0,
+    "nofetchReuse": 0,
+    "bodyEditTestFailure": 3,
+    "apiEditCompileFailure": 1,
+    "generatedPackage": 0,
+    "razorRendering": 0,
+    "publish": 0,
+    "executePublishedApp": 0
+  },
+  "limits": [
+    "upstream SDK build is not yet a Bazel component graph",
+    "development version baseline differs from pinned release build ID",
+    "native apt additions recorded but immutable environment not yet qualified",
+    "no source SDK remote-cache recovery or self-hosting claim"
+  ]
+}
