@@ -74,6 +74,14 @@ prefers the SDK-selected `Microsoft.DotNet.ILCompiler` version for ordinary
 apps. The fixture follows that recommendation: it locks the packages selected
 by SDK 10.0.400 but does not add a direct package reference to the project.
 
+For **building the runtime toolchain from source**, the
+[CoreCLR build guide at v10.0.0](https://github.com/dotnet/runtime/blob/v10.0.0/docs/workflow/building/coreclr/README.md#build-drivers)
+supports Ninja as the native build driver. Ninja is the Windows default and
+recommended there; on Linux and macOS, `build.sh -subset clr -ninja` selects
+it instead of the default Make driver. This is a choice for building native
+runtime components, not a prerequisite for `dotnet publish` of an AOT app.
+The `clr.aot+libs` and `-ninja` combination has not been qualified here.
+
 For cross-architecture builds, [.NET requires](https://learn.microsoft.com/en-us/dotnet/core/deploying/native-aot/cross-compile)
 a target-capable linker, target C runtime and zlib objects, plus compatible
 `objcopy` or `strip` when stripping symbols. The runtime's
