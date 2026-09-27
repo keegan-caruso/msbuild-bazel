@@ -43,7 +43,10 @@ producer must preserve executable bits and symlinks and provide the native
 compiler, linker, headers, C runtime files, zlib development files and symbol
 tools that the project uses. The fixture's test-only producer snapshots the
 local Ubuntu toolchain without caching that producer action. It is not a pinned
-toolchain acquisition rule.
+toolchain acquisition rule. The selected Linux C library baseline also matters:
+the [.NET deployment guide](https://learn.microsoft.com/en-us/dotnet/core/deploying/native-aot/)
+states that a Native AOT binary built on one Linux version runs on that version
+or newer, so the Ubuntu 22.04 fixture does not qualify older distributions.
 
 `local_native_tools = True` remains the local qualification option. It exposes
 the machine's `/usr` read-only and gives the action `no-cache` and `no-remote`
