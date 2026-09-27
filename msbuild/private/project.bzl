@@ -24,6 +24,10 @@ def build_project(ctx, executable = False, test = False, restore_only = False, p
     """
     if (executable or test) and ctx.attr.output_mode == "reference":
         fail("Reference-only projects cannot execute")
+    if ctx.attr.local_native_tools and not generate:
+        fail("local_native_tools is currently supported only by msbuild_generate")
+    if ctx.attr.local_native_tools and (ctx.attr.linux_worker or ctx.attr.allow_remote_execution):
+        fail("local_native_tools requires a fresh local MSBuild action")
     project = project or ctx.file.project
     tc = ctx.toolchains[_TOOLCHAIN]
     name = ctx.attr.assembly_name or project.basename.removesuffix(".csproj")
@@ -166,6 +170,7 @@ def build_project(ctx, executable = False, test = False, restore_only = False, p
     ctx.actions.write(request, json.encode({
         # Internal qualification gate; not part of the supported rule API.
         "experimentalWorkerProject": str(ctx.label) if ctx.attr.linux_worker and ctx.var.get("rules_msbuild_stable_path_prototype") == "1" else None,
+        "localNativeTools": ctx.attr.local_native_tools,
         "restoreKey": restore_key(ctx.attr.target_framework, ctx.attr.target_framework, _configuration(ctx), ctx.attr.msbuild_properties),
         "implementationReferences": [dep.project for dep in direct if dep.implementation_reference],
         "implementationDependencies": [dep.project for dep in implementation],
@@ -230,6 +235,10 @@ def build_project(ctx, executable = False, test = False, restore_only = False, p
     }))
     arguments = [tc.runner.path, "build", request.path]
     requirements = {"no-sandbox": "1"}
+    if ctx.attr.local_native_tools:
+        # The host C toolchain is outside Bazel's declared inputs. Keep this
+        # local qualification path out of both local and remote action caches.
+        requirements.update({"no-cache": "1", "no-remote": "1"})
     if not ctx.attr.allow_remote_execution:
         requirements["no-remote-exec"] = "1"
     if ctx.attr.linux_worker:

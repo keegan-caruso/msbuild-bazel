@@ -41,6 +41,7 @@ _ATTRS = {
     "linux_worker": attr.bool(default = False),
     "allow_remote_execution": attr.bool(default = False),
     "profile_build": attr.bool(default = False),
+    "local_native_tools": attr.bool(default = False),
     "restore": attr.label(providers = [MSBuildRestoreInfo]),
     "project": attr.label(allow_single_file = [".csproj"], mandatory = True),
     "target_framework": attr.string(mandatory = True),

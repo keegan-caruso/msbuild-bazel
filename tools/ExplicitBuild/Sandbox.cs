@@ -12,10 +12,14 @@ internal static class Sandbox
         }
         return "\"" + value.Replace("\\", "\\\\", StringComparison.Ordinal).Replace("\"", "\\\"", StringComparison.Ordinal) + "\"";
     }
-    public static ProcessStartInfo Start(string workspace, string state, IEnumerable<string> runtime, string sdk)
+    public static ProcessStartInfo Start(string workspace, string state, IEnumerable<string> runtime, string sdk, bool localNativeTools = false)
     {
         var roots = runtime.Append(workspace).Select(Path.GetFullPath).Distinct(StringComparer.Ordinal).ToArray();
         ProcessStartInfo start;
+        if (localNativeTools && !OperatingSystem.IsLinux())
+        {
+            throw new PlatformNotSupportedException("Local native tools are currently qualified only on Linux");
+        }
         if (OperatingSystem.IsMacOS())
         {
             var profile = "(version 1)\n(deny default)\n(allow process-exec process-fork signal sysctl-read mach-lookup)\n" +
@@ -55,9 +59,14 @@ internal static class Sandbox
                 }
             }
             Add("--die-with-parent", "--unshare-all", "--new-session", "--cap-drop", "ALL", "--proc", "/proc", "--dev", "/dev", "--tmpfs", "/tmp");
-            foreach (var root in roots.Concat(new[] { "/usr/lib" }).Distinct(StringComparer.Ordinal))
+            var systemRoots = localNativeTools ? new[] { "/usr" } : new[] { "/usr/lib" };
+            foreach (var root in roots.Concat(systemRoots).Distinct(StringComparer.Ordinal))
             {
                 Add("--ro-bind", root, root);
+            }
+            if (localNativeTools)
+            {
+                Add("--symlink", "usr/bin", "/bin");
             }
 
             foreach (var file in new[] { "/etc/os-release", "/etc/ld.so.cache", "/etc/passwd", "/etc/group" })
@@ -73,6 +82,10 @@ internal static class Sandbox
         }
 
         SetEnvironment(start, workspace, state, sdk);
+        if (localNativeTools)
+        {
+            start.Environment["PATH"] = sdk + ":/usr/bin:/bin";
+        }
         return start;
     }
     internal static void SetEnvironment(ProcessStartInfo start, string workspace, string state, string sdk)
