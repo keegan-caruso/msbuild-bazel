@@ -45,7 +45,6 @@ def msbuild_sdk(name, dotnet, files, sdk_version, runtime_version, runtime_ident
         runner = ":" + name + "_runner",
         runner_support = [":" + name + "_runner_payload"],
         sdk_version = sdk_version,
-        requires_runtime_toolchain = True,
         **common
     )
     sdk_runtime(name = name + "_runtime", dotnet = dotnet, files = ":" + name + "_files", runtime_identifier = runtime_identifier, version = runtime_version, runtime_only = True, **common)

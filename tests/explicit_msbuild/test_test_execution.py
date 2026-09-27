@@ -40,7 +40,8 @@ return mode=="nonzero" ? 17 : 0;
             root=Path(directory)
             (root/'input.trx').write_text(trx)
             (root/'settings.json').write_text('{}')
-            (root/'launch.json').write_text(json.dumps(dict(entry='bin/Release/net10.0',dependencies=[],assembly='App',test=True,data=[dict(source='input.trx',path=(working_directory+'/' if working_directory else '')+'input.trx'),dict(source='settings.json',path='settings.json')],testOptions=dict(protocol='mtp',allowEmpty=allow_empty,settingsOutput=settings_output,workingDirectory=working_directory))))
+            (root/'host').symlink_to(SDK.resolve(), target_is_directory=True)
+            (root/'launch.json').write_text(json.dumps(dict(runtimeHost=dict(directory='host',entryPoint='dotnet'),entry='bin/Release/net10.0',dependencies=[],assembly='App',test=True,data=[dict(source='input.trx',path=(working_directory+'/' if working_directory else '')+'input.trx'),dict(source='settings.json',path='settings.json')],testOptions=dict(protocol='mtp',allowEmpty=allow_empty,settingsOutput=settings_output,workingDirectory=working_directory))))
             # Use a runfiles root containing the fake app and declared report payload.
             import shutil
             shutil.copytree(self.root/'bin',root/'bin')

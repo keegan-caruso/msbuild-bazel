@@ -1,4 +1,5 @@
 load("//msbuild:toolchain.bzl", "msbuild_toolchain")
+load("//msbuild/private:sdk_bootstrap.bzl", "sdk_runtime", "sdk_runtime_toolchain")
 load(":assemblies.bzl", "assembly_tests")
 load(":facades.bzl", "facade_tests")
 load(":inputs.bzl", "input_tests")
@@ -45,3 +46,26 @@ layout_tests(name = "layouts")
 facade_tests(name = "facades")
 
 selection_tests(name = "selection")
+
+sdk_runtime(
+    name = "fake_runtime",
+    dotnet = "dotnet",
+    files = ":sdk_files",
+    runtime_identifier = "linux-arm64",
+    runtime_only = True,
+    tags = ["manual"],
+    version = "10.0.11",
+)
+
+sdk_runtime_toolchain(
+    name = "fake_runtime_toolchain",
+    runtime = ":fake_runtime",
+    tags = ["manual"],
+)
+
+toolchain(
+    name = "runtime_toolchain",
+    tags = ["manual"],
+    toolchain = ":fake_runtime_toolchain",
+    toolchain_type = "//msbuild:runtime_toolchain_type",
+)

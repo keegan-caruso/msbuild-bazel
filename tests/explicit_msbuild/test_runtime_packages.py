@@ -42,7 +42,8 @@ class RuntimePackages(unittest.TestCase):
                     (root/name/'Package.dll').write_bytes(payload)
                 (root/name/'.rules-msbuild-package-files.json').write_text(json.dumps(sources))
                 (root/name/'.rules-msbuild-packages.json').write_text(json.dumps({'Package.dll': package} if package else {}))
-            (root/'launch.json').write_text(json.dumps(dict(entry='entry', dependencies=['dependency'], assembly='App', test=False, data=[], packages=[] if missing else inputs)))
+            (root/'host').symlink_to(SDK.resolve(), target_is_directory=True)
+            (root/'launch.json').write_text(json.dumps(dict(runtimeHost=dict(directory='host',entryPoint='dotnet'),entry='entry', dependencies=['dependency'], assembly='App', test=False, data=[], packages=[] if missing else inputs)))
             return subprocess.run([str(SDK/'dotnet'), str(ROOT/'tools/ExplicitBuild/bin/Release/net10.0/ExplicitBuild.dll'), 'run', str(root/'launch.json')], env=dict(os.environ, RULES_MSBUILD_RUNFILES=str(root)), capture_output=True, text=True)
 
     def test_application_package_version_wins(self):
@@ -91,7 +92,8 @@ class RuntimePackages(unittest.TestCase):
                     packages.append(dict(id='Vectors', version='1.0.0', directory='package'))
                 else:
                     shutil.copyfile(assembly, root/'dependency/System.Numerics.Vectors.dll')
-                (root/'launch.json').write_text(json.dumps(dict(entry='entry', dependencies=['dependency'], assembly='App', test=False, data=[], packages=packages)))
+                (root/'host').symlink_to(SDK.resolve(), target_is_directory=True)
+                (root/'launch.json').write_text(json.dumps(dict(runtimeHost=dict(directory='host',entryPoint='dotnet'),entry='entry', dependencies=['dependency'], assembly='App', test=False, data=[], packages=packages)))
                 result = subprocess.run([str(SDK/'dotnet'), str(ROOT/'tools/ExplicitBuild/bin/Release/net10.0/ExplicitBuild.dll'), 'run', str(root/'launch.json')], env=dict(os.environ, RULES_MSBUILD_RUNFILES=str(root)), capture_output=True, text=True)
                 self.assertEqual(result.returncode, 0, result.stderr)
                 self.assertEqual(result.stdout.strip(), expected)
