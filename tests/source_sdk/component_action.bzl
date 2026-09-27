@@ -54,3 +54,22 @@ component_package = rule(
         "member": attr.string(mandatory = True),
     },
 )
+
+def _sdk_archive(ctx):
+    output = ctx.actions.declare_file(ctx.label.name + ".tar.gz")
+    ctx.actions.run_shell(
+        inputs = [ctx.file.component],
+        outputs = [output],
+        arguments = [ctx.file.component.path, ctx.attr.member, output.path],
+        command = 'tar -xOf "$1" -- "$2" > "$3"',
+        mnemonic = "SourceComponentSdkArchive",
+    )
+    return [DefaultInfo(files = depset([output]))]
+
+component_sdk_archive = rule(
+    implementation = _sdk_archive,
+    attrs = {
+        "component": attr.label(allow_single_file = [".tar"], mandatory = True),
+        "member": attr.string(mandatory = True),
+    },
+)

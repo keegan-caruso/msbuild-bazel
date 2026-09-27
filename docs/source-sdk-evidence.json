@@ -29,10 +29,10 @@
     "executePublishedApp": 0
   },
   "limits": [
-    "complete SDK is built in one action; only the three-component graph is separately scheduled",
+    "complete 22-component graph, app consumer and independent same-machine cache recovery are qualified separately",
     "development baseline and exact RTM qualification are separate runs",
     "only the qualified Ubuntu ARM64 native environment tested",
-    "identical-input SDK rebuilds are not byte-identical; cause remains unresolved"
+    "identical-input SDK rebuilds are not byte-identical; compiled DLL drift remains unresolved"
   ],
   "consumerCache": {
     "seedSeconds": 34.55,
@@ -134,7 +134,57 @@
         "nupkg": 9
       }
     },
-    "differenceCause": "not isolated"
+    "manifestInvestigation": {
+      "changedDependencyManifests": 24,
+      "semanticDifferencePaths": 498,
+      "uniqueSemanticDifferencePaths": 110,
+      "allSemanticDifferencesAreNugetSha512": true,
+      "changedShippedNugetArchives": 9,
+      "metadataOnlyNugetArchives": 7,
+      "payloadChangedNugetArchives": 2,
+      "changedDllPaths": 268,
+      "distinctChangedDllPairs": 253
+    },
+    "differenceCause": "NuGet package metadata and package content hashes explain part of the drift; the cause of changed DLL payloads remains unresolved"
+  },
+  "fullComponentConsumer": {
+    "componentCount": 22,
+    "componentResultsFile": "docs/source-sdk-component-graph-results.json",
+    "sdkBundleSha256": "99c155b5a511149d4bc1c960ae3134ec1ce85de95d6eb0fbfe7ab2e5e5b8be5d",
+    "appOutput": "SDK_FROM_COMPONENTS=10.0.0",
+    "libraryAndAppCompilerSdk": "bazel-out/aarch64-opt-exec/bin/layout/dotnet",
+    "testRuntimeHost": "_main/produced_runtime.runtime/dotnet",
+    "seed": {
+      "exitCode": 0,
+      "wallSeconds": 429.87,
+      "remoteComponentHits": 20,
+      "locallyBuiltComponents": ["razor", "sdk"],
+      "coldFullGraphTiming": false
+    },
+    "probe": {
+      "baselineSeconds": 16.02,
+      "bodyEditSeconds": 15.6,
+      "bodyEditExpectedExitCode": 3,
+      "apiEditBreakSeconds": 17.42,
+      "apiEditExpectedExitCode": 1,
+      "apiEditFixedSeconds": 16.0,
+      "apiEditFixedExitCode": 0,
+      "sdkComponentsRebuiltForEdits": 0,
+      "remoteRecoverySeconds": 48.99,
+      "remoteRecoveryActions": 33,
+      "remoteComponentHits": 22,
+      "allRecoveryActionsCacheHits": true,
+      "freshWorkspace": true,
+      "freshBazelOutputAndUserRoots": true,
+      "localDiskCache": false,
+      "remoteUploadsEnabled": false,
+      "sameBuildMachine": true,
+      "forcedTestSeconds": 18.42,
+      "forcedTestExecuted": true,
+      "forcedTestExitCode": 0
+    },
+    "initialConsumerAttemptInterruptedByHostDiskExhaustion": true,
+    "remoteExecutionQualified": false
   },
   "componentGraph": {
     "components": [
@@ -167,7 +217,8 @@
       "uploadsEnabled": false,
       "sameBuildMachine": true
     },
-    "fullSdkGraph": false,
+    "fullSdkGraph": true,
+    "fullSdkGraphResultsFile": "docs/source-sdk-component-graph-results.json",
     "evaluatedGraphExpansion": {
       "qualifiedThrough": [
         "cecil",
@@ -179,7 +230,16 @@
         "nuget-client",
         "aspnetcore",
         "deployment-tools",
-        "fsharp"
+        "fsharp",
+        "razor",
+        "sourcelink",
+        "templating",
+        "diagnostics",
+        "vstest",
+        "winforms",
+        "wpf",
+        "windowsdesktop",
+        "sdk"
       ],
       "cecil": {
         "componentCount": 3,

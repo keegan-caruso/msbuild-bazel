@@ -2,9 +2,9 @@
 
 This qualification targets .NET SDK 10.0.100 on Linux ARM64, starting from
 `dotnet/dotnet` revision `b0f34d51fccc69fd334253924abd8d6853fad7aa`.
-The qualification builds a complete SDK in one isolated Bazel action and runs
-an app with it. A three-component scheduling slice is also qualified; splitting
-the complete SDK graph remains open. The default downloaded
+The qualification first built a complete SDK in one isolated Bazel action and
+ran an app with it. The configured 22-component Bazel graph now also builds a
+complete SDK on Linux ARM64. The default downloaded
 SDK is unchanged; the produced SDK uses the existing
 [SDK artifact contract](sdk-toolchains.md).
 
@@ -53,7 +53,7 @@ The definition inventory, synthetic generated-package handoff, and real
 NoTargets source-package handoff have passed. Acquisition of the pinned source
 archive succeeded (about 460 MiB compressed, 3.3 GiB extracted). The full upstream
 development-version baseline and produced-SDK consumer checks passed. The complete
-Bazel component graph remains unqualified. Self-hosting and produced-SDK consumer
+Bazel component graph has passed. Self-hosting and produced-SDK consumer
 cache recovery have separate evidence below.
 
 Upstream references: [VMR build instructions](https://github.com/dotnet/dotnet/tree/b0f34d51fccc69fd334253924abd8d6853fad7aa#building),
@@ -291,12 +291,11 @@ RULES_MSBUILD_BAZEL=/path/to/bazelisk USE_BAZEL_VERSION=9.2.0 \
   /tmp/source-sdk-recovery --cache http://cache-host:8080
 ```
 
-This first producer deliberately treats the upstream SDK build as one action.
-It uses the release build ID and RTM branding. It does **not** establish per-repo
-incremental builds: splitting its 22-component closure still requires explicit
-handoff of upstream asset manifests, package-version props, SDK overrides and
-shipping/non-shipping package directories. The configured graph probe and the
-small generated-package producers provide the starting points for that work.
+This first producer deliberately treated the upstream SDK build as one action.
+It uses the release build ID and RTM branding. The later component graph below
+adds explicit handoff of upstream asset manifests, package-version props, SDK
+overrides and shipping/non-shipping package directories; the single-action
+baseline remains useful for comparison.
 
 ## Self-hosting and payload comparison
 
@@ -344,11 +343,30 @@ headers and checks file bytes, modes and link targets.
 
 The repeat took 2,396.143 seconds, overlapping a component probe that caused
 memory pressure. This is correctness evidence, not a performance comparison.
-Representative DLLs have differing PE metadata, and an inspected dependency
-manifest has differing package hashes; the underlying cause is not isolated.
+All 24 changed `.deps.json` files were parsed: their only semantic differences
+are NuGet package SHA-512 values (498 changed fields across 110 distinct field
+paths), although entry order also changes. Seven of the nine changed shipped
+NuGet archives contain the same non-metadata members and differ in package
+metadata; the other two contain changed task binaries or manifests. The 268
+changed DLL paths represent 253 distinct before/after binary pairs, so most
+are not just repeated copies. The cause of those compiled-binary differences
+is not yet isolated. Package metadata normalization alone would not make the
+SDK byte-identical.
 Successful cache recovery demonstrates reuse of one stored output, not that
 independent executions produce identical bytes. See the machine-readable
 [repeat evidence](source-sdk-evidence.json).
+
+The full component graph provided another repeat of SBRP while Bazel configured
+it as a tool for the produced-SDK consumer. Its selected source archive was the
+same, but this was a different Bazel action configuration, so it is not an
+identical-action test. Comparing the two SBRP bundles found 192 changed files
+at shared paths and four changed path names. All 190 NuGet archives changed;
+their ZIP timestamps and generated core-properties IDs differ. After ignoring
+NuGet relationship and core-properties metadata, 18 archives still contain
+changed payload files, including managed assemblies. The two extracted SDK
+layouts also carry changed package metadata. We have not isolated why those
+assemblies differ; normalizing archive metadata alone would not make this
+component byte-identical.
 
 ## Component output boundary
 
@@ -417,12 +435,11 @@ RULES_MSBUILD_BAZEL=/path/to/bazelisk USE_BAZEL_VERSION=9.2.0 \
   --output-base /tmp/component-edits-base --cache http://cache:8080
 ```
 
-The source selector is qualified for this three-component closure only. It keeps
+This was the first three-component qualification. The source selector keeps
 other repositories' project/build metadata for upstream evaluation, excluding
 their implementation files. Small tests prove that another component's body edit
-does not change the selected archive bytes. Extending this selector and output
-contracts to the other 19 components, then assembling the SDK from their Bazel
-outputs, remains future work. Full SDK production above still uses one action.
+does not change the selected archive bytes. The selector and output contracts
+have since been extended through the complete 22-component graph below.
 The generator now reads the configured graph produced by MSBuild evaluation;
 `--through` selects one component and its transitive dependencies. It rejects a mismatched
 source revision, configuration, missing dependency or native archive containing
@@ -505,8 +522,7 @@ Arcade SDK-layout outputs. Runtime rebuilt under these declared inputs in
 bytes. SymReader rebuilt after its dependency bundle changed. Roslyn then built
 in **2:18.87**, publishing 26 files totaling 62,131,566 bytes. The entire Bazel
 invocation took **29:11.87**, including the runtime rebuild and all staging.
-This qualifies eight components together; it does not yet qualify the full
-22-component SDK graph or a fresh remote-cache recovery of it.
+This qualified eight components together before the full graph run below.
 
 **MSBuild** and **NuGetClient** then passed as separate actions in that order.
 MSBuild's upstream build took **40.32 seconds** and its Bazel invocation
@@ -530,3 +546,88 @@ without changing other components' scripts. The retry passed in **4:26.42**
 upstream and **5:13.61** Bazel wall time and published its manifest and
 FSharp package. This is a component-specific upstream build mode, recorded as
 an explicit action input.
+
+The remaining components—Razor, SourceLink, Templating, Diagnostics, VSTest,
+WinForms, WPF, WindowsDesktop and SDK—passed in the same generated workspace.
+The final `//:sdk` bundle held 45 files (588,119,628 bytes), including the
+564,899,505-byte `dotnet-sdk-10.0.100-ubuntu.22.04-arm64.tar.gz`. Its upstream
+build took **3:50.55** and the Bazel invocation took **4:55.87**. All 22
+component names, bundle digests, payload sizes and inner-build times are in the
+[component graph results](source-sdk-component-graph-results.json). These
+actions were qualified incrementally with local state and an HTTP action cache;
+there is no single cold full-graph timing yet.
+
+The 22 recorded upstream build commands total **42:00.42** when summed once
+per component, of which Runtime accounts for **22:36.41**. The earlier raw
+source-build baseline took **25:38.77** wall time. That baseline used two .NET
+processors and development branding, while these component actions used one
+processor and RTM branding, so these figures do not isolate Bazel overhead or
+establish a matched speed ratio. A fresh full-graph run under matched resources
+is still needed for a performance comparison.
+
+The first SDK component attempt failed while constructing the redist Crossgen
+layout because its Razor tasks output had not yet been built. The narrow
+`sdk-redist-razor-reference.patch` adds the missing Razor tasks project edge to
+the pinned SDK's redist project. That patch is part of the SDK action's declared
+source archive. The corrected SDK action passed and published its original
+upstream SDK archive; no prebuilt Razor tasks were supplied.
+
+```sh
+python3 tests/source_sdk/component_graph_prepare.py /path/to/source-action /tmp/component-graph \
+  --graph /tmp/evaluated-graph.json --native-tools /path/to/reviewed-native.tar \
+  --through sdk
+# In the generated Linux ARM64 workspace with the namespace setup above:
+bazelisk --batch build //:sdk --jobs=1 --disk_cache= \
+  --remote_cache=http://cache:8080 --remote_cache_async=false \
+  --remote_download_outputs=all
+```
+
+The complete graph remains a pinned qualification, not yet a general
+source-built SDK distribution contract. The same-path bundle handoff preserves
+upstream MSBuild, package and SDK behavior. Its independent cache recovery and
+consumer checks follow; the identical-input repeat above was not byte-identical.
+
+## Component-produced SDK consumer and recovery
+
+With `--sdk-consumer`, the generator extracts the SDK archive from the final
+component bundle, creates an SDK layout, registers it through `msbuild_sdk`,
+and builds a normal SDK-style library and console app with `msbuild_library`
+and `msbuild_test`. The downloaded controller SDK still compiles the source
+action driver; the app toolchain uses the component-produced SDK. The app test
+passed and printed `SDK_FROM_COMPONENTS=10.0.0`. The logged library and app
+`MSBuildAssembly` actions both invoke `layout/dotnet`, and the test launch
+manifest selects `produced_runtime.runtime/dotnet`.
+
+The Linux ARM64 seed run took **7:09.87**: 20 component actions were HTTP
+cache hits, while Razor and SDK ran locally and uploaded to a writable cache.
+This is a partly cached seed, not a cold full-graph timing. An earlier
+consumer attempt was interrupted by host disk exhaustion during Razor; it
+completed after disk recovery, but its segments are not combined into a wall
+time. The SDK bundle in the final seed has SHA-256
+`99c155b5a511149d4bc1c960ae3134ec1ce85de95d6eb0fbfe7ab2e5e5b8be5d`.
+
+```sh
+python3 tests/source_sdk/component_graph_prepare.py /path/to/source-action /tmp/component-graph \
+  --graph /tmp/evaluated-graph.json --native-tools /path/to/reviewed-native.tar \
+  --through sdk --sdk-consumer
+# In the generated Linux ARM64 workspace with the namespace setup above:
+bazelisk --batch test //:smoke --jobs=1 --disk_cache= \
+  --remote_cache=http://cache:8080 --remote_cache_async=false \
+  --remote_download_outputs=all --test_output=all
+RULES_MSBUILD_BAZEL=/path/to/bazelisk USE_BAZEL_VERSION=9.2.0 \
+  python3 /path/to/rules/tests/source_sdk/component_consumer_probe.py \
+  /tmp/component-graph /tmp/component-consumer-probe \
+  --output-base /tmp/component-seed-base --cache http://cache:8080
+```
+
+The final probe measured a library body edit at **15.60 seconds** (the changed
+return value made the test fail), an API edit at **17.42 seconds** (the old
+caller failed compilation), and the corrected caller at **16.00 seconds**
+(pass). No SDK component rebuilt for these edits. A new workspace with an
+empty Bazel output and user root, no local disk cache, and remote uploads
+disabled recovered the SDK and cached test in **48.99 seconds**. All 33 logged
+actions were cache hits, including all **22** component producers; the SDK
+bundle digest matched. Forcing the test process to execute then passed in
+**18.42 seconds** and printed the same runtime version, while build actions
+stayed cached. These runs used the same machine and an HTTP cache in a separate
+Apple container; they do not qualify remote execution.
