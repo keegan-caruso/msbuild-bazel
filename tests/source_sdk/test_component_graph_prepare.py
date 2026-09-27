@@ -60,6 +60,10 @@ class ComponentGraphTests(unittest.TestCase):
         self.assertIn('./build.sh -sb --ci --projects /source/repo-projects/fsharp.proj', script('fsharp', ['arcade'], []))
         self.assertNotIn('./build.sh -sb --ci --projects', script('arcade', [], []))
 
+    def test_sdk_declares_razor_redist_edge_patch(self):
+        self.assertIn('patch -p1 < .qualification/sdk-redist-razor-reference.patch', script('sdk', ['razor'], []))
+        self.assertNotIn('sdk-redist-razor-reference.patch', script('razor', ['arcade'], []))
+
     def test_only_new_sdk_items_allow_graph_migration(self):
         current = self.graph()
         previous = self.graph()

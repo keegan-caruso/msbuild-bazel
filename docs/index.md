@@ -40,6 +40,7 @@ results. The reports below provide detailed evidence and reproduction steps.
 | Avalonia | [XAML graph](avalonia-xaml-subset.md), [HTTP recovery](avalonia-http-cache.md), [remote execution](avalonia-remote-execution.md), [expanded suites and Desktop](avalonia-expanded.md), [edit and Headless controls](avalonia-correctness.md) |
 | ASP.NET Core | [Integration](aspnetcore-integration.md), [larger graph](aspnetcore-large-graph.md), [cache profile](aspnetcore-cache-profile.md) |
 | dotnet/runtime | [Source-only host](runtime-source-host.md), [Pipelines suite](runtime-pipelines.md), [cold/recovery timing](runtime-cold-timing.md), [leaf edit](runtime-leaf-timing.md), [workflow](runtime-workflow.md), [JIT boundary](runtime-jit-bootstrap.md) |
+| .NET SDK source build | [22-component graph, app consumer and cache recovery](source-sdk.md) |
 | Runner overhead | [Cold profile](explicit-cold-profile.md), [staging](worker-staging.md), [evaluation](project-evaluation-removal.md) |
 | Version/cache controls | [8.8 qualification](bazel-8.8-upgrade.md), [cache diagnosis](runtime-cache-diagnosis.md), [remote execution](remote-execution.md) |
 

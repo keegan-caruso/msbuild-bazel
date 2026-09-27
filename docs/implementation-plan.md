@@ -79,6 +79,7 @@ execution, incremental controls and independent HTTP cache recovery. See the
 The [Bazel-managed SDK migration](sdk-toolchains.md) records removal of host-path
 SDK setup and the shared downloaded/source-produced artifact contract.
 
-The [SDK source-build qualification](source-sdk.md) tracks the pinned whole-SDK
-baseline and staged Bazel integration separately from the completed SDK artifact
-consumer contract.
+The [SDK source-build qualification](source-sdk.md) now builds the pinned
+22-component graph on Linux ARM64, runs an app with its SDK, and recovers all
+component actions from an HTTP cache. This remains a pinned qualification;
+general source-built SDK distribution and byte-identical output are open.

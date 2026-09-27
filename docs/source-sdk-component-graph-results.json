@@ -1,0 +1,169 @@
+{
+  "platform": "Ubuntu 22.04 ARM64 Apple Container",
+  "bazelVersion": "9.2.0",
+  "configuration": "Release source-only",
+  "graphSource": "MSBuild evaluated RepositoryReference and BuiltSdkPackage items",
+  "componentCount": 22,
+  "sumOfComponentInnerBuildSeconds": 2520.42,
+  "sdkArchive": {
+    "path": "artifacts/assets/Release/Sdk/10.0.100-rtm.25523.111/dotnet-sdk-10.0.100-ubuntu.22.04-arm64.tar.gz",
+    "bytes": 564899505,
+    "sha256": "ebc7131a4987c53b728892d02a0d6c09b34e51c82157c1bd963808243ac3f484"
+  },
+  "components": [
+    {
+      "component": "source-build-reference-packages",
+      "fileCount": 206,
+      "payloadBytes": 31569218,
+      "bundleSha256": "6274a1b060de971b565537940eb69c26a5b127ddcde0f5373ed604a91cf745e8",
+      "innerBuildElapsed": "2:08.15"
+    },
+    {
+      "component": "arcade",
+      "fileCount": 194,
+      "payloadBytes": 18200955,
+      "bundleSha256": "ba41e38de4790a6f65f5d3afc61e9fa300e3815b6fc471fd11d8b314e0f911c5",
+      "innerBuildElapsed": "0:17.67"
+    },
+    {
+      "component": "cecil",
+      "fileCount": 2,
+      "payloadBytes": 361773,
+      "bundleSha256": "c2401fae077d42f48004366c6562efa4d14786eaa74423f5da0eb678256b8156",
+      "innerBuildElapsed": "0:06.82"
+    },
+    {
+      "component": "command-line-api",
+      "fileCount": 3,
+      "payloadBytes": 504753,
+      "bundleSha256": "2a1be8f8d40f1a75a58ec1ce940d4c9792e5923d3c67a162b3971856dc2e27bd",
+      "innerBuildElapsed": "0:07.91"
+    },
+    {
+      "component": "runtime",
+      "fileCount": 146,
+      "payloadBytes": 1343987291,
+      "bundleSha256": "0746a10db77c1318ab9cdf405583132d3579fdf91b4c9c7d91d0f485af3bfd90",
+      "innerBuildElapsed": "22:36.41"
+    },
+    {
+      "component": "xdt",
+      "fileCount": 2,
+      "payloadBytes": 220140,
+      "bundleSha256": "43ed5b4a3e10bf083bbdc0ec541c655a26243b074fb3aa2b68d44922ae81e7d7",
+      "innerBuildElapsed": "0:06.59"
+    },
+    {
+      "component": "symreader",
+      "fileCount": 2,
+      "payloadBytes": 326538,
+      "bundleSha256": "7cb8b8f7781c30d63848019d5e5d3c1a4a198075b51971adb0f1b1e295b3e015",
+      "innerBuildElapsed": "0:08.58"
+    },
+    {
+      "component": "roslyn",
+      "fileCount": 26,
+      "payloadBytes": 62131566,
+      "bundleSha256": "a775ec66e0d8856e355d82a022b462b4a47d53ed58a9fda405866e46329e67a6",
+      "innerBuildElapsed": "2:18.87"
+    },
+    {
+      "component": "msbuild",
+      "fileCount": 8,
+      "payloadBytes": 7530906,
+      "bundleSha256": "3a36be8e6922b4b5423a7883d5b60744c2f05fcc476d56dd7c31d1e6b380db0c",
+      "innerBuildElapsed": "0:40.32"
+    },
+    {
+      "component": "nuget-client",
+      "fileCount": 20,
+      "payloadBytes": 3242645,
+      "bundleSha256": "431c456cf1ad588be29889e0433ef427bff5a9bfad04a60e753af35cf3ca2625",
+      "innerBuildElapsed": "0:26.89"
+    },
+    {
+      "component": "aspnetcore",
+      "fileCount": 55,
+      "payloadBytes": 377211788,
+      "bundleSha256": "127f3b1511a670ec4ace31afcfddac26c545f50d7a90f3f3440b1ca1c5ab3e1b",
+      "innerBuildElapsed": "2:47.45"
+    },
+    {
+      "component": "deployment-tools",
+      "fileCount": 2,
+      "payloadBytes": 82838,
+      "bundleSha256": "e7690fe6d4630f8b9579bbd32bcc0b2df9e3d1bb741978532b3955ad660359bf",
+      "innerBuildElapsed": "0:06.19"
+    },
+    {
+      "component": "fsharp",
+      "fileCount": 2,
+      "payloadBytes": 47619596,
+      "bundleSha256": "473546e4aceb40c15811f417bbd50fc47510eb92c63549eb646c348707527e0a",
+      "innerBuildElapsed": "4:26.42"
+    },
+    {
+      "component": "razor",
+      "fileCount": 5,
+      "payloadBytes": 2615345,
+      "bundleSha256": "962884b11492759a27ed7b71804962a24e676bda72bae5532731d71545aa7c9d",
+      "innerBuildElapsed": "0:25.13"
+    },
+    {
+      "component": "sourcelink",
+      "fileCount": 14,
+      "payloadBytes": 906351,
+      "bundleSha256": "7dafeef8dc03cc561ccc9568acd362424c859d930282a70469f6d23c21b1ac02",
+      "innerBuildElapsed": "0:11.07"
+    },
+    {
+      "component": "templating",
+      "fileCount": 10,
+      "payloadBytes": 1810894,
+      "bundleSha256": "1c9d69ac57ac47ff988392890c31a39f7130f5dae5e76fe086b6e13ae9fd75fb",
+      "innerBuildElapsed": "0:19.15"
+    },
+    {
+      "component": "diagnostics",
+      "fileCount": 2,
+      "payloadBytes": 67294,
+      "bundleSha256": "ca15a77002028fd698b82229ea2d7cd7ae097658c3730672cb756a9db980d050",
+      "innerBuildElapsed": "0:06.36"
+    },
+    {
+      "component": "vstest",
+      "fileCount": 3,
+      "payloadBytes": 2219870,
+      "bundleSha256": "61d71ddbf5d8446840d29039e0951196b6c1349c01c9e6c5c21506f84b8ecdad",
+      "innerBuildElapsed": "0:21.97"
+    },
+    {
+      "component": "winforms",
+      "fileCount": 3,
+      "payloadBytes": 138098,
+      "bundleSha256": "873ebf6d15b8d1e8717b88888d3da57141e60c561b1c4c995b79756af137f373",
+      "innerBuildElapsed": "0:07.61"
+    },
+    {
+      "component": "wpf",
+      "fileCount": 3,
+      "payloadBytes": 585016,
+      "bundleSha256": "d9306ea9d1c06abdee61d51406865d9e3f96860dcf81dceaef6f26b8788f85a0",
+      "innerBuildElapsed": "0:13.15"
+    },
+    {
+      "component": "windowsdesktop",
+      "fileCount": 5,
+      "payloadBytes": 8810,
+      "bundleSha256": "30afb82cd581a7fb6c51af33b3ed5e31fcf05b98b8554376b30747b910cbf9f6",
+      "innerBuildElapsed": "0:07.16"
+    },
+    {
+      "component": "sdk",
+      "fileCount": 45,
+      "payloadBytes": 588119628,
+      "bundleSha256": "67da335898b3ba56df893eea2a502bc1d827fbcc1bcaed57ccce12d02a3ac592",
+      "innerBuildElapsed": "3:50.55"
+    }
+  ]
+}
