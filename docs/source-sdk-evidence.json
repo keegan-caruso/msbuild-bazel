@@ -214,7 +214,26 @@
         "bundleFiles": 2,
         "bundleSha256": "e2d40691cfb5f0c4b3e2f3c400baf8400a886878968cab448f2b27a6053346eb"
       },
-      "cumulativeGraphAfterSbrpOutputChangeQualified": false
+      "cumulativeGraphAfterSbrpOutputChangeQualified": false,
+      "builtSdkItemEvaluation": {
+        "sourceBuildReferencePackages": [
+          "Microsoft.Build.NoTargets",
+          "Microsoft.Build.Traversal"
+        ],
+        "arcade": [
+          "Microsoft.DotNet.Arcade.Sdk",
+          "Microsoft.DotNet.SharedFramework.Sdk",
+          "Microsoft.DotNet.CMake.Sdk"
+        ]
+      },
+      "arcadeSdkLayout": {
+        "exitCode": 0,
+        "bazelWallSeconds": 225.52,
+        "bundleFiles": 194,
+        "bundleBytes": 18200955,
+        "extractedSdkFiles": 169,
+        "bundleSha256": "ba41e38de4790a6f65f5d3afc61e9fa300e3815b6fc471fd11d8b314e0f911c5"
+      }
     }
   }
 }

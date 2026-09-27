@@ -447,7 +447,8 @@ the prototype does not retain a warm MSBuild component workspace.
 ## Configured component graph expansion
 
 The generator now consumes `evaluate_graph.py`'s MSBuild-evaluated repository
-graph instead of naming dependency edges in Python. It validates the pinned
+graph and `BuiltSdkPackage` items instead of naming dependency edges or SDK
+layouts in Python. It validates the pinned
 revision, Release/ARM64 source-only configuration, complete build pass, and
 topological dependency order before producing Bazel actions. An explicit
 `--through` argument selects one component and its dependency closure. The native
@@ -481,6 +482,15 @@ The graph generator can extend an existing qualification workspace. It verifies
 the evaluated graph, bootstrap/native inputs and existing generated scripts,
 then adds only new source archives and targets. This preserves local Bazel action
 state and avoids duplicating large runtime inputs for each slice.
+`--refresh-output-contracts` explicitly migrates an earlier evaluated graph
+that lacks `BuiltSdkPackage` items; it rejects changes to the source revision,
+configuration and dependency edges.
+
+MSBuild evaluation identifies two built SDK packages from SBRP and three from
+Arcade. The generator declares the corresponding extracted SDK directories as
+component side outputs. Arcade passed with a 194-file, 18,200,955-byte bundle;
+169 files came from its three extracted SDK layouts. This records the layouts
+that downstream SDK resolvers read, alongside the published NuGet packages.
 
 **SymReader** then passed from the extended workspace. Its upstream build took
 **8.06 seconds** and the Bazel invocation took **50.74 seconds**. It published

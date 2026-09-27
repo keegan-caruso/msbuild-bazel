@@ -39,7 +39,7 @@ def main():
         name = repository['path']
         command = [str(source / '.dotnet/dotnet'), 'msbuild', 'repo-projects/' + name + '.proj', '-nologo',
                    *('/p:' + key + '=' + value for key, value in properties.items()),
-                   '/getItem:RepositoryReference,ProjectReference,EnvironmentVariables',
+                   '/getItem:RepositoryReference,ProjectReference,EnvironmentVariables,BuiltSdkPackage',
                    '/getProperty:TargetRid,DotNetBuildSharedComponents,DotNetBuildPass,BuildScript,BuildArgs,CommonArgs']
         result = subprocess.run(command, cwd=source, env=environment, capture_output=True, text=True, timeout=120)
         if result.returncode:
