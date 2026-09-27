@@ -28,6 +28,14 @@ def build_project(ctx, executable = False, test = False, restore_only = False, p
         fail("local_native_tools is currently supported only by msbuild_generate")
     if ctx.attr.local_native_tools and (ctx.attr.linux_worker or ctx.attr.allow_remote_execution):
         fail("local_native_tools requires a fresh local MSBuild action")
+    if ctx.attr.native_toolchain and not generate:
+        fail("native_toolchain is currently supported only by msbuild_generate")
+    if ctx.attr.native_toolchain and not ctx.file.native_toolchain.is_directory:
+        fail("native_toolchain requires a single tree artifact")
+    if ctx.attr.native_toolchain and ctx.attr.local_native_tools:
+        fail("Choose native_toolchain or local_native_tools")
+    if ctx.attr.native_toolchain and ctx.attr.linux_worker:
+        fail("native_toolchain requires a fresh MSBuild action")
     project = project or ctx.file.project
     tc = ctx.toolchains[_TOOLCHAIN]
     name = ctx.attr.assembly_name or project.basename.removesuffix(".csproj")
@@ -171,6 +179,7 @@ def build_project(ctx, executable = False, test = False, restore_only = False, p
         # Internal qualification gate; not part of the supported rule API.
         "experimentalWorkerProject": str(ctx.label) if ctx.attr.linux_worker and ctx.var.get("rules_msbuild_stable_path_prototype") == "1" else None,
         "localNativeTools": ctx.attr.local_native_tools,
+        "nativeToolchain": ctx.file.native_toolchain.path if ctx.attr.native_toolchain else None,
         "restoreKey": restore_key(ctx.attr.target_framework, ctx.attr.target_framework, _configuration(ctx), ctx.attr.msbuild_properties),
         "implementationReferences": [dep.project for dep in direct if dep.implementation_reference],
         "implementationDependencies": [dep.project for dep in implementation],
@@ -253,7 +262,7 @@ def build_project(ctx, executable = False, test = False, restore_only = False, p
         arguments = arguments,
         tools = depset([tc.runner, tc.worker_tools], transitive = [tc.sdk, tc.runner_support]) if ctx.attr.linux_worker else [],
         inputs = depset(
-            [project, request, tc.runner] + selected.files + ctx.files.srcs + ctx.files.source_paths + ctx.files.msbuild_imports + ctx.files.import_paths + ctx.files.adapter_imports + ([restore.file] if restore else []),
+            [project, request, tc.runner] + selected.files + ctx.files.srcs + ctx.files.source_paths + ctx.files.msbuild_imports + ctx.files.import_paths + ctx.files.adapter_imports + ([restore.file] if restore else []) + ([ctx.file.native_toolchain] if ctx.attr.native_toolchain else []),
             transitive = [depset([p.assembly.reference if p.artifact == "reference" else p.assembly.runtime for p in project_outputs]), depset([dep.runtime for dep in analyzer_projects] + [row.directory for dep in analyzer_projects for row in dep.runtime_packages.to_list()], transitive = [dep.runtimes for dep in analyzer_projects]), tc.sdk, tc.runner_support, compiler_references, runtime_only_references, pack_files, depset([target[MSBuildLayoutInfo].directory for target in ctx.attr.layout_bindings]), package_files, restore_projects] + [group[MSBuildItemsInfo].files for group in ctx.attr.items] + [tool.files for tool in build_tools],
         ),
         outputs = ([diagnostics] + generated.values()) if generate else [reference, runtime, diagnostics] + ([identity] if identity else []) + ([restore_project] if restore_project else []) + ([target_output] if target_output else []),

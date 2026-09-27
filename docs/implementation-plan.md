@@ -21,7 +21,7 @@ There is no whole-graph discovery/preparation/replay step on this path.
 | Shared restore inputs and package trees | [Restore inputs](explicit-restore-inputs.md), [package borrowing](explicit-package-borrowing.md) |
 | SDK-only application setup and tracked global.json | [SDK acquisition and defaults](development.md#using-the-rules-in-an-application), [committed quickstart and independent consumers](adoption.md) |
 | Downloaded and source-built execution runtimes | [Shared runtime provider and Bzlmod acquisition](runtime-primitives.md#downloaded-and-source-built-runtime-providers) |
-| Linux ARM64 Native AOT publish, local only | [Runnable binary and locked package qualification](native-aot.md) |
+| Linux ARM64 Native AOT publish with local or declared native tools | [Runnable binary, locked packages and declared-toolchain qualification](native-aot.md) |
 | Friend assemblies and separate contract/implementation roles | [InternalsVisibleTo](internals-visible-to.md), [runtime primitives](runtime-primitives.md) |
 
 These are bounded contracts. See each guide for rejected inputs and unsupported
@@ -61,7 +61,8 @@ The pinned baselines are SDK 10.0.400 and Bazel 8.8.0/9.2.0 (default 9.2.0).
 The expanded runtime qualification used Linux ARM64 and Bazel 9.2.0. It does not
 establish support for other platforms, the entire runtime repository, JIT stress,
 source-built NativeAOT, Mono/WASM, cross-compilation or crossgen/R2R. A separate
-[local Native AOT publish](native-aot.md) uses the downloaded SDK. Native products are built
+[Native AOT publish](native-aot.md) uses the downloaded SDK; one qualification
+declares the native toolchain tree, but independent cache recovery is still open. Native products are built
 locally in a declared namespace; HTTP cache recovery does not qualify remote
 execution of that graph. Separate [remote-execution qualification](remote-execution.md)
 covers bounded managed fixtures and the expanded Avalonia slices on an SDK-free
