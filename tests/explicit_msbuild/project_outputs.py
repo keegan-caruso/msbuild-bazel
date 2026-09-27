@@ -14,7 +14,7 @@ sdk=Path(os.environ['RULES_MSBUILD_DOTNET_ROOT']);bazel=os.environ['RULES_MSBUIL
 bazel_dep(name="rules_msbuild",version="0.0.0")
 local_path_override(module_name="rules_msbuild",path={json.dumps(str(rules))})
 sdk=use_repo_rule("@rules_msbuild//bazel:msbuild.bzl","local_dotnet_sdk")
-sdk(name="dotnet",path={json.dumps(str(sdk))},include_runtime_closure=False)
+sdk(name="dotnet",path={json.dumps(str(sdk))})
 register_toolchains("//:registered")
 ''')
 header='''load("@rules_msbuild//msbuild:toolchain.bzl","msbuild_toolchain")

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Run the same supported-version gates with bootstrap or optional Nix tools."""
+"""Run the same supported-version gates with the pinned bootstrap tools."""
 import argparse
 import json
 from pathlib import Path

@@ -47,7 +47,7 @@ for key,record in target.items():
  name,version=key.split('/');archive_name=name.lower()+'.'+version+'.nupkg';archive=work/'nuget'/name.lower()/version/archive_name;shutil.copyfile(archive,packages/archive_name)
  package_rules.append('msbuild_nuget_package('+','.join(k+'='+json.dumps(v) for k,v in dict(name=name.lower(),package_id=name,version=version,archive=archive_name,archive_sha256=hashlib.sha256(archive.read_bytes()).hexdigest(),content_hash=assets['libraries'][key]['sha512'],deps=[':'+x.lower() for x in record.get('dependencies',{})],visibility=['//visibility:public']).items())+')')
 (packages/'BUILD.bazel').write_text('\n'.join(package_rules))
-(workspace/'MODULE.bazel').write_text('module(name="borrow_benchmark")\nbazel_dep(name="rules_msbuild",version="0.0.0")\nlocal_path_override(module_name="rules_msbuild",path='+json.dumps(str(root))+')\nsdk=use_repo_rule("@rules_msbuild//bazel:msbuild.bzl","local_dotnet_sdk")\nsdk(name="dotnet",path='+json.dumps(str(sdk))+',include_runtime_closure=False)\nregister_toolchains("//:registered")\n')
+(workspace/'MODULE.bazel').write_text('module(name="borrow_benchmark")\nbazel_dep(name="rules_msbuild",version="0.0.0")\nlocal_path_override(module_name="rules_msbuild",path='+json.dumps(str(root))+')\nsdk=use_repo_rule("@rules_msbuild//bazel:msbuild.bzl","local_dotnet_sdk")\nsdk(name="dotnet",path='+json.dumps(str(sdk))+')\nregister_toolchains("//:registered")\n')
 (toolroot/'BUILD.bazel').write_text('package(default_visibility=["//visibility:public"])\nfilegroup(name="borrow",srcs=glob(["borrow/*"]))\nfilegroup(name="copy",srcs=glob(["copy/*"]))\nexports_files(["borrow/ExplicitBuild.dll","copy/ExplicitBuild.dll"])\n')
 for index in range(args.projects):
  d=workspace/('P'+str(index));d.mkdir()
