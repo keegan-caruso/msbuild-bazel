@@ -13,6 +13,8 @@ import tarfile
 from component_sources import select
 from inventory import digest
 
+SDK_ARCHIVE = 'artifacts/assets/Release/Sdk/10.0.100-rtm.25523.111/dotnet-sdk-10.0.100-ubuntu.22.04-arm64.tar.gz'
+
 
 def selected_nodes(graph, through, revision):
     if graph['sourceRevision'] != revision:
@@ -163,26 +165,30 @@ def main():
                     "source_action.bzl": (here / 'source_action.bzl').read_bytes(),
                     "component_action.bzl": (here / 'component_action.bzl').read_bytes(),
                     "MODULE.bazel": module.encode()}
+    if args.sdk_consumer:
+        fixed_inputs['SdkDriver.cs'] = (here / 'SdkNativeBuild.cs.txt').read_bytes()
     for name, data in fixed_inputs.items():
         path = work / name
         if args.extend:
-            if path.read_bytes() != data:
-                old = path.read_bytes()
+            old = path.read_bytes() if path.exists() else None
+            if old != data:
                 allowed_module = name == 'MODULE.bazel' and old == controller_module.encode()
-                allowed_rule = name == 'component_action.bzl' and data.startswith(old)
-                if not (args.sdk_consumer and args.refresh_output_contracts and (allowed_module or allowed_rule)):
+                allowed_refresh = name in ('Driver.cs', 'SdkDriver.cs', 'component_action.bzl') and args.sdk_consumer and args.refresh_output_contracts
+                if not (allowed_refresh or (args.sdk_consumer and args.refresh_output_contracts and allowed_module)):
                     raise ValueError('Existing workspace has a different input: ' + name)
                 path.write_bytes(data)
         else:
             path.write_bytes(data)
     helpers = [here / name for name in ['component_outputs.py', 'inventory.py', 'source_action_prepare.py']]
-    source_symbols = '"native_driver", "sdk_layout"' if args.sdk_consumer else '"native_driver"'
-    component_symbols = '"source_component", "component_package", "component_sdk_archive"' if args.sdk_consumer else '"source_component", "component_package"'
+    source_symbols = '"native_driver"'
+    component_symbols = '"source_component", "component_package", "sdk_component_layout"' if args.sdk_consumer else '"source_component", "component_package"'
     build = ['load(":source_action.bzl", %s)' % source_symbols, 'load(":component_action.bzl", %s)' % component_symbols,
              'load("@rules_msbuild//msbuild:defs.bzl", "msbuild_generated_nuget_package", "msbuild_library", "msbuild_package_lock", "msbuild_test")']
     if args.sdk_consumer:
         build.append('load("@rules_msbuild//msbuild:sdk.bzl", "msbuild_sdk")')
     build.append('native_driver(name="driver",driver_sdk="@controller//:sdk_host",driver_project="Driver.csproj",driver_source="Driver.cs")')
+    if args.sdk_consumer:
+        build.append('native_driver(name="sdk_driver",driver_sdk="@controller//:sdk_host",driver_project="Driver.csproj",driver_source="SdkDriver.cs")')
     for name, dependencies in nodes.items():
         source = work / (name + '.tar')
         command = work / (name + '.sh')
@@ -206,13 +212,14 @@ def main():
         else:
             select(root / 'sources.tar', name, source, selected_helpers)
             command.write_text(build_script)
-        build.append('source_component(name=%s,driver=":driver",sources=%s,script=%s,deps=%s,native_tools="native.tar",bootstrap="bootstrap.tar",sandbox="bwrap",exec_compatible_with=["@platforms//os:linux","@platforms//cpu:aarch64"])' %
-                     (json.dumps(name), json.dumps(name + '.tar'), json.dumps(name + '.sh'), json.dumps([':' + item for item in dependencies])))
+        sdk_archive = ',sdk_archive=' + json.dumps(SDK_ARCHIVE) if name == 'sdk' and args.sdk_consumer else ''
+        driver = ':sdk_driver' if name == 'sdk' and args.sdk_consumer else ':driver'
+        build.append('source_component(name=%s,driver=%s,sources=%s,script=%s,deps=%s,native_tools="native.tar",bootstrap="bootstrap.tar",sandbox="bwrap"%s,exec_compatible_with=["@platforms//os:linux","@platforms//cpu:aarch64"])' %
+                     (json.dumps(name), json.dumps(driver), json.dumps(name + '.tar'), json.dumps(name + '.sh'), json.dumps([':' + item for item in dependencies]), sdk_archive))
     build.append('filegroup(name="components",srcs=%s)' % json.dumps([':' + name for name in nodes]))
     if args.sdk_consumer:
         build.extend([
-            'component_sdk_archive(name="sdk_archive",component=":sdk",member="artifacts/assets/Release/Sdk/10.0.100-rtm.25523.111/dotnet-sdk-10.0.100-ubuntu.22.04-arm64.tar.gz")',
-            'sdk_layout(name="layout",archive=":sdk_archive")',
+            'sdk_component_layout(name="layout",component=":sdk")',
             'filegroup(name="dotnet",srcs=[":layout"],output_group="dotnet")',
             'msbuild_sdk(name="produced",dotnet=":dotnet",files=[":layout"],sdk_version="10.0.100",runtime_version="10.0.0",runtime_identifier="linux-arm64")',
             'msbuild_library(name="sdk_lib",project="SdkLib.csproj",srcs=["SdkLib.cs"],target_framework="net10.0")',
