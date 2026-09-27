@@ -51,8 +51,25 @@ def published_files(root, component, configuration='Release'):
     return sorted(paths)
 
 
-def bundle(root, component, output):
-    paths = published_files(root, component)
+def bundle(root, component, output, extra_trees=()):
+    paths = set(published_files(root, component))
+    for name in extra_trees:
+        logical = PurePosixPath(name)
+        if not name or name == '.' or logical.is_absolute() or '..' in logical.parts or str(logical) != name or '\\' in name:
+            raise ValueError('Unsafe side-output tree: ' + name)
+        tree = root / name
+        if not tree.is_dir() or tree.is_symlink() or not tree.resolve().is_relative_to(root.resolve()):
+            raise ValueError('Missing or escaped side-output tree: ' + name)
+        files = []
+        for entry in tree.rglob('*'):
+            if entry.is_symlink():
+                raise ValueError('Symlink in side-output tree: ' + str(entry))
+            if entry.is_file():
+                files.append(str(entry.relative_to(root)))
+        if not files:
+            raise ValueError('Empty side-output tree: ' + name)
+        paths.update(files)
+    paths = sorted(paths)
     report = {'component': component, 'files': []}
     with tarfile.open(output, 'w') as archive:
         for name in paths:
@@ -68,8 +85,9 @@ def main():
     parser.add_argument('source', type=Path)
     parser.add_argument('component')
     parser.add_argument('output', type=Path)
+    parser.add_argument('--extra-tree', action='append', default=[], help='Explicit component side-output directory, relative to the VMR root')
     args = parser.parse_args()
-    report = bundle(args.source.resolve(), args.component, args.output)
+    report = bundle(args.source.resolve(), args.component, args.output, args.extra_tree)
     args.output.with_suffix('.json').write_text(json.dumps(report, indent=2) + '\n')
     print(args.component, len(report['files']), 'files', report['archiveSha256'])
 

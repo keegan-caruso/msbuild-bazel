@@ -39,6 +39,20 @@ class ComponentOutputsTests(unittest.TestCase):
             package.write_bytes(b'legacy')
             self.assertIn(str(package.relative_to(root)), published_files(root, 'one'))
 
+    def test_explicit_side_outputs_are_included_and_must_exist(self):
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            self.fixture(root)
+            extra = root / 'prereqs/packages/reference/ref.nupkg'
+            extra.parent.mkdir(parents=True)
+            extra.write_bytes(b'reference')
+            report = bundle(root, 'one', root / 'outputs.tar', ['prereqs/packages/reference'])
+            self.assertIn(str(extra.relative_to(root)), [row['path'] for row in report['files']])
+            with self.assertRaisesRegex(ValueError, 'Missing'):
+                bundle(root, 'one', root / 'missing.tar', ['prereqs/missing'])
+            with self.assertRaisesRegex(ValueError, 'Unsafe'):
+                bundle(root, 'one', root / 'unsafe.tar', ['../outside'])
+
     def test_missing_artifact_is_rejected(self):
         with tempfile.TemporaryDirectory() as folder:
             root = Path(folder)

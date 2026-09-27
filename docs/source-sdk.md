@@ -334,7 +334,8 @@ The cause of the changed binaries has not been isolated.
 ## Component output boundary
 
 `tests/source_sdk/component_outputs.py` packages one component's original asset
-manifests and only the files they identify, preserving VMR-relative paths.
+manifests and the files they identify, preserving VMR-relative paths. Additional
+side-output directories must be declared explicitly with `--extra-tree`.
 Current manifests provide `PipelineArtifactPath`; the version-3 package manifests
 used by WPF and WinForms use the upstream shipping/non-shipping package layout.
 Missing artifacts, paths escaping the source root, and mismatched repository
@@ -343,7 +344,8 @@ interpret package versions and SDK overrides.
 
 ```sh
 python3 tests/source_sdk/component_outputs.py /path/to/baseline arcade arcade.tar
-python3 tests/source_sdk/component_outputs.py /path/to/baseline source-build-reference-packages sbrp.tar
+python3 tests/source_sdk/component_outputs.py /path/to/baseline source-build-reference-packages sbrp.tar \
+  --extra-tree prereqs/packages/reference
 ```
 
 Auditing all 22 evaluated components in the successful development baseline found
@@ -351,5 +353,16 @@ Auditing all 22 evaluated components in the successful development baseline foun
 This includes manifests as well as packages and blobs. Synthetic checks cover
 stable bundle metadata, both manifest formats, missing files and path/origin
 rejection. Bundle creation also passed on actual Arcade, SBRP and CommandLine
-outputs. This proves artifact inventory and bundling; a new component build
-consuming those bundles remains a separate qualification.
+outputs. SBRP also copies 164 reference-only package files outside its publishing
+manifest; its declared `prereqs/packages/reference` side output is required.
+
+`component_replay_prepare.py` prepares a fresh isolated CommandLine build with
+those Arcade and SBRP bundles. It passed with zero warnings/errors and produced
+`System.CommandLine` and `dotnet-suggest` 2.0.0-dev. The component build command
+took **10.34s**, excluding preparation; its log identifies only CommandLine as a
+built component. The replay explicitly builds the shared orchestration task
+assembly, restores the orchestration projects, invokes upstream
+`ExtractToolPackage` for dependency SDKs, and disables dependency component
+rebuilding. Outer whole-SDK publishing is disabled; inner component packaging
+remains enabled. Source inputs still include the whole VMR, so this does not yet
+prove component-specific source invalidation or scheduling all 22 components.
