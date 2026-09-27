@@ -19,7 +19,7 @@ class ArchiveInputsTests(unittest.TestCase):
             actual = next(iter(archive))
             self.assertEqual(actual.name, entry.name)
             self.assertEqual(actual.uid, 0)
-            self.assertEqual(actual.mtime, 0)
+            self.assertEqual(actual.mtime, 315532800)
             self.assertEqual(archive.extractfile(actual).read(), b'code')
 
 
