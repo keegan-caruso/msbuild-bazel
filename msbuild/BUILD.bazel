@@ -8,5 +8,6 @@ exports_files([
     "defs.bzl",
     "extensions.bzl",
     "sync.bzl",
+    "sdk.bzl",
     "toolchain.bzl",
 ])

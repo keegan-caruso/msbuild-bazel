@@ -9,18 +9,11 @@ SDK_PLATFORMS = {
 
 def _sdk_archive(ctx):
     ctx.download_and_extract(url = ctx.attr.urls, integrity = ctx.attr.integrity, output = "sdk", canonical_id = ctx.attr.integrity)
-    ctx.file("BUILD.bazel", """load(%s, "sdk_runner", "sdk_runtime", "sdk_runtime_toolchain")
-load(%s, "msbuild_toolchain")
+    ctx.file("BUILD.bazel", """load(%s, "msbuild_sdk")
 package(default_visibility = ["//visibility:public"])
 filegroup(name = "files", srcs = glob(["sdk/**"], exclude = ["sdk/**/BUILD", "sdk/**/BUILD.bazel"]))
-sdk_runner(name = "runner_payload", dotnet = "sdk/dotnet", sdk = ":files", project = %s, sources = %s)
-filegroup(name = "runner", srcs = [":runner_payload"], output_group = "runner")
-msbuild_toolchain(name = "sdk_toolchain", dotnet = "sdk/dotnet", sdk = ":files", runner = ":runner", runner_support = [":runner_payload"], sdk_version = %s, requires_runtime_toolchain = True)
-filegroup(name = "runtime_files", srcs = ["sdk/dotnet"] + glob(["sdk/host/**", "sdk/shared/**"]))
-sdk_runtime(name = "runtime", dotnet = "sdk/dotnet", files = ":runtime_files", runtime_identifier = %s, version = %s)
-sdk_runtime(name = "sdk_host", dotnet = "sdk/dotnet", files = ":files", runtime_identifier = %s, version = %s)
-sdk_runtime_toolchain(name = "runtime_toolchain", runtime = ":runtime")
-""" % (json.encode(str(ctx.attr._bootstrap)), json.encode(str(ctx.attr._toolchain)), json.encode(str(ctx.attr._project)), json.encode(str(ctx.attr._sources)), json.encode(ctx.attr.version), json.encode(ctx.attr.platform), json.encode(ctx.attr.runtime_version), json.encode(ctx.attr.platform), json.encode(ctx.attr.runtime_version)))
+msbuild_sdk(name = "sdk", dotnet = "sdk/dotnet", files = [":files"], sdk_version = %s, runtime_identifier = %s, runtime_version = %s)
+""" % (json.encode(str(ctx.attr._declarations)), json.encode(ctx.attr.version), json.encode(ctx.attr.platform), json.encode(ctx.attr.runtime_version)))
 
 sdk_archive = repository_rule(
     implementation = _sdk_archive,
@@ -29,11 +22,8 @@ sdk_archive = repository_rule(
         "integrity": attr.string(mandatory = True),
         "version": attr.string(mandatory = True),
         "runtime_version": attr.string(mandatory = True),
+        "_declarations": attr.label(default = Label("//msbuild:sdk.bzl")),
         "platform": attr.string(mandatory = True),
-        "_bootstrap": attr.label(default = Label("//msbuild/private:sdk_bootstrap.bzl")),
-        "_toolchain": attr.label(default = Label("//msbuild:toolchain.bzl")),
-        "_project": attr.label(default = Label("//tools/ExplicitBuild:ExplicitBuild.csproj")),
-        "_sources": attr.label(default = Label("//tools/ExplicitBuild:sources")),
     },
 )
 
@@ -45,9 +35,9 @@ def _sdk_toolchains(ctx):
         constraints = json.encode(SDK_PLATFORMS[platform])
         name = platform.replace("-", "_")
         rows.append("toolchain(name=%s, toolchain=%s, toolchain_type=%s, exec_compatible_with=%s)" % (json.encode("sdk_" + name), json.encode("@" + repo + "//:sdk_toolchain"), json.encode(str(ctx.attr._sdk_type)), constraints))
-        rows.append("toolchain(name=%s, toolchain=%s, toolchain_type=%s, target_compatible_with=%s)" % (json.encode("runtime_" + name), json.encode("@" + repo + "//:runtime_toolchain"), json.encode(str(ctx.attr._runtime_type)), constraints))
+        rows.append("toolchain(name=%s, toolchain=%s, toolchain_type=%s, target_compatible_with=%s)" % (json.encode("runtime_" + name), json.encode("@" + repo + "//:sdk_runtime_toolchain"), json.encode(str(ctx.attr._runtime_type)), constraints))
         rows.append("config_setting(name=%s, constraint_values=%s)" % (json.encode(name), constraints))
-        choices[":" + name] = "@" + repo + "//:runtime"
+        choices[":" + name] = "@" + repo + "//:sdk_runtime"
         sdk_hosts[":" + name] = "@" + repo + "//:sdk_host"
     rows.append("alias(name=\"runtime\", actual=select(%s, no_match_error=\"No SDK runtime for the target platform\"))" % json.encode(choices))
     rows.append("alias(name=\"sdk_host\", actual=select(%s, no_match_error=\"No SDK host for the target platform\"))" % json.encode(sdk_hosts))

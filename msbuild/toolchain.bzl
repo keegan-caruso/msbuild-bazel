@@ -5,11 +5,14 @@ def _toolchain(ctx):
     # CoreCLR runtime, plus any separately declared platform runtime closure.
     # Compilation still receives the complete SDK below.
     sdk_root = ctx.executable.dotnet.dirname + "/"
-    runtime = depset([file for file in ctx.attr.sdk[DefaultInfo].files.to_list() if not file.path.startswith(sdk_root) or file == ctx.executable.dotnet or file.path.startswith(sdk_root + "host/") or file.path.startswith(sdk_root + "shared/Microsoft.NETCore.App/")])
+    for file in ctx.files.sdk:
+        if not file.path.startswith(sdk_root):
+            fail("SDK artifacts must be rooted beside dotnet: " + file.path)
+    runtime = depset([file for file in ctx.attr.sdk[DefaultInfo].files.to_list() if not file.path.startswith(sdk_root) or file == ctx.executable.dotnet or file.path == sdk_root + "host" or file.path.startswith(sdk_root + "host/") or file.path == sdk_root + "shared" or file.path == sdk_root + "shared/Microsoft.NETCore.App" or file.path.startswith(sdk_root + "shared/Microsoft.NETCore.App/")])
 
     # Legacy application launch uses this host when no runtime is selected.
     # Retain every shared framework (for example ASP.NET Core), but no SDK.
-    application_runtime = depset([file for file in ctx.attr.sdk[DefaultInfo].files.to_list() if not file.path.startswith(sdk_root) or file == ctx.executable.dotnet or file.path.startswith(sdk_root + "host/") or file.path.startswith(sdk_root + "shared/")])
+    application_runtime = depset([file for file in ctx.attr.sdk[DefaultInfo].files.to_list() if not file.path.startswith(sdk_root) or file == ctx.executable.dotnet or file.path == sdk_root + "host" or file.path.startswith(sdk_root + "host/") or file.path.startswith(sdk_root + "shared/")])
     worker_tools = ctx.actions.declare_file(ctx.label.name + ".worker-tools.json")
     ctx.actions.write(worker_tools, json.encode({
         "sdk": [file.path for file in ctx.attr.sdk[DefaultInfo].files.to_list()],
