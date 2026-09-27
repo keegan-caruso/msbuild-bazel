@@ -7,6 +7,7 @@ import argparse
 import json
 import os
 from pathlib import Path
+import re
 import tarfile
 
 from component_sources import select
@@ -28,7 +29,10 @@ def selected_nodes(graph, through, revision):
         raise ValueError('Missing target or duplicate component in evaluated order: ' + through)
     dependencies_by_name = {}
     for name in order:
-        dependencies = [item['Identity'] for item in graph['nodes'][name]['Items']['RepositoryReference']
+        items = graph['nodes'][name]['Items']
+        if 'BuiltSdkPackage' not in items:
+            raise ValueError('Evaluated graph lacks built SDK package declarations: ' + name)
+        dependencies = [item['Identity'] for item in items['RepositoryReference']
                         if item.get('BuildReference', 'true').lower() != 'false']
         if any(dependency not in dependencies_by_name for dependency in dependencies):
             raise ValueError('Evaluated dependency is missing or out of order: ' + name)
@@ -56,7 +60,14 @@ def same_input(first, second):
     return os.path.samefile(first, second) or digest(first) == digest(second)
 
 
-def script(component, dependencies):
+def expanded_sdk_graph(previous, current):
+    stripped = json.loads(json.dumps(current))
+    for node in stripped['nodes'].values():
+        node['Items'].pop('BuiltSdkPackage', None)
+    return previous == stripped
+
+
+def script(component, dependencies, built_sdks):
     projects = ';'.join('/source/repo-projects/' + name + '.proj' for name in dependencies)
     common = '--configuration Release --arch arm64 --official-build-id 20251023.11 --branding rtm /p:Publish=false --source-repository https://github.com/dotnet/dotnet --source-version b0f34d51fccc69fd334253924abd8d6853fad7aa'
     extraction = ''
@@ -70,9 +81,12 @@ XML
 ./build.sh -sb --projects /source/extract-dependency-tools.proj {common} > dependency-tools.log 2>&1 || {{ tail -100 dependency-tools.log; exit 1; }}
 '''
     patch = 'patch -p1 < identitymodel.patch' if component == 'source-build-reference-packages' else ''
-    extra = ('--extra-tree prereqs/packages/reference '
-             '--extra-tree artifacts/source-built-sdks/Microsoft.Build.NoTargets '
-             '--extra-tree artifacts/source-built-sdks/Microsoft.Build.Traversal') if component == 'source-build-reference-packages' else ''
+    if any(not re.fullmatch(r'[A-Za-z0-9_.-]+', sdk) for sdk in built_sdks):
+        raise ValueError('Invalid built SDK package identity: ' + component)
+    extra_trees = ['artifacts/source-built-sdks/' + sdk for sdk in built_sdks]
+    if component == 'source-build-reference-packages':
+        extra_trees.append('prereqs/packages/reference')
+    extra = ' '.join('--extra-tree ' + path for path in extra_trees)
     return f'''set -euo pipefail
 export DOTNET_PROCESSOR_COUNT=1 DOTNET_CLI_TELEMETRY_OPTOUT=1 DOTNET_GENERATE_ASPNET_CERTIFICATE=false NuGetAudit=false
 {patch}
@@ -95,6 +109,7 @@ def main():
     parser.add_argument('--native-tools', type=Path, required=True, help='Reviewed native tool archive; excludes private host material')
     parser.add_argument('--through', default='command-line-api', help='Selected component and its evaluated dependency closure')
     parser.add_argument('--extend', action='store_true', help='Add a component closure to an existing generated workspace')
+    parser.add_argument('--refresh-output-contracts', action='store_true', help='Accept newly evaluated built SDK items and refresh component scripts')
     args = parser.parse_args()
     here = Path(__file__).resolve().parent
     root, work = args.source_action.resolve(), args.directory.resolve()
@@ -104,7 +119,10 @@ def main():
     validate_native_archive(args.native_tools)
     existing = set()
     if args.extend:
-        if not work.is_dir() or json.loads((work / 'evaluated-graph.json').read_text()) != graph:
+        if not work.is_dir():
+            raise ValueError('Existing workspace is missing')
+        previous_graph = json.loads((work / 'evaluated-graph.json').read_text())
+        if previous_graph != graph and not (args.refresh_output_contracts and expanded_sdk_graph(previous_graph, graph)):
             raise ValueError('Existing workspace has a different evaluated graph')
         if not same_input(work / 'native.tar', args.native_tools):
             raise ValueError('Existing workspace has a different native archive')
@@ -144,12 +162,18 @@ def main():
     for name, dependencies in nodes.items():
         source = work / (name + '.tar')
         command = work / (name + '.sh')
+        built_sdks = [item['Identity'] for item in graph['nodes'][name]['Items']['BuiltSdkPackage']]
+        build_script = script(name, dependencies, built_sdks)
         if name in existing:
-            if not source.is_file() or command.read_text() != script(name, dependencies):
+            if not source.is_file():
                 raise ValueError('Existing component input differs from evaluated graph: ' + name)
+            if command.read_text() != build_script:
+                if not args.refresh_output_contracts:
+                    raise ValueError('Existing component script differs from evaluated graph: ' + name)
+                command.write_text(build_script)
         else:
             select(root / 'sources.tar', name, source, helpers)
-            command.write_text(script(name, dependencies))
+            command.write_text(build_script)
         build.append('source_component(name=%s,driver=":driver",sources=%s,script=%s,deps=%s,native_tools="native.tar",bootstrap="bootstrap.tar",sandbox="bwrap",exec_compatible_with=["@platforms//os:linux","@platforms//cpu:aarch64"])' %
                      (json.dumps(name), json.dumps(name + '.tar'), json.dumps(name + '.sh'), json.dumps([':' + item for item in dependencies])))
     build.append('filegroup(name="components",srcs=%s)' % json.dumps([':' + name for name in nodes]))
@@ -166,6 +190,8 @@ def main():
     build_file = work / 'BUILD.bazel'
     if not args.extend or build_file.read_text() != '\n'.join(build) + '\n':
         build_file.write_text('\n'.join(build) + '\n')
+    if args.extend and previous_graph != graph:
+        (work / 'evaluated-graph.json').write_text(json.dumps(graph, indent=2) + '\n')
     print(work, flush=True)
 
 
