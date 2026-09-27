@@ -3,7 +3,8 @@
 This qualification targets .NET SDK 10.0.100 on Linux ARM64, starting from
 `dotnet/dotnet` revision `b0f34d51fccc69fd334253924abd8d6853fad7aa`.
 The qualification builds a complete SDK in one isolated Bazel action and runs
-an app with it. Per-component scheduling remains open. The default downloaded
+an app with it. A three-component scheduling slice is also qualified; splitting
+the complete SDK graph remains open. The default downloaded
 SDK is unchanged; the produced SDK uses the existing
 [SDK artifact contract](sdk-toolchains.md).
 
@@ -384,3 +385,53 @@ assembly, restores the orchestration projects, invokes upstream
 rebuilding. Outer whole-SDK publishing is disabled; inner component packaging
 remains enabled. Source inputs still include the whole VMR, so this does not yet
 prove component-specific source invalidation or scheduling all 22 components.
+
+## Three-component Bazel graph
+
+`component_graph_prepare.py` prepares explicit SBRP → Arcade → CommandLine
+source actions. Each action consumes its own implementation, shared VMR build
+metadata, the pinned bootstrap/native inputs, and declared dependency output
+bundles. Dependency bundles are mounted read-only outside the source tree until
+upstream preparation finishes, then copied into the writable build tree. MSBuild
+still interprets their manifests and performs SDK/package setup.
+
+The Linux ARM64 / Bazel 9.2.0 graph passed with RTM branding and the pinned
+`20251023.11` build ID. The app consumed the produced `System.CommandLine` 2.0.0
+package through `msbuild_generated_nuget_package`. The full graph and test took
+**284.30 seconds**; inner component build commands took 130.98 seconds for SBRP,
+17.11 seconds for Arcade and 8.27 seconds for CommandLine. The difference includes
+archive staging, preparation, task compilation, dependency setup, Bazel overhead
+and the app build/test. These are qualification timings, without a paired raw
+MSBuild comparison.
+
+```sh
+python3 tests/source_sdk/component_graph_prepare.py /path/to/source-action /tmp/component-graph
+# In the generated workspace, with the Linux namespace prerequisites above:
+bazelisk --batch test //:consumer --jobs=1 --disk_cache= --remote_cache=http://cache:8080 \
+  --remote_cache_async=false --remote_download_outputs=all
+RULES_MSBUILD_BAZEL=/path/to/bazelisk USE_BAZEL_VERSION=9.2.0 \
+  python3 /path/to/rules/tests/source_sdk/component_edits.py /tmp/component-graph /tmp/component-edits \
+  --output-base /tmp/component-edits-base --cache http://cache:8080
+```
+
+The source selector is qualified for this three-component closure only. It keeps
+other repositories' project/build metadata for upstream evaluation, excluding
+their implementation files. Small tests prove that another component's body edit
+does not change the selected archive bytes. Extending this selector and output
+contracts to the other 19 components, then assembling the SDK from their Bazel
+outputs, remains future work. Full SDK production above still uses one action.
+
+The source-component edit/cache checks passed:
+
+| Case | Wall time | Observed result |
+| --- | ---: | --- |
+| Body edit | 55.20 s | Only CommandLine rebuilt; removing the default version option caused the consumer test to fail as expected. |
+| API edit | 56.70 s | Only CommandLine rebuilt; the app compiled and ran using the added public property. |
+| Remote recovery | 27.01 s | All 12 logged spawns were cache hits, including all three component producers. |
+
+SBRP and Arcade output hashes remained unchanged across edits. Recovery used a
+new workspace, output base and user root on the same machine, no disk cache, and
+remote uploads disabled; all three recovered component bundle hashes matched.
+The HTTP cache ran in a separate container. This qualifies remote caching, not
+remote execution. Edit times include fresh archive extraction and preparation;
+the prototype does not retain a warm MSBuild component workspace.

@@ -2,7 +2,9 @@
 
 load("@rules_msbuild//msbuild:defs.bzl", "MSBuildRuntimeInfo")
 
-def _source_sdk(ctx):
+NativeDriverInfo = provider("Compiled qualification driver and its execution SDK.", fields = ["runtime", "directory"])
+
+def _compile_driver(ctx):
     bootstrap = ctx.attr.driver_sdk[MSBuildRuntimeInfo]
     driver = ctx.actions.declare_directory(ctx.label.name + ".driver")
     ctx.actions.run_shell(
@@ -24,6 +26,23 @@ cd "$scratch"
 """,
         mnemonic = "SourceSdkDriver",
     )
+    return bootstrap, driver
+
+def _native_driver(ctx):
+    bootstrap, driver = _compile_driver(ctx)
+    return [DefaultInfo(files = depset([driver])), NativeDriverInfo(runtime = bootstrap, directory = driver)]
+
+native_driver = rule(
+    implementation = _native_driver,
+    attrs = {
+        "driver_sdk": attr.label(providers = [MSBuildRuntimeInfo], mandatory = True, cfg = "exec"),
+        "driver_project": attr.label(allow_single_file = True, mandatory = True),
+        "driver_source": attr.label(allow_single_file = True, mandatory = True),
+    },
+)
+
+def _source_sdk(ctx):
+    bootstrap, driver = _compile_driver(ctx)
     archive = ctx.actions.declare_file(ctx.label.name + ".generated/sdk.tar.gz")
     evidence = ctx.actions.declare_file(ctx.label.name + ".generated/result.tar")
     ctx.actions.run(

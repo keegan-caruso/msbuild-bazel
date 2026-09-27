@@ -29,10 +29,10 @@
     "executePublishedApp": 0
   },
   "limits": [
-    "upstream SDK build is not yet a Bazel component graph",
-    "development version baseline differs from pinned release build ID",
-    "native filesystem content hashes recorded; only the qualified Ubuntu ARM64 environment tested",
-    "no SDK source-component cache claim; self-hosting payloads differ"
+    "complete SDK is built in one action; only the three-component graph is separately scheduled",
+    "development baseline and exact RTM qualification are separate runs",
+    "only the qualified Ubuntu ARM64 native environment tested",
+    "identical-input SDK rebuilds are not byte-identical; cause remains unresolved"
   ],
   "consumerCache": {
     "seedSeconds": 34.55,
@@ -135,5 +135,38 @@
       }
     },
     "differenceCause": "not isolated"
+  },
+  "componentGraph": {
+    "components": [
+      "source-build-reference-packages",
+      "arcade",
+      "command-line-api"
+    ],
+    "bazelVersion": "9.2.0",
+    "exitCode": 0,
+    "wallSeconds": 284.3,
+    "innerBuildSeconds": {
+      "source-build-reference-packages": 130.98,
+      "arcade": 17.11,
+      "command-line-api": 8.27
+    },
+    "bodyEditSeconds": 55.2,
+    "bodyEditExpectedTestExitCode": 3,
+    "apiEditSeconds": 56.7,
+    "onlyCommandLineRebuilt": true,
+    "dependencyOutputHashesUnchanged": true,
+    "cacheRecovery": {
+      "wallSeconds": 27.01,
+      "loggedSpawns": 12,
+      "allSpawnsCacheHits": true,
+      "sourceComponentCacheHits": 3,
+      "allComponentHashesMatched": true,
+      "freshWorkspace": true,
+      "freshBazelState": true,
+      "localDiskCache": false,
+      "uploadsEnabled": false,
+      "sameBuildMachine": true
+    },
+    "fullSdkGraph": false
   }
 }

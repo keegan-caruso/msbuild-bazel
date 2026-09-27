@@ -51,7 +51,7 @@ def main():
 
     with tarfile.open(w / 'native.tar', 'w') as archive:
         for name in ['usr', 'bin', 'lib', 'sbin', 'etc/alternatives', 'etc/ld.so.conf',
-                     'etc/ld.so.conf.d', 'etc/ld.so.cache', 'etc/os-release', 'etc/ssl',
+                     'etc/ld.so.conf.d', 'etc/ld.so.cache', 'etc/os-release', 'etc/ssl/certs', 'etc/ssl/openssl.cnf',
                      'etc/passwd', 'etc/group', 'etc/nsswitch.conf']:
             archive.add('/' + name, arcname=name, filter=normalize)
         for name in ['source', 'proc', 'dev', 'tmp']:
