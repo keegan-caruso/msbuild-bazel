@@ -2,9 +2,10 @@
 
 This qualification targets .NET SDK 10.0.100 on Linux ARM64, starting from
 `dotnet/dotnet` revision `b0f34d51fccc69fd334253924abd8d6853fad7aa`.
-It does not change the default downloaded SDK or claim a complete Bazel source
-SDK build yet. The existing [SDK artifact contract](sdk-toolchains.md) accepts
-the eventual produced executable and complete SDK payload.
+The qualification builds a complete SDK in one isolated Bazel action and runs
+an app with it. Per-component scheduling remains open. The default downloaded
+SDK is unchanged; the produced SDK uses the existing
+[SDK artifact contract](sdk-toolchains.md).
 
 ## Source and bootstrap inventory
 
@@ -258,7 +259,34 @@ and an app test. The controller compiles with an explicitly selected downloaded
 SDK, so it does not depend on the SDK being produced. Both tool and runtime
 configurations use the source producer in the execution configuration; `aquery`
 confirmed exactly one `SourceSdkBuild` action. Controller compilation and graph
-analysis passed. The full isolated build is still pending qualification.
+analysis passed. The full isolated build and app test also passed on Linux ARM64
+with Bazel 9.2.0: **28:45.043** end-to-end, including **27:09.79** inside upstream
+`build.sh`. The SDK reports `10.0.100`, MSBuild `18.0.2`, and runtime/ASP.NET
+`10.0.0`; the final prebuilt-package check found zero files. Component probes ran
+concurrently, and the baseline used development branding, so these runs do not
+isolate Bazel overhead. The produced archive digest is in the evidence summary.
+
+Source/native/bootstrap archive timestamps use a fixed 1980 date because NuGet
+rejects pre-1980 ZIP timestamps. Source archive rewriting also clears stale PAX
+path metadata. The offline action sets `NuGetAudit=false` to avoid network-only
+vulnerability lookups; this is not a vulnerability-audit qualification. Apple
+Container required removing its masked proc/sys mounts in a private mount
+namespace; Bubblewrap filesystem and network isolation remained enabled.
+
+`source_action_recovery.py` recovered this producer and its app in a fresh
+workspace/output/user root, with no local disk cache and remote uploads disabled.
+All ten logged recovery spawns were cache hits, including the single
+`SourceSdkBuild`; the recovered SDK archive hash matched. Recovery took **66.05s**,
+including fresh Bazel setup. An app body edit took **16.54s** and an app API edit
+**16.27s**; each executed only application compilation and test actions, retaining
+the SDK archive unchanged. These are consumer edits, not SDK-component edits.
+Recovery used another path on the same VM and a cache in another container.
+
+```sh
+RULES_MSBUILD_BAZEL=/path/to/bazelisk USE_BAZEL_VERSION=9.2.0 \
+  python3 tests/source_sdk/source_action_recovery.py /tmp/source-sdk-action \
+  /tmp/source-sdk-recovery --cache http://cache-host:8080
+```
 
 This first producer deliberately treats the upstream SDK build as one action.
 It uses the release build ID and RTM branding. It does **not** establish per-repo

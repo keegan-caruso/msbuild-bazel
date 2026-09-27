@@ -31,7 +31,7 @@
   "limits": [
     "upstream SDK build is not yet a Bazel component graph",
     "development version baseline differs from pinned release build ID",
-    "native apt additions recorded but immutable environment not yet qualified",
+    "native filesystem content hashes recorded; only the qualified Ubuntu ARM64 environment tested",
     "no SDK source-component cache claim; self-hosting payloads differ"
   ],
   "consumerCache": {
@@ -67,6 +67,37 @@
       "removedFiles": 0,
       "byteIdentical": false,
       "identicalBuildInputs": false
+    }
+  },
+  "isolatedBazelProducer": {
+    "bazelVersion": "9.2.0",
+    "exitCode": 0,
+    "wallSeconds": 1725.043,
+    "upstreamBuildWallSeconds": 1629.79,
+    "upstreamBuildMaxRssKiB": 2245344,
+    "sourceBuildActions": 1,
+    "sdkVersion": "10.0.100",
+    "runtimeVersion": "10.0.0",
+    "archiveSha256": "dc795ffff8b6b3c2adac341c844ca71116cb2144c4c745ee2bc9f52a60836345",
+    "appTest": "passed",
+    "prebuiltPackageFiles": 0,
+    "versionMode": "rtm",
+    "filesystemAndNetworkIsolation": true,
+    "componentScheduling": false,
+    "concurrentComponentProbes": true,
+    "cacheRecovery": {
+      "wallSeconds": 66.05,
+      "loggedSpawns": 10,
+      "allSpawnsCacheHits": true,
+      "sdkSourceActionCacheHit": true,
+      "archiveHashMatched": true,
+      "freshWorkspace": true,
+      "freshBazelState": true,
+      "localDiskCache": false,
+      "sameBuildMachine": true,
+      "consumerBodyEditSeconds": 16.54,
+      "consumerApiEditSeconds": 16.27,
+      "sdkRebuiltForConsumerEdits": false
     }
   }
 }
