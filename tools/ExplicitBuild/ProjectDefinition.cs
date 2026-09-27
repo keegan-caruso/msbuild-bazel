@@ -14,10 +14,28 @@ internal static class ProjectDefinition
             throw new InvalidDataException("Initial explicit rules require one root Project Sdk attribute");
         }
 
-        var sdkName = sdk.Value;
+        if (!Microsoft.Build.Framework.SdkReference.TryParse(sdk.Value, out var sdkReference))
+        {
+            throw new InvalidDataException("Invalid root Project Sdk attribute: " + sdk.Value);
+        }
+
+        XElement SdkImport(string project)
+        {
+            var import = new XElement("Import", new XAttribute("Project", project), new XAttribute("Sdk", sdkReference.Name));
+            if (!string.IsNullOrEmpty(sdkReference.Version))
+            {
+                import.Add(new XAttribute("Version", sdkReference.Version));
+            }
+            if (!string.IsNullOrEmpty(sdkReference.MinimumVersion))
+            {
+                import.Add(new XAttribute("MinimumVersion", sdkReference.MinimumVersion));
+            }
+            return import;
+        }
+
         sdk.Remove();
-        root.AddFirst(new XElement("Import", new XAttribute("Project", "Sdk.props"), new XAttribute("Sdk", sdkName)));
-        root.Add(new XElement("Import", new XAttribute("Project", "Sdk.targets"), new XAttribute("Sdk", sdkName)));
+        root.AddFirst(SdkImport("Sdk.props"));
+        root.Add(SdkImport("Sdk.targets"));
         foreach (var adapter in r.AdapterImports ?? [])
         {
             root.Add(new XElement("Import", new XAttribute("Project", Escape(compilerPath(Path.Combine(path[..^Safe(r.Project.Path).Length], Safe(adapter.Path)))))));

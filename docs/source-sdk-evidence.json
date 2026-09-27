@@ -1,0 +1,172 @@
+{
+  "schemaVersion": 1,
+  "sourceRevision": "b0f34d51fccc69fd334253924abd8d6853fad7aa",
+  "platform": "Ubuntu 22.04 ARM64",
+  "baseline": {
+    "exitCode": 0,
+    "wallSeconds": 1538.77,
+    "maxRssKiB": 2258448,
+    "dotnetProcessorCount": 2,
+    "cleanWhileBuilding": true,
+    "versionMode": "development",
+    "prebuiltPackageFiles": 0
+  },
+  "sdk": {
+    "version": "10.0.100-dev",
+    "runtimeVersion": "10.0.0-dev",
+    "msbuildVersion": "18.0.2",
+    "archiveSha256": "a396c8b6511e630138bc6bf19849d7f6dadbde1fcedac9358bedfb6870e133eb"
+  },
+  "bazelVersion": "9.2.0",
+  "consumerCases": {
+    "build": 0,
+    "nofetchReuse": 0,
+    "bodyEditTestFailure": 3,
+    "apiEditCompileFailure": 1,
+    "generatedPackage": 0,
+    "razorRendering": 0,
+    "publish": 0,
+    "executePublishedApp": 0
+  },
+  "limits": [
+    "complete SDK is built in one action; only the three-component graph is separately scheduled",
+    "development baseline and exact RTM qualification are separate runs",
+    "only the qualified Ubuntu ARM64 native environment tested",
+    "identical-input SDK rebuilds are not byte-identical; cause remains unresolved"
+  ],
+  "consumerCache": {
+    "seedSeconds": 34.55,
+    "recoverySeconds": 17.84,
+    "forcedTestsSeconds": 6.98,
+    "freshWorkspace": true,
+    "freshBazelState": true,
+    "localDiskCache": false,
+    "sameBuildMachine": true,
+    "forcedTests": 3,
+    "allRecoverySpawnsCacheHits": true
+  },
+  "selfHosting": {
+    "exitCode": 0,
+    "wallSeconds": 1568.16,
+    "maxRssKiB": 2145576,
+    "sdkVersion": "10.0.100-dev",
+    "runtimeVersion": "10.0.0-dev",
+    "archiveSha256": "800ef3a049a55e38f8353b99b88a29b09f3d285b515079296c48f62debed5d8f",
+    "consumerCases": {
+      "build": 0,
+      "nofetchReuse": 0,
+      "bodyEditTestFailure": 3,
+      "apiEditCompileFailure": 1
+    },
+    "payloadComparison": {
+      "firstFiles": 5143,
+      "secondFiles": 5143,
+      "identicalFiles": 3873,
+      "changedFiles": 1270,
+      "addedFiles": 0,
+      "removedFiles": 0,
+      "byteIdentical": false,
+      "identicalBuildInputs": false
+    }
+  },
+  "isolatedBazelProducer": {
+    "bazelVersion": "9.2.0",
+    "exitCode": 0,
+    "wallSeconds": 1725.043,
+    "upstreamBuildWallSeconds": 1629.79,
+    "upstreamBuildMaxRssKiB": 2245344,
+    "sourceBuildActions": 1,
+    "sdkVersion": "10.0.100",
+    "runtimeVersion": "10.0.0",
+    "archiveSha256": "dc795ffff8b6b3c2adac341c844ca71116cb2144c4c745ee2bc9f52a60836345",
+    "appTest": "passed",
+    "prebuiltPackageFiles": 0,
+    "versionMode": "rtm",
+    "filesystemAndNetworkIsolation": true,
+    "componentScheduling": false,
+    "concurrentComponentProbes": true,
+    "cacheRecovery": {
+      "wallSeconds": 66.05,
+      "loggedSpawns": 10,
+      "allSpawnsCacheHits": true,
+      "sdkSourceActionCacheHit": true,
+      "archiveHashMatched": true,
+      "freshWorkspace": true,
+      "freshBazelState": true,
+      "localDiskCache": false,
+      "sameBuildMachine": true,
+      "consumerBodyEditSeconds": 16.54,
+      "consumerApiEditSeconds": 16.27,
+      "sdkRebuiltForConsumerEdits": false
+    },
+    "consumerCases": {
+      "build": 0,
+      "nofetchReuse": 0,
+      "bodyEditTestFailure": 3,
+      "apiEditCompileFailure": 1,
+      "generatedPackage": 0,
+      "razorRendering": 0,
+      "publish": 0,
+      "executePublishedApp": 0
+    }
+  },
+  "identicalInputRepeat": {
+    "exitCode": 0,
+    "wallSeconds": 2396.143,
+    "concurrentComponentProbe": true,
+    "performanceComparison": false,
+    "matchingDeclaredInputEntries": 4915,
+    "matchingCommandArguments": true,
+    "matchingEnvironmentVariables": true,
+    "archiveSha256": "a1929f022d5d23bd8c82913a15d870f1b03a176499509d7fa6c5810bb8e2bd1e",
+    "appTest": "passed",
+    "payloadComparison": {
+      "firstFiles": 5149,
+      "secondFiles": 5149,
+      "identicalFiles": 4848,
+      "changedFiles": 301,
+      "addedFiles": 0,
+      "removedFiles": 0,
+      "byteIdentical": false,
+      "changedExtensions": {
+        "dll": 268,
+        "json": 24,
+        "nupkg": 9
+      }
+    },
+    "differenceCause": "not isolated"
+  },
+  "componentGraph": {
+    "components": [
+      "source-build-reference-packages",
+      "arcade",
+      "command-line-api"
+    ],
+    "bazelVersion": "9.2.0",
+    "exitCode": 0,
+    "wallSeconds": 284.3,
+    "innerBuildSeconds": {
+      "source-build-reference-packages": 130.98,
+      "arcade": 17.11,
+      "command-line-api": 8.27
+    },
+    "bodyEditSeconds": 55.2,
+    "bodyEditExpectedTestExitCode": 3,
+    "apiEditSeconds": 56.7,
+    "onlyCommandLineRebuilt": true,
+    "dependencyOutputHashesUnchanged": true,
+    "cacheRecovery": {
+      "wallSeconds": 27.01,
+      "loggedSpawns": 12,
+      "allSpawnsCacheHits": true,
+      "sourceComponentCacheHits": 3,
+      "allComponentHashesMatched": true,
+      "freshWorkspace": true,
+      "freshBazelState": true,
+      "localDiskCache": false,
+      "uploadsEnabled": false,
+      "sameBuildMachine": true
+    },
+    "fullSdkGraph": false
+  }
+}

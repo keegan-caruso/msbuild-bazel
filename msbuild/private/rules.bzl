@@ -101,11 +101,11 @@ msbuild_test = rule(implementation = _test, attrs = _TEST_ATTRS, toolchains = [_
 def _generate(ctx):
     if ctx.attr.restore or ctx.attr.export_targets:
         fail("Generation cannot use shared restore or assembly target exports")
-    return _project(ctx, generate = True)
+    return _project(ctx, executable = ctx.attr.executable, generate = True)
 
 msbuild_generate = rule(
     implementation = _generate,
-    attrs = dict(_ATTRS, targets = attr.string_list(mandatory = True), outputs = attr.string_list(mandatory = True), output_properties = attr.string_dict()),
+    attrs = dict(_ATTRS, executable = attr.bool(), targets = attr.string_list(mandatory = True), outputs = attr.string_list(mandatory = True), output_properties = attr.string_dict()),
     toolchains = [_TOOLCHAIN],
 )
 

@@ -1,0 +1,10 @@
+--- a/src/source-build-reference-packages/src/externalPackages/projects/azure-activedirectory-identitymodel-extensions-for-dotnet.proj
++++ b/src/source-build-reference-packages/src/externalPackages/projects/azure-activedirectory-identitymodel-extensions-for-dotnet.proj
+@@ -17,6 +17,7 @@
+       <BuildCommandArgs>$(BuildCommandArgs) /v:$(LogVerbosity)</BuildCommandArgs>
+       <BuildCommandArgs>$(BuildCommandArgs) $(RedirectRepoOutputToLog)</BuildCommandArgs>
+       <BuildCommandArgs>$(BuildCommandArgs) /p:Version=$(AzureActiveDirectoryIdentityModelExtensionsForDotNetReleaseVersion)</BuildCommandArgs>
++      <BuildCommandArgs>$(BuildCommandArgs) /p:FileVersion=$(AzureActiveDirectoryIdentityModelExtensionsForDotNetReleaseVersion).0</BuildCommandArgs>
+
+       <PackCommandArgs>$(BuildCommandArgs) --output $(ProjectDirectory)pack</PackCommandArgs>
+     </PropertyGroup>

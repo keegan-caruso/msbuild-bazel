@@ -10,6 +10,9 @@ CMS qualification and raw MSBuild measurements are documented in
 
 - `msbuild_library`, `msbuild_binary`, and `msbuild_test` declare each project's
   sources, dependencies, SDK framework references, imports, configuration and items.
+- `msbuild_generate(executable = True, ...)` runs declared generation targets
+  with executable output semantics, for example a framework-dependent `Publish`
+  target. The default remains library output.
 - `msbuild_items` carries a generic item type and metadata, including resource
   logical names. No application-specific item rules are introduced.
 - Each assembly action invokes MSBuild for **one project**. Original project edges
@@ -392,3 +395,12 @@ at an explicit project-relative-to-workspace logical path. `msbuild_items` accep
 the same mapping as `paths` for generated resources/content. `import_paths` retains
 its existing role for generated imports. These mappings are emitted by
 [project synchronization](project-sync.md) when it consumes declared producers.
+
+## Packages produced from source
+
+`msbuild_generated_nuget_package(package_id, version, archive, deps=[])` consumes
+a `.nupkg` produced by a Bazel action, validates its identity and computes its
+NuGet content hash at execution time. It exposes the same package provider as
+`msbuild_nuget_package`; source-file archives are rejected. Downloaded archives
+continue to require pinned hashes through `msbuild_nuget_package`. See the
+[source-package handoff qualification](source-sdk.md#generated-package-handoff).

@@ -3,11 +3,11 @@
 load(":paths.bzl", _TOOLCHAIN = "TOOLCHAIN")
 load(":providers.bzl", "MSBuildPackageInfo", "MSBuildPackageLockInfo")
 
-def _package(ctx):
+def _package(ctx, generated = False):
     tc = ctx.toolchains[_TOOLCHAIN]
     output = ctx.actions.declare_directory(ctx.label.name + ".package")
     request = ctx.actions.declare_file(ctx.label.name + ".package.json")
-    ctx.actions.write(request, json.encode({"id": ctx.attr.package_id, "version": ctx.attr.version, "archive": ctx.file.archive.path, "contentHash": ctx.attr.content_hash, "archiveSha256": ctx.attr.archive_sha256, "output": output.path}))
+    ctx.actions.write(request, json.encode({"id": ctx.attr.package_id, "version": ctx.attr.version, "archive": ctx.file.archive.path, "contentHash": "" if generated else ctx.attr.content_hash, "archiveSha256": "" if generated else ctx.attr.archive_sha256, "generated": generated, "output": output.path}))
     ctx.actions.run(
         executable = tc.dotnet,
         arguments = [tc.runner.path, "extract", request.path],
@@ -32,6 +32,18 @@ msbuild_nuget_package = rule(implementation = _package, attrs = {
     "archive": attr.label(allow_single_file = [".nupkg"], mandatory = True),
     "content_hash": attr.string(mandatory = True),
     "archive_sha256": attr.string(mandatory = True),
+    "deps": attr.label_list(providers = [MSBuildPackageInfo]),
+}, toolchains = [_TOOLCHAIN])
+
+def _generated_package(ctx):
+    if ctx.file.archive.is_source:
+        fail("Generated NuGet packages must be Bazel action outputs; use msbuild_nuget_package for acquired archives")
+    return _package(ctx, generated = True)
+
+msbuild_generated_nuget_package = rule(implementation = _generated_package, attrs = {
+    "package_id": attr.string(mandatory = True),
+    "version": attr.string(mandatory = True),
+    "archive": attr.label(allow_single_file = [".nupkg"], mandatory = True),
     "deps": attr.label_list(providers = [MSBuildPackageInfo]),
 }, toolchains = [_TOOLCHAIN])
 

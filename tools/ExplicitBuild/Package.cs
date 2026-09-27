@@ -4,7 +4,7 @@ using System.Text.Json;
 using System.Xml.Linq;
 
 internal sealed record PackageInput(string Id, string Version, string Directory);
-internal sealed record PackageRequest(string Id, string Version, string Archive, string ContentHash, string ArchiveSha256, string Output);
+internal sealed record PackageRequest(string Id, string Version, string Archive, string ContentHash, string ArchiveSha256, string Output, bool Generated = false);
 internal static class Package
 {
     public static void Extract(PackageRequest request)
@@ -17,12 +17,18 @@ internal static class Package
         }
 
         var bytes = File.ReadAllBytes(request.Archive);
-        if (Convert.FromBase64String(request.ContentHash).Length != 64)
+        if (request.Generated && (request.ContentHash.Length != 0 || request.ArchiveSha256.Length != 0))
+        {
+            throw new InvalidDataException("Generated packages must not specify acquired archive hashes");
+        }
+
+        var contentHash = request.Generated ? Convert.ToBase64String(SHA512.HashData(bytes)) : request.ContentHash;
+        if (Convert.FromBase64String(contentHash).Length != 64)
         {
             throw new InvalidDataException("Invalid NuGet content hash");
         }
 
-        if (!Convert.ToHexStringLower(SHA256.HashData(bytes)).Equals(request.ArchiveSha256, StringComparison.OrdinalIgnoreCase))
+        if (!request.Generated && !Convert.ToHexStringLower(SHA256.HashData(bytes)).Equals(request.ArchiveSha256, StringComparison.OrdinalIgnoreCase))
         {
             throw new InvalidDataException("Package archive differs from locked archive hash");
         }
@@ -61,12 +67,12 @@ internal static class Package
         }
         var archive = Path.Combine(request.Output, id + "." + version + ".nupkg");
         File.WriteAllBytes(archive, bytes);
-        File.WriteAllText(archive + ".sha512", request.ContentHash);
+        File.WriteAllText(archive + ".sha512", contentHash);
         File.WriteAllText(Path.Combine(request.Output, ".nupkg.metadata"), JsonSerializer.Serialize(new
         {
             version = 2,
-            contentHash = request.ContentHash,
-            source = "bazel-locked-package"
+            contentHash,
+            source = request.Generated ? "bazel-generated-package" : "bazel-locked-package"
         }));
     }
 }

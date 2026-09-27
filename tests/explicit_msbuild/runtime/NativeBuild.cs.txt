@@ -1,4 +1,6 @@
+#nullable enable
 using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.Formats.Tar;
 using System.IO;
@@ -11,13 +13,31 @@ public sealed class NativeBuild
     public string Sandbox { get; set; } = null!;
     public string Toolchain { get; set; } = null!;
     public string Sources { get; set; } = null!;
+    public string? Bootstrap { get; set; }
+    public string? ScriptFile { get; set; }
+    public string[] Dependencies { get; set; } = [];
     public string Script { get; set; } = null!;
     public string Output { get; set; } = null!;
     public string[] Products { get; set; } = [];
     public static void Main(string[] args)
     {
+        string? bootstrap = null;
+        string? scriptFile = null;
+        var dependencies = new List<string>();
+        while (args.Length >= 2 && args[^2] is "--bootstrap" or "--dependency" or "--script-file")
+        {
+            var path = Path.GetFullPath(args[^1]);
+            switch (args[^2])
+            {
+                case "--bootstrap": bootstrap = path; break;
+                case "--script-file": scriptFile = path; break;
+                case "--dependency": dependencies.Add(path); break;
+            }
+            args = args[..^2];
+        }
+        dependencies.Reverse();
         if (args.Length < 6) throw new ArgumentException("Expected sandbox, toolchain, sources, script, archive and product outputs");
-        new NativeBuild { Sandbox = Path.GetFullPath(args[0]), Toolchain = Path.GetFullPath(args[1]), Sources = Path.GetFullPath(args[2]), Script = args[3], Output = Path.GetFullPath(args[4]), Products = args.Skip(5).Select(Path.GetFullPath).ToArray() }.Execute();
+        new NativeBuild { Bootstrap = bootstrap, ScriptFile = scriptFile, Dependencies = dependencies.ToArray(), Sandbox = Path.GetFullPath(args[0]), Toolchain = Path.GetFullPath(args[1]), Sources = Path.GetFullPath(args[2]), Script = args[3], Output = Path.GetFullPath(args[4]), Products = args.Skip(5).Select(Path.GetFullPath).ToArray() }.Execute();
     }
     public bool Execute()
     {
@@ -31,10 +51,27 @@ public sealed class NativeBuild
         {
             TarFile.ExtractToDirectory(Toolchain, root, false);
             TarFile.ExtractToDirectory(Sources, source, false);
+            if (Bootstrap != null) TarFile.ExtractToDirectory(Bootstrap, source, false);
+            if (ScriptFile != null)
+            {
+                if (Script != "/source/build-native.sh") throw new ArgumentException("Script override requires /source/build-native.sh");
+                File.Copy(ScriptFile, Path.Combine(source, "build-native.sh"), true);
+            }
+            var dependencyRoot = Path.Combine(scratch, "dependencies");
+            if (Dependencies.Length != 0)
+            {
+                Directory.CreateDirectory(dependencyRoot);
+                foreach (var dependency in Dependencies) TarFile.ExtractToDirectory(dependency, dependencyRoot, false);
+            }
             var start = new ProcessStartInfo(Sandbox) { RedirectStandardOutput = true, RedirectStandardError = true };
             foreach (var arg in new[] { "--die-with-parent", "--unshare-all", "--new-session", "--cap-drop", "ALL",
                 "--ro-bind", root, "/", "--bind", source, "/source", "--proc", "/proc", "--dev", "/dev",
-                "--tmpfs", "/tmp", "--chdir", "/source", "--clearenv", "--setenv", "PATH", "/usr/bin:/bin",
+                "--tmpfs", "/tmp" })
+                start.ArgumentList.Add(arg);
+            if (Dependencies.Length != 0)
+                foreach (var arg in new[] { "--ro-bind", dependencyRoot, "/tmp/component-inputs" })
+                    start.ArgumentList.Add(arg);
+            foreach (var arg in new[] { "--chdir", "/source", "--clearenv", "--setenv", "PATH", "/usr/bin:/bin",
                 "--setenv", "HOME", "/tmp", "--setenv", "LANG", "C.UTF-8", "--", "/bin/bash", Script })
                 start.ArgumentList.Add(arg);
             using var child = Process.Start(start)!;
