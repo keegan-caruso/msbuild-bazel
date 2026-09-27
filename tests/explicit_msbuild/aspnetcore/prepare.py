@@ -138,7 +138,7 @@ if project_bindings:
     (workspace/'project-bindings.json').write_text(json.dumps(project_bindings, indent=2) + '\n')
 (workspace/'blocked.json').write_text(json.dumps(blocked,indent=2)+'\n')
 (root/'BUILD.bazel').write_text('\n'.join(header+list(packages.values())+list(closures.values())+declarations)+ '\n'+call('filegroup',name='benchmark',srcs=[':'+label(r['project'],r['framework']) for r in rows])+'\n')
-(workspace/'MODULE.bazel').write_text('module(name="aspnetcore_scale")\nbazel_dep(name="rules_msbuild",version="0.0.0")\nlocal_path_override(module_name="rules_msbuild",path='+json.dumps(str(rules))+')\nsdk=use_repo_rule("@rules_msbuild//bazel:msbuild.bzl","local_dotnet_sdk")\nsdk(name="dotnet",path='+json.dumps(os.environ['RULES_MSBUILD_DOTNET_ROOT'])+',include_runtime_closure=False)\nregister_toolchains("//upstream:registered")\n')
+(workspace/'MODULE.bazel').write_text('module(name="aspnetcore_scale")\nbazel_dep(name="rules_msbuild",version="0.0.0")\nlocal_path_override(module_name="rules_msbuild",path='+json.dumps(str(rules))+')\nsdk=use_repo_rule("@rules_msbuild//bazel:msbuild.bzl","local_dotnet_sdk")\nsdk(name="dotnet",path='+json.dumps(os.environ['RULES_MSBUILD_DOTNET_ROOT'])+')\nregister_toolchains("//upstream:registered")\n')
 (workspace/'package-lock.json').write_text(json.dumps(manifest,indent=2)+'\n')
 print('Declared',len(rows),'framework nodes,',len(packages),'packages',flush=True)
 

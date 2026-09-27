@@ -8,7 +8,7 @@ SDK 10.0.400 and exact Bazel releases 8.8.0/9.2.0 are the current baselines;
 | --- | --- |
 | Ubuntu 22.04 ARM64 | [Persistent workers](explicit-linux-workers.md), [Orchard](orchard-explicit-performance.md), selected [runtime suites](runtime-loaded-closure.md) and independent HTTP-cache recovery |
 | Native macOS ARM64 | Non-worker explicit-rule acceptance and [Bazel version checks](bazel-8.8-upgrade.md); not Linux worker evidence |
-| Linux x86-64 | Bootstrap/Nix configurations and manual CI entry points exist; ARM64 qualification does not validate these workloads on x86-64 |
+| Linux x86-64 | Bootstrap configurations and manual CI entry points exist; ARM64 qualification does not validate these workloads on x86-64 |
 | Windows / cross-compilation | Not qualified by the current acceptance boundary |
 
 The full runtime closure used Bazel 9.2.0. Generic regression fixtures also ran

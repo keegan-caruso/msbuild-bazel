@@ -73,5 +73,5 @@ for row in rows:
  if row['module']:attrs['export_targets']={'GetModuleProjectName':[]}
  header.append(call('msbuild_binary' if row==rows[0] else 'msbuild_library',**attrs))
 (root/'BUILD.bazel').write_text('\n'.join(header)+'\n')
-(root/'MODULE.bazel').write_text('module(name="orchard_explicit")\nbazel_dep(name="rules_msbuild",version="0.0.0")\nlocal_path_override(module_name="rules_msbuild",path='+json.dumps(str(rules))+')\nsdk=use_repo_rule("@rules_msbuild//bazel:msbuild.bzl","local_dotnet_sdk")\nsdk(name="dotnet",path='+json.dumps(sdk)+',include_runtime_closure=False)\nregister_toolchains("//:registered")\n')
+(root/'MODULE.bazel').write_text('module(name="orchard_explicit")\nbazel_dep(name="rules_msbuild",version="0.0.0")\nlocal_path_override(module_name="rules_msbuild",path='+json.dumps(str(rules))+')\nsdk=use_repo_rule("@rules_msbuild//bazel:msbuild.bzl","local_dotnet_sdk")\nsdk(name="dotnet",path='+json.dumps(sdk)+')\nregister_toolchains("//:registered")\n')
 print(json.dumps(dict(projects=len(rows),packageTargets=len(package_rules),itemTargets=len(header)-len(rows)-len(package_rules)-4)))

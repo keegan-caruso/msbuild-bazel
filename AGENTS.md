@@ -21,8 +21,6 @@ implementing changes.
 ## Commands
 
 - Install or refresh pinned tools: `bash scripts/setup.sh` (network required for missing downloads).
-- Alternative native environment: `nix develop` (flakes enabled), for macOS ARM64 or Linux x86-64; no setup script needed inside the shell.
-- Acquire pinned Buildifier and Buildozer inside Nix: `bash scripts/tooling.sh setup-starlark` (setup.sh does this outside Nix).
 - Validate the current scaffold and tracked Starlark: `bash scripts/check.sh`.
 - Validate owned .NET code style, warnings and fixture-policy isolation: `bash scripts/check-dotnet.sh`.
 - Run explicit acceptance: `python3 tests/explicit_msbuild/acceptance.py /tmp/new-acceptance-directory` after building the runner.
@@ -31,7 +29,7 @@ implementing changes.
 - Review changes: `git diff --check` and `git diff`.
 
 Use wrappers and explicit tool overrides rather than relying on PATH changes.
-Keep SDK/Bazelisk pins and bootstrap/Nix defaults consistent. Bazel versions come
+Keep SDK/Bazelisk pins and bootstrap defaults consistent. Bazel versions come
 from .bazelversion or USE_BAZEL_VERSION; do not add repository-managed Bazel
 checksums. Linux persistent-worker
 checks require the qualified Ubuntu ARM64 container; do not imply Linux x86-64

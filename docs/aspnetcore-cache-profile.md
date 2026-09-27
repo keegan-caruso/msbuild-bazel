@@ -92,8 +92,8 @@ output bytes and saved network bytes are not the same quantity.
 The 300 extraction actions declared the full SDK even though they only execute
 a managed archive-extraction program. Their recorded aggregate sandbox filtering
 and filesystem setup fell from **16.02 s to 0.98 s** after narrowing inputs to
-`dotnet`, `host/`, and `shared/Microsoft.NETCore.App/`. Separately declared Nix
-runtime/import closures remain included. Compilation keeps the complete SDK.
+`dotnet`, `host/`, and `shared/Microsoft.NETCore.App/`. At the time of this measurement, separately declared Nix
+runtime/import closures remained included; that optional integration has since been removed. Compilation keeps the complete SDK.
 
 The corresponding single fresh-cache observations were 18.89 → 17.89 s.
 Extraction payload bytes did not change. Rebuilt implementation DLL/PDB bytes

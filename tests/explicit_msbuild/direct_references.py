@@ -13,7 +13,7 @@ put('MODULE.bazel',f'''module(name="direct_references")
 bazel_dep(name="rules_msbuild",version="0.0.0")
 local_path_override(module_name="rules_msbuild",path={json.dumps(str(root))})
 sdk=use_repo_rule("@rules_msbuild//bazel:msbuild.bzl","local_dotnet_sdk")
-sdk(name="dotnet",path={json.dumps(sdk)},include_runtime_closure=False)
+sdk(name="dotnet",path={json.dumps(sdk)})
 register_toolchains("//:registered")
 ''')
 project='<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup><TargetFramework>net10.0</TargetFramework></PropertyGroup>{}</Project>'

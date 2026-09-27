@@ -112,7 +112,7 @@ for row in rows:
  header.append(call('msbuild_binary' if row['properties']['OutputType']=='Exe' else 'msbuild_library',**attrs))
 header.append('filegroup(name="benchmark",srcs='+json.dumps([':'+label(row['id']) for row in rows if row['entry']])+')')
 (root/'BUILD.bazel').write_text('\n'.join(header)+'\n')
-(workspace/'MODULE.bazel').write_text('module(name="oss_explicit")\nbazel_dep(name="rules_msbuild",version="0.0.0")\nlocal_path_override(module_name="rules_msbuild",path='+json.dumps(str(rules))+')\nsdk=use_repo_rule("@rules_msbuild//bazel:msbuild.bzl","local_dotnet_sdk")\nsdk(name="dotnet",path='+json.dumps(os.environ['RULES_MSBUILD_DOTNET_ROOT'])+',include_runtime_closure=False)\nregister_toolchains("//'+config.get('sourceSubdir','')+':registered")\n')
+(workspace/'MODULE.bazel').write_text('module(name="oss_explicit")\nbazel_dep(name="rules_msbuild",version="0.0.0")\nlocal_path_override(module_name="rules_msbuild",path='+json.dumps(str(rules))+')\nsdk=use_repo_rule("@rules_msbuild//bazel:msbuild.bzl","local_dotnet_sdk")\nsdk(name="dotnet",path='+json.dumps(os.environ['RULES_MSBUILD_DOTNET_ROOT'])+')\nregister_toolchains("//'+config.get('sourceSubdir','')+':registered")\n')
 summary=dict(projects=len(rows),packageTargets=len(package_rules),sourceFiles=sum(len(r['compile']) for r in rows),entries=config['entries'])
 (folder/'package-lock.json').write_text(json.dumps(package_manifest,indent=2)+'\n')
 (folder/'labels.json').write_text(json.dumps(labels,indent=2)+'\n')

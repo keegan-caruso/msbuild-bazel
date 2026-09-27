@@ -262,9 +262,9 @@ cache behavior, empty-suite policy, and current sharding/coverage limits.
 
 ## Local toolchain setup and reproduction
 
-Use the repository's pinned SDK 10.0.400 and Bazel 9.2.0. Set
-`RULES_MSBUILD_DOTNET_ROOT` to the SDK directory and `RULES_MSBUILD_BAZEL` to the
-Bazel executable, or use the Nix development shell.
+Use `bash scripts/setup.sh` to install the pinned SDK 10.0.400 and Bazelisk,
+then source `scripts/env.sh` in Bash. Explicit installations can be selected
+with `RULES_MSBUILD_DOTNET_ROOT` and `RULES_MSBUILD_BAZEL`.
 
 ```sh
 bash scripts/dotnet.sh build tools/ExplicitBuild -c Release -warnaserror
@@ -274,8 +274,9 @@ python3 tests/explicit_msbuild/acceptance.py /tmp/explicit-acceptance
 
 The acceptance harness writes a complete `MODULE.bazel` and registered toolchain
 using the existing `local_dotnet_sdk` repository rule. It is also a concrete
-bootstrap example. Runner binaries are built beforehand; SDK and lock-file
-Bzlmod extensions and published runner bootstrap are not implemented yet.
+bootstrap example for a local SDK. Runner binaries are built beforehand.
+Applications can instead use the [SDK extension](development.md#using-the-rules-in-an-application)
+to acquire the SDK and build the runner through Bazel.
 
 For the real MTP application, acquire the test packages outside the build action:
 

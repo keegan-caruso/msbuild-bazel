@@ -1,8 +1,7 @@
 # Manual CI scope
 
-GitHub CI runs only on explicit request. The two workflows are
-[Linux](../.github/workflows/linux.yml) and [Nix](../.github/workflows/nix.yml);
-both use `workflow_dispatch` only. Pushes and pull requests do not start CI.
+GitHub CI runs only on explicit request. The
+[Linux workflow](../.github/workflows/linux.yml) uses `workflow_dispatch` only. Pushes and pull requests do not start CI.
 There is no macOS workflow; macOS qualification is local.
 
 ## Linux phases
@@ -25,12 +24,6 @@ Bootstrap downloads and the Bazelisk cache are cached separately from repository
 Fixture package roots, bin/obj directories and Bazel action caches are excluded.
 Acceptance evidence under `/tmp/msbuild-explicit-ci.*` is uploaded for seven days.
 A restored download cache is not evidence of a network-fresh bootstrap.
-
-## Nix
-
-The separate Ubuntu 22.04 workflow enters the pinned Nix shell, acquires Starlark
-validation tooling, checks tool pins, then runs `ci-linux.sh quick`. Its timeout is
-30 minutes. A workflow definition describes checks to run, not a passing result.
 
 For local setup, see [development](development.md). For native Linux ARM64 checks
 on an Apple silicon Mac, see [Apple containers](apple-container-runbook.md).

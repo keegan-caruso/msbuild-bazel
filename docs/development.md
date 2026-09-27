@@ -139,26 +139,11 @@ Bazel binary, set `RULES_MSBUILD_BAZEL_VERSION` to its expected version.
 cache, defaulting to `.cache/bazelisk`. Benchmark reports record the actual Bazel
 version and identify the launcher hash separately from a Bazel binary hash.
 
-## Optional Nix environment
-
-The pinned flake supports macOS ARM64 and Ubuntu x86-64:
-
-```sh
-nix develop
-bash scripts/tooling.sh setup-starlark
-bash scripts/check.sh
-```
-
-Enable `nix-command flakes` in Nix configuration, or pass
-`--extra-experimental-features 'nix-command flakes'` to Nix. No `setup.sh` step is
-needed inside the shell. Nix supplies .NET, Bazelisk and development utilities;
-the shared tooling setup installs Buildifier and Buildozer. Bazelisk uses the same
-version selection as standard setup, with no custom Bazel patches or JDK override.
-The existing Nix SDK runtime-closure handling remains. NixOS is not qualified.
-
-The lockfile pins the SDK and packaging utilities; tool versions match standard
-setup. Initial acquisition requires network access. A Nix shell is a development
-environment, not proof of application build hermeticity.
+The optional Nix environment and Nix-specific SDK closure attributes have been
+removed. Existing local SDK declarations should use only `path`; remove
+`include_runtime_closure`, `runtime_roots`, and `external_imports`. Use a standard
+SDK installation or the SDK extension above. Historical Nix results below describe
+the earlier migration, not a currently supported setup.
 
 ## BUILD-file tooling
 
@@ -209,7 +194,7 @@ Experimental fixtures retain their own build policy. See [code-style validation 
 `bash scripts/check.sh` checks shell syntax, pin consistency, selected tool versions,
 and Starlark formatting/lint. `bash scripts/check-dotnet.sh` checks owned .NET code.
 
-Run the same compatibility matrix with either setup:
+Run the supported-version compatibility matrix:
 
 ```sh
 python3 scripts/test-bazel-matrix.py --output /tmp/msbuild-bazel-matrix
@@ -220,11 +205,10 @@ The output directory must be fresh and outside the checkout. On qualified Linux
 workers, set `RULES_MSBUILD_EXPLICIT_WORKER=1` to exercise persistent compilation.
 See [worker qualification](explicit-linux-workers.md) for additional controls.
 
-GitHub CI is manual-only. The primary Linux workflow offers quick/full checks;
-the optional Nix workflow checks the development environment. macOS validation
-is local. See [CI scope](ci-scope.md).
+GitHub CI is manual-only. The Linux workflow offers quick/full checks. macOS
+validation is local. See [CI scope](ci-scope.md).
 
-### Bazelisk migration qualification
+### Bazelisk migration qualification (historical)
 
 The migration passed fresh/repeated setup and the shared 8.8.0/9.2.0 matrix on
 native macOS ARM64 and Ubuntu ARM64. Linux ARM64 also passed persistent-worker
@@ -262,3 +246,23 @@ macOS ARM64 and Linux ARM64 with Bazel 8.8.0 and 9.2.0. The full macOS version
 matrix also passed owned-code checks, SDK repository tests and real-build
 acceptance, including edit invalidation and cache recovery. No production rule
 implementation changed in this migration.
+
+### Native setup after Nix removal
+
+On macOS ARM64 with SDK 10.0.400, the following checks passed using the standard
+bootstrap, without a Nix shell:
+
+- `bash scripts/setup.sh` and `bash scripts/check.sh`.
+- `bash scripts/check-dotnet.sh`, including owned-code style and runner/sync tests.
+- `bash scripts/check-analysis.sh`: all 43 tests and execution-requirement checks
+  on Bazel 9.2.0.
+- `python3 -m unittest discover -s tests/ci -v`: five dispatch tests.
+- `python3 -m unittest discover -s tests/sdk_repository -v`: 17 repository tests
+  on Bazel 9.2.0; the two local SDK repository tests also passed on 8.8.0.
+
+- `python3 tests/explicit_msbuild/acceptance.py <fresh-directory>`: build/test,
+  body-edit, undeclared-input rejection and cache recovery passed on both Bazel
+  8.8.0 and 9.2.0 (`USE_BAZEL_VERSION` selects the baseline).
+
+Python commands use the environment from `source scripts/env.sh` in Bash.
+No GitHub CI was dispatched, and this check does not extend Linux qualification.
