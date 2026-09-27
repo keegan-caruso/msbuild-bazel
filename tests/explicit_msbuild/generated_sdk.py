@@ -11,6 +11,7 @@ import subprocess
 
 p = argparse.ArgumentParser(description=__doc__)
 p.add_argument('directory', type=Path)
+p.add_argument('--worker', action='store_true')
 a = p.parse_args()
 root = Path(__file__).resolve().parents[2]
 w = a.directory.resolve()/'source'
@@ -47,9 +48,9 @@ load("@rules_msbuild//msbuild:defs.bzl","msbuild_library","msbuild_test")
 produce(name="artifacts",source="@bootstrap//:sdk_host")
 filegroup(name="dotnet",srcs=[":artifacts"],output_group="dotnet")
 msbuild_sdk(name="produced",dotnet=":dotnet",files=[":artifacts"],sdk_version="10.0.400",runtime_version="10.0.11",runtime_identifier=%s)
-msbuild_library(name="lib",project="Lib.csproj",srcs=["Lib.cs"],target_framework="net10.0")
-msbuild_test(name="test",project="App.csproj",srcs=["App.cs"],deps=[":lib"],target_framework="net10.0",use_apphost=False)
-''' % json.dumps(rid))
+msbuild_library(name="lib",project="Lib.csproj",srcs=["Lib.cs"],target_framework="net10.0",linux_worker=%s)
+msbuild_test(name="test",project="App.csproj",srcs=["App.cs"],deps=[":lib"],target_framework="net10.0",use_apphost=False,linux_worker=%s)
+''' % (json.dumps(rid), a.worker, a.worker))
 (w/'Lib.csproj').write_text('<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup><TargetFramework>net10.0</TargetFramework></PropertyGroup></Project>')
 (w/'App.csproj').write_text('<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup><TargetFramework>net10.0</TargetFramework></PropertyGroup><ItemGroup><ProjectReference Include="Lib.csproj" /></ItemGroup></Project>')
 (w/'Lib.cs').write_text('public static class Lib { public static int Value() => 1; }')
@@ -62,7 +63,7 @@ try:
             (w/'Lib.cs').write_text('public static class Lib { public static int Value() => 2; }')
         if case == 'api-edit':
             (w/'Lib.cs').write_text('public static class Lib { public static int Value(int required) => required; }')
-        result = subprocess.run(base+['test', '//:test', '--jobs=2', '--test_output=all', '--lockfile_mode=off', *flags], cwd=w, capture_output=True, text=True)
+        result = subprocess.run(base+['test', '//:test', '--jobs=2', '--test_output=all', '--lockfile_mode=off', *(['--strategy=MSBuildAssembly=worker', '--worker_max_instances=MSBuildAssembly=1'] if a.worker else []), *flags], cwd=w, capture_output=True, text=True)
         (a.directory/(case+'.log')).write_text(result.stdout+result.stderr)
         assert result.returncode == expected, result.stdout+result.stderr
         if case in ['build', 'offline']:

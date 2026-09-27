@@ -55,3 +55,7 @@ runtime selection remain separate.
 
 Owned-code/unit suites and all 43 analysis tests passed on macOS ARM64/Bazel
 9.2.0. A new negative control proves omission cannot invoke the runner's host.
+
+Generated SDK directory artifacts are also expanded and validated against the
+SDK root in the worker's startup inventory. This preserves exact per-file worker
+input matching without requiring analysis-time knowledge of generated contents.
