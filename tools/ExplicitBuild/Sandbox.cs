@@ -12,13 +12,21 @@ internal static class Sandbox
         }
         return "\"" + value.Replace("\\", "\\\\", StringComparison.Ordinal).Replace("\"", "\\\"", StringComparison.Ordinal) + "\"";
     }
-    public static ProcessStartInfo Start(string workspace, string state, IEnumerable<string> runtime, string sdk, bool localNativeTools = false)
+    public static ProcessStartInfo Start(string workspace, string state, IEnumerable<string> runtime, string sdk, bool localNativeTools = false, string? nativeToolchain = null)
     {
         var roots = runtime.Append(workspace).Select(Path.GetFullPath).Distinct(StringComparer.Ordinal).ToArray();
         ProcessStartInfo start;
-        if (localNativeTools && !OperatingSystem.IsLinux())
+        if ((localNativeTools || nativeToolchain is not null) && !OperatingSystem.IsLinux())
         {
-            throw new PlatformNotSupportedException("Local native tools are currently qualified only on Linux");
+            throw new PlatformNotSupportedException("Native tools are currently qualified only on Linux");
+        }
+        if (localNativeTools && nativeToolchain is not null)
+        {
+            throw new InvalidDataException("Choose local native tools or a declared native toolchain");
+        }
+        if (nativeToolchain is not null && (!Directory.Exists(Path.Combine(nativeToolchain, "usr")) || !Directory.Exists(Path.Combine(nativeToolchain, "etc"))))
+        {
+            throw new InvalidDataException("The declared native toolchain must contain usr and etc directories");
         }
         if (OperatingSystem.IsMacOS())
         {
@@ -59,17 +67,21 @@ internal static class Sandbox
                 }
             }
             Add("--die-with-parent", "--unshare-all", "--new-session", "--cap-drop", "ALL", "--proc", "/proc", "--dev", "/dev", "--tmpfs", "/tmp");
-            var systemRoots = localNativeTools ? new[] { "/usr" } : new[] { "/usr/lib" };
+            var systemRoots = localNativeTools ? new[] { "/usr" } : nativeToolchain is not null ? Array.Empty<string>() : new[] { "/usr/lib" };
             foreach (var root in roots.Concat(systemRoots).Distinct(StringComparer.Ordinal))
             {
                 Add("--ro-bind", root, root);
             }
-            if (localNativeTools)
+            if (nativeToolchain is not null)
+            {
+                Add("--ro-bind", Path.Combine(nativeToolchain, "usr"), "/usr", "--ro-bind", Path.Combine(nativeToolchain, "etc"), "/etc");
+            }
+            if (localNativeTools || nativeToolchain is not null)
             {
                 Add("--symlink", "usr/bin", "/bin");
             }
 
-            foreach (var file in new[] { "/etc/os-release", "/etc/ld.so.cache", "/etc/passwd", "/etc/group" })
+            foreach (var file in nativeToolchain is not null ? Array.Empty<string>() : new[] { "/etc/os-release", "/etc/ld.so.cache", "/etc/passwd", "/etc/group" })
             {
                 Add("--ro-bind", file, file);
             }
@@ -82,7 +94,7 @@ internal static class Sandbox
         }
 
         SetEnvironment(start, workspace, state, sdk);
-        if (localNativeTools)
+        if (localNativeTools || nativeToolchain is not null)
         {
             start.Environment["PATH"] = sdk + ":/usr/bin:/bin";
         }

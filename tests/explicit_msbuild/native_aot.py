@@ -50,7 +50,7 @@ def package_archive(workspace, package_id, digest, cache):
     return archive
 
 
-def build_file(omit_compiler=False):
+def build_file(omit_compiler=False, declared_toolchain=False, omit_native_compiler=False):
     names = []
     lines = ['load("@rules_msbuild//msbuild:defs.bzl", "msbuild_generate", "msbuild_nuget_package", "msbuild_package_lock")']
     for index, (package_id, (digest, content_hash)) in enumerate(PACKAGES.items()):
@@ -59,7 +59,11 @@ def build_file(omit_compiler=False):
         if not omit_compiler or package_id != "microsoft.dotnet.ilcompiler":
             names.append(":" + name)
     lines.append(f'msbuild_package_lock(name="lock", packages={json.dumps(names)})')
-    lines.append('msbuild_generate(name="aot", executable=True, project="Hello.csproj", srcs=["Program.cs"], target_framework="net10.0", targets=["ExportAot"], outputs=["Hello"], output_properties={"NativeBinaryOutput":"Hello"}, package_lock=":lock", build_deps=' + json.dumps(names) + ', local_native_tools=True)')
+    native = 'native_toolchain=":native_toolchain"' if declared_toolchain else 'local_native_tools=True'
+    lines.append('msbuild_generate(name="aot", executable=True, project="Hello.csproj", srcs=["Program.cs"], target_framework="net10.0", targets=["ExportAot"], outputs=["Hello"], output_properties={"NativeBinaryOutput":"Hello"}, package_lock=":lock", build_deps=' + json.dumps(names) + ', ' + native + ')')
+    if declared_toolchain:
+        lines.insert(1, 'load(":native_toolchain.bzl", "native_toolchain_snapshot")')
+        lines.append('native_toolchain_snapshot(name="native_toolchain", omit_compiler=' + str(omit_native_compiler) + ')')
     return "\n".join(lines) + "\n"
 
 
@@ -67,6 +71,7 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("directory", type=Path)
     parser.add_argument("--package-cache", type=Path, help="Previously downloaded NuGet package root")
+    parser.add_argument("--declared-toolchain", action="store_true", help="Snapshot the host native toolchain as a declared tree input")
     args = parser.parse_args()
     if platform.system() != "Linux" or platform.machine() not in ("aarch64", "arm64"):
         parser.error("This first Native AOT fixture qualifies Linux ARM64 only")
@@ -78,7 +83,9 @@ def main():
     write(workspace / "Program.cs", 'System.Console.WriteLine("NATIVE_AOT_INITIAL");\n')
     for package_id, (digest, _) in PACKAGES.items():
         package_archive(workspace, package_id, digest, args.package_cache)
-    write(workspace / "BUILD.bazel", build_file())
+    if args.declared_toolchain:
+        write(workspace / "native_toolchain.bzl", (ROOT / "tests/explicit_msbuild/native_toolchain.bzl").read_text())
+    write(workspace / "BUILD.bazel", build_file(declared_toolchain=args.declared_toolchain))
     bazel = [os.environ["RULES_MSBUILD_BAZEL"], "--output_base=" + str(folder / "base"), "--ignore_all_rc_files"]
 
     def build(case, success=True):
@@ -100,12 +107,16 @@ def main():
         second_hash = hashlib.sha256(binary.read_bytes()).hexdigest()
         assert first_hash != second_hash
         assert subprocess.check_output([binary], text=True).strip() == "NATIVE_AOT_EDIT"
-        write(workspace / "BUILD.bazel", build_file(omit_compiler=True))
+        write(workspace / "BUILD.bazel", build_file(omit_compiler=True, declared_toolchain=args.declared_toolchain))
         failure = build("missing-compiler", success=False)
         assert "Microsoft.DotNet.ILCompiler" in failure and ("NU1100" in failure or "NU1101" in failure), failure[-7000:]
-        write(folder / "report.json", json.dumps({"platform": "linux-arm64", "sdk": "10.0.400", "aotPackages": VERSION, "initialSha256": first_hash, "bodyEditSha256": second_hash, "missingCompilerRejected": True}, indent=2) + "\n")
+        if args.declared_toolchain:
+            write(workspace / "BUILD.bazel", build_file(declared_toolchain=True, omit_native_compiler=True))
+            missing_native = build("missing-native-compiler", success=False)
+            assert "Platform linker ('clang' or 'gcc') not found in PATH" in missing_native, missing_native[-7000:]
+        write(folder / "report.json", json.dumps({"platform": "linux-arm64", "sdk": "10.0.400", "aotPackages": VERSION, "declaredToolchain": args.declared_toolchain, "initialSha256": first_hash, "bodyEditSha256": second_hash, "missingCompilerRejected": True, "missingNativeCompilerRejected": args.declared_toolchain}, indent=2) + "\n")
     finally:
-        write(workspace / "BUILD.bazel", build_file())
+        write(workspace / "BUILD.bazel", build_file(declared_toolchain=args.declared_toolchain))
         subprocess.run(bazel + ["shutdown"], cwd=workspace, check=True)
 
 

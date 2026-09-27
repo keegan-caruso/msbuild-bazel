@@ -135,7 +135,7 @@ internal static class Program
             var sdk = session.Sdk;
             var sessionPath = Path.Combine(state, "session.json");
             File.WriteAllText(sessionPath, JsonSerializer.Serialize(session, Json));
-            var start = Sandbox.Start(workspace, state, new[] { sdk, session.ToolRoot }.Concat(r.Packages.Select(p => Real(p.Directory))), sdk, r.LocalNativeTools);
+            var start = Sandbox.Start(workspace, state, new[] { sdk, session.ToolRoot }.Concat(r.Packages.Select(p => Real(p.Directory))), sdk, r.LocalNativeTools, r.NativeToolchain is null ? null : Real(r.NativeToolchain));
             start.ArgumentList.Add(Path.Combine(sdk, "dotnet"));
             start.ArgumentList.Add(Path.Combine(session.ToolRoot, "ExplicitBuild.dll"));
             start.ArgumentList.Add("compile");
