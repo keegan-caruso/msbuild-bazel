@@ -17,7 +17,7 @@ cd "$source_root"
 dpkg-query -W > "$evidence/native-packages.tsv"
 ./prep-source-build.sh --bootstrap-rid linux-arm64 > "$evidence/preparation.log" 2>&1
 /usr/bin/time -v -o "$evidence/build.time" \
-    ./build.sh -sb --clean-while-building --configuration Release --arch arm64 --official-build-id 20251023.11 \
+    ./build.sh -sb --clean-while-building --configuration Release --arch arm64 --official-build-id 20251023.11 --branding rtm \
     --source-repository https://github.com/dotnet/dotnet \
     --source-version b0f34d51fccc69fd334253924abd8d6853fad7aa \
     /p:BuildInParallel=false > "$evidence/build.log" 2>&1

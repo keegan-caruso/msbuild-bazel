@@ -236,3 +236,33 @@ The recovered actions include SDK extraction, runner bootstrap, package generati
 and extraction, application compilation and tests. Recovery used another path
 in the same Linux VM, not another build machine. This does not establish cache
 behavior for the SDK source-component graph itself.
+
+## Declared full-source producer qualification
+
+`source_action_prepare.py` creates separate content-hashed archives for the
+pinned VMR sources, the prepared RC2 bootstrap SDK/packages, and the native
+compiler/distribution filesystem. The qualifier's `source_sdk` rule uses the
+existing isolated native-build driver, with an optional bootstrap overlay. Its
+child process sees only those archives, writable source/scratch directories,
+`/proc` and `/dev`; network access is isolated.
+
+```sh
+python3 tests/source_sdk/source_action_prepare.py /path/to/vmr.tar.gz \
+  /path/to/prepared-baseline /tmp/source-sdk-action
+cd /tmp/source-sdk-action
+bazel test //:smoke
+```
+
+This graph directly connects the SDK source producer, SDK layout, `msbuild_sdk`,
+and an app test. The controller compiles with an explicitly selected downloaded
+SDK, so it does not depend on the SDK being produced. Both tool and runtime
+configurations use the source producer in the execution configuration; `aquery`
+confirmed exactly one `SourceSdkBuild` action. Controller compilation and graph
+analysis passed. The full isolated build is still pending qualification.
+
+This first producer deliberately treats the upstream SDK build as one action.
+It uses the release build ID and RTM branding. It does **not** establish per-repo
+incremental builds: splitting its 22-component closure still requires explicit
+handoff of upstream asset manifests, package-version props, SDK overrides and
+shipping/non-shipping package directories. The configured graph probe and the
+small generated-package producers provide the starting points for that work.
