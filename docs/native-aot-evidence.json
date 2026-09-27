@@ -1,0 +1,9 @@
+{
+  "platform": "linux-arm64",
+  "sdk": "10.0.400",
+  "bazel": "9.2.0",
+  "aotPackages": "10.0.11",
+  "initialSha256": "2024acd2d33735eb83a9f6e11b0cec10d28966d614572098478712327ff34c79",
+  "bodyEditSha256": "f0cdfbad3bf96be3a13fd3cfb64b944117e33b1cc942a4ba35e94817d4eb3e7f",
+  "missingCompilerRejected": true
+}

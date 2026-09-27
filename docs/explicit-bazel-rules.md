@@ -13,6 +13,10 @@ CMS qualification and raw MSBuild measurements are documented in
 - `msbuild_generate(executable = True, ...)` runs declared generation targets
   with executable output semantics, for example a framework-dependent `Publish`
   target. The default remains library output.
+- `msbuild_generate(local_native_tools = True, ...)` can run a Linux Native AOT
+  publish against the local C toolchain. This first slice disables action caching
+  and remote execution because the C toolchain is not yet a declared input; see
+  [Native AOT qualification](native-aot.md).
 - `msbuild_items` carries a generic item type and metadata, including resource
   logical names. No application-specific item rules are introduced.
 - Each assembly action invokes MSBuild for **one project**. Original project edges
