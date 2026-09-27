@@ -331,6 +331,24 @@ SDK/packages and workspace path differ between the builds, so this is a
 self-hosting comparison, not a reproducibility test with identical inputs.
 The cause of the changed binaries has not been isolated.
 
+## Identical-input reproducibility check
+
+A fresh Bazel output base rebuilt the isolated RTM SDK with cache reads and
+uploads disabled. Execution logs show the same 4,915 declared input entries,
+command arguments and environment variables for `SourceSdkBuild`. The rebuilt
+SDK passed its app test, but **its payload is not byte-for-byte reproducible**:
+4,848 of 5,149 files match, and 301 differ (268 DLLs, 24 JSON files and nine NuGet
+packages). No files were added or removed. This comparison ignores archive
+headers and checks file bytes, modes and link targets.
+
+The repeat took 2,396.143 seconds, overlapping a component probe that caused
+memory pressure. This is correctness evidence, not a performance comparison.
+Representative DLLs have differing PE metadata, and an inspected dependency
+manifest has differing package hashes; the underlying cause is not isolated.
+Successful cache recovery demonstrates reuse of one stored output, not that
+independent executions produce identical bytes. See the machine-readable
+[repeat evidence](source-sdk-evidence.json).
+
 ## Component output boundary
 
 `tests/source_sdk/component_outputs.py` packages one component's original asset

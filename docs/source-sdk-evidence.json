@@ -109,5 +109,31 @@
       "publish": 0,
       "executePublishedApp": 0
     }
+  },
+  "identicalInputRepeat": {
+    "exitCode": 0,
+    "wallSeconds": 2396.143,
+    "concurrentComponentProbe": true,
+    "performanceComparison": false,
+    "matchingDeclaredInputEntries": 4915,
+    "matchingCommandArguments": true,
+    "matchingEnvironmentVariables": true,
+    "archiveSha256": "a1929f022d5d23bd8c82913a15d870f1b03a176499509d7fa6c5810bb8e2bd1e",
+    "appTest": "passed",
+    "payloadComparison": {
+      "firstFiles": 5149,
+      "secondFiles": 5149,
+      "identicalFiles": 4848,
+      "changedFiles": 301,
+      "addedFiles": 0,
+      "removedFiles": 0,
+      "byteIdentical": false,
+      "changedExtensions": {
+        "dll": 268,
+        "json": 24,
+        "nupkg": 9
+      }
+    },
+    "differenceCause": "not isolated"
   }
 }
