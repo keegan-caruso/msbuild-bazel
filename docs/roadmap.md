@@ -35,6 +35,10 @@ changing 87 reference assemblies. The original paired Orchard sample took
 132.755 s in Bazel versus 27.537 s in raw MSBuild (4.82×); a later paired
 follow-up measured 154.178 s versus 29.798 s. These are specific cases, not a
 general API-edit ratio. Body edits remain much faster in those samples.
+The [leaf/intermediate/shared Orchard matrix](orchard-api-edit-matrix.md)
+shows 2/11/193 compilations. A raw binlog also records 193 compiler tasks for
+the shared edit, so the main measured gap is repeated per-project execution
+cost, not an extra 193-project invalidation wave.
 
 Next, sample leaf, intermediate and widely shared projects in synthetic and
 qualified Orchard, Avalonia, ASP.NET Core and runtime slices. Include narrow
