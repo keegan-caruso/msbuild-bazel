@@ -23,11 +23,11 @@ for field in ['deps','implementation_deps','analyzers','build_deps','tools','bin
     edges[field]=sum(len(set(v.get(field,[]))) for v in new.values())
 for key,previous in old.items():
     actual=new[key]
-    assert previous['assembly_name']==actual['assembly_name'],key
+    assert previous['assembly_name']==actual.get('assembly_name',Path(key[0]).name.removesuffix('.csproj')),key
     assert previous['package_lock']==actual['package_lock'].removeprefix('@@//'),key
-    assert previous['package_private_assets']==actual['package_private_assets'],key
+    assert previous['package_private_assets']==actual.get('package_private_assets',{}),key
     before={value if value.startswith(':') else 'upstream/'+value for value in previous['srcs']}
-    after=set(actual['srcs'])|{label.removeprefix('@@//') for label in actual['source_paths']}
+    after=set(actual.get('srcs',[]))|{label.removeprefix('@@//') for label in actual.get('source_paths',{})}
     assert before==after,(key,sorted(before-after),sorted(after-before))
 # Package-produced AdditionalFiles must remain explicit even though sync does
 # not execute package targets. Ignore unused None bookkeeping from the inventory.
