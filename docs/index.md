@@ -2,7 +2,7 @@
 
 Start with the [runnable example](../examples/quickstart/README.md), then the
 [rule API](explicit-bazel-rules.md). [Current support](implementation-plan.md)
-separates qualified behavior from the [ordered delivery plan](roadmap.md).
+separates qualified behavior from the [roadmap](roadmap.md).
 
 ## Use the rules
 
@@ -29,7 +29,7 @@ separates qualified behavior from the [ordered delivery plan](roadmap.md).
 - [Apple containers](apple-container-runbook.md) and [HTTP action cache](native-cache-service.md)
 - [Platform limits](platform-validation-scope.md) and [manual CI](ci-scope.md)
 - [Contributing](../CONTRIBUTING.md), [security reporting](../SECURITY.md),
-  [agent instructions](../AGENTS.md) and [publication readiness](publication-readiness.md)
+  [agent instructions](../AGENTS.md) and the [historical publication audit](publication-readiness.md)
 
 ## Qualification and measurements
 
@@ -57,8 +57,8 @@ public artifact downloads. Removed historical reports remain available in Git
 history.
 
 Older implementations, superseded designs and intermediate experiments are linked
-from [history](history.md), rather than duplicated in this tree. See the
-[issue review](issue-review-2026-09-23.md) for tracker dispositions.
+from [history](history.md), rather than duplicated in this tree. For current
+tracker status, use the [GitHub issues](https://github.com/keegan-caruso/msbuild-bazel/issues).
 
 - [Generated workflow costs](project-sync-workflow-costs.md) — paired raw builds, synchronization and independent recovery.
 - [Everyday synchronization changes](project-sync-mutations.md) — edit, stale check, repair and cache reversion.

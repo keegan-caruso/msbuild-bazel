@@ -207,24 +207,22 @@ SDK/Bazel versions, CPU/worker limits, cache state, restore scope and output-dow
 mode. Use unique edits to avoid accidentally timing a cached previous edit, and
 verify compilation counts, output hashes and test outcomes separately from time.
 
-The main remaining performance work is cold compilation. The
-[roadmap](roadmap.md) tracks it; [cold-start profiling](explicit-cold-profile.md),
+The main remaining performance work is broad API-edit invalidation; cold
+compilation remains another substantial cost. The [roadmap](roadmap.md) tracks
+both; [cold-start profiling](explicit-cold-profile.md),
 [staging](worker-staging.md), [evaluation](project-evaluation-removal.md) and the
 [ASP.NET Core cache profile](aspnetcore-cache-profile.md) explain measured costs
 and previous reductions. Detailed reports are evidence; this page is the entry point.
 
 ## Current benchmark tools
 
-Independent analysis, clean-output and warm no-op measurements use pinned
-[bazel-bench](https://github.com/bazelbuild/bazel-bench). Stateful edits and HTTP
-cache recovery use the shared scenario driver, retaining workload-specific
-compilation-count, artifact-hash and runtime/test checks. Raw MSBuild and these
-stateful scenarios share `benchmarks/measure.py`; failed and timed-out commands
-retain measurement records next to their logs.
+Pinned [bazel-bench](https://github.com/bazelbuild/bazel-bench) measures
+independent analysis, clean-output builds and warm no-ops. The shared scenario
+driver measures stateful edits, raw MSBuild and HTTP-cache recovery while checking
+compilation counts, artifact hashes and runtime/test outcomes. Failed commands
+remain in the recorded samples and logs.
 
-### Setup and a small qualification run
-
-From Bash, after normal tool setup:
+From Bash after normal tool setup, a small synthetic qualification is:
 
 ```sh
 bash scripts/setup-bench.sh
@@ -236,127 +234,41 @@ python3 benchmarks/run.py --source /tmp/bench-source --output /tmp/bench-results
   --versions 8.8.0 9.2.0 --mode clean --runs 5
 ```
 
-Benchmark dependencies are optional and installed outside timing. Python 3.9–3.12
-with venv is required; Ubuntu needs `python3-venv`, and the pinned psutil source
-build on Linux ARM64 also needs `gcc python3-dev`. Tool acquisition does not run
-in quick CI. CI only runs lightweight benchmark-driver regression tests.
+`run.py` requires a clean, prepared repository snapshot. Its modes are
+`analysis`, `clean` and `noop`; downloads, package preparation and filesystem
+caches are warm. Bazel-bench starts the server before timing, and its memory
+value is the Bazel JVM heap after GC, not the process tree. Do not combine
+those samples with end-to-end startup or raw-MSBuild ratios. Use
+`benchmarks/compare.py RESULTS NEW_OUTPUT` for a matched shared-timer repeat.
 
-`run.py` requires a committed, clean, prepared repository root. `snapshot.py`
-copies input bytes into a new repository, excluding Git/tool caches, root Bazel
-output links and conventional `bin`/`obj` directories alongside csproj files.
-Do not use those excluded directories for declared fixture inputs. Absolute SDK
-and rules overrides remain external: keep them fixed during a comparison.
-Outputs record the fixture commit and MODULE text, harness revision/dirty state,
-selected tools, command configuration, individual CSV samples and JSON profiles.
-Missing or failed samples fail the run rather than disappearing from the summary.
-
-Use `--mode analysis`, `clean` or `noop`. Analysis and clean modes run an untimed
-warm-up, then clean and shut down between samples. No-op retains the warmed
-server and outputs. Downloads, package preparation and filesystem caches are warm;
-this does **not** measure cold acquisition or a cold OS page cache.
-
-**Bazel-bench starts the server before its wall timer.** Its memory number is
-Bazel JVM heap after GC, not total process-tree memory. Compare its samples only
-to measurements with that same scope. `benchmarks/compare.py RESULTS NEW_OUTPUT`
-repeats the configuration with our shared timer, matching startup and heap probes.
-For end-to-end startup and raw MSBuild comparisons, use the scenario driver.
-Do not combine these timing scopes into a single speedup.
-
-### Prepared real-world workloads
-
-Run each workload's existing preparation/qualification first, then snapshot its
-BUILD workspace. Presets preserve the documented target and concurrency:
-
-| `--workload` | Target | Jobs / compiler workers |
-| --- | --- | --- |
-| `orchard` | `//:OrchardCore.Cms.Web` | 4 / 2 |
-| `avalonia` | `//upstream:benchmark` | 4 / 4 |
-| `aspnetcore` | `//upstream:benchmark` | 2 / 2 |
-| `runtime` | Explicit selected roots via repeated `--target` | 2 / 1 |
-
-For managed-only runtime comparisons, pass `--output-groups reference`. These
-presets do not expand upstream compatibility or replace preparation. Run version
-and rule-revision comparisons serially on the same machine, with matching CPU,
-worker and memory limits. For rule changes, prepare a snapshot per revision with
-its rules override and runner bound to that revision.
-
-`python3 benchmarks/scenarios.py WORKLOAD ...` forwards the existing adapter
-arguments. Available adapters include `compiler` (current Orchard/ASP.NET cold,
-body/API edit and HTTP recovery controls), `avalonia` (XAML parity), `oss` (paired
-raw builds), and `runtime`, `runtime-managed`, `runtime-leaf`, `runtime-raw-leaf`,
-`runtime-raw-cold`. Older `orchard` and `aspnetcore` paired-raw adapters remain
-available for their documented prepared fixtures. Argument and result formats
-remain compatible. Example for a freshly prepared Orchard workspace:
+For a stateful, freshly prepared Orchard workload:
 
 ```sh
 python3 benchmarks/scenarios.py compiler orchard WORKSPACE NEW_BASE NEW_REPORT \
   --workers 2 --edits
 ```
 
-Seed and recover HTTP cache entries using the existing adapter's `--cache`,
-`--recovery` and hash-comparison controls; Bazel-bench's independent modes disable
-action caches. Preserve body/API/resource edits as stateful sequences. The small
-`benchmarks/synthetic_edits.py NEW_OUTPUT` checks actual raw/Bazel compilation,
-unchanged body/resource-edit references and API-dependent rebuilds with the shared timer.
-
-### Migration qualification
-
-Bazel-bench revision `f0c8f585ad4733f184222be59c4401f9371991a6` passed three
-samples each of analysis, clean compilation and warm no-op on a four-project
-macOS ARM64 fixture with Bazel 8.8.0 and 9.2.0. A separate matched-timer run gave
-clean medians of 6.84/7.35 s versus Bazel-bench's 6.52/7.37 s (8.8/9.2). These
-small qualification runs establish timing scope and successful execution, not a
-performance trend or regression threshold. Raw/Bazel body, resource and API edit
-controls passed with the shared timer.
-
-On Linux ARM64, Bazel-bench ran the prepared 202-project Orchard analysis three
-times (2.20 s median, server startup excluded). Existing Avalonia, ASP.NET and
-runtime adapters now share timing/report capture while retaining their original
-parity and invalidation checks; their full workloads were not all rebenchmarked
-for this tooling-only migration. Historical headline measurements above remain
-unchanged.
-
-The shared Orchard scenario driver also passed cold, no-op, body/API edit and
-source-restoration controls: 202/0/1/193 compiler actions respectively. This
-qualification used one worker with `--memory-limit-mb 4096` in the 8 GiB VM. An
-initial unbudgeted two-worker API run stalled under memory pressure and was
-stopped; it is not successful timing evidence. Use the existing worker-memory
-controls for long edit sequences on constrained machines.
+`benchmarks/scenarios.py` retains workload adapters for Orchard, Avalonia,
+ASP.NET Core and runtime; their fixture reports define preparation, targets,
+cache flags and correctness controls. Run revisions serially with the same
+CPU/worker/memory limits, SDK and cache state. The
+[original tooling qualification](https://github.com/keegan-caruso/msbuild-bazel/blob/4ab387c59ddf5fda46d15646cf0f738d9a0026a0/docs/performance.md#current-benchmark-tools)
+records the migration samples and detailed driver usage.
 
 ## Remote Avalonia qualification
 
-The [11-project Avalonia remote run](avalonia-remote-execution.md) records
-action-cold build/test, warm edits and independent cache recovery separately.
-Those single samples include remote bootstrap, extraction and output transfer;
-they are correctness-run timings, not a matched raw-MSBuild performance claim.
-
-Repeated fresh-consumer Avalonia measurements with a warm repository cache give
-13.42 s median for full downloads and 9.57 s for top-level downloads (three
-samples each). Received traffic falls from 927.09 MB to 2.91 MB. See the
-[profile and qualification](avalonia-remote-execution.md#repeated-recovery-profile);
-startup and analysis dominate the remaining time.
+The [11-project remote run](avalonia-remote-execution.md) separates cold builds,
+warm edits and independent recovery. Three fresh-consumer samples measured
+13.42 s median for full downloads and 9.57 s for top-level downloads; received
+traffic fell from 927.09 MB to 2.91 MB. These include remote bootstrap and
+transfer, not a matched raw-MSBuild comparison.
 
 ## Project facade analysis
 
-A 200-project synthetic tree with two frameworks per project compares facade
-dependencies with direct variant labels. Three fresh-server samples per mode on
-macOS ARM64, Bazel 9.2.0, with repository acquisition warmed, measured median
-analysis of **965 ms explicit / 1,261 ms facade**. Configured targets increased
-from **841 to 1,241**, and registered assembly actions from **201 to 401**.
-No compilation executed (`--nobuild`); this measures analysis, not build latency.
-The facade samples ranged from 866 to 1,746 ms, so the time difference is an
-illustrative cost, not a stable overhead prediction. Structural counts show the
-additional variants being analyzed. Execution qualification separately verifies
-that unselected variants do not compile when a consumer uses the facade.
-
-Use direct variant labels where this extra analysis matters. Both interfaces use
-the same explicit assembly rules and cache boundaries. Reproduce with:
-
-```sh
-source scripts/env.sh
-python3 tests/explicit_msbuild/profile_facades.py /tmp/facade-analysis \
-  --projects 200 --repetitions 3
-```
-
-See [compact evidence](project-facade-evidence.json) for analysis samples and the
-remote synthetic qualification.
+A 200-project, two-framework synthetic measured 965 ms median analysis with
+direct variant labels versus 1,261 ms with facades on macOS ARM64/Bazel 9.2.0.
+Configured targets rose from 841 to 1,241; no compilation executed. The sample
+ranges were broad, so this illustrates extra analysis work, not a stable latency
+prediction. Use direct variant labels where that matters. Reproduce with
+`tests/explicit_msbuild/profile_facades.py`; the
+[raw samples](project-facade-evidence.json) retain the details.
