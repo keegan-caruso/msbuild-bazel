@@ -169,10 +169,22 @@ Alternatively, pass `--toolchain-archive /path/to/archive.tar.gz` and
 `--toolchain-sha256 <digest>` to exercise the locked archive and bad-digest
 control.
 
+## Smaller archive and chiseled runtime check
+
+The [closure experiment](native-aot-closure.md) derives a deterministic,
+hash-locked 119 MiB archive from the same Ubuntu 22.04 ARM64 snapshot. It keeps
+the compiler, linker, symbol tools, headers, C runtime and development objects
+used by this fixture; it removes unrelated executables, LLVM development
+archives and other unused snapshot content. The Native AOT fixture passed with
+the smaller archive, including its body edit and rejection controls. The edited
+binary also ran in Microsoft's .NET 10 Ubuntu Chiseled `runtime-deps` image.
+This is still a bounded snapshot selection, not reproducible package
+acquisition or a complete minimal closure.
+
 ## Next boundary
 
-Reduce the broad native snapshot to a versioned compiler/sysroot closure,
-acquire it reproducibly and select it through a Bazel toolchain. Qualify remote
+Acquire the bounded compiler/sysroot closure reproducibly from versioned
+packages, select it through a Bazel toolchain, and qualify remote
 execution separately. Source-built SDK support also
 needs matching ILCompiler, NativeAOT runtime, runtime-pack and ILLink outputs
 declared from source. macOS, x64, cross-compilation, dynamic library exports
