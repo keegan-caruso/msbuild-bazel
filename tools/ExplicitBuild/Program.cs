@@ -89,6 +89,11 @@ internal static class Program
                 Package.Extract(Read<PackageRequest>(extraction));
                 return 0;
             }
+            if (args is ["native-toolchain", var nativeExtraction])
+            {
+                NativeToolchain.Extract(Read<NativeToolchainRequest>(nativeExtraction));
+                return 0;
+            }
             if (args is ["build", var request])
             {
                 return Build(Read<Request>(request));
