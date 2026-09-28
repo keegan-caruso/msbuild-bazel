@@ -6,6 +6,28 @@ It uses implementation and runtime files, while compilation uses reference
 assemblies. A dependency body edit can therefore rerun tests without
 recompiling their assemblies.
 
+## Checked-in acceptance suite
+
+The small `tests/fixtures/explicit_acceptance` workspace declares a native
+`test_suite` with a passing `msbuild_test` and a shell test that invokes the
+deliberately failing executable and checks its nonzero result. The failing
+`msbuild_test` is tagged `manual` so `bazel test //...` does not treat its
+expected failure as a suite failure. Run a copy to keep generated files out of
+the source fixture:
+
+```sh
+mkdir -p .cache/native-tests
+cp -R tests/fixtures/explicit_acceptance .cache/native-tests/workspace
+(cd .cache/native-tests/workspace && bash ../../../scripts/bazel-launcher.sh test //:native_tests)
+```
+
+The broader `tests/explicit_msbuild/acceptance.py` driver copies this same
+workspace, runs `//:native_tests`, then retains Python for edits, negative
+declaration checks and relocated cache recovery. Direct `bazel test` passed
+both targets, and full acceptance passed on macOS ARM64 with Bazel 8.8.0 and
+9.2.0. Shared restore and opt-in profiling also passed on 9.2.0. Linux
+acceptance was not rerun for this change.
+
 ## Tests across frameworks
 
 `msbuild_test_project` expands the same explicit inputs into one `msbuild_test`

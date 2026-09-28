@@ -7,10 +7,8 @@ import shutil
 import subprocess
 import sys
 
-sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "tests"))
-from fixture_sdk import sdk_declarations
-
 ROOT = Path(__file__).resolve().parents[2]
+FIXTURE = ROOT / 'tests/fixtures/explicit_acceptance'
 SDK = Path(os.environ['RULES_MSBUILD_DOTNET_ROOT'])
 BAZEL = Path(os.environ['RULES_MSBUILD_BAZEL'])
 
@@ -18,30 +16,11 @@ BAZEL = Path(os.environ['RULES_MSBUILD_BAZEL'])
 def run(folder):
     folder.mkdir(parents=True, exist_ok=True)
     workspace = folder/'src'; workspace.mkdir(exist_ok=True)
-    def put(name, value):
-        p = workspace/name; p.parent.mkdir(parents=True, exist_ok=True); p.write_text(value)
-    put('MODULE.bazel', f'''module(name = "explicit_acceptance")
-bazel_dep(name = "rules_msbuild", version = "0.0.0")
-local_path_override(module_name = "rules_msbuild", path = {json.dumps(str(ROOT))})
-''' + sdk_declarations())
-    put('BUILD.bazel', '')
-    project = '<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup><TargetFramework>net10.0</TargetFramework>{}</PropertyGroup>{}</Project>'
-    put('Library/Library.csproj', project.format('', ''))
-    put('Library/library-data.txt', 'dependency-data')
-    put('Library/Value.cs', 'public static class Value { public static int Get() => 7; }')
-    put('Library/BUILD.bazel', '''load("@rules_msbuild//msbuild:defs.bzl", "msbuild_library")
-msbuild_library(name="Library", project="Library.csproj", target_framework="net10.0", srcs=["Value.cs"], data=["library-data.txt"], visibility=["//visibility:public"])
-''')
-    put('App/App.csproj', project.format('<OutputType>Exe</OutputType>', '<ItemGroup><ProjectReference Include="../Library/Library.csproj" /></ItemGroup>'))
-    put('App/Program.cs', 'using System; using System.IO; using System.Reflection; using var s = Assembly.GetExecutingAssembly().GetManifestResourceStream("message"); using var r = new StreamReader(s!); Console.WriteLine(Value.Get() + ":" + r.ReadToEnd() + ":" + File.ReadAllText("data.txt")); return args.Length > 0 || File.ReadAllText("library-data.txt") != "dependency-data" ? 1 : 0;')
-    put('App/message.txt', 'resource')
-    put('App/data.txt', 'runtime')
-    put('App/BUILD.bazel', '''load("@rules_msbuild//msbuild:defs.bzl", "msbuild_binary", "msbuild_test", "msbuild_items")
-msbuild_items(name="resources", item_type="EmbeddedResource", srcs=["message.txt"], metadata={"LogicalName":"message"})
-msbuild_binary(name="App", project="App.csproj", target_framework="net10.0", srcs=["Program.cs"], deps=["//Library"], items=[":resources"], data=["data.txt"])
-msbuild_test(name="Tests", project="App.csproj", target_framework="net10.0", srcs=["Program.cs"], deps=["//Library"], items=[":resources"], data=["data.txt"])
-msbuild_test(name="Fails", args=["fail"], project="App.csproj", target_framework="net10.0", srcs=["Program.cs"], deps=["//Library"], items=[":resources"], data=["data.txt"])
-''')
+    shutil.copytree(FIXTURE, workspace, dirs_exist_ok=True, ignore=shutil.ignore_patterns('bazel-*', 'bin', 'obj', 'MODULE.bazel.lock'))
+    module = workspace/'MODULE.bazel'
+    declaration = module.read_text()
+    assert declaration.count('path = "../../.."') == 1
+    module.write_text(declaration.replace('path = "../../.."', 'path = '+json.dumps(str(ROOT))))
     worker=os.environ.get('RULES_MSBUILD_EXPLICIT_WORKER') == '1'
     if worker:
         for build in workspace.rglob('BUILD.bazel'):
@@ -96,11 +75,10 @@ msbuild_test(name="Fails", args=["fail"], project="App.csproj", target_framework
             assert profile['tasks']['Csc']['count'] == 1, profile
     resource_build=workspace/'App/BUILD.bazel'; resource_original=resource_build.read_text()
     for item_type,message in (('_bazeloriginalprojectreference','Reserved validation item type'),('analyzer','Dependency items require typed dependency attributes')):
-        resource_build.write_text(resource_original.replace('item_type="EmbeddedResource"','item_type="'+item_type+'"'))
+        resource_build.write_text(resource_original.replace('item_type = "EmbeddedResource"','item_type = "'+item_type+'"'))
         assert message in bazel('reserved-item-'+item_type, 'build', '//App', success=False)
     resource_build.write_text(resource_original)
-    bazel('test', 'test', '//App:Tests', '--test_output=all')
-    bazel('failure', 'test', '//App:Fails', '--test_output=all', success=False)
+    bazel('native-tests', 'test', '//:native_tests', '--test_output=all')
     bazel('filter', 'test', '//App:Tests', '--test_filter=unsupported', success=False)
     reference=workspace/'bazel-bin/Library/Library.reference/Library.dll'
     before=hashlib.sha256(reference.read_bytes()).hexdigest()

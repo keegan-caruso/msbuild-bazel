@@ -1,0 +1,18 @@
+module(name = "explicit_acceptance")
+
+bazel_dep(name = "rules_msbuild", version = "0.0.0")
+bazel_dep(name = "rules_shell", version = "0.6.1")
+
+local_path_override(
+    module_name = "rules_msbuild",
+    path = "../../..",
+)
+
+dotnet = use_extension("@rules_msbuild//msbuild:extensions.bzl", "dotnet")
+dotnet.sdk(
+    name = "dotnet",
+    global_json = "//:global.json",
+)
+use_repo(dotnet, "dotnet")
+
+register_toolchains("@dotnet//:all")
