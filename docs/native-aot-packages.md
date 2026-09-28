@@ -55,3 +55,29 @@ on the local Ubuntu `dpkg-deb` implementation, so it is not yet a remotely
 executable Bazel action. This qualification covers Ubuntu 22.04 ARM64 and one
 AOT project; it does not establish a minimal compiler closure, cross-platform
 toolchain, remote execution or source-built NativeAOT.
+
+## Fresh compiler-free consumer
+
+The committed repository tree was copied into a new Ubuntu 22.04 ARM64 Apple
+container based on the pinned toolchain image. That container had SDK 10.0.400,
+Bazel 9.2.0 and `dpkg-deb`, but `command -v` found no `clang`, `gcc`, `ld`, `as`
+or `llvm-objcopy`. The 34 locked `.deb` files and isolated NuGet package cache
+were copied into it separately. With a new workspace and Bazel output base,
+the following fixture passed:
+
+```sh
+python3 tests/explicit_msbuild/native_aot.py /work/aot-package-clean \
+  --package-cache /work/native-aot-cache \
+  --native-package-directory /work/native-aot-debs
+```
+
+The initial executable hash was
+`2024acd2d33735eb83a9f6e11b0cec10d28966d614572098478712327ff34c79`;
+after a body edit it was
+`f0cdfbad3bf96be3a13fd3cfb64b944117e33b1cc942a4ba35e94817d4eb3e7f`.
+The fixture ran both executables and rejected missing ILCompiler and a wrong
+`.deb` hash. These hashes match the producer run above. The consumer used only
+the pinned SDK, Bazel, `dpkg-deb` and declared package payloads for the native
+compiler and linker inputs. This validates a fresh local build; it does not
+establish remote execution, because package assembly still uses an ambient
+`dpkg-deb`.
