@@ -74,4 +74,3 @@ The helper-body edit executed exactly Helper and App, leaving Tasks cached. This
 proves independent local-cache recovery; HTTP remote recovery is not claimed for
 this fixture. Existing worker acceptance, .NET builds/formatting, 24 owned test
 checks (5 style, 6 tooling, 13 explicit), and toolchain/Starlark checks passed.
-[Case results](explicit-tool-bindings-evidence.json).
