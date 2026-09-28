@@ -1,0 +1,50 @@
+load("@rules_msbuild//msbuild:defs.bzl", "msbuild_binary", "msbuild_items", "msbuild_test")
+load("@rules_shell//shell:sh_test.bzl", "sh_test")
+
+msbuild_items(
+    name = "resources",
+    srcs = ["message.txt"],
+    item_type = "EmbeddedResource",
+    metadata = {"LogicalName": "message"},
+)
+
+msbuild_binary(
+    name = "App",
+    srcs = ["Program.cs"],
+    data = ["data.txt"],
+    items = [":resources"],
+    project = "App.csproj",
+    target_framework = "net10.0",
+    deps = ["//Library"],
+)
+
+msbuild_test(
+    name = "Tests",
+    size = "small",
+    srcs = ["Program.cs"],
+    data = ["data.txt"],
+    items = [":resources"],
+    project = "App.csproj",
+    target_framework = "net10.0",
+    deps = ["//Library"],
+)
+
+msbuild_test(
+    name = "Fails",
+    size = "small",
+    srcs = ["Program.cs"],
+    args = ["fail"],
+    data = ["data.txt"],
+    items = [":resources"],
+    project = "App.csproj",
+    tags = ["manual"],
+    target_framework = "net10.0",
+    deps = ["//Library"],
+)
+
+sh_test(
+    name = "failure_is_reported",
+    size = "small",
+    srcs = ["failure_is_reported.sh"],
+    data = [":Fails"],
+)

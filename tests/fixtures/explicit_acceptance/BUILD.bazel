@@ -1,0 +1,9 @@
+exports_files(["global.json"])
+
+test_suite(
+    name = "native_tests",
+    tests = [
+        "//App:Tests",
+        "//App:failure_is_reported",
+    ],
+)

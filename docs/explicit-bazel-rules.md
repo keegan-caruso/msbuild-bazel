@@ -278,9 +278,12 @@ python3 -m unittest discover -s tests/explicit_msbuild -v
 python3 tests/explicit_msbuild/acceptance.py /tmp/explicit-acceptance
 ```
 
-The acceptance harness writes a complete `MODULE.bazel` using the SDK extension.
-It acquires a verified SDK and bootstraps the runner through Bazel. Source SDK
-producers can use [the shared artifact contract](sdk-toolchains.md).
+The acceptance harness copies the checked-in
+`tests/fixtures/explicit_acceptance` Bazel workspace and points its local
+override at this rules checkout. Its native `test_suite` covers a passing
+executable and expected failure before the Python driver performs source edits
+and cache recovery. Bazel acquires a verified SDK and bootstraps the runner.
+Source SDK producers can use [the shared artifact contract](sdk-toolchains.md).
 
 For the real MTP application, acquire the test packages outside the build action:
 
