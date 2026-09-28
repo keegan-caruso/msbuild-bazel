@@ -41,9 +41,25 @@ resolve into the declared `usr/` tree. Bazel includes the complete tree in the
 AOT action's input digest; this action is eligible for action caching. A tree
 producer must preserve executable bits and symlinks and provide the native
 compiler, linker, headers, C runtime files, zlib development files and symbol
-tools that the project uses. The fixture's test-only producer snapshots the
-local Ubuntu toolchain without caching that producer action. It is not a pinned
-toolchain acquisition rule. The selected Linux C library baseline also matters:
+tools that the project uses. `msbuild_native_toolchain_archive` creates the
+tree from a declared `.tar.gz` input and checks its SHA-256 before extraction.
+The archive must contain `usr/` and `etc/`. Absolute symlinks and links that
+escape the archive are rejected, so archive preparation must remove or replace
+host-specific links:
+
+```starlark
+msbuild_native_toolchain_archive(
+    name = "linux_aot_toolchain",
+    archive = "linux-aot-toolchain.tar.gz",
+    archive_sha256 = "<verified sha256>",
+)
+```
+
+The original test-only producer still snapshots local Ubuntu tools without
+caching that producer action. The archive qualification uses a broad copy of
+that tree with unusable absolute links removed. Its hash pins the resulting
+bytes, but no distro package manifest or public archive distribution is yet
+provided. The selected Linux C library baseline also matters:
 the [.NET deployment guide](https://learn.microsoft.com/en-us/dotnet/core/deploying/native-aot/)
 states that a Native AOT binary built on one Linux version runs on that version
 or newer, so the Ubuntu 22.04 fixture does not qualify older distributions.
@@ -111,8 +127,29 @@ remained installed on the container host. The test tree occupied 962 MB; it
 included broad Ubuntu `usr/bin`, `usr/lib` and `usr/include` directories
 to establish correctness, not an optimized distribution. The
 [declared-toolchain report](native-aot-toolchain-evidence.json) records these
-controls. Independent cache recovery and execution on a machine without
-ambient native tools have not yet been measured.
+controls. The later independent cache run is described below.
+
+## Pinned archive and independent cache recovery
+
+The archive qualification compressed the Ubuntu 22.04 ARM64 snapshot to 288 MB
+with deterministic tar ordering, owner, group and mtime, and `gzip -n`. It
+removed absolute and dangling symlinks from a copy of the snapshot before
+packaging. The archive SHA-256 was
+`0d1110f506893716e762f32f3442f37a243ce823f7eb35595978efd822fb964e`.
+The fixture built and ran initial and body-edited AOT binaries with this
+archive. It rejected a missing ILCompiler package and an incorrect archive
+SHA-256. The [evidence](native-aot-archive-evidence.json) records the results.
+
+A separate Bazel output base seeded an HTTP action cache. A second Apple
+Container, created from the same Ubuntu 22.04 ARM64 image without `clang` or
+`gcc` installed, used a different workspace and output base. It recovered all
+nine actions from the cache, including archive extraction and AOT generation,
+then ran the recovered binary. After a body edit, `MSBuildGenerate` executed
+locally in that compiler-free container using the declared tree; the resulting
+binary printed the edited message. This proves cache recovery across these two
+containers and local execution without ambient native compilers. It does not
+qualify remote execution, other Linux distributions or a minimal native
+toolchain closure.
 
 To repeat inside a Linux ARM64 environment with `clang`, `llvm-objcopy`, zlib
 headers, the pinned Bazel binary, and a working Bubblewrap namespace:
@@ -128,13 +165,15 @@ verified local package cache instead. The resulting binary is
 `source/bazel-bin/aot.generated/Hello` under the supplied output directory.
 Pass `--declared-toolchain` to run the tree-input qualification; the fixture
 producer snapshots the local Ubuntu toolchain, so it is test-only.
+Alternatively, pass `--toolchain-archive /path/to/archive.tar.gz` and
+`--toolchain-sha256 <digest>` to exercise the locked archive and bad-digest
+control.
 
 ## Next boundary
 
-Package a smaller, pinned native toolchain as a Bazel-produced tree and select
-it through a Bazel toolchain. Prove independent cache recovery at a new workspace
-path and execution on a worker without ambient native tools before claiming
-remote-cache or remote-execution correctness. Source-built SDK support also
+Reduce the broad native snapshot to a versioned compiler/sysroot closure,
+acquire it reproducibly and select it through a Bazel toolchain. Qualify remote
+execution separately. Source-built SDK support also
 needs matching ILCompiler, NativeAOT runtime, runtime-pack and ILLink outputs
 declared from source. macOS, x64, cross-compilation, dynamic library exports
 and ASP.NET AOT remain unqualified.

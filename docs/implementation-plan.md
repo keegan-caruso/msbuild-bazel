@@ -61,10 +61,12 @@ The pinned baselines are SDK 10.0.400 and Bazel 8.8.0/9.2.0 (default 9.2.0).
 The expanded runtime qualification used Linux ARM64 and Bazel 9.2.0. It does not
 establish support for other platforms, the entire runtime repository, JIT stress,
 source-built NativeAOT, Mono/WASM, cross-compilation or crossgen/R2R. A separate
-[Native AOT publish](native-aot.md) uses the downloaded SDK; one qualification
-declares the native toolchain tree, but independent cache recovery is still open. Native products are built
-locally in a declared namespace; HTTP cache recovery does not qualify remote
-execution of that graph. Separate [remote-execution qualification](remote-execution.md)
+[Native AOT publish](native-aot.md) uses the downloaded SDK and a declared,
+hash-checked native toolchain archive. An independent compiler-free consumer
+recovered its build from HTTP cache and executed a body edit locally. Native
+products are built locally in a declared namespace; HTTP cache recovery does
+not qualify remote execution of that graph. Separate
+[remote-execution qualification](remote-execution.md)
 covers bounded managed fixtures and the expanded Avalonia slices on an SDK-free
 ARM64 worker with Bazel 8.8.0 and 9.2.0.
 See [platform scope](platform-validation-scope.md) and

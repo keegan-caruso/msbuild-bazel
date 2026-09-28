@@ -4,6 +4,7 @@ load("//msbuild/private:assembly.bzl", _msbuild_assembly = "msbuild_assembly")
 load("//msbuild/private:facades.bzl", _msbuild_project = "msbuild_project", _msbuild_test_project = "msbuild_test_project")
 load("//msbuild/private:inputs.bzl", _msbuild_file_binding = "msbuild_file_binding", _msbuild_items = "msbuild_items", _msbuild_project_output = "msbuild_project_output", _msbuild_target_items = "msbuild_target_items", _msbuild_tool = "msbuild_tool")
 load("//msbuild/private:layouts.bzl", _msbuild_layout = "msbuild_layout", _msbuild_native_tool = "msbuild_native_tool", _msbuild_reference_pack = "msbuild_reference_pack", _msbuild_runtime = "msbuild_runtime")
+load("//msbuild/private:native_toolchain.bzl", _msbuild_native_toolchain_archive = "msbuild_native_toolchain_archive")
 load("//msbuild/private:packages.bzl", _msbuild_generated_nuget_package = "msbuild_generated_nuget_package", _msbuild_nuget_dependencies = "msbuild_nuget_dependencies", _msbuild_nuget_package = "msbuild_nuget_package", _msbuild_package_lock = "msbuild_package_lock")
 load("//msbuild/private:providers.bzl", _MSBuildAssemblyInfo = "MSBuildAssemblyInfo", _MSBuildBindingInfo = "MSBuildBindingInfo", _MSBuildItemsInfo = "MSBuildItemsInfo", _MSBuildLayoutInfo = "MSBuildLayoutInfo", _MSBuildPackageInfo = "MSBuildPackageInfo", _MSBuildPackageLockInfo = "MSBuildPackageLockInfo", _MSBuildProjectInfo = "MSBuildProjectInfo", _MSBuildProjectOutputInfo = "MSBuildProjectOutputInfo", _MSBuildReferencePackInfo = "MSBuildReferencePackInfo", _MSBuildRestoreInfo = "MSBuildRestoreInfo", _MSBuildRuntimeInfo = "MSBuildRuntimeInfo", _MSBuildTestToolInfo = "MSBuildTestToolInfo", _MSBuildToolInfo = "MSBuildToolInfo")
 load("//msbuild/private:rules.bzl", _msbuild_binary = "msbuild_binary", _msbuild_generate = "msbuild_generate", _msbuild_library = "msbuild_library", _msbuild_restore = "msbuild_restore", _msbuild_test = "msbuild_test")
@@ -31,6 +32,7 @@ msbuild_items = _msbuild_items
 msbuild_layout = _msbuild_layout
 msbuild_library = _msbuild_library
 msbuild_native_tool = _msbuild_native_tool
+msbuild_native_toolchain_archive = _msbuild_native_toolchain_archive
 msbuild_nuget_dependencies = _msbuild_nuget_dependencies
 msbuild_nuget_package = _msbuild_nuget_package
 msbuild_package_lock = _msbuild_package_lock

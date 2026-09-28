@@ -50,7 +50,7 @@ def package_archive(workspace, package_id, digest, cache):
     return archive
 
 
-def build_file(omit_compiler=False, declared_toolchain=False, omit_native_compiler=False):
+def build_file(omit_compiler=False, declared_toolchain=False, omit_native_compiler=False, toolchain_sha256=None):
     names = []
     lines = ['load("@rules_msbuild//msbuild:defs.bzl", "msbuild_generate", "msbuild_nuget_package", "msbuild_package_lock")']
     for index, (package_id, (digest, content_hash)) in enumerate(PACKAGES.items()):
@@ -62,8 +62,12 @@ def build_file(omit_compiler=False, declared_toolchain=False, omit_native_compil
     native = 'native_toolchain=":native_toolchain"' if declared_toolchain else 'local_native_tools=True'
     lines.append('msbuild_generate(name="aot", executable=True, project="Hello.csproj", srcs=["Program.cs"], target_framework="net10.0", targets=["ExportAot"], outputs=["Hello"], output_properties={"NativeBinaryOutput":"Hello"}, package_lock=":lock", build_deps=' + json.dumps(names) + ', ' + native + ')')
     if declared_toolchain:
-        lines.insert(1, 'load(":native_toolchain.bzl", "native_toolchain_snapshot")')
-        lines.append('native_toolchain_snapshot(name="native_toolchain", omit_compiler=' + str(omit_native_compiler) + ')')
+        if toolchain_sha256:
+            lines[0] = lines[0].replace('"msbuild_generate",', '"msbuild_generate", "msbuild_native_toolchain_archive",')
+            lines.append('msbuild_native_toolchain_archive(name="native_toolchain", archive="native-toolchain.tar.gz", archive_sha256="' + toolchain_sha256 + '")')
+        else:
+            lines.insert(1, 'load(":native_toolchain.bzl", "native_toolchain_snapshot")')
+            lines.append('native_toolchain_snapshot(name="native_toolchain", omit_compiler=' + str(omit_native_compiler) + ')')
     return "\n".join(lines) + "\n"
 
 
@@ -72,7 +76,11 @@ def main():
     parser.add_argument("directory", type=Path)
     parser.add_argument("--package-cache", type=Path, help="Previously downloaded NuGet package root")
     parser.add_argument("--declared-toolchain", action="store_true", help="Snapshot the host native toolchain as a declared tree input")
+    parser.add_argument("--toolchain-archive", type=Path, help="Use a locked tar.gz archive rather than snapshotting native tools from the host")
+    parser.add_argument("--toolchain-sha256", help="Expected SHA-256 of --toolchain-archive")
     args = parser.parse_args()
+    if bool(args.toolchain_archive) != bool(args.toolchain_sha256):
+        parser.error("--toolchain-archive and --toolchain-sha256 must be supplied together")
     if platform.system() != "Linux" or platform.machine() not in ("aarch64", "arm64"):
         parser.error("This first Native AOT fixture qualifies Linux ARM64 only")
     folder = args.directory.resolve()
@@ -83,9 +91,12 @@ def main():
     write(workspace / "Program.cs", 'System.Console.WriteLine("NATIVE_AOT_INITIAL");\n')
     for package_id, (digest, _) in PACKAGES.items():
         package_archive(workspace, package_id, digest, args.package_cache)
-    if args.declared_toolchain:
+    declared_toolchain = args.declared_toolchain or bool(args.toolchain_archive)
+    if args.toolchain_archive:
+        shutil.copyfile(args.toolchain_archive, workspace / "native-toolchain.tar.gz")
+    elif declared_toolchain:
         write(workspace / "native_toolchain.bzl", (ROOT / "tests/explicit_msbuild/native_toolchain.bzl").read_text())
-    write(workspace / "BUILD.bazel", build_file(declared_toolchain=args.declared_toolchain))
+    write(workspace / "BUILD.bazel", build_file(declared_toolchain=declared_toolchain, toolchain_sha256=args.toolchain_sha256))
     bazel = [os.environ["RULES_MSBUILD_BAZEL"], "--output_base=" + str(folder / "base"), "--ignore_all_rc_files"]
 
     def build(case, success=True):
@@ -107,16 +118,20 @@ def main():
         second_hash = hashlib.sha256(binary.read_bytes()).hexdigest()
         assert first_hash != second_hash
         assert subprocess.check_output([binary], text=True).strip() == "NATIVE_AOT_EDIT"
-        write(workspace / "BUILD.bazel", build_file(omit_compiler=True, declared_toolchain=args.declared_toolchain))
+        write(workspace / "BUILD.bazel", build_file(omit_compiler=True, declared_toolchain=declared_toolchain, toolchain_sha256=args.toolchain_sha256))
         failure = build("missing-compiler", success=False)
         assert "Microsoft.DotNet.ILCompiler" in failure and ("NU1100" in failure or "NU1101" in failure), failure[-7000:]
-        if args.declared_toolchain:
+        if args.declared_toolchain and not args.toolchain_archive:
             write(workspace / "BUILD.bazel", build_file(declared_toolchain=True, omit_native_compiler=True))
             missing_native = build("missing-native-compiler", success=False)
             assert "Platform linker ('clang' or 'gcc') not found in PATH" in missing_native, missing_native[-7000:]
-        write(folder / "report.json", json.dumps({"platform": "linux-arm64", "sdk": "10.0.400", "aotPackages": VERSION, "declaredToolchain": args.declared_toolchain, "initialSha256": first_hash, "bodyEditSha256": second_hash, "missingCompilerRejected": True, "missingNativeCompilerRejected": args.declared_toolchain}, indent=2) + "\n")
+        if args.toolchain_archive:
+            write(workspace / "BUILD.bazel", build_file(declared_toolchain=True, toolchain_sha256="0" * 64))
+            bad_archive = build("bad-toolchain-hash", success=False)
+            assert "Native toolchain archive differs from locked SHA-256" in bad_archive, bad_archive[-7000:]
+        write(folder / "report.json", json.dumps({"platform": "linux-arm64", "sdk": "10.0.400", "aotPackages": VERSION, "declaredToolchain": declared_toolchain, "toolchainArchiveSha256": args.toolchain_sha256, "initialSha256": first_hash, "bodyEditSha256": second_hash, "missingCompilerRejected": True, "missingNativeCompilerRejected": args.declared_toolchain and not args.toolchain_archive, "badArchiveRejected": bool(args.toolchain_archive)}, indent=2) + "\n")
     finally:
-        write(workspace / "BUILD.bazel", build_file(declared_toolchain=args.declared_toolchain))
+        write(workspace / "BUILD.bazel", build_file(declared_toolchain=declared_toolchain, toolchain_sha256=args.toolchain_sha256))
         subprocess.run(bazel + ["shutdown"], cwd=workspace, check=True)
 
 
