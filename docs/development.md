@@ -2,7 +2,7 @@
 
 ## Using the rules in an application
 
-With Bazelisk available and `rules_msbuild` declared as a module dependency:
+Declare `rules_msbuild` as a module dependency, then select the SDK with Bazelisk:
 
 ```starlark
 # MODULE.bazel

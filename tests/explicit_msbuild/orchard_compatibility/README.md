@@ -1,6 +1,7 @@
 # Pinned Orchard compatibility probe
 
-This is disposable Linux test scaffolding, not a production BUILD generator.
+These scripts prepare disposable Linux tests. They are not a production BUILD
+generator.
 Use Orchard commit `04467a3438d4255627c1a478598a1585b3ff2947` and SDK 10.0.400/Bazel
 8.4.2 in the pinned Ubuntu ARM64 image. Copy the rules repo to `/workspace`, the
 clean Orchard checkout (without `.git`, `bin`, `obj`, or `node_modules`) to

@@ -1,13 +1,12 @@
 # Performance
 
-Warm no-op/body edits and remote-cache recovery are the strongest measured
-cases. **Cold and broad API-change builds remain slower than raw MSBuild.**
+No-op builds, method-body edits and remote-cache recovery are the strongest
+measured cases. **Cold builds and broad API edits remain slower than raw MSBuild.**
 Body and API edits are the primary scorecard; there is no single overall speedup.
 
-These are recorded results from pinned qualification workloads, not a benchmark
-of every commit on main. Detailed reports below retain commands, samples and
-machine-readable evidence. The runtime managed results include a post-cleanup
-baseline and the compiler-reuse change described below.
+These results come from pinned workloads; they do not measure every commit on
+main. Linked reports contain the commands, samples and raw evidence. The
+runtime results include a later baseline with compiler reuse.
 
 A later audit found that the host has 16 GiB RAM, while some historical runtime
 experiments allocated a 16 GiB build VM alongside other VMs. Treat those elapsed

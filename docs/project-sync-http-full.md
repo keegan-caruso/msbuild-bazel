@@ -1,9 +1,9 @@
 # Complete Http.Abstractions graph generation
 
-Stage 1 of the [roadmap](roadmap.md) migrates the previously hybrid HTTP
-qualification to production `msbuild_sync`. The self-contained combined driver
-completed end to end from pinned disposable source checkouts with a fresh output
-workspace, including the existing Immutable regression slice.
+Production `msbuild_sync` now generates every project in the previously hybrid
+HTTP qualification. The combined driver passed from pinned, disposable source
+checkouts and a fresh output workspace, including the Immutable regression
+slice. This completed stage 1 of the [roadmap](roadmap.md).
 
 ## Scope and design
 

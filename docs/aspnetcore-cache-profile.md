@@ -1,10 +1,9 @@
 # ASP.NET Core cache overhead profile
 
-The 220-project / 275-framework-target workload now reuses declared package
-artifacts when composing runtimes instead of publishing the same package files
-from every assembly. Extraction also uses the .NET runtime rather than the full
-SDK. The cache harness allows concurrent cache work independently of its local
-CPU execution limit.
+In the 220-project, 275-framework-target workload, runtime composition now
+reuses declared package artifacts instead of copying the same package files
+from every assembly. Extraction needs only the .NET runtime, not the full SDK.
+The cache harness can queue cache work without raising its local CPU limit.
 
 ## Controlled cache comparison
 

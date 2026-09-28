@@ -1,7 +1,7 @@
 # Shared sync defaults and diagnostics
 
-Stage 4 of the [roadmap](roadmap.md) adds optional `projectDefaults` with explicit
-project overrides. The [mapping API](project-sync.md#shared-project-defaults)
+Optional `projectDefaults` lets projects share mapping values while retaining
+explicit overrides. The [mapping API](project-sync.md#shared-project-defaults)
 defines precedence and rejected cases. Normal SDK/global.json application setup
 does not need another configuration file.
 

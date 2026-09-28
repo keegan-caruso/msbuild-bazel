@@ -1,9 +1,9 @@
 # Run an app on a source-built runtime
 
-An ordinary SDK-style app now builds with Bazel and runs on a selected runtime
-built from dotnet/runtime source. `bazel run //app:app` exercises JSON, gzip,
-asynchronous stream reading and SHA-256. The application uses the existing
-`runtime_host` attribute; no application-specific rule changes are required.
+Bazel builds an ordinary SDK-style app and runs it on a selected runtime built
+from dotnet/runtime source. `bazel run //app:app` exercises JSON, gzip,
+asynchronous streams and SHA-256. The app uses the existing `runtime_host`
+attribute; it needs no special rule.
 
 The qualification uses Linux ARM64, runtime v10.0.0
 (`60629d14374c56f1cb51819049ad1fa529307f8d`), SDK 10.0.400 and Bazel 9.2.0.

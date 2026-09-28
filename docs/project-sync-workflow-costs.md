@@ -1,8 +1,8 @@
 # Generated-graph workflow costs
 
-This stage measures the complete generated Orchard CMS graph (202 projects) and
-separates package acquisition, synchronization, compilation, edits and independent
-HTTP-cache recovery. It is not a benchmark of the whole runtime or ASP.NET repository.
+This report measures the generated 202-project Orchard CMS graph. It separates
+package acquisition, sync, compilation, edits and independent HTTP-cache
+recovery. It does not benchmark the whole runtime or ASP.NET Core repository.
 
 ## Protocol
 

@@ -1,8 +1,8 @@
 # Planned work
 
-The next performance priority is incremental **API edits** across larger and
-more varied graphs. Cold builds remain important, but warm body/API edits and
-independent remote-cache recovery are the main scorecard. See
+The next performance priority is **API edits** across larger, more varied
+graphs. Cold builds still matter. We will judge progress mainly by body and
+API edits and by recovery from an independent remote cache. See
 [current support](implementation-plan.md) for qualified behavior and
 [performance](performance.md) for measured baselines.
 

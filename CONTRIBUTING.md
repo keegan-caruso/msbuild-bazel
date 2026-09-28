@@ -2,7 +2,7 @@
 
 This project is experimental. Start with the [README](README.md),
 [rule API](docs/explicit-bazel-rules.md) and
-[current qualification boundary](docs/implementation-plan.md).
+[current support](docs/implementation-plan.md).
 
 For a bug, include a small reproducer, SDK/Bazel versions, OS/architecture, the
 command, expected behavior and actual result. Remove credentials and proprietary
@@ -12,7 +12,7 @@ for a suspected vulnerability.
 
 ## Development
 
-1. Fork/clone the repository and create a focused branch.
+1. Fork or clone the repository and create a focused branch.
 2. Follow [development setup](docs/development.md) with the pinned bootstrap tools.
 3. Keep production rules generic. Make sources, dependency edges, tools and
    configuration explicit in Bazel; retain MSBuild's SDK behavior.
@@ -29,8 +29,8 @@ for a suspected vulnerability.
    For project-rule behavior, also run the explicit acceptance harness following
    [the rule guide](docs/explicit-bazel-rules.md#local-toolchain-setup-and-reproduction).
    Large qualification suites are not required for documentation-only changes.
-6. Open a pull request describing the problem, resulting behavior, validation and
-   remaining limits. Do not commit downloaded tools, build products or private logs.
+6. Open a pull request explaining the problem, the change, the checks you ran and
+   any remaining limits. Do not commit downloaded tools, build products or private logs.
 
 GitHub workflows are manual-only and are run when a maintainer explicitly requests
 CI. A workflow definition or an untested platform configuration is not passing evidence.

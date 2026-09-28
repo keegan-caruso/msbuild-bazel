@@ -2,8 +2,8 @@
 
 ## Step 1: explicit shared SDK restore
 
-`msbuild_restore` runs the real SDK Restore target once and produces a Bazel
-artifact consumed through the assembly rule's `restore` attribute:
+`msbuild_restore` runs the SDK's Restore target once. Assembly rules consume
+its Bazel output through the `restore` attribute:
 
 ```starlark
 load("@rules_msbuild//msbuild:defs.bzl", "msbuild_restore", "msbuild_library")

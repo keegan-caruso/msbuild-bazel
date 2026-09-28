@@ -1,8 +1,8 @@
 # Runtime managed workflow qualification
 
-This extends the [reference qualification (historical)](https://github.com/keegan-caruso/msbuild-bazel/blob/46d7f37b5cf36e62453a2a511697562107ce6ee2/docs/runtime-qualification.md) to the
-Primitives implementation and its actual upstream tests. The source revision,
-SDK and platform remain runtime v10.0.0 (`60629d14374c56f1cb51819049ad1fa529307f8d`),
+This adds the Primitives implementation and its upstream tests to the
+[earlier reference qualification](https://github.com/keegan-caruso/msbuild-bazel/blob/46d7f37b5cf36e62453a2a511697562107ce6ee2/docs/runtime-qualification.md).
+The run uses runtime v10.0.0 (`60629d14374c56f1cb51819049ad1fa529307f8d`),
 SDK 10.0.400, Linux ARM64 and Microsoft.NETCore.App 10.0.11.
 
 ## Build and test contract

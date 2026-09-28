@@ -1,8 +1,7 @@
 # Complete Immutable graph generation
 
-Stage 2 of the [roadmap](roadmap.md) generates all 36 configured assembly
-producers in the selected `System.Collections.Immutable.Tests` graph. Production
-`msbuild_sync` emits their compilation declarations, including reference projects,
+Production `msbuild_sync` generates all 36 configured assembly producers in the
+selected `System.Collections.Immutable.Tests` graph. These include reference projects,
 implementations, test utilities, analyzers and linker tools. The qualification
 fixture retains package acquisition, reviewed task contracts and provider bindings.
 It never patches generated output.

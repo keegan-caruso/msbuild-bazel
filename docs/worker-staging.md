@@ -2,9 +2,10 @@
 
 ## Attribution
 
-The prior staging bucket was not mainly hashing or copying project data. A
-four-vCPU Linux ARM64 repeat of the 129-project shared-restore fixture attributed
-**11.02 of 12.52 summed staging worker-seconds** to `Program.Real` path resolution.
+Most measured staging time came from resolving paths, not hashing or copying
+project files. In a four-vCPU Linux ARM64 repeat of the 129-project fixture,
+profiling attributed **11.02 of 12.52 summed staging worker-seconds** to
+`Program.Real` path resolution.
 It resolved **633,003 SDK file paths** (4,907 per project), then skipped them because
 the SDK already existed in the compiler sandbox. Actual snapshot file operations
 accounted for **0.61 summed worker-seconds**.

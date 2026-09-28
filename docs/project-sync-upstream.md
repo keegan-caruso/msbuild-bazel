@@ -1,9 +1,10 @@
 # Generator expansion: ASP.NET Core and dotnet/runtime
 
-This is a compatibility inventory and small-fixture qualification, **not a new
-upstream build/test qualification**. Existing handwritten upstream adapters remain
-independent of `msbuild_sync`. The later [generated upstream qualification](project-sync-upstream-qualification.md)
-records ObjectPool/Pipelines builds and tests.
+This inventory checks small generator fixtures; it does **not** qualify new
+upstream builds or tests. The handwritten upstream adapters remain independent
+of `msbuild_sync`. The later
+[generated qualification](project-sync-upstream-qualification.md) records
+ObjectPool and Pipelines builds and tests.
 
 ## Pinned starting slices
 

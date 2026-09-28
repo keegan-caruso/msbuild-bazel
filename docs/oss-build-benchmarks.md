@@ -1,9 +1,9 @@
 # Open-source build comparisons
 
-This comparison adds Serilog, Spectre.Console and Polly to the existing Orchard
-measurements. It exercises smaller graphs with source generators, analyzer
-configuration, NuGet-provided C# sources and restore-only package downloads.
-It is not a replacement for the 202-project Orchard scaling benchmark.
+These runs compare Serilog, Spectre.Console and Polly builds with raw MSBuild.
+Their smaller graphs exercise source generators, analyzer settings,
+NuGet-provided C# files and packages used only during restore. The separate
+202-project Orchard benchmark remains the scaling comparison.
 
 ## Configuration
 

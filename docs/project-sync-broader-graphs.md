@@ -1,8 +1,9 @@
 # Generated Orchard and Avalonia graphs
 
-Stage 5 of the [roadmap](roadmap.md) expands production synchronization to two
-existing authored qualification graphs. The production rules contain no Orchard
-or Avalonia project names. Repository-specific contracts belong to the fixtures.
+Production sync now generates the previously authored Orchard and Avalonia
+qualification graphs. The rules contain no project names from either
+repository; their specific contracts stay in the fixtures. This was stage 5
+of the [roadmap](roadmap.md).
 
 Baseline: Linux ARM64, SDK 10.0.400, Bazel 9.2.0, Release. Orchard is pinned to
 `04467a3438d4255627c1a478598a1585b3ff2947`; Avalonia to

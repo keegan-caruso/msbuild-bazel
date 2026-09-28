@@ -1,7 +1,7 @@
 # Friend assemblies and reference-cache invalidation
 
-The current rules support the qualified `InternalsVisibleTo` slice through normal
-SDK/Roslyn behavior. No production rule or runner changes were needed.
+The qualified `InternalsVisibleTo` cases work through normal SDK and Roslyn
+behavior. They required no rule or runner changes.
 
 Keep the attribute in declared source, or use the SDK's `InternalsVisibleTo` item
 in the original project. The consumer's **assembly name**, not its Bazel label,

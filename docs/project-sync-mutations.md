@@ -1,7 +1,7 @@
 # Everyday synchronization changes
 
-Stage 6 qualifies the normal edit → check → sync → build/test → revert workflow
-on Linux ARM64, SDK 10.0.400 and **Bazel 8.8.0 and 9.2.0**. The two versions produce
+The edit → check → sync → build/test → revert workflow passes on Linux ARM64
+with SDK 10.0.400 and **Bazel 8.8.0 and 9.2.0**. Both versions produce
 identical mutation results. See [machine-readable evidence](project-sync-mutations-evidence.json).
 
 ## One workflow

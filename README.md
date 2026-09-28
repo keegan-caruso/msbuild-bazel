@@ -1,16 +1,16 @@
 # MSBuild rules for [Bazel](https://bazel.build)
 
-`rules_msbuild` gives Bazel explicit .NET project dependencies and remote caching
-while retaining SDK-style `.csproj` files and MSBuild compilation.
+`rules_msbuild` lets Bazel schedule and cache individual .NET project builds.
+Projects keep their SDK-style `.csproj` files and compile with MSBuild.
 
 **Experimental:** the API may change. Use the rules from source; there is no
 published runner package or Bazel Central Registry release.
 
 ## Get started
 
-Use the [SDK-and-sync quickstart](examples/quickstart/README.md): select an SDK
-with `global.json`, keep normal `.csproj` files, and build/test the committed Bazel
-graph. Bazel supplies .NET; no repository setup script is required.
+Use the [quickstart](examples/quickstart/README.md): select an SDK with
+`global.json`, keep normal `.csproj` files, and build and test the committed
+Bazel declarations. Bazel supplies .NET; no repository setup script is required.
 See [adoption and upgrades](docs/adoption.md) or [contributor setup](docs/development.md).
 
 Supported baselines: .NET SDK **10.0.400**, Bazel **8.8.0 / 9.2.0** (default).

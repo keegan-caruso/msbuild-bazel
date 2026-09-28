@@ -1,9 +1,9 @@
 # Opt-in Linux remote execution
 
-Project rules accept `allow_remote_execution = True`. The default remains local
-execution with remote caching. Opting in removes the `no-remote-exec` action
-requirement; Bazel selects the executor using its normal execution platform and
-strategy configuration. Declare a compatible Linux platform with bubblewrap,
+Set `allow_remote_execution = True` on each project rule that may compile on a
+remote worker. By default, compilation stays local but can use a remote cache.
+The opt-in removes `no-remote-exec`; Bazel selects a worker through its execution
+platform and strategy settings. Declare a compatible Linux platform with bubblewrap,
 Bash and .NET's OS dependencies. The SDK and ExplicitBuild runner remain declared
 Bazel toolchain inputs and are uploaded to the executor.
 

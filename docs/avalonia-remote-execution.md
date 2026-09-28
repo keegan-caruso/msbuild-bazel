@@ -1,9 +1,9 @@
 # Avalonia remote compilation and tests
 
-This extends the [Simple theme slice](avalonia-xaml-subset.md) from local
-compilation and HTTP caching to execution on an SDK-free Buildbarn worker.
-The production rules remain generic; the upstream-specific declarations and
-controls live in `tests/explicit_msbuild/avalonia/remote_execution.py`.
+The [Simple theme slice](avalonia-xaml-subset.md) now builds and tests on a
+Buildbarn worker without an installed SDK. Production rules remain generic;
+Avalonia-specific declarations and checks live in
+`tests/explicit_msbuild/avalonia/remote_execution.py`.
 
 The [expanded qualification](avalonia-expanded.md) adds Base/Controls/XAML tests,
 Fluent/Diagnostics/headless libraries, and Desktop/Skia generation and rendering.

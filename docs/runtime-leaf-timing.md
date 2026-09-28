@@ -1,7 +1,8 @@
 # Runtime dependency body-edit timing
 
-The original Bazel capture measured a `System.IO.Pipelines` implementation-body edit while building the full
-seven-suite target set from the [runtime closure qualification](runtime-loaded-closure.md).
+The original Bazel run measured a `System.IO.Pipelines` method-body edit while
+building all seven suites from the
+[runtime closure qualification](runtime-loaded-closure.md).
 Each edit adds a uniquely tagged `GC.KeepAlive` call in the `PipeOptions`
 constructor. The public contract does not change. All six edits actually compile;
 unique source contents prevent reuse of a previously cached edited result.

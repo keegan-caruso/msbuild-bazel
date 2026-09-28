@@ -2,11 +2,12 @@
 
 ## Result
 
-**The current explicit rules cannot yet build Orchard unchanged.** Raw MSBuild
-builds the selected CMS application successfully on the same Linux SDK. Four
-focused Bazel probes establish package/tooling blockers before meaningful Orchard
-performance measurement can begin. No production rules or Orchard source were
-changed to work around them.
+**At the recorded rules revision, Orchard did not yet build unchanged.** Raw
+MSBuild built the selected CMS app with the same Linux SDK. Four Bazel probes
+identified package and tool blockers. This is a historical baseline; the later
+[full qualification](orchard-explicit-performance.md) supersedes its support
+status. Neither production rules nor Orchard source were changed to hide the
+original blockers.
 
 - Orchard commit: `04467a3438d4255627c1a478598a1585b3ff2947` (existing clean checkout;
   this is a pinned snapshot, not a claim about current upstream HEAD).

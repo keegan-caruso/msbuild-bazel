@@ -1,8 +1,8 @@
 # Avalonia HTTP cache portability across Linux containers
 
-The [actual theme graph](avalonia-xaml-subset.md), plus actual Native IDL generation,
-recovers across independent Ubuntu 22.04 ARM64 Apple containers on the same Mac.
-This is HTTP action-cache qualification, not remote execution or a WAN benchmark.
+The [theme graph](avalonia-xaml-subset.md) and Native IDL generation recover
+from an HTTP action cache in a second Ubuntu 22.04 ARM64 Apple container on
+the same Mac. This does not test remote execution or WAN performance.
 
 ## Isolation and inputs
 

@@ -2,12 +2,12 @@
 
 ## Cause
 
-Orchard's unchanged `OrchardCore.Module.Targets.targets` constructs module asset
-attributes from `%(ModuleAssetFiles.FullPath)`. These strings become public
-assembly metadata. Compiler `PathMap` rewrites supported debug/source paths, not
-arbitrary attribute values. The worker previously mounted its randomly named
-`/tmp/explicit-worker-<guid>` directory at the same physical path inside the child.
-Thus identical actions could generate different module DLLs and reference DLLs.
+Orchard's unchanged `OrchardCore.Module.Targets.targets` writes
+`%(ModuleAssetFiles.FullPath)` into public assembly metadata. Compiler
+`PathMap` does not rewrite arbitrary attribute values. The worker used to
+expose its randomly named `/tmp/explicit-worker-<guid>` directory at the same
+path inside MSBuild. Identical actions could therefore produce different
+module and reference DLLs.
 
 The earlier full-graph comparison found 88 different reference assemblies across
 fresh executions; 87 were modules/themes. Remote-cache recovery still worked by

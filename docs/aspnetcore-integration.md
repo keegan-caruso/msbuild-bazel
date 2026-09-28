@@ -1,8 +1,8 @@
 # ASP.NET Core bootstrap integration slice
 
-This implements the first integration slice for ASP.NET Core 10.0.0, revision
-`7387de91234d3ef751fa50b3d1bfede4130213ff`. It is **not qualification of the full
-ASP.NET Core repository or its Arcade SDK**.
+This fixture covers one ASP.NET Core 10.0.0 integration slice at revision
+`7387de91234d3ef751fa50b3d1bfede4130213ff`. It does **not** qualify the
+full repository or its Arcade SDK.
 
 ## Generic APIs
 

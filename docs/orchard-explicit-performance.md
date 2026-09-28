@@ -1,10 +1,10 @@
 # Full Orchard explicit-rule qualification and performance
 
-Pinned Orchard: `04467a3438d4255627c1a478598a1585b3ff2947`.
-Rules base: `998f5382be5ef3d601b0d1f3e282565f28b1c583`.
-Linux Ubuntu 22.04 ARM64 Apple container, 4 CPUs / 8 GiB, SDK 10.0.400,
-Bazel 8.4.2. All build files and outputs live on native Linux storage; only
-logs/reports use a host mount. The workload is the complete CMS application's
+This run uses Orchard `04467a3438d4255627c1a478598a1585b3ff2947` and rules
+`998f5382be5ef3d601b0d1f3e282565f28b1c583` in an Ubuntu 22.04 ARM64
+Apple container: 4 CPUs, 8 GiB, SDK 10.0.400 and Bazel 8.4.2. Build files
+and outputs live on native Linux storage; only logs and reports use a host
+mount. The workload is the complete CMS application's
 202-project closure, including its netstandard2.0 source generator, 103 modules
 and themes, and 287 distinct package archives.
 

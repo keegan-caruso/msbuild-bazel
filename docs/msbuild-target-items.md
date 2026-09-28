@@ -1,8 +1,8 @@
 # Explicit MSBuild target results and Orchard module assets
 
-Producers can export named MSBuild target results. Bazel owns the result artifact;
-consumers map selected results to explicit MSBuild items at an explicit target
-hook. No rule contains Orchard-specific names or behavior.
+An assembly rule can export named MSBuild target results as Bazel artifacts.
+Consumers map those results to MSBuild items at a declared target hook. The
+rules contain no Orchard-specific names or behavior.
 
 ```starlark
 msbuild_library(

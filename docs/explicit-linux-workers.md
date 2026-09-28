@@ -1,7 +1,7 @@
 # Persistent workers for explicit MSBuild rules
 
-`linux_worker = True` opts `msbuild_library`, `msbuild_binary`, and `msbuild_test`
-into the sequential Bazel JSON worker. Run with
+Set `linux_worker = True` on `msbuild_library`, `msbuild_binary` or
+`msbuild_test` to use the sequential Bazel JSON worker. Run with
 `--strategy=MSBuildAssembly=worker --worker_max_instances=MSBuildAssembly=4`.
 SDKs acquired with `dotnet.sdk` are supported; the worker mounts the declared SDK
 at a stable internal path. See [SDK worker qualification](development.md#sdk-remote-cache-and-worker-controls).

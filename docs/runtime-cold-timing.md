@@ -2,11 +2,11 @@
 
 ## Earlier managed baseline and compiler reuse
 
-**Measurement caveat:** a later host audit found 16 GiB physical RAM. The earlier
-16 GiB build VM and other running VMs could overcommit it. The historical samples
-below remain recorded observations, not a healthy build-server performance
-guarantee. The follow-up compiler experiments explicitly separate overcommitted
-diagnostics from measurements with one memory-budgeted build VM.
+**Measurement caveat:** a later audit found that the host had 16 GiB RAM.
+Earlier tests gave the build VM 16 GiB while other VMs ran, so the host may
+have been overcommitted. Treat those timings as observations, not build-server
+targets. Later compiler tests
+separate those diagnostic runs from a single VM with a memory budget.
 
 The post-cleanup main revision `0c1522814ce5a8a074ddcb5198a0ce4fc9a1ffa3`
 was measured again against the same pinned runtime source and 38 managed roots.

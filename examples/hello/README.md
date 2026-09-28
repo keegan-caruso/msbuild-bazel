@@ -3,9 +3,9 @@
 For the primary SDK-and-sync workflow, use the [quickstart](../quickstart/README.md).
 This lower-level example keeps manually authored rules for comparison.
 
-This is a small source-consumption example with no NuGet package dependencies.
-`Library` exports a message; `App` prints and checks it. The same program is an
-executable Bazel test: a nonzero process exit fails the test.
+This example needs no NuGet packages. `Library` provides a message; `App`
+prints and checks it. Bazel also runs the app as a test, which fails if the
+process exits with a nonzero status.
 
 From the rules repository root, with Bazelisk available (or after
 [developer setup](../../docs/development.md)):

@@ -1,10 +1,9 @@
 # Explicit Bazel rule API
 
-The rule implementation is in
-`msbuild/defs.bzl`, with a .NET host in `tools/ExplicitBuild`. This is the active build
-interface; the older preparation/discovery shell entry points are retired. Full Orchard
-CMS qualification and raw MSBuild measurements are documented in
-[the Orchard benchmark](orchard-explicit-performance.md).
+`msbuild/defs.bzl` defines the active rules, and `tools/ExplicitBuild` runs
+MSBuild for each project. The older graph preparation and discovery commands
+are retired. See the [Orchard benchmark](orchard-explicit-performance.md) for
+the full CMS qualification and raw MSBuild timings.
 
 ## Implemented boundary
 
@@ -103,10 +102,9 @@ CMS qualification and raw MSBuild measurements are documented in
 - `use_apphost = False` builds a managed executable without requesting a native
   apphost. The default remains `True`; the Bazel launcher can run either form.
 
-A closed, single-project `Restore` still generates SDK/NuGet assets inside each
-assembly action. It uses only declared packages and an empty feed list, with
-network access denied. Removing this remaining per-project work is a future
-optimization, not a result claimed here.
+Each assembly action still runs a single-project `Restore` to generate SDK and
+NuGet assets. It uses only declared packages, an empty feed list and no network
+access. Removing this repeated work remains future work.
 
 ## Project facade
 

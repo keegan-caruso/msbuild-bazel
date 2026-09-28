@@ -1,9 +1,9 @@
 # Native AOT toolchain closure experiment
 
-The declared Native AOT toolchain initially came from a broad Ubuntu 22.04
-ARM64 snapshot: 962 MB extracted and 288 MB compressed. This experiment
-removes unused snapshot content while retaining the MSBuild and Native AOT
-publish path. It is a qualification artifact, not a distributable toolchain.
+The first declared Native AOT toolchain was a broad Ubuntu 22.04 ARM64
+snapshot: 962 MB extracted and 288 MB compressed. This experiment removes
+unused files while keeping the MSBuild publish path. The result is a test
+artifact, not a toolchain ready for distribution.
 The [machine-readable report](native-aot-closure-evidence.json) records the
 specific hashes and outcomes.
 

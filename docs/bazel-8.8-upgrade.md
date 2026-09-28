@@ -1,7 +1,7 @@
 # Bazel 8.x baseline: 8.8.0
 
-This records the earlier Nix-based upgrade. Current version selection uses
-Bazelisk; see [development setup](development.md#bazel-versions).
+This is a historical record of the Nix-based move to Bazel 8.8.0. Current
+builds select Bazel with Bazelisk; see [development setup](development.md#bazel-versions).
 
 The supported 8.x baseline moves from 8.4.2 to exact release **8.8.0**.
 Bazel 9.2.0 remains the default in `.bazelversion`, Linux bootstrap and Nix.

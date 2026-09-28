@@ -1,8 +1,9 @@
 # Pipelines runtime qualification
 
-Runtime v10.0.0 (`60629d14374c56f1cb51819049ad1fa529307f8d`), SDK 10.0.400,
-Bazel 9.2.0, Linux ARM64. This extends the source-built host with the unchanged
-upstream `System.IO.Pipelines.Tests.csproj` at `net10.0`.
+On Linux ARM64, this adds the unchanged upstream
+`System.IO.Pipelines.Tests.csproj` (`net10.0`) to the source-built host. The
+run uses runtime v10.0.0 (`60629d14374c56f1cb51819049ad1fa529307f8d`),
+SDK 10.0.400 and Bazel 9.2.0.
 
 ## Result
 

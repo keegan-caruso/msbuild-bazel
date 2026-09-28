@@ -1,7 +1,8 @@
 # Stable project paths: first synthetic qualification
 
-An internal prototype fixes the path-driven reference churn in small SDK projects.
-It is **off by default** and is not yet qualified for Orchard, package tasks,
+An internal prototype keeps reference assemblies stable when only input paths
+change in small SDK projects. It is **off by default** and is not yet qualified
+for Orchard, package tasks,
 analyzers, remote caching or remote execution. The broader
 [design](stable-project-paths-design.md) remains the intended direction.
 

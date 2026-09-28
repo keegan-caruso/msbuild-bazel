@@ -1,6 +1,7 @@
 # Orchard input scoping and NuGet action qualification
 
-Completed in the requested order: **2 → 1 → 3 → 4 → 5**.
+This report covers input scoping, static assets, package extraction and
+the resulting Orchard build behavior.
 
 ## Changes
 

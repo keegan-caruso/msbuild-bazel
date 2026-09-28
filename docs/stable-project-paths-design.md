@@ -1,13 +1,12 @@
 # Stable project paths and reference boundaries
 
 **Proposed beyond the [bounded synthetic prototype](stable-project-paths.md).**
-The [Orchard API-edit measurements](orchard-reference-boundaries.md) show two
-separate causes of excess compilation: content-dependent paths embedded in a
-middle project's reference assembly, and transitive compiler inputs that remain
-necessary under current MSBuild semantics. Fix the path instability first;
-migrate selected dependencies to explicit direct references separately. Stable
-paths alone cannot remove a compile while the changed leaf is still a declared
-compiler input.
+The [Orchard API-edit measurements](orchard-reference-boundaries.md) found two
+causes of extra compilation. A middle project embeds changing file paths in its
+reference assembly. Consumers also receive transitive compiler inputs required
+by current MSBuild semantics. First stabilize those paths; then review direct
+references project by project. Stable paths alone cannot skip a compile while
+the changed leaf remains a declared compiler input.
 
 ## Identity and state
 
