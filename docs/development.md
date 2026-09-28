@@ -141,8 +141,7 @@ version and identify the launcher hash separately from a Bazel binary hash.
 
 Host-path SDK repositories and the optional Nix environment have been removed.
 Use the SDK extension above for acquisition, or supply Bazel-produced SDK
-artifacts through [the shared SDK contract](sdk-toolchains.md). Historical Nix results below describe
-the earlier migration, not a currently supported setup.
+artifacts through [the shared SDK contract](sdk-toolchains.md).
 
 ## BUILD-file tooling
 
@@ -207,21 +206,6 @@ See [worker qualification](explicit-linux-workers.md) for additional controls.
 GitHub CI is manual-only. The Linux workflow offers quick/full checks. macOS
 validation is local. See [CI scope](ci-scope.md).
 
-### Bazelisk migration qualification (historical)
-
-The migration passed fresh/repeated setup and the shared 8.8.0/9.2.0 matrix on
-native macOS ARM64 and Ubuntu ARM64. Linux ARM64 also passed persistent-worker
-acceptance and analyzer invalidation controls on both versions. The optional
-macOS Nix shell passed the 9.2.0 matrix. The rebuilt ARM64 toolchain image started
-both Bazel JVMs with networking disabled; Buildozer passed an actual edit check.
-
-Ubuntu x86-64 under Apple emulation passed bootstrap, tool/style/unit checks and
-SDK repository checks; the optional Nix shell passed checks with both Bazel
-versions and a 9.2.0 query using the upstream embedded JVM. Full application
-acceptance remains unqualified there: the compilation sandbox could not open
-`/lib64/ld-linux-x86-64.so.2` under Rosetta. Native x86-64 application sandbox
-qualification remains separate work. No GitHub CI was dispatched.
-
 ## Rule tests
 
 Run `bash scripts/check-analysis.sh` for SDK-free rule checks on the selected
@@ -243,25 +227,5 @@ and tool integration scripts into analysis tests.
 Qualification: all 25 analysis tests and execution-requirement checks passed on
 macOS ARM64 and Linux ARM64 with Bazel 8.8.0 and 9.2.0. The full macOS version
 matrix also passed owned-code checks, SDK repository tests and real-build
-acceptance, including edit invalidation and cache recovery. No production rule
-implementation changed in this migration.
-
-### Native setup after Nix removal (historical)
-
-On macOS ARM64 with SDK 10.0.400, the following checks passed using the standard
-bootstrap, without a Nix shell:
-
-- `bash scripts/setup.sh` and `bash scripts/check.sh`.
-- `bash scripts/check-dotnet.sh`, including owned-code style and runner/sync tests.
-- `bash scripts/check-analysis.sh`: all 43 tests and execution-requirement checks
-  on Bazel 9.2.0.
-- `python3 -m unittest discover -s tests/ci -v`: five dispatch tests.
-- `python3 -m unittest discover -s tests/sdk_repository -v`: 17 repository tests
-  on Bazel 9.2.0; the two local SDK repository tests also passed on 8.8.0.
-
-- `python3 tests/explicit_msbuild/acceptance.py <fresh-directory>`: build/test,
-  body-edit, undeclared-input rejection and cache recovery passed on both Bazel
-  8.8.0 and 9.2.0 (`USE_BAZEL_VERSION` selects the baseline).
-
-Python commands use the environment from `source scripts/env.sh` in Bash.
-No GitHub CI was dispatched, and this check does not extend Linux qualification.
+acceptance, including edit invalidation and cache recovery. This qualification
+did not change production rule behavior.

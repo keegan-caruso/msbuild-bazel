@@ -14,6 +14,7 @@ matrices remain available in Git history:
 - [Old implementation chronology](https://github.com/keegan-caruso/msbuild-bazel/blob/46d7f37b5cf36e62453a2a511697562107ce6ee2/docs/implementation-history.md).
 - [Old roadmap and work-package definitions](https://github.com/keegan-caruso/msbuild-bazel/blob/46d7f37b5cf36e62453a2a511697562107ce6ee2/docs/historical-roadmap.md).
 - [Retired code and validation details](https://github.com/keegan-caruso/msbuild-bazel/blob/46d7f37b5cf36e62453a2a511697562107ce6ee2/docs/legacy-implementation-removal.md).
+- [2026-09-23 issue disposition snapshot](https://github.com/keegan-caruso/msbuild-bazel/blob/4ab387c59ddf5fda46d15646cf0f738d9a0026a0/docs/issue-review-2026-09-23.md).
 
 For old commands, check out their recorded implementation revision. Revision
 `067cd59` retains the removed implementations; `da9648b` also retains their shell

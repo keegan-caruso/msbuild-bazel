@@ -473,29 +473,11 @@ unit tests), and scaffold/Starlark checks pass. GitHub CI was not dispatched.
 
 ## Fixture simplification
 
-`tests/support/vstest.bzl` supplies `vstest_tools`: one runner and a dictionary of
-named adapter package/path bindings. It is test support, not a new public rule
-API. The VSTest and upstream-suite preparation scripts share these declarations.
-
-- `python3 tests/project_sync/hello.py /tmp/fresh-hello` exercises the existing
-  hello library/app sources using generated declarations and an executable test.
-  `examples/hello/create.py --sync` selects this preparation mode; the original
-  handwritten example remains available as an independent comparison.
-- `python3 tests/explicit_msbuild/vstest.py /tmp/fresh-vstest --sync` migrates the
-  existing xUnit/NUnit/MSTest fixture through package/test mappings. It retains
-  passing, filtered, intentional-failure, empty-selection and retained-output
-  assertions. Omitting `--sync` retains its handwritten Linux-worker path.
-- `python3 tests/project_sync/mapped_protocols.py /tmp/fresh-mtp` reuses the MTP
-  fixture sources with package/test mappings and checks pass/failure/restoration.
-
-Source setup and package locking remain fixture preparation. The low-level
-handwritten rule/declaration rejection tests are not routed through sync.
-
-The [fixture evidence](project-sync-fixtures-evidence.json) records all 12 VSTest
-cases passing their expected contracts on Bazel 8.8.0 and 9.2.0, and the three
-MTP pass/failure/restoration cases on 9.2.0. These checks ran on macOS ARM64.
-The upstream Serilog/Spectre preparation now uses the shared macro; their full
-suites were not rerun for this declaration-only refactor.
+The hello, VSTest and MTP fixtures also use generated declarations. On macOS
+ARM64, all 12 VSTest cases passed on Bazel 8.8.0 and 9.2.0; three MTP
+pass/failure/restoration cases passed on 9.2.0. These are fixture migrations,
+not new public APIs or full Serilog/Spectre suite qualifications. See the
+[fixture results](project-sync-fixtures-evidence.json).
 
 ### Framework-specific contracts and generated directories
 

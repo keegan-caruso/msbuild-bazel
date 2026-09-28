@@ -1,286 +1,81 @@
 # Planned work
 
-The active priority is complete generated graphs, independent remote-cache recovery,
-then developer experience and broader qualification. Stages 1–8 are **complete**;
-step 9 is in progress, starting with explicit reference boundaries;
-[current support](implementation-plan.md) records what is already measured.
-The sequence started from commit `d4a64b4`; the reports below preserve that
-baseline and the evidence added by each step.
+The next performance priority is incremental **API edits** across larger and
+more varied graphs. Cold builds remain important, but warm body/API edits and
+independent remote-cache recovery are the main scorecard. See
+[current support](implementation-plan.md) for qualified behavior and
+[performance](performance.md) for measured baselines.
 
-## Starting point
+## Completed generated-graph sequence
 
-The [latest qualification](project-sync-expanded.md) covers Linux ARM64,
-SDK 10.0.400, Bazel 9.2.0, Release/net10.0:
+The original eight-stage plan began at `d4a64b4`. Its outcomes and limits are
+recorded in the stage reports; these are completed slices, not claims that every
+.NET repository is supported.
 
-| Graph | Generated assembly projects | Authored dependency producers | Test baseline |
-| --- | ---: | ---: | ---: |
-| Http.Abstractions | 2 of 44 | 42 | 714 passes, exact raw/Bazel names and outcomes |
-| System.Collections.Immutable | 2 of 36 | 34 | 22,544 passes, documented display-name normalization |
+| Stage | Result |
+| --- | --- |
+| 1–2. Generate complete HTTP and Immutable graphs | [44 HTTP projects](project-sync-http-full.md) and [36 Immutable projects](project-sync-immutable-full.md) |
+| 3. Recover from HTTP cache | [Independent consumer and edit controls](project-sync-remote-cache.md) |
+| 4. Simplify configuration | [Shared defaults and diagnostics](project-sync-defaults.md) |
+| 5. Qualify larger graphs | [Generated Orchard and Avalonia slices](project-sync-broader-graphs.md) |
+| 6. Validate project changes | [Mutation, repair and invalidation controls](project-sync-mutations.md) |
+| 7. Measure workflow costs | [Paired raw/Bazel results](project-sync-workflow-costs.md) |
+| 8. Prepare adoption | [Quickstart and independent consumers](adoption.md) |
 
-Both have local test-cache reuse, body-edit invalidation, stable public references
-and custom-document drift rejection. Immutable verifies its source-built assembly
-inside the installed runtime host. These results do not establish full-graph
-synchronization, independent remote recovery, remote execution or whole-repository
-support. The combined qualification driver has not yet completed as a single fresh
-run; the recorded stages used targeted retries.
-
-## Ordered delivery plan
-
-Work through these stages in order. Split a stage into reviewable changes when
-needed, proving new behavior with a small synthetic before applying it upstream.
-Keep the existing tests and explicit input boundaries intact throughout.
-
-### 1. Generate the complete Http.Abstractions graph
-
-**Complete:** [full graph and clean-driver evidence](project-sync-http-full.md).
-
-**Depends on:** the starting baseline.
-
-- Reproduce the current combined setup from fresh disposable checkouts; remove any
-  remaining manual preparation steps from its driver.
-- Inventory the 42 authored dependency producers by role and configured framework.
-  Migrate ordinary libraries first, then test infrastructure and analyzer/tool
-  projects. Identify nodes by project path plus global properties, not path alone.
-- Generate project rules, sources and dependency edges through `msbuild_sync`.
-  Preserve framework selection, private packages, bootstrap outputs, PublicAPI
-  files, checked-in generated sources and the SDK-backed test host.
-- Keep package acquisition, bootstrap/task contracts and deliberate provider
-  composition authored. “Full graph” does not mean guessing custom task behavior.
-
-**Done when:** all 44 current configured assembly producers come from production
-sync, with no fixture script emitting their per-project compilation declarations
-and no edits to generated `.bzl` output. A second sync produces no diff, `--check`
-passes, all 714 raw/Bazel test outcomes match, and body-edit, API-edit, missing-input
-and contract-drift controls pass. Record any intentional graph-count change.
-
-### 2. Generate the complete Immutable graph
-
-**Complete:** [full graph and clean-driver evidence](project-sync-immutable-full.md).
-
-**Depends on:** stage 1's traversal and configured-node support.
-
-- Migrate its 34 authored dependencies in small groups: reference projects,
-  implementations, test utilities, analyzers and managed build tools.
-- Preserve framework-specific tool edges, private dependencies, generated resources,
-  reference/implementation pairs and explicit assembly selections. Retain the
-  declared NativeAOT directive input without claiming NativeAOT execution.
-- Reuse generic rule/mapping behavior; keep runtime-specific bindings in the
-  qualification fixture. Keep the installed-host boundary unchanged for this stage.
-
-**Done when:** all 36 current configured assembly producers are generated,
-regeneration is stable, and all 22,544 normalized raw/Bazel outcomes match. The
-loaded-assembly probe must identify the generated implementation before and after
-a body edit. Reference stability, API invalidation, missing tool/input rejection
-and ambiguous-assembly rejection must pass. Do not broaden normalization to hide
-new differences.
-
-### 3. Prove independent HTTP-cache recovery
-
-**Complete:** [independent recovery and edit evidence](project-sync-remote-cache.md).
-
-**Depends on:** stages 1–2.
-
-- Seed a cache from a Linux producer for each complete generated graph. Record
-  action counts, output hashes, test outcomes and the exact tool/configuration pins.
-- Stop the producer. Use a second container with a different workspace path, empty
-  Bazel output base, no local action/disk cache and no mounted producer outputs.
-  Acquire declared repositories/packages separately and record that setup cost.
-- Regenerate or consume the checked-in generated graph as the documented workflow
-  requires; verify relocation does not change cache identities unnecessarily.
-- Recover the build and test outputs, then force test execution using the recovered
-  assemblies. Exercise one body edit, one API edit and one declared input change.
-
-**Done when:** every expected cache-eligible build action is accounted for as a
-remote hit or a documented, resolved exception; recovered output hashes match the
-producer; both cached test recovery and fresh test execution pass. Edits invalidate
-the affected actions without rebuilding unrelated branches. No undeclared SDK,
-NuGet cache or producer filesystem supplies missing inputs. State any remaining
-path sensitivity explicitly; remote caching does not qualify remote execution.
-
-### 4. Simplify configuration and diagnostics
-
-**Complete:** [defaults, diagnostics and equivalence evidence](project-sync-defaults.md).
-
-**Depends on:** the concrete repetition and failures found in stages 1–3.
-
-- Consolidate repeated mappings into reusable defaults where semantics are identical.
-  Define override precedence and reject ambiguous or stale entries.
-- Preserve the simple SDK/global.json entry point. Keep package identities, custom
-  task inputs, runtime hosts and unusual assembly choices explicit.
-- Report the project/configuration, offending item/import and required mapping when
-  sync cannot proceed. Provide a small example of each supported customization.
-
-**Done when:** representative ordinary apps and these complex graphs need less
-repeated configuration, with before/after examples. Their generated action inputs
-and behavior remain equivalent; unknown tasks, unsafe paths and conflicting
-conditions still fail. Do not auto-approve custom-document hashes or discover
-ambient tools to make configuration shorter.
-
-### 5. Qualify broader real-world graphs
-
-**Complete:** [generated Orchard/Avalonia graphs and independent recovery](project-sync-broader-graphs.md).
-
-**Depends on:** stages 3–4.
-
-1. Apply the generator to Orchard's already-qualified 202-project authored graph.
-2. Apply it to the existing pinned Avalonia slices with XAML/IDL generation,
-   analyzers, native inputs and tests; expand only after each slice passes.
-
-Compare generated and authored configured nodes/edges before execution. Reuse the
-existing raw-MSBuild baselines and edit/cache controls, retaining documented
-upstream test-stability limits.
-
-**Done when:** Orchard's covered graph and the named Avalonia slices are generated
-without repository-specific production rules, retain their existing correctness
-controls, and recover independently from cache. Report exactly which projects and
-platforms were exercised; this is not a promise to build all of Avalonia.
-
-### 6. Validate everyday project changes
-
-**Complete:** [mutation, invalidation and repair evidence](project-sync-mutations.md).
-
-**Depends on:** stages 4–5; small mutation fixtures may be developed earlier.
-
-Exercise adding/removing projects, references and source files; changing frameworks,
-conditions and shared props; upgrading packages; changing analyzer/task inputs;
-and editing test data or runtime-host inputs. Include failure and repair paths.
-
-**Done when:** one documented synchronization workflow updates the graph
-predictably, `--check` detects stale declarations, failed sync preserves the last
-valid output, and repeated sync is stable. Builds/tests use the correct updated
-inputs, dependent tests rerun when required, and unrelated branches stay cached.
-Reverting a change must recover the earlier graph and reusable outputs. Keep small
-synthetics for each contract and representative mutations on the larger graphs.
-
-### 7. Measure and reduce end-to-end workflow costs
-
-**Complete:** [paired costs, optimization and independent recovery](project-sync-workflow-costs.md).
-
-**Depends on:** stable workflows from stages 3–6.
-
-Measure acquisition, initial sync, unchanged sync, cold build, warm no-op, leaf body
-edit, public API edit and independent remote recovery separately. Compare matching
-build/test scopes with raw MSBuild on the same machine and configuration. Record
-resource limits, repetitions and variation, action counts, transfer volume and
-where wall time is spent.
-
-**Done when:** the [performance report](performance.md) contains reproducible
-comparisons and a ranked list of measured costs. Agree quantitative targets from
-those baselines, then optimize the largest costs one change at a time. Prioritize
-large graphs and remote-cache workflows; modest cold overhead is acceptable,
-but a large unexplained regression is not. Recheck correctness after each change
-and retain only meaningful measured improvements.
-
-### 8. Prepare a coherent external adoption path
-
-**Complete:** [quickstart, independent consumers and distribution proposal](adoption.md).
-
-**Depends on:** stages 4–7.
-
-- Make the primary quickstart use the supported SDK/global.json and sync workflow,
-  with committed generated files and explicit examples for the unusual cases.
-- Test it from a clean checkout without maintainer qualification scripts or ambient
-  tools. Explain local development, build-server cache setup and support limits.
-- Define API/version compatibility, upgrade guidance and the proposed source,
-  runner-package and Bazel Central Registry distribution path.
-
-**Done when:** an external developer can build/test the example and configure a
-second cache consumer by following the docs alone. Links and examples agree with
-current behavior, and the distribution/versioning proposal is reviewable.
-This stage prepares adoption; it does not publish a release or change repository
-visibility.
+The original acceptance checklist is preserved in the
+[pre-condensation roadmap](https://github.com/keegan-caruso/msbuild-bazel/blob/4ab387c59ddf5fda46d15646cf0f738d9a0026a0/docs/roadmap.md).
 
 ### 9. Improve incremental API edits across a broader scenario matrix
 
-**In progress:** [reference-boundary matrix and sync fix](reference-invalidation.md)
-are complete. The [Orchard follow-up](orchard-reference-boundaries.md) confirms
-transitive-reference requirements and measures content-dependent asset-path churn;
-fixing those boundaries and broader upstream API-edit profiling remain. Body and API edit latency is
-our primary performance goal; cold builds are secondary. Start from the paired
-[Orchard results](project-sync-workflow-costs.md), where body edits beat raw MSBuild
-but the single broad API edit takes 4.82× its time. Do not generalize that one case.
+**In progress.** The [reference-boundary matrix](reference-invalidation.md)
+proved the B→C boundary in small graphs. The
+[Orchard follow-up](orchard-reference-boundaries.md) found that a broad API
+addition still compiled 193 projects, with content-dependent asset paths
+changing 87 reference assemblies. The original paired Orchard sample took
+132.755 s in Bazel versus 27.537 s in raw MSBuild (4.82×); a later paired
+follow-up measured 154.178 s versus 29.798 s. These are specific cases, not a
+general API-edit ratio. Body edits remain much faster in those samples.
 
-- Sample leaf, intermediate and widely shared projects in small synthetic graphs
-  and the qualified Orchard, Avalonia, ASP.NET Core and runtime slices. Include
-  narrow/deep and broad dependency graphs, not just one high-fan-out library.
-- Measure body-only changes, public member additions/removals, signature changes,
-  internal/friend-assembly changes, and edits whose downstream public reference
-  remains stable. Include compatible and deliberately failing callers, then repair
-  and revert. Match the actual build/test scope with raw MSBuild.
-- Separate warm-local edits, fresh consumers of the previously seeded cache, and
-  cache reversion. Count compilations, reference changes, dependent tests and
-  unrelated cache hits. Record worker/compiler reuse, memory pressure, evaluation,
-  verification/staging and transfer costs alongside wall time.
-- Use at least three repetitions per retained scenario, alternate build-system
-  order, keep resource limits/pins fixed, report median/range and raw ratios, and
-  exclude bootstrap from warm edit samples. Re-run noisy cases before drawing a
-  conclusion. Do not collapse diverse edits into one speedup number.
-- Profile the largest repeatable gaps. Remove unnecessary invalidation/repeated
-  work before micro-optimizing it; prove each candidate with a small synthetic,
-  then re-run the matrix and independent cache/test controls.
+Next, sample leaf, intermediate and widely shared projects in synthetic and
+qualified Orchard, Avalonia, ASP.NET Core and runtime slices. Include narrow
+chains and broad fan-out, public additions/removals, signature changes,
+internal/friend changes and an API edit that stops propagating when the middle
+project's reference stays stable. Check deliberately failing callers, repair,
+revert and dependent test behavior. Compare the same build/test scope with raw
+MSBuild under fixed pins and resource limits.
 
-**Done when:** the expanded matrix identifies why incremental API edits are slow,
-retained fixes materially improve the affected scenarios without regressing body
-edits or correctness, and remaining gaps are explicit. The initial proposed API
-latency gate is below 2× raw on the expensive qualified cases, with the existing
-body-edit advantage preserved; report actual results rather than treating this
-proposed gate as achieved. This step is not part of the current eight-step merge.
+For each retained scenario, alternate build order and take at least three
+samples. Report median/range, compile counts, reference changes, cache hits,
+worker reuse, evaluation/staging/transfer time and memory pressure. Separate
+warm-local edits, fresh remote-cache consumers and cache reversion. Profile
+repeatable gaps and remove unnecessary invalidation before optimizing necessary
+work. Prove a fix in a small synthetic, then rerun the large-graph matrix and
+cache/test controls. Do not collapse different edits into one speedup number.
 
-## Evidence and delivery rules
+The proposed gate is **under 2× raw** for expensive qualified API edits while
+preserving the body-edit advantage. It has **not** been achieved across the
+matrix. Completion requires an explained scenario set, meaningful improvement,
+correctness controls and explicit remaining gaps.
 
-- Keep one worktree per change, commit logical steps, and review before integration.
-  Record measured results beside their commands and pinned inputs; update this
-  roadmap's status only when the stage's completion criteria are satisfied.
-- Keep production rules generic and custom inputs explicit. MSBuild retains SDK
-  compilation; sync evaluates locally and does not run arbitrary build targets.
-- Use Linux ARM64 as the current execution baseline. Validate affected generic
-  behavior against both supported Bazel versions before claiming compatibility;
-  retain the exact version scope of each upstream qualification.
-- Keep raw-test parity, body/API edits, stable public contracts and missing-input
-  rejection as continuing controls. Record artifact recovery separately from test
-  cache hits, and installed-runtime evidence separately from source-built hosts.
-- CI remains manual-only. Reuse disposable containers, preserve compact evidence,
-  and retire task-owned build state when no longer needed.
+## Other qualification tracks
 
-## Other work, outside this sequence
+- Cold builds: resume from the [memory-budgeted profile](runtime-cold-timing.md).
+  Do not compare older runs across different VM resources or cache states.
+- Stable project paths and direct references: the
+  [synthetic prototype](stable-project-paths.md) is off by default; its broader
+  [design](stable-project-paths-design.md) still needs package/task/analyzer,
+  remote-cache and real-graph qualification.
+- Runtime and SDK source builds: see [runtime workflow](runtime-workflow.md)
+  and [SDK source graph](source-sdk.md). Reproducibility, full cold comparison,
+  remote execution and unqualified runtime products remain open.
+- Platform/workload breadth: Linux x64, macOS x64, Windows, coverage, Pack,
+  Publish, wider Native AOT, NBGV, WASM and IDE workflows need separate
+  qualification. The [platform limits](platform-validation-scope.md) and
+  [live issues](https://github.com/keegan-caruso/msbuild-bazel/issues) provide
+  their current scope; this list is not a tracker-status snapshot.
 
-- Cold-build optimization remains tracked by [#13](https://github.com/keegan-caruso/msbuild-bazel/issues/13).
-  Resume from [the recorded measurements](runtime-cold-timing.md) during stage 7;
-  do not treat an older single-VM result as the new generated workflow's baseline.
-- The first authored JIT test remains a separate slice under
-  [#74](https://github.com/keegan-caruso/msbuild-bazel/issues/74), with its
-  [bootstrap boundary](runtime-jit-bootstrap.md).
-- Wider remote execution and a second executor platform remain separate from
-  HTTP-cache recovery: [#43](https://github.com/keegan-caruso/msbuild-bazel/issues/43),
-  [#44](https://github.com/keegan-caruso/msbuild-bazel/issues/44),
-  [current qualification](remote-execution.md).
-- Source-dependent test relocation remains tracked by
-  [#9](https://github.com/keegan-caruso/msbuild-bazel/issues/9); reuse stage 3's
-  path controls when addressing the [remaining test boundaries](bazel-test.md).
-- Diagnose the macOS out-of-process MSBuild task-host failure as a separate
-  compatibility track. Preserve sandboxing; it does not block Linux qualification.
-- Public source and release distribution are separate. Keep the
-  [publication report](publication-readiness.md) as historical preparation evidence;
-  stage 8 owns the new distribution proposal.
-
-Issue links above and below are existing references, not a fresh tracker-status audit.
-
-## Separate qualification tracks
-
-- Native Linux x64 [#56](https://github.com/keegan-caruso/msbuild-bazel/issues/56),
-  macOS x64 [#54](https://github.com/keegan-caruso/msbuild-bazel/issues/54), and Windows
-  [ARM64 #61](https://github.com/keegan-caruso/msbuild-bazel/issues/61) /
-  [x64 #62](https://github.com/keegan-caruso/msbuild-bazel/issues/62).
-  Windows also needs a runner sandbox implementation.
-- Instrumented coverage [#23](https://github.com/keegan-caruso/msbuild-bazel/issues/23),
-  Pack [#25](https://github.com/keegan-caruso/msbuild-bazel/issues/25),
-  Publish [#29](https://github.com/keegan-caruso/msbuild-bazel/issues/29), and
-  NativeAOT [#32](https://github.com/keegan-caruso/msbuild-bazel/issues/32).
-- NBGV production context [#27](https://github.com/keegan-caruso/msbuild-bazel/issues/27),
-  wider restore metadata [#28](https://github.com/keegan-caruso/msbuild-bazel/issues/28),
-  Blazor/WASM [#37](https://github.com/keegan-caruso/msbuild-bazel/issues/37), desktop and
-  languages [#38](https://github.com/keegan-caruso/msbuild-bazel/issues/38), Aspire
-  [#40](https://github.com/keegan-caruso/msbuild-bazel/issues/40), and IDE workflows
-  [#45](https://github.com/keegan-caruso/msbuild-bazel/issues/45).
-
-The retired milestone system is preserved in [history](history.md).
+Keep production rules generic, MSBuild SDK compilation intact and custom inputs
+explicit. Validate both supported Bazel versions before claiming compatibility.
+Distinguish artifact recovery from test execution, installed-runtime results
+from source-built-host results, and HTTP caching from remote execution. CI is
+manual-only.
