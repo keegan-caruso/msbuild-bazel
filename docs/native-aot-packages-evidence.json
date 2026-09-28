@@ -1,0 +1,33 @@
+{
+  "date": "2026-09-27",
+  "platform": "Ubuntu 22.04 ARM64 in Apple Container",
+  "sdk": "10.0.400",
+  "bazel": "9.2.0",
+  "packageCount": 34,
+  "packageLockSha256": "83f726ccc59f4e67ab6c1ebf74b2da143757ec3f042e397b189a9c1287a4ae16",
+  "retainedManifestEntries": 3094,
+  "retainedManifestSha256": "ebbc1896005bf05945cf51f7f8b3c0eda02e97dffe3fd11fadad2c70902fbaa0",
+  "verifiedPackageArchiveSize": "75 MB",
+  "declaredTreeSize": "276 MB on disk",
+  "declaredTreeSelectedDigest": "f1274803569f1469f521e3c1a3e00b8a82b258cb8bb922a0a46dcc50cb34aef4",
+  "testOnlyArchive": {
+    "bytes": 80366854,
+    "sha256": "06edfd72123de801d03de5cce407c401870e5289e14d1ad921cb7fabef9796c9",
+    "fullFixturePassed": true
+  },
+  "bazelPackageRule": {
+    "fixture": "/work/aot-package-rule-qual3",
+    "initialSha256": "2024acd2d33735eb83a9f6e11b0cec10d28966d614572098478712327ff34c79",
+    "bodyEditSha256": "f0cdfbad3bf96be3a13fd3cfb64b944117e33b1cc942a4ba35e94817d4eb3e7f",
+    "missingILCompilerRejected": true,
+    "wrongDebSha256Rejected": true,
+    "initialBuildActions": "18 total: 9 internal, 8 linux-sandbox, 1 local",
+    "copyrightNoticesVerified": true
+  },
+  "limits": [
+    "The local package assembly action uses the Ubuntu image's dpkg-deb rather than a Bazel-declared executable.",
+    "Source URLs may change; SHA-256 pins bytes but not availability.",
+    "Only Ubuntu 22.04 ARM64 and one Native AOT project were qualified.",
+    "Remote execution was not tested."
+  ]
+}

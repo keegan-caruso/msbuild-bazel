@@ -77,8 +77,9 @@ apps have the same runtime dependency closure.
 
 ## Next boundary
 
-Replace the installed-package snapshot with pinned distro package payloads
-and a reviewed manifest of retained files and their license notices. Then
-declare the platform/architecture and version as a Bazel toolchain and test
+The [locked-package experiment](native-aot-packages.md) now replaces the
+installed-package snapshot with pinned distro payloads and an explicit
+retained-file manifest. Next, declare the platform and architecture as a Bazel
+toolchain and test
 execution in an independent worker. This qualification does not establish
 remote execution or portability beyond the measured Linux ARM64 image pair.

@@ -181,10 +181,15 @@ binary also ran in Microsoft's .NET 10 Ubuntu Chiseled `runtime-deps` image.
 This is still a bounded snapshot selection, not reproducible package
 acquisition or a complete minimal closure.
 
+The [locked-package experiment](native-aot-packages.md) advances the input
+boundary: 34 pinned Ubuntu `.deb` files and an explicit retained-file manifest
+produce the native toolchain as a Bazel tree artifact. Its initial and body
+edit binaries matched the declared-tree qualification. Package assembly remains
+local to a qualified Ubuntu build image because `dpkg-deb` is not yet declared.
+
 ## Next boundary
 
-Acquire the bounded compiler/sysroot closure reproducibly from versioned
-packages, select it through a Bazel toolchain, and qualify remote
+Select the package-built closure through a Bazel toolchain and qualify remote
 execution separately. Source-built SDK support also
 needs matching ILCompiler, NativeAOT runtime, runtime-pack and ILLink outputs
 declared from source. macOS, x64, cross-compilation, dynamic library exports

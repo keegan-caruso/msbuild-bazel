@@ -14,6 +14,7 @@ separates qualified behavior from the [ordered delivery plan](roadmap.md).
 - [Executable, MTP and VSTest tests](bazel-test.md)
 - [Linux ARM64 Native AOT publish](native-aot.md)
 - [Native AOT archive closure experiment](native-aot-closure.md)
+- [Native AOT from locked Ubuntu packages](native-aot-packages.md)
 - [Linux persistent workers](explicit-linux-workers.md) and [remote execution](remote-execution.md)
 - [Build task tools](explicit-tool-bindings.md), [generation](explicit-generation.md),
   [project analyzers](project-built-analyzers.md) and [target-result items](msbuild-target-items.md)

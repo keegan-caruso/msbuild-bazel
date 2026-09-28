@@ -50,7 +50,7 @@ def package_archive(workspace, package_id, digest, cache):
     return archive
 
 
-def build_file(omit_compiler=False, declared_toolchain=False, omit_native_compiler=False, toolchain_sha256=None):
+def build_file(omit_compiler=False, declared_toolchain=False, omit_native_compiler=False, toolchain_sha256=None, native_packages=None, bad_native_package=False):
     names = []
     lines = ['load("@rules_msbuild//msbuild:defs.bzl", "msbuild_generate", "msbuild_nuget_package", "msbuild_package_lock")']
     for index, (package_id, (digest, content_hash)) in enumerate(PACKAGES.items()):
@@ -62,7 +62,11 @@ def build_file(omit_compiler=False, declared_toolchain=False, omit_native_compil
     native = 'native_toolchain=":native_toolchain"' if declared_toolchain else 'local_native_tools=True'
     lines.append('msbuild_generate(name="aot", executable=True, project="Hello.csproj", srcs=["Program.cs"], target_framework="net10.0", targets=["ExportAot"], outputs=["Hello"], output_properties={"NativeBinaryOutput":"Hello"}, package_lock=":lock", build_deps=' + json.dumps(names) + ', ' + native + ')')
     if declared_toolchain:
-        if toolchain_sha256:
+        if native_packages is not None:
+            lines[0] = lines[0].replace('"msbuild_generate",', '"msbuild_generate", "msbuild_native_toolchain_packages",')
+            package_hashes = {"packages/" + package["name"] + ".deb": ("0" * 64 if bad_native_package and index == 0 else package["sha256"]) for index, package in enumerate(native_packages)}
+            lines.append('msbuild_native_toolchain_packages(name="native_toolchain", manifest="native-aot-files.manifest", packages=' + json.dumps(package_hashes) + ')')
+        elif toolchain_sha256:
             lines[0] = lines[0].replace('"msbuild_generate",', '"msbuild_generate", "msbuild_native_toolchain_archive",')
             lines.append('msbuild_native_toolchain_archive(name="native_toolchain", archive="native-toolchain.tar.gz", archive_sha256="' + toolchain_sha256 + '")')
         else:
@@ -78,9 +82,12 @@ def main():
     parser.add_argument("--declared-toolchain", action="store_true", help="Snapshot the host native toolchain as a declared tree input")
     parser.add_argument("--toolchain-archive", type=Path, help="Use a locked tar.gz archive rather than snapshotting native tools from the host")
     parser.add_argument("--toolchain-sha256", help="Expected SHA-256 of --toolchain-archive")
+    parser.add_argument("--native-package-directory", type=Path, help="Use pinned Ubuntu .deb payloads as a Bazel-built native toolchain")
     args = parser.parse_args()
     if bool(args.toolchain_archive) != bool(args.toolchain_sha256):
         parser.error("--toolchain-archive and --toolchain-sha256 must be supplied together")
+    if args.native_package_directory and (args.toolchain_archive or args.declared_toolchain):
+        parser.error("Choose one native toolchain source")
     if platform.system() != "Linux" or platform.machine() not in ("aarch64", "arm64"):
         parser.error("This first Native AOT fixture qualifies Linux ARM64 only")
     folder = args.directory.resolve()
@@ -91,12 +98,24 @@ def main():
     write(workspace / "Program.cs", 'System.Console.WriteLine("NATIVE_AOT_INITIAL");\n')
     for package_id, (digest, _) in PACKAGES.items():
         package_archive(workspace, package_id, digest, args.package_cache)
-    declared_toolchain = args.declared_toolchain or bool(args.toolchain_archive)
+    native_packages = None
+    if args.native_package_directory:
+        native_packages = json.loads((ROOT / "tests/explicit_msbuild/native_aot_packages.lock.json").read_text())["packages"]
+        shutil.copyfile(ROOT / "tests/explicit_msbuild/native_aot_files.manifest", workspace / "native-aot-files.manifest")
+        for package in native_packages:
+            source = args.native_package_directory / (package["name"] + ".deb")
+            package_archive_path = workspace / "packages" / source.name
+            package_archive_path.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copyfile(source, package_archive_path)
+            actual = hashlib.sha256(package_archive_path.read_bytes()).hexdigest()
+            if actual != package["sha256"]:
+                raise ValueError("Unexpected native package digest for " + package["name"] + ": " + actual)
+    declared_toolchain = args.declared_toolchain or bool(args.toolchain_archive) or native_packages is not None
     if args.toolchain_archive:
         shutil.copyfile(args.toolchain_archive, workspace / "native-toolchain.tar.gz")
     elif declared_toolchain:
         write(workspace / "native_toolchain.bzl", (ROOT / "tests/explicit_msbuild/native_toolchain.bzl").read_text())
-    write(workspace / "BUILD.bazel", build_file(declared_toolchain=declared_toolchain, toolchain_sha256=args.toolchain_sha256))
+    write(workspace / "BUILD.bazel", build_file(declared_toolchain=declared_toolchain, toolchain_sha256=args.toolchain_sha256, native_packages=native_packages))
     bazel = [os.environ["RULES_MSBUILD_BAZEL"], "--output_base=" + str(folder / "base"), "--ignore_all_rc_files"]
 
     def build(case, success=True):
@@ -129,9 +148,13 @@ def main():
             write(workspace / "BUILD.bazel", build_file(declared_toolchain=True, toolchain_sha256="0" * 64))
             bad_archive = build("bad-toolchain-hash", success=False)
             assert "Native toolchain archive differs from locked SHA-256" in bad_archive, bad_archive[-7000:]
-        write(folder / "report.json", json.dumps({"platform": "linux-arm64", "sdk": "10.0.400", "aotPackages": VERSION, "declaredToolchain": declared_toolchain, "toolchainArchiveSha256": args.toolchain_sha256, "initialSha256": first_hash, "bodyEditSha256": second_hash, "missingCompilerRejected": True, "missingNativeCompilerRejected": args.declared_toolchain and not args.toolchain_archive, "badArchiveRejected": bool(args.toolchain_archive)}, indent=2) + "\n")
+        if native_packages is not None:
+            write(workspace / "BUILD.bazel", build_file(declared_toolchain=True, native_packages=native_packages, bad_native_package=True))
+            bad_package = build("bad-native-package-hash", success=False)
+            assert "Native package differs from locked SHA-256" in bad_package, bad_package[-7000:]
+        write(folder / "report.json", json.dumps({"platform": "linux-arm64", "sdk": "10.0.400", "aotPackages": VERSION, "declaredToolchain": declared_toolchain, "toolchainArchiveSha256": args.toolchain_sha256, "nativePackageCount": len(native_packages) if native_packages is not None else 0, "initialSha256": first_hash, "bodyEditSha256": second_hash, "missingCompilerRejected": True, "missingNativeCompilerRejected": args.declared_toolchain and not args.toolchain_archive, "badArchiveRejected": bool(args.toolchain_archive), "badNativePackageRejected": native_packages is not None}, indent=2) + "\n")
     finally:
-        write(workspace / "BUILD.bazel", build_file(declared_toolchain=declared_toolchain, toolchain_sha256=args.toolchain_sha256))
+        write(workspace / "BUILD.bazel", build_file(declared_toolchain=declared_toolchain, toolchain_sha256=args.toolchain_sha256, native_packages=native_packages))
         subprocess.run(bazel + ["shutdown"], cwd=workspace, check=True)
 
 
