@@ -21,7 +21,7 @@ There is no whole-graph discovery/preparation/replay step on this path.
 | Shared restore inputs and package trees | [Restore inputs](explicit-restore-inputs.md), [package borrowing](explicit-package-borrowing.md) |
 | SDK-only application setup and tracked global.json | [SDK acquisition and defaults](development.md#using-the-rules-in-an-application), [committed quickstart and independent consumers](adoption.md) |
 | Downloaded and source-built execution runtimes | [Shared runtime provider and Bzlmod acquisition](runtime-primitives.md#downloaded-and-source-built-runtime-providers) |
-| Linux ARM64 Native AOT publish with local or declared native tools | [Runnable binary, locked packages and declared-toolchain qualification](native-aot.md) |
+| Linux ARM64 Native AOT publish with local or declared native tools | [Runnable binary, locked packages and declared-toolchain qualification](native-aot.md), [smaller archive and chiseled runtime check](native-aot-closure.md) |
 | Friend assemblies and separate contract/implementation roles | [InternalsVisibleTo](internals-visible-to.md), [runtime primitives](runtime-primitives.md) |
 
 These are bounded contracts. See each guide for rejected inputs and unsupported
