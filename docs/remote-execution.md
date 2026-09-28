@@ -27,7 +27,10 @@ Tests use Bazel's normal `TestRunner` strategy. The new attribute controls proje
 compilation, not whether a test runs remotely. Every project action in a dependency
 closure needs its own opt-in. Layout composition no longer prohibits remote
 execution, but its current qualification covers local sandboxes and cache recovery.
-Runtime qualification native actions still prohibit remote execution. Do not treat this synthetic result as
+The locked-package Native AOT fixture now qualifies remote generation, while
+native package assembly remains local because its `dpkg-deb` is ambient; see
+[Native AOT package evidence](native-aot-packages.md#bazel-selection-and-remote-execution).
+Do not treat this synthetic result as
 remote qualification of the full Orchard or dotnet/runtime graph, arbitrary task
 tools, cross-compilation, Windows or Linux x64.
 

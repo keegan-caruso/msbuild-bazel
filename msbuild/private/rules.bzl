@@ -1,6 +1,6 @@
 """Assembly, test, generation and restore rule definitions."""
 
-load(":paths.bzl", _RUNTIME_TOOLCHAIN = "RUNTIME_TOOLCHAIN", _TOOLCHAIN = "TOOLCHAIN")
+load(":paths.bzl", _NATIVE_TOOLCHAIN = "NATIVE_TOOLCHAIN", _RUNTIME_TOOLCHAIN = "RUNTIME_TOOLCHAIN", _TOOLCHAIN = "TOOLCHAIN")
 load(":project.bzl", _project = "build_project")
 load(":providers.bzl", "MSBuildAssemblyInfo", "MSBuildBindingInfo", "MSBuildItemsInfo", "MSBuildLayoutInfo", "MSBuildPackageInfo", "MSBuildPackageLockInfo", "MSBuildProjectInfo", "MSBuildProjectOutputInfo", "MSBuildReferencePackInfo", "MSBuildRestoreInfo", "MSBuildRuntimeInfo", "MSBuildTestToolInfo", "MSBuildToolInfo")
 
@@ -43,6 +43,7 @@ _ATTRS = {
     "profile_build": attr.bool(default = False),
     "local_native_tools": attr.bool(default = False),
     "native_toolchain": attr.label(allow_single_file = True),
+    "use_native_toolchain": attr.bool(default = False),
     "restore": attr.label(providers = [MSBuildRestoreInfo]),
     "project": attr.label(allow_single_file = [".csproj"], mandatory = True),
     "target_framework": attr.string(mandatory = True),
@@ -108,7 +109,7 @@ def _generate(ctx):
 msbuild_generate = rule(
     implementation = _generate,
     attrs = dict(_ATTRS, executable = attr.bool(), targets = attr.string_list(mandatory = True), outputs = attr.string_list(mandatory = True), output_properties = attr.string_dict()),
-    toolchains = [_TOOLCHAIN],
+    toolchains = [_TOOLCHAIN, config_common.toolchain_type(_NATIVE_TOOLCHAIN, mandatory = False)],
 )
 
 def _restore(ctx):

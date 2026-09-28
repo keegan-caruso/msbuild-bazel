@@ -33,10 +33,31 @@
     "missingILCompilerRejected": true,
     "wrongDebSha256Rejected": true
   },
+  "bazelSelectionAndRemoteExecution": {
+    "localFixture": "/work/aot-selected-final",
+    "remoteFixture": "/work/aot-selected-remote-final",
+    "worker": "Ubuntu 22.04 ARM64 Buildbarn in Apple Container",
+    "workerAmbientToolsAbsent": ["dotnet", "clang", "gcc", "ld", "as", "llvm-objcopy"],
+    "workerSdkDirectoryRemoved": true,
+    "localFallbackEnabled": false,
+    "remoteCacheReadsEnabled": false,
+    "initialRemoteActions": {
+      "MSBuildRunnerBootstrap": 1,
+      "MSBuildNugetExtract": 6,
+      "MSBuildGenerate": 1
+    },
+    "initialLocalActions": {"MSBuildNativeToolchainPackages": 1},
+    "bodyEditRemoteActions": {"MSBuildGenerate": 1},
+    "initialSha256": "2024acd2d33735eb83a9f6e11b0cec10d28966d614572098478712327ff34c79",
+    "bodyEditSha256": "f0cdfbad3bf96be3a13fd3cfb64b944117e33b1cc942a4ba35e94817d4eb3e7f",
+    "missingRegistrationRejected": true,
+    "missingILCompilerRejected": true,
+    "wrongDebSha256Rejected": true
+  },
   "limits": [
     "The local package assembly action uses the Ubuntu image's dpkg-deb rather than a Bazel-declared executable.",
     "Source URLs may change; SHA-256 pins bytes but not availability.",
     "Only Ubuntu 22.04 ARM64 and one Native AOT project were qualified.",
-    "Remote execution was not tested."
+    "AOT generation was remotely executed for one Linux ARM64 fixture; package assembly remains local."
   ]
 }
