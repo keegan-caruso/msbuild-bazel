@@ -67,7 +67,7 @@ variants = defaultdict(dict)
 for key, previous in projects.items():
     project, framework = key; row = rows[key]
     binding = dict(packageLock=previous['package_lock'], packages={}, projectReferences={}, references={}, documents={},
-                   linuxWorker=True, profileBuild=True, properties={'AvsSkipBuildingLegacyTargetFrameworks':'True'},
+                   linuxWorker=True, properties={'AvsSkipBuildingLegacyTargetFrameworks':'True'},
                    tools=previous['tools'],bindings=previous['bindings'],adapterImports=[p if p.startswith((':','@','//')) else ':'+p for p in previous.get('adapter_imports',[])],
                    inputItems={'AvaloniaResource':[], 'AvaloniaXaml':[], 'AdditionalFiles':['SourceItemGroup','DBusGeneratorMode']},
                    evaluationItems=['AssemblyAttribute','CompilerVisibleProperty','CompilerVisibleItemMetadata','AvailableItemName','PropertyPageSchema','Service','SupportedPlatform','MicroComIdl'])

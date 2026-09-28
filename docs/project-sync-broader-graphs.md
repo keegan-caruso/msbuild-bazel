@@ -114,10 +114,16 @@ python3 tests/project_sync/upstream/orchard.py WORKSPACE EVALUATION_JSON RESTORE
 python3 tests/project_sync/upstream/avalonia.py PREPARED WORKSPACE
 ```
 
-The Orchard mapping leaves detailed per-project build profiling disabled for
-normal builds. Set `projectDefaults.profileBuild=true` in a disposable mapping
-and rerun sync when collecting task/evaluation profiles; turn it off again for
-elapsed-time comparisons.
+The Orchard and Avalonia mappings leave detailed per-project build profiling
+disabled for normal builds, as do the Bazel rules. Set
+`projectDefaults.profileBuild=true` in a disposable mapping and rerun sync when
+collecting task/evaluation profiles; turn it off again for elapsed-time
+comparisons. The Orchard benchmark rejects profiled build graphs.
+
+For this default change, `bash scripts/check.sh` and `bash scripts/check-dotnet.sh`
+pass on macOS ARM64, including all 54 ProjectSync tests. The Orchard and
+Avalonia fixture generators and the benchmark pass Python syntax checks. The
+full upstream builds were not rerun.
 
 The initial Avalonia pass retains authored evaluation tools. Run `bazel run //:sync`,
 then rerun its mapping driver with `--generated` to replace all project declarations

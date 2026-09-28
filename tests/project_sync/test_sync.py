@@ -63,14 +63,14 @@ class ProjectSyncTests(unittest.TestCase):
 
         self.run_sync('Core/Core.csproj')
         defaults = variant()
-        for name in ['package_private_assets', 'package_reference_paths', 'transitive_compile_references', 'deps', 'items', 'source_paths', 'output_mode', 'assembly_name', 'nullable', 'allow_unsafe']:
+        for name in ['package_private_assets', 'package_reference_paths', 'transitive_compile_references', 'deps', 'items', 'source_paths', 'output_mode', 'assembly_name', 'nullable', 'allow_unsafe', 'profile_build']:
             self.assertNotIn(name, defaults)
         self.assertEqual(defaults['srcs'], ['Core/Core.cs'])
         self.assertEqual(defaults['use_apphost'], False)
         self.assertEqual(defaults['lang_version'], 'latest')
 
         self.put('Core/Core.csproj', '<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup><AssemblyName>Custom.Core</AssemblyName><AllowUnsafeBlocks>true</AllowUnsafeBlocks><Nullable>disable</Nullable></PropertyGroup></Project>')
-        self.put('sync.json', json.dumps(dict(projects={'Core/Core.csproj': dict(transitiveCompileReferences=False, outputMode='reference')})))
+        self.put('sync.json', json.dumps(dict(projects={'Core/Core.csproj': dict(transitiveCompileReferences=False, outputMode='reference', profileBuild=True)})))
         self.run_sync('Core/Core.csproj', '--mappings', 'sync.json')
         nondefaults = variant()
         self.assertEqual(nondefaults['assembly_name'], 'Custom.Core')
@@ -78,6 +78,7 @@ class ProjectSyncTests(unittest.TestCase):
         self.assertEqual(nondefaults['transitive_compile_references'], False)
         self.assertEqual(nondefaults['nullable'], 'disable')
         self.assertEqual(nondefaults['allow_unsafe'], True)
+        self.assertEqual(nondefaults['profile_build'], True)
         self.run_sync('Core/Core.csproj', '--mappings', 'sync.json', '--check')
 
     def test_framework_condition_and_removal(self):

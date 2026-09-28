@@ -39,9 +39,9 @@ def build(case):
 run('shutdown-raw', [sdk/'dotnet', 'build-server', 'shutdown'])
 run('clean', bazel+['clean'])
 run('shutdown', bazel+['shutdown'])
-# Profiling evaluation changes execution cost; regular runs disable it.
 build_file = source/'BUILD.bazel'
-build_file.write_text(build_file.read_text().replace('profile_build=True', 'profile_build=False'))
+if 'profile_build=True' in build_file.read_text():
+    raise RuntimeError('benchmark requires an unprofiled build graph')
 build('cold')
 workers = [dict(json.loads(p.read_text()), project=p.parent.name) for p in (source/'bazel-bin').glob('*.diagnostics/worker.json')]
 assert len(workers) == 202, len(workers)
