@@ -48,8 +48,13 @@ results. The reports below provide detailed evidence and reproduction steps.
 | Version/cache controls | [8.8 qualification](bazel-8.8-upgrade.md), [cache diagnosis](runtime-cache-diagnosis.md), [remote execution](remote-execution.md) |
 
 Reports qualify their exact revisions and slices; they are not blanket support
-claims. Evidence JSON stays beside the report that cites it. Temporary paths are
-provenance, not public artifact downloads.
+claims. Keep the measured result, environment, controls, limits and reproduction
+command in the report. Commit evidence JSON only when its raw samples or artifact
+checks add something the report cannot convey concisely. Run repeatable fixtures
+with output under the ignored `artifacts/` directory or outside the checkout;
+their detailed reports need not be tracked. Temporary paths are provenance, not
+public artifact downloads. Removed historical reports remain available in Git
+history.
 
 Older implementations, superseded designs and intermediate experiments are linked
 from [history](history.md), rather than duplicated in this tree. See the

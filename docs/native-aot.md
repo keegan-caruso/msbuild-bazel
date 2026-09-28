@@ -115,9 +115,9 @@ ELF executable and ran it successfully. A body edit rebuilt the binary, changed
 its SHA-256 from
 `2024acd2d33735eb83a9f6e11b0cec10d28966d614572098478712327ff34c79`
 to `f0cdfbad3bf96be3a13fd3cfb64b944117e33b1cc942a4ba35e94817d4eb3e7f`,
-and changed its output. Omitting the compiler package failed during offline
-restore. The [report](native-aot-evidence.json) records these outcomes; it is
-one qualification run, not a benchmark.
+and changed its output from `NATIVE_AOT_INITIAL` to `NATIVE_AOT_EDIT`.
+Omitting the compiler package failed during offline
+restore. This was one qualification run, not a benchmark.
 
 The declared-tree run produced the same initial and body-edit hashes and
 outputs. Removing the SDK-selected ILCompiler package failed closed restore;
@@ -125,9 +125,9 @@ removing `clang` and `gcc` from the **declared tree** failed with
 `Platform linker ('clang' or 'gcc') not found in PATH` even though both
 remained installed on the container host. The test tree occupied 962 MB; it
 included broad Ubuntu `usr/bin`, `usr/lib` and `usr/include` directories
-to establish correctness, not an optimized distribution. The
-[declared-toolchain report](native-aot-toolchain-evidence.json) records these
-controls. The later independent cache run is described below.
+to establish correctness, not an optimized distribution. The declared-tree
+fixture ran with `--declared-toolchain` using SDK 10.0.400, Bazel 9.2.0 and
+Native AOT packages 10.0.11. The later independent cache run is described below.
 
 ## Pinned archive and independent cache recovery
 
