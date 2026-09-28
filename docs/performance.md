@@ -58,6 +58,12 @@ API-edit improvement across a wider scenario matrix is the ongoing
 The one shared-project API case above is a baseline, not a representative sample
 of every API change.
 
+A [later Orchard matrix](orchard-api-edit-matrix.md) observed 2, 11 and 193
+compilations for leaf, intermediate and shared API additions. Raw MSBuild's
+binlog also contained 193 compiler tasks for the shared edit. Stable-path and
+direct-reference experiments did not produce a measured wall-time win; the
+profile points to compiler, restore and staging work within necessary actions.
+
 ## Latest compiler and memory qualification
 
 On one **8-CPU/8-GiB Linux ARM64 VM**, runtime cold compilation takes

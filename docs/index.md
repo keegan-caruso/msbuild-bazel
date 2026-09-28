@@ -38,7 +38,7 @@ results. The reports below provide detailed evidence and reproduction steps.
 
 | Workload | Current report and reproduction |
 | --- | --- |
-| Orchard | [Compatibility](orchard-explicit-compatibility.md), [performance](orchard-explicit-performance.md), [paths](orchard-stable-worker-paths.md), [packages](orchard-package-qualification.md) |
+| Orchard | [Compatibility](orchard-explicit-compatibility.md), [performance](orchard-explicit-performance.md), [API-edit matrix](orchard-api-edit-matrix.md), [paths](orchard-stable-worker-paths.md), [packages](orchard-package-qualification.md) |
 | NBGV | [Version parity and remaining limits](nbgv-parity.md) |
 | Avalonia | [XAML graph](avalonia-xaml-subset.md), [HTTP recovery](avalonia-http-cache.md), [remote execution](avalonia-remote-execution.md), [expanded suites and Desktop](avalonia-expanded.md), [edit and Headless controls](avalonia-correctness.md) |
 | ASP.NET Core | [Integration](aspnetcore-integration.md), [larger graph](aspnetcore-large-graph.md), [cache profile](aspnetcore-cache-profile.md) |

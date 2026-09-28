@@ -46,7 +46,7 @@ for index, path in enumerate(styles):
 mapping = dict(projects={}, packages={})
 for row in rows:
     project = row['project']; previous = projects[project]
-    binding = dict(packages={}, packageLock=previous['package_lock'], targetFrameworks=[row['framework']], linuxWorker=True, profileBuild=True, documents={}, projectReferences={}, inputItems={'None': [], 'RazorGenerate': []}, evaluationItems=['GlobalPackageReference', 'Folder', 'Watch', 'AssemblyAttribute', 'TypeScriptCompile'], directories=previous['directories'])
+    binding = dict(packages={}, packageLock=previous['package_lock'], targetFrameworks=[row['framework']], linuxWorker=True, documents={}, projectReferences={}, inputItems={'None': [], 'RazorGenerate': []}, evaluationItems=['GlobalPackageReference', 'Folder', 'Watch', 'AssemblyAttribute', 'TypeScriptCompile'], directories=previous['directories'])
     if project == 'src/OrchardCore.Cms.Web/OrchardCore.Cms.Web.csproj':
         binding['generatedDirectories'] = {'src/OrchardCore.Cms.Web/Localization': 'Localization'}
     if project.endswith('/OrchardCore.SourceGenerators.csproj'):
