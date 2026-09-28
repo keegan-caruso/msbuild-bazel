@@ -1,7 +1,9 @@
 """Register explicit project build actions and outputs."""
 
-load(":paths.bzl", _NATIVE_TOOLCHAIN = "NATIVE_TOOLCHAIN", _RUNTIME_TOOLCHAIN = "RUNTIME_TOOLCHAIN", _TOOLCHAIN = "TOOLCHAIN", _file = "input_file", _logical = "logical", _mapped_imports = "mapped_imports", _quote = "quote", _runfile = "runfile", _runtime_package = "runtime_package")
-load(":providers.bzl", "MSBuildAssemblyInfo", "MSBuildBindingInfo", "MSBuildItemsInfo", "MSBuildLayoutInfo", "MSBuildPackageInfo", "MSBuildPackageLockInfo", "MSBuildProjectInfo", "MSBuildProjectOutputInfo", "MSBuildReferencePackInfo", "MSBuildRestoreInfo", "MSBuildRuntimeInfo", "MSBuildTestToolInfo", "MSBuildToolInfo")
+load(":paths.bzl", _NATIVE_TOOLCHAIN = "NATIVE_TOOLCHAIN", _TOOLCHAIN = "TOOLCHAIN", _file = "input_file", _logical = "logical", _mapped_imports = "mapped_imports", _runtime_package = "runtime_package")
+load(":project_launch.bzl", "create_launcher")
+load(":project_packages.bzl", "resolve_packages")
+load(":providers.bzl", "MSBuildAssemblyInfo", "MSBuildBindingInfo", "MSBuildItemsInfo", "MSBuildLayoutInfo", "MSBuildPackageInfo", "MSBuildProjectInfo", "MSBuildProjectOutputInfo", "MSBuildReferencePackInfo", "MSBuildRestoreInfo", "MSBuildToolInfo")
 load(":selection.bzl", "assembly_node", "restore_key", "select_closure")
 load(":variants.bzl", "select_assembly")
 
@@ -83,7 +85,6 @@ def build_project(ctx, executable = False, test = False, restore_only = False, p
     if ctx.attr.output_mode != "reference" and any([dep.output_mode == "reference" for dep in direct]):
         fail("Reference-only dependencies require msbuild_assembly with an implementation")
     compile_targets = [dep for dep in ctx.attr.deps if MSBuildPackageInfo in dep] + ctx.attr.reference_packages
-    compile_packages = depset([dep[MSBuildPackageInfo].id for dep in compile_targets], transitive = [dep.compile_packages for dep in direct])
     runtime_references = depset([dep.reference for dep in direct], transitive = [dep.runtime_references for dep in direct])
     restore_projects = depset([dep.restore_project for dep in direct], transitive = [dep.restore_projects for dep in direct])
     analyzer_packages = [dep for dep in ctx.attr.analyzers if MSBuildPackageInfo in dep]
@@ -101,38 +102,13 @@ def build_project(ctx, executable = False, test = False, restore_only = False, p
             fail("Bound tool must also be declared in tools: " + str(target.label))
         bindings.append({"property": binding.property_name, "tool": build_tools.index(binding.tool)})
     project_outputs = [dep[MSBuildProjectOutputInfo] for dep in ctx.attr.project_outputs]
-    package_targets = compile_targets + ctx.attr.build_deps + analyzer_packages
-    private_packages = {key.lower(): value.lower() for key, value in ctx.attr.package_private_assets.items()}
-    direct_package_ids = {dep[MSBuildPackageInfo].id.lower(): True for dep in package_targets}
-    for key, value in private_packages.items():
-        if key not in direct_package_ids or any([part.strip() not in ["all", "none", "compile", "runtime", "native", "contentfiles", "analyzers", "build", "buildtransitive", "buildmultitargeting"] for part in value.split(";")]):
-            fail("package_private_assets requires a direct package and a valid asset mask: " + key)
-    exported_compile_packages = depset([dep[MSBuildPackageInfo].id for dep in compile_targets if private_packages.get(dep[MSBuildPackageInfo].id.lower(), "none") != "all"], transitive = [dep.compile_packages for dep in public])
-    package_rows = {}
-    for dep in package_targets:
-        for row in dep[MSBuildPackageInfo].rows:
-            key = row["id"].lower()
-            if key in package_rows and package_rows[key] != row:
-                fail("Conflicting locked package: " + key)
-            package_rows[key] = row
-    if ctx.attr.package_lock:
-        lock = ctx.attr.package_lock[MSBuildPackageLockInfo]
-        locked = {row["id"].lower(): row for row in lock.rows}
-        for key, row in package_rows.items():
-            if locked.get(key) != row:
-                fail("Direct package closure disagrees with package_lock: " + key)
-        package_rows = locked
-        compile_packages = depset([name for name in compile_packages.to_list() if name.lower() in locked])
-        exported_compile_packages = depset([name for name in exported_compile_packages.to_list() if name.lower() in locked])
-        package_files = lock.files
-    else:
-        for dep in direct:
-            for row in dep.packages:
-                key = row["id"].lower()
-                if key in package_rows and package_rows[key] != row:
-                    fail("Conflicting inherited package: " + key)
-                package_rows[key] = row
-        package_files = depset(transitive = [dep[MSBuildPackageInfo].files for dep in package_targets] + [dep.package_files for dep in direct])
+    packages = resolve_packages(ctx, public, direct, compile_targets, analyzer_packages)
+    package_targets = packages.targets
+    private_packages = packages.private_assets
+    exported_compile_packages = packages.exported_compile
+    package_rows = packages.rows
+    compile_packages = packages.compile
+    package_files = packages.files
     if len({dep.project: True for dep in direct}) != len(direct):
         fail("Select exactly one configured compile dependency per project")
     framework_references = depset(ctx.attr.framework_refs, transitive = [dep.framework_references for dep in direct])
@@ -317,47 +293,4 @@ def build_project(ctx, executable = False, test = False, restore_only = False, p
     )
     if not executable and not test:
         return [DefaultInfo(files = depset([runtime])), info, OutputGroupInfo(reference = depset([reference]), diagnostics = depset([diagnostics]), target_results = depset([target_output] if target_output else []))]
-    test_tools = ([ctx.attr.test_runner] if ctx.attr.test_runner else []) + ctx.attr.test_adapters if test else []
-    def_tool = None
-    if test and ctx.attr.test_runner:
-        def_tool = ctx.attr.test_runner[MSBuildTestToolInfo]
-    host = ctx.attr.runtime_host[MSBuildRuntimeInfo] if ctx.attr.runtime_host else None
-    if host == None and ctx.toolchains[_RUNTIME_TOOLCHAIN] != None:
-        host = ctx.toolchains[_RUNTIME_TOOLCHAIN].runtime
-    if host == None:
-        fail("No SDK runtime matches the target platform; declare a compatible SDK platform or runtime_host")
-    launch_request = ctx.actions.declare_file(ctx.label.name + ".launch.json")
-    ctx.actions.write(launch_request, json.encode({
-        "runtimeHost": {"directory": _runfile(ctx, host.directory), "entryPoint": host.entry_point, "launchMode": host.launch_mode, "runtimeIdentifier": host.runtime_identifier, "version": host.version, "environment": host.environment},
-        "entry": _runfile(ctx, runtime),
-        "packages": [_runtime_package(row, ctx) for row in runtime_packages.to_list()],
-        "dependencies": [_runfile(ctx, file) for file in runtimes.to_list()],
-        "assembly": name,
-        "test": test,
-        "testOptions": {
-            "protocol": ctx.attr.test_protocol,
-            "settings": _runfile(ctx, ctx.file.test_settings) if ctx.file.test_settings else None,
-            "settingsOutput": ctx.attr.test_settings_output or None,
-            "filterArgument": ctx.attr.test_filter_argument,
-            "allowEmpty": ctx.attr.allow_empty_tests,
-            "diagnostics": ctx.attr.test_diagnostics,
-            "outputDirectories": ctx.attr.test_output_dirs,
-            "workingDirectory": ctx.attr.test_working_directory or None,
-            "runner": _runfile(ctx, def_tool.directory) + "/" + def_tool.path if def_tool else None,
-            "adapters": [_runfile(ctx, tool[MSBuildTestToolInfo].directory) + "/" + tool[MSBuildTestToolInfo].path for tool in ctx.attr.test_adapters],
-        } if test else None,
-        "data": [{"source": _runfile(ctx, row.file), "path": row.destination} for row in runtime_data.to_list()],
-    }))
-    launcher = ctx.actions.declare_file(ctx.label.name)
-    script = """#!/usr/bin/env bash
-set -euo pipefail
-runfiles="${RUNFILES_DIR:-${TEST_SRCDIR:-$0.runfiles}}"
-export RULES_MSBUILD_RUNFILES="$runfiles"
-exec "$runfiles/"%s "$runfiles/"%s run "$runfiles/"%s "$@"
-""" % (_quote(_runfile(ctx, tc.dotnet)), _quote(_runfile(ctx, tc.runner)), _quote(_runfile(ctx, launch_request)))
-    ctx.actions.write(launcher, script, is_executable = True)
-    runfiles = ctx.runfiles(
-        files = [tc.dotnet, tc.runner, runtime, launch_request] + [host.directory] + [row.file for row in runtime_data.to_list()] + ([ctx.file.test_settings] if test and ctx.file.test_settings else []),
-        transitive_files = depset(transitive = [host.files] + [tc.runtime, tc.runner_support, runtimes, depset([row.directory for row in runtime_packages.to_list()])] + [tool[MSBuildTestToolInfo].files for tool in test_tools]),
-    )
-    return ([RunEnvironmentInfo(environment = ctx.attr.env)] if test else []) + [DefaultInfo(executable = launcher, files = depset([runtime]), runfiles = runfiles), info, OutputGroupInfo(reference = depset([reference]), diagnostics = depset([diagnostics]), target_results = depset([target_output] if target_output else []))]
+    return create_launcher(ctx, tc, name, runtime, runtimes, runtime_packages, runtime_data, test) + [info, OutputGroupInfo(reference = depset([reference]), diagnostics = depset([diagnostics]), target_results = depset([target_output] if target_output else []))]
