@@ -39,8 +39,9 @@ class ProjectSyncTests(unittest.TestCase):
         self.put('App/Program.cs', 'System.Console.WriteLine(typeof(Core).Name);')
         self.run_sync('App/App.csproj')
         output = (self.root / 'projects.generated.bzl').read_text()
-        for fragment in ['"Directory.Build.props"', '"Shared.props"', '"Directory.Build.targets"', '"Core/Core.cs"', '":Core_Core"', 'msbuild_binary(', '"nullable": "enable"']:
+        for fragment in ['"Directory.Build.props"', '"Shared.props"', '"Directory.Build.targets"', '"Core/Core.cs"', '":Core_Core"', 'msbuild_binary(']:
             self.assertIn(fragment, output)
+        self.assertNotIn('"nullable": "enable"', output)
         self.run_sync('App/App.csproj', '--check')
         self.put('Shared.props', '<Project><PropertyGroup><Nullable>disable</Nullable></PropertyGroup></Project>')
         self.assertIn('stale', self.run_sync('App/App.csproj', '--check', success=False))
@@ -49,6 +50,35 @@ class ProjectSyncTests(unittest.TestCase):
         self.assertIn('"nullable": "disable"', (self.root / 'projects.generated.bzl').read_text())
         self.put('Core/Added.cs', 'class Added {}')
         self.assertIn('stale', self.run_sync('App/App.csproj', '--check', success=False))
+
+    def test_rule_defaults_are_omitted_but_nondefaults_remain(self):
+        import ast
+
+        def variant():
+            calls = [node for node in ast.walk(ast.parse((self.root / 'projects.generated.bzl').read_text())) if isinstance(node, ast.Call) and isinstance(node.func, ast.Name) and node.func.id == 'msbuild_project']
+            project = {key.arg: ast.literal_eval(key.value) for key in calls[0].keywords}
+            self.assertEqual(project['configuration'], 'Release')
+            self.assertEqual(project['msbuild_properties'], {'Platform': 'AnyCPU'})
+            return project['framework_overrides']['net10.0']
+
+        self.run_sync('Core/Core.csproj')
+        defaults = variant()
+        for name in ['package_private_assets', 'package_reference_paths', 'transitive_compile_references', 'deps', 'items', 'source_paths', 'output_mode', 'assembly_name', 'nullable', 'allow_unsafe']:
+            self.assertNotIn(name, defaults)
+        self.assertEqual(defaults['srcs'], ['Core/Core.cs'])
+        self.assertEqual(defaults['use_apphost'], False)
+        self.assertEqual(defaults['lang_version'], 'latest')
+
+        self.put('Core/Core.csproj', '<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup><AssemblyName>Custom.Core</AssemblyName><AllowUnsafeBlocks>true</AllowUnsafeBlocks><Nullable>disable</Nullable></PropertyGroup></Project>')
+        self.put('sync.json', json.dumps(dict(projects={'Core/Core.csproj': dict(transitiveCompileReferences=False, outputMode='reference')})))
+        self.run_sync('Core/Core.csproj', '--mappings', 'sync.json')
+        nondefaults = variant()
+        self.assertEqual(nondefaults['assembly_name'], 'Custom.Core')
+        self.assertEqual(nondefaults['output_mode'], 'reference')
+        self.assertEqual(nondefaults['transitive_compile_references'], False)
+        self.assertEqual(nondefaults['nullable'], 'disable')
+        self.assertEqual(nondefaults['allow_unsafe'], True)
+        self.run_sync('Core/Core.csproj', '--mappings', 'sync.json', '--check')
 
     def test_framework_condition_and_removal(self):
         self.put('Core/Core.csproj', '''<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup><TargetFramework/><TargetFrameworks>net9.0;net10.0</TargetFrameworks></PropertyGroup><ItemGroup Condition="'$(TargetFramework)' == 'net9.0'"><Compile Remove="Modern.cs"/></ItemGroup></Project>''')
@@ -90,7 +120,7 @@ class ProjectSyncTests(unittest.TestCase):
             self.run_sync('Core/Core.csproj', '--mappings', 'sync.json')
             calls = [n for n in ast.walk(ast.parse((self.root / 'projects.generated.bzl').read_text())) if isinstance(n, ast.Call) and isinstance(n.func, ast.Name) and n.func.id == 'msbuild_project']
             attrs = {k.arg: ast.literal_eval(k.value) for k in calls[0].keywords}
-            return {tfm: values['transitive_compile_references'] for tfm, values in attrs['framework_overrides'].items()}
+            return {tfm: values.get('transitive_compile_references', True) for tfm, values in attrs['framework_overrides'].items()}
         self.put('sync.json', '{}')
         self.assertEqual(modes(), {'net9.0': True, 'net10.0': False})
         self.put('sync.json', json.dumps(dict(projectDefaults=dict(transitiveCompileReferences=False), projects={'Core/Core.csproj': dict(transitiveCompileReferences=True, frameworkOverrides={'net10.0': dict(transitiveCompileReferences=None)})})))
@@ -111,7 +141,7 @@ class ProjectSyncTests(unittest.TestCase):
         self.assertEqual(before, (self.root / 'projects.generated.bzl').read_bytes())
         self.put('sync.json', json.dumps(dict(projects={'Core/Core.csproj': dict(transitiveCompileReferences=True)})))
         self.run_sync('Core/Core.csproj', '--mappings', 'sync.json')
-        self.assertIn('transitive_compile_references = True', (self.root / 'projects.generated.bzl').read_text())
+        self.assertNotIn('transitive_compile_references = True', (self.root / 'projects.generated.bzl').read_text())
 
     def test_shared_imports_keep_project_globals_and_refresh_between_runs(self):
         import ast
@@ -226,7 +256,9 @@ class ProjectSyncTests(unittest.TestCase):
         self.put('Core/Core.csproj', '<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup><OutputType>Exe</OutputType></PropertyGroup></Project>')
         self.put('sync.json', json.dumps(dict(tests={'Core/Core.csproj':dict(protocol='executable')})))
         self.run_sync('Core/Core.csproj', '--mappings', 'sync.json')
-        self.assertIn('"test_protocol": "executable"', (self.root/'projects.generated.bzl').read_text())
+        output = (self.root/'projects.generated.bzl').read_text()
+        self.assertNotIn('"test_protocol": "executable"', output)
+        self.assertIn('"test_output_type": "exe"', output)
 
     def test_mapped_properties_are_evaluated(self):
         self.put('Core/Core.csproj', '<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup><AssemblyName>Custom.Name</AssemblyName></PropertyGroup><ItemGroup Condition="\'$(IncludeExtra)\' != \'true\'"><Compile Remove="Extra.cs"/></ItemGroup></Project>')
@@ -272,6 +304,8 @@ class ProjectSyncTests(unittest.TestCase):
         self.assertIn('"TestMode":"yes"', output)
 
     def test_linked_sources_and_resources(self):
+        import ast
+
         self.put('Shared/Shared.cs', 'class Shared {}')
         self.put('Core/message.txt', 'hello')
         self.put('Core/options.txt', 'options')
@@ -280,6 +314,11 @@ class ProjectSyncTests(unittest.TestCase):
         output = (self.root/'projects.generated.bzl').read_text()
         for fragment in ['item_type = "Compile"', '"Link":"Shared/Shared.cs"', '"SubType":"Code"', 'item_type = "EmbeddedResource"', '"LogicalName":"Probe.Message"', '"Language":"CSharp"', '"SubType":"Designer"', 'item_type = "AdditionalFiles"', '"CopyToOutputDirectory":"PreserveNewest"']:
             self.assertIn(fragment, output)
+        items = [{key.arg: ast.literal_eval(key.value) for key in node.keywords} for node in ast.walk(ast.parse(output)) if isinstance(node, ast.Call) and isinstance(node.func, ast.Name) and node.func.id == 'msbuild_items']
+        additional = next(item for item in items if item['item_type'] == 'AdditionalFiles')
+        self.assertEqual(additional['srcs'], ['Core/options.txt'])
+        self.assertNotIn('paths', additional)
+        self.assertNotIn('metadata', additional)
         self.run_sync('Core/Core.csproj', '--check')
         self.put('Core/Core.csproj', '<Project Sdk="Microsoft.NET.Sdk"><ItemGroup><EmbeddedResource Include="message.txt" LogicalName="Probe.Changed"/></ItemGroup></Project>')
         self.assertIn('stale', self.run_sync('Core/Core.csproj', '--check', success=False))
@@ -362,6 +401,8 @@ class ProjectSyncTests(unittest.TestCase):
             self.assertEqual(original,(self.root/'projects.generated.bzl').read_text())
 
     def test_analyzer_config_and_content_paths(self):
+        import ast
+
         self.put('Core/rules.globalconfig', 'is_global = true\n')
         self.put('NuGet.config', '<configuration/>')
         self.put('Core/Core.csproj', '<Project Sdk="Microsoft.NET.Sdk"><ItemGroup><EditorConfigFiles Include="rules.globalconfig"/><Content Include="../NuGet.config" Link="NuGet.config" CopyToOutputDirectory="PreserveNewest" Visible="false" Pack="true"/></ItemGroup></Project>')
@@ -372,6 +413,10 @@ class ProjectSyncTests(unittest.TestCase):
         self.assertIn('"EditorConfigFiles"', output)
         self.assertIn('":NuGet.config":"data/NuGet.config"', output)
         self.assertIn('"Visible":"false"', output)
+        items = [{key.arg: ast.literal_eval(key.value) for key in node.keywords} for node in ast.walk(ast.parse(output)) if isinstance(node, ast.Call) and isinstance(node.func, ast.Name) and node.func.id == 'msbuild_items']
+        content = next(item for item in items if item['item_type'] == 'Content')
+        self.assertNotIn('srcs', content)
+        self.assertEqual(content['paths'], {':NuGet.config': 'data/NuGet.config'})
         mapping['projects']['Core/Core.csproj']['itemPaths'] = {'missing.txt': 'data/missing.txt'}
         self.put('sync.json', json.dumps(mapping))
         self.assertIn('does not match evaluated', self.run_sync('Core/Core.csproj', '--mappings', 'sync.json', success=False))
@@ -535,7 +580,7 @@ class ProjectSyncTests(unittest.TestCase):
         self.run_sync('Core/Core.csproj', '--mappings', 'sync.json')
         output = (self.root/'projects.generated.bzl').read_text()
         self.assertIn('"items": [":contract_sources"]', output)
-        self.assertIn('"deps": []', output)
+        self.assertNotIn('"deps": []', output)
         for before, after in [('SourceFilesProjectOutputGroup', 'Build'), ('ContractSources', 'OtherSources'), ('ReferenceOutputAssembly="false"', 'ReferenceOutputAssembly="true"')]:
             self.put('Core/Core.csproj', text.replace(before, after))
             self.assertIn('disagrees', self.run_sync('Core/Core.csproj', '--mappings', 'sync.json', success=False))
@@ -552,7 +597,7 @@ class ProjectSyncTests(unittest.TestCase):
         self.run_sync(*args)
         output = (self.root/'projects.generated.bzl').read_text()
         self.assertIn('"package_reference_paths": {"example":["ref/net8.0/Example.dll"]}', output)
-        self.assertIn('"reference_packages": []', output)
+        self.assertNotIn('"reference_packages": []', output)
         self.assertIn('"transitive_compile_references": False', output)
         self.assertNotIn(str(self.root), output)
         self.run_sync(*args, '--check')
@@ -593,8 +638,8 @@ class ProjectSyncTests(unittest.TestCase):
         tree = ast.parse(output)
         declarations = [node for node in ast.walk(tree) if isinstance(node, ast.Call) and isinstance(node.func, ast.Name) and node.func.id == 'msbuild_project']
         rows = {ast.literal_eval(next(k.value for k in node.keywords if k.arg == 'name')): {k.arg: ast.literal_eval(k.value) for k in node.keywords} for node in declarations}
-        self.assertEqual(rows['App_App']['framework_overrides']['net10.0']['nullable'], 'enable')
-        self.assertEqual(rows['Core_Core']['framework_overrides']['net10.0']['nullable'], 'disable')
+        self.assertEqual(rows['App_App']['framework_overrides']['net10.0'].get('nullable', 'enable'), 'enable')
+        self.assertEqual(rows['Core_Core']['framework_overrides']['net10.0'].get('nullable', 'enable'), 'disable')
         self.assertEqual(rows['App_App']['framework_overrides']['net10.0']['package_lock'], ':one')
         self.assertEqual(rows['Core_Core']['framework_overrides']['net10.0']['package_lock'], ':two')
         self.run_sync(*args, '--check')

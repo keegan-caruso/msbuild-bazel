@@ -62,6 +62,20 @@ one Bazel package. It refuses to cross existing nested packages or overwrite an
 authored `projects.generated.bzl`. Evaluation and validation failures preserve
 existing output. The generated `app_projects()` must also be called from the root.
 
+Generated declarations omit values that match the Bazel rule defaults, such as
+empty dependency lists, empty item metadata, and `output_mode = "sdk"`. They keep
+`configuration = "Release"` explicit because Bazel's default changes in debug
+mode. Re-run sync and commit the changed generated file when upgrading the rules.
+
+On macOS ARM64 with SDK 10.0.400, regenerating the isolated quickstart reduced
+`projects.generated.bzl` from 126 to 50 lines. `bazel run //:sync -- --check`
+passed; `bazel test //:Tests_Tests` passed with Bazel 8.8.0 and 9.2.0; and
+`bazel run //:App_App` ran with 9.2.0. The reduction depends on how many defaults
+each project uses. The app's `MSBuildAssembly` action key was
+`44ca93ddffc939058360e804434bae8f1d3d96b4dbce4c1ab5f469f28211cdcc`
+before and after regeneration under Bazel 9.2.0. This checks the quickstart,
+not every generated upstream graph.
+
 Project paths are strings rather than labels: sync deliberately evaluates the
 current checkout at **run time**, using `BUILD_WORKSPACE_DIRECTORY`. It can find
 new source files and imports without first declaring them as inputs to itself.
