@@ -18,7 +18,7 @@ whole-graph discovery, preparation or replay step.
 | Persistent compiler workers with stable input paths | [Linux workers](explicit-linux-workers.md), [path limits](orchard-stable-worker-paths.md), [stable-path prototype](stable-project-paths.md) |
 | Declared MSBuild task tools and generation | [Tool bindings](explicit-tool-bindings.md), [generation](explicit-generation.md) |
 | Project-built analyzers and target-result items | [Analyzers](project-built-analyzers.md), [target items](msbuild-target-items.md) |
-| Shared restore inputs and package trees | [Restore inputs](explicit-restore-inputs.md), [package borrowing](explicit-package-borrowing.md) |
+| Restore inputs and package trees | [Shared Restore](explicit-restore-inputs.md), [project-specific prepared Restore](prepared-project-restore.md), [package borrowing](explicit-package-borrowing.md) |
 | SDK-only application setup and tracked global.json | [SDK acquisition and defaults](development.md#using-the-rules-in-an-application), [committed quickstart and independent consumers](adoption.md) |
 | Downloaded and source-built execution runtimes | [Shared runtime provider and Bzlmod acquisition](runtime-primitives.md#downloaded-and-source-built-runtime-providers) |
 | Linux ARM64 Native AOT publish with local or declared native tools | [Runnable binary and declared-toolchain qualification](native-aot.md), [smaller archive and chiseled runtime check](native-aot-closure.md), [locked Ubuntu package inputs](native-aot-packages.md) |

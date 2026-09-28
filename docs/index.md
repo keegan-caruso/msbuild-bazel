@@ -18,7 +18,7 @@ separates qualified behavior from the [roadmap](roadmap.md).
 - [Linux persistent workers](explicit-linux-workers.md) and [remote execution](remote-execution.md)
 - [Build task tools](explicit-tool-bindings.md), [generation](explicit-generation.md),
   [project analyzers](project-built-analyzers.md) and [target-result items](msbuild-target-items.md)
-- [Restore inputs](explicit-restore-inputs.md), [package trees](explicit-package-borrowing.md)
+- [Restore inputs](explicit-restore-inputs.md), [project-specific prepared Restore](prepared-project-restore.md), [package trees](explicit-package-borrowing.md)
   and [NuGet metadata](orchard-package-semantics.md)
 - [Framework/tool roles](framework-tool-roles.md), [friend assemblies](internals-visible-to.md)
   and [runtime assembly/host primitives](runtime-primitives.md)

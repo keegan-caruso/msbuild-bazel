@@ -45,6 +45,8 @@ _ATTRS = {
     "native_toolchain": attr.label(allow_single_file = True),
     "use_native_toolchain": attr.bool(default = False),
     "restore": attr.label(providers = [MSBuildRestoreInfo]),
+    "prepared_restore": attr.bool(default = False),
+    "restore_source_inputs": attr.label_list(allow_files = True),
     "project": attr.label(allow_single_file = [".csproj"], mandatory = True),
     "target_framework": attr.string(mandatory = True),
     "assembly_name": attr.string(),

@@ -2,11 +2,11 @@ using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Xml.Linq;
 
-// Qualified shared restore slice: plain, package-free Microsoft.NET.Sdk projects.
-// Unknown project behavior fails closed; ordinary per-project restore remains available.
+// Shared Restore has a narrow package-free gate. Project-specific prepared
+// Restore exports the real project's SDK/NuGet outputs under an explicit contract.
 internal static class PreparedRestore
 {
-    private sealed record Artifact(int Version, string Framework, string Configuration, bool Executable, string SdkVersion, Dictionary<string, string> Files);
+    private sealed record Artifact(int Version, string Framework, string Configuration, bool Executable, string SdkVersion, Dictionary<string, string> Files, bool ProjectSpecific = false, string? Project = null);
     private static readonly HashSet<string> Properties = new(StringComparer.Ordinal)
     {
         "TargetFramework", "Configuration", "AssemblyName", "OutputType", "Nullable", "LangVersion", "AllowUnsafeBlocks", "DefineConstants",
@@ -63,9 +63,13 @@ internal static class PreparedRestore
     };
     private static string Rebase(string contents, string name, IEnumerable<KeyValuePair<string, string>> replacements)
     {
+        // The project name can also occur inside the workspace and state paths.
+        // Replace complete paths before shorter components so those paths remain
+        // recognizable when an artifact is rebound to another action.
+        var ordered = replacements.OrderByDescending(pair => pair.Key.Length).ToArray();
         string Replace(string value)
         {
-            foreach (var (from, to) in replacements)
+            foreach (var (from, to) in ordered)
             {
                 value = value.Replace(from, to, StringComparison.Ordinal);
             }
@@ -108,15 +112,15 @@ internal static class PreparedRestore
             files.Add(name.Replace(project, "project", StringComparison.Ordinal), contents);
         }
         var r = s.Request;
-        File.WriteAllText(Path.Combine(s.State, "restore.json"), JsonSerializer.Serialize(new Artifact(1, r.Framework, r.Configuration, r.Executable, r.SdkVersion, files), Program.Json));
+        File.WriteAllText(Path.Combine(s.State, "restore.json"), JsonSerializer.Serialize(new Artifact(1, r.Framework, r.Configuration, r.Executable, r.SdkVersion, files, r.ProjectRestoreOnly, r.ProjectRestoreOnly ? r.Project.Path : null), Program.Json));
     }
     internal static void Install(Session s, Func<string, string>? compilerPath = null)
     {
         var r = s.Request;
         var artifact = JsonSerializer.Deserialize<Artifact>(File.ReadAllText(r.RestoreInput!), Program.Json)!;
-        if (artifact.Version != 1 || artifact.Framework != r.Framework || artifact.Configuration != r.Configuration || artifact.Executable != r.Executable || artifact.SdkVersion != r.SdkVersion)
+        if (artifact.Version != 1 || artifact.Framework != r.Framework || artifact.Configuration != r.Configuration || artifact.Executable != r.Executable || artifact.SdkVersion != r.SdkVersion || artifact.ProjectSpecific != r.ProjectRestoreInput || artifact.Project != (r.ProjectRestoreInput ? r.Project.Path : null))
         {
-            throw new InvalidDataException("Shared restore identity mismatch");
+            throw new InvalidDataException("Prepared restore identity mismatch");
         }
 
         var names = new[] { "project.assets.json", "project.nuget.g.props", "project.nuget.g.targets" };

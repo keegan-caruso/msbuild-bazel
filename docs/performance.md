@@ -64,6 +64,12 @@ binlog also contained 193 compiler tasks for the shared edit. Stable-path and
 direct-reference experiments did not produce a measured wall-time win; the
 profile points to compiler, restore and staging work within necessary actions.
 
+An opt-in [project-specific prepared Restore experiment](prepared-project-restore.md)
+kept Restore cached across the shared Orchard API edit. One matched run reduced
+the edit from **124.324 to 118.108 s (5.0%)**, while the initial graph grew from
+139.042 to 198.271 s. Raw MSBuild took 32.448 s for that edit in the same
+container. The cold cost and small incremental gain keep this mode off by default.
+
 ## Latest compiler and memory qualification
 
 On one **8-CPU/8-GiB Linux ARM64 VM**, runtime cold compilation takes

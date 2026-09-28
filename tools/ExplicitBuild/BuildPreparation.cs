@@ -20,9 +20,27 @@ internal static class BuildPreparation
             Directory.CreateDirectory(Path.Combine(workspace, Safe(directory)));
         }
 
-        foreach (var file in r.Sources.Concat(r.Imports).Concat(r.AdapterImports ?? []).Concat(r.Items.Select(i => i.File)).Prepend(r.Project))
+        foreach (var file in r.Imports.Concat(r.AdapterImports ?? []).Concat(r.Items.Select(i => i.File)).Prepend(r.Project))
         {
             Copy(ReadPath(file.Source), Path.Combine(workspace, Safe(file.Path)));
+        }
+        foreach (var file in r.Sources)
+        {
+            var destination = Path.Combine(workspace, Safe(file.Path));
+            if (r.ProjectRestoreOnly && file.Source.Length == 0)
+            {
+                // Preserve source item existence and names during Restore without
+                // making source bytes part of the action key.
+                Directory.CreateDirectory(Path.GetDirectoryName(destination)!);
+                if (!File.Exists(destination))
+                {
+                    File.WriteAllText(destination, "");
+                }
+            }
+            else
+            {
+                Copy(ReadPath(file.Source), destination);
+            }
         }
 
         var references = Path.Combine(workspace, ".references");
@@ -44,7 +62,7 @@ internal static class BuildPreparation
         var project = Path.Combine(workspace, Safe(r.Project.Path));
         var original = Path.Combine(state, "original.xml");
         File.Copy(project, original);
-        if (r.RestoreInput is not null || r.RestoreOnly)
+        if (!r.ProjectRestoreInput && !r.ProjectRestoreOnly && (r.RestoreInput is not null || r.RestoreOnly))
         {
             PreparedRestore.Validate(r, original);
         }

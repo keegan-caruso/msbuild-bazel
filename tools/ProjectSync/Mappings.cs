@@ -39,6 +39,11 @@ internal sealed class ProjectBinding
     {
         get; set;
     }
+    public bool PreparedRestore
+    {
+        get; set;
+    }
+    public string[] RestoreSourceInputs { get; set; } = [];
     public bool ProfileBuild
     {
         get; set;
@@ -185,7 +190,11 @@ internal sealed class Mappings
             {
                 throw new InvalidDataException("Invalid output mode: " + project);
             }
-            foreach (var label in binding.Tools.Concat(binding.AssemblySelections).Concat(binding.LayoutBindings.Keys).Concat(binding.Bindings).Concat(binding.Items).Concat(binding.AdapterImports).Concat(binding.ReferencePack is null ? [] : new[] { binding.ReferencePack }).Concat(binding.RuntimeHost is null ? [] : new[] { binding.RuntimeHost }).Concat(binding.PackageLock is null ? [] : new[] { binding.PackageLock }))
+            if (binding.RestoreSourceInputs.Length != 0 && !binding.PreparedRestore)
+            {
+                throw new InvalidDataException("restoreSourceInputs requires preparedRestore: " + project);
+            }
+            foreach (var label in binding.Tools.Concat(binding.AssemblySelections).Concat(binding.LayoutBindings.Keys).Concat(binding.Bindings).Concat(binding.Items).Concat(binding.AdapterImports).Concat(binding.RestoreSourceInputs).Concat(binding.ReferencePack is null ? [] : new[] { binding.ReferencePack }).Concat(binding.RuntimeHost is null ? [] : new[] { binding.RuntimeHost }).Concat(binding.PackageLock is null ? [] : new[] { binding.PackageLock }))
             {
                 Label(label);
             }
