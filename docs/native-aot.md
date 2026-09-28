@@ -149,7 +149,8 @@ locally in that compiler-free container using the declared tree; the resulting
 binary printed the edited message. This proves cache recovery across these two
 containers and local execution without ambient native compilers. It does not
 qualify remote execution, other Linux distributions or a minimal native
-toolchain closure.
+toolchain closure. The later [locked-package qualification](native-aot-packages.md#bazel-selection-and-remote-execution)
+does exercise remote AOT generation with a package-built native tree.
 
 To repeat inside a Linux ARM64 environment with `clang`, `llvm-objcopy`, zlib
 headers, the pinned Bazel binary, and a working Bubblewrap namespace:

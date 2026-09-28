@@ -50,7 +50,7 @@ def package_archive(workspace, package_id, digest, cache):
     return archive
 
 
-def build_file(omit_compiler=False, declared_toolchain=False, omit_native_compiler=False, toolchain_sha256=None, native_packages=None, bad_native_package=False):
+def build_file(omit_compiler=False, declared_toolchain=False, omit_native_compiler=False, toolchain_sha256=None, native_packages=None, bad_native_package=False, selected_native_toolchain=False, remote_execution=False):
     names = []
     lines = ['load("@rules_msbuild//msbuild:defs.bzl", "msbuild_generate", "msbuild_nuget_package", "msbuild_package_lock")']
     for index, (package_id, (digest, content_hash)) in enumerate(PACKAGES.items()):
@@ -59,13 +59,16 @@ def build_file(omit_compiler=False, declared_toolchain=False, omit_native_compil
         if not omit_compiler or package_id != "microsoft.dotnet.ilcompiler":
             names.append(":" + name)
     lines.append(f'msbuild_package_lock(name="lock", packages={json.dumps(names)})')
-    native = 'native_toolchain=":native_toolchain"' if declared_toolchain else 'local_native_tools=True'
-    lines.append('msbuild_generate(name="aot", executable=True, project="Hello.csproj", srcs=["Program.cs"], target_framework="net10.0", targets=["ExportAot"], outputs=["Hello"], output_properties={"NativeBinaryOutput":"Hello"}, package_lock=":lock", build_deps=' + json.dumps(names) + ', ' + native + ')')
+    native = 'use_native_toolchain=True' if selected_native_toolchain else 'native_toolchain=":native_toolchain"' if declared_toolchain else 'local_native_tools=True'
+    lines.append('msbuild_generate(name="aot", executable=True, project="Hello.csproj", srcs=["Program.cs"], target_framework="net10.0", targets=["ExportAot"], outputs=["Hello"], output_properties={"NativeBinaryOutput":"Hello"}, package_lock=":lock", build_deps=' + json.dumps(names) + ', ' + native + (', allow_remote_execution=True' if remote_execution else '') + ')')
     if declared_toolchain:
         if native_packages is not None:
-            lines[0] = lines[0].replace('"msbuild_generate",', '"msbuild_generate", "msbuild_native_toolchain_packages",')
+            lines[0] = lines[0].replace('"msbuild_generate",', '"msbuild_generate", "msbuild_native_toolchain_packages", "msbuild_native_toolchain",')
             package_hashes = {"packages/" + package["name"] + ".deb": ("0" * 64 if bad_native_package and index == 0 else package["sha256"]) for index, package in enumerate(native_packages)}
             lines.append('msbuild_native_toolchain_packages(name="native_toolchain", manifest="native-aot-files.manifest", packages=' + json.dumps(package_hashes) + ')')
+            if selected_native_toolchain:
+                lines.append('msbuild_native_toolchain(name="native_binding", root=":native_toolchain")')
+                lines.append('toolchain(name="native_registered", toolchain=":native_binding", toolchain_type="@rules_msbuild//msbuild:native_toolchain_type", exec_compatible_with=["@platforms//os:linux", "@platforms//cpu:aarch64"], target_compatible_with=["@platforms//os:linux", "@platforms//cpu:aarch64"])')
         elif toolchain_sha256:
             lines[0] = lines[0].replace('"msbuild_generate",', '"msbuild_generate", "msbuild_native_toolchain_archive",')
             lines.append('msbuild_native_toolchain_archive(name="native_toolchain", archive="native-toolchain.tar.gz", archive_sha256="' + toolchain_sha256 + '")')
@@ -83,17 +86,25 @@ def main():
     parser.add_argument("--toolchain-archive", type=Path, help="Use a locked tar.gz archive rather than snapshotting native tools from the host")
     parser.add_argument("--toolchain-sha256", help="Expected SHA-256 of --toolchain-archive")
     parser.add_argument("--native-package-directory", type=Path, help="Use pinned Ubuntu .deb payloads as a Bazel-built native toolchain")
+    parser.add_argument("--selected-native-toolchain", action="store_true", help="Select the package-built tree through Bazel toolchain resolution")
+    parser.add_argument("--remote-executor", help="Qualify actual remote AOT generation on an SDK-free Linux ARM64 executor")
     args = parser.parse_args()
     if bool(args.toolchain_archive) != bool(args.toolchain_sha256):
         parser.error("--toolchain-archive and --toolchain-sha256 must be supplied together")
     if args.native_package_directory and (args.toolchain_archive or args.declared_toolchain):
         parser.error("Choose one native toolchain source")
+    if args.selected_native_toolchain and not args.native_package_directory:
+        parser.error("--selected-native-toolchain requires --native-package-directory")
+    if args.remote_executor and not args.selected_native_toolchain:
+        parser.error("--remote-executor requires --selected-native-toolchain")
     if platform.system() != "Linux" or platform.machine() not in ("aarch64", "arm64"):
         parser.error("This first Native AOT fixture qualifies Linux ARM64 only")
     folder = args.directory.resolve()
     workspace = folder / "source"
     workspace.mkdir(parents=True, exist_ok=False)
-    write(workspace / "MODULE.bazel", 'module(name="native_aot_fixture")\nbazel_dep(name="rules_msbuild",version="0.0.0")\nlocal_path_override(module_name="rules_msbuild",path=' + json.dumps(str(ROOT)) + ')\n' + sdk_declarations())
+    module_file = workspace / "MODULE.bazel"
+    module_text = 'module(name="native_aot_fixture")\nbazel_dep(name="rules_msbuild",version="0.0.0")\nlocal_path_override(module_name="rules_msbuild",path=' + json.dumps(str(ROOT)) + ')\n' + ('bazel_dep(name="platforms",version="1.0.0")\n' if args.selected_native_toolchain else '') + sdk_declarations() + ('register_toolchains("//:native_registered")\n' if args.selected_native_toolchain else '')
+    write(module_file, module_text)
     write(workspace / "Hello.csproj", '<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup><OutputType>Exe</OutputType><TargetFramework>net10.0</TargetFramework><RuntimeIdentifier>linux-arm64</RuntimeIdentifier><PublishAot>true</PublishAot><SelfContained>true</SelfContained><PublishDir>$(BaseIntermediateOutputPath)publish/</PublishDir></PropertyGroup><Target Name="ExportAot" DependsOnTargets="Publish"><Copy SourceFiles="$(PublishDir)Hello" DestinationFiles="$(NativeBinaryOutput)" /></Target></Project>')
     write(workspace / "Program.cs", 'System.Console.WriteLine("NATIVE_AOT_INITIAL");\n')
     for package_id, (digest, _) in PACKAGES.items():
@@ -115,14 +126,43 @@ def main():
         shutil.copyfile(args.toolchain_archive, workspace / "native-toolchain.tar.gz")
     elif declared_toolchain:
         write(workspace / "native_toolchain.bzl", (ROOT / "tests/explicit_msbuild/native_toolchain.bzl").read_text())
-    write(workspace / "BUILD.bazel", build_file(declared_toolchain=declared_toolchain, toolchain_sha256=args.toolchain_sha256, native_packages=native_packages))
+    def build_declaration(**kwargs):
+        return build_file(declared_toolchain=declared_toolchain, toolchain_sha256=args.toolchain_sha256, native_packages=native_packages, selected_native_toolchain=args.selected_native_toolchain, remote_execution=bool(args.remote_executor), **kwargs)
+
+    write(workspace / "BUILD.bazel", build_declaration())
     bazel = [os.environ["RULES_MSBUILD_BAZEL"], "--output_base=" + str(folder / "base"), "--ignore_all_rc_files"]
 
     def build(case, success=True):
-        result = subprocess.run(bazel + ["build", "//:aot", "--jobs=2", "--lockfile_mode=off"], cwd=workspace, capture_output=True, text=True, timeout=600)
+        command = bazel + ["build", "//:aot", "--jobs=2", "--lockfile_mode=off"]
+        if args.remote_executor:
+            command += [
+                "--disk_cache=", "--remote_executor=" + args.remote_executor,
+                "--remote_cache=" + args.remote_executor,
+                "--remote_instance_name=native-aot/" + folder.name,
+                "--noremote_local_fallback", "--spawn_strategy=remote",
+                "--strategy=MSBuildGenerate=remote",
+                "--strategy=MSBuildNativeToolchainPackages=local",
+                "--remote_accept_cached=false",
+                "--remote_upload_local_results=false", "--remote_download_outputs=all",
+                "--remote_default_exec_properties=ISA=aarch64",
+                "--remote_default_exec_properties=OSFamily=linux",
+                "--remote_default_exec_properties=rules_msbuild_image=47a9e2fed018-sdk-removed",
+                "--execution_log_json_file=" + str(folder / (case + ".execution.json")),
+            ]
+        result = subprocess.run(command, cwd=workspace, capture_output=True, text=True, errors="replace", timeout=900)
         output = result.stdout + result.stderr
         write(folder / (case + ".log"), output)
         assert (result.returncode == 0) == success, output[-7000:]
+        if args.remote_executor and success and case in ("initial", "body-edit"):
+            execution = (folder / (case + ".execution.json")).read_text()
+            decoder = json.JSONDecoder()
+            rows = []
+            while execution.strip():
+                row, end = decoder.raw_decode(execution.lstrip())
+                execution = execution.lstrip()[end:]
+                if row.get("mnemonic") == "MSBuildGenerate":
+                    rows.append(row)
+            assert len(rows) == 1 and rows[0]["runner"] == "remote" and not rows[0].get("cacheHit"), rows
         return output
 
     try:
@@ -137,7 +177,7 @@ def main():
         second_hash = hashlib.sha256(binary.read_bytes()).hexdigest()
         assert first_hash != second_hash
         assert subprocess.check_output([binary], text=True).strip() == "NATIVE_AOT_EDIT"
-        write(workspace / "BUILD.bazel", build_file(omit_compiler=True, declared_toolchain=declared_toolchain, toolchain_sha256=args.toolchain_sha256))
+        write(workspace / "BUILD.bazel", build_declaration(omit_compiler=True))
         failure = build("missing-compiler", success=False)
         assert "Microsoft.DotNet.ILCompiler" in failure and ("NU1100" in failure or "NU1101" in failure), failure[-7000:]
         if args.declared_toolchain and not args.toolchain_archive:
@@ -149,12 +189,19 @@ def main():
             bad_archive = build("bad-toolchain-hash", success=False)
             assert "Native toolchain archive differs from locked SHA-256" in bad_archive, bad_archive[-7000:]
         if native_packages is not None:
-            write(workspace / "BUILD.bazel", build_file(declared_toolchain=True, native_packages=native_packages, bad_native_package=True))
+            write(workspace / "BUILD.bazel", build_declaration(bad_native_package=True))
             bad_package = build("bad-native-package-hash", success=False)
             assert "Native package differs from locked SHA-256" in bad_package, bad_package[-7000:]
-        write(folder / "report.json", json.dumps({"platform": "linux-arm64", "sdk": "10.0.400", "aotPackages": VERSION, "declaredToolchain": declared_toolchain, "toolchainArchiveSha256": args.toolchain_sha256, "nativePackageCount": len(native_packages) if native_packages is not None else 0, "initialSha256": first_hash, "bodyEditSha256": second_hash, "missingCompilerRejected": True, "missingNativeCompilerRejected": args.declared_toolchain and not args.toolchain_archive, "badArchiveRejected": bool(args.toolchain_archive), "badNativePackageRejected": native_packages is not None}, indent=2) + "\n")
+        if args.selected_native_toolchain:
+            write(workspace / "BUILD.bazel", build_declaration())
+            write(module_file, module_text.replace('register_toolchains("//:native_registered")\n', ''))
+            missing_native = build("missing-selected-native-toolchain", success=False)
+            assert "No native toolchain matches this platform" in missing_native, missing_native[-7000:]
+            write(module_file, module_text)
+        write(folder / "report.json", json.dumps({"platform": "linux-arm64", "sdk": "10.0.400", "aotPackages": VERSION, "declaredToolchain": declared_toolchain, "selectedNativeToolchain": args.selected_native_toolchain, "remoteExecution": bool(args.remote_executor), "toolchainArchiveSha256": args.toolchain_sha256, "nativePackageCount": len(native_packages) if native_packages is not None else 0, "initialSha256": first_hash, "bodyEditSha256": second_hash, "missingCompilerRejected": True, "missingNativeCompilerRejected": args.declared_toolchain and not args.toolchain_archive, "missingSelectedNativeToolchainRejected": args.selected_native_toolchain, "badArchiveRejected": bool(args.toolchain_archive), "badNativePackageRejected": native_packages is not None}, indent=2) + "\n")
     finally:
-        write(workspace / "BUILD.bazel", build_file(declared_toolchain=declared_toolchain, toolchain_sha256=args.toolchain_sha256, native_packages=native_packages))
+        write(module_file, module_text)
+        write(workspace / "BUILD.bazel", build_declaration())
         subprocess.run(bazel + ["shutdown"], cwd=workspace, check=True)
 
 

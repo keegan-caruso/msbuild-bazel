@@ -2,6 +2,7 @@
 
 TOOLCHAIN = Label("//msbuild:toolchain_type")
 RUNTIME_TOOLCHAIN = Label("//msbuild:runtime_toolchain_type")
+NATIVE_TOOLCHAIN = Label("//msbuild:native_toolchain_type")
 
 def runtime_package(row, ctx = None):
     return {"id": row.id, "version": row.version, "directory": runfile(ctx, row.directory) if ctx else row.directory.path}

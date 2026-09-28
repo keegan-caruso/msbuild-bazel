@@ -52,9 +52,10 @@ controls.
 The source URLs are mutable Ubuntu archive locations; the locked SHA-256 values
 fail closed if their bytes change or disappear. Package assembly still relies
 on the local Ubuntu `dpkg-deb` implementation, so it is not yet a remotely
-executable Bazel action. This qualification covers Ubuntu 22.04 ARM64 and one
-AOT project; it does not establish a minimal compiler closure, cross-platform
-toolchain, remote execution or source-built NativeAOT.
+executable Bazel action. This package-assembly qualification covers Ubuntu
+22.04 ARM64 and one AOT project; it does not establish a minimal compiler
+closure, cross-platform toolchain or source-built NativeAOT. Remote generation
+is qualified below.
 
 ## Fresh compiler-free consumer
 
@@ -81,3 +82,72 @@ the pinned SDK, Bazel, `dpkg-deb` and declared package payloads for the native
 compiler and linker inputs. This validates a fresh local build; it does not
 establish remote execution, because package assembly still uses an ambient
 `dpkg-deb`.
+
+## Bazel selection and remote execution
+
+An app can bind the package-built tree to Bazel's native toolchain type and
+register it for a compatible execution and target platform. `msbuild_generate`
+then selects that binding with `use_native_toolchain = True`; it fails analysis
+if no matching toolchain is registered. The explicit `native_toolchain` label
+remains available for a directly chosen tree.
+
+```starlark
+msbuild_native_toolchain_packages(
+    name = "native_packages",
+    manifest = "native-aot-files.manifest",
+    packages = {
+        "packages/libc6-dev.deb": "<locked SHA-256>",
+        # Include the other 33 locked package archives.
+    },
+)
+msbuild_native_toolchain(name = "native_binding", root = ":native_packages")
+toolchain(
+    name = "native_registered",
+    toolchain = ":native_binding",
+    toolchain_type = "@rules_msbuild//msbuild:native_toolchain_type",
+    exec_compatible_with = ["@platforms//os:linux", "@platforms//cpu:aarch64"],
+    target_compatible_with = ["@platforms//os:linux", "@platforms//cpu:aarch64"],
+)
+msbuild_generate(
+    name = "aot",
+    # Project, sources, locked NuGet packages, targets and outputs as above.
+    use_native_toolchain = True,
+    allow_remote_execution = True,
+)
+```
+
+Register `//:native_registered` in `MODULE.bazel` with
+`register_toolchains("//:native_registered")`. The
+[acceptance fixture](../tests/explicit_msbuild/native_aot.py) writes a complete
+BUILD declaration with the locked package hashes.
+
+On the same Ubuntu 22.04 ARM64 client, the selected-toolchain fixture passed
+with no installed native compiler, including the initial build, body edit,
+missing ILCompiler, bad `.deb` hash and missing-registration controls. The
+client then ran it against the pinned [Buildbarn fixture](remote-execution.md#reproduce-with-buildbarn)
+with the worker's installed SDK removed and no installed compiler or linker:
+
+```sh
+python3 tests/explicit_msbuild/native_aot.py /work/aot-selected-remote-final \
+  --package-cache /work/native-aot-cache \
+  --native-package-directory /work/native-aot-debs \
+  --selected-native-toolchain \
+  --remote-executor grpc://WORKER_IP:8980
+```
+
+Local fallback and remote action-cache reads were disabled. Bazel's initial
+execution log recorded one remote SDK-runner bootstrap, six remote NuGet
+extractions, one **local** native package assembly, and one remote
+`MSBuildGenerate`. A body edit ran one new remote `MSBuildGenerate`. Both
+binaries ran on the client and had the same hashes as the local runs above.
+Removing the toolchain registration failed analysis; removing ILCompiler and
+changing a `.deb` hash also failed closed. The stream reader now drains
+`dpkg-deb`'s remaining tar padding before closing its output pipe; the remote
+qualification exposed an intermittent broken-pipe failure without that drain.
+The [evidence JSON](native-aot-packages-evidence.json) summarizes the results.
+
+Package assembly remains a local action because it invokes the build image's
+`/usr/bin/dpkg-deb`. The remote fixture explicitly selects its local strategy
+while forcing generation remote. This establishes remote execution for one
+Linux ARM64 Native AOT app, not remote execution of package assembly, other
+architectures or a complete application graph.

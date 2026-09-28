@@ -64,8 +64,11 @@ source-built NativeAOT, Mono/WASM, cross-compilation or crossgen/R2R. A separate
 [Native AOT publish](native-aot.md) uses the downloaded SDK and a declared,
 hash-checked native toolchain archive. An independent compiler-free consumer
 recovered its build from HTTP cache and executed a body edit locally. Native
-products are built locally in a declared namespace; HTTP cache recovery does
-not qualify remote execution of that graph. Separate
+products in that archive experiment were built locally in a declared namespace;
+HTTP cache recovery alone does not qualify remote execution. The later
+[locked-package Native AOT fixture](native-aot-packages.md#bazel-selection-and-remote-execution)
+ran initial and body-edited generation actions remotely on an SDK-free ARM64
+worker, while native package assembly remained local. Separate
 [remote-execution qualification](remote-execution.md)
 covers bounded managed fixtures and the expanded Avalonia slices on an SDK-free
 ARM64 worker with Bazel 8.8.0 and 9.2.0.

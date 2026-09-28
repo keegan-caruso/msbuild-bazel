@@ -62,13 +62,18 @@ internal static class NativeToolchainPackages
             extract.ArgumentList.Add(Path.GetFullPath(package.Archive));
             using var process = Process.Start(extract) ?? throw new InvalidDataException("Could not start dpkg-deb");
             var errorTask = process.StandardError.ReadToEndAsync();
-            using (var tar = new TarReader(process.StandardOutput.BaseStream))
+            var outputStream = process.StandardOutput.BaseStream;
+            using (var tar = new TarReader(outputStream, leaveOpen: true))
             {
                 while (tar.GetNextEntry() is { } entry)
                 {
                     CopySelected(entry, output, selected, copied);
                 }
             }
+
+            // TarReader stops at the archive end marker; dpkg-deb may still
+            // write padding. Drain the pipe before closing it.
+            outputStream.CopyTo(Stream.Null);
 
             process.WaitForExit();
             if (process.ExitCode != 0)

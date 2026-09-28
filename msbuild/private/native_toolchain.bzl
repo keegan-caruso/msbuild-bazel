@@ -1,4 +1,4 @@
-"""Extract a locked native toolchain archive as a Bazel tree input."""
+"""Assemble and bind a declared native compiler tree for MSBuild actions."""
 
 load(":paths.bzl", _TOOLCHAIN = "TOOLCHAIN")
 
@@ -78,4 +78,14 @@ msbuild_native_toolchain_packages = rule(
         "manifest": attr.label(allow_single_file = True, mandatory = True),
     },
     toolchains = [_TOOLCHAIN],
+)
+
+def _native_toolchain(ctx):
+    if not ctx.file.root.is_directory:
+        fail("Native toolchain root must be a single tree artifact")
+    return [platform_common.ToolchainInfo(root = ctx.file.root)]
+
+msbuild_native_toolchain = rule(
+    implementation = _native_toolchain,
+    attrs = {"root": attr.label(allow_single_file = True, mandatory = True)},
 )
