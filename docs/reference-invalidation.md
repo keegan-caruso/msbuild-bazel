@@ -1,8 +1,8 @@
 # Incremental compilation at reference boundaries
 
-For `A → B → C`, a changed C reference requires B to compile. If B emits the same
-reference assembly, A can reuse its compilation **provided C is not also an input
-to A's compiler**. Bazel already makes this distinction through artifact inputs.
+In `A → B → C`, changing C's reference assembly makes B recompile. If B's
+reference assembly stays the same, A can reuse its compilation **only if A's
+compiler does not also receive C**. Bazel tracks this through artifact inputs.
 The default SDK-style transitive graph gives A both B and C, so that default does
 not provide this cutoff. Do not remove C merely because today's source appears
 not to use it.

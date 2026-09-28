@@ -1,9 +1,8 @@
 # Configured project graphs
 
-A graph node is a project path plus its global properties, including its selected
-framework and configuration. The production rules keep these declarations in
-BUILD files. The OSS fixture inventory is test scaffolding; it is not part of
-application builds.
+Each graph node identifies a project path and its global properties, including
+framework and configuration. BUILD files declare these nodes. The OSS fixture
+inventory is test scaffolding and does not run in application builds.
 
 ## Contracts
 

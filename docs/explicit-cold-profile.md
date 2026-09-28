@@ -1,11 +1,11 @@
 # Cold Linux worker profile
 
-Profiled the explicit-rule implementation based on `2deee67`, using the same
-129-project package-free binary tree, .NET 10.0.400, Bazel 8.4.2, Ubuntu 22.04
-ARM64 Apple container, four vCPUs and 6 GiB RAM. All builds ran on native Linux
-storage. SDK/repository downloads and runner bootstrap were prepared beforehand;
-action caches were disabled. No production optimization was applied in this
-experiment. The new instrumentation is opt-in with `profile_build = True`.
+This profile uses rules commit `2deee67` and a 129-project tree without
+packages. It ran with .NET 10.0.400 and Bazel 8.4.2 in an Ubuntu 22.04 ARM64
+Apple container with four vCPUs, 6 GiB RAM and native Linux storage. SDK and
+repository downloads and runner bootstrap finished before timing; action
+caches were off. No production optimization was made. Set
+`profile_build = True` to enable the instrumentation.
 
 ## End-to-end boundaries
 

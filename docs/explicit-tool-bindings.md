@@ -1,8 +1,9 @@
 # Explicit MSBuild task tools
 
-The first implementation of the [build-input design (historical)](https://github.com/keegan-caruso/msbuild-bazel/blob/46d7f37b5cf36e62453a2a511697562107ce6ee2/docs/explicit-build-input-design.md)
-adds a build-only project role and task property bindings. It does not introduce
-NBGV, Avalonia or Arcade names into the runner.
+These rules declare project-built task tools and bind their paths to MSBuild
+properties. The runner contains no NBGV, Avalonia or Arcade-specific logic.
+The [original design](https://github.com/keegan-caruso/msbuild-bazel/blob/46d7f37b5cf36e62453a2a511697562107ce6ee2/docs/explicit-build-input-design.md)
+remains available for context.
 
 ```python
 load("@rules_msbuild//msbuild:defs.bzl", "msbuild_tool", "msbuild_file_binding", "msbuild_library")

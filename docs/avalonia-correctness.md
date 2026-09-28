@@ -1,7 +1,7 @@
 # Avalonia edit and Headless qualification
 
-This continues the pinned [expanded Avalonia graph](avalonia-expanded.md).
-The controls exercise dependency correctness, not performance.
+These tests extend the [expanded Avalonia graph](avalonia-expanded.md) to check
+which builds and tests rerun after edits. They do not measure performance.
 
 The four edit/restoration controls pass on **Bazel 8.8.0 and 9.2.0**, using
 the SDK-free Linux ARM64 worker. [Evidence](avalonia-invalidation-evidence.json)
@@ -25,8 +25,9 @@ The IDL changes its generated output and friend-visible reference contract.
 The XAML changes the runtime assembly while preserving reference bytes. The
 negative controls must produce failing test cases or, for the corrupt native
 library, an aborted test host that reports the exact Fontconfig loader error.
-An unrelated failed Bazel command does not satisfy the control. Every restoration must recover the original passing outcomes without
-executing compilation, generation, or tests.
+An unrelated Bazel failure does not satisfy the control. Restoring each input
+must recover the original passing outcomes without running compilation,
+generation or tests.
 
 ```sh
 python3 tests/explicit_msbuild/avalonia/invalidation.py /path/to/expanded/bazel \

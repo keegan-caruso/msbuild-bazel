@@ -1,8 +1,8 @@
 # A .NET app built with Bazel
 
 This example has a library, an application and an executable test, with no NuGet
-packages. Its generated project graph is committed. Bazel acquires the SDK named
-in `global.json`, builds the runner and supplies the bundled application runtime.
+packages. Its generated Bazel declarations are committed. Bazel acquires the
+SDK named in `global.json`, builds the runner and supplies the bundled runtime.
 You need **Bazelisk** (available as `bazel`), Git and the host OS prerequisites;
 you do not need to install .NET or run a repository setup/generation script.
 

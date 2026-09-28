@@ -1,8 +1,8 @@
 # ASP.NET Core large managed graph qualification
 
-The full selected graph compiles with explicit Bazel rules and recovers from an
-HTTP action cache in an independent Linux container. This qualifies the selected
-managed graph, not the entire ASP.NET Core repository build.
+The selected managed graph compiles with explicit Bazel rules. A separate Linux
+container recovers it from an HTTP action cache. This does not qualify the
+entire ASP.NET Core repository build.
 
 ## Upstream workload
 

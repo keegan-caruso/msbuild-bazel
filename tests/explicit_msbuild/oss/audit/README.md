@@ -1,7 +1,7 @@
 # Compatibility contract probes
 
-These focused probes call the existing runner validators with minimal evaluated
-MSBuild declarations. They are not upstream builds and do not change the rules.
+These probes call the runner's validators with small evaluated MSBuild
+declarations. They do not build upstream projects or change production rules.
 Run on the qualified Linux ARM64 SDK environment after building `ExplicitBuild`:
 
 ```sh

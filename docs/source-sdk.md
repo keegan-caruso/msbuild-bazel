@@ -1,8 +1,8 @@
 # Building the SDK from source
 
-The pinned `dotnet/dotnet` revision `b0f34d51fccc69fd334253924abd8d6853fad7aa`
-builds a .NET SDK 10.0.100 on Ubuntu 22.04 ARM64 with Bazel 9.2.0. A configured
-22-component Bazel graph produces an SDK layout that builds and runs an app.
+Revision `b0f34d51fccc69fd334253924abd8d6853fad7aa` of `dotnet/dotnet`
+builds a .NET SDK 10.0.100 on Ubuntu 22.04 ARM64 with Bazel 9.2.0. The
+22-component Bazel graph produces an SDK that builds and runs an app.
 The default downloaded SDK remains unchanged; both use the
 [SDK artifact contract](sdk-toolchains.md). This is a qualified source build,
 not a general source-built SDK distribution or a cross-platform claim.

@@ -1,7 +1,7 @@
 # Smallest authored CoreCLR/JIT bootstrap probe
 
-This is an **unqualified boundary**, not a passing JIT result. The additional
-[Pipelines suite](runtime-pipelines.md) is the completed runtime-coverage extension.
+The authored JIT probe has **not been qualified as passing**. The
+[Pipelines suite](runtime-pipelines.md) is a separate, completed runtime test.
 
 At pinned runtime v10.0.0 revision `60629d14374c56f1cb51819049ad1fa529307f8d`,
 probe `src/tests/JIT/CodeGenBringUpTests/Add1_ro.csproj` with SDK 10.0.400 on Linux

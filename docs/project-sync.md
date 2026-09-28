@@ -1,8 +1,8 @@
 # Synchronizing projects into BUILD declarations
 
-`ProjectSync` is an initial, local BUILD-file generator. It uses MSBuild evaluation
-with an explicitly selected SDK; it does not parse project XML into guessed
-property values. Ordinary Bazel builds do not invoke it.
+`ProjectSync` generates BUILD declarations locally. It asks MSBuild to evaluate
+each project with the selected SDK, instead of guessing values from XML.
+Ordinary Bazel builds do not run sync.
 
 ## App developer setup
 
@@ -65,8 +65,9 @@ existing output. The generated `app_projects()` must also be called from the roo
 Project paths are strings rather than labels: sync deliberately evaluates the
 current checkout at **run time**, using `BUILD_WORKSPACE_DIRECTORY`. It can find
 new source files and imports without first declaring them as inputs to itself.
-The generator bootstrap and declared input producers are cached build actions. Project evaluation and
-writes are explicit local developer operations, never remote build actions.
+The generator and its declared input producers are cached build actions.
+Project evaluation and file writes run locally when you request sync; they
+never run as remote build actions.
 Use a host-compatible SDK execution platform for this local tool; cross-platform
 execution configurations are not qualified.
 
@@ -204,11 +205,10 @@ Use `projects` in the same mappings file for per-project configuration:
 }
 ```
 
-The framework list selects a subset of the **evaluated declared frameworks**;
-unknown frameworks fail. Omitting it keeps every declared framework. Properties
-are applied both during evaluation and in the generated `msbuild_properties`.
-They are local to that project, not silently propagated through its dependency
-graph. Give dependencies their own mappings where needed. Project and test
+The framework list chooses from the project's **evaluated declared frameworks**;
+unknown values fail. Omit it to keep every framework. Properties affect both
+evaluation and the generated `msbuild_properties`. They apply only to this
+project; map dependencies separately when needed. Project and test
 properties combine; conflicting values fail. Reserved configuration/framework
 properties still cannot be overridden through the property dictionary. Stale or
 unreachable project mappings fail before writing output.
@@ -294,9 +294,9 @@ filesystem evaluation behavior.
 
 ### Shared project defaults
 
-`projectDefaults` applies to every reachable project, including projects without
-an entry in `projects`. Keep ordinary SDK/global.json setup unchanged; defaults
-are optional when a graph repeats reviewed configuration:
+`projectDefaults` applies to every reachable project, even one with no
+`projects` entry. Ordinary SDK/global.json setup needs no defaults. Use them
+when several projects share reviewed configuration:
 
 ```json
 {
@@ -423,9 +423,10 @@ Changed hashes/target lists/task lists and stale document paths fail. These are
 hermetic. Declare all files/tools/layouts that those targets consume. Property
 functions expecting a merged tool-directory layout are not qualified.
 
-SDK `InternalsVisibleTo` declarations are retained. `AssemblyOriginatorKeyFile`
-is a required tracked input even when it is an uncopied `None` file. The synthetic suite checks signed friends and wrong-key rejection; signed upstream
-builds are not yet qualified.
+Sync retains SDK `InternalsVisibleTo` declarations. It also tracks
+`AssemblyOriginatorKeyFile`, even when the key is an uncopied `None` file.
+Synthetic tests cover signed friends and wrong-key rejection; signed upstream
+builds remain unqualified.
 
 ## Explicit limits
 

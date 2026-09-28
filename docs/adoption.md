@@ -1,9 +1,9 @@
 # Adoption, upgrades and distribution
 
-The supported entry point is the [SDK-and-sync quickstart](../examples/quickstart/README.md):
-normal `.csproj` files, a tracked SDK pin, an authored sync target and committed
-generated declarations. Builds and tests use the explicit graph; synchronization
-is a deliberate local operation when evaluated inputs change.
+Start with the [SDK-and-sync quickstart](../examples/quickstart/README.md).
+Keep normal `.csproj` files, pin the SDK, declare a sync target, and commit the
+generated Bazel declarations. Build and test from those declarations. Run sync
+locally when project inputs change.
 
 ## Current distribution and compatibility
 

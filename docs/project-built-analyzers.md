@@ -1,9 +1,9 @@
 # Project-built analyzers
 
-`analyzers` accepts `msbuild_library` targets as well as package targets. The
-project edge consumes the implementation/runtime output and its declared runtime
-closure, independently of the consumer's target framework. It does not export
-compile references, packages, or runtime files to the application.
+`analyzers` accepts both `msbuild_library` and package targets. A project-built
+analyzer uses its implementation and declared runtime files, regardless of the
+consumer's target framework. It does not add compile references, packages or
+runtime files to the application.
 
 The evaluated ProjectReference must declare `OutputItemType="Analyzer"` and
 `ReferenceOutputAssembly="false"`. Ordinary compile references retain the existing

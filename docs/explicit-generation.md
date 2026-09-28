@@ -1,8 +1,8 @@
 # Explicit MSBuild generation
 
-`msbuild_generate` runs declared targets after offline restore, without requiring
-an assembly build. It accepts the same explicit input/package/tool declarations as
-assembly rules. Outputs are individual Bazel file artifacts, not an opaque tree.
+`msbuild_generate` runs declared MSBuild targets after offline restore, without
+building an assembly. It accepts the same input, package and tool declarations
+as assembly rules. Each output is a separate Bazel file.
 
 ```python
 msbuild_generate(

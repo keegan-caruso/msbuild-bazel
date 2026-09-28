@@ -1,7 +1,7 @@
 # Dependency input audit
 
-Bazel owns inter-project scheduling and caching; MSBuild retains project SDK and
-NuGet behavior. This audit follows each input to its consumer before narrowing it.
+Bazel schedules and caches project builds; MSBuild still handles SDK and NuGet
+behavior. This audit checks who uses each input before removing it from an action.
 
 ## Compilation inputs and consumers
 

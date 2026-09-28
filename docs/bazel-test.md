@@ -1,10 +1,10 @@
 # Bazel test execution
 
-`msbuild_test` builds one assembly/framework with the normal explicit project
-inputs, then runs a separate Bazel test action. Test execution never restores,
-evaluates a project, or compiles. The test action consumes implementation/runtime
-closures; reference assemblies remain compilation inputs only. Consequently a
-body-only dependency edit can rerun tests without recompiling their assemblies.
+`msbuild_test` builds one assembly for one framework, then runs it in a separate
+Bazel test action. Testing does not restore, evaluate or compile the project.
+It uses implementation and runtime files, while compilation uses reference
+assemblies. A dependency body edit can therefore rerun tests without
+recompiling their assemblies.
 
 ## Tests across frameworks
 

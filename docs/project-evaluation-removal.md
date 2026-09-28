@@ -1,8 +1,8 @@
 # Evaluation: work to remove or share
 
-Original analysis based on `5c89f6f` plus opt-in evaluation profiling. The initial
-experiment below ran in a disposable Linux container. Parsed-XML reuse is now
-enabled for persistent workers; see the production validation below.
+This report starts at rules commit `5c89f6f` and profiles MSBuild evaluation
+in a disposable Linux container. Persistent workers now reuse parsed XML;
+the later validation below checks the production change.
 
 ## Main finding: reuse parsed SDK XML and target bodies
 

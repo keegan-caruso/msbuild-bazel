@@ -1,7 +1,7 @@
 # Persistent native action-cache service
 
-The macOS ARM64 service uses the repository-pinned bazel-remote 2.6.2 binary.
-No container is required. Install using an already downloaded binary:
+On macOS ARM64, the action-cache service runs the pinned bazel-remote 2.6.2
+binary directly. Install it from an already downloaded binary:
 
 ```sh
 bash scripts/install-native-cache.sh /absolute/path/bazel-remote

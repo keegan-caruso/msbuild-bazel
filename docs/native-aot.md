@@ -1,9 +1,9 @@
 # Native AOT: first Linux build
 
-An SDK-style `net10.0` console app can publish a runnable Linux ARM64 Native
-AOT executable through a Bazel action. MSBuild owns `Publish` and the
-ILCompiler invocation. Bazel owns the project source, SDK, six pinned NuGet
-package archives, native toolchain input, and binary output.
+Bazel can publish a runnable Linux ARM64 Native AOT executable from an
+SDK-style `net10.0` console app. MSBuild still runs `Publish` and ILCompiler.
+Bazel tracks the source, SDK, six pinned NuGet archives, native toolchain and
+binary output.
 
 ## Rule shape
 

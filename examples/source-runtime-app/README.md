@@ -1,8 +1,9 @@
 # App on a source-built runtime
 
-This ordinary `net10.0` console app is the acceptance example for the
-[source-runtime goal](../../docs/runtime-application.md). Its BUILD file belongs
-in the prepared workspace as `app/`, alongside the declared `//runtime:app_host`.
+This `net10.0` console app tests the
+[source-built runtime workflow](../../docs/runtime-application.md). Its BUILD
+file belongs in the prepared workspace as `app/`, alongside the declared
+`//runtime:app_host`.
 It is not a standalone workspace.
 
 The app exercises JSON serialization, asynchronous stream reading, gzip and

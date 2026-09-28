@@ -1,6 +1,6 @@
 # Runtime cache-miss diagnosis
 
-The aborted raw-timing follow-up did not use the qualified Bazel version.
+An aborted raw-timing follow-up accidentally used the wrong Bazel version.
 Apple Container's `exec -e RULES_MSBUILD_BAZEL=/tmp/bazel-9.2.0` retained the image's
 existing value, `/opt/rules_msbuild-toolchain/.tools/bin/bazel`, which is **8.4.2**.
 The output base's Java log confirms `Build label: 8.4.2`. The successful seed's

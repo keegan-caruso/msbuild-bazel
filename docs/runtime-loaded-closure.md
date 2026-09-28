@@ -1,8 +1,9 @@
 # Loaded runtime dependency closure
 
-This report records the seven-suite step. The [Pipelines extension](runtime-pipelines.md)
-and [source-only host](runtime-source-host.md) are the current cumulative boundary;
-the latter replaces the installed template and 10.0.11 layout described below.
+This report covers the earlier seven-suite test host. The
+[Pipelines extension](runtime-pipelines.md) adds an eighth suite, and the
+[source-only host](runtime-source-host.md) replaces the installed template
+and 10.0.11 layout described here.
 
 Qualified runtime v10.0.0 (`60629d14374c56f1cb51819049ad1fa529307f8d`),
 Linux ARM64, SDK 10.0.400 and Bazel 9.2.0. This extends the seven suites in

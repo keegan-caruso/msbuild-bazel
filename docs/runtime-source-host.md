@@ -1,9 +1,9 @@
 # Source-only runtime test host
 
-The selected dotnet/runtime v10.0.0 test host now uses **10.0.0** metadata and
+The selected dotnet/runtime v10.0.0 test host uses **10.0.0** metadata and
 contains **131 source-built binaries**: 121 shared managed assemblies, one private
-formatter, eight native products and the qualification probe. No installed SDK
-runtime binaries remain in its template. The 58 unused template components are
+formatter, eight native products and the test probe. Its template contains no
+installed SDK runtime binaries. The 58 unused template components are
 excluded explicitly, and the startup observer rejects loads of those components
 from outside the host.
 

@@ -1,7 +1,7 @@
 # Explicit package semantics
 
-The first Orchard compatibility fix retains original NuGet package metadata while
-pinning the declared package graph. Central `PackageVersion` entries supply the
+The rules keep Orchard's NuGet package metadata while pinning the declared
+package graph. Central `PackageVersion` entries supply the
 lock version when central management is enabled. Original versions and version
 ranges must agree with the lock, and restored package identities are checked
 against it. Implicit SDK package references keep their SDK behavior.

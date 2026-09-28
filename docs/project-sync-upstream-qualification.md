@@ -1,8 +1,8 @@
 # Generated upstream qualification
 
-Production `msbuild_sync` now emits buildable ObjectPool and Pipelines entry
-projects at the revisions in the [original inventory](project-sync-upstream.md).
-These are bounded slices, not whole-repository compatibility.
+Production `msbuild_sync` generates buildable ObjectPool and Pipelines entry
+projects at the revisions in the [inventory](project-sync-upstream.md). These
+results cover selected slices, not either whole repository.
 
 ## Measured results
 

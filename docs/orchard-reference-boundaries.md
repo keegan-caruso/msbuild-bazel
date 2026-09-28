@@ -1,8 +1,8 @@
 # Orchard after reference-boundary inference
 
-PR #92 is merged at `7d63ab98ac57ca70587d8e7c7686c45f58614dca`. The complete
-202-project Orchard CMS graph still builds and passes its four HTTP smoke checks.
-**The inference change does not improve this graph's broad API edit by itself.**
+At rules commit `7d63ab98ac57ca70587d8e7c7686c45f58614dca` (merged PR #92),
+the 202-project Orchard CMS graph builds and passes four HTTP smoke checks.
+**Reference inference alone does not speed up its broad API edit.**
 Orchard's generated declarations use transitive compiler references; regeneration
 on merged main preserves their bytes. No direct-only opt-in is present.
 

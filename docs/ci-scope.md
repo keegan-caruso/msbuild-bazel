@@ -1,7 +1,8 @@
 # Manual CI scope
 
-GitHub CI runs only on explicit request. The
-[Linux workflow](../.github/workflows/linux.yml) uses `workflow_dispatch` only. Pushes and pull requests do not start CI.
+GitHub CI runs only when requested. The
+[Linux workflow](../.github/workflows/linux.yml) uses `workflow_dispatch`;
+pushes and pull requests do not start it.
 There is no macOS workflow; macOS qualification is local.
 
 ## Linux phases

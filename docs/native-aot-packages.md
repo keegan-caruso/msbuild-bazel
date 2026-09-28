@@ -1,7 +1,7 @@
 # Native AOT toolchain from locked Ubuntu packages
 
-The Linux ARM64 Native AOT fixture can now assemble its compiler and sysroot
-tree from 34 SHA-256-pinned Ubuntu 22.04 `.deb` payloads. The
+The Linux ARM64 Native AOT fixture assembles its compiler and sysroot from
+34 Ubuntu 22.04 `.deb` packages pinned by SHA-256. The
 [package lock](../tests/explicit_msbuild/native_aot_packages.lock.json) names
 each exact version, architecture, source URL, SHA-256 and copyright path. The
 [retained-file manifest](../tests/explicit_msbuild/native_aot_files.manifest)

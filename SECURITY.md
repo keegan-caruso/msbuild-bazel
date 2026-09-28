@@ -1,7 +1,7 @@
 # Security
 
-This is an experimental build integration. There is no supported stable release
-line or promised security-response SLA; fixes target the current main branch.
+This build integration is experimental. There is no stable release or guaranteed
+security response time. Fixes target the current main branch.
 
 ## Reporting
 

@@ -1,9 +1,9 @@
 # Remote generation and package inputs
 
-These bounded controls use SDK 10.0.400 and an SDK-free Ubuntu 22.04 ARM64
-Buildbarn worker. Local fallback is disabled. They extend the
-[remote graph qualification](remote-execution.md); they do not qualify a complete
-Avalonia build, cross-compilation, or other worker platforms.
+These tests use SDK 10.0.400 and an Ubuntu 22.04 ARM64 Buildbarn worker without
+an installed SDK. Local fallback is disabled. They extend the
+[remote graph qualification](remote-execution.md), but do not qualify a full
+Avalonia build, cross-compilation or other worker platforms.
 
 ## Standalone source generation
 

@@ -1,10 +1,10 @@
 # Independent cache recovery for generated graphs
 
-Stage 3 of the [roadmap](roadmap.md) uses the complete generated
-[HTTP](project-sync-http-full.md) and [Immutable](project-sync-immutable-full.md)
-graphs. The producer and consumer are separate Linux ARM64 containers with
-SDK 10.0.400 and Bazel 9.2.0. This is HTTP action-cache qualification, not remote
-execution or a new source-built runtime-host qualification.
+The complete generated [HTTP](project-sync-http-full.md) and
+[Immutable](project-sync-immutable-full.md) graphs recover from an HTTP action
+cache in separate Linux ARM64 containers. Both use SDK 10.0.400 and Bazel
+9.2.0. This checks cache recovery, not remote execution or a source-built
+runtime host.
 
 ## Isolation and acquisition
 

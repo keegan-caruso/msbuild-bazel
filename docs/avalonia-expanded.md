@@ -1,8 +1,8 @@
 # Expanded Avalonia qualification
 
-This extends the [remote Avalonia slice](avalonia-remote-execution.md) with larger
-upstream suites, managed libraries, and Desktop/Skia. It is correctness coverage,
-not a performance comparison or whole-repository support claim.
+This extends the [remote Avalonia slice](avalonia-remote-execution.md) with
+larger test suites, managed libraries and Desktop/Skia. The results check
+correctness; they do not benchmark or qualify the whole repository.
 
 ## Qualified coverage
 

@@ -1,8 +1,8 @@
 # Runtime repository primitives
 
-These generic rules cover the six capability gaps from the initial dotnet/runtime
-source audit. They are qualified with small synthetic projects, not a build of
-CoreCLR, CoreLib or dotnet/runtime's libraries and tests.
+These rules cover six needs found in the first dotnet/runtime source audit.
+Small synthetic projects qualify them; this section does not claim a full
+CoreCLR, CoreLib or dotnet/runtime build.
 
 ## Assembly contracts and configured edges
 
@@ -91,9 +91,10 @@ root. Destinations must be relative and conflicting contents fail. Byte-identica
 duplicate files are permitted. Bazel expands declared tree artifacts into an
 explicit file manifest; composition copies only those files, materializing sandbox
 links as regular files. It never discovers inputs by walking symlink targets.
-File modes are preserved, including native executable bits. Empty tree roots are
-supported; empty subdirectories are not a portable part of Bazel tree artifacts. Each label must produce one file or
-directory; use file labels/output groups for multi-output producers.
+File modes, including executable bits, are preserved. Empty tree roots work,
+but Bazel tree artifacts do not portably retain empty subdirectories. Each
+label must produce one file or directory; use file labels or output groups
+when a producer has several outputs.
 
 `layout_bindings = {":bootstrap_layout": "BootstrapRoot"}` binds a project's
 MSBuild property to a staged, read-only layout directory, including a trailing

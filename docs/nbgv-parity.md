@@ -1,8 +1,8 @@
 # NBGV parity fixture and late adapters
 
-`adapter_imports` on explicit assembly rules imports declared `.targets` files
-immediately after SDK targets (including restored package targets). They remain
-ordinary read-only action inputs. Worker path mapping applies to these imports.
+`adapter_imports` loads declared `.targets` files just after SDK targets,
+including restored package targets. These files remain read-only action inputs,
+and worker path mapping applies to them.
 Shared restore is rejected when adapters are present. No package-specific logic
 was added to the runner.
 

@@ -1,8 +1,8 @@
 # Package borrowing in the explicit model
 
-Keep read-only borrowing in the new explicit rules. It is already their behavior;
-the older generated-workflow `borrow-package-inputs` switch does not control them.
-No production implementation or default changed in this experiment.
+Explicit rules already borrow verified package trees through read-only links.
+The retired generated-workflow `borrow-package-inputs` switch does not affect
+them. This experiment changed no production code or default.
 
 ## Controlled comparison
 

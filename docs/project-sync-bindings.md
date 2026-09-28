@@ -1,7 +1,7 @@
 # Explicit sync contracts: qualification
 
-The five generator blocker areas now have explicit inputs/mappings and small
-end-to-end controls. This qualifies the primitives, **not generated builds of
+Five generator blockers now have explicit inputs, mappings and small end-to-end
+tests. These qualify the individual contracts, **not generated builds of
 ASP.NET Core or dotnet/runtime**. The authored upstream adapters retain their
 separate qualification. The later [upstream qualification](project-sync-upstream-qualification.md)
 applies these contracts to ObjectPool and Pipelines. See [API and limits](project-sync.md).

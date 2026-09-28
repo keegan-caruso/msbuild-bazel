@@ -1,9 +1,9 @@
 # Compatible frameworks and dual-role tools
 
-Compile dependencies select exactly one configured Bazel label per project.
-The runner checks each direct edge using the pinned SDK's NuGet.Frameworks
-compatibility provider before project preparation. It does not discover or select
-another target framework. Unsupported frameworks and incompatible edges fail.
+Each compile dependency selects one configured Bazel target for its project.
+Before preparing the project, the runner checks that edge with the pinned SDK's
+NuGet.Frameworks compatibility provider. It does not choose a different target
+framework. Unsupported frameworks and incompatible edges fail.
 Existing transitive reference/runtime/package propagation remains unchanged.
 
 A project can now be both a compile dependency (`deps`) and a build tool (`tools`).

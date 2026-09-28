@@ -1,8 +1,8 @@
 # Bazel-managed SDK toolchains
 
-The migration removes host-path SDK acquisition in favor of verified downloads
-and SDK artifacts produced by Bazel targets. Source-built runtime execution and
-source-built SDK compilation are separate contracts.
+SDKs now come from verified downloads or Bazel-produced artifacts, not an SDK
+path on the host. Running an app on a source-built runtime and compiling with a
+source-built SDK are separate contracts.
 
 ## Step 1: remove empty runtime manifests
 

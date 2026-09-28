@@ -1,9 +1,10 @@
 # Actual Avalonia Simple theme graph
 
-Revision 37fbd9655cc581ff5b1c6b1fb1be4e3118c889d0 (11.3.12) now builds through the
-explicit rules: 11 original projects, 1,979 evaluated source inputs and 71 locked
-NuGet archives. The graph includes Avalonia.Base, Controls, Dialogs, Markup,
-Markup.Xaml, Remote.Protocol, Themes.Simple, Build.Tasks and three analyzer/
+The explicit rules build 11 Avalonia projects at revision
+`37fbd9655cc581ff5b1c6b1fb1be4e3118c889d0` (v11.3.12), using 1,979
+evaluated source files and 71 locked NuGet archives. The graph includes
+Avalonia.Base, Controls, Dialogs, Markup, Markup.Xaml, Remote.Protocol,
+Themes.Simple, Build.Tasks and three analyzer/
 generator projects. SDK 10.0.400 builds their original net8.0/netstandard2.0 targets.
 `AvsSkipBuildingLegacyTargetFrameworks=True` skips legacy net6 targeting; the
 fixture updates global.json to the qualified SDK. Project sources and XAML are

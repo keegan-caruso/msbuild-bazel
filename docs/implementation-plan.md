@@ -1,9 +1,9 @@
 # Current implementation and qualification
 
-The active interface is explicit per-project BUILD declarations in
-`msbuild/defs.bzl`, backed by `tools/ExplicitBuild`. Bazel owns declared inputs,
-dependency scheduling and action caching; MSBuild retains SDK compilation.
-There is no whole-graph discovery/preparation/replay step on this path.
+The active rules in `msbuild/defs.bzl` build one project at a time through
+`tools/ExplicitBuild`. Bazel tracks inputs, schedules projects and caches
+actions. MSBuild still handles SDK compilation. Builds no longer run a
+whole-graph discovery, preparation or replay step.
 
 ## Supported building blocks
 

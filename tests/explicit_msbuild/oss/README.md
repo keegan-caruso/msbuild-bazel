@@ -1,7 +1,7 @@
 # Pinned open-source build comparisons
 
-Test scaffolding for Serilog, Spectre.Console and Polly, not a production project
-importer. The selected versions, framework slices, edits and symmetric source
+These scripts test Serilog, Spectre.Console and Polly; they are not a production
+project importer. The selected versions, framework slices, edits and source
 patches are in `projects.json`. The scripts require Python 3.10+, the repository's
 .NET 10.0.400 SDK and Bazel 9.2.0, and the qualified Ubuntu 22.04 ARM64 worker
 platform with bubblewrap. Run on the container's native filesystem, not a Mac
