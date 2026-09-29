@@ -22,21 +22,25 @@ scratch=$(mktemp -d)
 trap 'rm -rf "$scratch"' EXIT
 workspace="$output/workspace"
 mkdir -p "$workspace" "$output/archives" "$scratch/home" "$scratch/packages"
-cp -RL "$PWD/$source_root/." "$workspace/"
-cp "$PWD/locked-packages/"*.nupkg "$output/archives/"
+echo source-copy > "$output/phase-times.log"
+{ time -p cp -RL "$PWD/$source_root/." "$workspace/"; } 2>> "$output/phase-times.log"
+echo package-copy >> "$output/phase-times.log"
+{ time -p cp "$PWD/locked-packages/"*.nupkg "$output/archives/"; } 2>> "$output/phase-times.log"
 if test "$seed" != "-"; then seed="$PWD/$seed/cache"; fi
 export DOTNET_ROOT="$(dirname "$dotnet")" DOTNET_HOST_PATH="$dotnet"
 export DOTNET_CLI_HOME="$scratch/home" HOME="$scratch/home" NUGET_PACKAGES="$scratch/packages"
 export DOTNET_SKIP_FIRST_TIME_EXPERIENCE=1 DOTNET_CLI_TELEMETRY_OPTOUT=1 DOTNET_NOLOGO=1
 export MSBUILDDISABLENODEREUSE=1 NUGET_HTTP_CACHE_PATH="$scratch/http-cache"
-"$dotnet" restore "$workspace/src/Avalonia.Themes.Simple/Avalonia.Themes.Simple.csproj" \
+echo restore >> "$output/phase-times.log"
+{ time -p "$dotnet" restore "$workspace/src/Avalonia.Themes.Simple/Avalonia.Themes.Simple.csproj" \
   --source "$output/archives" -p:AvsSkipBuildingLegacyTargetFrameworks=True \
-  -p:NuGetAudit=false -p:RestorePackagesPath="$scratch/packages" > "$output/restore.log" 2>&1 || {
+  -p:NuGetAudit=false -p:RestorePackagesPath="$scratch/packages" > "$output/restore.log" 2>&1; } 2>> "$output/phase-times.log" || {
     cat "$output/restore.log"; exit 1;
 }
-"$dotnet" exec "$probe/AvaloniaProbe.dll" "$workspace" \
+echo probe >> "$output/phase-times.log"
+{ time -p "$dotnet" exec "$probe/AvaloniaProbe.dll" "$workspace" \
   src/Avalonia.Themes.Simple/Avalonia.Themes.Simple.csproj "$seed" \
-  "$output/cache" "$output/report.json" > "$output/build.log" 2>&1 || {
+  "$output/cache" "$output/report.json" > "$output/build.log" 2>&1; } 2>> "$output/phase-times.log" || {
     cat "$output/build.log"; exit 1;
 }
 """,

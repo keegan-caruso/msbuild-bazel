@@ -5,6 +5,7 @@ using System.Text;
 using System.Text.Json;
 using Microsoft.Build.Evaluation;
 using Microsoft.Build.Execution;
+using Microsoft.Build.Framework;
 using Microsoft.Build.Graph;
 using Microsoft.Build.ProjectCache;
 
@@ -37,23 +38,34 @@ using var collection = new ProjectCollection();
 var graph = new ProjectGraph(new ProjectGraphEntryPoint(Path.Combine(root, entry), properties), collection);
 var graphSeconds = timer.Elapsed.TotalSeconds;
 var plugin = new AvaloniaCache(root, packages, readCache == "-" ? null : Path.GetFullPath(readCache));
+var targetTimings = new TargetTimingLogger();
+var consoleLogger = new Microsoft.Build.Logging.ConsoleLogger(LoggerVerbosity.Minimal);
 var parameters = new BuildParameters(collection)
 {
     MaxNodeCount = 4,
     EnableNodeReuse = false,
     ProjectCacheDescriptor = ProjectCacheDescriptor.FromInstance(plugin),
-    Loggers = [new Microsoft.Build.Logging.ConsoleLogger(Microsoft.Build.Framework.LoggerVerbosity.Minimal)],
+    Loggers = Environment.GetEnvironmentVariable("AVALONIA_TARGET_TIMINGS") == "1"
+        ? [consoleLogger, targetTimings] : [consoleLogger],
 };
 bool success;
+var buildTimer = Stopwatch.StartNew();
 using (var manager = new BuildManager())
 {
     var result = manager.Build(parameters, new GraphBuildRequestData(graph, ["Build"]));
     success = result.OverallResult == BuildResultCode.Success;
 }
+var buildSeconds = buildTimer.Elapsed.TotalSeconds;
+var copyLocalSeconds = 0.0;
+var snapshotSeconds = 0.0;
 if (success)
 {
+    var phaseTimer = Stopwatch.StartNew();
     RefreshCopyLocal(graph);
+    copyLocalSeconds = phaseTimer.Elapsed.TotalSeconds;
+    phaseTimer.Restart();
     plugin.Save(graph, Path.GetFullPath(writeCache));
+    snapshotSeconds = phaseTimer.Elapsed.TotalSeconds;
 }
 var report = new
 {
@@ -61,6 +73,15 @@ var report = new
     hits = plugin.Hits,
     misses = plugin.Misses,
     graphSeconds,
+    buildSeconds,
+    copyLocalSeconds,
+    snapshotSeconds,
+    packageDigestSeconds = AvaloniaCache.Seconds(plugin.PackageDigestTicks),
+    fingerprintAggregateSeconds = AvaloniaCache.Seconds(plugin.FingerprintTicks),
+    cacheLookupAggregateSeconds = AvaloniaCache.Seconds(plugin.CacheLookupTicks),
+    cacheRestoreAggregateSeconds = AvaloniaCache.Seconds(plugin.CacheRestoreTicks),
+    targetTimings = targetTimings.Results(),
+    taskTimings = targetTimings.TaskResults(),
     totalSeconds = timer.Elapsed.TotalSeconds,
     success,
     nodes = graph.ProjectNodes.Select(node => new
@@ -129,6 +150,77 @@ static void RefreshCopyLocal(ProjectGraph graph)
 
 internal sealed record CacheSnapshot(string Fingerprint, Dictionary<string, string> Files);
 
+internal sealed class TargetTimingLogger : ILogger
+{
+    private readonly ConcurrentDictionary<(int Node, int Project, int Target), long> started = new();
+    private readonly ConcurrentDictionary<string, Counter> totals = new(StringComparer.Ordinal);
+    private readonly ConcurrentDictionary<(int Node, int Project, int Target, int Task), long> taskStarted = new();
+    private readonly ConcurrentDictionary<string, Counter> taskTotals = new(StringComparer.Ordinal);
+
+    public LoggerVerbosity Verbosity { get; set; } = LoggerVerbosity.Diagnostic;
+    public string? Parameters { get; set; }
+
+    public void Initialize(IEventSource eventSource)
+    {
+        eventSource.TargetStarted += (_, args) =>
+        {
+            if (args.BuildEventContext is { } context)
+            {
+                started[(context.NodeId, context.ProjectContextId, context.TargetId)] = Stopwatch.GetTimestamp();
+            }
+        };
+        eventSource.TargetFinished += (_, args) =>
+        {
+            if (args.BuildEventContext is { } context &&
+                started.TryRemove((context.NodeId, context.ProjectContextId, context.TargetId), out var start))
+            {
+                var counter = totals.GetOrAdd(args.TargetName, _ => new Counter());
+                Interlocked.Add(ref counter.Ticks, Stopwatch.GetTimestamp() - start);
+                Interlocked.Increment(ref counter.Count);
+            }
+        };
+        eventSource.TaskStarted += (_, args) =>
+        {
+            if (args.BuildEventContext is { } context)
+            {
+                taskStarted[(context.NodeId, context.ProjectContextId, context.TargetId, context.TaskId)] = Stopwatch.GetTimestamp();
+            }
+        };
+        eventSource.TaskFinished += (_, args) =>
+        {
+            if (args.BuildEventContext is { } context &&
+                taskStarted.TryRemove((context.NodeId, context.ProjectContextId, context.TargetId, context.TaskId), out var start))
+            {
+                var counter = taskTotals.GetOrAdd(args.TaskName, _ => new Counter());
+                Interlocked.Add(ref counter.Ticks, Stopwatch.GetTimestamp() - start);
+                Interlocked.Increment(ref counter.Count);
+            }
+        };
+    }
+
+    public void Shutdown() { }
+
+    internal Dictionary<string, object> Results() => totals.OrderByDescending(pair => pair.Value.Ticks)
+        .ToDictionary(pair => pair.Key, pair => (object)new
+        {
+            count = pair.Value.Count,
+            aggregateSeconds = AvaloniaCache.Seconds(pair.Value.Ticks),
+        }, StringComparer.Ordinal);
+
+    internal Dictionary<string, object> TaskResults() => taskTotals.OrderByDescending(pair => pair.Value.Ticks)
+        .ToDictionary(pair => pair.Key, pair => (object)new
+        {
+            count = pair.Value.Count,
+            aggregateSeconds = AvaloniaCache.Seconds(pair.Value.Ticks),
+        }, StringComparer.Ordinal);
+
+    private sealed class Counter
+    {
+        internal long Ticks;
+        internal int Count;
+    }
+}
+
 internal sealed class AvaloniaCache(string root, string packages, string? readCache) : ProjectCachePluginBase
 {
     private Dictionary<string, ProjectGraphNode> nodes = new(StringComparer.Ordinal);
@@ -136,12 +228,20 @@ internal sealed class AvaloniaCache(string root, string packages, string? readCa
     private string packageDigest = "";
     internal int Hits;
     internal int Misses;
+    internal long PackageDigestTicks;
+    internal long FingerprintTicks;
+    internal long CacheLookupTicks;
+    internal long CacheRestoreTicks;
+
+    internal static double Seconds(long ticks) => ticks / (double)Stopwatch.Frequency;
 
     public override Task BeginBuildAsync(CacheContext context, PluginLoggerBase logger, CancellationToken cancellationToken)
     {
         nodes = context.Graph?.ProjectNodes.ToDictionary(Key, StringComparer.Ordinal)
             ?? throw new InvalidOperationException("The probe requires a static project graph");
+        var started = Stopwatch.GetTimestamp();
         packageDigest = DigestSet(Directory.GetFiles(packages, "*.nupkg", SearchOption.AllDirectories), packages);
+        PackageDigestTicks = Stopwatch.GetTimestamp() - started;
         return Task.CompletedTask;
     }
 
@@ -150,8 +250,11 @@ internal sealed class AvaloniaCache(string root, string packages, string? readCa
         var key = Key(request.ProjectFullPath, request.GlobalProperties);
         var node = nodes[key];
         var framework = node.ProjectInstance.GetPropertyValue("TargetFramework");
+        var started = Stopwatch.GetTimestamp();
         var fingerprint = framework.Length == 0 ? "" : Fingerprint(node);
+        Interlocked.Add(ref FingerprintTicks, Stopwatch.GetTimestamp() - started);
         fingerprints[key] = fingerprint;
+        started = Stopwatch.GetTimestamp();
         if (framework.Length != 0 && readCache is not null)
         {
             var source = SnapshotDirectory(readCache, node);
@@ -166,14 +269,17 @@ internal sealed class AvaloniaCache(string root, string packages, string? readCa
                     Digest(Path.Combine(source, file.Key)) == file.Value);
                 if (inputsMatch && pathsAllowed && ownAssemblyPresent && filesMatch)
                 {
+                    var restoreStarted = Stopwatch.GetTimestamp();
                     foreach (var relative in snapshot.Files.Keys)
                     {
                         var target = Path.Combine(Path.GetDirectoryName(node.ProjectInstance.FullPath)!, relative);
                         Directory.CreateDirectory(Path.GetDirectoryName(target)!);
                         File.Copy(Path.Combine(source, relative), target, true);
                     }
+                    Interlocked.Add(ref CacheRestoreTicks, Stopwatch.GetTimestamp() - restoreStarted);
                     Interlocked.Increment(ref Hits);
                     Console.WriteLine("cacheHit=" + Display(node));
+                    Interlocked.Add(ref CacheLookupTicks, Stopwatch.GetTimestamp() - started);
                     return Task.FromResult(CacheResult.IndicateCacheHit(new ProxyTargets(new Dictionary<string, string> { ["GetTargetPath"] = "Build" })));
                 }
                 Console.WriteLine($"cacheRejected={Display(node)} inputs={inputsMatch} paths={pathsAllowed} assembly={ownAssemblyPresent} files={filesMatch}");
@@ -181,6 +287,7 @@ internal sealed class AvaloniaCache(string root, string packages, string? readCa
         }
         Interlocked.Increment(ref Misses);
         Console.WriteLine("cacheMiss=" + Display(node));
+        Interlocked.Add(ref CacheLookupTicks, Stopwatch.GetTimestamp() - started);
         return Task.FromResult(CacheResult.IndicateNonCacheHit(CacheResultType.CacheMiss));
     }
 

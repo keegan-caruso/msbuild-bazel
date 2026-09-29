@@ -89,9 +89,9 @@ copy, offline restore, graph evaluation, compilation/replay, and output staging:
 
 These are Bazel action durations, not the time to retrieve or build the seed
 or a complete `bazel build` workflow. Every cached action was slower than the
-corresponding raw MSBuild edit on this host. The output verifier found all **17 reference
-assemblies byte-equal** to their respective clean controls for each edit,
-matching embedded resource hashes and compiled XAML methods, matching
+corresponding raw MSBuild edit on this host. The output verifier found all
+**17 reference assemblies byte-equal** to their respective clean controls for
+each edit, matching embedded resource hashes and compiled XAML methods, matching
 SimpleTheme runtime observations, and current copy-local producer bytes. Only
 14 of 17 implementation assemblies were byte-equal across the separate action
 paths; Avalonia-generated content in the others is path-sensitive. This does
@@ -101,6 +101,53 @@ The same Bazel experiment's seed and XAML edit succeeded in an Ubuntu 22.04
 ARM64 Apple container using `processwrapper-sandbox`: 23 misses for the seed,
 then 16 hits/7 misses. A Linux namespace sandbox was unavailable in that
 container, so this does not qualify Linux filesystem hermeticity.
+
+## API-edit phase profile
+
+The earlier single-run API comparison had a 6.2-second gap between the
+same-path probe and the probe inside a fresh Bazel action. We instrumented the
+test-only action and probe to check that attribution. On macOS ARM64, one
+seeded API action took **16.77 seconds**. Its measured wall phases were:
+
+| Phase | Seconds |
+| --- | ---: |
+| Copy declared source into the action workspace | 1.33 |
+| Copy pinned package archives | 0.12 |
+| Offline restore | 1.64 |
+| Probe process | 13.15 |
+
+The small remainder is action setup and timing boundaries. The probe's own
+report measured 0.30 seconds for graph construction, 12.70 for
+`BuildManager.Build`, 0.04 for copy-local refresh, and 0.09 for output
+snapshots. Package archive hashing took 0.10 seconds. Fingerprints accumulated
+1.28 elapsed seconds across parallel cache callbacks, so that figure must not be
+subtracted directly from wall time. Compilation is the main measured work:
+another sandbox sample recorded 11 `CoreCompile` targets, with 18.35
+aggregate target-seconds across concurrent nodes. A same-path run with task
+events enabled recorded 11 `Csc` tasks and 16.59 aggregate task-seconds.
+
+The graph scope matters. The ordinary raw `dotnet build -f net8.0` API edit
+recorded **six** `Csc` tasks. A raw `dotnet build -f net8.0 -graphBuild` edit,
+after a static-graph baseline, loaded the same 23-node graph and recorded
+**11** `Csc` tasks. Both raw runs used `-clp:PerformanceSummary`; their edit
+wall times were 8.92 and 9.25 seconds in separate one-sample sequences. The
+probe builds `netstandard2.0` configurations for Avalonia.Base, Markup,
+Controls, Markup.Xaml, and Dialogs. That is real extra work relative to the
+ordinary raw command, but compiler tasks overlap, so the count alone does not
+quantify its wall cost. The 17 owned-output manifests from a profiled
+same-path API replay also matched its no-cache control.
+
+The 6.2-second **fresh-workspace penalty did not reproduce**: later same-path
+probe runs took about 12.2 seconds, versus 12.2-13.1 seconds in the sandbox.
+The earlier 6.6-second same-path result and its raw comparator were single
+samples. These observations isolate staging/restore and identify compilation
+as the main phase, but they do not establish a stable sandbox-path penalty.
+To repeat the task breakdown, build `//:seed //:api` with
+`--action_env=AVALONIA_TARGET_TIMINGS=1` and inspect `api.group/phase-times.log`
+and `api.group/report.json`. The target/task totals are aggregate durations
+across parallel work, not an additive wall-time breakdown. Task event logging
+is opt-in because it can affect timing; use the ordinary probe for wall-time
+comparisons.
 
 ## Decision and limits
 
