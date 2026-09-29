@@ -104,10 +104,11 @@ capabilities. The remaining work is:
 1. Generate graph contracts from project sync, including declared task/tool
    bindings and dependency-copy roles. Today the generic runner requires manually
    supplied contracts; the upstream probes still use repository-specific discovery.
-2. Support per-configuration output declarations and custom restore layouts.
-   Node identities already include global properties, but the declaration map is
-   keyed by project path. Multiple configured nodes sharing declarations currently
-   fail output-ownership validation rather than silently sharing outputs.
+2. Extend configuration and restore qualification to upstream graphs. Version 2
+   contracts now select per-configuration inputs, outputs, reference boundaries,
+   and dependency-copy bindings using explicit global-property selectors. Missing
+   or ambiguous matches fail. Offline restore uses evaluated assets and extensions
+   paths; a multi-targeted synthetic with a custom extensions directory passes.
 3. Qualify package-rich generation, MTP/VSTest execution and results, native tools,
    and the existing source-built-runtime/publish interfaces through the generic
    rule. Current acceptance covers package-free build/publish and executable tests.
@@ -250,3 +251,37 @@ building and handling snapshots. The remaining cost is no longer dominated by
 repeated dependency-tree enumeration. This reaches roughly raw MSBuild time in
 the synthetic case; larger real-project comparisons through the generic rule
 remain required before changing the default.
+
+## Configured graph contracts
+
+Version 1 contracts remain supported. Version 2 adds optional `Configurations`
+per project. Each configuration supplies `Properties` selectors, `Inputs`,
+`OutputDirectories`, and optional `ReferenceBoundary` / `DependencyCopies`.
+Project-level inputs are shared by its configurations; output ownership stays
+inside each configuration. Exactly one selector must match the node's global
+properties. An empty selector value matches an absent property, such as
+`TargetFramework` on a multi-targeted outer node. Declare no outputs for that
+outer node. The runner rejects ambiguity, missing matches and overlapping output
+ownership.
+
+`action` adds the evaluated `ProjectAssetsFile` and NuGet-generated props/targets
+under `MSBuildProjectExtensionsPath` to each selected configuration's inputs.
+These files must exist inside the workspace. This uses the graph's existing
+evaluation, without evaluating projects again to discover restore paths.
+
+Qualification on macOS ARM64, SDK 10.0.400:
+
+```sh
+RULES_MSBUILD_DOTNET_ROOT=/absolute/path/to/pinned/sdk \
+  python3 tests/graph_build/configurations.py
+```
+
+The package-free `net10.0;net10.0-windows` library builds both inner nodes, then
+replays both after deleting build outputs. The same check passes with restore
+files under a custom extensions directory, with the intermediate tree fully
+removed between actions. Leaving an empty `obj` directory changed evaluated
+backslash/slash spelling on this SDK and conservatively missed the cache.
+Ambiguous/missing selectors,
+overlapping outputs, and configuration declarations in version 1 are rejected.
+This proves contract selection and custom restore layout, not Windows execution
+or package-rich multi-targeting.

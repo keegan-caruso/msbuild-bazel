@@ -35,7 +35,7 @@ if (args[0] == "action")
 {
     contract = Restore.Run(contract, root, sdkRoot);
 }
-using var inputs = new GraphInputs(contract, root, sdkRoot);
+using var inputs = new GraphInputs(contract, root, sdkRoot, restored: args[0] == "action");
 if (args[0] is "build" or "action")
 {
     var target = args.Length > 5 ? args[5] : "Build";

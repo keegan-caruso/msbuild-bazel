@@ -28,26 +28,10 @@ internal static class Restore
         {
             throw new InvalidOperationException("Offline graph Restore failed");
         }
-        var projects = new Dictionary<string, ProjectContract>(StringComparer.Ordinal);
-        foreach (var (relative, project) in contract.Projects)
-        {
-            var directory = Path.Combine(root, Path.GetDirectoryName(relative)!, "obj");
-            var generated = new[] { "project.assets.json", Path.GetFileName(relative) + ".nuget.g.props", Path.GetFileName(relative) + ".nuget.g.targets" }
-                .Select(name => Path.Combine(directory, name));
-            if (generated.Any(path => !File.Exists(path)))
-            {
-                throw new InvalidDataException("Automatic graph Restore currently requires default obj paths: " + relative);
-            }
-            projects.Add(relative, project with
-            {
-                Inputs = project.Inputs.Concat(generated.Select(path => Path.GetRelativePath(root, path))).Distinct().ToArray()
-            });
-        }
         var packageFiles = Directory.Exists(packages) ? Directory.GetFiles(packages, "*", SearchOption.AllDirectories)
             .Select(path => Path.GetRelativePath(root, path)) : [];
         return contract with
         {
-            Projects = projects,
             SharedInputs = contract.SharedInputs.Concat(packageFiles).ToArray()
         };
     }

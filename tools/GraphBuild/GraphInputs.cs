@@ -12,6 +12,7 @@ internal sealed class GraphInputs : IDisposable
     private readonly Dictionary<string, string> inputDigests;
     private readonly string runnerDigest;
     private readonly Dictionary<ProjectGraphNode, string> baseFingerprints;
+    private readonly Dictionary<ProjectGraphNode, ProjectContract> projects = [];
     internal double EvaluationSeconds
     {
         get;
@@ -34,14 +35,14 @@ internal sealed class GraphInputs : IDisposable
     }
     internal ProjectCollection Collection => collection;
 
-    internal GraphInputs(GraphContract contract, string root, string sdkRoot)
+    internal GraphInputs(GraphContract contract, string root, string sdkRoot, bool restored = false)
     {
         var timer = System.Diagnostics.Stopwatch.StartNew();
         this.contract = contract;
         Files = new(root, sdkRoot);
-        if (contract.Version != 1 || contract.Projects.Count == 0)
+        if (contract.Version is not (1 or 2) || contract.Projects.Count == 0)
         {
-            throw new InvalidDataException("Expected graph contract version 1 with explicit project inputs and outputs");
+            throw new InvalidDataException("Expected graph contract version 1 or 2 with explicit project inputs and outputs");
         }
         var sdk = Path.Combine(sdkRoot, "sdk", contract.SdkVersion);
         if (!Directory.Exists(sdk))
@@ -68,6 +69,7 @@ internal sealed class GraphInputs : IDisposable
             });
         foreach (var node in Graph.ProjectNodes)
         {
+            projects.Add(node, restored ? RestoreInputs(node, Select(node)) : Select(node));
             Validate(node);
         }
         ValidateOutputOwnership();
@@ -75,14 +77,73 @@ internal sealed class GraphInputs : IDisposable
         timer.Restart();
         SdkDigest = ContractFiles.TreeDigest(sdkRoot);
         runnerDigest = ContractFiles.Digest(typeof(GraphInputs).Assembly.Location);
-        inputDigests = contract.SharedInputs.Concat(contract.Projects.Values.SelectMany(p => p.Inputs)).Distinct()
+        inputDigests = contract.SharedInputs.Concat(projects.Values.SelectMany(p => p.Inputs)).Distinct()
             .ToDictionary(path => path, path => ContractFiles.Digest(Files.Resolve(path)), StringComparer.Ordinal);
         baseFingerprints = Graph.ProjectNodes.ToDictionary(node => node, ComputeFingerprint);
         InputHashSeconds = timer.Elapsed.TotalSeconds;
     }
 
-    internal ProjectContract For(ProjectGraphNode node) => contract.Projects.TryGetValue(Relative(node), out var value)
-        ? value : throw new InvalidDataException("Missing project contract: " + Relative(node));
+    internal ProjectContract For(ProjectGraphNode node) => projects[node];
+
+    private ProjectContract Select(ProjectGraphNode node)
+    {
+        if (!contract.Projects.TryGetValue(Relative(node), out var project))
+        {
+            throw new InvalidDataException("Missing project contract: " + Relative(node));
+        }
+        if (project.Configurations is null)
+        {
+            return project;
+        }
+        if (contract.Version != 2 || project.OutputDirectories.Length != 0 || project.ReferenceBoundary || project.DependencyCopies?.Count > 0)
+        {
+            throw new InvalidDataException("Configured projects require version 2 and configuration-owned outputs: " + Relative(node));
+        }
+        var matches = project.Configurations.Where(configuration => configuration.Properties.Count != 0 &&
+            configuration.Properties.All(property =>
+                (node.ProjectInstance.GlobalProperties.TryGetValue(property.Key, out var value) ? value : "") == property.Value)).ToArray();
+        if (matches.Length != 1)
+        {
+            throw new InvalidDataException("Expected exactly one configuration contract for " + Key(node.ProjectInstance) + "; matched " + matches.Length);
+        }
+        var selected = matches[0];
+        return new ProjectContract(project.Inputs.Concat(selected.Inputs).Distinct().ToArray(),
+            selected.OutputDirectories, selected.ReferenceBoundary, selected.DependencyCopies);
+    }
+    private ProjectContract RestoreInputs(ProjectGraphNode node, ProjectContract project)
+    {
+        var instance = node.ProjectInstance;
+        var assets = instance.GetPropertyValue("ProjectAssetsFile");
+        var extensions = instance.GetPropertyValue("MSBuildProjectExtensionsPath");
+        // Traversal projects may not use NuGet at all.
+        if (assets.Length == 0 && extensions.Length == 0)
+        {
+            return project;
+        }
+        var directory = Path.GetDirectoryName(instance.FullPath)!;
+        var generated = new[]
+        {
+            Path.GetFullPath(assets, directory),
+            Path.Combine(Path.GetFullPath(extensions, directory), Path.GetFileName(instance.FullPath) + ".nuget.g.props"),
+            Path.Combine(Path.GetFullPath(extensions, directory), Path.GetFileName(instance.FullPath) + ".nuget.g.targets"),
+        };
+        var relative = generated.Select(path => Path.GetRelativePath(Files.Root, path)).ToArray();
+        foreach (var path in relative)
+        {
+            if (!File.Exists(Files.Resolve(path)))
+            {
+                throw new InvalidDataException("Missing evaluated graph Restore output: " + path);
+            }
+        }
+        var diagnostics = new[] { Path.GetFileName(instance.FullPath) + ".nuget.dgspec.json", "project.nuget.cache" }
+            .Select(name => Path.Combine(Path.GetFullPath(extensions, directory), name))
+            .Where(File.Exists).Select(path => Path.GetRelativePath(Files.Root, path));
+        return project with
+        {
+            Inputs = project.Inputs.Concat(relative).Concat(diagnostics).Distinct().ToArray()
+        };
+    }
+
     internal string Relative(ProjectGraphNode node) => Path.GetRelativePath(Files.Root, node.ProjectInstance.FullPath);
     internal IEnumerable<string> OutputDirectories(ProjectGraphNode node) => For(node).OutputDirectories.Select(Files.Resolve);
     internal static string Key(ProjectInstance project) => project.FullPath + "|" + string.Join(";", project.GlobalProperties
@@ -169,7 +230,7 @@ internal sealed class GraphInputs : IDisposable
     private void ValidateOutputOwnership()
     {
         var directories = Graph.ProjectNodes.SelectMany(node => OutputDirectories(node).Select(path => (node, path))).ToArray();
-        var inputPaths = contract.SharedInputs.Concat(contract.Projects.Values.SelectMany(p => p.Inputs)).Distinct().Select(Files.Resolve).ToArray();
+        var inputPaths = contract.SharedInputs.Concat(projects.Values.SelectMany(p => p.Inputs)).Distinct().Select(Files.Resolve).ToArray();
         foreach (var (node, path) in directories)
         {
             if (directories.Any(other => other.node != node && (path == other.path || path.StartsWith(other.path + "/", StringComparison.Ordinal) || other.path.StartsWith(path + "/", StringComparison.Ordinal))))
