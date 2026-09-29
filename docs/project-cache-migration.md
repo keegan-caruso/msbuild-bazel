@@ -95,31 +95,32 @@ NUGET_PACKAGES=/absolute/path/to/pinned/packages \
   --remote-url http://127.0.0.1:9090
 ```
 
-## Requirements before changing the default
+## Default-switch review
 
-1. Move the probe out of `tests/` into a generic graph runner. Its current
-   fingerprint discovers selected project files, evaluated items, shared
-   directories, package archives, and reference outputs for the pinned
-   Avalonia, Orchard, and runtime profiles. It must account for imports,
-   generated inputs, task reads, SDK and package bytes, target properties, and
-   native tools generically. Unknown inputs must cause a safe miss or a
-   qualification error.
-2. Capture the full output closure and target results for build, test,
-   publish, and generated files. The small probe now stages apphosts and
-   dependency PDBs as well as DLLs. Orchard still requires broad `obj/Release`
-   snapshots; path-sensitive generated output needs a stable-path contract
-   before it can be shared across workers.
-3. Make the graph rule consume declared source, SDK, package, and tool inputs
-   through the public facade. Configure cache credentials and endpoints
-   without hard-coding a loopback URL in a BUILD file. Prove a fresh worker
-   can retrieve a snapshot from the shared service, validate outputs, and
-   serve the app. The tests here used one macOS host and local execution.
-4. Compare body, API, resource, test, and publish edits on larger graphs
-   against warm raw graph-mode MSBuild and the current per-project rules.
-   Earlier Avalonia and runtime probes did not beat raw graph-mode edits;
-   preserving correctness alone is insufficient to justify switching the
-   default. After the graph route passes, update generator and macro defaults,
-   then remove the per-project compile path separately.
+The default switch is **not ready**. The new generic path is opt-in. Replacing
+`msbuild_project` and project-sync output now would remove existing supported
+capabilities. The remaining work is:
+
+1. Generate graph contracts from project sync, including declared task/tool
+   bindings and dependency-copy roles. Today the generic runner requires manually
+   supplied contracts; the upstream probes still use repository-specific discovery.
+2. Support per-configuration output declarations and custom restore layouts.
+   Node identities already include global properties, but the declaration map is
+   keyed by project path. Multiple configured nodes sharing declarations currently
+   fail output-ownership validation rather than silently sharing outputs.
+3. Qualify package-rich generation, MTP/VSTest execution and results, native tools,
+   and the existing source-built-runtime/publish interfaces through the generic
+   rule. Current acceptance covers package-free build/publish and executable tests.
+4. Provide stable workspace and SDK paths inside Bazel execution. The two-worker
+   test uses matching container paths; ordinary Bazel sandbox paths are not stable
+   enough for project-cache hits under the current conservative identity.
+5. Run Orchard, Avalonia, and the supported runtime slices through the generic
+   rules and compare complete body/API/resource/test/publish workflows with warm
+   raw graph-mode MSBuild and the existing rules, including restore and transfers.
+
+Once these gates pass, change generator and facade defaults in one commit, then
+remove the per-project compilation path in a separate commit. No default or
+legacy-path removal is claimed by the current migration checkpoints.
 
 The shared transport supports bearer authentication, bounded parallel transfers,
 three-attempt retries for transient failures, and digest-checked atomic downloads.

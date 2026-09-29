@@ -14,6 +14,16 @@ times as observations subject to host memory pressure. The
 [follow-up qualification](runtime-cold-timing.md#compiler-attribution-and-retained-memory)
 separates diagnostic runs from a single, memory-budgeted build VM.
 
+## Generic graph-cache runner
+
+The opt-in [generic graph runner](project-cache-migration.md#generic-edit-timing)
+now measures **6.88/6.93 s body** and **7.37/7.21 s API** (runner/raw) on a
+128-project synthetic chain, with three paired samples. Removing repeated
+transitive output scans roughly halved the runner's edit time. These measurements
+include process startup, evaluation and local snapshots, but exclude Bazel,
+Restore and remote transfers. They do not establish Orchard/runtime parity or
+justify changing the default yet.
+
 ## Orchard reference-boundary follow-up
 
 [Testing merged PR #92 on Orchard](orchard-reference-boundaries.md) preserves the

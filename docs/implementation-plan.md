@@ -5,10 +5,15 @@ The active rules in `msbuild/defs.bzl` build one project at a time through
 actions. MSBuild still handles SDK compilation. Builds no longer run a
 whole-graph discovery, preparation or replay step.
 
-The next architecture is an MSBuild graph action with project-cache-plugin
-replay. The first shared-cache handoff passes bounded Bazel actions and an
-Orchard CMS qualification. See [graph-cache migration](project-cache-migration.md)
-for the measured results and the correctness gates before changing the default.
+An opt-in generic MSBuild graph runner now supports explicit input contracts,
+Build/Publish target-result replay, public graph actions and executable tests.
+Small independent Linux workers qualify shared project-cache recovery. A
+128-project synthetic edit comparison is roughly at warm raw graph-mode MSBuild
+time after removing repeated dependency traversal. Project-sync integration,
+stable Bazel worker paths, and existing feature/upstream parity remain open;
+the per-project rules remain the default. See
+[graph-cache migration](project-cache-migration.md) for commands, measured scope,
+and the remaining default-switch gates.
 
 ## Supported building blocks
 
