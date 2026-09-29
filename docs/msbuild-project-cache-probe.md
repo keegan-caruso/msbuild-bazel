@@ -103,9 +103,10 @@ developer-workflow speedup over raw MSBuild on this fixture.
 
 The extension can avoid repeated MSBuild project builds inside a graph action,
 and the gain grows on a long chain. It does not make the grouped action a
-production replacement yet. Next, qualify a real project slice by enumerating
-all evaluated inputs and owned outputs, including imports and generated files;
-then choose how a prior graph result is supplied without depending on a fixed
-Base target. Compare that implementation with the existing per-project Bazel
-actions and raw MSBuild on body and API edits. Keep the per-project rules as
-the default until this preserves their cache and remote-execution contracts.
+production replacement yet. The [Avalonia qualification](avalonia-project-cache-probe.md)
+expands this probe to a real XAML graph. It preserves the checked outputs but
+leaves fixed-seed and input-discovery limits open. Next, choose how a prior
+graph result is supplied without depending on a fixed Base target, and compare
+with the existing per-project Bazel actions and raw MSBuild on edit workflows.
+Keep the per-project rules as the default until the cache and remote-execution
+contracts are preserved.

@@ -10,8 +10,20 @@ filegroup(
 
 exports_files(
     [
+        "AvaloniaProbe.csproj",
+        "avalonia_graph.bzl",
         "CacheProbe.csproj",
         "graph_probe.bzl",
+    ],
+    visibility = ["//visibility:public"],
+)
+
+filegroup(
+    name = "avalonia_sources",
+    srcs = [
+        "AvaloniaProbe.cs",
+        "AvaloniaProbe.csproj",
+        "//tools:MSBuildTool.props",
     ],
     visibility = ["//visibility:public"],
 )

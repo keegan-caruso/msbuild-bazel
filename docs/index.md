@@ -45,7 +45,7 @@ results. The reports below provide detailed evidence and reproduction steps.
 | dotnet/runtime | [Source-only host](runtime-source-host.md), [Pipelines suite](runtime-pipelines.md), [cold/recovery timing](runtime-cold-timing.md), [leaf edit](runtime-leaf-timing.md), [workflow](runtime-workflow.md), [JIT boundary](runtime-jit-bootstrap.md) |
 | .NET SDK source build | [22-component graph, app consumer and cache recovery](source-sdk.md) |
 | Runner overhead | [Cold profile](explicit-cold-profile.md), [staging](worker-staging.md), [evaluation](project-evaluation-removal.md) |
-| Grouped MSBuild project cache | [Synthetic graph probe and limits](msbuild-project-cache-probe.md) |
+| Grouped MSBuild project cache | [Synthetic graph probe](msbuild-project-cache-probe.md), [Avalonia SimpleTheme qualification](avalonia-project-cache-probe.md) |
 | Version/cache controls | [8.8 qualification](bazel-8.8-upgrade.md), [cache diagnosis](runtime-cache-diagnosis.md), [remote execution](remote-execution.md) |
 
 Reports qualify their exact revisions and slices; they are not blanket support
