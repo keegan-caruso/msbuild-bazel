@@ -6,7 +6,7 @@ actions. MSBuild still handles SDK compilation. Builds no longer run a
 whole-graph discovery, preparation or replay step.
 
 An opt-in generic MSBuild graph runner now supports explicit input contracts,
-Build/Publish target-result replay, public graph actions and executable tests.
+Build/Publish target-result replay, public graph actions and executable/MTP/VSTest tests.
 Small independent Linux workers qualify shared project-cache recovery. A
 128-project synthetic edit comparison is roughly at warm raw graph-mode MSBuild
 time after removing repeated dependency traversal. Opt-in project sync now
@@ -14,6 +14,7 @@ emits graph contracts with declared managed packages, persistent configuration
 and project-based run/test selections. Package-free graphs retain qualified
 library reference boundaries and runtime-copy bindings. Configured outputs, custom restore layouts,
 and offline package generation/replay pass small macOS/Linux ARM64 fixtures.
+Opt-in disposable offline Restore now evaluates package build/content assets.
 Rich sync mappings, stable Bazel worker paths, and existing feature/upstream
 parity remain open;
 the per-project rules remain the default. See

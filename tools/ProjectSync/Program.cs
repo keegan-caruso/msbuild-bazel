@@ -8,7 +8,7 @@ internal static class Program
         {
             if (args.Length < 3)
             {
-                throw new ArgumentException("ProjectSync <workspace> <sdk-directory> <project.csproj>... [--check] [--graph] [--configuration Release] [--framework TFM] [--mappings mappings.json]");
+                throw new ArgumentException("ProjectSync <workspace> <sdk-directory> <project.csproj>... [--check] [--graph] [--configuration Release] [--framework TFM] [--package-build] [--package-input FILE] [--mappings mappings.json]");
             }
             var sdk = Path.GetFullPath(args[1]);
             if (!File.Exists(Path.Combine(sdk, "MSBuild.dll")))
@@ -23,6 +23,8 @@ internal static class Program
             string? mappings = null;
             var check = false;
             var graph = false;
+            var packageBuild = false;
+            var packageInputs = new List<string>();
             var configuration = "Release";
             var framework = "";
             string? inputs = null;
@@ -36,6 +38,18 @@ internal static class Program
                 else if (args[i] == "--graph")
                 {
                     graph = true;
+                }
+                else if (args[i] == "--package-build")
+                {
+                    packageBuild = true;
+                }
+                else if (args[i] == "--package-input")
+                {
+                    if (++i == args.Length)
+                    {
+                        throw new ArgumentException("--package-input requires a workspace-relative file");
+                    }
+                    packageInputs.Add(WorkspaceView.Safe(args[i]));
                 }
                 else if (args[i] is "--configuration" or "--framework")
                 {
@@ -94,13 +108,13 @@ internal static class Program
                 {
                     throw new InvalidDataException("Graph sync mappings and generated/tool inputs still require contract transfer; use the project backend for these inputs");
                 }
-                GraphGenerator.Run(root, sdk, projects.ToArray(), check, root, configuration, framework, view);
+                GraphGenerator.Run(root, sdk, projects.ToArray(), check, root, configuration, framework, view, packageBuild, packageInputs.ToArray());
             }
             else
             {
-                if (configuration != "Release" || framework.Length != 0)
+                if (configuration != "Release" || framework.Length != 0 || packageBuild || packageInputs.Count != 0)
                 {
-                    throw new ArgumentException("--configuration and --framework require --graph");
+                    throw new ArgumentException("Configuration and package evaluation options require --graph");
                 }
                 Generator.Run(view.Root, sdk, projects.ToArray(), check, Mappings.Read(mappings), view, root);
             }

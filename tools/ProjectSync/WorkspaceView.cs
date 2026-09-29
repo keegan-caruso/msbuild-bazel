@@ -125,25 +125,28 @@ internal sealed class WorkspaceView : IDisposable
         }
     }
 
-    internal HashSet<string> GraphPackageIdentities()
+    internal HashSet<string> GraphPackageIdentities(bool allowBuildAssets = false)
     {
         var identities = DefaultPackageLock is null ? new HashSet<string>(StringComparer.OrdinalIgnoreCase) :
             packageLocks[LabelKey(DefaultPackageLock)].Packages.ToHashSet(StringComparer.OrdinalIgnoreCase);
         foreach (var identity in identities)
         {
-            // Sync does not execute Restore. Imported package build logic can
-            // change the evaluated graph and requires a separate input contract.
+            // Default sync does not execute Restore. Package build logic requires
+            // the explicit disposable-restore mode and declared task inputs.
             var source = packageSources[identity];
-            if (Directory.EnumerateDirectories(source).Any(path => new[] { "build", "buildTransitive", "buildMultiTargeting", "content", "contentFiles" }
+            if (!allowBuildAssets && Directory.EnumerateDirectories(source).Any(path => new[] { "build", "buildTransitive", "buildMultiTargeting", "content", "contentFiles" }
                 .Contains(Path.GetFileName(path), StringComparer.OrdinalIgnoreCase)))
             {
-                throw new InvalidDataException("Graph sync package " + identity + " contains build/content assets requiring contract transfer; use the project backend");
+                throw new InvalidDataException("Graph sync package " + identity + " contains build/content assets; review the package inputs and set package_build = True for offline graph sync");
             }
         }
         return identities;
     }
 
-    internal string[] GraphPackageDigests() => GraphPackageIdentities().Select(identity =>
+    internal IEnumerable<string> GraphPackageArchives() => GraphPackageIdentities(true).Select(identity =>
+        Path.Combine(packageSources[identity], identity.Replace('/', '.') + ".nupkg"));
+
+    internal string[] GraphPackageDigests() => GraphPackageIdentities(true).Select(identity =>
         Convert.ToHexStringLower(System.Security.Cryptography.SHA256.HashData(File.ReadAllBytes(
             Path.Combine(packageSources[identity], identity.Replace('/', '.') + ".nupkg"))))).Order(StringComparer.Ordinal).ToArray();
 

@@ -29,8 +29,11 @@ run/test targets then require an explicit `framework`.
 For NuGet, pass the existing `msbuild_package_lock` target as `package_lock` on
 sync. The generated graph consumes its original, hash-verified archives and
 restores offline. The lock must include transitive dependencies. Managed package
-assemblies are supported; package build/content assets and richer task/test
-mappings are rejected until their contracts are transferred. See
+assemblies are supported. Set `package_build = True` to evaluate package
+build/content assets through offline Restore in a disposable copy. Declare extra
+task reads in `package_inputs`; authored custom tasks still require contracts.
+Graph tests also support `test_protocol = "mtp"` or `"vstest"` with the existing
+[runner options](../../docs/bazel-test.md). See
 [graph migration](../../docs/project-cache-migration.md) for measured scope.
 
 The app and executable test select projects by path, not DLL output paths. Tests

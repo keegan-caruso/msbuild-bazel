@@ -95,16 +95,48 @@ def main():
             failure = bazel('build', '//:graph', success=False)
             assert 'Graph package set changed' in failure, failure
             bazel('run', '//:sync')
+            # A caller's NuGet.Config feed cannot fill the lock gap.
+            (workspace / 'NuGet.Config').write_text('<configuration><packageSources><add key="ambient" value="' + str(archives) + '"/></packageSources></configuration>')
             failure = bazel('build', '//:graph', success=False)
             assert 'NU1101' in failure or 'NU1102' in failure, failure
             # Imported package behavior must not silently enter a source-only contract.
             archive = archives / 'Api.2.0.0.nupkg'
             with zipfile.ZipFile(archive, 'a') as package:
-                package.writestr('buildTransitive/Api.targets', '<Project/>')
+                package.writestr('buildTransitive/Api.props', '<Project><PropertyGroup><DefineConstants>$(DefineConstants);PACKAGE_BUILD</DefineConstants></PropertyGroup></Project>')
+                package.writestr('buildTransitive/Api.targets', '''<Project>
+<ItemGroup><Content Include="$(MSBuildThisFileDirectory)message.txt" Link="message.txt" CopyToOutputDirectory="PreserveNewest" /></ItemGroup>
+<Target Name="GeneratePackageCode" BeforeTargets="CoreCompile">
+<Error Condition="!Exists('$(MSBuildProjectDirectory)/../shared/value.txt')" Text="Missing declared package input value.txt"/>
+<ReadLinesFromFile File="$(MSBuildProjectDirectory)/../shared/value.txt"><Output TaskParameter="Lines" PropertyName="GeneratedValue"/></ReadLinesFromFile>
+<WriteLinesToFile File="$(IntermediateOutputPath)Package.g.cs" Lines="public static class Generated { public static int Value =&gt; $(GeneratedValue)%3B }" Overwrite="true"/>
+<ItemGroup><Compile Include="$(IntermediateOutputPath)Package.g.cs" /></ItemGroup>
+</Target></Project>''')
+                package.writestr('buildTransitive/message.txt', 'package-content')
             (workspace / 'BUILD.bazel').write_text(declarations('2.0.0'))
             failure = bazel('run', '//:sync', success=False)
             assert 'build/content assets' in failure, failure
-            print('PASS: locked transitive packages, Debug/framework selection, upgrade, missing closure and build-asset rejection')
+            (workspace / 'shared').mkdir()
+            (workspace / 'shared/value.txt').write_text('42')
+            (app / 'Code.cs').write_text('#if !PACKAGE_BUILD\n#error Missing restored package props\n#endif\nSystem.Console.WriteLine(Generated.Value); System.Console.WriteLine(System.IO.File.ReadAllText("message.txt"));')
+            authored = declarations('2.0.0').replace('mode="graph",', 'mode="graph",package_build=True,package_inputs=["shared/value.txt"],')
+            (workspace / 'BUILD.bazel').write_text(authored)
+            before = {str(p.relative_to(app)): p.read_bytes() for p in app.rglob('*') if p.is_file()}
+            bazel('run', '//:sync')
+            bazel('run', '//:sync', '--', '--check')
+            assert before == {str(p.relative_to(app)): p.read_bytes() for p in app.rglob('*') if p.is_file()}
+            (workspace / 'BUILD.bazel').write_text(authored +
+                'load(":graph.generated.bzl","app_graph")\napp_graph(name="graph")\n'
+                'msbuild_graph_binary(name="app",graph=":graph",project="App/App.csproj")\n')
+            output = bazel('run', '//:app')
+            assert '42' in output.splitlines() and 'package-content' in output.splitlines(), output
+            (workspace / 'shared/value.txt').write_text('43')
+            assert '43' in bazel('run', '//:app').splitlines()
+            # Task-only reads must be declared rather than borrowing the checkout.
+            (workspace / 'BUILD.bazel').write_text((workspace / 'BUILD.bazel').read_text().replace('package_inputs=["shared/value.txt"],', ''))
+            bazel('run', '//:sync')
+            failure = bazel('build', '//:graph', success=False)
+            assert 'value.txt' in failure, failure
+            print('PASS: package props, generated source/content, task-input edit/rejection, package pinning and configuration')
         finally:
             bazel('shutdown')
 

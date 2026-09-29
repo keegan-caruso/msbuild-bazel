@@ -6,6 +6,11 @@ internal static class Restore
 {
     internal static GraphContract Run(GraphContract contract, string root, string sdkRoot)
     {
+        var owned = new[] { "RestoreSources", "RestoreConfigFile", "RestorePackagesPath", "RestoreFallbackFolders", "RestoreAdditionalProjectSources", "RestoreAdditionalProjectFallbackFolders" };
+        if (contract.Properties.Keys.Any(key => owned.Contains(key, StringComparer.OrdinalIgnoreCase)))
+        {
+            throw new InvalidDataException("Graph Restore source, package and fallback paths are controlled by declared archives");
+        }
         var packages = Path.Combine(root, ".nuget");
         var source = Path.Combine(root, ".package-source");
         Directory.CreateDirectory(source);
@@ -14,6 +19,8 @@ internal static class Restore
         {
             throw new InvalidDataException("Graph package set changed; run your graph-mode sync target before building");
         }
+        var config = Path.Combine(source, "NuGet.Config");
+        File.WriteAllText(config, "<configuration><packageSources><clear/></packageSources><fallbackPackageFolders><clear/></fallbackPackageFolders></configuration>");
         foreach (var entry in contract.Entries ?? [contract.Entry])
         {
             var process = new ProcessStartInfo(Path.Combine(sdkRoot, OperatingSystem.IsWindows() ? "dotnet.exe" : "dotnet"))
@@ -21,7 +28,8 @@ internal static class Restore
                 WorkingDirectory = root,
                 UseShellExecute = false,
             };
-            foreach (var argument in new[] { "restore", Path.Combine(root, entry), "--source", source, "--packages", packages, "-p:NuGetAudit=false" })
+            foreach (var argument in new[] { "restore", Path.Combine(root, entry), "--configfile", config, "--source", source, "--packages", packages, "-p:NuGetAudit=false",
+                "-p:RestoreFallbackFolders=", "-p:RestoreAdditionalProjectSources=", "-p:RestoreAdditionalProjectFallbackFolders=" })
             {
                 process.ArgumentList.Add(argument);
             }

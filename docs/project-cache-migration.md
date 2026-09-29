@@ -315,8 +315,9 @@ selectors and output directories. Ordinary library dependencies use reference
 assemblies for compilation identity and explicit DLL/PDB/XML copy bindings for
 current runtime files. Content/resource copying, custom reference roles and
 specialized publish settings retain conservative invalidation.
-Sync accepts exact package references from a declared `package_lock`. It rejects
-package build/content assets, test-runner mappings, custom targets/tasks, external
+Sync accepts exact package references from a declared `package_lock`. Package
+build/content evaluation requires `package_build = True`. It rejects
+legacy test-runner mappings, authored custom targets/tasks, external
 assembly references, custom item kinds and generated/tool inputs until their
 contracts are transferred. Run sync for the intended SDK/platform; this
 slice does not translate host-specific conditions into Bazel platform selectors.
@@ -474,8 +475,8 @@ msbuild_graph_test(name = "tests", graph = ":graph", project = "Tests/Tests.cspr
 ```
 
 Use `framework = "net10.0"` when a project has multiple generated frameworks.
-These launchers support executable projects; VSTest and MTP result integration
-remain separate work. A selection action copies only the selected project's
+Run targets require executable projects. Test targets support executable, MTP
+and VSTest protocols through the shared test launcher. A selection action copies only the selected project's
 runtime output directory. Test runfiles exclude graph sources, intermediate
 outputs and the timing report. The selection action reruns when the graph changes,
 but unchanged runtime bytes preserve the Bazel test cache entry.
@@ -501,9 +502,8 @@ transitive packages must also be present for offline Restore to succeed.
 Generated contracts pin the package archive digests, rejecting package changes
 before Restore until sync runs again.
 
-Sync still does not run Restore or package targets. Packages with build,
-buildTransitive, buildMultiTargeting or content assets are rejected rather than
-ignoring their evaluation effects. Existing richer mappings use the project
+By default sync does not run Restore and rejects package build/content assets.
+The explicit `package_build` opt-in below transfers their evaluation effects. Existing richer mappings use the project
 backend. Package graphs retain conservative dependency invalidation; optimized
 reference boundaries remain limited to the qualified package-free case.
 
@@ -523,3 +523,40 @@ committed example also passes on Bazel 8.8.0. Existing 53 project-sync controls 
 generated body/API/publish invalidation controls also pass. These checks do not
 establish Linux, MTP/VSTest, package build-task or remote execution parity for the
 new developer workflow.
+
+
+## Package build assets and test protocols
+
+Declare `package_build = True` on graph-mode `msbuild_sync` to run offline Restore
+in a disposable, materialized copy of the workspace. This executes Restore
+targets from the trusted, pinned packages. It never restores into the checkout.
+Sync evaluates the resulting NuGet imports, including package props, targets and
+content items. The ordinary graph build still restores offline from the same
+pinned archives; changing the package set requires sync before building.
+Both paths clear ambient feeds/fallbacks; the action rejects Restore-source
+overrides in its contract.
+
+Declare files read by package tasks with `package_inputs = ["shared/schema.json"]`
+when SDK item evaluation cannot discover them. These become Bazel source inputs
+and shared project fingerprints. Generated outputs must stay in declared output
+or intermediate directories. This is an explicit input contract, not filesystem
+tracing or a guarantee that arbitrary tasks are hermetic. Authored custom targets,
+external task/tool bindings and legacy sync mappings still require transfer.
+
+Graph run/test targets now reuse the existing runtime and test launcher. MTP and
+VSTest support result XML, filters, settings, declared data, retained outputs and
+empty-selection rejection. The SDK decides the project's output type. No MSBuild
+invocation occurs during test execution.
+
+```sh
+python3 tests/graph_build/devex.py
+python3 tests/graph_build/protocols.py
+```
+
+On macOS ARM64 with SDK 10.0.400 and Bazel 9.2.0, the package fixture passes
+restored props, generated C# source, copied content, declared task-input edits,
+checkout-preservation and package pin checks. Real xUnit/MTP and xUnit/VSTest
+fixtures pass success, failure, skip, filtering, empty-selection, retained output
+and recovery controls on Bazel 8.8.0 and 9.2.0. The executable fixture retains its unrelated-edit test-cache check.
+These are small graph fixtures; stable Linux execution paths and broad upstream
+parity remain default-switch gates.
