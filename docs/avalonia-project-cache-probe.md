@@ -226,6 +226,71 @@ framework work requires an execution path that resolves each reference's
 configuration before scheduling it; the stock graph build does not provide a
 safe framework-pruning switch for this probe.
 
+## Larger Avalonia graphs
+
+The same probe was expanded to `Avalonia.X11` (46 graph nodes, 33 compile
+nodes) and `Avalonia.Desktop` (58 graph nodes, 41 compile nodes). Desktop is a
+single-project entry point that includes Skia, X11, Windows, macOS, and
+managed/native interop projects. It is larger than the SimpleTheme slice, not
+the whole Avalonia solution. Both entries used Avalonia 11.3.12, SDK 10.0.400,
+Release, `net8.0`, four MSBuild nodes, and the same macOS ARM64 source path.
+
+The Desktop build needs `Build/Products/Release/libAvalonia.Native.OSX.dylib`.
+The local Xcode installation could not load its `IDESimulatorFoundation`
+plug-in, so this experiment used the matching **Avalonia.Native 11.3.12 NuGet
+package** rather than claiming a source-built native library. The package
+SHA-256 is
+`d6e8cb99868bd734e0b65b0d7ab043b53ba86895fb73b1ee90d2c921a96b0784`;
+its universal macOS dylib was staged at the path expected by Avalonia's
+project. The native binary remains outside Git. To prepare a fresh source copy:
+
+```sh
+curl --fail --location --output /tmp/avalonia.native.11.3.12.nupkg \
+  https://api.nuget.org/v3-flatcontainer/avalonia.native/11.3.12/avalonia.native.11.3.12.nupkg
+python3 tests/explicit_msbuild/cache_extension/stage_avalonia_native.py \
+  /path/to/avalonia-copy /tmp/avalonia.native.11.3.12.nupkg
+RULES_MSBUILD_DOTNET_ROOT=/path/to/sdk NUGET_PACKAGES=/path/to/packages \
+  python3 tests/explicit_msbuild/cache_extension/qualify_avalonia.py \
+  /path/to/avalonia-copy /tmp/avalonia-desktop-results \
+  --entry src/Avalonia.Desktop/Avalonia.Desktop.csproj
+```
+
+The package directory must also contain the packages required by Desktop;
+the script restores those through Avalonia's configured NuGet sources. Each
+qualification run checks clean replay and compares every cached edit's owned
+outputs with a no-cache control. It then measures raw `dotnet build
+-graphBuild` after an in-place baseline. The leaf edit changes an X11 method
+body; the other edits change a Base method body and public API. These are
+same-path timings excluding Bazel staging and restore. The cache probe starts
+each edit with Release outputs removed and restores hits from its seed;
+raw graph mode uses warm incremental outputs.
+
+| Desktop edit | Probe wall median (range), s | Raw graph wall median (range), s | Probe hits/misses | Raw graph `Csc` calls |
+| --- | ---: | ---: | ---: | ---: |
+| X11 leaf body | 3.85 (3.79–3.86) | 2.14 (2.13–2.25) | 39/19 | 2 |
+| Base body | 4.60 (4.55–8.76) | 3.76 (3.66–3.85) | 39/19 | 2 |
+| Base API | 8.92 (8.33–10.88) | 6.87 (6.76–7.00) | 8/50 | 33 |
+
+These are medians of **three complete Desktop qualification runs**. The first
+body probe took 8.76 seconds while the next two took 4.60 and 4.55; its hit
+pattern was unchanged. The probe was slower than raw graph mode in every
+case. Its graph construction took about 0.45 seconds per edit. Fingerprint
+work accumulated about 3 seconds across concurrent callbacks for body/API
+edits, so that aggregate cannot be subtracted directly from wall time. The
+probe's `BuildManager.Build` accounted for 2.94, 3.63–7.83, and 7.42–9.98
+seconds for leaf, body, and API edits respectively. The 17 coordination nodes
+miss on every edit; the body edit's only compile-node misses were Base's two
+framework configurations. The API edit missed 33 compile nodes and raw graph
+mode also ran 33 `Csc` tasks. Larger graph size therefore did not make this
+test-only cache probe faster than MSBuild's normal in-place graph build.
+
+The X11-only graph passed the same output checks in one qualification run.
+Its probe/raw graph edit times were 3.28/1.96 seconds for the X11 leaf,
+7.98/3.78 for the Base body, and 11.61/6.18 for the Base API edit. Those
+single samples establish a passing intermediate scope, not a timing trend.
+Neither larger run tests loading the macOS native library or remote-cache
+portability of these outputs.
+
 ## Decision and limits
 
 The extension can skip substantial work in an actual Avalonia graph while

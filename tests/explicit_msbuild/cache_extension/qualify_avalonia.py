@@ -15,11 +15,16 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[3]
 PROBE = ROOT / "tests/explicit_msbuild/cache_extension/bin/Release/net10.0/AvaloniaProbe.dll"
 ENTRY = "src/Avalonia.Themes.Simple/Avalonia.Themes.Simple.csproj"
+X11_ENTRY = "src/Avalonia.X11/Avalonia.X11.csproj"
+DESKTOP_ENTRY = "src/Avalonia.Desktop/Avalonia.Desktop.csproj"
 BODY = "src/Avalonia.Base/Media/PolylineGeometry.cs"
 XAML = "src/Avalonia.Themes.Simple/SimpleTheme.xaml"
+X11_LOCAL = "src/Avalonia.X11/Glx/GlxPlatformFeature.cs"
 
 
-def qualify(source: Path, output: Path) -> dict:
+def qualify(source: Path, output: Path, entry: str = ENTRY) -> dict:
+    if entry not in (ENTRY, X11_ENTRY, DESKTOP_ENTRY):
+        raise ValueError(entry)
     sdk = Path(os.environ["RULES_MSBUILD_DOTNET_ROOT"])
     packages = Path(os.environ["NUGET_PACKAGES"])
     env = dict(os.environ)
@@ -44,14 +49,14 @@ def qualify(source: Path, output: Path) -> dict:
         return elapsed
 
     execute("restore", [
-        str(sdk / "dotnet"), "restore", str(source / ENTRY),
+        str(sdk / "dotnet"), "restore", str(source / entry),
         "-p:AvsSkipBuildingLegacyTargetFrameworks=True", "-p:NuGetAudit=false",
         f"-p:RestorePackagesPath={packages}",
     ])
 
     def run(name: str, seed: str | None) -> dict:
         elapsed = execute(name, [
-            str(sdk / "dotnet"), "exec", str(PROBE), str(source), ENTRY,
+            str(sdk / "dotnet"), "exec", str(PROBE), str(source), entry,
             str(output / seed) if seed else "-", str(output / name),
             str(output / f"{name}.json"),
         ])
@@ -93,8 +98,12 @@ def qualify(source: Path, output: Path) -> dict:
         raise AssertionError(("clean replay", replay))
     compare("clean-replay", "seed")
 
+    if entry == ENTRY:
+        local_case = ("xaml", XAML, "</Styles>", '<Style Selector="Button"><Setter Property="Opacity" Value="0.75137" /></Style></Styles>')
+    else:
+        local_case = ("leaf", X11_LOCAL, "public bool CanShareContexts => true;", "public bool CanShareContexts => false;")
     cases = [
-        ("xaml", XAML, "</Styles>", '<Style Selector="Button"><Setter Property="Opacity" Value="0.75137" /></Style></Styles>'),
+        local_case,
         ("body", BODY, "context.EndFigure(isFilled);", "context.EndFigure(isFilled && Points.Count > 0);"),
         ("api", BODY, "public class PolylineGeometry : Geometry\n    {", "public class PolylineGeometry : Geometry\n    {\n        public bool CacheQualificationMarker => true;"),
     ]
@@ -126,7 +135,7 @@ def qualify(source: Path, output: Path) -> dict:
         finally:
             path.write_text(original)
     raw = [
-        str(sdk / "dotnet"), "build", str(source / ENTRY), "-f", "net8.0", "-c", "Release",
+        str(sdk / "dotnet"), "build", str(source / entry), "-f", "net8.0", "-c", "Release",
         "--no-restore", "-m:4", "-p:AvsSkipBuildingLegacyTargetFrameworks=True",
         "-p:NuGetAudit=false", f"-p:RestorePackagesPath={packages}",
         "-p:DebugType=portable", "-p:ProduceReferenceAssembly=true",
@@ -161,6 +170,7 @@ def qualify(source: Path, output: Path) -> dict:
         print("raw-graph-" + name, graph_compiles[name], round(graph_times[name], 3), flush=True)
     reports["rawGraphBuildSeconds"] = graph_times
     reports["rawGraphCscCalls"] = graph_compiles
+    reports["entry"] = entry
     (output / "summary.json").write_text(json.dumps(reports, indent=2) + "\n")
     return reports
 
@@ -169,5 +179,6 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("source", type=Path, help="pinned Avalonia source root")
     parser.add_argument("output", type=Path, help="fresh result directory")
+    parser.add_argument("--entry", choices=[ENTRY, X11_ENTRY, DESKTOP_ENTRY], default=ENTRY)
     args = parser.parse_args()
-    qualify(args.source.resolve(), args.output.resolve())
+    qualify(args.source.resolve(), args.output.resolve(), args.entry)
