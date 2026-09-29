@@ -22,6 +22,7 @@ internal static class Program
             var projects = new List<string>();
             string? mappings = null;
             var check = false;
+            var graph = false;
             string? inputs = null;
             string? runfiles = null;
             for (var i = 2; i < args.Length; i++)
@@ -29,6 +30,10 @@ internal static class Program
                 if (args[i] == "--check")
                 {
                     check = true;
+                }
+                else if (args[i] == "--graph")
+                {
+                    graph = true;
                 }
                 else if (args[i] is "--inputs" or "--runfiles")
                 {
@@ -65,7 +70,18 @@ internal static class Program
             }
             var root = Path.GetFullPath(args[0]);
             using var view = WorkspaceView.Create(root, inputs, runfiles);
-            Generator.Run(view.Root, sdk, projects.ToArray(), check, Mappings.Read(mappings), view, root);
+            if (graph)
+            {
+                if (mappings is not null || view.Labels.Count != 0 || view.DefaultPackageLock is not null || view.HasGraphBindings)
+                {
+                    throw new InvalidDataException("Graph sync mappings, package locks and generated/tool inputs still require contract transfer");
+                }
+                GraphGenerator.Run(root, sdk, projects.ToArray(), check, root);
+            }
+            else
+            {
+                Generator.Run(view.Root, sdk, projects.ToArray(), check, Mappings.Read(mappings), view, root);
+            }
             return 0;
         }
         catch (Exception error)

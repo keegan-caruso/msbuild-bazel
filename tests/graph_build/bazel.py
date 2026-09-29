@@ -5,6 +5,7 @@ import os
 from pathlib import Path
 import shutil
 import subprocess
+import sys
 import tempfile
 
 from qualify import ROOT, fixture
@@ -35,6 +36,20 @@ def main():
             'msbuild_graph(name="app",runner=":runner",contract="contract.json",'
             'srcs=glob(["P*/*.cs","P*/*.csproj"])+["Directory.Build.props","global.json"])\n'
             'msbuild_graph_test(name="app_test",graph=":app",assembly="P2/bin/Release/net10.0/P2.dll")\n')
+        if '--sync' in sys.argv:
+            authored = ('load("@rules_msbuild//msbuild:sync.bzl","msbuild_sync")\n'
+                        'msbuild_sync(name="sync",projects=["P2/P2.csproj"])\n')
+            (workspace / 'BUILD.bazel').write_text(authored)
+            sync = [str(ROOT / 'scripts/bazel-launcher.sh'), f'--output_base={root / "bazel"}',
+                    'run', '//:sync', '--', '--graph']
+            result = subprocess.run(sync, cwd=workspace, env=os.environ, text=True, capture_output=True)
+            if result.returncode:
+                raise AssertionError(result.stdout + result.stderr)
+            (workspace / 'BUILD.bazel').write_text(authored +
+                'load(":graph.generated.bzl","app_graph")\n'
+                'load("@rules_msbuild//msbuild:defs.bzl","msbuild_graph_test")\n'
+                'app_graph(name="app")\n'
+                'msbuild_graph_test(name="app_test",graph=":app",assembly="P2/bin/Release/net10.0/P2.dll")\n')
         command = [str(ROOT / 'scripts/bazel-launcher.sh'), f'--output_base={root / "bazel"}',
                    'test', '//:app_test', '--test_output=errors']
         for expected in ('pass', 'fail'):

@@ -102,8 +102,10 @@ The default switch is **not ready**. The new generic path is opt-in. Replacing
 capabilities. The remaining work is:
 
 1. Generate graph contracts from project sync, including declared task/tool
-   bindings and dependency-copy roles. Today the generic runner requires manually
-   supplied contracts; the upstream probes still use repository-specific discovery.
+   bindings and dependency-copy roles. `ProjectSync --graph` now generates
+   package-free SDK graph contracts and Bazel declarations. Rich mappings and
+   optimized reference boundaries still need transfer; upstream probes still
+   use repository-specific discovery.
 2. Extend configuration and restore qualification to upstream graphs. Version 2
    contracts now select per-configuration inputs, outputs, reference boundaries,
    and dependency-copy bindings using explicit global-property selectors. Missing
@@ -285,3 +287,44 @@ Ambiguous/missing selectors,
 overlapping outputs, and configuration declarations in version 1 are rejected.
 This proves contract selection and custom restore layout, not Windows execution
 or package-rich multi-targeting.
+
+## Opt-in graph synchronization
+
+For a package-free `Microsoft.NET.Sdk` graph, keep the existing `msbuild_sync`
+target and run:
+
+```sh
+bazel run //:sync -- --graph
+bazel run //:sync -- --graph --check
+```
+
+Sync writes `graph.generated.json` and `graph.generated.bzl`. Add this to the
+root BUILD file:
+
+```starlark
+load(":graph.generated.bzl", "app_graph")
+
+app_graph(name = "app")
+```
+
+The generated contract declares evaluated source files, imports, configuration
+selectors and output directories. Its dependency invalidation is conservative;
+reference-boundary optimization and dependency-copy rebinding are not inferred.
+Sync rejects package references, tests, custom targets/tasks, external assembly
+references, custom item kinds and existing mapping/tool/package inputs until
+those contracts are transferred. Run sync for the intended SDK/platform; this
+slice does not translate host-specific conditions into Bazel platform selectors.
+The default per-project sync output is unchanged.
+
+On macOS ARM64 with SDK 10.0.400 and Bazel 9.2.0, these passed:
+
+```sh
+python3 tests/graph_build/sync.py
+python3 tests/graph_build/bazel.py --sync
+```
+
+The first uses generated contracts for three-project build/replay, freshness and
+rejection controls, and a two-framework library. The second invokes the public
+Bazel sync target, builds the generated graph, runs an executable test, then
+checks that editing it to fail invalidates the cached test result. Set the pinned
+SDK/Bazelisk wrapper overrides when they are not installed in this checkout.

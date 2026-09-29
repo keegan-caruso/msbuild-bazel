@@ -22,6 +22,7 @@ internal sealed class WorkspaceView : IDisposable
         get;
     }
     private readonly Dictionary<string, (string Property, string Value)> bindings = new(StringComparer.Ordinal);
+    internal bool HasGraphBindings => bindings.Count != 0 || packageSources.Count != 0 || packageLocks.Count != 0;
     internal string Root
     {
         get;
