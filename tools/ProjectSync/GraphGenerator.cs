@@ -15,10 +15,6 @@ internal static class GraphGenerator
 
     internal static void Run(string root, string sdk, string[] entries, bool check, string outputRoot)
     {
-        if (entries.Length != 1)
-        {
-            throw new InvalidDataException("Graph sync requires one project entry point; select one root csproj in msbuild_sync.projects");
-        }
         root = Path.TrimEndingDirectorySeparator(Path.GetFullPath(root));
         sdk = Path.TrimEndingDirectorySeparator(sdk);
         var sdkRoot = Path.GetDirectoryName(Path.GetDirectoryName(sdk))!;
@@ -34,7 +30,7 @@ internal static class GraphGenerator
             ["PathMap"] = root + "=/_/workspace," + sdkRoot + "=/_/sdk"
         };
         var entry = WorkspaceView.Safe(entries[0]);
-        var graph = new ProjectGraph(new[] { new ProjectGraphEntryPoint(Path.Combine(root, entry), evaluationProperties) }, collection,
+        var graph = new ProjectGraph(entries.Select(path => new ProjectGraphEntryPoint(Path.Combine(root, WorkspaceView.Safe(path)), evaluationProperties)), collection,
             (path, globals, projects) =>
             {
                 var project = new Project(path, globals, null, projects);
@@ -128,6 +124,7 @@ internal static class GraphGenerator
             GeneratedBy = "ProjectSync --graph",
             Version = 2,
             Entry = entry,
+            Entries = entries,
             SdkVersion = Path.GetFileName(sdk),
             Properties = properties,
             SharedInputs = shared,
@@ -136,10 +133,15 @@ internal static class GraphGenerator
             Projects = declarations
         }, new JsonSerializerOptions { WriteIndented = true }) + "\n";
         var sources = inputs.Values.SelectMany(files => files).Concat(shared).Distinct().Order(StringComparer.Ordinal).ToArray();
+        var runtimeOutputs = graph.ProjectNodes.Where(node => node.ProjectInstance.GetPropertyValue("TargetPath").Length != 0 &&
+            node.ProjectInstance.GetPropertyValue("TargetFramework").Length != 0).OrderBy(node => Key(node.ProjectInstance), StringComparer.Ordinal).ToDictionary(
+            node => Relative(node.ProjectInstance.FullPath) + "|" + node.ProjectInstance.GetPropertyValue("TargetFramework"),
+            node => new[] { Relative(Path.GetDirectoryName(node.ProjectInstance.GetPropertyValue("TargetPath"))!),
+                Path.GetFileName(node.ProjectInstance.GetPropertyValue("TargetPath")), node.ProjectInstance.GetPropertyValue("OutputType") });
         var text = Header + "load(\"@rules_msbuild//msbuild:defs.bzl\", \"msbuild_graph\", \"msbuild_graph_runner\")\n\n" +
             "def app_graph(name = \"app\"):\n    if native.package_name():\n        fail(\"app_graph must be called from the workspace root\")\n" +
             "    msbuild_graph_runner(name = name + \"_runner\")\n    msbuild_graph(\n        name = name,\n        runner = \":\" + name + \"_runner\",\n" +
-            "        contract = \"" + ContractName + "\",\n        srcs = " + StarlarkLiteral.Serialize(sources) + ",\n    )\n";
+            "        contract = \"" + ContractName + "\",\n        srcs = " + StarlarkLiteral.Serialize(sources) + ",\n        project_outputs = " + StarlarkLiteral.Serialize(runtimeOutputs) + ",\n    )\n";
         // Validate both destinations before replacing either generated file.
         Verify(ContractName, contract, "{\n  \"GeneratedBy\": \"ProjectSync --graph\",");
         Verify(BuildName, text, Header);

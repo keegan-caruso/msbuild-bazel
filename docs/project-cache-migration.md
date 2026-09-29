@@ -457,3 +457,29 @@ replay retained all three hits. Mutation isolation, exact output parity and
 corruption rejection passed. The public Bazel sync/build/test check and all 53
 existing project-sync tests passed on macOS. No Linux COW speedup or upstream
 performance claim follows from the fallback check.
+
+## Project run and test targets
+
+Graph sync accepts multiple entry projects and records each framework's runtime
+output location. Select projects without spelling SDK output paths:
+
+```starlark
+load("@rules_msbuild//msbuild:defs.bzl", "msbuild_graph_binary", "msbuild_graph_test")
+load(":graph.generated.bzl", "app_graph")
+
+app_graph(name = "graph")
+msbuild_graph_binary(name = "app", graph = ":graph", project = "App/App.csproj")
+msbuild_graph_test(name = "tests", graph = ":graph", project = "Tests/Tests.csproj")
+```
+
+Use `framework = "net10.0"` when a project has multiple generated frameworks.
+These launchers support executable projects; VSTest and MTP result integration
+remain separate work. A selection action copies only the selected project's
+runtime output directory. Test runfiles exclude graph sources, intermediate
+outputs and the timing report. The selection action reruns when the graph changes,
+but unchanged runtime bytes preserve the Bazel test cache entry.
+
+`python3 tests/graph_build/bazel.py --sync` passed on macOS ARM64 with Bazel
+9.2.0 and SDK 10.0.400: persistent sync/check, two entry projects, executable
+run, unrelated edit retaining a cached test, and dependency body edit failing
+the test. Selected runtime files are materialized, not sandbox symlinks.

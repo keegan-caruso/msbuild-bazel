@@ -59,7 +59,7 @@ internal sealed class GraphInputs : IDisposable
         }
         properties["PathMap"] = Files.Root + "=/_/workspace," + Files.Sdk + "=/_/sdk";
         properties["UseSharedCompilation"] = "false";
-        Graph = new ProjectGraph(new[] { new ProjectGraphEntryPoint(Files.Resolve(contract.Entry), properties) }, collection,
+        Graph = new ProjectGraph((contract.Entries ?? [contract.Entry]).Select(entry => new ProjectGraphEntryPoint(Files.Resolve(entry), properties)), collection,
             (path, globals, projects) =>
             {
                 var project = new Project(path, globals, null, projects);

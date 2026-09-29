@@ -9,24 +9,27 @@ internal static class Restore
         var packages = Path.Combine(root, ".nuget");
         var source = Path.Combine(root, ".package-source");
         Directory.CreateDirectory(source);
-        var process = new ProcessStartInfo(Path.Combine(sdkRoot, OperatingSystem.IsWindows() ? "dotnet.exe" : "dotnet"))
+        foreach (var entry in contract.Entries ?? [contract.Entry])
         {
-            WorkingDirectory = root,
-            UseShellExecute = false,
-        };
-        foreach (var argument in new[] { "restore", Path.Combine(root, contract.Entry), "--source", source, "--packages", packages, "-p:NuGetAudit=false" })
-        {
-            process.ArgumentList.Add(argument);
-        }
-        foreach (var (key, value) in contract.Properties)
-        {
-            process.ArgumentList.Add("-p:" + key + "=" + value);
-        }
-        using var child = Process.Start(process) ?? throw new InvalidOperationException("Could not start Restore");
-        child.WaitForExit();
-        if (child.ExitCode != 0)
-        {
-            throw new InvalidOperationException("Offline graph Restore failed");
+            var process = new ProcessStartInfo(Path.Combine(sdkRoot, OperatingSystem.IsWindows() ? "dotnet.exe" : "dotnet"))
+            {
+                WorkingDirectory = root,
+                UseShellExecute = false,
+            };
+            foreach (var argument in new[] { "restore", Path.Combine(root, entry), "--source", source, "--packages", packages, "-p:NuGetAudit=false" })
+            {
+                process.ArgumentList.Add(argument);
+            }
+            foreach (var (key, value) in contract.Properties)
+            {
+                process.ArgumentList.Add("-p:" + key + "=" + value);
+            }
+            using var child = Process.Start(process) ?? throw new InvalidOperationException("Could not start Restore");
+            child.WaitForExit();
+            if (child.ExitCode != 0)
+            {
+                throw new InvalidOperationException("Offline graph Restore failed");
+            }
         }
         var packageFiles = Directory.Exists(packages) ? Directory.GetFiles(packages, "*", SearchOption.AllDirectories)
             .Select(path => Path.GetRelativePath(root, path)) : [];

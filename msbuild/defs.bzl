@@ -1,6 +1,6 @@
 """Public API for explicit MSBuild projects, inputs and executable tests."""
 
-load("//msbuild:graph.bzl", _msbuild_graph = "msbuild_graph", _msbuild_graph_runner = "msbuild_graph_runner", _msbuild_graph_test = "msbuild_graph_test")
+load("//msbuild:graph.bzl", _msbuild_graph = "msbuild_graph", _msbuild_graph_binary = "msbuild_graph_binary", _msbuild_graph_runner = "msbuild_graph_runner", _msbuild_graph_test = "msbuild_graph_test")
 load("//msbuild/private:assembly.bzl", _msbuild_assembly = "msbuild_assembly")
 load("//msbuild/private:facades.bzl", _msbuild_project = "msbuild_project", _msbuild_test_project = "msbuild_test_project")
 load("//msbuild/private:inputs.bzl", _msbuild_file_binding = "msbuild_file_binding", _msbuild_items = "msbuild_items", _msbuild_project_output = "msbuild_project_output", _msbuild_target_items = "msbuild_target_items", _msbuild_tool = "msbuild_tool")
@@ -53,3 +53,5 @@ msbuild_tool = _msbuild_tool
 msbuild_graph = _msbuild_graph
 msbuild_graph_runner = _msbuild_graph_runner
 msbuild_graph_test = _msbuild_graph_test
+
+msbuild_graph_binary = _msbuild_graph_binary

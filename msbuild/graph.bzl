@@ -1,6 +1,8 @@
 """Opt-in MSBuild traversal graph actions with explicit project contracts."""
 
-MSBuildGraphInfo = provider("A declared MSBuild graph workspace and its execution SDK.", fields = {"directory": "Graph output workspace", "dotnet": "Execution host", "sdk": "Declared SDK files"})
+load("//msbuild/private:paths.bzl", _quote = "quote", _runfile = "runfile")
+
+MSBuildGraphInfo = provider("A declared MSBuild graph workspace and its execution SDK.", fields = {"directory": "Graph output workspace", "dotnet": "Execution host", "sdk": "Declared SDK files", "projects": "Configured project runtime outputs"})
 
 def _runner(ctx):
     tc = ctx.toolchains["//msbuild:toolchain_type"]
@@ -78,7 +80,7 @@ export MSBUILDDISABLENODEREUSE=1
 """,
         mnemonic = "MSBuildGraph",
     )
-    return [DefaultInfo(files = depset([output])), MSBuildGraphInfo(directory = output, dotnet = tc.dotnet, sdk = tc.sdk)]
+    return [DefaultInfo(files = depset([output])), MSBuildGraphInfo(directory = output, dotnet = tc.dotnet, sdk = tc.sdk, projects = ctx.attr.project_outputs)]
 
 msbuild_graph = rule(
     implementation = _graph,
@@ -88,37 +90,74 @@ msbuild_graph = rule(
         "srcs": attr.label_list(allow_files = True, mandatory = True),
         "packages": attr.label_list(allow_files = [".nupkg"]),
         "source_root": attr.string(),
+        "project_outputs": attr.string_list_dict(),
         "target": attr.string(default = "Build", values = ["Build", "Publish"]),
     },
     toolchains = ["//msbuild:toolchain_type"],
 )
 
-def _graph_test(ctx):
+def _runtime(ctx):
     graph = ctx.attr.graph[MSBuildGraphInfo]
-    if ctx.attr.assembly.startswith("/") or ".." in ctx.attr.assembly.split("/") or any([c not in "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_./-" for c in ctx.attr.assembly.elems()]):
-        fail("assembly must be relative to the graph workspace")
+    assembly = ctx.attr.assembly
+    if ctx.attr.project:
+        if assembly:
+            fail("Use project or assembly, not both")
+        candidates = [value for key, value in graph.projects.items() if key.split("|")[0] == ctx.attr.project and (not ctx.attr.framework or key.split("|")[1] == ctx.attr.framework)]
+        if len(candidates) != 1:
+            fail("Select one generated project/framework with project and framework: " + ctx.attr.project)
+        directory, assembly, kind = candidates[0]
+        if kind.lower() not in ["exe", "winexe"]:
+            fail("Run and executable tests require an executable project: " + ctx.attr.project)
+    else:
+        if not assembly or "/" not in assembly:
+            fail("Specify a generated project or a workspace-relative assembly path")
+        directory, assembly = assembly.rsplit("/", 1)
+    for path in [directory, assembly]:
+        if path.startswith("/") or any([part in ["", ".", ".."] for part in path.split("/")]) or "\\" in path:
+            fail("Runtime outputs must be safe workspace-relative paths")
+    output = ctx.actions.declare_directory(ctx.label.name + ".runtime")
+    ctx.actions.run_shell(
+        inputs = [graph.directory],
+        outputs = [output],
+        arguments = [graph.directory.path + "/workspace/" + directory, output.path, assembly],
+        command = 'set -eu; test -f "$1/$3"; mkdir -p "$2"; cp -pRL "$1/." "$2/"',
+        mnemonic = "MSBuildGraphRuntime",
+    )
     launcher = ctx.actions.declare_file(ctx.label.name + ".sh")
     ctx.actions.write(
         launcher,
         """#!/usr/bin/env bash
 set -euo pipefail
-root="$TEST_SRCDIR/$TEST_WORKSPACE"
-dotnet="$root/%s"
-assembly="$root/%s/workspace/%s"
+runfiles="${RUNFILES_DIR:-$0.runfiles}"
+dotnet="$runfiles/"%s
+assembly="$runfiles/"%s
 export DOTNET_ROOT="$(dirname "$dotnet")"
-export DOTNET_CLI_HOME="$TEST_TMPDIR" DOTNET_CLI_TELEMETRY_OPTOUT=1 DOTNET_NOLOGO=1
-cd "$TEST_TMPDIR"
+export DOTNET_CLI_TELEMETRY_OPTOUT=1 DOTNET_NOLOGO=1
+if [[ -n "${TEST_TMPDIR:-}" ]]; then
+    export DOTNET_CLI_HOME="$TEST_TMPDIR"
+    cd "$TEST_TMPDIR"
+fi
 exec "$dotnet" exec "$assembly" "$@"
-""" % (graph.dotnet.short_path, graph.directory.short_path, ctx.attr.assembly),
+""" % (_quote(_runfile(ctx, graph.dotnet)), _quote(_runfile(ctx, output) + "/" + assembly)),
         is_executable = True,
     )
-    return [DefaultInfo(executable = launcher, runfiles = ctx.runfiles(files = [graph.directory, graph.dotnet], transitive_files = graph.sdk))]
+    return [DefaultInfo(executable = launcher, runfiles = ctx.runfiles(files = [output, graph.dotnet], transitive_files = graph.sdk))]
+
+_RUNTIME_ATTRS = {
+    "graph": attr.label(providers = [MSBuildGraphInfo], mandatory = True),
+    "project": attr.string(),
+    "framework": attr.string(),
+    "assembly": attr.string(),
+}
+
+msbuild_graph_binary = rule(
+    implementation = _runtime,
+    attrs = _RUNTIME_ATTRS,
+    executable = True,
+)
 
 msbuild_graph_test = rule(
-    implementation = _graph_test,
-    attrs = {
-        "graph": attr.label(providers = [MSBuildGraphInfo], mandatory = True),
-        "assembly": attr.string(mandatory = True),
-    },
+    implementation = _runtime,
+    attrs = _RUNTIME_ATTRS,
     test = True,
 )

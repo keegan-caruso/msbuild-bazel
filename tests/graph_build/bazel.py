@@ -37,8 +37,12 @@ def main():
             'srcs=glob(["P*/*.cs","P*/*.csproj"])+["Directory.Build.props","global.json"])\n'
             'msbuild_graph_test(name="app_test",graph=":app",assembly="P2/bin/Release/net10.0/P2.dll")\n')
         if '--sync' in sys.argv:
+            other = workspace / 'Other'
+            other.mkdir()
+            (other / 'Other.csproj').write_text('<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup><TargetFramework>net10.0</TargetFramework><OutputType>Exe</OutputType></PropertyGroup></Project>')
+            (other / 'Code.cs').write_text('System.Console.WriteLine("other");')
             authored = ('load("@rules_msbuild//msbuild:sync.bzl","msbuild_sync")\n'
-                        'msbuild_sync(name="sync",mode="graph",projects=["P2/P2.csproj"])\n')
+                        'msbuild_sync(name="sync",mode="graph",projects=["P2/P2.csproj","Other/Other.csproj"])\n')
             (workspace / 'BUILD.bazel').write_text(authored)
             sync = [str(ROOT / 'scripts/bazel-launcher.sh'), f'--output_base={root / "bazel"}',
                     'run', '//:sync']
@@ -49,9 +53,10 @@ def main():
             assert checked.returncode == 0, checked.stdout + checked.stderr
             (workspace / 'BUILD.bazel').write_text(authored +
                 'load(":graph.generated.bzl","app_graph")\n'
-                'load("@rules_msbuild//msbuild:defs.bzl","msbuild_graph_test")\n'
+                'load("@rules_msbuild//msbuild:defs.bzl","msbuild_graph_test","msbuild_graph_binary")\n'
                 'app_graph(name="app")\n'
-                'msbuild_graph_test(name="app_test",graph=":app",assembly="P2/bin/Release/net10.0/P2.dll")\n')
+                'msbuild_graph_test(name="app_test",graph=":app",project="P2/P2.csproj")\n'
+                'msbuild_graph_binary(name="run_app",graph=":app",project="P2/P2.csproj")\n')
         command = [str(ROOT / 'scripts/bazel-launcher.sh'), f'--output_base={root / "bazel"}',
                    'test', '//:app_test', '--test_output=errors']
         for expected in ('pass', 'fail'):
@@ -62,6 +67,22 @@ def main():
                 raise AssertionError(result.stdout + result.stderr)
             if expected == 'fail' and 'FAILED' not in result.stdout + result.stderr:
                 raise AssertionError('Expected test failure, not build failure: ' + result.stdout + result.stderr)
+        if '--sync' in sys.argv:
+            (workspace / 'P2/Code.cs').write_text('System.Environment.Exit(P1.Value() == 1 ? 0 : 7);')
+            def invoke(*arguments):
+                result = subprocess.run(command[:2] + list(arguments), cwd=workspace, env=os.environ, text=True, capture_output=True)
+                assert result.returncode == 0, result.stdout + result.stderr
+                return result.stdout + result.stderr
+            invoke('run', '//:run_app')
+            runtime = workspace / 'bazel-bin/run_app.runtime'
+            assert all(not path.is_symlink() for path in runtime.rglob('*'))
+            invoke('test', '//:app_test')
+            (workspace / 'Other/Code.cs').write_text('System.Console.WriteLine("changed unrelated app");')
+            assert '(cached)' in invoke('test', '//:app_test')
+            (workspace / 'P0/Code.cs').write_text('public class P0 { public static int Value() => 2; }')
+            failed = subprocess.run(command, cwd=workspace, env=os.environ, text=True, capture_output=True)
+            assert failed.returncode != 0 and 'FAILED' in failed.stdout + failed.stderr
+        subprocess.run(command[:2] + ['shutdown'], cwd=workspace, env=os.environ, check=True, capture_output=True)
         print('PASS: public graph action, executable test, source edit invalidates test result')
 
 
