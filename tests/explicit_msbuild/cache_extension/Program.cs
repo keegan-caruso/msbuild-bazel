@@ -1,11 +1,13 @@
-using System.Security.Cryptography;
+using System.Collections.Concurrent;
 using System.Diagnostics;
+using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
 using Microsoft.Build.Evaluation;
 using Microsoft.Build.Execution;
 using Microsoft.Build.Graph;
 using Microsoft.Build.ProjectCache;
+using RulesMSBuild.ProjectCache;
 
 if (args is not [var root, var entry, var readCache, var writeCache])
 {
@@ -30,7 +32,10 @@ var properties = new Dictionary<string, string>
 using var collection = new ProjectCollection();
 var graph = new ProjectGraph(new ProjectGraphEntryPoint(Path.Combine(root, entry), properties), collection);
 var graphSeconds = timer.Elapsed.TotalSeconds;
-var plugin = new ProbePlugin(root, readCache == "-" ? null : Path.GetFullPath(readCache));
+var remoteUrl = Environment.GetEnvironmentVariable("RULES_MSBUILD_PROJECT_CACHE_URL");
+using var remote = remoteUrl is null ? null : new RemoteSnapshotStore(new Uri(remoteUrl.TrimEnd('/') + "/"));
+var output = Path.GetFullPath(writeCache);
+var plugin = new ProbePlugin(root, readCache == "-" ? null : Path.GetFullPath(readCache), output, remote);
 var parameters = new BuildParameters(collection)
 {
     MaxNodeCount = 2,
@@ -48,21 +53,23 @@ if (result.OverallResult != BuildResultCode.Success)
 }
 
 // A cached app assembly must run with today's dependency implementations.
-// Project-level snapshots never carry copy-local DLLs from a previous graph.
+// Project-level snapshots never carry copy-local files from a previous graph.
 var entryProject = Path.Combine(root, entry);
 var appOutput = Path.Combine(Path.GetDirectoryName(entryProject)!, "bin", "Release", "net10.0");
 foreach (var node in graph.ProjectNodes.Where(node => node.ProjectInstance.FullPath != entryProject))
 {
     var name = node.ProjectInstance.GetPropertyValue("AssemblyName");
-    var implementation = Path.Combine(Path.GetDirectoryName(node.ProjectInstance.FullPath)!, "bin", "Release", "net10.0", name + ".dll");
-    if (File.Exists(implementation))
+    foreach (var extension in new[] { ".dll", ".pdb", ".xml" })
     {
-        Directory.CreateDirectory(appOutput);
-        File.Copy(implementation, Path.Combine(appOutput, name + ".dll"), true);
+        var implementation = Path.Combine(Path.GetDirectoryName(node.ProjectInstance.FullPath)!, "bin", "Release", "net10.0", name + extension);
+        if (File.Exists(implementation))
+        {
+            Directory.CreateDirectory(appOutput);
+            File.Copy(implementation, Path.Combine(appOutput, name + extension), true);
+        }
     }
 }
 
-var output = Path.GetFullPath(writeCache);
 Directory.CreateDirectory(output);
 foreach (var node in graph.ProjectNodes)
 {
@@ -86,17 +93,24 @@ foreach (var node in graph.ProjectNodes)
     }
     File.WriteAllText(Path.Combine(destination, "manifest.json"), JsonSerializer.Serialize(new Snapshot(ProbePlugin.Fingerprint(node, root), files)));
 }
+if (remote is not null)
+{
+    await plugin.PublishAsync(graph, output);
+}
 Console.WriteLine($"graphNodes={graph.ProjectNodes.Count} hits={plugin.Hits} misses={plugin.Misses} result=Success");
-File.WriteAllText(Path.Combine(output, "report.json"), JsonSerializer.Serialize(new { graphNodes = graph.ProjectNodes.Count, hits = plugin.Hits, misses = plugin.Misses, graphSeconds, buildSeconds, totalSeconds = timer.Elapsed.TotalSeconds }));
+File.WriteAllText(Path.Combine(output, "report.json"), JsonSerializer.Serialize(new { graphNodes = graph.ProjectNodes.Count, hits = plugin.Hits, misses = plugin.Misses, remoteHits = plugin.RemoteHits, remotePublished = plugin.RemotePublished, graphSeconds, buildSeconds, totalSeconds = timer.Elapsed.TotalSeconds }));
 return 0;
 
 internal sealed record Snapshot(string Fingerprint, Dictionary<string, string> Files);
 
-internal sealed class ProbePlugin(string root, string? readCache) : ProjectCachePluginBase
+internal sealed class ProbePlugin(string root, string? readCache, string output, RemoteSnapshotStore? remote) : ProjectCachePluginBase
 {
     private Dictionary<string, ProjectGraphNode> nodes = new(StringComparer.Ordinal);
+    private readonly ConcurrentDictionary<string, byte> remoteHitFingerprints = new(StringComparer.Ordinal);
     internal int Hits;
     internal int Misses;
+    internal int RemoteHits;
+    internal int RemotePublished;
 
     public override Task BeginBuildAsync(CacheContext context, PluginLoggerBase logger, CancellationToken cancellationToken)
     {
@@ -106,7 +120,7 @@ internal sealed class ProbePlugin(string root, string? readCache) : ProjectCache
         return Task.CompletedTask;
     }
 
-    public override Task<CacheResult> GetCacheResultAsync(BuildRequestData request, PluginLoggerBase logger, CancellationToken cancellationToken)
+    public override async Task<CacheResult> GetCacheResultAsync(BuildRequestData request, PluginLoggerBase logger, CancellationToken cancellationToken)
     {
         var project = request.ProjectFullPath;
         var key = Path.GetRelativePath(root, project);
@@ -114,7 +128,14 @@ internal sealed class ProbePlugin(string root, string? readCache) : ProjectCache
         {
             throw new InvalidDataException("Project escaped the synthetic graph root");
         }
+        var fingerprint = Fingerprint(nodes[project], root);
         var directory = readCache is null ? null : Path.Combine(readCache, key + ".cache");
+        var fetchedRemotely = false;
+        if (directory is null && remote is not null)
+        {
+            directory = Path.Combine(output, ".remote-inputs", key + ".cache");
+            fetchedRemotely = await remote.FetchAsync(fingerprint, directory, cancellationToken);
+        }
         var manifest = directory is null ? null : Path.Combine(directory, "manifest.json");
         if (manifest is not null && File.Exists(manifest))
         {
@@ -123,7 +144,7 @@ internal sealed class ProbePlugin(string root, string? readCache) : ProjectCache
             var allowed = OwnedOutputs(assembly).ToHashSet(StringComparer.Ordinal);
             if (snapshot.Files.ContainsKey("bin/Release/net10.0/" + assembly + ".dll") &&
                 snapshot.Files.Keys.All(allowed.Contains) &&
-                snapshot.Fingerprint == Fingerprint(nodes[project], root) && snapshot.Files.All(file =>
+                snapshot.Fingerprint == fingerprint && snapshot.Files.All(file =>
                     File.Exists(Path.Combine(directory!, file.Key)) && Digest(Path.Combine(directory!, file.Key)) == file.Value))
             {
                 foreach (var (relative, _) in snapshot.Files)
@@ -133,13 +154,40 @@ internal sealed class ProbePlugin(string root, string? readCache) : ProjectCache
                     File.Copy(Path.Combine(directory!, relative), target, true);
                 }
                 Interlocked.Increment(ref Hits);
+                if (fetchedRemotely)
+                {
+                    Interlocked.Increment(ref RemoteHits);
+                    remoteHitFingerprints.TryAdd(fingerprint, 0);
+                }
                 Console.WriteLine("cacheHit=" + key);
-                return Task.FromResult(CacheResult.IndicateCacheHit(new ProxyTargets(new Dictionary<string, string> { ["GetTargetPath"] = "Build" })));
+                return CacheResult.IndicateCacheHit(new ProxyTargets(new Dictionary<string, string> { ["GetTargetPath"] = "Build" }));
             }
         }
         Interlocked.Increment(ref Misses);
         Console.WriteLine("cacheMiss=" + key);
-        return Task.FromResult(CacheResult.IndicateNonCacheHit(CacheResultType.CacheMiss));
+        return CacheResult.IndicateNonCacheHit(CacheResultType.CacheMiss);
+    }
+
+    internal async Task PublishAsync(ProjectGraph graph, string cache)
+    {
+        foreach (var node in graph.ProjectNodes)
+        {
+            var fingerprint = Fingerprint(node, root);
+            var key = Path.GetRelativePath(root, node.ProjectInstance.FullPath);
+            if (remoteHitFingerprints.ContainsKey(fingerprint))
+            {
+                continue;
+            }
+            if (await remote!.PublishAsync(fingerprint, Path.Combine(cache, key + ".cache"), CancellationToken.None))
+            {
+                RemotePublished++;
+            }
+        }
+        var staging = Path.Combine(output, ".remote-inputs");
+        if (Directory.Exists(staging))
+        {
+            Directory.Delete(staging, recursive: true);
+        }
     }
 
     public override Task EndBuildAsync(PluginLoggerBase logger, CancellationToken cancellationToken) => Task.CompletedTask;
@@ -168,7 +216,7 @@ internal sealed class ProbePlugin(string root, string? readCache) : ProjectCache
             }
             return Path.GetRelativePath(root, dependency.FullPath) + ":" + (File.Exists(path) ? Digest(path) : "MISSING");
         });
-        var text = string.Join('\n', sources.Concat(references).Order(StringComparer.Ordinal).Prepend("sdk=10.0.400;configuration=Release"));
+        var text = string.Join('\n', sources.Concat(references).Order(StringComparer.Ordinal).Prepend("cache-schema=2;sdk=10.0.400;configuration=Release"));
         return Convert.ToHexStringLower(SHA256.HashData(Encoding.UTF8.GetBytes(text)));
     }
 
@@ -179,6 +227,8 @@ internal sealed class ProbePlugin(string root, string? readCache) : ProjectCache
         "bin/Release/net10.0/" + assembly + ".pdb",
         "bin/Release/net10.0/" + assembly + ".deps.json",
         "bin/Release/net10.0/" + assembly + ".runtimeconfig.json",
+        "bin/Release/net10.0/" + assembly,
+        "bin/Release/net10.0/" + assembly + ".exe",
         "obj/Release/net10.0/ref/" + assembly + ".dll",
         "obj/Release/net10.0/refint/" + assembly + ".dll",
     ];

@@ -9,6 +9,7 @@ using Microsoft.Build.Execution;
 using Microsoft.Build.Framework;
 using Microsoft.Build.Graph;
 using Microsoft.Build.ProjectCache;
+using RulesMSBuild.ProjectCache;
 
 if (args.Length is < 5 or > 6 || (args.Length == 6 && args[5] is not ("orchard" or "runtime")))
 {
@@ -20,6 +21,9 @@ var root = args[0];
 var entry = args[1];
 var readCache = args[2];
 var writeCache = args[3];
+var remoteUrl = Environment.GetEnvironmentVariable("RULES_MSBUILD_PROJECT_CACHE_URL");
+using var remote = remoteUrl is null ? null : new RemoteSnapshotStore(new Uri(remoteUrl.TrimEnd('/') + "/"));
+var remoteRoot = Path.GetFullPath(writeCache) + ".remote-inputs";
 var reportPath = args[4];
 var orchard = args.Length == 6 && args[5] == "orchard";
 var runtime = args.Length == 6 && args[5] == "runtime";
@@ -61,7 +65,7 @@ using var collection = new ProjectCollection();
 var graph = new ProjectGraph(new ProjectGraphEntryPoint(Path.Combine(root, entry), properties), collection);
 var graphSeconds = timer.Elapsed.TotalSeconds;
 var targetsByNode = graph.GetTargetLists(["Build"]);
-var plugin = new AvaloniaCache(root, packages, readCache == "-" ? null : Path.GetFullPath(readCache), orchard, runtime);
+var plugin = new AvaloniaCache(root, packages, readCache == "-" ? null : Path.GetFullPath(readCache), remote, remoteRoot, orchard, runtime);
 var targetTimings = new TargetTimingLogger();
 var consoleLogger = new Microsoft.Build.Logging.ConsoleLogger(LoggerVerbosity.Minimal);
 var parameters = new BuildParameters(collection)
@@ -85,6 +89,14 @@ if (success)
 {
     var phaseTimer = Stopwatch.StartNew();
     plugin.Save(graph, Path.GetFullPath(writeCache));
+    if (remote is not null)
+    {
+        await plugin.PublishAsync(graph, Path.GetFullPath(writeCache));
+        if (Directory.Exists(remoteRoot))
+        {
+            Directory.Delete(remoteRoot, recursive: true);
+        }
+    }
     snapshotSeconds = phaseTimer.Elapsed.TotalSeconds;
 }
 var report = new
@@ -103,6 +115,8 @@ var report = new
     reusedSnapshotFiles = plugin.ReusedSnapshotFiles,
     linkedSnapshotFiles = plugin.LinkedSnapshotFiles,
     reusedSnapshotBytes = plugin.ReusedSnapshotBytes,
+    remoteHits = plugin.RemoteHits,
+    remotePublished = plugin.RemotePublished,
     targetTimings = targetTimings.Results(),
     taskTimings = targetTimings.TaskResults(),
     totalSeconds = timer.Elapsed.TotalSeconds,
@@ -200,13 +214,14 @@ internal sealed class TargetTimingLogger : ILogger
     }
 }
 
-internal sealed class AvaloniaCache(string root, string packages, string? readCache, bool orchard, bool runtime) : ProjectCachePluginBase
+internal sealed class AvaloniaCache(string root, string packages, string? readCache, RemoteSnapshotStore? remote, string remoteRoot, bool orchard, bool runtime) : ProjectCachePluginBase
 {
     private Dictionary<string, ProjectGraphNode> nodes = new(StringComparer.Ordinal);
     private Dictionary<string, List<string>> producerOutputs = new(StringComparer.Ordinal);
     private Dictionary<string, HashSet<string>> dependencyOutputs = new(StringComparer.Ordinal);
     private readonly ConcurrentDictionary<string, string> fingerprints = new(StringComparer.Ordinal);
     private readonly ConcurrentDictionary<string, CacheSnapshot> cacheHits = new(StringComparer.Ordinal);
+    private readonly ConcurrentDictionary<string, byte> remoteHitFingerprints = new(StringComparer.Ordinal);
     private string packageDigest = "";
     private Dictionary<string, string> sharedDigests = new(StringComparer.Ordinal);
     internal int Hits;
@@ -219,6 +234,8 @@ internal sealed class AvaloniaCache(string root, string packages, string? readCa
     internal long ReusedSnapshotFiles;
     internal long LinkedSnapshotFiles;
     internal long ReusedSnapshotBytes;
+    internal int RemoteHits;
+    internal int RemotePublished;
 
     internal static double Seconds(long ticks) => ticks / (double)Stopwatch.Frequency;
 
@@ -247,7 +264,7 @@ internal sealed class AvaloniaCache(string root, string packages, string? readCa
         return Task.CompletedTask;
     }
 
-    public override Task<CacheResult> GetCacheResultAsync(BuildRequestData request, PluginLoggerBase logger, CancellationToken cancellationToken)
+    public override async Task<CacheResult> GetCacheResultAsync(BuildRequestData request, PluginLoggerBase logger, CancellationToken cancellationToken)
     {
         var key = Key(request.ProjectFullPath, request.GlobalProperties);
         var node = nodes[key];
@@ -257,9 +274,11 @@ internal sealed class AvaloniaCache(string root, string packages, string? readCa
         Interlocked.Add(ref FingerprintTicks, Stopwatch.GetTimestamp() - started);
         fingerprints[key] = fingerprint;
         started = Stopwatch.GetTimestamp();
-        if (framework.Length != 0 && readCache is not null)
+        if (framework.Length != 0 && (readCache is not null || remote is not null))
         {
-            var source = SnapshotDirectory(readCache, node);
+            var source = SnapshotDirectory(readCache ?? remoteRoot, node);
+            var fetchedRemotely = readCache is null && remote is not null &&
+                await remote.FetchAsync(fingerprint, source, cancellationToken);
             var manifest = Path.Combine(source, "manifest.json");
             if (File.Exists(manifest))
             {
@@ -294,9 +313,14 @@ internal sealed class AvaloniaCache(string root, string packages, string? readCa
                     Interlocked.Add(ref CacheRestoreTicks, Stopwatch.GetTimestamp() - restoreStarted);
                     cacheHits[key] = snapshot;
                     Interlocked.Increment(ref Hits);
+                    if (fetchedRemotely)
+                    {
+                        Interlocked.Increment(ref RemoteHits);
+                        remoteHitFingerprints.TryAdd(fingerprint, 0);
+                    }
                     Console.WriteLine("cacheHit=" + Display(node));
                     Interlocked.Add(ref CacheLookupTicks, Stopwatch.GetTimestamp() - started);
-                    return Task.FromResult(CacheResult.IndicateCacheHit(new ProxyTargets(new Dictionary<string, string> { ["GetTargetPath"] = "Build" })));
+                    return CacheResult.IndicateCacheHit(new ProxyTargets(new Dictionary<string, string> { ["GetTargetPath"] = "Build" }));
                 }
                 Console.WriteLine($"cacheRejected={Display(node)} inputs={inputsMatch} paths={pathsAllowed} assembly={ownAssemblyPresent} files={filesMatch} projectCopies={projectCopiesAllowed}");
             }
@@ -304,7 +328,7 @@ internal sealed class AvaloniaCache(string root, string packages, string? readCa
         Interlocked.Increment(ref Misses);
         Console.WriteLine("cacheMiss=" + Display(node));
         Interlocked.Add(ref CacheLookupTicks, Stopwatch.GetTimestamp() - started);
-        return Task.FromResult(CacheResult.IndicateNonCacheHit(CacheResultType.CacheMiss));
+        return CacheResult.IndicateNonCacheHit(CacheResultType.CacheMiss);
     }
 
     public override Task EndBuildAsync(PluginLoggerBase logger, CancellationToken cancellationToken) => Task.CompletedTask;
@@ -320,14 +344,14 @@ internal sealed class AvaloniaCache(string root, string packages, string? readCa
             var source = SnapshotBase(node);
             var target = SnapshotDirectory(destination, node);
             Directory.CreateDirectory(target);
-            if (readCache is not null && cacheHits.TryGetValue(Key(node), out var hit))
+            if ((readCache is not null || remote is not null) && cacheHits.TryGetValue(Key(node), out var hit))
             {
                 // A hit did not build this project; only its producer-linked copies can change.
                 foreach (var relative in hit.Files.Keys)
                 {
                     var output = Path.Combine(target, relative);
                     Directory.CreateDirectory(Path.GetDirectoryName(output)!);
-                    if (LinkOrCopy(Path.Combine(SnapshotDirectory(readCache, node), relative), output))
+                    if (LinkOrCopy(Path.Combine(SnapshotDirectory(readCache ?? remoteRoot, node), relative), output))
                     {
                         LinkedSnapshotFiles++;
                     }
@@ -373,6 +397,27 @@ internal sealed class AvaloniaCache(string root, string packages, string? readCa
                 throw new InvalidDataException("Missing project assembly: " + Display(node));
             }
             File.WriteAllText(Path.Combine(target, "manifest.json"), JsonSerializer.Serialize(new CacheSnapshot(fingerprints[Key(node)], files, projectCopies)));
+        }
+    }
+
+    internal async Task PublishAsync(ProjectGraph graph, string destination)
+    {
+        foreach (var node in graph.ProjectNodes)
+        {
+            if (node.ProjectInstance.GetPropertyValue("TargetFramework").Length == 0)
+            {
+                continue;
+            }
+            var key = Key(node);
+            var fingerprint = fingerprints[key];
+            if (remoteHitFingerprints.ContainsKey(fingerprint))
+            {
+                continue;
+            }
+            if (await remote!.PublishAsync(fingerprint, SnapshotDirectory(destination, node), CancellationToken.None))
+            {
+                RemotePublished++;
+            }
         }
     }
 

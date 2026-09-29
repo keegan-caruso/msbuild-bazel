@@ -86,6 +86,11 @@ intermediate snapshot remain specific to the pinned graph. The probe runs at
 one local workspace path; this result does not establish cross-path replay,
 remote-cache correctness, or a production Bazel integration.
 
+A later [shared-cache qualification](project-cache-migration.md) supplied
+these snapshots through the Bazel HTTP cache service without a fixed local
+seed. It replayed the full CMS graph and the Abstractions body edit on one
+host. General cross-worker correctness remains open.
+
 The original 23-node Avalonia SimpleTheme qualification was rerun with this
 probe: clean and derived replays hit all 17 configured nodes; XAML, body, and
 API edit cases and their no-cache controls passed. `dotnet build` and

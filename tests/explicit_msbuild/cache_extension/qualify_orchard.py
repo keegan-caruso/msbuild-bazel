@@ -19,7 +19,7 @@ BODY = "src/OrchardCore/OrchardCore.Abstractions/Extensions/Manifests/NotFoundMa
 SMOKE = ROOT / "tests/explicit_msbuild/orchard_compatibility/smoke.py"
 
 
-def qualify(source: Path, output: Path) -> dict:
+def qualify(source: Path, output: Path, remote_url: str | None = None) -> dict:
     sdk = Path(os.environ["RULES_MSBUILD_DOTNET_ROOT"])
     packages = Path(os.environ["NUGET_PACKAGES"])
     if not PROBE.is_file():
@@ -66,9 +66,13 @@ def qualify(source: Path, output: Path) -> dict:
             shutil.rmtree(folder, ignore_errors=True)
 
     def run(name: str, seed: str | None) -> dict:
+        if remote_url and name != "body-control":
+            env["RULES_MSBUILD_PROJECT_CACHE_URL"] = remote_url
+        else:
+            env.pop("RULES_MSBUILD_PROJECT_CACHE_URL", None)
         elapsed = execute(name, [
             str(sdk / "dotnet"), "exec", str(PROBE), str(source), ENTRY,
-            str(output / seed) if seed else "-", str(output / name),
+            str(output / seed) if seed and not remote_url else "-", str(output / name),
             str(output / f"{name}.json"), "orchard",
         ])
         report = json.loads((output / f"{name}.json").read_text())
@@ -181,5 +185,6 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("source", type=Path, help="disposable pinned Orchard source root")
     parser.add_argument("output", type=Path, help="fresh result directory")
+    parser.add_argument("--remote-url", help="Reuse project snapshots from a Bazel HTTP cache without a fixed seed")
     args = parser.parse_args()
-    qualify(args.source.resolve(), args.output.resolve())
+    qualify(args.source.resolve(), args.output.resolve(), args.remote_url)

@@ -4,6 +4,7 @@ filegroup(
         "CacheProbe.csproj",
         "Program.cs",
         "//tools:MSBuildTool.props",
+        "//tools/ProjectCache:RemoteSnapshotStore.cs",
     ],
     visibility = ["//visibility:public"],
 )
@@ -24,6 +25,7 @@ filegroup(
         "AvaloniaProbe.cs",
         "AvaloniaProbe.csproj",
         "//tools:MSBuildTool.props",
+        "//tools/ProjectCache:RemoteSnapshotStore.cs",
     ],
     visibility = ["//visibility:public"],
 )

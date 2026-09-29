@@ -23,14 +23,14 @@ are copied into its output after the graph build. These assumptions are too
 narrow for imports, generated sources, resources, analyzers, NuGet, native
 assets, tests, Razor or arbitrary target outputs.
 
-The Bazel rule declares the sources, project files, SDK, probe executable,
-`global.json` and a **fixed seed output tree**. The seed comes from another
-Bazel target and can itself be recovered from the disk action cache. This
-demonstrates a cache handoff, but a normal edited workspace has no automatic
-previous-build seed in the Bazel graph. A production design needs a safe
-per-project cache backend and a complete input/output contract before this
-can replace the current rules. The extension's optional file-access reporting
-is not used: the [MSBuild design](https://github.com/dotnet/msbuild/blob/main/documentation/specs/project-cache.md)
+The original Bazel rule declares the sources, project files, SDK, probe
+executable, `global.json` and a **fixed seed output tree**. The seed comes
+from another Bazel target and can itself be recovered from the disk action
+cache. A later [shared-cache experiment](project-cache-migration.md) removes
+that fixed seed for bounded actions by storing project snapshots through a
+Bazel HTTP cache service. It still needs a generic input/output contract
+before it can replace the current rules. The extension's optional file-access
+reporting is not used: the [MSBuild design](https://github.com/dotnet/msbuild/blob/main/documentation/specs/project-cache.md)
 documents `/ReportFileAccesses` for Windows x64 MSBuild.exe, and that does not
 establish a portable input-discovery mechanism for this `dotnet` probe.
 
@@ -108,5 +108,6 @@ expands this probe to a real XAML graph. It preserves the checked outputs but
 leaves fixed-seed and input-discovery limits open. Next, choose how a prior
 graph result is supplied without depending on a fixed Base target, and compare
 with the existing per-project Bazel actions and raw MSBuild on edit workflows.
-Keep the per-project rules as the default until the cache and remote-execution
-contracts are preserved.
+The [shared-cache migration](project-cache-migration.md) now exercises an
+ordinary edit without a fixed seed. Keep the per-project rules as the default
+until the cache and remote-execution contracts are preserved.

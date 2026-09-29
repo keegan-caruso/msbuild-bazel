@@ -51,6 +51,7 @@ def _graph_group(ctx):
     args.add(ctx.attr.entry)
     args.add(seed.path if seed else "-")
     args.add(ctx.file.global_json.path)
+    args.add(ctx.attr.cache_url if ctx.attr.cache_url else "-")
     for source in ctx.files.srcs:
         if not source.short_path.startswith(prefix):
             fail("source is outside " + ctx.attr.source_root + ": " + source.short_path)
@@ -62,8 +63,8 @@ def _graph_group(ctx):
         outputs = [output],
         arguments = [args],
         command = """set -eu
-dotnet="$PWD/$1"; probe="$PWD/$2"; output="$PWD/$3"; entry="$4"; seed="$5"; global_json="$PWD/$6"
-shift 6
+dotnet="$PWD/$1"; probe="$PWD/$2"; output="$PWD/$3"; entry="$4"; seed="$5"; global_json="$PWD/$6"; cache_url="$7"
+shift 7
 workspace="$output/workspace"
 mkdir -p "$workspace" "$output/empty" "$output/home"
 cp "$global_json" "$workspace/global.json"
@@ -76,6 +77,7 @@ if test "$seed" != "-"; then seed="$PWD/$seed/cache"; fi
 export DOTNET_ROOT="$(dirname "$dotnet")" DOTNET_CLI_HOME="$output/home" HOME="$output/home"
 export DOTNET_SKIP_FIRST_TIME_EXPERIENCE=1 DOTNET_CLI_TELEMETRY_OPTOUT=1 DOTNET_NOLOGO=1
 export MSBUILDDISABLENODEREUSE=1
+if test "$cache_url" != "-"; then export RULES_MSBUILD_PROJECT_CACHE_URL="$cache_url"; fi
 "$dotnet" restore "$workspace/$entry" --source "$output/empty" -p:NuGetAudit=false > "$output/restore.log" 2>&1 || {
     cat "$output/restore.log"; exit 1;
 }
@@ -98,5 +100,6 @@ graph_group = rule(
         "source_root": attr.string(mandatory = True),
         "entry": attr.string(mandatory = True),
         "seed": attr.label(),
+        "cache_url": attr.string(),
     },
 )

@@ -5,6 +5,11 @@ The active rules in `msbuild/defs.bzl` build one project at a time through
 actions. MSBuild still handles SDK compilation. Builds no longer run a
 whole-graph discovery, preparation or replay step.
 
+The next architecture is an MSBuild graph action with project-cache-plugin
+replay. The first shared-cache handoff passes bounded Bazel actions and an
+Orchard CMS qualification. See [graph-cache migration](project-cache-migration.md)
+for the measured results and the correctness gates before changing the default.
+
 ## Supported building blocks
 
 | Capability | Contract and evidence |
