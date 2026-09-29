@@ -14,7 +14,7 @@ internal sealed record TargetOutput(string Name, ResultItem[] Items);
 internal sealed record ProjectSnapshot(string Fingerprint, Dictionary<string, string> Files,
     Dictionary<string, string> ProjectCopies, TargetOutput[] Targets, Dictionary<string, int> UnixModes);
 
-internal sealed class GraphCache(GraphInputs inputs, string cache, bool read, RemoteSnapshotStore? remote) : ProjectCachePluginBase
+internal sealed class GraphCache(GraphInputs inputs, string cache, bool read, RemoteSnapshotStore? remote, FileMaterializer materializer) : ProjectCachePluginBase
 {
     private readonly Dictionary<string, ProjectGraphNode> nodes = inputs.Graph.ProjectNodes.ToDictionary(n => GraphInputs.Key(n.ProjectInstance));
     private readonly Dictionary<ProjectGraphNode, string[]> outputDirectories = inputs.Graph.ProjectNodes.ToDictionary(node => node, node => inputs.OutputDirectories(node).ToArray());
@@ -54,7 +54,7 @@ internal sealed class GraphCache(GraphInputs inputs, string cache, bool read, Re
             Validate(node, snapshot, fingerprint, directory, request.TargetNames.ToArray());
             foreach (var (relative, _) in snapshot.Files)
             {
-                Copy(Path.Combine(directory, relative), inputs.Files.Resolve(relative));
+                materializer.Copy(Path.Combine(directory, relative), inputs.Files.Resolve(relative));
                 if (!OperatingSystem.IsWindows())
                 {
                     File.SetUnixFileMode(inputs.Files.Resolve(relative), (UnixFileMode)snapshot.UnixModes[relative]);
@@ -62,7 +62,7 @@ internal sealed class GraphCache(GraphInputs inputs, string cache, bool read, Re
             }
             foreach (var (relative, producer) in snapshot.ProjectCopies)
             {
-                Copy(inputs.Files.Resolve(producer), inputs.Files.Resolve(relative));
+                materializer.Copy(inputs.Files.Resolve(producer), inputs.Files.Resolve(relative));
             }
             hits[key] = snapshot;
             Interlocked.Increment(ref Hits);
@@ -106,7 +106,7 @@ internal sealed class GraphCache(GraphInputs inputs, string cache, bool read, Re
                 {
                     files.Add(relative, digest);
                     modes.Add(relative, OperatingSystem.IsWindows() ? 0 : (int)File.GetUnixFileMode(file));
-                    Copy(file, Path.Combine(staging, relative));
+                    materializer.Copy(file, Path.Combine(staging, relative));
                 }
             }
             var targets = requestedTargets[key].Select(name =>
@@ -259,11 +259,5 @@ internal sealed class GraphCache(GraphInputs inputs, string cache, bool read, Re
             result.SetMetadataValueLiteral(name, value);
         }
         return result;
-    }
-
-    private static void Copy(string source, string destination)
-    {
-        Directory.CreateDirectory(Path.GetDirectoryName(destination)!);
-        File.Copy(source, destination, overwrite: true);
     }
 }

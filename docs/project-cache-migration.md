@@ -353,3 +353,44 @@ tools built without warnings. The existing project-sync unit suite also passed
 all 53 tests on macOS. These checks establish small standalone graph slices;
 package-aware sync, Linux Bazel stable paths, large package-rich graphs, native
 tasks and MTP/VSTest integration are still unqualified.
+
+## Copy-on-write measurement
+
+The existing `File.Copy` path already attempts COW on supported platforms:
+see the [.NET Unix implementation](https://github.com/dotnet/runtime/blob/v10.0.0/src/libraries/System.Private.CoreLib/src/System/IO/FileSystem.Unix.cs)
+and [Linux FICLONE fallback](https://github.com/dotnet/runtime/blob/v10.0.0/src/native/libs/System.Native/pal_io.c).
+Explicit `clonefile`/`FICLONE` is available as a measurement override; unsuccessful
+clones fall back to `File.Copy`. No hard links are used. The default remains
+`File.Copy`.
+
+Run the paired synthetic with `--copy-mode copy` or `--copy-mode clone`:
+
+```sh
+python3 tests/graph_build/benchmark.py --projects 128 --samples 3 --copy-mode copy
+python3 tests/graph_build/benchmark.py --projects 128 --samples 3 --copy-mode clone
+```
+
+On macOS ARM64, SDK 10.0.400, three samples per edit gave:
+
+| Mode | Body wall time | Body materialization | API wall time |
+| --- | ---: | ---: | ---: |
+| .NET File.Copy | 7.03 s | 1.71 s | 7.53 s |
+| Explicit clone | 6.74 s | 1.48 s | 7.26 s |
+
+Every body run materialized 18,179 files, totaling 129,414,775 logical bytes.
+All explicit clone attempts succeeded. The explicit path saved about 0.29 s
+(4%) overall and 0.24 s in materialization. These are local-cache process times,
+excluding restore, Bazel and remote transfers, with profiling enabled. The
+prototype applied destination cleanup in both modes; the default path keeps
+its original overwrite behavior. Three samples do not establish a broad workload
+speedup, and this is not a comparison against forced byte-by-byte copying.
+
+`RULES_MSBUILD_GRAPH_COPY_MODE=clone` selects the experiment for the standalone
+runner. `RULES_MSBUILD_GRAPH_PROFILE=1` enables materialization counters (also
+set by the benchmark). Profiling is off by default. Both settings are removed
+before MSBuild evaluation so they do not change cache identity. `copies` counts
+calls to `File.Copy`, which may themselves clone; `bytes` counts logical file
+lengths, not physical bytes transferred. Materialization seconds sum operation
+durations and can overlap in a parallel graph. The replay qualification writes
+through a restored dependency and verifies that producer and cached DLLs remain
+unchanged, then checks body/API/resource/publish parity.

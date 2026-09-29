@@ -15,6 +15,14 @@ var bearerToken = Environment.GetEnvironmentVariable("RULES_MSBUILD_PROJECT_CACH
 // Cache connection settings are transport state, not MSBuild evaluation inputs.
 Environment.SetEnvironmentVariable("RULES_MSBUILD_PROJECT_CACHE_URL", null);
 Environment.SetEnvironmentVariable("RULES_MSBUILD_PROJECT_CACHE_BEARER_TOKEN", null);
+var profile = Environment.GetEnvironmentVariable("RULES_MSBUILD_GRAPH_PROFILE") == "1";
+Environment.SetEnvironmentVariable("RULES_MSBUILD_GRAPH_PROFILE", null);
+var copyMode = Environment.GetEnvironmentVariable("RULES_MSBUILD_GRAPH_COPY_MODE") ?? "copy";
+Environment.SetEnvironmentVariable("RULES_MSBUILD_GRAPH_COPY_MODE", null);
+if (copyMode is not ("copy" or "clone"))
+{
+    throw new InvalidDataException("RULES_MSBUILD_GRAPH_COPY_MODE must be copy or clone");
+}
 var totalTimer = System.Diagnostics.Stopwatch.StartNew();
 var root = args[1];
 var contractPath = args[2];
@@ -52,7 +60,8 @@ if (args[0] is "build" or "action")
     }
     var timer = System.Diagnostics.Stopwatch.StartNew();
     using var remote = remoteUrl is null ? null : new RemoteSnapshotStore(new Uri(remoteUrl.TrimEnd('/') + "/"), bearerToken: bearerToken);
-    var plugin = new GraphCache(inputs, cache ?? throw new InvalidDataException("Cache directory is required"), args.Length < 7 || args[6] != "no-read", remote);
+    var materializer = new FileMaterializer(copyMode == "clone", profile);
+    var plugin = new GraphCache(inputs, cache ?? throw new InvalidDataException("Cache directory is required"), args.Length < 7 || args[6] != "no-read", remote, materializer);
     var parameters = new BuildParameters(inputs.Collection)
     {
         MaxNodeCount = 4,
@@ -75,6 +84,7 @@ if (args[0] is "build" or "action")
     await plugin.SaveAsync(result);
     File.WriteAllText(report, JsonSerializer.Serialize(new
     {
+        materialization = materializer.Report,
         hits = plugin.Hits,
         misses = plugin.Misses,
         buildAndSnapshotSeconds = timer.Elapsed.TotalSeconds,

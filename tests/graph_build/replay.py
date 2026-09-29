@@ -6,7 +6,7 @@ from pathlib import Path
 import shutil
 import tempfile
 
-from qualify import DOTNET, RUNNER, fixture, run
+from qualify import DOTNET, RUNNER, ENV, fixture, run
 
 
 def main():
@@ -55,8 +55,22 @@ def main():
             app = root / ('P2/bin/Release/net10.0/publish/P2.dll' if publish else 'P2/bin/Release/net10.0/P2.dll')
             assert run(DOTNET, app).stdout.strip() == expected
 
-        results = {'base': build(expected=0), 'replay': build(expected=3)}
+        mode = ENV.get('RULES_MSBUILD_GRAPH_COPY_MODE', 'copy')
+        ENV['RULES_MSBUILD_GRAPH_COPY_MODE'] = 'copy'
+        results = {'base': build(expected=0)}
+        ENV['RULES_MSBUILD_GRAPH_COPY_MODE'] = mode
+        results['replay'] = build(expected=3)
         execute('1')
+        # Writes through a replayed dependency must not mutate its producer or CAS.
+        producer = root / 'P0/bin/Release/net10.0/P0.dll'
+        producer_bytes = producer.read_bytes()
+        cached = {path: path.read_bytes() for path in (work / 'cache').rglob('*.dll')}
+        destination = root / 'P2/bin/Release/net10.0/P0.dll'
+        with destination.open('r+b') as stream:
+            stream.write(b'overwrite-linked-destination')
+        assert producer.read_bytes() == producer_bytes
+        assert all(path.read_bytes() == value for path, value in cached.items())
+
         (root / 'P0/Code.cs').write_text('public class P0 { public static int Value() => 2; }')
         results['body'] = build(expected=2)
         execute('2')
