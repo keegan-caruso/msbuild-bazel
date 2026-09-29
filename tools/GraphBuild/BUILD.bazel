@@ -1,0 +1,11 @@
+exports_files(["GraphBuild.csproj"])
+
+filegroup(
+    name = "sources",
+    srcs = glob(["*.cs"]) + [
+        "GraphBuild.csproj",
+        "//tools:Directory.Build.props",
+        "//tools:MSBuildTool.props",
+    ],
+    visibility = ["//visibility:public"],
+)

@@ -126,3 +126,29 @@ or cross-process locking. A missing entry falls back to MSBuild compilation;
 a malformed, corrupt, or conflicting entry fails the build. The small test is
 package-free, and Orchard's input discovery remains profile-specific. Neither
 run proves general remote-cache correctness or remote execution.
+
+## Generic runner migration checkpoints
+
+`tools/GraphBuild` starts with an explicit versioned input contract. Each project
+lists its input files and owned output directories; shared inputs cover common
+props and targets. Evaluation rejects missing project declarations, undeclared
+imports and common SDK file items, missing declared files, symlinks, and overlapping
+outputs. Task reads that evaluation cannot discover remain the declaration
+caller's responsibility, as with other Bazel actions. This is not file-access
+tracing and does not qualify arbitrary custom tasks.
+
+The fingerprint hashes the selected SDK tree once per invocation, project and
+shared inputs, global properties, and output declarations. It includes physical
+workspace and SDK paths: generic cross-path output portability is not yet proven.
+Fresh workers must use the same paths until that contract is qualified. NuGet
+restore products must be explicit inputs; package resolution is not inferred.
+
+Run the bounded contract checks after building `tools/GraphBuild/GraphBuild.csproj`:
+
+```sh
+RULES_MSBUILD_DOTNET_ROOT=/path/to/pinned/sdk python3 tests/graph_build/qualify.py
+```
+
+On macOS ARM64 with SDK 10.0.400, source/import invalidation, undeclared-import
+rejection, and overlapping-output rejection pass. This first checkpoint inspects
+contracts; it does not replace the production build rules.
