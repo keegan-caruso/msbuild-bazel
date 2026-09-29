@@ -15,8 +15,10 @@ and project-based run/test selections. Package-free graphs retain qualified
 library reference boundaries and runtime-copy bindings. Configured outputs, custom restore layouts,
 and offline package generation/replay pass small macOS/Linux ARM64 fixtures.
 Opt-in disposable offline Restore now evaluates package build/content assets.
-Rich sync mappings, stable Bazel worker paths, and existing feature/upstream
-parity remain open;
+Reviewed task documents, generated file inputs, graph-wide properties and
+Web/Razor SDKs now have small-fixture evidence. Opt-in stable Linux paths qualify
+relocated project-cache replay through 128 projects. Property-bound tool closures
+and full upstream migration parity remain open;
 the per-project rules remain the default. See
 [graph-cache migration](project-cache-migration.md) for commands, measured scope,
 and the remaining default-switch gates.

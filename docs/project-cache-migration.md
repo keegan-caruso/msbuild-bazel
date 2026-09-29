@@ -621,3 +621,22 @@ specify a reviewed closure; they do not discover arbitrary filesystem reads.
 `python3 tests/graph_build/mappings.py` passes generated task assembly execution,
 custom file items, task-input edits, graph-wide properties, stale-document
 rejection and unsupported-setting rejection on macOS ARM64/Bazel 9.2.
+`python3 tests/graph_build/web.py` passes Web/Razor compilation, replay and Razor
+source-edit invalidation, including standard `AssemblyAttribute` items.
+
+### Upstream migration audit after these changes
+
+The existing local upstream checkouts were evaluated with graph sync `--check`;
+no source files or generated BUILD files were changed. This is compatibility
+inspection, not build parity evidence.
+
+| Scope | Observed next gate |
+| --- | --- |
+| Orchard CMS Web, net10.0 | With 347 cached package archives declared and `RestoreUseStaticGraphEvaluation=false`, offline Restore succeeds. Sync then requires a reviewed document contract for `OrchardCore.Application.Cms.Core.Targets.targets`. Without the property, NuGet static-graph Restore throws a null-reference error. |
+| Avalonia.Controls, net8.0 | The 100 cached package archives are not a complete restore closure: `Microsoft.NETCore.Platforms >= 2.1.2` is missing. The default netstandard tool projects also participate in Restore. |
+| System.IO.Pipelines, net10.0 | The graph needs a declared `Microsoft.Net.Compilers.Toolset/5.0.0-2.25509.106` package closure before evaluation can proceed. |
+
+Next, transfer reviewed upstream target/tool contracts and complete their pinned
+package closures, then compare seed, relocated replay, body/API edits and runtime
+outputs against raw graph-mode MSBuild. Existing test-only plugin measurements
+are not evidence that the public graph API can build these whole scopes yet.

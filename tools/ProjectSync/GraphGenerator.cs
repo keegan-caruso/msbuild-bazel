@@ -46,10 +46,10 @@ internal static class GraphGenerator
             (path, globals, projects) =>
             {
                 var project = new Project(path, globals, null, projects);
-                if (project.Xml.Sdk != "Microsoft.NET.Sdk" ||
+                if (project.Xml.Sdk is not ("Microsoft.NET.Sdk" or "Microsoft.NET.Sdk.Web" or "Microsoft.NET.Sdk.Razor") ||
                     project.GetItems("Reference").Count != 0)
                 {
-                    throw new InvalidDataException("Graph sync currently requires Microsoft.NET.Sdk projects without assembly-reference mappings: " + Relative(path));
+                    throw new InvalidDataException("Graph sync requires a supported .NET SDK project without assembly-reference mappings: " + Relative(path));
                 }
                 foreach (var package in project.GetItems("PackageReference"))
                 {
@@ -74,7 +74,7 @@ internal static class GraphGenerator
                 var taskInputs = documents.SelectMany(document => GraphMappings.Inputs(document, Relative(document.FullPath), binding)).ToArray();
                 foreach (var item in project.AllEvaluatedItems.Where(item => !IsSdk(item.Xml.ContainingProject.FullPath) && !IsRestored(item.Xml.ContainingProject.FullPath)))
                 {
-                    if (!FileItems.Contains(item.ItemType, StringComparer.Ordinal) && !binding.InputItems.ContainsKey(item.ItemType) && !binding.EvaluationItems.Contains(item.ItemType, StringComparer.Ordinal) && item.ItemType is not "PackageReference" and not "PackageVersion" and not "ProjectReference" and not "InternalsVisibleTo" and not "Using" and not "FrameworkReference")
+                    if (!FileItems.Contains(item.ItemType, StringComparer.Ordinal) && !binding.InputItems.ContainsKey(item.ItemType) && !binding.EvaluationItems.Contains(item.ItemType, StringComparer.Ordinal) && item.ItemType is not "PackageReference" and not "PackageVersion" and not "ProjectReference" and not "InternalsVisibleTo" and not "Using" and not "FrameworkReference" and not "AssemblyAttribute")
                     {
                         throw new InvalidDataException("Graph sync item requires contract transfer: " + item.ItemType);
                     }
@@ -222,6 +222,7 @@ internal static class GraphGenerator
             }
             return boundaries[node] = node.ProjectInstance.GetPropertyValue("TargetPath").Length != 0 &&
             Dependencies(node).Append(node).All(current =>
+                !current.ProjectInstance.GetPropertyValue("UsingMicrosoftNETSdkRazor").Equals("true", StringComparison.OrdinalIgnoreCase) &&
                 mappings.ForProject(Relative(current.ProjectInstance.FullPath)).Documents.Count == 0 &&
                 mappings.ForProject(Relative(current.ProjectInstance.FullPath)).InputItems.Count == 0 &&
                 new[] { "PublishTrimmed", "PublishReadyToRun", "PublishAot", "PublishSingleFile" }.All(property =>
