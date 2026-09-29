@@ -10,7 +10,7 @@ internal static class Program
             {
                 throw new ArgumentException("ProjectSync <workspace> <sdk-directory> <project.csproj>... [--check] [--graph] [--configuration Release] [--framework TFM] [--package-build] [--package-input FILE] [--mappings mappings.json]");
             }
-            var sdk = Path.GetFullPath(args[1]);
+            var sdk = WorkspaceView.PhysicalPath(args[1]);
             if (!File.Exists(Path.Combine(sdk, "MSBuild.dll")))
             {
                 throw new ArgumentException("sdk-directory must contain MSBuild.dll");
@@ -100,13 +100,13 @@ internal static class Program
                     projects.Add(args[i]);
                 }
             }
-            var root = Path.GetFullPath(args[0]);
+            var root = WorkspaceView.PhysicalPath(args[0]);
             using var view = WorkspaceView.Create(root, inputs, runfiles);
             if (graph)
             {
-                if (view.HasGraphBindings)
+                if (view.HasIncompleteGraphBindings)
                 {
-                    throw new InvalidDataException("Graph sync property bindings still require contract transfer; declare task payloads with inputs and reviewed document mappings");
+                    throw new InvalidDataException("Graph sync requires composed managed tool closures; use bindings on msbuild_sync(mode = graph)");
                 }
                 GraphGenerator.Run(view.Root, sdk, projects.ToArray(), check, root, configuration, framework, view, packageBuild, packageInputs.ToArray(), new GraphMappings(mappings));
             }

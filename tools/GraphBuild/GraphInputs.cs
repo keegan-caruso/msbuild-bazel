@@ -11,6 +11,7 @@ internal sealed class GraphInputs : IDisposable
     private readonly GraphContract contract;
     private readonly Dictionary<string, string> inputDigests;
     private readonly string runnerDigest;
+    private readonly HashSet<string> sharedPaths;
     private readonly Dictionary<ProjectGraphNode, string> baseFingerprints;
     private readonly Dictionary<ProjectGraphNode, ProjectContract> projects = [];
     internal double EvaluationSeconds
@@ -40,6 +41,14 @@ internal sealed class GraphInputs : IDisposable
         var timer = System.Diagnostics.Stopwatch.StartNew();
         this.contract = contract;
         Files = new(root, sdkRoot);
+        sharedPaths = contract.SharedInputs.Select(Files.Resolve).ToHashSet(StringComparer.Ordinal);
+        foreach (var path in sharedPaths)
+        {
+            if (!File.Exists(path))
+            {
+                throw new InvalidDataException("Declared graph input is missing: " + path);
+            }
+        }
         if (contract.Version is not (1 or 2) || contract.Projects.Count == 0)
         {
             throw new InvalidDataException("Expected graph contract version 1 or 2 with explicit project inputs and outputs");
@@ -184,7 +193,7 @@ internal sealed class GraphInputs : IDisposable
 
     private void Validate(ProjectGraphNode node)
     {
-        var allowed = contract.SharedInputs.Concat(For(node).Inputs).Select(Files.Resolve).ToHashSet(StringComparer.Ordinal);
+        var allowed = For(node).Inputs.Select(Files.Resolve).ToHashSet(StringComparer.Ordinal);
         Require(node.ProjectInstance.FullPath);
         foreach (var path in imports[Key(node.ProjectInstance)])
         {
@@ -195,7 +204,7 @@ internal sealed class GraphInputs : IDisposable
                 Require(path);
             }
         }
-        foreach (var kind in new[] { "Compile", "EmbeddedResource", "Content", "None", "AdditionalFiles", "Analyzer", "EditorConfigFiles", "GlobalAnalyzerConfigFiles" })
+        foreach (var kind in new[] { "Compile", "EmbeddedResource", "Content", "None", "AdditionalFiles", "Analyzer", "EditorConfigFiles", "GlobalAnalyzerConfigFiles", "RazorGenerate" })
         {
             foreach (var item in node.ProjectInstance.GetItems(kind))
             {
@@ -204,6 +213,15 @@ internal sealed class GraphInputs : IDisposable
                 {
                     Require(path);
                 }
+            }
+        }
+        var signingKey = node.ProjectInstance.GetPropertyValue("AssemblyOriginatorKeyFile");
+        if (signingKey.Length != 0)
+        {
+            var path = Path.GetFullPath(signingKey.Replace('\\', '/'), Path.GetDirectoryName(node.ProjectInstance.FullPath)!);
+            if (!path.StartsWith(Files.Sdk + Path.DirectorySeparatorChar, StringComparison.Ordinal))
+            {
+                Require(path);
             }
         }
         var assets = node.ProjectInstance.GetPropertyValue("ProjectAssetsFile");
@@ -220,7 +238,7 @@ internal sealed class GraphInputs : IDisposable
         }
         void Require(string path)
         {
-            if (!allowed.Contains(path))
+            if (!allowed.Contains(path) && !sharedPaths.Contains(path))
             {
                 throw new InvalidDataException("Undeclared graph input for " + Relative(node) + ": " + Path.GetRelativePath(Files.Root, path));
             }

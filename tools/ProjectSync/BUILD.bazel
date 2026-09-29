@@ -9,5 +9,6 @@ filegroup(
         "//:.editorconfig",
         "//tools:Directory.Build.props",
         "//tools:MSBuildTool.props",
+        "//tools:PackageSdks.cs",
     ],
 )

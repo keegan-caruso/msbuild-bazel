@@ -1,8 +1,9 @@
 """Opt-in MSBuild traversal graph actions with explicit project contracts."""
 
+load("//msbuild/private:graph_tools.bzl", "graph_tool_closure")
 load("//msbuild/private:paths.bzl", _RUNTIME_TOOLCHAIN = "RUNTIME_TOOLCHAIN", _TOOLCHAIN = "TOOLCHAIN")
 load("//msbuild/private:project_launch.bzl", _create_launcher = "create_launcher")
-load("//msbuild/private:providers.bzl", "MSBuildPackageLockInfo", "MSBuildRuntimeInfo")
+load("//msbuild/private:providers.bzl", "MSBuildBindingInfo", "MSBuildPackageLockInfo", "MSBuildRuntimeInfo")
 load("//msbuild/private:test_options.bzl", _TEST_OPTIONS_ATTRS = "TEST_OPTIONS_ATTRS", _validate_test = "validate_test")
 
 MSBuildGraphInfo = provider("A declared MSBuild graph workspace and its execution SDK.", fields = {"directory": "Graph output workspace", "dotnet": "Execution host", "sdk": "Declared SDK files", "projects": "Configured project runtime outputs"})
@@ -62,11 +63,26 @@ def _graph(ctx):
         if relative.startswith("/") or "\\" in relative or any([part in ["", ".", ".."] for part in relative.split("/")]):
             fail("Graph input_paths requires safe workspace-relative paths")
         args.add_all([files[0].path, relative])
+    closures = []
+    tool_properties = {}
+    for index, target in enumerate(ctx.attr.bindings):
+        binding = target[MSBuildBindingInfo]
+        if binding.property_name in tool_properties:
+            fail("Duplicate graph tool property: " + binding.property_name)
+        tool_properties[binding.property_name] = ".graph-tools/" + str(index) + "/" + binding.tool.entry_point
+        closure = graph_tool_closure(ctx, tc, binding, index)
+        closures.append(closure)
+        args.add_all([closure.path, ".graph-tools/" + str(index)])
+    if closures:
+        bindings = ctx.actions.declare_file(ctx.label.name + ".graph-bindings.json")
+        ctx.actions.write(bindings, json.encode(tool_properties))
+        closures.append(bindings)
+        args.add_all([bindings.path, ".graph-tools/bindings.json"])
     packages = depset(ctx.files.packages, transitive = [ctx.attr.package_lock[MSBuildPackageLockInfo].archives] if ctx.attr.package_lock else []).to_list()
     for file in packages:
         args.add_all([file.path, ".package-source/" + file.basename])
     ctx.actions.run_shell(
-        inputs = depset(ctx.files.srcs + [file for target in ctx.attr.input_paths for file in target[DefaultInfo].files.to_list()] + packages + [ctx.file.contract, runner[0], ctx.file._linux_stable_paths], transitive = [tc.sdk] + ([ctx.attr.package_lock[MSBuildPackageLockInfo].files] if ctx.attr.package_lock else [])),
+        inputs = depset(ctx.files.srcs + [file for target in ctx.attr.input_paths for file in target[DefaultInfo].files.to_list()] + packages + closures + [ctx.file.contract, runner[0], ctx.file._linux_stable_paths], transitive = [tc.sdk] + ([ctx.attr.package_lock[MSBuildPackageLockInfo].files] if ctx.attr.package_lock else [])),
         tools = [tc.dotnet],
         outputs = [output],
         arguments = [args],
@@ -82,7 +98,12 @@ while test "$#" -gt 0; do
     source="$PWD/$1"; relative="$2"; shift 2
     test ! -e "$workspace/$relative"
     mkdir -p "$workspace/$(dirname "$relative")"
-    cp -pL "$source" "$workspace/$relative"
+    if test -d "$source"; then
+        mkdir -p "$workspace/$relative"
+        cp -pRL "$source/." "$workspace/$relative/"
+    else
+        cp -pL "$source" "$workspace/$relative"
+    fi
 done
 export DOTNET_ROOT="$(dirname "$dotnet")" DOTNET_CLI_HOME="$scratch" HOME="$scratch"
 export DOTNET_CLI_TELEMETRY_OPTOUT=1 DOTNET_SKIP_FIRST_TIME_EXPERIENCE=1 DOTNET_NOLOGO=1
@@ -103,6 +124,7 @@ msbuild_graph = rule(
         "contract": attr.label(allow_single_file = [".json"], mandatory = True),
         "runner": attr.label(mandatory = True, cfg = "exec"),
         "srcs": attr.label_list(allow_files = True, mandatory = True),
+        "bindings": attr.label_list(providers = [MSBuildBindingInfo], cfg = "exec"),
         "input_paths": attr.label_keyed_string_dict(allow_files = True),
         "packages": attr.label_list(allow_files = [".nupkg"]),
         "package_lock": attr.label(providers = [MSBuildPackageLockInfo]),

@@ -69,6 +69,17 @@ def main():
             shutil.copyfile(multi / name, staged / name)
         run(DOTNET, RUNNER, 'action', staged, multi / 'graph.generated.json', report, directory / 'multi-cache')
         assert json.loads(report.read_text())['misses'] == 2
+        mixed = directory / 'mixed'
+        for name in ['App', 'Library']:
+            (mixed / name).mkdir(parents=True)
+        (mixed / 'Library/Library.csproj').write_text('<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup><TargetFramework>net10.0</TargetFramework></PropertyGroup></Project>')
+        (mixed / 'Library/Code.cs').write_text('public class Library { public static int Value => 42; }')
+        (mixed / 'App/App.csproj').write_text('<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup><TargetFramework>net10.0-windows</TargetFramework><OutputType>Exe</OutputType></PropertyGroup><ItemGroup><ProjectReference Include="../Library/Library.csproj" /></ItemGroup></Project>')
+        (mixed / 'App/Code.cs').write_text('System.Console.WriteLine(Library.Value);')
+        run(DOTNET, SYNC, mixed, SDK / 'sdk/10.0.400', 'App/App.csproj', '--graph', '--framework', 'net10.0-windows')
+        run(DOTNET, RUNNER, 'action', mixed, mixed / 'graph.generated.json', report, directory / 'mixed-cache')
+        assert run(DOTNET, mixed / 'App/bin/Release/net10.0-windows/App.dll').stdout.strip() == '42'
+        assert (mixed / 'Library/bin/Release/net10.0/Library.dll').is_file()
         print('PASS: generated graph build/replay, freshness, custom/package rejection, authored-file protection')
 
 

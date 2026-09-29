@@ -1,5 +1,6 @@
 """Local project synchronization, invoked explicitly with bazel run."""
 
+load("//msbuild/private:graph_tools.bzl", "graph_tool_closure")
 load("//msbuild/private:paths.bzl", _TOOLCHAIN = "TOOLCHAIN", _quote = "quote", _runfile = "runfile")
 load("//msbuild/private:providers.bzl", "MSBuildBindingInfo", "MSBuildPackageLockInfo")
 
@@ -56,11 +57,16 @@ cd "$scratch"
     packages = [{"id": row["id"], "version": row["version"], "runfile": _runfile(ctx, by_path[row["directory"]])} for row in identities.values()]
     evaluation_bindings = []
     binding_files = []
-    for target in ctx.attr.bindings:
+    for index, target in enumerate(ctx.attr.bindings):
         binding = target[MSBuildBindingInfo]
         tool = binding.tool
         if tool.native:
             fail("Sync evaluation bindings require a managed task tool")
+        if ctx.attr.mode == "graph":
+            closure = graph_tool_closure(ctx, tc, binding, index)
+            evaluation_bindings.append({"label": str(target.label), "property": binding.property_name, "runfiles": [_runfile(ctx, closure)], "entry": tool.entry_point, "closure": True})
+            binding_files.append(closure)
+            continue
         entry = tool.entry_point.removeprefix(tool.layout_prefix + "/") if tool.layout_prefix else tool.entry_point
         evaluation_bindings.append({"label": str(target.label), "property": binding.property_name, "runfiles": [_runfile(ctx, directory) for directory in tool.directories.to_list()], "entry": entry})
         binding_files.extend(tool.files.to_list())

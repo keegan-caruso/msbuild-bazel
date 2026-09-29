@@ -48,6 +48,7 @@ System.Runtime.Loader.AssemblyLoadContext.Default.Resolving += (context, name) =
     File.Exists(Path.Combine(sdk, name.Name + ".dll")) ? context.LoadFromAssemblyPath(Path.Combine(sdk, name.Name + ".dll")) : null;
 Environment.SetEnvironmentVariable("MSBUILD_EXE_PATH", Path.Combine(sdk, "MSBuild.dll"));
 Environment.SetEnvironmentVariable("MSBuildSDKsPath", Path.Combine(sdk, "Sdks"));
+contract = GraphTools.Bind(contract, root, sdkRoot);
 if (args[0] == "action")
 {
     contract = Restore.Run(contract, root, sdkRoot);

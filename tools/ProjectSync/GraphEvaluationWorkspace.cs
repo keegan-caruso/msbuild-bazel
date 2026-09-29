@@ -5,20 +5,27 @@ namespace RulesMSBuild.ProjectSync;
 // Package evaluation runs only in an owned copy, never through source symlinks.
 internal sealed class GraphEvaluationWorkspace : IDisposable
 {
-    internal string Root { get; } = Directory.CreateTempSubdirectory("graph-sync-").FullName;
+    internal string Root { get; } = WorkspaceView.PhysicalPath(Directory.CreateTempSubdirectory("graph-sync-").FullName);
 
     internal GraphEvaluationWorkspace(string source, string sdk, IEnumerable<string> entries,
-        Dictionary<string, string> properties, WorkspaceView view)
+        Dictionary<string, string> properties, WorkspaceView view, Dictionary<string, string>? toolProperties = null)
     {
         try
         {
             Copy(source, Root);
+            properties = new Dictionary<string, string>(properties, StringComparer.OrdinalIgnoreCase);
+            foreach (var (name, path) in toolProperties ?? [])
+            {
+                GraphGenerator.ValidateToolProperty(name, properties);
+                properties.Add(name, Path.Combine(Root, path));
+            }
             var feed = Path.Combine(Root, ".package-source");
             Directory.CreateDirectory(feed);
             foreach (var archive in view.GraphPackageArchives())
             {
                 File.Copy(archive, Path.Combine(feed, Path.GetFileName(archive)));
             }
+            using var packageSdks = RulesMSBuild.PackageSdks.Prepare(Root);
             var config = Path.Combine(Root, ".graph.nuget.config");
             File.WriteAllText(config, "<configuration><packageSources><clear/></packageSources><fallbackPackageFolders><clear/></fallbackPackageFolders></configuration>");
             foreach (var entry in entries)
@@ -30,7 +37,8 @@ internal sealed class GraphEvaluationWorkspace : IDisposable
                 {
                     start.ArgumentList.Add(argument);
                 }
-                foreach (var (key, value) in properties)
+                // Restore each project's authored frameworks; the build graph still selects its requested framework.
+                foreach (var (key, value) in properties.Where(property => !property.Key.Equals("TargetFramework", StringComparison.OrdinalIgnoreCase)))
                 {
                     start.ArgumentList.Add("-p:" + key + "=" + value);
                 }

@@ -19,6 +19,7 @@ internal static class Restore
         {
             throw new InvalidDataException("Graph package set changed; run your graph-mode sync target before building");
         }
+        using var packageSdks = RulesMSBuild.PackageSdks.Prepare(root);
         var config = Path.Combine(source, "NuGet.Config");
         File.WriteAllText(config, "<configuration><packageSources><clear/></packageSources><fallbackPackageFolders><clear/></fallbackPackageFolders></configuration>");
         foreach (var entry in contract.Entries ?? [contract.Entry])
@@ -33,7 +34,8 @@ internal static class Restore
             {
                 process.ArgumentList.Add(argument);
             }
-            foreach (var (key, value) in contract.Properties)
+            // Restore each project's authored frameworks; the build graph still selects its requested framework.
+            foreach (var (key, value) in contract.Properties.Where(property => !property.Key.Equals("TargetFramework", StringComparison.OrdinalIgnoreCase)))
             {
                 process.ArgumentList.Add("-p:" + key + "=" + value);
             }

@@ -11,7 +11,7 @@ internal sealed record GraphContract(
     Dictionary<string, string> Properties,
     string[] SharedInputs,
     Dictionary<string, ProjectContract> Projects,
-    Dictionary<string, string>? DefinitionDigests = null, string[]? Entries = null, string[]? PackageDigests = null);
+    Dictionary<string, string>? DefinitionDigests = null, string[]? Entries = null, string[]? PackageDigests = null, Dictionary<string, string>? ToolProperties = null);
 
 // Inputs include task reads that evaluation cannot discover. Outputs are owned
 // directories relative to the workspace; dependency copies are handled separately.

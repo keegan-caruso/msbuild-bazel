@@ -10,6 +10,7 @@
   "Properties": {
     "Configuration": "Release"
   },
+  "ToolProperties": {},
   "SharedInputs": [
     "global.json"
   ],
