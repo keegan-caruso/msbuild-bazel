@@ -8,7 +8,7 @@ internal static class Program
         {
             if (args.Length < 3)
             {
-                throw new ArgumentException("ProjectSync <workspace> <sdk-directory> <project.csproj>... [--check] [--graph] [--mappings mappings.json]");
+                throw new ArgumentException("ProjectSync <workspace> <sdk-directory> <project.csproj>... [--check] [--graph] [--configuration Release] [--framework TFM] [--mappings mappings.json]");
             }
             var sdk = Path.GetFullPath(args[1]);
             if (!File.Exists(Path.Combine(sdk, "MSBuild.dll")))
@@ -23,6 +23,8 @@ internal static class Program
             string? mappings = null;
             var check = false;
             var graph = false;
+            var configuration = "Release";
+            var framework = "";
             string? inputs = null;
             string? runfiles = null;
             for (var i = 2; i < args.Length; i++)
@@ -34,6 +36,22 @@ internal static class Program
                 else if (args[i] == "--graph")
                 {
                     graph = true;
+                }
+                else if (args[i] is "--configuration" or "--framework")
+                {
+                    var option = args[i];
+                    if (++i == args.Length || args[i].Length == 0 || args[i].Any(c => !char.IsAsciiLetterOrDigit(c) && c is not '.' and not '_' and not '-'))
+                    {
+                        throw new ArgumentException(option + " requires a nonempty name using letters, digits, dots, underscores or hyphens");
+                    }
+                    if (option == "--configuration")
+                    {
+                        configuration = args[i];
+                    }
+                    else
+                    {
+                        framework = args[i];
+                    }
                 }
                 else if (args[i] is "--inputs" or "--runfiles")
                 {
@@ -72,14 +90,18 @@ internal static class Program
             using var view = WorkspaceView.Create(root, inputs, runfiles);
             if (graph)
             {
-                if (mappings is not null || view.Labels.Count != 0 || view.DefaultPackageLock is not null || view.HasGraphBindings)
+                if (mappings is not null || view.Labels.Count != 0 || view.HasGraphBindings)
                 {
-                    throw new InvalidDataException("Graph sync mappings, package locks and generated/tool inputs still require contract transfer");
+                    throw new InvalidDataException("Graph sync mappings and generated/tool inputs still require contract transfer; use the project backend for these inputs");
                 }
-                GraphGenerator.Run(root, sdk, projects.ToArray(), check, root);
+                GraphGenerator.Run(root, sdk, projects.ToArray(), check, root, configuration, framework, view);
             }
             else
             {
+                if (configuration != "Release" || framework.Length != 0)
+                {
+                    throw new ArgumentException("--configuration and --framework require --graph");
+                }
                 Generator.Run(view.Root, sdk, projects.ToArray(), check, Mappings.Read(mappings), view, root);
             }
             return 0;

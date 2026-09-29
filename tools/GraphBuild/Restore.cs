@@ -9,6 +9,11 @@ internal static class Restore
         var packages = Path.Combine(root, ".nuget");
         var source = Path.Combine(root, ".package-source");
         Directory.CreateDirectory(source);
+        if (contract.PackageDigests is not null && !Directory.GetFiles(source, "*.nupkg")
+            .Select(ContractFiles.Digest).Order(StringComparer.Ordinal).SequenceEqual(contract.PackageDigests.Order(StringComparer.Ordinal)))
+        {
+            throw new InvalidDataException("Graph package set changed; run your graph-mode sync target before building");
+        }
         foreach (var entry in contract.Entries ?? [contract.Entry])
         {
             var process = new ProcessStartInfo(Path.Combine(sdkRoot, OperatingSystem.IsWindows() ? "dotnet.exe" : "dotnet"))

@@ -24,7 +24,7 @@ def _package(ctx, generated = False):
                 fail("Conflicting locked package: " + row["id"])
             rows[row["id"].lower()] = row
     files = depset([output], transitive = [dep[MSBuildPackageInfo].files for dep in ctx.attr.deps])
-    return [DefaultInfo(files = files), MSBuildPackageInfo(id = ctx.attr.package_id, version = ctx.attr.version, directory = output, rows = rows.values(), files = files)]
+    return [DefaultInfo(files = files), MSBuildPackageInfo(id = ctx.attr.package_id, version = ctx.attr.version, directory = output, rows = rows.values(), files = files, archives = depset([ctx.file.archive], transitive = [dep[MSBuildPackageInfo].archives for dep in ctx.attr.deps]))]
 
 msbuild_nuget_package = rule(implementation = _package, attrs = {
     "package_id": attr.string(mandatory = True),
@@ -60,7 +60,7 @@ def _package_union(infos):
 def _package_dependencies(ctx):
     package = ctx.attr.package[MSBuildPackageInfo]
     rows, files = _package_union([package] + [dep[MSBuildPackageInfo] for dep in ctx.attr.deps])
-    return [DefaultInfo(files = files), MSBuildPackageInfo(id = package.id, version = package.version, directory = package.directory, rows = rows, files = files)]
+    return [DefaultInfo(files = files), MSBuildPackageInfo(id = package.id, version = package.version, directory = package.directory, rows = rows, files = files, archives = depset(transitive = [package.archives] + [dep[MSBuildPackageInfo].archives for dep in ctx.attr.deps]))]
 
 msbuild_nuget_dependencies = rule(implementation = _package_dependencies, attrs = {
     "package": attr.label(providers = [MSBuildPackageInfo], mandatory = True),
@@ -69,7 +69,7 @@ msbuild_nuget_dependencies = rule(implementation = _package_dependencies, attrs 
 
 def _package_lock(ctx):
     rows, files = _package_union([dep[MSBuildPackageInfo] for dep in ctx.attr.packages])
-    return [DefaultInfo(files = files), MSBuildPackageLockInfo(rows = rows, files = files)]
+    return [DefaultInfo(files = files), MSBuildPackageLockInfo(rows = rows, files = files, archives = depset(transitive = [dep[MSBuildPackageInfo].archives for dep in ctx.attr.packages]))]
 
 msbuild_package_lock = rule(implementation = _package_lock, attrs = {
     "packages": attr.label_list(providers = [MSBuildPackageInfo]),

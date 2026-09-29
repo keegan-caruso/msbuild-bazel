@@ -1,0 +1,104 @@
+{
+  "GeneratedBy": "ProjectSync --graph",
+  "Version": 2,
+  "Entry": "App/App.csproj",
+  "Entries": [
+    "App/App.csproj",
+    "Tests/Tests.csproj"
+  ],
+  "SdkVersion": "10.0.400",
+  "Properties": {
+    "Configuration": "Release"
+  },
+  "SharedInputs": [
+    "global.json"
+  ],
+  "PackageDigests": [],
+  "DefinitionDigests": {
+    "App/App.csproj": "62cc150ba79c8835af615b1a83c2cddc4a1317af9a7d9bf76bab381654f882e8",
+    "Library/Library.csproj": "e2c08643e21eba9123e4b319840fec508efc44b473a7cab491d6188e5f6905ca",
+    "Tests/Tests.csproj": "62cc150ba79c8835af615b1a83c2cddc4a1317af9a7d9bf76bab381654f882e8"
+  },
+  "Projects": {
+    "App/App.csproj": {
+      "Inputs": [],
+      "OutputDirectories": [],
+      "Configurations": [
+        {
+          "Properties": {
+            "Configuration": "Release",
+            "IsGraphBuild": "true"
+          },
+          "Inputs": [
+            "App/App.csproj",
+            "App/Program.cs"
+          ],
+          "ReferenceBoundary": true,
+          "DependencyCopies": {
+            "App/bin/Release/net10.0/Library.dll": "Library/bin/Release/net10.0/Library.dll",
+            "App/bin/Release/net10.0/publish/Library.dll": "Library/bin/Release/net10.0/Library.dll",
+            "App/bin/Release/net10.0/Library.pdb": "Library/bin/Release/net10.0/Library.pdb",
+            "App/bin/Release/net10.0/publish/Library.pdb": "Library/bin/Release/net10.0/Library.pdb",
+            "App/bin/Release/net10.0/Library.xml": "Library/bin/Release/net10.0/Library.xml",
+            "App/bin/Release/net10.0/publish/Library.xml": "Library/bin/Release/net10.0/Library.xml"
+          },
+          "OutputDirectories": [
+            "App/bin/Release/net10.0",
+            "App/obj/Release/net10.0"
+          ]
+        }
+      ]
+    },
+    "Library/Library.csproj": {
+      "Inputs": [],
+      "OutputDirectories": [],
+      "Configurations": [
+        {
+          "Properties": {
+            "Configuration": "Release",
+            "IsGraphBuild": "true"
+          },
+          "Inputs": [
+            "Library/Library.csproj",
+            "Library/Message.cs"
+          ],
+          "ReferenceBoundary": true,
+          "DependencyCopies": {},
+          "OutputDirectories": [
+            "Library/bin/Release/net10.0",
+            "Library/obj/Release/net10.0"
+          ]
+        }
+      ]
+    },
+    "Tests/Tests.csproj": {
+      "Inputs": [],
+      "OutputDirectories": [],
+      "Configurations": [
+        {
+          "Properties": {
+            "Configuration": "Release",
+            "IsGraphBuild": "true"
+          },
+          "Inputs": [
+            "Tests/Program.cs",
+            "Tests/Tests.csproj"
+          ],
+          "ReferenceBoundary": true,
+          "DependencyCopies": {
+            "Tests/bin/Release/net10.0/Library.dll": "Library/bin/Release/net10.0/Library.dll",
+            "Tests/bin/Release/net10.0/publish/Library.dll": "Library/bin/Release/net10.0/Library.dll",
+            "Tests/bin/Release/net10.0/Library.pdb": "Library/bin/Release/net10.0/Library.pdb",
+            "Tests/bin/Release/net10.0/publish/Library.pdb": "Library/bin/Release/net10.0/Library.pdb",
+            "Tests/bin/Release/net10.0/Library.xml": "Library/bin/Release/net10.0/Library.xml",
+            "Tests/bin/Release/net10.0/publish/Library.xml": "Library/bin/Release/net10.0/Library.xml"
+          },
+          "OutputDirectories": [
+            "Tests/bin/Release/net10.0",
+            "Tests/obj/Release/net10.0"
+          ]
+        }
+      ]
+    }
+  }
+}

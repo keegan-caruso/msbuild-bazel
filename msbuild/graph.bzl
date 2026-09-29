@@ -1,6 +1,7 @@
 """Opt-in MSBuild traversal graph actions with explicit project contracts."""
 
 load("//msbuild/private:paths.bzl", _quote = "quote", _runfile = "runfile")
+load("//msbuild/private:providers.bzl", "MSBuildPackageLockInfo")
 
 MSBuildGraphInfo = provider("A declared MSBuild graph workspace and its execution SDK.", fields = {"directory": "Graph output workspace", "dotnet": "Execution host", "sdk": "Declared SDK files", "projects": "Configured project runtime outputs"})
 
@@ -52,10 +53,11 @@ def _graph(ctx):
         if relative.startswith("/") or any([part in ["", ".", ".."] for part in relative.split("/")]):
             fail("Graph source requires a safe workspace-relative destination: " + relative)
         args.add_all([file.path, relative])
-    for file in ctx.files.packages:
+    packages = depset(ctx.files.packages, transitive = [ctx.attr.package_lock[MSBuildPackageLockInfo].archives] if ctx.attr.package_lock else []).to_list()
+    for file in packages:
         args.add_all([file.path, ".package-source/" + file.basename])
     ctx.actions.run_shell(
-        inputs = depset(ctx.files.srcs + ctx.files.packages + [ctx.file.contract, runner[0]], transitive = [tc.sdk]),
+        inputs = depset(ctx.files.srcs + packages + [ctx.file.contract, runner[0]], transitive = [tc.sdk] + ([ctx.attr.package_lock[MSBuildPackageLockInfo].files] if ctx.attr.package_lock else [])),
         tools = [tc.dotnet],
         outputs = [output],
         arguments = [args],
@@ -89,6 +91,7 @@ msbuild_graph = rule(
         "runner": attr.label(mandatory = True, cfg = "exec"),
         "srcs": attr.label_list(allow_files = True, mandatory = True),
         "packages": attr.label_list(allow_files = [".nupkg"]),
+        "package_lock": attr.label(providers = [MSBuildPackageLockInfo]),
         "source_root": attr.string(),
         "project_outputs": attr.string_list_dict(),
         "target": attr.string(default = "Build", values = ["Build", "Publish"]),

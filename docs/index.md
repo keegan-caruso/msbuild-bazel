@@ -7,6 +7,7 @@ separates qualified behavior from the [roadmap](roadmap.md).
 ## Use the rules
 
 - [Adoption, upgrades and distribution](adoption.md)
+- [Opt-in graph quickstart](../examples/graph-quickstart/README.md) and [migration limits](project-cache-migration.md)
 
 - [Build inputs and rule API](explicit-bazel-rules.md)
 - [Project-to-BUILD synchronization](project-sync.md) and [generated Orchard/Avalonia qualification](project-sync-broader-graphs.md)

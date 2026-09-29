@@ -103,7 +103,7 @@ capabilities. The remaining work is:
 
 1. Generate graph contracts from project sync, including declared task/tool
    bindings and dependency-copy roles. `ProjectSync --graph` now generates
-   package-free SDK graph contracts and Bazel declarations, including ordinary
+   SDK graph contracts with declared managed packages and Bazel declarations, including ordinary
    library reference boundaries and DLL/PDB/XML copy bindings. Rich mappings
    still need transfer; upstream probes still use repository-specific discovery.
 2. Extend configuration and restore qualification to upstream graphs. Version 2
@@ -293,7 +293,7 @@ or package-rich multi-targeting.
 
 ## Opt-in graph synchronization
 
-For a package-free `Microsoft.NET.Sdk` graph, keep the existing `msbuild_sync`
+For a supported `Microsoft.NET.Sdk` graph, keep the existing `msbuild_sync`
 target, set `mode = "graph"`, and run:
 
 ```sh
@@ -315,9 +315,10 @@ selectors and output directories. Ordinary library dependencies use reference
 assemblies for compilation identity and explicit DLL/PDB/XML copy bindings for
 current runtime files. Content/resource copying, custom reference roles and
 specialized publish settings retain conservative invalidation.
-Sync rejects package references, tests, custom targets/tasks, external assembly
-references, custom item kinds and existing mapping/tool/package inputs until
-those contracts are transferred. Run sync for the intended SDK/platform; this
+Sync accepts exact package references from a declared `package_lock`. It rejects
+package build/content assets, test-runner mappings, custom targets/tasks, external
+assembly references, custom item kinds and generated/tool inputs until their
+contracts are transferred. Run sync for the intended SDK/platform; this
 slice does not translate host-specific conditions into Bazel platform selectors.
 The default per-project sync output is unchanged.
 
@@ -353,7 +354,7 @@ outputs, excluding the disposable `AssemblyReference.cache` file.
 the existing Ubuntu ARM64 qualification container with SDK 10.0.400. Both .NET
 tools built without warnings. The existing project-sync unit suite also passed
 all 53 tests on macOS. These checks establish small standalone graph slices;
-package-aware sync, Linux Bazel stable paths, large package-rich graphs, native
+broader package-aware sync, Linux Bazel stable paths, large package-rich graphs, native
 tasks and MTP/VSTest integration are still unqualified.
 
 ## Copy-on-write measurement
@@ -483,3 +484,42 @@ but unchanged runtime bytes preserve the Bazel test cache entry.
 9.2.0 and SDK 10.0.400: persistent sync/check, two entry projects, executable
 run, unrelated edit retaining a cached test, and dependency body edit failing
 the test. Selected runtime files are materialized, not sandbox symlinks.
+
+
+## Graph configuration and locked packages
+
+Set `configuration` (default `Release`) and optional `framework` on
+`msbuild_sync(mode = "graph")`. These selections persist for sync and check;
+the generated contract applies them to Restore and compilation. Multiple entry
+projects share the graph; Restore currently visits each entry sequentially.
+
+Pass the existing `msbuild_package_lock` as `package_lock` on sync. Package
+providers retain their original archive closure, which the generated graph
+consumes with the extraction outputs that verify the configured hashes. Restore
+uses only those archives. Exact direct package versions must occur in the lock;
+transitive packages must also be present for offline Restore to succeed.
+Generated contracts pin the package archive digests, rejecting package changes
+before Restore until sync runs again.
+
+Sync still does not run Restore or package targets. Packages with build,
+buildTransitive, buildMultiTargeting or content assets are rejected rather than
+ignoring their evaluation effects. Existing richer mappings use the project
+backend. Package graphs retain conservative dependency invalidation; optimized
+reference boundaries remain limited to the qualified package-free case.
+
+The [graph quickstart](../examples/graph-quickstart/README.md) shows the complete
+app-developer workflow. Focused commands, using the pinned wrapper overrides:
+
+```sh
+python3 tests/graph_build/devex.py
+python3 tests/graph_build/quickstart.py
+```
+
+On macOS ARM64, SDK 10.0.400 and Bazel 9.2.0, these passed: locked transitive
+managed packages, package upgrade, Debug/framework selection, stale package-set
+rejection, missing closure rejection, unsupported package-build asset rejection,
+archive-hash enforcement, and committed-example sync/check/run/test. The
+committed example also passes on Bazel 8.8.0. Existing 53 project-sync controls and
+generated body/API/publish invalidation controls also pass. These checks do not
+establish Linux, MTP/VSTest, package build-task or remote execution parity for the
+new developer workflow.

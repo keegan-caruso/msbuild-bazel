@@ -53,7 +53,7 @@ def main():
         project.write_text(original.replace('</Project>', '<Target Name="Custom" BeforeTargets="Build" /></Project>'))
         assert 'custom targets/tasks' in run(*command, success=False).stderr
         project.write_text(original.replace('</Project>', '<ItemGroup><PackageReference Include="Unknown" Version="1.0.0" /></ItemGroup></Project>'))
-        assert 'package-free' in run(*command, success=False).stderr
+        assert 'msbuild_sync.package_lock' in run(*command, success=False).stderr
         project.write_text(original)
         contract.write_text('{}')
         assert 'Refusing to overwrite' in run(*command, success=False).stderr

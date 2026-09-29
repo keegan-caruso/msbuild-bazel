@@ -13,7 +13,7 @@ internal static class GraphGenerator
     private const string BuildName = "graph.generated.bzl";
     private static readonly string[] FileItems = ["Compile", "EmbeddedResource", "Content", "None", "AdditionalFiles", "Analyzer", "EditorConfigFiles", "GlobalAnalyzerConfigFiles"];
 
-    internal static void Run(string root, string sdk, string[] entries, bool check, string outputRoot)
+    internal static void Run(string root, string sdk, string[] entries, bool check, string outputRoot, string configuration = "Release", string framework = "", WorkspaceView? view = null)
     {
         root = Path.TrimEndingDirectorySeparator(Path.GetFullPath(root));
         sdk = Path.TrimEndingDirectorySeparator(sdk);
@@ -21,7 +21,12 @@ internal static class GraphGenerator
         using var collection = new ProjectCollection();
         var inputs = new System.Collections.Concurrent.ConcurrentDictionary<string, string[]>();
         var definitions = new System.Collections.Concurrent.ConcurrentDictionary<string, byte>();
-        var properties = new Dictionary<string, string> { ["Configuration"] = "Release" };
+        var packageIdentities = view?.GraphPackageIdentities() ?? [];
+        var properties = new Dictionary<string, string> { ["Configuration"] = configuration };
+        if (framework.Length != 0)
+        {
+            properties["TargetFramework"] = framework;
+        }
         var evaluationProperties = new Dictionary<string, string>(properties)
         {
             ["ImportProjectExtensionProps"] = "false",
@@ -34,11 +39,28 @@ internal static class GraphGenerator
             (path, globals, projects) =>
             {
                 var project = new Project(path, globals, null, projects);
-                if (project.Xml.Sdk != "Microsoft.NET.Sdk" || project.GetItems("PackageReference").Count != 0 ||
+                if (project.Xml.Sdk != "Microsoft.NET.Sdk" ||
                     project.GetPropertyValue("IsTestProject").Equals("true", StringComparison.OrdinalIgnoreCase) ||
                     project.GetItems("Reference").Count != 0)
                 {
-                    throw new InvalidDataException("Graph sync currently requires package-free Microsoft.NET.Sdk projects without test or assembly-reference mappings: " + Relative(path));
+                    throw new InvalidDataException("Graph sync currently requires Microsoft.NET.Sdk projects without test or assembly-reference mappings: " + Relative(path));
+                }
+                foreach (var package in project.GetItems("PackageReference"))
+                {
+                    var version = package.GetMetadataValue("VersionOverride");
+                    if (version.Length == 0)
+                    {
+                        version = package.GetMetadataValue("Version");
+                    }
+                    if (version.Length == 0 && project.GetPropertyValue("ManagePackageVersionsCentrally").Equals("true", StringComparison.OrdinalIgnoreCase))
+                    {
+                        version = project.GetItems("PackageVersion").SingleOrDefault(item => item.EvaluatedInclude.Equals(package.EvaluatedInclude, StringComparison.OrdinalIgnoreCase))?.GetMetadataValue("Version") ?? "";
+                    }
+                    var identity = package.EvaluatedInclude + "/" + version;
+                    if (!packageIdentities.Contains(identity))
+                    {
+                        throw new InvalidDataException(Relative(path) + ": PackageReference " + identity + " requires an exact entry in msbuild_sync.package_lock; declare the closed package set and rerun sync");
+                    }
                 }
                 var documents = project.Imports.Select(import => import.ImportedProject).Append(project.Xml)
                     .Where(document => !IsSdk(document.FullPath)).DistinctBy(document => document.FullPath).ToArray();
@@ -48,7 +70,7 @@ internal static class GraphGenerator
                 }
                 foreach (var item in project.AllEvaluatedItems.Where(item => !IsSdk(item.Xml.ContainingProject.FullPath)))
                 {
-                    if (!FileItems.Contains(item.ItemType, StringComparer.Ordinal) && item.ItemType is not "ProjectReference" and not "InternalsVisibleTo" and not "Using" and not "FrameworkReference")
+                    if (!FileItems.Contains(item.ItemType, StringComparer.Ordinal) && item.ItemType is not "PackageReference" and not "PackageVersion" and not "ProjectReference" and not "InternalsVisibleTo" and not "Using" and not "FrameworkReference")
                     {
                         throw new InvalidDataException("Graph sync item requires contract transfer: " + item.ItemType);
                     }
@@ -128,6 +150,7 @@ internal static class GraphGenerator
             SdkVersion = Path.GetFileName(sdk),
             Properties = properties,
             SharedInputs = shared,
+            PackageDigests = view?.GraphPackageDigests() ?? [],
             DefinitionDigests = definitions.Keys.Order(StringComparer.Ordinal).ToDictionary(path => path,
                 path => Convert.ToHexStringLower(System.Security.Cryptography.SHA256.HashData(File.ReadAllBytes(Path.Combine(root, path))))),
             Projects = declarations
@@ -141,7 +164,7 @@ internal static class GraphGenerator
         var text = Header + "load(\"@rules_msbuild//msbuild:defs.bzl\", \"msbuild_graph\", \"msbuild_graph_runner\")\n\n" +
             "def app_graph(name = \"app\"):\n    if native.package_name():\n        fail(\"app_graph must be called from the workspace root\")\n" +
             "    msbuild_graph_runner(name = name + \"_runner\")\n    msbuild_graph(\n        name = name,\n        runner = \":\" + name + \"_runner\",\n" +
-            "        contract = \"" + ContractName + "\",\n        srcs = " + StarlarkLiteral.Serialize(sources) + ",\n        project_outputs = " + StarlarkLiteral.Serialize(runtimeOutputs) + ",\n    )\n";
+            "        contract = \"" + ContractName + "\",\n        srcs = " + StarlarkLiteral.Serialize(sources) + ",\n        project_outputs = " + StarlarkLiteral.Serialize(runtimeOutputs) + ",\n" + (view?.DefaultPackageLock is null ? "" : "        package_lock = " + StarlarkLiteral.Serialize(view.DefaultPackageLock) + ",\n") + "    )\n";
         // Validate both destinations before replacing either generated file.
         Verify(ContractName, contract, "{\n  \"GeneratedBy\": \"ProjectSync --graph\",");
         Verify(BuildName, text, Header);
@@ -188,6 +211,7 @@ internal static class GraphGenerator
                     item.GetMetadataValue("ReferenceOutputAssembly") is "" or "true" &&
                     item.GetMetadataValue("Private") is "" or "true") &&
                 (current == node || current.ProjectInstance.GetPropertyValue("OutputType").Equals("Library", StringComparison.OrdinalIgnoreCase)) &&
+                current.ProjectInstance.GetItems("PackageReference").Count == 0 &&
                 HasStandardSymbols(current) &&
                 current.ProjectInstance.GetItems("EmbeddedResource").Count == 0 &&
                 FileItems.SelectMany(current.ProjectInstance.GetItems).All(item =>
