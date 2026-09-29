@@ -57,8 +57,10 @@ qualifies graph-level cache hits on synthetic 3-202-project chains. Its
 [Avalonia SimpleTheme slice](avalonia-project-cache-probe.md) checks a real
 23-node graph, XAML/body/API edits, and raw MSBuild timings. The
 [Orchard CMS slice](orchard-project-cache-probe.md) covers 403 graph nodes,
-clean replay, a body edit, and runtime assets. These probes are not production
-rules.
+clean replay, a body edit, and runtime assets. The
+[dotnet/runtime Pipelines slice](runtime-project-cache-probe.md) checks evaluated
+artifact paths, separate contract/implementation projects, and a body edit.
+These probes are not production rules.
 
 See [performance](performance.md) for cold builds, warm edits and remote-cache
 recovery versus raw MSBuild, with measurement conditions and detailed evidence.

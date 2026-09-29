@@ -10,9 +10,9 @@ using Microsoft.Build.Framework;
 using Microsoft.Build.Graph;
 using Microsoft.Build.ProjectCache;
 
-if (args.Length is < 5 or > 6 || (args.Length == 6 && args[5] != "orchard"))
+if (args.Length is < 5 or > 6 || (args.Length == 6 && args[5] is not ("orchard" or "runtime")))
 {
-    Console.Error.WriteLine("Usage: AvaloniaProbe ROOT ENTRY_RELATIVE READ_CACHE|- WRITE_CACHE REPORT [orchard]");
+    Console.Error.WriteLine("Usage: AvaloniaProbe ROOT ENTRY_RELATIVE READ_CACHE|- WRITE_CACHE REPORT [orchard|runtime]");
     return 2;
 }
 
@@ -21,7 +21,8 @@ var entry = args[1];
 var readCache = args[2];
 var writeCache = args[3];
 var reportPath = args[4];
-var orchard = args.Length == 6;
+var orchard = args.Length == 6 && args[5] == "orchard";
+var runtime = args.Length == 6 && args[5] == "runtime";
 root = Path.GetFullPath(root);
 var timer = Stopwatch.StartNew();
 var sdk = Path.Combine(Environment.GetEnvironmentVariable("DOTNET_ROOT") ?? throw new InvalidOperationException("DOTNET_ROOT is required"), "sdk", "10.0.400");
@@ -33,22 +34,34 @@ var packages = Environment.GetEnvironmentVariable("NUGET_PACKAGES") ?? throw new
 var properties = new Dictionary<string, string>
 {
     ["Configuration"] = "Release",
-    ["TargetFramework"] = orchard ? "net10.0" : "net8.0",
+    ["TargetFramework"] = orchard || runtime ? "net10.0" : "net8.0",
     ["NuGetAudit"] = "false",
     ["RestorePackagesPath"] = packages,
     ["DebugType"] = "portable",
-    ["ProduceReferenceAssembly"] = "true",
-    ["PathMap"] = root + "=/_/workspace",
 };
-if (!orchard)
+if (!runtime)
 {
-    properties["AvsSkipBuildingLegacyTargetFrameworks"] = "True";
+    properties["ProduceReferenceAssembly"] = "true";
+    properties["PathMap"] = root + "=/_/workspace";
+    if (!orchard)
+    {
+        properties["AvsSkipBuildingLegacyTargetFrameworks"] = "True";
+    }
+}
+else
+{
+    properties["TargetArchitecture"] = "arm64";
+    properties["TargetOS"] = "osx";
+    properties["UseLocalTargetingRuntimePack"] = "false";
+    properties["RestoreUseStaticGraphEvaluation"] = "false";
+    properties["UseSharedCompilation"] = "false";
+    properties["NetCoreSdkRoot"] = sdk;
 }
 using var collection = new ProjectCollection();
 var graph = new ProjectGraph(new ProjectGraphEntryPoint(Path.Combine(root, entry), properties), collection);
 var graphSeconds = timer.Elapsed.TotalSeconds;
 var targetsByNode = graph.GetTargetLists(["Build"]);
-var plugin = new AvaloniaCache(root, packages, readCache == "-" ? null : Path.GetFullPath(readCache), orchard);
+var plugin = new AvaloniaCache(root, packages, readCache == "-" ? null : Path.GetFullPath(readCache), orchard, runtime);
 var targetTimings = new TargetTimingLogger();
 var consoleLogger = new Microsoft.Build.Logging.ConsoleLogger(LoggerVerbosity.Minimal);
 var parameters = new BuildParameters(collection)
@@ -187,7 +200,7 @@ internal sealed class TargetTimingLogger : ILogger
     }
 }
 
-internal sealed class AvaloniaCache(string root, string packages, string? readCache, bool orchard) : ProjectCachePluginBase
+internal sealed class AvaloniaCache(string root, string packages, string? readCache, bool orchard, bool runtime) : ProjectCachePluginBase
 {
     private Dictionary<string, ProjectGraphNode> nodes = new(StringComparer.Ordinal);
     private Dictionary<string, List<string>> producerOutputs = new(StringComparer.Ordinal);
@@ -215,10 +228,11 @@ internal sealed class AvaloniaCache(string root, string packages, string? readCa
             ?? throw new InvalidOperationException("The probe requires a static project graph");
         producerOutputs = nodes.Values
             .Where(node => node.ProjectInstance.GetPropertyValue("TargetFramework").Length != 0)
-            .SelectMany(node => new[] { ".dll", ".pdb", ".xml" }.Select(extension =>
-                Path.Combine(Path.GetDirectoryName(node.ProjectInstance.FullPath)!, "bin", "Release",
-                    node.ProjectInstance.GetPropertyValue("TargetFramework"),
-                    node.ProjectInstance.GetPropertyValue("AssemblyName") + extension)))
+            .SelectMany(node => runtime ? CompanionFiles(TargetFile(node)) :
+                new[] { ".dll", ".pdb", ".xml" }.Select(extension =>
+                    Path.Combine(Path.GetDirectoryName(node.ProjectInstance.FullPath)!, "bin", "Release",
+                        node.ProjectInstance.GetPropertyValue("TargetFramework"),
+                        node.ProjectInstance.GetPropertyValue("AssemblyName") + extension)))
             .GroupBy(Path.GetFileName, StringComparer.Ordinal)
             .ToDictionary(group => group.Key!, group => group.ToList(), StringComparer.Ordinal);
         dependencyOutputs = nodes.Values.ToDictionary(Key, DependencyOutputPaths, StringComparer.Ordinal);
@@ -267,13 +281,13 @@ internal sealed class AvaloniaCache(string root, string packages, string? readCa
                     var restoreStarted = Stopwatch.GetTimestamp();
                     foreach (var relative in snapshot.Files.Keys)
                     {
-                        var target = Path.Combine(Path.GetDirectoryName(node.ProjectInstance.FullPath)!, relative);
+                        var target = Path.Combine(SnapshotBase(node), relative);
                         Directory.CreateDirectory(Path.GetDirectoryName(target)!);
                         File.Copy(Path.Combine(source, relative), target, true);
                     }
                     foreach (var (relative, producer) in snapshot.ProjectCopies!)
                     {
-                        var target = Path.Combine(Path.GetDirectoryName(node.ProjectInstance.FullPath)!, relative);
+                        var target = Path.Combine(SnapshotBase(node), relative);
                         Directory.CreateDirectory(Path.GetDirectoryName(target)!);
                         LinkOrCopy(Path.Combine(root, producer), target);
                     }
@@ -303,7 +317,7 @@ internal sealed class AvaloniaCache(string root, string packages, string? readCa
             {
                 continue;
             }
-            var source = Path.GetDirectoryName(node.ProjectInstance.FullPath)!;
+            var source = SnapshotBase(node);
             var target = SnapshotDirectory(destination, node);
             Directory.CreateDirectory(target);
             if (readCache is not null && cacheHits.TryGetValue(Key(node), out var hit))
@@ -379,7 +393,7 @@ internal sealed class AvaloniaCache(string root, string packages, string? readCa
     [DllImport("libc", EntryPoint = "link", SetLastError = true)]
     private static extern int CreateUnixHardLink(string source, string target);
 
-    private static HashSet<string> DependencyOutputPaths(ProjectGraphNode node)
+    private HashSet<string> DependencyOutputPaths(ProjectGraphNode node)
     {
         var outputs = new HashSet<string>(StringComparer.Ordinal);
         var visited = new HashSet<ProjectGraphNode>();
@@ -394,10 +408,12 @@ internal sealed class AvaloniaCache(string root, string packages, string? readCa
             var framework = project.GetPropertyValue("TargetFramework");
             if (framework.Length != 0)
             {
-                foreach (var extension in new[] { ".dll", ".pdb", ".xml" })
+                foreach (var output in runtime ? CompanionFiles(TargetFile(dependency)) :
+                    new[] { ".dll", ".pdb", ".xml" }.Select(extension =>
+                        Path.Combine(Path.GetDirectoryName(project.FullPath)!, "bin", "Release", framework,
+                            project.GetPropertyValue("AssemblyName") + extension)))
                 {
-                    outputs.Add(Path.Combine(Path.GetDirectoryName(project.FullPath)!, "bin", "Release", framework,
-                        project.GetPropertyValue("AssemblyName") + extension));
+                    outputs.Add(output);
                 }
             }
             foreach (var reference in dependency.ProjectReferences)
@@ -436,7 +452,8 @@ internal sealed class AvaloniaCache(string root, string packages, string? readCa
             var implementation = authored.Any(item =>
                 item.GetMetadataValue("OutputItemType").Equals("Analyzer", StringComparison.OrdinalIgnoreCase) ||
                 item.GetMetadataValue("ReferenceOutputAssembly").Equals("false", StringComparison.OrdinalIgnoreCase));
-            var output = implementation ? Path.Combine(source, "bin", "Release", framework, name + ".dll") :
+            var output = runtime ? TargetFile(reference) : implementation ?
+                Path.Combine(source, "bin", "Release", framework, name + ".dll") :
                 Path.Combine(source, "obj", "Release", framework, "ref", name + ".dll");
             return Display(reference) + ":" + (File.Exists(output) ? Digest(output) : "MISSING");
         });
@@ -450,6 +467,7 @@ internal sealed class AvaloniaCache(string root, string packages, string? readCa
 
     private IEnumerable<string> SharedPaths() =>
         new[] { "build", Path.Combine("src", "Shared"), Path.Combine("src", "OrchardCore.Build") }
+            .Concat(runtime ? ["eng"] : [])
             .Select(path => Path.Combine(root, path))
             .Where(Directory.Exists)
             .SelectMany(path => Directory.GetFiles(path, "*", SearchOption.AllDirectories))
@@ -464,6 +482,20 @@ internal sealed class AvaloniaCache(string root, string packages, string? readCa
         var project = node.ProjectInstance;
         var directory = Path.GetDirectoryName(project.FullPath)!;
         var framework = project.GetPropertyValue("TargetFramework");
+        if (runtime)
+        {
+            foreach (var folder in RuntimeOutputDirectories(node))
+            {
+                if (Directory.Exists(folder))
+                {
+                    foreach (var path in Directory.GetFiles(folder, "*", SearchOption.AllDirectories))
+                    {
+                        yield return Path.GetRelativePath(root, path);
+                    }
+                }
+            }
+            yield break;
+        }
         var prefixes = orchard
             ? new[] { Path.Combine("bin", "Release", framework), Path.Combine("obj", "Release", framework) }
             : new[] { Path.Combine("bin", "Release", framework), Path.Combine("obj", "Release", framework, "ref"), Path.Combine("obj", "Release", framework, "refint") };
@@ -483,13 +515,35 @@ internal sealed class AvaloniaCache(string root, string packages, string? readCa
     private string SnapshotDirectory(string cache, ProjectGraphNode node) =>
         Path.Combine(cache, Path.GetRelativePath(root, node.ProjectInstance.FullPath) + "." + node.ProjectInstance.GetPropertyValue("TargetFramework") + ".cache");
 
-    private string OwnAssembly(ProjectGraphNode node) => Path.Combine("bin", "Release", node.ProjectInstance.GetPropertyValue("TargetFramework"), node.ProjectInstance.GetPropertyValue("AssemblyName") + ".dll");
+    private string SnapshotBase(ProjectGraphNode node) => runtime ? root : Path.GetDirectoryName(node.ProjectInstance.FullPath)!;
+
+    private string TargetFile(ProjectGraphNode node) => Path.GetFullPath(
+        node.ProjectInstance.GetPropertyValue("TargetPath"), Path.GetDirectoryName(node.ProjectInstance.FullPath)!);
+
+    private static IEnumerable<string> CompanionFiles(string target) => new[] { ".dll", ".pdb", ".xml" }
+        .Select(extension => Path.ChangeExtension(target, extension));
+
+    private IEnumerable<string> RuntimeOutputDirectories(ProjectGraphNode node) =>
+        new[] { "OutputPath", "IntermediateOutputPath" }
+            .Select(property => node.ProjectInstance.GetPropertyValue(property))
+            .Where(value => value.Length != 0)
+            .Select(value => Path.TrimEndingDirectorySeparator(Path.GetFullPath(value,
+                Path.GetDirectoryName(node.ProjectInstance.FullPath)!)))
+            .Where(path => path.StartsWith(root + Path.DirectorySeparatorChar, StringComparison.Ordinal));
+
+    private string OwnAssembly(ProjectGraphNode node) => runtime ? Path.GetRelativePath(root, TargetFile(node)) :
+        Path.Combine("bin", "Release", node.ProjectInstance.GetPropertyValue("TargetFramework"), node.ProjectInstance.GetPropertyValue("AssemblyName") + ".dll");
 
     private bool AllowedOutput(ProjectGraphNode node, string relative)
     {
         if (Path.IsPathRooted(relative) || relative.Split(Path.DirectorySeparatorChar).Contains(".."))
         {
             return false;
+        }
+        if (runtime)
+        {
+            return RuntimeOutputDirectories(node).Any(directory =>
+                relative.StartsWith(Path.GetRelativePath(root, directory) + Path.DirectorySeparatorChar, StringComparison.Ordinal));
         }
         var framework = node.ProjectInstance.GetPropertyValue("TargetFramework");
         return relative.StartsWith(Path.Combine("bin", "Release", framework) + Path.DirectorySeparatorChar, StringComparison.Ordinal) ||
