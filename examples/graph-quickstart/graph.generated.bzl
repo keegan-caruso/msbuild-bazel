@@ -11,5 +11,6 @@ def app_graph(name = "app", linux_stable_paths = False):
         runner = ":" + name + "_runner",
         contract = "graph.generated.json",
         srcs = ["App/App.csproj","App/Program.cs","Library/Library.csproj","Library/Message.cs","Tests/Program.cs","Tests/Tests.csproj","global.json"],
+        input_paths = {},
         project_outputs = {"App/App.csproj|net10.0":["App/bin/Release/net10.0","App.dll","Exe"],"Library/Library.csproj|net10.0":["Library/bin/Release/net10.0","Library.dll","Library"],"Tests/Tests.csproj|net10.0":["Tests/bin/Release/net10.0","Tests.dll","Exe"]},
     )

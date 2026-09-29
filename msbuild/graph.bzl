@@ -55,11 +55,18 @@ def _graph(ctx):
         if relative.startswith("/") or any([part in ["", ".", ".."] for part in relative.split("/")]):
             fail("Graph source requires a safe workspace-relative destination: " + relative)
         args.add_all([file.path, relative])
+    for target, relative in ctx.attr.input_paths.items():
+        files = target[DefaultInfo].files.to_list()
+        if len(files) != 1 or files[0].is_directory:
+            fail("Graph input_paths requires one file per label")
+        if relative.startswith("/") or "\\" in relative or any([part in ["", ".", ".."] for part in relative.split("/")]):
+            fail("Graph input_paths requires safe workspace-relative paths")
+        args.add_all([files[0].path, relative])
     packages = depset(ctx.files.packages, transitive = [ctx.attr.package_lock[MSBuildPackageLockInfo].archives] if ctx.attr.package_lock else []).to_list()
     for file in packages:
         args.add_all([file.path, ".package-source/" + file.basename])
     ctx.actions.run_shell(
-        inputs = depset(ctx.files.srcs + packages + [ctx.file.contract, runner[0], ctx.file._linux_stable_paths], transitive = [tc.sdk] + ([ctx.attr.package_lock[MSBuildPackageLockInfo].files] if ctx.attr.package_lock else [])),
+        inputs = depset(ctx.files.srcs + [file for target in ctx.attr.input_paths for file in target[DefaultInfo].files.to_list()] + packages + [ctx.file.contract, runner[0], ctx.file._linux_stable_paths], transitive = [tc.sdk] + ([ctx.attr.package_lock[MSBuildPackageLockInfo].files] if ctx.attr.package_lock else [])),
         tools = [tc.dotnet],
         outputs = [output],
         arguments = [args],
@@ -96,6 +103,7 @@ msbuild_graph = rule(
         "contract": attr.label(allow_single_file = [".json"], mandatory = True),
         "runner": attr.label(mandatory = True, cfg = "exec"),
         "srcs": attr.label_list(allow_files = True, mandatory = True),
+        "input_paths": attr.label_keyed_string_dict(allow_files = True),
         "packages": attr.label_list(allow_files = [".nupkg"]),
         "package_lock": attr.label(providers = [MSBuildPackageLockInfo]),
         "source_root": attr.string(),

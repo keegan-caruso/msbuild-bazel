@@ -8,7 +8,7 @@ internal sealed class GraphEvaluationWorkspace : IDisposable
     internal string Root { get; } = Directory.CreateTempSubdirectory("graph-sync-").FullName;
 
     internal GraphEvaluationWorkspace(string source, string sdk, IEnumerable<string> entries,
-        string configuration, string framework, WorkspaceView view)
+        Dictionary<string, string> properties, WorkspaceView view)
     {
         try
         {
@@ -25,14 +25,14 @@ internal sealed class GraphEvaluationWorkspace : IDisposable
             {
                 var start = new ProcessStartInfo(Path.Combine(sdk, "dotnet")) { WorkingDirectory = Root };
                 foreach (var argument in new[] { "restore", Path.Combine(Root, WorkspaceView.Safe(entry)), "--configfile", config,
-                    "--source", feed, "--packages", Path.Combine(Root, ".nuget"), "-p:NuGetAudit=false", "-p:Configuration=" + configuration,
+                    "--source", feed, "--packages", Path.Combine(Root, ".nuget"), "-p:NuGetAudit=false",
                     "-p:RestoreFallbackFolders=", "-p:RestoreAdditionalProjectSources=", "-p:RestoreAdditionalProjectFallbackFolders=" })
                 {
                     start.ArgumentList.Add(argument);
                 }
-                if (framework.Length != 0)
+                foreach (var (key, value) in properties)
                 {
-                    start.ArgumentList.Add("-p:TargetFramework=" + framework);
+                    start.ArgumentList.Add("-p:" + key + "=" + value);
                 }
                 start.Environment["DOTNET_ROOT"] = sdk;
                 start.Environment["DOTNET_CLI_HOME"] = Path.Combine(Root, ".cli");

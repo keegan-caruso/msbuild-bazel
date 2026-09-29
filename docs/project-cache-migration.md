@@ -317,9 +317,8 @@ current runtime files. Content/resource copying, custom reference roles and
 specialized publish settings retain conservative invalidation.
 Sync accepts exact package references from a declared `package_lock`. Package
 build/content evaluation requires `package_build = True`. It rejects
-legacy test-runner mappings, authored custom targets/tasks, external
-assembly references, custom item kinds and generated/tool inputs until their
-contracts are transferred. Run sync for the intended SDK/platform; this
+legacy test-runner mappings and external assembly references. Reviewed custom
+targets/tasks and generated files use the graph mappings described below. Run sync for the intended SDK/platform; this
 slice does not translate host-specific conditions into Bazel platform selectors.
 The default per-project sync output is unchanged.
 
@@ -540,8 +539,8 @@ Declare files read by package tasks with `package_inputs = ["shared/schema.json"
 when SDK item evaluation cannot discover them. These become Bazel source inputs
 and shared project fingerprints. Generated outputs must stay in declared output
 or intermediate directories. This is an explicit input contract, not filesystem
-tracing or a guarantee that arbitrary tasks are hermetic. Authored custom targets,
-external task/tool bindings and legacy sync mappings still require transfer.
+tracing or a guarantee that arbitrary tasks are hermetic. Property-bound tool
+closures and legacy per-project settings still require transfer.
 
 Graph run/test targets now reuse the existing runtime and test launcher. MTP and
 VSTest support result XML, filters, settings, declared data, retained outputs and
@@ -558,8 +557,7 @@ restored props, generated C# source, copied content, declared task-input edits,
 checkout-preservation and package pin checks. Real xUnit/MTP and xUnit/VSTest
 fixtures pass success, failure, skip, filtering, empty-selection, retained output
 and recovery controls on Bazel 8.8.0 and 9.2.0. The executable fixture retains its unrelated-edit test-cache check.
-These are small graph fixtures; stable Linux execution paths and broad upstream
-parity remain default-switch gates.
+These are small graph fixtures. Broad upstream parity remains a default-switch gate.
 
 ### Stable Linux graph paths
 
@@ -598,3 +596,28 @@ The same `linux_paths.py --projects 128` test passes 0/128 seed hits/misses,
 transitive compiler references. Runner totals were 65.75s, 8.55s, 10.11s and
 65.44s respectively, including Restore and project-cache transfer; these are
 single qualification runs, not paired raw-MSBuild benchmarks.
+
+### Declared tasks and generated inputs
+
+Graph-mode sync now accepts these existing mapping fields:
+
+- `projectDefaults.properties`: graph-wide global properties, passed to both
+  offline Restore and evaluation/build. Runner-owned paths and package sources
+  cannot be overridden. Per-project property overrides remain unsupported.
+- `documents`: reviewed SHA-256, target/task names and explicit task input paths.
+- `inputItems`: additional file-bearing items; `evaluationItems`: reviewed
+  bookkeeping items. MSBuild keeps their metadata and target behavior.
+
+Use `msbuild_sync(inputs = {":task_dll": "tools/Task.dll"}, mappings = "sync.json",
+mode = "graph", ...)` for a generated task assembly. List it and its dependency
+files in the document's `inputs`. Sync emits `msbuild_graph.input_paths` and the
+same logical paths in the input contract. Each label supplies one file. Existing
+`bindings` tool providers, directory closures, reference-role mappings and other
+legacy mapping fields fail explicitly; they are not silently discarded.
+Custom-task graphs retain conservative dependency invalidation. Task outputs
+must stay in the declared intermediate/output directories. These mappings
+specify a reviewed closure; they do not discover arbitrary filesystem reads.
+
+`python3 tests/graph_build/mappings.py` passes generated task assembly execution,
+custom file items, task-input edits, graph-wide properties, stale-document
+rejection and unsupported-setting rejection on macOS ARM64/Bazel 9.2.

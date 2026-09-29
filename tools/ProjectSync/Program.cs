@@ -104,11 +104,11 @@ internal static class Program
             using var view = WorkspaceView.Create(root, inputs, runfiles);
             if (graph)
             {
-                if (mappings is not null || view.Labels.Count != 0 || view.HasGraphBindings)
+                if (view.HasGraphBindings)
                 {
-                    throw new InvalidDataException("Graph sync mappings and generated/tool inputs still require contract transfer; use the project backend for these inputs");
+                    throw new InvalidDataException("Graph sync property bindings still require contract transfer; declare task payloads with inputs and reviewed document mappings");
                 }
-                GraphGenerator.Run(root, sdk, projects.ToArray(), check, root, configuration, framework, view, packageBuild, packageInputs.ToArray());
+                GraphGenerator.Run(view.Root, sdk, projects.ToArray(), check, root, configuration, framework, view, packageBuild, packageInputs.ToArray(), new GraphMappings(mappings));
             }
             else
             {
