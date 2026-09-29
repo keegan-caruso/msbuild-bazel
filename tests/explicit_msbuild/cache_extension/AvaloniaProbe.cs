@@ -10,12 +10,18 @@ using Microsoft.Build.Framework;
 using Microsoft.Build.Graph;
 using Microsoft.Build.ProjectCache;
 
-if (args is not [var root, var entry, var readCache, var writeCache, var reportPath])
+if (args.Length is < 5 or > 6 || (args.Length == 6 && args[5] != "orchard"))
 {
-    Console.Error.WriteLine("Usage: AvaloniaProbe ROOT ENTRY_RELATIVE READ_CACHE|- WRITE_CACHE REPORT");
+    Console.Error.WriteLine("Usage: AvaloniaProbe ROOT ENTRY_RELATIVE READ_CACHE|- WRITE_CACHE REPORT [orchard]");
     return 2;
 }
 
+var root = args[0];
+var entry = args[1];
+var readCache = args[2];
+var writeCache = args[3];
+var reportPath = args[4];
+var orchard = args.Length == 6;
 root = Path.GetFullPath(root);
 var timer = Stopwatch.StartNew();
 var sdk = Path.Combine(Environment.GetEnvironmentVariable("DOTNET_ROOT") ?? throw new InvalidOperationException("DOTNET_ROOT is required"), "sdk", "10.0.400");
@@ -27,19 +33,22 @@ var packages = Environment.GetEnvironmentVariable("NUGET_PACKAGES") ?? throw new
 var properties = new Dictionary<string, string>
 {
     ["Configuration"] = "Release",
-    ["TargetFramework"] = "net8.0",
-    ["AvsSkipBuildingLegacyTargetFrameworks"] = "True",
+    ["TargetFramework"] = orchard ? "net10.0" : "net8.0",
     ["NuGetAudit"] = "false",
     ["RestorePackagesPath"] = packages,
     ["DebugType"] = "portable",
     ["ProduceReferenceAssembly"] = "true",
     ["PathMap"] = root + "=/_/workspace",
 };
+if (!orchard)
+{
+    properties["AvsSkipBuildingLegacyTargetFrameworks"] = "True";
+}
 using var collection = new ProjectCollection();
 var graph = new ProjectGraph(new ProjectGraphEntryPoint(Path.Combine(root, entry), properties), collection);
 var graphSeconds = timer.Elapsed.TotalSeconds;
 var targetsByNode = graph.GetTargetLists(["Build"]);
-var plugin = new AvaloniaCache(root, packages, readCache == "-" ? null : Path.GetFullPath(readCache));
+var plugin = new AvaloniaCache(root, packages, readCache == "-" ? null : Path.GetFullPath(readCache), orchard);
 var targetTimings = new TargetTimingLogger();
 var consoleLogger = new Microsoft.Build.Logging.ConsoleLogger(LoggerVerbosity.Minimal);
 var parameters = new BuildParameters(collection)
@@ -178,7 +187,7 @@ internal sealed class TargetTimingLogger : ILogger
     }
 }
 
-internal sealed class AvaloniaCache(string root, string packages, string? readCache) : ProjectCachePluginBase
+internal sealed class AvaloniaCache(string root, string packages, string? readCache, bool orchard) : ProjectCachePluginBase
 {
     private Dictionary<string, ProjectGraphNode> nodes = new(StringComparer.Ordinal);
     private Dictionary<string, List<string>> producerOutputs = new(StringComparer.Ordinal);
@@ -440,8 +449,10 @@ internal sealed class AvaloniaCache(string root, string packages, string? readCa
     }
 
     private IEnumerable<string> SharedPaths() =>
-        Directory.GetFiles(Path.Combine(root, "build"), "*", SearchOption.AllDirectories)
-            .Concat(Directory.GetFiles(Path.Combine(root, "src", "Shared"), "*", SearchOption.AllDirectories))
+        new[] { "build", Path.Combine("src", "Shared"), Path.Combine("src", "OrchardCore.Build") }
+            .Select(path => Path.Combine(root, path))
+            .Where(Directory.Exists)
+            .SelectMany(path => Directory.GetFiles(path, "*", SearchOption.AllDirectories))
             .Concat(Directory.GetFiles(root, "*", SearchOption.TopDirectoryOnly))
             .Concat(Directory.GetFiles(root, "*.props", SearchOption.AllDirectories))
             .Concat(Directory.GetFiles(root, "*.targets", SearchOption.AllDirectories))
@@ -453,7 +464,10 @@ internal sealed class AvaloniaCache(string root, string packages, string? readCa
         var project = node.ProjectInstance;
         var directory = Path.GetDirectoryName(project.FullPath)!;
         var framework = project.GetPropertyValue("TargetFramework");
-        foreach (var prefix in new[] { Path.Combine("bin", "Release", framework), Path.Combine("obj", "Release", framework, "ref"), Path.Combine("obj", "Release", framework, "refint") })
+        var prefixes = orchard
+            ? new[] { Path.Combine("bin", "Release", framework), Path.Combine("obj", "Release", framework) }
+            : new[] { Path.Combine("bin", "Release", framework), Path.Combine("obj", "Release", framework, "ref"), Path.Combine("obj", "Release", framework, "refint") };
+        foreach (var prefix in prefixes)
         {
             var folder = Path.Combine(directory, prefix);
             if (Directory.Exists(folder))
@@ -471,7 +485,7 @@ internal sealed class AvaloniaCache(string root, string packages, string? readCa
 
     private string OwnAssembly(ProjectGraphNode node) => Path.Combine("bin", "Release", node.ProjectInstance.GetPropertyValue("TargetFramework"), node.ProjectInstance.GetPropertyValue("AssemblyName") + ".dll");
 
-    private static bool AllowedOutput(ProjectGraphNode node, string relative)
+    private bool AllowedOutput(ProjectGraphNode node, string relative)
     {
         if (Path.IsPathRooted(relative) || relative.Split(Path.DirectorySeparatorChar).Contains(".."))
         {
@@ -479,6 +493,7 @@ internal sealed class AvaloniaCache(string root, string packages, string? readCa
         }
         var framework = node.ProjectInstance.GetPropertyValue("TargetFramework");
         return relative.StartsWith(Path.Combine("bin", "Release", framework) + Path.DirectorySeparatorChar, StringComparison.Ordinal) ||
+            (orchard && relative.StartsWith(Path.Combine("obj", "Release", framework) + Path.DirectorySeparatorChar, StringComparison.Ordinal)) ||
             relative.StartsWith(Path.Combine("obj", "Release", framework, "ref") + Path.DirectorySeparatorChar, StringComparison.Ordinal) ||
             relative.StartsWith(Path.Combine("obj", "Release", framework, "refint") + Path.DirectorySeparatorChar, StringComparison.Ordinal);
     }

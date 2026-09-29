@@ -55,8 +55,10 @@ consumers and input reductions that preserve MSBuild semantics.
 A [test-only MSBuild project-cache extension probe](msbuild-project-cache-probe.md)
 qualifies graph-level cache hits on synthetic 3-202-project chains. Its
 [Avalonia SimpleTheme slice](avalonia-project-cache-probe.md) checks a real
-23-node graph, XAML/body/API edits, and raw MSBuild timings. Neither probe is a
-production rule.
+23-node graph, XAML/body/API edits, and raw MSBuild timings. The
+[Orchard CMS slice](orchard-project-cache-probe.md) covers 403 graph nodes,
+clean replay, a body edit, and runtime assets. These probes are not production
+rules.
 
 See [performance](performance.md) for cold builds, warm edits and remote-cache
 recovery versus raw MSBuild, with measurement conditions and detailed evidence.
