@@ -1,0 +1,19 @@
+{
+  "projectDefaults": {
+    "evaluationItems": [
+      "SourceRoot",
+      "CompilerVisibleItemMetadata",
+      "CompilerVisibleProperty"
+    ],
+    "documents": {
+      "src/tools/Avalonia.Generators/Avalonia.Generators.props": {
+        "sha256": "57e87889077defad1bb1faf91f67ab5dadab84319bdf7a47c2d6e536736ffbd5",
+        "targets": [
+          "_InjectAdditionalFiles"
+        ],
+        "tasks": [],
+        "inputs": []
+      }
+    }
+  }
+}

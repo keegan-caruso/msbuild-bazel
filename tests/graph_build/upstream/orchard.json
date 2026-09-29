@@ -1,0 +1,71 @@
+{
+  "projectDefaults": {
+    "properties": {
+      "RestoreUseStaticGraphEvaluation": "false"
+    },
+    "documents": {
+      "src/OrchardCore/OrchardCore.Application.Cms.Core.Targets/OrchardCore.Application.Cms.Core.Targets.targets": {
+        "sha256": "ae6439845c5e0fef53ac82d25d415ddf2ee61185359178a0363d0268752822c5",
+        "targets": [
+          "EnsureRequiredDirectoriesExist",
+          "CopyPackageTranslationFiles",
+          "PublishTranslationFiles"
+        ],
+        "tasks": [],
+        "inputs": []
+      },
+      "src/OrchardCore/OrchardCore.Application.Targets/OrchardCore.Application.Targets.targets": {
+        "sha256": "d7e8268a23cf5d20d969b9f84a60fc2c5fb97ede7f7b3120346d7f5f2105cd25",
+        "targets": [
+          "ResolveModuleProjectReferences",
+          "NoWarnOnRazorViewImportedTypeConflicts"
+        ],
+        "tasks": [],
+        "inputs": []
+      },
+      "src/OrchardCore/OrchardCore.Module.Targets/OrchardCore.Module.Targets.targets": {
+        "sha256": "68d9295222fa7a7b2c9cb5f82e5496ffaae81abcc25def0b4f333c1fd21b7234",
+        "targets": [
+          "EnsureRazorSdk",
+          "NoWarnOnRazorViewImportedTypeConflicts",
+          "OrchardCoreEmbedModuleAssets",
+          "UpdateModuleAssets",
+          "GetModuleProjectName",
+          "OrchardCoreFilterFeatures",
+          "OrchardCoreFilterModules",
+          "OrchardCoreErrorsFeatureNoErrors",
+          "OrchardCoreEmbedFeatures",
+          "OrchardCoreErrorsModuleAtMostOne",
+          "OrchardCoreEmbedModules"
+        ],
+        "tasks": [],
+        "inputs": []
+      },
+      "src/OrchardCore/OrchardCore.Theme.Targets/OrchardCore.Theme.Targets.targets": {
+        "sha256": "b6766c763ba81c8084fe10ca273a6fd2613d72cc2c419db1d1067cadb384f6a1",
+        "targets": [
+          "OrchardCoreFilterThemes",
+          "OrchardCoreErrorsThemeAtMostOne",
+          "OrchardCoreErrorsThemeAndModuleRedundant",
+          "OrchardCoreEmbedThemes"
+        ],
+        "tasks": [],
+        "inputs": []
+      },
+      "src/OrchardCore.Cms.Web/OrchardCore.Cms.Web.csproj": {
+        "sha256": "5df059c8c8ca7b93b30b02447611faea4279d449d7d11ae8a4434f345e427144",
+        "targets": [
+          "EnsureWwwRootExists"
+        ],
+        "tasks": [],
+        "inputs": []
+      }
+    },
+    "evaluationItems": [
+      "Folder",
+      "OrchardCoreAttributes",
+      "Watch",
+      "TypeScriptCompile"
+    ]
+  }
+}

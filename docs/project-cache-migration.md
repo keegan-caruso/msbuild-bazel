@@ -101,28 +101,20 @@ The default switch is **not ready**. The new generic path is opt-in. Replacing
 `msbuild_project` and project-sync output now would remove existing supported
 capabilities. The remaining work is:
 
-1. Generate graph contracts from project sync, including declared task/tool
-   bindings and dependency-copy roles. `ProjectSync --graph` now generates
-   SDK graph contracts with declared managed packages and Bazel declarations, including ordinary
-   library reference boundaries and DLL/PDB/XML copy bindings. Rich mappings
-   still need transfer; upstream probes still use repository-specific discovery.
-2. Extend configuration and restore qualification to upstream graphs. Version 2
-   contracts now select per-configuration inputs, outputs, reference boundaries,
-   and dependency-copy bindings using explicit global-property selectors. Missing
-   or ambiguous matches fail. Offline restore uses evaluated assets and extensions
-   paths; a multi-targeted synthetic with a custom extensions directory passes.
-3. Qualify package-rich generation, MTP/VSTest execution and results, native tools,
-   and the existing source-built-runtime/publish interfaces through the generic
-   rule. Acceptance now includes offline package assemblies, `buildTransitive`
-   source generation and package upgrades, alongside package-free build/publish
-   and executable tests. Rich test protocols, native tools and runtime providers
-   remain open.
-4. Provide stable workspace and SDK paths inside Bazel execution. The two-worker
-   test uses matching container paths; ordinary Bazel sandbox paths are not stable
-   enough for project-cache hits under the current conservative identity.
-5. Run Orchard, Avalonia, and the supported runtime slices through the generic
-   rules and compare complete body/API/resource/test/publish workflows with warm
-   raw graph-mode MSBuild and the existing rules, including restore and transfers.
+1. Transfer the remaining native-tool, reference-role and generated-output
+   contracts. Managed task bindings, package SDKs and source-built analyzers now
+   have focused coverage.
+2. Finish runtime's reviewed target contracts and ownership of outputs copied
+   into shared runtime/targeting-pack layouts. Orchard and Avalonia.Controls now
+   pass generated build and same-path replay.
+3. Qualify source-built runtime and publish providers through the generic rule.
+   MTP/VSTest and package build/content assets have small-fixture coverage;
+   that does not qualify all upstream test and publish workflows.
+4. Qualify stable paths on the intended Linux workers and sandbox combination.
+   The opt-in launcher has relocated-cache evidence with processwrapper execution;
+   native Linux sandbox nesting remains unqualified.
+5. Compare complete body/API/resource/test/publish workflows with warm raw
+   graph-mode MSBuild, including Restore and transfers, on all three upstreams.
 
 Once these gates pass, change generator and facade defaults in one commit, then
 remove the per-project compilation path in a separate commit. No default or
@@ -602,7 +594,8 @@ single qualification runs, not paired raw-MSBuild benchmarks.
 Graph-mode sync now accepts these existing mapping fields:
 
 - `projectDefaults.properties`: graph-wide global properties, passed to both
-  offline Restore and evaluation/build. Runner-owned paths and package sources
+  evaluation/build. Restore uses each project's authored framework set instead
+  of forcing the entry framework onto tools and dependencies. Runner-owned paths and package sources
   cannot be overridden. Per-project property overrides remain unsupported.
 - `documents`: reviewed SHA-256, target/task names and explicit task input paths.
 - `inputItems`: additional file-bearing items; `evaluationItems`: reviewed
@@ -611,9 +604,13 @@ Graph-mode sync now accepts these existing mapping fields:
 Use `msbuild_sync(inputs = {":task_dll": "tools/Task.dll"}, mappings = "sync.json",
 mode = "graph", ...)` for a generated task assembly. List it and its dependency
 files in the document's `inputs`. Sync emits `msbuild_graph.input_paths` and the
-same logical paths in the input contract. Each label supplies one file. Existing
-`bindings` tool providers, directory closures, reference-role mappings and other
-legacy mapping fields fail explicitly; they are not silently discarded.
+same logical paths in the input contract. Each label supplies one file.
+Alternatively, pass existing `msbuild_file_binding` labels through `bindings`.
+Sync and build compose the managed tool's project dependencies, package runtime
+assets and data under `.graph-tools`. Property values remain workspace-relative
+in the contract and bind to action paths at execution. Every closure file is
+hashed. Changing a binding property or entry requires sync; implementation/data
+edits do not. Native tools and legacy reference-role mappings remain unsupported.
 Custom-task graphs retain conservative dependency invalidation. Task outputs
 must stay in the declared intermediate/output directories. These mappings
 specify a reviewed closure; they do not discover arbitrary filesystem reads.
@@ -624,19 +621,77 @@ rejection and unsupported-setting rejection on macOS ARM64/Bazel 9.2.
 `python3 tests/graph_build/web.py` passes Web/Razor compilation, replay and Razor
 source-edit invalidation, including standard `AssemblyAttribute` items.
 
-### Upstream migration audit after these changes
+### Tool and SDK qualification
 
-The existing local upstream checkouts were evaluated with graph sync `--check`;
-no source files or generated BUILD files were changed. This is compatibility
-inspection, not build parity evidence.
+On macOS ARM64 with SDK 10.0.400 and Bazel 9.2:
 
-| Scope | Observed next gate |
+```sh
+python3 tests/graph_build/tools.py
+python3 tests/graph_build/analyzers.py
+python3 tests/graph_build/package_sdks.py
+python3 tests/graph_build/sync.py
+python3 tests/graph_build/signing.py
+```
+
+The tool fixture runs a task with a project dependency, NuGet dependency, layout
+prefix and data file through public sync/build. Unchanged closures replay;
+dependency-body and data edits invalidate the consumer. Binding changes require
+resync. Source-built analyzers are graph outputs, including when stale DLLs
+already exist. Their implementation changes invalidate consumers. SDK-owned
+assembly references are allowed; arbitrary host assembly paths remain rejected.
+Signing keys are declared even when they live outside a project directory; key
+edits invalidate snapshots. Evaluation roots resolve filesystem aliases before
+Restore to prevent duplicate projects racing to write the same generated imports.
+
+Package SDKs listed in `global.json` resolve from declared archives before
+Restore. The owned workspace temporarily uses a local-only NuGet config and
+package root. The authored config is restored before evaluation/build; a
+content-copy test checks that its original bytes reach the output. Unused SDK
+registry entries are allowed; a missing used SDK fails even after a warm successful run. Package build mode also accepts SDK
+implicit package versions only when the restored identity is in the exact lock.
+Restore requires the package closure for all authored frameworks, even when the
+build selects one framework. A mixed-framework synthetic covers that distinction.
+These checks do not qualify arbitrary SDK resolver plugins or network isolation.
+
+### Upstream migration qualification
+
+The reviewed document mappings live in `tests/graph_build/upstream`. They are
+contracts for the inspected snapshots, not general exceptions for those projects.
+
+| Scope | Result / next gate |
 | --- | --- |
-| Orchard CMS Web, net10.0 | With 347 cached package archives declared and `RestoreUseStaticGraphEvaluation=false`, offline Restore succeeds. Sync then requires a reviewed document contract for `OrchardCore.Application.Cms.Core.Targets.targets`. Without the property, NuGet static-graph Restore throws a null-reference error. |
-| Avalonia.Controls, net8.0 | The 100 cached package archives are not a complete restore closure: `Microsoft.NETCore.Platforms >= 2.1.2` is missing. The default netstandard tool projects also participate in Restore. |
-| System.IO.Pipelines, net10.0 | The graph needs a declared `Microsoft.Net.Compilers.Toolset/5.0.0-2.25509.106` package closure before evaluation can proceed. |
+| Orchard CMS Web at `04467a3438d4255627c1a478598a1585b3ff2947`, net10.0 | Generated contract builds all 202 projects from 9,546 project inputs and 347 declared package archives, including SourceGenerators and Razor modules. Requires the reviewed Orchard mapping and `RestoreUseStaticGraphEvaluation=false` (static-graph Restore fails in this snapshot). |
+| Avalonia.Controls, net8.0 | Generated build passes with 105 declared archives and the signing key: 7 projects, 11 built configurations. Clean-output replay hits all 11; all 174 snapshot files match. This covers Controls and its dependencies, not the full Avalonia repository. |
+| System.IO.Pipelines, net10.0 | Offline Restore passes with 86 declared archives, including the compiler and Arcade SDK. Sync stops at the reviewed-document gate for `src/libraries/Directory.Build.targets`. Runtime target inputs and outputs copied into shared runtime/targeting-pack directories still need contract work; no complete graph build claimed. |
 
-Next, transfer reviewed upstream target/tool contracts and complete their pinned
-package closures, then compare seed, relocated replay, body/API edits and runtime
-outputs against raw graph-mode MSBuild. Existing test-only plugin measurements
-are not evidence that the public graph API can build these whole scopes yet.
+Orchard sync command, with an input manifest mapping exact cached package
+identities to archives and a disposable source checkout:
+
+```sh
+dotnet tools/ProjectSync/bin/Release/net10.0/ProjectSync.dll \
+  "$SOURCE" "$SDK/sdk/10.0.400" \
+  src/OrchardCore.Cms.Web/OrchardCore.Cms.Web.csproj --graph --framework net10.0 \
+  --package-build --inputs "$INPUTS" --runfiles "$RUNFILES" \
+  --mappings "$REPO/tests/graph_build/upstream/orchard.json"
+```
+
+Stage the contract's shared/configured inputs and raw archives into an owned
+workspace (`.package-source` for archives), then run `GraphBuild action`.
+Use identical environment settings for seed and replay; the current fingerprint
+includes evaluated environment properties.
+`tests/graph_build/replay_outputs.py WORKSPACE CONTRACT CACHE REPORT` removes
+only declared outputs (`--seed` also builds a seed with the same environment)
+and compares a replay with every seeded snapshot output. MSBuild's local
+`AssemblyReference.cache` files are excluded, matching the snapshot policy.
+Orchard replay hit all 202 projects; all 16,250 snapshot files matched.
+Its runner took 36.96s, including Restore, validation and hashing; this is
+same-path local replay, not remote or relocated-cache evidence.
+Shared package paths are now validated once per graph instead of per project.
+In two Orchard cold qualification runs, evaluation/validation fell from 58.70s
+to 5.14s; total runner time fell from 179.60s to 124.52s. These are single local
+runs, with compilation essentially unchanged, not a paired raw-MSBuild benchmark.
+
+Full migration parity still requires relocated replay, body/API edits and runtime
+checks against raw graph-mode MSBuild on each upstream. Existing test-only plugin
+measurements do not qualify these public generated contracts. Per-project rules
+remain the default.
