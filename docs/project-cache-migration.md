@@ -113,7 +113,10 @@ capabilities. The remaining work is:
    paths; a multi-targeted synthetic with a custom extensions directory passes.
 3. Qualify package-rich generation, MTP/VSTest execution and results, native tools,
    and the existing source-built-runtime/publish interfaces through the generic
-   rule. Current acceptance covers package-free build/publish and executable tests.
+   rule. Acceptance now includes offline package assemblies, `buildTransitive`
+   source generation and package upgrades, alongside package-free build/publish
+   and executable tests. Rich test protocols, native tools and runtime providers
+   remain open.
 4. Provide stable workspace and SDK paths inside Bazel execution. The two-worker
    test uses matching container paths; ordinary Bazel sandbox paths are not stable
    enough for project-cache hits under the current conservative identity.
@@ -328,3 +331,25 @@ rejection controls, and a two-framework library. The second invokes the public
 Bazel sync target, builds the generated graph, runs an executable test, then
 checks that editing it to fail invalidates the cached test result. Set the pinned
 SDK/Bazelisk wrapper overrides when they are not installed in this checkout.
+
+## Package generation and Linux follow-up
+
+```sh
+RULES_MSBUILD_DOTNET_ROOT=/absolute/path/to/pinned/sdk \
+  python3 tests/graph_build/packages.py
+```
+
+This fixture locally packs two versions of a managed library with a
+`buildTransitive` target that generates compiled source. The generic action
+restores only from its declared package archive directory. Each run recreates
+the workspace and restores packages again. Both the package DLL and generated
+source are present after replay; upgrading the archive/version causes a miss.
+The upgraded build, replay and fresh-cache control have byte-identical captured
+outputs, excluding the disposable `AssemblyReference.cache` file.
+
+`configurations.py`, `sync.py` and `packages.py` passed on both macOS ARM64 and
+the existing Ubuntu ARM64 qualification container with SDK 10.0.400. Both .NET
+tools built without warnings. The existing project-sync unit suite also passed
+all 53 tests on macOS. These checks establish small standalone graph slices;
+package-aware sync, Linux Bazel stable paths, large package-rich graphs, native
+tasks and MTP/VSTest integration are still unqualified.
