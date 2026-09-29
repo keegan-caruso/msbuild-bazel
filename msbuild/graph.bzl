@@ -47,7 +47,7 @@ def _graph(ctx):
         fail("runner must provide one graph runner payload")
     prefix = ctx.attr.source_root + "/" if ctx.attr.source_root else ""
     args = ctx.actions.args()
-    args.add_all([tc.dotnet.path, runner[0].path, output.path, ctx.file.contract.path, ctx.attr.target])
+    args.add_all([tc.dotnet.path, runner[0].path, output.path, ctx.file.contract.path, ctx.attr.target, "1" if ctx.attr.linux_stable_paths else "0", ctx.file._linux_stable_paths.path])
     for file in ctx.files.srcs:
         if not file.short_path.startswith(prefix):
             fail("Graph source is outside source_root: " + file.short_path)
@@ -59,14 +59,14 @@ def _graph(ctx):
     for file in packages:
         args.add_all([file.path, ".package-source/" + file.basename])
     ctx.actions.run_shell(
-        inputs = depset(ctx.files.srcs + packages + [ctx.file.contract, runner[0]], transitive = [tc.sdk] + ([ctx.attr.package_lock[MSBuildPackageLockInfo].files] if ctx.attr.package_lock else [])),
+        inputs = depset(ctx.files.srcs + packages + [ctx.file.contract, runner[0], ctx.file._linux_stable_paths], transitive = [tc.sdk] + ([ctx.attr.package_lock[MSBuildPackageLockInfo].files] if ctx.attr.package_lock else [])),
         tools = [tc.dotnet],
         outputs = [output],
         arguments = [args],
         env = {key: value for key, value in ctx.configuration.default_shell_env.items() if key.startswith("RULES_MSBUILD_PROJECT_CACHE_")},
         command = """set -eu
-dotnet="$PWD/$1"; runner="$PWD/$2"; output="$PWD/$3"; contract="$PWD/$4"; target="$5"
-shift 5
+dotnet="$PWD/$1"; runner="$PWD/$2"; output="$PWD/$3"; contract="$PWD/$4"; target="$5"; isolated="$6"; sandbox="$PWD/$7"
+shift 7
 scratch=$(mktemp -d)
 trap 'rm -rf "$scratch"' EXIT
 workspace="$output/workspace"
@@ -80,6 +80,10 @@ done
 export DOTNET_ROOT="$(dirname "$dotnet")" DOTNET_CLI_HOME="$scratch" HOME="$scratch"
 export DOTNET_CLI_TELEMETRY_OPTOUT=1 DOTNET_SKIP_FIRST_TIME_EXPERIENCE=1 DOTNET_NOLOGO=1
 export MSBUILDDISABLENODEREUSE=1
+if test "$isolated" = 1; then
+    bash "$sandbox" "$(dirname "$dotnet")" "$runner" "$output" "$contract" "$scratch" "$target"
+    exit $?
+fi
 "$dotnet" exec "$runner/GraphBuild.dll" action "$workspace" "$contract" "$output/report.json" "$scratch/cache" "$target"
 """,
         mnemonic = "MSBuildGraph",
@@ -96,6 +100,8 @@ msbuild_graph = rule(
         "package_lock": attr.label(providers = [MSBuildPackageLockInfo]),
         "source_root": attr.string(),
         "project_outputs": attr.string_list_dict(),
+        "linux_stable_paths": attr.bool(default = False, doc = "Use bubblewrap on Linux for stable graph paths; cache transport retains network access."),
+        "_linux_stable_paths": attr.label(default = "//msbuild:graph-sandbox.sh", allow_single_file = True),
         "target": attr.string(default = "Build", values = ["Build", "Publish"]),
     },
     toolchains = ["//msbuild:toolchain_type"],

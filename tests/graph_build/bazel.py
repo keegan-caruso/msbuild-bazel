@@ -14,6 +14,9 @@ from qualify import ROOT, fixture
 def main():
     with tempfile.TemporaryDirectory(prefix='generic-bazel-') as temporary:
         root = Path(temporary).resolve()
+        startup = [str(ROOT / 'scripts/bazel-launcher.sh'), f'--output_base={root / "bazel"}']
+        if '--linux-stable-paths' in sys.argv:
+            startup.append('--batch')
         workspace = root / 'workspace'
         workspace.mkdir()
         contract = fixture(workspace)
@@ -44,8 +47,7 @@ def main():
             authored = ('load("@rules_msbuild//msbuild:sync.bzl","msbuild_sync")\n'
                         'msbuild_sync(name="sync",mode="graph",projects=["P2/P2.csproj","Other/Other.csproj"])\n')
             (workspace / 'BUILD.bazel').write_text(authored)
-            sync = [str(ROOT / 'scripts/bazel-launcher.sh'), f'--output_base={root / "bazel"}',
-                    'run', '//:sync']
+            sync = startup + ['run', '//:sync']
             result = subprocess.run(sync, cwd=workspace, env=os.environ, text=True, capture_output=True)
             if result.returncode:
                 raise AssertionError(result.stdout + result.stderr)
@@ -57,8 +59,10 @@ def main():
                 'app_graph(name="app")\n'
                 'msbuild_graph_test(name="app_test",graph=":app",project="P2/P2.csproj")\n'
                 'msbuild_graph_binary(name="run_app",graph=":app",project="P2/P2.csproj")\n')
-        command = [str(ROOT / 'scripts/bazel-launcher.sh'), f'--output_base={root / "bazel"}',
-                   'test', '//:app_test', '--test_output=errors']
+        if '--linux-stable-paths' in sys.argv:
+            build_file = workspace / 'BUILD.bazel'
+            build_file.write_text(build_file.read_text().replace('name="app",', 'name="app",linux_stable_paths=True,').replace('app_graph(name="app")', 'app_graph(name="app",linux_stable_paths=True)'))
+        command = startup + ['test', '//:app_test', '--test_output=errors']
         for expected in ('pass', 'fail'):
             if expected == 'fail':
                 (workspace / 'P2/Code.cs').write_text('System.Environment.Exit(7);')
@@ -70,7 +74,7 @@ def main():
         if '--sync' in sys.argv:
             (workspace / 'P2/Code.cs').write_text('System.Environment.Exit(P1.Value() == 1 ? 0 : 7);')
             def invoke(*arguments):
-                result = subprocess.run(command[:2] + list(arguments), cwd=workspace, env=os.environ, text=True, capture_output=True)
+                result = subprocess.run(startup + list(arguments), cwd=workspace, env=os.environ, text=True, capture_output=True)
                 assert result.returncode == 0, result.stdout + result.stderr
                 return result.stdout + result.stderr
             invoke('run', '//:run_app')
@@ -82,7 +86,8 @@ def main():
             (workspace / 'P0/Code.cs').write_text('public class P0 { public static int Value() => 2; }')
             failed = subprocess.run(command, cwd=workspace, env=os.environ, text=True, capture_output=True)
             assert failed.returncode != 0 and 'FAILED' in failed.stdout + failed.stderr
-        subprocess.run(command[:2] + ['shutdown'], cwd=workspace, env=os.environ, check=True, capture_output=True)
+        if '--batch' not in startup:
+            subprocess.run(startup + ['shutdown'], cwd=workspace, env=os.environ, check=True, capture_output=True)
         print('PASS: public graph action, executable test, source edit invalidates test result')
 
 

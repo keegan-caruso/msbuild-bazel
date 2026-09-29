@@ -174,8 +174,8 @@ internal static class GraphGenerator
             node => new[] { Relative(Path.GetDirectoryName(node.ProjectInstance.GetPropertyValue("TargetPath"))!),
                 Path.GetFileName(node.ProjectInstance.GetPropertyValue("TargetPath")), node.ProjectInstance.GetPropertyValue("OutputType") });
         var text = Header + "load(\"@rules_msbuild//msbuild:defs.bzl\", \"msbuild_graph\", \"msbuild_graph_runner\")\n\n" +
-            "def app_graph(name = \"app\"):\n    if native.package_name():\n        fail(\"app_graph must be called from the workspace root\")\n" +
-            "    msbuild_graph_runner(name = name + \"_runner\")\n    msbuild_graph(\n        name = name,\n        runner = \":\" + name + \"_runner\",\n" +
+            "def app_graph(name = \"app\", linux_stable_paths = False):\n    if native.package_name():\n        fail(\"app_graph must be called from the workspace root\")\n" +
+            "    msbuild_graph_runner(name = name + \"_runner\")\n    msbuild_graph(\n        name = name,\n        linux_stable_paths = linux_stable_paths,\n        runner = \":\" + name + \"_runner\",\n" +
             "        contract = \"" + ContractName + "\",\n        srcs = " + StarlarkLiteral.Serialize(sources) + ",\n        project_outputs = " + StarlarkLiteral.Serialize(runtimeOutputs) + ",\n" + (view?.DefaultPackageLock is null ? "" : "        package_lock = " + StarlarkLiteral.Serialize(view.DefaultPackageLock) + ",\n") + "    )\n";
         // Validate both destinations before replacing either generated file.
         Verify(ContractName, contract, "{\n  \"GeneratedBy\": \"ProjectSync --graph\",");

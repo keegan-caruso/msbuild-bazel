@@ -560,3 +560,41 @@ fixtures pass success, failure, skip, filtering, empty-selection, retained outpu
 and recovery controls on Bazel 8.8.0 and 9.2.0. The executable fixture retains its unrelated-edit test-cache check.
 These are small graph fixtures; stable Linux execution paths and broad upstream
 parity remain default-switch gates.
+
+### Stable Linux graph paths
+
+Set `app_graph(linux_stable_paths = True)` (or the same attribute on
+`msbuild_graph`) to run the graph beneath fixed `/__rules_msbuild_graph` paths.
+The worker must provide `/usr/bin/bwrap`. Missing Linux support fails the action;
+there is no fallback. Each action owns its writable output and scratch trees.
+
+This is a path-stability boundary, not a hermetic system toolchain: `/usr`, loader
+configuration, certificates and `/proc` remain read-only host inputs, and network
+access remains available for the project-cache transport. Processes are not in a
+separate PID namespace. The qualified Apple Container worker rejects mounting a
+new `/proc`, so the namespace uses the existing read-only mount explicitly.
+Do not share cache entries across incompatible worker system images.
+
+Linux ARM64 qualification in `native-aot-declared`, SDK 10.0.400:
+
+```sh
+RULES_MSBUILD_DOTNET_ROOT="$SDK" \
+RULES_MSBUILD_PROJECT_CACHE_URL="$PROJECT_CACHE_URL" \
+python3 tests/graph_build/linux_paths.py
+```
+
+Four fresh output/scratch directories share only the HTTP project cache. Initial
+build: 0 hits/3 misses; relocated consumer: 3/0; dependency body edit: 2/1;
+API edit with transitive references: 0/3. Each executable prints the expected
+value, including refreshed dependency implementations. This directly qualifies
+the namespace launcher. `python3 tests/graph_build/bazel.py --sync
+--linux-stable-paths` also passes on Bazel 9.2 with the container's processwrapper
+sandbox, including unrelated-edit test-cache reuse and dependency invalidation.
+The fixture uses batch mode because Apple Container does not promptly reap
+Bazel server zombies. Native Linux sandbox nesting is not qualified.
+
+The same `linux_paths.py --projects 128` test passes 0/128 seed hits/misses,
+128/0 relocated replay, 127/1 body edit and 0/128 API edit. The last case retains
+transitive compiler references. Runner totals were 65.75s, 8.55s, 10.11s and
+65.44s respectively, including Restore and project-cache transfer; these are
+single qualification runs, not paired raw-MSBuild benchmarks.
