@@ -20,26 +20,26 @@ def run(*args, success=True):
     return result
 
 
-def fixture(root):
+def fixture(root, count=3):
     (root / 'Directory.Build.props').write_text('<Project><PropertyGroup><LangVersion>latest</LangVersion></PropertyGroup></Project>')
-    for index in range(3):
+    for index in range(count):
         directory = root / f'P{index}'
         directory.mkdir()
         reference = f'<ItemGroup><ProjectReference Include="../P{index-1}/P{index-1}.csproj" /></ItemGroup>' if index else ''
         (directory / f'P{index}.csproj').write_text(
             '<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup><TargetFramework>net10.0</TargetFramework>'
-            + ('<OutputType>Exe</OutputType>' if index == 2 else '')
+            + ('<OutputType>Exe</OutputType>' if index == count - 1 else '')
             + '</PropertyGroup>' + reference + '</Project>')
-        (directory / 'Code.cs').write_text('System.Console.WriteLine(P1.Value());' if index == 2 else
-                                          f'public class P{index} {{ public static int Value() => ' + ('P0.Value(); }' if index else '1; }'))
-    run(DOTNET, 'restore', root / 'P2/P2.csproj', '--source', root, '-p:NuGetAudit=false')
+        (directory / 'Code.cs').write_text(f'System.Console.WriteLine(P{count - 2}.Value());' if index == count - 1 else
+                                          f'public class P{index} {{ public static int Value() => ' + (f'P{index - 1}.Value(); }}' if index else '1; }'))
+    run(DOTNET, 'restore', root / f'P{count - 1}/P{count - 1}.csproj', '--source', root, '-p:NuGetAudit=false')
     return {
-        'Version': 1, 'Entry': 'P2/P2.csproj', 'SdkVersion': '10.0.400',
+        'Version': 1, 'Entry': f'P{count - 1}/P{count - 1}.csproj', 'SdkVersion': '10.0.400',
         'Properties': {'Configuration': 'Release'}, 'SharedInputs': ['Directory.Build.props'],
         'Projects': {f'P{i}/P{i}.csproj': {
             'Inputs': sorted(str(p.relative_to(root)) for p in (root / f'P{i}').rglob('*') if p.is_file()),
             'OutputDirectories': [f'P{i}/bin/Release/net10.0', f'P{i}/obj/Release/net10.0'],
-        } for i in range(3)},
+        } for i in range(count)},
     }
 
 

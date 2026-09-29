@@ -16,6 +16,10 @@ def main():
         root.mkdir()
         contract = fixture(root)
         contract['Properties']['DisableTransitiveProjectReferences'] = 'true'
+        project = root / 'P0/P0.csproj'
+        project.write_text(project.read_text().replace('</Project>', '<ItemGroup><EmbeddedResource Include="Resource.txt" /></ItemGroup></Project>'))
+        (root / 'P0/Resource.txt').write_text('first resource')
+        contract['Projects']['P0/P0.csproj']['Inputs'].append('P0/Resource.txt')
         for i in range(3):
             declaration = contract['Projects'][f'P{i}/P{i}.csproj']
             declaration['ReferenceBoundary'] = True
@@ -62,6 +66,11 @@ def main():
         (root / 'P0/Code.cs').write_text('public class P0 { public static int Value() => 2; public static int Extra() => 3; }')
         results['api'] = build(expected=1)
         execute('2')
+        (root / 'P0/Resource.txt').write_text('edited resource')
+        results['resource'] = build(expected=2)
+        resource_outputs = outputs()
+        results['resource_control'] = build(cache='resource-control', expected=0)
+        assert resource_outputs == outputs()
         results['publish'] = build(target='Publish', expected=0)
         execute('2', publish=True)
         results['publish_replay'] = build(target='Publish', expected=3)

@@ -10,6 +10,12 @@ if (args.Length < 4 || args[0] is not ("inspect" or "build" or "action"))
     Console.Error.WriteLine("Usage: GraphBuild inspect ROOT CONTRACT REPORT | build ROOT CONTRACT REPORT CACHE [TARGET] [no-read]");
     return 2;
 }
+var remoteUrl = Environment.GetEnvironmentVariable("RULES_MSBUILD_PROJECT_CACHE_URL");
+var bearerToken = Environment.GetEnvironmentVariable("RULES_MSBUILD_PROJECT_CACHE_BEARER_TOKEN");
+// Cache connection settings are transport state, not MSBuild evaluation inputs.
+Environment.SetEnvironmentVariable("RULES_MSBUILD_PROJECT_CACHE_URL", null);
+Environment.SetEnvironmentVariable("RULES_MSBUILD_PROJECT_CACHE_BEARER_TOKEN", null);
+var totalTimer = System.Diagnostics.Stopwatch.StartNew();
 var root = args[1];
 var contractPath = args[2];
 var report = args[3];
@@ -45,8 +51,7 @@ if (args[0] is "build" or "action")
         }
     }
     var timer = System.Diagnostics.Stopwatch.StartNew();
-    var remoteUrl = Environment.GetEnvironmentVariable("RULES_MSBUILD_PROJECT_CACHE_URL");
-    using var remote = remoteUrl is null ? null : new RemoteSnapshotStore(new Uri(remoteUrl.TrimEnd('/') + "/"));
+    using var remote = remoteUrl is null ? null : new RemoteSnapshotStore(new Uri(remoteUrl.TrimEnd('/') + "/"), bearerToken: bearerToken);
     var plugin = new GraphCache(inputs, cache ?? throw new InvalidDataException("Cache directory is required"), args.Length < 7 || args[6] != "no-read", remote);
     var parameters = new BuildParameters(inputs.Collection)
     {
@@ -66,12 +71,16 @@ if (args[0] is "build" or "action")
         }
         return 1;
     }
+    inputs.VerifyUnchangedInputs();
     await plugin.SaveAsync(result);
     File.WriteAllText(report, JsonSerializer.Serialize(new
     {
         hits = plugin.Hits,
         misses = plugin.Misses,
-        seconds = timer.Elapsed.TotalSeconds
+        buildAndSnapshotSeconds = timer.Elapsed.TotalSeconds,
+        evaluationSeconds = inputs.EvaluationSeconds,
+        inputHashSeconds = inputs.InputHashSeconds,
+        totalSeconds = totalTimer.Elapsed.TotalSeconds
     }));
     return 0;
 }

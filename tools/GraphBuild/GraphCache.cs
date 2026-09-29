@@ -17,6 +17,10 @@ internal sealed record ProjectSnapshot(string Fingerprint, Dictionary<string, st
 internal sealed class GraphCache(GraphInputs inputs, string cache, bool read, RemoteSnapshotStore? remote) : ProjectCachePluginBase
 {
     private readonly Dictionary<string, ProjectGraphNode> nodes = inputs.Graph.ProjectNodes.ToDictionary(n => GraphInputs.Key(n.ProjectInstance));
+    private readonly Dictionary<ProjectGraphNode, string[]> outputDirectories = inputs.Graph.ProjectNodes.ToDictionary(node => node, node => inputs.OutputDirectories(node).ToArray());
+    private readonly ConcurrentDictionary<ProjectGraphNode, HashSet<ProjectGraphNode>> dependencies = new();
+    private readonly ConcurrentDictionary<ProjectGraphNode, string[]> outputFiles = new();
+    private readonly ConcurrentDictionary<string, Lazy<string>> outputDigests = new(StringComparer.Ordinal);
     private readonly ConcurrentDictionary<string, string> fingerprints = new(StringComparer.Ordinal);
     private readonly ConcurrentDictionary<string, string[]> requestedTargets = new(StringComparer.Ordinal);
     private readonly ConcurrentDictionary<string, ProjectSnapshot> hits = new(StringComparer.Ordinal);
@@ -79,7 +83,6 @@ internal sealed class GraphCache(GraphInputs inputs, string cache, bool read, Re
             {
                 continue;
             }
-            var dependencyFiles = Dependencies(node).SelectMany(OutputFiles).ToHashSet(StringComparer.Ordinal);
             var files = new Dictionary<string, string>(StringComparer.Ordinal);
             var modes = new Dictionary<string, int>(StringComparer.Ordinal);
             var copies = new Dictionary<string, string>(StringComparer.Ordinal);
@@ -88,12 +91,12 @@ internal sealed class GraphCache(GraphInputs inputs, string cache, bool read, Re
             foreach (var file in OutputFiles(node))
             {
                 var relative = Path.GetRelativePath(inputs.Files.Root, file);
-                var digest = ContractFiles.Digest(file);
+                var digest = OutputDigest(file);
                 var producer = (inputs.For(node).DependencyCopies ?? []).GetValueOrDefault(relative);
                 if (producer is not null)
                 {
                     var source = inputs.Files.Resolve(producer);
-                    if (!dependencyFiles.Contains(source) || ContractFiles.Digest(source) != digest)
+                    if (!IsDependencyOutput(node, source) || OutputDigest(source) != digest)
                     {
                         throw new InvalidDataException("Declared dependency copy does not match its producer: " + relative);
                     }
@@ -151,7 +154,9 @@ internal sealed class GraphCache(GraphInputs inputs, string cache, bool read, Re
                 item.GetMetadataValue("Targets").Length != 0);
             if (implementation)
             {
-                records.AddRange(OutputFiles(reference).Select(path => path + ":" + ContractFiles.Digest(path)));
+                records.Add("dependency-inputs:" + inputs.Fingerprint(reference));
+                records.AddRange(DependencyNodes(reference).Select(inputs.Fingerprint).Order(StringComparer.Ordinal));
+                records.AddRange(OutputFiles(reference).Select(path => path + ":" + OutputDigest(path)));
             }
             else
             {
@@ -170,7 +175,7 @@ internal sealed class GraphCache(GraphInputs inputs, string cache, bool read, Re
                 {
                     throw new InvalidDataException("Missing dependency result: " + path);
                 }
-                records.Add(GraphInputs.Key(project) + ":" + ContractFiles.Digest(path));
+                records.Add(GraphInputs.Key(project) + ":" + OutputDigest(path));
             }
         }
         return ContractFiles.Hash(records);
@@ -178,7 +183,6 @@ internal sealed class GraphCache(GraphInputs inputs, string cache, bool read, Re
 
     private void Validate(ProjectGraphNode node, ProjectSnapshot snapshot, string fingerprint, string directory, string[] targets)
     {
-        var producerFiles = Dependencies(node).SelectMany(OutputFiles).ToHashSet(StringComparer.Ordinal);
         if (snapshot.Fingerprint != fingerprint || !snapshot.Targets.Select(t => t.Name).SequenceEqual(targets) ||
             !snapshot.Files.ContainsKey(Path.GetRelativePath(inputs.Files.Root, TargetPath(node))))
         {
@@ -195,7 +199,7 @@ internal sealed class GraphCache(GraphInputs inputs, string cache, bool read, Re
         foreach (var (relative, producer) in snapshot.ProjectCopies)
         {
             Allowed(relative);
-            if ((inputs.For(node).DependencyCopies ?? []).GetValueOrDefault(relative) != producer || snapshot.Files.ContainsKey(relative) || !producerFiles.Contains(inputs.Files.Resolve(producer)))
+            if ((inputs.For(node).DependencyCopies ?? []).GetValueOrDefault(relative) != producer || snapshot.Files.ContainsKey(relative) || !IsDependencyOutput(node, inputs.Files.Resolve(producer)))
             {
                 throw new InvalidDataException("Invalid dependency copy: " + relative);
             }
@@ -203,35 +207,42 @@ internal sealed class GraphCache(GraphInputs inputs, string cache, bool read, Re
         void Allowed(string relative)
         {
             var path = inputs.Files.Resolve(relative);
-            if (!inputs.OutputDirectories(node).Any(dir => path.StartsWith(dir + Path.DirectorySeparatorChar, StringComparison.Ordinal)))
+            if (!outputDirectories[node].Any(dir => path.StartsWith(dir + Path.DirectorySeparatorChar, StringComparison.Ordinal)))
             {
                 throw new InvalidDataException("Snapshot output escaped project ownership: " + relative);
             }
         }
     }
 
-    private IEnumerable<string> OutputFiles(ProjectGraphNode node) => inputs.OutputDirectories(node)
+    private string OutputDigest(string path) => outputDigests.GetOrAdd(path, file => new Lazy<string>(() => ContractFiles.Digest(file))).Value;
+
+    private bool IsDependencyOutput(ProjectGraphNode node, string path) => File.Exists(path) && DependencyNodes(node)
+        .Any(dependency => outputDirectories[dependency].Any(directory => path.StartsWith(directory + Path.DirectorySeparatorChar, StringComparison.Ordinal)));
+
+    // A project is queried only after its dependencies finish. Their disjoint
+    // output trees are immutable for the rest of this graph invocation.
+    private string[] OutputFiles(ProjectGraphNode node) => outputFiles.GetOrAdd(node, current => outputDirectories[current]
         .Where(Directory.Exists).SelectMany(dir => Directory.EnumerateFiles(dir, "*", SearchOption.AllDirectories))
         .Where(path => !path.EndsWith(".AssemblyReference.cache", StringComparison.Ordinal))
         .Select(path => inputs.Files.Resolve(Path.GetRelativePath(inputs.Files.Root, path)))
-        .Distinct().Order(StringComparer.Ordinal);
+        .Distinct().Order(StringComparer.Ordinal).ToArray());
 
-    private static IEnumerable<ProjectGraphNode> Dependencies(ProjectGraphNode node)
+    private HashSet<ProjectGraphNode> DependencyNodes(ProjectGraphNode node) => dependencies.GetOrAdd(node, current =>
     {
         var visited = new HashSet<ProjectGraphNode>();
-        var pending = new Stack<ProjectGraphNode>(node.ProjectReferences);
+        var pending = new Stack<ProjectGraphNode>(current.ProjectReferences);
         while (pending.TryPop(out var dependency))
         {
             if (visited.Add(dependency))
             {
-                yield return dependency;
                 foreach (var child in dependency.ProjectReferences)
                 {
                     pending.Push(child);
                 }
             }
         }
-    }
+        return visited;
+    });
 
     private static string TargetPath(ProjectGraphNode node) => Path.GetFullPath(node.ProjectInstance.GetPropertyValue("TargetPath"), Path.GetDirectoryName(node.ProjectInstance.FullPath)!);
     private static Dictionary<string, string> Metadata(ITaskItem item)

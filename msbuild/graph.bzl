@@ -1,6 +1,6 @@
 """Opt-in MSBuild traversal graph actions with explicit project contracts."""
 
-MSBuildGraphInfo = provider(fields = {"directory": "Graph output workspace", "dotnet": "Execution host", "sdk": "Declared SDK files"})
+MSBuildGraphInfo = provider("A declared MSBuild graph workspace and its execution SDK.", fields = {"directory": "Graph output workspace", "dotnet": "Execution host", "sdk": "Declared SDK files"})
 
 def _runner(ctx):
     tc = ctx.toolchains["//msbuild:toolchain_type"]
@@ -46,7 +46,10 @@ def _graph(ctx):
     for file in ctx.files.srcs:
         if not file.short_path.startswith(prefix):
             fail("Graph source is outside source_root: " + file.short_path)
-        args.add_all([file.path, file.short_path[len(prefix):]])
+        relative = file.short_path[len(prefix):]
+        if relative.startswith("/") or any([part in ["", ".", ".."] for part in relative.split("/")]):
+            fail("Graph source requires a safe workspace-relative destination: " + relative)
+        args.add_all([file.path, relative])
     for file in ctx.files.packages:
         args.add_all([file.path, ".package-source/" + file.basename])
     ctx.actions.run_shell(
@@ -92,7 +95,7 @@ msbuild_graph = rule(
 
 def _graph_test(ctx):
     graph = ctx.attr.graph[MSBuildGraphInfo]
-    if ctx.attr.assembly.startswith("/") or ".." in ctx.attr.assembly.split("/"):
+    if ctx.attr.assembly.startswith("/") or ".." in ctx.attr.assembly.split("/") or any([c not in "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_./-" for c in ctx.attr.assembly.elems()]):
         fail("assembly must be relative to the graph workspace")
     launcher = ctx.actions.declare_file(ctx.label.name + ".sh")
     ctx.actions.write(

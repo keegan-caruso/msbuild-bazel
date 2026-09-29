@@ -9,6 +9,17 @@ internal sealed class GraphInputs : IDisposable
     private readonly ProjectCollection collection;
     private readonly System.Collections.Concurrent.ConcurrentDictionary<string, string[]> imports = new(StringComparer.Ordinal);
     private readonly GraphContract contract;
+    private readonly Dictionary<string, string> inputDigests;
+    private readonly string runnerDigest;
+    private readonly Dictionary<ProjectGraphNode, string> baseFingerprints;
+    internal double EvaluationSeconds
+    {
+        get;
+    }
+    internal double InputHashSeconds
+    {
+        get;
+    }
     internal ContractFiles Files
     {
         get;
@@ -25,6 +36,7 @@ internal sealed class GraphInputs : IDisposable
 
     internal GraphInputs(GraphContract contract, string root, string sdkRoot)
     {
+        var timer = System.Diagnostics.Stopwatch.StartNew();
         this.contract = contract;
         Files = new(root, sdkRoot);
         if (contract.Version != 1 || contract.Projects.Count == 0)
@@ -59,7 +71,14 @@ internal sealed class GraphInputs : IDisposable
             Validate(node);
         }
         ValidateOutputOwnership();
+        EvaluationSeconds = timer.Elapsed.TotalSeconds;
+        timer.Restart();
         SdkDigest = ContractFiles.TreeDigest(sdkRoot);
+        runnerDigest = ContractFiles.Digest(typeof(GraphInputs).Assembly.Location);
+        inputDigests = contract.SharedInputs.Concat(contract.Projects.Values.SelectMany(p => p.Inputs)).Distinct()
+            .ToDictionary(path => path, path => ContractFiles.Digest(Files.Resolve(path)), StringComparer.Ordinal);
+        baseFingerprints = Graph.ProjectNodes.ToDictionary(node => node, ComputeFingerprint);
+        InputHashSeconds = timer.Elapsed.TotalSeconds;
     }
 
     internal ProjectContract For(ProjectGraphNode node) => contract.Projects.TryGetValue(Relative(node), out var value)
@@ -69,18 +88,37 @@ internal sealed class GraphInputs : IDisposable
     internal static string Key(ProjectInstance project) => project.FullPath + "|" + string.Join(";", project.GlobalProperties
         .OrderBy(p => p.Key, StringComparer.Ordinal).Select(p => p.Key + "=" + p.Value));
 
-    internal string Fingerprint(ProjectGraphNode node)
+    internal string Fingerprint(ProjectGraphNode node) => baseFingerprints[node];
+
+    private string ComputeFingerprint(ProjectGraphNode node)
     {
         var project = node.ProjectInstance;
-        var records = new List<string> { "graph-input-v1", Files.Root, Files.Sdk, SdkDigest, ContractFiles.Digest(typeof(GraphInputs).Assembly.Location), Relative(node) };
-        records.AddRange(project.GlobalProperties.OrderBy(p => p.Key, StringComparer.Ordinal)
-            .Select(p => p.Key + "=" + Files.Normalize(p.Value)));
+        var records = new List<string> { "graph-input-v1", Files.Root, Files.Sdk, SdkDigest, runnerDigest, Relative(node) };
+        records.AddRange(project.Properties.OrderBy(p => p.Name, StringComparer.Ordinal)
+            .Select(p => p.Name + "=" + p.EvaluatedValue));
+        records.AddRange(project.Items.Select(item => System.Text.Json.JsonSerializer.Serialize(new
+        {
+            item.ItemType,
+            item.EvaluatedInclude,
+            metadata = item.Metadata.OrderBy(m => m.Name, StringComparer.Ordinal).Select(m => new { m.Name, m.EvaluatedValue }).ToArray(),
+        })));
         records.AddRange(For(node).OutputDirectories.Select(p => "output:" + p));
         records.Add("referenceBoundary:" + For(node).ReferenceBoundary);
         records.AddRange((For(node).DependencyCopies ?? []).OrderBy(p => p.Key, StringComparer.Ordinal).Select(p => "copy:" + p.Key + "=" + p.Value));
         records.AddRange(contract.SharedInputs.Concat(For(node).Inputs).Distinct().Order(StringComparer.Ordinal)
-            .Select(path => path + ":" + ContractFiles.Digest(Files.Resolve(path))));
+            .Select(path => path + ":" + inputDigests[path]));
         return ContractFiles.Hash(records);
+    }
+
+    internal void VerifyUnchangedInputs()
+    {
+        foreach (var (relative, digest) in inputDigests)
+        {
+            if (ContractFiles.Digest(Files.Resolve(relative)) != digest)
+            {
+                throw new InvalidDataException("Build modified a declared input: " + relative);
+            }
+        }
     }
 
     private void Validate(ProjectGraphNode node)
@@ -131,14 +169,14 @@ internal sealed class GraphInputs : IDisposable
     private void ValidateOutputOwnership()
     {
         var directories = Graph.ProjectNodes.SelectMany(node => OutputDirectories(node).Select(path => (node, path))).ToArray();
+        var inputPaths = contract.SharedInputs.Concat(contract.Projects.Values.SelectMany(p => p.Inputs)).Distinct().Select(Files.Resolve).ToArray();
         foreach (var (node, path) in directories)
         {
             if (directories.Any(other => other.node != node && (path == other.path || path.StartsWith(other.path + "/", StringComparison.Ordinal) || other.path.StartsWith(path + "/", StringComparison.Ordinal))))
             {
                 throw new InvalidDataException("Overlapping output directories: " + path);
             }
-            if (contract.SharedInputs.Concat(contract.Projects.Values.SelectMany(p => p.Inputs)).Any(input =>
-                Files.Resolve(input).StartsWith(path + "/", StringComparison.Ordinal)))
+            if (inputPaths.Any(input => input.StartsWith(path + "/", StringComparison.Ordinal)))
             {
                 throw new InvalidDataException("Output directory contains a declared input: " + path);
             }

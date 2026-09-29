@@ -121,11 +121,15 @@ NUGET_PACKAGES=/absolute/path/to/pinned/packages \
    default. After the graph route passes, update generator and macro defaults,
    then remove the per-project compile path separately.
 
-The remote project store currently uses no authentication, retries, batching,
-or cross-process locking. A missing entry falls back to MSBuild compilation;
-a malformed, corrupt, or conflicting entry fails the build. The small test is
-package-free, and Orchard's input discovery remains profile-specific. Neither
-run proves general remote-cache correctness or remote execution.
+The shared transport supports bearer authentication, bounded parallel transfers,
+three-attempt retries for transient failures, and digest-checked atomic downloads.
+Missing or evicted blobs become misses and are repaired after compilation.
+Malformed, corrupt, or conflicting entries fail the build. Publication compares
+the entire manifest, including target metadata and permissions. The HTTP service
+does not provide an atomic compare-and-swap operation for concurrent divergent
+writers; conflict detection is limited to entries observed before publication.
+The Orchard profile remains test-only and does not establish generic remote
+execution support.
 
 ## Generic runner migration checkpoints
 
@@ -138,7 +142,10 @@ caller's responsibility, as with other Bazel actions. This is not file-access
 tracing and does not qualify arbitrary custom tasks.
 
 The fingerprint hashes the selected SDK tree once per invocation, project and
-shared inputs, global properties, and output declarations. It includes physical
+shared inputs, evaluated properties and item metadata, runner bytes, and output
+declarations. Cache endpoint and bearer credentials are removed from the MSBuild
+environment before evaluation. Evaluated fingerprints are frozen before execution;
+a build that changes a declared input is rejected. It includes physical
 workspace and SDK paths: generic cross-path output portability is not yet proven.
 Fresh workers must use the same paths until that contract is qualified. NuGet
 restore products must be explicit inputs; package resolution is not inferred.
@@ -150,8 +157,8 @@ RULES_MSBUILD_DOTNET_ROOT=/path/to/pinned/sdk python3 tests/graph_build/qualify.
 ```
 
 On macOS ARM64 with SDK 10.0.400, source/import invalidation, undeclared-import
-rejection, and overlapping-output rejection pass. This first checkpoint inspects
-contracts; it does not replace the production build rules.
+rejection, and overlapping-output rejection pass. This remains an opt-in build
+path; the existing facade and generator defaults have not changed.
 
 The generic runner now executes `Build` and `Publish`, stores their actual target
 items and custom metadata, and restores them through `PluginTargetResult` rather
@@ -167,14 +174,15 @@ Copy bindings are checked against dependency ownership and actual file digests;
 the runner does not infer copy semantics from matching names or bytes.
 
 `tests/graph_build/replay.py` passed with SDK 10.0.400 on macOS ARM64: clean replay
-3/0 hits/misses, body edit 2/1, API edit 1/2, publish seed 0/3, and publish replay
-3/0. The body-edited app printed the new value and its captured outputs matched a
+3/0 hits/misses, body edit 2/1, API edit 1/2, resource edit 2/1, publish seed
+0/3, and publish replay 3/0. The body-edited app printed the new value and its captured outputs matched a
 fresh control. The fixture explicitly disables transitive compiler references;
 its API edit stops after the direct consumer's reference assembly stays unchanged.
 A corrupted snapshot was rejected. These are synthetic build/publish checks;
 MTP/VSTest, arbitrary generated outputs, and upstream contract generation remain
-cutover gates. The measured `seconds` currently covers build and snapshot work,
-not SDK hashing and evaluation, and must not be used as end-to-end timing.
+cutover gates. Reports now separate evaluation, input hashing, build/snapshot
+work, and total process time. Earlier `seconds` reports excluded evaluation and
+hashing and are not end-to-end comparisons.
 
 The opt-in public API is `msbuild_graph_runner`, `msbuild_graph`, and
 `msbuild_graph_test` in `msbuild/defs.bzl`. The graph rule uses the registered SDK
@@ -185,7 +193,8 @@ rejected by this first automatic-restore slice. The executable test rule runs a
 selected assembly and lets Bazel cache its test result. VSTest adapter selection
 and MTP result-file integration are not yet qualified.
 
-`tests/graph_build/bazel.py` passes in an independent macOS consumer: the graph
+`tests/graph_build/bazel.py` passes on Bazel 8.8.0 and 9.2.0 in an independent
+macOS consumer: the graph
 build succeeds, the executable test passes, and editing the app to return a
 failure invalidates its test result. Endpoint configuration is supplied with
 `--action_env=RULES_MSBUILD_PROJECT_CACHE_URL`; it is not stored in BUILD files.
@@ -199,3 +208,44 @@ bazel-remote 2.6.2 HTTP service. These are fixed-path standalone worker runs, no
 Bazel remote execution. Standard Bazel sandbox paths still differ between actions;
 this generic runner safely misses across such paths. A stable execution namespace
 remains necessary before claiming efficient project reuse across Bazel workers.
+
+After removing the consumer workspace and local snapshots again, the derived
+entries replayed with 3/0 hits/misses. A fresh no-cache Linux control matched all
+54 captured files byte-for-byte (excluding the disposable assembly-resolution
+cache), and the native apphost ran with the edited value.
+
+`tests/graph_build/remote.py` injects authenticated HTTP requests, two transient
+503 failures, concurrent transfers, an evicted CAS blob, and a corrupt CAS blob.
+All controls pass. The existing `qualify_remote.py` probe also passes with the
+hardened transport and reports no cross-path output mismatches in its bounded
+fixture. Neither test simulates distributed conflicting publishers.
+
+The generic runner caches evaluated fingerprints, declared input digests,
+dependency reachability, output inventories, and completed dependency digests
+within one invocation. Copy-binding validation uses declared directory ownership
+instead of repeatedly walking transitive output trees.
+
+## Generic edit timing
+
+Command: `tests/graph_build/benchmark.py --projects 128 --samples 3`, with
+`RULES_MSBUILD_DOTNET_ROOT` set to SDK 10.0.400. On macOS ARM64, both engines used
+Release, four MSBuild nodes, disabled shared compilation, and explicitly disabled
+transitive compiler references. The cache runner removed build outputs before
+each invocation and reused local project snapshots; raw MSBuild retained its
+incremental outputs. Restore ran before timing. These are complete process wall
+times, including graph evaluation, fingerprinting, and snapshot handling, but
+exclude Bazel startup, Restore, and remote transfer. This is a synthetic serial
+chain, not an Orchard/runtime performance claim.
+
+| Edit | Generic runner median | Warm raw graph-mode MSBuild | Cache hits/misses |
+| --- | ---: | ---: | ---: |
+| Body | 6.88 s | 6.93 s | 127/1 |
+| API | 7.37 s | 7.21 s | 126/2 |
+
+Before eliminating repeated transitive output scans, the corresponding runner
+medians were 13.63 s and 14.13 s. The final body runs spent about 2.77 s evaluating
+and validating the graph, 0.85 s hashing inputs and evaluated state, and 3.21 s
+building and handling snapshots. The remaining cost is no longer dominated by
+repeated dependency-tree enumeration. This reaches roughly raw MSBuild time in
+the synthetic case; larger real-project comparisons through the generic rule
+remain required before changing the default.

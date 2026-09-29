@@ -8,32 +8,67 @@ namespace RulesMSBuild.ProjectCache;
 // A project fingerprint is an action-cache key; the manifest and files live in
 // the CAS. This uses the same HTTP cache protocol as Bazel, but keeps a separate
 // key domain so Bazel cannot mistake a project snapshot for one of its actions.
-public sealed class RemoteSnapshotStore(Uri endpoint) : IDisposable
+public sealed class RemoteSnapshotStore(Uri endpoint, int parallelism = 8, string? bearerToken = null) : IDisposable
 {
-    private readonly HttpClient client = new() { BaseAddress = endpoint, Timeout = TimeSpan.FromMinutes(2) };
+    private readonly HttpClient client = CreateClient(endpoint, bearerToken);
+    private readonly ParallelOptions transfers = new() { MaxDegreeOfParallelism = Math.Clamp(parallelism, 1, 32) };
+    private readonly System.Collections.Concurrent.ConcurrentDictionary<string, byte> uploaded = new(StringComparer.Ordinal);
+
+    private static HttpClient CreateClient(Uri endpoint, string? bearerToken)
+    {
+        var client = new HttpClient(new SocketsHttpHandler { MaxConnectionsPerServer = 8 }) { BaseAddress = endpoint, Timeout = TimeSpan.FromMinutes(2) };
+        if (!string.IsNullOrEmpty(bearerToken))
+        {
+            client.DefaultRequestHeaders.Authorization = new("Bearer", bearerToken);
+        }
+        return client;
+    }
 
     public async Task<bool> FetchAsync(string fingerprint, string destination, CancellationToken cancellationToken)
     {
-        var manifestBytes = await ReadManifestAsync(fingerprint, cancellationToken);
-        if (manifestBytes is null)
+        var staging = destination + ".fetch-" + Guid.NewGuid().ToString("N");
+        try
         {
+            var manifestBytes = await ReadManifestAsync(fingerprint, cancellationToken);
+            if (manifestBytes is null)
+            {
+                return false;
+            }
+            var manifest = JsonSerializer.Deserialize<RemoteManifest>(manifestBytes)
+                ?? throw new InvalidDataException("Missing project-cache manifest");
+            if (manifest.Fingerprint != fingerprint || manifest.Files is null)
+            {
+                throw new InvalidDataException("Project-cache fingerprint mismatch");
+            }
+            Directory.CreateDirectory(staging);
+            await Parallel.ForEachAsync(manifest.Files.GroupBy(file => file.Value),
+                new ParallelOptions { MaxDegreeOfParallelism = transfers.MaxDegreeOfParallelism, CancellationToken = cancellationToken }, async (group, token) =>
+                {
+                    var bytes = await DownloadAsync(group.Key, token);
+                    foreach (var (relative, _) in group)
+                    {
+                        var path = SafePath(staging, relative);
+                        Directory.CreateDirectory(Path.GetDirectoryName(path)!);
+                        await File.WriteAllBytesAsync(path, bytes, token);
+                    }
+                });
+            await File.WriteAllBytesAsync(Path.Combine(staging, "manifest.json"), manifestBytes, cancellationToken);
+            // Callers use unique destinations. Never expose a partially fetched entry.
+            Directory.Move(staging, destination);
+            return true;
+        }
+        catch (HttpRequestException error) when (error.StatusCode == HttpStatusCode.NotFound)
+        {
+            // An action-cache entry can outlive an evicted CAS blob.
             return false;
         }
-        var manifest = JsonSerializer.Deserialize<RemoteManifest>(manifestBytes)
-            ?? throw new InvalidDataException("Missing project-cache manifest");
-        if (manifest.Fingerprint != fingerprint || manifest.Files is null)
+        finally
         {
-            throw new InvalidDataException("Project-cache fingerprint mismatch");
+            if (Directory.Exists(staging))
+            {
+                Directory.Delete(staging, recursive: true);
+            }
         }
-        Directory.CreateDirectory(destination);
-        foreach (var (relative, digest) in manifest.Files)
-        {
-            var path = SafePath(destination, relative);
-            Directory.CreateDirectory(Path.GetDirectoryName(path)!);
-            await File.WriteAllBytesAsync(path, await DownloadAsync(digest, cancellationToken), cancellationToken);
-        }
-        await File.WriteAllBytesAsync(Path.Combine(destination, "manifest.json"), manifestBytes, cancellationToken);
-        return true;
     }
 
     public async Task<bool> PublishAsync(string fingerprint, string source, CancellationToken cancellationToken)
@@ -45,13 +80,22 @@ public sealed class RemoteSnapshotStore(Uri endpoint) : IDisposable
         {
             throw new InvalidDataException("Project-cache fingerprint mismatch");
         }
-        var existingBytes = await ReadManifestAsync(fingerprint, cancellationToken);
+        byte[]? existingBytes;
+        try
+        {
+            existingBytes = await ReadManifestAsync(fingerprint, cancellationToken);
+        }
+        catch (HttpRequestException error) when (error.StatusCode == HttpStatusCode.NotFound)
+        {
+            existingBytes = null;
+        }
         if (existingBytes is not null)
         {
             var existing = JsonSerializer.Deserialize<RemoteManifest>(existingBytes)
                 ?? throw new InvalidDataException("Missing existing project-cache manifest");
             if (existing.Fingerprint != fingerprint || !SameFiles(existing.Files, snapshot.Files) ||
-                !SameFiles(existing.ProjectCopies, snapshot.ProjectCopies))
+                !SameFiles(existing.ProjectCopies, snapshot.ProjectCopies) ||
+                !JsonElement.DeepEquals(JsonSerializer.Deserialize<JsonElement>(existingBytes), JsonSerializer.Deserialize<JsonElement>(manifest)))
             {
                 var changed = (existing.Files ?? []).Keys.Union((snapshot.Files ?? []).Keys, StringComparer.Ordinal)
                     .Where(path => !(existing.Files ?? []).TryGetValue(path, out var oldDigest) ||
@@ -60,18 +104,24 @@ public sealed class RemoteSnapshotStore(Uri endpoint) : IDisposable
                 throw new InvalidDataException("Conflicting project-cache outputs for " + source +
                     " fingerprint " + fingerprint + "; changed files: " + string.Join(", ", changed));
             }
-            return false;
         }
-        foreach (var (relative, digest) in snapshot.Files)
-        {
-            var path = SafePath(source, relative.Replace('\\', '/'));
-            var bytes = await File.ReadAllBytesAsync(path, cancellationToken);
-            if (Digest(bytes) != digest)
+        await Parallel.ForEachAsync(snapshot.Files.GroupBy(file => file.Value),
+            new ParallelOptions { MaxDegreeOfParallelism = transfers.MaxDegreeOfParallelism, CancellationToken = cancellationToken }, async (group, token) =>
             {
-                throw new InvalidDataException("Project-cache file changed during upload: " + relative);
-            }
-            await UploadAsync("cas/" + digest, bytes, "application/octet-stream", cancellationToken);
-        }
+                var digest = group.Key;
+                if (uploaded.ContainsKey(digest))
+                {
+                    return;
+                }
+                var path = SafePath(source, group.First().Key);
+                var bytes = await File.ReadAllBytesAsync(path, token);
+                if (Digest(bytes) != digest)
+                {
+                    throw new InvalidDataException("Project-cache file changed during upload: " + path);
+                }
+                await UploadAsync("cas/" + digest, bytes, "application/octet-stream", token);
+                uploaded.TryAdd(digest, 0);
+            });
         var manifestDigest = Digest(manifest);
         await UploadAsync("cas/" + manifestDigest, manifest, "application/octet-stream", cancellationToken);
         var result = JsonSerializer.SerializeToUtf8Bytes(new
@@ -79,14 +129,17 @@ public sealed class RemoteSnapshotStore(Uri endpoint) : IDisposable
             outputFiles = new[] { new { path = "manifest.json", digest = new { hash = manifestDigest, sizeBytes = manifest.Length.ToString() } } },
         });
         await UploadAsync("rules-msbuild/ac/" + ActionKey(fingerprint), result, "application/json", cancellationToken);
-        return true;
+        return existingBytes is null;
     }
 
     private async Task<byte[]?> ReadManifestAsync(string fingerprint, CancellationToken cancellationToken)
     {
-        using var request = new HttpRequestMessage(HttpMethod.Get, "rules-msbuild/ac/" + ActionKey(fingerprint));
-        request.Headers.Accept.ParseAdd("application/json");
-        using var response = await client.SendAsync(request, cancellationToken);
+        using var response = await SendAsync(() =>
+        {
+            var request = new HttpRequestMessage(HttpMethod.Get, "rules-msbuild/ac/" + ActionKey(fingerprint));
+            request.Headers.Accept.ParseAdd("application/json");
+            return request;
+        }, cancellationToken);
         if (response.StatusCode == HttpStatusCode.NotFound)
         {
             return null;
@@ -108,7 +161,9 @@ public sealed class RemoteSnapshotStore(Uri endpoint) : IDisposable
         {
             throw new InvalidDataException("Invalid project-cache digest");
         }
-        var bytes = await client.GetByteArrayAsync("cas/" + digest, cancellationToken);
+        using var response = await SendAsync(() => new HttpRequestMessage(HttpMethod.Get, "cas/" + digest), cancellationToken);
+        response.EnsureSuccessStatusCode();
+        var bytes = await response.Content.ReadAsByteArrayAsync(cancellationToken);
         if (Digest(bytes) != digest)
         {
             throw new InvalidDataException("Corrupt project-cache blob: " + digest);
@@ -118,15 +173,46 @@ public sealed class RemoteSnapshotStore(Uri endpoint) : IDisposable
 
     private async Task UploadAsync(string path, byte[] bytes, string contentType, CancellationToken cancellationToken)
     {
-        using var content = new ByteArrayContent(bytes);
-        content.Headers.ContentType = new(contentType);
-        using var response = await client.PutAsync(path, content, cancellationToken);
+        using var response = await SendAsync(() =>
+        {
+            var request = new HttpRequestMessage(HttpMethod.Put, path) { Content = new ByteArrayContent(bytes) };
+            request.Content.Headers.ContentType = new(contentType);
+            return request;
+        }, cancellationToken);
         response.EnsureSuccessStatusCode();
+    }
+
+    private async Task<HttpResponseMessage> SendAsync(Func<HttpRequestMessage> create, CancellationToken cancellationToken)
+    {
+        for (var attempt = 0; ; attempt++)
+        {
+            try
+            {
+                using var request = create();
+                var response = await client.SendAsync(request, cancellationToken);
+                var transient = (int)response.StatusCode is 408 or 429 or >= 500;
+                if (!transient || attempt == 2)
+                {
+                    return response;
+                }
+                response.Dispose();
+            }
+            catch (HttpRequestException) when (attempt < 2)
+            {
+            }
+            catch (System.Net.Sockets.SocketException) when (attempt < 2)
+            {
+            }
+            catch (TaskCanceledException) when (attempt < 2 && !cancellationToken.IsCancellationRequested)
+            {
+            }
+            await Task.Delay(TimeSpan.FromMilliseconds(100 * (1 << attempt)), cancellationToken);
+        }
     }
 
     private static string SafePath(string root, string relative)
     {
-        if (Path.IsPathRooted(relative) || relative.Split('/').Any(part => part is "" or "." or ".."))
+        if (Path.IsPathRooted(relative) || relative.Contains('\\') || relative.Split('/').Any(part => part is "" or "." or ".."))
         {
             throw new InvalidDataException("Invalid project-cache path: " + relative);
         }
