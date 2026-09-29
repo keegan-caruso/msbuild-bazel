@@ -24,6 +24,7 @@ internal static class GraphGenerator
         var sdkRoot = Path.GetDirectoryName(Path.GetDirectoryName(sdk))!;
         using var collection = new ProjectCollection();
         var inputs = new System.Collections.Concurrent.ConcurrentDictionary<string, string[]>();
+        var definitions = new System.Collections.Concurrent.ConcurrentDictionary<string, byte>();
         var properties = new Dictionary<string, string> { ["Configuration"] = "Release" };
         var evaluationProperties = new Dictionary<string, string>(properties)
         {
@@ -57,6 +58,10 @@ internal static class GraphGenerator
                     }
                 }
                 var declared = new HashSet<string>(documents.Select(document => Relative(document.FullPath)), StringComparer.Ordinal);
+                foreach (var document in declared)
+                {
+                    definitions.TryAdd(document, 0);
+                }
                 foreach (var item in FileItems.SelectMany(project.GetItems))
                 {
                     var fullPath = item.GetMetadataValue("FullPath");
@@ -83,6 +88,8 @@ internal static class GraphGenerator
                 inputs[Key(instance)] = declared.Order(StringComparer.Ordinal).ToArray();
                 return instance;
             });
+        var dependencyClosure = new Dictionary<ProjectGraphNode, HashSet<ProjectGraphNode>>();
+        var boundaries = new Dictionary<ProjectGraphNode, bool>();
         var declarations = new SortedDictionary<string, object>(StringComparer.Ordinal);
         foreach (var group in graph.ProjectNodes.GroupBy(node => Relative(node.ProjectInstance.FullPath)))
         {
@@ -95,6 +102,8 @@ internal static class GraphGenerator
             {
                 Properties = selectorKeys.ToDictionary(key => key, key => node.ProjectInstance.GlobalProperties.TryGetValue(key, out var value) ? value : ""),
                 Inputs = inputs[Key(node.ProjectInstance)],
+                ReferenceBoundary = CanUseReferenceBoundary(node),
+                DependencyCopies = CanUseReferenceBoundary(node) ? DependencyCopies(node) : new Dictionary<string, string>(),
                 OutputDirectories = node.ProjectInstance.GetPropertyValue("TargetPath").Length == 0 ? [] :
                     new[] { "OutputPath", "IntermediateOutputPath" }.Select(property =>
                     {
@@ -122,6 +131,8 @@ internal static class GraphGenerator
             SdkVersion = Path.GetFileName(sdk),
             Properties = properties,
             SharedInputs = shared,
+            DefinitionDigests = definitions.Keys.Order(StringComparer.Ordinal).ToDictionary(path => path,
+                path => Convert.ToHexStringLower(System.Security.Cryptography.SHA256.HashData(File.ReadAllBytes(Path.Combine(root, path))))),
             Projects = declarations
         }, new JsonSerializerOptions { WriteIndented = true }) + "\n";
         var sources = inputs.Values.SelectMany(files => files).Concat(shared).Distinct().Order(StringComparer.Ordinal).ToArray();
@@ -136,6 +147,96 @@ internal static class GraphGenerator
         {
             File.WriteAllText(Path.Combine(outputRoot, ContractName), contract);
             File.WriteAllText(Path.Combine(outputRoot, BuildName), text);
+        }
+
+        IEnumerable<ProjectGraphNode> Dependencies(ProjectGraphNode node)
+        {
+            if (dependencyClosure.TryGetValue(node, out var existing))
+            {
+                return existing;
+            }
+            var seen = new HashSet<ProjectGraphNode>();
+            var pending = new Stack<ProjectGraphNode>(node.ProjectReferences);
+            while (pending.TryPop(out var dependency))
+            {
+                if (seen.Add(dependency))
+                {
+                    foreach (var child in dependency.ProjectReferences)
+                    {
+                        pending.Push(child);
+                    }
+                }
+            }
+            dependencyClosure.Add(node, seen);
+            return seen;
+        }
+        bool CanUseReferenceBoundary(ProjectGraphNode node)
+        {
+            if (boundaries.TryGetValue(node, out var boundary))
+            {
+                return boundary;
+            }
+            return boundaries[node] = node.ProjectInstance.GetPropertyValue("TargetPath").Length != 0 &&
+            Dependencies(node).Append(node).All(current =>
+                new[] { "PublishTrimmed", "PublishReadyToRun", "PublishAot", "PublishSingleFile" }.All(property =>
+                    !current.ProjectInstance.GetPropertyValue(property).Equals("true", StringComparison.OrdinalIgnoreCase)) &&
+                current.ProjectInstance.GetItems("ProjectReference").All(item =>
+                    item.GetMetadataValue("OutputItemType").Length == 0 &&
+                    item.GetMetadataValue("Targets").Length == 0 &&
+                    item.GetMetadataValue("ReferenceOutputAssembly") is "" or "true" &&
+                    item.GetMetadataValue("Private") is "" or "true") &&
+                (current == node || current.ProjectInstance.GetPropertyValue("OutputType").Equals("Library", StringComparison.OrdinalIgnoreCase)) &&
+                HasStandardSymbols(current) &&
+                current.ProjectInstance.GetItems("EmbeddedResource").Count == 0 &&
+                FileItems.SelectMany(current.ProjectInstance.GetItems).All(item =>
+                    item.GetMetadataValue("CopyToOutputDirectory") is "" or "Never" &&
+                    item.GetMetadataValue("CopyToPublishDirectory") is "" or "Never"));
+        }
+
+        bool HasStandardSymbols(ProjectGraphNode node)
+        {
+            var project = node.ProjectInstance;
+            var target = project.GetPropertyValue("TargetPath");
+            if (Path.GetExtension(target) != ".dll" || project.GetPropertyValue("PdbFile").Length != 0)
+            {
+                return false;
+            }
+            var documentation = project.GetPropertyValue("DocumentationFile");
+            if (documentation.Length == 0)
+            {
+                return true;
+            }
+            var directory = Path.GetDirectoryName(project.FullPath)!;
+            var expected = Path.Combine(project.GetPropertyValue("IntermediateOutputPath"), Path.ChangeExtension(Path.GetFileName(target), ".xml"));
+            return Path.GetFullPath(documentation, directory) == Path.GetFullPath(expected, directory);
+        }
+
+        Dictionary<string, string> DependencyCopies(ProjectGraphNode node)
+        {
+            var copies = new Dictionary<string, string>(StringComparer.Ordinal);
+            var project = node.ProjectInstance;
+            var directory = Path.GetDirectoryName(project.FullPath)!;
+            var output = Path.GetDirectoryName(Path.GetFullPath(project.GetPropertyValue("TargetPath"), directory))!;
+            var publish = project.GetPropertyValue("PublishDir");
+            var destinations = publish.Length == 0 ? new[] { output } : new[] { output, Path.GetFullPath(publish, directory) };
+            foreach (var dependency in Dependencies(node).OrderBy(current => Key(current.ProjectInstance), StringComparer.Ordinal))
+            {
+                var source = Path.GetFullPath(dependency.ProjectInstance.GetPropertyValue("TargetPath"), Path.GetDirectoryName(dependency.ProjectInstance.FullPath)!);
+                foreach (var extension in new[] { ".dll", ".pdb", ".xml" })
+                {
+                    var producer = Relative(Path.ChangeExtension(source, extension));
+                    foreach (var destination in destinations)
+                    {
+                        var target = Relative(Path.Combine(destination, Path.GetFileName(producer)));
+                        if (copies.TryGetValue(target, out var existing) && existing != producer)
+                        {
+                            throw new InvalidDataException("Ambiguous graph dependency copy: " + target);
+                        }
+                        copies[target] = producer;
+                    }
+                }
+            }
+            return copies;
         }
 
         bool IsSdk(string path) => Path.GetFullPath(path).StartsWith(sdkRoot + Path.DirectorySeparatorChar, StringComparison.Ordinal);

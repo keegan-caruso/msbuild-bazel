@@ -34,6 +34,15 @@ report = Path.GetFullPath(report);
 Directory.SetCurrentDirectory(root);
 root = Directory.GetCurrentDirectory();
 var sdkRoot = Environment.GetEnvironmentVariable("DOTNET_ROOT") ?? throw new InvalidDataException("DOTNET_ROOT is required");
+var contractFiles = new ContractFiles(root, sdkRoot);
+foreach (var (path, digest) in contract.DefinitionDigests ?? [])
+{
+    var source = contractFiles.Resolve(path);
+    if (!File.Exists(source) || ContractFiles.Digest(source) != digest)
+    {
+        throw new InvalidDataException("Graph definition changed; rerun sync: " + path);
+    }
+}
 var sdk = Path.Combine(sdkRoot, "sdk", contract.SdkVersion);
 System.Runtime.Loader.AssemblyLoadContext.Default.Resolving += (context, name) =>
     File.Exists(Path.Combine(sdk, name.Name + ".dll")) ? context.LoadFromAssemblyPath(Path.Combine(sdk, name.Name + ".dll")) : null;

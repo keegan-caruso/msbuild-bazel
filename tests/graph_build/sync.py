@@ -38,6 +38,15 @@ def main():
         assert json.loads(report.read_text())['hits'] == 3
         assert run(DOTNET, root / 'P2/bin/Release/net10.0/P2.dll').stdout.strip() == '1'
         run(*command, '--check')
+        # A stale definition must fail before Restore can run a newly added task.
+        entry = root / 'P2/P2.csproj'
+        original_entry = entry.read_text()
+        entry.write_text(original_entry.replace('</Project>', '<Target Name="RestoreMarker" BeforeTargets="Restore">'
+            '<WriteLinesToFile File="$(MSBuildProjectDirectory)/restore-ran.txt" Lines="ran" /></Target></Project>'))
+        failure = run(DOTNET, RUNNER, 'action', root, contract, report, cache, success=False)
+        assert 'Graph definition changed' in failure.stderr
+        assert not (root / 'P2/restore-ran.txt').exists()
+        entry.write_text(original_entry)
         # A new task must not silently receive a source-only contract.
         project = root / 'P0/P0.csproj'
         original = project.read_text()

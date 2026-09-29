@@ -103,9 +103,9 @@ capabilities. The remaining work is:
 
 1. Generate graph contracts from project sync, including declared task/tool
    bindings and dependency-copy roles. `ProjectSync --graph` now generates
-   package-free SDK graph contracts and Bazel declarations. Rich mappings and
-   optimized reference boundaries still need transfer; upstream probes still
-   use repository-specific discovery.
+   package-free SDK graph contracts and Bazel declarations, including ordinary
+   library reference boundaries and DLL/PDB/XML copy bindings. Rich mappings
+   still need transfer; upstream probes still use repository-specific discovery.
 2. Extend configuration and restore qualification to upstream graphs. Version 2
    contracts now select per-configuration inputs, outputs, reference boundaries,
    and dependency-copy bindings using explicit global-property selectors. Missing
@@ -311,8 +311,10 @@ app_graph(name = "app")
 ```
 
 The generated contract declares evaluated source files, imports, configuration
-selectors and output directories. Its dependency invalidation is conservative;
-reference-boundary optimization and dependency-copy rebinding are not inferred.
+selectors and output directories. Ordinary library dependencies use reference
+assemblies for compilation identity and explicit DLL/PDB/XML copy bindings for
+current runtime files. Content/resource copying, custom reference roles and
+specialized publish settings retain conservative invalidation.
 Sync rejects package references, tests, custom targets/tasks, external assembly
 references, custom item kinds and existing mapping/tool/package inputs until
 those contracts are transferred. Run sync for the intended SDK/platform; this
@@ -394,3 +396,64 @@ lengths, not physical bytes transferred. Materialization seconds sum operation
 durations and can overlap in a parallel graph. The replay qualification writes
 through a restored dependency and verifies that producer and cached DLLs remain
 unchanged, then checks body/API/resource/publish parity.
+
+## Generated dependency invalidation
+
+For qualified package-free SDK library references, sync now emits
+`ReferenceBoundary` plus `DependencyCopies` for build and publish directories.
+A body edit can reuse consumers while refreshing their dependency DLL, PDB and
+XML files. Presence of optional copy outputs is part of the fingerprint, so
+adding or removing documentation/symbol files cannot replay an obsolete output
+set. Nonstandard symbol/documentation paths retain conservative invalidation.
+Ambiguous destination names fail synchronization. Content/resource
+inputs, implementation/custom-reference roles, executable dependencies and
+trimmed/AOT/ReadyToRun/single-file publishing retain conservative invalidation.
+
+Reference identity also includes transitive reference assemblies when SDK
+transitive compiler references are enabled. With `A -> B -> C`, an unchanged B
+reference assembly stops C's API invalidation at B only when A cannot directly
+compile against C. The generator does not change that SDK setting. Generated contracts also carry
+`DefinitionDigests` for authored project/import files. The runner requires sync
+after those files change, before evaluation; C# source edits do not require sync.
+This prevents old optimized declarations from surviving a changed project
+contract, such as newly added content-copy metadata or custom targets.
+
+```sh
+python3 tests/graph_build/invalidation.py
+```
+
+The three-project qualification runs with transitive compiler references both
+on and off. A body edit gets 2 hits / 1 miss and refreshed runtime/XML copies.
+An API edit gets 1/2 when transitive references are disabled and 0/3 when enabled.
+A subsequent B API edit rebuilds B and A. Publish body edits also get 2/1; their
+captured outputs match fresh-cache controls. Removing and restoring a dependency
+XML output invalidates or reuses the matching output shape correctly. A stale
+project definition is rejected until sync. Adding copy-to-output content
+switches back to conservative behavior and propagates edited data correctly.
+These are generated standalone contracts at a stable workspace path, not
+qualification of project-cache hits across ordinary Bazel sandbox paths.
+
+With the generated-contract benchmark (`--generated`, 32 projects, three paired
+samples on macOS ARM64), disabling these declarations with `--conservative`
+reproduces the earlier generator behavior:
+
+| Edit | Conservative contracts | Reference boundaries | Raw MSBuild alongside boundaries |
+| --- | ---: | ---: | ---: |
+| Body | 16.51 s (0/32 hits/misses) | 2.13 s (31/1) | 2.10 s |
+| API | 16.67 s (0/32) | 2.60 s (30/2) | 2.62 s |
+
+Both runs use the default .NET copy path and profiling, with transitive compiler
+references explicitly disabled for the chain. The body improvement is about
+7.7x over the old generated declarations; it brings this slice close to warm raw
+MSBuild. It is separate from the 128-project copy-mode comparison above, whose
+handwritten contracts already used reference boundaries. Restore runs before
+timing; cached builds recreate outputs while raw builds retain incremental state.
+
+The invalidation fixture passed on macOS ARM64 and the Ubuntu ARM64 container.
+The explicit-clone replay fixture also passed on both. Linux reported 0 clones
+and 54 fallbacks for replay/body on its current filesystem; macOS reported 54
+clones and no fallbacks. Switching from a default-copy seed to explicit-clone
+replay retained all three hits. Mutation isolation, exact output parity and
+corruption rejection passed. The public Bazel sync/build/test check and all 53
+existing project-sync tests passed on macOS. No Linux COW speedup or upstream
+performance claim follows from the fallback check.

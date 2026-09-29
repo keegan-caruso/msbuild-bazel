@@ -17,12 +17,20 @@ separates diagnostic runs from a single, memory-budgeted build VM.
 ## Generic graph-cache runner
 
 The opt-in [generic graph runner](project-cache-migration.md#generic-edit-timing)
-now measures **6.88/6.93 s body** and **7.37/7.21 s API** (runner/raw) on a
+previously measured **6.88/6.93 s body** and **7.37/7.21 s API** (runner/raw) on a
 128-project synthetic chain, with three paired samples. Removing repeated
 transitive output scans roughly halved the runner's edit time. These measurements
 include process startup, evaluation and local snapshots, but exclude Bazel,
 Restore and remote transfers. They do not establish Orchard/runtime parity or
 justify changing the default yet.
+
+For newly generated contracts, qualified reference boundaries reduced a separate
+32-project chain from **16.51 to 2.13 s body** and **16.67 to 2.60 s API**;
+paired raw MSBuild measured **2.10/2.62 s**. Body edits now hit 31 projects and
+rebuild one. These medians use three samples, disabled transitive compiler
+references, and a stable standalone workspace. An explicit COW experiment on the
+128-project chain reduced body time only from **7.03 to 6.74 s**; the default
+.NET copy path remains unchanged. See [measurements and qualification](project-cache-migration.md#copy-on-write-measurement).
 
 ## Orchard reference-boundary follow-up
 

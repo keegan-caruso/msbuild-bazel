@@ -21,6 +21,7 @@ internal sealed class GraphCache(GraphInputs inputs, string cache, bool read, Re
     private readonly ConcurrentDictionary<ProjectGraphNode, HashSet<ProjectGraphNode>> dependencies = new();
     private readonly ConcurrentDictionary<ProjectGraphNode, string[]> outputFiles = new();
     private readonly ConcurrentDictionary<string, Lazy<string>> outputDigests = new(StringComparer.Ordinal);
+    private readonly ConcurrentDictionary<string, bool> dependencyPresence = new(StringComparer.Ordinal);
     private readonly ConcurrentDictionary<string, string> fingerprints = new(StringComparer.Ordinal);
     private readonly ConcurrentDictionary<string, string[]> requestedTargets = new(StringComparer.Ordinal);
     private readonly ConcurrentDictionary<string, ProjectSnapshot> hits = new(StringComparer.Ordinal);
@@ -145,7 +146,17 @@ internal sealed class GraphCache(GraphInputs inputs, string cache, bool read, Re
     {
         var records = new List<string> { "graph-snapshot-v1", inputs.Fingerprint(node) };
         records.AddRange(targets.Select(t => "target:" + t));
-        foreach (var reference in node.ProjectReferences.OrderBy(n => GraphInputs.Key(n.ProjectInstance), StringComparer.Ordinal))
+        // Adding or removing a PDB/XML copy changes the consumer's output set,
+        // even when its compiler-facing reference assemblies are unchanged.
+        records.AddRange((inputs.For(node).DependencyCopies ?? []).OrderBy(copy => copy.Key, StringComparer.Ordinal)
+            .Select(copy => "copy-present:" + copy.Key + "=" + dependencyPresence.GetOrAdd(copy.Value,
+                path => File.Exists(inputs.Files.Resolve(path)))));
+        // SDK compilation can see transitive reference assemblies. A grandchild
+        // API change must invalidate those consumers even if its parent API stays put.
+        IEnumerable<ProjectGraphNode> references = inputs.For(node).ReferenceBoundary &&
+            !node.ProjectInstance.GetPropertyValue("DisableTransitiveProjectReferences").Equals("true", StringComparison.OrdinalIgnoreCase)
+            ? DependencyNodes(node) : node.ProjectReferences;
+        foreach (var reference in references.OrderBy(n => GraphInputs.Key(n.ProjectInstance), StringComparer.Ordinal))
         {
             var authored = node.ProjectInstance.GetItems("ProjectReference").Where(item =>
                 Path.GetFullPath(item.EvaluatedInclude.Replace('\\', '/'), Path.GetDirectoryName(node.ProjectInstance.FullPath)!) == reference.ProjectInstance.FullPath);

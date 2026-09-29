@@ -10,7 +10,8 @@ Build/Publish target-result replay, public graph actions and executable tests.
 Small independent Linux workers qualify shared project-cache recovery. A
 128-project synthetic edit comparison is roughly at warm raw graph-mode MSBuild
 time after removing repeated dependency traversal. Opt-in project sync now
-emits package-free graph contracts. Configured outputs, custom restore layouts,
+emits package-free graph contracts with qualified library reference boundaries
+and runtime-copy bindings. Configured outputs, custom restore layouts,
 and offline package generation/replay pass small macOS/Linux ARM64 fixtures.
 Rich sync mappings, stable Bazel worker paths, and existing feature/upstream
 parity remain open;

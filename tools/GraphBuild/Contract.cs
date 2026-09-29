@@ -10,7 +10,8 @@ internal sealed record GraphContract(
     string SdkVersion,
     Dictionary<string, string> Properties,
     string[] SharedInputs,
-    Dictionary<string, ProjectContract> Projects);
+    Dictionary<string, ProjectContract> Projects,
+    Dictionary<string, string>? DefinitionDigests = null);
 
 // Inputs include task reads that evaluation cannot discover. Outputs are owned
 // directories relative to the workspace; dependency copies are handled separately.
