@@ -4,6 +4,7 @@ using Microsoft.Build.Execution;
 using Microsoft.Build.Framework;
 using Microsoft.Build.Graph;
 using Microsoft.Build.ProjectCache;
+using RulesMSBuild.ProjectCache;
 using TaskItem = Microsoft.Build.Utilities.TaskItem;
 
 namespace RulesMSBuild.GraphBuild;
@@ -13,7 +14,7 @@ internal sealed record TargetOutput(string Name, ResultItem[] Items);
 internal sealed record ProjectSnapshot(string Fingerprint, Dictionary<string, string> Files,
     Dictionary<string, string> ProjectCopies, TargetOutput[] Targets, Dictionary<string, int> UnixModes);
 
-internal sealed class GraphCache(GraphInputs inputs, string cache, bool read) : ProjectCachePluginBase
+internal sealed class GraphCache(GraphInputs inputs, string cache, bool read, RemoteSnapshotStore? remote) : ProjectCachePluginBase
 {
     private readonly Dictionary<string, ProjectGraphNode> nodes = inputs.Graph.ProjectNodes.ToDictionary(n => GraphInputs.Key(n.ProjectInstance));
     private readonly ConcurrentDictionary<string, string> fingerprints = new(StringComparer.Ordinal);
@@ -25,19 +26,23 @@ internal sealed class GraphCache(GraphInputs inputs, string cache, bool read) : 
     public override Task BeginBuildAsync(CacheContext context, PluginLoggerBase logger, CancellationToken cancellationToken) => Task.CompletedTask;
     public override Task EndBuildAsync(PluginLoggerBase logger, CancellationToken cancellationToken) => Task.CompletedTask;
 
-    public override Task<CacheResult> GetCacheResultAsync(BuildRequestData request, PluginLoggerBase logger, CancellationToken cancellationToken)
+    public override async Task<CacheResult> GetCacheResultAsync(BuildRequestData request, PluginLoggerBase logger, CancellationToken cancellationToken)
     {
         var key = request.ProjectFullPath + "|" + string.Join(";", request.GlobalProperties.OrderBy(p => p.Name, StringComparer.Ordinal).Select(p => p.Name + "=" + p.EvaluatedValue));
         var node = nodes[key];
         if (node.ProjectInstance.GetPropertyValue("TargetPath").Length == 0)
         {
-            return Task.FromResult(CacheResult.IndicateNonCacheHit(CacheResultType.CacheNotApplicable));
+            return CacheResult.IndicateNonCacheHit(CacheResultType.CacheNotApplicable);
         }
         var fingerprint = Fingerprint(node, request.TargetNames.ToArray());
         fingerprints[key] = fingerprint;
         requestedTargets[key] = request.TargetNames.ToArray();
         var directory = Path.Combine(cache, fingerprint);
         var manifest = Path.Combine(directory, "manifest.json");
+        if (read && !File.Exists(manifest) && remote is not null)
+        {
+            await remote.FetchAsync(fingerprint, directory, cancellationToken);
+        }
         if (read && File.Exists(manifest))
         {
             var snapshot = JsonSerializer.Deserialize<ProjectSnapshot>(File.ReadAllText(manifest))
@@ -59,13 +64,13 @@ internal sealed class GraphCache(GraphInputs inputs, string cache, bool read) : 
             Interlocked.Increment(ref Hits);
             var results = snapshot.Targets.Select(target => new PluginTargetResult(target.Name,
                 target.Items.Select(RestoreItem).ToArray(), BuildResultCode.Success)).ToArray();
-            return Task.FromResult(CacheResult.IndicateCacheHit(results));
+            return CacheResult.IndicateCacheHit(results);
         }
         Interlocked.Increment(ref Misses);
-        return Task.FromResult(CacheResult.IndicateNonCacheHit(CacheResultType.CacheMiss));
+        return CacheResult.IndicateNonCacheHit(CacheResultType.CacheMiss);
     }
 
-    internal void Save(GraphBuildResult result)
+    internal async Task SaveAsync(GraphBuildResult result)
     {
         foreach (var (node, build) in result.ResultsByNode)
         {
@@ -125,6 +130,10 @@ internal sealed class GraphCache(GraphInputs inputs, string cache, bool read) : 
             else
             {
                 Directory.Move(staging, destination);
+            }
+            if (remote is not null)
+            {
+                await remote.PublishAsync(fingerprint, destination, CancellationToken.None);
             }
         }
     }

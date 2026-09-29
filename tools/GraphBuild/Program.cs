@@ -3,8 +3,9 @@ using Microsoft.Build.Execution;
 using Microsoft.Build.Graph;
 using Microsoft.Build.ProjectCache;
 using RulesMSBuild.GraphBuild;
+using RulesMSBuild.ProjectCache;
 
-if (args.Length < 4 || args[0] is not ("inspect" or "build"))
+if (args.Length < 4 || args[0] is not ("inspect" or "build" or "action"))
 {
     Console.Error.WriteLine("Usage: GraphBuild inspect ROOT CONTRACT REPORT | build ROOT CONTRACT REPORT CACHE [TARGET] [no-read]");
     return 2;
@@ -24,8 +25,12 @@ System.Runtime.Loader.AssemblyLoadContext.Default.Resolving += (context, name) =
     File.Exists(Path.Combine(sdk, name.Name + ".dll")) ? context.LoadFromAssemblyPath(Path.Combine(sdk, name.Name + ".dll")) : null;
 Environment.SetEnvironmentVariable("MSBUILD_EXE_PATH", Path.Combine(sdk, "MSBuild.dll"));
 Environment.SetEnvironmentVariable("MSBuildSDKsPath", Path.Combine(sdk, "Sdks"));
+if (args[0] == "action")
+{
+    contract = Restore.Run(contract, root, sdkRoot);
+}
 using var inputs = new GraphInputs(contract, root, sdkRoot);
-if (args[0] == "build")
+if (args[0] is "build" or "action")
 {
     var target = args.Length > 5 ? args[5] : "Build";
     if (target is not ("Build" or "Publish"))
@@ -40,7 +45,9 @@ if (args[0] == "build")
         }
     }
     var timer = System.Diagnostics.Stopwatch.StartNew();
-    var plugin = new GraphCache(inputs, cache ?? throw new InvalidDataException("Cache directory is required"), args.Length < 7 || args[6] != "no-read");
+    var remoteUrl = Environment.GetEnvironmentVariable("RULES_MSBUILD_PROJECT_CACHE_URL");
+    using var remote = remoteUrl is null ? null : new RemoteSnapshotStore(new Uri(remoteUrl.TrimEnd('/') + "/"));
+    var plugin = new GraphCache(inputs, cache ?? throw new InvalidDataException("Cache directory is required"), args.Length < 7 || args[6] != "no-read", remote);
     var parameters = new BuildParameters(inputs.Collection)
     {
         MaxNodeCount = 4,
@@ -59,7 +66,7 @@ if (args[0] == "build")
         }
         return 1;
     }
-    plugin.Save(result);
+    await plugin.SaveAsync(result);
     File.WriteAllText(report, JsonSerializer.Serialize(new
     {
         hits = plugin.Hits,

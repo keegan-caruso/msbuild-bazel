@@ -175,3 +175,27 @@ A corrupted snapshot was rejected. These are synthetic build/publish checks;
 MTP/VSTest, arbitrary generated outputs, and upstream contract generation remain
 cutover gates. The measured `seconds` currently covers build and snapshot work,
 not SDK hashing and evaluation, and must not be used as end-to-end timing.
+
+The opt-in public API is `msbuild_graph_runner`, `msbuild_graph`, and
+`msbuild_graph_test` in `msbuild/defs.bzl`. The graph rule uses the registered SDK
+toolchain, declared source files, a contract JSON file, and optional `.nupkg`
+archives. Restore is offline; its generated default `obj` inputs and extracted
+packages join the contract before graph evaluation. Custom restore paths are
+rejected by this first automatic-restore slice. The executable test rule runs a
+selected assembly and lets Bazel cache its test result. VSTest adapter selection
+and MTP result-file integration are not yet qualified.
+
+`tests/graph_build/bazel.py` passes in an independent macOS consumer: the graph
+build succeeds, the executable test passes, and editing the app to return a
+failure invalidates its test result. Endpoint configuration is supplied with
+`--action_env=RULES_MSBUILD_PROJECT_CACHE_URL`; it is not stored in BUILD files.
+
+Two independent Linux ARM64 containers also ran `tests/graph_build/worker.py`
+with SDK 10.0.400 at `/graph-cache-qualification/sdk` and source at
+`/graph-cache-qualification/workspace`. The producer published three snapshots
+(0/3 hits/misses). The consumer had no local snapshots, fetched two, rebuilt the
+body-edited leaf (2/1), and ran the app with the edited value using the shared
+bazel-remote 2.6.2 HTTP service. These are fixed-path standalone worker runs, not
+Bazel remote execution. Standard Bazel sandbox paths still differ between actions;
+this generic runner safely misses across such paths. A stable execution namespace
+remains necessary before claiming efficient project reuse across Bazel workers.

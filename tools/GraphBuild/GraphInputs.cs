@@ -72,7 +72,7 @@ internal sealed class GraphInputs : IDisposable
     internal string Fingerprint(ProjectGraphNode node)
     {
         var project = node.ProjectInstance;
-        var records = new List<string> { "graph-input-v1", Files.Root, Files.Sdk, SdkDigest, Relative(node) };
+        var records = new List<string> { "graph-input-v1", Files.Root, Files.Sdk, SdkDigest, ContractFiles.Digest(typeof(GraphInputs).Assembly.Location), Relative(node) };
         records.AddRange(project.GlobalProperties.OrderBy(p => p.Key, StringComparer.Ordinal)
             .Select(p => p.Key + "=" + Files.Normalize(p.Value)));
         records.AddRange(For(node).OutputDirectories.Select(p => "output:" + p));

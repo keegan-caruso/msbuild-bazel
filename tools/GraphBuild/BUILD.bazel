@@ -6,6 +6,7 @@ filegroup(
         "GraphBuild.csproj",
         "//tools:Directory.Build.props",
         "//tools:MSBuildTool.props",
+        "//tools/ProjectCache:RemoteSnapshotStore.cs",
     ],
     visibility = ["//visibility:public"],
 )
