@@ -364,7 +364,7 @@ internal sealed class AvaloniaCache(string root, string packages, string? readCa
             var name = dependency.GetPropertyValue("AssemblyName");
             var authored = project.GetItems("ProjectReference").Where(item =>
                 Path.GetFullPath(item.EvaluatedInclude.Replace('\\', '/'), directory) == dependency.FullPath).ToArray();
-            var implementation = authored.Length == 0 || authored.Any(item =>
+            var implementation = authored.Any(item =>
                 item.GetMetadataValue("OutputItemType").Equals("Analyzer", StringComparison.OrdinalIgnoreCase) ||
                 item.GetMetadataValue("ReferenceOutputAssembly").Equals("false", StringComparison.OrdinalIgnoreCase));
             var output = implementation ? Path.Combine(source, "bin", "Release", framework, name + ".dll") :

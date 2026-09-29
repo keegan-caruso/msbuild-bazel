@@ -120,6 +120,9 @@ def qualify(source: Path, output: Path) -> dict:
                     relative_ref = f"obj/Release/{framework}/ref/Avalonia.Base.dll"
                     if manifest("seed", project, framework)[relative_ref] != manifest(name + "-cached", project, framework)[relative_ref]:
                         raise AssertionError((name, framework, "reference changed"))
+                    expected_hit = f"cacheHit=src/Avalonia.Dialogs/Avalonia.Dialogs.csproj:{framework}"
+                    if expected_hit not in (output / "body-cached.log").read_text().splitlines():
+                        raise AssertionError((name, framework, "Dialogs should reuse its unchanged references"))
         finally:
             path.write_text(original)
     raw = [

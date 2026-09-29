@@ -182,6 +182,32 @@ for most of its remaining wall time. This comparison excludes the source copy,
 offline restore, and Bazel action overhead measured above. It does not show a
 cache benefit over raw graph mode on these three edits.
 
+### Body-edit dependency correction
+
+The table above predates a correction to the test-only cache probe. Its
+fingerprint treated a project-graph edge absent from the consumer's evaluated
+`ProjectReference` items as an implementation dependency. The graph includes
+transitive edges, so `Avalonia.Dialogs` acquired an implementation dependency
+on `Avalonia.Base` even though it did not directly declare that reference.
+The Base body edit changed both implementation DLLs but left both reference
+assemblies byte-identical. Dialogs then had two avoidable cache misses and,
+because the qualification removes Release outputs before replay, two avoidable
+`Csc` calls. Raw graph mode kept the existing Dialogs outputs and made only
+the two Base compiler calls.
+
+The probe now uses implementation bytes only for evaluated direct references
+marked as analyzer inputs or `ReferenceOutputAssembly=false`; an unmarked
+graph edge uses the reference assembly. The full qualification passed twice
+after this change, including output-manifest comparison against no-cache
+controls for every edit. On the body edit, hits increased from **13 to 15**,
+misses fell from **10 to 8**, and the timed probe made **two `Csc` calls**.
+Two uninstrumented post-change body samples took **3.42 and 3.61 seconds**;
+their paired raw graph runs took **3.18 and 3.04 seconds**. The earlier probe
+median was 4.48 seconds across three runs, with one 8.63-second outlier.
+The narrower fingerprint removes most of the measured gap, but does not show
+a speed advantage over raw graph mode. This finding applies to the pinned
+SimpleTheme graph; it is not a general dependency-discovery proof.
+
 The graph's propagated `Build` target list includes ten `netstandard2.0`
 nodes alongside seven `net8.0` nodes. Six Avalonia libraries have both
 framework configurations; four tool/analyzer projects have a `netstandard2.0`
