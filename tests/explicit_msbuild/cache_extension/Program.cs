@@ -15,7 +15,12 @@ if (args is not [var root, var entry, var readCache, var writeCache])
     return 2;
 }
 
-root = Path.GetFullPath(root);
+var output = Path.GetFullPath(writeCache);
+var readCachePath = readCache == "-" ? null : Path.GetFullPath(readCache);
+// getcwd resolves macOS /var -> /private/var; the compiler reports the
+// physical path, so PathMap must use that spelling as well.
+Directory.SetCurrentDirectory(root);
+root = Directory.GetCurrentDirectory();
 var timer = Stopwatch.StartNew();
 var sdk = Path.Combine(Environment.GetEnvironmentVariable("DOTNET_ROOT") ?? throw new InvalidOperationException("DOTNET_ROOT is required"), "sdk", "10.0.400");
 System.Runtime.Loader.AssemblyLoadContext.Default.Resolving += (context, name) =>
@@ -27,6 +32,8 @@ var properties = new Dictionary<string, string>
     ["Configuration"] = "Release",
     ["DisableTransitiveProjectReferences"] = "true",
     ["Deterministic"] = "true",
+    // Keep the compiler inside this graph action rather than reusing a host server.
+    ["UseSharedCompilation"] = "false",
     ["PathMap"] = root + "=/_/workspace",
 };
 using var collection = new ProjectCollection();
@@ -34,8 +41,7 @@ var graph = new ProjectGraph(new ProjectGraphEntryPoint(Path.Combine(root, entry
 var graphSeconds = timer.Elapsed.TotalSeconds;
 var remoteUrl = Environment.GetEnvironmentVariable("RULES_MSBUILD_PROJECT_CACHE_URL");
 using var remote = remoteUrl is null ? null : new RemoteSnapshotStore(new Uri(remoteUrl.TrimEnd('/') + "/"));
-var output = Path.GetFullPath(writeCache);
-var plugin = new ProbePlugin(root, readCache == "-" ? null : Path.GetFullPath(readCache), output, remote);
+var plugin = new ProbePlugin(root, readCachePath, output, remote);
 var parameters = new BuildParameters(collection)
 {
     MaxNodeCount = 2,
@@ -216,7 +222,7 @@ internal sealed class ProbePlugin(string root, string? readCache, string output,
             }
             return Path.GetRelativePath(root, dependency.FullPath) + ":" + (File.Exists(path) ? Digest(path) : "MISSING");
         });
-        var text = string.Join('\n', sources.Concat(references).Order(StringComparer.Ordinal).Prepend("cache-schema=2;sdk=10.0.400;configuration=Release"));
+        var text = string.Join('\n', sources.Concat(references).Order(StringComparer.Ordinal).Prepend("cache-schema=4;sdk=10.0.400;configuration=Release;shared-compilation=false"));
         return Convert.ToHexStringLower(SHA256.HashData(Encoding.UTF8.GetBytes(text)));
     }
 

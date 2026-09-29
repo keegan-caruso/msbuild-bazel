@@ -46,41 +46,41 @@ RULES_MSBUILD_DOTNET_ROOT=/absolute/path/to/pinned/sdk \
 
 On macOS ARM64 with SDK 10.0.400, Bazel 9.2.0, and pinned `bazel-remote`
 2.6.2, one Bazel run reported 0/3 hits/misses for Base, 2/1 for the body
-edit, and 0/3 for the no-cache control. The probe process took 1.13, 0.89,
-and 1.05 seconds respectively. These are probe times inside actions, not
-end-to-end Bazel build times or a performance comparison with the existing
-rules. The Bazel qualification used a local execution strategy so the action
-could reach the loopback cache service.
+edit, and 0/3 for the no-cache control. With shared C# compilation disabled,
+the probe process took 1.86, 0.90, and 1.79 seconds respectively. These are
+probe times inside actions, not end-to-end Bazel build times or a performance
+comparison with the existing rules. The Bazel qualification used a local
+execution strategy so the action could reach the loopback cache service.
 
-Repeated standalone runs exposed intermittent DLL/PDB hash differences
-between the edited cache replay and a fresh no-cache build, including when
-the control reused the same source path. The app result remained correct.
-`qualify_remote.py` keeps the exact-output assertion so this remains visible;
-its `crossPathOutputMismatches` field separately reports differences from a
-fresh build at another path. The cause is not yet isolated. A passing single
-run is evidence for the transport and selected behavior, not a general
-output-equivalence guarantee. Rebuilding and republishing an identical
-fingerprint detected one conflicting snapshot in a later check; 49 subsequent
-controlled runs passed. The store now rejects a conflicting existing entry
-instead of overwriting it. The unusual output difference still needs an
-identified cause before default migration.
+Repeated standalone runs exposed DLL/PDB hash differences when the fixture
+root used macOS's `/var` alias. The compiler wrote the physical
+`/private/var/.../base` or `/private/var/.../edit` source path into portable
+PDBs, while the probe's `PathMap` used `/var/...`. A different output could
+therefore have the same project fingerprint. The store now rejects a
+conflicting existing entry instead of overwriting it. The probe resolves the
+physical workspace path before graph evaluation and versioned its fingerprint
+to avoid old entries. The reproduced alias case failed before this change;
+eleven alias-path runs passed afterward, and both inspected PDBs contained
+`/_/workspace/...` paths. `qualify_remote.py` keeps exact-output assertions
+and reports any fresh cross-path differences.
 
 ## Orchard check
 
 The same transport was added to the test-only Orchard profile. A disposable
 copy of Orchard Core at `04467a3438d4255627c1a478598a1585b3ff2947`
 used the CMS entry point, SDK 10.0.400, Release `net10.0`, four MSBuild
-nodes, and 403 graph nodes. The first remote seed took 97.45 seconds,
+nodes, disabled shared C# compilation, and 403 graph nodes. The final remote
+seed took 128.26 seconds,
 including publishing its snapshots. A clean remote replay hit all 202
 configured projects; all 16,448 captured `bin/Release` and `obj/Release`
 files matched the seed. The setup page and three embedded assets served from
 the replayed output.
 
-A later run against the populated cache measured 9.66 seconds for clean
-replay, 11.28 seconds for the Abstractions body edit (201 configured hits and
-one configured miss), 43.39 seconds for a deliberately forced no-cache
-control, and 10.50 seconds for replay from the derived entries after deleting
-the local seed. The edited project's DLL, PDB, and reference assembly matched
+A run against the populated cache measured 9.73 seconds for clean replay,
+11.27 seconds for the Abstractions body edit (201 configured hits and one
+configured miss), 87.07 seconds for a deliberately forced no-cache control,
+and 9.72 seconds for replay from the derived entries after deleting the local
+seed. The edited project's DLL, PDB, and reference assembly matched
 the control, and both edited builds served matching assets. As in the earlier
 local-seed qualification, 752 of 12,800 wider semantic output files differed
 from the independent control because Orchard's interceptor generator embeds

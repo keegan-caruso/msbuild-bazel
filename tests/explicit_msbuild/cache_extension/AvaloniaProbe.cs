@@ -21,13 +21,18 @@ var root = args[0];
 var entry = args[1];
 var readCache = args[2];
 var writeCache = args[3];
+var writeCachePath = Path.GetFullPath(writeCache);
+var readCachePath = readCache == "-" ? null : Path.GetFullPath(readCache);
+var reportPath = Path.GetFullPath(args[4]);
 var remoteUrl = Environment.GetEnvironmentVariable("RULES_MSBUILD_PROJECT_CACHE_URL");
 using var remote = remoteUrl is null ? null : new RemoteSnapshotStore(new Uri(remoteUrl.TrimEnd('/') + "/"));
-var remoteRoot = Path.GetFullPath(writeCache) + ".remote-inputs";
-var reportPath = args[4];
+var remoteRoot = writeCachePath + ".remote-inputs";
 var orchard = args.Length == 6 && args[5] == "orchard";
 var runtime = args.Length == 6 && args[5] == "runtime";
-root = Path.GetFullPath(root);
+// Match the physical path used by compiler documents on hosts with aliases
+// such as macOS /var -> /private/var.
+Directory.SetCurrentDirectory(root);
+root = Directory.GetCurrentDirectory();
 var timer = Stopwatch.StartNew();
 var sdk = Path.Combine(Environment.GetEnvironmentVariable("DOTNET_ROOT") ?? throw new InvalidOperationException("DOTNET_ROOT is required"), "sdk", "10.0.400");
 System.Runtime.Loader.AssemblyLoadContext.Default.Resolving += (context, name) =>
@@ -42,6 +47,8 @@ var properties = new Dictionary<string, string>
     ["NuGetAudit"] = "false",
     ["RestorePackagesPath"] = packages,
     ["DebugType"] = "portable",
+    // A compiler server shared with another action is outside this cache contract.
+    ["UseSharedCompilation"] = "false",
 };
 if (!runtime)
 {
@@ -58,14 +65,13 @@ else
     properties["TargetOS"] = "osx";
     properties["UseLocalTargetingRuntimePack"] = "false";
     properties["RestoreUseStaticGraphEvaluation"] = "false";
-    properties["UseSharedCompilation"] = "false";
     properties["NetCoreSdkRoot"] = sdk;
 }
 using var collection = new ProjectCollection();
 var graph = new ProjectGraph(new ProjectGraphEntryPoint(Path.Combine(root, entry), properties), collection);
 var graphSeconds = timer.Elapsed.TotalSeconds;
 var targetsByNode = graph.GetTargetLists(["Build"]);
-var plugin = new AvaloniaCache(root, packages, readCache == "-" ? null : Path.GetFullPath(readCache), remote, remoteRoot, orchard, runtime);
+var plugin = new AvaloniaCache(root, packages, readCachePath, remote, remoteRoot, orchard, runtime);
 var targetTimings = new TargetTimingLogger();
 var consoleLogger = new Microsoft.Build.Logging.ConsoleLogger(LoggerVerbosity.Minimal);
 var parameters = new BuildParameters(collection)
@@ -88,10 +94,10 @@ var snapshotSeconds = 0.0;
 if (success)
 {
     var phaseTimer = Stopwatch.StartNew();
-    plugin.Save(graph, Path.GetFullPath(writeCache));
+    plugin.Save(graph, writeCachePath);
     if (remote is not null)
     {
-        await plugin.PublishAsync(graph, Path.GetFullPath(writeCache));
+        await plugin.PublishAsync(graph, writeCachePath);
         if (Directory.Exists(remoteRoot))
         {
             Directory.Delete(remoteRoot, recursive: true);
@@ -133,7 +139,7 @@ var report = new
         }).OrderBy(reference => reference.project).ThenBy(reference => reference.framework).ToArray(),
     }).OrderBy(node => node.project).ToArray(),
 };
-Directory.CreateDirectory(Path.GetDirectoryName(Path.GetFullPath(reportPath))!);
+Directory.CreateDirectory(Path.GetDirectoryName(reportPath)!);
 File.WriteAllText(reportPath, JsonSerializer.Serialize(report, new JsonSerializerOptions { WriteIndented = true }));
 Console.WriteLine($"graphNodes={report.graphNodes} hits={report.hits} misses={report.misses} success={report.success}");
 return report.success ? 0 : 1;
@@ -506,7 +512,7 @@ internal sealed class AvaloniaCache(string root, string packages, string? readCa
             .Select(pair => pair.Key + "=" + pair.Value.Replace(root, "/_/workspace", StringComparison.Ordinal)
                 .Replace(packages, "/_/packages", StringComparison.Ordinal));
         var value = string.Join('\n', inputs.Concat(references).Concat(globals)
-            .Order(StringComparer.Ordinal).Prepend("sdk=10.0.400;packages=" + packageDigest));
+            .Order(StringComparer.Ordinal).Prepend("cache-schema=2;sdk=10.0.400;packages=" + packageDigest));
         return Convert.ToHexStringLower(SHA256.HashData(Encoding.UTF8.GetBytes(value)));
     }
 
