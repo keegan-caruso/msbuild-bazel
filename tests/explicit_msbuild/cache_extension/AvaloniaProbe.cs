@@ -1,5 +1,6 @@
 using System.Collections.Concurrent;
 using System.Diagnostics;
+using System.Runtime.InteropServices;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
@@ -57,14 +58,10 @@ using (var manager = new BuildManager())
     success = result.OverallResult == BuildResultCode.Success;
 }
 var buildSeconds = buildTimer.Elapsed.TotalSeconds;
-var copyLocalSeconds = 0.0;
 var snapshotSeconds = 0.0;
 if (success)
 {
     var phaseTimer = Stopwatch.StartNew();
-    RefreshCopyLocal(graph);
-    copyLocalSeconds = phaseTimer.Elapsed.TotalSeconds;
-    phaseTimer.Restart();
     plugin.Save(graph, Path.GetFullPath(writeCache));
     snapshotSeconds = phaseTimer.Elapsed.TotalSeconds;
 }
@@ -75,12 +72,15 @@ var report = new
     misses = plugin.Misses,
     graphSeconds,
     buildSeconds,
-    copyLocalSeconds,
     snapshotSeconds,
     packageDigestSeconds = AvaloniaCache.Seconds(plugin.PackageDigestTicks),
+    sharedDigestSeconds = AvaloniaCache.Seconds(plugin.SharedDigestTicks),
     fingerprintAggregateSeconds = AvaloniaCache.Seconds(plugin.FingerprintTicks),
     cacheLookupAggregateSeconds = AvaloniaCache.Seconds(plugin.CacheLookupTicks),
     cacheRestoreAggregateSeconds = AvaloniaCache.Seconds(plugin.CacheRestoreTicks),
+    reusedSnapshotFiles = plugin.ReusedSnapshotFiles,
+    linkedSnapshotFiles = plugin.LinkedSnapshotFiles,
+    reusedSnapshotBytes = plugin.ReusedSnapshotBytes,
     targetTimings = targetTimings.Results(),
     taskTimings = targetTimings.TaskResults(),
     totalSeconds = timer.Elapsed.TotalSeconds,
@@ -102,60 +102,10 @@ File.WriteAllText(reportPath, JsonSerializer.Serialize(report, new JsonSerialize
 Console.WriteLine($"graphNodes={report.graphNodes} hits={report.hits} misses={report.misses} success={report.success}");
 return report.success ? 0 : 1;
 
-static void RefreshCopyLocal(ProjectGraph graph)
-{
-    var projects = graph.ProjectNodes.Where(node => node.ProjectInstance.GetPropertyValue("TargetFramework").Length != 0).ToArray();
-    var assemblies = new Dictionary<(string Framework, string Assembly, string Extension), byte[]>();
-    foreach (var producer in projects)
-    {
-        var framework = producer.ProjectInstance.GetPropertyValue("TargetFramework");
-        var directory = Path.Combine(Path.GetDirectoryName(producer.ProjectInstance.FullPath)!, "bin", "Release", framework);
-        var name = producer.ProjectInstance.GetPropertyValue("AssemblyName");
-        foreach (var extension in new[] { ".dll", ".pdb", ".xml" })
-        {
-            var path = Path.Combine(directory, name + extension);
-            if (File.Exists(path))
-            {
-                assemblies[(framework, name, extension)] = File.ReadAllBytes(path);
-            }
-        }
-    }
-    foreach (var consumer in projects)
-    {
-        var framework = consumer.ProjectInstance.GetPropertyValue("TargetFramework");
-        var directory = Path.Combine(Path.GetDirectoryName(consumer.ProjectInstance.FullPath)!, "bin", "Release", framework);
-        if (!Directory.Exists(directory))
-        {
-            continue;
-        }
-        foreach (var ((producerFramework, assembly, extension), bytes) in assemblies)
-        {
-            if (producerFramework != framework || consumer.ProjectInstance.GetPropertyValue("AssemblyName") == assembly)
-            {
-                continue;
-            }
-            var name = assembly + extension;
-            if (File.Exists(Path.Combine(directory, name)))
-            {
-                var replacement = Path.Combine(directory, name + ".cache-replacement-" + Guid.NewGuid().ToString("N"));
-                try
-                {
-                    File.WriteAllBytes(replacement, bytes);
-                    File.Move(replacement, Path.Combine(directory, name), true);
-                }
-                finally
-                {
-                    if (File.Exists(replacement))
-                    {
-                        File.Delete(replacement);
-                    }
-                }
-            }
-        }
-    }
-}
-
-internal sealed record CacheSnapshot(string Fingerprint, Dictionary<string, string> Files);
+internal sealed record CacheSnapshot(
+    string Fingerprint,
+    Dictionary<string, string> Files,
+    Dictionary<string, string> ProjectCopies);
 
 internal sealed class TargetTimingLogger : ILogger
 {
@@ -231,14 +181,22 @@ internal sealed class TargetTimingLogger : ILogger
 internal sealed class AvaloniaCache(string root, string packages, string? readCache) : ProjectCachePluginBase
 {
     private Dictionary<string, ProjectGraphNode> nodes = new(StringComparer.Ordinal);
+    private Dictionary<string, List<string>> producerOutputs = new(StringComparer.Ordinal);
+    private Dictionary<string, HashSet<string>> dependencyOutputs = new(StringComparer.Ordinal);
     private readonly ConcurrentDictionary<string, string> fingerprints = new(StringComparer.Ordinal);
+    private readonly ConcurrentDictionary<string, CacheSnapshot> cacheHits = new(StringComparer.Ordinal);
     private string packageDigest = "";
+    private Dictionary<string, string> sharedDigests = new(StringComparer.Ordinal);
     internal int Hits;
     internal int Misses;
     internal long PackageDigestTicks;
+    internal long SharedDigestTicks;
     internal long FingerprintTicks;
     internal long CacheLookupTicks;
     internal long CacheRestoreTicks;
+    internal long ReusedSnapshotFiles;
+    internal long LinkedSnapshotFiles;
+    internal long ReusedSnapshotBytes;
 
     internal static double Seconds(long ticks) => ticks / (double)Stopwatch.Frequency;
 
@@ -246,9 +204,23 @@ internal sealed class AvaloniaCache(string root, string packages, string? readCa
     {
         nodes = context.Graph?.ProjectNodes.ToDictionary(Key, StringComparer.Ordinal)
             ?? throw new InvalidOperationException("The probe requires a static project graph");
+        producerOutputs = nodes.Values
+            .Where(node => node.ProjectInstance.GetPropertyValue("TargetFramework").Length != 0)
+            .SelectMany(node => new[] { ".dll", ".pdb", ".xml" }.Select(extension =>
+                Path.Combine(Path.GetDirectoryName(node.ProjectInstance.FullPath)!, "bin", "Release",
+                    node.ProjectInstance.GetPropertyValue("TargetFramework"),
+                    node.ProjectInstance.GetPropertyValue("AssemblyName") + extension)))
+            .GroupBy(Path.GetFileName, StringComparer.Ordinal)
+            .ToDictionary(group => group.Key!, group => group.ToList(), StringComparer.Ordinal);
+        dependencyOutputs = nodes.Values.ToDictionary(Key, DependencyOutputPaths, StringComparer.Ordinal);
         var started = Stopwatch.GetTimestamp();
         packageDigest = DigestSet(Directory.GetFiles(packages, "*.nupkg", SearchOption.AllDirectories), packages);
         PackageDigestTicks = Stopwatch.GetTimestamp() - started;
+        started = Stopwatch.GetTimestamp();
+        // The shared source tree is immutable during this graph build.
+        sharedDigests = SharedPaths().Distinct(StringComparer.Ordinal)
+            .ToDictionary(path => path, Digest, StringComparer.Ordinal);
+        SharedDigestTicks = Stopwatch.GetTimestamp() - started;
         return Task.CompletedTask;
     }
 
@@ -272,9 +244,16 @@ internal sealed class AvaloniaCache(string root, string packages, string? readCa
                 var inputsMatch = snapshot.Fingerprint == fingerprint;
                 var pathsAllowed = snapshot.Files.Keys.All(relative => AllowedOutput(node, relative));
                 var ownAssemblyPresent = snapshot.Files.ContainsKey(OwnAssembly(node));
-                var filesMatch = snapshot.Files.All(file => File.Exists(Path.Combine(source, file.Key)) &&
-                    Digest(Path.Combine(source, file.Key)) == file.Value);
-                if (inputsMatch && pathsAllowed && ownAssemblyPresent && filesMatch)
+                var projectCopiesAllowed = snapshot.ProjectCopies is not null && snapshot.ProjectCopies.All(copy =>
+                    AllowedOutput(node, copy.Key) && !snapshot.Files.ContainsKey(copy.Key) &&
+                    producerOutputs.TryGetValue(Path.GetFileName(copy.Key), out var candidates) &&
+                    candidates.Contains(Path.Combine(root, copy.Value), StringComparer.Ordinal) &&
+                    dependencyOutputs[key].Contains(Path.Combine(root, copy.Value)) &&
+                    File.Exists(Path.Combine(root, copy.Value)));
+                var filesMatch = inputsMatch && pathsAllowed && ownAssemblyPresent && projectCopiesAllowed &&
+                    snapshot.Files.All(file => File.Exists(Path.Combine(source, file.Key)) &&
+                        Digest(Path.Combine(source, file.Key)) == file.Value);
+                if (inputsMatch && pathsAllowed && ownAssemblyPresent && filesMatch && projectCopiesAllowed)
                 {
                     var restoreStarted = Stopwatch.GetTimestamp();
                     foreach (var relative in snapshot.Files.Keys)
@@ -283,13 +262,20 @@ internal sealed class AvaloniaCache(string root, string packages, string? readCa
                         Directory.CreateDirectory(Path.GetDirectoryName(target)!);
                         File.Copy(Path.Combine(source, relative), target, true);
                     }
+                    foreach (var (relative, producer) in snapshot.ProjectCopies!)
+                    {
+                        var target = Path.Combine(Path.GetDirectoryName(node.ProjectInstance.FullPath)!, relative);
+                        Directory.CreateDirectory(Path.GetDirectoryName(target)!);
+                        LinkOrCopy(Path.Combine(root, producer), target);
+                    }
                     Interlocked.Add(ref CacheRestoreTicks, Stopwatch.GetTimestamp() - restoreStarted);
+                    cacheHits[key] = snapshot;
                     Interlocked.Increment(ref Hits);
                     Console.WriteLine("cacheHit=" + Display(node));
                     Interlocked.Add(ref CacheLookupTicks, Stopwatch.GetTimestamp() - started);
                     return Task.FromResult(CacheResult.IndicateCacheHit(new ProxyTargets(new Dictionary<string, string> { ["GetTargetPath"] = "Build" })));
                 }
-                Console.WriteLine($"cacheRejected={Display(node)} inputs={inputsMatch} paths={pathsAllowed} assembly={ownAssemblyPresent} files={filesMatch}");
+                Console.WriteLine($"cacheRejected={Display(node)} inputs={inputsMatch} paths={pathsAllowed} assembly={ownAssemblyPresent} files={filesMatch} projectCopies={projectCopiesAllowed}");
             }
         }
         Interlocked.Increment(ref Misses);
@@ -311,7 +297,27 @@ internal sealed class AvaloniaCache(string root, string packages, string? readCa
             var source = Path.GetDirectoryName(node.ProjectInstance.FullPath)!;
             var target = SnapshotDirectory(destination, node);
             Directory.CreateDirectory(target);
+            if (readCache is not null && cacheHits.TryGetValue(Key(node), out var hit))
+            {
+                // A hit did not build this project; only its producer-linked copies can change.
+                foreach (var relative in hit.Files.Keys)
+                {
+                    var output = Path.Combine(target, relative);
+                    Directory.CreateDirectory(Path.GetDirectoryName(output)!);
+                    if (LinkOrCopy(Path.Combine(SnapshotDirectory(readCache, node), relative), output))
+                    {
+                        LinkedSnapshotFiles++;
+                    }
+                    ReusedSnapshotFiles++;
+                    ReusedSnapshotBytes += new FileInfo(output).Length;
+                }
+                File.WriteAllText(Path.Combine(target, "manifest.json"),
+                    JsonSerializer.Serialize(new CacheSnapshot(fingerprints[Key(node)], hit.Files, hit.ProjectCopies)));
+                continue;
+            }
             var files = new Dictionary<string, string>(StringComparer.Ordinal);
+            var projectCopies = new Dictionary<string, string>(StringComparer.Ordinal);
+            var producerDigests = new Dictionary<string, string>(StringComparer.Ordinal);
             foreach (var relative in OutputPaths(node))
             {
                 var path = Path.Combine(source, relative);
@@ -319,17 +325,78 @@ internal sealed class AvaloniaCache(string root, string packages, string? readCa
                 {
                     continue;
                 }
+                var digest = Digest(path);
+                if (relative != OwnAssembly(node) &&
+                    producerOutputs.TryGetValue(Path.GetFileName(relative), out var candidates))
+                {
+                    var producer = candidates.FirstOrDefault(candidate =>
+                        dependencyOutputs[Key(node)].Contains(candidate) &&
+                        File.Exists(candidate) &&
+                        (producerDigests.TryGetValue(candidate, out var known) ? known :
+                            producerDigests[candidate] = Digest(candidate)) == digest);
+                    if (producer is not null)
+                    {
+                        projectCopies[relative] = Path.GetRelativePath(root, producer);
+                        continue;
+                    }
+                }
                 var output = Path.Combine(target, relative);
                 Directory.CreateDirectory(Path.GetDirectoryName(output)!);
                 File.Copy(path, output, true);
-                files[relative] = Digest(path);
+                files[relative] = digest;
             }
             if (!files.ContainsKey(OwnAssembly(node)))
             {
                 throw new InvalidDataException("Missing project assembly: " + Display(node));
             }
-            File.WriteAllText(Path.Combine(target, "manifest.json"), JsonSerializer.Serialize(new CacheSnapshot(fingerprints[Key(node)], files)));
+            File.WriteAllText(Path.Combine(target, "manifest.json"), JsonSerializer.Serialize(new CacheSnapshot(fingerprints[Key(node)], files, projectCopies)));
         }
+    }
+
+    private static bool LinkOrCopy(string source, string target)
+    {
+        if (File.Exists(target))
+        {
+            File.Delete(target);
+        }
+        if (OperatingSystem.IsWindows() || CreateUnixHardLink(source, target) != 0)
+        {
+            File.Copy(source, target);
+            return false;
+        }
+        return true;
+    }
+
+    [DllImport("libc", EntryPoint = "link", SetLastError = true)]
+    private static extern int CreateUnixHardLink(string source, string target);
+
+    private static HashSet<string> DependencyOutputPaths(ProjectGraphNode node)
+    {
+        var outputs = new HashSet<string>(StringComparer.Ordinal);
+        var visited = new HashSet<ProjectGraphNode>();
+        var pending = new Stack<ProjectGraphNode>(node.ProjectReferences);
+        while (pending.TryPop(out var dependency))
+        {
+            if (!visited.Add(dependency))
+            {
+                continue;
+            }
+            var project = dependency.ProjectInstance;
+            var framework = project.GetPropertyValue("TargetFramework");
+            if (framework.Length != 0)
+            {
+                foreach (var extension in new[] { ".dll", ".pdb", ".xml" })
+                {
+                    outputs.Add(Path.Combine(Path.GetDirectoryName(project.FullPath)!, "bin", "Release", framework,
+                        project.GetPropertyValue("AssemblyName") + extension));
+                }
+            }
+            foreach (var reference in dependency.ProjectReferences)
+            {
+                pending.Push(reference);
+            }
+        }
+        return outputs;
     }
 
     private string Fingerprint(ProjectGraphNode node)
@@ -339,23 +406,16 @@ internal sealed class AvaloniaCache(string root, string packages, string? readCa
         var local = Directory.GetFiles(directory, "*", SearchOption.AllDirectories)
             .Where(path => !Path.GetRelativePath(directory, path).Split(Path.DirectorySeparatorChar)
                 .Any(part => part is "bin" or "obj"));
-        var shared = Directory.GetFiles(Path.Combine(root, "build"), "*", SearchOption.AllDirectories)
-            .Concat(Directory.GetFiles(Path.Combine(root, "src", "Shared"), "*", SearchOption.AllDirectories))
-            .Concat(Directory.GetFiles(root, "*", SearchOption.TopDirectoryOnly))
-            .Concat(Directory.GetFiles(root, "*.props", SearchOption.AllDirectories))
-            .Concat(Directory.GetFiles(root, "*.targets", SearchOption.AllDirectories))
-            .Where(path => !Path.GetRelativePath(root, path).Split(Path.DirectorySeparatorChar)
-                .Any(part => part is "bin" or "obj"));
         var items = new[] { "Compile", "EmbeddedResource", "Content", "None", "AdditionalFiles", "GlobalAnalyzerConfigFiles", "EditorConfigFiles", "AvaloniaResource", "AvaloniaXaml", "MicroComIdl" }
             .SelectMany(project.GetItems)
             .Select(item => Path.GetFullPath(item.EvaluatedInclude.Replace('\\', '/'), directory))
             .Where(path => path.StartsWith(root + Path.DirectorySeparatorChar, StringComparison.Ordinal) &&
                 !Path.GetRelativePath(root, path).Split(Path.DirectorySeparatorChar).Any(part => part is "bin" or "obj") && File.Exists(path));
         var assets = Path.Combine(directory, "obj", "project.assets.json");
-        var inputs = local.Concat(shared).Concat(items).Append(assets)
+        var inputs = local.Concat(sharedDigests.Keys).Concat(items).Append(assets)
             .Where(File.Exists).Distinct(StringComparer.Ordinal)
             .Select(path => Path.GetRelativePath(root, path) + ":" +
-                (path == assets ? NormalizedAssets(path) : Digest(path)));
+                (path == assets ? NormalizedAssets(path) : sharedDigests.TryGetValue(path, out var digest) ? digest : Digest(path)));
         var references = node.ProjectReferences.Select(reference =>
         {
             var dependency = reference.ProjectInstance;
@@ -378,6 +438,15 @@ internal sealed class AvaloniaCache(string root, string packages, string? readCa
             .Order(StringComparer.Ordinal).Prepend("sdk=10.0.400;packages=" + packageDigest));
         return Convert.ToHexStringLower(SHA256.HashData(Encoding.UTF8.GetBytes(value)));
     }
+
+    private IEnumerable<string> SharedPaths() =>
+        Directory.GetFiles(Path.Combine(root, "build"), "*", SearchOption.AllDirectories)
+            .Concat(Directory.GetFiles(Path.Combine(root, "src", "Shared"), "*", SearchOption.AllDirectories))
+            .Concat(Directory.GetFiles(root, "*", SearchOption.TopDirectoryOnly))
+            .Concat(Directory.GetFiles(root, "*.props", SearchOption.AllDirectories))
+            .Concat(Directory.GetFiles(root, "*.targets", SearchOption.AllDirectories))
+            .Where(path => !Path.GetRelativePath(root, path).Split(Path.DirectorySeparatorChar)
+                .Any(part => part is "bin" or "obj"));
 
     private IEnumerable<string> OutputPaths(ProjectGraphNode node)
     {

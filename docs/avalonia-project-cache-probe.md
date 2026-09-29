@@ -291,12 +291,59 @@ single samples establish a passing intermediate scope, not a timing trend.
 Neither larger run tests loading the macOS native library or remote-cache
 portability of these outputs.
 
+## Removing repeated cache work
+
+The Desktop probe now hashes the shared `build`, `src/Shared`, and imported
+props/targets inputs once per graph build. For a copied project assembly,
+PDB, or XML file whose bytes match a graph dependency, the snapshot records
+that producer and reconstructs the copy from its current output. Other files
+remain in the snapshot payload. A validated hit links its unchanged payload into
+the next snapshot; a regular copy is used when a hard link is unavailable.
+This also removes the post-build pass that rewrote every existing copy-local
+file. The existing `GetTargetPath` cache-hit proxy remains the result contract
+for this bounded graph; general target-result replay is not qualified here.
+
+The command is the Desktop qualification command above, with a fresh output
+directory for each stage. It restores the same pinned source and packages,
+deletes Release outputs before each cached edit, and compares the SHA-256 of
+every materialized `bin` and `obj/Release/*/ref*` file with a no-cache control.
+The final run also deletes the seed snapshot and replays from the derived
+snapshot. All edits and that independent replay passed on macOS ARM64.
+The 23-node SimpleTheme graph passed the same XAML, body, API, and independent
+replay checks with the final probe.
+
+| Probe stage | Clean replay | X11 leaf | Base body | Base API | Stored snapshot payload |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| Earlier full-tree snapshot, third prior run | 2.48 s | 3.85 s | 4.55 s | 8.33 s | 291 MB |
+| Shared inputs hashed once | 1.84 s | 3.30 s | 4.19 s | 8.03 s | 291 MB |
+| Project copies recorded as producer links | 1.88 s | 3.58 s | 4.19 s | 8.34 s | 44 MB |
+| Unchanged snapshot payload linked | 1.68 s | 3.15 s | 3.80 s | 8.12 s | 44 MB |
+| Redundant copy-local refresh removed | 1.54 s | 3.17 s | 3.80 s | 7.90 s | 44 MB |
+| Raw graph MSBuild in final run | — | 2.21 s | 3.97 s | 6.62 s | — |
+
+These are **one complete qualification run per stage**, not medians; small
+differences between rows are within likely run-to-run noise. The measured
+storage change is clearer: 694 project-copy paths no longer store duplicate
+payloads in the 41 configured-node snapshots. On the final body edit, 39
+nodes hit, 246 payload files (30 MB) were linked into the new snapshot, and
+snapshot writing took 0.09 seconds versus 0.39 seconds before reuse. The
+independent clean replay hit all 41 configured nodes in 1.47 seconds after
+the original seed was deleted. The remaining 17 outer graph nodes miss by
+design.
+
+This is a test-only, same-path probe. A hard-linked snapshot assumes its cache
+files remain immutable; the copy fallback is slower. The measurements exclude
+Bazel staging and remote transfer and do not establish remote-cache
+portability. Cold seeding took 20.09 seconds in the final run; the raw graph
+baseline used existing output files, so it is not a comparable cold build.
+API edits still miss 50 graph nodes and take longer than raw graph MSBuild.
+
 ## Decision and limits
 
 The extension can skip substantial work in an actual Avalonia graph while
 preserving the checked reference, resource, XAML, runtime, and copy-local
 behavior. It remains experimental. The fixed seed, coarse source-tree action
-input, full restore and staging for every action, path-sensitive generated
+input, materializing full `bin` trees on replay, path-sensitive generated
 outputs, and incomplete general input discovery prevent replacing the
 per-project Bazel actions. The edit cost must also be compared with raw
 MSBuild rather than only with a forced clean graph rebuild.

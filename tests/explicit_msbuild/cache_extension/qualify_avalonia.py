@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import os
 import re
@@ -38,6 +39,7 @@ def qualify(source: Path, output: Path, entry: str = ENTRY) -> dict:
     output.mkdir(parents=True)
     (output / "dotnet-home").mkdir()
     reports = {}
+    output_manifests = {}
 
     def execute(name: str, command: list[str]) -> float:
         started = time.perf_counter()
@@ -61,6 +63,21 @@ def qualify(source: Path, output: Path, entry: str = ENTRY) -> dict:
             str(output / f"{name}.json"),
         ])
         report = json.loads((output / f"{name}.json").read_text())
+        outputs = {}
+        for node in report["nodes"]:
+            if not node["framework"]:
+                continue
+            project = (source / node["project"]).parent
+            for relative in (
+                f"bin/Release/{node['framework']}",
+                f"obj/Release/{node['framework']}/ref",
+                f"obj/Release/{node['framework']}/refint",
+            ):
+                directory = project / relative
+                for path in directory.rglob("*") if directory.exists() else ():
+                    if path.is_file():
+                        outputs[str(path.relative_to(source))] = hashlib.sha256(path.read_bytes()).hexdigest()
+        output_manifests[name] = outputs
         report["wallSeconds"] = elapsed
         reports[name] = report
         print(name, report["graphNodes"], report["hits"], report["misses"], round(elapsed, 3), flush=True)
@@ -72,19 +89,12 @@ def qualify(source: Path, output: Path, entry: str = ENTRY) -> dict:
             for relative in ("bin/Release", "obj/Release"):
                 shutil.rmtree(folder / relative, ignore_errors=True)
 
-    def manifests(name: str) -> dict[str, dict]:
-        folder = output / name
-        return {
-            str(path.relative_to(folder)): json.loads(path.read_text())["Files"]
-            for path in folder.rglob("manifest.json")
-        }
-
     def compare(name: str, control: str) -> None:
-        cached = manifests(name)
-        clean_build = manifests(control)
+        cached = output_manifests[name]
+        clean_build = output_manifests[control]
         if cached != clean_build:
             differing = [key for key in cached.keys() | clean_build.keys() if cached.get(key) != clean_build.get(key)]
-            raise AssertionError((name, "owned output mismatch", differing))
+            raise AssertionError((name, "materialized output mismatch", differing))
 
     def manifest(name: str, project: str, framework: str) -> dict:
         path = output / name / f"{project}.{framework}.cache" / "manifest.json"
@@ -170,6 +180,12 @@ def qualify(source: Path, output: Path, entry: str = ENTRY) -> dict:
         print("raw-graph-" + name, graph_compiles[name], round(graph_times[name], 3), flush=True)
     reports["rawGraphBuildSeconds"] = graph_times
     reports["rawGraphCscCalls"] = graph_compiles
+    shutil.rmtree(output / "seed")
+    clean(seed["nodes"])
+    independent = run("independent-replay", "clean-replay")
+    if independent["hits"] != inner:
+        raise AssertionError(("independent replay", independent))
+    compare("independent-replay", "clean-replay")
     reports["entry"] = entry
     (output / "summary.json").write_text(json.dumps(reports, indent=2) + "\n")
     return reports
