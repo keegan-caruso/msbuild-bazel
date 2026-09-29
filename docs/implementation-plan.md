@@ -52,6 +52,10 @@ combinations; availability of an API does not qualify every upstream project.
 The [dependency input audit](dependency-input-audit.md) records artifact roles,
 consumers and input reductions that preserve MSBuild semantics.
 
+A [test-only MSBuild project-cache extension probe](msbuild-project-cache-probe.md)
+qualifies graph-level cache hits on synthetic 3-202-project chains; it is not
+yet a production rule or a real-project compatibility claim.
+
 See [performance](performance.md) for cold builds, warm edits and remote-cache
 recovery versus raw MSBuild, with measurement conditions and detailed evidence.
 

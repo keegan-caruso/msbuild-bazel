@@ -1,0 +1,17 @@
+filegroup(
+    name = "sources",
+    srcs = [
+        "CacheProbe.csproj",
+        "Program.cs",
+        "//tools:MSBuildTool.props",
+    ],
+    visibility = ["//visibility:public"],
+)
+
+exports_files(
+    [
+        "CacheProbe.csproj",
+        "graph_probe.bzl",
+    ],
+    visibility = ["//visibility:public"],
+)
