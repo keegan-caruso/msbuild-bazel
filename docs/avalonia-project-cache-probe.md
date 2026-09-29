@@ -57,7 +57,8 @@ RULES_MSBUILD_DOTNET_ROOT=/path/to/sdk NUGET_PACKAGES=/path/to/packages \
 ```
 
 The script restores the graph, applies and reverts each edit, and writes logs
-and `summary.json` outside the checkout.
+and `summary.json` outside the checkout. It measures both ordinary MSBuild and
+`-graphBuild` over the same SimpleTheme entry point.
 
 ## Observations
 
@@ -132,10 +133,12 @@ after a static-graph baseline, loaded the same 23-node graph and recorded
 **11** `Csc` tasks. Both raw runs used `-clp:PerformanceSummary`; their edit
 wall times were 8.92 and 9.25 seconds in separate one-sample sequences. The
 probe builds `netstandard2.0` configurations for Avalonia.Base, Markup,
-Controls, Markup.Xaml, and Dialogs. That is real extra work relative to the
-ordinary raw command, but compiler tasks overlap, so the count alone does not
-quantify its wall cost. The 17 owned-output manifests from a profiled
-same-path API replay also matched its no-cache control.
+Controls, Markup.Xaml, Dialogs, and Remote.Protocol. That is real extra work
+relative to the ordinary raw command, but compiler tasks overlap, so the count
+alone does not quantify its wall cost. Those earlier one-sample times are
+superseded by the matched graph-mode comparison below. The 17 owned-output
+manifests from a profiled same-path API replay also matched its no-cache
+control.
 
 The 6.2-second **fresh-workspace penalty did not reproduce**: later same-path
 probe runs took about 12.2 seconds, versus 12.2-13.1 seconds in the sandbox.
@@ -148,6 +151,54 @@ and `api.group/report.json`. The target/task totals are aggregate durations
 across parallel work, not an additive wall-time breakdown. Task event logging
 is opt-in because it can affect timing; use the ordinary probe for wall-time
 comparisons.
+
+## Matched static-graph comparison
+
+The cache probe and raw `dotnet build -graphBuild` were run on the complete
+**23-node SimpleTheme graph**, not the whole Avalonia solution. Both use the
+pinned Avalonia revision, SDK 10.0.400, `net8.0`, Release, four MSBuild nodes,
+and the same already-restored source/package directory on macOS ARM64. Each of
+three qualification runs built a seed, then applied the XAML, body, and API
+edits separately. The cache probe removed Release outputs and replayed its
+seed snapshot before building each edit. Raw graph mode kept a baseline build
+in place, built each edit incrementally, and reset the source with another
+build. The qualification compared each cached probe result with its no-cache
+control's owned-output manifest. These workflows process the same edits and
+graph scope, but cache restoration and MSBuild's in-place incremental outputs
+are different starting states.
+
+| Edit | Probe wall median (range), s | Raw graph wall median (range), s | Raw graph `Csc` calls | Probe hits/misses |
+| --- | ---: | ---: | ---: | ---: |
+| XAML | 2.75 (2.69–2.99) | 2.64 (2.52–2.70) | 1 | 16/7 |
+| Body | 4.48 (4.42–8.63) | 3.16 (3.14–3.17) | 2 | 13/10 |
+| API | 7.07 (6.95–8.04) | 5.88 (5.87–6.01) | 11 | 6/17 |
+
+The medians put the same-path cache probe about **0.10, 1.33, and 1.19
+seconds slower** than raw graph mode for these edits, respectively. The first
+body probe was a slow outlier, so the body delta is less stable than the raw
+graph timing. `BuildManager.Build` accounted for medians of 2.27, 4.01, and
+6.60 seconds inside the probe; graph construction and probe startup account
+for most of its remaining wall time. This comparison excludes the source copy,
+offline restore, and Bazel action overhead measured above. It does not show a
+cache benefit over raw graph mode on these three edits.
+
+The graph's propagated `Build` target list includes ten `netstandard2.0`
+nodes alongside seven `net8.0` nodes. Six Avalonia libraries have both
+framework configurations; four tool/analyzer projects have a `netstandard2.0`
+configuration without a `net8.0` counterpart. The API edit produced 11 `Csc`
+calls in raw graph mode across all three runs, versus six in the earlier
+ordinary MSBuild sample. A separate small fixture in
+`tests/explicit_msbuild/cache_extension/qualify_graph_scope.py` confirms that
+ordinary MSBuild builds only the needed `net8.0` library, while static graph
+also builds its other framework. Setting `SetTargetFramework` on that
+reference did not remove the extra static-graph build with SDK 10.0.400.
+MSBuild's [static-graph design](https://github.com/dotnet/msbuild/blob/main/documentation/specs/static-graph.md)
+describes this speculative framework edge behavior. Skipping every
+`netstandard2.0` node in the cache plugin would also skip the tool/analyzer
+projects that this build actually needs. Matching ordinary MSBuild's selected
+framework work requires an execution path that resolves each reference's
+configuration before scheduling it; the stock graph build does not provide a
+safe framework-pruning switch for this probe.
 
 ## Decision and limits
 

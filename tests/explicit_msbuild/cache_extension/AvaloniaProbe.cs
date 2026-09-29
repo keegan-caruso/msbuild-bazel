@@ -37,6 +37,7 @@ var properties = new Dictionary<string, string>
 using var collection = new ProjectCollection();
 var graph = new ProjectGraph(new ProjectGraphEntryPoint(Path.Combine(root, entry), properties), collection);
 var graphSeconds = timer.Elapsed.TotalSeconds;
+var targetsByNode = graph.GetTargetLists(["Build"]);
 var plugin = new AvaloniaCache(root, packages, readCache == "-" ? null : Path.GetFullPath(readCache));
 var targetTimings = new TargetTimingLogger();
 var consoleLogger = new Microsoft.Build.Logging.ConsoleLogger(LoggerVerbosity.Minimal);
@@ -88,6 +89,12 @@ var report = new
     {
         project = Path.GetRelativePath(root, node.ProjectInstance.FullPath),
         framework = node.ProjectInstance.GetPropertyValue("TargetFramework"),
+        targets = targetsByNode.TryGetValue(node, out var targets) ? targets.ToArray() : [],
+        references = node.ProjectReferences.Select(reference => new
+        {
+            project = Path.GetRelativePath(root, reference.ProjectInstance.FullPath),
+            framework = reference.ProjectInstance.GetPropertyValue("TargetFramework"),
+        }).OrderBy(reference => reference.project).ThenBy(reference => reference.framework).ToArray(),
     }).OrderBy(node => node.project).ToArray(),
 };
 Directory.CreateDirectory(Path.GetDirectoryName(Path.GetFullPath(reportPath))!);

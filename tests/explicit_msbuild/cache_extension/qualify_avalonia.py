@@ -5,6 +5,7 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import re
 import shutil
 import subprocess
 import time
@@ -138,6 +139,25 @@ def qualify(source: Path, output: Path) -> dict:
             path.write_text(original)
         execute("raw-reset-" + name, raw)
     reports["rawBuildSeconds"] = raw_times
+    clean(seed["nodes"])
+    raw_graph = [*raw, "-graphBuild", "-clp:PerformanceSummary"]
+    graph_times = {"baseline": execute("raw-graph-baseline", raw_graph)}
+    graph_compiles = {}
+    for name, relative, needle, replacement in cases:
+        path = source / relative
+        original = path.read_text()
+        path.write_text(original.replace(needle, replacement))
+        try:
+            graph_times[name] = execute("raw-graph-" + name, raw_graph)
+            log = (output / f"raw-graph-{name}.log").read_text()
+            compiler = re.search(r"\bCsc\s+(\d+) calls?", log)
+            graph_compiles[name] = int(compiler.group(1)) if compiler else None
+        finally:
+            path.write_text(original)
+        execute("raw-graph-reset-" + name, raw_graph)
+        print("raw-graph-" + name, graph_compiles[name], round(graph_times[name], 3), flush=True)
+    reports["rawGraphBuildSeconds"] = graph_times
+    reports["rawGraphCscCalls"] = graph_compiles
     (output / "summary.json").write_text(json.dumps(reports, indent=2) + "\n")
     return reports
 
