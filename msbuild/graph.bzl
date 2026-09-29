@@ -1,7 +1,9 @@
 """Opt-in MSBuild traversal graph actions with explicit project contracts."""
 
-load("//msbuild/private:paths.bzl", _quote = "quote", _runfile = "runfile")
-load("//msbuild/private:providers.bzl", "MSBuildPackageLockInfo")
+load("//msbuild/private:paths.bzl", _RUNTIME_TOOLCHAIN = "RUNTIME_TOOLCHAIN", _TOOLCHAIN = "TOOLCHAIN")
+load("//msbuild/private:project_launch.bzl", _create_launcher = "create_launcher")
+load("//msbuild/private:providers.bzl", "MSBuildPackageLockInfo", "MSBuildRuntimeInfo")
+load("//msbuild/private:test_options.bzl", _TEST_OPTIONS_ATTRS = "TEST_OPTIONS_ATTRS", _validate_test = "validate_test")
 
 MSBuildGraphInfo = provider("A declared MSBuild graph workspace and its execution SDK.", fields = {"directory": "Graph output workspace", "dotnet": "Execution host", "sdk": "Declared SDK files", "projects": "Configured project runtime outputs"})
 
@@ -99,7 +101,7 @@ msbuild_graph = rule(
     toolchains = ["//msbuild:toolchain_type"],
 )
 
-def _runtime(ctx):
+def _runtime(ctx, test = False):
     graph = ctx.attr.graph[MSBuildGraphInfo]
     assembly = ctx.attr.assembly
     if ctx.attr.project:
@@ -109,7 +111,7 @@ def _runtime(ctx):
         if len(candidates) != 1:
             fail("Select one generated project/framework with project and framework: " + ctx.attr.project)
         directory, assembly, kind = candidates[0]
-        if kind.lower() not in ["exe", "winexe"]:
+        if kind.lower() not in ["exe", "winexe"] and not (test and ctx.attr.test_protocol == "vstest"):
             fail("Run and executable tests require an executable project: " + ctx.attr.project)
     else:
         if not assembly or "/" not in assembly:
@@ -123,44 +125,40 @@ def _runtime(ctx):
         inputs = [graph.directory],
         outputs = [output],
         arguments = [graph.directory.path + "/workspace/" + directory, output.path, assembly],
-        command = 'set -eu; test -f "$1/$3"; mkdir -p "$2"; cp -pRL "$1/." "$2/"',
+        # MSBuild already composed the complete runtime. Empty package manifests
+        # tell the shared launcher that no deferred package files remain.
+        command = 'set -eu; test -f "$1/$3"; mkdir -p "$2"; cp -pRL "$1/." "$2/"; for name in .rules-msbuild-packages.json .rules-msbuild-package-files.json; do test ! -e "$2/$name"; printf "{}" > "$2/$name"; done',
         mnemonic = "MSBuildGraphRuntime",
     )
-    launcher = ctx.actions.declare_file(ctx.label.name + ".sh")
-    ctx.actions.write(
-        launcher,
-        """#!/usr/bin/env bash
-set -euo pipefail
-runfiles="${RUNFILES_DIR:-$0.runfiles}"
-dotnet="$runfiles/"%s
-assembly="$runfiles/"%s
-export DOTNET_ROOT="$(dirname "$dotnet")"
-export DOTNET_CLI_TELEMETRY_OPTOUT=1 DOTNET_NOLOGO=1
-if [[ -n "${TEST_TMPDIR:-}" ]]; then
-    export DOTNET_CLI_HOME="$TEST_TMPDIR"
-    cd "$TEST_TMPDIR"
-fi
-exec "$dotnet" exec "$assembly" "$@"
-""" % (_quote(_runfile(ctx, graph.dotnet)), _quote(_runfile(ctx, output) + "/" + assembly)),
-        is_executable = True,
-    )
-    return [DefaultInfo(executable = launcher, runfiles = ctx.runfiles(files = [output, graph.dotnet], transitive_files = graph.sdk))]
+    for target in ctx.attr.data_paths:
+        if len(target[DefaultInfo].files.to_list()) != 1 or target[DefaultInfo].files.to_list()[0].is_directory:
+            fail("data_paths requires one file per label")
+    data = depset([struct(file = target[DefaultInfo].files.to_list()[0], destination = path) for target, path in ctx.attr.data_paths.items()])
+    return _create_launcher(ctx, ctx.toolchains[_TOOLCHAIN], assembly.removesuffix(".dll"), output, depset(), depset(), data, test)
+
+def _test(ctx):
+    _validate_test(ctx)
+    return _runtime(ctx, test = True)
 
 _RUNTIME_ATTRS = {
     "graph": attr.label(providers = [MSBuildGraphInfo], mandatory = True),
     "project": attr.string(),
     "framework": attr.string(),
     "assembly": attr.string(),
+    "runtime_host": attr.label(providers = [MSBuildRuntimeInfo]),
+    "data_paths": attr.label_keyed_string_dict(allow_files = True),
 }
 
 msbuild_graph_binary = rule(
     implementation = _runtime,
     attrs = _RUNTIME_ATTRS,
     executable = True,
+    toolchains = [_TOOLCHAIN, config_common.toolchain_type(_RUNTIME_TOOLCHAIN, mandatory = False)],
 )
 
 msbuild_graph_test = rule(
-    implementation = _runtime,
-    attrs = _RUNTIME_ATTRS,
+    implementation = _test,
+    attrs = dict(_RUNTIME_ATTRS, **{key: value for key, value in _TEST_OPTIONS_ATTRS.items() if key != "test_output_type"}),
+    toolchains = [_TOOLCHAIN, config_common.toolchain_type(_RUNTIME_TOOLCHAIN, mandatory = False)],
     test = True,
 )
