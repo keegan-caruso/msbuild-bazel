@@ -1,0 +1,249 @@
+using System.Collections.Concurrent;
+using System.Text.Json;
+using Microsoft.Build.Execution;
+using Microsoft.Build.Framework;
+using Microsoft.Build.Graph;
+using Microsoft.Build.ProjectCache;
+using TaskItem = Microsoft.Build.Utilities.TaskItem;
+
+namespace RulesMSBuild.GraphBuild;
+
+internal sealed record ResultItem(string Include, Dictionary<string, string> Metadata);
+internal sealed record TargetOutput(string Name, ResultItem[] Items);
+internal sealed record ProjectSnapshot(string Fingerprint, Dictionary<string, string> Files,
+    Dictionary<string, string> ProjectCopies, TargetOutput[] Targets, Dictionary<string, int> UnixModes);
+
+internal sealed class GraphCache(GraphInputs inputs, string cache, bool read) : ProjectCachePluginBase
+{
+    private readonly Dictionary<string, ProjectGraphNode> nodes = inputs.Graph.ProjectNodes.ToDictionary(n => GraphInputs.Key(n.ProjectInstance));
+    private readonly ConcurrentDictionary<string, string> fingerprints = new(StringComparer.Ordinal);
+    private readonly ConcurrentDictionary<string, string[]> requestedTargets = new(StringComparer.Ordinal);
+    private readonly ConcurrentDictionary<string, ProjectSnapshot> hits = new(StringComparer.Ordinal);
+    internal int Hits;
+    internal int Misses;
+
+    public override Task BeginBuildAsync(CacheContext context, PluginLoggerBase logger, CancellationToken cancellationToken) => Task.CompletedTask;
+    public override Task EndBuildAsync(PluginLoggerBase logger, CancellationToken cancellationToken) => Task.CompletedTask;
+
+    public override Task<CacheResult> GetCacheResultAsync(BuildRequestData request, PluginLoggerBase logger, CancellationToken cancellationToken)
+    {
+        var key = request.ProjectFullPath + "|" + string.Join(";", request.GlobalProperties.OrderBy(p => p.Name, StringComparer.Ordinal).Select(p => p.Name + "=" + p.EvaluatedValue));
+        var node = nodes[key];
+        if (node.ProjectInstance.GetPropertyValue("TargetPath").Length == 0)
+        {
+            return Task.FromResult(CacheResult.IndicateNonCacheHit(CacheResultType.CacheNotApplicable));
+        }
+        var fingerprint = Fingerprint(node, request.TargetNames.ToArray());
+        fingerprints[key] = fingerprint;
+        requestedTargets[key] = request.TargetNames.ToArray();
+        var directory = Path.Combine(cache, fingerprint);
+        var manifest = Path.Combine(directory, "manifest.json");
+        if (read && File.Exists(manifest))
+        {
+            var snapshot = JsonSerializer.Deserialize<ProjectSnapshot>(File.ReadAllText(manifest))
+                ?? throw new InvalidDataException("Empty graph snapshot");
+            Validate(node, snapshot, fingerprint, directory, request.TargetNames.ToArray());
+            foreach (var (relative, _) in snapshot.Files)
+            {
+                Copy(Path.Combine(directory, relative), inputs.Files.Resolve(relative));
+                if (!OperatingSystem.IsWindows())
+                {
+                    File.SetUnixFileMode(inputs.Files.Resolve(relative), (UnixFileMode)snapshot.UnixModes[relative]);
+                }
+            }
+            foreach (var (relative, producer) in snapshot.ProjectCopies)
+            {
+                Copy(inputs.Files.Resolve(producer), inputs.Files.Resolve(relative));
+            }
+            hits[key] = snapshot;
+            Interlocked.Increment(ref Hits);
+            var results = snapshot.Targets.Select(target => new PluginTargetResult(target.Name,
+                target.Items.Select(RestoreItem).ToArray(), BuildResultCode.Success)).ToArray();
+            return Task.FromResult(CacheResult.IndicateCacheHit(results));
+        }
+        Interlocked.Increment(ref Misses);
+        return Task.FromResult(CacheResult.IndicateNonCacheHit(CacheResultType.CacheMiss));
+    }
+
+    internal void Save(GraphBuildResult result)
+    {
+        foreach (var (node, build) in result.ResultsByNode)
+        {
+            var key = GraphInputs.Key(node.ProjectInstance);
+            if (hits.ContainsKey(key) || !fingerprints.TryGetValue(key, out var fingerprint))
+            {
+                continue;
+            }
+            var dependencyFiles = Dependencies(node).SelectMany(OutputFiles).ToHashSet(StringComparer.Ordinal);
+            var files = new Dictionary<string, string>(StringComparer.Ordinal);
+            var modes = new Dictionary<string, int>(StringComparer.Ordinal);
+            var copies = new Dictionary<string, string>(StringComparer.Ordinal);
+            var staging = Path.Combine(cache, ".staging-" + Guid.NewGuid().ToString("N"));
+            Directory.CreateDirectory(staging);
+            foreach (var file in OutputFiles(node))
+            {
+                var relative = Path.GetRelativePath(inputs.Files.Root, file);
+                var digest = ContractFiles.Digest(file);
+                var producer = (inputs.For(node).DependencyCopies ?? []).GetValueOrDefault(relative);
+                if (producer is not null)
+                {
+                    var source = inputs.Files.Resolve(producer);
+                    if (!dependencyFiles.Contains(source) || ContractFiles.Digest(source) != digest)
+                    {
+                        throw new InvalidDataException("Declared dependency copy does not match its producer: " + relative);
+                    }
+                    copies.Add(relative, producer);
+                }
+                else
+                {
+                    files.Add(relative, digest);
+                    modes.Add(relative, OperatingSystem.IsWindows() ? 0 : (int)File.GetUnixFileMode(file));
+                    Copy(file, Path.Combine(staging, relative));
+                }
+            }
+            var targets = requestedTargets[key].Select(name =>
+            {
+                if (!build.ResultsByTarget.TryGetValue(name, out var target) || target.ResultCode != TargetResultCode.Success)
+                {
+                    throw new InvalidDataException("Missing successful target result: " + name);
+                }
+                return new TargetOutput(name, target.Items.Select(item => new ResultItem(item.ItemSpec,
+                    Metadata(item))).ToArray());
+            }).ToArray();
+            var snapshot = new ProjectSnapshot(fingerprint, files, copies, targets, modes);
+            File.WriteAllText(Path.Combine(staging, "manifest.json"), JsonSerializer.Serialize(snapshot));
+            var destination = Path.Combine(cache, fingerprint);
+            if (Directory.Exists(destination))
+            {
+                var existing = JsonSerializer.Deserialize<ProjectSnapshot>(File.ReadAllText(Path.Combine(destination, "manifest.json")))!;
+                if (JsonSerializer.Serialize(existing) != JsonSerializer.Serialize(snapshot))
+                {
+                    throw new InvalidDataException("Conflicting graph snapshot: " + fingerprint);
+                }
+                Directory.Delete(staging, recursive: true);
+            }
+            else
+            {
+                Directory.Move(staging, destination);
+            }
+        }
+    }
+
+    private string Fingerprint(ProjectGraphNode node, string[] targets)
+    {
+        var records = new List<string> { "graph-snapshot-v1", inputs.Fingerprint(node) };
+        records.AddRange(targets.Select(t => "target:" + t));
+        foreach (var reference in node.ProjectReferences.OrderBy(n => GraphInputs.Key(n.ProjectInstance), StringComparer.Ordinal))
+        {
+            var authored = node.ProjectInstance.GetItems("ProjectReference").Where(item =>
+                Path.GetFullPath(item.EvaluatedInclude.Replace('\\', '/'), Path.GetDirectoryName(node.ProjectInstance.FullPath)!) == reference.ProjectInstance.FullPath);
+            var implementation = !inputs.For(node).ReferenceBoundary || authored.Any(item => item.GetMetadataValue("OutputItemType").Length != 0 ||
+                item.GetMetadataValue("ReferenceOutputAssembly").Equals("false", StringComparison.OrdinalIgnoreCase) ||
+                item.GetMetadataValue("Targets").Length != 0);
+            if (implementation)
+            {
+                records.AddRange(OutputFiles(reference).Select(path => path + ":" + ContractFiles.Digest(path)));
+            }
+            else
+            {
+                var project = reference.ProjectInstance;
+                var path = project.GetPropertyValue("TargetRefPath");
+                if (path.Length == 0)
+                {
+                    path = Path.Combine(project.GetPropertyValue("IntermediateOutputPath"), "ref", Path.GetFileName(TargetPath(reference)));
+                }
+                path = Path.GetFullPath(path, Path.GetDirectoryName(project.FullPath)!);
+                if (!File.Exists(path))
+                {
+                    path = TargetPath(reference);
+                }
+                if (!File.Exists(path))
+                {
+                    throw new InvalidDataException("Missing dependency result: " + path);
+                }
+                records.Add(GraphInputs.Key(project) + ":" + ContractFiles.Digest(path));
+            }
+        }
+        return ContractFiles.Hash(records);
+    }
+
+    private void Validate(ProjectGraphNode node, ProjectSnapshot snapshot, string fingerprint, string directory, string[] targets)
+    {
+        var producerFiles = Dependencies(node).SelectMany(OutputFiles).ToHashSet(StringComparer.Ordinal);
+        if (snapshot.Fingerprint != fingerprint || !snapshot.Targets.Select(t => t.Name).SequenceEqual(targets) ||
+            !snapshot.Files.ContainsKey(Path.GetRelativePath(inputs.Files.Root, TargetPath(node))))
+        {
+            throw new InvalidDataException("Invalid graph snapshot contract");
+        }
+        foreach (var (relative, digest) in snapshot.Files)
+        {
+            Allowed(relative);
+            if (ContractFiles.Digest(Path.Combine(directory, relative)) != digest)
+            {
+                throw new InvalidDataException("Corrupt graph snapshot: " + relative);
+            }
+        }
+        foreach (var (relative, producer) in snapshot.ProjectCopies)
+        {
+            Allowed(relative);
+            if ((inputs.For(node).DependencyCopies ?? []).GetValueOrDefault(relative) != producer || snapshot.Files.ContainsKey(relative) || !producerFiles.Contains(inputs.Files.Resolve(producer)))
+            {
+                throw new InvalidDataException("Invalid dependency copy: " + relative);
+            }
+        }
+        void Allowed(string relative)
+        {
+            var path = inputs.Files.Resolve(relative);
+            if (!inputs.OutputDirectories(node).Any(dir => path.StartsWith(dir + Path.DirectorySeparatorChar, StringComparison.Ordinal)))
+            {
+                throw new InvalidDataException("Snapshot output escaped project ownership: " + relative);
+            }
+        }
+    }
+
+    private IEnumerable<string> OutputFiles(ProjectGraphNode node) => inputs.OutputDirectories(node)
+        .Where(Directory.Exists).SelectMany(dir => Directory.EnumerateFiles(dir, "*", SearchOption.AllDirectories))
+        .Where(path => !path.EndsWith(".AssemblyReference.cache", StringComparison.Ordinal))
+        .Select(path => inputs.Files.Resolve(Path.GetRelativePath(inputs.Files.Root, path)))
+        .Distinct().Order(StringComparer.Ordinal);
+
+    private static IEnumerable<ProjectGraphNode> Dependencies(ProjectGraphNode node)
+    {
+        var visited = new HashSet<ProjectGraphNode>();
+        var pending = new Stack<ProjectGraphNode>(node.ProjectReferences);
+        while (pending.TryPop(out var dependency))
+        {
+            if (visited.Add(dependency))
+            {
+                yield return dependency;
+                foreach (var child in dependency.ProjectReferences)
+                {
+                    pending.Push(child);
+                }
+            }
+        }
+    }
+
+    private static string TargetPath(ProjectGraphNode node) => Path.GetFullPath(node.ProjectInstance.GetPropertyValue("TargetPath"), Path.GetDirectoryName(node.ProjectInstance.FullPath)!);
+    private static Dictionary<string, string> Metadata(ITaskItem item)
+    {
+        var metadata = item.CloneCustomMetadata();
+        return metadata.Keys.Cast<string>().Order(StringComparer.Ordinal).ToDictionary(name => name, name => (string)metadata[name]!);
+    }
+
+    private static ITaskItem2 RestoreItem(ResultItem item)
+    {
+        ITaskItem2 result = new TaskItem(Microsoft.Build.Evaluation.ProjectCollection.Escape(item.Include));
+        foreach (var (name, value) in item.Metadata)
+        {
+            result.SetMetadataValueLiteral(name, value);
+        }
+        return result;
+    }
+
+    private static void Copy(string source, string destination)
+    {
+        Directory.CreateDirectory(Path.GetDirectoryName(destination)!);
+        File.Copy(source, destination, overwrite: true);
+    }
+}

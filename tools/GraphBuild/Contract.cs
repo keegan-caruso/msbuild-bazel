@@ -14,7 +14,8 @@ internal sealed record GraphContract(
 
 // Inputs include task reads that evaluation cannot discover. Outputs are owned
 // directories relative to the workspace; dependency copies are handled separately.
-internal sealed record ProjectContract(string[] Inputs, string[] OutputDirectories);
+internal sealed record ProjectContract(string[] Inputs, string[] OutputDirectories,
+    bool ReferenceBoundary = false, Dictionary<string, string>? DependencyCopies = null);
 
 internal sealed class ContractFiles(string root, string sdk)
 {

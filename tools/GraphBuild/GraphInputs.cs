@@ -76,6 +76,8 @@ internal sealed class GraphInputs : IDisposable
         records.AddRange(project.GlobalProperties.OrderBy(p => p.Key, StringComparer.Ordinal)
             .Select(p => p.Key + "=" + Files.Normalize(p.Value)));
         records.AddRange(For(node).OutputDirectories.Select(p => "output:" + p));
+        records.Add("referenceBoundary:" + For(node).ReferenceBoundary);
+        records.AddRange((For(node).DependencyCopies ?? []).OrderBy(p => p.Key, StringComparer.Ordinal).Select(p => "copy:" + p.Key + "=" + p.Value));
         records.AddRange(contract.SharedInputs.Concat(For(node).Inputs).Distinct().Order(StringComparer.Ordinal)
             .Select(path => path + ":" + ContractFiles.Digest(Files.Resolve(path))));
         return ContractFiles.Hash(records);

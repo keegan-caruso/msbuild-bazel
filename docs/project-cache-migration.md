@@ -152,3 +152,26 @@ RULES_MSBUILD_DOTNET_ROOT=/path/to/pinned/sdk python3 tests/graph_build/qualify.
 On macOS ARM64 with SDK 10.0.400, source/import invalidation, undeclared-import
 rejection, and overlapping-output rejection pass. This first checkpoint inspects
 contracts; it does not replace the production build rules.
+
+The generic runner now executes `Build` and `Publish`, stores their actual target
+items and custom metadata, and restores them through `PluginTargetResult` rather
+than a `GetTargetPath` proxy. Snapshots own declared output directories, preserve
+Unix permissions, validate digests before copying, and reject dirty output trees.
+The disposable MSBuild `*.AssemblyReference.cache` files contain timestamps and
+are excluded from snapshots and output parity comparisons.
+
+Dependency invalidation is conservative by default. A contract may explicitly
+select `ReferenceBoundary` and declare `DependencyCopies` to consume reference
+assemblies for compilation while refreshing runtime copies from current producers.
+Copy bindings are checked against dependency ownership and actual file digests;
+the runner does not infer copy semantics from matching names or bytes.
+
+`tests/graph_build/replay.py` passed with SDK 10.0.400 on macOS ARM64: clean replay
+3/0 hits/misses, body edit 2/1, API edit 1/2, publish seed 0/3, and publish replay
+3/0. The body-edited app printed the new value and its captured outputs matched a
+fresh control. The fixture explicitly disables transitive compiler references;
+its API edit stops after the direct consumer's reference assembly stays unchanged.
+A corrupted snapshot was rejected. These are synthetic build/publish checks;
+MTP/VSTest, arbitrary generated outputs, and upstream contract generation remain
+cutover gates. The measured `seconds` currently covers build and snapshot work,
+not SDK hashing and evaluation, and must not be used as end-to-end timing.
