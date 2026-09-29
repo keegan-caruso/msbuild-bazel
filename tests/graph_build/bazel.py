@@ -38,13 +38,15 @@ def main():
             'msbuild_graph_test(name="app_test",graph=":app",assembly="P2/bin/Release/net10.0/P2.dll")\n')
         if '--sync' in sys.argv:
             authored = ('load("@rules_msbuild//msbuild:sync.bzl","msbuild_sync")\n'
-                        'msbuild_sync(name="sync",projects=["P2/P2.csproj"])\n')
+                        'msbuild_sync(name="sync",mode="graph",projects=["P2/P2.csproj"])\n')
             (workspace / 'BUILD.bazel').write_text(authored)
             sync = [str(ROOT / 'scripts/bazel-launcher.sh'), f'--output_base={root / "bazel"}',
-                    'run', '//:sync', '--', '--graph']
+                    'run', '//:sync']
             result = subprocess.run(sync, cwd=workspace, env=os.environ, text=True, capture_output=True)
             if result.returncode:
                 raise AssertionError(result.stdout + result.stderr)
+            checked = subprocess.run(sync + ['--', '--check'], cwd=workspace, env=os.environ, text=True, capture_output=True)
+            assert checked.returncode == 0, checked.stdout + checked.stderr
             (workspace / 'BUILD.bazel').write_text(authored +
                 'load(":graph.generated.bzl","app_graph")\n'
                 'load("@rules_msbuild//msbuild:defs.bzl","msbuild_graph_test")\n'

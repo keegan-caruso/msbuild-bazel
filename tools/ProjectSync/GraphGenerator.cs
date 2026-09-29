@@ -17,7 +17,7 @@ internal static class GraphGenerator
     {
         if (entries.Length != 1)
         {
-            throw new InvalidDataException("Graph sync requires one project entry point");
+            throw new InvalidDataException("Graph sync requires one project entry point; select one root csproj in msbuild_sync.projects");
         }
         root = Path.TrimEndingDirectorySeparator(Path.GetFullPath(root));
         sdk = Path.TrimEndingDirectorySeparator(sdk);
@@ -259,7 +259,7 @@ internal static class GraphGenerator
             var path = Path.Combine(outputRoot, name);
             if (check && (!File.Exists(path) || File.ReadAllText(path) != expected))
             {
-                throw new InvalidDataException(name + " is stale; rerun ProjectSync --graph");
+                throw new InvalidDataException(name + " is stale; run your graph-mode sync target (bazel run //:sync), then commit the generated files");
             }
             if (!check && File.Exists(path) && !File.ReadAllText(path).StartsWith(header, StringComparison.Ordinal))
             {

@@ -8,7 +8,7 @@ internal static class Program
         {
             if (args.Length < 3)
             {
-                throw new ArgumentException("ProjectSync <workspace> <sdk-directory> <project.csproj>... [--check] [--mappings mappings.json]");
+                throw new ArgumentException("ProjectSync <workspace> <sdk-directory> <project.csproj>... [--check] [--graph] [--mappings mappings.json]");
             }
             var sdk = Path.GetFullPath(args[1]);
             if (!File.Exists(Path.Combine(sdk, "MSBuild.dll")))

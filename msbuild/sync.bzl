@@ -76,7 +76,7 @@ fi
 runfiles="${RUNFILES_DIR:-$0.runfiles}"
 export DOTNET_ROOT="$runfiles/"%s
 export DOTNET_NOLOGO=1 DOTNET_CLI_TELEMETRY_OPTOUT=1
-exec "$runfiles/"%s "$runfiles/"%s "$BUILD_WORKSPACE_DIRECTORY" "$DOTNET_ROOT/sdk/"%s %s %s --inputs "$runfiles/"%s --runfiles "$runfiles" "$@"
+exec "$runfiles/"%s "$runfiles/"%s "$BUILD_WORKSPACE_DIRECTORY" "$DOTNET_ROOT/sdk/"%s %s %s %s --inputs "$runfiles/"%s --runfiles "$runfiles" "$@"
 """ % (
         _quote(_runfile(ctx, tc.dotnet).rsplit("/", 1)[0]),
         _quote(_runfile(ctx, tc.dotnet)),
@@ -84,6 +84,7 @@ exec "$runfiles/"%s "$runfiles/"%s "$BUILD_WORKSPACE_DIRECTORY" "$DOTNET_ROOT/sd
         _quote(tc.sdk_version),
         " ".join([_quote(project) for project in ctx.attr.projects]),
         '--mappings "$runfiles/"' + _quote(_runfile(ctx, ctx.file.mappings)) if ctx.file.mappings else "",
+        "--graph" if ctx.attr.mode == "graph" else "",
         _quote(_runfile(ctx, manifest)),
     ), is_executable = True)
     return [DefaultInfo(
@@ -97,6 +98,7 @@ _sync = rule(
     toolchains = [_TOOLCHAIN],
     attrs = {
         "projects": attr.string_list(mandatory = True),
+        "mode": attr.string(default = "project", values = ["project", "graph"]),
         "bindings": attr.label_list(providers = [MSBuildBindingInfo], cfg = "exec"),
         "inputs": attr.label_keyed_string_dict(allow_files = True),
         "package_lock": attr.label(providers = [MSBuildPackageLockInfo]),
@@ -107,12 +109,13 @@ _sync = rule(
     },
 )
 
-def msbuild_sync(name, projects, mappings = None, inputs = {}, package_lock = None, bindings = [], package_locks = [], **kwargs):
+def msbuild_sync(name, projects, mode = "project", mappings = None, inputs = {}, package_lock = None, bindings = [], package_locks = [], **kwargs):
     """Declare a tool that evaluates local projects and writes projects.generated.bzl.
 
     Args:
         name: Runnable target name, conventionally sync.
         projects: Workspace-relative entry csproj paths, not labels. References are discovered at run time.
+        mode: Generated backend: project (default) or opt-in graph.
         mappings: Optional JSON file with project settings and explicit package/test bindings.
         inputs: Single-file labels mapped to workspace-relative evaluation/build paths.
         bindings: Declared managed task property bindings needed during evaluation.
@@ -125,4 +128,4 @@ def msbuild_sync(name, projects, mappings = None, inputs = {}, package_lock = No
     for project in projects:
         if project.startswith("/") or "\\" in project or any([part in ["", ".", ".."] for part in project.split("/")]) or not project.endswith(".csproj"):
             fail("Expected a workspace-relative csproj path: " + project)
-    _sync(name = name, projects = projects, mappings = mappings, inputs = inputs, package_lock = package_lock, package_locks = package_locks, bindings = bindings, **kwargs)
+    _sync(name = name, projects = projects, mode = mode, mappings = mappings, inputs = inputs, package_lock = package_lock, package_locks = package_locks, bindings = bindings, **kwargs)

@@ -294,11 +294,11 @@ or package-rich multi-targeting.
 ## Opt-in graph synchronization
 
 For a package-free `Microsoft.NET.Sdk` graph, keep the existing `msbuild_sync`
-target and run:
+target, set `mode = "graph"`, and run:
 
 ```sh
-bazel run //:sync -- --graph
-bazel run //:sync -- --graph --check
+bazel run //:sync
+bazel run //:sync -- --check
 ```
 
 Sync writes `graph.generated.json` and `graph.generated.bzl`. Add this to the
