@@ -494,3 +494,22 @@ replaces the discarded zero-miss series, not the existing conservative default.
 A prepared artifact alone is not a performance win: a verified, worker-owned,
 read-only package tree is the next candidate for avoiding repeated copying and
 verification. It is not yet implemented or qualified.
+
+### Independent sandboxed worker recovery
+
+The updated public worker path passes independent producer/consumer qualification
+with `linux_bazel_remote.py --graph-worker --spawn-strategy linux-sandbox`.
+The Bazel 8.8 producer built three projects in `runtime-rbe`; that VM was then
+stopped. A fresh four-CPU/four-GiB Apple VM, with a different repository/SDK path
+and empty local project/action caches, used Bazel 9.2 to recover three HTTP-cache
+hits and then two hits/one miss after a dependency body edit. Both executables
+returned the expected values. Both bootstraps produced runner SHA-256
+`3659081d9f9f9ec4314fa0af64cf2739c7bfcac84f755adf3d5f0c5d6fb473d0`.
+
+Both builds enabled `--worker_sandboxing`; nonworker actions used native
+`linux-sandbox` and graph requests retained the nested stable-path sandbox.
+Only declared source/SDK/tool inputs were copied to the consumer. No producer
+workspace, NuGet directory, project snapshots or Bazel output base was shared.
+The independent HTTP cache remained available. Logs are
+`/tmp/graph-roadmap-independent-worker-{producer,consumer}.log`.
+This qualifies small ARM64 worker recovery, not an upstream graph or RBE.

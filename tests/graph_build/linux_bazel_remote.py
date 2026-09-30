@@ -16,6 +16,7 @@ from qualify import DOTNET, ROOT, SDK, fixture, run
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--spawn-strategy', choices=['processwrapper-sandbox', 'linux-sandbox'], default='processwrapper-sandbox')
+    parser.add_argument('--graph-worker', action='store_true', help='Qualify sandboxed graph workers across independent consumers')
     parser.add_argument('--phase', choices=['all', 'producer', 'consumer'], default='all')
     parser.add_argument('--fixture-id', type=uuid.UUID, help='Use the same fresh UUID for independent producer and consumer runs')
     args = parser.parse_args()
@@ -38,7 +39,7 @@ def main():
         run(DOTNET, ROOT / 'tools/ProjectSync/bin/Release/net10.0/ProjectSync.dll', root, SDK / 'sdk/10.0.400', 'P2/P2.csproj', '--graph')
         (root / 'BUILD.bazel').write_text('load(":graph.generated.bzl","app_graph")\n'
             'load("@rules_msbuild//msbuild:defs.bzl","msbuild_graph_binary")\n'
-            'app_graph(name="graph",linux_stable_paths=True)\n'
+            'app_graph(name="graph",linux_stable_paths=True' + (',linux_worker=True' if args.graph_worker else '') + ')\n'
             'msbuild_graph_binary(name="app",graph=":graph",project="P2/P2.csproj")\n')
         digests = []
         steps = [('8.8.0', 0, 1), ('9.2.0', 3, 1), ('9.2.0', 2, 2)]
@@ -53,6 +54,8 @@ def main():
             command = [str(ROOT / 'scripts/bazel-launcher.sh'), '--batch', '--output_base=' + str(output),
                        'run', '//:app', '--spawn_strategy=' + args.spawn_strategy,
                        '--action_env=RULES_MSBUILD_PROJECT_CACHE_URL=' + cache]
+            if args.graph_worker:
+                command += ['--strategy=MSBuildGraph=worker', '--worker_sandboxing', '--worker_max_instances=MSBuildGraph=1']
             result = subprocess.run(command, cwd=root, env=dict(os.environ, USE_BAZEL_VERSION=version), text=True, capture_output=True)
             assert result.returncode == 0, result.stdout + result.stderr
             assert result.stdout.strip().endswith(str(value)), result.stdout
@@ -62,7 +65,7 @@ def main():
             digests.append(hashlib.sha256(payload.read_bytes()).hexdigest())
             print(version, value, json.dumps(report), flush=True)
         assert len(set(digests)) == 1, 'Runner identity must not depend on bootstrap output paths'
-        print(json.dumps({'phase': args.phase, 'runnerDigests': digests}), flush=True)
+        print(json.dumps({'phase': args.phase, 'graphWorker': args.graph_worker, 'runnerDigests': digests}), flush=True)
         print('PASS: expected cache counts and app output for ' + args.phase)
 
 
