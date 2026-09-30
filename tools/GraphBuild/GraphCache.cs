@@ -148,9 +148,15 @@ internal sealed class GraphCache(GraphInputs inputs, string cache, bool read, Re
                         payloads.Store(file, digest, Path.Combine(staging, relative));
                     }
                 }
-                var targets = requestedTargets[key].Select(name =>
+                // Nested MSBuild requests also require initial-target results.
+                // Without them, a cached dependency can execute its Build again.
+                // A skipped initial target completed without work. The plugin API
+                // represents that result as success under the same fingerprint.
+                var targets = ReplayTargets(node, requestedTargets[key]).Select(name =>
                 {
-                    if (!build.ResultsByTarget.TryGetValue(name, out var target) || target.ResultCode != TargetResultCode.Success)
+                    if (!build.ResultsByTarget.TryGetValue(name, out var target) ||
+                        (target.ResultCode != TargetResultCode.Success &&
+                         !(target.ResultCode == TargetResultCode.Skipped && node.ProjectInstance.InitialTargets.Contains(name, StringComparer.OrdinalIgnoreCase))))
                     {
                         throw new InvalidDataException("Missing successful target result: " + name);
                     }
@@ -253,9 +259,12 @@ internal sealed class GraphCache(GraphInputs inputs, string cache, bool read, Re
         return ContractFiles.Hash(records);
     }
 
+    private static IEnumerable<string> ReplayTargets(ProjectGraphNode node, IEnumerable<string> targets) =>
+        targets.Concat(node.ProjectInstance.InitialTargets).Distinct(StringComparer.OrdinalIgnoreCase);
+
     private void Validate(ProjectGraphNode node, ProjectSnapshot snapshot, string fingerprint, string directory, string[] targets)
     {
-        if (snapshot.Fingerprint != fingerprint || !snapshot.Targets.Select(t => t.Name).SequenceEqual(targets) ||
+        if (snapshot.Fingerprint != fingerprint || !snapshot.Targets.Select(t => t.Name).SequenceEqual(ReplayTargets(node, targets), StringComparer.OrdinalIgnoreCase) ||
             !snapshot.Files.ContainsKey(Path.GetRelativePath(inputs.Files.Root, TargetPath(node))) ||
             inputs.DeclaredOutputFiles(node).Any(path => !snapshot.Files.ContainsKey(Path.GetRelativePath(inputs.Files.Root, path)) && !snapshot.ProjectCopies.ContainsKey(Path.GetRelativePath(inputs.Files.Root, path))))
         {

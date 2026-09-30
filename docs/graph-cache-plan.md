@@ -193,6 +193,33 @@ SDK/package bytes. No large-runtime timing establishes the benefit yet.
 The completed disk cleanup removed older qualification containers after preserving
 compact reports; recreate only the workers needed for the selected milestone.
 
+## Partial replay checkpoint
+
+The paired Linux test-graph body edit exposed an initial-target replay bug.
+Snapshots retained explicitly requested results but omitted
+`ProjectInstance.InitialTargets`. Runtime's `ValidateTargetOSLowercase` therefore
+made nested MSBuild requests unsatisfied after cache hits. The diagnostic binlog
+showed cached linker/reference projects recompiling and a cached generator
+executing translation tasks. The failed body run is excluded from timings.
+
+Snapshots now retain initial-target results alongside requested results, without
+duplicates. Skipped initial targets count as completed under the same input and
+dependency fingerprint. Changed validation imports or conditions still invalidate
+those results. No project state is retained between MSBuild requests.
+
+On the pinned Linux ARM64 SDK, `initial_targets.py` reproduces the old failure,
+then passes cold Build, complete replay, consumer-only body replay, changed
+validation inputs and a changed condition that deliberately fails. The ordinary
+three-project replay and source-built analyzer controls pass; owned-code checks
+and all 54 ProjectSync tests pass. Reproduce with
+`RULES_MSBUILD_DOTNET_ROOT=SDK python3 tests/graph_build/initial_targets.py`
+after building GraphBuild. CI was not run.
+
+The runtime body/API scorecard remains pending. The investigation also found
+undeclared generator XLIFF source files: cold builds can synthesize them from
+English resources. Declare the pinned upstream translations and compare with
+full upstream sources before accepting runtime parity or timing claims.
+
 ## Linux implementation checkpoint
 
 The Linux ARM64 Pipelines implementation graph builds through the public Bazel
