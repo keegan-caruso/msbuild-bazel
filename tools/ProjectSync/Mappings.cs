@@ -59,6 +59,7 @@ internal sealed class ProjectBinding
     public Dictionary<string, string[]> PackageReferencePaths { get; set; } = [];
     public Dictionary<string, ReferenceBinding> References { get; set; } = [];
     public Dictionary<string, ReferenceBinding> ProjectReferences { get; set; } = [];
+    public string[] OutputFiles { get; set; } = [];
     public string OutputMode { get; set; } = "sdk";
     public string? PackageLock
     {
@@ -129,7 +130,7 @@ internal sealed class Mappings
     public Dictionary<string, TestBinding> Tests { get; set; } = [];
     public Dictionary<string, ProjectBinding> Projects { get; set; } = [];
 
-    internal static Mappings Read(string? path)
+    internal static Mappings Read(string? path, bool graph = false)
     {
         var mappings = path is null ? new Mappings() : JsonSerializer.Deserialize<Mappings>(MappingDefaults.Expand(File.ReadAllText(path)), new JsonSerializerOptions { PropertyNameCaseInsensitive = true, UnmappedMemberHandling = JsonUnmappedMemberHandling.Disallow }) ?? throw new InvalidDataException("Empty sync mappings");
         ValidatePackages(mappings.Packages);
@@ -139,6 +140,10 @@ internal sealed class Mappings
         }
         foreach (var (project, binding) in mappings.Projects.Append(new KeyValuePair<string, ProjectBinding>("projectDefaults", mappings.ProjectDefaults)).SelectMany(p => p.Value.FrameworkOverrides.Select(v => new KeyValuePair<string, ProjectBinding>(p.Key + " [" + v.Key + "]", v.Value)).Prepend(p)))
         {
+            if (!graph && binding.OutputFiles.Length != 0)
+            {
+                throw new InvalidDataException("outputFiles requires graph-mode sync");
+            }
             if (string.IsNullOrWhiteSpace(binding.Platform))
             {
                 throw new InvalidDataException("Project platform must be explicit and nonempty: " + project);

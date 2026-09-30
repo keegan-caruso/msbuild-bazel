@@ -612,7 +612,7 @@ in the contract and bind to action paths at execution. Every closure file is
 hashed. Changing a binding property or entry requires sync; implementation/data
 edits do not. Native tools and legacy reference-role mappings remain unsupported.
 Custom-task graphs retain conservative dependency invalidation. Task outputs
-must stay in the declared intermediate/output directories. These mappings
+must stay in the declared intermediate/output directories or explicit `outputFiles`. These mappings
 specify a reviewed closure; they do not discover arbitrary filesystem reads.
 
 `python3 tests/graph_build/mappings.py` passes generated task assembly execution,
@@ -695,3 +695,18 @@ Full migration parity still requires relocated replay, body/API edits and runtim
 checks against raw graph-mode MSBuild on each upstream. Existing test-only plugin
 measurements do not qualify these public generated contracts. Per-project rules
 remain the default.
+
+### Shared output directories
+
+Graph mappings accept `outputFiles`, a list of required workspace-relative file
+paths. MSBuild properties expand during sync, for example
+`"outputFiles": ["shared/$(AssemblyName).dll"]`. Different configured projects
+can own different files in one directory. Ownership overlaps, input overwrites,
+preexisting outputs and missing produced files fail. Snapshots restore these
+files and validate ownership; custom file outputs use conservative dependency
+invalidation. This declares output ownership, not permission for undeclared reads.
+
+`python3 tests/graph_build/output_files.py` passed on macOS ARM64 with SDK
+10.0.400: two projects share an output directory, replay restores both files,
+a body edit invalidates the dependent build, and conflict/missing-output controls
+fail as expected. Runtime's binplace outputs still require reviewed declarations.

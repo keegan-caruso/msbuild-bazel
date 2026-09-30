@@ -20,8 +20,13 @@ def main():
     root = args.workspace.resolve()
     contract = json.loads(args.contract.read_text())
     directories = set()
+    files = set()
     for project in contract['Projects'].values():
         for declaration in [project] + project.get('Configurations', []):
+            for relative in declaration.get('OutputFiles') or []:
+                path = root / relative
+                assert not path.is_symlink() and path.resolve().is_relative_to(root) and path.resolve() != root
+                files.add(path)
             for relative in declaration['OutputDirectories']:
                 path = root / relative
                 assert not path.is_symlink() and path.resolve().is_relative_to(root) and path.resolve() != root
@@ -30,13 +35,15 @@ def main():
     # GraphCache deliberately excludes MSBuild's local assembly-resolution cache.
     def outputs():
         return {str(path.relative_to(root)): hashlib.sha256(path.read_bytes()).hexdigest()
-                for directory in directories for path in directory.rglob('*')
-                if path.is_file() and not path.name.endswith('.AssemblyReference.cache')}
+                for path in files | {path for directory in directories for path in directory.rglob('*')}
+                if path.is_file() and (path in files or not path.name.endswith('.AssemblyReference.cache'))}
 
     def clear_outputs():
         # Remove only the declared outputs from this disposable workspace.
         for directory in directories:
             shutil.rmtree(directory, ignore_errors=True)
+        for path in files:
+            path.unlink(missing_ok=True)
 
     if args.seed:
         clear_outputs()

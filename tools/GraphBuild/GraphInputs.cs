@@ -104,7 +104,7 @@ internal sealed class GraphInputs : IDisposable
         {
             return project;
         }
-        if (contract.Version != 2 || project.OutputDirectories.Length != 0 || project.ReferenceBoundary || project.DependencyCopies?.Count > 0)
+        if (contract.Version != 2 || project.OutputDirectories.Length != 0 || project.OutputFiles?.Length > 0 || project.ReferenceBoundary || project.DependencyCopies?.Count > 0)
         {
             throw new InvalidDataException("Configured projects require version 2 and configuration-owned outputs: " + Relative(node));
         }
@@ -117,7 +117,7 @@ internal sealed class GraphInputs : IDisposable
         }
         var selected = matches[0];
         return new ProjectContract(project.Inputs.Concat(selected.Inputs).Distinct().ToArray(),
-            selected.OutputDirectories, selected.ReferenceBoundary, selected.DependencyCopies);
+            selected.OutputDirectories, selected.ReferenceBoundary, selected.DependencyCopies, OutputFiles: selected.OutputFiles);
     }
     private ProjectContract RestoreInputs(ProjectGraphNode node, ProjectContract project)
     {
@@ -155,6 +155,9 @@ internal sealed class GraphInputs : IDisposable
 
     internal string Relative(ProjectGraphNode node) => Path.GetRelativePath(Files.Root, node.ProjectInstance.FullPath);
     internal IEnumerable<string> OutputDirectories(ProjectGraphNode node) => For(node).OutputDirectories.Select(Files.Resolve);
+    internal IEnumerable<string> DeclaredOutputFiles(ProjectGraphNode node) => (For(node).OutputFiles ?? []).Select(Files.Resolve);
+    internal bool OwnsOutput(ProjectGraphNode node, string path) => DeclaredOutputFiles(node).Contains(path, StringComparer.Ordinal) ||
+        OutputDirectories(node).Any(directory => path.StartsWith(directory + Path.DirectorySeparatorChar, StringComparison.Ordinal));
     internal static string Key(ProjectInstance project) => project.FullPath + "|" + string.Join(";", project.GlobalProperties
         .OrderBy(p => p.Key, StringComparer.Ordinal).Select(p => p.Key + "=" + p.Value));
 
@@ -173,6 +176,7 @@ internal sealed class GraphInputs : IDisposable
             metadata = item.Metadata.OrderBy(m => m.Name, StringComparer.Ordinal).Select(m => new { m.Name, m.EvaluatedValue }).ToArray(),
         })));
         records.AddRange(For(node).OutputDirectories.Select(p => "output:" + p));
+        records.AddRange((For(node).OutputFiles ?? []).Order(StringComparer.Ordinal).Select(p => "output-file:" + p));
         records.Add("referenceBoundary:" + For(node).ReferenceBoundary);
         records.AddRange((For(node).DependencyCopies ?? []).OrderBy(p => p.Key, StringComparer.Ordinal).Select(p => "copy:" + p.Key + "=" + p.Value));
         records.AddRange(contract.SharedInputs.Concat(For(node).Inputs).Distinct().Order(StringComparer.Ordinal)
@@ -248,7 +252,20 @@ internal sealed class GraphInputs : IDisposable
     private void ValidateOutputOwnership()
     {
         var directories = Graph.ProjectNodes.SelectMany(node => OutputDirectories(node).Select(path => (node, path))).ToArray();
+        var files = Graph.ProjectNodes.SelectMany(node => DeclaredOutputFiles(node).Select(path => (node, path))).ToArray();
         var inputPaths = contract.SharedInputs.Concat(projects.Values.SelectMany(p => p.Inputs)).Distinct().Select(Files.Resolve).ToArray();
+        foreach (var (node, path) in files)
+        {
+            if (files.Any(other => (other.node != node && path == other.path) || path.StartsWith(other.path + "/", StringComparison.Ordinal) || other.path.StartsWith(path + "/", StringComparison.Ordinal)) ||
+                directories.Any(other => (other.node != node && path.StartsWith(other.path + "/", StringComparison.Ordinal)) || other.path == path || other.path.StartsWith(path + "/", StringComparison.Ordinal)))
+            {
+                throw new InvalidDataException("Overlapping output file ownership: " + path);
+            }
+            if (inputPaths.Any(input => input == path || input.StartsWith(path + "/", StringComparison.Ordinal)))
+            {
+                throw new InvalidDataException("Output file overlaps a declared input: " + path);
+            }
+        }
         foreach (var (node, path) in directories)
         {
             if (directories.Any(other => other.node != node && (path == other.path || path.StartsWith(other.path + "/", StringComparison.Ordinal) || other.path.StartsWith(path + "/", StringComparison.Ordinal))))

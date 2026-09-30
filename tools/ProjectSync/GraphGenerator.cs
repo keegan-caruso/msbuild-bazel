@@ -56,6 +56,7 @@ internal static class GraphGenerator
         using var collection = new ProjectCollection();
         var inputs = new System.Collections.Concurrent.ConcurrentDictionary<string, string[]>();
         var deferred = new System.Collections.Concurrent.ConcurrentDictionary<string, List<string>>();
+        var outputs = new System.Collections.Concurrent.ConcurrentDictionary<string, string[]>();
         var definitions = new System.Collections.Concurrent.ConcurrentDictionary<string, byte>();
         var packageIdentities = view?.GraphPackageIdentities(packageBuild) ?? [];
         var evaluationProperties = new Dictionary<string, string>(properties)
@@ -160,6 +161,9 @@ internal static class GraphGenerator
                     generated.Add(relative);
                 }
                 var instance = project.CreateProjectInstance();
+                outputs[Key(instance)] = instance.GetPropertyValue("TargetPath").Length == 0 ? [] : binding.OutputFiles
+                    .Select(value => Relative(Path.GetFullPath(project.ExpandString(value).Replace('\\', '/'), root)))
+                    .Distinct().Order(StringComparer.Ordinal).ToArray();
                 deferred[Key(instance)] = generated;
                 inputs[Key(instance)] = declared.Order(StringComparer.Ordinal).ToArray();
                 return instance;
@@ -168,7 +172,9 @@ internal static class GraphGenerator
         foreach (var node in graph.ProjectNodes)
         {
             var files = inputs[Key(node.ProjectInstance)].ToHashSet(StringComparer.Ordinal);
-            var produced = Dependencies(node).Append(node).Select(dependency => dependency.ProjectInstance.GetPropertyValue("TargetPath")).ToHashSet(StringComparer.Ordinal);
+            var produced = Dependencies(node).Append(node).SelectMany(dependency =>
+                outputs[Key(dependency.ProjectInstance)].Select(path => Path.Combine(root, path))
+                    .Append(dependency.ProjectInstance.GetPropertyValue("TargetPath"))).ToHashSet(StringComparer.Ordinal);
             foreach (var path in deferred[Key(node.ProjectInstance)])
             {
                 // ProjectReference outputs are scheduled by MSBuild. They are
@@ -198,6 +204,7 @@ internal static class GraphGenerator
             {
                 Properties = selectorKeys.ToDictionary(key => key, key => node.ProjectInstance.GlobalProperties.TryGetValue(key, out var value) ? value : ""),
                 Inputs = inputs[Key(node.ProjectInstance)],
+                OutputFiles = outputs[Key(node.ProjectInstance)],
                 ReferenceBoundary = CanUseReferenceBoundary(node),
                 DependencyCopies = CanUseReferenceBoundary(node) ? DependencyCopies(node) : new Dictionary<string, string>(),
                 OutputDirectories = node.ProjectInstance.GetPropertyValue("TargetPath").Length == 0 ? [] :
@@ -292,6 +299,7 @@ internal static class GraphGenerator
                 !current.ProjectInstance.GetPropertyValue("UsingMicrosoftNETSdkRazor").Equals("true", StringComparison.OrdinalIgnoreCase) &&
                 mappings.ForProject(Relative(current.ProjectInstance.FullPath)).Documents.Count == 0 &&
                 mappings.ForProject(Relative(current.ProjectInstance.FullPath)).InputItems.Count == 0 &&
+                mappings.ForProject(Relative(current.ProjectInstance.FullPath)).OutputFiles.Length == 0 &&
                 new[] { "PublishTrimmed", "PublishReadyToRun", "PublishAot", "PublishSingleFile" }.All(property =>
                     !current.ProjectInstance.GetPropertyValue(property).Equals("true", StringComparison.OrdinalIgnoreCase)) &&
                 current.ProjectInstance.GetItems("ProjectReference").All(item =>

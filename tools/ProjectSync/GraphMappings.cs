@@ -33,7 +33,7 @@ internal sealed class GraphMappings
                 }
             }
         }
-        mappings = Mappings.Read(path);
+        mappings = Mappings.Read(path, graph: true);
         var owned = new[] { "PathMap", "UseSharedCompilation", "RestoreSources", "RestoreConfigFile", "RestorePackagesPath", "RestoreFallbackFolders", "RestoreAdditionalProjectSources", "RestoreAdditionalProjectFallbackFolders" };
         if (mappings.ProjectDefaults.Properties.Keys.Any(key => owned.Contains(key, StringComparer.OrdinalIgnoreCase)))
         {
@@ -45,7 +45,7 @@ internal sealed class GraphMappings
     {
         foreach (var property in binding.EnumerateObject())
         {
-            if (property.Name is not ("documents" or "inputItems" or "evaluationItems") && !(defaults && property.Name == "properties"))
+            if (property.Name is not ("documents" or "inputItems" or "evaluationItems" or "outputFiles") && !(defaults && property.Name == "properties"))
             {
                 throw new InvalidDataException("Graph mapping requires explicit contract transfer for: " + property.Name);
             }

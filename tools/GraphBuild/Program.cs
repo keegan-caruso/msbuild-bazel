@@ -68,6 +68,13 @@ if (args[0] is "build" or "action")
             throw new InvalidDataException("Graph execution requires empty declared output directories: " + directory);
         }
     }
+    foreach (var path in inputs.Graph.ProjectNodes.SelectMany(inputs.DeclaredOutputFiles))
+    {
+        if (Path.Exists(path))
+        {
+            throw new InvalidDataException("Graph execution requires absent declared output files: " + path);
+        }
+    }
     var timer = System.Diagnostics.Stopwatch.StartNew();
     using var remote = remoteUrl is null ? null : new RemoteSnapshotStore(new Uri(remoteUrl.TrimEnd('/') + "/"), bearerToken: bearerToken);
     var materializer = new FileMaterializer(copyMode == "clone", profile);

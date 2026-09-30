@@ -89,6 +89,13 @@ internal sealed class GraphCache(GraphInputs inputs, string cache, bool read, Re
             var copies = new Dictionary<string, string>(StringComparer.Ordinal);
             var staging = Path.Combine(cache, ".staging-" + Guid.NewGuid().ToString("N"));
             Directory.CreateDirectory(staging);
+            foreach (var file in inputs.DeclaredOutputFiles(node))
+            {
+                if (!File.Exists(file))
+                {
+                    throw new InvalidDataException("Missing declared output file: " + file);
+                }
+            }
             foreach (var file in OutputFiles(node))
             {
                 var relative = Path.GetRelativePath(inputs.Files.Root, file);
@@ -195,7 +202,8 @@ internal sealed class GraphCache(GraphInputs inputs, string cache, bool read, Re
     private void Validate(ProjectGraphNode node, ProjectSnapshot snapshot, string fingerprint, string directory, string[] targets)
     {
         if (snapshot.Fingerprint != fingerprint || !snapshot.Targets.Select(t => t.Name).SequenceEqual(targets) ||
-            !snapshot.Files.ContainsKey(Path.GetRelativePath(inputs.Files.Root, TargetPath(node))))
+            !snapshot.Files.ContainsKey(Path.GetRelativePath(inputs.Files.Root, TargetPath(node))) ||
+            inputs.DeclaredOutputFiles(node).Any(path => !snapshot.Files.ContainsKey(Path.GetRelativePath(inputs.Files.Root, path)) && !snapshot.ProjectCopies.ContainsKey(Path.GetRelativePath(inputs.Files.Root, path))))
         {
             throw new InvalidDataException("Invalid graph snapshot contract");
         }
@@ -218,7 +226,7 @@ internal sealed class GraphCache(GraphInputs inputs, string cache, bool read, Re
         void Allowed(string relative)
         {
             var path = inputs.Files.Resolve(relative);
-            if (!outputDirectories[node].Any(dir => path.StartsWith(dir + Path.DirectorySeparatorChar, StringComparison.Ordinal)))
+            if (!inputs.OwnsOutput(node, path))
             {
                 throw new InvalidDataException("Snapshot output escaped project ownership: " + relative);
             }
@@ -228,13 +236,14 @@ internal sealed class GraphCache(GraphInputs inputs, string cache, bool read, Re
     private string OutputDigest(string path) => outputDigests.GetOrAdd(path, file => new Lazy<string>(() => ContractFiles.Digest(file))).Value;
 
     private bool IsDependencyOutput(ProjectGraphNode node, string path) => File.Exists(path) && DependencyNodes(node)
-        .Any(dependency => outputDirectories[dependency].Any(directory => path.StartsWith(directory + Path.DirectorySeparatorChar, StringComparison.Ordinal)));
+        .Any(dependency => inputs.OwnsOutput(dependency, path));
 
     // A project is queried only after its dependencies finish. Their disjoint
-    // output trees are immutable for the rest of this graph invocation.
+    // owned files and output trees are immutable for the rest of this graph invocation.
     private string[] OutputFiles(ProjectGraphNode node) => outputFiles.GetOrAdd(node, current => outputDirectories[current]
         .Where(Directory.Exists).SelectMany(dir => Directory.EnumerateFiles(dir, "*", SearchOption.AllDirectories))
         .Where(path => !path.EndsWith(".AssemblyReference.cache", StringComparison.Ordinal))
+        .Concat(inputs.DeclaredOutputFiles(current).Where(File.Exists))
         .Select(path => inputs.Files.Resolve(Path.GetRelativePath(inputs.Files.Root, path)))
         .Distinct().Order(StringComparer.Ordinal).ToArray());
 
