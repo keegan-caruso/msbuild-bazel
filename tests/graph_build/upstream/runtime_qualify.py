@@ -63,6 +63,13 @@ def main():
         print(json.dumps(rows[-1]), flush=True)
         return report, outputs
 
+    def shutdown(version, strategy):
+        output = args.output_base.resolve() / (version + '-' + strategy)
+        if output.exists():
+            subprocess.run([str(ROOT / 'scripts/bazel-launcher.sh'), '--output_base=' + str(output), 'shutdown'],
+                           cwd=root, env=dict(os.environ, USE_BAZEL_VERSION=version),
+                           stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, check=True)
+
     generated = root / 'graph.generated.bzl'
     original = generated.read_bytes()
     nonce = root / 'force-replay.txt'
@@ -86,9 +93,14 @@ def main():
             report, outputs = build('native-' + version, version, 'linux-sandbox')
             assert report['hits'] == 0 and report['misses'] == count, report
             assert outputs == baseline, 'Worker/native-sandbox output parity failed'
+            shutdown(version, 'worker')
+            shutdown(version, 'linux-sandbox')
     finally:
         generated.write_bytes(original)
         nonce.unlink(missing_ok=True)
+        for version in args.versions:
+            shutdown(version, 'worker')
+            shutdown(version, 'linux-sandbox')
     print('PASS: complete replay and exact files/bytes/modes on supported versions')
 
 

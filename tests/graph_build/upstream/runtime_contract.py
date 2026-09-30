@@ -24,6 +24,20 @@ def main():
         mapping['projectDefaults']['evaluationItems'] += [
             'ManagedProjectToBuild', 'MonoAotCrossCompiler', 'SetScriptCommands']
         mapping['projectDefaults']['documents'].update(json.loads((directory / 'runtime_test_documents.json').read_text()))
+    # The XLIFF package discovers these translations inside a target, so they
+    # are not evaluated file items. Bind them to the projects owning the resx.
+    generator_root = 'src/libraries/System.Runtime.InteropServices/gen/'
+    translations = [generator_root + f'Common/Resources/xlf/Strings.{language}.xlf'
+                    for language in ['cs', 'de', 'es', 'fr', 'it', 'ja', 'ko',
+                                     'pl', 'pt-BR', 'ru', 'tr', 'zh-Hans', 'zh-Hant']]
+    generator_documents = {
+        'LibraryImportGenerator': '48b5cec5bb4db0fb9e9bb2cc7e6c5390f9767e75e2c188d1cd6e24f548e8258a',
+        'DownlevelLibraryImportGenerator': 'd10e1444668f7e19a9b2f4cb5c2f01585d9548b562b44453d31a0a9619130962',
+        'Microsoft.Interop.SourceGeneration': '469e452d8e496806630e140b1769a8e3d433b4f1d0ee3cfd90892f92a709457e',
+    }
+    for name, digest in generator_documents.items():
+        mapping['projectDefaults']['documents'][generator_root + f'{name}/{name}.csproj'] = {
+            'sha256': digest, 'targets': [], 'tasks': [], 'inputs': translations}
     mapping['projects'] = {}
     output_file = 'runtime_linux_outputs.json' if args.platform == 'linux-arm64' else 'runtime_outputs.json'
     for project, frameworks in json.loads((directory / output_file).read_text()).items():

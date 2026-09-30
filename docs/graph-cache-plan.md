@@ -215,10 +215,42 @@ and all 54 ProjectSync tests pass. Reproduce with
 `RULES_MSBUILD_DOTNET_ROOT=SDK python3 tests/graph_build/initial_targets.py`
 after building GraphBuild. CI was not run.
 
-The runtime body/API scorecard remains pending. The investigation also found
-undeclared generator XLIFF source files: cold builds can synthesize them from
-English resources. Declare the pinned upstream translations and compare with
-full upstream sources before accepting runtime parity or timing claims.
+The corrected runtime body diagnostic gets 32 hits/six misses, exactly six Csc
+calls (five implementation frameworks plus the test consumer), and no translation
+tasks in cached generators. Its profiled runner time is 22.87 seconds, including
+4.75 seconds Restore, 0.71 evaluation, 2.07 input hashing, 14.51 execution and
+0.76 final verification. Worker staging adds 0.44 seconds. This single diagnostic
+is excluded from the paired scorecard.
+
+## Complete generator inputs
+
+The runtime fixture now declares the 13 checked-in Common/Resources XLIFF files
+for LibraryImportGenerator, DownlevelLibraryImportGenerator and
+Microsoft.Interop.SourceGeneration. The package discovers these files during
+translation targets; they are not ordinary evaluated source items. Each binding
+attests the exact owning csproj hash. Production rules have no runtime-specific
+logic. Missing declared files fail sync; file edits participate in fingerprints.
+Earlier cold builds could synthesize absent XLIFF files from English resources,
+so their parity against similarly staged raw inputs was insufficient.
+
+Fresh Linux ARM64 Build/replay/native controls with complete inputs pass on
+Bazel 9.2.0 and 8.8.0: 38 misses for each cold build, 38 hits for each complete
+replay, and identical 998 snapshot files/bytes/modes. A separate raw graph-mode
+Build from the complete upstream source archive matches all 412 persistent
+DLL/PDB/resource files byte-for-byte. Both builds use the declared SDK/packages,
+four MSBuild nodes and the same internal sandbox paths. Raw output files are
+writable; Bazel freezes tree outputs to 0555. No file content was normalized.
+SDK PreTrim intermediates are omitted from that compiled-product comparison
+because a normal raw no-op removes them; full graph replay/native controls still
+compare the complete snapshot scope.
+
+Reproduce with `runtime_prepare.py SOURCE_ARCHIVE PACKAGE_FEED NEW_DIRECTORY
+--entry src/libraries/System.IO.Pipelines/tests/System.IO.Pipelines.Tests.csproj`,
+then `runtime_qualify.py WORKSPACE NEW_RESULTS --output-base NEW_BASE` under the
+pinned Linux ARM64 image. Raw uses `runtime_raw.sh` for matching internal paths.
+The qualification harness stops completed Bazel servers to bound VM memory.
+These are correctness controls, not scored cold-build medians. CI was not run.
+The matched body/API/cold scorecard and independent consumer remain pending.
 
 ## Linux implementation checkpoint
 
