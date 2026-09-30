@@ -898,7 +898,8 @@ The public rule requires stable Linux paths because NuGet outputs contain paths.
 
 Preparation validates its input bytes and generated file set. Consumption checks
 SDK identity, input bytes, payload bytes and recorded executable permissions,
-rejects conflicts, then copies files into the action workspace. Bazel may
+rejects conflicts, then copies files into the action workspace. Prepared Linux
+workers use the read-only package mount described below. Bazel may
 normalize tree-artifact modes; the runner restores the recorded modes. It does
 not trust timestamps or borrow writable cache files. Final graph input
 verification still runs.
@@ -953,7 +954,8 @@ Generated facades accept `linux_worker = True` together with
 `linux_stable_paths = True`. Select it with
 `--strategy=MSBuildGraph=worker --worker_sandboxing`.
 
-The singleplex worker retains a private project-snapshot cache. Each request
+The singleplex worker retains a private project-snapshot cache and, when Restore
+preparation is enabled, verified prepared inputs. Each request
 stages a fresh workspace and starts a fresh MSBuild process under bubblewrap.
 It does not retain evaluated projects, loaded task assemblies or project outputs.
 The owned-output experiment above remains separate. SDK/runner tools are declared
@@ -975,3 +977,28 @@ The worker reuses test compilation while dependency implementation changes still
 invalidate the test result. Large-payload timing and upstream Web/test/Publish
 qualification remain open. Defaults
 are unchanged. See Bazel's [worker protocol](https://bazel.build/remote/persistent).
+
+### Read-only prepared packages
+
+With both prepared Restore and `linux_worker = True`, the broker materializes
+preparation into its owned private directory. Reuse requires complete nonempty
+Bazel request digests plus manifest content. Missing identities force a fresh
+copy; changed payload bytes with an unchanged manifest are rejected. The
+preparation and snapshot caches share the existing capacity budget.
+
+Each fresh MSBuild child still verifies SDK and all prepared payload bytes. Its
+package directory is a read-only bind of the verified files; matching inode,
+device and modes are checked before use. Those package files need neither
+another workspace copy nor a second content pass after compilation. Writable
+inputs retain their final checks. A private PID namespace and `/proc` view keep
+the broker outside the child's process view. No evaluated project or loaded
+third-party assembly survives into the next MSBuild child.
+
+`linux_prepared_restore.py --worker --package` proves live-worker reuse, property
+refresh, package assembly resolution, imported build targets and failed package
+writes. `worker_preparation.py` checks changed payloads with unchanged manifests,
+missing protocol digests, restored modes and cleanup; `--cache-mb 0` checks
+eviction. Worker Build/Publish and native parity pass on Bazel 8.8/9.2, as does
+the out-of-process task-host fixture. These are correctness results. Large
+package-tree timing and first-consumer materialization cost remain unmeasured;
+prepared Restore is still opt-in.

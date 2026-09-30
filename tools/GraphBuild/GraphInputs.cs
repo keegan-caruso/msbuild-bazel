@@ -14,6 +14,7 @@ internal sealed class GraphInputs : IDisposable
     private readonly System.Collections.Concurrent.ConcurrentDictionary<string, string[]> imports = new(StringComparer.Ordinal);
     private readonly GraphContract contract;
     private readonly Dictionary<string, string> inputDigests;
+    private readonly bool readOnlyPackages;
     private readonly Dictionary<string, string> resolvedInputs;
     private readonly string runnerDigest;
     private readonly string sharedDigest;
@@ -102,6 +103,7 @@ internal sealed class GraphInputs : IDisposable
         {
             projects.Add(node, restored ? RestoreInputs(node, Select(node)) : Select(node));
         }
+        readOnlyPackages = prepared?.ReadOnlyPackages == true;
         resolvedInputs = Files.ResolveInputs(contract.SharedInputs.Concat(projects.Values.SelectMany(p => p.Inputs)));
         foreach (var node in Graph.ProjectNodes)
         {
@@ -250,11 +252,16 @@ internal sealed class GraphInputs : IDisposable
 
     internal void VerifyUnchangedInputs()
     {
-        // Recheck all leaf paths and ancestors after execution. Only the metadata
-        // serialization and path resolution within a pass are shared.
+        // Writable inputs still need a fresh byte/path pass. Packages verified
+        // before execution may only skip it while their mount remains read-only.
         GraphDirectories.Prepare(contract, Files, create: false);
-        var currentPaths = Files.ResolveInputs(inputDigests.Keys);
-        foreach (var (relative, digest) in inputDigests)
+        if (readOnlyPackages)
+        {
+            ReadOnlyPackageTree.RequireReadOnly(Path.Combine(Files.Root, ".nuget"));
+        }
+        var mutable = inputDigests.Where(pair => !readOnlyPackages || !ReadOnlyPackageTree.Contains(pair.Key)).ToArray();
+        var currentPaths = Files.ResolveInputs(mutable.Select(pair => pair.Key));
+        foreach (var (relative, digest) in mutable)
         {
             if (ContractFiles.InputDigest(currentPaths[relative]) != digest)
             {

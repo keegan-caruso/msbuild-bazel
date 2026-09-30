@@ -491,9 +491,9 @@ inactive-item fix or persistent broker. Preparation creation is excluded from
 recovery and was not separately scored because its earlier run overlapped
 checks. Reports: `/tmp/graph-roadmap-fresh-prepared-corrected`. The correction
 replaces the discarded zero-miss series, not the existing conservative default.
-A prepared artifact alone is not a performance win: a verified, worker-owned,
-read-only package tree is the next candidate for avoiding repeated copying and
-verification. It is not yet implemented or qualified.
+A prepared artifact alone is not a performance win. The read-only package
+checkpoint below addresses repeated copying and verification; its large-workload
+timing remains open.
 
 ### Independent sandboxed worker recovery
 
@@ -556,3 +556,31 @@ case is counted. Its reports were preserved, obsolete benchmark payloads removed
 unused VM blocks trimmed, and all source edits restored before the tool case
 passed separately. Tests, native deployment and full Avalonia application scope
 remain unqualified by this slice.
+
+### Worker-owned read-only package checkpoint
+
+Prepared Linux workers now reuse private materialization by complete Bazel input
+identities. Each child verifies payload bytes, then uses the same package files
+through a read-only mount; writable inputs retain final verification. Separate
+PID/proc namespaces keep the broker outside the child's process view. The
+existing budget covers snapshots and preparation, with fresh-copy fallback when
+request digests are missing. This avoids repeated package copies and their final
+rehash without treating an unchanged manifest as proof of unchanged payloads.
+
+The real-package fixture passes assembly resolution, imported targets, body
+reuse, property refresh and package-write rejection. It directly checks that a
+live Bazel worker retains one preparation across body edits and creates another
+on property changes. Protocol corruption/missing-digest/mode/cleanup controls
+and zero-budget eviction pass. Ordinary prepared-Restore and input-integrity
+regressions pass; owned-code checks include all 54 ProjectSync tests.
+Bazel 8.8/9.2 worker Build/Publish parity and out-of-process task-host controls
+also pass under the private PID namespace. Logs are
+`/tmp/graph-roadmap-readonly-{live-reuse,worker-regressions,zero-budget}.log`.
+
+No large-workload speedup is claimed for this change. The child timer excludes
+broker materialization, so a future comparison must include full Bazel wall time
+and distinguish the first request from subsequent edits. Orchard and source-SDK
+expansion currently need additional disk; the previous full-disk Avalonia run
+was discarded and its reports preserved. Cross-request evaluation reuse, full
+upstream tests/Publish/native construction and the default-switch gates remain
+open.

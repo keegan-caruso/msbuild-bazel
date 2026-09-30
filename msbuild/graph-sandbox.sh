@@ -9,8 +9,8 @@ sdk=$(dirname "$(realpath "$1/dotnet")"); runner=$(dirname "$(realpath "$2/Graph
 contract=$(realpath "$4"); scratch=$(realpath "$5"); target=$6; mode=${7:-action}; prepared=${8:--}
 if [[ $mode != action && $mode != prepare ]]; then echo "Invalid graph sandbox mode: $mode" >&2; exit 1; fi
 base=/__rules_msbuild_graph
-args=(--die-with-parent --unshare-user --unshare-ipc --unshare-uts
-      --new-session --cap-drop ALL --clearenv --ro-bind /proc /proc --dev /dev --tmpfs /tmp)
+args=(--die-with-parent --unshare-user --unshare-pid --unshare-ipc --unshare-uts
+      --new-session --cap-drop ALL --clearenv --proc /proc --dev /dev --tmpfs /tmp)
 for path in /usr /bin /lib /lib64 /etc/ld.so.cache /etc/os-release /etc/passwd /etc/group /etc/ssl/certs /etc/resolv.conf /etc/hosts /etc/nsswitch.conf; do
     if [[ -e $path ]]; then args+=(--ro-bind "$path" "$path"); fi
 done
@@ -29,6 +29,11 @@ if [[ $prepared != - ]]; then
     prepared=$(dirname "$(dirname "$(realpath "$prepared/prepared/manifest.json")")")
     args+=(--ro-bind "$prepared" "$base/prepared"
            --setenv RULES_MSBUILD_GRAPH_PREPARED_RESTORE "$base/prepared/prepared")
+    if [[ ${10:-0} == 1 ]]; then
+        mkdir -p "$output/workspace/.nuget"
+        args+=(--ro-bind "$prepared/prepared/.nuget" "$base/output/workspace/.nuget"
+               --setenv RULES_MSBUILD_GRAPH_READONLY_PACKAGES 1)
+    fi
 fi
 for key in RULES_MSBUILD_PROJECT_CACHE_URL RULES_MSBUILD_PROJECT_CACHE_BEARER_TOKEN; do
     if value=$(printenv "$key"); then args+=(--setenv "$key" "$value"); fi

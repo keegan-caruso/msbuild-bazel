@@ -6,7 +6,7 @@ namespace RulesMSBuild.GraphBuild;
 // contract, independent of the compiler's source inputs. Paths stay explicit.
 internal sealed record PreparedFile(string Digest, int Mode);
 internal sealed record RestoreManifest(int Version, string Key, string SdkDigest, Dictionary<string, PreparedFile> Files);
-internal sealed record RestoredInputs(GraphContract Contract, string SdkDigest, Dictionary<string, string> Digests);
+internal sealed record RestoredInputs(GraphContract Contract, string SdkDigest, Dictionary<string, string> Digests, bool ReadOnlyPackages = false);
 
 internal static class PreparedRestore
 {
@@ -79,7 +79,7 @@ internal static class PreparedRestore
         }
     }
 
-    internal static RestoredInputs Apply(GraphContract contract, string root, string sdk, string source)
+    internal static RestoredInputs Apply(GraphContract contract, string root, string sdk, string source, bool readOnlyPackages = false)
     {
         var files = new ContractFiles(root, sdk);
         Validate(contract, files);
@@ -93,6 +93,11 @@ internal static class PreparedRestore
         if (contract.Restore!.Outputs.Any(path => !manifest.Files.ContainsKey(path)))
         {
             throw new InvalidDataException("Prepared Restore is missing a declared output");
+        }
+        if (readOnlyPackages)
+        {
+            ReadOnlyPackageTree.RequireReadOnly(Path.Combine(source, ".nuget"));
+            ReadOnlyPackageTree.RequireReadOnly(Path.Combine(root, ".nuget"));
         }
         var prepared = new ContractFiles(source, sdk);
         var allowed = contract.Restore.Outputs.Append(".package-source/NuGet.Config").ToHashSet(StringComparer.Ordinal);
@@ -108,7 +113,11 @@ internal static class PreparedRestore
                 throw new InvalidDataException("Invalid prepared Restore file: " + relative);
             }
             var destination = destinations[relative];
-            if (File.Exists(destination) && ContractFiles.InputDigest(destination) != InputDigest(record))
+            if (readOnlyPackages && ReadOnlyPackageTree.Contains(relative))
+            {
+                ReadOnlyPackageTree.RequireSameFile(sources[relative], destination, record.Mode);
+            }
+            else if (File.Exists(destination) && ContractFiles.InputDigest(destination) != InputDigest(record))
             {
                 throw new InvalidDataException("Prepared Restore conflicts with existing workspace file: " + relative);
             }
@@ -130,7 +139,7 @@ internal static class PreparedRestore
         return new(contract with
         {
             SharedInputs = contract.SharedInputs.Concat(manifest.Files.Keys.Where(path => path.StartsWith(".nuget/", StringComparison.Ordinal))).Distinct().ToArray()
-        }, sdkDigest, digests);
+        }, sdkDigest, digests, readOnlyPackages);
     }
 
     // Bazel normalizes tree-artifact permissions. Validate payload bytes, then

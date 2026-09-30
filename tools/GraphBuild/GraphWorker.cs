@@ -7,7 +7,7 @@ namespace RulesMSBuild.GraphBuild;
 // request gets a fresh workspace and a fresh process in the stable-path sandbox.
 internal static class GraphWorker
 {
-    private sealed record Input(string Path);
+    private sealed record Input(string Path, string Digest = "");
     private sealed record WorkRequest(string[] Arguments, Input[] Inputs, int RequestId = 0, bool Cancel = false);
     private sealed record Reply(int ExitCode, string Output, int RequestId = 0);
     private sealed record Source(string Path, string Destination);
@@ -30,6 +30,8 @@ internal static class GraphWorker
         using var directory = new WorkerDirectory();
         var cache = Path.Combine(directory.Root, "cache");
         Directory.CreateDirectory(cache);
+        var preparationCache = Path.Combine(directory.Root, "preparations");
+        Directory.CreateDirectory(preparationCache);
         var persistent = args[2] == "--persistent_worker";
         if (!persistent)
         {
@@ -59,7 +61,7 @@ internal static class GraphWorker
                     throw new InvalidDataException("Expected one graph request; cancellation is unsupported");
                 }
                 var declared = work.Inputs.Select(input => Safe(input.Path)).ToHashSet(StringComparer.Ordinal);
-                reply = (await Build(work.Arguments[0], declared)) with
+                reply = (await Build(work.Arguments[0], declared, work.Inputs.ToDictionary(input => input.Path, input => input.Digest, StringComparer.Ordinal))) with
                 {
                     RequestId = id
                 };
@@ -73,7 +75,7 @@ internal static class GraphWorker
         }
         return 0;
 
-        async Task<Reply> Build(string requestPath, HashSet<string>? declared)
+        async Task<Reply> Build(string requestPath, HashSet<string>? declared, Dictionary<string, string>? inputDigests = null)
         {
             string InputPath(string path)
             {
@@ -102,6 +104,15 @@ internal static class GraphWorker
             var scratch = Directory.CreateDirectory(Path.Combine(directory.Root, "request-" + Guid.NewGuid().ToString("N"))).FullName;
             try
             {
+                if (request.Prepared is not null)
+                {
+                    var identities = inputDigests?.Where(pair => pair.Key == request.Prepared || pair.Key.StartsWith(request.Prepared + "/", StringComparison.Ordinal))
+                        .OrderBy(pair => pair.Key, StringComparer.Ordinal).ToArray();
+                    var identity = identities is { Length: > 0 } && identities.All(pair => pair.Value.Length != 0)
+                        ? ContractFiles.Hash(identities.Select(pair => pair.Key[request.Prepared.Length..] + "=" + pair.Value))
+                        : null;
+                    prepared = WorkerPreparation.Materialize(prepared, preparationCache, identity);
+                }
                 foreach (var source in request.Sources)
                 {
                     var path = InputPath(source.Path);
@@ -121,7 +132,7 @@ internal static class GraphWorker
                 }
                 var sdk = Path.GetDirectoryName(Environment.ProcessPath!)!;
                 var start = new ProcessStartInfo("/bin/bash") { RedirectStandardOutput = true, RedirectStandardError = true };
-                foreach (var argument in new[] { sandbox, sdk, AppContext.BaseDirectory, output, contract, scratch, request.Target, "action", prepared, cache })
+                foreach (var argument in new[] { sandbox, sdk, AppContext.BaseDirectory, output, contract, scratch, request.Target, "action", prepared, cache, prepared == "-" ? "0" : "1" })
                 {
                     start.ArgumentList.Add(argument);
                 }
@@ -148,13 +159,15 @@ internal static class GraphWorker
                 // A conservative logical-byte budget counts aliases as well as
                 // blobs. Trim only between requests, with no active MSBuild.
                 long bytes = 0;
-                foreach (var path in Directory.EnumerateFiles(cache, "*", SearchOption.AllDirectories))
+                foreach (var path in Directory.EnumerateFiles(cache, "*", SearchOption.AllDirectories).Concat(Directory.EnumerateFiles(preparationCache, "*", SearchOption.AllDirectories)))
                 {
                     bytes += new FileInfo(path).Length;
                     if (bytes > cacheBudget)
                     {
                         Directory.Delete(cache, recursive: true);
                         Directory.CreateDirectory(cache);
+                        Directory.Delete(preparationCache, recursive: true);
+                        Directory.CreateDirectory(preparationCache);
                         break;
                     }
                 }

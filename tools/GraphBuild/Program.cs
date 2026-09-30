@@ -28,6 +28,12 @@ if (localStatePath is not null && args[0] is not ("build" or "action"))
 }
 var preparedPath = Environment.GetEnvironmentVariable("RULES_MSBUILD_GRAPH_PREPARED_RESTORE");
 Environment.SetEnvironmentVariable("RULES_MSBUILD_GRAPH_PREPARED_RESTORE", null);
+var readOnlyPackages = Environment.GetEnvironmentVariable("RULES_MSBUILD_GRAPH_READONLY_PACKAGES") == "1";
+Environment.SetEnvironmentVariable("RULES_MSBUILD_GRAPH_READONLY_PACKAGES", null);
+if (readOnlyPackages && (preparedPath is null || args[0] != "action"))
+{
+    throw new InvalidDataException("Read-only packages require a prepared graph action");
+}
 var profile = Environment.GetEnvironmentVariable("RULES_MSBUILD_GRAPH_PROFILE") == "1";
 Environment.SetEnvironmentVariable("RULES_MSBUILD_GRAPH_PROFILE", null);
 var copyMode = Environment.GetEnvironmentVariable("RULES_MSBUILD_GRAPH_COPY_MODE") ?? "copy";
@@ -85,7 +91,7 @@ if (args[0] == "action")
     }
     else
     {
-        prepared = PreparedRestore.Apply(contract, root, sdkRoot, preparedPath);
+        prepared = PreparedRestore.Apply(contract, root, sdkRoot, preparedPath, readOnlyPackages);
         contract = prepared.Contract;
     }
 }
@@ -151,6 +157,7 @@ if (args[0] is "build" or "action")
         remote = remote?.Report,
         restoreSeconds = restoreTimer.Elapsed.TotalSeconds,
         preparedRestore = prepared is not null,
+        readOnlyPreparedPackages = prepared?.ReadOnlyPackages == true,
         retainedState = localState?.Reusable ?? false,
         executionSeconds,
         verificationSeconds = verificationTimer.Elapsed.TotalSeconds,
