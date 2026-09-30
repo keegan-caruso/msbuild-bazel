@@ -1,0 +1,178 @@
+{
+  "src/libraries/System.Memory/ref/System.Memory.csproj": {
+    "net10.0": [
+      "artifacts/bin/microsoft.netcore.app.ref/ref/net10.0/System.Memory.dll",
+      "artifacts/bin/ref/net10.0/System.Memory.dll"
+    ]
+  },
+  "src/libraries/System.Private.Uri/src/System.Private.Uri.csproj": {
+    "net10.0": [
+      "artifacts/bin/microsoft.netcore.app.runtime.linux-arm64/Release/runtimes/linux-arm64/lib/net10.0/System.Private.Uri.dll",
+      "artifacts/bin/microsoft.netcore.app.runtime.linux-arm64/Release/runtimes/linux-arm64/lib/net10.0/System.Private.Uri.pdb",
+      "artifacts/bin/microsoft.netcore.app.runtime.linux-arm64/Release/runtimes/linux-arm64/lib/net10.0/System.Private.Uri.xml",
+      "artifacts/bin/runtime/net10.0-linux-Release-arm64/System.Private.Uri.dll",
+      "artifacts/bin/runtime/net10.0-linux-Release-arm64/System.Private.Uri.pdb",
+      "artifacts/bin/runtime/net10.0-linux-Release-arm64/System.Private.Uri.xml",
+      "artifacts/bin/testhost/net10.0-linux-Release-arm64/shared/Microsoft.NETCore.App/10.0.0/System.Private.Uri.dll",
+      "artifacts/bin/testhost/net10.0-linux-Release-arm64/shared/Microsoft.NETCore.App/10.0.0/System.Private.Uri.pdb",
+      "artifacts/bin/testhost/net10.0-linux-Release-arm64/shared/Microsoft.NETCore.App/10.0.0/System.Private.Uri.xml"
+    ]
+  },
+  "src/libraries/System.Runtime.InteropServices/gen/LibraryImportGenerator/LibraryImportGenerator.csproj": {
+    "netstandard2.0": [
+      "artifacts/bin/microsoft.netcore.app.ref/analyzers/dotnet/cs/Microsoft.Interop.LibraryImportGenerator.dll",
+      "artifacts/bin/microsoft.netcore.app.ref/analyzers/dotnet/cs/Microsoft.Interop.LibraryImportGenerator.pdb",
+      "artifacts/bin/microsoft.netcore.app.ref/analyzers/dotnet/cs/cs/Microsoft.Interop.LibraryImportGenerator.resources.dll",
+      "artifacts/bin/microsoft.netcore.app.ref/analyzers/dotnet/cs/de/Microsoft.Interop.LibraryImportGenerator.resources.dll",
+      "artifacts/bin/microsoft.netcore.app.ref/analyzers/dotnet/cs/es/Microsoft.Interop.LibraryImportGenerator.resources.dll",
+      "artifacts/bin/microsoft.netcore.app.ref/analyzers/dotnet/cs/fr/Microsoft.Interop.LibraryImportGenerator.resources.dll",
+      "artifacts/bin/microsoft.netcore.app.ref/analyzers/dotnet/cs/it/Microsoft.Interop.LibraryImportGenerator.resources.dll",
+      "artifacts/bin/microsoft.netcore.app.ref/analyzers/dotnet/cs/ja/Microsoft.Interop.LibraryImportGenerator.resources.dll",
+      "artifacts/bin/microsoft.netcore.app.ref/analyzers/dotnet/cs/ko/Microsoft.Interop.LibraryImportGenerator.resources.dll",
+      "artifacts/bin/microsoft.netcore.app.ref/analyzers/dotnet/cs/pl/Microsoft.Interop.LibraryImportGenerator.resources.dll",
+      "artifacts/bin/microsoft.netcore.app.ref/analyzers/dotnet/cs/pt-BR/Microsoft.Interop.LibraryImportGenerator.resources.dll",
+      "artifacts/bin/microsoft.netcore.app.ref/analyzers/dotnet/cs/ru/Microsoft.Interop.LibraryImportGenerator.resources.dll",
+      "artifacts/bin/microsoft.netcore.app.ref/analyzers/dotnet/cs/tr/Microsoft.Interop.LibraryImportGenerator.resources.dll",
+      "artifacts/bin/microsoft.netcore.app.ref/analyzers/dotnet/cs/zh-Hans/Microsoft.Interop.LibraryImportGenerator.resources.dll",
+      "artifacts/bin/microsoft.netcore.app.ref/analyzers/dotnet/cs/zh-Hant/Microsoft.Interop.LibraryImportGenerator.resources.dll"
+    ]
+  },
+  "src/libraries/System.Threading.ThreadPool/src/System.Threading.ThreadPool.csproj": {
+    "net10.0": [
+      "artifacts/bin/microsoft.netcore.app.runtime.linux-arm64/Release/runtimes/linux-arm64/lib/net10.0/System.Threading.ThreadPool.dll",
+      "artifacts/bin/microsoft.netcore.app.runtime.linux-arm64/Release/runtimes/linux-arm64/lib/net10.0/System.Threading.ThreadPool.pdb",
+      "artifacts/bin/microsoft.netcore.app.runtime.linux-arm64/Release/runtimes/linux-arm64/lib/net10.0/System.Threading.ThreadPool.xml",
+      "artifacts/bin/runtime/net10.0-linux-Release-arm64/System.Threading.ThreadPool.dll",
+      "artifacts/bin/runtime/net10.0-linux-Release-arm64/System.Threading.ThreadPool.pdb",
+      "artifacts/bin/runtime/net10.0-linux-Release-arm64/System.Threading.ThreadPool.xml",
+      "artifacts/bin/testhost/net10.0-linux-Release-arm64/shared/Microsoft.NETCore.App/10.0.0/System.Threading.ThreadPool.dll",
+      "artifacts/bin/testhost/net10.0-linux-Release-arm64/shared/Microsoft.NETCore.App/10.0.0/System.Threading.ThreadPool.pdb",
+      "artifacts/bin/testhost/net10.0-linux-Release-arm64/shared/Microsoft.NETCore.App/10.0.0/System.Threading.ThreadPool.xml"
+    ]
+  },
+  "src/libraries/System.Runtime/src/System.Runtime.csproj": {
+    "net10.0": [
+      "artifacts/bin/microsoft.netcore.app.runtime.linux-arm64/Release/runtimes/linux-arm64/lib/net10.0/System.Runtime.dll",
+      "artifacts/bin/microsoft.netcore.app.runtime.linux-arm64/Release/runtimes/linux-arm64/lib/net10.0/System.Runtime.pdb",
+      "artifacts/bin/microsoft.netcore.app.runtime.linux-arm64/Release/runtimes/linux-arm64/lib/net10.0/System.Runtime.xml",
+      "artifacts/bin/runtime/net10.0-linux-Release-arm64/System.Runtime.dll",
+      "artifacts/bin/runtime/net10.0-linux-Release-arm64/System.Runtime.pdb",
+      "artifacts/bin/runtime/net10.0-linux-Release-arm64/System.Runtime.xml",
+      "artifacts/bin/testhost/net10.0-linux-Release-arm64/shared/Microsoft.NETCore.App/10.0.0/System.Runtime.dll",
+      "artifacts/bin/testhost/net10.0-linux-Release-arm64/shared/Microsoft.NETCore.App/10.0.0/System.Runtime.pdb",
+      "artifacts/bin/testhost/net10.0-linux-Release-arm64/shared/Microsoft.NETCore.App/10.0.0/System.Runtime.xml"
+    ]
+  },
+  "src/libraries/System.IO.Pipelines/ref/System.IO.Pipelines.csproj": {
+    "net10.0": [
+      "artifacts/bin/microsoft.netcore.app.ref/ref/net10.0/System.IO.Pipelines.dll",
+      "artifacts/bin/ref/net10.0/System.IO.Pipelines.dll"
+    ]
+  },
+  "src/libraries/System.IO.Pipelines/src/System.IO.Pipelines.csproj": {
+    "net10.0": [
+      "artifacts/bin/microsoft.netcore.app.runtime.linux-arm64/Release/runtimes/linux-arm64/lib/net10.0/System.IO.Pipelines.dll",
+      "artifacts/bin/microsoft.netcore.app.runtime.linux-arm64/Release/runtimes/linux-arm64/lib/net10.0/System.IO.Pipelines.pdb",
+      "artifacts/bin/microsoft.netcore.app.runtime.linux-arm64/Release/runtimes/linux-arm64/lib/net10.0/System.IO.Pipelines.xml",
+      "artifacts/bin/runtime/net10.0-linux-Release-arm64/System.IO.Pipelines.dll",
+      "artifacts/bin/runtime/net10.0-linux-Release-arm64/System.IO.Pipelines.pdb",
+      "artifacts/bin/runtime/net10.0-linux-Release-arm64/System.IO.Pipelines.xml",
+      "artifacts/bin/testhost/net10.0-linux-Release-arm64/shared/Microsoft.NETCore.App/10.0.0/System.IO.Pipelines.dll",
+      "artifacts/bin/testhost/net10.0-linux-Release-arm64/shared/Microsoft.NETCore.App/10.0.0/System.IO.Pipelines.pdb",
+      "artifacts/bin/testhost/net10.0-linux-Release-arm64/shared/Microsoft.NETCore.App/10.0.0/System.IO.Pipelines.xml"
+    ]
+  },
+  "src/libraries/System.Threading.ThreadPool/ref/System.Threading.ThreadPool.csproj": {
+    "net10.0": [
+      "artifacts/bin/microsoft.netcore.app.ref/ref/net10.0/System.Threading.ThreadPool.dll",
+      "artifacts/bin/ref/net10.0/System.Threading.ThreadPool.dll"
+    ]
+  },
+  "src/libraries/System.Runtime.InteropServices/gen/Microsoft.Interop.SourceGeneration/Microsoft.Interop.SourceGeneration.csproj": {
+    "netstandard2.0": [
+      "artifacts/bin/microsoft.netcore.app.ref/analyzers/dotnet/cs/Microsoft.Interop.SourceGeneration.dll",
+      "artifacts/bin/microsoft.netcore.app.ref/analyzers/dotnet/cs/Microsoft.Interop.SourceGeneration.pdb",
+      "artifacts/bin/microsoft.netcore.app.ref/analyzers/dotnet/cs/cs/Microsoft.Interop.SourceGeneration.resources.dll",
+      "artifacts/bin/microsoft.netcore.app.ref/analyzers/dotnet/cs/de/Microsoft.Interop.SourceGeneration.resources.dll",
+      "artifacts/bin/microsoft.netcore.app.ref/analyzers/dotnet/cs/es/Microsoft.Interop.SourceGeneration.resources.dll",
+      "artifacts/bin/microsoft.netcore.app.ref/analyzers/dotnet/cs/fr/Microsoft.Interop.SourceGeneration.resources.dll",
+      "artifacts/bin/microsoft.netcore.app.ref/analyzers/dotnet/cs/it/Microsoft.Interop.SourceGeneration.resources.dll",
+      "artifacts/bin/microsoft.netcore.app.ref/analyzers/dotnet/cs/ja/Microsoft.Interop.SourceGeneration.resources.dll",
+      "artifacts/bin/microsoft.netcore.app.ref/analyzers/dotnet/cs/ko/Microsoft.Interop.SourceGeneration.resources.dll",
+      "artifacts/bin/microsoft.netcore.app.ref/analyzers/dotnet/cs/pl/Microsoft.Interop.SourceGeneration.resources.dll",
+      "artifacts/bin/microsoft.netcore.app.ref/analyzers/dotnet/cs/pt-BR/Microsoft.Interop.SourceGeneration.resources.dll",
+      "artifacts/bin/microsoft.netcore.app.ref/analyzers/dotnet/cs/ru/Microsoft.Interop.SourceGeneration.resources.dll",
+      "artifacts/bin/microsoft.netcore.app.ref/analyzers/dotnet/cs/tr/Microsoft.Interop.SourceGeneration.resources.dll",
+      "artifacts/bin/microsoft.netcore.app.ref/analyzers/dotnet/cs/zh-Hans/Microsoft.Interop.SourceGeneration.resources.dll",
+      "artifacts/bin/microsoft.netcore.app.ref/analyzers/dotnet/cs/zh-Hant/Microsoft.Interop.SourceGeneration.resources.dll"
+    ]
+  },
+  "src/libraries/System.Threading/ref/System.Threading.csproj": {
+    "net10.0": [
+      "artifacts/bin/microsoft.netcore.app.ref/ref/net10.0/System.Threading.dll",
+      "artifacts/bin/ref/net10.0/System.Threading.dll"
+    ]
+  },
+  "src/libraries/System.Runtime/ref/System.Runtime.csproj": {
+    "net10.0": [
+      "artifacts/bin/microsoft.netcore.app.ref/ref/net10.0/System.Runtime.dll",
+      "artifacts/bin/ref/net10.0/System.Runtime.dll"
+    ]
+  },
+  "src/libraries/System.Threading/src/System.Threading.csproj": {
+    "net10.0": [
+      "artifacts/bin/microsoft.netcore.app.runtime.linux-arm64/Release/runtimes/linux-arm64/lib/net10.0/System.Threading.dll",
+      "artifacts/bin/microsoft.netcore.app.runtime.linux-arm64/Release/runtimes/linux-arm64/lib/net10.0/System.Threading.pdb",
+      "artifacts/bin/microsoft.netcore.app.runtime.linux-arm64/Release/runtimes/linux-arm64/lib/net10.0/System.Threading.xml",
+      "artifacts/bin/runtime/net10.0-linux-Release-arm64/System.Threading.dll",
+      "artifacts/bin/runtime/net10.0-linux-Release-arm64/System.Threading.pdb",
+      "artifacts/bin/runtime/net10.0-linux-Release-arm64/System.Threading.xml",
+      "artifacts/bin/testhost/net10.0-linux-Release-arm64/shared/Microsoft.NETCore.App/10.0.0/System.Threading.dll",
+      "artifacts/bin/testhost/net10.0-linux-Release-arm64/shared/Microsoft.NETCore.App/10.0.0/System.Threading.pdb",
+      "artifacts/bin/testhost/net10.0-linux-Release-arm64/shared/Microsoft.NETCore.App/10.0.0/System.Threading.xml"
+    ]
+  },
+  "src/libraries/System.Memory/src/System.Memory.csproj": {
+    "net10.0": [
+      "artifacts/bin/microsoft.netcore.app.runtime.linux-arm64/Release/runtimes/linux-arm64/lib/net10.0/System.Memory.dll",
+      "artifacts/bin/microsoft.netcore.app.runtime.linux-arm64/Release/runtimes/linux-arm64/lib/net10.0/System.Memory.pdb",
+      "artifacts/bin/microsoft.netcore.app.runtime.linux-arm64/Release/runtimes/linux-arm64/lib/net10.0/System.Memory.xml",
+      "artifacts/bin/runtime/net10.0-linux-Release-arm64/System.Memory.dll",
+      "artifacts/bin/runtime/net10.0-linux-Release-arm64/System.Memory.pdb",
+      "artifacts/bin/runtime/net10.0-linux-Release-arm64/System.Memory.xml",
+      "artifacts/bin/testhost/net10.0-linux-Release-arm64/shared/Microsoft.NETCore.App/10.0.0/System.Memory.dll",
+      "artifacts/bin/testhost/net10.0-linux-Release-arm64/shared/Microsoft.NETCore.App/10.0.0/System.Memory.pdb",
+      "artifacts/bin/testhost/net10.0-linux-Release-arm64/shared/Microsoft.NETCore.App/10.0.0/System.Memory.xml"
+    ]
+  },
+  "src/libraries/System.Collections/src/System.Collections.csproj": {
+    "net10.0": [
+      "artifacts/bin/microsoft.netcore.app.runtime.linux-arm64/Release/runtimes/linux-arm64/lib/net10.0/System.Collections.dll",
+      "artifacts/bin/microsoft.netcore.app.runtime.linux-arm64/Release/runtimes/linux-arm64/lib/net10.0/System.Collections.pdb",
+      "artifacts/bin/microsoft.netcore.app.runtime.linux-arm64/Release/runtimes/linux-arm64/lib/net10.0/System.Collections.xml",
+      "artifacts/bin/runtime/net10.0-linux-Release-arm64/System.Collections.dll",
+      "artifacts/bin/runtime/net10.0-linux-Release-arm64/System.Collections.pdb",
+      "artifacts/bin/runtime/net10.0-linux-Release-arm64/System.Collections.xml",
+      "artifacts/bin/testhost/net10.0-linux-Release-arm64/shared/Microsoft.NETCore.App/10.0.0/System.Collections.dll",
+      "artifacts/bin/testhost/net10.0-linux-Release-arm64/shared/Microsoft.NETCore.App/10.0.0/System.Collections.pdb",
+      "artifacts/bin/testhost/net10.0-linux-Release-arm64/shared/Microsoft.NETCore.App/10.0.0/System.Collections.xml"
+    ]
+  },
+  "src/libraries/System.Threading.Overlapped/ref/System.Threading.Overlapped.csproj": {
+    "net10.0": [
+      "artifacts/bin/microsoft.netcore.app.ref/ref/net10.0/System.Threading.Overlapped.dll",
+      "artifacts/bin/ref/net10.0/System.Threading.Overlapped.dll"
+    ]
+  },
+  "src/coreclr/System.Private.CoreLib/System.Private.CoreLib.csproj": {
+    "net10.0": [
+      "artifacts/bin/coreclr/linux.arm64.Release/PDB/System.Private.CoreLib.pdb"
+    ]
+  },
+  "src/libraries/System.Collections/ref/System.Collections.csproj": {
+    "net10.0": [
+      "artifacts/bin/microsoft.netcore.app.ref/ref/net10.0/System.Collections.dll",
+      "artifacts/bin/ref/net10.0/System.Collections.dll"
+    ]
+  }
+}

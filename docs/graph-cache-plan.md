@@ -178,7 +178,7 @@ runtime qualification and measurement, not repeating completed synthetic work.
 
 | Step | Current evidence | Remaining gate |
 | --- | --- | --- |
-| 1. Linux Pipelines | macOS managed Build/replay: 30 configured projects, 831 files including 108 binplace files | Linux mapping, output parity and sandboxed-worker qualification |
+| 1. Linux Pipelines | Implementation Build/replay and native parity pass on Linux ARM64, Bazel 8.8/9.2; 819 snapshot files | Test-consumer contract expansion |
 | 2. Incremental baseline | Older runtime probes and per-project comparisons exist | Matched graph-backend Linux body/API/no-op medians, including latest workers |
 | 3. Larger scope | Per-project backend qualifies selected suites and 281 managed actions | Graph contracts and invalidation across the expanded scope |
 | 4. Removed work | Shared CAS, ownership/path reuse, shared evaluation context and read-only worker packages | Runtime phase profile; safe cross-request SDK/evaluation reuse and large-worker timing |
@@ -192,6 +192,41 @@ avoids package copying and final package rehash, but each child still validates
 SDK/package bytes. No large-runtime timing establishes the benefit yet.
 The completed disk cleanup removed older qualification containers after preserving
 compact reports; recreate only the workers needed for the selected milestone.
+
+## Linux implementation checkpoint
+
+The Linux ARM64 Pipelines implementation graph builds through the public Bazel
+8.8/9.2 sandboxed workers: 30 configured projects, 86 declared package archives and
+108 shared output files. Complete local replay gets 30 hits, and its 819
+snapshotted files match fresh native-sandbox builds on both versions, including
+modes. The test-consumer expansion still needs additional reviewed test targets.
+
+Fresh controls exposed three differing SDK `GenerateResource.cache` files.
+These serialize resource-source modification times; the SDK documents their
+[optional dependency-cache role](https://learn.microsoft.com/en-us/visualstudio/msbuild/generateresource-task?view=visualstudio).
+Implicit snapshots now omit only the expected state file in the evaluated
+intermediate directory. Explicit output declarations still take precedence.
+Actual resources, satellite assemblies and DLL/PDB outputs remain captured.
+A synthetic resource edit changes executed values, regenerates state on a miss,
+and replays compiled resources without it. An explicitly owned cache-named file
+also survives replay. The remaining 819 files match without normalization.
+
+Reproduce with the commit-addressed runtime source archive (SHA-256
+`4fae24371e108a046d7bfd30785e9a2f4400552b165b70300a72f855370da3de`),
+the reviewed offline package feed and the pinned Linux SDK:
+
+```sh
+python3 tests/graph_build/upstream/runtime_prepare.py SOURCE_TAR_GZ PACKAGE_FEED NEW_DIRECTORY
+python3 tests/graph_build/upstream/runtime_qualify.py NEW_DIRECTORY/workspace RESULTS --output-base NEW_BAZEL_BASE
+python3 tests/graph_build/resource_state.py
+```
+
+Build GraphBuild and ProjectSync first; set `RULES_MSBUILD_DOTNET_ROOT` and the
+Bazelisk override for the pinned tools. Preparation validates the source archive,
+restores only in disposable sync copies and stages only declared project inputs.
+The parity fixture uses an unused declared nonce to force graph execution; its
+runs are correctness controls, not performance samples. Owned .NET/style/unit
+checks and the existing replay/output-ownership experiments pass. No CI ran.
 
 ## Timing checkpoint
 

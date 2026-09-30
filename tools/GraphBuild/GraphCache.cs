@@ -294,12 +294,22 @@ internal sealed class GraphCache(GraphInputs inputs, string cache, bool read, Re
 
     // A project is queried only after its dependencies finish. Their disjoint
     // owned files and output trees are immutable for the rest of this graph invocation.
-    private string[] OutputFiles(ProjectGraphNode node) => outputFiles.GetOrAdd(node, current => outputDirectories[current]
-        .Where(Directory.Exists).SelectMany(dir => Directory.EnumerateFiles(dir, "*", SearchOption.AllDirectories))
-        .Where(path => !path.EndsWith(".AssemblyReference.cache", StringComparison.Ordinal))
-        .Concat(inputs.DeclaredOutputFiles(current).Where(File.Exists))
-        .Select(path => inputs.Files.Resolve(Path.GetRelativePath(inputs.Files.Root, path)))
-        .Distinct().Order(StringComparer.Ordinal).ToArray());
+    private string[] OutputFiles(ProjectGraphNode node) => outputFiles.GetOrAdd(node, current =>
+    {
+        var resourceState = ResourceState(current);
+        return outputDirectories[current]
+            .Where(Directory.Exists).SelectMany(dir => Directory.EnumerateFiles(dir, "*", SearchOption.AllDirectories))
+            // SDK resource state records source timestamps and is optional. Recreate
+            // it on a miss rather than publishing machine-specific dependency state.
+            .Where(path => !path.EndsWith(".AssemblyReference.cache", StringComparison.Ordinal) && path != resourceState)
+            .Concat(inputs.DeclaredOutputFiles(current).Where(File.Exists))
+            .Select(path => inputs.Files.Resolve(Path.GetRelativePath(inputs.Files.Root, path)))
+            .Distinct().Order(StringComparer.Ordinal).ToArray();
+    });
+
+    private static string ResourceState(ProjectGraphNode node) => Path.GetFullPath(
+        Path.Combine(node.ProjectInstance.GetPropertyValue("IntermediateOutputPath").Replace('\\', Path.DirectorySeparatorChar), Path.GetFileName(node.ProjectInstance.FullPath) + ".GenerateResource.cache"),
+        Path.GetDirectoryName(node.ProjectInstance.FullPath)!);
 
     private HashSet<ProjectGraphNode> DependencyNodes(ProjectGraphNode node) => dependencies.GetOrAdd(node, current =>
     {

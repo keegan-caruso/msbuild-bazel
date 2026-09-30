@@ -1,4 +1,4 @@
-"""Expand reviewed contracts for the pinned macOS ARM64 System.IO.Pipelines slice.
+"""Expand reviewed contracts for pinned ARM64 System.IO.Pipelines slices.
 
 The output list records BinPlace producers, not a runtime filesystem scan.
 Do not reuse it for another platform, framework, target or upstream revision.
@@ -13,11 +13,18 @@ from pathlib import Path
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('output', type=Path)
+    parser.add_argument('--platform', choices=['osx-arm64', 'linux-arm64'], default='osx-arm64')
     args = parser.parse_args()
     directory = Path(__file__).resolve().parent
     mapping = json.loads((directory / 'runtime.json').read_text())
+    if args.platform == 'linux-arm64':
+        mapping['projectDefaults']['properties']['TargetOS'] = 'linux'
+        # Subsets.props declares host coordination entries on Linux. These are
+        # not file inputs or targets executed by the selected library Build.
+        mapping['projectDefaults']['evaluationItems'].append('ManagedProjectToBuild')
     mapping['projects'] = {}
-    for project, frameworks in json.loads((directory / 'runtime_outputs.json').read_text()).items():
+    output_file = 'runtime_linux_outputs.json' if args.platform == 'linux-arm64' else 'runtime_outputs.json'
+    for project, frameworks in json.loads((directory / output_file).read_text()).items():
         binding = copy.deepcopy(mapping['projectDefaults'])
         binding.pop('properties')
         for framework, outputs in frameworks.items():
