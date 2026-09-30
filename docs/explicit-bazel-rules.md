@@ -50,6 +50,10 @@ the full CMS qualification and raw MSBuild timings.
   with it; inherited versions are replaced by that consumer-selected set. Without
   a lock, inherited conflicts still fail. NuGet resolution happens outside these
   rules; the lock is an input, not a dependency solver.
+  Graph-mode sync/build may set `allow_multiple_versions = True` on the lock
+  to declare a pinned feed spanning several project configurations. Offline
+  MSBuild Restore selects each project's closure. Individual project rules still
+  reject locks containing multiple versions of an ID.
 - `framework_refs` propagate through project dependencies. `directories` declares
   empty logical workspace-relative directories required by original targets.
   `generated_directories = {"App/Generated": "data"}` redirects a reviewed

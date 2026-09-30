@@ -47,11 +47,11 @@ msbuild_generated_nuget_package = rule(implementation = _generated_package, attr
     "deps": attr.label_list(providers = [MSBuildPackageInfo]),
 }, toolchains = [_TOOLCHAIN])
 
-def _package_union(infos):
+def _package_union(infos, allow_multiple_versions = False):
     rows = {}
     for info in infos:
         for row in info.rows:
-            key = row["id"].lower()
+            key = row["id"].lower() + ("/" + row["version"].lower() if allow_multiple_versions else "")
             if key in rows and rows[key] != row:
                 fail("Conflicting package set: " + key)
             rows[key] = row
@@ -68,9 +68,10 @@ msbuild_nuget_dependencies = rule(implementation = _package_dependencies, attrs 
 })
 
 def _package_lock(ctx):
-    rows, files = _package_union([dep[MSBuildPackageInfo] for dep in ctx.attr.packages])
+    rows, files = _package_union([dep[MSBuildPackageInfo] for dep in ctx.attr.packages], allow_multiple_versions = ctx.attr.allow_multiple_versions)
     return [DefaultInfo(files = files), MSBuildPackageLockInfo(rows = rows, files = files, archives = depset(transitive = [dep[MSBuildPackageInfo].archives for dep in ctx.attr.packages]))]
 
 msbuild_package_lock = rule(implementation = _package_lock, attrs = {
     "packages": attr.label_list(providers = [MSBuildPackageInfo]),
+    "allow_multiple_versions": attr.bool(default = False, doc = "Allow graph-wide package inventories; per-project consumers still require one version per ID."),
 })

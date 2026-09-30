@@ -513,3 +513,18 @@ workspace, NuGet directory, project snapshots or Bazel output base was shared.
 The independent HTTP cache remained available. Logs are
 `/tmp/graph-roadmap-independent-worker-{producer,consumer}.log`.
 This qualifies small ARM64 worker recovery, not an upstream graph or RBE.
+
+### Graph-wide package versions
+
+The expanded Avalonia public action requires several versions of some NuGet
+packages across its configured projects. `msbuild_package_lock` now accepts
+`allow_multiple_versions = True` for a graph-wide pinned inventory. Default
+locks and individual project consumers still require one version per ID;
+conflicting declarations of the same ID/version remain errors.
+
+The public `devex.py` fixture builds two independent apps with Api/Core 1.0.0
+and 2.0.0 in one graph, checks their separate Restore assets and runtime values,
+and then upgrades the first app. Existing package-hash, incomplete-closure,
+configuration and task-input controls also pass. All 47 native Bazel analysis
+tests and `scripts/check.sh` pass on macOS ARM64/Bazel 9.2. This transfers a
+required input contract; expanded Avalonia build/worker parity is still separate.

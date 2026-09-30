@@ -82,6 +82,39 @@ def main():
                     'load(":graph.generated.bzl","app_graph")\napp_graph(name="graph")\n'
                     'msbuild_graph_binary(name="app",graph=":graph",project="App/App.csproj")\n')
                 assert str(value) in bazel('run', '//:app').splitlines()
+            # A graph feed may pin several versions, while each project resolves its own closure.
+            other = workspace / 'Other'
+            other.mkdir()
+            (other / 'Other.csproj').write_text('<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup>'
+                '<TargetFramework>net10.0</TargetFramework><OutputType>Exe</OutputType></PropertyGroup>'
+                '<ItemGroup><PackageReference Include="Api" Version="1.0.0" /></ItemGroup></Project>')
+            (other / 'Code.cs').write_text('System.Console.WriteLine(Api.Value);')
+            old_packages = '\n'.join(line for line in declarations('1.0.0').splitlines() if line.startswith('msbuild_nuget_package('))
+            old_packages = old_packages.replace('name="Core"', 'name="Core_v1"').replace('name="Api"', 'name="Api_v1"').replace('deps=[":Core"]', 'deps=[":Core_v1"]')
+            multiple = declarations('2.0.0').replace('packages=[":Api"]', 'packages=[":Api",":Api_v1"],allow_multiple_versions=True').replace(
+                'projects=["App/App.csproj"]', 'projects=["App/App.csproj","Other/Other.csproj"]') + old_packages + '\n'
+            build_file = workspace / 'BUILD.bazel'
+            build_file.write_text(multiple)
+            bazel('run', '//:sync')
+            graph_targets = ('load(":graph.generated.bzl","app_graph")\napp_graph(name="graph")\n'
+                'msbuild_graph_binary(name="app",graph=":graph",project="App/App.csproj")\n'
+                'msbuild_graph_binary(name="other",graph=":graph",project="Other/Other.csproj")\n')
+            build_file.write_text(multiple + graph_targets)
+            assert '22' in bazel('run', '//:app').splitlines()
+            assert '11' in bazel('run', '//:other').splitlines()
+            output = workspace / 'bazel-bin/graph.graph/workspace'
+            for project, version in [('App', '2.0.0'), ('Other', '1.0.0')]:
+                assets = json.loads((output / project / 'obj/project.assets.json').read_text())['libraries']
+                assert 'Api/' + version in assets and 'Core/' + version in assets, assets
+            project = other / 'Other.csproj'
+            project.write_text(project.read_text().replace('Version="1.0.0"', 'Version="2.0.0"'))
+            bazel('run', '//:sync')
+            assert '22' in bazel('run', '//:other').splitlines()
+            # Restore the single-project setup for the corruption and missing-closure controls.
+            build_file.write_text(declarations('2.0.0'))
+            bazel('run', '//:sync')
+            build_file.write_text(declarations('2.0.0') + graph_targets.replace(
+                'msbuild_graph_binary(name="other",graph=":graph",project="Other/Other.csproj")\n', ''))
             # Graph consumers must retain the package provider's hash verification.
             build_file = workspace / 'BUILD.bazel'
             valid_build = build_file.read_text()
@@ -136,7 +169,7 @@ def main():
             bazel('run', '//:sync')
             failure = bazel('build', '//:graph', success=False)
             assert 'value.txt' in failure, failure
-            print('PASS: package props, generated source/content, task-input edit/rejection, package pinning and configuration')
+            print('PASS: multi-version project selection and upgrade, package props, generated source/content, task-input edit/rejection, package pinning and configuration')
         finally:
             bazel('shutdown')
 

@@ -490,6 +490,11 @@ Set `configuration` (default `Release`) and optional `framework` on
 the generated contract applies them to Restore and compilation. Multiple entry
 projects share the graph; Restore currently visits each entry sequentially.
 
+For graphs whose projects need different versions of a package, set
+`allow_multiple_versions = True` on `msbuild_package_lock`. The opt-in permits
+multiple pinned ID/version pairs; conflicting declarations of the same pair
+still fail. It does not change the per-project backend's single-version rule.
+
 Pass the existing `msbuild_package_lock` as `package_lock` on sync. Package
 providers retain their original archive closure, which the generated graph
 consumes with the extraction outputs that verify the configured hashes. Restore
