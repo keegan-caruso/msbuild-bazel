@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using System.Text.Json;
+using System.Text.Json.Nodes;
 
 namespace RulesMSBuild.GraphBuild;
 
@@ -11,7 +12,7 @@ internal static class GraphWorker
     private sealed record WorkRequest(string[] Arguments, Input[] Inputs, int RequestId = 0, bool Cancel = false);
     private sealed record Reply(int ExitCode, string Output, int RequestId = 0);
     private sealed record Source(string Path, string Destination);
-    private sealed record Request(string Contract, string Output, string Target, string? Prepared, Source[] Sources);
+    private sealed record Request(string Contract, string Output, string Target, string? Prepared, Source[] Sources, bool ProfileBuild = false);
     private static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web);
 
     internal static async Task<int> Run(string[] args)
@@ -88,6 +89,11 @@ internal static class GraphWorker
             }
             var request = JsonSerializer.Deserialize<Request>(File.ReadAllText(InputPath(requestPath)), Json)
                 ?? throw new InvalidDataException("Missing graph action request");
+            var requestTimer = request.ProfileBuild ? Stopwatch.StartNew() : null;
+            var stageSeconds = 0.0;
+            var childSeconds = 0.0;
+            var verificationSeconds = 0.0;
+            var succeeded = false;
             var contract = InputPath(request.Contract);
             var prepared = request.Prepared is null ? "-" : InputPath(request.Prepared);
             var output = Path.Combine(execroot, Safe(request.Output));
@@ -130,9 +136,11 @@ internal static class GraphWorker
                         Copy(path, destination);
                     }
                 }
+                stageSeconds = requestTimer?.Elapsed.TotalSeconds ?? 0;
+                var childTimer = request.ProfileBuild ? Stopwatch.StartNew() : null;
                 var sdk = Path.GetDirectoryName(Environment.ProcessPath!)!;
                 var start = new ProcessStartInfo("/bin/bash") { RedirectStandardOutput = true, RedirectStandardError = true };
-                foreach (var argument in new[] { sandbox, sdk, AppContext.BaseDirectory, output, contract, scratch, request.Target, "action", prepared, cache, prepared == "-" ? "0" : "1" })
+                foreach (var argument in new[] { sandbox, sdk, AppContext.BaseDirectory, output, contract, scratch, request.Target, "action", prepared, cache, prepared == "-" ? "0" : "1", request.ProfileBuild ? "1" : "0" })
                 {
                     start.ArgumentList.Add(argument);
                 }
@@ -141,6 +149,8 @@ internal static class GraphWorker
                 var stderr = child.StandardError.ReadToEndAsync();
                 await child.WaitForExitAsync();
                 var log = await stdout + await stderr;
+                childSeconds = childTimer?.Elapsed.TotalSeconds ?? 0;
+                var verificationTimer = request.ProfileBuild ? Stopwatch.StartNew() : null;
                 if (child.ExitCode == 0)
                 {
                     foreach (var path in Directory.EnumerateFileSystemEntries(output, "*", SearchOption.AllDirectories))
@@ -151,10 +161,13 @@ internal static class GraphWorker
                         }
                     }
                 }
+                verificationSeconds = verificationTimer?.Elapsed.TotalSeconds ?? 0;
+                succeeded = child.ExitCode == 0;
                 return new(child.ExitCode, log);
             }
             finally
             {
+                var cleanupTimer = request.ProfileBuild ? Stopwatch.StartNew() : null;
                 Directory.Delete(scratch, recursive: true);
                 // A conservative logical-byte budget counts aliases as well as
                 // blobs. Trim only between requests, with no active MSBuild.
@@ -170,6 +183,20 @@ internal static class GraphWorker
                         Directory.CreateDirectory(preparationCache);
                         break;
                     }
+                }
+                if (succeeded && request.ProfileBuild)
+                {
+                    var reportPath = Path.Combine(output, "report.json");
+                    var report = JsonNode.Parse(File.ReadAllText(reportPath)) ?? throw new InvalidDataException("Missing graph profile report");
+                    report["worker"] = JsonSerializer.SerializeToNode(new
+                    {
+                        stagingSeconds = stageSeconds,
+                        childSeconds,
+                        outputVerificationSeconds = verificationSeconds,
+                        cleanupSeconds = cleanupTimer!.Elapsed.TotalSeconds,
+                        totalSeconds = requestTimer!.Elapsed.TotalSeconds
+                    });
+                    File.WriteAllText(reportPath, report.ToJsonString());
                 }
             }
         }

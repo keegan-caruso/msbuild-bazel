@@ -131,6 +131,13 @@ if (args[0] is "build" or "action")
         ProjectCacheDescriptor = ProjectCacheDescriptor.FromInstance(plugin),
         Loggers = [new Microsoft.Build.Logging.ConsoleLogger(Microsoft.Build.Framework.LoggerVerbosity.Minimal)],
     };
+    if (profile)
+    {
+        parameters.Loggers = parameters.Loggers.Append(new Microsoft.Build.Logging.BinaryLogger
+        {
+            Parameters = Path.ChangeExtension(report, ".binlog") + ";ProjectImports=None"
+        });
+    }
     using var manager = new BuildManager();
     var result = manager.Build(parameters, new GraphBuildRequestData(inputs.Graph, [target]));
     if (result.OverallResult != BuildResultCode.Success)

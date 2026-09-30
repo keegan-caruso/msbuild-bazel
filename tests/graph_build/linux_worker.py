@@ -39,7 +39,7 @@ def main():
         env.pop('RULES_MSBUILD_PROJECT_CACHE_BEARER_TOKEN', None)
         rows = []
 
-        def build(label, value, hits=None, strategy='worker', success=True, error='error CS'):
+        def build(label, value, hits=None, strategy='worker', success=True, error='error CS', profile=False):
             result = subprocess.run(command + ['run', '//:app', '--strategy=MSBuildGraph=' + strategy,
                 '--worker_sandboxing', '--worker_max_instances=MSBuildGraph=1', '--worker_verbose'],
                 cwd=root, env=env, text=True, capture_output=True)
@@ -49,6 +49,11 @@ def main():
                 return
             assert result.stdout.strip().endswith(str(value)), result.stdout
             report = json.loads((root / 'bazel-bin/graph.graph/report.json').read_text())
+            assert (report['operations'] is not None) == profile, report
+            assert ('worker' in report) == profile, report
+            if profile:
+                assert report['worker']['totalSeconds'] >= report['worker']['childSeconds'] > 0, report
+                assert report['worker']['stagingSeconds'] >= 0, report
             if hits is not None:
                 assert report['hits'] == hits, report
             rows.append(dict(case=label, hits=report['hits'], misses=report['misses']))
@@ -62,6 +67,11 @@ def main():
             source = root / 'P0/Code.cs'
             source.write_text('public class P0 { public static int Value() => 2; }')
             worker_outputs = build('body', 2, reused)
+            build_file = root / 'BUILD.bazel'
+            original_build = build_file.read_text()
+            build_file.write_text(original_build.replace('linux_worker=True,', 'linux_worker=True,profile_build=True,'))
+            assert worker_outputs == build('profiled-replay', 2, 3 if args.cache_mb else 0, profile=True)
+            build_file.write_text(original_build)
             source.write_text('this is invalid C#')
             build('failure', None, success=False)
             source.write_text('public class P0 { public static int Value() => 3; }')

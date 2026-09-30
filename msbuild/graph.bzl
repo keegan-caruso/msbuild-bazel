@@ -64,7 +64,7 @@ def _graph_action(ctx, prepare = False):
     worker_sources = []
     prefix = ctx.attr.source_root + "/" if ctx.attr.source_root else ""
     args = ctx.actions.args()
-    args.add_all([tc.dotnet.path, runner[0].path, output.path, ctx.file.contract.path, ctx.attr.target, "1" if ctx.attr.linux_stable_paths else "0", ctx.file._linux_stable_paths.path, "prepare" if prepare else "action", prepared.directory.path if prepared else "-"])
+    args.add_all([tc.dotnet.path, runner[0].path, output.path, ctx.file.contract.path, ctx.attr.target, "1" if ctx.attr.linux_stable_paths else "0", ctx.file._linux_stable_paths.path, "prepare" if prepare else "action", prepared.directory.path if prepared else "-", "1" if ctx.attr.profile_build else "0"])
     for file in ctx.files.srcs:
         if not file.short_path.startswith(prefix):
             fail("Graph source is outside source_root: " + file.short_path)
@@ -111,6 +111,7 @@ def _graph_action(ctx, prepare = False):
             "target": ctx.attr.target,
             "prepared": prepared.directory.path if prepared else None,
             "sources": worker_sources,
+            "profileBuild": ctx.attr.profile_build,
         }))
         launcher = ctx.actions.declare_file(ctx.label.name + ".graph-worker.sh")
         ctx.actions.write(launcher, "#!/usr/bin/env bash\nset -eu\nexec \"$PWD/%s\" exec \"$PWD/%s/GraphBuild.dll\" worker \"$PWD/%s\" %s \"$@\"\n" % (tc.dotnet.path, runner[0].path, ctx.file._linux_stable_paths.path, ctx.attr.worker_cache_mb), is_executable = True)
@@ -136,9 +137,9 @@ def _graph_action(ctx, prepare = False):
             arguments = [args],
             env = {key: value for key, value in ctx.configuration.default_shell_env.items() if key.startswith("RULES_MSBUILD_PROJECT_CACHE_")},
             command = """set -eu
-    dotnet="$PWD/$1"; runner="$PWD/$2"; output="$PWD/$3"; contract="$PWD/$4"; target="$5"; isolated="$6"; sandbox="$PWD/$7"; mode="$8"; prepared="$9"
+    dotnet="$PWD/$1"; runner="$PWD/$2"; output="$PWD/$3"; contract="$PWD/$4"; target="$5"; isolated="$6"; sandbox="$PWD/$7"; mode="$8"; prepared="$9"; profile="${10}"
     if test "$prepared" != -; then prepared="$PWD/$prepared"; fi
-    shift 9
+    shift 10
     scratch=$(mktemp -d)
     trap 'rm -rf "$scratch"' EXIT
     workspace="$output/workspace"
@@ -158,10 +159,11 @@ def _graph_action(ctx, prepare = False):
     export DOTNET_CLI_TELEMETRY_OPTOUT=1 DOTNET_SKIP_FIRST_TIME_EXPERIENCE=1 DOTNET_NOLOGO=1
     export MSBUILDDISABLENODEREUSE=1
     if test "$isolated" = 1; then
-        bash "$sandbox" "$(dirname "$dotnet")" "$runner" "$output" "$contract" "$scratch" "$target" "$mode" "$prepared"
+        bash "$sandbox" "$(dirname "$dotnet")" "$runner" "$output" "$contract" "$scratch" "$target" "$mode" "$prepared" - 0 "$profile"
         if test "$mode" = prepare; then rm -rf "$workspace"; rm -f "$output/report.json"; fi
         exit 0
     fi
+    if test "$profile" = 1; then export RULES_MSBUILD_GRAPH_PROFILE=1; fi
     "$dotnet" exec "$runner/GraphBuild.dll" action "$workspace" "$contract" "$output/report.json" "$scratch/cache" "$target"
     """,
             mnemonic = "MSBuildGraphRestore" if prepare else "MSBuildGraph",
@@ -188,6 +190,7 @@ _GRAPH_ATTRS = {
     "source_root": attr.string(),
     "project_outputs": attr.string_list_dict(),
     "publish_outputs": attr.string_list_dict(),
+    "profile_build": attr.bool(default = False, doc = "Opt-in runner operation and worker staging timings; profiling is disabled by default."),
     "worker_cache_mb": attr.int(default = 4096, doc = "Conservative logical snapshot-cache budget in MiB; zero discards between requests."),
     "linux_worker": attr.bool(default = False, doc = "Opt-in Linux cache broker; each request runs a fresh sandboxed MSBuild process."),
     "linux_stable_paths": attr.bool(default = False, doc = "Use bubblewrap on Linux for stable graph paths; cache transport retains network access."),

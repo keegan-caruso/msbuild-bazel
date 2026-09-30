@@ -38,6 +38,7 @@ fi
 for key in RULES_MSBUILD_PROJECT_CACHE_URL RULES_MSBUILD_PROJECT_CACHE_BEARER_TOKEN; do
     if value=$(printenv "$key"); then args+=(--setenv "$key" "$value"); fi
 done
+if [[ ${11:-0} == 1 ]]; then args+=(--setenv RULES_MSBUILD_GRAPH_PROFILE 1); fi
 cache="$base/scratch/cache"
 if [[ ${9:--} != - ]]; then
     args+=(--bind "$(realpath "$9")" "$base/cache")

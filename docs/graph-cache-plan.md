@@ -246,6 +246,21 @@ correction, including an outer intermediate placeholder. The runtime test
 contract now synchronizes 42 configured nodes / 38 compilation nodes. Complete
 Build/replay and shared-binplace ownership for that expanded graph remain open.
 
+## Public graph diagnostics
+
+`app_graph(..., profile_build=True)` enables runner operation totals and a
+`report.binlog` without imported project payloads. Linux worker reports add
+staging, child-process, output-verification and cleanup times. Worker totals do
+not include Bazel's input staging or the protocol reply; full Bazel wall time
+remains the score. Nested/concurrent runner operation totals can overlap.
+
+Profiling defaults to false for ordinary actions, generated facades and prepared
+Restore. The public worker controls on Bazel 8.8/9.2 pass default-off checks,
+profiled replay with unchanged outputs/hits, failure recovery, property changes
+and worker/native Build/Publish parity. Owned .NET checks and pinned Buildifier
+checks pass. Scored runs keep profiling off; diagnostic compiler counts and
+phase profiles are collected separately.
+
 ## Timing checkpoint
 
 These are historical measurements, not timings of the latest worker candidate.
