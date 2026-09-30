@@ -39,20 +39,29 @@ internal sealed class GraphCache(GraphInputs inputs, string cache, bool read, Re
         {
             return CacheResult.IndicateNonCacheHit(CacheResultType.CacheNotApplicable);
         }
-        var fingerprint = Fingerprint(node, request.TargetNames.ToArray());
+        string fingerprint;
+        using (GraphProfile.Measure("dependencyFingerprint"))
+        {
+            fingerprint = Fingerprint(node, request.TargetNames.ToArray());
+        }
         fingerprints[key] = fingerprint;
         requestedTargets[key] = request.TargetNames.ToArray();
         var directory = Path.Combine(cache, fingerprint);
         var manifest = Path.Combine(directory, "manifest.json");
         if (read && !File.Exists(manifest) && remote is not null)
         {
+            using var download = GraphProfile.Measure("remoteFetch");
             await remote.FetchAsync(fingerprint, directory, cancellationToken);
         }
         if (read && File.Exists(manifest))
         {
             var snapshot = JsonSerializer.Deserialize<ProjectSnapshot>(File.ReadAllText(manifest))
                 ?? throw new InvalidDataException("Empty graph snapshot");
-            Validate(node, snapshot, fingerprint, directory, request.TargetNames.ToArray());
+            using (GraphProfile.Measure("snapshotValidation"))
+            {
+                Validate(node, snapshot, fingerprint, directory, request.TargetNames.ToArray());
+            }
+            using var replay = GraphProfile.Measure("snapshotReplay");
             foreach (var (relative, _) in snapshot.Files)
             {
                 materializer.Copy(Path.Combine(directory, relative), inputs.Files.Resolve(relative));
@@ -144,6 +153,7 @@ internal sealed class GraphCache(GraphInputs inputs, string cache, bool read, Re
             }
             if (remote is not null)
             {
+                using var upload = GraphProfile.Measure("remotePublish");
                 await remote.PublishAsync(fingerprint, destination, CancellationToken.None);
             }
         }

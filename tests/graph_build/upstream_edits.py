@@ -6,6 +6,7 @@ import json
 from pathlib import Path
 import shutil
 import subprocess
+import tempfile
 import time
 
 from qualify import DOTNET, ENV, RUNNER, SDK
@@ -18,7 +19,18 @@ def main():
     parser.add_argument('cache', type=Path)
     parser.add_argument('edits', type=Path, help='JSON array: name, path, before, after; each replacement must occur once')
     parser.add_argument('results', type=Path)
+    parser.add_argument('--samples', type=int, default=1)
+    parser.add_argument('--only', nargs='+')
+    parser.add_argument('--profile', action='store_true')
+    parser.add_argument('--raw-state', choices=['warm', 'clean'], default='warm')
+    parser.add_argument('--cache-state', choices=['local', 'empty', 'remote'], default='local')
+    parser.add_argument('--raw-restore', action='store_true')
     args = parser.parse_args()
+    assert args.samples > 0
+    if args.profile:
+        ENV['RULES_MSBUILD_GRAPH_PROFILE'] = '1'
+    if args.cache_state == 'remote':
+        assert ENV.get('RULES_MSBUILD_PROJECT_CACHE_URL'), 'Remote recovery requires an explicit cache endpoint'
     root = args.workspace.resolve()
     contract = json.loads(args.contract.read_text())
     args.results.mkdir(parents=True, exist_ok=True)
@@ -57,10 +69,30 @@ def main():
     def cached(label):
         clear()
         report = (args.results / (label + '.json')).resolve()
-        elapsed = execute([DOTNET, RUNNER, 'action', root, args.contract.resolve(), report, args.cache.resolve()], label)
+        args.cache.mkdir(parents=True, exist_ok=True)
+        # Every fresh-cache run owns its own child directory; never delete a caller's cache.
+        with tempfile.TemporaryDirectory(prefix='consumer-', dir=args.cache) as fresh:
+            selected_cache = args.cache.resolve() if args.cache_state == 'local' else Path(fresh)
+            command = [DOTNET, RUNNER, 'action', root, args.contract.resolve(), report, selected_cache]
+            if args.cache_state == 'empty':
+                command += ['Build', 'no-read']
+            elapsed = execute(command, label)
         return dict(json.loads(report.read_text()), wallSeconds=elapsed)
 
-    for edit in json.loads(args.edits.read_text()):
+    edits = json.loads(args.edits.read_text())
+    if args.only:
+        assert set(args.only) <= {edit['name'] for edit in edits}
+        edits = [edit for edit in edits if edit['name'] in args.only]
+    expanded = []
+    for sample in range(args.samples):
+        for edit in edits:
+            item = dict(edit)
+            if args.samples > 1:
+                assert '${sample}' in item.get('sampleAfter', ''), 'Repeated samples need distinct edits'
+                item['after'] = item['sampleAfter'].replace('${sample}', str(sample))
+                item['name'] += '-' + str(sample)
+            expanded.append(item)
+    for edit in expanded:
         assert edit['path'] in declared_inputs, 'Edit must be a declared input: ' + edit['path']
         path = root / edit['path']
         assert path.resolve().is_relative_to(root)
@@ -72,6 +104,17 @@ def main():
             # Normalize the raw engine's incremental state before measuring the edit.
             execute(raw, edit['name'] + '-raw-warmup')
             path.write_bytes(original.replace(before, after))
+            if args.raw_state == 'clean':
+                clear()
+            raw_restore_seconds = 0.0
+            if args.raw_restore:
+                for index, entry in enumerate(contract.get('Entries') or [contract['Entry']]):
+                    command = [DOTNET, 'restore', root / entry, '--configfile', root / '.package-source/NuGet.Config',
+                               '--source', root / '.package-source', '--packages', root / '.nuget', '-p:NuGetAudit=false',
+                               f'-p:NetCoreSdkRoot={SDK}/sdk/{contract["SdkVersion"]}', '-p:RestoreFallbackFolders=',
+                               '-p:RestoreAdditionalProjectSources=', '-p:RestoreAdditionalProjectFallbackFolders=']
+                    command += [f'-p:{key}={value}' for key, value in contract['Properties'].items() if key.lower() != 'targetframework']
+                    raw_restore_seconds += execute(command, edit['name'] + '-raw-restore-' + str(index))
             raw_seconds = execute(raw, edit['name'] + '-raw')
             raw_outputs = snapshot()
             path.write_bytes(original)
@@ -79,7 +122,10 @@ def main():
             path.write_bytes(original.replace(before, after))
             measured = cached(edit['name'] + '-cached')
             outputs = snapshot()
-            row = dict(name=edit['name'], rawBuildSeconds=raw_seconds, cached=measured,
+            row = dict(name=edit['name'], rawState=args.raw_state, cacheState=args.cache_state,
+                       rawRestoreSeconds=raw_restore_seconds if args.raw_restore else None,
+                       rawEndToEndSeconds=raw_seconds + raw_restore_seconds if args.raw_restore else None,
+                       rawBuildSeconds=raw_seconds, cached=measured,
                        missing=sorted(raw_outputs.keys() - outputs.keys()), extra=sorted(outputs.keys() - raw_outputs.keys()),
                        changed=sorted(p for p in outputs.keys() & raw_outputs.keys() if outputs[p] != raw_outputs[p]))
             rows.append(row)
@@ -88,7 +134,7 @@ def main():
                                   missing=len(row['missing']), extra=len(row['extra']), changed=len(row['changed']))), flush=True)
         finally:
             path.write_bytes(original)
-    # Raw timing excludes Restore; cached timing includes offline Restore and snapshot handling.
+    # Warm raw and fresh recovery are different lanes; restore is reported explicitly.
 
 
 if __name__ == '__main__':

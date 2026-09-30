@@ -51,6 +51,7 @@ internal sealed class ContractFiles(string root, string sdk)
 
     internal static string Digest(string path)
     {
+        using var timing = GraphProfile.Measure("fileHash", GraphProfile.Enabled ? new FileInfo(path).Length : 0);
         using var stream = File.OpenRead(path);
         return Convert.ToHexStringLower(SHA256.HashData(stream));
     }

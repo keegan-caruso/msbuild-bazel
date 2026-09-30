@@ -23,6 +23,7 @@ if (copyMode is not ("copy" or "clone"))
 {
     throw new InvalidDataException("RULES_MSBUILD_GRAPH_COPY_MODE must be copy or clone");
 }
+GraphProfile.Enabled = profile;
 var totalTimer = System.Diagnostics.Stopwatch.StartNew();
 var root = args[1];
 var contractPath = args[2];
@@ -50,10 +51,12 @@ System.Runtime.Loader.AssemblyLoadContext.Default.Resolving += (context, name) =
 Environment.SetEnvironmentVariable("MSBUILD_EXE_PATH", Path.Combine(sdk, "MSBuild.dll"));
 Environment.SetEnvironmentVariable("MSBuildSDKsPath", Path.Combine(sdk, "Sdks"));
 contract = GraphTools.Bind(contract, root, sdkRoot);
+var restoreTimer = System.Diagnostics.Stopwatch.StartNew();
 if (args[0] == "action")
 {
     contract = Restore.Run(contract, root, sdkRoot);
 }
+restoreTimer.Stop();
 using var inputs = new GraphInputs(contract, root, sdkRoot, restored: args[0] == "action");
 if (args[0] is "build" or "action")
 {
@@ -98,11 +101,21 @@ if (args[0] is "build" or "action")
         }
         return 1;
     }
+    var executionSeconds = timer.Elapsed.TotalSeconds;
+    var verificationTimer = System.Diagnostics.Stopwatch.StartNew();
     inputs.VerifyUnchangedInputs();
+    verificationTimer.Stop();
+    var snapshotTimer = System.Diagnostics.Stopwatch.StartNew();
     await plugin.SaveAsync(result);
+    snapshotTimer.Stop();
     File.WriteAllText(report, JsonSerializer.Serialize(new
     {
         materialization = materializer.Report,
+        operations = GraphProfile.Report,
+        restoreSeconds = restoreTimer.Elapsed.TotalSeconds,
+        executionSeconds,
+        verificationSeconds = verificationTimer.Elapsed.TotalSeconds,
+        snapshotSeconds = snapshotTimer.Elapsed.TotalSeconds,
         hits = plugin.Hits,
         misses = plugin.Misses,
         buildAndSnapshotSeconds = timer.Elapsed.TotalSeconds,

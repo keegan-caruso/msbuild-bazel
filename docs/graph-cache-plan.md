@@ -73,3 +73,21 @@ input verification or hide output differences to meet timing targets.
 
 All ten steps are pending at plan creation. Update this section with completed
 work, measured results and explicit remaining blockers as execution proceeds.
+
+### Measurement checkpoint
+
+- Added opt-in operation totals and separate restore, execution, input verification
+  and snapshot-save wall timers. Operation totals overlap across threads/nesting.
+- `profiling.py` passes: off by default, unchanged cache identity and output bytes.
+- `benchmark_lanes.py` passes warm/local, cold/empty and fresh HTTP-cache lanes,
+  explicit restore timing, distinct repeated edits and exact synthetic parity.
+- Three paired Orchard body/API samples are in progress. The first body sample
+  measured runner/raw 36.73/14.27 s, 201 hits/one miss and zero differing outputs.
+  Initial hashing was 10.70 s, final verification 7.38 s, execution 7.92 s,
+  restore 5.97 s, evaluation 4.65 s and snapshot save 0.01 s.
+- The isolated upstream generator check reproduces differing DLL/PDB bytes in
+  repeated raw builds. Its random interceptor identifiers are the only generated
+  source differences. A disposable deterministic-name probe produces identical
+  DLL/PDB bytes and executes correctly. This identifies an upstream cause; it
+  does not yet classify every full-Orchard output difference or authorize broad
+  output normalization.

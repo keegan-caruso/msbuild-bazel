@@ -115,8 +115,8 @@ embedded assets with HTTP 200, without creating a tenant. Full API/generator byt
 parity and native Linux sandbox qualification remain default-switch gates.
 
 The runner's 39.96 s internal total included 16.75 s build/snapshot handling,
-9.96 s input hashing and 5.25 s evaluation. The remaining 8.01 s includes offline
-Restore and final input verification. Only one project compiled; output replay
+9.96 s input hashing and 5.25 s evaluation. The remaining 8.01 s primarily covers offline
+Restore and setup. Final input verification is inside build/snapshot handling. Only one project compiled; output replay
 and validation now account for much of the remaining work.
 
 These are single samples on macOS ARM64/SDK 10.0.400 with four MSBuild nodes.

@@ -90,7 +90,10 @@ internal sealed class GraphInputs : IDisposable
         ValidateOutputOwnership();
         EvaluationSeconds = timer.Elapsed.TotalSeconds;
         timer.Restart();
-        SdkDigest = ContractFiles.TreeDigest(sdkRoot);
+        using (GraphProfile.Measure("sdkHash"))
+        {
+            SdkDigest = ContractFiles.TreeDigest(sdkRoot);
+        }
         runnerDigest = ContractFiles.Digest(typeof(GraphInputs).Assembly.Location);
         inputDigests = contract.SharedInputs.Concat(projects.Values.SelectMany(p => p.Inputs)).Distinct()
             .ToDictionary(path => path, path => ContractFiles.InputDigest(Files.Resolve(path)), StringComparer.Ordinal);
