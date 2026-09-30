@@ -14,7 +14,7 @@ internal sealed record TargetOutput(string Name, ResultItem[] Items);
 internal sealed record ProjectSnapshot(string Fingerprint, Dictionary<string, string> Files,
     Dictionary<string, string> ProjectCopies, TargetOutput[] Targets, Dictionary<string, int> UnixModes);
 
-internal sealed class GraphCache(GraphInputs inputs, string cache, bool read, RemoteSnapshotStore? remote, FileMaterializer materializer, SnapshotPayloads payloads) : ProjectCachePluginBase
+internal sealed class GraphCache(GraphInputs inputs, string cache, bool read, RemoteSnapshotStore? remote, FileMaterializer materializer, SnapshotPayloads payloads, LocalGraphState? localState = null) : ProjectCachePluginBase
 {
     private readonly Dictionary<string, ProjectGraphNode> nodes = inputs.Graph.ProjectNodes.ToDictionary(n => GraphInputs.Key(n.ProjectInstance));
     private readonly Dictionary<ProjectGraphNode, string[]> outputDirectories = inputs.Graph.ProjectNodes.ToDictionary(node => node, node => inputs.OutputDirectories(node).ToArray());
@@ -37,6 +37,7 @@ internal sealed class GraphCache(GraphInputs inputs, string cache, bool read, Re
         var node = nodes[key];
         if (node.ProjectInstance.GetPropertyValue("TargetPath").Length == 0)
         {
+            localState?.ResetProject(inputs, node);
             return CacheResult.IndicateNonCacheHit(CacheResultType.CacheNotApplicable);
         }
         string fingerprint;
@@ -62,17 +63,15 @@ internal sealed class GraphCache(GraphInputs inputs, string cache, bool read, Re
                 Validate(node, snapshot, fingerprint, directory, request.TargetNames.ToArray());
             }
             using var replay = GraphProfile.Measure("snapshotReplay");
-            foreach (var (relative, _) in snapshot.Files)
+            localState?.RemoveObsoleteOutputs(inputs, node, snapshot.Files.Keys.Concat(snapshot.ProjectCopies.Keys));
+            foreach (var (relative, digest) in snapshot.Files)
             {
-                materializer.Copy(Path.Combine(directory, relative), inputs.Files.Resolve(relative));
-                if (!OperatingSystem.IsWindows())
-                {
-                    File.SetUnixFileMode(inputs.Files.Resolve(relative), (UnixFileMode)snapshot.UnixModes[relative]);
-                }
+                Materialize(Path.Combine(directory, relative), inputs.Files.Resolve(relative), digest, snapshot.UnixModes[relative]);
             }
             foreach (var (relative, producer) in snapshot.ProjectCopies)
             {
-                materializer.Copy(inputs.Files.Resolve(producer), inputs.Files.Resolve(relative));
+                var source = inputs.Files.Resolve(producer);
+                Materialize(source, inputs.Files.Resolve(relative), localState?.Reusable == true ? OutputDigest(source) : "", OperatingSystem.IsWindows() ? 0 : (int)File.GetUnixFileMode(source));
             }
             hits[key] = snapshot;
             Interlocked.Increment(ref Hits);
@@ -80,8 +79,29 @@ internal sealed class GraphCache(GraphInputs inputs, string cache, bool read, Re
                 target.Items.Select(RestoreItem).ToArray(), BuildResultCode.Success)).ToArray();
             return CacheResult.IndicateCacheHit(results);
         }
+        localState?.ResetProject(inputs, node);
         Interlocked.Increment(ref Misses);
         return CacheResult.IndicateNonCacheHit(CacheResultType.CacheMiss);
+    }
+
+    private void Materialize(string source, string destination, string digest, int mode)
+    {
+        if (localState?.Reusable == true && LocalGraphState.Matches(destination, digest))
+        {
+            using var reused = GraphProfile.Measure("retainedOutput", new FileInfo(destination).Length);
+        }
+        else
+        {
+            if (localState is not null && File.Exists(destination))
+            {
+                File.Delete(destination);
+            }
+            materializer.Copy(source, destination);
+        }
+        if (!OperatingSystem.IsWindows())
+        {
+            File.SetUnixFileMode(destination, (UnixFileMode)mode);
+        }
     }
 
     internal async Task SaveAsync(GraphBuildResult result)

@@ -919,3 +919,22 @@ fixture `tests/graph_build/input_directories.py` compares static-asset discovery
 with raw MSBuild and fresh snapshot replay, including an empty `wwwroot`.
 Absent-directory conditions and arbitrary directory enumeration are not inferred;
 custom targets still need reviewed contracts.
+
+## Owned retained-output experiment
+
+The standalone Linux runner accepts `RULES_MSBUILD_GRAPH_LOCAL_STATE` pointing
+to a metadata directory outside a disposable workspace. Initial outputs must be
+empty. The state records ownership and successful completion, uses OS leases to
+exclude competing requests, and discards interrupted or obsolete owned outputs.
+Cache hits compare current output bytes, repair permissions, remove obsolete
+files and replace hard links; misses clear their project outputs before running
+MSBuild. Fresh graph actions remain the default, and the public Bazel rule does
+not enable this experiment.
+
+`tests/graph_build/local_state.py` covers body/API edits, output corruption and
+permission repair, ownership conflicts, concurrent requests, actual SIGKILL
+recovery, configuration changes and Publish. In the 128-project Linux comparison,
+retention reduced copying from about 128 MB to 1.86 MB but did not improve wall
+time: body edits were 4.15 s retained versus 4.14 s fresh recovery; API edits
+were 4.43 s in both modes. Both exclude Restore. Keep this opt-in while qualifying
+larger payloads and worker integration; it is not a measured speed recommendation.

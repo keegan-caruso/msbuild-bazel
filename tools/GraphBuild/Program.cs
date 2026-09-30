@@ -15,6 +15,12 @@ var bearerToken = Environment.GetEnvironmentVariable("RULES_MSBUILD_PROJECT_CACH
 // Cache connection settings are transport state, not MSBuild evaluation inputs.
 Environment.SetEnvironmentVariable("RULES_MSBUILD_PROJECT_CACHE_URL", null);
 Environment.SetEnvironmentVariable("RULES_MSBUILD_PROJECT_CACHE_BEARER_TOKEN", null);
+var localStatePath = Environment.GetEnvironmentVariable("RULES_MSBUILD_GRAPH_LOCAL_STATE");
+Environment.SetEnvironmentVariable("RULES_MSBUILD_GRAPH_LOCAL_STATE", null);
+if (localStatePath is not null && args[0] is not ("build" or "action"))
+{
+    throw new InvalidDataException("Retained state supports build/action only");
+}
 var preparedPath = Environment.GetEnvironmentVariable("RULES_MSBUILD_GRAPH_PREPARED_RESTORE");
 Environment.SetEnvironmentVariable("RULES_MSBUILD_GRAPH_PREPARED_RESTORE", null);
 var profile = Environment.GetEnvironmentVariable("RULES_MSBUILD_GRAPH_PROFILE") == "1";
@@ -53,6 +59,7 @@ System.Runtime.Loader.AssemblyLoadContext.Default.Resolving += (context, name) =
 Environment.SetEnvironmentVariable("MSBUILD_EXE_PATH", Path.Combine(sdk, "MSBuild.dll"));
 Environment.SetEnvironmentVariable("MSBuildSDKsPath", Path.Combine(sdk, "Sdks"));
 contract = GraphTools.Bind(contract, root, sdkRoot);
+using var localState = localStatePath is null ? null : new LocalGraphState(localStatePath, contract, contractFiles);
 GraphDirectories.Prepare(contract, contractFiles, create: args[0] is "action" or "prepare");
 if (args[0] == "prepare")
 {
@@ -86,16 +93,17 @@ if (args[0] is "build" or "action")
     {
         throw new InvalidDataException("The graph runner currently qualifies Build and Publish; execute tests through Bazel test actions");
     }
+    localState?.Prepare(inputs, target);
     foreach (var directory in inputs.Graph.ProjectNodes.SelectMany(inputs.OutputDirectories))
     {
-        if (Directory.Exists(directory) && Directory.EnumerateFileSystemEntries(directory).Any())
+        if (localState is null && Directory.Exists(directory) && Directory.EnumerateFileSystemEntries(directory).Any())
         {
             throw new InvalidDataException("Graph execution requires empty declared output directories: " + directory);
         }
     }
     foreach (var path in inputs.Graph.ProjectNodes.SelectMany(inputs.DeclaredOutputFiles))
     {
-        if (Path.Exists(path))
+        if (localState is null && Path.Exists(path))
         {
             throw new InvalidDataException("Graph execution requires absent declared output files: " + path);
         }
@@ -104,7 +112,7 @@ if (args[0] is "build" or "action")
     var payloads = new SnapshotPayloads(cache ?? throw new InvalidDataException("Cache directory is required"));
     using var remote = remoteUrl is null ? null : new RemoteSnapshotStore(new Uri(remoteUrl.TrimEnd('/') + "/"), bearerToken: bearerToken, profile: profile, contentStore: payloads);
     var materializer = new FileMaterializer(copyMode == "clone", profile);
-    var plugin = new GraphCache(inputs, cache ?? throw new InvalidDataException("Cache directory is required"), args.Length < 7 || args[6] != "no-read", remote, materializer, payloads);
+    var plugin = new GraphCache(inputs, cache ?? throw new InvalidDataException("Cache directory is required"), args.Length < 7 || args[6] != "no-read", remote, materializer, payloads, localState);
     var parameters = new BuildParameters(inputs.Collection)
     {
         MaxNodeCount = 4,
@@ -130,6 +138,7 @@ if (args[0] is "build" or "action")
     var snapshotTimer = System.Diagnostics.Stopwatch.StartNew();
     await plugin.SaveAsync(result);
     snapshotTimer.Stop();
+    localState?.Complete();
     File.WriteAllText(report, JsonSerializer.Serialize(new
     {
         materialization = materializer.Report,
@@ -137,6 +146,7 @@ if (args[0] is "build" or "action")
         remote = remote?.Report,
         restoreSeconds = restoreTimer.Elapsed.TotalSeconds,
         preparedRestore = prepared is not null,
+        retainedState = localState?.Reusable ?? false,
         executionSeconds,
         verificationSeconds = verificationTimer.Elapsed.TotalSeconds,
         snapshotSeconds = snapshotTimer.Elapsed.TotalSeconds,

@@ -109,7 +109,7 @@ def main():
             assert Cache.retries == 2
             snapshots = [json.loads(path.read_text()) for path in cache.glob("*/manifest.json")]
             payloads = {digest for snapshot in snapshots for digest in snapshot["Files"].values()}
-            unshared_downloads = sum(len(snapshot["Files"]) for snapshot in snapshots)
+            unshared_downloads = sum(len(set(snapshot["Files"].values())) for snapshot in snapshots)
             Cache.gets = {}
             replay = build()
             assert replay['hits'] == 3

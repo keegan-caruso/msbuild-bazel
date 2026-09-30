@@ -73,7 +73,8 @@ input verification or hide output differences to meet timing targets.
 
 Steps 1–2 have measured checkpoints. Steps 3–5 and 8 have partial
 implementation and qualification; step 6 has within-invocation reuse.
-Cross-request reuse and steps 7 and 9–10 remain open. Ownership
+Step 7 has an opt-in owned-state prototype; persistent workers, cross-request
+reuse and steps 9–10 remain open. Ownership
 indexing and input-check improvements are committed and pushed. Prepared Restore
 is opt-in and has not passed the large-workload performance/parity gates.
 
@@ -340,3 +341,41 @@ The content-sharing cache after three Orchard qualification series contains
 613 snapshots and 16,946 payload paths: 2.65 GB of logical snapshot payloads map
 to 3,423 blobs / 0.76 GB of distinct data. This is measured storage across builds,
 not transfer volume or the size of one recovery. Reports remain outside Git.
+
+### Retained-state and worker boundaries
+
+The first retained-state slice is Linux-only and opt-in through
+`RULES_MSBUILD_GRAPH_LOCAL_STATE`, with metadata outside a disposable workspace.
+It claims only initially empty outputs, locks both workspace and metadata,
+marks work incomplete before Restore, and clears incomplete or obsolete owned
+state. Hits verify existing bytes and restore recorded modes; misses clear their
+project outputs before MSBuild executes. Linked outputs are replaced rather
+than retained. This avoids stale timestamps suppressing required compilation.
+The Linux fixture passes corruption/obsolete-file repair, permission repair,
+body/API propagation, configuration/Publish changes, competing metadata owners,
+and actual SIGKILL recovery. The 128-project comparison is recorded below. Larger
+payload timing remains pending.
+
+Persistent-worker integration must preserve these boundaries. Reuse immutable
+SDK/input preparation only under owned, read-only mounts and complete Bazel input
+identities. A fresh evaluation context is required per request. Third-party task
+assemblies loaded at stable paths can outlive their bytes in a reused process;
+restart or use a fresh MSBuild child when task/package implementations change.
+Do not infer general worker safety from SDK-only projects. Qualify the public
+worker protocol and sandbox first, then expand through task/analyzer/package,
+Web/Razor, test and Publish controls before changing defaults.
+
+The 128-project Linux ARM64 test completed three body and three API pairs per
+mode. Fresh recovery measured 4.14 s body / 4.44 s API, versus raw 5.44 / 5.46 s.
+Retained outputs measured 4.15 / 4.43 s, versus raw 5.35 / 5.34 s. Restore is
+excluded from both engines in this harness. Body copying fell from 18,165 files /
+128.34 MB to 254 files / 1.86 MB, with 17,911 outputs retained after byte checks.
+There is no meaningful wall-time win at this size. Keep retention opt-in and
+measure larger payloads before exposing it in public rules. Every edit asserts
+expected miss counts and runs the app. Reports:
+`/tmp/graph-roadmap-fresh-state-timing.json` and
+`/tmp/graph-roadmap-retained-state-timing.json`.
+
+The final remote counter check downloaded 35 distinct payloads instead of 44
+per-snapshot requests, transferring 212,950 bytes including manifests. The
+comparison counts each hash once per snapshot, matching the previous transport.

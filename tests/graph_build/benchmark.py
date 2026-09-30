@@ -1,4 +1,4 @@
-"""Paired end-to-end graph-runner and warm raw graph-mode edit timings."""
+"""Paired graph-build edit timings with Restore excluded from both engines."""
 
 import argparse
 import json
@@ -17,6 +17,7 @@ def main():
     parser.add_argument('--samples', type=int, default=3)
     parser.add_argument("--copy-mode", choices=["copy", "clone"], default="copy")
     parser.add_argument("--generated", action="store_true")
+    parser.add_argument("--retained-state", action="store_true", help="Opt-in Linux owned-output reuse; Restore is still outside this benchmark")
     parser.add_argument("--conservative", action="store_true")
     args = parser.parse_args()
     ENV["RULES_MSBUILD_GRAPH_COPY_MODE"] = args.copy_mode
@@ -63,12 +64,16 @@ def main():
         def build(name):
             root = roots[name]
             if name == 'cached':
-                for project in contract['Projects'].values():
-                    for configuration in project.get('Configurations', [project]):
-                        for path in configuration['OutputDirectories']:
-                            shutil.rmtree(root / path, ignore_errors=True)
+                if args.retained_state:
+                    ENV['RULES_MSBUILD_GRAPH_LOCAL_STATE'] = str(work / 'state')
+                else:
+                    for project in contract['Projects'].values():
+                        for configuration in project.get('Configurations', [project]):
+                            for path in configuration['OutputDirectories']:
+                                shutil.rmtree(root / path, ignore_errors=True)
                 command = [DOTNET, RUNNER, 'build', root, manifest, report, work / 'cache']
             else:
+                ENV.pop('RULES_MSBUILD_GRAPH_LOCAL_STATE', None)
                 command = [DOTNET, 'msbuild', root / contract['Entry'], '-graphBuild', '-m:4', '-t:Build',
                            '-p:Configuration=Release', '-p:UseSharedCompilation=false',
                            '-p:DisableTransitiveProjectReferences=true', '-nologo', '-verbosity:quiet']
@@ -86,10 +91,14 @@ def main():
                 for name, root in roots.items():
                     extra = f'public static int Added{sample}() => 3;' if edit == 'api' else ''
                     (root / 'P0/Code.cs').write_text(f'public class P0 {{ public static int Value() => {sample + 2}; {extra} }}')
-                    rows.append(dict(build(name), edit=edit))
+                    row = dict(build(name), edit=edit)
+                    if name == 'cached' and not args.conservative:
+                        assert row['misses'] == (1 if edit == 'body' else 2), row
+                    assert run(DOTNET, root / f'P{args.projects - 1}/bin/Release/net10.0/P{args.projects - 1}.dll').stdout.strip() == str(sample + 2)
+                    rows.append(row)
         medians = {edit: {name: statistics.median(r['wallSeconds'] for r in rows if r['edit'] == edit and r['engine'] == name)
                          for name in roots} for edit in ('body', 'api')}
-        print(json.dumps({'generated': args.generated, 'conservative': args.conservative, 'copyMode': args.copy_mode, 'projects': args.projects, 'samples': args.samples, 'medians': medians, 'runs': rows}, indent=2))
+        print(json.dumps({'generated': args.generated, 'conservative': args.conservative, 'copyMode': args.copy_mode, 'retainedState': args.retained_state, 'restoreIncluded': False, 'projects': args.projects, 'samples': args.samples, 'medians': medians, 'runs': rows}, indent=2))
 
 
 if __name__ == '__main__':
