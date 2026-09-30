@@ -233,13 +233,16 @@ checks and the existing replay/output-ownership experiments pass. No CI ran.
 The Linux test expansion exposed a language-dependent `Compile` placeholder on
 an SDK cross-targeting dispatcher. Sync now omits compiler items only when
 `IsCrossTargetingBuild=true` and no `CoreCompile` target exists. Configured inner
-nodes still declare and validate every compiler input. Other item kinds and
-reviewed custom-target inputs retain their checks.
+nodes still declare and validate every compiler input. Absent evaluated items
+under an outer dispatcher's intermediate directory are also omitted: these are
+inner-target output placeholders. Existing files, missing source files and
+explicit reviewed task inputs retain their checks.
 
 `python3 tests/graph_build/sync.py` passes on Linux ARM64, including a two-framework
 Build and rejection of a missing inner `Helper.cs`. This qualifies the generic
-correction, not the complete runtime test graph; its generated linker inputs
-still need reviewed producer ownership.
+correction, including an outer intermediate placeholder. The runtime test
+contract now synchronizes 42 configured nodes / 38 compilation nodes. Complete
+Build/replay and shared-binplace ownership for that expanded graph remain open.
 
 ## Timing checkpoint
 

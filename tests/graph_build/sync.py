@@ -74,6 +74,7 @@ def main():
         # Imported Compile placeholders must be checked by the inner builds.
         (multi / 'Directory.Build.targets').write_text('<Project><ItemGroup>'
             '<Compile Remove="Helper.cs" /><Compile Include="Helper$(DefaultLanguageSourceExtension)" />'
+            '<None Include="$(IntermediateOutputPath)outer-placeholder.txt" Condition="&apos;$(IsCrossTargetingBuild)&apos; == &apos;true&apos;" />'
             '</ItemGroup></Project>')
         (multi / 'Helper.cs').write_text('public class Helper {}')
         run(DOTNET, SYNC, multi, SDK / 'sdk/10.0.400', 'Library.csproj', '--graph')

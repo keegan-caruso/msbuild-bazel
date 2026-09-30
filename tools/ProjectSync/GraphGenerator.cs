@@ -201,6 +201,17 @@ internal static class GraphGenerator
                     {
                         throw new InvalidDataException("Graph item outside workspace: " + item.ItemType + " " + fullPath + " from " + item.Xml.ContainingProject.FullPath);
                     }
+                    // Reviewed targets can describe inner generated artifacts in
+                    // outer evaluation. The dispatcher's intermediate placeholder
+                    // has no producer; configured inner nodes own the real paths.
+                    var intermediate = project.GetPropertyValue("IntermediateOutputPath");
+                    if (!File.Exists(fullPath) && intermediate.Length != 0 &&
+                        project.GetPropertyValue("IsCrossTargetingBuild") == "true" && !project.Targets.ContainsKey("CoreCompile") &&
+                        fullPath.StartsWith(Path.TrimEndingDirectorySeparator(Path.GetFullPath(intermediate.Replace('\\', '/'),
+                            Path.GetDirectoryName(project.FullPath)!)) + Path.DirectorySeparatorChar, StringComparison.Ordinal))
+                    {
+                        continue;
+                    }
                     var relative = Relative(fullPath);
                     if (relative is ContractName or BuildName)
                     {
