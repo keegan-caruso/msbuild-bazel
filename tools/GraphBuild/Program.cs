@@ -53,6 +53,7 @@ System.Runtime.Loader.AssemblyLoadContext.Default.Resolving += (context, name) =
 Environment.SetEnvironmentVariable("MSBUILD_EXE_PATH", Path.Combine(sdk, "MSBuild.dll"));
 Environment.SetEnvironmentVariable("MSBuildSDKsPath", Path.Combine(sdk, "Sdks"));
 contract = GraphTools.Bind(contract, root, sdkRoot);
+GraphDirectories.Prepare(contract, contractFiles, create: args[0] is "action" or "prepare");
 if (args[0] == "prepare")
 {
     PreparedRestore.Create(contract, root, sdkRoot, cache ?? throw new InvalidDataException("Prepared output is required"));

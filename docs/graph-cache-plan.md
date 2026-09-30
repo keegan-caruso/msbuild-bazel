@@ -232,3 +232,14 @@ qualifying this workload; do not normalize these manifests. No production
 normalization or default change was made. Reports, exact contract and differing
 JSON remain in `/tmp/graph-roadmap-restore-timing`; completed output copies were
 removed to recover disk space.
+
+### Directory-existence follow-up
+
+Version-4 graph contracts can declare `InputDirectories`; graph sync mappings
+use `inputDirectories`. Presence is staged before Restore/evaluation and included
+in fingerprints. Files remain individually declared. The small Web SDK test
+passes raw/replay static-asset discovery parity, recreation after removal,
+contract-change invalidation, generated mappings, output/file/link rejection,
+and rejection when a target deletes the directory. The full Orchard follow-up
+is pending. This closes the representation gap without treating differing
+static-asset manifests as equivalent.

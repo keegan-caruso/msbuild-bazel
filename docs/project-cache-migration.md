@@ -902,3 +902,20 @@ executes one. These are small-fixture results. The initial full Orchard probe
 was slower and exposed an empty-directory discovery difference; see the
 [execution plan](graph-cache-plan.md). This is not yet an Orchard performance
 recommendation or a replacement for incomplete custom Restore contracts.
+
+### Directory existence inputs
+
+For targets that depend on an empty directory's existence, graph mappings accept
+`"inputDirectories": ["Web/wwwroot"]`. Paths are workspace-relative and must
+exist during sync. The generated version-4 contract records their presence;
+fresh actions recreate them before Restore/evaluation. Files beneath them still
+need normal explicit declarations. This is not a recursive directory input or
+a request to copy arbitrary contents.
+
+Directory declarations affect cache identity. Files, symlinks, reserved package
+and tool paths, and overlap with declared output trees are rejected. Final
+verification rejects target deletion of a declared directory. The Web SDK
+fixture `tests/graph_build/input_directories.py` compares static-asset discovery
+with raw MSBuild and fresh snapshot replay, including an empty `wwwroot`.
+Absent-directory conditions and arbitrary directory enumeration are not inferred;
+custom targets still need reviewed contracts.

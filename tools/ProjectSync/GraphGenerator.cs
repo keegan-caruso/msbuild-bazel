@@ -277,6 +277,15 @@ internal static class GraphGenerator
                 }
             }
         }
+        var inputDirectories = graph.ProjectNodes.SelectMany(node => mappings.ForProject(Relative(node.ProjectInstance.FullPath),
+            node.ProjectInstance.GetPropertyValue("TargetFramework")).InputDirectories).Select(WorkspaceView.Safe).Distinct().Order(StringComparer.Ordinal).ToArray();
+        foreach (var directory in inputDirectories)
+        {
+            if (!Directory.Exists(Path.Combine(root, directory)))
+            {
+                throw new InvalidDataException("Declared input directory must exist during sync: " + directory);
+            }
+        }
         var contractData = JsonSerializer.SerializeToNode(new
         {
             GeneratedBy = "ProjectSync --graph",
@@ -296,6 +305,11 @@ internal static class GraphGenerator
         if (restore is not null)
         {
             contractData["Restore"] = JsonSerializer.SerializeToNode(restore);
+        }
+        if (inputDirectories.Length != 0)
+        {
+            contractData["Version"] = 4;
+            contractData["InputDirectories"] = JsonSerializer.SerializeToNode(inputDirectories);
         }
         var contract = contractData.ToJsonString(new JsonSerializerOptions { WriteIndented = true }) + "\n";
         var sources = inputs.Values.SelectMany(files => files).Concat(shared).Concat(restore?.Inputs ?? []).Distinct().Order(StringComparer.Ordinal).ToArray();
