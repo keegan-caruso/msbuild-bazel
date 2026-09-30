@@ -179,7 +179,7 @@ runtime qualification and measurement, not repeating completed synthetic work.
 | Step | Current evidence | Remaining gate |
 | --- | --- | --- |
 | 1. Linux Pipelines | Implementation and test Build/replay/native parity pass on Linux ARM64, Bazel 8.8/9.2; 819/998 snapshot files | Broader runtime contracts |
-| 2. Incremental baseline | Older runtime probes and per-project comparisons exist | Matched graph-backend Linux body/API/no-op medians, including latest workers |
+| 2. Incremental baseline | Public Linux worker body/API/no-op medians and six/eleven compiler-call parity pass | Prepared Restore comparison and independent recovery |
 | 3. Larger scope | Per-project backend qualifies selected suites and 281 managed actions | Graph contracts and invalidation across the expanded scope |
 | 4. Removed work | Shared CAS, ownership/path reuse, shared evaluation context and read-only worker packages | Runtime phase profile; safe cross-request SDK/evaluation reuse and large-worker timing |
 | 5. Tests | Older source-only host: 118,952 passes / 64 skips | Graph-backed test builds/execution, source host and edit invalidation |
@@ -339,27 +339,67 @@ and worker/native Build/Publish parity. Owned .NET checks and pinned Buildifier
 checks pass. Scored runs keep profiling off; diagnostic compiler counts and
 phase profiles are collected separately.
 
-## Timing checkpoint
+## Linux Pipelines scorecard
 
-These are historical measurements, not timings of the latest worker candidate.
-The workloads, backends and platforms differ; do not compare their rows as a
-single optimization series.
+The public graph worker at production revision `129ce14` uses the reviewed
+Pipelines test graph: 42 configured nodes / 38 compiled nodes, including all
+five authored implementation/reference frameworks. Runtime v10.0.0, SDK
+10.0.400, Bazel 9.2.0, Linux ARM64, four CPUs, 8 GiB, four MSBuild nodes,
+shared compilation disabled. Prepared Restore and profiling are off.
 
-| Backend / scope | Case | Ours | Raw MSBuild | Interpretation |
-| --- | --- | ---: | ---: | --- |
-| Per-project, Linux managed runtime scope | Pipelines body edit | 2.081 s | 11.576 s | Three-sample medians; 5.56x faster |
-| Per-project, same scope | Pipelines API edit | 7.970 s | 13.945 s | Three-sample medians; 1.75x faster |
-| Per-project, memory-budgeted Linux runtime scope | Cold compilation | 301.83 s | 139.75 s | Single candidate; 2.16x slower; raw Restore adds 72.69 s separately |
-| Test-only graph probe, macOS Pipelines implementation | Body edit | 4.561 s | 4.360 s | Single runs; roughly 5% slower, not production graph rules |
-| Generic graph runner, macOS Pipelines implementation | Full local replay | 9.50 s | Not paired | All 30 configured hits; includes offline Restore and validation |
+Three alternating pairs preserve unchanged source timestamps and compare full
+Bazel wall time against warm raw graph-mode Build, excluding raw Restore:
 
-The generic graph's cold qualification took 114.77 s with other work running; it
-is not a scored cold benchmark. There is no matched runtime body/API or fresh
-remote timing for the latest generic worker. The immediate question is whether
-that model can retain the earlier per-project edit advantage while reducing
-cold-build overhead. Step 2 establishes that baseline; step 4 identifies work
-to remove. See [performance](performance.md#runtime-backend-comparison) and
-[the probe](runtime-project-cache-probe.md) for conditions.
+| Case | Graph median (range) | Raw median (range) | Reuse |
+| --- | ---: | ---: | --- |
+| No-op | 0.169 s (0.154–0.236) | 1.945 s (1.883–2.077) | Whole graph action hit |
+| Body | 23.318 s (22.355–26.009) | 17.281 s (15.572–17.387) | 32 hits / six rebuilds |
+| API | 27.912 s (27.593–29.092) | 21.058 s (20.800–21.961) | 27 hits / eleven rebuilds |
+| Fresh local outputs | 9.669 s | Not paired with warm raw | 38 project hits; three forced graph actions |
+| Cold compilation (one observation) | 114.088 s | 95.912 s Build + 1.638 s Restore | Zero hits / 38 rebuilds |
+
+Body/API are about 35%/33% slower than raw; the 20% target is not met.
+Cold has available SDK/packages, fresh outputs, empty project snapshots and
+warm Bazel repository/bootstrap state. It is about 19% above raw Build alone
+and 17% above Restore-plus-Build; acquisition is a separate setup cost.
+Each pair matches 412 persistent DLL/PDB/resource files byte for byte. Body
+changes implementation bytes and retains reference bytes; API changes both.
+The authored test consumer uses implementation references and must rebuild on
+body edits. Separate profiled binlogs confirm exactly six/eleven compiler calls
+for both engines. Bazel freezes tree-artifact modes to 0555; raw leaves 0644.
+Full worker/native correctness controls still compare all 998 snapshot files
+and modes across Bazel 8.8/9.2. Twenty PreTrim intermediates removed by ordinary
+raw no-op targets are excluded only from the persistent-product scorecard.
+
+Raw uses `runtime_raw.sh` for the same stable SDK/workspace namespace, because
+ILLink embeds intermediate PDB paths beyond compiler PathMap. No output bytes
+are normalized. These timings exclude acquisition/sync and bootstrap setup.
+At 250 ms sampling, scored VM memory used peaks near 1.90 GiB with at least
+5.98 GiB available; this is VM availability, not summed process RSS.
+
+The separate body diagnostic spends 4.12 s on Restore, 0.73 s evaluation,
+1.84 s initial hashing, 14.27 s execution and 0.80 s final verification.
+Worker staging is 0.51 s. Cumulative hashing reads 3.93 GB in 25,156 calls;
+operation totals overlap and are not additional wall segments. This points to
+repeated Restore and immutable SDK/package verification as candidates, rather
+than extra compilation. Prepared read-only packages remain unmeasured here.
+
+Reproduce after `runtime_prepare.py ... --entry
+src/libraries/System.IO.Pipelines/tests/System.IO.Pipelines.Tests.csproj`:
+
+```sh
+python3 tests/graph_build/upstream/runtime_benchmark.py WORKSPACE NEW_RESULTS \
+  --output-base NEW_BASE --samples 3 --diagnostics
+python3 tests/graph_build/upstream/runtime_cold.py WORKSPACE NEW_RESULTS \
+  --output-base NEW_BASE
+```
+
+Use the pinned Linux image and tool overrides from the preparation checkpoint.
+The first comparison accidentally rewrote an unchanged reference source and
+made raw compile five extra projects. It and incomplete/mismatched-path runs
+are excluded. Only the corrected complete series above is scored. Large logs,
+binlogs and memory samples stay in disposable results; older per-project and
+macOS probes remain in [performance](performance.md#runtime-backend-comparison).
 
 ## Historical report summary
 

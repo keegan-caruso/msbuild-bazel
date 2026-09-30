@@ -21,8 +21,13 @@ relocated project-cache replay through 128 projects. Managed property-bound tool
 closures, source-built analyzers and declared package SDK bootstrap pass focused macOS fixtures. The generated Orchard CMS contract
 builds all 202 projects and replays 16,250 snapshot files exactly. Avalonia.Controls
 also builds and replays its 11 configured builds. The runtime System.IO.Pipelines
-managed slice builds and replays 30 configured projects, including declared shared
-binplace outputs. Generated Publish and layout-provider extraction pass focused
+managed implementation slice builds and replays 30 compiled nodes; its Linux test
+consumer expands that to 38, with worker/native parity on Bazel 8.8/9.2 and
+998 matching snapshot files/modes. A partial-replay initial-target fix and explicit
+generator translations preserve equivalent raw compilation. The public Linux
+[scorecard](graph-cache-plan.md#linux-pipelines-scorecard) measures body/API overhead
+of about 35%/33%; graph mode remains opt-in. Generated Publish and layout-provider
+extraction pass focused
 public-rule tests. Reviewed dependency contracts now let package/custom-target
 graphs distinguish compiler references from analyzer/task implementations.
 Orchard's body-edit follow-up reuses 201 projects and rebuilds one, with exact

@@ -57,10 +57,36 @@ The [probe](runtime-project-cache-probe.md) edit numbers are single runs on a
 smaller managed graph, not production rule benchmarks. Generic replay has
 30 configured hits and includes offline Restore and input validation; see
 [its scope](project-cache-migration.md#runtime-contract-qualification).
-Its concurrent 114.77 s cold run is not a scored benchmark. **The latest generic
-worker has no paired runtime edit or fresh remote timing yet.** Measure those on
-Linux before choosing the next optimization; keep full Bazel/worker overhead in
-the scorecard. These different workloads are not an optimization series.
+Its concurrent 114.77 s cold run is not a scored benchmark. These different
+workloads are not an optimization series.
+
+### Public Linux graph worker
+
+The latest paired Pipelines test slice retains all authored frameworks and
+38 compiled nodes. Three-sample full Bazel wall-time medians:
+
+| Case | Graph worker | Raw graph MSBuild | Reuse |
+| --- | ---: | ---: | --- |
+| No-op | 0.169 s | 1.945 s | Whole graph action hit |
+| Body edit | 23.318 s | 17.281 s | 32 projects hit / six rebuilt |
+| API edit | 27.912 s | 21.058 s | 27 hit / eleven rebuilt |
+| Fresh local outputs | 9.669 s | Not paired with warm raw | 38 project hits |
+| Cold compilation (one observation) | 114.088 s | 95.912 s Build + 1.638 s Restore | Zero hits / 38 rebuilt |
+
+Linux ARM64, four CPUs/8 GiB, SDK 10.0.400, Bazel 9.2.0, four MSBuild nodes,
+shared compilation and profiling off. Raw retains warm outputs and excludes
+Restore; the graph includes ordinary offline Restore and all worker overhead.
+All pairs match 412 DLL/PDB/resource byte inventories. Separate diagnostics
+confirm the same six/eleven compiler calls on both sides. Body edits rebuild
+the authored implementation-reference test consumer.
+
+Cold starts with available SDK/packages and warm Bazel bootstrap state; it is
+about 17% above raw Restore-plus-Build. Body/API overhead is about 35%/33%,
+above the proposed 20% target. A separate
+body profile spends 4.12 s on Restore, 1.84 s initial hashing and 0.80 s final
+verification. Prepared Restore/read-only packages are the next measured candidate;
+independent remote runtime timing is still open. See the
+[scorecard, ranges and reproduction](graph-cache-plan.md#linux-pipelines-scorecard).
 
 ## Current graph-cache optimization checkpoint
 
