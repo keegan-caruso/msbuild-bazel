@@ -5,9 +5,9 @@ using Microsoft.Build.ProjectCache;
 using RulesMSBuild.GraphBuild;
 using RulesMSBuild.ProjectCache;
 
-if (args.Length < 4 || args[0] is not ("inspect" or "build" or "action"))
+if (args.Length < 4 || args[0] is not ("inspect" or "build" or "action" or "prepare"))
 {
-    Console.Error.WriteLine("Usage: GraphBuild inspect ROOT CONTRACT REPORT | build ROOT CONTRACT REPORT CACHE [TARGET] [no-read]");
+    Console.Error.WriteLine("Usage: GraphBuild inspect ROOT CONTRACT REPORT | prepare ROOT CONTRACT REPORT OUTPUT | build/action ROOT CONTRACT REPORT CACHE [TARGET] [no-read]");
     return 2;
 }
 var remoteUrl = Environment.GetEnvironmentVariable("RULES_MSBUILD_PROJECT_CACHE_URL");
@@ -15,6 +15,8 @@ var bearerToken = Environment.GetEnvironmentVariable("RULES_MSBUILD_PROJECT_CACH
 // Cache connection settings are transport state, not MSBuild evaluation inputs.
 Environment.SetEnvironmentVariable("RULES_MSBUILD_PROJECT_CACHE_URL", null);
 Environment.SetEnvironmentVariable("RULES_MSBUILD_PROJECT_CACHE_BEARER_TOKEN", null);
+var preparedPath = Environment.GetEnvironmentVariable("RULES_MSBUILD_GRAPH_PREPARED_RESTORE");
+Environment.SetEnvironmentVariable("RULES_MSBUILD_GRAPH_PREPARED_RESTORE", null);
 var profile = Environment.GetEnvironmentVariable("RULES_MSBUILD_GRAPH_PROFILE") == "1";
 Environment.SetEnvironmentVariable("RULES_MSBUILD_GRAPH_PROFILE", null);
 var copyMode = Environment.GetEnvironmentVariable("RULES_MSBUILD_GRAPH_COPY_MODE") ?? "copy";
@@ -51,13 +53,31 @@ System.Runtime.Loader.AssemblyLoadContext.Default.Resolving += (context, name) =
 Environment.SetEnvironmentVariable("MSBUILD_EXE_PATH", Path.Combine(sdk, "MSBuild.dll"));
 Environment.SetEnvironmentVariable("MSBuildSDKsPath", Path.Combine(sdk, "Sdks"));
 contract = GraphTools.Bind(contract, root, sdkRoot);
+if (args[0] == "prepare")
+{
+    PreparedRestore.Create(contract, root, sdkRoot, cache ?? throw new InvalidDataException("Prepared output is required"));
+    File.WriteAllText(report, JsonSerializer.Serialize(new
+    {
+        preparationSeconds = totalTimer.Elapsed.TotalSeconds
+    }));
+    return 0;
+}
+RestoredInputs? prepared = null;
 var restoreTimer = System.Diagnostics.Stopwatch.StartNew();
 if (args[0] == "action")
 {
-    contract = Restore.Run(contract, root, sdkRoot);
+    if (preparedPath is null)
+    {
+        contract = Restore.Run(contract, root, sdkRoot);
+    }
+    else
+    {
+        prepared = PreparedRestore.Apply(contract, root, sdkRoot, preparedPath);
+        contract = prepared.Contract;
+    }
 }
 restoreTimer.Stop();
-using var inputs = new GraphInputs(contract, root, sdkRoot, restored: args[0] == "action");
+using var inputs = new GraphInputs(contract, root, sdkRoot, restored: args[0] == "action", prepared: prepared);
 if (args[0] is "build" or "action")
 {
     var target = args.Length > 5 ? args[5] : "Build";
@@ -114,6 +134,7 @@ if (args[0] is "build" or "action")
         operations = GraphProfile.Report,
         remote = remote?.Report,
         restoreSeconds = restoreTimer.Elapsed.TotalSeconds,
+        preparedRestore = prepared is not null,
         executionSeconds,
         verificationSeconds = verificationTimer.Elapsed.TotalSeconds,
         snapshotSeconds = snapshotTimer.Elapsed.TotalSeconds,

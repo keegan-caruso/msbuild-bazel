@@ -42,7 +42,7 @@ internal sealed class GraphInputs : IDisposable
     }
     internal ProjectCollection Collection => collection;
 
-    internal GraphInputs(GraphContract contract, string root, string sdkRoot, bool restored = false)
+    internal GraphInputs(GraphContract contract, string root, string sdkRoot, bool restored = false, RestoredInputs? prepared = null)
     {
         var timer = System.Diagnostics.Stopwatch.StartNew();
         this.contract = contract;
@@ -105,10 +105,10 @@ internal sealed class GraphInputs : IDisposable
         timer.Restart();
         using (GraphProfile.Measure("sdkHash"))
         {
-            SdkDigest = ContractFiles.TreeDigest(sdkRoot);
+            SdkDigest = prepared?.SdkDigest ?? ContractFiles.TreeDigest(sdkRoot);
         }
         runnerDigest = ContractFiles.Digest(typeof(GraphInputs).Assembly.Location);
-        inputDigests = resolvedInputs.ToDictionary(pair => pair.Key, pair => ContractFiles.InputDigest(pair.Value), StringComparer.Ordinal);
+        inputDigests = resolvedInputs.ToDictionary(pair => pair.Key, pair => prepared?.Digests.GetValueOrDefault(pair.Key) ?? ContractFiles.InputDigest(pair.Value), StringComparer.Ordinal);
         sharedDigest = ContractFiles.Hash(contract.SharedInputs.Distinct().Order(StringComparer.Ordinal).Select(path => path + ":" + inputDigests[path]));
         baseFingerprints = [];
         dependencyFingerprints = [];

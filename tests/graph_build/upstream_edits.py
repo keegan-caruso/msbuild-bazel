@@ -38,6 +38,8 @@ def main():
     root = args.workspace.resolve()
     contract = json.loads(args.contract.read_text())
     args.results.mkdir(parents=True, exist_ok=True)
+    (args.results / "contract.json").write_bytes(args.contract.read_bytes())
+    (args.results / "edits.json").write_bytes(args.edits.read_bytes())
     declarations = [item for project in contract['Projects'].values()
                     for item in [project] + project.get('Configurations', [])]
     directories = {root / path for item in declarations for path in item['OutputDirectories']}

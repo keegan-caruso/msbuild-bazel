@@ -265,7 +265,19 @@ internal static class GraphGenerator
                 throw new InvalidDataException("Missing declared package task input: " + path);
             }
         }
-        var contract = JsonSerializer.Serialize(new
+        var restore = GraphRestoreGenerator.Create(graph, mappings, definitions.Keys, shared, Relative);
+        if (restore is not null)
+        {
+            shared = shared.Concat(restore.Inputs.Except(definitions.Keys)).Distinct().Order(StringComparer.Ordinal).ToArray();
+            foreach (var path in restore.Inputs)
+            {
+                if (!File.Exists(Path.Combine(root, path)))
+                {
+                    throw new InvalidDataException("Missing declared Restore input: " + path);
+                }
+            }
+        }
+        var contractData = JsonSerializer.SerializeToNode(new
         {
             GeneratedBy = "ProjectSync --graph",
             Version = graph.ProjectNodes.Select(node => mappings.ForProject(Relative(node.ProjectInstance.FullPath), node.ProjectInstance.GetPropertyValue("TargetFramework")))
@@ -280,8 +292,13 @@ internal static class GraphGenerator
             DefinitionDigests = definitions.Keys.Order(StringComparer.Ordinal).ToDictionary(path => path,
                 path => Convert.ToHexStringLower(System.Security.Cryptography.SHA256.HashData(File.ReadAllBytes(Path.Combine(root, path))))),
             Projects = declarations
-        }, new JsonSerializerOptions { WriteIndented = true }) + "\n";
-        var sources = inputs.Values.SelectMany(files => files).Concat(shared).Distinct().Order(StringComparer.Ordinal).ToArray();
+        })!;
+        if (restore is not null)
+        {
+            contractData["Restore"] = JsonSerializer.SerializeToNode(restore);
+        }
+        var contract = contractData.ToJsonString(new JsonSerializerOptions { WriteIndented = true }) + "\n";
+        var sources = inputs.Values.SelectMany(files => files).Concat(shared).Concat(restore?.Inputs ?? []).Distinct().Order(StringComparer.Ordinal).ToArray();
         var runtimeOutputs = graph.ProjectNodes.Where(node => node.ProjectInstance.GetPropertyValue("TargetPath").Length != 0 &&
             node.ProjectInstance.GetPropertyValue("TargetFramework").Length != 0).OrderBy(node => Key(node.ProjectInstance), StringComparer.Ordinal).ToDictionary(
             node => Relative(node.ProjectInstance.FullPath) + "|" + node.ProjectInstance.GetPropertyValue("TargetFramework"),
@@ -293,9 +310,17 @@ internal static class GraphGenerator
                 node => Relative(node.ProjectInstance.FullPath) + "|" + node.ProjectInstance.GetPropertyValue("TargetFramework"),
                 node => new[] { Relative(Path.TrimEndingDirectorySeparator(Path.GetFullPath(node.ProjectInstance.GetPropertyValue("PublishDir"), Path.GetDirectoryName(node.ProjectInstance.FullPath)!))),
                     Path.GetFileName(node.ProjectInstance.GetPropertyValue("TargetPath")), node.ProjectInstance.GetPropertyValue("OutputType") });
-        var text = Header + "load(\"@rules_msbuild//msbuild:defs.bzl\", \"msbuild_graph\", \"msbuild_graph_runner\")\n\n" +
+        var restoreRule = restore is null ? "" :
+            "    if not linux_stable_paths:\n        fail(\"Prepared Restore requires linux_stable_paths\")\n" +
+            "    msbuild_graph_restore(\n        name = name + \"_restore\",\n        runner = \":\" + name + \"_runner\",\n        contract = \"" + ContractName + "\",\n        linux_stable_paths = True,\n" +
+            "        srcs = " + StarlarkLiteral.Serialize(restore.Inputs.Where(path => view?.Labels.ContainsKey(path) != true && !path.StartsWith(".graph-tools/", StringComparison.Ordinal)).ToArray()) + ",\n" +
+            "        bindings = " + StarlarkLiteral.Serialize(view?.GraphBindingLabels ?? []) + ",\n" +
+            "        input_paths = " + StarlarkLiteral.Serialize(view?.Bindings(restore.Inputs) ?? []) + ",\n" +
+            (view?.DefaultPackageLock is null ? "" : "        package_lock = " + StarlarkLiteral.Serialize(view.DefaultPackageLock) + ",\n") + "    )\n";
+        var text = Header + "load(\"@rules_msbuild//msbuild:defs.bzl\", \"msbuild_graph\", \"msbuild_graph_runner\"" + (restore is null ? "" : ", \"msbuild_graph_restore\"") + ")\n\n" +
             "def app_graph(name = \"app\", linux_stable_paths = False, target = \"Build\"):\n    if native.package_name():\n        fail(\"app_graph must be called from the workspace root\")\n" +
-            "    msbuild_graph_runner(name = name + \"_runner\")\n    msbuild_graph(\n        name = name,\n        linux_stable_paths = linux_stable_paths,\n        target = target,\n        runner = \":\" + name + \"_runner\",\n" +
+            "    msbuild_graph_runner(name = name + \"_runner\")\n" + restoreRule + "    msbuild_graph(\n        name = name,\n        linux_stable_paths = linux_stable_paths,\n        target = target,\n        runner = \":\" + name + \"_runner\",\n" +
+            (restore is null ? "" : "        restore = \":\" + name + \"_restore\",\n") +
             "        contract = \"" + ContractName + "\",\n        srcs = " + StarlarkLiteral.Serialize(sources.Where(path => view?.Labels.ContainsKey(path) != true && !path.StartsWith(".graph-tools/", StringComparison.Ordinal)).ToArray()) + ",\n        bindings = " + StarlarkLiteral.Serialize(view?.GraphBindingLabels ?? []) + ",\n        input_paths = " + StarlarkLiteral.Serialize(view?.Bindings(sources) ?? []) + ",\n        project_outputs = " + StarlarkLiteral.Serialize(runtimeOutputs) + ",\n        publish_outputs = " + StarlarkLiteral.Serialize(publishOutputs) + ",\n" + (view?.DefaultPackageLock is null ? "" : "        package_lock = " + StarlarkLiteral.Serialize(view.DefaultPackageLock) + ",\n") + "    )\n";
         // Validate both destinations before replacing either generated file.
         Verify(ContractName, contract, "{\n  \"GeneratedBy\": \"ProjectSync --graph\",");

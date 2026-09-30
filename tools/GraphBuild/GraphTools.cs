@@ -47,7 +47,11 @@ internal static class GraphTools
         return contract with
         {
             Properties = properties,
-            SharedInputs = inputs.Order(StringComparer.Ordinal).ToArray()
+            SharedInputs = inputs.Order(StringComparer.Ordinal).ToArray(),
+            Restore = contract.Restore is null ? null : contract.Restore with
+            {
+                Inputs = contract.Restore.Inputs.Concat(inputs.Except(contract.SharedInputs)).Distinct().Order(StringComparer.Ordinal).ToArray()
+            }
         };
     }
 }

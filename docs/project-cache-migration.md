@@ -860,3 +860,45 @@ transitive content, dual-role sources and multi-targeting. The body and tool
 controls compare all captured outputs with independent cold builds. Existing
 `invalidation.py` and `replay.py` cover documentation copies, Publish and corrupt
 snapshots. These are local correctness checks, not remote-cache measurements.
+
+## Explicit graph Restore preparation
+
+Generated graphs can opt into a separate Bazel Restore action:
+
+```json
+{
+  "projectDefaults": {
+    "preparedRestore": true,
+    "restoreInputs": [],
+    "restoreOutputs": []
+  }
+}
+```
+
+Run graph sync with these mappings, then use
+`app_graph(name = "app", linux_stable_paths = True)`. The facade declares
+`msbuild_graph_restore` and supplies its artifact to `msbuild_graph`. Every
+configuration must opt in. The default still runs Restore inside the graph action.
+
+The generator includes project files, imports, shared inputs and standard NuGet
+outputs. Add any custom Restore inputs and outputs as workspace-relative paths.
+Opting in asserts that these lists are complete: custom targets that inspect
+source content, file existence or other files need those inputs declared too.
+Body edits reuse preparation only when they do not affect this Restore contract.
+Package, SDK, configuration, import and environment changes invalidate it.
+The public rule requires stable Linux paths because NuGet outputs contain paths.
+
+Preparation validates its input bytes and generated file set. Consumption checks
+SDK identity, input bytes, payload bytes and recorded executable permissions,
+rejects conflicts, then copies files into the action workspace. Bazel may
+normalize tree-artifact modes; the runner restores the recorded modes. It does
+not trust timestamps or borrow writable cache files. Final graph input
+verification still runs.
+
+`prepared_restore.py` and `prepared_restore_sync.py` cover reuse and rejection.
+`linux_prepared_restore.py --generated` checks the generated public rules under
+native Linux sandboxing: a body edit executes no Restore action; a props edit
+executes one. These are small-fixture results. The initial full Orchard probe
+was slower and exposed an empty-directory discovery difference; see the
+[execution plan](graph-cache-plan.md). This is not yet an Orchard performance
+recommendation or a replacement for incomplete custom Restore contracts.

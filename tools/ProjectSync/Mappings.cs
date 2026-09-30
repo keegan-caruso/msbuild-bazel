@@ -44,6 +44,8 @@ internal sealed class ProjectBinding
         get; set;
     }
     public string[] RestoreSourceInputs { get; set; } = [];
+    public string[] RestoreInputs { get; set; } = [];
+    public string[] RestoreOutputs { get; set; } = [];
     public bool ProfileBuild
     {
         get; set;
@@ -145,7 +147,7 @@ internal sealed class Mappings
         }
         foreach (var (project, binding) in mappings.Projects.Append(new KeyValuePair<string, ProjectBinding>("projectDefaults", mappings.ProjectDefaults)).SelectMany(p => p.Value.FrameworkOverrides.Select(v => new KeyValuePair<string, ProjectBinding>(p.Key + " [" + v.Key + "]", v.Value)).Prepend(p)))
         {
-            if (!graph && (binding.OutputFiles.Length != 0 || binding.ReferenceBoundary is not null || binding.ImplementationDependencies.Length != 0))
+            if (!graph && (binding.OutputFiles.Length != 0 || binding.ReferenceBoundary is not null || binding.ImplementationDependencies.Length != 0 || binding.RestoreInputs.Length != 0 || binding.RestoreOutputs.Length != 0))
             {
                 throw new InvalidDataException("outputFiles and dependency contracts require graph-mode sync");
             }
@@ -199,6 +201,14 @@ internal sealed class Mappings
             if (binding.OutputMode is not "sdk" and not "reference" and not "implementation")
             {
                 throw new InvalidDataException("Invalid output mode: " + project);
+            }
+            foreach (var input in binding.RestoreInputs.Concat(binding.RestoreOutputs))
+            {
+                WorkspaceView.Safe(input);
+            }
+            if ((binding.RestoreInputs.Length != 0 || binding.RestoreOutputs.Length != 0) && !binding.PreparedRestore)
+            {
+                throw new InvalidDataException("restoreInputs and restoreOutputs require preparedRestore: " + project);
             }
             if (binding.RestoreSourceInputs.Length != 0 && !binding.PreparedRestore)
             {

@@ -71,9 +71,10 @@ input verification or hide output differences to meet timing targets.
 
 ## Status
 
-Steps 1–4 are in progress. The plan and the profiling/benchmark controls are
-committed. Steps 3–10 remain open; candidate ownership indexing and native Linux
-sandbox qualification are being tested.
+Steps 1–2 have measured checkpoints. Steps 3–5 and 8 have partial
+implementation and qualification; steps 6–7 and 9–10 remain open. Ownership
+indexing and input-check improvements are committed and pushed. Prepared Restore
+is opt-in and has not passed the large-workload performance/parity gates.
 
 ### Measurement checkpoint
 
@@ -202,3 +203,32 @@ preparation design. Persistent cross-build digest reuse remains unqualified.
 bits, new ancestor symlinks and rejection of target input mutations before
 snapshot publication. The source/import, ownership, reviewed dependency,
 multi-target, replay and profiling tests also pass.
+
+### Prepared Restore qualification
+
+Added an opt-in declared Restore artifact and generated facade integration.
+Standalone and generated three-project fixtures pass body reuse, fresh output
+recovery, custom Restore data, package/configuration/environment invalidation,
+corruption rejection and rejection of unsafe absolute-path relocation.
+Native Linux ARM64 Bazel 9.2 execution logs show one Restore action for the seed,
+none for a body edit, and one after a props change; the app prints the expected
+value in each case. Bazel tree-input symlinks are resolved before the nested
+read-only mount, and normalized payload modes are restored from the manifest.
+
+The first three Orchard body samples measured 26.56 s median versus 13.19 s
+warm raw MSBuild. Applying and validating preparation took 13.40 s; evaluation
+4.17 s, remaining input hashing 2.15 s, execution 4.43 s and final verification
+2.32 s. Preparation itself took 22.52 s. Each sample had 201 hits/one miss.
+This is slower than the prior 21.04 s runner result. Repeated payload validation
+and existing-workspace checks outweigh the saved Restore work in this lane.
+The follow-up shares ancestor checks within each validation pass but has not
+been remeasured on Orchard.
+
+Three static-web-asset manifests differed. The fresh staging lacked the app's
+empty `wwwroot` directory; after raw execution it existed. The cached seed
+therefore omitted that discovery root. This is an input-discovery correctness
+limit, not harmless JSON noise. Declare and reproduce directory existence before
+qualifying this workload; do not normalize these manifests. No production
+normalization or default change was made. Reports, exact contract and differing
+JSON remain in `/tmp/graph-roadmap-restore-timing`; completed output copies were
+removed to recover disk space.

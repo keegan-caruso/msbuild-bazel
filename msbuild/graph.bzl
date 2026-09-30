@@ -42,15 +42,24 @@ msbuild_graph_runner = rule(
     toolchains = ["//msbuild:toolchain_type"],
 )
 
-def _graph(ctx):
+MSBuildGraphRestoreInfo = provider("An explicitly declared offline Restore artifact.", fields = ["directory", "contract", "runner", "sdk"])
+
+def _graph_action(ctx, prepare = False):
     tc = ctx.toolchains["//msbuild:toolchain_type"]
-    output = ctx.actions.declare_directory(ctx.label.name + ".graph")
+    output = ctx.actions.declare_directory(ctx.label.name + (".restore" if prepare else ".graph"))
     runner = ctx.attr.runner[DefaultInfo].files.to_list()
     if len(runner) != 1:
         fail("runner must provide one graph runner payload")
+    prepared = ctx.attr.restore[MSBuildGraphRestoreInfo] if ctx.attr.restore else None
+    if prepare and prepared:
+        fail("Restore preparation cannot consume another Restore artifact")
+    if (prepare or prepared) and not ctx.attr.linux_stable_paths:
+        fail("Prepared Restore requires linux_stable_paths for relocation")
+    if prepared and (prepared.contract != ctx.file.contract or prepared.runner != runner[0] or sorted([file.path for file in prepared.sdk.to_list()]) != sorted([file.path for file in tc.sdk.to_list()])):
+        fail("Prepared Restore must use the graph's contract, runner and SDK")
     prefix = ctx.attr.source_root + "/" if ctx.attr.source_root else ""
     args = ctx.actions.args()
-    args.add_all([tc.dotnet.path, runner[0].path, output.path, ctx.file.contract.path, ctx.attr.target, "1" if ctx.attr.linux_stable_paths else "0", ctx.file._linux_stable_paths.path])
+    args.add_all([tc.dotnet.path, runner[0].path, output.path, ctx.file.contract.path, ctx.attr.target, "1" if ctx.attr.linux_stable_paths else "0", ctx.file._linux_stable_paths.path, "prepare" if prepare else "action", prepared.directory.path if prepared else "-"])
     for file in ctx.files.srcs:
         if not file.short_path.startswith(prefix):
             fail("Graph source is outside source_root: " + file.short_path)
@@ -84,14 +93,15 @@ def _graph(ctx):
     for file in packages:
         args.add_all([file.path, ".package-source/" + file.basename])
     ctx.actions.run_shell(
-        inputs = depset(ctx.files.srcs + [file for target in ctx.attr.input_paths for file in target[DefaultInfo].files.to_list()] + packages + closures + [ctx.file.contract, runner[0], ctx.file._linux_stable_paths], transitive = [tc.sdk] + ([ctx.attr.package_lock[MSBuildPackageLockInfo].files] if ctx.attr.package_lock else [])),
+        inputs = depset(ctx.files.srcs + [file for target in ctx.attr.input_paths for file in target[DefaultInfo].files.to_list()] + packages + closures + ([prepared.directory] if prepared else []) + [ctx.file.contract, runner[0], ctx.file._linux_stable_paths], transitive = [tc.sdk] + ([ctx.attr.package_lock[MSBuildPackageLockInfo].files] if ctx.attr.package_lock else [])),
         tools = [tc.dotnet],
         outputs = [output],
         arguments = [args],
         env = {key: value for key, value in ctx.configuration.default_shell_env.items() if key.startswith("RULES_MSBUILD_PROJECT_CACHE_")},
         command = """set -eu
-dotnet="$PWD/$1"; runner="$PWD/$2"; output="$PWD/$3"; contract="$PWD/$4"; target="$5"; isolated="$6"; sandbox="$PWD/$7"
-shift 7
+dotnet="$PWD/$1"; runner="$PWD/$2"; output="$PWD/$3"; contract="$PWD/$4"; target="$5"; isolated="$6"; sandbox="$PWD/$7"; mode="$8"; prepared="$9"
+if test "$prepared" != -; then prepared="$PWD/$prepared"; fi
+shift 9
 scratch=$(mktemp -d)
 trap 'rm -rf "$scratch"' EXIT
 workspace="$output/workspace"
@@ -111,32 +121,50 @@ export DOTNET_ROOT="$(dirname "$dotnet")" DOTNET_CLI_HOME="$scratch" HOME="$scra
 export DOTNET_CLI_TELEMETRY_OPTOUT=1 DOTNET_SKIP_FIRST_TIME_EXPERIENCE=1 DOTNET_NOLOGO=1
 export MSBUILDDISABLENODEREUSE=1
 if test "$isolated" = 1; then
-    bash "$sandbox" "$(dirname "$dotnet")" "$runner" "$output" "$contract" "$scratch" "$target"
-    exit $?
+    bash "$sandbox" "$(dirname "$dotnet")" "$runner" "$output" "$contract" "$scratch" "$target" "$mode" "$prepared"
+    if test "$mode" = prepare; then rm -rf "$workspace"; rm -f "$output/report.json"; fi
+    exit 0
 fi
 "$dotnet" exec "$runner/GraphBuild.dll" action "$workspace" "$contract" "$output/report.json" "$scratch/cache" "$target"
 """,
-        mnemonic = "MSBuildGraph",
+        mnemonic = "MSBuildGraphRestore" if prepare else "MSBuildGraph",
     )
+    if prepare:
+        return [DefaultInfo(files = depset([output])), MSBuildGraphRestoreInfo(directory = output, contract = ctx.file.contract, runner = runner[0], sdk = tc.sdk)]
     return [DefaultInfo(files = depset([output])), MSBuildGraphInfo(directory = output, dotnet = tc.dotnet, sdk = tc.sdk, projects = ctx.attr.publish_outputs if ctx.attr.target == "Publish" else ctx.attr.project_outputs)]
+
+def _graph(ctx):
+    return _graph_action(ctx)
+
+def _restore(ctx):
+    return _graph_action(ctx, prepare = True)
+
+_GRAPH_ATTRS = {
+    "restore": attr.label(providers = [MSBuildGraphRestoreInfo]),
+    "contract": attr.label(allow_single_file = [".json"], mandatory = True),
+    "runner": attr.label(mandatory = True, cfg = "exec"),
+    "srcs": attr.label_list(allow_files = True, mandatory = True),
+    "bindings": attr.label_list(providers = [MSBuildBindingInfo], cfg = "exec"),
+    "input_paths": attr.label_keyed_string_dict(allow_files = True),
+    "packages": attr.label_list(allow_files = [".nupkg"]),
+    "package_lock": attr.label(providers = [MSBuildPackageLockInfo]),
+    "source_root": attr.string(),
+    "project_outputs": attr.string_list_dict(),
+    "publish_outputs": attr.string_list_dict(),
+    "linux_stable_paths": attr.bool(default = False, doc = "Use bubblewrap on Linux for stable graph paths; cache transport retains network access."),
+    "_linux_stable_paths": attr.label(default = "//msbuild:graph-sandbox.sh", allow_single_file = True),
+    "target": attr.string(default = "Build", values = ["Build", "Publish"]),
+}
 
 msbuild_graph = rule(
     implementation = _graph,
-    attrs = {
-        "contract": attr.label(allow_single_file = [".json"], mandatory = True),
-        "runner": attr.label(mandatory = True, cfg = "exec"),
-        "srcs": attr.label_list(allow_files = True, mandatory = True),
-        "bindings": attr.label_list(providers = [MSBuildBindingInfo], cfg = "exec"),
-        "input_paths": attr.label_keyed_string_dict(allow_files = True),
-        "packages": attr.label_list(allow_files = [".nupkg"]),
-        "package_lock": attr.label(providers = [MSBuildPackageLockInfo]),
-        "source_root": attr.string(),
-        "project_outputs": attr.string_list_dict(),
-        "publish_outputs": attr.string_list_dict(),
-        "linux_stable_paths": attr.bool(default = False, doc = "Use bubblewrap on Linux for stable graph paths; cache transport retains network access."),
-        "_linux_stable_paths": attr.label(default = "//msbuild:graph-sandbox.sh", allow_single_file = True),
-        "target": attr.string(default = "Build", values = ["Build", "Publish"]),
-    },
+    attrs = _GRAPH_ATTRS,
+    toolchains = ["//msbuild:toolchain_type"],
+)
+
+msbuild_graph_restore = rule(
+    implementation = _restore,
+    attrs = _GRAPH_ATTRS,
     toolchains = ["//msbuild:toolchain_type"],
 )
 
