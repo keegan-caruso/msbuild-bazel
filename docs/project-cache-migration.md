@@ -662,7 +662,7 @@ contracts for the inspected snapshots, not general exceptions for those projects
 | --- | --- |
 | Orchard CMS Web at `04467a3438d4255627c1a478598a1585b3ff2947`, net10.0 | Generated contract builds all 202 projects from 9,546 project inputs and 347 declared package archives, including SourceGenerators and Razor modules. Requires the reviewed Orchard mapping and `RestoreUseStaticGraphEvaluation=false` (static-graph Restore fails in this snapshot). |
 | Avalonia.Controls, net8.0 | Generated build passes with 105 declared archives and the signing key: 7 projects, 11 built configurations. Clean-output replay hits all 11; all 174 snapshot files match. This covers Controls and its dependencies, not the full Avalonia repository. |
-| System.IO.Pipelines, net10.0 | Offline Restore passes with 86 declared archives, including the compiler and Arcade SDK. Sync stops at the reviewed-document gate for `src/libraries/Directory.Build.targets`. Runtime target inputs and outputs copied into shared runtime/targeting-pack directories still need contract work; no complete graph build claimed. |
+| System.IO.Pipelines, net10.0 | Generated Build and same-path replay pass with 86 declared archives, 30 configured projects and 831 captured output files, including 108 shared binplace files. This is the bounded macOS ARM64 managed slice; native host, full runtime and cross-path replay remain open. |
 
 Orchard sync command, with an input manifest mapping exact cached package
 identities to archives and a disposable source checkout:
@@ -752,3 +752,13 @@ bash scripts/check-dotnet.sh
 The Framework fixture needs the declared ReferenceAssemblies and net462 packages
 at version 1.0.3. The out-of-process task check qualifies the graph rule; the
 legacy rule's task-host launcher still fails this case.
+
+Runtime output replay passed at revision `60629d14374c56f1cb51819049ad1fa529307f8d`: all 30
+configured projects hit and all 831 captured files matched, including 108 shared
+binplace files. Replay took 9.50 seconds including offline Restore and input
+validation. The concurrent cold qualification took 114.77 seconds; these are
+single local runs, not paired performance measurements. Reproduce the reviewed
+macOS ARM64/net10.0 mapping with
+`python3 tests/graph_build/upstream/runtime_contract.py "$MAPPING"`, then use the
+package-build sync and `replay_outputs.py --seed` flow above. The output fixture
+is specific to this revision, platform and entry point.

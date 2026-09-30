@@ -3,6 +3,7 @@
 import json
 from pathlib import Path
 import shutil
+import sys
 import tempfile
 
 from qualify import DOTNET, ROOT, RUNNER, SDK, run
@@ -22,9 +23,11 @@ def main():
         def code(value):
             return 'using Microsoft.CodeAnalysis; [Generator] public class Generate : ISourceGenerator { public void Initialize(GeneratorInitializationContext context) {} public void Execute(GeneratorExecutionContext context) { context.AddSource("Value.g.cs", "public static class Value { public static int Number => ' + str(value) + '; }"); }}'
         generator.write_text(code(1))
-        (root / 'App/App.csproj').write_text(project.format('<OutputType>Exe</OutputType>', '<ItemGroup>'
-            '<ProjectReference Include="../Generator/Generator.csproj" ReferenceOutputAssembly="false" />'
-            '<Analyzer Include="../Generator/bin/Release/net10.0/Generator.dll" /></ItemGroup>'))
+        (root / 'App/App.csproj').write_text(project.format('<OutputType>Exe</OutputType>', '<ItemGroup>' +
+            ('<ProjectReference Include="../Generator/Generator.csproj" ReferenceOutputAssembly="false" OutputItemType="Analyzer" /></ItemGroup>'
+             if '--project-reference' in sys.argv else
+             '<ProjectReference Include="../Generator/Generator.csproj" ReferenceOutputAssembly="false" />'
+             '<Analyzer Include="../Generator/bin/Release/net10.0/Generator.dll" /></ItemGroup>')))
         (root / 'App/Code.cs').write_text('System.Console.WriteLine(Value.Number);')
         sync = [DOTNET, ROOT / 'tools/ProjectSync/bin/Release/net10.0/ProjectSync.dll', root, SDK / 'sdk/10.0.400', 'App/App.csproj', '--graph']
         run(*sync)
