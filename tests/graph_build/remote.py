@@ -74,6 +74,7 @@ def main():
     thread.start()
     ENV['RULES_MSBUILD_PROJECT_CACHE_URL'] = f'http://127.0.0.1:{server.server_port}'
     ENV['RULES_MSBUILD_PROJECT_CACHE_BEARER_TOKEN'] = 'fixture-token'
+    ENV['RULES_MSBUILD_GRAPH_PROFILE'] = '1'
     try:
         with tempfile.TemporaryDirectory(prefix='graph-transport-') as temporary:
             work = Path(temporary).resolve()
@@ -93,9 +94,14 @@ def main():
                 result = run(DOTNET, RUNNER, 'build', root, manifest, report, cache, success=success)
                 return json.loads(report.read_text()) if success else result.stderr
 
-            assert build()['hits'] == 0
+            seed = build()
+            assert seed['hits'] == 0
+            assert seed['remote']['uploadBytes'] > 0 and seed['remote']['uploads'] > 0, seed
             assert Cache.retries == 2
-            assert build()['hits'] == 3
+            replay = build()
+            assert replay['hits'] == 3
+            assert replay['remote']['downloadBytes'] > 0 and replay['remote']['downloads'] > 0, replay
+            assert replay['remote']['uploadBytes'] == 0, replay
             assert Cache.peak > 1
             # Eviction must become a miss and a successful rebuild must repair it.
             missing = next(key for key, value in Cache.blobs.items() if key.startswith('/cas/') and value[:2] == b'MZ')

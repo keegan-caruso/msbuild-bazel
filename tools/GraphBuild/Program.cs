@@ -80,7 +80,7 @@ if (args[0] is "build" or "action")
         }
     }
     var timer = System.Diagnostics.Stopwatch.StartNew();
-    using var remote = remoteUrl is null ? null : new RemoteSnapshotStore(new Uri(remoteUrl.TrimEnd('/') + "/"), bearerToken: bearerToken);
+    using var remote = remoteUrl is null ? null : new RemoteSnapshotStore(new Uri(remoteUrl.TrimEnd('/') + "/"), bearerToken: bearerToken, profile: profile);
     var materializer = new FileMaterializer(copyMode == "clone", profile);
     var plugin = new GraphCache(inputs, cache ?? throw new InvalidDataException("Cache directory is required"), args.Length < 7 || args[6] != "no-read", remote, materializer);
     var parameters = new BuildParameters(inputs.Collection)
@@ -112,6 +112,7 @@ if (args[0] is "build" or "action")
     {
         materialization = materializer.Report,
         operations = GraphProfile.Report,
+        remote = remote?.Report,
         restoreSeconds = restoreTimer.Elapsed.TotalSeconds,
         executionSeconds,
         verificationSeconds = verificationTimer.Elapsed.TotalSeconds,

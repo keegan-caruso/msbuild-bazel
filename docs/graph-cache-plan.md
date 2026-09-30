@@ -80,6 +80,10 @@ sandbox qualification are being tested.
 - Added opt-in operation totals and separate restore, execution, input verification
   and snapshot-save wall timers. Operation totals overlap across threads/nesting.
 - `profiling.py` passes: off by default, unchanged cache identity and output bytes.
+- Remote profiling reports acknowledged upload and downloaded CAS payload bytes
+  and operation counts, including manifests. These exclude HTTP framing and
+  retry traffic. `remote.py` passes the counters plus authentication, transient
+  retries, parallel transfers, eviction repair and corruption rejection.
 - `benchmark_lanes.py` passes warm/local, cold/empty and fresh HTTP-cache lanes,
   explicit restore timing, distinct repeated edits and exact synthetic parity.
 - Three paired Orchard samples completed. Median runner/raw times are

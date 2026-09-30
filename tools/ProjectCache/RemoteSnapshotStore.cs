@@ -8,8 +8,16 @@ namespace RulesMSBuild.ProjectCache;
 // A project fingerprint is an action-cache key; the manifest and files live in
 // the CAS. This uses the same HTTP cache protocol as Bazel, but keeps a separate
 // key domain so Bazel cannot mistake a project snapshot for one of its actions.
-public sealed class RemoteSnapshotStore(Uri endpoint, int parallelism = 8, string? bearerToken = null) : IDisposable
+public sealed class RemoteSnapshotStore(Uri endpoint, int parallelism = 8, string? bearerToken = null, bool profile = false) : IDisposable
 {
+    private long downloadBytes;
+    private long uploadBytes;
+    private long downloads;
+    private long uploads;
+    // Successful logical payloads, including manifests; excludes retry traffic
+    // and HTTP framing. This is not a wire-level network byte measurement.
+    public object? Report => profile ? new { downloadBytes, uploadBytes, downloads, uploads } : null;
+
     private readonly HttpClient client = CreateClient(endpoint, bearerToken);
     private readonly ParallelOptions transfers = new() { MaxDegreeOfParallelism = Math.Clamp(parallelism, 1, 32) };
     private readonly System.Collections.Concurrent.ConcurrentDictionary<string, byte> uploaded = new(StringComparer.Ordinal);
@@ -164,6 +172,11 @@ public sealed class RemoteSnapshotStore(Uri endpoint, int parallelism = 8, strin
         using var response = await SendAsync(() => new HttpRequestMessage(HttpMethod.Get, "cas/" + digest), cancellationToken);
         response.EnsureSuccessStatusCode();
         var bytes = await response.Content.ReadAsByteArrayAsync(cancellationToken);
+        if (profile)
+        {
+            Interlocked.Add(ref downloadBytes, bytes.Length);
+            Interlocked.Increment(ref downloads);
+        }
         if (Digest(bytes) != digest)
         {
             throw new InvalidDataException("Corrupt project-cache blob: " + digest);
@@ -180,6 +193,11 @@ public sealed class RemoteSnapshotStore(Uri endpoint, int parallelism = 8, strin
             return request;
         }, cancellationToken);
         response.EnsureSuccessStatusCode();
+        if (profile)
+        {
+            Interlocked.Add(ref uploadBytes, bytes.Length);
+            Interlocked.Increment(ref uploads);
+        }
     }
 
     private async Task<HttpResponseMessage> SendAsync(Func<HttpRequestMessage> create, CancellationToken cancellationToken)
