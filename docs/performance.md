@@ -1,7 +1,7 @@
 # Performance
 
 No-op builds, method-body edits and remote-cache recovery are the strongest
-measured cases. **Cold builds and broad API edits remain slower than raw MSBuild.**
+measured cases. **Cold builds and larger-graph API edits remain the main gaps.**
 Body and API edits are the primary scorecard; there is no single overall speedup.
 
 These results come from pinned workloads; they do not measure every commit on
@@ -62,30 +62,38 @@ workloads are not an optimization series.
 
 ### Public Linux graph worker
 
-The latest paired Pipelines test slice retains all authored frameworks and
+The prepared-Restore Pipelines test slice retains all authored frameworks and
 38 compiled nodes. Three-sample full Bazel wall-time medians:
 
-| Case | Graph worker | Raw graph MSBuild | Reuse |
+| Case | Prepared graph worker | Paired raw graph MSBuild | Reuse |
 | --- | ---: | ---: | --- |
-| No-op | 0.169 s | 1.945 s | Whole graph action hit |
-| Body edit | 23.318 s | 17.281 s | 32 projects hit / six rebuilt |
-| API edit | 27.912 s | 21.058 s | 27 hit / eleven rebuilt |
-| Fresh local outputs | 9.669 s | Not paired with warm raw | 38 project hits |
-| Cold compilation (one observation) | 114.088 s | 95.912 s Build + 1.638 s Restore | Zero hits / 38 rebuilt |
+| No-op | 0.122 s | 1.811 s | Whole graph action hit |
+| Body edit | 17.823 s | 14.846 s | 32 projects hit / six rebuilt |
+| API edit | 22.124 s | 22.125 s | 27 hit / eleven rebuilt |
+| Fresh local outputs | 4.023 s | Not paired with warm raw | 38 project hits |
 
 Linux ARM64, four CPUs/8 GiB, SDK 10.0.400, Bazel 9.2.0, four MSBuild nodes,
 shared compilation and profiling off. Raw retains warm outputs and excludes
-Restore; the graph includes ordinary offline Restore and all worker overhead.
+Restore; the graph includes preparation application and all worker overhead.
 All pairs match 412 DLL/PDB/resource byte inventories. Separate diagnostics
 confirm the same six/eleven compiler calls on both sides. Body edits rebuild
 the authored implementation-reference test consumer.
 
-Cold starts with available SDK/packages and warm Bazel bootstrap state; it is
-about 17% above raw Restore-plus-Build. Body/API overhead is about 35%/33%,
-above the proposed 20% target. A separate
-body profile spends 4.12 s on Restore, 1.84 s initial hashing and 0.80 s final
-verification. Prepared Restore/read-only packages are the next measured candidate;
-independent remote runtime timing is still open. See the
+Body overhead is about 20%; API is effectively equal to raw. A separate body
+profile spends 1.87 s applying preparation, 0.39 s initial hashing and 0.10 s
+final verification. Read-only prepared packages remove copying and the final
+package rehash; SDK/package validation remains. The earlier ordinary-Restore
+series measured body 23.318 s versus 17.281 s raw, API 27.912 s versus
+21.058 s, and recovery 9.669 s. Raw timings also vary; assess each candidate
+against its paired control rather than attributing the entire reduction to code.
+
+One ordinary-Restore cold observation is 114.088 s versus 95.912 s raw Build
+plus 1.638 s Restore (about 17% overhead), with SDK/packages and Bazel bootstrap
+already available. The first prepared cold observation regresses to 184.683 s
+versus raw 106.393 s Build plus 1.635 s Restore (about 71% workflow overhead).
+Repeated cold controls are pending; the faster profiled diagnostic is not scored.
+Prepared Restore remains opt-in; larger graphs and independent
+remote runtime timing are still open. See the
 [scorecard, ranges and reproduction](graph-cache-plan.md#linux-pipelines-scorecard).
 
 ## Current graph-cache optimization checkpoint

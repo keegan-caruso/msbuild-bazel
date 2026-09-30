@@ -26,7 +26,7 @@ consumer expands that to 38, with worker/native parity on Bazel 8.8/9.2 and
 998 matching snapshot files/modes. A partial-replay initial-target fix and explicit
 generator translations preserve equivalent raw compilation. The public Linux
 [scorecard](graph-cache-plan.md#linux-pipelines-scorecard) measures body/API overhead
-of about 35%/33%; graph mode remains opt-in. Generated Publish and layout-provider
+of about 20%/0% with read-only prepared packages; graph mode remains opt-in. Generated Publish and layout-provider
 extraction pass focused
 public-rule tests. Reviewed dependency contracts now let package/custom-target
 graphs distinguish compiler references from analyzer/task implementations.

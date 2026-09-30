@@ -179,7 +179,7 @@ runtime qualification and measurement, not repeating completed synthetic work.
 | Step | Current evidence | Remaining gate |
 | --- | --- | --- |
 | 1. Linux Pipelines | Implementation and test Build/replay/native parity pass on Linux ARM64, Bazel 8.8/9.2; 819/998 snapshot files | Broader runtime contracts |
-| 2. Incremental baseline | Public Linux worker body/API/no-op medians and six/eleven compiler-call parity pass | Prepared Restore comparison and independent recovery |
+| 2. Incremental baseline | Ordinary and prepared Linux worker medians, output parity and six/eleven compiler calls pass | Independent recovery and larger edit matrix |
 | 3. Larger scope | Per-project backend qualifies selected suites and 281 managed actions | Graph contracts and invalidation across the expanded scope |
 | 4. Removed work | Shared CAS, ownership/path reuse, shared evaluation context and read-only worker packages | Runtime phase profile; safe cross-request SDK/evaluation reuse and large-worker timing |
 | 5. Tests | Older source-only host: 118,952 passes / 64 skips | Graph-backed test builds/execution, source host and edit invalidation |
@@ -189,7 +189,8 @@ runtime qualification and measurement, not repeating completed synthetic work.
 
 The worker still starts a fresh MSBuild child per request. Read-only preparation
 avoids package copying and final package rehash, but each child still validates
-SDK/package bytes. No large-runtime timing establishes the benefit yet.
+SDK/package bytes. The bounded Linux scorecard measures this option; larger
+graphs and runtime-host qualification remain open.
 The completed disk cleanup removed older qualification containers after preserving
 compact reports; recreate only the workers needed for the selected milestone.
 
@@ -250,7 +251,7 @@ then `runtime_qualify.py WORKSPACE NEW_RESULTS --output-base NEW_BASE` under the
 pinned Linux ARM64 image. Raw uses `runtime_raw.sh` for matching internal paths.
 The qualification harness stops completed Bazel servers to bound VM memory.
 These are correctness controls, not scored cold-build medians. CI was not run.
-The matched body/API/cold scorecard and independent consumer remain pending.
+The paired scorecard below covers body/API/cold; independent recovery remains pending.
 
 ## Linux implementation checkpoint
 
@@ -373,7 +374,8 @@ raw no-op targets are excluded only from the persistent-product scorecard.
 
 Raw uses `runtime_raw.sh` for the same stable SDK/workspace namespace, because
 ILLink embeds intermediate PDB paths beyond compiler PathMap. No output bytes
-are normalized. These timings exclude acquisition/sync and bootstrap setup.
+are normalized. These timings exclude acquisition/sync and bootstrap setup. Add
+`--prepared-restore` to preparation to reproduce the later candidate.
 At 250 ms sampling, scored VM memory used peaks near 1.90 GiB with at least
 5.98 GiB available; this is VM availability, not summed process RSS.
 
@@ -382,7 +384,41 @@ The separate body diagnostic spends 4.12 s on Restore, 0.73 s evaluation,
 Worker staging is 0.51 s. Cumulative hashing reads 3.93 GB in 25,156 calls;
 operation totals overlap and are not additional wall segments. This points to
 repeated Restore and immutable SDK/package verification as candidates, rather
-than extra compilation. Prepared read-only packages remain unmeasured here.
+than extra compilation. Prepared read-only packages remove repeated Restore and final package rehash.
+The later candidate at production revision `369aab0` uses the same scope,
+resources and harness, with three new alternating pairs:
+
+| Prepared case | Graph median (range) | Paired raw median (range) |
+| --- | ---: | ---: |
+| No-op | 0.122 s (0.112–0.199) | 1.811 s (1.798–1.891) |
+| Body | 17.823 s (16.724–20.564) | 14.846 s (14.698–17.446) |
+| API | 22.124 s (21.567–22.640) | 22.125 s (20.849–22.320) |
+| Fresh local outputs | 4.023 s | Not paired with warm raw |
+
+All pairs still match 412 compiled products; separate diagnostics retain six/
+eleven compiler calls for both engines and the same 32/27 hits. Body overhead
+is about 20%; API is effectively equal to raw. Graph body/API medians fall
+about 24%/21% from ordinary Restore, but raw body timing also varies between
+series; use each candidate's paired raw comparison. This is a bounded slice,
+not a larger-graph or default-switch gate.
+
+The first unprofiled prepared cold observation is 184.683 s versus raw
+106.393 s Build plus 1.635 s Restore: about 71% workflow overhead, despite
+matching all 412 products. A separate diagnostic is 129.013 s versus raw
+100.095 s Build plus 1.773 s Restore. Both engines invoke Csc 77 times across
+38 projects, including 13 translated satellite compilations for each of three
+generators. Diagnostic graph execution is 101.34 s; worker staging adds 4.35 s.
+The diagnostic also rebuilds preparation after changing profiling mode. It is
+excluded from scored timings. Repeat unprofiled cold observations and record
+preparation action counts before attributing the variation or accepting this
+candidate for cold builds. Warm results do not close that gate.
+
+The prepared body diagnostic spends 1.87 s applying preparation, 0.84 s
+on evaluation, 0.39 s initial hashing, 14.35 s execution and 0.10 s final
+verification. Worker staging is 0.32 s. Cumulative hashing falls from
+3.93 GB/25,156 calls to 2.60 GB/18,988 calls; SDK/package bytes are still
+validated. Scored VM memory used peaks near 1.95 GiB. No-op differences between
+series are too small to attribute to preparation.
 
 That candidate exposed a generic package-SDK preparation bug: bootstrap selected
 `NUGET_PACKAGES` after the environment had been fingerprinted. The runner now
@@ -399,7 +435,7 @@ contract for every configured node. The prepared Pipelines fixture passes seed
 across Bazel 8.8/9.2. Workers use read-only prepared packages; native rules copy
 them into the owned workspace. The qualifier now sets `linux_worker=False` for
 native controls, since changing only Bazel's strategy still invokes the worker
-adapter for a single request. Timed candidate comparison is the remaining gate.
+adapter for a single request. The paired candidate comparison above passes compiled-byte and compiler-count controls; broader qualification remains open.
 
 Reproduce after `runtime_prepare.py ... --entry
 src/libraries/System.IO.Pipelines/tests/System.IO.Pipelines.Tests.csproj`:
