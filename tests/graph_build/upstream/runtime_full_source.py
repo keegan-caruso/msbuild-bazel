@@ -24,12 +24,13 @@ def main():
     parser.add_argument('source_archive', type=Path)
     parser.add_argument('workspace', type=Path, help='completed runtime_qualify.py workspace')
     parser.add_argument('results', type=Path, help='new disposable directory')
+    parser.add_argument('--inventory-only', action='store_true', help='raw Build and target-derived binplace inventory before graph qualification')
     args = parser.parse_args()
     assert os.uname().sysname == 'Linux' and os.uname().machine == 'aarch64'
     assert hashlib.sha256(args.source_archive.read_bytes()).hexdigest() == SOURCE_SHA256
     root, results = args.workspace.resolve(), args.results.resolve()
     assert not results.is_relative_to(root) and not root.is_relative_to(results)
-    expected = (root / 'bazel-bin/graph.graph/workspace').resolve(strict=True)
+    expected = None if args.inventory_only else (root / 'bazel-bin/graph.graph/workspace').resolve(strict=True)
     results.mkdir(parents=True, exist_ok=False)
     with tarfile.open(args.source_archive) as archive:
         archive.extractall(results, filter='data')
@@ -66,6 +67,15 @@ def main():
         run(host + ['restore', stable + '/' + entry, '--configfile', stable + '/NuGet.Config', '--source', stable + '/.package-source', '--packages', stable + '/.nuget', '-p:NuGetAudit=false', '-p:NetCoreSdkRoot=' + stable_sdk + '/sdk/' + contract['SdkVersion'], *properties], 'restore-' + str(index), raw)
     run(host + [stable + '/.qualification/Raw.dll', stable, stable + '/graph.generated.json', 'build'], 'raw-build', raw)
     variants = [v for p in contract['Projects'].values() for v in p.get('Configurations') or [p]]
+    if args.inventory_only:
+        run(host + [stable + '/.qualification/Raw.dll', stable, stable + '/graph.generated.json', 'binplace', stable + '/.qualification/binplace.json'], 'binplace', raw)
+        shutil.copyfile(raw / '.qualification/binplace.json', results / 'binplace.json')
+        inventory = json.loads((results / 'binplace.json').read_text())
+        print(json.dumps(dict(commit=COMMIT, sourceSha256=SOURCE_SHA256, configuredNodes=len(variants),
+                              projects=len(contract['Projects']), producerConfigurations=sum(len(v) for v in inventory.values()),
+                              sharedFiles=sum(len(paths) for v in inventory.values() for paths in v.values()),
+                              scope='raw Build and SDK BinPlace ownership; not graph parity or scored timing')), flush=True)
+        return
     directories = {p for v in variants for p in v['OutputDirectories']}
     files = {p for v in variants for p in v.get('OutputFiles', [])}
 

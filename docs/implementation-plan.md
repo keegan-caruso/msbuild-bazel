@@ -28,6 +28,10 @@ generator translations preserve equivalent raw compilation. The selected
 Collections, Immutable and LINQ test roots expand to 55 compiled projects and
 1,483 snapshot files, with 615 compiled-product files matching a complete-source
 raw Build. See the [collections checkpoint](graph-cache-plan.md#collections-graph-checkpoint).
+The selected threading test compilation also passes worker/replay/native parity
+on both baselines: six compilation nodes, 292 snapshot files and 170 compiled
+products matching complete-source raw Build. It does not build or execute a
+source threading host. See the [threading checkpoint](graph-cache-plan.md#threading-compilation-checkpoint).
 The collections paired body/API medians have about 3% overhead / 9% advantage
 versus raw graph MSBuild. The public Linux
 [scorecard](graph-cache-plan.md#linux-pipelines-scorecard) measures body/API overhead

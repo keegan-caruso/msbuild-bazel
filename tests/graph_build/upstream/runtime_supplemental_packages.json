@@ -3,5 +3,15 @@
     "sha256": "d9ab4a610348d7cbeba72d8306a8241e5c246552dd99f2876dffedeada7f9ca1",
     "url": "https://api.nuget.org/v3-flatcontainer/system.runtime.serialization.formatters/9.0.0/system.runtime.serialization.formatters.9.0.0.nupkg",
     "reason": "SDK API compatibility baseline used by the collections graph"
+  },
+  "microsoft.dotnet.remoteexecutor/10.0.0-beta.25509.106": {
+    "sha256": "6afa1d4b948639aa3ea1403941aed25914dc8308dc0af5f55062af097e16e79e",
+    "url": "https://pkgs.dev.azure.com/dnceng/9ee6d478-d288-47f7-aacc-f6e6d082ae6d/_packaging/1a5f89f6-d8da-4080-b15f-242650c914a8/nuget/v3/flat2/microsoft.dotnet.remoteexecutor/10.0.0-beta.25509.106/microsoft.dotnet.remoteexecutor.10.0.0-beta.25509.106.nupkg",
+    "reason": "Pinned upstream helper used by threading and process-isolation tests"
+  },
+  "microsoft.diagnostics.runtime/1.0.5": {
+    "sha256": "60cf91928601c9f611d1eeb158f5a44760babf65f5364762756dd41e763701dd",
+    "url": "https://api.nuget.org/v3-flatcontainer/microsoft.diagnostics.runtime/1.0.5/microsoft.diagnostics.runtime.1.0.5.nupkg",
+    "reason": "Pinned RemoteExecutor dependency"
   }
 }

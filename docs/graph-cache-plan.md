@@ -759,3 +759,25 @@ Raw uses `RuntimeRawGraph.cs.txt` for combined roots; optional binlogs are only
 used for diagnostics. This qualifies a selected managed build, not source-host
 test execution, native construction, independent collections recovery or x86-64.
 CI was not run.
+
+## Threading compilation checkpoint
+
+Both reviewed threading test roots build from the pinned source and an offline
+89-archive feed. RemoteExecutor 10.0.0-beta.25509.106 and its ClrMD 1.0.5
+dependency are hash-pinned; their versions come from upstream declarations.
+The existing SDK-derived shared-output map covers all 15 shared files.
+
+This slice has five project files, seven configured nodes and six compilation
+nodes. Its tests use installed framework references: it does not build a
+source threading runtime. All six worker/replay/native controls pass on Bazel
+8.8/9.2, comparing 292 snapshot files/bytes/modes. All 170 DLL/PDB/resource
+files match a raw Build from the complete upstream source. Test execution and
+source-host composition remain open; these controls are not scored timings.
+
+Reproduce with `runtime_prepare.py SOURCE FEED THREADING --slice threading
+--prepared-restore`, then `runtime_qualify.py THREADING/workspace RESULTS
+--output-base NEW_BASE`. `runtime_full_source.py SOURCE THREADING/workspace
+RAW_RESULTS --inventory-only` builds complete source and inventories SDK
+BinPlace ownership before graph qualification. The raw driver now checks its
+configured-node scope against the declarations; deliberately mismatched counts
+and selected properties fail before Build. CI was not run.

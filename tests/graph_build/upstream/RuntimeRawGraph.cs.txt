@@ -24,6 +24,18 @@ using var collection = new ProjectCollection();
 var entries = data.TryGetProperty("Entries", out var selected) ? selected.EnumerateArray().Select(p => p.GetString()!) : [data.GetProperty("Entry").GetString()!];
 var graph = new ProjectGraph(entries.Select(p => new ProjectGraphEntryPoint(Path.Combine(root, p), properties)), collection,
     (path, globals, owner) => new ProjectInstance(path, globals, null, owner));
+var declarations = data.GetProperty("Projects");
+var expectedNodes = declarations.EnumerateObject().Sum(p => p.Value.TryGetProperty("Configurations", out var values) ? values.GetArrayLength() : 1);
+if (graph.ProjectNodes.Count != expectedNodes) throw new InvalidDataException("Raw graph configured-node count differs from the declared graph");
+foreach (var node in graph.ProjectNodes)
+{
+    var path = Path.GetRelativePath(root, node.ProjectInstance.FullPath);
+    if (!declarations.TryGetProperty(path, out var declaration)) throw new InvalidDataException("Undeclared raw graph project: " + path);
+    if (declaration.TryGetProperty("Configurations", out var values) && values.EnumerateArray().Count(c =>
+        c.GetProperty("Properties").EnumerateObject().All(p =>
+            (node.ProjectInstance.GlobalProperties.TryGetValue(p.Name, out var value) ? value : "") == p.Value.GetString())) != 1)
+        throw new InvalidDataException("Raw graph configuration differs: " + path);
+}
 var parameters = new BuildParameters(collection) { MaxNodeCount = 4, EnableNodeReuse = false,
     Loggers = [new ConsoleLogger(LoggerVerbosity.Minimal)] };
 using var manager = new BuildManager();
