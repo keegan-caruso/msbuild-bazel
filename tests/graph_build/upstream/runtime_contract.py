@@ -19,9 +19,11 @@ def main():
     mapping = json.loads((directory / 'runtime.json').read_text())
     if args.platform == 'linux-arm64':
         mapping['projectDefaults']['properties']['TargetOS'] = 'linux'
-        # Subsets.props declares host coordination entries on Linux. These are
-        # not file inputs or targets executed by the selected library Build.
-        mapping['projectDefaults']['evaluationItems'].append('ManagedProjectToBuild')
+        # Reviewed host/mobile coordination and runner-command items are
+        # metadata, not file inputs consumed by this Linux managed Build.
+        mapping['projectDefaults']['evaluationItems'] += [
+            'ManagedProjectToBuild', 'MonoAotCrossCompiler', 'SetScriptCommands']
+        mapping['projectDefaults']['documents'].update(json.loads((directory / 'runtime_test_documents.json').read_text()))
     mapping['projects'] = {}
     output_file = 'runtime_linux_outputs.json' if args.platform == 'linux-arm64' else 'runtime_outputs.json'
     for project, frameworks in json.loads((directory / output_file).read_text()).items():

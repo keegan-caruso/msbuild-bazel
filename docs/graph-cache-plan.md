@@ -178,7 +178,7 @@ runtime qualification and measurement, not repeating completed synthetic work.
 
 | Step | Current evidence | Remaining gate |
 | --- | --- | --- |
-| 1. Linux Pipelines | Implementation Build/replay and native parity pass on Linux ARM64, Bazel 8.8/9.2; 819 snapshot files | Test-consumer contract expansion |
+| 1. Linux Pipelines | Implementation and test Build/replay/native parity pass on Linux ARM64, Bazel 8.8/9.2; 819/998 snapshot files | Broader runtime contracts |
 | 2. Incremental baseline | Older runtime probes and per-project comparisons exist | Matched graph-backend Linux body/API/no-op medians, including latest workers |
 | 3. Larger scope | Per-project backend qualifies selected suites and 281 managed actions | Graph contracts and invalidation across the expanded scope |
 | 4. Removed work | Shared CAS, ownership/path reuse, shared evaluation context and read-only worker packages | Runtime phase profile; safe cross-request SDK/evaluation reuse and large-worker timing |
@@ -199,7 +199,7 @@ The Linux ARM64 Pipelines implementation graph builds through the public Bazel
 8.8/9.2 sandboxed workers: 30 configured projects, 86 declared package archives and
 108 shared output files. Complete local replay gets 30 hits, and its 819
 snapshotted files match fresh native-sandbox builds on both versions, including
-modes. The test-consumer expansion still needs additional reviewed test targets.
+modes. The test-consumer graph also passes all controls: 42 configured nodes, 38 compilation nodes and 998 captured output files.
 
 Fresh controls exposed three differing SDK `GenerateResource.cache` files.
 These serialize resource-source modification times; the SDK documents their
@@ -244,7 +244,26 @@ qualification evidence.
 Build and rejection of a missing inner `Helper.cs`. This qualifies the generic
 correction, including an outer intermediate placeholder. The runtime test
 contract now synchronizes 42 configured nodes / 38 compilation nodes. Complete
-Build/replay and shared-binplace ownership for that expanded graph remain open.
+Build/replay and shared-binplace ownership for that expanded graph now pass the
+supported-version controls.
+
+## Linux test-consumer checkpoint
+
+The Pipelines test graph compiles all configured dependency frameworks, including
+Pipelines net8/net9/netstandard/.NET Framework variants. Five reviewed testing
+documents declare the runner template and runsettings template explicitly.
+Mobile tool and shell-command items are evaluation metadata for this managed
+Linux Build; this does not qualify mobile builds or coverage execution.
+
+A raw graph Build passes with authored-framework Restore and the declared
+`NUGET_PACKAGES` directory. Its post-build BinPlace inventory confirms the same
+108 explicitly owned shared files. Public worker seed (0/38), replay (38/0) and
+fresh native seed (0/38) match all 998 captured files/modes on Bazel 8.8/9.2.
+These remain correctness controls, not scored timings or source-host test
+execution. Reproduce using `runtime_prepare.py --entry
+src/libraries/System.IO.Pipelines/tests/System.IO.Pipelines.Tests.csproj`, then
+`runtime_qualify.py` as above. The runner and test-harness contracts are retained;
+source-built-host execution remains step 5.
 
 ## Public graph diagnostics
 
