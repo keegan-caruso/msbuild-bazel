@@ -231,12 +231,14 @@ checks and the existing replay/output-ownership experiments pass. No CI ran.
 ## Outer-build input correction
 
 The Linux test expansion exposed a language-dependent `Compile` placeholder on
-an SDK cross-targeting dispatcher. Sync now omits compiler items only when
+an SDK cross-targeting dispatcher. Sync omits absent compiler placeholders only when
 `IsCrossTargetingBuild=true` and no `CoreCompile` target exists. Configured inner
 nodes still declare and validate every compiler input. Absent evaluated items
 under an outer dispatcher's intermediate directory are also omitted: these are
-inner-target output placeholders. Existing files, missing source files and
-explicit reviewed task inputs retain their checks.
+inner-target output placeholders. Existing outer files remain declared and verified. Missing inner source files and
+explicit reviewed task inputs retain their checks. The first public runtime test
+build exposed the need to retain existing outer files; that failed run is not
+qualification evidence.
 
 `python3 tests/graph_build/sync.py` passes on Linux ARM64, including a two-framework
 Build and rejection of a missing inner `Helper.cs`. This qualifies the generic

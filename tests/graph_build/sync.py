@@ -68,19 +68,22 @@ def main():
         multi = directory / 'multi'
         multi.mkdir()
         (multi / 'Library.csproj').write_text('<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup>'
-            '<TargetFrameworks>net10.0;net10.0-windows</TargetFrameworks></PropertyGroup></Project>')
+            '<TargetFrameworks>net10.0;net10.0-windows</TargetFrameworks>'
+            '<EnableDefaultCompileItems>false</EnableDefaultCompileItems></PropertyGroup></Project>')
         (multi / 'Code.cs').write_text('public class Library {}')
         # Outer SDK evaluation has no language extension or compiler target.
         # Imported Compile placeholders must be checked by the inner builds.
         (multi / 'Directory.Build.targets').write_text('<Project><ItemGroup>'
-            '<Compile Remove="Helper.cs" /><Compile Include="Helper$(DefaultLanguageSourceExtension)" />'
+            '<Compile Include="Code.cs" /><Compile Include="Helper$(DefaultLanguageSourceExtension)" />'
+            '<Compile Include="Outer.cs" Condition="&apos;$(IsCrossTargetingBuild)&apos; == &apos;true&apos;" />'
             '<None Include="$(IntermediateOutputPath)outer-placeholder.txt" Condition="&apos;$(IsCrossTargetingBuild)&apos; == &apos;true&apos;" />'
             '</ItemGroup></Project>')
         (multi / 'Helper.cs').write_text('public class Helper {}')
+        (multi / 'Outer.cs').write_text('// Existing outer evaluation input must remain declared.')
         run(DOTNET, SYNC, multi, SDK / 'sdk/10.0.400', 'Library.csproj', '--graph')
         staged = directory / 'multi-staged'
         staged.mkdir()
-        for name in ['Library.csproj', 'Code.cs', 'Helper.cs', 'Directory.Build.targets']:
+        for name in ['Library.csproj', 'Code.cs', 'Helper.cs', 'Outer.cs', 'Directory.Build.targets']:
             shutil.copyfile(multi / name, staged / name)
         run(DOTNET, RUNNER, 'action', staged, multi / 'graph.generated.json', report, directory / 'multi-cache')
         assert json.loads(report.read_text())['misses'] == 2

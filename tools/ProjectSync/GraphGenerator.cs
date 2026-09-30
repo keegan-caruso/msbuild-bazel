@@ -179,14 +179,6 @@ internal static class GraphGenerator
                 var generated = new List<string>();
                 foreach (var item in FileItems.Concat(binding.InputItems.Keys).SelectMany(project.GetItems))
                 {
-                    // SDK outer builds only dispatch compilation to configured inner
-                    // nodes. Language-dependent Compile placeholders are not inputs
-                    // to the dispatcher; every inner node still validates its files.
-                    if (item.ItemType == "Compile" && project.GetPropertyValue("IsCrossTargetingBuild") == "true" &&
-                        !project.Targets.ContainsKey("CoreCompile"))
-                    {
-                        continue;
-                    }
                     var fullPath = item.GetMetadataValue("FullPath");
                     if (fullPath.Length == 0 || IsSdk(fullPath) || IsRestored(fullPath))
                     {
@@ -200,6 +192,14 @@ internal static class GraphGenerator
                     if (Path.GetRelativePath(root, fullPath).StartsWith("../", StringComparison.Ordinal))
                     {
                         throw new InvalidDataException("Graph item outside workspace: " + item.ItemType + " " + fullPath + " from " + item.Xml.ContainingProject.FullPath);
+                    }
+                    // Outer dispatchers can evaluate language-dependent Compile
+                    // placeholders. Keep existing files: outer evaluation may still
+                    // expose them to validation and reviewed custom targets.
+                    if (!File.Exists(fullPath) && item.ItemType == "Compile" &&
+                        project.GetPropertyValue("IsCrossTargetingBuild") == "true" && !project.Targets.ContainsKey("CoreCompile"))
+                    {
+                        continue;
                     }
                     // Reviewed targets can describe inner generated artifacts in
                     // outer evaluation. The dispatcher's intermediate placeholder
