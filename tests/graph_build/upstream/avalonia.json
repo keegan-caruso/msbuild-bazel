@@ -3,7 +3,9 @@
     "evaluationItems": [
       "SourceRoot",
       "CompilerVisibleItemMetadata",
-      "CompilerVisibleProperty"
+      "CompilerVisibleProperty",
+      "AvailableItemName",
+      "PropertyPageSchema"
     ],
     "documents": {
       "src/tools/Avalonia.Generators/Avalonia.Generators.props": {
@@ -13,7 +15,47 @@
         ],
         "tasks": [],
         "inputs": []
+      },
+      "build/BuildTargets.targets": {
+        "sha256": "b52058006a043d594bcf4d664e940fb11ab14c8c28d46bd318bcc436f27fcd0d",
+        "targets": [],
+        "tasks": [
+          "GenerateAvaloniaResourcesTask",
+          "CompileAvaloniaXamlTask"
+        ],
+        "inputs": []
+      },
+      "packages/Avalonia/AvaloniaSingleProject.targets": {
+        "sha256": "27805a9acb024dfef6f067e3c1b3b433eccaa725420324677b6cfe07082af4bb",
+        "targets": [
+          "_AvaloniaRemovePlatformCompileItems",
+          "BeforeGetAndroidPackageName"
+        ],
+        "tasks": [],
+        "inputs": []
+      },
+      "packages/Avalonia/AvaloniaBuildTasks.targets": {
+        "sha256": "4d6d5afc11ca18fe16d07798eaefc74f5f41ba9db28b0ac0b8dafb532dcf3a5e",
+        "targets": [
+          "AddAvaloniaResources",
+          "_GenerateAvaloniaResourcesDependencyCache",
+          "GenerateAvaloniaResources",
+          "AvaloniaPrepareCoreCompile",
+          "AvaloniaCollectUpToDateCheckInputDesignTime",
+          "CompileAvaloniaXaml",
+          "AvaloniaFilePreview",
+          "AvaloniaDeleteRefAssemblyBeforeOutputCopy"
+        ],
+        "tasks": [
+          "GenerateAvaloniaResourcesTask",
+          "CompileAvaloniaXamlTask"
+        ],
+        "inputs": []
       }
+    },
+    "inputItems": {
+      "AvaloniaResource": [],
+      "AvaloniaXaml": []
     }
   }
 }

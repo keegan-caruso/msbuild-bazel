@@ -528,3 +528,31 @@ and then upgrades the first app. Existing package-hash, incomplete-closure,
 configuration and task-input controls also pass. All 47 native Bazel analysis
 tests and `scripts/check.sh` pass on macOS ARM64/Bazel 9.2. This transfers a
 required input contract; expanded Avalonia build/worker parity is still separate.
+
+### Expanded Avalonia worker qualification
+
+SimpleTheme at Avalonia `37fbd9655cc581ff5b1c6b1fb1be4e3118c889d0`
+now passes public graph execution with its reviewed source generator, build tasks
+and XAML resources. The inventory has 81 pinned package versions; the graph has
+11 physical projects, 29 configured nodes and 23 compiled nodes, including
+upstream net6.0/netstandard2.0 configurations. No upstream-specific production
+inputs or skipped legacy targets were added.
+
+On Linux ARM64/Bazel 9.2, a restarted consumer with no local project snapshots
+recovered all 23 projects from HTTP cache with identical compared bytes and
+modes. XAML editing reused 22 projects and rebuilt one; the executable inspector
+observed two styles instead of one. Body/API edits each reused seven and rebuilt
+16; the generator edit reused five and rebuilt 18. Each edited worker result
+matched a fresh native sandbox control's compared outputs, including file sets
+and modes. `.AssemblyReference.cache` remains excluded as in other comparisons.
+These are correctness checks, not paired raw-MSBuild performance measurements.
+
+Run `upstream/avalonia_worker.py WORKSPACE RESULTS --output-base PATH` against
+the generated disposable SimpleTheme graph. `--seed-evidence` accepts a saved
+producer manifest; `--only` selects a scenario for independent reruns.
+Reports are preserved in `/tmp/graph-roadmap-avalonia-linux-evidence`. The first
+run exhausted host disk during the tool case; no result from that interrupted
+case is counted. Its reports were preserved, obsolete benchmark payloads removed,
+unused VM blocks trimmed, and all source edits restored before the tool case
+passed separately. Tests, native deployment and full Avalonia application scope
+remain unqualified by this slice.
