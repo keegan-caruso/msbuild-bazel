@@ -85,22 +85,91 @@ input verification or hide output differences to meet timing targets.
    construction is a separate integration, not something the runtime managed
    graph proves. Remove the old compilation backend only after parity qualifies.
 
+## First execution checkpoint
+
+Implement and commit these bounded pieces before expanding the runtime scope:
+
+1. **Linux contract fixture.** Add reviewed Linux ARM64 mappings and shared
+   binplace outputs for `System.IO.Pipelines/src`, then its test project. Reuse
+   the generic sync and replay machinery; do not put runtime-specific behavior
+   into production rules. Record every configured node and required bootstrap
+   input. Pass Build, full local replay and worker/native-action parity on both
+   Bazel baselines. Use fresh raw builds for parity controls; do not score them
+   as ordinary incremental builds.
+2. **Runtime edit fixture.** Add unique body and public-contract mutations plus
+   restoration checks. Assert expected compilation, reference hashes and current
+   implementation copies. Include the authored implementation-reference test
+   consumer. Fail on extra rebuilds or an unchanged implementation after an edit.
+   Do not hardcode the earlier macOS graph's project count for Linux.
+3. **Paired Linux scorecard.** Extend the existing edit harness to invoke public
+   Bazel graph actions and collect full wall time, worker preparation, runner
+   phases and raw graph-mode commands. It currently measures the standalone
+   runner, not full Bazel. Preserve diagnostic standalone rows separately.
+   Report ordinary Restore and prepared read-only worker packages as separate
+   candidates, not an assumed improvement. Commit the compact measured summary.
+4. **Choose the next change from the profile.** Expand the same fixture using
+   the selected roots in `tests/explicit_msbuild/runtime/subset_slices.json`:
+   collections, threading, filesystem, sockets, then loaded-library/shim roots
+   and Pipelines tests. Check each expansion before combining it. Profile the
+   larger graph and select the largest removable repeated cost. Commit each
+   optimization after its synthetic invalidation controls and paired upstream
+   measurements pass. Keep or revert it according to wall-time benefit and cost.
+
+The first checkpoint is complete when the Linux contract and edit controls pass
+and the scorecard has comparable graph/raw no-op, body, API and cold rows, plus
+local/remote recovery rows. Capability failures remain work items; they must not
+be converted into omitted inputs, disabled validation or reduced upstream scope.
+
 ## Measurement contract
 
-Use one memory-budgeted Linux build VM with no overlapping benchmark jobs. Hold
-CPU count, memory, compiler reuse, architecture, configuration, entry points and
-frameworks fixed for each paired comparison. Record cold build, warm no-op,
-body/API edits, fresh local recovery and fresh remote recovery separately.
+Start with one 4-CPU/8-GiB Linux ARM64 build VM and four MSBuild nodes, matching the
+current runner's fixed `MaxNodeCount=4` and edit harness's raw `-m:4`. Use one graph
+worker and a 4096-MB worker-cache budget; record that the budget does not cap all
+process memory. Check host headroom and prevent other build VMs/jobs from
+competing during a scored run. Stop the producer before the independent consumer
+runs. If the scope exceeds the VM budget, choose a new matched configuration and
+rerun the paired baseline rather than comparing unlike resource settings.
 
-Report both complete Bazel wall time and runner phases. Include worker broker
-preparation/materialization in the total; phase operation sums can overlap.
-Record Restore separately for raw MSBuild and also show total workflow cost.
-Distinguish warm raw outputs from fresh graph outputs. Record hit/miss and
-compiler counts, output parity, bytes/files hashed/copied/transferred, and peak
-process/VM memory. Use unique edits to avoid replaying an already cached edit.
-Cold means fresh outputs with pinned SDK/packages available; source acquisition,
-initial sync and tool downloads get separate measurements. Native build,
-host composition and test execution also need their own rows.
+Hold compiler reuse, architecture, configuration, entry points and frameworks
+fixed within each pair. Start with shared compilation disabled on both sides,
+matching the existing harness; qualify compiler reuse as a separate candidate.
+Use raw graph-mode MSBuild with the same configured roots. Show normal raw
+MSBuild separately if desired; do not silently substitute it in a graph comparison.
+
+| Case | Graph state | Raw comparison |
+| --- | --- | --- |
+| Warm no-op | Same inputs and warm Bazel server; whole graph action may hit | Warm outputs; no Restore |
+| Body edit | Unique implementation edit; graph executes with project-cache reuse | Same edit and warm outputs; no Restore |
+| API edit | Unique authored public contract/source edit; graph executes | Same edit and warm outputs; no Restore |
+| Fresh local recovery | Fresh outputs; local project snapshots retained | Clean compilation with available SDK/packages |
+| Fresh remote recovery | Independent consumer; empty local snapshots and outputs | Clean compilation in the same consumer configuration |
+| Cold build | Fresh outputs and empty build caches; available SDK/package archives | Clean outputs; separately measured Restore and Build |
+
+For no-op/body/API, capture three pairs and report medians and ranges. Use unique
+edits and alternate graph/raw order to reduce cache-warmth bias. Also collect
+three local-recovery samples; repeat independent remote and cold cases where
+practical, and label any single observation. Restore sources and verify original
+outputs after each series. Profile diagnostic runs separately; leave profiling
+off in scored runs unless its measured overhead is negligible and applied equally.
+
+Report complete Bazel wall time and runner phases. Include worker broker
+preparation/materialization in the total; concurrent operation sums are not wall
+segments. Record raw Restore separately and show total workflow cost as well.
+Distinguish warm raw outputs from fresh graph outputs. Record hits/misses,
+compiler calls, output parity, bytes/files hashed/copied/transferred, and peak
+process/VM memory. Source acquisition, initial sync, SDK/package downloads,
+native build, host composition and test execution each get separate measurements.
+Separate whole-graph Bazel action-cache hits from project-cache hits. Include a
+unique edited remote consumer that must execute the graph and recover unchanged
+projects; an unchanged whole-action hit does not qualify project-level replay.
+
+Proposed acceptance: body/API medians within about 20% of equivalent raw build
+and fresh recovery clearly faster than clean rebuilding. Preserve the earlier
+per-project edit results as a secondary baseline on matched scopes. Cold may be
+slower, but report both Build-only and Restore-plus-Build ratios and review the
+regression before expanding or switching defaults. Do not declare success from
+hit counts alone. Record raw commands, candidate revision, pins and limits with
+compact summaries; keep large logs/binlogs outside Git.
 
 ## Status
 
