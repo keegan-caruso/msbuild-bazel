@@ -2,15 +2,22 @@
 
 ## Objective
 
-Reduce work around project-cache hits while retaining MSBuild semantics. Fresh
-remote-cache consumers are the primary case; retained local state is an additional
-optimization. Keep graph mode opt-in until correctness, capability and platform
-gates pass. Do not remove the existing backend before its replacement qualifies.
+Qualify the graph-cache backend on dotnet/runtime, then build a selected runtime
+from source and use it to run an ordinary app. Incremental body/API edits and
+fresh remote-cache consumers are the primary cases. Orchard and Avalonia results
+remain historical evidence; further expansion of those workloads is deferred.
 
-Starting point: Orchard body edit rebuilds one project and reuses 201, with exact
-compared output parity. The standalone runner measured 40.01 s versus warm raw
-MSBuild's 15.87 s. API/generator output differences and native Linux sandbox
-qualification remain open. See [performance](performance.md).
+The graph-cache path remains the primary development direction. Keep MSBuild
+evaluation, SDK targets and project scheduling. Bazel declares
+sources, packages, tools, configuration and outputs. Changes must remain generic;
+upstream-specific declarations belong in qualification mappings. Keep graph mode
+opt-in until correctness, capability and performance gates pass.
+
+Start with runtime v10.0.0 (`60629d14374c56f1cb51819049ad1fa529307f8d`),
+SDK 10.0.400 and Linux ARM64. Qualify both Bazel 8.8.0 and 9.2.0. The existing
+30-project Pipelines graph result is macOS ARM64; its mapping must be evaluated
+for Linux, not copied with `TargetOS=osx`. Older per-project native/app results
+are useful contracts to transfer, not evidence for the graph backend.
 
 ## Execution rules
 
@@ -21,79 +28,128 @@ input verification or hide output differences to meet timing targets.
 
 ## Ordered work
 
-1. **Comparable baselines and profiling.** Separate warm incremental, fresh local
-   recovery, fresh remote recovery and cold builds. Record restore separately and
-   compare equivalent raw MSBuild states. Add opt-in phase timings and counters
-   for hashing, verification, transfer, materialization, compilation and snapshot
-   storage. Obtain three paired body/API samples on Orchard. The existing
-   build/snapshot timer includes final input verification; the unassigned total
-   is primarily restore/setup, not a separate final verification phase.
-2. **Output parity.** Separate original differing outputs from downstream copies.
-   Compare repeated raw, cache-disabled graph and replay builds. Explain or fix
-   all 898 Orchard API/generator differences and two resource-cache JSON
-   differences. Only narrowly justified nonsemantic normalization is acceptable.
-3. **Fresh-consumer materialization.** Measure duplicate blobs and intermediate
-   copies, share content-addressed payloads, qualify copy-on-write on real large
-   workloads, and preserve current dependency-copy bindings. Validate exact file
-   sets, bytes and permissions plus isolation from cache/output mutations.
-4. **Immutable input hashing.** Produce reusable declared preparation manifests
-   for SDK/package content. Share source hashes and remove repeated path work.
-   Key reuse by content and tool identity, never only versions or timestamps.
-   Changes to bytes, executable modes and configuration must invalidate.
-5. **Reusable restore.** Separate preparation with explicit SDK/package/project,
-   import, framework/RID and custom restore inputs. Body edits should reuse it;
-   package/configuration edits must refresh it. Qualify relocation and offline
-   recovery. Retain conservative behavior for incomplete custom contracts.
-6. **Evaluation reuse.** First remove repeats within an invocation, then reuse
-   immutable evaluated information across requests only with a complete key.
-   Never reuse target-mutated project instances. Test file discovery, conditions,
-   imports and configuration changes on synthetic and upstream graphs.
-7. **Retained local state.** Introduce owned configuration-specific state with
-   successful-build manifests, validity checks, obsolete-output cleanup,
-   interruption/concurrency handling and fresh fallback. Only then integrate
-   persistent workers. Do not simply remove the empty-output requirement.
-8. **Linux isolation and remote recovery.** Qualify public Bazel 8.8/9.2 actions,
-   independent producer/consumer workers, relocated paths, empty local caches,
-   native sandbox and intended worker isolation. Exercise corruption, eviction,
-   permissions, conflicts, concurrent writers and interrupted transfers. An Apple
-   container that cannot run linux-sandbox does not satisfy this gate.
-9. **Expand upstream qualification.** Orchard full CMS/Razor/tests/Publish;
-   Avalonia generation/resources/native tools/tests; runtime beyond Pipelines to
-   native construction and running an app; then source-built SDK/native publish.
-   Cover body/API/tool/resource/package/configuration edits, multi-targeting,
-   reference roles, friend assemblies and executable/MTP/VSTest tests. Dependency
-   body edits must invalidate runtime tests even when compilation is reused.
-10. **Readiness and defaults.** Consolidate correctness, timing, disk/memory and
-    transfer results. Proposed targets: warm edits within about 20% of equivalent
-    raw MSBuild and fresh recovery clearly faster than rebuilding. These are
-    acceptance targets, not promised outcomes. Switch defaults only after the
-    capability and qualification gates pass; remove the old path separately.
+1. **Pipelines on Linux.** Reproduce the generated managed graph with explicit
+   Linux properties, offline packages, task-host SDK inputs, API validation and
+   per-file shared-binplace ownership. Compare cold builds and complete replay
+   outputs with the equivalent raw upstream command. Check native sandbox and
+   sandboxed workers before relying on worker timings.
+2. **Paired incremental baseline.** Capture three paired samples for no-op,
+   implementation-body and public-contract edits. Runtime separates reference
+   and implementation projects: edit the producer that actually owns each role.
+   Require the expected hits, compiler calls, reference bytes and runtime copies.
+   Include a test consumer using an implementation reference; a body edit may
+   legitimately recompile that consumer. Compare ordinary and prepared Restore,
+   including the read-only worker packages candidate.
+3. **Larger managed scope and edit matrix.** Inventory configured nodes and
+   expand from Pipelines through selected library/test roots toward the existing
+   281-managed-action qualification. Compare equivalent roots/frameworks rather
+   than assuming those action counts transfer to graph mode. Cover leaf and
+   shared body/API edits, propagation stopping at unchanged consumer contracts,
+   friend assemblies, generators, resources, packages and configuration changes.
+   Do not prune authored frameworks just to improve a comparison.
+4. **Remove measured overhead.** Profile the larger scope before choosing work.
+   Measure evaluation, Restore/preparation, SDK/package hashing, transfers,
+   materialization, compilation and final verification. Prioritize repeated work
+   that can be removed: verified immutable preparation, SDK identity reuse and
+   immutable evaluated information with complete invalidation keys. Reuse Restore
+   on body edits; changed packages, imports, globs, RID/configuration, SDK/tools
+   and executable modes must invalidate the appropriate preparation. Never retain
+   target-mutated project instances. Measure COW and retained outputs before
+   changing their defaults; smaller fixtures found little wall-time benefit.
+5. **Upstream test execution.** Transfer the selected eight-suite qualification
+   using runtime's actual test harness and source-built host. Preserve
+   implementation references, test names/outcomes and deliberate failure checks.
+   Dependency body edits must refresh runtime files and invalidate test results
+   even when test compilation is cached. Report build and test times separately.
+6. **Native construction and app.** Declare native sources, generators,
+   compiler/build tools, headers, sysroot and configuration. Preserve upstream
+   CMake/Ninja or make behavior through declared producers; the managed graph
+   alone does not build native components. Compose the selected source-built
+   CoreCLR/JIT, CoreLib, libraries and host into the existing runtime provider.
+   Run an ordinary app without the installed runtime or build checkout and
+   verify loaded binaries against their producers. Missing CoreCLR must fail.
+   Exercise native source/header/tool changes and managed library/app edits.
+7. **Independent recovery and faults.** At managed and runnable-runtime
+   milestones, stop the producer and use an independent Linux consumer with
+   empty local caches and a different external workspace path. Verify declared
+   stable internal paths, exact files/bytes/modes and runtime/test outcomes;
+   measure SDK/package acquisition separately. Exercise corruption, eviction,
+   conflicts, concurrent writers and interruption. Repeat public Bazel 8.8/9.2
+   native-sandbox and worker checks. ARM64 evidence does not qualify x86-64 or RBE.
+8. **Readiness, then broader integration.** Review correctness, paired timings,
+   transfer volume, disk and peak memory before switching defaults. Proposed
+   targets remain warm edits within about 20% of equivalent raw MSBuild and fresh
+   recovery clearly faster than rebuilding. These are targets, not results.
+   Qualify the runtime/app milestone first; full runtime tests, other platforms,
+   source-built SDK and source-built Native AOT are later expansions. SDK source
+   construction is a separate integration, not something the runtime managed
+   graph proves. Remove the old compilation backend only after parity qualifies.
+
+## Measurement contract
+
+Use one memory-budgeted Linux build VM with no overlapping benchmark jobs. Hold
+CPU count, memory, compiler reuse, architecture, configuration, entry points and
+frameworks fixed for each paired comparison. Record cold build, warm no-op,
+body/API edits, fresh local recovery and fresh remote recovery separately.
+
+Report both complete Bazel wall time and runner phases. Include worker broker
+preparation/materialization in the total; phase operation sums can overlap.
+Record Restore separately for raw MSBuild and also show total workflow cost.
+Distinguish warm raw outputs from fresh graph outputs. Record hit/miss and
+compiler counts, output parity, bytes/files hashed/copied/transferred, and peak
+process/VM memory. Use unique edits to avoid replaying an already cached edit.
+Cold means fresh outputs with pinned SDK/packages available; source acquisition,
+initial sync and tool downloads get separate measurements. Native build,
+host composition and test execution also need their own rows.
 
 ## Status
 
-The plan is not complete. Current gates, in execution order:
+The generic optimizations already implemented are retained. The next work is
+runtime qualification and measurement, not repeating completed synthetic work.
 
-| Step | Current result | Remaining gate |
+| Step | Current evidence | Remaining gate |
 | --- | --- | --- |
-| 1. Baselines | Paired body/API series and explicit package/cache states | End-to-end large worker/remote timings |
-| 2. Parity | Orchard generator and resource-cache differences explained with controls | Full upstream test/Publish parity |
-| 3. Materialization | Ownership index and shared CAS implemented; COW measured | Broad fresh remote recovery measurements |
-| 4. Inputs | Shared path checks and read-only worker packages qualified | Large-tree timing; cross-request SDK digest reuse |
-| 5. Restore | Declared preparation and generated facade qualified | Orchard preparation remains slower; measure read-only candidate |
-| 6. Evaluation | Shared context per invocation; inactive IDE items omitted | Complete safe key for cross-request reuse |
-| 7. Owned state | Retention and worker broker qualified on small graphs | Retention has no measured wall-time benefit; large capacity sizing |
-| 8. Linux/remote | Native sandbox, independent workers and fault controls pass on ARM64 | Broader platform and upstream coverage |
-| 9. Upstreams | Orchard CMS Build and expanded Avalonia SimpleTheme controls | Full tests/Publish, runtime native construction, source SDK/native publish |
-| 10. Readiness | Evidence consolidated; existing defaults retained | Performance and capability gates still fail |
+| 1. Linux Pipelines | macOS managed Build/replay: 30 configured projects, 831 files including 108 binplace files | Linux mapping, output parity and sandboxed-worker qualification |
+| 2. Incremental baseline | Older runtime probes and per-project comparisons exist | Matched graph-backend Linux body/API/no-op medians, including latest workers |
+| 3. Larger scope | Per-project backend qualifies selected suites and 281 managed actions | Graph contracts and invalidation across the expanded scope |
+| 4. Removed work | Shared CAS, ownership/path reuse, shared evaluation context and read-only worker packages | Runtime phase profile; safe cross-request SDK/evaluation reuse and large-worker timing |
+| 5. Tests | Older source-only host: 118,952 passes / 64 skips | Graph-backed test builds/execution, source host and edit invalidation |
+| 6. Native/app | Per-project source-built app and native inputs qualified | Transfer native producers and host composition; app runs on graph-produced outputs |
+| 7. Recovery | Small independent ARM64 workers, native sandbox and fault controls pass | Runtime managed/native/app recovery and timings on independent consumers |
+| 8. Readiness | Graph mode remains opt-in | Runtime capability/performance gates; later SDK/AOT/full-repository expansion |
 
-Do not retain target-mutated MSBuild instances to close step 6. The worker still
-starts a fresh MSBuild child per request; stronger reuse requires a complete
-input contract and the same tool/package invalidation controls. Do not present
-the small worker or managed runtime slice as source-built SDK qualification.
-Larger qualification currently needs more disk capacity; old qualification
-containers are retained pending the user's cleanup decision.
+The worker still starts a fresh MSBuild child per request. Read-only preparation
+avoids package copying and final package rehash, but each child still validates
+SDK/package bytes. No large-runtime timing establishes the benefit yet.
+The completed disk cleanup removed older qualification containers after preserving
+compact reports; recreate only the workers needed for the selected milestone.
 
-## Report summary
+## Timing checkpoint
+
+These are historical measurements, not timings of the latest worker candidate.
+The workloads, backends and platforms differ; do not compare their rows as a
+single optimization series.
+
+| Backend / scope | Case | Ours | Raw MSBuild | Interpretation |
+| --- | --- | ---: | ---: | --- |
+| Per-project, Linux managed runtime scope | Pipelines body edit | 2.081 s | 11.576 s | Three-sample medians; 5.56x faster |
+| Per-project, same scope | Pipelines API edit | 7.970 s | 13.945 s | Three-sample medians; 1.75x faster |
+| Per-project, memory-budgeted Linux runtime scope | Cold compilation | 301.83 s | 139.75 s | Single candidate; 2.16x slower; raw Restore adds 72.69 s separately |
+| Test-only graph probe, macOS Pipelines implementation | Body edit | 4.561 s | 4.360 s | Single runs; roughly 5% slower, not production graph rules |
+| Generic graph runner, macOS Pipelines implementation | Full local replay | 9.50 s | Not paired | All 30 configured hits; includes offline Restore and validation |
+
+The generic graph's cold qualification took 114.77 s with other work running; it
+is not a scored cold benchmark. There is no matched runtime body/API or fresh
+remote timing for the latest generic worker. The immediate question is whether
+that model can retain the earlier per-project edit advantage while reducing
+cold-build overhead. Step 2 establishes that baseline; step 4 identifies work
+to remove. See [performance](performance.md#runtime-backend-comparison) and
+[the probe](runtime-project-cache-probe.md) for conditions.
+
+## Historical report summary
+
+These Orchard/Avalonia results explain completed work; they are not the remaining
+upstream acceptance plan or a prediction of runtime timings.
 
 ### Performance
 
@@ -204,8 +260,9 @@ recovery and scenario reruns. Linux worker controls are `linux_worker.py`,
 `linux_prepared_restore.py --worker --package`. Test prerequisites remain in the
 individual fixtures; use pinned sources and disposable workspaces.
 
-Raw logs, manifests and comparisons currently live under `/tmp/graph-roadmap-*`
-on the qualification host. They are not checked into Git or durable public
-artifacts. This summary preserves the conclusions, rejected runs and limits;
+Retained roadmap logs and comparisons live under `/tmp/graph-roadmap-*` on the
+qualification host. Cleanup preserved compact older outcomes under the ignored
+`artifacts/disk-cleanup-20260930/` directory. Neither is a durable public artifact.
+This summary preserves the conclusions, rejected runs and limits;
 [performance](performance.md#current-graph-cache-optimization-checkpoint) is the
 short timing scorecard. The status table above lists the remaining work.

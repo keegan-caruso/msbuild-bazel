@@ -32,6 +32,36 @@ references, and a stable standalone workspace. An explicit COW experiment on the
 128-project chain reduced body time only from **7.03 to 6.74 s**; the default
 .NET copy path remains unchanged. See [measurements and qualification](project-cache-migration.md#copy-on-write-measurement).
 
+## Runtime backend comparison
+
+The remaining [graph-cache plan](graph-cache-plan.md) now focuses on
+**dotnet/runtime**. Existing fast Linux edit results belong to the per-project
+backend; they do not establish performance for its graph-cache replacement.
+
+| Backend / scope | Case | Ours | Raw MSBuild |
+| --- | --- | ---: | ---: |
+| Per-project, Linux managed runtime scope | Pipelines body edit | 2.081 s | 11.576 s |
+| Per-project, same scope | Pipelines API edit | 7.970 s | 13.945 s |
+| Per-project, memory-budgeted Linux runtime scope | Cold compilation | 301.83 s | 139.75 s |
+| Test-only graph probe, macOS Pipelines implementation | Body edit | 4.561 s | 4.360 s |
+| Generic graph runner, macOS Pipelines implementation | Full local replay | 9.50 s | Not paired |
+
+The edit medians are three samples: **5.56x faster body / 1.75x faster API**.
+Cold is one candidate and remains **2.16x raw build time**; raw Restore adds
+72.69 s separately. These Linux measurements cover managed builds, excluding
+native construction, host composition and test execution. Their scope and
+resource settings are detailed [below](#latest-compiler-and-memory-qualification)
+and in [runtime timing](runtime-cold-timing.md).
+
+The [probe](runtime-project-cache-probe.md) edit numbers are single runs on a
+smaller managed graph, not production rule benchmarks. Generic replay has
+30 configured hits and includes offline Restore and input validation; see
+[its scope](project-cache-migration.md#runtime-contract-qualification).
+Its concurrent 114.77 s cold run is not a scored benchmark. **The latest generic
+worker has no paired runtime edit or fresh remote timing yet.** Measure those on
+Linux before choosing the next optimization; keep full Bazel/worker overhead in
+the scorecard. These different workloads are not an optimization series.
+
 ## Current graph-cache optimization checkpoint
 
 Three-sample Orchard body-edit measurements on the roadmap branch retain

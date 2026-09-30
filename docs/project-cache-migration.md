@@ -101,25 +101,26 @@ The default switch is **not ready**. The new generic path is opt-in. Replacing
 `msbuild_project` and project-sync output now would remove existing supported
 capabilities. The remaining work is:
 
-1. Extend the qualified native-tool, reference-role and generated-output contracts
-   to remaining custom item handoffs and upstream native/publish workflows.
-   Managed/native tools, analyzer references, aliases and shared output files
-   now have focused regression coverage.
-2. Expand runtime beyond the qualified System.IO.Pipelines managed slice. Shared
-   binplace replay passes there; full native runtime/SDK construction and use of
-   that runtime through the generic graph still need end-to-end qualification.
-3. Reduce remaining Orchard overhead. The reviewed body-edit contract now reuses
-   201 projects and rebuilds one, but the latest retained-package median is
-   19.18 s versus 13.45 s warm raw MSBuild. Fresh package expansion measures
-   23.27 s versus 13.83 s raw. These do not meet the proposed warm timing gate;
-   see the [execution checkpoints](graph-cache-plan.md).
-4. Expand relocated Linux replay to upstream graphs with the intended worker
-   configuration. Synthetic public Bazel 8.8/9.2 native sandbox, independent-VM
-   recovery and sandboxed-worker checks now pass. Upstream worker qualification
-   and the complete fault matrix remain open.
-5. Extend paired comparisons to upstream tests, publish and runtime edits.
-   Avalonia.Controls body/API/generator output comparisons pass; Orchard retains
-   generator and intermediate-cache output differences.
+1. Requalify the generated System.IO.Pipelines graph on Linux ARM64 and obtain
+   paired no-op/body/API baselines for the current workers, including full Bazel
+   wall time and Restore/preparation cost.
+2. Expand managed library/test roots toward the existing selected runtime scope.
+   Transfer custom item/reference roles, generators, shared binplace outputs and
+   test harness contracts without weakening upstream semantics.
+3. Profile that scope and remove repeated evaluation, SDK/package verification
+   and materialization only where complete invalidation contracts permit reuse.
+   Existing Orchard timing is historical evidence, not a runtime forecast.
+4. Transfer declared native producers and source-built host composition; run an
+   ordinary app without installed-runtime fallback. Qualify test outcomes and
+   body/API/native/configuration invalidation.
+5. Measure independent fresh runtime recovery with empty local caches, producer
+   stopped, intended Linux sandbox/worker isolation and Bazel 8.8/9.2. Keep
+   ARM64, x86-64 and RBE qualification distinct. Source SDK, source Native AOT
+   and full-repository coverage follow the selected runtime/app milestone.
+
+See the [runtime-focused execution plan](graph-cache-plan.md) for ordered work,
+measurement boundaries and current gates. Further Orchard/Avalonia expansion is
+deferred; their measured controls remain evidence for the generic contracts.
 
 Once these gates pass, change generator and facade defaults in one commit, then
 remove the per-project compilation path in a separate commit. No default or
