@@ -103,3 +103,19 @@ sandbox qualification are being tested.
   DLL/PDB bytes and executes correctly. This identifies an upstream cause; it
   does not yet classify every full-Orchard output difference or authorize broad
   output normalization.
+
+### Native Linux sandbox checkpoint
+
+The public three-project graph passes `linux_bazel_remote.py --spawn-strategy
+linux-sandbox` on Linux ARM64, SDK 10.0.400, in a dedicated Apple container
+(4 CPUs, 4 GiB). Bazel 8.8 builds three projects; Bazel 9.2 with a fresh output
+base recovers three remote hits, then a body edit gets two hits/one miss. Runner
+bootstrap bytes match across both Bazel versions. The graph action retains its
+nested stable-path bubblewrap sandbox.
+
+The outer container requires `--masked-path NONE --read-only-path NONE` so
+Bazel can mount guest `/proc`; no added Linux capabilities were needed. Only
+the repository was mounted from the host, read-only. Default Apple-container
+proc masking fails this probe. This is a real native sandbox action, but uses
+one worker and a separate existing cache server. Independent producer/consumer
+workers, persistent-worker isolation and the full fault matrix remain open.

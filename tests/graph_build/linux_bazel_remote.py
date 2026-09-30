@@ -1,5 +1,6 @@
 """Public Bazel 8/9 actions share project snapshots across fresh output bases."""
 
+import argparse
 import hashlib
 import json
 import os
@@ -13,6 +14,9 @@ from qualify import DOTNET, ROOT, SDK, fixture, run
 
 
 def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('--spawn-strategy', choices=['processwrapper-sandbox', 'linux-sandbox'], default='processwrapper-sandbox')
+    args = parser.parse_args()
     assert os.uname().sysname == 'Linux'
     cache = os.environ['RULES_MSBUILD_PROJECT_CACHE_URL']
     with tempfile.TemporaryDirectory(prefix='graph-bazel-remote-') as temporary:
@@ -38,7 +42,7 @@ def main():
                 (root / 'P0/Code.cs').write_text('public class P0 { public static int Value() => 2; }')
             output = base / ('bazel-' + version)
             command = [str(ROOT / 'scripts/bazel-launcher.sh'), '--batch', '--output_base=' + str(output),
-                       'run', '//:app', '--spawn_strategy=processwrapper-sandbox',
+                       'run', '//:app', '--spawn_strategy=' + args.spawn_strategy,
                        '--action_env=RULES_MSBUILD_PROJECT_CACHE_URL=' + cache]
             result = subprocess.run(command, cwd=root, env=dict(os.environ, USE_BAZEL_VERSION=version), text=True, capture_output=True)
             assert result.returncode == 0, result.stdout + result.stderr
