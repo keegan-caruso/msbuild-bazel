@@ -87,7 +87,7 @@ internal sealed class GraphInputs : IDisposable
         SdkDigest = ContractFiles.TreeDigest(sdkRoot);
         runnerDigest = ContractFiles.Digest(typeof(GraphInputs).Assembly.Location);
         inputDigests = contract.SharedInputs.Concat(projects.Values.SelectMany(p => p.Inputs)).Distinct()
-            .ToDictionary(path => path, path => ContractFiles.Digest(Files.Resolve(path)), StringComparer.Ordinal);
+            .ToDictionary(path => path, path => ContractFiles.InputDigest(Files.Resolve(path)), StringComparer.Ordinal);
         baseFingerprints = Graph.ProjectNodes.ToDictionary(node => node, ComputeFingerprint);
         InputHashSeconds = timer.Elapsed.TotalSeconds;
     }
@@ -188,7 +188,7 @@ internal sealed class GraphInputs : IDisposable
     {
         foreach (var (relative, digest) in inputDigests)
         {
-            if (ContractFiles.Digest(Files.Resolve(relative)) != digest)
+            if (ContractFiles.InputDigest(Files.Resolve(relative)) != digest)
             {
                 throw new InvalidDataException("Build modified a declared input: " + relative);
             }

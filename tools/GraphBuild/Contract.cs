@@ -55,6 +55,9 @@ internal sealed class ContractFiles(string root, string sdk)
         return Convert.ToHexStringLower(SHA256.HashData(stream));
     }
 
+    internal static string InputDigest(string path) => Hash([Digest(path), OperatingSystem.IsWindows() ? "" :
+        ((int)(File.GetUnixFileMode(path) & (UnixFileMode.UserExecute | UnixFileMode.GroupExecute | UnixFileMode.OtherExecute))).ToString(System.Globalization.CultureInfo.InvariantCulture)]);
+
     internal static string Hash(IEnumerable<string> records) =>
         Convert.ToHexStringLower(SHA256.HashData(Encoding.UTF8.GetBytes(JsonSerializer.Serialize(records))));
 

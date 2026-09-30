@@ -60,8 +60,8 @@ cd "$scratch"
     for index, target in enumerate(ctx.attr.bindings):
         binding = target[MSBuildBindingInfo]
         tool = binding.tool
-        if tool.native:
-            fail("Sync evaluation bindings require a managed task tool")
+        if tool.native and ctx.attr.mode != "graph":
+            fail("Sync evaluation bindings require a managed task tool outside graph mode")
         if ctx.attr.mode == "graph":
             closure = graph_tool_closure(ctx, tc, binding, index)
             evaluation_bindings.append({"label": str(target.label), "property": binding.property_name, "runfiles": [_runfile(ctx, closure)], "entry": tool.entry_point, "closure": True})

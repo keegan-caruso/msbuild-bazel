@@ -610,7 +610,7 @@ Sync and build compose the managed tool's project dependencies, package runtime
 assets and data under `.graph-tools`. Property values remain workspace-relative
 in the contract and bind to action paths at execution. Every closure file is
 hashed. Changing a binding property or entry requires sync; implementation/data
-edits do not. Native tools and legacy reference-role mappings remain unsupported.
+edits do not. Native executable layouts can use the same bindings; legacy reference-role mappings remain unsupported.
 Custom-task graphs retain conservative dependency invalidation. Task outputs
 must stay in the declared intermediate/output directories or explicit `outputFiles`. These mappings
 specify a reviewed closure; they do not discover arbitrary filesystem reads.
@@ -710,3 +710,14 @@ invalidation. This declares output ownership, not permission for undeclared read
 10.0.400: two projects share an output directory, replay restores both files,
 a body edit invalidates the dependent build, and conflict/missing-output controls
 fail as expected. Runtime's binplace outputs still require reviewed declarations.
+
+### Native generator bindings
+
+Graph sync/build accept `msbuild_native_tool` through `msbuild_file_binding`.
+The complete declared layout is staged once; its executable and data files
+participate in cache identity, including executable permission bits.
+`python3 tests/graph_build/native_tools.py` passed on macOS ARM64/Bazel 9.2:
+a compiled C generator runs through public sync/build, replays, and rebuilds
+when its executable or data changes. Removing execute permission fails instead
+of returning an old cached success. The fixture explicitly uses `/bin/sh` and
+the platform C runtime; this does not establish a portable native system closure.

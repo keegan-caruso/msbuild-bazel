@@ -3,12 +3,12 @@
 load(":paths.bzl", "runtime_package")
 
 def graph_tool_closure(ctx, tc, binding, index):
-    """Compose the declared managed tool, packages and data for graph actions.
+    """Compose the declared tool, packages and data for graph actions.
 
     Args:
         ctx: Owning rule context.
         tc: Execution SDK toolchain.
-        binding: Managed tool binding provider.
+        binding: Tool binding provider.
         index: Stable position in the rule's bindings list.
 
     Returns:
@@ -16,7 +16,10 @@ def graph_tool_closure(ctx, tc, binding, index):
     """
     tool = binding.tool
     if tool.native:
-        fail("Graph sync bindings require a managed task tool")
+        directories = tool.directories.to_list()
+        if len(directories) != 1 or tool.layout_prefix or tool.data or tool.packages.to_list():
+            fail("Native graph tools require one complete declared layout")
+        return directories[0]
     output = ctx.actions.declare_directory(ctx.label.name + ".graph-tool-" + str(index))
     request = ctx.actions.declare_file(ctx.label.name + ".graph-tool-" + str(index) + ".json")
     ctx.actions.write(request, json.encode({
