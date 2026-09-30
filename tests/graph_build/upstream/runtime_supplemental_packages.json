@@ -13,5 +13,30 @@
     "sha256": "60cf91928601c9f611d1eeb158f5a44760babf65f5364762756dd41e763701dd",
     "url": "https://api.nuget.org/v3-flatcontainer/microsoft.diagnostics.runtime/1.0.5/microsoft.diagnostics.runtime.1.0.5.nupkg",
     "reason": "Pinned RemoteExecutor dependency"
+  },
+  "system.security.principal.windows/5.0.0": {
+    "sha256": "081390c25f6f78592b28ada853c24514488a221fe9f9a24efaaf5373643ff3d6",
+    "url": "https://api.nuget.org/v3-flatcontainer/system.security.principal.windows/5.0.0/system.security.principal.windows.5.0.0.nupkg",
+    "reason": "Authored EventLog non-Core framework dependency in the filesystem graph"
+  },
+  "system.diagnostics.eventlog/9.0.0": {
+    "sha256": "b4fbedeb2a00a79eac2bf7defbf7a2f0ceb979abd8d945214676eb4448ff126b",
+    "url": "https://api.nuget.org/v3-flatcontainer/system.diagnostics.eventlog/9.0.0/system.diagnostics.eventlog.9.0.0.nupkg",
+    "reason": "SDK API compatibility baseline used by the filesystem graph"
+  },
+  "system.security.accesscontrol/6.0.0": {
+    "sha256": "a8ec961016cdaf7123c92f9eb451bcff331bb8f8c0f8ef9d8bbd7b24ff42c728",
+    "url": "https://api.nuget.org/v3-flatcontainer/system.security.accesscontrol/6.0.0/system.security.accesscontrol.6.0.0.nupkg",
+    "reason": "Authored access-control dependency in the filesystem graph"
+  },
+  "system.threading.accesscontrol/9.0.0": {
+    "sha256": "f8c9a5a7a9266c5b7553a1a0a413beada2e00724c19fa4e8608dade12f6737fe",
+    "url": "https://api.nuget.org/v3-flatcontainer/system.threading.accesscontrol/9.0.0/system.threading.accesscontrol.9.0.0.nupkg",
+    "reason": "SDK API compatibility baseline used by the filesystem graph"
+  },
+  "system.serviceprocess.servicecontroller/9.0.0": {
+    "sha256": "476b5d9eaa4db9d57d678053b88daaed8a9bf7b64310e8cbc4135ddbc1e3457f",
+    "url": "https://api.nuget.org/v3-flatcontainer/system.serviceprocess.servicecontroller/9.0.0/system.serviceprocess.servicecontroller.9.0.0.nupkg",
+    "reason": "SDK API compatibility baseline used by the filesystem graph"
   }
 }

@@ -781,3 +781,18 @@ RAW_RESULTS --inventory-only` builds complete source and inventories SDK
 BinPlace ownership before graph qualification. The raw driver now checks its
 configured-node scope against the declarations; deliberately mismatched counts
 and selected properties fail before Build. CI was not run.
+
+## Filesystem compilation checkpoint
+
+The selected filesystem test root retains five project files, seven configured
+nodes and six compilation nodes. Its authored Restore closure adds five pinned
+packages to the offline feed (94 archives), including Windows dependency variants
+and SDK API baselines. None of the authored frameworks were pruned.
+
+All six worker/replay/native controls pass on Bazel 8.8/9.2, with 271 identical
+snapshot files/bytes/modes. A complete upstream raw Build matches all 153
+DLL/PDB/resource files, including complete declared output directories. SDK
+BinPlace inventory is covered by the existing shared-output owners.
+Reproduce using the threading commands above with `--slice filesystem`; tests
+compile against framework references, so source-host execution remains open.
+These are correctness controls, not scored timings. CI was not run.
