@@ -27,6 +27,7 @@ def main():
     parser.add_argument('package_feed', type=Path, help='directory containing the declared .nupkg archives')
     parser.add_argument('output', type=Path, help='new disposable directory')
     parser.add_argument('--entry', default=ENTRY)
+    parser.add_argument('--prepared-restore', action='store_true', help='generate a separate declared Restore action')
     args = parser.parse_args()
     assert os.uname().sysname == 'Linux', 'Qualification requires Linux'
     assert os.uname().machine == 'aarch64', 'This output mapping qualifies ARM64 only'
@@ -68,7 +69,7 @@ def main():
     inputs.write_text(json.dumps({'Inputs': [], 'Packages': rows, 'PackageLock': '//:packages'}, indent=2) + '\n')
     mapping = base / 'mapping.json'
     subprocess.run(['python3', str(Path(__file__).with_name('runtime_contract.py')), str(mapping),
-                    '--platform', 'linux-arm64'], check=True)
+                    '--platform', 'linux-arm64'] + (['--prepared-restore'] if args.prepared_restore else []), check=True)
     with (base / 'sync.log').open('w') as log:
         subprocess.run([str(dotnet), str(ROOT / 'tools/ProjectSync/bin/Release/net10.0/ProjectSync.dll'),
                         str(source), str(sdk / 'sdk/10.0.400'), args.entry, '--graph', '--framework', 'net10.0',
@@ -114,7 +115,7 @@ def main():
               'app_graph(name="graph",linux_stable_paths=True,linux_worker=True)']
     (workspace / 'BUILD.bazel').write_text('\n'.join(build) + '\n')
     (base / 'preparation.json').write_text(json.dumps(dict(commit=COMMIT, sourceSha256=SOURCE_SHA256, platform='linux-arm64',
-        entry=args.entry, inputs=len(paths), archives=len(rows), workspace=str(workspace)), indent=2) + '\n')
+        entry=args.entry, preparedRestore=args.prepared_restore, inputs=len(paths), archives=len(rows), workspace=str(workspace)), indent=2) + '\n')
     print(workspace, flush=True)
 
 

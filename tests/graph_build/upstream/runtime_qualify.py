@@ -47,6 +47,10 @@ def main():
         return json.loads((artifact / 'report.json').read_text()), outputs
 
     def build(label, version, strategy):
+        # Select the native rule as well as its Bazel strategy; merely changing
+        # strategy still runs the worker adapter once when linux_worker is true.
+        build_file.write_bytes(original_build if strategy == 'worker' else
+                               original_build.replace(b'linux_worker=True', b'linux_worker=False'))
         output = args.output_base.resolve() / (version + '-' + strategy)
         env = dict(os.environ, USE_BAZEL_VERSION=version)
         env.pop('RULES_MSBUILD_PROJECT_CACHE_URL', None)
@@ -57,6 +61,8 @@ def main():
         with (results / (label + '.log')).open('w') as log:
             subprocess.run(command, cwd=root, env=env, stdout=log, stderr=subprocess.STDOUT, check=True)
         report, outputs = capture()
+        assert report['preparedRestore'] == bool(contract.get('Restore'))
+        assert report['readOnlyPreparedPackages'] == (bool(contract.get('Restore')) and strategy == 'worker')
         rows.append(dict(case=label, version=version, strategy=strategy, hits=report['hits'], misses=report['misses'], files=len(outputs)))
         (results / 'summary.json').write_text(json.dumps(rows, indent=2) + '\n')
         (results / (label + '.json')).write_text(json.dumps({'report': report, 'outputs': outputs}, indent=2) + '\n')
@@ -70,13 +76,17 @@ def main():
                            cwd=root, env=dict(os.environ, USE_BAZEL_VERSION=version),
                            stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, check=True)
 
+    build_file = root / 'BUILD.bazel'
+    original_build = build_file.read_bytes()
+    assert original_build.count(b'linux_worker=True') == 1
     generated = root / 'graph.generated.bzl'
     original = generated.read_bytes()
     nonce = root / 'force-replay.txt'
     assert not nonce.exists(), 'Refusing to overwrite a source'
     text = original.decode()
-    assert text.count('        srcs = [') == 1, 'Fixture expects an ordinary unprepared graph'
-    generated.write_text(text.replace('        srcs = [', '        srcs = ["force-replay.txt",'))
+    prefix, action = text.split('    msbuild_graph(\n')
+    assert action.count('        srcs = [') == 1
+    generated.write_text(prefix + '    msbuild_graph(\n' + action.replace('        srcs = [', '        srcs = ["force-replay.txt",', 1))
     baseline = None
     try:
         for version in args.versions:
@@ -96,6 +106,7 @@ def main():
             shutdown(version, 'worker')
             shutdown(version, 'linux-sandbox')
     finally:
+        build_file.write_bytes(original_build)
         generated.write_bytes(original)
         nonce.unlink(missing_ok=True)
         for version in args.versions:

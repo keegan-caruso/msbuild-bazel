@@ -14,6 +14,7 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('output', type=Path)
     parser.add_argument('--platform', choices=['osx-arm64', 'linux-arm64'], default='osx-arm64')
+    parser.add_argument('--prepared-restore', action='store_true', help='declare the reviewed managed graph Restore contract')
     args = parser.parse_args()
     directory = Path(__file__).resolve().parent
     mapping = json.loads((directory / 'runtime.json').read_text())
@@ -38,6 +39,8 @@ def main():
     for name, digest in generator_documents.items():
         mapping['projectDefaults']['documents'][generator_root + f'{name}/{name}.csproj'] = {
             'sha256': digest, 'targets': [], 'tasks': [], 'inputs': translations}
+    if args.prepared_restore:
+        mapping['projectDefaults']['preparedRestore'] = True
     mapping['projects'] = {}
     output_file = 'runtime_linux_outputs.json' if args.platform == 'linux-arm64' else 'runtime_outputs.json'
     for project, frameworks in json.loads((directory / output_file).read_text()).items():

@@ -393,6 +393,14 @@ missing-archive rejection afterward. `prepared_restore.py` also passes
 input/package/config/environment invalidation, corruption and relocation controls.
 Owned .NET checks, including 54 ProjectSync tests, pass on Linux ARM64.
 
+`runtime_prepare.py --prepared-restore` now generates the separate Restore
+contract for every configured node. The prepared Pipelines fixture passes seed
+(0/38), replay (38/0) and native (0/38) with all 998 files/bytes/modes matching
+across Bazel 8.8/9.2. Workers use read-only prepared packages; native rules copy
+them into the owned workspace. The qualifier now sets `linux_worker=False` for
+native controls, since changing only Bazel's strategy still invokes the worker
+adapter for a single request. Timed candidate comparison is the remaining gate.
+
 Reproduce after `runtime_prepare.py ... --entry
 src/libraries/System.IO.Pipelines/tests/System.IO.Pipelines.Tests.csproj`:
 
