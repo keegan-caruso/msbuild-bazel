@@ -127,8 +127,11 @@ products match raw bytes; separate diagnostics confirm six/eleven compiler calls
 on both sides. This is a larger selected build scope, not the complete runtime.
 Compilation/execution dominates the 19–24 s profiled runner phases; preparation
 and validation still cost 1.4–1.9 s and evaluation about one second. A slow
-278.66 s bootstrap/setup observation is retained, but matched cold attribution
-remains open. See [ranges, commands and limits](graph-cache-plan.md#collections-incremental-scorecard).
+278.66 s bootstrap/setup observation is retained. Two matched cold controls
+measure 179.15 s versus 147.12 s raw workflow (preparation executes), and
+165.98 s versus 157.40 s (preparation retained): about 22% / 5% overhead.
+Each is one observation with 615 compiled products matching; these states
+do not form a combined median. See the [cold controls](graph-cache-plan.md#collections-cold-controls). See [ranges, commands and limits](graph-cache-plan.md#collections-incremental-scorecard).
 
 ## Current graph-cache optimization checkpoint
 

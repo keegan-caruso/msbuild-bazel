@@ -796,3 +796,36 @@ BinPlace inventory is covered by the existing shared-output owners.
 Reproduce using the threading commands above with `--slice filesystem`; tests
 compile against framework references, so source-host execution remains open.
 These are correctness controls, not scored timings. CI was not run.
+
+## Collections cold controls
+
+Two unprofiled Linux ARM64 controls keep the 55-node compilation scope and
+4-CPU/8-GiB configuration above. SDK/package archives and Bazel bootstrap are
+available; outputs and project snapshots are fresh. Both compare all 615
+compiled-product bytes exactly and execute all three roots in one raw graph.
+
+| Preparation state | Bazel | Raw Build | Raw Restore + Build | Observations |
+| --- | ---: | ---: | ---: | ---: |
+| Prepared Restore executes | 179.146 s | 142.596 s | 147.122 s | One |
+| Prepared Restore retained | 165.985 s | 153.260 s | 157.397 s | One |
+
+Workflow overhead is about 22% / 5%; Build-only overhead is about 26% / 8%.
+Different preparation states and raw variation prevent a combined median.
+The retained-preparation sample peaks at 3.11 GiB VM use for Bazel and
+2.78 GiB for raw, sampled every 250 ms. The first sample has no memory series.
+Neither observation includes SDK downloads or the earlier 278.66-second
+bootstrap/setup. No runner bootstrap or package extraction action executes.
+
+`runtime_cold.py COLLECTIONS/workspace SCORECARD --output-base SCORECARD_BASE`
+now restores every configured root and uses the combined SDK graph driver.
+`--sample 2` preserves the first observation; `--profile` records a separate
+diagnostic excluded from scored controls. CI was not run.
+
+The separate diagnostic matches 107 compiler calls by project/framework on both
+engines. Graph execution is 152.39 s versus 151.22 s raw Build. Runner preparation
+application/evaluation/input hashing take 1.75/1.10/0.48 s; final verification and
+snapshot saving take 0.08/0.27 s. Worker staging adds 3.63 s and the child takes
+156.24 s. Full Bazel wall time is 182.02 s, including a newly executed prepared
+Restore action and startup. Snapshot saving is not the dominant cost. Csc task
+duration sums are 207.97 s graph / 207.05 s raw; concurrent task sums are not wall
+segments. This diagnostic is excluded from scored observations.

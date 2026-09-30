@@ -1,4 +1,4 @@
-"""One matched cold-compilation control after the paired Pipelines scorecard.
+"""One matched cold-compilation control after a paired runtime scorecard.
 
 SDK/package archives and expanded raw NuGet packages are available. Both engines
 have fresh outputs; the graph broker has no local snapshots. This is a single
@@ -13,6 +13,7 @@ from pathlib import Path
 import shutil
 import subprocess
 import time
+import threading
 
 ROOT = Path(__file__).resolve().parents[3]
 
@@ -38,6 +39,8 @@ def main():
     contract = json.loads((root / 'graph.generated.json').read_text())
     variants = [v for p in contract['Projects'].values() for v in p.get('Configurations') or [p]]
     directories = {p for v in variants for p in v['OutputDirectories']}
+    count = sum(bool(v['OutputDirectories'] or v.get('OutputFiles')) for v in variants)
+    entries = contract.get('Entries') or [contract['Entry']]
     files = {p for v in variants for p in v.get('OutputFiles', [])}
     inputs = set(contract['SharedInputs']) | {p for v in variants for p in v['Inputs']}
     assert not any(path.startswith('artifacts/obj/') for path in inputs), 'Do not remove declared restore inputs'
@@ -62,11 +65,36 @@ def main():
     config = raw / 'NuGet.Config'
     original_config = config.read_bytes() if config.exists() else None
 
+    memory_samples = {}
+
     def execute(command, label, cwd):
         start = time.monotonic()
         with (destination / (label + '.log')).open('w') as log:
-            subprocess.run(command, cwd=cwd, env=environment, stdout=log, stderr=subprocess.STDOUT, check=True)
-        return time.monotonic() - start
+            process = subprocess.Popen(command, cwd=cwd, env=environment, stdout=log, stderr=subprocess.STDOUT)
+            samples = []
+            stopped = threading.Event()
+            def sample_memory():
+                while True:
+                    memory = {line.split(':')[0]: int(line.split()[1]) for line in Path('/proc/meminfo').read_text().splitlines()}
+                    samples.append((memory['MemTotal'], memory['MemAvailable']))
+                    if stopped.wait(0.25):
+                        return
+            sampler = threading.Thread(target=sample_memory)
+            sampler.start()
+            try:
+                process.wait()
+                elapsed = time.monotonic() - start
+            finally:
+                stopped.set()
+                sampler.join()
+            total = samples[-1][0]
+            minimum_available = min(available for _, available in samples)
+            memory_samples[label] = dict(vmTotalKiB=total, minimumAvailableKiB=minimum_available,
+                                         maximumUsedKiB=total - minimum_available, samplingIntervalSeconds=0.25)
+            (destination / 'memory-samples.json').write_text(json.dumps(memory_samples, indent=2) + '\n')
+            if process.returncode:
+                raise subprocess.CalledProcessError(process.returncode, command)
+        return elapsed
 
     def capture(workspace):
         paths = {workspace / path for path in files} | {p for directory in directories for p in (workspace / directory).rglob('*')}
@@ -86,15 +114,24 @@ def main():
             (raw / path).unlink(missing_ok=True)
         shutil.rmtree(raw / 'artifacts/obj', ignore_errors=True)
         config.write_text('<configuration><packageSources><clear/><add key="declared" value=".package-source"/></packageSources><fallbackPackageFolders><clear/></fallbackPackageFolders></configuration>')
-        restore = raw_host + ['restore', stable + '/' + contract['Entry'], '--configfile', stable + '/NuGet.Config',
-                  '--source', stable + '/.package-source', '--packages', stable + '/.nuget', '-p:NuGetAudit=false',
-                  '-p:NetCoreSdkRoot=' + stable_sdk + '/sdk/' + contract['SdkVersion']]
-        restore += [f'-p:{k}={v}' for k, v in contract['Properties'].items() if k.lower() != 'targetframework']
-        restore_seconds = execute(restore, 'raw-restore', raw)
+        restore_seconds = 0
+        for index, entry in enumerate(entries):
+            restore = raw_host + ['restore', stable + '/' + entry, '--configfile', stable + '/NuGet.Config',
+                      '--source', stable + '/.package-source', '--packages', stable + '/.nuget', '-p:NuGetAudit=false',
+                      '-p:NetCoreSdkRoot=' + stable_sdk + '/sdk/' + contract['SdkVersion']]
+            restore += [f'-p:{k}={v}' for k, v in contract['Properties'].items() if k.lower() != 'targetframework']
+            restore_seconds += execute(restore, 'raw-restore-' + str(index), raw)
         diagnostic = raw / '.qualification'
         diagnostic.mkdir(exist_ok=True)
-        binlog = ['-bl:' + stable + '/.qualification/cold.binlog;ProjectImports=None'] if args.profile else []
-        raw_seconds = execute(raw_host + ['msbuild', stable + '/' + contract['Entry'], '-graphBuild', '-m:4', '-t:Build', '-nologo', *common, *properties, *binlog], 'raw-build', raw)
+        if len(entries) == 1:
+            binlog = ['-bl:' + stable + '/.qualification/cold.binlog;ProjectImports=None'] if args.profile else []
+            raw_command = ['msbuild', stable + '/' + entries[0], '-graphBuild', '-m:4', '-t:Build', '-nologo', *common, *properties, *binlog]
+        else:
+            assert (diagnostic / 'Raw.dll').is_file(), 'Combined scorecard must prepare the SDK graph driver'
+            raw_command = [stable + '/.qualification/Raw.dll', stable, stable + '/graph.generated.json', 'build']
+            if args.profile:
+                raw_command.append(stable + '/.qualification/cold.binlog')
+        raw_seconds = execute(raw_host + raw_command, 'raw-build', raw)
         generated.write_text(prefix + '    msbuild_graph(\n' + action.replace('        srcs = [', '        srcs = ["force-cold.txt",', 1))
         nonce.write_text(str(time.time_ns()))
         seconds = execute(bazel + ['build', '//:graph', '--jobs=4', '--strategy=MSBuildGraph=worker', '--spawn_strategy=linux-sandbox',
@@ -104,7 +141,7 @@ def main():
         actions = {r['mnemonic']: int(r.get('actionsExecuted', 0)) for r in metrics.get('actionData', [])}
         assert actions.get('MSBuildGraph') == 1, 'Cold must execute the graph action'
         report = json.loads((root / 'bazel-bin/graph.graph/report.json').read_text())
-        assert report['hits'] == 0 and report['misses'] == 38, report
+        assert report['hits'] == 0 and report['misses'] == count, report
         if args.profile:
             assert report['operations'] and report['worker']
             shutil.copyfile(root / 'bazel-bin/graph.graph/report.binlog', destination / 'graph.binlog')
@@ -115,12 +152,12 @@ def main():
         raw_outputs = capture(raw)
         assert outputs and {p: v['sha256'] for p, v in outputs.items()} == {p: v['sha256'] for p, v in raw_outputs.items()}, 'Cold byte parity failed'
         modes = dict(graph=dict(Counter(oct(v['mode']) for v in outputs.values())), raw=dict(Counter(oct(v['mode']) for v in raw_outputs.values())))
-        row = dict(case='cold-compilation-diagnostic' if args.profile else 'cold-compilation', observations=1, sample=args.sample, actionsExecuted=actions, graphWallSeconds=seconds, rawRestoreSeconds=restore_seconds,
+        row = dict(entries=entries, configuredNodes=len(variants), compilationNodes=count, memorySamples=memory_samples, case='cold-compilation-diagnostic' if args.profile else 'cold-compilation', observations=1, sample=args.sample, actionsExecuted=actions, graphWallSeconds=seconds, rawRestoreSeconds=restore_seconds,
                    rawBuildSeconds=raw_seconds, rawWorkflowSeconds=restore_seconds + raw_seconds,
                    comparedDllPdbResourceFiles=len(outputs), observedFileModes=modes, runner=report,
                    scope='available SDK/packages; fresh outputs and empty project snapshots; warm Bazel repository/bootstrap state')
         (destination / 'summary.json').write_text(json.dumps(row, indent=2) + '\n')
-        print(json.dumps(row), flush=True)
+        print(json.dumps({k: v for k, v in row.items() if k != 'runner'}), flush=True)
     finally:
         build.write_bytes(original_build)
         generated.write_bytes(original)
