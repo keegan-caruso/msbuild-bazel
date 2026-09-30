@@ -22,7 +22,7 @@ internal static class GraphTools
             System.Xml.XmlConvert.VerifyNCName(name);
             if (name.StartsWith("MSBuild", StringComparison.OrdinalIgnoreCase) || name.StartsWith("Restore", StringComparison.OrdinalIgnoreCase) ||
                 name.StartsWith("_Bazel", StringComparison.OrdinalIgnoreCase) || name.Equals("PathMap", StringComparison.OrdinalIgnoreCase) ||
-                name.Equals("UseSharedCompilation", StringComparison.OrdinalIgnoreCase) || properties.ContainsKey(name))
+                name.Equals("UseSharedCompilation", StringComparison.OrdinalIgnoreCase) || name.Equals("NetCoreSdkRoot", StringComparison.OrdinalIgnoreCase) || name.Equals("DOTNET_HOST_PATH", StringComparison.OrdinalIgnoreCase) || properties.ContainsKey(name))
             {
                 throw new InvalidDataException("Reserved or conflicting graph tool property: " + name);
             }

@@ -12,6 +12,7 @@ internal sealed class GraphInputs : IDisposable
     private readonly Dictionary<string, string> inputDigests;
     private readonly string runnerDigest;
     private readonly HashSet<string> sharedPaths;
+    private readonly Dictionary<string, string[]> packagePathAliases;
     private readonly Dictionary<ProjectGraphNode, string> baseFingerprints;
     private readonly Dictionary<ProjectGraphNode, ProjectContract> projects = [];
     internal double EvaluationSeconds
@@ -42,6 +43,8 @@ internal sealed class GraphInputs : IDisposable
         this.contract = contract;
         Files = new(root, sdkRoot);
         sharedPaths = contract.SharedInputs.Select(Files.Resolve).ToHashSet(StringComparer.Ordinal);
+        packagePathAliases = sharedPaths.Where(path => path.StartsWith(Path.Combine(Files.Root, ".nuget") + Path.DirectorySeparatorChar, StringComparison.Ordinal))
+            .GroupBy(path => path, StringComparer.OrdinalIgnoreCase).ToDictionary(group => group.Key, group => group.ToArray(), StringComparer.OrdinalIgnoreCase);
         foreach (var path in sharedPaths)
         {
             if (!File.Exists(path))
@@ -62,12 +65,13 @@ internal sealed class GraphInputs : IDisposable
         Environment.SetEnvironmentVariable("MSBuildSDKsPath", Path.Combine(sdk, "Sdks"));
         collection = new ProjectCollection();
         var properties = new Dictionary<string, string>(contract.Properties, StringComparer.OrdinalIgnoreCase);
-        if (properties.ContainsKey("PathMap") || properties.ContainsKey("UseSharedCompilation"))
+        if (properties.ContainsKey("PathMap") || properties.ContainsKey("UseSharedCompilation") || properties.ContainsKey("NetCoreSdkRoot") || properties.ContainsKey("DOTNET_HOST_PATH"))
         {
-            throw new InvalidDataException("PathMap and UseSharedCompilation are controlled by the graph runner");
+            throw new InvalidDataException("SDK host paths, PathMap and UseSharedCompilation are controlled by the graph runner");
         }
         properties["PathMap"] = Files.Root + "=/_/workspace," + Files.Sdk + "=/_/sdk";
         properties["UseSharedCompilation"] = "false";
+        properties["NetCoreSdkRoot"] = sdk;
         Graph = new ProjectGraph((contract.Entries ?? [contract.Entry]).Select(entry => new ProjectGraphEntryPoint(Files.Resolve(entry), properties)), collection,
             (path, globals, projects) =>
             {
@@ -244,6 +248,14 @@ internal sealed class GraphInputs : IDisposable
         {
             if (!allowed.Contains(path) && !sharedPaths.Contains(path))
             {
+                // Some SDK resolvers return Sdk/Sdk.props for archives containing
+                // sdk/Sdk.props on case-insensitive filesystems. Require matching
+                // bytes from the declared package; never accept a case-only match.
+                if (File.Exists(path) && packagePathAliases.TryGetValue(path, out var aliases) &&
+                    aliases.Any(alias => ContractFiles.Digest(alias) == ContractFiles.Digest(path)))
+                {
+                    return;
+                }
                 throw new InvalidDataException("Undeclared graph input for " + Relative(node) + ": " + Path.GetRelativePath(Files.Root, path));
             }
         }

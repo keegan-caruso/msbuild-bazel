@@ -21,9 +21,11 @@ def main():
             (root / name / f'{name}.csproj').write_text('<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup><TargetFramework>net10.0</TargetFramework></PropertyGroup>' + reference + '</Project>')
             (root / name / 'Code.cs').write_text(f'public class {name} {{ public static int Value() => 1; }}')
         target = root / 'Directory.Build.targets'
-        target.write_text('<Project><Target Name="SharedOutput" AfterTargets="Build"><Copy SourceFiles="$(TargetPath)" DestinationFiles="$(MSBuildThisFileDirectory)shared/$(AssemblyName).dll" /></Target></Project>')
-        mapping = {'projectDefaults': {'outputFiles': ['shared/$(AssemblyName).dll'], 'documents': {'Directory.Build.targets': {
+        target.write_text('<Project><ItemGroup><GraphOutput Include="shared/$(AssemblyName).dll" Kind="published" /></ItemGroup><Target Name="SharedOutput" AfterTargets="Build"><Copy SourceFiles="$(TargetPath)" DestinationFiles="$(MSBuildThisFileDirectory)shared/$(AssemblyName).dll" /></Target></Project>')
+        mapping = {'projectDefaults': {'outputFiles': ["@(GraphOutput->WithMetadataValue('Kind', 'published'));$(AbsentOutput)"], 'evaluationItems': ['GraphOutput'], 'documents': {'Directory.Build.targets': {
             'sha256': hashlib.sha256(target.read_bytes()).hexdigest(), 'targets': ['SharedOutput'], 'tasks': [], 'inputs': []}}}}
+        mapping['projectDefaults']['frameworkOverrides'] = {'net10.0': {'outputFiles': mapping['projectDefaults']['outputFiles']}}
+        mapping['projectDefaults']['outputFiles'] = ['shared/wrong-framework.dll']
         mapping_path = root / 'mappings.json'
         mapping_path.write_text(json.dumps(mapping))
         sync = [DOTNET, ROOT / 'tools/ProjectSync/bin/Release/net10.0/ProjectSync.dll', root, SDK / 'sdk/10.0.400', 'App/App.csproj', '--graph', '--mappings', mapping_path]

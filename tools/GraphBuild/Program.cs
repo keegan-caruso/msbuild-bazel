@@ -43,6 +43,7 @@ foreach (var (path, digest) in contract.DefinitionDigests ?? [])
         throw new InvalidDataException("Graph definition changed; rerun sync: " + path);
     }
 }
+Environment.SetEnvironmentVariable("DOTNET_HOST_PATH", Path.Combine(sdkRoot, OperatingSystem.IsWindows() ? "dotnet.exe" : "dotnet"));
 var sdk = Path.Combine(sdkRoot, "sdk", contract.SdkVersion);
 System.Runtime.Loader.AssemblyLoadContext.Default.Resolving += (context, name) =>
     File.Exists(Path.Combine(sdk, name.Name + ".dll")) ? context.LoadFromAssemblyPath(Path.Combine(sdk, name.Name + ".dll")) : null;

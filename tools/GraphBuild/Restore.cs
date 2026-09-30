@@ -6,7 +6,7 @@ internal static class Restore
 {
     internal static GraphContract Run(GraphContract contract, string root, string sdkRoot)
     {
-        var owned = new[] { "RestoreSources", "RestoreConfigFile", "RestorePackagesPath", "RestoreFallbackFolders", "RestoreAdditionalProjectSources", "RestoreAdditionalProjectFallbackFolders" };
+        var owned = new[] { "NetCoreSdkRoot", "DOTNET_HOST_PATH", "RestoreSources", "RestoreConfigFile", "RestorePackagesPath", "RestoreFallbackFolders", "RestoreAdditionalProjectSources", "RestoreAdditionalProjectFallbackFolders" };
         if (contract.Properties.Keys.Any(key => owned.Contains(key, StringComparer.OrdinalIgnoreCase)))
         {
             throw new InvalidDataException("Graph Restore source, package and fallback paths are controlled by declared archives");
@@ -30,7 +30,7 @@ internal static class Restore
                 UseShellExecute = false,
             };
             foreach (var argument in new[] { "restore", Path.Combine(root, entry), "--configfile", config, "--source", source, "--packages", packages, "-p:NuGetAudit=false",
-                "-p:RestoreFallbackFolders=", "-p:RestoreAdditionalProjectSources=", "-p:RestoreAdditionalProjectFallbackFolders=" })
+                "-p:NetCoreSdkRoot=" + Path.Combine(sdkRoot, "sdk", contract.SdkVersion), "-p:RestoreFallbackFolders=", "-p:RestoreAdditionalProjectSources=", "-p:RestoreAdditionalProjectFallbackFolders=" })
             {
                 process.ArgumentList.Add(argument);
             }

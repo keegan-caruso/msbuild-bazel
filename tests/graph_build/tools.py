@@ -1,5 +1,6 @@
 """A bound task carries project, package and data dependencies into graph actions."""
 
+import argparse
 import base64
 import hashlib
 import json
@@ -13,6 +14,9 @@ from qualify import DOTNET, ROOT, RUNNER, run
 
 
 def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--task-host", action="store_true", help="qualify graph out-of-process task execution")
+    args = parser.parse_args()
     with tempfile.TemporaryDirectory(prefix='graph-tools-') as temporary:
         base = Path(temporary).resolve()
         root = base / 'workspace'
@@ -46,7 +50,8 @@ public class Generate : ITask {
  System.IO.File.WriteAllText(OutputFile,"public class Generated { public static int Value => "+value+"; }"); return true; }
 }''')
         put('delta.txt', '1')
-        app = project.format('<OutputType>Exe</OutputType>', '<UsingTask TaskName="Generate" AssemblyFile="$(TaskLocation)" />'
+        factory = 'TaskHostFactory' if args.task_host else 'AssemblyTaskFactory'
+        app = project.format('<OutputType>Exe</OutputType>', f'<UsingTask TaskName="Generate" AssemblyFile="$(TaskLocation)" TaskFactory="{factory}" />'
             '<Target Name="GenerateCode" BeforeTargets="CoreCompile"><Generate OutputFile="$(IntermediateOutputPath)Generated.cs" />'
             '<ItemGroup><Compile Include="$(IntermediateOutputPath)Generated.cs" /></ItemGroup></Target>')
         put('App/App.csproj', app)
@@ -75,7 +80,8 @@ public class Generate : ITask {
             assert contract['ToolProperties'] == {'TaskLocation': '.graph-tools/0/net/Tasks.dll'}
             put('BUILD.bazel', authored + 'load(":graph.generated.bzl","app_graph")\napp_graph(name="graph")\nmsbuild_graph_binary(name="app",graph=":graph",project="App/App.csproj")\n')
             assert '\n41\n' in bazel('run', '//:app')
-            assert '\n41\n' in bazel('run', '//:legacy')
+            if not args.task_host:
+                assert '\n41\n' in bazel('run', '//:legacy')
             replay = base / 'replay'
             shutil.copytree(root / 'bazel-bin/graph.graph/workspace', replay)
             for file in replay.rglob('*'):

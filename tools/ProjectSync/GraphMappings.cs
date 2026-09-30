@@ -34,7 +34,7 @@ internal sealed class GraphMappings
             }
         }
         mappings = Mappings.Read(path, graph: true);
-        var owned = new[] { "PathMap", "UseSharedCompilation", "RestoreSources", "RestoreConfigFile", "RestorePackagesPath", "RestoreFallbackFolders", "RestoreAdditionalProjectSources", "RestoreAdditionalProjectFallbackFolders" };
+        var owned = new[] { "NetCoreSdkRoot", "DOTNET_HOST_PATH", "PathMap", "UseSharedCompilation", "RestoreSources", "RestoreConfigFile", "RestorePackagesPath", "RestoreFallbackFolders", "RestoreAdditionalProjectSources", "RestoreAdditionalProjectFallbackFolders" };
         if (mappings.ProjectDefaults.Properties.Keys.Any(key => owned.Contains(key, StringComparer.OrdinalIgnoreCase)))
         {
             throw new InvalidDataException("Graph paths and Restore sources are controlled by declared inputs");
@@ -45,6 +45,14 @@ internal sealed class GraphMappings
     {
         foreach (var property in binding.EnumerateObject())
         {
+            if (property.Name == "frameworkOverrides")
+            {
+                foreach (var framework in property.Value.EnumerateObject())
+                {
+                    Validate(framework.Value, defaults: false);
+                }
+                continue;
+            }
             if (property.Name is not ("documents" or "inputItems" or "evaluationItems" or "outputFiles") && !(defaults && property.Name == "properties"))
             {
                 throw new InvalidDataException("Graph mapping requires explicit contract transfer for: " + property.Name);
@@ -54,7 +62,11 @@ internal sealed class GraphMappings
 
     internal Dictionary<string, string> Properties => mappings.ProjectDefaults.Properties;
 
-    internal ProjectBinding ForProject(string project) => mappings.ForProject(project);
+    internal ProjectBinding ForProject(string project, string framework = "")
+    {
+        var binding = mappings.ForProject(project);
+        return binding.FrameworkOverrides.GetValueOrDefault(framework) ?? binding;
+    }
 
     internal static IEnumerable<string> Inputs(ProjectRootElement document, string logical, ProjectBinding binding)
     {

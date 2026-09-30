@@ -30,7 +30,7 @@ internal static class GraphGenerator
     {
         System.Xml.XmlConvert.VerifyNCName(name);
         if (name.StartsWith("MSBuild", StringComparison.OrdinalIgnoreCase) || name.StartsWith("Restore", StringComparison.OrdinalIgnoreCase) ||
-            name.StartsWith("_Bazel", StringComparison.OrdinalIgnoreCase) || name.Equals("PathMap", StringComparison.OrdinalIgnoreCase) || name.Equals("UseSharedCompilation", StringComparison.OrdinalIgnoreCase) || properties.ContainsKey(name))
+            name.StartsWith("_Bazel", StringComparison.OrdinalIgnoreCase) || name.Equals("PathMap", StringComparison.OrdinalIgnoreCase) || name.Equals("UseSharedCompilation", StringComparison.OrdinalIgnoreCase) || name.Equals("NetCoreSdkRoot", StringComparison.OrdinalIgnoreCase) || name.Equals("DOTNET_HOST_PATH", StringComparison.OrdinalIgnoreCase) || properties.ContainsKey(name))
         {
             throw new InvalidDataException("Reserved or conflicting graph tool property: " + name);
         }
@@ -47,7 +47,7 @@ internal static class GraphGenerator
         {
             properties["TargetFramework"] = framework;
         }
-        using var restored = packageBuild ? new GraphEvaluationWorkspace(root, sdkRoot, entries, properties,
+        using var restored = packageBuild ? new GraphEvaluationWorkspace(root, sdkRoot, sdk, entries, properties,
             view ?? throw new InvalidDataException("Package build sync requires declared package inputs"), view?.GraphToolProperties) : null;
         if (restored is not null)
         {
@@ -64,6 +64,7 @@ internal static class GraphGenerator
             ["ImportProjectExtensionProps"] = packageBuild ? "true" : "false",
             ["ImportProjectExtensionTargets"] = packageBuild ? "true" : "false",
             ["UseSharedCompilation"] = "false",
+            ["NetCoreSdkRoot"] = sdk,
             ["PathMap"] = root + "=/_/workspace," + sdkRoot + "=/_/sdk"
         };
         foreach (var (name, path) in view?.GraphToolProperties ?? [])
@@ -81,10 +82,31 @@ internal static class GraphGenerator
                     {
                         var value = reference.GetMetadataValue("HintPath");
                         var path = Path.GetFullPath((value.Length == 0 ? reference.EvaluatedInclude : value).Replace('\\', '/'), Path.GetDirectoryName(project.FullPath)!);
-                        return !IsSdk(path) && !(packageBuild && Path.GetRelativePath(root, path).Replace('\\', '/').StartsWith(".nuget/", StringComparison.Ordinal));
+                        if (IsSdk(path) || IsRestored(path))
+                        {
+                            return false;
+                        }
+                        if (value.Length == 0 && project.GetPropertyValue("TargetFrameworkIdentifier") == ".NETFramework" &&
+                            reference.EvaluatedInclude.IndexOfAny(['/', '\\', ',']) < 0)
+                        {
+                            var frameworkRoot = project.GetPropertyValue("TargetFrameworkRootPath");
+                            if (Path.IsPathRooted(frameworkRoot) && IsRestored(frameworkRoot))
+                            {
+                                var framework = Path.Combine(frameworkRoot, ".NETFramework", project.GetPropertyValue("TargetFrameworkVersion"));
+                                var profile = project.GetPropertyValue("TargetFrameworkProfile");
+                                if (profile.Length != 0)
+                                {
+                                    framework = Path.Combine(framework, "Profile", profile);
+                                }
+                                return !File.Exists(Path.Combine(framework, reference.EvaluatedInclude + ".dll")) &&
+                                    !File.Exists(Path.Combine(framework, "Facades", reference.EvaluatedInclude + ".dll"));
+                            }
+                        }
+                        return true;
                     }))
                 {
-                    throw new InvalidDataException("Graph sync requires a supported .NET SDK project with SDK/package-owned assembly references: " + Relative(path));
+                    throw new InvalidDataException("Graph sync requires a supported .NET SDK project with SDK/package-owned assembly references: " + Relative(path) + "; " +
+                        string.Join("; ", project.GetItems("Reference").Select(item => item.EvaluatedInclude + "=" + item.GetMetadataValue("HintPath"))));
                 }
                 foreach (var package in project.GetItems("PackageReference"))
                 {
@@ -106,14 +128,17 @@ internal static class GraphGenerator
                 }
                 var documents = project.Imports.Select(import => import.ImportedProject).Append(project.Xml)
                     .Where(document => !IsSdk(document.FullPath) && !IsRestored(document.FullPath)).DistinctBy(document => document.FullPath).ToArray();
-                var binding = mappings.ForProject(Relative(path));
+                var binding = mappings.ForProject(Relative(path), project.GetPropertyValue("TargetFramework"));
                 var taskInputs = documents.SelectMany(document => GraphMappings.Inputs(document, Relative(document.FullPath), binding)).ToArray();
-                foreach (var item in project.AllEvaluatedItems.Where(item => !IsSdk(item.Xml.ContainingProject.FullPath) && !IsRestored(item.Xml.ContainingProject.FullPath)))
+                var unsupportedItems = project.AllEvaluatedItems
+                    .Where(item => !IsSdk(item.Xml.ContainingProject.FullPath) && !IsRestored(item.Xml.ContainingProject.FullPath))
+                    .Select(item => item.ItemType).Distinct(StringComparer.Ordinal)
+                    .Where(type => !FileItems.Contains(type, StringComparer.Ordinal) && !binding.InputItems.ContainsKey(type) &&
+                        !binding.EvaluationItems.Contains(type, StringComparer.Ordinal) && type is not "PackageReference" and not "PackageVersion" and not "GlobalPackageReference" and not "ProjectReference" and not "InternalsVisibleTo" and not "Using" and not "FrameworkReference" and not "Reference" and not "AssemblyAttribute")
+                    .Order(StringComparer.Ordinal).ToArray();
+                if (unsupportedItems.Length != 0)
                 {
-                    if (!FileItems.Contains(item.ItemType, StringComparer.Ordinal) && !binding.InputItems.ContainsKey(item.ItemType) && !binding.EvaluationItems.Contains(item.ItemType, StringComparer.Ordinal) && item.ItemType is not "PackageReference" and not "PackageVersion" and not "GlobalPackageReference" and not "ProjectReference" and not "InternalsVisibleTo" and not "Using" and not "FrameworkReference" and not "Reference" and not "AssemblyAttribute")
-                    {
-                        throw new InvalidDataException("Graph sync item requires contract transfer: " + item.ItemType);
-                    }
+                    throw new InvalidDataException("Graph sync item requires contract transfer in " + Relative(path) + ": " + string.Join(", ", unsupportedItems));
                 }
                 var declared = new HashSet<string>(documents.Select(document => Relative(document.FullPath)), StringComparer.Ordinal);
                 foreach (var document in declared)
@@ -149,9 +174,14 @@ internal static class GraphGenerator
                     {
                         continue;
                     }
-                    if (!File.Exists(fullPath) && IsSdk(item.Xml.ContainingProject.FullPath))
+                    if (!File.Exists(fullPath) && (IsSdk(item.Xml.ContainingProject.FullPath) ||
+                        (item.ItemType == "GlobalAnalyzerConfigFiles" && IsRestored(item.Xml.ContainingProject.FullPath))))
                     {
                         continue;
+                    }
+                    if (Path.GetRelativePath(root, fullPath).StartsWith("../", StringComparison.Ordinal))
+                    {
+                        throw new InvalidDataException("Graph item outside workspace: " + item.ItemType + " " + fullPath + " from " + item.Xml.ContainingProject.FullPath);
                     }
                     var relative = Relative(fullPath);
                     if (relative is ContractName or BuildName)
@@ -162,7 +192,8 @@ internal static class GraphGenerator
                 }
                 var instance = project.CreateProjectInstance();
                 outputs[Key(instance)] = instance.GetPropertyValue("TargetPath").Length == 0 ? [] : binding.OutputFiles
-                    .Select(value => Relative(Path.GetFullPath(project.ExpandString(value).Replace('\\', '/'), root)))
+                    .SelectMany(value => project.ExpandString(value).Split(';', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+                    .Select(value => Relative(Path.GetFullPath(value.Replace('\\', '/'), root)))
                     .Distinct().Order(StringComparer.Ordinal).ToArray();
                 deferred[Key(instance)] = generated;
                 inputs[Key(instance)] = declared.Order(StringComparer.Ordinal).ToArray();
@@ -297,9 +328,9 @@ internal static class GraphGenerator
             return boundaries[node] = node.ProjectInstance.GetPropertyValue("TargetPath").Length != 0 &&
             Dependencies(node).Append(node).All(current =>
                 !current.ProjectInstance.GetPropertyValue("UsingMicrosoftNETSdkRazor").Equals("true", StringComparison.OrdinalIgnoreCase) &&
-                mappings.ForProject(Relative(current.ProjectInstance.FullPath)).Documents.Count == 0 &&
-                mappings.ForProject(Relative(current.ProjectInstance.FullPath)).InputItems.Count == 0 &&
-                mappings.ForProject(Relative(current.ProjectInstance.FullPath)).OutputFiles.Length == 0 &&
+                mappings.ForProject(Relative(current.ProjectInstance.FullPath), current.ProjectInstance.GetPropertyValue("TargetFramework")).Documents.Count == 0 &&
+                mappings.ForProject(Relative(current.ProjectInstance.FullPath), current.ProjectInstance.GetPropertyValue("TargetFramework")).InputItems.Count == 0 &&
+                mappings.ForProject(Relative(current.ProjectInstance.FullPath), current.ProjectInstance.GetPropertyValue("TargetFramework")).OutputFiles.Length == 0 &&
                 new[] { "PublishTrimmed", "PublishReadyToRun", "PublishAot", "PublishSingleFile" }.All(property =>
                     !current.ProjectInstance.GetPropertyValue(property).Equals("true", StringComparison.OrdinalIgnoreCase)) &&
                 current.ProjectInstance.GetItems("ProjectReference").All(item =>

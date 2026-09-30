@@ -19,8 +19,8 @@ def main():
         root.mkdir()
         with zipfile.ZipFile(root / 'fixture.sdk.1.0.0.nupkg', 'w') as archive:
             archive.writestr('Fixture.Sdk.nuspec', '<package><metadata><id>Fixture.Sdk</id><version>1.0.0</version><authors>fixture</authors><description>fixture</description><packageTypes><packageType name="MSBuildSdk" /></packageTypes></metadata></package>')
-            archive.writestr('Sdk/Sdk.props', '<Project><PropertyGroup><DefineConstants>$(DefineConstants);PACKAGE_SDK</DefineConstants></PropertyGroup></Project>')
-            archive.writestr('Sdk/Sdk.targets', '<Project />')
+            archive.writestr('sdk/Sdk.props', '<Project><PropertyGroup><DefineConstants>$(DefineConstants);PACKAGE_SDK</DefineConstants></PropertyGroup><ItemGroup><GlobalAnalyzerConfigFiles Include="$(MSBuildProjectDirectory)/../../missing.globalconfig" /></ItemGroup></Project>')
+            archive.writestr('sdk/Sdk.targets', '<Project />')
         data = (root / 'fixture.sdk.1.0.0.nupkg').read_bytes()
         global_json = json.loads((ROOT / 'global.json').read_text())
         global_json['msbuild-sdks'] = {'Fixture.Sdk': '1.0.0', 'Unused.Sdk': '9.9.9'}

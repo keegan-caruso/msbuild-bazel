@@ -721,3 +721,34 @@ a compiled C generator runs through public sync/build, replays, and rebuilds
 when its executable or data changes. Removing execute permission fails instead
 of returning an old cached success. The fixture explicitly uses `/bin/sh` and
 the platform C runtime; this does not establish a portable native system closure.
+
+### Runtime contract qualification
+
+The System.IO.Pipelines slice now passes a generated graph build with 30
+configured projects (32 graph nodes), offline packages and API validation.
+Runtime exposed three input requirements: package-owned .NET Framework reference
+assemblies, API suppression files read inside targets, and MSBuild task-host SDK
+paths. The runner binds `DOTNET_HOST_PATH` and `NetCoreSdkRoot` to its declared SDK.
+It does not disable task hosting or API checks. Package SDK casing aliases require
+matching declared bytes; missing package-authored analyzer-config candidates are
+ignored, while existing files still require ownership.
+
+Mappings can use evaluated item lists in `outputFiles` and select contracts with
+`frameworkOverrides`. Required outputs must exist after a build. Runtime's shared
+binplace directories need individual file ownership, not ownership of the whole
+directory. This qualification is a managed library slice, not a full runtime,
+native host or SDK build.
+
+Focused checks passed on macOS ARM64 with SDK 10.0.400:
+
+```sh
+python3 tests/graph_build/output_files.py
+python3 tests/graph_build/tools.py --task-host
+python3 tests/graph_build/package_sdks.py
+python3 tests/graph_build/framework_references.py "$PACKAGES"
+bash scripts/check-dotnet.sh
+```
+
+The Framework fixture needs the declared ReferenceAssemblies and net462 packages
+at version 1.0.3. The out-of-process task check qualifies the graph rule; the
+legacy rule's task-host launcher still fails this case.

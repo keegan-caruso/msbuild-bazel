@@ -16,6 +16,7 @@ internal static class Program
                 throw new ArgumentException("sdk-directory must contain MSBuild.dll");
             }
             System.Runtime.Loader.AssemblyLoadContext.Default.Resolving += (context, name) => File.Exists(Path.Combine(sdk, name.Name + ".dll")) ? context.LoadFromAssemblyPath(Path.Combine(sdk, name.Name + ".dll")) : null;
+            Environment.SetEnvironmentVariable("DOTNET_HOST_PATH", Path.Combine(Path.GetDirectoryName(Path.GetDirectoryName(sdk))!, OperatingSystem.IsWindows() ? "dotnet.exe" : "dotnet"));
             Environment.SetEnvironmentVariable("MSBuildEnableWorkloadResolver", "false");
             Environment.SetEnvironmentVariable("MSBUILD_EXE_PATH", Path.Combine(sdk, "MSBuild.dll"));
             Environment.SetEnvironmentVariable("MSBuildSDKsPath", Path.Combine(sdk, "Sdks"));
