@@ -83,6 +83,8 @@ internal static class GraphGenerator
                 {
                     GlobalProperties = globals,
                     ProjectCollection = projects,
+                    // Graph builds do not need IDE-only items from inactive conditions.
+                    LoadSettings = ProjectLoadSettings.DoNotEvaluateElementsWithFalseCondition,
                     EvaluationContext = evaluationContext
                 });
                 if (project.Xml.Sdk is not ("Microsoft.NET.Sdk" or "Microsoft.NET.Sdk.Web" or "Microsoft.NET.Sdk.Razor") ||

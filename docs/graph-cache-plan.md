@@ -454,3 +454,23 @@ without a remote endpoint they rebuild both projects from an empty local cache.
 Logs: `/tmp/graph-roadmap-linux-expanded-worker.log` and
 `/tmp/graph-roadmap-linux-protocols-body.log`. These remain synthetic controls;
 they do not qualify all upstream test or Publish targets.
+
+### Skip inactive design-time item evaluation
+
+Expanded Avalonia SimpleTheme qualification exposed a stall during `Project`
+evaluation: the API's default IDE behavior expands items even when their
+conditions are false. Disabled platform globs consequently enumerated the host
+filesystem root. A bounded original run exceeded 60 seconds; a diagnostic
+filesystem trace identified the enumeration. The CLI root-wildcard environment
+guard alone did not prevent it.
+
+Graph sync and graph build now use
+`ProjectLoadSettings.DoNotEvaluateElementsWithFalseCondition`, retaining active
+build evaluation without collecting IDE-only inactive items. See the
+[MSBuild API contract](https://learn.microsoft.com/en-us/dotnet/api/microsoft.build.evaluation.projectloadsettings).
+`sync.py` and `evaluation_reuse.py` pass false-condition expressions that
+previously failed, reject those same expressions when activated, and retain
+build/replay, new-glob, import and mutation-refresh checks. SimpleTheme sync now
+reaches its next explicit document-contract rejection in 4.30 seconds including
+offline Restore. That is a qualification unblock, not a completed build or a
+representative performance benchmark. Expanded task/resource bindings remain open.

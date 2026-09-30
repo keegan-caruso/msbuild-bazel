@@ -16,9 +16,17 @@ def main():
         root = directory / 'workspace'
         root.mkdir()
         fixture(root)
+        # Project's default IDE evaluation expands inactive item expressions.
+        # Command-line build semantics skip them, including disabled platform globs.
+        props = root / 'Directory.Build.props'
+        props.write_text('''<Project><ItemGroup Condition="false"><Compile Include="$([System.Int32]::Parse('inactive-item-must-not-expand'))" /></ItemGroup></Project>''')
         command = [DOTNET, SYNC, root, SDK / 'sdk/10.0.400', 'P2/P2.csproj', '--graph']
         run(*command)
         run(*command, '--check')
+        inactive = props.read_text()
+        props.write_text(inactive.replace('Condition="false"', 'Condition="true"'))
+        assert 'inactive-item-must-not-expand' in run(*command, success=False).stderr
+        props.write_text(inactive)
         contract = root / 'graph.generated.json'
         generated = json.loads(contract.read_text())
         assert generated['Version'] == 2

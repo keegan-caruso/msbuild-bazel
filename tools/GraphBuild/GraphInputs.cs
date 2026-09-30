@@ -89,6 +89,8 @@ internal sealed class GraphInputs : IDisposable
                     {
                         GlobalProperties = globals,
                         ProjectCollection = projects,
+                        // Graph builds do not need IDE-only items from inactive conditions.
+                        LoadSettings = ProjectLoadSettings.DoNotEvaluateElementsWithFalseCondition,
                         EvaluationContext = evaluationContext
                     });
                     var instance = project.CreateProjectInstance();

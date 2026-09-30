@@ -12,7 +12,7 @@ def main():
         root = base / 'workspace'
         root.mkdir()
         contract = fixture(root)
-        (root / 'Directory.Build.props').write_text('<Project><Import Project="optional.props" Condition="Exists(\'optional.props\')" /></Project>')
+        (root / 'Directory.Build.props').write_text('<Project><Import Project="optional.props" Condition="Exists(\'optional.props\')" /><ItemGroup Condition="false"><Compile Include="$([System.Int32]::Parse(\'inactive-item-must-not-expand\'))" /></ItemGroup></Project>')
         manifest = base / 'contract.json'
         manifest.write_text(json.dumps(contract))
         probe = base / 'probe'
@@ -51,7 +51,12 @@ using (var second = new GraphInputs(contract, root, sdk))
 File.WriteAllText("optional.props", "<Project><PropertyGroup><OptionalMarker>edited</OptionalMarker></PropertyGroup></Project>");
 using var third = new GraphInputs(contract, root, sdk);
 if (third.Graph.ProjectNodes.Any(node => node.ProjectInstance.GetPropertyValue("OptionalMarker") != "edited")) throw new Exception("Stale import bytes");
-Console.WriteLine("PASS: new import, glob, changed import bytes and project mutation refresh within one process");
+File.WriteAllText("Directory.Build.props", File.ReadAllText("Directory.Build.props").Replace("Condition=\\\"false\\\"", "Condition=\\\"true\\\""));
+bool rejected = false;
+try { using var active = new GraphInputs(contract, root, sdk); }
+catch (Exception error) when (error.ToString().Contains("inactive-item-must-not-expand")) { rejected = true; }
+if (!rejected) throw new Exception("Active item expression was skipped");
+Console.WriteLine("PASS: inactive items skipped; active conditions, new imports, globs, import bytes and project mutations refresh");
 ''')
         run(DOTNET, 'build', probe / 'Probe.csproj', '-c', 'Release')
         result = run(DOTNET, probe / 'bin/Release/net10.0/Probe.dll', root, manifest, SDK)
