@@ -14,7 +14,7 @@ internal sealed record TargetOutput(string Name, ResultItem[] Items);
 internal sealed record ProjectSnapshot(string Fingerprint, Dictionary<string, string> Files,
     Dictionary<string, string> ProjectCopies, TargetOutput[] Targets, Dictionary<string, int> UnixModes);
 
-internal sealed class GraphCache(GraphInputs inputs, string cache, bool read, RemoteSnapshotStore? remote, FileMaterializer materializer) : ProjectCachePluginBase
+internal sealed class GraphCache(GraphInputs inputs, string cache, bool read, RemoteSnapshotStore? remote, FileMaterializer materializer, SnapshotPayloads payloads) : ProjectCachePluginBase
 {
     private readonly Dictionary<string, ProjectGraphNode> nodes = inputs.Graph.ProjectNodes.ToDictionary(n => GraphInputs.Key(n.ProjectInstance));
     private readonly Dictionary<ProjectGraphNode, string[]> outputDirectories = inputs.Graph.ProjectNodes.ToDictionary(node => node, node => inputs.OutputDirectories(node).ToArray());
@@ -98,63 +98,72 @@ internal sealed class GraphCache(GraphInputs inputs, string cache, bool read, Re
             var copies = new Dictionary<string, string>(StringComparer.Ordinal);
             var staging = Path.Combine(cache, ".staging-" + Guid.NewGuid().ToString("N"));
             Directory.CreateDirectory(staging);
-            foreach (var file in inputs.DeclaredOutputFiles(node))
+            try
             {
-                if (!File.Exists(file))
+                foreach (var file in inputs.DeclaredOutputFiles(node))
                 {
-                    throw new InvalidDataException("Missing declared output file: " + file);
-                }
-            }
-            foreach (var file in OutputFiles(node))
-            {
-                var relative = Path.GetRelativePath(inputs.Files.Root, file);
-                var digest = OutputDigest(file);
-                var producer = (inputs.For(node).DependencyCopies ?? []).GetValueOrDefault(relative);
-                if (producer is not null)
-                {
-                    var source = inputs.Files.Resolve(producer);
-                    if (!IsDependencyOutput(node, source) || OutputDigest(source) != digest)
+                    if (!File.Exists(file))
                     {
-                        throw new InvalidDataException("Declared dependency copy does not match its producer: " + relative);
+                        throw new InvalidDataException("Missing declared output file: " + file);
                     }
-                    copies.Add(relative, producer);
                 }
-                else
+                foreach (var file in OutputFiles(node))
                 {
-                    files.Add(relative, digest);
-                    modes.Add(relative, OperatingSystem.IsWindows() ? 0 : (int)File.GetUnixFileMode(file));
-                    materializer.Copy(file, Path.Combine(staging, relative));
+                    var relative = Path.GetRelativePath(inputs.Files.Root, file);
+                    var digest = OutputDigest(file);
+                    var producer = (inputs.For(node).DependencyCopies ?? []).GetValueOrDefault(relative);
+                    if (producer is not null)
+                    {
+                        var source = inputs.Files.Resolve(producer);
+                        if (!IsDependencyOutput(node, source) || OutputDigest(source) != digest)
+                        {
+                            throw new InvalidDataException("Declared dependency copy does not match its producer: " + relative);
+                        }
+                        copies.Add(relative, producer);
+                    }
+                    else
+                    {
+                        files.Add(relative, digest);
+                        modes.Add(relative, OperatingSystem.IsWindows() ? 0 : (int)File.GetUnixFileMode(file));
+                        payloads.Store(file, digest, Path.Combine(staging, relative));
+                    }
+                }
+                var targets = requestedTargets[key].Select(name =>
+                {
+                    if (!build.ResultsByTarget.TryGetValue(name, out var target) || target.ResultCode != TargetResultCode.Success)
+                    {
+                        throw new InvalidDataException("Missing successful target result: " + name);
+                    }
+                    return new TargetOutput(name, target.Items.Select(item => new ResultItem(item.ItemSpec,
+                        Metadata(item))).ToArray());
+                }).ToArray();
+                var snapshot = new ProjectSnapshot(fingerprint, files, copies, targets, modes);
+                File.WriteAllText(Path.Combine(staging, "manifest.json"), JsonSerializer.Serialize(snapshot));
+                var destination = Path.Combine(cache, fingerprint);
+                try
+                {
+                    Directory.Move(staging, destination);
+                }
+                catch (IOException) when (Directory.Exists(destination))
+                {
+                    var existing = JsonSerializer.Deserialize<ProjectSnapshot>(File.ReadAllText(Path.Combine(destination, "manifest.json")))!;
+                    if (JsonSerializer.Serialize(existing) != JsonSerializer.Serialize(snapshot))
+                    {
+                        throw new InvalidDataException("Conflicting graph snapshot: " + fingerprint);
+                    }
+                }
+                if (remote is not null)
+                {
+                    using var upload = GraphProfile.Measure("remotePublish");
+                    await remote.PublishAsync(fingerprint, destination, CancellationToken.None);
                 }
             }
-            var targets = requestedTargets[key].Select(name =>
+            finally
             {
-                if (!build.ResultsByTarget.TryGetValue(name, out var target) || target.ResultCode != TargetResultCode.Success)
+                if (Directory.Exists(staging))
                 {
-                    throw new InvalidDataException("Missing successful target result: " + name);
+                    Directory.Delete(staging, recursive: true);
                 }
-                return new TargetOutput(name, target.Items.Select(item => new ResultItem(item.ItemSpec,
-                    Metadata(item))).ToArray());
-            }).ToArray();
-            var snapshot = new ProjectSnapshot(fingerprint, files, copies, targets, modes);
-            File.WriteAllText(Path.Combine(staging, "manifest.json"), JsonSerializer.Serialize(snapshot));
-            var destination = Path.Combine(cache, fingerprint);
-            if (Directory.Exists(destination))
-            {
-                var existing = JsonSerializer.Deserialize<ProjectSnapshot>(File.ReadAllText(Path.Combine(destination, "manifest.json")))!;
-                if (JsonSerializer.Serialize(existing) != JsonSerializer.Serialize(snapshot))
-                {
-                    throw new InvalidDataException("Conflicting graph snapshot: " + fingerprint);
-                }
-                Directory.Delete(staging, recursive: true);
-            }
-            else
-            {
-                Directory.Move(staging, destination);
-            }
-            if (remote is not null)
-            {
-                using var upload = GraphProfile.Measure("remotePublish");
-                await remote.PublishAsync(fingerprint, destination, CancellationToken.None);
             }
         }
     }

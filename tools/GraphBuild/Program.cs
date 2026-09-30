@@ -101,9 +101,10 @@ if (args[0] is "build" or "action")
         }
     }
     var timer = System.Diagnostics.Stopwatch.StartNew();
-    using var remote = remoteUrl is null ? null : new RemoteSnapshotStore(new Uri(remoteUrl.TrimEnd('/') + "/"), bearerToken: bearerToken, profile: profile);
+    var payloads = new SnapshotPayloads(cache ?? throw new InvalidDataException("Cache directory is required"));
+    using var remote = remoteUrl is null ? null : new RemoteSnapshotStore(new Uri(remoteUrl.TrimEnd('/') + "/"), bearerToken: bearerToken, profile: profile, contentStore: payloads);
     var materializer = new FileMaterializer(copyMode == "clone", profile);
-    var plugin = new GraphCache(inputs, cache ?? throw new InvalidDataException("Cache directory is required"), args.Length < 7 || args[6] != "no-read", remote, materializer);
+    var plugin = new GraphCache(inputs, cache ?? throw new InvalidDataException("Cache directory is required"), args.Length < 7 || args[6] != "no-read", remote, materializer, payloads);
     var parameters = new BuildParameters(inputs.Collection)
     {
         MaxNodeCount = 4,

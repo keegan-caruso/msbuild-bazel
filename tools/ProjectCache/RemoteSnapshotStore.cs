@@ -8,7 +8,15 @@ namespace RulesMSBuild.ProjectCache;
 // A project fingerprint is an action-cache key; the manifest and files live in
 // the CAS. This uses the same HTTP cache protocol as Bazel, but keeps a separate
 // key domain so Bazel cannot mistake a project snapshot for one of its actions.
-public sealed class RemoteSnapshotStore(Uri endpoint, int parallelism = 8, string? bearerToken = null, bool profile = false) : IDisposable
+// Optional disk-backed sharing across project snapshots; payload bytes are
+// verified by the transport before the store publishes them.
+public interface IProjectCacheContentStore
+{
+    Task MaterializeAsync(string digest, Func<CancellationToken, Task<byte[]>> download,
+        string[] destinations, CancellationToken cancellationToken);
+}
+
+public sealed class RemoteSnapshotStore(Uri endpoint, int parallelism = 8, string? bearerToken = null, bool profile = false, IProjectCacheContentStore? contentStore = null) : IDisposable
 {
     private long downloadBytes;
     private long uploadBytes;
@@ -52,17 +60,34 @@ public sealed class RemoteSnapshotStore(Uri endpoint, int parallelism = 8, strin
             await Parallel.ForEachAsync(manifest.Files.GroupBy(file => file.Value),
                 new ParallelOptions { MaxDegreeOfParallelism = transfers.MaxDegreeOfParallelism, CancellationToken = cancellationToken }, async (group, token) =>
                 {
-                    var bytes = await DownloadAsync(group.Key, token);
-                    foreach (var (relative, _) in group)
+                    var paths = group.Select(file => SafePath(staging, file.Key)).ToArray();
+                    if (contentStore is not null)
                     {
-                        var path = SafePath(staging, relative);
-                        Directory.CreateDirectory(Path.GetDirectoryName(path)!);
-                        await File.WriteAllBytesAsync(path, bytes, token);
+                        await contentStore.MaterializeAsync(group.Key, token => DownloadAsync(group.Key, token), paths, token);
+                    }
+                    else
+                    {
+                        var bytes = await DownloadAsync(group.Key, token);
+                        foreach (var path in paths)
+                        {
+                            Directory.CreateDirectory(Path.GetDirectoryName(path)!);
+                            await File.WriteAllBytesAsync(path, bytes, token);
+                        }
                     }
                 });
             await File.WriteAllBytesAsync(Path.Combine(staging, "manifest.json"), manifestBytes, cancellationToken);
-            // Callers use unique destinations. Never expose a partially fetched entry.
-            Directory.Move(staging, destination);
+            // Publish only complete entries; independent consumers may finish together.
+            try
+            {
+                Directory.Move(staging, destination);
+            }
+            catch (IOException) when (Directory.Exists(destination))
+            {
+                if (!(await File.ReadAllBytesAsync(Path.Combine(destination, "manifest.json"), cancellationToken)).SequenceEqual(manifestBytes))
+                {
+                    throw new InvalidDataException("Conflicting concurrent project-cache entry: " + fingerprint);
+                }
+            }
             return true;
         }
         catch (HttpRequestException error) when (error.StatusCode == HttpStatusCode.NotFound)

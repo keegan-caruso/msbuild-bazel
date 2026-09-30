@@ -243,3 +243,58 @@ contract-change invalidation, generated mappings, output/file/link rejection,
 and rejection when a target deletes the directory. The full Orchard follow-up
 is pending. This closes the representation gap without treating differing
 static-asset manifests as equivalent.
+
+### Evaluation reuse design
+
+The graph callbacks currently call the `Project` constructor without an
+`EvaluationContext`. The public `Project.FromFile` / `ProjectOptions` API allows
+one shared evaluation context for a graph construction pass. Test this first for
+shared SDK resolution and filesystem observations, then discard the context
+before targets run or another request starts. Do not retain mutable projects or
+filesystem observations across edits. MSBuild documents the API in
+[ProjectOptions](https://learn.microsoft.com/en-us/dotnet/api/microsoft.build.definition.projectoptions?view=msbuild-18-netcore)
+and [EvaluationContext](https://learn.microsoft.com/en-us/dotnet/api/microsoft.build.evaluation.context.evaluationcontext?view=msbuild-18-netcore).
+This is a proposed follow-up, not a measured improvement yet.
+
+### Large copy-on-write comparison
+
+The directory-input candidate passes all six Orchard body comparisons: exact
+compared file sets/bytes, 201 hits and one miss each. Three copy samples measured
+20.23 s median versus 13.63 s raw; three subsequent clone samples measured
+19.21 s versus 13.30 s raw. All 16,250 materializations cloned successfully with
+no fallback. Cumulative materialization time fell from 4.80 to 3.89 s, but graph
+execution wall time fell only from 3.54 to 3.36 s. Input hashing was also 0.63 s
+faster in the later samples. Do not attribute the whole 1.02 s improvement to
+cloning; copy remains the default. The mutation-isolation replay fixture passes
+with clone mode. Reports and exact inputs are in `/tmp/graph-roadmap-large-copy`
+and `/tmp/graph-roadmap-large-clone`.
+
+The explicit empty-directory contract resolves the observed Orchard static-asset
+parity difference for this body-edit series. This does not complete every test,
+resource, Publish or prepared-Restore qualification case.
+
+### Shared snapshot payloads
+
+The candidate stores local payloads by content hash and links them only inside
+the snapshot cache. Replay still copies or clones into writable project outputs
+and restores each output's recorded mode. Filesystems without hard links fall
+back to copies. Remote recovery uses the same store and serializes requests for
+the same hash, downloading each distinct payload once across project snapshots.
+All payloads are byte-checked; this does not skip input or snapshot validation.
+
+Focused tests pass storage sharing with different output modes, output mutation
+isolation, corruption rejection, twelve independent blob writers, conflict
+rejection, and cleanup after failed publication or truncated transfers. Existing
+replay, input integrity, and owned-code checks pass. Local and remote snapshot
+publication accept an identical concurrent entry and reject a conflicting one.
+The HTTP action-cache service still has no atomic compare-and-swap contract for
+competing publishers; the pre-publication conflict check is not a guarantee
+against every server-side write race. Native Linux and large-workload results
+remain separate qualification gates.
+
+The updated shared-payload candidate also passes `linux_bazel_remote.py
+--spawn-strategy linux-sandbox` on Linux ARM64: Bazel 8.8 seeds three misses;
+9.2 with a new output base gets three remote hits, then two hits/one miss after
+a body edit. Executed app values and runner bytes match. This rerun used one VM
+and the existing separate cache service; the earlier independent-VM result
+predates payload sharing. Log: `/tmp/graph-roadmap-linux-payload.log`.
