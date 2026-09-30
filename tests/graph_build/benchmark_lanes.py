@@ -48,7 +48,15 @@ def main():
                     assert not row['missing'] and not row['extra'] and not row['changed'], row
                     assert row['cached']['operations'] is not None
                     assert row['cached']['misses'] > 0, 'Each sample must contain a new edit'
-            print('PASS: distinct samples, warm/local, cold/empty and fresh remote lanes; restore scope and output parity')
+                if cache_state == 'local':
+                    original = (root / 'P0/Code.cs').read_bytes()
+                    rejected = run(sys.executable, ROOT / 'tests/graph_build/upstream_edits.py', root, manifest,
+                        base / (name + '-cache'), edits, base / 'rejected-results', '--samples', '2',
+                        '--package-state', 'fresh', '--expected-misses', '1', success=False)
+                    assert 'Expected 1 misses, got 0' in rejected.stderr, rejected.stderr
+                    assert (root / 'P0/Code.cs').read_bytes() == original
+                    assert not (base / 'rejected-results/summary.json').exists()
+            print('PASS: miss-count guard, distinct samples, warm/local, cold/empty and fresh remote lanes; restore scope and output parity')
     finally:
         server.shutdown()
         server.server_close()

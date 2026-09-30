@@ -22,6 +22,7 @@ def main():
     parser.add_argument('--samples', type=int, default=1)
     parser.add_argument('--only', nargs='+')
     parser.add_argument('--profile', action='store_true')
+    parser.add_argument('--expected-misses', type=int, help='Reject warmed edit snapshots or unexpected invalidation')
     parser.add_argument('--runner', type=Path, default=RUNNER, help='Use a separately built candidate without changing the baseline runner')
     parser.add_argument('--copy-mode', choices=['copy', 'clone'], default=ENV.get('RULES_MSBUILD_GRAPH_COPY_MODE', 'copy'))
     parser.add_argument('--raw-state', choices=['warm', 'clean'], default='warm')
@@ -31,6 +32,7 @@ def main():
                         help='Package expansion state for graph runs; fresh models a new Bazel action workspace')
     args = parser.parse_args()
     assert args.samples > 0
+    assert args.expected_misses is None or args.expected_misses >= 0
     ENV['RULES_MSBUILD_GRAPH_COPY_MODE'] = args.copy_mode
     runner_digest = hashlib.sha256(args.runner.read_bytes()).hexdigest()
     if args.profile:
@@ -134,6 +136,8 @@ def main():
             cached(edit['name'] + '-baseline-replay')
             path.write_bytes(original.replace(before, after))
             measured = cached(edit['name'] + '-cached')
+            if args.expected_misses is not None:
+                assert measured['misses'] == args.expected_misses, f'Expected {args.expected_misses} misses, got {measured["misses"]}; do not score this sample'
             outputs = snapshot()
             row = dict(name=edit['name'], rawState=args.raw_state, cacheState=args.cache_state,
                        runnerSha256=runner_digest, copyMode=args.copy_mode, packageState=args.package_state,

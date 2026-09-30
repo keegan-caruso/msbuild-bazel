@@ -73,8 +73,9 @@ input verification or hide output differences to meet timing targets.
 
 Steps 1–2 have measured checkpoints. Steps 3–5 and 8 have partial
 implementation and qualification; step 6 has within-invocation reuse.
-Step 7 has an opt-in owned-state prototype; persistent workers, cross-request
-reuse and steps 9–10 remain open. Ownership
+Step 7 has an opt-in owned-state prototype and a qualified small Linux cache
+broker. Cross-request evaluation/input reuse, larger worker qualification and
+steps 9–10 remain open. Ownership
 indexing and input-check improvements are committed and pushed. Prepared Restore
 is opt-in and has not passed the large-workload performance/parity gates.
 
@@ -412,3 +413,20 @@ Web/test/Publish checks remain open. This is not persistent MSBuild execution or
 a default change. Logs: `/tmp/graph-roadmap-linux-worker.log`,
 `/tmp/graph-roadmap-linux-worker-tools.log`, and
 `/tmp/graph-roadmap-linux-worker-restore.log`.
+
+
+### Worker capacity and benchmark controls
+
+The worker's configurable `worker_cache_mb` defaults to 4096 MiB of logical
+snapshot storage, counting shared aliases. It clears excess cache state between
+requests; it is not a hard active-request disk quota. Zero disables retention.
+Both default and zero-budget controls pass body edits, failure recovery,
+configuration changes and fresh native parity on Linux/Bazel 9.2.
+
+`upstream_edits.py --expected-misses N` rejects a timing sample whose miss count
+differs, while restoring its source edit. The first fresh prepared-Restore series
+found all 202 snapshots because its edits had already been measured in the
+normal-Restore series. Those samples are excluded from body-edit timing; the run
+was interrupted and the source restored. A corrected series uses distinct edits
+and requires one miss. Reports for the discarded run remain in
+`/tmp/graph-roadmap-fresh-prepared-timing`.
