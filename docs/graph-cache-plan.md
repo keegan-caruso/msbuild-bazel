@@ -474,3 +474,23 @@ build/replay, new-glob, import and mutation-refresh checks. SimpleTheme sync now
 reaches its next explicit document-contract rejection in 4.30 seconds including
 offline Restore. That is a qualification unblock, not a completed build or a
 representative performance benchmark. Expanded task/resource bindings remain open.
+
+### Corrected fresh-package preparation comparison
+
+The corrected three-sample Orchard series used distinct body edits and
+`--package-state fresh --expected-misses 1`. Every sample hit 201 projects and
+rebuilt one. Median prepared recovery was **35.75 s**, versus **13.49 s** warm
+raw graph MSBuild (raw excludes Restore). Phase medians were application of
+preparation 14.45 s, evaluation 3.76 s, input hashing 2.20 s, execution 4.34 s
+and final verification 10.90 s. File sets matched; all samples retained the
+898 previously explained generator-dependent differences.
+
+This is slower than the ordinary fresh-package series (23.27 s). Both series
+used the frozen evaluation-sharing runner; this does not measure the later
+inactive-item fix or persistent broker. Preparation creation is excluded from
+recovery and was not separately scored because its earlier run overlapped
+checks. Reports: `/tmp/graph-roadmap-fresh-prepared-corrected`. The correction
+replaces the discarded zero-miss series, not the existing conservative default.
+A prepared artifact alone is not a performance win: a verified, worker-owned,
+read-only package tree is the next candidate for avoiding repeated copying and
+verification. It is not yet implemented or qualified.
