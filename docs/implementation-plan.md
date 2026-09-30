@@ -23,7 +23,12 @@ builds all 202 projects and replays 16,250 snapshot files exactly. Avalonia.Cont
 also builds and replays its 11 configured builds. The runtime System.IO.Pipelines
 managed slice builds and replays 30 configured projects, including declared shared
 binplace outputs. Generated Publish and layout-provider extraction pass focused
-public-rule tests. Full upstream migration parity remains open;
+public-rule tests. Reviewed dependency contracts now let package/custom-target
+graphs distinguish compiler references from analyzer/task implementations.
+Orchard's body-edit follow-up reuses 201 projects and rebuilds one, with exact
+compared output parity; timings and remaining gates are in
+[performance](performance.md#reviewed-orchard-dependency-contracts).
+Full upstream migration parity remains open;
 the per-project rules remain the default. See
 [graph-cache migration](project-cache-migration.md) for commands, measured scope,
 and the remaining default-switch gates.

@@ -1,5 +1,6 @@
 {
   "projectDefaults": {
+    "referenceBoundary": true,
     "properties": {
       "RestoreUseStaticGraphEvaluation": "false"
     },

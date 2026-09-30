@@ -63,10 +63,10 @@ these comparisons do not establish byte-for-byte parity. File sets match in
 all cases. The final graph output serves the setup page and three embedded
 assets without creating a tenant.
 
-The current generated contract conservatively invalidates implementation
-consumers for package/custom-target graphs. Orchard's body edit therefore
-rebuilds 193 projects. **This is a default-switch blocker**; the older test-only
-plugin's one-project body-edit result is not a result for this generated path.
+The default generated contract conservatively invalidates implementation
+consumers for package/custom-target graphs. That produced the 193-project body
+rebuild above. The reviewed opt-in contract below removes that cascade without
+changing the default; broad migration parity is still required.
 
 Reproduce on disposable, declared-input workspaces using the reviewed edits:
 
@@ -81,6 +81,53 @@ restores source files, records complete output differences and retains logs.
 A successful script run means measurements completed; inspect differences
 before claiming parity. Generated contracts and package closures are described
 in [migration qualification](project-cache-migration.md#upstream-migration-qualification).
+
+## Reviewed Orchard dependency contracts
+
+The generated Orchard mapping now opts into reviewed reference boundaries.
+Compiler consumers use reference assemblies; analyzer/task dependencies retain
+implementation fingerprints. Dependency configuration, resources and other
+noncompiler inputs remain in consumer keys. See the
+[contract and correctness tests](project-cache-migration.md#reviewed-dependency-roles).
+
+On the same 202-project CMS slice at revision
+`04467a3438d4255627c1a478598a1585b3ff2947`, the body edit rebuilt **one project**
+and reused **201**. End-to-end runner time fell from the earlier **129.46 s** to
+**40.01 s** (3.24x); paired warm raw graph MSBuild took **15.87 s**. All captured
+DLL/PDB/JSON/XML/resource output paths and bytes matched raw MSBuild. This fixes
+the unnecessary body-edit rebuild cascade, while the runner remains 2.52x slower
+than the paired warm raw build.
+
+The other edits retain the expected invalidation:
+
+| Edit | Generic runner | Warm raw graph MSBuild | Hits/misses | Differing paths |
+| --- | ---: | ---: | ---: | ---: |
+| body | 40.01 s | 15.87 s | 201/1 | 0 |
+| API | 120.70 s | 84.56 s | 9/193 | 898 |
+| Razor resource | 40.93 s | 13.30 s | 199/3 | 2 |
+| generator | 121.21 s | 92.58 s | 0/202 | 898 |
+
+All output file sets match. The API/generator differences include copied
+assemblies and retain the earlier parity limitation. The resource differences
+are the two intermediate `rjsmcshtml.dswa.cache.json` / `rjsmrazor.dswa.cache.json`
+files; its assemblies match. The final CMS output served the setup page and three
+embedded assets with HTTP 200, without creating a tenant. Full API/generator byte
+parity and native Linux sandbox qualification remain default-switch gates.
+
+The runner's 39.96 s internal total included 16.75 s build/snapshot handling,
+9.96 s input hashing and 5.25 s evaluation. The remaining 8.01 s includes offline
+Restore and final input verification. Only one project compiled; output replay
+and validation now account for much of the remaining work.
+
+These are single samples on macOS ARM64/SDK 10.0.400 with four MSBuild nodes.
+The runner starts from deleted declared outputs and a local cache; raw MSBuild
+retains incremental outputs and excludes Restore. Small qualification tests ran
+concurrently during part of the run. This is not a Bazel or remote-cache timing,
+and the historical before/after ratio is not an isolated benchmark median.
+Timing used the dependency logic at `c43d873`, before the contract-version guard;
+that guard changes accepted contract versions, not cache-key or execution logic.
+Reproduce with the `upstream_edits.py` command above after syncing with
+`tests/graph_build/upstream/orchard.json`.
 
 ## Orchard reference-boundary follow-up
 
