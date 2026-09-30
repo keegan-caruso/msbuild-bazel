@@ -16,7 +16,11 @@ from qualify import DOTNET, ROOT, SDK, fixture, run
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--spawn-strategy', choices=['processwrapper-sandbox', 'linux-sandbox'], default='processwrapper-sandbox')
+    parser.add_argument('--phase', choices=['all', 'producer', 'consumer'], default='all')
+    parser.add_argument('--fixture-id', type=uuid.UUID, help='Use the same fresh UUID for independent producer and consumer runs')
     args = parser.parse_args()
+    if args.phase != 'all' and args.fixture_id is None:
+        parser.error('Independent phases require --fixture-id')
     assert os.uname().sysname == 'Linux'
     cache = os.environ['RULES_MSBUILD_PROJECT_CACHE_URL']
     with tempfile.TemporaryDirectory(prefix='graph-bazel-remote-') as temporary:
@@ -25,7 +29,7 @@ def main():
         root.mkdir()
         fixture(root)
         with (root / 'Directory.Build.props').open('a') as stream:
-            stream.write('<!-- ' + str(uuid.uuid4()) + ' -->')
+            stream.write('<!-- ' + str(args.fixture_id or uuid.uuid4()) + ' -->')
         shutil.copy(ROOT / 'global.json', root / 'global.json')
         (root / 'MODULE.bazel').write_text('module(name="graph_remote")\nbazel_dep(name="rules_msbuild",version="0.0.0")\n'
             f'local_path_override(module_name="rules_msbuild",path={json.dumps(str(ROOT))})\n'
@@ -37,7 +41,12 @@ def main():
             'app_graph(name="graph",linux_stable_paths=True)\n'
             'msbuild_graph_binary(name="app",graph=":graph",project="P2/P2.csproj")\n')
         digests = []
-        for version, hits, value in [('8.8.0', 0, 1), ('9.2.0', 3, 1), ('9.2.0', 2, 2)]:
+        steps = [('8.8.0', 0, 1), ('9.2.0', 3, 1), ('9.2.0', 2, 2)]
+        if args.phase == 'producer':
+            steps = steps[:1]
+        elif args.phase == 'consumer':
+            steps = steps[1:]
+        for version, hits, value in steps:
             if value == 2:
                 (root / 'P0/Code.cs').write_text('public class P0 { public static int Value() => 2; }')
             output = base / ('bazel-' + version)
@@ -53,7 +62,8 @@ def main():
             digests.append(hashlib.sha256(payload.read_bytes()).hexdigest())
             print(version, value, json.dumps(report), flush=True)
         assert len(set(digests)) == 1, 'Runner identity must not depend on bootstrap output paths'
-        print('PASS: Bazel 8/9 bootstrap identity, remote replay and body-edit reuse')
+        print(json.dumps({'phase': args.phase, 'runnerDigests': digests}), flush=True)
+        print('PASS: expected cache counts and app output for ' + args.phase)
 
 
 if __name__ == '__main__':

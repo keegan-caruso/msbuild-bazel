@@ -117,5 +117,10 @@ The outer container requires `--masked-path NONE --read-only-path NONE` so
 Bazel can mount guest `/proc`; no added Linux capabilities were needed. Only
 the repository was mounted from the host, read-only. Default Apple-container
 proc masking fails this probe. This is a real native sandbox action, but uses
-one worker and a separate existing cache server. Independent producer/consumer
-workers, persistent-worker isolation and the full fault matrix remain open.
+a separate existing cache server. A subsequent run also passed with independent
+producer and consumer VMs, unrelated checkout/workspace paths and empty local
+caches. The producer used 8.8; the consumer used 9.2, hit all three projects,
+then reused two after a body edit. Both bootstraps produced the same runner
+SHA-256 (`5abdd7e63a477abe164ccc70a8840c2294acf522dcc93088ae9ab912135787e1`).
+Use `--phase producer|consumer --fixture-id <same-fresh-UUID>` to reproduce.
+Persistent-worker isolation and the full fault matrix remain open.
