@@ -1,4 +1,4 @@
-"""Stage a pinned Linux ARM64 Pipelines graph from source and package archives.
+"""Stage selected pinned Linux ARM64 managed graphs from source/package archives.
 
 Preparation invokes offline project sync in an owned workspace. The build itself
 uses only generated declarations and the public Bazel graph rules.
@@ -26,9 +26,27 @@ def main():
     parser.add_argument('source_archive', type=Path)
     parser.add_argument('package_feed', type=Path, help='directory containing the declared .nupkg archives')
     parser.add_argument('output', type=Path, help='new disposable directory')
-    parser.add_argument('--entry', default=ENTRY)
+    selection = parser.add_mutually_exclusive_group()
+    selection.add_argument('--entry', action='append', help='entry project; repeat for a combined graph')
+    selection.add_argument('--slice', help='reviewed selection in runtime/subset_slices.json')
+    parser.add_argument('--framework', help='entry framework; default net10.0 or the selected slice framework')
     parser.add_argument('--prepared-restore', action='store_true', help='generate a separate declared Restore action')
     args = parser.parse_args()
+    entries, framework = args.entry or [ENTRY], args.framework or 'net10.0'
+    if args.slice:
+        inventory = json.loads((ROOT / 'tests/explicit_msbuild/runtime/subset_slices.json').read_text())
+        assert inventory['commit'] == COMMIT
+        selected = next((item for item in inventory['slices'] if item['name'] == args.slice), None)
+        if selected is None or not selected['entries']:
+            parser.error('Choose a nonempty reviewed managed slice')
+        framework = args.framework or selected['framework']
+        entries = []
+        for entry in selected['entries']:
+            path = entry if isinstance(entry, str) else entry['project']
+            configured = selected['framework'] if isinstance(entry, str) else entry['framework']
+            if configured != framework:
+                parser.error('Mixed or overridden slice entry frameworks require explicit per-entry configuration; do not flatten them')
+            entries.append(path)
     assert os.uname().sysname == 'Linux', 'Qualification requires Linux'
     assert os.uname().machine == 'aarch64', 'This output mapping qualifies ARM64 only'
     assert hashlib.sha256(args.source_archive.read_bytes()).hexdigest() == SOURCE_SHA256, 'Pinned source archive changed'
@@ -45,6 +63,7 @@ def main():
     extracted.rename(source)
     packages = base / 'packages'
     rows = []
+    supplemental = json.loads(Path(__file__).with_name('runtime_supplemental_packages.json').read_text())
     identities = set()
     archives = sorted(args.package_feed.glob('*.nupkg'))
     assert archives, 'Explicit offline package archives are required'
@@ -58,6 +77,8 @@ def main():
             identity, version = field('id'), field('version')
             assert all(value and not any(part in value for part in ['/', '\\', '..']) for value in [identity, version])
             key = identity + '/' + version
+            if key in supplemental:
+                assert hashlib.sha256(archive.read_bytes()).hexdigest() == supplemental[key]['sha256'], 'Supplemental archive changed: ' + key
             assert key not in identities, 'Duplicate package identity: ' + key
             identities.add(key)
             directory = packages / key
@@ -72,7 +93,7 @@ def main():
                     '--platform', 'linux-arm64'] + (['--prepared-restore'] if args.prepared_restore else []), check=True)
     with (base / 'sync.log').open('w') as log:
         subprocess.run([str(dotnet), str(ROOT / 'tools/ProjectSync/bin/Release/net10.0/ProjectSync.dll'),
-                        str(source), str(sdk / 'sdk/10.0.400'), args.entry, '--graph', '--framework', 'net10.0',
+                        str(source), str(sdk / 'sdk/10.0.400'), *entries, '--graph', '--framework', framework,
                         '--package-build', '--inputs', str(inputs), '--runfiles', str(packages),
                         '--mappings', str(mapping)], cwd=ROOT, env=env, stdout=log, stderr=subprocess.STDOUT, check=True)
     contract = json.loads((source / 'graph.generated.json').read_text())
@@ -115,7 +136,8 @@ def main():
               'app_graph(name="graph",linux_stable_paths=True,linux_worker=True)']
     (workspace / 'BUILD.bazel').write_text('\n'.join(build) + '\n')
     (base / 'preparation.json').write_text(json.dumps(dict(commit=COMMIT, sourceSha256=SOURCE_SHA256, platform='linux-arm64',
-        entry=args.entry, preparedRestore=args.prepared_restore, inputs=len(paths), archives=len(rows), workspace=str(workspace)), indent=2) + '\n')
+        entry=entries[0], entries=entries, framework=framework, slice=args.slice, preparedRestore=args.prepared_restore,
+        inputs=len(paths), archives=len(rows), workspace=str(workspace)), indent=2) + '\n')
     print(workspace, flush=True)
 
 

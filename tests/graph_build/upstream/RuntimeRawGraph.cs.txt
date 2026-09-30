@@ -1,0 +1,77 @@
+using System.Text.Json;
+using Microsoft.Build.Evaluation;
+using Microsoft.Build.Execution;
+using Microsoft.Build.Framework;
+using Microsoft.Build.Graph;
+using Microsoft.Build.Logging;
+
+// Qualification only: the same configured entry points and MSBuild graph API,
+// with no cache plugin. Binplace inventory requires a completed raw Build.
+var root = Path.GetFullPath(args[0]);
+using var contract = JsonDocument.Parse(File.ReadAllText(args[1]));
+var data = contract.RootElement;
+var sdkRoot = Environment.GetEnvironmentVariable("DOTNET_ROOT")!;
+var sdk = Path.Combine(sdkRoot, "sdk", data.GetProperty("SdkVersion").GetString()!);
+System.Runtime.Loader.AssemblyLoadContext.Default.Resolving += (context, name) =>
+    File.Exists(Path.Combine(sdk, name.Name + ".dll")) ? context.LoadFromAssemblyPath(Path.Combine(sdk, name.Name + ".dll")) : null;
+Environment.SetEnvironmentVariable("MSBUILD_EXE_PATH", Path.Combine(sdk, "MSBuild.dll"));
+Environment.SetEnvironmentVariable("MSBuildSDKsPath", Path.Combine(sdk, "Sdks"));
+var properties = data.GetProperty("Properties").EnumerateObject().ToDictionary(p => p.Name, p => p.Value.GetString()!, StringComparer.OrdinalIgnoreCase);
+properties["NetCoreSdkRoot"] = sdk;
+properties["UseSharedCompilation"] = "false";
+properties["PathMap"] = root + "=/_/workspace," + sdkRoot + "=/_/sdk";
+using var collection = new ProjectCollection();
+var entries = data.TryGetProperty("Entries", out var selected) ? selected.EnumerateArray().Select(p => p.GetString()!) : [data.GetProperty("Entry").GetString()!];
+var graph = new ProjectGraph(entries.Select(p => new ProjectGraphEntryPoint(Path.Combine(root, p), properties)), collection,
+    (path, globals, owner) => new ProjectInstance(path, globals, null, owner));
+var parameters = new BuildParameters(collection) { MaxNodeCount = 4, EnableNodeReuse = false,
+    Loggers = [new ConsoleLogger(LoggerVerbosity.Minimal)] };
+using var manager = new BuildManager();
+if (args[2] == "build")
+{
+    var result = manager.Build(parameters, new GraphBuildRequestData(graph, ["Build"]));
+    if (result.OverallResult != BuildResultCode.Success)
+        throw new InvalidDataException("Raw graph Build failed: " + result.Exception);
+    return;
+}
+if (args[2] != "binplace") throw new ArgumentException("Expected build or binplace");
+var output = new SortedDictionary<string, SortedDictionary<string, string[]>>(StringComparer.Ordinal);
+foreach (var node in graph.ProjectNodes)
+{
+    var project = node.ProjectInstance;
+    var framework = project.GetPropertyValue("TargetFramework");
+    if (framework.Length == 0 || project.GetPropertyValue("TargetPath").Length == 0) continue;
+    var path = Path.GetRelativePath(root, project.FullPath);
+    var declaration = data.GetProperty("Projects").GetProperty(path);
+    if (declaration.TryGetProperty("Configurations", out var configurations))
+        declaration = configurations.EnumerateArray().Single(c => c.GetProperty("Properties").EnumerateObject().All(p =>
+            (project.GlobalProperties.TryGetValue(p.Name, out var value) ? value : "") == p.Value.GetString()));
+    var owned = declaration.GetProperty("OutputDirectories").EnumerateArray().Select(p =>
+        Path.TrimEndingDirectorySeparator(Path.GetFullPath(p.GetString()!, root)) + Path.DirectorySeparatorChar).ToArray();
+    if (!project.Targets.ContainsKey("GetBinPlaceItems")) continue;
+    var result = manager.Build(parameters, new BuildRequestData(project, ["GetBinPlaceTargetFramework", "GetBinPlaceItems"], null, BuildRequestDataFlags.ProvideProjectStateAfterBuild));
+    if (result.OverallResult != BuildResultCode.Success) throw new InvalidDataException("Binplace inventory failed: " + path);
+    var state = result.ProjectStateAfterBuild ?? throw new InvalidDataException("Missing post-target project state");
+    var files = new SortedSet<string>(StringComparer.Ordinal);
+    foreach (var directory in state.GetItems("BinPlaceDir"))
+    {
+        var itemName = directory.GetMetadataValue("ItemName");
+        foreach (var item in state.GetItems(itemName.Length == 0 ? "BinPlaceItem" : itemName))
+        {
+            var target = item.GetMetadataValue("TargetPath");
+            if (target.Length == 0)
+                target = item.GetMetadataValue("DestinationSubDirectory") + Path.GetFileName(item.EvaluatedInclude);
+            var destination = Path.GetFullPath(Path.Combine(directory.EvaluatedInclude, target.Replace('\\', '/')), Path.GetDirectoryName(project.FullPath)!);
+            if (!destination.StartsWith(root + Path.DirectorySeparatorChar, StringComparison.Ordinal))
+                throw new InvalidDataException("Binplace output outside source: " + destination);
+            if (!File.Exists(destination)) throw new InvalidDataException("Build required before inventory: " + destination);
+            if (!owned.Any(p => destination.StartsWith(p, StringComparison.Ordinal))) files.Add(Path.GetRelativePath(root, destination));
+        }
+    }
+    if (files.Count == 0) continue;
+    if (!output.TryGetValue(path, out var frameworks)) output.Add(path, frameworks = new(StringComparer.Ordinal));
+    if (!frameworks.TryAdd(framework, files.ToArray()))
+        throw new InvalidDataException("Binplace fixture needs selectors beyond TargetFramework: " + path + " " + framework);
+}
+File.WriteAllText(args[3], JsonSerializer.Serialize(output, new JsonSerializerOptions { WriteIndented = true }) + "\n");
+Console.WriteLine($"Inventoried {output.Sum(p => p.Value.Count)} binplace producer configurations");

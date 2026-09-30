@@ -1,0 +1,7 @@
+{
+  "system.runtime.serialization.formatters/9.0.0": {
+    "sha256": "d9ab4a610348d7cbeba72d8306a8241e5c246552dd99f2876dffedeada7f9ca1",
+    "url": "https://api.nuget.org/v3-flatcontainer/system.runtime.serialization.formatters/9.0.0/system.runtime.serialization.formatters.9.0.0.nupkg",
+    "reason": "SDK API compatibility baseline used by the collections graph"
+  }
+}

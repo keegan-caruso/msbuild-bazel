@@ -180,7 +180,7 @@ runtime qualification and measurement, not repeating completed synthetic work.
 | --- | --- | --- |
 | 1. Linux Pipelines | Implementation and test Build/replay/native parity pass on Linux ARM64, Bazel 8.8/9.2; 819/998 snapshot files | Broader runtime contracts |
 | 2. Incremental baseline | Ordinary/prepared paired edits and independent project recovery pass | Larger edit matrix |
-| 3. Larger scope | Per-project backend qualifies selected suites and 281 managed actions | Graph contracts and invalidation across the expanded scope |
+| 3. Larger scope | Collections roots generate 61 configured nodes / 55 compiled projects; full-source compiled-product parity passes | Expanded edit matrix, other managed slices and graph-backed tests |
 | 4. Removed work | Shared CAS, ownership/path reuse, shared evaluation context and read-only worker packages | Runtime phase profile; safe cross-request SDK/evaluation reuse and large-worker timing |
 | 5. Tests | Older source-only host: 118,952 passes / 64 skips | Graph-backed test builds/execution, source host and edit invalidation |
 | 6. Native/app | Per-project source-built app and native inputs qualified | Transfer native producers and host composition; app runs on graph-produced outputs |
@@ -251,7 +251,7 @@ then `runtime_qualify.py WORKSPACE NEW_RESULTS --output-base NEW_BASE` under the
 pinned Linux ARM64 image. Raw uses `runtime_raw.sh` for matching internal paths.
 The qualification harness stops completed Bazel servers to bound VM memory.
 These are correctness controls, not scored cold-build medians. CI was not run.
-The paired scorecard below covers body/API/cold; independent recovery remains pending.
+The paired scorecard below covers body/API/cold; independent Pipelines recovery is recorded later in this plan.
 
 ## Linux implementation checkpoint
 
@@ -646,3 +646,42 @@ qualification host. Cleanup preserved compact older outcomes under the ignored
 This summary preserves the conclusions, rejected runs and limits;
 [performance](performance.md#current-graph-cache-optimization-checkpoint) is the
 short timing scorecard. The status table above lists the remaining work.
+
+## Collections graph checkpoint
+
+The selected Immutable, Collections and LINQ test roots retain 43 project files,
+61 configured nodes and 55 compiled projects, including Immutable's authored
+net10/net9/net8/netstandard2/net462 variants. The offline feed grows from 86 to
+87 archives: pinned System.Runtime.Serialization.Formatters 9.0.0 supplies the
+SDK API compatibility baseline. An altered supplemental archive is rejected
+before sync. Mixed-framework selections such as `loaded-platform` fail with an
+explicit per-entry configuration requirement; their frameworks are not flattened.
+
+Expansion exposed undeclared RDXML inputs, COM generator translations and the
+Interop API suppression file. The first complete-source raw comparison then
+found ten differing LINQ DLL/PDB paths, including copies: a property-selected
+linker descriptor was absent from staged inputs. Owner-bound declarations retain
+API validation and linker behavior. With that correction, all 615 persistent
+DLL/PDB/resource files match the complete upstream raw source build byte-for-byte.
+Raw files are 0644 and Bazel tree files are 0555. No content was normalized.
+
+Worker Build, complete project replay and fresh native-sandbox controls compare
+1,483 snapshot files, bytes and modes on Bazel 8.8/9.2. Each cold control compiles
+55 projects; replay recovers all 55. The reviewed shared-binplace map contains
+222 files with unique owners, including the earlier Pipelines scope. The inventory
+comes from SDK BinPlace targets after Build, not from an output directory scan.
+The qualification driver uses the same MSBuild graph API with all three roots,
+four nodes, shared compilation disabled and matching stable paths.
+
+```sh
+python3 tests/graph_build/upstream/runtime_prepare.py SOURCE_TAR_GZ PACKAGE_FEED COLLECTIONS --slice collections --prepared-restore
+python3 tests/graph_build/upstream/runtime_qualify.py COLLECTIONS/workspace RESULTS --output-base NEW_BASE
+python3 tests/graph_build/upstream/runtime_full_source.py SOURCE_TAR_GZ COLLECTIONS/workspace RAW_RESULTS
+```
+
+Use the pinned Linux ARM64 image and SDK/Bazelisk overrides from the earlier
+checkpoint. `RuntimeRawGraph.cs.txt` also supports `binplace OUTPUT_JSON` after
+its raw Build to reproduce shared output ownership. These are correctness
+controls; their elapsed times are not paired performance results. Larger edits,
+other managed selections, source-host tests and native composition remain open.
+CI was not run.

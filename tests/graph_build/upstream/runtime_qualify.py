@@ -1,4 +1,4 @@
-"""Compare Linux Pipelines worker replay with fresh native-sandbox outputs.
+"""Compare Linux managed-graph worker replay with fresh native-sandbox outputs.
 
 An unused, declared fixture input forces graph execution without changing any
 project fingerprint. These are correctness controls, not scored benchmarks.

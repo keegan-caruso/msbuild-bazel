@@ -1,4 +1,4 @@
-"""Expand reviewed contracts for pinned ARM64 System.IO.Pipelines slices.
+"""Expand reviewed contracts for pinned ARM64 runtime managed slices.
 
 The output list records BinPlace producers, not a runtime filesystem scan.
 Do not reuse it for another platform, framework, target or upstream revision.
@@ -25,6 +25,19 @@ def main():
         mapping['projectDefaults']['evaluationItems'] += [
             'ManagedProjectToBuild', 'MonoAotCrossCompiler', 'SetScriptCommands']
         mapping['projectDefaults']['documents'].update(json.loads((directory / 'runtime_test_documents.json').read_text()))
+        mapping['projectDefaults']['inputItems']['RdXmlFile'] = []
+        # API validation discovers this authored suppression file in a target.
+        project = 'src/libraries/System.Runtime.InteropServices/src/System.Runtime.InteropServices.csproj'
+        mapping['projectDefaults']['documents'][project] = {
+            'sha256': 'd2211022a663a767f971105013f896ded556304d441e970bdaaeb70ebeed1061',
+            'targets': [], 'tasks': [],
+            'inputs': ['src/libraries/System.Runtime.InteropServices/src/CompatibilitySuppressions.xml']}
+    # The linker embeds this property-selected file inside _EmbedILLinkXmls.
+    project = 'src/libraries/System.Linq/src/System.Linq.csproj'
+    mapping['projectDefaults']['documents'][project] = {
+        'sha256': '88c4fbf7cfb16c9ecdd59bdeec0255390493b075d78bced3559bc23c24eef8a5',
+        'targets': [], 'tasks': [],
+        'inputs': ['src/libraries/System.Linq/src/ILLink/ILLink.Descriptors.xml']}
     # The XLIFF package discovers these translations inside a target, so they
     # are not evaluated file items. Bind them to the projects owning the resx.
     generator_root = 'src/libraries/System.Runtime.InteropServices/gen/'
@@ -32,6 +45,7 @@ def main():
                     for language in ['cs', 'de', 'es', 'fr', 'it', 'ja', 'ko',
                                      'pl', 'pt-BR', 'ru', 'tr', 'zh-Hans', 'zh-Hant']]
     generator_documents = {
+        'ComInterfaceGenerator': '34459bd522f5178b97059a2847099199b0ebed15b059ddac90c480f09e01026f',
         'LibraryImportGenerator': '48b5cec5bb4db0fb9e9bb2cc7e6c5390f9767e75e2c188d1cd6e24f548e8258a',
         'DownlevelLibraryImportGenerator': 'd10e1444668f7e19a9b2f4cb5c2f01585d9548b562b44453d31a0a9619130962',
         'Microsoft.Interop.SourceGeneration': '469e452d8e496806630e140b1769a8e3d433b4f1d0ee3cfd90892f92a709457e',
