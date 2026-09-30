@@ -19,6 +19,13 @@ def main():
                 root = base / name
                 root.mkdir()
                 contract = fixture(root)
+                # Authored JSON can contain comments. Capture exact text for
+                # diagnostics instead of assuming every .json is strict JSON.
+                (root / 'P2/settings.json').write_text('{ // authored comment\n  "value": 1\n}\n')
+                project = root / 'P2/P2.csproj'
+                project.write_text(project.read_text().replace('</Project>',
+                    '<ItemGroup><None Update="settings.json" CopyToOutputDirectory="Always" /></ItemGroup></Project>'))
+                contract['Projects']['P2/P2.csproj']['Inputs'].append('P2/settings.json')
                 manifest = base / (name + '.json')
                 manifest.write_text(json.dumps(contract))
                 edits = base / 'edits.json'

@@ -22,11 +22,15 @@ def main():
     parser.add_argument('--samples', type=int, default=1)
     parser.add_argument('--only', nargs='+')
     parser.add_argument('--profile', action='store_true')
+    parser.add_argument('--runner', type=Path, default=RUNNER, help='Use a separately built candidate without changing the baseline runner')
+    parser.add_argument('--copy-mode', choices=['copy', 'clone'], default=ENV.get('RULES_MSBUILD_GRAPH_COPY_MODE', 'copy'))
     parser.add_argument('--raw-state', choices=['warm', 'clean'], default='warm')
     parser.add_argument('--cache-state', choices=['local', 'empty', 'remote'], default='local')
     parser.add_argument('--raw-restore', action='store_true')
     args = parser.parse_args()
     assert args.samples > 0
+    ENV['RULES_MSBUILD_GRAPH_COPY_MODE'] = args.copy_mode
+    runner_digest = hashlib.sha256(args.runner.read_bytes()).hexdigest()
     if args.profile:
         ENV['RULES_MSBUILD_GRAPH_PROFILE'] = '1'
     if args.cache_state == 'remote':
@@ -73,7 +77,7 @@ def main():
         # Every fresh-cache run owns its own child directory; never delete a caller's cache.
         with tempfile.TemporaryDirectory(prefix='consumer-', dir=args.cache) as fresh:
             selected_cache = args.cache.resolve() if args.cache_state == 'local' else Path(fresh)
-            command = [DOTNET, RUNNER, 'action', root, args.contract.resolve(), report, selected_cache]
+            command = [DOTNET, args.runner.resolve(), 'action', root, args.contract.resolve(), report, selected_cache]
             if args.cache_state == 'empty':
                 command += ['Build', 'no-read']
             elapsed = execute(command, label)
@@ -117,17 +121,21 @@ def main():
                     raw_restore_seconds += execute(command, edit['name'] + '-raw-restore-' + str(index))
             raw_seconds = execute(raw, edit['name'] + '-raw')
             raw_outputs = snapshot()
+            raw_json = {path: (root / path).read_text() for path in raw_outputs if path.endswith('.json')}
             path.write_bytes(original)
             cached(edit['name'] + '-baseline-replay')
             path.write_bytes(original.replace(before, after))
             measured = cached(edit['name'] + '-cached')
             outputs = snapshot()
             row = dict(name=edit['name'], rawState=args.raw_state, cacheState=args.cache_state,
+                       runnerSha256=runner_digest, copyMode=args.copy_mode,
                        rawRestoreSeconds=raw_restore_seconds if args.raw_restore else None,
                        rawEndToEndSeconds=raw_seconds + raw_restore_seconds if args.raw_restore else None,
                        rawBuildSeconds=raw_seconds, cached=measured,
                        missing=sorted(raw_outputs.keys() - outputs.keys()), extra=sorted(outputs.keys() - raw_outputs.keys()),
                        changed=sorted(p for p in outputs.keys() & raw_outputs.keys() if outputs[p] != raw_outputs[p]))
+            row['jsonDifferences'] = {path: {'raw': raw_json[path], 'cached': (root / path).read_text()}
+                                      for path in row['changed'] if path.endswith('.json')}
             rows.append(row)
             (args.results / 'summary.json').write_text(json.dumps(rows, indent=2) + '\n')
             print(json.dumps(dict(name=row['name'], rawBuildSeconds=raw_seconds, cached=measured,

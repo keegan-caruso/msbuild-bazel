@@ -123,8 +123,35 @@ the repository was mounted from the host, read-only. Default Apple-container
 proc masking fails this probe. This is a real native sandbox action, but uses
 a separate existing cache server. A subsequent run also passed with independent
 producer and consumer VMs, unrelated checkout/workspace paths and empty local
-caches. The producer used 8.8; the consumer used 9.2, hit all three projects,
+project-snapshot/action caches. The producer used 8.8; the consumer used 9.2, hit all three projects,
 then reused two after a body edit. Both bootstraps produced the same runner
 SHA-256 (`5abdd7e63a477abe164ccc70a8840c2294acf522dcc93088ae9ab912135787e1`).
 Use `--phase producer|consumer --fixture-id <same-fresh-UUID>` to reproduce.
 Persistent-worker isolation and the full fault matrix remain open.
+
+### Orchard parity checkpoint
+
+The full controlled API edit passes with a disposable deterministic-name patch
+to the pinned Orchard interceptor generator. All 896 DLL/PDB path differences
+disappear; file sets match. The two remaining paths are
+`rjsmcshtml.dswa.cache.json` and `rjsmrazor.dswa.cache.json`. Only one entry in
+`InputHashes` differs; all other fields match, including empty `CachedAssets`
+and `CachedCopyCandidates`. Production inputs and output comparisons are unchanged.
+
+`upstream/static_web_cache.py` proves against the installed SDK that changing
+only the generated apphost timestamp changes those discovery hashes, with the
+assembly and empty discovered outputs unchanged. The SDK adds apphost as a
+`None` item; JS discovery hashes candidate metadata including `ModifiedTime`
+before filtering for `*.razor.js`/`*.cshtml.js`. See the upstream
+[cache implementation](https://github.com/dotnet/sdk/blob/main/src/StaticWebAssetsSdk/Tasks/DefineStaticWebAssets.Cache.cs).
+The local SDK target inspection and executable fixture establish the behavior
+for 10.0.400; the linked main-branch source is explanatory, not a pinned artifact.
+
+Run `upstream/orchard_deterministic.py WORKSPACE CONTRACT CACHE RESULTS` for the
+full control and `upstream/static_web_cache.py` for the small SDK fixture.
+The full control restores the two edited source files. Its successful report is
+in `/tmp/graph-roadmap-orchard-deterministic`; an earlier disk-full run was
+discarded, its source edits restored from the pinned checkout, and the completed
+qualification VMs removed before rerunning. This explains the captured API
+differences; it does not make the original upstream generator byte-deterministic
+or qualify every CMS test/publish path.
