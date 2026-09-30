@@ -965,5 +965,8 @@ claim. The default `worker_cache_mb = 4096` budget counts logical cache bytes, i
 shared aliases. Exceeding it clears the private cache between requests; zero
 disables retention. This bounds retained state conservatively, rather than
 measuring physical disk use, and is not a hard limit during an active request.
-Large-payload measurement and broader Web/test/Publish qualification remain open. Defaults
+Synthetic native-tool, Publish and MTP/VSTest dependency-body controls also pass.
+The worker reuses test compilation while dependency implementation changes still
+invalidate the test result. Large-payload timing and upstream Web/test/Publish
+qualification remain open. Defaults
 are unchanged. See Bazel's [worker protocol](https://bazel.build/remote/persistent).

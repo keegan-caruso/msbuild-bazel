@@ -1,5 +1,6 @@
 """A declared native generator and its data survive graph sync and replay."""
 
+import argparse
 import hashlib
 import json
 import os
@@ -12,6 +13,9 @@ from qualify import DOTNET, ROOT, RUNNER, run
 
 
 def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('--graph-worker', action='store_true')
+    options = parser.parse_args()
     with tempfile.TemporaryDirectory(prefix='graph-native-tools-') as temporary:
         base = Path(temporary).resolve()
         root = base / 'workspace'
@@ -46,13 +50,16 @@ def main():
         (root / 'BUILD.bazel').write_text(authored)
         prefix = [str(ROOT / 'scripts/bazel-launcher.sh'), f'--output_base={base / "bazel"}']
         def bazel(*args):
+            if options.graph_worker and args[0] in ('run', 'build'):
+                args = args[:1] + ('--strategy=MSBuildGraph=worker', '--worker_sandboxing') + args[1:]
             result = subprocess.run(prefix + list(args), cwd=root, env=os.environ, text=True, capture_output=True)
             assert result.returncode == 0, result.stdout + result.stderr
             return result.stdout + result.stderr
         try:
             bazel('run', '//:sync')
-            (root / 'BUILD.bazel').write_text(authored + 'load(":graph.generated.bzl","app_graph")\napp_graph(name="graph")\nmsbuild_graph_binary(name="app",graph=":graph",project="App/App.csproj")\n')
-            assert '\n41\n' in bazel('run', '//:app')
+            graph_options = ',linux_stable_paths=True,linux_worker=True' if options.graph_worker else ''
+            (root / 'BUILD.bazel').write_text(authored + 'load(":graph.generated.bzl","app_graph")\napp_graph(name="graph"' + graph_options + ')\nmsbuild_graph_binary(name="app",graph=":graph",project="App/App.csproj")\n')
+            assert '41' in bazel('run', '//:app').splitlines()
             replay = base / 'replay'
             shutil.copytree(root / 'bazel-bin/graph.graph/workspace', replay)
             # Bazel makes outputs read-only; preserve executable bits.
@@ -68,11 +75,11 @@ def main():
             build(41, 0)
             build(41, 1)
             (root / 'generator.data').write_text('42')
-            assert '\n42\n' in bazel('run', '//:app')
+            assert '42' in bazel('run', '//:app').splitlines()
             (replay / '.graph-tools/0/bin/generator.data').write_text('42')
             build(42, 0)
             compile_tool(1)
-            assert '\n43\n' in bazel('run', '//:app')
+            assert '43' in bazel('run', '//:app').splitlines()
             shutil.copy(root / 'generator', replay / '.graph-tools/0/bin/generator')
             build(43, 0)
             build(43, 1)

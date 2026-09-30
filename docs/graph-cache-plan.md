@@ -430,3 +430,27 @@ normal-Restore series. Those samples are excluded from body-edit timing; the run
 was interrupted and the source restored. A corrected series uses distinct edits
 and requires one miss. Reports for the discarded run remain in
 `/tmp/graph-roadmap-fresh-prepared-timing`.
+
+### Expanded Linux correctness checkpoint
+
+Nineteen focused graph fixtures pass on Linux ARM64: replay and integrity,
+reference roles and reviewed dependencies, configurations, Framework references,
+packages/package SDKs, signing, Web/Razor, analyzers, native tools, MTP/VSTest,
+shared outputs, prepared Restore, directory inputs and evaluation refresh.
+The Framework fixture needed its existing pinned packages supplied explicitly;
+the native fixture needed GCC/libc headers installed in the qualification VM.
+The evaluation probe's source list was updated for the shared worker helper.
+Reports and prerequisite versions are preserved in
+`/tmp/graph-roadmap-linux-qualification`.
+
+Worker Publish reuses two projects and rebuilds one after a dependency body
+edit, executes the changed implementation and matches the fresh native control's
+compared outputs. Native generator data/binary/mode controls pass through the
+worker. For both MTP and VSTest, a dependency body edit leaves its reference
+assembly byte-identical and the test project compiled from cache (one hit/one
+miss), yet reruns the tests and observes the changed implementation. Restoring
+the body passes again. Fresh graph actions also invalidate the test result, but
+without a remote endpoint they rebuild both projects from an empty local cache.
+Logs: `/tmp/graph-roadmap-linux-expanded-worker.log` and
+`/tmp/graph-roadmap-linux-protocols-body.log`. These remain synthetic controls;
+they do not qualify all upstream test or Publish targets.

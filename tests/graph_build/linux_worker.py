@@ -81,6 +81,13 @@ def main():
             subprocess.run(command + ['clean'], cwd=root, env=env, check=True, capture_output=True)
             fresh_outputs = build('native-control', 2, 0, strategy='linux-sandbox')
             assert worker_outputs == fresh_outputs, 'Worker/native output parity failed'
+            build_file = root / 'BUILD.bazel'
+            build_file.write_text(build_file.read_text().replace('linux_worker=True,', 'linux_worker=True,target="Publish",'))
+            build('publish', 2, 0)
+            source.write_text('public class P0 { public static int Value() => 4; }')
+            published = build('publish-body', 4)
+            subprocess.run(command + ['clean'], cwd=root, env=env, check=True, capture_output=True)
+            assert published == build('publish-native-control', 4, 0, strategy='linux-sandbox')
             print('PASS: ' + args.bazel_version + ' sandboxed worker reuse, failure recovery, property invalidation and fresh native parity')
         finally:
             subprocess.run(command + ['shutdown'], cwd=root, env=env, capture_output=True)
