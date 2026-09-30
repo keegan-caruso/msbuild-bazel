@@ -180,7 +180,7 @@ runtime qualification and measurement, not repeating completed synthetic work.
 | --- | --- | --- |
 | 1. Linux Pipelines | Implementation and test Build/replay/native parity pass on Linux ARM64, Bazel 8.8/9.2; 819/998 snapshot files | Broader runtime contracts |
 | 2. Incremental baseline | Ordinary/prepared paired edits and independent project recovery pass | Larger edit matrix |
-| 3. Larger scope | Collections roots generate 61 configured nodes / 55 compiled projects; full-source compiled-product parity passes | Expanded edit matrix, other managed slices and graph-backed tests |
+| 3. Larger scope | Collections: 61 configured / 55 compiled nodes, full-source parity and paired body/API edits pass | Shared/generator/resource edits, other slices and graph-backed tests |
 | 4. Removed work | Shared CAS, ownership/path reuse, shared evaluation context and read-only worker packages | Runtime phase profile; safe cross-request SDK/evaluation reuse and large-worker timing |
 | 5. Tests | Older source-only host: 118,952 passes / 64 skips | Graph-backed test builds/execution, source host and edit invalidation |
 | 6. Native/app | Per-project source-built app and native inputs qualified | Transfer native producers and host composition; app runs on graph-produced outputs |
@@ -709,3 +709,53 @@ changes, configuration refresh, executed values and rejected package writes.
 Owned tooling builds/style checks and 107 unit/fixture checks pass. The synthetic
 probe tests process lifetime, not filesystem hermeticity or x86-64. CI was not run.
 The larger paired scorecard is rerun with the corrected launcher.
+
+## Collections incremental scorecard
+
+Three paired Linux ARM64 samples use the qualified 55-project graph, four CPUs,
+8 GiB RAM, four MSBuild nodes, SDK 10.0.400 and Bazel 9.2.0. Both engines disable
+shared compilation. Raw builds all three configured roots in one MSBuild graph,
+retains warm outputs and excludes Restore. Bazel uses a sandboxed worker with
+prepared read-only packages, fresh action outputs and a 4096-MiB cache budget.
+Whole-action remote/disk caches and profiling are off in scored edits.
+
+| Case | Bazel median (range) | Raw graph median (range) | Reuse |
+| --- | ---: | ---: | --- |
+| No-op | 0.153 s (0.141–0.207) | 2.548 s (2.312–2.576) | Whole action hit |
+| Immutable body | 24.285 s (23.148–24.655) | 23.615 s (22.758–24.645) | 49 hits / six misses |
+| Immutable API | 26.818 s (25.284–30.360) | 29.481 s (29.135–29.791) | 44 hits / eleven misses |
+| Fresh local outputs | 4.408 s (4.383–7.672) | Not a warm-raw comparison | 55 hits |
+
+Body overhead is about 3%; API is about 9% faster by medians. Unique edits change
+implementation bytes; body edits retain reference bytes and API edits change
+both. All 615 compiled products match raw bytes after each edit and original
+source restoration. Separate diagnostics confirm six/eleven Csc calls on both
+sides. The implementation-reference test consumer legitimately recompiles.
+Peak sampled VM use is 3.31 GiB across setup, scored and diagnostic runs.
+
+The body diagnostic spends 1.87 s applying preparation, 1.03 evaluation, 0.45
+initial hashing, 19.12 execution, 0.07 final verification and 0.03 saving snapshots.
+Worker staging adds 0.29 s. Its full Bazel wall time is 24.37 s. API execution is
+23.78 s, with 1.39 s preparation, 1.05 evaluation and 0.47 initial hashing; full
+wall time is 28.05 s. Each diagnostic hashes about 2.75 GB in 21,214 calls.
+Operation sums overlap these phases; they are not extra wall-time segments.
+These profiles are excluded from the medians. SDK/package validation remains a
+removable-work candidate; measured compilation dominates this larger edit.
+
+Bootstrap/setup takes 278.66 s graph versus 143.80 s raw Build plus 4.35 s Restore.
+It includes fresh Bazel package/runner/preparation actions and is not a scored
+cold control. Retain the slow observation: matched cold measurements and
+attribution remain required. The earlier interrupted body run is excluded; it
+motivated the creator-thread lifetime correction above.
+
+```sh
+python3 tests/graph_build/upstream/runtime_benchmark.py COLLECTIONS/workspace NEW_RESULTS --output-base NEW_BASE --slice collections --diagnostics
+```
+
+Run after the collections parity controls with the pinned SDK/Bazelisk overrides.
+The harness validates all roots and the reviewed mutation scope, alternates pair
+order, restores sources and preserves memory data even for failed processes.
+Raw uses `RuntimeRawGraph.cs.txt` for combined roots; optional binlogs are only
+used for diagnostics. This qualifies a selected managed build, not source-host
+test execution, native construction, independent collections recovery or x86-64.
+CI was not run.

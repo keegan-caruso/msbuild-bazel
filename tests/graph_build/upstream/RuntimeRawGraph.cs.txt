@@ -29,6 +29,8 @@ var parameters = new BuildParameters(collection) { MaxNodeCount = 4, EnableNodeR
 using var manager = new BuildManager();
 if (args[2] == "build")
 {
+    if (args.Length > 3)
+        parameters.Loggers = parameters.Loggers.Append(new BinaryLogger { Parameters = args[3] + ";ProjectImports=None" });
     var result = manager.Build(parameters, new GraphBuildRequestData(graph, ["Build"]));
     if (result.OverallResult != BuildResultCode.Success)
         throw new InvalidDataException("Raw graph Build failed: " + result.Exception);

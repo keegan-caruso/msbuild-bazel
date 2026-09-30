@@ -28,7 +28,8 @@ generator translations preserve equivalent raw compilation. The selected
 Collections, Immutable and LINQ test roots expand to 55 compiled projects and
 1,483 snapshot files, with 615 compiled-product files matching a complete-source
 raw Build. See the [collections checkpoint](graph-cache-plan.md#collections-graph-checkpoint).
-The public Linux
+The collections paired body/API medians have about 3% overhead / 9% advantage
+versus raw graph MSBuild. The public Linux
 [scorecard](graph-cache-plan.md#linux-pipelines-scorecard) measures body/API overhead
 of about 20%/0% with read-only prepared packages; graph mode remains opt-in. Generated Publish and layout-provider
 extraction pass focused

@@ -109,6 +109,27 @@ fetches 56.8 MB of logical payloads/manifests. See
 [independent recovery](graph-cache-plan.md#independent-pipelines-recovery) for
 setup exclusions, exact parity and remaining native/test gates.
 
+### Expanded runtime collections graph
+
+The selected Immutable, Collections and LINQ test roots expand to 55 compiled
+projects / 61 configured nodes. Three paired samples on the same Linux ARM64
+4-CPU/8-GiB configuration, with prepared read-only packages and profiling off:
+
+| Case | Full Bazel worker | Warm raw graph MSBuild | Reuse |
+| --- | ---: | ---: | --- |
+| No-op | 0.153 s | 2.548 s | Whole action hit |
+| Immutable body | 24.285 s | 23.615 s | 49 hits / six misses |
+| Immutable API | 26.818 s | 29.481 s | 44 hits / eleven misses |
+| Fresh local outputs | 4.408 s | Not paired with warm raw | 55 project hits |
+
+Body overhead is about 3%; API is about 9% faster by medians. All 615 compiled
+products match raw bytes; separate diagnostics confirm six/eleven compiler calls
+on both sides. This is a larger selected build scope, not the complete runtime.
+Compilation/execution dominates the 19–24 s profiled runner phases; preparation
+and validation still cost 1.4–1.9 s and evaluation about one second. A slow
+278.66 s bootstrap/setup observation is retained, but matched cold attribution
+remains open. See [ranges, commands and limits](graph-cache-plan.md#collections-incremental-scorecard).
+
 ## Current graph-cache optimization checkpoint
 
 Three-sample Orchard body-edit measurements on the roadmap branch retain

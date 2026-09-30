@@ -1,4 +1,4 @@
-"""Paired public Bazel/raw graph timings for the pinned Pipelines test slice.
+"""Paired public Bazel/raw graph timings for reviewed runtime test slices.
 
 Inputs must first pass runtime_qualify.py. Large logs stay in the disposable
 results directory; summary.json records only timings, counts and parity scope.
@@ -55,6 +55,7 @@ def main():
     parser.add_argument('results', type=Path, help='new owned directory, outside workspace')
     parser.add_argument('--output-base', type=Path, required=True, help='unused Bazel output base')
     parser.add_argument('--samples', type=int, default=3)
+    parser.add_argument('--slice', choices=['pipelines-tests', 'collections'], default='pipelines-tests')
     parser.add_argument('--diagnostics', action='store_true', help='profile separate unique edits after the scored series')
     args = parser.parse_args()
     assert os.uname().sysname == 'Linux' and os.uname().machine == 'aarch64'
@@ -71,8 +72,17 @@ def main():
     files = {p for v in variants for p in v.get('OutputFiles', [])}
     compiled = sum(bool(v['OutputDirectories'] or v.get('OutputFiles')) for v in variants)
     declared = set(contract['SharedInputs']) | {p for v in variants for p in v['Inputs']}
-    assert {IMPLEMENTATION, REFERENCE} <= declared
-    assert compiled == 38, 'This mutation contract qualifies only the reviewed test slice'
+    if args.slice == 'collections':
+        mutation = json.loads(Path(__file__).with_name('runtime_collections_edit.json').read_text())
+    else:
+        mutation = dict(compiled=38, implementation=IMPLEMENTATION, reference=REFERENCE, implDll=IMPL_DLL, refDll=REF_DLL,
+                        bodyAnchor='UseSynchronizationContext = useSynchronizationContext;',
+                        implementationAnchor='public class PipeOptions\n    {', referenceAnchor='public partial class PipeOptions\n    {',
+                        expectedMisses=dict(body=6, api=11), entries=['src/libraries/System.IO.Pipelines/tests/System.IO.Pipelines.Tests.csproj'])
+    implementation, reference = mutation['implementation'], mutation['reference']
+    assert {implementation, reference} <= declared
+    assert compiled == mutation['compiled'], 'Unexpected configured compilation scope'
+    assert (contract.get('Entries') or [contract['Entry']]) == mutation['entries'], 'Unexpected roots'
     raw = results / 'raw-workspace'
     shutil.copytree(root, raw, ignore=shutil.ignore_patterns('bazel-*', '.nuget', '.cache', '.cli'))
     packages = raw / '.nuget'
@@ -100,7 +110,7 @@ def main():
     rows = []
     memory_samples = {}
     mode_counts = {}
-    originals = {p: (root / p).read_bytes() for p in [IMPLEMENTATION, REFERENCE]}
+    originals = {p: (root / p).read_bytes() for p in [implementation, reference]}
     generated = root / 'graph.generated.bzl'
     original_generated = generated.read_bytes()
     build = root / 'BUILD.bazel'
@@ -133,6 +143,7 @@ def main():
             minimum_available = min(available for _, available in samples)
             memory_samples[label] = dict(vmTotalKiB=total, minimumAvailableKiB=minimum_available,
                                          maximumUsedKiB=total - minimum_available, samplingIntervalSeconds=0.25)
+            (results / 'memory-samples.json').write_text(json.dumps(memory_samples, indent=2) + '\n')
             if process.returncode:
                 raise subprocess.CalledProcessError(process.returncode, command)
         return elapsed
@@ -189,15 +200,15 @@ def main():
     def edit(case, sample):
         restore_sources()
         if case == 'body':
-            anchor = b'UseSynchronizationContext = useSynchronizationContext;'
-            assert originals[IMPLEMENTATION].count(anchor) == 1
+            anchor = mutation['bodyAnchor'].encode()
+            assert originals[implementation].count(anchor) == 1
             replacement = anchor + b'\n            GC.KeepAlive("' + (token + '-' + str(sample)).encode() + b'");'
-            changes = {IMPLEMENTATION: originals[IMPLEMENTATION].replace(anchor, replacement)}
+            changes = {implementation: originals[implementation].replace(anchor, replacement)}
         else:
             value = str(100000 + int(hashlib.sha256(token.encode()).hexdigest()[:6], 16) + sample).encode()
             declaration = b'\n        /// <summary>Qualification edit control.</summary>\n        public const int BenchmarkProbe = ' + value + b';'
             changes = {}
-            for path, anchor in [(IMPLEMENTATION, b'public class PipeOptions\n    {'), (REFERENCE, b'public partial class PipeOptions\n    {')]:
+            for path, anchor in [(implementation, mutation['implementationAnchor'].encode()), (reference, mutation['referenceAnchor'].encode())]:
                 assert originals[path].count(anchor) == 1
                 changes[path] = originals[path].replace(anchor, anchor + declaration)
         for path, content in changes.items():
@@ -208,17 +219,31 @@ def main():
         row['observedFileModes'] = dict(mode_counts)
         rows.append(row)
         summary = dict(platform='linux-arm64', cpus=4, memoryGiB=8, msbuildNodes=4, graphProjects=compiled,
-                       sdkVersion=contract['SdkVersion'], bazelVersion='9.2.0', rawNamespace='same stable paths and isolation as graph',
+                       sdkVersion=contract['SdkVersion'], bazelVersion='9.2.0', slice=args.slice, entries=mutation['entries'], rawNamespace='same stable paths and isolation as graph',
                        harnessSha256=hashlib.sha256(Path(__file__).read_bytes()).hexdigest(), packageExpansionSeconds=expansion_seconds,
                        memorySamples=memory_samples, rows=rows)
         (results / 'summary.json').write_text(json.dumps(summary, indent=2) + '\n')
-        print(json.dumps(row), flush=True)
+        print(json.dumps({key: value for key, value in row.items()
+                          if key not in ['runner', 'rawCompilerCalls', 'graphCompilerCalls']}), flush=True)
 
     try:
         restore_command = raw_host + ['restore', stable + '/' + contract['Entry'], '--configfile', stable + '/NuGet.Config', '--source', stable + '/.package-source',
                            '--packages', stable + '/.nuget', '-p:NuGetAudit=false', '-p:NetCoreSdkRoot=' + stable_sdk + '/sdk/' + contract['SdkVersion']]
         restore_command += [f'-p:{k}={v}' for k, v in contract['Properties'].items() if k.lower() != 'targetframework']
-        restore_seconds = execute(restore_command, 'raw-restore', raw)
+        restore_seconds = 0
+        for index, entry in enumerate(mutation['entries']):
+            command = restore_command.copy()
+            command[command.index(stable + '/' + contract['Entry'])] = stable + '/' + entry
+            restore_seconds += execute(command, 'raw-restore-' + str(index), raw)
+        if len(mutation['entries']) > 1:
+            driver = results / 'raw-driver'
+            driver.mkdir()
+            directory = Path(__file__).resolve().parent
+            shutil.copyfile(directory / 'RuntimeRawGraph.cs.txt', driver / 'Program.cs')
+            shutil.copyfile(directory / 'RuntimeRawGraph.csproj.txt', driver / 'Raw.csproj')
+            execute([dotnet, 'build', str(driver / 'Raw.csproj'), '-c', 'Release', '-p:UseSharedCompilation=false', '-p:NuGetAudit=false'], 'raw-driver-build', results)
+            shutil.copytree(driver / 'bin/Release/net10.0', raw / '.qualification')
+            raw_command = raw_host + [stable + '/.qualification/Raw.dll', stable, stable + '/graph.generated.json', 'build']
         seed_raw = execute(raw_command, 'raw-seed', raw)
         seed_graph, report = graph('graph-seed')
         assert report['hits'] == 0 and report['misses'] == compiled, report
@@ -245,9 +270,9 @@ def main():
                     graph_seconds, report = graph(label + '-graph', case != 'no-op')
                 outputs = compare()
                 if case != 'no-op':
-                    assert report['misses'] == (6 if case == 'body' else 11), report
-                    assert outputs[IMPL_DLL] != baseline[IMPL_DLL]
-                    assert (outputs[REF_DLL] == baseline[REF_DLL]) == (case == 'body')
+                    assert report['misses'] == mutation['expectedMisses'][case], report
+                    assert outputs[mutation['implDll']] != baseline[mutation['implDll']]
+                    assert (outputs[mutation['refDll']] == baseline[mutation['refDll']]) == (case == 'body')
                 pairs.append(dict(rawSeconds=raw_seconds, graphSeconds=graph_seconds))
                 record(dict(case=case, sample=sample, order='graph-first' if sample % 2 else 'raw-first',
                             **pairs[-1], projectHits=report['hits'] if case != 'no-op' else None,
@@ -289,7 +314,9 @@ def main():
                 diagnostic = raw / '.qualification'
                 diagnostic.mkdir(exist_ok=True)
                 raw_binlog = diagnostic / (case + '.binlog')
-                execute(raw_command + ['-bl:' + stable + '/.qualification/' + raw_binlog.name + ';ProjectImports=None'], case + '-diagnostic-raw', raw)
+                binlog = stable + '/.qualification/' + raw_binlog.name
+                logging = [binlog] if len(mutation['entries']) > 1 else ['-bl:' + binlog + ';ProjectImports=None']
+                execute(raw_command + logging, case + '-diagnostic-raw', raw)
                 shutil.copyfile(raw_binlog, results / (case + '-diagnostic-raw.binlog'))
                 seconds, report = graph(case + '-diagnostic-graph')
                 assert report['operations'] and report['worker']
@@ -297,7 +324,7 @@ def main():
                 compare()
                 raw_compilers = compilation(results / (case + '-diagnostic-raw.binlog'))
                 graph_compilers = compilation(results / (case + '-diagnostic-graph.binlog'))
-                expected = 6 if case == 'body' else 11
+                expected = mutation['expectedMisses'][case]
                 assert len(raw_compilers) == len(graph_compilers) == expected, (case, raw_compilers, graph_compilers)
                 record(dict(case=case + '-diagnostic', graphSeconds=seconds, runner=report, rawCompilerCalls=raw_compilers,
                             graphCompilerCalls=graph_compilers, interpretation='profiled; excluded from scored medians'))
