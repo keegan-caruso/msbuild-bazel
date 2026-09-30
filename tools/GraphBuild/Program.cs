@@ -69,6 +69,8 @@ System.Runtime.Loader.AssemblyLoadContext.Default.Resolving += (context, name) =
     File.Exists(Path.Combine(sdk, name.Name + ".dll")) ? context.LoadFromAssemblyPath(Path.Combine(sdk, name.Name + ".dll")) : null;
 Environment.SetEnvironmentVariable("MSBUILD_EXE_PATH", Path.Combine(sdk, "MSBuild.dll"));
 Environment.SetEnvironmentVariable("MSBuildSDKsPath", Path.Combine(sdk, "Sdks"));
+// Resolve package SDKs and key preparation against the same owned package root.
+Environment.SetEnvironmentVariable("NUGET_PACKAGES", Path.Combine(root, ".nuget"));
 contract = GraphTools.Bind(contract, root, sdkRoot);
 using var localState = localStatePath is null ? null : new LocalGraphState(localStatePath, contract, contractFiles);
 GraphDirectories.Prepare(contract, contractFiles, create: args[0] is "action" or "prepare");

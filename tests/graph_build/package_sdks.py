@@ -1,5 +1,6 @@
 """Package SDKs resolve from declared archives before offline Restore."""
 
+import argparse
 import base64
 import hashlib
 import json
@@ -13,6 +14,10 @@ from qualify import ROOT
 
 
 def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('--prepared-restore', action='store_true', help='Linux stable-path preparation regression')
+    args = parser.parse_args()
+    assert not args.prepared_restore or os.uname().sysname == 'Linux'
     with tempfile.TemporaryDirectory(prefix='graph-package-sdks-') as temporary:
         base = Path(temporary).resolve()
         root = base / 'workspace'
@@ -52,10 +57,30 @@ def main():
             assert '\ndeclared SDK\n' in bazel('run', '//:app')
             assert (root / 'NuGet.Config').read_text() == config
             assert (root / 'bazel-bin/graph.graph/workspace/App/bin/Release/net10.0/NuGet.Config').read_text() == config
+            if args.prepared_restore:
+                # Package-SDK bootstrap must leave Restore's environment key stable.
+                (root / 'mapping.json').write_text(json.dumps({'projectDefaults': {'preparedRestore': True}}))
+                prepared = authored.replace('projects=["App/App.csproj"]', 'projects=["App/App.csproj"],mappings="mapping.json"')
+                (root / 'BUILD.bazel').write_text(prepared)
+                bazel('run', '//:sync')
+                bazel('run', '//:sync', '--', '--check')
+                assert json.loads((root / 'graph.generated.json').read_text())['Restore']
+                (root / 'BUILD.bazel').write_text(prepared + 'load(":graph.generated.bzl","app_graph")\napp_graph(name="graph",linux_stable_paths=True)\nmsbuild_graph_binary(name="app",graph=":graph",project="App/App.csproj")\n')
+                assert '\ndeclared SDK\n' in bazel('run', '//:app')
+                assert json.loads((root / 'bazel-bin/graph.graph/report.json').read_text())['preparedRestore']
+                (root / 'App/Code.cs').write_text((root / 'App/Code.cs').read_text().replace('declared SDK', 'edited SDK'))
+                events = base / 'body.bep'
+                assert '\nedited SDK\n' in bazel('run', '//:app', '--build_event_json_file=' + str(events))
+                metrics = next(json.loads(line)['buildMetrics']['actionSummary'] for line in events.read_text().splitlines() if 'buildMetrics' in json.loads(line))
+                preparations = sum(int(row.get('actionsExecuted', 0)) for row in metrics.get('actionData', []) if row['mnemonic'] == 'MSBuildGraphRestore')
+                assert preparations == 0, 'A body edit must reuse package-SDK Restore'
+                assert (root / 'NuGet.Config').read_text() == config
+                assert (root / 'bazel-bin/graph.graph/workspace/App/bin/Release/net10.0/NuGet.Config').read_text() == config
             # Even after a successful run, missing declared SDKs cannot use a warm host cache.
             (root / 'BUILD.bazel').write_text(authored.replace('packages=[":sdk"]', 'packages=[]'))
             assert 'Fixture.Sdk' in bazel('run', '//:sync', success=False)
-            print('PASS: offline package SDK sync/build, unused SDK registry entry and missing-closure rejection')
+            print('PASS: offline package SDK sync/build, authored config preservation and missing-closure rejection'
+                  + ('; prepared Restore/body reuse' if args.prepared_restore else ''))
         finally:
             bazel('shutdown')
 

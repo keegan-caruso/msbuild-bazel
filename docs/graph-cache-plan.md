@@ -384,6 +384,15 @@ operation totals overlap and are not additional wall segments. This points to
 repeated Restore and immutable SDK/package verification as candidates, rather
 than extra compilation. Prepared read-only packages remain unmeasured here.
 
+That candidate exposed a generic package-SDK preparation bug: bootstrap selected
+`NUGET_PACKAGES` after the environment had been fingerprinted. The runner now
+selects its owned `.nuget` root before Create/Apply; environment validation remains
+complete. `package_sdks.py --prepared-restore` reproduces the failure before the
+fix and passes preparation/body reuse, authored NuGet.Config preservation and
+missing-archive rejection afterward. `prepared_restore.py` also passes
+input/package/config/environment invalidation, corruption and relocation controls.
+Owned .NET checks, including 54 ProjectSync tests, pass on Linux ARM64.
+
 Reproduce after `runtime_prepare.py ... --entry
 src/libraries/System.IO.Pipelines/tests/System.IO.Pipelines.Tests.csproj`:
 
