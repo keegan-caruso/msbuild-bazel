@@ -16,23 +16,28 @@ internal static class GraphWorker
 
     internal static async Task<int> Run(string[] args)
     {
-        if (!OperatingSystem.IsLinux() || args.Length != 2)
+        if (!OperatingSystem.IsLinux() || args.Length != 3)
         {
-            throw new InvalidDataException("Graph worker requires Linux, sandbox tool and one request parameter file");
+            throw new InvalidDataException("Graph worker requires Linux, sandbox tool, cache budget and one request parameter file");
         }
         var sandbox = Path.GetFullPath(args[0]);
+        if (!int.TryParse(args[1], System.Globalization.NumberStyles.None, System.Globalization.CultureInfo.InvariantCulture, out var megabytes) || megabytes < 0)
+        {
+            throw new InvalidDataException("Graph worker cache budget must be a nonnegative MiB count");
+        }
+        var cacheBudget = (long)megabytes * 1024 * 1024;
         var execroot = Environment.CurrentDirectory;
         using var directory = new WorkerDirectory();
         var cache = Path.Combine(directory.Root, "cache");
         Directory.CreateDirectory(cache);
-        var persistent = args[1] == "--persistent_worker";
+        var persistent = args[2] == "--persistent_worker";
         if (!persistent)
         {
-            if (!args[1].StartsWith('@'))
+            if (!args[2].StartsWith('@'))
             {
                 throw new InvalidDataException("Expected @request parameter file");
             }
-            var lines = File.ReadAllLines(args[1][1..]);
+            var lines = File.ReadAllLines(args[2][1..]);
             if (lines.Length != 1)
             {
                 throw new InvalidDataException("Expected one graph request");
@@ -140,6 +145,19 @@ internal static class GraphWorker
             finally
             {
                 Directory.Delete(scratch, recursive: true);
+                // A conservative logical-byte budget counts aliases as well as
+                // blobs. Trim only between requests, with no active MSBuild.
+                long bytes = 0;
+                foreach (var path in Directory.EnumerateFiles(cache, "*", SearchOption.AllDirectories))
+                {
+                    bytes += new FileInfo(path).Length;
+                    if (bytes > cacheBudget)
+                    {
+                        Directory.Delete(cache, recursive: true);
+                        Directory.CreateDirectory(cache);
+                        break;
+                    }
+                }
             }
         }
     }

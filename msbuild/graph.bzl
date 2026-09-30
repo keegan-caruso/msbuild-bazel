@@ -59,6 +59,8 @@ def _graph_action(ctx, prepare = False):
         fail("Prepared Restore must use the graph's contract, runner and SDK")
     if ctx.attr.linux_worker and (prepare or not ctx.attr.linux_stable_paths):
         fail("Graph workers require linux_stable_paths and build actions")
+    if ctx.attr.worker_cache_mb < 0:
+        fail("worker_cache_mb must be nonnegative")
     worker_sources = []
     prefix = ctx.attr.source_root + "/" if ctx.attr.source_root else ""
     args = ctx.actions.args()
@@ -111,7 +113,7 @@ def _graph_action(ctx, prepare = False):
             "sources": worker_sources,
         }))
         launcher = ctx.actions.declare_file(ctx.label.name + ".graph-worker.sh")
-        ctx.actions.write(launcher, "#!/usr/bin/env bash\nset -eu\nexec \"$PWD/%s\" exec \"$PWD/%s/GraphBuild.dll\" worker \"$PWD/%s\" \"$@\"\n" % (tc.dotnet.path, runner[0].path, ctx.file._linux_stable_paths.path), is_executable = True)
+        ctx.actions.write(launcher, "#!/usr/bin/env bash\nset -eu\nexec \"$PWD/%s\" exec \"$PWD/%s/GraphBuild.dll\" worker \"$PWD/%s\" %s \"$@\"\n" % (tc.dotnet.path, runner[0].path, ctx.file._linux_stable_paths.path, ctx.attr.worker_cache_mb), is_executable = True)
         params = ctx.actions.args()
         params.add(request.path)
         params.use_param_file("@%s", use_always = True)
@@ -186,6 +188,7 @@ _GRAPH_ATTRS = {
     "source_root": attr.string(),
     "project_outputs": attr.string_list_dict(),
     "publish_outputs": attr.string_list_dict(),
+    "worker_cache_mb": attr.int(default = 4096, doc = "Conservative logical snapshot-cache budget in MiB; zero discards between requests."),
     "linux_worker": attr.bool(default = False, doc = "Opt-in Linux cache broker; each request runs a fresh sandboxed MSBuild process."),
     "linux_stable_paths": attr.bool(default = False, doc = "Use bubblewrap on Linux for stable graph paths; cache transport retains network access."),
     "_linux_stable_paths": attr.label(default = "//msbuild:graph-sandbox.sh", allow_single_file = True),

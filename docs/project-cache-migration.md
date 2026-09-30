@@ -108,12 +108,15 @@ capabilities. The remaining work is:
 2. Expand runtime beyond the qualified System.IO.Pipelines managed slice. Shared
    binplace replay passes there; full native runtime/SDK construction and use of
    that runtime through the generic graph still need end-to-end qualification.
-3. Close Orchard's conservative invalidation gap. Its body-edit comparison
-   rebuilds 193 of 202 projects; existing test-only plugin timings do not describe
-   this public generated contract. See [current measurements](performance.md).
-4. Qualify upstream relocated replay on Linux with the intended native sandbox
-   and worker combination. Synthetic remote replay passes through public Bazel
-   8/9 actions, but the Apple container cannot run native linux-sandbox.
+3. Reduce remaining Orchard overhead. The reviewed body-edit contract now reuses
+   201 projects and rebuilds one, but the latest retained-package median is
+   19.18 s versus 13.45 s warm raw MSBuild. Fresh package expansion measures
+   23.27 s versus 13.83 s raw. These do not meet the proposed warm timing gate;
+   see the [execution checkpoints](graph-cache-plan.md).
+4. Expand relocated Linux replay to upstream graphs with the intended worker
+   configuration. Synthetic public Bazel 8.8/9.2 native sandbox, independent-VM
+   recovery and sandboxed-worker checks now pass. Upstream worker qualification
+   and the complete fault matrix remain open.
 5. Extend paired comparisons to upstream tests, publish and runtime edits.
    Avalonia.Controls body/API/generator output comparisons pass; Orchard retains
    generator and intermediate-cache output differences.
@@ -958,6 +961,9 @@ DLL/PDB/JSON parity with a fresh native-sandbox action. `tools.py --graph-worker
 passes tool-implementation/data changes for normal and out-of-process task hosts.
 `linux_prepared_restore.py --generated --worker` passes preparation reuse and
 refresh. These are Linux ARM64 small-fixture results, not a large-workload speed
-claim. Cache size grows for the worker's lifetime; capacity policy, large-payload
-measurement and broader Web/test/Publish qualification remain open. Defaults
+claim. The default `worker_cache_mb = 4096` budget counts logical cache bytes, including
+shared aliases. Exceeding it clears the private cache between requests; zero
+disables retention. This bounds retained state conservatively, rather than
+measuring physical disk use, and is not a hard limit during an active request.
+Large-payload measurement and broader Web/test/Publish qualification remain open. Defaults
 are unchanged. See Bazel's [worker protocol](https://bazel.build/remote/persistent).
