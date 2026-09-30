@@ -71,7 +71,7 @@ input verification or hide output differences to meet timing targets.
 
 ## Status
 
-Steps 1–2 are in progress. The plan and the profiling/benchmark controls are
+Steps 1–4 are in progress. The plan and the profiling/benchmark controls are
 committed. Steps 3–10 remain open; candidate ownership indexing and native Linux
 sandbox qualification are being tested.
 
@@ -155,3 +155,30 @@ discarded, its source edits restored from the pinned checkout, and the completed
 qualification VMs removed before rerunning. This explains the captured API
 differences; it does not make the original upstream generator byte-deterministic
 or qualify every CMS test/publish path.
+
+### Ownership indexing
+
+Project output ownership is indexed once from the validated contract. Snapshot
+checks find a file's owner by walking its parent paths, then check dependency
+membership. Actual accesses still resolve paths to reject symlinks.
+
+Three Orchard body samples with the candidate measured 21.63 s median versus
+13.17 s raw, with 201 hits/one miss and exact compared output parity. Repeating
+the original binary under the warmer filesystem conditions measured 25.67 s
+median: a 4.04 s / 15.7% reduction. Execution fell from 7.87 to 3.85 s, while
+hashing and verification were similar. Concurrent validation totals fell from
+about 24.94 to 5.88 s; those are overlapping operation totals, not wall time.
+The earlier 36.80 s baseline had slower filesystem reads and should not be used
+to attribute the full improvement to this change.
+
+The repeat control reused snapshots from before the temporary generator edit
+and retained the explained 898 differences; the candidate's fresh seed and all
+three body comparisons matched exactly. Reports are in
+`/tmp/graph-roadmap-ownership-timing` and `/tmp/graph-roadmap-warm-control`.
+`output_files.py`, reviewed dependency/multi-target controls and replay tests
+pass, including forged ownership and newly introduced output-directory symlinks.
+
+A cache inventory across 986 retained experiment snapshots found 27,637 stored
+files, 4,442 distinct hashes, 4.41 GB of logical payloads and 1.36 GB of unique
+content. This is storage evidence across several builds, not a measurement of
+one remote recovery. Shared blob storage and the large COW comparison remain open.

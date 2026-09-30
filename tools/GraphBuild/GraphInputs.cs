@@ -7,6 +7,8 @@ namespace RulesMSBuild.GraphBuild;
 internal sealed class GraphInputs : IDisposable
 {
     private readonly ProjectCollection collection;
+    private readonly Dictionary<string, ProjectGraphNode> directoryOwners;
+    private readonly Dictionary<string, ProjectGraphNode> fileOwners;
     private readonly System.Collections.Concurrent.ConcurrentDictionary<string, string[]> imports = new(StringComparer.Ordinal);
     private readonly GraphContract contract;
     private readonly Dictionary<string, string> inputDigests;
@@ -88,6 +90,12 @@ internal sealed class GraphInputs : IDisposable
             Validate(node);
         }
         ValidateOutputOwnership();
+        // Ownership is immutable contract metadata. Actual reads/writes still
+        // resolve their paths to reject symlinks introduced during execution.
+        directoryOwners = Graph.ProjectNodes.SelectMany(node => OutputDirectories(node).Select(path => (path, node)))
+            .GroupBy(pair => pair.path, StringComparer.Ordinal).ToDictionary(group => group.Key, group => group.First().node, StringComparer.Ordinal);
+        fileOwners = Graph.ProjectNodes.SelectMany(node => DeclaredOutputFiles(node).Select(path => (path, node)))
+            .GroupBy(pair => pair.path, StringComparer.Ordinal).ToDictionary(group => group.Key, group => group.First().node, StringComparer.Ordinal);
         EvaluationSeconds = timer.Elapsed.TotalSeconds;
         timer.Restart();
         using (GraphProfile.Measure("sdkHash"))
@@ -167,8 +175,22 @@ internal sealed class GraphInputs : IDisposable
     internal string Relative(ProjectGraphNode node) => Path.GetRelativePath(Files.Root, node.ProjectInstance.FullPath);
     internal IEnumerable<string> OutputDirectories(ProjectGraphNode node) => For(node).OutputDirectories.Select(Files.Resolve);
     internal IEnumerable<string> DeclaredOutputFiles(ProjectGraphNode node) => (For(node).OutputFiles ?? []).Select(Files.Resolve);
-    internal bool OwnsOutput(ProjectGraphNode node, string path) => DeclaredOutputFiles(node).Contains(path, StringComparer.Ordinal) ||
-        OutputDirectories(node).Any(directory => path.StartsWith(directory + Path.DirectorySeparatorChar, StringComparison.Ordinal));
+    internal bool OwnsOutput(ProjectGraphNode node, string path) => OutputOwner(path) == node;
+    internal ProjectGraphNode? OutputOwner(string path)
+    {
+        if (fileOwners.TryGetValue(path, out var owner))
+        {
+            return owner;
+        }
+        for (var directory = Path.GetDirectoryName(path); directory is not null && directory != Files.Root; directory = Path.GetDirectoryName(directory))
+        {
+            if (directoryOwners.TryGetValue(directory, out owner))
+            {
+                return owner;
+            }
+        }
+        return null;
+    }
     internal static string Key(ProjectInstance project) => project.FullPath + "|" + string.Join(";", project.GlobalProperties
         .OrderBy(p => p.Key, StringComparer.Ordinal).Select(p => p.Key + "=" + p.Value));
 

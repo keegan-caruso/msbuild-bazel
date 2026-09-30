@@ -2,6 +2,7 @@
 import argparse
 import hashlib
 import json
+import os
 from pathlib import Path
 import sys
 
@@ -18,6 +19,7 @@ def main():
     args = parser.parse_args()
     source = args.workspace / 'src/OrchardCore/OrchardCore.SourceGenerators/ArgumentsFromInterceptor.cs'
     original = source.read_bytes()
+    stamp = source.stat()
     needle = b'var uniqueId = Guid.NewGuid().ToString("N");'
     assert original.count(needle) == 1
     patch = b'using var hash = System.Security.Cryptography.SHA256.Create();\n        var uniqueId = string.Concat(hash.ComputeHash(Encoding.UTF8.GetBytes(info.Location.Version + ":" + info.Location.Data)).Select(value => value.ToString("x2")));'
@@ -37,6 +39,7 @@ def main():
         print('PASS: deterministic qualification patch gives exact assembly/PDB parity; remaining JSON differences retained for inspection')
     finally:
         source.write_bytes(original)
+        os.utime(source, ns=(stamp.st_atime_ns, stamp.st_mtime_ns))
 
 
 if __name__ == '__main__':

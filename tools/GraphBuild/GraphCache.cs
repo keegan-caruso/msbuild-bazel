@@ -260,8 +260,8 @@ internal sealed class GraphCache(GraphInputs inputs, string cache, bool read, Re
 
     private string OutputDigest(string path) => outputDigests.GetOrAdd(path, file => new Lazy<string>(() => ContractFiles.Digest(file))).Value;
 
-    private bool IsDependencyOutput(ProjectGraphNode node, string path) => File.Exists(path) && DependencyNodes(node)
-        .Any(dependency => inputs.OwnsOutput(dependency, path));
+    private bool IsDependencyOutput(ProjectGraphNode node, string path) => File.Exists(path) &&
+        inputs.OutputOwner(path) is { } owner && DependencyNodes(node).Contains(owner);
 
     // A project is queried only after its dependencies finish. Their disjoint
     // owned files and output trees are immutable for the rest of this graph invocation.

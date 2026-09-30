@@ -53,6 +53,26 @@ def main():
             return (root / 'shared/Library.dll').read_bytes()
         before = build(0)
         assert build(2) == before
+        # An ownership index must still reject a cached file owned by another node.
+        snapshot = next(path for path in cache.glob('*/manifest.json')
+                        if 'App/bin/Release/net10.0/App.dll' in json.loads(path.read_text())['Files'])
+        original_snapshot = snapshot.read_text()
+        forged = json.loads(original_snapshot)
+        forged['Files']['Library/bin/Release/net10.0/foreign.dll'] = next(iter(forged['Files'].values()))
+        snapshot.write_text(json.dumps(forged))
+        clear()
+        assert 'Snapshot output escaped project ownership' in run(*command, success=False).stderr
+        snapshot.write_text(original_snapshot)
+        # Resolving real accesses still rejects output-directory symlinks.
+        clear()
+        outside = base / 'outside'
+        outside.mkdir()
+        (outside / 'App.dll').write_text('outside')
+        (root / 'shared').symlink_to(outside, target_is_directory=True)
+        assert 'Symlinks are not supported' in run(*command, success=False).stderr
+        (root / 'shared').unlink()
+        assert (outside / 'App.dll').read_text() == 'outside'
+        assert build(2) == before
         (root / 'Library/Code.cs').write_text('public class Library { public static int Value() => 2; }')
         assert build(0) != before
         build(2)
