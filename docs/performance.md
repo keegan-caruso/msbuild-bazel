@@ -32,6 +32,36 @@ references, and a stable standalone workspace. An explicit COW experiment on the
 128-project chain reduced body time only from **7.03 to 6.74 s**; the default
 .NET copy path remains unchanged. See [measurements and qualification](project-cache-migration.md#copy-on-write-measurement).
 
+## Current graph-cache optimization checkpoint
+
+Three-sample Orchard body-edit measurements on the roadmap branch retain
+201 hits and one rebuild across 202 configured projects:
+
+| Graph package/output state | Runner median | Paired warm raw MSBuild |
+| --- | ---: | ---: |
+| Retained expanded packages, fresh outputs | 19.18 s | 13.45 s |
+| Fresh expanded packages and outputs | 23.27 s | 13.83 s |
+| Prepared Restore, fresh packages and outputs | 35.75 s | 13.49 s |
+
+These are standalone local-snapshot recovery timings, not end-to-end Bazel or
+remote-cache results. The runner includes Restore/preparation; raw excludes
+Restore and retains incremental outputs. They use a frozen runner predating the
+later inactive-item fix and worker changes. The final prepared series requires
+one miss per sample; the earlier zero-miss series is discarded.
+
+Ownership indexing reduced a controlled warm-filesystem baseline from 25.67 to
+21.63 s. Later path/hash and evaluation changes brought the measured retained-
+package body result to 19.18 s. COW and retained-output experiments reduced some
+copying but did not establish a large wall-time win. Prepared Restore currently
+costs more than ordinary Restore on Orchard; it remains opt-in.
+
+Output differences from Orchard's nondeterministic generator are recorded, not
+normalized away. A disposable deterministic-generator control matches DLL/PDB
+bytes; the two remaining resource-cache differences are SDK apphost timestamp
+hashes with unchanged discovered assets. See the
+[plan and measured checkpoints](graph-cache-plan.md) for attribution, exact
+states, commands and limits. The roughly 20%-overhead target is **not met**.
+
 ## Generated graph migration: upstream edits
 
 Single paired runs on macOS ARM64 with SDK 10.0.400, Release, four MSBuild

@@ -71,13 +71,27 @@ input verification or hide output differences to meet timing targets.
 
 ## Status
 
-Steps 1–2 have measured checkpoints. Steps 3–5 and 8 have partial
-implementation and qualification; step 6 has within-invocation reuse.
-Step 7 has an opt-in owned-state prototype and a qualified small Linux cache
-broker. Cross-request evaluation/input reuse, larger worker qualification and
-steps 9–10 remain open. Ownership
-indexing and input-check improvements are committed and pushed. Prepared Restore
-is opt-in and has not passed the large-workload performance/parity gates.
+The plan is not complete. Current gates, in execution order:
+
+| Step | Current result | Remaining gate |
+| --- | --- | --- |
+| 1. Baselines | Paired body/API series and explicit package/cache states | End-to-end large worker/remote timings |
+| 2. Parity | Orchard generator and resource-cache differences explained with controls | Full upstream test/Publish parity |
+| 3. Materialization | Ownership index and shared CAS implemented; COW measured | Broad fresh remote recovery measurements |
+| 4. Inputs | Shared path checks and read-only worker packages qualified | Large-tree timing; cross-request SDK digest reuse |
+| 5. Restore | Declared preparation and generated facade qualified | Orchard preparation remains slower; measure read-only candidate |
+| 6. Evaluation | Shared context per invocation; inactive IDE items omitted | Complete safe key for cross-request reuse |
+| 7. Owned state | Retention and worker broker qualified on small graphs | Retention has no measured wall-time benefit; large capacity sizing |
+| 8. Linux/remote | Native sandbox, independent workers and fault controls pass on ARM64 | Broader platform and upstream coverage |
+| 9. Upstreams | Orchard CMS Build and expanded Avalonia SimpleTheme controls | Full tests/Publish, runtime native construction, source SDK/native publish |
+| 10. Readiness | Evidence consolidated; existing defaults retained | Performance and capability gates still fail |
+
+Do not retain target-mutated MSBuild instances to close step 6. The worker still
+starts a fresh MSBuild child per request; stronger reuse requires a complete
+input contract and the same tool/package invalidation controls. Do not present
+the small worker or managed runtime slice as source-built SDK qualification.
+Larger qualification currently needs more disk capacity; old qualification
+containers are retained pending the user's cleanup decision.
 
 ### Measurement checkpoint
 
@@ -584,3 +598,10 @@ expansion currently need additional disk; the previous full-disk Avalonia run
 was discarded and its reports preserved. Cross-request evaluation reuse, full
 upstream tests/Publish/native construction and the default-switch gates remain
 open.
+
+The final generated-preparation worker check passes live reuse and property
+refresh. The same-VM public remote rerun also passes with the new PID isolation:
+Bazel 8.8 seeds three misses, 9.2 recovers three hits, then a body edit gets two
+hits/one miss. Runner bytes match across versions. This supplements the earlier
+independent-VM evidence; it is not a new independent-VM or large-workload result.
+Log: `/tmp/graph-roadmap-readonly-generated-remote.log`.
