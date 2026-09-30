@@ -5,6 +5,11 @@ using Microsoft.Build.ProjectCache;
 using RulesMSBuild.GraphBuild;
 using RulesMSBuild.ProjectCache;
 
+if (args.Length > 0 && args[0] == "worker")
+{
+    return await GraphWorker.Run(args[1..]);
+}
+
 if (args.Length < 4 || args[0] is not ("inspect" or "build" or "action" or "prepare"))
 {
     Console.Error.WriteLine("Usage: GraphBuild inspect ROOT CONTRACT REPORT | prepare ROOT CONTRACT REPORT OUTPUT | build/action ROOT CONTRACT REPORT CACHE [TARGET] [no-read]");

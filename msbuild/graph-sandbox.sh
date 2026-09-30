@@ -34,6 +34,10 @@ for key in RULES_MSBUILD_PROJECT_CACHE_URL RULES_MSBUILD_PROJECT_CACHE_BEARER_TO
     if value=$(printenv "$key"); then args+=(--setenv "$key" "$value"); fi
 done
 cache="$base/scratch/cache"
+if [[ ${9:--} != - ]]; then
+    args+=(--bind "$(realpath "$9")" "$base/cache")
+    cache="$base/cache"
+fi
 if [[ $mode == prepare ]]; then cache="$base/output/prepared"; fi
 exec /usr/bin/bwrap "${args[@]}" -- "$base/sdk/dotnet" exec "$base/runner/GraphBuild.dll" \
     "$mode" "$base/output/workspace" "$base/contract.json" "$base/output/report.json" "$cache" "$target"

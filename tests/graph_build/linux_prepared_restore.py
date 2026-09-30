@@ -28,6 +28,7 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--directory', type=Path, help='Preserve a new disposable workspace and execution logs')
     parser.add_argument('--generated', action='store_true')
+    parser.add_argument('--worker', action='store_true')
     args = parser.parse_args()
     assert os.uname().sysname == 'Linux'
     cache = os.environ['RULES_MSBUILD_PROJECT_CACHE_URL']
@@ -73,6 +74,14 @@ def main():
                 'load("@rules_msbuild//msbuild:defs.bzl", "msbuild_graph_binary")\n'
                 'app_graph(name="graph",linux_stable_paths=True)\n'
                 'msbuild_graph_binary(name="app",graph=":graph",project="P2/P2.csproj")\n')
+        if args.worker:
+            build_file = root / 'BUILD.bazel'
+            text = build_file.read_text()
+            if args.generated:
+                text = text.replace('app_graph(name="graph",linux_stable_paths=True)', 'app_graph(name="graph",linux_stable_paths=True,linux_worker=True)')
+            else:
+                text = text.replace('restore=":prepare",linux_stable_paths=True', 'restore=":prepare",linux_stable_paths=True,linux_worker=True')
+            build_file.write_text(text)
         for name, value, hits, prepare_runs in [('seed', 1, 0, 1), ('body', 2, 2, 0), ('props', 2, 0, 1)]:
             if name == 'body':
                 (root / 'P0/Code.cs').write_text('public class P0 { public static int Value() => 2; }')
@@ -85,6 +94,8 @@ def main():
             command = [str(ROOT / 'scripts/bazel-launcher.sh'), '--batch', '--output_base=' + str(base / 'bazel'),
                 'run', '//:app', '--spawn_strategy=linux-sandbox', '--jobs=2',
                 '--action_env=RULES_MSBUILD_PROJECT_CACHE_URL=' + cache, '--execution_log_json_file=' + str(execution)]
+            if args.worker:
+                command += ['--strategy=MSBuildGraph=worker', '--worker_sandboxing']
             result = subprocess.run(command, cwd=root, env=dict(os.environ, USE_BAZEL_VERSION='9.2.0'), text=True, capture_output=True)
             assert result.returncode == 0, result.stdout + result.stderr
             assert result.stdout.strip().endswith(str(value)), result.stdout

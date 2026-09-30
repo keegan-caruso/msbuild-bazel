@@ -938,3 +938,26 @@ retention reduced copying from about 128 MB to 1.86 MB but did not improve wall
 time: body edits were 4.15 s retained versus 4.14 s fresh recovery; API edits
 were 4.43 s in both modes. Both exclude Restore. Keep this opt-in while qualifying
 larger payloads and worker integration; it is not a measured speed recommendation.
+
+## Linux graph worker
+
+Generated facades accept `linux_worker = True` together with
+`linux_stable_paths = True`. Select it with
+`--strategy=MSBuildGraph=worker --worker_sandboxing`.
+
+The singleplex worker retains a private project-snapshot cache. Each request
+stages a fresh workspace and starts a fresh MSBuild process under bubblewrap.
+It does not retain evaluated projects, loaded task assemblies or project outputs.
+The owned-output experiment above remains separate. SDK/runner tools are declared
+to Bazel; changing them replaces the worker. Worker-owned cache files are removed
+on shutdown, and an OS lease permits cleanup after an interrupted worker.
+
+`linux_worker.py` passes with Bazel 8.8/9.2: body reuse, failed-build recovery,
+stale-definition rejection, resync, property invalidation and exact compared
+DLL/PDB/JSON parity with a fresh native-sandbox action. `tools.py --graph-worker`
+passes tool-implementation/data changes for normal and out-of-process task hosts.
+`linux_prepared_restore.py --generated --worker` passes preparation reuse and
+refresh. These are Linux ARM64 small-fixture results, not a large-workload speed
+claim. Cache size grows for the worker's lifetime; capacity policy, large-payload
+measurement and broader Web/test/Publish qualification remain open. Defaults
+are unchanged. See Bazel's [worker protocol](https://bazel.build/remote/persistent).

@@ -7,6 +7,7 @@ filegroup(
         "//tools:Directory.Build.props",
         "//tools:MSBuildTool.props",
         "//tools:PackageSdks.cs",
+        "//tools/ExplicitBuild:WorkerDirectory.cs",
         "//tools/ProjectCache:RemoteSnapshotStore.cs",
     ],
     visibility = ["//visibility:public"],

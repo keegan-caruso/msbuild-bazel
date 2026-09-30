@@ -57,6 +57,9 @@ def _graph_action(ctx, prepare = False):
         fail("Prepared Restore requires linux_stable_paths for relocation")
     if prepared and (prepared.contract != ctx.file.contract or prepared.runner != runner[0] or sorted([file.path for file in prepared.sdk.to_list()]) != sorted([file.path for file in tc.sdk.to_list()])):
         fail("Prepared Restore must use the graph's contract, runner and SDK")
+    if ctx.attr.linux_worker and (prepare or not ctx.attr.linux_stable_paths):
+        fail("Graph workers require linux_stable_paths and build actions")
+    worker_sources = []
     prefix = ctx.attr.source_root + "/" if ctx.attr.source_root else ""
     args = ctx.actions.args()
     args.add_all([tc.dotnet.path, runner[0].path, output.path, ctx.file.contract.path, ctx.attr.target, "1" if ctx.attr.linux_stable_paths else "0", ctx.file._linux_stable_paths.path, "prepare" if prepare else "action", prepared.directory.path if prepared else "-"])
@@ -67,6 +70,7 @@ def _graph_action(ctx, prepare = False):
         if relative.startswith("/") or any([part in ["", ".", ".."] for part in relative.split("/")]):
             fail("Graph source requires a safe workspace-relative destination: " + relative)
         args.add_all([file.path, relative])
+        worker_sources.append({"path": file.path, "destination": relative})
     for target, relative in ctx.attr.input_paths.items():
         files = target[DefaultInfo].files.to_list()
         if len(files) != 1 or files[0].is_directory:
@@ -74,6 +78,7 @@ def _graph_action(ctx, prepare = False):
         if relative.startswith("/") or "\\" in relative or any([part in ["", ".", ".."] for part in relative.split("/")]):
             fail("Graph input_paths requires safe workspace-relative paths")
         args.add_all([files[0].path, relative])
+        worker_sources.append({"path": files[0].path, "destination": relative})
     closures = []
     tool_properties = {}
     for index, target in enumerate(ctx.attr.bindings):
@@ -84,51 +89,81 @@ def _graph_action(ctx, prepare = False):
         closure = graph_tool_closure(ctx, tc, binding, index)
         closures.append(closure)
         args.add_all([closure.path, ".graph-tools/" + str(index)])
+        worker_sources.append({"path": closure.path, "destination": ".graph-tools/" + str(index)})
     if closures:
         bindings = ctx.actions.declare_file(ctx.label.name + ".graph-bindings.json")
         ctx.actions.write(bindings, json.encode(tool_properties))
         closures.append(bindings)
         args.add_all([bindings.path, ".graph-tools/bindings.json"])
+        worker_sources.append({"path": bindings.path, "destination": ".graph-tools/bindings.json"})
     packages = depset(ctx.files.packages, transitive = [ctx.attr.package_lock[MSBuildPackageLockInfo].archives] if ctx.attr.package_lock else []).to_list()
     for file in packages:
         args.add_all([file.path, ".package-source/" + file.basename])
-    ctx.actions.run_shell(
-        inputs = depset(ctx.files.srcs + [file for target in ctx.attr.input_paths for file in target[DefaultInfo].files.to_list()] + packages + closures + ([prepared.directory] if prepared else []) + [ctx.file.contract, runner[0], ctx.file._linux_stable_paths], transitive = [tc.sdk] + ([ctx.attr.package_lock[MSBuildPackageLockInfo].files] if ctx.attr.package_lock else [])),
-        tools = [tc.dotnet],
-        outputs = [output],
-        arguments = [args],
-        env = {key: value for key, value in ctx.configuration.default_shell_env.items() if key.startswith("RULES_MSBUILD_PROJECT_CACHE_")},
-        command = """set -eu
-dotnet="$PWD/$1"; runner="$PWD/$2"; output="$PWD/$3"; contract="$PWD/$4"; target="$5"; isolated="$6"; sandbox="$PWD/$7"; mode="$8"; prepared="$9"
-if test "$prepared" != -; then prepared="$PWD/$prepared"; fi
-shift 9
-scratch=$(mktemp -d)
-trap 'rm -rf "$scratch"' EXIT
-workspace="$output/workspace"
-mkdir -p "$workspace"
-while test "$#" -gt 0; do
-    source="$PWD/$1"; relative="$2"; shift 2
-    test ! -e "$workspace/$relative"
-    mkdir -p "$workspace/$(dirname "$relative")"
-    if test -d "$source"; then
-        mkdir -p "$workspace/$relative"
-        cp -pRL "$source/." "$workspace/$relative/"
-    else
-        cp -pL "$source" "$workspace/$relative"
+        worker_sources.append({"path": file.path, "destination": ".package-source/" + file.basename})
+    action_inputs = depset(ctx.files.srcs + [file for target in ctx.attr.input_paths for file in target[DefaultInfo].files.to_list()] + packages + closures + ([prepared.directory] if prepared else []) + [ctx.file.contract, runner[0], ctx.file._linux_stable_paths], transitive = [tc.sdk] + ([ctx.attr.package_lock[MSBuildPackageLockInfo].files] if ctx.attr.package_lock else []))
+    if ctx.attr.linux_worker:
+        request = ctx.actions.declare_file(ctx.label.name + ".graph-request.json")
+        ctx.actions.write(request, json.encode({
+            "contract": ctx.file.contract.path,
+            "output": output.path,
+            "target": ctx.attr.target,
+            "prepared": prepared.directory.path if prepared else None,
+            "sources": worker_sources,
+        }))
+        launcher = ctx.actions.declare_file(ctx.label.name + ".graph-worker.sh")
+        ctx.actions.write(launcher, "#!/usr/bin/env bash\nset -eu\nexec \"$PWD/%s\" exec \"$PWD/%s/GraphBuild.dll\" worker \"$PWD/%s\" \"$@\"\n" % (tc.dotnet.path, runner[0].path, ctx.file._linux_stable_paths.path), is_executable = True)
+        params = ctx.actions.args()
+        params.add(request.path)
+        params.use_param_file("@%s", use_always = True)
+        params.set_param_file_format("multiline")
+        ctx.actions.run(
+            executable = launcher,
+            arguments = [params],
+            inputs = depset([request], transitive = [action_inputs]),
+            tools = depset([tc.dotnet, runner[0], ctx.file._linux_stable_paths], transitive = [tc.sdk]),
+            outputs = [output],
+            env = {key: value for key, value in ctx.configuration.default_shell_env.items() if key.startswith("RULES_MSBUILD_PROJECT_CACHE_")},
+            execution_requirements = {"supports-workers": "1", "requires-worker-protocol": "json"},
+            mnemonic = "MSBuildGraph",
+        )
+    else:
+        ctx.actions.run_shell(
+            inputs = action_inputs,
+            tools = [tc.dotnet],
+            outputs = [output],
+            arguments = [args],
+            env = {key: value for key, value in ctx.configuration.default_shell_env.items() if key.startswith("RULES_MSBUILD_PROJECT_CACHE_")},
+            command = """set -eu
+    dotnet="$PWD/$1"; runner="$PWD/$2"; output="$PWD/$3"; contract="$PWD/$4"; target="$5"; isolated="$6"; sandbox="$PWD/$7"; mode="$8"; prepared="$9"
+    if test "$prepared" != -; then prepared="$PWD/$prepared"; fi
+    shift 9
+    scratch=$(mktemp -d)
+    trap 'rm -rf "$scratch"' EXIT
+    workspace="$output/workspace"
+    mkdir -p "$workspace"
+    while test "$#" -gt 0; do
+        source="$PWD/$1"; relative="$2"; shift 2
+        test ! -e "$workspace/$relative"
+        mkdir -p "$workspace/$(dirname "$relative")"
+        if test -d "$source"; then
+            mkdir -p "$workspace/$relative"
+            cp -pRL "$source/." "$workspace/$relative/"
+        else
+            cp -pL "$source" "$workspace/$relative"
+        fi
+    done
+    export DOTNET_ROOT="$(dirname "$dotnet")" DOTNET_CLI_HOME="$scratch" HOME="$scratch"
+    export DOTNET_CLI_TELEMETRY_OPTOUT=1 DOTNET_SKIP_FIRST_TIME_EXPERIENCE=1 DOTNET_NOLOGO=1
+    export MSBUILDDISABLENODEREUSE=1
+    if test "$isolated" = 1; then
+        bash "$sandbox" "$(dirname "$dotnet")" "$runner" "$output" "$contract" "$scratch" "$target" "$mode" "$prepared"
+        if test "$mode" = prepare; then rm -rf "$workspace"; rm -f "$output/report.json"; fi
+        exit 0
     fi
-done
-export DOTNET_ROOT="$(dirname "$dotnet")" DOTNET_CLI_HOME="$scratch" HOME="$scratch"
-export DOTNET_CLI_TELEMETRY_OPTOUT=1 DOTNET_SKIP_FIRST_TIME_EXPERIENCE=1 DOTNET_NOLOGO=1
-export MSBUILDDISABLENODEREUSE=1
-if test "$isolated" = 1; then
-    bash "$sandbox" "$(dirname "$dotnet")" "$runner" "$output" "$contract" "$scratch" "$target" "$mode" "$prepared"
-    if test "$mode" = prepare; then rm -rf "$workspace"; rm -f "$output/report.json"; fi
-    exit 0
-fi
-"$dotnet" exec "$runner/GraphBuild.dll" action "$workspace" "$contract" "$output/report.json" "$scratch/cache" "$target"
-""",
-        mnemonic = "MSBuildGraphRestore" if prepare else "MSBuildGraph",
-    )
+    "$dotnet" exec "$runner/GraphBuild.dll" action "$workspace" "$contract" "$output/report.json" "$scratch/cache" "$target"
+    """,
+            mnemonic = "MSBuildGraphRestore" if prepare else "MSBuildGraph",
+        )
     if prepare:
         return [DefaultInfo(files = depset([output])), MSBuildGraphRestoreInfo(directory = output, contract = ctx.file.contract, runner = runner[0], sdk = tc.sdk)]
     return [DefaultInfo(files = depset([output])), MSBuildGraphInfo(directory = output, dotnet = tc.dotnet, sdk = tc.sdk, projects = ctx.attr.publish_outputs if ctx.attr.target == "Publish" else ctx.attr.project_outputs)]
@@ -151,6 +186,7 @@ _GRAPH_ATTRS = {
     "source_root": attr.string(),
     "project_outputs": attr.string_list_dict(),
     "publish_outputs": attr.string_list_dict(),
+    "linux_worker": attr.bool(default = False, doc = "Opt-in Linux cache broker; each request runs a fresh sandboxed MSBuild process."),
     "linux_stable_paths": attr.bool(default = False, doc = "Use bubblewrap on Linux for stable graph paths; cache transport retains network access."),
     "_linux_stable_paths": attr.label(default = "//msbuild:graph-sandbox.sh", allow_single_file = True),
     "target": attr.string(default = "Build", values = ["Build", "Publish"]),

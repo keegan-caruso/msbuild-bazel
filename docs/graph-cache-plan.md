@@ -379,3 +379,36 @@ expected miss counts and runs the app. Reports:
 The final remote counter check downloaded 35 distinct payloads instead of 44
 per-snapshot requests, transferring 212,950 bytes including manifests. The
 comparison counts each hash once per snapshot, matching the previous transport.
+
+### Fresh package expansion baseline
+
+With `.nuget` removed before each graph invocation, three Orchard body samples
+measure 23.27 s median versus 13.83 s warm raw MSBuild. Restore is 8.84 s;
+evaluation/checks 4.11 s, input hashing 4.54 s, execution 3.97 s and final
+verification 1.78 s. All reuse 201 projects and rebuild one. File sets match;
+compared byte differences remain 898/44/898 across samples, consistent with the
+recorded upstream generator issue. This is fresh expanded-package recovery,
+not a package download measurement. Reports: `/tmp/graph-roadmap-fresh-packages`.
+
+### Persistent cache broker checkpoint
+
+The public graph rule and generated facade now offer an opt-in Linux singleplex
+worker. It retains only the private snapshot cache, using a fresh workspace and
+sandboxed MSBuild process for every request. This avoids cross-request task
+assembly/evaluation state. Retained project outputs remain a separate experiment;
+the 128-project result did not justify enabling them in the worker.
+
+`linux_worker.py` passes under `--worker_sandboxing` on Bazel 8.8 and 9.2, including
+body reuse, compilation-failure recovery, definition-change rejection/resync,
+property invalidation and exact compared output parity against a fresh native
+sandbox. `tools.py --graph-worker` passes implementation/data changes with both
+task-host modes. Generated prepared Restore also passes through the worker.
+An initial task-data assertion failed because it required a leading newline;
+the captured output was correct (`43`), with changed data and a cache miss.
+The assertion now compares lines. Owned-code and Starlark checks pass.
+
+Large worker timing, retained SDK/input preparation, capacity policy and broader
+Web/test/Publish checks remain open. This is not persistent MSBuild execution or
+a default change. Logs: `/tmp/graph-roadmap-linux-worker.log`,
+`/tmp/graph-roadmap-linux-worker-tools.log`, and
+`/tmp/graph-roadmap-linux-worker-restore.log`.

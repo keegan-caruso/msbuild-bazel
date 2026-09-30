@@ -16,6 +16,7 @@ from qualify import DOTNET, ROOT, RUNNER, run
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--task-host", action="store_true", help="qualify graph out-of-process task execution")
+    parser.add_argument("--graph-worker", action="store_true", help="qualify the Linux persistent cache broker")
     args = parser.parse_args()
     with tempfile.TemporaryDirectory(prefix='graph-tools-') as temporary:
         base = Path(temporary).resolve()
@@ -69,7 +70,10 @@ public class Generate : ITask {
             'msbuild_sync(name="sync",mode="graph",projects=["App/App.csproj"],bindings=[":binding"],mappings="mapping.json")\n')
         put('BUILD.bazel', authored)
         prefix = [str(ROOT / 'scripts/bazel-launcher.sh'), f'--output_base={base / "bazel"}']
+        worker_mode = args.graph_worker
         def bazel(*args, success=True):
+            if worker_mode and args[0] in ("run", "build"):
+                args = args[:1] + ("--strategy=MSBuildGraph=worker", "--worker_sandboxing", "--worker_max_instances=MSBuildGraph=1") + args[1:]
             result = subprocess.run(prefix + list(args), cwd=root, env=os.environ, text=True, capture_output=True)
             assert (result.returncode == 0) == success, result.stdout + result.stderr
             return result.stdout + result.stderr
@@ -78,10 +82,11 @@ public class Generate : ITask {
             bazel('run', '//:sync', '--', '--check')
             contract = json.loads((root / 'graph.generated.json').read_text())
             assert contract['ToolProperties'] == {'TaskLocation': '.graph-tools/0/net/Tasks.dll'}
-            put('BUILD.bazel', authored + 'load(":graph.generated.bzl","app_graph")\napp_graph(name="graph")\nmsbuild_graph_binary(name="app",graph=":graph",project="App/App.csproj")\n')
-            assert '\n41\n' in bazel('run', '//:app')
+            graph_options = ',linux_stable_paths=True,linux_worker=True' if args.graph_worker else ''
+            put('BUILD.bazel', authored + 'load(":graph.generated.bzl","app_graph")\napp_graph(name="graph"' + graph_options + ')\nmsbuild_graph_binary(name="app",graph=":graph",project="App/App.csproj")\n')
+            assert '41' in bazel('run', '//:app').splitlines()
             if not args.task_host:
-                assert '\n41\n' in bazel('run', '//:legacy')
+                assert '41' in bazel('run', '//:legacy').splitlines()
             replay = base / 'replay'
             shutil.copytree(root / 'bazel-bin/graph.graph/workspace', replay)
             for file in replay.rglob('*'):
@@ -96,12 +101,13 @@ public class Generate : ITask {
             replay_build(41, 0)
             replay_build(41, 1)
             put('Helper/Code.cs', 'public static class Helper { public static int Value() => Number.Value+1; }')
-            assert '\n42\n' in bazel('run', '//:app')
+            assert '42' in bazel('run', '//:app').splitlines()
             shutil.copy(root / 'bazel-bin/graph.graph/workspace/.graph-tools/0/net/Helper.dll', replay / '.graph-tools/0/net/Helper.dll')
             replay_build(42, 0)
             replay_build(42, 1)
             put('delta.txt', '2')
-            assert '\n43\n' in bazel('run', '//:app')
+            data_result = bazel('run', '//:app')
+            assert '43' in data_result.splitlines(), data_result + '\n' + (root / 'bazel-bin/graph.graph/report.json').read_text() + '\ndata=' + (root / 'bazel-bin/graph.graph/workspace/.graph-tools/0/net/delta.txt').read_text()
             (replay / '.graph-tools/0/net/delta.txt').write_text('2')
             replay_build(43, 0)
             bazel('run', '//:sync', '--', '--check')

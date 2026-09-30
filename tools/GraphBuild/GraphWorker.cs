@@ -1,0 +1,165 @@
+using System.Diagnostics;
+using System.Text.Json;
+
+namespace RulesMSBuild.GraphBuild;
+
+// Persistent transport/cache broker, not a persistent MSBuild engine. Every
+// request gets a fresh workspace and a fresh process in the stable-path sandbox.
+internal static class GraphWorker
+{
+    private sealed record Input(string Path);
+    private sealed record WorkRequest(string[] Arguments, Input[] Inputs, int RequestId = 0, bool Cancel = false);
+    private sealed record Reply(int ExitCode, string Output, int RequestId = 0);
+    private sealed record Source(string Path, string Destination);
+    private sealed record Request(string Contract, string Output, string Target, string? Prepared, Source[] Sources);
+    private static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web);
+
+    internal static async Task<int> Run(string[] args)
+    {
+        if (!OperatingSystem.IsLinux() || args.Length != 2)
+        {
+            throw new InvalidDataException("Graph worker requires Linux, sandbox tool and one request parameter file");
+        }
+        var sandbox = Path.GetFullPath(args[0]);
+        var execroot = Environment.CurrentDirectory;
+        using var directory = new WorkerDirectory();
+        var cache = Path.Combine(directory.Root, "cache");
+        Directory.CreateDirectory(cache);
+        var persistent = args[1] == "--persistent_worker";
+        if (!persistent)
+        {
+            if (!args[1].StartsWith('@'))
+            {
+                throw new InvalidDataException("Expected @request parameter file");
+            }
+            var lines = File.ReadAllLines(args[1][1..]);
+            if (lines.Length != 1)
+            {
+                throw new InvalidDataException("Expected one graph request");
+            }
+            var result = await Build(lines[0], null);
+            Console.Error.Write(result.Output);
+            return result.ExitCode;
+        }
+        while (await Console.In.ReadLineAsync() is { } line)
+        {
+            var id = 0;
+            Reply reply;
+            try
+            {
+                var work = JsonSerializer.Deserialize<WorkRequest>(line, Json) ?? throw new InvalidDataException("Missing worker request");
+                id = work.RequestId;
+                if (work.Cancel || work.Arguments.Length != 1)
+                {
+                    throw new InvalidDataException("Expected one graph request; cancellation is unsupported");
+                }
+                var declared = work.Inputs.Select(input => Safe(input.Path)).ToHashSet(StringComparer.Ordinal);
+                reply = (await Build(work.Arguments[0], declared)) with
+                {
+                    RequestId = id
+                };
+            }
+            catch (Exception error)
+            {
+                reply = new(1, error.ToString(), id);
+            }
+            await Console.Out.WriteLineAsync(JsonSerializer.Serialize(reply, Json));
+            await Console.Out.FlushAsync();
+        }
+        return 0;
+
+        async Task<Reply> Build(string requestPath, HashSet<string>? declared)
+        {
+            string InputPath(string path)
+            {
+                Safe(path);
+                if (declared is not null && !declared.Contains(path) && !declared.Any(input => input.StartsWith(path + "/", StringComparison.Ordinal)))
+                {
+                    throw new InvalidDataException("Undeclared worker input: " + path);
+                }
+                return Path.Combine(execroot, path);
+            }
+            var request = JsonSerializer.Deserialize<Request>(File.ReadAllText(InputPath(requestPath)), Json)
+                ?? throw new InvalidDataException("Missing graph action request");
+            var contract = InputPath(request.Contract);
+            var prepared = request.Prepared is null ? "-" : InputPath(request.Prepared);
+            var output = Path.Combine(execroot, Safe(request.Output));
+            if (declared is not null && declared.Any(input => input == request.Output || input.StartsWith(request.Output + "/", StringComparison.Ordinal) || request.Output.StartsWith(input + "/", StringComparison.Ordinal)))
+            {
+                throw new InvalidDataException("Graph output overlaps worker inputs");
+            }
+            if (Directory.Exists(output) && Directory.EnumerateFileSystemEntries(output).Any())
+            {
+                throw new InvalidDataException("Graph worker requires fresh action outputs");
+            }
+            var workspace = Path.Combine(output, "workspace");
+            Directory.CreateDirectory(workspace);
+            var scratch = Directory.CreateDirectory(Path.Combine(directory.Root, "request-" + Guid.NewGuid().ToString("N"))).FullName;
+            try
+            {
+                foreach (var source in request.Sources)
+                {
+                    var path = InputPath(source.Path);
+                    var destination = Path.Combine(workspace, Safe(source.Destination));
+                    if (Directory.Exists(path))
+                    {
+                        foreach (var file in Directory.EnumerateFiles(path, "*", SearchOption.AllDirectories))
+                        {
+                            var relative = Path.GetRelativePath(path, file);
+                            Copy(InputPath(source.Path + "/" + relative), Path.Combine(destination, Safe(relative)));
+                        }
+                    }
+                    else
+                    {
+                        Copy(path, destination);
+                    }
+                }
+                var sdk = Path.GetDirectoryName(Environment.ProcessPath!)!;
+                var start = new ProcessStartInfo("/bin/bash") { RedirectStandardOutput = true, RedirectStandardError = true };
+                foreach (var argument in new[] { sandbox, sdk, AppContext.BaseDirectory, output, contract, scratch, request.Target, "action", prepared, cache })
+                {
+                    start.ArgumentList.Add(argument);
+                }
+                using var child = Process.Start(start) ?? throw new IOException("Cannot start graph sandbox");
+                var stdout = child.StandardOutput.ReadToEndAsync();
+                var stderr = child.StandardError.ReadToEndAsync();
+                await child.WaitForExitAsync();
+                var log = await stdout + await stderr;
+                if (child.ExitCode == 0)
+                {
+                    foreach (var path in Directory.EnumerateFileSystemEntries(output, "*", SearchOption.AllDirectories))
+                    {
+                        if (File.GetAttributes(path).HasFlag(FileAttributes.ReparsePoint))
+                        {
+                            throw new InvalidDataException("Graph worker output contains a link");
+                        }
+                    }
+                }
+                return new(child.ExitCode, log);
+            }
+            finally
+            {
+                Directory.Delete(scratch, recursive: true);
+            }
+        }
+    }
+
+    private static string Safe(string path)
+    {
+        if (Path.IsPathRooted(path) || path.Contains('\\') || path.Split('/').Any(part => part is "" or "." or ".."))
+        {
+            throw new InvalidDataException("Expected safe worker-relative path: " + path);
+        }
+        return path;
+    }
+
+    private static void Copy(string source, string destination)
+    {
+        Directory.CreateDirectory(Path.GetDirectoryName(destination)!);
+        File.Copy(source, destination, overwrite: false);
+        if (!OperatingSystem.IsWindows())
+        {
+            File.SetUnixFileMode(destination, File.GetUnixFileMode(source));
+        }
+    }
+}

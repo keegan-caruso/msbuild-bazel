@@ -7,6 +7,7 @@
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="../PackageSdks.cs" />
+    <Compile Include="../ExplicitBuild/WorkerDirectory.cs" />
     <Compile Include="../ProjectCache/RemoteSnapshotStore.cs" />
     <Reference Include="Microsoft.Build" HintPath="$(RulesMSBuildEngineRoot)/Microsoft.Build.dll" Private="true" />
     <Reference Include="Microsoft.Build.Framework" HintPath="$(RulesMSBuildEngineRoot)/Microsoft.Build.Framework.dll" Private="true" />
