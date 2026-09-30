@@ -19,6 +19,8 @@ def main():
                 root = base / name
                 root.mkdir()
                 contract = fixture(root)
+                (root / '.nuget').mkdir(exist_ok=True)
+                (root / '.nuget/stale-marker').write_text('disposable old package expansion')
                 # Authored JSON can contain comments. Capture exact text for
                 # diagnostics instead of assuming every .json is strict JSON.
                 (root / 'P2/settings.json').write_text('{ // authored comment\n  "value": 1\n}\n')
@@ -35,10 +37,12 @@ def main():
                     ENV['RULES_MSBUILD_PROJECT_CACHE_BEARER_TOKEN'] = 'fixture-token'
                 results = base / (name + '-results')
                 run(sys.executable, ROOT / 'tests/graph_build/upstream_edits.py', root, manifest, base / (name + '-cache'), edits, results,
-                    '--samples', '2', '--raw-state', raw_state, '--cache-state', cache_state, '--raw-restore', '--profile')
+                    '--samples', '2', '--raw-state', raw_state, '--cache-state', cache_state, '--raw-restore', '--profile', '--package-state', 'fresh')
+                assert not (root / '.nuget/stale-marker').exists()
                 rows = json.loads((results / 'summary.json').read_text())
                 assert len(rows) == 2 and rows[0]['name'] != rows[1]['name']
                 for row in rows:
+                    assert row['packageState'] == 'fresh'
                     assert row['rawState'] == raw_state and row['cacheState'] == cache_state
                     assert row['rawRestoreSeconds'] > 0 and row['rawEndToEndSeconds'] > row['rawBuildSeconds']
                     assert not row['missing'] and not row['extra'] and not row['changed'], row

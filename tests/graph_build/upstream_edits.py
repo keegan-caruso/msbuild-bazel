@@ -27,6 +27,8 @@ def main():
     parser.add_argument('--raw-state', choices=['warm', 'clean'], default='warm')
     parser.add_argument('--cache-state', choices=['local', 'empty', 'remote'], default='local')
     parser.add_argument('--raw-restore', action='store_true')
+    parser.add_argument('--package-state', choices=['retained', 'fresh'], default='retained',
+                        help='Package expansion state for graph runs; fresh models a new Bazel action workspace')
     args = parser.parse_args()
     assert args.samples > 0
     ENV['RULES_MSBUILD_GRAPH_COPY_MODE'] = args.copy_mode
@@ -61,7 +63,11 @@ def main():
         assert result.returncode == 0, f'{label} failed; see {args.results / (label + ".log")}'
         return elapsed
 
-    def clear():
+    def clear(clear_packages=False):
+        if clear_packages:
+            packages = root / '.nuget'
+            assert not packages.is_symlink(), 'Refusing to clear a linked package directory'
+            shutil.rmtree(packages, ignore_errors=True)
         for directory in directories:
             shutil.rmtree(directory, ignore_errors=True)
         for file in files:
@@ -73,7 +79,7 @@ def main():
                 if path.is_file() and path.suffix in ('.dll', '.pdb', '.json', '.xml', '.trie', '.resources')}
 
     def cached(label):
-        clear()
+        clear(clear_packages=args.package_state == 'fresh')
         report = (args.results / (label + '.json')).resolve()
         args.cache.mkdir(parents=True, exist_ok=True)
         # Every fresh-cache run owns its own child directory; never delete a caller's cache.
@@ -130,7 +136,7 @@ def main():
             measured = cached(edit['name'] + '-cached')
             outputs = snapshot()
             row = dict(name=edit['name'], rawState=args.raw_state, cacheState=args.cache_state,
-                       runnerSha256=runner_digest, copyMode=args.copy_mode,
+                       runnerSha256=runner_digest, copyMode=args.copy_mode, packageState=args.package_state,
                        rawRestoreSeconds=raw_restore_seconds if args.raw_restore else None,
                        rawEndToEndSeconds=raw_seconds + raw_restore_seconds if args.raw_restore else None,
                        rawBuildSeconds=raw_seconds, cached=measured,

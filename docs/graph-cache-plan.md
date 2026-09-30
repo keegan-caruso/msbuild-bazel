@@ -325,3 +325,18 @@ control ran alongside small correctness checks and is not a scored timing run.
 Reports: `/tmp/graph-roadmap-evaluation-isolated`,
 `/tmp/graph-roadmap-evaluation-shared`, and
 `/tmp/graph-roadmap-evaluation-deterministic`.
+
+### Benchmark package state and storage
+
+`upstream_edits.py --package-state fresh` removes only the disposable graph
+workspace's expanded `.nuget` tree before each graph run; `retained` remains the
+default. The report records this separately from output/cache state and raw
+Restore timing. The warm/local, cold/empty and remote synthetic lanes pass with
+fresh package state and exact compared outputs. Earlier Orchard measurements,
+including the first prepared-Restore comparison, retained expanded packages.
+They must not be presented as fresh Bazel-action package recovery costs.
+
+The content-sharing cache after three Orchard qualification series contains
+613 snapshots and 16,946 payload paths: 2.65 GB of logical snapshot payloads map
+to 3,423 blobs / 0.76 GB of distinct data. This is measured storage across builds,
+not transfer volume or the size of one recovery. Reports remain outside Git.
