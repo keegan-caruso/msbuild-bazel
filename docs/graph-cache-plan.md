@@ -685,3 +685,27 @@ its raw Build to reproduce shared output ownership. These are correctness
 controls; their elapsed times are not paired performance results. Larger edits,
 other managed selections, source-host tests and native composition remain open.
 CI was not run.
+
+## Worker process lifetime
+
+The first collections body benchmark exited 137 after its six expected compiler
+calls, without a kernel or cgroup OOM event. It is excluded from edit timings.
+The exact SDK/runner and retained snapshots pass a separate sandbox reproduction:
+49 hits/six misses, 22.46 seconds profiled, about 1.3 GiB peak VM use. This is a
+standalone diagnostic, not a public Bazel timing.
+
+Linux [parent-death signals](https://man7.org/linux/man-pages/man2/PR_SET_PDEATHSIG.2const.html)
+track the creating thread. A retiring .NET thread-pool thread can therefore kill
+bubblewrap while its worker process remains alive. A dedicated launch thread now
+starts the sandbox, drains both output pipes asynchronously and waits for exit.
+`--die-with-parent` and namespace isolation stay enabled. The dedicated thread
+stays alive for the whole child lifetime; parent termination still kills it.
+
+`RULES_MSBUILD_DOTNET_ROOT=SDK python3 tests/graph_build/linux_process_lifetime.py`
+reproduces exit 137 on creator-thread retirement, passes three dedicated launches
+and verifies parent-death cleanup on the qualified Linux ARM64 VM. Public
+prepared-package worker controls pass on Bazel 8.8/9.2: body reuse, cache transport
+changes, configuration refresh, executed values and rejected package writes.
+Owned tooling builds/style checks and 107 unit/fixture checks pass. The synthetic
+probe tests process lifetime, not filesystem hermeticity or x86-64. CI was not run.
+The larger paired scorecard is rerun with the corrected launcher.

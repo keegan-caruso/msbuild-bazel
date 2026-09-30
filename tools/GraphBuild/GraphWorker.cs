@@ -144,11 +144,7 @@ internal static class GraphWorker
                 {
                     start.ArgumentList.Add(argument);
                 }
-                using var child = Process.Start(start) ?? throw new IOException("Cannot start graph sandbox");
-                var stdout = child.StandardOutput.ReadToEndAsync();
-                var stderr = child.StandardError.ReadToEndAsync();
-                await child.WaitForExitAsync();
-                var log = await stdout + await stderr;
+                var child = await WorkerProcess.RunAsync(start);
                 childSeconds = childTimer?.Elapsed.TotalSeconds ?? 0;
                 var verificationTimer = request.ProfileBuild ? Stopwatch.StartNew() : null;
                 if (child.ExitCode == 0)
@@ -163,7 +159,7 @@ internal static class GraphWorker
                 }
                 verificationSeconds = verificationTimer?.Elapsed.TotalSeconds ?? 0;
                 succeeded = child.ExitCode == 0;
-                return new(child.ExitCode, log);
+                return new(child.ExitCode, child.Output);
             }
             finally
             {
