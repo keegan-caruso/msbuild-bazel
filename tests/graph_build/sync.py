@@ -70,13 +70,22 @@ def main():
         (multi / 'Library.csproj').write_text('<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup>'
             '<TargetFrameworks>net10.0;net10.0-windows</TargetFrameworks></PropertyGroup></Project>')
         (multi / 'Code.cs').write_text('public class Library {}')
+        # Outer SDK evaluation has no language extension or compiler target.
+        # Imported Compile placeholders must be checked by the inner builds.
+        (multi / 'Directory.Build.targets').write_text('<Project><ItemGroup>'
+            '<Compile Remove="Helper.cs" /><Compile Include="Helper$(DefaultLanguageSourceExtension)" />'
+            '</ItemGroup></Project>')
+        (multi / 'Helper.cs').write_text('public class Helper {}')
         run(DOTNET, SYNC, multi, SDK / 'sdk/10.0.400', 'Library.csproj', '--graph')
         staged = directory / 'multi-staged'
         staged.mkdir()
-        for name in ['Library.csproj', 'Code.cs']:
+        for name in ['Library.csproj', 'Code.cs', 'Helper.cs', 'Directory.Build.targets']:
             shutil.copyfile(multi / name, staged / name)
         run(DOTNET, RUNNER, 'action', staged, multi / 'graph.generated.json', report, directory / 'multi-cache')
         assert json.loads(report.read_text())['misses'] == 2
+        (multi / 'Helper.cs').unlink()
+        missing = run(DOTNET, SYNC, multi, SDK / 'sdk/10.0.400', 'Library.csproj', '--graph', success=False)
+        assert 'Helper.cs' in missing.stderr and 'no project producer' in missing.stderr
         mixed = directory / 'mixed'
         for name in ['App', 'Library']:
             (mixed / name).mkdir(parents=True)

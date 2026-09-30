@@ -179,6 +179,14 @@ internal static class GraphGenerator
                 var generated = new List<string>();
                 foreach (var item in FileItems.Concat(binding.InputItems.Keys).SelectMany(project.GetItems))
                 {
+                    // SDK outer builds only dispatch compilation to configured inner
+                    // nodes. Language-dependent Compile placeholders are not inputs
+                    // to the dispatcher; every inner node still validates its files.
+                    if (item.ItemType == "Compile" && project.GetPropertyValue("IsCrossTargetingBuild") == "true" &&
+                        !project.Targets.ContainsKey("CoreCompile"))
+                    {
+                        continue;
+                    }
                     var fullPath = item.GetMetadataValue("FullPath");
                     if (fullPath.Length == 0 || IsSdk(fullPath) || IsRestored(fullPath))
                     {

@@ -228,6 +228,19 @@ The parity fixture uses an unused declared nonce to force graph execution; its
 runs are correctness controls, not performance samples. Owned .NET/style/unit
 checks and the existing replay/output-ownership experiments pass. No CI ran.
 
+## Outer-build input correction
+
+The Linux test expansion exposed a language-dependent `Compile` placeholder on
+an SDK cross-targeting dispatcher. Sync now omits compiler items only when
+`IsCrossTargetingBuild=true` and no `CoreCompile` target exists. Configured inner
+nodes still declare and validate every compiler input. Other item kinds and
+reviewed custom-target inputs retain their checks.
+
+`python3 tests/graph_build/sync.py` passes on Linux ARM64, including a two-framework
+Build and rejection of a missing inner `Helper.cs`. This qualifies the generic
+correction, not the complete runtime test graph; its generated linker inputs
+still need reviewed producer ownership.
+
 ## Timing checkpoint
 
 These are historical measurements, not timings of the latest worker candidate.
