@@ -91,7 +91,11 @@ One ordinary-Restore cold observation is 114.088 s versus 95.912 s raw Build
 plus 1.638 s Restore (about 17% overhead), with SDK/packages and Bazel bootstrap
 already available. The first prepared cold observation regresses to 184.683 s
 versus raw 106.393 s Build plus 1.635 s Restore (about 71% workflow overhead).
-Repeated cold controls are pending; the faster profiled diagnostic is not scored.
+Two later unprofiled controls are 129.473 s versus 110.543 s raw workflow
+(preparation executed), and 126.612 s versus 109.106 s (preparation cached).
+These are about 17%/16% overhead; differing preparation states and substantial
+variation prevent a combined median. The original slow observation is retained.
+The diagnostic is excluded from scored timings.
 Prepared Restore remains opt-in; larger graphs and independent
 remote runtime timing are still open. See the
 [scorecard, ranges and reproduction](graph-cache-plan.md#linux-pipelines-scorecard).

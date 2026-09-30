@@ -409,9 +409,16 @@ matching all 412 products. A separate diagnostic is 129.013 s versus raw
 38 projects, including 13 translated satellite compilations for each of three
 generators. Diagnostic graph execution is 101.34 s; worker staging adds 4.35 s.
 The diagnostic also rebuilds preparation after changing profiling mode. It is
-excluded from scored timings. Repeat unprofiled cold observations and record
-preparation action counts before attributing the variation or accepting this
-candidate for cold builds. Warm results do not close that gate.
+excluded from scored timings. Two further unprofiled observations match all 412 products: 129.473 s versus
+raw 109.010 s Build + 1.533 s Restore, with one preparation action; and
+126.612 s versus raw 107.197 s Build + 1.909 s Restore, with preparation
+cached. Both have zero project hits/38 misses, no package extraction or runner
+bootstrap actions, and profiling off. These are about 17%/16% workflow overhead.
+Do not combine differing preparation states into a median or drop the earlier
+185-second observation. Cold variation remains a limit; the diagnostic explains
+no extra compiler work and points to preparation and worker startup overhead.
+The binlog reader now reports cumulative task durations; these overlap across
+nodes and are not wall-time segments.
 
 The prepared body diagnostic spends 1.87 s applying preparation, 0.84 s
 on evaluation, 0.39 s initial hashing, 14.35 s execution and 0.10 s final
@@ -445,6 +452,11 @@ python3 tests/graph_build/upstream/runtime_benchmark.py WORKSPACE NEW_RESULTS \
   --output-base NEW_BASE --samples 3 --diagnostics
 python3 tests/graph_build/upstream/runtime_cold.py WORKSPACE NEW_RESULTS \
   --output-base NEW_BASE
+# Preserve additional cold observations; profile diagnostics separately.
+python3 tests/graph_build/upstream/runtime_cold.py WORKSPACE NEW_RESULTS \
+  --output-base NEW_BASE --sample 2
+python3 tests/graph_build/upstream/runtime_cold.py WORKSPACE NEW_RESULTS \
+  --output-base NEW_BASE --profile
 ```
 
 Use the pinned Linux image and tool overrides from the preparation checkpoint.
