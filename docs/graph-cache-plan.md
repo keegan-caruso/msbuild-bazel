@@ -71,8 +71,9 @@ input verification or hide output differences to meet timing targets.
 
 ## Status
 
-All ten steps are pending at plan creation. Update this section with completed
-work, measured results and explicit remaining blockers as execution proceeds.
+Steps 1–2 are in progress. The plan and the profiling/benchmark controls are
+committed. Steps 3–10 remain open; candidate ownership indexing and native Linux
+sandbox qualification are being tested.
 
 ### Measurement checkpoint
 
@@ -81,10 +82,21 @@ work, measured results and explicit remaining blockers as execution proceeds.
 - `profiling.py` passes: off by default, unchanged cache identity and output bytes.
 - `benchmark_lanes.py` passes warm/local, cold/empty and fresh HTTP-cache lanes,
   explicit restore timing, distinct repeated edits and exact synthetic parity.
-- Three paired Orchard body/API samples are in progress. The first body sample
-  measured runner/raw 36.73/14.27 s, 201 hits/one miss and zero differing outputs.
-  Initial hashing was 10.70 s, final verification 7.38 s, execution 7.92 s,
-  restore 5.97 s, evaluation 4.65 s and snapshot save 0.01 s.
+- Three paired Orchard samples completed. Median runner/raw times are
+  36.80/14.27 s for body edits and 120.22/81.75 s for API edits. Body edits
+  hit 201 projects and rebuild one, with exact compared outputs. API edits
+  hit nine and rebuild 193, with the same 898 differing paths in each sample.
+  These compare fresh output recovery with warm raw builds, not identical
+  filesystem states; the runner includes Restore and raw does not.
+- Body phase medians: Restore 6.08 s, evaluation 4.69 s, input hashing 10.62 s,
+  execution 7.92 s, final input verification 7.40 s and snapshot save 0.01 s.
+  Phase medians need not sum to the median total. Replay copies about 1.99 GB
+  across 16,250 files; cumulative copying takes 3.87–4.53 s. Concurrent snapshot
+  validation totals 27.07–28.00 s, which is not additive wall time.
+- Reproduce the series with `upstream_edits.py ... --samples 3 --only body api
+  --profile`. Reports remain in `/tmp/graph-roadmap-baseline` on the test host.
+  A small Linux tool bootstrap overlapped the final API sample; the first two
+  API samples measured 119.59/120.91 s and agree with the third's 120.22 s.
 - The isolated upstream generator check reproduces differing DLL/PDB bytes in
   repeated raw builds. Its random interceptor identifiers are the only generated
   source differences. A disposable deterministic-name probe produces identical
