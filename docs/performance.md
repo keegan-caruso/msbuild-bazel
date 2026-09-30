@@ -32,6 +32,56 @@ references, and a stable standalone workspace. An explicit COW experiment on the
 128-project chain reduced body time only from **7.03 to 6.74 s**; the default
 .NET copy path remains unchanged. See [measurements and qualification](project-cache-migration.md#copy-on-write-measurement).
 
+## Generated graph migration: upstream edits
+
+Single paired runs on macOS ARM64 with SDK 10.0.400, Release, four MSBuild
+nodes and shared compilation disabled. Both engines use the same staged
+workspace and configuration. Raw MSBuild keeps warm outputs and excludes
+Restore. The generic runner removes declared outputs and includes offline
+Restore, evaluation, hashing and local snapshot handling. Other qualification
+work ran concurrently on this host; use these as migration observations, not
+stable benchmark medians or remote-cache timings.
+
+| Scope | Edit | Generic runner | Warm raw graph MSBuild | Hits/misses |
+| --- | --- | ---: | ---: | ---: |
+| Avalonia.Controls | body | 13.90 s | 8.30 s | 7/4 |
+| Avalonia.Controls | api | 15.65 s | 12.49 s | 7/4 |
+| Avalonia.Controls | tool | 15.92 s | 10.29 s | 5/6 |
+| Orchard CMS | body | 129.46 s | 13.62 s | 9/193 |
+| Orchard CMS | api | 126.35 s | 103.73 s | 0/202 |
+| Orchard CMS | resource | 47.52 s | 11.66 s | 199/3 |
+| Orchard CMS | tool | 123.48 s | 84.75 s | 0/202 |
+
+Avalonia.Controls covers seven projects / eleven configurations, not the full
+repository. All compared semantic outputs match raw MSBuild for its body, API
+and generator edits. This slice does not qualify an Avalonia resource edit.
+Orchard covers all 202 configured CMS projects. Its Razor resource edit matches
+all assemblies; two intermediate static-web-assets cache JSON files differ.
+Body/API/generator comparisons have 898 differing captured paths, including
+copies, consistent with the earlier nondeterministic-generator observations;
+these comparisons do not establish byte-for-byte parity. File sets match in
+all cases. The final graph output serves the setup page and three embedded
+assets without creating a tenant.
+
+The current generated contract conservatively invalidates implementation
+consumers for package/custom-target graphs. Orchard's body edit therefore
+rebuilds 193 projects. **This is a default-switch blocker**; the older test-only
+plugin's one-project body-edit result is not a result for this generated path.
+
+Reproduce on disposable, declared-input workspaces using the reviewed edits:
+
+```sh
+RULES_MSBUILD_DOTNET_ROOT="$SDK" python3 tests/graph_build/upstream_edits.py \
+  "$WORKSPACE" "$CONTRACT" "$CACHE" \
+  tests/graph_build/upstream/orchard_edits.json "$RESULTS"
+```
+
+Use `avalonia_edits.json` for Controls. The script checks each replacement,
+restores source files, records complete output differences and retains logs.
+A successful script run means measurements completed; inspect differences
+before claiming parity. Generated contracts and package closures are described
+in [migration qualification](project-cache-migration.md#upstream-migration-qualification).
+
 ## Orchard reference-boundary follow-up
 
 [Testing merged PR #92 on Orchard](orchard-reference-boundaries.md) preserves the
