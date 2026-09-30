@@ -268,7 +268,8 @@ internal static class GraphGenerator
         var contract = JsonSerializer.Serialize(new
         {
             GeneratedBy = "ProjectSync --graph",
-            Version = 2,
+            Version = graph.ProjectNodes.Select(node => mappings.ForProject(Relative(node.ProjectInstance.FullPath), node.ProjectInstance.GetPropertyValue("TargetFramework")))
+                .Any(binding => binding.ReferenceBoundary == true || binding.ImplementationDependencies.Length != 0) ? 3 : 2,
             Entry = entry,
             Entries = entries,
             SdkVersion = Path.GetFileName(sdk),

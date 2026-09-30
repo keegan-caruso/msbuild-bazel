@@ -826,6 +826,10 @@ SDK, package targets and custom tasks:
 }
 ```
 
+Reviewed boundaries and implementation roles generate contract version 3 so older
+runners reject them instead of silently ignoring dependency semantics. Existing
+version 1/2 contracts remain readable.
+
 `referenceBoundary` is optional. Omission retains conservative automatic
 qualification; `false` disables reference reuse. `true` attests that ordinary
 project dependencies are consumed through compiler references and declared

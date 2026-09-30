@@ -54,6 +54,7 @@ def main():
         assert not json.loads(contract.read_text())['Projects']['P2/P2.csproj']['Configurations'][0]['ReferenceBoundary']
         mapping['projectDefaults']['referenceBoundary'] = True
         sync()
+        assert json.loads(contract.read_text())['Version'] == 3
         assert all(c['ReferenceBoundary'] for p in json.loads(contract.read_text())['Projects'].values() for c in p['Configurations'])
         def build(hits, value, cache='cache'):
             for name in ['P0', 'P1', 'P2', 'Generator']:
@@ -79,6 +80,13 @@ def main():
         # A reviewed custom task can explicitly require a normal reference's implementation.
         mapping['projects'] = {'P1/P1.csproj': {'implementationDependencies': ['P0/P0.csproj']}}
         sync()
+        current_contract = contract.read_text()
+        legacy = json.loads(current_contract)
+        legacy['Version'] = 2
+        contract.write_text(json.dumps(legacy))
+        failure = run(DOTNET, RUNNER, 'action', root, contract, report, base / 'legacy-cache', success=False).stderr
+        assert 'require graph contract version 3' in failure, failure
+        contract.write_text(current_contract)
         build(2, 22)
         (root / 'P0/Code.cs').write_text('public class P0 { public static int Value() => 3; public static int Added() => 3; }')
         outputs = build(2, 23)

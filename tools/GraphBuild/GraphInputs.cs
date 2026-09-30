@@ -54,9 +54,9 @@ internal sealed class GraphInputs : IDisposable
                 throw new InvalidDataException("Declared graph input is missing: " + path);
             }
         }
-        if (contract.Version is not (1 or 2) || contract.Projects.Count == 0)
+        if (contract.Version is not (1 or 2 or 3) || contract.Projects.Count == 0)
         {
-            throw new InvalidDataException("Expected graph contract version 1 or 2 with explicit project inputs and outputs");
+            throw new InvalidDataException("Expected graph contract version 1, 2 or 3 with explicit project inputs and outputs");
         }
         var sdk = Path.Combine(sdkRoot, "sdk", contract.SdkVersion);
         if (!Directory.Exists(sdk))
@@ -112,9 +112,9 @@ internal sealed class GraphInputs : IDisposable
         {
             return project;
         }
-        if (contract.Version != 2 || project.OutputDirectories.Length != 0 || project.OutputFiles?.Length > 0 || project.ReferenceBoundary || project.DependencyCopies?.Count > 0 || project.ImplementationDependencies?.Length > 0)
+        if (contract.Version is not (2 or 3) || project.OutputDirectories.Length != 0 || project.OutputFiles?.Length > 0 || project.ReferenceBoundary || project.DependencyCopies?.Count > 0 || project.ImplementationDependencies?.Length > 0)
         {
-            throw new InvalidDataException("Configured projects require version 2 and configuration-owned outputs: " + Relative(node));
+            throw new InvalidDataException("Configured projects require version 2 or 3 and configuration-owned outputs: " + Relative(node));
         }
         var matches = project.Configurations.Where(configuration => configuration.Properties.Count != 0 &&
             configuration.Properties.All(property =>
@@ -213,6 +213,10 @@ internal sealed class GraphInputs : IDisposable
 
     private void Validate(ProjectGraphNode node)
     {
+        if (contract.Version < 3 && For(node).ImplementationDependencies?.Length > 0)
+        {
+            throw new InvalidDataException("Implementation dependencies require graph contract version 3");
+        }
         foreach (var dependency in For(node).ImplementationDependencies ?? [])
         {
             Files.Resolve(dependency);
