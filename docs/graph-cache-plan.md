@@ -179,12 +179,12 @@ runtime qualification and measurement, not repeating completed synthetic work.
 | Step | Current evidence | Remaining gate |
 | --- | --- | --- |
 | 1. Linux Pipelines | Implementation and test Build/replay/native parity pass on Linux ARM64, Bazel 8.8/9.2; 819/998 snapshot files | Broader runtime contracts |
-| 2. Incremental baseline | Ordinary and prepared Linux worker medians, output parity and six/eleven compiler calls pass | Independent recovery and larger edit matrix |
+| 2. Incremental baseline | Ordinary/prepared paired edits and independent project recovery pass | Larger edit matrix |
 | 3. Larger scope | Per-project backend qualifies selected suites and 281 managed actions | Graph contracts and invalidation across the expanded scope |
 | 4. Removed work | Shared CAS, ownership/path reuse, shared evaluation context and read-only worker packages | Runtime phase profile; safe cross-request SDK/evaluation reuse and large-worker timing |
 | 5. Tests | Older source-only host: 118,952 passes / 64 skips | Graph-backed test builds/execution, source host and edit invalidation |
 | 6. Native/app | Per-project source-built app and native inputs qualified | Transfer native producers and host composition; app runs on graph-produced outputs |
-| 7. Recovery | Small independent ARM64 workers, native sandbox and fault controls pass | Runtime managed/native/app recovery and timings on independent consumers |
+| 7. Recovery | Independent 8.8 producer / 9.2 consumer recovers all 38 Pipelines projects and exact 998 files; body/API recovery matches fresh native builds | Larger managed/native/app recovery and runtime faults |
 | 8. Readiness | Graph mode remains opt-in | Runtime capability/performance gates; later SDK/AOT/full-repository expansion |
 
 The worker still starts a fresh MSBuild child per request. Read-only preparation
@@ -477,6 +477,54 @@ made raw compile five extra projects. It and incomplete/mismatched-path runs
 are excluded. Only the corrected complete series above is scored. Large logs,
 binlogs and memory samples stay in disposable results; older per-project and
 macOS probes remain in [performance](performance.md#runtime-backend-comparison).
+
+## Independent Pipelines recovery
+
+The Bazel 8.8 producer seeds a dedicated HTTP project cache, then stops. A new
+four-CPU/eight-GiB ARM64 consumer runs Bazel 9.2 with a different external SDK,
+repository and workspace path. Only input/tool bundles and seed hashes transfer;
+producer outputs and local project/Bazel caches remain behind. Whole-graph Bazel
+disk/remote caches are disabled. Each case must execute the graph action; edited
+cases restart the broker so unchanged projects also recover through HTTP.
+
+At the Restore-environment fix, three unprofiled recoveries with fresh output
+bases reuse all 38 projects: median 21.383 s, range 18.434–22.675 s. The matched
+consumer raw control takes 104.191 s Build + 1.808 s Restore (one observation),
+about five times longer. Raw package expansion (3.513 s) and graph SDK/package/
+runner acquisition are separate setup costs. Every recovery matches all 998
+snapshot files/bytes/modes and the producer runner hash; raw matches the 412
+persistent compiled products. This is managed Build, not test execution or a
+source-built runnable runtime.
+
+| Unique edited remote case | HTTP hits / rebuilds | Full Bazel time | Fresh native graph control |
+| --- | --- | ---: | ---: |
+| Body | 32 / six | 25.980 s | 118.383 s |
+| API | 27 / eleven | 28.248 s | 120.214 s |
+
+These edited rows are single observations with empty local snapshots, compared
+against fresh native graph compilation, not warm raw edits. Both match all 998
+files/bytes/modes. Body changes implementation bytes while retaining reference
+bytes; API changes both. The earlier API observation was 41.188 s with a redundant
+Restore action caused by cache URL changes. The fixed case executes none; its
+execution phase also varies, so the entire difference is not attributed to the
+removed action. Native controls invoke the native rule, not the worker adapter.
+
+A separate diagnostic downloads 56.824 MB in 579 successful logical payload/
+manifest transfers and uploads none. Its runner takes 3.64 s and broker staging
+4.00 s; the 24.13 s full wall time also includes preparation after changing
+profiling mode. Profiling is off in scored cases. Counters exclude retries and
+HTTP framing; they are not wire-level byte counts. Earlier pre-fix recovery
+(16.840 s) remains a separate observation, outside the current median.
+
+Reproduce producer/consumer phases with `runtime_remote.py WORKSPACE NEW_RESULTS
+--output-base NEW_BASE --phase producer|consumer`. Set the pinned SDK/Bazelisk
+and `RULES_MSBUILD_PROJECT_CACHE_URL`. For the consumer add `--seed-evidence
+SEED_JSON --edits`; `--raw-control` adds the matched raw cold Build and
+`--diagnostics` adds a separate transfer profile. Use an independent resource-
+matched Linux container and stop the producer first. The fixture pins scope to
+38 compilation nodes and restores sources/BUILD files. Large logs remain outside
+Git. Runtime fault injection, wider graphs, source-host tests and native/app
+composition remain open. CI was not run.
 
 ## Historical report summary
 

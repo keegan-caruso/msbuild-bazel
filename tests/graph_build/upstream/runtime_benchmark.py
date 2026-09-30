@@ -25,6 +25,30 @@ IMPL_DLL = 'artifacts/bin/System.IO.Pipelines/Release/net10.0/System.IO.Pipeline
 REF_DLL = 'artifacts/bin/System.IO.Pipelines/ref/Release/net10.0/System.IO.Pipelines.dll'
 
 
+def expand_raw_packages(raw):
+    packages = raw / '.nuget'
+    # Start from the same declared archives, including package SDK bootstrap.
+    # Expansion is setup, reported separately from ordinary raw Restore/Build.
+    expansion_start = time.monotonic()
+    for archive in sorted((raw / '.package-source').glob('*.nupkg')):
+        data = archive.read_bytes()
+        with zipfile.ZipFile(archive) as package:
+            metadata = ET.fromstring(package.read(next(n for n in package.namelist() if n.endswith('.nuspec'))))
+            def field(name):
+                return next(i.text for i in metadata.iter() if i.tag.split('}')[-1] == name).lower()
+            identity, version = field('id'), field('version')
+            assert all(value and '/' not in value and '\\' not in value and '..' not in value for value in [identity, version])
+            destination = packages / identity / version
+            destination.mkdir(parents=True, exist_ok=False)
+            package.extractall(destination)
+        name = identity + '.' + version + '.nupkg'
+        shutil.copyfile(archive, destination / name)
+        digest = base64.b64encode(hashlib.sha512(data).digest()).decode()
+        (destination / (name + '.sha512')).write_text(digest)
+        (destination / '.nupkg.metadata').write_text(json.dumps(dict(version=2, contentHash=digest, source=str(raw / '.package-source'))))
+    return time.monotonic() - expansion_start
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('workspace', type=Path)
@@ -52,26 +76,7 @@ def main():
     raw = results / 'raw-workspace'
     shutil.copytree(root, raw, ignore=shutil.ignore_patterns('bazel-*', '.nuget', '.cache', '.cli'))
     packages = raw / '.nuget'
-    # Start from the same declared archives, including package SDK bootstrap.
-    # Expansion is setup, reported separately from ordinary raw Restore/Build.
-    expansion_start = time.monotonic()
-    for archive in sorted((raw / '.package-source').glob('*.nupkg')):
-        data = archive.read_bytes()
-        with zipfile.ZipFile(archive) as package:
-            metadata = ET.fromstring(package.read(next(n for n in package.namelist() if n.endswith('.nuspec'))))
-            def field(name):
-                return next(i.text for i in metadata.iter() if i.tag.split('}')[-1] == name).lower()
-            identity, version = field('id'), field('version')
-            assert all(value and '/' not in value and '\\' not in value and '..' not in value for value in [identity, version])
-            destination = packages / identity / version
-            destination.mkdir(parents=True, exist_ok=False)
-            package.extractall(destination)
-        name = identity + '.' + version + '.nupkg'
-        shutil.copyfile(archive, destination / name)
-        digest = base64.b64encode(hashlib.sha512(data).digest()).decode()
-        (destination / (name + '.sha512')).write_text(digest)
-        (destination / '.nupkg.metadata').write_text(json.dumps(dict(version=2, contentHash=digest, source=str(raw / '.package-source'))))
-    expansion_seconds = time.monotonic() - expansion_start
+    expansion_seconds = expand_raw_packages(raw)
     config = raw / 'NuGet.Config'
     original_config = config.read_bytes() if config.exists() else None
     config.write_text('<configuration><packageSources><clear/><add key="declared" value=".package-source"/></packageSources><fallbackPackageFolders><clear/></fallbackPackageFolders></configuration>')

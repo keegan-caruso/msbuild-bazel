@@ -96,9 +96,18 @@ Two later unprofiled controls are 129.473 s versus 110.543 s raw workflow
 These are about 17%/16% overhead; differing preparation states and substantial
 variation prevent a combined median. The original slow observation is retained.
 The diagnostic is excluded from scored timings.
-Prepared Restore remains opt-in; larger graphs and independent
-remote runtime timing are still open. See the
+Prepared Restore remains opt-in; larger graphs and native/runtime-host
+qualification are still open. See the
 [scorecard, ranges and reproduction](graph-cache-plan.md#linux-pipelines-scorecard).
+
+Independent ARM64 HTTP recovery now reuses all 38 projects with 998 exact files:
+21.383 s median (18.434–22.675; three fresh consumer bases). Clean raw Restore +
+Build in the same consumer takes 105.999 s (one control), about five times longer.
+A unique remote body/API edit takes 25.980/28.248 s with 32/27 hits; these are
+single fresh-output observations, not warm-raw comparisons. A separate diagnostic
+fetches 56.8 MB of logical payloads/manifests. See
+[independent recovery](graph-cache-plan.md#independent-pipelines-recovery) for
+setup exclusions, exact parity and remaining native/test gates.
 
 ## Current graph-cache optimization checkpoint
 
