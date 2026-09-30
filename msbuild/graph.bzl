@@ -3,7 +3,7 @@
 load("//msbuild/private:graph_tools.bzl", "graph_tool_closure")
 load("//msbuild/private:paths.bzl", _RUNTIME_TOOLCHAIN = "RUNTIME_TOOLCHAIN", _TOOLCHAIN = "TOOLCHAIN")
 load("//msbuild/private:project_launch.bzl", _create_launcher = "create_launcher")
-load("//msbuild/private:providers.bzl", "MSBuildBindingInfo", "MSBuildPackageLockInfo", "MSBuildRuntimeInfo")
+load("//msbuild/private:providers.bzl", "MSBuildBindingInfo", "MSBuildLayoutInfo", "MSBuildPackageLockInfo", "MSBuildRuntimeInfo")
 load("//msbuild/private:test_options.bzl", _TEST_OPTIONS_ATTRS = "TEST_OPTIONS_ATTRS", _validate_test = "validate_test")
 
 MSBuildGraphInfo = provider("A declared MSBuild graph workspace and its execution SDK.", fields = {"directory": "Graph output workspace", "dotnet": "Execution host", "sdk": "Declared SDK files", "projects": "Configured project runtime outputs"})
@@ -20,11 +20,13 @@ def _runner(ctx):
 dotnet="$PWD/$1"; project="$PWD/$2"; output="$PWD/$3"
 scratch=$(mktemp -d)
 trap 'rm -rf "$scratch"' EXIT
+repository="$(dirname "$(dirname "$(dirname "$project")")")"
 mkdir -p "$scratch/empty"
 export DOTNET_ROOT="$(dirname "$dotnet")" DOTNET_CLI_HOME="$scratch" HOME="$scratch"
 export DOTNET_CLI_TELEMETRY_OPTOUT=1 DOTNET_SKIP_FIRST_TIME_EXPERIENCE=1 DOTNET_NOLOGO=1
 "$dotnet" build "$project" -c Release -o "$output" --nologo \
   -p:BaseIntermediateOutputPath="$scratch/obj/" -p:UseSharedCompilation=false \
+  -p:PathMap="$repository=/_/rules_msbuild%2C$scratch=/_/bootstrap" \
   -p:RestoreSources="$scratch/empty" -p:NuGetAudit=false
 """,
         mnemonic = "MSBuildGraphBootstrap",
@@ -116,7 +118,7 @@ fi
 """,
         mnemonic = "MSBuildGraph",
     )
-    return [DefaultInfo(files = depset([output])), MSBuildGraphInfo(directory = output, dotnet = tc.dotnet, sdk = tc.sdk, projects = ctx.attr.project_outputs)]
+    return [DefaultInfo(files = depset([output])), MSBuildGraphInfo(directory = output, dotnet = tc.dotnet, sdk = tc.sdk, projects = ctx.attr.publish_outputs if ctx.attr.target == "Publish" else ctx.attr.project_outputs)]
 
 msbuild_graph = rule(
     implementation = _graph,
@@ -130,6 +132,7 @@ msbuild_graph = rule(
         "package_lock": attr.label(providers = [MSBuildPackageLockInfo]),
         "source_root": attr.string(),
         "project_outputs": attr.string_list_dict(),
+        "publish_outputs": attr.string_list_dict(),
         "linux_stable_paths": attr.bool(default = False, doc = "Use bubblewrap on Linux for stable graph paths; cache transport retains network access."),
         "_linux_stable_paths": attr.label(default = "//msbuild:graph-sandbox.sh", allow_single_file = True),
         "target": attr.string(default = "Build", values = ["Build", "Publish"]),
@@ -197,4 +200,32 @@ msbuild_graph_test = rule(
     attrs = dict(_RUNTIME_ATTRS, **{key: value for key, value in _TEST_OPTIONS_ATTRS.items() if key != "test_output_type"}),
     toolchains = [_TOOLCHAIN, config_common.toolchain_type(_RUNTIME_TOOLCHAIN, mandatory = False)],
     test = True,
+)
+
+def _layout(ctx):
+    graph = ctx.attr.graph[MSBuildGraphInfo]
+    candidates = [value for key, value in graph.projects.items() if key.split("|")[0] == ctx.attr.project and (not ctx.attr.framework or key.split("|")[1] == ctx.attr.framework)]
+    if len(candidates) != 1:
+        fail("Select one generated project/framework with project and framework: " + ctx.attr.project)
+    directory, assembly, _kind = candidates[0]
+    for path in [directory, assembly]:
+        if path.startswith("/") or "\\" in path or any([part in ["", ".", ".."] for part in path.split("/")]):
+            fail("Graph layout requires safe workspace-relative outputs")
+    output = ctx.actions.declare_directory(ctx.label.name + ".layout")
+    ctx.actions.run_shell(
+        inputs = [graph.directory],
+        outputs = [output],
+        arguments = [graph.directory.path + "/workspace/" + directory, output.path, assembly],
+        command = 'set -eu; test -f "$1/$3"; mkdir -p "$2"; cp -pRL "$1/." "$2/"',
+        mnemonic = "MSBuildGraphLayout",
+    )
+    return [DefaultInfo(files = depset([output])), MSBuildLayoutInfo(directory = output)]
+
+msbuild_graph_layout = rule(
+    implementation = _layout,
+    attrs = {
+        "graph": attr.label(providers = [MSBuildGraphInfo], mandatory = True),
+        "project": attr.string(mandatory = True),
+        "framework": attr.string(),
+    },
 )

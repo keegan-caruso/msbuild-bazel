@@ -59,6 +59,13 @@ def main():
                 'app_graph(name="app")\n'
                 'msbuild_graph_test(name="app_test",graph=":app",project="P2/P2.csproj")\n'
                 'msbuild_graph_binary(name="run_app",graph=":app",project="P2/P2.csproj")\n')
+        if '--publish' in sys.argv:
+            assert '--sync' in sys.argv, '--publish requires --sync'
+            build_file = workspace / 'BUILD.bazel'
+            build_file.write_text(build_file.read_text().replace('app_graph(name="app")', 'app_graph(name="app",target="Publish")') +
+                'load("@rules_msbuild//msbuild:defs.bzl","msbuild_graph_layout","msbuild_layout")\n'
+                'msbuild_graph_layout(name="published",graph=":app",project="P2/P2.csproj")\n'
+                'msbuild_layout(name="composed",paths={":published":"app"})\n')
         if '--linux-stable-paths' in sys.argv:
             build_file = workspace / 'BUILD.bazel'
             build_file.write_text(build_file.read_text().replace('name="app",', 'name="app",linux_stable_paths=True,').replace('app_graph(name="app")', 'app_graph(name="app",linux_stable_paths=True)'))
@@ -78,6 +85,11 @@ def main():
                 assert result.returncode == 0, result.stdout + result.stderr
                 return result.stdout + result.stderr
             invoke('run', '//:run_app')
+            if '--publish' in sys.argv:
+                invoke('build', '//:composed')
+                layout = workspace / 'bazel-bin/composed.layout/app'
+                assert all((layout / name).is_file() for name in ['P2.dll', 'P2.runtimeconfig.json', 'P1.dll', 'P0.dll'])
+
             runtime = workspace / 'bazel-bin/run_app.runtime'
             assert all(not path.is_symlink() for path in runtime.rglob('*'))
             invoke('test', '//:app_test')

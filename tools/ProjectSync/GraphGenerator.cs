@@ -285,10 +285,16 @@ internal static class GraphGenerator
             node => Relative(node.ProjectInstance.FullPath) + "|" + node.ProjectInstance.GetPropertyValue("TargetFramework"),
             node => new[] { Relative(Path.GetDirectoryName(node.ProjectInstance.GetPropertyValue("TargetPath"))!),
                 Path.GetFileName(node.ProjectInstance.GetPropertyValue("TargetPath")), node.ProjectInstance.GetPropertyValue("OutputType") });
+        var publishOutputs = graph.ProjectNodes.Where(node => node.ProjectInstance.GetPropertyValue("TargetPath").Length != 0 &&
+            node.ProjectInstance.GetPropertyValue("TargetFramework").Length != 0 && node.ProjectInstance.GetPropertyValue("PublishDir").Length != 0)
+            .OrderBy(node => Key(node.ProjectInstance), StringComparer.Ordinal).ToDictionary(
+                node => Relative(node.ProjectInstance.FullPath) + "|" + node.ProjectInstance.GetPropertyValue("TargetFramework"),
+                node => new[] { Relative(Path.TrimEndingDirectorySeparator(Path.GetFullPath(node.ProjectInstance.GetPropertyValue("PublishDir"), Path.GetDirectoryName(node.ProjectInstance.FullPath)!))),
+                    Path.GetFileName(node.ProjectInstance.GetPropertyValue("TargetPath")), node.ProjectInstance.GetPropertyValue("OutputType") });
         var text = Header + "load(\"@rules_msbuild//msbuild:defs.bzl\", \"msbuild_graph\", \"msbuild_graph_runner\")\n\n" +
-            "def app_graph(name = \"app\", linux_stable_paths = False):\n    if native.package_name():\n        fail(\"app_graph must be called from the workspace root\")\n" +
-            "    msbuild_graph_runner(name = name + \"_runner\")\n    msbuild_graph(\n        name = name,\n        linux_stable_paths = linux_stable_paths,\n        runner = \":\" + name + \"_runner\",\n" +
-            "        contract = \"" + ContractName + "\",\n        srcs = " + StarlarkLiteral.Serialize(sources.Where(path => view?.Labels.ContainsKey(path) != true && !path.StartsWith(".graph-tools/", StringComparison.Ordinal)).ToArray()) + ",\n        bindings = " + StarlarkLiteral.Serialize(view?.GraphBindingLabels ?? []) + ",\n        input_paths = " + StarlarkLiteral.Serialize(view?.Bindings(sources) ?? []) + ",\n        project_outputs = " + StarlarkLiteral.Serialize(runtimeOutputs) + ",\n" + (view?.DefaultPackageLock is null ? "" : "        package_lock = " + StarlarkLiteral.Serialize(view.DefaultPackageLock) + ",\n") + "    )\n";
+            "def app_graph(name = \"app\", linux_stable_paths = False, target = \"Build\"):\n    if native.package_name():\n        fail(\"app_graph must be called from the workspace root\")\n" +
+            "    msbuild_graph_runner(name = name + \"_runner\")\n    msbuild_graph(\n        name = name,\n        linux_stable_paths = linux_stable_paths,\n        target = target,\n        runner = \":\" + name + \"_runner\",\n" +
+            "        contract = \"" + ContractName + "\",\n        srcs = " + StarlarkLiteral.Serialize(sources.Where(path => view?.Labels.ContainsKey(path) != true && !path.StartsWith(".graph-tools/", StringComparison.Ordinal)).ToArray()) + ",\n        bindings = " + StarlarkLiteral.Serialize(view?.GraphBindingLabels ?? []) + ",\n        input_paths = " + StarlarkLiteral.Serialize(view?.Bindings(sources) ?? []) + ",\n        project_outputs = " + StarlarkLiteral.Serialize(runtimeOutputs) + ",\n        publish_outputs = " + StarlarkLiteral.Serialize(publishOutputs) + ",\n" + (view?.DefaultPackageLock is null ? "" : "        package_lock = " + StarlarkLiteral.Serialize(view.DefaultPackageLock) + ",\n") + "    )\n";
         // Validate both destinations before replacing either generated file.
         Verify(ContractName, contract, "{\n  \"GeneratedBy\": \"ProjectSync --graph\",");
         Verify(BuildName, text, Header);

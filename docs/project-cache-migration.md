@@ -101,20 +101,22 @@ The default switch is **not ready**. The new generic path is opt-in. Replacing
 `msbuild_project` and project-sync output now would remove existing supported
 capabilities. The remaining work is:
 
-1. Transfer the remaining native-tool, reference-role and generated-output
-   contracts. Managed task bindings, package SDKs and source-built analyzers now
-   have focused coverage.
-2. Finish runtime's reviewed target contracts and ownership of outputs copied
-   into shared runtime/targeting-pack layouts. Orchard and Avalonia.Controls now
-   pass generated build and same-path replay.
-3. Qualify source-built runtime and publish providers through the generic rule.
-   MTP/VSTest and package build/content assets have small-fixture coverage;
-   that does not qualify all upstream test and publish workflows.
-4. Qualify stable paths on the intended Linux workers and sandbox combination.
-   The opt-in launcher has relocated-cache evidence with processwrapper execution;
-   native Linux sandbox nesting remains unqualified.
-5. Compare complete body/API/resource/test/publish workflows with warm raw
-   graph-mode MSBuild, including Restore and transfers, on all three upstreams.
+1. Extend the qualified native-tool, reference-role and generated-output contracts
+   to remaining custom item handoffs and upstream native/publish workflows.
+   Managed/native tools, analyzer references, aliases and shared output files
+   now have focused regression coverage.
+2. Expand runtime beyond the qualified System.IO.Pipelines managed slice. Shared
+   binplace replay passes there; full native runtime/SDK construction and use of
+   that runtime through the generic graph still need end-to-end qualification.
+3. Close Orchard's conservative invalidation gap. Its body-edit comparison
+   rebuilds 193 of 202 projects; existing test-only plugin timings do not describe
+   this public generated contract. See [current measurements](performance.md).
+4. Qualify upstream relocated replay on Linux with the intended native sandbox
+   and worker combination. Synthetic remote replay passes through public Bazel
+   8/9 actions, but the Apple container cannot run native linux-sandbox.
+5. Extend paired comparisons to upstream tests, publish and runtime edits.
+   Avalonia.Controls body/API/generator output comparisons pass; Orchard retains
+   generator and intermediate-cache output differences.
 
 Once these gates pass, change generator and facade defaults in one commit, then
 remove the per-project compilation path in a separate commit. No default or
@@ -762,3 +764,48 @@ macOS ARM64/net10.0 mapping with
 `python3 tests/graph_build/upstream/runtime_contract.py "$MAPPING"`, then use the
 package-build sync and `replay_outputs.py --seed` flow above. The output fixture
 is specific to this revision, platform and entry point.
+
+### Publish and layout providers
+
+Generated `app_graph` accepts `target = "Publish"`. Run/test selectors use the
+selected project's evaluated publish directory for these graphs. An output that
+MSBuild did not publish fails extraction; library dependencies are not implicitly
+published just because their entry point was published.
+
+`msbuild_graph_layout(name = "published", graph = ":graph", project = "App/App.csproj")`
+exports the selected project's complete output directory as `MSBuildLayoutInfo`.
+It composes with `msbuild_layout` and `msbuild_runtime`, including source-built
+runtime components. This provides the artifact connection; it does not qualify a
+full source-built native runtime through the graph runner.
+
+`python3 tests/graph_build/bazel.py --sync --publish` passes on macOS ARM64 with
+Bazel 9.2: generated Publish, executable tests, edited-test invalidation, an
+unrelated-project test-cache hit and composition of the published app layout.
+`analyzers.py --project-reference` covers `OutputItemType="Analyzer"`;
+`reference_roles.py` covers aliases, `Private=false`, constant changes and replay.
+Special reference metadata currently uses conservative dependency invalidation.
+
+### Linux migration gate
+
+With the updated runner, `linux_paths.py --projects 32` passed in the local Apple
+Linux ARM64 worker: a relocated consumer fetched all 32 projects from a separate
+HTTP cache, a body edit rebuilt one, and an API edit rebuilt the chain. The public
+stable-path graph action also runs on Bazel 8.8 and 9.2 with
+`--spawn_strategy=processwrapper-sandbox`. These checks use fresh source/cache
+locations, not shared local snapshots.
+
+The Apple container cannot register Bazel's native `linux-sandbox` strategy.
+Native sandbox nesting and the intended worker/sandbox combination therefore
+remain unqualified; a Linux worker supporting that strategy is required. This
+is not evidence for Bazel remote execution or a fully hermetic system closure.
+
+The public Linux check exposed bootstrap-path-dependent runner bytes. The runner
+build now maps repository and temporary intermediate paths to stable names.
+`tests/graph_build/linux_bazel_remote.py` passes with three fresh projects: Bazel
+8.8 seeds them, Bazel 9.2 replays all three from another output base, and a body
+edit replays two and rebuilds one. Both bootstraps produce identical runner DLLs.
+
+For this rule, supply cache settings with explicit values, for example
+`--action_env=RULES_MSBUILD_PROJECT_CACHE_URL=http://cache:8080`. The current
+allowlist reads Bazel's fixed action environment; the inherited-name shorthand
+`--action_env=RULES_MSBUILD_PROJECT_CACHE_URL` does not reach the action.

@@ -20,8 +20,10 @@ Web/Razor SDKs now have small-fixture evidence. Opt-in stable Linux paths qualif
 relocated project-cache replay through 128 projects. Managed property-bound tool
 closures, source-built analyzers and declared package SDK bootstrap pass focused macOS fixtures. The generated Orchard CMS contract
 builds all 202 projects and replays 16,250 snapshot files exactly. Avalonia.Controls
-also builds and replays its 11 configured builds; runtime reaches reviewed-target
-contract qualification after offline Restore. Full upstream migration parity remains open;
+also builds and replays its 11 configured builds. The runtime System.IO.Pipelines
+managed slice builds and replays 30 configured projects, including declared shared
+binplace outputs. Generated Publish and layout-provider extraction pass focused
+public-rule tests. Full upstream migration parity remains open;
 the per-project rules remain the default. See
 [graph-cache migration](project-cache-migration.md) for commands, measured scope,
 and the remaining default-switch gates.
