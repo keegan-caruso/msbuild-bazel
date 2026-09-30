@@ -420,6 +420,18 @@ no extra compiler work and points to preparation and worker startup overhead.
 The binlog reader now reports cumulative task durations; these overlap across
 nodes and are not wall-time segments.
 
+Offline Restore no longer includes project-cache transport configuration in
+its Bazel action environment. Preparation never reads or publishes snapshots;
+changing the cache URL had needlessly rerun it. A small endpoint-change control
+reproduces that action miss before the fix and passes afterward on Bazel
+8.8/9.2 workers with packages, plus a 9.2 native sandbox. Body edits and endpoint
+changes execute zero preparation actions; changed build properties execute one.
+Current program values, project hits and read-only package-write rejection still
+pass. Reproduce with `linux_prepared_restore.py --worker --package --version
+8.8.0 --directory NEW_DIRECTORY` under the pinned Linux SDK/Bazel overrides and
+`RULES_MSBUILD_PROJECT_CACHE_URL`; repeat on 9.2 and without worker/package flags
+for the native control. Scaffold/Starlark checks pass; CI was not run.
+
 The prepared body diagnostic spends 1.87 s applying preparation, 0.84 s
 on evaluation, 0.39 s initial hashing, 14.35 s execution and 0.10 s final
 verification. Worker staging is 0.32 s. Cumulative hashing falls from

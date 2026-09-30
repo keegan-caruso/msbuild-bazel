@@ -135,7 +135,8 @@ def _graph_action(ctx, prepare = False):
             tools = [tc.dotnet],
             outputs = [output],
             arguments = [args],
-            env = {key: value for key, value in ctx.configuration.default_shell_env.items() if key.startswith("RULES_MSBUILD_PROJECT_CACHE_")},
+            # Offline preparation never reads or publishes project snapshots.
+            env = {} if prepare else {key: value for key, value in ctx.configuration.default_shell_env.items() if key.startswith("RULES_MSBUILD_PROJECT_CACHE_")},
             command = """set -eu
     dotnet="$PWD/$1"; runner="$PWD/$2"; output="$PWD/$3"; contract="$PWD/$4"; target="$5"; isolated="$6"; sandbox="$PWD/$7"; mode="$8"; prepared="$9"; profile="${10}"
     if test "$prepared" != -; then prepared="$PWD/$prepared"; fi

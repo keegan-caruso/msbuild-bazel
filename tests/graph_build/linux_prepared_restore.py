@@ -30,6 +30,7 @@ def main():
     parser.add_argument('--generated', action='store_true')
     parser.add_argument('--worker', action='store_true')
     parser.add_argument('--package', action='store_true', help='Include package assembly/build targets and reject package writes')
+    parser.add_argument('--version', choices=['8.8.0', '9.2.0'], default='9.2.0')
     args = parser.parse_args()
     assert os.uname().sysname == 'Linux'
     assert not args.package or (args.worker and not args.generated), 'Package control uses the explicit worker fixture'
@@ -108,7 +109,7 @@ def main():
         def worker_preparations():
             return set((Path(tempfile.gettempdir()) / ('rules-msbuild-workers-' + str(os.geteuid()))).glob('*/preparations/*/prepared/manifest.json'))
         before_preparations = worker_preparations()
-        for name, value, hits, prepare_runs in [('seed', 1, 0, 1), ('body', 2, 2, 0), ('props', 2, 0, 1)]:
+        for name, value, hits, prepare_runs in [('seed', 1, 0, 1), ('body', 2, 2, 0), ('cache-config', 2, 3, 0), ('props', 2, 0, 1)]:
             if name == 'body':
                 (root / 'P0/Code.cs').write_text('public class P0 { public static int Value() => 2; }')
             elif name == 'props':
@@ -119,12 +120,12 @@ def main():
             execution = base / (name + '.execution.json')
             command = [str(ROOT / 'scripts/bazel-launcher.sh'), '--output_base=' + str(base / 'bazel'),
                 'run', '//:app', '--spawn_strategy=linux-sandbox', '--jobs=2',
-                '--action_env=RULES_MSBUILD_PROJECT_CACHE_URL=' + cache, '--execution_log_json_file=' + str(execution)]
+                '--action_env=RULES_MSBUILD_PROJECT_CACHE_URL=' + (cache + '/' if name == 'cache-config' else cache), '--execution_log_json_file=' + str(execution)]
             if name == 'seed':
-                cleanup.callback(lambda: subprocess.run(command[:2] + ['shutdown'], cwd=root, env=dict(os.environ, USE_BAZEL_VERSION='9.2.0'), capture_output=True))
+                cleanup.callback(lambda: subprocess.run(command[:2] + ['shutdown'], cwd=root, env=dict(os.environ, USE_BAZEL_VERSION=args.version), capture_output=True))
             if args.worker:
                 command += ['--strategy=MSBuildGraph=worker', '--worker_sandboxing']
-            result = subprocess.run(command, cwd=root, env=dict(os.environ, USE_BAZEL_VERSION='9.2.0'), text=True, capture_output=True)
+            result = subprocess.run(command, cwd=root, env=dict(os.environ, USE_BAZEL_VERSION=args.version), text=True, capture_output=True)
             assert result.returncode == 0, result.stdout + result.stderr
             assert result.stdout.strip().endswith(str(value)), result.stdout
             report = json.loads((root / 'bazel-bin/graph.graph/report.json').read_text())
@@ -137,17 +138,20 @@ def main():
                     preparation_paths = current
                 elif name == 'body':
                     assert current == preparation_paths, 'Bazel request did not reuse the existing private preparation'
-                else:
+                elif name == 'cache-config':
                     assert len(current) == 2 and preparation_paths <= current, current
+                    preparation_paths = current
+                else:
+                    assert len(current) == len(preparation_paths) + 1 and preparation_paths <= current, current
             if args.package:
                 assert (root / 'bazel-bin/graph.graph/workspace/P2/bin/Release/net10.0/Package.dll').is_file()
             executed = [row for row in actions(execution) if row.get('mnemonic') == 'MSBuildGraphRestore' and not row.get('cacheHit')]
-            assert len(executed) == prepare_runs, executed
+            assert len(executed) == prepare_runs, (name, prepare_runs, [row['targetLabel'] for row in executed])
             print(name, json.dumps(report), flush=True)
         if args.package:
             props = root / 'Directory.Build.props'
             props.write_text(props.read_text().replace('</PropertyGroup>', '<AttemptPackageWrite>true</AttemptPackageWrite></PropertyGroup>'))
-            result = subprocess.run(command, cwd=root, env=dict(os.environ, USE_BAZEL_VERSION='9.2.0'), text=True, capture_output=True)
+            result = subprocess.run(command, cwd=root, env=dict(os.environ, USE_BAZEL_VERSION=args.version), text=True, capture_output=True)
             assert result.returncode != 0 and 'Read-only file system' in result.stdout + result.stderr, result.stdout + result.stderr
         print('PASS: native sandbox, cached Restore on body edits, configuration refresh, executable output and selected package controls')
 
