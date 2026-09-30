@@ -182,3 +182,23 @@ A cache inventory across 986 retained experiment snapshots found 27,637 stored
 files, 4,442 distinct hashes, 4.41 GB of logical payloads and 1.36 GB of unique
 content. This is storage evidence across several builds, not a measurement of
 one remote recovery. Shared blob storage and the large COW comparison remain open.
+
+### Input verification and fingerprint metadata
+
+Each validation pass resolves common ancestors once; the final pass uses a fresh
+set so links introduced during execution are still rejected. Evaluation checks
+and both fingerprints share resolved paths, and project/item metadata is
+serialized once per node. SDK identity now includes executable bits as well as
+bytes. Every declared input is still content-checked after execution.
+
+Three Orchard body samples measured 21.04 s median versus the ownership-only
+candidate's 21.63 s: 0.59 s / 2.7% lower. Raw measured 13.24 s. All three had
+201 hits/one miss and exact compared outputs. Input hashing fell from 5.11 to
+4.47 s; final verification remains about 1.78 s. Reports are in
+`/tmp/graph-roadmap-input-timing`. This is a modest saving, not the full immutable
+preparation design. Persistent cross-build digest reuse remains unqualified.
+
+`input_integrity.py` passes byte changes with preserved timestamps, SDK executable
+bits, new ancestor symlinks and rejection of target input mutations before
+snapshot publication. The source/import, ownership, reviewed dependency,
+multi-target, replay and profiling tests also pass.

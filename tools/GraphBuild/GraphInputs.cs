@@ -12,6 +12,7 @@ internal sealed class GraphInputs : IDisposable
     private readonly System.Collections.Concurrent.ConcurrentDictionary<string, string[]> imports = new(StringComparer.Ordinal);
     private readonly GraphContract contract;
     private readonly Dictionary<string, string> inputDigests;
+    private readonly Dictionary<string, string> resolvedInputs;
     private readonly string runnerDigest;
     private readonly string sharedDigest;
     private readonly Dictionary<ProjectGraphNode, string> dependencyFingerprints;
@@ -46,7 +47,7 @@ internal sealed class GraphInputs : IDisposable
         var timer = System.Diagnostics.Stopwatch.StartNew();
         this.contract = contract;
         Files = new(root, sdkRoot);
-        sharedPaths = contract.SharedInputs.Select(Files.Resolve).ToHashSet(StringComparer.Ordinal);
+        sharedPaths = Files.ResolveInputs(contract.SharedInputs).Values.ToHashSet(StringComparer.Ordinal);
         packagePathAliases = sharedPaths.Where(path => path.StartsWith(Path.Combine(Files.Root, ".nuget") + Path.DirectorySeparatorChar, StringComparison.Ordinal))
             .GroupBy(path => path, StringComparer.OrdinalIgnoreCase).ToDictionary(group => group.Key, group => group.ToArray(), StringComparer.OrdinalIgnoreCase);
         foreach (var path in sharedPaths)
@@ -87,6 +88,10 @@ internal sealed class GraphInputs : IDisposable
         foreach (var node in Graph.ProjectNodes)
         {
             projects.Add(node, restored ? RestoreInputs(node, Select(node)) : Select(node));
+        }
+        resolvedInputs = Files.ResolveInputs(contract.SharedInputs.Concat(projects.Values.SelectMany(p => p.Inputs)));
+        foreach (var node in Graph.ProjectNodes)
+        {
             Validate(node);
         }
         ValidateOutputOwnership();
@@ -103,11 +108,14 @@ internal sealed class GraphInputs : IDisposable
             SdkDigest = ContractFiles.TreeDigest(sdkRoot);
         }
         runnerDigest = ContractFiles.Digest(typeof(GraphInputs).Assembly.Location);
-        inputDigests = contract.SharedInputs.Concat(projects.Values.SelectMany(p => p.Inputs)).Distinct()
-            .ToDictionary(path => path, path => ContractFiles.InputDigest(Files.Resolve(path)), StringComparer.Ordinal);
+        inputDigests = resolvedInputs.ToDictionary(pair => pair.Key, pair => ContractFiles.InputDigest(pair.Value), StringComparer.Ordinal);
         sharedDigest = ContractFiles.Hash(contract.SharedInputs.Distinct().Order(StringComparer.Ordinal).Select(path => path + ":" + inputDigests[path]));
-        baseFingerprints = Graph.ProjectNodes.ToDictionary(node => node, node => ComputeFingerprint(node, includeCompileSources: true));
-        dependencyFingerprints = Graph.ProjectNodes.ToDictionary(node => node, node => ComputeFingerprint(node, includeCompileSources: false));
+        baseFingerprints = [];
+        dependencyFingerprints = [];
+        foreach (var node in Graph.ProjectNodes)
+        {
+            ComputeFingerprints(node);
+        }
         InputHashSeconds = timer.Elapsed.TotalSeconds;
     }
 
@@ -198,7 +206,7 @@ internal sealed class GraphInputs : IDisposable
 
     internal string DependencyFingerprint(ProjectGraphNode node) => dependencyFingerprints[node];
 
-    private string ComputeFingerprint(ProjectGraphNode node, bool includeCompileSources)
+    private void ComputeFingerprints(ProjectGraphNode node)
     {
         var project = node.ProjectInstance;
         var records = new List<string> { "graph-input-v2", Files.Root, Files.Sdk, SdkDigest, runnerDigest, sharedDigest, Relative(node) };
@@ -219,17 +227,21 @@ internal sealed class GraphInputs : IDisposable
         // A source also consumed as content or analyzer data is not a compiler-only input.
         compileInputs.ExceptWith(new[] { "EmbeddedResource", "Content", "None", "AdditionalFiles", "Analyzer", "EditorConfigFiles", "GlobalAnalyzerConfigFiles", "RazorGenerate" }
             .SelectMany(project.GetItems).Select(item => Path.GetFullPath(item.EvaluatedInclude.Replace('\\', '/'), Path.GetDirectoryName(project.FullPath)!)));
-        records.AddRange(For(node).Inputs.Distinct().Order(StringComparer.Ordinal)
-            .Where(path => !sharedPaths.Contains(Files.Resolve(path)) && (includeCompileSources || !compileInputs.Contains(Files.Resolve(path))))
-            .Select(path => path + ":" + inputDigests[path]));
-        return ContractFiles.Hash(records);
+        var paths = For(node).Inputs.Distinct().Order(StringComparer.Ordinal)
+            .Where(path => !sharedPaths.Contains(resolvedInputs[path])).ToArray();
+        baseFingerprints[node] = ContractFiles.Hash(records.Concat(paths.Select(path => path + ":" + inputDigests[path])));
+        dependencyFingerprints[node] = ContractFiles.Hash(records.Concat(paths
+            .Where(path => !compileInputs.Contains(resolvedInputs[path])).Select(path => path + ":" + inputDigests[path])));
     }
 
     internal void VerifyUnchangedInputs()
     {
+        // Recheck all leaf paths and ancestors after execution. Only the metadata
+        // serialization and path resolution within a pass are shared.
+        var currentPaths = Files.ResolveInputs(inputDigests.Keys);
         foreach (var (relative, digest) in inputDigests)
         {
-            if (ContractFiles.InputDigest(Files.Resolve(relative)) != digest)
+            if (ContractFiles.InputDigest(currentPaths[relative]) != digest)
             {
                 throw new InvalidDataException("Build modified a declared input: " + relative);
             }
@@ -250,7 +262,7 @@ internal sealed class GraphInputs : IDisposable
                 throw new InvalidDataException("Implementation dependency must be a direct ProjectReference: " + dependency);
             }
         }
-        var allowed = For(node).Inputs.Select(Files.Resolve).ToHashSet(StringComparer.Ordinal);
+        var allowed = For(node).Inputs.Select(path => resolvedInputs[path]).ToHashSet(StringComparer.Ordinal);
         Require(node.ProjectInstance.FullPath);
         foreach (var path in imports[Key(node.ProjectInstance)])
         {
@@ -314,7 +326,7 @@ internal sealed class GraphInputs : IDisposable
     {
         var directories = Graph.ProjectNodes.SelectMany(node => OutputDirectories(node).Select(path => (node, path))).ToArray();
         var files = Graph.ProjectNodes.SelectMany(node => DeclaredOutputFiles(node).Select(path => (node, path))).ToArray();
-        var inputPaths = contract.SharedInputs.Concat(projects.Values.SelectMany(p => p.Inputs)).Distinct().Select(Files.Resolve).ToArray();
+        var inputPaths = resolvedInputs.Values;
         foreach (var (node, path) in files)
         {
             if (files.Any(other => (other.node != node && path == other.path) || path.StartsWith(other.path + "/", StringComparison.Ordinal) || other.path.StartsWith(path + "/", StringComparison.Ordinal)) ||

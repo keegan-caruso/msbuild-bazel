@@ -49,6 +49,31 @@ internal sealed class ContractFiles(string root, string sdk)
         return path;
     }
 
+    // One validation pass checks shared ancestors once. Do not retain this set
+    // across execution: final verification must discover newly introduced links.
+    internal Dictionary<string, string> ResolveInputs(IEnumerable<string> relatives)
+    {
+        var checkedPaths = new HashSet<string>(StringComparer.Ordinal) { Root };
+        var paths = new Dictionary<string, string>(StringComparer.Ordinal);
+        foreach (var relative in relatives.Distinct(StringComparer.Ordinal))
+        {
+            if (Path.IsPathRooted(relative) || relative.Contains('\\') || relative.Split('/').Any(p => p is "" or "." or ".."))
+            {
+                throw new InvalidDataException("Expected a workspace-relative path: " + relative);
+            }
+            var path = Path.Combine(Root, relative);
+            for (var current = path; checkedPaths.Add(current); current = Path.GetDirectoryName(current)!)
+            {
+                if (new FileInfo(current).LinkTarget is not null || new DirectoryInfo(current).LinkTarget is not null)
+                {
+                    throw new InvalidDataException("Symlinks are not supported in graph contracts: " + relative);
+                }
+            }
+            paths.Add(relative, path);
+        }
+        return paths;
+    }
+
     internal static string Digest(string path)
     {
         using var timing = GraphProfile.Measure("fileHash", GraphProfile.Enabled ? new FileInfo(path).Length : 0);
@@ -63,5 +88,5 @@ internal sealed class ContractFiles(string root, string sdk)
         Convert.ToHexStringLower(SHA256.HashData(Encoding.UTF8.GetBytes(JsonSerializer.Serialize(records))));
 
     internal static string TreeDigest(string directory) => Hash(Directory.EnumerateFiles(directory, "*", SearchOption.AllDirectories)
-        .Order(StringComparer.Ordinal).Select(path => Path.GetRelativePath(directory, path) + ":" + Digest(path)));
+        .Order(StringComparer.Ordinal).Select(path => Path.GetRelativePath(directory, path) + ":" + InputDigest(path)));
 }
