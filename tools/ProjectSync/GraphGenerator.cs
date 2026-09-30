@@ -1,5 +1,7 @@
 using System.Text.Json;
+using Microsoft.Build.Definition;
 using Microsoft.Build.Evaluation;
+using Microsoft.Build.Evaluation.Context;
 using Microsoft.Build.Graph;
 
 namespace RulesMSBuild.ProjectSync;
@@ -73,10 +75,16 @@ internal static class GraphGenerator
             evaluationProperties.Add(name, Path.Combine(root, path));
         }
         var entry = WorkspaceView.Safe(entries[0]);
+        var evaluationContext = EvaluationContext.Create(EvaluationContext.SharingPolicy.Shared);
         var graph = new ProjectGraph(entries.Select(path => new ProjectGraphEntryPoint(Path.Combine(root, WorkspaceView.Safe(path)), evaluationProperties)), collection,
             (path, globals, projects) =>
             {
-                var project = new Project(path, globals, null, projects);
+                var project = Project.FromFile(path, new ProjectOptions
+                {
+                    GlobalProperties = globals,
+                    ProjectCollection = projects,
+                    EvaluationContext = evaluationContext
+                });
                 if (project.Xml.Sdk is not ("Microsoft.NET.Sdk" or "Microsoft.NET.Sdk.Web" or "Microsoft.NET.Sdk.Razor") ||
                     project.GetItems("Reference").Any(reference =>
                     {

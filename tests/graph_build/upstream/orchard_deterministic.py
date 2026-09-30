@@ -16,6 +16,8 @@ def main():
     parser.add_argument('contract', type=Path)
     parser.add_argument('cache', type=Path)
     parser.add_argument('results', type=Path)
+    parser.add_argument('--only', choices=['api', 'body'], default='api')
+    parser.add_argument('--runner', type=Path)
     args = parser.parse_args()
     source = args.workspace / 'src/OrchardCore/OrchardCore.SourceGenerators/ArgumentsFromInterceptor.cs'
     original = source.read_bytes()
@@ -31,12 +33,14 @@ def main():
             patchedSha256=hashlib.sha256(source.read_bytes()).hexdigest(),
             purpose='Isolate upstream generator nondeterminism; not an unmodified-upstream qualification'))+'\n')
         sys.argv = ['upstream_edits', str(args.workspace), str(args.contract), str(args.cache),
-                    str(Path(__file__).with_name('orchard_edits.json')), str(args.results), '--only', 'api', '--profile']
+                    str(Path(__file__).with_name('orchard_edits.json')), str(args.results), '--only', args.only, '--profile']
+        if args.runner is not None:
+            sys.argv += ['--runner', str(args.runner)]
         upstream_edits.main()
         row = json.loads((args.results / 'summary.json').read_text())[0]
         assert not row['missing'] and not row['extra'], row
         assert all(path.endswith(('/rjsmcshtml.dswa.cache.json', '/rjsmrazor.dswa.cache.json')) for path in row['changed']), row['changed']
-        print('PASS: deterministic qualification patch gives exact assembly/PDB parity; remaining JSON differences retained for inspection')
+        print('PASS: deterministic qualification patch gives exact assembly/PDB parity for ' + args.only + '; remaining JSON differences retained for inspection')
     finally:
         source.write_bytes(original)
         os.utime(source, ns=(stamp.st_atime_ns, stamp.st_mtime_ns))

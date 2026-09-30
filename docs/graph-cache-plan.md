@@ -72,7 +72,8 @@ input verification or hide output differences to meet timing targets.
 ## Status
 
 Steps 1–2 have measured checkpoints. Steps 3–5 and 8 have partial
-implementation and qualification; steps 6–7 and 9–10 remain open. Ownership
+implementation and qualification; step 6 has within-invocation reuse.
+Cross-request reuse and steps 7 and 9–10 remain open. Ownership
 indexing and input-check improvements are committed and pushed. Prepared Restore
 is opt-in and has not passed the large-workload performance/parity gates.
 
@@ -254,7 +255,8 @@ before targets run or another request starts. Do not retain mutable projects or
 filesystem observations across edits. MSBuild documents the API in
 [ProjectOptions](https://learn.microsoft.com/en-us/dotnet/api/microsoft.build.definition.projectoptions?view=msbuild-18-netcore)
 and [EvaluationContext](https://learn.microsoft.com/en-us/dotnet/api/microsoft.build.evaluation.context.evaluationcontext?view=msbuild-18-netcore).
-This is a proposed follow-up, not a measured improvement yet.
+The within-invocation implementation and measurements are recorded below;
+cross-request reuse remains unqualified.
 
 ### Large copy-on-write comparison
 
@@ -298,3 +300,28 @@ The updated shared-payload candidate also passes `linux_bazel_remote.py
 a body edit. Executed app values and runner bytes match. This rerun used one VM
 and the existing separate cache service; the earlier independent-VM result
 predates payload sharing. Log: `/tmp/graph-roadmap-linux-payload.log`.
+
+### Shared evaluation checkpoint
+
+The runner and graph sync now use one MSBuild shared evaluation context per
+graph construction. They create a fresh context for the next invocation and do
+not reuse target-mutated instances. The same-process fixture passes new imports,
+new source globs, edited import bytes and mutated-instance isolation. Owned-code,
+configured-graph, prepared-Restore, directory-input and profiling checks pass.
+
+Three Orchard samples measured 19.18 s median versus 20.21 s for the otherwise
+identical isolated-context payload-sharing runner. Evaluation plus contract
+checks fell from 4.46 to 4.09 s (0.36 s / 8.2%); the candidate's project evaluation
+alone was 3.30 s. Hashing and raw MSBuild were also faster in the later series,
+so do not attribute the full 1.02 s wall-time change to context sharing.
+Raw medians were 13.85 and 13.45 s respectively. All samples reused 201 projects.
+
+The isolated series matched outputs exactly. The shared series matched its first
+sample; the next two had 44 DLL/PDB differences. A subsequent full body control
+with the previously documented deterministic interceptor-name patch had exact
+compared output parity. This is consistent with Orchard's upstream generator
+nondeterminism; the unmodified results still retain their differences. The
+control ran alongside small correctness checks and is not a scored timing run.
+Reports: `/tmp/graph-roadmap-evaluation-isolated`,
+`/tmp/graph-roadmap-evaluation-shared`, and
+`/tmp/graph-roadmap-evaluation-deterministic`.

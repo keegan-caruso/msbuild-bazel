@@ -1,4 +1,6 @@
+using Microsoft.Build.Definition;
 using Microsoft.Build.Evaluation;
+using Microsoft.Build.Evaluation.Context;
 using Microsoft.Build.Execution;
 using Microsoft.Build.Graph;
 
@@ -77,14 +79,23 @@ internal sealed class GraphInputs : IDisposable
         properties["PathMap"] = Files.Root + "=/_/workspace," + Files.Sdk + "=/_/sdk";
         properties["UseSharedCompilation"] = "false";
         properties["NetCoreSdkRoot"] = sdk;
-        Graph = new ProjectGraph((contract.Entries ?? [contract.Entry]).Select(entry => new ProjectGraphEntryPoint(Files.Resolve(entry), properties)), collection,
-            (path, globals, projects) =>
-            {
-                var project = new Project(path, globals, null, projects);
-                var instance = project.CreateProjectInstance();
-                imports[Key(instance)] = project.Imports.Select(import => import.ImportedProject.FullPath).Distinct().ToArray();
-                return instance;
-            });
+        var evaluationContext = EvaluationContext.Create(EvaluationContext.SharingPolicy.Shared);
+        using (GraphProfile.Measure("projectEvaluation"))
+        {
+            Graph = new ProjectGraph((contract.Entries ?? [contract.Entry]).Select(entry => new ProjectGraphEntryPoint(Files.Resolve(entry), properties)), collection,
+                (path, globals, projects) =>
+                {
+                    var project = Project.FromFile(path, new ProjectOptions
+                    {
+                        GlobalProperties = globals,
+                        ProjectCollection = projects,
+                        EvaluationContext = evaluationContext
+                    });
+                    var instance = project.CreateProjectInstance();
+                    imports[Key(instance)] = project.Imports.Select(import => import.ImportedProject.FullPath).Distinct().ToArray();
+                    return instance;
+                });
+        }
         foreach (var node in Graph.ProjectNodes)
         {
             projects.Add(node, restored ? RestoreInputs(node, Select(node)) : Select(node));
