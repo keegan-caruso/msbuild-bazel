@@ -11,6 +11,8 @@ internal sealed class GraphInputs : IDisposable
     private readonly GraphContract contract;
     private readonly Dictionary<string, string> inputDigests;
     private readonly string runnerDigest;
+    private readonly string sharedDigest;
+    private readonly Dictionary<ProjectGraphNode, string> dependencyFingerprints;
     private readonly HashSet<string> sharedPaths;
     private readonly Dictionary<string, string[]> packagePathAliases;
     private readonly Dictionary<ProjectGraphNode, string> baseFingerprints;
@@ -92,7 +94,9 @@ internal sealed class GraphInputs : IDisposable
         runnerDigest = ContractFiles.Digest(typeof(GraphInputs).Assembly.Location);
         inputDigests = contract.SharedInputs.Concat(projects.Values.SelectMany(p => p.Inputs)).Distinct()
             .ToDictionary(path => path, path => ContractFiles.InputDigest(Files.Resolve(path)), StringComparer.Ordinal);
-        baseFingerprints = Graph.ProjectNodes.ToDictionary(node => node, ComputeFingerprint);
+        sharedDigest = ContractFiles.Hash(contract.SharedInputs.Distinct().Order(StringComparer.Ordinal).Select(path => path + ":" + inputDigests[path]));
+        baseFingerprints = Graph.ProjectNodes.ToDictionary(node => node, node => ComputeFingerprint(node, includeCompileSources: true));
+        dependencyFingerprints = Graph.ProjectNodes.ToDictionary(node => node, node => ComputeFingerprint(node, includeCompileSources: false));
         InputHashSeconds = timer.Elapsed.TotalSeconds;
     }
 
@@ -108,7 +112,7 @@ internal sealed class GraphInputs : IDisposable
         {
             return project;
         }
-        if (contract.Version != 2 || project.OutputDirectories.Length != 0 || project.OutputFiles?.Length > 0 || project.ReferenceBoundary || project.DependencyCopies?.Count > 0)
+        if (contract.Version != 2 || project.OutputDirectories.Length != 0 || project.OutputFiles?.Length > 0 || project.ReferenceBoundary || project.DependencyCopies?.Count > 0 || project.ImplementationDependencies?.Length > 0)
         {
             throw new InvalidDataException("Configured projects require version 2 and configuration-owned outputs: " + Relative(node));
         }
@@ -121,7 +125,7 @@ internal sealed class GraphInputs : IDisposable
         }
         var selected = matches[0];
         return new ProjectContract(project.Inputs.Concat(selected.Inputs).Distinct().ToArray(),
-            selected.OutputDirectories, selected.ReferenceBoundary, selected.DependencyCopies, OutputFiles: selected.OutputFiles);
+            selected.OutputDirectories, selected.ReferenceBoundary, selected.DependencyCopies, OutputFiles: selected.OutputFiles, ImplementationDependencies: selected.ImplementationDependencies);
     }
     private ProjectContract RestoreInputs(ProjectGraphNode node, ProjectContract project)
     {
@@ -167,10 +171,12 @@ internal sealed class GraphInputs : IDisposable
 
     internal string Fingerprint(ProjectGraphNode node) => baseFingerprints[node];
 
-    private string ComputeFingerprint(ProjectGraphNode node)
+    internal string DependencyFingerprint(ProjectGraphNode node) => dependencyFingerprints[node];
+
+    private string ComputeFingerprint(ProjectGraphNode node, bool includeCompileSources)
     {
         var project = node.ProjectInstance;
-        var records = new List<string> { "graph-input-v1", Files.Root, Files.Sdk, SdkDigest, runnerDigest, Relative(node) };
+        var records = new List<string> { "graph-input-v2", Files.Root, Files.Sdk, SdkDigest, runnerDigest, sharedDigest, Relative(node) };
         records.AddRange(project.Properties.OrderBy(p => p.Name, StringComparer.Ordinal)
             .Select(p => p.Name + "=" + p.EvaluatedValue));
         records.AddRange(project.Items.Select(item => System.Text.Json.JsonSerializer.Serialize(new
@@ -183,7 +189,13 @@ internal sealed class GraphInputs : IDisposable
         records.AddRange((For(node).OutputFiles ?? []).Order(StringComparer.Ordinal).Select(p => "output-file:" + p));
         records.Add("referenceBoundary:" + For(node).ReferenceBoundary);
         records.AddRange((For(node).DependencyCopies ?? []).OrderBy(p => p.Key, StringComparer.Ordinal).Select(p => "copy:" + p.Key + "=" + p.Value));
-        records.AddRange(contract.SharedInputs.Concat(For(node).Inputs).Distinct().Order(StringComparer.Ordinal)
+        records.AddRange((For(node).ImplementationDependencies ?? []).Order(StringComparer.Ordinal).Select(path => "implementation:" + path));
+        var compileInputs = project.GetItems("Compile").Select(item => Path.GetFullPath(item.EvaluatedInclude.Replace('\\', '/'), Path.GetDirectoryName(project.FullPath)!)).ToHashSet(StringComparer.Ordinal);
+        // A source also consumed as content or analyzer data is not a compiler-only input.
+        compileInputs.ExceptWith(new[] { "EmbeddedResource", "Content", "None", "AdditionalFiles", "Analyzer", "EditorConfigFiles", "GlobalAnalyzerConfigFiles", "RazorGenerate" }
+            .SelectMany(project.GetItems).Select(item => Path.GetFullPath(item.EvaluatedInclude.Replace('\\', '/'), Path.GetDirectoryName(project.FullPath)!)));
+        records.AddRange(For(node).Inputs.Distinct().Order(StringComparer.Ordinal)
+            .Where(path => !sharedPaths.Contains(Files.Resolve(path)) && (includeCompileSources || !compileInputs.Contains(Files.Resolve(path))))
             .Select(path => path + ":" + inputDigests[path]));
         return ContractFiles.Hash(records);
     }
@@ -201,6 +213,14 @@ internal sealed class GraphInputs : IDisposable
 
     private void Validate(ProjectGraphNode node)
     {
+        foreach (var dependency in For(node).ImplementationDependencies ?? [])
+        {
+            Files.Resolve(dependency);
+            if (!node.ProjectReferences.Any(reference => Relative(reference) == dependency))
+            {
+                throw new InvalidDataException("Implementation dependency must be a direct ProjectReference: " + dependency);
+            }
+        }
         var allowed = For(node).Inputs.Select(Files.Resolve).ToHashSet(StringComparer.Ordinal);
         Require(node.ProjectInstance.FullPath);
         foreach (var path in imports[Key(node.ProjectInstance)])

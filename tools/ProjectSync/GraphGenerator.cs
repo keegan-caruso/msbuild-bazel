@@ -237,6 +237,7 @@ internal static class GraphGenerator
                 Inputs = inputs[Key(node.ProjectInstance)],
                 OutputFiles = outputs[Key(node.ProjectInstance)],
                 ReferenceBoundary = CanUseReferenceBoundary(node),
+                ImplementationDependencies = ImplementationDependencies(node),
                 DependencyCopies = CanUseReferenceBoundary(node) ? DependencyCopies(node) : new Dictionary<string, string>(),
                 OutputDirectories = node.ProjectInstance.GetPropertyValue("TargetPath").Length == 0 ? [] :
                     new[] { "OutputPath", "IntermediateOutputPath" }.Select(property =>
@@ -325,11 +326,38 @@ internal static class GraphGenerator
             dependencyClosure.Add(node, seen);
             return seen;
         }
+        string[] ImplementationDependencies(ProjectGraphNode node)
+        {
+            var binding = mappings.ForProject(Relative(node.ProjectInstance.FullPath), node.ProjectInstance.GetPropertyValue("TargetFramework"));
+            foreach (var path in binding.ImplementationDependencies)
+            {
+                WorkspaceView.Safe(path);
+                if (!node.ProjectReferences.Any(dependency => Relative(dependency.ProjectInstance.FullPath) == path))
+                {
+                    throw new InvalidDataException("Implementation dependency must be a direct ProjectReference: " + path);
+                }
+            }
+            return binding.ImplementationDependencies.Distinct().Order(StringComparer.Ordinal).ToArray();
+        }
         bool CanUseReferenceBoundary(ProjectGraphNode node)
         {
             if (boundaries.TryGetValue(node, out var boundary))
             {
                 return boundary;
+            }
+            var binding = mappings.ForProject(Relative(node.ProjectInstance.FullPath), node.ProjectInstance.GetPropertyValue("TargetFramework"));
+            if (binding.ReferenceBoundary is not null)
+            {
+                var supported = node.ProjectInstance.GetPropertyValue("TargetPath").Length != 0 &&
+                    Dependencies(node).Append(node).All(current =>
+                        (current.ProjectInstance.GetPropertyValue("TargetPath").Length == 0 || HasStandardSymbols(current)) &&
+                        new[] { "PublishTrimmed", "PublishReadyToRun", "PublishAot", "PublishSingleFile" }.All(property =>
+                            !current.ProjectInstance.GetPropertyValue(property).Equals("true", StringComparison.OrdinalIgnoreCase)));
+                if (binding.ReferenceBoundary == true && node.ProjectInstance.GetPropertyValue("TargetPath").Length != 0 && !supported)
+                {
+                    throw new InvalidDataException("Reviewed reference boundary requires standard managed outputs without publish transforms: " + Relative(node.ProjectInstance.FullPath));
+                }
+                return boundaries[node] = binding.ReferenceBoundary == true && supported;
             }
             return boundaries[node] = node.ProjectInstance.GetPropertyValue("TargetPath").Length != 0 &&
             Dependencies(node).Append(node).All(current =>
@@ -379,7 +407,8 @@ internal static class GraphGenerator
             var output = Path.GetDirectoryName(Path.GetFullPath(project.GetPropertyValue("TargetPath"), directory))!;
             var publish = project.GetPropertyValue("PublishDir");
             var destinations = publish.Length == 0 ? new[] { output } : new[] { output, Path.GetFullPath(publish, directory) };
-            foreach (var dependency in Dependencies(node).OrderBy(current => Key(current.ProjectInstance), StringComparer.Ordinal))
+            foreach (var dependency in Dependencies(node).Where(current => current.ProjectInstance.GetPropertyValue("TargetPath").Length != 0)
+                .OrderBy(current => Key(current.ProjectInstance), StringComparer.Ordinal))
             {
                 var source = Path.GetFullPath(dependency.ProjectInstance.GetPropertyValue("TargetPath"), Path.GetDirectoryName(dependency.ProjectInstance.FullPath)!);
                 foreach (var extension in new[] { ".dll", ".pdb", ".xml" })

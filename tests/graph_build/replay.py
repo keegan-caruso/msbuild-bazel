@@ -81,7 +81,8 @@ def main():
         results['api'] = build(expected=1)
         execute('2')
         (root / 'P0/Resource.txt').write_text('edited resource')
-        results['resource'] = build(expected=2)
+        # Noncompiler dependency inputs conservatively invalidate the whole consumer chain.
+        results['resource'] = build(expected=0)
         resource_outputs = outputs()
         results['resource_control'] = build(cache='resource-control', expected=0)
         assert resource_outputs == outputs()

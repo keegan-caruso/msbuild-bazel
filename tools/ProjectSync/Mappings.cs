@@ -60,6 +60,11 @@ internal sealed class ProjectBinding
     public Dictionary<string, ReferenceBinding> References { get; set; } = [];
     public Dictionary<string, ReferenceBinding> ProjectReferences { get; set; } = [];
     public string[] OutputFiles { get; set; } = [];
+    public bool? ReferenceBoundary
+    {
+        get; set;
+    }
+    public string[] ImplementationDependencies { get; set; } = [];
     public string OutputMode { get; set; } = "sdk";
     public string? PackageLock
     {
@@ -140,9 +145,9 @@ internal sealed class Mappings
         }
         foreach (var (project, binding) in mappings.Projects.Append(new KeyValuePair<string, ProjectBinding>("projectDefaults", mappings.ProjectDefaults)).SelectMany(p => p.Value.FrameworkOverrides.Select(v => new KeyValuePair<string, ProjectBinding>(p.Key + " [" + v.Key + "]", v.Value)).Prepend(p)))
         {
-            if (!graph && binding.OutputFiles.Length != 0)
+            if (!graph && (binding.OutputFiles.Length != 0 || binding.ReferenceBoundary is not null || binding.ImplementationDependencies.Length != 0))
             {
-                throw new InvalidDataException("outputFiles requires graph-mode sync");
+                throw new InvalidDataException("outputFiles and dependency contracts require graph-mode sync");
             }
             if (string.IsNullOrWhiteSpace(binding.Platform))
             {

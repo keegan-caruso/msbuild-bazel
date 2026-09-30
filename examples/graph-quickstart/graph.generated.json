@@ -36,6 +36,7 @@
           ],
           "OutputFiles": [],
           "ReferenceBoundary": true,
+          "ImplementationDependencies": [],
           "DependencyCopies": {
             "App/bin/Release/net10.0/Library.dll": "Library/bin/Release/net10.0/Library.dll",
             "App/bin/Release/net10.0/publish/Library.dll": "Library/bin/Release/net10.0/Library.dll",
@@ -66,6 +67,7 @@
           ],
           "OutputFiles": [],
           "ReferenceBoundary": true,
+          "ImplementationDependencies": [],
           "DependencyCopies": {},
           "OutputDirectories": [
             "Library/bin/Release/net10.0",
@@ -89,6 +91,7 @@
           ],
           "OutputFiles": [],
           "ReferenceBoundary": true,
+          "ImplementationDependencies": [],
           "DependencyCopies": {
             "Tests/bin/Release/net10.0/Library.dll": "Library/bin/Release/net10.0/Library.dll",
             "Tests/bin/Release/net10.0/publish/Library.dll": "Library/bin/Release/net10.0/Library.dll",

@@ -67,7 +67,7 @@ def qualify(transitive):
         assert not (root / 'P2/bin/Release/net10.0/P0.xml').exists()
         project.write_text(original)
         sync()
-        build(2, value='3')
+        build(0, value='3')
         assert (root / 'P2/bin/Release/net10.0/P0.xml').is_file()
         # Content can affect consumers independently of a reference assembly.
         project.write_text(project.read_text().replace('</Project>', '<ItemGroup><None Update="data.txt" CopyToOutputDirectory="PreserveNewest" /></ItemGroup></Project>'))

@@ -158,16 +158,31 @@ internal sealed class GraphCache(GraphInputs inputs, string cache, bool read, Re
         records.AddRange((inputs.For(node).DependencyCopies ?? []).OrderBy(copy => copy.Key, StringComparer.Ordinal)
             .Select(copy => "copy-present:" + copy.Key + "=" + dependencyPresence.GetOrAdd(copy.Value,
                 path => File.Exists(inputs.Files.Resolve(path)))));
+        // Noncompiler inputs can flow through content copies and custom targets,
+        // even when transitive compiler references are disabled.
+        if (inputs.For(node).ReferenceBoundary)
+        {
+            records.AddRange(DependencyNodes(node).OrderBy(n => GraphInputs.Key(n.ProjectInstance), StringComparer.Ordinal)
+                .Select(reference => "dependency-contract:" + inputs.DependencyFingerprint(reference)));
+        }
         // SDK compilation can see transitive reference assemblies. A grandchild
         // API change must invalidate those consumers even if its parent API stays put.
         IEnumerable<ProjectGraphNode> references = inputs.For(node).ReferenceBoundary &&
             !node.ProjectInstance.GetPropertyValue("DisableTransitiveProjectReferences").Equals("true", StringComparison.OrdinalIgnoreCase)
             ? DependencyNodes(node) : node.ProjectReferences;
+        // Outer multi-targeting nodes coordinate builds but have no assembly.
+        // Include their configured descendants instead of inventing an output path.
+        if (inputs.For(node).ReferenceBoundary)
+        {
+            references = references.SelectMany(reference => reference.ProjectInstance.GetPropertyValue("TargetPath").Length == 0
+                ? DependencyNodes(reference).Where(dependency => dependency.ProjectInstance.GetPropertyValue("TargetPath").Length != 0)
+                : new[] { reference }).Distinct();
+        }
         foreach (var reference in references.OrderBy(n => GraphInputs.Key(n.ProjectInstance), StringComparer.Ordinal))
         {
             var authored = node.ProjectInstance.GetItems("ProjectReference").Where(item =>
                 Path.GetFullPath(item.EvaluatedInclude.Replace('\\', '/'), Path.GetDirectoryName(node.ProjectInstance.FullPath)!) == reference.ProjectInstance.FullPath);
-            var implementation = !inputs.For(node).ReferenceBoundary || authored.Any(item => item.GetMetadataValue("OutputItemType").Length != 0 ||
+            var implementation = !inputs.For(node).ReferenceBoundary || (inputs.For(node).ImplementationDependencies ?? []).Contains(inputs.Relative(reference), StringComparer.Ordinal) || authored.Any(item => item.GetMetadataValue("OutputItemType").Length != 0 ||
                 item.GetMetadataValue("ReferenceOutputAssembly").Equals("false", StringComparison.OrdinalIgnoreCase) ||
                 item.GetMetadataValue("Targets").Length != 0);
             if (implementation)

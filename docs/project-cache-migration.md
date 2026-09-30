@@ -175,7 +175,7 @@ Copy bindings are checked against dependency ownership and actual file digests;
 the runner does not infer copy semantics from matching names or bytes.
 
 `tests/graph_build/replay.py` passed with SDK 10.0.400 on macOS ARM64: clean replay
-3/0 hits/misses, body edit 2/1, API edit 1/2, resource edit 2/1, publish seed
+3/0 hits/misses, body edit 2/1, API edit 1/2, resource edit 0/3, publish seed
 0/3, and publish replay 3/0. The body-edited app printed the new value and its captured outputs matched a
 fresh control. The fixture explicitly disables transitive compiler references;
 its API edit stops after the direct consumer's reference assembly stays unchanged.
@@ -809,3 +809,50 @@ For this rule, supply cache settings with explicit values, for example
 `--action_env=RULES_MSBUILD_PROJECT_CACHE_URL=http://cache:8080`. The current
 allowlist reads Bazel's fixed action environment; the inherited-name shorthand
 `--action_env=RULES_MSBUILD_PROJECT_CACHE_URL` does not reach the action.
+
+### Reviewed dependency roles
+
+Graph mappings may explicitly enable reference boundaries after reviewing the
+SDK, package targets and custom tasks:
+
+```json
+{
+  "projectDefaults": { "referenceBoundary": true },
+  "projects": {
+    "App/App.csproj": {
+      "implementationDependencies": ["Generator/Generator.csproj"]
+    }
+  }
+}
+```
+
+`referenceBoundary` is optional. Omission retains conservative automatic
+qualification; `false` disables reference reuse. `true` attests that ordinary
+project dependencies are consumed through compiler references and declared
+runtime copies. It requires standard managed outputs and rejects trimming,
+ReadyToRun, Native AOT and single-file transforms. Targetless multi-targeting
+nodes coordinate their configured builds and do not own assembly copies.
+If multiple framework producers map to the same consumer copy, sync rejects the
+reviewed boundary; use the conservative contract for that graph.
+
+`implementationDependencies` names direct workspace-relative `ProjectReference`
+paths whose implementation a task consumes. Analyzer references, non-reference
+edges and explicit reference targets already use implementation fingerprints.
+Custom tasks that read dependency IL, or an analyzer supplied through an ordinary
+reference, must declare that role explicitly. These contracts do not trace task
+reads or make arbitrary targets safe automatically.
+
+Reference consumers hash reference assemblies plus dependency configuration and
+noncompiler inputs. Noncompiler inputs remain transitive even when
+`DisableTransitiveProjectReferences` is true: content can still propagate.
+Files used both as source and content/analyzer data retain implementation hashes.
+Consequently a dependency resource/configuration edit can rebuild consumers even
+when its reference assembly is unchanged. Runtime DLL/PDB/XML copies are refreshed
+from current producers, with exact byte checks when saving snapshots.
+
+Run `python3 tests/graph_build/reviewed_dependencies.py` for package/custom-target
+body and API edits, source-built analyzer edits, explicit implementation roles,
+transitive content, dual-role sources and multi-targeting. The body and tool
+controls compare all captured outputs with independent cold builds. Existing
+`invalidation.py` and `replay.py` cover documentation copies, Publish and corrupt
+snapshots. These are local correctness checks, not remote-cache measurements.
