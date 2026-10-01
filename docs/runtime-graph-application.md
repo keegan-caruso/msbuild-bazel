@@ -31,14 +31,19 @@ Verification compares every composed binary to its producer, checks hashes of
 loaded source components, and executes the app in a namespace with neither the
 SDK nor build checkout mounted. Removing CoreCLR fails even when an installed
 SDK is advertised. All 66 producer hashes and isolated loaded-component names
-match across both Bazel baselines. Combined raw managed parity is pending.
+match across both Bazel baselines. A fresh raw MSBuild graph from the complete
+pinned source has the same 298 configurations/263 compilations and matches all
+**2,031 compiled DLL/PDB/resource files** byte for byte. Graph artifact modes
+are 0555; raw files are 0644. This is a correctness control, not paired timing.
 
 On Bazel 8.8, a unique Pipelines body edit gets 258 hits/five misses and reruns
 the app test while preserving App.dll. Restoration gets 263 hits/zero misses and
 restores every host hash. A unique app edit recompiles only the app, deliberately
 fails its test and preserves the host; reverting it recovers the original app
 snapshot and passes. Unchanged tests are cached. Reverted inputs rerun tests;
-older local test results are not assumed to remain cached.
+older local test results are not assumed to remain cached. CLI guards reject
+missing primary slices, duplicate selections and framework-flattening overrides
+before staging. Python syntax and diff checks pass; CI was not run.
 
 The first 8.8 build was interrupted when the host disk filled and Linux marked
 its filesystem read-only. Completed reports were preserved, retired caches
@@ -89,6 +94,13 @@ the warm graph worker:
 python3 "$rules_repo/tests/graph_build/upstream/runtime_application_controls.py" "$prepared/workspace" "$controls" --output-base "$base" --version 8.8.0
 ```
 
+After restoring original sources and stopping the graph worker, compare against
+a fresh full-source raw build:
+
+```sh
+python3 "$rules_repo/tests/graph_build/upstream/runtime_full_source.py" "$source_archive" "$prepared/workspace" "$raw_control"
+```
+
 Private reports retain producer/loaded hashes and logs; large reports stay out
 of Git.
 
@@ -100,6 +112,6 @@ uses the guest OS libraries. Native construction has a declared inner namespace;
 the qualification action runs locally, so it does not qualify remote execution.
 ARM64 evidence does not cover x86-64.
 
-Remaining gates: combined raw parity, broader edit controls, graph-backed
+Remaining gates: broader edit controls, graph-backed
 upstream suites, native source/header/tool mutations, independent runnable-runtime
 recovery, fault tests and larger paired timings. Keep graph mode opt-in.

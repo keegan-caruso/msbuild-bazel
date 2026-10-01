@@ -183,7 +183,7 @@ runtime qualification and measurement, not repeating completed synthetic work.
 | 3. Larger scope | Collections: 55 compiled with paired edits; sockets: 77 compiled; loaded-common: 182 configured / 163 compiled with full-source parity on both baselines; threading/filesystem compilation pass; loaded-platform has 215 compilations with raw/replay/native parity on both baselines | Larger paired edits, shared/generator/resource edits, other slices and graph-backed tests |
 | 4. Removed work | Shared CAS, ownership/path reuse, shared evaluation context, read-only worker packages and 163-compilation phase profile | Safe cross-request SDK/evaluation reuse and broader timing |
 | 5. Tests | Bounded graph executable passes source-host, SDK-absent and runtime-input test-cache controls; older eight-suite source-only result remains separate | Graph-backed upstream suite builds/execution and dependency edits |
-| 6. Native/app | Graph-built driver and declared native producers compose a 58-managed/eight-native source framework; ordinary app and SDK-absent checks pass on both baselines | Combined raw managed parity, native mutations and independent runnable-runtime recovery |
+| 6. Native/app | Graph-built driver and declared native producers compose a 58-managed/eight-native source framework; ordinary app and SDK-absent checks pass on both baselines; all 2,031 compiled managed products match full-source raw Build | Native mutations and independent runnable-runtime recovery |
 | 7. Recovery | Independent 8.8 producer / 9.2 consumer recovers all 38 Pipelines projects and exact 998 files; body/API recovery matches fresh native builds | Larger managed/native/app recovery and runtime faults |
 | 8. Readiness | Graph mode remains opt-in | Runtime capability/performance gates; later SDK/AOT/full-repository expansion |
 
@@ -1151,5 +1151,6 @@ The combined 263-compilation graph builds the selected 58-managed/eight-native
 source framework and runs an ordinary app with Bazel 8.8/9.2, including SDK-absent
 execution, identical producer hashes and missing-CoreCLR rejection. The 8.8
 body/test-failure/restoration controls pass. See [scope, reproduction and
-remaining gates](runtime-graph-application.md). Combined raw parity remains
-pending; construction observations are not paired timings.
+remaining gates](runtime-graph-application.md). All 2,031 compiled managed
+products match a fresh complete-source raw MSBuild graph. Construction
+observations are not paired timings.
