@@ -4,7 +4,8 @@ The graph path builds a selected source framework and runs eight reviewed upstre
 VSTest suites. The 481-compilation seed passes all selected suites. All 3,622 compiled DLL/PDB/resource files match complete-source raw MSBuild.
 All eight suites preserve raw case outcomes and pass without the downloaded SDK
 mounted. The earlier 474-compilation Pipelines scope also has full local replay
-and body/API boundary evidence; larger-scope replay is a separate gate.
+and body/API boundary evidence. The expanded eight-suite scope now passes
+those replay, edit and failure/restoration controls too.
 
 ## Verified checkpoint
 
@@ -106,7 +107,32 @@ eight discovered cases. The passing namespace keeps the matching DAC capabilitie
 and conditionally binds that VM device. It still mounts no SDK; no case or filter
 was removed. A deliberately wrong CoreLib hash fails fast.
 
-The larger replay/edit controls and actual 8.8 suite execution remain open.
+The expanded replay/edit controls pass on Bazel 9.2.0:
+
+| Control | Project-cache hits / compilations | Verified result |
+| --- | ---: | --- |
+| Forced full replay | 481 / 0 | All 10,780 compared files, bytes and modes match; all eight test results cached |
+| Body edit | 475 / 6 | Raw Csc also compiles six; reference bytes unchanged; all suites rerun with original outcomes |
+| Body restoration | 481 / 0 | Exact original files/modes and raw compiled-byte parity return |
+| API edit | 464 / 17 | Raw Csc also compiles 17; reference bytes change; all suites rerun with original outcomes |
+| API restoration | 481 / 0 | Exact original files/modes and raw compiled-byte parity return |
+| Assertion failure | 480 / 1 | Only the Pipelines test project recompiles; one case fails and Bazel fails; the other seven suites pass |
+| Assertion restoration | 481 / 0 | All original passing/skipped outcomes and raw bytes return |
+| Wrong CoreLib hash | No compilation | All eight tests fail; failures are not cached |
+| Observer restoration, then no-op | No compilation | All suites pass, then all eight successful results are cached |
+
+All edit/restoration rows compare the complete set of 3,622 compiled products
+against the full-source raw graph. Native construction and prepared Restore do
+not rerun. Raw binary logging and test execution make these correctness rows,
+not scored build timings. Run the existing controller with `--all-suites` to
+select this reviewed 481-compilation scope:
+
+```sh
+python3 tests/graph_build/upstream/runtime_suite_controls.py \
+  WORKSPACE RAW_DIRECTORY NEW_CONTROLS_DIRECTORY --output-base WARM_BASE --all-suites
+```
+
+Actual 8.8 suite execution and paired timings remain open.
 
 ## Declared inputs
 
@@ -200,8 +226,8 @@ control uses a short unique marker and starts from a successful original suite.
 
 ## Remaining gates
 
-Complete the eight-suite replay/edit checks. Repeat relevant
-actual-suite controls on Bazel 8.8.0.
+Repeat relevant actual-suite controls on Bazel 8.8.0 and capture larger paired
+build timings separately from test execution.
 Independent cache consumers, native source/header/tool mutations and broader edit
 scenarios remain separate roadmap gates. Build and test timings must be separate.
 

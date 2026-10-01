@@ -1,6 +1,6 @@
 """Qualify larger source-host replay, body/API boundaries and real-test failure.
 
-Use a retained successful 474-compilation worker and a completed full-source raw
+Use a retained successful 474- or 481-compilation worker and a completed full-source raw
 Build. Runs include diagnostics and are correctness controls, not scored timing.
 """
 import argparse
@@ -11,12 +11,15 @@ import os
 from pathlib import Path
 import shutil
 import subprocess
+import sys
 import uuid
 import xml.etree.ElementTree as ET
 
 from runtime_full_source import capture_compiled_products, validate_raw_contract
 
 ROOT = Path(__file__).resolve().parents[3]
+sys.path.insert(0, str(ROOT / 'tests/explicit_msbuild/runtime'))
+from case_names import normalize
 
 
 def main():
@@ -26,6 +29,7 @@ def main():
     parser.add_argument('results', type=Path)
     parser.add_argument('--output-base', type=Path, required=True)
     parser.add_argument('--version', choices=['8.8.0', '9.2.0'], default='9.2.0')
+    parser.add_argument('--all-suites', action='store_true', help='use the reviewed 481-compilation eight-suite graph')
     parser.add_argument('--test-failure-only', action='store_true', help='extend a completed edit control with assertion failure and restoration')
     args = parser.parse_args()
     assert os.uname().sysname == 'Linux' and os.uname().machine == 'aarch64'
@@ -37,7 +41,17 @@ def main():
     validate_raw_contract(contract, raw_results)
     nodes = [(path, v) for path, p in contract['Projects'].items() for v in p.get('Configurations') or [p]]
     count = sum(bool(v['OutputDirectories'] or v.get('OutputFiles')) for _, v in nodes)
-    assert count == 474, 'Use the reviewed expanded source-host/Pipelines graph'
+    assert count == (481 if args.all_suites else 474), 'Use the reviewed expanded source-host graph'
+    suite = json.loads((root / 'suite.json').read_text())
+    labels = [test['target'].removeprefix('//:') for test in suite['tests']] if args.all_suites else ['pipelines_suite']
+    assert len(labels) == (8 if args.all_suites else 1) and 'pipelines_suite' in labels
+    def cases_for(label):
+        return Counter((r.get('name'), 'Failed' if r.find('failure') is not None or r.find('error') is not None
+            else 'NotExecuted' if r.find('skipped') is not None else 'Passed') for r in
+            ET.parse(root / 'bazel-testlogs' / label / 'test.xml').getroot().findall('.//testcase'))
+    baseline_cases = {label: cases_for(label) for label in labels}
+    assert all(cases and not any(outcome == 'Failed' for _, outcome in cases) for cases in baseline_cases.values()), 'Start from successful original suites'
+    assert sum(baseline_cases['pipelines_suite'].values()) == 577
     directories = {d for _, v in nodes for d in v['OutputDirectories']}
     files = {f for _, v in nodes for f in v.get('OutputFiles', [])}
     states = {d + '/' + Path(p).name + '.GenerateResource.cache' for p, v in nodes
@@ -56,7 +70,7 @@ def main():
     for name in ['RULES_MSBUILD_PROJECT_CACHE_URL', 'RULES_MSBUILD_PROJECT_CACHE_BEARER_TOKEN', 'RULES_MSBUILD_GRAPH_PROFILE']:
         environment.pop(name, None)
     bazel = [str(ROOT / 'scripts/bazel-launcher.sh'), '--output_base=' + str(args.output_base.resolve()),
-             'test', '//:pipelines_suite', '--jobs=1', '--strategy=MSBuildGraph=worker', '--worker_sandboxing',
+             'test', '//:runtime_suites' if args.all_suites else '//:pipelines_suite', '--jobs=1', '--local_test_jobs=1', '--strategy=MSBuildGraph=worker', '--worker_sandboxing',
              '--worker_max_instances=MSBuildGraph=1', '--disk_cache=', '--remote_cache=', '--test_output=errors', '--noshow_progress']
     sdk = Path(os.environ['RULES_MSBUILD_DOTNET_ROOT']).resolve()
     scratch = results / 'scratch'
@@ -104,18 +118,32 @@ def main():
         actions = {r['mnemonic']: int(r.get('actionsExecuted', 0)) for r in metrics.get('actionData', [])}
         assert actions.get('RuntimeNative', 0) == actions.get('MSBuildGraphRestore', 0) == 0, actions
         assert actions.get('MSBuildGraph', 0) == int(misses is not None), actions
-        outcomes = [e['testResult'] for e in records if 'testResult' in e]
-        assert len(outcomes) == 1 and outcomes[0]['status'] == ('FAILED' if failure else 'PASSED'), outcomes
-        if failure:
-            assert not outcomes[0].get('cachedLocally')
+        outcomes = {e['id']['testResult']['label'].removeprefix('//:'): e['testResult']
+                    for e in records if 'testResult' in e}
+        assert set(outcomes) == set(labels), outcomes
+        for suite_label, outcome in outcomes.items():
+            failed = failure == 'observer' or (failure == 'assertion' and suite_label == 'pipelines_suite')
+            assert outcome['status'] == ('FAILED' if failed else 'PASSED'), (suite_label, outcome)
+            if failed:
+                assert not outcome.get('cachedLocally')
         if failure == 'observer':
             assert 'Qualification loaded wrong binary' in (results / (label + '.log')).read_text()
         else:
-            cases = Counter((r.get('name'), r.find('skipped') is not None, r.find('failure') is not None or r.find('error') is not None)
-                for r in ET.parse(root / 'bazel-testlogs/pipelines_suite/test.xml').getroot().findall('.//testcase'))
-            assert sum(cases.values()) == 577 and not any(skip for _, skip, _ in cases), cases
-            assert sum(n for (_, _, failed), n in cases.items() if failed) == int(failure == 'assertion'), cases
-        row = dict(case=label, passed=not failure, testCached=bool(outcomes[0].get('cachedLocally')), graphActions=actions.get('MSBuildGraph', 0))
+            for suite_label in labels:
+                cases = cases_for(suite_label)
+                expected = normalize(baseline_cases[suite_label])
+                actual = normalize(cases)
+                if failure == 'assertion' and suite_label == 'pipelines_suite':
+                    failed = [(name, n) for (name, outcome), n in actual.items() if outcome == 'Failed']
+                    assert len(failed) == 1 and failed[0][1] == 1, failed
+                    name = failed[0][0]
+                    expected[name, 'Passed'] -= 1
+                    expected[name, 'Failed'] += 1
+                assert actual == expected, (suite_label, actual - expected, expected - actual)
+        row = dict(case=label, passed=not failure,
+            testCached=all(outcome.get('cachedLocally') for outcome in outcomes.values()),
+            tests={name: dict(status=outcome['status'], cached=bool(outcome.get('cachedLocally')))
+                for name, outcome in outcomes.items()}, graphActions=actions.get('MSBuildGraph', 0))
         if misses is not None:
             report = json.loads((root / 'bazel-bin/graph.graph/report.json').read_text())
             assert (report['hits'], report['misses']) == (count - misses, misses), report
@@ -162,7 +190,7 @@ def main():
             compiled = details['compiled']
             assert compiled and len({(c['project'], c['framework']) for c in compiled}) == len(compiled), compiled
             row = test(case, len(compiled))
-            assert not row['testCached'], 'Runtime edit must rerun dependency tests'
+            assert all(not test['cached'] for test in row['tests'].values()), 'Runtime edit must rerun dependency tests'
             row.update(rawCompilerCalls=compiled, comparedCompiledProducts=compare())
             edited = capture()
             assert edited[mutation['implDll']] != baseline[mutation['implDll']]
