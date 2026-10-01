@@ -383,5 +383,10 @@
     "sha256": "75ea48a2b26ace3c967b0d3e6814606c687cf0a5a2bdba7d46bb5664716bfa92",
     "url": "https://api.nuget.org/v3-flatcontainer/system.threading.channels/9.0.0/system.threading.channels.9.0.0.nupkg",
     "reason": "Authored Channels dependency closure for loaded-platform"
+  },
+  "microsoft.bcl.memory/9.0.0": {
+    "sha256": "102832679dd7a89a117197b142972d12ad671c55ee5b862a152c7b125b1a7bb5",
+    "url": "https://api.nuget.org/v3-flatcontainer/microsoft.bcl.memory/9.0.0/microsoft.bcl.memory.9.0.0.nupkg",
+    "reason": "Authored SDK API compatibility baseline in the expanded source-host graph"
   }
 }

@@ -164,6 +164,38 @@ def main():
             'targets': [], 'tasks': [],
             'inputs': ['src/libraries/System.Net.NameResolution/src/ExcludeApiList.PNSE.Browser.txt']}
         binding.setdefault('frameworkOverrides', {})['net10.0-browser'] = configured
+    if args.platform == 'linux-arm64':
+        # Shim stubs generate C# from authored type names before CoreCompile.
+        # These are metadata, not file paths; preserve the SDK-generated output.
+        document = 'src/libraries/shims/stubs/Directory.Build.targets'
+        reviewed = {
+            'sha256': '33bd774981a6196c9622fa042ec89c43ca7da97bc60e972687d346c6c86d42aa',
+            'targets': ['CreateCompileSourceForForwardedTypes'], 'tasks': [], 'inputs': []}
+        for name in ['Microsoft.Win32.SystemEvents', 'System.CodeDom',
+                     'System.Configuration.ConfigurationManager', 'System.Data.Odbc',
+                     'System.Data.OleDb', 'System.Data.SqlClient', 'System.Diagnostics.EventLog',
+                     'System.Diagnostics.PerformanceCounter', 'System.Drawing.Common',
+                     'System.IO.Packaging', 'System.IO.Ports', 'System.Runtime.Serialization.Schema',
+                     'System.Security.Cryptography.Pkcs', 'System.Security.Cryptography.ProtectedData',
+                     'System.Security.Cryptography.Xml', 'System.Security.Permissions',
+                     'System.ServiceModel.Syndication', 'System.ServiceProcess.ServiceController',
+                     'System.Windows.Extensions']:
+            project = 'src/libraries/shims/stubs/' + name + '.csproj'
+            binding = mapping['projects'].setdefault(project, copy.deepcopy(mapping['projectDefaults']))
+            binding.pop('properties', None)
+            for variant in [binding] + list(binding.get('frameworkOverrides', {}).values()):
+                variant['documents'][document] = reviewed
+                variant['evaluationItems'].append('ForwardedType')
+        # The pinned generator declares an empty IDE folder. It has no files
+        # or target consumer; do not turn it into recursive input discovery.
+        project = 'src/libraries/System.Runtime.InteropServices.JavaScript/gen/JSImportGenerator/JSImportGenerator.csproj'
+        binding = mapping['projects'].setdefault(project, copy.deepcopy(mapping['projectDefaults']))
+        binding.pop('properties', None)
+        for variant in [binding] + list(binding.get('frameworkOverrides', {}).values()):
+            variant['evaluationItems'].append('Folder')
+            variant['documents'][project] = {
+                'sha256': 'ba17878f95c3c8059ec58ad2b8fbd84e0e34e4af3fedccd1df49211fc0353d3c',
+                'targets': [], 'tasks': [], 'inputs': []}
     args.output.write_text(json.dumps(mapping, indent=2) + '\n')
 
 

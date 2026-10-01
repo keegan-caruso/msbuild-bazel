@@ -30,13 +30,15 @@ def main():
     assert len(outputs) == 1
     selection = json.loads((ROOT / 'tests/explicit_msbuild/runtime/subset_slices.json').read_text())
     assert selection['commit'] == COMMIT
+    shim_framework = next(item['framework'] for item in selection['slices'] if item['name'] == 'loaded-shims')
     managed = {}
     for key, (directory, assembly, kind) in outputs[0].items():
         project, framework = key.split('|')
         if not (project.startswith('src/coreclr/System.Private.CoreLib/') or
                 (project.startswith('src/libraries/') and '/src/' in project)):
             continue
-        if framework != selection['hostFrameworks'].get(assembly.removesuffix('.dll'), 'net10.0'):
+        default_framework = shim_framework if project.startswith('src/libraries/shims/') else 'net10.0'
+        if framework != selection['hostFrameworks'].get(assembly.removesuffix('.dll'), default_framework):
             continue
         assert kind == 'Library' and assembly.endswith('.dll') and assembly not in managed
         managed[assembly] = dict(project=project, framework=framework, path=directory + '/' + assembly)
