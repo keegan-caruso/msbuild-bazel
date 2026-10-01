@@ -180,7 +180,7 @@ runtime qualification and measurement, not repeating completed synthetic work.
 | --- | --- | --- |
 | 1. Linux Pipelines | Implementation and test Build/replay/native parity pass on Linux ARM64, Bazel 8.8/9.2; 819/998 snapshot files | Broader runtime contracts |
 | 2. Incremental baseline | Ordinary/prepared paired edits and independent project recovery pass | Larger edit matrix |
-| 3. Larger scope | Collections: 55 compiled with paired edits; sockets: 77 compiled; loaded-common: 182 configured / 163 compiled with full-source parity on both baselines; threading/filesystem compilation pass; loaded-platform has 215 compilations with 9.2 raw/replay/native parity | Complete platform 8.8 controls, larger paired edits, shared/generator/resource edits, other slices and graph-backed tests |
+| 3. Larger scope | Collections: 55 compiled with paired edits; sockets: 77 compiled; loaded-common: 182 configured / 163 compiled with full-source parity on both baselines; threading/filesystem compilation pass; loaded-platform has 215 compilations with raw/replay/native parity on both baselines | Larger paired edits, shared/generator/resource edits, other slices and graph-backed tests |
 | 4. Removed work | Shared CAS, ownership/path reuse, shared evaluation context, read-only worker packages and 163-compilation phase profile | Safe cross-request SDK/evaluation reuse and broader timing |
 | 5. Tests | Bounded graph executable passes source-host, SDK-absent and runtime-input test-cache controls; older eight-suite source-only result remains separate | Graph-backed upstream suite builds/execution and dependency edits |
 | 6. Native/app | Graph-built driver constructs CoreCLR/JIT/corerun/System.Native with raw byte parity; bounded graph/source-host probe passes | Full platform libraries, muxer/hostfxr, ordinary app and native edits |
@@ -1093,12 +1093,12 @@ probe does not substitute for full upstream test or ordinary-app execution.
 
 The reviewed loaded-platform roots retain their Unix/Linux selections and authored
 older frameworks: 108 physical projects, 243 configurations and 215 compilations.
-On Linux ARM64/Bazel 9.2, worker seed, full replay and fresh sandbox Build match
+On Linux ARM64/Bazel 8.8 and 9.2, worker seed, full replay and fresh sandbox Build match
 all 4,756 snapshot files/bytes/modes. Replay reports 215 hits and zero misses.
 All 1,498 compiled DLL/PDB/resource files match the retained complete-source raw
 MSBuild Build. The comparison verifies identical configured selectors and every
 declared authored input byte; graph artifact modes are 0555, raw modes 0644.
-These are correctness controls, not scored timings. Bazel 8.8 controls are pending.
+These are correctness controls, not scored timings. All six controls pass on both baselines.
 
 SDK GetBinPlaceTargetFramework/GetBinPlaceItems inventories 577 shared files
 across 99 producer configurations. This adds 154 output declarations to the
@@ -1118,7 +1118,7 @@ Reproduction uses the pinned archive, declared 163-package feed and fresh direct
 
 ```sh
 python3 tests/graph_build/upstream/runtime_prepare.py "$source_archive" "$feed" "$prepared" --slice loaded-platform --prepared-restore
-python3 tests/graph_build/upstream/runtime_qualify.py "$prepared/workspace" "$controls" --output-base "$base" --versions 9.2.0
+python3 tests/graph_build/upstream/runtime_qualify.py "$prepared/workspace" "$controls" --output-base "$base" --versions 9.2.0 8.8.0
 python3 tests/graph_build/upstream/runtime_full_source.py "$source_archive" "$prepared/workspace" "$raw_control"
 ```
 
