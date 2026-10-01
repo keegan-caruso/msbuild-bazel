@@ -114,6 +114,18 @@ def main():
         for variant in [binding] + list(binding.get('frameworkOverrides', {}).values()):
             variant['referenceBoundary'] = True
             variant['implementationDependencies'] = generators
+        configured = copy.deepcopy(binding.get('frameworkOverrides', {}).get('net10.0', binding))
+        configured.pop('frameworkOverrides', None)
+        # The SDK builds all Pipelines variants for coordination, but net10
+        # Json consumes this single authored compiler contract. Retain both
+        # implementation and ref project identities without hashing other DLLs.
+        pipeline = 'src/libraries/System.IO.Pipelines/'
+        artifact = 'artifacts/bin/System.IO.Pipelines/ref/$(Configuration)/net10.0/System.IO.Pipelines.dll'
+        configured['compilerReferences'] = {
+            pipeline + 'src/System.IO.Pipelines.csproj': artifact,
+            pipeline + 'ref/System.IO.Pipelines.csproj': artifact,
+        }
+        binding.setdefault('frameworkOverrides', {})['net10.0'] = configured
     if args.platform == 'linux-arm64':
         # Only the browser configuration reads this PNS generation exclusion.
         project = 'src/libraries/System.Net.NameResolution/src/System.Net.NameResolution.csproj'

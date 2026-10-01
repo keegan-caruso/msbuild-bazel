@@ -180,7 +180,7 @@ runtime qualification and measurement, not repeating completed synthetic work.
 | --- | --- | --- |
 | 1. Linux Pipelines | Implementation and test Build/replay/native parity pass on Linux ARM64, Bazel 8.8/9.2; 819/998 snapshot files | Broader runtime contracts |
 | 2. Incremental baseline | Ordinary/prepared paired edits and independent project recovery pass | Larger edit matrix |
-| 3. Larger scope | Collections: 61 configured / 55 compiled with paired edits; sockets: 84 configured / 77 compiled with full-source parity; threading/filesystem compilation pass | Shared/generator/resource edits, other slices and graph-backed tests |
+| 3. Larger scope | Collections: 55 compiled with paired edits; sockets: 77 compiled; loaded-common: 182 configured / 163 compiled with full-source parity on both baselines; threading/filesystem compilation pass | Larger paired edits, shared/generator/resource edits, other slices and graph-backed tests |
 | 4. Removed work | Shared CAS, ownership/path reuse, shared evaluation context and read-only worker packages | Runtime phase profile; safe cross-request SDK/evaluation reuse and large-worker timing |
 | 5. Tests | Older source-only host: 118,952 passes / 64 skips | Graph-backed test builds/execution, source host and edit invalidation |
 | 6. Native/app | Per-project source-built app and native inputs qualified | Transfer native producers and host composition; app runs on graph-produced outputs |
@@ -922,3 +922,33 @@ six `runtime_qualify.py` controls on Linux ARM64, Bazel 8.8/9.2, with exact
 3,980-file byte/mode parity. All 1,447 DLL/PDB/resource files match the retained
 complete-source raw graph build. These are correctness controls; paired edits,
 profiles, independent recovery and source-host execution remain open.
+
+## Configured compiler-artifact checkpoint
+
+A second, isolated scorecard completed three no-op pairs: median graph
+**0.177 s** versus raw **5.575 s**. These were whole-graph Bazel action hits.
+Its first body row again rebuilt six projects instead of the raw control's five;
+the assertion stopped the series. It has no passing body/API median or recovery
+result. The earlier overlapping series remains excluded.
+
+Raw SDK target results select the separately authored net10 Pipelines reference
+DLL. The graph also contains older Pipelines configurations for coordination.
+Hashing their implementation DLLs made Text.Json rebuild on a body-only edit.
+Producer defaults alone cannot describe a consumer's framework selection.
+
+The generic [compiler-artifact contracts](project-cache-migration.md#separately-authored-compiler-references)
+now support explicit consumer selections without pruning configured builds.
+The Linux net10 Text.Json mapping selects that SDK artifact for the Pipelines
+source and reference project identities, retaining its three implementation
+generator dependencies. Small four- and six-compilation controls cover body/API
+edits, unused-framework APIs, implementation roles and exact fresh-build parity.
+An additional SDK transitive-copy failure now rejects undeclared dependency
+DLL/PDB/XML copies instead of caching a stale runtime artifact.
+
+The version-8 loaded-common contract passes all six worker/replay/native controls
+on Bazel 8.8/9.2: seeds/native builds miss all 163 projects, replays hit all 163,
+and every control returns identical 3,980-file bytes/modes. Its 1,447 compiled
+products match the retained complete-source raw build. Commands use the
+loaded-common preparation/qualification helpers above. Owned .NET/style and
+107 unit checks pass; CI was not run. Paired edits, profiles, larger independent
+recovery and source-host execution remain separate gates.
