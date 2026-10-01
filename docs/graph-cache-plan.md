@@ -1242,47 +1242,130 @@ compiler calls are six/17 on both sides. See [phases, ranges, memory, reproducti
 and limits](performance.md#expanded-source-host-runtime-graph). Body remains slightly
 outside the proposed gate; no default switch or broader cold/remote claim follows.
 
-## Next runtime qualification steps
+## Next runtime qualification slices
 
-Keep the graph path opt-in while closing these gates. Use Linux ARM64 with four
-CPUs, 8 GiB RAM, four MSBuild nodes and one graph worker. Commit each validated
-change separately. Freeze both production code and the benchmark harness during
-scored comparisons; retain compact summaries rather than large reports in Git.
+Graph mode remains opt-in. Each slice gets an isolated worktree, focused controls
+and a separate commit when validated. The pending node-key code is uncommitted;
+the latest owned-code check found a stale normalization-helper unit-test import.
+No benchmark is running. These are planned changes, not measured gains.
 
-1. **Restore the owned-code checks.** Update the remaining project-sync unit-test
-   caller from `normalized` to the shared `normalize` helper. Run its unit tests
-   and the owned-code checks before qualifying further production changes.
-2. **Qualify request-local node identities.** The pending change computes each
-   evaluated node's project-path/global-property key once per request. Run the
-   small configuration, reference-role, compiler-reference, consumer-reference
-   and initial-target controls. It must preserve cache keys and SDK behavior.
-3. **Measure the candidate on the 481-compilation graph.** A changed runner
-   invalidates existing project snapshots, so seed the candidate first and
-   verify all 3,622 compiled products against raw MSBuild. Then run three paired
-   body/API samples and separate profiles. Keep the change only if the evidence
-   supports it; report preparation and cold construction separately.
-4. **Remove the next repeated fingerprint work.** If profiling still warrants
-   it, prepare authored reference paths and metadata once per evaluated graph.
-   Preserve configured-node identity, reference roles and initial-target
-   semantics. Qualify this as a separate change and repeat the matched samples.
-5. **Design safe preparation reuse.** Investigate once-per-worker verification
-   of owned read-only SDK/package payloads and reusable evaluation metadata.
-   Require mutation/fault controls before removing checks; source paths and
-   manifests alone are not sufficient evidence of unchanged contents.
-6. **Qualify the actual eight-suite graph on Bazel 8.8.** Run build, replay,
-   edit, failure and restoration controls. Small synthetic 8.8 results do not
-   establish compatibility for this larger graph.
-7. **Expand invalidation coverage.** Add shared-source, generated-file, resource
-   and imported-property edits, then native source/header/tool mutations. Match
-   raw outputs and compiler work, including failure and restoration behavior.
-8. **Repeat independent recovery at the larger scope.** Stop the producer and
-   use a relocated consumer with empty local snapshots. Cover unique edits and
-   runtime/cache faults, then collect repeated cold/recovery timings, memory
-   and transfer volume. Whole-action hits do not replace project-cache proof.
-9. **Review readiness and defaults.** Compare the resulting evidence against
-   the agreed correctness and performance gates. The current body-edit median
-   is still 24% above raw MSBuild; no default switch is justified yet.
+### Measurement contract
 
-Checkpoint: the node-identity change is uncommitted and has not been measured.
-The latest owned-code check exposed the unit-test caller in step 1. The completed
-481-project scorecard remains the baseline; no benchmark is currently running.
+Retain the qualified 481-compilation baseline: body **37.839 s** versus raw
+**30.443 s**, API **53.369 s** versus **46.774 s**. Use Linux ARM64, four CPUs,
+8 GiB RAM, four MSBuild nodes and one graph worker, with the fixture's 8192 MiB
+logical snapshot budget. Keep source, SDK, properties and compiler scope matched.
+
+For production performance candidates, first run small semantic controls. A new
+runner identity invalidates snapshots: seed it separately, then verify all 3,622
+compiled products against raw MSBuild. Freeze production and harness during three
+alternating paired body/API samples; collect profiles separately. Record ranges,
+compiler calls and cache hits as well as medians. Include cold/setup costs when a
+change moves work there. If an improvement is within observed variability, repeat
+before claiming a gain. Stop or revert unsuccessful experiments before proceeding.
+
+### 1. Restore the test baseline
+
+Update the remaining project-sync unit caller from `normalized` to `normalize`.
+Run its unit tests and owned-code checks; retain case counts and outcomes. This is
+a test repair with no performance claim.
+
+### 2. Compute configured-node identities once
+
+Qualify the pending request-local project-path/global-property key table. Run
+configuration, reference-role, explicit compiler/consumer-reference and
+initial-target controls, then the matched runtime comparison. Require identical
+key content and compilation boundaries; do not reuse evaluated nodes across requests.
+
+### 3. Resolve authored reference metadata once
+
+Replace repeated scans and path normalization of each project's `ProjectReference`
+items with a request-local lookup. Test aliases, duplicate paths, multiple configured
+nodes for one project and implementation/analyzer/task references. Preserve all
+matching items and classification; compare fingerprint work and body/API medians.
+
+### 4. Prepare ordered dependency lists once
+
+Reuse configured-node traversal/order where the evaluated graph is immutable.
+Test a chain, diamond and multi-targeting coordinator, including transitive
+references enabled/disabled. Preserve SDK-visible transitive compiler edges.
+Keep output existence and digest reads tied to current results, not pre-build state.
+Measure traversal calls, memory and warm-edit time before retaining the change.
+
+### 5. Verify immutable SDK payloads once per worker
+
+First establish who owns the extracted SDK and prevents writes/replacement.
+Implement verification reuse only for a proven immutable payload identity.
+Controls must cover payload replacement, changed bytes/modes, worker restart and
+concurrent requests. Otherwise keep validation. Measure the prepared-input phase,
+including first-use cost; a path or unchanged manifest alone is insufficient.
+
+### 6. Apply the same proof to prepared packages
+
+Qualify package verification separately from SDK verification. Cover package bytes,
+restore assets, modes, manifest corruption and writable scratch. Reuse only verified
+immutable contents; mutable inputs remain checked per request. Measure verification
+and staging separately, and repeat body/API samples if the phase reduction matters.
+
+### 7. Identify reusable evaluation work
+
+Instrument the existing evaluation phase with a small representative fixture and
+one separate runtime profile. Determine the cost of graph construction, imports,
+configuration expansion and required validation. Inventory dependencies on source
+items, generated files, environment and initial targets. This slice ends with a
+specific reuse boundary and invalidation contract, not an assumed speedup.
+
+### 8. Qualify one evaluation-reuse boundary
+
+Implement only the safe subset identified in slice 7. Test project/import/global
+property/item-list changes, generated files, tool changes and worker restart.
+Never reuse a mutable post-build ProjectInstance as an unevaluated request.
+Advance from small raw-parity controls to the full runtime graph and matched timing.
+If no safe worthwhile subset exists, record that result and retain fresh evaluation.
+
+### 9. Qualify the actual eight-suite graph on Bazel 8.8
+
+Use fresh output bases for build, forced replay, body/API edits, failures and
+restoration, then SDK-absent execution. Require the same 3,622 compiled products,
+118,952 passing cases and 64 skips as the qualified 9.2 scope. Small synthetic
+8.8 controls do not substitute for these results. Keep this compatibility run
+separate from performance comparisons.
+
+### 10. Expand managed-input invalidation one input type at a time
+
+Run independent shared-source, resource, generated-metadata and imported-property
+edit/restoration controls, in that order. Start small, then select a representative
+runtime owner/consumer for each supported input. Compare raw compiler calls,
+compiled bytes, runtime/test outcomes and unrelated reuse. Reject undeclared
+inputs explicitly rather than broadening the contract silently.
+
+### 11. Qualify native invalidation one input type at a time
+
+Run source, header and declared-tool edits separately on a small native fixture,
+then the bounded runtime native graph. Verify action invalidation, changed producer
+bytes, host/test consumption and exact restoration. Do not infer native compilation
+parity from the current managed comparison, which shares native producers with raw.
+
+### 12. Recover the larger graph independently
+
+Seed the qualified 481-compilation graph, stop the producer, and recover from a
+relocated consumer with empty local snapshots and whole-action/disk caches disabled.
+Verify files/modes/bytes and real source-host tests. Then repeat unique body/API
+edits, requiring unchanged projects to come from the project cache. Record traffic
+and runner work; no RBE claim follows from HTTP recovery.
+
+### 13. Exercise cache faults independently
+
+Test missing/corrupt snapshots, missing/corrupt artifact contents and unavailable
+cache service as separate controls. Require rejection, a correct local rebuild or
+an explicit failure according to the documented contract; no stale successful
+result. Restore service/contents and verify exact output recovery. Keep these
+fault runs unscored.
+
+### 14. Review repeated cold/recovery evidence and readiness
+
+Run repeated matched cold-build and independent-recovery rows, recording acquisition,
+Restore/preparation, compilation, memory and traffic separately. Summarize the
+correctness matrix and body/API/no-op/cold/recovery comparisons. The current 24%
+body overhead remains outside the proposed roughly 20% gate. A default switch
+requires all relevant gates, rather than a single favorable timing.
