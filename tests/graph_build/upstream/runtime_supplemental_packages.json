@@ -38,5 +38,15 @@
     "sha256": "476b5d9eaa4db9d57d678053b88daaed8a9bf7b64310e8cbc4135ddbc1e3457f",
     "url": "https://api.nuget.org/v3-flatcontainer/system.serviceprocess.servicecontroller/9.0.0/system.serviceprocess.servicecontroller.9.0.0.nupkg",
     "reason": "SDK API compatibility baseline used by the filesystem graph"
+  },
+  "system.diagnostics.diagnosticsource/9.0.0": {
+    "sha256": "d55ccef62f14ab62a54f0d709c20ab11d0013d9b81d89043e6006c3131534af1",
+    "url": "https://api.nuget.org/v3-flatcontainer/system.diagnostics.diagnosticsource/9.0.0/system.diagnostics.diagnosticsource.9.0.0.nupkg",
+    "reason": "SDK API compatibility baseline used by the sockets graph"
+  },
+  "microsoft.dotnet.build.tasks.templating/10.0.0-beta.25509.106": {
+    "sha256": "09d05337e81895ea924a2ee78cdc3378d49b67edc0936d3f7138d773cbbbdfd6",
+    "url": "https://pkgs.dev.azure.com/dnceng/9ee6d478-d288-47f7-aacc-f6e6d082ae6d/_packaging/1a5f89f6-d8da-4080-b15f-242650c914a8/nuget/v3/flat2/microsoft.dotnet.build.tasks.templating/10.0.0-beta.25509.106/microsoft.dotnet.build.tasks.templating.10.0.0-beta.25509.106.nupkg",
+    "reason": "Pinned upstream DiagnosticSource template task"
   }
 }

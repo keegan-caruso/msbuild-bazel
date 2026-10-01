@@ -180,7 +180,7 @@ runtime qualification and measurement, not repeating completed synthetic work.
 | --- | --- | --- |
 | 1. Linux Pipelines | Implementation and test Build/replay/native parity pass on Linux ARM64, Bazel 8.8/9.2; 819/998 snapshot files | Broader runtime contracts |
 | 2. Incremental baseline | Ordinary/prepared paired edits and independent project recovery pass | Larger edit matrix |
-| 3. Larger scope | Collections: 61 configured / 55 compiled nodes, full-source parity and paired body/API edits pass | Shared/generator/resource edits, other slices and graph-backed tests |
+| 3. Larger scope | Collections: 61 configured / 55 compiled with paired edits; sockets: 84 configured / 77 compiled with full-source parity; threading/filesystem compilation pass | Shared/generator/resource edits, other slices and graph-backed tests |
 | 4. Removed work | Shared CAS, ownership/path reuse, shared evaluation context and read-only worker packages | Runtime phase profile; safe cross-request SDK/evaluation reuse and large-worker timing |
 | 5. Tests | Older source-only host: 118,952 passes / 64 skips | Graph-backed test builds/execution, source host and edit invalidation |
 | 6. Native/app | Per-project source-built app and native inputs qualified | Transfer native producers and host composition; app runs on graph-produced outputs |
@@ -829,3 +829,30 @@ snapshot saving take 0.08/0.27 s. Worker staging adds 3.63 s and the child takes
 Restore action and startup. Snapshot saving is not the dominant cost. Csc task
 duration sums are 207.97 s graph / 207.05 s raw; concurrent task sums are not wall
 segments. This diagnostic is excluded from scored observations.
+
+## Sockets source compilation checkpoint
+
+The sockets implementation and functional-test roots retain 58 project files,
+84 configured nodes and 77 compilation nodes. The offline feed has 96 pinned
+archives, adding DiagnosticSource's 9.0.0 API baseline and upstream Templating
+10.0.0-beta.25509.106. SDK BinPlace inventory adds 97 shared files; the combined
+Linux map has 319 files with unique project/framework owners.
+
+DiagnosticSource's authored `ThisAssembly.cs.in` is owner-attested. The first
+staged worker then fails with duplicate `Dns.GetHostName` on NameResolution's
+browser variant, while complete upstream source builds. Its property-selected
+`ExcludeApiList.PNSE.Browser.txt` was missing. That input is now declared only for
+`net10.0-browser` compilation and does not change prepared Restore inputs. The
+browser framework and its normal PNS generation remain enabled.
+
+The corrected worker matches all 731 DLL/PDB/resource files from the complete
+upstream raw Build. All six worker/replay/native controls pass on Bazel 8.8/9.2. Each cold control compiles
+77 projects; replay recovers all 77. The controls compare 1,937 snapshot files,
+bytes and modes. These are compilation controls, not scored timings or executed
+source-host tests. CI was not run.
+
+Reproduce the earlier qualification commands with `--slice sockets`. Use
+`runtime_full_source.py SOURCE WORKSPACE RAW_RESULTS --inventory-only` first to
+reproduce SDK output ownership. The bindings are fixture declarations; production
+rules contain no runtime-specific cases. Other source libraries, the larger edit
+matrix, native composition and source-host execution remain open.

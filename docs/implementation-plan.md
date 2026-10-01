@@ -32,6 +32,10 @@ The selected threading test compilation also passes worker/replay/native parity
 on both baselines: six compilation nodes, 292 snapshot files and 170 compiled
 products matching complete-source raw Build. It does not build or execute a
 source threading host. See the [threading checkpoint](graph-cache-plan.md#threading-compilation-checkpoint).
+The sockets implementation/test roots further expand to 77 compilations and
+1,937 snapshot files, with all 731 compiled products matching complete-source
+raw Build and worker/native parity on both baselines. See the
+[sockets checkpoint](graph-cache-plan.md#sockets-source-compilation-checkpoint).
 The collections paired body/API medians have about 3% overhead / 9% advantage
 versus raw graph MSBuild. The public Linux
 [scorecard](graph-cache-plan.md#linux-pipelines-scorecard) measures body/API overhead

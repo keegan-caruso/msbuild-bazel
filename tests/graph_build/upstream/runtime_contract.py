@@ -38,6 +38,12 @@ def main():
         'sha256': '88c4fbf7cfb16c9ecdd59bdeec0255390493b075d78bced3559bc23c24eef8a5',
         'targets': [], 'tasks': [],
         'inputs': ['src/libraries/System.Linq/src/ILLink/ILLink.Descriptors.xml']}
+    # DiagnosticSource generates version metadata from an authored template.
+    project = 'src/libraries/System.Diagnostics.DiagnosticSource/src/System.Diagnostics.DiagnosticSource.csproj'
+    mapping['projectDefaults']['documents'][project] = {
+        'sha256': '97d33339566e0a80f833fd58f5f7010d2d3a1a1afeeff4fb4f1d014ca5265ac1',
+        'targets': ['_GenerateThisAssemblyInfo'], 'tasks': [],
+        'inputs': ['src/libraries/System.Diagnostics.DiagnosticSource/src/ThisAssembly.cs.in']}
     # The XLIFF package discovers these translations inside a target, so they
     # are not evaluated file items. Bind them to the projects owning the resx.
     generator_root = 'src/libraries/System.Runtime.InteropServices/gen/'
@@ -68,6 +74,18 @@ def main():
             else:
                 binding['outputFiles'] += outputs
         mapping['projects'][project] = binding
+    if args.platform == 'linux-arm64':
+        # Only the browser configuration reads this PNS generation exclusion.
+        project = 'src/libraries/System.Net.NameResolution/src/System.Net.NameResolution.csproj'
+        binding = mapping['projects'].setdefault(project, copy.deepcopy(mapping['projectDefaults']))
+        binding.pop('properties', None)
+        configured = copy.deepcopy(binding.get('frameworkOverrides', {}).get('net10.0-browser', binding))
+        configured.pop('frameworkOverrides', None)
+        configured['documents'][project] = {
+            'sha256': 'd37182c9f228d8176df5d88719692195596e6cead3002d2e5e7a2c7044d51bc0',
+            'targets': [], 'tasks': [],
+            'inputs': ['src/libraries/System.Net.NameResolution/src/ExcludeApiList.PNSE.Browser.txt']}
+        binding.setdefault('frameworkOverrides', {})['net10.0-browser'] = configured
     args.output.write_text(json.dumps(mapping, indent=2) + '\n')
 
 
