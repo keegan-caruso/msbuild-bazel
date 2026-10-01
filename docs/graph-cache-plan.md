@@ -1052,11 +1052,11 @@ The native action remains qualification-only: it declares the archived Ubuntu
 filesystem and uses its own read-only filesystem/network namespace, with Bazel
 `no-sandbox`/`no-remote-exec` requirements. This does not qualify RBE or x86-64.
 
-On Bazel 9.2 the graph-built executable passes through the composed source
-runtime. Its CoreLib location and loaded CoreCLR/JIT/System.Native paths point
+On Bazel 8.8 and 9.2 the graph-built executable passes through the composed
+source runtime, with identical producer hashes on both baselines. Its CoreLib location and loaded CoreCLR/JIT/System.Native paths point
 into that layout. Every runtime binary matches its declared producer. Direct
-execution with the SDK/build checkout absent also passes; removing CoreCLR fails.
-An unchanged Bazel test result is cached. Editing only a runtime marker makes
+execution with the SDK/build checkout absent also passes on both baselines;
+removing CoreCLR fails. On Bazel 9.2 an unchanged Bazel test result is cached. Editing only a runtime marker makes
 the test fail; restoring it passes. All three controls execute **zero managed or
 native compilation actions**, and the application DLL stays unchanged.
 
@@ -1085,6 +1085,5 @@ pinned-toolchain and tracked-Starlark checks pass; CI was not run.
 
 Remaining: graph-backed upstream tests, additional platform libraries and native
 components for an ordinary app, native source/header/tool mutations against the
-real runtime, larger independent cache recovery/faults, and Bazel 8.8 execution
-of the complete source-host integration. The two-baseline tiny controls do not
-substitute for that last gate.
+real runtime and larger independent cache recovery/faults. The bounded source
+probe does not substitute for full upstream test or ordinary-app execution.
