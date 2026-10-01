@@ -20,6 +20,7 @@ internal sealed class GraphCache(GraphInputs inputs, string cache, bool read, Re
     private readonly Dictionary<ProjectGraphNode, string[]> outputDirectories = inputs.Graph.ProjectNodes.ToDictionary(node => node, node => inputs.OutputDirectories(node).ToArray());
     private readonly ConcurrentDictionary<ProjectGraphNode, HashSet<ProjectGraphNode>> dependencies = new();
     private readonly ConcurrentDictionary<ProjectGraphNode, string[]> outputFiles = new();
+    private readonly ConcurrentDictionary<ProjectGraphNode, HashSet<string>> dependencyCopyNames = new();
     private readonly ConcurrentDictionary<string, Lazy<string>> outputDigests = new(StringComparer.Ordinal);
     private readonly ConcurrentDictionary<string, bool> dependencyPresence = new(StringComparer.Ordinal);
     private readonly ConcurrentDictionary<string, string> fingerprints = new(StringComparer.Ordinal);
@@ -130,6 +131,7 @@ internal sealed class GraphCache(GraphInputs inputs, string cache, bool read, Re
                 foreach (var file in OutputFiles(node))
                 {
                     var relative = Path.GetRelativePath(inputs.Files.Root, file);
+                    ValidateCopyOwnership(node, relative);
                     var digest = OutputDigest(file);
                     var producer = (inputs.For(node).DependencyCopies ?? []).GetValueOrDefault(relative);
                     if (producer is not null)
@@ -239,7 +241,7 @@ internal sealed class GraphCache(GraphInputs inputs, string cache, bool read, Re
             else
             {
                 var project = reference.ProjectInstance;
-                var declaration = inputs.For(reference).CompilerReference;
+                var declaration = (inputs.For(node).CompilerReferences ?? []).GetValueOrDefault(inputs.Relative(reference)) ?? inputs.For(reference).CompilerReference;
                 if (declaration is not null)
                 {
                     var declared = inputs.Files.Resolve(declaration);
@@ -273,6 +275,28 @@ internal sealed class GraphCache(GraphInputs inputs, string cache, bool read, Re
     private static IEnumerable<string> ReplayTargets(ProjectGraphNode node, IEnumerable<string> targets) =>
         targets.Concat(node.ProjectInstance.InitialTargets).Distinct(StringComparer.OrdinalIgnoreCase);
 
+    private void ValidateCopyOwnership(ProjectGraphNode node, string relative)
+    {
+        if (!inputs.For(node).ReferenceBoundary || (inputs.For(node).DependencyCopies ?? []).ContainsKey(relative))
+        {
+            return;
+        }
+        var name = Path.GetFileName(relative);
+        var target = Path.GetFileName(TargetPath(node));
+        if (name == target || name == Path.ChangeExtension(target, ".pdb") || name == Path.ChangeExtension(target, ".xml"))
+        {
+            return;
+        }
+        var names = dependencyCopyNames.GetOrAdd(node, current => DependencyNodes(current)
+            .Where(dependency => dependency.ProjectInstance.GetPropertyValue("TargetPath").Length != 0)
+            .SelectMany(dependency => new[] { Path.GetFileName(TargetPath(dependency)), Path.ChangeExtension(Path.GetFileName(TargetPath(dependency)), ".pdb"), Path.ChangeExtension(Path.GetFileName(TargetPath(dependency)), ".xml") })
+            .ToHashSet(StringComparer.Ordinal));
+        if (names.Contains(name))
+        {
+            throw new InvalidDataException("Undeclared dependency copy at reviewed reference boundary: " + relative);
+        }
+    }
+
     private void Validate(ProjectGraphNode node, ProjectSnapshot snapshot, string fingerprint, string directory, string[] targets)
     {
         if (snapshot.Fingerprint != fingerprint || !snapshot.Targets.Select(t => t.Name).SequenceEqual(ReplayTargets(node, targets), StringComparer.OrdinalIgnoreCase) ||
@@ -283,6 +307,7 @@ internal sealed class GraphCache(GraphInputs inputs, string cache, bool read, Re
         }
         foreach (var (relative, digest) in snapshot.Files)
         {
+            ValidateCopyOwnership(node, relative);
             Allowed(relative);
             if (ContractFiles.Digest(Path.Combine(directory, relative)) != digest)
             {

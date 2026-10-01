@@ -49,7 +49,9 @@ extraction pass focused
 public-rule tests. Reviewed dependency contracts now let package/custom-target
 graphs distinguish compiler references from analyzer/task implementations.
 Reviewed SDKs can also declare a [separately authored compiler artifact](project-cache-migration.md#separately-authored-compiler-references).
-The four-project Linux fixture preserves body/API and implementation-edge parity;
+Four- and six-compilation Linux fixtures preserve body/API and implementation-edge
+parity, including explicit consumer selection across coordination frameworks.
+Reviewed snapshots reject undeclared dependency DLL/PDB/XML copies;
 upstream use and independent recovery remain separate qualification gates.
 Orchard's body-edit follow-up reuses 201 projects and rebuilds one, with exact
 compared output parity; timings and remaining gates are in

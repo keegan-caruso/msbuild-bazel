@@ -269,6 +269,7 @@ internal static class GraphGenerator
                 ReferenceBoundary = CanUseReferenceBoundary(node),
                 ImplementationDependencies = ImplementationDependencies(node),
                 CompilerReference = CompilerReference(node),
+                CompilerReferences = CompilerReferences(node),
                 DependencyCopies = CanUseReferenceBoundary(node) ? DependencyCopies(node) : new Dictionary<string, string>(),
                 OutputDirectories = node.ProjectInstance.GetPropertyValue("TargetPath").Length == 0 ? [] :
                     new[] { "OutputPath", "IntermediateOutputPath" }.Select(property =>
@@ -360,6 +361,10 @@ internal static class GraphGenerator
         {
             contractData["Version"] = 7;
         }
+        if (graph.ProjectNodes.Any(node => mappings.ForProject(Relative(node.ProjectInstance.FullPath), node.ProjectInstance.GetPropertyValue("TargetFramework")).CompilerReferences.Count != 0))
+        {
+            contractData["Version"] = 8;
+        }
         var contract = contractData.ToJsonString(new JsonSerializerOptions { WriteIndented = true }) + "\n";
         var sources = inputs.Values.SelectMany(files => files).Concat(shared).Concat(restore?.Inputs ?? []).Distinct().Order(StringComparer.Ordinal).ToArray();
         var ambiguousOutput = graph.ProjectNodes.Where(node => node.ProjectInstance.GetPropertyValue("TargetPath").Length != 0)
@@ -445,16 +450,40 @@ internal static class GraphGenerator
             }
             var relative = WorkspaceView.Safe(node.ProjectInstance.ExpandString(expression).Replace('\\', '/'));
             var path = Path.GetFullPath(relative, root);
-            RulesMSBuild.GraphCompilerReferences.Validate(node, path, current =>
-            {
-                var directory = Path.GetDirectoryName(current.ProjectInstance.FullPath)!;
-                var owned = new[] { "OutputPath", "IntermediateOutputPath" }.Select(current.ProjectInstance.GetPropertyValue).Where(value => value.Length != 0)
-                    .Select(value => Path.TrimEndingDirectorySeparator(Path.GetFullPath(value.Replace('\\', '/'), directory)) + Path.DirectorySeparatorChar).ToArray();
-                return new[] { "TargetPath", "TargetRefPath" }.Select(current.ProjectInstance.GetPropertyValue).Where(value => value.Length != 0)
-                    .Select(value => Path.GetFullPath(value.Replace('\\', '/'), directory)).Where(value => owned.Any(prefix => value.StartsWith(prefix, StringComparison.Ordinal)))
-                    .Concat(outputs[Key(current.ProjectInstance)].Select(value => Path.GetFullPath(value, root)));
-            });
+            RulesMSBuild.GraphCompilerReferences.Validate(node, path, CompilerProducts);
             return relative;
+        }
+
+        Dictionary<string, string> CompilerReferences(ProjectGraphNode node)
+        {
+            var binding = mappings.ForProject(Relative(node.ProjectInstance.FullPath), node.ProjectInstance.GetPropertyValue("TargetFramework"));
+            if (binding.CompilerReferences.Count != 0 && !CanUseReferenceBoundary(node))
+            {
+                throw new InvalidDataException("Consumer compiler references require a reviewed reference boundary: " + Relative(node.ProjectInstance.FullPath));
+            }
+            var result = new Dictionary<string, string>(StringComparer.Ordinal);
+            foreach (var (producer, expression) in binding.CompilerReferences.OrderBy(pair => pair.Key, StringComparer.Ordinal))
+            {
+                var project = WorkspaceView.Safe(producer);
+                if (!project.EndsWith(".csproj", StringComparison.Ordinal))
+                {
+                    throw new InvalidDataException("Consumer compiler reference requires a project path: " + producer);
+                }
+                var relative = WorkspaceView.Safe(node.ProjectInstance.ExpandString(expression).Replace('\\', '/'));
+                RulesMSBuild.GraphCompilerReferences.ValidateConsumer(node, Path.GetFullPath(project, root), Path.GetFullPath(relative, root), CompilerProducts);
+                result.Add(project, relative);
+            }
+            return result;
+        }
+
+        IEnumerable<string> CompilerProducts(ProjectGraphNode current)
+        {
+            var directory = Path.GetDirectoryName(current.ProjectInstance.FullPath)!;
+            var owned = new[] { "OutputPath", "IntermediateOutputPath" }.Select(current.ProjectInstance.GetPropertyValue).Where(value => value.Length != 0)
+                .Select(value => Path.TrimEndingDirectorySeparator(Path.GetFullPath(value.Replace('\\', '/'), directory)) + Path.DirectorySeparatorChar).ToArray();
+            return new[] { "TargetPath", "TargetRefPath" }.Select(current.ProjectInstance.GetPropertyValue).Where(value => value.Length != 0)
+                .Select(value => Path.GetFullPath(value.Replace('\\', '/'), directory)).Where(value => owned.Any(prefix => value.StartsWith(prefix, StringComparison.Ordinal)))
+                .Concat(outputs[Key(current.ProjectInstance)].Select(value => Path.GetFullPath(value, root)));
         }
 
         bool CanUseReferenceBoundary(ProjectGraphNode node)

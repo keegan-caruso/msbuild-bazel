@@ -942,6 +942,42 @@ paths and composition with directory, temporary-output and entry-property
 contracts. Run it after building GraphBuild and ProjectSync with SDK 10.0.400.
 These local controls do not qualify arbitrary custom targets or remote recovery.
 
+If a consumer selects one artifact while the SDK graph also builds other
+frameworks for coordination, bind that selection on the consumer instead:
+
+```json
+{"projects": {"App/App.csproj": {
+  "referenceBoundary": true,
+  "compilerReferences": {
+    "Impl/Impl.csproj": "Api/bin/$(Configuration)/net10.0/Impl.dll",
+    "Api/Api.csproj": "Api/bin/$(Configuration)/net10.0/Impl.dll"
+  }
+}}}
+```
+
+This emits version 8. Each key names a dependency project; the value must be a
+declared output in that producer's configured dependency closure. All configured
+builds, noncompiler inputs and runtime-copy contracts remain in the graph.
+The binding replaces compiler hashes for that project in this consumer, takes
+precedence over producer defaults, and never relaxes implementation/tool edges.
+It requires a reviewed reference boundary and does not select MSBuild frameworks
+or rewrite target results. Review the actual SDK reference selection before
+declaring it; do not infer it from framework names.
+
+Saving and replaying a reviewed snapshot rejects DLL/PDB/XML files named for
+dependency outputs unless they have a declared copy binding. In particular,
+SDK transitive CopyLocal can differ from an intermediate `Private=false` item.
+Disable reference reuse for an unqualified copy layout; changing compiler
+bindings alone does not make that layout safe. The check compares known producer
+names, not arbitrary task file reads, and does not qualify renamed custom copies.
+
+`python3 tests/graph_build/consumer_references.py` uses six compilations across
+two frameworks. On Linux ARM64 it checks full replay, body edits, selected and
+unused-framework API edits, full implementation roles, fresh output-byte parity,
+separate execution composition and invalid-contract rejection. Directory,
+temporary-output and root-property contracts also compose with version 8.
+This is local managed-build evidence; upstream and remote recovery are separate.
+
 ## Explicit graph Restore preparation
 
 Generated graphs can opt into a separate Bazel Restore action:
