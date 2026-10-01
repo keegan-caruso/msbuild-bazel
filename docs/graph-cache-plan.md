@@ -183,8 +183,8 @@ runtime qualification and measurement, not repeating completed synthetic work.
 | 3. Larger scope | Collections: 55 compiled with paired edits; sockets: 77 compiled; loaded-common: 182 configured / 163 compiled with full-source parity on both baselines; threading/filesystem compilation pass; loaded-platform has 215 compilations with raw/replay/native parity on both baselines | Larger paired edits, shared/generator/resource edits, other slices and graph-backed tests |
 | 4. Removed work | Shared CAS, ownership/path reuse, shared evaluation context, read-only worker packages and 163-compilation phase profile | Safe cross-request SDK/evaluation reuse and broader timing |
 | 5. Tests | Bounded graph executable passes source-host, SDK-absent and runtime-input test-cache controls; older eight-suite source-only result remains separate | Graph-backed upstream suite builds/execution and dependency edits |
-| 6. Native/app | Graph-built driver and declared native producers compose a 58-managed/eight-native source framework; ordinary app and SDK-absent checks pass on both baselines; all 2,031 compiled managed products match full-source raw Build | Native mutations and independent runnable-runtime recovery |
-| 7. Recovery | Independent 8.8 producer / 9.2 consumer recovers all 163 loaded-common projects and exact 3,980 files; body/API recovery and fresh raw/sandbox parity pass | Native/app recovery, broader edits and cache/runtime faults |
+| 6. Native/app | Graph-built driver and declared native producers compose a 58-managed/eight-native source framework; ordinary app and SDK-absent checks pass on both baselines; all 2,031 compiled managed products match full-source raw Build | Native mutations, broader edits and faults |
+| 7. Recovery | Independent 8.8 producer / 9.2 consumer recovers all 163 loaded-common projects and exact 3,980 files; body/API recovery and fresh raw/sandbox parity pass | Broader edits and cache/runtime faults; repeated timing and peak memory |
 | 8. Readiness | Graph mode remains opt-in | Runtime capability/performance gates; later SDK/AOT/full-repository expansion |
 
 The worker still starts a fresh MSBuild child per request. Read-only preparation
@@ -1214,3 +1214,15 @@ Python syntax and diff checks pass; no C# production code changed and CI was not
 run. Private reports retain every row, BEP, raw command and diagnostic. Remaining:
 independent native/app recovery, broader edits, upstream suites, cache faults,
 peak memory and repeated timing. Graph mode remains opt-in.
+
+
+## Runnable-runtime cache checkpoint
+
+The independent Bazel 9.2 consumer recovers all 13,932 declared output-tree files
+with exact hashes/modes, 251 remote-cache hits and zero executable runners. Its
+source app then passes loaded-producer verification, SDK-absent execution and
+missing-CoreCLR rejection. See [reproduction, accounting and output-publication
+finding](runtime-graph-application.md#independent-runnable-runtime-recovery).
+This whole-action recovery does not substitute for project-cache edits or RBE.
+Graph-backed upstream suites, native mutations, broader edits/faults, repeated
+recovery/cold rows and peak-memory/readiness review remain open.

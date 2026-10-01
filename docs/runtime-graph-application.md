@@ -113,5 +113,41 @@ the qualification action runs locally, so it does not qualify remote execution.
 ARM64 evidence does not cover x86-64.
 
 Remaining gates: broader edit controls, graph-backed
-upstream suites, native source/header/tool mutations, independent runnable-runtime
-recovery, fault tests and larger paired timings. Keep graph mode opt-in.
+upstream suites, native source/header/tool mutations, fault tests and larger paired timings. Keep graph mode opt-in.
+
+
+## Independent runnable-runtime recovery
+
+A fresh Bazel 9.2 producer publishes declared managed, native, layout and test
+outputs to HTTP cache. It is stopped before a separate 4-CPU/8-GiB Linux ARM64
+consumer runs at a different workspace path with a new output base and uploads
+disabled. All **13,932 files, hashes and modes** match. The consumer has **251
+remote-cache hits and zero executable runners**; it constructs neither managed
+nor native products. The app test is cached.
+
+Direct startup then passes again: all 66 source-producer hashes match, **28
+loaded source components** have the same names/hashes, SDK-absent execution
+succeeds, and deleting CoreCLR fails with exit 135 even with an SDK advertised.
+This is whole Bazel action-cache recovery, separate from project-level replay
+and remote execution. Its single **20.26-s** observation includes acquisition and
+analysis; it is not a warm-edit scorecard or a repeated recovery median.
+
+The first consumer assertion incorrectly treated Bazel's `actionsExecuted`
+metric as executable work. That metric includes remote-cache completions. The
+corrected fixture checks runner kinds: only internal bookkeeping and remote
+cache hits are allowed. A second fresh output base passes that strict check and
+all file/runtime comparisons; the failed assertion's report is retained.
+
+```sh
+python3 tests/graph_build/upstream/runtime_application_remote.py "$producer" "$seed_results" --output-base "$producer_base" --cache-url "$cache" --phase producer
+# Stop the producer, transfer only declared inputs, and use an independent consumer.
+python3 tests/graph_build/upstream/runtime_application_remote.py "$consumer" "$consumer_results" --output-base "$consumer_base" --cache-url "$cache" --phase consumer --seed-evidence "$seed_results/summary.json"
+```
+
+Output publication still includes staged sources and package archives. The
+combined graph workspace contains **13,638 files / 877,046,091 bytes**: 6,323
+source files, 164 package-source files and 7,113 artifact files, plus root/import
+files. Reviewing this publication contract is a candidate for reducing cache
+traffic. Do not omit runtime assets or generated files without explicit output
+ownership and fixture parity. Broader fault, edit and upstream-suite gates remain
+open; graph mode stays opt-in.
