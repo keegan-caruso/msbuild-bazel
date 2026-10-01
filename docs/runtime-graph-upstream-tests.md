@@ -1,14 +1,17 @@
 # Runtime graph test-host qualification
 
 The graph path builds a selected source framework and runs the upstream Pipelines
-VSTest suite. Raw parity passes; replay and edit controls are still being qualified;
+VSTest suite. Raw parity, full local replay and body/API boundaries pass;
 this is not an eight-suite passing result.
 
 ## Verified checkpoint
 
 Runtime v10.0.0 (`60629d14374c56f1cb51819049ad1fa529307f8d`), SDK 10.0.400,
 Linux ARM64 and Bazel 9.2.0. The VM has four CPUs and 8 GiB; graph workers use
-four MSBuild nodes. These are unscored correctness checks.
+four MSBuild nodes. The expanded fixture declares an 8192 MiB logical worker-cache
+budget; the rule default remains 4096 MiB. This disk accounting does not cap
+process memory. The seed retained about 2530 MiB, so earlier cache loss does not
+establish that the default budget was exceeded. These are unscored correctness checks.
 
 | Check | Observed result |
 | --- | --- |
@@ -18,9 +21,17 @@ four MSBuild nodes. These are unscored correctness checks.
 | Expanded managed Build | All 474 compilations pass, with prepared Restore and read-only worker packages |
 | Expanded host declaration | 123 managed assemblies and eight native binaries; includes TraceSource, XML and 17 authored Linux shims |
 | Real Pipelines suite | 577 passed / zero skips; 84 observed source-producer hashes match across VSTest, datacollector and testhost processes |
-| Complete-source raw Build | 2,913 DLL/PDB/resource files match graph bytes |
+| Complete-source raw Build | 3,447 DLL/PDB/resource files match graph bytes, including reviewed shared outputs |
 | Raw VSTest control | The same 577 case names and passing outcomes; the same three process roles and 84 source-producer hashes |
-| Wrong CoreLib hash | Observer rejects the deliberate mismatch |
+| Shared BinPlace ownership | 1,391 SDK-inventoried files across 231 producer configurations; one earlier CoreLib PDB declaration retained |
+| Full local replay | 474 hits / zero misses; all 10,506 compared files, bytes and modes match the seed |
+| Body edit | 468 hits / six misses, matching raw compiler calls; unchanged reference bytes and all 577 cases rerun |
+| API edit | 457 hits / 17 misses, matching raw compiler calls; all 577 cases rerun |
+| Source restoration | All 474 projects replay; exact seed files/bytes/modes and full-source raw parity return |
+| SDK-absent VSTest | All 577 cases pass with only the declared host/tests and system libraries mounted; source hashes still match |
+| Genuine assertion failure | Only the test project recompiles: 473 hits / one miss, matching raw; VSTest reports 576 passes / one failure and Bazel fails |
+| Assertion restoration/caching | 474 replay hits, exact original outputs and 577 passes; the next unchanged test is cached |
+| Wrong CoreLib hash | Observer rejects the deliberate mismatch; Bazel reports test failure without compilation |
 | Small metadata generator | Generated source/assembly changes on a declared metadata-file edit; restoration replays one project with identical bytes |
 | Document guard | A changed generation-target hash is rejected |
 
@@ -54,7 +65,7 @@ python3 tests/graph_build/upstream/runtime_prepare.py \
   SOURCE_ARCHIVE PACKAGE_FEED NEW_DIRECTORY \
   --slice loaded-common --also-slice loaded-platform \
   --also-slice loaded-libraries --also-slice loaded-shims \
-  --also-slice pipelines --prepared-restore
+  --also-slice pipelines --prepared-restore --worker-cache-mb 8192
 ```
 
 Compose and run the actual harness after preparation:
@@ -91,7 +102,7 @@ Compare the completed graph against a fresh full-source raw Build and real VSTes
 python3 tests/graph_build/upstream/runtime_full_source.py \
   SOURCE_ARCHIVE WORKSPACE NEW_RAW_DIRECTORY --inventory-only
 python3 tests/graph_build/upstream/runtime_suite_verify.py \
-  WORKSPACE NEW_RAW_DIRECTORY NEW_PARITY_DIRECTORY
+  WORKSPACE NEW_RAW_DIRECTORY NEW_PARITY_DIRECTORY --sdk-absent
 ```
 
 The raw control uses the same managed graph, SDK, global properties, stable paths
@@ -99,13 +110,29 @@ and four MSBuild nodes without the project-cache plugin. Its VSTest host replace
 all 123 managed binaries with raw products. The eight native binaries are shared
 source-built producers; this does not qualify an independent native rebuild.
 
+The raw contract may differ only by added output files proven by that completed
+SDK inventory. Changed inputs, properties, removed outputs and unreviewed additions
+are rejected. Capture and compare the larger edit controls using a retained,
+successful graph worker and full-source raw outputs:
+
+```sh
+python3 tests/graph_build/upstream/runtime_suite_controls.py \
+  WORKSPACE RAW_DIRECTORY NEW_CONTROLS_DIRECTORY --output-base WARM_BASE
+```
+
+This forces a graph action with an unused declared input, checks project-cache
+hits, and compares body/API misses with actual raw Csc calls. Binary logging is
+used for raw diagnostics, so these rows are not timing comparisons. Restore and
+native construction do not rerun on the edits. A genuine assertion failure changes
+one expected exception parameter name; only that test project recompiles. A first
+fixture check failed because xUnit truncated its diagnostic marker. The passing
+control uses a short unique marker and starts from a successful original suite.
+
 ## Remaining gates
 
-Complete replay and shared BinPlace ownership. The raw SDK inventory identifies
-1,391 shared files from 231 producer configurations. Add those explicit mappings,
-then verify exact replay and dependency edits. SDK-absent suite execution and
-deliberate test failures remain separate controls before expanding the suites.
-Repeat the relevant controls on Bazel 8.8.0. Build and test timings must be separate.
+Expand to the remaining selected suites. Repeat relevant actual-suite controls on Bazel 8.8.0.
+Independent cache consumers, native source/header/tool mutations and broader edit
+scenarios remain separate roadmap gates. Build and test timings must be separate.
 
 A disk-full interruption made the qualification filesystem read-only. That trial
 is excluded. After preserving diagnostics, restarting only the owned build VM

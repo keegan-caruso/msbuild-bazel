@@ -5,6 +5,7 @@ packages, SDK, four nodes and stable paths. Its elapsed time is not a scorecard.
 """
 import argparse
 from collections import Counter
+import copy
 import hashlib
 import json
 import os
@@ -29,6 +30,34 @@ def capture_compiled_products(workspace, contract):
     return {str(p.relative_to(workspace)): {'sha256': hashlib.sha256(p.read_bytes()).hexdigest(), 'mode': p.stat().st_mode & 0o777}
             for p in paths if p.is_file() and p.suffix in ['.dll', '.pdb', '.resources']
             and not (str(p.relative_to(workspace)).startswith('artifacts/obj/') and '/PreTrim/' in str(p.relative_to(workspace)))}
+
+
+def validate_raw_contract(contract, raw_results):
+    """Allow only output additions proven by this completed raw SDK inventory."""
+    previous = json.loads((raw_results / 'raw-workspace/graph.generated.json').read_text())
+    inventory = json.loads((raw_results / 'binplace.json').read_text())
+    def semantics(value):
+        value = copy.deepcopy(value)
+        for project in value['Projects'].values():
+            for variant in [project] + project.get('Configurations', []):
+                variant.pop('OutputFiles', None)
+        return value
+    assert semantics(previous) == semantics(contract), 'Raw semantic contract differs'
+    for path, project in contract['Projects'].items():
+        old = previous['Projects'][path]
+        for variant, original in zip([project] + project.get('Configurations', []),
+                                     [old] + old.get('Configurations', []), strict=True):
+            before, after = set(original.get('OutputFiles', [])), set(variant.get('OutputFiles', []))
+            assert before <= after, ('Removed output ownership', path)
+            if not after - before:
+                continue
+            frameworks = inventory.get(path, {})
+            framework = variant.get('Properties', {}).get('TargetFramework')
+            if framework is None:
+                assert len(frameworks) == 1, ('Ambiguous evaluated ownership framework', path)
+                framework = next(iter(frameworks))
+            reviewed = set(frameworks.get(framework, []))
+            assert after - before <= reviewed, ('Unreviewed output ownership change', path, framework)
 
 
 def main():

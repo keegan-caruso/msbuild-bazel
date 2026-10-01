@@ -32,7 +32,10 @@ def main():
     parser.add_argument('--also-slice', action='append', default=[], help='combine reviewed selections, retaining frameworks and declared root replacements')
     parser.add_argument('--framework', help='entry framework; default net10.0 or the selected slice framework')
     parser.add_argument('--prepared-restore', action='store_true', help='generate a separate declared Restore action')
+    parser.add_argument('--worker-cache-mb', type=int, default=4096, help='explicit logical snapshot/preparation cache budget in MiB')
     args = parser.parse_args()
+    if args.worker_cache_mb < 0:
+        parser.error('--worker-cache-mb must be nonnegative')
     if args.also_slice and not args.slice:
         parser.error('--also-slice requires --slice')
     entry_properties = {}
@@ -150,10 +153,10 @@ def main():
                           content_hash=base64.b64encode(hashlib.sha512(data).digest()).decode())
         build.append('msbuild_nuget_package(' + ','.join(key + '=' + json.dumps(value) for key, value in attributes.items()) + ')')
     build += ['msbuild_package_lock(name="packages",packages=' + json.dumps(labels) + ',allow_multiple_versions=True)',
-              'app_graph(name="graph",linux_stable_paths=True,linux_worker=True)']
+              'app_graph(name="graph",linux_stable_paths=True,linux_worker=True,worker_cache_mb=' + str(args.worker_cache_mb) + ')']
     (workspace / 'BUILD.bazel').write_text('\n'.join(build) + '\n')
     (base / 'preparation.json').write_text(json.dumps(dict(commit=COMMIT, sourceSha256=SOURCE_SHA256, platform='linux-arm64',
-        entry=entries[0], entries=entries, framework=framework, entryProperties=entry_properties, slice=args.slice, additionalSlices=args.also_slice, preparedRestore=args.prepared_restore,
+        entry=entries[0], entries=entries, framework=framework, entryProperties=entry_properties, slice=args.slice, additionalSlices=args.also_slice, preparedRestore=args.prepared_restore, workerCacheMiB=args.worker_cache_mb,
         inputs=len(paths), archives=len(rows), workspace=str(workspace)), indent=2) + '\n')
     print(workspace, flush=True)
 

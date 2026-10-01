@@ -124,7 +124,9 @@ be converted into omitted inputs, disabled validation or reduced upstream scope.
 
 Start with one 4-CPU/8-GiB Linux ARM64 build VM and four MSBuild nodes, matching the
 current runner's fixed `MaxNodeCount=4` and edit harness's raw `-m:4`. Use one graph
-worker and a 4096-MB worker-cache budget; record that the budget does not cap all
+worker and a 4096-MiB worker-cache budget for the original scope. The expanded
+474-compilation source-host fixture explicitly selects 8192 MiB; rerun matched
+paired timings at that scope. Record that this logical disk budget does not cap all
 process memory. Check host headroom and prevent other build VMs/jobs from
 competing during a scored run. Stop the producer before the independent consumer
 runs. If the scope exceeds the VM budget, choose a new matched configuration and
@@ -182,7 +184,7 @@ runtime qualification and measurement, not repeating completed synthetic work.
 | 2. Incremental baseline | Ordinary/prepared paired edits and independent project recovery pass | Larger edit matrix |
 | 3. Larger scope | Collections: 55 compiled with paired edits; sockets: 77 compiled; loaded-common: 182 configured / 163 compiled with full-source parity on both baselines; threading/filesystem compilation pass; loaded-platform has 215 compilations with raw/replay/native parity on both baselines | Larger paired edits, shared/generator/resource edits, other slices and graph-backed tests |
 | 4. Removed work | Shared CAS, ownership/path reuse, shared evaluation context, read-only worker packages and 163-compilation phase profile | Safe cross-request SDK/evaluation reuse and broader timing |
-| 5. Tests | Bounded executable controls pass; combined Pipelines managed Build passes; [expanded source host](runtime-graph-upstream-tests.md) builds 474 compilations and passes 577 Pipelines cases with source-hash observations | Raw parity/shared ownership, replay and dependency edits; older eight-suite evidence remains separate |
+| 5. Tests | Bounded executable controls pass; combined Pipelines managed Build passes; [expanded source host](runtime-graph-upstream-tests.md) builds 474 compilations and passes 577 Pipelines cases with exact raw names/outcomes, 3,447 compiled-product hashes, full replay, body/API compiler boundaries, genuine assertion failure/restoration and SDK-absent execution | Remaining suites and 8.8 checks; older eight-suite evidence remains separate |
 | 6. Native/app | Graph-built driver and declared native producers compose a 58-managed/eight-native source framework; ordinary app and SDK-absent checks pass on both baselines; all 2,031 compiled managed products match full-source raw Build | Native mutations, broader edits and faults |
 | 7. Recovery | Independent 8.8 producer / 9.2 consumer recovers all 163 loaded-common projects and exact 3,980 files; body/API recovery and fresh raw/sandbox parity pass | Broader edits and cache/runtime faults; repeated timing and peak memory |
 | 8. Readiness | Graph mode remains opt-in | Runtime capability/performance gates; later SDK/AOT/full-repository expansion |
