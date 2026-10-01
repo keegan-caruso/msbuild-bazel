@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Text.Json;
 using Microsoft.Build.Evaluation;
 using Microsoft.Build.Execution;
@@ -41,6 +42,95 @@ foreach (var node in graph.ProjectNodes)
         c.GetProperty("Properties").EnumerateObject().All(p =>
             (node.ProjectInstance.GlobalProperties.TryGetValue(p.Name, out var value) ? value : "") == p.Value.GetString())) != 1)
         throw new InvalidDataException("Raw graph configuration differs: " + path);
+}
+// Qualification only: measure metadata scanning independently of output hashing,
+// evaluation and compilation. Include lookup construction in every candidate pass.
+if (args[2] == "reference-work")
+{
+    var nodes = graph.ProjectNodes.Where(n => n.ProjectInstance.GetPropertyValue("TargetPath").Length != 0)
+        .OrderBy(n => n.ProjectInstance.FullPath, StringComparer.Ordinal).ToArray();
+    var contracts = nodes.ToDictionary(n => n, n =>
+    {
+        var declaration = declarations.GetProperty(Path.GetRelativePath(root, n.ProjectInstance.FullPath));
+        return declaration.TryGetProperty("Configurations", out var values) ? values.EnumerateArray().Single(c =>
+            c.GetProperty("Properties").EnumerateObject().All(p =>
+                (n.ProjectInstance.GlobalProperties.TryGetValue(p.Name, out var value) ? value : "") == p.Value.GetString())) : declaration;
+    });
+    var closures = new Dictionary<ProjectGraphNode, HashSet<ProjectGraphNode>>();
+    HashSet<ProjectGraphNode> Dependencies(ProjectGraphNode node)
+    {
+        if (closures.TryGetValue(node, out var found)) return found;
+        var visited = new HashSet<ProjectGraphNode>();
+        var pending = new Stack<ProjectGraphNode>(node.ProjectReferences);
+        while (pending.TryPop(out var child))
+            if (visited.Add(child)) foreach (var next in child.ProjectReferences) pending.Push(next);
+        closures.Add(node, visited);
+        return visited;
+    }
+    bool Boundary(ProjectGraphNode node) => contracts[node].TryGetProperty("ReferenceBoundary", out var boundary) && boundary.GetBoolean();
+    string Key(ProjectGraphNode node) => node.ProjectInstance.FullPath + "|" + string.Join(";", node.ProjectInstance.GlobalProperties
+        .OrderBy(p => p.Key, StringComparer.Ordinal).Select(p => p.Key + "=" + p.Value));
+    var references = nodes.ToDictionary(n => n, n =>
+    {
+        IEnumerable<ProjectGraphNode> selectedReferences = Boundary(n) && !n.ProjectInstance.GetPropertyValue("DisableTransitiveProjectReferences").Equals("true", StringComparison.OrdinalIgnoreCase)
+            ? Dependencies(n) : n.ProjectReferences;
+        if (Boundary(n)) selectedReferences = selectedReferences.SelectMany(r => r.ProjectInstance.GetPropertyValue("TargetPath").Length == 0
+            ? Dependencies(r).Where(c => c.ProjectInstance.GetPropertyValue("TargetPath").Length != 0) : new[] { r }).Distinct();
+        return selectedReferences.OrderBy(Key, StringComparer.Ordinal).ToArray();
+    });
+    bool ExplicitRole(ProjectGraphNode node, ProjectGraphNode reference) => !Boundary(node) ||
+        contracts[node].TryGetProperty("ImplementationDependencies", out var implementations) && implementations.EnumerateArray()
+            .Any(p => p.GetString() == Path.GetRelativePath(root, reference.ProjectInstance.FullPath));
+    string ReferencePath(ProjectGraphNode node, ProjectItemInstance item) => Path.GetFullPath(item.EvaluatedInclude.Replace('\\', '/'), Path.GetDirectoryName(node.ProjectInstance.FullPath)!);
+    bool ImplementationItem(ProjectItemInstance item) => item.GetMetadataValue("OutputItemType").Length != 0 ||
+        item.GetMetadataValue("ReferenceOutputAssembly").Equals("false", StringComparison.OrdinalIgnoreCase) || item.GetMetadataValue("Targets").Length != 0;
+    bool[] Classify(bool indexed)
+    {
+        var roles = new List<bool>();
+        foreach (var node in nodes)
+        {
+            HashSet<string>? paths = null;
+            foreach (var reference in references[node])
+            {
+                if (ExplicitRole(node, reference)) { roles.Add(true); continue; }
+                if (!indexed)
+                {
+                    roles.Add(node.ProjectInstance.GetItems("ProjectReference").Where(item => ReferencePath(node, item) == reference.ProjectInstance.FullPath).Any(ImplementationItem));
+                    continue;
+                }
+                if (paths is null)
+                {
+                    paths = new(StringComparer.Ordinal);
+                    foreach (var item in node.ProjectInstance.GetItems("ProjectReference"))
+                    {
+                        var path = ReferencePath(node, item);
+                        if (ImplementationItem(item)) paths.Add(path);
+                    }
+                }
+                roles.Add(paths.Contains(reference.ProjectInstance.FullPath));
+            }
+        }
+        return roles.ToArray();
+    }
+    var expectedRoles = Classify(false);
+    if (!expectedRoles.SequenceEqual(Classify(true))) throw new InvalidDataException("Reference role lookup changed classification");
+    for (var warmup = 0; warmup < 3; warmup++) { Classify(false); Classify(true); }
+    const int iterations = 20;
+    var rows = new List<object>();
+    for (var sample = 0; sample < 5; sample++)
+        foreach (var indexed in sample % 2 == 0 ? new[] { false, true } : new[] { true, false })
+        {
+            var timer = Stopwatch.StartNew();
+            for (var iteration = 0; iteration < iterations; iteration++)
+                if (!expectedRoles.SequenceEqual(Classify(indexed))) throw new InvalidDataException("Reference classification changed during measurement");
+            rows.Add(new { sample, indexed, iterations, secondsPerGraph = timer.Elapsed.TotalSeconds / iterations });
+        }
+    File.WriteAllText(args[3], JsonSerializer.Serialize(new { scope = "isolated metadata scan; excludes evaluation, output hashing and compilation; not full build timing",
+        configuredNodes = graph.ProjectNodes.Count, compiledNodes = nodes.Length, references = expectedRoles.Length,
+        implementationReferences = expectedRoles.Count(role => role), duplicateAuthoredPaths = nodes.Sum(n => n.ProjectInstance.GetItems("ProjectReference")
+            .GroupBy(item => ReferencePath(n, item), StringComparer.Ordinal).Count(g => g.Count() > 1)),
+        rolesEqual = true, rows }, new JsonSerializerOptions { WriteIndented = true }) + "\n");
+    return;
 }
 var parameters = new BuildParameters(collection) { MaxNodeCount = 4, EnableNodeReuse = false,
     Loggers = [new ConsoleLogger(LoggerVerbosity.Minimal)] };

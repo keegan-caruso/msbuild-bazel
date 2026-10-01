@@ -256,6 +256,39 @@ They do not establish a consistent improvement either. The experiment uses the
 preceding scorecard's hardware, scope and command. Candidate runner SHA starts
 `2b28b45be067`; the harness SHA is unchanged. Detailed reports remain private.
 
+### Authored reference lookup preflight
+
+On the evaluated **543-node / 481-compilation** runtime graph, the qualification
+raw driver compares the current scan with a per-lookup normalized-path set.
+All **29,596 reference classifications** match, including 58 duplicate authored
+path groups. Most references already have implementation roles, so the expensive
+scan branch is rarely needed. A fresh three-project fixture also checks duplicate
+normalized paths with ordinary, `ReferenceOutputAssembly=false`, `OutputItemType`
+and `Targets` metadata; all four controls pass.
+
+Five alternating pairs, each averaging 20 passes and including candidate lookup
+construction, give **10.507 ms** scan / **5.666 ms** lookup medians per graph.
+Ranges are 3.215–11.143 / 1.622–6.739 ms. These are isolated operation costs,
+excluding evaluation, output hashing and compilation; they are not full build
+timings. The roughly five-millisecond difference does not justify a production
+change for the measured multi-second gap. Reference handling remains unchanged.
+
+Reproduce using the complete-source raw workspace and the qualification driver
+built from `RuntimeRawGraph.cs.txt` / `RuntimeRawGraph.csproj.txt`:
+
+```sh
+bash tests/graph_build/upstream/runtime_raw.sh SDK RAW SCRATCH \
+  /__rules_msbuild_graph/output/workspace/.qualification/Raw.dll \
+  /__rules_msbuild_graph/output/workspace \
+  /__rules_msbuild_graph/output/workspace/graph.generated.json \
+  reference-work /__rules_msbuild_graph/output/workspace/.qualification/reference-work.json
+RULES_MSBUILD_DOTNET_ROOT=SDK python3 tests/graph_build/reference_work.py
+```
+
+Use a separate driver copy for the probe; do not replace a scored raw driver or
+change the harness during a scored series. SDK/architecture/scope are the same
+as the expanded scorecard. No compiler or project-cache action runs in this probe.
+
 ## Current graph-cache optimization checkpoint
 
 Three-sample Orchard body-edit measurements on the roadmap branch retain

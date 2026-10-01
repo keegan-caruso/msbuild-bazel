@@ -1249,6 +1249,9 @@ and a separate commit when validated. Slice 1 is complete: the normalization-hel
 checks pass. Slice 2 passed correctness controls, but its three-sample runtime
 comparison did not establish a speedup; the prototype was removed. See the
 [node-identity experiment](performance.md#node-identity-reuse-experiment).
+Slice 3's isolated lookup preflight saves about five milliseconds per graph, so
+production reference handling also remains unchanged; see the
+[measurement](performance.md#authored-reference-lookup-preflight).
 Remaining slices are planned work, not measured gains.
 
 ### Measurement contract
