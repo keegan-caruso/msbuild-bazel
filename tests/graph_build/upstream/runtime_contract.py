@@ -141,6 +141,9 @@ def main():
         # These authored files are discovered inside SDK/upstream targets rather
         # than evaluated file items. Retain the upstream validation/generation.
         for project, digest, extra in [
+            ('src/libraries/System.Linq.Expressions/src/System.Linq.Expressions.csproj',
+             'dc256466b2f17341ea82debb94ba9bf7f7a54586da7699c2bf8824cd555bb18f',
+             'src/libraries/System.Linq.Expressions/src/CompatibilitySuppressions.xml'),
             ('src/libraries/System.Net.Security/src/System.Net.Security.csproj',
              '98ebdd8a237a7a622a7673cfd81e2e83720aab5bb7a9ec7080c38774fe520867',
              'src/libraries/System.Net.Security/src/ExcludeApiList.PNSE.txt'),

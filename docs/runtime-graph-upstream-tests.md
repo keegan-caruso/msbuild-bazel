@@ -1,8 +1,8 @@
 # Runtime graph test-host qualification
 
-The graph path now declares the library and shim inputs needed to extend the
-source-built app host toward runtime's actual VSTest harness. Test execution is
-still being qualified; this is not an eight-suite passing result.
+The graph path builds a selected source framework and runs the upstream Pipelines
+VSTest suite. Raw parity, replay and edit controls are still being qualified;
+this is not an eight-suite passing result.
 
 ## Verified checkpoint
 
@@ -15,7 +15,9 @@ four MSBuild nodes. These are unscored correctness checks.
 | App/platform/Pipelines graph | 133 projects, 303 configurations, 267 compilations; managed Build passes |
 | VSTest on the original 58-library source host | Fails because source-built `System.Diagnostics.TraceSource` is absent |
 | Expanded library/shim/Pipelines sync | 253 projects, 536 configurations, 474 compilations; offline sync passes |
+| Expanded managed Build | All 474 compilations pass, with prepared Restore and read-only worker packages |
 | Expanded host declaration | 123 managed assemblies and eight native binaries; includes TraceSource, XML and 17 authored Linux shims |
+| Real Pipelines suite | 577 passed / zero skips; 84 observed source-producer hashes match across VSTest, datacollector and testhost processes |
 | Small metadata generator | Generated source/assembly changes on a declared metadata-file edit; restoration replays one project with identical bytes |
 | Document guard | A changed generation-target hash is rejected |
 
@@ -37,7 +39,9 @@ in that empty folder.
 The larger graph adds the authored API compatibility baseline
 `Microsoft.Bcl.Memory/9.0.0`, SHA-256
 `102832679dd7a89a117197b142972d12ad671c55ee5b862a152c7b125b1a7bb5`.
-API validation remains enabled. All declarations are qualification mappings;
+The Expressions project additionally needs its authored `CompatibilitySuppressions.xml`,
+discovered inside SDK targets. Its owning project hash is pinned. API validation
+remains enabled. All declarations are qualification mappings;
 production rules contain no runtime-specific special case.
 
 Reproduce preparation with an explicit feed containing the pinned archives:
@@ -49,6 +53,23 @@ python3 tests/graph_build/upstream/runtime_prepare.py \
   --also-slice loaded-libraries --also-slice loaded-shims \
   --also-slice pipelines --prepared-restore
 ```
+
+Compose and run the actual harness after preparation:
+
+```sh
+python3 tests/graph_build/upstream/runtime_application.py WORKSPACE NATIVE_WORKSPACE
+python3 tests/graph_build/upstream/runtime_suite.py WORKSPACE PINNED_VSTEST_ARCHIVE
+# From WORKSPACE, using the repository's absolute launcher path:
+RULES_REPOSITORY/scripts/bazel-launcher.sh --output_base=NEW_BASE \
+  test //:pipelines_suite --jobs=1 --strategy=MSBuildGraph=worker \
+  --worker_sandboxing --worker_max_instances=MSBuildGraph=1 \
+  --disk_cache= --remote_cache= --test_output=errors
+```
+
+VSTest 17.14.1 and the resolved xUnit adapter archives have declared hashes.
+The source-host observer rejects excluded installed framework components.
+The first passing graph reports zero hits / 474 misses; failed overall builds
+were not saved as project snapshots. Setup elapsed time is unscored.
 
 Run the independently reproducible small fixture after building ProjectSync,
 with the pinned SDK and Bazelisk overrides set:
@@ -63,8 +84,8 @@ metadata file. Large logs and report JSON remain outside Git.
 
 ## Remaining gates
 
-Complete expanded Build/replay and shared BinPlace ownership, then execute
-Pipelines with the source host. Compare complete raw compiled products and exact
+Complete raw Build/replay and shared BinPlace ownership. Compare complete raw
+compiled products and exact
 VSTest case names/outcomes. Check observed source-producer hashes, deliberate
 failure, SDK-absent execution and dependency edits before expanding the suites.
 Repeat the relevant controls on Bazel 8.8.0. Build and test timings must be separate.
