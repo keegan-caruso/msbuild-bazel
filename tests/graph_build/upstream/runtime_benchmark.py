@@ -55,17 +55,20 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('workspace', type=Path)
     parser.add_argument('results', type=Path, help='new owned directory, outside workspace')
-    parser.add_argument('--output-base', type=Path, required=True, help='fresh output base, or retained base for API continuation')
+    parser.add_argument('--output-base', type=Path, required=True, help='fresh base, or retained base with continuation/qualified raw results')
     parser.add_argument('--samples', type=int, default=3)
-    parser.add_argument('--slice', choices=['pipelines-tests', 'collections', 'loaded-common'], default='pipelines-tests')
+    parser.add_argument('--slice', choices=['pipelines-tests', 'collections', 'loaded-common', 'runtime-suites'], default='pipelines-tests')
     parser.add_argument('--continue-api-from', type=Path, help='completed no-op/body scorecard with retained raw state; record remaining cases separately')
+    parser.add_argument('--qualified-raw-results', type=Path, help='completed full-source raw control for runtime-suites; reuse its warm outputs in place')
     parser.add_argument('--diagnostics', action='store_true', help='profile separate unique edits after the scored series')
     args = parser.parse_args()
     assert os.uname().sysname == 'Linux' and os.uname().machine == 'aarch64'
     assert args.samples > 0
+    assert not (args.continue_api_from and args.qualified_raw_results)
+    assert bool(args.qualified_raw_results) == (args.slice == 'runtime-suites'), 'Larger timing requires the qualified full-source raw workspace'
     root, results = args.workspace.resolve(), args.results.resolve()
     assert not results.is_relative_to(root) and not root.is_relative_to(results)
-    assert args.output_base.exists() == bool(args.continue_api_from), 'Use a fresh output base, or retain the base for API continuation'
+    assert args.output_base.exists() == bool(args.continue_api_from or args.qualified_raw_results), 'Use a fresh base, or retain it with a qualified warm baseline'
     results.mkdir(parents=True, exist_ok=False)
     contract = json.loads((root / 'graph.generated.json').read_text())
     sdk = Path(os.environ['RULES_MSBUILD_DOTNET_ROOT']).resolve()
@@ -75,8 +78,8 @@ def main():
     files = {p for v in variants for p in v.get('OutputFiles', [])}
     compiled = sum(bool(v['OutputDirectories'] or v.get('OutputFiles')) for v in variants)
     declared = set(contract['SharedInputs']) | {p for v in variants for p in v['Inputs']}
-    if args.slice in ['collections', 'loaded-common']:
-        filename = 'runtime_collections_edit.json' if args.slice == 'collections' else 'runtime_loaded_common_edit.json'
+    if args.slice in ['collections', 'loaded-common', 'runtime-suites']:
+        filename = {'collections': 'runtime_collections_edit.json', 'loaded-common': 'runtime_loaded_common_edit.json', 'runtime-suites': 'runtime_source_host_edit.json'}[args.slice]
         mutation = json.loads(Path(__file__).with_name(filename).read_text())
     else:
         mutation = dict(compiled=38, implementation=IMPLEMENTATION, reference=REFERENCE, implDll=IMPL_DLL, refDll=REF_DLL,
@@ -89,7 +92,20 @@ def main():
     assert (contract.get('Entries') or [contract['Entry']]) == mutation['entries'], 'Unexpected roots'
     raw = results / 'raw-workspace'
     continuation = None
-    if args.continue_api_from:
+    qualified = None
+    if args.qualified_raw_results:
+        from runtime_full_source import validate_raw_contract
+        prior = args.qualified_raw_results.resolve()
+        assert prior != results and not results.is_relative_to(prior) and not prior.is_relative_to(results)
+        validate_raw_contract(contract, prior)
+        raw = prior / 'raw-workspace'
+        assert json.loads((raw / 'graph.generated.json').read_text()) == contract
+        assert (raw / '.qualification/Raw.dll').is_file()
+        expansion_seconds = None
+        qualified = dict(priorResults=str(prior), rawContractSha256=hashlib.sha256((raw / 'graph.generated.json').read_bytes()).hexdigest(),
+                         contractSha256=hashlib.sha256((root / 'graph.generated.json').read_bytes()).hexdigest(),
+                         interpretation='qualified full-source raw outputs and retained worker; no cold/setup timing')
+    elif args.continue_api_from:
         prior = args.continue_api_from.resolve()
         assert prior != results and not results.is_relative_to(prior)
         summary_path = prior / 'summary.json'
@@ -137,6 +153,7 @@ def main():
     memory_samples = {}
     mode_counts = {}
     originals = {p: (root / p).read_bytes() for p in [implementation, reference]}
+    assert all((raw / p).read_bytes() == content for p, content in originals.items())
     generated = root / 'graph.generated.bzl'
     original_generated = generated.read_bytes()
     build = root / 'BUILD.bazel'
@@ -247,13 +264,13 @@ def main():
         summary = dict(platform='linux-arm64', cpus=4, memoryGiB=8, msbuildNodes=4, graphProjects=compiled,
                        sdkVersion=contract['SdkVersion'], bazelVersion='9.2.0', slice=args.slice, entries=mutation['entries'], rawNamespace='same stable paths and isolation as graph',
                        harnessSha256=hashlib.sha256(Path(__file__).read_bytes()).hexdigest(), packageExpansionSeconds=expansion_seconds,
-                       continuation=continuation, memorySamples=memory_samples, rows=rows)
+                       continuation=continuation, qualifiedWarmBaseline=qualified, memorySamples=memory_samples, rows=rows)
         (results / 'summary.json').write_text(json.dumps(summary, indent=2) + '\n')
         print(json.dumps({key: value for key, value in row.items()
                           if key not in ['runner', 'rawCompilerCalls', 'graphCompilerCalls']}), flush=True)
 
     try:
-        if continuation:
+        if continuation or qualified:
             assert len(mutation['entries']) > 1, 'Continuation currently requires the multi-root raw driver'
             assert (raw / '.qualification/Raw.dll').is_file()
             raw_command = raw_host + [stable + '/.qualification/Raw.dll', stable, stable + '/graph.generated.json', 'build']
@@ -265,6 +282,8 @@ def main():
             nonce.write_text(token + '-continued-baseline')
             seed_graph, report = graph('continued-graph-baseline')
             assert report['hits'] + report['misses'] == compiled
+            if qualified:
+                assert (report['hits'], report['misses']) == (compiled, 0), 'Retain the successful qualified worker'
             assert report['operations'] is None and 'worker' not in report
             assert report['preparedRestore'] == bool(contract.get('Restore'))
             assert report['readOnlyPreparedPackages'] == bool(contract.get('Restore'))

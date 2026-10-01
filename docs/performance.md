@@ -152,6 +152,78 @@ calls. Preparation validation takes 1.7–2.1 s and evaluation about 2.3 s; SDK
 execution dominates. This does not qualify a complete runtime, independent
 recovery or source-host tests. See [ranges, phases and reproduction](graph-cache-plan.md#loaded-common-incremental-scorecard).
 
+### Expanded source-host runtime graph
+
+The qualified combined graph has **260 projects / 543 configurations / 481
+compilations**. Linux ARM64, SDK 10.0.400, Bazel 9.2.0, four CPUs/8 GiB, four
+MSBuild nodes and one graph worker. Prepared packages are read-only; the fixture
+explicitly uses an 8192 MiB logical disk-cache budget. Profiling and shared
+compilation are off for the scored rows. No other build job runs concurrently.
+
+Three alternating raw/graph pairs measure `//:graph`, excluding test execution:
+
+| Case | Full Bazel wall median (range) | Warm raw graph MSBuild median (range) | Reuse |
+| --- | ---: | ---: | --- |
+| No-op | 0.575 s (0.250–1.154) | 17.991 s (17.723–18.603) | Whole-action hit |
+| Pipelines body | 37.839 s (37.147–39.538) | 30.443 s (29.876–34.274) | 475 hits / six compilations |
+| Authored Pipelines API | 53.369 s (52.652–54.230) | 46.774 s (45.972–46.913) | 464 hits / 17 compilations |
+| Fresh local outputs | 24.543 s (22.800–29.064) | Not a warm-raw comparison | 481 hits |
+
+Body overhead is **24%**, slightly beyond the proposed ~20% gate; API overhead is
+**14%**. All pairs match all **3,622 compiled DLL/PDB/resource bytes**. Separate
+binary logs confirm the same six/17 compiler calls. Source restoration returns
+original outputs. The larger graph does not inherit the 163-compilation timing
+claim, and there is no new matched cold or remote-recovery median.
+
+The raw baseline is the complete pinned upstream source, previously qualified
+against the same graph/SDK/properties/stable paths. It retains warm outputs and
+runs no Restore. Graph time includes prepared-input validation and worker costs.
+Initial acquisition, sync, native construction, baseline restoration and profiling
+preparation are excluded. A startup guard initially compared differently formatted
+JSON bytes; parsed contracts were identical. It failed before any timing row.
+The successful helper requires the complete parsed contracts to match and records
+both document hashes.
+
+Separate profiles are **38.22 s body / 56.19 s API**; they are not scored medians:
+
+| Wall phase | Body | API |
+| --- | ---: | ---: |
+| Worker staging | 1.15 s | 1.22 s |
+| Runner prepared-input validation | 4.91 s | 4.92 s |
+| Runner evaluation | 7.50 s | 7.57 s |
+| Runner initial input hashing | 2.31 s | 2.55 s |
+| SDK execution | 17.29 s | 34.65 s |
+| Runner final verification/snapshot | 0.71 s | 0.69 s |
+| Worker output verification/cleanup | 0.68 s | 1.34 s |
+
+Within those phases, dependency fingerprinting totals **6.78/9.81 s** across
+481 calls. File hashing totals **7.72/11.68 s**, roughly 56,800 hashes / 4.41 GB.
+Snapshot validation totals **1.79/5.76 s**. These concurrent operation sums overlap
+wall phases; do not add them to the table. Materialization copies roughly
+**688/677 MB in 10,621/10,465 copies**, taking **3.29/3.26 s**; no clones occur.
+The maximum VM-used-memory estimate across sampled commands, including setup and
+diagnostics, is **4.28 GiB**, sampled every 250 ms; it is not process-only memory.
+
+Next: remove repeated node-key/reference-metadata work in fingerprinting, then
+review whether owned read-only preparation can validate payloads once. Each
+change needs invalidation/fault controls and a matched repeat. No production
+optimization or default switch is implied by this scorecard.
+
+Reproduce after [full-source and eight-suite qualification](runtime-graph-upstream-tests.md):
+
+```sh
+python3 tests/graph_build/upstream/runtime_benchmark.py WORKSPACE NEW_RESULTS \
+  --output-base WARM_BASE --slice runtime-suites \
+  --qualified-raw-results QUALIFIED_RAW_RESULTS --samples 3 --diagnostics
+```
+
+The helper reuses that owned raw workspace in place and restores its sources and
+configuration. It requires the reviewed roots, compilation scope and retained
+worker; diagnostic rows follow scored rows. Runner identity starts `714641fc59d3`,
+harness `5c6abcb6c9c4`; private summaries retain full hashes and logs. Only compact
+findings are committed. Actual 8.8 suite checks, broader edits/native mutations,
+independent larger consumers and repeated cold/recovery remain separate gates.
+
 ## Current graph-cache optimization checkpoint
 
 Three-sample Orchard body-edit measurements on the roadmap branch retain

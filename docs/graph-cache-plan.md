@@ -183,7 +183,7 @@ runtime qualification and measurement, not repeating completed synthetic work.
 | 1. Linux Pipelines | Implementation and test Build/replay/native parity pass on Linux ARM64, Bazel 8.8/9.2; 819/998 snapshot files | Broader runtime contracts |
 | 2. Incremental baseline | Ordinary/prepared paired edits and independent project recovery pass | Larger edit matrix |
 | 3. Larger scope | Collections: 55 compiled with paired edits; sockets: 77 compiled; loaded-common: 182 configured / 163 compiled with full-source parity on both baselines; threading/filesystem compilation pass; loaded-platform has 215 compilations with raw/replay/native parity on both baselines | Larger paired edits, shared/generator/resource edits, other slices and graph-backed tests |
-| 4. Removed work | Shared CAS, ownership/path reuse, shared evaluation context, read-only worker packages and 163-compilation phase profile | Safe cross-request SDK/evaluation reuse and broader timing |
+| 4. Removed work | Shared CAS, ownership/path reuse, shared evaluation context, read-only worker packages; [481-compilation scorecard/profile](performance.md#expanded-source-host-runtime-graph): body/API medians have 24%/14% overhead, with exact raw bytes and compiler calls | Remove repeated fingerprint work, then qualify prepared-payload/evaluation reuse; repeat measurements |
 | 5. Tests | [Expanded source host](runtime-graph-upstream-tests.md): 481 compilations, eight suites with 118,952 passes / 64 skips, 3,622 compiled products matching raw bytes, reviewed case/outcome parity and SDK-absent execution; full replay, six/17 body/API recompilations matching raw, assertion/observer failure and restoration pass | Actual 8.8 suite checks and larger paired build/test timings |
 | 6. Native/app | Graph-built driver and declared native producers compose a 58-managed/eight-native source framework; ordinary app and SDK-absent checks pass on both baselines; all 2,031 compiled managed products match full-source raw Build | Native mutations, broader edits and faults |
 | 7. Recovery | Independent 8.8 producer / 9.2 consumer recovers all 163 loaded-common projects and exact 3,980 files; body/API recovery and fresh raw/sandbox parity pass | Broader edits and cache/runtime faults; repeated timing and peak memory |
@@ -1232,3 +1232,12 @@ recovery/cold rows and peak-memory/readiness review remain open.
 ### Expanded Pipelines raw parity
 
 The 474-compilation Linux ARM64 graph matches all 3,447 full-source raw DLL/PDB/resource files, including reviewed shared outputs. Real VSTest reports identical names and outcomes for 577 passing cases; all 84 observed component hashes match source producers in vstest.console, datacollector and testhost. Full replay returns 474 hits, the body edit rebuilds six projects and the API edit rebuilds 17, matching raw compiler calls. Assertion failure/restoration and SDK-absent execution pass. Native producers are shared with the raw control. These are correctness checks, not paired timing. Remaining gates and commands are in [upstream tests](runtime-graph-upstream-tests.md).
+
+### Expanded source-host scorecard
+
+The 481-compilation build-only scorecard has three paired no-op/body/API samples
+and three local-recovery samples. Body/API medians are 37.839/53.369 s versus
+30.443/46.774 s raw: 24%/14% overhead. All 3,622 compiled products match; diagnostic
+compiler calls are six/17 on both sides. See [phases, ranges, memory, reproduction
+and limits](performance.md#expanded-source-host-runtime-graph). Body remains slightly
+outside the proposed gate; no default switch or broader cold/remote claim follows.
