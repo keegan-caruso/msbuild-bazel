@@ -492,6 +492,38 @@ internal static class GraphGenerator
             return path == Path.GetFullPath(expected, directory) || path == Path.GetFullPath(Path.ChangeExtension(target, ".xml"), directory);
         }
 
+        IEnumerable<ProjectGraphNode> RuntimeDependencies(ProjectGraphNode node)
+        {
+            var seen = new HashSet<(ProjectGraphNode, bool)>();
+            var copies = new HashSet<ProjectGraphNode>();
+            var pending = new Stack<(ProjectGraphNode Node, bool Copy)>();
+            pending.Push((node, false));
+            while (pending.TryPop(out var current))
+            {
+                foreach (var dependency in current.Node.ProjectReferences)
+                {
+                    // Graph-injected edges can reach tool-only closures. Recover
+                    // roles through authored references and outer coordination.
+                    var authored = current.Node.ProjectInstance.GetItems("ProjectReference").Where(item =>
+                        Path.GetFullPath(item.EvaluatedInclude.Replace('\\', '/'), Path.GetDirectoryName(current.Node.ProjectInstance.FullPath)!) == dependency.ProjectInstance.FullPath).ToArray();
+                    var references = authored.Where(item => !item.GetMetadataValue("ReferenceOutputAssembly").Equals("false", StringComparison.OrdinalIgnoreCase)).ToArray();
+                    var runtimeEdge = authored.Length != 0 ? references.Length != 0 : current.Node.ProjectInstance.FullPath == dependency.ProjectInstance.FullPath;
+                    var copy = authored.Length != 0
+                        ? references.Any(item => !item.GetMetadataValue("Private").Equals("false", StringComparison.OrdinalIgnoreCase))
+                        : current.Copy;
+                    if (!runtimeEdge || !seen.Add((dependency, copy)))
+                    {
+                        continue;
+                    }
+                    if (copy && copies.Add(dependency))
+                    {
+                        yield return dependency;
+                    }
+                    pending.Push((dependency, copy));
+                }
+            }
+        }
+
         Dictionary<string, string> DependencyCopies(ProjectGraphNode node)
         {
             var copies = new Dictionary<string, string>(StringComparer.Ordinal);
@@ -500,7 +532,7 @@ internal static class GraphGenerator
             var output = Path.GetDirectoryName(Path.GetFullPath(project.GetPropertyValue("TargetPath"), directory))!;
             var publish = project.GetPropertyValue("PublishDir");
             var destinations = publish.Length == 0 ? new[] { output } : new[] { output, Path.GetFullPath(publish, directory) };
-            foreach (var dependency in Dependencies(node).Where(current => current.ProjectInstance.GetPropertyValue("TargetPath").Length != 0)
+            foreach (var dependency in RuntimeDependencies(node).Where(current => current.ProjectInstance.GetPropertyValue("TargetPath").Length != 0)
                 .OrderBy(current => Key(current.ProjectInstance), StringComparer.Ordinal))
             {
                 var source = Path.GetFullPath(dependency.ProjectInstance.GetPropertyValue("TargetPath"), Path.GetDirectoryName(dependency.ProjectInstance.FullPath)!);

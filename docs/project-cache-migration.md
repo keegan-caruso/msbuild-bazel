@@ -874,7 +874,15 @@ version 1/2 contracts remain readable.
 `referenceBoundary` is optional. Omission retains conservative automatic
 qualification; `false` disables reference reuse. `true` attests that ordinary
 project dependencies are consumed through compiler references and declared
-runtime copies. It requires standard managed outputs: documentation may use `obj/<assembly>.xml`
+runtime copies. Copy bindings traverse ordinary compiler-reference edges;
+`ReferenceOutputAssembly=false` branches remain build-tool dependencies. An
+analyzer that also supplies a compiler reference retains runtime-copy semantics.
+`Private=false` references retain compiler dependencies and omit copy ownership,
+including their outer/inner configurations. The Linux ARM64
+`reviewed_dependencies.py` controls also cover conflicting application/analyzer
+assembly names, generator edits, dual-role ambiguity and non-copying reference
+replay/body parity against fresh compilation.
+It requires standard managed outputs: documentation may use `obj/<assembly>.xml`
 or sit beside the DLL as `<assembly>.xml`. Custom documentation filenames and
 PDB paths are rejected. It also rejects trimming,
 ReadyToRun, Native AOT and single-file transforms. The Linux ARM64

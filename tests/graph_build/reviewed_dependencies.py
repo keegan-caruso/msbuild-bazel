@@ -167,6 +167,106 @@ def multitarget():
         print('PASS: reviewed outer-node coordination, replay, body edit and ambiguous-copy rejection')
 
 
+def tool_closure():
+    with tempfile.TemporaryDirectory(prefix='reviewed-tool-closure-') as temporary:
+        base = Path(temporary).resolve()
+        root = base / 'workspace'
+        root.mkdir()
+        fixture(root)
+        for name in ['Generator', 'ToolDependency']:
+            (root / name).mkdir()
+        # A tool dependency has the same assembly filename as an application
+        # dependency. Its separate graph must not claim the application copy.
+        (root / 'ToolDependency/ToolDependency.csproj').write_text('<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup><TargetFramework>net10.0</TargetFramework><AssemblyName>P0</AssemblyName></PropertyGroup></Project>')
+        (root / 'ToolDependency/Code.cs').write_text('public class ToolDependency {}')
+        (root / 'Generator/Generator.csproj').write_text('<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup><TargetFramework>net10.0</TargetFramework></PropertyGroup><ItemGroup><ProjectReference Include="../ToolDependency/ToolDependency.csproj" />' + ''.join(
+            f'<Reference Include="{name}" HintPath="$(MSBuildBinPath)/Roslyn/bincore/{name}.dll" Private="false" />' for name in ['Microsoft.CodeAnalysis', 'Microsoft.CodeAnalysis.CSharp']) + '</ItemGroup></Project>')
+        def generator(value):
+            (root / 'Generator/Code.cs').write_text('using Microsoft.CodeAnalysis; [Generator] public class G : ISourceGenerator { public void Initialize(GeneratorInitializationContext c) {} public void Execute(GeneratorExecutionContext c) { c.AddSource("Generated.cs", "internal static class Generated { internal static int Value => ' + str(value) + '; }"); }}')
+        generator(10)
+        p1 = root / 'P1/P1.csproj'
+        p1.write_text(p1.read_text().replace('</Project>', '<ItemGroup><ProjectReference Include="../Generator/Generator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" /></ItemGroup></Project>'))
+        (root / 'P1/Code.cs').write_text('public class P1 { public static int Value() => P0.Value() + Generated.Value; }')
+        mapping = base / 'mapping.json'
+        mapping.write_text(json.dumps({'projectDefaults': {'referenceBoundary': True}}))
+        run(DOTNET, ROOT / 'tools/ProjectSync/bin/Release/net10.0/ProjectSync.dll', root,
+            SDK / 'sdk/10.0.400', 'P2/P2.csproj', '--graph', '--mappings', mapping)
+        contract = root / 'graph.generated.json'
+        data = json.loads(contract.read_text())
+        for name in ['P1', 'P2']:
+            copies = data['Projects'][f'{name}/{name}.csproj']['Configurations'][0]['DependencyCopies']
+            assert copies[f'{name}/bin/Release/net10.0/P0.dll'] == 'P0/bin/Release/net10.0/P0.dll'
+            assert not any(path.startswith(('Generator/', 'ToolDependency/')) for path in copies.values())
+        report = base / 'report.json'
+        def build(hits, value, cache='cache'):
+            for name in ['P0', 'P1', 'P2', 'Generator', 'ToolDependency']:
+                for folder in ['bin', 'obj']:
+                    shutil.rmtree(root / name / folder, ignore_errors=True)
+            run(DOTNET, RUNNER, 'action', root, contract, report, base / cache)
+            assert json.loads(report.read_text())['hits'] == hits, report.read_text()
+            assert run(DOTNET, root / 'P2/bin/Release/net10.0/P2.dll').stdout.strip() == str(value)
+            assert (root / 'P2/bin/Release/net10.0/P0.dll').read_bytes() == (root / 'P0/bin/Release/net10.0/P0.dll').read_bytes()
+            return {str(p.relative_to(root)): hashlib.sha256(p.read_bytes()).hexdigest()
+                    for name in ['P0', 'P1', 'P2', 'Generator', 'ToolDependency'] for folder in ['bin', 'obj/Release']
+                    for p in (root / name / folder).rglob('*') if p.is_file() and not p.name.endswith('.AssemblyReference.cache')}
+        build(0, 11)
+        build(5, 11)
+        (root / 'P0/Code.cs').write_text('public class P0 { public static int Value() => 2; }')
+        assert build(4, 12) == build(0, 12, 'body-control')
+        generator(20)
+        assert build(3, 22) == build(0, 22, 'generator-control')
+        # An analyzer that is also a compiler reference retains runtime-copy
+        # semantics; conflicting producers must still fail qualification.
+        p1.write_text(p1.read_text().replace('ReferenceOutputAssembly="false"', 'ReferenceOutputAssembly="true"'))
+        assert 'Ambiguous graph dependency copy' in run(DOTNET, ROOT / 'tools/ProjectSync/bin/Release/net10.0/ProjectSync.dll', root,
+            SDK / 'sdk/10.0.400', 'P2/P2.csproj', '--graph', '--mappings', mapping, success=False).stderr
+        print('PASS: analyzer dependency closures do not own application copies; replay, body and generator edits match fresh compilation')
+
+
+def private_copies():
+    with tempfile.TemporaryDirectory(prefix='reviewed-private-copies-') as temporary:
+        base = Path(temporary).resolve()
+        root = base / 'workspace'
+        root.mkdir()
+        fixture(root)
+        (root / 'P2/P2.csproj').write_text((root / 'P2/P2.csproj').read_text().replace('<OutputType>Exe</OutputType>', ''))
+        (root / 'P2/Code.cs').write_text('public class P2 { public static int Value() => P1.Value(); }')
+        props = root / 'Directory.Build.props'
+        props.write_text(props.read_text().replace('</Project>', '<ItemDefinitionGroup><ProjectReference><Private>false</Private></ProjectReference></ItemDefinitionGroup></Project>'))
+        mapping = base / 'mapping.json'
+        mapping.write_text(json.dumps({'projectDefaults': {'referenceBoundary': True}}))
+        run(DOTNET, ROOT / 'tools/ProjectSync/bin/Release/net10.0/ProjectSync.dll', root,
+            SDK / 'sdk/10.0.400', 'P2/P2.csproj', '--graph', '--mappings', mapping)
+        contract = root / 'graph.generated.json'
+        assert all(not variant['DependencyCopies'] for project in json.loads(contract.read_text())['Projects'].values() for variant in project['Configurations'])
+        report = base / 'report.json'
+        def build(hits, cache='cache'):
+            for name in ['P0', 'P1', 'P2']:
+                for folder in ['bin', 'obj']:
+                    shutil.rmtree(root / name / folder, ignore_errors=True)
+            run(DOTNET, RUNNER, 'action', root, contract, report, base / cache)
+            assert json.loads(report.read_text())['hits'] == hits, report.read_text()
+            assert not (root / 'P1/bin/Release/net10.0/P0.dll').exists()
+            assert not (root / 'P2/bin/Release/net10.0/P0.dll').exists()
+            assert not (root / 'P2/bin/Release/net10.0/P1.dll').exists()
+            return {str(p.relative_to(root)): hashlib.sha256(p.read_bytes()).hexdigest()
+                    for name in ['P0', 'P1', 'P2'] for folder in ['bin', 'obj/Release']
+                    for p in (root / name / folder).rglob('*') if p.is_file() and not p.name.endswith('.AssemblyReference.cache')}
+        build(0)
+        build(3)
+        (root / 'P0/Code.cs').write_text('public class P0 { public static int Value() => 2; }')
+        assert build(2) == build(0, 'body-control')
+        # Private output suppression also applies to outer/inner coordination.
+        for project in root.glob('P*/*.csproj'):
+            project.write_text(project.read_text().replace('<TargetFramework>net10.0</TargetFramework>', '<TargetFrameworks>net10.0;net10.0-windows</TargetFrameworks>'))
+        run(DOTNET, ROOT / 'tools/ProjectSync/bin/Release/net10.0/ProjectSync.dll', root,
+            SDK / 'sdk/10.0.400', 'P2/P2.csproj', '--graph', '--mappings', mapping)
+        assert all(not variant['DependencyCopies'] for project in json.loads(contract.read_text())['Projects'].values() for variant in project['Configurations'])
+        print('PASS: Private=false omits DLL copy ownership; replay/body outputs match fresh compilation and multi-target copy declarations remain empty')
+
+
 if __name__ == '__main__':
     main()
     multitarget()
+    tool_closure()
+    private_copies()
