@@ -1,9 +1,10 @@
 # Runtime graph test-host qualification
 
 The graph path builds a selected source framework and runs eight reviewed upstream
-VSTest suites. The 481-compilation seed passes all selected suites. The earlier
-474-compilation Pipelines scope additionally has raw parity, full local replay
-and body/API boundary evidence. Larger-scope parity and replay remain separate gates.
+VSTest suites. The 481-compilation seed passes all selected suites. All 3,622 compiled DLL/PDB/resource files match complete-source raw MSBuild.
+All eight suites preserve raw case outcomes and pass without the downloaded SDK
+mounted. The earlier 474-compilation Pipelines scope also has full local replay
+and body/API boundary evidence; larger-scope replay is a separate gate.
 
 ## Verified checkpoint
 
@@ -90,8 +91,22 @@ python3 tests/graph_build/upstream/runtime_settings_synthetic.py NEW_DIRECTORY
 
 The expanded seed reports zero hits / 481 misses. Adding roots changed the cache
 contract; seven additional compilation nodes did not mean seven actual misses.
-Full-source raw parity, SDK-absent execution, replay/edit controls and actual
-8.8 suite execution remain to be verified at this larger scope.
+Complete-source raw Build uses the same 260 projects / 543 configurations. Its
+shared BinPlace inventory is exactly unchanged: 1,391 files across 231 producer
+configurations, plus the earlier declared CoreLib PDB. All 3,622 compiled products
+match graph bytes. All eight suites preserve case counts, outcomes and the 64
+skips; only the existing reviewed unstable MemberData displays are normalized.
+Observed source-producer hashes match in VSTest, datacollector, testhost and the
+72 RemoteExecutor child observations across threading and filesystem suites.
+
+SDK-absent execution repeats all eight suites with identical outcomes. Its first
+filesystem attempt exposed two namespace differences: UID 0 without DAC
+capabilities failed privileged-write tests, and missing `/dev/console` removed
+eight discovered cases. The passing namespace keeps the matching DAC capabilities
+and conditionally binds that VM device. It still mounts no SDK; no case or filter
+was removed. A deliberately wrong CoreLib hash fails fast.
+
+The larger replay/edit controls and actual 8.8 suite execution remain open.
 
 ## Declared inputs
 
@@ -185,7 +200,7 @@ control uses a short unique marker and starts from a successful original suite.
 
 ## Remaining gates
 
-Complete the eight-suite full-source parity and replay/edit checks. Repeat relevant
+Complete the eight-suite replay/edit checks. Repeat relevant
 actual-suite controls on Bazel 8.8.0.
 Independent cache consumers, native source/header/tool mutations and broader edit
 scenarios remain separate roadmap gates. Build and test timings must be separate.
