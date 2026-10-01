@@ -488,7 +488,8 @@ internal static class GraphGenerator
             }
             var directory = Path.GetDirectoryName(project.FullPath)!;
             var expected = Path.Combine(project.GetPropertyValue("IntermediateOutputPath"), Path.ChangeExtension(Path.GetFileName(target), ".xml"));
-            return Path.GetFullPath(documentation, directory) == Path.GetFullPath(expected, directory);
+            var path = Path.GetFullPath(documentation, directory);
+            return path == Path.GetFullPath(expected, directory) || path == Path.GetFullPath(Path.ChangeExtension(target, ".xml"), directory);
         }
 
         Dictionary<string, string> DependencyCopies(ProjectGraphNode node)

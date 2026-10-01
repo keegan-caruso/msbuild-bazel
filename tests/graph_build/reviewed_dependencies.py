@@ -91,6 +91,24 @@ def main():
         (root / 'P0/Code.cs').write_text('public class P0 { public static int Value() => 3; public static int Added() => 3; }')
         outputs = build(2, 23)
         assert outputs == build(0, 23, 'implementation-control')
+        # Conventional XML beside a dependency DLL also supports reviewed boundaries.
+        p0 = root / 'P0/P0.csproj'
+        before_documentation = p0.read_text()
+        p0.write_text(before_documentation.replace('</Project>', '<PropertyGroup><GenerateDocumentationFile>true</GenerateDocumentationFile><DocumentationFile>bin/$(Configuration)/$(TargetFramework)/P0.xml</DocumentationFile><NoWarn>$(NoWarn);1591</NoWarn></PropertyGroup></Project>'))
+        mapping['projects'] = {}
+        sync()
+        build(0, 23, 'documentation-cache')
+        build(4, 23, 'documentation-cache')
+        documentation = root / 'P2/bin/Release/net10.0/P0.xml'
+        assert documentation.read_bytes() == (root / 'P0/bin/Release/net10.0/P0.xml').read_bytes()
+        (root / 'P0/Code.cs').write_text('public class P0 { public static int Value() => 4; public static int Added() => 3; }')
+        outputs = build(3, 24, 'documentation-cache')
+        assert outputs == build(0, 24, 'documentation-body-control')
+        # A custom documentation filename is still outside the standard copy contract.
+        p0.write_text(p0.read_text().replace('bin/$(Configuration)/$(TargetFramework)/P0.xml', 'bin/$(Configuration)/$(TargetFramework)/custom.xml'))
+        assert 'standard managed outputs' in sync(False).stderr
+        p0.write_text(before_documentation)
+        (root / 'P0/Code.cs').write_text('public class P0 { public static int Value() => 3; public static int Added() => 3; }')
         # Content propagates even with transitive compiler references disabled.
         mapping['projects'] = {}
         mapping['projectDefaults']['properties'] = {'DisableTransitiveProjectReferences': 'true'}

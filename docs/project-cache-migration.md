@@ -874,8 +874,13 @@ version 1/2 contracts remain readable.
 `referenceBoundary` is optional. Omission retains conservative automatic
 qualification; `false` disables reference reuse. `true` attests that ordinary
 project dependencies are consumed through compiler references and declared
-runtime copies. It requires standard managed outputs and rejects trimming,
-ReadyToRun, Native AOT and single-file transforms. Targetless multi-targeting
+runtime copies. It requires standard managed outputs: documentation may use `obj/<assembly>.xml`
+or sit beside the DLL as `<assembly>.xml`. Custom documentation filenames and
+PDB paths are rejected. It also rejects trimming,
+ReadyToRun, Native AOT and single-file transforms. The Linux ARM64
+`reviewed_dependencies.py` fixture covers DLL-adjacent XML replay, unchanged
+reference bytes after a body edit, exact runtime-copy bytes and rejection of a
+custom filename. Targetless multi-targeting
 nodes coordinate their configured builds and do not own assembly copies.
 If multiple framework producers map to the same consumer copy, sync rejects the
 reviewed boundary; use the conservative contract for that graph.
