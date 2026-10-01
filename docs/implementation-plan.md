@@ -42,8 +42,12 @@ complete-source raw build. Reviewed translations and disposable ASN task scratch
 preserve parity. See the [loaded-common checkpoint](graph-cache-plan.md#loaded-common-source-compilation-checkpoint);
 its paired body/API medians are effectively equal / about 9% slower than raw;
 a bounded graph-built corerun probe now passes with source-built native products,
-SDK-absent execution and runtime-input test invalidation. Upstream suite execution,
-an ordinary app and independent recovery remain open.
+SDK-absent execution and runtime-input test invalidation. The combined source host
+also runs an ordinary app and the 577-case upstream Pipelines suite. Full-source
+raw parity, local body/API replay and SDK-absent execution pass for the expanded
+474-compilation suite graph. Independent ordinary-app action-cache recovery also
+passes. Larger suite, project-cache consumer and timing gates remain open; see
+[runtime test-host qualification](runtime-graph-upstream-tests.md).
 The platform roots also pass 8.8/9.2 worker/replay/native parity for 215 compilations;
 all 1,498 compiled products match the complete-source raw Build. See the [platform checkpoint](graph-cache-plan.md#platform-graph-checkpoint).
 The collections paired body/API medians have about 3% overhead / 9% advantage

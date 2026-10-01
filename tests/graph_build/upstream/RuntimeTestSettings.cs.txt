@@ -1,0 +1,18 @@
+using System.Xml.Linq;
+
+// Qualification tool: preserve the SDK settings and add the reviewed slice filter.
+if (args.Length != 3 || string.IsNullOrWhiteSpace(args[1]))
+    throw new ArgumentException("Expected SDK settings, additional filter and output");
+var document = XDocument.Load(args[0]);
+if (document.Root?.Name != "RunSettings")
+    throw new InvalidDataException("Expected RunSettings root");
+var configuration = document.Root.Element("RunConfiguration")
+    ?? throw new InvalidDataException("Missing SDK RunConfiguration");
+var filter = configuration.Element("TestCaseFilter");
+if (filter is null)
+{
+    filter = new XElement("TestCaseFilter");
+    configuration.Add(filter);
+}
+filter.Value = (string.IsNullOrWhiteSpace(filter.Value) ? "" : "(" + filter.Value + ")&") + "(" + args[1] + ")";
+document.Save(args[2]);

@@ -1,8 +1,9 @@
 # Runtime graph test-host qualification
 
-The graph path builds a selected source framework and runs the upstream Pipelines
-VSTest suite. Raw parity, full local replay and body/API boundaries pass;
-this is not an eight-suite passing result.
+The graph path builds a selected source framework and runs eight reviewed upstream
+VSTest suites. The 481-compilation seed passes all selected suites. The earlier
+474-compilation Pipelines scope additionally has raw parity, full local replay
+and body/API boundary evidence. Larger-scope parity and replay remain separate gates.
 
 ## Verified checkpoint
 
@@ -37,6 +38,60 @@ establish that the default budget was exceeded. These are unscored correctness c
 
 The smaller test attempt also exposed a fixture mistake: composing a layout at
 its root requires `"."`, not an empty destination. No production rule changed.
+
+## Eight-suite expansion
+
+The reviewed combined graph has 260 physical projects, 543 configurations and
+481 compilations. Bazel 9.2.0 builds all 481 projects and runs all eight suites
+on the declared source host, with 118,952 passes, 64 skips and no failures.
+These are unscored Linux ARM64 correctness checks.
+
+| Selected upstream suite | Passed | Skipped |
+| --- | ---: | ---: |
+| Pipelines | 577 | 0 |
+| Collections.Immutable | 22,544 | 0 |
+| Collections | 33,438 | 0 |
+| LINQ | 52,178 | 8 |
+| Threading | 591 | 0 |
+| Threading.Tasks | 809 | 2 |
+| FileSystem | 8,662 | 54 |
+| Sockets: reviewed NetworkStream filter | 153 | 0 |
+
+The host retains 123 managed and eight native producers. It also declares the
+reviewed net8.0 Formatters assembly in a private support directory. Production
+rules contain no runtime-specific translation. The observer records the VSTest,
+datacollector and testhost processes, plus RemoteExecutor children where used.
+
+A qualification-only C# action adds the NetworkStream filter to the actual
+SDK-generated settings. It preserves other SDK fields and combines an existing
+filter with `&`. Small public-Bazel controls pass on 8.8/9.2: combine or create a
+filter, preserve the host field, reject absent RunConfiguration, and restore
+without compiling the tool again.
+
+Prepare the larger scope by adding these selections to the preparation command:
+
+```sh
+--also-slice collections --also-slice threading \
+--also-slice filesystem --also-slice sockets
+```
+
+Compose its host and harness:
+
+```sh
+python3 tests/graph_build/upstream/runtime_application.py \
+  WORKSPACE NATIVE_WORKSPACE --include-private-frameworks
+python3 tests/graph_build/upstream/runtime_suite.py WORKSPACE PINNED_VSTEST_ARCHIVE \
+  --slice pipelines --slice collections --slice threading \
+  --slice filesystem --slice sockets
+# Run //:runtime_suites with the worker options below.
+python3 tests/graph_build/upstream/runtime_settings_synthetic.py NEW_DIRECTORY
+# Repeat the small fixture with --version 8.8.0.
+```
+
+The expanded seed reports zero hits / 481 misses. Adding roots changed the cache
+contract; seven additional compilation nodes did not mean seven actual misses.
+Full-source raw parity, SDK-absent execution, replay/edit controls and actual
+8.8 suite execution remain to be verified at this larger scope.
 
 ## Declared inputs
 
@@ -130,7 +185,8 @@ control uses a short unique marker and starts from a successful original suite.
 
 ## Remaining gates
 
-Expand to the remaining selected suites. Repeat relevant actual-suite controls on Bazel 8.8.0.
+Complete the eight-suite full-source parity and replay/edit checks. Repeat relevant
+actual-suite controls on Bazel 8.8.0.
 Independent cache consumers, native source/header/tool mutations and broader edit
 scenarios remain separate roadmap gates. Build and test timings must be separate.
 

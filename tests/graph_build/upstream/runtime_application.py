@@ -16,6 +16,7 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('workspace', type=Path, help='fresh combined loaded-common/platform graph workspace')
     parser.add_argument('native_workspace', type=Path, help='declared native, support, host, crypto and compression producers')
+    parser.add_argument('--include-private-frameworks', action='store_true', help='declare reviewed alternate-framework test support assemblies beside the source host')
     args = parser.parse_args()
     assert os.uname().sysname == 'Linux' and os.uname().machine == 'aarch64'
     root, native = args.workspace.resolve(), args.native_workspace.resolve()
@@ -31,11 +32,15 @@ def main():
     selection = json.loads((ROOT / 'tests/explicit_msbuild/runtime/subset_slices.json').read_text())
     assert selection['commit'] == COMMIT
     shim_framework = next(item['framework'] for item in selection['slices'] if item['name'] == 'loaded-shims')
-    managed = {}
+    managed, private = {}, {}
     for key, (directory, assembly, kind) in outputs[0].items():
         project, framework = key.split('|')
         if not (project.startswith('src/coreclr/System.Private.CoreLib/') or
                 (project.startswith('src/libraries/') and '/src/' in project)):
+            continue
+        if args.include_private_frameworks and selection.get('privateFrameworks', {}).get(assembly.removesuffix('.dll')) == framework:
+            assert kind == 'Library' and assembly not in private
+            private[assembly] = dict(project=project, framework=framework, path=directory + '/' + assembly)
             continue
         default_framework = shim_framework if project.startswith('src/libraries/shims/') else 'net10.0'
         if framework != selection['hostFrameworks'].get(assembly.removesuffix('.dll'), default_framework):
@@ -46,6 +51,8 @@ def main():
                 'System.Text.Json.dll', 'System.Text.Encodings.Web.dll', 'System.IO.Compression.dll',
                 'System.Security.Cryptography.dll'}
     assert required <= managed.keys(), sorted(required - managed.keys())
+    if args.include_private_frameworks:
+        assert set(private) == {name + '.dll' for name in selection['privateFrameworks']}, 'The graph lacks reviewed private framework producers'
     names = ['native', 'native_support', 'host', 'crypto', 'compression']
     for name in names:
         metadata = json.loads((native / name / 'acquisition.json').read_text())
@@ -93,6 +100,11 @@ def main():
         declarations.append('msbuild_graph_layout(name=' + json.dumps(label) + ', graph=":graph", project=' +
             json.dumps(producer['project']) + ', framework=' + json.dumps(producer['framework']) + ')')
         paths[':' + label] = shared
+    for index, (name, producer) in enumerate(sorted(private.items())):
+        label = 'app_private_' + str(index)
+        declarations.append('msbuild_graph_layout(name=' + json.dumps(label) + ', graph=":graph", project=' +
+            json.dumps(producer['project']) + ', framework=' + json.dumps(producer['framework']) + ')')
+        paths[':' + label] = 'private'
     paths.update({label: destination for label, destination, _ in native_products.values()})
     paths.update({'runtime/' + shared + '/' + name: shared + '/' + name for name in
                   ['.version', 'Microsoft.NETCore.App.runtimeconfig.json', 'Microsoft.NETCore.App.deps.json']})
@@ -103,7 +115,7 @@ def main():
         'msbuild_graph_test(name="app_test", graph=":app_build", assembly="bin/Release/net10.0/App.dll", runtime_host=":app_host")']
     with (root / 'BUILD.bazel').open('a') as build:
         build.write('\n' + '\n'.join(declarations) + '\n')
-    (root / 'application.json').write_text(json.dumps(dict(commit=COMMIT, framework='10.0.0', managed=managed,
+    (root / 'application.json').write_text(json.dumps(dict(commit=COMMIT, framework='10.0.0', managed=managed, private=private,
         native={name: dict(label=label, path=path, producer=producer) for name, (label, path, producer) in native_products.items()},
         scope='selected source framework for ordinary app; not a redistributable runtime'), indent=2) + '\n')
     print(root, flush=True)
