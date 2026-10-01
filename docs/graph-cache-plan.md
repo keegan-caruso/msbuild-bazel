@@ -900,3 +900,25 @@ this summary is committed. Owned .NET style/build checks and all 107 unit tests
 pass. Separate focused controls qualify temporary-output dependencies and rejection.
 Body/API paired timings, broader edit types, source-host execution and independent
 recovery of this larger graph remain open.
+
+## Loaded-common reference-boundary qualification
+
+The first larger body-edit attempt rebuilt six projects, while a separate raw
+SDK graph binlog showed five Pipelines compilations and no Text.Json compilation.
+That timing series is excluded: platform sync also overlapped its early rows.
+
+The Linux mapping now attests Text.Json's compiler-reference boundary and retains
+implementation roles for its three source-generator projects. Generic sync
+accepts conventional DLL-adjacent XML and honors `ReferenceOutputAssembly=false`
+and `Private=false` when declaring runtime copies. This removes competing tool
+framework copy owners without dropping configured builds. Upstream source
+libraries deliberately suppress CopyLocal; Text.Json declares no dependency
+DLL copies. Small `reviewed_dependencies.py` controls cover documentation,
+analyzer/application name conflicts, dual-role references and non-copying
+replay/body edits against fresh compilation.
+
+The reviewed 91-project / 182-configuration / 163-compilation graph passes all
+six `runtime_qualify.py` controls on Linux ARM64, Bazel 8.8/9.2, with exact
+3,980-file byte/mode parity. All 1,447 DLL/PDB/resource files match the retained
+complete-source raw graph build. These are correctness controls; paired edits,
+profiles, independent recovery and source-host execution remain open.

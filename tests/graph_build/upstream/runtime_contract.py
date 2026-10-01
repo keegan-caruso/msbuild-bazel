@@ -104,6 +104,17 @@ def main():
         for variant in [binding] + list(binding.get('frameworkOverrides', {}).values()):
             variant['temporaryDirectories'] = ['$(IntermediateOutputPath)asnxml']
     if args.platform == 'linux-arm64':
+        # This library consumes SDK compiler references. Retain implementation
+        # dependencies for the source-generator projects built alongside it.
+        project = 'src/libraries/System.Text.Json/src/System.Text.Json.csproj'
+        binding = mapping['projects'].setdefault(project, copy.deepcopy(mapping['projectDefaults']))
+        binding.pop('properties', None)
+        generators = ['src/libraries/System.Text.Json/gen/System.Text.Json.SourceGeneration.Roslyn' + version + '.csproj'
+                      for version in ['3.11', '4.0', '4.4']]
+        for variant in [binding] + list(binding.get('frameworkOverrides', {}).values()):
+            variant['referenceBoundary'] = True
+            variant['implementationDependencies'] = generators
+    if args.platform == 'linux-arm64':
         # Only the browser configuration reads this PNS generation exclusion.
         project = 'src/libraries/System.Net.NameResolution/src/System.Net.NameResolution.csproj'
         binding = mapping['projects'].setdefault(project, copy.deepcopy(mapping['projectDefaults']))
