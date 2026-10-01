@@ -289,6 +289,36 @@ Use a separate driver copy for the probe; do not replace a scored raw driver or
 change the harness during a scored series. SDK/architecture/scope are the same
 as the expanded scorecard. No compiler or project-cache action runs in this probe.
 
+### Dependency ordering preflight
+
+The graph cache already memoizes each dependency closure per request. On the
+same evaluated runtime graph, an ordered-list prototype preserves all **29,771
+configured-node records**, including coordination-node expansion. Only one
+compiled consumer in this reviewed contract combines a reference boundary with
+transitive compiler references; most lists have no repeated ordering to remove.
+
+Five alternating pairs of 20 passes, including ordered-cache construction, give
+**20.843 ms** current / **21.062 ms** cached medians per graph. Ranges are
+20.602–63.950 / 20.591–21.153 ms. These costs exclude evaluation, already memoized
+closure traversal, output hashing and compilation. There is no measured saving,
+so production traversal and ordering remain unchanged.
+
+Fresh chain and diamond controls pass with transitive references enabled and
+disabled. A five-configured-node/four-compilation fixture retains both framework
+builds and correctly expands the multi-targeting coordinator. All node sequences
+match. The metadata controls also pass after the shared qualification-driver change.
+Reproduce the preceding probe command with `dependency-order` instead of
+`reference-work`; run the small controls with:
+
+```sh
+RULES_MSBUILD_DOTNET_ROOT=SDK python3 tests/graph_build/dependency_order.py
+```
+
+Together, these preflights rule out reference scanning and repeated sorting as
+substantial causes of the measured gap in this scope. They do not qualify a
+production evaluation cache or predict denser graphs. Prepared-input verification
+and project evaluation remain the next measured multi-second targets.
+
 ## Current graph-cache optimization checkpoint
 
 Three-sample Orchard body-edit measurements on the roadmap branch retain

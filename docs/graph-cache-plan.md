@@ -1252,7 +1252,13 @@ comparison did not establish a speedup; the prototype was removed. See the
 Slice 3's isolated lookup preflight saves about five milliseconds per graph, so
 production reference handling also remains unchanged; see the
 [measurement](performance.md#authored-reference-lookup-preflight).
-Remaining slices are planned work, not measured gains.
+Slice 4 also showed no saving: current/cached ordering is about 20.8/21.1 ms
+per graph with identical configured-node sequences. See the
+[ordering preflight](performance.md#dependency-ordering-preflight).
+Slices 1–4 are closed; production caching is unchanged. Final owned-code checks
+pass all 107 unit tests, with no owned-build warnings/errors; toolchain and
+Starlark checks pass too. CI was not run. Continue with slice 5.
+Later slices remain planned work, not measured gains.
 
 ### Measurement contract
 

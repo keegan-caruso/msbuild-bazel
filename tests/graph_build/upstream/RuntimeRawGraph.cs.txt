@@ -43,9 +43,9 @@ foreach (var node in graph.ProjectNodes)
             (node.ProjectInstance.GlobalProperties.TryGetValue(p.Name, out var value) ? value : "") == p.Value.GetString())) != 1)
         throw new InvalidDataException("Raw graph configuration differs: " + path);
 }
-// Qualification only: measure metadata scanning independently of output hashing,
-// evaluation and compilation. Include lookup construction in every candidate pass.
-if (args[2] == "reference-work")
+// Qualification only: isolate reference scanning and ordering from output hashing,
+// evaluation and compilation. Include candidate-cache construction in every pass.
+if (args[2] is "reference-work" or "dependency-order")
 {
     var nodes = graph.ProjectNodes.Where(n => n.ProjectInstance.GetPropertyValue("TargetPath").Length != 0)
         .OrderBy(n => n.ProjectInstance.FullPath, StringComparer.Ordinal).ToArray();
@@ -70,14 +70,61 @@ if (args[2] == "reference-work")
     bool Boundary(ProjectGraphNode node) => contracts[node].TryGetProperty("ReferenceBoundary", out var boundary) && boundary.GetBoolean();
     string Key(ProjectGraphNode node) => node.ProjectInstance.FullPath + "|" + string.Join(";", node.ProjectInstance.GlobalProperties
         .OrderBy(p => p.Key, StringComparer.Ordinal).Select(p => p.Key + "=" + p.Value));
-    var references = nodes.ToDictionary(n => n, n =>
+    IEnumerable<ProjectGraphNode> SelectedReferences(ProjectGraphNode n)
     {
         IEnumerable<ProjectGraphNode> selectedReferences = Boundary(n) && !n.ProjectInstance.GetPropertyValue("DisableTransitiveProjectReferences").Equals("true", StringComparison.OrdinalIgnoreCase)
             ? Dependencies(n) : n.ProjectReferences;
         if (Boundary(n)) selectedReferences = selectedReferences.SelectMany(r => r.ProjectInstance.GetPropertyValue("TargetPath").Length == 0
             ? Dependencies(r).Where(c => c.ProjectInstance.GetPropertyValue("TargetPath").Length != 0) : new[] { r }).Distinct();
-        return selectedReferences.OrderBy(Key, StringComparer.Ordinal).ToArray();
-    });
+        return selectedReferences;
+    }
+    var references = nodes.ToDictionary(n => n, n => SelectedReferences(n).OrderBy(Key, StringComparer.Ordinal).ToArray());
+    if (args[2] == "dependency-order")
+    {
+        ProjectGraphNode[] Order(bool cached)
+        {
+            // Include construction of the ordered cache once in every pass.
+            var ordered = new Dictionary<ProjectGraphNode, ProjectGraphNode[]>();
+            ProjectGraphNode[] OrderedDependencies(ProjectGraphNode node)
+            {
+                if (!ordered.TryGetValue(node, out var found))
+                {
+                    found = Dependencies(node).OrderBy(Key, StringComparer.Ordinal).ToArray();
+                    ordered.Add(node, found);
+                }
+                return found;
+            }
+            var result = new List<ProjectGraphNode>();
+            foreach (var node in nodes)
+            {
+                if (Boundary(node)) result.AddRange(cached ? OrderedDependencies(node) : Dependencies(node).OrderBy(Key, StringComparer.Ordinal));
+                var reusable = cached && Boundary(node) &&
+                    !node.ProjectInstance.GetPropertyValue("DisableTransitiveProjectReferences").Equals("true", StringComparison.OrdinalIgnoreCase) &&
+                    Dependencies(node).All(n => n.ProjectInstance.GetPropertyValue("TargetPath").Length != 0);
+                result.AddRange(reusable ? OrderedDependencies(node) : SelectedReferences(node).OrderBy(Key, StringComparer.Ordinal));
+            }
+            return result.ToArray();
+        }
+        var expected = Order(false);
+        if (!expected.SequenceEqual(Order(true))) throw new InvalidDataException("Dependency ordering changed configured nodes");
+        for (var warmup = 0; warmup < 3; warmup++) { Order(false); Order(true); }
+        const int repetitions = 20;
+        var orderRows = new List<object>();
+        for (var sample = 0; sample < 5; sample++)
+            foreach (var cached in sample % 2 == 0 ? new[] { false, true } : new[] { true, false })
+            {
+                var timer = Stopwatch.StartNew();
+                for (var repetition = 0; repetition < repetitions; repetition++)
+                    if (!expected.SequenceEqual(Order(cached))) throw new InvalidDataException("Dependency ordering changed during measurement");
+                orderRows.Add(new { sample, cached, repetitions, secondsPerGraph = timer.Elapsed.TotalSeconds / repetitions });
+            }
+        File.WriteAllText(args[3], JsonSerializer.Serialize(new { scope = "isolated dependency ordering; includes ordered-cache construction; excludes graph evaluation, already memoized closure traversal, output hashing and compilation",
+            configuredNodes = graph.ProjectNodes.Count, compiledNodes = nodes.Length, orderedRecords = expected.Length,
+            transitiveConsumers = nodes.Count(n => Boundary(n) && !n.ProjectInstance.GetPropertyValue("DisableTransitiveProjectReferences").Equals("true", StringComparison.OrdinalIgnoreCase)),
+            coordinatorConsumers = nodes.Count(n => Boundary(n) && Dependencies(n).Any(c => c.ProjectInstance.GetPropertyValue("TargetPath").Length == 0)),
+            orderEqual = true, rows = orderRows }, new JsonSerializerOptions { WriteIndented = true }) + "\n");
+        return;
+    }
     bool ExplicitRole(ProjectGraphNode node, ProjectGraphNode reference) => !Boundary(node) ||
         contracts[node].TryGetProperty("ImplementationDependencies", out var implementations) && implementations.EnumerateArray()
             .Any(p => p.GetString() == Path.GetRelativePath(root, reference.ProjectInstance.FullPath));
@@ -144,7 +191,7 @@ if (args[2] == "build")
         throw new InvalidDataException("Raw graph Build failed: " + result.Exception);
     return;
 }
-if (args[2] != "binplace") throw new ArgumentException("Expected build or binplace");
+if (args[2] != "binplace") throw new ArgumentException("Expected build, binplace, reference-work or dependency-order");
 var output = new SortedDictionary<string, SortedDictionary<string, string[]>>(StringComparer.Ordinal);
 foreach (var node in graph.ProjectNodes)
 {
