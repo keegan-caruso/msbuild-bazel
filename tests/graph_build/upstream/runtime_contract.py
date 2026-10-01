@@ -126,6 +126,32 @@ def main():
             pipeline + 'ref/System.IO.Pipelines.csproj': artifact,
         }
         binding.setdefault('frameworkOverrides', {})['net10.0'] = configured
+        # This SDK workaround lists RID platform names, not paths. Its PNS
+        # configuration discovers a separate authored exclusion file in a target.
+        project = 'src/libraries/System.Net.Quic/src/System.Net.Quic.csproj'
+        binding = mapping['projects'].setdefault(project, copy.deepcopy(mapping['projectDefaults']))
+        binding.pop('properties', None)
+        for variant in [binding] + list(binding.get('frameworkOverrides', {}).values()):
+            variant['evaluationItems'].append('_KnownRuntimeIdentiferPlatforms')
+            variant['documents'][project] = {
+                'sha256': '7f388295fe9b0043f8359ba6f8048c78df4c518849cf28ba5506958019c66f4d',
+                'targets': [], 'tasks': [],
+                'inputs': ['src/libraries/System.Net.Quic/src/ExcludeApiList.PNSE.txt']}
+    if args.platform == 'linux-arm64':
+        # These authored files are discovered inside SDK/upstream targets rather
+        # than evaluated file items. Retain the upstream validation/generation.
+        for project, digest, extra in [
+            ('src/libraries/System.Net.Security/src/System.Net.Security.csproj',
+             '98ebdd8a237a7a622a7673cfd81e2e83720aab5bb7a9ec7080c38774fe520867',
+             'src/libraries/System.Net.Security/src/ExcludeApiList.PNSE.txt'),
+            ('src/libraries/System.Collections.Specialized/src/System.Collections.Specialized.csproj',
+             'cc51f6d28ce66b7ad9a6ceef8ab6bbd5176c71af179f0570ac6f40e921df017f',
+             'src/libraries/System.Collections.Specialized/src/CompatibilitySuppressions.xml'),
+        ]:
+            binding = mapping['projects'].setdefault(project, copy.deepcopy(mapping['projectDefaults']))
+            binding.pop('properties', None)
+            for variant in [binding] + list(binding.get('frameworkOverrides', {}).values()):
+                variant['documents'][project] = {'sha256': digest, 'targets': [], 'tasks': [], 'inputs': [extra]}
     if args.platform == 'linux-arm64':
         # Only the browser configuration reads this PNS generation exclusion.
         project = 'src/libraries/System.Net.NameResolution/src/System.Net.NameResolution.csproj'

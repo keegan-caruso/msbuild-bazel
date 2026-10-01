@@ -180,7 +180,7 @@ runtime qualification and measurement, not repeating completed synthetic work.
 | --- | --- | --- |
 | 1. Linux Pipelines | Implementation and test Build/replay/native parity pass on Linux ARM64, Bazel 8.8/9.2; 819/998 snapshot files | Broader runtime contracts |
 | 2. Incremental baseline | Ordinary/prepared paired edits and independent project recovery pass | Larger edit matrix |
-| 3. Larger scope | Collections: 55 compiled with paired edits; sockets: 77 compiled; loaded-common: 182 configured / 163 compiled with full-source parity on both baselines; threading/filesystem compilation pass | Larger paired edits, shared/generator/resource edits, other slices and graph-backed tests |
+| 3. Larger scope | Collections: 55 compiled with paired edits; sockets: 77 compiled; loaded-common: 182 configured / 163 compiled with full-source parity on both baselines; threading/filesystem compilation pass; loaded-platform has 215 compilations with 9.2 raw/replay/native parity | Complete platform 8.8 controls, larger paired edits, shared/generator/resource edits, other slices and graph-backed tests |
 | 4. Removed work | Shared CAS, ownership/path reuse, shared evaluation context, read-only worker packages and 163-compilation phase profile | Safe cross-request SDK/evaluation reuse and broader timing |
 | 5. Tests | Bounded graph executable passes source-host, SDK-absent and runtime-input test-cache controls; older eight-suite source-only result remains separate | Graph-backed upstream suite builds/execution and dependency edits |
 | 6. Native/app | Graph-built driver constructs CoreCLR/JIT/corerun/System.Native with raw byte parity; bounded graph/source-host probe passes | Full platform libraries, muxer/hostfxr, ordinary app and native edits |
@@ -1087,3 +1087,43 @@ Remaining: graph-backed upstream tests, additional platform libraries and native
 components for an ordinary app, native source/header/tool mutations against the
 real runtime and larger independent cache recovery/faults. The bounded source
 probe does not substitute for full upstream test or ordinary-app execution.
+
+
+## Platform graph checkpoint
+
+The reviewed loaded-platform roots retain their Unix/Linux selections and authored
+older frameworks: 108 physical projects, 243 configurations and 215 compilations.
+On Linux ARM64/Bazel 9.2, worker seed, full replay and fresh sandbox Build match
+all 4,756 snapshot files/bytes/modes. Replay reports 215 hits and zero misses.
+All 1,498 compiled DLL/PDB/resource files match the retained complete-source raw
+MSBuild Build. The comparison verifies identical configured selectors and every
+declared authored input byte; graph artifact modes are 0555, raw modes 0644.
+These are correctness controls, not scored timings. Bazel 8.8 controls are pending.
+
+SDK GetBinPlaceTargetFramework/GetBinPlaceItems inventories 577 shared files
+across 99 producer configurations. This adds 154 output declarations to the
+existing Linux mapping. Quic also requires the pinned Channels 9.0.0 archive and
+an explicit distinction between RID-name metadata and file inputs.
+
+The first seed failed because two target-discovered authored inputs were absent:
+System.Collections.Specialized's CompatibilitySuppressions.xml and
+System.Net.Security's ExcludeApiList.PNSE.txt. The complete-source raw build had
+both. Declaring them restores upstream API validation and PNS generation; no
+validation was disabled. A small graph task-input fixture passes edited-input
+invalidation and stale reviewed-document rejection. Private reports retain the
+failed seed and corrected comparison. Python/JSON parsing and diff checks pass;
+CI was not run.
+
+Reproduction uses the pinned archive, declared 163-package feed and fresh directories:
+
+```sh
+python3 tests/graph_build/upstream/runtime_prepare.py "$source_archive" "$feed" "$prepared" --slice loaded-platform --prepared-restore
+python3 tests/graph_build/upstream/runtime_qualify.py "$prepared/workspace" "$controls" --output-base "$base" --versions 9.2.0
+python3 tests/graph_build/upstream/runtime_full_source.py "$source_archive" "$prepared/workspace" "$raw_control"
+```
+
+For new scopes, run runtime_full_source.py with --inventory-only before graph
+qualification to derive shared ownership from SDK targets. This checkpoint reuses
+that completed raw build for byte comparison rather than recompiling it.
+Ordinary-app composition, larger edits, upstream tests and independent recovery
+remain separate gates.

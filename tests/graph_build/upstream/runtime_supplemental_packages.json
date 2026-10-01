@@ -378,5 +378,10 @@
     "sha256": "679ad77c9d445e9dc6df620a646899ea4a0c8d1bb49fc0b5346af0a5d21e9f8c",
     "url": "https://api.nuget.org/v3-flatcontainer/system.threading.tasks/4.3.0/system.threading.tasks.4.3.0.nupkg",
     "reason": "Exact authored Roslyn generator dependency closure for loaded-common"
+  },
+  "system.threading.channels/9.0.0": {
+    "sha256": "75ea48a2b26ace3c967b0d3e6814606c687cf0a5a2bdba7d46bb5664716bfa92",
+    "url": "https://api.nuget.org/v3-flatcontainer/system.threading.channels/9.0.0/system.threading.channels.9.0.0.nupkg",
+    "reason": "Authored Channels dependency closure for loaded-platform"
   }
 }

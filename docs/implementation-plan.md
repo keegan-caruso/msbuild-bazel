@@ -44,6 +44,9 @@ its paired body/API medians are effectively equal / about 9% slower than raw;
 a bounded graph-built corerun probe now passes with source-built native products,
 SDK-absent execution and runtime-input test invalidation. Upstream suite execution,
 an ordinary app and independent recovery remain open.
+The platform roots also pass 9.2 worker/replay/native parity for 215 compilations;
+all 1,498 compiled products match the complete-source raw Build. Bazel 8.8 controls
+are pending. See the [platform checkpoint](graph-cache-plan.md#platform-graph-checkpoint).
 The collections paired body/API medians have about 3% overhead / 9% advantage
 versus raw graph MSBuild. The public Linux
 [scorecard](graph-cache-plan.md#linux-pipelines-scorecard) measures body/API overhead
