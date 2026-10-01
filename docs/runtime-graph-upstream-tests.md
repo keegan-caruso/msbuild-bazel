@@ -1,7 +1,7 @@
 # Runtime graph test-host qualification
 
 The graph path builds a selected source framework and runs the upstream Pipelines
-VSTest suite. Raw parity, replay and edit controls are still being qualified;
+VSTest suite. Raw parity passes; replay and edit controls are still being qualified;
 this is not an eight-suite passing result.
 
 ## Verified checkpoint
@@ -18,6 +18,9 @@ four MSBuild nodes. These are unscored correctness checks.
 | Expanded managed Build | All 474 compilations pass, with prepared Restore and read-only worker packages |
 | Expanded host declaration | 123 managed assemblies and eight native binaries; includes TraceSource, XML and 17 authored Linux shims |
 | Real Pipelines suite | 577 passed / zero skips; 84 observed source-producer hashes match across VSTest, datacollector and testhost processes |
+| Complete-source raw Build | 2,913 DLL/PDB/resource files match graph bytes |
+| Raw VSTest control | The same 577 case names and passing outcomes; the same three process roles and 84 source-producer hashes |
+| Wrong CoreLib hash | Observer rejects the deliberate mismatch |
 | Small metadata generator | Generated source/assembly changes on a declared metadata-file edit; restoration replays one project with identical bytes |
 | Document guard | A changed generation-target hash is rejected |
 
@@ -82,12 +85,26 @@ It runs public sandboxed graph workers with remote caches disabled. Project-file
 edits require resync; the replay control instead edits an explicitly declared
 metadata file. Large logs and report JSON remain outside Git.
 
+Compare the completed graph against a fresh full-source raw Build and real VSTest:
+
+```sh
+python3 tests/graph_build/upstream/runtime_full_source.py \
+  SOURCE_ARCHIVE WORKSPACE NEW_RAW_DIRECTORY --inventory-only
+python3 tests/graph_build/upstream/runtime_suite_verify.py \
+  WORKSPACE NEW_RAW_DIRECTORY NEW_PARITY_DIRECTORY
+```
+
+The raw control uses the same managed graph, SDK, global properties, stable paths
+and four MSBuild nodes without the project-cache plugin. Its VSTest host replaces
+all 123 managed binaries with raw products. The eight native binaries are shared
+source-built producers; this does not qualify an independent native rebuild.
+
 ## Remaining gates
 
-Complete raw Build/replay and shared BinPlace ownership. Compare complete raw
-compiled products and exact
-VSTest case names/outcomes. Check observed source-producer hashes, deliberate
-failure, SDK-absent execution and dependency edits before expanding the suites.
+Complete replay and shared BinPlace ownership. The raw SDK inventory identifies
+1,391 shared files from 231 producer configurations. Add those explicit mappings,
+then verify exact replay and dependency edits. SDK-absent suite execution and
+deliberate test failures remain separate controls before expanding the suites.
 Repeat the relevant controls on Bazel 8.8.0. Build and test timings must be separate.
 
 A disk-full interruption made the qualification filesystem read-only. That trial

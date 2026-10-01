@@ -21,6 +21,16 @@ from runtime_root_properties import root_properties
 ROOT = Path(__file__).resolve().parents[3]
 
 
+def capture_compiled_products(workspace, contract):
+    variants = [v for p in contract['Projects'].values() for v in p.get('Configurations') or [p]]
+    directories = {p for v in variants for p in v['OutputDirectories']}
+    files = {p for v in variants for p in v.get('OutputFiles', [])}
+    paths = {workspace / path for path in files} | {p for directory in directories for p in (workspace / directory).rglob('*')}
+    return {str(p.relative_to(workspace)): {'sha256': hashlib.sha256(p.read_bytes()).hexdigest(), 'mode': p.stat().st_mode & 0o777}
+            for p in paths if p.is_file() and p.suffix in ['.dll', '.pdb', '.resources']
+            and not (str(p.relative_to(workspace)).startswith('artifacts/obj/') and '/PreTrim/' in str(p.relative_to(workspace)))}
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('source_archive', type=Path)
@@ -78,16 +88,7 @@ def main():
                               sharedFiles=sum(len(paths) for v in inventory.values() for paths in v.values()),
                               scope='raw Build and SDK BinPlace ownership; not graph parity or scored timing')), flush=True)
         return
-    directories = {p for v in variants for p in v['OutputDirectories']}
-    files = {p for v in variants for p in v.get('OutputFiles', [])}
-
-    def capture(workspace):
-        paths = {workspace / path for path in files} | {p for directory in directories for p in (workspace / directory).rglob('*')}
-        return {str(p.relative_to(workspace)): {'sha256': hashlib.sha256(p.read_bytes()).hexdigest(), 'mode': p.stat().st_mode & 0o777}
-                for p in paths if p.is_file() and p.suffix in ['.dll', '.pdb', '.resources']
-                and not (str(p.relative_to(workspace)).startswith('artifacts/obj/') and '/PreTrim/' in str(p.relative_to(workspace)))}
-
-    graph_outputs, raw_outputs = capture(expected), capture(raw)
+    graph_outputs, raw_outputs = capture_compiled_products(expected, contract), capture_compiled_products(raw, contract)
     differences = {p: {'graph': graph_outputs.get(p), 'raw': raw_outputs.get(p)}
                    for p in sorted(graph_outputs.keys() | raw_outputs.keys())
                    if graph_outputs.get(p, {}).get('sha256') != raw_outputs.get(p, {}).get('sha256')}

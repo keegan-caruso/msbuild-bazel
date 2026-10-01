@@ -1226,3 +1226,7 @@ finding](runtime-graph-application.md#independent-runnable-runtime-recovery).
 This whole-action recovery does not substitute for project-cache edits or RBE.
 Graph-backed upstream suites, native mutations, broader edits/faults, repeated
 recovery/cold rows and peak-memory/readiness review remain open.
+
+### Expanded Pipelines raw parity
+
+The 474-compilation Linux ARM64 graph matches all 2,913 full-source raw DLL/PDB/resource files. Real VSTest reports identical names and outcomes for 577 passing cases, and all 84 observed component hashes match source producers in vstest.console, datacollector and testhost. A deliberately incorrect CoreLib hash is rejected. Native producers are shared with the raw control. These are correctness checks, not paired timing. Shared BinPlace ownership, replay and edit controls remain open; see [upstream tests](runtime-graph-upstream-tests.md).
