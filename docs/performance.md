@@ -133,6 +133,25 @@ measure 179.15 s versus 147.12 s raw workflow (preparation executes), and
 Each is one observation with 615 compiled products matching; these states
 do not form a combined median. See the [cold controls](graph-cache-plan.md#collections-cold-controls). See [ranges, commands and limits](graph-cache-plan.md#collections-incremental-scorecard).
 
+### Loaded-common runtime graph
+
+The reviewed graph retains **182 configurations / 163 compilations**. Three
+paired Linux ARM64 samples with SDK 10.0.400, Bazel 9.2.0, four CPUs/8 GiB, four
+MSBuild nodes and prepared read-only packages:
+
+| Case | Full Bazel worker | Warm raw graph MSBuild | Reuse |
+| --- | ---: | ---: | --- |
+| No-op | 0.192 s | 5.564 s | Whole-action hit |
+| Pipelines body | 18.793 s | 18.904 s | 158 hits / five misses |
+| Pipelines authored API | 36.576 s | 33.531 s | 147 hits / sixteen misses |
+| Fresh local outputs | 7.547 s | Not paired with warm raw | 163 project hits |
+
+Body time is effectively equal; API overhead is about 9%. All 1,447 compiled
+products match raw bytes. Separate binlogs confirm identical five/sixteen compiler
+calls. Preparation validation takes 1.7–2.1 s and evaluation about 2.3 s; SDK
+execution dominates. This does not qualify a complete runtime, independent
+recovery or source-host tests. See [ranges, phases and reproduction](graph-cache-plan.md#loaded-common-incremental-scorecard).
+
 ## Current graph-cache optimization checkpoint
 
 Three-sample Orchard body-edit measurements on the roadmap branch retain

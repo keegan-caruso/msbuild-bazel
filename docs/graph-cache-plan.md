@@ -952,3 +952,75 @@ products match the retained complete-source raw build. Commands use the
 loaded-common preparation/qualification helpers above. Owned .NET/style and
 107 unit checks pass; CI was not run. Paired edits, profiles, larger independent
 recovery and source-host execution remain separate gates.
+
+
+## Loaded-common incremental scorecard
+
+The version-8, 182-configuration / 163-compilation contract now has three paired
+samples for each warm case. Public Bazel 9.2.0 worker timings use the pinned
+v10.0.0 source, SDK 10.0.400, one 4-CPU/8-GiB Linux ARM64 VM, four MSBuild nodes,
+one worker and a 4096-MiB logical worker-cache budget. Shared compilation and
+profiling are off in scored rows. No competing build ran during the series.
+
+| Case | Graph median (range), seconds | Raw median (range), seconds | Reuse |
+| --- | ---: | ---: | --- |
+| No-op | 0.192 (0.189–0.278) | 5.564 (5.358–5.896) | Whole-action hit |
+| Pipelines body | 18.793 (17.159–21.401) | 18.904 (17.888–19.532) | 158 hits / five misses |
+| Pipelines authored API | 36.576 (36.527–36.712) | 33.531 (32.258–35.526) | 147 hits / sixteen misses |
+| Fresh local outputs | 7.547 (6.993–9.862) | No warm-raw comparison | 163 project hits |
+
+Body time is effectively equal to raw; API overhead is about 9%. All pairs
+match 1,447 DLL/PDB/resource bytes. Raw files remain writable and Bazel freezes
+tree artifacts to 0555; file modes are recorded separately. No-op rows are not
+project-cache measurements. VM peak used memory across setup, scored and
+restoration rows was 4.19 GiB; this includes the OS and all build processes.
+
+The first API assertion expected eleven misses and stopped after byte parity.
+A raw binlog established sixteen required compilations: five Pipelines source,
+five Pipelines reference, five Text.Json reference and one Text.Json source.
+The fixture now requires sixteen. Completed no-op/body rows were retained; a
+separate warm-state continuation captured three unique API pairs, local recovery
+and diagnostics. Worker snapshots disappear on shutdown, so continuation forces
+an unscored baseline execution and verifies raw parity before scoring. An initial
+continuation incorrectly required full replay on that restarted worker and
+stopped before scored rows; it is excluded. The continuation records the prior
+summary and harness digests. Sources, declarations and original output bytes
+are restored and checked after the scored series and diagnostics.
+
+Separate profiled controls confirm **five body / sixteen API compiler calls on
+both backends**, with output parity. Their runner wall phases are:
+
+| Phase | Body, seconds | API, seconds |
+| --- | ---: | ---: |
+| Prepared Restore application and validation | 2.101 | 1.730 |
+| Evaluation | 2.327 | 2.307 |
+| Initial input hashing | 1.122 | 1.063 |
+| MSBuild execution, including replay | 12.135 | 26.216 |
+| Final input verification | 0.190 | 0.199 |
+| Saving new snapshots | 0.019 | 0.035 |
+| Runner total | 18.097 | 31.758 |
+| Worker staging | 0.366 | 0.492 |
+| Public Bazel diagnostic wall time | 20.201 | 33.928 |
+
+These diagnostic observations are excluded from the scored medians. Operation
+sums overlap wall phases: file hashing reads about 3.17/3.18 GB in 2.93/2.53 s;
+replay materializes 338/326 MB in 1.21/0.95 s. Preparation still validates SDK
+and package bytes in each fresh child. Removing that validation requires a
+qualified immutable identity; it must not weaken corruption or mode checks.
+The largest wall phase remains SDK execution. The extra body recompilation has
+been removed; no additional optimization is claimed from this profile.
+
+Reproduce with a new owned output base and result directory:
+
+```sh
+python3 tests/graph_build/upstream/runtime_benchmark.py "$workspace" "$results" --output-base "$base" --slice loaded-common --samples 3 --diagnostics
+```
+
+`--continue-api-from "$prior_results"` is only for a retained multi-root raw
+workspace with completed no-op/body rows and an existing output base. It records
+new API/recovery/profile rows separately and does not produce a cold comparison.
+The initial setup observation was raw Restore 7.801 s + Build 351.366 s versus
+graph workflow 430.929 s, including bootstrap/package actions. It is not a scored
+cold row. The 387.600 s continuation seed is also unscored. Private logs/binlogs
+stay outside Git. Independent recovery, the broader edit matrix and graph-backed
+upstream tests/native host execution remain open.

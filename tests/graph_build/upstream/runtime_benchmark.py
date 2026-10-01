@@ -55,16 +55,17 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('workspace', type=Path)
     parser.add_argument('results', type=Path, help='new owned directory, outside workspace')
-    parser.add_argument('--output-base', type=Path, required=True, help='unused Bazel output base')
+    parser.add_argument('--output-base', type=Path, required=True, help='fresh output base, or retained base for API continuation')
     parser.add_argument('--samples', type=int, default=3)
-    parser.add_argument('--slice', choices=['pipelines-tests', 'collections'], default='pipelines-tests')
+    parser.add_argument('--slice', choices=['pipelines-tests', 'collections', 'loaded-common'], default='pipelines-tests')
+    parser.add_argument('--continue-api-from', type=Path, help='completed no-op/body scorecard with retained raw state; record remaining cases separately')
     parser.add_argument('--diagnostics', action='store_true', help='profile separate unique edits after the scored series')
     args = parser.parse_args()
     assert os.uname().sysname == 'Linux' and os.uname().machine == 'aarch64'
     assert args.samples > 0
     root, results = args.workspace.resolve(), args.results.resolve()
     assert not results.is_relative_to(root) and not root.is_relative_to(results)
-    assert not args.output_base.exists(), 'Use a new owned output base'
+    assert args.output_base.exists() == bool(args.continue_api_from), 'Use a fresh output base, or retain the base for API continuation'
     results.mkdir(parents=True, exist_ok=False)
     contract = json.loads((root / 'graph.generated.json').read_text())
     sdk = Path(os.environ['RULES_MSBUILD_DOTNET_ROOT']).resolve()
@@ -74,8 +75,9 @@ def main():
     files = {p for v in variants for p in v.get('OutputFiles', [])}
     compiled = sum(bool(v['OutputDirectories'] or v.get('OutputFiles')) for v in variants)
     declared = set(contract['SharedInputs']) | {p for v in variants for p in v['Inputs']}
-    if args.slice == 'collections':
-        mutation = json.loads(Path(__file__).with_name('runtime_collections_edit.json').read_text())
+    if args.slice in ['collections', 'loaded-common']:
+        filename = 'runtime_collections_edit.json' if args.slice == 'collections' else 'runtime_loaded_common_edit.json'
+        mutation = json.loads(Path(__file__).with_name(filename).read_text())
     else:
         mutation = dict(compiled=38, implementation=IMPLEMENTATION, reference=REFERENCE, implDll=IMPL_DLL, refDll=REF_DLL,
                         bodyAnchor='UseSynchronizationContext = useSynchronizationContext;',
@@ -86,9 +88,31 @@ def main():
     assert compiled == mutation['compiled'], 'Unexpected configured compilation scope'
     assert (contract.get('Entries') or [contract['Entry']]) == mutation['entries'], 'Unexpected roots'
     raw = results / 'raw-workspace'
-    shutil.copytree(root, raw, ignore=shutil.ignore_patterns('bazel-*', '.nuget', '.cache', '.cli'))
+    continuation = None
+    if args.continue_api_from:
+        prior = args.continue_api_from.resolve()
+        assert prior != results and not results.is_relative_to(prior)
+        summary_path = prior / 'summary.json'
+        previous = json.loads(summary_path.read_text())
+        assert previous['slice'] == args.slice and previous['entries'] == mutation['entries']
+        assert previous['sdkVersion'] == contract['SdkVersion'] and previous['bazelVersion'] == '9.2.0'
+        assert previous['graphProjects'] == compiled and previous['cpus'] == 4 and previous['memoryGiB'] == 8
+        for case in ['no-op', 'body']:
+            completed = [row for row in previous['rows'] if row['case'] == case]
+            assert len(completed) == args.samples and {row['sample'] for row in completed} == set(range(args.samples))
+            assert sum(row['case'] == case + '-summary' for row in previous['rows']) == 1
+            if case == 'body':
+                assert all(row['projectMisses'] == mutation['expectedMisses']['body'] for row in completed)
+        assert not any(row['case'] in ['api', 'api-summary', 'local-recovery'] for row in previous['rows']), 'Do not overwrite completed remaining cases'
+        assert (prior / 'raw-workspace/graph.generated.json').read_bytes() == (root / 'graph.generated.json').read_bytes()
+        shutil.copytree(prior / 'raw-workspace', raw, ignore=shutil.ignore_patterns('bazel-*', '.cache', '.cli'))
+        expansion_seconds = None
+        continuation = dict(priorResults=str(prior), priorSummarySha256=hashlib.sha256(summary_path.read_bytes()).hexdigest(),
+                            priorHarnessSha256=previous['harnessSha256'], interpretation='retained raw outputs/packages; restarted worker is reseeded before scoring; no cold/setup timing')
+    else:
+        shutil.copytree(root, raw, ignore=shutil.ignore_patterns('bazel-*', '.nuget', '.cache', '.cli'))
+        expansion_seconds = expand_raw_packages(raw)
     packages = raw / '.nuget'
-    expansion_seconds = expand_raw_packages(raw)
     config = raw / 'NuGet.Config'
     original_config = config.read_bytes() if config.exists() else None
     config.write_text('<configuration><packageSources><clear/><add key="declared" value=".package-source"/></packageSources><fallbackPackageFolders><clear/></fallbackPackageFolders></configuration>')
@@ -223,38 +247,59 @@ def main():
         summary = dict(platform='linux-arm64', cpus=4, memoryGiB=8, msbuildNodes=4, graphProjects=compiled,
                        sdkVersion=contract['SdkVersion'], bazelVersion='9.2.0', slice=args.slice, entries=mutation['entries'], rawNamespace='same stable paths and isolation as graph',
                        harnessSha256=hashlib.sha256(Path(__file__).read_bytes()).hexdigest(), packageExpansionSeconds=expansion_seconds,
-                       memorySamples=memory_samples, rows=rows)
+                       continuation=continuation, memorySamples=memory_samples, rows=rows)
         (results / 'summary.json').write_text(json.dumps(summary, indent=2) + '\n')
         print(json.dumps({key: value for key, value in row.items()
                           if key not in ['runner', 'rawCompilerCalls', 'graphCompilerCalls']}), flush=True)
 
     try:
-        restore_command = raw_host + ['restore', stable + '/' + contract['Entry'], '--configfile', stable + '/NuGet.Config', '--source', stable + '/.package-source',
-                           '--packages', stable + '/.nuget', '-p:NuGetAudit=false', '-p:NetCoreSdkRoot=' + stable_sdk + '/sdk/' + contract['SdkVersion']]
-        restore_seconds = 0
-        for index, entry in enumerate(mutation['entries']):
-            command = restore_command + [f'-p:{k}={v}' for k, v in root_properties(contract, entry).items() if k.lower() != 'targetframework']
-            command[command.index(stable + '/' + contract['Entry'])] = stable + '/' + entry
-            restore_seconds += execute(command, 'raw-restore-' + str(index), raw)
-        if len(mutation['entries']) > 1:
-            driver = results / 'raw-driver'
-            driver.mkdir()
-            directory = Path(__file__).resolve().parent
-            shutil.copyfile(directory / 'RuntimeRawGraph.cs.txt', driver / 'Program.cs')
-            shutil.copyfile(directory / 'RuntimeRawGraph.csproj.txt', driver / 'Raw.csproj')
-            execute([dotnet, 'build', str(driver / 'Raw.csproj'), '-c', 'Release', '-p:UseSharedCompilation=false', '-p:NuGetAudit=false'], 'raw-driver-build', results)
-            shutil.copytree(driver / 'bin/Release/net10.0', raw / '.qualification')
+        if continuation:
+            assert len(mutation['entries']) > 1, 'Continuation currently requires the multi-root raw driver'
+            assert (raw / '.qualification/Raw.dll').is_file()
             raw_command = raw_host + [stable + '/.qualification/Raw.dll', stable, stable + '/graph.generated.json', 'build']
-        seed_raw = execute(raw_command, 'raw-seed', raw)
-        seed_graph, report = graph('graph-seed')
-        assert report['hits'] == 0 and report['misses'] == compiled, report
-        assert report['operations'] is None and 'worker' not in report
-        assert report['preparedRestore'] == bool(contract.get('Restore'))
-        assert report['readOnlyPreparedPackages'] == bool(contract.get('Restore'))
-        baseline = compare()
-        record(dict(case='setup', rawRestoreSeconds=restore_seconds, rawBuildSeconds=seed_raw, graphWorkflowSeconds=seed_graph,
-                    comparedDllPdbResourceFiles=len(baseline), interpretation='setup includes Bazel bootstrap/package actions; not a scored cold row'))
-        for case in ['no-op', 'body', 'api']:
+            seed_raw = execute(raw_command, 'continued-raw-baseline', raw)
+            # Worker-local snapshots are process-owned and disappear on shutdown.
+            # A unique declared input forces baseline execution even if Bazel's
+            # whole-action cache already contains the original result.
+            generated.write_text(force_input('force-recovery.txt'))
+            nonce.write_text(token + '-continued-baseline')
+            seed_graph, report = graph('continued-graph-baseline')
+            assert report['hits'] + report['misses'] == compiled
+            assert report['operations'] is None and 'worker' not in report
+            assert report['preparedRestore'] == bool(contract.get('Restore'))
+            assert report['readOnlyPreparedPackages'] == bool(contract.get('Restore'))
+            baseline = compare()
+            generated.write_bytes(original_generated)
+            nonce.unlink()
+            record(dict(case='continued-baseline', rawSeconds=seed_raw, graphSeconds=seed_graph, projectHits=report['hits'], projectMisses=report['misses'],
+                        comparedDllPdbResourceFiles=len(baseline), interpretation='baseline restoration; excluded from scored medians'))
+        else:
+            restore_command = raw_host + ['restore', stable + '/' + contract['Entry'], '--configfile', stable + '/NuGet.Config', '--source', stable + '/.package-source',
+                               '--packages', stable + '/.nuget', '-p:NuGetAudit=false', '-p:NetCoreSdkRoot=' + stable_sdk + '/sdk/' + contract['SdkVersion']]
+            restore_seconds = 0
+            for index, entry in enumerate(mutation['entries']):
+                command = restore_command + [f'-p:{k}={v}' for k, v in root_properties(contract, entry).items() if k.lower() != 'targetframework']
+                command[command.index(stable + '/' + contract['Entry'])] = stable + '/' + entry
+                restore_seconds += execute(command, 'raw-restore-' + str(index), raw)
+            if len(mutation['entries']) > 1:
+                driver = results / 'raw-driver'
+                driver.mkdir()
+                directory = Path(__file__).resolve().parent
+                shutil.copyfile(directory / 'RuntimeRawGraph.cs.txt', driver / 'Program.cs')
+                shutil.copyfile(directory / 'RuntimeRawGraph.csproj.txt', driver / 'Raw.csproj')
+                execute([dotnet, 'build', str(driver / 'Raw.csproj'), '-c', 'Release', '-p:UseSharedCompilation=false', '-p:NuGetAudit=false'], 'raw-driver-build', results)
+                shutil.copytree(driver / 'bin/Release/net10.0', raw / '.qualification')
+                raw_command = raw_host + [stable + '/.qualification/Raw.dll', stable, stable + '/graph.generated.json', 'build']
+            seed_raw = execute(raw_command, 'raw-seed', raw)
+            seed_graph, report = graph('graph-seed')
+            assert report['hits'] == 0 and report['misses'] == compiled, report
+            assert report['operations'] is None and 'worker' not in report
+            assert report['preparedRestore'] == bool(contract.get('Restore'))
+            assert report['readOnlyPreparedPackages'] == bool(contract.get('Restore'))
+            baseline = compare()
+            record(dict(case='setup', rawRestoreSeconds=restore_seconds, rawBuildSeconds=seed_raw, graphWorkflowSeconds=seed_graph,
+                        comparedDllPdbResourceFiles=len(baseline), interpretation='setup includes Bazel bootstrap/package actions; not a scored cold row'))
+        for case in (['api'] if continuation else ['no-op', 'body', 'api']):
             pairs = []
             for sample in range(args.samples):
                 restore_sources()
@@ -329,6 +374,11 @@ def main():
                 assert len(raw_compilers) == len(graph_compilers) == expected, (case, raw_compilers, graph_compilers)
                 record(dict(case=case + '-diagnostic', graphSeconds=seconds, runner=report, rawCompilerCalls=raw_compilers,
                             graphCompilerCalls=graph_compilers, interpretation='profiled; excluded from scored medians'))
+            restore_sources()
+            build.write_bytes(original_build)
+            execute(raw_command, 'raw-diagnostic-original-restoration', raw)
+            graph('graph-diagnostic-original-restoration', expected_action=None)
+            assert compare() == baseline
     finally:
         restore_sources()
         generated.write_bytes(original_generated)

@@ -40,7 +40,8 @@ The loaded-common roots expand the graph to 163 compilations and 3,980 matching
 snapshot files on both Bazel baselines; all 1,447 compiled products match the
 complete-source raw build. Reviewed translations and disposable ASN task scratch
 preserve parity. See the [loaded-common checkpoint](graph-cache-plan.md#loaded-common-source-compilation-checkpoint);
-its paired performance and source-host execution remain open.
+its paired body/API medians are effectively equal / about 9% slower than raw;
+source-host execution and independent recovery remain open.
 The collections paired body/API medians have about 3% overhead / 9% advantage
 versus raw graph MSBuild. The public Linux
 [scorecard](graph-cache-plan.md#linux-pipelines-scorecard) measures body/API overhead
