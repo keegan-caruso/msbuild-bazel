@@ -856,3 +856,47 @@ Reproduce the earlier qualification commands with `--slice sockets`. Use
 reproduce SDK output ownership. The bindings are fixture declarations; production
 rules contain no runtime-specific cases. Other source libraries, the larger edit
 matrix, native composition and source-host execution remain open.
+
+## Loaded-common source compilation checkpoint
+
+The four reviewed `loaded-common` roots select Pipelines, Text.Encodings.Web,
+Text.Json and ComponentModel.Primitives. On Linux ARM64 the graph contains
+91 project paths, 182 configured nodes and 163 compilations, retaining authored
+net10/net9/net8/netstandard/net462 variants and Roslyn generator configurations.
+The offline feed has 162 verified archives. SDK BinPlace discovery added 245
+required shared files to the Linux ownership mapping; the mapping now names
+564 files across the qualified scopes.
+
+Using SDK 10.0.400, four MSBuild nodes and the 4-CPU/8-GiB build VM,
+`runtime_qualify.py` passed worker seed, complete local replay and fresh native
+sandboxing on Bazel 9.2.0 and 8.8.0. Every control returned exactly 3,980 output
+files with identical bytes and executable modes. Seeds had 163 misses; replays
+had 163 hits. All 1,447 DLL/PDB/resource products matched the complete-source raw
+SDK graph control. These runs establish correctness, not paired performance.
+
+Two failures exposed missing contracts. The first omitted 13 Text.Json
+source-generator XLIFF files and changed 169 satellite/copy products. Reviewed
+project documents now declare those translations. The second found 47 optional
+ASN intermediate-file differences between worker and native builds, with no
+compiled-product differences. Parallel frameworks touch the same checked-in C#
+files; subsequent transforms may skip their `asnxml` scratch output. The mappings
+now declare 13 configured scratch directories through the generic temporary-output
+contract. Only two or three existed in each fresh build; cleanup produced the
+same final output set. Scratch is excluded from dependency fingerprints and
+snapshots, and inputs are still verified before cleanup. ASN XML/XSL edits that
+rewrite checked-in C# remain unsupported pending a declared generation contract.
+
+Reproduce in a fresh owned directory with pinned source and package archives:
+
+```sh
+python3 tests/graph_build/upstream/runtime_prepare.py "$source_archive" "$feed" "$prepared" --slice loaded-common --prepared-restore
+python3 tests/graph_build/upstream/runtime_full_source.py "$source_archive" "$prepared/workspace" "$raw_results" --inventory-only
+python3 tests/graph_build/upstream/runtime_qualify.py "$prepared/workspace" "$results" --output-base "$output_base"
+```
+
+The complete-source control retains raw outputs for byte comparison. Private
+reports include both failed attempts and the passing six-control matrix; only
+this summary is committed. Owned .NET style/build checks and all 107 unit tests
+pass. Separate focused controls qualify temporary-output dependencies and rejection.
+Body/API paired timings, broader edit types, source-host execution and independent
+recovery of this larger graph remain open.

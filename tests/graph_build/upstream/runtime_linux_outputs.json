@@ -529,5 +529,414 @@
       "artifacts/bin/testhost/net10.0-linux-Release-arm64/shared/Microsoft.NETCore.App/10.0.0/System.Threading.Thread.pdb",
       "artifacts/bin/testhost/net10.0-linux-Release-arm64/shared/Microsoft.NETCore.App/10.0.0/System.Threading.Thread.xml"
     ]
+  },
+  "src/libraries/Microsoft.Bcl.AsyncInterfaces/src/Microsoft.Bcl.AsyncInterfaces.csproj": {
+    "netstandard2.1": [
+      "artifacts/bin/ref/net10.0/Microsoft.Bcl.AsyncInterfaces.dll",
+      "artifacts/bin/ref/net10.0/Microsoft.Bcl.AsyncInterfaces.pdb",
+      "artifacts/bin/ref/net10.0/Microsoft.Bcl.AsyncInterfaces.xml",
+      "artifacts/bin/runtime/net10.0-linux-Release-arm64/Microsoft.Bcl.AsyncInterfaces.dll",
+      "artifacts/bin/runtime/net10.0-linux-Release-arm64/Microsoft.Bcl.AsyncInterfaces.pdb",
+      "artifacts/bin/runtime/net10.0-linux-Release-arm64/Microsoft.Bcl.AsyncInterfaces.xml"
+    ]
+  },
+  "src/libraries/System.ComponentModel.Primitives/ref/System.ComponentModel.Primitives.csproj": {
+    "net10.0": [
+      "artifacts/bin/microsoft.netcore.app.ref/ref/net10.0/System.ComponentModel.Primitives.dll",
+      "artifacts/bin/ref/net10.0/System.ComponentModel.Primitives.dll"
+    ]
+  },
+  "src/libraries/System.ComponentModel.Primitives/src/System.ComponentModel.Primitives.csproj": {
+    "net10.0": [
+      "artifacts/bin/microsoft.netcore.app.runtime.linux-arm64/Release/runtimes/linux-arm64/lib/net10.0/System.ComponentModel.Primitives.dll",
+      "artifacts/bin/microsoft.netcore.app.runtime.linux-arm64/Release/runtimes/linux-arm64/lib/net10.0/System.ComponentModel.Primitives.pdb",
+      "artifacts/bin/microsoft.netcore.app.runtime.linux-arm64/Release/runtimes/linux-arm64/lib/net10.0/System.ComponentModel.Primitives.xml",
+      "artifacts/bin/runtime/net10.0-linux-Release-arm64/System.ComponentModel.Primitives.dll",
+      "artifacts/bin/runtime/net10.0-linux-Release-arm64/System.ComponentModel.Primitives.pdb",
+      "artifacts/bin/runtime/net10.0-linux-Release-arm64/System.ComponentModel.Primitives.xml",
+      "artifacts/bin/testhost/net10.0-linux-Release-arm64/shared/Microsoft.NETCore.App/10.0.0/System.ComponentModel.Primitives.dll",
+      "artifacts/bin/testhost/net10.0-linux-Release-arm64/shared/Microsoft.NETCore.App/10.0.0/System.ComponentModel.Primitives.pdb",
+      "artifacts/bin/testhost/net10.0-linux-Release-arm64/shared/Microsoft.NETCore.App/10.0.0/System.ComponentModel.Primitives.xml"
+    ]
+  },
+  "src/libraries/System.ComponentModel/ref/System.ComponentModel.csproj": {
+    "net10.0": [
+      "artifacts/bin/microsoft.netcore.app.ref/ref/net10.0/System.ComponentModel.dll",
+      "artifacts/bin/ref/net10.0/System.ComponentModel.dll"
+    ]
+  },
+  "src/libraries/System.ComponentModel/src/System.ComponentModel.csproj": {
+    "net10.0": [
+      "artifacts/bin/microsoft.netcore.app.runtime.linux-arm64/Release/runtimes/linux-arm64/lib/net10.0/System.ComponentModel.dll",
+      "artifacts/bin/microsoft.netcore.app.runtime.linux-arm64/Release/runtimes/linux-arm64/lib/net10.0/System.ComponentModel.pdb",
+      "artifacts/bin/microsoft.netcore.app.runtime.linux-arm64/Release/runtimes/linux-arm64/lib/net10.0/System.ComponentModel.xml",
+      "artifacts/bin/runtime/net10.0-linux-Release-arm64/System.ComponentModel.dll",
+      "artifacts/bin/runtime/net10.0-linux-Release-arm64/System.ComponentModel.pdb",
+      "artifacts/bin/runtime/net10.0-linux-Release-arm64/System.ComponentModel.xml",
+      "artifacts/bin/testhost/net10.0-linux-Release-arm64/shared/Microsoft.NETCore.App/10.0.0/System.ComponentModel.dll",
+      "artifacts/bin/testhost/net10.0-linux-Release-arm64/shared/Microsoft.NETCore.App/10.0.0/System.ComponentModel.pdb",
+      "artifacts/bin/testhost/net10.0-linux-Release-arm64/shared/Microsoft.NETCore.App/10.0.0/System.ComponentModel.xml"
+    ]
+  },
+  "src/libraries/System.Diagnostics.StackTrace/ref/System.Diagnostics.StackTrace.csproj": {
+    "net10.0": [
+      "artifacts/bin/microsoft.netcore.app.ref/ref/net10.0/System.Diagnostics.StackTrace.dll",
+      "artifacts/bin/ref/net10.0/System.Diagnostics.StackTrace.dll"
+    ]
+  },
+  "src/libraries/System.Diagnostics.StackTrace/src/System.Diagnostics.StackTrace.csproj": {
+    "net10.0": [
+      "artifacts/bin/microsoft.netcore.app.runtime.linux-arm64/Release/runtimes/linux-arm64/lib/net10.0/System.Diagnostics.StackTrace.dll",
+      "artifacts/bin/microsoft.netcore.app.runtime.linux-arm64/Release/runtimes/linux-arm64/lib/net10.0/System.Diagnostics.StackTrace.pdb",
+      "artifacts/bin/microsoft.netcore.app.runtime.linux-arm64/Release/runtimes/linux-arm64/lib/net10.0/System.Diagnostics.StackTrace.xml",
+      "artifacts/bin/runtime/net10.0-linux-Release-arm64/System.Diagnostics.StackTrace.dll",
+      "artifacts/bin/runtime/net10.0-linux-Release-arm64/System.Diagnostics.StackTrace.pdb",
+      "artifacts/bin/runtime/net10.0-linux-Release-arm64/System.Diagnostics.StackTrace.xml",
+      "artifacts/bin/testhost/net10.0-linux-Release-arm64/shared/Microsoft.NETCore.App/10.0.0/System.Diagnostics.StackTrace.dll",
+      "artifacts/bin/testhost/net10.0-linux-Release-arm64/shared/Microsoft.NETCore.App/10.0.0/System.Diagnostics.StackTrace.pdb",
+      "artifacts/bin/testhost/net10.0-linux-Release-arm64/shared/Microsoft.NETCore.App/10.0.0/System.Diagnostics.StackTrace.xml"
+    ]
+  },
+  "src/libraries/System.Formats.Asn1/ref/System.Formats.Asn1.csproj": {
+    "net10.0": [
+      "artifacts/bin/microsoft.netcore.app.ref/ref/net10.0/System.Formats.Asn1.dll",
+      "artifacts/bin/ref/net10.0/System.Formats.Asn1.dll"
+    ]
+  },
+  "src/libraries/System.Formats.Asn1/src/System.Formats.Asn1.csproj": {
+    "net10.0": [
+      "artifacts/bin/microsoft.netcore.app.runtime.linux-arm64/Release/runtimes/linux-arm64/lib/net10.0/System.Formats.Asn1.dll",
+      "artifacts/bin/microsoft.netcore.app.runtime.linux-arm64/Release/runtimes/linux-arm64/lib/net10.0/System.Formats.Asn1.pdb",
+      "artifacts/bin/microsoft.netcore.app.runtime.linux-arm64/Release/runtimes/linux-arm64/lib/net10.0/System.Formats.Asn1.xml",
+      "artifacts/bin/runtime/net10.0-linux-Release-arm64/System.Formats.Asn1.dll",
+      "artifacts/bin/runtime/net10.0-linux-Release-arm64/System.Formats.Asn1.pdb",
+      "artifacts/bin/runtime/net10.0-linux-Release-arm64/System.Formats.Asn1.xml",
+      "artifacts/bin/testhost/net10.0-linux-Release-arm64/shared/Microsoft.NETCore.App/10.0.0/System.Formats.Asn1.dll",
+      "artifacts/bin/testhost/net10.0-linux-Release-arm64/shared/Microsoft.NETCore.App/10.0.0/System.Formats.Asn1.pdb",
+      "artifacts/bin/testhost/net10.0-linux-Release-arm64/shared/Microsoft.NETCore.App/10.0.0/System.Formats.Asn1.xml"
+    ]
+  },
+  "src/libraries/System.IO.Compression/ref/System.IO.Compression.csproj": {
+    "net10.0": [
+      "artifacts/bin/microsoft.netcore.app.ref/ref/net10.0/System.IO.Compression.dll",
+      "artifacts/bin/ref/net10.0/System.IO.Compression.dll"
+    ]
+  },
+  "src/libraries/System.IO.Compression/src/System.IO.Compression.csproj": {
+    "net10.0-unix": [
+      "artifacts/bin/microsoft.netcore.app.runtime.linux-arm64/Release/runtimes/linux-arm64/lib/net10.0/System.IO.Compression.dll",
+      "artifacts/bin/microsoft.netcore.app.runtime.linux-arm64/Release/runtimes/linux-arm64/lib/net10.0/System.IO.Compression.pdb",
+      "artifacts/bin/microsoft.netcore.app.runtime.linux-arm64/Release/runtimes/linux-arm64/lib/net10.0/System.IO.Compression.xml",
+      "artifacts/bin/runtime/net10.0-linux-Release-arm64/System.IO.Compression.dll",
+      "artifacts/bin/runtime/net10.0-linux-Release-arm64/System.IO.Compression.pdb",
+      "artifacts/bin/runtime/net10.0-linux-Release-arm64/System.IO.Compression.xml",
+      "artifacts/bin/testhost/net10.0-linux-Release-arm64/shared/Microsoft.NETCore.App/10.0.0/System.IO.Compression.dll",
+      "artifacts/bin/testhost/net10.0-linux-Release-arm64/shared/Microsoft.NETCore.App/10.0.0/System.IO.Compression.pdb",
+      "artifacts/bin/testhost/net10.0-linux-Release-arm64/shared/Microsoft.NETCore.App/10.0.0/System.IO.Compression.xml"
+    ]
+  },
+  "src/libraries/System.IO.MemoryMappedFiles/ref/System.IO.MemoryMappedFiles.csproj": {
+    "net10.0": [
+      "artifacts/bin/microsoft.netcore.app.ref/ref/net10.0/System.IO.MemoryMappedFiles.dll",
+      "artifacts/bin/ref/net10.0/System.IO.MemoryMappedFiles.dll"
+    ]
+  },
+  "src/libraries/System.IO.MemoryMappedFiles/src/System.IO.MemoryMappedFiles.csproj": {
+    "net10.0-unix": [
+      "artifacts/bin/microsoft.netcore.app.runtime.linux-arm64/Release/runtimes/linux-arm64/lib/net10.0/System.IO.MemoryMappedFiles.dll",
+      "artifacts/bin/microsoft.netcore.app.runtime.linux-arm64/Release/runtimes/linux-arm64/lib/net10.0/System.IO.MemoryMappedFiles.pdb",
+      "artifacts/bin/microsoft.netcore.app.runtime.linux-arm64/Release/runtimes/linux-arm64/lib/net10.0/System.IO.MemoryMappedFiles.xml",
+      "artifacts/bin/runtime/net10.0-linux-Release-arm64/System.IO.MemoryMappedFiles.dll",
+      "artifacts/bin/runtime/net10.0-linux-Release-arm64/System.IO.MemoryMappedFiles.pdb",
+      "artifacts/bin/runtime/net10.0-linux-Release-arm64/System.IO.MemoryMappedFiles.xml",
+      "artifacts/bin/testhost/net10.0-linux-Release-arm64/shared/Microsoft.NETCore.App/10.0.0/System.IO.MemoryMappedFiles.dll",
+      "artifacts/bin/testhost/net10.0-linux-Release-arm64/shared/Microsoft.NETCore.App/10.0.0/System.IO.MemoryMappedFiles.pdb",
+      "artifacts/bin/testhost/net10.0-linux-Release-arm64/shared/Microsoft.NETCore.App/10.0.0/System.IO.MemoryMappedFiles.xml"
+    ]
+  },
+  "src/libraries/System.ObjectModel/ref/System.ObjectModel.csproj": {
+    "net10.0": [
+      "artifacts/bin/microsoft.netcore.app.ref/ref/net10.0/System.ObjectModel.dll",
+      "artifacts/bin/ref/net10.0/System.ObjectModel.dll"
+    ]
+  },
+  "src/libraries/System.ObjectModel/src/System.ObjectModel.csproj": {
+    "net10.0": [
+      "artifacts/bin/microsoft.netcore.app.runtime.linux-arm64/Release/runtimes/linux-arm64/lib/net10.0/System.ObjectModel.dll",
+      "artifacts/bin/microsoft.netcore.app.runtime.linux-arm64/Release/runtimes/linux-arm64/lib/net10.0/System.ObjectModel.pdb",
+      "artifacts/bin/microsoft.netcore.app.runtime.linux-arm64/Release/runtimes/linux-arm64/lib/net10.0/System.ObjectModel.xml",
+      "artifacts/bin/runtime/net10.0-linux-Release-arm64/System.ObjectModel.dll",
+      "artifacts/bin/runtime/net10.0-linux-Release-arm64/System.ObjectModel.pdb",
+      "artifacts/bin/runtime/net10.0-linux-Release-arm64/System.ObjectModel.xml",
+      "artifacts/bin/testhost/net10.0-linux-Release-arm64/shared/Microsoft.NETCore.App/10.0.0/System.ObjectModel.dll",
+      "artifacts/bin/testhost/net10.0-linux-Release-arm64/shared/Microsoft.NETCore.App/10.0.0/System.ObjectModel.pdb",
+      "artifacts/bin/testhost/net10.0-linux-Release-arm64/shared/Microsoft.NETCore.App/10.0.0/System.ObjectModel.xml"
+    ]
+  },
+  "src/libraries/System.Reflection.Emit.ILGeneration/ref/System.Reflection.Emit.ILGeneration.csproj": {
+    "net10.0": [
+      "artifacts/bin/microsoft.netcore.app.ref/ref/net10.0/System.Reflection.Emit.ILGeneration.dll",
+      "artifacts/bin/ref/net10.0/System.Reflection.Emit.ILGeneration.dll"
+    ]
+  },
+  "src/libraries/System.Reflection.Emit.ILGeneration/src/System.Reflection.Emit.ILGeneration.csproj": {
+    "net10.0": [
+      "artifacts/bin/microsoft.netcore.app.runtime.linux-arm64/Release/runtimes/linux-arm64/lib/net10.0/System.Reflection.Emit.ILGeneration.dll",
+      "artifacts/bin/microsoft.netcore.app.runtime.linux-arm64/Release/runtimes/linux-arm64/lib/net10.0/System.Reflection.Emit.ILGeneration.pdb",
+      "artifacts/bin/microsoft.netcore.app.runtime.linux-arm64/Release/runtimes/linux-arm64/lib/net10.0/System.Reflection.Emit.ILGeneration.xml",
+      "artifacts/bin/runtime/net10.0-linux-Release-arm64/System.Reflection.Emit.ILGeneration.dll",
+      "artifacts/bin/runtime/net10.0-linux-Release-arm64/System.Reflection.Emit.ILGeneration.pdb",
+      "artifacts/bin/runtime/net10.0-linux-Release-arm64/System.Reflection.Emit.ILGeneration.xml",
+      "artifacts/bin/testhost/net10.0-linux-Release-arm64/shared/Microsoft.NETCore.App/10.0.0/System.Reflection.Emit.ILGeneration.dll",
+      "artifacts/bin/testhost/net10.0-linux-Release-arm64/shared/Microsoft.NETCore.App/10.0.0/System.Reflection.Emit.ILGeneration.pdb",
+      "artifacts/bin/testhost/net10.0-linux-Release-arm64/shared/Microsoft.NETCore.App/10.0.0/System.Reflection.Emit.ILGeneration.xml"
+    ]
+  },
+  "src/libraries/System.Reflection.Emit.Lightweight/ref/System.Reflection.Emit.Lightweight.csproj": {
+    "net10.0": [
+      "artifacts/bin/microsoft.netcore.app.ref/ref/net10.0/System.Reflection.Emit.Lightweight.dll",
+      "artifacts/bin/ref/net10.0/System.Reflection.Emit.Lightweight.dll"
+    ]
+  },
+  "src/libraries/System.Reflection.Emit.Lightweight/src/System.Reflection.Emit.Lightweight.csproj": {
+    "net10.0": [
+      "artifacts/bin/microsoft.netcore.app.runtime.linux-arm64/Release/runtimes/linux-arm64/lib/net10.0/System.Reflection.Emit.Lightweight.dll",
+      "artifacts/bin/microsoft.netcore.app.runtime.linux-arm64/Release/runtimes/linux-arm64/lib/net10.0/System.Reflection.Emit.Lightweight.pdb",
+      "artifacts/bin/microsoft.netcore.app.runtime.linux-arm64/Release/runtimes/linux-arm64/lib/net10.0/System.Reflection.Emit.Lightweight.xml",
+      "artifacts/bin/runtime/net10.0-linux-Release-arm64/System.Reflection.Emit.Lightweight.dll",
+      "artifacts/bin/runtime/net10.0-linux-Release-arm64/System.Reflection.Emit.Lightweight.pdb",
+      "artifacts/bin/runtime/net10.0-linux-Release-arm64/System.Reflection.Emit.Lightweight.xml",
+      "artifacts/bin/testhost/net10.0-linux-Release-arm64/shared/Microsoft.NETCore.App/10.0.0/System.Reflection.Emit.Lightweight.dll",
+      "artifacts/bin/testhost/net10.0-linux-Release-arm64/shared/Microsoft.NETCore.App/10.0.0/System.Reflection.Emit.Lightweight.pdb",
+      "artifacts/bin/testhost/net10.0-linux-Release-arm64/shared/Microsoft.NETCore.App/10.0.0/System.Reflection.Emit.Lightweight.xml"
+    ]
+  },
+  "src/libraries/System.Reflection.Emit/ref/System.Reflection.Emit.csproj": {
+    "net10.0": [
+      "artifacts/bin/microsoft.netcore.app.ref/ref/net10.0/System.Reflection.Emit.dll",
+      "artifacts/bin/ref/net10.0/System.Reflection.Emit.dll"
+    ]
+  },
+  "src/libraries/System.Reflection.Emit/src/System.Reflection.Emit.csproj": {
+    "net10.0": [
+      "artifacts/bin/microsoft.netcore.app.runtime.linux-arm64/Release/runtimes/linux-arm64/lib/net10.0/System.Reflection.Emit.dll",
+      "artifacts/bin/microsoft.netcore.app.runtime.linux-arm64/Release/runtimes/linux-arm64/lib/net10.0/System.Reflection.Emit.pdb",
+      "artifacts/bin/microsoft.netcore.app.runtime.linux-arm64/Release/runtimes/linux-arm64/lib/net10.0/System.Reflection.Emit.xml",
+      "artifacts/bin/runtime/net10.0-linux-Release-arm64/System.Reflection.Emit.dll",
+      "artifacts/bin/runtime/net10.0-linux-Release-arm64/System.Reflection.Emit.pdb",
+      "artifacts/bin/runtime/net10.0-linux-Release-arm64/System.Reflection.Emit.xml",
+      "artifacts/bin/testhost/net10.0-linux-Release-arm64/shared/Microsoft.NETCore.App/10.0.0/System.Reflection.Emit.dll",
+      "artifacts/bin/testhost/net10.0-linux-Release-arm64/shared/Microsoft.NETCore.App/10.0.0/System.Reflection.Emit.pdb",
+      "artifacts/bin/testhost/net10.0-linux-Release-arm64/shared/Microsoft.NETCore.App/10.0.0/System.Reflection.Emit.xml"
+    ]
+  },
+  "src/libraries/System.Reflection.Metadata/ref/System.Reflection.Metadata.csproj": {
+    "net10.0": [
+      "artifacts/bin/microsoft.netcore.app.ref/ref/net10.0/System.Reflection.Metadata.dll",
+      "artifacts/bin/ref/net10.0/System.Reflection.Metadata.dll"
+    ]
+  },
+  "src/libraries/System.Reflection.Metadata/src/System.Reflection.Metadata.csproj": {
+    "net10.0": [
+      "artifacts/bin/microsoft.netcore.app.runtime.linux-arm64/Release/runtimes/linux-arm64/lib/net10.0/System.Reflection.Metadata.dll",
+      "artifacts/bin/microsoft.netcore.app.runtime.linux-arm64/Release/runtimes/linux-arm64/lib/net10.0/System.Reflection.Metadata.pdb",
+      "artifacts/bin/microsoft.netcore.app.runtime.linux-arm64/Release/runtimes/linux-arm64/lib/net10.0/System.Reflection.Metadata.xml",
+      "artifacts/bin/runtime/net10.0-linux-Release-arm64/System.Reflection.Metadata.dll",
+      "artifacts/bin/runtime/net10.0-linux-Release-arm64/System.Reflection.Metadata.pdb",
+      "artifacts/bin/runtime/net10.0-linux-Release-arm64/System.Reflection.Metadata.xml",
+      "artifacts/bin/testhost/net10.0-linux-Release-arm64/shared/Microsoft.NETCore.App/10.0.0/System.Reflection.Metadata.dll",
+      "artifacts/bin/testhost/net10.0-linux-Release-arm64/shared/Microsoft.NETCore.App/10.0.0/System.Reflection.Metadata.pdb",
+      "artifacts/bin/testhost/net10.0-linux-Release-arm64/shared/Microsoft.NETCore.App/10.0.0/System.Reflection.Metadata.xml"
+    ]
+  },
+  "src/libraries/System.Reflection.Primitives/ref/System.Reflection.Primitives.csproj": {
+    "net10.0": [
+      "artifacts/bin/microsoft.netcore.app.ref/ref/net10.0/System.Reflection.Primitives.dll",
+      "artifacts/bin/ref/net10.0/System.Reflection.Primitives.dll"
+    ]
+  },
+  "src/libraries/System.Reflection.Primitives/src/System.Reflection.Primitives.csproj": {
+    "net10.0": [
+      "artifacts/bin/microsoft.netcore.app.runtime.linux-arm64/Release/runtimes/linux-arm64/lib/net10.0/System.Reflection.Primitives.dll",
+      "artifacts/bin/microsoft.netcore.app.runtime.linux-arm64/Release/runtimes/linux-arm64/lib/net10.0/System.Reflection.Primitives.pdb",
+      "artifacts/bin/microsoft.netcore.app.runtime.linux-arm64/Release/runtimes/linux-arm64/lib/net10.0/System.Reflection.Primitives.xml",
+      "artifacts/bin/runtime/net10.0-linux-Release-arm64/System.Reflection.Primitives.dll",
+      "artifacts/bin/runtime/net10.0-linux-Release-arm64/System.Reflection.Primitives.pdb",
+      "artifacts/bin/runtime/net10.0-linux-Release-arm64/System.Reflection.Primitives.xml",
+      "artifacts/bin/testhost/net10.0-linux-Release-arm64/shared/Microsoft.NETCore.App/10.0.0/System.Reflection.Primitives.dll",
+      "artifacts/bin/testhost/net10.0-linux-Release-arm64/shared/Microsoft.NETCore.App/10.0.0/System.Reflection.Primitives.pdb",
+      "artifacts/bin/testhost/net10.0-linux-Release-arm64/shared/Microsoft.NETCore.App/10.0.0/System.Reflection.Primitives.xml"
+    ]
+  },
+  "src/libraries/System.Runtime.Loader/ref/System.Runtime.Loader.csproj": {
+    "net10.0": [
+      "artifacts/bin/microsoft.netcore.app.ref/ref/net10.0/System.Runtime.Loader.dll",
+      "artifacts/bin/ref/net10.0/System.Runtime.Loader.dll"
+    ]
+  },
+  "src/libraries/System.Runtime.Loader/src/System.Runtime.Loader.csproj": {
+    "net10.0": [
+      "artifacts/bin/microsoft.netcore.app.runtime.linux-arm64/Release/runtimes/linux-arm64/lib/net10.0/System.Runtime.Loader.dll",
+      "artifacts/bin/microsoft.netcore.app.runtime.linux-arm64/Release/runtimes/linux-arm64/lib/net10.0/System.Runtime.Loader.pdb",
+      "artifacts/bin/microsoft.netcore.app.runtime.linux-arm64/Release/runtimes/linux-arm64/lib/net10.0/System.Runtime.Loader.xml",
+      "artifacts/bin/runtime/net10.0-linux-Release-arm64/System.Runtime.Loader.dll",
+      "artifacts/bin/runtime/net10.0-linux-Release-arm64/System.Runtime.Loader.pdb",
+      "artifacts/bin/runtime/net10.0-linux-Release-arm64/System.Runtime.Loader.xml",
+      "artifacts/bin/testhost/net10.0-linux-Release-arm64/shared/Microsoft.NETCore.App/10.0.0/System.Runtime.Loader.dll",
+      "artifacts/bin/testhost/net10.0-linux-Release-arm64/shared/Microsoft.NETCore.App/10.0.0/System.Runtime.Loader.pdb",
+      "artifacts/bin/testhost/net10.0-linux-Release-arm64/shared/Microsoft.NETCore.App/10.0.0/System.Runtime.Loader.xml"
+    ]
+  },
+  "src/libraries/System.Runtime.Numerics/ref/System.Runtime.Numerics.csproj": {
+    "net10.0": [
+      "artifacts/bin/microsoft.netcore.app.ref/ref/net10.0/System.Runtime.Numerics.dll",
+      "artifacts/bin/ref/net10.0/System.Runtime.Numerics.dll"
+    ]
+  },
+  "src/libraries/System.Runtime.Numerics/src/System.Runtime.Numerics.csproj": {
+    "net10.0": [
+      "artifacts/bin/microsoft.netcore.app.runtime.linux-arm64/Release/runtimes/linux-arm64/lib/net10.0/System.Runtime.Numerics.dll",
+      "artifacts/bin/microsoft.netcore.app.runtime.linux-arm64/Release/runtimes/linux-arm64/lib/net10.0/System.Runtime.Numerics.pdb",
+      "artifacts/bin/microsoft.netcore.app.runtime.linux-arm64/Release/runtimes/linux-arm64/lib/net10.0/System.Runtime.Numerics.xml",
+      "artifacts/bin/runtime/net10.0-linux-Release-arm64/System.Runtime.Numerics.dll",
+      "artifacts/bin/runtime/net10.0-linux-Release-arm64/System.Runtime.Numerics.pdb",
+      "artifacts/bin/runtime/net10.0-linux-Release-arm64/System.Runtime.Numerics.xml",
+      "artifacts/bin/testhost/net10.0-linux-Release-arm64/shared/Microsoft.NETCore.App/10.0.0/System.Runtime.Numerics.dll",
+      "artifacts/bin/testhost/net10.0-linux-Release-arm64/shared/Microsoft.NETCore.App/10.0.0/System.Runtime.Numerics.pdb",
+      "artifacts/bin/testhost/net10.0-linux-Release-arm64/shared/Microsoft.NETCore.App/10.0.0/System.Runtime.Numerics.xml"
+    ]
+  },
+  "src/libraries/System.Security.Cryptography/ref/System.Security.Cryptography.csproj": {
+    "net10.0": [
+      "artifacts/bin/microsoft.netcore.app.ref/ref/net10.0/System.Security.Cryptography.dll",
+      "artifacts/bin/ref/net10.0/System.Security.Cryptography.dll"
+    ]
+  },
+  "src/libraries/System.Security.Cryptography/src/System.Security.Cryptography.csproj": {
+    "net10.0-unix": [
+      "artifacts/bin/microsoft.netcore.app.runtime.linux-arm64/Release/runtimes/linux-arm64/lib/net10.0/System.Security.Cryptography.dll",
+      "artifacts/bin/microsoft.netcore.app.runtime.linux-arm64/Release/runtimes/linux-arm64/lib/net10.0/System.Security.Cryptography.pdb",
+      "artifacts/bin/microsoft.netcore.app.runtime.linux-arm64/Release/runtimes/linux-arm64/lib/net10.0/System.Security.Cryptography.xml",
+      "artifacts/bin/runtime/net10.0-linux-Release-arm64/System.Security.Cryptography.dll",
+      "artifacts/bin/runtime/net10.0-linux-Release-arm64/System.Security.Cryptography.pdb",
+      "artifacts/bin/runtime/net10.0-linux-Release-arm64/System.Security.Cryptography.xml",
+      "artifacts/bin/testhost/net10.0-linux-Release-arm64/shared/Microsoft.NETCore.App/10.0.0/System.Security.Cryptography.dll",
+      "artifacts/bin/testhost/net10.0-linux-Release-arm64/shared/Microsoft.NETCore.App/10.0.0/System.Security.Cryptography.pdb",
+      "artifacts/bin/testhost/net10.0-linux-Release-arm64/shared/Microsoft.NETCore.App/10.0.0/System.Security.Cryptography.xml"
+    ]
+  },
+  "src/libraries/System.Text.Encoding.Extensions/ref/System.Text.Encoding.Extensions.csproj": {
+    "net10.0": [
+      "artifacts/bin/microsoft.netcore.app.ref/ref/net10.0/System.Text.Encoding.Extensions.dll",
+      "artifacts/bin/ref/net10.0/System.Text.Encoding.Extensions.dll"
+    ]
+  },
+  "src/libraries/System.Text.Encoding.Extensions/src/System.Text.Encoding.Extensions.csproj": {
+    "net10.0": [
+      "artifacts/bin/microsoft.netcore.app.runtime.linux-arm64/Release/runtimes/linux-arm64/lib/net10.0/System.Text.Encoding.Extensions.dll",
+      "artifacts/bin/microsoft.netcore.app.runtime.linux-arm64/Release/runtimes/linux-arm64/lib/net10.0/System.Text.Encoding.Extensions.pdb",
+      "artifacts/bin/microsoft.netcore.app.runtime.linux-arm64/Release/runtimes/linux-arm64/lib/net10.0/System.Text.Encoding.Extensions.xml",
+      "artifacts/bin/runtime/net10.0-linux-Release-arm64/System.Text.Encoding.Extensions.dll",
+      "artifacts/bin/runtime/net10.0-linux-Release-arm64/System.Text.Encoding.Extensions.pdb",
+      "artifacts/bin/runtime/net10.0-linux-Release-arm64/System.Text.Encoding.Extensions.xml",
+      "artifacts/bin/testhost/net10.0-linux-Release-arm64/shared/Microsoft.NETCore.App/10.0.0/System.Text.Encoding.Extensions.dll",
+      "artifacts/bin/testhost/net10.0-linux-Release-arm64/shared/Microsoft.NETCore.App/10.0.0/System.Text.Encoding.Extensions.pdb",
+      "artifacts/bin/testhost/net10.0-linux-Release-arm64/shared/Microsoft.NETCore.App/10.0.0/System.Text.Encoding.Extensions.xml"
+    ]
+  },
+  "src/libraries/System.Text.Encodings.Web/ref/System.Text.Encodings.Web.csproj": {
+    "net10.0": [
+      "artifacts/bin/microsoft.netcore.app.ref/ref/net10.0/System.Text.Encodings.Web.dll",
+      "artifacts/bin/ref/net10.0/System.Text.Encodings.Web.dll"
+    ]
+  },
+  "src/libraries/System.Text.Encodings.Web/src/System.Text.Encodings.Web.csproj": {
+    "net10.0": [
+      "artifacts/bin/microsoft.netcore.app.runtime.linux-arm64/Release/runtimes/linux-arm64/lib/net10.0/System.Text.Encodings.Web.dll",
+      "artifacts/bin/microsoft.netcore.app.runtime.linux-arm64/Release/runtimes/linux-arm64/lib/net10.0/System.Text.Encodings.Web.pdb",
+      "artifacts/bin/microsoft.netcore.app.runtime.linux-arm64/Release/runtimes/linux-arm64/lib/net10.0/System.Text.Encodings.Web.xml",
+      "artifacts/bin/runtime/net10.0-linux-Release-arm64/System.Text.Encodings.Web.dll",
+      "artifacts/bin/runtime/net10.0-linux-Release-arm64/System.Text.Encodings.Web.pdb",
+      "artifacts/bin/runtime/net10.0-linux-Release-arm64/System.Text.Encodings.Web.xml",
+      "artifacts/bin/testhost/net10.0-linux-Release-arm64/shared/Microsoft.NETCore.App/10.0.0/System.Text.Encodings.Web.dll",
+      "artifacts/bin/testhost/net10.0-linux-Release-arm64/shared/Microsoft.NETCore.App/10.0.0/System.Text.Encodings.Web.pdb",
+      "artifacts/bin/testhost/net10.0-linux-Release-arm64/shared/Microsoft.NETCore.App/10.0.0/System.Text.Encodings.Web.xml"
+    ]
+  },
+  "src/libraries/System.Text.Json/gen/System.Text.Json.SourceGeneration.Roslyn4.4.csproj": {
+    "netstandard2.0": [
+      "artifacts/bin/microsoft.netcore.app.ref/analyzers/dotnet/cs/System.Text.Json.SourceGeneration.dll",
+      "artifacts/bin/microsoft.netcore.app.ref/analyzers/dotnet/cs/System.Text.Json.SourceGeneration.pdb",
+      "artifacts/bin/microsoft.netcore.app.ref/analyzers/dotnet/cs/cs/System.Text.Json.SourceGeneration.resources.dll",
+      "artifacts/bin/microsoft.netcore.app.ref/analyzers/dotnet/cs/de/System.Text.Json.SourceGeneration.resources.dll",
+      "artifacts/bin/microsoft.netcore.app.ref/analyzers/dotnet/cs/es/System.Text.Json.SourceGeneration.resources.dll",
+      "artifacts/bin/microsoft.netcore.app.ref/analyzers/dotnet/cs/fr/System.Text.Json.SourceGeneration.resources.dll",
+      "artifacts/bin/microsoft.netcore.app.ref/analyzers/dotnet/cs/it/System.Text.Json.SourceGeneration.resources.dll",
+      "artifacts/bin/microsoft.netcore.app.ref/analyzers/dotnet/cs/ja/System.Text.Json.SourceGeneration.resources.dll",
+      "artifacts/bin/microsoft.netcore.app.ref/analyzers/dotnet/cs/ko/System.Text.Json.SourceGeneration.resources.dll",
+      "artifacts/bin/microsoft.netcore.app.ref/analyzers/dotnet/cs/pl/System.Text.Json.SourceGeneration.resources.dll",
+      "artifacts/bin/microsoft.netcore.app.ref/analyzers/dotnet/cs/pt-BR/System.Text.Json.SourceGeneration.resources.dll",
+      "artifacts/bin/microsoft.netcore.app.ref/analyzers/dotnet/cs/ru/System.Text.Json.SourceGeneration.resources.dll",
+      "artifacts/bin/microsoft.netcore.app.ref/analyzers/dotnet/cs/tr/System.Text.Json.SourceGeneration.resources.dll",
+      "artifacts/bin/microsoft.netcore.app.ref/analyzers/dotnet/cs/zh-Hans/System.Text.Json.SourceGeneration.resources.dll",
+      "artifacts/bin/microsoft.netcore.app.ref/analyzers/dotnet/cs/zh-Hant/System.Text.Json.SourceGeneration.resources.dll"
+    ]
+  },
+  "src/libraries/System.Text.Json/ref/System.Text.Json.csproj": {
+    "net10.0": [
+      "artifacts/bin/microsoft.netcore.app.ref/ref/net10.0/System.Text.Json.dll",
+      "artifacts/bin/ref/net10.0/System.Text.Json.dll"
+    ]
+  },
+  "src/libraries/System.Text.Json/src/System.Text.Json.csproj": {
+    "net10.0": [
+      "artifacts/bin/microsoft.netcore.app.runtime.linux-arm64/Release/runtimes/linux-arm64/lib/net10.0/System.Text.Json.dll",
+      "artifacts/bin/microsoft.netcore.app.runtime.linux-arm64/Release/runtimes/linux-arm64/lib/net10.0/System.Text.Json.pdb",
+      "artifacts/bin/microsoft.netcore.app.runtime.linux-arm64/Release/runtimes/linux-arm64/lib/net10.0/System.Text.Json.xml",
+      "artifacts/bin/runtime/net10.0-linux-Release-arm64/System.Text.Json.dll",
+      "artifacts/bin/runtime/net10.0-linux-Release-arm64/System.Text.Json.pdb",
+      "artifacts/bin/runtime/net10.0-linux-Release-arm64/System.Text.Json.xml",
+      "artifacts/bin/testhost/net10.0-linux-Release-arm64/shared/Microsoft.NETCore.App/10.0.0/System.Text.Json.dll",
+      "artifacts/bin/testhost/net10.0-linux-Release-arm64/shared/Microsoft.NETCore.App/10.0.0/System.Text.Json.pdb",
+      "artifacts/bin/testhost/net10.0-linux-Release-arm64/shared/Microsoft.NETCore.App/10.0.0/System.Text.Json.xml"
+    ]
+  },
+  "src/libraries/System.Text.RegularExpressions/gen/System.Text.RegularExpressions.Generator.csproj": {
+    "netstandard2.0": [
+      "artifacts/bin/microsoft.netcore.app.ref/analyzers/dotnet/cs/System.Text.RegularExpressions.Generator.dll",
+      "artifacts/bin/microsoft.netcore.app.ref/analyzers/dotnet/cs/System.Text.RegularExpressions.Generator.pdb",
+      "artifacts/bin/microsoft.netcore.app.ref/analyzers/dotnet/cs/cs/System.Text.RegularExpressions.Generator.resources.dll",
+      "artifacts/bin/microsoft.netcore.app.ref/analyzers/dotnet/cs/de/System.Text.RegularExpressions.Generator.resources.dll",
+      "artifacts/bin/microsoft.netcore.app.ref/analyzers/dotnet/cs/es/System.Text.RegularExpressions.Generator.resources.dll",
+      "artifacts/bin/microsoft.netcore.app.ref/analyzers/dotnet/cs/fr/System.Text.RegularExpressions.Generator.resources.dll",
+      "artifacts/bin/microsoft.netcore.app.ref/analyzers/dotnet/cs/it/System.Text.RegularExpressions.Generator.resources.dll",
+      "artifacts/bin/microsoft.netcore.app.ref/analyzers/dotnet/cs/ja/System.Text.RegularExpressions.Generator.resources.dll",
+      "artifacts/bin/microsoft.netcore.app.ref/analyzers/dotnet/cs/ko/System.Text.RegularExpressions.Generator.resources.dll",
+      "artifacts/bin/microsoft.netcore.app.ref/analyzers/dotnet/cs/pl/System.Text.RegularExpressions.Generator.resources.dll",
+      "artifacts/bin/microsoft.netcore.app.ref/analyzers/dotnet/cs/pt-BR/System.Text.RegularExpressions.Generator.resources.dll",
+      "artifacts/bin/microsoft.netcore.app.ref/analyzers/dotnet/cs/ru/System.Text.RegularExpressions.Generator.resources.dll",
+      "artifacts/bin/microsoft.netcore.app.ref/analyzers/dotnet/cs/tr/System.Text.RegularExpressions.Generator.resources.dll",
+      "artifacts/bin/microsoft.netcore.app.ref/analyzers/dotnet/cs/zh-Hans/System.Text.RegularExpressions.Generator.resources.dll",
+      "artifacts/bin/microsoft.netcore.app.ref/analyzers/dotnet/cs/zh-Hant/System.Text.RegularExpressions.Generator.resources.dll"
+    ]
+  },
+  "src/libraries/System.Text.RegularExpressions/ref/System.Text.RegularExpressions.csproj": {
+    "net10.0": [
+      "artifacts/bin/microsoft.netcore.app.ref/ref/net10.0/System.Text.RegularExpressions.dll",
+      "artifacts/bin/ref/net10.0/System.Text.RegularExpressions.dll"
+    ]
+  },
+  "src/libraries/System.Text.RegularExpressions/src/System.Text.RegularExpressions.csproj": {
+    "net10.0": [
+      "artifacts/bin/microsoft.netcore.app.runtime.linux-arm64/Release/runtimes/linux-arm64/lib/net10.0/System.Text.RegularExpressions.dll",
+      "artifacts/bin/microsoft.netcore.app.runtime.linux-arm64/Release/runtimes/linux-arm64/lib/net10.0/System.Text.RegularExpressions.pdb",
+      "artifacts/bin/microsoft.netcore.app.runtime.linux-arm64/Release/runtimes/linux-arm64/lib/net10.0/System.Text.RegularExpressions.xml",
+      "artifacts/bin/runtime/net10.0-linux-Release-arm64/System.Text.RegularExpressions.dll",
+      "artifacts/bin/runtime/net10.0-linux-Release-arm64/System.Text.RegularExpressions.pdb",
+      "artifacts/bin/runtime/net10.0-linux-Release-arm64/System.Text.RegularExpressions.xml",
+      "artifacts/bin/testhost/net10.0-linux-Release-arm64/shared/Microsoft.NETCore.App/10.0.0/System.Text.RegularExpressions.dll",
+      "artifacts/bin/testhost/net10.0-linux-Release-arm64/shared/Microsoft.NETCore.App/10.0.0/System.Text.RegularExpressions.pdb",
+      "artifacts/bin/testhost/net10.0-linux-Release-arm64/shared/Microsoft.NETCore.App/10.0.0/System.Text.RegularExpressions.xml"
+    ]
   }
 }

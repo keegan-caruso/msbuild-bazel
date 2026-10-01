@@ -59,6 +59,26 @@ def main():
     for name, digest in generator_documents.items():
         mapping['projectDefaults']['documents'][generator_root + f'{name}/{name}.csproj'] = {
             'sha256': digest, 'targets': [], 'tasks': [], 'inputs': translations}
+    json_root = 'src/libraries/System.Text.Json/gen/'
+    translations = [json_root + f'Resources/xlf/Strings.{language}.xlf'
+                    for language in ['cs', 'de', 'es', 'fr', 'it', 'ja', 'ko',
+                                     'pl', 'pt-BR', 'ru', 'tr', 'zh-Hans', 'zh-Hant']]
+    for version, digest in {
+        '3.11': '87631a718a7e46cc2123befe01384f90193c4d4157d182646c4925cfd5129528',
+        '4.0': 'a82133743ef0db8beae1ad4cd39635176a76d4df9de22ffd239709cd91a90656',
+        '4.4': '518aae0fa687ec52580b0058abac7486ed0efc1bca35ce2b700dfb9f7574dac2',
+    }.items():
+        mapping['projectDefaults']['documents'][json_root + f'System.Text.Json.SourceGeneration.Roslyn{version}.csproj'] = {
+            'sha256': digest, 'targets': [], 'tasks': [], 'inputs': translations}
+    # ASN transforms compare generated C# with checked-in source. Changes to
+    # authored source remain subject to the runner's input-mutation guard.
+    project = 'src/libraries/Common/src/System/Security/Cryptography/Asn1/AsnXml.targets'
+    mapping['projectDefaults']['documents'][project] = {
+        'sha256': '4bb2ccaa6166a28428b8de6e743bb1a3318d5a0a92e24d79ca501d09feac754a',
+        'targets': ['CompileAsn'], 'tasks': ['CompareFilesIgnoreLineEndings'],
+        'inputs': ['src/libraries/Common/src/System/Security/Cryptography/Asn1/asn.xslt']}
+    mapping['projectDefaults']['inputItems']['AsnXml'] = []
+    mapping['projectDefaults']['evaluationItems'].append('DefaultReferenceExclusion')
     if args.prepared_restore:
         mapping['projectDefaults']['preparedRestore'] = True
     mapping['projects'] = {}
@@ -74,6 +94,15 @@ def main():
             else:
                 binding['outputFiles'] += outputs
         mapping['projects'][project] = binding
+    # ASN targets write comparison scratch and may skip individual transforms
+    # after another framework touches the common checked-in C# output. These
+    # intermediate files are not compiler inputs or downstream products.
+    for project in ['src/libraries/System.Security.Cryptography/src/System.Security.Cryptography.csproj',
+                    'src/libraries/System.Formats.Asn1/src/System.Formats.Asn1.csproj']:
+        binding = mapping['projects'].setdefault(project, copy.deepcopy(mapping['projectDefaults']))
+        binding.pop('properties', None)
+        for variant in [binding] + list(binding.get('frameworkOverrides', {}).values()):
+            variant['temporaryDirectories'] = ['$(IntermediateOutputPath)asnxml']
     if args.platform == 'linux-arm64':
         # Only the browser configuration reads this PNS generation exclusion.
         project = 'src/libraries/System.Net.NameResolution/src/System.Net.NameResolution.csproj'
