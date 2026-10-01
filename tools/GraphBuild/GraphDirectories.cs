@@ -7,9 +7,9 @@ internal static class GraphDirectories
     internal static void Prepare(GraphContract contract, ContractFiles files, bool create)
     {
         var paths = contract.InputDirectories ?? [];
-        if (paths.Length != 0 && contract.Version != 4)
+        if (paths.Length != 0 && contract.Version is not (4 or 5))
         {
-            throw new InvalidDataException("Input directories require graph contract version 4");
+            throw new InvalidDataException("Input directories require graph contract version 4 or 5");
         }
         var outputPaths = contract.Projects.Values.SelectMany(project => project.OutputDirectories.Concat(project.OutputFiles ?? [])
             .Concat((project.Configurations ?? []).SelectMany(configuration => configuration.OutputDirectories.Concat(configuration.OutputFiles ?? [])))).ToArray();

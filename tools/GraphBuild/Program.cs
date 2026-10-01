@@ -102,6 +102,11 @@ using var inputs = new GraphInputs(contract, root, sdkRoot, restored: args[0] ==
 if (args[0] is "build" or "action")
 {
     var target = args.Length > 5 ? args[5] : "Build";
+    TemporaryOutputs temporaryOutputs;
+    using (GraphProfile.Measure("temporaryOutputValidation"))
+    {
+        temporaryOutputs = new TemporaryOutputs(contract, inputs);
+    }
     if (target is not ("Build" or "Publish"))
     {
         throw new InvalidDataException("The graph runner currently qualifies Build and Publish; execute tests through Bazel test actions");
@@ -125,7 +130,7 @@ if (args[0] is "build" or "action")
     var payloads = new SnapshotPayloads(cache ?? throw new InvalidDataException("Cache directory is required"));
     using var remote = remoteUrl is null ? null : new RemoteSnapshotStore(new Uri(remoteUrl.TrimEnd('/') + "/"), bearerToken: bearerToken, profile: profile, contentStore: payloads);
     var materializer = new FileMaterializer(copyMode == "clone", profile);
-    var plugin = new GraphCache(inputs, cache ?? throw new InvalidDataException("Cache directory is required"), args.Length < 7 || args[6] != "no-read", remote, materializer, payloads, localState);
+    var plugin = new GraphCache(inputs, cache ?? throw new InvalidDataException("Cache directory is required"), args.Length < 7 || args[6] != "no-read", remote, materializer, payloads, temporaryOutputs, localState);
     var parameters = new BuildParameters(inputs.Collection)
     {
         MaxNodeCount = 4,
@@ -154,6 +159,7 @@ if (args[0] is "build" or "action")
     var executionSeconds = timer.Elapsed.TotalSeconds;
     var verificationTimer = System.Diagnostics.Stopwatch.StartNew();
     inputs.VerifyUnchangedInputs();
+    var temporaryDirectoriesRemoved = temporaryOutputs.Discard(result);
     verificationTimer.Stop();
     var snapshotTimer = System.Diagnostics.Stopwatch.StartNew();
     await plugin.SaveAsync(result);
@@ -170,6 +176,7 @@ if (args[0] is "build" or "action")
         retainedState = localState?.Reusable ?? false,
         executionSeconds,
         verificationSeconds = verificationTimer.Elapsed.TotalSeconds,
+        temporaryDirectoriesRemoved,
         snapshotSeconds = snapshotTimer.Elapsed.TotalSeconds,
         hits = plugin.Hits,
         misses = plugin.Misses,

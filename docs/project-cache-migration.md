@@ -930,6 +930,27 @@ with raw MSBuild and fresh snapshot replay, including an empty `wwwroot`.
 Absent-directory conditions and arbitrary directory enumeration are not inferred;
 custom targets still need reviewed contracts.
 
+### Declared task scratch
+
+Reviewed graph mappings can declare disposable task output with
+`"temporaryDirectories": ["$(IntermediateOutputPath)task-scratch"]`. Sync expands
+properties for every configured project and emits a version-5 contract. Paths
+must be strict children of owned output directories. They affect cache identity
+but never become dependency products or snapshot payloads.
+
+After a successful graph build, the runner verifies input bytes, rejects target
+results or metadata pointing into scratch, then removes the directories before
+publishing snapshots. Inputs, required outputs, SDK assembly outputs, overlapping
+declarations and symlinks are rejected. No cleanup runs after a failed build.
+Use this only for disposable intermediates, never compiler inputs or generated
+products that another target needs. It does not permit targets to rewrite source
+files; the input-mutation guard remains active.
+
+Run `RULES_MSBUILD_DOTNET_ROOT=<sdk> python3 tests/graph_build/temporary_outputs.py`
+after building GraphBuild and ProjectSync. The fixture covers dependency
+fingerprints, full replay, mapping expansion, contract changes, ownership,
+required products, returned paths/metadata, symlinks and source mutation.
+
 ## Owned retained-output experiment
 
 The standalone Linux runner accepts `RULES_MSBUILD_GRAPH_LOCAL_STATE` pointing

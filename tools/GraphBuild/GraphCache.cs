@@ -14,7 +14,7 @@ internal sealed record TargetOutput(string Name, ResultItem[] Items);
 internal sealed record ProjectSnapshot(string Fingerprint, Dictionary<string, string> Files,
     Dictionary<string, string> ProjectCopies, TargetOutput[] Targets, Dictionary<string, int> UnixModes);
 
-internal sealed class GraphCache(GraphInputs inputs, string cache, bool read, RemoteSnapshotStore? remote, FileMaterializer materializer, SnapshotPayloads payloads, LocalGraphState? localState = null) : ProjectCachePluginBase
+internal sealed class GraphCache(GraphInputs inputs, string cache, bool read, RemoteSnapshotStore? remote, FileMaterializer materializer, SnapshotPayloads payloads, TemporaryOutputs temporaryOutputs, LocalGraphState? localState = null) : ProjectCachePluginBase
 {
     private readonly Dictionary<string, ProjectGraphNode> nodes = inputs.Graph.ProjectNodes.ToDictionary(n => GraphInputs.Key(n.ProjectInstance));
     private readonly Dictionary<ProjectGraphNode, string[]> outputDirectories = inputs.Graph.ProjectNodes.ToDictionary(node => node, node => inputs.OutputDirectories(node).ToArray());
@@ -289,7 +289,7 @@ internal sealed class GraphCache(GraphInputs inputs, string cache, bool read, Re
         void Allowed(string relative)
         {
             var path = inputs.Files.Resolve(relative);
-            if (!inputs.OwnsOutput(node, path))
+            if (!inputs.OwnsOutput(node, path) || temporaryOutputs.Contains(path))
             {
                 throw new InvalidDataException("Snapshot output escaped project ownership: " + relative);
             }
@@ -313,6 +313,9 @@ internal sealed class GraphCache(GraphInputs inputs, string cache, bool read, Re
             .Where(path => !path.EndsWith(".AssemblyReference.cache", StringComparison.Ordinal) && path != resourceState)
             .Concat(inputs.DeclaredOutputFiles(current).Where(File.Exists))
             .Select(path => inputs.Files.Resolve(Path.GetRelativePath(inputs.Files.Root, path)))
+            // Task scratch is not a dependency product, even while its producer
+            // has finished and cleanup is waiting for the complete graph.
+            .Where(path => !temporaryOutputs.Contains(path))
             .Distinct().Order(StringComparer.Ordinal).ToArray();
     });
 

@@ -340,6 +340,15 @@ internal static class GraphGenerator
             contractData["Version"] = 4;
             contractData["InputDirectories"] = JsonSerializer.SerializeToNode(inputDirectories);
         }
+        var temporaryDirectories = graph.ProjectNodes.Where(node => node.ProjectInstance.GetPropertyValue("TargetPath").Length != 0)
+            .SelectMany(node => mappings.ForProject(Relative(node.ProjectInstance.FullPath), node.ProjectInstance.GetPropertyValue("TargetFramework")).TemporaryDirectories
+                .Select(path => Relative(Path.GetFullPath(node.ProjectInstance.ExpandString(path).Replace('\\', '/'), Path.GetDirectoryName(node.ProjectInstance.FullPath)!))))
+            .Distinct().Order(StringComparer.Ordinal).ToArray();
+        if (temporaryDirectories.Length != 0)
+        {
+            contractData["Version"] = 5;
+            contractData["TemporaryDirectories"] = JsonSerializer.SerializeToNode(temporaryDirectories);
+        }
         var contract = contractData.ToJsonString(new JsonSerializerOptions { WriteIndented = true }) + "\n";
         var sources = inputs.Values.SelectMany(files => files).Concat(shared).Concat(restore?.Inputs ?? []).Distinct().Order(StringComparer.Ordinal).ToArray();
         var runtimeOutputs = graph.ProjectNodes.Where(node => node.ProjectInstance.GetPropertyValue("TargetPath").Length != 0 &&
