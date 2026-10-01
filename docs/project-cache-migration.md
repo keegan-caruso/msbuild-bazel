@@ -915,6 +915,33 @@ controls compare all captured outputs with independent cold builds. Existing
 `invalidation.py` and `replay.py` cover documentation copies, Publish and corrupt
 snapshots. These are local correctness checks, not remote-cache measurements.
 
+### Separately authored compiler references
+
+A reviewed SDK target can replace an implementation's compiler reference with a
+separately built contract. Declare that existing output on the implementation:
+
+```json
+{"projects": {"Impl/Impl.csproj": {
+  "compilerReference": "Api/bin/$(Configuration)/$(TargetFramework)/Impl.dll"
+}}}
+```
+
+This emits version 7. The path is workspace-relative after property expansion
+and must name a managed DLL output owned by the producer or its dependency graph.
+Use framework-specific mappings when only some configurations use that artifact.
+It changes reviewed compiler-consumer fingerprints; it does not modify MSBuild
+reference selection or compilation. Implementation/tool edges retain their full
+fingerprints. Missing artifacts fail instead of falling back to implementation
+bytes. Older contracts remain readable; older schemas reject the new field.
+
+On Linux ARM64, `python3 tests/graph_build/compiler_references.py` checks a
+four-project implementation/API chain: full replay, a body edit rebuilding only
+the implementation, API edits, explicit implementation consumers and byte parity
+against fresh builds. It also checks missing artifacts, output ownership, unsafe
+paths and composition with directory, temporary-output and entry-property
+contracts. Run it after building GraphBuild and ProjectSync with SDK 10.0.400.
+These local controls do not qualify arbitrary custom targets or remote recovery.
+
 ## Explicit graph Restore preparation
 
 Generated graphs can opt into a separate Bazel Restore action:

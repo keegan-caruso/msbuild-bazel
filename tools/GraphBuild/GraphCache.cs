@@ -239,6 +239,17 @@ internal sealed class GraphCache(GraphInputs inputs, string cache, bool read, Re
             else
             {
                 var project = reference.ProjectInstance;
+                var declaration = inputs.For(reference).CompilerReference;
+                if (declaration is not null)
+                {
+                    var declared = inputs.Files.Resolve(declaration);
+                    if (!File.Exists(declared))
+                    {
+                        throw new InvalidDataException("Missing declared compiler reference: " + declaration);
+                    }
+                    records.Add(GraphInputs.Key(project) + ":" + OutputDigest(declared));
+                    continue;
+                }
                 var path = project.GetPropertyValue("TargetRefPath");
                 if (path.Length == 0)
                 {

@@ -71,9 +71,9 @@ Environment.SetEnvironmentVariable("MSBUILD_EXE_PATH", Path.Combine(sdk, "MSBuil
 Environment.SetEnvironmentVariable("MSBuildSDKsPath", Path.Combine(sdk, "Sdks"));
 // Resolve package SDKs and key preparation against the same owned package root.
 Environment.SetEnvironmentVariable("NUGET_PACKAGES", Path.Combine(root, ".nuget"));
-if (contract.EntryProperties?.Count > 0 && contract.Version != 6)
+if (contract.EntryProperties?.Count > 0 && contract.Version is not (6 or 7))
 {
-    throw new InvalidDataException("Entry properties require graph contract version 6");
+    throw new InvalidDataException("Entry properties require graph contract version 6 or 7");
 }
 RulesMSBuild.GraphEntryProperties.Validate(contract.Entries ?? [contract.Entry], contract.EntryProperties ?? [], (contract.ToolProperties ?? []).Keys);
 contract = GraphTools.Bind(contract, root, sdkRoot);

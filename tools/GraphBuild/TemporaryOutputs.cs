@@ -14,9 +14,9 @@ internal sealed class TemporaryOutputs
     {
         this.inputs = inputs;
         relatives = contract.TemporaryDirectories ?? [];
-        if (relatives.Length != 0 && contract.Version is not (5 or 6))
+        if (relatives.Length != 0 && contract.Version is not (5 or 6 or 7))
         {
-            throw new InvalidDataException("Temporary directories require graph contract version 5 or 6");
+            throw new InvalidDataException("Temporary directories require graph contract version 5, 6 or 7");
         }
         paths = relatives.Select(inputs.Files.Resolve).Distinct(StringComparer.Ordinal).ToArray();
         if (paths.Length == 0)
@@ -30,6 +30,7 @@ internal sealed class TemporaryOutputs
             .Concat(nodes.SelectMany(node => (inputs.For(node).DependencyCopies ?? [])
                 .SelectMany(copy => new[] { copy.Key, copy.Value })).Select(inputs.Files.Resolve))
             .Concat(nodes.SelectMany(inputs.DeclaredOutputFiles))
+            .Concat(nodes.Select(node => inputs.For(node).CompilerReference).Where(path => path is not null).Select(path => inputs.Files.Resolve(path!)))
             .Concat(nodes.SelectMany(node => new[] { "TargetPath", "TargetRefPath" }
                 .Select(node.ProjectInstance.GetPropertyValue).Where(path => path.Length != 0)
                 .Select(path => Path.GetFullPath(path.Replace('\\', '/'), Path.GetDirectoryName(node.ProjectInstance.FullPath)!))))

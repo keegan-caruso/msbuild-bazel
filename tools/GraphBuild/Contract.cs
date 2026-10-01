@@ -19,13 +19,13 @@ internal sealed record RestoreContract(string[] Inputs, string[] Outputs);
 // directories or required files relative to the workspace; dependency copies are handled separately.
 internal sealed record ProjectContract(string[] Inputs, string[] OutputDirectories,
     bool ReferenceBoundary = false, Dictionary<string, string>? DependencyCopies = null,
-    ProjectConfiguration[]? Configurations = null, string[]? OutputFiles = null, string[]? ImplementationDependencies = null);
+    ProjectConfiguration[]? Configurations = null, string[]? OutputFiles = null, string[]? ImplementationDependencies = null, string? CompilerReference = null);
 
 // Selectors match global properties, including an empty value for an absent
 // property (for example the outer node of a multi-targeted project).
 internal sealed record ProjectConfiguration(Dictionary<string, string> Properties,
     string[] Inputs, string[] OutputDirectories, bool ReferenceBoundary = false,
-    Dictionary<string, string>? DependencyCopies = null, string[]? OutputFiles = null, string[]? ImplementationDependencies = null);
+    Dictionary<string, string>? DependencyCopies = null, string[]? OutputFiles = null, string[]? ImplementationDependencies = null, string? CompilerReference = null);
 
 internal sealed class ContractFiles(string root, string sdk)
 {

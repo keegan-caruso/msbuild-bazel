@@ -60,9 +60,9 @@ internal sealed class GraphInputs : IDisposable
                 throw new InvalidDataException("Declared graph input is missing: " + path);
             }
         }
-        if (contract.Version is not (1 or 2 or 3 or 4 or 5 or 6) || contract.Projects.Count == 0)
+        if (contract.Version is not (1 or 2 or 3 or 4 or 5 or 6 or 7) || contract.Projects.Count == 0)
         {
-            throw new InvalidDataException("Expected graph contract version 1, 2, 3, 4, 5 or 6 with explicit project inputs and outputs");
+            throw new InvalidDataException("Expected graph contract version 1, 2, 3, 4, 5, 6 or 7 with explicit project inputs and outputs");
         }
         var sdk = Path.Combine(sdkRoot, "sdk", contract.SdkVersion);
         if (!Directory.Exists(sdk))
@@ -146,9 +146,9 @@ internal sealed class GraphInputs : IDisposable
         {
             return project;
         }
-        if (contract.Version is not (2 or 3 or 4 or 5 or 6) || project.OutputDirectories.Length != 0 || project.OutputFiles?.Length > 0 || project.ReferenceBoundary || project.DependencyCopies?.Count > 0 || project.ImplementationDependencies?.Length > 0)
+        if (contract.Version is not (2 or 3 or 4 or 5 or 6 or 7) || project.OutputDirectories.Length != 0 || project.OutputFiles?.Length > 0 || project.ReferenceBoundary || project.DependencyCopies?.Count > 0 || project.ImplementationDependencies?.Length > 0 || project.CompilerReference is not null)
         {
-            throw new InvalidDataException("Configured projects require version 2, 3, 4, 5 or 6 and configuration-owned outputs: " + Relative(node));
+            throw new InvalidDataException("Configured projects require version 2, 3, 4, 5, 6 or 7 and configuration-owned outputs: " + Relative(node));
         }
         var matches = project.Configurations.Where(configuration => configuration.Properties.Count != 0 &&
             configuration.Properties.All(property =>
@@ -159,7 +159,7 @@ internal sealed class GraphInputs : IDisposable
         }
         var selected = matches[0];
         return new ProjectContract(project.Inputs.Concat(selected.Inputs).Distinct().ToArray(),
-            selected.OutputDirectories, selected.ReferenceBoundary, selected.DependencyCopies, OutputFiles: selected.OutputFiles, ImplementationDependencies: selected.ImplementationDependencies);
+            selected.OutputDirectories, selected.ReferenceBoundary, selected.DependencyCopies, OutputFiles: selected.OutputFiles, ImplementationDependencies: selected.ImplementationDependencies, CompilerReference: selected.CompilerReference);
     }
     private ProjectContract RestoreInputs(ProjectGraphNode node, ProjectContract project)
     {
@@ -238,6 +238,10 @@ internal sealed class GraphInputs : IDisposable
         records.AddRange(For(node).OutputDirectories.Select(p => "output:" + p));
         records.AddRange((For(node).OutputFiles ?? []).Order(StringComparer.Ordinal).Select(p => "output-file:" + p));
         records.Add("referenceBoundary:" + For(node).ReferenceBoundary);
+        if (For(node).CompilerReference is not null)
+        {
+            records.Add("compiler-reference:" + For(node).CompilerReference);
+        }
         records.AddRange((For(node).DependencyCopies ?? []).OrderBy(p => p.Key, StringComparer.Ordinal).Select(p => "copy:" + p.Key + "=" + p.Value));
         records.AddRange((For(node).ImplementationDependencies ?? []).Order(StringComparer.Ordinal).Select(path => "implementation:" + path));
         var compileInputs = project.GetItems("Compile").Select(item => Path.GetFullPath(item.EvaluatedInclude.Replace('\\', '/'), Path.GetDirectoryName(project.FullPath)!)).ToHashSet(StringComparer.Ordinal);
@@ -276,6 +280,19 @@ internal sealed class GraphInputs : IDisposable
         if (contract.Version < 3 && For(node).ImplementationDependencies?.Length > 0)
         {
             throw new InvalidDataException("Implementation dependencies require graph contract version 3");
+        }
+        var compilerReference = For(node).CompilerReference;
+        if (compilerReference is not null)
+        {
+            if (contract.Version < 7)
+            {
+                throw new InvalidDataException("Compiler references require graph contract version 7");
+            }
+            RulesMSBuild.GraphCompilerReferences.Validate(node, Files.Resolve(compilerReference), current =>
+                new[] { "TargetPath", "TargetRefPath" }.Select(current.ProjectInstance.GetPropertyValue).Where(value => value.Length != 0)
+                    .Select(value => Path.GetFullPath(value.Replace('\\', '/'), Path.GetDirectoryName(current.ProjectInstance.FullPath)!))
+                    .Where(value => OutputDirectories(current).Any(directory => value.StartsWith(directory + Path.DirectorySeparatorChar, StringComparison.Ordinal)))
+                    .Concat(DeclaredOutputFiles(current)));
         }
         foreach (var dependency in For(node).ImplementationDependencies ?? [])
         {

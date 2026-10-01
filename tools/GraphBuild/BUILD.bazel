@@ -5,6 +5,7 @@ filegroup(
     srcs = glob(["*.cs"]) + [
         "GraphBuild.csproj",
         "//tools:Directory.Build.props",
+        "//tools:GraphCompilerReferences.cs",
         "//tools:GraphEntryProperties.cs",
         "//tools:MSBuildTool.props",
         "//tools:PackageSdks.cs",
