@@ -1,5 +1,6 @@
 """Prove the declared native archive boundary before compiling CoreCLR."""
 import io
+from collections import Counter
 import json
 import os
 import shlex
@@ -7,6 +8,43 @@ from pathlib import Path
 import subprocess
 import sys
 import tarfile
+import tempfile
+
+
+def component_archive_control():
+    # Updated native inputs already contain bootstrap headers. Composing a
+    # component must replace them, retaining strict duplicate-free extraction.
+    with tempfile.TemporaryDirectory(prefix='native-component-archive-') as temporary:
+        root = Path(temporary)
+        native = root / 'native'
+        native.mkdir()
+        files = {'eng/native/version/_version.h': '00,00,00,00000 "0.0.0"',
+                 'eng/native/version/runtime_version.h': 'MajorVersion 0\nRuntimeProductVersion 0.0.0-dev\n',
+                 'artifacts/obj/_version.h': 'old', 'artifacts/obj/runtime_version.h': 'old',
+                 'build-native.sh': 'old', 'src/native/keep.txt': 'authored'}
+        with tarfile.open(native / 'source.tar', 'w') as archive:
+            for name, body in files.items():
+                data = body.encode()
+                member = tarfile.TarInfo(name)
+                member.size = len(data)
+                archive.addfile(member, io.BytesIO(data))
+        for name in ['toolchain.tar', 'bwrap']:
+            (native / name).write_bytes(b'fixture')
+        (native / 'Task.csproj').write_text('<Project Sdk="Microsoft.NET.Sdk"/>')
+        for component in ['host', 'crypto', 'compression', 'support']:
+            output = root / component
+            subprocess.run([sys.executable, str(Path(__file__).with_name('native_component_prepare.py')),
+                            str(native), str(output), component, '--jobs', '4', '--ninja'], check=True)
+            with tarfile.open(output / 'source.tar') as archive:
+                assert all(count == 1 for count in Counter(member.name for member in archive).values())
+                assert archive.extractfile('src/native/keep.txt').read() == b'authored'
+                for name in ['_version.h', 'runtime_version.h']:
+                    assert b'10.0.0' in archive.extractfile('artifacts/obj/' + name).read()
+                assert b'-ninja' in archive.extractfile('build-native.sh').read()
+        print('PASS: four component archives retain authored files and replace version headers once', flush=True)
+
+
+component_archive_control()
 
 workspace, report = map(lambda s:Path(s).resolve(),sys.argv[1:])
 report.mkdir(parents=True,exist_ok=False)

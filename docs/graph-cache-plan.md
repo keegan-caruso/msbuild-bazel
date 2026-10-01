@@ -1127,3 +1127,19 @@ qualification to derive shared ownership from SDK targets. This checkpoint reuse
 that completed raw build for byte comparison rather than recompiling it.
 Ordinary-app composition, larger edits, upstream tests and independent recovery
 remain separate gates.
+
+
+### Native component archive composition
+
+The updated native archive already contains explicit version headers. Composing
+host/crypto/compression initially duplicated those tar members, and strict C#
+extraction rejected the archive. Component preparation now replaces the existing
+bootstrap headers once. The four-component small archive control preserves
+an authored file, pins version 10.0.0/Ninja and rejects duplicate members.
+The existing six native build/header/cache/failure controls pass on Bazel 9.2.
+
+Graph-built drivers now construct the additional dotnet muxer, hostfxr,
+hostpolicy, OpenSSL bridge and compression bridge. All five binaries match
+independent direct builds from the same declared archives exactly. These
+construction observations are unscored. Ordinary-app startup and the combined
+managed graph remain pending; no SDK payload is part of the proposed layout.

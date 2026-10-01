@@ -49,7 +49,9 @@ script='set -euo pipefail\n'+script+'tar --sort=name --mtime=@0 --owner=0 --grou
 # The header bootstrap is explicit because no managed Arcade build runs here.
 with tarfile.open(a.native/'source.tar') as original,tarfile.open(folder/'source.tar','w') as out:
     for member in original:
-        if member.name=='build-native.sh':continue
+        # Replace bootstrap members once; native_prepare may already own
+        # explicit version headers. Duplicate tar members fail safe extraction.
+        if member.name in ['build-native.sh', 'artifacts/obj/_version.h', 'artifacts/obj/runtime_version.h']:continue
         out.addfile(member,original.extractfile(member) if member.isfile() else None)
     headers={name:original.extractfile('eng/native/version/'+name).read().decode() for name in ['_version.h','runtime_version.h']}
     headers['_version.h']=headers['_version.h'].replace('00,00,00,00000','10,0,0,0').replace('"0.0.0"','"10.0.0"')
