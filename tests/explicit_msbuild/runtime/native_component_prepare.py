@@ -8,11 +8,16 @@ from pathlib import Path
 import shutil
 import tarfile
 
+from native_driver import write_contract
+
 p=argparse.ArgumentParser(description=__doc__)
 p.add_argument('native',type=Path)
 p.add_argument('output',type=Path)
 p.add_argument('component',choices=['support','host','crypto','compression'])
-a=p.parse_args();folder=a.output.resolve();folder.mkdir(parents=True,exist_ok=False)
+p.add_argument('--jobs',type=int,default=4)
+p.add_argument('--ninja',action='store_true')
+a=p.parse_args();assert a.jobs>0
+folder=a.output.resolve();folder.mkdir(parents=True,exist_ok=False)
 here=Path(__file__).resolve().parent
 commit='60629d14374c56f1cb51819049ad1fa529307f8d'
 shared='shared/Microsoft.NETCore.App/10.0.11/'
@@ -25,15 +30,15 @@ if a.component!='host':
     filename='lib'+target+'.so'
     products={group:filename}
     destinations={filename:shared+filename}
-    script=f'''./src/native/libs/build-native.sh -arm64 -release -outconfig qualification -configureonly -numproc 6
-cmake --build artifacts/obj/native/qualification --target {target} --parallel 6
+    script=f'''./src/native/libs/build-native.sh -arm64 -release -outconfig qualification -configureonly -numproc {a.jobs}{" -ninja" if a.ninja else ""}
+cmake --build artifacts/obj/native/qualification --target {target} --parallel {a.jobs}
 mkdir result
 cp artifacts/obj/native/qualification/{subdir}/{filename} result/
 '''
 else:
     products={'muxer':'dotnet','fxr':'libhostfxr.so','policy':'libhostpolicy.so'}
     destinations={'dotnet':'dotnet','libhostfxr.so':'host/fxr/10.0.0/libhostfxr.so','libhostpolicy.so':shared+'libhostpolicy.so'}
-    script=f'''./src/native/corehost/build.sh -arm64 -release -commithash {commit} -numproc 6
+    script=f'''./src/native/corehost/build.sh -arm64 -release -commithash {commit} -numproc {a.jobs}{" -ninja" if a.ninja else ""}
 mkdir result
 cp artifacts/bin/linux-arm64.Release/corehost/dotnet result/
 cp artifacts/bin/linux-arm64.Release/corehost/libhostfxr.so result/
@@ -54,11 +59,11 @@ with tarfile.open(a.native/'source.tar') as original,tarfile.open(folder/'source
 for name in ['toolchain.tar','bwrap']:os.link(a.native/name,folder/name)
 shutil.copyfile(here/'NativeBuild.cs.txt',folder/'NativeBuild.cs')
 shutil.copyfile(here/'native_action.bzl',folder/'native_action.bzl')
+write_contract(folder)
 shutil.copyfile(a.native/'Task.csproj',folder/'Task.csproj')
-(folder/'BUILD.bazel').write_text('''load("@rules_msbuild//msbuild:defs.bzl","msbuild_binary")
-load(":native_action.bzl","native_runtime")
-msbuild_binary(name="driver",project="Task.csproj",srcs=["NativeBuild.cs"],target_framework="net10.0",linux_worker=True)
+(folder/'BUILD.bazel').write_text('''load(":native_action.bzl","native_graph_driver","native_runtime")
+native_graph_driver(name="driver")
 native_runtime(name="runtime",driver=":driver",sandbox="bwrap",toolchain_archive="toolchain.tar",source_archive="source.tar",products='''+json.dumps(products)+''',visibility=["//visibility:public"])
 '''+''.join('filegroup(name='+json.dumps(group)+',srcs=[":runtime"],output_group='+json.dumps(group)+',visibility=["//visibility:public"])\n' for group in products))
 (folder/'products.json').write_text(json.dumps(dict(products=products,destinations=destinations),indent=2)+'\n')
-(folder/'acquisition.json').write_text(json.dumps(dict(commit=commit,component=a.component,version='10.0.0',sourceSha256=hashlib.sha256((folder/'source.tar').read_bytes()).hexdigest()),indent=2)+'\n')
+(folder/'acquisition.json').write_text(json.dumps(dict(commit=commit,component=a.component,version='10.0.0',jobs=a.jobs,generator='Ninja' if a.ninja else 'Unix Makefiles',sourceSha256=hashlib.sha256((folder/'source.tar').read_bytes()).hexdigest()),indent=2)+'\n')

@@ -31,7 +31,7 @@ mkdir result
 def run(name,success=True,value=7):
     log=report/(name+'.execution.json')
     with (report/(name+'.log')).open('w') as stream:
-        p=subprocess.run(start+['build','//native:runtime','--jobs=2','--strategy=MSBuildAssembly=worker','--strategy=MSBuildGenerate=worker','--worker_max_instances=MSBuildAssembly=1','--worker_max_instances=MSBuildGenerate=1','--disk_cache='+str(report/'cache'),'--execution_log_json_file='+str(log)],cwd=workspace,stdout=stream,stderr=subprocess.STDOUT,timeout=240)
+        p=subprocess.run(start+['build','//native:runtime','--jobs=2','--strategy=MSBuildGraph=worker','--worker_max_instances=MSBuildGraph=1','--worker_sandboxing','--strategy=MSBuildAssembly=worker','--strategy=MSBuildGenerate=worker','--worker_max_instances=MSBuildAssembly=1','--worker_max_instances=MSBuildGenerate=1','--disk_cache='+str(report/'cache'),'--execution_log_json_file='+str(log)],cwd=workspace,stdout=stream,stderr=subprocess.STDOUT,timeout=240)
     assert (p.returncode==0)==success,(name,(report/(name+'.log')).read_text()[-5000:])
     rows=[];text=log.read_text();decoder=json.JSONDecoder()
     while text.strip():

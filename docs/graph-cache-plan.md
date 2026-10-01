@@ -181,9 +181,9 @@ runtime qualification and measurement, not repeating completed synthetic work.
 | 1. Linux Pipelines | Implementation and test Build/replay/native parity pass on Linux ARM64, Bazel 8.8/9.2; 819/998 snapshot files | Broader runtime contracts |
 | 2. Incremental baseline | Ordinary/prepared paired edits and independent project recovery pass | Larger edit matrix |
 | 3. Larger scope | Collections: 55 compiled with paired edits; sockets: 77 compiled; loaded-common: 182 configured / 163 compiled with full-source parity on both baselines; threading/filesystem compilation pass | Larger paired edits, shared/generator/resource edits, other slices and graph-backed tests |
-| 4. Removed work | Shared CAS, ownership/path reuse, shared evaluation context and read-only worker packages | Runtime phase profile; safe cross-request SDK/evaluation reuse and large-worker timing |
-| 5. Tests | Older source-only host: 118,952 passes / 64 skips | Graph-backed test builds/execution, source host and edit invalidation |
-| 6. Native/app | Per-project source-built app and native inputs qualified | Transfer native producers and host composition; app runs on graph-produced outputs |
+| 4. Removed work | Shared CAS, ownership/path reuse, shared evaluation context, read-only worker packages and 163-compilation phase profile | Safe cross-request SDK/evaluation reuse and broader timing |
+| 5. Tests | Bounded graph executable passes source-host, SDK-absent and runtime-input test-cache controls; older eight-suite source-only result remains separate | Graph-backed upstream suite builds/execution and dependency edits |
+| 6. Native/app | Graph-built driver constructs CoreCLR/JIT/corerun/System.Native with raw byte parity; bounded graph/source-host probe passes | Full platform libraries, muxer/hostfxr, ordinary app and native edits |
 | 7. Recovery | Independent 8.8 producer / 9.2 consumer recovers all 38 Pipelines projects and exact 998 files; body/API recovery matches fresh native builds | Larger managed/native/app recovery and runtime faults |
 | 8. Readiness | Graph mode remains opt-in | Runtime capability/performance gates; later SDK/AOT/full-repository expansion |
 
@@ -1024,3 +1024,67 @@ graph workflow 430.929 s, including bootstrap/package actions. It is not a score
 cold row. The 387.600 s continuation seed is also unscored. Private logs/binlogs
 stay outside Git. Independent recovery, the broader edit matrix and graph-backed
 upstream tests/native host execution remain open.
+
+
+## Graph-backed source-host checkpoint
+
+The loaded-common graph now supplies CoreLib and System.Runtime to a bounded
+source-built corerun host on Linux ARM64. Declared native archives construct
+CoreCLR, JIT, corerun and System.Native from the pinned v10.0.0 source using
+four-job Ninja. All four products match independent raw-native controls exactly.
+The selected managed products retain the earlier complete-source raw parity.
+This is a small integration probe, not eight-suite or ordinary-app qualification.
+
+The qualification C# driver now uses a one-project public graph action and
+`msbuild_graph_layout`; the probe also compiles through a graph action. Moving
+the driver removed the remaining per-project compilation from this path and
+isolated it from upstream directory imports. The adapter accepts graph layouts
+or historical assembly providers. Graph compilation controls SDK paths, PathMap
+and compiler reuse; the tiny contracts do not override those reserved values.
+
+`native_synthetic.py` passes all six controls with sandboxed graph workers on
+Bazel 8.8 and 9.2: build, no-op, header edit, restored cache, missing-header failure
+and retry. Source-built version C/headers are declared inputs; the main CoreCLR
+bootstrap now names version 10.0.0 rather than using placeholder headers.
+Native acquisition accepts the verified source archive or the pinned checkout,
+records tool/package hashes and supports explicit job count/Ninja selection.
+The native action remains qualification-only: it declares the archived Ubuntu
+filesystem and uses its own read-only filesystem/network namespace, with Bazel
+`no-sandbox`/`no-remote-exec` requirements. This does not qualify RBE or x86-64.
+
+On Bazel 9.2 the graph-built executable passes through the composed source
+runtime. Its CoreLib location and loaded CoreCLR/JIT/System.Native paths point
+into that layout. Every runtime binary matches its declared producer. Direct
+execution with the SDK/build checkout absent also passes; removing CoreCLR fails.
+An unchanged Bazel test result is cached. Editing only a runtime marker makes
+the test fail; restoring it passes. All three controls execute **zero managed or
+native compilation actions**, and the application DLL stays unchanged.
+
+The per-project driver failed its pinned-tool-root check under
+`worker_sandboxing`. The graph driver is qualified for this integration. Small
+contracts also retain the runner-controlled compiler-reuse and SDK properties;
+authoring those properties is rejected. Failed attempts remain in private reports.
+
+Reproduction, with qualified managed/native inputs and fresh owned outputs:
+
+```sh
+python3 tests/explicit_msbuild/runtime/native_prepare.py "$source_archive" "$native_workspace" --jobs 4 --ninja
+python3 tests/explicit_msbuild/runtime/native_component_prepare.py "$native_workspace/native" "$native_workspace/native_support" support --jobs 4 --ninja
+python3 tests/graph_build/upstream/runtime_host.py "$managed_workspace" "$native_workspace"
+(cd "$managed_workspace" && "$rules_repository/scripts/bazel-launcher.sh" --output_base="$base" test //:runtime_probe_test --jobs=4 --strategy=MSBuildGraph=worker --worker_sandboxing --worker_max_instances=MSBuildGraph=1 --disk_cache= --remote_cache= --test_output=errors)
+python3 tests/graph_build/upstream/runtime_host_verify.py "$managed_workspace" "$verification_report"
+python3 tests/graph_build/upstream/runtime_host_controls.py "$managed_workspace" "$control_results" --output-base "$base"
+```
+
+Run Bazel from the managed workspace. Native acquisition requires the qualified
+Ubuntu ARM64 compiler environment; execution consumes only the declared archives.
+The existing raw-native helper accepts a qualification `subset.json` naming the
+four products and their native producer packages. Private reports retain exact
+commands, tool/source hashes, binary digests and failed controls. AST, diff,
+pinned-toolchain and tracked-Starlark checks pass; CI was not run.
+
+Remaining: graph-backed upstream tests, additional platform libraries and native
+components for an ordinary app, native source/header/tool mutations against the
+real runtime, larger independent cache recovery/faults, and Bazel 8.8 execution
+of the complete source-host integration. The two-baseline tiny controls do not
+substitute for that last gate.
