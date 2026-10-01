@@ -224,6 +224,38 @@ harness `5c6abcb6c9c4`; private summaries retain full hashes and logs. Only comp
 findings are committed. Actual 8.8 suite checks, broader edits/native mutations,
 independent larger consumers and repeated cold/recovery remain separate gates.
 
+### Node-identity reuse experiment
+
+A request-local configured-node key table passed owned-code checks and six focused
+graph controls: input qualification, configurations, reference roles, compiler
+references, consumer references and initial-target replay. A separate candidate
+seed completed in 1,137 s, including prepared Restore. All 3,622 compiled products
+matched the full-source raw control. This is setup, not a matched cold-build result.
+
+The same frozen 481-compilation harness ran three alternating raw/graph pairs:
+
+| Case | Candidate Bazel median (range) | Paired raw median (range) |
+| --- | ---: | ---: |
+| No-op | 0.352 s (0.346–0.797) | 18.384 s (17.032–18.398) |
+| Body | 38.413 s (34.861–38.416) | 31.496 s (31.448–32.892) |
+| API | 52.369 s (51.251–53.933) | 45.557 s (45.210–45.686) |
+| Local recovery | 22.295 s (21.409–23.702) | Not a warm-raw comparison |
+
+Body/API overhead is **22%/15%**, versus the preceding baseline's **24%/14%**.
+The ranges overlap and raw times also changed. This does not establish an
+end-to-end improvement, so the production prototype was removed. No-op rows are
+whole-action hits; recovery rows force 481 project hits and zero compilations.
+Each edit row matches all compiled bytes, with six/17 misses respectively.
+Separate diagnostic binary logs confirm six/17 raw and graph compiler calls;
+source and configuration restoration passes.
+
+Separate body/API profiles are 42.557/54.295 s. Prepared-input validation is
+4.387/4.357 s, evaluation 8.956/7.334 s and initial hashing 2.797/2.613 s.
+Dependency-fingerprint operation sums are 9.554/7.606 s and overlap other phases.
+They do not establish a consistent improvement either. The experiment uses the
+preceding scorecard's hardware, scope and command. Candidate runner SHA starts
+`2b28b45be067`; the harness SHA is unchanged. Detailed reports remain private.
+
 ## Current graph-cache optimization checkpoint
 
 Three-sample Orchard body-edit measurements on the roadmap branch retain

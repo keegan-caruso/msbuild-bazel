@@ -1245,9 +1245,11 @@ outside the proposed gate; no default switch or broader cold/remote claim follow
 ## Next runtime qualification slices
 
 Graph mode remains opt-in. Each slice gets an isolated worktree, focused controls
-and a separate commit when validated. The pending node-key code is uncommitted;
-the latest owned-code check found a stale normalization-helper unit-test import.
-No benchmark is running. These are planned changes, not measured gains.
+and a separate commit when validated. Slice 1 is complete: the normalization-helper caller is repaired and owned-code
+checks pass. Slice 2 passed correctness controls, but its three-sample runtime
+comparison did not establish a speedup; the prototype was removed. See the
+[node-identity experiment](performance.md#node-identity-reuse-experiment).
+Remaining slices are planned work, not measured gains.
 
 ### Measurement contract
 
