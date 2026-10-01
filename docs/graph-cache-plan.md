@@ -1257,8 +1257,13 @@ per graph with identical configured-node sequences. See the
 [ordering preflight](performance.md#dependency-ordering-preflight).
 Slices 1–4 are closed; production caching is unchanged. Final owned-code checks
 pass all 107 unit tests, with no owned-build warnings/errors; toolchain and
-Starlark checks pass too. CI was not run. Continue with slice 5.
-Later slices remain planned work, not measured gains.
+Starlark checks pass too. CI was not run.
+Slice 5's [SDK preflight](performance.md#sdk-verification-preflight) measures only
+about 0.3 s of warm hashing; an owned copy adds first-use work and about 672 MB
+per worker. Mutation and borrowed-mount controls pass, but no immutable reuse
+protocol was implemented. The warning-as-error probe build and all five code-style
+policy tests pass on Linux ARM64. Keep production SDK verification and continue
+with slice 6. Slices 1–5 are closed; later slices remain planned work, not measured gains.
 
 ### Measurement contract
 

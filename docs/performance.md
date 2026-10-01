@@ -319,6 +319,47 @@ substantial causes of the measured gap in this scope. They do not qualify a
 production evaluation cache or predict denser graphs. Prepared-input verification
 and project evaluation remain the next measured multi-second targets.
 
+### SDK verification preflight
+
+A Linux ARM64 probe calls the production `ContractFiles.TreeDigest` directly,
+without graph evaluation or compilation. The declared SDK 10.0.400 contains
+**4,907 files / 671,718,586 bytes**. On the scorecard's four-CPU/eight-GiB worker,
+five consecutive hashes have a **0.312 s median** (0.299–0.390 s). This is a
+warm isolated measurement, not a cold-build comparison. An earlier first
+observation took 1.083 s; JIT/page-cache effects were not isolated.
+
+A new owned copy preserves bytes and executable modes: copying takes **0.331 s**
+and verifying the copy **0.348 s**. It also adds about 672 MB per worker.
+These are warmed first-use costs; private-copy ownership and request identity
+would still need qualification before skipping later verification.
+
+Small controls detect same-size byte edits, executable-mode changes, additions,
+renames and removals; restoration returns the original digest. A borrowed
+read-only bind mount rejects child writes but exposes an external writer's byte
+change. That control deliberately bypasses Bazel input tracking; it is not a
+Bazel cache fault or a worker-reuse qualification. The probe builds with warnings
+as errors and reports zero warnings/errors.
+
+Bazel 9.2 [compares worker tool digests before reuse](https://github.com/bazelbuild/bazel/blob/9.2.0/src/main/java/com/google/devtools/build/lib/worker/WorkerFactory.java),
+and the graph rule already declares the SDK as a tool. That could underpin a
+future verified-identity protocol; a read-only path or manifest alone cannot.
+The current child receives no such protocol. For this slice, the roughly 0.3-s
+warm cost does not justify adding a private SDK cache and its identity/lifecycle
+checks. Production verification stays intact. No end-to-end speedup is claimed.
+SDK hashing accounts for only a small part of the previous 4.36–4.39-s prepared
+phase; prepared-package verification is the next separate measurement.
+
+Reproduce after building `tools/GraphBuild` in Release:
+
+```sh
+RULES_MSBUILD_DOTNET_ROOT=SDK python3 tests/graph_build/sdk_verification.py \
+  NEW_RESULTS_DIRECTORY --sdk DECLARED_SDK --copy
+```
+
+The Linux borrowed-mount control requires bubblewrap. Reports and the copied SDK
+remain in the disposable results directory; no SDK or machine-specific report is
+committed. Restart/concurrency proof remains required for any future reuse cache.
+
 ## Current graph-cache optimization checkpoint
 
 Three-sample Orchard body-edit measurements on the roadmap branch retain
