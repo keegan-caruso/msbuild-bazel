@@ -29,27 +29,37 @@ def main():
     selection = parser.add_mutually_exclusive_group()
     selection.add_argument('--entry', action='append', help='entry project; repeat for a combined graph')
     selection.add_argument('--slice', help='reviewed selection in runtime/subset_slices.json')
+    parser.add_argument('--also-slice', action='append', default=[], help='combine reviewed selections, retaining frameworks and declared root replacements')
     parser.add_argument('--framework', help='entry framework; default net10.0 or the selected slice framework')
     parser.add_argument('--prepared-restore', action='store_true', help='generate a separate declared Restore action')
     args = parser.parse_args()
+    if args.also_slice and not args.slice:
+        parser.error('--also-slice requires --slice')
     entry_properties = {}
     entries, framework = args.entry or [ENTRY], args.framework or 'net10.0'
     if args.slice:
         inventory = json.loads((ROOT / 'tests/explicit_msbuild/runtime/subset_slices.json').read_text())
         assert inventory['commit'] == COMMIT
-        selected = next((item for item in inventory['slices'] if item['name'] == args.slice), None)
-        if selected is None or not selected['entries']:
-            parser.error('Choose a nonempty reviewed managed slice')
-        framework = args.framework or selected['framework']
-        entries = []
-        for entry in selected['entries']:
-            path = entry if isinstance(entry, str) else entry['project']
-            configured = selected['framework'] if isinstance(entry, str) else entry['framework']
-            if args.framework and configured != framework:
-                parser.error('A framework override must match every reviewed slice entry; do not flatten them')
-            if configured != framework:
-                entry_properties[path] = {'TargetFramework': configured}
-            entries.append(path)
+        selections = [args.slice] + args.also_slice
+        reviewed = {item['name']: item for item in inventory['slices']}
+        if len(set(selections)) != len(selections) or any(name not in reviewed or not reviewed[name]['entries'] for name in selections):
+            parser.error('Choose distinct nonempty reviewed managed slices')
+        framework = args.framework or reviewed[args.slice]['framework']
+        configured_roots = {}
+        for name in selections:
+            selected = reviewed[name]
+            for path in selected.get('removeRoots', []):
+                configured_roots.pop(path, None)
+            for entry in selected['entries']:
+                path = entry if isinstance(entry, str) else entry['project']
+                configured = selected['framework'] if isinstance(entry, str) else entry['framework']
+                if args.framework and configured != framework:
+                    parser.error('A framework override must match every reviewed slice entry; do not flatten them')
+                if path in configured_roots and configured_roots[path] != configured:
+                    parser.error('The same entry cannot select conflicting frameworks: ' + path)
+                configured_roots[path] = configured
+        entries = list(configured_roots)
+        entry_properties = {path: {'TargetFramework': configured} for path, configured in configured_roots.items() if configured != framework}
     assert os.uname().sysname == 'Linux', 'Qualification requires Linux'
     assert os.uname().machine == 'aarch64', 'This output mapping qualifies ARM64 only'
     assert hashlib.sha256(args.source_archive.read_bytes()).hexdigest() == SOURCE_SHA256, 'Pinned source archive changed'
@@ -143,7 +153,7 @@ def main():
               'app_graph(name="graph",linux_stable_paths=True,linux_worker=True)']
     (workspace / 'BUILD.bazel').write_text('\n'.join(build) + '\n')
     (base / 'preparation.json').write_text(json.dumps(dict(commit=COMMIT, sourceSha256=SOURCE_SHA256, platform='linux-arm64',
-        entry=entries[0], entries=entries, framework=framework, entryProperties=entry_properties, slice=args.slice, preparedRestore=args.prepared_restore,
+        entry=entries[0], entries=entries, framework=framework, entryProperties=entry_properties, slice=args.slice, additionalSlices=args.also_slice, preparedRestore=args.prepared_restore,
         inputs=len(paths), archives=len(rows), workspace=str(workspace)), indent=2) + '\n')
     print(workspace, flush=True)
 

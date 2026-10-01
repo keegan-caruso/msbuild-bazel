@@ -10,21 +10,7 @@ from pathlib import Path
 import shutil
 
 
-def main():
-    parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('workspace', type=Path)
-    parser.add_argument('native_workspace', type=Path)
-    args = parser.parse_args()
-    assert os.uname().sysname == "Linux" and os.uname().machine == "aarch64", "Qualification requires Linux ARM64"
-    root, native = args.workspace.resolve(), args.native_workspace.resolve()
-    contract = json.loads((root / 'graph.generated.json').read_text())
-    assert contract['SdkVersion'] == '10.0.400'
-    metadata = json.loads((native / 'native/acquisition.json').read_text())
-    assert metadata['commit'] == '60629d14374c56f1cb51819049ad1fa529307f8d'
-    assert metadata['jobs'] == 4 and metadata['generator'] == 'Ninja'
-    projects = ['src/coreclr/System.Private.CoreLib/System.Private.CoreLib.csproj',
-                'src/libraries/System.Runtime/src/System.Runtime.csproj']
-    assert all(path in contract['Projects'] for path in projects)
+def declare_native(root, native, names):
     def copy_input(source, destination):
         if Path(source).name in ['source.tar', 'toolchain.tar']:
             try:
@@ -33,7 +19,7 @@ def main():
             except OSError:
                 pass
         return shutil.copy2(source, destination)
-    for name in ['native', 'native_support']:
+    for name in names:
         # Copy mutable declarations; only large verified archives are linked.
         shutil.copytree(native / name, root / name, copy_function=copy_input)
         adapter = Path(__file__).resolve().parents[2] / 'explicit_msbuild/runtime'
@@ -50,6 +36,24 @@ def main():
             Version=1, Entry='Task.csproj', SdkVersion='10.0.400',
             Properties=dict(Configuration='Release'), SharedInputs=[],
             Projects={'Task.csproj': dict(Inputs=['Task.csproj', 'NativeBuild.cs'], OutputDirectories=['bin/Release/net10.0', 'obj/Release/net10.0'])}), indent=2) + '\n')
+
+
+def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('workspace', type=Path)
+    parser.add_argument('native_workspace', type=Path)
+    args = parser.parse_args()
+    assert os.uname().sysname == "Linux" and os.uname().machine == "aarch64", "Qualification requires Linux ARM64"
+    root, native = args.workspace.resolve(), args.native_workspace.resolve()
+    contract = json.loads((root / 'graph.generated.json').read_text())
+    assert contract['SdkVersion'] == '10.0.400'
+    metadata = json.loads((native / 'native/acquisition.json').read_text())
+    assert metadata['commit'] == '60629d14374c56f1cb51819049ad1fa529307f8d'
+    assert metadata['jobs'] == 4 and metadata['generator'] == 'Ninja'
+    projects = ['src/coreclr/System.Private.CoreLib/System.Private.CoreLib.csproj',
+                'src/libraries/System.Runtime/src/System.Runtime.csproj']
+    assert all(path in contract['Projects'] for path in projects)
+    declare_native(root, native, ['native', 'native_support'])
     app = root / 'runtime_probe'
     app.mkdir(exist_ok=False)
     (app / 'App.csproj').write_text('<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup><TargetFramework>net10.0</TargetFramework><OutputType>Exe</OutputType><UseAppHost>false</UseAppHost></PropertyGroup></Project>')
