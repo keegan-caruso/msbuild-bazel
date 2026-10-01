@@ -1241,3 +1241,48 @@ and three local-recovery samples. Body/API medians are 37.839/53.369 s versus
 compiler calls are six/17 on both sides. See [phases, ranges, memory, reproduction
 and limits](performance.md#expanded-source-host-runtime-graph). Body remains slightly
 outside the proposed gate; no default switch or broader cold/remote claim follows.
+
+## Next runtime qualification steps
+
+Keep the graph path opt-in while closing these gates. Use Linux ARM64 with four
+CPUs, 8 GiB RAM, four MSBuild nodes and one graph worker. Commit each validated
+change separately. Freeze both production code and the benchmark harness during
+scored comparisons; retain compact summaries rather than large reports in Git.
+
+1. **Restore the owned-code checks.** Update the remaining project-sync unit-test
+   caller from `normalized` to the shared `normalize` helper. Run its unit tests
+   and the owned-code checks before qualifying further production changes.
+2. **Qualify request-local node identities.** The pending change computes each
+   evaluated node's project-path/global-property key once per request. Run the
+   small configuration, reference-role, compiler-reference, consumer-reference
+   and initial-target controls. It must preserve cache keys and SDK behavior.
+3. **Measure the candidate on the 481-compilation graph.** A changed runner
+   invalidates existing project snapshots, so seed the candidate first and
+   verify all 3,622 compiled products against raw MSBuild. Then run three paired
+   body/API samples and separate profiles. Keep the change only if the evidence
+   supports it; report preparation and cold construction separately.
+4. **Remove the next repeated fingerprint work.** If profiling still warrants
+   it, prepare authored reference paths and metadata once per evaluated graph.
+   Preserve configured-node identity, reference roles and initial-target
+   semantics. Qualify this as a separate change and repeat the matched samples.
+5. **Design safe preparation reuse.** Investigate once-per-worker verification
+   of owned read-only SDK/package payloads and reusable evaluation metadata.
+   Require mutation/fault controls before removing checks; source paths and
+   manifests alone are not sufficient evidence of unchanged contents.
+6. **Qualify the actual eight-suite graph on Bazel 8.8.** Run build, replay,
+   edit, failure and restoration controls. Small synthetic 8.8 results do not
+   establish compatibility for this larger graph.
+7. **Expand invalidation coverage.** Add shared-source, generated-file, resource
+   and imported-property edits, then native source/header/tool mutations. Match
+   raw outputs and compiler work, including failure and restoration behavior.
+8. **Repeat independent recovery at the larger scope.** Stop the producer and
+   use a relocated consumer with empty local snapshots. Cover unique edits and
+   runtime/cache faults, then collect repeated cold/recovery timings, memory
+   and transfer volume. Whole-action hits do not replace project-cache proof.
+9. **Review readiness and defaults.** Compare the resulting evidence against
+   the agreed correctness and performance gates. The current body-edit median
+   is still 24% above raw MSBuild; no default switch is justified yet.
+
+Checkpoint: the node-identity change is uncommitted and has not been measured.
+The latest owned-code check exposed the unit-test caller in step 1. The completed
+481-project scorecard remains the baseline; no benchmark is currently running.
