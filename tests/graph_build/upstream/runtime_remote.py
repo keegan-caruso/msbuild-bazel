@@ -1,4 +1,4 @@
-"""Independent public-worker project-cache recovery for the Pipelines test slice.
+"""Independent public-worker project-cache recovery for reviewed runtime slices.
 
 Use a new producer/consumer output base and a separate consumer container. Whole
 Bazel disk/remote action caches are disabled. Stop the producer before recovery.
@@ -14,6 +14,7 @@ import time
 import uuid
 
 from runtime_benchmark import IMPLEMENTATION, REFERENCE, IMPL_DLL, REF_DLL, expand_raw_packages
+from runtime_root_properties import root_properties
 
 ROOT = Path(__file__).resolve().parents[3]
 
@@ -23,6 +24,7 @@ def main():
     parser.add_argument('workspace', type=Path)
     parser.add_argument('results', type=Path, help='new disposable results directory')
     parser.add_argument('--output-base', type=Path, required=True, help='unused base; no local graph results')
+    parser.add_argument('--slice', choices=['pipelines', 'loaded-common'], default='pipelines')
     parser.add_argument('--phase', choices=['producer', 'consumer'], required=True)
     parser.add_argument('--version', choices=['8.8.0', '9.2.0'])
     parser.add_argument('--seed-evidence', type=Path, help='producer seed.json; required for consumer')
@@ -39,8 +41,23 @@ def main():
     contract = json.loads((root / 'graph.generated.json').read_text())
     nodes = [(project, variant) for project, declaration in contract['Projects'].items()
              for variant in declaration.get('Configurations') or [declaration]]
+    assert contract['SdkVersion'] == '10.0.400' and contract['Properties']['TargetOS'] == 'linux' and contract['Properties']['TargetArchitecture'] == 'arm64'
     count = sum(bool(node['OutputDirectories'] or node.get('OutputFiles')) for _, node in nodes)
-    assert count == 38, 'Mutation controls qualify only the reviewed Pipelines test graph'
+    if args.slice == 'loaded-common':
+        mutation = json.loads(Path(__file__).with_name('runtime_loaded_common_edit.json').read_text())
+        compiled_files = 1447
+    else:
+        mutation = dict(compiled=38, implementation=IMPLEMENTATION, reference=REFERENCE, implDll=IMPL_DLL, refDll=REF_DLL,
+                        bodyAnchor='UseSynchronizationContext = useSynchronizationContext;',
+                        implementationAnchor='public class PipeOptions\n    {', referenceAnchor='public partial class PipeOptions\n    {',
+                        expectedMisses=dict(body=6, api=11), entries=['src/libraries/System.IO.Pipelines/tests/System.IO.Pipelines.Tests.csproj'])
+        compiled_files = 412
+    implementation, reference = mutation['implementation'], mutation['reference']
+    impl_dll, ref_dll = mutation['implDll'], mutation['refDll']
+    assert count == mutation['compiled'], 'Unexpected reviewed compilation scope'
+    assert (contract.get('Entries') or [contract['Entry']]) == mutation['entries'], 'Unexpected reviewed roots'
+    declared = set(contract['SharedInputs']) | {p for _, n in nodes for p in n['Inputs']}
+    assert {implementation, reference} <= declared
     directories = {p for _, n in nodes for p in n['OutputDirectories']}
     files = {p for _, n in nodes for p in n.get('OutputFiles', [])}
     states = {d + '/' + Path(p).name + '.GenerateResource.cache' for p, n in nodes
@@ -62,7 +79,7 @@ def main():
                          'remote_bootstrap = rule(implementation = _bootstrap, attrs = {"runner": attr.label(cfg = "exec", mandatory = True)})\n')
     active_build = original_build + b'\nload(":remote_bootstrap.bzl", "remote_bootstrap")\nremote_bootstrap(name="remote_bootstrap",runner=":graph_runner")\n'
     build.write_bytes(active_build)
-    originals = {p: (root / p).read_bytes() for p in [IMPLEMENTATION, REFERENCE]}
+    originals = {p: (root / p).read_bytes() for p in [implementation, reference]}
     nonce = root / 'remote-request.txt'
     assert not nonce.exists()
     prefix, action = original_generated.decode().split('    msbuild_graph(\n')
@@ -111,7 +128,7 @@ def main():
         assert (report['operations'] is not None) == profile and ('worker' in report) == profile
         assert report['preparedRestore'] == bool(contract.get('Restore'))
         assert report['readOnlyPreparedPackages'] == (bool(contract.get('Restore')) and not native)
-        record = dict(case=label, seconds=seconds, version=environment['USE_BAZEL_VERSION'], externalWorkspace=str(root),
+        record = dict(case=label, slice=args.slice, seconds=seconds, version=environment['USE_BAZEL_VERSION'], externalWorkspace=str(root),
                       runnerSha256=runner, hits=hits, misses=count-hits, files=len(outputs), profiled=profile,
                       preparationActions=sum(int(r.get('actionsExecuted', 0)) for r in metrics.get('actionData', []) if r['mnemonic'] == 'MSBuildGraphRestore'),
                       report=report, outputs=outputs)
@@ -138,20 +155,37 @@ def main():
         properties = [f'-p:{k}={v}' for k, v in contract['Properties'].items()]
         common = ['-p:UseSharedCompilation=false', '-p:NetCoreSdkRoot=' + stable_sdk + '/sdk/' + contract['SdkVersion'],
                   '-p:PathMap=' + stable + '=/_/workspace%2C' + stable_sdk + '=/_/sdk']
-        restore = host + ['restore', stable + '/' + contract['Entry'], '--configfile', stable + '/NuGet.Config',
-                         '--source', stable + '/.package-source', '--packages', stable + '/.nuget', '-p:NuGetAudit=false',
-                         '-p:NetCoreSdkRoot=' + stable_sdk + '/sdk/' + contract['SdkVersion']]
-        restore += [f'-p:{k}={v}' for k, v in contract['Properties'].items() if k.lower() != 'targetframework']
+        entries = contract.get('Entries') or [contract['Entry']]
         def execute(command, label):
             start = time.monotonic()
             with (results / (label + '.log')).open('w') as log:
                 subprocess.run(command, cwd=raw, env=environment, stdout=log, stderr=subprocess.STDOUT, check=True)
             return time.monotonic() - start
-        restore_seconds = execute(restore, 'raw-restore')
-        build_seconds = execute(host + ['msbuild', stable + '/' + contract['Entry'], '-graphBuild', '-m:4', '-t:Build', '-nologo', *common, *properties], 'raw-build')
+        restore_seconds = 0
+        for index, entry in enumerate(entries):
+            restore = host + ['restore', stable + '/' + entry, '--configfile', stable + '/NuGet.Config',
+                             '--source', stable + '/.package-source', '--packages', stable + '/.nuget', '-p:NuGetAudit=false',
+                             '-p:NetCoreSdkRoot=' + stable_sdk + '/sdk/' + contract['SdkVersion']]
+            restore += [f'-p:{k}={v}' for k, v in root_properties(contract, entry).items() if k.lower() != 'targetframework']
+            restore_seconds += execute(restore, 'raw-restore-' + str(index))
+        if len(entries) == 1:
+            command = host + ['msbuild', stable + '/' + entries[0], '-graphBuild', '-m:4', '-t:Build', '-nologo', *common, *properties]
+        else:
+            driver = results / 'raw-driver'
+            driver.mkdir()
+            for source, target in [('RuntimeRawGraph.cs.txt', 'Program.cs'), ('RuntimeRawGraph.csproj.txt', 'Raw.csproj')]:
+                shutil.copyfile(Path(__file__).with_name(source), driver / target)
+            execute([str(sdk / 'dotnet'), 'build', str(driver / 'Raw.csproj'), '-c', 'Release', '-p:UseSharedCompilation=false'], 'raw-driver-build')
+            shutil.copytree(driver / 'bin/Release/net10.0', raw / '.qualification')
+            command = host + [stable + '/.qualification/Raw.dll', stable, stable + '/graph.generated.json', 'build']
+        build_seconds = execute(command, 'raw-build')
         products = {p: v['sha256'] for p, v in seed['outputs'].items() if Path(p).suffix in ['.dll', '.pdb', '.resources']
                     and not (p.startswith('artifacts/obj/') and '/PreTrim/' in p)}
-        assert len(products) == 412 and products == {p: hashlib.sha256((raw / p).read_bytes()).hexdigest() for p in products}, 'Fresh consumer raw byte parity failed'
+        raw_paths = {raw / p for p in files} | {p for d in directories for p in (raw / d).rglob('*')}
+        raw_products = {str(p.relative_to(raw)): hashlib.sha256(p.read_bytes()).hexdigest() for p in raw_paths
+                        if p.is_file() and p.suffix in ['.dll', '.pdb', '.resources']
+                        and not (str(p.relative_to(raw)).startswith('artifacts/obj/') and '/PreTrim/' in str(p.relative_to(raw)))}
+        assert len(products) == compiled_files and products == raw_products, 'Fresh consumer raw byte parity failed'
         record = dict(case='fresh-raw-compilation', observations=1, rawRestoreSeconds=restore_seconds, rawBuildSeconds=build_seconds,
                       rawWorkflowSeconds=restore_seconds + build_seconds, packageExpansionSeconds=expansion, comparedCompiledFiles=len(products),
                       scope='same consumer, SDK/packages available; fresh outputs; package expansion reported separately')
@@ -169,7 +203,7 @@ def main():
             graph('seed', 0)
         else:
             seed = json.loads(args.seed_evidence.read_text())
-            assert seed['externalWorkspace'] != str(root), 'Use a relocated independent workspace'
+            assert seed.get('slice', 'pipelines') == args.slice and seed['externalWorkspace'] != str(root), 'Use a relocated independent workspace'
             replay = graph('remote-recovery', count)
             assert replay['runnerSha256'] == seed['runnerSha256'] and replay['outputs'] == seed['outputs'], 'Independent recovery differs'
             if args.edits:
@@ -178,23 +212,28 @@ def main():
                         if (root / path).read_bytes() != content:
                             (root / path).write_bytes(content)
                     if case == 'body':
-                        anchor = b'UseSynchronizationContext = useSynchronizationContext;'
-                        assert originals[IMPLEMENTATION].count(anchor) == 1
-                        (root / IMPLEMENTATION).write_bytes(originals[IMPLEMENTATION].replace(anchor, anchor + b'\n            GC.KeepAlive("' + str(uuid.uuid4()).encode() + b'");'))
+                        anchor = mutation['bodyAnchor'].encode()
+                        assert originals[implementation].count(anchor) == 1
+                        (root / implementation).write_bytes(originals[implementation].replace(anchor, anchor + b'\n            GC.KeepAlive("' + str(uuid.uuid4()).encode() + b'");'))
                     else:
                         declaration = ('\n        /// <summary>Independent recovery API control.</summary>\n        public const string RecoveryProbe = \"' + str(uuid.uuid4()) + '\";').encode()
-                        for path, anchor in [(IMPLEMENTATION, b'public class PipeOptions\n    {'), (REFERENCE, b'public partial class PipeOptions\n    {')]:
+                        for path, anchor in [(implementation, mutation['implementationAnchor'].encode()), (reference, mutation['referenceAnchor'].encode())]:
                             assert originals[path].count(anchor) == 1
                             (root / path).write_bytes(originals[path].replace(anchor, anchor + declaration))
                     # End the previous broker: unchanged projects must come from
                     # HTTP with empty local snapshots, including on edited builds.
                     stop(case + '-empty-local-cache')
-                    edited = graph(case + '-remote', 32 if case == 'body' else 27)
+                    edited = graph(case + '-remote', count - mutation['expectedMisses'][case])
                     assert edited['runnerSha256'] == seed['runnerSha256']
-                    assert edited['outputs'][IMPL_DLL] != seed['outputs'][IMPL_DLL]
-                    assert (edited['outputs'][REF_DLL] == seed['outputs'][REF_DLL]) == (case == 'body')
+                    assert edited['outputs'][impl_dll] != seed['outputs'][impl_dll]
+                    assert (edited['outputs'][ref_dll] == seed['outputs'][ref_dll]) == (case == 'body')
                     control = graph(case + '-native-control', 0, native=True)
                     assert control['outputs'] == edited['outputs'], 'Edited remote recovery differs from fresh native compilation'
+                for path, content in originals.items():
+                    (root / path).write_bytes(content)
+                stop('restore-empty-local-cache')
+                restored = graph('restored-source-remote', count)
+                assert restored['outputs'] == seed['outputs'], 'Restored original outputs differ from producer'
             if args.raw_control:
                 raw_control(seed)
             if args.diagnostics:

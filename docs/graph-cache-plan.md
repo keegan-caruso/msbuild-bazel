@@ -184,7 +184,7 @@ runtime qualification and measurement, not repeating completed synthetic work.
 | 4. Removed work | Shared CAS, ownership/path reuse, shared evaluation context, read-only worker packages and 163-compilation phase profile | Safe cross-request SDK/evaluation reuse and broader timing |
 | 5. Tests | Bounded graph executable passes source-host, SDK-absent and runtime-input test-cache controls; older eight-suite source-only result remains separate | Graph-backed upstream suite builds/execution and dependency edits |
 | 6. Native/app | Graph-built driver and declared native producers compose a 58-managed/eight-native source framework; ordinary app and SDK-absent checks pass on both baselines; all 2,031 compiled managed products match full-source raw Build | Native mutations and independent runnable-runtime recovery |
-| 7. Recovery | Independent 8.8 producer / 9.2 consumer recovers all 38 Pipelines projects and exact 998 files; body/API recovery matches fresh native builds | Larger managed/native/app recovery and runtime faults |
+| 7. Recovery | Independent 8.8 producer / 9.2 consumer recovers all 163 loaded-common projects and exact 3,980 files; body/API recovery and fresh raw/sandbox parity pass | Native/app recovery, broader edits and cache/runtime faults |
 | 8. Readiness | Graph mode remains opt-in | Runtime capability/performance gates; later SDK/AOT/full-repository expansion |
 
 The worker still starts a fresh MSBuild child per request. Read-only preparation
@@ -1154,3 +1154,63 @@ body/test-failure/restoration controls pass. See [scope, reproduction and
 remaining gates](runtime-graph-application.md). All 2,031 compiled managed
 products match a fresh complete-source raw MSBuild graph. Construction
 observations are not paired timings.
+
+## Larger independent project-cache recovery
+
+The reviewed loaded-common graph now passes an 8.8 producer / 9.2 independent
+consumer control on Linux ARM64: 91 projects, 182 configurations, 163 compilations.
+A new HTTP cache starts empty; the producer reports zero hits/163 misses and is
+stopped before recovery. The consumer has a different external workspace path,
+empty local snapshots and the same pinned owned source bytes/runner identity.
+Whole Bazel action/disk caches are disabled. A nonce forces one public graph
+action per row, preventing an unchanged whole-action hit from satisfying the test.
+
+All **3,980 snapshot files, hashes and modes** match the producer. Unique body/API
+edits terminate the previous broker before recovery, so unchanged projects must
+come from HTTP. They match fresh sandbox builds byte for byte, retain body-edit
+reference bytes, change API reference bytes and restore original outputs. The
+same consumer's clean raw graph matches the complete declared set of **1,447
+compiled DLL/PDB/resource products**. Four MSBuild nodes, one graph worker and a
+4096-MiB logical snapshot budget run in the matched 4-CPU/8-GiB VM. The producer
+is stopped and no other qualification builds compete during these rows.
+
+These are **single observations**, not medians or warm raw-edit comparisons:
+
+| Consumer case | Wall seconds | Hits / misses |
+| --- | ---: | ---: |
+| Fresh remote recovery | 29.75 | 163 / 0 |
+| Unique body edit with remote reuse | 29.69 | 158 / 5 |
+| Fresh body sandbox control | 378.98 | 0 / 163 |
+| Unique API edit with remote reuse | 48.35 | 147 / 16 |
+| Fresh API sandbox control | 400.30 | 0 / 163 |
+| Original sources, fresh broker | 21.25 | 163 / 0 |
+| Clean raw graph Build | 370.29 | No plugin |
+
+Raw Restore is **8.50 s**; its Restore-plus-Build workflow is **378.78 s**.
+Raw package expansion is separately **5.13 s**. Consumer SDK/package extraction
+and runner bootstrap is separately **22.50 s**. Producer seed construction is
+unscored setup, not a matched cold-build row.
+
+A separate profiled all-hit recovery transfers **128,351,433 logical bytes in
+2,028 downloads**, with no uploads. Worker staging is 3.55 s, child execution
+9.30 s, output verification 0.03 s and cleanup 0.41 s. The runner reports 2.57 s
+evaluation, 1.43 s input hashing, 1.87 s SDK execution and 0.28 s final verification.
+Operation sums include 33,078 file hashes/3.34 GB and 13.07 s remote fetch; they
+are not wall segments. Its public 45.33-s run also executes prepared Restore and
+is excluded from unprofiled timing rows. The profile does not replace a full
+peak-memory/transfer-volume readiness audit.
+
+Reproduction, using a fresh cache, generated reviewed workspace and relocated
+consumer with the producer stopped:
+
+```sh
+RULES_MSBUILD_PROJECT_CACHE_URL="$cache" python3 tests/graph_build/upstream/runtime_remote.py "$producer" "$seed_results" --output-base "$producer_base" --slice loaded-common --phase producer --version 8.8.0
+RULES_MSBUILD_PROJECT_CACHE_URL="$cache" python3 tests/graph_build/upstream/runtime_remote.py "$consumer" "$consumer_results" --output-base "$consumer_base" --slice loaded-common --phase consumer --version 9.2.0 --seed-evidence "$seed_results/seed.json" --edits --raw-control --diagnostics
+```
+
+The helper preserves the original Pipelines mode. It rejects unexpected roots,
+compilation scope, SDK/OS/architecture, runner identities, hits, modes or bytes.
+Python syntax and diff checks pass; no C# production code changed and CI was not
+run. Private reports retain every row, BEP, raw command and diagnostic. Remaining:
+independent native/app recovery, broader edits, upstream suites, cache faults,
+peak memory and repeated timing. Graph mode remains opt-in.
