@@ -49,8 +49,9 @@ internal static class GraphGenerator
         {
             properties["TargetFramework"] = framework;
         }
+        GraphEntryProperties.Validate(entries, mappings.EntryProperties, (view?.GraphToolProperties ?? []).Keys);
         using var restored = packageBuild ? new GraphEvaluationWorkspace(root, sdkRoot, sdk, entries, properties,
-            view ?? throw new InvalidDataException("Package build sync requires declared package inputs"), view?.GraphToolProperties) : null;
+            view ?? throw new InvalidDataException("Package build sync requires declared package inputs"), view?.GraphToolProperties, mappings.EntryProperties) : null;
         if (restored is not null)
         {
             root = restored.Root;
@@ -76,7 +77,7 @@ internal static class GraphGenerator
         }
         var entry = WorkspaceView.Safe(entries[0]);
         var evaluationContext = EvaluationContext.Create(EvaluationContext.SharingPolicy.Shared);
-        var graph = new ProjectGraph(entries.Select(path => new ProjectGraphEntryPoint(Path.Combine(root, WorkspaceView.Safe(path)), evaluationProperties)), collection,
+        var graph = new ProjectGraph(entries.Select(path => new ProjectGraphEntryPoint(Path.Combine(root, WorkspaceView.Safe(path)), GraphEntryProperties.For(path, evaluationProperties, mappings.EntryProperties))), collection,
             (path, globals, projects) =>
             {
                 var project = Project.FromFile(path, new ProjectOptions
@@ -349,8 +350,21 @@ internal static class GraphGenerator
             contractData["Version"] = 5;
             contractData["TemporaryDirectories"] = JsonSerializer.SerializeToNode(temporaryDirectories);
         }
+        if (mappings.EntryProperties.Count != 0)
+        {
+            contractData["Version"] = 6;
+            contractData["EntryProperties"] = JsonSerializer.SerializeToNode(mappings.EntryProperties);
+        }
         var contract = contractData.ToJsonString(new JsonSerializerOptions { WriteIndented = true }) + "\n";
         var sources = inputs.Values.SelectMany(files => files).Concat(shared).Concat(restore?.Inputs ?? []).Distinct().Order(StringComparer.Ordinal).ToArray();
+        var ambiguousOutput = graph.ProjectNodes.Where(node => node.ProjectInstance.GetPropertyValue("TargetPath").Length != 0)
+            .GroupBy(node => Relative(node.ProjectInstance.FullPath) + "|" + node.ProjectInstance.GetPropertyValue("TargetFramework"))
+            .FirstOrDefault(group => group.Count() > 1);
+        if (ambiguousOutput is not null)
+        {
+            throw new InvalidDataException("Graph output selection is ambiguous across configured nodes: " + ambiguousOutput.Key +
+                "; use separate graph targets for these configurations");
+        }
         var runtimeOutputs = graph.ProjectNodes.Where(node => node.ProjectInstance.GetPropertyValue("TargetPath").Length != 0 &&
             node.ProjectInstance.GetPropertyValue("TargetFramework").Length != 0).OrderBy(node => Key(node.ProjectInstance), StringComparer.Ordinal).ToDictionary(
             node => Relative(node.ProjectInstance.FullPath) + "|" + node.ProjectInstance.GetPropertyValue("TargetFramework"),

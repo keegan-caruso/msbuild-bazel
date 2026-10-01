@@ -135,6 +135,7 @@ internal sealed class TestBinding
 internal sealed class Mappings
 {
     public ProjectBinding ProjectDefaults { get; set; } = new();
+    public Dictionary<string, Dictionary<string, string>> EntryProperties { get; set; } = [];
     public Dictionary<string, PackageBinding> Packages { get; set; } = [];
     public Dictionary<string, TestBinding> Tests { get; set; } = [];
     public Dictionary<string, ProjectBinding> Projects { get; set; } = [];
@@ -143,6 +144,11 @@ internal sealed class Mappings
     {
         var mappings = path is null ? new Mappings() : JsonSerializer.Deserialize<Mappings>(MappingDefaults.Expand(File.ReadAllText(path)), new JsonSerializerOptions { PropertyNameCaseInsensitive = true, UnmappedMemberHandling = JsonUnmappedMemberHandling.Disallow }) ?? throw new InvalidDataException("Empty sync mappings");
         ValidatePackages(mappings.Packages);
+        if (!graph && mappings.EntryProperties.Count != 0)
+        {
+            throw new InvalidDataException("Entry properties require graph-mode sync");
+        }
+
         foreach (var project in mappings.Projects.Keys)
         {
             ProjectPath(project);

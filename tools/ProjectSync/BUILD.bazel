@@ -8,6 +8,7 @@ filegroup(
         "ProjectSync.csproj",
         "//:.editorconfig",
         "//tools:Directory.Build.props",
+        "//tools:GraphEntryProperties.cs",
         "//tools:MSBuildTool.props",
         "//tools:PackageSdks.cs",
     ],

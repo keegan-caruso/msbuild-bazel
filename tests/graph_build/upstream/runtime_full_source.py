@@ -16,6 +16,8 @@ import tarfile
 from runtime_benchmark import expand_raw_packages
 from runtime_prepare import COMMIT, SOURCE_SHA256
 
+from runtime_root_properties import root_properties
+
 ROOT = Path(__file__).resolve().parents[3]
 
 
@@ -62,8 +64,8 @@ def main():
     stable = '/__rules_msbuild_graph/output/workspace'
     stable_sdk = '/__rules_msbuild_graph/sdk'
     host = ['bash', str(directory / 'runtime_raw.sh'), str(sdk), str(raw), str(scratch)]
-    properties = [f'-p:{k}={v}' for k, v in contract['Properties'].items() if k.lower() != 'targetframework']
     for index, entry in enumerate(contract.get('Entries') or [contract['Entry']]):
+        properties = [f'-p:{k}={v}' for k, v in root_properties(contract, entry).items() if k.lower() != 'targetframework']
         run(host + ['restore', stable + '/' + entry, '--configfile', stable + '/NuGet.Config', '--source', stable + '/.package-source', '--packages', stable + '/.nuget', '-p:NuGetAudit=false', '-p:NetCoreSdkRoot=' + stable_sdk + '/sdk/' + contract['SdkVersion'], *properties], 'restore-' + str(index), raw)
     run(host + [stable + '/.qualification/Raw.dll', stable, stable + '/graph.generated.json', 'build'], 'raw-build', raw)
     variants = [v for p in contract['Projects'].values() for v in p.get('Configurations') or [p]]

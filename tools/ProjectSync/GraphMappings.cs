@@ -27,7 +27,7 @@ internal sealed class GraphMappings
                         Validate(project.Value, defaults: false);
                     }
                 }
-                else
+                else if (section.Name != "entryProperties")
                 {
                     throw new InvalidDataException("Graph mappings do not support section: " + section.Name);
                 }
@@ -59,6 +59,8 @@ internal sealed class GraphMappings
             }
         }
     }
+
+    internal Dictionary<string, Dictionary<string, string>> EntryProperties => mappings.EntryProperties;
 
     internal Dictionary<string, string> Properties => mappings.ProjectDefaults.Properties;
 

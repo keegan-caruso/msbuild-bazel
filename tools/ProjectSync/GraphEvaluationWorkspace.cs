@@ -8,7 +8,7 @@ internal sealed class GraphEvaluationWorkspace : IDisposable
     internal string Root { get; } = WorkspaceView.PhysicalPath(Directory.CreateTempSubdirectory("graph-sync-").FullName);
 
     internal GraphEvaluationWorkspace(string source, string sdk, string sdkDirectory, IEnumerable<string> entries,
-        Dictionary<string, string> properties, WorkspaceView view, Dictionary<string, string>? toolProperties = null)
+        Dictionary<string, string> properties, WorkspaceView view, Dictionary<string, string>? toolProperties = null, Dictionary<string, Dictionary<string, string>>? entryProperties = null)
     {
         try
         {
@@ -38,7 +38,7 @@ internal sealed class GraphEvaluationWorkspace : IDisposable
                     start.ArgumentList.Add(argument);
                 }
                 // Restore each project's authored frameworks; the build graph still selects its requested framework.
-                foreach (var (key, value) in properties.Where(property => !property.Key.Equals("TargetFramework", StringComparison.OrdinalIgnoreCase)))
+                foreach (var (key, value) in GraphEntryProperties.For(entry, properties, entryProperties ?? []).Where(property => !property.Key.Equals("TargetFramework", StringComparison.OrdinalIgnoreCase)))
                 {
                     start.ArgumentList.Add("-p:" + key + "=" + value);
                 }

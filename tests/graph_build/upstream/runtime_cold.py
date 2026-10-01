@@ -15,6 +15,8 @@ import subprocess
 import time
 import threading
 
+from runtime_root_properties import root_properties
+
 ROOT = Path(__file__).resolve().parents[3]
 
 
@@ -119,7 +121,7 @@ def main():
             restore = raw_host + ['restore', stable + '/' + entry, '--configfile', stable + '/NuGet.Config',
                       '--source', stable + '/.package-source', '--packages', stable + '/.nuget', '-p:NuGetAudit=false',
                       '-p:NetCoreSdkRoot=' + stable_sdk + '/sdk/' + contract['SdkVersion']]
-            restore += [f'-p:{k}={v}' for k, v in contract['Properties'].items() if k.lower() != 'targetframework']
+            restore += [f'-p:{k}={v}' for k, v in root_properties(contract, entry).items() if k.lower() != 'targetframework']
             restore_seconds += execute(restore, 'raw-restore-' + str(index), raw)
         diagnostic = raw / '.qualification'
         diagnostic.mkdir(exist_ok=True)

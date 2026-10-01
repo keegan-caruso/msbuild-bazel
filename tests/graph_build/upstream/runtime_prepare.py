@@ -32,6 +32,7 @@ def main():
     parser.add_argument('--framework', help='entry framework; default net10.0 or the selected slice framework')
     parser.add_argument('--prepared-restore', action='store_true', help='generate a separate declared Restore action')
     args = parser.parse_args()
+    entry_properties = {}
     entries, framework = args.entry or [ENTRY], args.framework or 'net10.0'
     if args.slice:
         inventory = json.loads((ROOT / 'tests/explicit_msbuild/runtime/subset_slices.json').read_text())
@@ -44,8 +45,10 @@ def main():
         for entry in selected['entries']:
             path = entry if isinstance(entry, str) else entry['project']
             configured = selected['framework'] if isinstance(entry, str) else entry['framework']
+            if args.framework and configured != framework:
+                parser.error('A framework override must match every reviewed slice entry; do not flatten them')
             if configured != framework:
-                parser.error('Mixed or overridden slice entry frameworks require explicit per-entry configuration; do not flatten them')
+                entry_properties[path] = {'TargetFramework': configured}
             entries.append(path)
     assert os.uname().sysname == 'Linux', 'Qualification requires Linux'
     assert os.uname().machine == 'aarch64', 'This output mapping qualifies ARM64 only'
@@ -91,6 +94,10 @@ def main():
     mapping = base / 'mapping.json'
     subprocess.run(['python3', str(Path(__file__).with_name('runtime_contract.py')), str(mapping),
                     '--platform', 'linux-arm64'] + (['--prepared-restore'] if args.prepared_restore else []), check=True)
+    if entry_properties:
+        reviewed = json.loads(mapping.read_text())
+        reviewed['entryProperties'] = entry_properties
+        mapping.write_text(json.dumps(reviewed, indent=2) + '\n')
     with (base / 'sync.log').open('w') as log:
         subprocess.run([str(dotnet), str(ROOT / 'tools/ProjectSync/bin/Release/net10.0/ProjectSync.dll'),
                         str(source), str(sdk / 'sdk/10.0.400'), *entries, '--graph', '--framework', framework,
@@ -136,7 +143,7 @@ def main():
               'app_graph(name="graph",linux_stable_paths=True,linux_worker=True)']
     (workspace / 'BUILD.bazel').write_text('\n'.join(build) + '\n')
     (base / 'preparation.json').write_text(json.dumps(dict(commit=COMMIT, sourceSha256=SOURCE_SHA256, platform='linux-arm64',
-        entry=entries[0], entries=entries, framework=framework, slice=args.slice, preparedRestore=args.prepared_restore,
+        entry=entries[0], entries=entries, framework=framework, entryProperties=entry_properties, slice=args.slice, preparedRestore=args.prepared_restore,
         inputs=len(paths), archives=len(rows), workspace=str(workspace)), indent=2) + '\n')
     print(workspace, flush=True)
 

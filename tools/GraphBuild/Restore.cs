@@ -35,7 +35,7 @@ internal static class Restore
                 process.ArgumentList.Add(argument);
             }
             // Restore each project's authored frameworks; the build graph still selects its requested framework.
-            foreach (var (key, value) in contract.Properties.Where(property => !property.Key.Equals("TargetFramework", StringComparison.OrdinalIgnoreCase)))
+            foreach (var (key, value) in GraphEntryProperties.For(entry, contract.Properties, contract.EntryProperties ?? []).Where(property => !property.Key.Equals("TargetFramework", StringComparison.OrdinalIgnoreCase)))
             {
                 process.ArgumentList.Add("-p:" + key + "=" + value);
             }

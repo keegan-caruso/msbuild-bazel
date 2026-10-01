@@ -60,9 +60,9 @@ internal sealed class GraphInputs : IDisposable
                 throw new InvalidDataException("Declared graph input is missing: " + path);
             }
         }
-        if (contract.Version is not (1 or 2 or 3 or 4 or 5) || contract.Projects.Count == 0)
+        if (contract.Version is not (1 or 2 or 3 or 4 or 5 or 6) || contract.Projects.Count == 0)
         {
-            throw new InvalidDataException("Expected graph contract version 1, 2, 3, 4 or 5 with explicit project inputs and outputs");
+            throw new InvalidDataException("Expected graph contract version 1, 2, 3, 4, 5 or 6 with explicit project inputs and outputs");
         }
         var sdk = Path.Combine(sdkRoot, "sdk", contract.SdkVersion);
         if (!Directory.Exists(sdk))
@@ -83,7 +83,7 @@ internal sealed class GraphInputs : IDisposable
         var evaluationContext = EvaluationContext.Create(EvaluationContext.SharingPolicy.Shared);
         using (GraphProfile.Measure("projectEvaluation"))
         {
-            Graph = new ProjectGraph((contract.Entries ?? [contract.Entry]).Select(entry => new ProjectGraphEntryPoint(Files.Resolve(entry), properties)), collection,
+            Graph = new ProjectGraph((contract.Entries ?? [contract.Entry]).Select(entry => new ProjectGraphEntryPoint(Files.Resolve(entry), GraphEntryProperties.For(entry, properties, contract.EntryProperties ?? []))), collection,
                 (path, globals, projects) =>
                 {
                     var project = Project.FromFile(path, new ProjectOptions
@@ -146,9 +146,9 @@ internal sealed class GraphInputs : IDisposable
         {
             return project;
         }
-        if (contract.Version is not (2 or 3 or 4 or 5) || project.OutputDirectories.Length != 0 || project.OutputFiles?.Length > 0 || project.ReferenceBoundary || project.DependencyCopies?.Count > 0 || project.ImplementationDependencies?.Length > 0)
+        if (contract.Version is not (2 or 3 or 4 or 5 or 6) || project.OutputDirectories.Length != 0 || project.OutputFiles?.Length > 0 || project.ReferenceBoundary || project.DependencyCopies?.Count > 0 || project.ImplementationDependencies?.Length > 0)
         {
-            throw new InvalidDataException("Configured projects require version 2, 3, 4 or 5 and configuration-owned outputs: " + Relative(node));
+            throw new InvalidDataException("Configured projects require version 2, 3, 4, 5 or 6 and configuration-owned outputs: " + Relative(node));
         }
         var matches = project.Configurations.Where(configuration => configuration.Properties.Count != 0 &&
             configuration.Properties.All(property =>

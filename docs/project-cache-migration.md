@@ -527,6 +527,38 @@ establish Linux, MTP/VSTest, package build-task or remote execution parity for t
 new developer workflow.
 
 
+### Per-root graph properties
+
+Graph mappings can override global properties for selected entry projects:
+
+```json
+{
+  "entryProperties": {
+    "App/App.csproj": {"TargetFramework": "net10.0"},
+    "Platform/Platform.csproj": {"TargetFramework": "net10.0-windows"}
+  }
+}
+```
+
+Sync emits a version-6 contract. Each entry inherits graph defaults, then applies
+its explicit overrides. MSBuild propagates properties and chooses referenced
+frameworks normally; nodes retain project-path-plus-global-properties identity.
+Offline Restore applies the same root properties except `TargetFramework`, so
+it retains every authored framework's package closure. Preparation identity
+includes these declarations.
+
+Unselected roots, ambiguous property names and overrides of runner, Restore or
+declared tool paths are rejected. Each selected project has one root property
+set. Generated output selections currently identify project plus framework:
+if distinct property variants share that selection, sync requires separate graph
+targets. This does not infer platform conditions or resolve overlapping outputs.
+
+`tests/graph_build/entry_properties.py` checks mixed-framework graph and raw SDK
+byte parity, full replay, selective framework invalidation and rejection. Compile
+GraphBuild and ProjectSync, then run it with `RULES_MSBUILD_DOTNET_ROOT=<sdk>`.
+The runtime qualification helpers apply the same explicit per-root frameworks to
+sync and raw controls; larger mixed-platform qualification is a separate gate.
+
 ## Package build assets and test protocols
 
 Declare `package_build = True` on graph-mode `msbuild_sync` to run offline Restore

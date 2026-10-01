@@ -18,6 +18,8 @@ import threading
 import zipfile
 import xml.etree.ElementTree as ET
 
+from runtime_root_properties import root_properties
+
 ROOT = Path(__file__).resolve().parents[3]
 IMPLEMENTATION = 'src/libraries/System.IO.Pipelines/src/System/IO/Pipelines/PipeOptions.cs'
 REFERENCE = 'src/libraries/System.IO.Pipelines/ref/System.IO.Pipelines.cs'
@@ -229,10 +231,9 @@ def main():
     try:
         restore_command = raw_host + ['restore', stable + '/' + contract['Entry'], '--configfile', stable + '/NuGet.Config', '--source', stable + '/.package-source',
                            '--packages', stable + '/.nuget', '-p:NuGetAudit=false', '-p:NetCoreSdkRoot=' + stable_sdk + '/sdk/' + contract['SdkVersion']]
-        restore_command += [f'-p:{k}={v}' for k, v in contract['Properties'].items() if k.lower() != 'targetframework']
         restore_seconds = 0
         for index, entry in enumerate(mutation['entries']):
-            command = restore_command.copy()
+            command = restore_command + [f'-p:{k}={v}' for k, v in root_properties(contract, entry).items() if k.lower() != 'targetframework']
             command[command.index(stable + '/' + contract['Entry'])] = stable + '/' + entry
             restore_seconds += execute(command, 'raw-restore-' + str(index), raw)
         if len(mutation['entries']) > 1:

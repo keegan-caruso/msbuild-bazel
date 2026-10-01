@@ -22,7 +22,13 @@ properties["UseSharedCompilation"] = "false";
 properties["PathMap"] = root + "=/_/workspace," + sdkRoot + "=/_/sdk";
 using var collection = new ProjectCollection();
 var entries = data.TryGetProperty("Entries", out var selected) ? selected.EnumerateArray().Select(p => p.GetString()!) : [data.GetProperty("Entry").GetString()!];
-var graph = new ProjectGraph(entries.Select(p => new ProjectGraphEntryPoint(Path.Combine(root, p), properties)), collection,
+var graph = new ProjectGraph(entries.Select(p =>
+{
+    var globals = new Dictionary<string, string>(properties, StringComparer.OrdinalIgnoreCase);
+    if (data.TryGetProperty("EntryProperties", out var overrides) && overrides.TryGetProperty(p, out var values))
+        foreach (var property in values.EnumerateObject()) globals[property.Name] = property.Value.GetString()!;
+    return new ProjectGraphEntryPoint(Path.Combine(root, p), globals);
+}), collection,
     (path, globals, owner) => new ProjectInstance(path, globals, null, owner));
 var declarations = data.GetProperty("Projects");
 var expectedNodes = declarations.EnumerateObject().Sum(p => p.Value.TryGetProperty("Configurations", out var values) ? values.GetArrayLength() : 1);
