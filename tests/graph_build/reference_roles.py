@@ -23,7 +23,7 @@ def main():
         (root / 'P0/Code.cs').write_text('public class P0 { public const int Value = 1; }')
         (root / 'P1/Code.cs').write_text('extern alias Hidden; public class P1 { public static int Value() => Hidden::P0.Value; }')
         run(DOTNET, ROOT / 'tools/ProjectSync/bin/Release/net10.0/ProjectSync.dll',
-            root, SDK / 'sdk/10.0.400', 'P2/P2.csproj', '--graph')
+            root, SDK / 'sdk/10.0.400', 'P2/P2.csproj', )
         contract = root / 'graph.generated.json'
         report = base / 'report.json'
 

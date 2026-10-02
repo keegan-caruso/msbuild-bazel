@@ -28,7 +28,7 @@ def main():
         project.write_text(project.read_text().replace('</Project>', '<ItemGroup><ProjectReference Include="../P1/P1.csproj" /></ItemGroup></Project>'))
         props = root / 'Directory.Build.props'
         props.write_text(props.read_text().replace('</PropertyGroup>', '<DisableTransitiveProjectReferences>true</DisableTransitiveProjectReferences></PropertyGroup>'))
-        run(DOTNET, ROOT / 'tools/ProjectSync/bin/Release/net10.0/ProjectSync.dll', root, SDK / 'sdk/10.0.400', 'P3/P3.csproj', '--graph')
+        run(DOTNET, ROOT / 'tools/ProjectSync/bin/Release/net10.0/ProjectSync.dll', root, SDK / 'sdk/10.0.400', 'P3/P3.csproj', )
         manifest = root / 'graph.generated.json'
         contract = json.loads(manifest.read_text())
         report = base / 'report.json'

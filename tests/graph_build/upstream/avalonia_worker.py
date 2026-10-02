@@ -41,7 +41,7 @@ def main():
     env.pop('RULES_MSBUILD_PROJECT_CACHE_BEARER_TOKEN', None)
     probe = results / 'inspect'
     probe.mkdir(exist_ok=True)
-    (probe / 'Program.cs').write_text((ROOT / 'tests/explicit_msbuild/avalonia/Inspect.cs.txt').read_text())
+    (probe / 'Program.cs').write_text((ROOT / 'tests/fixtures/Inspect.cs.txt').read_text())
     (probe / 'Inspect.csproj').write_text('<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup><TargetFramework>net10.0</TargetFramework>'
         '<OutputType>Exe</OutputType><ImplicitUsings>enable</ImplicitUsings><Nullable>enable</Nullable></PropertyGroup></Project>')
     with (results / 'inspect-build.log').open('w') as log:

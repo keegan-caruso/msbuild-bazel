@@ -1,11 +1,27 @@
-load("@rules_msbuild//msbuild:defs.bzl", "msbuild_binary")
+load("@rules_msbuild//msbuild:defs.bzl", "msbuild_graph", "msbuild_graph_binary", "msbuild_graph_runner")
 
-msbuild_binary(
-    name = "app",
-    srcs = ["Program.cs"],
+msbuild_graph_runner(name = "runner")
+
+msbuild_graph(
+    name = "build",
+    srcs = [
+        "App.csproj",
+        "Program.cs",
+    ],
+    contract = "contract.json",
+    linux_stable_paths = True,
     linux_worker = True,
+    project_outputs = {"App.csproj|net10.0": [
+        "bin/Release/net10.0",
+        "App.dll",
+        "Exe",
+    ]},
+    runner = ":runner",
+)
+
+msbuild_graph_binary(
+    name = "app",
+    graph = ":build",
     project = "App.csproj",
     runtime_host = "//runtime:app_host",
-    target_framework = "net10.0",
-    use_apphost = False,
 )

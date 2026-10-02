@@ -41,7 +41,7 @@ def main():
         mapping.write_text(json.dumps({'projectDefaults': {'referenceBoundary': True, 'documents': {
             'P0/Generate.targets': {'sha256': hashlib.sha256(target.encode()).hexdigest(), 'targets': ['Generate'], 'tasks': [], 'inputs': ['P0/meta.txt']}}}}))
         sync = ROOT / 'tools/ProjectSync/bin/Release/net10.0/ProjectSync.dll'
-        run(DOTNET, sync, root, SDK / 'sdk/10.0.400', 'App/App.csproj', 'Unrelated/Unrelated.csproj', '--graph', '--mappings', mapping)
+        run(DOTNET, sync, root, SDK / 'sdk/10.0.400', 'App/App.csproj', 'Unrelated/Unrelated.csproj', '--mappings', mapping)
         manifest = root / 'graph.generated.json'
         contract = json.loads(manifest.read_text())
         shutil.copytree(root, raw)
@@ -55,7 +55,7 @@ def main():
         run(DOTNET, 'build', driver / 'Raw.csproj', '-c', 'Release', '-p:UseSharedCompilation=false')
         reader = base / 'reader'
         reader.mkdir()
-        fixtures = ROOT / 'tests/explicit_msbuild/runtime'
+        fixtures = ROOT / 'tests/runtime'
         shutil.copyfile(fixtures / 'RawTimingLog.cs.txt', reader / 'Program.cs')
         shutil.copyfile(fixtures / 'Inventory.csproj.txt', reader / 'Reader.csproj')
         run(DOTNET, 'build', reader / 'Reader.csproj', '-c', 'Release', '-p:UseSharedCompilation=false')
@@ -102,7 +102,7 @@ def main():
             if label == 'imported-property':
                 rejected = run(DOTNET, RUNNER, 'action', root, manifest, report, cache, success=False)
                 assert 'Graph definition changed; rerun sync: P0/Options.props' in rejected.stderr
-                run(DOTNET, sync, root, SDK / 'sdk/10.0.400', 'App/App.csproj', 'Unrelated/Unrelated.csproj', '--graph', '--mappings', mapping)
+                run(DOTNET, sync, root, SDK / 'sdk/10.0.400', 'App/App.csproj', 'Unrelated/Unrelated.csproj', '--mappings', mapping)
             changed = build(label, misses, original_value.replace(before, after), raw_compilers)
             assert changed['Unrelated/bin/Release/net10.0/Unrelated.dll'] == baseline['Unrelated/bin/Release/net10.0/Unrelated.dll']
             assert changed['App/bin/Release/net10.0/App.dll'] == baseline['App/bin/Release/net10.0/App.dll']
@@ -110,7 +110,7 @@ def main():
             for workspace in [root, raw]:
                 (workspace / path).write_bytes(original)
             if label == 'imported-property':
-                run(DOTNET, sync, root, SDK / 'sdk/10.0.400', 'App/App.csproj', 'Unrelated/Unrelated.csproj', '--graph', '--mappings', mapping)
+                run(DOTNET, sync, root, SDK / 'sdk/10.0.400', 'App/App.csproj', 'Unrelated/Unrelated.csproj', '--mappings', mapping)
             assert build(label + '-restored', misses if label == 'imported-property' else 0, original_value, raw_compilers=raw_compilers) == baseline
             print('PASS:', label, 'owner invalidation, unchanged consumer/reference bytes, current runtime value, raw byte parity and exact restoration', flush=True)
 

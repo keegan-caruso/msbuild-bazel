@@ -1,4 +1,0 @@
-/bazel-*
-**/bin/
-**/obj/
-.bazelrc.local

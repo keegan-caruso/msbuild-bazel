@@ -21,7 +21,7 @@ def main():
     root = args.workspace.resolve()
     manifest = json.loads((root / 'application.json').read_text())
     assert manifest['framework'] == '10.0.0'
-    selection = json.loads((ROOT / 'tests/explicit_msbuild/runtime/subset_slices.json').read_text())
+    selection = json.loads((ROOT / 'tests/runtime/subset_slices.json').read_text())
     assert selection['commit'] == manifest['commit']
     slices = args.slice or ['pipelines']
     assert len(slices) == len(set(slices)), 'Duplicate suite selections'
@@ -66,7 +66,7 @@ def main():
             content_hash=base64.b64encode(hashlib.sha512(payload).digest()).decode()).items()) + ')'
     probe = root / 'suite-probe'
     probe.mkdir(exist_ok=False)
-    shutil.copyfile(ROOT / 'tests/explicit_msbuild/runtime/SubsetProbe.cs.txt', probe / 'StartupHook.cs')
+    shutil.copyfile(ROOT / 'tests/runtime/SubsetProbe.cs.txt', probe / 'StartupHook.cs')
     (probe / 'Probe.csproj').write_text('<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup><TargetFramework>net10.0</TargetFramework><Nullable>enable</Nullable></PropertyGroup></Project>')
     (probe / 'contract.json').write_text(json.dumps(dict(Version=1, Entry='Probe.csproj', SdkVersion='10.0.400',
         Properties=dict(Configuration='Release'), SharedInputs=[], Projects={'Probe.csproj': dict(

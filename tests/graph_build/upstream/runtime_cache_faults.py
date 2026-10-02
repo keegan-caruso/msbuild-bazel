@@ -21,7 +21,7 @@ import uuid
 import xml.etree.ElementTree as ET
 
 ROOT = Path(__file__).resolve().parents[3]
-sys.path.insert(0, str(ROOT / 'tests/explicit_msbuild/runtime'))
+sys.path.insert(0, str(ROOT / 'tests/runtime'))
 from case_names import normalize
 from runtime_suite_verify import proofs
 

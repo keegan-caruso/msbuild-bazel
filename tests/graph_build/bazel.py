@@ -45,7 +45,7 @@ def main():
             (other / 'Other.csproj').write_text('<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup><TargetFramework>net10.0</TargetFramework><OutputType>Exe</OutputType></PropertyGroup></Project>')
             (other / 'Code.cs').write_text('System.Console.WriteLine("other");')
             authored = ('load("@rules_msbuild//msbuild:sync.bzl","msbuild_sync")\n'
-                        'msbuild_sync(name="sync",mode="graph",projects=["P2/P2.csproj","Other/Other.csproj"])\n')
+                        'msbuild_sync(name="sync",projects=["P2/P2.csproj","Other/Other.csproj"])\n')
             (workspace / 'BUILD.bazel').write_text(authored)
             sync = startup + ['run', '//:sync']
             result = subprocess.run(sync, cwd=workspace, env=os.environ, text=True, capture_output=True)

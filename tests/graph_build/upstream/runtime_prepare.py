@@ -41,7 +41,7 @@ def main():
     entry_properties = {}
     entries, framework = args.entry or [ENTRY], args.framework or 'net10.0'
     if args.slice:
-        inventory = json.loads((ROOT / 'tests/explicit_msbuild/runtime/subset_slices.json').read_text())
+        inventory = json.loads((ROOT / 'tests/runtime/subset_slices.json').read_text())
         assert inventory['commit'] == COMMIT
         selections = [args.slice] + args.also_slice
         reviewed = {item['name']: item for item in inventory['slices']}
@@ -113,7 +113,7 @@ def main():
         mapping.write_text(json.dumps(reviewed, indent=2) + '\n')
     with (base / 'sync.log').open('w') as log:
         subprocess.run([str(dotnet), str(ROOT / 'tools/ProjectSync/bin/Release/net10.0/ProjectSync.dll'),
-                        str(source), str(sdk / 'sdk/10.0.400'), *entries, '--graph', '--framework', framework,
+                        str(source), str(sdk / 'sdk/10.0.400'), *entries, '--framework', framework,
                         '--package-build', '--inputs', str(inputs), '--runfiles', str(packages),
                         '--mappings', str(mapping)], cwd=ROOT, env=env, stdout=log, stderr=subprocess.STDOUT, check=True)
     contract = json.loads((source / 'graph.generated.json').read_text())

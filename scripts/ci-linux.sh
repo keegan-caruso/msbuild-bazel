@@ -13,7 +13,7 @@ if [[ "$scope" != acceptance ]]; then
     run_validation_phase version
 fi
 if [[ "$scope" != quick ]]; then
-    evidence="$(mktemp -d "${TMPDIR:-/tmp}/msbuild-explicit-ci.XXXXXX")"
-    echo "Explicit acceptance evidence: $evidence"
+    evidence="$(mktemp -d "${TMPDIR:-/tmp}/msbuild-graph-ci.XXXXXX")"
+    echo "Graph acceptance evidence: $evidence"
     run_validation_phase acceptance "$evidence/acceptance"
 fi

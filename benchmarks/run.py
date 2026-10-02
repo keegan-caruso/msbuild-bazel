@@ -87,7 +87,7 @@ def main():
         if a.mode == 'analysis':
             flags.append('--nobuild')
         if a.workers:
-            flags += ['--strategy=MSBuildAssembly=worker', '--worker_max_instances=MSBuildAssembly='+str(a.workers)]
+            flags += ['--worker_sandboxing', '--strategy=MSBuildGraph=worker', '--worker_max_instances=MSBuildGraph='+str(a.workers)]
         command = ['--output_base='+str(output/('base-'+version)), '--ignore_all_rc_files', 'build', *flags, *a.target]
         units.append(dict(bazel_binary=str(launcher), command=shlex.join(command)))
     config = dict(global_options=dict(project_source=str(source), project_commit=commit,
@@ -101,7 +101,7 @@ def main():
         cpuCount=os.cpu_count(),
         cgroupMemoryLimit=Path('/sys/fs/cgroup/memory.max').read_text().strip() if Path('/sys/fs/cgroup/memory.max').exists() else None,
         sdkVersion=subprocess.check_output([str(Path(os.environ['RULES_MSBUILD_DOTNET_ROOT'])/'dotnet'), '--version'], cwd=ROOT, text=True).strip(),
-        harnessRunnerSha256=hashlib.sha256((ROOT/'tools/ExplicitBuild/bin/Release/net10.0/ExplicitBuild.dll').read_bytes()).hexdigest(),
+        harnessRunnerSha256=hashlib.sha256((ROOT/'tools/GraphBuild/bin/Release/net10.0/GraphBuild.dll').read_bytes()).hexdigest(),
         mode=a.mode, jobs=a.jobs, workers=a.workers,
         timingScope='server-startup-excluded', memoryScope='Bazel JVM heap after GC; not process-tree peak',
         cacheState='warm acquisition and filesystem; external disk/remote action caches disabled',

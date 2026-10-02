@@ -51,7 +51,7 @@ def main():
             'dotnet.sdk(name="dotnet",global_json="//:global.json")\nuse_repo(dotnet,"dotnet")\nregister_toolchains("@dotnet//:all")\n')
         authored = ('load("@rules_msbuild//msbuild:sync.bzl","msbuild_sync")\n'
             'genrule(name="task",srcs=["Task.dll"],outs=["generated/Task.dll"],cmd="cp $(location Task.dll) $@")\n'
-            'msbuild_sync(name="sync",mode="graph",package_build=True,projects=["App/App.csproj"],mappings="mappings.json",inputs={":task":"tools/Task.dll"})\n')
+            'msbuild_sync(name="sync",package_build=True,projects=["App/App.csproj"],mappings="mappings.json",inputs={":task":"tools/Task.dll"})\n')
         (workspace / 'BUILD.bazel').write_text(authored)
         command = [str(ROOT / 'scripts/bazel-launcher.sh'), f'--output_base={root / "bazel"}']
         def bazel(*arguments, success=True):

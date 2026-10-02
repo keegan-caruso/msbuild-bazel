@@ -22,7 +22,7 @@ run_validation_phase() {
                 echo 'Acceptance requires a fresh evidence directory.' >&2
                 return 2
             fi
-            python3 tests/explicit_msbuild/acceptance.py "$evidence"
+            python3 tests/graph_build/acceptance.py "$evidence"
             ;;
         *) echo 'Usage: validation.sh common|version|acceptance [evidence-directory]' >&2; return 2 ;;
     esac

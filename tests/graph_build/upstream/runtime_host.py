@@ -22,15 +22,11 @@ def declare_native(root, native, names):
     for name in names:
         # Copy mutable declarations; only large verified archives are linked.
         shutil.copytree(native / name, root / name, copy_function=copy_input)
-        adapter = Path(__file__).resolve().parents[2] / 'explicit_msbuild/runtime'
+        adapter = Path(__file__).resolve().parents[2] / 'runtime'
         shutil.copyfile(adapter / 'native_action.bzl', root / name / 'native_action.bzl')
         declaration = root / name / 'BUILD.bazel'
         lines = declaration.read_text().splitlines()
-        if lines[0].startswith('load("@rules_msbuild'):
-            assert lines[2].startswith('msbuild_binary(')
-            lines[:3] = ['load(":native_action.bzl","native_graph_driver","native_runtime")', 'native_graph_driver(name="driver")']
-        else:
-            assert 'native_graph_driver(name="driver")' in lines
+        assert 'native_graph_driver(name="driver")' in lines
         declaration.write_text('\n'.join(lines) + '\n')
         (root / name / 'driver-contract.json').write_text(json.dumps(dict(
             Version=1, Entry='Task.csproj', SdkVersion='10.0.400',

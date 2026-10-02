@@ -8,7 +8,7 @@ internal static class Program
         {
             if (args.Length < 3)
             {
-                throw new ArgumentException("ProjectSync <workspace> <sdk-directory> <project.csproj>... [--check] [--graph] [--configuration Release] [--framework TFM] [--package-build] [--package-input FILE] [--mappings mappings.json]");
+                throw new ArgumentException("ProjectSync <workspace> <sdk-directory> <project.csproj>... [--check] [--configuration Release] [--framework TFM] [--package-build] [--package-input FILE] [--mappings mappings.json]");
             }
             var sdk = WorkspaceView.PhysicalPath(args[1]);
             if (!File.Exists(Path.Combine(sdk, "MSBuild.dll")))
@@ -23,7 +23,6 @@ internal static class Program
             var projects = new List<string>();
             string? mappings = null;
             var check = false;
-            var graph = false;
             var packageBuild = false;
             var packageInputs = new List<string>();
             var configuration = "Release";
@@ -35,10 +34,6 @@ internal static class Program
                 if (args[i] == "--check")
                 {
                     check = true;
-                }
-                else if (args[i] == "--graph")
-                {
-                    graph = true;
                 }
                 else if (args[i] == "--package-build")
                 {
@@ -103,22 +98,11 @@ internal static class Program
             }
             var root = WorkspaceView.PhysicalPath(args[0]);
             using var view = WorkspaceView.Create(root, inputs, runfiles);
-            if (graph)
+            if (view.HasIncompleteGraphBindings)
             {
-                if (view.HasIncompleteGraphBindings)
-                {
-                    throw new InvalidDataException("Graph sync requires composed managed tool closures; use bindings on msbuild_sync(mode = graph)");
-                }
-                GraphGenerator.Run(view.Root, sdk, projects.ToArray(), check, root, configuration, framework, view, packageBuild, packageInputs.ToArray(), new GraphMappings(mappings));
+                throw new InvalidDataException("Sync requires complete tool layouts in msbuild_sync bindings");
             }
-            else
-            {
-                if (configuration != "Release" || framework.Length != 0 || packageBuild || packageInputs.Count != 0)
-                {
-                    throw new ArgumentException("Configuration and package evaluation options require --graph");
-                }
-                Generator.Run(view.Root, sdk, projects.ToArray(), check, Mappings.Read(mappings), view, root);
-            }
+            GraphGenerator.Run(view.Root, sdk, projects.ToArray(), check, root, configuration, framework, view, packageBuild, packageInputs.ToArray(), new GraphMappings(mappings));
             return 0;
         }
         catch (Exception error)

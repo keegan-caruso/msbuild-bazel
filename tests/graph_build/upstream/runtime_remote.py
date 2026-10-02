@@ -202,7 +202,7 @@ def main():
                           '--build_event_json_file=' + str(events)], label + '-tests')
         from collections import Counter
         import xml.etree.ElementTree as ET
-        sys.path.insert(0, str(ROOT / 'tests/explicit_msbuild/runtime'))
+        sys.path.insert(0, str(ROOT / 'tests/runtime'))
         from case_names import normalize
         outcomes = Counter()
         signatures = {}
@@ -264,7 +264,7 @@ def main():
         if not reader.exists():
             reader.mkdir()
             for source, target in [('RawTimingLog.cs.txt', 'Program.cs'), ('Inventory.csproj.txt', 'Tool.csproj')]:
-                shutil.copyfile(ROOT / 'tests/explicit_msbuild/runtime' / source, reader / target)
+                shutil.copyfile(ROOT / 'tests/runtime' / source, reader / target)
             with (results / 'raw-reader-build.log').open('w') as log:
                 subprocess.run([str(sdk / 'dotnet'), 'build', str(reader / 'Tool.csproj'), '-c', 'Release',
                                 '-p:UseSharedCompilation=false'], env=environment, stdout=log, stderr=subprocess.STDOUT, check=True)

@@ -10,13 +10,7 @@ def _toolchain(ctx):
             fail("SDK artifacts must be rooted beside dotnet: " + file.path)
     runtime = depset([file for file in ctx.attr.sdk[DefaultInfo].files.to_list() if file == ctx.executable.dotnet or file.path == sdk_root + "host" or file.path.startswith(sdk_root + "host/") or file.path == sdk_root + "shared" or file.path == sdk_root + "shared/Microsoft.NETCore.App" or file.path.startswith(sdk_root + "shared/Microsoft.NETCore.App/")])
 
-    worker_tools = ctx.actions.declare_file(ctx.label.name + ".worker-tools.json")
-    ctx.actions.write(worker_tools, json.encode({
-        "sdk": [file.path for file in ctx.attr.sdk[DefaultInfo].files.to_list()],
-        "runner": [file.path for file in depset([ctx.file.runner] + ctx.files.runner_support).to_list()],
-    }))
     return [platform_common.ToolchainInfo(
-        worker_tools = worker_tools,
         dotnet = ctx.executable.dotnet,
         sdk = ctx.attr.sdk[DefaultInfo].files,
         runtime = runtime,

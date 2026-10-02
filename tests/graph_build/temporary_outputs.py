@@ -53,7 +53,7 @@ def main():
                            'targets': ['GenerateScratch'], 'tasks': [], 'inputs': []}},
             'temporaryDirectories': ['$(IntermediateOutputPath)temporary'], 'inputDirectories': ['empty-input']}}))
         run(DOTNET, ROOT / 'tools/ProjectSync/bin/Release/net10.0/ProjectSync.dll', root,
-            SDK / 'sdk/10.0.400', 'Library.csproj', '--graph', '--mappings', mapping)
+            SDK / 'sdk/10.0.400', 'Library.csproj', '--mappings', mapping)
         generated = json.loads((root / 'graph.generated.json').read_text())
         assert generated['Version'] == 5 and generated['TemporaryDirectories'] == ['obj/Release/net10.0/temporary']
         assert generated['InputDirectories'] == ['empty-input']

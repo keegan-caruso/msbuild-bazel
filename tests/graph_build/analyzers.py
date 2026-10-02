@@ -29,7 +29,7 @@ def main():
              '<ProjectReference Include="../Generator/Generator.csproj" ReferenceOutputAssembly="false" />'
              '<Analyzer Include="../Generator/bin/Release/net10.0/Generator.dll" /></ItemGroup>')))
         (root / 'App/Code.cs').write_text('System.Console.WriteLine(Value.Number);')
-        sync = [DOTNET, ROOT / 'tools/ProjectSync/bin/Release/net10.0/ProjectSync.dll', root, SDK / 'sdk/10.0.400', 'App/App.csproj', '--graph']
+        sync = [DOTNET, ROOT / 'tools/ProjectSync/bin/Release/net10.0/ProjectSync.dll', root, SDK / 'sdk/10.0.400', 'App/App.csproj', ]
         run(*sync)
         contract = root / 'graph.generated.json'
         assert not any('/bin/' in file for project in json.loads(contract.read_text())['Projects'].values() for config in project['Configurations'] for file in config['Inputs'])

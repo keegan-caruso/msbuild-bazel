@@ -75,7 +75,7 @@ def main():
             assert rows and all(row['cacheHit'] for row in rows), rows
         else:
             assert all(row['cacheHit'] for row in source_actions), source_actions
-            assert any(row['mnemonic'] == 'MSBuildAssembly' and not row['cacheHit'] for row in rows), rows
+            assert any(row['mnemonic'] == 'MSBuildGraph' and not row['cacheHit'] for row in rows), rows
             assert any(row['mnemonic'] == 'TestRunner' and not row['cacheHit']
                        and row['commandArgs'][0].endswith('/test-setup.sh') for row in rows), rows
         recovered = list((workspace / 'bazel-out').rglob('sdk.generated/sdk.tar.gz'))

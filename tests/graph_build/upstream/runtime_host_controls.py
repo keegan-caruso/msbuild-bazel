@@ -19,8 +19,8 @@ def main():
     repo = Path(__file__).resolve().parents[3]
     bazel = [str(repo / 'scripts/bazel-launcher.sh'), '--output_base=' + str(args.output_base.resolve()),
              'test', '//:runtime_probe_test', '--jobs=4', '--strategy=MSBuildGraph=worker',
-             '--strategy=MSBuildAssembly=worker', '--worker_max_instances=MSBuildGraph=1',
-             '--worker_max_instances=MSBuildAssembly=1', '--worker_sandboxing', '--disk_cache=', '--remote_cache=',
+ '--worker_max_instances=MSBuildGraph=1',
+ '--worker_sandboxing', '--disk_cache=', '--remote_cache=',
              '--test_output=errors', '--noshow_progress']
     rows = []
     app = root / 'bazel-bin/runtime_probe_build.graph/workspace/bin/Release/net10.0/App.dll'
@@ -34,7 +34,7 @@ def main():
         events = [json.loads(line) for line in bep.read_text().splitlines()]
         metrics = next(event['buildMetrics']['actionSummary'] for event in events if 'buildMetrics' in event)
         compilation = sum(int(item.get('actionsExecuted', 0)) for item in metrics.get('actionData', [])
-                          if item['mnemonic'] in ['MSBuildGraph', 'MSBuildAssembly', 'RuntimeNative'])
+                          if item['mnemonic'] in ['MSBuildGraph', 'RuntimeNative'])
         assert compilation == 0, (label, metrics)
         text = (results / (label + '.log')).read_text()
         observed_cached = '(cached)' in text

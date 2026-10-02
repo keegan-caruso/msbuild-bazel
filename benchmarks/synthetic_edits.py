@@ -43,8 +43,8 @@ def main():
                         [*bazel, 'build', '--jobs=2', '--disk_cache=', '--remote_cache=', '--execution_log_json_file='+str(execution), '//:benchmark'])
                     result, seconds = command(argv, source, log, timeout=600)
                     result.check_returncode()
-                    reference = (source/'P0/obj/Release/net10.0/ref/P0.dll' if engine == 'raw' else source/'bazel-bin/P0/P0.reference/P0.dll')
-                    implementation = (source/'P0/bin/Release/net10.0/P0.dll' if engine == 'raw' else source/'bazel-bin/P0/P0.runtime/P0.dll')
+                    reference = (source/'P0/obj/Release/net10.0/ref/P0.dll' if engine == 'raw' else source/'bazel-bin/benchmark.graph/workspace/P0/obj/Release/net10.0/ref/P0.dll')
+                    implementation = (source/'P0/bin/Release/net10.0/P0.dll' if engine == 'raw' else source/'bazel-bin/benchmark.graph/workspace/P0/bin/Release/net10.0/P0.dll')
                     row = dict(engine=engine, case=case, wallSeconds=seconds, reference=digest(reference), implementation=digest(implementation))
                     if case == 'cold':
                         initial = row
@@ -60,10 +60,11 @@ def main():
                         text = execution.read_text(); decoder = json.JSONDecoder(); actions = []
                         while text.strip():
                             action, end = decoder.raw_decode(text.lstrip()); text = text.lstrip()[end:]
-                            if action.get('mnemonic') == 'MSBuildAssembly' and not action.get('cacheHit'):
+                            if action.get('mnemonic') == 'MSBuildGraph' and not action.get('cacheHit'):
                                 actions.append(action['targetLabel'])
-                        assert len(actions) == {'cold': 4, 'noop': 0, 'body': 1, 'resource': 1, 'api': 4}[case], (case, actions)
-                        row['compiled'] = actions
+                        assert len(actions) == {'cold': 1, 'noop': 0, 'body': 1, 'resource': 1, 'api': 1}[case], (case, actions)
+                        row['graphActions'] = actions
+                        row['projectCache'] = json.loads((source/'bazel-bin/benchmark.graph/report.json').read_text())
                     previous = row
                     records.append(row)
                     (output/'results.json').write_text(json.dumps(records, indent=2)+'\n')

@@ -90,7 +90,7 @@ def main():
             mapping = base / 'mapping.json'
             mapping.write_text(json.dumps({'projectDefaults': {'preparedRestore': True}}))
             run(DOTNET, ROOT / 'tools/ProjectSync/bin/Release/net10.0/ProjectSync.dll', root,
-                SDK / 'sdk/10.0.400', 'P2/P2.csproj', '--graph', '--mappings', mapping)
+                SDK / 'sdk/10.0.400', 'P2/P2.csproj', '--mappings', mapping)
         if args.generated:
             sync()
             (root / 'BUILD.bazel').write_text('load(":graph.generated.bzl", "app_graph")\n'

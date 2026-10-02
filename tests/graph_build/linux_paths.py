@@ -26,7 +26,7 @@ def main():
         with (source / 'Directory.Build.props').open('a') as stream:
             stream.write('<!-- ' + str(uuid.uuid4()) + ' -->')
         sync = ROOT / 'tools/ProjectSync/bin/Release/net10.0/ProjectSync.dll'
-        run(DOTNET, sync, source, SDK / 'sdk/10.0.400', f'P{count - 1}/P{count - 1}.csproj', '--graph')
+        run(DOTNET, sync, source, SDK / 'sdk/10.0.400', f'P{count - 1}/P{count - 1}.csproj', )
 
         def build(name, hits, value):
             output = work / name / 'output'

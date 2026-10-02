@@ -46,7 +46,7 @@ def main():
             'msbuild_layout(name="layout",paths={"generator":"bin/generator","generator.data":"bin/generator.data"})\n' \
             'msbuild_native_tool(name="tool",layout=":layout",entry_point="bin/generator")\n' \
             'msbuild_file_binding(name="binding",tool=":tool",property_name="GeneratorPath")\n' \
-            'msbuild_sync(name="sync",mode="graph",projects=["App/App.csproj"],bindings=[":binding"],mappings="mapping.json")\n'
+            'msbuild_sync(name="sync",projects=["App/App.csproj"],bindings=[":binding"],mappings="mapping.json")\n'
         (root / 'BUILD.bazel').write_text(authored)
         prefix = [str(ROOT / 'scripts/bazel-launcher.sh'), f'--output_base={base / "bazel"}']
         def bazel(*args):

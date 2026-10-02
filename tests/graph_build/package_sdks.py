@@ -43,7 +43,7 @@ def main():
             'load("@rules_msbuild//msbuild:sync.bzl","msbuild_sync")\n'
             f'msbuild_nuget_package(name="sdk",package_id="Fixture.Sdk",version="1.0.0",archive="fixture.sdk.1.0.0.nupkg",archive_sha256="{hashlib.sha256(data).hexdigest()}",content_hash="{base64.b64encode(hashlib.sha512(data).digest()).decode()}")\n'
             'msbuild_package_lock(name="packages",packages=[":sdk"])\n'
-            'msbuild_sync(name="sync",mode="graph",package_build=True,package_lock=":packages",projects=["App/App.csproj"])\n')
+            'msbuild_sync(name="sync",package_build=True,package_lock=":packages",projects=["App/App.csproj"])\n')
         (root / 'BUILD.bazel').write_text(authored)
         prefix = [str(ROOT / 'scripts/bazel-launcher.sh'), f'--output_base={base / "bazel"}']
         def bazel(*args, success=True):

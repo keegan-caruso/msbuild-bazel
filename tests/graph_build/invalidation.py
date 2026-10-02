@@ -24,7 +24,7 @@ def qualify(transitive):
         report = work / 'report.json'
 
         def sync():
-            run(DOTNET, SYNC, root, SDK / 'sdk/10.0.400', 'P2/P2.csproj', '--graph')
+            run(DOTNET, SYNC, root, SDK / 'sdk/10.0.400', 'P2/P2.csproj', )
             return json.loads(manifest.read_text())
 
         contract = sync()

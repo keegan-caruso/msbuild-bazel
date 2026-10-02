@@ -8,7 +8,7 @@ internal static class MappingDefaults
 {
     private static readonly HashSet<string> Dictionaries = new(StringComparer.OrdinalIgnoreCase)
     {
-        "properties", "documents", "references", "projectReferences", "packageReferencePaths", "itemPaths", "layoutBindings", "inputItems", "exportTargets", "packages", "generatedDirectories", "frameworkOverrides"
+        "properties", "documents", "inputItems", "frameworkOverrides"
     };
 
     internal static string Expand(string text)
@@ -38,8 +38,8 @@ internal static class MappingDefaults
                     {
                         foreach (var (identity, replacement) in overrides)
                         {
-                            // A document/reference binding replaces the whole record, so
-                            // its old hash or role cannot silently survive a partial override.
+                            // A document binding replaces the whole record, so
+                            // its old hash cannot silently survive a partial override.
                             inherited[identity] = replacement?.DeepClone();
                         }
                     }
@@ -99,7 +99,7 @@ internal static class MappingDefaults
         Members(value, path);
         foreach (var (name, node) in value)
         {
-            if (node is null && !name.Equals("referencePack", StringComparison.OrdinalIgnoreCase) && !name.Equals("runtimeHost", StringComparison.OrdinalIgnoreCase) && !name.Equals("packageLock", StringComparison.OrdinalIgnoreCase) && !name.Equals("useAppHost", StringComparison.OrdinalIgnoreCase) && !name.Equals("transitiveCompileReferences", StringComparison.OrdinalIgnoreCase))
+            if (node is null && !name.Equals("referenceBoundary", StringComparison.OrdinalIgnoreCase) && !name.Equals("compilerReference", StringComparison.OrdinalIgnoreCase))
             {
                 throw new InvalidDataException("Null mapping field: " + path + "." + name);
             }

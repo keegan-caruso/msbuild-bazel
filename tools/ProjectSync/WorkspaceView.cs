@@ -193,7 +193,7 @@ internal sealed class WorkspaceView : IDisposable
         {
             if (!packageLocks.TryGetValue(LabelKey(label), out var packageLock))
             {
-                throw new InvalidDataException("Project packageLock must also be a declared sync package lock: " + label);
+                throw new InvalidDataException("packageLock must be a declared sync package lock: " + label);
             }
             wanted = packageLock.Packages;
             selected = packageLock.Label;
@@ -247,18 +247,6 @@ internal sealed class WorkspaceView : IDisposable
     }
 
     private static string LabelKey(string label) => label.StartsWith(':') ? "@@//" + label : label.StartsWith("//", StringComparison.Ordinal) ? "@@" + label : label;
-    internal IEnumerable<KeyValuePair<string, string>> ToolProperties(IEnumerable<string> labels)
-    {
-        foreach (var label in labels)
-        {
-            if (!bindings.TryGetValue(LabelKey(label), out var binding))
-            {
-                throw new InvalidDataException("Task binding must also be a sync bindings input: " + label);
-            }
-            yield return new KeyValuePair<string, string>(binding.Property, binding.Value);
-        }
-    }
-
     internal bool IsPackage(string path) => path.StartsWith(Path.Combine(Root, ".nuget", "packages") + Path.DirectorySeparatorChar, StringComparison.Ordinal);
     internal Dictionary<string, string> Bindings(IEnumerable<string> paths) => paths.Distinct(StringComparer.Ordinal).Where(Labels.ContainsKey).ToDictionary(path => Labels[path], path => path, StringComparer.Ordinal);
     public void Dispose()

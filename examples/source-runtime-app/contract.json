@@ -1,0 +1,21 @@
+{
+  "Version": 1,
+  "Entry": "App.csproj",
+  "SdkVersion": "10.0.400",
+  "Properties": {
+    "Configuration": "Release"
+  },
+  "SharedInputs": [],
+  "Projects": {
+    "App.csproj": {
+      "Inputs": [
+        "App.csproj",
+        "Program.cs"
+      ],
+      "OutputDirectories": [
+        "bin/Release/net10.0",
+        "obj/Release/net10.0"
+      ]
+    }
+  }
+}

@@ -1,37 +1,23 @@
-"""Public API for explicit MSBuild projects, inputs and executable tests."""
+"""Public API for declared MSBuild graphs, artifacts and executable tests."""
 
-load("//msbuild:graph.bzl", _msbuild_graph = "msbuild_graph", _msbuild_graph_binary = "msbuild_graph_binary", _msbuild_graph_layout = "msbuild_graph_layout", _msbuild_graph_restore = "msbuild_graph_restore", _msbuild_graph_runner = "msbuild_graph_runner", _msbuild_graph_test = "msbuild_graph_test")
-load("//msbuild/private:assembly.bzl", _msbuild_assembly = "msbuild_assembly")
-load("//msbuild/private:facades.bzl", _msbuild_project = "msbuild_project", _msbuild_test_project = "msbuild_test_project")
-load("//msbuild/private:inputs.bzl", _msbuild_file_binding = "msbuild_file_binding", _msbuild_items = "msbuild_items", _msbuild_project_output = "msbuild_project_output", _msbuild_target_items = "msbuild_target_items", _msbuild_tool = "msbuild_tool")
-load("//msbuild/private:layouts.bzl", _msbuild_layout = "msbuild_layout", _msbuild_native_tool = "msbuild_native_tool", _msbuild_reference_pack = "msbuild_reference_pack", _msbuild_runtime = "msbuild_runtime")
+load("//msbuild:graph.bzl", _msbuild_graph = "msbuild_graph", _msbuild_graph_binary = "msbuild_graph_binary", _msbuild_graph_layout = "msbuild_graph_layout", _msbuild_graph_output = "msbuild_graph_output", _msbuild_graph_restore = "msbuild_graph_restore", _msbuild_graph_runner = "msbuild_graph_runner", _msbuild_graph_test = "msbuild_graph_test")
+load("//msbuild/private:inputs.bzl", _msbuild_file_binding = "msbuild_file_binding", _msbuild_tool = "msbuild_tool")
+load("//msbuild/private:layouts.bzl", _msbuild_layout = "msbuild_layout", _msbuild_native_tool = "msbuild_native_tool", _msbuild_runtime = "msbuild_runtime")
 load("//msbuild/private:native_toolchain.bzl", _msbuild_native_toolchain = "msbuild_native_toolchain", _msbuild_native_toolchain_archive = "msbuild_native_toolchain_archive", _msbuild_native_toolchain_packages = "msbuild_native_toolchain_packages")
 load("//msbuild/private:packages.bzl", _msbuild_generated_nuget_package = "msbuild_generated_nuget_package", _msbuild_nuget_dependencies = "msbuild_nuget_dependencies", _msbuild_nuget_package = "msbuild_nuget_package", _msbuild_package_lock = "msbuild_package_lock")
-load("//msbuild/private:providers.bzl", _MSBuildAssemblyInfo = "MSBuildAssemblyInfo", _MSBuildBindingInfo = "MSBuildBindingInfo", _MSBuildItemsInfo = "MSBuildItemsInfo", _MSBuildLayoutInfo = "MSBuildLayoutInfo", _MSBuildPackageInfo = "MSBuildPackageInfo", _MSBuildPackageLockInfo = "MSBuildPackageLockInfo", _MSBuildProjectInfo = "MSBuildProjectInfo", _MSBuildProjectOutputInfo = "MSBuildProjectOutputInfo", _MSBuildReferencePackInfo = "MSBuildReferencePackInfo", _MSBuildRestoreInfo = "MSBuildRestoreInfo", _MSBuildRuntimeInfo = "MSBuildRuntimeInfo", _MSBuildTestToolInfo = "MSBuildTestToolInfo", _MSBuildToolInfo = "MSBuildToolInfo")
-load("//msbuild/private:rules.bzl", _msbuild_binary = "msbuild_binary", _msbuild_generate = "msbuild_generate", _msbuild_library = "msbuild_library", _msbuild_restore = "msbuild_restore", _msbuild_test = "msbuild_test")
+load("//msbuild/private:providers.bzl", _MSBuildBindingInfo = "MSBuildBindingInfo", _MSBuildLayoutInfo = "MSBuildLayoutInfo", _MSBuildPackageInfo = "MSBuildPackageInfo", _MSBuildPackageLockInfo = "MSBuildPackageLockInfo", _MSBuildRuntimeInfo = "MSBuildRuntimeInfo", _MSBuildTestToolInfo = "MSBuildTestToolInfo", _MSBuildToolInfo = "MSBuildToolInfo")
 load("//msbuild/private:test_tools.bzl", _msbuild_test_tool = "msbuild_test_tool")
 
-MSBuildAssemblyInfo = _MSBuildAssemblyInfo
 MSBuildBindingInfo = _MSBuildBindingInfo
-MSBuildItemsInfo = _MSBuildItemsInfo
 MSBuildLayoutInfo = _MSBuildLayoutInfo
 MSBuildPackageInfo = _MSBuildPackageInfo
 MSBuildPackageLockInfo = _MSBuildPackageLockInfo
-MSBuildProjectInfo = _MSBuildProjectInfo
-MSBuildProjectOutputInfo = _MSBuildProjectOutputInfo
-MSBuildReferencePackInfo = _MSBuildReferencePackInfo
-MSBuildRestoreInfo = _MSBuildRestoreInfo
 MSBuildRuntimeInfo = _MSBuildRuntimeInfo
 MSBuildTestToolInfo = _MSBuildTestToolInfo
 MSBuildToolInfo = _MSBuildToolInfo
-msbuild_assembly = _msbuild_assembly
-msbuild_binary = _msbuild_binary
 msbuild_file_binding = _msbuild_file_binding
-msbuild_generate = _msbuild_generate
 msbuild_generated_nuget_package = _msbuild_generated_nuget_package
-msbuild_items = _msbuild_items
 msbuild_layout = _msbuild_layout
-msbuild_library = _msbuild_library
 msbuild_native_tool = _msbuild_native_tool
 msbuild_native_toolchain = _msbuild_native_toolchain
 msbuild_native_toolchain_archive = _msbuild_native_toolchain_archive
@@ -39,14 +25,7 @@ msbuild_native_toolchain_packages = _msbuild_native_toolchain_packages
 msbuild_nuget_dependencies = _msbuild_nuget_dependencies
 msbuild_nuget_package = _msbuild_nuget_package
 msbuild_package_lock = _msbuild_package_lock
-msbuild_project = _msbuild_project
-msbuild_project_output = _msbuild_project_output
-msbuild_reference_pack = _msbuild_reference_pack
-msbuild_restore = _msbuild_restore
 msbuild_runtime = _msbuild_runtime
-msbuild_target_items = _msbuild_target_items
-msbuild_test = _msbuild_test
-msbuild_test_project = _msbuild_test_project
 msbuild_test_tool = _msbuild_test_tool
 msbuild_tool = _msbuild_tool
 
@@ -58,3 +37,5 @@ msbuild_graph_test = _msbuild_graph_test
 msbuild_graph_binary = _msbuild_graph_binary
 
 msbuild_graph_layout = _msbuild_graph_layout
+
+msbuild_graph_output = _msbuild_graph_output
