@@ -411,6 +411,93 @@ RULES_MSBUILD_DOTNET_ROOT=SDK python3 tests/graph_build/package_verification.py 
 The probe builds with warnings as errors and zero warnings/errors. Detailed
 reports and the owned copy stay outside Git. No CI or new full-build scorecard ran.
 
+### Runtime evaluation profile
+
+An evaluation-only control uses the qualified **543 configured nodes / 260 project
+files / 481 compilations**, SDK 10.0.400 and the four-CPU/eight-GiB Linux ARM64 VM.
+It copies only declared inputs and prepared Restore outputs, mounts them read-only
+at the graph runner's stable paths, and calls the production `GraphInputs`
+constructor. It runs no Restore, targets, compilation or cache replay. Input
+hashing still runs, but has its own timer. Input staging, driver setup and
+diagnostic serialization are outside the evaluation timer.
+
+One fresh process per mode gives **7.552 s** with profiling disabled,
+**7.256 s** with phase timers only, and **15.186 s** with MSBuild's detailed
+evaluation profiler. This is a diagnostic control, not a paired build benchmark
+or a speedup. The phase-only split is:
+
+| Evaluation work | Wall time |
+| --- | ---: |
+| Graph construction, including project loading and instance creation | 5.004 s |
+| Output-ownership validation | 1.804 s |
+| Setup and shared-input existence checks | 0.046 s |
+| Configuration selection and Restore-output declarations | 0.090 s |
+| Combined input-path validation | 0.135 s |
+| Per-node input/reference validation | 0.161 s |
+| Ownership index construction | 0.015 s |
+
+Project-load and instance-creation totals are **21.791 / 1.913 aggregate seconds**
+across 543 callbacks. They overlap parallel projects and the graph wall timer;
+they are not additional elapsed time or CPU measurements. Configuration selection
+is a small cost. Ownership validation takes about a quarter of the phase and
+currently scans all inputs and other outputs for every output path.
+
+The detailed profiler records **86,720 imports across 859 distinct paths**.
+Its aggregate inclusive pass times are properties **24.839 s**, targets
+**16.895 s**, items **8.418 s** and lazy items **9.744 s**. These overlap and include
+profiling overhead; do not add them to the wall split. The largest located
+exclusive totals are `eng/Subsets.props` (**5.233 s**),
+`Microsoft.Common.CurrentVersion.targets` (**3.298 s**), SDK bundled versions
+(**2.313 s**) and `Directory.Build.props` (**1.946 s**). Repeated imports do not
+imply repeated XML parsing: the runner already shares an evaluation context within
+each graph pass, and this profile does not isolate parsing from conditional
+property/item/target expansion.
+
+All three modes have identical evaluated properties, items and metadata, imports,
+references, initial/default target selections, target names and project
+fingerprints. All 543 nodes declare initial targets; this probe does not execute
+them. Small fixtures also pass cache/output parity, multi-target configuration and
+initial-target replay controls. A repaired evaluation-control caller verifies
+inactive items, newly present imports, source globs, edited imports and target
+mutations refresh between requests.
+
+**Next boundary:** build and validate one request-local ownership plan from the
+selected configured declarations and resolved paths. Use an ordered prefix index
+to avoid repeated overlap scans, then reuse that plan for ownership lookup.
+Keep per-request path, symlink, existence, import and item validation. The plan
+must be rebuilt when selected owners, input/output paths, configuration or workspace
+root change. File-content hashes and build-time path checks remain independent.
+This is planned work with a measured 1.8-s opportunity, not a promised saving.
+
+Keep full project evaluation fresh for now. Source additions/removals change globs;
+imports and property functions can inspect files or `Exists()` results; Restore
+assets, generated inputs, SDK/package/tool resolution, global properties and the
+environment can change evaluation. MSBuild says to discard an
+[evaluation context when those inputs change](https://learn.microsoft.com/en-us/dotnet/api/microsoft.build.evaluation.context.evaluationcontext?view=msbuild-17-netcore).
+Since [property functions can read file contents](https://learn.microsoft.com/en-us/visualstudio/msbuild/property-functions),
+source body bytes cannot generically be excluded from an evaluation-cache key.
+Never reuse a post-build mutable instance as a pre-build evaluation or skip initial
+targets because an earlier request ran them. Cross-request evaluation reuse needs
+a separate complete dependency contract and lifecycle proof.
+
+Reproduce after building `tools/GraphBuild` in Release:
+
+```sh
+RULES_MSBUILD_DOTNET_ROOT=DECLARED_SDK python3 tests/graph_build/evaluation_profile.py \
+  NEW_RESULTS --workspace RETAINED_GRAPH_WORKSPACE --contract CONTRACT \
+  --prepared PRESERVED_PREPARED_DIRECTORY
+```
+
+The Linux probe requires bubblewrap and pinned SDK 10.0.400. Detailed reports stay
+outside Git. An earlier diagnostic that overlapped owned-code checks is excluded
+from the timings above. The final control ran after those checks finished.
+Standalone runner diagnostics require `RULES_MSBUILD_GRAPH_PROFILE=1`; detailed
+MSBuild evaluation additionally requires `RULES_MSBUILD_GRAPH_EVALUATION_PROFILE=1`.
+Both are off by default; the Bazel `profile_build` option retains phase-only
+profiling. Owned-code and scaffold checks are recorded in the
+[qualification plan](graph-cache-plan.md#next-runtime-qualification-slices).
+No full build comparison, compiler invocation or new remote-cache qualification ran.
+
 ## Current graph-cache optimization checkpoint
 
 Three-sample Orchard body-edit measurements on the roadmap branch retain

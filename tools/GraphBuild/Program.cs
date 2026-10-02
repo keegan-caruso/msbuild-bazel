@@ -36,6 +36,8 @@ if (readOnlyPackages && (preparedPath is null || args[0] != "action"))
 }
 var profile = Environment.GetEnvironmentVariable("RULES_MSBUILD_GRAPH_PROFILE") == "1";
 Environment.SetEnvironmentVariable("RULES_MSBUILD_GRAPH_PROFILE", null);
+var evaluationProfile = Environment.GetEnvironmentVariable("RULES_MSBUILD_GRAPH_EVALUATION_PROFILE") == "1";
+Environment.SetEnvironmentVariable("RULES_MSBUILD_GRAPH_EVALUATION_PROFILE", null);
 var copyMode = Environment.GetEnvironmentVariable("RULES_MSBUILD_GRAPH_COPY_MODE") ?? "copy";
 Environment.SetEnvironmentVariable("RULES_MSBUILD_GRAPH_COPY_MODE", null);
 if (copyMode is not ("copy" or "clone"))
@@ -43,6 +45,7 @@ if (copyMode is not ("copy" or "clone"))
     throw new InvalidDataException("RULES_MSBUILD_GRAPH_COPY_MODE must be copy or clone");
 }
 GraphProfile.Enabled = profile;
+GraphProfile.EvaluationEnabled = profile && evaluationProfile;
 var totalTimer = System.Diagnostics.Stopwatch.StartNew();
 var root = args[1];
 var contractPath = args[2];
@@ -174,6 +177,7 @@ if (args[0] is "build" or "action")
     {
         materialization = materializer.Report,
         operations = GraphProfile.Report,
+        evaluationProfile = inputs.EvaluationProfile,
         remote = remote?.Report,
         restoreSeconds = restoreTimer.Elapsed.TotalSeconds,
         preparedRestore = prepared is not null,

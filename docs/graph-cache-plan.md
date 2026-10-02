@@ -1268,8 +1268,14 @@ measures about 0.93 s of child package hashing; broker materialization already
 reuses its initially verified copy in about 1 ms. Corruption/mode/manifest, mutable-Restore,
 sandbox and lifecycle controls pass, but immutable reuse remains unqualified
 (the kernel byte-immutability probe returns ENOTSUP). Keep byte verification.
-Slices 1–6 are closed as measurements/controls; continue with slice 7's evaluation
-profile. Later slices remain planned work, not measured gains.
+Slice 7's [evaluation profile](performance.md#runtime-evaluation-profile) separates
+5.00 s of graph construction from 1.80 s of output-ownership validation in a
+7.26-s phase-only observation. All three profiling modes preserve the evaluated
+543-node graph. The next boundary is one request-local ownership plan, with fresh
+MSBuild evaluation and current filesystem checks. Slices 1–7 are closed; later
+slices remain planned work, not measured gains. Slice 7 also passes all 107 owned
+unit tests, warning-as-error builds, style verification and scaffold/Starlark checks.
+CI was not run.
 
 ### Measurement contract
 
@@ -1339,11 +1345,20 @@ specific reuse boundary and invalidation contract, not an assumed speedup.
 
 ### 8. Qualify one evaluation-reuse boundary
 
-Implement only the safe subset identified in slice 7. Test project/import/global
-property/item-list changes, generated files, tool changes and worker restart.
-Never reuse a mutable post-build ProjectInstance as an unevaluated request.
-Advance from small raw-parity controls to the full runtime graph and matched timing.
-If no safe worthwhile subset exists, record that result and retain fresh evaluation.
+Qualify a request-local output-ownership plan: resolve selected owner/input/output
+paths once, use an ordered prefix index for overlap checks, and reuse the validated
+plan for ownership lookup. Preserve duplicate declarations by the same owner, file
+versus directory rules, nested paths and every existing rejection. Keep current
+filesystem/symlink checks at request entry and artifact reads/writes.
+
+Rebuild the plan for changed configured owners, contract paths, configuration or
+workspace root; content digests remain checked separately. Start with chain,
+diamond, multi-target, nested-output and input/output conflict controls, including
+symlink replacement and worker restart. Then require runtime/raw output parity and
+matched body/API samples before retaining the change. Do not extend this into a
+post-build ProjectInstance cache or skip initial targets. Full evaluation remains
+fresh; broader reuse requires a complete file/glob/import/environment/tool contract.
+If the ownership change does not produce a worthwhile saving, remove the prototype.
 
 ### 9. Qualify the actual eight-suite graph on Bazel 8.8
 

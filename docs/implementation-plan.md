@@ -66,7 +66,9 @@ Orchard's body-edit follow-up reuses 201 projects and rebuilds one, with exact
 compared output parity; timings and remaining gates are in
 [performance](performance.md#reviewed-orchard-dependency-contracts).
 Full upstream migration parity remains open;
-the per-project rules remain the default. See
+the per-project rules remain the default. The latest [runtime evaluation profile](performance.md#runtime-evaluation-profile)
+identifies output-ownership validation as the next bounded optimization; evaluation
+reuse is not yet implemented. See
 [graph-cache migration](project-cache-migration.md) for commands, measured scope,
 and the remaining default-switch gates.
 

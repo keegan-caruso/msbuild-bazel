@@ -9,6 +9,7 @@ namespace RulesMSBuild.GraphBuild;
 internal sealed class GraphInputs : IDisposable
 {
     private readonly ProjectCollection collection;
+    private readonly GraphEvaluationProfile? evaluationProfile;
     private readonly Dictionary<string, ProjectGraphNode> directoryOwners;
     private readonly Dictionary<string, ProjectGraphNode> fileOwners;
     private readonly System.Collections.Concurrent.ConcurrentDictionary<string, string[]> imports = new(StringComparer.Ordinal);
@@ -44,78 +45,125 @@ internal sealed class GraphInputs : IDisposable
         get;
     }
     internal ProjectCollection Collection => collection;
+    internal object? EvaluationProfile => evaluationProfile?.Report;
 
     internal GraphInputs(GraphContract contract, string root, string sdkRoot, bool restored = false, RestoredInputs? prepared = null)
     {
         var timer = System.Diagnostics.Stopwatch.StartNew();
         this.contract = contract;
         Files = new(root, sdkRoot);
-        sharedPaths = Files.ResolveInputs(contract.SharedInputs).Values.ToHashSet(StringComparer.Ordinal);
-        packagePathAliases = sharedPaths.Where(path => path.StartsWith(Path.Combine(Files.Root, ".nuget") + Path.DirectorySeparatorChar, StringComparison.Ordinal))
-            .GroupBy(path => path, StringComparer.OrdinalIgnoreCase).ToDictionary(group => group.Key, group => group.ToArray(), StringComparer.OrdinalIgnoreCase);
-        foreach (var path in sharedPaths)
+        string sdk;
+        Dictionary<string, string> properties;
+        EvaluationContext evaluationContext;
+        using (GraphProfile.Measure("evaluationSetup"))
         {
-            if (!File.Exists(path))
+            sharedPaths = Files.ResolveInputs(contract.SharedInputs).Values.ToHashSet(StringComparer.Ordinal);
+            packagePathAliases = sharedPaths.Where(path => path.StartsWith(Path.Combine(Files.Root, ".nuget") + Path.DirectorySeparatorChar, StringComparison.Ordinal))
+                .GroupBy(path => path, StringComparer.OrdinalIgnoreCase).ToDictionary(group => group.Key, group => group.ToArray(), StringComparer.OrdinalIgnoreCase);
+            foreach (var path in sharedPaths)
             {
-                throw new InvalidDataException("Declared graph input is missing: " + path);
+                if (!File.Exists(path))
+                {
+                    throw new InvalidDataException("Declared graph input is missing: " + path);
+                }
+            }
+            if (contract.Version is not (1 or 2 or 3 or 4 or 5 or 6 or 7 or 8) || contract.Projects.Count == 0)
+            {
+                throw new InvalidDataException("Expected graph contract version 1, 2, 3, 4, 5, 6, 7 or 8 with explicit project inputs and outputs");
+            }
+            sdk = Path.Combine(sdkRoot, "sdk", contract.SdkVersion);
+            if (!Directory.Exists(sdk))
+            {
+                throw new InvalidDataException("Selected SDK is missing: " + contract.SdkVersion);
+            }
+            Environment.SetEnvironmentVariable("MSBUILD_EXE_PATH", Path.Combine(sdk, "MSBuild.dll"));
+            Environment.SetEnvironmentVariable("MSBuildSDKsPath", Path.Combine(sdk, "Sdks"));
+            collection = new ProjectCollection();
+            properties = new Dictionary<string, string>(contract.Properties, StringComparer.OrdinalIgnoreCase);
+            if (properties.ContainsKey("PathMap") || properties.ContainsKey("UseSharedCompilation") || properties.ContainsKey("NetCoreSdkRoot") || properties.ContainsKey("DOTNET_HOST_PATH"))
+            {
+                throw new InvalidDataException("SDK host paths, PathMap and UseSharedCompilation are controlled by the graph runner");
+            }
+            properties["PathMap"] = Files.Root + "=/_/workspace," + Files.Sdk + "=/_/sdk";
+            properties["UseSharedCompilation"] = "false";
+            properties["NetCoreSdkRoot"] = sdk;
+            evaluationContext = EvaluationContext.Create(EvaluationContext.SharingPolicy.Shared);
+            evaluationProfile = GraphProfile.Enabled && GraphProfile.EvaluationEnabled ? new GraphEvaluationProfile(Files) : null;
+            if (evaluationProfile is not null)
+            {
+                collection.RegisterLogger(evaluationProfile);
             }
         }
-        if (contract.Version is not (1 or 2 or 3 or 4 or 5 or 6 or 7 or 8) || contract.Projects.Count == 0)
-        {
-            throw new InvalidDataException("Expected graph contract version 1, 2, 3, 4, 5, 6, 7 or 8 with explicit project inputs and outputs");
-        }
-        var sdk = Path.Combine(sdkRoot, "sdk", contract.SdkVersion);
-        if (!Directory.Exists(sdk))
-        {
-            throw new InvalidDataException("Selected SDK is missing: " + contract.SdkVersion);
-        }
-        Environment.SetEnvironmentVariable("MSBUILD_EXE_PATH", Path.Combine(sdk, "MSBuild.dll"));
-        Environment.SetEnvironmentVariable("MSBuildSDKsPath", Path.Combine(sdk, "Sdks"));
-        collection = new ProjectCollection();
-        var properties = new Dictionary<string, string>(contract.Properties, StringComparer.OrdinalIgnoreCase);
-        if (properties.ContainsKey("PathMap") || properties.ContainsKey("UseSharedCompilation") || properties.ContainsKey("NetCoreSdkRoot") || properties.ContainsKey("DOTNET_HOST_PATH"))
-        {
-            throw new InvalidDataException("SDK host paths, PathMap and UseSharedCompilation are controlled by the graph runner");
-        }
-        properties["PathMap"] = Files.Root + "=/_/workspace," + Files.Sdk + "=/_/sdk";
-        properties["UseSharedCompilation"] = "false";
-        properties["NetCoreSdkRoot"] = sdk;
-        var evaluationContext = EvaluationContext.Create(EvaluationContext.SharingPolicy.Shared);
         using (GraphProfile.Measure("projectEvaluation"))
         {
             Graph = new ProjectGraph((contract.Entries ?? [contract.Entry]).Select(entry => new ProjectGraphEntryPoint(Files.Resolve(entry), GraphEntryProperties.For(entry, properties, contract.EntryProperties ?? []))), collection,
                 (path, globals, projects) =>
                 {
-                    var project = Project.FromFile(path, new ProjectOptions
+                    Project project;
+                    using (GraphProfile.Measure("projectLoad"))
                     {
-                        GlobalProperties = globals,
-                        ProjectCollection = projects,
-                        // Graph builds do not need IDE-only items from inactive conditions.
-                        LoadSettings = ProjectLoadSettings.DoNotEvaluateElementsWithFalseCondition,
-                        EvaluationContext = evaluationContext
-                    });
-                    var instance = project.CreateProjectInstance();
-                    imports[Key(instance)] = project.Imports.Select(import => import.ImportedProject.FullPath).Distinct().ToArray();
+                        project = Project.FromFile(path, new ProjectOptions
+                        {
+                            GlobalProperties = globals,
+                            ProjectCollection = projects,
+                            // Graph builds do not need IDE-only items from inactive conditions.
+                            LoadSettings = ProjectLoadSettings.DoNotEvaluateElementsWithFalseCondition |
+                                (evaluationProfile is null ? ProjectLoadSettings.Default : ProjectLoadSettings.ProfileEvaluation),
+                            EvaluationContext = evaluationContext
+                        });
+                    }
+                    ProjectInstance instance;
+                    using (GraphProfile.Measure("projectInstance"))
+                    {
+                        instance = project.CreateProjectInstance();
+                    }
+                    using (GraphProfile.Measure("importCapture"))
+                    {
+                        var paths = project.Imports.Select(import => import.ImportedProject.FullPath).Distinct().ToArray();
+                        imports[Key(instance)] = paths;
+                        evaluationProfile?.Project(paths);
+                    }
                     return instance;
                 });
         }
-        foreach (var node in Graph.ProjectNodes)
+        if (evaluationProfile is not null)
         {
-            projects.Add(node, restored ? RestoreInputs(node, Select(node)) : Select(node));
+            // Flush evaluation events before publishing diagnostics. Build logging
+            // is supplied separately by BuildParameters, not this collection logger.
+            collection.UnregisterAllLoggers();
+        }
+        using (GraphProfile.Measure("configurationSelection"))
+        {
+            foreach (var node in Graph.ProjectNodes)
+            {
+                projects.Add(node, restored ? RestoreInputs(node, Select(node)) : Select(node));
+            }
         }
         readOnlyPackages = prepared?.ReadOnlyPackages == true;
-        resolvedInputs = Files.ResolveInputs(contract.SharedInputs.Concat(projects.Values.SelectMany(p => p.Inputs)));
-        foreach (var node in Graph.ProjectNodes)
+        using (GraphProfile.Measure("inputPathValidation"))
         {
-            Validate(node);
+            resolvedInputs = Files.ResolveInputs(contract.SharedInputs.Concat(projects.Values.SelectMany(p => p.Inputs)));
         }
-        ValidateOutputOwnership();
+        using (GraphProfile.Measure("nodeValidation"))
+        {
+            foreach (var node in Graph.ProjectNodes)
+            {
+                Validate(node);
+            }
+        }
+        using (GraphProfile.Measure("outputOwnershipValidation"))
+        {
+            ValidateOutputOwnership();
+        }
         // Ownership is immutable contract metadata. Actual reads/writes still
         // resolve their paths to reject symlinks introduced during execution.
-        directoryOwners = Graph.ProjectNodes.SelectMany(node => OutputDirectories(node).Select(path => (path, node)))
-            .GroupBy(pair => pair.path, StringComparer.Ordinal).ToDictionary(group => group.Key, group => group.First().node, StringComparer.Ordinal);
-        fileOwners = Graph.ProjectNodes.SelectMany(node => DeclaredOutputFiles(node).Select(path => (path, node)))
-            .GroupBy(pair => pair.path, StringComparer.Ordinal).ToDictionary(group => group.Key, group => group.First().node, StringComparer.Ordinal);
+        using (GraphProfile.Measure("outputOwnershipIndex"))
+        {
+            directoryOwners = Graph.ProjectNodes.SelectMany(node => OutputDirectories(node).Select(path => (path, node)))
+                .GroupBy(pair => pair.path, StringComparer.Ordinal).ToDictionary(group => group.Key, group => group.First().node, StringComparer.Ordinal);
+            fileOwners = Graph.ProjectNodes.SelectMany(node => DeclaredOutputFiles(node).Select(path => (path, node)))
+                .GroupBy(pair => pair.path, StringComparer.Ordinal).ToDictionary(group => group.Key, group => group.First().node, StringComparer.Ordinal);
+        }
         EvaluationSeconds = timer.Elapsed.TotalSeconds;
         timer.Restart();
         using (GraphProfile.Measure("sdkHash"))
