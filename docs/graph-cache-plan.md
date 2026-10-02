@@ -1262,8 +1262,14 @@ Slice 5's [SDK preflight](performance.md#sdk-verification-preflight) measures on
 about 0.3 s of warm hashing; an owned copy adds first-use work and about 672 MB
 per worker. Mutation and borrowed-mount controls pass, but no immutable reuse
 protocol was implemented. The warning-as-error probe build and all five code-style
-policy tests pass on Linux ARM64. Keep production SDK verification and continue
-with slice 6. Slices 1–5 are closed; later slices remain planned work, not measured gains.
+policy tests pass on Linux ARM64. Keep production SDK verification.
+Slice 6's [package preflight](performance.md#prepared-package-verification-preflight)
+measures about 0.93 s of child package hashing; broker materialization already
+reuses its initially verified copy in about 1 ms. Corruption/mode/manifest, mutable-Restore,
+sandbox and lifecycle controls pass, but immutable reuse remains unqualified
+(the kernel byte-immutability probe returns ENOTSUP). Keep byte verification.
+Slices 1–6 are closed as measurements/controls; continue with slice 7's evaluation
+profile. Later slices remain planned work, not measured gains.
 
 ### Measurement contract
 

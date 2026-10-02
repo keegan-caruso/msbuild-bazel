@@ -360,6 +360,57 @@ The Linux borrowed-mount control requires bubblewrap. Reports and the copied SDK
 remain in the disposable results directory; no SDK or machine-specific report is
 committed. Restart/concurrency proof remains required for any future reuse cache.
 
+### Prepared-package verification preflight
+
+The runtime payload has **7,678 package files / 1.68 GB** and **1,301 restore
+outputs / 73 MB**. Five fresh probe processes call the production hash, path,
+restore-key and materialization methods on the scorecard’s four-CPU/eight-GiB
+Linux ARM64 VM. Medians and ranges are isolated costs, excluding SDK hashing,
+mount-identity checks, restore-output copying, evaluation and compilation:
+
+| Operation | Median | Range |
+| --- | ---: | ---: |
+| Package bytes | 0.929 s | 0.737–2.193 s |
+| Restore-output bytes | 0.048 s | 0.043–0.060 s |
+| Source/destination path resolution | 0.047 s | 0.045–0.064 s |
+| Mutable restore key | 0.249 s | 0.188–0.389 s |
+
+The existing broker copy-and-verify step takes **2.327 s once** in this observation
+(3.210–3.419 s in preceding observations). Reuse takes about **1 ms**. These
+first-use observations are not matched cold builds; page-cache state was not
+controlled. Staging already reuses its copy. Child package hashing is the remaining
+roughly one-second opportunity; these component timings do not account for every
+cost in the earlier 4.36–4.39-s full preparation phase.
+
+A small corruption control changes a private copy after materialization. The
+cached materializer returns it for unchanged input identity; byte verification
+detects the corruption. Production methods also reject different inodes, changed modes, unsupported
+manifests, invalid modes and corrupt replacement inputs, with no pending-directory
+leak. These injected external writes are outside normal broker operation. Existing
+worker controls pass missing-digest fallback, zero-budget eviction and exit cleanup;
+Restore controls pass asset/package/configuration/environment invalidation.
+The sandbox control now checks read-only package mounts and writable scratch.
+
+A disposable [fs-verity](https://docs.kernel.org/filesystems/fsverity.html) byte-immutability
+probe returns **ENOTSUP** on the current filesystem. It does not qualify a worker
+identity protocol, even on a filesystem where it succeeds. Keep production byte
+verification: neither private ownership, read-only mounts nor an unchanged input
+identity detects every private-cache mutation alone. No production fast path or
+end-to-end speedup was retained. A future reuse protocol must cover contents,
+paths, modes, replacement and worker lifecycle; mutable Restore state stays checked.
+
+Reproduce after building `tools/GraphBuild` in Release, with a preserved prepared
+payload (an idle broker's private tree can expire):
+
+```sh
+RULES_MSBUILD_DOTNET_ROOT=SDK python3 tests/graph_build/package_verification.py \
+  NEW_RESULTS --workspace WORKSPACE --contract CONTRACT --sdk DECLARED_SDK \
+  --prepared PREPARED_DIRECTORY --samples 5 --materialize
+```
+
+The probe builds with warnings as errors and zero warnings/errors. Detailed
+reports and the owned copy stay outside Git. No CI or new full-build scorecard ran.
+
 ## Current graph-cache optimization checkpoint
 
 Three-sample Orchard body-edit measurements on the roadmap branch retain
