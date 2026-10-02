@@ -1,0 +1,234 @@
+using System.Diagnostics;
+using System.Text.Json;
+using Microsoft.Build.Evaluation;
+using Microsoft.Build.Execution;
+using Microsoft.Build.Framework;
+using Microsoft.Build.Graph;
+using Microsoft.Build.Logging;
+
+// Qualification only: the same configured entry points and MSBuild graph API,
+// with no cache plugin. Binplace inventory requires a completed raw Build.
+var root = Path.GetFullPath(args[0]);
+using var contract = JsonDocument.Parse(File.ReadAllText(args[1]));
+var data = contract.RootElement;
+var sdkRoot = Environment.GetEnvironmentVariable("DOTNET_ROOT")!;
+var sdk = Path.Combine(sdkRoot, "sdk", data.GetProperty("SdkVersion").GetString()!);
+System.Runtime.Loader.AssemblyLoadContext.Default.Resolving += (context, name) =>
+    File.Exists(Path.Combine(sdk, name.Name + ".dll")) ? context.LoadFromAssemblyPath(Path.Combine(sdk, name.Name + ".dll")) : null;
+Environment.SetEnvironmentVariable("MSBUILD_EXE_PATH", Path.Combine(sdk, "MSBuild.dll"));
+Environment.SetEnvironmentVariable("MSBuildSDKsPath", Path.Combine(sdk, "Sdks"));
+var properties = data.GetProperty("Properties").EnumerateObject().ToDictionary(p => p.Name, p => p.Value.GetString()!, StringComparer.OrdinalIgnoreCase);
+properties["NetCoreSdkRoot"] = sdk;
+properties["UseSharedCompilation"] = "false";
+properties["PathMap"] = root + "=/_/workspace," + sdkRoot + "=/_/sdk";
+using var collection = new ProjectCollection();
+var entries = data.TryGetProperty("Entries", out var selected) ? selected.EnumerateArray().Select(p => p.GetString()!) : [data.GetProperty("Entry").GetString()!];
+var graph = new ProjectGraph(entries.Select(p =>
+{
+    var globals = new Dictionary<string, string>(properties, StringComparer.OrdinalIgnoreCase);
+    if (data.TryGetProperty("EntryProperties", out var overrides) && overrides.TryGetProperty(p, out var values))
+        foreach (var property in values.EnumerateObject()) globals[property.Name] = property.Value.GetString()!;
+    return new ProjectGraphEntryPoint(Path.Combine(root, p), globals);
+}), collection,
+    (path, globals, owner) => new ProjectInstance(path, globals, null, owner));
+var declarations = data.GetProperty("Projects");
+var expectedNodes = declarations.EnumerateObject().Sum(p => p.Value.TryGetProperty("Configurations", out var values) ? values.GetArrayLength() : 1);
+if (graph.ProjectNodes.Count != expectedNodes) throw new InvalidDataException("Raw graph configured-node count differs from the declared graph");
+foreach (var node in graph.ProjectNodes)
+{
+    var path = Path.GetRelativePath(root, node.ProjectInstance.FullPath);
+    if (!declarations.TryGetProperty(path, out var declaration)) throw new InvalidDataException("Undeclared raw graph project: " + path);
+    if (declaration.TryGetProperty("Configurations", out var values) && values.EnumerateArray().Count(c =>
+        c.GetProperty("Properties").EnumerateObject().All(p =>
+            (node.ProjectInstance.GlobalProperties.TryGetValue(p.Name, out var value) ? value : "") == p.Value.GetString())) != 1)
+        throw new InvalidDataException("Raw graph configuration differs: " + path);
+}
+// Qualification only: isolate reference scanning and ordering from output hashing,
+// evaluation and compilation. Include candidate-cache construction in every pass.
+if (args[2] is "reference-work" or "dependency-order")
+{
+    var nodes = graph.ProjectNodes.Where(n => n.ProjectInstance.GetPropertyValue("TargetPath").Length != 0)
+        .OrderBy(n => n.ProjectInstance.FullPath, StringComparer.Ordinal).ToArray();
+    var contracts = nodes.ToDictionary(n => n, n =>
+    {
+        var declaration = declarations.GetProperty(Path.GetRelativePath(root, n.ProjectInstance.FullPath));
+        return declaration.TryGetProperty("Configurations", out var values) ? values.EnumerateArray().Single(c =>
+            c.GetProperty("Properties").EnumerateObject().All(p =>
+                (n.ProjectInstance.GlobalProperties.TryGetValue(p.Name, out var value) ? value : "") == p.Value.GetString())) : declaration;
+    });
+    var closures = new Dictionary<ProjectGraphNode, HashSet<ProjectGraphNode>>();
+    HashSet<ProjectGraphNode> Dependencies(ProjectGraphNode node)
+    {
+        if (closures.TryGetValue(node, out var found)) return found;
+        var visited = new HashSet<ProjectGraphNode>();
+        var pending = new Stack<ProjectGraphNode>(node.ProjectReferences);
+        while (pending.TryPop(out var child))
+            if (visited.Add(child)) foreach (var next in child.ProjectReferences) pending.Push(next);
+        closures.Add(node, visited);
+        return visited;
+    }
+    bool Boundary(ProjectGraphNode node) => contracts[node].TryGetProperty("ReferenceBoundary", out var boundary) && boundary.GetBoolean();
+    string Key(ProjectGraphNode node) => node.ProjectInstance.FullPath + "|" + string.Join(";", node.ProjectInstance.GlobalProperties
+        .OrderBy(p => p.Key, StringComparer.Ordinal).Select(p => p.Key + "=" + p.Value));
+    IEnumerable<ProjectGraphNode> SelectedReferences(ProjectGraphNode n)
+    {
+        IEnumerable<ProjectGraphNode> selectedReferences = Boundary(n) && !n.ProjectInstance.GetPropertyValue("DisableTransitiveProjectReferences").Equals("true", StringComparison.OrdinalIgnoreCase)
+            ? Dependencies(n) : n.ProjectReferences;
+        if (Boundary(n)) selectedReferences = selectedReferences.SelectMany(r => r.ProjectInstance.GetPropertyValue("TargetPath").Length == 0
+            ? Dependencies(r).Where(c => c.ProjectInstance.GetPropertyValue("TargetPath").Length != 0) : new[] { r }).Distinct();
+        return selectedReferences;
+    }
+    var references = nodes.ToDictionary(n => n, n => SelectedReferences(n).OrderBy(Key, StringComparer.Ordinal).ToArray());
+    if (args[2] == "dependency-order")
+    {
+        ProjectGraphNode[] Order(bool cached)
+        {
+            // Include construction of the ordered cache once in every pass.
+            var ordered = new Dictionary<ProjectGraphNode, ProjectGraphNode[]>();
+            ProjectGraphNode[] OrderedDependencies(ProjectGraphNode node)
+            {
+                if (!ordered.TryGetValue(node, out var found))
+                {
+                    found = Dependencies(node).OrderBy(Key, StringComparer.Ordinal).ToArray();
+                    ordered.Add(node, found);
+                }
+                return found;
+            }
+            var result = new List<ProjectGraphNode>();
+            foreach (var node in nodes)
+            {
+                if (Boundary(node)) result.AddRange(cached ? OrderedDependencies(node) : Dependencies(node).OrderBy(Key, StringComparer.Ordinal));
+                var reusable = cached && Boundary(node) &&
+                    !node.ProjectInstance.GetPropertyValue("DisableTransitiveProjectReferences").Equals("true", StringComparison.OrdinalIgnoreCase) &&
+                    Dependencies(node).All(n => n.ProjectInstance.GetPropertyValue("TargetPath").Length != 0);
+                result.AddRange(reusable ? OrderedDependencies(node) : SelectedReferences(node).OrderBy(Key, StringComparer.Ordinal));
+            }
+            return result.ToArray();
+        }
+        var expected = Order(false);
+        if (!expected.SequenceEqual(Order(true))) throw new InvalidDataException("Dependency ordering changed configured nodes");
+        for (var warmup = 0; warmup < 3; warmup++) { Order(false); Order(true); }
+        const int repetitions = 20;
+        var orderRows = new List<object>();
+        for (var sample = 0; sample < 5; sample++)
+            foreach (var cached in sample % 2 == 0 ? new[] { false, true } : new[] { true, false })
+            {
+                var timer = Stopwatch.StartNew();
+                for (var repetition = 0; repetition < repetitions; repetition++)
+                    if (!expected.SequenceEqual(Order(cached))) throw new InvalidDataException("Dependency ordering changed during measurement");
+                orderRows.Add(new { sample, cached, repetitions, secondsPerGraph = timer.Elapsed.TotalSeconds / repetitions });
+            }
+        File.WriteAllText(args[3], JsonSerializer.Serialize(new { scope = "isolated dependency ordering; includes ordered-cache construction; excludes graph evaluation, already memoized closure traversal, output hashing and compilation",
+            configuredNodes = graph.ProjectNodes.Count, compiledNodes = nodes.Length, orderedRecords = expected.Length,
+            transitiveConsumers = nodes.Count(n => Boundary(n) && !n.ProjectInstance.GetPropertyValue("DisableTransitiveProjectReferences").Equals("true", StringComparison.OrdinalIgnoreCase)),
+            coordinatorConsumers = nodes.Count(n => Boundary(n) && Dependencies(n).Any(c => c.ProjectInstance.GetPropertyValue("TargetPath").Length == 0)),
+            orderEqual = true, rows = orderRows }, new JsonSerializerOptions { WriteIndented = true }) + "\n");
+        return;
+    }
+    bool ExplicitRole(ProjectGraphNode node, ProjectGraphNode reference) => !Boundary(node) ||
+        contracts[node].TryGetProperty("ImplementationDependencies", out var implementations) && implementations.EnumerateArray()
+            .Any(p => p.GetString() == Path.GetRelativePath(root, reference.ProjectInstance.FullPath));
+    string ReferencePath(ProjectGraphNode node, ProjectItemInstance item) => Path.GetFullPath(item.EvaluatedInclude.Replace('\\', '/'), Path.GetDirectoryName(node.ProjectInstance.FullPath)!);
+    bool ImplementationItem(ProjectItemInstance item) => item.GetMetadataValue("OutputItemType").Length != 0 ||
+        item.GetMetadataValue("ReferenceOutputAssembly").Equals("false", StringComparison.OrdinalIgnoreCase) || item.GetMetadataValue("Targets").Length != 0;
+    bool[] Classify(bool indexed)
+    {
+        var roles = new List<bool>();
+        foreach (var node in nodes)
+        {
+            HashSet<string>? paths = null;
+            foreach (var reference in references[node])
+            {
+                if (ExplicitRole(node, reference)) { roles.Add(true); continue; }
+                if (!indexed)
+                {
+                    roles.Add(node.ProjectInstance.GetItems("ProjectReference").Where(item => ReferencePath(node, item) == reference.ProjectInstance.FullPath).Any(ImplementationItem));
+                    continue;
+                }
+                if (paths is null)
+                {
+                    paths = new(StringComparer.Ordinal);
+                    foreach (var item in node.ProjectInstance.GetItems("ProjectReference"))
+                    {
+                        var path = ReferencePath(node, item);
+                        if (ImplementationItem(item)) paths.Add(path);
+                    }
+                }
+                roles.Add(paths.Contains(reference.ProjectInstance.FullPath));
+            }
+        }
+        return roles.ToArray();
+    }
+    var expectedRoles = Classify(false);
+    if (!expectedRoles.SequenceEqual(Classify(true))) throw new InvalidDataException("Reference role lookup changed classification");
+    for (var warmup = 0; warmup < 3; warmup++) { Classify(false); Classify(true); }
+    const int iterations = 20;
+    var rows = new List<object>();
+    for (var sample = 0; sample < 5; sample++)
+        foreach (var indexed in sample % 2 == 0 ? new[] { false, true } : new[] { true, false })
+        {
+            var timer = Stopwatch.StartNew();
+            for (var iteration = 0; iteration < iterations; iteration++)
+                if (!expectedRoles.SequenceEqual(Classify(indexed))) throw new InvalidDataException("Reference classification changed during measurement");
+            rows.Add(new { sample, indexed, iterations, secondsPerGraph = timer.Elapsed.TotalSeconds / iterations });
+        }
+    File.WriteAllText(args[3], JsonSerializer.Serialize(new { scope = "isolated metadata scan; excludes evaluation, output hashing and compilation; not full build timing",
+        configuredNodes = graph.ProjectNodes.Count, compiledNodes = nodes.Length, references = expectedRoles.Length,
+        implementationReferences = expectedRoles.Count(role => role), duplicateAuthoredPaths = nodes.Sum(n => n.ProjectInstance.GetItems("ProjectReference")
+            .GroupBy(item => ReferencePath(n, item), StringComparer.Ordinal).Count(g => g.Count() > 1)),
+        rolesEqual = true, rows }, new JsonSerializerOptions { WriteIndented = true }) + "\n");
+    return;
+}
+var parameters = new BuildParameters(collection) { MaxNodeCount = 4, EnableNodeReuse = false,
+    Loggers = [new ConsoleLogger(LoggerVerbosity.Minimal)] };
+using var manager = new BuildManager();
+if (args[2] == "build")
+{
+    if (args.Length > 3)
+        parameters.Loggers = parameters.Loggers.Append(new BinaryLogger { Parameters = args[3] + ";ProjectImports=None" });
+    var result = manager.Build(parameters, new GraphBuildRequestData(graph, ["Build"]));
+    if (result.OverallResult != BuildResultCode.Success)
+        throw new InvalidDataException("Raw graph Build failed: " + result.Exception);
+    return;
+}
+if (args[2] != "binplace") throw new ArgumentException("Expected build, binplace, reference-work or dependency-order");
+var output = new SortedDictionary<string, SortedDictionary<string, string[]>>(StringComparer.Ordinal);
+foreach (var node in graph.ProjectNodes)
+{
+    var project = node.ProjectInstance;
+    var framework = project.GetPropertyValue("TargetFramework");
+    if (framework.Length == 0 || project.GetPropertyValue("TargetPath").Length == 0) continue;
+    var path = Path.GetRelativePath(root, project.FullPath);
+    var declaration = data.GetProperty("Projects").GetProperty(path);
+    if (declaration.TryGetProperty("Configurations", out var configurations))
+        declaration = configurations.EnumerateArray().Single(c => c.GetProperty("Properties").EnumerateObject().All(p =>
+            (project.GlobalProperties.TryGetValue(p.Name, out var value) ? value : "") == p.Value.GetString()));
+    var owned = declaration.GetProperty("OutputDirectories").EnumerateArray().Select(p =>
+        Path.TrimEndingDirectorySeparator(Path.GetFullPath(p.GetString()!, root)) + Path.DirectorySeparatorChar).ToArray();
+    if (!project.Targets.ContainsKey("GetBinPlaceItems")) continue;
+    var result = manager.Build(parameters, new BuildRequestData(project, ["GetBinPlaceTargetFramework", "GetBinPlaceItems"], null, BuildRequestDataFlags.ProvideProjectStateAfterBuild));
+    if (result.OverallResult != BuildResultCode.Success) throw new InvalidDataException("Binplace inventory failed: " + path);
+    var state = result.ProjectStateAfterBuild ?? throw new InvalidDataException("Missing post-target project state");
+    var files = new SortedSet<string>(StringComparer.Ordinal);
+    foreach (var directory in state.GetItems("BinPlaceDir"))
+    {
+        var itemName = directory.GetMetadataValue("ItemName");
+        foreach (var item in state.GetItems(itemName.Length == 0 ? "BinPlaceItem" : itemName))
+        {
+            var target = item.GetMetadataValue("TargetPath");
+            if (target.Length == 0)
+                target = item.GetMetadataValue("DestinationSubDirectory") + Path.GetFileName(item.EvaluatedInclude);
+            var destination = Path.GetFullPath(Path.Combine(directory.EvaluatedInclude, target.Replace('\\', '/')), Path.GetDirectoryName(project.FullPath)!);
+            if (!destination.StartsWith(root + Path.DirectorySeparatorChar, StringComparison.Ordinal))
+                throw new InvalidDataException("Binplace output outside source: " + destination);
+            if (!File.Exists(destination)) throw new InvalidDataException("Build required before inventory: " + destination);
+            if (!owned.Any(p => destination.StartsWith(p, StringComparison.Ordinal))) files.Add(Path.GetRelativePath(root, destination));
+        }
+    }
+    if (files.Count == 0) continue;
+    if (!output.TryGetValue(path, out var frameworks)) output.Add(path, frameworks = new(StringComparer.Ordinal));
+    if (!frameworks.TryAdd(framework, files.ToArray()))
+        throw new InvalidDataException("Binplace fixture needs selectors beyond TargetFramework: " + path + " " + framework);
+}
+File.WriteAllText(args[3], JsonSerializer.Serialize(output, new JsonSerializerOptions { WriteIndented = true }) + "\n");
+Console.WriteLine($"Inventoried {output.Sum(p => p.Value.Count)} binplace producer configurations");

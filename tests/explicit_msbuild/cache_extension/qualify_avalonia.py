@@ -1,0 +1,200 @@
+"""Qualify the cache extension against Avalonia's pinned SimpleTheme graph."""
+
+from __future__ import annotations
+
+import argparse
+import hashlib
+import json
+import os
+import re
+import shutil
+import subprocess
+import time
+from pathlib import Path
+
+
+ROOT = Path(__file__).resolve().parents[3]
+PROBE = ROOT / "tests/explicit_msbuild/cache_extension/bin/Release/net10.0/AvaloniaProbe.dll"
+ENTRY = "src/Avalonia.Themes.Simple/Avalonia.Themes.Simple.csproj"
+X11_ENTRY = "src/Avalonia.X11/Avalonia.X11.csproj"
+DESKTOP_ENTRY = "src/Avalonia.Desktop/Avalonia.Desktop.csproj"
+BODY = "src/Avalonia.Base/Media/PolylineGeometry.cs"
+XAML = "src/Avalonia.Themes.Simple/SimpleTheme.xaml"
+X11_LOCAL = "src/Avalonia.X11/Glx/GlxPlatformFeature.cs"
+
+
+def qualify(source: Path, output: Path, entry: str = ENTRY) -> dict:
+    if entry not in (ENTRY, X11_ENTRY, DESKTOP_ENTRY):
+        raise ValueError(entry)
+    sdk = Path(os.environ["RULES_MSBUILD_DOTNET_ROOT"])
+    packages = Path(os.environ["NUGET_PACKAGES"])
+    env = dict(os.environ)
+    env.update(
+        DOTNET_ROOT=str(sdk),
+        DOTNET_HOST_PATH=str(sdk / "dotnet"),
+        DOTNET_CLI_HOME=str(output / "dotnet-home"),
+        DOTNET_CLI_TELEMETRY_OPTOUT="1",
+        MSBUILDDISABLENODEREUSE="1",
+    )
+    output.mkdir(parents=True)
+    (output / "dotnet-home").mkdir()
+    reports = {}
+    output_manifests = {}
+
+    def execute(name: str, command: list[str]) -> float:
+        started = time.perf_counter()
+        result = subprocess.run(command, cwd=source, env=env, capture_output=True, text=True)
+        elapsed = time.perf_counter() - started
+        (output / f"{name}.log").write_text(result.stdout + result.stderr)
+        if result.returncode:
+            raise RuntimeError(f"{name} failed; see {output / (name + '.log')}")
+        return elapsed
+
+    execute("restore", [
+        str(sdk / "dotnet"), "restore", str(source / entry),
+        "-p:AvsSkipBuildingLegacyTargetFrameworks=True", "-p:NuGetAudit=false",
+        f"-p:RestorePackagesPath={packages}",
+    ])
+
+    def run(name: str, seed: str | None) -> dict:
+        elapsed = execute(name, [
+            str(sdk / "dotnet"), "exec", str(PROBE), str(source), entry,
+            str(output / seed) if seed else "-", str(output / name),
+            str(output / f"{name}.json"),
+        ])
+        report = json.loads((output / f"{name}.json").read_text())
+        outputs = {}
+        for node in report["nodes"]:
+            if not node["framework"]:
+                continue
+            project = (source / node["project"]).parent
+            for relative in (
+                f"bin/Release/{node['framework']}",
+                f"obj/Release/{node['framework']}/ref",
+                f"obj/Release/{node['framework']}/refint",
+            ):
+                directory = project / relative
+                for path in directory.rglob("*") if directory.exists() else ():
+                    if path.is_file():
+                        outputs[str(path.relative_to(source))] = hashlib.sha256(path.read_bytes()).hexdigest()
+        output_manifests[name] = outputs
+        report["wallSeconds"] = elapsed
+        reports[name] = report
+        print(name, report["graphNodes"], report["hits"], report["misses"], round(elapsed, 3), flush=True)
+        return report
+
+    def clean(nodes: list[dict]) -> None:
+        for row in nodes:
+            folder = (source / row["project"]).parent
+            for relative in ("bin/Release", "obj/Release"):
+                shutil.rmtree(folder / relative, ignore_errors=True)
+
+    def compare(name: str, control: str) -> None:
+        cached = output_manifests[name]
+        clean_build = output_manifests[control]
+        if cached != clean_build:
+            differing = [key for key in cached.keys() | clean_build.keys() if cached.get(key) != clean_build.get(key)]
+            raise AssertionError((name, "materialized output mismatch", differing))
+
+    def manifest(name: str, project: str, framework: str) -> dict:
+        path = output / name / f"{project}.{framework}.cache" / "manifest.json"
+        return json.loads(path.read_text())["Files"]
+
+    seed = run("seed", None)
+    inner = sum(bool(node["framework"]) for node in seed["nodes"])
+    clean(seed["nodes"])
+    replay = run("clean-replay", "seed")
+    if replay["hits"] != inner or replay["misses"] != seed["graphNodes"] - inner:
+        raise AssertionError(("clean replay", replay))
+    compare("clean-replay", "seed")
+
+    if entry == ENTRY:
+        local_case = ("xaml", XAML, "</Styles>", '<Style Selector="Button"><Setter Property="Opacity" Value="0.75137" /></Style></Styles>')
+    else:
+        local_case = ("leaf", X11_LOCAL, "public bool CanShareContexts => true;", "public bool CanShareContexts => false;")
+    cases = [
+        local_case,
+        ("body", BODY, "context.EndFigure(isFilled);", "context.EndFigure(isFilled && Points.Count > 0);"),
+        ("api", BODY, "public class PolylineGeometry : Geometry\n    {", "public class PolylineGeometry : Geometry\n    {\n        public bool CacheQualificationMarker => true;"),
+    ]
+    for name, relative, needle, replacement in cases:
+        path = source / relative
+        original = path.read_text()
+        if original.count(needle) != 1:
+            raise AssertionError((name, "edit location changed"))
+        path.write_text(original.replace(needle, replacement))
+        try:
+            clean(seed["nodes"])
+            cached = run(name + "-cached", "seed")
+            clean(seed["nodes"])
+            control = run(name + "-control", None)
+            compare(name + "-cached", name + "-control")
+            if control["hits"] != 0 or control["misses"] != seed["graphNodes"]:
+                raise AssertionError((name, "control used cache", control))
+            if cached["hits"] == 0 or cached["misses"] == 0:
+                raise AssertionError((name, "edit was not selective", cached))
+            if name == "body":
+                project = "src/Avalonia.Base/Avalonia.Base.csproj"
+                for framework in ("net8.0", "netstandard2.0"):
+                    relative_ref = f"obj/Release/{framework}/ref/Avalonia.Base.dll"
+                    if manifest("seed", project, framework)[relative_ref] != manifest(name + "-cached", project, framework)[relative_ref]:
+                        raise AssertionError((name, framework, "reference changed"))
+                    expected_hit = f"cacheHit=src/Avalonia.Dialogs/Avalonia.Dialogs.csproj:{framework}"
+                    if expected_hit not in (output / "body-cached.log").read_text().splitlines():
+                        raise AssertionError((name, framework, "Dialogs should reuse its unchanged references"))
+        finally:
+            path.write_text(original)
+    raw = [
+        str(sdk / "dotnet"), "build", str(source / entry), "-f", "net8.0", "-c", "Release",
+        "--no-restore", "-m:4", "-p:AvsSkipBuildingLegacyTargetFrameworks=True",
+        "-p:NuGetAudit=false", f"-p:RestorePackagesPath={packages}",
+        "-p:DebugType=portable", "-p:ProduceReferenceAssembly=true",
+    ]
+    raw_times = {"baseline": execute("raw-baseline", raw)}
+    for name, relative, needle, replacement in cases:
+        path = source / relative
+        original = path.read_text()
+        path.write_text(original.replace(needle, replacement))
+        try:
+            raw_times[name] = execute("raw-" + name, raw)
+        finally:
+            path.write_text(original)
+        execute("raw-reset-" + name, raw)
+    reports["rawBuildSeconds"] = raw_times
+    clean(seed["nodes"])
+    raw_graph = [*raw, "-graphBuild", "-clp:PerformanceSummary"]
+    graph_times = {"baseline": execute("raw-graph-baseline", raw_graph)}
+    graph_compiles = {}
+    for name, relative, needle, replacement in cases:
+        path = source / relative
+        original = path.read_text()
+        path.write_text(original.replace(needle, replacement))
+        try:
+            graph_times[name] = execute("raw-graph-" + name, raw_graph)
+            log = (output / f"raw-graph-{name}.log").read_text()
+            compiler = re.search(r"\bCsc\s+(\d+) calls?", log)
+            graph_compiles[name] = int(compiler.group(1)) if compiler else None
+        finally:
+            path.write_text(original)
+        execute("raw-graph-reset-" + name, raw_graph)
+        print("raw-graph-" + name, graph_compiles[name], round(graph_times[name], 3), flush=True)
+    reports["rawGraphBuildSeconds"] = graph_times
+    reports["rawGraphCscCalls"] = graph_compiles
+    shutil.rmtree(output / "seed")
+    clean(seed["nodes"])
+    independent = run("independent-replay", "clean-replay")
+    if independent["hits"] != inner:
+        raise AssertionError(("independent replay", independent))
+    compare("independent-replay", "clean-replay")
+    reports["entry"] = entry
+    (output / "summary.json").write_text(json.dumps(reports, indent=2) + "\n")
+    return reports
+
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("source", type=Path, help="pinned Avalonia source root")
+    parser.add_argument("output", type=Path, help="fresh result directory")
+    parser.add_argument("--entry", choices=[ENTRY, X11_ENTRY, DESKTOP_ENTRY], default=ENTRY)
+    args = parser.parse_args()
+    qualify(args.source.resolve(), args.output.resolve(), args.entry)

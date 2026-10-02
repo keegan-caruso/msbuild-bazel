@@ -5,6 +5,8 @@ using Microsoft.Build.Logging;
 var projects = new Dictionary<(int Node, int Project), string>();
 var compiled = new List<object>();
 var compilerServerMessages = new List<string>();
+var tasks = new Dictionary<(int Node, int Project, int Target, int Task), (string Name, DateTime Started)>();
+var taskSeconds = new Dictionary<string, double>();
 var replay = new BinaryLogReplayEventSource();
 replay.ProjectStarted += (_, e) =>
 {
@@ -20,10 +22,17 @@ replay.ProjectStarted += (_, e) =>
 };
 replay.TaskStarted += (_, e) =>
 {
-    if (e.TaskName is not ("Csc" or "Vbc")) return;
     var context = e.BuildEventContext!;
+    tasks[(context.NodeId, context.ProjectContextId, context.TargetId, context.TaskId)] = (e.TaskName!, e.Timestamp);
+    if (e.TaskName is not ("Csc" or "Vbc")) return;
     projects.TryGetValue((context.NodeId, context.ProjectContextId), out var framework);
     compiled.Add(new { project = e.ProjectFile, framework, task = e.TaskName });
+};
+replay.TaskFinished += (_, e) =>
+{
+    var context = e.BuildEventContext!;
+    if (tasks.Remove((context.NodeId, context.ProjectContextId, context.TargetId, context.TaskId), out var task))
+        taskSeconds[task.Name] = taskSeconds.GetValueOrDefault(task.Name) + (e.Timestamp - task.Started).TotalSeconds;
 };
 replay.MessageRaised += (_, e) =>
 {
@@ -31,4 +40,4 @@ replay.MessageRaised += (_, e) =>
         compilerServerMessages.Add(e.Message);
 };
 replay.Replay(args[0]);
-Console.WriteLine(JsonSerializer.Serialize(new { compiled, compilerServerMessages }));
+Console.WriteLine(JsonSerializer.Serialize(new { compiled, compilerServerMessages, taskSeconds }));

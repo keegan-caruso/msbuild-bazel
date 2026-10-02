@@ -1,0 +1,58 @@
+{
+  "eng/testing/tests.targets": {
+    "sha256": "7f5737e205d2b4e53f7444d8ee8701c0b89f032ea1df81ac4a4ca4f7bb44a2ec",
+    "targets": [
+      "ArchiveTests",
+      "ZipTestArchive",
+      "GenerateRunScript",
+      "RunTests",
+      "Test"
+    ],
+    "tasks": [
+      "GenerateRunScript"
+    ],
+    "inputs": [
+      "eng/testing/RunnerTemplate.sh"
+    ]
+  },
+  "eng/testing/xunit/xunit.console.targets": {
+    "sha256": "40ed731102e57e708a5d6e79928e25861e660f988259b3456e6f633cfd25b759",
+    "targets": [
+      "OverwriteDesktopTestRunnerConfigs",
+      "CopyRunnerToOutputDirectory"
+    ],
+    "tasks": [],
+    "inputs": []
+  },
+  "eng/testing/runsettings.targets": {
+    "sha256": "883094fdcea7edf0bd47cf91c4ea006bedcb2cc444a86825ba5fe4a73d7542ce",
+    "targets": [
+      "GenerateRunSettingsFile"
+    ],
+    "tasks": [],
+    "inputs": [
+      "eng/testing/.runsettings"
+    ]
+  },
+  "eng/testing/outerBuild.targets": {
+    "sha256": "3097b912be4b48cddd42d3ed903b848996d710bfb47941fbc762f507f3b66743",
+    "targets": [
+      "Test",
+      "VSTest",
+      "RemoveNetFrameworkProjectsOnNonWindows"
+    ],
+    "tasks": [],
+    "inputs": []
+  },
+  "eng/testing/coverage.targets": {
+    "sha256": "70603f87a98782015322600a236364ae9ad39c2712149d63dd55fb60b02518c3",
+    "targets": [
+      "SetupCoverageFilter",
+      "AddCoverageCommand",
+      "GenerateCoverageReport",
+      "ClearTestResults"
+    ],
+    "tasks": [],
+    "inputs": []
+  }
+}

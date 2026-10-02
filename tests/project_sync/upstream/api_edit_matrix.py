@@ -71,6 +71,7 @@ def main():
     parser.add_argument("--repetitions", type=int, default=3)
     parser.add_argument("--sample-offset", type=int, default=0)
     parser.add_argument("--disk-cache", type=Path)
+    parser.add_argument("--output-base", type=Path)
     parser.add_argument("--jobs", type=int, default=2)
     parser.add_argument("--workers", type=int, default=2)
     parser.add_argument("--worker-memory-limit-mb", type=int, default=4096)
@@ -90,6 +91,8 @@ def main():
     output.mkdir(parents=True, exist_ok=False)
     originals = {case: (workspace / source).read_bytes() for case, (source, _) in CASES.items()}
     bazel = [os.environ["RULES_MSBUILD_BAZEL"], "--host_jvm_args=-Xmx1536m", "--ignore_all_rc_files"]
+    if args.output_base:
+        bazel.append("--output_base=" + str(args.output_base.resolve()))
     flags = [
         "--jobs=" + str(args.jobs), "--worker_max_instances=MSBuildAssembly=" + str(args.workers),
         "--experimental_total_worker_memory_limit_mb=" + str(args.worker_memory_limit_mb), "--experimental_shrink_worker_pool",

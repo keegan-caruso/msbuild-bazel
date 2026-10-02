@@ -1,0 +1,19 @@
+{
+  "compiled": 55,
+  "implementation": "src/libraries/System.Collections.Immutable/src/System/Collections/Immutable/ImmutableList_1.cs",
+  "reference": "src/libraries/System.Collections.Immutable/ref/System.Collections.Immutable.cs",
+  "implDll": "artifacts/bin/System.Collections.Immutable/Release/net10.0/System.Collections.Immutable.dll",
+  "refDll": "artifacts/bin/System.Collections.Immutable/ref/Release/net10.0/System.Collections.Immutable.dll",
+  "bodyAnchor": "_root = root;",
+  "implementationAnchor": "public sealed partial class ImmutableList<T> : IImmutableList<T>, IList<T>, IList, IStrongEnumerable<T, ImmutableList<T>.Enumerator>\n    {",
+  "referenceAnchor": "public sealed partial class ImmutableList<T> : System.Collections.Generic.ICollection<T>, System.Collections.Generic.IEnumerable<T>, System.Collections.Generic.IList<T>, System.Collections.Generic.IReadOnlyCollection<T>, System.Collections.Generic.IReadOnlyList<T>, System.Collections.ICollection, System.Collections.IEnumerable, System.Collections.IList, System.Collections.Immutable.IImmutableList<T>\n    {",
+  "expectedMisses": {
+    "body": 6,
+    "api": 11
+  },
+  "entries": [
+    "src/libraries/System.Collections.Immutable/tests/System.Collections.Immutable.Tests.csproj",
+    "src/libraries/System.Collections/tests/System.Collections.Tests.csproj",
+    "src/libraries/System.Linq/tests/System.Linq.Tests.csproj"
+  ]
+}
