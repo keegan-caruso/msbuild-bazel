@@ -1,4 +1,7 @@
-exports_files(["GraphBuild.csproj"])
+exports_files([
+    "GraphBuild.csproj",
+    "BUILD.bazel",
+])
 
 filegroup(
     name = "sources",

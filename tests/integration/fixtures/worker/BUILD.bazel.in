@@ -1,0 +1,2 @@
+load("@rules_msbuild//msbuild:sync.bzl", "msbuild_sync")
+msbuild_sync(name = "sync", projects = ["P2/P2.csproj"])

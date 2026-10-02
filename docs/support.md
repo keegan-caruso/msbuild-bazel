@@ -9,6 +9,11 @@ The cutover passed small graph build/replay, dependency invalidation, output own
 signing, package SDK, tool, MTP/VSTest and generated-package controls on Linux ARM64.
 Both Bazel baselines passed sandboxed worker Build/Publish parity and failure recovery.
 Prepared Restore and HTTP cache fault/recovery controls passed.
+Native integration passed six Linux ARM64 cases (quickstart and cached/uncached
+workers) across both Bazel baselines. Command: `bash scripts/bazel.sh test
+//tests/integration:quickstart //tests/integration:workers`. With caching, body/API edits reused
+2/1 of 3 projects; fresh sandboxed Build/Publish outputs matched. This is local
+worker evidence; HTTP recovery remains covered separately.
 Contributor commands are in [CONTRIBUTING](../CONTRIBUTING.md).
 
 Earlier graph qualification built **481 runtime v10.0.0 compilation nodes**:

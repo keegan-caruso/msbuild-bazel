@@ -1,6 +1,9 @@
 package(default_visibility = ["//visibility:public"])
 
-exports_files(["ArtifactTools.csproj"])
+exports_files([
+    "ArtifactTools.csproj",
+    "BUILD.bazel",
+])
 
 filegroup(
     name = "sources",

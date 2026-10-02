@@ -15,3 +15,15 @@ exports_files([
     "sdk.bzl",
     "toolchain.bzl",
 ])
+
+filegroup(
+    name = "integration_sources",
+    srcs = glob([
+        "*.bzl",
+        "*.sh",
+    ]) + [
+        "BUILD.bazel",
+        "//msbuild/private:integration_sources",
+    ],
+    visibility = ["//:__pkg__"],
+)

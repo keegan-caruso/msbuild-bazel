@@ -14,6 +14,7 @@ source scripts/env.sh
 bash scripts/check.sh
 bash scripts/check-dotnet.sh
 bash scripts/check-analysis.sh
+bash scripts/bazel.sh test //tests/integration:quickstart --test_output=errors
 python3 tests/graph_build/acceptance.py /tmp/fresh-graph-acceptance
 ```
 
@@ -38,7 +39,15 @@ bash scripts/run-apple-container.sh bash -lc '
 
 The disposable runner copies sources from a read-only mount and retains reports in
 `artifacts/apple-container/run.*`; it excludes `.git` and build/download caches.
-Worker checks add `--linux-workers` in a namespace-enabled Ubuntu ARM64 environment.
+Native integration tests use `rules_bazel_integration_test` with declared fixtures,
+private scratch trees outside the checkout (avoiding ancestor MSBuild imports),
+and both Bazel baselines. `//tests/integration:workers` covers
+body/API edits, failure recovery and Build/Publish parity, with caching enabled and
+disabled; acceptance adds it with `--linux-workers`. These trusted nested builds
+run outside the outer test sandbox; worker actions still use `--worker_sandboxing`.
+Workers require a namespace-enabled Ubuntu ARM64 environment.
+`RULES_MSBUILD_TEST_REPOSITORY_CACHE=/absolute/path` optionally shares Bazel’s verified
+archive cache across nested tests; it does not supply a host SDK.
 Native runtime checks need additional capabilities/prerequisites; follow the relevant
 `tests/runtime` driver. This basic runner does not establish those qualifications.
 
