@@ -50,6 +50,10 @@ the full CMS qualification and raw MSBuild timings.
   with it; inherited versions are replaced by that consumer-selected set. Without
   a lock, inherited conflicts still fail. NuGet resolution happens outside these
   rules; the lock is an input, not a dependency solver.
+  Graph-mode sync/build may set `allow_multiple_versions = True` on the lock
+  to declare a pinned feed spanning several project configurations. Offline
+  MSBuild Restore selects each project's closure. Individual project rules still
+  reject locks containing multiple versions of an ID.
 - `framework_refs` propagate through project dependencies. `directories` declares
   empty logical workspace-relative directories required by original targets.
   `generated_directories = {"App/Generated": "data"}` redirects a reviewed
@@ -102,9 +106,10 @@ the full CMS qualification and raw MSBuild timings.
 - `use_apphost = False` builds a managed executable without requesting a native
   apphost. The default remains `True`; the Bazel launcher can run either form.
 
-Each assembly action still runs a single-project `Restore` to generate SDK and
-NuGet assets. It uses only declared packages, an empty feed list and no network
-access. Removing this repeated work remains future work.
+By default each assembly action runs a single-project `Restore` before Build.
+The opt-in [project-specific prepared Restore](prepared-project-restore.md)
+separates it into a cacheable action for source edits while retaining the
+project's SDK and NuGet behavior.
 
 ## Project facade
 
@@ -357,7 +362,7 @@ publish qualification and the design's larger performance goal remain open.
 
 The opt-in [shared restore input](explicit-restore-inputs.md) now removes per-project
 Restore from qualified plain package-free SDK projects. The general lane retains
-per-project Restore.
+per-project Restore unless project-specific prepared Restore is selected.
 
 [Central versions and private package declarations](orchard-package-semantics.md)
 are qualified with locked packages, original NuGet metadata, and Linux controls.

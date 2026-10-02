@@ -104,7 +104,10 @@ remain a limitation: the result describes the chosen local evaluation, not every
 possible configuration. Use the same SDK/configuration when syncing and building.
 SDK imports are supplied by the Bazel toolchain rather than emitted as local paths.
 Workload resolution is disabled. Generated NuGet extension props/targets under
-`obj` are not imported; there is no restore or build-target execution during sync.
+`obj` are not imported; default project-mode sync does not execute Restore or
+build targets. The opt-in graph backend can evaluate package build assets through
+[disposable offline Restore](project-cache-migration.md#package-build-assets-and-test-protocols)
+with `mode = "graph", package_build = True`.
 
 A props edit that changes only compiler behavior can leave the generated graph
 unchanged: Bazel already tracks that imported file. Changes to evaluated sources,

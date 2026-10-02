@@ -1,0 +1,349 @@
+# MSBuild project-cache extension on an Avalonia graph
+
+## Scope
+
+This is a test-only expansion of the [synthetic graph probe](msbuild-project-cache-probe.md),
+not a change to the production per-project Bazel rules. It uses Avalonia
+11.3.12 (`37fbd9655cc581ff5b1c6b1fb1be4e3118c889d0`) and the
+`Avalonia.Themes.Simple` graph with `net8.0`, Release, and
+`AvsSkipBuildingLegacyTargetFrameworks=True`. MSBuild constructs and builds
+the graph; a `ProjectCachePluginBase` implementation answers per-node hits.
+The graph has 23 nodes: 17 compile/snapshot nodes and six coordination nodes.
+
+The probe hashes project-local files, selected evaluated items, shared build
+files, normalized restore assets, pinned NuGet package bytes, global properties,
+and the selected reference or implementation artifact of each direct project
+dependency. A hit checks every stored output digest before restoring the
+project's `bin/Release` and reference outputs. After the graph finishes, the
+probe updates copy-local DLL, PDB, and XML files from the current producers.
+These are conservative inputs for this pinned graph, not a general MSBuild
+input-discovery contract.
+
+The Bazel experiment declares the source tree, 74 SHA-256-checked NuGet
+archives, SDK, and probe binary. Each action copies the source tree into its
+own workspace, restores from those archives, and builds the graph. Cached edit
+actions consume a **fixed Base target** as their seed; clean controls have no
+seed. This makes the comparison reproducible but does not solve how an ordinary
+edited workspace obtains its previous result. The whole source tree is an
+input to each grouped action, so this is not the production rule layout.
+
+## Reproduce
+
+From a checkout with the pinned SDK and Bazel 9.2.0, obtain the Avalonia
+source revision above and restore the SimpleTheme project. Then prepare a
+fresh workspace using the package directory populated by restore:
+
+```sh
+python3 tests/explicit_msbuild/cache_extension/prepare_avalonia_bazel.py \
+  /path/to/avalonia /private/tmp/avalonia-cache-bazel "$NUGET_PACKAGES"
+cd /private/tmp/avalonia-cache-bazel
+bash /path/to/rules_msbuild/scripts/bazel-launcher.sh \
+  build --jobs=1 --strategy=AvaloniaCacheGraphGroup=sandboxed \
+  //:seed //:xaml //:xaml_control //:body //:body_control //:api //:api_control
+RULES_MSBUILD_DOTNET_ROOT=/path/to/sdk \
+  python3 /path/to/rules_msbuild/tests/explicit_msbuild/cache_extension/verify_avalonia_bazel.py \
+  . /private/tmp/avalonia-cache-verification
+```
+
+For a same-path output comparison and raw MSBuild edit timings, build the probe
+and run the qualification script on a separate Avalonia source copy:
+
+```sh
+bash scripts/dotnet.sh build \
+  tests/explicit_msbuild/cache_extension/AvaloniaProbe.csproj -c Release
+RULES_MSBUILD_DOTNET_ROOT=/path/to/sdk NUGET_PACKAGES=/path/to/packages \
+  python3 tests/explicit_msbuild/cache_extension/qualify_avalonia.py \
+  /path/to/avalonia-copy /private/tmp/avalonia-cache-qualification
+```
+
+The script restores the graph, applies and reverts each edit, and writes logs
+and `summary.json` outside the checkout. It measures both ordinary MSBuild and
+`-graphBuild` over the same SimpleTheme entry point.
+
+## Observations
+
+On macOS ARM64 with SDK 10.0.400 and Bazel 9.2.0, the same-path probe
+produced the following hit counts. Every compile node's owned-output manifest
+matched its no-cache control in that comparison. A clean replay had 17 hits and
+six coordination-node misses.
+
+| Edit | Hits | Misses | Probe wall (s) | Raw MSBuild edit (s) |
+| --- | ---: | ---: | ---: | ---: |
+| XAML style in SimpleTheme | 16 | 7 | 2.667 | 2.352 |
+| Avalonia.Base method body | 13 | 10 | 4.541 | 3.281 |
+| Avalonia.Base public API | 6 | 17 | 6.624 | 5.500 |
+
+The raw numbers are single runs of `dotnet build -c Release -f net8.0
+--no-restore -m:4` after a baseline build and reset between cases. The source
+and NuGet packages were already local. They are a workflow comparator, not a
+controlled performance distribution.
+
+The final Bazel macOS `darwin-sandbox` actions had the same hit counts; each
+clean control had 0 hits/23 misses. Single-run **action times** include source
+copy, offline restore, graph evaluation, compilation/replay, and output staging:
+
+| Edit | Cached action (s) | Clean control action (s) |
+| --- | ---: | ---: |
+| XAML | 6.797 | 18.594 |
+| Body | 11.314 | 18.838 |
+| API | 16.465 | 19.267 |
+
+These are Bazel action durations, not the time to retrieve or build the seed
+or a complete `bazel build` workflow. Every cached action was slower than the
+corresponding raw MSBuild edit on this host. The output verifier found all
+**17 reference assemblies byte-equal** to their respective clean controls for
+each edit, matching embedded resource hashes and compiled XAML methods, matching
+SimpleTheme runtime observations, and current copy-local producer bytes. Only
+14 of 17 implementation assemblies were byte-equal across the separate action
+paths; Avalonia-generated content in the others is path-sensitive. This does
+not establish byte-identical full outputs or remote-cache portability.
+
+The same Bazel experiment's seed and XAML edit succeeded in an Ubuntu 22.04
+ARM64 Apple container using `processwrapper-sandbox`: 23 misses for the seed,
+then 16 hits/7 misses. A Linux namespace sandbox was unavailable in that
+container, so this does not qualify Linux filesystem hermeticity.
+
+## API-edit phase profile
+
+The earlier single-run API comparison had a 6.2-second gap between the
+same-path probe and the probe inside a fresh Bazel action. We instrumented the
+test-only action and probe to check that attribution. On macOS ARM64, one
+seeded API action took **16.77 seconds**. Its measured wall phases were:
+
+| Phase | Seconds |
+| --- | ---: |
+| Copy declared source into the action workspace | 1.33 |
+| Copy pinned package archives | 0.12 |
+| Offline restore | 1.64 |
+| Probe process | 13.15 |
+
+The small remainder is action setup and timing boundaries. The probe's own
+report measured 0.30 seconds for graph construction, 12.70 for
+`BuildManager.Build`, 0.04 for copy-local refresh, and 0.09 for output
+snapshots. Package archive hashing took 0.10 seconds. Fingerprints accumulated
+1.28 elapsed seconds across parallel cache callbacks, so that figure must not be
+subtracted directly from wall time. Compilation is the main measured work:
+another sandbox sample recorded 11 `CoreCompile` targets, with 18.35
+aggregate target-seconds across concurrent nodes. A same-path run with task
+events enabled recorded 11 `Csc` tasks and 16.59 aggregate task-seconds.
+
+The graph scope matters. The ordinary raw `dotnet build -f net8.0` API edit
+recorded **six** `Csc` tasks. A raw `dotnet build -f net8.0 -graphBuild` edit,
+after a static-graph baseline, loaded the same 23-node graph and recorded
+**11** `Csc` tasks. Both raw runs used `-clp:PerformanceSummary`; their edit
+wall times were 8.92 and 9.25 seconds in separate one-sample sequences. The
+probe builds `netstandard2.0` configurations for Avalonia.Base, Markup,
+Controls, Markup.Xaml, Dialogs, and Remote.Protocol. That is real extra work
+relative to the ordinary raw command, but compiler tasks overlap, so the count
+alone does not quantify its wall cost. Those earlier one-sample times are
+superseded by the matched graph-mode comparison below. The 17 owned-output
+manifests from a profiled same-path API replay also matched its no-cache
+control.
+
+The 6.2-second **fresh-workspace penalty did not reproduce**: later same-path
+probe runs took about 12.2 seconds, versus 12.2-13.1 seconds in the sandbox.
+The earlier 6.6-second same-path result and its raw comparator were single
+samples. These observations isolate staging/restore and identify compilation
+as the main phase, but they do not establish a stable sandbox-path penalty.
+To repeat the task breakdown, build `//:seed //:api` with
+`--action_env=AVALONIA_TARGET_TIMINGS=1` and inspect `api.group/phase-times.log`
+and `api.group/report.json`. The target/task totals are aggregate durations
+across parallel work, not an additive wall-time breakdown. Task event logging
+is opt-in because it can affect timing; use the ordinary probe for wall-time
+comparisons.
+
+## Matched static-graph comparison
+
+The cache probe and raw `dotnet build -graphBuild` were run on the complete
+**23-node SimpleTheme graph**, not the whole Avalonia solution. Both use the
+pinned Avalonia revision, SDK 10.0.400, `net8.0`, Release, four MSBuild nodes,
+and the same already-restored source/package directory on macOS ARM64. Each of
+three qualification runs built a seed, then applied the XAML, body, and API
+edits separately. The cache probe removed Release outputs and replayed its
+seed snapshot before building each edit. Raw graph mode kept a baseline build
+in place, built each edit incrementally, and reset the source with another
+build. The qualification compared each cached probe result with its no-cache
+control's owned-output manifest. These workflows process the same edits and
+graph scope, but cache restoration and MSBuild's in-place incremental outputs
+are different starting states.
+
+| Edit | Probe wall median (range), s | Raw graph wall median (range), s | Raw graph `Csc` calls | Probe hits/misses |
+| --- | ---: | ---: | ---: | ---: |
+| XAML | 2.75 (2.69–2.99) | 2.64 (2.52–2.70) | 1 | 16/7 |
+| Body | 4.48 (4.42–8.63) | 3.16 (3.14–3.17) | 2 | 13/10 |
+| API | 7.07 (6.95–8.04) | 5.88 (5.87–6.01) | 11 | 6/17 |
+
+The medians put the same-path cache probe about **0.10, 1.33, and 1.19
+seconds slower** than raw graph mode for these edits, respectively. The first
+body probe was a slow outlier, so the body delta is less stable than the raw
+graph timing. `BuildManager.Build` accounted for medians of 2.27, 4.01, and
+6.60 seconds inside the probe; graph construction and probe startup account
+for most of its remaining wall time. This comparison excludes the source copy,
+offline restore, and Bazel action overhead measured above. It does not show a
+cache benefit over raw graph mode on these three edits.
+
+### Body-edit dependency correction
+
+The table above predates a correction to the test-only cache probe. Its
+fingerprint treated a project-graph edge absent from the consumer's evaluated
+`ProjectReference` items as an implementation dependency. The graph includes
+transitive edges, so `Avalonia.Dialogs` acquired an implementation dependency
+on `Avalonia.Base` even though it did not directly declare that reference.
+The Base body edit changed both implementation DLLs but left both reference
+assemblies byte-identical. Dialogs then had two avoidable cache misses and,
+because the qualification removes Release outputs before replay, two avoidable
+`Csc` calls. Raw graph mode kept the existing Dialogs outputs and made only
+the two Base compiler calls.
+
+The probe now uses implementation bytes only for evaluated direct references
+marked as analyzer inputs or `ReferenceOutputAssembly=false`; an unmarked
+graph edge uses the reference assembly. The full qualification passed twice
+after this change, including output-manifest comparison against no-cache
+controls for every edit. On the body edit, hits increased from **13 to 15**,
+misses fell from **10 to 8**, and the timed probe made **two `Csc` calls**.
+Two uninstrumented post-change body samples took **3.42 and 3.61 seconds**;
+their paired raw graph runs took **3.18 and 3.04 seconds**. The earlier probe
+median was 4.48 seconds across three runs, with one 8.63-second outlier.
+The narrower fingerprint removes most of the measured gap, but does not show
+a speed advantage over raw graph mode. This finding applies to the pinned
+SimpleTheme graph; it is not a general dependency-discovery proof.
+
+The graph's propagated `Build` target list includes ten `netstandard2.0`
+nodes alongside seven `net8.0` nodes. Six Avalonia libraries have both
+framework configurations; four tool/analyzer projects have a `netstandard2.0`
+configuration without a `net8.0` counterpart. The API edit produced 11 `Csc`
+calls in raw graph mode across all three runs, versus six in the earlier
+ordinary MSBuild sample. A separate small fixture in
+`tests/explicit_msbuild/cache_extension/qualify_graph_scope.py` confirms that
+ordinary MSBuild builds only the needed `net8.0` library, while static graph
+also builds its other framework. Setting `SetTargetFramework` on that
+reference did not remove the extra static-graph build with SDK 10.0.400.
+MSBuild's [static-graph design](https://github.com/dotnet/msbuild/blob/main/documentation/specs/static-graph.md)
+describes this speculative framework edge behavior. Skipping every
+`netstandard2.0` node in the cache plugin would also skip the tool/analyzer
+projects that this build actually needs. Matching ordinary MSBuild's selected
+framework work requires an execution path that resolves each reference's
+configuration before scheduling it; the stock graph build does not provide a
+safe framework-pruning switch for this probe.
+
+## Larger Avalonia graphs
+
+The same probe was expanded to `Avalonia.X11` (46 graph nodes, 33 compile
+nodes) and `Avalonia.Desktop` (58 graph nodes, 41 compile nodes). Desktop is a
+single-project entry point that includes Skia, X11, Windows, macOS, and
+managed/native interop projects. It is larger than the SimpleTheme slice, not
+the whole Avalonia solution. Both entries used Avalonia 11.3.12, SDK 10.0.400,
+Release, `net8.0`, four MSBuild nodes, and the same macOS ARM64 source path.
+
+The Desktop build needs `Build/Products/Release/libAvalonia.Native.OSX.dylib`.
+The local Xcode installation could not load its `IDESimulatorFoundation`
+plug-in, so this experiment used the matching **Avalonia.Native 11.3.12 NuGet
+package** rather than claiming a source-built native library. The package
+SHA-256 is
+`d6e8cb99868bd734e0b65b0d7ab043b53ba86895fb73b1ee90d2c921a96b0784`;
+its universal macOS dylib was staged at the path expected by Avalonia's
+project. The native binary remains outside Git. To prepare a fresh source copy:
+
+```sh
+curl --fail --location --output /tmp/avalonia.native.11.3.12.nupkg \
+  https://api.nuget.org/v3-flatcontainer/avalonia.native/11.3.12/avalonia.native.11.3.12.nupkg
+python3 tests/explicit_msbuild/cache_extension/stage_avalonia_native.py \
+  /path/to/avalonia-copy /tmp/avalonia.native.11.3.12.nupkg
+RULES_MSBUILD_DOTNET_ROOT=/path/to/sdk NUGET_PACKAGES=/path/to/packages \
+  python3 tests/explicit_msbuild/cache_extension/qualify_avalonia.py \
+  /path/to/avalonia-copy /tmp/avalonia-desktop-results \
+  --entry src/Avalonia.Desktop/Avalonia.Desktop.csproj
+```
+
+The package directory must also contain the packages required by Desktop;
+the script restores those through Avalonia's configured NuGet sources. Each
+qualification run checks clean replay and compares every cached edit's owned
+outputs with a no-cache control. It then measures raw `dotnet build
+-graphBuild` after an in-place baseline. The leaf edit changes an X11 method
+body; the other edits change a Base method body and public API. These are
+same-path timings excluding Bazel staging and restore. The cache probe starts
+each edit with Release outputs removed and restores hits from its seed;
+raw graph mode uses warm incremental outputs.
+
+| Desktop edit | Probe wall median (range), s | Raw graph wall median (range), s | Probe hits/misses | Raw graph `Csc` calls |
+| --- | ---: | ---: | ---: | ---: |
+| X11 leaf body | 3.85 (3.79–3.86) | 2.14 (2.13–2.25) | 39/19 | 2 |
+| Base body | 4.60 (4.55–8.76) | 3.76 (3.66–3.85) | 39/19 | 2 |
+| Base API | 8.92 (8.33–10.88) | 6.87 (6.76–7.00) | 8/50 | 33 |
+
+These are medians of **three complete Desktop qualification runs**. The first
+body probe took 8.76 seconds while the next two took 4.60 and 4.55; its hit
+pattern was unchanged. The probe was slower than raw graph mode in every
+case. Its graph construction took about 0.45 seconds per edit. Fingerprint
+work accumulated about 3 seconds across concurrent callbacks for body/API
+edits, so that aggregate cannot be subtracted directly from wall time. The
+probe's `BuildManager.Build` accounted for 2.94, 3.63–7.83, and 7.42–9.98
+seconds for leaf, body, and API edits respectively. The 17 coordination nodes
+miss on every edit; the body edit's only compile-node misses were Base's two
+framework configurations. The API edit missed 33 compile nodes and raw graph
+mode also ran 33 `Csc` tasks. Larger graph size therefore did not make this
+test-only cache probe faster than MSBuild's normal in-place graph build.
+
+The X11-only graph passed the same output checks in one qualification run.
+Its probe/raw graph edit times were 3.28/1.96 seconds for the X11 leaf,
+7.98/3.78 for the Base body, and 11.61/6.18 for the Base API edit. Those
+single samples establish a passing intermediate scope, not a timing trend.
+Neither larger run tests loading the macOS native library or remote-cache
+portability of these outputs.
+
+## Removing repeated cache work
+
+The Desktop probe now hashes the shared `build`, `src/Shared`, and imported
+props/targets inputs once per graph build. For a copied project assembly,
+PDB, or XML file whose bytes match a graph dependency, the snapshot records
+that producer and reconstructs the copy from its current output. Other files
+remain in the snapshot payload. A validated hit links its unchanged payload into
+the next snapshot; a regular copy is used when a hard link is unavailable.
+This also removes the post-build pass that rewrote every existing copy-local
+file. The existing `GetTargetPath` cache-hit proxy remains the result contract
+for this bounded graph; general target-result replay is not qualified here.
+
+The command is the Desktop qualification command above, with a fresh output
+directory for each stage. It restores the same pinned source and packages,
+deletes Release outputs before each cached edit, and compares the SHA-256 of
+every materialized `bin` and `obj/Release/*/ref*` file with a no-cache control.
+The final run also deletes the seed snapshot and replays from the derived
+snapshot. All edits and that independent replay passed on macOS ARM64.
+The 23-node SimpleTheme graph passed the same XAML, body, API, and independent
+replay checks with the final probe.
+
+| Probe stage | Clean replay | X11 leaf | Base body | Base API | Stored snapshot payload |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| Earlier full-tree snapshot, third prior run | 2.48 s | 3.85 s | 4.55 s | 8.33 s | 291 MB |
+| Shared inputs hashed once | 1.84 s | 3.30 s | 4.19 s | 8.03 s | 291 MB |
+| Project copies recorded as producer links | 1.88 s | 3.58 s | 4.19 s | 8.34 s | 44 MB |
+| Unchanged snapshot payload linked | 1.68 s | 3.15 s | 3.80 s | 8.12 s | 44 MB |
+| Redundant copy-local refresh removed | 1.54 s | 3.17 s | 3.80 s | 7.90 s | 44 MB |
+| Raw graph MSBuild in final run | — | 2.21 s | 3.97 s | 6.62 s | — |
+
+These are **one complete qualification run per stage**, not medians; small
+differences between rows are within likely run-to-run noise. The measured
+storage change is clearer: 694 project-copy paths no longer store duplicate
+payloads in the 41 configured-node snapshots. On the final body edit, 39
+nodes hit, 246 payload files (30 MB) were linked into the new snapshot, and
+snapshot writing took 0.09 seconds versus 0.39 seconds before reuse. The
+independent clean replay hit all 41 configured nodes in 1.47 seconds after
+the original seed was deleted. The remaining 17 outer graph nodes miss by
+design.
+
+This is a test-only, same-path probe. A hard-linked snapshot assumes its cache
+files remain immutable; the copy fallback is slower. The measurements exclude
+Bazel staging and remote transfer and do not establish remote-cache
+portability. Cold seeding took 20.09 seconds in the final run; the raw graph
+baseline used existing output files, so it is not a comparable cold build.
+API edits still miss 50 graph nodes and take longer than raw graph MSBuild.
+
+## Decision and limits
+
+The extension can skip substantial work in an actual Avalonia graph while
+preserving the checked reference, resource, XAML, runtime, and copy-local
+behavior. It remains experimental. The fixed seed, coarse source-tree action
+input, materializing full `bin` trees on replay, path-sensitive generated
+outputs, and incomplete general input discovery prevent replacing the
+per-project Bazel actions. The edit cost must also be compared with raw
+MSBuild rather than only with a forced clean graph rebuild.

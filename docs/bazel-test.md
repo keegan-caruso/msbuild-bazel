@@ -6,6 +6,32 @@ It uses implementation and runtime files, while compilation uses reference
 assemblies. A dependency body edit can therefore rerun tests without
 recompiling their assemblies.
 
+## Graph tests
+
+`msbuild_graph_test` selects a project's complete runtime directory from a shared
+MSBuild graph. It uses the same launcher and protocol options as `msbuild_test`:
+
+```starlark
+msbuild_graph_test(
+    name = "tests",
+    graph = ":graph",
+    project = "Tests/Tests.csproj",
+    test_protocol = "mtp",
+    test_filter_argument = "--filter-query",
+)
+```
+
+For VSTest, set `test_protocol = "vstest"`, `test_runner`, and `test_adapters`
+using the package tools described below. Settings, declared data, working
+directories, retained output directories and test environment use the existing
+attributes. Graph compilation keeps the project's SDK output type; it does not
+accept `test_output_type`. Run/test targets can select a `runtime_host`.
+
+Graph tests stage only the selected runtime and declared test inputs. The graph
+report, source tree and other projects are not test inputs. Package-backed test
+projects require graph sync's `package_build` opt-in; see
+[package evaluation](project-cache-migration.md#package-build-assets-and-test-protocols).
+
 ## Checked-in acceptance suite
 
 The small `tests/fixtures/explicit_acceptance` workspace declares a native
