@@ -66,9 +66,11 @@ Orchard's body-edit follow-up reuses 201 projects and rebuilds one, with exact
 compared output parity; timings and remaining gates are in
 [performance](performance.md#reviewed-orchard-dependency-contracts).
 Full upstream migration parity remains open;
-the per-project rules remain the default. The latest [runtime evaluation profile](performance.md#runtime-evaluation-profile)
-identifies output-ownership validation as the next bounded optimization; evaluation
-reuse is not yet implemented. See
+the per-project rules remain the default. The latest
+[indexed output-ownership result](performance.md#indexed-output-ownership) removes
+the repeated validation scan. The 481-compilation body/API medians have about
+2%/13% overhead against paired raw MSBuild, with exact compiled bytes and matching
+compiler calls. MSBuild evaluation and current filesystem checks remain fresh. See
 [graph-cache migration](project-cache-migration.md) for commands, measured scope,
 and the remaining default-switch gates.
 

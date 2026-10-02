@@ -204,10 +204,10 @@ wall phases; do not add them to the table. Materialization copies roughly
 The maximum VM-used-memory estimate across sampled commands, including setup and
 diagnostics, is **4.28 GiB**, sampled every 250 ms; it is not process-only memory.
 
-Next: remove repeated node-key/reference-metadata work in fingerprinting, then
-review whether owned read-only preparation can validate payloads once. Each
-change needs invalidation/fault controls and a matched repeat. No production
-optimization or default switch is implied by this scorecard.
+Subsequent preflights below measured fingerprint metadata, immutable preparation
+and evaluation reuse. The latest retained change is
+[indexed output ownership](#indexed-output-ownership). Graph mode remains opt-in;
+this historical scorecard does not imply a default switch.
 
 Reproduce after [full-source and eight-suite qualification](runtime-graph-upstream-tests.md):
 
@@ -497,6 +497,115 @@ Both are off by default; the Bazel `profile_build` option retains phase-only
 profiling. Owned-code and scaffold checks are recorded in the
 [qualification plan](graph-cache-plan.md#next-runtime-qualification-slices).
 No full build comparison, compiler invocation or new remote-cache qualification ran.
+
+### Indexed output ownership
+
+The request-local ownership plan replaces a scan of every declared input and
+other output for each output path. Inputs are sorted once for descendant-range
+checks; outputs use owner dictionaries and path ancestors. The same plan answers
+ownership lookups. It holds no evaluated MSBuild state across requests. Artifact
+reads/writes and final input verification still perform current path checks.
+
+Small controls pass **18 named boundaries and 10,000 generated comparisons**
+against the prior quadratic policy, including ownership lookup. Same-owner nested
+directories and duplicate declarations remain allowed; cross-owner overlap,
+file/directory conflicts and contained inputs retain their previous rules.
+A four-project diamond has exact DLL/PDB parity with raw MSBuild for seed, body
+and API builds, with four/one/three misses. Configuration, shared-output,
+forged-snapshot, input-mutation and worker-restart controls pass. An MSBuild target
+that introduces an output symlink after plan creation is rejected at artifact
+access; outside bytes remain unchanged.
+
+A separate 543-node evaluation-only observation gives **5.594 s** unprofiled and
+**5.421 s** with phase timers. The latter includes **4.984 s** graph construction,
+**0.022 s** ownership indexing and **0.006 s** ownership validation. The preceding
+observation had 5.004 s graph construction, 0.015 s indexing and 1.804 s validation.
+These component observations show the removed scan cost; they are not a paired
+whole-build speedup. Detailed profiling remains a separate opt-in control, and
+all three candidate modes preserve the same evaluated graph and fingerprints.
+
+The frozen candidate (`4f654d5`) ran the same 481-compilation scope on Linux
+ARM64, SDK 10.0.400 and Bazel 9.2.0: four CPUs/8 GiB, four MSBuild nodes, one
+worker and the 8192 MiB logical snapshot budget. Shared compilation and profiling
+are off in scored rows; no competing build ran.
+
+| Case | Full Bazel wall median (range) | Warm raw graph MSBuild median (range) | Reuse |
+| --- | ---: | ---: | --- |
+| No-op | 0.343 s (0.307–0.714) | 18.289 s (16.919–18.823) | Whole-action hit |
+| Pipelines body | 33.547 s (33.235–33.553) | 32.783 s (28.488–33.173) | 475 hits / six compilations |
+| Authored Pipelines API | 51.442 s (47.378–52.189) | 45.421 s (45.136–45.815) | 464 hits / 17 compilations |
+| Fresh local outputs | 24.049 s (19.950–25.778) | Not a warm-raw comparison | 481 hits / zero compilations |
+
+These three alternating pairs per case have **2% body / 13% API overhead** by
+median. All pairs match the 3,622 DLL/PDB/resource files byte for byte. Raw retains
+warm outputs and runs no Restore; graph time includes prepared-input validation
+and worker overhead. The separate all-miss seed takes **1,108.335 s**, including
+runner bootstrap and prepared Restore; it matches the same compiled products.
+This is setup against an already qualified warm raw workspace, not a matched
+cold-build comparison.
+
+The historical scorecard measured 37.839/53.369 s for graph body/API builds, but
+raw times changed too. These are separate runs, not an alternating old/new
+experiment; no overall speedup is attributed to the ownership change. Retain it
+for the removed 1.8-s validation scan and improved scaling, with unchanged policy
+and passing raw parity. The current edit medians are within the proposed ~20%
+gate for this workload; other readiness gates and default selection remain open.
+
+Three forced local recoveries also return exact original compiled bytes, with
+481 hits and zero misses. Separate binlogs confirm **six/17 actual compiler
+calls on both sides**; these profiled runs are excluded from scored medians.
+Their full Bazel times are 37.933 s body / 51.738 s API:
+
+| Wall phase | Body | API |
+| --- | ---: | ---: |
+| Worker staging | 1.264 s | 0.713 s |
+| Runner prepared-input validation | 4.397 s | 3.481 s |
+| Runner evaluation | 5.513 s | 5.562 s |
+| Runner initial input hashing | 3.027 s | 3.065 s |
+| SDK execution | 18.326 s | 32.270 s |
+| Runner final verification/snapshot | 0.511 s | 0.557 s |
+| Worker output verification/cleanup | 0.281 s | 0.380 s |
+
+Each profile indexes and validates ownership exactly once: indexing costs
+0.019/0.014 s, validation 0.003/0.003 s. Graph construction costs 5.277/5.324 s.
+Dependency fingerprinting totals 6.297/5.891 s across 481 calls, and file hashing
+6.457/7.575 s across about 56,800 hashes / 4.41 GB. These operation sums overlap
+wall phases; do not add them. Materialization copies 688/677 MB in
+10,621/10,465 copies, with no clones. The maximum sampled VM-used-memory estimate
+is 4.98 GiB, including seed and diagnostics; it is not process-only memory.
+
+The new runner requires a fresh all-miss seed before measuring warm runtime
+edits. The scorecard now supports `--reseed-worker` with qualified complete-source
+raw outputs. It requires zero hits for the seed and records that setup separately.
+Default runs still require the retained qualified worker. Scored rows retain exact
+compiled-product parity, cache-miss guards, alternating order and separate
+compiler diagnostics.
+
+```sh
+python3 tests/graph_build/upstream/runtime_benchmark.py WORKSPACE NEW_RESULTS \
+  --output-base BASE --slice runtime-suites \
+  --qualified-raw-results QUALIFIED_RAW_RESULTS --reseed-worker \
+  --samples 3 --diagnostics
+```
+
+The full scorecard and logs remain outside Git at
+`/qualification/runtime-ownership-scorecard-qualified`; the isolated profile is
+`/qualification/runtime-ownership-evaluation-qualified`. Frozen Bazel runner SHA
+starts `9118ea2cdbb0`, harness `808ae24ad9a4`. Only compact findings are committed.
+The completed helper restores original authored sources/configuration, verifies
+original compiled bytes after diagnostics, and stops its worker. Reproduction
+requires Linux ARM64, the qualified SDK/packages/native inputs, and the 8192 MiB logical snapshot budget. It does not qualify a new
+platform, remote cache or cross-request evaluation cache.
+
+Focused controls, after building the runner and ProjectSync in Release:
+
+```sh
+RULES_MSBUILD_DOTNET_ROOT=SDK python3 tests/graph_build/output_ownership.py
+RULES_MSBUILD_DOTNET_ROOT=SDK python3 tests/graph_build/input_integrity.py
+RULES_MSBUILD_DOTNET_ROOT=SDK python3 tests/graph_build/output_files.py
+RULES_MSBUILD_DOTNET_ROOT=SDK python3 tests/graph_build/configurations.py
+RULES_MSBUILD_DOTNET_ROOT=SDK python3 tests/graph_build/linux_worker.py --bazel-version 9.2.0
+```
 
 ## Current graph-cache optimization checkpoint
 
