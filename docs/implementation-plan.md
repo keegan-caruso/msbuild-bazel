@@ -5,6 +5,80 @@ The active rules in `msbuild/defs.bzl` build one project at a time through
 actions. MSBuild still handles SDK compilation. Builds no longer run a
 whole-graph discovery, preparation or replay step.
 
+An opt-in generic MSBuild graph runner now supports explicit input contracts,
+Build/Publish target-result replay, public graph actions and executable/MTP/VSTest tests.
+Small independent Linux workers qualify shared project-cache recovery. A
+128-project synthetic edit comparison is roughly at warm raw graph-mode MSBuild
+time after removing repeated dependency traversal. Opt-in project sync now
+emits graph contracts with declared managed packages, persistent configuration
+and project-based run/test selections. Package-free graphs retain qualified
+library reference boundaries and runtime-copy bindings. Configured outputs, custom restore layouts,
+and offline package generation/replay pass small macOS/Linux ARM64 fixtures.
+Opt-in disposable offline Restore now evaluates package build/content assets.
+Reviewed task documents, generated file inputs, graph-wide properties and
+Web/Razor SDKs now have small-fixture evidence. Opt-in stable Linux paths qualify
+relocated project-cache replay through 128 projects. Managed property-bound tool
+closures, source-built analyzers and declared package SDK bootstrap pass focused macOS fixtures. The generated Orchard CMS contract
+builds all 202 projects and replays 16,250 snapshot files exactly. Avalonia.Controls
+also builds and replays its 11 configured builds. The runtime System.IO.Pipelines
+managed implementation slice builds and replays 30 compiled nodes; its Linux test
+consumer expands that to 38, with worker/native parity on Bazel 8.8/9.2 and
+998 matching snapshot files/modes. A partial-replay initial-target fix and explicit
+generator translations preserve equivalent raw compilation. The selected
+Collections, Immutable and LINQ test roots expand to 55 compiled projects and
+1,483 snapshot files, with 615 compiled-product files matching a complete-source
+raw Build. See the [collections checkpoint](graph-cache-plan.md#collections-graph-checkpoint).
+The selected threading test compilation also passes worker/replay/native parity
+on both baselines: six compilation nodes, 292 snapshot files and 170 compiled
+products matching complete-source raw Build. It does not build or execute a
+source threading host. See the [threading checkpoint](graph-cache-plan.md#threading-compilation-checkpoint).
+The sockets implementation/test roots further expand to 77 compilations and
+1,937 snapshot files, with all 731 compiled products matching complete-source
+raw Build and worker/native parity on both baselines. See the
+[sockets checkpoint](graph-cache-plan.md#sockets-source-compilation-checkpoint).
+The loaded-common roots expand the graph to 163 compilations and 3,980 matching
+snapshot files on both Bazel baselines; all 1,447 compiled products match the
+complete-source raw build. Reviewed translations and disposable ASN task scratch
+preserve parity. See the [loaded-common checkpoint](graph-cache-plan.md#loaded-common-source-compilation-checkpoint);
+its paired body/API medians are effectively equal / about 9% slower than raw;
+a bounded graph-built corerun probe now passes with source-built native products,
+SDK-absent execution and runtime-input test invalidation. The combined source host
+also runs an ordinary app and the 577-case upstream Pipelines suite. Full-source
+raw parity, local body/API replay and SDK-absent execution pass for the expanded
+481-compilation graph: eight suites match 118,952 passes and 64 skips. Both Bazel
+baselines pass seed/replay/edit/failure controls. A stopped 8.8 producer and
+relocated 9.2 consumer recover all 10,780 files exactly. Managed/native input
+mutations and cache-fault recovery also pass. See
+[runtime test-host qualification](runtime-graph-upstream-tests.md) and the
+[qualification scorecard](performance.md#runtime-qualification-closure).
+The platform roots also pass 8.8/9.2 worker/replay/native parity for 215 compilations;
+all 1,498 compiled products match the complete-source raw Build. See the [platform checkpoint](graph-cache-plan.md#platform-graph-checkpoint).
+The collections paired body/API medians have about 3% overhead / 9% advantage
+versus raw graph MSBuild. The public Linux
+[scorecard](graph-cache-plan.md#linux-pipelines-scorecard) measures body/API overhead
+of about 20%/0% with read-only prepared packages; graph mode remains opt-in. Generated Publish and layout-provider
+extraction pass focused
+public-rule tests. Reviewed dependency contracts now let package/custom-target
+graphs distinguish compiler references from analyzer/task implementations.
+Reviewed SDKs can also declare a [separately authored compiler artifact](project-cache-migration.md#separately-authored-compiler-references).
+Four- and six-compilation Linux fixtures preserve body/API and implementation-edge
+parity, including explicit consumer selection across coordination frameworks.
+Reviewed snapshots reject undeclared dependency DLL/PDB/XML copies;
+upstream use and independent recovery remain separate qualification gates.
+Orchard's body-edit follow-up reuses 201 projects and rebuilds one, with exact
+compared output parity; timings and remaining gates are in
+[performance](performance.md#reviewed-orchard-dependency-contracts).
+Full upstream migration parity remains open;
+the per-project rules remain the default. The retained
+[indexed output-ownership result](performance.md#indexed-output-ownership) removes
+the repeated validation scan. The refreshed
+[481-compilation scorecard](performance.md#runtime-qualification-closure) has about
+19%/12% body/API overhead, 4.3% cold Restore + Build overhead and 34.348-s independent
+project recovery. Compiled bytes and six/17 compiler calls match raw. MSBuild
+evaluation and current filesystem checks remain fresh. See
+[graph-cache migration](project-cache-migration.md) for commands, measured scope,
+and the remaining default-switch gates.
+
 ## Supported building blocks
 
 | Capability | Contract and evidence |
@@ -18,7 +92,7 @@ whole-graph discovery, preparation or replay step.
 | Persistent compiler workers with stable input paths | [Linux workers](explicit-linux-workers.md), [path limits](orchard-stable-worker-paths.md), [stable-path prototype](stable-project-paths.md) |
 | Declared MSBuild task tools and generation | [Tool bindings](explicit-tool-bindings.md), [generation](explicit-generation.md) |
 | Project-built analyzers and target-result items | [Analyzers](project-built-analyzers.md), [target items](msbuild-target-items.md) |
-| Shared restore inputs and package trees | [Restore inputs](explicit-restore-inputs.md), [package borrowing](explicit-package-borrowing.md) |
+| Restore inputs and package trees | [Shared Restore](explicit-restore-inputs.md), [project-specific prepared Restore](prepared-project-restore.md), [package borrowing](explicit-package-borrowing.md) |
 | SDK-only application setup and tracked global.json | [SDK acquisition and defaults](development.md#using-the-rules-in-an-application), [committed quickstart and independent consumers](adoption.md) |
 | Downloaded and source-built execution runtimes | [Shared runtime provider and Bzlmod acquisition](runtime-primitives.md#downloaded-and-source-built-runtime-providers) |
 | Linux ARM64 Native AOT publish with local or declared native tools | [Runnable binary and declared-toolchain qualification](native-aot.md), [smaller archive and chiseled runtime check](native-aot-closure.md), [locked Ubuntu package inputs](native-aot-packages.md) |
@@ -51,6 +125,16 @@ combinations; availability of an API does not qualify every upstream project.
 
 The [dependency input audit](dependency-input-audit.md) records artifact roles,
 consumers and input reductions that preserve MSBuild semantics.
+
+A [test-only MSBuild project-cache extension probe](msbuild-project-cache-probe.md)
+qualifies graph-level cache hits on synthetic 3-202-project chains. Its
+[Avalonia SimpleTheme slice](avalonia-project-cache-probe.md) checks a real
+23-node graph, XAML/body/API edits, and raw MSBuild timings. The
+[Orchard CMS slice](orchard-project-cache-probe.md) covers 403 graph nodes,
+clean replay, a body edit, and runtime assets. The
+[dotnet/runtime Pipelines slice](runtime-project-cache-probe.md) checks evaluated
+artifact paths, separate contract/implementation projects, and a body edit.
+These probes are not production rules.
 
 See [performance](performance.md) for cold builds, warm edits and remote-cache
 recovery versus raw MSBuild, with measurement conditions and detailed evidence.

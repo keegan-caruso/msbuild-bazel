@@ -7,6 +7,7 @@ separates qualified behavior from the [roadmap](roadmap.md).
 ## Use the rules
 
 - [Adoption, upgrades and distribution](adoption.md)
+- [Opt-in graph quickstart](../examples/graph-quickstart/README.md) and [migration limits](project-cache-migration.md)
 
 - [Build inputs and rule API](explicit-bazel-rules.md)
 - [Project-to-BUILD synchronization](project-sync.md) and [generated Orchard/Avalonia qualification](project-sync-broader-graphs.md)
@@ -18,7 +19,7 @@ separates qualified behavior from the [roadmap](roadmap.md).
 - [Linux persistent workers](explicit-linux-workers.md) and [remote execution](remote-execution.md)
 - [Build task tools](explicit-tool-bindings.md), [generation](explicit-generation.md),
   [project analyzers](project-built-analyzers.md) and [target-result items](msbuild-target-items.md)
-- [Restore inputs](explicit-restore-inputs.md), [package trees](explicit-package-borrowing.md)
+- [Restore inputs](explicit-restore-inputs.md), [project-specific prepared Restore](prepared-project-restore.md), [package trees](explicit-package-borrowing.md)
   and [NuGet metadata](orchard-package-semantics.md)
 - [Framework/tool roles](framework-tool-roles.md), [friend assemblies](internals-visible-to.md)
   and [runtime assembly/host primitives](runtime-primitives.md)
@@ -45,6 +46,7 @@ results. The reports below provide detailed evidence and reproduction steps.
 | dotnet/runtime | [Source-only host](runtime-source-host.md), [Pipelines suite](runtime-pipelines.md), [cold/recovery timing](runtime-cold-timing.md), [leaf edit](runtime-leaf-timing.md), [workflow](runtime-workflow.md), [JIT boundary](runtime-jit-bootstrap.md) |
 | .NET SDK source build | [22-component graph, app consumer and cache recovery](source-sdk.md) |
 | Runner overhead | [Cold profile](explicit-cold-profile.md), [staging](worker-staging.md), [evaluation](project-evaluation-removal.md) |
+| Grouped MSBuild project cache | [Synthetic graph probe](msbuild-project-cache-probe.md), [Avalonia qualification](avalonia-project-cache-probe.md), [Orchard CMS qualification](orchard-project-cache-probe.md), [dotnet/runtime Pipelines qualification](runtime-project-cache-probe.md) |
 | Version/cache controls | [8.8 qualification](bazel-8.8-upgrade.md), [cache diagnosis](runtime-cache-diagnosis.md), [remote execution](remote-execution.md) |
 
 Reports qualify their exact revisions and slices; they are not blanket support
