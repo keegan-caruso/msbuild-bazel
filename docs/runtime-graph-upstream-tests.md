@@ -400,6 +400,43 @@ its declared standalone action with its own isolated filesystem/network namespac
 An interrupted disk-full producer seed is also excluded. Large reports stay
 outside Git. This qualifies HTTP project-cache recovery, not x86-64 or RBE.
 
+## Independent cache faults
+
+The small authenticated HTTP fixture covers missing snapshots/artifacts,
+hash-valid metadata with a wrong fingerprint, corrupt bytes, truncated transfers
+and unavailable service. Healthy recovery returns exact compiled bytes. A separate
+smoke check validates all five proxy responses and upload forwarding.
+
+The expanded 481-compilation consumer uses a local fault proxy; backend contents
+are never removed or corrupted. Workers stop between every fault and healthy
+recovery, and whole-action/disk caches stay disabled.
+
+| Injected fault | Observed result |
+| --- | --- |
+| Missing snapshot pointer | One miss / 480 hits; rebuild returns exact outputs |
+| Invalid snapshot pointer | Explicit `Unexpected project-cache action result` failure |
+| Missing shared artifact | Three misses / 478 hits; rebuild returns exact outputs |
+| Corrupt artifact bytes | Explicit `Corrupt project-cache blob` failure |
+| Persistent HTTP 503 | Bounded retries, explicit failure; 33 rejected requests across the concurrent graph |
+
+Each healthy recovery has **481 hits / zero misses** and exactly **10,780 original
+files, bytes and modes**. Failure checks find no partial fetch/pending cache
+entries. Final execution matches all **119,016 normalized suite outcomes**, with
+**3,570 current producer-hash observations**. Corruption and unavailable service
+fail; they do not silently fall back to stale output or successful compilation.
+The full invalid-snapshot control corrupts the action pointer; the small control
+also tests a hash-valid snapshot's wrong fingerprint.
+
+```sh
+python3 tests/graph_build/remote.py NEW_SMALL_DIRECTORY
+python3 tests/graph_build/upstream/runtime_cache_faults.py \
+  WORKSPACE SEED_JSON NEW_RESULTS --output-base QUALIFIED_CONSUMER_BASE
+```
+
+These controls are unscored. They qualify a transient local proxy against the
+owned HTTP service, not a real distributed outage, broad cache-server behavior or
+RBE. Logs and response keys remain outside Git.
+
 ## Remaining gates
 
 Actual-suite controls now pass on both supported Bazel baselines. Capture larger

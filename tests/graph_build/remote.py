@@ -2,6 +2,7 @@
 
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 import json
+import hashlib
 from pathlib import Path
 import shutil
 import tempfile
@@ -15,6 +16,7 @@ from qualify import DOTNET, ENV, RUNNER, fixture, run
 class Cache(BaseHTTPRequestHandler):
     protocol_version = "HTTP/1.1"
     blobs = {}
+    unavailable = False
     transient = 2
     retries = 0
     active = 0
@@ -31,6 +33,9 @@ class Cache(BaseHTTPRequestHandler):
             self.send_error(401)
             return
         with self.lock:
+            if Cache.unavailable:
+                self.send_error(503)
+                return
             if Cache.transient:
                 Cache.transient -= 1
                 Cache.retries += 1
@@ -103,7 +108,13 @@ def main():
                 result = run(DOTNET, RUNNER, 'build', root, manifest, report, cache, success=success)
                 return json.loads(report.read_text()) if success else result.stderr
 
+            def outputs():
+                return {str(p.relative_to(root)): p.read_bytes() for project in contract['Projects'].values()
+                        for directory in project['OutputDirectories'] for p in (root / directory).rglob('*')
+                        if p.is_file() and p.suffix in ['.dll', '.pdb']}
+
             seed = build()
+            original_outputs = outputs()
             assert seed['hits'] == 0
             assert seed['remote']['uploadBytes'] > 0 and seed['remote']['uploads'] > 0, seed
             assert Cache.retries == 2
@@ -119,12 +130,45 @@ def main():
             print(f"Payload downloads: {len(payloads)} distinct versus {unshared_downloads} per-snapshot requests; "
                   f"reported transfer: {replay['remote']['downloadBytes']} bytes including manifests")
             assert Cache.peak > 1
+            assert outputs() == original_outputs
+            # A missing snapshot is an ordinary miss; rebuilding repairs its pointer.
+            action = next(key for key in Cache.blobs if '/ac/' in key)
+            pointer = Cache.blobs.pop(action)
+            assert build()['misses'] == 1
+            assert Cache.blobs[action] == pointer and outputs() == original_outputs
+            assert build()['hits'] == 3 and outputs() == original_outputs
+            print('PASS: missing snapshot rebuild and exact restoration')
+            # Valid transport hashes do not make invalid snapshot metadata safe.
+            saved = dict(Cache.blobs)
+            metadata = json.loads(pointer)
+            manifest_digest = metadata['outputFiles'][0]['digest']['hash']
+            snapshot = json.loads(Cache.blobs['/cas/' + manifest_digest])
+            snapshot['Fingerprint'] = 'wrong-fingerprint'
+            corrupt = json.dumps(snapshot).encode()
+            corrupt_digest = hashlib.sha256(corrupt).hexdigest()
+            Cache.blobs['/cas/' + corrupt_digest] = corrupt
+            metadata['outputFiles'][0]['digest'] = {'hash': corrupt_digest, 'sizeBytes': str(len(corrupt))}
+            Cache.blobs[action] = json.dumps(metadata).encode()
+            assert 'Project-cache fingerprint mismatch' in build(success=False)
+            assert not list(cache.glob('*.fetch-*'))
+            Cache.blobs = saved
+            assert build()['hits'] == 3 and outputs() == original_outputs
+            print('PASS: corrupt snapshot rejection and exact recovery')
+            # Unavailability exhausts bounded retries and must fail explicitly.
+            Cache.unavailable = True
+            failure = build(success=False)
+            assert '503' in failure, failure
+            assert not list(cache.glob('*.fetch-*'))
+            Cache.unavailable = False
+            assert build()['hits'] == 3 and outputs() == original_outputs
+            print('PASS: unavailable service explicit failure and exact recovery')
             # Eviction must become a miss and a successful rebuild must repair it.
             missing = next(key for key, value in Cache.blobs.items() if key.startswith('/cas/') and value[:2] == b'MZ')
             del Cache.blobs[missing]
             assert build()['misses'] >= 1
             assert missing in Cache.blobs
-            assert build()['hits'] == 3
+            assert build()['hits'] == 3 and outputs() == original_outputs
+            print('PASS: missing artifact rebuild and exact recovery')
             # A truncated transfer never publishes a partial snapshot.
             Cache.truncate = missing
             build(success=False)
@@ -133,9 +177,13 @@ def main():
             Cache.truncate = None
             assert build()['hits'] == 3
             # Corruption is rejected rather than mistaken for an ordinary miss.
+            original_blob = Cache.blobs[missing]
             Cache.blobs[missing] = b'corrupt'
             assert 'Corrupt project-cache blob' in build(success=False)
             assert not list(cache.glob('*.fetch-*'))
+            Cache.blobs[missing] = original_blob
+            assert build()['hits'] == 3 and outputs() == original_outputs
+            print('PASS: corrupt artifact rejection and exact recovery')
             print(f'PASS: auth, {Cache.retries} transient retries, parallel transfers, one download per distinct payload, CAS eviction repair, interrupted transfer cleanup, corruption rejection')
     finally:
         server.shutdown()

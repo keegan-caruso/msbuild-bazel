@@ -1424,6 +1424,10 @@ and runner work; no RBE claim follows from HTTP recovery.
 
 ### 13. Exercise cache faults independently
 
+Complete: five small/full-scope faults, bounded rebuild or explicit failure,
+no partial entries, exact 481-hit recovery after every case, and all eight
+source-host suites. See [fault controls](runtime-graph-upstream-tests.md#independent-cache-faults).
+
 Test missing/corrupt snapshots, missing/corrupt artifact contents and unavailable
 cache service as separate controls. Require rejection, a correct local rebuild or
 an explicit failure according to the documented contract; no stale successful
