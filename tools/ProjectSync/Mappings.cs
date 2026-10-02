@@ -39,6 +39,15 @@ internal sealed class ProjectBinding
     {
         get; set;
     }
+    public bool PreparedRestore
+    {
+        get; set;
+    }
+    public string[] RestoreSourceInputs { get; set; } = [];
+    public string[] InputDirectories { get; set; } = [];
+    public string[] TemporaryDirectories { get; set; } = [];
+    public string[] RestoreInputs { get; set; } = [];
+    public string[] RestoreOutputs { get; set; } = [];
     public bool ProfileBuild
     {
         get; set;
@@ -54,6 +63,17 @@ internal sealed class ProjectBinding
     public Dictionary<string, string[]> PackageReferencePaths { get; set; } = [];
     public Dictionary<string, ReferenceBinding> References { get; set; } = [];
     public Dictionary<string, ReferenceBinding> ProjectReferences { get; set; } = [];
+    public string[] OutputFiles { get; set; } = [];
+    public bool? ReferenceBoundary
+    {
+        get; set;
+    }
+    public string[] ImplementationDependencies { get; set; } = [];
+    public string? CompilerReference
+    {
+        get; set;
+    }
+    public Dictionary<string, string> CompilerReferences { get; set; } = [];
     public string OutputMode { get; set; } = "sdk";
     public string? PackageLock
     {
@@ -120,20 +140,30 @@ internal sealed class TestBinding
 internal sealed class Mappings
 {
     public ProjectBinding ProjectDefaults { get; set; } = new();
+    public Dictionary<string, Dictionary<string, string>> EntryProperties { get; set; } = [];
     public Dictionary<string, PackageBinding> Packages { get; set; } = [];
     public Dictionary<string, TestBinding> Tests { get; set; } = [];
     public Dictionary<string, ProjectBinding> Projects { get; set; } = [];
 
-    internal static Mappings Read(string? path)
+    internal static Mappings Read(string? path, bool graph = false)
     {
         var mappings = path is null ? new Mappings() : JsonSerializer.Deserialize<Mappings>(MappingDefaults.Expand(File.ReadAllText(path)), new JsonSerializerOptions { PropertyNameCaseInsensitive = true, UnmappedMemberHandling = JsonUnmappedMemberHandling.Disallow }) ?? throw new InvalidDataException("Empty sync mappings");
         ValidatePackages(mappings.Packages);
+        if (!graph && mappings.EntryProperties.Count != 0)
+        {
+            throw new InvalidDataException("Entry properties require graph-mode sync");
+        }
+
         foreach (var project in mappings.Projects.Keys)
         {
             ProjectPath(project);
         }
         foreach (var (project, binding) in mappings.Projects.Append(new KeyValuePair<string, ProjectBinding>("projectDefaults", mappings.ProjectDefaults)).SelectMany(p => p.Value.FrameworkOverrides.Select(v => new KeyValuePair<string, ProjectBinding>(p.Key + " [" + v.Key + "]", v.Value)).Prepend(p)))
         {
+            if (!graph && (binding.CompilerReferences.Count != 0 || binding.CompilerReference is not null || binding.OutputFiles.Length != 0 || binding.ReferenceBoundary is not null || binding.ImplementationDependencies.Length != 0 || binding.RestoreInputs.Length != 0 || binding.RestoreOutputs.Length != 0 || binding.InputDirectories.Length != 0 || binding.TemporaryDirectories.Length != 0))
+            {
+                throw new InvalidDataException("outputFiles and dependency contracts require graph-mode sync");
+            }
             if (string.IsNullOrWhiteSpace(binding.Platform))
             {
                 throw new InvalidDataException("Project platform must be explicit and nonempty: " + project);
@@ -185,7 +215,19 @@ internal sealed class Mappings
             {
                 throw new InvalidDataException("Invalid output mode: " + project);
             }
-            foreach (var label in binding.Tools.Concat(binding.AssemblySelections).Concat(binding.LayoutBindings.Keys).Concat(binding.Bindings).Concat(binding.Items).Concat(binding.AdapterImports).Concat(binding.ReferencePack is null ? [] : new[] { binding.ReferencePack }).Concat(binding.RuntimeHost is null ? [] : new[] { binding.RuntimeHost }).Concat(binding.PackageLock is null ? [] : new[] { binding.PackageLock }))
+            foreach (var input in binding.RestoreInputs.Concat(binding.RestoreOutputs).Concat(binding.InputDirectories))
+            {
+                WorkspaceView.Safe(input);
+            }
+            if ((binding.RestoreInputs.Length != 0 || binding.RestoreOutputs.Length != 0) && !binding.PreparedRestore)
+            {
+                throw new InvalidDataException("restoreInputs and restoreOutputs require preparedRestore: " + project);
+            }
+            if (binding.RestoreSourceInputs.Length != 0 && !binding.PreparedRestore)
+            {
+                throw new InvalidDataException("restoreSourceInputs requires preparedRestore: " + project);
+            }
+            foreach (var label in binding.Tools.Concat(binding.AssemblySelections).Concat(binding.LayoutBindings.Keys).Concat(binding.Bindings).Concat(binding.Items).Concat(binding.AdapterImports).Concat(binding.RestoreSourceInputs).Concat(binding.ReferencePack is null ? [] : new[] { binding.ReferencePack }).Concat(binding.RuntimeHost is null ? [] : new[] { binding.RuntimeHost }).Concat(binding.PackageLock is null ? [] : new[] { binding.PackageLock }))
             {
                 Label(label);
             }

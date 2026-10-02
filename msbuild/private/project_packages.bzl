@@ -33,6 +33,8 @@ def resolve_packages(ctx, public, direct, compile_targets, analyzer_packages):
     if ctx.attr.package_lock:
         lock = ctx.attr.package_lock[MSBuildPackageLockInfo]
         locked = {row["id"].lower(): row for row in lock.rows}
+        if len(locked) != len(lock.rows):
+            fail("Per-project package_lock requires one version per package ID")
         for key, row in package_rows.items():
             if locked.get(key) != row:
                 fail("Direct package closure disagrees with package_lock: " + key)

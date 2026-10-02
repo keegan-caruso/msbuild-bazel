@@ -1,0 +1,83 @@
+using System.Diagnostics;
+using System.Reflection;
+using System.Text.Json;
+
+// Qualification only: time the production hash implementation without compiling projects.
+var assembly = Assembly.LoadFrom(args[0]);
+var hash = assembly.GetType("RulesMSBuild.GraphBuild.ContractFiles", true)!
+    .GetMethod("TreeDigest", BindingFlags.NonPublic | BindingFlags.Static)!;
+string Digest(string path) => (string)hash.Invoke(null, [path])!;
+var files = Directory.GetFiles(args[1], "*", SearchOption.AllDirectories);
+var bytes = files.Sum(path => new FileInfo(path).Length);
+var rows = new List<object>();
+string? digest = null;
+for (var sample = 0; sample < 5; sample++)
+{
+    var timer = Stopwatch.StartNew();
+    var actual = Digest(args[1]);
+    if (digest is not null && digest != actual) throw new InvalidDataException("SDK changed during measurement");
+    digest = actual;
+    rows.Add(new { sample, seconds = timer.Elapsed.TotalSeconds });
+}
+object? copy = null;
+if (args.Length > 3)
+{
+    if (Directory.Exists(args[3])) throw new InvalidDataException("SDK copy requires a new destination");
+    var timer = Stopwatch.StartNew();
+    foreach (var source in files)
+    {
+        var destination = Path.Combine(args[3], Path.GetRelativePath(args[1], source));
+        Directory.CreateDirectory(Path.GetDirectoryName(destination)!);
+        File.Copy(source, destination);
+        if (!OperatingSystem.IsWindows()) File.SetUnixFileMode(destination, File.GetUnixFileMode(source));
+    }
+    var copySeconds = timer.Elapsed.TotalSeconds;
+    timer.Restart();
+    var copiedDigest = Digest(args[3]);
+    if (copiedDigest != digest) throw new InvalidDataException("Copied SDK content or executable modes differ");
+    copy = new { copySeconds, verificationSeconds = timer.Elapsed.TotalSeconds, digestEqual = true };
+}
+// Small disposable controls exercise the same production digest, independently of timing.
+var mutable = Path.Combine(Path.GetDirectoryName(args[2])!, "mutable-payload");
+Directory.CreateDirectory(mutable);
+var payload = Path.Combine(mutable, "payload");
+File.WriteAllText(payload, "original");
+var originalMode = OperatingSystem.IsWindows() ? (UnixFileMode?)null : File.GetUnixFileMode(payload);
+var original = Digest(mutable);
+void RequireChange(string label)
+{
+    if (Digest(mutable) == original) throw new InvalidDataException($"Digest missed {label}");
+}
+void RequireOriginal()
+{
+    if (Digest(mutable) != original) throw new InvalidDataException("Restored payload digest differs");
+}
+File.WriteAllText(payload, "modified");
+RequireChange("same-size byte mutation");
+File.WriteAllText(payload, "original");
+RequireOriginal();
+if (!OperatingSystem.IsWindows())
+{
+    File.SetUnixFileMode(payload, originalMode!.Value ^ UnixFileMode.UserExecute);
+    RequireChange("executable mode mutation");
+    File.SetUnixFileMode(payload, originalMode!.Value);
+    RequireOriginal();
+}
+var extra = Path.Combine(mutable, "extra");
+File.WriteAllText(extra, "added");
+RequireChange("file addition");
+File.Delete(extra);
+RequireOriginal();
+File.Move(payload, extra);
+RequireChange("file rename");
+File.Move(extra, payload);
+RequireOriginal();
+File.Delete(payload);
+RequireChange("file removal");
+File.WriteAllText(payload, "original");
+if (!OperatingSystem.IsWindows()) File.SetUnixFileMode(payload, originalMode!.Value);
+RequireOriginal();
+var mutations = new { bytes = true, executableMode = originalMode is not null,
+    addition = true, rename = true, removal = true, restoration = true };
+File.WriteAllText(args[2], JsonSerializer.Serialize(new { scope = "isolated SDK hashing/copy; not full build timing",
+    files = files.Length, bytes, digest, rows, copy, mutations }, new JsonSerializerOptions { WriteIndented = true }) + "\n");

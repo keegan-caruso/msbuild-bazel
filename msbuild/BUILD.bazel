@@ -8,6 +8,8 @@ toolchain_type(name = "native_toolchain_type")
 
 exports_files([
     "defs.bzl",
+    "graph.bzl",
+    "graph-sandbox.sh",
     "extensions.bzl",
     "sync.bzl",
     "sdk.bzl",

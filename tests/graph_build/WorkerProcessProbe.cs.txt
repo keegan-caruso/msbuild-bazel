@@ -1,0 +1,37 @@
+using System.Diagnostics;
+using RulesMSBuild.GraphBuild;
+
+ProcessStartInfo Start(string command)
+{
+    var start = new ProcessStartInfo("/usr/bin/bwrap") { RedirectStandardOutput = true, RedirectStandardError = true };
+    foreach (var argument in new[] { "--die-with-parent", "--unshare-user", "--unshare-pid", "--unshare-ipc", "--unshare-uts", "--new-session", "--cap-drop", "ALL", "--ro-bind", "/usr", "/usr", "--ro-bind", "/bin", "/bin", "--ro-bind", "/lib", "/lib", "--ro-bind", "/etc", "/etc", "--bind", args[1], "/control", "--proc", "/proc", "--dev", "/dev", "--tmpfs", "/tmp", "--", "/bin/sh", "-c", command })
+        start.ArgumentList.Add(argument);
+    return start;
+}
+if (args[0] == "retire")
+{
+    Process? child = null;
+    Exception? error = null;
+    var thread = new Thread(() =>
+    {
+        try
+        {
+            child = Process.Start(Start("echo ready; sleep 2; echo complete"))!;
+            if (child.StandardOutput.ReadLine() != "ready") throw new InvalidDataException("Sandbox did not start: " + child.StandardError.ReadToEnd());
+        }
+        catch (Exception failure) { error = failure; }
+    });
+    thread.Start();
+    thread.Join();
+    if (error is not null) throw error;
+    child!.WaitForExit();
+    Console.WriteLine(child.ExitCode);
+    child.Dispose();
+}
+else
+{
+    var result = await WorkerProcess.RunAsync(Start(args[0] == "hold" ? "echo ready > /control/ready; sleep 30" : "echo ready; sleep 2; echo complete"));
+    if (args[0] != "hold" && (result.ExitCode != 0 || result.Output != "ready\ncomplete\n"))
+        throw new InvalidDataException("Sandbox lifetime failed: " + result);
+    Console.WriteLine(result.ExitCode);
+}

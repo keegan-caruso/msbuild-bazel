@@ -5,7 +5,7 @@ namespace RulesMSBuild.ProjectSync;
 
 internal sealed record SyncInput(string Path, string Label, string Runfile);
 internal sealed record SyncPackage(string Id, string Version, string Runfile);
-internal sealed record SyncBinding(string Label, string Property, string[] Runfiles, string Entry);
+internal sealed record SyncBinding(string Label, string Property, string[] Runfiles, string Entry, bool Closure = false);
 internal sealed record SyncPackageLock(string Label, string[] Packages);
 internal sealed record SyncInputs(SyncInput[] Inputs, SyncPackage[] Packages, string? PackageLock, SyncBinding[]? Bindings = null, SyncPackageLock[]? PackageLocks = null);
 
@@ -22,6 +22,9 @@ internal sealed class WorkspaceView : IDisposable
         get;
     }
     private readonly Dictionary<string, (string Property, string Value)> bindings = new(StringComparer.Ordinal);
+    internal Dictionary<string, string> GraphToolProperties { get; } = new(StringComparer.OrdinalIgnoreCase);
+    internal List<string> GraphBindingLabels { get; } = [];
+    internal bool HasIncompleteGraphBindings => bindings.Count != GraphBindingLabels.Count;
     internal string Root
     {
         get;
@@ -37,6 +40,22 @@ internal sealed class WorkspaceView : IDisposable
         Root = root;
         this.temporary = temporary;
         DefaultPackageLock = packageLock;
+    }
+
+    internal static string PhysicalPath(string path)
+    {
+        var full = Path.GetFullPath(path);
+        var current = Path.GetPathRoot(full)!;
+        foreach (var part in full[current.Length..].Split(Path.DirectorySeparatorChar, StringSplitOptions.RemoveEmptyEntries))
+        {
+            current = Path.Combine(current, part);
+            var info = new FileInfo(current);
+            if (info.LinkTarget is not null)
+            {
+                current = info.ResolveLinkTarget(true)!.FullName;
+            }
+        }
+        return current;
     }
 
     internal static string Safe(string path)
@@ -59,7 +78,7 @@ internal sealed class WorkspaceView : IDisposable
             throw new InvalidDataException("--inputs requires --runfiles");
         }
         var inputs = JsonSerializer.Deserialize<SyncInputs>(File.ReadAllText(manifest), new JsonSerializerOptions { PropertyNameCaseInsensitive = true, UnmappedMemberHandling = JsonUnmappedMemberHandling.Disallow }) ?? throw new InvalidDataException("Empty sync input manifest");
-        var temporary = Directory.CreateTempSubdirectory("msbuild-sync-").FullName;
+        var temporary = PhysicalPath(Directory.CreateTempSubdirectory("msbuild-sync-").FullName);
         var view = new WorkspaceView(temporary, temporary, inputs.PackageLock);
         try
         {
@@ -82,6 +101,23 @@ internal sealed class WorkspaceView : IDisposable
             }
             foreach (var binding in inputs.Bindings ?? [])
             {
+                if (binding.Closure)
+                {
+                    System.Xml.XmlConvert.VerifyNCName(binding.Property);
+                    var relative = ".graph-tools/" + view.GraphBindingLabels.Count.ToString(System.Globalization.CultureInfo.InvariantCulture);
+                    if (binding.Runfiles.Length != 1 || !view.GraphToolProperties.TryAdd(binding.Property, relative + "/" + Safe(binding.Entry)))
+                    {
+                        throw new InvalidDataException("Duplicate or ambiguous graph tool binding: " + binding.Property);
+                    }
+                    var source = Path.Combine(runfiles, Safe(binding.Runfiles[0]));
+                    foreach (var file in Directory.GetFiles(source, "*", SearchOption.AllDirectories))
+                    {
+                        var destination = Path.Combine(temporary, relative, Safe(Path.GetRelativePath(source, file)));
+                        Directory.CreateDirectory(Path.GetDirectoryName(destination)!);
+                        File.Copy(file, destination);
+                    }
+                    view.GraphBindingLabels.Add(binding.Label);
+                }
                 var paths = binding.Runfiles.Select(path => Path.Combine(runfiles, Safe(path), Safe(binding.Entry))).Where(File.Exists).ToArray();
                 if (paths.Length != 1 || !view.bindings.TryAdd(LabelKey(binding.Label), (binding.Property, paths[0])))
                 {
@@ -123,6 +159,31 @@ internal sealed class WorkspaceView : IDisposable
             throw;
         }
     }
+
+    internal HashSet<string> GraphPackageIdentities(bool allowBuildAssets = false)
+    {
+        var identities = DefaultPackageLock is null ? new HashSet<string>(StringComparer.OrdinalIgnoreCase) :
+            packageLocks[LabelKey(DefaultPackageLock)].Packages.ToHashSet(StringComparer.OrdinalIgnoreCase);
+        foreach (var identity in identities)
+        {
+            // Default sync does not execute Restore. Package build logic requires
+            // the explicit disposable-restore mode and declared task inputs.
+            var source = packageSources[identity];
+            if (!allowBuildAssets && Directory.EnumerateDirectories(source).Any(path => new[] { "build", "buildTransitive", "buildMultiTargeting", "content", "contentFiles" }
+                .Contains(Path.GetFileName(path), StringComparer.OrdinalIgnoreCase)))
+            {
+                throw new InvalidDataException("Graph sync package " + identity + " contains build/content assets; review the package inputs and set package_build = True for offline graph sync");
+            }
+        }
+        return identities;
+    }
+
+    internal IEnumerable<string> GraphPackageArchives() => GraphPackageIdentities(true).Select(identity =>
+        Path.Combine(packageSources[identity], identity.Replace('/', '.') + ".nupkg"));
+
+    internal string[] GraphPackageDigests() => GraphPackageIdentities(true).Select(identity =>
+        Convert.ToHexStringLower(System.Security.Cryptography.SHA256.HashData(File.ReadAllBytes(
+            Path.Combine(packageSources[identity], identity.Replace('/', '.') + ".nupkg"))))).Order(StringComparer.Ordinal).ToArray();
 
     internal void SelectPackageLock(string? label)
     {

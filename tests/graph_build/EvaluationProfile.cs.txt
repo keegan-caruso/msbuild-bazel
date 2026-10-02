@@ -1,0 +1,83 @@
+using System.Diagnostics;
+using System.Reflection;
+using System.Security.Cryptography;
+using System.Text;
+using System.Text.Json;
+using System.Text.Json.Nodes;
+using Microsoft.Build.Graph;
+
+// Qualification only: run the production constructor and capture evaluated shape.
+// No Restore, targets, compiler, project-cache lookup or output replay runs here.
+var root = Path.GetFullPath(args[1]);
+var sdkRoot = Path.GetFullPath(args[3]);
+var sdk = Path.Combine(sdkRoot, "sdk", "10.0.400");
+System.Runtime.Loader.AssemblyLoadContext.Default.Resolving += (context, name) =>
+    File.Exists(Path.Combine(sdk, name.Name + ".dll")) ? context.LoadFromAssemblyPath(Path.Combine(sdk, name.Name + ".dll")) : null;
+Environment.SetEnvironmentVariable("MSBUILD_EXE_PATH", Path.Combine(sdk, "MSBuild.dll"));
+Environment.SetEnvironmentVariable("MSBuildSDKsPath", Path.Combine(sdk, "Sdks"));
+Environment.SetEnvironmentVariable("DOTNET_HOST_PATH", Path.Combine(sdkRoot, "dotnet"));
+Environment.SetEnvironmentVariable("NUGET_PACKAGES", Path.Combine(root, ".nuget"));
+Directory.SetCurrentDirectory(root);
+var assembly = Assembly.LoadFrom(args[0]);
+const BindingFlags flags = BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Instance | BindingFlags.Static;
+var contractType = assembly.GetType("RulesMSBuild.GraphBuild.GraphContract", true)!;
+var filesType = assembly.GetType("RulesMSBuild.GraphBuild.ContractFiles", true)!;
+var inputsType = assembly.GetType("RulesMSBuild.GraphBuild.GraphInputs", true)!;
+var profileType = assembly.GetType("RulesMSBuild.GraphBuild.GraphProfile", true)!;
+var data = JsonNode.Parse(File.ReadAllText(args[2]))!;
+// Apply's package-input declarations, without running preparation or trusting its
+// digests. The production constructor still hashes bytes for this evaluation probe.
+if (args.Length > 6)
+{
+    var manifest = JsonNode.Parse(File.ReadAllText(args[6]))!;
+    var shared = data["SharedInputs"]!.AsArray().Select(value => value!.GetValue<string>());
+    var packages = manifest["Files"]!.AsObject().Select(pair => pair.Key).Where(path => path.StartsWith(".nuget/", StringComparison.Ordinal));
+    data["SharedInputs"] = new JsonArray(shared.Concat(packages).Distinct().Select(path => JsonValue.Create(path)).ToArray());
+}
+var contract = JsonSerializer.Deserialize(data.ToJsonString(), contractType)!;
+contract = assembly.GetType("RulesMSBuild.GraphBuild.GraphTools", true)!.GetMethod("Bind", flags)!.Invoke(null, [contract, root, sdkRoot])!;
+var files = Activator.CreateInstance(filesType, [root, sdkRoot])!;
+assembly.GetType("RulesMSBuild.GraphBuild.GraphDirectories", true)!.GetMethod("Prepare", flags)!.Invoke(null, [contract, files, false]);
+profileType.GetProperty("Enabled", flags)!.SetValue(null, args[5] != "off");
+profileType.GetProperty("EvaluationEnabled", flags)!.SetValue(null, args[5] == "evaluation");
+var timer = Stopwatch.StartNew();
+using var inputs = (IDisposable)Activator.CreateInstance(inputsType, flags, null, [contract, root, sdkRoot, true, null], null)!;
+var constructorSeconds = timer.Elapsed.TotalSeconds;
+var graph = (ProjectGraph)inputsType.GetProperty("Graph", flags)!.GetValue(inputs)!;
+string Key(Microsoft.Build.Execution.ProjectInstance project) => project.FullPath + ":" + JsonSerializer.Serialize(
+    project.GlobalProperties.OrderBy(pair => pair.Key, StringComparer.Ordinal).ToArray());
+var imports = (System.Collections.Concurrent.ConcurrentDictionary<string, string[]>)inputsType.GetField("imports", flags)!.GetValue(inputs)!;
+var nodeKey = inputsType.GetMethod("Key", flags)!;
+var fingerprint = inputsType.GetMethod("Fingerprint", flags)!;
+var nodes = graph.ProjectNodes.OrderBy(node => Key(node.ProjectInstance), StringComparer.Ordinal).Select(node => new
+{
+    key = Key(node.ProjectInstance),
+    properties = node.ProjectInstance.Properties.OrderBy(property => property.Name, StringComparer.Ordinal).Select(property => new { property.Name, property.EvaluatedValue }),
+    items = node.ProjectInstance.Items.OrderBy(item => item.ItemType, StringComparer.Ordinal).ThenBy(item => item.EvaluatedInclude, StringComparer.Ordinal).Select(item => new
+    {
+        item.ItemType, item.EvaluatedInclude,
+        metadata = item.Metadata.OrderBy(value => value.Name, StringComparer.Ordinal).Select(value => new { value.Name, value.EvaluatedValue })
+    }),
+    references = node.ProjectReferences.Select(reference => Key(reference.ProjectInstance)).Order(StringComparer.Ordinal).ToArray(),
+    imports = imports[(string)nodeKey.Invoke(null, [node.ProjectInstance])!].Order(StringComparer.Ordinal).ToArray(),
+    fingerprint = (string)fingerprint.Invoke(inputs, [node])!,
+    initialTargets = node.ProjectInstance.InitialTargets.ToArray(),
+    defaultTargets = node.ProjectInstance.DefaultTargets.ToArray(),
+    targets = node.ProjectInstance.Targets.Keys.Order(StringComparer.Ordinal).ToArray()
+}).ToArray();
+var shape = JsonSerializer.Serialize(nodes);
+File.WriteAllText(args[4], JsonSerializer.Serialize(new
+{
+    scope = "production evaluation-only profile; no Restore, targets, compilation or cache replay",
+    profile = args[5], constructorSeconds,
+    evaluationSeconds = inputsType.GetProperty("EvaluationSeconds", flags)!.GetValue(inputs),
+    inputHashSeconds = inputsType.GetProperty("InputHashSeconds", flags)!.GetValue(inputs),
+    configuredNodes = graph.ProjectNodes.Count,
+    physicalProjects = graph.ProjectNodes.Select(node => node.ProjectInstance.FullPath).Distinct().Count(),
+    compiledNodes = graph.ProjectNodes.Count(node => node.ProjectInstance.GetPropertyValue("TargetPath").Length != 0),
+    initialTargetNodes = graph.ProjectNodes.Count(node => node.ProjectInstance.InitialTargets.Count != 0),
+    shapeSha256 = Convert.ToHexStringLower(SHA256.HashData(Encoding.UTF8.GetBytes(shape))),
+    operations = profileType.GetProperty("Report", flags)!.GetValue(null),
+    evaluationProfile = inputsType.GetProperty("EvaluationProfile", flags)!.GetValue(inputs),
+    runnerSha256 = Convert.ToHexStringLower(SHA256.HashData(File.ReadAllBytes(args[0])))
+}, new JsonSerializerOptions { WriteIndented = true }) + "\n");

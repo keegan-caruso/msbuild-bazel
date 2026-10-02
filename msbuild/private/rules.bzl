@@ -2,7 +2,8 @@
 
 load(":paths.bzl", _NATIVE_TOOLCHAIN = "NATIVE_TOOLCHAIN", _RUNTIME_TOOLCHAIN = "RUNTIME_TOOLCHAIN", _TOOLCHAIN = "TOOLCHAIN")
 load(":project.bzl", _project = "build_project")
-load(":providers.bzl", "MSBuildAssemblyInfo", "MSBuildBindingInfo", "MSBuildItemsInfo", "MSBuildLayoutInfo", "MSBuildPackageInfo", "MSBuildPackageLockInfo", "MSBuildProjectInfo", "MSBuildProjectOutputInfo", "MSBuildReferencePackInfo", "MSBuildRestoreInfo", "MSBuildRuntimeInfo", "MSBuildTestToolInfo", "MSBuildToolInfo")
+load(":providers.bzl", "MSBuildAssemblyInfo", "MSBuildBindingInfo", "MSBuildItemsInfo", "MSBuildLayoutInfo", "MSBuildPackageInfo", "MSBuildPackageLockInfo", "MSBuildProjectInfo", "MSBuildProjectOutputInfo", "MSBuildReferencePackInfo", "MSBuildRestoreInfo", "MSBuildRuntimeInfo", "MSBuildToolInfo")
+load(":test_options.bzl", _TEST_OPTIONS_ATTRS = "TEST_OPTIONS_ATTRS", _validate_test = "validate_test")
 
 def _library(ctx):
     return _project(ctx)
@@ -11,25 +12,7 @@ def _binary(ctx):
     return _project(ctx, executable = True)
 
 def _test(ctx):
-    if ctx.attr.test_settings and ctx.attr.test_settings_output:
-        fail("Declare either test_settings or test_settings_output")
-    for attribute in ["test_settings_output", "test_working_directory"]:
-        path = getattr(ctx.attr, attribute)
-        if path and (path.startswith("/") or "\\" in path or any([part in ["", ".", ".."] for part in path.split("/")])):
-            fail(attribute + " must be a safe relative path")
-    if ctx.attr.shard_count > 1:
-        fail("Executable tests do not yet support sharding")
-    if ctx.attr.test_diagnostics and ctx.attr.test_protocol != "vstest":
-        fail("test_diagnostics currently requires VSTest")
-    if ctx.attr.test_protocol == "vstest":
-        if ctx.attr.runtime_host and ctx.attr.runtime_host[MSBuildRuntimeInfo].launch_mode == "corerun":
-            fail("VSTest requires a dotnet runtime host")
-        if not ctx.attr.test_runner:
-            fail("VSTest requires an explicit test_runner")
-        if ctx.attr.test_filter_argument:
-            fail("VSTest uses TestCaseFilter syntax; test_filter_argument is only for MTP")
-    elif ctx.attr.test_runner or ctx.attr.test_adapters:
-        fail("test_runner and test_adapters are only supported by VSTest")
+    _validate_test(ctx)
     return _project(ctx, executable = ctx.attr.test_protocol != "vstest" or ctx.attr.test_output_type == "exe", test = True)
 
 _ATTRS = {
@@ -45,6 +28,8 @@ _ATTRS = {
     "native_toolchain": attr.label(allow_single_file = True),
     "use_native_toolchain": attr.bool(default = False),
     "restore": attr.label(providers = [MSBuildRestoreInfo]),
+    "prepared_restore": attr.bool(default = False),
+    "restore_source_inputs": attr.label_list(allow_files = True),
     "project": attr.label(allow_single_file = [".csproj"], mandatory = True),
     "target_framework": attr.string(mandatory = True),
     "assembly_name": attr.string(),
@@ -85,20 +70,8 @@ _ATTRS = {
 
 msbuild_library = rule(implementation = _library, attrs = _ATTRS, toolchains = [_TOOLCHAIN])
 msbuild_binary = rule(implementation = _binary, attrs = _ATTRS, toolchains = [_TOOLCHAIN, config_common.toolchain_type(_RUNTIME_TOOLCHAIN, mandatory = False)], executable = True)
-_TEST_ATTRS = dict(_ATTRS, **{
-    "test_protocol": attr.string(default = "executable", values = ["executable", "mtp", "vstest"]),
-    "test_settings": attr.label(allow_single_file = True),
-    "test_settings_output": attr.string(),
-    "test_filter_argument": attr.string(values = ["", "--filter", "--filter-query"]),
-    "allow_empty_tests": attr.bool(),
-    "env": attr.string_dict(),
-    "test_diagnostics": attr.bool(),
-    "test_output_type": attr.string(default = "library", values = ["library", "exe"]),
-    "test_output_dirs": attr.string_list(),
-    "test_working_directory": attr.string(),
-    "test_runner": attr.label(providers = [MSBuildTestToolInfo]),
-    "test_adapters": attr.label_list(providers = [MSBuildTestToolInfo]),
-})
+_TEST_ATTRS = dict(_ATTRS, **_TEST_OPTIONS_ATTRS)
+
 msbuild_test = rule(implementation = _test, attrs = _TEST_ATTRS, toolchains = [_TOOLCHAIN, config_common.toolchain_type(_RUNTIME_TOOLCHAIN, mandatory = False)], test = True)
 
 def _generate(ctx):
