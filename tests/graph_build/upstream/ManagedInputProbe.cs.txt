@@ -1,0 +1,23 @@
+using System.Reflection;
+using System.Resources;
+using System.Security.Cryptography;
+using System.Text.Json;
+
+var assembly = Assembly.Load(new AssemblyName(args[1]));
+var expectedHash = args[4];
+if (Convert.ToHexString(SHA256.HashData(File.ReadAllBytes(assembly.Location))) != expectedHash)
+    throw new InvalidOperationException("Probe loaded a stale or different producer: " + assembly.Location);
+string? actual = args[0] switch
+{
+    "member" => (string?)assembly.GetType(args[2], throwOnError: true)!
+        .GetMethod("QualificationManagedInputProbe", BindingFlags.NonPublic | BindingFlags.Static)!.Invoke(null, null),
+    "layout" => assembly.GetType(args[2], throwOnError: true)!.StructLayoutAttribute!.Size.ToString(),
+    "property" => assembly.GetType(args[2].Split('|')[0], throwOnError: true)!
+        .GetProperty(args[2].Split('|')[1], BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Static)!.GetValue(null)!.ToString(),
+    "resource" => new ResourceManager(assembly.GetManifestResourceNames().Single(n => n.EndsWith(".resources"))
+        .Replace(".resources", ""), assembly).GetString(args[2]),
+    "metadata" => assembly.GetCustomAttributes<AssemblyMetadataAttribute>().Single(a => a.Key == args[2]).Value,
+    _ => throw new ArgumentException("Unknown probe mode")
+};
+if (actual != args[3]) throw new InvalidOperationException("Wrong managed input value: " + actual);
+Console.WriteLine(JsonSerializer.Serialize(new { assembly = assembly.Location, actual, sha256 = expectedHash }));

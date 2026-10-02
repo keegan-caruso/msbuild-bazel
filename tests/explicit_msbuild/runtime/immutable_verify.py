@@ -15,8 +15,8 @@ ns={'t':'http://microsoft.com/schemas/VisualStudio/TeamTest/2010'}
 raw_cases=Counter((t.get('testName'),t.get('outcome')) for t in ET.parse(raw/'results/results.trx').getroot().findall('.//t:UnitTestResult',ns))
 testlog=workspace/'bazel-testlogs/upstream'/name
 cases=Counter((t.get('name'),'Failed' if t.find('failure') is not None or t.find('error') is not None else 'NotExecuted' if t.find('skipped') is not None else 'Passed') for t in ET.parse(testlog/'test.xml').getroot().findall('.//testcase'))
-from case_names import normalized, shuffled
-assert normalized(cases)==normalized(raw_cases),(normalized(cases)-normalized(raw_cases),normalized(raw_cases)-normalized(cases))
+from case_names import normalize, shuffled
+assert normalize(cases)==normalize(raw_cases),(normalize(cases)-normalize(raw_cases),normalize(raw_cases)-normalize(cases))
 assert sum(cases.values())==22544 and all(outcome=='Passed' for _,outcome in cases)
 proofs={}
 for label,folder,entry in [('upstream',testlog,'testhost'),('smoke',workspace/'bazel-testlogs/smoke/smoke','Smoke')]:

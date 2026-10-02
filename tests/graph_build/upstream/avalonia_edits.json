@@ -1,0 +1,20 @@
+[
+  {
+    "name": "body",
+    "path": "src/Avalonia.Base/Media/PolylineGeometry.cs",
+    "before": "context.EndFigure(isFilled);",
+    "after": "context.EndFigure(isFilled && Points.Count > 0);"
+  },
+  {
+    "name": "api",
+    "path": "src/Avalonia.Base/Media/PolylineGeometry.cs",
+    "before": "public class PolylineGeometry : Geometry\n    {",
+    "after": "public class PolylineGeometry : Geometry\n    {\n        public bool CacheQualificationMarker => true;"
+  },
+  {
+    "name": "tool",
+    "path": "src/tools/DevGenerators/CompositionGenerator/Generator.Utils.cs",
+    "before": "#nullable enable",
+    "after": "// cache qualification\n#nullable enable"
+  }
+]

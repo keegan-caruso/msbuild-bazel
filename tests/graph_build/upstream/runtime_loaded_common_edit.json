@@ -1,0 +1,20 @@
+{
+  "compiled": 163,
+  "implementation": "src/libraries/System.IO.Pipelines/src/System/IO/Pipelines/PipeOptions.cs",
+  "reference": "src/libraries/System.IO.Pipelines/ref/System.IO.Pipelines.cs",
+  "implDll": "artifacts/bin/System.IO.Pipelines/Release/net10.0/System.IO.Pipelines.dll",
+  "refDll": "artifacts/bin/System.IO.Pipelines/ref/Release/net10.0/System.IO.Pipelines.dll",
+  "bodyAnchor": "UseSynchronizationContext = useSynchronizationContext;",
+  "implementationAnchor": "public class PipeOptions\n    {",
+  "referenceAnchor": "public partial class PipeOptions\n    {",
+  "expectedMisses": {
+    "body": 5,
+    "api": 16
+  },
+  "entries": [
+    "src/libraries/System.IO.Pipelines/src/System.IO.Pipelines.csproj",
+    "src/libraries/System.Text.Encodings.Web/src/System.Text.Encodings.Web.csproj",
+    "src/libraries/System.Text.Json/src/System.Text.Json.csproj",
+    "src/libraries/System.ComponentModel.Primitives/src/System.ComponentModel.Primitives.csproj"
+  ]
+}
