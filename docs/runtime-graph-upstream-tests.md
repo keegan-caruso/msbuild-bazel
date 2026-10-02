@@ -308,12 +308,42 @@ mappings omitted three framework overrides added during expansion; the guard
 caught that mismatch. Large logs, JSON and binlogs remain outside Git. These
 correctness runs are unscored, including the separate runner seed after the fix.
 
+## Native-input controls
+
+The small native fixture independently changes source, a header and the declared
+compiler entry: each changes the executed value from 7 to 8, then restores 7.
+A missing header fails; supplying it again builds and executes value 9.
+
+The expanded Linux ARM64/Bazel 9.2 fixture edits the declared host source,
+`hostfxr.h` and Clang toolchain archive separately. Each unique marker appears in
+`libhostfxr.so`; exactly one `RuntimeNative` action processes the host producer,
+with **zero managed graph or Restore actions**. The other four native producers
+remain byte-identical. All eight suites execute successfully after each edit and
+restoration, retaining all 119,016 normalized outcomes and **288 loaded-native
+hash observations per row**. The composed host matches all eight producer hashes.
+Restorations recover exact original native bytes through the owned disk cache;
+Bazel records one processed native cache action, not a new compilation claim.
+
+```sh
+python3 tests/explicit_msbuild/runtime/native_synthetic.py NEW_SMALL_DIRECTORY
+python3 tests/graph_build/upstream/runtime_native_inputs.py \
+  WORKSPACE NEW_RESULTS --output-base RETAINED_QUALIFIED_BASE
+```
+
+`--case` selects one mutation; `--action-cache` reuses an owned qualification
+cache. Probes preserve the header guard and versioned C++ compiler aliases.
+The controller requests producer outputs and materializes cached dependency
+layouts before inspecting them. Earlier harness-only failures miscounted seven
+auxiliary setup graphs or read outputs left on demand; those trials are excluded.
+These are unscored controls of the host producer. They do not establish mutation
+coverage for CoreCLR/JIT, raw native scheduling parity, another platform or RBE.
+
 ## Remaining gates
 
 Actual-suite controls now pass on both supported Bazel baselines. Capture larger
 paired build timings separately from test execution.
-Independent cache consumers, native source/header/tool mutations and broader edit
-scenarios remain separate roadmap gates. Build and test timings must be separate.
+Independent cache consumers and broader native-component mutation coverage
+remain separate roadmap gates. Build and test timings must be separate.
 
 A disk-full interruption made the qualification filesystem read-only. That trial
 is excluded. After preserving diagnostics, restarting only the owned build VM

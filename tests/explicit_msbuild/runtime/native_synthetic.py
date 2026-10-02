@@ -55,14 +55,14 @@ archive=workspace/'native/source.tar'
 saved=archive.with_suffix('.saved');archive.rename(saved)
 records=[]
 start=[os.environ['RULES_MSBUILD_BAZEL'],'--batch','--host_jvm_args=-Xmx768m','--output_base='+str(report/'base'),'--ignore_all_rc_files']
-def source(value,missing=False):
+def source(value,missing=False,add=0):
     with tarfile.open(archive,'w') as tar:
         files={'build-native.sh':'''set -euo pipefail
 # Host checkout and SDK are absent, and networking has its own namespace.
 test ! -e /work/runtime
 test ! -e /opt/rules_msbuild-toolchain
 mkdir result
-'''+ 'cc -shared -fPIC fixture.c -o result/'+shlex.quote(library_name)+'\n'+''.join('cp '+('result/'+shlex.quote(library_name) if name.endswith('.so') else '/bin/true')+' result/'+shlex.quote(name)+'\n' for name in products if name!=library_name)+'tar --sort=name --mtime=@0 --owner=0 --group=0 -cf result.tar -C result .\n','fixture.c':'#include "value.h"\nint fixture_value(void) { return VALUE; }\n'}
+'''+ 'cc -shared -fPIC fixture.c -o result/'+shlex.quote(library_name)+'\n'+''.join('cp '+('result/'+shlex.quote(library_name) if name.endswith('.so') else '/bin/true')+' result/'+shlex.quote(name)+'\n' for name in products if name!=library_name)+'tar --sort=name --mtime=@0 --owner=0 --group=0 -cf result.tar -C result .\n','fixture.c':'#include "value.h"\n#ifndef QUALIFICATION_TOOL_ADD\n#define QUALIFICATION_TOOL_ADD 0\n#endif\nint fixture_value(void) { return VALUE + QUALIFICATION_TOOL_ADD + '+str(add)+'; }\n'}
         if not missing:files['value.h']='#define VALUE '+str(value)+'\n'
         for name,text in files.items():
             data=text.encode();entry=tarfile.TarInfo(name);entry.size=len(data);entry.mode=0o644;tar.addfile(entry,io.BytesIO(data))
@@ -85,8 +85,28 @@ def run(name,success=True,value=7):
 try:
     source(7);assert run('baseline')==['//native:runtime']
     assert run('noop')==[]
+    source(7,add=1);assert run('source-change',value=8)==['//native:runtime']
+    source(7);assert run('source-restored')==[]
     source(8);assert run('header-change',value=8)==['//native:runtime']
     source(7);assert run('restore-from-cache')==[]
+    toolchain=workspace/'native/toolchain.tar'
+    saved_toolchain=toolchain.with_suffix('.tool-control-save')
+    toolchain.rename(saved_toolchain)
+    try:
+        # Replace the declared compiler entry, retaining its complete closure.
+        with tarfile.open(saved_toolchain) as src,tarfile.open(toolchain,'w') as dest:
+            entries=[entry for entry in src if entry.name=='usr/bin/cc']
+            assert len(entries)==1
+            for entry in src:
+                if entry.name=='usr/bin/cc':
+                    body=b'#!/bin/sh\nexec /usr/bin/clang -DQUALIFICATION_TOOL_ADD=1 "$@"\n'
+                    replacement=tarfile.TarInfo(entry.name);replacement.mode=0o755;replacement.size=len(body)
+                    dest.addfile(replacement,io.BytesIO(body))
+                else:dest.addfile(entry,src.extractfile(entry) if entry.isfile() else None)
+        assert run('tool-change',value=8)==['//native:runtime']
+    finally:
+        toolchain.unlink(missing_ok=True);saved_toolchain.rename(toolchain)
+    assert run('tool-restored')==[]
     source(7,missing=True);run('missing-header',False)
     source(9);assert run('retry-after-failure',value=9)==['//native:runtime']
 finally:

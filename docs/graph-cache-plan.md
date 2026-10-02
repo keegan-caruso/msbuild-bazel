@@ -1398,6 +1398,12 @@ inputs explicitly rather than broadening the contract silently.
 
 ### 11. Qualify native invalidation one input type at a time
 
+Complete: small source/header/compiler controls and the real runtime host
+producer pass. Each upstream edit processes one host action, no managed graph or
+Restore actions, all eight suites and current loaded hashes; original native
+bytes return after restoration. Coverage remains bounded to the host producer.
+See [native controls](runtime-graph-upstream-tests.md#native-input-controls).
+
 Run source, header and declared-tool edits separately on a small native fixture,
 then the bounded runtime native graph. Verify action invalidation, changed producer
 bytes, host/test consumption and exact restoration. Do not infer native compilation
