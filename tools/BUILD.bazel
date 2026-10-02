@@ -1,4 +1,5 @@
 exports_files([
+    "BUILD.bazel",
     "Directory.Build.props",
     "MSBuildTool.props",
     "PackageSdks.cs",

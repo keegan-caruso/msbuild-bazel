@@ -10,3 +10,47 @@ filegroup(
 )
 
 exports_files([".editorconfig"])
+
+# Declared sources for independent integration consumers; no checkout access.
+filegroup(
+    name = "integration_rule_sources",
+    srcs = [
+        ".bazelversion",
+        ".editorconfig",
+        "AGENTS.md",
+        "BUILD.bazel",
+        "MODULE.bazel",
+        "README.md",
+        "global.json",
+        "//msbuild:integration_sources",
+        "//tools:BUILD.bazel",
+        "//tools/ArtifactTools:BUILD.bazel",
+        "//tools/ArtifactTools:sources",
+        "//tools/GraphBuild:BUILD.bazel",
+        "//tools/GraphBuild:sources",
+        "//tools/ProjectCache:BUILD.bazel",
+        "//tools/ProjectSync:BUILD.bazel",
+        "//tools/ProjectSync:sources",
+    ],
+    visibility = ["//tests/integration:__pkg__"],
+)
+
+filegroup(
+    name = "quickstart_sources",
+    srcs = [
+        "examples/quickstart/.bazelversion",
+        "examples/quickstart/App/App.csproj",
+        "examples/quickstart/App/Program.cs",
+        "examples/quickstart/BUILD.bazel",
+        "examples/quickstart/Library/Library.csproj",
+        "examples/quickstart/Library/Message.cs",
+        "examples/quickstart/MODULE.bazel",
+        "examples/quickstart/README.md",
+        "examples/quickstart/Tests/Program.cs",
+        "examples/quickstart/Tests/Tests.csproj",
+        "examples/quickstart/global.json",
+        "examples/quickstart/graph.generated.bzl",
+        "examples/quickstart/graph.generated.json",
+    ],
+    visibility = ["//tests/integration:__pkg__"],
+)

@@ -7,7 +7,7 @@ import subprocess
 import sys
 
 ROOT = Path(__file__).resolve().parents[2]
-SLICES = ["qualify", "replay", "reviewed_dependencies", "source_groups", "output_ownership", "signing", "package_sdks", "quickstart", "tools", "native_tools", "protocols"]
+SLICES = ["qualify", "replay", "reviewed_dependencies", "source_groups", "output_ownership", "signing", "package_sdks", "tools", "native_tools", "protocols"]
 
 
 def main():
@@ -24,13 +24,13 @@ def main():
         if result.returncode:
             raise SystemExit(f"{name} failed: {args.directory / (name + '.log')}")
         print(f"PASS {name}", flush=True)
-    if args.linux_workers:
-        for version in ["8.8.0", "9.2.0"]:
-            with (args.directory / ("worker-" + version + ".log")).open("w") as log:
-                result = subprocess.run([sys.executable, str(ROOT / "tests/graph_build/linux_worker.py"), "--bazel-version", version], cwd=ROOT, env=os.environ, stdout=log, stderr=subprocess.STDOUT)
-            if result.returncode:
-                raise SystemExit(f"Linux worker {version} failed; see {args.directory}")
-            print(f"PASS Linux worker {version}", flush=True)
+    for name, target in [("quickstart", "//tests/integration:quickstart")] + ([("workers", "//tests/integration:workers")] if args.linux_workers else []):
+        with (args.directory / (name + ".log")).open("w") as log:
+            result = subprocess.run(["bash", str(ROOT / "scripts/bazel.sh"), "test", target, "--test_output=errors"], cwd=ROOT, env=os.environ, stdout=log, stderr=subprocess.STDOUT)
+        if result.returncode:
+            raise SystemExit(f"{name} failed; see {args.directory}")
+        print(f"PASS native Bazel integration {name}", flush=True)
+
 
 
 if __name__ == "__main__":

@@ -1,1 +1,4 @@
-exports_files(["RemoteSnapshotStore.cs"])
+exports_files([
+    "BUILD.bazel",
+    "RemoteSnapshotStore.cs",
+])

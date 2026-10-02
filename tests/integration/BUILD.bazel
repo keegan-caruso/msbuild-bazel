@@ -1,0 +1,101 @@
+load("@bazel_binaries//:defs.bzl", "bazel_binaries")
+load("@rules_bazel_integration_test//bazel_integration_test:defs.bzl", "bazel_integration_tests", "integration_test_utils")
+load("@rules_shell//shell:sh_binary.bzl", "sh_binary")
+
+# Archive only declared files. The runner extracts this into a private scratch directory.
+genrule(
+    name = "rules_archive",
+    testonly = True,
+    srcs = ["//:integration_rule_sources"],
+    outs = ["rules.tar"],
+    cmd = 'tar -cf "$@" $(SRCS)',
+)
+
+sh_binary(
+    name = "quickstart_runner",
+    testonly = True,
+    srcs = ["quickstart.sh"],
+    data = ["common.sh"],
+)
+
+sh_binary(
+    name = "worker_runner",
+    testonly = True,
+    srcs = ["worker.sh"],
+    data = ["common.sh"],
+)
+
+bazel_integration_tests(
+    name = "quickstart_cases",
+    additional_env_inherit = [
+        "BAZELISK_HOME",
+        "RULES_MSBUILD_TEST_REPOSITORY_CACHE",
+    ],
+    bazel_binaries = bazel_binaries,
+    bazel_versions = bazel_binaries.versions.all,
+    data = [":rules_archive"],
+    env = {"RULES_ARCHIVE": "$(rootpath :rules_archive)"},
+    tags = [
+        "exclusive",
+        "manual",
+        "no-sandbox",
+    ],
+    test_runner = ":quickstart_runner",
+    workspace_files = ["//:quickstart_sources"],
+    workspace_path = "examples/quickstart",
+)
+
+[
+    bazel_integration_tests(
+        name = "worker" + ("_uncached" if cache_mb == 0 else ""),
+        additional_env_inherit = [
+            "BAZELISK_HOME",
+            "RULES_MSBUILD_TEST_REPOSITORY_CACHE",
+        ],
+        bazel_binaries = bazel_binaries,
+        bazel_versions = bazel_binaries.versions.all,
+        data = [":rules_archive"],
+        env = {
+            "RULES_ARCHIVE": "$(rootpath :rules_archive)",
+            "WORKER_CACHE_MB": str(cache_mb),
+        },
+        tags = [
+            "exclusive",
+            "manual",
+            "no-sandbox",
+        ],
+        target_compatible_with = [
+            "@platforms//os:linux",
+            "@platforms//cpu:aarch64",
+        ],
+        test_runner = ":worker_runner",
+        workspace_files = glob(["fixtures/worker/**"]),
+        workspace_path = "tests/integration/fixtures/worker",
+    )
+    for cache_mb in [
+        4096,
+        0,
+    ]
+]
+
+# Explicit suites keep expensive nested builds out of //... and quick validation.
+test_suite(
+    name = "quickstart",
+    tags = ["manual"],
+    tests = integration_test_utils.bazel_integration_test_names(
+        "quickstart_cases",
+        bazel_binaries.versions.all,
+    ),
+)
+
+test_suite(
+    name = "workers",
+    tags = ["manual"],
+    tests = integration_test_utils.bazel_integration_test_names(
+        "worker",
+        bazel_binaries.versions.all,
+    ) + integration_test_utils.bazel_integration_test_names(
+        "worker_uncached",
+        bazel_binaries.versions.all,
+    ),
+)

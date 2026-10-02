@@ -10,3 +10,9 @@ exports_files(
     ["sdk_bootstrap.bzl"],
     visibility = ["//visibility:public"],
 )
+
+filegroup(
+    name = "integration_sources",
+    srcs = glob(["*.bzl"]) + ["BUILD.bazel"],
+    visibility = ["//msbuild:__pkg__"],
+)
