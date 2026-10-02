@@ -7,13 +7,14 @@ Use a separate Git worktree for each change.
 The sole build interface is `msbuild/defs.bzl` / `msbuild/graph.bzl` with
 `tools/GraphBuild` and its MSBuild project-cache plugin. ProjectSync emits explicit
 graph contracts; ArtifactTools handles artifact extraction/composition and launch.
-See docs/graph-workflow.md and docs/implementation-plan.md for scope and limits.
+See docs/api.md and docs/support.md for scope and limits.
 Bazel 8.8.0 and 9.2.0 are supported; 9.2.0 remains the default.
 
 SDK toolchains consume verified archives or declared Bazel-produced artifacts;
-do not add host-path SDK repositories. Historical commands need revisions in
-docs/history.md. GitHub CI runs only when explicitly requested. Read README.md
-and docs/implementation-plan.md before implementing changes.
+do not add host-path SDK repositories. Historical commands need their recorded
+revisions (linked in docs/support.md).
+GitHub CI runs only when explicitly requested. Read README.md and docs/support.md
+before implementing changes.
 
 ## Commands
 
@@ -45,4 +46,4 @@ manual and must not be started without an explicit request.
 
 ## Evidence and scope
 
-Keep experiments small and independently runnable. For behavioral changes, run the relevant experiment and document the command, observed result, and remaining limitations in docs/implementation-plan.md or a linked findings file. Clearly distinguish proposed behavior from measured results. Do not report a check as passing if tooling or network access prevented it.
+Keep experiments small and independently runnable. For behavioral changes, run the relevant experiment and document the command, observed result, and remaining limitations in docs/support.md or docs/performance.md. Clearly distinguish proposed behavior from measured results. Do not report a check as passing if tooling or network access prevented it.
