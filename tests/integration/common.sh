@@ -7,6 +7,11 @@ scratch=$(mktemp -d /tmp/msbuild-bazel-integration.XXXXXX)
 mkdir -p "$scratch/consumer" "$scratch/msbuild-bazel"
 cp -RL "$BIT_WORKSPACE_DIR/." "$scratch/consumer/"
 tar -xf "$RULES_ARCHIVE" -C "$scratch/msbuild-bazel"
+if [[ -n "$(find "$scratch/msbuild-bazel" -type l -print -quit)" ]]; then
+    echo 'Rules archive must contain independent files, not checkout symlinks.' >&2
+    rm -rf "$scratch"
+    exit 1
+fi
 # Keep the public example's ../msbuild-bazel override unchanged.
 cd "$scratch/consumer"
 unset RULES_MSBUILD_PROJECT_CACHE_URL RULES_MSBUILD_PROJECT_CACHE_BEARER_TOKEN

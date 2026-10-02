@@ -8,7 +8,7 @@ genrule(
     testonly = True,
     srcs = ["//:integration_rule_sources"],
     outs = ["rules.tar"],
-    cmd = 'tar -cf "$@" $(SRCS)',
+    cmd = 'tar -chf "$@" $(SRCS)',
 )
 
 sh_binary(
