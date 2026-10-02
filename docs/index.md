@@ -1,68 +1,21 @@
 # Documentation
 
-Start with the [runnable example](../examples/quickstart/README.md), then the
-[rule API](explicit-bazel-rules.md). [Current support](implementation-plan.md)
-separates qualified behavior from the [roadmap](roadmap.md).
+## Use
 
-## Use the rules
+- [Quickstart](../examples/quickstart/README.md)
+- [Graph API and migration](graph-workflow.md)
+- [Project sync](project-sync.md) and [Bazel test](bazel-test.md)
+- [SDK/runtime artifacts](sdk-toolchains.md) and [SDK source build](source-sdk.md)
+- [Current support and gaps](implementation-plan.md)
 
-- [Adoption, upgrades and distribution](adoption.md)
-- [Opt-in graph quickstart](../examples/graph-quickstart/README.md) and [migration limits](project-cache-migration.md)
+## Develop and measure
 
-- [Build inputs and rule API](explicit-bazel-rules.md)
-- [Project-to-BUILD synchronization](project-sync.md) and [generated Orchard/Avalonia qualification](project-sync-broader-graphs.md)
-- [Configured graphs and private dependencies](configured-graphs.md), [incremental reference boundaries](reference-invalidation.md)
-- [Executable, MTP and VSTest tests](bazel-test.md)
-- [Linux ARM64 Native AOT publish](native-aot.md)
-- [Native AOT archive closure experiment](native-aot-closure.md)
-- [Native AOT from locked Ubuntu packages](native-aot-packages.md)
-- [Linux persistent workers](explicit-linux-workers.md) and [remote execution](remote-execution.md)
-- [Build task tools](explicit-tool-bindings.md), [generation](explicit-generation.md),
-  [project analyzers](project-built-analyzers.md) and [target-result items](msbuild-target-items.md)
-- [Restore inputs](explicit-restore-inputs.md), [project-specific prepared Restore](prepared-project-restore.md), [package trees](explicit-package-borrowing.md)
-  and [NuGet metadata](orchard-package-semantics.md)
-- [Framework/tool roles](framework-tool-roles.md), [friend assemblies](internals-visible-to.md)
-  and [runtime assembly/host primitives](runtime-primitives.md)
+- [Contributor setup/checks](development.md) and [manual CI](ci-scope.md)
+- [Linux workers](linux-workers.md) and [Apple containers](apple-container-runbook.md)
+- [HTTP cache](native-cache-service.md)
+- [Performance versus raw MSBuild](performance.md)
+- [Runtime qualification](runtime-qualification.md) and [cutover checks](graph-cutover.md)
+- [Next graph work](graph-cache-plan.md)
 
-## Develop and operate
-
-- [Setup and version selection](development.md)
-- [Apple containers](apple-container-runbook.md) and [HTTP action cache](native-cache-service.md)
-- [Platform limits](platform-validation-scope.md) and [manual CI](ci-scope.md)
-- [Contributing](../CONTRIBUTING.md), [security reporting](../SECURITY.md),
-  [agent instructions](../AGENTS.md) and the [historical publication audit](publication-readiness.md)
-
-## Qualification and measurements
-
-Start with [performance versus raw MSBuild](performance.md) for the consolidated
-results. The reports below provide detailed evidence and reproduction steps.
-
-| Workload | Current report and reproduction |
-| --- | --- |
-| Orchard | [Compatibility](orchard-explicit-compatibility.md), [performance](orchard-explicit-performance.md), [API-edit matrix](orchard-api-edit-matrix.md), [paths](orchard-stable-worker-paths.md), [packages](orchard-package-qualification.md) |
-| NBGV | [Version parity and remaining limits](nbgv-parity.md) |
-| Avalonia | [XAML graph](avalonia-xaml-subset.md), [HTTP recovery](avalonia-http-cache.md), [remote execution](avalonia-remote-execution.md), [expanded suites and Desktop](avalonia-expanded.md), [edit and Headless controls](avalonia-correctness.md) |
-| ASP.NET Core | [Integration](aspnetcore-integration.md), [larger graph](aspnetcore-large-graph.md), [cache profile](aspnetcore-cache-profile.md) |
-| dotnet/runtime | [Source-only host](runtime-source-host.md), [Pipelines suite](runtime-pipelines.md), [cold/recovery timing](runtime-cold-timing.md), [leaf edit](runtime-leaf-timing.md), [workflow](runtime-workflow.md), [JIT boundary](runtime-jit-bootstrap.md) |
-| .NET SDK source build | [22-component graph, app consumer and cache recovery](source-sdk.md) |
-| Runner overhead | [Cold profile](explicit-cold-profile.md), [staging](worker-staging.md), [evaluation](project-evaluation-removal.md) |
-| Grouped MSBuild project cache | [Synthetic graph probe](msbuild-project-cache-probe.md), [Avalonia qualification](avalonia-project-cache-probe.md), [Orchard CMS qualification](orchard-project-cache-probe.md), [dotnet/runtime Pipelines qualification](runtime-project-cache-probe.md) |
-| Version/cache controls | [8.8 qualification](bazel-8.8-upgrade.md), [cache diagnosis](runtime-cache-diagnosis.md), [remote execution](remote-execution.md) |
-
-Reports qualify their exact revisions and slices; they are not blanket support
-claims. Keep the measured result, environment, controls, limits and reproduction
-command in the report. Commit evidence JSON only when its raw samples or artifact
-checks add something the report cannot convey concisely. Run repeatable fixtures
-with output under the ignored `artifacts/` directory or outside the checkout;
-their detailed reports need not be tracked. Temporary paths are provenance, not
-public artifact downloads. Removed historical reports remain available in Git
-history.
-
-Older implementations, superseded designs and intermediate experiments are linked
-from [history](history.md), rather than duplicated in this tree. For current
-tracker status, use the [GitHub issues](https://github.com/keegan-caruso/msbuild-bazel/issues).
-
-- [Generated workflow costs](project-sync-workflow-costs.md) — paired raw builds, synchronization and independent recovery.
-- [Everyday synchronization changes](project-sync-mutations.md) — edit, stale check, repair and cache reversion.
-
-- [Bazel-managed SDK toolchains](sdk-toolchains.md): downloaded and generated artifacts, fixture migration and validation.
+[History](history.md) links retired code, reports and complete prior evidence.
+Keep new reports outside Git; commit a concise measured result, command and limits.

@@ -1,7 +1,7 @@
 # Contributing
 
 This project is experimental. Start with the [README](README.md),
-[rule API](docs/explicit-bazel-rules.md) and
+[rule API](docs/graph-workflow.md) and
 [current support](docs/implementation-plan.md).
 
 For a bug, include a small reproducer, SDK/Bazel versions, OS/architecture, the
@@ -26,8 +26,8 @@ for a suspected vulnerability.
    bash scripts/check-dotnet.sh
    ```
 
-   For project-rule behavior, also run the explicit acceptance harness following
-   [the rule guide](docs/explicit-bazel-rules.md#local-toolchain-setup-and-reproduction).
+   For project-rule behavior, also run the graph acceptance harness following
+   [the rule guide](docs/development.md).
    Large qualification suites are not required for documentation-only changes.
 6. Open a pull request explaining the problem, the change, the checks you ran and
    any remaining limits. Do not commit downloaded tools, build products or private logs.

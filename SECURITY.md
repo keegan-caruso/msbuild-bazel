@@ -25,5 +25,5 @@ Remote caches and executors must be trusted and configured for your organization
 Action inputs, outputs and diagnostics can contain source code or sensitive data.
 The Buildbarn fixture in this repository is for an isolated qualification network;
 it deliberately has no authentication and is not a production deployment recipe.
-See [worker isolation](docs/explicit-linux-workers.md) and
-[remote execution](docs/remote-execution.md) for the measured boundaries.
+See [worker isolation](docs/linux-workers.md) and
+[graph input/cache boundaries](docs/graph-workflow.md) for the measured boundaries.

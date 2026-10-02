@@ -1,231 +1,53 @@
-# Development and toolchains
+# Development
 
-## Using the rules in an application
-
-Declare `rules_msbuild` as a module dependency, then select the SDK with Bazelisk:
-
-```starlark
-# MODULE.bazel
-dotnet = use_extension("@rules_msbuild//msbuild:extensions.bzl", "dotnet")
-dotnet.sdk(name = "dotnet", global_json = "//:global.json")
-use_repo(dotnet, "dotnet")
-register_toolchains("@dotnet//:all")
-```
-
-Export `global.json` from the root BUILD file with `exports_files(["global.json"])`.
-Alternatively use `version = "10.0.400"` instead of `global_json`. Bazel downloads
-verified SDK archives, builds the runner from declared sources, and supplies the
-bundled runtime for applications and tests. `runtime_host` remains an explicit
-override. No manual SDK or runner installation is required for this workflow.
-See the [SDK-and-sync quickstart](../examples/quickstart/README.md).
-
-The pinned SDK catalog currently contains **10.0.400 and 10.0.401** for Linux
-(glibc) and macOS, ARM64/x64. Acquisition and execution are qualified on ARM64;
-x64 archive declarations do not establish execution qualification. Compilation
-still requires the OS sandbox dependencies listed below. SDK selection follows
-the execution platform; the default application runtime follows the target
-platform. Cross-compilation is not qualified.
-
-`global.json` is an explicit tracked input; there is no parent-directory search.
-JSON comments are supported. `sdk.version` is required; `rollForward` may be
-omitted, `patch`, or `disable`. These acquire the exact requested catalog pin;
-there is no search for installed SDKs or fallback to a newer pin. Policies such
-as `latestFeature`, machine-local `paths`, the `test` field, and unknown pins
-fail explicitly. A string-to-string `msbuild-sdks` map is accepted as metadata;
-custom SDK imports still require declared package inputs/`package_lock`. It does
-not trigger ambient SDK resolution or package acquisition. Boolean `allowPrerelease` is
-validated; the current catalog contains stable SDKs only. `$schema` and a string
-`sdk.errorMessage` are accepted metadata. Other settings remain explicit Bazel
-inputs and attributes. SDK acquisition does not configure workloads or NuGet
-package resolution.
-
-### Generating project declarations
-
-Use the [`msbuild_sync` macro](project-sync.md) to run project synchronization with
-`bazel run //:sync`. Bazel supplies the generator and SDK; the tool writes a
-separate generated declaration file and preserves your authored BUILD file.
-
-### SDK acquisition qualification
-
-The SDK fixture (`tests/explicit_msbuild/sdk_extension.py`) covers exact version
-and tracked `global.json` selection, runner bootstrap, application/test execution,
-offline reuse, explicit runtime override, SDK pin changes, and rejection of
-unsupported target platforms, selection policies and unknown versions. It passed
-on macOS ARM64 and Linux ARM64 with Bazel 8.8.0 and 9.2.0. The SDK-only hello
-application and test also passed on macOS ARM64 with Bazel 9.2.0.
-
-Run the fixture in a fresh directory after selecting Bazel through `scripts/env.sh`:
+Applications need Bazelisk and normal OS .NET prerequisites; the SDK extension
+supplies their SDK. Follow the [quickstart](../examples/quickstart/README.md).
+Repository contributors also use pinned bootstrap tools:
 
 ```sh
-source scripts/env.sh
-python3 tests/explicit_msbuild/sdk_extension.py /tmp/sdk-qualification
-```
-
-SDK repository validation covers nine selection/error cases; the 28 rule-analysis
-tests pass on both Bazel versions. Linux containers must allow nested user/mount
-namespaces; `scripts/run-apple-container.sh` supplies the required Apple container
-configuration. x64 execution and cross-compilation remain unqualified.
-
-### SDK remote-cache and worker controls
-
-`tests/explicit_msbuild/sdk_cache_workers.py` provides `seed`, `recover`, and
-`workers` modes. On Linux ARM64/Bazel 9.2, a fresh independent container at a
-different checkout/output path recovered runner bootstrap, SDK runtime assembly,
-both library/test compilations, and the test results from HTTP cache. Consumer
-uploads and the disk cache were disabled; no compilation ran in the consumer.
-
-Persistent-worker controls passed on Bazel 8.8 and 9.2 with the downloaded SDK.
-Cold builds compiled both projects; no-op builds compiled neither. A library body
-edit compiled only the library and reran the failing dependent test; an API edit
-recompiled both projects and rejected the incompatible caller. The same worker
-process handled edits. Changing SDK 10.0.400 to 10.0.401 replaced the worker,
-recompiled both projects, and ran the test on runtime 10.0.12.
-
-The worker validates declared tool inputs against the actual SDK directory and
-mounts that SDK read-only at its stable internal path. The host no longer needs
-the SDK installed at the image's historical path. Ubuntu 22.04 ARM64 and enabled
-nested namespaces remain required. These controls qualify remote **caching**.
-SDK bootstrap and compilation also have separate [remote-execution qualification](remote-execution.md#sdk-only-remote-execution);
-other worker platforms remain unqualified.
-
-## Repository development setup
-
-Supported bootstrap hosts are macOS ARM64 and Linux x86-64/ARM64 with glibc.
-Install Bash, curl, tar, gzip, Git, Python 3, and either `shasum` or `sha256sum`.
-Linux also needs `/usr/bin/bwrap` (the `bubblewrap` package), enabled user
-namespaces, and the .NET runtime libraries; Ubuntu 22.04 requires `libicu70`,
-`libssl3`, `zlib1g` and CA certificates. Python is used for fixtures and tests,
-not by the production build runner.
-
-```sh
-git clone https://github.com/keegan-caruso/msbuild-bazel.git
-cd msbuild-bazel
 bash scripts/setup.sh
-bash scripts/dotnet.sh --info
-bash scripts/bazel.sh --version
-```
-
-Setup installs checksum-pinned .NET SDK 10.0.400, Bazelisk 1.29.0, Buildifier
-and Buildozer 8.2.1 under ignored `.tools/` directories without sudo. Repeat setup
-reuses installed tools. Bazelisk selects and caches upstream Bazel; this repository
-does not maintain Bazel download checksums or installation stamps.
-
-Use wrappers from each new shell. For Python fixtures that read tool variables:
-
-```sh
 source scripts/env.sh
-```
-
-Continue with the [SDK-and-sync quickstart](../examples/quickstart/README.md).
-
-## Bazel versions
-
-`.bazelversion` selects **9.2.0**. The other supported baseline is **8.8.0**:
-
-```sh
-USE_BAZEL_VERSION=8.8.0 bash scripts/bazel.sh --version
-```
-
-`scripts/bazel-launcher.sh` preserves the caller's working directory and carries
-this selection into generated workspaces, even when they contain another pin.
-`scripts/bazel.sh` runs from the repository root and defaults to a retained server;
-set `RULES_MSBUILD_BAZEL_MODE=batch` for a fresh process per command.
-
-`RULES_MSBUILD_BAZEL` can select an explicit executable, and
-`RULES_MSBUILD_DOTNET_ROOT` can select an SDK directory. For an explicitly supplied
-Bazel binary, set `RULES_MSBUILD_BAZEL_VERSION` to its expected version.
-`USE_BAZEL_VERSION` takes precedence over that legacy version setting.
-`RULES_MSBUILD_BAZELISK` overrides the launcher binary. `BAZELISK_HOME` selects its
-cache, defaulting to `.cache/bazelisk`. Benchmark reports record the actual Bazel
-version and identify the launcher hash separately from a Bazel binary hash.
-
-Host-path SDK repositories and the optional Nix environment have been removed.
-Use the SDK extension above for acquisition, or supply Bazel-produced SDK
-artifacts through [the shared SDK contract](sdk-toolchains.md).
-
-## BUILD-file tooling
-
-Buildifier enforces formatting and lint in `check.sh`. Buildozer is available for
-explicit edits and rule migrations, for example:
-
-```sh
-.tools/bin/buildozer 'add deps //Library:Library' //App:App
-```
-
-Buildozer is not invoked during ordinary compilation and does not infer MSBuild
-project dependencies. Review its changes before committing.
-
-## Containers and hosted environments
-
-The toolchain image prewarms both supported Bazel versions in `BAZELISK_HOME`.
-Acquisition happens before builds or benchmark timing. See
-[Apple containers](apple-container-runbook.md) for setup.
-
-Hosted environments can use `bash scripts/setup.sh` for setup and maintenance.
-Downloads use Microsoft, GitHub and Bazel release hosts; no secrets are required.
-Restore required NuGet packages before offline builds. Committing setup scripts
-does not configure a hosting service automatically.
-
-## .NET code style
-
-C# style and warning policies apply to the repository's .NET tools.
-Builds enforce the selected EditorConfig rules and treat compiler/analyzer warnings
-as errors. Owned C# requires braces around control-flow bodies, expanded blocks,
-consistent modifier ordering, explicit accessibility, readonly fields when possible,
-file-scoped namespaces and usings outside namespaces. Unused private members and
-unnecessary assignments are rejected. Import sorting is enforced by the formatter
-check, not the compiler.
-
-Run the active tooling and explicit-runner checks with:
-
-```sh
+bash scripts/check.sh
 bash scripts/check-dotnet.sh
+bash scripts/check-analysis.sh
+python3 tests/graph_build/acceptance.py /tmp/fresh-graph-acceptance
 ```
 
-This rebuilds `Tooling` and `ExplicitBuild` with MSBuild warnings also treated as errors,
-checks all warning-level formatter diagnostics (including System-first imports), and verifies that deliberate
-violations fail.
-Experimental fixtures retain their own build policy. See [code-style validation (historical)](https://github.com/keegan-caruso/msbuild-bazel/blob/46d7f37b5cf36e62453a2a511697562107ce6ee2/docs/code-style-findings.md) for scope and evidence.
+Setup downloads SDK 10.0.400, Bazelisk 1.29.0, Buildifier and Buildozer 8.2.1 into
+ignored local tool/cache directories. Use wrappers and explicit tool overrides;
+do not depend on PATH changes. Production builds use no Python; Python drives
+fixtures and reports.
 
-## Validation
+`check.sh` checks shell syntax, pins, tool versions and tracked Starlark formatting.
+`check-dotnet.sh` builds/formats Tooling, ArtifactTools, ProjectSync and GraphBuild,
+treats warnings as errors and runs style/bootstrap/sync regressions. Fixture
+projects retain their own build policy. `check-analysis.sh` uses rules_testing and
+an aquery metadata check with an execution-disabled fake SDK.
 
-`bash scripts/check.sh` checks shell syntax, pin consistency, selected tool versions,
-and Starlark formatting/lint. `bash scripts/check-dotnet.sh` checks owned .NET code.
+## Versions and overrides
 
-Run the supported-version compatibility matrix:
+`.bazelversion` selects 9.2.0; `USE_BAZEL_VERSION=8.8.0` selects the other supported
+baseline. Bazelisk acquires Bazel; the repository does not manage its checksums.
 
-```sh
-python3 scripts/test-bazel-matrix.py --output /tmp/msbuild-bazel-matrix
-```
+- `scripts/bazel-launcher.sh` retains the caller's workspace.
+- `scripts/bazel.sh` runs from this repository's root.
+- `scripts/dotnet.sh` selects the pinned contributor SDK.
+- `RULES_MSBUILD_BAZELISK` / `BAZELISK_HOME` select launcher/cache.
+- `RULES_MSBUILD_BAZEL` selects an explicit executable;
+  `RULES_MSBUILD_BAZEL_VERSION` supplies its expected version.
+- `RULES_MSBUILD_DOTNET_ROOT` selects contributor/fixture tooling, not a host-path
+  SDK repository for application builds.
 
-It checks Bazel 8.8.0 and 9.2.0, SDK repositories and explicit-rule acceptance.
-The output directory must be fresh and outside the checkout. On qualified Linux
-workers, set `RULES_MSBUILD_EXPLICIT_WORKER=1` to exercise persistent compilation.
-See [worker qualification](explicit-linux-workers.md) for additional controls.
+Use fresh disposable fixture/report directories. Do not commit SDKs, packages,
+products or private logs. Keep profiling off for scores. CI is
+[manual-only](ci-scope.md). Linux worker checks require the
+[qualified container](apple-container-runbook.md).
 
-GitHub CI is manual-only. The Linux workflow offers quick/full checks. macOS
-validation is local. See [CI scope](ci-scope.md).
+## SDK selection
 
-## Rule tests
-
-Run `bash scripts/check-analysis.sh` for SDK-free rule checks on the selected
-Bazel version. `rules_testing` covers provider propagation, compile versus runtime
-inputs, output groups, runfiles, packages, tools, generation, restore and invalid
-attribute combinations. A small `aquery` check covers execution requirements,
-which Bazel does not expose through the Starlark Action API.
-
-The fake SDK is registered only as a root-module development toolchain. Its
-launcher always fails if executed; consumer modules do not inherit it. Fixtures
-are manual targets, so the analysis suite does not build their outputs.
-
-Quick checks and the shared version matrix run this suite. Real compilation,
-MSBuild-discovered input validation, worker recovery, sandboxing, test protocol
-execution and edit/cache invalidation remain integration checks. The settings
-conflict/escape and tool binding/path rejection cases moved out of the VSTest
-and tool integration scripts into analysis tests.
-
-Qualification: all 25 analysis tests and execution-requirement checks passed on
-macOS ARM64 and Linux ARM64 with Bazel 8.8.0 and 9.2.0. The full macOS version
-matrix also passed owned-code checks, SDK repository tests and real-build
-acceptance, including edit invalidation and cache recovery. This qualification
-did not change production rule behavior.
+The SDK extension accepts an exact version or tracked `global_json` label.
+Selection resolves against the pinned catalog; it never searches installed SDKs.
+Unsupported roll-forward policies, machine-local paths, unknown fields/pins and
+workloads fail explicitly. `msbuild-sdks` metadata does not acquire packages;
+package SDKs require declared archives. Downloaded/generated SDKs use the same
+[artifact contract](sdk-toolchains.md).

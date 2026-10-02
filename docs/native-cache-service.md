@@ -27,7 +27,7 @@ bash scripts/bazel.sh build //path/to:target \
 
 For a consumer that may read but must not publish local results, set
 `--remote_upload_local_results=false`. Cache entries are ordinary Bazel actions;
-there is no separate preparation snapshot or `/native` endpoint on the explicit path.
+graph actions can also use the project-cache transport below.
 
 The listener is loopback-only. A second worker can use SSH authentication and
 forwarding without exposing an unauthenticated cache port to the network:
@@ -65,3 +65,22 @@ and the recovered bytes compared exactly with the original. `lsof` confirmed the
 only service HTTP listener is `127.0.0.1:9090`.
 This validates restart persistence; an actual logout/reboot and independent-worker
 network acceptance have not been performed.
+
+## Project snapshots
+
+Bazel's action cache and the MSBuild plugin use separate keys on the same HTTP
+AC/CAS service. Set the endpoint in the graph action environment:
+
+```sh
+bazel build //:graph --strategy=MSBuildGraph=worker --worker_sandboxing \
+  --action_env=RULES_MSBUILD_PROJECT_CACHE_URL=http://cache:9090
+```
+
+Workers forward the `RULES_MSBUILD_PROJECT_CACHE_` environment. If authentication
+is needed, supply `RULES_MSBUILD_PROJECT_CACHE_BEARER_TOKEN` through the environment;
+do not put credentials in BUILD files or commit logs. The runner removes transport
+credentials before MSBuild evaluation. Missing blobs become misses and repair;
+corruption fails explicitly. Downloads are digest-checked and atomic. Bounded
+parallel transfers retry transient failures three times. Observed conflicts fail,
+but the HTTP backend does not provide atomic compare-and-swap for concurrent
+unobserved divergent writers. See [runtime fault/recovery controls](runtime-qualification.md).

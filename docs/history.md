@@ -1,23 +1,22 @@
-# Historical implementation and experiments
+# Historical implementations
 
-The supported interface is `msbuild/defs.bzl` and `tools/ExplicitBuild`. Earlier
-versions discovered whole MSBuild graphs, exported generated Bazel declarations,
-staged preparation bundles and replayed build results through a native cache.
-Those implementations and their dependent tests were removed. Their reports are
-not current usage instructions or current compatibility claims.
+The graph workflow is now the only build backend. The previous per-project
+compiler/worker, generator, public facades and their implementation-specific tests
+were removed. Shared artifact acquisition and launch utilities remain in
+`tools/ArtifactTools`.
 
-The active documentation tree now keeps user guides, current qualification and
-the evidence those claims cite. Superseded designs, experiments and old roadmap
-matrices remain available in Git history:
+The [complete pre-cutover tree at `7e22cd6`](https://github.com/keegan-caruso/msbuild-bazel/tree/7e22cd67609f6ae5e1606fcae9dcf6e578c2db3b)
+contains that backend, its reports, and the full graph qualification chronology:
 
-- [Complete pre-cleanup documentation](https://github.com/keegan-caruso/msbuild-bazel/tree/46d7f37b5cf36e62453a2a511697562107ce6ee2/docs).
-- [Old implementation chronology](https://github.com/keegan-caruso/msbuild-bazel/blob/46d7f37b5cf36e62453a2a511697562107ce6ee2/docs/implementation-history.md).
-- [Old roadmap and work-package definitions](https://github.com/keegan-caruso/msbuild-bazel/blob/46d7f37b5cf36e62453a2a511697562107ce6ee2/docs/historical-roadmap.md).
-- [Retired code and validation details](https://github.com/keegan-caruso/msbuild-bazel/blob/46d7f37b5cf36e62453a2a511697562107ce6ee2/docs/legacy-implementation-removal.md).
-- [2026-09-23 issue disposition snapshot](https://github.com/keegan-caruso/msbuild-bazel/blob/4ab387c59ddf5fda46d15646cf0f738d9a0026a0/docs/issue-review-2026-09-23.md).
+- [Graph migration/API development](https://github.com/keegan-caruso/msbuild-bazel/blob/7e22cd67609f6ae5e1606fcae9dcf6e578c2db3b/docs/project-cache-migration.md)
+- [Graph qualification checkpoints](https://github.com/keegan-caruso/msbuild-bazel/blob/7e22cd67609f6ae5e1606fcae9dcf6e578c2db3b/docs/graph-cache-plan.md)
+- [Full performance evidence](https://github.com/keegan-caruso/msbuild-bazel/blob/7e22cd67609f6ae5e1606fcae9dcf6e578c2db3b/docs/performance.md)
+- [Retired per-project docs and evidence](https://github.com/keegan-caruso/msbuild-bazel/tree/7e22cd67609f6ae5e1606fcae9dcf6e578c2db3b/docs)
 
-For old commands, check out their recorded implementation revision. Revision
-`067cd59` retains the removed implementations; `da9648b` also retains their shell
-entry points. Documentation-only snapshots do not restore deleted executables.
-Do not combine benchmark numbers across implementations, tool versions or cache
-states, or count an old accepted slice as qualification of a new one.
+Still older discovery/replay implementations are preserved at revisions `067cd59`
+and `da9648b` (including their shell entrypoints). Their
+[earlier documentation snapshot](https://github.com/keegan-caruso/msbuild-bazel/tree/46d7f37b5cf36e62453a2a511697562107ce6ee2/docs)
+is historical, not current instructions.
+
+Check out the recorded implementation revision to reproduce old commands.
+Do not combine results across backends, tool versions, graph scope or cache states.
