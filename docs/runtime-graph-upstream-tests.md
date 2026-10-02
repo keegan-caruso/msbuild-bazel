@@ -107,7 +107,7 @@ eight discovered cases. The passing namespace keeps the matching DAC capabilitie
 and conditionally binds that VM device. It still mounts no SDK; no case or filter
 was removed. A deliberately wrong CoreLib hash fails fast.
 
-The expanded replay/edit controls pass on Bazel 9.2.0:
+The expanded replay/edit controls pass on Bazel 8.8.0 and 9.2.0:
 
 | Control | Project-cache hits / compilations | Verified result |
 | --- | ---: | --- |
@@ -132,7 +132,25 @@ python3 tests/graph_build/upstream/runtime_suite_controls.py \
   WORKSPACE RAW_DIRECTORY NEW_CONTROLS_DIRECTORY --output-base WARM_BASE --all-suites
 ```
 
-Actual 8.8 suite execution and paired timings remain open.
+The fresh Bazel 8.8 compatibility run also passes the seed, every control above,
+raw case/outcome parity and SDK-absent execution. Seed has zero hits and 481 misses;
+the same 118,952 passes / 64 skips and 3,622 compiled products return. This is
+unscored Linux ARM64 evidence, with four CPUs, 8 GiB and four MSBuild nodes.
+Native producers are shared with the raw managed comparison.
+
+```sh
+python3 tests/graph_build/upstream/runtime_compatibility.py \
+  WORKSPACE RAW_DIRECTORY NEW_RESULTS_DIRECTORY \
+  --output-base FRESH_BASE --version 8.8.0
+```
+
+The controller freezes the 543 configured-node/eight-suite scope, disables Bazel
+whole-action caches and stops its worker after the checks. The graph action uses
+sandboxed workers. Native actions use the qualification adapter's own declared
+filesystem/network namespace and an explicit standalone strategy; they do not run
+inside a second Bazel Linux sandbox. Earlier failed setup and disk-pressure
+interruptions are excluded; the passing run uses a new output base.
+Larger paired build/test timings remain a separate gate.
 
 ## Declared inputs
 
@@ -226,8 +244,8 @@ control uses a short unique marker and starts from a successful original suite.
 
 ## Remaining gates
 
-Repeat relevant actual-suite controls on Bazel 8.8.0 and capture larger paired
-build timings separately from test execution.
+Actual-suite controls now pass on both supported Bazel baselines. Capture larger
+paired build timings separately from test execution.
 Independent cache consumers, native source/header/tool mutations and broader edit
 scenarios remain separate roadmap gates. Build and test timings must be separate.
 

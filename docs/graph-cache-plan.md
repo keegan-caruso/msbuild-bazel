@@ -184,7 +184,7 @@ runtime qualification and measurement, not repeating completed synthetic work.
 | 2. Incremental baseline | Ordinary/prepared paired edits and independent project recovery pass | Larger edit matrix |
 | 3. Larger scope | Collections: 55 compiled with paired edits; sockets: 77 compiled; loaded-common: 182 configured / 163 compiled with full-source parity on both baselines; threading/filesystem compilation pass; loaded-platform has 215 compilations with raw/replay/native parity on both baselines | Larger paired edits, shared/generator/resource edits, other slices and graph-backed tests |
 | 4. Removed work | Shared CAS, path reuse, shared evaluation context, read-only worker packages and indexed ownership; [latest 481-compilation scorecard/profile](performance.md#indexed-output-ownership): body/API medians have 2%/13% overhead, with exact raw bytes and compiler calls | Keep payload verification and fresh evaluation; broader qualification remains open |
-| 5. Tests | [Expanded source host](runtime-graph-upstream-tests.md): 481 compilations, eight suites with 118,952 passes / 64 skips, 3,622 compiled products matching raw bytes, reviewed case/outcome parity and SDK-absent execution; full replay, six/17 body/API recompilations matching raw, assertion/observer failure and restoration pass | Actual 8.8 suite checks and larger paired build/test timings |
+| 5. Tests | [Expanded source host](runtime-graph-upstream-tests.md): 481 compilations, eight suites with 118,952 passes / 64 skips, 3,622 compiled products matching raw bytes, reviewed case/outcome parity and SDK-absent execution; full replay, six/17 body/API recompilations matching raw, assertion/observer failure and restoration pass on 8.8/9.2 | Larger paired build/test timings |
 | 6. Native/app | Graph-built driver and declared native producers compose a 58-managed/eight-native source framework; ordinary app and SDK-absent checks pass on both baselines; all 2,031 compiled managed products match full-source raw Build | Native mutations, broader edits and faults |
 | 7. Recovery | Independent 8.8 producer / 9.2 consumer recovers all 163 loaded-common projects and exact 3,980 files; body/API recovery and fresh raw/sandbox parity pass | Broader edits and cache/runtime faults; repeated timing and peak memory |
 | 8. Readiness | Graph mode remains opt-in | Runtime capability/performance gates; later SDK/AOT/full-repository expansion |
@@ -1372,6 +1372,9 @@ fresh; broader reuse requires a complete file/glob/import/environment/tool contr
 If the ownership change does not produce a worthwhile saving, remove the prototype.
 
 ### 9. Qualify the actual eight-suite graph on Bazel 8.8
+
+Complete: fresh seed, 10,780-file replay, six/17 edit boundaries, failure/recovery
+and all eight SDK-absent suites pass. See [suite evidence](runtime-graph-upstream-tests.md).
 
 Use fresh output bases for build, forced replay, body/API edits, failures and
 restoration, then SDK-absent execution. Require the same 3,622 compiled products,
