@@ -3,12 +3,7 @@ load("//msbuild:toolchain.bzl", "msbuild_toolchain")
 # Exercise SDK runtime assembly without executing the fake SDK.
 # buildifier: disable=bzl-visibility
 load("//msbuild/private:sdk_bootstrap.bzl", "sdk_runtime", "sdk_runtime_toolchain")
-load(":assemblies.bzl", "assembly_tests")
-load(":facades.bzl", "facade_tests")
-load(":inputs.bzl", "input_tests")
-load(":layouts.bzl", "layout_tests")
-load(":selection.bzl", "selection_tests")
-load(":validation.bzl", "validation_tests")
+load(":graph.bzl", "graph_tests")
 
 # Deliberately unusable at execution: analysis tests must not compile .NET.
 msbuild_toolchain(
@@ -38,18 +33,6 @@ toolchain(
     toolchain_type = "//msbuild:toolchain_type",
 )
 
-assembly_tests(name = "assemblies")
-
-input_tests(name = "inputs")
-
-validation_tests(name = "validation")
-
-layout_tests(name = "layouts")
-
-facade_tests(name = "facades")
-
-selection_tests(name = "selection")
-
 sdk_runtime(
     name = "fake_runtime",
     dotnet = "dotnet",
@@ -71,4 +54,12 @@ toolchain(
     tags = ["manual"],
     toolchain = ":fake_runtime_toolchain",
     toolchain_type = "//msbuild:runtime_toolchain_type",
+)
+
+graph_tests(name = "graph")
+
+filegroup(
+    name = "runner_payload",
+    srcs = ["Runner.dll"],
+    tags = ["manual"],
 )

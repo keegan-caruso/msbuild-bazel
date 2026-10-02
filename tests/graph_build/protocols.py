@@ -10,7 +10,7 @@ import tempfile
 import xml.etree.ElementTree as ET
 
 ROOT = Path(__file__).resolve().parents[2]
-sys.path.insert(0, str(ROOT / 'tests/explicit_msbuild'))
+sys.path.insert(0, str(ROOT / 'tests/fixtures'))
 from protocol import setup as mtp_setup
 from vstest import setup as vstest_setup
 
@@ -25,7 +25,7 @@ def main():
             folder.mkdir()
             workspace = setup(folder)
             shutil.copy(ROOT / 'global.json', workspace / 'global.json')
-            module = (ROOT / 'examples/graph-quickstart/MODULE.bazel').read_text().replace('"../msbuild-bazel"', json.dumps(str(ROOT)))
+            module = (ROOT / 'examples/quickstart/MODULE.bazel').read_text().replace('"../msbuild-bazel"', json.dumps(str(ROOT)))
             (workspace / 'MODULE.bazel').write_text(module)
             if protocol == 'mtp':
                 projects = ['Mtp/Mtp.csproj']
@@ -63,7 +63,7 @@ def main():
             authored = ('load("@rules_msbuild//msbuild:sync.bzl","msbuild_sync")\n'
                         'load("@rules_msbuild//msbuild:defs.bzl","msbuild_package_lock","msbuild_graph_test","msbuild_test_tool")\n'
                         'msbuild_package_lock(name="packages",packages=' + json.dumps(roots) + ')\n'
-                        'msbuild_sync(name="sync",mode="graph",package_build=True,mappings="mapping.json",package_lock=":packages",projects=' + json.dumps(projects) + ')\n')
+                        'msbuild_sync(name="sync",package_build=True,mappings="mapping.json",package_lock=":packages",projects=' + json.dumps(projects) + ')\n')
             (workspace / 'BUILD.bazel').write_text(authored)
             command = [str(ROOT / 'scripts/bazel-launcher.sh'), f'--output_base={folder / "base"}']
 

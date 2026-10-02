@@ -161,7 +161,7 @@ def main():
     controller_module = module + '\nregister_toolchains("@controller//:all")\n'
     module += ('\nregister_toolchains("//:produced_registered", "//:produced_runtime_registered")\n'
                if args.sdk_consumer else '\nregister_toolchains("@controller//:all")\n')
-    fixed_inputs = {"Driver.cs": (here.parents[1] / 'tests/explicit_msbuild/runtime/NativeBuild.cs.txt').read_bytes(),
+    fixed_inputs = {"Driver.cs": (here.parents[1] / 'tests/runtime/NativeBuild.cs.txt').read_bytes(),
                     "source_action.bzl": (here / 'source_action.bzl').read_bytes(),
                     "component_action.bzl": (here / 'component_action.bzl').read_bytes(),
                     "MODULE.bazel": module.encode()}
@@ -183,7 +183,7 @@ def main():
     source_symbols = '"native_driver"'
     component_symbols = '"source_component", "component_package", "sdk_component_layout"' if args.sdk_consumer else '"source_component", "component_package"'
     build = ['load(":source_action.bzl", %s)' % source_symbols, 'load(":component_action.bzl", %s)' % component_symbols,
-             'load("@rules_msbuild//msbuild:defs.bzl", "msbuild_generated_nuget_package", "msbuild_library", "msbuild_package_lock", "msbuild_test")']
+             'load("@rules_msbuild//msbuild:defs.bzl", "msbuild_generated_nuget_package", "msbuild_package_lock", "msbuild_graph", "msbuild_graph_runner", "msbuild_graph_test")']
     if args.sdk_consumer:
         build.append('load("@rules_msbuild//msbuild:sdk.bzl", "msbuild_sdk")')
     build.append('native_driver(name="driver",driver_sdk="@controller//:sdk_host",driver_project="Driver.csproj",driver_source="Driver.cs")')
@@ -222,15 +222,23 @@ def main():
             'sdk_component_layout(name="layout",component=":sdk")',
             'filegroup(name="dotnet",srcs=[":layout"],output_group="dotnet")',
             'msbuild_sdk(name="produced",dotnet=":dotnet",files=[":layout"],sdk_version="10.0.100",runtime_version="10.0.0",runtime_identifier="linux-arm64")',
-            'msbuild_library(name="sdk_lib",project="SdkLib.csproj",srcs=["SdkLib.cs"],target_framework="net10.0")',
-            'msbuild_test(name="smoke",project="SdkSmoke.csproj",srcs=["SdkSmoke.cs"],deps=[":sdk_lib"],target_framework="net10.0",use_apphost=False)',
+            'msbuild_graph_runner(name="sdk_runner")',
+            'msbuild_graph(name="sdk_graph",runner=":sdk_runner",contract="sdk-contract.json",srcs=["SdkLib.csproj","SdkLib.cs","SdkSmoke.csproj","SdkSmoke.cs"],project_outputs={"SdkSmoke.csproj|net10.0":["bin/Release/net10.0","SdkSmoke.dll","Exe"]})',
+            'msbuild_graph_test(name="smoke",graph=":sdk_graph",project="SdkSmoke.csproj")',
         ])
         consumer_files = {
-            'SdkLib.csproj': '<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup><TargetFramework>net10.0</TargetFramework></PropertyGroup></Project>\n',
+            'SdkLib.csproj': '<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup><TargetFramework>net10.0</TargetFramework><EnableDefaultCompileItems>false</EnableDefaultCompileItems></PropertyGroup><ItemGroup><Compile Include="SdkLib.cs" /></ItemGroup></Project>\n',
             'SdkLib.cs': 'public static class SdkLib { public static int Value() => 1; }\n',
-            'SdkSmoke.csproj': '<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup><TargetFramework>net10.0</TargetFramework></PropertyGroup><ItemGroup><ProjectReference Include="SdkLib.csproj" /></ItemGroup></Project>\n',
+            'SdkSmoke.csproj': '<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup><TargetFramework>net10.0</TargetFramework><OutputType>Exe</OutputType><UseAppHost>false</UseAppHost><EnableDefaultCompileItems>false</EnableDefaultCompileItems></PropertyGroup><ItemGroup><Compile Include="SdkSmoke.cs" /><ProjectReference Include="SdkLib.csproj" /></ItemGroup></Project>\n',
             'SdkSmoke.cs': 'System.Console.WriteLine("SDK_FROM_COMPONENTS="+System.Environment.Version); return System.Environment.Version.ToString()=="10.0.0" && SdkLib.Value()==1 ? 0 : 1;\n',
         }
+        consumer_files['sdk-contract.json'] = json.dumps(dict(Version=1, Entry='SdkSmoke.csproj', SdkVersion='10.0.100', Properties={'Configuration':'Release'}, SharedInputs=[], Projects={
+            project: dict(Inputs=[project, source], OutputDirectories=[f'bin/{project[:-7]}/Release/net10.0', f'obj/{project[:-7]}/Release/net10.0']) for project, source in [('SdkLib.csproj','SdkLib.cs'),('SdkSmoke.csproj','SdkSmoke.cs')]}), indent=2)+'\n'
+        # Projects share a source directory; authored output paths remain distinct.
+        for name in ['SdkLib.csproj', 'SdkSmoke.csproj']:
+            stem = name[:-7]
+            consumer_files[name] = consumer_files[name].replace('<PropertyGroup>', '<PropertyGroup><BaseOutputPath>bin/'+stem+'/</BaseOutputPath><BaseIntermediateOutputPath>obj/'+stem+'/</BaseIntermediateOutputPath>')
+        build[-2] = build[-2].replace('bin/Release/net10.0', 'bin/SdkSmoke/Release/net10.0')
         present = [name for name in consumer_files if (work / name).exists()]
         if present and len(present) != len(consumer_files):
             missing = [name for name in consumer_files if name not in present]
@@ -243,11 +251,14 @@ def main():
             'component_package(name="commandline_archive",component=":command-line-api",member="artifacts/packages/Release/Shipping/command-line-api/System.CommandLine.2.0.0.nupkg")',
             'msbuild_generated_nuget_package(name="package",package_id="System.CommandLine",version="2.0.0",archive=":commandline_archive")',
             'msbuild_package_lock(name="lock",packages=[":package"])',
-            'msbuild_test(name="consumer",project="App.csproj",srcs=["App.cs"],package_lock=":lock",deps=[":package"],target_framework="net10.0",use_apphost=False)',
+            'msbuild_graph_runner(name="consumer_runner")',
+            'msbuild_graph(name="consumer_graph",runner=":consumer_runner",contract="consumer-contract.json",srcs=["App.csproj","App.cs"],package_lock=":lock",project_outputs={"App.csproj|net10.0":["bin/App/Release/net10.0","App.dll","Exe"]})',
+            'msbuild_graph_test(name="consumer",graph=":consumer_graph",project="App.csproj")',
         ])
         if not (work / 'App.csproj').exists():
-            (work / 'App.csproj').write_text('<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup><TargetFramework>net10.0</TargetFramework></PropertyGroup><ItemGroup><PackageReference Include="System.CommandLine" Version="2.0.0" /></ItemGroup></Project>')
+            (work / 'App.csproj').write_text('<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup><TargetFramework>net10.0</TargetFramework><OutputType>Exe</OutputType><UseAppHost>false</UseAppHost><EnableDefaultCompileItems>false</EnableDefaultCompileItems><BaseOutputPath>bin/App/</BaseOutputPath><BaseIntermediateOutputPath>obj/App/</BaseIntermediateOutputPath></PropertyGroup><ItemGroup><Compile Include="App.cs" /><PackageReference Include="System.CommandLine" Version="2.0.0" /></ItemGroup></Project>')
             (work / 'App.cs').write_text('var command = new System.CommandLine.RootCommand("qualification"); System.Console.WriteLine(command.Options.Count); return command.Options.Count == 2 ? 0 : 1;')
+        (work / 'consumer-contract.json').write_text(json.dumps(dict(Version=1,Entry='App.csproj',SdkVersion='10.0.100' if args.sdk_consumer else '10.0.400',Properties={'Configuration':'Release'},SharedInputs=[],Projects={'App.csproj':dict(Inputs=['App.csproj','App.cs'],OutputDirectories=['bin/App/Release/net10.0','obj/App/Release/net10.0'])})))
     build_file = work / 'BUILD.bazel'
     if not args.extend or build_file.read_text() != '\n'.join(build) + '\n':
         build_file.write_text('\n'.join(build) + '\n')

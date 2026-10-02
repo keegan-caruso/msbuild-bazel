@@ -4,7 +4,7 @@ using Microsoft.Build.Construction;
 namespace RulesMSBuild.ProjectSync;
 
 // Graph execution retains targets. Mappings attest their input contract rather
-// than translating them into per-project adapter targets.
+// than replacing MSBuild target execution.
 internal sealed class GraphMappings
 {
     private readonly Mappings mappings;
@@ -33,7 +33,7 @@ internal sealed class GraphMappings
                 }
             }
         }
-        mappings = Mappings.Read(path, graph: true);
+        mappings = Mappings.Read(path);
         var owned = new[] { "NetCoreSdkRoot", "DOTNET_HOST_PATH", "PathMap", "UseSharedCompilation", "RestoreSources", "RestoreConfigFile", "RestorePackagesPath", "RestoreFallbackFolders", "RestoreAdditionalProjectSources", "RestoreAdditionalProjectFallbackFolders" };
         if (mappings.ProjectDefaults.Properties.Keys.Any(key => owned.Contains(key, StringComparer.OrdinalIgnoreCase)))
         {

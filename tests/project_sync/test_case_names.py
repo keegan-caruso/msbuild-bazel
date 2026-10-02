@@ -4,7 +4,7 @@ from pathlib import Path
 import sys
 import unittest
 
-sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'explicit_msbuild/runtime'))
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'runtime'))
 from case_names import normalize, shuffled
 
 

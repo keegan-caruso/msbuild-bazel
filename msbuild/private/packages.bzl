@@ -73,5 +73,5 @@ def _package_lock(ctx):
 
 msbuild_package_lock = rule(implementation = _package_lock, attrs = {
     "packages": attr.label_list(providers = [MSBuildPackageInfo]),
-    "allow_multiple_versions": attr.bool(default = False, doc = "Allow graph-wide package inventories; per-project consumers still require one version per ID."),
+    "allow_multiple_versions": attr.bool(default = False, doc = "Allow configured graph nodes to use distinct versions of a package ID."),
 })

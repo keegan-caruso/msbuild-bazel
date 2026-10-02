@@ -28,7 +28,7 @@ def main():
         mapping['projectDefaults']['outputFiles'] = ['shared/wrong-framework.dll']
         mapping_path = root / 'mappings.json'
         mapping_path.write_text(json.dumps(mapping))
-        sync = [DOTNET, ROOT / 'tools/ProjectSync/bin/Release/net10.0/ProjectSync.dll', root, SDK / 'sdk/10.0.400', 'App/App.csproj', '--graph', '--mappings', mapping_path]
+        sync = [DOTNET, ROOT / 'tools/ProjectSync/bin/Release/net10.0/ProjectSync.dll', root, SDK / 'sdk/10.0.400', 'App/App.csproj', '--mappings', mapping_path]
         run(*sync)
         contract_path = root / 'graph.generated.json'
         contract = json.loads(contract_path.read_text())

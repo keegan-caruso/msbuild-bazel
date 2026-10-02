@@ -64,5 +64,5 @@ jobs:
         with:
           name: linux-${{ inputs.scope }}-evidence
           retention-days: 7
-          path: /tmp/msbuild-explicit-ci.*/**
+          path: /tmp/msbuild-graph-ci.*/**
           if-no-files-found: ignore

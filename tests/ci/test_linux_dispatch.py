@@ -50,24 +50,24 @@ if os.environ.get('CI_TEST_FAIL') in args:
         self.assertTrue(any('scripts/check-dotnet.sh' in call for call in calls))
         self.assertTrue(any('scripts/check-analysis.sh' in call for call in calls))
         self.assertTrue(any('tests/sdk_repository' in call for call in calls))
-        self.assertFalse(any('tests/explicit_msbuild/acceptance.py' in call for call in calls))
+        self.assertFalse(any('tests/graph_build/acceptance.py' in call for call in calls))
 
     def test_full_runs_acceptance_once(self):
         result, calls = self.run_phase('full')
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertEqual(sum('scripts/check-dotnet.sh' in call for call in calls), 1)
-        self.assertEqual(sum('tests/explicit_msbuild/acceptance.py' in call for call in calls), 1)
+        self.assertEqual(sum('tests/graph_build/acceptance.py' in call for call in calls), 1)
 
     def test_quick_failure_stops_full(self):
         result, calls = self.run_phase('full', fail='scripts/check-dotnet.sh')
         self.assertEqual(result.returncode, 17)
-        self.assertFalse(any('tests/explicit_msbuild/acceptance.py' in call for call in calls))
+        self.assertFalse(any('tests/graph_build/acceptance.py' in call for call in calls))
 
     def test_acceptance_does_not_repeat_quick(self):
         result, calls = self.run_phase('acceptance')
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertFalse(any('scripts/check-dotnet.sh' in call for call in calls))
-        self.assertTrue(any('tests/explicit_msbuild/acceptance.py' in call for call in calls))
+        self.assertTrue(any('tests/graph_build/acceptance.py' in call for call in calls))
 
     def test_unknown_scope_runs_nothing(self):
         result, calls = self.run_phase('typo')

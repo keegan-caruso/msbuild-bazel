@@ -1,9 +1,9 @@
 """Create launchers for explicit executable and test projects."""
 
-load(":paths.bzl", _RUNTIME_TOOLCHAIN = "RUNTIME_TOOLCHAIN", _quote = "quote", _runfile = "runfile", _runtime_package = "runtime_package")
+load(":paths.bzl", _RUNTIME_TOOLCHAIN = "RUNTIME_TOOLCHAIN", _quote = "quote", _runfile = "runfile")
 load(":providers.bzl", "MSBuildRuntimeInfo", "MSBuildTestToolInfo")
 
-def create_launcher(ctx, tc, name, runtime, runtimes, runtime_packages, runtime_data, test):
+def create_launcher(ctx, tc, name, runtime, runtime_data, test):
     """Return the executable provider and optional test environment.
 
     Args:
@@ -11,8 +11,6 @@ def create_launcher(ctx, tc, name, runtime, runtimes, runtime_packages, runtime_
         tc: MSBuild toolchain.
         name: Assembly name.
         runtime: Compiled runtime output.
-        runtimes: Transitive runtime outputs.
-        runtime_packages: Transitive runtime package assets.
         runtime_data: Transitive data files.
         test: Whether to create a test launcher.
 
@@ -32,8 +30,6 @@ def create_launcher(ctx, tc, name, runtime, runtimes, runtime_packages, runtime_
     ctx.actions.write(launch_request, json.encode({
         "runtimeHost": {"directory": _runfile(ctx, host.directory), "entryPoint": host.entry_point, "launchMode": host.launch_mode, "runtimeIdentifier": host.runtime_identifier, "version": host.version, "environment": host.environment},
         "entry": _runfile(ctx, runtime),
-        "packages": [_runtime_package(row, ctx) for row in runtime_packages.to_list()],
-        "dependencies": [_runfile(ctx, file) for file in runtimes.to_list()],
         "assembly": name,
         "test": test,
         "testOptions": {
@@ -60,6 +56,6 @@ exec "$runfiles/"%s "$runfiles/"%s run "$runfiles/"%s "$@"
     ctx.actions.write(launcher, script, is_executable = True)
     runfiles = ctx.runfiles(
         files = [tc.dotnet, tc.runner, runtime, launch_request] + [host.directory] + [row.file for row in runtime_data.to_list()] + ([ctx.file.test_settings] if test and ctx.file.test_settings else []),
-        transitive_files = depset(transitive = [host.files] + [tc.runtime, tc.runner_support, runtimes, depset([row.directory for row in runtime_packages.to_list()])] + [tool[MSBuildTestToolInfo].files for tool in test_tools]),
+        transitive_files = depset(transitive = [host.files] + [tc.runtime, tc.runner_support] + [tool[MSBuildTestToolInfo].files for tool in test_tools]),
     )
     return ([RunEnvironmentInfo(environment = ctx.attr.env)] if test else []) + [DefaultInfo(executable = launcher, files = depset([runtime]), runfiles = runfiles)]

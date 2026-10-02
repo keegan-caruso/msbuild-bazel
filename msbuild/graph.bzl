@@ -1,12 +1,11 @@
-"""Opt-in MSBuild traversal graph actions with explicit project contracts."""
+"""MSBuild traversal graph actions with explicit project contracts."""
 
-load("//msbuild/private:graph_tools.bzl", "graph_tool_closure")
 load("//msbuild/private:paths.bzl", _RUNTIME_TOOLCHAIN = "RUNTIME_TOOLCHAIN", _TOOLCHAIN = "TOOLCHAIN")
 load("//msbuild/private:project_launch.bzl", _create_launcher = "create_launcher")
 load("//msbuild/private:providers.bzl", "MSBuildBindingInfo", "MSBuildLayoutInfo", "MSBuildPackageLockInfo", "MSBuildRuntimeInfo")
 load("//msbuild/private:test_options.bzl", _TEST_OPTIONS_ATTRS = "TEST_OPTIONS_ATTRS", _validate_test = "validate_test")
 
-MSBuildGraphInfo = provider("A declared MSBuild graph workspace and its execution SDK.", fields = {"directory": "Graph output workspace", "dotnet": "Execution host", "sdk": "Declared SDK files", "projects": "Configured project runtime outputs"})
+MSBuildGraphInfo = provider("A declared MSBuild graph workspace and its execution SDK.", fields = {"directory": "Graph output workspace", "contract": "Declared graph output ownership", "dotnet": "Execution host", "sdk": "Declared SDK files", "projects": "Configured project runtime outputs"})
 
 def _runner(ctx):
     tc = ctx.toolchains["//msbuild:toolchain_type"]
@@ -88,7 +87,7 @@ def _graph_action(ctx, prepare = False):
         if binding.property_name in tool_properties:
             fail("Duplicate graph tool property: " + binding.property_name)
         tool_properties[binding.property_name] = ".graph-tools/" + str(index) + "/" + binding.tool.entry_point
-        closure = graph_tool_closure(ctx, tc, binding, index)
+        closure = binding.tool.directory
         closures.append(closure)
         args.add_all([closure.path, ".graph-tools/" + str(index)])
         worker_sources.append({"path": closure.path, "destination": ".graph-tools/" + str(index)})
@@ -171,7 +170,7 @@ def _graph_action(ctx, prepare = False):
         )
     if prepare:
         return [DefaultInfo(files = depset([output])), MSBuildGraphRestoreInfo(directory = output, contract = ctx.file.contract, runner = runner[0], sdk = tc.sdk)]
-    return [DefaultInfo(files = depset([output])), MSBuildGraphInfo(directory = output, dotnet = tc.dotnet, sdk = tc.sdk, projects = ctx.attr.publish_outputs if ctx.attr.target == "Publish" else ctx.attr.project_outputs)]
+    return [DefaultInfo(files = depset([output])), MSBuildGraphInfo(directory = output, contract = ctx.file.contract, dotnet = tc.dotnet, sdk = tc.sdk, projects = ctx.attr.publish_outputs if ctx.attr.target == "Publish" else ctx.attr.project_outputs)]
 
 def _graph(ctx):
     return _graph_action(ctx)
@@ -235,16 +234,14 @@ def _runtime(ctx, test = False):
         inputs = [graph.directory],
         outputs = [output],
         arguments = [graph.directory.path + "/workspace/" + directory, output.path, assembly],
-        # MSBuild already composed the complete runtime. Empty package manifests
-        # tell the shared launcher that no deferred package files remain.
-        command = 'set -eu; test -f "$1/$3"; mkdir -p "$2"; cp -pRL "$1/." "$2/"; for name in .rules-msbuild-packages.json .rules-msbuild-package-files.json; do test ! -e "$2/$name"; printf "{}" > "$2/$name"; done',
+        command = 'set -eu; test -f "$1/$3"; mkdir -p "$2"; cp -pRL "$1/." "$2/"',
         mnemonic = "MSBuildGraphRuntime",
     )
     for target in ctx.attr.data_paths:
         if len(target[DefaultInfo].files.to_list()) != 1 or target[DefaultInfo].files.to_list()[0].is_directory:
             fail("data_paths requires one file per label")
     data = depset([struct(file = target[DefaultInfo].files.to_list()[0], destination = path) for target, path in ctx.attr.data_paths.items()])
-    return _create_launcher(ctx, ctx.toolchains[_TOOLCHAIN], assembly.removesuffix(".dll"), output, depset(), depset(), data, test)
+    return _create_launcher(ctx, ctx.toolchains[_TOOLCHAIN], assembly.removesuffix(".dll"), output, data, test)
 
 def _test(ctx):
     _validate_test(ctx)
@@ -299,4 +296,31 @@ msbuild_graph_layout = rule(
         "project": attr.string(mandatory = True),
         "framework": attr.string(),
     },
+)
+
+def _output(ctx):
+    graph = ctx.attr.graph[MSBuildGraphInfo]
+    path = ctx.attr.path
+    if path.startswith("/") or "\\" in path or any([part in ["", ".", ".."] for part in path.split("/")]):
+        fail("Graph output requires a safe workspace-relative file path")
+    output = ctx.actions.declare_file(ctx.label.name + "/" + path.rsplit("/", 1)[-1])
+    tc = ctx.toolchains[_TOOLCHAIN]
+    request = ctx.actions.declare_file(ctx.label.name + ".output.json")
+    ctx.actions.write(request, json.encode({"contract": graph.contract.path, "workspace": graph.directory.path + "/workspace", "path": path, "output": output.path}))
+    ctx.actions.run(
+        executable = tc.dotnet,
+        arguments = [tc.runner.path, "graph-output", request.path],
+        inputs = depset([graph.directory, graph.contract, request, tc.runner], transitive = [tc.runtime, tc.runner_support]),
+        outputs = [output],
+        mnemonic = "MSBuildGraphOutput",
+    )
+    return [DefaultInfo(files = depset([output]))]
+
+msbuild_graph_output = rule(
+    implementation = _output,
+    attrs = {
+        "graph": attr.label(providers = [MSBuildGraphInfo], mandatory = True),
+        "path": attr.string(mandatory = True, doc = "File in a contract-declared output directory."),
+    },
+    toolchains = [_TOOLCHAIN],
 )

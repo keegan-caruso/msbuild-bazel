@@ -34,7 +34,7 @@ def main():
             if scratch:
                 defaults['temporaryDirectories'] = ['$(IntermediateOutputPath)temporary']
             mapping.write_text(json.dumps({'entryProperties': declarations, 'projectDefaults': defaults}))
-            return run(DOTNET, sync, root, SDK / 'sdk/10.0.400', *entries, '--graph', '--framework', 'net10.0',
+            return run(DOTNET, sync, root, SDK / 'sdk/10.0.400', *entries, '--framework', 'net10.0',
                        '--mappings', mapping, success=success)
         def build(success=True):
             for folder in ['A', 'B', 'Common']:

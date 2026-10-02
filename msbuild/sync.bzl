@@ -1,6 +1,5 @@
 """Local project synchronization, invoked explicitly with bazel run."""
 
-load("//msbuild/private:graph_tools.bzl", "graph_tool_closure")
 load("//msbuild/private:paths.bzl", _TOOLCHAIN = "TOOLCHAIN", _quote = "quote", _runfile = "runfile")
 load("//msbuild/private:providers.bzl", "MSBuildBindingInfo", "MSBuildPackageLockInfo")
 
@@ -57,19 +56,12 @@ cd "$scratch"
     packages = [{"id": row["id"], "version": row["version"], "runfile": _runfile(ctx, by_path[row["directory"]])} for row in identities.values()]
     evaluation_bindings = []
     binding_files = []
-    for index, target in enumerate(ctx.attr.bindings):
+    for target in ctx.attr.bindings:
         binding = target[MSBuildBindingInfo]
         tool = binding.tool
-        if tool.native and ctx.attr.mode != "graph":
-            fail("Sync evaluation bindings require a managed task tool outside graph mode")
-        if ctx.attr.mode == "graph":
-            closure = graph_tool_closure(ctx, tc, binding, index)
-            evaluation_bindings.append({"label": str(target.label), "property": binding.property_name, "runfiles": [_runfile(ctx, closure)], "entry": tool.entry_point, "closure": True})
-            binding_files.append(closure)
-            continue
-        entry = tool.entry_point.removeprefix(tool.layout_prefix + "/") if tool.layout_prefix else tool.entry_point
-        evaluation_bindings.append({"label": str(target.label), "property": binding.property_name, "runfiles": [_runfile(ctx, directory) for directory in tool.directories.to_list()], "entry": entry})
-        binding_files.extend(tool.files.to_list())
+        closure = binding.tool.directory
+        evaluation_bindings.append({"label": str(target.label), "property": binding.property_name, "runfiles": [_runfile(ctx, closure)], "entry": tool.entry_point, "closure": True})
+        binding_files.append(closure)
     manifest = ctx.actions.declare_file(ctx.label.name + ".sync-inputs.json")
     ctx.actions.write(manifest, json.encode({"inputs": bound, "packages": packages, "packageLock": str(ctx.attr.package_lock.label) if ctx.attr.package_lock else None, "bindings": evaluation_bindings, "packageLocks": package_locks}))
     launcher = ctx.actions.declare_file(ctx.label.name)
@@ -90,7 +82,7 @@ exec "$runfiles/"%s "$runfiles/"%s "$BUILD_WORKSPACE_DIRECTORY" "$DOTNET_ROOT/sd
         _quote(tc.sdk_version),
         " ".join([_quote(project) for project in ctx.attr.projects]),
         '--mappings "$runfiles/"' + _quote(_runfile(ctx, ctx.file.mappings)) if ctx.file.mappings else "",
-        "--graph --configuration " + _quote(ctx.attr.configuration) + (" --framework " + _quote(ctx.attr.framework) if ctx.attr.framework else "") + (" --package-build" if ctx.attr.package_build else "") + "".join([" --package-input " + _quote(path) for path in ctx.attr.package_inputs]) if ctx.attr.mode == "graph" else "",
+        "--configuration " + _quote(ctx.attr.configuration) + (" --framework " + _quote(ctx.attr.framework) if ctx.attr.framework else "") + (" --package-build" if ctx.attr.package_build else "") + "".join([" --package-input " + _quote(path) for path in ctx.attr.package_inputs]),
         _quote(_runfile(ctx, manifest)),
     ), is_executable = True)
     return [DefaultInfo(
@@ -104,7 +96,6 @@ _sync = rule(
     toolchains = [_TOOLCHAIN],
     attrs = {
         "projects": attr.string_list(mandatory = True),
-        "mode": attr.string(default = "project", values = ["project", "graph"]),
         "configuration": attr.string(default = "Release"),
         "framework": attr.string(),
         "package_build": attr.bool(),
@@ -119,8 +110,8 @@ _sync = rule(
     },
 )
 
-def msbuild_sync(name, projects, mappings = None, inputs = {}, package_lock = None, bindings = [], package_locks = [], mode = "project", configuration = "Release", framework = "", package_build = False, package_inputs = [], **kwargs):
-    """Declare a tool that evaluates local projects and writes projects.generated.bzl.
+def msbuild_sync(name, projects, mappings = None, inputs = {}, package_lock = None, bindings = [], package_locks = [], configuration = "Release", framework = "", package_build = False, package_inputs = [], **kwargs):
+    """Declare a tool that evaluates local projects and writes graph.generated.json and graph.generated.bzl.
 
     Args:
         name: Runnable target name, conventionally sync.
@@ -129,19 +120,16 @@ def msbuild_sync(name, projects, mappings = None, inputs = {}, package_lock = No
         framework: Optional graph target framework; empty builds declared frameworks.
         package_build: Opt in to offline Restore and package build/content evaluation in a disposable copy.
         package_inputs: Additional workspace-relative files read by reviewed package tasks.
-        mode: Generated backend: project (default) or opt-in graph.
-        mappings: Optional JSON file with project settings and explicit package/test bindings.
+        mappings: Optional JSON file with reviewed input, output and dependency contracts.
         inputs: Single-file labels mapped to workspace-relative evaluation/build paths.
-        bindings: Declared managed task property bindings needed during evaluation.
+        bindings: Complete tool layouts bound to task properties during evaluation.
         package_lock: Optional default closed NuGet package set, including imported SDKs.
-        package_locks: Additional closed sets selected by per-project packageLock mappings.
+        package_locks: Additional package inventories available to evaluation.
         **kwargs: Common Bazel attributes such as visibility and tags.
     """
-    if mode != "graph" and (configuration != "Release" or framework or package_build or package_inputs):
-        fail("configuration and framework require mode = graph")
     if not projects:
         fail("msbuild_sync requires at least one entry project")
     for project in projects:
         if project.startswith("/") or "\\" in project or any([part in ["", ".", ".."] for part in project.split("/")]) or not project.endswith(".csproj"):
             fail("Expected a workspace-relative csproj path: " + project)
-    _sync(name = name, projects = projects, mode = mode, configuration = configuration, framework = framework, package_build = package_build, package_inputs = package_inputs, mappings = mappings, inputs = inputs, package_lock = package_lock, package_locks = package_locks, bindings = bindings, **kwargs)
+    _sync(name = name, projects = projects, configuration = configuration, framework = framework, package_build = package_build, package_inputs = package_inputs, mappings = mappings, inputs = inputs, package_lock = package_lock, package_locks = package_locks, bindings = bindings, **kwargs)

@@ -33,8 +33,8 @@ def msbuild_sdk(name, dotnet, files, sdk_version, runtime_version, runtime_ident
         name = name + "_runner_payload",
         dotnet = dotnet,
         sdk = ":" + name + "_files",
-        project = Label("//tools/ExplicitBuild:ExplicitBuild.csproj"),
-        sources = Label("//tools/ExplicitBuild:sources"),
+        project = Label("//tools/ArtifactTools:ArtifactTools.csproj"),
+        sources = Label("//tools/ArtifactTools:sources"),
         **common
     )
     native.filegroup(name = name + "_runner", srcs = [":" + name + "_runner_payload"], output_group = "runner", **common)

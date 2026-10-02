@@ -15,7 +15,7 @@ import zipfile
 from runtime_full_source import capture_compiled_products, validate_raw_contract
 
 ROOT = Path(__file__).resolve().parents[3]
-sys.path.insert(0, str(ROOT / 'tests/explicit_msbuild/runtime'))
+sys.path.insert(0, str(ROOT / 'tests/runtime'))
 from case_names import normalize
 
 

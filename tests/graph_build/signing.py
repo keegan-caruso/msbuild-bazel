@@ -25,7 +25,7 @@ def main():
         new_key()
         (root / 'Library/Library.csproj').write_text('<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup><TargetFramework>net10.0</TargetFramework><SignAssembly>true</SignAssembly><AssemblyOriginatorKeyFile>../keys/test.snk</AssemblyOriginatorKeyFile></PropertyGroup></Project>')
         (root / 'Library/Code.cs').write_text('public class Library {}')
-        sync = [DOTNET, ROOT / 'tools/ProjectSync/bin/Release/net10.0/ProjectSync.dll', root, SDK / 'sdk/10.0.400', 'Library/Library.csproj', '--graph']
+        sync = [DOTNET, ROOT / 'tools/ProjectSync/bin/Release/net10.0/ProjectSync.dll', root, SDK / 'sdk/10.0.400', 'Library/Library.csproj', ]
         run(*sync)
         contract = root / 'graph.generated.json'
         assert 'keys/test.snk' in contract.read_text()

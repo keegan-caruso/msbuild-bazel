@@ -29,7 +29,7 @@ def main():
     outputs = [ast.literal_eval(keyword.value) for node in ast.walk(tree) if isinstance(node, ast.Call)
                for keyword in node.keywords if keyword.arg == 'project_outputs']
     assert len(outputs) == 1
-    selection = json.loads((ROOT / 'tests/explicit_msbuild/runtime/subset_slices.json').read_text())
+    selection = json.loads((ROOT / 'tests/runtime/subset_slices.json').read_text())
     assert selection['commit'] == COMMIT
     shim_framework = next(item['framework'] for item in selection['slices'] if item['name'] == 'loaded-shims')
     managed, private = {}, {}

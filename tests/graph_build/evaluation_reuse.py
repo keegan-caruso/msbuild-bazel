@@ -18,7 +18,7 @@ def main():
         probe = base / 'probe'
         probe.mkdir()
         sources = [p for p in (ROOT / 'tools/GraphBuild').glob('*.cs') if p.name != 'Program.cs']
-        sources += [ROOT / 'tools/GraphEntryProperties.cs', ROOT / 'tools/GraphCompilerReferences.cs', ROOT / 'tools/PackageSdks.cs', ROOT / 'tools/ProjectCache/RemoteSnapshotStore.cs', ROOT / 'tools/ExplicitBuild/WorkerDirectory.cs']
+        sources += [ROOT / 'tools/GraphEntryProperties.cs', ROOT / 'tools/GraphCompilerReferences.cs', ROOT / 'tools/PackageSdks.cs', ROOT / 'tools/ProjectCache/RemoteSnapshotStore.cs', ROOT / 'tools/GraphBuild/WorkerDirectory.cs']
         references = ['Microsoft.Build', 'Microsoft.Build.Framework', 'Microsoft.Build.Utilities.Core']
         (probe / 'Probe.csproj').write_text('<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup>'
             '<TargetFramework>net10.0</TargetFramework><OutputType>Exe</OutputType><ImplicitUsings>enable</ImplicitUsings>'

@@ -1,7 +1,8 @@
-"""Artifact layouts, runtime hosts and reference packs."""
+"""Artifact layouts, runtime hosts."""
 
+load(":inputs.bzl", "msbuild_tool")
 load(":paths.bzl", _TOOLCHAIN = "TOOLCHAIN")
-load(":providers.bzl", "MSBuildAssemblyInfo", "MSBuildLayoutInfo", "MSBuildReferencePackInfo", "MSBuildRuntimeInfo", "MSBuildToolInfo")
+load(":providers.bzl", "MSBuildLayoutInfo", "MSBuildRuntimeInfo")
 
 def _add_layout_input(args, source, destination):
     # Expand only Bazel-declared tree children, not a filesystem walk through
@@ -65,23 +66,5 @@ msbuild_runtime = rule(implementation = _runtime, attrs = {
     "data": attr.label_list(allow_files = True),
 })
 
-def _reference_pack(ctx):
-    files = ctx.files.srcs + [dep[MSBuildAssemblyInfo].reference for dep in ctx.attr.assemblies]
-    if not files or any([f.extension != "dll" or f.is_directory for f in files]):
-        fail("A reference pack requires explicit assembly DLLs")
-    references = depset(files, transitive = [dep[MSBuildAssemblyInfo].references for dep in ctx.attr.assemblies])
-    return [DefaultInfo(files = references), MSBuildReferencePackInfo(references = references)]
-
-msbuild_reference_pack = rule(implementation = _reference_pack, attrs = {
-    "srcs": attr.label_list(allow_files = [".dll"]),
-    "assemblies": attr.label_list(providers = [MSBuildAssemblyInfo]),
-})
-
-def _native_tool(ctx):
-    directory = ctx.attr.layout[MSBuildLayoutInfo].directory
-    return [DefaultInfo(files = depset([directory])), MSBuildToolInfo(native = True, layout_prefix = "", properties = {}, project = "native-tools/" + ctx.label.name, entry_point = ctx.attr.entry_point, directories = depset([directory]), packages = depset(), data = [], files = depset([directory]))]
-
-msbuild_native_tool = rule(implementation = _native_tool, attrs = {
-    "layout": attr.label(mandatory = True, providers = [MSBuildLayoutInfo]),
-    "entry_point": attr.string(mandatory = True),
-})
+# Native and managed tools both consume a complete declared layout.
+msbuild_native_tool = msbuild_tool

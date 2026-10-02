@@ -34,7 +34,7 @@ def main():
         def sync(success=True):
             mapping_path.write_text(json.dumps(mapping))
             return run(DOTNET, ROOT / 'tools/ProjectSync/bin/Release/net10.0/ProjectSync.dll', root,
-                       SDK / 'sdk/10.0.400', 'P2/P2.csproj', '--graph', '--mappings', mapping_path, success=success)
+                       SDK / 'sdk/10.0.400', 'P2/P2.csproj', '--mappings', mapping_path, success=success)
         def build(hits, value, cache):
             for name in ['P0', 'P1', 'P2', 'Api']:
                 for folder in ['bin', 'obj']:

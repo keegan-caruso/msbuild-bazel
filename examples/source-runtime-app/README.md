@@ -1,15 +1,7 @@
 # App on a source-built runtime
 
-This `net10.0` console app tests the
-[source-built runtime workflow](../../docs/runtime-application.md). Its BUILD
-file belongs in the prepared workspace as `app/`, alongside the declared
-`//runtime:app_host`.
-It is not a standalone workspace.
-
-The app exercises JSON serialization, asynchronous stream reading, gzip and
-SHA-256. `--describe-runtime` also prints hashes of observed managed assemblies,
-native mappings and the running dotnet executable on Linux.
-
-The application still compiles with the SDK targeting pack. Its `runtime_host`
-selects the source-built runtime for execution. Building a source SDK or targeting
-pack is outside this example.
+Copy into a prepared workspace with `//runtime:app_host`; this is not standalone.
+The graph compiles with the declared SDK; `runtime_host` selects the source-produced
+execution layout. Run with `--strategy=MSBuildGraph=worker --worker_sandboxing`.
+`--describe-runtime` prints loaded component hashes on Linux.
+See [runtime selection](../../docs/api.md#build-and-artifacts) and [qualified scope](../../docs/support.md).

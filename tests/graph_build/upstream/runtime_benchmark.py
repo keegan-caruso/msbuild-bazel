@@ -367,7 +367,7 @@ def main():
             build.write_text(original_build.decode().replace('linux_worker=True', 'linux_worker=True,profile_build=True'))
             reader = results / 'binlog-reader'
             reader.mkdir()
-            fixture = ROOT / 'tests/explicit_msbuild/runtime'
+            fixture = ROOT / 'tests/runtime'
             shutil.copyfile(fixture / 'Inventory.csproj.txt', reader / 'Reader.csproj')
             shutil.copyfile(fixture / 'RawTimingLog.cs.txt', reader / 'Program.cs')
             execute([dotnet, 'build', str(reader / 'Reader.csproj'), '-c', 'Release', '-p:UseSharedCompilation=false'], 'reader-build', results)

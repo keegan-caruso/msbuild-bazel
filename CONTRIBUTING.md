@@ -1,40 +1,56 @@
 # Contributing
 
-This project is experimental. Start with the [README](README.md),
-[rule API](docs/explicit-bazel-rules.md) and
-[current support](docs/implementation-plan.md).
+Create a focused branch/worktree. Keep rules generic, inputs explicit and MSBuild's
+SDK behavior intact. Add small independent controls for behavioral changes; record
+the command, outcome and limits in [support](docs/support.md) or [performance](docs/performance.md).
+Use [AGENTS.md](AGENTS.md) for repository policy. GitHub CI is manual-only and requires
+an explicit maintainer request.
 
-For a bug, include a small reproducer, SDK/Bazel versions, OS/architecture, the
-command, expected behavior and actual result. Remove credentials and proprietary
-source before sharing logs. Binlogs can contain environment variables and project
-contents; share only a reviewed, minimal example. Use the [security policy](SECURITY.md)
-for a suspected vulnerability.
+## Checks
 
-## Development
+```sh
+bash scripts/setup.sh
+source scripts/env.sh
+bash scripts/check.sh
+bash scripts/check-dotnet.sh
+bash scripts/check-analysis.sh
+python3 tests/graph_build/acceptance.py /tmp/fresh-graph-acceptance
+```
 
-1. Fork or clone the repository and create a focused branch.
-2. Follow [development setup](docs/development.md) with the pinned bootstrap tools.
-3. Keep production rules generic. Make sources, dependency edges, tools and
-   configuration explicit in Bazel; retain MSBuild's SDK behavior.
-4. Add a small synthetic control for changed behavior, including invalidation or
-   failure cases when relevant. Preserve upstream projects when claiming real-project
-   compatibility, and document the exact platform and scope tested.
-5. Run checks relevant to the change:
+Setup acquires pinned contributor tools. Check shell/Starlark/pins with `check.sh`,
+owned .NET formatting/warnings/unit tests with `check-dotnet.sh`, and rule contracts
+with `check-analysis.sh`. Use fresh fixture/report directories; documentation-only
+changes need link/path checks and `git diff --check`, not builds.
+`USE_BAZEL_VERSION=8.8.0` selects the other baseline. Use wrappers and explicit
+`RULES_MSBUILD_BAZELISK` / `RULES_MSBUILD_DOTNET_ROOT` overrides instead of PATH changes.
+The latter selects contributor tooling, not an application SDK repository.
 
-   ```sh
-   bash scripts/check.sh
-   bash scripts/check-dotnet.sh
-   ```
+## Linux qualification on Apple silicon
 
-   For project-rule behavior, also run the explicit acceptance harness following
-   [the rule guide](docs/explicit-bazel-rules.md#local-toolchain-setup-and-reproduction).
-   Large qualification suites are not required for documentation-only changes.
-6. Open a pull request explaining the problem, the change, the checks you ran and
-   any remaining limits. Do not commit downloaded tools, build products or private logs.
+```sh
+bash scripts/build-apple-container-image.sh
+export RULES_MSBUILD_CONTAINER_IMAGE="$(cat .cache/apple-container/arm64/image.ref)"
+bash scripts/run-apple-container.sh bash -lc '
+  bash scripts/check-dotnet.sh &&
+  python3 tests/graph_build/acceptance.py /evidence/acceptance
+'
+```
 
-GitHub workflows are manual-only and are run when a maintainer explicitly requests
-CI. A workflow definition or an untested platform configuration is not passing evidence.
-The contributor guidance in [AGENTS.md](AGENTS.md) also applies to automated changes.
+The disposable runner copies sources from a read-only mount and retains reports in
+`artifacts/apple-container/run.*`; it excludes `.git` and build/download caches.
+Worker checks add `--linux-workers` in a namespace-enabled Ubuntu ARM64 environment.
+Native runtime checks need additional capabilities/prerequisites; follow the relevant
+`tests/runtime` driver. This basic runner does not establish those qualifications.
 
-Contributions to original project code are under the repository's [MIT license](LICENSE).
-Preserve third-party license notices and identify imported or adapted material.
+A trusted HTTP AC/CAS service can supply both caches ([configuration](docs/api.md#caching-and-workers)).
+For the pinned macOS loopback service: `bash scripts/install-native-cache.sh /absolute/path/bazel-remote`.
+It installs a user launch agent on port 9090 with 10 GiB LRU storage; it is not
+available while the Mac sleeps. Use authenticated forwarding for other machines.
+
+## Pull requests
+
+Include the problem, change, relevant checks and remaining limits. Bugs need a small
+reproducer plus command, revision, SDK/Bazel versions, OS/architecture and expected/
+actual results. Review logs before sharing; use [SECURITY.md](SECURITY.md) for vulnerabilities.
+Keep SDKs, packages, build products and raw reports out of Git. Contributions are
+[MIT licensed](LICENSE); preserve third-party notices.

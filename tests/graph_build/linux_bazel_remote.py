@@ -36,7 +36,7 @@ def main():
             f'local_path_override(module_name="rules_msbuild",path={json.dumps(str(ROOT))})\n'
             'dotnet=use_extension("@rules_msbuild//msbuild:extensions.bzl","dotnet")\n'
             'dotnet.sdk(name="dotnet",global_json="//:global.json")\nuse_repo(dotnet,"dotnet")\nregister_toolchains("@dotnet//:all")\n')
-        run(DOTNET, ROOT / 'tools/ProjectSync/bin/Release/net10.0/ProjectSync.dll', root, SDK / 'sdk/10.0.400', 'P2/P2.csproj', '--graph')
+        run(DOTNET, ROOT / 'tools/ProjectSync/bin/Release/net10.0/ProjectSync.dll', root, SDK / 'sdk/10.0.400', 'P2/P2.csproj', )
         (root / 'BUILD.bazel').write_text('load(":graph.generated.bzl","app_graph")\n'
             'load("@rules_msbuild//msbuild:defs.bzl","msbuild_graph_binary")\n'
             'app_graph(name="graph",linux_stable_paths=True' + (',linux_worker=True' if args.graph_worker else '') + ')\n'

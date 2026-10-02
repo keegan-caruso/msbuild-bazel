@@ -49,7 +49,7 @@ def main():
         def sync(success=True):
             mapping_path.write_text(json.dumps(mapping))
             return run(DOTNET, ROOT / 'tools/ProjectSync/bin/Release/net10.0/ProjectSync.dll', root, SDK / 'sdk/10.0.400',
-                       'P2/P2.csproj', '--graph', '--package-build', '--inputs', manifest, '--runfiles', base / 'packages', '--mappings', mapping_path, success=success)
+                       'P2/P2.csproj', '--package-build', '--inputs', manifest, '--runfiles', base / 'packages', '--mappings', mapping_path, success=success)
         sync()
         assert not json.loads(contract.read_text())['Projects']['P2/P2.csproj']['Configurations'][0]['ReferenceBoundary']
         mapping['projectDefaults']['referenceBoundary'] = True
@@ -144,7 +144,7 @@ def multitarget():
         mapping = base / 'mapping.json'
         mapping.write_text(json.dumps({'projectDefaults': {'referenceBoundary': True}}))
         command = [DOTNET, ROOT / 'tools/ProjectSync/bin/Release/net10.0/ProjectSync.dll', root,
-                   SDK / 'sdk/10.0.400', 'P2/P2.csproj', '--graph', '--mappings', mapping]
+                   SDK / 'sdk/10.0.400', 'P2/P2.csproj', '--mappings', mapping]
         # Different framework producers cannot silently own the same runtime copy.
         assert 'Ambiguous graph dependency copy' in run(*command, success=False).stderr
         for path in root.glob('P*/*.csproj'):
@@ -190,7 +190,7 @@ def tool_closure():
         mapping = base / 'mapping.json'
         mapping.write_text(json.dumps({'projectDefaults': {'referenceBoundary': True}}))
         run(DOTNET, ROOT / 'tools/ProjectSync/bin/Release/net10.0/ProjectSync.dll', root,
-            SDK / 'sdk/10.0.400', 'P2/P2.csproj', '--graph', '--mappings', mapping)
+            SDK / 'sdk/10.0.400', 'P2/P2.csproj', '--mappings', mapping)
         contract = root / 'graph.generated.json'
         data = json.loads(contract.read_text())
         for name in ['P1', 'P2']:
@@ -219,7 +219,7 @@ def tool_closure():
         # semantics; conflicting producers must still fail qualification.
         p1.write_text(p1.read_text().replace('ReferenceOutputAssembly="false"', 'ReferenceOutputAssembly="true"'))
         assert 'Ambiguous graph dependency copy' in run(DOTNET, ROOT / 'tools/ProjectSync/bin/Release/net10.0/ProjectSync.dll', root,
-            SDK / 'sdk/10.0.400', 'P2/P2.csproj', '--graph', '--mappings', mapping, success=False).stderr
+            SDK / 'sdk/10.0.400', 'P2/P2.csproj', '--mappings', mapping, success=False).stderr
         print('PASS: analyzer dependency closures do not own application copies; replay, body and generator edits match fresh compilation')
 
 
@@ -236,7 +236,7 @@ def private_copies():
         mapping = base / 'mapping.json'
         mapping.write_text(json.dumps({'projectDefaults': {'referenceBoundary': True}}))
         run(DOTNET, ROOT / 'tools/ProjectSync/bin/Release/net10.0/ProjectSync.dll', root,
-            SDK / 'sdk/10.0.400', 'P2/P2.csproj', '--graph', '--mappings', mapping)
+            SDK / 'sdk/10.0.400', 'P2/P2.csproj', '--mappings', mapping)
         contract = root / 'graph.generated.json'
         assert all(not variant['DependencyCopies'] for project in json.loads(contract.read_text())['Projects'].values() for variant in project['Configurations'])
         report = base / 'report.json'
@@ -260,7 +260,7 @@ def private_copies():
         for project in root.glob('P*/*.csproj'):
             project.write_text(project.read_text().replace('<TargetFramework>net10.0</TargetFramework>', '<TargetFrameworks>net10.0;net10.0-windows</TargetFrameworks>'))
         run(DOTNET, ROOT / 'tools/ProjectSync/bin/Release/net10.0/ProjectSync.dll', root,
-            SDK / 'sdk/10.0.400', 'P2/P2.csproj', '--graph', '--mappings', mapping)
+            SDK / 'sdk/10.0.400', 'P2/P2.csproj', '--mappings', mapping)
         assert all(not variant['DependencyCopies'] for project in json.loads(contract.read_text())['Projects'].values() for variant in project['Configurations'])
         print('PASS: Private=false omits DLL copy ownership; replay/body outputs match fresh compilation and multi-target copy declarations remain empty')
 

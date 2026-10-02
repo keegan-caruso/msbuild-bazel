@@ -35,7 +35,7 @@ def main():
                 props.write_text(props.read_text().replace('</PropertyGroup>',
                     '<DisableTransitiveProjectReferences>true</DisableTransitiveProjectReferences></PropertyGroup>'))
             run(DOTNET, ROOT / 'tools/ProjectSync/bin/Release/net10.0/ProjectSync.dll',
-                roots['cached'], SDK / 'sdk/10.0.400', f'P{args.projects - 1}/P{args.projects - 1}.csproj', '--graph')
+                roots['cached'], SDK / 'sdk/10.0.400', f'P{args.projects - 1}/P{args.projects - 1}.csproj', )
             contract = json.loads((roots['cached'] / 'graph.generated.json').read_text())
             # Restore is outside this timing, so bind its existing files explicitly.
             for path, project in contract['Projects'].items():

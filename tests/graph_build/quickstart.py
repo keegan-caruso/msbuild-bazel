@@ -13,7 +13,7 @@ def main():
     with tempfile.TemporaryDirectory(prefix='graph-quickstart-') as temporary:
         root = Path(temporary).resolve()
         workspace = root / 'app'
-        shutil.copytree(ROOT / 'examples/graph-quickstart', workspace)
+        shutil.copytree(ROOT / 'examples/quickstart', workspace)
         (root / 'msbuild-bazel').symlink_to(ROOT, target_is_directory=True)
         command = [str(ROOT / 'scripts/bazel-launcher.sh'), f'--output_base={root / "bazel"}']
 

@@ -1,0 +1,12 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <Import Project="../MSBuildTool.props" />
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <UseAppHost>false</UseAppHost>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="NuGet.Versioning" HintPath="$(RulesMSBuildEngineRoot)/NuGet.Versioning.dll" Private="true" />
+  </ItemGroup>
+</Project>

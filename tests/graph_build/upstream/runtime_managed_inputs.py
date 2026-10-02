@@ -20,7 +20,7 @@ import xml.etree.ElementTree as ET
 from runtime_full_source import capture_compiled_products, validate_raw_contract
 
 ROOT = Path(__file__).resolve().parents[3]
-sys.path.insert(0, str(ROOT / 'tests/explicit_msbuild/runtime'))
+sys.path.insert(0, str(ROOT / 'tests/runtime'))
 from case_names import normalize
 
 
@@ -72,7 +72,7 @@ def main():
         assert (result.returncode == 0) == success, label
         return result
     reader, probe = results / 'reader', results / 'probe'
-    for folder, source, project in [(reader, ROOT / 'tests/explicit_msbuild/runtime/RawTimingLog.cs.txt', ROOT / 'tests/explicit_msbuild/runtime/Inventory.csproj.txt'),
+    for folder, source, project in [(reader, ROOT / 'tests/runtime/RawTimingLog.cs.txt', ROOT / 'tests/runtime/Inventory.csproj.txt'),
                                     (probe, Path(__file__).with_name('ManagedInputProbe.cs.txt'), None)]:
         folder.mkdir()
         shutil.copyfile(source, folder / 'Program.cs')
@@ -138,7 +138,7 @@ def main():
     reviewed_mappings.write_text(json.dumps(mappings, indent=2) + '\n')
     def sync(label):
         invoke([str(sdk / 'dotnet'), str(ROOT / 'tools/ProjectSync/bin/Release/net10.0/ProjectSync.dll'), str(root),
-            str(sdk / 'sdk/10.0.400'), *contract['Entries'], '--graph', '--framework', contract['Properties']['TargetFramework'], '--package-build',
+            str(sdk / 'sdk/10.0.400'), *contract['Entries'], '--framework', contract['Properties']['TargetFramework'], '--package-build',
             '--inputs', str(args.inputs.resolve()), '--runfiles', str(args.runfiles.resolve()),
             '--mappings', str(reviewed_mappings)], label + '-sync')
         updated = json.loads(manifest.read_text())

@@ -18,7 +18,7 @@ import xml.etree.ElementTree as ET
 from runtime_full_source import capture_compiled_products, validate_raw_contract
 
 ROOT = Path(__file__).resolve().parents[3]
-sys.path.insert(0, str(ROOT / 'tests/explicit_msbuild/runtime'))
+sys.path.insert(0, str(ROOT / 'tests/runtime'))
 from case_names import normalize
 
 
@@ -80,7 +80,7 @@ def main():
                    stable + '/.qualification/Raw.dll', stable, stable + '/graph.generated.json', 'build']
     reader = results / 'reader'
     reader.mkdir()
-    fixtures = ROOT / 'tests/explicit_msbuild/runtime'
+    fixtures = ROOT / 'tests/runtime'
     shutil.copyfile(fixtures / 'Inventory.csproj.txt', reader / 'Reader.csproj')
     shutil.copyfile(fixtures / 'RawTimingLog.cs.txt', reader / 'Program.cs')
     rows = []

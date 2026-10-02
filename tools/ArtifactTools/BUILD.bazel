@@ -1,0 +1,13 @@
+package(default_visibility = ["//visibility:public"])
+
+exports_files(["ArtifactTools.csproj"])
+
+filegroup(
+    name = "sources",
+    srcs = glob(["*.cs"]) + [
+        "ArtifactTools.csproj",
+        "//:.editorconfig",
+        "//tools:Directory.Build.props",
+        "//tools:MSBuildTool.props",
+    ],
+)

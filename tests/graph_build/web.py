@@ -24,7 +24,7 @@ def main():
         (root / 'Views/Page.cshtml').write_text('@{ var message = "first"; }<p>@message</p>')
         (root / 'Views/Marker.cs').write_text('public class Marker {}')
         run(DOTNET, ROOT / 'tools/ProjectSync/bin/Release/net10.0/ProjectSync.dll', root,
-            SDK / 'sdk/10.0.400', 'App/App.csproj', '--graph')
+            SDK / 'sdk/10.0.400', 'App/App.csproj', )
         contract = root / 'graph.generated.json'
         report = base / 'report.json'
         def build(hits):

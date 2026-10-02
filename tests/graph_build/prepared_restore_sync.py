@@ -19,7 +19,7 @@ def main():
         mapping = base / 'mapping.json'
         value = {'projectDefaults': {'preparedRestore': True, 'restoreInputs': ['restore.settings']}}
         mapping.write_text(json.dumps(value))
-        command = [DOTNET, SYNC, root, SDK / 'sdk/10.0.400', 'P2/P2.csproj', '--graph', '--mappings', mapping]
+        command = [DOTNET, SYNC, root, SDK / 'sdk/10.0.400', 'P2/P2.csproj', '--mappings', mapping]
         run(*command)
         contract = json.loads((root / 'graph.generated.json').read_text())
         prepared = contract['Restore']

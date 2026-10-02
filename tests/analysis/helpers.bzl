@@ -3,10 +3,6 @@
 load("@rules_testing//lib:analysis_test.bzl", "analysis_test")
 load("@rules_testing//lib:truth.bzl", "matching")
 load("@rules_testing//lib:util.bzl", "TestingAspectInfo")
-load("//msbuild:defs.bzl", "msbuild_library")
-
-def library(name, **kwargs):
-    msbuild_library(name = name, project = name + ".csproj", target_framework = "net10.0", tags = ["manual"], **kwargs)
 
 def action(target, mnemonic):
     matches = [a for a in target[TestingAspectInfo].actions if a.mnemonic == mnemonic]

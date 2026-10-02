@@ -62,7 +62,7 @@ def main():
                          f'content_hash="{base64.b64encode(hashlib.sha512(data).digest()).decode()}",'
                          + ('deps=[":Core"]' if name == 'Api' and complete else '') + ')\n')
             text += 'msbuild_package_lock(name="packages",packages=[":Api"])\n'
-            text += ('msbuild_sync(name="sync",mode="graph",projects=["App/App.csproj"],'
+            text += ('msbuild_sync(name="sync",projects=["App/App.csproj"],'
                      'configuration="Debug",framework="net10.0",package_lock=":packages")\n')
             return text
 
@@ -151,7 +151,7 @@ def main():
             (workspace / 'shared').mkdir()
             (workspace / 'shared/value.txt').write_text('42')
             (app / 'Code.cs').write_text('#if !PACKAGE_BUILD\n#error Missing restored package props\n#endif\nSystem.Console.WriteLine(Generated.Value); System.Console.WriteLine(System.IO.File.ReadAllText("message.txt"));')
-            authored = declarations('2.0.0').replace('mode="graph",', 'mode="graph",package_build=True,package_inputs=["shared/value.txt"],')
+            authored = declarations('2.0.0').replace('', 'package_build=True,package_inputs=["shared/value.txt"],')
             (workspace / 'BUILD.bazel').write_text(authored)
             before = {str(p.relative_to(app)): p.read_bytes() for p in app.rglob('*') if p.is_file()}
             bazel('run', '//:sync')

@@ -44,7 +44,7 @@ def main():
         mapping = base / 'mapping.json'
         mapping.write_text(json.dumps({'projectDefaults': {'inputDirectories': ['wwwroot']}}))
         run(DOTNET, ROOT / 'tools/ProjectSync/bin/Release/net10.0/ProjectSync.dll', root,
-            SDK / 'sdk/10.0.400', 'Web.csproj', '--graph', '--mappings', mapping)
+            SDK / 'sdk/10.0.400', 'Web.csproj', '--mappings', mapping)
         generated = json.loads((root / 'graph.generated.json').read_text())
         assert generated['Version'] == 4 and generated['InputDirectories'] == ['wwwroot']
         (root / 'graph.generated.json').unlink()

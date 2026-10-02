@@ -28,7 +28,7 @@ def main():
             f'local_path_override(module_name="rules_msbuild",path={json.dumps(str(ROOT))})\n'
             'dotnet=use_extension("@rules_msbuild//msbuild:extensions.bzl","dotnet")\n'
             'dotnet.sdk(name="dotnet",global_json="//:global.json")\nuse_repo(dotnet,"dotnet")\nregister_toolchains("@dotnet//:all")\n')
-        run(DOTNET, ROOT / 'tools/ProjectSync/bin/Release/net10.0/ProjectSync.dll', root, SDK / 'sdk/10.0.400', 'P2/P2.csproj', '--graph')
+        run(DOTNET, ROOT / 'tools/ProjectSync/bin/Release/net10.0/ProjectSync.dll', root, SDK / 'sdk/10.0.400', 'P2/P2.csproj', )
         (root / 'BUILD.bazel').write_text('load(":graph.generated.bzl","app_graph")\n'
             'load("@rules_msbuild//msbuild:defs.bzl","msbuild_graph_binary")\n'
             f'app_graph(name="graph",linux_stable_paths=True,linux_worker=True,worker_cache_mb={args.cache_mb})\n'
@@ -80,13 +80,13 @@ def main():
             props = root / 'Directory.Build.props'
             props.write_text(props.read_text().replace('latest', 'preview'))
             build('stale-definition', None, success=False, error='Graph definition changed')
-            run(DOTNET, ROOT / 'tools/ProjectSync/bin/Release/net10.0/ProjectSync.dll', root, SDK / 'sdk/10.0.400', 'P2/P2.csproj', '--graph')
+            run(DOTNET, ROOT / 'tools/ProjectSync/bin/Release/net10.0/ProjectSync.dll', root, SDK / 'sdk/10.0.400', 'P2/P2.csproj', )
             build('property', 3, 0)
             # Restore the body case, stop the broker, and force a fresh native
             # action. Its compared outputs must match the worker's result.
             props.write_text(props.read_text().replace('preview', 'latest'))
             source.write_text('public class P0 { public static int Value() => 2; }')
-            run(DOTNET, ROOT / 'tools/ProjectSync/bin/Release/net10.0/ProjectSync.dll', root, SDK / 'sdk/10.0.400', 'P2/P2.csproj', '--graph')
+            run(DOTNET, ROOT / 'tools/ProjectSync/bin/Release/net10.0/ProjectSync.dll', root, SDK / 'sdk/10.0.400', 'P2/P2.csproj', )
             subprocess.run(command + ['shutdown'], cwd=root, env=env, check=True, capture_output=True)
             subprocess.run(command + ['clean'], cwd=root, env=env, check=True, capture_output=True)
             fresh_outputs = build('native-control', 2, 0, strategy='linux-sandbox')

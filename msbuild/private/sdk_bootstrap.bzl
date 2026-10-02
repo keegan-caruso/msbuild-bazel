@@ -3,19 +3,10 @@
 load(":providers.bzl", "MSBuildRuntimeInfo")
 
 _RUNNER_FILES = [
-    "ExplicitBuild.dll",
-    "ExplicitBuild.deps.json",
-    "ExplicitBuild.runtimeconfig.json",
-    "Microsoft.Build.Framework.dll",
-    "Microsoft.Build.Utilities.Core.dll",
-    "Microsoft.Build.dll",
-    "Microsoft.NET.StringTools.dll",
-    "Microsoft.VisualStudio.SolutionPersistence.dll",
-    "NuGet.Frameworks.dll",
+    "ArtifactTools.dll",
+    "ArtifactTools.deps.json",
+    "ArtifactTools.runtimeconfig.json",
     "NuGet.Versioning.dll",
-    "System.Configuration.ConfigurationManager.dll",
-    "System.Diagnostics.EventLog.dll",
-    "System.Security.Cryptography.ProtectedData.dll",
 ]
 
 def _runner(ctx):

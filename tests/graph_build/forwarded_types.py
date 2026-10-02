@@ -40,7 +40,7 @@ def main():
         'dotnet.sdk(name="dotnet",global_json="@rules_msbuild//:global.json")\n'
         'use_repo(dotnet,"dotnet")\nregister_toolchains("@dotnet//:all")\n')
     command = [str(sdk / 'dotnet'), str(ROOT / 'tools/ProjectSync/bin/Release/net10.0/ProjectSync.dll'), str(root),
-        str(sdk / 'sdk/10.0.400'), 'Probe.csproj', '--graph', '--framework', 'net10.0', '--inputs', str(root / 'inputs.json'),
+        str(sdk / 'sdk/10.0.400'), 'Probe.csproj', '--framework', 'net10.0', '--inputs', str(root / 'inputs.json'),
         '--runfiles', str(root / 'packages'), '--mappings', str(root / 'mapping.json')]
     env.update(DOTNET_ROOT=str(sdk), DOTNET_HOST_PATH=str(sdk / 'dotnet'))
     def sync(name, success):
