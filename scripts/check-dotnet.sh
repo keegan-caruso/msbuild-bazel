@@ -4,7 +4,7 @@ set -euo pipefail
 repo_root="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$repo_root"
 case "${1:-}" in
-    '') projects=(tools/Tooling/Tooling.csproj tools/ExplicitBuild/ExplicitBuild.csproj tools/ProjectSync/ProjectSync.csproj) ;;
+    '') projects=(tools/Tooling/Tooling.csproj tools/ExplicitBuild/ExplicitBuild.csproj tools/ProjectSync/ProjectSync.csproj tools/GraphBuild/GraphBuild.csproj) ;;
     *) echo 'Usage: check-dotnet.sh' >&2; exit 2 ;;
 esac
 for project in "${projects[@]}"; do

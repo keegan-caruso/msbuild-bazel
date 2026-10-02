@@ -142,6 +142,16 @@ def build_project(ctx, executable = False, test = False, restore_only = False, p
     package_directories = {file.path: file for file in package_files.to_list()}
     runtime_packages = depset([struct(id = row["id"], version = row["version"], directory = package_directories[row["directory"]]) for row in package_rows.values()], transitive = [dep.runtime_packages for dep in direct])
     restore = ctx.attr.restore[MSBuildRestoreInfo] if ctx.attr.restore else None
+    prepared_restore = ctx.attr.prepared_restore
+    restore_source_files = ctx.files.restore_source_inputs
+    restore_source_paths = {file.path: True for file in restore_source_files}
+    if restore_source_files and not prepared_restore:
+        fail("restore_source_inputs requires prepared_restore")
+    compile_source_paths = {file.path: True for file in ctx.files.srcs + ctx.files.source_paths}
+    if any([file.path not in compile_source_paths for file in restore_source_files]):
+        fail("restore_source_inputs must be a subset of srcs and source_paths")
+    if prepared_restore and (restore or restore_only or generate or ctx.attr.local_native_tools or selected.checks or bound_projects):
+        fail("prepared_restore cannot combine with shared restore, generation, local native tools, assembly selections or reference_projects")
     if restore:
         if restore.framework != ctx.attr.target_framework or restore.configuration != _configuration(ctx) or restore.executable != executable:
             fail("Shared restore framework/configuration/output kind must match the assembly")
@@ -161,7 +171,8 @@ def build_project(ctx, executable = False, test = False, restore_only = False, p
         if tool.project in dependency_properties and dependency_properties[tool.project] != tool.properties:
             fail("Select one configuration per dependency project: " + tool.project)
         dependency_properties[tool.project] = tool.properties
-    ctx.actions.write(request, json.encode({
+    prepared_file = ctx.actions.declare_file(ctx.label.name + ".prepared-restore.json") if prepared_restore else None
+    request_data = {
         # Internal qualification gate; not part of the supported rule API.
         "experimentalWorkerProject": str(ctx.label) if ctx.attr.linux_worker and ctx.var.get("rules_msbuild_stable_path_prototype") == "1" else None,
         "localNativeTools": ctx.attr.local_native_tools,
@@ -171,7 +182,8 @@ def build_project(ctx, executable = False, test = False, restore_only = False, p
         "implementationDependencies": [dep.project for dep in implementation],
         "assemblySelections": selected.checks,
         "profileBuild": ctx.attr.profile_build,
-        "restoreInput": restore.file.path if restore else None,
+        "restoreInput": restore.file.path if restore else prepared_file.path if prepared_file else None,
+        "projectRestoreInput": prepared_restore,
         "restoreOnly": restore_only,
         "restoreProjectOutput": restore_project.path if restore_project else None,
         "restoreProjects": [file.path for file in restore_projects.to_list()],
@@ -227,7 +239,52 @@ def build_project(ctx, executable = False, test = False, restore_only = False, p
         "reference": reference.path if reference else diagnostics.path,
         "diagnostics": diagnostics.path,
         "sdkVersion": tc.sdk_version,
-    }))
+    }
+    ctx.actions.write(request, json.encode(request_data))
+    if prepared_restore:
+        prepared_diagnostics = ctx.actions.declare_directory(ctx.label.name + ".restore-diagnostics")
+        prepared_request = ctx.actions.declare_file(ctx.label.name + ".prepared-request.json")
+        restore_data = dict(request_data)
+        restore_data.update({
+            "assemblySelections": [],
+            "diagnostics": prepared_diagnostics.path,
+            "identityOutput": None,
+            "profileBuild": False,
+            "projectRestoreInput": False,
+            "projectRestoreOnly": True,
+            "reference": prepared_file.path,
+            "references": [],
+            "restoreInput": None,
+            "restoreProjectOutput": None,
+            "runtime": prepared_diagnostics.path,
+            "runtimeReferences": [],
+            "sources": [{"path": source["path"], "source": source["source"] if source["source"] in restore_source_paths else ""} for source in request_data["sources"]],
+        })
+        ctx.actions.write(prepared_request, json.encode(restore_data))
+        prepared_arguments = [tc.runner.path, "build", prepared_request.path]
+        prepared_requirements = {"no-sandbox": "1"}
+        if not ctx.attr.allow_remote_execution:
+            prepared_requirements["no-remote-exec"] = "1"
+        if ctx.attr.linux_worker:
+            prepared_params = ctx.actions.args()
+            prepared_params.add(prepared_request.path)
+            prepared_params.use_param_file("@%s", use_always = True)
+            prepared_params.set_param_file_format("multiline")
+            prepared_arguments = [tc.runner.path, "--bazel-worker", "--tool-inputs=" + tc.worker_tools.path, prepared_params]
+            prepared_requirements.update({"supports-workers": "1", "requires-worker-protocol": "json"})
+        ctx.actions.run(
+            executable = tc.dotnet,
+            arguments = prepared_arguments,
+            tools = depset([tc.runner, tc.worker_tools], transitive = [tc.sdk, tc.runner_support]) if ctx.attr.linux_worker else [],
+            inputs = depset(
+                [project, prepared_request, tc.runner] + restore_source_files + ctx.files.msbuild_imports + ctx.files.import_paths + ctx.files.adapter_imports,
+                transitive = [tc.sdk, tc.runner_support, pack_files, package_files, restore_projects, depset([p.assembly.reference if p.artifact == "reference" else p.assembly.runtime for p in project_outputs]), depset([dep.runtime for dep in analyzer_projects] + [row.directory for dep in analyzer_projects for row in dep.runtime_packages.to_list()], transitive = [dep.runtimes for dep in analyzer_projects]), depset([target[MSBuildLayoutInfo].directory for target in ctx.attr.layout_bindings])] + [group[MSBuildItemsInfo].files for group in ctx.attr.items] + [tool.files for tool in build_tools],
+            ),
+            outputs = [prepared_file, prepared_diagnostics],
+            mnemonic = "MSBuildRestore",
+            env = {"LANG": "en_US.UTF-8"},
+            execution_requirements = prepared_requirements,
+        )
     arguments = [tc.runner.path, "build", request.path]
     requirements = {"no-sandbox": "1"}
     if ctx.attr.local_native_tools:
@@ -248,7 +305,7 @@ def build_project(ctx, executable = False, test = False, restore_only = False, p
         arguments = arguments,
         tools = depset([tc.runner, tc.worker_tools], transitive = [tc.sdk, tc.runner_support]) if ctx.attr.linux_worker else [],
         inputs = depset(
-            [project, request, tc.runner] + selected.files + ctx.files.srcs + ctx.files.source_paths + ctx.files.msbuild_imports + ctx.files.import_paths + ctx.files.adapter_imports + ([restore.file] if restore else []) + ([native_tree] if native_tree else []),
+            [project, request, tc.runner] + selected.files + ctx.files.srcs + ctx.files.source_paths + ctx.files.msbuild_imports + ctx.files.import_paths + ctx.files.adapter_imports + ([restore.file] if restore else []) + ([prepared_file] if prepared_file else []) + ([native_tree] if native_tree else []),
             transitive = [depset([p.assembly.reference if p.artifact == "reference" else p.assembly.runtime for p in project_outputs]), depset([dep.runtime for dep in analyzer_projects] + [row.directory for dep in analyzer_projects for row in dep.runtime_packages.to_list()], transitive = [dep.runtimes for dep in analyzer_projects]), tc.sdk, tc.runner_support, compiler_references, runtime_only_references, pack_files, depset([target[MSBuildLayoutInfo].directory for target in ctx.attr.layout_bindings]), package_files, restore_projects] + [group[MSBuildItemsInfo].files for group in ctx.attr.items] + [tool.files for tool in build_tools],
         ),
         outputs = ([diagnostics] + generated.values()) if generate else [reference, runtime, diagnostics] + ([identity] if identity else []) + ([restore_project] if restore_project else []) + ([target_output] if target_output else []),

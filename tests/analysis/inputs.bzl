@@ -1,8 +1,8 @@
 """Package, generation, tool and resource input contracts."""
 
 load("@rules_testing//lib:analysis_test.bzl", "analysis_test")
-load("//msbuild:defs.bzl", "MSBuildAssemblyInfo", "MSBuildItemsInfo", "MSBuildPackageInfo", "MSBuildRestoreInfo", "msbuild_file_binding", "msbuild_generate", "msbuild_items", "msbuild_nuget_package", "msbuild_package_lock", "msbuild_restore", "msbuild_target_items", "msbuild_tool")
-load(":helpers.bzl", "action", "library", "paths", "request")
+load("//msbuild:defs.bzl", "MSBuildAssemblyInfo", "MSBuildItemsInfo", "MSBuildPackageInfo", "MSBuildPackageLockInfo", "MSBuildRestoreInfo", "msbuild_file_binding", "msbuild_generate", "msbuild_items", "msbuild_nuget_package", "msbuild_package_lock", "msbuild_restore", "msbuild_target_items", "msbuild_tool")
+load(":helpers.bzl", "action", "failure_test", "library", "paths", "request")
 
 def _inputs(env, targets):
     targets = {k: getattr(targets, k) for k in dir(targets)}
@@ -44,6 +44,22 @@ def _restore(env, targets):
     env.expect.that_str(items.target_items[0]["target"]).equals("Export")
     env.expect.that_collection(items.files.to_list()).contains(targets["exporter"][MSBuildAssemblyInfo].target_output)
 
+def _package_versions(env, target):
+    rows = target[MSBuildPackageLockInfo].rows
+    env.expect.that_collection([row["version"] for row in rows]).contains_exactly(["1.0.0", "2.0.0"])
+
+def _package_version_tests(name):
+    for suffix, version in [("v2", "2.0.0"), ("duplicate", "1.0.0")]:
+        msbuild_nuget_package(name = "package_" + suffix, package_id = "Example", version = version, archive = "example.nupkg", content_hash = "fixture", archive_sha256 = "fixture", tags = ["manual"])
+    msbuild_package_lock(name = "multiple_versions", packages = [":package", ":package_v2"], allow_multiple_versions = True, tags = ["manual"])
+    analysis_test(name = name + "_versions", target = ":multiple_versions", impl = _package_versions)
+    msbuild_package_lock(name = "strict_versions", packages = [":package", ":package_v2"], tags = ["manual"])
+    failure_test(name + "_strict_versions", ":strict_versions", "Conflicting package set: example")
+    msbuild_package_lock(name = "duplicate_identity", packages = [":package", ":package_duplicate"], allow_multiple_versions = True, tags = ["manual"])
+    failure_test(name + "_duplicate_identity", ":duplicate_identity", "Conflicting package set: example/1.0.0")
+    library("ambiguous_packages", package_lock = ":multiple_versions")
+    failure_test(name + "_per_project_versions", ":ambiguous_packages", "Per-project package_lock requires one version per package ID")
+
 def input_tests(name):
     """Declare inputs tests.
 
@@ -51,6 +67,7 @@ def input_tests(name):
         name: Prefix for test names.
     """
     msbuild_nuget_package(name = "package", package_id = "Example", version = "1.0.0", archive = "example.nupkg", content_hash = "fixture", archive_sha256 = "fixture", tags = ["manual"])
+    _package_version_tests(name)
     msbuild_package_lock(name = "lock", packages = [":package"], tags = ["manual"])
     library("analyzer_helper")
     library("task_helper")

@@ -1,0 +1,120 @@
+using System.Diagnostics;
+using System.Reflection;
+using System.Text.Json;
+
+// Qualification only: invoke production preparation operations without compiling projects.
+var assembly = Assembly.LoadFrom(args[0]);
+const BindingFlags flags = BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Static;
+var fileType = assembly.GetType("RulesMSBuild.GraphBuild.ContractFiles", true)!;
+var contractType = assembly.GetType("RulesMSBuild.GraphBuild.GraphContract", true)!;
+var restoreType = assembly.GetType("RulesMSBuild.GraphBuild.PreparedRestore", true)!;
+var contract = JsonSerializer.Deserialize(File.ReadAllText(args[2]), contractType)!;
+var files = Activator.CreateInstance(fileType, [args[1], args[3]])!;
+var sourceFiles = Activator.CreateInstance(fileType, [args[4], args[3]])!;
+var digest = fileType.GetMethod("Digest", flags)!;
+var resolve = fileType.GetMethod("ResolveInputs", flags)!;
+var key = restoreType.GetMethod("Key", flags)!;
+using var manifest = JsonDocument.Parse(File.ReadAllText(Path.Combine(args[4], "manifest.json")));
+var records = manifest.RootElement.GetProperty("Files").EnumerateObject().ToArray();
+var packages = records.Where(record => record.Name.StartsWith(".nuget/", StringComparison.Ordinal)).ToArray();
+var outputs = records.Where(record => !record.Name.StartsWith(".nuget/", StringComparison.Ordinal)).ToArray();
+var paths = records.Select(record => record.Name).ToArray();
+var sdkDigest = manifest.RootElement.GetProperty("SdkDigest").GetString()!;
+var rows = new List<object>();
+{
+    const int sample = 0;
+    var timer = Stopwatch.StartNew();
+    var sourcePaths = (Dictionary<string, string>)resolve.Invoke(sourceFiles, [paths])!;
+    var destinationPaths = (Dictionary<string, string>)resolve.Invoke(files, [paths])!;
+    if (sourcePaths.Count != records.Length || destinationPaths.Count != records.Length) throw new InvalidDataException("Incomplete path resolution");
+    var pathSeconds = timer.Elapsed.TotalSeconds;
+    timer.Restart();
+    foreach (var record in packages)
+    {
+        var actual = (string)digest.Invoke(null, [sourcePaths[record.Name]])!;
+        if (actual != record.Value.GetProperty("Digest").GetString()) throw new InvalidDataException(record.Name);
+    }
+    var packageSeconds = timer.Elapsed.TotalSeconds;
+    timer.Restart();
+    foreach (var record in outputs)
+    {
+        var actual = (string)digest.Invoke(null, [sourcePaths[record.Name]])!;
+        if (actual != record.Value.GetProperty("Digest").GetString()) throw new InvalidDataException(record.Name);
+    }
+    var outputSeconds = timer.Elapsed.TotalSeconds;
+    timer.Restart();
+    _ = key.Invoke(null, [contract, files, sdkDigest]);
+    rows.Add(new { sample, pathSeconds, packageSeconds, outputSeconds, restoreKeySeconds = timer.Elapsed.TotalSeconds });
+}
+object? materialization = null;
+if (args.Length > 6)
+{
+    var materialize = assembly.GetType("RulesMSBuild.GraphBuild.WorkerPreparation", true)!.GetMethod("Materialize", flags)!;
+    Directory.CreateDirectory(args[6]);
+    var timer = Stopwatch.StartNew();
+    var first = (string)materialize.Invoke(null, [Path.GetDirectoryName(args[4])!, args[6], "qualification-only-unchanged-payload"])!;
+    var firstSeconds = timer.Elapsed.TotalSeconds;
+    timer.Restart();
+    var second = (string)materialize.Invoke(null, [Path.GetDirectoryName(args[4])!, args[6], "qualification-only-unchanged-payload"])!;
+    if (first != second) throw new InvalidDataException("Unchanged payload did not reuse materialization");
+    materialization = new { firstSeconds, repeatSeconds = timer.Elapsed.TotalSeconds, reused = true };
+}
+var control = Path.Combine(Path.GetDirectoryName(args[5])!, "control-" + Path.GetFileNameWithoutExtension(args[5]));
+var artifact = Path.Combine(control, "input");
+var preparedRoot = Path.Combine(artifact, "prepared");
+var relative = ".nuget/example/1.0.0/payload";
+var payload = Path.Combine(preparedRoot, relative);
+Directory.CreateDirectory(Path.GetDirectoryName(payload)!);
+File.WriteAllText(payload, "original");
+var expected = (string)digest.Invoke(null, [payload])!;
+void WriteManifest(int version = 1, int mode = 0x180) =>
+    File.WriteAllText(Path.Combine(preparedRoot, "manifest.json"), JsonSerializer.Serialize(new { Version = version, Key = "fixture", SdkDigest = "fixture",
+        Files = new Dictionary<string, object> { [relative] = new { Digest = expected, Mode = mode } } }));
+void RequireFailure(Action operation, string message)
+{
+    try { operation(); }
+    catch (TargetInvocationException error) when (error.InnerException is InvalidDataException invalid && invalid.Message.Contains(message, StringComparison.Ordinal)) { return; }
+    throw new InvalidDataException("Control did not reject: " + message);
+}
+WriteManifest();
+var controlCache = Path.Combine(control, "cache");
+Directory.CreateDirectory(controlCache);
+var materializer = assembly.GetType("RulesMSBuild.GraphBuild.WorkerPreparation", true)!.GetMethod("Materialize", flags)!;
+var owned = (string)materializer.Invoke(null, [artifact, controlCache, "unchanged-input-identity"])!;
+var cachedPayload = Path.Combine(owned, "prepared", relative);
+File.WriteAllText(cachedPayload, "modified");
+var reused = (string)materializer.Invoke(null, [artifact, controlCache, "unchanged-input-identity"])!;
+if (reused != owned || (string)digest.Invoke(null, [cachedPayload])! == expected)
+{
+    throw new InvalidDataException("Private-cache corruption control did not exercise the second verification boundary");
+}
+var modeRejected = false;
+var replacementRejected = false;
+if (OperatingSystem.IsLinux())
+{
+    File.WriteAllText(cachedPayload, "original");
+    File.SetUnixFileMode(cachedPayload, UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.GroupRead);
+    var sameFile = assembly.GetType("RulesMSBuild.GraphBuild.ReadOnlyPackageTree", true)!.GetMethod("RequireSameFile", flags)!;
+    RequireFailure(() => sameFile.Invoke(null, [cachedPayload, cachedPayload, 0x180]), "does not match verified content and mode");
+    modeRejected = true;
+    File.SetUnixFileMode(cachedPayload, UnixFileMode.UserRead | UnixFileMode.UserWrite);
+    var replacement = Path.Combine(control, "replacement");
+    File.Copy(cachedPayload, replacement);
+    RequireFailure(() => sameFile.Invoke(null, [cachedPayload, replacement, 0x180]), "does not match verified content and mode");
+    replacementRejected = true;
+}
+WriteManifest(version: 2);
+RequireFailure(() => materializer.Invoke(null, [artifact, controlCache, "unchanged-input-identity"]), "Unsupported preparation manifest");
+WriteManifest(mode: 0x1000);
+RequireFailure(() => materializer.Invoke(null, [artifact, controlCache, "unchanged-input-identity"]), "Invalid prepared file mode");
+WriteManifest();
+File.WriteAllText(payload, "modified");
+RequireFailure(() => materializer.Invoke(null, [artifact, controlCache, "changed-input-identity"]), "Invalid prepared Restore file");
+if (Directory.EnumerateDirectories(controlCache, "*.pending-*").Any()) throw new InvalidDataException("Failed materialization leaked staging data");
+var controlResult = new { cachedMaterializerReusesExternallyModifiedCopy = true, byteVerificationDetectsCorruption = true, cachedModeChangeRejected = modeRejected, differentInodeRejected = replacementRejected,
+    changedManifestRejected = true, invalidModeRejected = true, corruptInputReplacementRejected = true, stagingCleanup = true,
+    scope = "disposable production-method control; external mutation is outside the normal broker lifecycle" };
+long Bytes(JsonProperty[] group) => group.Sum(record => new FileInfo(Path.Combine(args[4], record.Name)).Length);
+File.WriteAllText(args[5], JsonSerializer.Serialize(new { scope = "isolated production preparation operations; not build timing",
+    packageFiles = packages.Length, packageBytes = Bytes(packages), outputFiles = outputs.Length, outputBytes = Bytes(outputs), rows, materialization, controlResult },
+    new JsonSerializerOptions { WriteIndented = true }) + "\n");

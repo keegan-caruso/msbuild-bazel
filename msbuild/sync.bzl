@@ -1,5 +1,6 @@
 """Local project synchronization, invoked explicitly with bazel run."""
 
+load("//msbuild/private:graph_tools.bzl", "graph_tool_closure")
 load("//msbuild/private:paths.bzl", _TOOLCHAIN = "TOOLCHAIN", _quote = "quote", _runfile = "runfile")
 load("//msbuild/private:providers.bzl", "MSBuildBindingInfo", "MSBuildPackageLockInfo")
 
@@ -56,11 +57,16 @@ cd "$scratch"
     packages = [{"id": row["id"], "version": row["version"], "runfile": _runfile(ctx, by_path[row["directory"]])} for row in identities.values()]
     evaluation_bindings = []
     binding_files = []
-    for target in ctx.attr.bindings:
+    for index, target in enumerate(ctx.attr.bindings):
         binding = target[MSBuildBindingInfo]
         tool = binding.tool
-        if tool.native:
-            fail("Sync evaluation bindings require a managed task tool")
+        if tool.native and ctx.attr.mode != "graph":
+            fail("Sync evaluation bindings require a managed task tool outside graph mode")
+        if ctx.attr.mode == "graph":
+            closure = graph_tool_closure(ctx, tc, binding, index)
+            evaluation_bindings.append({"label": str(target.label), "property": binding.property_name, "runfiles": [_runfile(ctx, closure)], "entry": tool.entry_point, "closure": True})
+            binding_files.append(closure)
+            continue
         entry = tool.entry_point.removeprefix(tool.layout_prefix + "/") if tool.layout_prefix else tool.entry_point
         evaluation_bindings.append({"label": str(target.label), "property": binding.property_name, "runfiles": [_runfile(ctx, directory) for directory in tool.directories.to_list()], "entry": entry})
         binding_files.extend(tool.files.to_list())
@@ -76,7 +82,7 @@ fi
 runfiles="${RUNFILES_DIR:-$0.runfiles}"
 export DOTNET_ROOT="$runfiles/"%s
 export DOTNET_NOLOGO=1 DOTNET_CLI_TELEMETRY_OPTOUT=1
-exec "$runfiles/"%s "$runfiles/"%s "$BUILD_WORKSPACE_DIRECTORY" "$DOTNET_ROOT/sdk/"%s %s %s --inputs "$runfiles/"%s --runfiles "$runfiles" "$@"
+exec "$runfiles/"%s "$runfiles/"%s "$BUILD_WORKSPACE_DIRECTORY" "$DOTNET_ROOT/sdk/"%s %s %s %s --inputs "$runfiles/"%s --runfiles "$runfiles" "$@"
 """ % (
         _quote(_runfile(ctx, tc.dotnet).rsplit("/", 1)[0]),
         _quote(_runfile(ctx, tc.dotnet)),
@@ -84,6 +90,7 @@ exec "$runfiles/"%s "$runfiles/"%s "$BUILD_WORKSPACE_DIRECTORY" "$DOTNET_ROOT/sd
         _quote(tc.sdk_version),
         " ".join([_quote(project) for project in ctx.attr.projects]),
         '--mappings "$runfiles/"' + _quote(_runfile(ctx, ctx.file.mappings)) if ctx.file.mappings else "",
+        "--graph --configuration " + _quote(ctx.attr.configuration) + (" --framework " + _quote(ctx.attr.framework) if ctx.attr.framework else "") + (" --package-build" if ctx.attr.package_build else "") + "".join([" --package-input " + _quote(path) for path in ctx.attr.package_inputs]) if ctx.attr.mode == "graph" else "",
         _quote(_runfile(ctx, manifest)),
     ), is_executable = True)
     return [DefaultInfo(
@@ -97,6 +104,11 @@ _sync = rule(
     toolchains = [_TOOLCHAIN],
     attrs = {
         "projects": attr.string_list(mandatory = True),
+        "mode": attr.string(default = "project", values = ["project", "graph"]),
+        "configuration": attr.string(default = "Release"),
+        "framework": attr.string(),
+        "package_build": attr.bool(),
+        "package_inputs": attr.string_list(),
         "bindings": attr.label_list(providers = [MSBuildBindingInfo], cfg = "exec"),
         "inputs": attr.label_keyed_string_dict(allow_files = True),
         "package_lock": attr.label(providers = [MSBuildPackageLockInfo]),
@@ -107,12 +119,17 @@ _sync = rule(
     },
 )
 
-def msbuild_sync(name, projects, mappings = None, inputs = {}, package_lock = None, bindings = [], package_locks = [], **kwargs):
+def msbuild_sync(name, projects, mappings = None, inputs = {}, package_lock = None, bindings = [], package_locks = [], mode = "project", configuration = "Release", framework = "", package_build = False, package_inputs = [], **kwargs):
     """Declare a tool that evaluates local projects and writes projects.generated.bzl.
 
     Args:
         name: Runnable target name, conventionally sync.
         projects: Workspace-relative entry csproj paths, not labels. References are discovered at run time.
+        configuration: Graph configuration, default Release.
+        framework: Optional graph target framework; empty builds declared frameworks.
+        package_build: Opt in to offline Restore and package build/content evaluation in a disposable copy.
+        package_inputs: Additional workspace-relative files read by reviewed package tasks.
+        mode: Generated backend: project (default) or opt-in graph.
         mappings: Optional JSON file with project settings and explicit package/test bindings.
         inputs: Single-file labels mapped to workspace-relative evaluation/build paths.
         bindings: Declared managed task property bindings needed during evaluation.
@@ -120,9 +137,11 @@ def msbuild_sync(name, projects, mappings = None, inputs = {}, package_lock = No
         package_locks: Additional closed sets selected by per-project packageLock mappings.
         **kwargs: Common Bazel attributes such as visibility and tags.
     """
+    if mode != "graph" and (configuration != "Release" or framework or package_build or package_inputs):
+        fail("configuration and framework require mode = graph")
     if not projects:
         fail("msbuild_sync requires at least one entry project")
     for project in projects:
         if project.startswith("/") or "\\" in project or any([part in ["", ".", ".."] for part in project.split("/")]) or not project.endswith(".csproj"):
             fail("Expected a workspace-relative csproj path: " + project)
-    _sync(name = name, projects = projects, mappings = mappings, inputs = inputs, package_lock = package_lock, package_locks = package_locks, bindings = bindings, **kwargs)
+    _sync(name = name, projects = projects, mode = mode, configuration = configuration, framework = framework, package_build = package_build, package_inputs = package_inputs, mappings = mappings, inputs = inputs, package_lock = package_lock, package_locks = package_locks, bindings = bindings, **kwargs)

@@ -313,6 +313,14 @@ internal sealed class Generator(string root, string sdk, Mappings mappings, Work
             {
                 attributes.AppendLine("            \"linux_worker\": True,");
             }
+            if (projectBinding.PreparedRestore)
+            {
+                attributes.AppendLine("            \"prepared_restore\": True,");
+            }
+            if (projectBinding.RestoreSourceInputs.Length != 0)
+            {
+                AppendAttribute(attributes, "restore_source_inputs", List(projectBinding.RestoreSourceInputs));
+            }
             if (projectBinding.ProfileBuild)
             {
                 attributes.AppendLine("            \"profile_build\": True,");
