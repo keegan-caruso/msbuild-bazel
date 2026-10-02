@@ -2,6 +2,7 @@ using System.Xml;
 using Microsoft.Build.Execution;
 
 internal sealed record BuildTool(string Project, string EntryPoint, string[] Directories, Input[] Data, PackageInput[]? Packages = null, bool Native = false, string LayoutPrefix = "");
+internal sealed record ToolLayoutRequest(BuildTool Tool, string Output);
 internal sealed record FileBinding(string Property, int Tool);
 
 internal static class BuildTools
@@ -12,45 +13,48 @@ internal static class BuildTools
         var tools = request.BuildTools ?? [];
         for (var i = 0; i < tools.Length; i++)
         {
-            var tool = tools[i];
-            Program.Safe(tool.Project);
-            var root = DirectoryPath(workspace, i);
-            var destination = tool.LayoutPrefix.Length == 0 ? root : Path.Combine(root, Program.Safe(tool.LayoutPrefix));
-            void Copy(string source, string relative)
-            {
-                var target = Path.Combine(destination, Program.Safe(relative));
-                Directory.CreateDirectory(Path.GetDirectoryName(target)!);
-                if (File.Exists(target))
-                {
-                    if (!File.ReadAllBytes(source).AsSpan().SequenceEqual(File.ReadAllBytes(target)))
-                    {
-                        throw new InvalidDataException("Conflicting build tool input: " + relative);
-                    }
-                }
-                else
-                {
-                    File.Copy(source, target);
-                }
-            }
-            foreach (var directory in tool.Directories)
-            {
-                foreach (var file in tool.Native ? ArtifactLayouts.Files(directory).Select(path => new Input(path, Path.GetRelativePath(directory, path))) : RuntimePackages.Files(directory, tool.Packages ?? []))
-                {
-                    Copy(file.Source, file.Path);
-                }
-            }
-
-            foreach (var input in tool.Data)
-            {
-                Copy(input.Source, input.Path);
-            }
-
-            if (!File.Exists(Path.Combine(root, Program.Safe(tool.EntryPoint))))
-            {
-                throw new InvalidDataException("Missing build tool entry: " + tool.EntryPoint);
-            }
+            Compose(tools[i], DirectoryPath(workspace, i));
         }
     }
+    internal static void Compose(BuildTool tool, string root)
+    {
+        Program.Safe(tool.Project);
+        var destination = tool.LayoutPrefix.Length == 0 ? root : Path.Combine(root, Program.Safe(tool.LayoutPrefix));
+        void Copy(string source, string relative)
+        {
+            var target = Path.Combine(destination, Program.Safe(relative));
+            Directory.CreateDirectory(Path.GetDirectoryName(target)!);
+            if (File.Exists(target))
+            {
+                if (!File.ReadAllBytes(source).AsSpan().SequenceEqual(File.ReadAllBytes(target)))
+                {
+                    throw new InvalidDataException("Conflicting build tool input: " + relative);
+                }
+            }
+            else
+            {
+                File.Copy(source, target);
+            }
+        }
+        foreach (var directory in tool.Directories)
+        {
+            foreach (var file in tool.Native ? ArtifactLayouts.Files(directory).Select(path => new Input(path, Path.GetRelativePath(directory, path))) : RuntimePackages.Files(directory, tool.Packages ?? []))
+            {
+                Copy(file.Source, file.Path);
+            }
+        }
+
+        foreach (var input in tool.Data)
+        {
+            Copy(input.Source, input.Path);
+        }
+
+        if (!File.Exists(Path.Combine(root, Program.Safe(tool.EntryPoint))))
+        {
+            throw new InvalidDataException("Missing build tool entry: " + tool.EntryPoint);
+        }
+    }
+
     internal static void Validate(Session session, ProjectInstance evaluated)
     {
         var bound = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);

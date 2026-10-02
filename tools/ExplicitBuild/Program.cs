@@ -79,6 +79,12 @@ internal static class Program
                 AssemblyContracts.Pair(Read<AssemblyPair>(pair));
                 return 0;
             }
+            if (args is ["tool-layout", var toolLayout])
+            {
+                var toolRequest = Read<ToolLayoutRequest>(toolLayout);
+                BuildTools.Compose(toolRequest.Tool, toolRequest.Output);
+                return 0;
+            }
             if (args is ["layout", var layout, var manifest] && manifest.StartsWith('@'))
             {
                 ArtifactLayouts.Compose(Read<LayoutRequest>(layout), manifest[1..]);

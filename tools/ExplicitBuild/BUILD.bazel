@@ -9,7 +9,10 @@ filegroup(
     ),
 )
 
-exports_files(["bin/Release/net10.0/ExplicitBuild.dll"])
+exports_files([
+    "bin/Release/net10.0/ExplicitBuild.dll",
+    "WorkerDirectory.cs",
+])
 
 filegroup(
     name = "sources",
