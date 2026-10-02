@@ -9,6 +9,7 @@ Bazel **8.8.0 / 9.2.0** (default).
 
 **Experimental:** the API may change; use from source. No BCR or runner release.
 
+- [Design](docs/design.md) — ownership, execution and cache invalidation
 - [API](docs/api.md) — sync, builds, tests and caching
 - [Support](docs/support.md) — validated scope and limits
 - [Performance](docs/performance.md) — comparison with raw MSBuild

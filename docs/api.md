@@ -2,8 +2,7 @@
 
 Follow the [quickstart](../examples/quickstart/README.md) for setup. Load build rules
 from `@rules_msbuild//msbuild:defs.bzl`; load `msbuild_sync` from `@rules_msbuild//msbuild:sync.bzl`.
-Bazel tracks declared inputs and caches actions. MSBuild evaluates and compiles the
-configured graph; its cache plugin reuses projects within a changed graph action.
+See [design](design.md) for ownership, graph execution and cache invalidation.
 
 ## Sync
 
