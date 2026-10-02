@@ -338,11 +338,73 @@ auxiliary setup graphs or read outputs left on demand; those trials are excluded
 These are unscored controls of the host producer. They do not establish mutation
 coverage for CoreCLR/JIT, raw native scheduling parity, another platform or RBE.
 
+## Independent project-cache recovery
+
+The full 543-configuration / 481-compilation graph now recovers from a stopped
+Bazel 8.8 producer into a separate, relocated Linux ARM64/Bazel 9.2 consumer.
+SDK 10.0.400, 39 roots and all authored frameworks are unchanged. No producer
+Bazel output base, worker state or project snapshots are copied. Whole-action
+remote and disk caches remain disabled; a unique unused input forces each graph
+action to run.
+
+| Control | Graph hits / misses | Raw compiler calls |
+| --- | ---: | ---: |
+| Producer seed | 0 / 481 | Not a paired cold row |
+| Independent original recovery | 481 / 0 | Diagnostic parity control |
+| Unique body edit | 475 / 6 | 6 |
+| Unique API edit | 464 / 17 | 17 |
+| Original-source restoration | 481 / 0 | Diagnostic parity control |
+
+Recovery and restoration reproduce all **10,780 files, bytes and modes**, with
+identical runner bytes across Bazel versions. Each consumer state matches all
+**3,622 compiled products** from full-source raw MSBuild. The eight suites match
+the producer's normalized outcomes: **118,952 passes / 64 skips / no failures**.
+Body/API edits each execute all eight tests afresh, with no cached results. Loaded
+managed/private/native hashes match the current producers on every state.
+
+The first fresh-consumer graph took 109.184 s, including one Restore action;
+SDK/package extraction and runner bootstrap precede it. Native host setup and
+tests are separate. Copied warm raw outputs serve only as the parity oracle;
+they are not an independent cold-build result. Later original/body/API/restoration graph observations are
+31.320 / 59.323 / 72.391 / 43.209 s with retained repository/preparation setup and
+fresh brokers. These unscored qualification observations are not medians or warm
+raw comparisons. The separate profiled replay reruns preparation and transfers
+**5,680 CAS blobs / 263,018,617 logical payload bytes** (250.83 MiB), including
+snapshot manifests; action-pointer requests and HTTP overhead are excluded.
+Profiling is off in the ordinary controls.
+
+```sh
+python3 tests/graph_build/upstream/runtime_remote.py WORKSPACE NEW_RESULTS \
+  --slice runtime-suites --phase producer --version 8.8.0 --output-base BASE
+# Stop the producer; stage declared inputs only in a relocated consumer VM.
+python3 tests/graph_build/upstream/runtime_remote.py RELOCATED_WORKSPACE NEW_RESULTS \
+  --slice runtime-suites --phase consumer --version 9.2.0 --output-base NEW_BASE \
+  --seed-evidence SEED_JSON --edits --diagnostics --qualified-raw-results RAW_RESULTS
+```
+
+Set `RULES_MSBUILD_PROJECT_CACHE_URL` to the owned HTTP cache. Explicit producer
+or consumer base reuse retains setup only. Shutdown can leave an abandoned broker
+directory; the controller verifies its lease is released, then requires the new
+broker to reclaim it and use a different empty namespace before accepting replay.
+A direct assertion that shutdown deletes every directory was too strict and was
+replaced by this startup proof. Raw sources are rewritten only when bytes change;
+an earlier body-control attempt touched an unchanged reference and is excluded.
+
+New Apple containers need the qualified outer-VM options `--cap-add SYS_ADMIN`,
+`--masked-path NONE`, `--read-only-path NONE` and `--init`, with four CPUs and 8 GiB. See
+[Apple's command reference](https://github.com/apple/container/blob/main/docs/command-reference.md).
+Default proc restrictions prevented nested Linux sandboxing in the first consumer
+setup; its diagnostics were preserved and that disposable VM was recreated.
+Strict `linux-sandbox` and sandboxed workers remain enabled. RuntimeNative uses
+its declared standalone action with its own isolated filesystem/network namespace.
+An interrupted disk-full producer seed is also excluded. Large reports stay
+outside Git. This qualifies HTTP project-cache recovery, not x86-64 or RBE.
+
 ## Remaining gates
 
 Actual-suite controls now pass on both supported Bazel baselines. Capture larger
 paired build timings separately from test execution.
-Independent cache consumers and broader native-component mutation coverage
+Repeated cold/recovery timings and broader native-component mutation coverage
 remain separate roadmap gates. Build and test timings must be separate.
 
 A disk-full interruption made the qualification filesystem read-only. That trial

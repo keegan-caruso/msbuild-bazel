@@ -1411,6 +1411,11 @@ parity from the current managed comparison, which shares native producers with r
 
 ### 12. Recover the larger graph independently
 
+Complete: stopped 8.8 producer / relocated 9.2 consumer, exact 10,780-file
+recovery, six/17 edit boundaries matching raw, all eight suites and current
+producer hashes, original restoration and separate CAS traffic diagnostics.
+See [independent recovery](runtime-graph-upstream-tests.md#independent-project-cache-recovery).
+
 Seed the qualified 481-compilation graph, stop the producer, and recover from a
 relocated consumer with empty local snapshots and whole-action/disk caches disabled.
 Verify files/modes/bytes and real source-host tests. Then repeat unique body/API
