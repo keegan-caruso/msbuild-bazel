@@ -60,10 +60,12 @@ def main():
     parser.add_argument('--slice', choices=['pipelines-tests', 'collections', 'loaded-common', 'runtime-suites'], default='pipelines-tests')
     parser.add_argument('--continue-api-from', type=Path, help='completed no-op/body scorecard with retained raw state; record remaining cases separately')
     parser.add_argument('--qualified-raw-results', type=Path, help='completed full-source raw control for runtime-suites; reuse its warm outputs in place')
+    parser.add_argument('--reseed-worker', action='store_true', help='with qualified raw outputs, require a fresh all-miss runner seed before scoring')
     parser.add_argument('--diagnostics', action='store_true', help='profile separate unique edits after the scored series')
     args = parser.parse_args()
     assert os.uname().sysname == 'Linux' and os.uname().machine == 'aarch64'
     assert args.samples > 0
+    assert not args.reseed_worker or args.qualified_raw_results, 'Reseeding requires qualified complete-source raw outputs'
     assert not (args.continue_api_from and args.qualified_raw_results)
     assert bool(args.qualified_raw_results) == (args.slice == 'runtime-suites'), 'Larger timing requires the qualified full-source raw workspace'
     root, results = args.workspace.resolve(), args.results.resolve()
@@ -104,7 +106,7 @@ def main():
         expansion_seconds = None
         qualified = dict(priorResults=str(prior), rawContractSha256=hashlib.sha256((raw / 'graph.generated.json').read_bytes()).hexdigest(),
                          contractSha256=hashlib.sha256((root / 'graph.generated.json').read_bytes()).hexdigest(),
-                         interpretation='qualified full-source raw outputs and retained worker; no cold/setup timing')
+                         reseedWorker=args.reseed_worker, interpretation='qualified full-source raw outputs; worker seed/restoration excluded from scored edits')
     elif args.continue_api_from:
         prior = args.continue_api_from.resolve()
         assert prior != results and not results.is_relative_to(prior)
@@ -198,7 +200,7 @@ def main():
         actions = sum(int(row.get('actionsExecuted', 0)) for row in metrics.get('actionData', []) if row['mnemonic'] == 'MSBuildGraph')
         assert actions in [0, 1] if expected_action is None else actions == int(expected_action), (label, actions)
         preparations = sum(int(row.get('actionsExecuted', 0)) for row in metrics.get('actionData', []) if row['mnemonic'] == 'MSBuildGraphRestore')
-        if label == 'graph-seed':
+        if label == 'graph-seed' or (args.reseed_worker and label == 'continued-graph-baseline'):
             assert preparations == int(bool(contract.get('Restore'))), (label, preparations)
         elif 'diagnostic' not in label:
             assert preparations == 0, (label, preparations)
@@ -283,7 +285,8 @@ def main():
             seed_graph, report = graph('continued-graph-baseline')
             assert report['hits'] + report['misses'] == compiled
             if qualified:
-                assert (report['hits'], report['misses']) == (compiled, 0), 'Retain the successful qualified worker'
+                expected_seed = (0, compiled) if args.reseed_worker else (compiled, 0)
+                assert (report['hits'], report['misses']) == expected_seed, 'Expected fresh seed or retained qualified worker'
             assert report['operations'] is None and 'worker' not in report
             assert report['preparedRestore'] == bool(contract.get('Restore'))
             assert report['readOnlyPreparedPackages'] == bool(contract.get('Restore'))

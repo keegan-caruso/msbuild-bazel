@@ -27,6 +27,25 @@ def main():
         assert 'Build modified a declared input: P0/data.txt' in failure.stderr, failure.stderr
         assert not list((work / 'cache').glob('*/manifest.json'))
 
+        # The ownership plan exists before targets run. A later output symlink
+        # must still fail the real artifact path check before external bytes publish.
+        linked_root = work / 'linked-workspace'
+        linked_root.mkdir()
+        linked_contract = fixture(linked_root)
+        outside = work / 'linked-outside'
+        outside.mkdir()
+        marker = outside / 'marker.txt'
+        marker.write_text('outside')
+        project = linked_root / 'P0/P0.csproj'
+        project.write_text(project.read_text().replace('</Project>',
+            '<Target Name="LinkOutput" AfterTargets="Build"><Exec Command="ln -s &quot;' + str(outside) +
+            '&quot; &quot;$(TargetDir)foreign&quot;" /></Target></Project>'))
+        linked_manifest = work / 'linked-contract.json'
+        linked_manifest.write_text(json.dumps(linked_contract))
+        failure = run(DOTNET, RUNNER, 'build', linked_root, linked_manifest, work / 'linked-report.json', work / 'linked-cache', success=False)
+        assert 'Symlinks are not supported' in failure.stderr, failure.stderr
+        assert marker.read_text() == 'outside'
+
         # Exercise the production path/digest helpers directly, without copying
         # or mutating the real SDK just to change one executable bit.
         harness = work / 'harness'
@@ -73,7 +92,7 @@ Console.WriteLine("PASS: batch path resolution, fresh symlink checks, timestamp-
         run(DOTNET, 'build', harness / 'Harness.csproj', '-c', 'Release', '--nologo', '-p:UseSharedCompilation=false')
         result = run(DOTNET, harness / 'bin/Release/net10.0/Harness.dll', work)
         print(result.stdout.strip())
-        print('PASS: target input mutation rejected before snapshot publication')
+        print('PASS: target input mutation and post-plan output symlink rejected before publishing those bytes')
 
 
 if __name__ == '__main__':

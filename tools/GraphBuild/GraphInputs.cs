@@ -10,8 +10,7 @@ internal sealed class GraphInputs : IDisposable
 {
     private readonly ProjectCollection collection;
     private readonly GraphEvaluationProfile? evaluationProfile;
-    private readonly Dictionary<string, ProjectGraphNode> directoryOwners;
-    private readonly Dictionary<string, ProjectGraphNode> fileOwners;
+    private readonly OutputOwnership<ProjectGraphNode> ownership;
     private readonly System.Collections.Concurrent.ConcurrentDictionary<string, string[]> imports = new(StringComparer.Ordinal);
     private readonly GraphContract contract;
     private readonly Dictionary<string, string> inputDigests;
@@ -151,18 +150,17 @@ internal sealed class GraphInputs : IDisposable
                 Validate(node);
             }
         }
-        using (GraphProfile.Measure("outputOwnershipValidation"))
-        {
-            ValidateOutputOwnership();
-        }
-        // Ownership is immutable contract metadata. Actual reads/writes still
-        // resolve their paths to reject symlinks introduced during execution.
         using (GraphProfile.Measure("outputOwnershipIndex"))
         {
-            directoryOwners = Graph.ProjectNodes.SelectMany(node => OutputDirectories(node).Select(path => (path, node)))
-                .GroupBy(pair => pair.path, StringComparer.Ordinal).ToDictionary(group => group.Key, group => group.First().node, StringComparer.Ordinal);
-            fileOwners = Graph.ProjectNodes.SelectMany(node => DeclaredOutputFiles(node).Select(path => (path, node)))
-                .GroupBy(pair => pair.path, StringComparer.Ordinal).ToDictionary(group => group.Key, group => group.First().node, StringComparer.Ordinal);
+            var outputPaths = Files.ResolveInputs(projects.Values.SelectMany(project => project.OutputDirectories.Concat(project.OutputFiles ?? [])));
+            ownership = new(Files.Root,
+                Graph.ProjectNodes.SelectMany(node => For(node).OutputDirectories.Select(path => (node, outputPaths[path]))),
+                Graph.ProjectNodes.SelectMany(node => (For(node).OutputFiles ?? []).Select(path => (node, outputPaths[path]))),
+                resolvedInputs.Values);
+        }
+        using (GraphProfile.Measure("outputOwnershipValidation"))
+        {
+            ownership.Validate();
         }
         EvaluationSeconds = timer.Elapsed.TotalSeconds;
         timer.Restart();
@@ -253,21 +251,7 @@ internal sealed class GraphInputs : IDisposable
             .Concat(DeclaredOutputFiles(node));
 
     internal bool OwnsOutput(ProjectGraphNode node, string path) => OutputOwner(path) == node;
-    internal ProjectGraphNode? OutputOwner(string path)
-    {
-        if (fileOwners.TryGetValue(path, out var owner))
-        {
-            return owner;
-        }
-        for (var directory = Path.GetDirectoryName(path); directory is not null && directory != Files.Root; directory = Path.GetDirectoryName(directory))
-        {
-            if (directoryOwners.TryGetValue(directory, out owner))
-            {
-                return owner;
-            }
-        }
-        return null;
-    }
+    internal ProjectGraphNode? OutputOwner(string path) => ownership.Owner(path);
     internal static string Key(ProjectInstance project) => project.FullPath + "|" + string.Join(";", project.GlobalProperties
         .OrderBy(p => p.Key, StringComparer.Ordinal).Select(p => p.Key + "=" + p.Value));
 
@@ -421,36 +405,6 @@ internal sealed class GraphInputs : IDisposable
                     return;
                 }
                 throw new InvalidDataException("Undeclared graph input for " + Relative(node) + ": " + Path.GetRelativePath(Files.Root, path));
-            }
-        }
-    }
-
-    private void ValidateOutputOwnership()
-    {
-        var directories = Graph.ProjectNodes.SelectMany(node => OutputDirectories(node).Select(path => (node, path))).ToArray();
-        var files = Graph.ProjectNodes.SelectMany(node => DeclaredOutputFiles(node).Select(path => (node, path))).ToArray();
-        var inputPaths = resolvedInputs.Values;
-        foreach (var (node, path) in files)
-        {
-            if (files.Any(other => (other.node != node && path == other.path) || path.StartsWith(other.path + "/", StringComparison.Ordinal) || other.path.StartsWith(path + "/", StringComparison.Ordinal)) ||
-                directories.Any(other => (other.node != node && path.StartsWith(other.path + "/", StringComparison.Ordinal)) || other.path == path || other.path.StartsWith(path + "/", StringComparison.Ordinal)))
-            {
-                throw new InvalidDataException("Overlapping output file ownership: " + path);
-            }
-            if (inputPaths.Any(input => input == path || input.StartsWith(path + "/", StringComparison.Ordinal)))
-            {
-                throw new InvalidDataException("Output file overlaps a declared input: " + path);
-            }
-        }
-        foreach (var (node, path) in directories)
-        {
-            if (directories.Any(other => other.node != node && (path == other.path || path.StartsWith(other.path + "/", StringComparison.Ordinal) || other.path.StartsWith(path + "/", StringComparison.Ordinal))))
-            {
-                throw new InvalidDataException("Overlapping output directories: " + path);
-            }
-            if (inputPaths.Any(input => input.StartsWith(path + "/", StringComparison.Ordinal)))
-            {
-                throw new InvalidDataException("Output directory contains a declared input: " + path);
             }
         }
     }

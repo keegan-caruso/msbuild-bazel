@@ -1,0 +1,72 @@
+using RulesMSBuild.GraphBuild;
+
+var owners = new[] { new object(), new object(), new object() };
+const string root = "/workspace";
+(string, int, string) D(string path, int owner = 0) => ("directory", owner, root + "/" + path);
+(string, int, string) F(string path, int owner = 0) => ("file", owner, root + "/" + path);
+void Check((string kind, int owner, string path)[] outputs, string[] inputs, bool? expected = null)
+{
+    var directories = outputs.Where(entry => entry.kind == "directory").Select(entry => (owner: owners[entry.owner], path: entry.path)).ToArray();
+    var files = outputs.Where(entry => entry.kind == "file").Select(entry => (owner: owners[entry.owner], path: entry.path)).ToArray();
+    // Frozen quadratic policy from the previous implementation. Independent of
+    // the candidate's dictionary/ancestor and ordered input-range algorithms.
+    bool Oracle()
+    {
+        foreach (var (owner, path) in files)
+        {
+            if (files.Any(other => (other.owner != owner && path == other.path) || path.StartsWith(other.path + "/", StringComparison.Ordinal) || other.path.StartsWith(path + "/", StringComparison.Ordinal)) ||
+                directories.Any(other => (other.owner != owner && path.StartsWith(other.path + "/", StringComparison.Ordinal)) || other.path == path || other.path.StartsWith(path + "/", StringComparison.Ordinal)) ||
+                inputs.Any(input => input == path || input.StartsWith(path + "/", StringComparison.Ordinal))) return false;
+        }
+        foreach (var (owner, path) in directories)
+        {
+            if (directories.Any(other => other.owner != owner && (path == other.path || path.StartsWith(other.path + "/", StringComparison.Ordinal) || other.path.StartsWith(path + "/", StringComparison.Ordinal))) ||
+                inputs.Any(input => input.StartsWith(path + "/", StringComparison.Ordinal))) return false;
+        }
+        return true;
+    }
+    bool valid = Oracle();
+    if (expected is not null && valid != expected) throw new Exception("Invalid named control");
+    try
+    {
+        var plan = new OutputOwnership<object>(root, directories, files, inputs);
+        plan.Validate();
+        if (!valid) throw new Exception("Accepted an ownership conflict");
+        foreach (var path in inputs.Concat(outputs.Select(entry => entry.path)).Concat(outputs.Select(entry => entry.path + "/child")).Append(root + "/unowned"))
+        {
+            var owner = files.FirstOrDefault(entry => entry.path == path).owner;
+            for (var parent = Path.GetDirectoryName(path); owner is null && parent is not null && parent != root; parent = Path.GetDirectoryName(parent))
+                owner = directories.FirstOrDefault(entry => entry.path == parent).owner;
+            if (!ReferenceEquals(plan.Owner(path), owner)) throw new Exception("Changed ownership lookup");
+        }
+    }
+    catch (InvalidDataException) when (!valid) { }
+}
+Check([D("out"), D("out")], [], true);
+Check([D("out"), D("out/child")], [], true);
+Check([D("out"), D("out/child", 1)], [], false);
+Check([F("out/a"), F("out/a")], [], true);
+Check([F("out/a"), F("out/a", 1)], [], false);
+Check([F("out"), F("out/child")], [], false);
+Check([F("out"), D("out")], [], false);
+Check([D("out"), F("out/child")], [], true);
+Check([D("out"), F("out/child", 1)], [], false);
+Check([F("out"), D("out/child")], [], false);
+Check([D("out", 1), F("out-"), F("out!/child"), F("out0/child")], [], true);
+Check([F("out")], [root + "/out"], false);
+Check([D("out")], [root + "/out/child"], false);
+Check([D("out")], [root + "/out"], true);
+Check([D("out")], [root + "/out-", root + "/out!", root + "/out0"], true);
+Check([F("out")], [root + "/out/child"], false);
+Check([D("out/child"), F("elsewhere")], [root + "/out"], true);
+Check([D("out"), D("out/child"), F("out/child/result")], [root + "/source"], true);
+var random = new Random(6708);
+string[] segments = ["a", "a!", "a-", "a.", "a0", "b", "é", "中"];
+string PathValue() => root + "/" + string.Join('/', Enumerable.Range(0, random.Next(1, 5)).Select(_ => segments[random.Next(segments.Length)]));
+for (var sample = 0; sample < 10000; sample++)
+{
+    var outputs = Enumerable.Range(0, random.Next(10)).Select(_ => (random.Next(2) == 0 ? "directory" : "file", random.Next(owners.Length), PathValue())).ToArray();
+    var inputs = Enumerable.Range(0, random.Next(10)).Select(_ => PathValue()).ToArray();
+    Check(outputs, inputs);
+}
+Console.WriteLine("PASS: 18 named ownership boundaries and 10,000 generated legacy-policy/lookup comparisons");
