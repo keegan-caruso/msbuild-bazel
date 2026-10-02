@@ -13,6 +13,7 @@ import shutil
 import subprocess
 import sys
 import time
+import threading
 import uuid
 
 from runtime_benchmark import IMPLEMENTATION, REFERENCE, IMPL_DLL, REF_DLL, expand_raw_packages
@@ -31,6 +32,7 @@ def main():
     parser.add_argument('--version', choices=['8.8.0', '9.2.0'])
     parser.add_argument('--reuse-producer-base', action='store_true', help='retain producer repository/native setup; shutdown clears project snapshots before seed')
     parser.add_argument('--reuse-consumer-base', action='store_true', help='retain consumer repository/preparation setup; require a fresh broker namespace and abandoned-state reclamation')
+    parser.add_argument('--recovery-samples', type=int, default=1, help='repeat forced recovery; stop the worker before every additional sample')
     parser.add_argument('--qualified-raw-results', type=Path, help='same-consumer full-source raw baseline for runtime-suite edit parity')
     parser.add_argument('--seed-evidence', type=Path, help='producer seed.json; required for consumer')
     parser.add_argument('--edits', action='store_true', help='consumer body/API remote recovery and fresh native controls')
@@ -38,12 +40,13 @@ def main():
     parser.add_argument('--raw-control', action='store_true', help='fresh raw graph Restore/Build in the same consumer, after restoring original sources')
     args = parser.parse_args()
     assert os.uname().sysname == 'Linux' and os.uname().machine == 'aarch64'
+    assert args.recovery_samples >= 1 and (args.phase == 'consumer' or args.recovery_samples == 1)
+    assert not args.reuse_consumer_base or args.phase == 'consumer'
     assert (args.phase == 'consumer') == (args.seed_evidence is not None)
     assert not (args.edits or args.diagnostics or args.raw_control) or args.phase == 'consumer'
     root, results, output_base = args.workspace.resolve(), args.results.resolve(), args.output_base.resolve()
     assert not results.is_relative_to(root) and not root.is_relative_to(results)
     assert not args.reuse_producer_base or args.phase == 'producer'
-    assert not args.reuse_consumer_base or args.phase == 'consumer'
     assert args.reuse_producer_base or args.reuse_consumer_base or not output_base.exists()
     assert args.qualified_raw_results is None or (args.slice == 'runtime-suites' and args.phase == 'consumer')
     results.mkdir(parents=True, exist_ok=False)
@@ -84,6 +87,7 @@ def main():
     rows = []
     stopped_workers = set()
     scratch = Path('/tmp') / ('rules-msbuild-workers-' + str(os.getuid()))
+    memory_samples = {}
     generated, build = root / 'graph.generated.bzl', root / 'BUILD.bazel'
     original_generated, original_build = generated.read_bytes(), build.read_bytes()
     main_line = next(line for line in original_build.splitlines() if line.startswith(b'app_graph(name="graph",'))
@@ -104,8 +108,31 @@ def main():
     def invoke(arguments, label):
         start = time.monotonic()
         with (results / (label + '.log')).open('w') as log:
-            subprocess.run(bazel + arguments, cwd=root, env=environment, stdout=log, stderr=subprocess.STDOUT, check=True)
-        return time.monotonic() - start
+            process = subprocess.Popen(bazel + arguments, cwd=root, env=environment, stdout=log, stderr=subprocess.STDOUT)
+            samples = []
+            stopped = threading.Event()
+            def sample_memory():
+                while True:
+                    memory = {line.split(':')[0]: int(line.split()[1]) for line in Path('/proc/meminfo').read_text().splitlines()}
+                    samples.append((memory['MemTotal'], memory['MemAvailable']))
+                    if stopped.wait(0.25):
+                        return
+            sampler = threading.Thread(target=sample_memory)
+            sampler.start()
+            try:
+                process.wait()
+                elapsed = time.monotonic() - start
+            finally:
+                stopped.set()
+                sampler.join()
+            total = samples[-1][0]
+            minimum_available = min(available for _, available in samples)
+            memory_samples[label] = dict(vmTotalKiB=total, minimumAvailableKiB=minimum_available,
+                                         maximumUsedKiB=total - minimum_available, samplingIntervalSeconds=0.25)
+            (results / 'memory-samples.json').write_text(json.dumps(memory_samples, indent=2) + '\n')
+            if process.returncode:
+                raise subprocess.CalledProcessError(process.returncode, bazel + arguments)
+        return elapsed
 
     def stop(label):
         invoke(['shutdown'], label)
@@ -155,6 +182,7 @@ def main():
         assert report['readOnlyPreparedPackages'] == (bool(contract.get('Restore')) and not native)
         record = dict(case=label, slice=args.slice, seconds=seconds, version=environment['USE_BAZEL_VERSION'], externalWorkspace=str(root),
                       runnerSha256=runner, hits=hits, misses=count-hits, files=len(outputs), profiled=profile,
+                      memorySamples=memory_samples[label],
                       preparationActions=sum(int(r.get('actionsExecuted', 0)) for r in metrics.get('actionData', []) if r['mnemonic'] == 'MSBuildGraphRestore'),
                       report=report, outputs=outputs)
         (results / (label + '.json')).write_text(json.dumps(record, indent=2) + '\n')
@@ -328,8 +356,12 @@ def main():
         else:
             seed = json.loads(args.seed_evidence.read_text())
             assert seed.get('slice', 'pipelines') == args.slice and seed['externalWorkspace'] != str(root), 'Use a relocated independent workspace'
-            replay = graph('remote-recovery', count)
-            assert replay['runnerSha256'] == seed['runnerSha256'] and replay['outputs'] == seed['outputs'], 'Independent recovery differs'
+            for sample in range(1, args.recovery_samples + 1):
+                label = 'remote-recovery' if sample == 1 else 'remote-recovery-' + str(sample)
+                if sample > 1:
+                    stop(label + '-empty-local-cache')
+                replay = graph(label, count)
+                assert replay['runnerSha256'] == seed['runnerSha256'] and replay['outputs'] == seed['outputs'], 'Independent recovery differs'
             if args.qualified_raw_results:
                 qualified_raw_control('remote-recovery', replay)
             suites('remote-recovery')

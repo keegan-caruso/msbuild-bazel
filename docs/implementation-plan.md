@@ -45,9 +45,12 @@ a bounded graph-built corerun probe now passes with source-built native products
 SDK-absent execution and runtime-input test invalidation. The combined source host
 also runs an ordinary app and the 577-case upstream Pipelines suite. Full-source
 raw parity, local body/API replay and SDK-absent execution pass for the expanded
-474-compilation suite graph. Independent ordinary-app action-cache recovery also
-passes. Larger suite, project-cache consumer and timing gates remain open; see
-[runtime test-host qualification](runtime-graph-upstream-tests.md).
+481-compilation graph: eight suites match 118,952 passes and 64 skips. Both Bazel
+baselines pass seed/replay/edit/failure controls. A stopped 8.8 producer and
+relocated 9.2 consumer recover all 10,780 files exactly. Managed/native input
+mutations and cache-fault recovery also pass. See
+[runtime test-host qualification](runtime-graph-upstream-tests.md) and the
+[qualification scorecard](performance.md#runtime-qualification-closure).
 The platform roots also pass 8.8/9.2 worker/replay/native parity for 215 compilations;
 all 1,498 compiled products match the complete-source raw Build. See the [platform checkpoint](graph-cache-plan.md#platform-graph-checkpoint).
 The collections paired body/API medians have about 3% overhead / 9% advantage
@@ -66,11 +69,13 @@ Orchard's body-edit follow-up reuses 201 projects and rebuilds one, with exact
 compared output parity; timings and remaining gates are in
 [performance](performance.md#reviewed-orchard-dependency-contracts).
 Full upstream migration parity remains open;
-the per-project rules remain the default. The latest
+the per-project rules remain the default. The retained
 [indexed output-ownership result](performance.md#indexed-output-ownership) removes
-the repeated validation scan. The 481-compilation body/API medians have about
-2%/13% overhead against paired raw MSBuild, with exact compiled bytes and matching
-compiler calls. MSBuild evaluation and current filesystem checks remain fresh. See
+the repeated validation scan. The refreshed
+[481-compilation scorecard](performance.md#runtime-qualification-closure) has about
+19%/12% body/API overhead, 4.3% cold Restore + Build overhead and 34.348-s independent
+project recovery. Compiled bytes and six/17 compiler calls match raw. MSBuild
+evaluation and current filesystem checks remain fresh. See
 [graph-cache migration](project-cache-migration.md) for commands, measured scope,
 and the remaining default-switch gates.
 

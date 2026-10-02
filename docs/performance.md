@@ -3,6 +3,8 @@
 No-op builds, method-body edits and remote-cache recovery are the strongest
 measured cases. **Cold builds and larger-graph API edits remain the main gaps.**
 Body and API edits are the primary scorecard; there is no single overall speedup.
+The latest [runtime qualification](#runtime-qualification-closure) separates
+matched cold builds, incremental edits and independent project recovery.
 
 These results come from pinned workloads; they do not measure every commit on
 main. Linked reports contain the commands, samples and raw evidence. The
@@ -606,6 +608,157 @@ RULES_MSBUILD_DOTNET_ROOT=SDK python3 tests/graph_build/output_files.py
 RULES_MSBUILD_DOTNET_ROOT=SDK python3 tests/graph_build/configurations.py
 RULES_MSBUILD_DOTNET_ROOT=SDK python3 tests/graph_build/linux_worker.py --bazel-version 9.2.0
 ```
+
+## Runtime qualification closure
+
+The source-host graph keeps **260 project paths / 543 configured nodes / 481
+compilations / 39 roots**, runtime v10.0.0 and SDK 10.0.400. The qualification
+runs on Linux ARM64 with four CPUs, 8 GiB, four MSBuild nodes and one graph
+worker. The source-identity replay fix is frozen for this final series; its runner
+SHA-256 starts `670dcb55f6b1`. Graph mode remains opt-in.
+
+| Boundary | Qualified result |
+| --- | --- |
+| Bazel 8.8 / 9.2 | Actual eight-suite seed, replay, body/API and failure/recovery controls |
+| Managed inputs | Shared source, resource, generated template and imported props; raw byte parity and current runtime observations |
+| Native inputs | Independent host source/header/compiler mutations; no managed graph or Restore actions; exact native restoration |
+| Independent HTTP consumer | Stopped 8.8 producer, relocated 9.2 consumer, exact 10,780 files/bytes/modes; six/17 misses matching raw compiler calls |
+| Cache faults | Missing snapshot/artifact rebuilds; corrupt data and unavailable service fail; exact 481-hit recovery after every case |
+| Runtime execution | All eight suites match 118,952 passes / 64 skips and current managed/native producers |
+
+See [commands, failure controls and limits](runtime-graph-upstream-tests.md).
+Large JSON, logs, binlogs and test output stay outside Git.
+
+### Repeated HTTP recovery
+
+Three unprofiled recoveries take **34.348 s median (34.271–38.194)**. Each forces
+one graph action, uses a fresh broker namespace, has **481 hits / zero misses**,
+and restores exact producer files/bytes/modes. Whole-action remote and disk caches
+are disabled. The producer is stopped, the workspace is relocated, and repository,
+SDK/package and Restore preparation setup is retained. This measures project
+recovery with available inputs, not the entire fresh-machine workflow.
+
+The earlier fresh consumer took **109.184 s** with one Restore action, following
+separate SDK/package extraction and runner bootstrap. Native construction and
+suite execution are also separate. The three-sample series has no Restore
+actions and matches full-source raw compiled bytes plus all eight suite outcomes.
+Estimated peak VM-used memory is **2.892–2.995 GiB**, sampled from `MemAvailable`
+every 0.25 s; it includes OS usage and is not process RSS/PSS.
+
+A separate profiled replay transfers **263,018,617 bytes (250.83 MiB) in 5,680
+CAS downloads**, including manifests; action-pointer requests and wire overhead
+are excluded. That diagnostic reruns preparation and is excluded from medians.
+
+### Matched cold builds
+
+Three unprofiled pairs alternate raw-first / graph-first / raw-first. Both have
+fresh managed outputs; graph requests have empty local project snapshots and no
+HTTP project cache. SDK/package inputs, expanded raw packages, the raw driver and
+Bazel repository/bootstrap setup are available. Each pair forces one Restore and
+one graph action, has **zero hits / 481 misses**, and matches all **3,622** raw
+DLL/PDB/resource bytes. This excludes acquisition, native construction and tests.
+
+| Case | Median | Range |
+| --- | ---: | ---: |
+| Full Bazel workflow | 1,093.530 s | 1,090.422–1,187.811 |
+| Raw Restore + Build | 1,048.885 s | 1,022.047–1,086.768 |
+| Raw Build only | 967.741 s | 945.796–1,007.308 |
+| Raw Restore | 79.460 s | 76.251–81.144 |
+| Bazel Restore action span | 87.954 s | 87.300–89.987 |
+| Bazel graph action span | 995.484 s | 994.411–1,092.378 |
+
+The ratios of medians are **1.043x Restore + Build / 1.130x Build-only**. The graph
+action span includes request staging, MSBuild, verification and snapshot/output
+export; it is not a pure compiler timer. Bazel schedules one graph action while
+its child uses the same four MSBuild nodes as raw. Other native actions retain
+their declared bubblewrap isolation; managed actions use Linux sandboxing and
+`worker_sandboxing`.
+
+Peak VM-used estimates are **4.940–5.894 GiB** for graph and **3.399–4.127 GiB**
+for raw. The graph-first raw row includes the retained idle Bazel worker. These
+are whole-VM estimates from `MemAvailable`, not isolated process memory. No
+other build VM or profiler ran alongside the scored series.
+
+Retained-preparation HTTP recovery is about **32x faster** than this cold Bazel
+workflow. The earlier fresh-consumer Restore + recovery is also clearly faster
+than recompilation, but its acquisition/bootstrap/native/test costs remain separate.
+
+### Refreshed incremental scorecard
+
+Three unique pairs per case alternate raw/graph order, retain warm outputs and
+use available Restore preparation. Scored graph actions have profiling off and
+no HTTP project cache, whole-action remote cache or disk cache. All pairs match
+**3,622** DLL/PDB/resource bytes. No-op rows are whole-action hits; body/API rows
+execute the graph with exactly **six/17 misses**.
+
+| Case | Bazel median (range) | Raw median (range) |
+| --- | ---: | ---: |
+| No-op | 0.407 s (0.403–0.756) | 17.624 s (17.623–18.870) |
+| Body edit | 36.640 s (35.976–37.844) | 30.869 s (29.232–31.770) |
+| API edit | 52.348 s (49.912–52.724) | 46.910 s (44.351–51.154) |
+| Local project recovery | 20.581 s (17.863–25.606) | Fresh-output raw Build is the cold row above |
+
+Body/API overhead is **19%/12%**. Both medians meet the proposed roughly 20%
+edit gate for this selected scenario. Local recovery executes one graph action
+and restores original bytes with **481 hits / zero misses** each time. Workflow
+medians come from complete rows; separate phase medians need not add to them.
+
+These are refreshed baselines, not a causal before/after comparison with the
+preceding indexed-ownership series. Shared-source/template/import invalidation
+remains conservative. Separate binary logs confirm **six/17 Csc calls in both
+engines**, with exact raw byte parity. The body/API diagnostics spend 5.66/5.76 s
+in graph evaluation and copy 688.5/677.2 MB across 10,621/10,465 files in 4.28/4.13 s;
+no clones occur. Concurrent hashing/replay operation totals overlap these phases
+and must not be added as wall time. Scored graph/raw VM-used peaks are 3.790/2.950
+GiB; the maximum across setup and diagnostics is 3.843 GiB.
+
+The host disk filled after the scored rows and compiler diagnostics, interrupting
+final original-graph restoration and making the consumer filesystem read-only.
+Reports were preserved, already-free sparse blocks were trimmed, and the same VM
+was restarted. A separate unscored HTTP restoration passes all 10,780 original
+files/modes/bytes, raw compiled-byte parity, all eight suites (118,952 passes /
+64 skips) and 3,570 current producer-hash observations. The interrupted run and
+its recovery are excluded from every timing above; the interrupted controller
+itself is not reported as a successful end-to-end run.
+
+### Reproduction and readiness
+
+Use the pinned Linux ARM64 image, SDK/packages/native inputs, reviewed contract,
+qualified complete-source raw workspace, four CPUs/8 GiB and the 8192 MiB logical
+snapshot budget. The budget is not a memory reservation. See the
+[independent-consumer commands](runtime-graph-upstream-tests.md#independent-project-cache-recovery)
+for producer/consumer setup. `runtime_remote.py --recovery-samples 3` repeats
+recovery with stopped workers and distinct namespaces; `--reuse-consumer-base`
+retains repository/Restore setup without retaining project snapshots.
+
+For cold controls, repeat this command with `--sample 1`, `2`, then `3`:
+
+```sh
+python3 REPO/tests/graph_build/upstream/runtime_cold.py WORKSPACE PRIOR_SCORECARD \
+  --qualified-raw-results RAW_RESULTS --results COLD_RESULTS \
+  --output-base BASE --sample 1
+```
+
+The final sample may use `--retain-worker`. Restore the original `//:graph`
+declaration once with that worker and the same sandbox/cache settings; require
+481 hits/zero misses and exclude this setup from scoring. Then run:
+
+```sh
+python3 REPO/tests/graph_build/upstream/runtime_benchmark.py WORKSPACE WARM_RESULTS \
+  --output-base BASE --slice runtime-suites \
+  --qualified-raw-results RAW_RESULTS --samples 3 --diagnostics
+```
+
+Without a retained worker, use `--reseed-worker`; its all-miss seed is excluded.
+Evidence is in `/qualification/runtime-final-cold`, `runtime-final-warm` and
+`runtime-final-recovery` on the independent consumer. The separately completed
+restoration is `runtime-final-original-restoration-verified`. The source-identity
+fix and runner bytes stay unchanged throughout this series. No CI was run.
+
+Graph mode remains opt-in. These results do not qualify another platform, RBE,
+full-repository runtime/SDK/AOT builds or broader native mutation/raw scheduling
+parity. Further default-switch work must address the conservative shared-input
+costs and qualify the additional supported workloads.
 
 ## Current graph-cache optimization checkpoint
 

@@ -182,17 +182,17 @@ runtime qualification and measurement, not repeating completed synthetic work.
 | --- | --- | --- |
 | 1. Linux Pipelines | Implementation and test Build/replay/native parity pass on Linux ARM64, Bazel 8.8/9.2; 819/998 snapshot files | Broader runtime contracts |
 | 2. Incremental baseline | Ordinary/prepared paired edits and independent project recovery pass | Larger edit matrix |
-| 3. Larger scope | Collections: 55 compiled with paired edits; sockets: 77 compiled; loaded-common: 182 configured / 163 compiled with full-source parity on both baselines; threading/filesystem compilation pass; loaded-platform has 215 compilations with raw/replay/native parity on both baselines | Larger paired edits, shared/generator/resource edits, other slices and graph-backed tests |
-| 4. Removed work | Shared CAS, path reuse, shared evaluation context, read-only worker packages and indexed ownership; [latest 481-compilation scorecard/profile](performance.md#indexed-output-ownership): body/API medians have 2%/13% overhead, with exact raw bytes and compiler calls | Keep payload verification and fresh evaluation; broader qualification remains open |
+| 3. Larger scope | Runtime source-host graph: 543 configurations / 481 compilations, eight suites, complete-source raw parity and managed-input controls on Linux ARM64 | Other runtime roots, broader shared-input edit costs |
+| 4. Removed work | Shared CAS, path reuse, shared evaluation context, read-only worker packages and indexed ownership; [refreshed 481-compilation scorecard](performance.md#runtime-qualification-closure): body/API medians have 19%/12% overhead, with exact raw bytes and six/17 compiler calls | Keep payload verification and fresh evaluation; broader qualification remains open |
 | 5. Tests | [Expanded source host](runtime-graph-upstream-tests.md): 481 compilations, eight suites with 118,952 passes / 64 skips, 3,622 compiled products matching raw bytes, reviewed case/outcome parity and SDK-absent execution; full replay, six/17 body/API recompilations matching raw, assertion/observer failure and restoration pass on 8.8/9.2 | Larger paired build/test timings |
-| 6. Native/app | Graph-built driver and declared native producers compose a 58-managed/eight-native source framework; ordinary app and SDK-absent checks pass on both baselines; all 2,031 compiled managed products match full-source raw Build | Native mutations, broader edits and faults |
-| 7. Recovery | Independent 8.8 producer / 9.2 consumer recovers all 163 loaded-common projects and exact 3,980 files; body/API recovery and fresh raw/sandbox parity pass | Broader edits and cache/runtime faults; repeated timing and peak memory |
+| 6. Native/app | Declared native producers compose the source framework; ordinary app and SDK-absent checks pass; host source/header/compiler edits preserve managed reuse and exact restoration | Other native producers, independent raw native scheduling |
+| 7. Recovery | Independent stopped 8.8 producer / relocated 9.2 consumer: 481 hits, exact 10,780 files, six/17 body/API boundaries, five fault/recovery controls and all eight suites; repeated recovery median 34.348 s | Other platforms and remote execution |
 | 8. Readiness | Graph mode remains opt-in | Runtime capability/performance gates; later SDK/AOT/full-repository expansion |
 
 The worker still starts a fresh MSBuild child per request. Read-only preparation
 avoids package copying and final package rehash, but each child still validates
-SDK/package bytes. The bounded Linux scorecard measures this option; larger
-graphs and runtime-host qualification remain open.
+SDK/package bytes. The Linux ARM64 scorecard measures this option through 481 compilations.
+Full-repository runtime builds and other platforms remain open.
 The completed disk cleanup removed older qualification containers after preserving
 compact reports; recreate only the workers needed for the selected milestone.
 
@@ -1235,13 +1235,14 @@ The 474-compilation Linux ARM64 graph matches all 3,447 full-source raw DLL/PDB/
 
 ### Expanded source-host scorecard
 
-The latest 481-compilation build-only scorecard has three paired no-op/body/API
+The preceding indexed-ownership build-only scorecard has three paired no-op/body/API
 samples and three local-recovery samples. With indexed ownership, body/API
 medians are of 33.547/51.442 s versus 32.783/45.421 s raw: 2%/13% overhead. All 3,622
 compiled products match; diagnostic compiler calls are six/17 on both sides.
 See [phases, ranges, memory, reproduction and limits](performance.md#indexed-output-ownership).
-The separate historical run is not an old/new speedup control. No default switch
-or broader cold/remote claim follows.
+The separate historical run is not an old/new speedup control. The refreshed
+[cold/edit/recovery scorecard](performance.md#runtime-qualification-closure) below
+uses the qualified source-identity fix. Graph mode remains opt-in.
 
 ## Next runtime qualification slices
 
@@ -1286,7 +1287,10 @@ remains fresh. Current body/API medians have 2%/13% overhead versus their paired
 raw controls. All 107 owned tests, warning-as-error builds, style checks and final
 scaffold/Starlark checks pass. Source/configuration restoration passes; the helper
 stops its worker. CI was not run.
-Slices 1–8 are closed; slice 9 is next. There is no new remote or platform claim.
+Slices 1–14 are closed. The final repeated timing and readiness review is
+[recorded here](performance.md#runtime-qualification-closure). Qualification remains
+bounded to Linux ARM64 and selected runtime roots; independent HTTP recovery does
+not qualify RBE.
 
 ### Measurement contract
 
@@ -1436,8 +1440,16 @@ fault runs unscored.
 
 ### 14. Review repeated cold/recovery evidence and readiness
 
-Run repeated matched cold-build and independent-recovery rows, recording acquisition,
-Restore/preparation, compilation, memory and traffic separately. Summarize the
-correctness matrix and body/API/no-op/cold/recovery comparisons. The current 24%
-body overhead remains outside the proposed roughly 20% gate. A default switch
-requires all relevant gates, rather than a single favorable timing.
+Complete: three matched cold pairs, three stopped-worker HTTP recoveries, refreshed
+three-pair no-op/body/API rows, three local recoveries and separate six/17 compiler
+counts. All compared compiled bytes match raw. Median graph/raw body and API
+ratios are 1.19/1.12; cold is 1.043x raw Restore + Build (1.130x Build-only).
+Local/HTTP recovery medians are 20.581/34.348 s. A host-disk interruption occurred
+after scoring and diagnostics; separately completed restoration verifies all
+10,780 files, raw bytes and eight-suite outcomes. See the
+[scorecard, memory, traffic, commands and interruption limits](performance.md#runtime-qualification-closure).
+The selected edit gate passes, but shared-input invalidation remains conservative;
+graph mode stays opt-in, and full runtime/SDK/AOT, other platforms and RBE remain open.
+
+A default switch still requires the remaining workload and capability gates,
+rather than a single favorable timing.
