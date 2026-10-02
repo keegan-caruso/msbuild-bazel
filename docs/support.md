@@ -36,3 +36,9 @@ Linux workers require Bubblewrap and nested user/mount/PID namespaces; ordinary
 container defaults may block them. Project-graph isolation alone does not establish
 filesystem hermeticity. Build trusted targets; keep reports outside Git and summarize
 commands, outcomes and remaining limits when extending support.
+
+Current qualification sequence: NoTargets and source-SDK Pack/Razor/Publish;
+graph NativeAOT build/run/recovery; refresh 481-node correctness, independent
+HTTP recovery and paired cold/body/API timings; use those diagnostics to remove
+staging/Restore work; qualify unchanged `Add1_ro.csproj` from #74. Keep large
+reports outside Git and update the measured summaries here after each slice.
