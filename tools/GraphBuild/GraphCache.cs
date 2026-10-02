@@ -5,7 +5,6 @@ using Microsoft.Build.Framework;
 using Microsoft.Build.Graph;
 using Microsoft.Build.ProjectCache;
 using RulesMSBuild.ProjectCache;
-using TaskItem = Microsoft.Build.Utilities.TaskItem;
 
 namespace RulesMSBuild.GraphBuild;
 
@@ -385,7 +384,7 @@ internal sealed class GraphCache(GraphInputs inputs, string cache, bool read, Re
 
     private static ITaskItem2 RestoreItem(ResultItem item)
     {
-        ITaskItem2 result = new TaskItem(Microsoft.Build.Evaluation.ProjectCollection.Escape(item.Include));
+        ITaskItem2 result = new CachedTargetItem(Microsoft.Build.Evaluation.ProjectCollection.Escape(item.Include));
         foreach (var (name, value) in item.Metadata)
         {
             result.SetMetadataValueLiteral(name, value);

@@ -1384,6 +1384,12 @@ separate from performance comparisons.
 
 ### 10. Expand managed-input invalidation one input type at a time
 
+Complete: four small and expanded-runtime input controls, raw compiled-byte
+parity, current producer observations, all eight suites and exact restoration.
+The generic cache adapter now preserves source-output identity metadata.
+Shared-source/template/import invalidation remains conservative; import
+restoration rebuilds 249 nodes. See [measured controls](runtime-graph-upstream-tests.md#managed-input-controls).
+
 Run independent shared-source, resource, generated-metadata and imported-property
 edit/restoration controls, in that order. Start small, then select a representative
 runtime owner/consumer for each supported input. Compare raw compiler calls,

@@ -242,6 +242,72 @@ one expected exception parameter name; only that test project recompiles. A firs
 fixture check failed because xUnit truncated its diagnostic marker. The passing
 control uses a short unique marker and starts from a successful original suite.
 
+## Managed-input controls
+
+The small `tests/graph_build/managed_inputs.py` fixture compares shared-source,
+resource, generated-data and imported-property edits against raw graph MSBuild.
+Every edit refreshes the observed runtime value and restores exact DLL/PDB/resource
+bytes. Graph/raw compiler counts are two/two for shared source and two/one for the
+other inputs; those extra consumer misses are conservative. Source/resource/data
+restoration has zero graph misses. Import restoration resyncs and recompiles two
+nodes, while returning the original bytes. Stale imported definitions are rejected
+before normal sync.
+
+The larger shared-source control exposed a generic target-result replay defect.
+MSBuild's [project-cache adapter](https://github.com/dotnet/msbuild/blob/main/src/Build/BackEnd/Components/ProjectCache/CacheResult.cs) calls
+`ITaskItem.CopyMetadataTo` on cached results.
+The ordinary task item replaces saved `OriginalItemSpec` with the rebased absolute
+Include when copying to an empty destination. Runtime's not-supported facade
+generator uses the relative source identity to select contract source files, so
+partial replay could omit enum declarations. `CachedTargetItem` preserves a saved
+nonempty identity and keeps destination precedence and ordinary missing-identity
+behavior. No runtime-specific target logic was added.
+
+`tests/graph_build/source_groups.py` reproduces the cached producer/recompiled
+consumer failure with three projects. Seed, full replay and partial replay now
+match fresh compilation byte for byte. Separate controls exercise the real cache
+adapter, literal escaping, existing destination metadata and missing metadata.
+Owned code-style/warning checks and scaffold/Starlark checks pass on Linux ARM64.
+
+The expanded Linux ARM64/Bazel 9.2 control uses the same 543 configured nodes,
+481 compilation nodes, 39 roots and eight suites. Each row compares all 3,622
+compiled products with a diagnostic raw SDK graph build and checks all 119,016
+normalized test outcomes. The runtime probe reads the changed value from the
+current producer and verifies its loaded SHA-256.
+
+| Input | Graph misses | Raw compiler calls | Restored graph misses |
+| --- | ---: | ---: | ---: |
+| Shared `Common/src/Internal/Padding.cs` | 119 | 16 | 0 |
+| Microsoft.CSharp resource | 1 | 1 | 0 |
+| DiagnosticSource generated metadata template | 111 | 8 | 0 |
+| Private.Uri imported props | 249 | 14 | 249 |
+
+Shared-source and generated-metadata invalidation remain conservative. These
+controls prove correctness, not equal incremental work. All restorations return the
+exact original compiled bytes. Source/resource/template restorations have 481
+project-cache hits and no compilation; import restoration has 232 hits / 249
+misses and 14 raw compiler calls.
+All eight suites execute for each row; the changed values are padding size 252,
+a unique resource string, a distinct generated assembly-file version and an
+assembly metadata attribute. The import control first rejects the stale definition,
+then uses normal project sync. Its edited and restored preparation manifests have
+identical restore-file bytes, but both builds invalidate 249 nodes. The cause of
+that repeated work remains open; no equal-work or import-restoration speedup is
+claimed.
+
+```sh
+python3 tests/graph_build/upstream/runtime_managed_inputs.py \
+  WORKSPACE FULL_SOURCE_RAW_RESULTS NEW_RESULTS MAPPINGS \
+  --output-base RETAINED_QUALIFIED_BASE --inputs INPUTS --runfiles PACKAGES
+```
+
+The optional `--case` runs one independent input control. Import resync carries
+forward the current contract's reviewed per-entry properties, then rejects any
+changed configured identity, dependency role or output binding. Earlier fixture
+mappings omitted three framework overrides added during expansion; the guard
+caught that mismatch. Large logs, JSON and binlogs remain outside Git. These
+correctness runs are unscored, including the separate runner seed after the fix.
+
 ## Remaining gates
 
 Actual-suite controls now pass on both supported Bazel baselines. Capture larger
