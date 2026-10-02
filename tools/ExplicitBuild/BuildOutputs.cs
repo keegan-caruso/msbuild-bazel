@@ -12,7 +12,7 @@ internal static class BuildOutputs
             GeneratedFiles.Publish(r, state);
             return;
         }
-        if (r.RestoreOnly)
+        if (r.RestoreOnly || r.ProjectRestoreOnly)
         {
             Directory.CreateDirectory(ReadPath(r.Runtime));
             Copy(Path.Combine(state, "restore.json"), ReadPath(r.Reference));

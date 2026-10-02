@@ -1,4 +1,7 @@
 exports_files([
     "Directory.Build.props",
     "MSBuildTool.props",
+    "PackageSdks.cs",
+    "GraphCompilerReferences.cs",
+    "GraphEntryProperties.cs",
 ])

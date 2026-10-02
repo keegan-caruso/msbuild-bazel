@@ -32,9 +32,9 @@ internal static class ProjectCompilation
         var properties = BuildProperties.Create(s);
         var path = Path.Combine(s.Workspace, Safe(r.Project.Path));
         Environment.CurrentDirectory = Path.GetDirectoryName(path)!;
-        // Restore operates only on this declared project; project references have
-        // been replaced by Bazel reference outputs before either target executes.
-        foreach (var target in r.RestoreOnly ? new[] { "Restore" } : r.RestoreInput is not null ? new[] { "Build" } : new[] { "Restore", "Build" })
+        // Restore operates only on this project using declared dependency
+        // identities; Build consumes the selected Bazel reference outputs.
+        foreach (var target in r.RestoreOnly || r.ProjectRestoreOnly ? new[] { "Restore" } : r.RestoreInput is not null ? new[] { "Build" } : new[] { "Restore", "Build" })
         {
             // Bazel replaces the worker when its declared SDK/tools change. Request
             // XML lives at content-identified paths unless the stable-path prototype
@@ -108,7 +108,7 @@ internal static class ProjectCompilation
                 RuntimePackages.Export(s, result.ProjectStateAfterBuild!);
             }
         }
-        if (r.RestoreOnly)
+        if (r.RestoreOnly || r.ProjectRestoreOnly)
         {
             PreparedRestore.Export(s);
         }

@@ -247,7 +247,7 @@ internal static class LinuxWorker
         {
             Project = Map(request.Project),
             RestoreInput = request.RestoreInput is null ? null : map(request.RestoreInput),
-            Sources = request.Sources.Select(Map).ToArray(),
+            Sources = request.Sources.Select(file => request.ProjectRestoreOnly && file.Source.Length == 0 ? file : Map(file)).ToArray(),
             Imports = request.Imports.Select(Map).ToArray(),
             AdapterImports = request.AdapterImports?.Select(Map).ToArray(),
             Items = request.Items.Select(i => i with { File = Map(i.File) }).ToArray(),
