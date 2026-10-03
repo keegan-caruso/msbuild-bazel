@@ -74,8 +74,8 @@ def _graph_action(ctx, prepare = False):
         worker_sources.append({"path": file.path, "destination": relative})
     for target, relative in ctx.attr.input_paths.items():
         files = target[DefaultInfo].files.to_list()
-        if len(files) != 1 or files[0].is_directory:
-            fail("Graph input_paths requires one file per label")
+        if len(files) != 1:
+            fail("Graph input_paths requires one file or directory per label")
         if relative.startswith("/") or "\\" in relative or any([part in ["", ".", ".."] for part in relative.split("/")]):
             fail("Graph input_paths requires safe workspace-relative paths")
         args.add_all([files[0].path, relative])
@@ -299,14 +299,15 @@ msbuild_graph_layout = rule(
 )
 
 def _output(ctx):
-    graph = ctx.attr.graph[MSBuildGraphInfo]
+    restore = MSBuildGraphRestoreInfo in ctx.attr.graph
+    graph = ctx.attr.graph[MSBuildGraphRestoreInfo] if restore else ctx.attr.graph[MSBuildGraphInfo]
     path = ctx.attr.path
     if path.startswith("/") or "\\" in path or any([part in ["", ".", ".."] for part in path.split("/")]):
-        fail("Graph output requires a safe workspace-relative file path")
-    output = ctx.actions.declare_file(ctx.label.name + "/" + path.rsplit("/", 1)[-1])
+        fail("Graph output requires a safe workspace-relative path")
+    output = ctx.actions.declare_directory(ctx.label.name + "/" + path.rsplit("/", 1)[-1]) if ctx.attr.directory else ctx.actions.declare_file(ctx.label.name + "/" + path.rsplit("/", 1)[-1])
     tc = ctx.toolchains[_TOOLCHAIN]
     request = ctx.actions.declare_file(ctx.label.name + ".output.json")
-    ctx.actions.write(request, json.encode({"contract": graph.contract.path, "workspace": graph.directory.path + "/workspace", "path": path, "output": output.path}))
+    ctx.actions.write(request, json.encode({"contract": graph.contract.path, "workspace": graph.directory.path + ("/prepared" if restore else "/workspace"), "path": path, "output": output.path, "directory": ctx.attr.directory, "bazelInputs": True, "restore": restore}))
     ctx.actions.run(
         executable = tc.dotnet,
         arguments = [tc.runner.path, "graph-output", request.path],
@@ -319,8 +320,9 @@ def _output(ctx):
 msbuild_graph_output = rule(
     implementation = _output,
     attrs = {
-        "graph": attr.label(providers = [MSBuildGraphInfo], mandatory = True),
-        "path": attr.string(mandatory = True, doc = "File in a contract-declared output directory."),
+        "graph": attr.label(providers = [[MSBuildGraphInfo], [MSBuildGraphRestoreInfo]], mandatory = True),
+        "path": attr.string(mandatory = True, doc = "File or tree covered by contract-declared output ownership."),
+        "directory": attr.bool(default = False, doc = "Export a complete owned directory as a Bazel tree artifact."),
     },
     toolchains = [_TOOLCHAIN],
 )

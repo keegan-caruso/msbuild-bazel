@@ -125,3 +125,58 @@ build publish-native-control 4 0 linux-sandbox
 outputs > "$TEST_TMPDIR/publish-native.sha256"
 cmp "$TEST_TMPDIR/publish.sha256" "$TEST_TMPDIR/publish-native.sha256"
 echo 'PASS: worker body/API reuse, failure recovery, property invalidation, profiling and native Build/Publish parity'
+
+# A generated targeting-pack tree is a declared input to a separate graph.
+mkdir Consumer
+cat > Consumer/App.csproj <<'EOF'
+<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup><TargetFramework>net10.0</TargetFramework><OutputType>Exe</OutputType></PropertyGroup><ItemGroup><Reference Include="P0"><HintPath>../prepared/P0.dll</HintPath></Reference></ItemGroup></Project>
+EOF
+printf 'System.Console.WriteLine(P0.Value());\n' > Consumer/Code.cs
+cat > consumer.json <<'EOF'
+{"Version":1,"Entry":"Consumer/App.csproj","SdkVersion":"10.0.400","Properties":{"Configuration":"Release"},"SharedInputs":["Directory.Build.props","global.json"],"Projects":{"Consumer/App.csproj":{"Inputs":["Consumer/App.csproj","Consumer/Code.cs","prepared/P0.dll","prepared/P0.pdb","prepared/P0.deps.json"],"OutputDirectories":["Consumer/bin/Release/net10.0","Consumer/obj/Release/net10.0"]}}}
+EOF
+cat >> BUILD.bazel <<'EOF'
+load("@rules_msbuild//msbuild:defs.bzl", "msbuild_graph", "msbuild_graph_output")
+msbuild_graph_output(name="references", graph=":graph", path="P0/bin/Release/net10.0", directory=True)
+msbuild_graph(name="consumer", runner=":graph_runner", contract="consumer.json", srcs=["Consumer/App.csproj","Consumer/Code.cs","Directory.Build.props","global.json"], input_paths={":references":"prepared"}, project_outputs={"Consumer/App.csproj|net10.0":["Consumer/bin/Release/net10.0","App.dll","Exe"]}, linux_stable_paths=True, linux_worker=True)
+msbuild_graph_binary(name="consumer_app", graph=":consumer", project="Consumer/App.csproj")
+EOF
+for strategy in linux-sandbox worker; do
+    printf '// %s\n' "$strategy" >> Consumer/Code.cs
+    bazel run //:consumer_app --strategy="MSBuildGraph=$strategy" --worker_sandboxing > "$TEST_TMPDIR/tree-$strategy.log" 2>&1 || { cat "$TEST_TMPDIR/tree-$strategy.log" >&2; exit 1; }
+    [[ "$(tail -1 "$TEST_TMPDIR/tree-$strategy.log")" == 4 ]]
+done
+sed -i 's/Value() => 4/Value() => 5/' P0/Code.cs
+bazel run //:consumer_app --strategy=MSBuildGraph=worker --worker_sandboxing > "$TEST_TMPDIR/tree-edit.log" 2>&1 || { cat "$TEST_TMPDIR/tree-edit.log" >&2; exit 1; }
+[[ "$(tail -1 "$TEST_TMPDIR/tree-edit.log")" == 5 ]]
+cat >> BUILD.bazel <<'EOF'
+load("@rules_msbuild//msbuild:defs.bzl", "msbuild_graph_test")
+msbuild_graph_test(name="exit_contract", graph=":consumer", project="Consumer/App.csproj", expected_exit_code=100)
+EOF
+printf 'return 100;\n' > Consumer/Code.cs
+bazel test //:exit_contract --strategy=MSBuildGraph=worker --worker_sandboxing --test_output=errors
+printf 'return 0;\n' > Consumer/Code.cs
+if bazel test //:exit_contract --strategy=MSBuildGraph=worker --worker_sandboxing --test_output=errors > "$TEST_TMPDIR/exit-contract.log" 2>&1; then
+    echo 'Unexpected zero exit satisfied the 100 contract' >&2; exit 1
+fi
+assert_contains "$TEST_TMPDIR/exit-contract.log" 'Expected exit code 100, received 0'
+sed -i 's/input_paths={":references":"prepared"}/input_paths={}/' BUILD.bazel
+if bazel run //:consumer_app --strategy=MSBuildGraph=worker --worker_sandboxing > "$TEST_TMPDIR/tree-missing.log" 2>&1; then
+    echo 'Missing generated reference tree unexpectedly succeeded' >&2; exit 1
+fi
+assert_contains "$TEST_TMPDIR/tree-missing.log" 'Declared graph input is missing'
+echo 'PASS: generated tree handoff, producer invalidation, missing-tree rejection and return-100 pass/fail'
+
+# Prepared Restore metadata is also an owned producer artifact.
+cat > restore-consumer.json <<'EOF'
+{"Version":4,"Entry":"Consumer/App.csproj","SdkVersion":"10.0.400","Properties":{"Configuration":"Release"},"SharedInputs":["Directory.Build.props","global.json"],"Projects":{"Consumer/App.csproj":{"Inputs":["Consumer/App.csproj","Consumer/Code.cs"],"OutputDirectories":["Consumer/bin/Release/net10.0","Consumer/obj/Release/net10.0"]}},"Restore":{"Inputs":["Consumer/App.csproj","Directory.Build.props","global.json"],"Outputs":["Consumer/obj/project.assets.json","Consumer/obj/project.nuget.cache","Consumer/obj/App.csproj.nuget.dgspec.json","Consumer/obj/App.csproj.nuget.g.props","Consumer/obj/App.csproj.nuget.g.targets"]}}
+EOF
+cat >> BUILD.bazel <<'EOF'
+load("@rules_msbuild//msbuild:defs.bzl", "msbuild_graph_restore")
+msbuild_graph_restore(name="consumer_restore", runner=":graph_runner", contract="restore-consumer.json", srcs=["Consumer/App.csproj","Directory.Build.props","global.json"], linux_stable_paths=True)
+msbuild_graph_output(name="consumer_assets", graph=":consumer_restore", path="Consumer/obj", directory=True)
+EOF
+bazel build //:consumer_assets
+[[ -f bazel-bin/consumer_assets/obj/project.assets.json ]]
+[[ -f bazel-bin/consumer_assets/obj/App.csproj.nuget.g.props ]]
+echo 'PASS: prepared Restore output tree export'

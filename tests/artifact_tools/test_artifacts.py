@@ -129,6 +129,65 @@ class ArtifactToolsTests(unittest.TestCase):
         self.assertIn('not declared',self.invoke('graph-output',dict(request,path='source.txt'),success=False))
         self.assertIn('Missing graph output',self.invoke('graph-output',dict(request,path='out/missing'),success=False))
 
+    def test_graph_tree_ownership_and_link_rejection(self):
+        workspace = self.root/'workspace'; workspace.mkdir()
+        tree = workspace/'out'; tree.mkdir()
+        (tree/'empty').mkdir()
+        (tree/'nested').mkdir(); (tree/'nested/reference.dll').write_bytes(b'reference')
+        contract = self.root/'contract.json'
+        contract.write_text(json.dumps({'Projects': {'Bootstrap': {'OutputDirectories': ['out']}}}))
+        output = self.root/'export'
+        request = dict(contract=str(contract), workspace=str(workspace)+'/', path='out', output=str(output), directory=True)
+        self.invoke('graph-output', request)
+        self.assertEqual((output/'nested/reference.dll').read_bytes(), b'reference')
+        self.assertTrue((output/'empty').is_dir())
+        self.assertIn('not declared', self.invoke('graph-output', dict(request, path='other'), success=False))
+        self.assertIn('Missing graph output', self.invoke('graph-output', dict(request, path='out/missing'), success=False))
+        if os.name != 'nt':
+            (tree/'link').symlink_to(tree/'nested', target_is_directory=True)
+            self.assertIn('contains a link', self.invoke('graph-output', request, success=False))
+            self.assertIn('contains a link', self.invoke('graph-output', dict(request, path='out/link/reference.dll', directory=False), success=False))
+
+    @unittest.skipIf(os.name == 'nt', 'Bazel Linux sandbox file links')
+    def test_graph_tree_accepts_only_one_bazel_file_link(self):
+        workspace = self.root/'workspace'; (workspace/'out').mkdir(parents=True)
+        artifact = self.root/'artifact'; artifact.write_bytes(b'reference')
+        (workspace/'out/A.dll').symlink_to(artifact)
+        contract = self.root/'contract.json'
+        contract.write_text(json.dumps({'Projects': {'A': {'OutputDirectories': ['out']}}}))
+        request = dict(contract=str(contract), workspace=str(workspace), path='out',
+                       output=str(self.root/'export'), directory=True, bazelInputs=True)
+        self.invoke('graph-output', request)
+        self.assertEqual((self.root/'export/A.dll').read_bytes(), b'reference')
+        artifact.unlink(); artifact.symlink_to(contract)
+        self.assertIn('contains a link', self.invoke('graph-output', request, success=False))
+
+    def test_restore_tree_export_uses_restore_ownership(self):
+        workspace = self.root/'prepared'; (workspace/'obj').mkdir(parents=True)
+        (workspace/'obj/project.assets.json').write_text('{}')
+        (workspace/'build.dll').write_bytes(b'build')
+        contract = self.root/'contract.json'
+        contract.write_text(json.dumps({'Projects': {'A': {'OutputFiles': ['build.dll']}},
+                                       'Restore': {'Outputs': ['obj/project.assets.json']}}))
+        request = dict(contract=str(contract), workspace=str(workspace), path='obj',
+                       output=str(self.root/'export'), directory=True, restore=True)
+        self.invoke('graph-output', request)
+        self.assertEqual((self.root/'export/project.assets.json').read_text(), '{}')
+        self.assertIn('not declared', self.invoke('graph-output', dict(request, path='build.dll', directory=False), success=False))
+        self.assertIn('not declared', self.invoke('graph-output', dict(request, restore=False), success=False))
+
+    def test_graph_tree_can_combine_explicit_file_owners(self):
+        workspace = self.root/'workspace'; (workspace/'refs').mkdir(parents=True)
+        (workspace/'refs/A.dll').write_bytes(b'A'); (workspace/'refs/B.dll').write_bytes(b'B')
+        contract = self.root/'contract.json'
+        contract.write_text(json.dumps({'Projects': {'A': {'OutputFiles': ['refs/A.dll']}, 'B': {'OutputFiles': ['refs/B.dll']}}}))
+        output = self.root/'export'
+        request = dict(contract=str(contract), workspace=str(workspace), path='refs', output=str(output), directory=True)
+        self.invoke('graph-output', request)
+        self.assertEqual({p.name for p in output.iterdir()}, {'A.dll', 'B.dll'})
+        (workspace/'refs/unowned.txt').write_text('not a product')
+        self.assertIn('not declared', self.invoke('graph-output', request, success=False))
+
     def test_old_compilation_dispatch_is_removed(self):
         self.assertIn('Expected layout',self.invoke('build',{},success=False))
 

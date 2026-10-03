@@ -22,6 +22,11 @@ of this change remains pending. Command: `bash scripts/bazel.sh test
 Graph actions consume NuGet archives and extraction validation records, avoiding
 expanded package trees as redundant inputs. Offline/transitive package, prepared
 Restore, hash rejection and native analysis controls passed; large timing is pending.
+Generated build/Restore tree handoff, producer edits, missing-input rejection and
+executable success-status controls passed the four native worker cases on both
+baselines. A test expecting 100 rejects zero. Owned .NET/style, scaffold and
+analysis checks passed. Command: `bash scripts/bazel.sh test
+//tests/integration:workers --test_output=errors --lockfile_mode=off`.
 Contributor commands are in [CONTRIBUTING](../CONTRIBUTING.md).
 
 Earlier graph qualification built **481 runtime v10.0.0 compilation nodes**:

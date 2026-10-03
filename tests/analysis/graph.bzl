@@ -13,6 +13,7 @@ def _inputs(env, targets):
     # without exposing its expanded package tree as a graph input.
     env.expect.that_collection(paths(build.inputs)).contains_at_least(["tests/analysis/fixture.nupkg", "tests/analysis/package.validated.json"])
     env.expect.that_collection(paths(build.inputs)).not_contains("tests/analysis/package.package")
+    env.expect.that_collection(paths(build.inputs)).contains("tests/analysis/tree/bin")
     env.expect.that_str(targets.tool[MSBuildToolInfo].entry_point).equals("Tasks.dll")
     env.expect.that_str(targets.tool[MSBuildToolInfo].directory.short_path).equals(targets.layout[MSBuildLayoutInfo].directory.short_path)
 
@@ -37,7 +38,8 @@ def graph_tests(name):
     msbuild_file_binding(name = "binding", tool = ":task_tool", property_name = "TaskLocation", tags = ["manual"])
     msbuild_nuget_package(name = "package", package_id = "Fixture", version = "1.0.0", archive = "fixture.nupkg", archive_sha256 = "0" * 64, content_hash = "eA==", tags = ["manual"])
     msbuild_package_lock(name = "package_lock", packages = [":package"], tags = ["manual"])
-    msbuild_graph(name = "graph", package_lock = ":package_lock", bindings = [":binding"], project_outputs = {"App.csproj|net10.0": ["bin/Release/net10.0", "App.dll", "Exe"]}, **common)
+    msbuild_graph_output(name = "tree", graph = ":worker", path = "bin", directory = True, tags = ["manual"])
+    msbuild_graph(name = "graph", input_paths = {":tree": "prepared"}, package_lock = ":package_lock", bindings = [":binding"], project_outputs = {"App.csproj|net10.0": ["bin/Release/net10.0", "App.dll", "Exe"]}, **common)
     msbuild_graph(name = "worker", linux_worker = True, linux_stable_paths = True, **common)
     analysis_test(name = name + "_inputs", targets = {"graph": ":graph", "tool": ":task_tool", "layout": ":tool_layout"}, impl = _inputs)
     analysis_test(name = name + "_worker", target = ":worker", impl = _worker)
@@ -54,6 +56,8 @@ def graph_tests(name):
     ]:
         msbuild_graph(name = case, **dict(common, **attrs))
         failure_test(name + "_" + case, ":" + case, message)
+    msbuild_graph_restore(name = "safe_restore", linux_stable_paths = True, **common)
+    msbuild_graph_output(name = "restore_tree", graph = ":safe_restore", path = "obj", directory = True, tags = ["manual"])
     msbuild_graph_restore(name = "unsafe_restore", **common)
     failure_test(name + "_restore_paths", ":unsafe_restore", "Prepared Restore requires linux_stable_paths")
     msbuild_tool(name = "unsafe_tool", layout = ":tool_layout", entry_point = "../Tasks.dll", tags = ["manual"])
@@ -63,6 +67,8 @@ def graph_tests(name):
     msbuild_graph_binary(name = "missing_project", graph = ":graph", project = "Missing.csproj", tags = ["manual"])
     failure_test(name + "_project", ":missing_project", "Select one generated project/framework")
     for case, attrs, message in [
+        ("exit_range", {"expected_exit_code": 256}, "expected_exit_code must be between"),
+        ("exit_protocol", {"expected_exit_code": 100, "test_protocol": "mtp"}, "expected_exit_code requires"),
         ("settings", {"test_settings": "settings.xml", "test_settings_output": "generated.xml"}, "Declare either test_settings or test_settings_output"),
         ("test_directory", {"test_working_directory": "../outside"}, "test_working_directory must be a safe"),
         ("runner", {"test_protocol": "vstest"}, "VSTest requires an explicit test_runner"),

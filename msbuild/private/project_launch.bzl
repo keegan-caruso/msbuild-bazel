@@ -34,6 +34,7 @@ def create_launcher(ctx, tc, name, runtime, runtime_data, test):
         "test": test,
         "testOptions": {
             "protocol": ctx.attr.test_protocol,
+            "expectedExitCode": ctx.attr.expected_exit_code,
             "settings": _runfile(ctx, ctx.file.test_settings) if ctx.file.test_settings else None,
             "settingsOutput": ctx.attr.test_settings_output or None,
             "filterArgument": ctx.attr.test_filter_argument,

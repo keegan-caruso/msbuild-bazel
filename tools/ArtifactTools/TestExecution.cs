@@ -4,7 +4,7 @@ using System.Runtime.InteropServices;
 using System.Xml;
 using System.Xml.Linq;
 
-internal sealed record TestOptions(string Protocol = "executable", string? Settings = null, string FilterArgument = "", bool AllowEmpty = false, string? Runner = null, string[]? Adapters = null, bool Diagnostics = false, string[]? OutputDirectories = null, string? SettingsOutput = null, string? WorkingDirectory = null);
+internal sealed record TestOptions(string Protocol = "executable", string? Settings = null, string FilterArgument = "", bool AllowEmpty = false, string? Runner = null, string[]? Adapters = null, bool Diagnostics = false, string[]? OutputDirectories = null, string? SettingsOutput = null, string? WorkingDirectory = null, int ExpectedExitCode = 0);
 
 internal static class TestExecution
 {
@@ -13,6 +13,11 @@ internal static class TestExecution
         if (options.Protocol is not ("executable" or "mtp" or "vstest"))
         {
             throw new InvalidDataException("Unknown test protocol: " + options.Protocol);
+        }
+
+        if (options.ExpectedExitCode is < 0 or > 255 || (options.ExpectedExitCode != 0 && options.Protocol != "executable"))
+        {
+            throw new InvalidDataException("Expected exit code must be between 0 and 255 and requires the executable protocol");
         }
 
         if (int.TryParse(Environment.GetEnvironmentVariable("TEST_TOTAL_SHARDS"), out var count) && count > 1)
@@ -193,7 +198,12 @@ internal static class TestExecution
 
             if (protocol == "executable")
             {
-                return process.ExitCode;
+                if (process.ExitCode == options.ExpectedExitCode)
+                {
+                    return 0;
+                }
+                Console.Error.WriteLine($"Expected exit code {options.ExpectedExitCode}, received {process.ExitCode}");
+                return process.ExitCode == 0 ? 1 : process.ExitCode;
             }
 
             return Report(report, xml, process.ExitCode, options.AllowEmpty, protocol == "mtp", watch.Elapsed);
