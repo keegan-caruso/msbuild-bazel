@@ -1,0 +1,1 @@
+<Project><PropertyGroup><LangVersion>latest</LangVersion><DisableTransitiveProjectReferences>true</DisableTransitiveProjectReferences><UseAppHost>false</UseAppHost><RestoreSources>$(MSBuildThisFileDirectory).package-source</RestoreSources><RestorePackagesPath>$(MSBuildThisFileDirectory).nuget</RestorePackagesPath><NuGetAudit>false</NuGetAudit></PropertyGroup></Project>

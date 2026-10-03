@@ -88,3 +88,10 @@ Linux workers require Bubblewrap and nested user/mount/PID namespaces; ordinary
 container defaults may block them. Project-graph isolation alone does not establish
 filesystem hermeticity. Build trusted targets; keep reports outside Git and summarize
 commands, outcomes and remaining limits when extending support.
+
+Traversal qualification in progress: the pinned Microsoft.Build.Traversal 4.1.82
+fixture has two coordinators and three compilations. Ordinary and graph-mode raw
+MSBuild matched DLL/PDB bytes at stable paths on Linux ARM64 / SDK 10.0.400.
+Command: `bash tests/integration/traversal_raw.sh SDK ARCHIVE FIXTURE RESULTS`.
+Coordinators inherit a nonempty TargetPath but emit no assembly; their NuGet assets
+are real Restore products. Public sync/build/cache qualification remains pending.

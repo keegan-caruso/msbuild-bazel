@@ -1,0 +1,5 @@
+load("@rules_msbuild//msbuild:defs.bzl", "msbuild_nuget_package", "msbuild_package_lock")
+load("@rules_msbuild//msbuild:sync.bzl", "msbuild_sync")
+msbuild_nuget_package(name = "traversal", package_id = "Microsoft.Build.Traversal", version = "4.1.82", archive = "@traversal_sdk//file", archive_sha256 = "2a624920738a53b661e3d4b27a169a66da2921d174c8c742f02db8da839f0295", content_hash = "SzKUguZi7GLspCQGcbRi/s4a3TzI0x774MHK96QK7RUykRm5EpGZu3lBlRnr02wCvDnwuonwe42s3zWirKC/PQ==")
+msbuild_package_lock(name = "packages", packages = [":traversal"])
+msbuild_sync(name = "sync", projects = ["dirs.proj"], package_lock = ":packages", package_build = True, mappings = "mappings.json")
