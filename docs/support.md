@@ -49,6 +49,19 @@ caches disabled. Run `//tests/integration:notargets_remote_cases_bazel_8_8_0`
 and `NOTARGETS_CACHE_URL`; stop that container, then use a fresh consumer with
 `NOTARGETS_CACHE_PHASE=consumer` and `NOTARGETS_CACHE_SEED` pointing to producer.json.
 
+Worker SDK public sync passed on Linux ARM64 / Bazel 8.8 and 9.2 with SDK
+10.0.400 and Hosting 10.0.11. `//tests/integration:worker_sdk` covers ordinary/graph
+MSBuild DLL/PDB parity, root/element SDK declarations, Build/Publish, configuration
+and body/API edits, bounded execution, failure recovery and the unchanged SDK
+Worker template. Package/content projects retain conservative dependency keys;
+the bounded fixture explicitly reviews its standard managed reference boundary.
+Both pins recovered 65 compared files/modes with two hits / zero misses in a
+fresh container while the producer was stopped and Bazel action caches disabled.
+Run `//tests/integration:worker_sdk_remote_cases_bazel_8_8_0` (or
+`_bazel_.bazelversion`), with `SDK_CACHE_PHASE`, `SDK_CACHE_URL` and consumer
+`SDK_CACHE_SEED` pointing to the matching producer.json. These are small correctness
+controls, not a large Worker-service or workload qualification.
+
 Earlier source-built NoTargets controls cover package-SDK resolution, missing SDK
 rejection and producer-edit invalidation: `python3
 tests/source_sdk/notargets_handoff.py INPUTS RESULTS --acquire` and

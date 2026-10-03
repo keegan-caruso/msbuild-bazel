@@ -23,6 +23,11 @@ products with `msbuild_graph_output`. Projects with declared products use snapsh
 empty utility projects remain uncached. Dependency edges consume implementation
 inputs and products, including beneath a reviewed compiler-reference boundary.
 
+`Microsoft.NET.Sdk.Worker` uses the normal managed graph API. Sync accepts root
+SDK attributes, semicolon-separated SDK composition and top-level `<Sdk Name="…" />`
+elements for qualified SDKs; MSBuild resolves their imports and versions. Unknown
+SDKs remain rejected. Package/content side effects still need explicit contracts.
+
 Body edits need no sync. Rerun sync after project/import, source-list, package or
 configuration changes. `bazel run //:sync -- --check` rejects stale declarations.
 

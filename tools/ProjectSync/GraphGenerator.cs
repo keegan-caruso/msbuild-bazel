@@ -88,12 +88,16 @@ internal static class GraphGenerator
                     LoadSettings = ProjectLoadSettings.DoNotEvaluateElementsWithFalseCondition,
                     EvaluationContext = evaluationContext
                 });
-                var sdkName = project.Xml.Sdk.Split('/')[0];
-                var traversal = sdkName == "Microsoft.Build.Traversal" &&
+                var sdkNames = project.Xml.Sdk.Split(';', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+                    .Concat(project.Xml.Children.OfType<Microsoft.Build.Construction.ProjectSdkElement>().Select(reference => reference.Name))
+                    .Select(name => name.Split('/')[0]).Distinct(StringComparer.Ordinal).ToArray();
+                var traversal = sdkNames.Contains("Microsoft.Build.Traversal", StringComparer.Ordinal) &&
                     project.GetPropertyValue("UsingMicrosoftTraversalSdk").Equals("true", StringComparison.OrdinalIgnoreCase);
-                var noTargets = sdkName == "Microsoft.Build.NoTargets" &&
+                var noTargets = sdkNames.Contains("Microsoft.Build.NoTargets", StringComparer.Ordinal) &&
                     project.GetPropertyValue("UsingMicrosoftNoTargetsSdk").Equals("true", StringComparison.OrdinalIgnoreCase);
-                if ((Path.GetExtension(path) == ".proj" && !traversal && !noTargets) || (!traversal && !noTargets && sdkName is not ("Microsoft.NET.Sdk" or "Microsoft.NET.Sdk.Web" or "Microsoft.NET.Sdk.Razor")) ||
+                var managed = sdkNames.Any(name => name is "Microsoft.NET.Sdk" or "Microsoft.NET.Sdk.Web" or "Microsoft.NET.Sdk.Razor" or "Microsoft.NET.Sdk.Worker");
+                var supportedSdks = sdkNames.All(name => name is "Microsoft.NET.Sdk" or "Microsoft.NET.Sdk.Web" or "Microsoft.NET.Sdk.Razor" or "Microsoft.NET.Sdk.Worker" or "Microsoft.Build.Traversal" or "Microsoft.Build.NoTargets");
+                if (!supportedSdks || (Path.GetExtension(path) == ".proj" && !traversal && !noTargets) || (!traversal && !noTargets && !managed) ||
                     project.GetItems("Reference").Any(reference =>
                     {
                         var value = reference.GetMetadataValue("HintPath");
