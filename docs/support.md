@@ -94,4 +94,8 @@ fixture has two coordinators and three compilations. Ordinary and graph-mode raw
 MSBuild matched DLL/PDB bytes at stable paths on Linux ARM64 / SDK 10.0.400.
 Command: `bash tests/integration/traversal_raw.sh SDK ARCHIVE FIXTURE RESULTS`.
 Coordinators inherit a nonempty TargetPath but emit no assembly; their NuGet assets
-are real Restore products. Public sync/build/cache qualification remains pending.
+are real Restore products. Public sync, prepared Restore, sandboxed worker Build and a fresh Bazel test now
+pass on Bazel 9.2.0, with raw DLL/PDB byte parity. Traversal coordinators remain
+uncached while compilation descendants use project snapshots. Owned .NET/style
+checks passed. Selection, edits, independent recovery and Pack/Publish are next.
+Native integration: `bash scripts/bazel.sh test //tests/integration:traversal`.

@@ -13,6 +13,7 @@ filegroup(
         "//tools:Directory.Build.props",
         "//tools:GraphCompilerReferences.cs",
         "//tools:GraphEntryProperties.cs",
+        "//tools:GraphProjectKind.cs",
         "//tools:MSBuildTool.props",
         "//tools:PackageSdks.cs",
     ],

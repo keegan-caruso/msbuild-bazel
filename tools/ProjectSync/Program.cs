@@ -8,7 +8,7 @@ internal static class Program
         {
             if (args.Length < 3)
             {
-                throw new ArgumentException("ProjectSync <workspace> <sdk-directory> <project.csproj>... [--check] [--configuration Release] [--framework TFM] [--package-build] [--package-input FILE] [--mappings mappings.json]");
+                throw new ArgumentException("ProjectSync <workspace> <sdk-directory> <project.csproj|dirs.proj>... [--check] [--configuration Release] [--framework TFM] [--package-build] [--package-input FILE] [--mappings mappings.json]");
             }
             var sdk = WorkspaceView.PhysicalPath(args[1]);
             if (!File.Exists(Path.Combine(sdk, "MSBuild.dll")))

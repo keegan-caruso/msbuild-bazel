@@ -99,3 +99,47 @@ test_suite(
         bazel_binaries.versions.all,
     ),
 )
+
+sh_binary(
+    name = "traversal_runner",
+    testonly = True,
+    srcs = ["traversal.sh"],
+    data = [
+        "common.sh",
+        "raw_namespace.sh",
+        "traversal_raw.sh",
+    ],
+)
+
+bazel_integration_tests(
+    name = "traversal_cases",
+    additional_env_inherit = [
+        "BAZELISK_HOME",
+        "RULES_MSBUILD_TEST_REPOSITORY_CACHE",
+    ],
+    bazel_binaries = bazel_binaries,
+    bazel_versions = bazel_binaries.versions.all,
+    data = [":rules_archive"],
+    env = {"RULES_ARCHIVE": "$(rootpath :rules_archive)"},
+    tags = [
+        "exclusive",
+        "manual",
+        "no-sandbox",
+    ],
+    target_compatible_with = [
+        "@platforms//os:linux",
+        "@platforms//cpu:aarch64",
+    ],
+    test_runner = ":traversal_runner",
+    workspace_files = glob(["fixtures/traversal/**"]),
+    workspace_path = "tests/integration/fixtures/traversal",
+)
+
+test_suite(
+    name = "traversal",
+    tags = ["manual"],
+    tests = integration_test_utils.bazel_integration_test_names(
+        "traversal_cases",
+        bazel_binaries.versions.all,
+    ),
+)

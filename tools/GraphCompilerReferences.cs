@@ -12,7 +12,7 @@ internal static class GraphCompilerReferences
         {
             return;
         }
-        if (node.ProjectInstance.GetPropertyValue("TargetPath").Length == 0 || !Path.GetExtension(path).Equals(".dll", StringComparison.OrdinalIgnoreCase))
+        if (!GraphProjectKind.HasAssembly(node.ProjectInstance) || !Path.GetExtension(path).Equals(".dll", StringComparison.OrdinalIgnoreCase))
         {
             throw new InvalidDataException("Compiler reference requires a configured managed DLL producer: " + path);
         }
@@ -24,7 +24,7 @@ internal static class GraphCompilerReferences
 
     internal static void ValidateConsumer(ProjectGraphNode node, string producer, string path, Func<ProjectGraphNode, IEnumerable<string>> products)
     {
-        if (node.ProjectInstance.GetPropertyValue("TargetPath").Length == 0 || !Path.GetExtension(path).Equals(".dll", StringComparison.OrdinalIgnoreCase))
+        if (!GraphProjectKind.HasAssembly(node.ProjectInstance) || !Path.GetExtension(path).Equals(".dll", StringComparison.OrdinalIgnoreCase))
         {
             throw new InvalidDataException("Consumer compiler references require a configured managed DLL consumer: " + path);
         }
@@ -36,7 +36,7 @@ internal static class GraphCompilerReferences
             {
                 continue;
             }
-            if (current.ProjectInstance.FullPath == producer && current.ProjectInstance.GetPropertyValue("TargetPath").Length != 0 && OwnsOutput(current, path, products))
+            if (current.ProjectInstance.FullPath == producer && GraphProjectKind.HasAssembly(current.ProjectInstance) && OwnsOutput(current, path, products))
             {
                 return;
             }
