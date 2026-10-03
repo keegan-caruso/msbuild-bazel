@@ -91,7 +91,7 @@ internal static class GraphGenerator
                 var sdkName = project.Xml.Sdk.Split('/')[0];
                 var traversal = sdkName == "Microsoft.Build.Traversal" &&
                     project.GetPropertyValue("UsingMicrosoftTraversalSdk").Equals("true", StringComparison.OrdinalIgnoreCase);
-                if ((!traversal && sdkName is not ("Microsoft.NET.Sdk" or "Microsoft.NET.Sdk.Web" or "Microsoft.NET.Sdk.Razor")) ||
+                if ((Path.GetExtension(path) == ".proj" && !traversal) || (!traversal && sdkName is not ("Microsoft.NET.Sdk" or "Microsoft.NET.Sdk.Web" or "Microsoft.NET.Sdk.Razor")) ||
                     project.GetItems("Reference").Any(reference =>
                     {
                         var value = reference.GetMetadataValue("HintPath");
@@ -145,6 +145,12 @@ internal static class GraphGenerator
                 if (traversal && project.GetPropertyValue("TraversalSkipUnsupportedProjects").Equals("true", StringComparison.OrdinalIgnoreCase))
                 {
                     throw new InvalidDataException("Traversal execution-time project skipping is not supported; use conditional ProjectReference items: " + Relative(path));
+                }
+                if (traversal && (project.GetPropertyValue("TraversalPublishGlobalProperties").Length != 0 ||
+                    project.GetItems("ProjectReference").Any(reference => reference.GetMetadataValue("Targets").Length != 0 ||
+                        new[] { "Build", "Pack", "Publish" }.Any(target => reference.GetMetadataValue(target).Equals("false", StringComparison.OrdinalIgnoreCase)))))
+                {
+                    throw new InvalidDataException("Traversal per-reference target selection requires conditional ProjectReference items and explicit graph properties: " + Relative(path));
                 }
                 var binding = mappings.ForProject(Relative(path), project.GetPropertyValue("TargetFramework"));
                 var taskInputs = documents.SelectMany(document => GraphMappings.Inputs(document, Relative(document.FullPath), binding)).ToArray();

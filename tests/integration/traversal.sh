@@ -25,9 +25,18 @@ bazel run //:app "${options[@]}" > "$TEST_TMPDIR/seed.log" 2>&1 || { cat "$TEST_
 report=bazel-bin/graph.graph/report.json
 assert_contains "$report" '"hits":0'
 assert_contains "$report" '"misses":3'
-(cd bazel-bin/graph.graph/workspace; find src tests -path '*/bin/*' -type f \( -name '*.dll' -o -name '*.pdb' \) -print0 | sort -z | xargs -0 sha256sum) > "$TEST_TMPDIR/graph.sha256"
+(cd bazel-bin/graph.graph/workspace; find . -path '*/bin/*' -type f \( -name '*.dll' -o -name '*.pdb' \) -print0 | sort -z | xargs -0 sha256sum) > "$TEST_TMPDIR/graph.sha256"
 cmp "$scratch/raw/graph.sha256" "$TEST_TMPDIR/graph.sha256"
 bazel test //:tests "${options[@]}" --nocache_test_results --test_output=errors
 # Traversal inputs/Restore state must not be published as products.
 [[ ! -e bazel-bin/graph.graph/workspace/dirs.proj && ! -e bazel-bin/graph.graph/workspace/bin && ! -e bazel-bin/graph.graph/workspace/src/bin ]]
 echo 'PASS: traversal public sync, prepared Restore, worker build, raw byte parity and Bazel test'
+
+source "$runner_dir/traversal_helpers.sh"
+case "${TRAVERSAL_SLICE:-all}" in
+    all) source "$runner_dir/traversal_selection.sh"; source "$runner_dir/traversal_edits.sh"; source "$runner_dir/traversal_targets.sh" ;;
+    selection) source "$runner_dir/traversal_selection.sh" ;;
+    edits) source "$runner_dir/traversal_edits.sh" ;;
+    targets) source "$runner_dir/traversal_targets.sh" ;;
+    *) echo 'TRAVERSAL_SLICE must be all, selection, edits or targets' >&2; exit 2 ;;
+esac
