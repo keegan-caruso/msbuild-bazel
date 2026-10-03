@@ -26,6 +26,12 @@ build() {
         grep -Eq '"misses"[[:space:]]*:[[:space:]]*'"$((3 - hits))"'([,[:space:]]|$)' "$report" || {
         cat "$report" >&2; exit 1;
     }
+    # Source/Restore staging is private; consumers receive owned products only.
+    for input in P0/Code.cs global.json .package-source .nuget; do
+        if [[ -e "bazel-bin/graph.graph/workspace/$input" ]]; then
+            echo "Published staged input: $input" >&2; exit 1
+        fi
+    done
     echo "PASS $label (expected hits=$hits, value=$value)"
 }
 
@@ -33,8 +39,7 @@ build() {
 # MSBuild's AssemblyReference.cache carries staging paths, not runtime output.
 outputs() {
     (cd bazel-bin/graph.graph/workspace
-     { find P*/bin P*/obj/Release -type f ! -name '*.AssemblyReference.cache' -print0
-       find P*/obj -maxdepth 1 -type f -name '*.json' -print0; } |
+     find P*/bin P*/obj/Release -type f ! -name '*.AssemblyReference.cache' -print0 |
          sort -z | xargs -0 sha256sum)
 }
 

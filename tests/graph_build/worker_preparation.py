@@ -26,7 +26,7 @@ def main():
             '.nuget/example/1.0.0/data': {'Digest': hashlib.sha256(payload.read_bytes()).hexdigest(), 'Mode': 0o640}}}))
         # Model Bazel-normalized tree input modes; materialization restores 0640.
         payload.chmod(0o555)
-        (root / 'contract.json').write_text('{}')
+        (root / 'contract.json').write_text('{"Projects":{}}')
         (root / 'request.json').write_text(json.dumps({'contract': 'contract.json', 'output': 'output',
             'target': 'Build', 'prepared': 'input', 'sources': []}))
         sandbox = root / 'inspect.sh'

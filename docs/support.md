@@ -14,6 +14,11 @@ workers) across both Bazel baselines. Command: `bash scripts/bazel.sh test
 //tests/integration:quickstart //tests/integration:workers`. With caching, body/API edits reused
 2/1 of 3 projects; fresh sandboxed Build/Publish outputs matched. This is local
 worker evidence; HTTP recovery remains covered separately.
+Linux worker publication also passed cached/uncached Build/Publish, body/API,
+failure recovery and owned-file parity across both baselines. Workers stage inputs
+privately and move only owned products into the Bazel result; large-graph timing
+of this change remains pending. Command: `bash scripts/bazel.sh test
+//tests/integration:workers --test_output=errors --lockfile_mode=off`.
 Contributor commands are in [CONTRIBUTING](../CONTRIBUTING.md).
 
 Earlier graph qualification built **481 runtime v10.0.0 compilation nodes**:
