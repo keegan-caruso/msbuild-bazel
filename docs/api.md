@@ -34,6 +34,12 @@ IL assemblies without reference assemblies use implementation dependency keys;
 request deterministic assembler output explicitly (`IlasmFlags=-DET` in the
 qualified fixture). See [qualified IL scope](support.md).
 
+Compose `Microsoft.DotNet.Arcade.Sdk` with a managed SDK and lock the SDK plus
+its implicit packages. Declare version/repository inputs and Pack products.
+Effective `OfficialBuild` or `DotNetUseShippingVersions` requires `OfficialBuildId`;
+sync rejects the ambient-date fallback. A cold Pack needs a packable root and
+`GeneratePackageOnBuild=false`; that SDK setting otherwise assumes built assemblies.
+
 Body edits need no sync. Rerun sync after project/import, source-list, package or
 configuration changes. `bazel run //:sync -- --check` rejects stale declarations.
 

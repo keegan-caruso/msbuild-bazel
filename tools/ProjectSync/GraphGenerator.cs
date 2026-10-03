@@ -98,7 +98,7 @@ internal static class GraphGenerator
                 var il = Path.GetExtension(path) == ".ilproj" && sdkNames.Contains("Microsoft.NET.Sdk.IL", StringComparer.Ordinal) &&
                     project.GetPropertyValue("Language") == "IL";
                 var managed = il || sdkNames.Any(name => name is "Microsoft.NET.Sdk" or "Microsoft.NET.Sdk.Web" or "Microsoft.NET.Sdk.Razor" or "Microsoft.NET.Sdk.Worker");
-                var supportedSdks = sdkNames.All(name => name is "Microsoft.NET.Sdk" or "Microsoft.NET.Sdk.Web" or "Microsoft.NET.Sdk.Razor" or "Microsoft.NET.Sdk.Worker" or "Microsoft.Build.Traversal" or "Microsoft.Build.NoTargets" or "Microsoft.NET.Sdk.IL");
+                var supportedSdks = sdkNames.All(name => name is "Microsoft.NET.Sdk" or "Microsoft.NET.Sdk.Web" or "Microsoft.NET.Sdk.Razor" or "Microsoft.NET.Sdk.Worker" or "Microsoft.Build.Traversal" or "Microsoft.Build.NoTargets" or "Microsoft.NET.Sdk.IL" or "Microsoft.DotNet.Arcade.Sdk");
                 if (!supportedSdks || (Path.GetExtension(path) == ".ilproj" && !il) || (Path.GetExtension(path) == ".proj" && !traversal && !noTargets) || (!traversal && !noTargets && !managed) ||
                     project.GetItems("Reference").Any(reference =>
                     {
@@ -129,6 +129,12 @@ internal static class GraphGenerator
                 {
                     throw new InvalidDataException("Graph sync requires a supported .NET SDK project with SDK/package-owned assembly references: " + Relative(path) + "; " +
                         string.Join("; ", project.GetItems("Reference").Select(item => item.EvaluatedInclude + "=" + item.GetMetadataValue("HintPath"))));
+                }
+                if (project.GetPropertyValue("ArcadeSdkBuildTasksAssembly").Length != 0 &&
+                    new[] { "OfficialBuild", "DotNetUseShippingVersions" }.Any(name => project.GetPropertyValue(name).Equals("true", StringComparison.OrdinalIgnoreCase)) &&
+                    project.GetPropertyValue("OfficialBuildId").Length == 0)
+                {
+                    throw new InvalidDataException("Arcade date-based versioning requires an explicit OfficialBuildId: " + Relative(path));
                 }
                 foreach (var package in project.GetItems("PackageReference"))
                 {

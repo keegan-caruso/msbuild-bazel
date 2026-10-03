@@ -1,0 +1,10 @@
+<Project><PropertyGroup>
+<UseAppHost>false</UseAppHost><DisableTransitiveProjectReferences>true</DisableTransitiveProjectReferences>
+<RestoreSources>$(MSBuildThisFileDirectory).package-source</RestoreSources><RestorePackagesPath>$(MSBuildThisFileDirectory).nuget</RestorePackagesPath><NuGetAudit>false</NuGetAudit>
+<DisableArcadeTestFramework>true</DisableArcadeTestFramework><DisableSourceLink>true</DisableSourceLink><SignAssembly>false</SignAssembly>
+<RepositoryUrl>https://example.invalid/sdk-fixture</RepositoryUrl><RepositoryCommit>1111111111111111111111111111111111111111</RepositoryCommit>
+<MajorVersion>1</MajorVersion><MinorVersion>2</MinorVersion><PatchVersion>3</PatchVersion><PreReleaseVersionLabel>dev</PreReleaseVersionLabel>
+<BaseOutputPath>$(MSBuildThisFileDirectory)artifacts/bin/$(MSBuildProjectName)/</BaseOutputPath>
+<BaseIntermediateOutputPath>$(MSBuildThisFileDirectory)artifacts/obj/$(MSBuildProjectName)/</BaseIntermediateOutputPath>
+<PackageOutputPath>$(MSBuildThisFileDirectory)artifacts/packages</PackageOutputPath>
+</PropertyGroup></Project>

@@ -74,6 +74,22 @@ with two hits / zero misses and fresh test execution. Use
 with the same `SDK_CACHE_*` protocol above. This does not qualify Windows IL
 resources, alternative native tool layouts or a runtime IL/JIT suite.
 
+Arcade **10.0.0-beta.25509.106**, composed with `Microsoft.NET.Sdk`, passed on
+Linux ARM64 / both Bazel pins: `//tests/integration:arcade_sdk`. The inventory
+includes its matching implicit Xliff package. Ordinary/graph/Bazel assemblies,
+embedded symbols and Pack payloads match; official-version DLL/app-PDB bytes
+match raw graph MSBuild with a declared build ID. Build, library-root cold Pack,
+Publish, body/API/version edits, stale-product removal, failure recovery and a
+separate generated-package consumer pass. Official/shipping version modes without
+`OfficialBuildId` fail. Both pins recovered 33 compared files/modes with two hits /
+zero misses in an independent container while the producer was stopped, executing
+fresh tests with Bazel action caches disabled. Use
+`//tests/integration:arcade_sdk_remote_cases_bazel_8_8_0` (or `_bazel_.bazelversion`)
+with the `SDK_CACHE_*` protocol above. This fixture disables SourceLink/test-framework defaults;
+it does not qualify ambient Git reads, Helix, native orchestration or an entire
+Arcade repository. The native fixtures emit single-row diagnostic timings; they
+are correctness controls, not paired performance benchmarks.
+
 Earlier source-built NoTargets controls cover package-SDK resolution, missing SDK
 rejection and producer-edit invalidation: `python3
 tests/source_sdk/notargets_handoff.py INPUTS RESULTS --acquire` and

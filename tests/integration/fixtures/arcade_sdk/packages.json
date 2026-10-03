@@ -1,0 +1,16 @@
+[
+  {
+    "id": "Microsoft.DotNet.Arcade.Sdk",
+    "version": "10.0.0-beta.25509.106",
+    "url": "https://pkgs.dev.azure.com/dnceng/public/_packaging/dotnet-eng/nuget/v3/flat2/microsoft.dotnet.arcade.sdk/10.0.0-beta.25509.106/microsoft.dotnet.arcade.sdk.10.0.0-beta.25509.106.nupkg",
+    "sha256": "e9207087f2712e4e933c19975960226f0eb14a36e35d5b5332678aa4b272dd81",
+    "content_hash": "dvPraqWZrQsT79FTL3iIPOF2rAG3onLMcNWS6Oet9lsRhlhiKsqAwZdae7BPh/FjkHtCYNA7+itjRshu7tSrtw=="
+  },
+  {
+    "id": "Microsoft.DotNet.XliffTasks",
+    "version": "10.0.0-beta.25509.106",
+    "url": "https://pkgs.dev.azure.com/dnceng/public/_packaging/dotnet-eng/nuget/v3/flat2/microsoft.dotnet.xlifftasks/10.0.0-beta.25509.106/microsoft.dotnet.xlifftasks.10.0.0-beta.25509.106.nupkg",
+    "sha256": "cabcf7f39713a847b52bf08011b9d3f8d3da7be99e6adc3d8c676188988c59d5",
+    "content_hash": "C/t2/el4099N/R1bEPvTlVe0TkDpZTHveQYY7MAvx6LGyXQ2b7J/g6XzFgW2zlY+k67c17AQcmWJ3kHkR6dIVg=="
+  }
+]

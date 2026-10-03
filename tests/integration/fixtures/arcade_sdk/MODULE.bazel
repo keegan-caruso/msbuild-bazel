@@ -1,0 +1,23 @@
+module(name = "arcade_sdk_integration")
+
+bazel_dep(name = "rules_msbuild", version = "0.0.0")
+local_path_override(
+    module_name = "rules_msbuild",
+    path = "../msbuild-bazel",
+)
+
+dotnet = use_extension("@rules_msbuild//msbuild:extensions.bzl", "dotnet")
+dotnet.sdk(
+    name = "dotnet",
+    global_json = "//:global.json",
+)
+use_repo(dotnet, "dotnet")
+
+register_toolchains("@dotnet//:all")
+
+packages = use_repo_rule("//:package_repository.bzl", "package_repository")
+
+packages(
+    name = "packages",
+    inventory = "//:packages.json",
+)
