@@ -72,10 +72,30 @@ SDK 10.0.400, AOT packages 10.0.11 and 34 locked Ubuntu packages supply the tool
 GNU linker scripts are relocated with the assembled package paths. This qualifies
 the downloaded AOT packs, not a source-built AOT compiler or Linux x86-64/RBE.
 
-Remaining priorities:
+Unchanged upstream `src/tests/JIT/CodeGenBringUpTests/Add1_ro.csproj` (#74)
+passed on Linux ARM64 / Bazel 9.2.0 at the pinned runtime revision. The authored
+external/test-dependency bootstrap, wrapper generator and private compiler remain
+explicit inputs. `test_dependencies` is a graph root because Add1 shares its
+assets; merely passing that assets file does not expand the required packages.
+Raw and graph DLL/PDB matched. Raw corerun returned 100 with the installed SDK
+absent; the generic Bazel adapter accepted 100 and rejected the intentional 101.
+A fresh body edit reused two of three projects. Missing reference/compiler inputs
+failed. Healthy stopped-producer HTTP recovery had **three hits / zero misses**,
+matching products/runtime bytes and a fresh test execution. Disposable RAR cache
+files are excluded, as in the runtime baseline. The disk-damaged consumer attempt
+is excluded. This is one unchanged test, not a CoreCLR/JIT suite qualification.
 
-1. Reduce repeated evaluation and snapshot replay; publication is now about 0.15 s.
-2. Expand reviewed runtime slices and qualify platforms independently.
+Commands: `python3 tests/graph_build/upstream/runtime_jit_raw.py SOURCE FEED REFS RAW`,
+then `runtime_jit_prepare.py WORKSPACE RAW/workspace` and `runtime_jit.py WORKSPACE
+RESULTS --phase producer --output-base BASE --raw RAW/workspace`. The consumer
+uses a fresh workspace/base, `--phase consumer --seed-report PRODUCER/seed.json`,
+and digest-locked source-runtime product artifacts. Recovery covers its three
+compilation projects, not another large-runtime build. Set the HTTP endpoint with
+`RULES_MSBUILD_PROJECT_CACHE_URL`. Keep producer and consumer containers separate.
+
+Next: reduce repeated evaluation/snapshot replay, then expand unchanged upstream
+test slices. Main correctness/recovery/timings and the listed qualification gaps
+are now refreshed; limits below still apply.
 
 This is not whole-repository runtime support. Linux x86-64, macOS persistent workers,
 RBE, arbitrary SDKs/workloads and full native build parity are unqualified.
@@ -83,9 +103,3 @@ Linux workers require Bubblewrap and nested user/mount/PID namespaces; ordinary
 container defaults may block them. Project-graph isolation alone does not establish
 filesystem hermeticity. Build trusted targets; keep reports outside Git and summarize
 commands, outcomes and remaining limits when extending support.
-
-Current qualification sequence: NoTargets and source-SDK Pack/Razor/Publish;
-graph NativeAOT build/run/recovery; refresh 481-node correctness, independent
-HTTP recovery and paired cold/body/API timings; use those diagnostics to remove
-staging/Restore work; qualify unchanged `Add1_ro.csproj` from #74. Keep large
-reports outside Git and update the measured summaries here after each slice.
