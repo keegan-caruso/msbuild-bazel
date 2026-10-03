@@ -93,6 +93,7 @@ internal static class GraphWorker
             var stageSeconds = 0.0;
             var childSeconds = 0.0;
             var verificationSeconds = 0.0;
+            var publicationSeconds = 0.0;
             var succeeded = false;
             var contract = InputPath(request.Contract);
             var prepared = request.Prepared is null ? "-" : InputPath(request.Prepared);
@@ -105,7 +106,10 @@ internal static class GraphWorker
             {
                 throw new InvalidDataException("Graph worker requires fresh action outputs");
             }
-            var workspace = Path.Combine(output, "workspace");
+            // Keep staging on the output volume so publication can move owned
+            // trees without copying them or exporting authored inputs.
+            var staging = Directory.CreateDirectory(Path.Combine(output, ".staging")).FullName;
+            var workspace = Path.Combine(staging, "workspace");
             Directory.CreateDirectory(workspace);
             var scratch = Directory.CreateDirectory(Path.Combine(directory.Root, "request-" + Guid.NewGuid().ToString("N"))).FullName;
             try
@@ -140,7 +144,7 @@ internal static class GraphWorker
                 var childTimer = request.ProfileBuild ? Stopwatch.StartNew() : null;
                 var sdk = Path.GetDirectoryName(Environment.ProcessPath!)!;
                 var start = new ProcessStartInfo("/bin/bash") { RedirectStandardOutput = true, RedirectStandardError = true };
-                foreach (var argument in new[] { sandbox, sdk, AppContext.BaseDirectory, output, contract, scratch, request.Target, "action", prepared, cache, prepared == "-" ? "0" : "1", request.ProfileBuild ? "1" : "0" })
+                foreach (var argument in new[] { sandbox, sdk, AppContext.BaseDirectory, staging, contract, scratch, request.Target, "action", prepared, cache, prepared == "-" ? "0" : "1", request.ProfileBuild ? "1" : "0" })
                 {
                     start.ArgumentList.Add(argument);
                 }
@@ -149,7 +153,7 @@ internal static class GraphWorker
                 var verificationTimer = request.ProfileBuild ? Stopwatch.StartNew() : null;
                 if (child.ExitCode == 0)
                 {
-                    foreach (var path in Directory.EnumerateFileSystemEntries(output, "*", SearchOption.AllDirectories))
+                    foreach (var path in Directory.EnumerateFileSystemEntries(staging, "*", SearchOption.AllDirectories))
                     {
                         if (File.GetAttributes(path).HasFlag(FileAttributes.ReparsePoint))
                         {
@@ -158,6 +162,12 @@ internal static class GraphWorker
                     }
                 }
                 verificationSeconds = verificationTimer?.Elapsed.TotalSeconds ?? 0;
+                if (child.ExitCode == 0)
+                {
+                    var publicationTimer = request.ProfileBuild ? Stopwatch.StartNew() : null;
+                    GraphPublication.Publish(contract, staging, output);
+                    publicationSeconds = publicationTimer?.Elapsed.TotalSeconds ?? 0;
+                }
                 succeeded = child.ExitCode == 0;
                 return new(child.ExitCode, child.Output);
             }
@@ -165,6 +175,7 @@ internal static class GraphWorker
             {
                 var cleanupTimer = request.ProfileBuild ? Stopwatch.StartNew() : null;
                 Directory.Delete(scratch, recursive: true);
+                Directory.Delete(staging, recursive: true);
                 // A conservative logical-byte budget counts aliases as well as
                 // blobs. Trim only between requests, with no active MSBuild.
                 long bytes = 0;
@@ -189,6 +200,7 @@ internal static class GraphWorker
                         stagingSeconds = stageSeconds,
                         childSeconds,
                         outputVerificationSeconds = verificationSeconds,
+                        publicationSeconds,
                         cleanupSeconds = cleanupTimer!.Elapsed.TotalSeconds,
                         totalSeconds = requestTimer!.Elapsed.TotalSeconds
                     });

@@ -4,6 +4,7 @@ load(":providers.bzl", "MSBuildRuntimeInfo", "MSBuildTestToolInfo")
 
 TEST_OPTIONS_ATTRS = {
     "test_protocol": attr.string(default = "executable", values = ["executable", "mtp", "vstest"]),
+    "expected_exit_code": attr.int(default = 0, doc = "Success status for executable tests (0 through 255)."),
     "test_settings": attr.label(allow_single_file = True),
     "test_settings_output": attr.string(),
     "test_filter_argument": attr.string(values = ["", "--filter", "--filter-query"]),
@@ -23,6 +24,10 @@ def validate_test(ctx):
     Args:
         ctx: Test rule context.
     """
+    if ctx.attr.expected_exit_code < 0 or ctx.attr.expected_exit_code > 255:
+        fail("expected_exit_code must be between 0 and 255")
+    if ctx.attr.expected_exit_code != 0 and ctx.attr.test_protocol != "executable":
+        fail("expected_exit_code requires the executable test protocol")
     if ctx.attr.test_settings and ctx.attr.test_settings_output:
         fail("Declare either test_settings or test_settings_output")
     for attribute in ["test_settings_output", "test_working_directory"]:

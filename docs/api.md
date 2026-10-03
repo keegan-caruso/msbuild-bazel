@@ -35,9 +35,9 @@ and unsafe paths fail; document changes require renewed contract review.
 
 | Rule | Use |
 | --- | --- |
-| `msbuild_graph_runner` / `msbuild_graph` | Bootstrap the runner; Build or Publish an explicit graph contract |
+| `msbuild_graph_runner` / `msbuild_graph` | Bootstrap the runner; Build, Pack or Publish an explicit graph contract |
 | `msbuild_graph_binary` / `msbuild_graph_test` | Run or test a graph's `project`, selecting `framework` if ambiguous |
-| `msbuild_graph_layout` / `msbuild_graph_output` | Export a complete project output layout or a contract-owned file |
+| `msbuild_graph_layout` / `msbuild_graph_output` | Export a project layout, contract-owned file or directory tree |
 | `msbuild_graph_restore` | Prepare offline Restore separately for a matching stable-path graph |
 | `msbuild_tool` / `msbuild_file_binding` | Bind a layout entry point to a task property; `msbuild_native_tool` uses the same contract |
 | `msbuild_layout` / `msbuild_runtime` | Compose artifacts; describe a complete execution host |
@@ -78,7 +78,14 @@ layout rooted beside `dotnet`; its producer needs a separate bootstrap toolchain
 apps/tests independently of compilation. Later hosts run older targets only when
 the authored runtimeconfig allows it. Host-path SDK repositories are unsupported.
 
+Use `msbuild_graph_output(directory = True)` for an owned reference/generated tree;
+map it with `input_paths = {":references": "prepared"}` in the consuming graph.
+Its consumed files still need explicit contract inputs. Exports reject links.
+
 ## Tests
+
+Executable tests may set `expected_exit_code` (0–255, default 0); for example,
+CoreCLR wrappers return 100 on success. MTP/VSTest retain their own protocols.
 
 `test_protocol` is `executable` (default, exit status), `mtp` (direct executable),
 or `vstest` (declared `test_runner`/`test_adapters` from locked packages).
@@ -112,3 +119,7 @@ If needed, pass `RULES_MSBUILD_PROJECT_CACHE_BEARER_TOKEN` from the environment.
 Missing blobs cause rebuilds; corruption fails; transfers are checked and retried.
 HTTP publication has no atomic compare-and-swap guarantee for divergent writers.
 See [support limits](support.md) before assuming hermeticity or remote execution.
+
+`msbuild_graph_output` can also select a prepared Restore target. Those exports
+use `Restore.Outputs` ownership, so generated assets/props/targets can be declared
+inputs of another graph without treating package state as compilation output.

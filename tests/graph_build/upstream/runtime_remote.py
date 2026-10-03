@@ -30,6 +30,7 @@ def main():
     parser.add_argument('--slice', choices=['pipelines', 'loaded-common', 'runtime-suites'], default='pipelines')
     parser.add_argument('--phase', choices=['producer', 'consumer'], required=True)
     parser.add_argument('--version', choices=['8.8.0', '9.2.0'])
+    parser.add_argument('--resume-producer', action='store_true', help='resume suite setup from an existing producer seed; verify every output and runner before reuse')
     parser.add_argument('--reuse-producer-base', action='store_true', help='retain producer repository/native setup; shutdown clears project snapshots before seed')
     parser.add_argument('--reuse-consumer-base', action='store_true', help='retain consumer repository/preparation setup; require a fresh broker namespace and abandoned-state reclamation')
     parser.add_argument('--recovery-samples', type=int, default=1, help='repeat forced recovery; stop the worker before every additional sample')
@@ -40,6 +41,7 @@ def main():
     parser.add_argument('--raw-control', action='store_true', help='fresh raw graph Restore/Build in the same consumer, after restoring original sources')
     args = parser.parse_args()
     assert os.uname().sysname == 'Linux' and os.uname().machine == 'aarch64'
+    assert not args.resume_producer or (args.phase == 'producer' and args.reuse_producer_base)
     assert args.recovery_samples >= 1 and (args.phase == 'consumer' or args.recovery_samples == 1)
     assert not args.reuse_consumer_base or args.phase == 'consumer'
     assert (args.phase == 'consumer') == (args.seed_evidence is not None)
@@ -49,7 +51,10 @@ def main():
     assert not args.reuse_producer_base or args.phase == 'producer'
     assert args.reuse_producer_base or args.reuse_consumer_base or not output_base.exists()
     assert args.qualified_raw_results is None or (args.slice == 'runtime-suites' and args.phase == 'consumer')
-    results.mkdir(parents=True, exist_ok=False)
+    if args.resume_producer:
+        assert (results / 'seed.json').is_file(), 'Resume requires a completed graph seed'
+    else:
+        results.mkdir(parents=True, exist_ok=False)
     contract = json.loads((root / 'graph.generated.json').read_text())
     nodes = [(project, variant) for project, declaration in contract['Projects'].items()
              for variant in declaration.get('Configurations') or [declaration]]
@@ -84,7 +89,8 @@ def main():
     bazel = [str(ROOT / 'scripts/bazel-launcher.sh'), '--output_base=' + str(output_base)]
     options = ['--jobs=' + ('1' if args.slice == 'runtime-suites' else '4'), '--strategy=MSBuildGraph=worker', '--spawn_strategy=linux-sandbox',
                '--worker_sandboxing', '--worker_max_instances=MSBuildGraph=1', '--disk_cache=', '--remote_cache=', '--strategy=RuntimeNative=standalone', '--noshow_progress']
-    rows = []
+    rows = json.loads((results / 'summary.json').read_text()) if args.resume_producer else []
+    assert not args.resume_producer or len(rows) == 1 and rows[0]['case'] == 'seed', 'Do not overwrite completed suite results'
     stopped_workers = set()
     scratch = Path('/tmp') / ('rules-msbuild-workers-' + str(os.getuid()))
     memory_samples = {}
@@ -351,7 +357,15 @@ def main():
                               '--disk_cache=', '--remote_cache=', '--noshow_progress'], 'acquisition-bootstrap')
         (results / 'acquisition.json').write_text(json.dumps({'seconds': acquisition, 'scope': 'SDK, package extraction and runner bootstrap; separate from graph recovery'}) + '\n')
         if args.phase == 'producer':
-            graph('seed', 0)
+            if args.resume_producer:
+                seed = json.loads((results / 'seed.json').read_text())
+                report, outputs, runner = capture()
+                assert seed['externalWorkspace'] == str(root) and seed['slice'] == args.slice
+                assert (seed['hits'], seed['misses']) == (0, count)
+                assert outputs == seed['outputs'] and runner == seed['runnerSha256'], 'Producer seed changed before resume'
+                assert (report['hits'], report['misses']) == (0, count)
+            else:
+                graph('seed', 0)
             suites('seed')
         else:
             seed = json.loads(args.seed_evidence.read_text())

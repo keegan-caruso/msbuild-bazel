@@ -1,7 +1,7 @@
 """Shared provider contracts."""
 
-MSBuildPackageInfo = provider("Locked package extraction and dependency closure.", fields = ["id", "version", "directory", "rows", "files", "archives"])
-MSBuildPackageLockInfo = provider("Pinned NuGet package inventory.", fields = ["rows", "files", "archives"])
+MSBuildPackageInfo = provider("Locked package extraction and dependency closure.", fields = ["id", "version", "directory", "rows", "files", "archives", "validations"])
+MSBuildPackageLockInfo = provider("Pinned NuGet package inventory.", fields = ["rows", "files", "archives", "validations"])
 MSBuildLayoutInfo = provider("A composed artifact tree with explicit destinations.", fields = ["directory"])
 MSBuildRuntimeInfo = provider("Runtime host and its complete declared tree.", fields = ["directory", "entry_point", "launch_mode", "runtime_identifier", "version", "environment", "files"])
 MSBuildToolInfo = provider("Complete build-time layout in the execution configuration.", fields = ["directory", "entry_point", "files"])

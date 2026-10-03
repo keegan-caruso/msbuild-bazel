@@ -74,17 +74,21 @@ def _sdk_layout(ctx):
     files = [dotnet] + [ctx.actions.declare_file(ctx.label.name + "/" + name) for name in ["dnx", "LICENSE.txt", "ThirdPartyNotices.txt"]]
     directories = [ctx.actions.declare_directory(ctx.label.name + "/" + name) for name in ["host", "shared", "sdk", "packs", "sdk-manifests", "templates", "library-packs", "metadata"]]
     ctx.actions.run_shell(
-        inputs = [ctx.file.archive],
+        inputs = [ctx.file.archive] + ctx.files.packages,
         outputs = files + directories,
-        arguments = [ctx.file.archive.path, dotnet.dirname] + [directory.path for directory in directories],
+        arguments = [ctx.file.archive.path, dotnet.dirname] + [value for package, destination in ctx.attr.packages.items() for value in [package.files.to_list()[0].path, destination]],
         command = """set -eu
 archive="$1"; root="$2"; shift 2
 mkdir -p "$root"
 tar -xzf "$archive" -C "$root"
-for directory in "$@"; do mkdir -p "$directory"; done
+for directory in host shared sdk packs sdk-manifests templates library-packs metadata; do mkdir -p "$root/$directory"; done
+while test "$#" -gt 0; do
+    package="$1"; destination="$2"; shift 2
+    python3 -m zipfile -e "$package" "$root/$destination"
+done
 """,
         mnemonic = "SourceSdkLayout",
     )
     return [DefaultInfo(files = depset(files + directories)), OutputGroupInfo(dotnet = depset([dotnet]))]
 
-sdk_layout = rule(implementation = _sdk_layout, attrs = {"archive": attr.label(allow_single_file = [".tar.gz"], mandatory = True, cfg = "exec")})
+sdk_layout = rule(implementation = _sdk_layout, attrs = {"archive": attr.label(allow_single_file = [".tar.gz"], mandatory = True, cfg = "exec"), "packages": attr.label_keyed_string_dict(allow_files = [".nupkg"])})

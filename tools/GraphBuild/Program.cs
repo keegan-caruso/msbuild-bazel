@@ -115,9 +115,9 @@ if (args[0] is "build" or "action")
     {
         temporaryOutputs = new TemporaryOutputs(contract, inputs);
     }
-    if (target is not ("Build" or "Publish"))
+    if (target is not ("Build" or "Pack" or "Publish"))
     {
-        throw new InvalidDataException("The graph runner currently qualifies Build and Publish; execute tests through Bazel test actions");
+        throw new InvalidDataException("The graph runner currently qualifies Build, Pack and Publish; execute tests through Bazel test actions");
     }
     localState?.Prepare(inputs, target);
     foreach (var directory in inputs.Graph.ProjectNodes.SelectMany(inputs.OutputDirectories))

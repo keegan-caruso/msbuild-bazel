@@ -62,6 +62,7 @@ def main():
     parser.add_argument('--qualified-raw-results', type=Path, help='completed full-source raw control for runtime-suites; reuse its warm outputs in place')
     parser.add_argument('--reseed-worker', action='store_true', help='with qualified raw outputs, require a fresh all-miss runner seed before scoring')
     parser.add_argument('--diagnostics', action='store_true', help='profile separate unique edits after the scored series')
+    parser.add_argument('--trim-between-rows', action='store_true', help='Trim the owned Linux VM filesystem between observations, outside scored intervals; requires fstrim privileges')
     args = parser.parse_args()
     assert os.uname().sysname == 'Linux' and os.uname().machine == 'aarch64'
     assert args.samples > 0
@@ -266,10 +267,12 @@ def main():
         summary = dict(platform='linux-arm64', cpus=4, memoryGiB=8, msbuildNodes=4, graphProjects=compiled,
                        sdkVersion=contract['SdkVersion'], bazelVersion='9.2.0', slice=args.slice, entries=mutation['entries'], rawNamespace='same stable paths and isolation as graph',
                        harnessSha256=hashlib.sha256(Path(__file__).read_bytes()).hexdigest(), packageExpansionSeconds=expansion_seconds,
-                       continuation=continuation, qualifiedWarmBaseline=qualified, memorySamples=memory_samples, rows=rows)
+                       continuation=continuation, qualifiedWarmBaseline=qualified, trimBetweenRows=args.trim_between_rows, memorySamples=memory_samples, rows=rows)
         (results / 'summary.json').write_text(json.dumps(summary, indent=2) + '\n')
         print(json.dumps({key: value for key, value in row.items()
                           if key not in ['runner', 'rawCompilerCalls', 'graphCompilerCalls']}), flush=True)
+        if args.trim_between_rows:
+            subprocess.run(['fstrim', '/'], check=True, capture_output=True)
 
     try:
         if continuation or qualified:

@@ -1,0 +1,118 @@
+{
+  "commandlineparser/2.9.1": {
+    "sha256": "02953dcb5c97eb475a4a33e4dca60305e27b5d9072296f21b1ef4d45919c8dea",
+    "url": "https://api.nuget.org/v3-flatcontainer/commandlineparser/2.9.1/commandlineparser.2.9.1.nupkg"
+  },
+  "microsoft.codeanalysis.analyzers/3.11.0": {
+    "sha256": "850da5e84e8f3b89bb8be66c7c5944c7ef7752c2cfa38218df00e4346d75fd2c",
+    "url": "https://api.nuget.org/v3-flatcontainer/microsoft.codeanalysis.analyzers/3.11.0/microsoft.codeanalysis.analyzers.3.11.0.nupkg"
+  },
+  "microsoft.codeanalysis.compilers/4.14.0": {
+    "sha256": "f2a3262487ed0e1ffa3865039f6d21e3647d4b92357337a6a60dc16c5aea8eae",
+    "url": "https://api.nuget.org/v3-flatcontainer/microsoft.codeanalysis.compilers/4.14.0/microsoft.codeanalysis.compilers.4.14.0.nupkg"
+  },
+  "microsoft.diagnostics.netcore.client/0.2.510501": {
+    "sha256": "bda612812a323c7d1727e09566af97952c8bd6d2606799045ca330631fb523dc",
+    "url": "https://api.nuget.org/v3-flatcontainer/microsoft.diagnostics.netcore.client/0.2.510501/microsoft.diagnostics.netcore.client.0.2.510501.nupkg"
+  },
+  "microsoft.diagnostics.tools.runtimeclient/1.0.4-preview6.19326.1": {
+    "sha256": "8b2aef21bc5a3eebadffa3d151ba049965caae315aa51828929a753a53cf7f84",
+    "url": "https://pkgs.dev.azure.com/dnceng/9ee6d478-d288-47f7-aacc-f6e6d082ae6d/_packaging/1a5f89f6-d8da-4080-b15f-242650c914a8/nuget/v3/flat2/microsoft.diagnostics.tools.runtimeclient/1.0.4-preview6.19326.1/microsoft.diagnostics.tools.runtimeclient.1.0.4-preview6.19326.1.nupkg"
+  },
+  "microsoft.diagnostics.tracing.traceevent/3.1.16": {
+    "sha256": "6fa8a09ee9e2bc9ff1d99d460cb5d6fda6a9206ef59193bfe9cdb08d37949143",
+    "url": "https://api.nuget.org/v3-flatcontainer/microsoft.diagnostics.tracing.traceevent/3.1.16/microsoft.diagnostics.tracing.traceevent.3.1.16.nupkg"
+  },
+  "microsoft.extensions.configuration.abstractions/6.0.0": {
+    "sha256": "12f83e6278f64146ba1b3fb3a85f9b5327c60f41c8e40d9f1e6c591176e7dc70",
+    "url": "https://api.nuget.org/v3-flatcontainer/microsoft.extensions.configuration.abstractions/6.0.0/microsoft.extensions.configuration.abstractions.6.0.0.nupkg"
+  },
+  "microsoft.extensions.dependencyinjection.abstractions/6.0.0": {
+    "sha256": "49991ed2334a22a26fbee91db5af8c808946b2b3f611d3e4912f257cb83b26ee",
+    "url": "https://api.nuget.org/v3-flatcontainer/microsoft.extensions.dependencyinjection.abstractions/6.0.0/microsoft.extensions.dependencyinjection.abstractions.6.0.0.nupkg"
+  },
+  "microsoft.extensions.dependencyinjection/6.0.0": {
+    "sha256": "819b8c6ae9cc255cafbdea6eccda1d18f45ce9ea8a1fffdb92cdfde7b75890f2",
+    "url": "https://api.nuget.org/v3-flatcontainer/microsoft.extensions.dependencyinjection/6.0.0/microsoft.extensions.dependencyinjection.6.0.0.nupkg"
+  },
+  "microsoft.extensions.logging.abstractions/6.0.0": {
+    "sha256": "40da9c437c7e30e2bb9576d6902cd23966bfd90c9835b74cfce1046d6375e52c",
+    "url": "https://api.nuget.org/v3-flatcontainer/microsoft.extensions.logging.abstractions/6.0.0/microsoft.extensions.logging.abstractions.6.0.0.nupkg"
+  },
+  "microsoft.extensions.logging/6.0.0": {
+    "sha256": "f16b1929119f5d6e4cb1790c98d55feac96b930f9c474d3973390e3f6294a939",
+    "url": "https://api.nuget.org/v3-flatcontainer/microsoft.extensions.logging/6.0.0/microsoft.extensions.logging.6.0.0.nupkg"
+  },
+  "microsoft.extensions.options/6.0.0": {
+    "sha256": "0f19c48068825e992bc459315ed397ab06a202da088c0f1549258272c5b41701",
+    "url": "https://api.nuget.org/v3-flatcontainer/microsoft.extensions.options/6.0.0/microsoft.extensions.options.6.0.0.nupkg"
+  },
+  "microsoft.extensions.primitives/6.0.0": {
+    "sha256": "020bf2b2cce9435d40893049164bd2cbc267c085938f5e4f7de93b4fb4e151ce",
+    "url": "https://api.nuget.org/v3-flatcontainer/microsoft.extensions.primitives/6.0.0/microsoft.extensions.primitives.6.0.0.nupkg"
+  },
+  "microsoft.net.compilers.toolset/5.0.0-1.25259.6": {
+    "sha256": "f3d1379e9f7b1e8709aff7610a86f6892e86ff05ba5c9862d038d806a469f3e3",
+    "url": "https://pkgs.dev.azure.com/dnceng/9ee6d478-d288-47f7-aacc-f6e6d082ae6d/_packaging/f834bf93-0cae-437a-ac42-be249daa930d/nuget/v3/flat2/microsoft.net.compilers.toolset/5.0.0-1.25259.6/microsoft.net.compilers.toolset.5.0.0-1.25259.6.nupkg"
+  },
+  "microsoft.netcore.app.host.win-arm64/10.0.11": {
+    "sha256": "c382794d89a5ae726dee558324d38e0a6271fbfd0615ee13d472d8343c1df050",
+    "url": "https://api.nuget.org/v3-flatcontainer/microsoft.netcore.app.host.win-arm64/10.0.11/microsoft.netcore.app.host.win-arm64.10.0.11.nupkg"
+  },
+  "microsoft.netcore.app.host.win-x64/10.0.11": {
+    "sha256": "b7990e8ef5922bb141d9f96efb3da3dbaae0edcef0ae67598cb5872424107e30",
+    "url": "https://api.nuget.org/v3-flatcontainer/microsoft.netcore.app.host.win-x64/10.0.11/microsoft.netcore.app.host.win-x64.10.0.11.nupkg"
+  },
+  "microsoft.netcore.app.host.win-x86/10.0.11": {
+    "sha256": "201d467051b7112402e4a2b5f78fec12193218917e2c85785e237e7168c0ba05",
+    "url": "https://api.nuget.org/v3-flatcontainer/microsoft.netcore.app.host.win-x86/10.0.11/microsoft.netcore.app.host.win-x86.10.0.11.nupkg"
+  },
+  "microsoft.netcore.app.runtime.linux-arm64/10.0.11": {
+    "sha256": "72228f5be7e71d8db5cd9df6571e51a1c6a8d16f329343393aa85a1bd6673d1a",
+    "url": "https://api.nuget.org/v3-flatcontainer/microsoft.netcore.app.runtime.linux-arm64/10.0.11/microsoft.netcore.app.runtime.linux-arm64.10.0.11.nupkg"
+  },
+  "microsoft.netcore.app.runtime.win-arm64/10.0.11": {
+    "sha256": "3b9e66f4ae19b52a3d57f2f80893bccde4502c79e8960b44d3541470d44a69fd",
+    "url": "https://api.nuget.org/v3-flatcontainer/microsoft.netcore.app.runtime.win-arm64/10.0.11/microsoft.netcore.app.runtime.win-arm64.10.0.11.nupkg"
+  },
+  "microsoft.netcore.app.runtime.win-x64/10.0.11": {
+    "sha256": "822b247bddbd88a290a8072be89815ffeac26e5aac0d41b1eab95fda5279f443",
+    "url": "https://api.nuget.org/v3-flatcontainer/microsoft.netcore.app.runtime.win-x64/10.0.11/microsoft.netcore.app.runtime.win-x64.10.0.11.nupkg"
+  },
+  "microsoft.netcore.app.runtime.win-x86/10.0.11": {
+    "sha256": "df935e3833d61098b4d79a574ac6a87ec17ba8cdda580f325df8171915c17667",
+    "url": "https://api.nuget.org/v3-flatcontainer/microsoft.netcore.app.runtime.win-x86/10.0.11/microsoft.netcore.app.runtime.win-x86.10.0.11.nupkg"
+  },
+  "microsoft.win32.registry/5.0.0": {
+    "sha256": "f64ca53c67ca65ce7cc85a8d29aefbb2da2672836731e1115e8cd62730dc5080",
+    "url": "https://api.nuget.org/v3-flatcontainer/microsoft.win32.registry/5.0.0/microsoft.win32.registry.5.0.0.nupkg"
+  },
+  "newtonsoft.json.bson/1.0.2": {
+    "sha256": "6548fa60548c669e4266d5e26a6c38f5e6666e9d62601b8db0828d9e3c5c4730",
+    "url": "https://api.nuget.org/v3-flatcontainer/newtonsoft.json.bson/1.0.2/newtonsoft.json.bson.1.0.2.nupkg"
+  },
+  "system.diagnostics.diagnosticsource/6.0.0": {
+    "sha256": "458f6e5923dd2b67e04b0963d4e1c1181568dd9bc642004937302c4b93863167",
+    "url": "https://api.nuget.org/v3-flatcontainer/system.diagnostics.diagnosticsource/6.0.0/system.diagnostics.diagnosticsource.6.0.0.nupkg"
+  },
+  "system.reflection.typeextensions/4.7.0": {
+    "sha256": "184b42197c2d3a79187a3495f937e5f83ab21aae634d4695c8bf5e32ea4c1c13",
+    "url": "https://api.nuget.org/v3-flatcontainer/system.reflection.typeextensions/4.7.0/system.reflection.typeextensions.4.7.0.nupkg"
+  },
+  "system.security.accesscontrol/5.0.0": {
+    "sha256": "b9e486f989fcd9ebf1c86067138f4de03fa780e0c35e0a2b9e506d4373a6c39e",
+    "url": "https://api.nuget.org/v3-flatcontainer/system.security.accesscontrol/5.0.0/system.security.accesscontrol.5.0.0.nupkg"
+  },
+  "xunit.analyzers/1.18.0": {
+    "sha256": "0ce81a98b9df8bd51ae480e6dc9566f4c68e15b4926e6ab997c8f634f3b7a9dd",
+    "url": "https://api.nuget.org/v3-flatcontainer/xunit.analyzers/1.18.0/xunit.analyzers.1.18.0.nupkg"
+  },
+  "xunit.runner.utility/2.9.3": {
+    "sha256": "42496001be8eec7e178767e6ef613a1f87dc3b41dc6f598f7d24ce93f6bbf440",
+    "url": "https://api.nuget.org/v3-flatcontainer/xunit.runner.utility/2.9.3/xunit.runner.utility.2.9.3.nupkg"
+  },
+  "xunit/2.9.3": {
+    "sha256": "04fae949b8e5201ecfa07fa8702baca8c0eb3198114194b3793789cc72bf23d7",
+    "url": "https://api.nuget.org/v3-flatcontainer/xunit/2.9.3/xunit.2.9.3.nupkg"
+  }
+}
