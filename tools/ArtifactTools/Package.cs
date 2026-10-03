@@ -3,7 +3,7 @@ using System.Security.Cryptography;
 using System.Text.Json;
 using System.Xml.Linq;
 
-internal sealed record PackageRequest(string Id, string Version, string Archive, string ContentHash, string ArchiveSha256, string Output, bool Generated = false);
+internal sealed record PackageRequest(string Id, string Version, string Archive, string ContentHash, string ArchiveSha256, string Output, bool Generated = false, string? ValidationOutput = null);
 internal static class Package
 {
     public static void Extract(PackageRequest request)
@@ -21,15 +21,21 @@ internal static class Package
             throw new InvalidDataException("Generated packages must not specify acquired archive hashes");
         }
 
-        var contentHash = request.Generated ? Convert.ToBase64String(SHA512.HashData(bytes)) : request.ContentHash;
-        if (Convert.FromBase64String(contentHash).Length != 64)
+        var contentHash = Convert.ToBase64String(SHA512.HashData(bytes));
+        var archiveHash = Convert.ToHexStringLower(SHA256.HashData(bytes));
+        if (!request.Generated && Convert.FromBase64String(request.ContentHash).Length != 64)
         {
             throw new InvalidDataException("Invalid NuGet content hash");
         }
 
-        if (!request.Generated && !Convert.ToHexStringLower(SHA256.HashData(bytes)).Equals(request.ArchiveSha256, StringComparison.OrdinalIgnoreCase))
+        if (!request.Generated && !archiveHash.Equals(request.ArchiveSha256, StringComparison.OrdinalIgnoreCase))
         {
             throw new InvalidDataException("Package archive differs from locked archive hash");
+        }
+
+        if (!request.Generated && contentHash != request.ContentHash)
+        {
+            throw new InvalidDataException("Package archive differs from locked content hash");
         }
 
         Directory.CreateDirectory(request.Output);
@@ -73,5 +79,15 @@ internal static class Package
             contentHash,
             source = request.Generated ? "bazel-generated-package" : "bazel-locked-package"
         }));
+        if (request.ValidationOutput is not null)
+        {
+            File.WriteAllText(request.ValidationOutput, JsonSerializer.Serialize(new
+            {
+                id,
+                version,
+                archiveSha256 = archiveHash,
+                contentHash
+            }));
+        }
     }
 }

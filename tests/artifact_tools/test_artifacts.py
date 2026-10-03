@@ -46,9 +46,20 @@ class ArtifactToolsTests(unittest.TestCase):
 
     def test_hash_and_identity_fail_closed(self):
         request=self.package()
-        for field,value,message in [('archiveSha256','0'*64,'locked archive hash'),('contentHash',base64.b64encode(b'x').decode(),'content hash'),('id','Other','identity differs')]:
+        for field,value,message in [('archiveSha256','0'*64,'locked archive hash'),('contentHash',base64.b64encode(b'x').decode(),'content hash'),('contentHash',base64.b64encode(b'x'*64).decode(),'locked content hash'),('id','Other','identity differs')]:
             with self.subTest(field=field):
                 self.assertIn(message,self.invoke('extract',dict(request,**{field:value}),success=False))
+
+    def test_validation_output_requires_complete_package_validation(self):
+        request = self.package()
+        marker = self.root/'validated.json'
+        self.invoke('extract', dict(request, validationOutput=str(marker)))
+        validation = json.loads(marker.read_text())
+        self.assertEqual(validation['archiveSha256'], request['archiveSha256'])
+        self.assertEqual(validation['contentHash'], request['contentHash'])
+        marker.unlink()
+        self.invoke('extract', dict(request, id='Other', validationOutput=str(marker)), success=False)
+        self.assertFalse(marker.exists())
 
     def test_zip_traversal_is_rejected(self):
         self.assertIn('Unsafe logical path',self.invoke('extract',self.package('../outside'),success=False))

@@ -19,6 +19,9 @@ failure recovery and owned-file parity across both baselines. Workers stage inpu
 privately and move only owned products into the Bazel result; large-graph timing
 of this change remains pending. Command: `bash scripts/bazel.sh test
 //tests/integration:workers --test_output=errors --lockfile_mode=off`.
+Graph actions consume NuGet archives and extraction validation records, avoiding
+expanded package trees as redundant inputs. Offline/transitive package, prepared
+Restore, hash rejection and native analysis controls passed; large timing is pending.
 Contributor commands are in [CONTRIBUTING](../CONTRIBUTING.md).
 
 Earlier graph qualification built **481 runtime v10.0.0 compilation nodes**:

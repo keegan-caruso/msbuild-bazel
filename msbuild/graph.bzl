@@ -101,7 +101,7 @@ def _graph_action(ctx, prepare = False):
     for file in packages:
         args.add_all([file.path, ".package-source/" + file.basename])
         worker_sources.append({"path": file.path, "destination": ".package-source/" + file.basename})
-    action_inputs = depset(ctx.files.srcs + [file for target in ctx.attr.input_paths for file in target[DefaultInfo].files.to_list()] + packages + closures + ([prepared.directory] if prepared else []) + [ctx.file.contract, runner[0], ctx.file._linux_stable_paths], transitive = [tc.sdk] + ([ctx.attr.package_lock[MSBuildPackageLockInfo].files] if ctx.attr.package_lock else []))
+    action_inputs = depset(ctx.files.srcs + [file for target in ctx.attr.input_paths for file in target[DefaultInfo].files.to_list()] + packages + closures + ([prepared.directory] if prepared else []) + [ctx.file.contract, runner[0], ctx.file._linux_stable_paths], transitive = [tc.sdk] + ([ctx.attr.package_lock[MSBuildPackageLockInfo].validations] if ctx.attr.package_lock else []))
     if ctx.attr.linux_worker:
         request = ctx.actions.declare_file(ctx.label.name + ".graph-request.json")
         ctx.actions.write(request, json.encode({

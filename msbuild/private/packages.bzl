@@ -7,12 +7,13 @@ def _package(ctx, generated = False):
     tc = ctx.toolchains[_TOOLCHAIN]
     output = ctx.actions.declare_directory(ctx.label.name + ".package")
     request = ctx.actions.declare_file(ctx.label.name + ".package.json")
-    ctx.actions.write(request, json.encode({"id": ctx.attr.package_id, "version": ctx.attr.version, "archive": ctx.file.archive.path, "contentHash": "" if generated else ctx.attr.content_hash, "archiveSha256": "" if generated else ctx.attr.archive_sha256, "generated": generated, "output": output.path}))
+    validation = ctx.actions.declare_file(ctx.label.name + ".validated.json")
+    ctx.actions.write(request, json.encode({"id": ctx.attr.package_id, "version": ctx.attr.version, "archive": ctx.file.archive.path, "contentHash": "" if generated else ctx.attr.content_hash, "archiveSha256": "" if generated else ctx.attr.archive_sha256, "generated": generated, "output": output.path, "validationOutput": validation.path}))
     ctx.actions.run(
         executable = tc.dotnet,
         arguments = [tc.runner.path, "extract", request.path],
         inputs = depset([ctx.file.archive, request, tc.runner], transitive = [tc.runtime, tc.runner_support]),
-        outputs = [output],
+        outputs = [output, validation],
         mnemonic = "MSBuildNugetExtract",
         env = {"LANG": "en_US.UTF-8"},
         execution_requirements = {"block-network": "1"},
@@ -24,7 +25,7 @@ def _package(ctx, generated = False):
                 fail("Conflicting locked package: " + row["id"])
             rows[row["id"].lower()] = row
     files = depset([output], transitive = [dep[MSBuildPackageInfo].files for dep in ctx.attr.deps])
-    return [DefaultInfo(files = files), MSBuildPackageInfo(id = ctx.attr.package_id, version = ctx.attr.version, directory = output, rows = rows.values(), files = files, archives = depset([ctx.file.archive], transitive = [dep[MSBuildPackageInfo].archives for dep in ctx.attr.deps]))]
+    return [DefaultInfo(files = files), MSBuildPackageInfo(id = ctx.attr.package_id, version = ctx.attr.version, directory = output, rows = rows.values(), files = files, archives = depset([ctx.file.archive], transitive = [dep[MSBuildPackageInfo].archives for dep in ctx.attr.deps]), validations = depset([validation], transitive = [dep[MSBuildPackageInfo].validations for dep in ctx.attr.deps]))]
 
 msbuild_nuget_package = rule(implementation = _package, attrs = {
     "package_id": attr.string(mandatory = True),
@@ -60,7 +61,7 @@ def _package_union(infos, allow_multiple_versions = False):
 def _package_dependencies(ctx):
     package = ctx.attr.package[MSBuildPackageInfo]
     rows, files = _package_union([package] + [dep[MSBuildPackageInfo] for dep in ctx.attr.deps])
-    return [DefaultInfo(files = files), MSBuildPackageInfo(id = package.id, version = package.version, directory = package.directory, rows = rows, files = files, archives = depset(transitive = [package.archives] + [dep[MSBuildPackageInfo].archives for dep in ctx.attr.deps]))]
+    return [DefaultInfo(files = files), MSBuildPackageInfo(id = package.id, version = package.version, directory = package.directory, rows = rows, files = files, archives = depset(transitive = [package.archives] + [dep[MSBuildPackageInfo].archives for dep in ctx.attr.deps]), validations = depset(transitive = [package.validations] + [dep[MSBuildPackageInfo].validations for dep in ctx.attr.deps]))]
 
 msbuild_nuget_dependencies = rule(implementation = _package_dependencies, attrs = {
     "package": attr.label(providers = [MSBuildPackageInfo], mandatory = True),
@@ -69,7 +70,7 @@ msbuild_nuget_dependencies = rule(implementation = _package_dependencies, attrs 
 
 def _package_lock(ctx):
     rows, files = _package_union([dep[MSBuildPackageInfo] for dep in ctx.attr.packages], allow_multiple_versions = ctx.attr.allow_multiple_versions)
-    return [DefaultInfo(files = files), MSBuildPackageLockInfo(rows = rows, files = files, archives = depset(transitive = [dep[MSBuildPackageInfo].archives for dep in ctx.attr.packages]))]
+    return [DefaultInfo(files = files), MSBuildPackageLockInfo(rows = rows, files = files, archives = depset(transitive = [dep[MSBuildPackageInfo].archives for dep in ctx.attr.packages]), validations = depset(transitive = [dep[MSBuildPackageInfo].validations for dep in ctx.attr.packages]))]
 
 msbuild_package_lock = rule(implementation = _package_lock, attrs = {
     "packages": attr.label_list(providers = [MSBuildPackageInfo]),

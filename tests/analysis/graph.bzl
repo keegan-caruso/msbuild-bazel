@@ -1,13 +1,18 @@
 """Graph inputs, worker defaults, complete layouts and launch contracts."""
 
 load("@rules_testing//lib:analysis_test.bzl", "analysis_test")
-load("//msbuild:defs.bzl", "MSBuildLayoutInfo", "MSBuildRuntimeInfo", "MSBuildToolInfo", "msbuild_file_binding", "msbuild_graph", "msbuild_graph_binary", "msbuild_graph_layout", "msbuild_graph_output", "msbuild_graph_restore", "msbuild_graph_test", "msbuild_layout", "msbuild_runtime", "msbuild_tool")
+load("//msbuild:defs.bzl", "MSBuildLayoutInfo", "MSBuildRuntimeInfo", "MSBuildToolInfo", "msbuild_file_binding", "msbuild_graph", "msbuild_graph_binary", "msbuild_graph_layout", "msbuild_graph_output", "msbuild_graph_restore", "msbuild_graph_test", "msbuild_layout", "msbuild_nuget_package", "msbuild_package_lock", "msbuild_runtime", "msbuild_tool")
 load(":helpers.bzl", "action", "failure_test", "paths", "request")
 
 def _inputs(env, targets):
     build = action(targets.graph, "MSBuildGraph")
     env.expect.that_collection(paths(build.inputs)).contains_at_least(["tests/analysis/App.csproj", "tests/analysis/Source.cs", "tests/analysis/contract.json", "tests/analysis/sdk.txt"])
     env.expect.that_collection(build.argv).contains("0")
+
+    # Archives are staged by Restore; the validation action must remain required
+    # without exposing its expanded package tree as a graph input.
+    env.expect.that_collection(paths(build.inputs)).contains_at_least(["tests/analysis/fixture.nupkg", "tests/analysis/package.validated.json"])
+    env.expect.that_collection(paths(build.inputs)).not_contains("tests/analysis/package.package")
     env.expect.that_str(targets.tool[MSBuildToolInfo].entry_point).equals("Tasks.dll")
     env.expect.that_str(targets.tool[MSBuildToolInfo].directory.short_path).equals(targets.layout[MSBuildLayoutInfo].directory.short_path)
 
@@ -30,7 +35,9 @@ def graph_tests(name):
     msbuild_layout(name = "tool_layout", paths = {"Runner.dll": "Tasks.dll"}, tags = ["manual"])
     msbuild_tool(name = "task_tool", layout = ":tool_layout", entry_point = "Tasks.dll", tags = ["manual"])
     msbuild_file_binding(name = "binding", tool = ":task_tool", property_name = "TaskLocation", tags = ["manual"])
-    msbuild_graph(name = "graph", bindings = [":binding"], project_outputs = {"App.csproj|net10.0": ["bin/Release/net10.0", "App.dll", "Exe"]}, **common)
+    msbuild_nuget_package(name = "package", package_id = "Fixture", version = "1.0.0", archive = "fixture.nupkg", archive_sha256 = "0" * 64, content_hash = "eA==", tags = ["manual"])
+    msbuild_package_lock(name = "package_lock", packages = [":package"], tags = ["manual"])
+    msbuild_graph(name = "graph", package_lock = ":package_lock", bindings = [":binding"], project_outputs = {"App.csproj|net10.0": ["bin/Release/net10.0", "App.dll", "Exe"]}, **common)
     msbuild_graph(name = "worker", linux_worker = True, linux_stable_paths = True, **common)
     analysis_test(name = name + "_inputs", targets = {"graph": ":graph", "tool": ":task_tool", "layout": ":tool_layout"}, impl = _inputs)
     analysis_test(name = name + "_worker", target = ":worker", impl = _worker)
