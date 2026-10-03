@@ -19,7 +19,14 @@ prepared Restore and had 475/464 project hits. Acquisition, the all-miss seed,
 source restoration and filesystem trimming were outside scored observations.
 Only one build VM ran during scoring. The incomplete series from a disk-damaged
 VM was excluded; these rows came from a fresh filesystem and verified inputs.
-Independent HTTP recovery refresh remains pending.
+Independent HTTP recovery on a fresh relocated container, with the producer
+stopped and Bazel whole-action caches disabled, had **481 hits / zero misses**.
+All 10,780 files matched bytes/modes. One unprofiled observation was **121.04 s**:
+fresh prepared Restore took 95.65 s and graph recovery 23.13 s. Package/SDK
+acquisition was excluded. Native-host setup and eight-suite execution were
+separate; 118,952 passed / 64 skipped / zero failed, with matching normalized
+producer outcomes and 3,568 source-product hash observations. The older 34.35 s
+recovery below had warm preparation and is not the same timing scope.
 
 One paired cold observation (raw first): graph **1061.33 s**, raw Restore + Build
 **1056.91 s** (**0.4%** overhead). Raw Restore was 79.35 s and Build 977.55 s;

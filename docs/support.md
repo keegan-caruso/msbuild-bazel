@@ -39,13 +39,17 @@ remain at the recorded revision. [Performance](performance.md) uses that same ba
 
 Main 8d83f0f now repeats 481-node compilation and local recovery: all 3,622
 compiled files matched raw bytes through no-op/body/API edits, with six/17 Csc
-calls per edit. The paired cold build also matched all 3,622 files. Independent HTTP recovery
-remains pending. The producer suite refresh passed 118,952 tests / 64 skips /
-zero failures, including source-product hash checks. Reused pre-cutover native
+calls per edit. The paired cold build also matched all 3,622 files. Independent HTTP recovery on a fresh relocated container reproduced all 10,780
+files with 481 hits / zero misses while the producer was stopped and Bazel action
+caches were disabled. Both containers passed 118,952 tests / 64 skips / zero
+failures, with matching normalized outcomes and source-product hash checks. Reused pre-cutover native
 adapters needed refreshing from `tests/runtime/native_action.bzl` on main.
 Command: `python3 tests/graph_build/upstream/runtime_benchmark.py WORKSPACE RESULTS
 --slice runtime-suites --qualified-raw-results RAW --output-base BASE --samples 3
---reseed-worker --diagnostics --trim-between-rows`. See [timings](performance.md).
+--reseed-worker --diagnostics --trim-between-rows`. See [timings](performance.md). Recovery command: `python3
+tests/graph_build/upstream/runtime_remote.py WORKSPACE RESULTS --phase consumer
+--slice runtime-suites --seed-evidence PRODUCER/seed.json --version 9.2.0
+--diagnostics`.
 
 Current graph-only NoTargets controls passed package-SDK resolution, missing SDK
 rejection and producer-edit invalidation. Commands: `python3
