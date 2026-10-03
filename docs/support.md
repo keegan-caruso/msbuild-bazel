@@ -34,7 +34,8 @@ remain at the recorded revision. [Performance](performance.md) uses that same ba
 
 Main 8d83f0f now repeats 481-node compilation and local recovery: all 3,622
 compiled files matched raw bytes through no-op/body/API edits, with six/17 Csc
-calls per edit. Cold, independent HTTP recovery and suite refreshes remain pending.
+calls per edit. The paired cold build also matched all 3,622 files. Independent HTTP recovery
+and suite refreshes remain pending.
 Command: `python3 tests/graph_build/upstream/runtime_benchmark.py WORKSPACE RESULTS
 --slice runtime-suites --qualified-raw-results RAW --output-base BASE --samples 3
 --reseed-worker --diagnostics --trim-between-rows`. See [timings](performance.md).

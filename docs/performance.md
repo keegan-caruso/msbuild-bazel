@@ -19,7 +19,13 @@ prepared Restore and had 475/464 project hits. Acquisition, the all-miss seed,
 source restoration and filesystem trimming were outside scored observations.
 Only one build VM ran during scoring. The incomplete series from a disk-damaged
 VM was excluded; these rows came from a fresh filesystem and verified inputs.
-Cold and independent HTTP recovery refreshes remain pending.
+Independent HTTP recovery refresh remains pending.
+
+One paired cold observation (raw first): graph **1061.33 s**, raw Restore + Build
+**1056.91 s** (**0.4%** overhead). Raw Restore was 79.35 s and Build 977.55 s;
+graph Restore/Build action spans were 95.21/958.18 s. All 3,622 compiled files
+matched. SDK/packages and Bazel bootstrap were available; outputs and project
+snapshots were fresh. This measures cold compilation, not first-time acquisition.
 
 Separate body/API diagnostics measured evaluation **5.36/5.59 s**, input hashing
 **2.74/2.75 s**, and replay copies **3.82/3.08 s** (689/677 MB). Worker staging was
