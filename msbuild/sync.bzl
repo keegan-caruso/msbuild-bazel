@@ -115,7 +115,7 @@ def msbuild_sync(name, projects, mappings = None, inputs = {}, package_lock = No
 
     Args:
         name: Runnable target name, conventionally sync.
-        projects: Workspace-relative entry .csproj or traversal .proj paths, not labels. References are discovered at run time.
+        projects: Workspace-relative entry .csproj or Traversal/NoTargets .proj paths, not labels. References are discovered at run time.
         configuration: Graph configuration, default Release.
         framework: Optional graph target framework; empty builds declared frameworks.
         package_build: Opt in to offline Restore and package build/content evaluation in a disposable copy.

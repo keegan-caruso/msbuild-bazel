@@ -183,3 +183,80 @@ bazel_integration_tests(
     workspace_files = glob(["fixtures/traversal/**"]),
     workspace_path = "tests/integration/fixtures/traversal",
 )
+
+sh_binary(
+    name = "notargets_runner",
+    testonly = True,
+    srcs = ["notargets.sh"],
+    data = [
+        "common.sh",
+        "raw_namespace.sh",
+    ],
+)
+
+bazel_integration_tests(
+    name = "notargets_cases",
+    additional_env_inherit = [
+        "BAZELISK_HOME",
+        "RULES_MSBUILD_TEST_REPOSITORY_CACHE",
+    ],
+    bazel_binaries = bazel_binaries,
+    bazel_versions = bazel_binaries.versions.all,
+    data = [":rules_archive"],
+    env = {"RULES_ARCHIVE": "$(rootpath :rules_archive)"},
+    tags = [
+        "exclusive",
+        "manual",
+        "no-sandbox",
+    ],
+    target_compatible_with = [
+        "@platforms//os:linux",
+        "@platforms//cpu:aarch64",
+    ],
+    test_runner = ":notargets_runner",
+    workspace_files = glob(["fixtures/notargets/**"]),
+    workspace_path = "tests/integration/fixtures/notargets",
+)
+
+test_suite(
+    name = "notargets",
+    tags = ["manual"],
+    tests = integration_test_utils.bazel_integration_test_names(
+        "notargets_cases",
+        bazel_binaries.versions.all,
+    ),
+)
+
+sh_binary(
+    name = "notargets_remote_runner",
+    testonly = True,
+    srcs = ["notargets_remote.sh"],
+    data = ["common.sh"],
+)
+
+bazel_integration_tests(
+    name = "notargets_remote_cases",
+    additional_env_inherit = [
+        "BAZELISK_HOME",
+        "RULES_MSBUILD_TEST_REPOSITORY_CACHE",
+        "NOTARGETS_CACHE_PHASE",
+        "NOTARGETS_CACHE_URL",
+        "NOTARGETS_CACHE_SEED",
+    ],
+    bazel_binaries = bazel_binaries,
+    bazel_versions = bazel_binaries.versions.all,
+    data = [":rules_archive"],
+    env = {"RULES_ARCHIVE": "$(rootpath :rules_archive)"},
+    tags = [
+        "exclusive",
+        "manual",
+        "no-sandbox",
+    ],
+    target_compatible_with = [
+        "@platforms//os:linux",
+        "@platforms//cpu:aarch64",
+    ],
+    test_runner = ":notargets_remote_runner",
+    workspace_files = glob(["fixtures/notargets/**"]),
+    workspace_path = "tests/integration/fixtures/notargets",
+)

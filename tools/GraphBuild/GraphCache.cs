@@ -35,7 +35,10 @@ internal sealed class GraphCache(GraphInputs inputs, string cache, bool read, Re
     {
         var key = request.ProjectFullPath + "|" + string.Join(";", request.GlobalProperties.OrderBy(p => p.Name, StringComparer.Ordinal).Select(p => p.Name + "=" + p.EvaluatedValue));
         var node = nodes[key];
-        if (!GraphProjectKind.HasAssembly(node.ProjectInstance))
+        var products = inputs.For(node);
+        if (!GraphProjectKind.HasAssembly(node.ProjectInstance) &&
+            (!GraphProjectKind.IsNoTargets(node.ProjectInstance) ||
+                (products.OutputDirectories.Length == 0 && products.OutputFiles is not { Length: > 0 })))
         {
             localState?.ResetProject(inputs, node);
             return CacheResult.IndicateNonCacheHit(CacheResultType.CacheNotApplicable);
@@ -216,19 +219,19 @@ internal sealed class GraphCache(GraphInputs inputs, string cache, bool read, Re
         IEnumerable<ProjectGraphNode> references = inputs.For(node).ReferenceBoundary &&
             !node.ProjectInstance.GetPropertyValue("DisableTransitiveProjectReferences").Equals("true", StringComparison.OrdinalIgnoreCase)
             ? DependencyNodes(node) : node.ProjectReferences;
-        // Outer multi-targeting nodes coordinate builds but have no assembly.
-        // Include their configured descendants instead of inventing an output path.
+        // Outer nodes and traversal coordinators have no assembly. NoTargets
+        // producers keep their own artifact edge instead of a compiler boundary.
         if (inputs.For(node).ReferenceBoundary)
         {
-            references = references.SelectMany(reference => !GraphProjectKind.HasAssembly(reference.ProjectInstance)
-                ? DependencyNodes(reference).Where(dependency => GraphProjectKind.HasAssembly(dependency.ProjectInstance))
+            references = references.SelectMany(reference => !GraphProjectKind.HasAssembly(reference.ProjectInstance) && !GraphProjectKind.IsNoTargets(reference.ProjectInstance)
+                ? DependencyNodes(reference).Where(dependency => GraphProjectKind.HasAssembly(dependency.ProjectInstance) || GraphProjectKind.IsNoTargets(dependency.ProjectInstance))
                 : new[] { reference }).Distinct();
         }
         foreach (var reference in references.OrderBy(n => GraphInputs.Key(n.ProjectInstance), StringComparer.Ordinal))
         {
             var authored = node.ProjectInstance.GetItems("ProjectReference").Where(item =>
                 Path.GetFullPath(item.EvaluatedInclude.Replace('\\', '/'), Path.GetDirectoryName(node.ProjectInstance.FullPath)!) == reference.ProjectInstance.FullPath);
-            var implementation = !inputs.For(node).ReferenceBoundary || (inputs.For(node).ImplementationDependencies ?? []).Contains(inputs.Relative(reference), StringComparer.Ordinal) || authored.Any(item => item.GetMetadataValue("OutputItemType").Length != 0 ||
+            var implementation = GraphProjectKind.IsNoTargets(reference.ProjectInstance) || !inputs.For(node).ReferenceBoundary || (inputs.For(node).ImplementationDependencies ?? []).Contains(inputs.Relative(reference), StringComparer.Ordinal) || authored.Any(item => item.GetMetadataValue("OutputItemType").Length != 0 ||
                 item.GetMetadataValue("ReferenceOutputAssembly").Equals("false", StringComparison.OrdinalIgnoreCase) ||
                 item.GetMetadataValue("Targets").Length != 0);
             if (implementation)
@@ -299,7 +302,7 @@ internal sealed class GraphCache(GraphInputs inputs, string cache, bool read, Re
     private void Validate(ProjectGraphNode node, ProjectSnapshot snapshot, string fingerprint, string directory, string[] targets)
     {
         if (snapshot.Fingerprint != fingerprint || !snapshot.Targets.Select(t => t.Name).SequenceEqual(ReplayTargets(node, targets), StringComparer.OrdinalIgnoreCase) ||
-            !snapshot.Files.ContainsKey(Path.GetRelativePath(inputs.Files.Root, TargetPath(node))) ||
+            (GraphProjectKind.HasAssembly(node.ProjectInstance) && !snapshot.Files.ContainsKey(Path.GetRelativePath(inputs.Files.Root, TargetPath(node)))) ||
             inputs.DeclaredOutputFiles(node).Any(path => !snapshot.Files.ContainsKey(Path.GetRelativePath(inputs.Files.Root, path)) && !snapshot.ProjectCopies.ContainsKey(Path.GetRelativePath(inputs.Files.Root, path))))
         {
             throw new InvalidDataException("Invalid graph snapshot contract");

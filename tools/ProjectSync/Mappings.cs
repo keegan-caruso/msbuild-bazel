@@ -42,9 +42,9 @@ internal sealed class Mappings
         foreach (var project in mappings.Projects.Keys)
         {
             WorkspaceView.Safe(project);
-            if (!project.EndsWith(".csproj", StringComparison.Ordinal))
+            if (!project.EndsWith(".csproj", StringComparison.Ordinal) && !project.EndsWith(".proj", StringComparison.Ordinal))
             {
-                throw new InvalidDataException("Expected a workspace-relative csproj: " + project);
+                throw new InvalidDataException("Expected a workspace-relative .csproj or .proj: " + project);
             }
         }
         foreach (var binding in mappings.Projects.Values.Append(mappings.ProjectDefaults).SelectMany(binding => binding.FrameworkOverrides.Values.Prepend(binding)))

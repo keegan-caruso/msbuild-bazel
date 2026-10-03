@@ -16,6 +16,13 @@ For `Microsoft.Build.Traversal`, use `projects = ["dirs.proj"]`. Pin its SDK in
 no assemblies. Build/Pack/Publish operate on the children; declare Bazel tests for
 the test projects. See [qualified traversal scope](support.md#traversal-projects).
 
+`Microsoft.Build.NoTargets` accepts `.csproj` or `.proj` entries with the same
+package-SDK setup. Declare its products in mappings `outputFiles` and attest
+custom targets/tasks in `documents`. It has no assembly/runtime selector; export
+products with `msbuild_graph_output`. Projects with declared products use snapshots;
+empty utility projects remain uncached. Dependency edges consume implementation
+inputs and products, including beneath a reviewed compiler-reference boundary.
+
 Body edits need no sync. Rerun sync after project/import, source-list, package or
 configuration changes. `bazel run //:sync -- --check` rejects stale declarations.
 

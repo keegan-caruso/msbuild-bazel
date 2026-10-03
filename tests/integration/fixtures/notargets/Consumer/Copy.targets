@@ -1,0 +1,5 @@
+<Project>
+  <Target Name="CopyProof" AfterTargets="Build">
+    <Copy SourceFiles="$(MSBuildProjectDirectory)/../Utility/out/proof.txt" DestinationFiles="$(TargetDir)proof.txt" />
+  </Target>
+</Project>

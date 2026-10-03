@@ -91,7 +91,9 @@ internal static class GraphGenerator
                 var sdkName = project.Xml.Sdk.Split('/')[0];
                 var traversal = sdkName == "Microsoft.Build.Traversal" &&
                     project.GetPropertyValue("UsingMicrosoftTraversalSdk").Equals("true", StringComparison.OrdinalIgnoreCase);
-                if ((Path.GetExtension(path) == ".proj" && !traversal) || (!traversal && sdkName is not ("Microsoft.NET.Sdk" or "Microsoft.NET.Sdk.Web" or "Microsoft.NET.Sdk.Razor")) ||
+                var noTargets = sdkName == "Microsoft.Build.NoTargets" &&
+                    project.GetPropertyValue("UsingMicrosoftNoTargetsSdk").Equals("true", StringComparison.OrdinalIgnoreCase);
+                if ((Path.GetExtension(path) == ".proj" && !traversal && !noTargets) || (!traversal && !noTargets && sdkName is not ("Microsoft.NET.Sdk" or "Microsoft.NET.Sdk.Web" or "Microsoft.NET.Sdk.Razor")) ||
                     project.GetItems("Reference").Any(reference =>
                     {
                         var value = reference.GetMetadataValue("HintPath");
@@ -234,7 +236,7 @@ internal static class GraphGenerator
                     generated.Add(relative);
                 }
                 var instance = project.CreateProjectInstance();
-                outputs[Key(instance)] = !GraphProjectKind.HasAssembly(instance) ? [] : binding.OutputFiles
+                outputs[Key(instance)] = !GraphProjectKind.HasAssembly(instance) && !GraphProjectKind.IsNoTargets(instance) ? [] : binding.OutputFiles
                     .SelectMany(value => project.ExpandString(value).Split(';', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
                     .Select(value => Relative(Path.GetFullPath(value.Replace('\\', '/'), root)))
                     .Distinct().Order(StringComparer.Ordinal).ToArray();
@@ -356,7 +358,7 @@ internal static class GraphGenerator
             contractData["Version"] = 4;
             contractData["InputDirectories"] = JsonSerializer.SerializeToNode(inputDirectories);
         }
-        var temporaryDirectories = graph.ProjectNodes.Where(node => GraphProjectKind.HasAssembly(node.ProjectInstance))
+        var temporaryDirectories = graph.ProjectNodes.Where(node => GraphProjectKind.HasAssembly(node.ProjectInstance) || GraphProjectKind.IsNoTargets(node.ProjectInstance))
             .SelectMany(node => mappings.ForProject(Relative(node.ProjectInstance.FullPath), node.ProjectInstance.GetPropertyValue("TargetFramework")).TemporaryDirectories
                 .Select(path => Relative(Path.GetFullPath(node.ProjectInstance.ExpandString(path).Replace('\\', '/'), Path.GetDirectoryName(node.ProjectInstance.FullPath)!))))
             .Distinct().Order(StringComparer.Ordinal).ToArray();
