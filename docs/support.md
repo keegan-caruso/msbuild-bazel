@@ -62,6 +62,18 @@ Run `//tests/integration:worker_sdk_remote_cases_bazel_8_8_0` (or
 `SDK_CACHE_SEED` pointing to the matching producer.json. These are small correctness
 controls, not a large Worker-service or workload qualification.
 
+IL SDK **10.0.0-rtm.25509.106** passed `.ilproj` roots and managed consumers on
+Linux ARM64 / both Bazel pins: `//tests/integration:il_sdk`. The closed inventory
+includes the SDK and matching ARM64 ILAsm/ILDasm packages; prepared Restore retains
+native executable modes. `IlasmFlags=-DET` gives matching raw ordinary/graph/Bazel
+DLL/PDB bytes. Build/Publish, body/API edits, missing-tool rejection and failed-build
+recovery pass. IL emits no reference assembly here, so its changes conservatively
+rebuild the consumer. Both pins independently recovered 24 compared files/modes
+with two hits / zero misses and fresh test execution. Use
+`//tests/integration:il_sdk_remote_cases_bazel_8_8_0` (or `_bazel_.bazelversion`)
+with the same `SDK_CACHE_*` protocol above. This does not qualify Windows IL
+resources, alternative native tool layouts or a runtime IL/JIT suite.
+
 Earlier source-built NoTargets controls cover package-SDK resolution, missing SDK
 rejection and producer-edit invalidation: `python3
 tests/source_sdk/notargets_handoff.py INPUTS RESULTS --acquire` and

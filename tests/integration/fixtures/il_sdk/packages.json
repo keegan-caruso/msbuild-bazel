@@ -1,0 +1,23 @@
+[
+  {
+    "id": "Microsoft.NET.Sdk.IL",
+    "version": "10.0.0-rtm.25509.106",
+    "url": "https://pkgs.dev.azure.com/dnceng/public/_packaging/dotnet10/nuget/v3/flat2/microsoft.net.sdk.il/10.0.0-rtm.25509.106/microsoft.net.sdk.il.10.0.0-rtm.25509.106.nupkg",
+    "sha256": "fa97528090882661c92a63833274b9ba0773080424dd90bac1206c6babb33549",
+    "content_hash": "RXaQSMRImESDw15MekvktRXH3RMSHjr6Bp9IBbo6DauJLXrZzbUpKj/TPohLKm1n+RcwnlnNMAch1icwi0i81Q=="
+  },
+  {
+    "id": "runtime.linux-arm64.Microsoft.NETCore.ILAsm",
+    "version": "10.0.0-rtm.25509.106",
+    "url": "https://pkgs.dev.azure.com/dnceng/public/_packaging/dotnet10/nuget/v3/flat2/runtime.linux-arm64.microsoft.netcore.ilasm/10.0.0-rtm.25509.106/runtime.linux-arm64.microsoft.netcore.ilasm.10.0.0-rtm.25509.106.nupkg",
+    "sha256": "6ba56766387248d4ed59a3fd3e7f3b24d7eed085a4cb9d680f6b767cb5cbf61c",
+    "content_hash": "krMaplH2JF0tjAM4ys+I1VwTJXkPyfS8grY7JDoa4COT/cXRfcq9NJPAoj2yBRQ24fGiEC9qWrLUWig+Zk+SRg=="
+  },
+  {
+    "id": "runtime.linux-arm64.Microsoft.NETCore.ILDasm",
+    "version": "10.0.0-rtm.25509.106",
+    "url": "https://pkgs.dev.azure.com/dnceng/public/_packaging/dotnet10/nuget/v3/flat2/runtime.linux-arm64.microsoft.netcore.ildasm/10.0.0-rtm.25509.106/runtime.linux-arm64.microsoft.netcore.ildasm.10.0.0-rtm.25509.106.nupkg",
+    "sha256": "578352d50577ae45f539fc623a4959e7c6255b2b4667e7177d6dcd1862877d05",
+    "content_hash": "bjb3Rzxww2iIQbHMUWXax8XfA4NDsqw1mHlk4ofS3PJ4DmKnqkY55ykOTmvnXYqEVirgXMlhRvCQ5qwfb6IbYA=="
+  }
+]

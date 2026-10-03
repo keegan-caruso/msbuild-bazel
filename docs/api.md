@@ -28,6 +28,12 @@ SDK attributes, semicolon-separated SDK composition and top-level `<Sdk Name="â€
 elements for qualified SDKs; MSBuild resolves their imports and versions. Unknown
 SDKs remain rejected. Package/content side effects still need explicit contracts.
 
+`Microsoft.NET.Sdk.IL` accepts `.ilproj` entries and project mappings. Declare the
+pinned package SDK and native ILAsm/ILDasm packages in the closed inventory.
+IL assemblies without reference assemblies use implementation dependency keys;
+request deterministic assembler output explicitly (`IlasmFlags=-DET` in the
+qualified fixture). See [qualified IL scope](support.md).
+
 Body edits need no sync. Rerun sync after project/import, source-list, package or
 configuration changes. `bazel run //:sync -- --check` rejects stale declarations.
 

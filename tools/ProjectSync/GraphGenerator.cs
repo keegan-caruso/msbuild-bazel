@@ -95,9 +95,11 @@ internal static class GraphGenerator
                     project.GetPropertyValue("UsingMicrosoftTraversalSdk").Equals("true", StringComparison.OrdinalIgnoreCase);
                 var noTargets = sdkNames.Contains("Microsoft.Build.NoTargets", StringComparer.Ordinal) &&
                     project.GetPropertyValue("UsingMicrosoftNoTargetsSdk").Equals("true", StringComparison.OrdinalIgnoreCase);
-                var managed = sdkNames.Any(name => name is "Microsoft.NET.Sdk" or "Microsoft.NET.Sdk.Web" or "Microsoft.NET.Sdk.Razor" or "Microsoft.NET.Sdk.Worker");
-                var supportedSdks = sdkNames.All(name => name is "Microsoft.NET.Sdk" or "Microsoft.NET.Sdk.Web" or "Microsoft.NET.Sdk.Razor" or "Microsoft.NET.Sdk.Worker" or "Microsoft.Build.Traversal" or "Microsoft.Build.NoTargets");
-                if (!supportedSdks || (Path.GetExtension(path) == ".proj" && !traversal && !noTargets) || (!traversal && !noTargets && !managed) ||
+                var il = Path.GetExtension(path) == ".ilproj" && sdkNames.Contains("Microsoft.NET.Sdk.IL", StringComparer.Ordinal) &&
+                    project.GetPropertyValue("Language") == "IL";
+                var managed = il || sdkNames.Any(name => name is "Microsoft.NET.Sdk" or "Microsoft.NET.Sdk.Web" or "Microsoft.NET.Sdk.Razor" or "Microsoft.NET.Sdk.Worker");
+                var supportedSdks = sdkNames.All(name => name is "Microsoft.NET.Sdk" or "Microsoft.NET.Sdk.Web" or "Microsoft.NET.Sdk.Razor" or "Microsoft.NET.Sdk.Worker" or "Microsoft.Build.Traversal" or "Microsoft.Build.NoTargets" or "Microsoft.NET.Sdk.IL");
+                if (!supportedSdks || (Path.GetExtension(path) == ".ilproj" && !il) || (Path.GetExtension(path) == ".proj" && !traversal && !noTargets) || (!traversal && !noTargets && !managed) ||
                     project.GetItems("Reference").Any(reference =>
                     {
                         var value = reference.GetMetadataValue("HintPath");
