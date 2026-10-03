@@ -1,0 +1,12 @@
+<Project>
+  <Target Name="WriteProof" AfterTargets="Build">
+    <ReadLinesFromFile File="$(MSBuildProjectDirectory)/input.txt">
+      <Output TaskParameter="Lines" ItemName="ProofLines" />
+    </ReadLinesFromFile>
+    <GetFileHash Files="$(MSBuildProjectDirectory)/../Library/bin/$(Configuration)/net10.0/Library.dll">
+      <Output TaskParameter="Items" ItemName="LibraryHash" />
+    </GetFileHash>
+    <MakeDir Directories="$(MSBuildProjectDirectory)/out" />
+    <WriteLinesToFile File="$(MSBuildProjectDirectory)/out/proof.txt" Lines="@(ProofLines);@(LibraryHash-&gt;'%(FileHash)')" Overwrite="true" />
+  </Target>
+</Project>

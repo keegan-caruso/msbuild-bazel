@@ -33,8 +33,24 @@ tests/graph_build/upstream/runtime_remote.py WORKSPACE RESULTS --phase consumer
 --slice runtime-suites --seed-evidence PRODUCER/seed.json --version 9.2.0
 --diagnostics`.
 
-Current graph-only NoTargets controls passed package-SDK resolution, missing SDK
-rejection and producer-edit invalidation. Commands: `python3
+NoTargets **3.7.0** public sync passed on Linux ARM64 / Bazel 8.8 and 9.2:
+`.proj` and `.csproj` roots, nested Traversal, prepared Restore, explicit text
+products, cached/uncached workers and downstream invalidation. Raw ordinary/graph
+DLL/PDB and product bytes matched; three project snapshots replayed. A text edit
+reused the library while regenerating producer/consumer products; a dependency
+body edit changed both copies. Missing SDKs/products, unreviewed targets and
+compiler-reference misuse failed. Command: `bash scripts/bazel.sh test
+//tests/integration:notargets`. This slice qualifies Build with explicit file
+products, not arbitrary task side effects or NoTargets Pack/Publish pipelines.
+Independent HTTP recovery on both pins had three hits / zero misses and matched
+all 30 compared output files/modes with the producer stopped and Bazel action
+caches disabled. Run `//tests/integration:notargets_remote_cases_bazel_8_8_0`
+(or `_bazel_.bazelversion` for the default), setting `NOTARGETS_CACHE_PHASE=producer`
+and `NOTARGETS_CACHE_URL`; stop that container, then use a fresh consumer with
+`NOTARGETS_CACHE_PHASE=consumer` and `NOTARGETS_CACHE_SEED` pointing to producer.json.
+
+Earlier source-built NoTargets controls cover package-SDK resolution, missing SDK
+rejection and producer-edit invalidation: `python3
 tests/source_sdk/notargets_handoff.py INPUTS RESULTS --acquire` and
 `python3 tests/graph_build/package_sdks.py --prepared-restore`.
 Source-built SDK Pack, Razor rendering and framework-dependent Publish/run passed:

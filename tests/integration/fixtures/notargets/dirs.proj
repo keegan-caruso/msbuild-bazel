@@ -1,0 +1,1 @@
+<Project Sdk="Microsoft.Build.Traversal"><ItemGroup><ProjectReference Include="Consumer/Consumer.csproj"/><ProjectReference Include="Empty/Empty.csproj"/></ItemGroup></Project>

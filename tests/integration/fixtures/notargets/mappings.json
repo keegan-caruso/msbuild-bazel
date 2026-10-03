@@ -1,0 +1,38 @@
+{
+  "projectDefaults": {
+    "preparedRestore": true
+  },
+  "projects": {
+    "Utility/Utility.proj": {
+      "inputItems": {
+        "Schema": []
+      },
+      "outputFiles": [
+        "Utility/out/proof.txt"
+      ],
+      "documents": {
+        "Utility/Generate.targets": {
+          "sha256": "3f0094b4ceb772462b792d3a7f72144c5c2647a643254dcc888e46d337abc9ea",
+          "targets": [
+            "WriteProof"
+          ],
+          "tasks": [],
+          "inputs": []
+        }
+      }
+    },
+    "Consumer/Consumer.csproj": {
+      "referenceBoundary": true,
+      "documents": {
+        "Consumer/Copy.targets": {
+          "sha256": "b3e01d2288fe225eb892cc18be77f99fba9f7fa4e871a52dd347a68cae6cd4c4",
+          "targets": [
+            "CopyProof"
+          ],
+          "tasks": [],
+          "inputs": []
+        }
+      }
+    }
+  }
+}
