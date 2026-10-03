@@ -37,8 +37,24 @@ snapshots were fresh. This measures cold compilation, not first-time acquisition
 Separate body/API diagnostics measured evaluation **5.36/5.59 s**, input hashing
 **2.74/2.75 s**, and replay copies **3.82/3.08 s** (689/677 MB). Worker staging was
 1.00/1.08 s. These scopes can overlap; do not add operation totals as wall time.
-The owned-product publication and package-input reductions on the qualification
-branch passed small controls; their large-graph effect is not yet measured.
+Candidate dcbf44e (owned-product publication and reduced package inputs), same
+resources and three-pair method:
+
+| Case | Bazel median | Paired raw median |
+| --- | ---: | ---: |
+| No-op | 0.17 | 17.85 |
+| Body | 34.44 | 31.05 |
+| API | 48.37 | 45.34 |
+| Local recovery | 18.43 | — |
+
+All 3,622 files matched; body/API still had six/17 Csc calls and zero Restore
+actions. Local recovery observed 18.04–19.68 s versus main's 20.07 s median.
+These combined changes do **not** establish an edit-time speedup: raw times and
+paired gaps varied too. Separate body/API diagnostics measured evaluation
+5.96/5.53 s, replay copies 3.59/2.51 s (same 689/677 MB), staging 1.03/1.01 s,
+and publication 0.15/0.16 s. Remaining work is evaluation and snapshot replay,
+not publication. Retain Restore's contract: these edits already reuse preparation.
+The fresh all-miss seed and diagnostics were excluded from scored pairs.
 
 [Historical series at 7e22cd6](https://github.com/keegan-caruso/msbuild-bazel/blob/7e22cd67609f6ae5e1606fcae9dcf6e578c2db3b/docs/performance.md)
 measured cold Restore + Build at 1093.53 s versus 1048.89 s raw, and independent

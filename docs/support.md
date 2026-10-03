@@ -16,12 +16,11 @@ workers) across both Bazel baselines. Command: `bash scripts/bazel.sh test
 worker evidence; HTTP recovery remains covered separately.
 Linux worker publication also passed cached/uncached Build/Publish, body/API,
 failure recovery and owned-file parity across both baselines. Workers stage inputs
-privately and move only owned products into the Bazel result; large-graph timing
-of this change remains pending. Command: `bash scripts/bazel.sh test
+privately and move only owned products into the Bazel result; large timings are in [performance](performance.md). Command: `bash scripts/bazel.sh test
 //tests/integration:workers --test_output=errors --lockfile_mode=off`.
 Graph actions consume NuGet archives and extraction validation records, avoiding
 expanded package trees as redundant inputs. Offline/transitive package, prepared
-Restore, hash rejection and native analysis controls passed; large timing is pending.
+Restore, hash rejection and native analysis controls passed; large timings are in [performance](performance.md).
 Generated build/Restore tree handoff, producer edits, missing-input rejection and
 executable success-status controls passed the four native worker cases on both
 baselines. A test expecting 100 rejects zero. Owned .NET/style, scaffold and
@@ -75,9 +74,8 @@ the downloaded AOT packs, not a source-built AOT compiler or Linux x86-64/RBE.
 
 Remaining priorities:
 
-1. Refresh large-runtime correctness, recovery and timings after the cutover.
-2. Reduce large-graph publication/staging and unnecessary Restore invalidation, with matched body/API controls.
-3. Expand reviewed runtime slices and qualify platforms independently.
+1. Reduce repeated evaluation and snapshot replay; publication is now about 0.15 s.
+2. Expand reviewed runtime slices and qualify platforms independently.
 
 This is not whole-repository runtime support. Linux x86-64, macOS persistent workers,
 RBE, arbitrary SDKs/workloads and full native build parity are unqualified.
