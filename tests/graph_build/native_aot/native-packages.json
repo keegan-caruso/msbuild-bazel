@@ -1,0 +1,278 @@
+{
+  "platform": "linux-arm64",
+  "distribution": "ubuntu-22.04",
+  "packages": [
+    {
+      "name": "base-files",
+      "version": "12ubuntu4.7",
+      "architecture": "arm64",
+      "url": "https://ports.ubuntu.com/ubuntu-ports/pool/main/b/base-files/base-files_12ubuntu4.7_arm64.deb",
+      "sha256": "efeb75569bd6b3dae48094109c95f02d057cf5178c090c1a13670c613b101ec1",
+      "licensePath": "usr/share/doc/base-files/copyright"
+    },
+    {
+      "name": "dash",
+      "version": "0.5.11+git20210903+057cd650a4ed-3build1",
+      "architecture": "arm64",
+      "url": "https://ports.ubuntu.com/ubuntu-ports/pool/main/d/dash/dash_0.5.11+git20210903+057cd650a4ed-3build1_arm64.deb",
+      "sha256": "f0fbe9c11fc95291a6f9db517f94fec56a6534461d1d70c0da402ac2e89d8389",
+      "licensePath": "usr/share/doc/dash/copyright"
+    },
+    {
+      "name": "binutils",
+      "version": "2.38-4ubuntu2.12",
+      "architecture": "arm64",
+      "url": "https://ports.ubuntu.com/ubuntu-ports/pool/main/b/binutils/binutils_2.38-4ubuntu2.12_arm64.deb",
+      "sha256": "610ecebee108eea384fc9cfe9a569957b60d8d6b31fb91137e298fe79dd0dc6b",
+      "licensePath": "usr/share/doc/binutils/copyright"
+    },
+    {
+      "name": "binutils-common",
+      "version": "2.38-4ubuntu2.12",
+      "architecture": "arm64",
+      "url": "https://ports.ubuntu.com/ubuntu-ports/pool/main/b/binutils/binutils-common_2.38-4ubuntu2.12_arm64.deb",
+      "sha256": "e27872f3a5bc8021e007b491d3395b7a4886c2c523765663379e39c64b9188d7",
+      "licensePath": "usr/share/doc/binutils-common/copyright"
+    },
+    {
+      "name": "binutils-aarch64-linux-gnu",
+      "version": "2.38-4ubuntu2.12",
+      "architecture": "arm64",
+      "url": "https://ports.ubuntu.com/ubuntu-ports/pool/main/b/binutils/binutils-aarch64-linux-gnu_2.38-4ubuntu2.12_arm64.deb",
+      "sha256": "469f40f9c0f489836fe996d4cfa1dc072c4cef4f10cd3fea02fd26c47910ac28",
+      "licensePath": "usr/share/doc/binutils-aarch64-linux-gnu/copyright"
+    },
+    {
+      "name": "libbinutils",
+      "version": "2.38-4ubuntu2.12",
+      "architecture": "arm64",
+      "url": "https://ports.ubuntu.com/ubuntu-ports/pool/main/b/binutils/libbinutils_2.38-4ubuntu2.12_arm64.deb",
+      "sha256": "cccc7cf1b728838f51054a44316a04e520b936dfec48de944ebace8c171e2773",
+      "licensePath": "usr/share/doc/libbinutils/copyright"
+    },
+    {
+      "name": "libctf0",
+      "version": "2.38-4ubuntu2.12",
+      "architecture": "arm64",
+      "url": "https://ports.ubuntu.com/ubuntu-ports/pool/main/b/binutils/libctf0_2.38-4ubuntu2.12_arm64.deb",
+      "sha256": "423c4a9bd007178f838d35caedf1fe7d1a447ea4d96a8a2949ad116b6f50da0f",
+      "licensePath": "usr/share/doc/libctf0/copyright"
+    },
+    {
+      "name": "clang",
+      "version": "1:14.0-55~exp2",
+      "architecture": "arm64",
+      "url": "https://ports.ubuntu.com/ubuntu-ports/pool/universe/l/llvm-defaults/clang_14.0-55~exp2_arm64.deb",
+      "sha256": "534a0e9dff66d7c8a29ea86201eb80967ee8fad3fefa3e7fbdca3dd88ef7ae97",
+      "licensePath": "usr/share/doc/clang/copyright"
+    },
+    {
+      "name": "clang-14",
+      "version": "1:14.0.0-1ubuntu1.1",
+      "architecture": "arm64",
+      "url": "https://ports.ubuntu.com/ubuntu-ports/pool/universe/l/llvm-toolchain-14/clang-14_14.0.0-1ubuntu1.1_arm64.deb",
+      "sha256": "a18b830ede2e6887eef5809bb8c5b67aeb984cfde8725cc78bc7d585c2c5755f",
+      "licensePath": "usr/share/doc/clang-14/copyright"
+    },
+    {
+      "name": "libclang-common-14-dev",
+      "version": "1:14.0.0-1ubuntu1.1",
+      "architecture": "arm64",
+      "url": "https://ports.ubuntu.com/ubuntu-ports/pool/universe/l/llvm-toolchain-14/libclang-common-14-dev_14.0.0-1ubuntu1.1_arm64.deb",
+      "sha256": "24fc4d47d274b32cb706d4446d9a276f1e44353646102ebe98507bcc966a8fd0",
+      "licensePath": "usr/share/doc/libclang-common-14-dev/copyright"
+    },
+    {
+      "name": "libclang-cpp14",
+      "version": "1:14.0.0-1ubuntu1.1",
+      "architecture": "arm64",
+      "url": "https://ports.ubuntu.com/ubuntu-ports/pool/universe/l/llvm-toolchain-14/libclang-cpp14_14.0.0-1ubuntu1.1_arm64.deb",
+      "sha256": "8f2a0d03c48e3be50087f204011ea71117e7bb97dd8b6d01f869d26079b8ae95",
+      "licensePath": "usr/share/doc/libclang-cpp14/copyright"
+    },
+    {
+      "name": "libllvm14",
+      "version": "1:14.0.0-1ubuntu1.1",
+      "architecture": "arm64",
+      "url": "https://ports.ubuntu.com/ubuntu-ports/pool/main/l/llvm-toolchain-14/libllvm14_14.0.0-1ubuntu1.1_arm64.deb",
+      "sha256": "a9b2c95dc9fa2c0dbba417da8156bbab84d6a0e95fd58417ae7989ff0fc27d87",
+      "licensePath": "usr/share/doc/libllvm14/copyright"
+    },
+    {
+      "name": "llvm",
+      "version": "1:14.0-55~exp2",
+      "architecture": "arm64",
+      "url": "https://ports.ubuntu.com/ubuntu-ports/pool/universe/l/llvm-defaults/llvm_14.0-55~exp2_arm64.deb",
+      "sha256": "81e1bf9b434d475e09c13daf2c6a0ebf4ae5da0007a7dfa68bcdae05fd891f6a",
+      "licensePath": "usr/share/doc/llvm/copyright"
+    },
+    {
+      "name": "llvm-14",
+      "version": "1:14.0.0-1ubuntu1.1",
+      "architecture": "arm64",
+      "url": "https://ports.ubuntu.com/ubuntu-ports/pool/universe/l/llvm-toolchain-14/llvm-14_14.0.0-1ubuntu1.1_arm64.deb",
+      "sha256": "5e60d273aed0620c9b3a53d755ae2933b2a21618ce93e126ee38c221cc45dd99",
+      "licensePath": "usr/share/doc/llvm-14/copyright"
+    },
+    {
+      "name": "libc6",
+      "version": "2.35-0ubuntu3.15",
+      "architecture": "arm64",
+      "url": "https://ports.ubuntu.com/ubuntu-ports/pool/main/g/glibc/libc6_2.35-0ubuntu3.15_arm64.deb",
+      "sha256": "dd88cc85dcfbac19c0c9b606676b7b1b87f851d75afa5c830fc5ba1293a30833",
+      "licensePath": "usr/share/doc/libc6/copyright"
+    },
+    {
+      "name": "libc6-dev",
+      "version": "2.35-0ubuntu3.15",
+      "architecture": "arm64",
+      "url": "https://ports.ubuntu.com/ubuntu-ports/pool/main/g/glibc/libc6-dev_2.35-0ubuntu3.15_arm64.deb",
+      "sha256": "e1da77e87451ca8f41b2757fe274bca357fd5f7498afe47c05360681d0727bae",
+      "licensePath": "usr/share/doc/libc6-dev/copyright"
+    },
+    {
+      "name": "linux-libc-dev",
+      "version": "5.15.0-194.204",
+      "architecture": "arm64",
+      "url": "https://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux/linux-libc-dev_5.15.0-194.204_arm64.deb",
+      "sha256": "b9d00f53d1d3295b68dfdcece01036c892cbb4f526803f56366cb06193c641b1",
+      "licensePath": "usr/share/doc/linux-libc-dev/copyright"
+    },
+    {
+      "name": "gcc-11-base",
+      "version": "11.4.0-1ubuntu1~22.04.3",
+      "architecture": "arm64",
+      "url": "https://ports.ubuntu.com/ubuntu-ports/pool/main/g/gcc-11/gcc-11-base_11.4.0-1ubuntu1~22.04.3_arm64.deb",
+      "sha256": "69d03f54155fedab6c941e63149cf6ddadaa3638a005bbc66ef0d8445c3e5af3",
+      "licensePath": "usr/share/doc/gcc-11-base/copyright"
+    },
+    {
+      "name": "gcc-12-base",
+      "version": "12.3.0-1ubuntu1~22.04.3",
+      "architecture": "arm64",
+      "url": "https://ports.ubuntu.com/ubuntu-ports/pool/main/g/gcc-12/gcc-12-base_12.3.0-1ubuntu1~22.04.3_arm64.deb",
+      "sha256": "b2bc566681989941dd059d6391b01c41854857f26d83c53358287d620dfb0fd4",
+      "licensePath": "usr/share/doc/gcc-12-base/copyright"
+    },
+    {
+      "name": "libgcc-s1",
+      "version": "12.3.0-1ubuntu1~22.04.3",
+      "architecture": "arm64",
+      "url": "https://ports.ubuntu.com/ubuntu-ports/pool/main/g/gcc-12/libgcc-s1_12.3.0-1ubuntu1~22.04.3_arm64.deb",
+      "sha256": "46626e1af6b159061e055f843654ee1f0f1e65fa280331ed47ee76ba1b1f6045",
+      "licensePath": "usr/share/doc/libgcc-s1/copyright"
+    },
+    {
+      "name": "libgcc-11-dev",
+      "version": "11.4.0-1ubuntu1~22.04.3",
+      "architecture": "arm64",
+      "url": "https://ports.ubuntu.com/ubuntu-ports/pool/main/g/gcc-11/libgcc-11-dev_11.4.0-1ubuntu1~22.04.3_arm64.deb",
+      "sha256": "8f65b96e09a0c0f9dace290d8e91ba9209ac991ef1c57803ff6ae8a0e8402527",
+      "licensePath": "usr/share/doc/libgcc-11-dev/copyright"
+    },
+    {
+      "name": "libstdc++6",
+      "version": "12.3.0-1ubuntu1~22.04.3",
+      "architecture": "arm64",
+      "url": "https://ports.ubuntu.com/ubuntu-ports/pool/main/g/gcc-12/libstdc++6_12.3.0-1ubuntu1~22.04.3_arm64.deb",
+      "sha256": "59d244119e6129c7e9c0897491c0e210e925d15881b2dedcf8965ceb4fbf1aa3",
+      "licensePath": "usr/share/doc/libstdc++6/copyright"
+    },
+    {
+      "name": "libstdc++-11-dev",
+      "version": "11.4.0-1ubuntu1~22.04.3",
+      "architecture": "arm64",
+      "url": "https://ports.ubuntu.com/ubuntu-ports/pool/main/g/gcc-11/libstdc++-11-dev_11.4.0-1ubuntu1~22.04.3_arm64.deb",
+      "sha256": "e6b5485acb1c0380f388c069188f2f50b0bd72508ed75cc0551493a79d91c348",
+      "licensePath": "usr/share/doc/libstdc++-11-dev/copyright"
+    },
+    {
+      "name": "zlib1g",
+      "version": "1:1.2.11.dfsg-2ubuntu9.2",
+      "architecture": "arm64",
+      "url": "https://ports.ubuntu.com/ubuntu-ports/pool/main/z/zlib/zlib1g_1.2.11.dfsg-2ubuntu9.2_arm64.deb",
+      "sha256": "cfd99d1ca41e710fdd3f68bfdc4d36dd24e14377656764f00b215b89cf6976e8",
+      "licensePath": "usr/share/doc/zlib1g/copyright"
+    },
+    {
+      "name": "zlib1g-dev",
+      "version": "1:1.2.11.dfsg-2ubuntu9.2",
+      "architecture": "arm64",
+      "url": "https://ports.ubuntu.com/ubuntu-ports/pool/main/z/zlib/zlib1g-dev_1.2.11.dfsg-2ubuntu9.2_arm64.deb",
+      "sha256": "9bdd0a80de3b28e35a5cfe59b9d6f6997f0c2d7a16b168be0de9a0b668962189",
+      "licensePath": "usr/share/doc/zlib1g-dev/copyright"
+    },
+    {
+      "name": "libffi8",
+      "version": "3.4.2-4",
+      "architecture": "arm64",
+      "url": "https://ports.ubuntu.com/ubuntu-ports/pool/main/libf/libffi/libffi8_3.4.2-4_arm64.deb",
+      "sha256": "a0cdf938e8da19bd2252c681f80268609a32d06496a1f8d0ebe1fa41debec697",
+      "licensePath": "usr/share/doc/libffi8/copyright"
+    },
+    {
+      "name": "libedit2",
+      "version": "3.1-20210910-1build1",
+      "architecture": "arm64",
+      "url": "https://ports.ubuntu.com/ubuntu-ports/pool/main/libe/libedit/libedit2_3.1-20210910-1build1_arm64.deb",
+      "sha256": "7445804608b7feef2484dd217203574323c49f2a6530d92b78bd65a2e5ab4657",
+      "licensePath": "usr/share/doc/libedit2/copyright"
+    },
+    {
+      "name": "libtinfo6",
+      "version": "6.3-2ubuntu0.3",
+      "architecture": "arm64",
+      "url": "https://ports.ubuntu.com/ubuntu-ports/pool/main/n/ncurses/libtinfo6_6.3-2ubuntu0.3_arm64.deb",
+      "sha256": "971b5fd1cf8f7d68ba00f40d8eec6474fae6a6adbe19883aa42dd2b74c672e4a",
+      "licensePath": "usr/share/doc/libtinfo6/copyright"
+    },
+    {
+      "name": "libxml2",
+      "version": "2.9.13+dfsg-1ubuntu0.13",
+      "architecture": "arm64",
+      "url": "https://ports.ubuntu.com/ubuntu-ports/pool/main/libx/libxml2/libxml2_2.9.13+dfsg-1ubuntu0.13_arm64.deb",
+      "sha256": "62c61132b49b893392fca7ae8e4889b181c55d071cd030d891275db5237e10d7",
+      "licensePath": "usr/share/doc/libxml2/copyright"
+    },
+    {
+      "name": "libbsd0",
+      "version": "0.11.5-1",
+      "architecture": "arm64",
+      "url": "https://ports.ubuntu.com/ubuntu-ports/pool/main/libb/libbsd/libbsd0_0.11.5-1_arm64.deb",
+      "sha256": "19703bfe6fde9a161e42f5107451a46cc182a62dd0621a55d06aec7dc372991d",
+      "licensePath": "usr/share/doc/libbsd0/copyright"
+    },
+    {
+      "name": "libicu70",
+      "version": "70.1-2",
+      "architecture": "arm64",
+      "url": "https://ports.ubuntu.com/ubuntu-ports/pool/main/i/icu/libicu70_70.1-2_arm64.deb",
+      "sha256": "ac68372cf4a976e6a206858fd9b28c68e49d37d650b9b8653270038a6e7bc174",
+      "licensePath": "usr/share/doc/libicu70/copyright"
+    },
+    {
+      "name": "liblzma5",
+      "version": "5.2.5-2ubuntu1.1",
+      "architecture": "arm64",
+      "url": "https://ports.ubuntu.com/ubuntu-ports/pool/main/x/xz-utils/liblzma5_5.2.5-2ubuntu1.1_arm64.deb",
+      "sha256": "97f4c7e360aa229d3bf0a5b56b204652ce4f1704536dc0256c0e2537b356f397",
+      "licensePath": "usr/share/doc/liblzma5/copyright"
+    },
+    {
+      "name": "libmd0",
+      "version": "1.0.4-1build1",
+      "architecture": "arm64",
+      "url": "https://ports.ubuntu.com/ubuntu-ports/pool/main/libm/libmd/libmd0_1.0.4-1build1_arm64.deb",
+      "sha256": "6f87f19f71411a94ae370f7f9bcf4c7dfb5d4393f11de99634ac3137448ad678",
+      "licensePath": "usr/share/doc/libmd0/copyright"
+    },
+    {
+      "name": "libssl3",
+      "version": "3.0.2-0ubuntu1.29",
+      "architecture": "arm64",
+      "url": "https://snapshot.ubuntu.com/ubuntu/20260927T000000Z/pool/main/o/openssl/libssl3_3.0.2-0ubuntu1.29_arm64.deb",
+      "sha256": "3b25897180b0a84a7c7ad19ba310d6bdb45d5ce89742b478e12f606bed38fafa",
+      "licensePath": "usr/share/doc/libssl3/copyright"
+    }
+  ]
+}

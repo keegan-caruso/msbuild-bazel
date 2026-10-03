@@ -6,6 +6,7 @@ import json
 import os
 from pathlib import Path
 import subprocess
+import shutil
 import tarfile
 import tempfile
 import unittest
@@ -75,6 +76,35 @@ class ArtifactToolsTests(unittest.TestCase):
         self.invoke('native-toolchain',dict(request,archiveSha256='0'*64),success=False)
         self.invoke('native-toolchain',request)
         self.assertEqual((self.root/'native/usr/bin/tool').read_bytes(),b'tool')
+
+    @unittest.skipUnless(os.name == 'posix' and shutil.which('dpkg-deb'), 'Linux package assembler')
+    def test_native_package_linker_script_uses_declared_sysroot(self):
+        package = self.root/'deb'
+        (package/'DEBIAN').mkdir(parents=True)
+        (package/'DEBIAN/control').write_text('Package: fixture\nVersion: 1.0\nArchitecture: all\nMaintainer: fixture\nDescription: native layout control\n')
+        payloads = {
+            'usr/lib/fixture/libc.so': b'/* GNU ld script\nGROUP ( /lib/fixture/libc.so.6 /usr/lib/fixture/libc_nonshared.a )\n',
+            'lib/fixture/libc.so.6': b'locked native payload',
+            'usr/lib/fixture/libc_nonshared.a': b'locked static payload',
+            'usr/share/doc/fixture/copyright': b'fixture license',
+            'etc/config': b'fixture config',
+        }
+        for name, data in payloads.items():
+            path = package/name
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_bytes(data)
+        archive = self.root/'fixture.deb'
+        subprocess.run(['dpkg-deb', '--build', str(package), str(archive)], check=True, capture_output=True)
+        manifest = self.root/'files.manifest'
+        manifest.write_text('\n'.join(sorted(name.replace('lib/fixture/libc.so.6', 'usr/lib/fixture/libc.so.6') if name.startswith('lib/') else name for name in payloads))+'\n')
+        output = self.root/'native'
+        request = dict(packages=[dict(name='fixture', archive=str(archive), sha256=hashlib.sha256(archive.read_bytes()).hexdigest(), licensePath='usr/share/doc/fixture/copyright')], manifest=str(manifest), output=str(output))
+        self.invoke('native-toolchain-packages', request)
+        self.assertIn(' /usr/lib/fixture/libc.so.6', (output/'usr/lib/fixture/libc.so').read_text())
+        self.assertEqual((output/'usr/lib/fixture/libc.so.6').read_bytes(), payloads['lib/fixture/libc.so.6'])
+        # Archive verification precedes any relocation of owned files.
+        archive.write_bytes(b'changed package')
+        self.assertIn('locked SHA-256', self.invoke('native-toolchain-packages', dict(request, output=str(self.root/'bad')), success=False))
 
     def test_graph_output_requires_declared_ownership(self):
         workspace=self.root/'workspace';workspace.mkdir()

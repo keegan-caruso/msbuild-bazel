@@ -112,6 +112,24 @@ internal static class NativeToolchainPackages
             }
         }
 
+        // Package paths under /lib are merged into usr/lib above. GNU linker
+        // scripts retain absolute /lib references, which would escape this
+        // declared sysroot unless their paths use the same mapping.
+        foreach (var relative in retained.Where(path => path.EndsWith(".so", StringComparison.Ordinal)))
+        {
+            var path = Path.Combine(output, relative);
+            using var stream = File.OpenRead(path);
+            var prefix = new byte[16];
+            if (stream.Read(prefix) != prefix.Length || !prefix.AsSpan().SequenceEqual("/* GNU ld script"u8))
+            {
+                continue;
+            }
+
+            stream.Close();
+            var script = File.ReadAllText(path);
+            File.WriteAllText(path, script.Replace(" /lib/", " /usr/lib/", StringComparison.Ordinal));
+        }
+
         if (!Directory.Exists(Path.Combine(output, "usr")) || !Directory.Exists(Path.Combine(output, "etc")))
         {
             throw new InvalidDataException("Native toolchain packages must produce usr and etc directories");

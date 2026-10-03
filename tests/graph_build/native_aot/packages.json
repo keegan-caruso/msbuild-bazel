@@ -1,0 +1,29 @@
+{
+  "version": "10.0.11",
+  "packages": {
+    "microsoft.aspnetcore.app.runtime.linux-arm64": {
+      "sha256": "0953a9b241bb8860489507344fa33015b62cd7899c2676a188c186fb40aa29bf",
+      "contentHash": "gDHFTYuhJV+0Kg+lmwS6CZWqoAc3daRCktKmvZ4PqjLD9h9ZNNYKZBhP6Y6hnaq1V4T4qN7M93dVwZtUdRpPeA=="
+    },
+    "microsoft.dotnet.ilcompiler": {
+      "sha256": "da108b2e633101c25b0df6a7a0c6023614f24b92f4bfb0eb2c0814e678a0c871",
+      "contentHash": "R21pKwl2STwYU17wo8b8pbY+xKw0LYaNMi0wn09XoVs6lSK2vnjuV2CTf1zJ0a8Ew+iwe7T0tTmi5N3lW7DE1A=="
+    },
+    "microsoft.net.illink.tasks": {
+      "sha256": "28ee7ccf5c4bdfe67823c8e0ea62232174f61e224d77e7c6ef5caa1413ac0a76",
+      "contentHash": "hMVB326ViZa64sqR9bxmf4oB41LMuaTrGRfihXZw3dylFRFfZPutLwJrKZmdisSvBcNM6kfuY7vtj9vdR9IbuA=="
+    },
+    "microsoft.netcore.app.runtime.linux-arm64": {
+      "sha256": "72228f5be7e71d8db5cd9df6571e51a1c6a8d16f329343393aa85a1bd6673d1a",
+      "contentHash": "2lKSs6dpNXSgX9Wuj2iasd52IPUL/VgP7YLb4CB9OnytsjFfVkQEPIAfIe9Dy2ke3Lsm/OotZVNjJAJcnak5CA=="
+    },
+    "microsoft.netcore.app.runtime.nativeaot.linux-arm64": {
+      "sha256": "f1a10e408eeb8100c2f23be9bcda1db54ce59a7e9e1110c2ce6d94461dbd420f",
+      "contentHash": "T6z16bUu2om8Qes02PTkqmuGgUlb10EdL77cFOAzno8PI02nl6Oa+cEmTXgXkHLv9Tw9ALRGytgz0aaQeerVWQ=="
+    },
+    "runtime.linux-arm64.microsoft.dotnet.ilcompiler": {
+      "sha256": "2b05c92219b986c387612cefe179cb8a9157974a0e75776f9d33684367ce1e4a",
+      "contentHash": "EtTwxmg9PfefrrT73nNntoxnbHN7h4X6LlIm/ZJq0T/9J4uf9MnlDzAru+HwNof+f6hOvI/kwwXxM+WDPJ41iw=="
+    }
+  }
+}

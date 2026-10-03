@@ -34,9 +34,19 @@ The pinned previously produced component bundle supplies both the SDK archive an
 its StaticWebAssets package: the archive alone omits that SDK's targets/tasks.
 This qualifies consumers; it does not rerun the full SDK producer.
 
+Graph NativeAOT Build/Publish/run, body-edit invalidation and missing-compiler
+rejection passed on Linux ARM64. Stopped-producer recovery in a separate container
+had **1 project hit / 0 misses**, reproduced the same ELF bytes and executed a
+fresh Bazel test with Bazel action caches disabled. Command: `python3
+tests/graph_build/native_aot.py INPUTS RESULTS --phase producer --cache URL
+--acquire`; consumer uses `--phase consumer --seed-report PRODUCER/report.json`.
+SDK 10.0.400, AOT packages 10.0.11 and 34 locked Ubuntu packages supply the tools;
+GNU linker scripts are relocated with the assembled package paths. This qualifies
+the downloaded AOT packs, not a source-built AOT compiler or Linux x86-64/RBE.
+
 Remaining priorities:
 
-1. Qualify NativeAOT independent recovery on the sole graph interface.
+1. Refresh large-runtime correctness, recovery and timings after the cutover.
 2. Reduce large-graph publication/staging and unnecessary Restore invalidation, with matched body/API controls.
 3. Expand reviewed runtime slices and qualify platforms independently.
 
