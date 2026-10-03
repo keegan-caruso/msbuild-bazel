@@ -32,6 +32,13 @@ HTTP recovery passed. This large series predates the graph-only cutover.
 [Detailed evidence and retired workflows](https://github.com/keegan-caruso/msbuild-bazel/tree/7e22cd67609f6ae5e1606fcae9dcf6e578c2db3b/docs)
 remain at the recorded revision. [Performance](performance.md) uses that same baseline.
 
+Main 8d83f0f now repeats 481-node compilation and local recovery: all 3,622
+compiled files matched raw bytes through no-op/body/API edits, with six/17 Csc
+calls per edit. Cold, independent HTTP recovery and suite refreshes remain pending.
+Command: `python3 tests/graph_build/upstream/runtime_benchmark.py WORKSPACE RESULTS
+--slice runtime-suites --qualified-raw-results RAW --output-base BASE --samples 3
+--reseed-worker --diagnostics --trim-between-rows`. See [timings](performance.md).
+
 Current graph-only NoTargets controls passed package-SDK resolution, missing SDK
 rejection and producer-edit invalidation. Commands: `python3
 tests/source_sdk/notargets_handoff.py INPUTS RESULTS --acquire` and
