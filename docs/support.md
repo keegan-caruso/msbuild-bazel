@@ -61,6 +61,8 @@ had **1 project hit / 0 misses**, reproduced the same ELF bytes and executed a
 fresh Bazel test with Bazel action caches disabled. Command: `python3
 tests/graph_build/native_aot.py INPUTS RESULTS --phase producer --cache URL
 --acquire`; consumer uses `--phase consumer --seed-report PRODUCER/report.json`.
+This producer/recovery series was repeated after the publication/package-input
+changes on healthy independent filesystems, with the same ELF hashes.
 SDK 10.0.400, AOT packages 10.0.11 and 34 locked Ubuntu packages supply the tools;
 GNU linker scripts are relocated with the assembled package paths. This qualifies
 the downloaded AOT packs, not a source-built AOT compiler or Linux x86-64/RBE.
