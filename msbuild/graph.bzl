@@ -195,7 +195,7 @@ _GRAPH_ATTRS = {
     "linux_worker": attr.bool(default = False, doc = "Opt-in Linux cache broker; each request runs a fresh sandboxed MSBuild process."),
     "linux_stable_paths": attr.bool(default = False, doc = "Use bubblewrap on Linux for stable graph paths; cache transport retains network access."),
     "_linux_stable_paths": attr.label(default = "//msbuild:graph-sandbox.sh", allow_single_file = True),
-    "target": attr.string(default = "Build", values = ["Build", "Publish"]),
+    "target": attr.string(default = "Build", values = ["Build", "Pack", "Publish"]),
 }
 
 msbuild_graph = rule(

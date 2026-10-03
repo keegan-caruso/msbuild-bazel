@@ -6,22 +6,21 @@ namespace RulesMSBuild;
 
 // Package SDK resolution happens before Restore can execute. Seed only the
 // exact global.json SDK versions from the already-declared local archive set.
+// Inline SDK versions also need the local-only resolver feed, even without global.json.
 internal static class PackageSdks
 {
     internal static IDisposable? Prepare(string root)
     {
         var global = Path.Combine(root, "global.json");
-        if (!File.Exists(global))
+        using var json = File.Exists(global) ? JsonDocument.Parse(File.ReadAllText(global), new JsonDocumentOptions
         {
-            return null;
-        }
-        using var json = JsonDocument.Parse(File.ReadAllText(global), new JsonDocumentOptions { CommentHandling = JsonCommentHandling.Skip, AllowTrailingCommas = true });
-        if (!json.RootElement.TryGetProperty("msbuild-sdks", out var sdks))
-        {
-            return null;
-        }
+            CommentHandling = JsonCommentHandling.Skip,
+            AllowTrailingCommas = true
+        }) : null;
+        var sdks = json is not null && json.RootElement.TryGetProperty("msbuild-sdks", out var declared)
+            ? declared.EnumerateObject().ToArray() : [];
         var packages = Path.Combine(root, ".nuget");
-        foreach (var sdk in sdks.EnumerateObject())
+        foreach (var sdk in sdks)
         {
             var id = sdk.Name.ToLowerInvariant();
             var version = sdk.Value.GetString()?.ToLowerInvariant() ?? "";

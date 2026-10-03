@@ -35,7 +35,7 @@ and unsafe paths fail; document changes require renewed contract review.
 
 | Rule | Use |
 | --- | --- |
-| `msbuild_graph_runner` / `msbuild_graph` | Bootstrap the runner; Build or Publish an explicit graph contract |
+| `msbuild_graph_runner` / `msbuild_graph` | Bootstrap the runner; Build, Pack or Publish an explicit graph contract |
 | `msbuild_graph_binary` / `msbuild_graph_test` | Run or test a graph's `project`, selecting `framework` if ambiguous |
 | `msbuild_graph_layout` / `msbuild_graph_output` | Export a complete project output layout or a contract-owned file |
 | `msbuild_graph_restore` | Prepare offline Restore separately for a matching stable-path graph |

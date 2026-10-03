@@ -24,9 +24,19 @@ HTTP recovery passed. This large series predates the graph-only cutover.
 [Detailed evidence and retired workflows](https://github.com/keegan-caruso/msbuild-bazel/tree/7e22cd67609f6ae5e1606fcae9dcf6e578c2db3b/docs)
 remain at the recorded revision. [Performance](performance.md) uses that same baseline.
 
+Current graph-only NoTargets controls passed package-SDK resolution, missing SDK
+rejection and producer-edit invalidation. Commands: `python3
+tests/source_sdk/notargets_handoff.py INPUTS RESULTS --acquire` and
+`python3 tests/graph_build/package_sdks.py --prepared-restore`.
+Source-built SDK Pack, Razor rendering and framework-dependent Publish/run passed:
+`python3 tests/source_sdk/consumer_scenarios.py RESULTS --sdk-bundle BUNDLE`.
+The pinned previously produced component bundle supplies both the SDK archive and
+its StaticWebAssets package: the archive alone omits that SDK's targets/tasks.
+This qualifies consumers; it does not rerun the full SDK producer.
+
 Remaining priorities:
 
-1. Requalify full source-SDK, NoTargets and NativeAOT consumers on the sole graph interface.
+1. Qualify NativeAOT independent recovery on the sole graph interface.
 2. Reduce large-graph publication/staging and unnecessary Restore invalidation, with matched body/API controls.
 3. Expand reviewed runtime slices and qualify platforms independently.
 

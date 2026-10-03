@@ -68,5 +68,9 @@
     "payload/Sdk/Sdk.props": "fdc2d977f49aba97be928593716d71a853d1dde0079eea473e6aa34f92037252",
     "payload/Sdk/Sdk.targets": "44f4689677fc2aa3cefa4abf559daf05cf04ce4b4f801cf7b38736ecc9fb6bdd",
     "payload/microsoft.build.notargets.nuspec": "57e2780825ca5a60baf455197b043f7bdcaeb39719478c854af727979ebcbad1"
+  },
+  "qualifiedSdkBundle": {
+    "sha256": "b9c79ae5393fc5215af934bfa75fa10af7b35c9248e42ced6aa044a0e16937f6",
+    "archivePath": "artifacts/assets/Release/Sdk/10.0.100-rtm.25523.111/dotnet-sdk-10.0.100-ubuntu.22.04-arm64.tar.gz"
   }
 }
