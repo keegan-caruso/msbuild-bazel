@@ -49,6 +49,47 @@ caches disabled. Run `//tests/integration:notargets_remote_cases_bazel_8_8_0`
 and `NOTARGETS_CACHE_URL`; stop that container, then use a fresh consumer with
 `NOTARGETS_CACHE_PHASE=consumer` and `NOTARGETS_CACHE_SEED` pointing to producer.json.
 
+Worker SDK public sync passed on Linux ARM64 / Bazel 8.8 and 9.2 with SDK
+10.0.400 and Hosting 10.0.11. `//tests/integration:worker_sdk` covers ordinary/graph
+MSBuild DLL/PDB parity, root/element SDK declarations, Build/Publish, configuration
+and body/API edits, bounded execution, failure recovery and the unchanged SDK
+Worker template. Package/content projects retain conservative dependency keys;
+the bounded fixture explicitly reviews its standard managed reference boundary.
+Both pins recovered 65 compared files/modes with two hits / zero misses in a
+fresh container while the producer was stopped and Bazel action caches disabled.
+Run `//tests/integration:worker_sdk_remote_cases_bazel_8_8_0` (or
+`_bazel_.bazelversion`), with `SDK_CACHE_PHASE`, `SDK_CACHE_URL` and consumer
+`SDK_CACHE_SEED` pointing to the matching producer.json. These are small correctness
+controls, not a large Worker-service or workload qualification.
+
+IL SDK **10.0.0-rtm.25509.106** passed `.ilproj` roots and managed consumers on
+Linux ARM64 / both Bazel pins: `//tests/integration:il_sdk`. The closed inventory
+includes the SDK and matching ARM64 ILAsm/ILDasm packages; prepared Restore retains
+native executable modes. `IlasmFlags=-DET` gives matching raw ordinary/graph/Bazel
+DLL/PDB bytes. Build/Publish, body/API edits, missing-tool rejection and failed-build
+recovery pass. IL emits no reference assembly here, so its changes conservatively
+rebuild the consumer. Both pins independently recovered 24 compared files/modes
+with two hits / zero misses and fresh test execution. Use
+`//tests/integration:il_sdk_remote_cases_bazel_8_8_0` (or `_bazel_.bazelversion`)
+with the same `SDK_CACHE_*` protocol above. This does not qualify Windows IL
+resources, alternative native tool layouts or a runtime IL/JIT suite.
+
+Arcade **10.0.0-beta.25509.106**, composed with `Microsoft.NET.Sdk`, passed on
+Linux ARM64 / both Bazel pins: `//tests/integration:arcade_sdk`. The inventory
+includes its matching implicit Xliff package. Ordinary/graph/Bazel assemblies,
+embedded symbols and Pack payloads match; official-version DLL/app-PDB bytes
+match raw graph MSBuild with a declared build ID. Build, library-root cold Pack,
+Publish, body/API/version edits, stale-product removal, failure recovery and a
+separate generated-package consumer pass. Official/shipping version modes without
+`OfficialBuildId` fail. Both pins recovered 33 compared files/modes with two hits /
+zero misses in an independent container while the producer was stopped, executing
+fresh tests with Bazel action caches disabled. Use
+`//tests/integration:arcade_sdk_remote_cases_bazel_8_8_0` (or `_bazel_.bazelversion`)
+with the `SDK_CACHE_*` protocol above. This fixture disables SourceLink/test-framework defaults;
+it does not qualify ambient Git reads, Helix, native orchestration or an entire
+Arcade repository. The native fixtures emit single-row diagnostic timings; they
+are correctness controls, not paired performance benchmarks.
+
 Earlier source-built NoTargets controls cover package-SDK resolution, missing SDK
 rejection and producer-edit invalidation: `python3
 tests/source_sdk/notargets_handoff.py INPUTS RESULTS --acquire` and

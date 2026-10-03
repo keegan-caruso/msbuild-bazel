@@ -1,0 +1,2 @@
+load("@rules_msbuild//msbuild:sync.bzl", "msbuild_sync")
+msbuild_sync(name = "sync", projects = ["App/App.csproj"], package_lock = "@packages//:lock", package_build = True, mappings = "mappings.json")

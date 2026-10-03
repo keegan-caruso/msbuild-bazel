@@ -115,7 +115,7 @@ def msbuild_sync(name, projects, mappings = None, inputs = {}, package_lock = No
 
     Args:
         name: Runnable target name, conventionally sync.
-        projects: Workspace-relative entry .csproj or Traversal/NoTargets .proj paths, not labels. References are discovered at run time.
+        projects: Workspace-relative entry .csproj, .ilproj or Traversal/NoTargets .proj paths, not labels. References are discovered at run time.
         configuration: Graph configuration, default Release.
         framework: Optional graph target framework; empty builds declared frameworks.
         package_build: Opt in to offline Restore and package build/content evaluation in a disposable copy.
@@ -130,6 +130,6 @@ def msbuild_sync(name, projects, mappings = None, inputs = {}, package_lock = No
     if not projects:
         fail("msbuild_sync requires at least one entry project")
     for project in projects:
-        if project.startswith("/") or "\\" in project or any([part in ["", ".", ".."] for part in project.split("/")]) or not (project.endswith(".csproj") or project.endswith(".proj")):
-            fail("Expected a workspace-relative .csproj or .proj path: " + project)
+        if project.startswith("/") or "\\" in project or any([part in ["", ".", ".."] for part in project.split("/")]) or not (project.endswith(".csproj") or project.endswith(".proj") or project.endswith(".ilproj")):
+            fail("Expected a workspace-relative .csproj, .proj or .ilproj path: " + project)
     _sync(name = name, projects = projects, configuration = configuration, framework = framework, package_build = package_build, package_inputs = package_inputs, mappings = mappings, inputs = inputs, package_lock = package_lock, package_locks = package_locks, bindings = bindings, **kwargs)

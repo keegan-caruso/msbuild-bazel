@@ -1,0 +1,1 @@
+<Project Sdk="Microsoft.NET.Sdk;Microsoft.DotNet.Arcade.Sdk"><PropertyGroup><TargetFramework>net10.0</TargetFramework><IsPackable>true</IsPackable><PackageLicenseExpression>MIT</PackageLicenseExpression><GeneratePackageOnBuild>true</GeneratePackageOnBuild></PropertyGroup></Project>

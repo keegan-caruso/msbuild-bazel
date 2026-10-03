@@ -1,0 +1,10 @@
+{
+  "projectDefaults": {
+    "preparedRestore": true
+  },
+  "projects": {
+    "App/App.csproj": {
+      "referenceBoundary": true
+    }
+  }
+}

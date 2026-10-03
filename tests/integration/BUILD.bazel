@@ -260,3 +260,229 @@ bazel_integration_tests(
     workspace_files = glob(["fixtures/notargets/**"]),
     workspace_path = "tests/integration/fixtures/notargets",
 )
+
+sh_binary(
+    name = "worker_sdk_runner",
+    testonly = True,
+    srcs = ["worker_sdk.sh"],
+    data = [
+        "common.sh",
+        "raw_namespace.sh",
+    ],
+)
+
+bazel_integration_tests(
+    name = "worker_sdk_cases",
+    additional_env_inherit = [
+        "BAZELISK_HOME",
+        "RULES_MSBUILD_TEST_REPOSITORY_CACHE",
+    ],
+    bazel_binaries = bazel_binaries,
+    bazel_versions = bazel_binaries.versions.all,
+    data = [":rules_archive"],
+    env = {"RULES_ARCHIVE": "$(rootpath :rules_archive)"},
+    tags = [
+        "exclusive",
+        "manual",
+        "no-sandbox",
+    ],
+    target_compatible_with = [
+        "@platforms//os:linux",
+        "@platforms//cpu:aarch64",
+    ],
+    test_runner = ":worker_sdk_runner",
+    workspace_files = glob(["fixtures/worker_sdk/**"]),
+    workspace_path = "tests/integration/fixtures/worker_sdk",
+)
+
+test_suite(
+    name = "worker_sdk",
+    tags = ["manual"],
+    tests = integration_test_utils.bazel_integration_test_names(
+        "worker_sdk_cases",
+        bazel_binaries.versions.all,
+    ),
+)
+
+sh_binary(
+    name = "sdk_remote_runner",
+    testonly = True,
+    srcs = ["sdk_remote.sh"],
+    data = ["common.sh"],
+)
+
+bazel_integration_tests(
+    name = "worker_sdk_remote_cases",
+    additional_env_inherit = [
+        "BAZELISK_HOME",
+        "RULES_MSBUILD_TEST_REPOSITORY_CACHE",
+        "SDK_CACHE_PHASE",
+        "SDK_CACHE_URL",
+        "SDK_CACHE_SEED",
+    ],
+    bazel_binaries = bazel_binaries,
+    bazel_versions = bazel_binaries.versions.all,
+    data = [":rules_archive"],
+    env = {
+        "RULES_ARCHIVE": "$(rootpath :rules_archive)",
+        "SDK_CACHE_NODES": "2",
+    },
+    tags = [
+        "exclusive",
+        "manual",
+        "no-sandbox",
+    ],
+    target_compatible_with = [
+        "@platforms//os:linux",
+        "@platforms//cpu:aarch64",
+    ],
+    test_runner = ":sdk_remote_runner",
+    workspace_files = glob(["fixtures/worker_sdk/**"]),
+    workspace_path = "tests/integration/fixtures/worker_sdk",
+)
+
+sh_binary(
+    name = "il_sdk_runner",
+    testonly = True,
+    srcs = ["il_sdk.sh"],
+    data = [
+        "common.sh",
+        "raw_namespace.sh",
+    ],
+)
+
+bazel_integration_tests(
+    name = "il_sdk_cases",
+    additional_env_inherit = [
+        "BAZELISK_HOME",
+        "RULES_MSBUILD_TEST_REPOSITORY_CACHE",
+    ],
+    bazel_binaries = bazel_binaries,
+    bazel_versions = bazel_binaries.versions.all,
+    data = [":rules_archive"],
+    env = {"RULES_ARCHIVE": "$(rootpath :rules_archive)"},
+    tags = [
+        "exclusive",
+        "manual",
+        "no-sandbox",
+    ],
+    target_compatible_with = [
+        "@platforms//os:linux",
+        "@platforms//cpu:aarch64",
+    ],
+    test_runner = ":il_sdk_runner",
+    workspace_files = glob(["fixtures/il_sdk/**"]),
+    workspace_path = "tests/integration/fixtures/il_sdk",
+)
+
+test_suite(
+    name = "il_sdk",
+    tags = ["manual"],
+    tests = integration_test_utils.bazel_integration_test_names(
+        "il_sdk_cases",
+        bazel_binaries.versions.all,
+    ),
+)
+
+bazel_integration_tests(
+    name = "il_sdk_remote_cases",
+    additional_env_inherit = [
+        "BAZELISK_HOME",
+        "RULES_MSBUILD_TEST_REPOSITORY_CACHE",
+        "SDK_CACHE_PHASE",
+        "SDK_CACHE_URL",
+        "SDK_CACHE_SEED",
+    ],
+    bazel_binaries = bazel_binaries,
+    bazel_versions = bazel_binaries.versions.all,
+    data = [":rules_archive"],
+    env = {
+        "RULES_ARCHIVE": "$(rootpath :rules_archive)",
+        "SDK_CACHE_NODES": "2",
+    },
+    tags = [
+        "exclusive",
+        "manual",
+        "no-sandbox",
+    ],
+    target_compatible_with = [
+        "@platforms//os:linux",
+        "@platforms//cpu:aarch64",
+    ],
+    test_runner = ":sdk_remote_runner",
+    workspace_files = glob(["fixtures/il_sdk/**"]),
+    workspace_path = "tests/integration/fixtures/il_sdk",
+)
+
+sh_binary(
+    name = "arcade_sdk_runner",
+    testonly = True,
+    srcs = ["arcade_sdk.sh"],
+    data = [
+        "common.sh",
+        "raw_namespace.sh",
+    ],
+)
+
+bazel_integration_tests(
+    name = "arcade_sdk_cases",
+    additional_env_inherit = [
+        "BAZELISK_HOME",
+        "RULES_MSBUILD_TEST_REPOSITORY_CACHE",
+    ],
+    bazel_binaries = bazel_binaries,
+    bazel_versions = bazel_binaries.versions.all,
+    data = [":rules_archive"],
+    env = {"RULES_ARCHIVE": "$(rootpath :rules_archive)"},
+    tags = [
+        "exclusive",
+        "manual",
+        "no-sandbox",
+    ],
+    target_compatible_with = [
+        "@platforms//os:linux",
+        "@platforms//cpu:aarch64",
+    ],
+    test_runner = ":arcade_sdk_runner",
+    workspace_files = glob(["fixtures/arcade_sdk/**"]),
+    workspace_path = "tests/integration/fixtures/arcade_sdk",
+)
+
+test_suite(
+    name = "arcade_sdk",
+    tags = ["manual"],
+    tests = integration_test_utils.bazel_integration_test_names(
+        "arcade_sdk_cases",
+        bazel_binaries.versions.all,
+    ),
+)
+
+bazel_integration_tests(
+    name = "arcade_sdk_remote_cases",
+    additional_env_inherit = [
+        "BAZELISK_HOME",
+        "RULES_MSBUILD_TEST_REPOSITORY_CACHE",
+        "SDK_CACHE_PHASE",
+        "SDK_CACHE_URL",
+        "SDK_CACHE_SEED",
+    ],
+    bazel_binaries = bazel_binaries,
+    bazel_versions = bazel_binaries.versions.all,
+    data = [":rules_archive"],
+    env = {
+        "RULES_ARCHIVE": "$(rootpath :rules_archive)",
+        "SDK_CACHE_NODES": "2",
+    },
+    tags = [
+        "exclusive",
+        "manual",
+        "no-sandbox",
+    ],
+    target_compatible_with = [
+        "@platforms//os:linux",
+        "@platforms//cpu:aarch64",
+    ],
+    test_runner = ":sdk_remote_runner",
+    workspace_files = glob(["fixtures/arcade_sdk/**"]),
+    workspace_path = "tests/integration/fixtures/arcade_sdk",
+)

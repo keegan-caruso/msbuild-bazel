@@ -1,0 +1,1 @@
+System.Console.WriteLine("ARCADE:" + Library.Value() + ":" + System.Reflection.CustomAttributeExtensions.GetCustomAttribute<System.Reflection.AssemblyInformationalVersionAttribute>(typeof(Library).Assembly)!.InformationalVersion);

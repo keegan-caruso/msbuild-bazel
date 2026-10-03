@@ -1,0 +1,1 @@
+<Project Sdk="Microsoft.NET.Sdk.IL"><PropertyGroup><TargetFramework>net10.0</TargetFramework><DebugType>None</DebugType><IlasmFlags>-DET</IlasmFlags></PropertyGroup></Project>
