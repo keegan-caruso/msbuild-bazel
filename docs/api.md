@@ -10,6 +10,12 @@ Declare `msbuild_sync(name = "sync", projects = ["App/App.csproj"])` in the root
 BUILD file. Run `bazel run //:sync` and commit `graph.generated.json` and
 `graph.generated.bzl`. The generated `app_graph` macro declares the build.
 
+For `Microsoft.Build.Traversal`, use `projects = ["dirs.proj"]`. Pin its SDK in
+`global.json` (or the project), include its package in `package_lock`, and set
+`package_build = True`. Nested coordinators retain Restore metadata but produce
+no assemblies. Build/Pack/Publish operate on the children; declare Bazel tests for
+the test projects. See [qualified traversal scope](support.md#traversal-projects).
+
 Body edits need no sync. Rerun sync after project/import, source-list, package or
 configuration changes. `bazel run //:sync -- --check` rejects stale declarations.
 

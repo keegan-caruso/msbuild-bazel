@@ -99,3 +99,87 @@ test_suite(
         bazel_binaries.versions.all,
     ),
 )
+
+sh_binary(
+    name = "traversal_runner",
+    testonly = True,
+    srcs = ["traversal.sh"],
+    data = [
+        "CompilationLog.cs.txt",
+        "common.sh",
+        "raw_namespace.sh",
+        "traversal_edits.sh",
+        "traversal_helpers.sh",
+        "traversal_raw.sh",
+        "traversal_selection.sh",
+        "traversal_targets.sh",
+    ],
+)
+
+bazel_integration_tests(
+    name = "traversal_cases",
+    additional_env_inherit = [
+        "TRAVERSAL_SLICE",
+        "BAZELISK_HOME",
+        "RULES_MSBUILD_TEST_REPOSITORY_CACHE",
+    ],
+    bazel_binaries = bazel_binaries,
+    bazel_versions = bazel_binaries.versions.all,
+    data = [":rules_archive"],
+    env = {"RULES_ARCHIVE": "$(rootpath :rules_archive)"},
+    tags = [
+        "exclusive",
+        "manual",
+        "no-sandbox",
+    ],
+    target_compatible_with = [
+        "@platforms//os:linux",
+        "@platforms//cpu:aarch64",
+    ],
+    test_runner = ":traversal_runner",
+    workspace_files = glob(["fixtures/traversal/**"]),
+    workspace_path = "tests/integration/fixtures/traversal",
+)
+
+test_suite(
+    name = "traversal",
+    tags = ["manual"],
+    tests = integration_test_utils.bazel_integration_test_names(
+        "traversal_cases",
+        bazel_binaries.versions.all,
+    ),
+)
+
+sh_binary(
+    name = "traversal_remote_runner",
+    testonly = True,
+    srcs = ["traversal_remote.sh"],
+    data = ["common.sh"],
+)
+
+bazel_integration_tests(
+    name = "traversal_remote_cases",
+    additional_env_inherit = [
+        "BAZELISK_HOME",
+        "RULES_MSBUILD_TEST_REPOSITORY_CACHE",
+        "TRAVERSAL_CACHE_PHASE",
+        "TRAVERSAL_CACHE_URL",
+        "TRAVERSAL_CACHE_SEED",
+    ],
+    bazel_binaries = bazel_binaries,
+    bazel_versions = bazel_binaries.versions.all,
+    data = [":rules_archive"],
+    env = {"RULES_ARCHIVE": "$(rootpath :rules_archive)"},
+    tags = [
+        "exclusive",
+        "manual",
+        "no-sandbox",
+    ],
+    target_compatible_with = [
+        "@platforms//os:linux",
+        "@platforms//cpu:aarch64",
+    ],
+    test_runner = ":traversal_remote_runner",
+    workspace_files = glob(["fixtures/traversal/**"]),
+    workspace_path = "tests/integration/fixtures/traversal",
+)

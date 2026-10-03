@@ -88,7 +88,10 @@ internal static class GraphGenerator
                     LoadSettings = ProjectLoadSettings.DoNotEvaluateElementsWithFalseCondition,
                     EvaluationContext = evaluationContext
                 });
-                if (project.Xml.Sdk is not ("Microsoft.NET.Sdk" or "Microsoft.NET.Sdk.Web" or "Microsoft.NET.Sdk.Razor") ||
+                var sdkName = project.Xml.Sdk.Split('/')[0];
+                var traversal = sdkName == "Microsoft.Build.Traversal" &&
+                    project.GetPropertyValue("UsingMicrosoftTraversalSdk").Equals("true", StringComparison.OrdinalIgnoreCase);
+                if ((Path.GetExtension(path) == ".proj" && !traversal) || (!traversal && sdkName is not ("Microsoft.NET.Sdk" or "Microsoft.NET.Sdk.Web" or "Microsoft.NET.Sdk.Razor")) ||
                     project.GetItems("Reference").Any(reference =>
                     {
                         var value = reference.GetMetadataValue("HintPath");
@@ -139,6 +142,16 @@ internal static class GraphGenerator
                 }
                 var documents = project.Imports.Select(import => import.ImportedProject).Append(project.Xml)
                     .Where(document => !IsSdk(document.FullPath) && !IsRestored(document.FullPath)).DistinctBy(document => document.FullPath).ToArray();
+                if (traversal && project.GetPropertyValue("TraversalSkipUnsupportedProjects").Equals("true", StringComparison.OrdinalIgnoreCase))
+                {
+                    throw new InvalidDataException("Traversal execution-time project skipping is not supported; use conditional ProjectReference items: " + Relative(path));
+                }
+                if (traversal && (project.GetPropertyValue("TraversalPublishGlobalProperties").Length != 0 ||
+                    project.GetItems("ProjectReference").Any(reference => reference.GetMetadataValue("Targets").Length != 0 ||
+                        new[] { "Build", "Pack", "Publish" }.Any(target => reference.GetMetadataValue(target).Equals("false", StringComparison.OrdinalIgnoreCase)))))
+                {
+                    throw new InvalidDataException("Traversal per-reference target selection requires conditional ProjectReference items and explicit graph properties: " + Relative(path));
+                }
                 var binding = mappings.ForProject(Relative(path), project.GetPropertyValue("TargetFramework"));
                 var taskInputs = documents.SelectMany(document => GraphMappings.Inputs(document, Relative(document.FullPath), binding)).ToArray();
                 var unsupportedItems = project.AllEvaluatedItems
@@ -221,7 +234,7 @@ internal static class GraphGenerator
                     generated.Add(relative);
                 }
                 var instance = project.CreateProjectInstance();
-                outputs[Key(instance)] = instance.GetPropertyValue("TargetPath").Length == 0 ? [] : binding.OutputFiles
+                outputs[Key(instance)] = !GraphProjectKind.HasAssembly(instance) ? [] : binding.OutputFiles
                     .SelectMany(value => project.ExpandString(value).Split(';', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
                     .Select(value => Relative(Path.GetFullPath(value.Replace('\\', '/'), root)))
                     .Distinct().Order(StringComparer.Ordinal).ToArray();
@@ -271,7 +284,7 @@ internal static class GraphGenerator
                 CompilerReference = CompilerReference(node),
                 CompilerReferences = CompilerReferences(node),
                 DependencyCopies = CanUseReferenceBoundary(node) ? DependencyCopies(node) : new Dictionary<string, string>(),
-                OutputDirectories = node.ProjectInstance.GetPropertyValue("TargetPath").Length == 0 ? [] :
+                OutputDirectories = !GraphProjectKind.HasAssembly(node.ProjectInstance) ? [] :
                     new[] { "OutputPath", "IntermediateOutputPath" }.Select(property =>
                     {
                         var value = node.ProjectInstance.GetPropertyValue(property);
@@ -343,7 +356,7 @@ internal static class GraphGenerator
             contractData["Version"] = 4;
             contractData["InputDirectories"] = JsonSerializer.SerializeToNode(inputDirectories);
         }
-        var temporaryDirectories = graph.ProjectNodes.Where(node => node.ProjectInstance.GetPropertyValue("TargetPath").Length != 0)
+        var temporaryDirectories = graph.ProjectNodes.Where(node => GraphProjectKind.HasAssembly(node.ProjectInstance))
             .SelectMany(node => mappings.ForProject(Relative(node.ProjectInstance.FullPath), node.ProjectInstance.GetPropertyValue("TargetFramework")).TemporaryDirectories
                 .Select(path => Relative(Path.GetFullPath(node.ProjectInstance.ExpandString(path).Replace('\\', '/'), Path.GetDirectoryName(node.ProjectInstance.FullPath)!))))
             .Distinct().Order(StringComparer.Ordinal).ToArray();
@@ -367,7 +380,7 @@ internal static class GraphGenerator
         }
         var contract = contractData.ToJsonString(new JsonSerializerOptions { WriteIndented = true }) + "\n";
         var sources = inputs.Values.SelectMany(files => files).Concat(shared).Concat(restore?.Inputs ?? []).Distinct().Order(StringComparer.Ordinal).ToArray();
-        var ambiguousOutput = graph.ProjectNodes.Where(node => node.ProjectInstance.GetPropertyValue("TargetPath").Length != 0)
+        var ambiguousOutput = graph.ProjectNodes.Where(node => GraphProjectKind.HasAssembly(node.ProjectInstance))
             .GroupBy(node => Relative(node.ProjectInstance.FullPath) + "|" + node.ProjectInstance.GetPropertyValue("TargetFramework"))
             .FirstOrDefault(group => group.Count() > 1);
         if (ambiguousOutput is not null)
@@ -375,12 +388,12 @@ internal static class GraphGenerator
             throw new InvalidDataException("Graph output selection is ambiguous across configured nodes: " + ambiguousOutput.Key +
                 "; use separate graph targets for these configurations");
         }
-        var runtimeOutputs = graph.ProjectNodes.Where(node => node.ProjectInstance.GetPropertyValue("TargetPath").Length != 0 &&
+        var runtimeOutputs = graph.ProjectNodes.Where(node => GraphProjectKind.HasAssembly(node.ProjectInstance) &&
             node.ProjectInstance.GetPropertyValue("TargetFramework").Length != 0).OrderBy(node => Key(node.ProjectInstance), StringComparer.Ordinal).ToDictionary(
             node => Relative(node.ProjectInstance.FullPath) + "|" + node.ProjectInstance.GetPropertyValue("TargetFramework"),
             node => new[] { Relative(Path.GetDirectoryName(node.ProjectInstance.GetPropertyValue("TargetPath"))!),
                 Path.GetFileName(node.ProjectInstance.GetPropertyValue("TargetPath")), node.ProjectInstance.GetPropertyValue("OutputType") });
-        var publishOutputs = graph.ProjectNodes.Where(node => node.ProjectInstance.GetPropertyValue("TargetPath").Length != 0 &&
+        var publishOutputs = graph.ProjectNodes.Where(node => GraphProjectKind.HasAssembly(node.ProjectInstance) &&
             node.ProjectInstance.GetPropertyValue("TargetFramework").Length != 0 && node.ProjectInstance.GetPropertyValue("PublishDir").Length != 0)
             .OrderBy(node => Key(node.ProjectInstance), StringComparer.Ordinal).ToDictionary(
                 node => Relative(node.ProjectInstance.FullPath) + "|" + node.ProjectInstance.GetPropertyValue("TargetFramework"),
@@ -495,18 +508,18 @@ internal static class GraphGenerator
             var binding = mappings.ForProject(Relative(node.ProjectInstance.FullPath), node.ProjectInstance.GetPropertyValue("TargetFramework"));
             if (binding.ReferenceBoundary is not null)
             {
-                var supported = node.ProjectInstance.GetPropertyValue("TargetPath").Length != 0 &&
+                var supported = GraphProjectKind.HasAssembly(node.ProjectInstance) &&
                     Dependencies(node).Append(node).All(current =>
-                        (current.ProjectInstance.GetPropertyValue("TargetPath").Length == 0 || HasStandardSymbols(current)) &&
+                        (!GraphProjectKind.HasAssembly(current.ProjectInstance) || HasStandardSymbols(current)) &&
                         new[] { "PublishTrimmed", "PublishReadyToRun", "PublishAot", "PublishSingleFile" }.All(property =>
                             !current.ProjectInstance.GetPropertyValue(property).Equals("true", StringComparison.OrdinalIgnoreCase)));
-                if (binding.ReferenceBoundary == true && node.ProjectInstance.GetPropertyValue("TargetPath").Length != 0 && !supported)
+                if (binding.ReferenceBoundary == true && GraphProjectKind.HasAssembly(node.ProjectInstance) && !supported)
                 {
                     throw new InvalidDataException("Reviewed reference boundary requires standard managed outputs without publish transforms: " + Relative(node.ProjectInstance.FullPath));
                 }
                 return boundaries[node] = binding.ReferenceBoundary == true && supported;
             }
-            return boundaries[node] = node.ProjectInstance.GetPropertyValue("TargetPath").Length != 0 &&
+            return boundaries[node] = GraphProjectKind.HasAssembly(node.ProjectInstance) &&
             Dependencies(node).Append(node).All(current =>
                 !current.ProjectInstance.GetPropertyValue("UsingMicrosoftNETSdkRazor").Equals("true", StringComparison.OrdinalIgnoreCase) &&
                 mappings.ForProject(Relative(current.ProjectInstance.FullPath), current.ProjectInstance.GetPropertyValue("TargetFramework")).Documents.Count == 0 &&
@@ -587,7 +600,7 @@ internal static class GraphGenerator
             var output = Path.GetDirectoryName(Path.GetFullPath(project.GetPropertyValue("TargetPath"), directory))!;
             var publish = project.GetPropertyValue("PublishDir");
             var destinations = publish.Length == 0 ? new[] { output } : new[] { output, Path.GetFullPath(publish, directory) };
-            foreach (var dependency in RuntimeDependencies(node).Where(current => current.ProjectInstance.GetPropertyValue("TargetPath").Length != 0)
+            foreach (var dependency in RuntimeDependencies(node).Where(current => GraphProjectKind.HasAssembly(current.ProjectInstance))
                 .OrderBy(current => Key(current.ProjectInstance), StringComparer.Ordinal))
             {
                 var source = Path.GetFullPath(dependency.ProjectInstance.GetPropertyValue("TargetPath"), Path.GetDirectoryName(dependency.ProjectInstance.FullPath)!);

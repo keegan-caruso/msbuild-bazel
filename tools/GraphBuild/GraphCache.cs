@@ -35,7 +35,7 @@ internal sealed class GraphCache(GraphInputs inputs, string cache, bool read, Re
     {
         var key = request.ProjectFullPath + "|" + string.Join(";", request.GlobalProperties.OrderBy(p => p.Name, StringComparer.Ordinal).Select(p => p.Name + "=" + p.EvaluatedValue));
         var node = nodes[key];
-        if (node.ProjectInstance.GetPropertyValue("TargetPath").Length == 0)
+        if (!GraphProjectKind.HasAssembly(node.ProjectInstance))
         {
             localState?.ResetProject(inputs, node);
             return CacheResult.IndicateNonCacheHit(CacheResultType.CacheNotApplicable);
@@ -220,8 +220,8 @@ internal sealed class GraphCache(GraphInputs inputs, string cache, bool read, Re
         // Include their configured descendants instead of inventing an output path.
         if (inputs.For(node).ReferenceBoundary)
         {
-            references = references.SelectMany(reference => reference.ProjectInstance.GetPropertyValue("TargetPath").Length == 0
-                ? DependencyNodes(reference).Where(dependency => dependency.ProjectInstance.GetPropertyValue("TargetPath").Length != 0)
+            references = references.SelectMany(reference => !GraphProjectKind.HasAssembly(reference.ProjectInstance)
+                ? DependencyNodes(reference).Where(dependency => GraphProjectKind.HasAssembly(dependency.ProjectInstance))
                 : new[] { reference }).Distinct();
         }
         foreach (var reference in references.OrderBy(n => GraphInputs.Key(n.ProjectInstance), StringComparer.Ordinal))
@@ -287,7 +287,7 @@ internal sealed class GraphCache(GraphInputs inputs, string cache, bool read, Re
             return;
         }
         var names = dependencyCopyNames.GetOrAdd(node, current => DependencyNodes(current)
-            .Where(dependency => dependency.ProjectInstance.GetPropertyValue("TargetPath").Length != 0)
+            .Where(dependency => GraphProjectKind.HasAssembly(dependency.ProjectInstance))
             .SelectMany(dependency => new[] { Path.GetFileName(TargetPath(dependency)), Path.ChangeExtension(Path.GetFileName(TargetPath(dependency)), ".pdb"), Path.ChangeExtension(Path.GetFileName(TargetPath(dependency)), ".xml") })
             .ToHashSet(StringComparer.Ordinal));
         if (names.Contains(name))

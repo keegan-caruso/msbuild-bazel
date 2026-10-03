@@ -88,3 +88,35 @@ Linux workers require Bubblewrap and nested user/mount/PID namespaces; ordinary
 container defaults may block them. Project-graph isolation alone does not establish
 filesystem hermeticity. Build trusted targets; keep reports outside Git and summarize
 commands, outcomes and remaining limits when extending support.
+
+## Traversal projects
+
+`Microsoft.Build.Traversal` **4.1.82** is pinned in the native fixture:
+two coordinators, three compilations, SDK 10.0.400 / Linux ARM64, Bazel
+8.8.0 and 9.2.0. Coordinators inherit TargetPath without emitting assemblies; they keep their Restore assets
+and execute normally while descendants use project snapshots.
+
+`bash scripts/bazel.sh test //tests/integration:traversal` covers public sync,
+prepared Restore, sandboxed workers, nested/duplicate/wildcard/conditional
+references, property propagation and multi-target children. Ordinary and graph
+MSBuild match DLL/PDB bytes at stable paths. A body edit compiles one project
+(two hits); an API edit compiles three (zero hits), matching raw graph MSBuild.
+No-op executes no graph action; body/API edits reuse the Restore action.
+Pack payloads (nuspec/library files), exports and snapshot replay pass; Publish
+matches raw bytes and runs/tests the children with cached and uncached workers.
+Declare Pack files in mappings `outputFiles`; tests remain explicit Bazel targets.
+Independent HTTP recovery on both Bazel pins had three hits / zero misses with
+the producer stopped, matching all 52 compared output files and modes and
+executing a fresh Bazel test. Disposable RAR caches are excluded.
+For independent recovery, run the native
+`//tests/integration:traversal_remote_cases_bazel_8_8_0` test (or
+`//tests/integration:traversal_remote_cases_bazel_.bazelversion` for the default). Set
+`TRAVERSAL_CACHE_PHASE=producer` and `TRAVERSAL_CACHE_URL`; stop that container,
+then run in a fresh one with `TRAVERSAL_CACHE_PHASE=consumer` and
+`TRAVERSAL_CACHE_SEED` pointing to the matching producer.json. Keep reports outside Git.
+
+Sync rejects missing projects/SDKs, unsupported coordinators, dynamic skipping,
+per-reference target filters/overrides and TraversalPublishGlobalProperties.
+In the pinned SDK, Build=false skips a child in ordinary MSBuild but graph mode
+still builds it. Use conditional ProjectReference items and explicit graph
+properties instead. Arbitrary traversal SDKs/custom extensions are unqualified.

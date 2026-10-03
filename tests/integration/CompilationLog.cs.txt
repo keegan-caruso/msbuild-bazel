@@ -1,0 +1,11 @@
+using System.Text.Json;
+using Microsoft.Build.Logging;
+
+var compiled = new List<string>();
+var replay = new BinaryLogReplayEventSource();
+replay.TaskStarted += (_, e) =>
+{
+    if (e.TaskName == "Csc") compiled.Add(Path.GetFileName(e.ProjectFile!));
+};
+replay.Replay(args[0]);
+Console.WriteLine(JsonSerializer.Serialize(compiled.Order().ToArray()));

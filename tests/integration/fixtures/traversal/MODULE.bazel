@@ -1,0 +1,25 @@
+module(name = "traversal_integration")
+
+bazel_dep(name = "rules_msbuild", version = "0.0.0")
+local_path_override(
+    module_name = "rules_msbuild",
+    path = "../msbuild-bazel",
+)
+
+dotnet = use_extension("@rules_msbuild//msbuild:extensions.bzl", "dotnet")
+dotnet.sdk(
+    name = "dotnet",
+    global_json = "//:global.json",
+)
+use_repo(dotnet, "dotnet")
+
+register_toolchains("@dotnet//:all")
+
+http_file = use_repo_rule("@bazel_tools//tools/build_defs/repo:http.bzl", "http_file")
+
+http_file(
+    name = "traversal_sdk",
+    downloaded_file_path = "microsoft.build.traversal.4.1.82.nupkg",
+    sha256 = "2a624920738a53b661e3d4b27a169a66da2921d174c8c742f02db8da839f0295",
+    urls = ["https://api.nuget.org/v3-flatcontainer/microsoft.build.traversal/4.1.82/microsoft.build.traversal.4.1.82.nupkg"],
+)
