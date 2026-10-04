@@ -58,6 +58,7 @@ def main():
     parser.add_argument('--cold', action='store_true', help='drop guest page caches before each --apply sample; requires disposable Linux VM/root')
     args = parser.parse_args()
     assert args.samples > 0
+    assert args.apply or not (args.profile or args.cold or args.compare_runner)
     base = args.directory.resolve()
     for source in [args.workspace, args.sdk, args.prepared]:
         assert not base.is_relative_to(source.resolve()) and not source.resolve().is_relative_to(base)
@@ -79,6 +80,7 @@ def main():
         # Stage the authored Restore inputs only; no earlier build outputs.
         inputs = set(contract['Restore']['Inputs'])
         inputs.update(str(path.relative_to(args.workspace)) for path in (args.workspace / '.package-source').glob('*.nupkg'))
+        inputs.update(str(path.relative_to(args.workspace)) for path in (args.workspace / '.graph-tools').rglob('*') if path.is_file())
         for relative in inputs:
             target = workspace / relative
             target.parent.mkdir(parents=True, exist_ok=True)

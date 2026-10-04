@@ -41,7 +41,7 @@ if (args.Length > 6 && args[6] is "--apply" or "--rekey")
     File.WriteAllText(args[5], JsonSerializer.Serialize(new { seconds = timer.Elapsed.TotalSeconds,
         profile = profileType.GetProperty("Report", flags)!.GetValue(null),
         files = records.Length, bytes = records.Sum(record => new FileInfo(Path.Combine(args[4], record.Name)).Length),
-        scope = "full production Apply in a read-only child; disposable manifest key rebound; excludes setup and MSBuild evaluation" },
+        scope = "full production Apply with read-only prepared packages; disposable manifest key rebound; excludes setup and MSBuild evaluation" },
         new JsonSerializerOptions { WriteIndented = true }) + "\n");
     return;
 }

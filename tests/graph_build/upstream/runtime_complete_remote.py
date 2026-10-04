@@ -33,9 +33,11 @@ def main():
     parser.add_argument('--phase', choices=['producer', 'consumer'], required=True)
     parser.add_argument('--seed-evidence', type=Path)
     parser.add_argument('--diagnostics', action='store_true')
+    parser.add_argument('--edits', action='store_true', help='consumer-only body/API and recovery controls using the retained worker')
     args = parser.parse_args()
     assert os.uname().sysname == 'Linux' and os.uname().machine == 'aarch64'
     assert (args.phase == 'consumer') == (args.seed_evidence is not None)
+    assert not args.edits or args.phase == 'consumer'
     root, results, base = args.workspace.resolve(), args.results.resolve(), args.output_base.resolve()
     assert not base.exists() and not results.exists()
     assert not results.is_relative_to(root) and not root.is_relative_to(results)
@@ -54,6 +56,10 @@ def main():
     if seed:
         assert seed['machine'] != socket.gethostname() and seed['workspace'] != str(root), 'Require an independent relocated consumer'
         assert seed['contractSha256'] == hashlib.sha256((root / 'graph.generated.json').read_bytes()).hexdigest()
+    mutation = json.loads(Path(__file__).with_name('runtime_source_host_edit.json').read_text()) if args.edits else None
+    originals = {path: (root / path).read_bytes() for path in [mutation['implementation'], mutation['reference']]} if mutation else {}
+    if mutation:
+        assert count == mutation['compiled'] and contract['Entries'] == mutation['entries']
     environment = dict(os.environ, USE_BAZEL_VERSION='9.2.0')
     environment.pop('RULES_MSBUILD_GRAPH_PROFILE', None)
     environment.pop('RULES_MSBUILD_PROJECT_CACHE_URL', None)
@@ -92,24 +98,30 @@ def main():
                  and (str(path.relative_to(workspace)) not in disposable or str(path.relative_to(workspace)) in outputs)}
         return json.loads((artifact / 'report.json').read_text()), files
 
-    def build(label, whole=False, profile=False):
+    def build(label, whole=False, profile=False, incremental=False, edit=None):
         log = results / (label + '.execution.json')
         seconds = invoke(['build', '//:graph', *options, '--execution_log_json_file=' + str(log)], label)
         actions = spawns(log)
         restore = [row for row in actions if row.get('mnemonic') == 'MSBuildGraphRestore']
         graph = [row for row in actions if row.get('mnemonic') == 'MSBuildGraph']
-        assert len(restore) == len(graph) == 1, (len(restore), len(graph))
+        assert len(graph) == 1 and (len(restore) <= 1 if incremental else len(restore) == 1), (len(restore), len(graph))
         report, files = capture()
         assert report['preparedRestore'] and report['readOnlyPreparedPackages']
         if args.phase == 'consumer':
-            assert files == seed['files'], 'Independent product bytes/modes differ'
-            assert restore[0].get('cacheHit') and restore[0]['runner'] == 'remote cache hit', restore
+            if edit:
+                assert len(files) == len(seed['files'])
+                assert files[mutation['implDll']] != seed['files'][mutation['implDll']]
+                assert (files[mutation['refDll']] == seed['files'][mutation['refDll']]) == (edit == 'body')
+            else:
+                assert files == seed['files'], 'Independent product bytes/modes differ'
+            assert all(row.get('cacheHit') and row['runner'] == 'remote cache hit' for row in restore), restore
             assert bool(graph[0].get('cacheHit')) == whole, graph
             if whole:
                 assert graph[0]['runner'] == 'remote cache hit'
                 assert report == seed['report'], 'Whole-action report must be identified as producer metadata'
             else:
-                assert (report['hits'], report['misses']) == (count, 0), report
+                misses = mutation['expectedMisses'][edit] if edit else 0
+                assert (report['hits'], report['misses']) == (count - misses, misses), report
         else:
             assert not restore[0].get('cacheHit') and not graph[0].get('cacheHit')
             assert (report['hits'], report['misses']) == (0, count), report
@@ -151,6 +163,22 @@ def main():
             fresh_base('project-recovery')
             nonce.write_text('force-project-recovery')
             build('project-recovery')
+            if mutation:
+                path, anchor = mutation['implementation'], mutation['bodyAnchor'].encode()
+                assert originals[path].count(anchor) == 1
+                (root / path).write_bytes(originals[path].replace(anchor,
+                    anchor + b'\n            GC.KeepAlive("full-child-verification");'))
+                build('body', incremental=True, edit='body')
+                declaration = b'\n        /// <summary>Qualification edit control.</summary>\n        public const int VerificationProbe = 7341;'
+                for path, anchor in [(mutation['implementation'], mutation['implementationAnchor'].encode()),
+                                     (mutation['reference'], mutation['referenceAnchor'].encode())]:
+                    assert originals[path].count(anchor) == 1
+                    (root / path).write_bytes(originals[path].replace(anchor, anchor + declaration))
+                build('api', incremental=True, edit='api')
+                for path, content in originals.items():
+                    (root / path).write_bytes(content)
+                nonce.write_text('post-edit-recovery')
+                build('post-edit-recovery', incremental=True)
             if args.diagnostics:
                 fresh_base('diagnostic')
                 # Profile compilation only; profiling Restore would alter its action key.
@@ -160,6 +188,8 @@ def main():
                 build('project-recovery-diagnostic', profile=True)
         print('PASS: independent complete-cache ' + args.phase, flush=True)
     finally:
+        for path, content in originals.items():
+            (root / path).write_bytes(content)
         generated.write_text(original)
         nonce.unlink(missing_ok=True)
         subprocess.run(bazel + ['shutdown'], cwd=root, env=environment, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)

@@ -60,14 +60,21 @@ The fresh all-miss seed and diagnostics were excluded from scored pairs.
 
 Same 481-compilation runtime contract, Linux ARM64 / SDK 10.0.400 / Bazel 9.2:
 a fresh relocated consumer, producer stopped, fresh output bases, normal Bazel
-HTTP caching enabled and local disk caching disabled. One unprofiled observation:
+HTTP caching enabled and local disk caching disabled. After bounded child
+verification, one unprofiled observation per case:
 
 | Recovery | Wall seconds | Restore action | Graph action |
 | --- | ---: | ---: | ---: |
-| Whole-action hits | 8.91 | 2.58 remote hit | 1.58 remote hit |
-| Forced graph execution | 29.51 | 3.11 remote hit | 21.82; 481 project hits / zero misses |
+| Whole-action hits | 9.86 | 2.60 remote hit | 1.86 remote hit |
+| Forced graph execution | 29.15 | 2.65 remote hit | 22.49; 481 project hits / zero misses |
+| Body edit | 29.14 | Reused | 26.95; 475 hits / six misses |
+| API edit | 41.46 | Reused | 39.46; 464 hits / 17 misses |
+| Return to original sources | 16.84 | Reused | 15.21; 481 hits / zero misses |
 
-All 10,780 compared files matched bytes/modes. Bootstrap/acquisition was separate.
+All 10,780 compared files matched bytes/modes on seed and recovery. The all-miss
+seed took 1072.84 s; bootstrap/acquisition was separate. Edits preserved the
+expected reference-assembly boundary and executed no Restore action. Independent
+native controls passed on Bazel 8.8.0 and 9.2.0, including fresh tests.
 Whole-action reports are cached producer metadata; spawn logs establish actual
 recovery. Download mtimes changed MSBuild's `MSBuildAllProjects` prefix; keys now
 represent that prefix by the complete validated import set without changing the
@@ -82,9 +89,10 @@ Five paired fresh-copy probes on 8,979 files / 1.75 GB measured median
 materialization **1.77 → 0.59 s**. These isolated operations used warm filesystem
 caches; this does not establish a paired end-to-end speedup. Corrupt new/cached
 copies, changed modes/inodes and invalid manifests failed the production checks.
-Both all-miss seeds and all recovery rows reproduced the same 10,780 file hashes
-and modes. A separate final diagnostic measured staging 1.73 s, child preparation
-3.82 s, evaluation 5.59 s and input hashing 2.65 s; scopes can overlap.
+A separate final diagnostic measured staging 2.94 s, child preparation 2.17 s
+(SDK 0.76 s, Restore key 0.86 s, payload verification wall 0.31 s), evaluation
+5.64 s and input hashing 2.55 s. Scopes can overlap. Large rows were not paired
+against the serial implementation; they establish correctness, not a speedup.
 
 Driver: `python3 tests/graph_build/upstream/runtime_complete_remote.py WORKSPACE
 RESULTS --output-base BASE --cache-url URL --phase producer`. Stop the producer;
