@@ -95,7 +95,7 @@ internal static class PreparedRestore
         string sdkDigest;
         using (GraphProfile.Measure("preparedSdk"))
         {
-            sdkDigest = ContractFiles.TreeDigest(sdk);
+            sdkDigest = ContractFiles.TreeDigest(sdk, parallelism: 4);
         }
         string key;
         using (GraphProfile.Measure("preparedKey"))

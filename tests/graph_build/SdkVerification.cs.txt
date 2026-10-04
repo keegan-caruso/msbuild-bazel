@@ -6,7 +6,7 @@ using System.Text.Json;
 var assembly = Assembly.LoadFrom(args[0]);
 var hash = assembly.GetType("RulesMSBuild.GraphBuild.ContractFiles", true)!
     .GetMethod("TreeDigest", BindingFlags.NonPublic | BindingFlags.Static)!;
-string Digest(string path) => (string)hash.Invoke(null, [path])!;
+string Digest(string path, int parallelism = 1) => (string)hash.Invoke(null, [path, parallelism])!;
 var files = Directory.GetFiles(args[1], "*", SearchOption.AllDirectories);
 var bytes = files.Sum(path => new FileInfo(path).Length);
 var rows = new List<object>();
@@ -46,11 +46,15 @@ var originalMode = OperatingSystem.IsWindows() ? (UnixFileMode?)null : File.GetU
 var original = Digest(mutable);
 void RequireChange(string label)
 {
-    if (Digest(mutable) == original) throw new InvalidDataException($"Digest missed {label}");
+    var actual = Digest(mutable);
+    if (actual == original) throw new InvalidDataException($"Digest missed {label}");
+    foreach (var parallelism in new[] { 2, 4 })
+        if (Digest(mutable, parallelism) != actual) throw new InvalidDataException($"Parallel digest differs after {label}");
 }
 void RequireOriginal()
 {
-    if (Digest(mutable) != original) throw new InvalidDataException("Restored payload digest differs");
+    foreach (var parallelism in new[] { 1, 2, 4 })
+        if (Digest(mutable, parallelism) != original) throw new InvalidDataException("Restored payload digest differs");
 }
 File.WriteAllText(payload, "modified");
 RequireChange("same-size byte mutation");

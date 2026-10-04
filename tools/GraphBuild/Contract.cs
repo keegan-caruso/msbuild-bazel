@@ -89,6 +89,11 @@ internal sealed class ContractFiles(string root, string sdk)
     internal static string Hash(IEnumerable<string> records) =>
         Convert.ToHexStringLower(SHA256.HashData(Encoding.UTF8.GetBytes(JsonSerializer.Serialize(records))));
 
-    internal static string TreeDigest(string directory) => Hash(Directory.EnumerateFiles(directory, "*", SearchOption.AllDirectories)
-        .Order(StringComparer.Ordinal).Select(path => Path.GetRelativePath(directory, path) + ":" + InputDigest(path)));
+    internal static string TreeDigest(string directory, int parallelism = 1)
+    {
+        var paths = Directory.EnumerateFiles(directory, "*", SearchOption.AllDirectories).Order(StringComparer.Ordinal);
+        string Record(string path) => Path.GetRelativePath(directory, path) + ":" + InputDigest(path);
+        return Hash(parallelism == 1 ? paths.Select(Record) : paths.AsParallel().AsOrdered()
+            .WithDegreeOfParallelism(Math.Min(Environment.ProcessorCount, parallelism)).Select(Record));
+    }
 }

@@ -68,15 +68,22 @@ var paths = new[] { "directory/a", "directory/b" };
 var batch = files.ResolveInputs(paths);
 if (paths.Any(p => batch[p] != files.Resolve(p))) throw new Exception("Path mismatch");
 var stamp = File.GetLastWriteTimeUtc(a);
-var original = ContractFiles.TreeDigest(root);
+string CheckedDigest()
+{
+    var serial = ContractFiles.TreeDigest(root);
+    foreach (var parallelism in new[] { 2, 4 })
+        if (ContractFiles.TreeDigest(root, parallelism) != serial) throw new Exception("Parallel tree order or digest changed");
+    return serial;
+}
+var original = CheckedDigest();
 File.WriteAllText(a, "other");
 File.SetLastWriteTimeUtc(a, stamp);
-if (original == ContractFiles.TreeDigest(root)) throw new Exception("Content change ignored");
+if (original == CheckedDigest()) throw new Exception("Content change ignored");
 if (!OperatingSystem.IsWindows())
 {
-    original = ContractFiles.TreeDigest(root);
+    original = CheckedDigest();
     File.SetUnixFileMode(a, File.GetUnixFileMode(a) ^ UnixFileMode.UserExecute);
-    if (original == ContractFiles.TreeDigest(root)) throw new Exception("SDK mode change ignored");
+    if (original == CheckedDigest()) throw new Exception("SDK mode change ignored");
     Directory.Move(Path.Combine(root, "directory"), Path.Combine(args[0], "outside"));
     Directory.CreateSymbolicLink(Path.Combine(root, "directory"), Path.Combine(args[0], "outside"));
     try { files.ResolveInputs(paths); throw new Exception("New ancestor link accepted"); }
