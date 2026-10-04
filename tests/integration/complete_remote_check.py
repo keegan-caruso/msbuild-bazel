@@ -45,6 +45,10 @@ else:
         assert len(graph) == 1 and not graph[0].get('cacheHit') and (report['hits'], report['misses']) == (2, 1), report
         assert files['src/Library/bin/Release/net10.0/Library.dll'] != expected['files']['src/Library/bin/Release/net10.0/Library.dll']
         assert files['src/Library/obj/Release/net10.0/ref/Library.dll'] == expected['files']['src/Library/obj/Release/net10.0/ref/Library.dll']
+    elif case == 'api':
+        assert not any(not row.get('cacheHit') for row in restore), restore
+        assert len(graph) == 1 and not graph[0].get('cacheHit') and (report['hits'], report['misses']) == (0, 3), report
+        assert files['src/Library/obj/Release/net10.0/ref/Library.dll'] != expected['files']['src/Library/obj/Release/net10.0/ref/Library.dll']
 record = {'token': token, 'case': case, 'files': files, 'hits': report['hits'], 'misses': report['misses'],
           'restore': [{'cacheHit': r.get('cacheHit', False), 'runner': r['runner']} for r in restore],
           'graph': [{'cacheHit': r.get('cacheHit', False), 'runner': r['runner']} for r in graph]}

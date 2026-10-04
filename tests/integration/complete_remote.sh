@@ -70,4 +70,7 @@ if [[ $phase == consumer ]]; then
     # A source edit must reuse Restore while rebuilding only the affected project.
     sed -i 's/=> 1/=> 2/' src/Library/Code.cs
     run body
+    # Reuse the same broker/preparation for a reference-assembly change too.
+    sed -i 's/=> 2/=> 2; public static int Added() => 3/' src/Library/Code.cs
+    run api
 fi

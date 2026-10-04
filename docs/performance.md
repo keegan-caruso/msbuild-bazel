@@ -106,6 +106,15 @@ files / 1.75 GB: payload hashing 0.96–2.86 s, SDK hashing 0.47–0.78 s, Resto
 these are diagnostics, not scored speedups. Fresh byte verification remains
 mandatory in every child. Read-only binds do not establish cross-child immutability.
 
+Eight rotated, unprofiled pairs measured serial / two-thread / four-thread
+verification medians **1.28 / 1.06 / 0.82 s** on warm guest caches. Four cold pairs
+(`--cold`) measured **4.78 / 4.80 / 4.08 s**. The retained cap is four threads,
+bounded by available processors; all verification completes before output writes.
+`--compare-runner OTHER_DLL` repeats candidates in rotating order. SDK and payload
+digests already flow into graph construction; no cross-child digest reuse or
+timestamp shortcut was added. These are isolated verification gains, not paired
+end-to-end build speedups.
+
 ## Evaluation transfer qualification
 
 `//tests/integration:evaluation_transfer` uses the production diagnostic counter

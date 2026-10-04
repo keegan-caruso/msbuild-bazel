@@ -50,6 +50,7 @@ def main():
     parser.add_argument('--sdk', required=True, type=Path)
     parser.add_argument('--prepared', required=True, type=Path, help='prepared directory containing manifest.json')
     parser.add_argument('--runner', type=Path, default=RUNNER)
+    parser.add_argument('--compare-runner', type=Path, action='append', default=[], help='additional --apply candidates; rotate their order each sample')
     parser.add_argument('--samples', type=int, default=5, help='fresh probe process per sample')
     parser.add_argument('--materialize', action='store_true', help='measure private copy/reuse and child integrity controls')
     parser.add_argument('--apply', action='store_true', help='measure full Apply in a read-only Linux child; excludes setup/evaluation')
@@ -89,25 +90,30 @@ def main():
             (prepared / relative).chmod(record['Mode'])
         (prepared / 'manifest.json').chmod(0o644)
         (workspace / '.nuget').mkdir()
-        probe = [str(DOTNET), str(driver / 'bin/Release/net10.0/Probe.dll'), str(args.runner.resolve()),
-                 str(workspace), str(args.contract.resolve()), str(args.sdk.resolve()), str(prepared)]
+        runners = [args.runner.resolve(), *(path.resolve() for path in args.compare_runner)]
         rows = []
         for sample in range(args.samples):
-            report = base / f'sample-{sample}.json'
-            subprocess.run(['bwrap', '--die-with-parent', '--bind', '/', '/',
-                '--ro-bind', str(prepared / '.nuget'), str(prepared / '.nuget'),
-                '--ro-bind', str(prepared / '.nuget'), str(workspace / '.nuget'), '--',
-                *probe, str(report), '--rekey'], check=True)
-            if args.cold:
-                os.sync()
-                Path('/proc/sys/vm/drop_caches').write_text('3\n')
-            subprocess.run(['bwrap', '--die-with-parent', '--bind', '/', '/', '--ro-bind', str(prepared), str(prepared),
-                '--ro-bind', str(prepared / '.nuget'), str(workspace / '.nuget'), '--',
-                *probe, str(report), '--apply', *(['profile'] if args.profile else [])], check=True)
-            rows.append(dict(json.loads(report.read_text()), sample=sample))
-            for relative in records:
-                if not relative.startswith('.nuget/'):
-                    (workspace / relative).unlink()
+            for index in range(len(runners)):
+                candidate = (sample + index) % len(runners)
+                runner = runners[candidate]
+                probe = [str(DOTNET), str(driver / 'bin/Release/net10.0/Probe.dll'), str(runner),
+                         str(workspace), str(args.contract.resolve()), str(args.sdk.resolve()), str(prepared)]
+                report = base / f'sample-{sample}-runner-{candidate}.json'
+                subprocess.run(['bwrap', '--die-with-parent', '--bind', '/', '/',
+                    '--ro-bind', str(prepared / '.nuget'), str(prepared / '.nuget'),
+                    '--ro-bind', str(prepared / '.nuget'), str(workspace / '.nuget'), '--',
+                    *probe, str(report), '--rekey'], check=True)
+                if args.cold:
+                    os.sync()
+                    Path('/proc/sys/vm/drop_caches').write_text('3\n')
+                subprocess.run(['bwrap', '--die-with-parent', '--bind', '/', '/', '--ro-bind', str(prepared), str(prepared),
+                    '--ro-bind', str(prepared / '.nuget'), str(workspace / '.nuget'), '--',
+                    *probe, str(report), '--apply', *(['profile'] if args.profile else [])], check=True)
+                rows.append(dict(json.loads(report.read_text()), sample=sample, candidate=candidate,
+                    runnerSha256=hashlib.sha256(runner.read_bytes()).hexdigest()))
+                for relative in records:
+                    if not relative.startswith('.nuget/'):
+                        (workspace / relative).unlink()
         (base / 'report.json').write_text(json.dumps(dict(rows=rows, profiled=args.profile, cold=args.cold,
             freshProcessPerSample=True, runnerSha256=hashlib.sha256(args.runner.read_bytes()).hexdigest()), indent=2) + '\n')
         shutil.rmtree(prepared.parent)

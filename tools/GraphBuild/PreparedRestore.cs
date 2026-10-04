@@ -125,26 +125,38 @@ internal static class PreparedRestore
             sources = prepared.ResolveInputs(manifest.Files.Keys);
             destinations = files.ResolveInputs(manifest.Files.Keys);
         }
-        // Validate every payload before writing any workspace file.
-        foreach (var (relative, record) in manifest.Files)
+        // Hash every byte in this child. Parallelism is bounded and the complete
+        // verification barrier precedes any Restore writes or project evaluation.
+        using (GraphProfile.Measure("preparedVerification"))
         {
-            using (GraphProfile.Measure("preparedPayload", GraphProfile.Enabled ? new FileInfo(sources[relative]).Length : 0))
+            try
             {
-                if ((!allowed.Contains(relative) && !relative.StartsWith(".nuget/", StringComparison.Ordinal)) ||
-                    ContractFiles.Digest(sources[relative]) != record.Digest || (record.Mode & ~0xFFF) != 0)
+                Parallel.ForEach(manifest.Files, new ParallelOptions { MaxDegreeOfParallelism = Math.Min(Environment.ProcessorCount, 4) }, pair =>
                 {
-                    throw new InvalidDataException("Invalid prepared Restore file: " + relative);
-                }
+                    var (relative, record) = pair;
+                    using (GraphProfile.Measure("preparedPayload", GraphProfile.Enabled ? new FileInfo(sources[relative]).Length : 0))
+                    {
+                        if ((!allowed.Contains(relative) && !relative.StartsWith(".nuget/", StringComparison.Ordinal)) ||
+                            ContractFiles.Digest(sources[relative]) != record.Digest || (record.Mode & ~0xFFF) != 0)
+                        {
+                            throw new InvalidDataException("Invalid prepared Restore file: " + relative);
+                        }
+                    }
+                    var destination = destinations[relative];
+                    using var identity = GraphProfile.Measure("preparedIdentity");
+                    if (readOnlyPackages && ReadOnlyPackageTree.Contains(relative))
+                    {
+                        ReadOnlyPackageTree.RequireSameFile(sources[relative], destination, record.Mode);
+                    }
+                    else if (File.Exists(destination) && ContractFiles.InputDigest(destination) != InputDigest(record))
+                    {
+                        throw new InvalidDataException("Prepared Restore conflicts with existing workspace file: " + relative);
+                    }
+                });
             }
-            var destination = destinations[relative];
-            using var identity = GraphProfile.Measure("preparedIdentity");
-            if (readOnlyPackages && ReadOnlyPackageTree.Contains(relative))
+            catch (AggregateException error)
             {
-                ReadOnlyPackageTree.RequireSameFile(sources[relative], destination, record.Mode);
-            }
-            else if (File.Exists(destination) && ContractFiles.InputDigest(destination) != InputDigest(record))
-            {
-                throw new InvalidDataException("Prepared Restore conflicts with existing workspace file: " + relative);
+                System.Runtime.ExceptionServices.ExceptionDispatchInfo.Capture(error.Flatten().InnerExceptions[0]).Throw();
             }
         }
         foreach (var (relative, record) in manifest.Files)
