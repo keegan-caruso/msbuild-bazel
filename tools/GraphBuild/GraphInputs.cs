@@ -196,7 +196,7 @@ internal sealed class GraphInputs : IDisposable
         {
             return project;
         }
-        if (contract.Version is not (2 or 3 or 4 or 5 or 6 or 7 or 8) || project.OutputDirectories.Length != 0 || project.OutputFiles?.Length > 0 || project.ReferenceBoundary || project.DependencyCopies?.Count > 0 || project.ImplementationDependencies?.Length > 0 || project.CompilerReference is not null || project.CompilerReferences?.Count > 0)
+        if (contract.Version is not (2 or 3 or 4 or 5 or 6 or 7 or 8) || project.OutputDirectories.Length != 0 || project.OutputFiles?.Length > 0 || project.ReferenceBoundary || project.DependencyCopies?.Count > 0 || project.ImplementationDependencies?.Length > 0 || project.CompilerReference is not null || project.CompilerReferences?.Count > 0 || project.ReplayOmissions?.Length > 0)
         {
             throw new InvalidDataException("Configured projects require version 2, 3, 4, 5, 6, 7 or 8 and configuration-owned outputs: " + Relative(node));
         }
@@ -209,7 +209,7 @@ internal sealed class GraphInputs : IDisposable
         }
         var selected = matches[0];
         return new ProjectContract(project.Inputs.Concat(selected.Inputs).Distinct().ToArray(),
-            selected.OutputDirectories, selected.ReferenceBoundary, selected.DependencyCopies, OutputFiles: selected.OutputFiles, ImplementationDependencies: selected.ImplementationDependencies, CompilerReference: selected.CompilerReference, CompilerReferences: selected.CompilerReferences);
+            selected.OutputDirectories, selected.ReferenceBoundary, selected.DependencyCopies, OutputFiles: selected.OutputFiles, ImplementationDependencies: selected.ImplementationDependencies, CompilerReference: selected.CompilerReference, CompilerReferences: selected.CompilerReferences, ReplayOmissions: selected.ReplayOmissions);
     }
     private ProjectContract RestoreInputs(ProjectGraphNode node, ProjectContract project)
     {
@@ -279,6 +279,7 @@ internal sealed class GraphInputs : IDisposable
         })));
         records.AddRange(For(node).OutputDirectories.Select(p => "output:" + p));
         records.AddRange((For(node).OutputFiles ?? []).Order(StringComparer.Ordinal).Select(p => "output-file:" + p));
+        records.AddRange((For(node).ReplayOmissions ?? []).Order(StringComparer.Ordinal).Select(p => "replay-omission:" + p));
         records.Add("referenceBoundary:" + For(node).ReferenceBoundary);
         if (For(node).CompilerReference is not null)
         {

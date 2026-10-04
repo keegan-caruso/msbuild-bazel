@@ -15,9 +15,11 @@ internal sealed record ProjectSnapshot(string Fingerprint, Dictionary<string, st
 
 internal sealed class GraphCache(GraphInputs inputs, string cache, bool read, RemoteSnapshotStore? remote, FileMaterializer materializer, SnapshotPayloads payloads, TemporaryOutputs temporaryOutputs, LocalGraphState? localState = null) : ProjectCachePluginBase
 {
+    private readonly ReplayOmissions omissions = new(inputs);
     private readonly Dictionary<string, ProjectGraphNode> nodes = inputs.Graph.ProjectNodes.ToDictionary(n => GraphInputs.Key(n.ProjectInstance));
     private readonly Dictionary<ProjectGraphNode, string[]> outputDirectories = inputs.Graph.ProjectNodes.ToDictionary(node => node, node => inputs.OutputDirectories(node).ToArray());
     private readonly ConcurrentDictionary<ProjectGraphNode, HashSet<ProjectGraphNode>> dependencies = new();
+    private readonly ConcurrentDictionary<ProjectGraphNode, string[]> snapshotFiles = new();
     private readonly ConcurrentDictionary<ProjectGraphNode, string[]> outputFiles = new();
     private readonly ConcurrentDictionary<ProjectGraphNode, HashSet<string>> dependencyCopyNames = new();
     private readonly ConcurrentDictionary<string, Lazy<string>> outputDigests = new(StringComparer.Ordinal);
@@ -69,7 +71,13 @@ internal sealed class GraphCache(GraphInputs inputs, string cache, bool read, Re
             localState?.RemoveObsoleteOutputs(inputs, node, snapshot.Files.Keys.Concat(snapshot.ProjectCopies.Keys));
             foreach (var (relative, digest) in snapshot.Files)
             {
-                Materialize(Path.Combine(directory, relative), inputs.Files.Resolve(relative), digest, snapshot.UnixModes[relative]);
+                var destination = inputs.Files.Resolve(relative);
+                if (omissions.Contains(node, destination))
+                {
+                    using var omitted = GraphProfile.Measure("omittedReplay", new FileInfo(Path.Combine(directory, relative)).Length);
+                    continue;
+                }
+                Materialize(Path.Combine(directory, relative), destination, digest, snapshot.UnixModes[relative]);
             }
             foreach (var (relative, producer) in snapshot.ProjectCopies)
             {
@@ -130,7 +138,7 @@ internal sealed class GraphCache(GraphInputs inputs, string cache, bool read, Re
                         throw new InvalidDataException("Missing declared output file: " + file);
                     }
                 }
-                foreach (var file in OutputFiles(node))
+                foreach (var file in SnapshotFiles(node))
                 {
                     var relative = Path.GetRelativePath(inputs.Files.Root, file);
                     ValidateCopyOwnership(node, relative);
@@ -167,6 +175,7 @@ internal sealed class GraphCache(GraphInputs inputs, string cache, bool read, Re
                     return new TargetOutput(name, target.Items.Select(item => new ResultItem(item.ItemSpec,
                         Metadata(item))).ToArray());
                 }).ToArray();
+                omissions.RequireTargetOutputs(node, targets);
                 var snapshot = new ProjectSnapshot(fingerprint, files, copies, targets, modes);
                 File.WriteAllText(Path.Combine(staging, "manifest.json"), JsonSerializer.Serialize(snapshot));
                 var destination = Path.Combine(cache, fingerprint);
@@ -301,6 +310,7 @@ internal sealed class GraphCache(GraphInputs inputs, string cache, bool read, Re
 
     private void Validate(ProjectGraphNode node, ProjectSnapshot snapshot, string fingerprint, string directory, string[] targets)
     {
+        omissions.RequireTargetOutputs(node, snapshot.Targets);
         if (snapshot.Fingerprint != fingerprint || !snapshot.Targets.Select(t => t.Name).SequenceEqual(ReplayTargets(node, targets), StringComparer.OrdinalIgnoreCase) ||
             (GraphProjectKind.HasAssembly(node.ProjectInstance) && !snapshot.Files.ContainsKey(Path.GetRelativePath(inputs.Files.Root, TargetPath(node)))) ||
             inputs.DeclaredOutputFiles(node).Any(path => !snapshot.Files.ContainsKey(Path.GetRelativePath(inputs.Files.Root, path)) && !snapshot.ProjectCopies.ContainsKey(Path.GetRelativePath(inputs.Files.Root, path))))
@@ -343,6 +353,12 @@ internal sealed class GraphCache(GraphInputs inputs, string cache, bool read, Re
     // owned files and output trees are immutable for the rest of this graph invocation.
     private string[] OutputFiles(ProjectGraphNode node) => outputFiles.GetOrAdd(node, current =>
     {
+        var files = SnapshotFiles(current);
+        return omissions.HasFiles(current) ? files.Where(path => !omissions.Contains(current, path)).ToArray() : files;
+    });
+
+    private string[] SnapshotFiles(ProjectGraphNode node) => snapshotFiles.GetOrAdd(node, current =>
+    {
         var resourceState = ResourceState(current);
         return outputDirectories[current]
             .Where(Directory.Exists).SelectMany(dir => Directory.EnumerateFiles(dir, "*", SearchOption.AllDirectories))
@@ -356,6 +372,8 @@ internal sealed class GraphCache(GraphInputs inputs, string cache, bool read, Re
             .Where(path => !temporaryOutputs.Contains(path))
             .Distinct().Order(StringComparer.Ordinal).ToArray();
     });
+
+    internal void DiscardReplayOmissions() => omissions.Discard();
 
     private static string ResourceState(ProjectGraphNode node) => Path.GetFullPath(
         Path.Combine(node.ProjectInstance.GetPropertyValue("IntermediateOutputPath").Replace('\\', Path.DirectorySeparatorChar), Path.GetFileName(node.ProjectInstance.FullPath) + ".GenerateResource.cache"),

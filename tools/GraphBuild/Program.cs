@@ -172,6 +172,7 @@ if (args[0] is "build" or "action")
     verificationTimer.Stop();
     var snapshotTimer = System.Diagnostics.Stopwatch.StartNew();
     await plugin.SaveAsync(result);
+    plugin.DiscardReplayOmissions();
     snapshotTimer.Stop();
     localState?.Complete();
     File.WriteAllText(report, JsonSerializer.Serialize(new

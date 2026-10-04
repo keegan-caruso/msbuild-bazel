@@ -67,6 +67,16 @@ graph still evaluates afresh. Reuse between requests needs a retained isolated
 engine, pristine instance copies and a complete evaluation invalidation contract.
 No large-runtime edit-time improvement is claimed for this slice.
 
+## Optional replay intermediates
+
+`//tests/integration:replay_omissions` passed on Linux ARM64 / both Bazel pins.
+The three-project fixture omits duplicate `obj` DLL/PDB files: six fewer copies,
+329,517 → 285,005 replayed bytes (13.5%), with matching app/reference bytes,
+unchanged body/API invalidation and uncached parity. Complete snapshots retain
+omitted payloads; the replay control rejects corruption even in an omitted file.
+This is a small work-volume result, not an end-to-end timing or large-runtime
+speedup. Independent HTTP recovery with this contract remains unqualified.
+
 [Historical series at 7e22cd6](https://github.com/keegan-caruso/msbuild-bazel/blob/7e22cd67609f6ae5e1606fcae9dcf6e578c2db3b/docs/performance.md)
 measured cold Restore + Build at 1093.53 s versus 1048.89 s raw, and independent
 HTTP recovery at 34.35 s. Those measurements predate the graph-only cutover.

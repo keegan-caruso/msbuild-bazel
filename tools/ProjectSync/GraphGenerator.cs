@@ -293,6 +293,9 @@ internal static class GraphGenerator
                 Properties = selectorKeys.ToDictionary(key => key, key => node.ProjectInstance.GlobalProperties.TryGetValue(key, out var value) ? value : ""),
                 Inputs = inputs[Key(node.ProjectInstance)],
                 OutputFiles = outputs[Key(node.ProjectInstance)],
+                ReplayOmissions = mappings.ForProject(group.Key, node.ProjectInstance.GetPropertyValue("TargetFramework")).ReplayOmissions
+                    .Select(path => Relative(Path.GetFullPath(node.ProjectInstance.ExpandString(path).Replace('\\', '/'), Path.GetDirectoryName(node.ProjectInstance.FullPath)!)))
+                    .Distinct().Order(StringComparer.Ordinal).ToArray(),
                 ReferenceBoundary = CanUseReferenceBoundary(node),
                 ImplementationDependencies = ImplementationDependencies(node),
                 CompilerReference = CompilerReference(node),
@@ -391,6 +394,16 @@ internal static class GraphGenerator
         if (graph.ProjectNodes.Any(node => mappings.ForProject(Relative(node.ProjectInstance.FullPath), node.ProjectInstance.GetPropertyValue("TargetFramework")).CompilerReferences.Count != 0))
         {
             contractData["Version"] = 8;
+        }
+        foreach (var project in contractData["Projects"]!.AsObject().Select(pair => pair.Value!))
+        {
+            foreach (var declaration in project["Configurations"]!.AsArray().Select(value => value!.AsObject()))
+            {
+                if (declaration["ReplayOmissions"]!.AsArray().Count == 0)
+                {
+                    declaration.Remove("ReplayOmissions");
+                }
+            }
         }
         var contract = contractData.ToJsonString(new JsonSerializerOptions { WriteIndented = true }) + "\n";
         var sources = inputs.Values.SelectMany(files => files).Concat(shared).Concat(restore?.Inputs ?? []).Distinct().Order(StringComparer.Ordinal).ToArray();
