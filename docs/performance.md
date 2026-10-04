@@ -1,60 +1,39 @@
 # Performance versus raw MSBuild
 
-Baseline **8d83f0f**, runtime v10.0.0 (`60629d14374c56f1cb51819049ad1fa529307f8d`),
+Baseline **69b2ac2**, runtime v10.0.0 (`60629d14374c56f1cb51819049ad1fa529307f8d`),
 SDK 10.0.400, Bazel 9.2.0, Linux ARM64: four CPUs / 8 GiB, four MSBuild nodes,
 one graph worker with an 8192 MiB snapshot budget. Scope: 481 compilations /
-543 configurations / 39 roots. Refreshed after the graph-only cutover.
+543 configurations / 39 roots.
 
-Median wall seconds, three matched pairs, profiling off:
+Median wall seconds, three matched pairs, alternating order, profiling off:
 
 | Case | Bazel | Raw MSBuild | Difference |
 | --- | ---: | ---: | --- |
-| No-op | 0.39 | 17.43 | Bazel whole-action hit |
-| Leaf body edit | 32.66 | 30.24 | 8.0% slower; six Csc calls each |
-| Leaf API edit | 47.80 | 46.68 | 2.4% slower; 17 Csc calls each |
-| Local project recovery | 20.07 | — | 481 hits; no compilation |
+| No-op | 0.25 | 17.37 | Bazel whole-action hit |
+| Leaf body edit | 29.61 | 29.55 | 0.2% slower; six Csc calls each |
+| Leaf API edit | 44.63 | 44.43 | 0.5% slower; 17 Csc calls each |
+| Local project recovery | 15.24 | — | 481 hits; no compilation |
 
 All 3,622 compiled files matched raw bytes on every row. Body/API edits reused
 prepared Restore and had 475/464 project hits. Acquisition, the all-miss seed,
 source restoration and filesystem trimming were outside scored observations.
-Only one build VM ran during scoring. The incomplete series from a disk-damaged
-VM was excluded; these rows came from a fresh filesystem and verified inputs.
-Independent HTTP recovery on a fresh relocated container, with the producer
-stopped and Bazel whole-action caches disabled, had **481 hits / zero misses**.
-All 10,780 files matched bytes/modes. One unprofiled observation was **121.04 s**:
-fresh prepared Restore took 95.65 s and graph recovery 23.13 s. Package/SDK
-acquisition was excluded. Native-host setup and eight-suite execution were
-separate; 118,952 passed / 64 skipped / zero failed, with matching normalized
-producer outcomes and 3,568 source-product hash observations. The older 34.35 s
-recovery below had warm preparation and is not the same timing scope.
+Only one build VM ran during scoring. These rows establish current parity;
+differences from older runs are not a paired attribution of individual changes.
 
-One paired cold observation (raw first): graph **1061.33 s**, raw Restore + Build
-**1056.91 s** (**0.4%** overhead). Raw Restore was 79.35 s and Build 977.55 s;
-graph Restore/Build action spans were 95.21/958.18 s. All 3,622 compiled files
-matched. SDK/packages and Bazel bootstrap were available; outputs and project
-snapshots were fresh. This measures cold compilation, not first-time acquisition.
+Median maximum VM used memory was **1.05/2.34 GiB** for no-op,
+**2.94/2.53 GiB** for body and **3.04/2.85 GiB** for API (Bazel/raw).
+Samples use `MemTotal - MemAvailable` every 250 ms: whole-VM pressure,
+including retained processes/caches, not process RSS or managed allocation.
 
-Separate body/API diagnostics measured evaluation **5.36/5.59 s**, input hashing
-**2.74/2.75 s**, and replay copies **3.82/3.08 s** (689/677 MB). Worker staging was
-1.00/1.08 s. These scopes can overlap; do not add operation totals as wall time.
-Candidate dcbf44e (owned-product publication and reduced package inputs), same
-resources and three-pair method:
+Separate body/API diagnostics measured evaluation **5.64/5.92 s**, input hashing
+**2.14/2.29 s**, replay copies **2.16/2.88 s** (689/677 MB), worker staging
+**1.17/1.25 s** and publication **0.15/0.16 s**. Build-node evaluation remained
+zero. Operation scopes overlap; these are not additive wall-clock components.
 
-| Case | Bazel median | Paired raw median |
-| --- | ---: | ---: |
-| No-op | 0.17 | 17.85 |
-| Body | 34.44 | 31.05 |
-| API | 48.37 | 45.34 |
-| Local recovery | 18.43 | — |
-
-All 3,622 files matched; body/API still had six/17 Csc calls and zero Restore
-actions. Local recovery observed 18.04–19.68 s versus main's 20.07 s median.
-These combined changes do **not** establish an edit-time speedup: raw times and
-paired gaps varied too. Separate body/API diagnostics measured evaluation
-5.96/5.53 s, replay copies 3.59/2.51 s (same 689/677 MB), staging 1.03/1.01 s,
-and publication 0.15/0.16 s. Remaining work is evaluation and snapshot replay,
-not publication. Retain Restore's contract: these edits already reuse preparation.
-The fresh all-miss seed and diagnostics were excluded from scored pairs.
+Earlier paired cold observation at **8d83f0f** (raw first): graph **1061.33 s**,
+raw Restore + Build **1056.91 s** (**0.4%** overhead). All 3,622 files matched.
+SDK/packages and Bazel bootstrap were available; outputs and project snapshots
+were fresh. This measures cold compilation, not first-time acquisition.
 
 ## Complete remote-cache recovery
 
