@@ -25,6 +25,9 @@ then build or recover each project. Definition changes require sync; custom task
 reads require reviewed declarations. Evaluation does not trace arbitrary file access.
 Fully evaluated instances carry targets and task registrations to build nodes;
 those nodes do not need to reconstruct the project from disk.
+Keys represent `MSBuildAllProjects`' timestamp-selected prefix with the complete
+validated import set, retaining authored entries. MSBuild keeps its original
+incremental input list; declared import bytes still invalidate the cache.
 
 MSBuild composes project outputs. Bazel extracts the selected runtime layout for
 an app or test, making runtime dependencies part of that target's cache inputs.

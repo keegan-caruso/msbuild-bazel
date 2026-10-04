@@ -569,3 +569,40 @@ test_suite(
         bazel_binaries.versions.all,
     ),
 )
+
+sh_binary(
+    name = "complete_remote_runner",
+    testonly = True,
+    srcs = ["complete_remote.sh"],
+    data = [
+        "common.sh",
+        "complete_remote_check.py",
+    ],
+)
+
+bazel_integration_tests(
+    name = "complete_remote_cases",
+    additional_env_inherit = [
+        "BAZELISK_HOME",
+        "RULES_MSBUILD_TEST_REPOSITORY_CACHE",
+        "COMPLETE_CACHE_PHASE",
+        "COMPLETE_CACHE_URL",
+        "COMPLETE_CACHE_SEED",
+    ],
+    bazel_binaries = bazel_binaries,
+    bazel_versions = bazel_binaries.versions.all,
+    data = [":rules_archive"],
+    env = {"RULES_ARCHIVE": "$(rootpath :rules_archive)"},
+    tags = [
+        "exclusive",
+        "manual",
+        "no-sandbox",
+    ],
+    target_compatible_with = [
+        "@platforms//os:linux",
+        "@platforms//cpu:aarch64",
+    ],
+    test_runner = ":complete_remote_runner",
+    workspace_files = glob(["fixtures/traversal/**"]),
+    workspace_path = "tests/integration/fixtures/traversal",
+)

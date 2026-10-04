@@ -56,6 +56,34 @@ and publication 0.15/0.16 s. Remaining work is evaluation and snapshot replay,
 not publication. Retain Restore's contract: these edits already reuse preparation.
 The fresh all-miss seed and diagnostics were excluded from scored pairs.
 
+## Complete remote-cache recovery
+
+Same 481-compilation runtime contract, Linux ARM64 / SDK 10.0.400 / Bazel 9.2:
+a fresh relocated consumer, producer stopped, fresh output bases, normal Bazel
+HTTP caching enabled and local disk caching disabled. One unprofiled observation:
+
+| Recovery | Wall seconds | Restore action | Graph action |
+| --- | ---: | ---: | ---: |
+| Whole-action hits | 9.45 | 2.99 remote hit | 1.86 remote hit |
+| Forced graph execution | 30.67 | 3.25 remote hit | 23.01; 481 project hits / zero misses |
+
+All 10,780 compared files matched bytes/modes. Bootstrap/acquisition was separate.
+Whole-action reports are cached producer metadata; spawn logs establish actual
+recovery. Download mtimes changed MSBuild's `MSBuildAllProjects` prefix; keys now
+represent that prefix by the complete validated import set without changing the
+SDK instance. Authored entries and imported bytes remain significant.
+The earlier 95.65-second Restore measurement deliberately disabled this action
+cache; it does not describe normal recovery. This is cache recovery, not RBE or
+a new runtime test-suite run.
+
+Driver: `python3 tests/graph_build/upstream/runtime_complete_remote.py WORKSPACE
+RESULTS --output-base BASE --cache-url URL --phase producer`. Stop the producer;
+run a new consumer with `--phase consumer --seed-evidence PRODUCER/seed.json`.
+`--diagnostics` adds a separate profiled recovery. Native correctness controls use
+`//tests/integration:complete_remote_cases_bazel_8_8_0` (or
+`_bazel_.bazelversion`), with `COMPLETE_CACHE_PHASE`, `COMPLETE_CACHE_URL` and a
+matching consumer `COMPLETE_CACHE_SEED`; they also cover body edits and fresh tests.
+
 ## Evaluation transfer qualification
 
 `//tests/integration:evaluation_transfer` uses the production diagnostic counter

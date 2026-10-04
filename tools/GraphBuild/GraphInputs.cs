@@ -270,7 +270,9 @@ internal sealed class GraphInputs : IDisposable
         records.AddRange((contract.TemporaryDirectories ?? []).Order(StringComparer.Ordinal).Select(path => "temporary-directory:" + path));
         records.AddRange((contract.InputDirectories ?? []).Order(StringComparer.Ordinal).Select(path => "input-directory:" + path));
         records.AddRange(project.Properties.OrderBy(p => p.Name, StringComparer.Ordinal)
-            .Select(p => p.Name + "=" + p.EvaluatedValue));
+            .Select(p => p.Name + "=" + (p.Name.Equals("MSBuildAllProjects", StringComparison.OrdinalIgnoreCase)
+                ? GraphImportState.FingerprintValue(project, imports[Key(project)], p.EvaluatedValue)
+                : p.EvaluatedValue)));
         records.AddRange(project.Items.Select(item => System.Text.Json.JsonSerializer.Serialize(new
         {
             item.ItemType,
