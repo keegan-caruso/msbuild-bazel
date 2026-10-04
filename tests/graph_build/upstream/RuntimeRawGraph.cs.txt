@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using System.Text.Json;
+using System.Text.Json.Nodes;
 using Microsoft.Build.Evaluation;
 using Microsoft.Build.Execution;
 using Microsoft.Build.Framework;
@@ -42,6 +43,68 @@ foreach (var node in graph.ProjectNodes)
         c.GetProperty("Properties").EnumerateObject().All(p =>
             (node.ProjectInstance.GlobalProperties.TryGetValue(p.Name, out var value) ? value : "") == p.Value.GetString())) != 1)
         throw new InvalidDataException("Raw graph configuration differs: " + path);
+}
+// Qualification only: select duplicate SDK intermediates after a raw Build.
+// The production runner still validates ownership and required target metadata.
+if (args[2] == "replay-omissions")
+{
+    var candidate = JsonNode.Parse(File.ReadAllText(args[1]))!;
+    var paths = new HashSet<string>(StringComparer.Ordinal);
+    var required = new HashSet<string>(StringComparer.Ordinal);
+    foreach (var node in graph.ProjectNodes)
+    {
+        var project = node.ProjectInstance;
+        foreach (var property in new[] { "TargetPath", "TargetRefPath" })
+        {
+            var value = project.GetPropertyValue(property);
+            if (value.Length != 0) required.Add(Path.GetFullPath(value.Replace('\\', '/'), Path.GetDirectoryName(project.FullPath)!));
+        }
+    }
+    foreach (var project in declarations.EnumerateObject())
+    {
+        var variants = project.Value.TryGetProperty("Configurations", out var values) ? values.EnumerateArray() : new[] { project.Value }.AsEnumerable();
+        foreach (var variant in variants)
+        {
+            var files = variant.TryGetProperty("OutputFiles", out var outputs) ? outputs.EnumerateArray().Select(p => p.GetString()!) : [];
+            if (variant.TryGetProperty("DependencyCopies", out var copies)) files = files.Concat(copies.EnumerateObject().SelectMany(p => new[] { p.Name, p.Value.GetString()! }));
+            if (variant.TryGetProperty("CompilerReference", out var reference) && reference.ValueKind == JsonValueKind.String) files = files.Append(reference.GetString()!);
+            if (variant.TryGetProperty("CompilerReferences", out var references)) files = files.Concat(references.EnumerateObject().Select(p => p.Value.GetString()!));
+            foreach (var path in files) required.Add(Path.GetFullPath(path, root));
+        }
+    }
+    foreach (var node in graph.ProjectNodes)
+    {
+        var project = node.ProjectInstance;
+        var declaration = candidate["Projects"]![Path.GetRelativePath(root, project.FullPath)]!;
+        if (declaration["Configurations"] is JsonArray configurations)
+            declaration = configurations.Single(c => c!["Properties"]!.AsObject().All(p =>
+                (project.GlobalProperties.TryGetValue(p.Key, out var value) ? value : "") == p.Value!.GetValue<string>()))!;
+        if (declaration["OutputDirectories"]!.AsArray().Count == 0 || project.GetPropertyValue("TargetPath").Length == 0) continue;
+        var intermediate = project.GetPropertyValue("IntermediateOutputPath").Replace('\\', '/');
+        if (intermediate.Length == 0) throw new InvalidDataException("Missing intermediate output directory");
+        var omissions = new JsonArray();
+        foreach (var expression in new[] { "$(IntermediateOutputPath)$(TargetFileName)", "$(IntermediateOutputPath)$(TargetName).pdb" })
+        {
+            var path = Path.GetFullPath(project.ExpandString(expression).Replace('\\', '/'), Path.GetDirectoryName(project.FullPath)!);
+            var final = project.GetPropertyValue("TargetPath");
+            final = Path.GetFullPath(final.Replace('\\', '/'), Path.GetDirectoryName(project.FullPath)!);
+            if (expression.EndsWith(".pdb", StringComparison.Ordinal)) final = Path.ChangeExtension(final, ".pdb");
+            if (!File.Exists(path) || required.Contains(path) || !File.Exists(final)) continue;
+            string Digest(string file) { using var stream = File.OpenRead(file); return Convert.ToHexStringLower(System.Security.Cryptography.SHA256.HashData(stream)); }
+            if (Digest(path) != Digest(final)) continue;
+            if (!path.StartsWith(root + Path.DirectorySeparatorChar, StringComparison.Ordinal)) throw new InvalidDataException("Omission outside workspace");
+            var relative = Path.GetRelativePath(root, path);
+            if (!declaration["OutputDirectories"]!.AsArray().Any(d => relative.StartsWith(d!.GetValue<string>().TrimEnd('/') + "/", StringComparison.Ordinal)))
+                throw new InvalidDataException("Unowned intermediate: " + relative);
+            omissions.Add(relative);
+            paths.Add(path);
+        }
+        if (omissions.Count != 0) declaration["ReplayOmissions"] = omissions;
+    }
+    File.WriteAllText(args[3], candidate.ToJsonString(new JsonSerializerOptions { WriteIndented = true }) + "\n");
+    Console.WriteLine(JsonSerializer.Serialize(new { optionalFiles = paths.Count, bytes = paths.Sum(path => new FileInfo(path).Length),
+        scope = "candidate SDK intermediates; requires production ownership/metadata checks, uncached parity and replay qualification" }));
+    return;
 }
 // Qualification only: isolate reference scanning and ordering from output hashing,
 // evaluation and compilation. Include candidate-cache construction in every pass.
@@ -191,7 +254,7 @@ if (args[2] == "build")
         throw new InvalidDataException("Raw graph Build failed: " + result.Exception);
     return;
 }
-if (args[2] != "binplace") throw new ArgumentException("Expected build, binplace, reference-work or dependency-order");
+if (args[2] != "binplace") throw new ArgumentException("Expected build, binplace, replay-omissions, reference-work or dependency-order");
 var output = new SortedDictionary<string, SortedDictionary<string, string[]>>(StringComparer.Ordinal);
 foreach (var node in graph.ProjectNodes)
 {
