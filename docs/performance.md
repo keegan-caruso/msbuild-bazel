@@ -149,13 +149,39 @@ contracts are explicit: source extensions alone cannot establish compiler-only u
 
 ## Optional replay intermediates
 
-`//tests/integration:replay_omissions` passed on Linux ARM64 / both Bazel pins.
-The three-project fixture omits duplicate `obj` DLL/PDB files: six fewer copies,
-329,517 → 285,005 replayed bytes (13.5%), with matching app/reference bytes,
-unchanged body/API invalidation and uncached parity. Complete snapshots retain
-omitted payloads; the replay control rejects corruption even in an omitted file.
-This is a small work-volume result, not an end-to-end timing or large-runtime
-speedup. Independent HTTP recovery with this contract remains unqualified.
+The runtime contract can omit **808 duplicate SDK `obj` DLL/PDB files / 93 MB**
+from replay/publication. The all-miss seed, edits, recovery and final restoration
+matched all **2,814 retained compiled files** against the complete raw control.
+Reference assemblies and required target results remain protected. Snapshots still
+store and verify omitted payloads; corruption in an omitted file fails recovery.
+
+Same 481-compilation scope and scoring controls as the main baseline:
+
+| Case | Bazel median | Raw median | Replay work removed (separate diagnostic) |
+| --- | ---: | ---: | --- |
+| Body edit | 31.01 s | 30.06 s | 796 copies; 689 → 596 MB |
+| API edit | 46.03 s | 44.84 s | 784 copies; 677 → 586 MB |
+| Local recovery | 15.06 s | — | 481 hits; no compilation |
+
+Both edits retain six/17 compiler calls and reuse Restore. Copy bytes decrease
+about **13.4%**, but scored edits remain roughly **3% slower than raw**; recovery
+is near the 15.24-second main baseline. This qualifies reduced work, not an
+end-to-end speedup. The contracts stay opt-in. Evaluation still takes about 5.8 s.
+
+`RuntimeRawGraph.cs.txt`'s `replay-omissions` mode inventories generic SDK
+intermediates whose bytes match final outputs. Qualification explicitly applies
+the candidate contract; `runtime_benchmark.py --replay-omissions` allows only
+those omissions, requires them absent from graph output and present in raw, and
+compares every remaining compiled file. Changes to inputs, properties, ownership
+or required products still fail. No production default or runtime-specific
+omission heuristic was added.
+
+Native replay controls and independent three-project HTTP recovery passed on
+both Bazel pins with `COMPLETE_REPLAY_OMISSIONS=1`: producer stopped, 49 required
+files matching bytes/modes, whole Restore/graph hits, forced project recovery,
+body/API invalidation and fresh tests. The 481-compilation omission contract has
+local recovery evidence; independent HTTP recovery for that larger contract
+remains unqualified.
 
 [Historical series at 7e22cd6](https://github.com/keegan-caruso/msbuild-bazel/blob/7e22cd67609f6ae5e1606fcae9dcf6e578c2db3b/docs/performance.md)
 measured cold Restore + Build at 1093.53 s versus 1048.89 s raw, and independent

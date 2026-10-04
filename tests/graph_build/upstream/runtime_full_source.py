@@ -32,8 +32,26 @@ def capture_compiled_products(workspace, contract):
             and not (str(p.relative_to(workspace)).startswith('artifacts/obj/') and '/PreTrim/' in str(p.relative_to(workspace)))}
 
 
-def validate_raw_contract(contract, raw_results):
-    """Allow only output additions proven by this completed raw SDK inventory."""
+def replay_omissions(contract):
+    """Explicit optional files only; the runner also checks SDK target metadata."""
+    variants = [v for p in contract['Projects'].values() for v in p.get('Configurations') or [p]]
+    required = {p for v in variants for p in v.get('OutputFiles', [])}
+    required |= {p for v in variants for pair in v.get('DependencyCopies', {}).items() for p in pair}
+    required |= {p for v in variants for p in v.get('CompilerReferences', {}).values()}
+    required |= {v['CompilerReference'] for v in variants if v.get('CompilerReference')}
+    paths = set()
+    for variant in variants:
+        for path in variant.get('ReplayOmissions', []):
+            parts = path.split('/')
+            assert not path.startswith('/') and not any(p in ['', '.', '..'] for p in parts) and '\\' not in path, path
+            assert path.endswith(('.dll', '.pdb')) and parts[-2] not in ['ref', 'refint'], path
+            assert path not in required and any(path.startswith(d.rstrip('/') + '/') for d in variant['OutputDirectories']), path
+            paths.add(path)
+    return paths
+
+
+def validate_raw_contract(contract, raw_results, allow_replay_omissions=False):
+    """Allow inventoried output additions and explicitly requested replay omissions."""
     previous = json.loads((raw_results / 'raw-workspace/graph.generated.json').read_text())
     inventory = json.loads((raw_results / 'binplace.json').read_text())
     def semantics(value):
@@ -41,8 +59,13 @@ def validate_raw_contract(contract, raw_results):
         for project in value['Projects'].values():
             for variant in [project] + project.get('Configurations', []):
                 variant.pop('OutputFiles', None)
+                if allow_replay_omissions:
+                    variant.pop('ReplayOmissions', None)
         return value
     assert semantics(previous) == semantics(contract), 'Raw semantic contract differs'
+    if allow_replay_omissions:
+        assert not replay_omissions(previous), 'Raw control must retain the complete intermediates'
+        assert replay_omissions(contract), 'No explicit candidate omissions'
     for path, project in contract['Projects'].items():
         old = previous['Projects'][path]
         for variant, original in zip([project] + project.get('Configurations', []),
@@ -65,8 +88,10 @@ def main():
     parser.add_argument('source_archive', type=Path)
     parser.add_argument('workspace', type=Path, help='completed runtime_qualify.py workspace')
     parser.add_argument('results', type=Path, help='new disposable directory')
+    parser.add_argument('--replay-omissions', action='store_true', help='compare all required products and require explicit optional intermediates to be absent')
     parser.add_argument('--inventory-only', action='store_true', help='raw Build and target-derived binplace inventory before graph qualification')
     args = parser.parse_args()
+    assert not args.replay_omissions or not args.inventory_only
     assert os.uname().sysname == 'Linux' and os.uname().machine == 'aarch64'
     assert hashlib.sha256(args.source_archive.read_bytes()).hexdigest() == SOURCE_SHA256
     root, results = args.workspace.resolve(), args.results.resolve()
@@ -118,12 +143,17 @@ def main():
                               scope='raw Build and SDK BinPlace ownership; not graph parity or scored timing')), flush=True)
         return
     graph_outputs, raw_outputs = capture_compiled_products(expected, contract), capture_compiled_products(raw, contract)
+    omitted = replay_omissions(contract) if args.replay_omissions else set()
+    if omitted:
+        assert not omitted & graph_outputs.keys(), 'Optional intermediates were published'
+        assert omitted <= raw_outputs.keys(), 'Candidate must exist in the complete raw control'
+        raw_outputs = {p: v for p, v in raw_outputs.items() if p not in omitted}
     differences = {p: {'graph': graph_outputs.get(p), 'raw': raw_outputs.get(p)}
                    for p in sorted(graph_outputs.keys() | raw_outputs.keys())
                    if graph_outputs.get(p, {}).get('sha256') != raw_outputs.get(p, {}).get('sha256')}
     report = dict(commit=COMMIT, sourceSha256=SOURCE_SHA256, entries=contract.get('Entries') or [contract['Entry']],
                   configuredNodes=len(variants), compilationNodes=sum(bool(v['OutputDirectories'] or v.get('OutputFiles')) for v in variants),
-                  comparedDllPdbResourceFiles=len(graph_outputs), differences=differences,
+                  comparedDllPdbResourceFiles=len(graph_outputs), omittedIntermediateFiles=len(omitted), differences=differences,
                   observedFileModes={name: dict(Counter(oct(v['mode']) for v in outputs.values())) for name, outputs in [('graph', graph_outputs), ('raw', raw_outputs)]},
                   packageExpansionSeconds=expansion_seconds, scope='full upstream source; compiled-product byte parity, not scored timing')
     (results / 'summary.json').write_text(json.dumps(report, indent=2) + '\n')

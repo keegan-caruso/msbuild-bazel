@@ -6,6 +6,10 @@ source "$runner_dir/common.sh"
 phase=${COMPLETE_CACHE_PHASE:?Set producer or consumer}
 endpoint=${COMPLETE_CACHE_URL:?Set the Bazel/project HTTP cache URL}
 seed=${COMPLETE_CACHE_SEED:-}
+case "${COMPLETE_REPLAY_OMISSIONS:-0}" in
+    0|1) ;;
+    *) echo 'COMPLETE_REPLAY_OMISSIONS must be 0 or 1' >&2; exit 2 ;;
+esac
 [[ $phase == producer || $phase == consumer ]]
 if [[ $phase == consumer ]]; then
     token=$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))["token"])' "$seed")
@@ -23,7 +27,7 @@ cat > Directory.Build.targets <<'XML'
 </Project>
 XML
 python3 - <<'PY'
-import hashlib, json
+import hashlib, json, os
 from pathlib import Path
 p = Path('mappings.json'); mappings = json.loads(p.read_text())
 mappings['projectDefaults']['documents'] = {'Directory.Build.targets': {
@@ -33,6 +37,9 @@ mappings['projectDefaults']['documents'] = {'Directory.Build.targets': {
 # assemblies. Custom targets otherwise select conservative dependency keys.
 mappings['projects'] = {p: {'referenceBoundary': True} for p in [
     'src/Library/Library.csproj', 'src/App/App.csproj', 'tests/Tests/Tests.csproj']}
+if os.environ.get('COMPLETE_REPLAY_OMISSIONS') == '1':
+    for binding in mappings['projects'].values():
+        binding['replayOmissions'] = ['$(IntermediateOutputPath)$(TargetFileName)', '$(IntermediateOutputPath)$(TargetName).pdb']
 p.write_text(json.dumps(mappings))
 PY
 cp BUILD.bazel.in BUILD.bazel

@@ -60,12 +60,14 @@ def main():
     parser.add_argument('--slice', choices=['pipelines-tests', 'collections', 'loaded-common', 'runtime-suites'], default='pipelines-tests')
     parser.add_argument('--continue-api-from', type=Path, help='completed no-op/body scorecard with retained raw state; record remaining cases separately')
     parser.add_argument('--qualified-raw-results', type=Path, help='completed full-source raw control for runtime-suites; reuse its warm outputs in place')
+    parser.add_argument('--replay-omissions', action='store_true', help='compare all required products while checking explicit optional intermediates are absent; runtime-suites only')
     parser.add_argument('--reseed-worker', action='store_true', help='with qualified raw outputs, require a fresh all-miss runner seed before scoring')
     parser.add_argument('--diagnostics', action='store_true', help='profile separate unique edits after the scored series')
     parser.add_argument('--trim-between-rows', action='store_true', help='Trim the owned Linux VM filesystem between observations, outside scored intervals; requires fstrim privileges')
     args = parser.parse_args()
     assert os.uname().sysname == 'Linux' and os.uname().machine == 'aarch64'
     assert args.samples > 0
+    assert not args.replay_omissions or args.qualified_raw_results
     assert not args.reseed_worker or args.qualified_raw_results, 'Reseeding requires qualified complete-source raw outputs'
     assert not (args.continue_api_from and args.qualified_raw_results)
     assert bool(args.qualified_raw_results) == (args.slice == 'runtime-suites'), 'Larger timing requires the qualified full-source raw workspace'
@@ -100,9 +102,15 @@ def main():
         from runtime_full_source import validate_raw_contract
         prior = args.qualified_raw_results.resolve()
         assert prior != results and not results.is_relative_to(prior) and not prior.is_relative_to(results)
-        validate_raw_contract(contract, prior)
+        validate_raw_contract(contract, prior, allow_replay_omissions=args.replay_omissions)
         raw = prior / 'raw-workspace'
-        assert json.loads((raw / 'graph.generated.json').read_text()) == contract
+        raw_contract = json.loads((raw / 'graph.generated.json').read_text())
+        comparison_contract = json.loads(json.dumps(contract))
+        if args.replay_omissions:
+            for p in comparison_contract['Projects'].values():
+                for v in [p] + p.get('Configurations', []):
+                    v.pop('ReplayOmissions', None)
+        assert raw_contract == comparison_contract
         assert (raw / '.qualification/Raw.dll').is_file()
         expansion_seconds = None
         qualified = dict(priorResults=str(prior), rawContractSha256=hashlib.sha256((raw / 'graph.generated.json').read_bytes()).hexdigest(),
@@ -221,8 +229,16 @@ def main():
                 for p in paths if p.is_file() and p.suffix in ['.dll', '.pdb', '.resources']
                 and not (str(p.relative_to(workspace)).startswith('artifacts/obj/') and '/PreTrim/' in str(p.relative_to(workspace)))}
 
+    from runtime_full_source import replay_omissions
+    omitted = replay_omissions(contract) if args.replay_omissions else set()
+    assert not {mutation['implDll'], mutation['refDll']} & omitted, 'Edit controls are required products'
+
     def compare():
         actual, expected = snapshot(root / 'bazel-bin/graph.graph/workspace'), snapshot(raw)
+        if omitted:
+            assert not omitted & actual.keys(), 'Optional intermediates were published'
+            assert omitted <= expected.keys(), 'Candidate must be observed in the complete raw control'
+            expected = {p: v for p, v in expected.items() if p not in omitted}
         # Bazel freezes declared tree artifacts to 0555 after the action. Raw
         # outputs remain writable. Record both modes; compare bytes without
         # altering either filesystem or treating freezing as a compiler mismatch.
@@ -267,7 +283,7 @@ def main():
         summary = dict(platform='linux-arm64', cpus=4, memoryGiB=8, msbuildNodes=4, graphProjects=compiled,
                        sdkVersion=contract['SdkVersion'], bazelVersion='9.2.0', slice=args.slice, entries=mutation['entries'], rawNamespace='same stable paths and isolation as graph',
                        harnessSha256=hashlib.sha256(Path(__file__).read_bytes()).hexdigest(), packageExpansionSeconds=expansion_seconds,
-                       continuation=continuation, qualifiedWarmBaseline=qualified, trimBetweenRows=args.trim_between_rows, memorySamples=memory_samples, rows=rows)
+                       continuation=continuation, qualifiedWarmBaseline=qualified, omittedIntermediateFiles=len(omitted), trimBetweenRows=args.trim_between_rows, memorySamples=memory_samples, rows=rows)
         (results / 'summary.json').write_text(json.dumps(summary, indent=2) + '\n')
         print(json.dumps({key: value for key, value in row.items()
                           if key not in ['runner', 'rawCompilerCalls', 'graphCompilerCalls']}), flush=True)
