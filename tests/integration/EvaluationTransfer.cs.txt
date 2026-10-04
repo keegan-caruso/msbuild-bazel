@@ -1,0 +1,29 @@
+using RulesMSBuild.GraphBuild;
+using Microsoft.Build.Definition;
+using Microsoft.Build.Evaluation;
+using Microsoft.Build.Execution;
+using Microsoft.Build.Framework;
+using Microsoft.Build.Graph;
+using System.Text.Json;
+
+var sdk = args[1];
+var engine = Path.Combine(sdk, "sdk", "10.0.400");
+Environment.SetEnvironmentVariable("MSBUILD_EXE_PATH", Path.Combine(engine, "MSBuild.dll"));
+Environment.SetEnvironmentVariable("MSBuildSDKsPath", Path.Combine(engine, "Sdks"));
+Environment.SetEnvironmentVariable("DOTNET_HOST_PATH", Path.Combine(sdk, "dotnet"));
+System.Runtime.Loader.AssemblyLoadContext.Default.Resolving += (context, name) =>
+    File.Exists(Path.Combine(engine, name.Name + ".dll")) ? context.LoadFromAssemblyPath(Path.Combine(engine, name.Name + ".dll")) : null;
+using var collection = new ProjectCollection();
+var graph = new ProjectGraph([new ProjectGraphEntryPoint(Path.Combine(args[0], "P2/P2.csproj"), new Dictionary<string, string> {
+    ["Configuration"] = "Release", ["UseSharedCompilation"] = "false", ["PathMap"] = args[0] + "=/_/workspace," + sdk + "=/_/sdk"
+})], collection, (path, globals, owner) => {
+    var instance = Project.FromFile(path, new ProjectOptions { GlobalProperties = globals, ProjectCollection = owner }).CreateProjectInstance();
+    instance.TranslateEntireState = args[2] == "full";
+    return instance;
+});
+var counter = new BuildEvaluationCounter();
+using var manager = new BuildManager();
+var result = manager.Build(new BuildParameters(collection) { MaxNodeCount = 2, DisableInProcNode = true, EnableNodeReuse = false, Loggers = [counter] }, new GraphBuildRequestData(graph, ["Build"]));
+if (result.OverallResult != BuildResultCode.Success) throw new Exception("Build failed: " + result.Exception);
+Console.WriteLine(JsonSerializer.Serialize(new { mode = args[2], counter.Evaluations }));
+if (args[2] == "full" ? counter.Evaluations != 0 : counter.Evaluations == 0) throw new Exception("Evaluation transfer negative control failed");

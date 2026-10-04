@@ -115,6 +115,10 @@ internal sealed class GraphInputs : IDisposable
                     using (GraphProfile.Measure("projectInstance"))
                     {
                         instance = project.CreateProjectInstance();
+                        // Out-of-process build nodes otherwise evaluate the same
+                        // project again to reconstruct targets and task registrations.
+                        // Transfer the full pristine instance from this graph pass.
+                        instance.TranslateEntireState = true;
                     }
                     using (GraphProfile.Measure("importCapture"))
                     {

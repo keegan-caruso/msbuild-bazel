@@ -23,6 +23,8 @@ Sync records input files, configured projects and output ownership. Builds consu
 that contract, restore from declared packages, evaluate the MSBuild graph afresh,
 then build or recover each project. Definition changes require sync; custom task
 reads require reviewed declarations. Evaluation does not trace arbitrary file access.
+Fully evaluated instances carry targets and task registrations to build nodes;
+those nodes do not need to reconstruct the project from disk.
 
 MSBuild composes project outputs. Bazel extracts the selected runtime layout for
 an app or test, making runtime dependencies part of that target's cache inputs.
