@@ -55,7 +55,7 @@ configuration changes. `bazel run //:sync -- --check` rejects stale declarations
 Mappings use `projectDefaults`, project-path `projects`, `frameworkOverrides`, and
 root `entryProperties`. Supported contracts are `documents` (digest, target/task
 names, extra inputs), `inputItems`, `evaluationItems`, `outputFiles`,
-`inputDirectories`, `temporaryDirectories`, `referenceBoundary`,
+`inputDirectories`, `temporaryDirectories`, `replayOmissions`, `referenceBoundary`,
 `implementationDependencies`, `compilerReference`, `compilerReferences`,
 `preparedRestore`, `restoreInputs`, and `restoreOutputs`.
 `projectDefaults.properties` sets graph-wide properties. Unknown/duplicate fields
@@ -111,6 +111,15 @@ the authored runtimeconfig allows it. Host-path SDK repositories are unsupported
 Use `msbuild_graph_output(directory = True)` for an owned reference/generated tree;
 map it with `input_paths = {":references": "prepared"}` in the consuming graph.
 Its consumed files still need explicit contract inputs. Exports reject links.
+
+`replayOmissions` lists reviewed disposable intermediate files, relative to the
+workspace in a graph contract; sync mappings may use project property expressions.
+For example, `"$(IntermediateOutputPath)$(TargetFileName)"` selects the duplicate
+implementation DLL in `obj`. Omitted files stay in complete, verified snapshots
+but are absent from action products after both compilation and recovery. Required
+assemblies, references, declared outputs/copies and target-result paths are rejected.
+Use only when tasks, downstream projects and exports do not need those files;
+there are no automatic omissions. This contract is qualified for Build only.
 
 ## Tests
 

@@ -20,6 +20,7 @@ internal sealed class ProjectBinding
     public string[] RestoreInputs { get; set; } = [];
     public string[] RestoreOutputs { get; set; } = [];
     public string[] OutputFiles { get; set; } = [];
+    public string[] ReplayOmissions { get; set; } = [];
     public bool? ReferenceBoundary { get; set; } = null;
     public string[] ImplementationDependencies { get; set; } = [];
     public string? CompilerReference { get; set; } = null;

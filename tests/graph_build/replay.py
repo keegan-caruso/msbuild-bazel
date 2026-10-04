@@ -95,6 +95,33 @@ def main():
             path.write_bytes(b'corrupt')
         failure = run(DOTNET, RUNNER, 'build', root, manifest, report, work / 'cache', 'Publish', success=False)
         assert 'Corrupt graph snapshot' in failure.stderr, failure.stderr
+        # A sparse workspace must still have complete, validated cache snapshots.
+        omitted = {'P0/obj/Release/net10.0/P0.dll', 'P0/obj/Release/net10.0/P0.pdb'}
+        contract['Projects']['P0/P0.csproj']['ReplayOmissions'] = sorted(omitted)
+        manifest.write_text(json.dumps(contract))
+        results['omitted_seed'] = build(cache='omitted', expected=0)
+        assert not any((root / path).exists() for path in omitted)
+        sparse_products = outputs()
+        snapshots = [(p, json.loads(p.read_text())) for p in (work / 'omitted').glob('*/manifest.json')]
+        stored = next((p.parent, record) for p, record in snapshots if omitted <= record['Files'].keys())
+        assert all((stored[0] / path).is_file() for path in omitted), 'Complete snapshot lost optional intermediates'
+        results['omitted_replay'] = build(cache='omitted', expected=3)
+        assert sparse_products == outputs()
+        execute('2')
+        # Target-result metadata cannot reintroduce a consumer of an omitted file.
+        stored_manifest = stored[0] / 'manifest.json'
+        original_manifest = stored_manifest.read_text()
+        stored[1]['Targets'][0]['Items'][0]['Metadata']['RequiredFiles'] = 'unrelated;obj/Release/net10.0/P0.dll'
+        stored_manifest.write_text(json.dumps(stored[1]))
+        clean()
+        failure = run(DOTNET, RUNNER, 'build', root, manifest, report, work / 'omitted', 'Build', success=False)
+        assert 'Replay omission overlaps target-result metadata' in failure.stderr, failure.stderr
+        stored_manifest.write_text(original_manifest)
+        # Omitted payloads are still verified, even though consumers never copy them.
+        (stored[0] / 'P0/obj/Release/net10.0/P0.pdb').write_bytes(b'corrupt omitted payload')
+        clean()
+        failure = run(DOTNET, RUNNER, 'build', root, manifest, report, work / 'omitted', 'Build', success=False)
+        assert 'Corrupt graph snapshot' in failure.stderr, failure.stderr
         print(json.dumps(results, indent=2))
 
 
