@@ -139,6 +139,7 @@ if (args[0] is "build" or "action")
     using var remote = remoteUrl is null ? null : new RemoteSnapshotStore(new Uri(remoteUrl.TrimEnd('/') + "/"), bearerToken: bearerToken, profile: profile, contentStore: payloads);
     var materializer = new FileMaterializer(copyMode == "clone", profile);
     var plugin = new GraphCache(inputs, cache ?? throw new InvalidDataException("Cache directory is required"), args.Length < 7 || args[6] != "no-read", remote, materializer, payloads, temporaryOutputs, localState);
+    var buildEvaluation = profile ? new BuildEvaluationCounter() : null;
     var parameters = new BuildParameters(inputs.Collection)
     {
         MaxNodeCount = 4,
@@ -148,7 +149,7 @@ if (args[0] is "build" or "action")
     };
     if (profile)
     {
-        parameters.Loggers = parameters.Loggers.Append(new Microsoft.Build.Logging.BinaryLogger
+        parameters.Loggers = parameters.Loggers.Append(buildEvaluation!).Append(new Microsoft.Build.Logging.BinaryLogger
         {
             Parameters = Path.ChangeExtension(report, ".binlog") + ";ProjectImports=None"
         });
@@ -191,6 +192,7 @@ if (args[0] is "build" or "action")
         misses = plugin.Misses,
         buildAndSnapshotSeconds = timer.Elapsed.TotalSeconds,
         evaluationSeconds = inputs.EvaluationSeconds,
+        buildNodeEvaluations = buildEvaluation?.Evaluations,
         inputHashSeconds = inputs.InputHashSeconds,
         totalSeconds = totalTimer.Elapsed.TotalSeconds
     }));

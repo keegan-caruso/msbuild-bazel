@@ -56,6 +56,17 @@ and publication 0.15/0.16 s. Remaining work is evaluation and snapshot replay,
 not publication. Retain Restore's contract: these edits already reuse preparation.
 The fresh all-miss seed and diagnostics were excluded from scored pairs.
 
+## Evaluation transfer qualification
+
+`//tests/integration:evaluation_transfer` uses the production diagnostic counter
+and forced out-of-process MSBuild nodes. On Linux ARM64 / SDK 10.0.400 / both
+Bazel pins, partial transfer caused three build-node evaluations; full transfer
+caused zero, with matching DLL/PDB bytes. Cached/uncached worker Build/Publish
+controls also passed. This removes reconstruction within a request; the initial
+graph still evaluates afresh. Reuse between requests needs a retained isolated
+engine, pristine instance copies and a complete evaluation invalidation contract.
+No large-runtime edit-time improvement is claimed for this slice.
+
 [Historical series at 7e22cd6](https://github.com/keegan-caruso/msbuild-bazel/blob/7e22cd67609f6ae5e1606fcae9dcf6e578c2db3b/docs/performance.md)
 measured cold Restore + Build at 1093.53 s versus 1048.89 s raw, and independent
 HTTP recovery at 34.35 s. Those measurements predate the graph-only cutover.

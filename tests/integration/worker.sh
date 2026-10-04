@@ -77,6 +77,7 @@ sed 's/.*"worker":{//; s/}.*//' "$report" | awk -F '[:,]' '
     }'
 
 assert_contains "$report" '"operations":{'
+assert_contains "$report" '"buildNodeEvaluations":0'
 sed -i 's/ profile_build=True,//' BUILD.bazel
 build unprofiled-replay 2 "$replay"
 assert_contains "$report" '"operations":null'
