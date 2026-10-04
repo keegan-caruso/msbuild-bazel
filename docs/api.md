@@ -152,8 +152,18 @@ Each request starts fresh MSBuild inside Bubblewrap; the worker retains caches.
 Prepared Restore requires matching contract/runner/SDK and stable paths.
 `worker_cache_mb` defaults to 4096 logical MiB (not an RSS cap); profiling is off.
 
-Bazel's `--remote_cache` and the plugin's HTTP AC/CAS transport have separate keys.
-Set `--action_env=RULES_MSBUILD_PROJECT_CACHE_URL=http://cache:9090` for the latter.
+Bazel's `--remote_cache` recovers whole Restore/build actions. The plugin's HTTP
+AC/CAS transport reuses projects when the build action changes. Enable both:
+
+```sh
+bash scripts/bazel.sh build //:graph --remote_cache=http://cache:9090 \
+  --action_env=RULES_MSBUILD_PROJECT_CACHE_URL=http://cache:9090 \
+  --remote_download_outputs=all
+```
+
+Both may use the same service, with separate keys. Stable-path Restore hits skip
+MSBuild preparation; the graph worker materializes packages only if compilation
+or project recovery executes. SDK/package acquisition is separate from Restore.
 If needed, pass `RULES_MSBUILD_PROJECT_CACHE_BEARER_TOKEN` from the environment.
 Missing blobs cause rebuilds; corruption fails; transfers are checked and retried.
 HTTP publication has no atomic compare-and-swap guarantee for divergent writers.

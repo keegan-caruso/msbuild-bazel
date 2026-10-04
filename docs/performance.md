@@ -1,6 +1,6 @@
 # Performance versus raw MSBuild
 
-Main **8d83f0f**, runtime v10.0.0 (`60629d14374c56f1cb51819049ad1fa529307f8d`),
+Baseline **8d83f0f**, runtime v10.0.0 (`60629d14374c56f1cb51819049ad1fa529307f8d`),
 SDK 10.0.400, Bazel 9.2.0, Linux ARM64: four CPUs / 8 GiB, four MSBuild nodes,
 one graph worker with an 8192 MiB snapshot budget. Scope: 481 compilations /
 543 configurations / 39 roots. Refreshed after the graph-only cutover.
@@ -55,6 +55,85 @@ paired gaps varied too. Separate body/API diagnostics measured evaluation
 and publication 0.15/0.16 s. Remaining work is evaluation and snapshot replay,
 not publication. Retain Restore's contract: these edits already reuse preparation.
 The fresh all-miss seed and diagnostics were excluded from scored pairs.
+
+## Complete remote-cache recovery
+
+Same 481-compilation runtime contract, Linux ARM64 / SDK 10.0.400 / Bazel 9.2:
+a fresh relocated consumer, producer stopped, fresh output bases, normal Bazel
+HTTP caching enabled and local disk caching disabled. After bounded child
+verification, one unprofiled observation per case:
+
+| Recovery | Wall seconds | Restore action | Graph action |
+| --- | ---: | ---: | ---: |
+| Whole-action hits | 9.86 | 2.60 remote hit | 1.86 remote hit |
+| Forced graph execution | 29.15 | 2.65 remote hit | 22.49; 481 project hits / zero misses |
+| Body edit | 29.14 | Reused | 26.95; 475 hits / six misses |
+| API edit | 41.46 | Reused | 39.46; 464 hits / 17 misses |
+| Return to original sources | 16.84 | Reused | 15.21; 481 hits / zero misses |
+
+All 10,780 compared files matched bytes/modes on seed and recovery. The all-miss
+seed took 1072.84 s; bootstrap/acquisition was separate. Edits preserved the
+expected reference-assembly boundary and executed no Restore action. Independent
+native controls passed on Bazel 8.8.0 and 9.2.0, including fresh tests.
+Whole-action reports are cached producer metadata; spawn logs establish actual
+recovery. Download mtimes changed MSBuild's `MSBuildAllProjects` prefix; keys now
+represent that prefix by the complete validated import set without changing the
+SDK instance. Authored entries and imported bytes remain significant.
+The earlier 95.65-second Restore measurement deliberately disabled this action
+cache; it does not describe normal recovery. This is cache recovery, not RBE or
+a new runtime test-suite run.
+
+Workers now copy preparation without a duplicate broker hash; the read-only
+child verifies every payload before any Restore-output writes or evaluation.
+Five paired fresh-copy probes on 8,979 files / 1.75 GB measured median
+materialization **1.77 → 0.59 s**. These isolated operations used warm filesystem
+caches; this does not establish a paired end-to-end speedup. Corrupt new/cached
+copies, changed modes/inodes and invalid manifests failed the production checks.
+A separate final diagnostic measured staging 2.94 s, child preparation 2.17 s
+(SDK 0.76 s, Restore key 0.86 s, payload verification wall 0.31 s), evaluation
+5.64 s and input hashing 2.55 s. Scopes can overlap. Large rows were not paired
+against the serial implementation; they establish correctness, not a speedup.
+
+Driver: `python3 tests/graph_build/upstream/runtime_complete_remote.py WORKSPACE
+RESULTS --output-base BASE --cache-url URL --phase producer`. Stop the producer;
+run a new consumer with `--phase consumer --seed-evidence PRODUCER/seed.json`.
+`--edits` adds body/API and original-output recovery controls on the retained
+worker; `--diagnostics` adds a separate profiled recovery. Native controls use
+`//tests/integration:complete_remote_cases_bazel_8_8_0` (or
+`_bazel_.bazelversion`), with `COMPLETE_CACHE_PHASE`, `COMPLETE_CACHE_URL` and a
+matching consumer `COMPLETE_CACHE_SEED`; they also cover body/API edits and fresh tests.
+
+Full-child verification probes use `python3 tests/graph_build/package_verification.py
+RESULTS --workspace WORKSPACE --contract CONTRACT --sdk SDK --prepared PREPARED
+--apply --samples 6`. Each sample starts a fresh process with read-only prepared
+packages and absent Restore outputs. Setup rebinds only a disposable manifest key;
+this isolates verification, not remote recovery. `--profile` reports preparation
+phases; `--cold` drops page caches in a disposable Linux guest. Neither setup nor
+MSBuild evaluation is timed. `--compare-runner OTHER_DLL` rotates candidate order.
+Six warm / three cold, unprofiled pairs on the same four-core Linux ARM64 guest:
+
+| SDK / payload hash threads | Warm median | Cold median |
+| --- | ---: | ---: |
+| Serial / serial | 1.23 s | 5.37 s |
+| Serial / four | 0.75 s | 4.66 s |
+| Four / four | 0.58 s | 3.84 s |
+
+Each child checks 4,907 SDK files / 672 MB, 8,979 prepared files / 1.75 GB and the
+Restore key. Four threads won the 1/2/4 probes; the cap follows available processors.
+Ordered SDK hashing preserves the existing digest. Verification finishes before
+any Restore writes or evaluation. SDK/payload digests already flow into graph
+construction; mutable inputs are checked again after execution. Same-size/mtime
+corruption, invalid paths/modes/manifests, conflicting destinations and replacement
+inodes failed the production checks. Read-only binds do not establish cross-child
+immutability. These are verification gains, not paired end-to-end build speedups.
+
+Combined fingerprints now serialize the same JSON directly into `IncrementalHash`,
+avoiding the full JSON string and UTF-8 array. `input_integrity.py` checks prior-key
+compatibility, escaping, Unicode, long records and single-pass enumeration. Six
+warm / three cold paired Apply probes measured **0.65 → 0.62 s** and
+**3.92 → 4.00 s**: no material verification-time gain is claimed. File bytes still
+use streaming SHA-256; every child reads them afresh. Native worker body/API and
+recovery controls passed on both Bazel pins.
 
 ## Evaluation transfer qualification
 

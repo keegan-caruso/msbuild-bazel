@@ -1,5 +1,4 @@
 using System.Security.Cryptography;
-using System.Text;
 using System.Text.Json;
 
 namespace RulesMSBuild.GraphBuild;
@@ -29,6 +28,8 @@ internal sealed record ProjectConfiguration(Dictionary<string, string> Propertie
 
 internal sealed class ContractFiles(string root, string sdk)
 {
+    private static readonly JsonSerializerOptions SmallHashOptions = new() { DefaultBufferSize = 256 };
+
     internal string Root { get; } = Path.TrimEndingDirectorySeparator(Path.GetFullPath(root));
     internal string Sdk { get; } = Path.TrimEndingDirectorySeparator(Path.GetFullPath(sdk));
     internal string Normalize(string value) => value.Replace(Root, "/_/workspace", StringComparison.Ordinal)
@@ -86,9 +87,44 @@ internal sealed class ContractFiles(string root, string sdk)
     internal static string InputDigest(string path) => Hash([Digest(path), OperatingSystem.IsWindows() ? "" :
         ((int)(File.GetUnixFileMode(path) & (UnixFileMode.UserExecute | UnixFileMode.GroupExecute | UnixFileMode.OtherExecute))).ToString(System.Globalization.CultureInfo.InvariantCulture)]);
 
-    internal static string Hash(IEnumerable<string> records) =>
-        Convert.ToHexStringLower(SHA256.HashData(Encoding.UTF8.GetBytes(JsonSerializer.Serialize(records))));
+    internal static string Hash(IEnumerable<string> records)
+    {
+        using var hash = IncrementalHash.CreateHash(HashAlgorithmName.SHA256);
+        using var stream = new HashStream(hash);
+        // Preserve the JSON fingerprint format without materializing its string
+        // and UTF-8 byte array. Small buffers also serve two-record input digests.
+        JsonSerializer.Serialize(stream, records,
+            records.TryGetNonEnumeratedCount(out var count) && count <= 2 ? SmallHashOptions : null);
+        return Convert.ToHexStringLower(hash.GetHashAndReset());
+    }
 
-    internal static string TreeDigest(string directory) => Hash(Directory.EnumerateFiles(directory, "*", SearchOption.AllDirectories)
-        .Order(StringComparer.Ordinal).Select(path => Path.GetRelativePath(directory, path) + ":" + InputDigest(path)));
+    internal static string TreeDigest(string directory, int parallelism = 1)
+    {
+        var paths = Directory.EnumerateFiles(directory, "*", SearchOption.AllDirectories).Order(StringComparer.Ordinal);
+        string Record(string path) => Path.GetRelativePath(directory, path) + ":" + InputDigest(path);
+        return Hash(parallelism == 1 ? paths.Select(Record) : paths.AsParallel().AsOrdered()
+            .WithDegreeOfParallelism(Math.Min(Environment.ProcessorCount, parallelism)).Select(Record));
+    }
+
+    private sealed class HashStream(IncrementalHash hash) : Stream
+    {
+        public override bool CanRead => false;
+        public override bool CanSeek => false;
+        public override bool CanWrite => true;
+        public override long Length => throw new NotSupportedException();
+        public override long Position
+        {
+            get => throw new NotSupportedException();
+            set => throw new NotSupportedException();
+        }
+
+        public override void Write(byte[] buffer, int offset, int count) => hash.AppendData(buffer, offset, count);
+        public override void Write(ReadOnlySpan<byte> buffer) => hash.AppendData(buffer);
+        public override void Flush()
+        {
+        }
+        public override int Read(byte[] buffer, int offset, int count) => throw new NotSupportedException();
+        public override long Seek(long offset, SeekOrigin origin) => throw new NotSupportedException();
+        public override void SetLength(long value) => throw new NotSupportedException();
+    }
 }

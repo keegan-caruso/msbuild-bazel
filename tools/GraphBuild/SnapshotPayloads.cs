@@ -13,7 +13,15 @@ internal sealed class SnapshotPayloads(string cache) : IProjectCacheContentStore
     internal void Store(string source, string digest, string destination)
     {
         var blob = Blob(digest);
-        Publish(blob, digest, temporary => File.Copy(source, temporary));
+        try
+        {
+            Publish(blob, digest, temporary => File.Copy(source, temporary));
+        }
+        catch (InvalidDataException error)
+        {
+            throw new InvalidDataException(error.Message + "; source " + source + "; expected " + digest +
+                "; current " + ContractFiles.Digest(source), error);
+        }
         Link(blob, destination);
     }
 

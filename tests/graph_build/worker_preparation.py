@@ -34,7 +34,11 @@ def main():
 set -eu
 printf '%s\\n' "$8"
 test "$(stat -c %a "$8/prepared/.nuget/example/1.0.0/data")" = 640
-''')
+if [[ $(sha256sum "$8/prepared/.nuget/example/1.0.0/data" | cut -d ' ' -f 1) != EXPECTED_DIGEST ]]; then
+    echo 'Invalid prepared Restore file' >&2
+    exit 1
+fi
+'''.replace('EXPECTED_DIGEST', hashlib.sha256(payload.read_bytes()).hexdigest()))
         worker = subprocess.Popen([DOTNET, RUNNER, 'worker', sandbox, str(args.cache_mb), '--persistent_worker'],
             cwd=root, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
         try:

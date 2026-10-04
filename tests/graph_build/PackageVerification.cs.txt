@@ -20,6 +20,31 @@ var packages = records.Where(record => record.Name.StartsWith(".nuget/", StringC
 var outputs = records.Where(record => !record.Name.StartsWith(".nuget/", StringComparison.Ordinal)).ToArray();
 var paths = records.Select(record => record.Name).ToArray();
 var sdkDigest = manifest.RootElement.GetProperty("SdkDigest").GetString()!;
+if (args.Length > 6 && args[6] is "--apply" or "--rekey")
+{
+    var bind = assembly.GetType("RulesMSBuild.GraphBuild.GraphTools", true)!.GetMethod("Bind", flags)!;
+    contract = bind.Invoke(null, [contract, args[1], args[3]])!;
+    if (args[6] == "--rekey")
+    {
+        // Only this disposable probe manifest is rebound to the probe's path,
+        // environment and runner. This does not qualify remote-cache recovery.
+        var document = System.Text.Json.Nodes.JsonNode.Parse(manifest.RootElement.GetRawText())!;
+        document["Key"] = (string)key.Invoke(null, [contract, files, sdkDigest])!;
+        File.WriteAllText(Path.Combine(args[4], "manifest.json"), document.ToJsonString());
+        return;
+    }
+    var profileType = assembly.GetType("RulesMSBuild.GraphBuild.GraphProfile", true)!;
+    profileType.GetProperty("Enabled", flags)!.SetValue(null, args.Length > 7 && args[7] == "profile");
+    var timer = Stopwatch.StartNew();
+    _ = restoreType.GetMethod("Apply", flags)!.Invoke(null, [contract, args[1], args[3], args[4], true]);
+    timer.Stop();
+    File.WriteAllText(args[5], JsonSerializer.Serialize(new { seconds = timer.Elapsed.TotalSeconds,
+        profile = profileType.GetProperty("Report", flags)!.GetValue(null),
+        files = records.Length, bytes = records.Sum(record => new FileInfo(Path.Combine(args[4], record.Name)).Length),
+        scope = "full production Apply with read-only prepared packages; disposable manifest key rebound; excludes setup and MSBuild evaluation" },
+        new JsonSerializerOptions { WriteIndented = true }) + "\n");
+    return;
+}
 var rows = new List<object>();
 {
     const int sample = 0;
@@ -80,6 +105,26 @@ WriteManifest();
 var controlCache = Path.Combine(control, "cache");
 Directory.CreateDirectory(controlCache);
 var materializer = assembly.GetType("RulesMSBuild.GraphBuild.WorkerPreparation", true)!.GetMethod("Materialize", flags)!;
+// Exercise the production child verification boundary with a complete minimal
+// Restore contract. It must reject corrupt bytes before writing any output.
+var childRoot = Path.Combine(control, "workspace");
+Directory.CreateDirectory(childRoot);
+File.WriteAllText(Path.Combine(childRoot, "project.csproj"), "<Project />");
+var childContract = JsonSerializer.Deserialize(JsonSerializer.Serialize(new { Version = 1, Entry = "project.csproj", SdkVersion = "10.0.400", Properties = new Dictionary<string, string>(), SharedInputs = Array.Empty<string>(),
+    Projects = new Dictionary<string, object> { ["project.csproj"] = new { Inputs = new[] { "project.csproj" }, OutputDirectories = Array.Empty<string>() } },
+    Restore = new { Inputs = new[] { "project.csproj" }, Outputs = new[] { "assets.json" } } }), contractType)!;
+var childFiles = Activator.CreateInstance(fileType, [childRoot, args[3]])!;
+var childKey = (string)key.Invoke(null, [childContract, childFiles, sdkDigest])!;
+var apply = restoreType.GetMethod("Apply", flags)!;
+void RejectCorruptCopy(string copy)
+{
+    var prepared = Path.Combine(copy, "prepared");
+    File.WriteAllText(Path.Combine(prepared, "manifest.json"), JsonSerializer.Serialize(new { Version = 1, Key = childKey, SdkDigest = sdkDigest,
+        Files = new Dictionary<string, object> { ["assets.json"] = new { Digest = (string)digest.Invoke(null, [Path.Combine(prepared, "assets.json")])!, Mode = 0x180 },
+            [relative] = new { Digest = expected, Mode = 0x180 } } }));
+    RequireFailure(() => apply.Invoke(null, [childContract, childRoot, args[3], prepared, false]), "Invalid prepared Restore file");
+    if (File.Exists(Path.Combine(childRoot, "assets.json"))) throw new InvalidDataException("Child wrote outputs before verifying all payloads");
+}
 var owned = (string)materializer.Invoke(null, [artifact, controlCache, "unchanged-input-identity"])!;
 var cachedPayload = Path.Combine(owned, "prepared", relative);
 File.WriteAllText(cachedPayload, "modified");
@@ -88,6 +133,8 @@ if (reused != owned || (string)digest.Invoke(null, [cachedPayload])! == expected
 {
     throw new InvalidDataException("Private-cache corruption control did not exercise the second verification boundary");
 }
+File.WriteAllText(Path.Combine(owned, "prepared", "assets.json"), "{}");
+RejectCorruptCopy(owned);
 var modeRejected = false;
 var replacementRejected = false;
 if (OperatingSystem.IsLinux())
@@ -109,11 +156,20 @@ WriteManifest(mode: 0x1000);
 RequireFailure(() => materializer.Invoke(null, [artifact, controlCache, "unchanged-input-identity"]), "Invalid prepared file mode");
 WriteManifest();
 File.WriteAllText(payload, "modified");
-RequireFailure(() => materializer.Invoke(null, [artifact, controlCache, "changed-input-identity"]), "Invalid prepared Restore file");
+try
+{
+    var changed = (string)materializer.Invoke(null, [artifact, controlCache, "changed-input-identity"])!;
+    File.WriteAllText(Path.Combine(changed, "prepared", "assets.json"), "{}");
+    RejectCorruptCopy(changed);
+}
+catch (TargetInvocationException error) when (error.InnerException is InvalidDataException invalid && invalid.Message.Contains("Invalid prepared Restore file", StringComparison.Ordinal))
+{
+    // Support the previous broker's redundant verification for paired measurements.
+}
 if (Directory.EnumerateDirectories(controlCache, "*.pending-*").Any()) throw new InvalidDataException("Failed materialization leaked staging data");
 var controlResult = new { cachedMaterializerReusesExternallyModifiedCopy = true, byteVerificationDetectsCorruption = true, cachedModeChangeRejected = modeRejected, differentInodeRejected = replacementRejected,
     changedManifestRejected = true, invalidModeRejected = true, corruptInputReplacementRejected = true, stagingCleanup = true,
-    scope = "disposable production-method control; external mutation is outside the normal broker lifecycle" };
+    scope = "production child rejects changed and cached corrupt bytes before workspace writes; external mutation is outside the normal broker lifecycle" };
 long Bytes(JsonProperty[] group) => group.Sum(record => new FileInfo(Path.Combine(args[4], record.Name)).Length);
 File.WriteAllText(args[5], JsonSerializer.Serialize(new { scope = "isolated production preparation operations; not build timing",
     packageFiles = packages.Length, packageBytes = Bytes(packages), outputFiles = outputs.Length, outputBytes = Bytes(outputs), rows, materialization, controlResult },
