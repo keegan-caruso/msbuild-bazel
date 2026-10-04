@@ -125,6 +125,28 @@ graph still evaluates afresh. Reuse between requests needs a retained isolated
 engine, pristine instance copies and a complete evaluation invalidation contract.
 No large-runtime edit-time improvement is claimed for this slice.
 
+## Evaluation reuse prototype
+
+`//tests/integration:evaluation_reuse` qualifies a retained evaluator on the
+three-project Linux ARM64 / SDK 10.0.400 fixture, on both Bazel pins. Each of
+23 cases compares DLL/PDB/reference and task-output bytes with fresh evaluation.
+Reviewed unchanged/body/API/source-timestamp cases perform zero evaluations
+versus three fresh; project/import/Restore/configuration/evaluation-read and
+file/directory membership changes reset the epoch. Failed builds and input
+mutations discard state; changed SDK/runner/environment identity requires restart.
+Every request still hashes SDK and input bytes afresh. Build nodes evaluate zero
+projects. Fresh `CreateProjectInstance` snapshots preserve task registrations and
+relative item metadata; `DeepCopy` failed the unprimed relative-reference control.
+
+Across eight reuse controls, graph construction had medians **43.19 → 1.05 ms**
+and **24.91 → 0.95 MiB** allocated. SDK/input verification and compilation are
+excluded; these phase results do not establish a large-build speedup.
+
+This is a retained-engine correctness prototype. Production workers still launch
+fresh MSBuild. Stable namespace updates, loaded-tool identity, memory bounds and
+large-graph qualification must precede production integration. Evaluation-read
+contracts are explicit: source extensions alone cannot establish compiler-only use.
+
 ## Optional replay intermediates
 
 `//tests/integration:replay_omissions` passed on Linux ARM64 / both Bazel pins.

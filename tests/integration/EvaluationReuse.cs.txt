@@ -1,0 +1,270 @@
+using System.Collections.Concurrent;
+using System.Diagnostics;
+using System.Reflection;
+using System.Text.Json;
+using Microsoft.Build.Definition;
+using Microsoft.Build.Evaluation;
+using Microsoft.Build.Execution;
+using Microsoft.Build.Framework;
+using Microsoft.Build.Graph;
+using Microsoft.Build.Logging;
+using RulesMSBuild.GraphBuild;
+
+// Qualification only: a reviewed SDK fixture in one retained evaluator. This is
+// not a persistence format or an opt-in on the production graph worker.
+var root = Path.GetFullPath(args[0]);
+var sdk = Path.GetFullPath(args[1]);
+var engine = Path.Combine(sdk, "sdk", "10.0.400");
+Environment.SetEnvironmentVariable("MSBUILD_EXE_PATH", Path.Combine(engine, "MSBuild.dll"));
+Environment.SetEnvironmentVariable("MSBuildSDKsPath", Path.Combine(engine, "Sdks"));
+Environment.SetEnvironmentVariable("DOTNET_HOST_PATH", Path.Combine(sdk, "dotnet"));
+Environment.SetEnvironmentVariable("EVAL_SESSION_PROBE", "first");
+System.Runtime.Loader.AssemblyLoadContext.Default.Resolving += (context, name) =>
+    File.Exists(Path.Combine(engine, name.Name + ".dll")) ? context.LoadFromAssemblyPath(Path.Combine(engine, name.Name + ".dll")) : null;
+File.WriteAllText(Path.Combine(root, "Directory.Build.props"), File.ReadAllText(Path.Combine(root, "Directory.Build.props"))
+    .Replace("</Project>", "<Import Project=\"$(MSBuildThisFileDirectory)optional.props\" Condition=\"Exists('$(MSBuildThisFileDirectory)optional.props')\" /></Project>", StringComparison.Ordinal));
+File.WriteAllText(Path.Combine(root, "evaluation.txt"), "first");
+File.WriteAllText(Path.Combine(root, "Directory.Build.targets"), """
+<Project>
+  <UsingTask TaskName="EvaluationProofTask" AssemblyFile="$(QualificationAssembly)" />
+  <PropertyGroup>
+    <EvaluatedValue>$([System.IO.File]::ReadAllText('$(MSBuildThisFileDirectory)evaluation.txt'))</EvaluatedValue>
+    <OptionalPresent Condition="Exists('$(MSBuildThisFileDirectory)optional-directory')">true</OptionalPresent>
+    <EnvironmentValue>$(EVAL_SESSION_PROBE)</EnvironmentValue>
+    <QualificationRead Condition="'$(SourceEvaluationRead)' == 'true'">$([System.IO.File]::ReadAllText('$(MSBuildThisFileDirectory)P0/Code.cs'))</QualificationRead>
+  </PropertyGroup>
+  <Target Name="Proof" BeforeTargets="CoreCompile">
+    <EvaluationProofTask File="$(IntermediateOutputPath)proof.txt" Value="$(EvaluatedValue)|$(OptionalPresent)|$(EnvironmentValue)|$(QualificationRead)|$(ImportedValue)" />
+    <PropertyGroup><BuildMutation>must not survive</BuildMutation></PropertyGroup>
+    <Error Text="Expected qualification failure" Condition="'$(ForceFailure)' == 'true'" />
+    <WriteLinesToFile File="$(MSBuildThisFileDirectory)evaluation.txt" Lines="mutated" Overwrite="true" Condition="'$(MutateInput)' == 'true'" />
+  </Target>
+</Project>
+""");
+var globals = new Dictionary<string, string> {
+    ["Configuration"] = "Release", ["UseSharedCompilation"] = "false",
+    ["QualificationAssembly"] = Assembly.GetExecutingAssembly().Location,
+    ["PathMap"] = root + "=/_/workspace," + sdk + "=/_/sdk"
+};
+var sdkDigest = ContractFiles.TreeDigest(sdk, 4);
+using var session = new EvaluationSession();
+var reads = new HashSet<string>(StringComparer.Ordinal);
+var compilerOnly = new HashSet<string>(["P0/Code.cs", "P1/Code.cs", "P2/Code.cs"], StringComparer.Ordinal);
+var rows = new List<object>();
+bool RestoreInput(string path) => path.EndsWith(".nuget.g.props", StringComparison.Ordinal) ||
+    path.EndsWith(".nuget.g.targets", StringComparison.Ordinal) ||
+    Path.GetFileName(path) is "project.assets.json" or "project.nuget.cache" || path.EndsWith(".nuget.dgspec.json", StringComparison.Ordinal);
+Dictionary<string, string> Observe()
+{
+    var files = new ContractFiles(root, sdk);
+    return Directory.EnumerateFiles(root, "*", SearchOption.AllDirectories)
+        .Select(p => Path.GetRelativePath(root, p))
+        .Where(p => !p.Split('/').Any(part => part is "bin" or "obj") || RestoreInput(p))
+        .Order(StringComparer.Ordinal).ToDictionary(p => p, p => ContractFiles.InputDigest(files.Resolve(p)), StringComparer.Ordinal);
+}
+void ClearOutputs()
+{
+    foreach (var project in new[] { "P0", "P1", "P2" })
+    {
+        var bin = Path.Combine(root, project, "bin");
+        if (Directory.Exists(bin)) Directory.Delete(bin, true);
+        foreach (var file in Directory.EnumerateFiles(Path.Combine(root, project, "obj"), "*", SearchOption.AllDirectories).Where(p => !RestoreInput(p))) File.Delete(file);
+    }
+}
+Dictionary<string, string> Build(bool reuse, out int evaluations, out double evaluationSeconds, out long allocated)
+{
+    try
+    {
+        ClearOutputs();
+        var observed = Observe();
+        var verifiedSdk = ContractFiles.TreeDigest(sdk, 4);
+        if (verifiedSdk != sdkDigest) throw new InvalidDataException("SDK changed; restart evaluator with the newly declared SDK");
+        var context = ContractFiles.Hash(new[] { verifiedSdk, ContractFiles.Digest(Assembly.GetExecutingAssembly().Location) }
+            .Concat(Environment.GetEnvironmentVariables().Cast<System.Collections.DictionaryEntry>().OrderBy(p => (string)p.Key, StringComparer.Ordinal).Select(p => p.Key + "=" + p.Value)));
+        var identity = ContractFiles.Hash(observed.Select(p => p.Key + ":" + (compilerOnly.Contains(p.Key) && !reads.Contains(p.Key) ? "reviewed compiler-only bytes" : p.Value))
+            .Concat(compilerOnly.Order(StringComparer.Ordinal).Select(p => "compiler-only:" + p))
+            .Concat(Directory.EnumerateFiles(sdk, "*", SearchOption.AllDirectories).Where(p => p.EndsWith(".props", StringComparison.Ordinal) || p.EndsWith(".targets", StringComparison.Ordinal)).Order(StringComparer.Ordinal).Select(p => "sdk-import-mtime:" + p + ":" + File.GetLastWriteTimeUtc(p).Ticks))
+            .Concat(reads.Order(StringComparer.Ordinal).Select(p => "evaluation-read:" + p))
+            .Concat(Directory.EnumerateDirectories(root, "*", SearchOption.AllDirectories).Select(p => Path.GetRelativePath(root, p)).Where(p => !p.Split('/').Any(part => part is "bin" or "obj")).Order(StringComparer.Ordinal).Select(p => "directory:" + p))
+            .Concat(globals.OrderBy(p => p.Key, StringComparer.Ordinal).Select(p => p.Key + "=" + p.Value))
+            .Concat(observed.Keys.Where(p => p.EndsWith(".props", StringComparison.Ordinal) || p.EndsWith(".targets", StringComparison.Ordinal) || p.EndsWith(".csproj", StringComparison.Ordinal)).Select(p => "import-mtime:" + p + ":" + File.GetLastWriteTimeUtc(Path.Combine(root, p)).Ticks)));
+        session.Prepare(context, identity, reuse);
+        var before = GC.GetTotalAllocatedBytes(true);
+        var timer = Stopwatch.StartNew();
+        var graph = new ProjectGraph([new ProjectGraphEntryPoint(Path.Combine(root, "P2/P2.csproj"), globals)], session.Collection, session.Factory);
+        evaluationSeconds = timer.Elapsed.TotalSeconds;
+        allocated = GC.GetTotalAllocatedBytes(true) - before;
+        evaluations = session.Evaluations;
+        var counter = new BuildEvaluationCounter();
+        using var manager = new BuildManager();
+        var result = manager.Build(new BuildParameters(session.Collection) { MaxNodeCount = 2, DisableInProcNode = true, EnableNodeReuse = false, Loggers = [counter, new ConsoleLogger(LoggerVerbosity.Minimal)] }, new GraphBuildRequestData(graph, ["Build"]));
+        if (result.OverallResult != BuildResultCode.Success || counter.Evaluations != 0)
+        {
+            session.Clear();
+            throw new InvalidDataException("Build failed or build nodes reevaluated");
+        }
+        if (!Observe().OrderBy(p => p.Key).SequenceEqual(observed.OrderBy(p => p.Key)))
+        {
+            session.Clear();
+            throw new InvalidDataException("Build modified a declared input");
+        }
+        return Directory.EnumerateFiles(root, "*", SearchOption.AllDirectories)
+            .Where(p => p.Contains("/bin/", StringComparison.Ordinal) || (p.Contains("/obj/", StringComparison.Ordinal) && p.Contains("/ref/", StringComparison.Ordinal)) || p.EndsWith("/proof.txt", StringComparison.Ordinal))
+            .ToDictionary(p => Path.GetRelativePath(root, p), ContractFiles.Digest);
+    }
+    catch
+    {
+        session.Clear();
+        throw;
+    }
+}
+void Run(string label, int expected)
+{
+    var actual = Build(true, out var evaluated, out var seconds, out var bytes);
+    if (evaluated != expected) throw new Exception($"{label}: expected {expected} evaluations, got {evaluated}");
+    // Compare each build with independent fresh evaluation of these same bytes.
+    // Save the retained epoch while the control uses a separate session below.
+    session.Save();
+    var fresh = Build(false, out var freshEvaluations, out var freshSeconds, out var freshBytes);
+    session.Restore();
+    if (!actual.OrderBy(p => p.Key).SequenceEqual(fresh.OrderBy(p => p.Key))) throw new Exception(label + ": product parity failed");
+    rows.Add(new { label, evaluated, freshEvaluations, seconds, freshSeconds, allocatedBytes = bytes, freshAllocatedBytes = freshBytes, files = actual.Count });
+    Console.WriteLine(JsonSerializer.Serialize(rows[^1]));
+}
+Run("seed", 3);
+Run("unchanged", 0);
+File.WriteAllText(Path.Combine(root, "P0/Code.cs"), "public class P0 { public static int Value() => 2; }");
+Run("body", 0);
+File.WriteAllText(Path.Combine(root, "P0/Code.cs"), "public class P0 { public static int Value() => 2; public static int Added() => 3; }");
+Run("api", 0);
+File.SetLastWriteTimeUtc(Path.Combine(root, "P0/Code.cs"), DateTime.UtcNow.AddMinutes(2));
+Run("compiler-timestamp-only", 0);
+File.SetLastWriteTimeUtc(Path.Combine(root, "Directory.Build.props"), DateTime.UtcNow.AddMinutes(2));
+Run("import-timestamp-only", 3);
+File.AppendAllText(Path.Combine(root, "Directory.Build.props"), "\n<!-- import edit -->\n");
+Run("import", 3);
+File.AppendAllText(Path.Combine(root, "P0/P0.csproj"), "\n<!-- project edit -->\n");
+Run("project", 3);
+File.WriteAllText(Path.Combine(root, "optional.props"), "<Project><PropertyGroup><ImportedValue>declared</ImportedValue></PropertyGroup></Project>");
+Run("conditional-import-addition", 3);
+File.WriteAllText(Path.Combine(root, "optional.props"), "<Project><PropertyGroup><ImportedValue>edited</ImportedValue></PropertyGroup></Project>");
+Run("conditional-import-edit", 3);
+File.Delete(Path.Combine(root, "optional.props"));
+Run("conditional-import-removal", 3);
+File.WriteAllText(Path.Combine(root, "evaluation.txt"), "second");
+Run("evaluation-read", 3);
+Directory.CreateDirectory(Path.Combine(root, "optional-directory"));
+Run("directory-exists", 3);
+Directory.Delete(Path.Combine(root, "optional-directory"));
+Run("directory-removal", 3);
+File.WriteAllText(Path.Combine(root, "P0/Added.cs"), "public class Added { }");
+Run("glob-addition", 3);
+File.Delete(Path.Combine(root, "P0/Added.cs"));
+Run("glob-removal", 3);
+globals["Configuration"] = "Debug";
+Run("configuration", 3);
+globals["Configuration"] = "Release";
+Run("configuration-return", 3);
+File.AppendAllText(Path.Combine(root, "P0/obj/P0.csproj.nuget.g.props"), "\n<!-- changed prepared Restore -->\n");
+Run("restore", 3);
+// Source contents can be evaluation inputs too; this explicit read declaration
+// must invalidate reuse rather than treating every .cs file as compiler-only.
+reads.Add("P0/Code.cs");
+globals["SourceEvaluationRead"] = "true";
+Run("source-evaluation-contract", 3);
+File.AppendAllText(Path.Combine(root, "P0/Code.cs"), "\n// evaluation-visible change\n");
+Run("source-evaluation-read", 3);
+void Reject(Action action, string message)
+{
+    try { action(); } catch (InvalidDataException error) when (error.Message.Contains(message, StringComparison.Ordinal)) { return; }
+    throw new Exception("Failure control did not reject: " + message);
+}
+globals["ForceFailure"] = "true";
+Reject(() => Build(true, out _, out _, out _), "Build failed");
+globals.Remove("ForceFailure");
+Run("failed-build-recovery", 3);
+globals["MutateInput"] = "true";
+Reject(() => Build(true, out _, out _, out _), "Build modified a declared input");
+globals.Remove("MutateInput");
+File.WriteAllText(Path.Combine(root, "evaluation.txt"), "second");
+Run("input-mutation-recovery", 3);
+Environment.SetEnvironmentVariable("EVAL_SESSION_PROBE", "changed");
+Reject(() => Build(true, out _, out _, out _), "restart evaluator");
+Environment.SetEnvironmentVariable("EVAL_SESSION_PROBE", "first");
+Reject(() => session.Prepare("different SDK/runner identity", "fixture", true), "restart evaluator");
+File.WriteAllText(args[2], JsonSerializer.Serialize(rows, new JsonSerializerOptions { WriteIndented = true }));
+Console.WriteLine("PASS: pristine full-state snapshots, reviewed evaluation invalidation, full fresh-byte checks and failure recovery; retained-engine fixture only");
+
+sealed class EvaluationSession : IDisposable
+{
+    private string? context;
+    private string? identity;
+    private ProjectCollection? collection;
+    private ConcurrentDictionary<string, Lazy<Project>> instances = new(StringComparer.Ordinal);
+    private (ProjectCollection? Collection, ConcurrentDictionary<string, Lazy<Project>> Instances, string? Identity)? saved;
+    private int evaluations;
+    public ProjectCollection Collection => collection!;
+    public int Evaluations => evaluations;
+    public void Prepare(string nextContext, string nextIdentity, bool reuse)
+    {
+        if (context is not null && context != nextContext) throw new InvalidDataException("Context changed; restart evaluator");
+        context = nextContext;
+        if (!reuse || identity != nextIdentity)
+        {
+            Clear();
+            identity = nextIdentity;
+            collection = new ProjectCollection();
+        }
+        evaluations = 0;
+    }
+    public ProjectInstance Factory(string path, Dictionary<string, string> globals, ProjectCollection owner)
+    {
+        var key = path + "|" + ContractFiles.Hash(globals.OrderBy(p => p.Key, StringComparer.Ordinal).Select(p => p.Key + "=" + p.Value));
+        var pristine = instances.GetOrAdd(key, _ => new Lazy<Project>(() => {
+            Interlocked.Increment(ref evaluations);
+            return Project.FromFile(path, new ProjectOptions { GlobalProperties = globals, ProjectCollection = owner });
+        })).Value;
+        // CreateProjectInstance retains item path context. DeepCopy loses that
+        // context for uncached built-in metadata in this SDK's TaskItem copy.
+        var evaluationId = pristine.LastEvaluationId;
+        var clone = pristine.CreateProjectInstance();
+        if (pristine.LastEvaluationId != evaluationId || clone.EvaluationId != evaluationId) throw new Exception("Snapshot unexpectedly reevaluated the project");
+        clone.TranslateEntireState = true;
+        if (clone.GetPropertyValue("BuildMutation").Length != 0 || clone.GetPropertyValue("CloneMutation").Length != 0) throw new Exception("Build state contaminated pristine evaluation");
+        clone.SetProperty("CloneMutation", "one request only");
+        return clone;
+    }
+    public void Save()
+    {
+        saved = (collection, instances, identity);
+        collection = null;
+        instances = new(StringComparer.Ordinal);
+        identity = null;
+    }
+    public void Restore()
+    {
+        Clear();
+        (collection, instances, identity) = saved!.Value;
+        saved = null;
+    }
+    public void Clear()
+    {
+        collection?.Dispose();
+        collection = null;
+        instances.Clear();
+        identity = null;
+    }
+    public void Dispose() => Clear();
+}
+
+public sealed class EvaluationProofTask : Microsoft.Build.Utilities.Task
+{
+    [Required] public string File { get; set; } = "";
+    public string Value { get; set; } = "";
+    public override bool Execute()
+    {
+        System.IO.Directory.CreateDirectory(Path.GetDirectoryName(File)!);
+        System.IO.File.WriteAllText(File, Value);
+        return true;
+    }
+}
