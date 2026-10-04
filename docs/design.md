@@ -42,6 +42,8 @@ Project snapshots persist through a Linux worker or HTTP AC/CAS service. The wor
 retains caches and preparation, but starts fresh isolated MSBuild per request.
 Prepared Restore can be a separate action so body edits reuse it. Stable paths
 support relocation; declared-byte checks remain required on project-cache hits.
+Workers copy preparation privately; the child verifies every payload before
+writing Restore outputs or evaluating MSBuild, including when the copy is reused.
 
 ## Invalidation
 

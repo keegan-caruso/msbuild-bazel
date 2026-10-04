@@ -38,10 +38,9 @@ internal static class WorkerPreparation
                 var target = Path.Combine(root, relative);
                 Directory.CreateDirectory(Path.GetDirectoryName(target)!);
                 File.Copy(inputs[relative], target);
-                if (ContractFiles.Digest(target) != record.Digest)
-                {
-                    throw new InvalidDataException("Invalid prepared Restore file: " + relative);
-                }
+                // Copy only: PreparedRestore.Apply verifies all bytes before any
+                // workspace writes or MSBuild evaluation. This private copy is
+                // mounted read-only in that child, including on cache reuse.
                 if (!OperatingSystem.IsWindows())
                 {
                     File.SetUnixFileMode(target, (UnixFileMode)record.Mode);

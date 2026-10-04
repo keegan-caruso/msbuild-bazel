@@ -50,7 +50,7 @@ def main():
     parser.add_argument('--prepared', required=True, type=Path, help='prepared directory containing manifest.json')
     parser.add_argument('--runner', type=Path, default=RUNNER)
     parser.add_argument('--samples', type=int, default=5, help='fresh probe process per sample')
-    parser.add_argument('--materialize', action='store_true', help='measure the existing copy/verify/reuse path')
+    parser.add_argument('--materialize', action='store_true', help='measure private copy/reuse and child integrity controls')
     args = parser.parse_args()
     assert args.samples > 0
     base = args.directory.resolve()
@@ -72,11 +72,12 @@ def main():
         report = base / f'sample-{sample}.json'
         run(DOTNET, driver / 'bin/Release/net10.0/Probe.dll', args.runner.resolve(), args.workspace.resolve(),
             args.contract.resolve(), args.sdk.resolve(), args.prepared.resolve(), report,
-            *([base / 'broker-copy'] if args.materialize else []))
+            *([base / f'broker-copy-{sample}'] if args.materialize else []))
         data = json.loads(report.read_text())
         rows.extend(dict(row, sample=sample) for row in data['rows'])
         if data['materialization']:
             materialization.append(dict(data['materialization'], sample=sample))
+            shutil.rmtree(base / f'broker-copy-{sample}')
     data.update(rows=rows, materialization=materialization, freshProcessPerSample=True,
         immutableControl=immutable_control(base),
         runnerSha256=hashlib.sha256(args.runner.read_bytes()).hexdigest(),

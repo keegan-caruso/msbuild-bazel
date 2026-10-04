@@ -33,6 +33,10 @@ tests/graph_build/upstream/runtime_remote.py WORKSPACE RESULTS --phase consumer
 --slice runtime-suites --seed-evidence PRODUCER/seed.json --version 9.2.0
 --diagnostics`.
 
+Normal Bazel HTTP Restore/build recovery is qualified for this runtime contract;
+forced graph execution also recovers all 481 projects. See
+[complete-cache controls and timings](performance.md#complete-remote-cache-recovery).
+
 NoTargets **3.7.0** public sync passed on Linux ARM64 / Bazel 8.8 and 9.2:
 `.proj` and `.csproj` roots, nested Traversal, prepared Restore, explicit text
 products, cached/uncached workers and downstream invalidation. Raw ordinary/graph

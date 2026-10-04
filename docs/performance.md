@@ -1,6 +1,6 @@
 # Performance versus raw MSBuild
 
-Main **8d83f0f**, runtime v10.0.0 (`60629d14374c56f1cb51819049ad1fa529307f8d`),
+Baseline **8d83f0f**, runtime v10.0.0 (`60629d14374c56f1cb51819049ad1fa529307f8d`),
 SDK 10.0.400, Bazel 9.2.0, Linux ARM64: four CPUs / 8 GiB, four MSBuild nodes,
 one graph worker with an 8192 MiB snapshot budget. Scope: 481 compilations /
 543 configurations / 39 roots. Refreshed after the graph-only cutover.
@@ -64,8 +64,8 @@ HTTP caching enabled and local disk caching disabled. One unprofiled observation
 
 | Recovery | Wall seconds | Restore action | Graph action |
 | --- | ---: | ---: | ---: |
-| Whole-action hits | 9.45 | 2.99 remote hit | 1.86 remote hit |
-| Forced graph execution | 30.67 | 3.25 remote hit | 23.01; 481 project hits / zero misses |
+| Whole-action hits | 8.91 | 2.58 remote hit | 1.58 remote hit |
+| Forced graph execution | 29.51 | 3.11 remote hit | 21.82; 481 project hits / zero misses |
 
 All 10,780 compared files matched bytes/modes. Bootstrap/acquisition was separate.
 Whole-action reports are cached producer metadata; spawn logs establish actual
@@ -75,6 +75,16 @@ SDK instance. Authored entries and imported bytes remain significant.
 The earlier 95.65-second Restore measurement deliberately disabled this action
 cache; it does not describe normal recovery. This is cache recovery, not RBE or
 a new runtime test-suite run.
+
+Workers now copy preparation without a duplicate broker hash; the read-only
+child verifies every payload before any Restore-output writes or evaluation.
+Five paired fresh-copy probes on 8,979 files / 1.75 GB measured median
+materialization **1.77 → 0.59 s**. These isolated operations used warm filesystem
+caches; this does not establish a paired end-to-end speedup. Corrupt new/cached
+copies, changed modes/inodes and invalid manifests failed the production checks.
+Both all-miss seeds and all recovery rows reproduced the same 10,780 file hashes
+and modes. A separate final diagnostic measured staging 1.73 s, child preparation
+3.82 s, evaluation 5.59 s and input hashing 2.65 s; scopes can overlap.
 
 Driver: `python3 tests/graph_build/upstream/runtime_complete_remote.py WORKSPACE
 RESULTS --output-base BASE --cache-url URL --phase producer`. Stop the producer;
