@@ -127,6 +127,14 @@ corruption, invalid paths/modes/manifests, conflicting destinations and replacem
 inodes failed the production checks. Read-only binds do not establish cross-child
 immutability. These are verification gains, not paired end-to-end build speedups.
 
+Combined fingerprints now serialize the same JSON directly into `IncrementalHash`,
+avoiding the full JSON string and UTF-8 array. `input_integrity.py` checks prior-key
+compatibility, escaping, Unicode, long records and single-pass enumeration. Six
+warm / three cold paired Apply probes measured **0.65 → 0.62 s** and
+**3.92 → 4.00 s**: no material verification-time gain is claimed. File bytes still
+use streaming SHA-256; every child reads them afresh. Native worker body/API and
+recovery controls passed on both Bazel pins.
+
 ## Evaluation transfer qualification
 
 `//tests/integration:evaluation_transfer` uses the production diagnostic counter

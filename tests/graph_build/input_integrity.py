@@ -56,7 +56,30 @@ def main():
             '</PropertyGroup><ItemGroup>' + ''.join(f'<Compile Include="{ROOT}/tools/GraphBuild/{name}.cs" />'
             for name in ['Contract', 'GraphProfile']) + '</ItemGroup></Project>')
         (harness / 'Program.cs').write_text('''
+using System.Security.Cryptography;
+using System.Text;
+using System.Text.Json;
 using RulesMSBuild.GraphBuild;
+string LegacyHash(IEnumerable<string> records) => Convert.ToHexStringLower(
+    SHA256.HashData(Encoding.UTF8.GetBytes(JsonSerializer.Serialize(records))));
+foreach (var records in new[] {
+    Array.Empty<string>(), new[] { "", "a", "", "b" },
+    new[] { "quote\\\"", "backslash\\\\", "\\n\\r\\t\\0", "<>&+", "caf\u00e9", "\u4e2d\u6587", "\U0001f642", "\\uD800", null! },
+    new[] { new string('x', 255) + "\u00e9", new string('y', 8192), new string('z', 100000) },
+    Enumerable.Range(0, 10000).Select(i => "record:" + i).ToArray() })
+{
+    if (ContractFiles.Hash(records) != LegacyHash(records)) throw new Exception("Fingerprint JSON format changed");
+    var enumerations = 0;
+    IEnumerable<string> SinglePass()
+    {
+        if (++enumerations != 1) throw new Exception("Records enumerated more than once");
+        foreach (var record in records) yield return record;
+    }
+    if (ContractFiles.Hash(SinglePass()) != LegacyHash(records)) throw new Exception("Deferred fingerprint changed");
+}
+if (ContractFiles.Hash(["ab", "c"]) == ContractFiles.Hash(["a", "bc"]) ||
+    ContractFiles.Hash(["a", "b"]) == ContractFiles.Hash(["b", "a"]))
+    throw new Exception("Fingerprint lost record boundaries or order");
 var root = Path.Combine(args[0], "paths");
 Directory.CreateDirectory(Path.Combine(root, "directory"));
 var a = Path.Combine(root, "directory/a");
@@ -94,7 +117,7 @@ foreach (var invalid in new[] { "../outside/a", "/absolute", "directory//a", "di
     try { files.ResolveInputs([invalid]); throw new Exception("Invalid path accepted"); }
     catch (InvalidDataException) { }
 }
-Console.WriteLine("PASS: batch path resolution, fresh symlink checks, timestamp-independent bytes and SDK modes");
+Console.WriteLine("PASS: fingerprint compatibility, batch paths, fresh symlink checks, timestamp-independent bytes and SDK modes");
 ''')
         run(DOTNET, 'build', harness / 'Harness.csproj', '-c', 'Release', '--nologo', '-p:UseSharedCompilation=false')
         result = run(DOTNET, harness / 'bin/Release/net10.0/Harness.dll', work)
