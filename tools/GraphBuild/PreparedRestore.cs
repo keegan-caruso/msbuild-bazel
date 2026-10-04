@@ -82,11 +82,27 @@ internal static class PreparedRestore
     internal static RestoredInputs Apply(GraphContract contract, string root, string sdk, string source, bool readOnlyPackages = false)
     {
         var files = new ContractFiles(root, sdk);
-        Validate(contract, files);
-        var manifest = JsonSerializer.Deserialize<RestoreManifest>(File.ReadAllText(Path.Combine(source, "manifest.json")))
-            ?? throw new InvalidDataException("Missing prepared Restore manifest");
-        var sdkDigest = ContractFiles.TreeDigest(sdk);
-        if (manifest.Version != 1 || manifest.SdkDigest != sdkDigest || manifest.Key != Key(contract, files, sdkDigest))
+        using (GraphProfile.Measure("preparedContract"))
+        {
+            Validate(contract, files);
+        }
+        RestoreManifest manifest;
+        using (GraphProfile.Measure("preparedManifest"))
+        {
+            manifest = JsonSerializer.Deserialize<RestoreManifest>(File.ReadAllText(Path.Combine(source, "manifest.json")))
+                ?? throw new InvalidDataException("Missing prepared Restore manifest");
+        }
+        string sdkDigest;
+        using (GraphProfile.Measure("preparedSdk"))
+        {
+            sdkDigest = ContractFiles.TreeDigest(sdk);
+        }
+        string key;
+        using (GraphProfile.Measure("preparedKey"))
+        {
+            key = Key(contract, files, sdkDigest);
+        }
+        if (manifest.Version != 1 || manifest.SdkDigest != sdkDigest || manifest.Key != key)
         {
             throw new InvalidDataException("Prepared Restore inputs changed; rebuild preparation");
         }
@@ -102,17 +118,26 @@ internal static class PreparedRestore
         var prepared = new ContractFiles(source, sdk);
         var allowed = contract.Restore.Outputs.Append(".package-source/NuGet.Config").ToHashSet(StringComparer.Ordinal);
         var digests = new Dictionary<string, string>(StringComparer.Ordinal);
-        var sources = prepared.ResolveInputs(manifest.Files.Keys);
-        var destinations = files.ResolveInputs(manifest.Files.Keys);
+        Dictionary<string, string> sources;
+        Dictionary<string, string> destinations;
+        using (GraphProfile.Measure("preparedPaths"))
+        {
+            sources = prepared.ResolveInputs(manifest.Files.Keys);
+            destinations = files.ResolveInputs(manifest.Files.Keys);
+        }
         // Validate every payload before writing any workspace file.
         foreach (var (relative, record) in manifest.Files)
         {
-            if ((!allowed.Contains(relative) && !relative.StartsWith(".nuget/", StringComparison.Ordinal)) ||
-                ContractFiles.Digest(sources[relative]) != record.Digest || (record.Mode & ~0xFFF) != 0)
+            using (GraphProfile.Measure("preparedPayload", GraphProfile.Enabled ? new FileInfo(sources[relative]).Length : 0))
             {
-                throw new InvalidDataException("Invalid prepared Restore file: " + relative);
+                if ((!allowed.Contains(relative) && !relative.StartsWith(".nuget/", StringComparison.Ordinal)) ||
+                    ContractFiles.Digest(sources[relative]) != record.Digest || (record.Mode & ~0xFFF) != 0)
+                {
+                    throw new InvalidDataException("Invalid prepared Restore file: " + relative);
+                }
             }
             var destination = destinations[relative];
+            using var identity = GraphProfile.Measure("preparedIdentity");
             if (readOnlyPackages && ReadOnlyPackageTree.Contains(relative))
             {
                 ReadOnlyPackageTree.RequireSameFile(sources[relative], destination, record.Mode);
@@ -124,6 +149,7 @@ internal static class PreparedRestore
         }
         foreach (var (relative, record) in manifest.Files)
         {
+            using var copy = GraphProfile.Measure("preparedCopy");
             var destination = destinations[relative];
             if (!File.Exists(destination))
             {

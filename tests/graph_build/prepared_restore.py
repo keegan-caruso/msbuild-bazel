@@ -89,6 +89,67 @@ def main():
             payload.write_bytes(b'corrupt')
             build(failure='Invalid prepared Restore file')
             payload.write_bytes(original)
+            # Put a valid output first and each bad entry last. Verification must
+            # finish before even that first output is published to the workspace.
+            prepared_manifest = prepared / 'manifest.json'
+            original_manifest = prepared_manifest.read_bytes()
+            records = json.loads(original_manifest)
+            valid = contract['Restore']['Outputs'][0]
+            for path in contract['Restore']['Outputs']:
+                (root / path).unlink()
+            def reject_payload(changed, failure):
+                changed['Files'] = {valid: records['Files'][valid], **{
+                    path: record for path, record in changed['Files'].items() if path != valid}}
+                prepared_manifest.chmod(0o644)
+                prepared_manifest.write_text(json.dumps(changed))
+                report.unlink(missing_ok=True)
+                build(failure=failure)
+                assert not report.exists(), 'Failed verification produced a build report'
+                assert not any((root / path).exists() for path in contract['Restore']['Outputs']), \
+                    'Verification failure wrote Restore outputs'
+            changed = json.loads(original_manifest)
+            invalid_mode = prepared / '.nuget/invalid/mode'
+            invalid_mode.parent.mkdir(parents=True)
+            invalid_mode.write_bytes((prepared / valid).read_bytes())
+            changed['Files']['.nuget/invalid/mode'] = dict(records['Files'][valid], Mode=0x1000)
+            reject_payload(changed, 'Invalid prepared Restore file')
+            invalid_mode.unlink()
+            changed = json.loads(original_manifest)
+            changed['Files']['../escape'] = records['Files'][valid]
+            reject_payload(changed, 'Expected a workspace-relative path')
+            changed = json.loads(original_manifest)
+            changed['Files']['undeclared.txt'] = records['Files'][valid]
+            (prepared / 'undeclared.txt').write_bytes((prepared / valid).read_bytes())
+            reject_payload(changed, 'Invalid prepared Restore file')
+            (prepared / 'undeclared.txt').unlink()
+            changed = json.loads(original_manifest)
+            changed['Files'].pop(contract['Restore']['Outputs'][-1])
+            reject_payload(changed, 'Prepared Restore is missing a declared output')
+            # Same-size, same-mtime corruption cannot be hidden by metadata reuse.
+            last = contract['Restore']['Outputs'][-1]
+            last_payload = prepared / last
+            last_bytes, last_stat = last_payload.read_bytes(), last_payload.stat()
+            last_payload.chmod(0o644)
+            last_payload.write_bytes(bytes([last_bytes[0] ^ 1]) + last_bytes[1:])
+            os.utime(last_payload, ns=(last_stat.st_atime_ns, last_stat.st_mtime_ns))
+            reject_payload(json.loads(original_manifest), 'Invalid prepared Restore file')
+            last_payload.write_bytes(last_bytes)
+            # An existing destination is independently verified before reuse.
+            (root / valid).parent.mkdir(parents=True, exist_ok=True)
+            (root / valid).write_bytes(b'conflicting output')
+            prepared_manifest.write_bytes(original_manifest)
+            build(failure='Prepared Restore conflicts with existing workspace file')
+            (root / valid).unlink()
+            if os.name != 'nt':
+                link = prepared / '.nuget/link/payload'
+                link.parent.mkdir(parents=True)
+                link.symlink_to(prepared / valid)
+                changed = json.loads(original_manifest)
+                changed['Files']['.nuget/link/payload'] = records['Files'][valid]
+                reject_payload(changed, 'Symlinks are not supported')
+                link.unlink()
+            prepared_manifest.write_bytes(original_manifest)
+            build(3)
             relocated = work / 'relocated'
             shutil.copytree(root, relocated)
             result = run(DOTNET, RUNNER, 'action', relocated, manifest, report, work / 'cache', success=False)
@@ -96,7 +157,7 @@ def main():
             contract['Restore']['Inputs'].remove('Directory.Build.props')
             manifest.write_text(json.dumps(contract))
             build(failure='Restore inputs must include every project, definition and shared input')
-            print('PASS: prepared Restore, body reuse, fresh output recovery, custom/package/config/environment invalidation, corruption and unsafe relocation rejection')
+            print('PASS: prepared Restore, body reuse, fresh output recovery, stale inputs, byte/mode/path/manifest/conflict controls before output writes, and unsafe relocation rejection')
         finally:
             ENV.pop('RULES_MSBUILD_GRAPH_PREPARED_RESTORE', None)
             ENV.pop('RESTORE_CONTRACT_TEST', None)

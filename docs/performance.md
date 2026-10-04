@@ -94,6 +94,18 @@ run a new consumer with `--phase consumer --seed-evidence PRODUCER/seed.json`.
 `_bazel_.bazelversion`), with `COMPLETE_CACHE_PHASE`, `COMPLETE_CACHE_URL` and a
 matching consumer `COMPLETE_CACHE_SEED`; they also cover body edits and fresh tests.
 
+Full-child verification probes use `python3 tests/graph_build/package_verification.py
+RESULTS --workspace WORKSPACE --contract CONTRACT --sdk SDK --prepared PREPARED
+--apply --samples 5`. Each sample starts a fresh process with read-only prepared
+packages and absent Restore outputs. Setup rebinds only a disposable manifest key;
+this isolates verification, not remote recovery. `--profile` reports preparation
+phases; `--cold` drops page caches in a disposable Linux guest. Neither setup nor
+MSBuild evaluation is timed. Two Linux ARM64 diagnostic samples verified 8,979
+files / 1.75 GB: payload hashing 0.96–2.86 s, SDK hashing 0.47–0.78 s, Restore key
+0.18 s, paths 0.08–0.13 s and identity checks 0.02–0.03 s. Profiled totals overlap;
+these are diagnostics, not scored speedups. Fresh byte verification remains
+mandatory in every child. Read-only binds do not establish cross-child immutability.
+
 ## Evaluation transfer qualification
 
 `//tests/integration:evaluation_transfer` uses the production diagnostic counter

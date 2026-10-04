@@ -6,6 +6,7 @@ import os
 import sys
 from pathlib import Path
 import shutil
+import subprocess
 
 from qualify import DOTNET, ROOT, RUNNER, run
 
@@ -51,6 +52,9 @@ def main():
     parser.add_argument('--runner', type=Path, default=RUNNER)
     parser.add_argument('--samples', type=int, default=5, help='fresh probe process per sample')
     parser.add_argument('--materialize', action='store_true', help='measure private copy/reuse and child integrity controls')
+    parser.add_argument('--apply', action='store_true', help='measure full Apply in a read-only Linux child; excludes setup/evaluation')
+    parser.add_argument('--profile', action='store_true', help='opt-in operation counters for --apply; do not score these rows')
+    parser.add_argument('--cold', action='store_true', help='drop guest page caches before each --apply sample; requires disposable Linux VM/root')
     args = parser.parse_args()
     assert args.samples > 0
     base = args.directory.resolve()
@@ -66,6 +70,50 @@ def main():
     build = run(DOTNET, 'build', driver / 'Probe.csproj', '-c', 'Release',
         '-p:UseSharedCompilation=false', '-p:NuGetAudit=false', '-warnaserror')
     (base / 'build.log').write_text(build.stdout + build.stderr)
+    if args.apply:
+        assert sys.platform == 'linux' and not args.materialize
+        contract = json.loads(args.contract.read_text())
+        workspace, prepared = base / 'workspace', base / 'artifact/prepared'
+        workspace.mkdir()
+        # Stage the authored Restore inputs only; no earlier build outputs.
+        inputs = set(contract['Restore']['Inputs'])
+        inputs.update(str(path.relative_to(args.workspace)) for path in (args.workspace / '.package-source').glob('*.nupkg'))
+        for relative in inputs:
+            target = workspace / relative
+            target.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copyfile(args.workspace / relative, target)
+            shutil.copymode(args.workspace / relative, target)
+        shutil.copytree(args.prepared, prepared)
+        records = json.loads((prepared / 'manifest.json').read_text())['Files']
+        for relative, record in records.items():
+            (prepared / relative).chmod(record['Mode'])
+        (prepared / 'manifest.json').chmod(0o644)
+        (workspace / '.nuget').mkdir()
+        probe = [str(DOTNET), str(driver / 'bin/Release/net10.0/Probe.dll'), str(args.runner.resolve()),
+                 str(workspace), str(args.contract.resolve()), str(args.sdk.resolve()), str(prepared)]
+        rows = []
+        for sample in range(args.samples):
+            report = base / f'sample-{sample}.json'
+            subprocess.run(['bwrap', '--die-with-parent', '--bind', '/', '/',
+                '--ro-bind', str(prepared / '.nuget'), str(prepared / '.nuget'),
+                '--ro-bind', str(prepared / '.nuget'), str(workspace / '.nuget'), '--',
+                *probe, str(report), '--rekey'], check=True)
+            if args.cold:
+                os.sync()
+                Path('/proc/sys/vm/drop_caches').write_text('3\n')
+            subprocess.run(['bwrap', '--die-with-parent', '--bind', '/', '/', '--ro-bind', str(prepared), str(prepared),
+                '--ro-bind', str(prepared / '.nuget'), str(workspace / '.nuget'), '--',
+                *probe, str(report), '--apply', *(['profile'] if args.profile else [])], check=True)
+            rows.append(dict(json.loads(report.read_text()), sample=sample))
+            for relative in records:
+                if not relative.startswith('.nuget/'):
+                    (workspace / relative).unlink()
+        (base / 'report.json').write_text(json.dumps(dict(rows=rows, profiled=args.profile, cold=args.cold,
+            freshProcessPerSample=True, runnerSha256=hashlib.sha256(args.runner.read_bytes()).hexdigest()), indent=2) + '\n')
+        shutil.rmtree(prepared.parent)
+        shutil.rmtree(workspace)
+        print((base / 'report.json').read_text())
+        return
     rows = []
     materialization = []
     for sample in range(args.samples):
