@@ -50,12 +50,19 @@ def replay_omissions(contract):
     return paths
 
 
-def validate_raw_contract(contract, raw_results, allow_replay_omissions=False):
-    """Allow inventoried output additions and explicitly requested replay omissions."""
+def validate_raw_contract(contract, raw_results, allow_replay_omissions=False, evaluation_reuse_inputs=None):
+    """Allow inventoried outputs and explicitly reviewed replay/evaluation controls."""
     previous = json.loads((raw_results / 'raw-workspace/graph.generated.json').read_text())
     inventory = json.loads((raw_results / 'binplace.json').read_text())
+    if evaluation_reuse_inputs is not None:
+        assert contract['Version'] == 9 and previous['Version'] <= 9
+        assert previous.get('EvaluationReuseInputs') in [None, sorted(evaluation_reuse_inputs)], 'Unexpected raw evaluation exemption'
+        assert contract['EvaluationReuseInputs'] == sorted(evaluation_reuse_inputs), 'Unexpected evaluation exemption'
     def semantics(value):
         value = copy.deepcopy(value)
+        if evaluation_reuse_inputs is not None:
+            value.pop('EvaluationReuseInputs', None)
+            value['Version'] = previous['Version']
         for project in value['Projects'].values():
             for variant in [project] + project.get('Configurations', []):
                 variant.pop('OutputFiles', None)
