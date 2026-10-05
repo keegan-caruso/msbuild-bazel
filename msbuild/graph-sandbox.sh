@@ -7,6 +7,9 @@ if [[ $(uname -s) != Linux || ! -x /usr/bin/bwrap ]]; then
 fi
 sdk=$(dirname "$(realpath "$1/dotnet")"); runner=$(dirname "$(realpath "$2/GraphBuild.dll")"); output=$(realpath "$3")
 contract=$(realpath "$4"); scratch=$(realpath "$5"); target=$6; mode=${7:-action}; prepared=${8:--}
+# MSBuild falls back to the SDK for LocalAppData when this folder is absent.
+# Create the private layout before the CLR/MSBuild can cache that choice.
+mkdir -p "$scratch/.local/share"
 if [[ $mode != action && $mode != prepare && $mode != engine ]]; then echo "Invalid graph sandbox mode: $mode" >&2; exit 1; fi
 base=/__rules_msbuild_graph
 args=(--die-with-parent --unshare-user --unshare-pid --unshare-ipc --unshare-uts

@@ -2,6 +2,7 @@
 # Raw MSBuild in the graph action's namespace. Outputs remain warm between calls.
 set -euo pipefail
 sdk=$(realpath "$1"); workspace=$(realpath "$2"); scratch=$(realpath "$3"); shift 3
+mkdir -p "$scratch/.local/share"
 base=/__rules_msbuild_graph
 args=(--die-with-parent --unshare-user --unshare-pid --unshare-ipc --unshare-uts
       --new-session --cap-drop ALL --clearenv --proc /proc --dev /dev --tmpfs /tmp)
