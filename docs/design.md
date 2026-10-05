@@ -39,7 +39,11 @@ MSBuild plugin reuses matching projects inside the action. A hit restores both
 artifact bytes and target-result metadata; MSBuild's result cache alone is insufficient.
 
 Project snapshots persist through a Linux worker or HTTP AC/CAS service. The worker
-retains caches and preparation, but starts fresh isolated MSBuild per request.
+retains caches and preparation. Reviewed compiler-only inputs can also retain
+pristine evaluation in an isolated engine; every request clones fresh project
+instances and starts fresh build nodes. Definition, configuration, other input
+bytes and filesystem membership invalidate the engine. Failure and memory limits
+discard it. Unreviewed graphs evaluate afresh.
 Prepared Restore can be a separate action so body edits reuse it. Stable paths
 support relocation; declared-byte checks remain required on project-cache hits.
 Workers copy preparation privately; the child verifies every payload before

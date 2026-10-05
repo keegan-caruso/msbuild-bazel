@@ -7,7 +7,7 @@ if [[ $(uname -s) != Linux || ! -x /usr/bin/bwrap ]]; then
 fi
 sdk=$(dirname "$(realpath "$1/dotnet")"); runner=$(dirname "$(realpath "$2/GraphBuild.dll")"); output=$(realpath "$3")
 contract=$(realpath "$4"); scratch=$(realpath "$5"); target=$6; mode=${7:-action}; prepared=${8:--}
-if [[ $mode != action && $mode != prepare ]]; then echo "Invalid graph sandbox mode: $mode" >&2; exit 1; fi
+if [[ $mode != action && $mode != prepare && $mode != engine ]]; then echo "Invalid graph sandbox mode: $mode" >&2; exit 1; fi
 base=/__rules_msbuild_graph
 args=(--die-with-parent --unshare-user --unshare-pid --unshare-ipc --unshare-uts
       --new-session --cap-drop ALL --clearenv --proc /proc --dev /dev --tmpfs /tmp)
@@ -15,8 +15,15 @@ for path in /usr /bin /lib /lib64 /etc/ld.so.cache /etc/os-release /etc/passwd /
     if [[ -e $path ]]; then args+=(--ro-bind "$path" "$path"); fi
 done
 args+=(--ro-bind "$sdk" "$base/sdk" --ro-bind "$runner" "$base/runner"
-       --ro-bind "$contract" "$base/contract.json" --bind "$output" "$base/output"
+       --bind "$output" "$base/output"
        --bind "$scratch" "$base/scratch" --chdir "$base/output/workspace")
+if [[ $mode == engine ]]; then
+    args+=(--ro-bind "$(dirname "$contract")" "$base/control")
+    contract_path="$base/control/$(basename "$contract")"
+else
+    args+=(--ro-bind "$contract" "$base/contract.json")
+    contract_path="$base/contract.json"
+fi
 for pair in "DOTNET_ROOT=$base/sdk" "HOME=$base/scratch" "DOTNET_CLI_HOME=$base/scratch" \
     'PATH=/usr/bin:/bin' 'TMPDIR=/tmp' 'LANG=C.UTF-8' 'TZ=UTC' \
     'DOTNET_CLI_TELEMETRY_OPTOUT=1' 'DOTNET_SKIP_FIRST_TIME_EXPERIENCE=1' 'DOTNET_NOLOGO=1' \
@@ -45,5 +52,9 @@ if [[ ${9:--} != - ]]; then
     cache="$base/cache"
 fi
 if [[ $mode == prepare ]]; then cache="$base/output/prepared"; fi
+if [[ $mode == engine ]]; then
+    exec /usr/bin/bwrap "${args[@]}" -- "$base/sdk/dotnet" exec "$base/runner/GraphBuild.dll" \
+        engine "$base/output/workspace" "$contract_path" "$base/output/report.json" "$cache"
+fi
 exec /usr/bin/bwrap "${args[@]}" -- "$base/sdk/dotnet" exec "$base/runner/GraphBuild.dll" \
-    "$mode" "$base/output/workspace" "$base/contract.json" "$base/output/report.json" "$cache" "$target"
+    "$mode" "$base/output/workspace" "$contract_path" "$base/output/report.json" "$cache" "$target"

@@ -4,15 +4,15 @@ using System.Text.Json.Nodes;
 
 namespace RulesMSBuild.GraphBuild;
 
-// Persistent transport/cache broker, not a persistent MSBuild engine. Every
-// request gets a fresh workspace and a fresh process in the stable-path sandbox.
+// Persistent transport/cache broker. Reviewed contracts can also retain a
+// sandboxed evaluation engine; every request still gets fresh workspace contents.
 internal static class GraphWorker
 {
     private sealed record Input(string Path, string Digest = "");
     private sealed record WorkRequest(string[] Arguments, Input[] Inputs, int RequestId = 0, bool Cancel = false);
     private sealed record Reply(int ExitCode, string Output, int RequestId = 0);
     private sealed record Source(string Path, string Destination);
-    private sealed record Request(string Contract, string Output, string Target, string? Prepared, Source[] Sources, bool ProfileBuild = false);
+    private sealed record Request(string Contract, string Output, string Target, string? Prepared, Source[] Sources, bool ProfileBuild = false, int EvaluationCacheMb = 512);
     private static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web);
 
     internal static async Task<int> Run(string[] args)
@@ -29,6 +29,7 @@ internal static class GraphWorker
         var cacheBudget = (long)megabytes * 1024 * 1024;
         var execroot = Environment.CurrentDirectory;
         using var directory = new WorkerDirectory();
+        using var engine = new WorkerEngine(directory.Root);
         var cache = Path.Combine(directory.Root, "cache");
         Directory.CreateDirectory(cache);
         var preparationCache = Path.Combine(directory.Root, "preparations");
@@ -69,6 +70,7 @@ internal static class GraphWorker
             }
             catch (Exception error)
             {
+                engine.Stop();
                 reply = new(1, error.ToString(), id);
             }
             await Console.Out.WriteLineAsync(JsonSerializer.Serialize(reply, Json));
@@ -108,7 +110,19 @@ internal static class GraphWorker
             }
             // Keep staging on the output volume so publication can move owned
             // trees without copying them or exporting authored inputs.
-            var staging = Directory.CreateDirectory(Path.Combine(output, ".staging")).FullName;
+            var declaration = JsonSerializer.Deserialize<GraphContract>(File.ReadAllText(contract))
+                ?? throw new InvalidDataException("Missing graph contract");
+            Directory.CreateDirectory(output);
+            if (request.EvaluationCacheMb is < 0 or > 4096)
+            {
+                throw new InvalidDataException("Evaluation cache budget must be between zero and 4096 MiB");
+            }
+            var reuse = request.EvaluationCacheMb > 0 && persistent && prepared != "-" && declaration.EvaluationReuseInputs is not null && ReadOnlyPackageTree.SameVolume(directory.Root, output);
+            if (!reuse)
+            {
+                engine.Stop();
+            }
+            var staging = Directory.CreateDirectory(reuse ? engine.Output : Path.Combine(output, ".staging")).FullName;
             var workspace = Path.Combine(staging, "workspace");
             Directory.CreateDirectory(workspace);
             var scratch = Directory.CreateDirectory(Path.Combine(directory.Root, "request-" + Guid.NewGuid().ToString("N"))).FullName;
@@ -122,6 +136,10 @@ internal static class GraphWorker
                         ? ContractFiles.Hash(identities.Select(pair => pair.Key[request.Prepared.Length..] + "=" + pair.Value))
                         : null;
                     prepared = WorkerPreparation.Materialize(prepared, preparationCache, identity);
+                    if (reuse)
+                    {
+                        contract = engine.Prepare(contract, prepared);
+                    }
                 }
                 foreach (var source in request.Sources)
                 {
@@ -143,12 +161,21 @@ internal static class GraphWorker
                 stageSeconds = requestTimer?.Elapsed.TotalSeconds ?? 0;
                 var childTimer = request.ProfileBuild ? Stopwatch.StartNew() : null;
                 var sdk = Path.GetDirectoryName(Environment.ProcessPath!)!;
-                var start = new ProcessStartInfo("/bin/bash") { RedirectStandardOutput = true, RedirectStandardError = true };
-                foreach (var argument in new[] { sandbox, sdk, AppContext.BaseDirectory, staging, contract, scratch, request.Target, "action", prepared, cache, prepared == "-" ? "0" : "1", request.ProfileBuild ? "1" : "0" })
+                (int ExitCode, string Output) child;
+                if (reuse)
                 {
-                    start.ArgumentList.Add(argument);
+                    var result = await engine.Run(sandbox, sdk, AppContext.BaseDirectory, contract, prepared, cache, request.Target, request.ProfileBuild, request.EvaluationCacheMb);
+                    child = (result.ExitCode, result.Output);
                 }
-                var child = await WorkerProcess.RunAsync(start);
+                else
+                {
+                    var start = new ProcessStartInfo("/bin/bash") { RedirectStandardOutput = true, RedirectStandardError = true };
+                    foreach (var argument in new[] { sandbox, sdk, AppContext.BaseDirectory, staging, contract, scratch, request.Target, "action", prepared, cache, prepared == "-" ? "0" : "1", request.ProfileBuild ? "1" : "0" })
+                    {
+                        start.ArgumentList.Add(argument);
+                    }
+                    child = await WorkerProcess.RunAsync(start);
+                }
                 childSeconds = childTimer?.Elapsed.TotalSeconds ?? 0;
                 var verificationTimer = request.ProfileBuild ? Stopwatch.StartNew() : null;
                 if (child.ExitCode == 0)
@@ -175,7 +202,18 @@ internal static class GraphWorker
             {
                 var cleanupTimer = request.ProfileBuild ? Stopwatch.StartNew() : null;
                 Directory.Delete(scratch, recursive: true);
-                Directory.Delete(staging, recursive: true);
+                if (!succeeded)
+                {
+                    engine.Stop();
+                }
+                if (reuse)
+                {
+                    engine.ClearWorkspace();
+                }
+                else
+                {
+                    Directory.Delete(staging, recursive: true);
+                }
                 // A conservative logical-byte budget counts aliases as well as
                 // blobs. Trim only between requests, with no active MSBuild.
                 long bytes = 0;
@@ -184,6 +222,7 @@ internal static class GraphWorker
                     bytes += new FileInfo(path).Length;
                     if (bytes > cacheBudget)
                     {
+                        engine.Stop();
                         Directory.Delete(cache, recursive: true);
                         Directory.CreateDirectory(cache);
                         Directory.Delete(preparationCache, recursive: true);
@@ -198,6 +237,14 @@ internal static class GraphWorker
                     report["worker"] = JsonSerializer.SerializeToNode(new
                     {
                         stagingSeconds = stageSeconds,
+                        evaluationEngine = reuse ? new
+                        {
+                            generation = engine.Generation,
+                            budgetMiB = request.EvaluationCacheMb,
+                            managedBytes = engine.LastReply?.ManagedBytes,
+                            residentBytes = engine.LastReply?.ResidentBytes,
+                            retired = engine.LastReply?.Retire
+                        } : null,
                         childSeconds,
                         outputVerificationSeconds = verificationSeconds,
                         publicationSeconds,

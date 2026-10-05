@@ -574,6 +574,48 @@ test_suite(
 )
 
 sh_binary(
+    name = "evaluation_worker_runner",
+    testonly = True,
+    srcs = ["evaluation_worker.sh"],
+    data = [
+        "common.sh",
+    ],
+)
+
+bazel_integration_tests(
+    name = "evaluation_worker_cases",
+    additional_env_inherit = [
+        "BAZELISK_HOME",
+        "RULES_MSBUILD_TEST_REPOSITORY_CACHE",
+    ],
+    bazel_binaries = bazel_binaries,
+    bazel_versions = bazel_binaries.versions.all,
+    data = [":rules_archive"],
+    env = {"RULES_ARCHIVE": "$(rootpath :rules_archive)"},
+    tags = [
+        "exclusive",
+        "manual",
+        "no-sandbox",
+    ],
+    target_compatible_with = [
+        "@platforms//os:linux",
+        "@platforms//cpu:aarch64",
+    ],
+    test_runner = ":evaluation_worker_runner",
+    workspace_files = glob(["fixtures/traversal/**"]),
+    workspace_path = "tests/integration/fixtures/traversal",
+)
+
+test_suite(
+    name = "evaluation_worker",
+    tags = ["manual"],
+    tests = integration_test_utils.bazel_integration_test_names(
+        "evaluation_worker_cases",
+        bazel_binaries.versions.all,
+    ),
+)
+
+sh_binary(
     name = "replay_omissions_runner",
     testonly = True,
     srcs = ["replay_omissions.sh"],

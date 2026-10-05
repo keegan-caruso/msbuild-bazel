@@ -9,6 +9,7 @@ namespace RulesMSBuild.GraphBuild;
 internal sealed class GraphInputs : IDisposable
 {
     private readonly ProjectCollection collection;
+    private readonly bool ownsCollection;
     private readonly GraphEvaluationProfile? evaluationProfile;
     private readonly OutputOwnership<ProjectGraphNode> ownership;
     private readonly System.Collections.Concurrent.ConcurrentDictionary<string, string[]> imports = new(StringComparer.Ordinal);
@@ -46,11 +47,24 @@ internal sealed class GraphInputs : IDisposable
     internal ProjectCollection Collection => collection;
     internal object? EvaluationProfile => evaluationProfile?.Report;
 
-    internal GraphInputs(GraphContract contract, string root, string sdkRoot, bool restored = false, RestoredInputs? prepared = null)
+    internal GraphInputs(GraphContract contract, string root, string sdkRoot, bool restored = false, RestoredInputs? prepared = null, EvaluationSession? evaluation = null)
     {
         var timer = System.Diagnostics.Stopwatch.StartNew();
         this.contract = contract;
         Files = new(root, sdkRoot);
+        Dictionary<string, string>? verifiedInputs = null;
+        string? verifiedSdk = null;
+        if (evaluation is not null)
+        {
+            var paths = Files.ResolveInputs(contract.SharedInputs.Concat(contract.Projects.Values.SelectMany(project => project.Inputs
+                .Concat((project.Configurations ?? []).SelectMany(configuration => configuration.Inputs)))).Concat(contract.Restore?.Outputs ?? []));
+            using (GraphProfile.Measure("evaluationIdentity"))
+            {
+                verifiedInputs = paths.ToDictionary(pair => pair.Key, pair => prepared?.Digests.GetValueOrDefault(pair.Key) ?? ContractFiles.InputDigest(pair.Value), StringComparer.Ordinal);
+                verifiedSdk = prepared?.SdkDigest ?? ContractFiles.TreeDigest(sdkRoot, 4);
+                evaluation.Prepare(contract, Files, verifiedSdk, verifiedInputs);
+            }
+        }
         string sdk;
         Dictionary<string, string> properties;
         EvaluationContext evaluationContext;
@@ -66,9 +80,9 @@ internal sealed class GraphInputs : IDisposable
                     throw new InvalidDataException("Declared graph input is missing: " + path);
                 }
             }
-            if (contract.Version is not (1 or 2 or 3 or 4 or 5 or 6 or 7 or 8) || contract.Projects.Count == 0)
+            if (contract.Version is not (1 or 2 or 3 or 4 or 5 or 6 or 7 or 8 or 9) || contract.Projects.Count == 0)
             {
-                throw new InvalidDataException("Expected graph contract version 1, 2, 3, 4, 5, 6, 7 or 8 with explicit project inputs and outputs");
+                throw new InvalidDataException("Expected graph contract version 1, 2, 3, 4, 5, 6, 7 or 8 or 9 with explicit project inputs and outputs");
             }
             sdk = Path.Combine(sdkRoot, "sdk", contract.SdkVersion);
             if (!Directory.Exists(sdk))
@@ -77,7 +91,8 @@ internal sealed class GraphInputs : IDisposable
             }
             Environment.SetEnvironmentVariable("MSBUILD_EXE_PATH", Path.Combine(sdk, "MSBuild.dll"));
             Environment.SetEnvironmentVariable("MSBuildSDKsPath", Path.Combine(sdk, "Sdks"));
-            collection = new ProjectCollection();
+            ownsCollection = evaluation is null;
+            collection = evaluation?.Collection ?? new ProjectCollection();
             properties = new Dictionary<string, string>(contract.Properties, StringComparer.OrdinalIgnoreCase);
             if (properties.ContainsKey("PathMap") || properties.ContainsKey("UseSharedCompilation") || properties.ContainsKey("NetCoreSdkRoot") || properties.ContainsKey("DOTNET_HOST_PATH"))
             {
@@ -86,7 +101,7 @@ internal sealed class GraphInputs : IDisposable
             properties["PathMap"] = Files.Root + "=/_/workspace," + Files.Sdk + "=/_/sdk";
             properties["UseSharedCompilation"] = "false";
             properties["NetCoreSdkRoot"] = sdk;
-            evaluationContext = EvaluationContext.Create(EvaluationContext.SharingPolicy.Shared);
+            evaluationContext = evaluation?.Context ?? EvaluationContext.Create(EvaluationContext.SharingPolicy.Shared);
             evaluationProfile = GraphProfile.Enabled && GraphProfile.EvaluationEnabled ? new GraphEvaluationProfile(Files) : null;
             if (evaluationProfile is not null)
             {
@@ -101,7 +116,7 @@ internal sealed class GraphInputs : IDisposable
                     Project project;
                     using (GraphProfile.Measure("projectLoad"))
                     {
-                        project = Project.FromFile(path, new ProjectOptions
+                        var options = new ProjectOptions
                         {
                             GlobalProperties = globals,
                             ProjectCollection = projects,
@@ -109,12 +124,18 @@ internal sealed class GraphInputs : IDisposable
                             LoadSettings = ProjectLoadSettings.DoNotEvaluateElementsWithFalseCondition |
                                 (evaluationProfile is null ? ProjectLoadSettings.Default : ProjectLoadSettings.ProfileEvaluation),
                             EvaluationContext = evaluationContext
-                        });
+                        };
+                        project = evaluation?.Load(path, globals, options) ?? Project.FromFile(path, options);
                     }
                     ProjectInstance instance;
                     using (GraphProfile.Measure("projectInstance"))
                     {
+                        var evaluationId = project.LastEvaluationId;
                         instance = project.CreateProjectInstance();
+                        if (project.LastEvaluationId != evaluationId || instance.EvaluationId != evaluationId)
+                        {
+                            throw new InvalidDataException("Retained project unexpectedly reevaluated: " + path);
+                        }
                         // Out-of-process build nodes otherwise evaluate the same
                         // project again to reconstruct targets and task registrations.
                         // Transfer the full pristine instance from this graph pass.
@@ -140,6 +161,23 @@ internal sealed class GraphInputs : IDisposable
             foreach (var node in Graph.ProjectNodes)
             {
                 projects.Add(node, restored ? RestoreInputs(node, Select(node)) : Select(node));
+            }
+        }
+        if (contract.EvaluationReuseInputs is not null)
+        {
+            if (contract.Version != 9)
+            {
+                throw new InvalidDataException("Evaluation reuse inputs require graph contract version 9");
+            }
+            var compiler = Graph.ProjectNodes.SelectMany(node => node.ProjectInstance.GetItems("Compile")
+                .Select(item => Path.GetRelativePath(Files.Root, Path.GetFullPath(item.EvaluatedInclude.Replace('\\', '/'), Path.GetDirectoryName(node.ProjectInstance.FullPath)!))))
+                .ToHashSet(StringComparer.Ordinal);
+            var other = Graph.ProjectNodes.SelectMany(node => new[] { "EmbeddedResource", "Content", "None", "AdditionalFiles", "Analyzer", "EditorConfigFiles", "GlobalAnalyzerConfigFiles", "RazorGenerate" }
+                .SelectMany(node.ProjectInstance.GetItems).Select(item => Path.GetRelativePath(Files.Root, Path.GetFullPath(item.EvaluatedInclude.Replace('\\', '/'), Path.GetDirectoryName(node.ProjectInstance.FullPath)!))))
+                .ToHashSet(StringComparer.Ordinal);
+            if (contract.EvaluationReuseInputs!.Any(path => !compiler.Contains(path) || other.Contains(path)))
+            {
+                throw new InvalidDataException("Evaluation reuse inputs must occur only as reviewed Compile items");
             }
         }
         readOnlyPackages = prepared?.ReadOnlyPackages == true;
@@ -170,10 +208,10 @@ internal sealed class GraphInputs : IDisposable
         timer.Restart();
         using (GraphProfile.Measure("sdkHash"))
         {
-            SdkDigest = prepared?.SdkDigest ?? ContractFiles.TreeDigest(sdkRoot);
+            SdkDigest = verifiedSdk ?? prepared?.SdkDigest ?? ContractFiles.TreeDigest(sdkRoot);
         }
         runnerDigest = ContractFiles.Digest(typeof(GraphInputs).Assembly.Location);
-        inputDigests = resolvedInputs.ToDictionary(pair => pair.Key, pair => prepared?.Digests.GetValueOrDefault(pair.Key) ?? ContractFiles.InputDigest(pair.Value), StringComparer.Ordinal);
+        inputDigests = resolvedInputs.ToDictionary(pair => pair.Key, pair => verifiedInputs?.GetValueOrDefault(pair.Key) ?? prepared?.Digests.GetValueOrDefault(pair.Key) ?? ContractFiles.InputDigest(pair.Value), StringComparer.Ordinal);
         sharedDigest = ContractFiles.Hash(contract.SharedInputs.Distinct().Order(StringComparer.Ordinal).Select(path => path + ":" + inputDigests[path]));
         baseFingerprints = [];
         dependencyFingerprints = [];
@@ -196,9 +234,9 @@ internal sealed class GraphInputs : IDisposable
         {
             return project;
         }
-        if (contract.Version is not (2 or 3 or 4 or 5 or 6 or 7 or 8) || project.OutputDirectories.Length != 0 || project.OutputFiles?.Length > 0 || project.ReferenceBoundary || project.DependencyCopies?.Count > 0 || project.ImplementationDependencies?.Length > 0 || project.CompilerReference is not null || project.CompilerReferences?.Count > 0 || project.ReplayOmissions?.Length > 0)
+        if (contract.Version is not (2 or 3 or 4 or 5 or 6 or 7 or 8 or 9) || project.OutputDirectories.Length != 0 || project.OutputFiles?.Length > 0 || project.ReferenceBoundary || project.DependencyCopies?.Count > 0 || project.ImplementationDependencies?.Length > 0 || project.CompilerReference is not null || project.CompilerReferences?.Count > 0 || project.ReplayOmissions?.Length > 0)
         {
-            throw new InvalidDataException("Configured projects require version 2, 3, 4, 5, 6, 7 or 8 and configuration-owned outputs: " + Relative(node));
+            throw new InvalidDataException("Configured projects require version 2, 3, 4, 5, 6, 7 or 8 or 9 and configuration-owned outputs: " + Relative(node));
         }
         var matches = project.Configurations.Where(configuration => configuration.Properties.Count != 0 &&
             configuration.Properties.All(property =>
@@ -416,5 +454,11 @@ internal sealed class GraphInputs : IDisposable
         }
     }
 
-    public void Dispose() => collection.Dispose();
+    public void Dispose()
+    {
+        if (ownsCollection)
+        {
+            collection.Dispose();
+        }
+    }
 }

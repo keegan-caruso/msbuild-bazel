@@ -104,7 +104,8 @@ internal static class PreparedRestore
         }
         if (manifest.Version != 1 || manifest.SdkDigest != sdkDigest || manifest.Key != key)
         {
-            throw new InvalidDataException("Prepared Restore inputs changed; rebuild preparation");
+            throw new InvalidDataException("Prepared Restore inputs changed; rebuild preparation (" +
+                (manifest.SdkDigest != sdkDigest ? "SDK bytes" : "contract, inputs or environment") + ")");
         }
         if (contract.Restore!.Outputs.Any(path => !manifest.Files.ContainsKey(path)))
         {

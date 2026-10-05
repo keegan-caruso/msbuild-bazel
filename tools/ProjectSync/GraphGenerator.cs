@@ -395,6 +395,43 @@ internal static class GraphGenerator
         {
             contractData["Version"] = 8;
         }
+        var reuseInputs = new HashSet<string>(StringComparer.Ordinal);
+        foreach (var node in graph.ProjectNodes)
+        {
+            var project = node.ProjectInstance;
+            var binding = mappings.ForProject(Relative(project.FullPath), project.GetPropertyValue("TargetFramework"));
+            if (binding.EvaluationReuseInputs.Length != 0 && restore is null)
+            {
+                throw new InvalidDataException("Evaluation reuse inputs require preparedRestore");
+            }
+            var declared = inputs[Key(project)].ToHashSet(StringComparer.Ordinal);
+            var compile = project.GetItems("Compile").Select(item => Path.GetFullPath(item.EvaluatedInclude.Replace('\\', '/'), Path.GetDirectoryName(project.FullPath)!)).ToHashSet(StringComparer.Ordinal);
+            foreach (var expression in binding.EvaluationReuseInputs)
+            {
+                foreach (var value in project.ExpandString(expression).Split(';', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+                {
+                    var path = Path.GetFullPath(value.Replace('\\', '/'), Path.GetDirectoryName(project.FullPath)!);
+                    if (!path.StartsWith(root + Path.DirectorySeparatorChar, StringComparison.Ordinal) || !declared.Contains(Relative(path)))
+                    {
+                        if (expression.Contains("@(", StringComparison.Ordinal))
+                        {
+                            continue; // Generated/SDK-owned items are not reusable authored inputs.
+                        }
+                        throw new InvalidDataException("Evaluation reuse input must be a declared authored Compile file: " + value);
+                    }
+                    if (!compile.Contains(path))
+                    {
+                        throw new InvalidDataException("Evaluation reuse input must be a Compile file: " + value);
+                    }
+                    reuseInputs.Add(Relative(path));
+                }
+            }
+        }
+        if (reuseInputs.Count != 0)
+        {
+            contractData["Version"] = 9;
+            contractData["EvaluationReuseInputs"] = JsonSerializer.SerializeToNode(reuseInputs.Order(StringComparer.Ordinal).ToArray());
+        }
         foreach (var project in contractData["Projects"]!.AsObject().Select(pair => pair.Value!))
         {
             foreach (var declaration in project["Configurations"]!.AsArray().Select(value => value!.AsObject()))
@@ -434,8 +471,8 @@ internal static class GraphGenerator
             "        input_paths = " + StarlarkLiteral.Serialize(view?.Bindings(restore.Inputs) ?? []) + ",\n" +
             (view?.DefaultPackageLock is null ? "" : "        package_lock = " + StarlarkLiteral.Serialize(view.DefaultPackageLock) + ",\n") + "    )\n";
         var text = Header + "load(\"@rules_msbuild//msbuild:defs.bzl\", \"msbuild_graph\", \"msbuild_graph_runner\"" + (restore is null ? "" : ", \"msbuild_graph_restore\"") + ")\n\n" +
-            "def app_graph(name = \"app\", linux_stable_paths = False, target = \"Build\", linux_worker = False, worker_cache_mb = 4096, profile_build = False):\n    if native.package_name():\n        fail(\"app_graph must be called from the workspace root\")\n" +
-            "    msbuild_graph_runner(name = name + \"_runner\")\n" + restoreRule + "    msbuild_graph(\n        name = name,\n        linux_stable_paths = linux_stable_paths,\n        linux_worker = linux_worker,\n        worker_cache_mb = worker_cache_mb,\n        profile_build = profile_build,\n        target = target,\n        runner = \":\" + name + \"_runner\",\n" +
+            "def app_graph(name = \"app\", linux_stable_paths = False, target = \"Build\", linux_worker = False, worker_cache_mb = 4096, evaluation_cache_mb = 512, profile_build = False):\n    if native.package_name():\n        fail(\"app_graph must be called from the workspace root\")\n" +
+            "    msbuild_graph_runner(name = name + \"_runner\")\n" + restoreRule + "    msbuild_graph(\n        name = name,\n        linux_stable_paths = linux_stable_paths,\n        linux_worker = linux_worker,\n        worker_cache_mb = worker_cache_mb,\n        evaluation_cache_mb = evaluation_cache_mb,\n        profile_build = profile_build,\n        target = target,\n        runner = \":\" + name + \"_runner\",\n" +
             (restore is null ? "" : "        restore = \":\" + name + \"_restore\",\n") +
             "        contract = \"" + ContractName + "\",\n        srcs = " + StarlarkLiteral.Serialize(sources.Where(path => view?.Labels.ContainsKey(path) != true && !path.StartsWith(".graph-tools/", StringComparison.Ordinal)).ToArray()) + ",\n        bindings = " + StarlarkLiteral.Serialize(view?.GraphBindingLabels ?? []) + ",\n        input_paths = " + StarlarkLiteral.Serialize(view?.Bindings(sources) ?? []) + ",\n        project_outputs = " + StarlarkLiteral.Serialize(runtimeOutputs) + ",\n        publish_outputs = " + StarlarkLiteral.Serialize(publishOutputs) + ",\n" + (view?.DefaultPackageLock is null ? "" : "        package_lock = " + StarlarkLiteral.Serialize(view.DefaultPackageLock) + ",\n") + "    )\n";
         // Validate both destinations before replacing either generated file.

@@ -27,6 +27,10 @@ internal static class ReadOnlyPackageTree
     [DllImport("libc", EntryPoint = "statx", SetLastError = true)]
     private static extern int Status(int directory, string path, int flags, uint mask, out FileStatus status);
 
+    internal static bool SameVolume(string left, string right) => OperatingSystem.IsLinux() &&
+        Status(-100, left, 0x100, 0x100, out var first) == 0 && Status(-100, right, 0x100, 0x100, out var second) == 0 &&
+        first.DeviceMajor == second.DeviceMajor && first.DeviceMinor == second.DeviceMinor;
+
     internal static bool Contains(string relative) => relative.StartsWith(".nuget/", StringComparison.Ordinal);
 
     internal static void RequireReadOnly(string root)
