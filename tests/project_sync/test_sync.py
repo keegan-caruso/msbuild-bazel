@@ -64,6 +64,16 @@ class GraphSyncTests(unittest.TestCase):
         for mappings in [{"projects": {"../App.csproj": {}}}, {"projects": {"App.csproj": {"restoreInputs": ["props.xml"]}}}]:
             self.sync(mappings, success=False)
 
+    def test_evaluation_reuse_requires_prepared_declared_compile_inputs(self):
+        self.assertIn("preparedRestore", self.sync({"projectDefaults": {"evaluationReuseInputs": ["Program.cs"]}}, success=False))
+        defaults = {"preparedRestore": True, "evaluationReuseInputs": ["@(Compile)"]}
+        self.sync({"projectDefaults": defaults})
+        contract = json.loads((self.root / "graph.generated.json").read_text())
+        self.assertEqual(contract["Version"], 9)
+        self.assertEqual(contract["EvaluationReuseInputs"], ["Program.cs"])
+        defaults["evaluationReuseInputs"] = ["App.csproj"]
+        self.assertIn("Compile", self.sync({"projectDefaults": defaults}, success=False))
+
     def test_owned_paths_cannot_be_overridden(self):
         for name in ["NetCoreSdkRoot", "PathMap", "RestoreSources"]:
             self.assertIn("declared inputs", self.sync({"projectDefaults": {"properties": {name: "/host"}}}, success=False))

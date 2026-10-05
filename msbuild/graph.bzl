@@ -60,6 +60,8 @@ def _graph_action(ctx, prepare = False):
         fail("Graph workers require linux_stable_paths and build actions")
     if ctx.attr.worker_cache_mb < 0:
         fail("worker_cache_mb must be nonnegative")
+    if ctx.attr.evaluation_cache_mb < 0 or ctx.attr.evaluation_cache_mb > 4096:
+        fail("evaluation_cache_mb must be between zero and 4096")
     worker_sources = []
     prefix = ctx.attr.source_root + "/" if ctx.attr.source_root else ""
     args = ctx.actions.args()
@@ -111,6 +113,7 @@ def _graph_action(ctx, prepare = False):
             "prepared": prepared.directory.path if prepared else None,
             "sources": worker_sources,
             "profileBuild": ctx.attr.profile_build,
+            "evaluationCacheMb": ctx.attr.evaluation_cache_mb,
         }))
         launcher = ctx.actions.declare_file(ctx.label.name + ".graph-worker.sh")
         ctx.actions.write(launcher, "#!/usr/bin/env bash\nset -eu\nexec \"$PWD/%s\" exec \"$PWD/%s/GraphBuild.dll\" worker \"$PWD/%s\" %s \"$@\"\n" % (tc.dotnet.path, runner[0].path, ctx.file._linux_stable_paths.path, ctx.attr.worker_cache_mb), is_executable = True)
@@ -191,6 +194,7 @@ _GRAPH_ATTRS = {
     "project_outputs": attr.string_list_dict(),
     "publish_outputs": attr.string_list_dict(),
     "profile_build": attr.bool(default = False, doc = "Opt-in runner operation and worker staging timings; profiling is disabled by default."),
+    "evaluation_cache_mb": attr.int(default = 512, doc = "Retained evaluation heap budget in MiB for reviewed compiler-only contracts; zero uses fresh engines. Resident memory is capped at max(256 MiB, three times this limit)."),
     "worker_cache_mb": attr.int(default = 4096, doc = "Conservative logical snapshot-cache budget in MiB; zero discards between requests."),
     "linux_worker": attr.bool(default = False, doc = "Opt-in Linux cache broker; each request runs a fresh sandboxed MSBuild process."),
     "linux_stable_paths": attr.bool(default = False, doc = "Use bubblewrap on Linux for stable graph paths; cache transport retains network access."),

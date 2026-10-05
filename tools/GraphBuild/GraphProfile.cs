@@ -18,6 +18,13 @@ internal static class GraphProfile
     internal static object? Report => Enabled ? Metrics.OrderBy(pair => pair.Key, StringComparer.Ordinal).ToDictionary(
         pair => pair.Key, pair => new { seconds = (double)pair.Value.Ticks / Stopwatch.Frequency, calls = pair.Value.Calls, bytes = pair.Value.Bytes }) : null;
 
+    internal static void Reset(bool enabled, bool evaluation)
+    {
+        Metrics.Clear();
+        Enabled = enabled;
+        EvaluationEnabled = enabled && evaluation;
+    }
+
     internal static IDisposable? Measure(string name, long bytes = 0) => Enabled ? new Scope(Metrics.GetOrAdd(name, _ => new Metric()), bytes) : null;
 
     internal static void Record(string name, TimeSpan duration, long calls)

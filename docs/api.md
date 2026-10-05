@@ -142,15 +142,26 @@ See [test attributes](../msbuild/private/test_options.bzl).
 
 Unchanged graphs can hit Bazel's action cache. Changed graphs need a persistent
 worker or HTTP project cache to reuse project snapshots; a fresh local action starts
-empty. Evaluations and declared-byte verification remain fresh. Dependency keys are
+empty. Declared-byte verification remains fresh. Dependency keys are
 conservative unless reviewed reference boundaries and runtime-copy contracts are explicit.
 Task/analyzer edges consume implementation bytes.
 
 On qualified Linux, set `linux_stable_paths = True, linux_worker = True` on
 `app_graph`, then use `--strategy=MSBuildGraph=worker --worker_sandboxing`.
-Each request starts fresh MSBuild inside Bubblewrap; the worker retains caches.
+Each request gets fresh build instances and MSBuild nodes inside Bubblewrap.
+By default evaluation is fresh. Reviewed compiler-only `evaluationReuseInputs`
+in sync mappings can retain pristine evaluation across requests; use explicit
+paths or `@(Compile)` only after reviewing evaluation-time reads. Source bytes
+still affect compilation keys and undergo verification. All other byte,
+configuration or file/directory membership changes restart the engine; failed
+requests discard it. This requires prepared Restore and stable Linux workers.
 Prepared Restore requires matching contract/runner/SDK and stable paths.
 `worker_cache_mb` defaults to 4096 logical MiB (not an RSS cap); profiling is off.
+`evaluation_cache_mb` defaults to 512: between requests, retire the engine above
+that live managed heap, 1024 configurations, or RSS above max(256 MiB, three times
+the heap budget). Set it to zero for fresh evaluation. These are retention limits,
+not hard peak-memory limits. Arbitrary time, process-state or undeclared external
+evaluation reads cannot be safely reused.
 
 Bazel's `--remote_cache` recovers whole Restore/build actions. The plugin's HTTP
 AC/CAS transport reuses projects when the build action changes. Enable both:

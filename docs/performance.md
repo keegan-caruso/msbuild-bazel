@@ -142,10 +142,16 @@ Across eight reuse controls, graph construction had medians **43.19 → 1.05 ms*
 and **24.91 → 0.95 MiB** allocated. SDK/input verification and compilation are
 excluded; these phase results do not establish a large-build speedup.
 
-This is a retained-engine correctness prototype. Production workers still launch
-fresh MSBuild. Stable namespace updates, loaded-tool identity, memory bounds and
-large-graph qualification must precede production integration. Evaluation-read
-contracts are explicit: source extensions alone cannot establish compiler-only use.
+Production control: `//tests/integration:evaluation_worker`, Linux ARM64 /
+SDK 10.0.400 / both Bazel pins. Five configurations reuse all evaluations for
+unchanged/body/API requests; changed evaluation reads, task DLLs, membership and
+definitions restart the engine. Failed builds recover with fresh evaluation.
+Compiled/task outputs match fresh processes; a 1 MiB budget retires state, and
+zero disables retention. Fresh build nodes prevent static task-state leakage;
+private request scratch is cleared. SDK/package/input verification stays fresh.
+Evaluation-read contracts are explicit: source extensions cannot establish
+compiler-only use. The prototype phase figures above remain separate from
+production and large-graph wall timings.
 
 ## Optional replay intermediates
 
