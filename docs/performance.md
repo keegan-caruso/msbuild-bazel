@@ -1,34 +1,61 @@
 # Performance versus raw MSBuild
 
-Baseline **69b2ac2**, runtime v10.0.0 (`60629d14374c56f1cb51819049ad1fa529307f8d`),
-SDK 10.0.400, Bazel 9.2.0, Linux ARM64: four CPUs / 8 GiB, four MSBuild nodes,
-one graph worker with an 8192 MiB snapshot budget. Scope: 481 compilations /
-543 configurations / 39 roots.
+Production retained-evaluation runner **1bca5b1**, runtime v10.0.0
+(`60629d14374c56f1cb51819049ad1fa529307f8d`), SDK 10.0.400, Bazel 9.2.0,
+Linux ARM64: four CPUs / 8 GiB, four MSBuild nodes, one graph worker.
+Scope: 260 project paths / 543 configurations / 481 compilations / 39 roots;
+8192 MiB project snapshots and a 1024 MiB evaluation retention budget.
+Only the two reviewed Pipelines edit sources opt into compiler-only evaluation reuse.
 
-Median wall seconds, three matched pairs, alternating order, profiling off:
+Median wall seconds, three matched pairs per mode, alternating raw/graph order,
+profiling off. Fresh controls disable retention and use equivalent unique edits.
 
-| Case | Bazel | Raw MSBuild | Difference |
-| --- | ---: | ---: | --- |
-| No-op | 0.25 | 17.37 | Bazel whole-action hit |
-| Leaf body edit | 29.61 | 29.55 | 0.2% slower; six Csc calls each |
-| Leaf API edit | 44.63 | 44.43 | 0.5% slower; 17 Csc calls each |
-| Local project recovery | 15.24 | — | 481 hits; no compilation |
+| Case | Retained evaluation | Fresh evaluation | Raw MSBuild, retained / fresh pair |
+| --- | ---: | ---: | ---: |
+| No-op | 0.22 | — | 17.22 / — |
+| Leaf body edit | 28.96 | 29.75 | 31.74 / 31.74 |
+| Leaf API edit | 41.10 | 46.77 | 45.74 / 45.31 |
 
-All 3,622 compiled files matched raw bytes on every row. Body/API edits reused
-prepared Restore and had 475/464 project hits. Acquisition, the all-miss seed,
-source restoration and filesystem trimming were outside scored observations.
-Only one build VM ran during scoring. These rows establish current parity;
-differences from older runs are not a paired attribution of individual changes.
+Retention reduced the observed body/API medians by **0.79 s (2.7%) /
+5.67 s (12.1%)**. Body ranges: retained **26.91–29.07 s**, fresh
+**29.21–31.41 s**. API retained **39.61–60.53 s**, fresh **46.48–48.67 s**;
+the slow retained sample spent 50.25 s in execution despite reusing evaluation.
+Three pairs establish these observations, not a guaranteed speedup.
 
-Median maximum VM used memory was **1.05/2.34 GiB** for no-op,
-**2.94/2.53 GiB** for body and **3.04/2.85 GiB** for API (Bazel/raw).
-Samples use `MemTotal - MemAvailable` every 250 ms: whole-VM pressure,
-including retained processes/caches, not process RSS or managed allocation.
+All 3,622 DLL/PDB/resource files matched raw bytes on scored rows. Bazel freezes
+published files to 0555; raw files remained 0644. No-op hit the whole graph action;
+body/API reused prepared Restore, hit 475/464 projects and compiled six/17.
+Retained edits loaded zero evaluations and reused all 543. Every request still
+verified SDK/package/input bytes and used fresh MSBuild build nodes.
+Forced local recovery had 481 hits / zero compilations, median **18.84 s**.
+After an intentional compiler failure, recovery reevaluated all 543 configurations,
+kept 475 project hits, recompiled six and matched all outputs (**31.67 s**, raw
+**33.18 s**, one observation). Failed requests do not poison retained state.
 
-Separate body/API diagnostics measured evaluation **5.64/5.92 s**, input hashing
-**2.14/2.29 s**, replay copies **2.16/2.88 s** (689/677 MB), worker staging
-**1.17/1.25 s** and publication **0.15/0.16 s**. Build-node evaluation remained
-zero. Operation scopes overlap; these are not additive wall-clock components.
+Separate body/API profiles measured evaluation **5.75 → 1.64 s / 5.53 → 1.73 s**
+(fresh → retained). Retained identity validation took **0.77/0.82 s**; fresh
+instance construction still occurs. Retained worker staging was **1.04/1.10 s**,
+publication **0.18/0.18 s**, and replay copies **3.47/4.43 s** for **689/677 MB**.
+Scopes overlap and are not additive wall-clock components. Both modes made exactly
+six/17 Csc calls; retained build nodes evaluated zero projects.
+
+Post-request engine managed heap was **955/944 MiB**, RSS **1.18/1.25 GiB**;
+neither request retired the engine. These are engine observations, not incremental
+allocations or hard peak bounds. The 1024 MiB budget retires state between requests;
+the production default is 512 MiB. Whole-VM samples include idle retained processes,
+even during raw controls, so they cannot isolate a raw/graph memory difference.
+
+Driver: `python3 tests/graph_build/upstream/runtime_benchmark.py WORKSPACE RESULTS
+--output-base BASE --slice runtime-suites --qualified-raw-results RAW_RESULTS
+--evaluation-reuse --compare-fresh-evaluation --failure-recovery --diagnostics
+--trim-between-rows`. The fixture's contract must explicitly inventory the two edit
+sources; set its graph to `evaluation_cache_mb=1024`. This series qualifies local
+retention/recovery, not a new independent remote-cache consumer or RBE run.
+
+Acquisition, baseline restoration, engine priming, output comparison and filesystem
+trimming were unscored. Only one build VM ran. The all-miss production seed took
+1048.05 s including preparation and matched all outputs; scoring continued from
+that verified cache. There is **no new paired cold comparison** for retention.
 
 Earlier paired cold observation at **8d83f0f** (raw first): graph **1061.33 s**,
 raw Restore + Build **1056.91 s** (**0.4%** overhead). All 3,622 files matched.
@@ -37,10 +64,11 @@ were fresh. This measures cold compilation, not first-time acquisition.
 
 ## Complete remote-cache recovery
 
-Same 481-compilation runtime contract, Linux ARM64 / SDK 10.0.400 / Bazel 9.2:
-a fresh relocated consumer, producer stopped, fresh output bases, normal Bazel
-HTTP caching enabled and local disk caching disabled. After bounded child
-verification, one unprofiled observation per case:
+Earlier fresh-evaluation qualification of the 481-compilation runtime contract,
+Linux ARM64 / SDK 10.0.400 / Bazel 9.2: a fresh relocated consumer, producer
+stopped, fresh output bases, normal Bazel HTTP caching enabled and local disk
+caching disabled. After bounded child verification, one unprofiled observation
+per case:
 
 | Recovery | Wall seconds | Restore action | Graph action |
 | --- | ---: | ---: | ---: |
@@ -114,44 +142,26 @@ warm / three cold paired Apply probes measured **0.65 → 0.62 s** and
 use streaming SHA-256; every child reads them afresh. Native worker body/API and
 recovery controls passed on both Bazel pins.
 
-## Evaluation transfer qualification
+## Evaluation correctness controls
 
-`//tests/integration:evaluation_transfer` uses the production diagnostic counter
-and forced out-of-process MSBuild nodes. On Linux ARM64 / SDK 10.0.400 / both
-Bazel pins, partial transfer caused three build-node evaluations; full transfer
-caused zero, with matching DLL/PDB bytes. Cached/uncached worker Build/Publish
-controls also passed. This removes reconstruction within a request; the initial
-graph still evaluates afresh. Reuse between requests needs a retained isolated
-engine, pristine instance copies and a complete evaluation invalidation contract.
-No large-runtime edit-time improvement is claimed for this slice.
+Linux ARM64 / SDK 10.0.400, both Bazel pins:
 
-## Evaluation reuse prototype
+- `//tests/integration:evaluation_transfer`: forced out-of-process nodes evaluate
+  three projects with partial transfer, zero with full transfer; DLL/PDB bytes match.
+- `//tests/integration:evaluation_reuse`: 23 prototype controls compare compiled,
+  reference and task outputs with fresh evaluation. Reviewed compiler edits reuse
+  evaluation; definitions, evaluation reads, Restore/configuration and membership
+  changes reset it. Failed builds/input mutation discard state.
+- `//tests/integration:evaluation_worker`: production workers preserve byte parity,
+  restart for changed definitions, reads, task DLLs and membership, recover from
+  failures, retire at a 1 MiB budget and disable retention at zero. Fresh build
+  nodes and cleared private scratch prevent task-state leakage. Retirement still
+  preserves valid project snapshots. Private LocalApplicationData stays stable.
 
-`//tests/integration:evaluation_reuse` qualifies a retained evaluator on the
-three-project Linux ARM64 / SDK 10.0.400 fixture, on both Bazel pins. Each of
-23 cases compares DLL/PDB/reference and task-output bytes with fresh evaluation.
-Reviewed unchanged/body/API/source-timestamp cases perform zero evaluations
-versus three fresh; project/import/Restore/configuration/evaluation-read and
-file/directory membership changes reset the epoch. Failed builds and input
-mutations discard state; changed SDK/runner/environment identity requires restart.
-Every request still hashes SDK and input bytes afresh. Build nodes evaluate zero
-projects. Fresh `CreateProjectInstance` snapshots preserve task registrations and
-relative item metadata; `DeepCopy` failed the unprimed relative-reference control.
-
-Across eight reuse controls, graph construction had medians **43.19 → 1.05 ms**
-and **24.91 → 0.95 MiB** allocated. SDK/input verification and compilation are
-excluded; these phase results do not establish a large-build speedup.
-
-Production control: `//tests/integration:evaluation_worker`, Linux ARM64 /
-SDK 10.0.400 / both Bazel pins. Five configurations reuse all evaluations for
-unchanged/body/API requests; changed evaluation reads, task DLLs, membership and
-definitions restart the engine. Failed builds recover with fresh evaluation.
-Compiled/task outputs match fresh processes; a 1 MiB budget retires state, and
-zero disables retention. Fresh build nodes prevent static task-state leakage;
-private request scratch is cleared. SDK/package/input verification stays fresh.
-Evaluation-read contracts are explicit: source extensions cannot establish
-compiler-only use. The prototype phase figures above remain separate from
-production and large-graph wall timings.
+Prototype graph construction measured **43.19 → 1.05 ms** and **24.91 → 0.95 MiB**
+allocated across eight reuse controls; verification/compilation were excluded.
+Use the large paired series above for end-to-end results. Retention is opt-in;
+source extensions do not establish compiler-only use. See [worker API](api.md#caching-and-workers).
 
 ## Optional replay intermediates
 

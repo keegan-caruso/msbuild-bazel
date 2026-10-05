@@ -20,7 +20,7 @@ runtime are separate selections.
 ## Execution
 
 Sync records input files, configured projects and output ownership. Builds consume
-that contract, restore from declared packages, evaluate the MSBuild graph afresh,
+that contract, restore from declared packages, construct the evaluated MSBuild graph,
 then build or recover each project. Definition changes require sync; custom task
 reads require reviewed declarations. Evaluation does not trace arbitrary file access.
 Fully evaluated instances carry targets and task registrations to build nodes;
