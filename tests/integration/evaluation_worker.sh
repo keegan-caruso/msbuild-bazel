@@ -19,6 +19,7 @@ public sealed class ProofTask : Microsoft.Build.Utilities.Task {
  public string Project {get;set;} = ""; public string File {get;set;} = ""; public string Value {get;set;} = "";
  private static readonly HashSet<string> Seen = new();
  public override bool Execute() {
+  if(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData)!="/__rules_msbuild_graph/scratch/.local/share") throw new Exception("Private application-data layout changed");
   var marker=Path.Combine(Path.GetTempPath(),"qualification-"+Path.GetFileNameWithoutExtension(Project));
   if(!Seen.Add(Project)||System.IO.File.Exists(marker)) throw new Exception("Retained task/request scratch leaked");
   System.IO.File.WriteAllText(marker,"first"); System.IO.File.WriteAllText(File,"v1:"+Value); return true;
@@ -138,7 +139,7 @@ sed -i 's/linux_worker=False/linux_worker=True,evaluation_cache_mb=1/' BUILD.baz
 printf '\n// budget one\n' >> src/Library/Code.cs
 run bounded-one 2 5 0 3
 printf '\n// budget two\n' >> src/Library/Code.cs
-run bounded-two 2 5 0 3
+run bounded-two 2 5 2 1
 products > "$TEST_TMPDIR/bounded.sha256"
 sed -i 's/evaluation_cache_mb=1/evaluation_cache_mb=0/' BUILD.bazel
 bazel run //:app "${options[@]}" > "$TEST_TMPDIR/disabled.log" 2>&1 || { cat "$TEST_TMPDIR/disabled.log" >&2; exit 1; }

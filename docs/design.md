@@ -44,6 +44,9 @@ pristine evaluation in an isolated engine; every request clones fresh project
 instances and starts fresh build nodes. Definition, configuration, other input
 bytes and filesystem membership invalidate the engine. Failure and memory limits
 discard it. Unreviewed graphs evaluate afresh.
+The private home has the same empty application-data layout before every request.
+Otherwise MSBuild's folder defaults change after SDK tools create `.local/share`,
+invalidating snapshots when an engine restarts.
 Prepared Restore can be a separate action so body edits reuse it. Stable paths
 support relocation; declared-byte checks remain required on project-cache hits.
 Workers copy preparation privately; the child verifies every payload before

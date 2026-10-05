@@ -194,7 +194,7 @@ _GRAPH_ATTRS = {
     "project_outputs": attr.string_list_dict(),
     "publish_outputs": attr.string_list_dict(),
     "profile_build": attr.bool(default = False, doc = "Opt-in runner operation and worker staging timings; profiling is disabled by default."),
-    "evaluation_cache_mb": attr.int(default = 512, doc = "Retained evaluation heap budget in MiB for reviewed compiler-only contracts; zero uses fresh engines. Resident memory is capped at max(256 MiB, three times this limit)."),
+    "evaluation_cache_mb": attr.int(default = 512, doc = "Retained evaluation heap budget in MiB for reviewed compiler-only contracts; zero uses fresh engines. Retire between requests above this live-heap budget or max(256 MiB, three times this limit) resident memory; these are not peak-memory caps."),
     "worker_cache_mb": attr.int(default = 4096, doc = "Conservative logical snapshot-cache budget in MiB; zero discards between requests."),
     "linux_worker": attr.bool(default = False, doc = "Opt-in Linux cache broker; each request runs a fresh sandboxed MSBuild process."),
     "linux_stable_paths": attr.bool(default = False, doc = "Use bubblewrap on Linux for stable graph paths; cache transport retains network access."),

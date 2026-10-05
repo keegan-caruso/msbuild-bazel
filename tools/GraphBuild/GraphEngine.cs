@@ -87,6 +87,7 @@ internal static class GraphEngine
                 }
             }
         }
+        Directory.CreateDirectory(Path.Combine(Environment.GetEnvironmentVariable("HOME")!, ".local", "share"));
     }
 
 }
