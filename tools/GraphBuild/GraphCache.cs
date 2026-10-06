@@ -77,7 +77,7 @@ internal sealed class GraphCache(GraphInputs inputs, string cache, bool read, Re
                     using var omitted = GraphProfile.Measure("omittedReplay", new FileInfo(Path.Combine(directory, relative)).Length);
                     continue;
                 }
-                Materialize(Path.Combine(directory, relative), destination, digest, snapshot.UnixModes[relative]);
+                Materialize(Path.Combine(directory, relative), destination, digest, snapshot.UnixModes[relative], verify: true);
             }
             foreach (var (relative, producer) in snapshot.ProjectCopies)
             {
@@ -95,10 +95,14 @@ internal sealed class GraphCache(GraphInputs inputs, string cache, bool read, Re
         return CacheResult.IndicateNonCacheHit(CacheResultType.CacheMiss);
     }
 
-    private void Materialize(string source, string destination, string digest, int mode)
+    private void Materialize(string source, string destination, string digest, int mode, bool verify = false)
     {
         if (localState?.Reusable == true && LocalGraphState.Matches(destination, digest))
         {
+            if (verify && ContractFiles.Digest(source) != digest)
+            {
+                throw new InvalidDataException("Corrupt graph snapshot: " + source);
+            }
             using var reused = GraphProfile.Measure("retainedOutput", new FileInfo(destination).Length);
         }
         else
@@ -107,11 +111,18 @@ internal sealed class GraphCache(GraphInputs inputs, string cache, bool read, Re
             {
                 File.Delete(destination);
             }
-            materializer.Copy(source, destination);
+            materializer.Copy(source, destination, verify ? digest : null);
         }
         if (!OperatingSystem.IsWindows())
         {
             File.SetUnixFileMode(destination, (UnixFileMode)mode);
+        }
+        if (verify)
+        {
+            // Replayed bytes were just verified; dependency keys need not reread
+            // these owned outputs. The digest cache is discarded every request.
+            outputDigests.TryAdd(destination, new Lazy<string>(() => digest));
+            using var known = GraphProfile.Measure("verifiedOutputDigest", new FileInfo(destination).Length);
         }
     }
 
@@ -321,7 +332,13 @@ internal sealed class GraphCache(GraphInputs inputs, string cache, bool read, Re
         {
             ValidateCopyOwnership(node, relative);
             Allowed(relative);
-            if (ContractFiles.Digest(Path.Combine(directory, relative)) != digest)
+            if (digest is null || digest.Length != 64 || digest.Any(character => !char.IsAsciiHexDigitLower(character)))
+            {
+                throw new InvalidDataException("Invalid graph snapshot digest: " + relative);
+            }
+            // Ordinary payloads are checked while copying the actual replayed
+            // bytes. Omitted files still need verification without materialization.
+            if (omissions.Contains(node, inputs.Files.Resolve(relative)) && ContractFiles.Digest(Path.Combine(directory, relative)) != digest)
             {
                 throw new InvalidDataException("Corrupt graph snapshot: " + relative);
             }

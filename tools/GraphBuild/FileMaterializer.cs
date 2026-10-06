@@ -1,5 +1,7 @@
+using System.Buffers;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
+using System.Security.Cryptography;
 using Microsoft.Win32.SafeHandles;
 
 namespace RulesMSBuild.GraphBuild;
@@ -11,9 +13,10 @@ internal sealed class FileMaterializer(bool clone, bool profile)
     private long clones;
     private long fallbacks;
     private long bytes;
-    internal object? Report => profile ? new { seconds = (double)ticks / Stopwatch.Frequency, copies, clones, fallbacks, bytes } : null;
+    private long verifiedCopies;
+    internal object? Report => profile ? new { seconds = (double)ticks / Stopwatch.Frequency, copies, clones, fallbacks, bytes, verifiedCopies } : null;
 
-    internal void Copy(string source, string destination)
+    internal void Copy(string source, string destination, string? expectedDigest = null)
     {
         var start = profile ? Stopwatch.GetTimestamp() : 0;
         Directory.CreateDirectory(Path.GetDirectoryName(destination)!);
@@ -35,16 +38,70 @@ internal sealed class FileMaterializer(bool clone, bool profile)
             {
                 Interlocked.Increment(ref fallbacks);
             }
-            File.Copy(source, destination, overwrite: true);
+            if (expectedDigest is null)
+            {
+                File.Copy(source, destination, overwrite: true);
+            }
+            else
+            {
+                CopyVerified(source, destination, expectedDigest);
+            }
             if (profile)
             {
                 Interlocked.Increment(ref copies);
             }
         }
+        if (cloned && expectedDigest is not null && ContractFiles.Digest(destination) != expectedDigest)
+        {
+            File.Delete(destination);
+            throw new InvalidDataException("Corrupt graph snapshot: " + source);
+        }
         if (profile)
         {
+            if (expectedDigest is not null)
+            {
+                Interlocked.Increment(ref verifiedCopies);
+            }
             Interlocked.Add(ref bytes, new FileInfo(source).Length);
             Interlocked.Add(ref ticks, Stopwatch.GetTimestamp() - start);
+        }
+    }
+
+    // Verify the bytes actually replayed, without reading the source twice.
+    private static void CopyVerified(string source, string destination, string expected)
+    {
+        var buffer = ArrayPool<byte>.Shared.Rent(128 * 1024);
+        try
+        {
+            using (var input = File.OpenRead(source))
+            using (var output = File.Create(destination))
+            using (var hash = IncrementalHash.CreateHash(HashAlgorithmName.SHA256))
+            {
+                int count;
+                while ((count = input.Read(buffer)) != 0)
+                {
+                    hash.AppendData(buffer.AsSpan(0, count));
+                    output.Write(buffer.AsSpan(0, count));
+                }
+                if (Convert.ToHexStringLower(hash.GetHashAndReset()) != expected)
+                {
+                    throw new InvalidDataException("Corrupt graph snapshot: " + source);
+                }
+            }
+            if (!OperatingSystem.IsWindows())
+            {
+                File.SetUnixFileMode(destination, File.GetUnixFileMode(source));
+            }
+            File.SetLastWriteTimeUtc(destination, File.GetLastWriteTimeUtc(source));
+        }
+        catch
+        {
+            File.Delete(destination);
+            throw;
+        }
+        finally
+        {
+            ArrayPool<byte>.Shared.Return(buffer);
         }
     }
 

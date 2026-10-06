@@ -1,0 +1,40 @@
+using RulesMSBuild.GraphBuild;
+var root = args[0];
+Directory.CreateDirectory(root);
+var source = Path.Combine(root, "source");
+var output = Path.Combine(root, "output");
+foreach (var clone in new[] { false, true })
+foreach (var size in new[] { 0, 8, 262144 })
+{
+    var bytes = Enumerable.Range(0, size).Select(i => (byte)(i % 251)).ToArray();
+    File.WriteAllBytes(source, bytes);
+    var stamp = DateTime.UnixEpoch.AddDays(10000);
+    File.SetLastWriteTimeUtc(source, stamp);
+    File.SetUnixFileMode(source, UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute);
+    var digest = ContractFiles.Digest(source);
+    var copy = new FileMaterializer(clone, true);
+    copy.Copy(source, output, digest);
+    if (ContractFiles.Digest(output) != digest || File.GetLastWriteTimeUtc(output) != stamp ||
+        File.GetUnixFileMode(output) != File.GetUnixFileMode(source)) throw new Exception("Replay bytes/mode/time changed");
+    File.WriteAllText(output, "changed output");
+    if (ContractFiles.Digest(source) != digest) throw new Exception("Replay output shares cache storage");
+    if (size == 0) continue;
+    bytes[0] ^= 1;
+    File.WriteAllBytes(source, bytes);
+    File.SetLastWriteTimeUtc(source, stamp);
+    Reject();
+    var replacement = source + ".replacement";
+    File.WriteAllBytes(replacement, bytes);
+    File.SetLastWriteTimeUtc(replacement, stamp);
+    File.Move(replacement, source, overwrite: true);
+    Reject();
+    void Reject()
+    {
+        try { copy.Copy(source, output, digest); throw new Exception("Corrupt cache entry accepted"); }
+        catch (InvalidDataException error)
+        {
+            if (!error.Message.Contains("Corrupt graph snapshot") || File.Exists(output)) throw new Exception("Corrupt output published", error);
+        }
+    }
+}
+Console.WriteLine("PASS: verified copy/clone, executable modes, timestamps, independent outputs, same-size/time corruption and replacement");

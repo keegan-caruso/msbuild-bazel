@@ -64,6 +64,24 @@ were fresh. This measures cold compilation, not first-time acquisition.
 
 ## Complete remote-cache recovery
 
+Snapshot replay now hashes bytes while copying them and reuses that verified
+digest for dependency keys within the same request. Clone mode hashes the cloned
+destination. Every path is still checked on every request, including omitted
+payloads; no timestamp, inode or cross-request verification shortcut was added.
+
+Six alternating warm pairs on the runtime's 10,780 files / 697 MB measured
+hash + copy + dependency hash at **1.43 → 0.87 s** (median). Hash + copy alone
+was **0.96 → 1.16 s**: the gain comes from removing the dependency reread.
+These isolated serial probes exclude setup and establish no end-to-end gain.
+Native `//tests/integration:snapshot_replay` controls cover copy/clone fallback,
+same-size/mtime corruption, replacement inodes, modes, independent outputs and
+byte parity with fresh compilation. `verifiedOutputDigest` counts reused digests;
+verification now belongs to `snapshotReplay`, rather than `snapshotValidation`.
+Replay, retained-worker and omission controls passed on both Bazel pins on a
+fresh Linux ARM64 guest. Owned .NET/style and scaffold checks passed; direct
+`tests/graph_build/replay.py` controls also rejected corrupted required/omitted
+payloads and preserved Build/Publish parity.
+
 Earlier fresh-evaluation qualification of the 481-compilation runtime contract,
 Linux ARM64 / SDK 10.0.400 / Bazel 9.2: a fresh relocated consumer, producer
 stopped, fresh output bases, normal Bazel HTTP caching enabled and local disk
