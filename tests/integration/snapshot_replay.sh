@@ -16,6 +16,12 @@ cat > "$scratch/proof/Proof.csproj" <<'XML'
 XML
 "$scratch/proof-sdk/dotnet" build "$scratch/proof/Proof.csproj" -c Release -p:UseSharedCompilation=false > "$TEST_TMPDIR/proof-build.log" 2>&1 || { cat "$TEST_TMPDIR/proof-build.log" >&2; exit 1; }
 "$scratch/proof-sdk/dotnet" "$scratch/proof/bin/Release/net10.0/Proof.dll" "$scratch/bytes"
+cat > copies.json <<'JSON'
+{"projects":{"P2/P2.csproj":{"referenceBoundary":true,"dependencyCopies":{
+"P2/bin/$(Configuration)/net10.0/P0.dll":"P0/bin/$(Configuration)/net10.0/P0.dll",
+"P2/bin/$(Configuration)/net10.0/P0.pdb":"P0/bin/$(Configuration)/net10.0/P0.pdb"}}}}
+JSON
+sed -i 's/projects = \["P2\/P2.csproj"\]/projects = ["P2\/P2.csproj"], mappings = "copies.json"/' BUILD.bazel
 bazel run //:sync > "$TEST_TMPDIR/sync.log" 2>&1 || { cat "$TEST_TMPDIR/sync.log" >&2; exit 1; }
 cat >> BUILD.bazel <<'BUILD'
 load(":graph.generated.bzl", "app_graph")
@@ -46,4 +52,4 @@ bazel clean > "$TEST_TMPDIR/clean.log" 2>&1
 run fresh 2
 products > "$TEST_TMPDIR/fresh.sha256"
 cmp "$TEST_TMPDIR/replay.sha256" "$TEST_TMPDIR/fresh.sha256"
-echo 'PASS: replayed and fresh graph products match'
+echo 'PASS: explicit dependency copies refresh on body edits; replayed and fresh graph products match'

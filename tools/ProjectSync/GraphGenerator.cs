@@ -570,6 +570,10 @@ internal static class GraphGenerator
                 return boundary;
             }
             var binding = mappings.ForProject(Relative(node.ProjectInstance.FullPath), node.ProjectInstance.GetPropertyValue("TargetFramework"));
+            if (binding.DependencyCopies.Count != 0 && binding.ReferenceBoundary != true)
+            {
+                throw new InvalidDataException("Explicit dependency copies require a reviewed reference boundary: " + Relative(node.ProjectInstance.FullPath));
+            }
             if (binding.ReferenceBoundary is not null)
             {
                 var supported = GraphProjectKind.HasAssembly(node.ProjectInstance) &&
@@ -664,6 +668,26 @@ internal static class GraphGenerator
             var output = Path.GetDirectoryName(Path.GetFullPath(project.GetPropertyValue("TargetPath"), directory))!;
             var publish = project.GetPropertyValue("PublishDir");
             var destinations = publish.Length == 0 ? new[] { output } : new[] { output, Path.GetFullPath(publish, directory) };
+            var binding = mappings.ForProject(Relative(project.FullPath), project.GetPropertyValue("TargetFramework"));
+            foreach (var (destination, source) in binding.DependencyCopies)
+            {
+                var target = WorkspaceView.Safe(project.ExpandString(destination).Replace('\\', '/'));
+                var producer = WorkspaceView.Safe(project.ExpandString(source).Replace('\\', '/'));
+                var extension = Path.GetExtension(producer);
+                var allowed = extension is ".dll" or ".pdb" or ".xml" &&
+                    Dependencies(node).Where(dependency => GraphProjectKind.HasAssembly(dependency.ProjectInstance)).Any(dependency =>
+                    {
+                        var path = Path.GetFullPath(dependency.ProjectInstance.GetPropertyValue("TargetPath"), Path.GetDirectoryName(dependency.ProjectInstance.FullPath)!);
+                        return producer == Relative(Path.ChangeExtension(path, extension));
+                    });
+                if (!allowed || !destinations.Any(path => target == Relative(Path.Combine(path, Path.GetFileName(producer)))) ||
+                    target == Relative(Path.ChangeExtension(Path.GetFullPath(project.GetPropertyValue("TargetPath"), directory), extension)))
+                {
+                    throw new InvalidDataException("Explicit dependency copy must bind a managed dependency product to its consumer output: " + target + " <- " + producer);
+                }
+                copies.Add(target, producer);
+            }
+            var explicitTargets = copies.Keys.ToHashSet(StringComparer.Ordinal);
             foreach (var dependency in RuntimeDependencies(node).Where(current => GraphProjectKind.HasAssembly(current.ProjectInstance))
                 .OrderBy(current => Key(current.ProjectInstance), StringComparer.Ordinal))
             {
@@ -674,9 +698,13 @@ internal static class GraphGenerator
                     foreach (var destination in destinations)
                     {
                         var target = Relative(Path.Combine(destination, Path.GetFileName(producer)));
+                        if (explicitTargets.Contains(target))
+                        {
+                            continue;
+                        }
                         if (copies.TryGetValue(target, out var existing) && existing != producer)
                         {
-                            throw new InvalidDataException("Ambiguous graph dependency copy: " + target);
+                            throw new InvalidDataException("Ambiguous graph dependency copy: " + target + " <- " + existing + " or " + producer);
                         }
                         copies[target] = producer;
                     }

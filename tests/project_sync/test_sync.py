@@ -86,6 +86,48 @@ class GraphSyncTests(unittest.TestCase):
         mappings["projectDefaults"]["documents"]["App.csproj"]["sha256"] = "0" * 64
         self.sync(mappings, success=False)
 
+    def test_explicit_dependency_copies_preserve_ownership_and_require_review(self):
+        library = self.root / 'Library'
+        library.mkdir()
+        (library / 'Library.csproj').write_text('<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup><TargetFramework>net10.0</TargetFramework></PropertyGroup></Project>')
+        (library / 'Code.cs').write_text('public class Library {}')
+        (self.root / 'App.csproj').write_text(self.project.replace('</Project>', '<ItemGroup><ProjectReference Include="Library/Library.csproj" /></ItemGroup></Project>'))
+        destination = 'bin/$(Configuration)/net10.0/Library.dll'
+        source = 'Library/bin/$(Configuration)/net10.0/Library.dll'
+        binding = {'referenceBoundary': True, 'dependencyCopies': {destination: source}}
+        mapping = {'projects': {'App.csproj': binding}}
+        self.sync(mapping)
+        contract = (self.root / 'graph.generated.json').read_text()
+        variants = json.loads(contract)['Projects']['App.csproj']['Configurations']
+        self.assertEqual(variants[0]['DependencyCopies']['bin/Release/net10.0/Library.dll'], 'Library/bin/Release/net10.0/Library.dll')
+        for destination, source in [('../outside/Library.dll', source),
+                                    ('bin/Release/net10.0/Library.dll', 'bin/Release/net10.0/App.dll'),
+                                    ('bin/Release/net10.0/Library.dll', 'Library/bin/Release/net10.0/Library.pdb'),
+                                    ('unowned/Library.dll', 'Library/bin/Release/net10.0/Library.dll')]:
+            with self.subTest(destination=destination, source=source):
+                binding['dependencyCopies'] = {destination: source}
+                self.sync(mapping, success=False)
+                self.assertEqual((self.root / 'graph.generated.json').read_text(), contract)
+        binding['referenceBoundary'] = False
+        self.assertIn('reviewed reference boundary', self.sync(mapping, success=False))
+
+    def test_ambiguous_dependency_copies_require_explicit_selection(self):
+        for name in ['First', 'Second']:
+            directory = self.root / name
+            directory.mkdir()
+            (directory / (name + '.csproj')).write_text('<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup><TargetFramework>net10.0</TargetFramework><AssemblyName>Shared</AssemblyName></PropertyGroup></Project>')
+            (directory / 'Code.cs').write_text('public class ' + name + ' {}')
+        references = ''.join('<ProjectReference Include="' + name + '/' + name + '.csproj" />' for name in ['First', 'Second'])
+        (self.root / 'App.csproj').write_text(self.project.replace('</Project>', '<ItemGroup>' + references + '</ItemGroup></Project>'))
+        mapping = {'projects': {'App.csproj': {'referenceBoundary': True}}}
+        self.assertIn('Ambiguous graph dependency copy', self.sync(mapping, success=False))
+        mapping['projects']['App.csproj']['dependencyCopies'] = {
+            'bin/$(Configuration)/net10.0/' + destination + 'Shared.' + extension: 'First/bin/$(Configuration)/net10.0/Shared.' + extension
+            for destination in ['', 'publish/'] for extension in ['dll', 'pdb', 'xml']}
+        self.sync(mapping)
+        variant = json.loads((self.root / 'graph.generated.json').read_text())['Projects']['App.csproj']['Configurations'][0]
+        self.assertEqual(set(variant['DependencyCopies'].values()), {'First/bin/Release/net10.0/Shared.' + extension for extension in ['dll', 'pdb', 'xml']})
+
 
 if __name__ == "__main__":
     unittest.main()

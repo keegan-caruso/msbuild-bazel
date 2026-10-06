@@ -56,10 +56,14 @@ Mappings use `projectDefaults`, project-path `projects`, `frameworkOverrides`, a
 root `entryProperties`. Supported contracts are `documents` (digest, target/task
 names, extra inputs), `inputItems`, `evaluationItems`, `outputFiles`,
 `inputDirectories`, `temporaryDirectories`, `replayOmissions`, `referenceBoundary`,
-`implementationDependencies`, `compilerReference`, `compilerReferences`,
+`implementationDependencies`, `compilerReference`, `compilerReferences`, `dependencyCopies`,
 `preparedRestore`, `restoreInputs`, and `restoreOutputs`.
 `projectDefaults.properties` sets graph-wide properties. Unknown/duplicate fields
 and unsafe paths fail; document changes require renewed contract review.
+At a reviewed reference boundary, `dependencyCopies` maps consumer output paths
+to dependency DLL/PDB/XML paths (MSBuild expressions allowed). Use it when the SDK
+selects one of several graph configurations for a copy. It declares cache replay;
+MSBuild still decides which files the build copies. Unreviewed or unowned bindings fail.
 
 ## Build and artifacts
 

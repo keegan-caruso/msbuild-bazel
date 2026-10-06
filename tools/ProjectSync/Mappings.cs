@@ -25,6 +25,7 @@ internal sealed class ProjectBinding
     public string[] ImplementationDependencies { get; set; } = [];
     public string? CompilerReference { get; set; } = null;
     public Dictionary<string, string> CompilerReferences { get; set; } = [];
+    public Dictionary<string, string> DependencyCopies { get; set; } = [];
     public Dictionary<string, DocumentBinding> Documents { get; set; } = [];
     public Dictionary<string, string[]> InputItems { get; set; } = [];
     public string[] EvaluationReuseInputs { get; set; } = [];
