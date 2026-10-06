@@ -147,14 +147,18 @@ evaluations and match raw output bytes. LINQ still recompiles substantially more
 projects because most compiler-reference boundaries are unreviewed; see [the
 compiler inventories](performance.md#wider-evaluation-reuse).
 
-An opt-in LINQ contract now reviews 145 consumer configurations and uses the
-upstream authored reference assembly. Explicit dependency-copy mappings resolve
-the TestUtilities framework ambiguity without changing MSBuild compilation.
+An opt-in full-runtime contract now reviews all 481 managed configurations using
+raw MSBuild's compiler/copy selections. All 233 advertised authored contracts are
+bound explicitly; consumers retain framework selection and implementation reads.
+Runtime disables SDK-generated reference assemblies: where its SDK selects an
+implementation DLL, that DLL remains the compiler input and invalidation boundary.
+Public sync passed with unchanged input/property/tool/output contracts.
 Thirteen sync controls, owned .NET/style and scaffold checks passed; native
 `//tests/integration:snapshot_replay` passed on both Bazel pins, refreshing copies
 after a body edit with one compilation / two hits and fresh-build byte parity.
-The full LINQ benchmark remains unqualified: disk I/O failures interrupted graph
-priming. No new large-graph timing or compilation count is claimed.
+Authored-contract and consumer-framework synthetic controls also passed body/API
+and fresh-byte parity. The full LINQ benchmark remains unqualified while graph
+priming completes; disk-failed attempts are excluded.
 
 Next: complete that body/API comparison and recovery, then expand unchanged
 upstream test slices.

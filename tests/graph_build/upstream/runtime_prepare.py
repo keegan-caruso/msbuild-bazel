@@ -32,11 +32,11 @@ def main():
     parser.add_argument('--also-slice', action='append', default=[], help='combine reviewed selections, retaining frameworks and declared root replacements')
     parser.add_argument('--framework', help='entry framework; default net10.0 or the selected slice framework')
     parser.add_argument('--prepared-restore', action='store_true', help='generate a separate declared Restore action')
-    parser.add_argument('--linq-reference-boundaries', action='store_true', help='apply reviewed LINQ compiler/copy contracts to runtime-suites')
+    parser.add_argument('--reference-bindings', type=Path, help='reviewed full raw Build compiler/copy selections')
     parser.add_argument('--worker-cache-mb', type=int, default=4096, help='explicit logical snapshot/preparation cache budget in MiB')
     args = parser.parse_args()
-    if args.linq_reference_boundaries and args.slice != 'runtime-suites':
-        parser.error('--linq-reference-boundaries requires --slice runtime-suites')
+    if args.reference_bindings and args.slice != 'runtime-suites':
+        parser.error('--reference-bindings requires --slice runtime-suites')
     if args.worker_cache_mb < 0:
         parser.error('--worker-cache-mb must be nonnegative')
     if args.also_slice and not args.slice:
@@ -110,7 +110,7 @@ def main():
     mapping = base / 'mapping.json'
     subprocess.run(['python3', str(Path(__file__).with_name('runtime_contract.py')), str(mapping),
                     '--platform', 'linux-arm64'] + (['--prepared-restore'] if args.prepared_restore else []) +
-                    (['--linq-reference-boundaries'] if args.linq_reference_boundaries else []), check=True)
+                    (['--reference-bindings', str(args.reference_bindings.resolve())] if args.reference_bindings else []), check=True)
     if entry_properties:
         reviewed = json.loads(mapping.read_text())
         reviewed['entryProperties'] = entry_properties

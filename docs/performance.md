@@ -103,13 +103,16 @@ inventories. Compilation diagnostics keep Restore unprofiled. Acquisition,
 priming, package-input deduplication, comparison and trimming are unscored;
 compiler outputs remain independent. Failed harness/disk attempts are excluded.
 
-The opt-in LINQ boundary candidate has **no new qualified timing**: graph priming
-hit disk I/O failures. Prepare with `--linq-reference-boundaries`, then add
-`--linq-reference-boundaries --body-only` to the normal paired driver above
+The full-runtime boundary candidate has **no new qualified timing** yet. Capture
+`RuntimeRawGraph`'s `reference-inventory` after a raw Build, then run
+`python3 tests/graph_build/upstream/runtime_reference_bindings.py CONTRACT INVENTORY BINDINGS`.
+Review the generated cache contracts and pass `--reference-bindings BINDINGS` to
+preparation and the paired driver above. Add `--body-only` for strict body scoring
 (omit `--qualify-evaluation-only`). Body scoring requires identical raw/graph
 compiler inventories, unchanged reference bytes, changed implementation bytes,
 full output parity and recovery. API parity remains a separate control; reviewed
-boundaries still retain conservative transitive compiler references.
+boundaries still retain conservative transitive compiler references. The earlier
+disk-failed priming attempts are excluded; reports were preserved before cleanup.
 
 ## Complete remote-cache recovery
 

@@ -245,6 +245,38 @@ if (args[2] is "reference-work" or "dependency-order")
 var parameters = new BuildParameters(collection) { MaxNodeCount = 4, EnableNodeReuse = false,
     Loggers = [new ConsoleLogger(LoggerVerbosity.Minimal)] };
 using var manager = new BuildManager();
+if (args[2] == "reference-inventory")
+{
+    // Qualification only. Capture actual SDK selection after Build, rather than
+    // assuming TargetRefPath or a matching contract applies to every consumer.
+    var result = manager.Build(parameters, new GraphBuildRequestData(graph, ["Build"], null, BuildRequestDataFlags.ProvideProjectStateAfterBuild));
+    if (result.OverallResult != BuildResultCode.Success) throw new InvalidDataException("Raw reference inventory Build failed");
+    string Key(ProjectGraphNode node) => Path.GetRelativePath(root, node.ProjectInstance.FullPath) + "|" + string.Join(";", node.ProjectInstance.GlobalProperties.OrderBy(p => p.Key).Select(p => p.Key + "=" + p.Value));
+    var names = new[] { "TargetFramework", "TargetPath", "TargetRefPath", "OutputPath", "PublishDir", "IsCrossTargetingBuild", "AnnotateTargetPathWithContract" };
+    var inventory = result.ResultsByNode.Select(pair =>
+    {
+        var node = pair.Key;
+        var state = pair.Value.ProjectStateAfterBuild ?? throw new InvalidDataException("Missing raw post-build state");
+        return new
+        {
+            key = Key(node), project = Path.GetRelativePath(root, node.ProjectInstance.FullPath),
+            properties = node.ProjectInstance.GlobalProperties,
+            values = names.ToDictionary(name => name, name => node.ProjectInstance.GetPropertyValue(name)),
+            dependencies = node.ProjectReferences.Select(Key),
+            authoredReferences = node.ProjectInstance.GetItems("ProjectReference").Select(item => new
+            {
+                path = Path.GetRelativePath(root, Path.GetFullPath(item.EvaluatedInclude.Replace('\\', '/'), Path.GetDirectoryName(node.ProjectInstance.FullPath)!)),
+                skipReferenceAssembly = item.GetMetadataValue("SkipUseReferenceAssembly")
+            }),
+            items = new[] { "ReferencePathWithRefAssemblies", "ReferenceCopyLocalPaths", "ResolvedMatchingContract" }.ToDictionary(name => name,
+                name => state.GetItems(name).Select(item => new { path = item.EvaluatedInclude }).ToArray()),
+            targets = pair.Value.ResultsByTarget.ToDictionary(target => target.Key, target => target.Value.Items.Select(item =>
+                new { path = item.ItemSpec, referenceAssembly = item.GetMetadata("ReferenceAssembly") }))
+        };
+    });
+    File.WriteAllText(args[3], JsonSerializer.Serialize(inventory, new JsonSerializerOptions { WriteIndented = true }) + "\n");
+    return;
+}
 if (args[2] == "build")
 {
     if (args.Length > 3)

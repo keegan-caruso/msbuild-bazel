@@ -68,7 +68,7 @@ def main():
     parser.add_argument('--qualify-evaluation-only', action='store_true', help='profile broader retention correctness; report conservative extra compilations without matched-work scores')
     parser.add_argument('--edit-case', type=Path, help='reviewed runtime-suites edit descriptor; overrides the default Pipelines scenario')
     parser.add_argument('--reviewed-evaluation-inputs', type=Path, help='explicit reviewed compiler-only input list, including both edit sources')
-    parser.add_argument('--linq-reference-boundaries', action='store_true', help='qualify the pinned reviewed LINQ compiler/copy contracts')
+    parser.add_argument('--reference-bindings', type=Path, help='qualify the reviewed full raw Build compiler/copy selections')
     parser.add_argument('--project-cache-url', help='recover baseline project snapshots through HTTP instead of a retained local worker')
     parser.add_argument('--compare-fresh-evaluation', action='store_true', help='pair retained edits with unique equivalent edits using evaluation_cache_mb=0')
     parser.add_argument('--failure-recovery', action='store_true', help='fail a compiler request, then compare a unique valid edit with raw MSBuild')
@@ -84,7 +84,7 @@ def main():
     assert not args.evaluation_reuse or args.qualified_raw_results
     assert not args.qualify_evaluation_only or (args.edit_case and args.evaluation_reuse and args.diagnostics and args.samples == 1 and not args.compare_fresh_evaluation and not args.failure_recovery)
     assert not args.edit_case or args.slice == 'runtime-suites'
-    assert not args.linq_reference_boundaries or (args.qualified_raw_results and args.edit_case)
+    assert not args.reference_bindings or args.qualified_raw_results
     assert not args.reviewed_evaluation_inputs or args.evaluation_reuse
     assert not args.project_cache_url or args.qualified_raw_results
     assert not args.compare_fresh_evaluation or args.evaluation_reuse
@@ -131,17 +131,18 @@ def main():
     continuation = None
     qualified = None
     if args.qualified_raw_results:
-        from runtime_full_source import normalize_linq_boundaries, validate_raw_contract
+        from runtime_full_source import normalize_reference_bindings, validate_raw_contract
+        references = json.loads(args.reference_bindings.read_text()) if args.reference_bindings else None
         prior = args.qualified_raw_results.resolve()
         assert prior != results and not results.is_relative_to(prior) and not prior.is_relative_to(results)
         validate_raw_contract(contract, prior, allow_replay_omissions=args.replay_omissions,
                               evaluation_reuse_inputs=reviewed_inputs if args.evaluation_reuse else None,
-                              linq_reference_boundaries=args.linq_reference_boundaries)
+                              reference_bindings=references)
         raw = prior / 'raw-workspace'
         raw_contract = json.loads((raw / 'graph.generated.json').read_text())
         comparison_contract = json.loads(json.dumps(contract))
-        if args.linq_reference_boundaries:
-            normalize_linq_boundaries(comparison_contract, raw_contract)
+        if references:
+            normalize_reference_bindings(comparison_contract, raw_contract, references)
         if args.evaluation_reuse:
             comparison_contract.pop('EvaluationReuseInputs')
             raw_contract.pop('EvaluationReuseInputs', None)
@@ -360,7 +361,7 @@ def main():
                        harnessSha256=harness_sha256, packageExpansionSeconds=expansion_seconds,
                        continuation=continuation, qualifiedWarmBaseline=qualified, retainedEvaluation=args.evaluation_reuse,
                        editCase=str(args.edit_case) if args.edit_case else 'pipelines', reviewedEvaluationInputs=reviewed_inputs if args.evaluation_reuse else None,
-                       linqReferenceBoundaries=args.linq_reference_boundaries,
+                       referenceBindingsSha256=hashlib.sha256(args.reference_bindings.read_bytes()).hexdigest() if args.reference_bindings else None,
                        evaluationQualificationOnly=args.qualify_evaluation_only,
                        bodyOnly=args.body_only,
                        comparedFreshEvaluation=args.compare_fresh_evaluation,
