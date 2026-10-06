@@ -27,6 +27,8 @@ def bindings(contract, inventory):
     assert len(managed) == 481
     products = {relative(row['values']['TargetPath']): key for key, row in managed.items()}
     assert len(products) == len(managed)
+    declared_inputs = set(contract['SharedInputs']) | {path for project in contract['Projects'].values()
+        for variant in [project] + project.get('Configurations', []) for path in variant['Inputs']}
     closures = {}
 
     def closure(key):
@@ -67,6 +69,10 @@ def bindings(contract, inventory):
                 if path in products:
                     assert products[path] in dependency_keys, ('Compiler product outside dependencies', key, path)
                     actual[PurePosixPath(path).name].add(path)
+                else:
+                    assert path in declared_inputs or path.startswith('.nuget/'), ('Unaccounted compiler input', key, path)
+            else:
+                assert item['path'].startswith('/__rules_msbuild_graph/sdk/'), ('External compiler input', key, item['path'])
         overrides = dict(variant.get('CompilerReferences', {}))
         for producer in dependency_keys & managed.keys():
             output = relative(managed[producer]['values']['TargetPath'])
