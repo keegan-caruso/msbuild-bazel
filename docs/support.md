@@ -143,9 +143,8 @@ compilation projects, not another large-runtime build. Set the HTTP endpoint wit
 
 The runtime fixture also qualifies an explicit six-file compiler-only inventory
 across Pipelines, LINQ and text encoding. Broader body/API edits reuse all 543
-evaluations and match raw output bytes. LINQ still recompiles substantially more
-projects because most compiler-reference boundaries are unreviewed; see [the
-compiler inventories](performance.md#wider-evaluation-reuse).
+evaluations and match raw output bytes; see [the compiler
+inventories](performance.md#wider-evaluation-reuse).
 
 An opt-in full-runtime contract now reviews all 481 managed configurations using
 raw MSBuild's compiler/copy selections. All 233 advertised authored contracts are
@@ -163,10 +162,13 @@ consumer when that DLL changes, without propagating unchanged transitive bodies.
 Authored-contract and consumer-framework synthetic controls also passed body/API
 and fresh-byte parity. Native `//tests/integration:package_copies` passed on both
 pins: locked package DLLs with a graph producer's basename replay with SDK bytes
-and modes; unlocked sources and mismatched bytes fail. The full LINQ benchmark
-remains unqualified while graph priming completes; failed attempts are excluded.
+and modes; unlocked sources and mismatched bytes fail. Three full-graph LINQ body
+pairs passed with 480 hits / one miss, matching all 2,814 required products. A
+separate profile confirmed exactly one Csc call in both graph and raw MSBuild.
+All 543 evaluations were reused and Restore remained cached. Three forced local
+recoveries had 481 hits / zero misses. Failed attempts are excluded.
 
-Next: complete that body/API comparison and recovery, then expand unchanged
+Next: complete API and independent recovery qualification, then expand unchanged
 upstream test slices.
 
 This is not whole-repository runtime support. Linux x86-64, macOS persistent workers,

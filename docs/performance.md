@@ -103,16 +103,35 @@ inventories. Compilation diagnostics keep Restore unprofiled. Acquisition,
 priming, package-input deduplication, comparison and trimming are unscored;
 compiler outputs remain independent. Failed harness/disk attempts are excluded.
 
-The full-runtime boundary candidate has **no new qualified timing** yet. Capture
-`RuntimeRawGraph`'s `reference-inventory` after a raw Build, then run
+The opt-in full-runtime contract now binds all **481** managed configurations to
+raw MSBuild's selected compiler products: **233** authored contracts and **2,970**
+project-backed compiler inputs. Its 13 `SkipUseReferenceAssembly` edges hash the
+selected implementation DLL, without adding unrelated transitive source hashes.
+
+Three alternating, unprofiled pairs on Linux ARM64 / four CPUs / 8 GiB, SDK
+10.0.400 / Bazel 9.2.0, qualification **9e2f017**:
+
+| Case | Raw median | Graph median | Graph hits / misses |
+| --- | ---: | ---: | ---: |
+| No-op | 17.25 s | 0.24 s | Whole-action hit |
+| LINQ body | 22.54 s | 16.80 s | 480 / 1 |
+
+The body median is 25% lower than raw. Every pair matched all 2,814 required
+products, retained the reference assembly, changed the implementation, reused
+all 543 evaluations and executed no Restore action. A separate profile confirmed
+**one Csc call in both paths** (raw 22.90 s / graph 18.09 s); it is excluded from
+medians. Three forced local recoveries had 481 hits / zero misses. Package copies
+retain the SDK's selected bytes and modes; Bazel's published files are read-only,
+so raw-vs-graph parity compares bytes rather than requiring identical modes.
+
+Capture `RuntimeRawGraph`'s `reference-inventory` after a raw Build, then run
 `python3 tests/graph_build/upstream/runtime_reference_bindings.py CONTRACT INVENTORY BINDINGS`.
-Review the generated cache contracts and pass `--reference-bindings BINDINGS` to
-preparation and the paired driver above. Add `--body-only` for strict body scoring
-(omit `--qualify-evaluation-only`). Body scoring requires identical raw/graph
-compiler inventories, unchanged reference bytes, changed implementation bytes,
-full output parity and recovery. API parity remains a separate control; reviewed
-boundaries still retain conservative transitive compiler references. The earlier
-disk-failed priming attempts are excluded; reports were preserved before cleanup.
+Review the emitted contracts and pass `--reference-bindings BINDINGS` to preparation
+and the paired driver. For strict LINQ body scores, use `--body-only --samples 3
+--diagnostics --edit-case tests/graph_build/upstream/runtime_linq_edit.json` with
+the six-file evaluation inventory above. Cache seeding and comparison are unscored.
+Failed disk/copy-ownership/over-invalidation attempts are excluded. API and
+independent HTTP recovery qualification for these new bindings is still pending.
 
 ## Complete remote-cache recovery
 
