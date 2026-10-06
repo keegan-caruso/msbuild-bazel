@@ -58,10 +58,10 @@ Keys include declared inputs, evaluated configuration, SDK/runner identity,
 output contracts and dependency roles. Dependencies are conservative by default.
 With reviewed reference boundaries, in `A → B → C`, a changed C reference assembly
 rebuilds B; A can reuse compilation if B's reference stays unchanged. Explicit copy
-contracts refresh runtime implementations. Task/analyzer edges use implementation bytes.
+contracts refresh runtime implementations.
 Compiler keys use the DLL selected by MSBuild: a reference assembly when available,
 or an implementation DLL when the SDK requires it. Selecting an implementation
-for Csc does not imply reading its transitive source inputs. Additional task/tool
+for Csc does not imply reading its transitive source inputs. Additional task/analyzer/tool
 reads retain conservative dependency keys.
 
 [API](api.md) covers configuration; [support](support.md) separates these contracts

@@ -130,8 +130,32 @@ Review the emitted contracts and pass `--reference-bindings BINDINGS` to prepara
 and the paired driver. For strict LINQ body scores, use `--body-only --samples 3
 --diagnostics --edit-case tests/graph_build/upstream/runtime_linq_edit.json` with
 the six-file evaluation inventory above. Cache seeding and comparison are unscored.
-Failed disk/copy-ownership/over-invalidation attempts are excluded. API and
-independent HTTP recovery qualification for these new bindings is still pending.
+Failed disk/copy-ownership/over-invalidation attempts are excluded.
+
+Additional single profiles with the same bindings (correctness controls, not medians):
+
+| Edit | Raw / graph Csc | Raw / graph seconds |
+| --- | ---: | ---: |
+| Pipelines body | 6 / 6 | 33.09 / 28.82 |
+| Encoding body | 9 / 9 | 40.91 / 32.19 |
+| Encoding API | 20 / 20 | 53.64 / 44.31 |
+| LINQ API | 47 / 150 | 152.78 / 428.57 |
+
+All matched the 2,814 required product bytes, reused 543 evaluations and reused
+Restore. LINQ API still over-invalidates unused transitive graph references;
+its 103 extra Csc calls remain a performance limit, not a matched-work score.
+
+A fresh relocated Linux ARM64 consumer, with the producer stopped and both Bazel
+action caches disabled, recovered **481 HTTP hits / zero misses / zero Csc**.
+All **9,972** owned file bytes and modes matched the producer, with the same runner
+digest and 543 fresh evaluations. Fresh package extraction, runner bootstrap,
+Restore and graph execution took **136.01 s**; the profiled graph runner took
+**14.18 s**, downloading 263,016,165 bytes without uploads. This single recovery
+control does not rerun the native runtime suites or establish an RBE baseline.
+Recovery executes `build //:graph --strategy=MSBuildGraph=worker --worker_sandboxing
+--disk_cache= --remote_cache= --action_env=RULES_MSBUILD_PROJECT_CACHE_URL=URL`
+with a new output base and `profile_build=True`. Compare the declared output
+hash/mode manifest and runner digest with the seed; inspect the binlog for zero Csc.
 
 ## Complete remote-cache recovery
 

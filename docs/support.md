@@ -167,8 +167,15 @@ pairs passed with 480 hits / one miss, matching all 2,814 required products. A
 separate profile confirmed exactly one Csc call in both graph and raw MSBuild.
 All 543 evaluations were reused and Restore remained cached. Three forced local
 recoveries had 481 hits / zero misses. Failed attempts are excluded.
+Pipelines body and encoding body/API controls also matched raw compiler counts
+and all required bytes. LINQ API preserves output correctness but retains 103
+extra compilations from conservative transitive reference keys.
+Stopped-producer HTTP recovery in a fresh relocated Linux ARM64 container had
+481 hits / zero misses / zero Csc, matching all 9,972 owned file bytes and modes
+with fresh Restore and both Bazel action caches disabled. The runner digest
+matched; all 543 evaluations were fresh. This does not repeat the native suites.
 
-Next: complete API and independent recovery qualification, then expand unchanged
+Next: narrow unused transitive compiler inputs for API edits and expand unchanged
 upstream test slices.
 
 This is not whole-repository runtime support. Linux x86-64, macOS persistent workers,
