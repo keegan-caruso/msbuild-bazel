@@ -10,6 +10,10 @@ case "${COMPLETE_REPLAY_OMISSIONS:-0}" in
     0|1) ;;
     *) echo 'COMPLETE_REPLAY_OMISSIONS must be 0 or 1' >&2; exit 2 ;;
 esac
+case "${COMPLETE_EVALUATION_REUSE:-0}" in
+    0|1) ;;
+    *) echo 'COMPLETE_EVALUATION_REUSE must be 0 or 1' >&2; exit 2 ;;
+esac
 [[ $phase == producer || $phase == consumer ]]
 if [[ $phase == consumer ]]; then
     token=$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))["token"])' "$seed")
@@ -33,6 +37,8 @@ p = Path('mappings.json'); mappings = json.loads(p.read_text())
 mappings['projectDefaults']['documents'] = {'Directory.Build.targets': {
     'sha256': hashlib.sha256(Path('Directory.Build.targets').read_bytes()).hexdigest(),
     'targets': ['RecordImportState'], 'tasks': [], 'inputs': []}}
+if os.environ.get('COMPLETE_EVALUATION_REUSE') == '1':
+    mappings['projectDefaults']['evaluationReuseInputs'] = ['@(Compile)']
 # The reviewed target only records imports; managed consumers still use reference
 # assemblies. Custom targets otherwise select conservative dependency keys.
 mappings['projects'] = {p: {'referenceBoundary': True} for p in [
@@ -80,4 +86,18 @@ if [[ $phase == consumer ]]; then
     # Reuse the same broker/preparation for a reference-assembly change too.
     sed -i 's/=> 2/=> 2; public static int Added() => 3/' src/Library/Code.cs
     run api
+    if [[ ${COMPLETE_EVALUATION_REUSE:-0} == 1 ]]; then
+        printf '#error IndependentRecoveryFailure\n' > src/Library/Code.cs
+        if bazel build //:graph "${options[@]}" > "$TEST_TMPDIR/failure.log" 2>&1; then
+            echo 'Compiler failure unexpectedly succeeded' >&2; exit 1
+        fi
+        assert_contains "$TEST_TMPDIR/failure.log" IndependentRecoveryFailure
+        assert_contains "$TEST_TMPDIR/failure.log" 'error CS1029'
+        printf 'public class Library { public static int Value() => 3; }\n' > src/Library/Code.cs
+        run failure-recovery
+        bazel shutdown
+        bazel clean > "$TEST_TMPDIR/failure-clean.log" 2>&1
+        printf 'fresh-failure-control\n' > cache-request.txt
+        run failure-fresh
+    fi
 fi

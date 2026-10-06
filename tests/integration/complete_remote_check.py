@@ -3,6 +3,7 @@ import hashlib
 import json
 import os
 from pathlib import Path
+import socket
 import sys
 
 phase, case, token, seed, logs, results = sys.argv[1:]
@@ -38,6 +39,7 @@ if phase == 'producer':
     assert (report['hits'], report['misses']) == (0, 3), report
 else:
     expected = json.loads(Path(seed).read_text())
+    assert expected['machine'] != socket.gethostname() and expected['workspace'] != str(Path.cwd()), 'Require an independent relocated consumer'
     assert omitted == expected.get('omittedIntermediates', []), 'Different replay contract'
     if case in ['consumer', 'project-recovery']:
         assert files == expected['files'], 'Recovered bytes/modes differ'
@@ -49,16 +51,26 @@ else:
         assert (report['hits'], report['misses']) == (0, 3), report
     elif case == 'project-recovery':
         assert not graph[0].get('cacheHit') and (report['hits'], report['misses']) == (3, 0), report
-    elif case == 'body':
+    elif case in ['body', 'failure-recovery', 'failure-fresh']:
         assert not any(not row.get('cacheHit') for row in restore), restore
-        assert len(graph) == 1 and not graph[0].get('cacheHit') and (report['hits'], report['misses']) == (2, 1), report
+        expected_counts = (3, 0) if case == 'failure-fresh' else (2, 1)
+        assert len(graph) == 1 and not graph[0].get('cacheHit') and (report['hits'], report['misses']) == expected_counts, report
         assert files['src/Library/bin/Release/net10.0/Library.dll'] != expected['files']['src/Library/bin/Release/net10.0/Library.dll']
         assert files['src/Library/obj/Release/net10.0/ref/Library.dll'] == expected['files']['src/Library/obj/Release/net10.0/ref/Library.dll']
+        if case == 'failure-fresh':
+            assert files == json.loads((results / 'failure-recovery.json').read_text())['files'], 'Failure recovery differs from fresh evaluation'
     elif case == 'api':
         assert not any(not row.get('cacheHit') for row in restore), restore
         assert len(graph) == 1 and not graph[0].get('cacheHit') and (report['hits'], report['misses']) == (0, 3), report
         assert files['src/Library/obj/Release/net10.0/ref/Library.dll'] != expected['files']['src/Library/obj/Release/net10.0/ref/Library.dll']
-record = {'omittedIntermediates': omitted, 'token': token, 'case': case, 'files': files, 'hits': report['hits'], 'misses': report['misses'],
+if os.environ.get('COMPLETE_EVALUATION_REUSE') == '1':
+    assert contract['EvaluationReuseInputs'], 'Missing reviewed compiler inputs'
+    if case != 'consumer':
+        state = report['evaluationState']
+        loaded = 0 if case in ['body', 'api'] else 5
+        assert (state['loaded'], state['reused']) == (loaded, 5 - loaded), state
+        assert report['buildNodeEvaluations'] in [None, 0], report
+record = {'machine': socket.gethostname(), 'workspace': str(Path.cwd()), 'omittedIntermediates': omitted, 'evaluationState': report['evaluationState'], 'token': token, 'case': case, 'files': files, 'hits': report['hits'], 'misses': report['misses'],
           'restore': [{'cacheHit': r.get('cacheHit', False), 'runner': r['runner']} for r in restore],
           'graph': [{'cacheHit': r.get('cacheHit', False), 'runner': r['runner']} for r in graph]}
 results.mkdir(parents=True, exist_ok=True)

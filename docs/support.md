@@ -36,6 +36,8 @@ tests/graph_build/upstream/runtime_remote.py WORKSPACE RESULTS --phase consumer
 Normal Bazel HTTP Restore/build recovery is qualified for this runtime contract;
 forced graph execution also recovers all 481 projects. See
 [complete-cache controls and timings](performance.md#complete-remote-cache-recovery).
+Retained evaluation with 808 explicit replay omissions also passed independent
+HTTP recovery: body/API reuse all 543 evaluations; compiler failure resets them.
 
 NoTargets **3.7.0** public sync passed on Linux ARM64 / Bazel 8.8 and 9.2:
 `.proj` and `.csproj` roots, nested Traversal, prepared Restore, explicit text

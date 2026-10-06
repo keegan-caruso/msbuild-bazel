@@ -75,31 +75,37 @@ was **0.96 → 1.16 s**: the gain comes from removing the dependency reread.
 These isolated serial probes exclude setup and establish no end-to-end gain.
 Native `//tests/integration:snapshot_replay` controls cover copy/clone fallback,
 same-size/mtime corruption, replacement inodes, modes, independent outputs and
-byte parity with fresh compilation. `verifiedOutputDigest` counts reused digests;
+byte parity with fresh compilation. `verifiedOutputDigest` counts registered digests;
 verification now belongs to `snapshotReplay`, rather than `snapshotValidation`.
 Replay, retained-worker and omission controls passed on both Bazel pins on a
 fresh Linux ARM64 guest. Owned .NET/style and scaffold checks passed; direct
 `tests/graph_build/replay.py` controls also rejected corrupted required/omitted
 payloads and preserved Build/Publish parity.
 
-Earlier fresh-evaluation qualification of the 481-compilation runtime contract,
-Linux ARM64 / SDK 10.0.400 / Bazel 9.2: a fresh relocated consumer, producer
-stopped, fresh output bases, normal Bazel HTTP caching enabled and local disk
-caching disabled. After bounded child verification, one unprofiled observation
-per case:
+Runner **bee52f6**, Linux ARM64 / SDK 10.0.400 / Bazel 9.2: a fresh relocated
+consumer, producer stopped, fresh output bases, normal Bazel HTTP caching and no
+local disk cache. Same 481 compilations / 543 configurations, explicitly omitting
+808 optional intermediates, with a 1024 MiB evaluation budget. One unprofiled
+observation per case; this is recovery evidence, not a paired speedup:
 
 | Recovery | Wall seconds | Restore action | Graph action |
 | --- | ---: | ---: | ---: |
-| Whole-action hits | 9.86 | 2.60 remote hit | 1.86 remote hit |
-| Forced graph execution | 29.15 | 2.65 remote hit | 22.49; 481 project hits / zero misses |
-| Body edit | 29.14 | Reused | 26.95; 475 hits / six misses |
-| API edit | 41.46 | Reused | 39.46; 464 hits / 17 misses |
-| Return to original sources | 16.84 | Reused | 15.21; 481 hits / zero misses |
+| Whole-action hits | 8.32 | 2.73 remote hit | 1.73 remote hit |
+| Forced graph execution | 28.99 | 2.66 remote hit | 21.20; 481 project hits / zero misses |
+| Body edit | 26.64 | Reused | 24.85; 475 hits / six misses |
+| API edit | 39.82 | Reused | 37.61; 464 hits / 17 misses |
+| Compiler failure recovery | 31.02 | Reused | 29.42; 475 hits / six misses |
+| Return to original sources | 19.84 | Reused | 17.91; 481 hits / zero misses |
 
-All 10,780 compared files matched bytes/modes on seed and recovery. The all-miss
-seed took 1072.84 s; bootstrap/acquisition was separate. Edits preserved the
-expected reference-assembly boundary and executed no Restore action. Independent
-native controls passed on Bazel 8.8.0 and 9.2.0, including fresh tests.
+All 9,972 retained files matched seed bytes/modes on recovery; all 10,780 snapshot
+payloads, including omissions, remain verified. Body/API edits reused all 543
+evaluations, preserved the reference boundary and executed no Restore action.
+Compiler failure discarded the engine; recovery loaded all 543 evaluations.
+The changed noncompiler request marker also deliberately resets evaluation.
+Independent native controls passed on both pins, including fresh tests and
+failure-recovery byte parity with a new worker. The large seed was unscored setup;
+acquisition, comparison and between-row trimming were excluded. Failed disk/test
+harness attempts are excluded. Drivers check optional host disk headroom.
 Whole-action reports are cached producer metadata; spawn logs establish actual
 recovery. Download mtimes changed MSBuild's `MSBuildAllProjects` prefix; keys now
 represent that prefix by the complete validated import set without changing the
@@ -122,11 +128,14 @@ against the serial implementation; they establish correctness, not a speedup.
 Driver: `python3 tests/graph_build/upstream/runtime_complete_remote.py WORKSPACE
 RESULTS --output-base BASE --cache-url URL --phase producer`. Stop the producer;
 run a new consumer with `--phase consumer --seed-evidence PRODUCER/seed.json`.
-`--edits` adds body/API and original-output recovery controls on the retained
-worker; `--diagnostics` adds a separate profiled recovery. Native controls use
+`--edits --evaluation-reuse` adds unique body/API edits, compiler failure and
+original-output recovery; `--diagnostics` adds a separate profiled recovery.
+Use `--trim-between-rows --host-space-path HOST_BIND` in disposable thin guests.
+Native controls use
 `//tests/integration:complete_remote_cases_bazel_8_8_0` (or
 `_bazel_.bazelversion`), with `COMPLETE_CACHE_PHASE`, `COMPLETE_CACHE_URL` and a
-matching consumer `COMPLETE_CACHE_SEED`; they also cover body/API edits and fresh tests.
+matching consumer `COMPLETE_CACHE_SEED`; add `COMPLETE_EVALUATION_REUSE=1` for
+retention/reset controls. They reject same-machine/workspace recovery.
 
 Full-child verification probes use `python3 tests/graph_build/package_verification.py
 RESULTS --workspace WORKSPACE --contract CONTRACT --sdk SDK --prepared PREPARED
@@ -213,9 +222,8 @@ omission heuristic was added.
 Native replay controls and independent three-project HTTP recovery passed on
 both Bazel pins with `COMPLETE_REPLAY_OMISSIONS=1`: producer stopped, 49 required
 files matching bytes/modes, whole Restore/graph hits, forced project recovery,
-body/API invalidation and fresh tests. The 481-compilation omission contract has
-local recovery evidence; independent HTTP recovery for that larger contract
-remains unqualified.
+body/API invalidation and fresh tests. The retained-evaluation series above also
+qualifies independent HTTP recovery of the 481-compilation omission contract.
 
 [Historical series at 7e22cd6](https://github.com/keegan-caruso/msbuild-bazel/blob/7e22cd67609f6ae5e1606fcae9dcf6e578c2db3b/docs/performance.md)
 measured cold Restore + Build at 1093.53 s versus 1048.89 s raw, and independent

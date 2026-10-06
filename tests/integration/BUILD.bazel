@@ -674,6 +674,7 @@ bazel_integration_tests(
         "COMPLETE_CACHE_URL",
         "COMPLETE_CACHE_SEED",
         "COMPLETE_REPLAY_OMISSIONS",
+        "COMPLETE_EVALUATION_REUSE",
     ],
     bazel_binaries = bazel_binaries,
     bazel_versions = bazel_binaries.versions.all,
