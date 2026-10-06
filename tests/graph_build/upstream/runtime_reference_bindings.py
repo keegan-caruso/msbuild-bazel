@@ -57,6 +57,7 @@ def bindings(contract, inventory):
 
     reviewed = defaultdict(list)
     compiler_inputs = 0
+    implementation_compiler_edges = 0
     for key, row in managed.items():
         project = row['project']
         variants = contract['Projects'][project].get('Configurations') or [contract['Projects'][project]]
@@ -90,7 +91,14 @@ def bindings(contract, inventory):
         assert actual_paths <= set(overrides.values()), ('Unbound SDK compiler inputs', key, actual_paths - set(overrides.values()))
         compiler_inputs += len(actual_paths)
         implementations = set(variant.get('ImplementationDependencies', []))
-        implementations.update(item['path'] for item in row['authoredReferences'] if item['skipReferenceAssembly'].lower() == 'true')
+        # SkipUseReferenceAssembly selects implementation bytes for Csc. It does
+        # not declare a custom task reading all transitive source inputs. The
+        # actual compiler binding must already select that producer's DLL.
+        for item in row['authoredReferences']:
+            if item['skipReferenceAssembly'].lower() == 'true':
+                artifact = overrides.get(item['path'])
+                assert artifact in actual_paths and nodes[products[artifact]]['project'] == item['path'], ('Unbound implementation compiler input', key, item)
+                implementation_compiler_edges += 1
         assert implementations <= {nodes[child]['project'] for child in row['dependencies']}
         copies = dict(variant.get('DependencyCopies', {}))
         destinations = {str(PurePosixPath(relative(row['values']['TargetPath'])).parent)}
@@ -118,8 +126,10 @@ def bindings(contract, inventory):
                                                     compilerReferences=overrides, implementationDependencies=sorted(implementations), dependencyCopies=copies)))
     advertised_contracts = sum(selected[key] != relative(row['values']['TargetPath']) for key, row in managed.items())
     assert advertised_contracts == 233
+    assert implementation_compiler_edges == 13
     return dict(sdkVersion=contract['SdkVersion'], configuredNodes=len(nodes), compiledNodes=len(managed),
                 compilerInputs=compiler_inputs, advertisedContracts=advertised_contracts,
+                implementationCompilerEdges=implementation_compiler_edges,
                 projects=dict(sorted(reviewed.items())))
 
 

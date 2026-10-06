@@ -66,6 +66,9 @@ selects one of several graph configurations or a locked NuGet file for a copy.
 Package sources require prepared Restore; their bytes are checked and retained
 as fixed snapshot payloads with the consumer's mode. It declares cache replay;
 MSBuild still decides which files the build copies. Unreviewed or unowned bindings fail.
+If Csc reads an implementation DLL, select it with `compilerReferences` so its
+bytes invalidate the consumer. Use `implementationDependencies` for additional
+task/tool reads needing the dependency's full input/output key.
 
 ## Build and artifacts
 

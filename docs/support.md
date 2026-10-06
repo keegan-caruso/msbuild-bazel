@@ -150,12 +150,16 @@ compiler inventories](performance.md#wider-evaluation-reuse).
 An opt-in full-runtime contract now reviews all 481 managed configurations using
 raw MSBuild's compiler/copy selections. All 233 advertised authored contracts are
 bound explicitly; consumers retain framework selection and implementation reads.
+All 13 `SkipUseReferenceAssembly` edges bind the SDK-selected implementation DLL;
+they do not add transitive source dependencies to compiler keys.
 Runtime disables SDK-generated reference assemblies: where its SDK selects an
 implementation DLL, that DLL remains the compiler input and invalidation boundary.
 Public sync passed with unchanged input/property/tool/output contracts.
 Thirteen sync controls, owned .NET/style and scaffold checks passed; native
 `//tests/integration:snapshot_replay` passed on both Bazel pins, refreshing copies
 after a body edit with one compilation / two hits and fresh-build byte parity.
+Its mixed reference/implementation chain also invalidates the implementation
+consumer when that DLL changes, without propagating unchanged transitive bodies.
 Authored-contract and consumer-framework synthetic controls also passed body/API
 and fresh-byte parity. Native `//tests/integration:package_copies` passed on both
 pins: locked package DLLs with a graph producer's basename replay with SDK bytes

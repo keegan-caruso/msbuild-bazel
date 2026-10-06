@@ -16,8 +16,13 @@ cat > "$scratch/proof/Proof.csproj" <<'XML'
 XML
 "$scratch/proof-sdk/dotnet" build "$scratch/proof/Proof.csproj" -c Release -p:UseSharedCompilation=false > "$TEST_TMPDIR/proof-build.log" 2>&1 || { cat "$TEST_TMPDIR/proof-build.log" >&2; exit 1; }
 "$scratch/proof-sdk/dotnet" "$scratch/proof/bin/Release/net10.0/Proof.dll" "$scratch/bytes"
+# P2 really compiles against P1's implementation; P1 compiles against P0's ref.
+# A P0 body edit must not invalidate P2 through P1's transitive source hashes.
+sed -i 's|</PropertyGroup>|<ProduceReferenceAssembly>false</ProduceReferenceAssembly></PropertyGroup>|' P1/P1.csproj
+sed -i 's|Include="../P1/P1.csproj"|Include="../P1/P1.csproj" SkipUseReferenceAssembly="true"|' P2/P2.csproj
 cat > copies.json <<'JSON'
-{"projects":{"P2/P2.csproj":{"referenceBoundary":true,"dependencyCopies":{
+{"projects":{"P2/P2.csproj":{"referenceBoundary":true,
+"compilerReferences":{"P1/P1.csproj":"P1/bin/$(Configuration)/net10.0/P1.dll"},"dependencyCopies":{
 "P2/bin/$(Configuration)/net10.0/P0.dll":"P0/bin/$(Configuration)/net10.0/P0.dll",
 "P2/bin/$(Configuration)/net10.0/P0.pdb":"P0/bin/$(Configuration)/net10.0/P0.pdb"}}}}
 JSON
@@ -52,4 +57,18 @@ bazel clean > "$TEST_TMPDIR/clean.log" 2>&1
 run fresh 2
 products > "$TEST_TMPDIR/fresh.sha256"
 cmp "$TEST_TMPDIR/replay.sha256" "$TEST_TMPDIR/fresh.sha256"
-echo 'PASS: explicit dependency copies refresh on body edits; replayed and fresh graph products match'
+printf 'public class P1 { public static int Value() => P0.Value(); public static int Added() => 3; }\n' > P1/Code.cs
+run implementation-api 2
+python3 - <<'PY'
+import json
+r=json.load(open('bazel-bin/graph.graph/report.json'))
+assert (r['hits'],r['misses'])==(1,2),r
+print('PASS: selected implementation DLL changes invalidate its compiler consumer')
+PY
+products > "$TEST_TMPDIR/api-replay.sha256"
+bazel shutdown
+bazel clean > "$TEST_TMPDIR/api-clean.log" 2>&1
+run api-fresh 2
+products > "$TEST_TMPDIR/api-fresh.sha256"
+cmp "$TEST_TMPDIR/api-replay.sha256" "$TEST_TMPDIR/api-fresh.sha256"
+echo 'PASS: reference and implementation compiler edges use selected bytes; copies refresh; replay matches fresh builds'
