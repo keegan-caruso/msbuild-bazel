@@ -104,11 +104,12 @@ def bindings(contract, inventory):
                 continue
             path = relative(item['path'])
             producer = str(PurePosixPath(path).with_suffix('.dll'))
-            if producer not in products or products[producer] not in dependency_keys:
+            package = path.startswith('.nuget/') and PurePosixPath(path).suffix in ['.dll', '.pdb', '.xml']
+            if not package and (producer not in products or products[producer] not in dependency_keys):
                 continue
             # Absent PDB/XML siblings remain optional. The cache verifies every
             # actual copy against the selected producer before storing a snapshot.
-            for extension in ['.dll', '.pdb', '.xml']:
+            for extension in (['.dll', '.pdb', '.xml'] if not package else [PurePosixPath(path).suffix]):
                 source = str(PurePosixPath(producer).with_suffix(extension))
                 for directory in destinations:
                     copies[directory + '/' + PurePosixPath(source).name] = source

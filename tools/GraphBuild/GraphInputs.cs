@@ -301,6 +301,9 @@ internal sealed class GraphInputs : IDisposable
 
     internal string DependencyFingerprint(ProjectGraphNode node) => dependencyFingerprints[node];
 
+    internal bool IsDeclaredPackageInput(string path) =>
+        path.StartsWith(Path.Combine(Files.Root, ".nuget") + Path.DirectorySeparatorChar, StringComparison.Ordinal) && sharedPaths.Contains(path);
+
     private void ComputeFingerprints(ProjectGraphNode node)
     {
         var project = node.ProjectInstance;

@@ -158,13 +158,24 @@ internal sealed class GraphCache(GraphInputs inputs, string cache, bool read, Re
                     if (producer is not null)
                     {
                         var source = inputs.Files.Resolve(producer);
-                        if (!IsDependencyOutput(node, source) || OutputDigest(source) != digest)
+                        var package = inputs.IsDeclaredPackageInput(source);
+                        if ((!IsDependencyOutput(node, source) && !package) || OutputDigest(source) != digest)
                         {
                             throw new InvalidDataException("Declared dependency copy does not match its producer: " + relative);
                         }
-                        copies.Add(relative, producer);
+                        if (package)
+                        {
+                            // Locked package bytes already participate in the input
+                            // key. Retain this fixed payload and its consumer mode,
+                            // rather than refreshing it from a read-only input mount.
+                            producer = null;
+                        }
+                        else
+                        {
+                            copies.Add(relative, producer);
+                        }
                     }
-                    else
+                    if (producer is null)
                     {
                         files.Add(relative, digest);
                         modes.Add(relative, OperatingSystem.IsWindows() ? 0 : (int)File.GetUnixFileMode(file));
@@ -332,6 +343,11 @@ internal sealed class GraphCache(GraphInputs inputs, string cache, bool read, Re
         {
             ValidateCopyOwnership(node, relative);
             Allowed(relative);
+            if ((inputs.For(node).DependencyCopies ?? []).TryGetValue(relative, out var source) &&
+                inputs.IsDeclaredPackageInput(inputs.Files.Resolve(source)) && OutputDigest(inputs.Files.Resolve(source)) != digest)
+            {
+                throw new InvalidDataException("Cached package copy does not match its declared input: " + relative);
+            }
             if (digest is null || digest.Length != 64 || digest.Any(character => !char.IsAsciiHexDigitLower(character)))
             {
                 throw new InvalidDataException("Invalid graph snapshot digest: " + relative);

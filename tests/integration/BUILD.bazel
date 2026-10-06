@@ -736,3 +736,45 @@ test_suite(
         bazel_binaries.versions.all,
     ),
 )
+
+sh_binary(
+    name = "package_copies_runner",
+    testonly = True,
+    srcs = ["package_copies.sh"],
+    data = [
+        "common.sh",
+    ],
+)
+
+bazel_integration_tests(
+    name = "package_copies_cases",
+    additional_env_inherit = [
+        "BAZELISK_HOME",
+        "RULES_MSBUILD_TEST_REPOSITORY_CACHE",
+    ],
+    bazel_binaries = bazel_binaries,
+    bazel_versions = bazel_binaries.versions.all,
+    data = [":rules_archive"],
+    env = {"RULES_ARCHIVE": "$(rootpath :rules_archive)"},
+    tags = [
+        "exclusive",
+        "manual",
+        "no-sandbox",
+    ],
+    target_compatible_with = [
+        "@platforms//os:linux",
+        "@platforms//cpu:aarch64",
+    ],
+    test_runner = ":package_copies_runner",
+    workspace_files = glob(["fixtures/worker/**"]),
+    workspace_path = "tests/integration/fixtures/worker",
+)
+
+test_suite(
+    name = "package_copies",
+    tags = ["manual"],
+    tests = integration_test_utils.bazel_integration_test_names(
+        "package_copies_cases",
+        bazel_binaries.versions.all,
+    ),
+)

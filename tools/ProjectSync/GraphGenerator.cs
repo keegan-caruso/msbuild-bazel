@@ -674,16 +674,19 @@ internal static class GraphGenerator
                 var target = WorkspaceView.Safe(project.ExpandString(destination).Replace('\\', '/'));
                 var producer = WorkspaceView.Safe(project.ExpandString(source).Replace('\\', '/'));
                 var extension = Path.GetExtension(producer);
+                var parts = producer.Split('/');
+                var package = packageBuild && binding.PreparedRestore && parts.Length >= 5 && parts[0] == ".nuget" &&
+                    packageIdentities.Contains(parts[1] + "/" + parts[2]) && File.Exists(Path.Combine(root, Path.ChangeExtension(producer, ".dll")));
                 var allowed = extension is ".dll" or ".pdb" or ".xml" &&
-                    Dependencies(node).Where(dependency => GraphProjectKind.HasAssembly(dependency.ProjectInstance)).Any(dependency =>
+                    (package || Dependencies(node).Where(dependency => GraphProjectKind.HasAssembly(dependency.ProjectInstance)).Any(dependency =>
                     {
                         var path = Path.GetFullPath(dependency.ProjectInstance.GetPropertyValue("TargetPath"), Path.GetDirectoryName(dependency.ProjectInstance.FullPath)!);
                         return producer == Relative(Path.ChangeExtension(path, extension));
-                    });
+                    }));
                 if (!allowed || !destinations.Any(path => target == Relative(Path.Combine(path, Path.GetFileName(producer)))) ||
                     target == Relative(Path.ChangeExtension(Path.GetFullPath(project.GetPropertyValue("TargetPath"), directory), extension)))
                 {
-                    throw new InvalidDataException("Explicit dependency copy must bind a managed dependency product to its consumer output: " + target + " <- " + producer);
+                    throw new InvalidDataException("Explicit dependency copy must bind a managed dependency product or prepared locked package to its consumer output: " + target + " <- " + producer);
                 }
                 copies.Add(target, producer);
             }

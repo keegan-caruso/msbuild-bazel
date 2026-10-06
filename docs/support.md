@@ -157,8 +157,10 @@ Thirteen sync controls, owned .NET/style and scaffold checks passed; native
 `//tests/integration:snapshot_replay` passed on both Bazel pins, refreshing copies
 after a body edit with one compilation / two hits and fresh-build byte parity.
 Authored-contract and consumer-framework synthetic controls also passed body/API
-and fresh-byte parity. The full LINQ benchmark remains unqualified while graph
-priming completes; disk-failed attempts are excluded.
+and fresh-byte parity. Native `//tests/integration:package_copies` passed on both
+pins: locked package DLLs with a graph producer's basename replay with SDK bytes
+and modes; unlocked sources and mismatched bytes fail. The full LINQ benchmark
+remains unqualified while graph priming completes; failed attempts are excluded.
 
 Next: complete that body/API comparison and recovery, then expand unchanged
 upstream test slices.
