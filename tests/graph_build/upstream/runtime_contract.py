@@ -15,7 +15,9 @@ def main():
     parser.add_argument('output', type=Path)
     parser.add_argument('--platform', choices=['osx-arm64', 'linux-arm64'], default='osx-arm64')
     parser.add_argument('--prepared-restore', action='store_true', help='declare the reviewed managed graph Restore contract')
+    parser.add_argument('--linq-reference-boundaries', action='store_true', help='reviewed Linux Build consumers of the authored LINQ contract')
     args = parser.parse_args()
+    assert not args.linq_reference_boundaries or args.platform == 'linux-arm64'
     directory = Path(__file__).resolve().parent
     mapping = json.loads((directory / 'runtime.json').read_text())
     if args.platform == 'linux-arm64':
@@ -199,6 +201,34 @@ def main():
             variant['documents'][project] = {
                 'sha256': 'ba17878f95c3c8059ec58ad2b8fbd84e0e34e4af3fedccd1df49211fc0353d3c',
                 'targets': [], 'tasks': [], 'inputs': []}
+    if args.linq_reference_boundaries:
+        # These configured consumers use managed references during Build. Keep
+        # custom inputs/products and authored analyzer/tool reference roles;
+        # only the cache boundary changes, never MSBuild's compilation inputs.
+        consumers = json.loads((directory / 'runtime_linq_boundaries.json').read_text())
+        for project, frameworks in consumers.items():
+            binding = mapping['projects'].setdefault(project, copy.deepcopy(mapping['projectDefaults']))
+            binding.pop('properties', None)
+            for framework in frameworks:
+                if not framework:
+                    for variant in [binding] + list(binding.get('frameworkOverrides', {}).values()):
+                        variant['referenceBoundary'] = True
+                else:
+                    variant = binding.setdefault('frameworkOverrides', {}).setdefault(
+                        framework, copy.deepcopy({k: v for k, v in binding.items() if k != 'frameworkOverrides'}))
+                    variant['referenceBoundary'] = True
+        # The graph coordinates both TestUtilities frameworks; this consumer's
+        # SDK copy is the net8 product, verified against the full-source control.
+        variant = mapping['projects']['src/libraries/System.Collections.Immutable/tests/System.Collections.Immutable.Tests.csproj']['frameworkOverrides']['net10.0']
+        variant['dependencyCopies'] = {
+            'artifacts/bin/System.Collections.Immutable.Tests/$(Configuration)/net10.0/' + destination + 'TestUtilities.' + extension:
+            'artifacts/bin/TestUtilities/$(Configuration)/net8.0/TestUtilities.' + extension
+            for destination in ['', 'publish/'] for extension in ['dll', 'pdb', 'xml']}
+        project = 'src/libraries/System.Linq/src/System.Linq.csproj'
+        binding = mapping['projects'].setdefault(project, copy.deepcopy(mapping['projectDefaults']))
+        binding.pop('properties', None)
+        for variant in [binding] + list(binding.get('frameworkOverrides', {}).values()):
+            variant['compilerReference'] = 'artifacts/bin/System.Linq/ref/$(Configuration)/net10.0/System.Linq.dll'
     args.output.write_text(json.dumps(mapping, indent=2) + '\n')
 
 

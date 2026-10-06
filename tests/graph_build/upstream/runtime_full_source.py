@@ -50,10 +50,47 @@ def replay_omissions(contract):
     return paths
 
 
-def validate_raw_contract(contract, raw_results, allow_replay_omissions=False, evaluation_reuse_inputs=None):
+def normalize_linq_boundaries(contract, previous):
+    """Permit only the pinned, reviewed Build boundaries; retain all other semantics."""
+    consumers = json.loads(Path(__file__).with_name('runtime_linq_boundaries.json').read_text())
+    producers = [(path, variant) for path, project in previous['Projects'].items()
+                 for variant in project.get('Configurations') or [project]]
+    selected = 0
+    for path, project in contract['Projects'].items():
+        original = previous['Projects'][path]
+        for variant, old in zip(project.get('Configurations') or [project],
+                                original.get('Configurations') or [original], strict=True):
+            framework = variant.get('Properties', {}).get('TargetFramework', '')
+            if framework in consumers.get(path, []):
+                selected += 1
+                assert variant['ReferenceBoundary'] is True, ('Missing reviewed boundary', path, framework)
+                copies = variant.get('DependencyCopies', {})
+                assert old.get('DependencyCopies', {}).items() <= copies.items(), ('Removed copy', path)
+                for destination, source in copies.items():
+                    assert destination.endswith(('.dll', '.pdb', '.xml')) and source.endswith(Path(destination).suffix)
+                    assert Path(destination).name == Path(source).name and '\\' not in destination + source
+                    assert not any(part in ['', '.', '..'] for part in (destination + '/' + source).split('/'))
+                    assert any(destination.startswith(d.rstrip('/') + '/') for d in variant['OutputDirectories']), ('Unowned copy', destination)
+                    assert source != destination, ('Self copy', destination)
+                    assert any(producer != path and (source in output.get('OutputFiles', []) or
+                               any(source.startswith(d.rstrip('/') + '/') for d in output['OutputDirectories']))
+                               for producer, output in producers), ('Undeclared copy producer', source)
+                variant['ReferenceBoundary'] = old['ReferenceBoundary']
+                variant['DependencyCopies'] = old.get('DependencyCopies', {})
+            if path == 'src/libraries/System.Linq/src/System.Linq.csproj':
+                assert variant['CompilerReference'] == 'artifacts/bin/System.Linq/ref/Release/net10.0/System.Linq.dll'
+                variant['CompilerReference'] = old.get('CompilerReference')
+    assert selected == 145, ('Reviewed configured consumers changed', selected)
+
+
+def validate_raw_contract(contract, raw_results, allow_replay_omissions=False, evaluation_reuse_inputs=None,
+                          linq_reference_boundaries=False):
     """Allow inventoried outputs and explicitly reviewed replay/evaluation controls."""
     previous = json.loads((raw_results / 'raw-workspace/graph.generated.json').read_text())
     inventory = json.loads((raw_results / 'binplace.json').read_text())
+    candidate = copy.deepcopy(contract)
+    if linq_reference_boundaries:
+        normalize_linq_boundaries(candidate, previous)
     if evaluation_reuse_inputs is not None:
         assert contract['Version'] == 9 and previous['Version'] <= 9
         assert previous.get('EvaluationReuseInputs') in [None, sorted(evaluation_reuse_inputs)], 'Unexpected raw evaluation exemption'
@@ -69,7 +106,7 @@ def validate_raw_contract(contract, raw_results, allow_replay_omissions=False, e
                 if allow_replay_omissions:
                     variant.pop('ReplayOmissions', None)
         return value
-    assert semantics(previous) == semantics(contract), 'Raw semantic contract differs'
+    assert semantics(previous) == semantics(candidate), 'Raw semantic contract differs'
     if allow_replay_omissions:
         assert not replay_omissions(previous), 'Raw control must retain the complete intermediates'
         assert replay_omissions(contract), 'No explicit candidate omissions'

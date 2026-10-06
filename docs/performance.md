@@ -103,6 +103,14 @@ inventories. Compilation diagnostics keep Restore unprofiled. Acquisition,
 priming, package-input deduplication, comparison and trimming are unscored;
 compiler outputs remain independent. Failed harness/disk attempts are excluded.
 
+The opt-in LINQ boundary candidate has **no new qualified timing**: graph priming
+hit disk I/O failures. Prepare with `--linq-reference-boundaries`, then add
+`--linq-reference-boundaries --body-only` to the normal paired driver above
+(omit `--qualify-evaluation-only`). Body scoring requires identical raw/graph
+compiler inventories, unchanged reference bytes, changed implementation bytes,
+full output parity and recovery. API parity remains a separate control; reviewed
+boundaries still retain conservative transitive compiler references.
+
 ## Complete remote-cache recovery
 
 Snapshot replay now hashes bytes while copying them and reuses that verified

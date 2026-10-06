@@ -147,8 +147,17 @@ evaluations and match raw output bytes. LINQ still recompiles substantially more
 projects because most compiler-reference boundaries are unreviewed; see [the
 compiler inventories](performance.md#wider-evaluation-reuse).
 
-Next: review those compiler boundaries and dependency-copy contracts, then expand
-unchanged upstream test slices.
+An opt-in LINQ contract now reviews 145 consumer configurations and uses the
+upstream authored reference assembly. Explicit dependency-copy mappings resolve
+the TestUtilities framework ambiguity without changing MSBuild compilation.
+Thirteen sync controls, owned .NET/style and scaffold checks passed; native
+`//tests/integration:snapshot_replay` passed on both Bazel pins, refreshing copies
+after a body edit with one compilation / two hits and fresh-build byte parity.
+The full LINQ benchmark remains unqualified: disk I/O failures interrupted graph
+priming. No new large-graph timing or compilation count is claimed.
+
+Next: complete that body/API comparison and recovery, then expand unchanged
+upstream test slices.
 
 This is not whole-repository runtime support. Linux x86-64, macOS persistent workers,
 RBE, arbitrary SDKs/workloads and full native build parity are unqualified.

@@ -59,6 +59,7 @@ def main():
     parser.add_argument('results', type=Path, help='new owned directory, outside workspace')
     parser.add_argument('--output-base', type=Path, required=True, help='fresh base, or retained base with continuation/qualified raw results')
     parser.add_argument('--samples', type=int, default=3)
+    parser.add_argument('--body-only', action='store_true', help='score no-op/body/recovery only; retain strict compiler parity')
     parser.add_argument('--slice', choices=['pipelines-tests', 'collections', 'loaded-common', 'runtime-suites'], default='pipelines-tests')
     parser.add_argument('--continue-api-from', type=Path, help='completed no-op/body scorecard with retained raw state; record remaining cases separately')
     parser.add_argument('--qualified-raw-results', type=Path, help='completed full-source raw control for runtime-suites; reuse its warm outputs in place')
@@ -67,6 +68,7 @@ def main():
     parser.add_argument('--qualify-evaluation-only', action='store_true', help='profile broader retention correctness; report conservative extra compilations without matched-work scores')
     parser.add_argument('--edit-case', type=Path, help='reviewed runtime-suites edit descriptor; overrides the default Pipelines scenario')
     parser.add_argument('--reviewed-evaluation-inputs', type=Path, help='explicit reviewed compiler-only input list, including both edit sources')
+    parser.add_argument('--linq-reference-boundaries', action='store_true', help='qualify the pinned reviewed LINQ compiler/copy contracts')
     parser.add_argument('--project-cache-url', help='recover baseline project snapshots through HTTP instead of a retained local worker')
     parser.add_argument('--compare-fresh-evaluation', action='store_true', help='pair retained edits with unique equivalent edits using evaluation_cache_mb=0')
     parser.add_argument('--failure-recovery', action='store_true', help='fail a compiler request, then compare a unique valid edit with raw MSBuild')
@@ -77,10 +79,12 @@ def main():
     args = parser.parse_args()
     assert os.uname().sysname == 'Linux' and os.uname().machine == 'aarch64'
     assert args.samples > 0
+    assert not args.body_only or (args.qualified_raw_results and not args.continue_api_from and not args.qualify_evaluation_only)
     assert not args.replay_omissions or args.qualified_raw_results
     assert not args.evaluation_reuse or args.qualified_raw_results
     assert not args.qualify_evaluation_only or (args.edit_case and args.evaluation_reuse and args.diagnostics and args.samples == 1 and not args.compare_fresh_evaluation and not args.failure_recovery)
     assert not args.edit_case or args.slice == 'runtime-suites'
+    assert not args.linq_reference_boundaries or (args.qualified_raw_results and args.edit_case)
     assert not args.reviewed_evaluation_inputs or args.evaluation_reuse
     assert not args.project_cache_url or args.qualified_raw_results
     assert not args.compare_fresh_evaluation or args.evaluation_reuse
@@ -127,14 +131,17 @@ def main():
     continuation = None
     qualified = None
     if args.qualified_raw_results:
-        from runtime_full_source import validate_raw_contract
+        from runtime_full_source import normalize_linq_boundaries, validate_raw_contract
         prior = args.qualified_raw_results.resolve()
         assert prior != results and not results.is_relative_to(prior) and not prior.is_relative_to(results)
         validate_raw_contract(contract, prior, allow_replay_omissions=args.replay_omissions,
-                              evaluation_reuse_inputs=reviewed_inputs if args.evaluation_reuse else None)
+                              evaluation_reuse_inputs=reviewed_inputs if args.evaluation_reuse else None,
+                              linq_reference_boundaries=args.linq_reference_boundaries)
         raw = prior / 'raw-workspace'
         raw_contract = json.loads((raw / 'graph.generated.json').read_text())
         comparison_contract = json.loads(json.dumps(contract))
+        if args.linq_reference_boundaries:
+            normalize_linq_boundaries(comparison_contract, raw_contract)
         if args.evaluation_reuse:
             comparison_contract.pop('EvaluationReuseInputs')
             raw_contract.pop('EvaluationReuseInputs', None)
@@ -353,7 +360,9 @@ def main():
                        harnessSha256=harness_sha256, packageExpansionSeconds=expansion_seconds,
                        continuation=continuation, qualifiedWarmBaseline=qualified, retainedEvaluation=args.evaluation_reuse,
                        editCase=str(args.edit_case) if args.edit_case else 'pipelines', reviewedEvaluationInputs=reviewed_inputs if args.evaluation_reuse else None,
+                       linqReferenceBoundaries=args.linq_reference_boundaries,
                        evaluationQualificationOnly=args.qualify_evaluation_only,
+                       bodyOnly=args.body_only,
                        comparedFreshEvaluation=args.compare_fresh_evaluation,
                        omittedIntermediateFiles=len(omitted), trimBetweenRows=args.trim_between_rows, memorySamples=memory_samples, rows=rows)
         (results / 'summary.json').write_text(json.dumps(summary, indent=2) + '\n')
@@ -412,7 +421,8 @@ def main():
             baseline = compare()
             record(dict(case='setup', rawRestoreSeconds=restore_seconds, rawBuildSeconds=seed_raw, graphWorkflowSeconds=seed_graph,
                         comparedDllPdbResourceFiles=len(baseline), interpretation='setup includes Bazel bootstrap/package actions; not a scored cold row'))
-        for case in ([] if args.qualify_evaluation_only else ['api'] if continuation else ['no-op', 'body', 'api']):
+        cases = ['no-op', 'body'] if args.body_only else ['no-op', 'body', 'api']
+        for case in ([] if args.qualify_evaluation_only else ['api'] if continuation else cases):
             pairs = []
             fresh_pairs = []
             for sample in range(args.samples):
@@ -518,9 +528,10 @@ def main():
             def compilation(path):
                 details = json.loads(subprocess.check_output([dotnet, str(reader / 'bin/Release/net10.0/Reader.dll'), str(path)], env=environment, text=True))
                 return details['compiled']
-            controls = [(case, False) for case in ['body', 'api']]
+            edits = ['body'] if args.body_only else ['body', 'api']
+            controls = [(case, False) for case in edits]
             if args.compare_fresh_evaluation:
-                controls += [(case, True) for case in ['body', 'api']]
+                controls += [(case, True) for case in edits]
             for sample, (case, fresh) in enumerate(controls, start=args.samples):
                 build.write_text(build_settings(fresh=fresh, profile=True))
                 label = case + ('-fresh' if fresh else '') + '-diagnostic'
