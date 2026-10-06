@@ -1,0 +1,8 @@
+[
+  "src/libraries/System.IO.Pipelines/ref/System.IO.Pipelines.cs",
+  "src/libraries/System.IO.Pipelines/src/System/IO/Pipelines/PipeOptions.cs",
+  "src/libraries/System.Linq/ref/System.Linq.cs",
+  "src/libraries/System.Linq/src/System/Linq/Count.cs",
+  "src/libraries/System.Text.Encodings.Web/ref/System.Text.Encodings.Web.cs",
+  "src/libraries/System.Text.Encodings.Web/src/System/Text/Encodings/Web/TextEncoder.cs"
+]

@@ -141,9 +141,14 @@ and digest-locked source-runtime product artifacts. Recovery covers its three
 compilation projects, not another large-runtime build. Set the HTTP endpoint with
 `RULES_MSBUILD_PROJECT_CACHE_URL`. Keep producer and consumer containers separate.
 
-Next: reduce repeated evaluation/snapshot replay, then expand unchanged upstream
-test slices. Main correctness/recovery/timings and the listed qualification gaps
-are now refreshed; limits below still apply.
+The runtime fixture also qualifies an explicit six-file compiler-only inventory
+across Pipelines, LINQ and text encoding. Broader body/API edits reuse all 543
+evaluations and match raw output bytes. LINQ still recompiles substantially more
+projects because most compiler-reference boundaries are unreviewed; see [the
+compiler inventories](performance.md#wider-evaluation-reuse).
+
+Next: review those compiler boundaries and dependency-copy contracts, then expand
+unchanged upstream test slices.
 
 This is not whole-repository runtime support. Linux x86-64, macOS persistent workers,
 RBE, arbitrary SDKs/workloads and full native build parity are unqualified.

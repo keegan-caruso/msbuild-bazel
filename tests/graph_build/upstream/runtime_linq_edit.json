@@ -1,0 +1,13 @@
+{
+  "implementation": "src/libraries/System.Linq/src/System/Linq/Count.cs",
+  "reference": "src/libraries/System.Linq/ref/System.Linq.cs",
+  "implDll": "artifacts/bin/System.Linq/Release/net10.0/System.Linq.dll",
+  "refDll": "artifacts/bin/System.Linq/ref/Release/net10.0/System.Linq.dll",
+  "bodyAnchor": "int count = 0;\n            using IEnumerator<TSource> e = source.GetEnumerator();",
+  "implementationAnchor": "public static partial class Enumerable\n    {",
+  "referenceAnchor": "public static partial class Enumerable\n    {",
+  "expectedMisses": {
+    "body": 1,
+    "api": 47
+  }
+}

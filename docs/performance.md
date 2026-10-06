@@ -62,6 +62,47 @@ raw Restore + Build **1056.91 s** (**0.4%** overhead). All 3,622 files matched.
 SDK/packages and Bazel bootstrap were available; outputs and project snapshots
 were fresh. This measures cold compilation, not first-time acquisition.
 
+## Wider evaluation reuse
+
+The runtime fixture now reviews six compiler-only files across Pipelines, LINQ
+and text encoding: [inventory](../tests/graph_build/upstream/runtime_evaluation_inputs.json).
+LINQ/text-encoding body and API controls matched all 2,814 required compiled
+products, reused all 543 evaluations, evaluated zero build nodes and executed
+no Restore action. Original-output recovery also passed. The 808 explicit
+optional intermediates remain omitted from publication and verified on replay.
+
+Single profiled observations, runner **bee52f6**, same Linux ARM64 scope:
+
+| Edit | Raw / graph Csc calls | Raw / graph seconds |
+| --- | ---: | ---: |
+| LINQ body | 1 / 146 | 23.22 / 415.69 |
+| LINQ API | 47 / 150 | 152.85 / 430.23 |
+| Text encoding body | 9 / 10 | 34.90 / 34.06 |
+| Text encoding API | 20 / 20 | 52.39 / 46.12 |
+
+These are correctness profiles, not a matched-work speedup. Every raw compiler
+call occurred in the graph inventory; extra graph calls are recorded explicitly.
+Only one of this fixture's 543 configurations has a reviewed compiler-reference
+boundary. Other keys include transitive implementation inputs. The LINQ body
+profile spent **1.61 s evaluating / 404.28 s executing**, with **5.07 s replay**
+and **0.54/0.15 s worker staging/publication**; scopes overlap. Reviewing compiler
+boundaries and their dependency copies is the next substantial improvement here.
+
+The six-file Pipelines regression also passed exact six/17 compiler inventories,
+reference-boundary checks and original recovery. Single unprofiled body/API pairs:
+graph **27.09/38.37 s**, raw **30.50/46.17 s**; all 2,814 products matched.
+These observations add coverage, not a new stable speedup estimate.
+
+Use the edit driver above with `--edit-case tests/graph_build/upstream/runtime_linq_edit.json`
+(or `runtime_encodings_edit.json`), `--reviewed-evaluation-inputs
+tests/graph_build/upstream/runtime_evaluation_inputs.json --qualify-evaluation-only
+--diagnostics --project-cache-url URL`. This mode keeps byte/reference checks,
+retention and raw compiler-inventory assertions, records extra compilations and
+produces no scored medians. Normal benchmarking still requires identical compiler
+inventories. Compilation diagnostics keep Restore unprofiled. Acquisition,
+priming, package-input deduplication, comparison and trimming are unscored;
+compiler outputs remain independent. Failed harness/disk attempts are excluded.
+
 ## Complete remote-cache recovery
 
 Snapshot replay now hashes bytes while copying them and reuses that verified

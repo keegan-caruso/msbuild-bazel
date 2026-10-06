@@ -53,6 +53,7 @@ def expand_raw_packages(raw):
 
 
 def main():
+    harness_sha256 = hashlib.sha256(Path(__file__).read_bytes()).hexdigest()
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('workspace', type=Path)
     parser.add_argument('results', type=Path, help='new owned directory, outside workspace')
@@ -62,17 +63,26 @@ def main():
     parser.add_argument('--continue-api-from', type=Path, help='completed no-op/body scorecard with retained raw state; record remaining cases separately')
     parser.add_argument('--qualified-raw-results', type=Path, help='completed full-source raw control for runtime-suites; reuse its warm outputs in place')
     parser.add_argument('--replay-omissions', action='store_true', help='compare all required products while checking explicit optional intermediates are absent; runtime-suites only')
-    parser.add_argument('--evaluation-reuse', action='store_true', help='require retained evaluation for exactly the two reviewed edit sources; runtime-suites only')
+    parser.add_argument('--evaluation-reuse', action='store_true', help='require retained evaluation for an explicit reviewed compiler-only inventory; runtime-suites only')
+    parser.add_argument('--qualify-evaluation-only', action='store_true', help='profile broader retention correctness; report conservative extra compilations without matched-work scores')
+    parser.add_argument('--edit-case', type=Path, help='reviewed runtime-suites edit descriptor; overrides the default Pipelines scenario')
+    parser.add_argument('--reviewed-evaluation-inputs', type=Path, help='explicit reviewed compiler-only input list, including both edit sources')
+    parser.add_argument('--project-cache-url', help='recover baseline project snapshots through HTTP instead of a retained local worker')
     parser.add_argument('--compare-fresh-evaluation', action='store_true', help='pair retained edits with unique equivalent edits using evaluation_cache_mb=0')
     parser.add_argument('--failure-recovery', action='store_true', help='fail a compiler request, then compare a unique valid edit with raw MSBuild')
     parser.add_argument('--reseed-worker', action='store_true', help='with qualified raw outputs, require a fresh all-miss runner seed before scoring')
     parser.add_argument('--diagnostics', action='store_true', help='profile separate unique edits after the scored series')
     parser.add_argument('--trim-between-rows', action='store_true', help='Trim the owned Linux VM filesystem between observations, outside scored intervals; requires fstrim privileges')
+    parser.add_argument('--host-space-path', type=Path, help='host bind mount to check for at least 4 GiB free before each invocation')
     args = parser.parse_args()
     assert os.uname().sysname == 'Linux' and os.uname().machine == 'aarch64'
     assert args.samples > 0
     assert not args.replay_omissions or args.qualified_raw_results
     assert not args.evaluation_reuse or args.qualified_raw_results
+    assert not args.qualify_evaluation_only or (args.edit_case and args.evaluation_reuse and args.diagnostics and args.samples == 1 and not args.compare_fresh_evaluation and not args.failure_recovery)
+    assert not args.edit_case or args.slice == 'runtime-suites'
+    assert not args.reviewed_evaluation_inputs or args.evaluation_reuse
+    assert not args.project_cache_url or args.qualified_raw_results
     assert not args.compare_fresh_evaluation or args.evaluation_reuse
     assert not args.reseed_worker or args.qualified_raw_results, 'Reseeding requires qualified complete-source raw outputs'
     assert not (args.continue_api_from and args.qualified_raw_results)
@@ -98,6 +108,18 @@ def main():
                         implementationAnchor='public class PipeOptions\n    {', referenceAnchor='public partial class PipeOptions\n    {',
                         expectedMisses=dict(body=6, api=11), entries=['src/libraries/System.IO.Pipelines/tests/System.IO.Pipelines.Tests.csproj'])
     implementation, reference = mutation['implementation'], mutation['reference']
+    if args.edit_case:
+        overrides = json.loads(args.edit_case.read_text())
+        assert set(overrides) == {'implementation', 'reference', 'implDll', 'refDll', 'bodyAnchor', 'implementationAnchor', 'referenceAnchor', 'expectedMisses'}
+        mutation.update(overrides)
+        implementation, reference = mutation['implementation'], mutation['reference']
+        assert all(type(value) is int and 0 < value <= compiled for value in mutation['expectedMisses'].values())
+        assert set(mutation['expectedMisses']) == {'body', 'api'}
+    reviewed_inputs = sorted([implementation, reference])
+    if args.reviewed_evaluation_inputs:
+        reviewed_inputs = json.loads(args.reviewed_evaluation_inputs.read_text())
+        assert reviewed_inputs == sorted(set(reviewed_inputs)) and set(reviewed_inputs) <= declared
+        assert {implementation, reference} <= set(reviewed_inputs)
     assert {implementation, reference} <= declared
     assert compiled == mutation['compiled'], 'Unexpected configured compilation scope'
     assert (contract.get('Entries') or [contract['Entry']]) == mutation['entries'], 'Unexpected roots'
@@ -109,7 +131,7 @@ def main():
         prior = args.qualified_raw_results.resolve()
         assert prior != results and not results.is_relative_to(prior) and not prior.is_relative_to(results)
         validate_raw_contract(contract, prior, allow_replay_omissions=args.replay_omissions,
-                              evaluation_reuse_inputs=[implementation, reference] if args.evaluation_reuse else None)
+                              evaluation_reuse_inputs=reviewed_inputs if args.evaluation_reuse else None)
         raw = prior / 'raw-workspace'
         raw_contract = json.loads((raw / 'graph.generated.json').read_text())
         comparison_contract = json.loads(json.dumps(contract))
@@ -171,6 +193,8 @@ def main():
     bazel = [str(ROOT / 'scripts/bazel-launcher.sh'), '--output_base=' + str(args.output_base.resolve()),
              'build', '//:graph', '--jobs=4', '--strategy=MSBuildGraph=worker', '--spawn_strategy=linux-sandbox',
              '--worker_sandboxing', '--worker_max_instances=MSBuildGraph=1', '--disk_cache=', '--remote_cache=', '--noshow_progress']
+    if args.project_cache_url:
+        bazel += ['--action_env=RULES_MSBUILD_PROJECT_CACHE_URL=' + args.project_cache_url]
     rows = []
     memory_samples = {}
     mode_counts = {}
@@ -196,6 +220,17 @@ def main():
     token = str(time.time_ns())
 
     def execute(command, label, cwd, expected_success=True):
+        if args.host_space_path:
+            disk = os.statvfs(args.host_space_path)
+            if disk.f_bavail * disk.f_frsize < 4 * 1024**3 and args.trim_between_rows:
+                subprocess.run(['fstrim', '/'], check=True, capture_output=True)
+                # Thin backing storage can report reclamation after fstrim returns.
+                for _ in range(5):
+                    disk = os.statvfs(args.host_space_path)
+                    if disk.f_bavail * disk.f_frsize >= 4 * 1024**3:
+                        break
+                    time.sleep(1)
+            assert disk.f_bavail * disk.f_frsize >= 4 * 1024**3, 'Insufficient host disk headroom; preserve reports and reclaim disposable results'
         start = time.monotonic()
         with (results / (label + '.log')).open('w') as log:
             process = subprocess.Popen(command, cwd=cwd, env=environment, stdout=log, stderr=subprocess.STDOUT)
@@ -235,7 +270,11 @@ def main():
         preparations = sum(int(row.get('actionsExecuted', 0)) for row in metrics.get('actionData', []) if row['mnemonic'] == 'MSBuildGraphRestore')
         if label == 'graph-seed' or (args.reseed_worker and label == 'continued-graph-baseline'):
             assert preparations == int(bool(contract.get('Restore'))), (label, preparations)
-        elif 'diagnostic' not in label:
+        elif label == 'continued-graph-baseline':
+            # Changing the reviewed contract can invalidate preparation once.
+            # Baseline setup is unscored; every scored edit still requires reuse.
+            assert preparations in [0, 1], (label, preparations)
+        elif label.endswith('-diagnostic-graph') or 'diagnostic' not in label:
             assert preparations == 0, (label, preparations)
         report = json.loads((root / 'bazel-bin/graph.graph/report.json').read_text())
         if expected_action is None and actions:
@@ -244,6 +283,11 @@ def main():
 
     def force_input(name):
         prefix, action = original_generated.decode().split('    msbuild_graph(\n')
+        if args.diagnostics and contract.get('Restore'):
+            # Compilation profiles reuse the unprofiled preparation. Profiling
+            # Restore would invalidate its action and change the setup footprint.
+            assert prefix.count('        profile_build = profile_build,') == 1
+            prefix = prefix.replace('        profile_build = profile_build,', '        profile_build = False,', 1)
         assert action.count('        srcs = [') == 1
         return prefix + '    msbuild_graph(\n' + action.replace('        srcs = [', '        srcs = [' + json.dumps(name) + ',', 1)
 
@@ -306,8 +350,10 @@ def main():
         rows.append(row)
         summary = dict(platform='linux-arm64', cpus=4, memoryGiB=8, msbuildNodes=4, graphProjects=compiled,
                        sdkVersion=contract['SdkVersion'], bazelVersion='9.2.0', slice=args.slice, entries=mutation['entries'], rawNamespace='same stable paths and isolation as graph',
-                       harnessSha256=hashlib.sha256(Path(__file__).read_bytes()).hexdigest(), packageExpansionSeconds=expansion_seconds,
+                       harnessSha256=harness_sha256, packageExpansionSeconds=expansion_seconds,
                        continuation=continuation, qualifiedWarmBaseline=qualified, retainedEvaluation=args.evaluation_reuse,
+                       editCase=str(args.edit_case) if args.edit_case else 'pipelines', reviewedEvaluationInputs=reviewed_inputs if args.evaluation_reuse else None,
+                       evaluationQualificationOnly=args.qualify_evaluation_only,
                        comparedFreshEvaluation=args.compare_fresh_evaluation,
                        omittedIntermediateFiles=len(omitted), trimBetweenRows=args.trim_between_rows, memorySamples=memory_samples, rows=rows)
         (results / 'summary.json').write_text(json.dumps(summary, indent=2) + '\n')
@@ -366,14 +412,13 @@ def main():
             baseline = compare()
             record(dict(case='setup', rawRestoreSeconds=restore_seconds, rawBuildSeconds=seed_raw, graphWorkflowSeconds=seed_graph,
                         comparedDllPdbResourceFiles=len(baseline), interpretation='setup includes Bazel bootstrap/package actions; not a scored cold row'))
-        for case in (['api'] if continuation else ['no-op', 'body', 'api']):
+        for case in ([] if args.qualify_evaluation_only else ['api'] if continuation else ['no-op', 'body', 'api']):
             pairs = []
             fresh_pairs = []
             for sample in range(args.samples):
-                if args.compare_fresh_evaluation and case != 'no-op':
-                    # Budget changes retire the engine. A unique baseline action
-                    # must prime the retained engine before scoring its next edit;
-                    # a whole-action hit would hide that missing evaluation state.
+                if args.evaluation_reuse and case != 'no-op':
+                    # A unique baseline primes retention even after worker restart
+                    # or budget changes. Whole-action hits cannot establish state.
                     generated.write_text(force_input('force-recovery.txt'))
                     nonce.write_text(token + '-retained-' + case + '-' + str(sample))
                 restore_sources()
@@ -434,7 +479,7 @@ def main():
         graph('graph-original-restoration', expected_action=None)
         assert compare() == baseline
         generated.write_text(force_input('force-recovery.txt'))
-        for sample in range(args.samples):
+        for sample in range(0 if args.qualify_evaluation_only else args.samples):
             nonce.write_text(token + '-' + str(sample))
             seconds, report = graph('local-recovery-' + str(sample))
             assert report['hits'] == compiled and report['misses'] == 0, report
@@ -479,6 +524,9 @@ def main():
             for sample, (case, fresh) in enumerate(controls, start=args.samples):
                 build.write_text(build_settings(fresh=fresh, profile=True))
                 label = case + ('-fresh' if fresh else '') + '-diagnostic'
+                if args.evaluation_reuse:
+                    generated.write_text(force_input('force-recovery.txt'))
+                    nonce.write_text(token + '-diagnostic-baseline-' + str(sample))
                 restore_sources()
                 execute(raw_command, label + '-raw-baseline', raw)
                 graph(label + '-graph-baseline', expected_action=None)
@@ -488,7 +536,7 @@ def main():
                 raw_binlog = diagnostic / (label + '.binlog')
                 binlog = stable + '/.qualification/' + raw_binlog.name
                 logging = [binlog] if len(mutation['entries']) > 1 else ['-bl:' + binlog + ';ProjectImports=None']
-                execute(raw_command + logging, label + '-raw', raw)
+                raw_seconds = execute(raw_command + logging, label + '-raw', raw)
                 shutil.copyfile(raw_binlog, results / (label + '-raw.binlog'))
                 seconds, report = graph(label + '-graph')
                 assert report['operations'] and report['worker']
@@ -497,13 +545,25 @@ def main():
                     expected_state = None if fresh else dict(loaded=0, reused=len(variants), configuredProjects=len(variants))
                     assert report['evaluationState'] == expected_state, report
                 shutil.copyfile(root / 'bazel-bin/graph.graph/report.binlog', results / (label + '-graph.binlog'))
-                compare()
+                outputs = compare()
+                assert outputs[mutation['implDll']] != baseline[mutation['implDll']]
+                assert (outputs[mutation['refDll']] == baseline[mutation['refDll']]) == (case == 'body')
                 raw_compilers = compilation(results / (label + '-raw.binlog'))
                 graph_compilers = compilation(results / (label + '-graph.binlog'))
                 expected = mutation['expectedMisses'][case]
-                assert len(raw_compilers) == len(graph_compilers) == expected, (case, raw_compilers, graph_compilers)
-                record(dict(case=label, graphSeconds=seconds, runner=report, rawCompilerCalls=raw_compilers,
-                            graphCompilerCalls=graph_compilers, interpretation='profiled; excluded from scored medians'))
+                assert len(raw_compilers) == expected, (case, raw_compilers)
+                assert len(graph_compilers) == (report['misses'] if args.qualify_evaluation_only else expected), (case, graph_compilers)
+                def compiler_set(calls):
+                    return Counter((call['project'], call['framework'], call['task']) for call in calls)
+                equivalent = compiler_set(raw_compilers) == compiler_set(graph_compilers)
+                if args.qualify_evaluation_only:
+                    assert not (compiler_set(raw_compilers) - compiler_set(graph_compilers)), (case, raw_compilers, graph_compilers)
+                else:
+                    assert equivalent, (case, raw_compilers, graph_compilers)
+                record(dict(case=label, graphSeconds=seconds, rawSeconds=raw_seconds, compilerWorkEquivalent=equivalent,
+                            comparedDllPdbResourceFiles=len(outputs), implementationDigest=outputs[mutation['implDll']]['sha256'], referenceDigest=outputs[mutation['refDll']]['sha256'],
+                            runner=report, rawCompilerCalls=raw_compilers,
+                            graphCompilerCalls=graph_compilers, interpretation='profiled correctness control; excluded from scored medians'))
             restore_sources()
             build.write_bytes(original_build)
             execute(raw_command, 'raw-diagnostic-original-restoration', raw)
