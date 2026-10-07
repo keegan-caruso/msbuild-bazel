@@ -1,73 +1,52 @@
 # Design
 
-Keep MSBuild's SDK behavior while giving Bazel explicit, cacheable work. Build a
-selected project graph in one action to share evaluation and scheduling within a
-build and avoid starting MSBuild separately for every project.
+Build a selected project graph in one Bazel action. MSBuild retains SDK targets,
+configuration and scheduling; sharing evaluation avoids a process per project.
 
 ## Ownership
 
 | Component | Owns |
 | --- | --- |
-| Bazel | Declared inputs/toolchains, producer actions, whole-action caching and tests |
-| ProjectSync | Evaluating projects into committed Bazel declarations and JSON contracts |
-| MSBuild + cache plugin | Configured project edges, SDK targets, compilation and project reuse |
+| Bazel | Declared inputs/toolchains, producer actions, action caching and tests |
+| ProjectSync | Evaluating projects into committed declarations and contracts |
+| MSBuild + cache plugin | SDK targets, compilation and reuse of configured projects |
 | ArtifactTools | Package extraction, layout composition and app/test launch |
 
-SDKs, runtimes, packages and task tools are declared artifacts. Downloaded and
-source-built SDKs use the same layout contract; compilation SDK and execution
-runtime are separate selections.
+SDKs, runtimes, packages and task tools are artifacts. Downloaded and source-built
+SDKs share a layout contract; compilation and execution toolchains are separate.
 
-## Execution
+## Execution and caching
 
-Sync records input files, configured projects and output ownership. Builds consume
-that contract, restore from declared packages, construct the evaluated MSBuild graph,
-then build or recover each project. Definition changes require sync; custom task
-reads require reviewed declarations. Evaluation does not trace arbitrary file access.
-Fully evaluated instances carry targets and task registrations to build nodes;
-those nodes do not need to reconstruct the project from disk.
-Keys represent `MSBuildAllProjects`' timestamp-selected prefix with the complete
-validated import set, retaining authored entries. MSBuild keeps its original
-incremental input list; declared import bytes still invalidate the cache.
+Sync records project paths plus global properties, inputs and output ownership.
+Builds consume that contract and restore from declared packages. Definition,
+source-list, package or configuration changes require sync. Custom task reads
+need reviewed declarations; evaluation does not trace arbitrary file access.
 
-MSBuild composes project outputs. Bazel extracts the selected runtime layout for
-an app or test, making runtime dependencies part of that target's cache inputs.
+Bazel can recover a whole unchanged Restore/build action. When the graph action
+changes, the MSBuild plugin can recover individual projects from worker snapshots
+or HTTP AC/CAS. A hit restores artifact bytes and target-result metadata.
+Every request verifies declared bytes; MSBuild result metadata alone is not a cache.
 
-## Two cache levels
-
-Bazel can skip an unchanged graph action entirely. When an input changes, the
-MSBuild plugin reuses matching projects inside the action. A hit restores both
-artifact bytes and target-result metadata; MSBuild's result cache alone is insufficient.
-
-Project snapshots persist through a Linux worker or HTTP AC/CAS service. The worker
-retains caches and preparation. Reviewed compiler-only inputs can also retain
-pristine evaluation in an isolated engine; every request clones fresh project
-instances and starts fresh build nodes. Definition, configuration, other input
-bytes and filesystem membership invalidate the engine. Failure and memory limits
-discard it. Unreviewed graphs evaluate afresh.
-The private home has the same empty application-data layout before every request.
-Otherwise MSBuild's folder defaults change after SDK tools create `.local/share`,
-invalidating snapshots when an engine restarts.
-Prepared Restore can be a separate action so body edits reuse it. Stable paths
-support relocation; declared-byte checks remain required on project-cache hits.
-Workers copy preparation privately; the child verifies every payload before
-writing Restore outputs or evaluating MSBuild, including when the copy is reused.
+Stable Linux workers can retain preparation and, for reviewed compiler-only edits,
+pristine evaluation. Each request gets fresh project instances and build nodes.
+Other input/configuration/membership changes, failures and retention limits reset
+the engine. Prepared Restore can be a separate action reused across source edits.
 
 ## Invalidation
 
-Keys include declared inputs, evaluated configuration, SDK/runner identity,
-output contracts and dependency roles. Dependencies are conservative by default.
-With reviewed reference boundaries, in `A → B → C`, a changed C reference assembly
-rebuilds B; A can reuse compilation if B's reference stays unchanged. A also rebuilds if its compiler directly reads C through SDK transitive
-references. Explicit copy contracts refresh runtime implementations.
-Compiler keys use the DLL selected by MSBuild: a reference assembly when available,
-or an implementation DLL when the SDK requires it. Selecting an implementation
-for Csc does not imply reading its transitive source inputs. Additional task/analyzer/tool
-reads retain conservative dependency keys. A reviewed complete compiler inventory
-excludes unselected assemblies from invalidation without removing execution nodes.
-New snapshots verify the inventory against SDK-resolved compiler inputs.
-Opt-in sync qualification runs a private Build once and records those selections
-and dependency-copy paths. Normal builds use that explicit contract. Qualification
-does not infer hidden task reads or approve custom target dependency roles.
+Keys include inputs, configuration, SDK/runner identity, outputs and dependency
+roles. Dependencies are conservative unless a reference boundary is qualified.
+For `A → B → C`, a changed C compiler DLL rebuilds B. A can reuse compilation if
+B's compiler DLL stays unchanged and A does not directly read C. MSBuild may select
+an authored reference assembly, an SDK reference assembly or an implementation DLL.
+The selected bytes determine compiler invalidation; task/analyzer/tool reads keep
+conservative dependency keys.
 
-[API](api.md) covers configuration; [support](support.md) separates these contracts
-from platform qualification and filesystem hermeticity.
+Opt-in sync qualification runs a private Build to capture complete compiler and
+copy selections. New snapshots verify those selections against MSBuild's resolved
+inputs. Runtime copies refresh even when compilation is reused, and app/test
+layouts include their implementation dependencies. Hidden task reads and
+Pack/Publish selection changes still require separate contracts.
+
+[API](api.md) defines configuration; [support](support.md) records qualification
+and isolation limits.
