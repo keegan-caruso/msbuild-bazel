@@ -107,6 +107,77 @@ class GraphSyncTests(unittest.TestCase):
         self.assertNotIn(source, selected["net10.0"])
         self.assertIn(source, selected["net10.0-windows"])
 
+    def test_reviewed_compile_globs_keep_generated_files_stable(self):
+        directory = self.source_group()
+        defaults = {"preparedRestore": True, "evaluationReuseInputs": ["@(Compile)"],
+                    "compileGlobs": ["LongDirectoryPrefix/Sources/*.cs"]}
+        self.sync({"projectDefaults": defaults})
+        before = {name: (self.root / name).read_bytes() for name in ["graph.generated.bzl", "graph.generated.json"]}
+        contract = json.loads(before["graph.generated.json"])
+        self.assertEqual(contract["Version"], 11)
+        self.assertEqual(contract["EvaluationReuseGlobs"], defaults["compileGlobs"])
+        self.assertEqual(contract["EvaluationReuseInputs"], ["Program.cs"])
+        selected = contract["Projects"]["App.csproj"]["Configurations"][0]
+        self.assertEqual(selected["CompileGlobs"], defaults["compileGlobs"])
+        self.assertFalse(any(path.startswith("LongDirectoryPrefix/") for path in selected["Inputs"]))
+        self.assertIn('compile_globs = ["LongDirectoryPrefix/Sources/*.cs"]', before["graph.generated.bzl"].decode())
+        (directory / "Added.cs").write_text("public class Added {}")
+        self.sync({"projectDefaults": defaults}, flags=["--check"])
+        (directory / "Added.cs").rename(directory / "Renamed.cs")
+        self.sync({"projectDefaults": defaults}, flags=["--check"])
+        for source in directory.glob("*.cs"):
+            source.unlink()
+        directory.rmdir()
+        self.sync({"projectDefaults": defaults}, flags=["--check"])
+        for name, content in before.items():
+            self.assertEqual((self.root / name).read_bytes(), content)
+
+    def test_root_compile_glob_can_retain_an_empty_reviewed_inventory(self):
+        defaults = {"preparedRestore": True, "evaluationReuseInputs": ["@(Compile)"], "compileGlobs": ["*.cs"]}
+        (self.root / "BUILD.bazel").write_text('exports_files([])')
+        self.sync({"projectDefaults": defaults})
+        contract = json.loads((self.root / "graph.generated.json").read_text())
+        self.assertEqual(contract["EvaluationReuseInputs"], [])
+        self.assertEqual(contract["EvaluationReuseGlobs"], ["*.cs"])
+        (self.root / "Extra.cs").write_text("public class Extra {}")
+        self.sync({"projectDefaults": defaults}, flags=["--check"])
+
+    def test_compile_globs_require_exact_authored_compile_only_sets(self):
+        directory = self.source_group()
+        mappings = {"projectDefaults": {"compileGlobs": ["LongDirectoryPrefix/Sources/*.cs"]}}
+        project = self.root / "App.csproj"
+        for item in ['<Compile Remove="LongDirectoryPrefix/Sources/Source00.cs" />',
+                     '<AdditionalFiles Include="LongDirectoryPrefix/Sources/*.cs" />']:
+            project.write_text(self.project.replace('</Project>', '<ItemGroup>' + item + '</ItemGroup></Project>'))
+            self.assertIn("Compile-only", self.sync(mappings, success=False))
+        project.write_text(self.project)
+        (directory / ".Hidden.cs").write_text("public class Hidden {}")
+        self.assertIn("Compile-only", self.sync(mappings, success=False))
+        (directory / ".Hidden.cs").unlink()
+        original = directory / "Source00.cs"
+        original.rename(directory / "source.txt")
+        original.symlink_to("source.txt")
+        self.assertIn("Compile-only", self.sync(mappings, success=False))
+        original.unlink()
+        original.write_text("public class Source00 {}")
+        for pattern in ["../*.cs", "LongDirectoryPrefix/**/*.cs", "obj/*.cs", "LongDirectoryPrefix/Source?.cs"]:
+            self.assertIn("flat", self.sync({"projectDefaults": {"compileGlobs": [pattern]}}, success=False))
+        self.assertIn("distinct", self.sync({"projectDefaults": {"compileGlobs": ["*.cs", "*.cs"]}}, success=False))
+
+    def test_compile_globs_remain_configuration_specific(self):
+        self.source_group()
+        (self.root / "App.csproj").write_text(self.project.replace('<TargetFramework>net10.0</TargetFramework>',
+            '<TargetFrameworks>net10.0;net10.0-windows</TargetFrameworks>').replace('</Project>',
+            '<ItemGroup Condition="&apos;$(TargetFramework)&apos; == &apos;net10.0&apos;"><Compile Remove="LongDirectoryPrefix/Sources/Source00.cs" /></ItemGroup></Project>'))
+        mappings = {"projects": {"App.csproj": {"frameworkOverrides": {"net10.0-windows":
+                    {"compileGlobs": ["LongDirectoryPrefix/Sources/*.cs"]}}}}}
+        self.sync(mappings)
+        variants = json.loads((self.root / "graph.generated.json").read_text())["Projects"]["App.csproj"]["Configurations"]
+        selected = {variant["Properties"].get("TargetFramework", ""): variant for variant in variants}
+        self.assertNotIn("CompileGlobs", selected["net10.0"])
+        self.assertEqual(selected["net10.0-windows"]["CompileGlobs"], ["LongDirectoryPrefix/Sources/*.cs"])
+        self.assertNotIn("LongDirectoryPrefix/Sources/Source00.cs", selected["net10.0-windows"]["Inputs"])
+
     def test_removed_backend_mappings_fail(self):
         for field in ["packages", "tests"]:
             with self.subTest(field=field):

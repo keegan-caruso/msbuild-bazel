@@ -29,6 +29,7 @@ internal sealed class ProjectBinding
     public Dictionary<string, string> DependencyCopies { get; set; } = [];
     public Dictionary<string, DocumentBinding> Documents { get; set; } = [];
     public Dictionary<string, string[]> InputItems { get; set; } = [];
+    public string[] CompileGlobs { get; set; } = [];
     public string[] EvaluationReuseInputs { get; set; } = [];
     public string[] EvaluationItems { get; set; } = [];
     public Dictionary<string, string> Properties { get; set; } = [];
@@ -64,6 +65,14 @@ internal sealed class Mappings
                 {
                     System.Xml.XmlConvert.VerifyNCName(name);
                 }
+            }
+            foreach (var pattern in binding.CompileGlobs)
+            {
+                GraphSourcePattern.Directory(pattern);
+            }
+            if (binding.CompileGlobs.Distinct(StringComparer.Ordinal).Count() != binding.CompileGlobs.Length)
+            {
+                throw new InvalidDataException("Compile globs must be distinct");
             }
             foreach (var input in binding.RestoreInputs.Concat(binding.RestoreOutputs).Concat(binding.InputDirectories))
             {

@@ -12,15 +12,24 @@ msbuild_sync(name = "sync", projects = ["App/App.csproj"])
 
 Run `bazel run //:sync`; commit `graph.generated.json` and `graph.generated.bzl`.
 The generated `app_graph` macro declares the graph. Body edits build normally;
-rerun sync after project/import, source-list, package or configuration changes.
+rerun sync after project/import, package, configuration or explicit source-list changes.
 Use `bazel run //:sync -- --check` to reject stale declarations.
 
-Sync can shorten local C# input lists with checked, nonrecursive globs. It retains
-expected filenames and emits globs only when they match evaluated inputs and reduce
-the declaration size. In globbed directories, additions, removals and renames fail
-graph analysis until sync; body edits build normally, and sync remains runnable. JSON
-inputs stay explicit. Exclusions, produced inputs and package boundaries keep their
-existing contracts; this does not enable automatic source membership.
+Sync can shorten C# lists with checked, nonrecursive globs when the text shrinks.
+These retain expected filenames: membership changes require sync; body edits build
+normally. To allow additions/removals without sync, pass `mappings = "mappings.json"`
+to sync and review Compile-only patterns for every affected configuration:
+
+```json
+{"projects":{"Library/Library.csproj":{"compileGlobs":["Library/Sources/*.cs"]}}}
+```
+
+Patterns are workspace-relative `directory/*.cs` or `*.cs`. Bazel declares current
+members; the graph contract records the pattern. Sync and builds verify Compile-only
+selection. Review that membership affects only compilation; Restore, imports and
+project references must stay independent. Hidden files,
+symlinks, generated/bound inputs, nested Bazel packages and recursive/excluded globs
+are unsupported. New directories or files outside these patterns still require sync.
 
 | Attribute | Use |
 | --- | --- |
@@ -66,6 +75,7 @@ Unknown/duplicate fields, unsafe paths and changed document attestations fail.
 | `referenceBoundary`, `implementationDependencies` | Qualified compiler boundary; conservative task/tool edges |
 | `compilerReference`, `compilerReferences`, `compilerReferencesComplete` | Producer artifact, consumer selections and complete-inventory assertion |
 | `dependencyCopies` | Consumer DLL/PDB/XML destinations mapped to graph/locked-package sources |
+| `compileGlobs` | Reviewed flat C# source membership, per configured project |
 | `evaluationReuseInputs`, `replayOmissions` | Reviewed compiler-only inputs and disposable intermediates |
 
 Manual `compilerReferencesComplete: true` requires `referenceBoundary: true` and
@@ -148,7 +158,8 @@ and fresh build nodes. See [platform limits](support.md#limits).
 `worker_cache_mb` defaults to 4096 logical MiB; `evaluation_cache_mb` defaults to
 512 MiB and zero disables retention. These are retention limits, not peak RSS caps.
 Profiling is off by default. Reviewed `evaluationReuseInputs` (paths or `@(Compile)`)
-can retain evaluation with prepared Restore and stable workers. Other input,
+can retain evaluation with prepared Restore and stable workers. With Compile globs,
+`@(Compile)` also reviews future members for body-edit reuse. Other input,
 configuration or membership changes and failures reset it. Byte verification remains
 fresh; arbitrary evaluation-time external/process reads cannot be retained safely.
 

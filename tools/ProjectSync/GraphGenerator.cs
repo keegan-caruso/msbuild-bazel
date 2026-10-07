@@ -62,6 +62,7 @@ internal static class GraphGenerator
         }
         using var collection = new ProjectCollection();
         var inputs = new System.Collections.Concurrent.ConcurrentDictionary<string, string[]>();
+        var fixedInputs = new System.Collections.Concurrent.ConcurrentDictionary<string, string[]>();
         var deferred = new System.Collections.Concurrent.ConcurrentDictionary<string, List<string>>();
         var outputs = new System.Collections.Concurrent.ConcurrentDictionary<string, string[]>();
         var definitions = new System.Collections.Concurrent.ConcurrentDictionary<string, byte>();
@@ -263,6 +264,7 @@ internal static class GraphGenerator
                     .Distinct().Order(StringComparer.Ordinal).ToArray();
                 deferred[Key(instance)] = generated;
                 inputs[Key(instance)] = declared.Order(StringComparer.Ordinal).ToArray();
+                fixedInputs[Key(instance)] = inputs[Key(instance)];
                 return instance;
             });
         var dependencyClosure = new Dictionary<ProjectGraphNode, HashSet<ProjectGraphNode>>();
@@ -308,6 +310,16 @@ internal static class GraphGenerator
                 }
             }
         }
+        var globOutputDirectories = !graph.ProjectNodes.Any(node => mappings.ForProject(Relative(node.ProjectInstance.FullPath),
+            node.ProjectInstance.GetPropertyValue("TargetFramework")).CompileGlobs.Length != 0) ? [] : graph.ProjectNodes.Where(node => GraphProjectKind.HasAssembly(node.ProjectInstance))
+            .SelectMany(node => new[] { "OutputPath", "IntermediateOutputPath" }.Select(property =>
+                Relative(Path.TrimEndingDirectorySeparator(Path.GetFullPath(node.ProjectInstance.GetPropertyValue(property).Replace('\\', '/'), Path.GetDirectoryName(node.ProjectInstance.FullPath)!)))))
+            .Concat(graph.ProjectNodes.SelectMany(node => mappings.ForProject(Relative(node.ProjectInstance.FullPath), node.ProjectInstance.GetPropertyValue("TargetFramework")).TemporaryDirectories
+                .Select(path => Relative(Path.GetFullPath(node.ProjectInstance.ExpandString(path).Replace('\\', '/'), Path.GetDirectoryName(node.ProjectInstance.FullPath)!))))).ToArray();
+        var compileGlobs = graph.ProjectNodes.ToDictionary(node => node, node => CompileGlobs.Qualify(outputRoot, root, node.ProjectInstance,
+            mappings.ForProject(Relative(node.ProjectInstance.FullPath), node.ProjectInstance.GetPropertyValue("TargetFramework")), fixedInputs[Key(node.ProjectInstance)],
+            shared.Concat(definitions.Keys).Concat(restore?.Inputs ?? []).Concat(restore?.Outputs ?? []), outputs.Values.SelectMany(paths => paths), globOutputDirectories, (view?.Labels ?? []).Keys));
+        var dynamicPatterns = compileGlobs.Values.SelectMany(patterns => patterns).Distinct(StringComparer.Ordinal).Order(StringComparer.Ordinal).ToArray();
         var boundaries = new Dictionary<ProjectGraphNode, bool>();
         var resolved = resolveReferences ? ResolvedGraphInputs.Build(graph, collection, root, sdkRoot,
             graph.ProjectNodes.Where(node => node.ProjectInstance.GetPropertyValue("Language") == "C#" && CanUseReferenceBoundary(node)).ToArray(), CompilerProducts, Dependencies,
@@ -324,7 +336,8 @@ internal static class GraphGenerator
             var configurations = group.OrderBy(node => Key(node.ProjectInstance), StringComparer.Ordinal).Select(node => new
             {
                 Properties = selectorKeys.ToDictionary(key => key, key => node.ProjectInstance.GlobalProperties.TryGetValue(key, out var value) ? value : ""),
-                Inputs = inputs[Key(node.ProjectInstance)],
+                Inputs = inputs[Key(node.ProjectInstance)].Where(path => !compileGlobs[node].Any(pattern => GraphSourcePattern.Matches(pattern, path))).ToArray(),
+                CompileGlobs = compileGlobs[node],
                 OutputFiles = outputs[Key(node.ProjectInstance)],
                 ReplayOmissions = mappings.ForProject(group.Key, node.ProjectInstance.GetPropertyValue("TargetFramework")).ReplayOmissions
                     .Select(path => Relative(Path.GetFullPath(node.ProjectInstance.ExpandString(path).Replace('\\', '/'), Path.GetDirectoryName(node.ProjectInstance.FullPath)!)))
@@ -450,10 +463,29 @@ internal static class GraphGenerator
         {
             contractData["Version"] = 10;
         }
+        if (dynamicPatterns.Length != 0)
+        {
+            contractData["Version"] = 11;
+            var reusePatterns = dynamicPatterns.Where(pattern => graph.ProjectNodes.Where(node => compileGlobs[node].Contains(pattern))
+                .All(node => mappings.ForProject(Relative(node.ProjectInstance.FullPath), node.ProjectInstance.GetPropertyValue("TargetFramework"))
+                    .EvaluationReuseInputs.Contains("@(Compile)", StringComparer.Ordinal))).ToArray();
+            if (reuseInputs.Count != 0 || reusePatterns.Length != 0)
+            {
+                contractData["EvaluationReuseInputs"] = JsonSerializer.SerializeToNode(reuseInputs.Where(path => !dynamicPatterns.Any(pattern => GraphSourcePattern.Matches(pattern, path))).Order(StringComparer.Ordinal).ToArray());
+            }
+            if (reusePatterns.Length != 0)
+            {
+                contractData["EvaluationReuseGlobs"] = JsonSerializer.SerializeToNode(reusePatterns);
+            }
+        }
         foreach (var project in contractData["Projects"]!.AsObject().Select(pair => pair.Value!))
         {
             foreach (var declaration in project["Configurations"]!.AsArray().Select(value => value!.AsObject()))
             {
+                if (declaration["CompileGlobs"]!.AsArray().Count == 0)
+                {
+                    declaration.Remove("CompileGlobs");
+                }
                 if (!declaration["CompilerReferencesComplete"]!.GetValue<bool>())
                 {
                     declaration.Remove("CompilerReferencesComplete");
@@ -467,7 +499,7 @@ internal static class GraphGenerator
         var contract = contractData.ToJsonString(new JsonSerializerOptions { WriteIndented = true }) + "\n";
         var sources = inputs.Values.SelectMany(files => files).Concat(shared).Concat(restore?.Inputs ?? []).Distinct().Order(StringComparer.Ordinal).ToArray();
         var sourceGlobs = SourceGlobs.Create(outputRoot,
-            sources.Where(path => view?.Labels.ContainsKey(path) != true && !path.StartsWith(".graph-tools/", StringComparison.Ordinal)).ToArray(), compilerSources.Keys);
+            sources.Where(path => view?.Labels.ContainsKey(path) != true && !path.StartsWith(".graph-tools/", StringComparison.Ordinal)).ToArray(), compilerSources.Keys, dynamicPatterns);
         var ambiguousOutput = graph.ProjectNodes.Where(node => GraphProjectKind.HasAssembly(node.ProjectInstance))
             .GroupBy(node => Relative(node.ProjectInstance.FullPath) + "|" + node.ProjectInstance.GetPropertyValue("TargetFramework"))
             .FirstOrDefault(group => group.Count() > 1);

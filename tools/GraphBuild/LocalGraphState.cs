@@ -27,6 +27,7 @@ internal sealed class LocalGraphState : IDisposable
         {
             throw new InvalidDataException("Retained graph state currently requires Linux");
         }
+        contract = CompileGlobInputs.Expand(contract, files);
         this.files = files;
         directory = Path.GetFullPath(directory);
         if (directory == files.Root || directory.StartsWith(files.Root + "/", StringComparison.Ordinal))

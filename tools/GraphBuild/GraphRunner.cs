@@ -58,9 +58,9 @@ internal static class GraphRunner
         Environment.SetEnvironmentVariable("MSBuildSDKsPath", Path.Combine(sdk, "Sdks"));
         // Resolve package SDKs and key preparation against the same owned package root.
         Environment.SetEnvironmentVariable("NUGET_PACKAGES", Path.Combine(root, ".nuget"));
-        if (contract.EntryProperties?.Count > 0 && contract.Version is not (6 or 7 or 8 or 9 or 10))
+        if (contract.EntryProperties?.Count > 0 && contract.Version is not (6 or 7 or 8 or 9 or 10 or 11))
         {
-            throw new InvalidDataException("Entry properties require graph contract version 6, 7, 8, 9 or 10");
+            throw new InvalidDataException("Entry properties require graph contract version 6, 7, 8, 9, 10 or 11");
         }
         RulesMSBuild.GraphEntryProperties.Validate(contract.Entries ?? [contract.Entry], contract.EntryProperties ?? [], (contract.ToolProperties ?? []).Keys);
         contract = GraphTools.Bind(contract, root, sdkRoot);

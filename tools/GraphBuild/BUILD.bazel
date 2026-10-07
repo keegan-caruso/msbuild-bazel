@@ -11,6 +11,7 @@ filegroup(
         "//tools:GraphCompilerReferences.cs",
         "//tools:GraphEntryProperties.cs",
         "//tools:GraphProjectKind.cs",
+        "//tools:GraphSourcePattern.cs",
         "//tools:MSBuildTool.props",
         "//tools:PackageSdks.cs",
         "//tools/ProjectCache:RemoteSnapshotStore.cs",
