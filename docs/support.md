@@ -187,6 +187,27 @@ zero misses/Csc and all 9,972 owned bytes/modes matching in a fresh relocated
 consumer. It executed fresh Restore and graph actions with both Bazel action
 caches disabled; no compiled graph DLL/PDB payloads were transferred.
 
+Generic SDK selection capture is available through `msbuild_sync(...,
+package_build = True, resolve_references = True)`. Linux ARM64 controls passed
+`//tests/integration:resolved_inputs`, `:resolved_package_copies` and
+`:resolved_il_sdk` on both Bazel pins: reference/implementation edits, transitive
+copies, package-name collisions, IL-produced DLLs, fresh-byte parity and recovery.
+Twenty sync controls cover multi-target selection, private outputs, failed
+qualification, conflicting bindings, consumer input declarations and input mutation;
+owned .NET/style and scaffold checks passed. The 543-node runtime qualification
+captured all 2,970 previously reviewed project compiler selections across 481
+compilations without manual compiler/copy maps (`python3
+tests/graph_build/upstream/runtime_prepare.py SOURCE FEED WORKSPACE
+--slice runtime-suites --prepared-restore --resolve-references`).
+A single cache-validation body/API pair had 480/434 hits
+and 1/47 compilations, matching all 2,814 required raw MSBuild product bytes.
+Forced local recovery matched those bytes with 481 hits and zero compilations.
+This extends correctness evidence, not the performance baseline. Qualification
+executes a full private Build during sync; it is opt-in and adds no work to
+ordinary incremental builds.
+Pack/Publish-specific selection changes and arbitrary task reads still need
+separate contracts.
+
 Next: expand unchanged upstream test slices.
 
 This is not whole-repository runtime support. Linux x86-64, macOS persistent workers,

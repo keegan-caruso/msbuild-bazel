@@ -16,7 +16,10 @@ def main():
     parser.add_argument('--platform', choices=['osx-arm64', 'linux-arm64'], default='osx-arm64')
     parser.add_argument('--prepared-restore', action='store_true', help='declare the reviewed managed graph Restore contract')
     parser.add_argument('--reference-bindings', type=Path, help='reviewed full raw Build compiler/copy selection inventory')
+    parser.add_argument('--resolve-references', action='store_true', help='review managed reference boundaries; generic ProjectSync captures SDK selections')
     args = parser.parse_args()
+    if args.resolve_references and args.reference_bindings:
+        parser.error('--resolve-references replaces --reference-bindings')
     assert not args.reference_bindings or args.platform == 'linux-arm64'
     directory = Path(__file__).resolve().parent
     mapping = json.loads((directory / 'runtime.json').read_text())
@@ -212,6 +215,12 @@ def main():
                 configured = binding.setdefault('frameworkOverrides', {}).setdefault(framework,
                     copy.deepcopy({k: v for k, v in binding.items() if k != 'frameworkOverrides'}))
                 configured.update(configuration['bindings'])
+    if args.resolve_references:
+        for binding in [mapping['projectDefaults']] + list(mapping['projects'].values()):
+            for variant in [binding] + list(binding.get('frameworkOverrides', {}).values()):
+                variant['referenceBoundary'] = True
+                for field in ['compilerReference', 'compilerReferences', 'compilerReferencesComplete', 'dependencyCopies']:
+                    variant.pop(field, None)
     args.output.write_text(json.dumps(mapping, indent=2) + '\n')
 
 

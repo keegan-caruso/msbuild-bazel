@@ -82,7 +82,7 @@ exec "$runfiles/"%s "$runfiles/"%s "$BUILD_WORKSPACE_DIRECTORY" "$DOTNET_ROOT/sd
         _quote(tc.sdk_version),
         " ".join([_quote(project) for project in ctx.attr.projects]),
         '--mappings "$runfiles/"' + _quote(_runfile(ctx, ctx.file.mappings)) if ctx.file.mappings else "",
-        "--configuration " + _quote(ctx.attr.configuration) + (" --framework " + _quote(ctx.attr.framework) if ctx.attr.framework else "") + (" --package-build" if ctx.attr.package_build else "") + "".join([" --package-input " + _quote(path) for path in ctx.attr.package_inputs]),
+        "--configuration " + _quote(ctx.attr.configuration) + (" --framework " + _quote(ctx.attr.framework) if ctx.attr.framework else "") + (" --package-build" if ctx.attr.package_build else "") + (" --resolve-references" if ctx.attr.resolve_references else "") + "".join([" --package-input " + _quote(path) for path in ctx.attr.package_inputs]),
         _quote(_runfile(ctx, manifest)),
     ), is_executable = True)
     return [DefaultInfo(
@@ -99,6 +99,7 @@ _sync = rule(
         "configuration": attr.string(default = "Release"),
         "framework": attr.string(),
         "package_build": attr.bool(),
+        "resolve_references": attr.bool(),
         "package_inputs": attr.string_list(),
         "bindings": attr.label_list(providers = [MSBuildBindingInfo], cfg = "exec"),
         "inputs": attr.label_keyed_string_dict(allow_files = True),
@@ -110,7 +111,7 @@ _sync = rule(
     },
 )
 
-def msbuild_sync(name, projects, mappings = None, inputs = {}, package_lock = None, bindings = [], package_locks = [], configuration = "Release", framework = "", package_build = False, package_inputs = [], **kwargs):
+def msbuild_sync(name, projects, mappings = None, inputs = {}, package_lock = None, bindings = [], package_locks = [], configuration = "Release", framework = "", package_build = False, package_inputs = [], resolve_references = False, **kwargs):
     """Declare a tool that evaluates local projects and writes graph.generated.json and graph.generated.bzl.
 
     Args:
@@ -119,6 +120,7 @@ def msbuild_sync(name, projects, mappings = None, inputs = {}, package_lock = No
         configuration: Graph configuration, default Release.
         framework: Optional graph target framework; empty builds declared frameworks.
         package_build: Opt in to offline Restore and package build/content evaluation in a disposable copy.
+        resolve_references: Run a private qualification Build and emit complete SDK-selected compiler/copy bindings at supported reference boundaries. Requires package_build.
         package_inputs: Additional workspace-relative files read by reviewed package tasks.
         mappings: Optional JSON file with reviewed input, output and dependency contracts.
         inputs: Single-file labels mapped to workspace-relative evaluation/build paths.
@@ -129,7 +131,9 @@ def msbuild_sync(name, projects, mappings = None, inputs = {}, package_lock = No
     """
     if not projects:
         fail("msbuild_sync requires at least one entry project")
+    if resolve_references and not package_build:
+        fail("resolve_references requires package_build for private offline Restore and qualification Build")
     for project in projects:
         if project.startswith("/") or "\\" in project or any([part in ["", ".", ".."] for part in project.split("/")]) or not (project.endswith(".csproj") or project.endswith(".proj") or project.endswith(".ilproj")):
             fail("Expected a workspace-relative .csproj, .proj or .ilproj path: " + project)
-    _sync(name = name, projects = projects, configuration = configuration, framework = framework, package_build = package_build, package_inputs = package_inputs, mappings = mappings, inputs = inputs, package_lock = package_lock, package_locks = package_locks, bindings = bindings, **kwargs)
+    _sync(name = name, projects = projects, configuration = configuration, framework = framework, package_build = package_build, package_inputs = package_inputs, resolve_references = resolve_references, mappings = mappings, inputs = inputs, package_lock = package_lock, package_locks = package_locks, bindings = bindings, **kwargs)

@@ -416,10 +416,6 @@ internal sealed class GraphInputs : IDisposable
             {
                 throw new InvalidDataException("Consumer compiler references require graph contract version 8 and a reviewed reference boundary");
             }
-            if (!producer.EndsWith(".csproj", StringComparison.Ordinal))
-            {
-                throw new InvalidDataException("Consumer compiler reference requires a project path: " + producer);
-            }
             RulesMSBuild.GraphCompilerReferences.ValidateConsumer(node, Files.Resolve(producer), Files.Resolve(artifact), CompilerProducts);
         }
         if (compilerReference is not null)

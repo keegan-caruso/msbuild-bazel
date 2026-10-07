@@ -33,8 +33,11 @@ def main():
     parser.add_argument('--framework', help='entry framework; default net10.0 or the selected slice framework')
     parser.add_argument('--prepared-restore', action='store_true', help='generate a separate declared Restore action')
     parser.add_argument('--reference-bindings', type=Path, help='reviewed full raw Build compiler/copy selections')
+    parser.add_argument('--resolve-references', action='store_true', help='use generic ProjectSync qualification instead of hand-authored compiler/copy bindings')
     parser.add_argument('--worker-cache-mb', type=int, default=4096, help='explicit logical snapshot/preparation cache budget in MiB')
     args = parser.parse_args()
+    if args.resolve_references and args.reference_bindings:
+        parser.error('--resolve-references replaces --reference-bindings')
     if args.reference_bindings and args.slice != 'runtime-suites':
         parser.error('--reference-bindings requires --slice runtime-suites')
     if args.worker_cache_mb < 0:
@@ -110,7 +113,8 @@ def main():
     mapping = base / 'mapping.json'
     subprocess.run(['python3', str(Path(__file__).with_name('runtime_contract.py')), str(mapping),
                     '--platform', 'linux-arm64'] + (['--prepared-restore'] if args.prepared_restore else []) +
-                    (['--reference-bindings', str(args.reference_bindings.resolve())] if args.reference_bindings else []), check=True)
+                    (['--reference-bindings', str(args.reference_bindings.resolve())] if args.reference_bindings else []) +
+                    (['--resolve-references'] if args.resolve_references else []), check=True)
     if entry_properties:
         reviewed = json.loads(mapping.read_text())
         reviewed['entryProperties'] = entry_properties
@@ -119,7 +123,7 @@ def main():
         subprocess.run([str(dotnet), str(ROOT / 'tools/ProjectSync/bin/Release/net10.0/ProjectSync.dll'),
                         str(source), str(sdk / 'sdk/10.0.400'), *entries, '--framework', framework,
                         '--package-build', '--inputs', str(inputs), '--runfiles', str(packages),
-                        '--mappings', str(mapping)], cwd=ROOT, env=env, stdout=log, stderr=subprocess.STDOUT, check=True)
+                        '--mappings', str(mapping)] + (['--resolve-references'] if args.resolve_references else []), cwd=ROOT, env=env, stdout=log, stderr=subprocess.STDOUT, check=True)
     contract = json.loads((source / 'graph.generated.json').read_text())
     paths = set(contract['SharedInputs'])
     for project in contract['Projects'].values():

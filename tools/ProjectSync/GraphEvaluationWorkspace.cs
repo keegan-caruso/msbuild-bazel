@@ -44,6 +44,8 @@ internal sealed class GraphEvaluationWorkspace : IDisposable
                 }
                 start.Environment["DOTNET_ROOT"] = sdk;
                 start.Environment["DOTNET_CLI_HOME"] = Path.Combine(Root, ".cli");
+                start.Environment["DOTNET_SKIP_FIRST_TIME_EXPERIENCE"] = "1";
+                start.Environment["DOTNET_GENERATE_ASPNET_CERTIFICATE"] = "false";
                 start.Environment["MSBUILDDISABLENODEREUSE"] = "1";
                 using var process = Process.Start(start)!;
                 process.WaitForExit();

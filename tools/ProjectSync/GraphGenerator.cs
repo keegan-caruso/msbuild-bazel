@@ -38,8 +38,12 @@ internal static class GraphGenerator
         }
     }
 
-    internal static void Run(string root, string sdk, string[] entries, bool check, string outputRoot, string configuration = "Release", string framework = "", WorkspaceView? view = null, bool packageBuild = false, string[]? packageInputs = null, GraphMappings? mappings = null)
+    internal static void Run(string root, string sdk, string[] entries, bool check, string outputRoot, string configuration = "Release", string framework = "", WorkspaceView? view = null, bool packageBuild = false, string[]? packageInputs = null, GraphMappings? mappings = null, bool resolveReferences = false)
     {
+        if (resolveReferences && !packageBuild)
+        {
+            throw new InvalidDataException("Resolving compiler references requires --package-build for private offline Restore and qualification Build");
+        }
         mappings ??= new GraphMappings(null);
         root = Path.TrimEndingDirectorySeparator(Path.GetFullPath(root));
         sdk = Path.TrimEndingDirectorySeparator(sdk);
@@ -279,7 +283,31 @@ internal static class GraphGenerator
             }
             inputs[Key(node.ProjectInstance)] = files.Order(StringComparer.Ordinal).ToArray();
         }
+        var shared = (File.Exists(Path.Combine(root, "global.json")) ? new[] { "global.json" } : []).Concat(packageInputs ?? []).Distinct().Order(StringComparer.Ordinal).ToArray();
+        foreach (var path in shared)
+        {
+            if (!File.Exists(Path.Combine(root, WorkspaceView.Safe(path))))
+            {
+                throw new InvalidDataException("Missing declared package task input: " + path);
+            }
+        }
+        var restore = GraphRestoreGenerator.Create(graph, mappings, definitions.Keys, shared, Relative);
+        if (restore is not null)
+        {
+            shared = shared.Concat(restore.Inputs.Except(definitions.Keys)).Distinct().Order(StringComparer.Ordinal).ToArray();
+            foreach (var path in restore.Inputs)
+            {
+                if (!File.Exists(Path.Combine(root, path)))
+                {
+                    throw new InvalidDataException("Missing declared Restore input: " + path);
+                }
+            }
+        }
         var boundaries = new Dictionary<ProjectGraphNode, bool>();
+        var resolved = resolveReferences ? ResolvedGraphInputs.Build(graph, collection, root, sdkRoot,
+            graph.ProjectNodes.Where(node => node.ProjectInstance.GetPropertyValue("Language") == "C#" && CanUseReferenceBoundary(node)).ToArray(), CompilerProducts, Dependencies,
+            inputs.Values.SelectMany(paths => paths).Concat(shared), packageIdentities,
+            node => inputs[Key(node.ProjectInstance)].Concat(shared)) : null;
         var declarations = new SortedDictionary<string, object>(StringComparer.Ordinal);
         foreach (var group in graph.ProjectNodes.GroupBy(node => Relative(node.ProjectInstance.FullPath)))
         {
@@ -300,7 +328,7 @@ internal static class GraphGenerator
                 ImplementationDependencies = ImplementationDependencies(node),
                 CompilerReference = CompilerReference(node),
                 CompilerReferences = CompilerReferences(node),
-                CompilerReferencesComplete = mappings.ForProject(group.Key, node.ProjectInstance.GetPropertyValue("TargetFramework")).CompilerReferencesComplete,
+                CompilerReferencesComplete = resolved?.ContainsKey(node) == true || mappings.ForProject(group.Key, node.ProjectInstance.GetPropertyValue("TargetFramework")).CompilerReferencesComplete,
                 DependencyCopies = CanUseReferenceBoundary(node) ? DependencyCopies(node) : new Dictionary<string, string>(),
                 OutputDirectories = !GraphProjectKind.HasAssembly(node.ProjectInstance) ? [] :
                     new[] { "OutputPath", "IntermediateOutputPath" }.Select(property =>
@@ -319,26 +347,6 @@ internal static class GraphGenerator
                 OutputDirectories = Array.Empty<string>(),
                 Configurations = configurations
             });
-        }
-        var shared = (File.Exists(Path.Combine(root, "global.json")) ? new[] { "global.json" } : []).Concat(packageInputs ?? []).Distinct().Order(StringComparer.Ordinal).ToArray();
-        foreach (var path in shared)
-        {
-            if (!File.Exists(Path.Combine(root, WorkspaceView.Safe(path))))
-            {
-                throw new InvalidDataException("Missing declared package task input: " + path);
-            }
-        }
-        var restore = GraphRestoreGenerator.Create(graph, mappings, definitions.Keys, shared, Relative);
-        if (restore is not null)
-        {
-            shared = shared.Concat(restore.Inputs.Except(definitions.Keys)).Distinct().Order(StringComparer.Ordinal).ToArray();
-            foreach (var path in restore.Inputs)
-            {
-                if (!File.Exists(Path.Combine(root, path)))
-                {
-                    throw new InvalidDataException("Missing declared Restore input: " + path);
-                }
-            }
         }
         var inputDirectories = graph.ProjectNodes.SelectMany(node => mappings.ForProject(Relative(node.ProjectInstance.FullPath),
             node.ProjectInstance.GetPropertyValue("TargetFramework")).InputDirectories).Select(WorkspaceView.Safe).Distinct().Order(StringComparer.Ordinal).ToArray();
@@ -433,7 +441,7 @@ internal static class GraphGenerator
             contractData["Version"] = 9;
             contractData["EvaluationReuseInputs"] = JsonSerializer.SerializeToNode(reuseInputs.Order(StringComparer.Ordinal).ToArray());
         }
-        if (graph.ProjectNodes.Any(node => mappings.ForProject(Relative(node.ProjectInstance.FullPath), node.ProjectInstance.GetPropertyValue("TargetFramework")).CompilerReferencesComplete))
+        if (resolved?.Count > 0 || graph.ProjectNodes.Any(node => mappings.ForProject(Relative(node.ProjectInstance.FullPath), node.ProjectInstance.GetPropertyValue("TargetFramework")).CompilerReferencesComplete))
         {
             contractData["Version"] = 10;
         }
@@ -552,13 +560,17 @@ internal static class GraphGenerator
             foreach (var (producer, expression) in binding.CompilerReferences.OrderBy(pair => pair.Key, StringComparer.Ordinal))
             {
                 var project = WorkspaceView.Safe(producer);
-                if (!project.EndsWith(".csproj", StringComparison.Ordinal))
-                {
-                    throw new InvalidDataException("Consumer compiler reference requires a project path: " + producer);
-                }
                 var relative = WorkspaceView.Safe(node.ProjectInstance.ExpandString(expression).Replace('\\', '/'));
                 RulesMSBuild.GraphCompilerReferences.ValidateConsumer(node, Path.GetFullPath(project, root), Path.GetFullPath(relative, root), CompilerProducts);
                 result.Add(project, relative);
+            }
+            if (resolved?.TryGetValue(node, out var selection) == true)
+            {
+                if (result.Any(pair => !selection.CompilerReferences.TryGetValue(pair.Key, out var path) || path != pair.Value))
+                {
+                    throw new InvalidDataException("Explicit compiler references differ from SDK selection: " + Relative(node.ProjectInstance.FullPath));
+                }
+                return selection.CompilerReferences;
             }
             return result;
         }
@@ -612,7 +624,7 @@ internal static class GraphGenerator
                     item.GetMetadataValue("Private") is "" or "true") &&
                 (current == node || current.ProjectInstance.GetPropertyValue("OutputType").Equals("Library", StringComparison.OrdinalIgnoreCase)) &&
                 current.ProjectInstance.GetItems("PackageReference").Count == 0 &&
-                HasStandardSymbols(current) &&
+                (!GraphProjectKind.HasAssembly(current.ProjectInstance) || HasStandardSymbols(current)) &&
                 current.ProjectInstance.GetItems("EmbeddedResource").Count == 0 &&
                 FileItems.SelectMany(current.ProjectInstance.GetItems).All(item =>
                     item.GetMetadataValue("CopyToOutputDirectory") is "" or "Never" &&
@@ -701,6 +713,17 @@ internal static class GraphGenerator
                 copies.Add(target, producer);
             }
             var explicitTargets = copies.Keys.ToHashSet(StringComparer.Ordinal);
+            if (resolved?.TryGetValue(node, out var selection) == true)
+            {
+                foreach (var (destination, source) in copies)
+                {
+                    if (!selection.DependencyCopies.TryGetValue(destination, out var actual) || actual != source)
+                    {
+                        throw new InvalidDataException("Explicit dependency copy differs from SDK selection: " + destination);
+                    }
+                }
+                return selection.DependencyCopies;
+            }
             foreach (var dependency in RuntimeDependencies(node).Where(current => GraphProjectKind.HasAssembly(current.ProjectInstance))
                 .OrderBy(current => Key(current.ProjectInstance), StringComparer.Ordinal))
             {

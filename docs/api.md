@@ -49,6 +49,7 @@ configuration changes. `bazel run //:sync -- --check` rejects stale declarations
 | `inputs` | Map single-file producer labels to workspace-relative paths |
 | `package_lock` | Supply a closed package inventory, including package SDKs |
 | `package_build`, `package_inputs` | Evaluate package targets/content after offline Restore; declare extra task reads |
+| `resolve_references` | Run a private qualification Build during sync and capture SDK compiler/copy selections; requires `package_build` |
 | `bindings` | Bind complete tool layouts to MSBuild properties |
 | `mappings` | Supply reviewed JSON input/output/dependency contracts |
 
@@ -78,6 +79,18 @@ noncompiler dependencies remain intact. Newly built snapshots must match
 and declared package/file references retain their ordinary input hashes. Changes
 to project definitions or compiler selection require resync and renewed review.
 Without this flag, bindings remain partial overrides with conservative transitive keys.
+
+To generate these bindings, use `msbuild_sync(..., package_build = True,
+resolve_references = True)` and run `bazel run //:sync`. Sync performs offline
+Restore and Build in a disposable workspace, then emits complete compiler maps
+and copy sources for supported C# reference boundaries. No assembly names, graph
+sizes or SDK-specific contract conventions are assumed. Multi-target selection
+uses configured project identity. Ordinary builds consume the generated contract;
+`sync --check` repeats qualification to check it. Failed builds, undeclared inputs,
+ambiguous producers or conflicting manual bindings leave existing contracts intact.
+Custom/package target reads still require reviewed mappings; unsupported boundaries
+retain conservative keys. This captures Build selections; target-specific Pack/Publish
+selection changes need separate qualification.
 
 ## Build and artifacts
 

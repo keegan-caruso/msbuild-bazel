@@ -8,7 +8,7 @@ internal static class Program
         {
             if (args.Length < 3)
             {
-                throw new ArgumentException("ProjectSync <workspace> <sdk-directory> <project.csproj|project.ilproj|dirs.proj>... [--check] [--configuration Release] [--framework TFM] [--package-build] [--package-input FILE] [--mappings mappings.json]");
+                throw new ArgumentException("ProjectSync <workspace> <sdk-directory> <project.csproj|project.ilproj|dirs.proj>... [--check] [--configuration Release] [--framework TFM] [--package-build] [--resolve-references] [--package-input FILE] [--mappings mappings.json]");
             }
             var sdk = WorkspaceView.PhysicalPath(args[1]);
             if (!File.Exists(Path.Combine(sdk, "MSBuild.dll")))
@@ -24,6 +24,7 @@ internal static class Program
             string? mappings = null;
             var check = false;
             var packageBuild = false;
+            var resolveReferences = false;
             var packageInputs = new List<string>();
             var configuration = "Release";
             var framework = "";
@@ -38,6 +39,10 @@ internal static class Program
                 else if (args[i] == "--package-build")
                 {
                     packageBuild = true;
+                }
+                else if (args[i] == "--resolve-references")
+                {
+                    resolveReferences = true;
                 }
                 else if (args[i] == "--package-input")
                 {
@@ -102,7 +107,7 @@ internal static class Program
             {
                 throw new InvalidDataException("Sync requires complete tool layouts in msbuild_sync bindings");
             }
-            GraphGenerator.Run(view.Root, sdk, projects.ToArray(), check, root, configuration, framework, view, packageBuild, packageInputs.ToArray(), new GraphMappings(mappings));
+            GraphGenerator.Run(view.Root, sdk, projects.ToArray(), check, root, configuration, framework, view, packageBuild, packageInputs.ToArray(), new GraphMappings(mappings), resolveReferences);
             return 0;
         }
         catch (Exception error)
