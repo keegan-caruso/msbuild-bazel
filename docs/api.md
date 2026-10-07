@@ -15,6 +15,13 @@ The generated `app_graph` macro declares the graph. Body edits build normally;
 rerun sync after project/import, source-list, package or configuration changes.
 Use `bazel run //:sync -- --check` to reject stale declarations.
 
+Sync can shorten local C# input lists with checked, nonrecursive globs. It retains
+expected filenames and emits globs only when they match evaluated inputs and reduce
+the declaration size. In globbed directories, additions, removals and renames fail
+graph analysis until sync; body edits build normally, and sync remains runnable. JSON
+inputs stay explicit. Exclusions, produced inputs and package boundaries keep their
+existing contracts; this does not enable automatic source membership.
+
 | Attribute | Use |
 | --- | --- |
 | `projects` | Entry `.csproj`, `.ilproj` or Traversal/NoTargets `.proj` paths |

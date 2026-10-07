@@ -65,6 +65,7 @@ internal static class GraphGenerator
         var deferred = new System.Collections.Concurrent.ConcurrentDictionary<string, List<string>>();
         var outputs = new System.Collections.Concurrent.ConcurrentDictionary<string, string[]>();
         var definitions = new System.Collections.Concurrent.ConcurrentDictionary<string, byte>();
+        var compilerSources = new System.Collections.Concurrent.ConcurrentDictionary<string, byte>();
         var packageIdentities = view?.GraphPackageIdentities(packageBuild) ?? [];
         var evaluationProperties = new Dictionary<string, string>(properties)
         {
@@ -245,6 +246,10 @@ internal static class GraphGenerator
                         continue;
                     }
                     var relative = Relative(fullPath);
+                    if (item.ItemType == "Compile")
+                    {
+                        compilerSources.TryAdd(relative, 0);
+                    }
                     if (relative is ContractName or BuildName)
                     {
                         continue;
@@ -461,6 +466,8 @@ internal static class GraphGenerator
         }
         var contract = contractData.ToJsonString(new JsonSerializerOptions { WriteIndented = true }) + "\n";
         var sources = inputs.Values.SelectMany(files => files).Concat(shared).Concat(restore?.Inputs ?? []).Distinct().Order(StringComparer.Ordinal).ToArray();
+        var sourceGlobs = SourceGlobs.Create(outputRoot,
+            sources.Where(path => view?.Labels.ContainsKey(path) != true && !path.StartsWith(".graph-tools/", StringComparison.Ordinal)).ToArray(), compilerSources.Keys);
         var ambiguousOutput = graph.ProjectNodes.Where(node => GraphProjectKind.HasAssembly(node.ProjectInstance))
             .GroupBy(node => Relative(node.ProjectInstance.FullPath) + "|" + node.ProjectInstance.GetPropertyValue("TargetFramework"))
             .FirstOrDefault(group => group.Count() > 1);
@@ -487,11 +494,11 @@ internal static class GraphGenerator
             "        bindings = " + StarlarkLiteral.Serialize(view?.GraphBindingLabels ?? []) + ",\n" +
             "        input_paths = " + StarlarkLiteral.Serialize(view?.Bindings(restore.Inputs) ?? []) + ",\n" +
             (view?.DefaultPackageLock is null ? "" : "        package_lock = " + StarlarkLiteral.Serialize(view.DefaultPackageLock) + ",\n") + "    )\n";
-        var text = Header + "load(\"@rules_msbuild//msbuild:defs.bzl\", \"msbuild_graph\", \"msbuild_graph_runner\"" + (restore is null ? "" : ", \"msbuild_graph_restore\"") + ")\n\n" +
+        var text = Header + "load(\"@rules_msbuild//msbuild:defs.bzl\", \"msbuild_graph\", \"msbuild_graph_runner\"" + (restore is null ? "" : ", \"msbuild_graph_restore\"") + ")\n" + sourceGlobs.Load + "\n" +
             "def app_graph(name = \"app\", linux_stable_paths = False, target = \"Build\", linux_worker = False, worker_cache_mb = 4096, evaluation_cache_mb = 512, profile_build = False):\n    if native.package_name():\n        fail(\"app_graph must be called from the workspace root\")\n" +
-            "    msbuild_graph_runner(name = name + \"_runner\")\n" + restoreRule + "    msbuild_graph(\n        name = name,\n        linux_stable_paths = linux_stable_paths,\n        linux_worker = linux_worker,\n        worker_cache_mb = worker_cache_mb,\n        evaluation_cache_mb = evaluation_cache_mb,\n        profile_build = profile_build,\n        target = target,\n        runner = \":\" + name + \"_runner\",\n" +
+            "    msbuild_graph_runner(name = name + \"_runner\")\n" + sourceGlobs.Declaration + restoreRule + "    msbuild_graph(\n        name = name,\n        linux_stable_paths = linux_stable_paths,\n        linux_worker = linux_worker,\n        worker_cache_mb = worker_cache_mb,\n        evaluation_cache_mb = evaluation_cache_mb,\n        profile_build = profile_build,\n        target = target,\n        runner = \":\" + name + \"_runner\",\n" +
             (restore is null ? "" : "        restore = \":\" + name + \"_restore\",\n") +
-            "        contract = \"" + ContractName + "\",\n        srcs = " + StarlarkLiteral.Serialize(sources.Where(path => view?.Labels.ContainsKey(path) != true && !path.StartsWith(".graph-tools/", StringComparison.Ordinal)).ToArray()) + ",\n        bindings = " + StarlarkLiteral.Serialize(view?.GraphBindingLabels ?? []) + ",\n        input_paths = " + StarlarkLiteral.Serialize(view?.Bindings(sources) ?? []) + ",\n        project_outputs = " + StarlarkLiteral.Serialize(runtimeOutputs) + ",\n        publish_outputs = " + StarlarkLiteral.Serialize(publishOutputs) + ",\n" + (view?.DefaultPackageLock is null ? "" : "        package_lock = " + StarlarkLiteral.Serialize(view.DefaultPackageLock) + ",\n") + "    )\n";
+            "        contract = \"" + ContractName + "\",\n        srcs = " + sourceGlobs.Expression + ",\n        bindings = " + StarlarkLiteral.Serialize(view?.GraphBindingLabels ?? []) + ",\n        input_paths = " + StarlarkLiteral.Serialize(view?.Bindings(sources) ?? []) + ",\n        project_outputs = " + StarlarkLiteral.Serialize(runtimeOutputs) + ",\n        publish_outputs = " + StarlarkLiteral.Serialize(publishOutputs) + ",\n" + (view?.DefaultPackageLock is null ? "" : "        package_lock = " + StarlarkLiteral.Serialize(view.DefaultPackageLock) + ",\n") + "    )\n";
         // Validate both destinations before replacing either generated file.
         Verify(ContractName, contract, "{\n  \"GeneratedBy\": \"ProjectSync\",");
         Verify(BuildName, text, Header);

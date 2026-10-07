@@ -22,6 +22,11 @@ sync, raw MSBuild parity, edits, failures and cached/uncached workers.
 Web/Razor [graph controls](../tests/graph_build/web.py) cover compile/replay, Razor
 edits and assembly attributes; source-built Razor consumers are covered below.
 
+`bash scripts/bazel.sh test //tests/integration:source_globs --test_output=errors`
+passed on Linux ARM64 with both pins: method-body output changes, addition/removal/
+rename guards and resync followed by app/tests. Sync controls cover exclusions,
+hidden files, symlinks and framework-specific inputs. See [sync](api.md#sync).
+
 <a id="traversal-projects"></a>
 
 Traversal coordinators keep Restore state without emitting assemblies. Sync rejects

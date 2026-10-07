@@ -49,6 +49,64 @@ class GraphSyncTests(unittest.TestCase):
         (self.root / "App.csproj").write_text(self.project.replace("net10.0", "net9.0"))
         self.assertIn("stale", self.sync(flags=["--check"], success=False).lower())
 
+    def source_group(self):
+        directory = self.root / "LongDirectoryPrefix" / "Sources"
+        directory.mkdir(parents=True)
+        for i in range(40):
+            (directory / f"Source{i:02}.cs").write_text(f"public class Source{i:02} {{}}")
+        return directory
+
+    def test_globs_compact_prefixes_with_pinned_membership(self):
+        directory = self.source_group()
+        self.sync()
+        generated = (self.root / "graph.generated.bzl").read_text()
+        self.assertIn('"LongDirectoryPrefix/Sources/*.cs"', generated)
+        self.assertIn('"Source00.cs"', generated)
+        self.assertNotIn('"LongDirectoryPrefix/Sources/Source00.cs"', generated)
+        contract = json.loads((self.root / "graph.generated.json").read_text())
+        self.assertIn("LongDirectoryPrefix/Sources/Source00.cs", contract["Projects"]["App.csproj"]["Configurations"][0]["Inputs"])
+        self.sync(flags=["--check"])
+        (directory / "Source00.cs").rename(directory / "Renamed.cs")
+        self.assertIn("stale", self.sync(flags=["--check"], success=False).lower())
+        self.sync()
+
+    def test_glob_fallbacks_preserve_package_rejection(self):
+        self.sync()
+        self.assertNotIn("sync_source_globs", (self.root / "graph.generated.bzl").read_text())
+        directory = self.source_group()
+        project = self.root / "App.csproj"
+        project.write_text(self.project.replace('</Project>', '<ItemGroup><Compile Remove="LongDirectoryPrefix/Sources/Source00.cs" /></ItemGroup></Project>'))
+        self.sync()
+        self.assertNotIn("sync_source_globs", (self.root / "graph.generated.bzl").read_text())
+        project.write_text(self.project)
+        hidden = directory / ".Hidden.cs"
+        hidden.write_text("public class Hidden {}")
+        self.sync()
+        self.assertNotIn("sync_source_globs", (self.root / "graph.generated.bzl").read_text())
+        hidden.unlink()
+        for boundary in ["BUILD", "BUILD.bazel"]:
+            (directory.parent / boundary).write_text('exports_files([])')
+            self.assertIn("root Bazel package", self.sync(success=False))
+            (directory.parent / boundary).unlink()
+        original = directory / "Source00.cs"
+        original.rename(directory / "source.txt")
+        original.symlink_to("source.txt")
+        self.sync()
+        self.assertNotIn("sync_source_globs", (self.root / "graph.generated.bzl").read_text())
+
+    def test_globs_preserve_configuration_specific_input_sets(self):
+        directory = self.source_group()
+        (self.root / "App.csproj").write_text(self.project.replace('<TargetFramework>net10.0</TargetFramework>',
+            '<TargetFrameworks>net10.0;net10.0-windows</TargetFrameworks>').replace('</Project>',
+            '<ItemGroup Condition="&apos;$(TargetFramework)&apos; == &apos;net10.0&apos;"><Compile Remove="LongDirectoryPrefix/Sources/Source00.cs" /></ItemGroup></Project>'))
+        self.sync()
+        self.assertIn('"LongDirectoryPrefix/Sources/*.cs"', (self.root / "graph.generated.bzl").read_text())
+        variants = json.loads((self.root / "graph.generated.json").read_text())["Projects"]["App.csproj"]["Configurations"]
+        selected = {variant["Properties"].get("TargetFramework", ""): variant["Inputs"] for variant in variants}
+        source = "LongDirectoryPrefix/Sources/Source00.cs"
+        self.assertNotIn(source, selected["net10.0"])
+        self.assertIn(source, selected["net10.0-windows"])
+
     def test_removed_backend_mappings_fail(self):
         for field in ["packages", "tests"]:
             with self.subTest(field=field):
