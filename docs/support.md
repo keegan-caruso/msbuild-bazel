@@ -175,7 +175,15 @@ Stopped-producer HTTP recovery in a fresh relocated Linux ARM64 container had
 with fresh Restore and both Bazel action caches disabled. The runner digest
 matched; all 543 evaluations were fresh. This does not repeat the native suites.
 
-Next: narrow unused transitive compiler inputs for API edits and expand unchanged
+Complete compiler inventories are opt-in through public sync. Native
+`//tests/integration:compiler_inputs` passed on both Bazel pins: a grandchild API
+edit rebuilds its parent while the unselected consumer stays cached; selecting the
+grandchild rebuilds that consumer too. Tool dependencies remain conservative,
+missing/unused inventories fail before snapshot publication, and replayed DLL/PDB
+bytes match fresh builds. The existing implementation-reference and package-copy
+controls, owned .NET/style, 14 sync controls and scaffold checks also passed.
+
+Next: qualify complete inventories on runtime API edits and expand unchanged
 upstream test slices.
 
 This is not whole-repository runtime support. Linux x86-64, macOS persistent workers,

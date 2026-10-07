@@ -62,9 +62,14 @@ def normalize_reference_bindings(contract, previous, references):
             old = next(v for v in old_variants if v.get('Properties', {}) == configuration['properties'])
             assert variant['OutputDirectories'], ('Noncompilation binding', project)
             for field, name in [('ReferenceBoundary', 'referenceBoundary'), ('CompilerReference', 'compilerReference'),
-                                ('CompilerReferences', 'compilerReferences'), ('ImplementationDependencies', 'implementationDependencies')]:
+                                ('CompilerReferences', 'compilerReferences'), ('CompilerReferencesComplete', 'compilerReferencesComplete'), ('ImplementationDependencies', 'implementationDependencies')]:
+                if field == 'CompilerReferencesComplete' and field not in variant and name not in configuration['bindings']:
+                    continue
                 assert variant[field] == configuration['bindings'][name], ('Unexpected cache binding', project, field)
-                variant[field] = old.get(field)
+                if field in old:
+                    variant[field] = old[field]
+                else:
+                    variant.pop(field, None)
             assert configuration['bindings']['dependencyCopies'].items() <= variant['DependencyCopies'].items(), ('Missing selected copy', project)
             variant['DependencyCopies'] = old.get('DependencyCopies', {})
             selected += 1
@@ -80,7 +85,7 @@ def validate_raw_contract(contract, raw_results, allow_replay_omissions=False, e
     if reference_bindings:
         normalize_reference_bindings(candidate, previous, reference_bindings)
     if evaluation_reuse_inputs is not None:
-        assert contract['Version'] == 9 and previous['Version'] <= 9
+        assert contract['Version'] in [9, 10] and previous['Version'] <= 9
         assert previous.get('EvaluationReuseInputs') in [None, sorted(evaluation_reuse_inputs)], 'Unexpected raw evaluation exemption'
         assert contract['EvaluationReuseInputs'] == sorted(evaluation_reuse_inputs), 'Unexpected evaluation exemption'
     def semantics(value):

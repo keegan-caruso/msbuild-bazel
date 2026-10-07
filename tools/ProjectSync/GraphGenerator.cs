@@ -300,6 +300,7 @@ internal static class GraphGenerator
                 ImplementationDependencies = ImplementationDependencies(node),
                 CompilerReference = CompilerReference(node),
                 CompilerReferences = CompilerReferences(node),
+                CompilerReferencesComplete = mappings.ForProject(group.Key, node.ProjectInstance.GetPropertyValue("TargetFramework")).CompilerReferencesComplete,
                 DependencyCopies = CanUseReferenceBoundary(node) ? DependencyCopies(node) : new Dictionary<string, string>(),
                 OutputDirectories = !GraphProjectKind.HasAssembly(node.ProjectInstance) ? [] :
                     new[] { "OutputPath", "IntermediateOutputPath" }.Select(property =>
@@ -432,10 +433,18 @@ internal static class GraphGenerator
             contractData["Version"] = 9;
             contractData["EvaluationReuseInputs"] = JsonSerializer.SerializeToNode(reuseInputs.Order(StringComparer.Ordinal).ToArray());
         }
+        if (graph.ProjectNodes.Any(node => mappings.ForProject(Relative(node.ProjectInstance.FullPath), node.ProjectInstance.GetPropertyValue("TargetFramework")).CompilerReferencesComplete))
+        {
+            contractData["Version"] = 10;
+        }
         foreach (var project in contractData["Projects"]!.AsObject().Select(pair => pair.Value!))
         {
             foreach (var declaration in project["Configurations"]!.AsArray().Select(value => value!.AsObject()))
             {
+                if (!declaration["CompilerReferencesComplete"]!.GetValue<bool>())
+                {
+                    declaration.Remove("CompilerReferencesComplete");
+                }
                 if (declaration["ReplayOmissions"]!.AsArray().Count == 0)
                 {
                     declaration.Remove("ReplayOmissions");
@@ -534,7 +543,8 @@ internal static class GraphGenerator
         Dictionary<string, string> CompilerReferences(ProjectGraphNode node)
         {
             var binding = mappings.ForProject(Relative(node.ProjectInstance.FullPath), node.ProjectInstance.GetPropertyValue("TargetFramework"));
-            if (binding.CompilerReferences.Count != 0 && !CanUseReferenceBoundary(node))
+            if (binding.CompilerReferencesComplete && binding.ReferenceBoundary != true ||
+                (binding.CompilerReferences.Count != 0 || binding.CompilerReferencesComplete) && !CanUseReferenceBoundary(node))
             {
                 throw new InvalidDataException("Consumer compiler references require a reviewed reference boundary: " + Relative(node.ProjectInstance.FullPath));
             }

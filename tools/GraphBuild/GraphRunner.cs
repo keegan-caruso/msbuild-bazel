@@ -58,9 +58,9 @@ internal static class GraphRunner
         Environment.SetEnvironmentVariable("MSBuildSDKsPath", Path.Combine(sdk, "Sdks"));
         // Resolve package SDKs and key preparation against the same owned package root.
         Environment.SetEnvironmentVariable("NUGET_PACKAGES", Path.Combine(root, ".nuget"));
-        if (contract.EntryProperties?.Count > 0 && contract.Version is not (6 or 7 or 8 or 9))
+        if (contract.EntryProperties?.Count > 0 && contract.Version is not (6 or 7 or 8 or 9 or 10))
         {
-            throw new InvalidDataException("Entry properties require graph contract version 6, 7 or 8 or 9");
+            throw new InvalidDataException("Entry properties require graph contract version 6, 7, 8, 9 or 10");
         }
         RulesMSBuild.GraphEntryProperties.Validate(contract.Entries ?? [contract.Entry], contract.EntryProperties ?? [], (contract.ToolProperties ?? []).Keys);
         contract = GraphTools.Bind(contract, root, sdkRoot);
@@ -144,7 +144,9 @@ internal static class GraphRunner
                 });
             }
             using var manager = new BuildManager();
-            var result = manager.Build(parameters, new GraphBuildRequestData(inputs.Graph, [target]));
+            var flags = inputs.Graph.ProjectNodes.Any(node => inputs.For(node).CompilerReferencesComplete)
+                ? BuildRequestDataFlags.ProvideProjectStateAfterBuild : BuildRequestDataFlags.None;
+            var result = manager.Build(parameters, new GraphBuildRequestData(inputs.Graph, [target], null, flags));
             if (result.OverallResult != BuildResultCode.Success)
             {
                 Console.Error.WriteLine(result.Exception);

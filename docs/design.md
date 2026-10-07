@@ -57,12 +57,14 @@ writing Restore outputs or evaluating MSBuild, including when the copy is reused
 Keys include declared inputs, evaluated configuration, SDK/runner identity,
 output contracts and dependency roles. Dependencies are conservative by default.
 With reviewed reference boundaries, in `A → B → C`, a changed C reference assembly
-rebuilds B; A can reuse compilation if B's reference stays unchanged. Explicit copy
-contracts refresh runtime implementations.
+rebuilds B; A can reuse compilation if B's reference stays unchanged. A also rebuilds if its compiler directly reads C through SDK transitive
+references. Explicit copy contracts refresh runtime implementations.
 Compiler keys use the DLL selected by MSBuild: a reference assembly when available,
 or an implementation DLL when the SDK requires it. Selecting an implementation
 for Csc does not imply reading its transitive source inputs. Additional task/analyzer/tool
-reads retain conservative dependency keys.
+reads retain conservative dependency keys. A reviewed complete compiler inventory
+excludes unselected assemblies from invalidation without removing execution nodes.
+New snapshots verify the inventory against SDK-resolved compiler inputs.
 
 [API](api.md) covers configuration; [support](support.md) separates these contracts
 from platform qualification and filesystem hermeticity.

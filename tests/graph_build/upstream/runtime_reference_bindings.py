@@ -88,7 +88,7 @@ def bindings(contract, inventory):
                 assert producer_path not in overrides or overrides[producer_path] == path, ('Conflicting consumer selection', key, producer_path)
                 overrides[producer_path] = path
         actual_paths = {path for paths in actual.values() for path in paths}
-        assert actual_paths <= set(overrides.values()), ('Unbound SDK compiler inputs', key, actual_paths - set(overrides.values()))
+        assert actual_paths == set(overrides.values()), ('Incomplete/stale SDK compiler inputs', key, actual_paths ^ set(overrides.values()))
         compiler_inputs += len(actual_paths)
         implementations = set(variant.get('ImplementationDependencies', []))
         # SkipUseReferenceAssembly selects implementation bytes for Csc. It does
@@ -123,7 +123,7 @@ def bindings(contract, inventory):
                     copies[directory + '/' + PurePosixPath(source).name] = source
         reviewed[project].append(dict(properties=variant.get('Properties', {}), framework=row['values']['TargetFramework'],
                                       bindings=dict(referenceBoundary=True, compilerReference=selected[key],
-                                                    compilerReferences=overrides, implementationDependencies=sorted(implementations), dependencyCopies=copies)))
+                                                    compilerReferences=overrides, compilerReferencesComplete=True, implementationDependencies=sorted(implementations), dependencyCopies=copies)))
     advertised_contracts = sum(selected[key] != relative(row['values']['TargetPath']) for key, row in managed.items())
     assert advertised_contracts == 233
     assert implementation_compiler_edges == 13

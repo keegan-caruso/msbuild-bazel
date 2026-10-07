@@ -135,6 +135,7 @@ internal sealed class GraphCache(GraphInputs inputs, string cache, bool read, Re
             {
                 continue;
             }
+            inputs.VerifyCompilerReferences(node, build.ProjectStateAfterBuild);
             var files = new Dictionary<string, string>(StringComparer.Ordinal);
             var modes = new Dictionary<string, int>(StringComparer.Ordinal);
             var copies = new Dictionary<string, string>(StringComparer.Ordinal);
@@ -247,6 +248,18 @@ internal sealed class GraphCache(GraphInputs inputs, string cache, bool read, Re
         }
         // SDK compilation can see transitive reference assemblies. A grandchild
         // API change must invalidate those consumers even if its parent API stays put.
+        if (inputs.For(node).CompilerReferencesComplete)
+        {
+            foreach (var (producer, artifact) in (inputs.For(node).CompilerReferences ?? []).OrderBy(pair => pair.Key, StringComparer.Ordinal))
+            {
+                var declared = inputs.Files.Resolve(artifact);
+                if (!File.Exists(declared))
+                {
+                    throw new InvalidDataException("Missing declared consumer compiler reference: " + artifact);
+                }
+                records.Add("compiler-input:" + producer + ":" + artifact + ":" + OutputDigest(declared));
+            }
+        }
         IEnumerable<ProjectGraphNode> references = inputs.For(node).ReferenceBoundary &&
             !node.ProjectInstance.GetPropertyValue("DisableTransitiveProjectReferences").Equals("true", StringComparison.OrdinalIgnoreCase)
             ? DependencyNodes(node) : node.ProjectReferences;
@@ -273,6 +286,12 @@ internal sealed class GraphCache(GraphInputs inputs, string cache, bool read, Re
             }
             else
             {
+                // Complete reviewed inventories exclude unselected compiler edges.
+                // Task/tool/content edges above retain their conservative keys.
+                if (inputs.For(node).CompilerReferencesComplete)
+                {
+                    continue;
+                }
                 var project = reference.ProjectInstance;
                 var declaration = (inputs.For(node).CompilerReferences ?? []).GetValueOrDefault(inputs.Relative(reference)) ?? inputs.For(reference).CompilerReference;
                 if (declaration is not null)

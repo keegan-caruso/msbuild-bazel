@@ -19,9 +19,9 @@ internal sealed class EvaluationSession : IDisposable
 
     internal void Prepare(GraphContract contract, ContractFiles files, string sdkDigest, Dictionary<string, string> digests)
     {
-        if (contract.Version != 9 || contract.EvaluationReuseInputs is null)
+        if (contract.Version is not (9 or 10) || contract.EvaluationReuseInputs is null)
         {
-            throw new InvalidDataException("Evaluation reuse requires a version 9 reviewed compiler-only input inventory");
+            throw new InvalidDataException("Evaluation reuse requires a version 9 or 10 reviewed compiler-only input inventory");
         }
         var compilerOnly = contract.EvaluationReuseInputs.ToHashSet(StringComparer.Ordinal);
         if (compilerOnly.Count != contract.EvaluationReuseInputs.Length || compilerOnly.Any(path => !digests.ContainsKey(path) ||

@@ -111,6 +111,16 @@ class GraphSyncTests(unittest.TestCase):
         binding['referenceBoundary'] = False
         self.assertIn('reviewed reference boundary', self.sync(mapping, success=False))
 
+    def test_complete_compiler_inventory_requires_review(self):
+        binding = {'compilerReferencesComplete': True}
+        mapping = {'projects': {'App.csproj': binding}}
+        self.assertIn('reviewed reference boundary', self.sync(mapping, success=False))
+        binding['referenceBoundary'] = True
+        self.sync(mapping)
+        contract = json.loads((self.root / 'graph.generated.json').read_text())
+        self.assertEqual(contract['Version'], 10)
+        self.assertTrue(contract['Projects']['App.csproj']['Configurations'][0]['CompilerReferencesComplete'])
+
     def test_ambiguous_dependency_copies_require_explicit_selection(self):
         for name in ['First', 'Second']:
             directory = self.root / name
