@@ -4,6 +4,7 @@ import json
 import os
 from pathlib import Path
 import subprocess
+import shutil
 import tempfile
 import unittest
 
@@ -120,6 +121,92 @@ class GraphSyncTests(unittest.TestCase):
         contract = json.loads((self.root / 'graph.generated.json').read_text())
         self.assertEqual(contract['Version'], 10)
         self.assertTrue(contract['Projects']['App.csproj']['Configurations'][0]['CompilerReferencesComplete'])
+
+    def test_resolved_compiler_inputs_use_private_qualification_build(self):
+        library = self.root / 'Library'
+        library.mkdir()
+        (library / 'Library.csproj').write_text('<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup><TargetFramework>net10.0</TargetFramework></PropertyGroup></Project>')
+        (library / 'Code.cs').write_text('public class Library {}')
+        (self.root / 'App.csproj').write_text(self.project.replace('</Project>', '<ItemGroup><Compile Remove="Library/**/*.cs" /><ProjectReference Include="Library/Library.csproj" /></ItemGroup></Project>'))
+        (self.root / 'Program.cs').write_text('System.Console.WriteLine(new Library());')
+        self.assertIn('--package-build', self.sync(flags=['--resolve-references'], success=False))
+        flags = ['--package-build', '--resolve-references']
+        self.sync(flags=flags)
+        contract = json.loads((self.root / 'graph.generated.json').read_text())
+        self.assertEqual(contract['Version'], 10)
+        app = contract['Projects']['App.csproj']['Configurations'][0]
+        self.assertTrue(app['CompilerReferencesComplete'])
+        self.assertEqual(app['CompilerReferences'], {'Library/Library.csproj': 'Library/obj/Release/net10.0/ref/Library.dll'})
+        self.assertEqual(app['DependencyCopies']['bin/Release/net10.0/Library.dll'], 'Library/bin/Release/net10.0/Library.dll')
+        self.assertFalse((self.root / 'bin').exists())
+        self.assertFalse((library / 'obj').exists())
+        self.sync(flags=flags + ['--check'])
+        before = (self.root / 'graph.generated.json').read_bytes()
+        (library / 'Code.cs').write_text('invalid C#')
+        self.assertIn('qualification Build failed', self.sync(flags=flags, success=False))
+        self.assertEqual((self.root / 'graph.generated.json').read_bytes(), before)
+
+    def test_resolved_compiler_inputs_reject_conflicting_manual_selection(self):
+        library = self.root / 'Library'
+        library.mkdir()
+        (library / 'Library.csproj').write_text('<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup><TargetFramework>net10.0</TargetFramework></PropertyGroup></Project>')
+        (library / 'Code.cs').write_text('public class Library {}')
+        (self.root / 'App.csproj').write_text(self.project.replace('</Project>', '<ItemGroup><Compile Remove="Library/**/*.cs" /><ProjectReference Include="Library/Library.csproj" /></ItemGroup></Project>'))
+        (self.root / 'Program.cs').write_text('System.Console.WriteLine(new Library());')
+        mapping = {'projects': {'App.csproj': {'referenceBoundary': True, 'compilerReferences': {'Library/Library.csproj': 'Library/bin/Release/net10.0/Library.dll'}}}}
+        self.assertIn('differ from SDK selection', self.sync(mapping, flags=['--package-build', '--resolve-references'], success=False))
+
+    def test_resolved_compiler_inputs_select_multi_target_configuration(self):
+        library = self.root / 'Library'
+        library.mkdir()
+        (library / 'Library.csproj').write_text('<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup><TargetFrameworks>net10.0-windows;net10.0</TargetFrameworks></PropertyGroup></Project>')
+        (library / 'Code.cs').write_text('public class Library {}')
+        (self.root / 'App.csproj').write_text(self.project.replace('</Project>', '<ItemGroup><Compile Remove="Library/**/*.cs" /><ProjectReference Include="Library/Library.csproj" /></ItemGroup></Project>'))
+        (self.root / 'Program.cs').write_text('System.Console.WriteLine(new Library());')
+        self.sync(flags=['--package-build', '--resolve-references'])
+        contract = json.loads((self.root / 'graph.generated.json').read_text())
+        app = contract['Projects']['App.csproj']['Configurations'][0]
+        self.assertEqual(app['CompilerReferences'], {'Library/Library.csproj': 'Library/obj/Release/net10.0/ref/Library.dll'})
+        self.assertEqual(len(contract['Projects']['Library/Library.csproj']['Configurations']), 3)
+
+    def test_qualification_rejects_input_mutation_without_touching_sources(self):
+        project = self.project.replace('</Project>', '<Target Name="Mutate" BeforeTargets="CoreCompile"><WriteLinesToFile File="Program.cs" Lines="System.Console.WriteLine(2)%3B" Overwrite="true" /></Target></Project>')
+        (self.root / 'App.csproj').write_text(project)
+        mapping = {'projectDefaults': {'referenceBoundary': True, 'documents': {'App.csproj': {'sha256': hashlib.sha256(project.encode()).hexdigest(), 'targets': ['Mutate'], 'tasks': [], 'inputs': []}}}}
+        original = (self.root / 'Program.cs').read_bytes()
+        self.assertIn('modified a declared input', self.sync(mapping, flags=['--package-build', '--resolve-references'], success=False))
+        self.assertEqual((self.root / 'Program.cs').read_bytes(), original)
+        self.assertFalse((self.root / 'graph.generated.json').exists())
+
+    def test_qualification_rejects_outputs_outside_private_workspace(self):
+        outside = tempfile.TemporaryDirectory(prefix='graph-sync-output-')
+        self.addCleanup(outside.cleanup)
+        project = self.project.replace('</PropertyGroup>', '<OutputPath>' + outside.name + '/products/</OutputPath></PropertyGroup>')
+        (self.root / 'App.csproj').write_text(project)
+        self.sync(flags=['--package-build', '--resolve-references'], success=False)
+        self.assertFalse((Path(outside.name) / 'products').exists())
+        self.assertFalse((self.root / 'graph.generated.json').exists())
+
+    def test_compiler_file_must_be_declared_for_its_consumer(self):
+        hidden = tempfile.TemporaryDirectory(prefix='graph-sync-hidden-')
+        self.addCleanup(hidden.cleanup)
+        source = Path(hidden.name)
+        (source / 'empty').mkdir()
+        (source / 'Hidden.csproj').write_text('<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup><TargetFramework>net10.0</TargetFramework></PropertyGroup></Project>')
+        (source / 'Code.cs').write_text('public class Hidden {}')
+        built = subprocess.run([str(SDK / 'dotnet'), 'build', str(source / 'Hidden.csproj'), '-c', 'Release', '-p:UseSharedCompilation=false', '-p:NuGetAudit=false', '-p:RestoreSources=' + str(source / 'empty')], capture_output=True, text=True)
+        self.assertEqual(built.returncode, 0, built.stdout + built.stderr)
+        library = self.root / 'Library'
+        library.mkdir()
+        (library / 'Library.csproj').write_text('<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup><TargetFramework>net10.0</TargetFramework></PropertyGroup></Project>')
+        (library / 'Code.cs').write_text('public class Library {}')
+        shutil.copyfile(source / 'bin/Release/net10.0/Hidden.dll', library / 'Hidden.dll')
+        project = self.project.replace('</Project>', '<ItemGroup><Compile Remove="Library/**/*.cs" /><None Remove="Library/**" /><ProjectReference Include="Library/Library.csproj" /></ItemGroup><Target Name="InjectHidden" BeforeTargets="FindReferenceAssembliesForReferences"><ItemGroup><ReferencePath Include="Library/Hidden.dll"><Aliases>hidden</Aliases></ReferencePath></ItemGroup></Target></Project>')
+        (self.root / 'App.csproj').write_text(project)
+        mapping = {'projectDefaults': {'referenceBoundary': True}, 'projects': {'App.csproj': {'documents': {'App.csproj': {'sha256': hashlib.sha256(project.encode()).hexdigest(), 'targets': ['InjectHidden'], 'tasks': [], 'inputs': []}}}}}
+        self.assertIn('Undeclared resolved compiler input', self.sync(mapping, flags=['--package-build', '--resolve-references'], success=False))
+        mapping['projects']['App.csproj']['documents']['App.csproj']['inputs'] = ['Library/Hidden.dll']
+        self.sync(mapping, flags=['--package-build', '--resolve-references'])
 
     def test_ambiguous_dependency_copies_require_explicit_selection(self):
         for name in ['First', 'Second']:

@@ -820,3 +820,62 @@ test_suite(
         bazel_binaries.versions.all,
     ),
 )
+
+sh_binary(
+    name = "resolved_inputs_runner",
+    testonly = True,
+    srcs = ["resolved_inputs.sh"],
+    data = [
+        "common.sh",
+    ],
+)
+
+[
+    bazel_integration_tests(
+        name = name + "_cases",
+        additional_env_inherit = [
+            "BAZELISK_HOME",
+            "RULES_MSBUILD_TEST_REPOSITORY_CACHE",
+        ],
+        bazel_binaries = bazel_binaries,
+        bazel_versions = bazel_binaries.versions.all,
+        data = [":rules_archive"],
+        env = {
+            "RULES_ARCHIVE": "$(rootpath :rules_archive)",
+            "RESOLVE_REFERENCES": "1",
+        },
+        tags = [
+            "exclusive",
+            "manual",
+            "no-sandbox",
+        ],
+        target_compatible_with = [
+            "@platforms//os:linux",
+            "@platforms//cpu:aarch64",
+        ],
+        test_runner = runner,
+        workspace_files = glob(["fixtures/" + fixture + "/**"]),
+        workspace_path = "tests/integration/fixtures/" + fixture,
+    )
+    for name, runner, fixture in [
+        ("resolved_inputs", ":resolved_inputs_runner", "worker"),
+        ("resolved_package_copies", ":package_copies_runner", "worker"),
+        ("resolved_il_sdk", ":il_sdk_runner", "il_sdk"),
+    ]
+]
+
+[
+    test_suite(
+        name = name,
+        tags = ["manual"],
+        tests = integration_test_utils.bazel_integration_test_names(
+            name + "_cases",
+            bazel_binaries.versions.all,
+        ),
+    )
+    for name in [
+        "resolved_inputs",
+        "resolved_package_copies",
+        "resolved_il_sdk",
+    ]
+]

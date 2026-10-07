@@ -3,6 +3,14 @@ set -euo pipefail
 runner_dir="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 source "$runner_dir/common.sh"
 cp BUILD.bazel.in BUILD.bazel
+if [[ "${RESOLVE_REFERENCES:-0}" == 1 ]]; then
+    sed -i 's/package_build = True/package_build = True, resolve_references = True/' BUILD.bazel
+    python3 - <<'PYBOUNDARY'
+import json
+p='mappings.json';m=json.load(open(p));m['projectDefaults']['referenceBoundary']=True
+json.dump(m,open(p,'w'))
+PYBOUNDARY
+fi
 cp -R "$scratch/consumer" "$scratch/authored"
 bazel build @dotnet//:files @packages//:archives > "$TEST_TMPDIR/bootstrap.log" 2>&1 || { cat "$TEST_TMPDIR/bootstrap.log" >&2; exit 1; }
 execroot=$(bazel info execution_root)
@@ -82,6 +90,7 @@ if bazel run //:sync > "$TEST_TMPDIR/missing-tool.log" 2>&1; then echo 'Missing 
 assert_contains "$TEST_TMPDIR/missing-tool.log" 'runtime.linux-arm64.microsoft.netcore.ilasm'
 cp "$scratch/authored/packages.json" packages.json
 sed -i 's/projects = \["App\/App.csproj"\]/projects = ["Library\/Library.ilproj"]/' BUILD.bazel
+sed -i 's/, resolve_references = True//' BUILD.bazel
 bazel run //:sync > "$TEST_TMPDIR/il-root-sync.log" 2>&1 || { cat "$TEST_TMPDIR/il-root-sync.log" >&2; exit 1; }
 bazel build //:graph "${options[@]}" > "$TEST_TMPDIR/il-root-build.log" 2>&1 || { cat "$TEST_TMPDIR/il-root-build.log" >&2; exit 1; }
 python3 - <<'PYROOT'

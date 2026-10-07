@@ -33,9 +33,15 @@ msbuild_sync(name="sync",package_build=True,package_lock=":packages",projects=["
 p=Path('P1/P1.csproj')
 p.write_text(p.read_text().replace('</PropertyGroup>', '<CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies></PropertyGroup>').replace('Include="../P0/P0.csproj"','Include="../P0/P0.csproj" ReferenceOutputAssembly="false"').replace('</ItemGroup>','<PackageReference Include="Fixture.Copy" Version="1.0.0" /></ItemGroup>'))
 copies={f'{p}/bin/$(Configuration)/net10.0/P0.dll':'.nuget/fixture.copy/1.0.0/lib/net10.0/P0.dll' for p in ['P1','P2']}
-Path('copies.json').write_text(json.dumps({'projectDefaults':{'referenceBoundary':True,'preparedRestore':True},'projects':{p+'/'+p+'.csproj':{'dependencyCopies':{k:v for k,v in copies.items() if k.startswith(p+'/')}} for p in ['P1','P2']}}))
+bindings={p+'/'+p+'.csproj':{'dependencyCopies':{k:v for k,v in copies.items() if k.startswith(p+'/')}} for p in ['P1','P2']}
+if os.environ.get('RESOLVE_REFERENCES')=='1':
+    bindings={}
+    build=Path('BUILD.bazel')
+    build.write_text(build.read_text().replace('package_build=True,','package_build=True,resolve_references=True,'))
+Path('copies.json').write_text(json.dumps({'projectDefaults':{'referenceBoundary':True,'preparedRestore':True},'projects':bindings}))
 PY
 bazel run //:sync > "$TEST_TMPDIR/sync.log" 2>&1 || { cat "$TEST_TMPDIR/sync.log" >&2; exit 1; }
+if [[ "${RESOLVE_REFERENCES:-0}" != 1 ]]; then
 # A different version is outside the declared lock, even if the assembly name matches.
 cp copies.json copies.saved.json
 sed -i 's|fixture.copy/1.0.0/|fixture.copy/9.0.0/|g' copies.json
@@ -43,6 +49,7 @@ if bazel run //:sync > "$TEST_TMPDIR/unlocked.log" 2>&1; then echo 'Accepted unl
 assert_contains "$TEST_TMPDIR/unlocked.log" 'prepared locked package'
 mv copies.saved.json copies.json
 bazel run //:sync > "$TEST_TMPDIR/sync-restored.log" 2>&1 || { cat "$TEST_TMPDIR/sync-restored.log" >&2; exit 1; }
+fi
 cat >> BUILD.bazel <<'BUILD'
 load(":graph.generated.bzl", "app_graph")
 load("@rules_msbuild//msbuild:defs.bzl", "msbuild_graph_binary")
@@ -84,6 +91,10 @@ bazel clean > "$TEST_TMPDIR/clean.log" 2>&1
 run fresh 8
 products > "$TEST_TMPDIR/fresh.sha256"
 cmp "$TEST_TMPDIR/replay.sha256" "$TEST_TMPDIR/fresh.sha256"
+if [[ "${RESOLVE_REFERENCES:-0}" == 1 ]]; then
+    echo 'PASS: generic sync selects locked package bytes despite producer basename collisions; replay matches fresh bytes and modes'
+    exit 0
+fi
 sed -i 's|lib/net10.0/P0.dll|tools/wrong/P0.dll|g' copies.json
 bazel run //:sync > "$TEST_TMPDIR/mismatch-sync.log" 2>&1 || { cat "$TEST_TMPDIR/mismatch-sync.log" >&2; exit 1; }
 if bazel run //:app "${options[@]}" > "$TEST_TMPDIR/mismatch.log" 2>&1; then echo 'Accepted mismatched package bytes' >&2; exit 1; fi

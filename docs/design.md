@@ -65,6 +65,9 @@ for Csc does not imply reading its transitive source inputs. Additional task/ana
 reads retain conservative dependency keys. A reviewed complete compiler inventory
 excludes unselected assemblies from invalidation without removing execution nodes.
 New snapshots verify the inventory against SDK-resolved compiler inputs.
+Opt-in sync qualification runs a private Build once and records those selections
+and dependency-copy paths. Normal builds use that explicit contract. Qualification
+does not infer hidden task reads or approve custom target dependency roles.
 
 [API](api.md) covers configuration; [support](support.md) separates these contracts
 from platform qualification and filesystem hermeticity.
