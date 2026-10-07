@@ -3,6 +3,42 @@
 load("//msbuild/private:paths.bzl", _TOOLCHAIN = "TOOLCHAIN", _quote = "quote", _runfile = "runfile")
 load("//msbuild/private:providers.bzl", "MSBuildBindingInfo", "MSBuildPackageLockInfo")
 
+def _source_globs_impl(ctx):
+    actual = sorted([file.short_path for file in ctx.files.srcs])
+    if actual != sorted(ctx.attr.expected) or any([not file.is_source for file in ctx.files.srcs]):
+        expected = {path: True for path in ctx.attr.expected}
+        found = {path: True for path in actual}
+        fail("Source glob membership changed; rerun sync. Globs require source files. Missing: %s; added: %s" % (
+            sorted([path for path in expected if path not in found])[:10],
+            sorted([path for path in found if path not in expected])[:10],
+        ))
+    return [DefaultInfo(files = depset(ctx.files.srcs))]
+
+_source_globs = rule(
+    implementation = _source_globs_impl,
+    attrs = {
+        "srcs": attr.label_list(allow_files = [".cs"]),
+        "expected": attr.string_list(),
+    },
+)
+
+def sync_source_globs(name, globs):
+    """Check generated source globs during analysis, keeping sync runnable.
+
+    Args:
+        name: Generated source target name.
+        globs: Flat patterns mapped to the filenames recorded by ProjectSync.
+    """
+    if native.package_name():
+        fail("Generated source globs belong in the workspace root")
+    sources = []
+    expected = []
+    for pattern, names in globs.items():
+        directory = pattern.rsplit("/", 1)[0]
+        sources.extend(native.glob([pattern], allow_empty = True))
+        expected.extend([directory + "/" + filename for filename in names])
+    _source_globs(name = name, srcs = sources, expected = expected)
+
 def _sync_impl(ctx):
     if ctx.label.package:
         fail("msbuild_sync currently belongs in the workspace root BUILD file")
