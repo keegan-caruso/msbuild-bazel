@@ -1,250 +1,107 @@
 # Support and limits
 
-The graph workflow is the sole backend. Baselines: SDK 10.0.400, Bazel 8.8.0/9.2.0.
-Inputs, package inventories, generated products, tool layouts and output ownership
-must be declared. MSBuild retains SDK/project semantics; custom task reads require
-reviewed contracts. Sync does not trace arbitrary file access or acquire missing packages.
+The graph workflow is the sole backend. Pins: SDK **10.0.400**, Bazel
+**8.8.0 / 9.2.0**. Inputs, packages, tool layouts, generated files and output
+ownership must be explicit. Sync does not trace arbitrary task reads or acquire
+missing packages.
 
-Linux ARM64 controls passed small graph build/replay, dependency invalidation,
-output ownership, signing, package SDKs, tools, MTP/VSTest, generated packages and
-HTTP cache faults/recovery. Cached/uncached sandboxed workers passed Build/Publish
-parity and failure recovery on both Bazel baselines. Workers stage inputs privately
-and publish only owned products. Graph actions consume NuGet archives and extraction
-validation records, avoiding expanded package trees as redundant inputs.
+## Qualified SDKs
 
-Build/Restore tree handoff, producer edits, missing-input rejection and executable
-success-status controls passed all four worker cases. A test expecting 100 rejects
-zero. Owned .NET/style, scaffold and analysis checks passed. Commands:
-`bash scripts/bazel.sh test //tests/integration:quickstart
-//tests/integration:workers --test_output=errors --lockfile_mode=off`.
-See [CONTRIBUTING](../CONTRIBUTING.md) for contributor checks.
+These native suites passed on Linux ARM64 with both Bazel pins. They check public
+sync, raw MSBuild parity, edits, failures and cached/uncached workers.
 
-Main 8d83f0f now repeats 481-node compilation and local recovery: all 3,622
-compiled files matched raw bytes through no-op/body/API edits, with six/17 Csc
-calls per edit. The paired cold build also matched all 3,622 files. Independent
-HTTP recovery on a fresh relocated container reproduced all 10,780 files with
-481 hits / zero misses while the producer was stopped and Bazel action caches
-were disabled. Both containers passed 118,952 tests / 64 skips / zero
-failures, with matching normalized outcomes and source-product hash checks.
-Command: `python3 tests/graph_build/upstream/runtime_benchmark.py WORKSPACE RESULTS
---slice runtime-suites --qualified-raw-results RAW --output-base BASE --samples 3
---reseed-worker --diagnostics --trim-between-rows`. See [timings](performance.md). Recovery command: `python3
-tests/graph_build/upstream/runtime_remote.py WORKSPACE RESULTS --phase consumer
---slice runtime-suites --seed-evidence PRODUCER/seed.json --version 9.2.0
---diagnostics`.
+| SDK / project | Qualified behavior | Native suite (`//tests/integration:`) |
+| --- | --- | --- |
+| .NET | Managed graphs, Build/Publish, app/test layouts | `quickstart`, `workers` |
+| Traversal 4.1.82 | Nested coordinators, conditional/wildcard references, multi-target children, Pack/Publish | `traversal` |
+| NoTargets 3.7.0 | `.proj`/`.csproj` file producers, nested Traversal, explicit products and downstream invalidation | `notargets` |
+| Worker + Hosting 10.0.11 | Worker template, Build/Publish and bounded execution | `worker_sdk` |
+| IL 10.0.0-rtm.25509.106 | `.ilproj`, managed consumers, deterministic DLL/PDB, Build/Publish | `il_sdk` |
+| Arcade 10.0.0-beta.25509.106 | SDK composition, versioning, Build/Pack/Publish and generated packages | `arcade_sdk` |
 
-Normal Bazel HTTP Restore/build recovery is qualified for this runtime contract;
-forced graph execution also recovers all 481 projects. See
-[complete-cache controls and timings](performance.md#complete-remote-cache-recovery).
-Retained evaluation with 808 explicit replay omissions also passed independent
-HTTP recovery: body/API reuse all 543 evaluations; compiler failure resets them.
+Web/Razor [graph controls](../tests/graph_build/web.py) cover compile/replay, Razor
+edits and assembly attributes; source-built Razor consumers are covered below.
 
-NoTargets **3.7.0** public sync passed on Linux ARM64 / Bazel 8.8 and 9.2:
-`.proj` and `.csproj` roots, nested Traversal, prepared Restore, explicit text
-products, cached/uncached workers and downstream invalidation. Raw ordinary/graph
-DLL/PDB and product bytes matched; three project snapshots replayed. A text edit
-reused the library while regenerating producer/consumer products; a dependency
-body edit changed both copies. Missing SDKs/products, unreviewed targets and
-compiler-reference misuse failed. Command: `bash scripts/bazel.sh test
-//tests/integration:notargets`. This slice qualifies Build with explicit file
-products, not arbitrary task side effects or NoTargets Pack/Publish pipelines.
-Independent HTTP recovery on both pins had three hits / zero misses and matched
-all 30 compared output files/modes with the producer stopped and Bazel action
-caches disabled. Run `//tests/integration:notargets_remote_cases_bazel_8_8_0`
-(or `_bazel_.bazelversion` for the default), setting `NOTARGETS_CACHE_PHASE=producer`
-and `NOTARGETS_CACHE_URL`; stop that container, then use a fresh consumer with
-`NOTARGETS_CACHE_PHASE=consumer` and `NOTARGETS_CACHE_SEED` pointing to producer.json.
+<a id="traversal-projects"></a>
 
-Worker SDK public sync passed on Linux ARM64 / Bazel 8.8 and 9.2 with SDK
-10.0.400 and Hosting 10.0.11. `//tests/integration:worker_sdk` covers ordinary/graph
-MSBuild DLL/PDB parity, root/element SDK declarations, Build/Publish, configuration
-and body/API edits, bounded execution, failure recovery and the unchanged SDK
-Worker template. Package/content projects retain conservative dependency keys;
-the bounded fixture explicitly reviews its standard managed reference boundary.
-Both pins recovered 65 compared files/modes with two hits / zero misses in a
-fresh container while the producer was stopped and Bazel action caches disabled.
-Run `//tests/integration:worker_sdk_remote_cases_bazel_8_8_0` (or
-`_bazel_.bazelversion`), with `SDK_CACHE_PHASE`, `SDK_CACHE_URL` and consumer
-`SDK_CACHE_SEED` pointing to the matching producer.json. These are small correctness
-controls, not a large Worker-service or workload qualification.
+Traversal coordinators keep Restore state without emitting assemblies. Sync rejects
+dynamic skipping, per-reference target overrides and `TraversalPublishGlobalProperties`;
+use conditional references and explicit graph properties. NoTargets requires reviewed
+tasks and declared `outputFiles`; its fixture qualifies Build, not arbitrary side effects
+or Pack/Publish pipelines.
 
-IL SDK **10.0.0-rtm.25509.106** passed `.ilproj` roots and managed consumers on
-Linux ARM64 / both Bazel pins: `//tests/integration:il_sdk`. The closed inventory
-includes the SDK and matching ARM64 ILAsm/ILDasm packages; prepared Restore retains
-native executable modes. `IlasmFlags=-DET` gives matching raw ordinary/graph/Bazel
-DLL/PDB bytes. Build/Publish, body/API edits, missing-tool rejection and failed-build
-recovery pass. IL emits no reference assembly here, so its changes conservatively
-rebuild the consumer. Both pins independently recovered 24 compared files/modes
-with two hits / zero misses and fresh test execution. Use
-`//tests/integration:il_sdk_remote_cases_bazel_8_8_0` (or `_bazel_.bazelversion`)
-with the same `SDK_CACHE_*` protocol above. This does not qualify Windows IL
-resources, alternative native tool layouts or a runtime IL/JIT suite.
+IL requires locked native ILAsm/ILDasm packages; the fixture uses `IlasmFlags=-DET`.
+Without a reference assembly, consumers hash its implementation. Arcade requires
+its implicit packages and explicit version/repository inputs. Official/shipping builds
+need `OfficialBuildId`; cold Pack uses a packable root with
+`GeneratePackageOnBuild=false`. The fixture disables SourceLink/test-framework defaults;
+ambient Git, Helix and full native Arcade orchestration are unqualified.
 
-Arcade **10.0.0-beta.25509.106**, composed with `Microsoft.NET.Sdk`, passed on
-Linux ARM64 / both Bazel pins: `//tests/integration:arcade_sdk`. The inventory
-includes its matching implicit Xliff package. Ordinary/graph/Bazel assemblies,
-embedded symbols and Pack payloads match; official-version DLL/app-PDB bytes
-match raw graph MSBuild with a declared build ID. Build, library-root cold Pack,
-Publish, body/API/version edits, stale-product removal, failure recovery and a
-separate generated-package consumer pass. Official/shipping version modes without
-`OfficialBuildId` fail. Both pins recovered 33 compared files/modes with two hits /
-zero misses in an independent container while the producer was stopped, executing
-fresh tests with Bazel action caches disabled. Use
-`//tests/integration:arcade_sdk_remote_cases_bazel_8_8_0` (or `_bazel_.bazelversion`)
-with the `SDK_CACHE_*` protocol above. This fixture disables SourceLink/test-framework defaults;
-it does not qualify ambient Git reads, Helix, native orchestration or an entire
-Arcade repository. The native fixtures emit single-row diagnostic timings; they
-are correctness controls, not paired performance benchmarks.
+## Source toolchains and NativeAOT
 
-Earlier source-built NoTargets controls cover package-SDK resolution, missing SDK
-rejection and producer-edit invalidation: `python3
-tests/source_sdk/notargets_handoff.py INPUTS RESULTS --acquire` and
-`python3 tests/graph_build/package_sdks.py --prepared-restore`.
-Source-built SDK Pack, Razor rendering and framework-dependent Publish/run passed:
-`python3 tests/source_sdk/consumer_scenarios.py RESULTS --sdk-bundle BUNDLE`.
-The pinned previously produced component bundle supplies both the SDK archive and
-its StaticWebAssets package: the archive alone omits that SDK's targets/tasks.
-These controls were repeated after the publication/package-input changes. They
-qualify consumers; they do not rerun the full SDK producer.
+Linux ARM64 consumer controls passed with the **10.0.100 source-built SDK**:
+generated NuGet packages, NoTargets, Pack, Razor rendering and framework-dependent
+Publish/run. Complete layouts include required SDK components: the qualified Razor
+consumer adds StaticWebAssets from the produced component bundle.
+The [component producer](../tests/source_sdk/component_graph_prepare.py) and
+[pins](../tests/source_sdk/pin.json) are qualification tooling, not a general SDK
+source-build rule. [Quick start](../examples/quickstart/README.md#source-built-sdk)
+shows the public toolchain handoff. These consumers use Bazel 9.2.0.
 
-Graph NativeAOT Build/Publish/run, body-edit invalidation and missing-compiler
-rejection passed on Linux ARM64. Stopped-producer recovery in a separate container
-had **1 project hit / 0 misses**, reproduced the same ELF bytes and executed a
-fresh Bazel test with Bazel action caches disabled. Command: `python3
-tests/graph_build/native_aot.py INPUTS RESULTS --phase producer --cache URL
---acquire`; consumer uses `--phase consumer --seed-report PRODUCER/report.json`.
-This producer/recovery series was repeated after the publication/package-input
-changes on healthy independent filesystems, with the same ELF hashes.
-SDK 10.0.400, AOT packages 10.0.11 and 34 locked Ubuntu packages supply the tools;
-GNU linker scripts are relocated with the assembled package paths. This qualifies
-the downloaded AOT packs, not a source-built AOT compiler or Linux x86-64/RBE.
+Graph NativeAOT Build/Publish/run, body edits and missing-compiler rejection passed
+on Linux ARM64. Independent recovery had one project hit, zero compilations,
+identical ELF bytes and a fresh successful Bazel test. This qualifies downloaded
+AOT packs and declared native tools, not a source-built AOT compiler or RBE.
+Drivers: [SDK consumers](../tests/source_sdk/consumer_scenarios.py),
+[NativeAOT](../tests/graph_build/native_aot.py) (`--help` lists inputs/phases).
 
-Unchanged upstream `src/tests/JIT/CodeGenBringUpTests/Add1_ro.csproj` (#74)
-passed on Linux ARM64 / Bazel 9.2.0 at the pinned runtime revision. The authored
-external/test-dependency bootstrap, wrapper generator and private compiler remain
-explicit inputs. `test_dependencies` is a graph root because Add1 shares its
-assets; merely passing that assets file does not expand the required packages.
-Raw and graph DLL/PDB matched. Raw corerun returned 100 with the installed SDK
-absent; the generic Bazel adapter accepted 100 and rejected the intentional 101.
-A fresh body edit reused two of three projects. Missing reference/compiler inputs
-failed. Healthy stopped-producer HTTP recovery had **three hits / zero misses**,
-matching products/runtime bytes and a fresh test execution. Disposable RAR cache
-files are excluded, as in the runtime baseline. The disk-damaged consumer attempt
-is excluded. This is one unchanged test, not a CoreCLR/JIT suite qualification.
+## Runtime and cache evidence
 
-Commands: `python3 tests/graph_build/upstream/runtime_jit_raw.py SOURCE FEED REFS RAW`,
-then `python3 tests/graph_build/upstream/runtime_jit_prepare.py WORKSPACE RAW/workspace`
-and `python3 tests/graph_build/upstream/runtime_jit.py WORKSPACE RESULTS
---phase producer --output-base BASE --raw RAW/workspace`. The consumer uses a fresh
-workspace and `--output-base BASE --phase consumer --seed-report PRODUCER/seed.json`,
-and digest-locked source-runtime product artifacts. Recovery covers its three
-compilation projects, not another large-runtime build. Set the HTTP endpoint with
-`RULES_MSBUILD_PROJECT_CACHE_URL`. Keep producer and consumer containers separate.
+The managed runtime fixture covers **260 project paths / 543 configurations /
+481 compilations / 39 roots** on Linux ARM64 / Bazel 9.2.0. Earlier producer and
+independent consumer runs passed **118,952 tests, 64 skips, zero failures** with
+matching normalized outcomes. This is a selected graph, not the entire runtime repo.
 
-The runtime fixture also qualifies an explicit six-file compiler-only inventory
-across Pipelines, LINQ and text encoding. Broader body/API edits reuse all 543
-evaluations and match raw output bytes; see [the compiler
-inventories](performance.md#wider-evaluation-reuse).
+Complete compiler inventories match raw compiler sets: LINQ body/API edits compile
+**1 / 47** projects and match all **2,814 required DLL/PDB/resource files**. Generic
+sync captures all **2,970** qualified project compiler selections without hand-authored
+compiler/copy maps; its body/API and 481-hit local recovery checks preserve byte parity.
+Native suites `resolved_inputs`, `resolved_package_copies` and `resolved_il_sdk`
+passed both pins, including multi-target selection, implementation references,
+package basename collisions and transitive copy refresh. Twenty sync controls reject
+conflicting selections, undeclared consumer inputs, input mutation and unsafe outputs.
 
-An opt-in full-runtime contract now reviews all 481 managed configurations using
-raw MSBuild's compiler/copy selections. All 233 advertised authored contracts are
-bound explicitly; consumers retain framework selection and implementation reads.
-All 13 `SkipUseReferenceAssembly` edges bind the SDK-selected implementation DLL;
-they do not add transitive source dependencies to compiler keys.
-Runtime disables SDK-generated reference assemblies: where its SDK selects an
-implementation DLL, that DLL remains the compiler input and invalidation boundary.
-Public sync passed with unchanged input/property/tool/output contracts.
-Thirteen sync controls, owned .NET/style and scaffold checks passed; native
-`//tests/integration:snapshot_replay` passed on both Bazel pins, refreshing copies
-after a body edit with one compilation / two hits and fresh-build byte parity.
-Its mixed reference/implementation chain also invalidates the implementation
-consumer when that DLL changes, without propagating unchanged transitive bodies.
-Authored-contract and consumer-framework synthetic controls also passed body/API
-and fresh-byte parity. Native `//tests/integration:package_copies` passed on both
-pins: locked package DLLs with a graph producer's basename replay with SDK bytes
-and modes; unlocked sources and mismatched bytes fail. Three full-graph LINQ body
-pairs passed with 480 hits / one miss, matching all 2,814 required products. A
-separate profile confirmed exactly one Csc call in both graph and raw MSBuild.
-All 543 evaluations were reused and Restore remained cached. Three forced local
-recoveries had 481 hits / zero misses. Failed attempts are excluded.
-Pipelines body and encoding body/API controls also matched raw compiler counts
-and all required bytes. Partial inventories left 103 extra LINQ API compilations;
-complete inventories remove those unused compiler edges.
+Normal Bazel remote-cache recovery hits both Restore and graph actions on a fresh
+consumer. Forced project recovery with a stopped producer also passed: complete
+inventories yielded **481 hits / zero compilations**, with all **9,972 retained
+files** matching bytes/modes. Traversal, NoTargets, Worker, IL and Arcade fixtures
+passed independent HTTP recovery on both pins with Bazel action caches disabled.
+Missing blobs rebuild; corruption fails. Warm local builds alone do not prove recovery.
+See [performance and reproduction](performance.md).
 
-Complete compiler inventories are opt-in through public sync. Native
-`//tests/integration:compiler_inputs` passed on both Bazel pins: a grandchild API
-edit rebuilds its parent while the unselected consumer stays cached; selecting the
-grandchild rebuilds that consumer too. Tool dependencies remain conservative,
-missing/unused inventories fail before snapshot publication, and replayed DLL/PDB
-bytes match fresh builds. The existing implementation-reference and package-copy
-controls, owned .NET/style, 14 sync controls and scaffold checks also passed.
-Three paired full-runtime LINQ body/API edits matched all 2,814 required products,
-reused all 543 evaluations and reused Restore. Body/API misses were one/47;
-separate binlogs confirmed the same one/47 Csc project sets as raw MSBuild.
-The all-miss seed verified all 481 complete inventories before publication.
-Complete-inventory HTTP recovery also passed with the producer stopped: 481 hits,
-zero misses/Csc and all 9,972 owned bytes/modes matching in a fresh relocated
-consumer. It executed fresh Restore and graph actions with both Bazel action
-caches disabled; no compiled graph DLL/PDB payloads were transferred.
+One unchanged CoreCLR/JIT project,
+`src/tests/JIT/CodeGenBringUpTests/Add1_ro.csproj` (#74), passed raw/graph byte parity,
+body edits, source-built corerun execution and stopped-producer HTTP recovery
+(three hits, zero compilations). Its dependency bootstrap and wrapper/compiler are
+declared inputs; success exit code 100 is checked. This is one test, not a JIT suite.
+Drivers: [prepare](../tests/graph_build/upstream/runtime_jit_prepare.py),
+[qualify](../tests/graph_build/upstream/runtime_jit.py).
 
-Generic SDK selection capture is available through `msbuild_sync(...,
-package_build = True, resolve_references = True)`. Linux ARM64 controls passed
-`//tests/integration:resolved_inputs`, `:resolved_package_copies` and
-`:resolved_il_sdk` on both Bazel pins: reference/implementation edits, transitive
-copies, package-name collisions, IL-produced DLLs, fresh-byte parity and recovery.
-Twenty sync controls cover multi-target selection, private outputs, failed
-qualification, conflicting bindings, consumer input declarations and input mutation;
-owned .NET/style and scaffold checks passed. The 543-node runtime qualification
-captured all 2,970 previously reviewed project compiler selections across 481
-compilations without manual compiler/copy maps (`python3
-tests/graph_build/upstream/runtime_prepare.py SOURCE FEED WORKSPACE
---slice runtime-suites --prepared-restore --resolve-references`).
-A single cache-validation body/API pair had 480/434 hits
-and 1/47 compilations, matching all 2,814 required raw MSBuild product bytes.
-Forced local recovery matched those bytes with 481 hits and zero compilations.
-This extends correctness evidence, not the performance baseline. Qualification
-executes a full private Build during sync; it is opt-in and adds no work to
-ordinary incremental builds.
-Pack/Publish-specific selection changes and arbitrary task reads still need
-separate contracts.
+## Limits
 
-Next: expand unchanged upstream test slices.
+- Persistent workers require Bubblewrap and nested namespaces. Worker/remote evidence
+  is Linux ARM64; Linux x86-64, macOS workers and RBE are unqualified.
+- Unknown SDKs/workloads and whole-repository runtime/native build parity are unqualified.
+- Custom task/analyzer/generator reads, package side effects and output ownership
+  require contracts. Build compiler selections do not qualify Pack/Publish changes.
+- Evaluation reuse is opt-in for reviewed compiler-only inputs. Arbitrary process,
+  time or external reads cannot be safely retained. Verification still reads bytes.
+- Sandboxing and graph isolation are distinct. Build trusted projects; exports reject
+  links. HTTP publication has no atomic guarantee for divergent writers. Test sharding
+  is unsupported.
 
-This is not whole-repository runtime support. Linux x86-64, macOS persistent workers,
-RBE, arbitrary SDKs/workloads and full native build parity are unqualified.
-Linux workers require Bubblewrap and nested user/mount/PID namespaces; ordinary
-container defaults may block them. Project-graph isolation alone does not establish
-filesystem hermeticity. Build trusted targets; keep reports outside Git and summarize
-commands, outcomes and remaining limits when extending support.
-
-## Traversal projects
-
-`Microsoft.Build.Traversal` **4.1.82** is pinned in the native fixture:
-two coordinators, three compilations, SDK 10.0.400 / Linux ARM64, Bazel
-8.8.0 and 9.2.0. Coordinators inherit TargetPath without emitting assemblies; they keep their Restore assets
-and execute normally while descendants use project snapshots.
-
-`bash scripts/bazel.sh test //tests/integration:traversal` covers public sync,
-prepared Restore, sandboxed workers, nested/duplicate/wildcard/conditional
-references, property propagation and multi-target children. Ordinary and graph
-MSBuild match DLL/PDB bytes at stable paths. A body edit compiles one project
-(two hits); an API edit compiles three (zero hits), matching raw graph MSBuild.
-No-op executes no graph action; body/API edits reuse the Restore action.
-Pack payloads (nuspec/library files), exports and snapshot replay pass; Publish
-matches raw bytes and runs/tests the children with cached and uncached workers.
-Declare Pack files in mappings `outputFiles`; tests remain explicit Bazel targets.
-Independent HTTP recovery on both Bazel pins had three hits / zero misses with
-the producer stopped, matching all 52 compared output files and modes and
-executing a fresh Bazel test. Disposable RAR caches are excluded.
-For independent recovery, run the native
-`//tests/integration:traversal_remote_cases_bazel_8_8_0` test (or
-`//tests/integration:traversal_remote_cases_bazel_.bazelversion` for the default). Set
-`TRAVERSAL_CACHE_PHASE=producer` and `TRAVERSAL_CACHE_URL`; stop that container,
-then run in a fresh one with `TRAVERSAL_CACHE_PHASE=consumer` and
-`TRAVERSAL_CACHE_SEED` pointing to the matching producer.json. Keep reports outside Git.
-
-Sync rejects missing projects/SDKs, unsupported coordinators, dynamic skipping,
-per-reference target filters/overrides and TraversalPublishGlobalProperties.
-In the pinned SDK, Build=false skips a child in ordinary MSBuild but graph mode
-still builds it. Use conditional ProjectReference items and explicit graph
-properties instead. Arbitrary traversal SDKs/custom extensions are unqualified.
+Run suites with `bash scripts/bazel.sh test //tests/integration:SUITE
+--test_output=errors`. Use fresh fixture/report directories and separate producer/
+consumer containers for recovery. [Contributing](../CONTRIBUTING.md) covers tooling.
+Keep reports outside Git. Earlier commands, pins and qualification details remain
+in the [versioned record](https://github.com/keegan-caruso/msbuild-bazel/blob/fa2764b55f630ae0462e836aa3163b0807f07f7f/docs/support.md).

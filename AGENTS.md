@@ -46,4 +46,25 @@ manual and must not be started without an explicit request.
 
 ## Evidence and scope
 
-Keep experiments small and independently runnable. For behavioral changes, run the relevant experiment and document the command, observed result, and remaining limitations in docs/support.md or docs/performance.md. Clearly distinguish proposed behavior from measured results. Do not report a check as passing if tooling or network access prevented it.
+Keep experiments small and independently runnable. For behavioral changes, record
+the command, observed result and limits in docs/support.md or docs/performance.md.
+Distinguish proposals from measured behavior. Report blocked or unrun checks honestly.
+
+## Documentation
+
+- Write for readers using the project today. Use plain language, short sections and
+  high information density; replace stale content instead of appending progress logs.
+- Keep README.md to the project value, entry points and a scoped performance summary.
+  Keep design in docs/design.md, configuration in docs/api.md, qualification/limits
+  in docs/support.md and measurements/reproduction in docs/performance.md. Link
+  between them instead of repeating explanations or evidence.
+- Keep the quick start practical, with separate downloaded-SDK and source-built-SDK
+  scenarios. State prerequisites and producer/toolchain boundaries; label handoffs
+  that are not standalone recipes. Verify examples against the public API.
+- Summarize evidence with scope, pins, method, results and material limits. Separate
+  paired timings from profiles and correctness controls. Preserve necessary historical
+  detail through pinned revision links; keep raw reports outside Git.
+- Use tables for comparisons and code blocks for useful commands. Remove redundant
+  caveats, chronology and speculative detail; retain limits that affect user decisions.
+- For docs-only changes, check local links/anchors, snippet syntax and git diff --check.
+  Run builds only when needed to validate changed instructions; do not start CI.
