@@ -160,9 +160,65 @@ class GraphSyncTests(unittest.TestCase):
         self.assertIn("Compile-only", self.sync(mappings, success=False))
         original.unlink()
         original.write_text("public class Source00 {}")
-        for pattern in ["../*.cs", "LongDirectoryPrefix/**/*.cs", "obj/*.cs", "LongDirectoryPrefix/Source?.cs"]:
-            self.assertIn("flat", self.sync({"projectDefaults": {"compileGlobs": [pattern]}}, success=False))
+        for pattern in ["../*.cs", "LongDirectoryPrefix/**/Nested/*.cs", "obj/*.cs", "LongDirectoryPrefix/Source?.cs"]:
+            self.assertIn("workspace-relative", self.sync({"projectDefaults": {"compileGlobs": [pattern]}}, success=False))
         self.assertIn("distinct", self.sync({"projectDefaults": {"compileGlobs": ["*.cs", "*.cs"]}}, success=False))
+
+    def test_recursive_compile_globs_track_new_directories(self):
+        directory = self.source_group()
+        mappings = {"projectDefaults": {"preparedRestore": True, "evaluationReuseInputs": ["@(Compile)"],
+                                        "compileGlobs": ["LongDirectoryPrefix/**/*.cs"]}}
+        self.sync(mappings)
+        before = {name: (self.root / name).read_bytes() for name in ["graph.generated.bzl", "graph.generated.json"]}
+        nested = directory / "New" / "Deep"
+        nested.mkdir(parents=True)
+        (nested / "Added.cs").write_text("public class Added {}")
+        self.sync(mappings, flags=["--check"])
+        moved = directory.parent / "Moved"
+        moved.mkdir()
+        (nested / "Added.cs").rename(moved / "Renamed.cs")
+        self.sync(mappings, flags=["--check"])
+        (moved / "Renamed.cs").unlink()
+        moved.rmdir()
+        self.sync(mappings, flags=["--check"])
+        for name, content in before.items():
+            self.assertEqual((self.root / name).read_bytes(), content)
+        (nested / "BUILD.bazel").write_text('exports_files([])')
+        self.assertIn("Bazel package", self.sync(mappings, success=False))
+        (nested / "BUILD.bazel").unlink()
+        nested.rmdir()
+        nested.symlink_to(directory, target_is_directory=True)
+        self.assertIn("directory link", self.sync(mappings, success=False))
+
+    def test_root_recursive_glob_excludes_output_and_hidden_directories(self):
+        (self.root / "BUILD.bazel").write_text('exports_files([])')
+        (self.root / "App.csproj").write_text(self.project.replace('</Project>',
+            '<ItemGroup><Compile Remove="bazel-*/**/*.cs" /></ItemGroup></Project>'))
+        (self.root / "bazel-Named.cs").write_text("public class BazelNamed {}")
+        mappings = {"projectDefaults": {"compileGlobs": ["**/*.cs"]}}
+        self.sync(mappings)
+        (self.root / "bin").mkdir()
+        (self.root / "obj").mkdir()
+        (self.root / ".hidden").mkdir()
+        for directory in ["bin", "obj", ".hidden"]:
+            (self.root / directory / "Ignored.cs").write_text("#error Ignored")
+        (self.root / "bazel-output").symlink_to(self.root / "bin", target_is_directory=True)
+        self.sync(mappings, flags=["--check"])
+        # Arbitrary owned output roots are rejected, even before they exist.
+        (self.root / "App.csproj").write_text((self.root / "App.csproj").read_text().replace("</PropertyGroup>",
+            "<BaseIntermediateOutputPath>generated/</BaseIntermediateOutputPath></PropertyGroup>"))
+        self.assertIn("owned output", self.sync(mappings, success=False))
+
+    def test_recursive_globs_preserve_bazel_prefixed_source_files_in_private_views(self):
+        (self.root / "bazel-Named.cs").write_text("public class BazelNamed {}")
+        manifest = self.root / "inputs.json"
+        manifest.write_text(json.dumps({"inputs": [], "packages": [], "packageLock": None}))
+        mappings = {"projectDefaults": {"compileGlobs": ["**/*.cs"]}}
+        flags = ["--inputs", str(manifest), "--runfiles", str(self.root)]
+        self.sync(mappings, flags=flags)
+        self.sync(mappings, flags=flags + ["--check"])
+        self.sync(mappings, flags=flags + ["--package-build"])
+        self.sync(mappings, flags=flags + ["--package-build", "--check"])
 
     def test_compile_globs_remain_configuration_specific(self):
         self.source_group()

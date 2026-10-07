@@ -19,7 +19,7 @@ SDKs share a layout contract; compilation and execution toolchains are separate.
 
 Sync records project paths plus global properties, inputs and output ownership.
 Builds consume that contract and restore from declared packages. Definition,
-package, configuration or explicit source-list changes require sync. Reviewed flat
+package, configuration or explicit source-list changes require sync. Reviewed
 Compile globs expand Bazel-declared members per request; membership changes update
 project keys and reset evaluation without changing the prepared Restore contract.
 Custom task reads need reviewed declarations; evaluation does not trace arbitrary

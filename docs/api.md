@@ -21,15 +21,20 @@ normally. To allow additions/removals without sync, pass `mappings = "mappings.j
 to sync and review Compile-only patterns for every affected configuration:
 
 ```json
-{"projects":{"Library/Library.csproj":{"compileGlobs":["Library/Sources/*.cs"]}}}
+{"projects":{"Library/Library.csproj":{"compileGlobs":["Library/Sources/**/*.cs"]}}}
 ```
 
-Patterns are workspace-relative `directory/*.cs` or `*.cs`. Bazel declares current
+Patterns are workspace-relative `directory/*.cs` or `directory/**/*.cs` (also
+`*.cs` / `**/*.cs` at the root). Recursive patterns include new subdirectories and
+exclude `bin`, `obj`, `bazel-*` and hidden directories. Bazel declares current
 members; the graph contract records the pattern. Sync and builds verify Compile-only
 selection. Review that membership affects only compilation; Restore, imports and
 project references must stay independent. Hidden files,
-symlinks, generated/bound inputs, nested Bazel packages and recursive/excluded globs
-are unsupported. New directories or files outside these patterns still require sync.
+symlinks, generated/bound inputs, nested Bazel packages and custom exclusions
+are unsupported. Files outside these patterns still require sync; arbitrary owned
+output directories cannot fall inside a recursive pattern.
+Root projects need an authored `NuGet.Config`; also exclude `bazel-*/**/*.cs`
+from MSBuild's Compile items.
 
 | Attribute | Use |
 | --- | --- |
@@ -75,7 +80,7 @@ Unknown/duplicate fields, unsafe paths and changed document attestations fail.
 | `referenceBoundary`, `implementationDependencies` | Qualified compiler boundary; conservative task/tool edges |
 | `compilerReference`, `compilerReferences`, `compilerReferencesComplete` | Producer artifact, consumer selections and complete-inventory assertion |
 | `dependencyCopies` | Consumer DLL/PDB/XML destinations mapped to graph/locked-package sources |
-| `compileGlobs` | Reviewed flat C# source membership, per configured project |
+| `compileGlobs` | Reviewed C# source membership, per configured project |
 | `evaluationReuseInputs`, `replayOmissions` | Reviewed compiler-only inputs and disposable intermediates |
 
 Manual `compilerReferencesComplete: true` requires `referenceBoundary: true` and

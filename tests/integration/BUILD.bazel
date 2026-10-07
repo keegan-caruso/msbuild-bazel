@@ -103,6 +103,43 @@ test_suite(
 )
 
 bazel_integration_tests(
+    name = "recursive_sources_cases",
+    additional_env_inherit = [
+        "BAZELISK_HOME",
+        "RULES_MSBUILD_TEST_REPOSITORY_CACHE",
+        "DYNAMIC_SOURCE_CACHE_URL",
+    ],
+    bazel_binaries = bazel_binaries,
+    bazel_versions = bazel_binaries.versions.all,
+    data = [":rules_archive"],
+    env = {
+        "RULES_ARCHIVE": "$(rootpath :rules_archive)",
+        "DYNAMIC_SOURCE_RECURSIVE": "1",
+    },
+    tags = [
+        "exclusive",
+        "manual",
+        "no-sandbox",
+    ],
+    target_compatible_with = [
+        "@platforms//os:linux",
+        "@platforms//cpu:aarch64",
+    ],
+    test_runner = ":dynamic_sources_runner",
+    workspace_files = ["//:quickstart_sources"],
+    workspace_path = "examples/quickstart",
+)
+
+test_suite(
+    name = "recursive_sources",
+    tags = ["manual"],
+    tests = integration_test_utils.bazel_integration_test_names(
+        "recursive_sources_cases",
+        bazel_binaries.versions.all,
+    ),
+)
+
+bazel_integration_tests(
     name = "quickstart_cases",
     additional_env_inherit = [
         "BAZELISK_HOME",

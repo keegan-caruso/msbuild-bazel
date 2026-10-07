@@ -44,18 +44,30 @@ def sync_source_globs(name, globs, compile_globs = []):
         directory = pattern.rsplit("/", 1)[0]
         sources.extend(native.glob([pattern], allow_empty = True))
         expected.extend([directory + "/" + filename for filename in names])
-    ancestors = {}
+    package_patterns = {}
+    directories = {}
     for pattern in compile_globs:
-        parts = pattern.split("/")[:-1]
+        recursive = pattern.endswith("**/*.cs")
+        parts = pattern.split("/")[:(-2 if recursive else -1)]
+        directory = "/".join(parts)
+        directories[pattern] = directory
         for depth in range(1, len(parts) + 1):
-            ancestors["/".join(parts[:depth])] = True
-    packages = native.subpackages(include = ancestors.keys(), allow_empty = True) if ancestors else []
-    crossings = [pattern for pattern in compile_globs if any([pattern.startswith(package + "/") for package in packages])]
+            package_patterns["/".join(parts[:depth])] = True
+        if recursive:
+            package_patterns[(directory + "/" if directory else "") + "**"] = True
+    exclusions = ["**/bin/**", "**/obj/**", "**/bazel-*/**", "**/.*", "**/.*/**"]
+    source_exclusions = ["**/bin/**/*.cs", "**/obj/**/*.cs", "**/bazel-*/**/*.cs", "**/.*/**/*.cs", "**/.*"]
+    packages = native.subpackages(include = package_patterns.keys(), exclude = exclusions, allow_empty = True) if package_patterns else []
+    crossings = [pattern for pattern in compile_globs if any([
+        directories[pattern] == package or directories[pattern].startswith(package + "/") or
+        (pattern.endswith("**/*.cs") and (not directories[pattern] or package.startswith(directories[pattern] + "/")))
+        for package in packages
+    ])]
     _source_globs(
         name = name,
         srcs = sources,
         expected = expected,
-        compile_srcs = native.glob(compile_globs, allow_empty = True) if compile_globs else [],
+        compile_srcs = native.glob(compile_globs, exclude = source_exclusions, allow_empty = True) if compile_globs else [],
         package_crossings = crossings,
     )
 
