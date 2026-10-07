@@ -3,7 +3,7 @@ set -euo pipefail
 source "$(dirname -- "${BASH_SOURCE[0]}")/common.sh"
 token=$(python3 -c 'import uuid; print(uuid.uuid4().hex)')
 printf '<Project><PropertyGroup><QualificationNonce>%s</QualificationNonce></PropertyGroup></Project>\n' "$token" > Directory.Build.props
-sed -i 's#</Project>#<ItemGroup><Compile Remove="Sources/Excluded*.cs" /></ItemGroup></Project>#' Library/Library.csproj
+sed -i 's#</Project>#<ItemGroup><Compile Remove="Sources/**/Excluded*.cs" /></ItemGroup></Project>#' Library/Library.csproj
 mkdir -p Library/Sources
 cat > Library/Sources/Value.cs <<'CS'
 public static partial class SourceValue {
@@ -12,9 +12,20 @@ public static partial class SourceValue {
 }
 CS
 printf 'System.Console.WriteLine(SourceValue.Value());\n' > App/Program.cs
-cat > mappings.json <<'JSON'
-{"projectDefaults":{"preparedRestore":true,"evaluationReuseInputs":["@(Compile)"]},"projects":{"Library/Library.csproj":{"compileGlobs":["Library/Sources/*.cs"]}}}
-JSON
+pattern='Library/Sources/*.cs'
+added=Library/Sources/Added.cs
+renamed=Library/Sources/Renamed.cs
+if [[ "${DYNAMIC_SOURCE_RECURSIVE:-0}" == 1 ]]; then
+    pattern='Library/Sources/**/*.cs'
+    added=Library/Sources/New/Deep/Added.cs
+    renamed=Library/Sources/Moved/Deep/Renamed.cs
+    sed -i 's#</Project>#<ItemGroup><Compile Remove="Sources/**/bin/**/*.cs;Sources/**/obj/**/*.cs" /></ItemGroup></Project>#' Library/Library.csproj
+    for directory in bin obj .hidden; do
+        mkdir -p "Library/Sources/Ignored/$directory/Deep"
+        printf '#error IgnoredTreeFailure\n' > "Library/Sources/Ignored/$directory/Deep/IgnoredTree.cs"
+    done
+fi
+printf '{"projectDefaults":{"preparedRestore":true,"evaluationReuseInputs":["@(Compile)"]},"projects":{"Library/Library.csproj":{"compileGlobs":["%s"]}}}\n' "$pattern" > mappings.json
 sed -i 's/name = "sync",/name = "sync", mappings = "mappings.json",/' BUILD.bazel
 bazel run //:sync
 sed -i 's/app_graph(name = "graph")/app_graph(name = "graph", linux_stable_paths = True, linux_worker = True, profile_build = True)/' BUILD.bazel
@@ -56,19 +67,24 @@ products() {
      find App/bin Library/bin Tests/bin -type f -print0 | sort -z | xargs -0 sha256sum)
 }
 run seed 1 0 3
+if [[ "${DYNAMIC_SOURCE_RECURSIVE:-0}" == 1 ]]; then
+    if grep -q 'IgnoredTree.cs' "$TEST_TMPDIR/seed.execution.json"; then exit 1; fi
+fi
 sha256sum "$restore" > "$TEST_TMPDIR/restore.sha256"
-cat > Library/Sources/Added.cs <<'CS'
+mkdir -p "$(dirname "$added")"
+cat > "$added" <<'CS'
 public static partial class SourceValue { static partial void Added(ref int value) { value = 2; } }
 CS
 run added 2 0 3
 unchanged_restore added
-sed -i 's/value = 2/value = 3/' Library/Sources/Added.cs
+sed -i 's/value = 2/value = 3/' "$added"
 run body 3 2 0
 unchanged_restore body
-mv Library/Sources/Added.cs Library/Sources/Renamed.cs
+mkdir -p "$(dirname "$renamed")"
+mv "$added" "$renamed"
 run renamed 3 0 3
 unchanged_restore renamed
-rm Library/Sources/Renamed.cs
+rm "$renamed"
 printf '\n// removed member\n' >> Library/Sources/Value.cs
 run removed 1 2 3
 unchanged_restore removed
@@ -120,10 +136,13 @@ PY
     scratch="${scratch%/fresh-cache-client}"
 fi
 # A new package boundary must not turn a live glob into an accepted empty set.
-printf 'exports_files([])\n' > Library/Sources/BUILD.bazel
+boundary=Library/Sources
+if [[ "${DYNAMIC_SOURCE_RECURSIVE:-0}" == 1 ]]; then boundary=Library/Sources/New/Empty/Package; fi
+mkdir -p "$boundary"
+printf 'exports_files([])\n' > "$boundary/BUILD.bazel"
 if bazel build //:graph "${options[@]}" > "$TEST_TMPDIR/package.log" 2>&1; then exit 1; fi
 assert_contains "$TEST_TMPDIR/package.log" 'Compile glob crosses a Bazel package'
-rm Library/Sources/BUILD.bazel
+rm "$boundary/BUILD.bazel"
 # A generated output cannot masquerade as a globbed authored source.
 printf 'public class Generated {}\n' > Library/Sources/Generated.cs
 cp BUILD.bazel "$TEST_TMPDIR/build.before-generated"
@@ -144,6 +163,9 @@ cat > Directory.Build.targets <<'XML'
   <WriteLinesToFile File="$(MSBuildProjectDirectory)/Sources/TaskCreated.cs" Lines="public class TaskCreated {}" Overwrite="true" />
 </Target></Project>
 XML
+if [[ "${DYNAMIC_SOURCE_RECURSIVE:-0}" == 1 ]]; then
+    sed -i 's#<WriteLinesToFile#<MakeDir Directories="$(MSBuildProjectDirectory)/Sources/TaskCreated/New" /><WriteLinesToFile#; s#Sources/TaskCreated.cs#Sources/TaskCreated/New/TaskCreated.cs#' Directory.Build.targets
+fi
 python3 - <<'PY'
 import hashlib,json
 from pathlib import Path
@@ -156,7 +178,7 @@ if bazel build //:graph "${options[@]}" > "$TEST_TMPDIR/mutation.log" 2>&1; then
 assert_contains "$TEST_TMPDIR/mutation.log" 'Build modified Compile glob membership'
 # The default fresh-action path also consumes dynamic patterns without preparation.
 rm Directory.Build.targets
-printf '{"projects":{"Library/Library.csproj":{"compileGlobs":["Library/Sources/*.cs"]}}}\n' > mappings.json
+printf '{"projects":{"Library/Library.csproj":{"compileGlobs":["%s"]}}}\n' "$pattern" > mappings.json
 printf 'public class NewValue { public static int Value() => 5; }\n' > Library/Sources/NewValue.cs
 printf 'System.Console.WriteLine(NewValue.Value());\n' > App/Program.cs
 bazel run //:sync "${options[@]}"
@@ -170,4 +192,32 @@ bazel run //:app "${options[@]}" --strategy=MSBuildGraph=linux-sandbox > "$TEST_
 [[ "$(tail -1 "$TEST_TMPDIR/default-removed.log")" == 6 ]]
 sha256sum -c "$TEST_TMPDIR/generated.sha256"
 bazel run //:sync "${options[@]}" -- --check
+if [[ "${DYNAMIC_SOURCE_RECURSIVE:-0}" == 1 ]]; then
+    # Root patterns ignore Bazel's own convenience symlinks and output trees.
+    rm -rf App Tests
+    printf '<configuration><packageSources><clear /></packageSources></configuration>\n' > NuGet.Config
+    cat > App.csproj <<'XML'
+<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup><TargetFramework>net10.0</TargetFramework><OutputType>Exe</OutputType></PropertyGroup>
+<ItemGroup><Compile Remove="**/bin/**/*.cs;**/obj/**/*.cs;bazel-*/**/*.cs" /></ItemGroup></Project>
+XML
+    printf 'public class RootValue { public static int Value() => 7; }\n' > Library/Sources/bazel-Value.cs
+    printf 'System.Console.WriteLine(RootValue.Value());\n' > Program.cs
+    printf '{"projects":{"App.csproj":{"compileGlobs":["**/*.cs"]}}}\n' > mappings.json
+    cat > BUILD.bazel <<'BUILD'
+load("@rules_msbuild//msbuild:sync.bzl", "msbuild_sync")
+msbuild_sync(name = "sync", projects = ["App.csproj"], mappings = "mappings.json")
+BUILD
+    bazel run //:sync "${options[@]}"
+    cat > BUILD.bazel <<'BUILD'
+load("@rules_msbuild//msbuild:defs.bzl", "msbuild_graph_binary")
+load("@rules_msbuild//msbuild:sync.bzl", "msbuild_sync")
+load(":graph.generated.bzl", "app_graph")
+msbuild_sync(name = "sync", projects = ["App.csproj"], mappings = "mappings.json")
+app_graph(name = "graph")
+msbuild_graph_binary(name = "app", graph = ":graph", project = "App.csproj")
+BUILD
+    bazel run //:app "${options[@]}" --strategy=MSBuildGraph=linux-sandbox > "$TEST_TMPDIR/root.log" 2>&1 || { cat "$TEST_TMPDIR/root.log" >&2; exit 1; }
+    [[ "$(tail -1 "$TEST_TMPDIR/root.log")" == 7 ]]
+    bazel run //:sync "${options[@]}" -- --check
+fi
 echo 'PASS: dynamic source additions/body edits/rename/removal/empty set, Restore reuse, evaluation reset, byte parity and failure recovery'

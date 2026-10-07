@@ -25,14 +25,11 @@ internal static class CompileGlobs
         {
             var directory = GraphSourcePattern.Directory(pattern);
             if (SourceGlobs.HasPackageOrLink(root, directory) ||
-                outputDirectories.Any(path => directory == path || directory.StartsWith(path + "/", StringComparison.Ordinal)))
+                outputDirectories.Any(path => GraphSourcePattern.OverlapsDirectory(pattern, path)))
             {
                 throw new InvalidDataException("Compile glob overlaps a package, link or owned output: " + pattern);
             }
-            var physical = Path.Combine(root, directory);
-            var members = Directory.Exists(physical) ? Directory.EnumerateFiles(physical)
-                .Where(path => path.EndsWith(".cs", StringComparison.Ordinal))
-                .Select(path => Path.GetRelativePath(root, path).Replace('\\', '/')).ToArray() : [];
+            var members = GraphSourcePattern.Members(root, pattern, checkPackages: true);
             if (members.Any(path => Path.GetFileName(path).StartsWith('.') ||
                     (File.GetAttributes(Path.Combine(root, path)) & FileAttributes.ReparsePoint) != 0) ||
                 !members.ToHashSet(StringComparer.Ordinal).SetEquals(compiler.Where(path => GraphSourcePattern.Matches(pattern, path))) ||

@@ -29,9 +29,8 @@ internal static class CompileGlobInputs
         var members = new Dictionary<string, string[]>(StringComparer.Ordinal);
         foreach (var pattern in patterns)
         {
-            var directory = GraphSourcePattern.Directory(pattern);
             if (reserved.Concat(outputs).Any(path => GraphSourcePattern.Matches(pattern, path)) ||
-                directories.Any(path => directory == path || directory.StartsWith(path + "/", StringComparison.Ordinal)))
+                directories.Any(path => GraphSourcePattern.OverlapsDirectory(pattern, path)))
             {
                 throw new InvalidDataException("Compile glob overlaps definitions, Restore or owned outputs: " + pattern);
             }
@@ -85,10 +84,11 @@ internal static class CompileGlobInputs
     private static string[] Members(string pattern, ContractFiles files)
     {
         var directory = GraphSourcePattern.Directory(pattern);
-        var physical = directory.Length == 0 ? files.Root : files.Resolve(directory);
-        return System.IO.Directory.Exists(physical) ? System.IO.Directory.EnumerateFiles(physical)
-            .Select(path => Path.GetRelativePath(files.Root, path).Replace('\\', '/'))
-            .Where(path => GraphSourcePattern.Matches(pattern, path)).Order(StringComparer.Ordinal).ToArray() : [];
+        if (directory.Length != 0)
+        {
+            files.Resolve(directory);
+        }
+        return GraphSourcePattern.Members(files.Root, pattern);
     }
 
     internal static void Validate(ProjectInstance instance, ProjectContract contract, ContractFiles files)

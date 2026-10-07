@@ -27,9 +27,11 @@ passed on Linux ARM64 with both pins: method-body output changes, addition/remov
 rename guards and resync followed by app/tests. Sync controls cover exclusions,
 hidden files, symlinks and framework-specific inputs. See [sync](api.md#sync).
 
-`//tests/integration:dynamic_sources` passed both pins: flat Compile globs accept
-add/remove/rename/empty sets without sync or another Restore action, with fresh
-sandbox output parity. Body edits reuse three evaluations with one project miss/two
+`//tests/integration:dynamic_sources` and `:recursive_sources` passed both pins:
+flat/recursive Compile globs accept add/remove/rename/empty sets without sync or
+another Restore action, with fresh sandbox output parity. Recursive globs cover new
+subdirectories. Root patterns and ordinary `bazel-*` filenames inside source
+directories also passed. Body edits reuse three evaluations with one project miss/two
 hits; membership resets evaluation and retains conservative consumer keys. Guards
 reject excluded/generated/package-crossing members, stale definitions and task-created
 membership. Default unprepared actions also passed. With

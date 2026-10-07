@@ -67,7 +67,7 @@ internal sealed class GraphEvaluationWorkspace : IDisposable
         foreach (var path in Directory.EnumerateFileSystemEntries(source))
         {
             var name = Path.GetFileName(path);
-            if (name is ".git" or ".tools" or ".cache" or ".nuget" or ".package-source" or ".cli" or "bin" or "obj" || name.StartsWith("bazel-", StringComparison.Ordinal))
+            if (name is ".git" or ".tools" or ".cache" or ".nuget" or ".package-source" or ".cli" or "bin" or "obj" || name.StartsWith("bazel-", StringComparison.Ordinal) && Directory.Exists(path))
             {
                 continue;
             }

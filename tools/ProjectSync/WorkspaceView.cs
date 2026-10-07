@@ -225,7 +225,7 @@ internal sealed class WorkspaceView : IDisposable
         foreach (var entry in Directory.EnumerateFileSystemEntries(source))
         {
             var name = Path.GetFileName(entry);
-            if (name is ".git" or ".tools" or ".cache" or ".nuget" or "bin" or "obj" || name.StartsWith("bazel-", StringComparison.Ordinal) || name.Equals("NuGet.Config", StringComparison.OrdinalIgnoreCase))
+            if (name is ".git" or ".tools" or ".cache" or ".nuget" or "bin" or "obj" || name.StartsWith("bazel-", StringComparison.Ordinal) && Directory.Exists(entry) || name.Equals("NuGet.Config", StringComparison.OrdinalIgnoreCase))
             {
                 continue;
             }
