@@ -19,8 +19,11 @@ SDKs share a layout contract; compilation and execution toolchains are separate.
 
 Sync records project paths plus global properties, inputs and output ownership.
 Builds consume that contract and restore from declared packages. Definition,
-source-list, package or configuration changes require sync. Custom task reads
-need reviewed declarations; evaluation does not trace arbitrary file access.
+package, configuration or explicit source-list changes require sync. Reviewed flat
+Compile globs expand Bazel-declared members per request; membership changes update
+project keys and reset evaluation without changing the prepared Restore contract.
+Custom task reads need reviewed declarations; evaluation does not trace arbitrary
+file access.
 
 Bazel can recover a whole unchanged Restore/build action. When the graph action
 changes, the MSBuild plugin can recover individual projects from worker snapshots

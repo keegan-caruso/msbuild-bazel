@@ -4,6 +4,8 @@ load("//msbuild/private:paths.bzl", _TOOLCHAIN = "TOOLCHAIN", _quote = "quote", 
 load("//msbuild/private:providers.bzl", "MSBuildBindingInfo", "MSBuildPackageLockInfo")
 
 def _source_globs_impl(ctx):
+    if ctx.attr.package_crossings:
+        fail("Compile glob crosses a Bazel package; rerun sync: %s" % ctx.attr.package_crossings)
     actual = sorted([file.short_path for file in ctx.files.srcs])
     if actual != sorted(ctx.attr.expected) or any([not file.is_source for file in ctx.files.srcs]):
         expected = {path: True for path in ctx.attr.expected}
@@ -12,22 +14,27 @@ def _source_globs_impl(ctx):
             sorted([path for path in expected if path not in found])[:10],
             sorted([path for path in found if path not in expected])[:10],
         ))
-    return [DefaultInfo(files = depset(ctx.files.srcs))]
+    if any([not file.is_source for file in ctx.files.compile_srcs]):
+        fail("Compile globs require authored source files")
+    return [DefaultInfo(files = depset(ctx.files.srcs + ctx.files.compile_srcs))]
 
 _source_globs = rule(
     implementation = _source_globs_impl,
     attrs = {
         "srcs": attr.label_list(allow_files = [".cs"]),
+        "compile_srcs": attr.label_list(allow_files = [".cs"]),
+        "package_crossings": attr.string_list(),
         "expected": attr.string_list(),
     },
 )
 
-def sync_source_globs(name, globs):
+def sync_source_globs(name, globs, compile_globs = []):
     """Check generated source globs during analysis, keeping sync runnable.
 
     Args:
         name: Generated source target name.
         globs: Flat patterns mapped to the filenames recorded by ProjectSync.
+        compile_globs: Reviewed Compile-only patterns with dynamic membership.
     """
     if native.package_name():
         fail("Generated source globs belong in the workspace root")
@@ -37,7 +44,20 @@ def sync_source_globs(name, globs):
         directory = pattern.rsplit("/", 1)[0]
         sources.extend(native.glob([pattern], allow_empty = True))
         expected.extend([directory + "/" + filename for filename in names])
-    _source_globs(name = name, srcs = sources, expected = expected)
+    ancestors = {}
+    for pattern in compile_globs:
+        parts = pattern.split("/")[:-1]
+        for depth in range(1, len(parts) + 1):
+            ancestors["/".join(parts[:depth])] = True
+    packages = native.subpackages(include = ancestors.keys(), allow_empty = True) if ancestors else []
+    crossings = [pattern for pattern in compile_globs if any([pattern.startswith(package + "/") for package in packages])]
+    _source_globs(
+        name = name,
+        srcs = sources,
+        expected = expected,
+        compile_srcs = native.glob(compile_globs, allow_empty = True) if compile_globs else [],
+        package_crossings = crossings,
+    )
 
 def _sync_impl(ctx):
     if ctx.label.package:

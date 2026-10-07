@@ -27,6 +27,17 @@ passed on Linux ARM64 with both pins: method-body output changes, addition/remov
 rename guards and resync followed by app/tests. Sync controls cover exclusions,
 hidden files, symlinks and framework-specific inputs. See [sync](api.md#sync).
 
+`//tests/integration:dynamic_sources` passed both pins: flat Compile globs accept
+add/remove/rename/empty sets without sync or another Restore action, with fresh
+sandbox output parity. Body edits reuse three evaluations with one project miss/two
+hits; membership resets evaluation and retains conservative consumer keys. Guards
+reject excluded/generated/package-crossing members, stale definitions and task-created
+membership. Default unprepared actions also passed. With
+`DYNAMIC_SOURCE_CACHE_URL=http://cache:8080`, both pins recovered Restore through
+Bazel and all three projects through HTTP in a fresh output base, with identical app
+outputs. Scope: a small managed fixture, one Linux ARM64 host; no large-graph or
+independent-machine qualification for dynamic membership.
+
 <a id="traversal-projects"></a>
 
 Traversal coordinators keep Restore state without emitting assemblies. Sync rejects
