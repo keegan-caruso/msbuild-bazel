@@ -50,12 +50,42 @@ def replay_omissions(contract):
     return paths
 
 
-def validate_raw_contract(contract, raw_results, allow_replay_omissions=False, evaluation_reuse_inputs=None):
+def normalize_reference_bindings(contract, previous, references):
+    """Permit the reviewed cache bindings while requiring unchanged raw build semantics."""
+    assert references['sdkVersion'] == contract['SdkVersion']
+    selected = 0
+    for project, configurations in references['projects'].items():
+        for configuration in configurations:
+            variants = contract['Projects'][project].get('Configurations') or [contract['Projects'][project]]
+            old_variants = previous['Projects'][project].get('Configurations') or [previous['Projects'][project]]
+            variant = next(v for v in variants if v.get('Properties', {}) == configuration['properties'])
+            old = next(v for v in old_variants if v.get('Properties', {}) == configuration['properties'])
+            assert variant['OutputDirectories'], ('Noncompilation binding', project)
+            for field, name in [('ReferenceBoundary', 'referenceBoundary'), ('CompilerReference', 'compilerReference'),
+                                ('CompilerReferences', 'compilerReferences'), ('CompilerReferencesComplete', 'compilerReferencesComplete'), ('ImplementationDependencies', 'implementationDependencies')]:
+                if field == 'CompilerReferencesComplete' and field not in variant and name not in configuration['bindings']:
+                    continue
+                assert variant[field] == configuration['bindings'][name], ('Unexpected cache binding', project, field)
+                if field in old:
+                    variant[field] = old[field]
+                else:
+                    variant.pop(field, None)
+            assert configuration['bindings']['dependencyCopies'].items() <= variant['DependencyCopies'].items(), ('Missing selected copy', project)
+            variant['DependencyCopies'] = old.get('DependencyCopies', {})
+            selected += 1
+    assert selected == references['compiledNodes'] == 481
+
+
+def validate_raw_contract(contract, raw_results, allow_replay_omissions=False, evaluation_reuse_inputs=None,
+                          reference_bindings=None):
     """Allow inventoried outputs and explicitly reviewed replay/evaluation controls."""
     previous = json.loads((raw_results / 'raw-workspace/graph.generated.json').read_text())
     inventory = json.loads((raw_results / 'binplace.json').read_text())
+    candidate = copy.deepcopy(contract)
+    if reference_bindings:
+        normalize_reference_bindings(candidate, previous, reference_bindings)
     if evaluation_reuse_inputs is not None:
-        assert contract['Version'] == 9 and previous['Version'] <= 9
+        assert contract['Version'] in [9, 10] and previous['Version'] <= 9
         assert previous.get('EvaluationReuseInputs') in [None, sorted(evaluation_reuse_inputs)], 'Unexpected raw evaluation exemption'
         assert contract['EvaluationReuseInputs'] == sorted(evaluation_reuse_inputs), 'Unexpected evaluation exemption'
     def semantics(value):
@@ -69,7 +99,7 @@ def validate_raw_contract(contract, raw_results, allow_replay_omissions=False, e
                 if allow_replay_omissions:
                     variant.pop('ReplayOmissions', None)
         return value
-    assert semantics(previous) == semantics(contract), 'Raw semantic contract differs'
+    assert semantics(previous) == semantics(candidate), 'Raw semantic contract differs'
     if allow_replay_omissions:
         assert not replay_omissions(previous), 'Raw control must retain the complete intermediates'
         assert replay_omissions(contract), 'No explicit candidate omissions'

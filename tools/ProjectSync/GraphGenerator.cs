@@ -300,6 +300,7 @@ internal static class GraphGenerator
                 ImplementationDependencies = ImplementationDependencies(node),
                 CompilerReference = CompilerReference(node),
                 CompilerReferences = CompilerReferences(node),
+                CompilerReferencesComplete = mappings.ForProject(group.Key, node.ProjectInstance.GetPropertyValue("TargetFramework")).CompilerReferencesComplete,
                 DependencyCopies = CanUseReferenceBoundary(node) ? DependencyCopies(node) : new Dictionary<string, string>(),
                 OutputDirectories = !GraphProjectKind.HasAssembly(node.ProjectInstance) ? [] :
                     new[] { "OutputPath", "IntermediateOutputPath" }.Select(property =>
@@ -432,10 +433,18 @@ internal static class GraphGenerator
             contractData["Version"] = 9;
             contractData["EvaluationReuseInputs"] = JsonSerializer.SerializeToNode(reuseInputs.Order(StringComparer.Ordinal).ToArray());
         }
+        if (graph.ProjectNodes.Any(node => mappings.ForProject(Relative(node.ProjectInstance.FullPath), node.ProjectInstance.GetPropertyValue("TargetFramework")).CompilerReferencesComplete))
+        {
+            contractData["Version"] = 10;
+        }
         foreach (var project in contractData["Projects"]!.AsObject().Select(pair => pair.Value!))
         {
             foreach (var declaration in project["Configurations"]!.AsArray().Select(value => value!.AsObject()))
             {
+                if (!declaration["CompilerReferencesComplete"]!.GetValue<bool>())
+                {
+                    declaration.Remove("CompilerReferencesComplete");
+                }
                 if (declaration["ReplayOmissions"]!.AsArray().Count == 0)
                 {
                     declaration.Remove("ReplayOmissions");
@@ -534,7 +543,8 @@ internal static class GraphGenerator
         Dictionary<string, string> CompilerReferences(ProjectGraphNode node)
         {
             var binding = mappings.ForProject(Relative(node.ProjectInstance.FullPath), node.ProjectInstance.GetPropertyValue("TargetFramework"));
-            if (binding.CompilerReferences.Count != 0 && !CanUseReferenceBoundary(node))
+            if (binding.CompilerReferencesComplete && binding.ReferenceBoundary != true ||
+                (binding.CompilerReferences.Count != 0 || binding.CompilerReferencesComplete) && !CanUseReferenceBoundary(node))
             {
                 throw new InvalidDataException("Consumer compiler references require a reviewed reference boundary: " + Relative(node.ProjectInstance.FullPath));
             }
@@ -570,6 +580,10 @@ internal static class GraphGenerator
                 return boundary;
             }
             var binding = mappings.ForProject(Relative(node.ProjectInstance.FullPath), node.ProjectInstance.GetPropertyValue("TargetFramework"));
+            if (binding.DependencyCopies.Count != 0 && binding.ReferenceBoundary != true)
+            {
+                throw new InvalidDataException("Explicit dependency copies require a reviewed reference boundary: " + Relative(node.ProjectInstance.FullPath));
+            }
             if (binding.ReferenceBoundary is not null)
             {
                 var supported = GraphProjectKind.HasAssembly(node.ProjectInstance) &&
@@ -664,6 +678,29 @@ internal static class GraphGenerator
             var output = Path.GetDirectoryName(Path.GetFullPath(project.GetPropertyValue("TargetPath"), directory))!;
             var publish = project.GetPropertyValue("PublishDir");
             var destinations = publish.Length == 0 ? new[] { output } : new[] { output, Path.GetFullPath(publish, directory) };
+            var binding = mappings.ForProject(Relative(project.FullPath), project.GetPropertyValue("TargetFramework"));
+            foreach (var (destination, source) in binding.DependencyCopies)
+            {
+                var target = WorkspaceView.Safe(project.ExpandString(destination).Replace('\\', '/'));
+                var producer = WorkspaceView.Safe(project.ExpandString(source).Replace('\\', '/'));
+                var extension = Path.GetExtension(producer);
+                var parts = producer.Split('/');
+                var package = packageBuild && binding.PreparedRestore && parts.Length >= 5 && parts[0] == ".nuget" &&
+                    packageIdentities.Contains(parts[1] + "/" + parts[2]) && File.Exists(Path.Combine(root, Path.ChangeExtension(producer, ".dll")));
+                var allowed = extension is ".dll" or ".pdb" or ".xml" &&
+                    (package || Dependencies(node).Where(dependency => GraphProjectKind.HasAssembly(dependency.ProjectInstance)).Any(dependency =>
+                    {
+                        var path = Path.GetFullPath(dependency.ProjectInstance.GetPropertyValue("TargetPath"), Path.GetDirectoryName(dependency.ProjectInstance.FullPath)!);
+                        return producer == Relative(Path.ChangeExtension(path, extension));
+                    }));
+                if (!allowed || !destinations.Any(path => target == Relative(Path.Combine(path, Path.GetFileName(producer)))) ||
+                    target == Relative(Path.ChangeExtension(Path.GetFullPath(project.GetPropertyValue("TargetPath"), directory), extension)))
+                {
+                    throw new InvalidDataException("Explicit dependency copy must bind a managed dependency product or prepared locked package to its consumer output: " + target + " <- " + producer);
+                }
+                copies.Add(target, producer);
+            }
+            var explicitTargets = copies.Keys.ToHashSet(StringComparer.Ordinal);
             foreach (var dependency in RuntimeDependencies(node).Where(current => GraphProjectKind.HasAssembly(current.ProjectInstance))
                 .OrderBy(current => Key(current.ProjectInstance), StringComparer.Ordinal))
             {
@@ -674,9 +711,13 @@ internal static class GraphGenerator
                     foreach (var destination in destinations)
                     {
                         var target = Relative(Path.Combine(destination, Path.GetFileName(producer)));
+                        if (explicitTargets.Contains(target))
+                        {
+                            continue;
+                        }
                         if (copies.TryGetValue(target, out var existing) && existing != producer)
                         {
-                            throw new InvalidDataException("Ambiguous graph dependency copy: " + target);
+                            throw new InvalidDataException("Ambiguous graph dependency copy: " + target + " <- " + existing + " or " + producer);
                         }
                         copies[target] = producer;
                     }

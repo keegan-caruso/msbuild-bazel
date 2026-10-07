@@ -53,7 +53,7 @@ internal sealed class GraphMappings
                 }
                 continue;
             }
-            if (property.Name is not ("documents" or "inputItems" or "evaluationItems" or "evaluationReuseInputs" or "outputFiles" or "replayOmissions" or "referenceBoundary" or "implementationDependencies" or "compilerReference" or "compilerReferences" or "preparedRestore" or "restoreInputs" or "restoreOutputs" or "inputDirectories" or "temporaryDirectories") && !(defaults && property.Name == "properties"))
+            if (property.Name is not ("documents" or "inputItems" or "evaluationItems" or "evaluationReuseInputs" or "outputFiles" or "replayOmissions" or "referenceBoundary" or "implementationDependencies" or "compilerReference" or "compilerReferences" or "compilerReferencesComplete" or "dependencyCopies" or "preparedRestore" or "restoreInputs" or "restoreOutputs" or "inputDirectories" or "temporaryDirectories") && !(defaults && property.Name == "properties"))
             {
                 throw new InvalidDataException("Graph mapping requires explicit contract transfer for: " + property.Name);
             }

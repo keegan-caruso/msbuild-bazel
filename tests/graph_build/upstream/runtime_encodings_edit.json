@@ -1,0 +1,13 @@
+{
+  "implementation": "src/libraries/System.Text.Encodings.Web/src/System/Text/Encodings/Web/TextEncoder.cs",
+  "reference": "src/libraries/System.Text.Encodings.Web/ref/System.Text.Encodings.Web.cs",
+  "implDll": "artifacts/bin/System.Text.Encodings.Web/Release/net10.0/System.Text.Encodings.Web.dll",
+  "refDll": "artifacts/bin/System.Text.Encodings.Web/ref/Release/net10.0/System.Text.Encodings.Web.dll",
+  "bodyAnchor": "int indexOfFirstCharToEncode = FindFirstCharacterToEncode(value.AsSpan());",
+  "implementationAnchor": "public abstract class TextEncoder\n    {",
+  "referenceAnchor": "public abstract partial class TextEncoder\n    {",
+  "expectedMisses": {
+    "body": 9,
+    "api": 20
+  }
+}

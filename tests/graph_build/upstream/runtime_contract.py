@@ -15,7 +15,9 @@ def main():
     parser.add_argument('output', type=Path)
     parser.add_argument('--platform', choices=['osx-arm64', 'linux-arm64'], default='osx-arm64')
     parser.add_argument('--prepared-restore', action='store_true', help='declare the reviewed managed graph Restore contract')
+    parser.add_argument('--reference-bindings', type=Path, help='reviewed full raw Build compiler/copy selection inventory')
     args = parser.parse_args()
+    assert not args.reference_bindings or args.platform == 'linux-arm64'
     directory = Path(__file__).resolve().parent
     mapping = json.loads((directory / 'runtime.json').read_text())
     if args.platform == 'linux-arm64':
@@ -199,6 +201,17 @@ def main():
             variant['documents'][project] = {
                 'sha256': 'ba17878f95c3c8059ec58ad2b8fbd84e0e34e4af3fedccd1df49211fc0353d3c',
                 'targets': [], 'tasks': [], 'inputs': []}
+    if args.reference_bindings:
+        references = json.loads(args.reference_bindings.read_text())
+        assert references['sdkVersion'] == '10.0.400' and references['compiledNodes'] == 481 and references['configuredNodes'] == 543
+        for project, configurations in references['projects'].items():
+            binding = mapping['projects'].setdefault(project, copy.deepcopy(mapping['projectDefaults']))
+            binding.pop('properties', None)
+            for configuration in configurations:
+                framework = configuration['framework']
+                configured = binding.setdefault('frameworkOverrides', {}).setdefault(framework,
+                    copy.deepcopy({k: v for k, v in binding.items() if k != 'frameworkOverrides'}))
+                configured.update(configuration['bindings'])
     args.output.write_text(json.dumps(mapping, indent=2) + '\n')
 
 

@@ -36,6 +36,8 @@ tests/graph_build/upstream/runtime_remote.py WORKSPACE RESULTS --phase consumer
 Normal Bazel HTTP Restore/build recovery is qualified for this runtime contract;
 forced graph execution also recovers all 481 projects. See
 [complete-cache controls and timings](performance.md#complete-remote-cache-recovery).
+Retained evaluation with 808 explicit replay omissions also passed independent
+HTTP recovery: body/API reuse all 543 evaluations; compiler failure resets them.
 
 NoTargets **3.7.0** public sync passed on Linux ARM64 / Bazel 8.8 and 9.2:
 `.proj` and `.csproj` roots, nested Traversal, prepared Restore, explicit text
@@ -139,9 +141,53 @@ and digest-locked source-runtime product artifacts. Recovery covers its three
 compilation projects, not another large-runtime build. Set the HTTP endpoint with
 `RULES_MSBUILD_PROJECT_CACHE_URL`. Keep producer and consumer containers separate.
 
-Next: reduce repeated evaluation/snapshot replay, then expand unchanged upstream
-test slices. Main correctness/recovery/timings and the listed qualification gaps
-are now refreshed; limits below still apply.
+The runtime fixture also qualifies an explicit six-file compiler-only inventory
+across Pipelines, LINQ and text encoding. Broader body/API edits reuse all 543
+evaluations and match raw output bytes; see [the compiler
+inventories](performance.md#wider-evaluation-reuse).
+
+An opt-in full-runtime contract now reviews all 481 managed configurations using
+raw MSBuild's compiler/copy selections. All 233 advertised authored contracts are
+bound explicitly; consumers retain framework selection and implementation reads.
+All 13 `SkipUseReferenceAssembly` edges bind the SDK-selected implementation DLL;
+they do not add transitive source dependencies to compiler keys.
+Runtime disables SDK-generated reference assemblies: where its SDK selects an
+implementation DLL, that DLL remains the compiler input and invalidation boundary.
+Public sync passed with unchanged input/property/tool/output contracts.
+Thirteen sync controls, owned .NET/style and scaffold checks passed; native
+`//tests/integration:snapshot_replay` passed on both Bazel pins, refreshing copies
+after a body edit with one compilation / two hits and fresh-build byte parity.
+Its mixed reference/implementation chain also invalidates the implementation
+consumer when that DLL changes, without propagating unchanged transitive bodies.
+Authored-contract and consumer-framework synthetic controls also passed body/API
+and fresh-byte parity. Native `//tests/integration:package_copies` passed on both
+pins: locked package DLLs with a graph producer's basename replay with SDK bytes
+and modes; unlocked sources and mismatched bytes fail. Three full-graph LINQ body
+pairs passed with 480 hits / one miss, matching all 2,814 required products. A
+separate profile confirmed exactly one Csc call in both graph and raw MSBuild.
+All 543 evaluations were reused and Restore remained cached. Three forced local
+recoveries had 481 hits / zero misses. Failed attempts are excluded.
+Pipelines body and encoding body/API controls also matched raw compiler counts
+and all required bytes. Partial inventories left 103 extra LINQ API compilations;
+complete inventories remove those unused compiler edges.
+
+Complete compiler inventories are opt-in through public sync. Native
+`//tests/integration:compiler_inputs` passed on both Bazel pins: a grandchild API
+edit rebuilds its parent while the unselected consumer stays cached; selecting the
+grandchild rebuilds that consumer too. Tool dependencies remain conservative,
+missing/unused inventories fail before snapshot publication, and replayed DLL/PDB
+bytes match fresh builds. The existing implementation-reference and package-copy
+controls, owned .NET/style, 14 sync controls and scaffold checks also passed.
+Three paired full-runtime LINQ body/API edits matched all 2,814 required products,
+reused all 543 evaluations and reused Restore. Body/API misses were one/47;
+separate binlogs confirmed the same one/47 Csc project sets as raw MSBuild.
+The all-miss seed verified all 481 complete inventories before publication.
+Complete-inventory HTTP recovery also passed with the producer stopped: 481 hits,
+zero misses/Csc and all 9,972 owned bytes/modes matching in a fresh relocated
+consumer. It executed fresh Restore and graph actions with both Bazel action
+caches disabled; no compiled graph DLL/PDB payloads were transferred.
+
+Next: expand unchanged upstream test slices.
 
 This is not whole-repository runtime support. Linux x86-64, macOS persistent workers,
 RBE, arbitrary SDKs/workloads and full native build parity are unqualified.

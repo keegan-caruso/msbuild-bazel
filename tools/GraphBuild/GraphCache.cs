@@ -77,7 +77,7 @@ internal sealed class GraphCache(GraphInputs inputs, string cache, bool read, Re
                     using var omitted = GraphProfile.Measure("omittedReplay", new FileInfo(Path.Combine(directory, relative)).Length);
                     continue;
                 }
-                Materialize(Path.Combine(directory, relative), destination, digest, snapshot.UnixModes[relative]);
+                Materialize(Path.Combine(directory, relative), destination, digest, snapshot.UnixModes[relative], verify: true);
             }
             foreach (var (relative, producer) in snapshot.ProjectCopies)
             {
@@ -95,10 +95,14 @@ internal sealed class GraphCache(GraphInputs inputs, string cache, bool read, Re
         return CacheResult.IndicateNonCacheHit(CacheResultType.CacheMiss);
     }
 
-    private void Materialize(string source, string destination, string digest, int mode)
+    private void Materialize(string source, string destination, string digest, int mode, bool verify = false)
     {
         if (localState?.Reusable == true && LocalGraphState.Matches(destination, digest))
         {
+            if (verify && ContractFiles.Digest(source) != digest)
+            {
+                throw new InvalidDataException("Corrupt graph snapshot: " + source);
+            }
             using var reused = GraphProfile.Measure("retainedOutput", new FileInfo(destination).Length);
         }
         else
@@ -107,11 +111,18 @@ internal sealed class GraphCache(GraphInputs inputs, string cache, bool read, Re
             {
                 File.Delete(destination);
             }
-            materializer.Copy(source, destination);
+            materializer.Copy(source, destination, verify ? digest : null);
         }
         if (!OperatingSystem.IsWindows())
         {
             File.SetUnixFileMode(destination, (UnixFileMode)mode);
+        }
+        if (verify)
+        {
+            // Replayed bytes were just verified; dependency keys need not reread
+            // these owned outputs. The digest cache is discarded every request.
+            outputDigests.TryAdd(destination, new Lazy<string>(() => digest));
+            using var known = GraphProfile.Measure("verifiedOutputDigest", new FileInfo(destination).Length);
         }
     }
 
@@ -124,6 +135,7 @@ internal sealed class GraphCache(GraphInputs inputs, string cache, bool read, Re
             {
                 continue;
             }
+            inputs.VerifyCompilerReferences(node, build.ProjectStateAfterBuild);
             var files = new Dictionary<string, string>(StringComparer.Ordinal);
             var modes = new Dictionary<string, int>(StringComparer.Ordinal);
             var copies = new Dictionary<string, string>(StringComparer.Ordinal);
@@ -147,13 +159,24 @@ internal sealed class GraphCache(GraphInputs inputs, string cache, bool read, Re
                     if (producer is not null)
                     {
                         var source = inputs.Files.Resolve(producer);
-                        if (!IsDependencyOutput(node, source) || OutputDigest(source) != digest)
+                        var package = inputs.IsDeclaredPackageInput(source);
+                        if ((!IsDependencyOutput(node, source) && !package) || OutputDigest(source) != digest)
                         {
                             throw new InvalidDataException("Declared dependency copy does not match its producer: " + relative);
                         }
-                        copies.Add(relative, producer);
+                        if (package)
+                        {
+                            // Locked package bytes already participate in the input
+                            // key. Retain this fixed payload and its consumer mode,
+                            // rather than refreshing it from a read-only input mount.
+                            producer = null;
+                        }
+                        else
+                        {
+                            copies.Add(relative, producer);
+                        }
                     }
-                    else
+                    if (producer is null)
                     {
                         files.Add(relative, digest);
                         modes.Add(relative, OperatingSystem.IsWindows() ? 0 : (int)File.GetUnixFileMode(file));
@@ -225,6 +248,18 @@ internal sealed class GraphCache(GraphInputs inputs, string cache, bool read, Re
         }
         // SDK compilation can see transitive reference assemblies. A grandchild
         // API change must invalidate those consumers even if its parent API stays put.
+        if (inputs.For(node).CompilerReferencesComplete)
+        {
+            foreach (var (producer, artifact) in (inputs.For(node).CompilerReferences ?? []).OrderBy(pair => pair.Key, StringComparer.Ordinal))
+            {
+                var declared = inputs.Files.Resolve(artifact);
+                if (!File.Exists(declared))
+                {
+                    throw new InvalidDataException("Missing declared consumer compiler reference: " + artifact);
+                }
+                records.Add("compiler-input:" + producer + ":" + artifact + ":" + OutputDigest(declared));
+            }
+        }
         IEnumerable<ProjectGraphNode> references = inputs.For(node).ReferenceBoundary &&
             !node.ProjectInstance.GetPropertyValue("DisableTransitiveProjectReferences").Equals("true", StringComparison.OrdinalIgnoreCase)
             ? DependencyNodes(node) : node.ProjectReferences;
@@ -251,6 +286,12 @@ internal sealed class GraphCache(GraphInputs inputs, string cache, bool read, Re
             }
             else
             {
+                // Complete reviewed inventories exclude unselected compiler edges.
+                // Task/tool/content edges above retain their conservative keys.
+                if (inputs.For(node).CompilerReferencesComplete)
+                {
+                    continue;
+                }
                 var project = reference.ProjectInstance;
                 var declaration = (inputs.For(node).CompilerReferences ?? []).GetValueOrDefault(inputs.Relative(reference)) ?? inputs.For(reference).CompilerReference;
                 if (declaration is not null)
@@ -321,7 +362,18 @@ internal sealed class GraphCache(GraphInputs inputs, string cache, bool read, Re
         {
             ValidateCopyOwnership(node, relative);
             Allowed(relative);
-            if (ContractFiles.Digest(Path.Combine(directory, relative)) != digest)
+            if ((inputs.For(node).DependencyCopies ?? []).TryGetValue(relative, out var source) &&
+                inputs.IsDeclaredPackageInput(inputs.Files.Resolve(source)) && OutputDigest(inputs.Files.Resolve(source)) != digest)
+            {
+                throw new InvalidDataException("Cached package copy does not match its declared input: " + relative);
+            }
+            if (digest is null || digest.Length != 64 || digest.Any(character => !char.IsAsciiHexDigitLower(character)))
+            {
+                throw new InvalidDataException("Invalid graph snapshot digest: " + relative);
+            }
+            // Ordinary payloads are checked while copying the actual replayed
+            // bytes. Omitted files still need verification without materialization.
+            if (omissions.Contains(node, inputs.Files.Resolve(relative)) && ContractFiles.Digest(Path.Combine(directory, relative)) != digest)
             {
                 throw new InvalidDataException("Corrupt graph snapshot: " + relative);
             }

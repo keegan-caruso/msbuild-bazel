@@ -14,9 +14,9 @@ internal sealed class TemporaryOutputs
     {
         this.inputs = inputs;
         relatives = contract.TemporaryDirectories ?? [];
-        if (relatives.Length != 0 && contract.Version is not (5 or 6 or 7 or 8 or 9))
+        if (relatives.Length != 0 && contract.Version is not (5 or 6 or 7 or 8 or 9 or 10))
         {
-            throw new InvalidDataException("Temporary directories require graph contract version 5, 6, 7 or 8 or 9");
+            throw new InvalidDataException("Temporary directories require graph contract version 5, 6, 7, 8, 9 or 10");
         }
         paths = relatives.Select(inputs.Files.Resolve).Distinct(StringComparer.Ordinal).ToArray();
         if (paths.Length == 0)

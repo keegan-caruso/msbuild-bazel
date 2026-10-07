@@ -57,9 +57,27 @@ root `entryProperties`. Supported contracts are `documents` (digest, target/task
 names, extra inputs), `inputItems`, `evaluationItems`, `outputFiles`,
 `inputDirectories`, `temporaryDirectories`, `replayOmissions`, `referenceBoundary`,
 `implementationDependencies`, `compilerReference`, `compilerReferences`,
+`compilerReferencesComplete`, `dependencyCopies`,
 `preparedRestore`, `restoreInputs`, and `restoreOutputs`.
 `projectDefaults.properties` sets graph-wide properties. Unknown/duplicate fields
 and unsafe paths fail; document changes require renewed contract review.
+At a reviewed reference boundary, `dependencyCopies` maps consumer output paths
+to dependency DLL/PDB/XML paths (MSBuild expressions allowed). Use it when the SDK
+selects one of several graph configurations or a locked NuGet file for a copy.
+Package sources require prepared Restore; their bytes are checked and retained
+as fixed snapshot payloads with the consumer's mode. It declares cache replay;
+MSBuild still decides which files the build copies. Unreviewed or unowned bindings fail.
+If Csc reads an implementation DLL, select it with `compilerReferences` so its
+bytes invalidate the consumer. Use `implementationDependencies` for additional
+task/tool reads needing the dependency's full input/output key.
+Set `compilerReferencesComplete: true` only with `referenceBoundary: true` and a
+reviewed, complete `compilerReferences` map of project-produced DLLs selected by
+the SDK. Unlisted compiler edges then stop affecting the key; graph execution and
+noncompiler dependencies remain intact. Newly built snapshots must match
+`ReferencePathWithRefAssemblies`; missing, unused or undeclared inputs fail. SDK
+and declared package/file references retain their ordinary input hashes. Changes
+to project definitions or compiler selection require resync and renewed review.
+Without this flag, bindings remain partial overrides with conservative transitive keys.
 
 ## Build and artifacts
 

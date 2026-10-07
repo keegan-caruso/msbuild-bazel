@@ -80,9 +80,9 @@ internal sealed class GraphInputs : IDisposable
                     throw new InvalidDataException("Declared graph input is missing: " + path);
                 }
             }
-            if (contract.Version is not (1 or 2 or 3 or 4 or 5 or 6 or 7 or 8 or 9) || contract.Projects.Count == 0)
+            if (contract.Version is not (1 or 2 or 3 or 4 or 5 or 6 or 7 or 8 or 9 or 10) || contract.Projects.Count == 0)
             {
-                throw new InvalidDataException("Expected graph contract version 1, 2, 3, 4, 5, 6, 7 or 8 or 9 with explicit project inputs and outputs");
+                throw new InvalidDataException("Expected graph contract version 1, 2, 3, 4, 5, 6, 7, 8, 9 or 10 with explicit project inputs and outputs");
             }
             sdk = Path.Combine(sdkRoot, "sdk", contract.SdkVersion);
             if (!Directory.Exists(sdk))
@@ -165,9 +165,9 @@ internal sealed class GraphInputs : IDisposable
         }
         if (contract.EvaluationReuseInputs is not null)
         {
-            if (contract.Version != 9)
+            if (contract.Version is not (9 or 10))
             {
-                throw new InvalidDataException("Evaluation reuse inputs require graph contract version 9");
+                throw new InvalidDataException("Evaluation reuse inputs require graph contract version 9 or 10");
             }
             var compiler = Graph.ProjectNodes.SelectMany(node => node.ProjectInstance.GetItems("Compile")
                 .Select(item => Path.GetRelativePath(Files.Root, Path.GetFullPath(item.EvaluatedInclude.Replace('\\', '/'), Path.GetDirectoryName(node.ProjectInstance.FullPath)!))))
@@ -234,9 +234,9 @@ internal sealed class GraphInputs : IDisposable
         {
             return project;
         }
-        if (contract.Version is not (2 or 3 or 4 or 5 or 6 or 7 or 8 or 9) || project.OutputDirectories.Length != 0 || project.OutputFiles?.Length > 0 || project.ReferenceBoundary || project.DependencyCopies?.Count > 0 || project.ImplementationDependencies?.Length > 0 || project.CompilerReference is not null || project.CompilerReferences?.Count > 0 || project.ReplayOmissions?.Length > 0)
+        if (contract.Version is not (2 or 3 or 4 or 5 or 6 or 7 or 8 or 9 or 10) || project.OutputDirectories.Length != 0 || project.OutputFiles?.Length > 0 || project.ReferenceBoundary || project.DependencyCopies?.Count > 0 || project.ImplementationDependencies?.Length > 0 || project.CompilerReference is not null || project.CompilerReferences?.Count > 0 || project.CompilerReferencesComplete || project.ReplayOmissions?.Length > 0)
         {
-            throw new InvalidDataException("Configured projects require version 2, 3, 4, 5, 6, 7 or 8 or 9 and configuration-owned outputs: " + Relative(node));
+            throw new InvalidDataException("Configured projects require version 2, 3, 4, 5, 6, 7, 8, 9 or 10 and configuration-owned outputs: " + Relative(node));
         }
         var matches = project.Configurations.Where(configuration => configuration.Properties.Count != 0 &&
             configuration.Properties.All(property =>
@@ -247,7 +247,7 @@ internal sealed class GraphInputs : IDisposable
         }
         var selected = matches[0];
         return new ProjectContract(project.Inputs.Concat(selected.Inputs).Distinct().ToArray(),
-            selected.OutputDirectories, selected.ReferenceBoundary, selected.DependencyCopies, OutputFiles: selected.OutputFiles, ImplementationDependencies: selected.ImplementationDependencies, CompilerReference: selected.CompilerReference, CompilerReferences: selected.CompilerReferences, ReplayOmissions: selected.ReplayOmissions);
+            selected.OutputDirectories, selected.ReferenceBoundary, selected.DependencyCopies, OutputFiles: selected.OutputFiles, ImplementationDependencies: selected.ImplementationDependencies, CompilerReference: selected.CompilerReference, CompilerReferences: selected.CompilerReferences, ReplayOmissions: selected.ReplayOmissions, CompilerReferencesComplete: selected.CompilerReferencesComplete);
     }
     private ProjectContract RestoreInputs(ProjectGraphNode node, ProjectContract project)
     {
@@ -292,6 +292,42 @@ internal sealed class GraphInputs : IDisposable
             .Where(value => OutputDirectories(node).Any(directory => value.StartsWith(directory + Path.DirectorySeparatorChar, StringComparison.Ordinal)))
             .Concat(DeclaredOutputFiles(node));
 
+    // A complete inventory is reviewed at sync and checked against the SDK's
+    // resolved compiler inputs before publishing each newly built snapshot.
+    internal void VerifyCompilerReferences(ProjectGraphNode node, ProjectInstance? state)
+    {
+        if (!For(node).CompilerReferencesComplete)
+        {
+            return;
+        }
+        using var timing = GraphProfile.Measure("compilerReferenceVerification");
+        if (state is null)
+        {
+            throw new InvalidDataException("Missing post-build compiler state: " + Relative(node));
+        }
+        var selected = new HashSet<string>(StringComparer.Ordinal);
+        var allowed = For(node).Inputs.Select(path => resolvedInputs[path]).ToHashSet(StringComparer.Ordinal);
+        foreach (var item in state.GetItems("ReferencePathWithRefAssemblies"))
+        {
+            var path = Path.GetFullPath(item.EvaluatedInclude.Replace('\\', '/'), Path.GetDirectoryName(state.FullPath)!);
+            if (OutputOwner(path) is not null)
+            {
+                selected.Add(path);
+            }
+            else if (!allowed.Contains(path) && !sharedPaths.Contains(path) && !path.StartsWith(Files.Sdk + Path.DirectorySeparatorChar, StringComparison.Ordinal))
+            {
+                throw new InvalidDataException("Undeclared compiler input: " + Relative(node) + " -> " + path);
+            }
+        }
+        var declared = (For(node).CompilerReferences ?? []).Values.Select(Files.Resolve).ToHashSet(StringComparer.Ordinal);
+        if (!selected.SetEquals(declared))
+        {
+            throw new InvalidDataException("Complete compiler references differ from SDK selection: " + Relative(node) +
+                "; missing: " + string.Join(", ", selected.Except(declared).Order(StringComparer.Ordinal)) +
+                "; unused: " + string.Join(", ", declared.Except(selected).Order(StringComparer.Ordinal)));
+        }
+    }
+
     internal bool OwnsOutput(ProjectGraphNode node, string path) => OutputOwner(path) == node;
     internal ProjectGraphNode? OutputOwner(string path) => ownership.Owner(path);
     internal static string Key(ProjectInstance project) => project.FullPath + "|" + string.Join(";", project.GlobalProperties
@@ -300,6 +336,9 @@ internal sealed class GraphInputs : IDisposable
     internal string Fingerprint(ProjectGraphNode node) => baseFingerprints[node];
 
     internal string DependencyFingerprint(ProjectGraphNode node) => dependencyFingerprints[node];
+
+    internal bool IsDeclaredPackageInput(string path) =>
+        path.StartsWith(Path.Combine(Files.Root, ".nuget") + Path.DirectorySeparatorChar, StringComparison.Ordinal) && sharedPaths.Contains(path);
 
     private void ComputeFingerprints(ProjectGraphNode node)
     {
@@ -321,6 +360,7 @@ internal sealed class GraphInputs : IDisposable
         records.AddRange((For(node).OutputFiles ?? []).Order(StringComparer.Ordinal).Select(p => "output-file:" + p));
         records.AddRange((For(node).ReplayOmissions ?? []).Order(StringComparer.Ordinal).Select(p => "replay-omission:" + p));
         records.Add("referenceBoundary:" + For(node).ReferenceBoundary);
+        records.Add("compilerReferencesComplete:" + For(node).CompilerReferencesComplete);
         if (For(node).CompilerReference is not null)
         {
             records.Add("compiler-reference:" + For(node).CompilerReference);
@@ -364,6 +404,10 @@ internal sealed class GraphInputs : IDisposable
         if (contract.Version < 3 && For(node).ImplementationDependencies?.Length > 0)
         {
             throw new InvalidDataException("Implementation dependencies require graph contract version 3");
+        }
+        if (For(node).CompilerReferencesComplete && (contract.Version < 10 || !For(node).ReferenceBoundary))
+        {
+            throw new InvalidDataException("Complete compiler references require graph contract version 10 and a reviewed reference boundary");
         }
         var compilerReference = For(node).CompilerReference;
         foreach (var (producer, artifact) in For(node).CompilerReferences ?? [])

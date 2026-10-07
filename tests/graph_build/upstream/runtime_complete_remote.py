@@ -11,6 +11,7 @@ from pathlib import Path
 import socket
 import subprocess
 import time
+import uuid
 
 ROOT = Path(__file__).resolve().parents[3]
 
@@ -34,10 +35,14 @@ def main():
     parser.add_argument('--seed-evidence', type=Path)
     parser.add_argument('--diagnostics', action='store_true')
     parser.add_argument('--edits', action='store_true', help='consumer-only body/API and recovery controls using the retained worker')
+    parser.add_argument('--evaluation-reuse', action='store_true', help='require reviewed evaluation retention and a reset after compiler failure')
+    parser.add_argument('--trim-between-rows', action='store_true', help='trim the disposable guest outside scored intervals')
+    parser.add_argument('--host-space-path', type=Path, help='host bind mount to check for at least 4 GiB free before each invocation')
     args = parser.parse_args()
     assert os.uname().sysname == 'Linux' and os.uname().machine == 'aarch64'
     assert (args.phase == 'consumer') == (args.seed_evidence is not None)
     assert not args.edits or args.phase == 'consumer'
+    assert not args.evaluation_reuse or args.phase == 'producer' or args.edits
     root, results, base = args.workspace.resolve(), args.results.resolve(), args.output_base.resolve()
     assert not base.exists() and not results.exists()
     assert not results.is_relative_to(root) and not root.is_relative_to(results)
@@ -57,7 +62,11 @@ def main():
         assert seed['machine'] != socket.gethostname() and seed['workspace'] != str(root), 'Require an independent relocated consumer'
         assert seed['contractSha256'] == hashlib.sha256((root / 'graph.generated.json').read_bytes()).hexdigest()
     mutation = json.loads(Path(__file__).with_name('runtime_source_host_edit.json').read_text()) if args.edits else None
+    if args.evaluation_reuse:
+        reviewed = json.loads(Path(__file__).with_name('runtime_source_host_edit.json').read_text())
+        assert contract.get('EvaluationReuseInputs') == sorted([reviewed['implementation'], reviewed['reference']])
     originals = {path: (root / path).read_bytes() for path in [mutation['implementation'], mutation['reference']]} if mutation else {}
+    edit_token = uuid.uuid4().hex
     if mutation:
         assert count == mutation['compiled'] and contract['Entries'] == mutation['entries']
     environment = dict(os.environ, USE_BAZEL_VERSION='9.2.0')
@@ -84,6 +93,9 @@ def main():
     rows = []
 
     def invoke(arguments, label):
+        if args.host_space_path:
+            disk = os.statvfs(args.host_space_path)
+            assert disk.f_bavail * disk.f_frsize >= 4 * 1024**3, 'Insufficient host disk headroom; preserve reports and reclaim disposable results'
         start = time.monotonic()
         with (results / (label + '.log')).open('w') as log:
             subprocess.run(bazel + arguments, cwd=root, env=environment, stdout=log, stderr=subprocess.STDOUT, check=True)
@@ -107,6 +119,13 @@ def main():
         assert len(graph) == 1 and (len(restore) <= 1 if incremental else len(restore) == 1), (len(restore), len(graph))
         report, files = capture()
         assert report['preparedRestore'] and report['readOnlyPreparedPackages']
+        if args.evaluation_reuse:
+            # A changed noncompiler request marker also resets evaluation identity.
+            expected_loaded = len(nodes) if label in ['seed', 'project-recovery', 'project-recovery-diagnostic', 'failure-recovery', 'post-edit-recovery'] else 0
+            if not whole:
+                state = report['evaluationState']
+                assert state['loaded'] == expected_loaded and state['reused'] == len(nodes) - expected_loaded, state
+                assert report['buildNodeEvaluations'] in [None, 0], report
         if args.phase == 'consumer':
             if edit:
                 assert len(files) == len(seed['files'])
@@ -133,16 +152,22 @@ def main():
                       configuredNodes=len(nodes), compilationNodes=count, files=files, report=report, phases=phases,
                       contractSha256=hashlib.sha256((root / 'graph.generated.json').read_bytes()).hexdigest(),
                       reportIsCached=whole, scope='Restore plus graph recovery; acquisition separately reported; no runtime suite/RBE claim')
+        if edit:
+            record['editToken'] = edit_token
         (results / (label + '.json')).write_text(json.dumps(record, indent=2) + '\n')
         rows.append({key: value for key, value in record.items() if key not in ['files', 'report']})
         (results / 'summary.json').write_text(json.dumps(rows, indent=2) + '\n')
         print(json.dumps(rows[-1]), flush=True)
+        if args.trim_between_rows:
+            subprocess.run(['fstrim', '/'], check=True, capture_output=True)
 
     def fresh_base(label):
         # These bases were absent at entry and created only by this qualification.
         # Keep hash records/logs, not multi-gigabyte local action results between
         # independent rows. This also prevents a previous row satisfying recovery.
         invoke(['clean', '--expunge'], label + '-clean')
+        if args.trim_between_rows:
+            subprocess.run(['fstrim', '/'], check=True, capture_output=True)
         new_base = base.with_name(base.name + '-' + label)
         assert not new_base.exists()
         bazel[1] = '--output_base=' + str(new_base)
@@ -152,6 +177,8 @@ def main():
         seconds = invoke(['build', '//:packages', '//:graph_runner', *options], label + '-bootstrap')
         (results / (label + '-acquisition.json')).write_text(json.dumps(dict(seconds=seconds,
             scope='declared SDK/package acquisition and runner bootstrap; excludes Restore and graph execution')) + '\n')
+        if args.trim_between_rows:
+            subprocess.run(['fstrim', '/'], check=True, capture_output=True)
 
     try:
         # Downloads/bootstrap are separate; this must not execute Restore or Build.
@@ -167,14 +194,29 @@ def main():
                 path, anchor = mutation['implementation'], mutation['bodyAnchor'].encode()
                 assert originals[path].count(anchor) == 1
                 (root / path).write_bytes(originals[path].replace(anchor,
-                    anchor + b'\n            GC.KeepAlive("full-child-verification");'))
+                    anchor + b'\n            GC.KeepAlive("independent-body-' + edit_token.encode() + b'");'))
                 build('body', incremental=True, edit='body')
-                declaration = b'\n        /// <summary>Qualification edit control.</summary>\n        public const int VerificationProbe = 7341;'
+                declaration = (b'\n        /// <summary>Qualification edit control.</summary>\n        public const int VerificationProbe = '
+                               + str(100000 + int(edit_token[:7], 16)).encode() + b';')
                 for path, anchor in [(mutation['implementation'], mutation['implementationAnchor'].encode()),
                                      (mutation['reference'], mutation['referenceAnchor'].encode())]:
                     assert originals[path].count(anchor) == 1
                     (root / path).write_bytes(originals[path].replace(anchor, anchor + declaration))
                 build('api', incremental=True, edit='api')
+                if args.evaluation_reuse:
+                    for path, content in originals.items():
+                        (root / path).write_bytes(content)
+                    path = mutation['implementation']
+                    (root / path).write_bytes(originals[path] + b'\n#error IndependentRecoveryFailure\n')
+                    with (results / 'failure.log').open('w') as log:
+                        failed = subprocess.run(bazel + ['build', '//:graph', *options], cwd=root, env=environment,
+                                                stdout=log, stderr=subprocess.STDOUT)
+                    failure_text = (results / 'failure.log').read_text()
+                    assert failed.returncode and 'error CS1029' in failure_text and 'IndependentRecoveryFailure' in failure_text
+                    anchor = mutation['bodyAnchor'].encode()
+                    (root / path).write_bytes(originals[path].replace(anchor,
+                        anchor + b'\n            GC.KeepAlive("independent-failure-' + edit_token.encode() + b'");'))
+                    build('failure-recovery', incremental=True, edit='body')
                 for path, content in originals.items():
                     (root / path).write_bytes(content)
                 nonce.write_text('post-edit-recovery')
