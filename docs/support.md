@@ -168,12 +168,8 @@ separate profile confirmed exactly one Csc call in both graph and raw MSBuild.
 All 543 evaluations were reused and Restore remained cached. Three forced local
 recoveries had 481 hits / zero misses. Failed attempts are excluded.
 Pipelines body and encoding body/API controls also matched raw compiler counts
-and all required bytes. LINQ API preserves output correctness but retains 103
-extra compilations from conservative transitive reference keys.
-Stopped-producer HTTP recovery in a fresh relocated Linux ARM64 container had
-481 hits / zero misses / zero Csc, matching all 9,972 owned file bytes and modes
-with fresh Restore and both Bazel action caches disabled. The runner digest
-matched; all 543 evaluations were fresh. This does not repeat the native suites.
+and all required bytes. Partial inventories left 103 extra LINQ API compilations;
+complete inventories remove those unused compiler edges.
 
 Complete compiler inventories are opt-in through public sync. Native
 `//tests/integration:compiler_inputs` passed on both Bazel pins: a grandchild API
@@ -182,9 +178,16 @@ grandchild rebuilds that consumer too. Tool dependencies remain conservative,
 missing/unused inventories fail before snapshot publication, and replayed DLL/PDB
 bytes match fresh builds. The existing implementation-reference and package-copy
 controls, owned .NET/style, 14 sync controls and scaffold checks also passed.
+Three paired full-runtime LINQ body/API edits matched all 2,814 required products,
+reused all 543 evaluations and reused Restore. Body/API misses were one/47;
+separate binlogs confirmed the same one/47 Csc project sets as raw MSBuild.
+The all-miss seed verified all 481 complete inventories before publication.
+Complete-inventory HTTP recovery also passed with the producer stopped: 481 hits,
+zero misses/Csc and all 9,972 owned bytes/modes matching in a fresh relocated
+consumer. It executed fresh Restore and graph actions with both Bazel action
+caches disabled; no compiled graph DLL/PDB payloads were transferred.
 
-Next: qualify complete inventories on runtime API edits and expand unchanged
-upstream test slices.
+Next: expand unchanged upstream test slices.
 
 This is not whole-repository runtime support. Linux x86-64, macOS persistent workers,
 RBE, arbitrary SDKs/workloads and full native build parity are unqualified.

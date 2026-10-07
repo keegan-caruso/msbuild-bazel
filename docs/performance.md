@@ -85,8 +85,7 @@ call occurred in the graph inventory; extra graph calls are recorded explicitly.
 Only one of this fixture's 543 configurations has a reviewed compiler-reference
 boundary. Other keys include transitive implementation inputs. The LINQ body
 profile spent **1.61 s evaluating / 404.28 s executing**, with **5.07 s replay**
-and **0.54/0.15 s worker staging/publication**; scopes overlap. Reviewing compiler
-boundaries and their dependency copies is the next substantial improvement here.
+and **0.54/0.15 s worker staging/publication**; scopes overlap. That profile motivated reviewing compiler boundaries and their dependency copies.
 
 The six-file Pipelines regression also passed exact six/17 compiler inventories,
 reference-boundary checks and original recovery. Single unprofiled body/API pairs:
@@ -109,30 +108,38 @@ project-backed compiler inputs. Its 13 `SkipUseReferenceAssembly` edges hash the
 selected implementation DLL, without adding unrelated transitive source hashes.
 
 Three alternating, unprofiled pairs on Linux ARM64 / four CPUs / 8 GiB, SDK
-10.0.400 / Bazel 9.2.0, qualification **9e2f017**:
+10.0.400 / Bazel 9.2.0, complete inventories at **b3cf505**:
 
 | Case | Raw median | Graph median | Graph hits / misses |
 | --- | ---: | ---: | ---: |
-| No-op | 17.25 s | 0.24 s | Whole-action hit |
-| LINQ body | 22.54 s | 16.80 s | 480 / 1 |
+| No-op | 17.63 s | 0.29 s | Whole-action hit |
+| LINQ body | 22.24 s | 18.11 s | 480 / 1 |
+| LINQ API | 154.84 s | 129.83 s | 434 / 47 |
 
-The body median is 25% lower than raw. Every pair matched all 2,814 required
-products, retained the reference assembly, changed the implementation, reused
-all 543 evaluations and executed no Restore action. A separate profile confirmed
-**one Csc call in both paths** (raw 22.90 s / graph 18.09 s); it is excluded from
-medians. Three forced local recoveries had 481 hits / zero misses. Package copies
-retain the SDK's selected bytes and modes; Bazel's published files are read-only,
-so raw-vs-graph parity compares bytes rather than requiring identical modes.
+Body/API medians are 19%/16% lower than raw. Every edited pair matched all
+2,814 required products, reused all 543 evaluations and executed no Restore
+action. Body edits retained the reference assembly; API edits changed it.
+Complete inventories hash only SDK-selected compiler DLLs while retaining the
+execution graph and noncompiler dependency roles. Each newly built snapshot
+checks the reviewed inventory against resolved compiler inputs.
+Separate profiles confirmed identical compiler sets: body **1 / 1**, API **47 / 47**.
+The API profile fell from 428.57 s / 150 Csc calls with partial inventories to
+136.41 s / 47 calls; raw measured 148.19 s. These profiles are excluded from
+medians. Checking 47 resolved inventories took 0.012 s; MSBuild state capture is
+included in end-to-end time. Three local recoveries had 481 hits / zero misses
+(18.44–20.84 s).
+Package copies retain SDK-selected bytes and modes. Bazel publishes read-only
+files, so raw-vs-graph parity compares bytes rather than requiring identical modes.
 
 Capture `RuntimeRawGraph`'s `reference-inventory` after a raw Build, then run
 `python3 tests/graph_build/upstream/runtime_reference_bindings.py CONTRACT INVENTORY BINDINGS`.
 Review the emitted contracts and pass `--reference-bindings BINDINGS` to preparation
-and the paired driver. For strict LINQ body scores, use `--body-only --samples 3
+and the paired driver. For strict LINQ body/API scores, use `--samples 3
 --diagnostics --edit-case tests/graph_build/upstream/runtime_linq_edit.json` with
 the six-file evaluation inventory above. Cache seeding and comparison are unscored.
 Failed disk/copy-ownership/over-invalidation attempts are excluded.
 
-Additional single profiles with the same bindings (correctness controls, not medians):
+Earlier partial-inventory profiles at **9e2f017** (correctness controls, not medians):
 
 | Edit | Raw / graph Csc | Raw / graph seconds |
 | --- | ---: | ---: |
@@ -142,16 +149,17 @@ Additional single profiles with the same bindings (correctness controls, not med
 | LINQ API | 47 / 150 | 152.78 / 428.57 |
 
 All matched the 2,814 required product bytes, reused 543 evaluations and reused
-Restore. LINQ API still over-invalidates unused transitive graph references;
-its 103 extra Csc calls remain a performance limit, not a matched-work score.
+Restore. Partial inventories left 103 extra LINQ API compilations; complete
+inventories remove those unused transitive compiler edges.
 
-A fresh relocated Linux ARM64 consumer, with the producer stopped and both Bazel
-action caches disabled, recovered **481 HTTP hits / zero misses / zero Csc**.
-All **9,972** owned file bytes and modes matched the producer, with the same runner
-digest and 543 fresh evaluations. Fresh package extraction, runner bootstrap,
-Restore and graph execution took **136.01 s**; the profiled graph runner took
-**14.18 s**, downloading 263,016,165 bytes without uploads. This single recovery
-control does not rerun the native runtime suites or establish an RBE baseline.
+Complete-inventory recovery in a fresh relocated Linux ARM64 consumer, with the
+producer stopped and both Bazel action caches disabled, had **481 HTTP hits / zero
+misses / zero Csc**. All **9,972** owned file bytes and modes matched, with the same
+runner digest and 543 fresh evaluations. Fresh package extraction, runner bootstrap,
+Restore and graph execution took **124.17 s**; the profiled runner took **17.06 s**,
+downloading 263,016,165 bytes without uploads. No compiled graph DLL/PDB payloads or
+action-cache state were transferred. This single correctness control does not
+rerun native runtime suites, measure paired cold compilation or establish RBE.
 Recovery executes `build //:graph --strategy=MSBuildGraph=worker --worker_sandboxing
 --disk_cache= --remote_cache= --action_env=RULES_MSBUILD_PROJECT_CACHE_URL=URL`
 with a new output base and `profile_build=True`. Compare the declared output
