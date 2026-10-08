@@ -128,7 +128,7 @@ public sealed class RemoteSnapshotStore(Uri endpoint, int parallelism = 8, strin
                 ?? throw new InvalidDataException("Missing existing project-cache manifest");
             if (existing.Fingerprint != fingerprint || !SameFiles(existing.Files, snapshot.Files) ||
                 !SameFiles(existing.ProjectCopies, snapshot.ProjectCopies) ||
-                !JsonElement.DeepEquals(JsonSerializer.Deserialize<JsonElement>(existingBytes), JsonSerializer.Deserialize<JsonElement>(manifest)))
+                !System.Text.Json.Nodes.JsonNode.DeepEquals(System.Text.Json.Nodes.JsonNode.Parse(existingBytes), System.Text.Json.Nodes.JsonNode.Parse(manifest)))
             {
                 var changed = (existing.Files ?? []).Keys.Union((snapshot.Files ?? []).Keys, StringComparer.Ordinal)
                     .Where(path => !(existing.Files ?? []).TryGetValue(path, out var oldDigest) ||
@@ -268,7 +268,7 @@ public sealed class RemoteSnapshotStore(Uri endpoint, int parallelism = 8, strin
     }
 
     private static string ActionKey(string fingerprint) => Digest(Encoding.UTF8.GetBytes("rules-msbuild-project-snapshot-v1\n" + fingerprint));
-    private static string Digest(byte[] bytes) => Convert.ToHexStringLower(SHA256.HashData(bytes));
+    private static string Digest(byte[] bytes) => Convert.ToHexString(SHA256.HashData(bytes)).ToLowerInvariant();
     private static bool ValidDigest(string digest) => digest.Length == 64 && digest.All(char.IsAsciiHexDigit) && digest == digest.ToLowerInvariant();
     private static bool SameFiles(Dictionary<string, string>? left, Dictionary<string, string>? right) =>
         (left ?? []).Count == (right ?? []).Count && (left ?? []).All(file =>

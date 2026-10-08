@@ -1,13 +1,14 @@
 <Project>
   <!-- These inputs describe the adapter tools, not the projects they build. -->
   <PropertyGroup>
-    <RulesMSBuildToolTargetFramework Condition="'$(RulesMSBuildToolTargetFramework)' == ''">net10.0</RulesMSBuildToolTargetFramework>
+    <RulesMSBuildToolTargetFramework Condition="'$(RulesMSBuildToolTargetFramework)' == ''">net$(BundledNETCoreAppTargetFrameworkVersion)</RulesMSBuildToolTargetFramework>
     <RulesMSBuildEngineRoot Condition="'$(RulesMSBuildEngineRoot)' == ''">$(MSBuildBinPath)</RulesMSBuildEngineRoot>
+    <LangVersion>latest</LangVersion>
     <TargetFramework>$(RulesMSBuildToolTargetFramework)</TargetFramework>
   </PropertyGroup>
   <Target Name="ValidateMSBuildToolInputs" BeforeTargets="PrepareForBuild">
-    <Error Condition="'$(RulesMSBuildToolTargetFramework)' != 'net10.0' and '$(RulesMSBuildToolTargetFramework)' != 'net11.0'"
-           Text="Unsupported RulesMSBuildToolTargetFramework=$(RulesMSBuildToolTargetFramework); select net10.0 or net11.0." />
+    <Error Condition="'$(BundledNETCoreAppTargetFrameworkVersion)' == ''"
+           Text="The selected SDK must report BundledNETCoreAppTargetFrameworkVersion for adapter compilation." />
     <Error Condition="'$(TargetFramework)' != '$(RulesMSBuildToolTargetFramework)'"
            Text="TargetFramework must match the explicit RulesMSBuildToolTargetFramework input." />
     <Error Condition="!Exists('$(RulesMSBuildEngineRoot)/Microsoft.Build.dll') or !Exists('$(RulesMSBuildEngineRoot)/Microsoft.Build.Framework.dll') or !Exists('$(RulesMSBuildEngineRoot)/Microsoft.Build.Utilities.Core.dll')"

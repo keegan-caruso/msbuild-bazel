@@ -4,6 +4,8 @@
     <OutputType>Exe</OutputType>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
+    <!-- MSBuild 18 promoted the experimental project-cache API. -->
+    <DefineConstants Condition="$([MSBuild]::VersionGreaterThanOrEquals('$(MSBuildVersion)', '18.0'))">$(DefineConstants);STABLE_PROJECT_CACHE</DefineConstants>
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="../PackageSdks.cs" />

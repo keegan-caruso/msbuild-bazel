@@ -165,7 +165,10 @@ For private archives, use `dotnet.sdk_archive(name, version, runtime_version,
 platform, urls, integrity)`, then register `@name//:all`. Integrity is mandatory;
 the archive must contain `dotnet`, the selected SDK and bundled CoreCLR runtime.
 Supported acquisition platforms are Linux/macOS ARM64/x64. The adapter tools
-currently target .NET 10/11; older SDKs need adapter changes and qualification.
+compile for the selected SDK's bundled framework and reference its MSBuild engine;
+there is no SDK-family allowlist. Their current source/API requirements are C# 12,
+.NET 8 and MSBuild project-cache support. Acquisition alone does not qualify old
+SDKs or additional workloads.
 
 `msbuild_sdk` describes a complete downloaded or produced layout rooted beside
 `dotnet`; register `<name>_registered` and `<name>_runtime_registered`. The producer

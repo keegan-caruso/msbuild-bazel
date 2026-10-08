@@ -10,4 +10,5 @@ cd "$REPO_ROOT"
 version="$("$DOTNET_ROOT/dotnet" --version)"
 sdk="$DOTNET_ROOT/sdk/$version"
 bash "$REPO_ROOT/scripts/dotnet.sh" build "$REPO_ROOT/tools/ProjectSync/ProjectSync.csproj" --configuration Release --nologo >&2
-exec "$DOTNET_ROOT/dotnet" "$REPO_ROOT/tools/ProjectSync/bin/Release/net10.0/ProjectSync.dll" "$1" "$sdk" "${@:2}"
+payload="$(bash "$REPO_ROOT/scripts/dotnet.sh" msbuild "$REPO_ROOT/tools/ProjectSync/ProjectSync.csproj" -property:Configuration=Release --nologo -getProperty:TargetPath)"
+exec "$DOTNET_ROOT/dotnet" "$payload" "$1" "$sdk" "${@:2}"

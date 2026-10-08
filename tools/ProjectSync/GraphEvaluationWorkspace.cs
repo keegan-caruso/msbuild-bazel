@@ -7,7 +7,7 @@ internal sealed class GraphEvaluationWorkspace : IDisposable
 {
     internal string Root { get; } = WorkspaceView.PhysicalPath(Directory.CreateTempSubdirectory("graph-sync-").FullName);
 
-    internal GraphEvaluationWorkspace(string source, string sdk, string sdkDirectory, IEnumerable<string> entries,
+    internal GraphEvaluationWorkspace(string source, string sdk, IEnumerable<string> entries,
         Dictionary<string, string> properties, WorkspaceView view, Dictionary<string, string>? toolProperties = null, Dictionary<string, Dictionary<string, string>>? entryProperties = null)
     {
         try
@@ -33,7 +33,7 @@ internal sealed class GraphEvaluationWorkspace : IDisposable
                 var start = new ProcessStartInfo(Path.Combine(sdk, "dotnet")) { WorkingDirectory = Root };
                 foreach (var argument in new[] { "restore", Path.Combine(Root, WorkspaceView.Safe(entry)), "--configfile", config,
                     "--source", feed, "--packages", Path.Combine(Root, ".nuget"), "-p:NuGetAudit=false",
-                    "-p:NetCoreSdkRoot=" + sdkDirectory, "-p:RestoreFallbackFolders=", "-p:RestoreAdditionalProjectSources=", "-p:RestoreAdditionalProjectFallbackFolders=" })
+                    "-p:RestoreFallbackFolders=", "-p:RestoreAdditionalProjectSources=", "-p:RestoreAdditionalProjectFallbackFolders=" })
                 {
                     start.ArgumentList.Add(argument);
                 }

@@ -12,7 +12,7 @@ internal static class WorkerPreparation
         var file = new FileInfo(manifestPath);
         var source = Path.GetDirectoryName(file.ResolveLinkTarget(returnFinalTarget: true)?.FullName ?? file.FullName)!;
         var bytes = File.ReadAllBytes(Path.Combine(source, "manifest.json"));
-        var digest = Convert.ToHexStringLower(System.Security.Cryptography.SHA256.HashData(bytes));
+        var digest = Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(bytes)).ToLowerInvariant();
         var destination = Path.Combine(cache, ContractFiles.Hash([digest, inputIdentity ?? Guid.NewGuid().ToString("N")]));
         if (Directory.Exists(destination))
         {

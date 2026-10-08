@@ -11,14 +11,15 @@ recursive-source HTTP Restore/project recovery. Cached HTTPS SDK acquisition als
 passed with all downloader URLs blocked and metadata removed. Reproduce with:
 
 ```sh
-DYNAMIC_SOURCE_CACHE_URL=http://cache:8080 bash scripts/bazel.sh test \
+SDK_VERSION_CACHE_URL=http://cache:8080 DYNAMIC_SOURCE_CACHE_URL=http://cache:8080 \
+  bash scripts/bazel.sh test \
   //tests/analysis/... \
-  //tests/integration:{quickstart,sdk_locks,workers,recursive_sources,resolved_inputs} \
+  //tests/integration:{sdk_versions,quickstart,sdk_locks,workers,recursive_sources,resolved_inputs} \
   --test_output=errors
 ```
 
 Large runtime timings and source-built SDK consumers below retain their recorded
-9.2 qualification; they were not rerun for this pin update.
+9.2 qualification; they were not rerun for this SDK change.
 
 ## Qualified SDKs
 
@@ -44,8 +45,17 @@ reuse, stale-pin rejection, archive hash/layout guards and private archives. Cro
 also passed after recording each Bazel version's registry entries. SDK **10.0.302**
 (absent from the former catalog) passed sync/app/tests and a fresh clone in strict
 lockfile mode with metadata removed; **10.0.400** retains quickstart coverage.
-There is no acquisition allowlist; other SDK families/workloads remain unqualified.
-See [SDK configuration](api.md#sdks).
+
+`//tests/integration:sdk_versions` passed **8.0.425**, **9.0.318** and
+**11.0.100-rc.1.26425.128** on Bazel 9.3: SDK-derived adapter frameworks,
+sync/check, app/tests, body/API edits and fresh-base recovery without metadata.
+Forced HTTP project recovery returned three hits / zero compilations and identical
+runtime outputs. The whole-action remote-cache assertion also passed for SDK 8.
+The expanded 31-test command above completed 22 checks before container I/O failures
+interrupted it with less than 1 GiB free on the host; the new SDK suite's 8.8 run remains pending.
+Style, unit and cache fault controls passed. Scope: small managed Linux ARM64 fixtures,
+one host; no additional workload or worker qualification for these SDK families.
+There is no SDK-family allowlist; see [adapter requirements](api.md#sdks).
 
 `bash scripts/bazel.sh test //tests/integration:source_globs --test_output=errors`
 passed on Linux ARM64 with 8.8.0 / 9.2.0: method-body output changes, addition/removal/

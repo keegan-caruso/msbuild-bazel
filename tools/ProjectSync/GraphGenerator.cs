@@ -54,7 +54,7 @@ internal static class GraphGenerator
             properties["TargetFramework"] = framework;
         }
         GraphEntryProperties.Validate(entries, mappings.EntryProperties, (view?.GraphToolProperties ?? []).Keys);
-        using var restored = packageBuild ? new GraphEvaluationWorkspace(root, sdkRoot, sdk, entries, properties,
+        using var restored = packageBuild ? new GraphEvaluationWorkspace(root, sdkRoot, entries, properties,
             view ?? throw new InvalidDataException("Package build sync requires declared package inputs"), view?.GraphToolProperties, mappings.EntryProperties) : null;
         if (restored is not null)
         {
@@ -73,7 +73,6 @@ internal static class GraphGenerator
             ["ImportProjectExtensionProps"] = packageBuild ? "true" : "false",
             ["ImportProjectExtensionTargets"] = packageBuild ? "true" : "false",
             ["UseSharedCompilation"] = "false",
-            ["NetCoreSdkRoot"] = sdk,
             ["PathMap"] = root + "=/_/workspace," + sdkRoot + "=/_/sdk"
         };
         foreach (var (name, path) in view?.GraphToolProperties ?? [])
@@ -388,7 +387,7 @@ internal static class GraphGenerator
             SharedInputs = shared,
             PackageDigests = view?.GraphPackageDigests() ?? [],
             DefinitionDigests = definitions.Keys.Order(StringComparer.Ordinal).ToDictionary(path => path,
-                path => Convert.ToHexStringLower(System.Security.Cryptography.SHA256.HashData(File.ReadAllBytes(Path.Combine(root, path))))),
+                path => Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(File.ReadAllBytes(Path.Combine(root, path)))).ToLowerInvariant()),
             Projects = declarations
         })!;
         if (restore is not null)

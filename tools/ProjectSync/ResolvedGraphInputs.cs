@@ -193,6 +193,6 @@ internal sealed record ResolvedGraphInputs(Dictionary<string, string> CompilerRe
     private static string Digest(string path)
     {
         using var stream = File.OpenRead(path);
-        return Convert.ToHexStringLower(SHA256.HashData(stream));
+        return Convert.ToHexString(SHA256.HashData(stream)).ToLowerInvariant();
     }
 }

@@ -15,7 +15,7 @@ internal static class NativeToolchain
 
         using (var archive = File.OpenRead(request.Archive))
         {
-            var actual = Convert.ToHexStringLower(SHA256.HashData(archive));
+            var actual = Convert.ToHexString(SHA256.HashData(archive)).ToLowerInvariant();
             if (!actual.Equals(request.ArchiveSha256, StringComparison.OrdinalIgnoreCase))
             {
                 throw new InvalidDataException("Native toolchain archive differs from locked SHA-256");
