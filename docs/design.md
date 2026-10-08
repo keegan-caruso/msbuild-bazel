@@ -14,6 +14,10 @@ configuration and scheduling; sharing evaluation avoids a process per project.
 
 SDKs, runtimes, packages and task tools are artifacts. Downloaded and source-built
 SDKs share a layout contract; compilation and execution toolchains are separate.
+Downloaded SDK pins live in `global.json` or `dotnet.sdk(version = ...)`. The
+module extension resolves release metadata once per SDK/platform selection and
+records immutable archive facts in `MODULE.bazel.lock`. Acquisition verifies their
+hashes. Available downloads do not imply MSBuild compatibility.
 
 ## Execution and caching
 

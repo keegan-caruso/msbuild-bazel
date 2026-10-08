@@ -2,8 +2,8 @@
 
 load("//msbuild/private:global_json.bzl", "global_json_version")
 load("//msbuild/private:runtime_downloads.bzl", "RUNTIME_DOWNLOADS")
-load("//msbuild/private:sdk_downloads.bzl", "SDK_DOWNLOADS")
-load("//msbuild/private:sdk_repositories.bzl", "SDK_PLATFORMS", "sdk_archive", "sdk_toolchains")
+load("//msbuild/private:sdk_metadata.bzl", "resolve_sdk", "sdk_download", "sdk_platforms", "sdk_selection", "sdk_version")
+load("//msbuild/private:sdk_repositories.bzl", "sdk_archive", "sdk_toolchains")
 
 _PLATFORMS = {
     "linux-arm64": ["@platforms//os:linux", "@platforms//cpu:aarch64"],
@@ -61,8 +61,26 @@ def _aliases(ctx):
 
 _runtime_aliases = repository_rule(implementation = _aliases, attrs = {"repositories": attr.string_dict()})
 
+def _sdk(ctx, declaration, version, facts):
+    urls = declaration.metadata_urls or ["https://builds.dotnet.microsoft.com/dotnet/release-metadata/%s/releases.json" % ".".join(version.split(".")[:2])]
+    key = json.encode([version, urls])
+    selected = sdk_selection(facts[key]) if key in facts else None
+    missing = [platform for platform in declaration.platforms if selected == None or platform not in selected["platforms"]]
+    if missing:
+        path = "sdk-metadata-%s.json" % len(facts)
+        ctx.download(urls, output = path)
+        resolved = resolve_sdk(ctx.read(path), version, missing)
+        if selected != None:
+            if selected["runtime"] != resolved["runtime"]:
+                fail("SDK release metadata conflicts with recorded runtime: " + version)
+            resolved["platforms"].update(selected["platforms"])
+        selected = resolved
+        facts[key] = selected
+    return selected
+
 def _runtimes(ctx):
     names = {}
+    facts = dict(ctx.facts.get("sdk-v1", {}))
     for mod in ctx.modules:
         for sdk in mod.tags.sdk:
             if sdk.name in names:
@@ -71,18 +89,26 @@ def _runtimes(ctx):
             if bool(sdk.version) == bool(sdk.global_json):
                 fail("Specify exactly one of sdk.version or sdk.global_json")
             version = global_json_version(ctx.read(sdk.global_json)) if sdk.global_json else sdk.version
-            if version not in SDK_DOWNLOADS:
-                fail("Unknown pinned SDK version: " + version)
-            if not sdk.platforms or len(sdk.platforms) != len({p: True for p in sdk.platforms}):
-                fail("SDK platforms must be nonempty and unique")
+            sdk_version(version)
+            sdk_platforms(sdk.platforms)
+            locked = _sdk(ctx, sdk, version, facts)
             repositories = {}
             for platform in sdk.platforms:
-                if platform not in SDK_PLATFORMS:
-                    fail("Unsupported SDK platform: " + platform)
                 name = sdk.name + "_" + platform.replace("-", "_")
                 repositories[platform] = name
-                sdk_archive(name = name, version = version, runtime_version = SDK_DOWNLOADS[version]["runtime"], platform = platform, **SDK_DOWNLOADS[version]["platforms"][platform])
+                sdk_archive(name = name, version = version, runtime_version = locked["runtime"], platform = platform, **locked["platforms"][platform])
             sdk_toolchains(name = sdk.name, repositories = repositories)
+        for archive in mod.tags.sdk_archive:
+            if archive.name in names:
+                fail("Duplicate SDK/runtime repository name: " + archive.name)
+            names[archive.name] = True
+            sdk_platforms([archive.platform])
+            sdk_version(archive.version)
+            sdk_version(archive.runtime_version)
+            sdk_download({"urls": archive.urls, "integrity": archive.integrity})
+            name = archive.name + "_" + archive.platform.replace("-", "_")
+            sdk_archive(name = name, version = archive.version, runtime_version = archive.runtime_version, platform = archive.platform, urls = archive.urls, integrity = archive.integrity)
+            sdk_toolchains(name = archive.name, repositories = {archive.platform: name})
         for runtime in mod.tags.runtime:
             if runtime.name in names:
                 fail("Duplicate runtime repository name: " + runtime.name)
@@ -107,6 +133,8 @@ def _runtimes(ctx):
                 fail("Unsupported runtime platform: " + archive.platform)
             _runtime_archive(name = archive.name, version = archive.version, platform = archive.platform, urls = archive.urls, integrity = archive.integrity)
 
+    return ctx.extension_metadata(facts = {"sdk-v1": facts})
+
 _dotnet_runtime = tag_class(attrs = {
     "name": attr.string(mandatory = True),
     "version": attr.string(mandatory = True),
@@ -125,10 +153,20 @@ _dotnet_sdk = tag_class(attrs = {
     "name": attr.string(mandatory = True),
     "version": attr.string(),
     "global_json": attr.label(),
+    "metadata_urls": attr.string_list(),
     "platforms": attr.string_list(default = ["linux-arm64", "linux-x64", "osx-arm64", "osx-x64"]),
+})
+
+_custom_sdk = tag_class(attrs = {
+    "name": attr.string(mandatory = True),
+    "version": attr.string(mandatory = True),
+    "runtime_version": attr.string(mandatory = True),
+    "platform": attr.string(mandatory = True),
+    "urls": attr.string_list(mandatory = True),
+    "integrity": attr.string(mandatory = True),
 })
 
 dotnet = module_extension(
     implementation = _runtimes,
-    tag_classes = {"sdk": _dotnet_sdk, "runtime": _dotnet_runtime, "runtime_archive": _custom_runtime},
+    tag_classes = {"sdk": _dotnet_sdk, "sdk_archive": _custom_sdk, "runtime": _dotnet_runtime, "runtime_archive": _custom_runtime},
 )

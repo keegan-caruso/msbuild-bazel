@@ -131,6 +131,42 @@ property/entry-point changes require sync. Use `msbuild_graph_output(directory =
 plus `input_paths` for produced trees; consumed files still need contract inputs.
 Prepared Restore exports use `Restore.Outputs` ownership. Exports reject links.
 
+## SDKs
+
+`dotnet.sdk` selects an exact `version` or declared `global_json`:
+
+```starlark
+dotnet = use_extension("@rules_msbuild//msbuild:extensions.bzl", "dotnet")
+dotnet.sdk(name = "dotnet", global_json = "//:global.json")
+use_repo(dotnet, "dotnet")
+register_toolchains("@dotnet//:all")
+```
+
+On first resolution, the extension reads Microsoft release metadata and records
+archive URLs, SHA-512 hashes and the bundled runtime in `MODULE.bazel.lock`.
+Commit that lockfile. Later resolutions reuse its facts, including after extension
+changes; downloads still verify the hashes. A missing SDK/platform selection needs
+metadata access. There is no SDK version allowlist or separate updater.
+
+After changing the pin, run `bazel run //:sync`, then review/commit `global.json`,
+`MODULE.bazel.lock` and the generated graph. Use `--lockfile_mode=error` on build
+servers to reject stale/missing lock entries. After switching Bazel versions,
+run once in update mode to record any additional registry entries; SDK facts survive
+the switch. `--lockfile_mode=off` discards this reuse; `refresh` retains existing
+SDK facts. To refresh a selection deliberately, remove its fact and extension entry
+from the lockfile.
+
+`platforms` defaults to Linux/macOS ARM64/x64. Optional `metadata_urls` supplies
+mirror URLs for releases.json; changing them creates a separate resolution.
+Archive availability and adapter/MSBuild compatibility are separate;
+see [qualified SDKs](support.md#qualified-sdks).
+
+For private archives, use `dotnet.sdk_archive(name, version, runtime_version,
+platform, urls, integrity)`, then register `@name//:all`. Integrity is mandatory;
+the archive must contain `dotnet`, the selected SDK and bundled CoreCLR runtime.
+Supported acquisition platforms are Linux/macOS ARM64/x64. The adapter tools
+currently target .NET 10/11; older SDKs need adapter changes and qualification.
+
 `msbuild_sdk` describes a complete downloaded or produced layout rooted beside
 `dotnet`; register `<name>_registered` and `<name>_runtime_registered`. The producer
 needs a separate bootstrap toolchain. Host-path SDK repositories are unsupported.
