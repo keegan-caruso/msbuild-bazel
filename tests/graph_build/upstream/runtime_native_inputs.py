@@ -39,7 +39,7 @@ def main():
     application = json.loads((root / 'application.json').read_text())
     suite = json.loads((root / 'suite.json').read_text())
     assert len(suite['tests']) == 8 and application['native']['libhostfxr.so']['producer'] == 'host'
-    environment = dict(os.environ, USE_BAZEL_VERSION='9.2.0')
+    environment = dict(os.environ, USE_BAZEL_VERSION='9.3.0')
     for name in ['RULES_MSBUILD_PROJECT_CACHE_URL', 'RULES_MSBUILD_PROJECT_CACHE_BEARER_TOKEN', 'RULES_MSBUILD_GRAPH_PROFILE']:
         environment.pop(name, None)
     bazel = [str(ROOT / 'scripts/bazel-launcher.sh'), '--output_base=' + str(args.output_base.resolve())]

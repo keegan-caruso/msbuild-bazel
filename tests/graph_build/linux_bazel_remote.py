@@ -42,7 +42,7 @@ def main():
             'app_graph(name="graph",linux_stable_paths=True' + (',linux_worker=True' if args.graph_worker else '') + ')\n'
             'msbuild_graph_binary(name="app",graph=":graph",project="P2/P2.csproj")\n')
         digests = []
-        steps = [('8.8.0', 0, 1), ('9.2.0', 3, 1), ('9.2.0', 2, 2)]
+        steps = [('8.8.0', 0, 1), ('9.3.0', 3, 1), ('9.3.0', 2, 2)]
         if args.phase == 'producer':
             steps = steps[:1]
         elif args.phase == 'consumer':

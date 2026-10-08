@@ -8,7 +8,7 @@ The sole build interface is `msbuild/defs.bzl` / `msbuild/graph.bzl` with
 `tools/GraphBuild` and its MSBuild project-cache plugin. ProjectSync emits explicit
 graph contracts; ArtifactTools handles artifact extraction/composition and launch.
 See docs/api.md and docs/support.md for scope and limits.
-Bazel 8.8.0 and 9.2.0 are supported; 9.2.0 remains the default.
+Bazel 8.8.0 and 9.3.0 are supported; 9.3.0 is the default.
 
 SDK toolchains consume verified archives or declared Bazel-produced artifacts;
 do not add host-path SDK repositories. Historical commands need their recorded

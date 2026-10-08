@@ -13,7 +13,7 @@ ROOT = Path(__file__).resolve().parents[3]
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('directory', type=Path, help='new disposable Linux ARM64 fixture')
-    parser.add_argument('--version', choices=['8.8.0', '9.2.0'], default='9.2.0')
+    parser.add_argument('--version', choices=['8.8.0', '9.3.0'], default='9.3.0')
     args = parser.parse_args()
     assert os.uname().sysname == 'Linux' and os.uname().machine == 'aarch64'
     base = args.directory.resolve()

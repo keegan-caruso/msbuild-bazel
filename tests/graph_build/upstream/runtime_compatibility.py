@@ -23,7 +23,7 @@ def main():
     parser.add_argument('raw_results', type=Path)
     parser.add_argument('results', type=Path)
     parser.add_argument('--output-base', type=Path, required=True)
-    parser.add_argument('--version', choices=['8.8.0', '9.2.0'], required=True)
+    parser.add_argument('--version', choices=['8.8.0', '9.3.0'], required=True)
     args = parser.parse_args()
     assert os.uname().sysname == 'Linux' and os.uname().machine == 'aarch64'
     root, raw, results, base = [p.resolve() for p in [args.workspace, args.raw_results, args.results, args.output_base]]

@@ -36,7 +36,7 @@ class ToolChecks(unittest.TestCase):
                               env=self.env, capture_output=True, text=True)
 
     def test_selected_versions_without_preparation(self):
-        for version in ['8.8.0', '9.2.0']:
+        for version in ['8.8.0', '9.3.0']:
             self.executable(self.bazel, 'bazel '+version)
             self.env['RULES_MSBUILD_BAZEL_VERSION'] = version
             result = self.check()
@@ -44,7 +44,7 @@ class ToolChecks(unittest.TestCase):
             self.assertIn('Toolchain checks passed', result.stdout)
 
     def test_wrong_binary_is_rejected(self):
-        self.env['RULES_MSBUILD_BAZEL_VERSION'] = '9.2.0'
+        self.env['RULES_MSBUILD_BAZEL_VERSION'] = '9.3.0'
         result = self.check()
         self.assertNotEqual(result.returncode, 0)
         self.assertIn('Bazel version differs', result.stderr)

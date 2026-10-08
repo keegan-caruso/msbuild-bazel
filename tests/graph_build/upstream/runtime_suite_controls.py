@@ -28,7 +28,7 @@ def main():
     parser.add_argument('raw_results', type=Path)
     parser.add_argument('results', type=Path)
     parser.add_argument('--output-base', type=Path, required=True)
-    parser.add_argument('--version', choices=['8.8.0', '9.2.0'], default='9.2.0')
+    parser.add_argument('--version', choices=['8.8.0', '9.3.0'], default='9.3.0')
     parser.add_argument('--all-suites', action='store_true', help='use the reviewed 481-compilation eight-suite graph')
     parser.add_argument('--test-failure-only', action='store_true', help='extend a completed edit control with assertion failure and restoration')
     args = parser.parse_args()

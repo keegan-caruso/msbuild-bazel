@@ -29,7 +29,7 @@ def main():
         bep = results / (label + '.bep')
         with (results / (label + '.log')).open('w') as log:
             process = subprocess.run(bazel + ['--build_event_json_file=' + str(bep)], cwd=root,
-                                     env=dict(os.environ, USE_BAZEL_VERSION='9.2.0'), stdout=log, stderr=subprocess.STDOUT)
+                                     env=dict(os.environ, USE_BAZEL_VERSION='9.3.0'), stdout=log, stderr=subprocess.STDOUT)
         assert (process.returncode == 0) == success, label
         events = [json.loads(line) for line in bep.read_text().splitlines()]
         metrics = next(event['buildMetrics']['actionSummary'] for event in events if 'buildMetrics' in event)

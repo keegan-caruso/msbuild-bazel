@@ -171,4 +171,19 @@ tar -xf "$scratch/clone.tar" -C "$scratch/real-clone"
     cd "$scratch/real-clone"
     fresh "$scratch/real-base" test //:tests --lockfile_mode=error --test_output=errors
 )
+# Verify cached HTTPS SDK acquisition when downloader URLs are blocked.
+case "$("$BIT_BAZEL_BINARY" --version)" in
+    'bazel 9.3.'*)
+        printf 'block .*\n' > "$scratch/downloader.config"
+        sdk_cache=()
+        if [[ -n "${RULES_MSBUILD_TEST_REPOSITORY_CACHE:-}" ]]; then
+            sdk_cache=(--repository_cache="$RULES_MSBUILD_TEST_REPOSITORY_CACHE")
+        fi
+        (
+            cd "$scratch/real-clone"
+            fresh "$scratch/blocked-base" build @dotnet//:files --lockfile_mode=error \
+                --downloader_config="$scratch/downloader.config" "${sdk_cache[@]}"
+        )
+        ;;
+esac
 echo 'PASS: automatic SDK resolution, native lock/facts recovery, pin checks, archive integrity and .NET 10.0.302 app/tests'

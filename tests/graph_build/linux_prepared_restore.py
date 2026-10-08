@@ -30,7 +30,7 @@ def main():
     parser.add_argument('--generated', action='store_true')
     parser.add_argument('--worker', action='store_true')
     parser.add_argument('--package', action='store_true', help='Include package assembly/build targets and reject package writes')
-    parser.add_argument('--version', choices=['8.8.0', '9.2.0'], default='9.2.0')
+    parser.add_argument('--version', choices=['8.8.0', '9.3.0'], default='9.3.0')
     args = parser.parse_args()
     assert os.uname().sysname == 'Linux'
     assert not args.package or (args.worker and not args.generated), 'Package control uses the explicit worker fixture'

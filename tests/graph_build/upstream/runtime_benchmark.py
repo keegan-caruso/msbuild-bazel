@@ -163,7 +163,7 @@ def main():
         summary_path = prior / 'summary.json'
         previous = json.loads(summary_path.read_text())
         assert previous['slice'] == args.slice and previous['entries'] == mutation['entries']
-        assert previous['sdkVersion'] == contract['SdkVersion'] and previous['bazelVersion'] == '9.2.0'
+        assert previous['sdkVersion'] == contract['SdkVersion'] and previous['bazelVersion'] == '9.3.0'
         assert previous['graphProjects'] == compiled and previous['cpus'] == 4 and previous['memoryGiB'] == 8
         for case in ['no-op', 'body']:
             completed = [row for row in previous['rows'] if row['case'] == case]
@@ -185,7 +185,7 @@ def main():
     original_config = config.read_bytes() if config.exists() else None
     config.write_text('<configuration><packageSources><clear/><add key="declared" value=".package-source"/></packageSources><fallbackPackageFolders><clear/></fallbackPackageFolders></configuration>')
     environment = dict(os.environ, DOTNET_ROOT=str(sdk), DOTNET_HOST_PATH=dotnet,
-                       NUGET_PACKAGES=str(packages), MSBUILDDISABLENODEREUSE='1', USE_BAZEL_VERSION='9.2.0')
+                       NUGET_PACKAGES=str(packages), MSBUILDDISABLENODEREUSE='1', USE_BAZEL_VERSION='9.3.0')
     environment.pop('RULES_MSBUILD_GRAPH_PROFILE', None)
     environment.pop('RULES_MSBUILD_PROJECT_CACHE_URL', None)
     environment.pop('RULES_MSBUILD_PROJECT_CACHE_BEARER_TOKEN', None)
@@ -357,7 +357,7 @@ def main():
         row['observedFileModes'] = dict(mode_counts)
         rows.append(row)
         summary = dict(platform='linux-arm64', cpus=4, memoryGiB=8, msbuildNodes=4, graphProjects=compiled,
-                       sdkVersion=contract['SdkVersion'], bazelVersion='9.2.0', slice=args.slice, entries=mutation['entries'], rawNamespace='same stable paths and isolation as graph',
+                       sdkVersion=contract['SdkVersion'], bazelVersion='9.3.0', slice=args.slice, entries=mutation['entries'], rawNamespace='same stable paths and isolation as graph',
                        harnessSha256=harness_sha256, packageExpansionSeconds=expansion_seconds,
                        continuation=continuation, qualifiedWarmBaseline=qualified, retainedEvaluation=args.evaluation_reuse,
                        editCase=str(args.edit_case) if args.edit_case else 'pipelines', reviewedEvaluationInputs=reviewed_inputs if args.evaluation_reuse else None,
