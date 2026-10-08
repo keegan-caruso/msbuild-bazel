@@ -8,7 +8,12 @@ SDK_PLATFORMS = {
 }
 
 def _sdk_archive(ctx):
+    if not ctx.attr.integrity:
+        fail("SDK archives require integrity")
     ctx.download_and_extract(url = ctx.attr.urls, integrity = ctx.attr.integrity, output = "sdk", canonical_id = ctx.attr.integrity)
+    for path in ["dotnet", "sdk/" + ctx.attr.version, "shared/Microsoft.NETCore.App/" + ctx.attr.runtime_version]:
+        if not ctx.path("sdk/" + path).exists:
+            fail("SDK archive is missing declared layout component: " + path)
     ctx.file("BUILD.bazel", """load(%s, "msbuild_sdk")
 package(default_visibility = ["//visibility:public"])
 filegroup(name = "files", srcs = glob(["sdk/**"], exclude = ["sdk/**/BUILD", "sdk/**/BUILD.bazel"]))

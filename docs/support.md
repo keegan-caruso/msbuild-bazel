@@ -22,6 +22,16 @@ sync, raw MSBuild parity, edits, failures and cached/uncached workers.
 Web/Razor [graph controls](../tests/graph_build/web.py) cover compile/replay, Razor
 edits and assembly attributes; source-built Razor consumers are covered below.
 
+`bash scripts/bazel.sh test //tests/integration:sdk_locks --test_output=errors`
+passed both pins on Linux ARM64: automatic metadata resolution, native lockfile
+facts, platform expansion, fresh-base recovery without metadata, extension-change
+reuse, stale-pin rejection, archive hash/layout guards and private archives. Cross-version recovery
+also passed after recording each Bazel version's registry entries. SDK **10.0.302**
+(absent from the former catalog) passed sync/app/tests and a fresh clone in strict
+lockfile mode with metadata removed; **10.0.400** retains quickstart coverage.
+There is no acquisition allowlist; other SDK families/workloads remain unqualified.
+See [SDK configuration](api.md#sdks).
+
 `bash scripts/bazel.sh test //tests/integration:source_globs --test_output=errors`
 passed on Linux ARM64 with both pins: method-body output changes, addition/removal/
 rename guards and resync followed by app/tests. Sync controls cover exclusions,

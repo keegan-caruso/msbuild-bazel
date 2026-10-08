@@ -27,6 +27,12 @@ use_repo(dotnet, "dotnet")
 register_toolchains("@dotnet//:all")
 ```
 
+The first build resolves release metadata and writes SDK URLs/hashes to
+`MODULE.bazel.lock`; commit it. Later builds reuse that selection and verify the
+archive hashes. To change SDK versions, edit `global.json`, rerun project sync,
+and commit the updated lockfile and graph. Build servers can use
+`--lockfile_mode=error` to reject stale locks. See [SDK configuration](../../docs/api.md#sdks).
+
 [BUILD.bazel](BUILD.bazel) declares sync, then uses the committed generated macro:
 
 ```starlark

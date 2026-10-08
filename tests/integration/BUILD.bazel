@@ -19,6 +19,65 @@ sh_binary(
 )
 
 sh_binary(
+    name = "sdk_lock_runner",
+    testonly = True,
+    srcs = ["sdk_lock.sh"],
+    data = ["common.sh"],
+)
+
+filegroup(
+    name = "sdk_lock_bazel_8",
+    testonly = True,
+    srcs = [bazel_binaries.label("8.8.0")],
+)
+
+filegroup(
+    name = "sdk_lock_bazel_9",
+    testonly = True,
+    srcs = [bazel_binaries.label(bazel_binaries.versions.current)],
+)
+
+bazel_integration_tests(
+    name = "sdk_lock_cases",
+    additional_env_inherit = [
+        "BAZELISK_HOME",
+        "RULES_MSBUILD_TEST_REPOSITORY_CACHE",
+    ],
+    bazel_binaries = bazel_binaries,
+    bazel_versions = bazel_binaries.versions.all,
+    data = [
+        "sdk-10.0.302.metadata.json",
+        ":rules_archive",
+        ":sdk_lock_bazel_8",
+        ":sdk_lock_bazel_9",
+    ],
+    env = {
+        "RULES_ARCHIVE": "$(rootpath :rules_archive)",
+        "BAZEL_8": "$(rootpaths :sdk_lock_bazel_8)",
+        "BAZEL_9": "$(rootpaths :sdk_lock_bazel_9)",
+        "SDK_QUALIFICATION_METADATA": "$(rootpath sdk-10.0.302.metadata.json)",
+    },
+    tags = [
+        "exclusive",
+        "manual",
+        "no-sandbox",
+    ],
+    target_compatible_with = ["@platforms//os:linux"],
+    test_runner = ":sdk_lock_runner",
+    workspace_files = ["//:quickstart_sources"],
+    workspace_path = "examples/quickstart",
+)
+
+test_suite(
+    name = "sdk_locks",
+    tags = ["manual"],
+    tests = integration_test_utils.bazel_integration_test_names(
+        "sdk_lock_cases",
+        bazel_binaries.versions.all,
+    ),
+)
+
+sh_binary(
     name = "worker_runner",
     testonly = True,
     srcs = ["worker.sh"],

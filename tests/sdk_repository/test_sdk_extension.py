@@ -16,6 +16,12 @@ class SdkExtension(unittest.TestCase):
             root=Path(directory)
             (root/'global.json').write_text(contents or '{"sdk":{"version":"10.0.400"}}')
             (root/'BUILD.bazel').write_text('exports_files(["global.json"])')
+            metadata = {'releases': [{'sdk': {'version': '10.0.400', 'runtime-version': '10.0.11', 'files': [
+                {'rid': rid, 'name': 'dotnet-sdk-' + rid + '.tar.gz', 'url': 'https://example.invalid/sdk.tar.gz', 'hash': '00' * 64}
+                for rid in ['linux-arm64', 'linux-x64', 'osx-arm64', 'osx-x64']
+            ]}}]}
+            (root/'releases.json').write_text(json.dumps(metadata))
+            declaration += ',metadata_urls=[' + json.dumps((root/'releases.json').as_uri()) + ']'
             (root/'MODULE.bazel').write_text('bazel_dep(name="rules_msbuild",version="0.0.0")\nlocal_path_override(module_name="rules_msbuild",path='+json.dumps(str(ROOT))+')\ndotnet=use_extension("@rules_msbuild//msbuild:extensions.bzl","dotnet")\ndotnet.sdk(name="dotnet",'+declaration+')\nuse_repo(dotnet,"dotnet")\n')
             result=subprocess.run([BAZEL,'--batch','--output_base='+str(root/'base'),'--ignore_all_rc_files','query','@dotnet//:all','--lockfile_mode=off'],cwd=root,text=True,capture_output=True,timeout=120)
             output=result.stdout+result.stderr
@@ -58,4 +64,4 @@ class SdkExtension(unittest.TestCase):
         self.check(contents='{"sdk":{"version":"10.0.400"},"msbuild-sdks":{"Example.Sdk":42}}',error="msbuild-sdks")
 
     def test_unknown_pin(self):
-        self.check('version="99.0.100"',error='Unknown pinned SDK version')
+        self.check('version="99.0.100"',error='Release metadata must identify exactly one SDK')
