@@ -19,7 +19,7 @@ The [quick start](examples/quickstart/README.md) has separate
 [downloaded SDK](examples/quickstart/README.md#downloaded-sdk) and
 [source-built SDK](examples/quickstart/README.md#source-built-sdk) scenarios.
 Requires Bazelisk and OS .NET prerequisites. Pins: SDK **10.0.400**;
-Bazel **8.8.0 / 9.2.0** (default).
+Bazel **8.8.0 / 9.3.0** (default).
 
 **Experimental:** consume a pinned source checkout. No BCR or runner release;
 the API may change. See [validated scope and limits](docs/support.md).

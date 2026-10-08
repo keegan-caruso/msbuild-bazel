@@ -1,14 +1,29 @@
 # Support and limits
 
 The graph workflow is the sole backend. Pins: SDK **10.0.400**, Bazel
-**8.8.0 / 9.2.0**. Inputs, packages, tool layouts, generated files and output
+**8.8.0 / 9.3.0**. Inputs, packages, tool layouts, generated files and output
 ownership must be explicit. Sync does not trace arbitrary task reads or acquire
 missing packages.
 
+The 9.3 upgrade passed 29 analysis/integration checks on Linux ARM64, including
+8.8 compatibility, SDK facts, cached/uncached workers, compiler selections and
+recursive-source HTTP Restore/project recovery. Cached HTTPS SDK acquisition also
+passed with all downloader URLs blocked and metadata removed. Reproduce with:
+
+```sh
+DYNAMIC_SOURCE_CACHE_URL=http://cache:8080 bash scripts/bazel.sh test \
+  //tests/analysis/... \
+  //tests/integration:{quickstart,sdk_locks,workers,recursive_sources,resolved_inputs} \
+  --test_output=errors
+```
+
+Large runtime timings and source-built SDK consumers below retain their recorded
+9.2 qualification; they were not rerun for this pin update.
+
 ## Qualified SDKs
 
-These native suites passed on Linux ARM64 with both Bazel pins. They check public
-sync, raw MSBuild parity, edits, failures and cached/uncached workers.
+The SDK suites below were qualified on Linux ARM64 with Bazel 8.8.0 / 9.2.0:
+public sync, raw MSBuild parity, edits, failures and cached/uncached workers.
 
 | SDK / project | Qualified behavior | Native suite (`//tests/integration:`) |
 | --- | --- | --- |
@@ -23,7 +38,7 @@ Web/Razor [graph controls](../tests/graph_build/web.py) cover compile/replay, Ra
 edits and assembly attributes; source-built Razor consumers are covered below.
 
 `bash scripts/bazel.sh test //tests/integration:sdk_locks --test_output=errors`
-passed both pins on Linux ARM64: automatic metadata resolution, native lockfile
+passed 8.8.0 / 9.3.0 on Linux ARM64: automatic metadata resolution, native lockfile
 facts, platform expansion, fresh-base recovery without metadata, extension-change
 reuse, stale-pin rejection, archive hash/layout guards and private archives. Cross-version recovery
 also passed after recording each Bazel version's registry entries. SDK **10.0.302**
@@ -33,11 +48,11 @@ There is no acquisition allowlist; other SDK families/workloads remain unqualifi
 See [SDK configuration](api.md#sdks).
 
 `bash scripts/bazel.sh test //tests/integration:source_globs --test_output=errors`
-passed on Linux ARM64 with both pins: method-body output changes, addition/removal/
+passed on Linux ARM64 with 8.8.0 / 9.2.0: method-body output changes, addition/removal/
 rename guards and resync followed by app/tests. Sync controls cover exclusions,
 hidden files, symlinks and framework-specific inputs. See [sync](api.md#sync).
 
-`//tests/integration:dynamic_sources` and `:recursive_sources` passed both pins:
+`//tests/integration:dynamic_sources` and `:recursive_sources` passed 8.8.0 / 9.2.0:
 flat/recursive Compile globs accept add/remove/rename/empty sets without sync or
 another Restore action, with fresh sandbox output parity. Recursive globs cover new
 subdirectories. Root patterns and ordinary `bazel-*` filenames inside source
@@ -45,7 +60,7 @@ directories also passed. Body edits reuse three evaluations with one project mis
 hits; membership resets evaluation and retains conservative consumer keys. Guards
 reject excluded/generated/package-crossing members, stale definitions and task-created
 membership. Default unprepared actions also passed. With
-`DYNAMIC_SOURCE_CACHE_URL=http://cache:8080`, both pins recovered Restore through
+`DYNAMIC_SOURCE_CACHE_URL=http://cache:8080`, 8.8.0 / 9.2.0 recovered Restore through
 Bazel and all three projects through HTTP in a fresh output base, with identical app
 outputs. Scope: a small managed fixture, one Linux ARM64 host; no large-graph or
 independent-machine qualification for dynamic membership.
@@ -95,7 +110,7 @@ Complete compiler inventories match raw compiler sets: LINQ body/API edits compi
 sync captures all **2,970** qualified project compiler selections without hand-authored
 compiler/copy maps; its body/API and 481-hit local recovery checks preserve byte parity.
 Native suites `resolved_inputs`, `resolved_package_copies` and `resolved_il_sdk`
-passed both pins, including multi-target selection, implementation references,
+passed 8.8.0 / 9.2.0, including multi-target selection, implementation references,
 package basename collisions and transitive copy refresh. Twenty sync controls reject
 conflicting selections, undeclared consumer inputs, input mutation and unsafe outputs.
 
@@ -103,7 +118,7 @@ Normal Bazel remote-cache recovery hits both Restore and graph actions on a fres
 consumer. Forced project recovery with a stopped producer also passed: complete
 inventories yielded **481 hits / zero compilations**, with all **9,972 retained
 files** matching bytes/modes. Traversal, NoTargets, Worker, IL and Arcade fixtures
-passed independent HTTP recovery on both pins with Bazel action caches disabled.
+passed independent HTTP recovery on 8.8.0 / 9.2.0 with Bazel action caches disabled.
 Missing blobs rebuild; corruption fails. Warm local builds alone do not prove recovery.
 See [performance and reproduction](performance.md).
 

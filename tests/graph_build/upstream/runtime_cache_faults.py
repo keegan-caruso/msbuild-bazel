@@ -113,7 +113,7 @@ def main():
     directories = {d for _, v in nodes for d in v['OutputDirectories']}
     files = {f for _, v in nodes for f in v.get('OutputFiles', [])}
     states = {d + '/' + Path(p).name + '.GenerateResource.cache' for p, v in nodes for d in v['OutputDirectories'] if d.startswith('artifacts/obj/')}
-    environment = dict(os.environ, USE_BAZEL_VERSION='9.2.0')
+    environment = dict(os.environ, USE_BAZEL_VERSION='9.3.0')
     Proxy.upstream = environment.pop('RULES_MSBUILD_PROJECT_CACHE_URL')
     server = Server(('0.0.0.0', 0), Proxy)
     thread = threading.Thread(target=server.serve_forever, daemon=True)

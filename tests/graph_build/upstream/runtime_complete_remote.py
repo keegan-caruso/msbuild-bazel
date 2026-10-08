@@ -69,7 +69,7 @@ def main():
     edit_token = uuid.uuid4().hex
     if mutation:
         assert count == mutation['compiled'] and contract['Entries'] == mutation['entries']
-    environment = dict(os.environ, USE_BAZEL_VERSION='9.2.0')
+    environment = dict(os.environ, USE_BAZEL_VERSION='9.3.0')
     environment.pop('RULES_MSBUILD_GRAPH_PROFILE', None)
     environment.pop('RULES_MSBUILD_PROJECT_CACHE_URL', None)
     environment.pop('RULES_MSBUILD_PROJECT_CACHE_BEARER_TOKEN', None)

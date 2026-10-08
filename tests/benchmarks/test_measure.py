@@ -39,9 +39,9 @@ class Measurements(unittest.TestCase):
                 with path.open('w') as stream:
                     writer = csv.DictWriter(stream, fieldnames=['bazel_commit', 'wall', 'exit_status'])
                     writer.writeheader()
-                    writer.writerows(dict(bazel_commit='bazel-9.2.0', wall=i+1, exit_status=s) for i, s in enumerate(statuses))
+                    writer.writerows(dict(bazel_commit='bazel-9.3.0', wall=i+1, exit_status=s) for i, s in enumerate(statuses))
             write([0, 0, 0])
-            self.assertEqual(summarize(path, 3, 1)['bazel-9.2.0']['medianSeconds'], 2)
+            self.assertEqual(summarize(path, 3, 1)['bazel-9.3.0']['medianSeconds'], 2)
             (Path(folder)/'benchmark.log').write_text('Bazel command failed with exit code 1')
             with self.assertRaises(RuntimeError):
                 summarize(path, 3, 1)

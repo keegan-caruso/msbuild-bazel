@@ -30,7 +30,7 @@ def main():
     manifest = json.loads((root / 'application.json').read_text())
     assert len(manifest['managed']) == 58 and len(manifest['native']) == 8 and manifest['framework'] == '10.0.0'
     results.mkdir(parents=True, exist_ok=False)
-    environment = dict(os.environ, USE_BAZEL_VERSION='9.2.0')
+    environment = dict(os.environ, USE_BAZEL_VERSION='9.3.0')
     environment.pop('RULES_MSBUILD_GRAPH_PROFILE', None)
     environment.pop('RULES_MSBUILD_PROJECT_CACHE_URL', None)
     environment.pop('RULES_MSBUILD_PROJECT_CACHE_BEARER_TOKEN', None)
@@ -85,7 +85,7 @@ def main():
         if args.phase == 'consumer':
             assert outcome['binaryHashes'] == seed['verification']['binaryHashes']
             assert outcome['sdkAbsentLoadedSourceComponents'] == seed['verification']['sdkAbsentLoadedSourceComponents']
-        report = dict(phase=args.phase, version='9.2.0', externalWorkspace=str(root), seconds=seconds,
+        report = dict(phase=args.phase, version='9.3.0', externalWorkspace=str(root), seconds=seconds,
                       actions=actions, runners=runners, executedSpawns=executed, files=files, verification=outcome,
                       scope='whole Bazel action-cache correctness; construction/acquisition included; not project-cache timing or RBE')
         (results / 'summary.json').write_text(json.dumps(report, indent=2) + '\n')

@@ -13,7 +13,7 @@ def main():
     parser.add_argument('workspace', type=Path)
     parser.add_argument('results', type=Path)
     parser.add_argument('--output-base', type=Path, required=True, help='warm successful app/test base; retain its graph worker')
-    parser.add_argument('--version', choices=['8.8.0', '9.2.0'], default='9.2.0')
+    parser.add_argument('--version', choices=['8.8.0', '9.3.0'], default='9.3.0')
     args = parser.parse_args()
     assert os.uname().sysname == 'Linux' and os.uname().machine == 'aarch64'
     root, results = args.workspace.resolve(), args.results.resolve()

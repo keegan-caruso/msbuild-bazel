@@ -135,7 +135,7 @@ test "$($binary)" = "$2"
             assert 'Microsoft.DotNet.ILCompiler' in (folder/(case+'.log')).read_text()
             row = {'case':case,'missingCompilerRejected':True}
         rows.append(row)
-        (folder/'report.json').write_text(json.dumps({'platform':'linux-arm64','sdk':'10.0.400','bazel':os.environ.get('USE_BAZEL_VERSION','9.2.0'),'rows':rows},indent=2)+'\n')
+        (folder/'report.json').write_text(json.dumps({'platform':'linux-arm64','sdk':'10.0.400','bazel':os.environ.get('USE_BAZEL_VERSION','9.3.0'),'rows':rows},indent=2)+'\n')
         print(json.dumps(row),flush=True)
     try:
         run(args.phase, 0 if args.phase=='producer' else 1)

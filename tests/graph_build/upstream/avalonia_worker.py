@@ -36,7 +36,7 @@ def main():
     count = sum(bool(project['OutputDirectories']) for project in declarations)
     assert count == 23, count
     prefix = [str(ROOT / 'scripts/bazel-launcher.sh'), '--output_base=' + str(args.output_base.resolve())]
-    env = dict(os.environ, USE_BAZEL_VERSION='9.2.0')
+    env = dict(os.environ, USE_BAZEL_VERSION='9.3.0')
     endpoint = env.pop('RULES_MSBUILD_PROJECT_CACHE_URL')
     env.pop('RULES_MSBUILD_PROJECT_CACHE_BEARER_TOKEN', None)
     probe = results / 'inspect'

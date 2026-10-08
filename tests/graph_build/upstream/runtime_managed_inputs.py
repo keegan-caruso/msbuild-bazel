@@ -55,7 +55,7 @@ def main():
     baseline_cases = cases()
     assert sum(sum(c.values()) for c in baseline_cases.values()) == 119016
     sdk = Path(os.environ['RULES_MSBUILD_DOTNET_ROOT']).resolve()
-    environment = dict(os.environ, USE_BAZEL_VERSION='9.2.0')
+    environment = dict(os.environ, USE_BAZEL_VERSION='9.3.0')
     for name in ['RULES_MSBUILD_PROJECT_CACHE_URL', 'RULES_MSBUILD_PROJECT_CACHE_BEARER_TOKEN', 'RULES_MSBUILD_GRAPH_PROFILE']:
         environment.pop(name, None)
     bazel = [str(ROOT / 'scripts/bazel-launcher.sh'), '--output_base=' + str(args.output_base.resolve())]
