@@ -182,8 +182,8 @@ internal sealed class WorkspaceView : IDisposable
         Path.Combine(packageSources[identity], identity.Replace('/', '.') + ".nupkg"));
 
     internal string[] GraphPackageDigests() => GraphPackageIdentities(true).Select(identity =>
-        Convert.ToHexStringLower(System.Security.Cryptography.SHA256.HashData(File.ReadAllBytes(
-            Path.Combine(packageSources[identity], identity.Replace('/', '.') + ".nupkg"))))).Order(StringComparer.Ordinal).ToArray();
+        Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(File.ReadAllBytes(
+            Path.Combine(packageSources[identity], identity.Replace('/', '.') + ".nupkg")))).ToLowerInvariant()).Order(StringComparer.Ordinal).ToArray();
 
     internal void SelectPackageLock(string? label)
     {

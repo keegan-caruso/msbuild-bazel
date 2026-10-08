@@ -50,7 +50,7 @@ internal static class NativeToolchainPackages
 
             using (var stream = File.OpenRead(package.Archive))
             {
-                var actual = Convert.ToHexStringLower(SHA256.HashData(stream));
+                var actual = Convert.ToHexString(SHA256.HashData(stream)).ToLowerInvariant();
                 if (!actual.Equals(package.Sha256, StringComparison.OrdinalIgnoreCase))
                 {
                     throw new InvalidDataException("Native package differs from locked SHA-256: " + package.Name);

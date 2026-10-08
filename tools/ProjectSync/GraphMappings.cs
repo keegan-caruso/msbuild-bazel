@@ -80,7 +80,7 @@ internal sealed class GraphMappings
             }
             return [];
         }
-        var digest = Convert.ToHexStringLower(System.Security.Cryptography.SHA256.HashData(File.ReadAllBytes(document.FullPath)));
+        var digest = Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(File.ReadAllBytes(document.FullPath))).ToLowerInvariant();
         if (contract.Sha256 != digest || !document.Targets.Select(target => target.Name).ToHashSet(StringComparer.Ordinal).SetEquals(contract.Targets) ||
             !document.UsingTasks.Select(task => task.TaskName).ToHashSet(StringComparer.Ordinal).SetEquals(contract.Tasks))
         {

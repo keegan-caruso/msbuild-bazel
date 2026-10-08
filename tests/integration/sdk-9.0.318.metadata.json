@@ -1,0 +1,36 @@
+{
+  "releases": [
+    {
+      "sdk": {
+        "version": "9.0.318",
+        "runtime-version": "9.0.20",
+        "files": [
+          {
+            "name": "dotnet-sdk-linux-arm64.tar.gz",
+            "rid": "linux-arm64",
+            "url": "https://builds.dotnet.microsoft.com/dotnet/Sdk/9.0.318/dotnet-sdk-9.0.318-linux-arm64.tar.gz",
+            "hash": "f9c957867bddea8f82ec0459432ce7ddff8fafc846537b8003eb9f239d9c2e38586031a15954e74691c5a8cf5b3ab125d99bca85c74ca45dc8745071ca81e7ff"
+          },
+          {
+            "name": "dotnet-sdk-linux-x64.tar.gz",
+            "rid": "linux-x64",
+            "url": "https://builds.dotnet.microsoft.com/dotnet/Sdk/9.0.318/dotnet-sdk-9.0.318-linux-x64.tar.gz",
+            "hash": "e8685293a3512178e0de1bb3c1663e31fdf9d761af705094bf833cc1ff6b9a18c543aa4141f0216503c98039c719585a6d32905b0bbb3279e93b7e7616e047c3"
+          },
+          {
+            "name": "dotnet-sdk-osx-x64.tar.gz",
+            "rid": "osx-x64",
+            "url": "https://builds.dotnet.microsoft.com/dotnet/Sdk/9.0.318/dotnet-sdk-9.0.318-osx-x64.tar.gz",
+            "hash": "08b45e82b7bd7b0804c14e6229b3703fb8f98cabac8bec3b05d9d5ecc41033801e455c45f4b5a8a6bac0d0405b64946a65614a611017b7596a825cfd8a74ae1f"
+          },
+          {
+            "name": "dotnet-sdk-osx-arm64.tar.gz",
+            "rid": "osx-arm64",
+            "url": "https://builds.dotnet.microsoft.com/dotnet/Sdk/9.0.318/dotnet-sdk-9.0.318-osx-arm64.tar.gz",
+            "hash": "4305c929005f47a933f33c253b6f47f8b21fd6096c7e359e78495e0de7c8ed1c6700aec2785a983d76ac7c99a66b1422abedb4056259b00e748ffbe36f243532"
+          }
+        ]
+      }
+    }
+  ]
+}

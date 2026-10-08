@@ -101,7 +101,6 @@ internal sealed class GraphInputs : IDisposable
             }
             properties["PathMap"] = Files.Root + "=/_/workspace," + Files.Sdk + "=/_/sdk";
             properties["UseSharedCompilation"] = "false";
-            properties["NetCoreSdkRoot"] = sdk;
             evaluationContext = evaluation?.Context ?? EvaluationContext.Create(EvaluationContext.SharingPolicy.Shared);
             evaluationProfile = GraphProfile.Enabled && GraphProfile.EvaluationEnabled ? new GraphEvaluationProfile(Files) : null;
             if (evaluationProfile is not null)

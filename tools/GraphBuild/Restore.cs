@@ -30,7 +30,7 @@ internal static class Restore
                 UseShellExecute = false,
             };
             foreach (var argument in new[] { "restore", Path.Combine(root, entry), "--configfile", config, "--source", source, "--packages", packages, "-p:NuGetAudit=false",
-                "-p:NetCoreSdkRoot=" + Path.Combine(sdkRoot, "sdk", contract.SdkVersion), "-p:RestoreFallbackFolders=", "-p:RestoreAdditionalProjectSources=", "-p:RestoreAdditionalProjectFallbackFolders=" })
+                "-p:RestoreFallbackFolders=", "-p:RestoreAdditionalProjectSources=", "-p:RestoreAdditionalProjectFallbackFolders=" })
             {
                 process.ArgumentList.Add(argument);
             }

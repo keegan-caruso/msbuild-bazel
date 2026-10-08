@@ -81,7 +81,7 @@ internal sealed class ContractFiles(string root, string sdk)
     {
         using var timing = GraphProfile.Measure("fileHash", GraphProfile.Enabled ? new FileInfo(path).Length : 0);
         using var stream = File.OpenRead(path);
-        return Convert.ToHexStringLower(SHA256.HashData(stream));
+        return Convert.ToHexString(SHA256.HashData(stream)).ToLowerInvariant();
     }
 
     internal static string InputDigest(string path) => Hash([Digest(path), OperatingSystem.IsWindows() ? "" :
@@ -95,7 +95,7 @@ internal sealed class ContractFiles(string root, string sdk)
         // and UTF-8 byte array. Small buffers also serve two-record input digests.
         JsonSerializer.Serialize(stream, records,
             records.TryGetNonEnumeratedCount(out var count) && count <= 2 ? SmallHashOptions : null);
-        return Convert.ToHexStringLower(hash.GetHashAndReset());
+        return Convert.ToHexString(hash.GetHashAndReset()).ToLowerInvariant();
     }
 
     internal static string TreeDigest(string directory, int parallelism = 1)
