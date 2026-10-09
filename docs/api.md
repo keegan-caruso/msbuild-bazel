@@ -178,13 +178,18 @@ of compilation. Newer hosts run older targets only when runtimeconfig allows it.
 
 ## Runtimes
 
-App/test execution uses the SDK's bundled runtime by default. To select a separate
-execution host, declare an exact CoreCLR runtime version:
+App/test execution uses the SDK's bundled shared frameworks by default, including
+ASP.NET; no separate runtime declaration is needed. To select a separate execution
+host, declare an exact CoreCLR runtime version:
 
 ```starlark
 dotnet.runtime(name = "app_runtime", version = "10.0.12")
 use_repo(dotnet, "app_runtime")
 ```
+
+For a separate web-app host, add `kind = "aspnetcore"` to select the ASP.NET distribution,
+including CoreCLR and `Microsoft.AspNetCore.App`. The default kind is `coreclr`;
+their archive selections stay separate even for the same version and metadata URL.
 
 Set `runtime_host = "@app_runtime//:runtime"` on the app/test target. This does not
 change its compilation SDK. The app's runtimeconfig controls framework compatibility
@@ -198,9 +203,8 @@ are available from Bazel's repository cache or their locked URLs.
 
 For private layouts, use `dotnet.runtime_archive(name, version, platform, urls,
 integrity)`. Source-built `msbuild_runtime` targets retain the same `runtime_host`
-handoff. CoreCLR archives contain `Microsoft.NETCore.App`; apps needing other shared
-frameworks require a complete declared runtime layout. Download availability does
-not qualify additional platforms or workloads.
+handoff. Other shared frameworks require a complete declared runtime layout.
+Download availability does not qualify additional platforms or workloads.
 
 ## Tests
 

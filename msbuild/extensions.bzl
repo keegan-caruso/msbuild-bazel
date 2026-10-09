@@ -22,6 +22,10 @@ def _archive(ctx):
     )
     if not ctx.path("runtime/dotnet").exists:
         fail("Runtime archive must contain dotnet at its root")
+    if ctx.attr.kind == "aspnetcore":
+        for path in ["shared/Microsoft.NETCore.App", "shared/Microsoft.AspNetCore.App/" + ctx.attr.version]:
+            if not ctx.path("runtime/" + path).exists:
+                fail("ASP.NET runtime archive is missing declared layout component: " + path)
     ctx.file("BUILD.bazel", """load(%s, "msbuild_layout", "msbuild_runtime")
 package(default_visibility = ["//visibility:public"])
 msbuild_layout(
@@ -45,6 +49,7 @@ _runtime_archive = repository_rule(
         "integrity": attr.string(mandatory = True),
         "version": attr.string(mandatory = True),
         "platform": attr.string(mandatory = True),
+        "kind": attr.string(default = "coreclr", values = ["coreclr", "aspnetcore"]),
         "_defs": attr.label(default = Label("//msbuild:defs.bzl")),
     },
 )
@@ -63,14 +68,17 @@ _runtime_aliases = repository_rule(implementation = _aliases, attrs = {"reposito
 def _selection(ctx, declaration, version, facts, kind):
     urls = declaration.metadata_urls or ["https://builds.dotnet.microsoft.com/dotnet/release-metadata/%s/releases.json" % ".".join(version.split(".")[:2])]
     key = json.encode([version, urls])
+
+    # Preserve existing CoreCLR/SDK facts; ASP.NET distributions have separate keys.
+    if kind == "aspnetcore":
+        key = json.encode([version, urls, kind])
     validate = sdk_selection if kind == "sdk" else runtime_selection
     selected = validate(facts[key]) if key in facts else None
     missing = [platform for platform in declaration.platforms if selected == None or platform not in selected["platforms"]]
     if missing:
         path = "%s-metadata-%s.json" % (kind, len(facts))
         ctx.download(urls, output = path)
-        resolve = resolve_sdk if kind == "sdk" else resolve_runtime
-        resolved = resolve(ctx.read(path), version, missing)
+        resolved = resolve_sdk(ctx.read(path), version, missing) if kind == "sdk" else resolve_runtime(ctx.read(path), version, missing, kind)
         if selected != None:
             if kind == "sdk" and selected["runtime"] != resolved["runtime"]:
                 fail("SDK release metadata conflicts with recorded runtime: " + version)
@@ -121,12 +129,13 @@ def _runtimes(ctx):
             for platform in runtime.platforms:
                 if platform not in _PLATFORMS:
                     fail("Unsupported runtime platform: " + platform)
-            locked = _selection(ctx, runtime, runtime.version, runtime_facts, "runtime")
+            kind = "aspnetcore" if runtime.kind == "aspnetcore" else "runtime"
+            locked = _selection(ctx, runtime, runtime.version, runtime_facts, kind)
             repositories = {}
             for platform in runtime.platforms:
                 name = runtime.name + "_" + platform.replace("-", "_")
                 repositories[platform] = name
-                _runtime_archive(name = name, version = runtime.version, platform = platform, **locked["platforms"][platform])
+                _runtime_archive(name = name, version = runtime.version, platform = platform, kind = runtime.kind, **locked["platforms"][platform])
             _runtime_aliases(name = runtime.name, repositories = repositories)
         for archive in mod.tags.runtime_archive:
             if archive.name in names:
@@ -141,6 +150,7 @@ def _runtimes(ctx):
 _dotnet_runtime = tag_class(attrs = {
     "name": attr.string(mandatory = True),
     "version": attr.string(mandatory = True),
+    "kind": attr.string(default = "coreclr", values = ["coreclr", "aspnetcore"]),
     "metadata_urls": attr.string_list(),
     "platforms": attr.string_list(default = ["linux-arm64", "linux-x64", "osx-arm64", "osx-x64"]),
 })

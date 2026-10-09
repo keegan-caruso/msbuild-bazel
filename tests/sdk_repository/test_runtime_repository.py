@@ -48,5 +48,11 @@ class RuntimeRepository(unittest.TestCase):
     def test_unknown_platform(self):
         self.query('dotnet.runtime(name="runtime",version="10.0.0",platforms=["unknown"])','Unsupported runtime platform')
 
+    def test_unknown_kind(self):
+        self.query('dotnet.runtime(name="runtime",version="10.0.0",kind="unknown")','kind')
+
+    def test_missing_aspnet_version(self):
+        self.query('dotnet.runtime(name="runtime",version="42.0.7",kind="aspnetcore",metadata_urls=[METADATA])','Release metadata must identify exactly one aspnetcore')
+
     def test_missing_integrity(self):
         self.query('dotnet.runtime_archive(name="runtime",version="custom",platform="linux-arm64",urls=[ARCHIVE],integrity="")','Runtime archives require integrity')
