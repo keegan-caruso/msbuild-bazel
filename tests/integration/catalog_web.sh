@@ -117,10 +117,12 @@ cmp "$TEST_TMPDIR/edited.sha256" "$TEST_TMPDIR/recovered.sha256"
 if [[ -n "${SDK_WEB_CACHE_URL:-}" ]]; then
     python3 - "$TEST_TMPDIR/recovered.execution.json" <<'PY'
 import json,sys
-s=open(sys.argv[1]).read();decoder=json.JSONDecoder();graphs=[]
+s=open(sys.argv[1]).read();decoder=json.JSONDecoder();graphs=[];restores=[]
 while s.strip():
     action,end=decoder.raw_decode(s.lstrip());s=s.lstrip()[end:]
     if action.get('mnemonic')=='MSBuildGraph':graphs.append(action)
+    if action.get('mnemonic')=='MSBuildGraphRestore':restores.append(action)
+assert len(restores)==1 and restores[0].get('cacheHit') and restores[0].get('runner')=='remote cache hit',restores
 assert len(graphs)==1 and graphs[0].get('cacheHit') and graphs[0].get('runner')=='remote cache hit',graphs
 PY
     fresh project-recovery test //:published_test "${options[@]}" --noremote_accept_cached --remote_upload_local_results=false --lockfile_mode=error --test_output=all

@@ -9,7 +9,7 @@ files and MSBuild's SDK behavior.
 - **Precise compiler inputs:** qualify the DLLs the SDK actually selects, reuse
   compilation when those bytes stay unchanged, and refresh runtime copies.
 - **Declared toolchains:** use a downloaded SDK or one produced by your source
-  build; select an execution runtime separately.
+  build, with an optional execution-runtime override.
 - **Bazel tests and artifacts:** run executable, MTP and VSTest tests; export
   layouts, packages and published apps.
 

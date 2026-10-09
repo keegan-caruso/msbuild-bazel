@@ -21,7 +21,7 @@ SDK_VERSION_CACHE_URL=http://cache:8080 DYNAMIC_SOURCE_CACHE_URL=http://cache:80
 Large runtime timings and source-built SDK consumers below retain their recorded
 9.2 qualification; they were not rerun for this SDK change.
 
-## Linux architectures
+## Downloaded SDK platforms
 
 Downloaded-SDK controls passed on native Linux ARM64 and Linux x64 **under
 Apple Rosetta**: 29 analysis/integration checks across both current Bazel pins,
@@ -41,6 +41,17 @@ python3 -m unittest discover -s tests/sdk_repository -v
 The x64 controls used amd64 SDK/Bazel binaries in Ubuntu containers on an ARM64
 Mac. This establishes emulated x64 behavior, not native x64 performance or
 source-built SDK/runtime qualification. Native Linux x64 remains unqualified.
+
+Native macOS ARM64 passed `//tests/integration:{quickstart,native_sdk}` on
+both current Bazel pins with SDK **10.0.400**: the public catalog's packages,
+Razor/Publish, app/tests, body/API reference checks, sync/check and an independent
+strict-lock source/output-base consumer. These four controls also passed on
+native Linux ARM64. All 24 SDK/runtime repository controls
+also passed on macOS / 9.3. The portable `native_sdk` suite is ready for native
+Linux x64; no host was available, so that platform remains unqualified. These
+macOS controls use ordinary sandboxed actions, with remote actions disabled;
+Linux workers, published-byte parity and HTTP recovery retain their separate
+qualification above.
 
 ## Qualified SDKs
 
@@ -76,8 +87,8 @@ projects with Newtonsoft.Json / Humanizer, embedded data, Razor and static asset
 Linux ARM64: ordinary/graph MSBuild Publish parity (same timestamp exception),
 body/API edits and test invalidation. The body edit retained reference bytes with
 four project hits / one compilation; the API edit yielded one hit / four
-compilations. Independent action recovery and forced HTTP project recovery
-(five hits / zero compilations) preserved every published byte and ran the app.
+compilations. Bazel recovered both Restore and graph actions remotely; forced
+HTTP project recovery (five hits / zero compilations) preserved every published byte and ran the app.
 The public example uses the regular graph workflow; the fixture separately enables
 Linux prepared Restore/workers. Evaluation reuse is off: Razor API changes can
 trigger SDK reevaluation, which the retained-evaluation guard rejects.
