@@ -1,4 +1,4 @@
-"""SDK/runtime archive validation and exact-version metadata resolution."""
+"""SDK/runtime archive validation and locked metadata resolution."""
 
 load(":sdk_repositories.bzl", "SDK_PLATFORMS")
 
@@ -87,6 +87,75 @@ def _archives(component, version, platforms, kind):
         file = candidates[0]
         archives[platform] = sdk_download({"urls": [file.get("url")], "integrity": _integrity(file.get("hash"), kind)})
     return archives
+
+def _version_key(version):
+    # SDK feature bands are the hundreds digit of the patch component. SemVer
+    # prerelease identifiers compare numerically where possible; release wins.
+    core = version.split("+")[0].split("-", 1)
+    numbers = core[0].split(".")
+    if len(numbers) != 3 or any([not n or any([c not in "0123456789" for c in n.elems()]) for n in numbers]):
+        fail("SDK selection requires a three-part numeric version: " + version)
+    pre = []
+    if len(core) == 2:
+        for identifier in core[1].split("."):
+            if not identifier:
+                fail("Invalid SDK prerelease version: " + version)
+            numeric = all([c in "0123456789" for c in identifier.elems()])
+            pre.append((0, int(identifier)) if numeric else (1, identifier))
+    return (int(numbers[0]), int(numbers[1]), int(numbers[2]), 1 if len(core) == 1 else 0, pre)
+
+def sdk_policy_version(version, request):
+    """Validate a selected SDK against a requested policy, including locked facts.
+
+    Args:
+        version: Exact selected SDK version.
+        request: global.json SDK settings.
+
+    Returns:
+        The validated version.
+    """
+    sdk_version(version)
+    selected = _version_key(version)
+    minimum = _version_key(request["version"])
+    policy = request["rollForward"]
+    if (selected < minimum or selected[:2] != minimum[:2] or
+        (policy != "latestFeature" and selected[2] // 100 != minimum[2] // 100) or
+        (policy == "disable" and version != request["version"]) or
+        (selected[3] == 0 and not request["allowPrerelease"])):
+        fail("SDK selection does not satisfy global.json: " + version)
+    return version
+
+def select_sdk_version(text, request):
+    """Resolve a policy among published SDKs, never ambient installations.
+
+    Args:
+        text: Release metadata JSON for the requested major/minor channel.
+        request: global.json SDK settings.
+
+    Returns:
+        An exact version to persist in native lockfile facts.
+    """
+    metadata = json.decode(text)
+    if type(metadata) != "dict" or type(metadata.get("releases")) != "list":
+        fail("Expected .NET releases.json metadata")
+    minimum = _version_key(request["version"])
+    candidates = {}
+    for release in metadata["releases"]:
+        for sdk in [release.get("sdk", {})] + release.get("sdks", []):
+            version = sdk.get("version")
+            if version == None:
+                continue
+            key = _version_key(sdk_version(version))
+            if key < minimum or key[:2] != minimum[:2] or (key[3] == 0 and not request["allowPrerelease"]):
+                continue
+            if request["rollForward"] != "latestFeature" and key[2] // 100 != minimum[2] // 100:
+                continue
+            candidates[version] = key
+    if request["rollForward"] in ["disable", "patch"] and request["version"] in candidates:
+        return request["version"]
+    if request["rollForward"] == "disable" or not candidates:
+        fail("Release metadata has no SDK satisfying global.json " + request["version"] + " / " + request["rollForward"])
+    return sorted([(key, version) for version, key in candidates.items()])[-1][1]
 
 def resolve_sdk(text, version, platforms):
     """Select archive hashes without executing the SDK or selecting latest.

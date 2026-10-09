@@ -21,6 +21,27 @@ SDK_VERSION_CACHE_URL=http://cache:8080 DYNAMIC_SOURCE_CACHE_URL=http://cache:80
 Large runtime timings and source-built SDK consumers below retain their recorded
 9.2 qualification; they were not rerun for this SDK change.
 
+## Linux architectures
+
+Downloaded-SDK controls passed on native Linux ARM64 and Linux x64 **under
+Apple Rosetta**: 29 analysis/integration checks across both current Bazel pins,
+plus 21 SDK/runtime repository controls. Scope: SDK selection/locks, quickstart,
+SDK-only Web/Razor Build/test/Publish and HTTP recovery, cached/uncached sandboxed
+workers, body/API edits and raw MSBuild output parity. The Web fixture checks the
+actual process architecture; fixture declarations select the host SDK RID.
+
+```sh
+SDK_WEB_CACHE_URL=http://cache:8080 bash scripts/bazel.sh test \
+  //tests/analysis/... \
+  //tests/integration:{quickstart,sdk_locks,sdk_policies,sdk_web,workers} \
+  --test_output=errors
+python3 -m unittest discover -s tests/sdk_repository -v
+```
+
+The x64 controls used amd64 SDK/Bazel binaries in Ubuntu containers on an ARM64
+Mac. This establishes emulated x64 behavior, not native x64 performance or
+source-built SDK/runtime qualification. Native Linux x64 remains unqualified.
+
 ## Qualified SDKs
 
 The SDK suites below were qualified on Linux ARM64 with Bazel 8.8.0 / 9.2.0:
@@ -38,6 +59,16 @@ public sync, raw MSBuild parity, edits, failures and cached/uncached workers.
 Web/Razor [graph controls](../tests/graph_build/web.py) cover compile/replay, Razor
 edits and assembly attributes; source-built Razor consumers are covered below.
 
+`//tests/integration:sdk_web` passed both current Bazel pins on Linux ARM64 with
+SDK **10.0.400**, using its bundled ASP.NET framework without `runtime_host`.
+Build/test and Publish serve a compiled Razor page and published static assets;
+content edits require no sync. Published files match ordinary/graph MSBuild bytes,
+except SDK `Last-Modified` values in the static endpoint manifest (only those values
+are normalized for comparison). Fresh-source/output-base action and forced project
+recovery preserve all published bytes exactly and execute the edited web app;
+project recovery yields three hits / zero compilations. This is a small web fixture,
+not general Blazor/workload or real-project Publish qualification.
+
 `bash scripts/bazel.sh test //tests/integration:sdk_locks --test_output=errors`
 passed 8.8.0 / 9.3.0 on Linux ARM64: automatic metadata resolution, native lockfile
 facts, platform expansion, fresh-base recovery without metadata, extension-change
@@ -52,6 +83,14 @@ sync/check, app/tests, body/API edits and fresh-base recovery without metadata.
 Each SDK recovered the whole graph action through Bazel's remote cache; forced
 HTTP project recovery returned three hits / zero compilations and identical outputs.
 There is no SDK-family allowlist; see [adapter requirements](api.md#sdks).
+
+`//tests/integration:sdk_policies` passed both Bazel pins on Linux ARM64: patch
+fallback, latest patch/feature selection, prerelease ordering/filtering, locked reuse
+after metadata changes, platform expansion, old-lock migration without metadata,
+strict fresh-base recovery, invalid-fact rejection and explicit refresh. A real
+`9.0.300` / `latestPatch` request selected **9.0.318** and passed sync/check/app/tests.
+The 21 SDK/runtime repository controls also passed. Other roll-forward policies
+remain unsupported; selection uses published releases, not installed SDKs.
 
 ## Downloaded runtimes
 
@@ -175,8 +214,9 @@ Drivers: [prepare](../tests/graph_build/upstream/runtime_jit_prepare.py),
 
 ## Limits
 
-- Persistent workers require Bubblewrap and nested namespaces. Worker/remote evidence
-  is Linux ARM64; Linux x86-64, macOS workers and RBE are unqualified.
+- Persistent workers require Bubblewrap and nested namespaces. Native worker/remote
+  evidence is Linux ARM64; x64 has the emulated controls above. Native Linux x64,
+  macOS workers and RBE are unqualified.
 - Unknown SDKs/workloads and whole-repository runtime/native build parity are unqualified.
 - Custom task/analyzer/generator reads, package side effects and output ownership
   require contracts. Build compiler selections do not qualify Pack/Publish changes.

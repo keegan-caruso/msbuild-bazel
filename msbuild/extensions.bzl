@@ -1,7 +1,7 @@
 """Verified SDK acquisition and downloaded/source-built runtime integration."""
 
-load("//msbuild/private:global_json.bzl", "global_json_version")
-load("//msbuild/private:sdk_metadata.bzl", "resolve_runtime", "resolve_sdk", "runtime_selection", "sdk_download", "sdk_platforms", "sdk_selection", "sdk_version")
+load("//msbuild/private:global_json.bzl", "global_json_sdk")
+load("//msbuild/private:sdk_metadata.bzl", "resolve_runtime", "resolve_sdk", "runtime_selection", "sdk_download", "sdk_platforms", "sdk_policy_version", "sdk_selection", "sdk_version", "select_sdk_version")
 load("//msbuild/private:sdk_repositories.bzl", "sdk_archive", "sdk_toolchains")
 
 _PLATFORMS = {
@@ -65,8 +65,34 @@ def _aliases(ctx):
 
 _runtime_aliases = repository_rule(implementation = _aliases, attrs = {"repositories": attr.string_dict()})
 
-def _selection(ctx, declaration, version, facts, kind):
-    urls = declaration.metadata_urls or ["https://builds.dotnet.microsoft.com/dotnet/release-metadata/%s/releases.json" % ".".join(version.split(".")[:2])]
+def _metadata_urls(declaration, version):
+    return declaration.metadata_urls or ["https://builds.dotnet.microsoft.com/dotnet/release-metadata/%s/releases.json" % ".".join(version.split(".")[:2])]
+
+def _sdk_pin(ctx, declaration, policies, facts):
+    if not declaration.global_json:
+        return (declaration.version, None)
+    request = global_json_sdk(ctx.read(declaration.global_json))
+    sdk_version(request["version"])
+    if request["rollForward"] == "disable":
+        return (sdk_policy_version(request["version"], request), None)
+    urls = _metadata_urls(declaration, request["version"])
+    key = json.encode([request["version"], request["rollForward"], request["allowPrerelease"], urls])
+    if key in policies:
+        return (sdk_policy_version(policies[key], request), None)
+
+    # Existing exact selections remain usable after upgrading the extension.
+    if request["rollForward"] == "patch" and json.encode([request["version"], urls]) in facts:
+        policies[key] = sdk_policy_version(request["version"], request)
+        return (request["version"], None)
+    path = "sdk-policy-%s.json" % len(policies)
+    ctx.download(urls, output = path)
+    metadata = ctx.read(path)
+    version = select_sdk_version(metadata, request)
+    policies[key] = version
+    return (version, metadata)
+
+def _selection(ctx, declaration, version, facts, kind, metadata = None):
+    urls = _metadata_urls(declaration, version)
     key = json.encode([version, urls])
 
     # Preserve existing CoreCLR/SDK facts; ASP.NET distributions have separate keys.
@@ -77,8 +103,10 @@ def _selection(ctx, declaration, version, facts, kind):
     missing = [platform for platform in declaration.platforms if selected == None or platform not in selected["platforms"]]
     if missing:
         path = "%s-metadata-%s.json" % (kind, len(facts))
-        ctx.download(urls, output = path)
-        resolved = resolve_sdk(ctx.read(path), version, missing) if kind == "sdk" else resolve_runtime(ctx.read(path), version, missing, kind)
+        if metadata == None:
+            ctx.download(urls, output = path)
+            metadata = ctx.read(path)
+        resolved = resolve_sdk(metadata, version, missing) if kind == "sdk" else resolve_runtime(metadata, version, missing, kind)
         if selected != None:
             if kind == "sdk" and selected["runtime"] != resolved["runtime"]:
                 fail("SDK release metadata conflicts with recorded runtime: " + version)
@@ -91,6 +119,7 @@ def _runtimes(ctx):
     names = {}
     facts = dict(ctx.facts.get("sdk-v1", {}))
     runtime_facts = dict(ctx.facts.get("runtime-v1", {}))
+    policies = dict(ctx.facts.get("sdk-policy-v1", {}))
     for mod in ctx.modules:
         for sdk in mod.tags.sdk:
             if sdk.name in names:
@@ -98,10 +127,10 @@ def _runtimes(ctx):
             names[sdk.name] = True
             if bool(sdk.version) == bool(sdk.global_json):
                 fail("Specify exactly one of sdk.version or sdk.global_json")
-            version = global_json_version(ctx.read(sdk.global_json)) if sdk.global_json else sdk.version
+            version, metadata = _sdk_pin(ctx, sdk, policies, facts)
             sdk_version(version)
             sdk_platforms(sdk.platforms)
-            locked = _selection(ctx, sdk, version, facts, "sdk")
+            locked = _selection(ctx, sdk, version, facts, "sdk", metadata)
             repositories = {}
             for platform in sdk.platforms:
                 name = sdk.name + "_" + platform.replace("-", "_")
@@ -145,7 +174,7 @@ def _runtimes(ctx):
                 fail("Unsupported runtime platform: " + archive.platform)
             _runtime_archive(name = archive.name, version = archive.version, platform = archive.platform, urls = archive.urls, integrity = archive.integrity)
 
-    return ctx.extension_metadata(facts = {"sdk-v1": facts, "runtime-v1": runtime_facts})
+    return ctx.extension_metadata(facts = {"sdk-v1": facts, "runtime-v1": runtime_facts, "sdk-policy-v1": policies})
 
 _dotnet_runtime = tag_class(attrs = {
     "name": attr.string(mandatory = True),
