@@ -69,6 +69,19 @@ recovery preserve all published bytes exactly and execute the edited web app;
 project recovery yields three hits / zero compilations. This is a small web fixture,
 not general Blazor/workload or real-project Publish qualification.
 
+The [package-backed catalog](../examples/catalog-web/README.md) qualifies five
+projects with Newtonsoft.Json / Humanizer, embedded data, Razor and static assets.
+`SDK_WEB_CACHE_URL=http://cache:8080 bash scripts/bazel.sh test
+//tests/integration:catalog_web --test_output=errors` passed both pins on native
+Linux ARM64: ordinary/graph MSBuild Publish parity (same timestamp exception),
+body/API edits and test invalidation. The body edit retained reference bytes with
+four project hits / one compilation; the API edit yielded one hit / four
+compilations. Independent action recovery and forced HTTP project recovery
+(five hits / zero compilations) preserved every published byte and ran the app.
+The public example uses the regular graph workflow; the fixture separately enables
+Linux prepared Restore/workers. Evaluation reuse is off: Razor API changes can
+trigger SDK reevaluation, which the retained-evaluation guard rejects.
+
 `bash scripts/bazel.sh test //tests/integration:sdk_locks --test_output=errors`
 passed 8.8.0 / 9.3.0 on Linux ARM64: automatic metadata resolution, native lockfile
 facts, platform expansion, fresh-base recovery without metadata, extension-change

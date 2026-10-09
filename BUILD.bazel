@@ -13,6 +13,37 @@ exports_files([".editorconfig"])
 
 # Declared sources for independent integration consumers; no checkout access.
 filegroup(
+    name = "catalog_web_sources",
+    srcs = [
+        "examples/catalog-web/.bazelversion",
+        "examples/catalog-web/BUILD.bazel",
+        "examples/catalog-web/Data/CatalogStore.cs",
+        "examples/catalog-web/Data/Data.csproj",
+        "examples/catalog-web/Data/products.json",
+        "examples/catalog-web/Directory.Build.props",
+        "examples/catalog-web/Domain/Domain.csproj",
+        "examples/catalog-web/Domain/Product.cs",
+        "examples/catalog-web/MODULE.bazel",
+        "examples/catalog-web/NuGet.Config",
+        "examples/catalog-web/README.md",
+        "examples/catalog-web/Services/CatalogService.cs",
+        "examples/catalog-web/Services/Services.csproj",
+        "examples/catalog-web/Tests/Program.cs",
+        "examples/catalog-web/Tests/Tests.csproj",
+        "examples/catalog-web/Web/Pages/Index.cshtml",
+        "examples/catalog-web/Web/Program.cs",
+        "examples/catalog-web/Web/Web.csproj",
+        "examples/catalog-web/Web/wwwroot/site.css",
+        "examples/catalog-web/global.json",
+        "examples/catalog-web/graph.generated.bzl",
+        "examples/catalog-web/graph.generated.json",
+        "examples/catalog-web/mappings.json",
+        "examples/catalog-web/packages.bzl",
+    ],
+    visibility = ["//tests/integration:__pkg__"],
+)
+
+filegroup(
     name = "integration_rule_sources",
     srcs = [
         ".bazelversion",

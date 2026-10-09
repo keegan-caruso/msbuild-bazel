@@ -3,6 +3,8 @@
 Two SDK choices, one app graph: download a pinned SDK, or consume a complete SDK
 produced by a Bazel source build. Requires Bazelisk and OS .NET prerequisites.
 The example contains an app, library and executable test; no NuGet packages.
+For Razor, HTTP, published assets and declared NuGet packages, see the
+[five-project catalog app](../catalog-web/README.md).
 
 ## Downloaded SDK
 

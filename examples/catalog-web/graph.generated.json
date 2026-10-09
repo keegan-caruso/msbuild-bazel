@@ -1,0 +1,235 @@
+{
+  "GeneratedBy": "ProjectSync",
+  "Version": 10,
+  "Entry": "Web/Web.csproj",
+  "Entries": [
+    "Web/Web.csproj",
+    "Tests/Tests.csproj"
+  ],
+  "SdkVersion": "10.0.400",
+  "Properties": {
+    "Configuration": "Release"
+  },
+  "ToolProperties": {},
+  "SharedInputs": [
+    "global.json"
+  ],
+  "PackageDigests": [
+    "117be88dd74fbbef492a0386f4d4908144df5aad51a4e630eda7710cf28327aa",
+    "872fc189e638ab1056555b03aaa38f68bcb54286e221aa646eb1129babf63c77"
+  ],
+  "DefinitionDigests": {
+    "Data/Data.csproj": "509200ab111ddc710d7bb40668db251dbb346b39dccd5e9c3262af936c74388d",
+    "Directory.Build.props": "dfdc1667aea9b399fca5c5ac4e30a53c10a0b39d91a691a8faa1815101b73d71",
+    "Domain/Domain.csproj": "aa7fe35869bed525186ee1713b90ead01c57cc25e1bff9b9dbb8f03e21546663",
+    "Services/Services.csproj": "924163c41a2abebc9762ae0559c85dab17af3f74fe344830a8734eda5c7eecd8",
+    "Tests/Tests.csproj": "92459ef9151f8dd07641a1fff9523b5dbb044d99cb8876a7ae16b82ec173cacf",
+    "Web/Web.csproj": "15fbd35e96cd0ad47c4016af1381c3d09082432f58dd5e6ebe888dc41c388888"
+  },
+  "Projects": {
+    "Data/Data.csproj": {
+      "Inputs": [],
+      "OutputDirectories": [],
+      "Configurations": [
+        {
+          "Properties": {
+            "Configuration": "Release",
+            "IsGraphBuild": "true"
+          },
+          "Inputs": [
+            "Data/CatalogStore.cs",
+            "Data/Data.csproj",
+            "Data/products.json",
+            "Directory.Build.props"
+          ],
+          "OutputFiles": [],
+          "ReferenceBoundary": true,
+          "ImplementationDependencies": [],
+          "CompilerReference": null,
+          "CompilerReferences": {
+            "Domain/Domain.csproj": "Domain/obj/Release/net10.0/ref/Domain.dll"
+          },
+          "CompilerReferencesComplete": true,
+          "DependencyCopies": {
+            "Data/bin/Release/net10.0/Domain.dll": "Domain/bin/Release/net10.0/Domain.dll",
+            "Data/bin/Release/net10.0/publish/Domain.dll": "Domain/bin/Release/net10.0/Domain.dll",
+            "Data/bin/Release/net10.0/Domain.pdb": "Domain/bin/Release/net10.0/Domain.pdb",
+            "Data/bin/Release/net10.0/publish/Domain.pdb": "Domain/bin/Release/net10.0/Domain.pdb"
+          },
+          "OutputDirectories": [
+            "Data/bin/Release/net10.0",
+            "Data/obj/Release/net10.0"
+          ]
+        }
+      ]
+    },
+    "Domain/Domain.csproj": {
+      "Inputs": [],
+      "OutputDirectories": [],
+      "Configurations": [
+        {
+          "Properties": {
+            "Configuration": "Release",
+            "IsGraphBuild": "true"
+          },
+          "Inputs": [
+            "Directory.Build.props",
+            "Domain/Domain.csproj",
+            "Domain/Product.cs"
+          ],
+          "OutputFiles": [],
+          "ReferenceBoundary": true,
+          "ImplementationDependencies": [],
+          "CompilerReference": null,
+          "CompilerReferences": {},
+          "CompilerReferencesComplete": true,
+          "DependencyCopies": {},
+          "OutputDirectories": [
+            "Domain/bin/Release/net10.0",
+            "Domain/obj/Release/net10.0"
+          ]
+        }
+      ]
+    },
+    "Services/Services.csproj": {
+      "Inputs": [],
+      "OutputDirectories": [],
+      "Configurations": [
+        {
+          "Properties": {
+            "Configuration": "Release",
+            "IsGraphBuild": "true"
+          },
+          "Inputs": [
+            "Directory.Build.props",
+            "Services/CatalogService.cs",
+            "Services/Services.csproj"
+          ],
+          "OutputFiles": [],
+          "ReferenceBoundary": true,
+          "ImplementationDependencies": [],
+          "CompilerReference": null,
+          "CompilerReferences": {
+            "Data/Data.csproj": "Data/obj/Release/net10.0/ref/Data.dll",
+            "Domain/Domain.csproj": "Domain/obj/Release/net10.0/ref/Domain.dll"
+          },
+          "CompilerReferencesComplete": true,
+          "DependencyCopies": {
+            "Services/bin/Release/net10.0/Data.dll": "Data/bin/Release/net10.0/Data.dll",
+            "Services/bin/Release/net10.0/publish/Data.dll": "Data/bin/Release/net10.0/Data.dll",
+            "Services/bin/Release/net10.0/Data.pdb": "Data/bin/Release/net10.0/Data.pdb",
+            "Services/bin/Release/net10.0/publish/Data.pdb": "Data/bin/Release/net10.0/Data.pdb",
+            "Services/bin/Release/net10.0/Domain.dll": "Domain/bin/Release/net10.0/Domain.dll",
+            "Services/bin/Release/net10.0/publish/Domain.dll": "Domain/bin/Release/net10.0/Domain.dll",
+            "Services/bin/Release/net10.0/Domain.pdb": "Domain/bin/Release/net10.0/Domain.pdb",
+            "Services/bin/Release/net10.0/publish/Domain.pdb": "Domain/bin/Release/net10.0/Domain.pdb"
+          },
+          "OutputDirectories": [
+            "Services/bin/Release/net10.0",
+            "Services/obj/Release/net10.0"
+          ]
+        }
+      ]
+    },
+    "Tests/Tests.csproj": {
+      "Inputs": [],
+      "OutputDirectories": [],
+      "Configurations": [
+        {
+          "Properties": {
+            "Configuration": "Release",
+            "IsGraphBuild": "true"
+          },
+          "Inputs": [
+            "Directory.Build.props",
+            "Tests/Program.cs",
+            "Tests/Tests.csproj"
+          ],
+          "OutputFiles": [],
+          "ReferenceBoundary": true,
+          "ImplementationDependencies": [],
+          "CompilerReference": null,
+          "CompilerReferences": {
+            "Data/Data.csproj": "Data/obj/Release/net10.0/ref/Data.dll",
+            "Domain/Domain.csproj": "Domain/obj/Release/net10.0/ref/Domain.dll",
+            "Services/Services.csproj": "Services/obj/Release/net10.0/ref/Services.dll"
+          },
+          "CompilerReferencesComplete": true,
+          "DependencyCopies": {
+            "Tests/bin/Release/net10.0/Humanizer.dll": ".nuget/humanizer.core/2.14.1/lib/net6.0/Humanizer.dll",
+            "Tests/bin/Release/net10.0/publish/Humanizer.dll": ".nuget/humanizer.core/2.14.1/lib/net6.0/Humanizer.dll",
+            "Tests/bin/Release/net10.0/Newtonsoft.Json.dll": ".nuget/newtonsoft.json/13.0.3/lib/net6.0/Newtonsoft.Json.dll",
+            "Tests/bin/Release/net10.0/publish/Newtonsoft.Json.dll": ".nuget/newtonsoft.json/13.0.3/lib/net6.0/Newtonsoft.Json.dll",
+            "Tests/bin/Release/net10.0/Data.dll": "Data/bin/Release/net10.0/Data.dll",
+            "Tests/bin/Release/net10.0/publish/Data.dll": "Data/bin/Release/net10.0/Data.dll",
+            "Tests/bin/Release/net10.0/Data.pdb": "Data/bin/Release/net10.0/Data.pdb",
+            "Tests/bin/Release/net10.0/publish/Data.pdb": "Data/bin/Release/net10.0/Data.pdb",
+            "Tests/bin/Release/net10.0/Domain.dll": "Domain/bin/Release/net10.0/Domain.dll",
+            "Tests/bin/Release/net10.0/publish/Domain.dll": "Domain/bin/Release/net10.0/Domain.dll",
+            "Tests/bin/Release/net10.0/Domain.pdb": "Domain/bin/Release/net10.0/Domain.pdb",
+            "Tests/bin/Release/net10.0/publish/Domain.pdb": "Domain/bin/Release/net10.0/Domain.pdb",
+            "Tests/bin/Release/net10.0/Services.dll": "Services/bin/Release/net10.0/Services.dll",
+            "Tests/bin/Release/net10.0/publish/Services.dll": "Services/bin/Release/net10.0/Services.dll",
+            "Tests/bin/Release/net10.0/Services.pdb": "Services/bin/Release/net10.0/Services.pdb",
+            "Tests/bin/Release/net10.0/publish/Services.pdb": "Services/bin/Release/net10.0/Services.pdb"
+          },
+          "OutputDirectories": [
+            "Tests/bin/Release/net10.0",
+            "Tests/obj/Release/net10.0"
+          ]
+        }
+      ]
+    },
+    "Web/Web.csproj": {
+      "Inputs": [],
+      "OutputDirectories": [],
+      "Configurations": [
+        {
+          "Properties": {
+            "Configuration": "Release",
+            "IsGraphBuild": "true"
+          },
+          "Inputs": [
+            "Directory.Build.props",
+            "Web/Pages/Index.cshtml",
+            "Web/Program.cs",
+            "Web/Web.csproj",
+            "Web/wwwroot/site.css"
+          ],
+          "OutputFiles": [],
+          "ReferenceBoundary": true,
+          "ImplementationDependencies": [],
+          "CompilerReference": null,
+          "CompilerReferences": {
+            "Data/Data.csproj": "Data/obj/Release/net10.0/ref/Data.dll",
+            "Domain/Domain.csproj": "Domain/obj/Release/net10.0/ref/Domain.dll",
+            "Services/Services.csproj": "Services/obj/Release/net10.0/ref/Services.dll"
+          },
+          "CompilerReferencesComplete": true,
+          "DependencyCopies": {
+            "Web/bin/Release/net10.0/Humanizer.dll": ".nuget/humanizer.core/2.14.1/lib/net6.0/Humanizer.dll",
+            "Web/bin/Release/net10.0/publish/Humanizer.dll": ".nuget/humanizer.core/2.14.1/lib/net6.0/Humanizer.dll",
+            "Web/bin/Release/net10.0/Newtonsoft.Json.dll": ".nuget/newtonsoft.json/13.0.3/lib/net6.0/Newtonsoft.Json.dll",
+            "Web/bin/Release/net10.0/publish/Newtonsoft.Json.dll": ".nuget/newtonsoft.json/13.0.3/lib/net6.0/Newtonsoft.Json.dll",
+            "Web/bin/Release/net10.0/Data.dll": "Data/bin/Release/net10.0/Data.dll",
+            "Web/bin/Release/net10.0/publish/Data.dll": "Data/bin/Release/net10.0/Data.dll",
+            "Web/bin/Release/net10.0/Data.pdb": "Data/bin/Release/net10.0/Data.pdb",
+            "Web/bin/Release/net10.0/publish/Data.pdb": "Data/bin/Release/net10.0/Data.pdb",
+            "Web/bin/Release/net10.0/Domain.dll": "Domain/bin/Release/net10.0/Domain.dll",
+            "Web/bin/Release/net10.0/publish/Domain.dll": "Domain/bin/Release/net10.0/Domain.dll",
+            "Web/bin/Release/net10.0/Domain.pdb": "Domain/bin/Release/net10.0/Domain.pdb",
+            "Web/bin/Release/net10.0/publish/Domain.pdb": "Domain/bin/Release/net10.0/Domain.pdb",
+            "Web/bin/Release/net10.0/Services.dll": "Services/bin/Release/net10.0/Services.dll",
+            "Web/bin/Release/net10.0/publish/Services.dll": "Services/bin/Release/net10.0/Services.dll",
+            "Web/bin/Release/net10.0/Services.pdb": "Services/bin/Release/net10.0/Services.pdb",
+            "Web/bin/Release/net10.0/publish/Services.pdb": "Services/bin/Release/net10.0/Services.pdb"
+          },
+          "OutputDirectories": [
+            "Web/bin/Release/net10.0",
+            "Web/obj/Release/net10.0"
+          ]
+        }
+      ]
+    }
+  }
+}
