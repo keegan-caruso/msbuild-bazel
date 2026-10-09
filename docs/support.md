@@ -38,6 +38,16 @@ public sync, raw MSBuild parity, edits, failures and cached/uncached workers.
 Web/Razor [graph controls](../tests/graph_build/web.py) cover compile/replay, Razor
 edits and assembly attributes; source-built Razor consumers are covered below.
 
+`//tests/integration:sdk_web` passed both current Bazel pins on Linux ARM64 with
+SDK **10.0.400**, using its bundled ASP.NET framework without `runtime_host`.
+Build/test and Publish serve a compiled Razor page and published static assets;
+content edits require no sync. Published files match ordinary/graph MSBuild bytes,
+except SDK `Last-Modified` values in the static endpoint manifest (only those values
+are normalized for comparison). Fresh-source/output-base action and forced project
+recovery preserve all published bytes exactly and execute the edited web app;
+project recovery yields three hits / zero compilations. This is a small web fixture,
+not general Blazor/workload or real-project Publish qualification.
+
 `bash scripts/bazel.sh test //tests/integration:sdk_locks --test_output=errors`
 passed 8.8.0 / 9.3.0 on Linux ARM64: automatic metadata resolution, native lockfile
 facts, platform expansion, fresh-base recovery without metadata, extension-change

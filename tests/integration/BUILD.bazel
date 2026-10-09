@@ -225,6 +225,47 @@ sh_binary(
     data = ["common.sh"],
 )
 
+sh_binary(
+    name = "sdk_web_runner",
+    testonly = True,
+    srcs = ["sdk_web.sh"],
+    data = [
+        "common.sh",
+        "raw_namespace.sh",
+    ],
+)
+
+bazel_integration_tests(
+    name = "sdk_web_cases",
+    additional_env_inherit = [
+        "BAZELISK_HOME",
+        "RULES_MSBUILD_TEST_REPOSITORY_CACHE",
+        "SDK_WEB_CACHE_URL",
+    ],
+    bazel_binaries = bazel_binaries,
+    bazel_versions = bazel_binaries.versions.all,
+    data = [":rules_archive"],
+    env = {"RULES_ARCHIVE": "$(rootpath :rules_archive)"},
+    tags = [
+        "exclusive",
+        "manual",
+        "no-sandbox",
+    ],
+    target_compatible_with = ["@platforms//os:linux"],
+    test_runner = ":sdk_web_runner",
+    workspace_files = ["//:quickstart_sources"],
+    workspace_path = "examples/quickstart",
+)
+
+test_suite(
+    name = "sdk_web",
+    tags = ["manual"],
+    tests = integration_test_utils.bazel_integration_test_names(
+        "sdk_web_cases",
+        bazel_binaries.versions.all,
+    ),
+)
+
 bazel_integration_tests(
     name = "aspnet_runtime_cases",
     additional_env_inherit = [

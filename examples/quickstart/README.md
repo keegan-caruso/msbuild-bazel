@@ -36,6 +36,17 @@ bundled framework/MSBuild; no SDK-version registration is needed. Build servers 
 An optional [declared runtime](../../docs/api.md#runtimes) selects the app/test host
 independently of the compilation SDK.
 
+Web/Razor apps use the same SDK declaration; its bundled ASP.NET framework supplies
+the default execution host. To run framework-dependent published outputs:
+
+```starlark
+app_graph(name = "published", target = "Publish")
+msbuild_graph_binary(name = "published_app", graph = ":published", project = "App/App.csproj")
+```
+
+Run `bazel run //:published_app`. The generated macro supplies the publish directory
+and declared assets; sync after changing the project or adding inputs.
+
 [BUILD.bazel](BUILD.bazel) declares sync, then uses the committed generated macro:
 
 ```starlark
