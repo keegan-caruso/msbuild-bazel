@@ -47,15 +47,39 @@ also passed after recording each Bazel version's registry entries. SDK **10.0.30
 lockfile mode with metadata removed; **10.0.400** retains quickstart coverage.
 
 `//tests/integration:sdk_versions` passed **8.0.425**, **9.0.318** and
-**11.0.100-rc.1.26425.128** on Bazel 9.3: SDK-derived adapter frameworks,
+**11.0.100-rc.1.26425.128** on both Bazel pins: SDK-derived adapter frameworks,
 sync/check, app/tests, body/API edits and fresh-base recovery without metadata.
-Forced HTTP project recovery returned three hits / zero compilations and identical
-runtime outputs. The whole-action remote-cache assertion also passed for SDK 8.
-The expanded 31-test command above completed 22 checks before container I/O failures
-interrupted it with less than 1 GiB free on the host; the new SDK suite's 8.8 run remains pending.
-Style, unit and cache fault controls passed. Scope: small managed Linux ARM64 fixtures,
-one host; no additional workload or worker qualification for these SDK families.
+Each SDK recovered the whole graph action through Bazel's remote cache; forced
+HTTP project recovery returned three hits / zero compilations and identical outputs.
 There is no SDK-family allowlist; see [adapter requirements](api.md#sdks).
+
+## Downloaded runtimes
+
+SDK **9.0.318** compiled a net9.0 app that ran on runtime **9.0.20**, rejected
+**8.0.31 / 10.0.12** by default, and ran/tested on **10.0.12** with the app's
+`RollForward=Major`. Metadata controls cover apphost exclusion, native facts,
+platform expansion, metadata-free recovery, extension changes, stale pins, corrupt
+hashes/archives and private layouts. Fresh-base recovery hit the graph action in
+Bazel's remote cache with byte-identical outputs; 9.3 also acquired cached runtime
+archives with all downloader URLs blocked.
+
+The following 25 analysis/integration checks and 15 SDK/runtime repository controls
+passed on Linux ARM64. Integration suites cover both **8.8.0 / 9.3.0**:
+
+```sh
+SDK_VERSION_CACHE_URL=http://cache:8080 RUNTIME_CACHE_URL=http://cache:8080 \
+  bash scripts/bazel.sh test //tests/analysis/... \
+  //tests/integration:{sdk_versions,runtime_locks,sdk_locks,quickstart} \
+  --test_output=errors
+python3 -m unittest discover -s tests/sdk_repository -v
+```
+
+Scope: small managed fixtures, fresh output bases on one host; no new workload,
+worker, additional-platform or source-built qualification. Runtime downloads contain
+CoreCLR only; other shared frameworks need a complete declared layout. See
+[runtime configuration](api.md#runtimes).
+
+## Graph inputs
 
 `bash scripts/bazel.sh test //tests/integration:source_globs --test_output=errors`
 passed on Linux ARM64 with 8.8.0 / 9.2.0: method-body output changes, addition/removal/

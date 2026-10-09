@@ -18,13 +18,15 @@ class RuntimeRepository(unittest.TestCase):
     def query(self, declaration, error=None, integrity=None):
         with tempfile.TemporaryDirectory() as directory:
             root=Path(directory)
+            metadata=root/'releases.json'
+            metadata.write_text('{"releases":[]}')
             archive=root/'runtime.tar.gz'
             with tarfile.open(archive,'w:gz') as out:
                 data=b'#!/bin/sh\nexit 0\n'
                 item=tarfile.TarInfo('dotnet');item.size=len(data);item.mode=0o755
                 out.addfile(item,io.BytesIO(data))
             digest='sha256-'+base64.b64encode(hashlib.sha256(archive.read_bytes()).digest()).decode()
-            declaration=declaration.replace('ARCHIVE',json.dumps(archive.as_uri())).replace('INTEGRITY',json.dumps(integrity or digest))
+            declaration=declaration.replace('ARCHIVE',json.dumps(archive.as_uri())).replace('METADATA',json.dumps(metadata.as_uri())).replace('INTEGRITY',json.dumps(integrity or digest))
             (root/'MODULE.bazel').write_text('bazel_dep(name="rules_msbuild",version="0.0.0")\nlocal_path_override(module_name="rules_msbuild",path='+json.dumps(str(ROOT))+')\ndotnet=use_extension("@rules_msbuild//msbuild:extensions.bzl","dotnet")\n'+declaration+'\nuse_repo(dotnet,"runtime")\n')
             (root/'BUILD.bazel').write_text('')
             result=subprocess.run([BAZEL,'--batch','--output_base='+str(root/'base'),'--ignore_all_rc_files','query','@runtime//:runtime','--lockfile_mode=off'],cwd=root,text=True,capture_output=True,timeout=120)
@@ -41,7 +43,7 @@ class RuntimeRepository(unittest.TestCase):
         self.query('dotnet.runtime_archive(name="runtime",version="custom",platform="linux-arm64",urls=[ARCHIVE],integrity=INTEGRITY)', 'Checksum', 'sha256-'+base64.b64encode(bytes(32)).decode())
 
     def test_unknown_version(self):
-        self.query('dotnet.runtime(name="runtime",version="unknown")','Unknown runtime version')
+        self.query('dotnet.runtime(name="runtime",version="42.0.7",metadata_urls=[METADATA])','Release metadata must identify exactly one runtime')
 
     def test_unknown_platform(self):
         self.query('dotnet.runtime(name="runtime",version="10.0.0",platforms=["unknown"])','Unsupported runtime platform')

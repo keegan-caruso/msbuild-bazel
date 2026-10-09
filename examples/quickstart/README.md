@@ -33,6 +33,8 @@ archive hashes. To change SDK versions, edit `global.json`, rerun project sync,
 and commit the updated lockfile and graph. The adapters follow the selected SDK's
 bundled framework/MSBuild; no SDK-version registration is needed. Build servers can use
 `--lockfile_mode=error` to reject stale locks. See [SDK configuration](../../docs/api.md#sdks).
+An optional [declared runtime](../../docs/api.md#runtimes) selects the app/test host
+independently of the compilation SDK.
 
 [BUILD.bazel](BUILD.bazel) declares sync, then uses the committed generated macro:
 
