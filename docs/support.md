@@ -63,20 +63,29 @@ hashes/archives and private layouts. Fresh-base recovery hit the graph action in
 Bazel's remote cache with byte-identical outputs; 9.3 also acquired cached runtime
 archives with all downloader URLs blocked.
 
-The following 25 analysis/integration checks and 15 SDK/runtime repository controls
+The ASP.NET distribution also passed a bounded HTTP app/test compiled by SDK
+**9.0.318**, running on **9.0.20**, and on **10.0.12** with `RollForward=Major`.
+CoreCLR-only and default cross-major hosts were rejected. Metadata selection excludes
+composite runtimes and targeting packs; incomplete ASP.NET layouts fail.
+A separate source directory/output base recovered the whole graph action, then
+ran the web app. Forced project recovery returned three hits / zero compilations
+and byte-identical outputs. Metadata-free cached acquisition passed with downloader
+URLs blocked on 9.3.
+
+The following 25 analysis/integration checks and 17 SDK/runtime repository controls
 passed on Linux ARM64. Integration suites cover both **8.8.0 / 9.3.0**:
 
 ```sh
-SDK_VERSION_CACHE_URL=http://cache:8080 RUNTIME_CACHE_URL=http://cache:8080 \
+RUNTIME_CACHE_URL=http://cache:8080 \
   bash scripts/bazel.sh test //tests/analysis/... \
-  //tests/integration:{sdk_versions,runtime_locks,sdk_locks,quickstart} \
+  //tests/integration:{aspnet_runtimes,runtime_locks,sdk_locks,quickstart} \
   --test_output=errors
 python3 -m unittest discover -s tests/sdk_repository -v
 ```
 
 Scope: small managed fixtures, fresh output bases on one host; no new workload,
-worker, additional-platform or source-built qualification. Runtime downloads contain
-CoreCLR only; other shared frameworks need a complete declared layout. See
+worker, additional-platform or source-built qualification. Other shared frameworks
+need a complete declared layout. See
 [runtime configuration](api.md#runtimes).
 
 ## Graph inputs

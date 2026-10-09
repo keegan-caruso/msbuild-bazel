@@ -77,7 +77,11 @@ def _integrity(hex_digest, kind = "SDK"):
 def _archives(component, version, platforms, kind):
     archives = {}
     for platform in sorted(platforms):
-        candidates = [file for file in component.get("files", []) if file.get("rid") == platform and file.get("name", "").startswith("dotnet-%s-" % kind.lower()) and file.get("name", "").endswith(".tar.gz")]
+        # ASP.NET metadata also lists composite runtimes and targeting packs.
+        if kind == "aspnetcore":
+            candidates = [file for file in component.get("files", []) if file.get("rid") == platform and file.get("name") == "aspnetcore-runtime-%s.tar.gz" % platform]
+        else:
+            candidates = [file for file in component.get("files", []) if file.get("rid") == platform and file.get("name", "").startswith("dotnet-%s-" % kind.lower()) and file.get("name", "").endswith(".tar.gz")]
         if len(candidates) != 1:
             fail("Release metadata must identify one %s archive for %s / %s" % (kind, version, platform))
         file = candidates[0]
@@ -125,13 +129,14 @@ def runtime_selection(runtime):
         sdk_download(archive)
     return runtime
 
-def resolve_runtime(text, version, platforms):
-    """Select CoreCLR runtime archives, excluding apphost packs.
+def resolve_runtime(text, version, platforms, kind = "runtime"):
+    """Select CoreCLR or complete ASP.NET runtime archives.
 
     Args:
         text: Release metadata JSON.
         version: Exact runtime version.
         platforms: Requested archive platforms.
+        kind: runtime (CoreCLR) or aspnetcore distribution.
 
     Returns:
         Archive declarations by platform.
@@ -141,9 +146,9 @@ def resolve_runtime(text, version, platforms):
         fail("Expected .NET releases.json metadata")
     matches = []
     for release in metadata["releases"]:
-        runtime = release.get("runtime", {})
+        runtime = release.get("aspnetcore-runtime" if kind == "aspnetcore" else "runtime", {})
         if runtime.get("version") == version and runtime not in matches:
             matches.append(runtime)
     if len(matches) != 1:
-        fail("Release metadata must identify exactly one runtime %s" % version)
-    return {"platforms": _archives(matches[0], version, platforms, "runtime")}
+        fail("Release metadata must identify exactly one %s %s" % (kind, version))
+    return {"platforms": _archives(matches[0], version, platforms, kind)}

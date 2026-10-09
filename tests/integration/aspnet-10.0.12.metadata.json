@@ -1,0 +1,47 @@
+{
+  "releases": [
+    {
+      "aspnetcore-runtime": {
+        "version": "10.0.12",
+        "files": [
+          {
+            "name": "aspnetcore-runtime-linux-arm64.tar.gz",
+            "rid": "linux-arm64",
+            "url": "https://builds.dotnet.microsoft.com/dotnet/aspnetcore/Runtime/10.0.12/aspnetcore-runtime-10.0.12-linux-arm64.tar.gz",
+            "hash": "9ba9889057a8b8a8371099f1fc99c6710b723fd0359941183b9a5040b7d9fb7f03bc06b7dad100969f43f852da88b6d843f6c7983c86691594612043233f2e02"
+          },
+          {
+            "name": "aspnetcore-runtime-linux-x64.tar.gz",
+            "rid": "linux-x64",
+            "url": "https://builds.dotnet.microsoft.com/dotnet/aspnetcore/Runtime/10.0.12/aspnetcore-runtime-10.0.12-linux-x64.tar.gz",
+            "hash": "c489fc3a9dcc85f24f2d52e9a81b46fdf51affc8a360d008dbd5e3b7ce524969adc4a54f555ad13e29b822f59ed1cae9785608cbac2282f2c9c4fda45c21c7d1"
+          },
+          {
+            "name": "aspnetcore-runtime-osx-arm64.tar.gz",
+            "rid": "osx-arm64",
+            "url": "https://builds.dotnet.microsoft.com/dotnet/aspnetcore/Runtime/10.0.12/aspnetcore-runtime-10.0.12-osx-arm64.tar.gz",
+            "hash": "bdd9a2e79d5bd9bd749ae4869496ea435b94445bc2c88e9fbfba8f7e58ce6f7c901ac68855d6f170e0b18e514fc0fa2996ebcfa0e71d416e11a2d6416e823521"
+          },
+          {
+            "name": "aspnetcore-runtime-osx-x64.tar.gz",
+            "rid": "osx-x64",
+            "url": "https://builds.dotnet.microsoft.com/dotnet/aspnetcore/Runtime/10.0.12/aspnetcore-runtime-10.0.12-osx-x64.tar.gz",
+            "hash": "ad23744d8cf08d800e605cbe70f6ae97286b5c7e9e227a73b6b9213ddcd463b55e989a3898779d9b968116ae9c14f75dc54e153e0ac456ae701774e3a4b6913b"
+          },
+          {
+            "name": "aspnetcore-runtime-composite-linux-arm64.tar.gz",
+            "rid": "linux-arm64",
+            "url": "https://builds.dotnet.microsoft.com/dotnet/aspnetcore/Runtime/10.0.12/aspnetcore-runtime-composite-10.0.12-linux-arm64.tar.gz",
+            "hash": "885b3300511938da1ad8114e51c16186cc6a6e369b8ccfd5289b09aec3c72ec94981dd1ee2a595b4e46804b4c81485e38c2840b178a643be6e637e621db96e7e"
+          },
+          {
+            "name": "aspnetcore-targeting-pack-linux-arm64.tar.gz",
+            "rid": "linux-arm64",
+            "url": "https://builds.dotnet.microsoft.com/dotnet/aspnetcore/Runtime/10.0.12/aspnetcore-targeting-pack-10.0.12-linux-arm64.tar.gz",
+            "hash": "eb5fd897a2e35dbfe46c8cfaab9e3a16220697649e8a7a3dc85f7ee02354201f9e02922a242a6119af81e48466c3a13d3fcdbb2b88521993b0a17b4d038ad6cf"
+          }
+        ]
+      }
+    }
+  ]
+}
