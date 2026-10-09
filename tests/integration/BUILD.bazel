@@ -469,10 +469,7 @@ bazel_integration_tests(
             "manual",
             "no-sandbox",
         ],
-        target_compatible_with = [
-            "@platforms//os:linux",
-            "@platforms//cpu:aarch64",
-        ],
+        target_compatible_with = ["@platforms//os:linux"],
         test_runner = ":worker_runner",
         workspace_files = glob(["fixtures/worker/**"]),
         workspace_path = "tests/integration/fixtures/worker",

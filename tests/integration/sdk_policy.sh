@@ -6,7 +6,7 @@ cp MODULE.bazel original.module
 cp BUILD.bazel original.build
 cp global.json original.global
 python3 - <<'PY'
-import hashlib,json,tarfile
+import hashlib,json,os,tarfile
 from pathlib import Path
 versions=['9.0.203-preview.2','9.0.203-preview.10','10.0.100','10.0.101','10.0.109','10.0.200','10.0.204-preview.1','10.0.204','11.0.100']
 root=Path.cwd(); releases=[]; module='''bazel_dep(name="rules_msbuild",version="0.0.0")
@@ -32,13 +32,14 @@ cases=[
     ('latest_feature','10.0.100','latestFeature',False,'10.0.204'),
     ('preview','10.0.100','latestFeature',True,'10.0.204'),
     ('preview_patch','9.0.203-preview.2','latestPatch',True,'9.0.203-preview.10'),
+    ('explicit_preview_false','9.0.203-preview.2','latestPatch',False,'9.0.203-preview.10'),
     ('stable_patch','10.0.204-preview.1','latestPatch',True,'10.0.204'),
     ('exact','10.0.100','disable',True,'10.0.100')]
 expected={}
 for name,version,policy,preview,selected in cases:
     pin=name+'.json';(root/pin).write_text(json.dumps({'sdk':{'version':version,'rollForward':policy,'allowPrerelease':preview}}))
-    module+='dotnet.sdk(name='+json.dumps(name)+',global_json="//:'+pin+'",platforms=["linux-arm64"],metadata_urls=['+json.dumps((root/'policy-metadata.json').as_uri())+'])\nuse_repo(dotnet,'+json.dumps(name)+')\n'
-    if policy!='disable':expected[json.dumps([version,policy,preview,[(root/'policy-metadata.json').as_uri()]],separators=(',',':'))]=selected
+    module+='dotnet.sdk(name='+json.dumps(name)+',global_json="//:'+pin+'",platforms=['+json.dumps(os.environ['SDK_TEST_RID'])+'],metadata_urls=['+json.dumps((root/'policy-metadata.json').as_uri())+'])\nuse_repo(dotnet,'+json.dumps(name)+')\n'
+    if policy!='disable':expected[json.dumps([version,policy,preview or '-' in version,[(root/'policy-metadata.json').as_uri()]],separators=(',',':'))]=selected
 (root/'expected.json').write_text(json.dumps(expected))
 (root/'MODULE.bazel').write_text(module)
 (root/'BUILD.bazel').write_text('exports_files(glob(["*.json"]))')
@@ -67,7 +68,7 @@ printf '\n# Force reevaluation with newer metadata available.\n' >> "$scratch/ms
 bazel build @latest_patch//:files
 check_facts
 # Platform expansion must acquire the already-selected SDK, never reselect.
-sed -i 's/platforms=\["linux-arm64"\]/platforms=["linux-arm64","linux-x64"]/' MODULE.bazel
+sed -i 's/platforms=\["'"$SDK_TEST_RID"'"\]/platforms=["linux-arm64","linux-x64"]/' MODULE.bazel
 bazel build @latest_patch//:files
 check_facts
 bazel shutdown

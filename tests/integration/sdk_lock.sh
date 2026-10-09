@@ -18,7 +18,7 @@ chmod +x archive/dotnet
 tar -czf supplied.tar.gz -C archive .
 cp supplied.tar.gz good.tar.gz
 python3 - <<'PY'
-import hashlib, json
+import hashlib, json, os
 from pathlib import Path
 root = Path.cwd()
 archive = root / 'supplied.tar.gz'
@@ -32,20 +32,20 @@ metadata = {'releases': [{'sdk': {'version': '42.0.123', 'runtime-version': '42.
 bazel_dep(name="rules_msbuild",version="0.0.0")
 local_path_override(module_name="rules_msbuild",path="../msbuild-bazel")
 dotnet=use_extension("@rules_msbuild//msbuild:extensions.bzl","dotnet")
-dotnet.sdk(name="supplied",global_json="//:global.json",platforms=["linux-arm64"],metadata_urls=[''' + json.dumps((root / 'releases.json').as_uri()) + '''])
+dotnet.sdk(name="supplied",global_json="//:global.json",platforms=[''' + json.dumps(os.environ['SDK_TEST_RID']) + '''],metadata_urls=[''' + json.dumps((root / 'releases.json').as_uri()) + '''])
 use_repo(dotnet,"supplied")
 ''')
 PY
 echo 'exports_files(["global.json"])' > BUILD.bazel
 bazel build @supplied//:files
 python3 - <<'PY'
-import base64, hashlib, json
+import base64, hashlib, json, os
 from pathlib import Path
 lock = json.loads(Path('MODULE.bazel.lock').read_text())
 facts = next(item['sdk-v1'] for item in lock['facts'].values() if 'sdk-v1' in item)
 sdk = next(iter(facts.values()))
 assert sdk['runtime'] == '42.0.7'
-assert sdk['platforms']['linux-arm64']['integrity'] == 'sha512-' + base64.b64encode(hashlib.sha512(Path('supplied.tar.gz').read_bytes()).digest()).decode()
+assert sdk['platforms'][os.environ['SDK_TEST_RID']]['integrity'] == 'sha512-' + base64.b64encode(hashlib.sha512(Path('supplied.tar.gz').read_bytes()).digest()).decode()
 PY
 fresh() {
     "$BIT_BAZEL_BINARY" --batch --nosystem_rc --nohome_rc --noworkspace_rc --output_base="$1" "${@:2}"
@@ -57,7 +57,7 @@ expect_failure() {
 }
 
 # Adding a platform extends the existing selection without replacing its hashes.
-sed -i 's/platforms=\["linux-arm64"\]/platforms=["linux-arm64","linux-x64"]/' MODULE.bazel
+sed -i 's/platforms=\["'"$SDK_TEST_RID"'"\]/platforms=["linux-arm64","linux-x64"]/' MODULE.bazel
 bazel build @supplied//:files
 python3 - <<'PY'
 import json
@@ -126,11 +126,11 @@ assert_contains "$TEST_TMPDIR/failure.log" 'Checksum'
 cp good.tar.gz supplied.tar.gz
 
 python3 - <<'PY'
-import base64, hashlib, json
+import base64, hashlib, json, os
 from pathlib import Path
 archive = Path('supplied.tar.gz').resolve()
 p = Path('MODULE.bazel')
-p.write_text(p.read_text() + '\ndotnet.sdk_archive(name="private_sdk",version="42.0.123",runtime_version="42.0.7",platform="linux-arm64",urls=[' + json.dumps(archive.as_uri()) + '],integrity=' + json.dumps('sha512-' + base64.b64encode(hashlib.sha512(archive.read_bytes()).digest()).decode()) + ')\nuse_repo(dotnet,"private_sdk")\n')
+p.write_text(p.read_text() + '\ndotnet.sdk_archive(name="private_sdk",version="42.0.123",runtime_version="42.0.7",platform=' + json.dumps(os.environ['SDK_TEST_RID']) + ',urls=[' + json.dumps(archive.as_uri()) + '],integrity=' + json.dumps('sha512-' + base64.b64encode(hashlib.sha512(archive.read_bytes()).digest()).decode()) + ')\nuse_repo(dotnet,"private_sdk")\n')
 PY
 bazel build @private_sdk//:files
 sed -i 's/runtime_version="42.0.7"/runtime_version="42.0.8"/' MODULE.bazel

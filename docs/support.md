@@ -21,6 +21,27 @@ SDK_VERSION_CACHE_URL=http://cache:8080 DYNAMIC_SOURCE_CACHE_URL=http://cache:80
 Large runtime timings and source-built SDK consumers below retain their recorded
 9.2 qualification; they were not rerun for this SDK change.
 
+## Linux architectures
+
+Downloaded-SDK controls passed on native Linux ARM64 and Linux x64 **under
+Apple Rosetta**: 29 analysis/integration checks across both current Bazel pins,
+plus 21 SDK/runtime repository controls. Scope: SDK selection/locks, quickstart,
+SDK-only Web/Razor Build/test/Publish and HTTP recovery, cached/uncached sandboxed
+workers, body/API edits and raw MSBuild output parity. The Web fixture checks the
+actual process architecture; fixture declarations select the host SDK RID.
+
+```sh
+SDK_WEB_CACHE_URL=http://cache:8080 bash scripts/bazel.sh test \
+  //tests/analysis/... \
+  //tests/integration:{quickstart,sdk_locks,sdk_policies,sdk_web,workers} \
+  --test_output=errors
+python3 -m unittest discover -s tests/sdk_repository -v
+```
+
+The x64 controls used amd64 SDK/Bazel binaries in Ubuntu containers on an ARM64
+Mac. This establishes emulated x64 behavior, not native x64 performance or
+source-built SDK/runtime qualification. Native Linux x64 remains unqualified.
+
 ## Qualified SDKs
 
 The SDK suites below were qualified on Linux ARM64 with Bazel 8.8.0 / 9.2.0:
@@ -193,8 +214,9 @@ Drivers: [prepare](../tests/graph_build/upstream/runtime_jit_prepare.py),
 
 ## Limits
 
-- Persistent workers require Bubblewrap and nested namespaces. Worker/remote evidence
-  is Linux ARM64; Linux x86-64, macOS workers and RBE are unqualified.
+- Persistent workers require Bubblewrap and nested namespaces. Native worker/remote
+  evidence is Linux ARM64; x64 has the emulated controls above. Native Linux x64,
+  macOS workers and RBE are unqualified.
 - Unknown SDKs/workloads and whole-repository runtime/native build parity are unqualified.
 - Custom task/analyzer/generator reads, package side effects and output ownership
   require contracts. Build compiler selections do not qualify Pack/Publish changes.

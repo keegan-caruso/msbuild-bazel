@@ -1,6 +1,11 @@
 #!/usr/bin/env bash
 # Sourced by integration runners. Only declared runfiles enter the scratch tree.
 set -euo pipefail
+case "$(uname -m)" in
+    aarch64) export SDK_TEST_RID=linux-arm64 ;;
+    x86_64) export SDK_TEST_RID=linux-x64 ;;
+    *) echo 'Integration fixtures require Linux ARM64 or x64.' >&2; exit 1 ;;
+esac
 # TEST_TMPDIR is nested below the rules checkout's execroot. MSBuild would discover
 # its ancestor .editorconfig there, so put consumer sources outside that tree.
 scratch=$(mktemp -d /tmp/msbuild-bazel-integration.XXXXXX)

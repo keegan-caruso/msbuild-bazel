@@ -24,7 +24,6 @@ var builder = WebApplication.CreateBuilder(new WebApplicationOptions { Args = ar
 builder.WebHost.UseUrls("http://127.0.0.1:0");
 builder.Services.AddRazorPages();
 await using var app = builder.Build();
-app.UseStaticFiles();
 app.MapStaticAssets();
 app.MapRazorPages();
 app.MapGet("/hello", () => Message.Text());
@@ -42,7 +41,10 @@ try
     var asset = Path.Combine(AppContext.BaseDirectory, "wwwroot", "message.txt");
     if (File.Exists(asset))
     {
-        var content = await client.GetStringAsync("/message.txt");
+        using var assetResponse = await client.GetAsync("/message.txt");
+        assetResponse.EnsureSuccessStatusCode();
+        if (assetResponse.Headers.ETag is null) throw new Exception("Missing static asset ETag");
+        var content = await assetResponse.Content.ReadAsStringAsync();
         if (content != await File.ReadAllTextAsync(asset)) throw new Exception("Unexpected static asset: " + content);
         Console.WriteLine("ASSET: " + content.Trim());
     }
@@ -52,6 +54,7 @@ try
     }
     Console.WriteLine("FRAMEWORK: " + typeof(WebApplication).Assembly.Location);
     Console.WriteLine(RuntimeInformation.FrameworkDescription);
+    Console.WriteLine("ARCH: " + RuntimeInformation.ProcessArchitecture);
 }
 finally
 {
@@ -89,6 +92,8 @@ run_app() {
     assert_contains "$TEST_TMPDIR/$1.log" 'HTTP: Hello from MSBuild and Bazel'
     assert_contains "$TEST_TMPDIR/$1.log" "PAGE: <p>$2</p>"
     assert_contains "$TEST_TMPDIR/$1.log" '/shared/Microsoft.AspNetCore.App/10.0.11/'
+    architecture=Arm64; if [[ "$SDK_TEST_RID" == linux-x64 ]]; then architecture=X64; fi
+    assert_contains "$TEST_TMPDIR/$1.log" "ARCH: $architecture"
     if [[ "$1" == published_app ]]; then assert_contains "$TEST_TMPDIR/$1.log" "ASSET: $3"; fi
 }
 run_app app page-v1 asset-v1
