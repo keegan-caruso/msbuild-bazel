@@ -53,6 +53,14 @@ Each SDK recovered the whole graph action through Bazel's remote cache; forced
 HTTP project recovery returned three hits / zero compilations and identical outputs.
 There is no SDK-family allowlist; see [adapter requirements](api.md#sdks).
 
+`//tests/integration:sdk_policies` passed both Bazel pins on Linux ARM64: patch
+fallback, latest patch/feature selection, prerelease ordering/filtering, locked reuse
+after metadata changes, platform expansion, old-lock migration without metadata,
+strict fresh-base recovery, invalid-fact rejection and explicit refresh. A real
+`9.0.300` / `latestPatch` request selected **9.0.318** and passed sync/check/app/tests.
+The 21 SDK/runtime repository controls also passed. Other roll-forward policies
+remain unsupported; selection uses published releases, not installed SDKs.
+
 ## Downloaded runtimes
 
 SDK **9.0.318** compiled a net9.0 app that ran on runtime **9.0.20**, rejected

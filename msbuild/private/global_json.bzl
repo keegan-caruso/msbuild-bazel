@@ -42,14 +42,14 @@ def _json_comments(text):
         fail("Unterminated string or comment in global.json")
     return "".join(result)
 
-def global_json_version(text):
-    """Read an exact SDK pin, rejecting selection behavior we cannot honor.
+def global_json_sdk(text):
+    """Read a declared SDK version and supported selection policy.
 
     Args:
         text: Contents of the explicitly declared global.json file.
 
     Returns:
-        The exact SDK version requested by the file.
+        Requested version, roll-forward policy and prerelease eligibility.
     """
     data = json.decode(_json_comments(text))
     if type(data) != "dict" or type(data.get("sdk")) != "dict":
@@ -70,12 +70,16 @@ def global_json_version(text):
     version = sdk.get("version")
     if type(version) != "string" or not version:
         fail("global.json requires sdk.version")
-    if sdk.get("rollForward", "patch") not in ["disable", "patch"]:
-        fail("global.json rollForward must be disable or patch; Bazel acquires the exact pinned SDK")
+    policy = sdk.get("rollForward", "patch")
+    policies = {value.lower(): value for value in ["disable", "patch", "latestPatch", "latestFeature"]}
+    if type(policy) != "string" or policy.lower() not in policies:
+        fail("global.json rollForward must be disable, patch, latestPatch or latestFeature")
+    policy = policies[policy.lower()]
     if type(sdk.get("allowPrerelease", True)) != "bool":
         fail("global.json sdk.allowPrerelease must be Boolean")
     if type(sdk.get("errorMessage", "")) != "string":
         fail("global.json sdk.errorMessage must be a string")
-    if "-" in version and not sdk.get("allowPrerelease", True):
-        fail("global.json disallows the requested prerelease SDK")
-    return version
+
+    # dotnet permits prereleases whenever the requested version is itself a preview.
+    preview = "-" in version.split("+")[0]
+    return {"version": version, "rollForward": policy, "allowPrerelease": preview or sdk.get("allowPrerelease", True)}

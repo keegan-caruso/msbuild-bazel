@@ -133,7 +133,7 @@ Prepared Restore exports use `Restore.Outputs` ownership. Exports reject links.
 
 ## SDKs
 
-`dotnet.sdk` selects an exact `version` or declared `global_json`:
+`dotnet.sdk` selects an exact `version` or resolves SDK settings from `global_json`:
 
 ```starlark
 dotnet = use_extension("@rules_msbuild//msbuild:extensions.bzl", "dotnet")
@@ -148,13 +148,25 @@ Commit that lockfile. Later resolutions reuse its facts, including after extensi
 changes; downloads still verify the hashes. A missing SDK/platform selection needs
 metadata access. There is no SDK version allowlist or separate updater.
 
+`global_json` supports `disable`, `patch` (default), `latestPatch` and `latestFeature`,
+with `allowPrerelease`. An explicit preview request permits prereleases, as in
+dotnet; policy names are case-insensitive. `patch` prefers the requested release
+and otherwise selects
+the highest eligible patch in its feature band; `latestPatch` selects that highest
+patch, and `latestFeature` selects the highest eligible feature band/patch in the
+same major/minor. Selection uses published release metadata, rather than installed
+SDKs, and locks the exact result in `sdk-policy-v1` facts. New metadata does not
+advance a committed selection. Other policies and machine-local search paths fail.
+
 After changing the pin, run `bazel run //:sync`, then review/commit `global.json`,
 `MODULE.bazel.lock` and the generated graph. Use `--lockfile_mode=error` on build
 servers to reject stale/missing lock entries. After switching Bazel versions,
 run once in update mode to record any additional registry entries; SDK facts survive
 the switch. `--lockfile_mode=off` discards this reuse; `refresh` retains existing
 SDK facts. To refresh a selection deliberately, remove its fact and extension entry
-from the lockfile.
+from the lockfile. For roll-forward, remove the matching `sdk-policy-v1` entry and
+the extension's `moduleExtensions` entry, then rerun sync in update mode. Existing
+archive facts retain their hashes; review and commit the new selection/graph.
 
 `platforms` defaults to Linux/macOS ARM64/x64. Optional `metadata_urls` supplies
 mirror URLs for releases.json; changing them creates a separate resolution.

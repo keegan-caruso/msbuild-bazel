@@ -11,12 +11,12 @@ BAZEL=os.environ.get('RULES_MSBUILD_BAZEL',str(ROOT/'scripts/bazel-launcher.sh')
 
 
 class SdkExtension(unittest.TestCase):
-    def check(self, declaration='global_json="//:global.json"', contents=None, error=None):
+    def check(self, declaration='global_json="//:global.json"', contents=None, error=None, metadata_version='10.0.400'):
         with tempfile.TemporaryDirectory() as directory:
             root=Path(directory)
             (root/'global.json').write_text(contents or '{"sdk":{"version":"10.0.400"}}')
             (root/'BUILD.bazel').write_text('exports_files(["global.json"])')
-            metadata = {'releases': [{'sdk': {'version': '10.0.400', 'runtime-version': '10.0.11', 'files': [
+            metadata = {'releases': [{'sdk': {'version': metadata_version, 'runtime-version': '10.0.11', 'files': [
                 {'rid': rid, 'name': 'dotnet-sdk-' + rid + '.tar.gz', 'url': 'https://example.invalid/sdk.tar.gz', 'hash': '00' * 64}
                 for rid in ['linux-arm64', 'linux-x64', 'osx-arm64', 'osx-x64']
             ]}}]}
@@ -51,7 +51,20 @@ class SdkExtension(unittest.TestCase):
         self.check(contents='{"sdk":{}}',error='requires sdk.version')
 
     def test_unsupported_rollforward(self):
-        self.check(contents='{"sdk":{"version":"10.0.400","rollForward":"latestPatch"}}',error='rollForward must be disable or patch')
+        self.check(contents='{"sdk":{"version":"10.0.400","rollForward":"latestMajor"}}',error='rollForward must be disable, patch, latestPatch or latestFeature')
+
+    def test_latest_patch(self):
+        self.check(contents='{"sdk":{"version":"10.0.399","rollForward":"latestPatch"}}',error='no SDK satisfying global.json')
+        self.check(contents='{"sdk":{"version":"10.0.400","rollForward":"latestPatch"}}')
+
+    def test_latest_feature(self):
+        self.check(contents='{"sdk":{"version":"10.0.100","rollForward":"latestFeature"}}')
+
+    def test_policy_case(self):
+        self.check(contents='{"sdk":{"version":"10.0.100","rollForward":"LATESTFEATURE"}}')
+
+    def test_explicit_prerelease(self):
+        self.check(contents='{"sdk":{"version":"10.0.400-preview.1","rollForward":"latestPatch","allowPrerelease":false}}',metadata_version='10.0.400-preview.2')
 
     def test_machine_local_paths_rejected(self):
         self.check(contents='{"sdk":{"version":"10.0.400","paths":[".dotnet"]}}',error='Unsupported global.json sdk field: paths')

@@ -84,6 +84,49 @@ sh_binary(
     data = ["common.sh"],
 )
 
+sh_binary(
+    name = "sdk_policy_runner",
+    testonly = True,
+    srcs = ["sdk_policy.sh"],
+    data = ["common.sh"],
+)
+
+bazel_integration_tests(
+    name = "sdk_policy_cases",
+    additional_env_inherit = [
+        "BAZELISK_HOME",
+        "RULES_MSBUILD_TEST_REPOSITORY_CACHE",
+    ],
+    bazel_binaries = bazel_binaries,
+    bazel_versions = bazel_binaries.versions.all,
+    data = [
+        "sdk-9.0.318.metadata.json",
+        ":rules_archive",
+    ],
+    env = {
+        "RULES_ARCHIVE": "$(rootpath :rules_archive)",
+        "SDK_POLICY_METADATA": "$(rootpath sdk-9.0.318.metadata.json)",
+    },
+    tags = [
+        "exclusive",
+        "manual",
+        "no-sandbox",
+    ],
+    target_compatible_with = ["@platforms//os:linux"],
+    test_runner = ":sdk_policy_runner",
+    workspace_files = ["//:quickstart_sources"],
+    workspace_path = "examples/quickstart",
+)
+
+test_suite(
+    name = "sdk_policies",
+    tags = ["manual"],
+    tests = integration_test_utils.bazel_integration_test_names(
+        "sdk_policy_cases",
+        bazel_binaries.versions.all,
+    ),
+)
+
 bazel_integration_tests(
     name = "sdk_versions_cases",
     additional_env_inherit = [
