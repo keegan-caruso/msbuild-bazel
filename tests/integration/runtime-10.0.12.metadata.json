@@ -1,0 +1,59 @@
+{
+  "releases": [
+    {
+      "runtime": {
+        "version": "10.0.12",
+        "files": [
+          {
+            "name": "dotnet-apphost-pack-linux-arm64.tar.gz",
+            "rid": "linux-arm64",
+            "url": "https://builds.dotnet.microsoft.com/dotnet/Runtime/10.0.12/dotnet-apphost-pack-10.0.12-linux-arm64.tar.gz",
+            "hash": "84cef2aacc871ab74eaee7237ac58a8e7849c5e0e0537c7950d7bf13324053b3eda912b1461fe2865fad1d4c803d44c5d1f5cf1e17a621dacf84a26d1e2e0cde"
+          },
+          {
+            "name": "dotnet-apphost-pack-linux-x64.tar.gz",
+            "rid": "linux-x64",
+            "url": "https://builds.dotnet.microsoft.com/dotnet/Runtime/10.0.12/dotnet-apphost-pack-10.0.12-linux-x64.tar.gz",
+            "hash": "4c302f969f483338eeae7d07b180196cbba47ce2d1d94b0db05cdfe8bbff156af9d02539d4dbf8b15f47f8e4f4ef1f3e3fef70cec4b72976cba6b9e4c8696eec"
+          },
+          {
+            "name": "dotnet-apphost-pack-osx-arm64.tar.gz",
+            "rid": "osx-arm64",
+            "url": "https://builds.dotnet.microsoft.com/dotnet/Runtime/10.0.12/dotnet-apphost-pack-10.0.12-osx-arm64.tar.gz",
+            "hash": "085057f35c18abe62e62055d2eaf6430435eed77ef4acb623db08ad620914b1e48ee8264e9848b3d32bc4a282bd05d4e07594ec4d54887b0b2cc510f65e9f650"
+          },
+          {
+            "name": "dotnet-apphost-pack-osx-x64.tar.gz",
+            "rid": "osx-x64",
+            "url": "https://builds.dotnet.microsoft.com/dotnet/Runtime/10.0.12/dotnet-apphost-pack-10.0.12-osx-x64.tar.gz",
+            "hash": "b47ca9b909fa2a764f2abf73be484131041b72e50e4d2af6750692d23aa914cde1d3de673dbeb452a2b7355282ff516a10b5b61d5b93e01f4ec2a7bb0188c8de"
+          },
+          {
+            "name": "dotnet-runtime-linux-arm64.tar.gz",
+            "rid": "linux-arm64",
+            "url": "https://builds.dotnet.microsoft.com/dotnet/Runtime/10.0.12/dotnet-runtime-10.0.12-linux-arm64.tar.gz",
+            "hash": "ac1e0090391085ba70c7457adaaa8f6cc20dc216b9b368b4227a427de271708d783380c7b955b7be4897ff24849fbe5c3b7ec1cb1c38345a725de9a3812280eb"
+          },
+          {
+            "name": "dotnet-runtime-linux-x64.tar.gz",
+            "rid": "linux-x64",
+            "url": "https://builds.dotnet.microsoft.com/dotnet/Runtime/10.0.12/dotnet-runtime-10.0.12-linux-x64.tar.gz",
+            "hash": "58388fdde4f13bd703c7a6f7defb3300b17e42ba5fe8bca50066f80f64ac7406620dcdfb4acc1eff7992750c8cc5cff8369dd12d09730c8a9e8760d6032f7f6e"
+          },
+          {
+            "name": "dotnet-runtime-osx-arm64.tar.gz",
+            "rid": "osx-arm64",
+            "url": "https://builds.dotnet.microsoft.com/dotnet/Runtime/10.0.12/dotnet-runtime-10.0.12-osx-arm64.tar.gz",
+            "hash": "d1b422c2afecb5e741430584c3e1887d5e0f2df321a80d492fdd13d8c7f99579f0dbbf34e348bc512cb276f0f86b4645423a032ded52808b74ab8eb0d7bf2a6d"
+          },
+          {
+            "name": "dotnet-runtime-osx-x64.tar.gz",
+            "rid": "osx-x64",
+            "url": "https://builds.dotnet.microsoft.com/dotnet/Runtime/10.0.12/dotnet-runtime-10.0.12-osx-x64.tar.gz",
+            "hash": "c5019357c9d8fbe30b49ec8f81ae85be56a784d8b4b75f470e931583c39e082773c089b39785b322770a298ab08636c6b30e695a2397fc311060f73c98743b48"
+          }
+        ]
+      }
+    }
+  ]
+}

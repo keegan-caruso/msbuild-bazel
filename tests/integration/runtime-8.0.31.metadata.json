@@ -1,0 +1,35 @@
+{
+  "releases": [
+    {
+      "runtime": {
+        "version": "8.0.31",
+        "files": [
+          {
+            "name": "dotnet-runtime-linux-arm64.tar.gz",
+            "rid": "linux-arm64",
+            "url": "https://builds.dotnet.microsoft.com/dotnet/Runtime/8.0.31/dotnet-runtime-8.0.31-linux-arm64.tar.gz",
+            "hash": "ddc66b65e9377e7f3805ba78a0ec9be857dfb96df866349df2bf963312933c663e5db98bd8443789dcf6457ca8f815404450946ef87562117d326c3a4423466c"
+          },
+          {
+            "name": "dotnet-runtime-linux-x64.tar.gz",
+            "rid": "linux-x64",
+            "url": "https://builds.dotnet.microsoft.com/dotnet/Runtime/8.0.31/dotnet-runtime-8.0.31-linux-x64.tar.gz",
+            "hash": "f336bdec58d54bf50d74a1b38efa82f7290d976bd2ed98b845ebcbac42cf0d8cef504684fc088d4b05f98737b996bf3302e52bd9c23005deae7c60780b2652fb"
+          },
+          {
+            "name": "dotnet-runtime-osx-x64.tar.gz",
+            "rid": "osx-x64",
+            "url": "https://builds.dotnet.microsoft.com/dotnet/Runtime/8.0.31/dotnet-runtime-8.0.31-osx-x64.tar.gz",
+            "hash": "d74c7433ee31dd2a5d6672efafeeb2a2d43fa84b19b1d41e412acadfe04a4cd4046cddd51c0e1027df0a23fa6065887e0123a5c6540de1e731748d21ca75bdb6"
+          },
+          {
+            "name": "dotnet-runtime-osx-arm64.tar.gz",
+            "rid": "osx-arm64",
+            "url": "https://builds.dotnet.microsoft.com/dotnet/Runtime/8.0.31/dotnet-runtime-8.0.31-osx-arm64.tar.gz",
+            "hash": "1963d2ab3798efdc2b33034ef57d4252849a066a2313ce62a574e556d19e5e981afe13c9545eb6d59437849723e1c8350f10f8068bcfa6b7a2815a07263bb8b3"
+          }
+        ]
+      }
+    }
+  ]
+}

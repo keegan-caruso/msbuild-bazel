@@ -18,6 +18,8 @@ Downloaded SDK pins live in `global.json` or `dotnet.sdk(version = ...)`. The
 module extension resolves release metadata once per SDK/platform selection and
 records immutable archive facts in `MODULE.bazel.lock`. Acquisition verifies their
 hashes. Available downloads do not imply MSBuild compatibility.
+Separate runtime declarations use the same metadata/lockfile flow; the app's
+runtimeconfig retains control of framework compatibility and roll-forward.
 
 ## Execution and caching
 

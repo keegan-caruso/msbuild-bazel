@@ -1,8 +1,7 @@
 """Verified SDK acquisition and downloaded/source-built runtime integration."""
 
 load("//msbuild/private:global_json.bzl", "global_json_version")
-load("//msbuild/private:runtime_downloads.bzl", "RUNTIME_DOWNLOADS")
-load("//msbuild/private:sdk_metadata.bzl", "resolve_sdk", "sdk_download", "sdk_platforms", "sdk_selection", "sdk_version")
+load("//msbuild/private:sdk_metadata.bzl", "resolve_runtime", "resolve_sdk", "runtime_selection", "sdk_download", "sdk_platforms", "sdk_selection", "sdk_version")
 load("//msbuild/private:sdk_repositories.bzl", "sdk_archive", "sdk_toolchains")
 
 _PLATFORMS = {
@@ -61,17 +60,19 @@ def _aliases(ctx):
 
 _runtime_aliases = repository_rule(implementation = _aliases, attrs = {"repositories": attr.string_dict()})
 
-def _sdk(ctx, declaration, version, facts):
+def _selection(ctx, declaration, version, facts, kind):
     urls = declaration.metadata_urls or ["https://builds.dotnet.microsoft.com/dotnet/release-metadata/%s/releases.json" % ".".join(version.split(".")[:2])]
     key = json.encode([version, urls])
-    selected = sdk_selection(facts[key]) if key in facts else None
+    validate = sdk_selection if kind == "sdk" else runtime_selection
+    selected = validate(facts[key]) if key in facts else None
     missing = [platform for platform in declaration.platforms if selected == None or platform not in selected["platforms"]]
     if missing:
-        path = "sdk-metadata-%s.json" % len(facts)
+        path = "%s-metadata-%s.json" % (kind, len(facts))
         ctx.download(urls, output = path)
-        resolved = resolve_sdk(ctx.read(path), version, missing)
+        resolve = resolve_sdk if kind == "sdk" else resolve_runtime
+        resolved = resolve(ctx.read(path), version, missing)
         if selected != None:
-            if selected["runtime"] != resolved["runtime"]:
+            if kind == "sdk" and selected["runtime"] != resolved["runtime"]:
                 fail("SDK release metadata conflicts with recorded runtime: " + version)
             resolved["platforms"].update(selected["platforms"])
         selected = resolved
@@ -81,6 +82,7 @@ def _sdk(ctx, declaration, version, facts):
 def _runtimes(ctx):
     names = {}
     facts = dict(ctx.facts.get("sdk-v1", {}))
+    runtime_facts = dict(ctx.facts.get("runtime-v1", {}))
     for mod in ctx.modules:
         for sdk in mod.tags.sdk:
             if sdk.name in names:
@@ -91,7 +93,7 @@ def _runtimes(ctx):
             version = global_json_version(ctx.read(sdk.global_json)) if sdk.global_json else sdk.version
             sdk_version(version)
             sdk_platforms(sdk.platforms)
-            locked = _sdk(ctx, sdk, version, facts)
+            locked = _selection(ctx, sdk, version, facts, "sdk")
             repositories = {}
             for platform in sdk.platforms:
                 name = sdk.name + "_" + platform.replace("-", "_")
@@ -113,17 +115,18 @@ def _runtimes(ctx):
             if runtime.name in names:
                 fail("Duplicate runtime repository name: " + runtime.name)
             names[runtime.name] = True
-            if runtime.version not in RUNTIME_DOWNLOADS:
-                fail("Unknown runtime version %s; use runtime_archive with explicit URLs and integrity" % runtime.version)
+            sdk_version(runtime.version)
             if not runtime.platforms or len(runtime.platforms) != len({p: True for p in runtime.platforms}):
                 fail("Runtime platforms must be nonempty and unique")
-            repositories = {}
             for platform in runtime.platforms:
                 if platform not in _PLATFORMS:
                     fail("Unsupported runtime platform: " + platform)
+            locked = _selection(ctx, runtime, runtime.version, runtime_facts, "runtime")
+            repositories = {}
+            for platform in runtime.platforms:
                 name = runtime.name + "_" + platform.replace("-", "_")
                 repositories[platform] = name
-                _runtime_archive(name = name, version = runtime.version, platform = platform, **RUNTIME_DOWNLOADS[runtime.version][platform])
+                _runtime_archive(name = name, version = runtime.version, platform = platform, **locked["platforms"][platform])
             _runtime_aliases(name = runtime.name, repositories = repositories)
         for archive in mod.tags.runtime_archive:
             if archive.name in names:
@@ -133,11 +136,12 @@ def _runtimes(ctx):
                 fail("Unsupported runtime platform: " + archive.platform)
             _runtime_archive(name = archive.name, version = archive.version, platform = archive.platform, urls = archive.urls, integrity = archive.integrity)
 
-    return ctx.extension_metadata(facts = {"sdk-v1": facts})
+    return ctx.extension_metadata(facts = {"sdk-v1": facts, "runtime-v1": runtime_facts})
 
 _dotnet_runtime = tag_class(attrs = {
     "name": attr.string(mandatory = True),
     "version": attr.string(mandatory = True),
+    "metadata_urls": attr.string_list(),
     "platforms": attr.string_list(default = ["linux-arm64", "linux-x64", "osx-arm64", "osx-x64"]),
 })
 

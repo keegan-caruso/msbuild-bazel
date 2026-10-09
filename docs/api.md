@@ -176,6 +176,32 @@ needs a separate bootstrap toolchain. Host-path SDK repositories are unsupported
 `runtime_host` selects a declared `msbuild_runtime` (`dotnet` or `corerun`) independently
 of compilation. Newer hosts run older targets only when runtimeconfig allows it.
 
+## Runtimes
+
+App/test execution uses the SDK's bundled runtime by default. To select a separate
+execution host, declare an exact CoreCLR runtime version:
+
+```starlark
+dotnet.runtime(name = "app_runtime", version = "10.0.12")
+use_repo(dotnet, "app_runtime")
+```
+
+Set `runtime_host = "@app_runtime//:runtime"` on the app/test target. This does not
+change its compilation SDK. The app's runtimeconfig controls framework compatibility
+and roll-forward; the rules do not force a newer major host.
+
+Runtime acquisition uses release metadata, verified archive hashes and native
+`MODULE.bazel.lock` facts, with no version catalog. `platforms` and `metadata_urls`
+work as for `dotnet.sdk`; commit the lockfile and use `--lockfile_mode=error` on build
+servers. Existing selections can be recovered without metadata access when archives
+are available from Bazel's repository cache or their locked URLs.
+
+For private layouts, use `dotnet.runtime_archive(name, version, platform, urls,
+integrity)`. Source-built `msbuild_runtime` targets retain the same `runtime_host`
+handoff. CoreCLR archives contain `Microsoft.NETCore.App`; apps needing other shared
+frameworks require a complete declared runtime layout. Download availability does
+not qualify additional platforms or workloads.
+
 ## Tests
 
 `test_protocol` is `executable` (default), `mtp` (direct execution), or `vstest`

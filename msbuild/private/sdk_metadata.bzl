@@ -1,4 +1,4 @@
-"""SDK archive validation and exact-version release metadata resolution."""
+"""SDK/runtime archive validation and exact-version metadata resolution."""
 
 load(":sdk_repositories.bzl", "SDK_PLATFORMS")
 
@@ -63,9 +63,9 @@ def sdk_selection(sdk):
         sdk_download(archive)
     return sdk
 
-def _integrity(hex_digest):
+def _integrity(hex_digest, kind = "SDK"):
     if type(hex_digest) != "string" or len(hex_digest) != 128 or any([c not in "0123456789abcdefABCDEF" for c in hex_digest.elems()]):
-        fail("Release metadata SDK hash must be SHA-512 hex")
+        fail("Release metadata %s hash must be SHA-512 hex" % kind)
     alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/"
     result = []
     for offset in range(0, 128, 6):
@@ -73,6 +73,16 @@ def _integrity(hex_digest):
         number = int(chunk + "0" * (6 - len(chunk)), 16)
         result.extend([alphabet[number // 262144], alphabet[number // 4096 % 64], alphabet[number // 64 % 64] if len(chunk) >= 4 else "=", alphabet[number % 64] if len(chunk) == 6 else "="])
     return "sha512-" + "".join(result)
+
+def _archives(component, version, platforms, kind):
+    archives = {}
+    for platform in sorted(platforms):
+        candidates = [file for file in component.get("files", []) if file.get("rid") == platform and file.get("name", "").startswith("dotnet-%s-" % kind.lower()) and file.get("name", "").endswith(".tar.gz")]
+        if len(candidates) != 1:
+            fail("Release metadata must identify one %s archive for %s / %s" % (kind, version, platform))
+        file = candidates[0]
+        archives[platform] = sdk_download({"urls": [file.get("url")], "integrity": _integrity(file.get("hash"), kind)})
+    return archives
 
 def resolve_sdk(text, version, platforms):
     """Select archive hashes without executing the SDK or selecting latest.
@@ -97,11 +107,43 @@ def resolve_sdk(text, version, platforms):
         fail("Release metadata must identify exactly one SDK %s" % version)
     sdk = matches[0]
     runtime = sdk_version(sdk.get("runtime-version"))
-    archives = {}
-    for platform in sorted(platforms):
-        candidates = [file for file in sdk.get("files", []) if file.get("rid") == platform and file.get("name", "").endswith(".tar.gz")]
-        if len(candidates) != 1:
-            fail("Release metadata must identify one SDK archive for %s / %s" % (version, platform))
-        file = candidates[0]
-        archives[platform] = sdk_download({"urls": [file.get("url")], "integrity": _integrity(file.get("hash"))})
-    return {"runtime": runtime, "platforms": archives}
+    return {"runtime": runtime, "platforms": _archives(sdk, version, platforms, "SDK")}
+
+def runtime_selection(runtime):
+    """Validate locked runtime archive facts.
+
+    Args:
+        runtime: Archive declarations by platform.
+
+    Returns:
+        The validated selection.
+    """
+    if type(runtime) != "dict" or sorted(runtime.keys()) != ["platforms"] or type(runtime["platforms"]) != "dict":
+        fail("Runtime facts require platforms")
+    sdk_platforms(runtime["platforms"].keys())
+    for archive in runtime["platforms"].values():
+        sdk_download(archive)
+    return runtime
+
+def resolve_runtime(text, version, platforms):
+    """Select CoreCLR runtime archives, excluding apphost packs.
+
+    Args:
+        text: Release metadata JSON.
+        version: Exact runtime version.
+        platforms: Requested archive platforms.
+
+    Returns:
+        Archive declarations by platform.
+    """
+    metadata = json.decode(text)
+    if type(metadata) != "dict" or type(metadata.get("releases")) != "list":
+        fail("Expected .NET releases.json metadata")
+    matches = []
+    for release in metadata["releases"]:
+        runtime = release.get("runtime", {})
+        if runtime.get("version") == version and runtime not in matches:
+            matches.append(runtime)
+    if len(matches) != 1:
+        fail("Release metadata must identify exactly one runtime %s" % version)
+    return {"platforms": _archives(matches[0], version, platforms, "runtime")}
