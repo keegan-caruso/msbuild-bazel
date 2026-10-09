@@ -11,7 +11,7 @@ BAZEL=os.environ.get('RULES_MSBUILD_BAZEL',str(ROOT/'scripts/bazel-launcher.sh')
 
 
 class SdkExtension(unittest.TestCase):
-    def check(self, declaration='global_json="//:global.json"', contents=None, error=None, metadata_version='10.0.400'):
+    def check(self, declaration='global_json="//:global.json"', contents=None, error=None, metadata_version='10.0.400', options=()):
         with tempfile.TemporaryDirectory() as directory:
             root=Path(directory)
             (root/'global.json').write_text(contents or '{"sdk":{"version":"10.0.400"}}')
@@ -23,7 +23,7 @@ class SdkExtension(unittest.TestCase):
             (root/'releases.json').write_text(json.dumps(metadata))
             declaration += ',metadata_urls=[' + json.dumps((root/'releases.json').as_uri()) + ']'
             (root/'MODULE.bazel').write_text('bazel_dep(name="rules_msbuild",version="0.0.0")\nlocal_path_override(module_name="rules_msbuild",path='+json.dumps(str(ROOT))+')\ndotnet=use_extension("@rules_msbuild//msbuild:extensions.bzl","dotnet")\ndotnet.sdk(name="dotnet",'+declaration+')\nuse_repo(dotnet,"dotnet")\n')
-            result=subprocess.run([BAZEL,'--batch','--output_base='+str(root/'base'),'--ignore_all_rc_files','query','@dotnet//:all','--lockfile_mode=off'],cwd=root,text=True,capture_output=True,timeout=120)
+            result=subprocess.run([BAZEL,'--batch','--output_base='+str(root/'base'),'--ignore_all_rc_files','query','@dotnet//:all','--lockfile_mode=off',*options],cwd=root,text=True,capture_output=True,timeout=120)
             output=result.stdout+result.stderr
             if error:
                 self.assertNotEqual(result.returncode,0,output)
@@ -62,6 +62,15 @@ class SdkExtension(unittest.TestCase):
 
     def test_policy_case(self):
         self.check(contents='{"sdk":{"version":"10.0.100","rollForward":"LATESTFEATURE"}}')
+
+    def test_update_unknown_sdk(self):
+        self.check(options=['--repo_env=RULES_MSBUILD_SDK_UPDATE=missing:request'],error='root module: missing')
+
+    def test_update_exact_sdk(self):
+        self.check('version="10.0.400"',options=['--repo_env=RULES_MSBUILD_SDK_UPDATE=dotnet:request'],error='edit the exact version pin')
+
+    def test_update_disabled(self):
+        self.check(contents='{"sdk":{"version":"10.0.400","rollForward":"disable"}}',options=['--repo_env=RULES_MSBUILD_SDK_UPDATE=dotnet:request'],error='roll-forward is disabled')
 
     def test_explicit_prerelease(self):
         self.check(contents='{"sdk":{"version":"10.0.400-preview.1","rollForward":"latestPatch","allowPrerelease":false}}',metadata_version='10.0.400-preview.2')

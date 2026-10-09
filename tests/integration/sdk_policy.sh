@@ -110,27 +110,52 @@ lock['moduleExtensions']={};p.write_text(json.dumps(lock))
 PY
 if bazel query @latest_patch//:all > "$TEST_TMPDIR/invalid.log" 2>&1; then echo 'Invalid locked policy accepted' >&2; exit 1; fi
 assert_contains "$TEST_TMPDIR/invalid.log" 'SDK selection does not satisfy global.json'
-# Explicit refresh removes only the policy decision, preserving archive facts.
+# The declared updater refreshes one policy without hand-editing native facts.
 cp valid.lock MODULE.bazel.lock
 cp original.metadata policy-metadata.json
+cat > "$scratch/update-bazel" <<'SH'
+#!/usr/bin/env bash
+exec "$BIT_BAZEL_BINARY" --ignore_all_rc_files --output_base="$SDK_UPDATE_OUTPUT_BASE" "$@"
+SH
+chmod +x "$scratch/update-bazel"
+export SDK_UPDATE_OUTPUT_BASE="$scratch/bazel"
 python3 - <<'PY'
 import json
 from pathlib import Path
 p=Path('policy-metadata.json');metadata=json.loads(p.read_text())
 sdk=dict(metadata['releases'][0]['sdk'],version='10.0.110')
 metadata['releases'].append({'sdk':sdk});p.write_text(json.dumps(metadata))
-p=Path('MODULE.bazel.lock');lock=json.loads(p.read_text())
-facts=next(v for v in lock['facts'].values() if 'sdk-policy-v1' in v)
-for key in list(facts['sdk-policy-v1']):
-    if json.loads(key)[:2]==['10.0.100','latestPatch']:del facts['sdk-policy-v1'][key]
-lock['moduleExtensions']={};p.write_text(json.dumps(lock))
 PY
-bazel query @latest_patch//:all
+bazel run @latest_patch//:update -- --bazel "$scratch/update-bazel"
 python3 - <<'PY'
 import json
 from pathlib import Path
 facts=next(v for v in json.loads(Path('MODULE.bazel.lock').read_text())['facts'].values() if 'sdk-policy-v1' in v)
 assert any(json.loads(k)[:2]==['10.0.100','latestPatch'] and v=='10.0.110' for k,v in facts['sdk-policy-v1'].items())
+old=next(v for v in json.loads(Path('valid.lock').read_text())['facts'].values() if 'sdk-policy-v1' in v)
+for key,value in old['sdk-v1'].items():assert facts['sdk-v1'][key]==value
+for key,value in old['sdk-policy-v1'].items():
+    if json.loads(key)[:2]!=['10.0.100','latestPatch']:assert facts['sdk-policy-v1'][key]==value
+assert facts['runtime-v1']==old['runtime-v1']
+PY
+# Repeated updates also refresh, and the resulting lock works in strict mode.
+sed -i 's/10.0.110/10.0.111/' policy-metadata.json
+bazel run @latest_patch//:update -- --bazel "$scratch/update-bazel"
+bazel query @latest_patch//:all --lockfile_mode=error
+python3 - <<'PY'
+import json
+from pathlib import Path
+facts=next(v for v in json.loads(Path('MODULE.bazel.lock').read_text())['facts'].values() if 'sdk-policy-v1' in v)
+assert any(json.loads(k)[:2]==['10.0.100','latestPatch'] and v=='10.0.111' for k,v in facts['sdk-policy-v1'].items())
+Path('before-failure.json').write_text(json.dumps(facts))
+PY
+rm policy-metadata.json
+if bazel run @latest_patch//:update -- --bazel "$scratch/update-bazel" > "$TEST_TMPDIR/update-failure.log" 2>&1; then echo 'Update accepted missing metadata' >&2; exit 1; fi
+python3 - <<'PY'
+import json
+from pathlib import Path
+facts=next(v for v in json.loads(Path('MODULE.bazel.lock').read_text())['facts'].values() if 'sdk-policy-v1' in v)
+assert facts==json.loads(Path('before-failure.json').read_text())
 PY
 
 # Real SDK: the requested lower bound differs from the acquired/used SDK version.
@@ -145,6 +170,7 @@ Path('global.json').write_text(json.dumps({'sdk':{'version':'9.0.300','rollForwa
 for p in Path('.').glob('*/*.csproj'):p.write_text(p.read_text().replace('net10.0','net9.0'))
 PY
 bazel run //:sync
+bazel run @dotnet//:update -- --bazel "$scratch/update-bazel" --sync //:sync
 bazel run //:sync -- --check
 bazel run //:app > "$TEST_TMPDIR/app.log"
 assert_contains "$TEST_TMPDIR/app.log" 'Hello from MSBuild and Bazel'

@@ -3,6 +3,8 @@
 Two SDK choices, one app graph: download a pinned SDK, or consume a complete SDK
 produced by a Bazel source build. Requires Bazelisk and OS .NET prerequisites.
 The example contains an app, library and executable test; no NuGet packages.
+For Razor, HTTP, published assets and declared NuGet packages, see the
+[five-project catalog app](../catalog-web/README.md).
 
 ## Downloaded SDK
 
@@ -33,6 +35,8 @@ archive hashes. To change SDK versions, edit `global.json`, rerun project sync,
 and commit the updated lockfile and graph. The adapters follow the selected SDK's
 bundled framework/MSBuild; no SDK-version registration is needed. Build servers can use
 `--lockfile_mode=error` to reject stale locks. See [SDK configuration](../../docs/api.md#sdks).
+For a roll-forward policy, `bazel run @dotnet//:update -- --sync //:sync` deliberately
+refreshes the SDK selection and generated graph; review and commit their diff.
 An optional [declared runtime](../../docs/api.md#runtimes) selects the app/test host
 independently of the compilation SDK.
 

@@ -1,0 +1,60 @@
+load("@rules_msbuild//msbuild:defs.bzl", "msbuild_graph_binary", "msbuild_graph_test")
+load("@rules_msbuild//msbuild:sync.bzl", "msbuild_sync")
+load(":graph.generated.bzl", "app_graph")
+load(":packages.bzl", "catalog_packages")
+
+exports_files(["global.json"])
+
+catalog_packages()
+
+msbuild_sync(
+    name = "sync",
+    mappings = "mappings.json",
+    package_build = True,
+    package_lock = ":packages",
+    projects = [
+        "Web/Web.csproj",
+        "Tests/Tests.csproj",
+    ],
+    resolve_references = True,
+)
+
+app_graph(name = "build")
+
+app_graph(
+    name = "publish",
+    target = "Publish",
+)
+
+msbuild_graph_binary(
+    name = "app",
+    graph = ":build",
+    project = "Web/Web.csproj",
+)
+
+msbuild_graph_binary(
+    name = "published_app",
+    graph = ":publish",
+    project = "Web/Web.csproj",
+)
+
+msbuild_graph_test(
+    name = "tests",
+    graph = ":build",
+    project = "Tests/Tests.csproj",
+)
+
+msbuild_graph_test(
+    name = "web_test",
+    args = ["--smoke"],
+    graph = ":build",
+    project = "Web/Web.csproj",
+)
+
+msbuild_graph_test(
+    name = "published_test",
+    args = ["--smoke"],
+    env = {"EXPECT_PUBLISHED_ASSETS": "1"},
+    graph = ":publish",
+    project = "Web/Web.csproj",
+)

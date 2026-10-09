@@ -68,20 +68,24 @@ _runtime_aliases = repository_rule(implementation = _aliases, attrs = {"reposito
 def _metadata_urls(declaration, version):
     return declaration.metadata_urls or ["https://builds.dotnet.microsoft.com/dotnet/release-metadata/%s/releases.json" % ".".join(version.split(".")[:2])]
 
-def _sdk_pin(ctx, declaration, policies, facts):
+def _sdk_pin(ctx, declaration, policies, facts, updating = False):
     if not declaration.global_json:
+        if updating:
+            fail("SDK update requires global_json with a roll-forward policy; edit the exact version pin instead")
         return (declaration.version, None)
     request = global_json_sdk(ctx.read(declaration.global_json))
     sdk_version(request["version"])
     if request["rollForward"] == "disable":
+        if updating:
+            fail("SDK roll-forward is disabled; edit global.json sdk.version instead")
         return (sdk_policy_version(request["version"], request), None)
     urls = _metadata_urls(declaration, request["version"])
     key = json.encode([request["version"], request["rollForward"], request["allowPrerelease"], urls])
-    if key in policies:
+    if key in policies and not updating:
         return (sdk_policy_version(policies[key], request), None)
 
     # Existing exact selections remain usable after upgrading the extension.
-    if request["rollForward"] == "patch" and json.encode([request["version"], urls]) in facts:
+    if not updating and request["rollForward"] == "patch" and json.encode([request["version"], urls]) in facts:
         policies[key] = sdk_policy_version(request["version"], request)
         return (request["version"], None)
     path = "sdk-policy-%s.json" % len(policies)
@@ -120,6 +124,9 @@ def _runtimes(ctx):
     facts = dict(ctx.facts.get("sdk-v1", {}))
     runtime_facts = dict(ctx.facts.get("runtime-v1", {}))
     policies = dict(ctx.facts.get("sdk-policy-v1", {}))
+    update = ctx.getenv("RULES_MSBUILD_SDK_UPDATE", "").split(":", 1)[0]
+    if update and update not in [sdk.name for mod in ctx.modules if mod.is_root for sdk in mod.tags.sdk]:
+        fail("SDK update must name a dotnet.sdk declaration in the root module: " + update)
     for mod in ctx.modules:
         for sdk in mod.tags.sdk:
             if sdk.name in names:
@@ -127,7 +134,7 @@ def _runtimes(ctx):
             names[sdk.name] = True
             if bool(sdk.version) == bool(sdk.global_json):
                 fail("Specify exactly one of sdk.version or sdk.global_json")
-            version, metadata = _sdk_pin(ctx, sdk, policies, facts)
+            version, metadata = _sdk_pin(ctx, sdk, policies, facts, mod.is_root and sdk.name == update)
             sdk_version(version)
             sdk_platforms(sdk.platforms)
             locked = _selection(ctx, sdk, version, facts, "sdk", metadata)
@@ -136,7 +143,7 @@ def _runtimes(ctx):
                 name = sdk.name + "_" + platform.replace("-", "_")
                 repositories[platform] = name
                 sdk_archive(name = name, version = version, runtime_version = locked["runtime"], platform = platform, **locked["platforms"][platform])
-            sdk_toolchains(name = sdk.name, repositories = repositories)
+            sdk_toolchains(name = sdk.name, repositories = repositories, update_name = sdk.name)
         for archive in mod.tags.sdk_archive:
             if archive.name in names:
                 fail("Duplicate SDK/runtime repository name: " + archive.name)

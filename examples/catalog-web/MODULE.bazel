@@ -1,0 +1,32 @@
+module(name = "catalog_web")
+
+bazel_dep(name = "rules_msbuild", version = "0.0.0")
+local_path_override(
+    module_name = "rules_msbuild",
+    path = "../msbuild-bazel",
+)
+
+dotnet = use_extension("@rules_msbuild//msbuild:extensions.bzl", "dotnet")
+dotnet.sdk(
+    name = "dotnet",
+    global_json = "//:global.json",
+)
+use_repo(dotnet, "dotnet")
+
+register_toolchains("@dotnet//:all")
+
+http_file = use_repo_rule("@bazel_tools//tools/build_defs/repo:http.bzl", "http_file")
+
+http_file(
+    name = "newtonsoft",
+    downloaded_file_path = "newtonsoft.json.13.0.3.nupkg",
+    sha256 = "872fc189e638ab1056555b03aaa38f68bcb54286e221aa646eb1129babf63c77",
+    urls = ["https://api.nuget.org/v3-flatcontainer/newtonsoft.json/13.0.3/newtonsoft.json.13.0.3.nupkg"],
+)
+
+http_file(
+    name = "humanizer",
+    downloaded_file_path = "humanizer.core.2.14.1.nupkg",
+    sha256 = "117be88dd74fbbef492a0386f4d4908144df5aad51a4e630eda7710cf28327aa",
+    urls = ["https://api.nuget.org/v3-flatcontainer/humanizer.core/2.14.1/humanizer.core.2.14.1.nupkg"],
+)

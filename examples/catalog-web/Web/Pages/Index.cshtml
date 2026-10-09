@@ -1,0 +1,8 @@
+@page
+@using Catalog
+@inject CatalogService Catalog
+<h1>Catalog</h1>
+@foreach (var product in Catalog.All())
+{
+    <p>@product.Name</p>
+}
