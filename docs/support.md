@@ -89,7 +89,10 @@ fallback, latest patch/feature selection, prerelease ordering/filtering, locked 
 after metadata changes, platform expansion, old-lock migration without metadata,
 strict fresh-base recovery, invalid-fact rejection and explicit refresh. A real
 `9.0.300` / `latestPatch` request selected **9.0.318** and passed sync/check/app/tests.
-The 21 SDK/runtime repository controls also passed. Other roll-forward policies
+The declared `@dotnet//:update` target passed consecutive refreshes, preservation of
+unrelated pins/hashes, metadata-failure recovery, strict lock reuse and optional
+sync on both Bazel pins. All 24 SDK/runtime repository controls passed on native
+macOS ARM64 / 9.3. Other roll-forward policies
 remain unsupported; selection uses published releases, not installed SDKs.
 
 ## Downloaded runtimes

@@ -1,5 +1,7 @@
 """Download SDKs and generate bootstrap and platform toolchain targets."""
 
+load(":paths.bzl", "quote")
+
 SDK_PLATFORMS = {
     "linux-arm64": ["@platforms//os:linux", "@platforms//cpu:aarch64"],
     "linux-x64": ["@platforms//os:linux", "@platforms//cpu:x86_64"],
@@ -34,6 +36,10 @@ sdk_archive = repository_rule(
 
 def _sdk_toolchains(ctx):
     rows = ['package(default_visibility = ["//visibility:public"])']
+    if ctx.attr.update_name:
+        rows.insert(0, "load(%s, \"sdk_update\")" % json.encode(str(ctx.attr._updater)))
+        ctx.template("update.sh", ctx.attr._update, {"@@SDK_NAME@@": quote(ctx.attr.update_name)}, executable = True)
+        rows.append('sdk_update(name="update", script="update.sh")')
     choices = {}
     sdk_hosts = {}
     sdk_files = {}
@@ -58,6 +64,9 @@ sdk_toolchains = repository_rule(
     implementation = _sdk_toolchains,
     attrs = {
         "repositories": attr.string_dict(),
+        "update_name": attr.string(),
+        "_update": attr.label(default = Label("//msbuild/private:sdk-update.sh")),
+        "_updater": attr.label(default = Label("//msbuild/private:sdk_update.bzl")),
         "_sdk_type": attr.label(default = Label("//msbuild:toolchain_type")),
         "_runtime_type": attr.label(default = Label("//msbuild:runtime_toolchain_type")),
     },
