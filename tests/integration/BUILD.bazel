@@ -235,6 +235,88 @@ sh_binary(
     ],
 )
 
+sh_binary(
+    name = "native_sdk_runner",
+    testonly = True,
+    srcs = ["native_sdk.sh"],
+    data = ["common.sh"],
+)
+
+bazel_integration_tests(
+    name = "native_sdk_cases",
+    additional_env_inherit = [
+        "BAZELISK_HOME",
+        "RULES_MSBUILD_TEST_REPOSITORY_CACHE",
+    ],
+    bazel_binaries = bazel_binaries,
+    bazel_versions = bazel_binaries.versions.all,
+    data = [":rules_archive"],
+    env = {"RULES_ARCHIVE": "$(rootpath :rules_archive)"},
+    tags = [
+        "exclusive",
+        "manual",
+        "no-sandbox",
+    ],
+    target_compatible_with = select({
+        "@platforms//os:linux": [],
+        "@platforms//os:osx": [],
+        "//conditions:default": ["@platforms//:incompatible"],
+    }),
+    test_runner = ":native_sdk_runner",
+    workspace_files = ["//:catalog_web_sources"],
+    workspace_path = "examples/catalog-web",
+)
+
+test_suite(
+    name = "native_sdk",
+    tags = ["manual"],
+    tests = integration_test_utils.bazel_integration_test_names(
+        "native_sdk_cases",
+        bazel_binaries.versions.all,
+    ),
+)
+
+sh_binary(
+    name = "catalog_web_runner",
+    testonly = True,
+    srcs = ["catalog_web.sh"],
+    data = [
+        "common.sh",
+        "raw_namespace.sh",
+    ],
+)
+
+bazel_integration_tests(
+    name = "catalog_web_cases",
+    additional_env_inherit = [
+        "BAZELISK_HOME",
+        "RULES_MSBUILD_TEST_REPOSITORY_CACHE",
+        "SDK_WEB_CACHE_URL",
+    ],
+    bazel_binaries = bazel_binaries,
+    bazel_versions = bazel_binaries.versions.all,
+    data = [":rules_archive"],
+    env = {"RULES_ARCHIVE": "$(rootpath :rules_archive)"},
+    tags = [
+        "exclusive",
+        "manual",
+        "no-sandbox",
+    ],
+    target_compatible_with = ["@platforms//os:linux"],
+    test_runner = ":catalog_web_runner",
+    workspace_files = ["//:catalog_web_sources"],
+    workspace_path = "examples/catalog-web",
+)
+
+test_suite(
+    name = "catalog_web",
+    tags = ["manual"],
+    tests = integration_test_utils.bazel_integration_test_names(
+        "catalog_web_cases",
+        bazel_binaries.versions.all,
+    ),
+)
+
 bazel_integration_tests(
     name = "sdk_web_cases",
     additional_env_inherit = [

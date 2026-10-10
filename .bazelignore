@@ -3,5 +3,6 @@
 artifacts
 examples/hello
 examples/quickstart
+examples/catalog-web
 examples/source-runtime-app
 tests/fixtures/explicit_acceptance

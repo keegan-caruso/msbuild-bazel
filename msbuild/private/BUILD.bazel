@@ -1,18 +1,27 @@
 exports_files(
-    glob(
+    ["sdk-update.sh"] + glob(
         ["*.bzl"],
-        exclude = ["sdk_bootstrap.bzl"],
+        exclude = [
+            "sdk_bootstrap.bzl",
+            "sdk_update.bzl",
+        ],
     ),
     visibility = ["//msbuild:__pkg__"],
 )
 
 exports_files(
-    ["sdk_bootstrap.bzl"],
+    [
+        "sdk_bootstrap.bzl",
+        "sdk_update.bzl",
+    ],
     visibility = ["//visibility:public"],
 )
 
 filegroup(
     name = "integration_sources",
-    srcs = glob(["*.bzl"]) + ["BUILD.bazel"],
+    srcs = glob([
+        "*.bzl",
+        "*.sh",
+    ]) + ["BUILD.bazel"],
     visibility = ["//msbuild:__pkg__"],
 )

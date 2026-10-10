@@ -163,10 +163,14 @@ After changing the pin, run `bazel run //:sync`, then review/commit `global.json
 servers to reject stale/missing lock entries. After switching Bazel versions,
 run once in update mode to record any additional registry entries; SDK facts survive
 the switch. `--lockfile_mode=off` discards this reuse; `refresh` retains existing
-SDK facts. To refresh a selection deliberately, remove its fact and extension entry
-from the lockfile. For roll-forward, remove the matching `sdk-policy-v1` entry and
-the extension's `moduleExtensions` entry, then rerun sync in update mode. Existing
-archive facts retain their hashes; review and commit the new selection/graph.
+SDK facts. To refresh a roll-forward selection deliberately, run
+`bazel run @dotnet//:update -- --sync //:sync`. This updates the named root-module
+SDK policy through Bazel and runs the chosen sync target. Existing archive hashes
+and unrelated pins remain unchanged; declarations sharing the same policy share
+its updated selection. Review and commit the lockfile and generated graph.
+Omit `--sync` to update only the selection, or use `--bazel /path/to/bazel` to select
+the CLI (otherwise `RULES_MSBUILD_BAZEL` or `bazel`). Exact/disabled pins require
+editing their authored version; the updater does not override their policy.
 
 `platforms` defaults to Linux/macOS ARM64/x64. Optional `metadata_urls` supplies
 mirror URLs for releases.json; changing them creates a separate resolution.
