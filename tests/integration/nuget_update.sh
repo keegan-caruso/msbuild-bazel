@@ -2,17 +2,10 @@
 # Resolution is explicit; ordinary sync/build consumes committed locks offline.
 set -euo pipefail
 source "$(dirname -- "${BASH_SOURCE[0]}")/common.sh"
-python3 - <<'PY'
-from pathlib import Path
-p=Path('BUILD.bazel');s=p.read_text().replace('"msbuild_sync")','"msbuild_sync", "msbuild_nuget_update")')
-if 'name = "update_packages"' not in s:
-    s+='\nmsbuild_nuget_update(name = "update_packages", projects = ["Web/Web.csproj", "Tests/Tests.csproj"])\n'
-p.write_text(s)
-PY
 bazel run //:update_packages
 bazel run //:update_packages -- --check
 python3 - <<'PY'
-import json,hashlib
+import json
 from pathlib import Path
 manifest=json.loads(Path('nuget.lock.json').read_text());assert manifest['generatedBy']=='RulesMSBuild.NuGetUpdate'
 assert len(manifest['packages'])>=2 and len(manifest['lockFiles'])>=5
@@ -21,11 +14,7 @@ native=json.loads(Path('Web/packages.lock.json').read_text())['dependencies']['n
 archive=next(p for p in manifest['packages'] if p['id']=='Newtonsoft.Json')
 # Signed package locks use NuGet's canonical hash, not the raw archive SHA512.
 assert native['Newtonsoft.Json']['contentHash'] != archive['archiveSha512']
-p=Path('MODULE.bazel');s=p.read_text().split('http_file =')[0]
-if 'msbuild:nuget.bzl' not in s:
-    s+='nuget = use_extension("@rules_msbuild//msbuild:nuget.bzl", "nuget")\nnuget.lock(name = "nuget", lockfile = "//:nuget.lock.json")\nuse_repo(nuget, "nuget")\n'
-p.write_text(s)
-p=Path('BUILD.bazel');s=p.read_text().replace('load(":packages.bzl", "catalog_packages")\n','').replace('catalog_packages()','').replace('package_lock = ":packages"','package_lock = "@nuget//:packages"');p.write_text(s)
+
 PY
 bazel run //:sync
 bazel run //:sync -- --check

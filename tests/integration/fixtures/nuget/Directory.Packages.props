@@ -1,0 +1,9 @@
+<Project>
+  <PropertyGroup><ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally></PropertyGroup>
+  <ItemGroup>
+    <PackageVersion Include="Newtonsoft.Json" Version="13.0.3"/>
+    <PackageVersion Update="Newtonsoft.Json" Version="12.0.3" Condition="'$(TargetFramework)' == 'netstandard2.1'"/>
+    <PackageVersion Include="Microsoft.Extensions.Options.ConfigurationExtensions" Version="10.0.0"/>
+    <PackageVersion Include="Microsoft.CodeAnalysis.NetAnalyzers" Version="9.0.0"/>
+  </ItemGroup>
+</Project>

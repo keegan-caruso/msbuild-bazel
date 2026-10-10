@@ -144,8 +144,8 @@ declared build/Restore inputs. The manifest's `archiveSha512` hashes whole archi
 NuGet's native `contentHash` may differ for signed packages and stays untouched.
 
 The updater currently requires one root config and public HTTP(S) V3 feeds;
-nested configs, custom `NuGetLockFilePath`, authenticated feeds and workload/native
-package acquisition are unqualified. Arbitrary task reads still require contracts.
+nested configs, custom `NuGetLockFilePath`, authenticated feeds, package SDKs and
+workload/native package acquisition are unqualified. Arbitrary task reads still require contracts.
 For a new workspace, run the update target before declaring the inventory extension
 or loading a generated graph. No automatic resolution runs during normal builds.
 

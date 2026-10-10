@@ -1,0 +1,109 @@
+{
+  "generatedBy": "RulesMSBuild.NuGetUpdate",
+  "version": 1,
+  "sdkVersion": "10.0.400",
+  "projects": [
+    "Tests/Tests.csproj",
+    "Web/Web.csproj"
+  ],
+  "configuration": "Release",
+  "lockFiles": [
+    "Data/packages.lock.json",
+    "Domain/packages.lock.json",
+    "Services/packages.lock.json",
+    "Tests/packages.lock.json",
+    "Web/packages.lock.json"
+  ],
+  "packages": [
+    {
+      "id": "Humanizer.Core",
+      "version": "2.14.1",
+      "sha256": "117be88dd74fbbef492a0386f4d4908144df5aad51a4e630eda7710cf28327aa",
+      "archiveSha512": "yzqGU/HKNLZ9Uvr6kvSc3wYV/S5O/IvklIUW5WF7MuivGLY8wS5IZnLPkt7D1KW8Et2Enl0I3Lzg2vGWM24Xsw==",
+      "urls": [
+        "https://api.nuget.org/v3-flatcontainer/humanizer.core/2.14.1/humanizer.core.2.14.1.nupkg"
+      ]
+    },
+    {
+      "id": "Microsoft.CodeAnalysis.NetAnalyzers",
+      "version": "9.0.0",
+      "sha256": "5014c03579b3012e8ab82283206862d0c1a984023cdc58b3a5108f79ba89f461",
+      "archiveSha512": "9TUtYAnBUX5dbd13tWO3Z3WqPBlyja\u002BCUm/J6Q/I8l8xfeZNZiUeQ4WPAjbyXJE9hLWrTnSIOpYnlZ7CQHMAxQ==",
+      "urls": [
+        "https://api.nuget.org/v3-flatcontainer/microsoft.codeanalysis.netanalyzers/9.0.0/microsoft.codeanalysis.netanalyzers.9.0.0.nupkg"
+      ]
+    },
+    {
+      "id": "Microsoft.Extensions.Configuration.Abstractions",
+      "version": "10.0.0",
+      "sha256": "19c82b9d302278257b0154f5df3c8e8dfc302fce9ef7d8a23bf32230ec4f186d",
+      "archiveSha512": "Y8QH4IjWknpk7NhN3qfodzXFFk6k86h3Q1um3h816DofDVZaIXnKfH6q3rz8zFBpKuzhDgISp8PVgDIpRGxuFg==",
+      "urls": [
+        "https://api.nuget.org/v3-flatcontainer/microsoft.extensions.configuration.abstractions/10.0.0/microsoft.extensions.configuration.abstractions.10.0.0.nupkg"
+      ]
+    },
+    {
+      "id": "Microsoft.Extensions.Configuration.Binder",
+      "version": "10.0.0",
+      "sha256": "612896a00dd5411db693af9b484014a9e1bb503cd99497c75834ee6d43b957c5",
+      "archiveSha512": "bH\u002BAO/Klr68TI53UlfjyVmPjb65C14QEFmGcE5ds/SlN4sS0coIGGU3Qs47oMQiagfP2PoulNsYNG3/VuXaR0A==",
+      "urls": [
+        "https://api.nuget.org/v3-flatcontainer/microsoft.extensions.configuration.binder/10.0.0/microsoft.extensions.configuration.binder.10.0.0.nupkg"
+      ]
+    },
+    {
+      "id": "Microsoft.Extensions.Configuration",
+      "version": "10.0.0",
+      "sha256": "32c2ec9153e9902be8bf9f835886802c2b75a9f4515f8bb6dbc787c6fa44d1d8",
+      "archiveSha512": "cUi/56QZA0Idt8SeyMEsjHkXX55smUqGnWDstFo2BoaKoEKbHY5/eOMqiVGTsc6OdsXq5Jy9fSLOORhhkS5LNQ==",
+      "urls": [
+        "https://api.nuget.org/v3-flatcontainer/microsoft.extensions.configuration/10.0.0/microsoft.extensions.configuration.10.0.0.nupkg"
+      ]
+    },
+    {
+      "id": "Microsoft.Extensions.DependencyInjection.Abstractions",
+      "version": "10.0.0",
+      "sha256": "f62a1d5cfdfd62a831a269ce3cec5dfe6cdb1b425f3925f3168354de8993d8fb",
+      "archiveSha512": "R1JUmDhx81zXARj7/3QwSexiO9lNE2PBPXyK47sblSGIOl4Jd60iLY8wtmJ/NzhpXtPBiSOTMn2KFYuf7QaRIw==",
+      "urls": [
+        "https://api.nuget.org/v3-flatcontainer/microsoft.extensions.dependencyinjection.abstractions/10.0.0/microsoft.extensions.dependencyinjection.abstractions.10.0.0.nupkg"
+      ]
+    },
+    {
+      "id": "Microsoft.Extensions.Options.ConfigurationExtensions",
+      "version": "10.0.0",
+      "sha256": "5c602ce43c4cbd69e68d7f1da91c0a634becb92e34487bec7c9a81d6b3b82fb9",
+      "archiveSha512": "E22PBySOcYXl1o1qMM6MnMLu9Hb75sCVemGuy/7uuWVFbByZ0d3FHmZiH41j9P5Izi35ZuvsfTZPUkLhrgV6gw==",
+      "urls": [
+        "https://api.nuget.org/v3-flatcontainer/microsoft.extensions.options.configurationextensions/10.0.0/microsoft.extensions.options.configurationextensions.10.0.0.nupkg"
+      ]
+    },
+    {
+      "id": "Microsoft.Extensions.Options",
+      "version": "10.0.0",
+      "sha256": "8f930ea9948a794b71c739998f364c1b2d2f10b1ddbcfadaab04d0410355b180",
+      "archiveSha512": "olgvJlmRKzxNWACXtbRTNQBSj9IvAHQzJthPFZbHRULVVRg1wK98lWp20zUWGCePPtHEERkKg2O5G6RGZ1CzYw==",
+      "urls": [
+        "https://api.nuget.org/v3-flatcontainer/microsoft.extensions.options/10.0.0/microsoft.extensions.options.10.0.0.nupkg"
+      ]
+    },
+    {
+      "id": "Microsoft.Extensions.Primitives",
+      "version": "10.0.0",
+      "sha256": "0eea74f0a729b4b8e59e9379b79ffffa9e27f0551381102ae27ff0d6ceaeb3e2",
+      "archiveSha512": "q7BfP5mrTfRnuM0qBFh\u002BVWpXauE8LTzXtIL1SZg0h/MyOYGLKnsPPbXrRR0odHcYxA5On3IQdKLdqTOMNAk7bQ==",
+      "urls": [
+        "https://api.nuget.org/v3-flatcontainer/microsoft.extensions.primitives/10.0.0/microsoft.extensions.primitives.10.0.0.nupkg"
+      ]
+    },
+    {
+      "id": "Newtonsoft.Json",
+      "version": "13.0.3",
+      "sha256": "872fc189e638ab1056555b03aaa38f68bcb54286e221aa646eb1129babf63c77",
+      "archiveSha512": "mbJSvHfRxfX3tR/U6n1WU\u002BmWHXswYc\u002BSB/hkOpx8yZZe68hNZGfymJu0cjsaJEkVzCMqePiU6LdIyogqfIn7kg==",
+      "urls": [
+        "https://api.nuget.org/v3-flatcontainer/newtonsoft.json/13.0.3/newtonsoft.json.13.0.3.nupkg"
+      ]
+    }
+  ]
+}

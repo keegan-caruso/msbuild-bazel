@@ -129,7 +129,10 @@ exec "$runfiles/"%s "$runfiles/"%s nuget-update "${BUILD_WORKSPACE_DIRECTORY:?Ru
     by_path = {file.path: file for file in package_files}
     identities = {}
     package_locks = []
+    default_lock_label = (ctx.attr.package_lock_name or str(ctx.attr.package_lock.label)) if ctx.attr.package_lock else None
     for label, target in locks.items():
+        if ctx.attr.package_lock and target.label == ctx.attr.package_lock.label:
+            label = default_lock_label
         members = []
         for row in target[MSBuildPackageLockInfo].rows:
             identity = row["id"].lower() + "/" + row["version"].lower()
@@ -148,7 +151,7 @@ exec "$runfiles/"%s "$runfiles/"%s nuget-update "${BUILD_WORKSPACE_DIRECTORY:?Ru
         evaluation_bindings.append({"label": str(target.label), "property": binding.property_name, "runfiles": [_runfile(ctx, closure)], "entry": tool.entry_point, "closure": True})
         binding_files.append(closure)
     manifest = ctx.actions.declare_file(ctx.label.name + ".sync-inputs.json")
-    ctx.actions.write(manifest, json.encode({"inputs": bound, "packages": packages, "packageLock": str(ctx.attr.package_lock.label) if ctx.attr.package_lock else None, "bindings": evaluation_bindings, "packageLocks": package_locks}))
+    ctx.actions.write(manifest, json.encode({"inputs": bound, "packages": packages, "packageLock": default_lock_label, "bindings": evaluation_bindings, "packageLocks": package_locks}))
     launcher = ctx.actions.declare_file(ctx.label.name)
     ctx.actions.write(launcher, """#!/usr/bin/env bash
 set -euo pipefail
@@ -191,6 +194,7 @@ _sync = rule(
         "bindings": attr.label_list(providers = [MSBuildBindingInfo], cfg = "exec"),
         "inputs": attr.label_keyed_string_dict(allow_files = True),
         "package_lock": attr.label(providers = [MSBuildPackageLockInfo]),
+        "package_lock_name": attr.string(),
         "package_locks": attr.label_list(providers = [MSBuildPackageLockInfo]),
         "mappings": attr.label(allow_single_file = [".json"]),
         "_sources": attr.label(default = Label("//tools/ProjectSync:sources")),
@@ -223,7 +227,10 @@ def msbuild_sync(name, projects, mappings = None, inputs = {}, package_lock = No
     for project in projects:
         if project.startswith("/") or "\\" in project or any([part in ["", ".", ".."] for part in project.split("/")]) or not (project.endswith(".csproj") or project.endswith(".proj") or project.endswith(".ilproj")):
             fail("Expected a workspace-relative .csproj, .proj or .ilproj path: " + project)
-    _sync(name = name, projects = projects, configuration = configuration, framework = framework, package_build = package_build, package_inputs = package_inputs, resolve_references = resolve_references, mappings = mappings, inputs = inputs, package_lock = package_lock, package_locks = package_locks, bindings = bindings, **kwargs)
+
+    # Keep apparent external labels portable across Bazel canonical-name changes.
+    lock_name = package_lock if type(package_lock) == "string" and package_lock.startswith("@") and not package_lock.startswith("@@") else ""
+    _sync(name = name, projects = projects, package_lock_name = lock_name, configuration = configuration, framework = framework, package_build = package_build, package_inputs = package_inputs, resolve_references = resolve_references, mappings = mappings, inputs = inputs, package_lock = package_lock, package_locks = package_locks, bindings = bindings, **kwargs)
 
 def msbuild_nuget_update(name, projects, output = "nuget.lock.json", configuration = "Release", **kwargs):
     """Resolve with the declared SDK's NuGet; commit native locks and archive manifest.

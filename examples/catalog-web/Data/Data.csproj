@@ -1,5 +1,5 @@
 <Project Sdk="Microsoft.NET.Sdk"><ItemGroup>
   <ProjectReference Include="../Domain/Domain.csproj"/>
-  <PackageReference Include="Newtonsoft.Json" Version="13.0.3"/>
+  <PackageReference Include="Newtonsoft.Json"/>
   <EmbeddedResource Include="products.json"/>
 </ItemGroup></Project>
