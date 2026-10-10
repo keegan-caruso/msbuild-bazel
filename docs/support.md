@@ -119,6 +119,15 @@ sync on both Bazel pins. All 24 SDK/runtime repository controls passed on native
 macOS ARM64 / 9.3. Other roll-forward policies
 remain unsupported; selection uses published releases, not installed SDKs.
 
+## NuGet inventories
+
+`//tests/integration:nuget_update` passed **8.8.0 / 9.3.0** on native Linux ARM64:
+explicit update/check, offline native locks, app/Razor/Publish and rejection of
+corrupt native hashes or malformed archive manifests. Failed package resolution
+preserved existing locks/contracts. The public update command also passed on
+native macOS ARM64 / 9.3. Scope: SDK **10.0.400**, public NuGet.org V3 feeds and
+standard project lockfiles; [API](api.md#nuget-updates) lists remaining limits.
+
 ## Downloaded runtimes
 
 SDK **9.0.318** compiled a net9.0 app that ran on runtime **9.0.20**, rejected

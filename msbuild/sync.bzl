@@ -97,6 +97,23 @@ cd "$scratch"
 """,
         mnemonic = "MSBuildSyncBootstrap",
     )
+    if ctx.attr.nuget_update:
+        launcher = ctx.actions.declare_file(ctx.label.name)
+        ctx.actions.write(launcher, """#!/usr/bin/env bash
+set -euo pipefail
+runfiles="${RUNFILES_DIR:-$0.runfiles}"
+export DOTNET_ROOT="$runfiles/"%s
+exec "$runfiles/"%s "$runfiles/"%s nuget-update "${BUILD_WORKSPACE_DIRECTORY:?Run with bazel run}" "$DOTNET_ROOT" %s --output %s --configuration %s --sdk-version %s "$@"
+""" % (
+            _quote(_runfile(ctx, tc.dotnet).rsplit("/", 1)[0]),
+            _quote(_runfile(ctx, tc.dotnet)),
+            _quote(_runfile(ctx, payload) + "/ProjectSync.dll"),
+            " ".join([_quote(project) for project in ctx.attr.projects]),
+            _quote(ctx.attr.output),
+            _quote(ctx.attr.configuration),
+            _quote(tc.sdk_version),
+        ), is_executable = True)
+        return [DefaultInfo(executable = launcher, runfiles = ctx.runfiles(files = [payload, tc.dotnet], transitive_files = tc.sdk))]
     bound = []
     input_files = []
     for target, path in ctx.attr.inputs.items():
@@ -164,6 +181,8 @@ _sync = rule(
     toolchains = [_TOOLCHAIN],
     attrs = {
         "projects": attr.string_list(mandatory = True),
+        "output": attr.string(default = "nuget.lock.json"),
+        "nuget_update": attr.bool(),
         "configuration": attr.string(default = "Release"),
         "framework": attr.string(),
         "package_build": attr.bool(),
@@ -205,3 +224,17 @@ def msbuild_sync(name, projects, mappings = None, inputs = {}, package_lock = No
         if project.startswith("/") or "\\" in project or any([part in ["", ".", ".."] for part in project.split("/")]) or not (project.endswith(".csproj") or project.endswith(".proj") or project.endswith(".ilproj")):
             fail("Expected a workspace-relative .csproj, .proj or .ilproj path: " + project)
     _sync(name = name, projects = projects, configuration = configuration, framework = framework, package_build = package_build, package_inputs = package_inputs, resolve_references = resolve_references, mappings = mappings, inputs = inputs, package_lock = package_lock, package_locks = package_locks, bindings = bindings, **kwargs)
+
+def msbuild_nuget_update(name, projects, output = "nuget.lock.json", configuration = "Release", **kwargs):
+    """Resolve with the declared SDK's NuGet; commit native locks and archive manifest.
+
+    Args:
+        name: Runnable update target.
+        projects: Workspace-relative entry project paths.
+        output: Workspace-relative archive manifest path.
+        configuration: MSBuild configuration to resolve.
+        **kwargs: Common Bazel attributes.
+    """
+    if not projects:
+        fail("msbuild_nuget_update requires entry projects")
+    _sync(name = name, projects = projects, output = output, configuration = configuration, nuget_update = True, **kwargs)

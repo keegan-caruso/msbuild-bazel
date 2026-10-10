@@ -39,6 +39,10 @@ internal static class Restore
             {
                 process.ArgumentList.Add("-p:" + key + "=" + value);
             }
+            if (File.Exists(Path.Combine(Path.GetDirectoryName(Path.Combine(root, entry))!, "packages.lock.json")))
+            {
+                process.ArgumentList.Add("-p:RestoreLockedMode=true");
+            }
             using var child = Process.Start(process) ?? throw new InvalidOperationException("Could not start Restore");
             child.WaitForExit();
             if (child.ExitCode != 0)

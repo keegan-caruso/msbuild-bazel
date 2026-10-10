@@ -6,6 +6,11 @@ internal static class Program
     {
         try
         {
+            if (args.Length != 0 && args[0] == "nuget-update")
+            {
+                NuGetUpdate.Run(args[1..]).GetAwaiter().GetResult();
+                return 0;
+            }
             if (args.Length < 3)
             {
                 throw new ArgumentException("ProjectSync <workspace> <sdk-directory> <project.csproj|project.ilproj|dirs.proj>... [--check] [--configuration Release] [--framework TFM] [--package-build] [--resolve-references] [--package-input FILE] [--mappings mappings.json]");

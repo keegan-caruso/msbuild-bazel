@@ -113,10 +113,45 @@ Contracts identify project paths plus global properties. Runtime selectors in
 `project_outputs`/`publish_outputs` map `project|framework` to
 `[directory, assembly_filename, output_type]`. See [attributes](../msbuild/graph.bzl).
 
-NuGet inventories include exact versions, transitive dependencies and archive/content
-hashes. Restore is offline; user caches/feeds do not fill missing inputs.
-`allow_multiple_versions = True` allows distinct configured versions. For Pack,
-declare/export the `.nupkg` and consume it with `msbuild_generated_nuget_package`.
+### NuGet updates
+
+Declare an update target alongside sync:
+
+```starlark
+load("@rules_msbuild//msbuild:sync.bzl", "msbuild_nuget_update")
+msbuild_nuget_update(name = "update_packages", projects = ["App/App.csproj"])
+```
+
+Run `bazel run //:update_packages` after package, framework, central-version or SDK
+changes. NuGet resolves in a disposable copy using the declared SDK and root
+`NuGet.Config`. The command writes project `packages.lock.json` files and
+`nuget.lock.json`; failed resolution leaves existing locks intact. Commit both.
+`--check` resolves again and rejects stale locks; it requires network access.
+
+After the first update, add to `MODULE.bazel`:
+
+```starlark
+nuget = use_extension("@rules_msbuild//msbuild:nuget.bzl", "nuget")
+nuget.lock(name = "nuget", lockfile = "//:nuget.lock.json")
+use_repo(nuget, "nuget")
+```
+
+Set `msbuild_sync(..., package_lock = "@nuget//:packages", package_build = True)`
+and run `bazel run //:sync`. Bazel downloads the committed archive inventory with
+SHA256 verification. Builds and sync restore offline; native NuGet locks preserve
+framework-specific selections and reject stale dependencies. These lockfiles are
+declared build/Restore inputs. The manifest's `archiveSha512` hashes whole archives;
+NuGet's native `contentHash` may differ for signed packages and stays untouched.
+
+The updater currently requires one root config and public HTTP(S) V3 feeds;
+nested configs, custom `NuGetLockFilePath`, authenticated feeds and workload/native
+package acquisition are unqualified. Arbitrary task reads still require contracts.
+For a new workspace, run the update target before declaring the inventory extension
+or loading a generated graph. No automatic resolution runs during normal builds.
+
+Handwritten inventories remain available. `allow_multiple_versions = True` permits
+distinct configured versions. For Pack, declare/export the `.nupkg` and consume it
+with `msbuild_generated_nuget_package`.
 
 Task/analyzer layouts must include their dependencies/data:
 

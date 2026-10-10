@@ -42,6 +42,10 @@ internal sealed class GraphEvaluationWorkspace : IDisposable
                 {
                     start.ArgumentList.Add("-p:" + key + "=" + value);
                 }
+                if (File.Exists(Path.Combine(Path.GetDirectoryName(Path.Combine(Root, entry))!, "packages.lock.json")))
+                {
+                    start.ArgumentList.Add("-p:RestoreLockedMode=true");
+                }
                 start.Environment["DOTNET_ROOT"] = sdk;
                 start.Environment["DOTNET_CLI_HOME"] = Path.Combine(Root, ".cli");
                 start.Environment["DOTNET_SKIP_FIRST_TIME_EXPERIENCE"] = "1";
