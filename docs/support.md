@@ -144,7 +144,8 @@ retain the same scope. Native macOS passed its app/Razor/Publish tests and check
 `//tests/integration:nuget_hierarchy` passed both pins on Linux ARM64: native
 config inheritance/clears, disabled sources, nested source mappings, config-only
 attestation, offline sync/test and rejection of outside configs. Traversal/NoTargets
-HTTP action recovery also passed with native config discovery enabled.
+HTTP action recovery also passed with native config discovery enabled. The hierarchy
+control also passed on native macOS ARM64 / 9.3.
 
 `//tests/integration:nuget_configured` passed both pins on Linux ARM64: shared
 graph/entry properties, all-framework native locks, escaped property values,
