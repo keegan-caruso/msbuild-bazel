@@ -1,0 +1,19 @@
+{
+  "version": 1,
+  "dependencies": {
+    "net10.0": {
+      "runtime.linux-arm64.Microsoft.NETCore.ILAsm": {
+        "type": "Direct",
+        "requested": "[10.0.0-rtm.25509.106, )",
+        "resolved": "10.0.0-rtm.25509.106",
+        "contentHash": "QDwtb7tKZHrh03FWf3ePgK1y+L7xgNvd5pxPIoD9VHXUygQOsurxVD09TmZv6cINEZmiu8nBUdw/5RzGKoXdZw=="
+      },
+      "runtime.linux-arm64.Microsoft.NETCore.ILDAsm": {
+        "type": "Direct",
+        "requested": "[10.0.0-rtm.25509.106, )",
+        "resolved": "10.0.0-rtm.25509.106",
+        "contentHash": "u0DOH4KUMM/KX4+8ITsfr5XrL0VhQL7e/ive42QnnP2ZvdjMbV3+Mf0mNuHd5fDP0CmLNJ9rr2Xhnh9XfQlaCg=="
+      }
+    }
+  }
+}

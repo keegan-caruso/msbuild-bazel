@@ -1,0 +1,49 @@
+{
+  "generatedBy": "RulesMSBuild.NuGetUpdate",
+  "version": 1,
+  "sdkVersion": "10.0.400",
+  "projects": [
+    "App/App.csproj"
+  ],
+  "configuration": "Release",
+  "properties": {
+    "Configuration": "Release"
+  },
+  "entryProperties": {},
+  "configDigests": {
+    "NuGet.Config": "AE5660FFB39E456DE1A502F1398CC5EFEED6C239728ACD43BA1C70301E55392C"
+  },
+  "lockFiles": [
+    "App/packages.lock.json",
+    "Library/packages.lock.json"
+  ],
+  "packages": [
+    {
+      "id": "Microsoft.NET.Sdk.IL",
+      "version": "10.0.0-rtm.25509.106",
+      "sha256": "fa97528090882661c92a63833274b9ba0773080424dd90bac1206c6babb33549",
+      "archiveSha512": "RXaQSMRImESDw15MekvktRXH3RMSHjr6Bp9IBbo6DauJLXrZzbUpKj/TPohLKm1n\u002BRcwnlnNMAch1icwi0i81Q==",
+      "urls": [
+        "https://pkgs.dev.azure.com/dnceng/9ee6d478-d288-47f7-aacc-f6e6d082ae6d/_packaging/299b99f1-f3f1-4630-81e2-4fb223c52e70/nuget/v3/flat2/microsoft.net.sdk.il/10.0.0-rtm.25509.106/microsoft.net.sdk.il.10.0.0-rtm.25509.106.nupkg"
+      ]
+    },
+    {
+      "id": "runtime.linux-arm64.Microsoft.NETCore.ILAsm",
+      "version": "10.0.0-rtm.25509.106",
+      "sha256": "6ba56766387248d4ed59a3fd3e7f3b24d7eed085a4cb9d680f6b767cb5cbf61c",
+      "archiveSha512": "krMaplH2JF0tjAM4ys\u002BI1VwTJXkPyfS8grY7JDoa4COT/cXRfcq9NJPAoj2yBRQ24fGiEC9qWrLUWig\u002BZk\u002BSRg==",
+      "urls": [
+        "https://pkgs.dev.azure.com/dnceng/9ee6d478-d288-47f7-aacc-f6e6d082ae6d/_packaging/299b99f1-f3f1-4630-81e2-4fb223c52e70/nuget/v3/flat2/runtime.linux-arm64.microsoft.netcore.ilasm/10.0.0-rtm.25509.106/runtime.linux-arm64.microsoft.netcore.ilasm.10.0.0-rtm.25509.106.nupkg"
+      ]
+    },
+    {
+      "id": "runtime.linux-arm64.Microsoft.NETCore.ILDAsm",
+      "version": "10.0.0-rtm.25509.106",
+      "sha256": "578352d50577ae45f539fc623a4959e7c6255b2b4667e7177d6dcd1862877d05",
+      "archiveSha512": "bjb3Rzxww2iIQbHMUWXax8XfA4NDsqw1mHlk4ofS3PJ4DmKnqkY55ykOTmvnXYqEVirgXMlhRvCQ5qwfb6IbYA==",
+      "urls": [
+        "https://pkgs.dev.azure.com/dnceng/9ee6d478-d288-47f7-aacc-f6e6d082ae6d/_packaging/299b99f1-f3f1-4630-81e2-4fb223c52e70/nuget/v3/flat2/runtime.linux-arm64.microsoft.netcore.ildasm/10.0.0-rtm.25509.106/runtime.linux-arm64.microsoft.netcore.ildasm.10.0.0-rtm.25509.106.nupkg"
+      ]
+    }
+  ]
+}

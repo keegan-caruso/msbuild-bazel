@@ -1,0 +1,40 @@
+{
+  "generatedBy": "RulesMSBuild.NuGetUpdate",
+  "version": 1,
+  "sdkVersion": "10.0.400",
+  "projects": [
+    "App/App.csproj"
+  ],
+  "configuration": "Release",
+  "properties": {
+    "Configuration": "Release"
+  },
+  "entryProperties": {},
+  "configDigests": {
+    "NuGet.Config": "AE5660FFB39E456DE1A502F1398CC5EFEED6C239728ACD43BA1C70301E55392C"
+  },
+  "lockFiles": [
+    "App/packages.lock.json",
+    "Library/packages.lock.json"
+  ],
+  "packages": [
+    {
+      "id": "Microsoft.DotNet.Arcade.Sdk",
+      "version": "10.0.0-beta.25509.106",
+      "sha256": "e9207087f2712e4e933c19975960226f0eb14a36e35d5b5332678aa4b272dd81",
+      "archiveSha512": "dvPraqWZrQsT79FTL3iIPOF2rAG3onLMcNWS6Oet9lsRhlhiKsqAwZdae7BPh/FjkHtCYNA7\u002BitjRshu7tSrtw==",
+      "urls": [
+        "https://pkgs.dev.azure.com/dnceng/9ee6d478-d288-47f7-aacc-f6e6d082ae6d/_packaging/1a5f89f6-d8da-4080-b15f-242650c914a8/nuget/v3/flat2/microsoft.dotnet.arcade.sdk/10.0.0-beta.25509.106/microsoft.dotnet.arcade.sdk.10.0.0-beta.25509.106.nupkg"
+      ]
+    },
+    {
+      "id": "Microsoft.DotNet.XliffTasks",
+      "version": "10.0.0-beta.25509.106",
+      "sha256": "cabcf7f39713a847b52bf08011b9d3f8d3da7be99e6adc3d8c676188988c59d5",
+      "archiveSha512": "C/t2/el4099N/R1bEPvTlVe0TkDpZTHveQYY7MAvx6LGyXQ2b7J/g6XzFgW2zlY\u002Bk67c17AQcmWJ3kHkR6dIVg==",
+      "urls": [
+        "https://pkgs.dev.azure.com/dnceng/9ee6d478-d288-47f7-aacc-f6e6d082ae6d/_packaging/1a5f89f6-d8da-4080-b15f-242650c914a8/nuget/v3/flat2/microsoft.dotnet.xlifftasks/10.0.0-beta.25509.106/microsoft.dotnet.xlifftasks.10.0.0-beta.25509.106.nupkg"
+      ]
+    }
+  ]
+}

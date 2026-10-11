@@ -16,6 +16,7 @@ def _inventory(ctx):
     for p in packages:
         rows.append("msbuild_nuget_package(name=%s, package_id=%s, version=%s, archive=%s, archive_sha256=%s, content_hash=%s)" % tuple([json.encode(p[key]) for key in ["name", "id", "version", "archive", "sha256", "archiveSha512"]]))
     rows.append('msbuild_package_lock(name="packages", packages=%s, allow_multiple_versions=True)' % json.encode([":" + p["name"] for p in packages]))
+    rows.append('filegroup(name="archives", srcs=%s)' % json.encode([p["archive"] for p in packages]))
     ctx.file("BUILD.bazel", "\n".join(rows) + "\n")
 
 _inventory_repo = repository_rule(implementation = _inventory, attrs = {
