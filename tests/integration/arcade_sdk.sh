@@ -3,6 +3,7 @@ set -euo pipefail
 runner_dir="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 source "$runner_dir/common.sh"
 cp BUILD.bazel.in BUILD.bazel
+bazel run //:update_packages -- --check
 cp -R "$scratch/consumer" "$scratch/authored"
 bazel build @dotnet//:files @packages//:archives > "$TEST_TMPDIR/bootstrap.log" 2>&1 || { cat "$TEST_TMPDIR/bootstrap.log" >&2; exit 1; }
 execroot=$(bazel info execution_root)

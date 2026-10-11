@@ -15,9 +15,9 @@ use_repo(dotnet, "dotnet")
 
 register_toolchains("@dotnet//:all")
 
-packages = use_repo_rule("//:package_repository.bzl", "package_repository")
-
-packages(
+nuget = use_extension("@rules_msbuild//msbuild:nuget.bzl", "nuget")
+nuget.lock(
     name = "packages",
-    inventory = "//:packages.json",
+    lockfile = "//:nuget.lock.json",
 )
+use_repo(nuget, "packages")

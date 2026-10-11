@@ -138,7 +138,8 @@ use_repo(nuget, "nuget")
 
 Set `msbuild_sync(..., package_lock = "@nuget//:packages", package_build = True)`
 and run `bazel run //:sync`. Bazel downloads the committed archive inventory with
-SHA256 verification. Builds and sync restore offline; native NuGet locks preserve
+SHA256 verification. `@nuget//:archives` exposes the original `.nupkg` files.
+Builds and sync restore offline; native NuGet locks preserve
 framework-specific selections and reject stale dependencies. These lockfiles are
 declared build/Restore inputs. The manifest's `archiveSha512` hashes whole archives;
 NuGet's native `contentHash` may differ for signed packages and stays untouched.
@@ -147,17 +148,18 @@ The updater requires an unambiguous root config and public HTTP(S) V3 feeds.
 NuGet applies nested configs, inheritance, disabled sources and source mappings.
 Used authored configs are hashed in the manifest; `--check` detects config-only changes.
 Config paths outside the copied workspace/private home cannot publish an inventory.
-Custom `NuGetLockFilePath`, authenticated feeds and
-workload/native package acquisition are unqualified. Arbitrary task reads still require contracts.
+Custom lock locations, authenticated feeds, workloads and other native package
+flows remain unqualified. Arbitrary task reads still require contracts.
 Source symlinks are rejected. Each update resolves one configuration.
 Pass the same `configuration`, `framework` and `mappings` to update and sync.
 Update uses `projectDefaults.properties` and `entryProperties`; Restore retains all
 authored frameworks, as offline sync does. Conflicting native locks for a shared
 project fail before publication; use separate workspaces for those configurations.
-Traversal and NoTargets SDKs resolve through NuGet before Restore, from
+Traversal, NoTargets, IL and Arcade SDKs resolve through NuGet before Restore, from
 `global.json` `msbuild-sdks` or inline SDK versions. Only used SDK archives enter
-the inventory. Commit coordinator locks too. Complete graph evaluation and Restore
-results are required; skipped projects or unresolved SDKs leave existing locks intact.
+the inventory. IL includes its pinned ILAsm/ILDasm downloads. Commit coordinator
+locks too. Complete graph evaluation and Restore results are required; skipped
+projects or unresolved SDKs leave existing locks intact.
 Other package SDKs remain unqualified through this updater.
 For a new workspace, run the update target before declaring the inventory extension
 or loading a generated graph. No automatic resolution runs during normal builds.

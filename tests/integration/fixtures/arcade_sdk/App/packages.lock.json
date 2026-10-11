@@ -1,0 +1,16 @@
+{
+  "version": 1,
+  "dependencies": {
+    "net10.0": {
+      "Microsoft.DotNet.XliffTasks": {
+        "type": "Direct",
+        "requested": "[10.0.0-beta.25509.106, )",
+        "resolved": "10.0.0-beta.25509.106",
+        "contentHash": "C/t2/el4099N/R1bEPvTlVe0TkDpZTHveQYY7MAvx6LGyXQ2b7J/g6XzFgW2zlY+k67c17AQcmWJ3kHkR6dIVg=="
+      },
+      "library": {
+        "type": "Project"
+      }
+    }
+  }
+}

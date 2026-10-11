@@ -159,6 +159,13 @@ Restore and missing SDKs preserved locks/contracts. An independent consumer with
 downloads disabled recovered Restore and graph actions through HTTP and preserved
 all published product bytes. Unused SDK declarations require no archive.
 
+IL and Arcade fixtures now use generated inventories. Both pins passed native
+update/check, offline sync, raw Build/Publish parity, edits and failure recovery;
+Arcade also passed Pack/package-consumer parity. Independent HTTP consumers
+recovered two projects with zero compilation, identical bytes/modes and successful
+execution. Pins: IL **10.0.0-rtm.25509.106** (including ILAsm/ILDasm), Arcade
+**10.0.0-beta.25509.106**. Suites: `il_sdk`, `arcade_sdk` and their `*_remote` controls.
+
 Reproduce with `SDK_WEB_CACHE_URL=http://cache:8080 bash scripts/bazel.sh test
 //tests/integration:{nuget_update,nuget_graph,nuget_sdks,native_sdk,catalog_web,sdk_policies} --test_output=errors`.
 Scope: SDK **10.0.400**, public NuGet.org V3 and standard project lockfiles;

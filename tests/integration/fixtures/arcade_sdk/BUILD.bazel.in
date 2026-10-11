@@ -1,2 +1,3 @@
-load("@rules_msbuild//msbuild:sync.bzl", "msbuild_sync")
-msbuild_sync(name = "sync", projects = ["App/App.csproj"], package_lock = "@packages//:lock", package_build = True, mappings = "mappings.json")
+load("@rules_msbuild//msbuild:sync.bzl", "msbuild_sync", "msbuild_nuget_update")
+msbuild_sync(name = "sync", projects = ["App/App.csproj"], package_lock = "@packages//:packages", package_build = True, mappings = "mappings.json")
+msbuild_nuget_update(name = "update_packages", projects = ["App/App.csproj"], mappings = "mappings.json")
