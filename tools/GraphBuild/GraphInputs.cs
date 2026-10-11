@@ -110,6 +110,7 @@ internal sealed class GraphInputs : IDisposable
         }
         using (GraphProfile.Measure("projectEvaluation"))
         {
+            GraphSolutions.Validate(Files.Root, contract.Entries ?? [contract.Entry], contract.Properties.Keys.Concat((contract.EntryProperties ?? []).Values.SelectMany(values => values.Keys)));
             Graph = new ProjectGraph((contract.Entries ?? [contract.Entry]).Select(entry => new ProjectGraphEntryPoint(Files.Resolve(entry), GraphEntryProperties.For(entry, properties, contract.EntryProperties ?? []))), collection,
                 (path, globals, projects) =>
                 {

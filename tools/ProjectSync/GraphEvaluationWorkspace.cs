@@ -42,7 +42,8 @@ internal sealed class GraphEvaluationWorkspace : IDisposable
                 {
                     start.ArgumentList.Add(GraphEntryProperties.Argument(key, value));
                 }
-                if (File.Exists(Path.Combine(Path.GetDirectoryName(Path.Combine(Root, entry))!, "packages.lock.json")))
+                if (File.Exists(Path.Combine(Path.GetDirectoryName(Path.Combine(Root, entry))!, "packages.lock.json")) ||
+                    GraphSolutions.IsSolution(entry) && Directory.EnumerateFiles(Root, "packages.lock.json", SearchOption.AllDirectories).Any())
                 {
                     start.ArgumentList.Add("-p:RestoreLockedMode=true");
                 }

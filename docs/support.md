@@ -124,6 +124,13 @@ remain unsupported; selection uses published releases, not installed SDKs.
 
 ## NuGet inventories
 
+`//tests/integration:solutions` passed `.sln` / `.slnx` update, strict child locks,
+offline sync/test, native graph DLL parity, configuration mappings, exclusions,
+solution dependencies and stale-file rejection on **8.8.0 / 9.3.0**, Linux ARM64.
+`solutions_remote` fresh consumers recovered four projects with zero compilation,
+identical product bytes/modes and successful execution for both formats/pins.
+Single solutions without custom solution hooks are qualified; see [API](api.md#sync).
+
 `//tests/integration:nuget_update` passed **8.8.0 / 9.3.0** on native Linux ARM64:
 explicit update/check, offline native locks, app/Razor/Publish and rejection of
 corrupt native hashes or malformed manifests. Failed resolution preserved locks

@@ -1565,3 +1565,80 @@ test_suite(
         bazel_binaries.versions.all,
     ),
 )
+
+sh_binary(
+    name = "solutions_runner",
+    testonly = True,
+    srcs = ["solutions.sh"],
+    data = ["common.sh"],
+)
+
+bazel_integration_tests(
+    name = "solutions_cases",
+    additional_env_inherit = [
+        "BAZELISK_HOME",
+        "RULES_MSBUILD_TEST_REPOSITORY_CACHE",
+    ],
+    bazel_binaries = bazel_binaries,
+    bazel_versions = bazel_binaries.versions.all,
+    data = [":rules_archive"],
+    env = {"RULES_ARCHIVE": "$(rootpath :rules_archive)"},
+    tags = [
+        "exclusive",
+        "manual",
+        "no-sandbox",
+    ],
+    target_compatible_with = select({
+        "@platforms//os:linux": [],
+        "@platforms//os:osx": [],
+        "//conditions:default": ["@platforms//:incompatible"],
+    }),
+    test_runner = ":solutions_runner",
+    workspace_files = ["//:quickstart_sources"],
+    workspace_path = "examples/quickstart",
+)
+
+test_suite(
+    name = "solutions",
+    tags = ["manual"],
+    tests = integration_test_utils.bazel_integration_test_names(
+        "solutions_cases",
+        bazel_binaries.versions.all,
+    ),
+)
+
+bazel_integration_tests(
+    name = "solutions_remote_cases",
+    additional_env_inherit = [
+        "BAZELISK_HOME",
+        "SDK_CACHE_PHASE",
+        "SDK_CACHE_URL",
+        "SDK_CACHE_SEED",
+        "RULES_MSBUILD_TEST_REPOSITORY_CACHE",
+    ],
+    bazel_binaries = bazel_binaries,
+    bazel_versions = bazel_binaries.versions.all,
+    data = [":rules_archive"],
+    env = {"RULES_ARCHIVE": "$(rootpath :rules_archive)"},
+    tags = [
+        "exclusive",
+        "manual",
+        "no-sandbox",
+    ],
+    target_compatible_with = [
+        "@platforms//os:linux",
+        "@platforms//cpu:aarch64",
+    ],
+    test_runner = ":solutions_runner",
+    workspace_files = ["//:quickstart_sources"],
+    workspace_path = "examples/quickstart",
+)
+
+test_suite(
+    name = "solutions_remote",
+    tags = ["manual"],
+    tests = integration_test_utils.bazel_integration_test_names(
+        "solutions_remote_cases",
+        bazel_binaries.versions.all,
+    ),
+)

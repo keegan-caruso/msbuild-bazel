@@ -8,4 +8,5 @@ exports_files([
     "GraphProjectKind.cs",
     "GraphSourcePattern.cs",
     "GraphEntryProperties.cs",
+    "GraphSolutions.cs",
 ])

@@ -15,6 +15,13 @@ The generated `app_graph` macro declares the graph. Body edits build normally;
 rerun sync after project/import, package, configuration or explicit source-list changes.
 Use `bazel run //:sync -- --check` to reject stale declarations.
 
+`projects = ["App.sln"]` (or `.slnx`) also works for update and sync. MSBuild
+expands the solution, retaining configuration mappings, build exclusions and
+solution-only dependencies. The solution is hashed and staged with its projects;
+derived absolute solution globals are regenerated at the current workspace.
+Select one solution per target. Mixed entries, `.slnf`, custom solution build hooks
+and overrides of derived solution globals are unsupported.
+
 Sync can shorten C# lists with checked, nonrecursive globs when the text shrinks.
 These retain expected filenames: membership changes require sync; body edits build
 normally. To allow additions/removals without sync, pass `mappings = "mappings.json"`
@@ -38,7 +45,7 @@ from MSBuild's Compile items.
 
 | Attribute | Use |
 | --- | --- |
-| `projects` | Entry `.csproj`, `.ilproj` or Traversal/NoTargets `.proj` paths |
+| `projects` | Project paths (`.csproj`, `.ilproj`, Traversal/NoTargets `.proj`) or one `.sln` / `.slnx` |
 | `configuration`, `framework` | Release by default; optional entry framework |
 | `inputs` | Single-file producer labels mapped to workspace-relative paths |
 | `package_lock`, `package_locks` | Closed package inventories, including package SDKs |

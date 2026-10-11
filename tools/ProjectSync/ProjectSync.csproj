@@ -10,6 +10,7 @@
     <Compile Include="../AnalyzerConfigs.cs" />
     <Compile Include="../PackageSdks.cs" />
     <Compile Include="../GraphEntryProperties.cs" />
+    <Compile Include="../GraphSolutions.cs" />
     <Compile Include="../GraphCompilerReferences.cs" />
     <Compile Include="../GraphProjectKind.cs" />
     <Compile Include="../GraphSourcePattern.cs" />
