@@ -37,6 +37,30 @@ class GraphSyncTests(unittest.TestCase):
         self.assertFalse((self.root / "projects.generated.bzl").exists())
         self.sync(flags=["--check"])
 
+    def test_analyzer_discovery_stays_inside_workspace(self):
+        parent = self.root
+        self.root = parent / 'workspace'
+        self.root.mkdir()
+        (self.root / 'App.csproj').write_text(self.project)
+        (self.root / 'Program.cs').write_text('System.Console.WriteLine(1);')
+        (parent / '.editorconfig').write_text('[*.cs]\ndotnet_diagnostic.CA1822.severity = none\n')
+        (parent / '.globalconfig').write_text('is_global = true\n')
+        (self.root / '.editorconfig').write_text('root = true\n[*.cs]\ndotnet_diagnostic.CA1822.severity = error\n')
+        (self.root / '.globalconfig').write_text('is_global = true\n')
+        (self.root / 'Nested').mkdir()
+        (self.root / 'Nested/Code.cs').write_text('public class Nested {}')
+        (self.root / 'Nested/.editorconfig').write_text('[*.cs]\ndotnet_diagnostic.CA1822.severity = warning\n')
+        self.sync()
+        contract = json.loads((self.root / 'graph.generated.json').read_text())
+        inputs = contract['Projects']['App.csproj']['Configurations'][0]['Inputs']
+        self.assertTrue({'.editorconfig', '.globalconfig', 'Nested/.editorconfig'} <= set(inputs))
+        self.assertFalse(any(path.startswith('../') for path in inputs))
+        self.sync(flags=['--check'])
+        # An authored outside read must still fail even if SDK discovery finds it.
+        (self.root / 'App.csproj').write_text(self.project.replace('</Project>',
+            '<ItemGroup><EditorConfigFiles Include="../.editorconfig" /></ItemGroup></Project>'))
+        self.assertIn('outside workspace', self.sync(success=False))
+
     def test_removed_mode_flag_is_rejected(self):
         self.assertIn("Unknown", self.sync(flags=["--graph"], success=False))
 

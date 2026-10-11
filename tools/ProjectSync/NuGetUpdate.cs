@@ -59,6 +59,14 @@ internal static class NuGetUpdate
         {
             throw new ArgumentException("NuGet update requires entry projects and a simple configuration name");
         }
+        var version = sdkVersion ?? Directory.GetDirectories(Path.Combine(sdk, "sdk")).Select(Path.GetFileName).Single();
+        var engine = Path.Combine(sdk, "sdk", version!);
+        if (!Directory.Exists(engine))
+        {
+            throw new InvalidDataException("Selected SDK version is missing: " + version);
+        }
+        System.Runtime.Loader.AssemblyLoadContext.Default.Resolving += (context, name) => File.Exists(Path.Combine(engine, name.Name + ".dll"))
+            ? context.LoadFromAssemblyPath(Path.Combine(engine, name.Name + ".dll")) : null;
         var destination = Path.Combine(source, output);
         if (File.Exists(destination))
         {
@@ -85,12 +93,29 @@ internal static class NuGetUpdate
             {
                 await Restore(sdk, workspace, packageRoot, configs[0], project, configuration, scratch);
             }
+            Environment.SetEnvironmentVariable("MSBUILD_EXE_PATH", Path.Combine(engine, "MSBuild.dll"));
+            Environment.SetEnvironmentVariable("MSBuildSDKsPath", Path.Combine(engine, "Sdks"));
+            Environment.SetEnvironmentVariable("DOTNET_HOST_PATH", Path.Combine(sdk, "dotnet"));
+            Environment.SetEnvironmentVariable("NUGET_PACKAGES", packageRoot);
+            Environment.SetEnvironmentVariable("NUGET_HTTP_CACHE_PATH", Path.Combine(scratch, "http"));
+            Environment.SetEnvironmentVariable("MSBuildEnableWorkloadResolver", "false");
+            string[] required;
+            try
+            {
+                required = NuGetGraph.Projects(workspace, projects.Distinct(), configuration);
+            }
+            catch (Exception error)
+            {
+                throw new InvalidDataException("NuGet graph evaluation failed; existing locks were left unchanged: " + error.Message, error);
+            }
             var locks = new SortedDictionary<string, string>(StringComparer.Ordinal);
+            var restored = new HashSet<string>(StringComparer.Ordinal);
             foreach (var assets in Directory.GetFiles(workspace, "project.assets.json", SearchOption.AllDirectories))
             {
                 using var document = JsonDocument.Parse(File.ReadAllText(assets));
                 var project = document.RootElement.GetProperty("project").GetProperty("restore").GetProperty("projectPath").GetString()!;
                 var relative = WorkspaceView.Safe(Path.GetRelativePath(workspace, project).Replace('\\', '/'));
+                restored.Add(relative);
                 var native = Path.Combine(Path.GetDirectoryName(project)!, "packages.lock.json");
                 if (!File.Exists(native))
                 {
@@ -102,12 +127,12 @@ internal static class NuGetUpdate
             {
                 throw new InvalidDataException("Restore produced no project lockfiles");
             }
-            var packages = await NuGetArchives.Read(packageRoot);
-            var version = sdkVersion ?? Directory.GetDirectories(Path.Combine(sdk, "sdk")).Select(Path.GetFileName).Single();
-            if (!Directory.Exists(Path.Combine(sdk, "sdk", version!)))
+            if (required.Any(project => !restored.Contains(project)))
             {
-                throw new InvalidDataException("Selected SDK version is missing: " + version);
+                throw new InvalidDataException("NuGet Restore skipped graph projects; existing locks were left unchanged: " +
+                    string.Join(", ", required.Where(project => !restored.Contains(project))));
             }
+            var packages = await NuGetArchives.Read(packageRoot);
             var manifest = JsonSerializer.Serialize(new
             {
                 generatedBy = "RulesMSBuild.NuGetUpdate",

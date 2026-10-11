@@ -16,7 +16,7 @@ app=json.loads(Path('App/packages.lock.json').read_text())['dependencies']['net1
 assert app['Microsoft.Extensions.Options']['type']=='Transitive'
 p=Path('MODULE.bazel');p.write_text(p.read_text()+'\nnuget = use_extension("@rules_msbuild//msbuild:nuget.bzl", "nuget")\nnuget.lock(name = "nuget", lockfile = "//:nuget.lock.json")\nuse_repo(nuget, "nuget")\n')
 Path('mappings.json').write_text('{"projectDefaults":{"referenceBoundary":true}}\n')
-p=Path('BUILD.bazel');p.write_text(p.read_text()+'\nload("@rules_msbuild//msbuild:sync.bzl", "msbuild_sync")\nmsbuild_sync(name="sync", projects=["App/App.csproj", "Library/Library.csproj"], package_lock="@nuget//:packages", package_build=True, package_inputs=["Library/.editorconfig"], resolve_references=True, mappings="mappings.json")\n')
+p=Path('BUILD.bazel');p.write_text(p.read_text()+'\nload("@rules_msbuild//msbuild:sync.bzl", "msbuild_sync")\nmsbuild_sync(name="sync", projects=["App/App.csproj", "Library/Library.csproj"], package_lock="@nuget//:packages", package_build=True, package_inputs=[".editorconfig"], resolve_references=True, mappings="mappings.json")\n')
 PY
 bazel run //:sync
 cat >> BUILD.bazel <<'BZL'
@@ -43,6 +43,18 @@ p=Path('Library/Library.cs');p.write_text(p.read_text().replace('    public stat
 PY
 if bazel build //:build "${options[@]}" > "$TEST_TMPDIR/analyzer.log" 2>&1; then echo 'Analyzer failed to reject CA1822' >&2; exit 1; fi
 assert_contains "$TEST_TMPDIR/analyzer.log" 'CA1822'
+# Config-byte edits change compilation without a sync or source edit.
+python3 - <<'CONFIG'
+from pathlib import Path
+p=Path('.editorconfig');p.write_text(p.read_text().replace('severity = error','severity = none'))
+CONFIG
+bazel build //:build "${options[@]}" > "$TEST_TMPDIR/analyzer-disabled.log" 2>&1 || { cat "$TEST_TMPDIR/analyzer-disabled.log" >&2; exit 1; }
+python3 - <<'CONFIG'
+from pathlib import Path
+p=Path('.editorconfig');p.write_text(p.read_text().replace('severity = none','severity = error'))
+CONFIG
+if bazel build //:build "${options[@]}" > "$TEST_TMPDIR/analyzer-restored.log" 2>&1; then echo 'Config edit reused stale compilation' >&2; exit 1; fi
+assert_contains "$TEST_TMPDIR/analyzer-restored.log" 'CA1822'
 python3 - <<'PY'
 from pathlib import Path
 p=Path('Library/Library.cs');p.write_text(p.read_text().replace('    public string BadAnalyzerMember() => "bad";\n',''))
@@ -52,7 +64,7 @@ bazel run //:sync -- --check
 # Independent source/output base: no NuGet resolution or metadata is permitted.
 bazel shutdown
 mkdir "$scratch/recovery"
-tar -cf "$scratch/consumer.tar" App Library Directory.Packages.props MODULE.bazel MODULE.bazel.lock BUILD.bazel global.json NuGet.Config mappings.json nuget.lock.json graph.generated.json graph.generated.bzl
+tar -cf "$scratch/consumer.tar" App Library Directory.Packages.props MODULE.bazel MODULE.bazel.lock BUILD.bazel global.json NuGet.Config .editorconfig mappings.json nuget.lock.json graph.generated.json graph.generated.bzl
 tar -xf "$scratch/consumer.tar" -C "$scratch/recovery"
 cd "$scratch/recovery"
 "$BIT_BAZEL_BINARY" --batch --ignore_all_rc_files --output_base="$scratch/recovered" test //:test "${options[@]}" \
