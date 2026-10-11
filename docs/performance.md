@@ -1,5 +1,50 @@
 # Performance versus raw MSBuild
 
+## Downloaded-SDK workflow
+
+Runtime v10.0.0, four managed roots (Pipelines, Encodings.Web, Json and ComponentModel
+Primitives): **182 configurations / 163 compilations**. Linux ARM64, four CPUs,
+6 GiB, SDK **10.0.400**, Bazel **9.3.0**, default worker budgets and fresh evaluation.
+The public updater generated **106 archives / 91 native locks**; offline sync/check
+qualified SDK compiler selections. Unprofiled wall seconds:
+
+| Case | Raw MSBuild | Graph | Graph reused / compiled |
+| --- | ---: | ---: | ---: |
+| Cold Restore + Build | 371.24 s | 384.49 s | 0 / 163 |
+| No-op | 5.94 s | 0.14 s | Whole action hit |
+| Pipelines body edit | 18.36 s | 17.55 s | 158 / 5 |
+| Pipelines API edit | 32.59 s | 37.93 s | 147 / 16 |
+
+Cold is one observation with fresh outputs/snapshots; tools/packages were available
+and graph bootstrap (29.27 s) was separate. Incremental rows are medians of three
+alternating pairs, matching all **1,447 DLL/PDB/resource files**. Separate instrumented
+controls matched the actual body/API compiler sets (**5 / 16**); they are excluded
+from scores. Body/API reused Restore. Three local project recoveries took **5.85–7.53 s** with
+163 hits, zero compilations and byte parity. Cold/API overhead was **3.6% / 16.4%**;
+this default-contract result does not use the opt-in retention of the larger baseline.
+
+Independent HTTP recovery on a fresh, relocated Linux ARM64 machine, with the
+producer stopped: **5.41 s** for cached Restore + graph actions. Forcing graph
+execution retained the Restore action hit and recovered **163 project snapshots /
+zero compilations** in **16.11 s**. Both matched all **3,980 retained files**, including
+modes. Acquisition/bootstrap were separate. A Bazel-tested app imported the graph
+from another module, verified the exact source-built Pipelines DLL hash, and used
+its `Pipe` API on the downloaded SDK host.
+
+Package update/check each took about **51 s**; offline sync/check's private Build
+check took **598 s**. These declaration-update costs are outside build scores.
+Reproduce with [preparation](../tests/graph_build/upstream/runtime_downloaded_prepare.py)
+(`SOURCE_ARCHIVE OUTPUT`), then [benchmark](../tests/graph_build/upstream/runtime_benchmark.py)
+(`OUTPUT/workspace RESULTS --output-base=FRESH_BASE --slice=loaded-common
+--samples=3 --memory-gib=6 --cold-build --trim-between-rows`). Use the pinned source
+archive hash in the preparation driver. This is a bounded managed slice, not the
+entire runtime repo or first-time acquisition.
+For recovery, run [complete remote](../tests/graph_build/upstream/runtime_complete_remote.py)
+with `--phase=producer --cache-url=URL`; relocate the workspace to another machine,
+stop the producer, and run `--phase=consumer --seed-evidence=SEED_JSON`.
+Then run [consumer smoke](../tests/graph_build/upstream/runtime_downloaded_smoke.py)
+with `RUNTIME_WORKSPACE FRESH_APP --cache-url=URL`.
+
 ## Paired runtime baseline
 
 Runtime v10.0.0 (`60629d14374c56f1cb51819049ad1fa529307f8d`): **260 project paths /

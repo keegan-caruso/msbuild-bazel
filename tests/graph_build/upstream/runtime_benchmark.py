@@ -33,7 +33,14 @@ def expand_raw_packages(raw):
     # Start from the same declared archives, including package SDK bootstrap.
     # Expansion is setup, reported separately from ordinary raw Restore/Build.
     expansion_start = time.monotonic()
+    native_inventory = (raw / 'nuget.lock.json').is_file()
+    sdks = json.loads((raw / 'global.json').read_text()).get('msbuild-sdks', {}) if native_inventory else {}
+    sdk_archives = {identity.lower() + '.' + version.lower() + '.nupkg' for identity, version in sdks.items()}
     for archive in sorted((raw / '.package-source').glob('*.nupkg')):
+        # Native inventories retain signed NuGet content hashes. Bootstrap only
+        # package SDKs; let native Restore extract/verify ordinary dependencies.
+        if native_inventory and archive.name not in sdk_archives:
+            continue
         data = archive.read_bytes()
         with zipfile.ZipFile(archive) as package:
             metadata = ET.fromstring(package.read(next(n for n in package.namelist() if n.endswith('.nuspec'))))
@@ -59,6 +66,8 @@ def main():
     parser.add_argument('results', type=Path, help='new owned directory, outside workspace')
     parser.add_argument('--output-base', type=Path, required=True, help='fresh base, or retained base with continuation/qualified raw results')
     parser.add_argument('--samples', type=int, default=3)
+    parser.add_argument('--cold-build', action='store_true', help='bootstrap declared tools/packages separately, then pair fresh Restore + Build outputs')
+    parser.add_argument('--memory-gib', type=int, default=8, help='qualified container memory allocation, recorded in the scorecard')
     parser.add_argument('--body-only', action='store_true', help='score no-op/body/recovery only; retain strict compiler parity')
     parser.add_argument('--slice', choices=['pipelines-tests', 'collections', 'loaded-common', 'runtime-suites'], default='pipelines-tests')
     parser.add_argument('--continue-api-from', type=Path, help='completed no-op/body scorecard with retained raw state; record remaining cases separately')
@@ -74,11 +83,14 @@ def main():
     parser.add_argument('--failure-recovery', action='store_true', help='fail a compiler request, then compare a unique valid edit with raw MSBuild')
     parser.add_argument('--reseed-worker', action='store_true', help='with qualified raw outputs, require a fresh all-miss runner seed before scoring')
     parser.add_argument('--diagnostics', action='store_true', help='profile separate unique edits after the scored series')
+    parser.add_argument('--diagnostics-only', action='store_true', help='with --continue-api-from and --diagnostics, validate compiler sets separately from completed scores')
     parser.add_argument('--trim-between-rows', action='store_true', help='Trim the owned Linux VM filesystem between observations, outside scored intervals; requires fstrim privileges')
     parser.add_argument('--host-space-path', type=Path, help='host bind mount to check for at least 4 GiB free before each invocation')
     args = parser.parse_args()
     assert os.uname().sysname == 'Linux' and os.uname().machine == 'aarch64'
-    assert args.samples > 0
+    assert args.samples > 0 and args.memory_gib > 0
+    assert not args.diagnostics_only or (args.diagnostics and args.continue_api_from)
+    assert not args.cold_build or not (args.continue_api_from or args.qualified_raw_results or args.project_cache_url)
     assert not args.body_only or (args.qualified_raw_results and not args.continue_api_from and not args.qualify_evaluation_only)
     assert not args.replay_omissions or args.qualified_raw_results
     assert not args.evaluation_reuse or args.qualified_raw_results
@@ -86,7 +98,7 @@ def main():
     assert not args.edit_case or args.slice == 'runtime-suites'
     assert not args.reference_bindings or args.qualified_raw_results
     assert not args.reviewed_evaluation_inputs or args.evaluation_reuse
-    assert not args.project_cache_url or args.qualified_raw_results
+    assert not args.project_cache_url or args.qualified_raw_results or args.continue_api_from
     assert not args.compare_fresh_evaluation or args.evaluation_reuse
     assert not args.reseed_worker or args.qualified_raw_results, 'Reseeding requires qualified complete-source raw outputs'
     assert not (args.continue_api_from and args.qualified_raw_results)
@@ -164,14 +176,14 @@ def main():
         previous = json.loads(summary_path.read_text())
         assert previous['slice'] == args.slice and previous['entries'] == mutation['entries']
         assert previous['sdkVersion'] == contract['SdkVersion'] and previous['bazelVersion'] == '9.3.0'
-        assert previous['graphProjects'] == compiled and previous['cpus'] == 4 and previous['memoryGiB'] == 8
+        assert previous['graphProjects'] == compiled and previous['cpus'] == 4 and previous['memoryGiB'] == args.memory_gib
         for case in ['no-op', 'body']:
             completed = [row for row in previous['rows'] if row['case'] == case]
             assert len(completed) == args.samples and {row['sample'] for row in completed} == set(range(args.samples))
             assert sum(row['case'] == case + '-summary' for row in previous['rows']) == 1
             if case == 'body':
                 assert all(row['projectMisses'] == mutation['expectedMisses']['body'] for row in completed)
-        assert not any(row['case'] in ['api', 'api-summary', 'local-recovery'] for row in previous['rows']), 'Do not overwrite completed remaining cases'
+        assert args.diagnostics_only or not any(row['case'] in ['api', 'api-summary', 'local-recovery'] for row in previous['rows']), 'Do not overwrite completed remaining cases'
         assert (prior / 'raw-workspace/graph.generated.json').read_bytes() == (root / 'graph.generated.json').read_bytes()
         shutil.copytree(prior / 'raw-workspace', raw, ignore=shutil.ignore_patterns('bazel-*', '.cache', '.cli'))
         expansion_seconds = None
@@ -181,7 +193,9 @@ def main():
         shutil.copytree(root, raw, ignore=shutil.ignore_patterns('bazel-*', '.nuget', '.cache', '.cli'))
         expansion_seconds = expand_raw_packages(raw)
     packages = raw / '.nuget'
-    config = raw / 'NuGet.Config'
+    configs = [path for path in raw.iterdir() if path.name.lower() == 'nuget.config']
+    assert len(configs) <= 1
+    config = configs[0] if configs else raw / 'NuGet.Config'
     original_config = config.read_bytes() if config.exists() else None
     config.write_text('<configuration><packageSources><clear/><add key="declared" value=".package-source"/></packageSources><fallbackPackageFolders><clear/></fallbackPackageFolders></configuration>')
     environment = dict(os.environ, DOTNET_ROOT=str(sdk), DOTNET_HOST_PATH=dotnet,
@@ -356,7 +370,7 @@ def main():
     def record(row):
         row['observedFileModes'] = dict(mode_counts)
         rows.append(row)
-        summary = dict(platform='linux-arm64', cpus=4, memoryGiB=8, msbuildNodes=4, graphProjects=compiled,
+        summary = dict(platform='linux-arm64', cpus=4, memoryGiB=args.memory_gib, msbuildNodes=4, graphProjects=compiled,
                        sdkVersion=contract['SdkVersion'], bazelVersion='9.3.0', slice=args.slice, entries=mutation['entries'], rawNamespace='same stable paths and isolation as graph',
                        harnessSha256=harness_sha256, packageExpansionSeconds=expansion_seconds,
                        continuation=continuation, qualifiedWarmBaseline=qualified, retainedEvaluation=args.evaluation_reuse,
@@ -397,8 +411,14 @@ def main():
             record(dict(case='continued-baseline', rawSeconds=seed_raw, graphSeconds=seed_graph, projectHits=report['hits'], projectMisses=report['misses'],
                         comparedDllPdbResourceFiles=len(baseline), interpretation='baseline restoration; excluded from scored medians'))
         else:
-            restore_command = raw_host + ['restore', stable + '/' + contract['Entry'], '--configfile', stable + '/NuGet.Config', '--source', stable + '/.package-source',
-                               '--packages', stable + '/.nuget', '-p:NuGetAudit=false', '-p:NetCoreSdkRoot=' + stable_sdk + '/sdk/' + contract['SdkVersion']]
+            bootstrap_seconds = None
+            if args.cold_build:
+                bootstrap_seconds = execute(bazel[:3] + ['//:packages', '//:graph_runner'] + bazel[4:], 'graph-bootstrap', root)
+            restore_command = raw_host + ['restore', stable + '/' + contract['Entry'], '--configfile', stable + '/' + config.name, '--source', stable + '/.package-source',
+                               '--packages', stable + '/.nuget', '-p:NuGetAudit=false', '-p:RestoreFallbackFolders=',
+                               '-p:RestoreAdditionalProjectSources=', '-p:RestoreAdditionalProjectFallbackFolders=', '-p:NetCoreSdkRoot=' + stable_sdk + '/sdk/' + contract['SdkVersion']]
+            if (raw / 'nuget.lock.json').is_file():
+                restore_command += ['-p:RestoreLockedMode=true']
             restore_seconds = 0
             for index, entry in enumerate(mutation['entries']):
                 command = restore_command + [f'-p:{k}={v}' for k, v in root_properties(contract, entry).items() if k.lower() != 'targetframework']
@@ -420,10 +440,11 @@ def main():
             assert report['preparedRestore'] == bool(contract.get('Restore'))
             assert report['readOnlyPreparedPackages'] == bool(contract.get('Restore'))
             baseline = compare()
-            record(dict(case='setup', rawRestoreSeconds=restore_seconds, rawBuildSeconds=seed_raw, graphWorkflowSeconds=seed_graph,
-                        comparedDllPdbResourceFiles=len(baseline), interpretation='setup includes Bazel bootstrap/package actions; not a scored cold row'))
+            record(dict(case='cold-build' if args.cold_build else 'setup', rawRestoreSeconds=restore_seconds, rawBuildSeconds=seed_raw,
+                        rawWorkflowSeconds=restore_seconds + seed_raw, graphWorkflowSeconds=seed_graph, bootstrapSeconds=bootstrap_seconds,
+                        comparedDllPdbResourceFiles=len(baseline), interpretation='fresh outputs/snapshots, declared tools/packages available; one cold observation' if args.cold_build else 'setup includes Bazel bootstrap/package actions; not a scored cold row'))
         cases = ['no-op', 'body'] if args.body_only else ['no-op', 'body', 'api']
-        for case in ([] if args.qualify_evaluation_only else ['api'] if continuation else cases):
+        for case in ([] if args.qualify_evaluation_only or args.diagnostics_only else ['api'] if continuation else cases):
             pairs = []
             fresh_pairs = []
             for sample in range(args.samples):
@@ -490,7 +511,7 @@ def main():
         graph('graph-original-restoration', expected_action=None)
         assert compare() == baseline
         generated.write_text(force_input('force-recovery.txt'))
-        for sample in range(0 if args.qualify_evaluation_only else args.samples):
+        for sample in range(0 if args.qualify_evaluation_only or args.diagnostics_only else args.samples):
             nonce.write_text(token + '-' + str(sample))
             seconds, report = graph('local-recovery-' + str(sample))
             assert report['hits'] == compiled and report['misses'] == 0, report
