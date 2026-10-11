@@ -144,9 +144,14 @@ declared build/Restore inputs. The manifest's `archiveSha512` hashes whole archi
 NuGet's native `contentHash` may differ for signed packages and stays untouched.
 
 The updater currently requires one root config and public HTTP(S) V3 feeds;
-nested configs, custom `NuGetLockFilePath`, authenticated feeds, package SDKs and
+nested configs, custom `NuGetLockFilePath`, authenticated feeds and
 workload/native package acquisition are unqualified. Arbitrary task reads still require contracts.
 Source symlinks are rejected. Each update resolves one configuration.
+Traversal and NoTargets SDKs resolve through NuGet before Restore, from
+`global.json` `msbuild-sdks` or inline SDK versions. Only used SDK archives enter
+the inventory. Commit coordinator locks too. Complete graph evaluation and Restore
+results are required; skipped projects or unresolved SDKs leave existing locks intact.
+Other package SDKs remain unqualified through this updater.
 For a new workspace, run the update target before declaring the inventory extension
 or loading a generated graph. No automatic resolution runs during normal builds.
 
@@ -198,7 +203,8 @@ same major/minor. Selection uses published release metadata, rather than install
 SDKs, and locks the exact result in `sdk-policy-v1` facts. New metadata does not
 advance a committed selection. Other policies and machine-local search paths fail.
 
-After changing the pin, run `bazel run //:sync`, then review/commit `global.json`,
+After changing the pin, run `bazel run //:update_packages` for package-backed graphs,
+then `bazel run //:sync`. Review/commit `global.json`, package locks,
 `MODULE.bazel.lock` and the generated graph. Use `--lockfile_mode=error` on build
 servers to reject stale/missing lock entries. After switching Bazel versions,
 run once in update mode to record any additional registry entries; SDK facts survive
@@ -216,8 +222,8 @@ bazel run @dotnet//:update -- --nuget-update //:update_packages --sync //:sync
 
 The sequence stops on failure; package failure leaves native locks and the graph
 unchanged, though the SDK selection may already have advanced.
-Omit `--nuget-update` for graphs without packages. Omit `--sync` to update only the selection, or use `--bazel /path/to/bazel` to select
-the CLI (otherwise `RULES_MSBUILD_BAZEL` or `bazel`). Exact/disabled pins require
+Omit `--nuget-update` for graphs without packages. Omit `--sync` to skip graph
+regeneration, or use `--bazel /path/to/bazel` to select the CLI (otherwise `RULES_MSBUILD_BAZEL` or `bazel`). Exact/disabled pins require
 editing their authored version; the updater does not override their policy.
 
 `platforms` defaults to Linux/macOS ARM64/x64. Optional `metadata_urls` supplies
