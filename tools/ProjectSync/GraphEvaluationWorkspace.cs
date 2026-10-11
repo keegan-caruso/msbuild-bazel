@@ -40,7 +40,7 @@ internal sealed class GraphEvaluationWorkspace : IDisposable
                 // Restore each project's authored frameworks; the build graph still selects its requested framework.
                 foreach (var (key, value) in GraphEntryProperties.For(entry, properties, entryProperties ?? []).Where(property => !property.Key.Equals("TargetFramework", StringComparison.OrdinalIgnoreCase)))
                 {
-                    start.ArgumentList.Add("-p:" + key + "=" + value);
+                    start.ArgumentList.Add(GraphEntryProperties.Argument(key, value));
                 }
                 if (File.Exists(Path.Combine(Path.GetDirectoryName(Path.Combine(Root, entry))!, "packages.lock.json")))
                 {

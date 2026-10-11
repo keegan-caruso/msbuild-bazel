@@ -37,7 +37,7 @@ internal static class Restore
             // Restore each project's authored frameworks; the build graph still selects its requested framework.
             foreach (var (key, value) in GraphEntryProperties.For(entry, contract.Properties, contract.EntryProperties ?? []).Where(property => !property.Key.Equals("TargetFramework", StringComparison.OrdinalIgnoreCase)))
             {
-                process.ArgumentList.Add("-p:" + key + "=" + value);
+                process.ArgumentList.Add(GraphEntryProperties.Argument(key, value));
             }
             if (File.Exists(Path.Combine(Path.GetDirectoryName(Path.Combine(root, entry))!, "packages.lock.json")))
             {

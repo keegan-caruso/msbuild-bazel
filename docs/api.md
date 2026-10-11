@@ -147,6 +147,10 @@ The updater currently requires one root config and public HTTP(S) V3 feeds;
 nested configs, custom `NuGetLockFilePath`, authenticated feeds and
 workload/native package acquisition are unqualified. Arbitrary task reads still require contracts.
 Source symlinks are rejected. Each update resolves one configuration.
+Pass the same `configuration`, `framework` and `mappings` to update and sync.
+Update uses `projectDefaults.properties` and `entryProperties`; Restore retains all
+authored frameworks, as offline sync does. Conflicting native locks for a shared
+project fail before publication; use separate workspaces for those configurations.
 Traversal and NoTargets SDKs resolve through NuGet before Restore, from
 `global.json` `msbuild-sdks` or inline SDK versions. Only used SDK archives enter
 the inventory. Commit coordinator locks too. Complete graph evaluation and Restore

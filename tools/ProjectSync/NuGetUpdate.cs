@@ -19,6 +19,8 @@ internal static class NuGetUpdate
         var output = "nuget.lock.json";
         var configuration = "Release";
         string? sdkVersion = null;
+        string? mappingPath = null;
+        var framework = "";
         var check = false;
         for (var i = 2; i < args.Length; i++)
         {
@@ -26,7 +28,7 @@ internal static class NuGetUpdate
             {
                 check = true;
             }
-            else if (args[i] is "--output" or "--configuration" or "--sdk-version")
+            else if (args[i] is "--output" or "--configuration" or "--sdk-version" or "--mappings" or "--framework")
             {
                 var option = args[i];
                 if (++i == args.Length)
@@ -40,6 +42,14 @@ internal static class NuGetUpdate
                 else if (option == "--sdk-version")
                 {
                     sdkVersion = WorkspaceView.Safe(args[i]);
+                }
+                else if (option == "--mappings")
+                {
+                    mappingPath = args[i];
+                }
+                else if (option == "--framework")
+                {
+                    framework = args[i];
                 }
                 else
                 {
@@ -55,7 +65,7 @@ internal static class NuGetUpdate
                 projects.Add(WorkspaceView.Safe(args[i]));
             }
         }
-        if (projects.Count == 0 || configuration.Length == 0 || configuration.Any(c => !char.IsAsciiLetterOrDigit(c) && c is not '.' and not '_' and not '-'))
+        if (projects.Count == 0 || configuration.Length == 0 || new[] { configuration, framework }.Any(value => value.Any(c => !char.IsAsciiLetterOrDigit(c) && c is not '.' and not '_' and not '-')))
         {
             throw new ArgumentException("NuGet update requires entry projects and a simple configuration name");
         }
@@ -67,6 +77,17 @@ internal static class NuGetUpdate
         }
         System.Runtime.Loader.AssemblyLoadContext.Default.Resolving += (context, name) => File.Exists(Path.Combine(engine, name.Name + ".dll"))
             ? context.LoadFromAssemblyPath(Path.Combine(engine, name.Name + ".dll")) : null;
+        var mappings = new GraphMappings(mappingPath is null ? null : Path.GetFullPath(mappingPath, source));
+        var properties = new Dictionary<string, string>(mappings.Properties, StringComparer.OrdinalIgnoreCase) { ["Configuration"] = configuration };
+        if (framework.Length != 0)
+        {
+            properties["TargetFramework"] = framework;
+        }
+        GraphEntryProperties.Validate(projects, mappings.EntryProperties, []);
+        // Resolution must not override the updater's feeds, isolation or lock policy.
+        GraphEntryProperties.Validate(projects, projects.Distinct().ToDictionary(entry => entry, _ => properties
+            .Where(pair => !pair.Key.Equals("RestoreUseStaticGraphEvaluation", StringComparison.OrdinalIgnoreCase))
+            .ToDictionary(pair => pair.Key, pair => pair.Value, StringComparer.OrdinalIgnoreCase)), []);
         var destination = Path.Combine(source, output);
         if (File.Exists(destination))
         {
@@ -89,9 +110,11 @@ internal static class NuGetUpdate
                 throw new InvalidDataException("NuGet update currently requires one authored root NuGet.Config; nested configs are unsupported");
             }
             var packageRoot = Path.Combine(scratch, "packages");
+            var locks = new SortedDictionary<string, string>(StringComparer.Ordinal);
             foreach (var project in projects.Distinct())
             {
-                await Restore(sdk, workspace, packageRoot, configs[0], project, configuration, scratch);
+                await Restore(sdk, workspace, packageRoot, configs[0], project, GraphEntryProperties.For(project, properties, mappings.EntryProperties), scratch);
+                CaptureLocks(workspace, locks);
             }
             Environment.SetEnvironmentVariable("MSBUILD_EXE_PATH", Path.Combine(engine, "MSBuild.dll"));
             Environment.SetEnvironmentVariable("MSBuildSDKsPath", Path.Combine(engine, "Sdks"));
@@ -102,13 +125,12 @@ internal static class NuGetUpdate
             string[] required;
             try
             {
-                required = NuGetGraph.Projects(workspace, projects.Distinct(), configuration);
+                required = NuGetGraph.Projects(workspace, projects.Distinct(), properties, mappings.EntryProperties);
             }
             catch (Exception error)
             {
                 throw new InvalidDataException("NuGet graph evaluation failed; existing locks were left unchanged: " + error.Message, error);
             }
-            var locks = new SortedDictionary<string, string>(StringComparer.Ordinal);
             var restored = new HashSet<string>(StringComparer.Ordinal);
             foreach (var assets in Directory.GetFiles(workspace, "project.assets.json", SearchOption.AllDirectories))
             {
@@ -116,12 +138,6 @@ internal static class NuGetUpdate
                 var project = document.RootElement.GetProperty("project").GetProperty("restore").GetProperty("projectPath").GetString()!;
                 var relative = WorkspaceView.Safe(Path.GetRelativePath(workspace, project).Replace('\\', '/'));
                 restored.Add(relative);
-                var native = Path.Combine(Path.GetDirectoryName(project)!, "packages.lock.json");
-                if (!File.Exists(native))
-                {
-                    throw new InvalidDataException("Missing standard packages.lock.json for " + relative + "; custom NuGetLockFilePath is unsupported");
-                }
-                locks.Add(Path.GetRelativePath(workspace, native).Replace('\\', '/'), File.ReadAllText(native));
             }
             if (locks.Count == 0)
             {
@@ -140,6 +156,9 @@ internal static class NuGetUpdate
                 sdkVersion = version,
                 projects = projects.Distinct().Order(StringComparer.Ordinal).ToArray(),
                 configuration,
+                // Record authored configuration intent, including the build-only framework.
+                properties,
+                entryProperties = mappings.EntryProperties,
                 lockFiles = locks.Keys.ToArray(),
                 packages,
             }, new JsonSerializerOptions { WriteIndented = true }) + "\n";
@@ -174,7 +193,7 @@ internal static class NuGetUpdate
         }
     }
 
-    private static async Task Restore(string sdk, string workspace, string packages, string config, string project, string configuration, string scratch)
+    private static async Task Restore(string sdk, string workspace, string packages, string config, string project, Dictionary<string, string> properties, string scratch)
     {
         if (!File.Exists(Path.Combine(workspace, project)))
         {
@@ -182,10 +201,14 @@ internal static class NuGetUpdate
         }
         var start = new ProcessStartInfo(Path.Combine(sdk, "dotnet")) { WorkingDirectory = workspace, UseShellExecute = false };
         foreach (var argument in new[] { "restore", project, "--configfile", config, "--packages", packages, "--force-evaluate",
-            "-p:RestorePackagesWithLockFile=true", "-p:RestoreLockedMode=false", "-p:NuGetAudit=false", "-p:Configuration=" + configuration,
+            "-p:RestorePackagesWithLockFile=true", "-p:RestoreLockedMode=false", "-p:NuGetAudit=false",
             "-p:RestoreFallbackFolders=", "-p:RestoreAdditionalProjectFallbackFolders=" })
         {
             start.ArgumentList.Add(argument);
+        }
+        foreach (var (name, value) in properties.Where(pair => !pair.Key.Equals("TargetFramework", StringComparison.OrdinalIgnoreCase)))
+        {
+            start.ArgumentList.Add(GraphEntryProperties.Argument(name, value));
         }
         foreach (var (name, value) in new Dictionary<string, string>
         {
@@ -210,6 +233,27 @@ internal static class NuGetUpdate
         if (child.ExitCode != 0)
         {
             throw new InvalidDataException("NuGet Restore failed; existing locks were left unchanged");
+        }
+    }
+
+    private static void CaptureLocks(string workspace, SortedDictionary<string, string> locks)
+    {
+        foreach (var assets in Directory.GetFiles(workspace, "project.assets.json", SearchOption.AllDirectories))
+        {
+            using var document = JsonDocument.Parse(File.ReadAllText(assets));
+            var project = document.RootElement.GetProperty("project").GetProperty("restore").GetProperty("projectPath").GetString()!;
+            var native = Path.Combine(Path.GetDirectoryName(project)!, "packages.lock.json");
+            if (!File.Exists(native))
+            {
+                throw new InvalidDataException("Missing standard packages.lock.json for " + project + "; custom NuGetLockFilePath is unsupported");
+            }
+            var relative = WorkspaceView.Safe(Path.GetRelativePath(workspace, native).Replace('\\', '/'));
+            var content = File.ReadAllText(native);
+            if (locks.TryGetValue(relative, out var previous) && previous != content)
+            {
+                throw new InvalidDataException("Conflicting configured NuGet locks for " + relative + "; use separate workspaces; existing locks were left unchanged");
+            }
+            locks[relative] = content;
         }
     }
 

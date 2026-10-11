@@ -141,6 +141,11 @@ catalog now uses generated inventories; its raw Publish/edit/recovery controls a
 retain the same scope. Native macOS passed its app/Razor/Publish tests and checked a
 9.3-generated contract unchanged with 8.8.
 
+`//tests/integration:nuget_configured` passed both pins on Linux ARM64: shared
+graph/entry properties, all-framework native locks, escaped property values,
+offline sync/test and rejection of conflicting shared-project locks or reserved
+Restore overrides.
+
 `//tests/integration:nuget_sdks` passed both pins on Linux ARM64: generated
 Traversal **4.1.82** / NoTargets **3.7.0 → 3.7.56** inventories, global/inline SDK
 selection, locked child dependencies and SDK-version invalidation. Incomplete
