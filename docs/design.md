@@ -12,8 +12,10 @@ configuration and scheduling; sharing evaluation avoids a process per project.
 | MSBuild + cache plugin | SDK targets, compilation and reuse of configured projects |
 | ArtifactTools | Package extraction, layout composition and app/test launch |
 
-SDKs, runtimes, packages and task tools are artifacts. Downloaded and source-built
-SDKs share a layout contract; compilation and execution toolchains are separate.
+SDKs, runtimes, packages and task tools are artifacts. NuGet resolves only in the
+explicit update job; committed project locks and archive manifests become Bazel
+inputs. Normal Restore consumes that closed inventory offline. Downloaded and
+source-built SDKs share a layout contract; compilation and execution toolchains are separate.
 Downloaded SDK pins live in `global.json` or `dotnet.sdk(version = ...)`. The
 module extension resolves release metadata once per SDK/platform selection and
 records immutable archive facts in `MODULE.bazel.lock`. Acquisition verifies their

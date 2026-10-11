@@ -47,7 +47,7 @@ run published_app edited-publish warehouse-v2
 bazel run //:sync -- --check
 bazel shutdown
 mkdir "$scratch/recovery"
-tar -cf "$scratch/consumer.tar" Domain Data Services Web Tests MODULE.bazel MODULE.bazel.lock BUILD.bazel global.json NuGet.Config Directory.Build.props mappings.json packages.bzl graph.generated.json graph.generated.bzl
+tar -cf "$scratch/consumer.tar" Domain Data Services Web Tests MODULE.bazel MODULE.bazel.lock BUILD.bazel global.json NuGet.Config Directory.Build.props Directory.Packages.props mappings.json nuget.lock.json graph.generated.json graph.generated.bzl
 tar -xf "$scratch/consumer.tar" -C "$scratch/recovery"
 cd "$scratch/recovery"
 # Strict locked acquisition in an independent output base; remote actions disabled.

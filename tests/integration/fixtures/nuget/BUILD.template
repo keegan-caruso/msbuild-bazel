@@ -1,0 +1,11 @@
+load("@rules_msbuild//msbuild:sync.bzl", "msbuild_nuget_update")
+
+exports_files(["global.json"])
+
+msbuild_nuget_update(
+    name = "update_packages",
+    projects = [
+        "App/App.csproj",
+        "Library/Library.csproj",
+    ],
+)

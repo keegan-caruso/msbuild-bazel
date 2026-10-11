@@ -14,12 +14,12 @@ p=Path('BUILD.bazel');p.write_text(p.read_text().replace('app_graph(name = "buil
     'name = "publish",','name = "publish", linux_stable_paths = True, linux_worker = True,'))
 PY
 cp -a "$scratch/consumer" "$scratch/authored"
-bazel build @dotnet//:files @newtonsoft//file @humanizer//file
+bazel build @dotnet//:files @nuget//:packages
 execroot=$(bazel info execution_root)
 sdk=$(dirname "$(realpath "$execroot/$(bazel cquery @dotnet//:files --output=files 2> "$TEST_TMPDIR/sdk-query.log" | grep '/sdk/dotnet$')")")
 mkdir "$scratch/feed"
-bazel cquery 'set(@newtonsoft//file @humanizer//file)' --output=files > "$TEST_TMPDIR/packages.paths" 2> "$TEST_TMPDIR/packages-query.log"
-while read -r archive; do cp "$execroot/$archive" "$scratch/feed/"; done < "$TEST_TMPDIR/packages.paths"
+bazel cquery @nuget//:packages --output=files > "$TEST_TMPDIR/packages.paths" 2> "$TEST_TMPDIR/packages-query.log"
+while read -r archive; do find "$execroot/$archive" -name "*.nupkg" -exec cp {} "$scratch/feed/" \;; done < "$TEST_TMPDIR/packages.paths"
 options=(--strategy=MSBuildGraph=worker --worker_sandboxing --worker_max_instances=MSBuildGraph=1 --remote_cache= --disk_cache=)
 if [[ -n "${SDK_WEB_CACHE_URL:-}" ]]; then
     options+=(--remote_cache="$SDK_WEB_CACHE_URL" --remote_cache_async=false --remote_download_outputs=all
@@ -102,7 +102,7 @@ run published_app edited-publish warehouse-v2
 products bazel-bin/publish.graph/workspace > "$TEST_TMPDIR/edited.sha256"
 bazel shutdown
 mkdir "$scratch/recovery"
-tar -cf "$scratch/consumer.tar" Domain Data Services Web Tests MODULE.bazel MODULE.bazel.lock BUILD.bazel global.json NuGet.Config Directory.Build.props mappings.json packages.bzl graph.generated.json graph.generated.bzl
+tar -cf "$scratch/consumer.tar" Domain Data Services Web Tests MODULE.bazel MODULE.bazel.lock BUILD.bazel global.json NuGet.Config Directory.Build.props Directory.Packages.props mappings.json nuget.lock.json graph.generated.json graph.generated.bzl
 tar -xf "$scratch/consumer.tar" -C "$scratch/recovery"
 cd "$scratch/recovery"
 fresh() {

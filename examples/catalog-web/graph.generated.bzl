@@ -15,10 +15,10 @@ def app_graph(name = "app", linux_stable_paths = False, target = "Build", linux_
         target = target,
         runner = ":" + name + "_runner",
         contract = "graph.generated.json",
-        srcs = ["Data/CatalogStore.cs","Data/Data.csproj","Data/products.json","Directory.Build.props","Domain/Domain.csproj","Domain/Product.cs","Services/CatalogService.cs","Services/Services.csproj","Tests/Program.cs","Tests/Tests.csproj","Web/Pages/Index.cshtml","Web/Program.cs","Web/Web.csproj","Web/wwwroot/site.css","global.json"],
+        srcs = ["Data/CatalogStore.cs","Data/Data.csproj","Data/packages.lock.json","Data/products.json","Directory.Build.props","Directory.Packages.props","Domain/Domain.csproj","Domain/Product.cs","Domain/packages.lock.json","Services/CatalogService.cs","Services/Services.csproj","Services/packages.lock.json","Tests/Program.cs","Tests/Tests.csproj","Tests/packages.lock.json","Web/Pages/Index.cshtml","Web/Program.cs","Web/Web.csproj","Web/packages.lock.json","Web/wwwroot/site.css","global.json"],
         bindings = [],
         input_paths = {},
         project_outputs = {"Data/Data.csproj|net10.0":["Data/bin/Release/net10.0","Data.dll","Library"],"Domain/Domain.csproj|net10.0":["Domain/bin/Release/net10.0","Domain.dll","Library"],"Services/Services.csproj|net10.0":["Services/bin/Release/net10.0","Services.dll","Library"],"Tests/Tests.csproj|net10.0":["Tests/bin/Release/net10.0","Tests.dll","Exe"],"Web/Web.csproj|net10.0":["Web/bin/Release/net10.0","Web.dll","Exe"]},
         publish_outputs = {"Data/Data.csproj|net10.0":["Data/bin/Release/net10.0/publish","Data.dll","Library"],"Domain/Domain.csproj|net10.0":["Domain/bin/Release/net10.0/publish","Domain.dll","Library"],"Services/Services.csproj|net10.0":["Services/bin/Release/net10.0/publish","Services.dll","Library"],"Tests/Tests.csproj|net10.0":["Tests/bin/Release/net10.0/publish","Tests.dll","Exe"],"Web/Web.csproj|net10.0":["Web/bin/Release/net10.0/publish","Web.dll","Exe"]},
-        package_lock = "@@//:packages",
+        package_lock = "@nuget//:packages",
     )

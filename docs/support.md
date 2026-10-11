@@ -119,6 +119,29 @@ sync on both Bazel pins. All 24 SDK/runtime repository controls passed on native
 macOS ARM64 / 9.3. Other roll-forward policies
 remain unsupported; selection uses published releases, not installed SDKs.
 
+## NuGet inventories
+
+`//tests/integration:nuget_update` passed **8.8.0 / 9.3.0** on native Linux ARM64:
+explicit update/check, offline native locks, app/Razor/Publish and rejection of
+corrupt native hashes or malformed manifests. Failed resolution preserved locks
+and contracts. The public update command also passed on macOS ARM64 / 9.3.
+
+`//tests/integration:nuget_graph` passed both pins on Linux ARM64: central versions,
+transitive Options dependencies, netstandard2.1/net10.0 with different Newtonsoft
+versions, a packaged CA1822 failure control and an independent strict-lock consumer
+with downloads disabled. The graph action recovered through HTTP. Analyzer settings
+are explicitly declared and scoped to the Library project. Workspace-root analyzer
+configs exposed undeclared ancestor copies in nested output trees and remain
+unqualified in this control. The package-backed
+catalog now uses generated inventories; its raw Publish/edit/recovery controls above
+retain the same scope. Native macOS passed its app/Razor/Publish tests and checked a
+9.3-generated contract unchanged with 8.8.
+
+Reproduce with `SDK_WEB_CACHE_URL=http://cache:8080 bash scripts/bazel.sh test
+//tests/integration:{nuget_update,nuget_graph,native_sdk,catalog_web} --test_output=errors`.
+Scope: SDK **10.0.400**, public NuGet.org V3 and standard project lockfiles;
+[API](api.md#nuget-updates) lists update limits. No new x64 or source-built qualification.
+
 ## Downloaded runtimes
 
 SDK **9.0.318** compiled a net9.0 app that ran on runtime **9.0.20**, rejected

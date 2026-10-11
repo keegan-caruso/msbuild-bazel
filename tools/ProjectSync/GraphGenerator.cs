@@ -289,7 +289,13 @@ internal static class GraphGenerator
             }
             inputs[Key(node.ProjectInstance)] = files.Order(StringComparer.Ordinal).ToArray();
         }
-        var shared = (File.Exists(Path.Combine(root, "global.json")) ? new[] { "global.json" } : []).Concat(packageInputs ?? []).Distinct().Order(StringComparer.Ordinal).ToArray();
+        var nativeLocks = graph.ProjectNodes.Select(node => Path.Combine(Path.GetDirectoryName(node.ProjectInstance.FullPath)!, "packages.lock.json"))
+            .Where(File.Exists).Select(Relative).Distinct();
+        foreach (var nativeLock in nativeLocks)
+        {
+            definitions.TryAdd(nativeLock, 0);
+        }
+        var shared = (File.Exists(Path.Combine(root, "global.json")) ? new[] { "global.json" } : []).Concat(packageInputs ?? []).Concat(nativeLocks).Distinct().Order(StringComparer.Ordinal).ToArray();
         foreach (var path in shared)
         {
             if (!File.Exists(Path.Combine(root, WorkspaceView.Safe(path))))

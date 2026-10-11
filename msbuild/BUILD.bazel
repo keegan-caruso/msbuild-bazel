@@ -12,6 +12,7 @@ exports_files([
     "graph-sandbox.sh",
     "extensions.bzl",
     "sync.bzl",
+    "nuget.bzl",
     "sdk.bzl",
     "toolchain.bzl",
 ])

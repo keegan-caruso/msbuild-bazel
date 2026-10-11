@@ -1,17 +1,22 @@
 load("@rules_msbuild//msbuild:defs.bzl", "msbuild_graph_binary", "msbuild_graph_test")
-load("@rules_msbuild//msbuild:sync.bzl", "msbuild_sync")
+load("@rules_msbuild//msbuild:sync.bzl", "msbuild_nuget_update", "msbuild_sync")
 load(":graph.generated.bzl", "app_graph")
-load(":packages.bzl", "catalog_packages")
 
 exports_files(["global.json"])
 
-catalog_packages()
+msbuild_nuget_update(
+    name = "update_packages",
+    projects = [
+        "Web/Web.csproj",
+        "Tests/Tests.csproj",
+    ],
+)
 
 msbuild_sync(
     name = "sync",
     mappings = "mappings.json",
     package_build = True,
-    package_lock = ":packages",
+    package_lock = "@nuget//:packages",
     projects = [
         "Web/Web.csproj",
         "Tests/Tests.csproj",
