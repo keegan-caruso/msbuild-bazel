@@ -8,6 +8,7 @@
     <DefineConstants Condition="$([MSBuild]::VersionGreaterThanOrEquals('$(MSBuildVersion)', '18.0'))">$(DefineConstants);STABLE_PROJECT_CACHE</DefineConstants>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="../AnalyzerConfigs.cs" />
     <Compile Include="../PackageSdks.cs" />
     <Compile Include="../GraphEntryProperties.cs" />
     <Compile Include="../GraphCompilerReferences.cs" />

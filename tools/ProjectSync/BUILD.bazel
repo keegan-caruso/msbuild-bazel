@@ -10,6 +10,7 @@ filegroup(
     srcs = glob(["*.cs"]) + [
         "ProjectSync.csproj",
         "//:.editorconfig",
+        "//tools:AnalyzerConfigs.cs",
         "//tools:Directory.Build.props",
         "//tools:GraphCompilerReferences.cs",
         "//tools:GraphEntryProperties.cs",

@@ -129,10 +129,10 @@ and contracts. The public update command also passed on macOS ARM64 / 9.3.
 `//tests/integration:nuget_graph` passed both pins on Linux ARM64: central versions,
 transitive Options dependencies, netstandard2.1/net10.0 with different Newtonsoft
 versions, a packaged CA1822 failure control and an independent strict-lock consumer
-with downloads disabled. The graph action recovered through HTTP. Analyzer settings
-are explicitly declared and scoped to the Library project. Workspace-root analyzer
-configs exposed undeclared ancestor copies in nested output trees and remain
-unqualified in this control. The package-backed
+with downloads disabled. The graph action recovered through HTTP. Root analyzer settings are declared inputs; config-only edits enable/disable
+CA1822 without sync and reject stale compilation. Automatic SDK discovery stops
+at the declared workspace; nested/global configs are retained and authored outside
+reads still fail validation (31 sync controls). The package-backed
 catalog now uses generated inventories; its raw Publish/edit/recovery controls above
 retain the same scope. Native macOS passed its app/Razor/Publish tests and checked a
 9.3-generated contract unchanged with 8.8.

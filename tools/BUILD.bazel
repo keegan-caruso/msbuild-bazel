@@ -1,4 +1,5 @@
 exports_files([
+    "AnalyzerConfigs.cs",
     "BUILD.bazel",
     "Directory.Build.props",
     "MSBuildTool.props",

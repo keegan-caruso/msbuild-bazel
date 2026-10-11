@@ -154,6 +154,10 @@ Handwritten inventories remain available. `allow_multiple_versions = True` permi
 distinct configured versions. For Pack, declare/export the `.nupkg` and consume it
 with `msbuild_generated_nuget_package`.
 
+Root and nested `.editorconfig` / `.globalconfig` files discovered by the SDK are
+explicit compiler inputs. Automatic discovery excludes workspace ancestors;
+authored outside reads remain errors. Config-byte edits build without sync.
+
 Task/analyzer layouts must include their dependencies/data:
 
 ```starlark

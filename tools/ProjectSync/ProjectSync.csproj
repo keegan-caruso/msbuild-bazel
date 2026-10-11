@@ -7,6 +7,7 @@
     <UseAppHost>false</UseAppHost>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="../AnalyzerConfigs.cs" />
     <Compile Include="../PackageSdks.cs" />
     <Compile Include="../GraphEntryProperties.cs" />
     <Compile Include="../GraphCompilerReferences.cs" />

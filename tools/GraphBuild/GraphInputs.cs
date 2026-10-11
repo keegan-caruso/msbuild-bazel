@@ -132,6 +132,7 @@ internal sealed class GraphInputs : IDisposable
                     {
                         var evaluationId = project.LastEvaluationId;
                         instance = project.CreateProjectInstance();
+                        AnalyzerConfigs.Bound(project, instance, Files.Root, Files.Sdk);
                         if (project.LastEvaluationId != evaluationId || instance.EvaluationId != evaluationId)
                         {
                             throw new InvalidDataException("Retained project unexpectedly reevaluated: " + path);

@@ -212,6 +212,10 @@ internal static class GraphGenerator
                 var generated = new List<string>();
                 foreach (var item in FileItems.Concat(binding.InputItems.Keys).SelectMany(project.GetItems))
                 {
+                    if (AnalyzerConfigs.IsAmbient(item, root, sdkRoot))
+                    {
+                        continue;
+                    }
                     var fullPath = item.GetMetadataValue("FullPath");
                     if (fullPath.Length == 0 || IsSdk(fullPath) || IsRestored(fullPath))
                     {
@@ -257,6 +261,7 @@ internal static class GraphGenerator
                     generated.Add(relative);
                 }
                 var instance = project.CreateProjectInstance();
+                AnalyzerConfigs.Bound(project, instance, root, sdkRoot);
                 outputs[Key(instance)] = !GraphProjectKind.HasAssembly(instance) && !GraphProjectKind.IsNoTargets(instance) ? [] : binding.OutputFiles
                     .SelectMany(value => project.ExpandString(value).Split(';', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
                     .Select(value => Relative(Path.GetFullPath(value.Replace('\\', '/'), root)))
