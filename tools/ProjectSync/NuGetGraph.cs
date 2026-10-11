@@ -7,15 +7,15 @@ internal static class NuGetGraph
 {
     // Traversal Restore can skip projects with failed SDK resolution and still
     // exit successfully. Require a complete evaluation before publishing locks.
-    internal static string[] Projects(string root, IEnumerable<string> entries, string configuration)
+    internal static string[] Projects(string root, IEnumerable<string> entries, Dictionary<string, string> defaults, Dictionary<string, Dictionary<string, string>> overrides)
     {
         var previous = Directory.GetCurrentDirectory();
         try
         {
             Directory.SetCurrentDirectory(root);
             using var collection = new ProjectCollection();
-            var properties = new Dictionary<string, string> { ["Configuration"] = configuration };
-            var graph = new ProjectGraph(entries.Select(entry => new ProjectGraphEntryPoint(Path.Combine(root, entry), properties)), collection,
+            var graph = new ProjectGraph(entries.Select(entry => new ProjectGraphEntryPoint(Path.Combine(root, entry), GraphEntryProperties.For(entry, defaults, overrides)
+                .Where(pair => !pair.Key.Equals("TargetFramework", StringComparison.OrdinalIgnoreCase)).ToDictionary(pair => pair.Key, pair => pair.Value, StringComparer.OrdinalIgnoreCase))), collection,
                 (path, globals, projects) => Project.FromFile(path, new Microsoft.Build.Definition.ProjectOptions
                 {
                     GlobalProperties = globals,
