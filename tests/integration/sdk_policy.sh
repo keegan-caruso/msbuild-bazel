@@ -169,9 +169,44 @@ p=Path('MODULE.bazel');p.write_text(p.read_text().replace('global_json = "//:glo
 Path('global.json').write_text(json.dumps({'sdk':{'version':'9.0.300','rollForward':'latestPatch','allowPrerelease':False}}))
 for p in Path('.').glob('*/*.csproj'):p.write_text(p.read_text().replace('net10.0','net9.0'))
 PY
+# Combine real SDK refresh with package resolution before offline sync.
+python3 - <<'PACKAGES'
+from pathlib import Path
+Path('NuGet.Config').write_text('<configuration><packageSources><clear/><add key="nuget.org" value="https://api.nuget.org/v3/index.json"/></packageSources></configuration>')
+p=Path('App/App.csproj');p.write_text(p.read_text().replace('</Project>', '<ItemGroup><PackageReference Include="Newtonsoft.Json" Version="13.0.3" /></ItemGroup></Project>'))
+p=Path('BUILD.bazel');p.write_text(p.read_text().replace('"msbuild_sync")','"msbuild_sync", "msbuild_nuget_update")')+'\nmsbuild_nuget_update(name="update_packages", projects=["App/App.csproj", "Tests/Tests.csproj"])\n')
+PACKAGES
+bazel run //:update_packages
+cat >> MODULE.bazel <<'PACKAGES'
+nuget = use_extension("@rules_msbuild//msbuild:nuget.bzl", "nuget")
+nuget.lock(name="nuget", lockfile="//:nuget.lock.json")
+use_repo(nuget, "nuget")
+PACKAGES
+python3 - <<'PACKAGES'
+from pathlib import Path
+p=Path('BUILD.bazel');p.write_text(p.read_text().replace('name = "sync",','name = "sync", package_lock="@nuget//:packages", package_build=True,'))
+PACKAGES
 bazel run //:sync
-bazel run @dotnet//:update -- --bazel "$scratch/update-bazel" --sync //:sync
+cp graph.generated.json "$TEST_TMPDIR/before-package-failure.json"
+cp nuget.lock.json "$TEST_TMPDIR/before-package-failure.lock"
+sed -i 's/13.0.3/99.0.0/' App/App.csproj
+if bazel run @dotnet//:update -- --bazel "$scratch/update-bazel" --nuget-update //:update_packages --sync //:sync > "$TEST_TMPDIR/package-update-failure.log" 2>&1; then echo 'Combined update accepted missing package' >&2; exit 1; fi
+assert_contains "$TEST_TMPDIR/package-update-failure.log" 'existing locks were left unchanged'
+cmp graph.generated.json "$TEST_TMPDIR/before-package-failure.json"
+cmp nuget.lock.json "$TEST_TMPDIR/before-package-failure.lock"
+sed -i 's/99.0.0/12.0.3/' App/App.csproj
+# Sync alone cannot repair a stale native lock.
+if bazel run //:sync > "$TEST_TMPDIR/stale-package.log" 2>&1; then echo 'Offline sync accepted stale package selection' >&2; exit 1; fi
+assert_contains "$TEST_TMPDIR/stale-package.log" 'NU1004'
+bazel run @dotnet//:update -- --bazel "$scratch/update-bazel" --nuget-update //:update_packages --sync //:sync
 bazel run //:sync -- --check
+python3 - <<'PACKAGES'
+import json
+from pathlib import Path
+m=json.loads(Path('nuget.lock.json').read_text())
+assert m['sdkVersion']=='9.0.318' and any(p['id']=='Newtonsoft.Json' and p['version']=='12.0.3' for p in m['packages'])
+assert json.loads(Path('App/packages.lock.json').read_text())['dependencies']['net9.0']['Newtonsoft.Json']['resolved']=='12.0.3'
+PACKAGES
 bazel run //:app > "$TEST_TMPDIR/app.log"
 assert_contains "$TEST_TMPDIR/app.log" 'Hello from MSBuild and Bazel'
 assert_contains graph.generated.json '"SdkVersion": "9.0.318"'

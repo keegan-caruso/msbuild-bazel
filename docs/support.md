@@ -115,7 +115,10 @@ strict fresh-base recovery, invalid-fact rejection and explicit refresh. A real
 `9.0.300` / `latestPatch` request selected **9.0.318** and passed sync/check/app/tests.
 The declared `@dotnet//:update` target passed consecutive refreshes, preservation of
 unrelated pins/hashes, metadata-failure recovery, strict lock reuse and optional
-sync on both Bazel pins. All 24 SDK/runtime repository controls passed on native
+sync on both Bazel pins. The combined `--nuget-update` sequence also passed both
+pins with SDK 9.0.318: stale native locks failed offline, package changes resolved
+before sync, and failed package resolution preserved locks and the graph.
+All 24 SDK/runtime repository controls passed on native
 macOS ARM64 / 9.3. Other roll-forward policies
 remain unsupported; selection uses published releases, not installed SDKs.
 
@@ -129,7 +132,8 @@ and contracts. The public update command also passed on macOS ARM64 / 9.3.
 `//tests/integration:nuget_graph` passed both pins on Linux ARM64: central versions,
 transitive Options dependencies, netstandard2.1/net10.0 with different Newtonsoft
 versions, a packaged CA1822 failure control and an independent strict-lock consumer
-with downloads disabled. The graph action recovered through HTTP. Root analyzer settings are declared inputs; config-only edits enable/disable
+with downloads disabled. The graph action recovered through HTTP. Root analyzer settings are declared
+inputs; config-only edits enable/disable
 CA1822 without sync and reject stale compilation. Automatic SDK discovery stops
 at the declared workspace; nested/global configs are retained and authored outside
 reads still fail validation (31 sync controls). The package-backed

@@ -3,13 +3,18 @@ set -euo pipefail
 sdk_name=@@SDK_NAME@@
 updater_bazel=${RULES_MSBUILD_BAZEL:-bazel}
 sync_target=
+nuget_target=
 while [[ $# -gt 0 ]]; do
     case "$1" in
-        --bazel|--sync)
+        --bazel|--sync|--nuget-update)
             [[ $# -ge 2 && -n "$2" ]] || { echo "Missing value for $1" >&2; exit 2; }
-            if [[ "$1" == --bazel ]]; then updater_bazel=$2; else sync_target=$2; fi
+            case "$1" in
+                --bazel) updater_bazel=$2 ;;
+                --sync) sync_target=$2 ;;
+                --nuget-update) nuget_target=$2 ;;
+            esac
             shift 2 ;;
-        *) echo 'Usage: bazel run @SDK//:update -- [--bazel /path/to/bazel] [--sync //:sync]' >&2; exit 2 ;;
+        *) echo 'Usage: bazel run @SDK//:update -- [--bazel /path/to/bazel] [--nuget-update //:update_packages] [--sync //:sync]' >&2; exit 2 ;;
     esac
 done
 cd "${BUILD_WORKSPACE_DIRECTORY:?Run this target with bazel run}"
@@ -20,6 +25,9 @@ cd "${BUILD_WORKSPACE_DIRECTORY:?Run this target with bazel run}"
 # Record the ordinary environment so strict builds need no refresh token.
 env -u RULES_MSBUILD_SDK_UPDATE "$updater_bazel" mod deps --lockfile_mode=update \
     --repo_env=RULES_MSBUILD_SDK_UPDATE
+if [[ -n "$nuget_target" ]]; then
+    "$updater_bazel" run "$nuget_target" --lockfile_mode=update
+fi
 if [[ -n "$sync_target" ]]; then
     "$updater_bazel" run "$sync_target" --lockfile_mode=update
 else
