@@ -80,7 +80,14 @@ class GraphSyncTests(unittest.TestCase):
             generated = (self.root / "graph.generated.bzl").read_text()
             self.assertIn('"@producer//:assembly":"inputs/Pipelines.dll"', generated)
             self.sync(flags=flags + ["--check"])
-            # A label for another file does not authorize this HintPath.
+            # MSBuild also accepts a file path directly in Reference Include.
+            (self.root / "App.csproj").write_text(project.replace('Include="System.IO.Pipelines" HintPath="inputs/Pipelines.dll"', 'Include="inputs/Pipelines.dll"'))
+            self.sync(flags=flags)
+            contract = json.loads((self.root / "graph.generated.json").read_text())
+            self.assertIn("inputs/Pipelines.dll", contract["Projects"]["App.csproj"]["Configurations"][0]["Inputs"])
+            self.sync(flags=flags + ["--check"])
+            self.sync(flags=flags + ["--package-build", "--resolve-references"])
+            # A label for another file does not authorize this reference path.
             manifest.write_text(manifest.read_text().replace("inputs/Pipelines.dll", "inputs/Other.dll"))
             self.assertIn("label-bound assembly references", self.sync(flags=flags, success=False))
 

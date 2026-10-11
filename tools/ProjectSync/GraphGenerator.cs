@@ -216,7 +216,7 @@ internal static class GraphGenerator
                         declared.Add(Relative(keyPath));
                     }
                 }
-                declared.UnionWith(project.GetItems("Reference").Select(reference => reference.GetMetadataValue("HintPath")).Where(value => value.Length != 0)
+                declared.UnionWith(project.GetItems("Reference").Select(reference => reference.GetMetadataValue("HintPath") is { Length: > 0 } hint ? hint : reference.EvaluatedInclude)
                     .Select(value => Path.GetFullPath(value.Replace('\\', '/'), Path.GetDirectoryName(project.FullPath)!))
                     .Where(IsBoundReference).Select(Relative));
                 var generated = new List<string>();

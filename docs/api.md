@@ -54,9 +54,9 @@ from MSBuild's Compile items.
 | `bindings` | Complete tool layouts bound to MSBuild properties |
 | `mappings` | Reviewed JSON contracts for custom inputs, outputs and dependency roles |
 
-Assembly `Reference` items may use a `HintPath` supplied by `inputs`; sync records
-the producer label and workspace path, and builds hash the supplied DLL. Unbound
-workspace/host assembly paths fail. Sources from the graph's own repository stage
+Assembly `Reference` items may use a `HintPath` or relative `Include` supplied by
+`inputs`; sync records the producer label and workspace path, and builds hash the
+supplied DLL. Unbound workspace/host assembly paths fail. Sources from the graph's own repository stage
 relative to that repository; cross-repository producers require `input_paths`.
 
 For Traversal/NoTargets/IL/Arcade, lock the SDK and implicit/native packages, set
