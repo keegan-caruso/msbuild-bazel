@@ -39,7 +39,8 @@ internal static class Restore
             {
                 process.ArgumentList.Add(GraphEntryProperties.Argument(key, value));
             }
-            if (File.Exists(Path.Combine(Path.GetDirectoryName(Path.Combine(root, entry))!, "packages.lock.json")))
+            if (File.Exists(Path.Combine(Path.GetDirectoryName(Path.Combine(root, entry))!, "packages.lock.json")) ||
+                GraphSolutions.IsSolution(entry) && contract.SharedInputs.Any(path => Path.GetFileName(path) == "packages.lock.json"))
             {
                 process.ArgumentList.Add("-p:RestoreLockedMode=true");
             }

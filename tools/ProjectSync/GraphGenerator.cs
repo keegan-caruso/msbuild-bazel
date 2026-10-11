@@ -54,6 +54,7 @@ internal static class GraphGenerator
             properties["TargetFramework"] = framework;
         }
         GraphEntryProperties.Validate(entries, mappings.EntryProperties, (view?.GraphToolProperties ?? []).Keys);
+        var solution = GraphSolutions.Validate(root, entries, properties.Keys.Concat(mappings.EntryProperties.Values.SelectMany(values => values.Keys)).Concat((view?.GraphToolProperties ?? []).Keys));
         using var restored = packageBuild ? new GraphEvaluationWorkspace(root, sdkRoot, entries, properties,
             view ?? throw new InvalidDataException("Package build sync requires declared package inputs"), view?.GraphToolProperties, mappings.EntryProperties) : null;
         if (restored is not null)
@@ -66,6 +67,10 @@ internal static class GraphGenerator
         var deferred = new System.Collections.Concurrent.ConcurrentDictionary<string, List<string>>();
         var outputs = new System.Collections.Concurrent.ConcurrentDictionary<string, string[]>();
         var definitions = new System.Collections.Concurrent.ConcurrentDictionary<string, byte>();
+        if (solution)
+        {
+            definitions.TryAdd(entries[0], 0);
+        }
         var compilerSources = new System.Collections.Concurrent.ConcurrentDictionary<string, byte>();
         var packageIdentities = view?.GraphPackageIdentities(packageBuild) ?? [];
         var evaluationProperties = new Dictionary<string, string>(properties)
@@ -300,7 +305,7 @@ internal static class GraphGenerator
         {
             definitions.TryAdd(nativeLock, 0);
         }
-        var shared = (File.Exists(Path.Combine(root, "global.json")) ? new[] { "global.json" } : []).Concat(packageInputs ?? []).Concat(nativeLocks).Distinct().Order(StringComparer.Ordinal).ToArray();
+        var shared = (File.Exists(Path.Combine(root, "global.json")) ? new[] { "global.json" } : []).Concat(packageInputs ?? []).Concat(nativeLocks).Concat(solution ? entries : []).Distinct().Order(StringComparer.Ordinal).ToArray();
         foreach (var path in shared)
         {
             if (!File.Exists(Path.Combine(root, WorkspaceView.Safe(path))))
@@ -341,7 +346,7 @@ internal static class GraphGenerator
             // Including the union makes an absent global property explicit. This
             // prevents an outer-node selector from also matching an inner node.
             var selectorKeys = group.SelectMany(node => node.ProjectInstance.GlobalProperties.Keys)
-                .Where(key => !evaluationProperties.ContainsKey(key) || properties.ContainsKey(key))
+                .Where(key => (!evaluationProperties.ContainsKey(key) || properties.ContainsKey(key)) && (!solution || !GraphSolutions.DerivedProperty(key)))
                 .Distinct(StringComparer.OrdinalIgnoreCase).Order(StringComparer.Ordinal).ToArray();
             var configurations = group.OrderBy(node => Key(node.ProjectInstance), StringComparer.Ordinal).Select(node => new
             {

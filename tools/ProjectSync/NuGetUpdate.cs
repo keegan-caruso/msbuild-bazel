@@ -84,6 +84,7 @@ internal static class NuGetUpdate
             properties["TargetFramework"] = framework;
         }
         GraphEntryProperties.Validate(projects, mappings.EntryProperties, []);
+        GraphSolutions.Validate(source, projects, properties.Keys.Concat(mappings.EntryProperties.Values.SelectMany(values => values.Keys)));
         // Resolution must not override the updater's feeds, isolation or lock policy.
         GraphEntryProperties.Validate(projects, projects.Distinct().ToDictionary(entry => entry, _ => properties
             .Where(pair => !pair.Key.Equals("RestoreUseStaticGraphEvaluation", StringComparison.OrdinalIgnoreCase))
