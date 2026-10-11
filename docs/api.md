@@ -124,7 +124,7 @@ msbuild_nuget_update(name = "update_packages", projects = ["App/App.csproj"])
 
 Run `bazel run //:update_packages` after package, framework, central-version or SDK
 changes. NuGet resolves in a disposable copy using the declared SDK and root
-`NuGet.Config`. The command writes project `packages.lock.json` files and
+`NuGet.Config` hierarchy. The command writes project `packages.lock.json` files and
 `nuget.lock.json`; failed resolution leaves existing locks intact. Commit both.
 `--check` resolves again and rejects stale locks; it requires network access.
 
@@ -143,8 +143,11 @@ framework-specific selections and reject stale dependencies. These lockfiles are
 declared build/Restore inputs. The manifest's `archiveSha512` hashes whole archives;
 NuGet's native `contentHash` may differ for signed packages and stays untouched.
 
-The updater currently requires one root config and public HTTP(S) V3 feeds;
-nested configs, custom `NuGetLockFilePath`, authenticated feeds and
+The updater requires an unambiguous root config and public HTTP(S) V3 feeds.
+NuGet applies nested configs, inheritance, disabled sources and source mappings.
+Used authored configs are hashed in the manifest; `--check` detects config-only changes.
+Config paths outside the copied workspace/private home cannot publish an inventory.
+Custom `NuGetLockFilePath`, authenticated feeds and
 workload/native package acquisition are unqualified. Arbitrary task reads still require contracts.
 Source symlinks are rejected. Each update resolves one configuration.
 Pass the same `configuration`, `framework` and `mappings` to update and sync.

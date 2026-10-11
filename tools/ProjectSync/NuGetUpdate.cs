@@ -104,18 +104,17 @@ internal static class NuGetUpdate
             Directory.CreateDirectory(workspace);
             var originals = new Dictionary<string, string>(StringComparer.Ordinal);
             Copy(source, workspace, originals);
-            var configs = Directory.GetFiles(workspace, "*", SearchOption.AllDirectories).Where(path => Path.GetFileName(path).Equals("NuGet.Config", StringComparison.OrdinalIgnoreCase)).ToArray();
-            if (configs.Length != 1 || Path.GetDirectoryName(configs[0]) != workspace)
-            {
-                throw new InvalidDataException("NuGet update currently requires one authored root NuGet.Config; nested configs are unsupported");
-            }
+            NuGetConfigs.RequireRoot(workspace);
             var packageRoot = Path.Combine(scratch, "packages");
             var locks = new SortedDictionary<string, string>(StringComparer.Ordinal);
             foreach (var project in projects.Distinct())
             {
-                await Restore(sdk, workspace, packageRoot, configs[0], project, GraphEntryProperties.For(project, properties, mappings.EntryProperties), scratch);
+                await Restore(sdk, workspace, packageRoot, project, GraphEntryProperties.For(project, properties, mappings.EntryProperties), scratch);
                 CaptureLocks(workspace, locks);
+                NuGetConfigs.Capture(workspace, source, Path.Combine(scratch, "home"), originals);
             }
+            Environment.SetEnvironmentVariable("HOME", Path.Combine(scratch, "home"));
+            Environment.SetEnvironmentVariable("DOTNET_CLI_HOME", Path.Combine(scratch, "home"));
             Environment.SetEnvironmentVariable("MSBUILD_EXE_PATH", Path.Combine(engine, "MSBuild.dll"));
             Environment.SetEnvironmentVariable("MSBuildSDKsPath", Path.Combine(engine, "Sdks"));
             Environment.SetEnvironmentVariable("DOTNET_HOST_PATH", Path.Combine(sdk, "dotnet"));
@@ -159,6 +158,7 @@ internal static class NuGetUpdate
                 // Record authored configuration intent, including the build-only framework.
                 properties,
                 entryProperties = mappings.EntryProperties,
+                configDigests = NuGetConfigs.Capture(workspace, source, Path.Combine(scratch, "home"), originals),
                 lockFiles = locks.Keys.ToArray(),
                 packages,
             }, new JsonSerializerOptions { WriteIndented = true }) + "\n";
@@ -193,14 +193,14 @@ internal static class NuGetUpdate
         }
     }
 
-    private static async Task Restore(string sdk, string workspace, string packages, string config, string project, Dictionary<string, string> properties, string scratch)
+    private static async Task Restore(string sdk, string workspace, string packages, string project, Dictionary<string, string> properties, string scratch)
     {
         if (!File.Exists(Path.Combine(workspace, project)))
         {
             throw new InvalidDataException("Missing entry project: " + project);
         }
         var start = new ProcessStartInfo(Path.Combine(sdk, "dotnet")) { WorkingDirectory = workspace, UseShellExecute = false };
-        foreach (var argument in new[] { "restore", project, "--configfile", config, "--packages", packages, "--force-evaluate",
+        foreach (var argument in new[] { "restore", project, "--packages", packages, "--force-evaluate",
             "-p:RestorePackagesWithLockFile=true", "-p:RestoreLockedMode=false", "-p:NuGetAudit=false",
             "-p:RestoreFallbackFolders=", "-p:RestoreAdditionalProjectFallbackFolders=" })
         {

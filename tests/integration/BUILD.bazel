@@ -1524,3 +1524,44 @@ test_suite(
         bazel_binaries.versions.all,
     ),
 )
+
+sh_binary(
+    name = "nuget_hierarchy_runner",
+    testonly = True,
+    srcs = ["nuget_hierarchy.sh"],
+    data = ["common.sh"],
+)
+
+bazel_integration_tests(
+    name = "nuget_hierarchy_cases",
+    additional_env_inherit = [
+        "BAZELISK_HOME",
+        "RULES_MSBUILD_TEST_REPOSITORY_CACHE",
+    ],
+    bazel_binaries = bazel_binaries,
+    bazel_versions = bazel_binaries.versions.all,
+    data = [":rules_archive"],
+    env = {"RULES_ARCHIVE": "$(rootpath :rules_archive)"},
+    tags = [
+        "exclusive",
+        "manual",
+        "no-sandbox",
+    ],
+    target_compatible_with = select({
+        "@platforms//os:linux": [],
+        "@platforms//os:osx": [],
+        "//conditions:default": ["@platforms//:incompatible"],
+    }),
+    test_runner = ":nuget_hierarchy_runner",
+    workspace_files = ["//:quickstart_sources"],
+    workspace_path = "examples/quickstart",
+)
+
+test_suite(
+    name = "nuget_hierarchy",
+    tags = ["manual"],
+    tests = integration_test_utils.bazel_integration_test_names(
+        "nuget_hierarchy_cases",
+        bazel_binaries.versions.all,
+    ),
+)
