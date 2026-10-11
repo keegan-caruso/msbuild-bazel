@@ -34,13 +34,14 @@ internal static class Restore
             {
                 process.ArgumentList.Add(argument);
             }
+            process.ArgumentList.Add(GraphEntryProperties.Argument("NetCoreSdkRoot", Path.Combine(sdkRoot, "sdk", contract.SdkVersion)));
             // Restore each project's authored frameworks; the build graph still selects its requested framework.
             foreach (var (key, value) in GraphEntryProperties.For(entry, contract.Properties, contract.EntryProperties ?? []).Where(property => !property.Key.Equals("TargetFramework", StringComparison.OrdinalIgnoreCase)))
             {
                 process.ArgumentList.Add(GraphEntryProperties.Argument(key, value));
             }
-            if (File.Exists(Path.Combine(Path.GetDirectoryName(Path.Combine(root, entry))!, "packages.lock.json")) ||
-                GraphSolutions.IsSolution(entry) && contract.SharedInputs.Any(path => Path.GetFileName(path) == "packages.lock.json"))
+            if (File.Exists(NuGetLocks.ForProject(Path.Combine(root, entry))) ||
+                GraphSolutions.IsSolution(entry) && contract.SharedInputs.Any(NuGetLocks.IsLockFile))
             {
                 process.ArgumentList.Add("-p:RestoreLockedMode=true");
             }

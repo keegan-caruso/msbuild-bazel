@@ -55,7 +55,7 @@ internal static class GraphGenerator
         }
         GraphEntryProperties.Validate(entries, mappings.EntryProperties, (view?.GraphToolProperties ?? []).Keys);
         var solution = GraphSolutions.Validate(root, entries, properties.Keys.Concat(mappings.EntryProperties.Values.SelectMany(values => values.Keys)).Concat((view?.GraphToolProperties ?? []).Keys));
-        using var restored = packageBuild ? new GraphEvaluationWorkspace(root, sdkRoot, entries, properties,
+        using var restored = packageBuild ? new GraphEvaluationWorkspace(root, sdk, entries, properties,
             view ?? throw new InvalidDataException("Package build sync requires declared package inputs"), view?.GraphToolProperties, mappings.EntryProperties) : null;
         if (restored is not null)
         {
@@ -78,6 +78,8 @@ internal static class GraphGenerator
             ["ImportProjectExtensionProps"] = packageBuild ? "true" : "false",
             ["ImportProjectExtensionTargets"] = packageBuild ? "true" : "false",
             ["UseSharedCompilation"] = "false",
+            // Runtime="NET" task hosts read the SDK version from its directory name.
+            ["NetCoreSdkRoot"] = sdk,
             ["PathMap"] = root + "=/_/workspace," + sdkRoot + "=/_/sdk"
         };
         foreach (var (name, path) in view?.GraphToolProperties ?? [])
@@ -114,7 +116,7 @@ internal static class GraphGenerator
                     {
                         var value = reference.GetMetadataValue("HintPath");
                         var path = Path.GetFullPath((value.Length == 0 ? reference.EvaluatedInclude : value).Replace('\\', '/'), Path.GetDirectoryName(project.FullPath)!);
-                        if (IsSdk(path) || IsRestored(path))
+                        if (IsSdk(path) || IsRestored(path) || IsBoundReference(path))
                         {
                             return false;
                         }
@@ -137,7 +139,7 @@ internal static class GraphGenerator
                         return true;
                     }))
                 {
-                    throw new InvalidDataException("Graph sync requires a supported .NET SDK project with SDK/package-owned assembly references: " + Relative(path) + "; " +
+                    throw new InvalidDataException("Graph sync requires a supported .NET SDK project with SDK/package-owned or label-bound assembly references: " + Relative(path) + "; " +
                         string.Join("; ", project.GetItems("Reference").Select(item => item.EvaluatedInclude + "=" + item.GetMetadataValue("HintPath"))));
                 }
                 if (project.GetPropertyValue("ArcadeSdkBuildTasksAssembly").Length != 0 &&
@@ -214,6 +216,9 @@ internal static class GraphGenerator
                         declared.Add(Relative(keyPath));
                     }
                 }
+                declared.UnionWith(project.GetItems("Reference").Select(reference => reference.GetMetadataValue("HintPath")).Where(value => value.Length != 0)
+                    .Select(value => Path.GetFullPath(value.Replace('\\', '/'), Path.GetDirectoryName(project.FullPath)!))
+                    .Where(IsBoundReference).Select(Relative));
                 var generated = new List<string>();
                 foreach (var item in FileItems.Concat(binding.InputItems.Keys).SelectMany(project.GetItems))
                 {
@@ -299,7 +304,7 @@ internal static class GraphGenerator
             }
             inputs[Key(node.ProjectInstance)] = files.Order(StringComparer.Ordinal).ToArray();
         }
-        var nativeLocks = graph.ProjectNodes.Select(node => Path.Combine(Path.GetDirectoryName(node.ProjectInstance.FullPath)!, "packages.lock.json"))
+        var nativeLocks = graph.ProjectNodes.Select(node => NuGetLocks.ForProject(node.ProjectInstance.FullPath))
             .Where(File.Exists).Select(Relative).Distinct();
         foreach (var nativeLock in nativeLocks)
         {
@@ -809,6 +814,9 @@ internal static class GraphGenerator
             return packageBuild && (relative.StartsWith(".nuget/", StringComparison.Ordinal) ||
                 relative.EndsWith(".nuget.g.props", StringComparison.Ordinal) || relative.EndsWith(".nuget.g.targets", StringComparison.Ordinal));
         }
+        bool IsBoundReference(string path) => path.StartsWith(root + Path.DirectorySeparatorChar, StringComparison.Ordinal) &&
+            view?.Labels.ContainsKey(Relative(path)) == true;
+
         bool IsSdk(string path) => Path.GetFullPath(path).StartsWith(sdkRoot + Path.DirectorySeparatorChar, StringComparison.Ordinal);
         string Relative(string path)
         {

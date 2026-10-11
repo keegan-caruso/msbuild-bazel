@@ -4,6 +4,7 @@ exports_files([
     "Directory.Build.props",
     "MSBuildTool.props",
     "PackageSdks.cs",
+    "NuGetLocks.cs",
     "GraphCompilerReferences.cs",
     "GraphProjectKind.cs",
     "GraphSourcePattern.cs",

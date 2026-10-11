@@ -18,6 +18,7 @@ filegroup(
         "//tools:GraphSolutions.cs",
         "//tools:GraphSourcePattern.cs",
         "//tools:MSBuildTool.props",
+        "//tools:NuGetLocks.cs",
         "//tools:PackageSdks.cs",
     ],
 )

@@ -61,6 +61,29 @@ class GraphSyncTests(unittest.TestCase):
             '<ItemGroup><EditorConfigFiles Include="../.editorconfig" /></ItemGroup></Project>'))
         self.assertIn('outside workspace', self.sync(success=False))
 
+    def test_assembly_references_require_explicit_producer_labels(self):
+        project = self.project.replace('</Project>', '<ItemGroup><Reference Include="System.IO.Pipelines" HintPath="inputs/Pipelines.dll" /></ItemGroup></Project>')
+        (self.root / "App.csproj").write_text(project)
+        self.assertIn("label-bound assembly references", self.sync(success=False))
+        with tempfile.TemporaryDirectory(prefix="graph-sync-producer-") as directory:
+            producer = Path(directory)
+            # Use the downloaded SDK's matching runtime, without hard-coding its patch.
+            assembly = next((SDK / "shared/Microsoft.NETCore.App").glob("*/System.IO.Pipelines.dll"))
+            shutil.copyfile(assembly, producer / "Pipelines.dll")
+            manifest = producer / "inputs.json"
+            manifest.write_text(json.dumps({"inputs": [{"path": "inputs/Pipelines.dll", "label": "@producer//:assembly", "runfile": "Pipelines.dll"}], "packages": [], "packageLock": None}))
+            flags = ["--inputs", str(manifest), "--runfiles", str(producer)]
+            self.sync(flags=flags)
+            contract = json.loads((self.root / "graph.generated.json").read_text())
+            selected = contract["Projects"]["App.csproj"]["Configurations"][0]
+            self.assertIn("inputs/Pipelines.dll", selected["Inputs"])
+            generated = (self.root / "graph.generated.bzl").read_text()
+            self.assertIn('"@producer//:assembly":"inputs/Pipelines.dll"', generated)
+            self.sync(flags=flags + ["--check"])
+            # A label for another file does not authorize this HintPath.
+            manifest.write_text(manifest.read_text().replace("inputs/Pipelines.dll", "inputs/Other.dll"))
+            self.assertIn("label-bound assembly references", self.sync(flags=flags, success=False))
+
     def test_removed_mode_flag_is_rejected(self):
         self.assertIn("Unknown", self.sync(flags=["--graph"], success=False))
 

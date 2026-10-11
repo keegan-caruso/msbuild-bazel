@@ -13,7 +13,8 @@ internal sealed class GraphEvaluationWorkspace : IDisposable
         try
         {
             Copy(source, Root);
-            properties = new Dictionary<string, string>(properties, StringComparer.OrdinalIgnoreCase);
+            properties = new Dictionary<string, string>(properties, StringComparer.OrdinalIgnoreCase) { ["NetCoreSdkRoot"] = sdk };
+            var sdkRoot = Path.GetDirectoryName(Path.GetDirectoryName(sdk))!;
             foreach (var (name, path) in toolProperties ?? [])
             {
                 GraphGenerator.ValidateToolProperty(name, properties);
@@ -30,7 +31,7 @@ internal sealed class GraphEvaluationWorkspace : IDisposable
             File.WriteAllText(config, "<configuration><packageSources><clear/></packageSources><fallbackPackageFolders><clear/></fallbackPackageFolders></configuration>");
             foreach (var entry in entries)
             {
-                var start = new ProcessStartInfo(Path.Combine(sdk, "dotnet")) { WorkingDirectory = Root };
+                var start = new ProcessStartInfo(Path.Combine(sdkRoot, "dotnet")) { WorkingDirectory = Root };
                 foreach (var argument in new[] { "restore", Path.Combine(Root, WorkspaceView.Safe(entry)), "--configfile", config,
                     "--source", feed, "--packages", Path.Combine(Root, ".nuget"), "-p:NuGetAudit=false",
                     "-p:RestoreFallbackFolders=", "-p:RestoreAdditionalProjectSources=", "-p:RestoreAdditionalProjectFallbackFolders=" })
@@ -42,12 +43,12 @@ internal sealed class GraphEvaluationWorkspace : IDisposable
                 {
                     start.ArgumentList.Add(GraphEntryProperties.Argument(key, value));
                 }
-                if (File.Exists(Path.Combine(Path.GetDirectoryName(Path.Combine(Root, entry))!, "packages.lock.json")) ||
-                    GraphSolutions.IsSolution(entry) && Directory.EnumerateFiles(Root, "packages.lock.json", SearchOption.AllDirectories).Any())
+                if (File.Exists(NuGetLocks.ForProject(Path.Combine(Root, entry))) ||
+                    GraphSolutions.IsSolution(entry) && Directory.EnumerateFiles(Root, "*.lock.json", SearchOption.AllDirectories).Any(NuGetLocks.IsLockFile))
                 {
                     start.ArgumentList.Add("-p:RestoreLockedMode=true");
                 }
-                start.Environment["DOTNET_ROOT"] = sdk;
+                start.Environment["DOTNET_ROOT"] = sdkRoot;
                 start.Environment["DOTNET_CLI_HOME"] = Path.Combine(Root, ".cli");
                 start.Environment["DOTNET_SKIP_FIRST_TIME_EXPERIENCE"] = "1";
                 start.Environment["DOTNET_GENERATE_ASPNET_CERTIFICATE"] = "false";

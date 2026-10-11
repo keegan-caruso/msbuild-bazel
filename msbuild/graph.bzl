@@ -67,9 +67,12 @@ def _graph_action(ctx, prepare = False):
     args = ctx.actions.args()
     args.add_all([tc.dotnet.path, runner[0].path, output.path, ctx.file.contract.path, ctx.attr.target, "1" if ctx.attr.linux_stable_paths else "0", ctx.file._linux_stable_paths.path, "prepare" if prepare else "action", prepared.directory.path if prepared else "-", "1" if ctx.attr.profile_build else "0"])
     for file in ctx.files.srcs:
-        if not file.short_path.startswith(prefix):
-            fail("Graph source is outside source_root: " + file.short_path)
-        relative = file.short_path[len(prefix):]
+        if file.owner.repo_name != ctx.label.repo_name:
+            fail("Graph sources from other repositories require input_paths: " + file.short_path)
+        path = file.short_path.split("/", 2)[2] if file.short_path.startswith("../") else file.short_path
+        if not path.startswith(prefix):
+            fail("Graph source is outside source_root: " + path)
+        relative = path[len(prefix):]
         if relative.startswith("/") or any([part in ["", ".", ".."] for part in relative.split("/")]):
             fail("Graph source requires a safe workspace-relative destination: " + relative)
         args.add_all([file.path, relative])
