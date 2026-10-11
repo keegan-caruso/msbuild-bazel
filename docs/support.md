@@ -18,8 +18,9 @@ SDK_VERSION_CACHE_URL=http://cache:8080 DYNAMIC_SOURCE_CACHE_URL=http://cache:80
   --test_output=errors
 ```
 
-Large runtime timings and source-built SDK consumers below retain their recorded
-9.2 qualification; they were not rerun for this SDK change.
+The earlier 481-compilation runtime baseline and source-built SDK consumers below
+retain their recorded 9.2 qualification. The downloaded-SDK runtime slice below
+has separate 9.3 results.
 
 ## Downloaded SDK platforms
 
@@ -122,6 +123,27 @@ All 24 SDK/runtime repository controls passed on native
 macOS ARM64 / 9.3. Other roll-forward policies
 remain unsupported; selection uses published releases, not installed SDKs.
 
+`//tests/integration:source_globs` passed both pins on native macOS ARM64 and
+Linux ARM64: local/external-module graph compilation, body edits, pinned membership
+and rejection of undeclared cross-repository sources.
+
+## Downloaded SDK and runtime sources
+
+The public `dotnet.sdk(version="10.0.400")` → native package update/check → offline
+sync/check workflow passed on runtime v10.0.0: four managed roots, **182 configurations
+/ 163 compilations / 106 package archives / 91 native locks**. Linux ARM64, four CPUs,
+6 GiB, Bazel 9.3.0; package-build qualification retained upstream SDK compiler
+behavior, including out-of-process `Runtime="NET"` tasks.
+
+Paired cold/body/API builds matched 1,447 required DLL/PDB/resource files. An
+independent machine recovered Restore + graph actions, then forced graph execution
+with 163 HTTP project hits / zero compilations and exact bytes/modes for 3,980
+retained files. The producer was stopped before recovery. A separate Bazel test
+loaded the exported source-built Pipelines DLL, verified its hash and exercised
+`Pipe` using the downloaded SDK host. See [measurements and reproduction](performance.md#downloaded-sdk-workflow).
+This qualifies a managed slice and app consumer, not full runtime/native builds,
+upstream test suites, Linux x64 or remote execution.
+
 ## NuGet inventories
 
 `//tests/integration:solutions` passed `.sln` / `.slnx` update, strict child locks,
@@ -158,6 +180,10 @@ control also passed on native macOS ARM64 / 9.3.
 graph/entry properties, all-framework native locks, escaped property values,
 offline sync/test and rejection of conflicting shared-project locks or reserved
 Restore overrides.
+
+`//tests/integration:nuget_shared_projects` passed both pins on Linux ARM64:
+project-specific locks in shared directories, selected-SDK binding, strict dependency
+drift rejection and atomic rejection of colliding lock names.
 
 `//tests/integration:nuget_sdks` passed both pins on Linux ARM64: generated
 Traversal **4.1.82** / NoTargets **3.7.0 → 3.7.56** inventories, global/inline SDK

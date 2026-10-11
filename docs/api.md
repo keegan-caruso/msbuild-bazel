@@ -54,6 +54,11 @@ from MSBuild's Compile items.
 | `bindings` | Complete tool layouts bound to MSBuild properties |
 | `mappings` | Reviewed JSON contracts for custom inputs, outputs and dependency roles |
 
+Assembly `Reference` items may use a `HintPath` or relative `Include` supplied by
+`inputs`; sync records the producer label and workspace path, and builds hash the
+supplied DLL. Unbound workspace/host assembly paths fail. Sources from the graph's own repository stage
+relative to that repository; cross-repository producers require `input_paths`.
+
 For Traversal/NoTargets/IL/Arcade, lock the SDK and implicit/native packages, set
 `package_build = True`, and declare custom tasks/products. Unknown SDKs fail.
 [Support](support.md#qualified-sdks) lists SDK-specific requirements and limits.
@@ -131,8 +136,11 @@ msbuild_nuget_update(name = "update_packages", projects = ["App/App.csproj"])
 
 Run `bazel run //:update_packages` after package, framework, central-version or SDK
 changes. NuGet resolves in a disposable copy using the declared SDK and root
-`NuGet.Config` hierarchy. The command writes project `packages.lock.json` files and
+`NuGet.Config` hierarchy. The command writes native project locks and
 `nuget.lock.json`; failed resolution leaves existing locks intact. Commit both.
+Shared directories use NuGet's `packages.PROJECT.lock.json` naming (spaces become
+underscores); colliding names fail before publication. Other projects retain
+`packages.lock.json`. Existing project-specific locks take precedence.
 `--check` resolves again and rejects stale locks; it requires network access.
 
 After the first update, add to `MODULE.bazel`:

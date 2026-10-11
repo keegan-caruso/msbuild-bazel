@@ -6,7 +6,7 @@ load("//msbuild/private:providers.bzl", "MSBuildBindingInfo", "MSBuildPackageLoc
 def _source_globs_impl(ctx):
     if ctx.attr.package_crossings:
         fail("Compile glob crosses a Bazel package; rerun sync: %s" % ctx.attr.package_crossings)
-    actual = sorted([file.short_path for file in ctx.files.srcs])
+    actual = sorted([file.owner.package + "/" + file.owner.name if file.owner.package else file.owner.name for file in ctx.files.srcs])
     if actual != sorted(ctx.attr.expected) or any([not file.is_source for file in ctx.files.srcs]):
         expected = {path: True for path in ctx.attr.expected}
         found = {path: True for path in actual}

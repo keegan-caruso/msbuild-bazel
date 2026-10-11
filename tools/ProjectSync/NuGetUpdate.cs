@@ -106,12 +106,14 @@ internal static class NuGetUpdate
             var originals = new Dictionary<string, string>(StringComparer.Ordinal);
             Copy(source, workspace, originals);
             NuGetConfigs.RequireRoot(workspace);
+            NuGetLocks.SeedSharedDirectories(workspace);
             var packageRoot = Path.Combine(scratch, "packages");
             var locks = new SortedDictionary<string, string>(StringComparer.Ordinal);
+            var lockOwners = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
             foreach (var project in projects.Distinct())
             {
-                await Restore(sdk, workspace, packageRoot, project, GraphEntryProperties.For(project, properties, mappings.EntryProperties), scratch);
-                CaptureLocks(workspace, locks);
+                await Restore(sdk, workspace, packageRoot, project, GraphEntryProperties.For(project, properties, mappings.EntryProperties), scratch, engine);
+                CaptureLocks(workspace, locks, lockOwners);
                 NuGetConfigs.Capture(workspace, source, Path.Combine(scratch, "home"), originals);
             }
             Environment.SetEnvironmentVariable("HOME", Path.Combine(scratch, "home"));
@@ -125,7 +127,7 @@ internal static class NuGetUpdate
             string[] required;
             try
             {
-                required = NuGetGraph.Projects(workspace, projects.Distinct(), properties, mappings.EntryProperties);
+                required = NuGetGraph.Projects(workspace, projects.Distinct(), new Dictionary<string, string>(properties, StringComparer.OrdinalIgnoreCase) { ["NetCoreSdkRoot"] = engine }, mappings.EntryProperties);
             }
             catch (Exception error)
             {
@@ -194,7 +196,7 @@ internal static class NuGetUpdate
         }
     }
 
-    private static async Task Restore(string sdk, string workspace, string packages, string project, Dictionary<string, string> properties, string scratch)
+    private static async Task Restore(string sdk, string workspace, string packages, string project, Dictionary<string, string> properties, string scratch, string engine)
     {
         if (!File.Exists(Path.Combine(workspace, project)))
         {
@@ -207,6 +209,7 @@ internal static class NuGetUpdate
         {
             start.ArgumentList.Add(argument);
         }
+        start.ArgumentList.Add(GraphEntryProperties.Argument("NetCoreSdkRoot", engine));
         foreach (var (name, value) in properties.Where(pair => !pair.Key.Equals("TargetFramework", StringComparison.OrdinalIgnoreCase)))
         {
             start.ArgumentList.Add(GraphEntryProperties.Argument(name, value));
@@ -237,18 +240,23 @@ internal static class NuGetUpdate
         }
     }
 
-    private static void CaptureLocks(string workspace, SortedDictionary<string, string> locks)
+    private static void CaptureLocks(string workspace, SortedDictionary<string, string> locks, Dictionary<string, string> owners)
     {
         foreach (var assets in Directory.GetFiles(workspace, "project.assets.json", SearchOption.AllDirectories))
         {
             using var document = JsonDocument.Parse(File.ReadAllText(assets));
             var project = document.RootElement.GetProperty("project").GetProperty("restore").GetProperty("projectPath").GetString()!;
-            var native = Path.Combine(Path.GetDirectoryName(project)!, "packages.lock.json");
+            var native = NuGetLocks.ForProject(project);
             if (!File.Exists(native))
             {
-                throw new InvalidDataException("Missing standard packages.lock.json for " + project + "; custom NuGetLockFilePath is unsupported");
+                throw new InvalidDataException("Missing standard native lock for " + project + "; custom NuGetLockFilePath is unsupported");
             }
             var relative = WorkspaceView.Safe(Path.GetRelativePath(workspace, native).Replace('\\', '/'));
+            if (owners.TryGetValue(relative, out var owner) && owner != project)
+            {
+                throw new InvalidDataException("Project-specific NuGet lock names collide: " + relative);
+            }
+            owners[relative] = project;
             var content = File.ReadAllText(native);
             if (locks.TryGetValue(relative, out var previous) && previous != content)
             {
