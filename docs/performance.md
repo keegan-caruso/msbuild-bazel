@@ -77,6 +77,53 @@ reviewed `EvaluationReuseInputs` and a separate existing output base. The harnes
 requires identical raw/graph semantics and rejects changed ownership or other inputs.
 See [evaluation contracts](api.md#caching-and-workers) before expanding exemptions.
 
+## Large downloaded-SDK graph
+
+The same public SDK → native NuGet update/check → offline sync/check workflow now
+covers **39 roots / 543 configurations / 481 compilations**, using **141 package
+archives / 265 native locks**. Runtime v10.0.0, Linux ARM64, four CPUs, 8 GiB,
+SDK **10.0.400**, Bazel **9.3.0**, HTTP project caching, four MSBuild nodes.
+Three alternating unprofiled pairs; medians:
+
+| Case | Raw MSBuild | Graph | Graph reused / compiled |
+| --- | ---: | ---: | ---: |
+| No-op | 17.89 s | 0.26 s | Whole action hit |
+| Pipelines body edit | 31.65 s | 26.49 s | 475 / 6 |
+| Pipelines API edit | 46.00 s | 41.39 s | 464 / 17 |
+
+Body/API were **16.3% / 10.0% below** raw, with all **3,622 DLL/PDB/resource
+files** matching. Separate instrumented controls matched the actual compiler sets
+(**6 / 17**); their times are excluded. Edits reused Restore and all 543 evaluations.
+Three local project recoveries took **17.69–19.89 s**, with 481 hits / zero compilations.
+
+Retention needs an explicit **1024 MiB evaluation budget** for this graph. A separate
+profile measured **676.7 MiB managed memory**; the default 512 MiB budget correctly
+retired evaluations. The general default remains unchanged. Single cold Restore +
+Build: **1086.80 s** (Restore **84.88 s**, graph **990.34 s**), excluding bootstrap.
+There is no new paired cold result; full-source raw correctness ran during unscored
+preparation. This contract retains disposable intermediates, so its file counts and
+Pipelines edits differ from the older LINQ baseline below.
+
+A fresh relocated Linux ARM64 consumer, four CPUs / 6 GiB, with the producer stopped,
+recovered normal Restore + graph actions in **8.83 s**. Forced graph execution took
+**30.28 s**, retained the Restore remote hit and recovered **481 HTTP project
+snapshots / zero compilations**. Both matched **10,780 retained files**, including
+modes. These separate recovery controls used the producer's default 512 MiB budget;
+acquisition/bootstrap were separate. The producer executed a source-built-runtime
+app and eight upstream suites. Consumer test results recovered from Bazel's cache;
+forced test execution was blocked by filesystem damage after disk exhaustion and
+is excluded from qualification.
+
+Prepare with `runtime_downloaded_prepare.py SOURCE_ARCHIVE OUTPUT
+--slice=runtime-suites --evaluation-reuse --evaluation-cache-mb=1024`, then use
+`runtime_full_source.py` for locked full-source raw qualification and
+`runtime_benchmark.py --slice=runtime-suites --qualified-raw-results=RAW_RESULTS
+--evaluation-reuse --samples=3 --memory-gib=8 --project-cache-url=URL --diagnostics
+--trim-between-rows`. For independent recovery use `runtime_complete_remote.py`
+with the same source/contract and budget on producer and consumer. Public preparation
+performs full SDK compiler qualification; it is outside incremental scores.
+See [runtime support](support.md#downloaded-sdk-and-runtime-sources) for scope.
+
 ## Paired runtime baseline
 
 Runtime v10.0.0 (`60629d14374c56f1cb51819049ad1fa529307f8d`): **260 project paths /

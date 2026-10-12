@@ -16,17 +16,33 @@ import time
 from runtime_prepare import COMMIT, SOURCE_SHA256
 
 ROOT = Path(__file__).resolve().parents[3]
-EDIT = json.loads(Path(__file__).with_name('runtime_loaded_common_edit.json').read_text())
-ENTRIES = EDIT['entries']
 
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('source_archive', type=Path)
     parser.add_argument('output', type=Path, help='fresh owned preparation directory')
+    parser.add_argument('--slice', choices=['loaded-common', 'runtime-suites'], default='loaded-common', help='reviewed four-root or 39-root/eight-suite graph')
     parser.add_argument('--evaluation-reuse', action='store_true', help='opt into the reviewed Pipelines body/API evaluation contract')
+    parser.add_argument('--evaluation-cache-mb', type=int, default=512, help='explicit retained-evaluation memory budget; 1024 for the large reviewed graph')
     parser.add_argument('--resume', action='store_true', help='recheck a retained preparation after a completed sync; consumer workspace must still be absent')
     args = parser.parse_args()
+    if args.evaluation_cache_mb <= 0:
+        parser.error('--evaluation-cache-mb must be positive')
+    descriptor = 'runtime_source_host_edit.json' if args.slice == 'runtime-suites' else 'runtime_loaded_common_edit.json'
+    edit = json.loads(Path(__file__).with_name(descriptor).read_text())
+    entries = edit['entries']
+    selection = json.loads((ROOT / 'tests/runtime/subset_slices.json').read_text())
+    assert selection['commit'] == COMMIT
+    frameworks = {}
+    for row in selection['slices']:
+        for value in row['entries']:
+            project = value if isinstance(value, str) else value['project']
+            framework = row['framework'] if isinstance(value, str) else value['framework']
+            if project in entries:
+                assert project not in frameworks or frameworks[project] == framework, project
+                frameworks[project] = framework
+    assert set(frameworks) == set(entries)
     assert os.uname().sysname == 'Linux' and os.uname().machine == 'aarch64'
     assert hashlib.sha256(args.source_archive.read_bytes()).hexdigest() == SOURCE_SHA256
     base = args.output.resolve()
@@ -50,6 +66,12 @@ def main():
                 path.write_bytes(data)
     subprocess.run(['python3', str(Path(__file__).with_name('runtime_contract.py')), str(source / 'mappings.json'),
                     '--platform', 'linux-arm64', '--prepared-restore', '--resolve-references'] + (['--evaluation-reuse'] if args.evaluation_reuse else []), check=True)
+    mapping_path = source / 'mappings.json'
+    mapping = json.loads(mapping_path.read_text())
+    overrides = {project: {'TargetFramework': framework} for project, framework in frameworks.items() if framework != 'net10.0'}
+    if overrides:
+        mapping['entryProperties'] = overrides
+        mapping_path.write_text(json.dumps(mapping, indent=2) + '\n')
     module = ('module(name="runtime_downloaded_workflow")\nbazel_dep(name="rules_msbuild",version="0.0.0")\n'
               'local_path_override(module_name="rules_msbuild",path=' + json.dumps(str(ROOT)) + ')\n'
               'dotnet=use_extension("@rules_msbuild//msbuild:extensions.bzl","dotnet")\n'
@@ -57,7 +79,7 @@ def main():
     inventory = ('nuget=use_extension("@rules_msbuild//msbuild:nuget.bzl","nuget")\n'
                  'nuget.lock(name="nuget",lockfile="//:nuget.lock.json")\nuse_repo(nuget,"nuget")\n')
     update = ('load("@rules_msbuild//msbuild:sync.bzl","msbuild_nuget_update","msbuild_sync")\n'
-              'entries=' + json.dumps(ENTRIES) + '\n'
+              'entries=' + json.dumps(entries) + '\n'
               'msbuild_nuget_update(name="update_packages",projects=entries,framework="net10.0",mappings="mappings.json")\n')
     sync = 'msbuild_sync(name="sync",projects=entries,framework="net10.0",mappings="mappings.json",package_lock="@nuget//:packages",package_build=True,resolve_references=True)\n'
     if args.resume:
@@ -83,12 +105,16 @@ def main():
         (source / 'MODULE.bazel').write_text(module + inventory)
         (source / 'BUILD.bazel').write_text(update + sync)
         prior_reuse = json.loads((source / 'graph.generated.json').read_text()).get('EvaluationReuseInputs') if args.resume else None
-        expected_reuse = sorted([EDIT['implementation'], EDIT['reference']]) if args.evaluation_reuse else None
+        expected_reuse = sorted([edit['implementation'], edit['reference']]) if args.evaluation_reuse else None
         if not args.resume or prior_reuse != expected_reuse:
             run('sync', '//:sync')
         run('sync-check', '//:sync', True)
         contract = json.loads((source / 'graph.generated.json').read_text())
         variants = [v for p in contract['Projects'].values() for v in p.get('Configurations') or [p]]
+        assert contract['Entries'] == entries
+        compilations = sum(bool(v['OutputDirectories'] or v.get('OutputFiles')) for v in variants)
+        assert compilations == edit['compiled'], 'Unexpected reviewed compilation scope'
+        assert contract.get('EntryProperties', {}) == overrides
         paths = set(contract['SharedInputs']) | set(contract['DefinitionDigests']) | {p for v in variants for p in v['Inputs']}
         paths |= set(contract['Restore']['Inputs'])
         workspace = base / 'workspace'
@@ -103,7 +129,8 @@ def main():
             shutil.copyfile(source / name, workspace / name)
         (workspace / 'MODULE.bazel').write_text(module + inventory)
         # Update belongs in the retained full source, not this pruned consumer.
-        (workspace / 'BUILD.bazel').write_text('alias(name="packages",actual="@nuget//:packages")\nload(":graph.generated.bzl","app_graph")\napp_graph(name="graph",linux_stable_paths=True,linux_worker=True)\n'
+        budget = ',evaluation_cache_mb=' + str(args.evaluation_cache_mb) if args.evaluation_cache_mb != 512 else ''
+        (workspace / 'BUILD.bazel').write_text('alias(name="packages",actual="@nuget//:packages")\nload(":graph.generated.bzl","app_graph")\napp_graph(name="graph",linux_stable_paths=True,linux_worker=True' + budget + ')\n'
             'load("@rules_msbuild//msbuild:defs.bzl","msbuild_graph_output")\n'
             'msbuild_graph_output(name="pipelines_assembly",graph=":graph",path="artifacts/bin/System.IO.Pipelines/Release/net10.0/System.IO.Pipelines.dll",visibility=["//visibility:public"])\n')
         manifest = json.loads((source / 'nuget.lock.json').read_text())
@@ -119,8 +146,8 @@ def main():
             assert hashlib.sha256(archive.read_bytes()).hexdigest() == expected[archive.name]
             shutil.copyfile(archive, feed / archive.name)
         shutil.copyfile(source / 'MODULE.bazel.lock', workspace / 'MODULE.bazel.lock')
-        summary = dict(resumed=args.resume, evaluationReuseInputs=contract.get('EvaluationReuseInputs'), commit=COMMIT, sourceSha256=SOURCE_SHA256, sdk='10.0.400', entries=ENTRIES,
-                       configurations=len(variants), compilations=sum(bool(v['OutputDirectories'] or v.get('OutputFiles')) for v in variants),
+        summary = dict(resumed=args.resume, evaluationReuseInputs=contract.get('EvaluationReuseInputs'), evaluationCacheMiB=args.evaluation_cache_mb, commit=COMMIT, sourceSha256=SOURCE_SHA256, sdk='10.0.400', slice=args.slice, entries=entries,
+                       configurations=len(variants), compilations=compilations,
                        archives=len(manifest['packages']), nativeLocks=len(manifest['lockFiles']), inputs=len(paths), commands=rows)
         (base / 'summary.json').write_text(json.dumps(summary, indent=2) + '\n')
         print(json.dumps(summary), flush=True)

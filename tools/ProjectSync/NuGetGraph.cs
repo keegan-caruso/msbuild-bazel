@@ -16,11 +16,10 @@ internal static class NuGetGraph
             using var collection = new ProjectCollection();
             var graph = new ProjectGraph(entries.Select(entry => new ProjectGraphEntryPoint(Path.Combine(root, entry), GraphEntryProperties.For(entry, defaults, overrides)
                 .Where(pair => !pair.Key.Equals("TargetFramework", StringComparison.OrdinalIgnoreCase)).ToDictionary(pair => pair.Key, pair => pair.Value, StringComparer.OrdinalIgnoreCase))), collection,
-                (path, globals, projects) => Project.FromFile(path, new Microsoft.Build.Definition.ProjectOptions
-                {
-                    GlobalProperties = globals,
-                    ProjectCollection = projects
-                }).CreateProjectInstance());
+                // Use MSBuild's ProjectInstance evaluator. Project.FromFile also
+                // collects conditioned properties inside false item groups; an
+                // outer build can then evaluate functions needing an inner TFM.
+                null);
             return graph.ProjectNodes.Select(node => WorkspaceView.Safe(Path.GetRelativePath(root, node.ProjectInstance.FullPath).Replace('\\', '/')))
                 .Distinct().Order(StringComparer.Ordinal).ToArray();
         }
