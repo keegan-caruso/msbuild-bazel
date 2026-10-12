@@ -24,8 +24,11 @@ def main():
     parser.add_argument('output', type=Path, help='fresh owned preparation directory')
     parser.add_argument('--slice', choices=['loaded-common', 'runtime-suites'], default='loaded-common', help='reviewed four-root or 39-root/eight-suite graph')
     parser.add_argument('--evaluation-reuse', action='store_true', help='opt into the reviewed Pipelines body/API evaluation contract')
+    parser.add_argument('--evaluation-cache-mb', type=int, default=512, help='explicit retained-evaluation memory budget; 1024 for the large reviewed graph')
     parser.add_argument('--resume', action='store_true', help='recheck a retained preparation after a completed sync; consumer workspace must still be absent')
     args = parser.parse_args()
+    if args.evaluation_cache_mb <= 0:
+        parser.error('--evaluation-cache-mb must be positive')
     descriptor = 'runtime_source_host_edit.json' if args.slice == 'runtime-suites' else 'runtime_loaded_common_edit.json'
     edit = json.loads(Path(__file__).with_name(descriptor).read_text())
     entries = edit['entries']
@@ -126,7 +129,8 @@ def main():
             shutil.copyfile(source / name, workspace / name)
         (workspace / 'MODULE.bazel').write_text(module + inventory)
         # Update belongs in the retained full source, not this pruned consumer.
-        (workspace / 'BUILD.bazel').write_text('alias(name="packages",actual="@nuget//:packages")\nload(":graph.generated.bzl","app_graph")\napp_graph(name="graph",linux_stable_paths=True,linux_worker=True)\n'
+        budget = ',evaluation_cache_mb=' + str(args.evaluation_cache_mb) if args.evaluation_cache_mb != 512 else ''
+        (workspace / 'BUILD.bazel').write_text('alias(name="packages",actual="@nuget//:packages")\nload(":graph.generated.bzl","app_graph")\napp_graph(name="graph",linux_stable_paths=True,linux_worker=True' + budget + ')\n'
             'load("@rules_msbuild//msbuild:defs.bzl","msbuild_graph_output")\n'
             'msbuild_graph_output(name="pipelines_assembly",graph=":graph",path="artifacts/bin/System.IO.Pipelines/Release/net10.0/System.IO.Pipelines.dll",visibility=["//visibility:public"])\n')
         manifest = json.loads((source / 'nuget.lock.json').read_text())
@@ -142,7 +146,7 @@ def main():
             assert hashlib.sha256(archive.read_bytes()).hexdigest() == expected[archive.name]
             shutil.copyfile(archive, feed / archive.name)
         shutil.copyfile(source / 'MODULE.bazel.lock', workspace / 'MODULE.bazel.lock')
-        summary = dict(resumed=args.resume, evaluationReuseInputs=contract.get('EvaluationReuseInputs'), commit=COMMIT, sourceSha256=SOURCE_SHA256, sdk='10.0.400', slice=args.slice, entries=entries,
+        summary = dict(resumed=args.resume, evaluationReuseInputs=contract.get('EvaluationReuseInputs'), evaluationCacheMiB=args.evaluation_cache_mb, commit=COMMIT, sourceSha256=SOURCE_SHA256, sdk='10.0.400', slice=args.slice, entries=entries,
                        configurations=len(variants), compilations=compilations,
                        archives=len(manifest['packages']), nativeLocks=len(manifest['lockFiles']), inputs=len(paths), commands=rows)
         (base / 'summary.json').write_text(json.dumps(summary, indent=2) + '\n')

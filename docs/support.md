@@ -135,19 +135,24 @@ build recovery. Retention requires explicit compiler-only input review; see
 ## Downloaded SDK and runtime sources
 
 The public `dotnet.sdk(version="10.0.400")` → native package update/check → offline
-sync/check workflow passed on runtime v10.0.0: four managed roots, **182 configurations
-/ 163 compilations / 106 package archives / 91 native locks**. Linux ARM64, four CPUs,
-6 GiB, Bazel 9.3.0; package-build qualification retained upstream SDK compiler
-behavior, including out-of-process `Runtime="NET"` tasks.
+sync/check workflow passed on runtime v10.0.0, Linux ARM64 / Bazel 9.3.0. It retains
+upstream SDK compiler behavior, including out-of-process `Runtime="NET"` tasks.
 
-Paired cold/body/API builds matched 1,447 required DLL/PDB/resource files. An
-independent machine recovered Restore + graph actions, then forced graph execution
-with 163 HTTP project hits / zero compilations and exact bytes/modes for 3,980
-retained files. The producer was stopped before recovery. A separate Bazel test
-loaded the exported source-built Pipelines DLL, verified its hash and exercised
-`Pipe` using the downloaded SDK host. See [measurements and reproduction](performance.md#downloaded-sdk-workflow).
-This qualifies a managed slice and app consumer, not full runtime/native builds,
-upstream test suites, Linux x64 or remote execution.
+| Slice | Configurations / compilations | Archives / native locks | Compiled files matched |
+| --- | ---: | ---: | ---: |
+| Four managed roots | 182 / 163 | 106 / 91 | 1,447 |
+| 39 roots / eight suites | 543 / 481 | 141 / 265 | 3,622 |
+
+Both slices passed paired body/API parity, actual compiler-workset controls and
+independent stopped-producer recovery: normal Restore + graph action hits, then
+forced HTTP project recovery with zero compilations and identical bytes/modes.
+The small slice's app verified and exercised the source-built Pipelines DLL on the
+downloaded host. The large slice executed an app on its declared source-built native
+runtime plus eight upstream suites; its independent consumer recovered cached test
+results. Forced consumer test execution was blocked by filesystem damage and remains
+unqualified. See [measurements and reproduction](performance.md#large-downloaded-sdk-graph).
+This is a bounded managed graph with declared native producers, not the entire
+runtime repo, a full source-built SDK, Linux x64 or remote execution.
 
 ## NuGet inventories
 
@@ -166,7 +171,10 @@ and contracts. The public update command also passed on macOS ARM64 / 9.3.
 `//tests/integration:nuget_graph` passed both pins on Linux ARM64: central versions,
 transitive Options dependencies, netstandard2.1/net10.0 with different Newtonsoft
 versions, a packaged CA1822 failure control and an independent strict-lock consumer
-with downloads disabled. The graph action recovered through HTTP. Root analyzer
+with downloads disabled. Restore validation also skips inner-framework functions
+inside false item groups, using MSBuild's native `ProjectInstance` evaluator;
+incomplete Restore and missing SDKs still preserve locks/contracts. The graph action
+recovered through HTTP. Root analyzer
 settings are declared inputs; config-only edits enable/disable CA1822 without sync
 and reject stale compilation. Automatic SDK discovery stops
 at the declared workspace; nested/global configs are retained and authored outside

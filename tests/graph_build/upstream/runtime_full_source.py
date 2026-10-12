@@ -155,7 +155,10 @@ def main():
     contract = json.loads((root / 'graph.generated.json').read_text())
     (raw / 'graph.generated.json').write_text(json.dumps(contract) + '\n')
     expansion_seconds = expand_raw_packages(raw)
-    (raw / 'NuGet.Config').write_text('<configuration><packageSources><clear/><add key="declared" value=".package-source"/></packageSources><fallbackPackageFolders><clear/></fallbackPackageFolders></configuration>')
+    configs = [path for path in raw.iterdir() if path.name.lower() == 'nuget.config']
+    assert len(configs) <= 1
+    config = configs[0] if configs else raw / 'NuGet.Config'
+    config.write_text('<configuration><packageSources><clear/><add key="declared" value=".package-source"/></packageSources><fallbackPackageFolders><clear/></fallbackPackageFolders></configuration>')
     sdk = Path(os.environ['RULES_MSBUILD_DOTNET_ROOT']).resolve()
     env = dict(os.environ, DOTNET_ROOT=str(sdk), DOTNET_HOST_PATH=str(sdk / 'dotnet'), MSBUILDDISABLENODEREUSE='1')
     for key in ['RULES_MSBUILD_PROJECT_CACHE_URL', 'RULES_MSBUILD_PROJECT_CACHE_BEARER_TOKEN', 'RULES_MSBUILD_GRAPH_PROFILE']:
@@ -181,7 +184,7 @@ def main():
         properties = [f'-p:{k}={v}' for k, v in root_properties(contract, entry).items() if k.lower() != 'targetframework']
         if manifest.is_file():
             properties.append('-p:RestoreLockedMode=true')
-        run(host + ['restore', stable + '/' + entry, '--configfile', stable + '/NuGet.Config', '--source', stable + '/.package-source', '--packages', stable + '/.nuget', '-p:NuGetAudit=false', '-p:NetCoreSdkRoot=' + stable_sdk + '/sdk/' + contract['SdkVersion'], *properties], 'restore-' + str(index), raw)
+        run(host + ['restore', stable + '/' + entry, '--configfile', stable + '/' + config.name, '--source', stable + '/.package-source', '--packages', stable + '/.nuget', '-p:NuGetAudit=false', '-p:NetCoreSdkRoot=' + stable_sdk + '/sdk/' + contract['SdkVersion'], *properties], 'restore-' + str(index), raw)
     run(host + [stable + '/.qualification/Raw.dll', stable, stable + '/graph.generated.json', 'build'], 'raw-build', raw)
     variants = [v for p in contract['Projects'].values() for v in p.get('Configurations') or [p]]
     if args.inventory_only:
