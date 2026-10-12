@@ -45,6 +45,38 @@ stop the producer, and run `--phase=consumer --seed-evidence=SEED_JSON`.
 Then run [consumer smoke](../tests/graph_build/upstream/runtime_downloaded_smoke.py)
 with `RUNTIME_WORKSPACE FRESH_APP --cache-url=URL`.
 
+## Reviewed evaluation reuse
+
+On the same 163-compilation downloaded-SDK slice, opt into only the two reviewed
+Pipelines body/API sources. Three alternating unprofiled pairs per mode, four CPUs,
+6 GiB, default 512 MiB evaluation budget, HTTP project caching enabled:
+
+| Edit | Retained graph | Fresh graph | Raw paired with retained |
+| --- | ---: | ---: | ---: |
+| Body | 16.26 s | 18.84 s | 18.98 s |
+| API | 31.06 s | 42.62 s | 35.85 s |
+
+The fresh-control raw medians were 19.47 / 33.46 s. Retention saved **2.58 / 11.55 s**
+against fresh graph medians; the retained API median was **13.4% below** its paired
+raw median. These are separate HTTP-enabled observations from the default baseline
+above. All 1,447 required files matched; edits reused Restore and all 182 evaluations,
+while compiling the same 5 / 16 projects. Separate profiled controls verify actual
+compiler sets for both modes; their times are excluded from scores.
+
+Separate API profiles put project evaluation at **1.83 → 0.22 s**, input hashing
+at **0.92 → 0.45 s** and snapshot replay at **2.05 → 1.37 s**; publication stayed
+near **0.06 s**. These overlapping profile totals do not explain the entire wall-
+time difference and are not additional paired speedups.
+
+Use `runtime_downloaded_prepare.py SOURCE_ARCHIVE OUTPUT --evaluation-reuse`.
+For comparison against a completed scorecard, run `runtime_benchmark.py` with
+`--slice=loaded-common --qualified-raw-results=PRIOR_RESULTS --evaluation-reuse
+--compare-fresh-evaluation --project-cache-url=URL --memory-gib=6 --samples=3
+--diagnostics --trim-between-rows`. Supply a separate workspace containing the
+reviewed `EvaluationReuseInputs` and a separate existing output base. The harness
+requires identical raw/graph semantics and rejects changed ownership or other inputs.
+See [evaluation contracts](api.md#caching-and-workers) before expanding exemptions.
+
 ## Paired runtime baseline
 
 Runtime v10.0.0 (`60629d14374c56f1cb51819049ad1fa529307f8d`): **260 project paths /

@@ -16,13 +16,15 @@ import time
 from runtime_prepare import COMMIT, SOURCE_SHA256
 
 ROOT = Path(__file__).resolve().parents[3]
-ENTRIES = json.loads(Path(__file__).with_name('runtime_loaded_common_edit.json').read_text())['entries']
+EDIT = json.loads(Path(__file__).with_name('runtime_loaded_common_edit.json').read_text())
+ENTRIES = EDIT['entries']
 
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('source_archive', type=Path)
     parser.add_argument('output', type=Path, help='fresh owned preparation directory')
+    parser.add_argument('--evaluation-reuse', action='store_true', help='opt into the reviewed Pipelines body/API evaluation contract')
     parser.add_argument('--resume', action='store_true', help='recheck a retained preparation after a completed sync; consumer workspace must still be absent')
     args = parser.parse_args()
     assert os.uname().sysname == 'Linux' and os.uname().machine == 'aarch64'
@@ -47,7 +49,7 @@ def main():
                 path.unlink()
                 path.write_bytes(data)
     subprocess.run(['python3', str(Path(__file__).with_name('runtime_contract.py')), str(source / 'mappings.json'),
-                    '--platform', 'linux-arm64', '--prepared-restore', '--resolve-references'], check=True)
+                    '--platform', 'linux-arm64', '--prepared-restore', '--resolve-references'] + (['--evaluation-reuse'] if args.evaluation_reuse else []), check=True)
     module = ('module(name="runtime_downloaded_workflow")\nbazel_dep(name="rules_msbuild",version="0.0.0")\n'
               'local_path_override(module_name="rules_msbuild",path=' + json.dumps(str(ROOT)) + ')\n'
               'dotnet=use_extension("@rules_msbuild//msbuild:extensions.bzl","dotnet")\n'
@@ -80,7 +82,9 @@ def main():
         run('update-check', '//:update_packages', True)
         (source / 'MODULE.bazel').write_text(module + inventory)
         (source / 'BUILD.bazel').write_text(update + sync)
-        if not args.resume:
+        prior_reuse = json.loads((source / 'graph.generated.json').read_text()).get('EvaluationReuseInputs') if args.resume else None
+        expected_reuse = sorted([EDIT['implementation'], EDIT['reference']]) if args.evaluation_reuse else None
+        if not args.resume or prior_reuse != expected_reuse:
             run('sync', '//:sync')
         run('sync-check', '//:sync', True)
         contract = json.loads((source / 'graph.generated.json').read_text())
@@ -115,7 +119,7 @@ def main():
             assert hashlib.sha256(archive.read_bytes()).hexdigest() == expected[archive.name]
             shutil.copyfile(archive, feed / archive.name)
         shutil.copyfile(source / 'MODULE.bazel.lock', workspace / 'MODULE.bazel.lock')
-        summary = dict(resumed=args.resume, commit=COMMIT, sourceSha256=SOURCE_SHA256, sdk='10.0.400', entries=ENTRIES,
+        summary = dict(resumed=args.resume, evaluationReuseInputs=contract.get('EvaluationReuseInputs'), commit=COMMIT, sourceSha256=SOURCE_SHA256, sdk='10.0.400', entries=ENTRIES,
                        configurations=len(variants), compilations=sum(bool(v['OutputDirectories'] or v.get('OutputFiles')) for v in variants),
                        archives=len(manifest['packages']), nativeLocks=len(manifest['lockFiles']), inputs=len(paths), commands=rows)
         (base / 'summary.json').write_text(json.dumps(summary, indent=2) + '\n')

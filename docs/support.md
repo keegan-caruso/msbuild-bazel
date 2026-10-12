@@ -127,6 +127,11 @@ remain unsupported; selection uses published releases, not installed SDKs.
 Linux ARM64: local/external-module graph compilation, body edits, pinned membership
 and rejection of undeclared cross-repository sources.
 
+`//tests/integration:evaluation_worker` passed both current pins on Linux ARM64:
+reviewed body/API reuse, fresh build state, evaluation-input/task changes and failed-
+build recovery. Retention requires explicit compiler-only input review; see
+[configuration](api.md#caching-and-workers) and [runtime timings](performance.md#reviewed-evaluation-reuse).
+
 ## Downloaded SDK and runtime sources
 
 The public `dotnet.sdk(version="10.0.400")` → native package update/check → offline
