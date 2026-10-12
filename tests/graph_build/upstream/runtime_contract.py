@@ -15,9 +15,12 @@ def main():
     parser.add_argument('output', type=Path)
     parser.add_argument('--platform', choices=['osx-arm64', 'linux-arm64'], default='osx-arm64')
     parser.add_argument('--prepared-restore', action='store_true', help='declare the reviewed managed graph Restore contract')
+    parser.add_argument('--evaluation-reuse', action='store_true', help='review only the pinned Pipelines body/API edit sources for pristine evaluation reuse')
     parser.add_argument('--reference-bindings', type=Path, help='reviewed full raw Build compiler/copy selection inventory')
     parser.add_argument('--resolve-references', action='store_true', help='review managed reference boundaries; generic ProjectSync captures SDK selections')
     args = parser.parse_args()
+    if args.evaluation_reuse and not args.prepared_restore:
+        parser.error('--evaluation-reuse requires --prepared-restore')
     if args.resolve_references and args.reference_bindings:
         parser.error('--resolve-references replaces --reference-bindings')
     assert not args.reference_bindings or args.platform == 'linux-arm64'
@@ -221,6 +224,17 @@ def main():
                 variant['referenceBoundary'] = True
                 for field in ['compilerReference', 'compilerReferences', 'compilerReferencesComplete', 'dependencyCopies']:
                     variant.pop(field, None)
+    if args.evaluation_reuse:
+        # Explicit source-content exemptions, not a blanket exemption of Compile.
+        # Source membership, project definitions and all build hashes remain checked.
+        for project, source in {
+            'src/libraries/System.IO.Pipelines/src/System.IO.Pipelines.csproj': 'System/IO/Pipelines/PipeOptions.cs',
+            'src/libraries/System.IO.Pipelines/ref/System.IO.Pipelines.csproj': 'System.IO.Pipelines.cs',
+        }.items():
+            binding = mapping['projects'].setdefault(project, copy.deepcopy(mapping['projectDefaults']))
+            binding.pop('properties', None)
+            for variant in [binding] + list(binding.get('frameworkOverrides', {}).values()):
+                variant['evaluationReuseInputs'] = [source]
     args.output.write_text(json.dumps(mapping, indent=2) + '\n')
 
 

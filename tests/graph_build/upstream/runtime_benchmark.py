@@ -71,9 +71,9 @@ def main():
     parser.add_argument('--body-only', action='store_true', help='score no-op/body/recovery only; retain strict compiler parity')
     parser.add_argument('--slice', choices=['pipelines-tests', 'collections', 'loaded-common', 'runtime-suites'], default='pipelines-tests')
     parser.add_argument('--continue-api-from', type=Path, help='completed no-op/body scorecard with retained raw state; record remaining cases separately')
-    parser.add_argument('--qualified-raw-results', type=Path, help='completed full-source raw control for runtime-suites; reuse its warm outputs in place')
+    parser.add_argument('--qualified-raw-results', type=Path, help='completed raw control or scorecard; reuse its verified warm outputs in place')
     parser.add_argument('--replay-omissions', action='store_true', help='compare all required products while checking explicit optional intermediates are absent; runtime-suites only')
-    parser.add_argument('--evaluation-reuse', action='store_true', help='require retained evaluation for an explicit reviewed compiler-only inventory; runtime-suites only')
+    parser.add_argument('--evaluation-reuse', action='store_true', help='require retained evaluation for a reviewed compiler-only inventory and qualified raw outputs')
     parser.add_argument('--qualify-evaluation-only', action='store_true', help='profile broader retention correctness; report conservative extra compilations without matched-work scores')
     parser.add_argument('--edit-case', type=Path, help='reviewed runtime-suites edit descriptor; overrides the default Pipelines scenario')
     parser.add_argument('--reviewed-evaluation-inputs', type=Path, help='explicit reviewed compiler-only input list, including both edit sources')
@@ -100,9 +100,9 @@ def main():
     assert not args.reviewed_evaluation_inputs or args.evaluation_reuse
     assert not args.project_cache_url or args.qualified_raw_results or args.continue_api_from
     assert not args.compare_fresh_evaluation or args.evaluation_reuse
-    assert not args.reseed_worker or args.qualified_raw_results, 'Reseeding requires qualified complete-source raw outputs'
+    assert not args.reseed_worker or args.qualified_raw_results, 'Reseeding requires qualified raw outputs'
     assert not (args.continue_api_from and args.qualified_raw_results)
-    assert bool(args.qualified_raw_results) == (args.slice == 'runtime-suites'), 'Larger timing requires the qualified full-source raw workspace'
+    assert args.slice != 'runtime-suites' or args.qualified_raw_results, 'Larger timing requires the qualified full-source raw workspace'
     root, results = args.workspace.resolve(), args.results.resolve()
     assert not results.is_relative_to(root) and not root.is_relative_to(results)
     assert args.output_base.exists() == bool(args.continue_api_from or args.qualified_raw_results), 'Use a fresh base, or retain it with a qualified warm baseline'
@@ -147,9 +147,21 @@ def main():
         references = json.loads(args.reference_bindings.read_text()) if args.reference_bindings else None
         prior = args.qualified_raw_results.resolve()
         assert prior != results and not results.is_relative_to(prior) and not prior.is_relative_to(results)
-        validate_raw_contract(contract, prior, allow_replay_omissions=args.replay_omissions,
-                              evaluation_reuse_inputs=reviewed_inputs if args.evaluation_reuse else None,
-                              reference_bindings=references)
+        if (prior / 'binplace.json').is_file():
+            validate_raw_contract(contract, prior, allow_replay_omissions=args.replay_omissions,
+                                  evaluation_reuse_inputs=reviewed_inputs if args.evaluation_reuse else None,
+                                  reference_bindings=references)
+        else:
+            assert args.slice != 'runtime-suites' and not references and not args.replay_omissions
+            previous = json.loads((prior / 'summary.json').read_text())
+            assert previous['slice'] == args.slice and previous['entries'] == mutation['entries']
+            assert previous['sdkVersion'] == contract['SdkVersion'] and previous['graphProjects'] == compiled
+            assert previous['bazelVersion'] == '9.3.0'
+            assert previous['cpus'] == 4 and previous['memoryGiB'] == args.memory_gib
+            assert any(row['case'] == 'api-summary' for row in previous['rows']), 'Require completed edit parity'
+            if args.evaluation_reuse:
+                assert contract['EvaluationReuseInputs'] == reviewed_inputs
+                assert contract['Version'] in [9, 10, 11]
         raw = prior / 'raw-workspace'
         raw_contract = json.loads((raw / 'graph.generated.json').read_text())
         comparison_contract = json.loads(json.dumps(contract))
@@ -168,7 +180,7 @@ def main():
         expansion_seconds = None
         qualified = dict(priorResults=str(prior), rawContractSha256=hashlib.sha256((raw / 'graph.generated.json').read_bytes()).hexdigest(),
                          contractSha256=hashlib.sha256((root / 'graph.generated.json').read_bytes()).hexdigest(),
-                         reseedWorker=args.reseed_worker, interpretation='qualified full-source raw outputs; worker seed/restoration excluded from scored edits')
+                         reseedWorker=args.reseed_worker, interpretation='qualified raw outputs; worker seed/restoration excluded from scored edits')
     elif args.continue_api_from:
         prior = args.continue_api_from.resolve()
         assert prior != results and not results.is_relative_to(prior)

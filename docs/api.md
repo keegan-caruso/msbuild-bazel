@@ -331,6 +331,16 @@ can retain evaluation with prepared Restore and stable workers. With Compile glo
 configuration or membership changes and failures reset it. Byte verification remains
 fresh; arbitrary evaluation-time external/process reads cannot be retained safely.
 
+Review compiler-only files per project before opting in through sync mappings:
+
+```json
+{"projects":{"App/App.csproj":{"preparedRestore":true,"evaluationReuseInputs":["Program.cs"]}}}
+```
+
+These contents must not affect evaluation (including property functions or custom
+evaluation-time reads). The exemption applies to evaluation identity; build keys
+and per-request byte verification still include the files.
+
 Enable both cache levels against a trusted HTTP AC/CAS service:
 
 ```sh

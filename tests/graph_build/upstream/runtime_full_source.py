@@ -85,7 +85,7 @@ def validate_raw_contract(contract, raw_results, allow_replay_omissions=False, e
     if reference_bindings:
         normalize_reference_bindings(candidate, previous, reference_bindings)
     if evaluation_reuse_inputs is not None:
-        assert contract['Version'] in [9, 10] and previous['Version'] <= 9
+        assert contract['Version'] in [9, 10, 11] and previous['Version'] <= 11
         assert previous.get('EvaluationReuseInputs') in [None, sorted(evaluation_reuse_inputs)], 'Unexpected raw evaluation exemption'
         assert contract['EvaluationReuseInputs'] == sorted(evaluation_reuse_inputs), 'Unexpected evaluation exemption'
     def semantics(value):
