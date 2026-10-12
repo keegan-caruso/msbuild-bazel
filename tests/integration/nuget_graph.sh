@@ -2,6 +2,18 @@
 set -euo pipefail
 source "$(dirname -- "${BASH_SOURCE[0]}")/common.sh"
 mv BUILD.template BUILD.bazel
+# Outer Restore has no TargetFrameworkVersion. MSBuild's ProjectInstance
+# evaluator skips this false group; Project.FromFile collects its conditions.
+python3 - <<'PY'
+from pathlib import Path
+p=Path('Library/Library.csproj')
+group='''  <ItemGroup Condition="'$(TargetFramework)' == 'net10.0'">
+    <None Include="Library.cs" Condition="$([MSBuild]::VersionLessThan('$(TargetFrameworkVersion)', '11.0'))" />
+  </ItemGroup>
+'''
+p.write_text(p.read_text().replace('</Project>',group+'</Project>'))
+Path('outer-restore-group.txt').write_text(group)
+PY
 bazel run //:update_packages
 bazel run //:update_packages -- --check
 python3 - <<'PY'
@@ -14,6 +26,10 @@ assert lock['.NETStandard,Version=v2.1']['Newtonsoft.Json']['resolved']=='12.0.3
 assert lock['net10.0']['Newtonsoft.Json']['resolved']=='13.0.3'
 app=json.loads(Path('App/packages.lock.json').read_text())['dependencies']['net10.0']
 assert app['Microsoft.Extensions.Options']['type']=='Transitive'
+# Keep this regression scoped to Restore's all-framework validation. The build
+# checks below retain their original compiler/input contract.
+p=Path('Library/Library.csproj');p.write_text(p.read_text().replace(Path('outer-restore-group.txt').read_text(),''))
+Path('outer-restore-group.txt').unlink()
 p=Path('MODULE.bazel');p.write_text(p.read_text()+'\nnuget = use_extension("@rules_msbuild//msbuild:nuget.bzl", "nuget")\nnuget.lock(name = "nuget", lockfile = "//:nuget.lock.json")\nuse_repo(nuget, "nuget")\n')
 Path('mappings.json').write_text('{"projectDefaults":{"referenceBoundary":true}}\n')
 p=Path('BUILD.bazel');p.write_text(p.read_text()+'\nload("@rules_msbuild//msbuild:sync.bzl", "msbuild_sync")\nmsbuild_sync(name="sync", projects=["App/App.csproj", "Library/Library.csproj"], package_lock="@nuget//:packages", package_build=True, package_inputs=[".editorconfig"], resolve_references=True, mappings="mappings.json")\n')
