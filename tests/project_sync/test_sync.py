@@ -98,6 +98,121 @@ class GraphSyncTests(unittest.TestCase):
         self.sync(flags=["--configuration", "Debug"])
         self.assertEqual(json.loads((self.root / "graph.generated.json").read_text())["Properties"]["Configuration"], "Debug")
 
+    def test_reference_tree_retains_one_producer_and_rejects_unsafe_members(self):
+        (self.root / "App.csproj").write_text(self.project.replace('</Project>',
+            '<ItemGroup><Reference Include="System.IO.Pipelines" HintPath="artifacts/bin/ref/Pipelines.dll" />'
+            '<Reference Include="System.Text.Json" HintPath="artifacts/bin/ref/nested/Json.dll" /></ItemGroup></Project>'))
+        with tempfile.TemporaryDirectory(prefix="graph-sync-tree-") as directory:
+            producer = Path(directory)
+            tree = producer / 'tree'
+            (tree / 'nested').mkdir(parents=True)
+            runtime = next((SDK / "shared/Microsoft.NETCore.App").glob('*/System.IO.Pipelines.dll')).parent
+            shutil.copyfile(runtime / 'System.IO.Pipelines.dll', tree / 'Pipelines.dll')
+            shutil.copyfile(runtime / 'System.Text.Json.dll', tree / 'nested/Json.dll')
+            manifest = producer / 'inputs.json'
+            manifest.write_text(json.dumps({'inputs': [{'path': 'artifacts/bin/ref', 'label': '@producer//:tree',
+                'runfile': 'tree', 'directory': True}], 'packages': [], 'packageLock': None}))
+            flags = ['--inputs', str(manifest), '--runfiles', str(producer)]
+            self.sync(flags=flags)
+            generated = (self.root / 'graph.generated.bzl').read_text()
+            self.assertIn('"@producer//:tree":"artifacts/bin/ref"', generated)
+            contract = json.loads((self.root / 'graph.generated.json').read_text())
+            self.assertEqual(contract['Version'], 12)
+            self.assertEqual(contract['InputTrees'], {'artifacts/bin/ref': {'Files': ['artifacts/bin/ref/Pipelines.dll', 'artifacts/bin/ref/nested/Json.dll'], 'Directories': ['artifacts/bin/ref/nested']}})
+            self.assertTrue(set(contract['InputTrees']['artifacts/bin/ref']['Files']) <= set(contract['SharedInputs']))
+            self.assertNotIn('"artifacts/bin/ref/Pipelines.dll"', generated)
+            self.sync(flags=flags + ['--check'])
+            self.sync(flags=flags + ['--package-build', '--resolve-references'])
+            # Runfiles roots are links; internal members must still be regular.
+            linked = producer / 'linked'
+            linked.symlink_to(tree, target_is_directory=True)
+            manifest.write_text(manifest.read_text().replace('"tree"', '"linked"'))
+            self.sync(flags=flags + ['--package-build', '--resolve-references'])
+            # The producer edge cannot mask an authored file or escape its tree.
+            (self.root / 'artifacts/bin/ref').mkdir(parents=True)
+            (self.root / 'artifacts/bin/ref/authored.txt').write_text('owned')
+            self.assertIn('colliding source input', self.sync(flags=flags, success=False))
+            shutil.rmtree(self.root / 'artifacts/bin/ref')
+            (tree / 'nested/escape').symlink_to(producer / 'inputs.json')
+            self.assertIn('tree symlinks are unsupported', self.sync(flags=flags, success=False))
+            (tree / 'nested/escape').unlink()
+            (tree / '.nuget').mkdir()
+            (tree / '.nuget/injected').write_text('reserved')
+            self.assertIn('reserved sync input', self.sync(flags=flags, success=False))
+
+    def test_tree_contract_guards_membership_and_hashes_bytes(self):
+        (self.root / 'NuGet.Config').write_text('<configuration><packageSources><clear/></packageSources>'
+            '<fallbackPackageFolders><clear/></fallbackPackageFolders></configuration>')
+        with tempfile.TemporaryDirectory(prefix='graph-tree-cache-') as directory:
+            base = Path(directory)
+            tree = base / 'producer'
+            (tree / 'empty').mkdir(parents=True)
+            (tree / 'data.txt').write_text('one')
+            (base / 'empty').mkdir()
+            manifest = base / 'inputs.json'
+            manifest.write_text(json.dumps({'inputs': [{'path': 'inputs', 'label': '@producer//:tree',
+                'runfile': 'producer', 'directory': True}, {'path': 'empty-tree', 'label': '@producer//:empty',
+                'runfile': 'empty', 'directory': True}], 'packages': [], 'packageLock': None}))
+            self.sync(flags=['--inputs', str(manifest), '--runfiles', str(base)])
+            contract = base / 'contract.json'
+            (self.root / 'graph.generated.json').rename(contract)
+            (self.root / 'graph.generated.bzl').unlink()
+            data = json.loads(contract.read_text())
+            self.assertEqual(data['InputTrees']['inputs']['Directories'], ['inputs/empty'])
+            self.assertEqual(data['InputTrees']['empty-tree'], {'Files': [], 'Directories': []})
+            self.assertIn('empty-tree', data['InputDirectories'])
+            shutil.copytree(tree, self.root / 'inputs')
+            (self.root / 'empty-tree').mkdir()
+            graph_runner = ROOT / 'tools/GraphBuild/bin/Release/net10.0/GraphBuild.dll'
+            def build(failure=None):
+                # Clear products so each row must run the project-cache decision.
+                for path in ['bin', 'obj']:
+                    shutil.rmtree(self.root / path, ignore_errors=True)
+                result = subprocess.run([str(SDK / 'dotnet'), str(graph_runner), 'action', str(self.root),
+                    str(contract), str(base / 'report.json'), str(base / 'cache')], capture_output=True, text=True,
+                    env=dict(os.environ, DOTNET_ROOT=str(SDK)))
+                self.assertEqual(result.returncode == 0, failure is None, result.stdout + result.stderr)
+                if failure:
+                    self.assertIn(failure, result.stdout + result.stderr)
+                else:
+                    return json.loads((base / 'report.json').read_text())
+            self.assertEqual(build()['misses'], 1)
+            self.assertEqual(build()['hits'], 1)
+            # Even a member consumed only by a reviewed task affects cache identity.
+            (self.root / 'inputs/data.txt').write_text('two')
+            self.assertEqual(build()['misses'], 1)
+            (self.root / 'inputs/new.txt').write_text('new')
+            build('membership changed; rerun sync')
+            (self.root / 'inputs/new.txt').unlink()
+            (self.root / 'inputs/new-directory').mkdir()
+            build('membership changed; rerun sync')
+            (self.root / 'inputs/new-directory').rmdir()
+            (self.root / 'inputs/empty').rmdir()
+            build('membership changed; rerun sync')
+
+    def test_analyzer_project_reference_uses_implementation(self):
+        (self.root / 'Generator').mkdir()
+        (self.root / 'Generator/Generator.csproj').write_text('<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup><TargetFramework>net10.0</TargetFramework></PropertyGroup></Project>')
+        (self.root / 'Generator/Code.cs').write_text('public class Generator {}')
+        (self.root / 'App.csproj').write_text(self.project.replace('</Project>',
+            '<ItemGroup><ProjectReference Include="Generator/Generator.csproj" ReferenceOutputAssembly="false" OutputItemType="Analyzer" /></ItemGroup></Project>'))
+        self.sync()
+        contract=json.loads((self.root / 'graph.generated.json').read_text())
+        self.assertGreaterEqual(contract['Version'], 3)
+        node=contract['Projects']['App.csproj']['Configurations'][0]
+        self.assertEqual(node['ImplementationDependencies'], ['Generator/Generator.csproj'])
+
+    def test_sdk_artifact_only_project_retains_reviewed_outputs(self):
+        project=self.project.replace('<Project Sdk="Microsoft.NET.Sdk">', '<Project><Import Project="Sdk.props" Sdk="Microsoft.NET.Sdk" />').replace('</Project>', '<Import Project="Sdk.targets" Sdk="Microsoft.NET.Sdk" /><Target Name="Build"><WriteLinesToFile File="artifact.txt" Lines="produced" Overwrite="true" /></Target></Project>')
+        (self.root / 'App.csproj').write_text(project)
+        mapping={'entryProperties': {'App.csproj': {'TargetPath': ''}}, 'projects': {'App.csproj': {
+            'outputFiles': ['artifact.txt'], 'documents': {'App.csproj': {'sha256': hashlib.sha256(project.encode()).hexdigest(),
+            'targets': ['Build'], 'tasks': [], 'inputs': []}}}}}
+        self.sync(mapping)
+        node=json.loads((self.root / 'graph.generated.json').read_text())['Projects']['App.csproj']['Configurations'][0]
+        self.assertEqual(node['OutputDirectories'], [])
+        self.assertEqual(node['OutputFiles'], ['artifact.txt'])
+
     def test_stale_inputs_require_resync(self):
         self.sync()
         (self.root / "App.csproj").write_text(self.project.replace("net10.0", "net9.0"))

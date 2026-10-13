@@ -10,7 +10,9 @@ internal sealed record GraphContract(
     Dictionary<string, string> Properties,
     string[] SharedInputs,
     Dictionary<string, ProjectContract> Projects,
-    Dictionary<string, string>? DefinitionDigests = null, string[]? Entries = null, string[]? PackageDigests = null, Dictionary<string, string>? ToolProperties = null, RestoreContract? Restore = null, string[]? InputDirectories = null, string[]? TemporaryDirectories = null, Dictionary<string, Dictionary<string, string>>? EntryProperties = null, string[]? EvaluationReuseInputs = null, string[]? EvaluationReuseGlobs = null);
+    Dictionary<string, string>? DefinitionDigests = null, string[]? Entries = null, string[]? PackageDigests = null, Dictionary<string, string>? ToolProperties = null, RestoreContract? Restore = null, string[]? InputDirectories = null, string[]? TemporaryDirectories = null, Dictionary<string, Dictionary<string, string>>? EntryProperties = null, string[]? EvaluationReuseInputs = null, string[]? EvaluationReuseGlobs = null, Dictionary<string, InputTreeContract>? InputTrees = null);
+
+internal sealed record InputTreeContract(string[] Files, string[] Directories);
 
 internal sealed record RestoreContract(string[] Inputs, string[] Outputs);
 

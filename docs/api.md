@@ -47,7 +47,7 @@ from MSBuild's Compile items.
 | --- | --- |
 | `projects` | Project paths (`.csproj`, `.ilproj`, Traversal/NoTargets `.proj`) or one `.sln` / `.slnx` |
 | `configuration`, `framework` | Release by default; optional entry framework |
-| `inputs` | Single-file producer labels mapped to workspace-relative paths |
+| `inputs` | Single-file or directory-tree producer labels mapped to workspace-relative paths |
 | `package_lock`, `package_locks` | Closed package inventories, including package SDKs |
 | `package_build`, `package_inputs` | Offline Restore/package evaluation; extra declared task reads |
 | `resolve_references` | Private Build to capture complete compiler/copy selections; requires `package_build` |
@@ -56,7 +56,10 @@ from MSBuild's Compile items.
 
 Assembly `Reference` items may use a `HintPath` or relative `Include` supplied by
 `inputs`; sync records the producer label and workspace path, and builds hash the
-supplied DLL. Unbound workspace/host assembly paths fail. Sources from the graph's own repository stage
+supplied DLL. Bound trees retain one producer edge and declare all member bytes as
+shared inputs. Membership changes require resync; `inputDirectories` alone declares
+presence. Trees reject internal symlinks and authored-path collisions.
+Unbound workspace/host assembly paths fail. Sources from the graph's own repository stage
 relative to that repository; cross-repository producers require `input_paths`.
 
 For Traversal/NoTargets/IL/Arcade, lock the SDK and implicit/native packages, set

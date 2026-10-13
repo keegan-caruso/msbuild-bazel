@@ -1,0 +1,295 @@
+{
+  "projectDefaults": {
+    "properties": {
+      "Configuration": "Release",
+      "TargetOS": "linux",
+      "TargetArchitecture": "arm64",
+      "BuildAllTestsAsStandalone": "true",
+      "CLRTestPriorityToBuild": "1",
+      "NuGetAudit": "false",
+      "LibrariesSharedFrameworkRefArtifactsPath": "/__rules_msbuild_graph/output/workspace/artifacts/bin/ref/net10.0/"
+    },
+    "documents": {
+      "eng/liveILLink.targets": {
+        "sha256": "04826c6988b3f44ffc8d6b4e36cc84447cfc7c09dec757230129f89977a86a40",
+        "targets": [],
+        "tasks": [],
+        "inputs": []
+      },
+      "eng/liveBuilds.targets": {
+        "sha256": "7b3ba15a15a99c1d667cb0260bf60a737fd27ab91a3beeb13828c58f7b66a420",
+        "targets": [
+          "ResolveRuntimeFilesFromLocalBuild",
+          "EnsureLocalArtifactsExist",
+          "EnsureLocalOSGroupConfigurationArchitectureSpecificArtifactsExist",
+          "ResolveLibrariesRefAssembliesFromLocalBuild",
+          "ResolveLibrariesRuntimeFilesFromLocalBuild",
+          "ResolveLibrariesFromLocalBuild"
+        ],
+        "tasks": [],
+        "inputs": []
+      },
+      "eng/toolAot.targets": {
+        "sha256": "5f7ff2c405579a14ab25c0004cbe41132d09e9b1952df834ab660c31c14b04f6",
+        "targets": [
+          "LocateNativeCompiler"
+        ],
+        "tasks": [],
+        "inputs": []
+      },
+      "src/tests/Common/XUnitWrapperGenerator/XUnitWrapperGenerator.props": {
+        "sha256": "bf7a935f4bd9d068cb608e94dd2f8df6c33615f920048d16579a0d3acfcfadc5",
+        "targets": [
+          "AddOutOfProcessTestAssembliesToCompilation"
+        ],
+        "tasks": [],
+        "inputs": []
+      },
+      "src/tests/Directory.Build.targets": {
+        "sha256": "464551d1f3fc94a1e4a6bde56fa83d1e8e37874e2a130ef73f3ff20a57af51ac",
+        "targets": [
+          "CheckForTestOutsideOfGroup",
+          "CopyNativeProjectBinaries",
+          "ResolveCMakeNativeProjectReference",
+          "ConsolidateNativeProjectReference",
+          "CopyAllNativeProjectReferenceBinaries",
+          "CreateExecuteScript",
+          "UpdateReferenceItems",
+          "GetLiveRefAssemblies",
+          "ConvertCountOfStressMarkersToListPhase1",
+          "GenerateMarkerFiles",
+          "GetProjectsWithDisabledBuild",
+          "GetRequiresProcessIsolation",
+          "DiscoverProcessIsolatedTestProjectReferences",
+          "GetBinPlaceTargetFramework",
+          "BuildNativeAot",
+          "LinkNativeIfBuildAndRun"
+        ],
+        "tasks": [],
+        "inputs": []
+      },
+      "src/tests/Common/CLRTest.CrossGen.targets": {
+        "sha256": "c741cfa573f844a997747dbdea824ac2a69e8fb143339588eb8cec340d2c1f51",
+        "targets": [
+          "GetCrossgenBashScript",
+          "GetCrossgenBatchScript"
+        ],
+        "tasks": [],
+        "inputs": []
+      },
+      "src/tests/Common/CLRTest.Execute.Bash.targets": {
+        "sha256": "122a90dac2878c5f62505c9f8cd57ae96d44331b1ac2d11de3f1a902be8cf5c5",
+        "targets": [
+          "GetExecuteShFullPath",
+          "GenerateBashExecutionScript"
+        ],
+        "tasks": [],
+        "inputs": []
+      },
+      "src/tests/Common/CLRTest.Execute.Batch.targets": {
+        "sha256": "534c3c0a029b914dbf7ae48b75b3227b7cab869edcd41f551a28c4edc9e39c5d",
+        "targets": [
+          "GetExecuteCmdFullPath",
+          "GenerateBatchExecutionScript"
+        ],
+        "tasks": [],
+        "inputs": []
+      },
+      "src/tests/Common/CLRTest.Execute.targets": {
+        "sha256": "cd015cadd023268648c8f909d066e002da91c99b89cd51aeb514ba925c840745",
+        "targets": [
+          "GenerateExecutionScript",
+          "FetchExternalProperties",
+          "GenerateExecutionScriptsInternal"
+        ],
+        "tasks": [],
+        "inputs": []
+      },
+      "src/tests/Common/CLRTest.Jit.targets": {
+        "sha256": "0cab0afc9cfab6daffc1467cc2640b9d807b7dac57845f5b78cda954305374a8",
+        "targets": [
+          "GetIlasmRoundTripBashScript",
+          "GetIlasmRoundTripBatchScript",
+          "GetDisasmCheckData",
+          "PropagateHasDisasmCheckToCopy",
+          "GetDisasmCheckBashScript",
+          "GetDisasmCheckBatchScript",
+          "GetSuperPMICollectionBashScript",
+          "GetSuperPMICollectionBatchScript",
+          "IlasmRoundTripCommand"
+        ],
+        "tasks": [],
+        "inputs": []
+      },
+      "src/tests/Common/Directory.Build.targets": {
+        "sha256": "5d5404145b1fb6943db9d6e7b9f6a175754e3c41292095db0ede8380b84f8dfe",
+        "targets": [
+          "CopyDependencyToCoreRoot",
+          "CopyAllNativeProjectReferenceBinaries"
+        ],
+        "tasks": [],
+        "inputs": []
+      },
+      "src/tests/Common/disableversioncheck.targets": {
+        "sha256": "51b7c2bb118faf4f15efcd7d5b7873c49ed80fa18fe83a636e2aa35108288ed8",
+        "targets": [
+          "DisableNETCoreVersionCheck"
+        ],
+        "tasks": [],
+        "inputs": []
+      },
+      "src/tests/Common/test_dependencies/test_dependencies.csproj": {
+        "sha256": "cd70057524e3dc41c7d8aa00ec2b28dcd7c9fede30571fb672cca5fc880c5654",
+        "targets": [
+          "Build",
+          "AddLibrariesToCoreRoot"
+        ],
+        "tasks": [],
+        "inputs": []
+      }
+    },
+    "inputItems": {
+      "ApiCompatExcludeAttributesFile": [],
+      "ILLinkSubstitutionsXmls": [],
+      "_ILLinkDescriptorsFilePaths": [],
+      "ILLinkDescriptorsXmls": [],
+      "ILLinkLinkAttributesXmls": [],
+      "ILLinkSuppressionsXmls": [
+        "TargetPath"
+      ],
+      "ILLinkDescriptorsLibraryBuildXml": [],
+      "ILLinkSuppressionsLibraryBuildXml": [],
+      "ApiCompatSuppressionFile": []
+    },
+    "evaluationItems": [
+      "AdditionalLibPackageExcludes",
+      "AdditionalSymbolPackageExcludes",
+      "ApiCompatContractAssemblyReferences",
+      "ApiCompatLeftAssembliesTransformationPattern",
+      "ApiCompatRightAssembliesTransformationPattern",
+      "AspNetCoreAppLibrary",
+      "BinPlaceTargetFrameworks",
+      "CompilerVisibleProperty",
+      "CorehostProjectToBuild",
+      "CoverageExcludeByFile",
+      "CoverageIncludeDirectory",
+      "InstallerProjectToBuild",
+      "NETStandardCompatError",
+      "NetCoreAppLibrary",
+      "NetCoreAppLibraryGenerator",
+      "NetFxReference",
+      "PackageDownload",
+      "PkgprojProjectToBuild",
+      "ProjectExclusions",
+      "ProjectToBuild",
+      "SharedFrameworkProjectToBuild",
+      "SubsetName",
+      "SupportedNETCoreAppTargetFramework",
+      "SupportedPlatform",
+      "TestProjectToBuild",
+      "WindowsDesktopCoreAppLibrary",
+      "WorkloadSdkBandVersions",
+      "_CrossToolSubset",
+      "_ProjectReferenceWithOriginalIdentity",
+      "_frameworkProjectReference",
+      "_projectReferenceWithFilename",
+      "EnabledGenerators",
+      "GenFacadesOmitType",
+      "GenFacadesIgnoreMissingType",
+      "_coreLibProjectReference",
+      "_projectReferenceExcludedWithFilename",
+      "PackageDownloadAndReference",
+      "BinPlaceDir",
+      "_DebugSymbolToMove",
+      "_DebugSymbolToMoveToUpdate",
+      "CompilerVisibleItemMetadata",
+      "ExecutionScriptKind",
+      "PackageToInclude"
+    ],
+    "preparedRestore": true,
+    "inputDirectories": [
+      "artifacts/bin/ref/net10.0",
+      "artifacts/TargetingPack"
+    ]
+  },
+  "entryProperties": {
+    "src/tests/Common/external/external.csproj": {
+      "TargetPath": ""
+    }
+  },
+  "projects": {
+    "src/tests/Common/external/external.csproj": {
+      "outputFiles": [
+        "artifacts/TargetingPack/CommandLine.dll",
+        "artifacts/TargetingPack/Dia2Lib.dll",
+        "artifacts/TargetingPack/Microsoft.CodeAnalysis.CSharp.dll",
+        "artifacts/TargetingPack/Microsoft.CodeAnalysis.VisualBasic.dll",
+        "artifacts/TargetingPack/Microsoft.CodeAnalysis.dll",
+        "artifacts/TargetingPack/Microsoft.Diagnostics.FastSerialization.dll",
+        "artifacts/TargetingPack/Microsoft.Diagnostics.Tracing.TraceEvent.dll",
+        "artifacts/TargetingPack/Microsoft.DotNet.XUnitExtensions.dll",
+        "artifacts/TargetingPack/Newtonsoft.Json.Bson.dll",
+        "artifacts/TargetingPack/Newtonsoft.Json.dll",
+        "artifacts/TargetingPack/TraceReloggerLib.dll",
+        "artifacts/TargetingPack/amd64/KernelTraceControl.dll",
+        "artifacts/TargetingPack/amd64/msdia140.dll",
+        "artifacts/TargetingPack/arm64/KernelTraceControl.dll",
+        "artifacts/TargetingPack/arm64/msdia140.dll",
+        "artifacts/TargetingPack/cs/Microsoft.CodeAnalysis.CSharp.resources.dll",
+        "artifacts/TargetingPack/cs/Microsoft.CodeAnalysis.VisualBasic.resources.dll",
+        "artifacts/TargetingPack/cs/Microsoft.CodeAnalysis.resources.dll",
+        "artifacts/TargetingPack/de/Microsoft.CodeAnalysis.CSharp.resources.dll",
+        "artifacts/TargetingPack/de/Microsoft.CodeAnalysis.VisualBasic.resources.dll",
+        "artifacts/TargetingPack/de/Microsoft.CodeAnalysis.resources.dll",
+        "artifacts/TargetingPack/es/Microsoft.CodeAnalysis.CSharp.resources.dll",
+        "artifacts/TargetingPack/es/Microsoft.CodeAnalysis.VisualBasic.resources.dll",
+        "artifacts/TargetingPack/es/Microsoft.CodeAnalysis.resources.dll",
+        "artifacts/TargetingPack/external.deps.json",
+        "artifacts/TargetingPack/external.runtimeconfig.json",
+        "artifacts/TargetingPack/fr/Microsoft.CodeAnalysis.CSharp.resources.dll",
+        "artifacts/TargetingPack/fr/Microsoft.CodeAnalysis.VisualBasic.resources.dll",
+        "artifacts/TargetingPack/fr/Microsoft.CodeAnalysis.resources.dll",
+        "artifacts/TargetingPack/it/Microsoft.CodeAnalysis.CSharp.resources.dll",
+        "artifacts/TargetingPack/it/Microsoft.CodeAnalysis.VisualBasic.resources.dll",
+        "artifacts/TargetingPack/it/Microsoft.CodeAnalysis.resources.dll",
+        "artifacts/TargetingPack/ja/Microsoft.CodeAnalysis.CSharp.resources.dll",
+        "artifacts/TargetingPack/ja/Microsoft.CodeAnalysis.VisualBasic.resources.dll",
+        "artifacts/TargetingPack/ja/Microsoft.CodeAnalysis.resources.dll",
+        "artifacts/TargetingPack/ko/Microsoft.CodeAnalysis.CSharp.resources.dll",
+        "artifacts/TargetingPack/ko/Microsoft.CodeAnalysis.VisualBasic.resources.dll",
+        "artifacts/TargetingPack/ko/Microsoft.CodeAnalysis.resources.dll",
+        "artifacts/TargetingPack/pl/Microsoft.CodeAnalysis.CSharp.resources.dll",
+        "artifacts/TargetingPack/pl/Microsoft.CodeAnalysis.VisualBasic.resources.dll",
+        "artifacts/TargetingPack/pl/Microsoft.CodeAnalysis.resources.dll",
+        "artifacts/TargetingPack/pt-BR/Microsoft.CodeAnalysis.CSharp.resources.dll",
+        "artifacts/TargetingPack/pt-BR/Microsoft.CodeAnalysis.VisualBasic.resources.dll",
+        "artifacts/TargetingPack/pt-BR/Microsoft.CodeAnalysis.resources.dll",
+        "artifacts/TargetingPack/ru/Microsoft.CodeAnalysis.CSharp.resources.dll",
+        "artifacts/TargetingPack/ru/Microsoft.CodeAnalysis.VisualBasic.resources.dll",
+        "artifacts/TargetingPack/ru/Microsoft.CodeAnalysis.resources.dll",
+        "artifacts/TargetingPack/tr/Microsoft.CodeAnalysis.CSharp.resources.dll",
+        "artifacts/TargetingPack/tr/Microsoft.CodeAnalysis.VisualBasic.resources.dll",
+        "artifacts/TargetingPack/tr/Microsoft.CodeAnalysis.resources.dll",
+        "artifacts/TargetingPack/x86/KernelTraceControl.Win61.dll",
+        "artifacts/TargetingPack/x86/KernelTraceControl.dll",
+        "artifacts/TargetingPack/x86/msdia140.dll",
+        "artifacts/TargetingPack/xunit.abstractions.dll",
+        "artifacts/TargetingPack/xunit.assert.dll",
+        "artifacts/TargetingPack/xunit.console.deps.json",
+        "artifacts/TargetingPack/xunit.console.dll",
+        "artifacts/TargetingPack/xunit.console.exe",
+        "artifacts/TargetingPack/xunit.console.runtimeconfig.json",
+        "artifacts/TargetingPack/xunit.core.dll",
+        "artifacts/TargetingPack/xunit.execution.dotnet.dll",
+        "artifacts/TargetingPack/xunit.runner.reporters.netcoreapp10.dll",
+        "artifacts/TargetingPack/xunit.runner.utility.netcoreapp10.dll",
+        "artifacts/TargetingPack/zh-Hans/Microsoft.CodeAnalysis.CSharp.resources.dll",
+        "artifacts/TargetingPack/zh-Hans/Microsoft.CodeAnalysis.VisualBasic.resources.dll",
+        "artifacts/TargetingPack/zh-Hans/Microsoft.CodeAnalysis.resources.dll",
+        "artifacts/TargetingPack/zh-Hant/Microsoft.CodeAnalysis.CSharp.resources.dll",
+        "artifacts/TargetingPack/zh-Hant/Microsoft.CodeAnalysis.VisualBasic.resources.dll",
+        "artifacts/TargetingPack/zh-Hant/Microsoft.CodeAnalysis.resources.dll"
+      ]
+    }
+  }
+}

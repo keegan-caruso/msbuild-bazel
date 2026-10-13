@@ -329,46 +329,43 @@ passed independent HTTP recovery on 8.8.0 / 9.2.0 with Bazel action caches disab
 Missing blobs rebuild; corruption fails. Warm local builds alone do not prove recovery.
 See [performance and reproduction](performance.md).
 
-### First unchanged JIT test
+### Unchanged JIT test
 
-`src/tests/JIT/CodeGenBringUpTests/Add1_ro.csproj` at runtime v10.0.0 passed on
-Linux ARM64, four CPUs / 6 GiB, SDK **10.0.400** / Bazel **9.3.0**. Raw MSBuild
-builds the authored external/test dependencies and wrapper generator; Bazel declares
-those producers, generated reference trees and the generator's implementation edge.
-All **12 emitted DLL/PDB files** match raw bytes; the unchanged test runs on
-source-built corerun.
+`CodeGenBringUpTests/Add1_ro.csproj` at runtime v10.0.0 passes on Linux ARM64,
+four CPUs / 6 GiB, SDK **10.0.400** / Bazel **9.3.0**, running on source-built
+corerun. Its bootstrap and test graphs now use public `msbuild_nuget_update`,
+`msbuild_sync` and generated `app_graph` declarations. The authored projects and
+sources stay unchanged; reviewed mappings declare custom targets and deployment
+outputs. The wrapper generator's implementation edge is captured automatically.
 
-Body edits yield **two hits / one compilation**; generator implementation edits
-require **one hit / two compilations**, even with unchanged test DLL bytes.
-Success requires exit **100**; the upstream failing wrapper returns **101**, which
-Bazel rejects. Missing reference trees, compiler archives and generator sources fail.
-Native worker pass/fail controls also cover the exit contract on both Bazel pins.
+All **12 DLL/PDB files** and **69 deployed package files** match native raw MSBuild
+bytes. Raw preparation lets NuGet extract signed packages; file modes are compared
+only between producer and recovery. Body edits require **two hits / one compilation**;
+a fresh generator implementation edit requires **one hit / two compilations**.
+The upstream success/failure codes **100 / 101** are preserved. Omitted reference
+producers fail. Thirty-six sync controls cover tree byte invalidation, file/directory
+membership, symlinks, collisions and artifact-only SDK outputs.
 
-A fresh relocated consumer with the producer stopped recovered **three project
-snapshots / zero compilations**, matched product/runtime bytes and modes, and
-actually executed the recovered test with test caching disabled. Its only runtime
-inputs are digest-locked declared producer artifacts; it receives no local Bazel
-cache or snapshots. Bootstrap preparation is separate from the three-project test
-recovery. This qualifies Add1_ro, not JIT suites/stress, other architectures or RBE.
+The earlier [Add1 qualification](https://github.com/keegan-caruso/msbuild-bazel/pull/145)
+recovered three project snapshots with zero compilations and actually executed the
+test on an independent consumer with its producer stopped. That measurement used
+the previous handwritten fixture contract; public-generator recovery is separate.
 
-Reproduce in a qualified source-runtime workspace:
+Reproduce with declared, digest-locked source-runtime products and the pinned feed:
 
-1. [Raw bootstrap](../tests/graph_build/upstream/runtime_jit_raw.py):
-   `SOURCE_ARCHIVE PINNED_FEED SOURCE_REFS RAW_RESULTS`.
-2. [Declare](../tests/graph_build/upstream/runtime_jit_prepare.py):
-   `RUNTIME_WORKSPACE RAW_RESULTS/workspace`.
-3. [Qualify](../tests/graph_build/upstream/runtime_jit.py):
-   `RUNTIME_WORKSPACE RESULTS --phase=producer --raw=RAW_RESULTS/workspace
-   --output-base=BASE --trim-between-rows`.
-4. [Close consumer inputs](../tests/graph_build/upstream/runtime_jit_consumer.py):
-   `RUNTIME_WORKSPACE RESULTS/seed.json FRESH_CONSUMER`. Relocate to a fresh machine,
-   stop the producer, then run the qualifier with `--phase=consumer
-   --seed-report=FRESH_CONSUMER/seed.json --output-base=FRESH_BASE`.
+```sh
+python3 tests/graph_build/upstream/runtime_jit_public_prepare.py \
+  SOURCE_ARCHIVE SOURCE_PRODUCTS PRODUCER_SEED OUTPUT --host-space-path=HOST_BIND
+python3 tests/graph_build/upstream/runtime_jit_raw.py \
+  SOURCE_ARCHIVE PINNED_FEED SOURCE_REFS RAW_RESULTS \
+  --native-inventory=OUTPUT/workspace/nuget.lock.json
+python3 tests/graph_build/upstream/runtime_jit_public.py OUTPUT/workspace RESULTS \
+  --output-base=OUTPUT/bazel --raw=RAW_RESULTS/workspace --host-space-path=HOST_BIND
+```
 
-Set `RULES_MSBUILD_PROJECT_CACHE_URL` to the HTTP cache endpoint. Package hashes
-are pinned in [the JIT feed](../tests/graph_build/upstream/runtime_jit_packages.json).
-Use `--host-space-path=HOST_BIND` to require 8 GiB free before invocations. Reports
-stay outside Git; interrupted disk/setup attempts are excluded.
+Set `RULES_MSBUILD_PROJECT_CACHE_URL` to the HTTP cache. `PRODUCER_SEED` carries
+the locked source-product archive hash. Reports stay outside Git. Scope: Add1,
+not complete JIT suites/stress, other architectures or RBE.
 
 ## Limits
 

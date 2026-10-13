@@ -102,6 +102,7 @@ internal static class GraphGenerator
                 });
                 var sdkNames = project.Xml.Sdk.Split(';', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
                     .Concat(project.Xml.Children.OfType<Microsoft.Build.Construction.ProjectSdkElement>().Select(reference => reference.Name))
+                    .Concat(project.Xml.Imports.Select(import => import.Sdk).Where(name => name.Length != 0))
                     .Select(name => name.Split('/')[0]).Distinct(StringComparer.Ordinal).ToArray();
                 var traversal = sdkNames.Contains("Microsoft.Build.Traversal", StringComparer.Ordinal) &&
                     project.GetPropertyValue("UsingMicrosoftTraversalSdk").Equals("true", StringComparison.OrdinalIgnoreCase);
@@ -272,7 +273,7 @@ internal static class GraphGenerator
                 }
                 var instance = project.CreateProjectInstance();
                 AnalyzerConfigs.Bound(project, instance, root, sdkRoot);
-                outputs[Key(instance)] = !GraphProjectKind.HasAssembly(instance) && !GraphProjectKind.IsNoTargets(instance) ? [] : binding.OutputFiles
+                outputs[Key(instance)] = GraphProjectKind.IsTraversal(instance) ? [] : binding.OutputFiles
                     .SelectMany(value => project.ExpandString(value).Split(';', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
                     .Select(value => Relative(Path.GetFullPath(value.Replace('\\', '/'), root)))
                     .Distinct().Order(StringComparer.Ordinal).ToArray();
@@ -310,7 +311,7 @@ internal static class GraphGenerator
         {
             definitions.TryAdd(nativeLock, 0);
         }
-        var shared = (File.Exists(Path.Combine(root, "global.json")) ? new[] { "global.json" } : []).Concat(packageInputs ?? []).Concat(nativeLocks).Concat(solution ? entries : []).Distinct().Order(StringComparer.Ordinal).ToArray();
+        var shared = (File.Exists(Path.Combine(root, "global.json")) ? new[] { "global.json" } : []).Concat(packageInputs ?? []).Concat(view?.InputTrees.Values.SelectMany(tree => tree.Files) ?? []).Concat(nativeLocks).Concat(solution ? entries : []).Distinct().Order(StringComparer.Ordinal).ToArray();
         foreach (var path in shared)
         {
             if (!File.Exists(Path.Combine(root, WorkspaceView.Safe(path))))
@@ -387,7 +388,7 @@ internal static class GraphGenerator
             });
         }
         var inputDirectories = graph.ProjectNodes.SelectMany(node => mappings.ForProject(Relative(node.ProjectInstance.FullPath),
-            node.ProjectInstance.GetPropertyValue("TargetFramework")).InputDirectories).Select(WorkspaceView.Safe).Distinct().Order(StringComparer.Ordinal).ToArray();
+            node.ProjectInstance.GetPropertyValue("TargetFramework")).InputDirectories).Concat(view?.InputTrees.Keys.AsEnumerable() ?? []).Select(WorkspaceView.Safe).Distinct().Order(StringComparer.Ordinal).ToArray();
         foreach (var directory in inputDirectories)
         {
             if (!Directory.Exists(Path.Combine(root, directory)))
@@ -398,8 +399,8 @@ internal static class GraphGenerator
         var contractData = JsonSerializer.SerializeToNode(new
         {
             GeneratedBy = "ProjectSync",
-            Version = graph.ProjectNodes.Select(node => mappings.ForProject(Relative(node.ProjectInstance.FullPath), node.ProjectInstance.GetPropertyValue("TargetFramework")))
-                .Any(binding => binding.ReferenceBoundary == true || binding.ImplementationDependencies.Length != 0) ? 3 : 2,
+            Version = graph.ProjectNodes.Any(node => mappings.ForProject(Relative(node.ProjectInstance.FullPath),
+                node.ProjectInstance.GetPropertyValue("TargetFramework")).ReferenceBoundary == true || ImplementationDependencies(node).Length != 0) ? 3 : 2,
             Entry = entry,
             Entries = entries,
             SdkVersion = Path.GetFileName(sdk),
@@ -498,6 +499,11 @@ internal static class GraphGenerator
                 contractData["EvaluationReuseGlobs"] = JsonSerializer.SerializeToNode(reusePatterns);
             }
         }
+        if (view?.InputTrees.Count > 0)
+        {
+            contractData["Version"] = 12;
+            contractData["InputTrees"] = JsonSerializer.SerializeToNode(view.InputTrees);
+        }
         foreach (var project in contractData["Projects"]!.AsObject().Select(pair => pair.Value!))
         {
             foreach (var declaration in project["Configurations"]!.AsArray().Select(value => value!.AsObject()))
@@ -550,7 +556,7 @@ internal static class GraphGenerator
             "def app_graph(name = \"app\", linux_stable_paths = False, target = \"Build\", linux_worker = False, worker_cache_mb = 4096, evaluation_cache_mb = 512, profile_build = False):\n    if native.package_name():\n        fail(\"app_graph must be called from the workspace root\")\n" +
             "    msbuild_graph_runner(name = name + \"_runner\")\n" + sourceGlobs.Declaration + restoreRule + "    msbuild_graph(\n        name = name,\n        linux_stable_paths = linux_stable_paths,\n        linux_worker = linux_worker,\n        worker_cache_mb = worker_cache_mb,\n        evaluation_cache_mb = evaluation_cache_mb,\n        profile_build = profile_build,\n        target = target,\n        runner = \":\" + name + \"_runner\",\n" +
             (restore is null ? "" : "        restore = \":\" + name + \"_restore\",\n") +
-            "        contract = \"" + ContractName + "\",\n        srcs = " + sourceGlobs.Expression + ",\n        bindings = " + StarlarkLiteral.Serialize(view?.GraphBindingLabels ?? []) + ",\n        input_paths = " + StarlarkLiteral.Serialize(view?.Bindings(sources) ?? []) + ",\n        project_outputs = " + StarlarkLiteral.Serialize(runtimeOutputs) + ",\n        publish_outputs = " + StarlarkLiteral.Serialize(publishOutputs) + ",\n" + (view?.DefaultPackageLock is null ? "" : "        package_lock = " + StarlarkLiteral.Serialize(view.DefaultPackageLock) + ",\n") + "    )\n";
+            "        contract = \"" + ContractName + "\",\n        srcs = " + sourceGlobs.Expression + ",\n        bindings = " + StarlarkLiteral.Serialize(view?.GraphBindingLabels ?? []) + ",\n        input_paths = " + StarlarkLiteral.Serialize(view?.Bindings(sources.Concat(inputDirectories)) ?? []) + ",\n        project_outputs = " + StarlarkLiteral.Serialize(runtimeOutputs) + ",\n        publish_outputs = " + StarlarkLiteral.Serialize(publishOutputs) + ",\n" + (view?.DefaultPackageLock is null ? "" : "        package_lock = " + StarlarkLiteral.Serialize(view.DefaultPackageLock) + ",\n") + "    )\n";
         // Validate both destinations before replacing either generated file.
         Verify(ContractName, contract, "{\n  \"GeneratedBy\": \"ProjectSync\",");
         Verify(BuildName, text, Header);
@@ -592,7 +598,10 @@ internal static class GraphGenerator
                     throw new InvalidDataException("Implementation dependency must be a direct ProjectReference: " + path);
                 }
             }
-            return binding.ImplementationDependencies.Distinct().Order(StringComparer.Ordinal).ToArray();
+            var analyzers = node.ProjectInstance.GetItems("ProjectReference")
+                .Where(item => item.GetMetadataValue("OutputItemType").Equals("Analyzer", StringComparison.OrdinalIgnoreCase))
+                .Select(item => Relative(Path.GetFullPath(item.EvaluatedInclude.Replace('\\', '/'), Path.GetDirectoryName(node.ProjectInstance.FullPath)!)));
+            return binding.ImplementationDependencies.Concat(analyzers).Distinct().Order(StringComparer.Ordinal).ToArray();
         }
         string? CompilerReference(ProjectGraphNode node)
         {

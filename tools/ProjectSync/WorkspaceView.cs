@@ -3,7 +3,8 @@ using System.Text.Json.Serialization;
 
 namespace RulesMSBuild.ProjectSync;
 
-internal sealed record SyncInput(string Path, string Label, string Runfile);
+internal sealed record SyncInputTree(string[] Files, string[] Directories);
+internal sealed record SyncInput(string Path, string Label, string Runfile, bool Directory = false);
 internal sealed record SyncPackage(string Id, string Version, string Runfile);
 internal sealed record SyncBinding(string Label, string Property, string[] Runfiles, string Entry, bool Closure = false);
 internal sealed record SyncPackageLock(string Label, string[] Packages);
@@ -34,6 +35,8 @@ internal sealed class WorkspaceView : IDisposable
         get; private set;
     }
     internal Dictionary<string, string> Labels { get; } = new(StringComparer.Ordinal);
+    private readonly HashSet<string> treeRoots = new(StringComparer.Ordinal);
+    private readonly Dictionary<string, string> producerRoots = new(StringComparer.Ordinal);
 
     private WorkspaceView(string root, string? temporary, string? packageLock)
     {
@@ -86,18 +89,49 @@ internal sealed class WorkspaceView : IDisposable
             foreach (var input in inputs.Inputs)
             {
                 var path = Safe(input.Path);
-                if (path.Split('/').Any(p => p is ".git" or ".nuget") || !view.Labels.TryAdd(path, input.Label))
+                if (path.Split('/').Any(p => p is ".git" or ".nuget") || !view.producerRoots.TryAdd(input.Label, path))
                 {
                     throw new InvalidDataException("Duplicate or reserved sync input: " + path);
                 }
                 var source = Path.Combine(runfiles, Safe(input.Runfile));
                 var destination = Path.Combine(temporary, path);
-                if (!File.Exists(source) || Path.Exists(destination))
+                if (Path.Exists(Path.Combine(root, path)) || Path.Exists(destination) || (input.Directory ? !Directory.Exists(source) : !File.Exists(source)))
                 {
                     throw new InvalidDataException("Missing producer or colliding source input: " + path);
                 }
-                Directory.CreateDirectory(Path.GetDirectoryName(destination)!);
-                File.CreateSymbolicLink(destination, source);
+                if (input.Directory)
+                {
+                    source = PhysicalPath(source);
+                    view.treeRoots.Add(path);
+                    foreach (var file in ProducerEntries(source))
+                    {
+                        var relative = Safe(path + "/" + Path.GetRelativePath(source, file).Replace('\\', '/'));
+                        if (relative.Split('/').Any(p => p is ".git" or ".nuget") || !view.Labels.TryAdd(relative, input.Label))
+                        {
+                            throw new InvalidDataException("Duplicate or reserved sync input: " + relative);
+                        }
+                        var target = Path.Combine(temporary, relative);
+                        Directory.CreateDirectory(Path.GetDirectoryName(target)!);
+                        if (Directory.Exists(file))
+                        {
+                            Directory.CreateDirectory(target);
+                        }
+                        else
+                        {
+                            File.Copy(file, target);
+                        }
+                    }
+                    Directory.CreateDirectory(destination);
+                }
+                else
+                {
+                    if (!view.Labels.TryAdd(path, input.Label))
+                    {
+                        throw new InvalidDataException("Duplicate sync input: " + path);
+                    }
+                    Directory.CreateDirectory(Path.GetDirectoryName(destination)!);
+                    File.CreateSymbolicLink(destination, source);
+                }
             }
             foreach (var binding in inputs.Bindings ?? [])
             {
@@ -248,7 +282,40 @@ internal sealed class WorkspaceView : IDisposable
 
     private static string LabelKey(string label) => label.StartsWith(':') ? "@@//" + label : label.StartsWith("//", StringComparison.Ordinal) ? "@@" + label : label;
     internal bool IsPackage(string path) => path.StartsWith(Path.Combine(Root, ".nuget", "packages") + Path.DirectorySeparatorChar, StringComparison.Ordinal);
-    internal Dictionary<string, string> Bindings(IEnumerable<string> paths) => paths.Distinct(StringComparer.Ordinal).Where(Labels.ContainsKey).ToDictionary(path => Labels[path], path => path, StringComparer.Ordinal);
+    internal IEnumerable<string> ProducerRoots => producerRoots.Values;
+    internal Dictionary<string, SyncInputTree> InputTrees => treeRoots.Order(StringComparer.Ordinal).ToDictionary(root => root,
+        root => new SyncInputTree(Labels.Keys.Where(path => path.StartsWith(root + "/", StringComparison.Ordinal) && File.Exists(Path.Combine(Root, path))).Order(StringComparer.Ordinal).ToArray(),
+            Labels.Keys.Where(path => path.StartsWith(root + "/", StringComparison.Ordinal) && Directory.Exists(Path.Combine(Root, path))).Order(StringComparer.Ordinal).ToArray()), StringComparer.Ordinal);
+    internal Dictionary<string, string> Bindings(IEnumerable<string> paths) => paths
+        .SelectMany(path => Labels.TryGetValue(path, out var label) ? new[] { label } : producerRoots.Where(pair => pair.Value == path || path.StartsWith(pair.Value + "/", StringComparison.Ordinal)).Select(pair => pair.Key))
+        .Distinct(StringComparer.Ordinal).ToDictionary(label => label, label => producerRoots[label], StringComparer.Ordinal);
+
+    private static IEnumerable<string> ProducerEntries(string root)
+    {
+        if ((File.GetAttributes(root) & FileAttributes.ReparsePoint) != 0)
+        {
+            throw new InvalidDataException("Producer tree symlinks are unsupported: " + root);
+        }
+        foreach (var entry in Directory.EnumerateFileSystemEntries(root).Order(StringComparer.Ordinal))
+        {
+            if (Directory.Exists(entry))
+            {
+                yield return entry;
+                foreach (var file in ProducerEntries(entry))
+                {
+                    yield return file;
+                }
+            }
+            else if ((File.GetAttributes(entry) & FileAttributes.ReparsePoint) != 0)
+            {
+                throw new InvalidDataException("Producer tree symlinks are unsupported: " + entry);
+            }
+            else
+            {
+                yield return entry;
+            }
+        }
+    }
     public void Dispose()
     {
         if (temporary is not null)

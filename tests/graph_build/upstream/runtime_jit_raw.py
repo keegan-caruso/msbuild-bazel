@@ -25,6 +25,7 @@ def main():
     parser.add_argument('package_feed', type=Path)
     parser.add_argument('references', type=Path, help='source-built artifacts/bin/ref/net10.0')
     parser.add_argument('directory', type=Path, help='new disposable result directory')
+    parser.add_argument('--native-inventory', type=Path, help='public native inventory; let NuGet extract and verify signed packages')
     args = parser.parse_args()
     assert os.uname().sysname == 'Linux' and os.uname().machine == 'aarch64'
     assert hashlib.sha256(args.source_archive.read_bytes()).hexdigest() == SOURCE_SHA256
@@ -43,6 +44,10 @@ def main():
         assert hashlib.sha256(path.read_bytes()).hexdigest() == record['sha256'], key
     for path in args.package_feed.glob('*.nupkg'):
         shutil.copyfile(path, feed / path.name)
+    if args.native_inventory:
+        inventory = json.loads(args.native_inventory.read_text())
+        assert inventory['generatedBy'] == 'RulesMSBuild.NuGetUpdate'
+        shutil.copyfile(args.native_inventory, root / 'nuget.lock.json')
     expand_raw_packages(root)
     shutil.copytree(args.references, root / REFS, copy_function=shutil.copyfile)
     refs = {str(p.relative_to(root)): hashlib.sha256(p.read_bytes()).hexdigest()
