@@ -24,6 +24,7 @@ def main():
     parser.add_argument('source_products', type=Path)
     parser.add_argument('seed_report', type=Path)
     parser.add_argument('output', type=Path)
+    parser.add_argument('--cases', type=Path, help='reviewed unchanged JIT case declarations')
     parser.add_argument('--resume', action='store_true', help='resume an interrupted disposable preparation')
     parser.add_argument('--host-space-path', type=Path, required=True)
     args = parser.parse_args()
@@ -31,16 +32,25 @@ def main():
     assert hashlib.sha256(args.source_archive.read_bytes()).hexdigest() == SOURCE_SHA256
     seed = json.loads(args.seed_report.read_text())
     assert hashlib.sha256(args.source_products.read_bytes()).hexdigest() == seed['sourceProductsSha256']
+    cases = json.loads(args.cases.read_text()) if args.cases else [dict(name='add1', project=ENTRY, source='src/tests/JIT/CodeGenBringUpTests/Add1.cs', sourceDigests=PINNED, compiledFiles=4)]
+    pins = {path: digest for case in cases for path, digest in case['sourceDigests'].items()}
+    projects = [DEPENDENCIES] + [case['project'] for case in cases]
+    assert len(set(projects)) == len(projects) and len({case['name'] for case in cases}) == len(cases)
     base = args.output.resolve()
     base.mkdir(parents=True, exist_ok=args.resume)
     source = base / 'workspace'
     source.mkdir(exist_ok=args.resume)
-    directories = ['eng/', 'src/tests/Common/', 'src/tests/JIT/CodeGenBringUpTests/']
+    directories = ['eng/', 'src/tests/Common/'] + sorted({str(Path(case['project']).parent) + '/' for case in cases})
     files = {'global.json', 'NuGet.config', 'Directory.Build.props', 'Directory.Build.targets',
         'src/tests/Directory.Build.props', 'src/tests/Directory.Build.targets', 'src/tests/Directory.Merged.props',
         'src/tests/JIT/Directory.Build.props', 'src/coreclr/Directory.Build.props', 'src/coreclr/Directory.Build.targets',
         'src/coreclr/clr.featuredefines.props', 'src/libraries/Microsoft.NETCore.Platforms/src/runtime.json',
         'src/libraries/Microsoft.NETCore.Platforms/src/PortableRuntimeIdentifierGraph.json'}
+    for case in cases:
+        parent = Path(case['project']).parent
+        while str(parent) != '.':
+            files.update(str(parent / name) for name in ['Directory.Build.props', 'Directory.Build.targets'])
+            parent = parent.parent
     prefix = 'runtime-' + COMMIT + '/'
     with tarfile.open(args.source_archive) as archive:
         for member in archive.getmembers():
@@ -51,7 +61,7 @@ def main():
                 assert not member.issym() and not member.islnk()
                 member.name = relative
                 archive.extract(member, source, filter='data')
-    for path, digest in PINNED.items():
+    for path, digest in pins.items():
         assert hashlib.sha256((source / path).read_bytes()).hexdigest() == digest
     shutil.copyfile(Path(__file__).with_name('runtime_jit_public_mappings.json'), source / 'mappings.json')
     shutil.copyfile(Path(__file__).with_name('runtime_jit_artifacts.bzl'), source / 'products.bzl')
@@ -62,7 +72,7 @@ def main():
         'dotnet.sdk(name="dotnet",version="10.0.400")\nuse_repo(dotnet,"dotnet")\nregister_toolchains("@dotnet//:all")\n')
     (source / 'MODULE.bazel').write_text(module)
     update = ('load("@rules_msbuild//msbuild:sync.bzl","msbuild_nuget_update","msbuild_sync")\n'
-        'projects=' + repr([DEPENDENCIES, ENTRY]) + '\n'
+        'projects=' + repr(projects) + '\n'
         'msbuild_nuget_update(name="update_packages",projects=projects,mappings="mappings.json")\n')
     (source / 'BUILD.bazel').write_text(update)
     command = [str(ROOT / 'scripts/bazel-launcher.sh'), '--output_base=' + str(base / 'bazel')]
@@ -87,7 +97,7 @@ def main():
         sha256=hashlib.sha256(external.read_bytes()).hexdigest(),
         targets=['FilterNugetPackages', 'AddXunitConsoleRunner', 'CoreCompile'], tasks=[], inputs=[])
     (bootstrap / 'mappings.json').write_text(json.dumps(bootstrap_mapping, indent=2) + '\n')
-    bootstrap_build = update.replace(repr([DEPENDENCIES, ENTRY]), repr([EXTERNAL]))
+    bootstrap_build = update.replace(repr(projects), repr([EXTERNAL]))
     (bootstrap / 'BUILD.bazel').write_text(bootstrap_build)
     run('bootstrap-update', ['run', '//:update_packages'], bootstrap, base / 'bootstrap-bazel')
     run('bootstrap-update-check', ['run', '//:update_packages', '--', '--check'], bootstrap, base / 'bootstrap-bazel')
@@ -123,14 +133,17 @@ def main():
         'app_graph(name="graph",linux_stable_paths=True,linux_worker=True)',
         'msbuild_layout(name="core_root",paths={":host_products":"."})',
         'msbuild_runtime(name="jit_host",layout=":core_root",entry_point="corerun",launch_mode="corerun",runtime_identifier="linux-arm64",version="10.0.0")',
-        'msbuild_graph_test(name="add1",graph=":graph",project=' + repr(ENTRY) + ',runtime_host=":jit_host",expected_exit_code=100)']
+        'test_suite(name="jit_tests",tests=' + repr([':' + case['name'] for case in cases]) + ')']
+    declarations += ['msbuild_graph_test(name=' + repr(case['name']) + ',graph=":graph",project=' + repr(case['project']) + ',runtime_host=":jit_host",expected_exit_code=100)' for case in cases]
     (source / 'BUILD.bazel').write_text('\n'.join(declarations) + '\n')
     contract = json.loads((source / 'graph.generated.json').read_text())
     wrapper = 'src/tests/Common/XUnitWrapperGenerator/XUnitWrapperGenerator.csproj'
-    assert contract['Projects'][ENTRY]['Configurations'][0]['ImplementationDependencies'] == [wrapper]
+    for case in cases:
+        assert contract['Projects'][case['project']]['Configurations'][0]['ImplementationDependencies'] == [wrapper]
+    (source / 'jit-public.json').write_text(json.dumps(dict(cases=cases, sourceDigests=pins), indent=2) + '\n')
     manifest = json.loads((source / 'nuget.lock.json').read_text())
     (base / 'summary.json').write_text(json.dumps(dict(commit=COMMIT, sdk='10.0.400',
-        sourceDigests=PINNED, projects=list(contract['Projects']), archives=len(manifest['packages']),
+        sourceDigests=pins, projects=list(contract['Projects']), archives=len(manifest['packages']),
         nativeLocks=len(manifest['lockFiles']), sourceProductsSha256=seed['sourceProductsSha256']), indent=2) + '\n')
     print(source, flush=True)
 

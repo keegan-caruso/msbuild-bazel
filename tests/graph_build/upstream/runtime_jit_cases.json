@@ -1,0 +1,57 @@
+[
+  {
+    "name": "add1",
+    "project": "src/tests/JIT/CodeGenBringUpTests/Add1_ro.csproj",
+    "source": "src/tests/JIT/CodeGenBringUpTests/Add1.cs",
+    "scope": "arithmetic",
+    "sourceDigests": {
+      "src/tests/JIT/CodeGenBringUpTests/Add1_ro.csproj": "511e72cd4b9d3b2842e390c9640eb3f55b7a385027b000ea08f80fddc33062af",
+      "src/tests/JIT/CodeGenBringUpTests/Add1.cs": "830fce95a0aac6a98209f9e4edb365801a50badbd55ddded0a103814fca2e158"
+    },
+    "compiledFiles": 4
+  },
+  {
+    "name": "switch",
+    "project": "src/tests/JIT/CodeGenBringUpTests/Switch_ro.csproj",
+    "source": "src/tests/JIT/CodeGenBringUpTests/Switch.cs",
+    "scope": "control flow",
+    "sourceDigests": {
+      "src/tests/JIT/CodeGenBringUpTests/Switch_ro.csproj": "e72be2a6d433dfa23869d8f9ac26c685537b710c62a0760030abfe48b4305c63",
+      "src/tests/JIT/CodeGenBringUpTests/Switch.cs": "1714493ef552240455888590a765a66f93e3d678e5cdd9c1937383f9c3d5ead0"
+    },
+    "compiledFiles": 4
+  },
+  {
+    "name": "factorial",
+    "project": "src/tests/JIT/CodeGenBringUpTests/FactorialRec_ro.csproj",
+    "source": "src/tests/JIT/CodeGenBringUpTests/FactorialRec.cs",
+    "scope": "recursion",
+    "sourceDigests": {
+      "src/tests/JIT/CodeGenBringUpTests/FactorialRec_ro.csproj": "87e0f1a0062873195c0d7e3ebf55b2c20c08ff4ac2ffba620c6648844654c8de",
+      "src/tests/JIT/CodeGenBringUpTests/FactorialRec.cs": "1c52159096249fb45b12ffb1d4af26e3f669e50e9c30d76ebf6be7859baa3ccc"
+    },
+    "compiledFiles": 4
+  },
+  {
+    "name": "array_exception",
+    "project": "src/tests/JIT/CodeGenBringUpTests/ArrayExc_ro.csproj",
+    "source": "src/tests/JIT/CodeGenBringUpTests/ArrayExc.cs",
+    "scope": "exception handling",
+    "sourceDigests": {
+      "src/tests/JIT/CodeGenBringUpTests/ArrayExc_ro.csproj": "338272c6e8190893b36c44a370b50e3b5f03894a2255302e1acf41fc87154c27",
+      "src/tests/JIT/CodeGenBringUpTests/ArrayExc.cs": "db0f5692e2794c8b2489dba7ffe34067994a1428d04d04b215d737adc357750c"
+    },
+    "compiledFiles": 4
+  },
+  {
+    "name": "constrained_generic",
+    "project": "src/tests/JIT/Generics/ConstrainedCall/vt1_cs_ro.csproj",
+    "source": "src/tests/JIT/Generics/ConstrainedCall/vt1.cs",
+    "scope": "constrained generic calls",
+    "sourceDigests": {
+      "src/tests/JIT/Generics/ConstrainedCall/vt1_cs_ro.csproj": "826209cb2769a533d8112b1f77259b1da23b4e966dc3b98ee8d6533f123a51f8",
+      "src/tests/JIT/Generics/ConstrainedCall/vt1.cs": "84080a347b447aa800605639e2f6a75ce4dbf5e04579adfd066bc4c9fc3a3f06"
+    },
+    "compiledFiles": 2
+  }
+]

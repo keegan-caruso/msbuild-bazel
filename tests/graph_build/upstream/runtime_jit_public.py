@@ -1,18 +1,23 @@
 """Qualify generated JIT graphs; reports and disposable inputs stay outside Git."""
 import argparse
-import hashlib
+from collections import Counter
 import json
 import os
 import re
+import socket
 from pathlib import Path
 import subprocess
 import time
 import uuid
 
 from runtime_jit import digest, inventory
-from runtime_jit_prepare import CODE, ENTRY, PINNED, TEST_OUTPUT
+from runtime_jit_prepare import CODE, TEST_OUTPUT
 
 ROOT = Path(__file__).resolve().parents[3]
+
+
+def records_from(path):
+    return [json.loads(line) for line in path.read_text().splitlines()]
 
 
 def main():
@@ -24,12 +29,20 @@ def main():
     parser.add_argument('--seed-report', type=Path)
     parser.add_argument('--host-space-path', type=Path, required=True)
     args = parser.parse_args()
+    assert os.uname().sysname == 'Linux' and os.uname().machine == 'aarch64'
     root, results = args.workspace.resolve(), args.results.resolve()
     results.mkdir(parents=True, exist_ok=False)
-    for path, value in PINNED.items():
+    if args.seed_report:
+        expected = json.loads(args.seed_report.read_text())
+        assert expected['machine'] != socket.gethostname() and expected['workspace'] != str(root), 'Require an independent relocated consumer'
+        assert not args.output_base.exists(), 'Recovery requires a fresh output base'
+    metadata = json.loads((root / 'jit-public.json').read_text())
+    cases = metadata['cases']
+    node_count = len(cases) + 2
+    for path, value in metadata['sourceDigests'].items():
         assert digest(root / path) == value, path
     endpoint = os.environ['RULES_MSBUILD_PROJECT_CACHE_URL']
-    command = [str(ROOT / 'scripts/bazel-launcher.sh'), '--output_base=' + str(args.output_base.resolve()), 'test', '//:add1',
+    command = [str(ROOT / 'scripts/bazel-launcher.sh'), '--output_base=' + str(args.output_base.resolve()), 'test', '//:jit_tests',
         '--jobs=1', '--strategy=MSBuildGraph=worker', '--worker_sandboxing', '--worker_max_instances=MSBuildGraph=1',
         '--disk_cache=', '--remote_cache=', '--nocache_test_results', '--test_output=all', '--lockfile_mode=off',
         '--action_env=RULES_MSBUILD_PROJECT_CACHE_URL=' + endpoint]
@@ -47,9 +60,12 @@ def main():
         records = [json.loads(line) for line in events.read_text().splitlines()]
         tests = [event['testResult'] for event in records if 'testResult' in event]
         if success or label == 'failure':
-            assert len(tests) == 1
-            assert tests[0]['status'] == ('PASSED' if success else 'FAILED'), tests
-            assert not tests[0].get('cachedLocally') and not tests[0].get('executionInfo', {}).get('cachedRemotely'), tests
+            assert len(tests) == len(cases), tests
+            labels = {event['id']['testResult']['label'] for event in records if 'testResult' in event}
+            assert labels == {'//:' + case['name'] for case in cases}, labels
+            expected = Counter(PASSED=len(cases)) if success else Counter(PASSED=len(cases)-1, FAILED=1)
+            assert Counter(test['status'] for test in tests) == expected, tests
+            assert all(not test.get('cachedLocally') and not test.get('executionInfo', {}).get('cachedRemotely') for test in tests), tests
         row = dict(case=label, seconds=time.monotonic() - start, success=success, executed=len(tests))
         if success:
             graph = root / 'bazel-bin/graph.graph'
@@ -64,14 +80,22 @@ def main():
     seed = invoke('recovery' if args.seed_report else 'seed')
     if args.seed_report:
         expected = json.loads(args.seed_report.read_text())
-        assert (seed['hits'], seed['misses']) == (3, 0)
+        assert (seed['hits'], seed['misses']) == (node_count, 0)
         for key in ['outputs', 'sourceHost']:
             assert seed[key] == expected[key], key
+        bootstrap_report = json.loads(next((root / 'bazel-bin/external').glob('*/bootstrap.graph/report.json')).read_text())
+        # Artifact-only ordinary SDK deployment is not a plugin compilation node.
+        # With Bazel's action cache disabled it runs again, without Csc.
+        assert (bootstrap_report['hits'], bootstrap_report['misses']) == (0, 0), bootstrap_report
+        targeting = next((root / 'bazel-bin/external').glob('*/targeting/TargetingPack'))
+        assert inventory(targeting) == expected['bootstrapOutputs'], 'Recovered bootstrap differs'
+        metrics = next(event['buildMetrics']['actionSummary'] for event in records_from(results / 'recovery.bep') if 'buildMetrics' in event)
+        assert sum(int(row.get('actionsExecuted', 0)) for row in metrics['actionData'] if row['mnemonic'] == 'MSBuildGraph') >= 2
         print('PASS: independent public JIT recovery and actual source-runtime execution', flush=True)
         return
     assert args.raw
     compiled = [path for path in seed['outputs'] if path.endswith(('.dll', '.pdb'))]
-    assert len(compiled) == 12, compiled
+    assert len(compiled) == 8 + sum(case['compiledFiles'] for case in cases), compiled
     for path in compiled:
         assert digest(args.raw / path) == seed['outputs'][path]['sha256'], path
     targeting = next((root / 'bazel-bin/external').glob('*/targeting/TargetingPack'))
@@ -80,7 +104,22 @@ def main():
     assert deployed.keys() == raw_deployed.keys(), 'Bootstrap product inventory differs'
     for path in deployed:
         assert deployed[path]['sha256'] == raw_deployed[path]['sha256'], path
-    seed.update(comparedCompiledFiles=len(compiled), bootstrapOutputs=deployed)
+    seed.update(comparedCompiledFiles=len(compiled), bootstrapOutputs=deployed, nodeCount=node_count, sourceDigests=metadata['sourceDigests'], sourceProductsSha256=digest(root / 'source-products.tar.gz'), machine=socket.gethostname(), workspace=str(root))
+    # Execute each raw binary with only the declared source runtime and OS visible.
+    host = (root / 'bazel-bin/core_root.layout').resolve()
+    for case in cases:
+        product = 'artifacts/tests/coreclr/linux.arm64.Release/' + str(Path(case['project']).parent.relative_to('src/tests')) + '/' + Path(case['project']).stem
+        raw_output = (args.raw / product).resolve()
+        raw_command = ['bwrap', '--die-with-parent', '--unshare-user', '--unshare-pid', '--clearenv', '--proc', '/proc', '--dev', '/dev', '--tmpfs', '/tmp']
+        for path in ['/usr', '/bin', '/lib', '/lib64', '/etc/ld.so.cache']:
+            if Path(path).exists():
+                raw_command += ['--ro-bind', path, path]
+        raw_command += ['--ro-bind', str(host), '/runtime', '--ro-bind', str(raw_output), '/test',
+            '--setenv', 'CORE_ROOT', '/runtime', '--chdir', '/test', '/runtime/corerun', '/test/' + Path(case['project']).stem + '.dll']
+        with (results / (case['name'] + '-raw.log')).open('w') as log:
+            outcome = subprocess.run(raw_command, stdout=log, stderr=subprocess.STDOUT)
+        assert outcome.returncode == 100, (case['name'], outcome.returncode)
+    seed['rawExecuted'] = len(cases)
     (results / 'seed.json').write_text(json.dumps(seed, indent=2) + '\n')
     source = root / CODE
     original = source.read_bytes()
@@ -91,7 +130,7 @@ def main():
     try:
         source.write_bytes(original.replace(b'return x+1;', b'return unchecked(x+1);') + ('\n// Body token: ' + uuid.uuid4().hex + '\n').encode())
         body = invoke('body')
-        assert (body['hits'], body['misses']) == (2, 1)
+        assert (body['hits'], body['misses']) == (node_count-1, 1)
         assert body['outputs'][TEST_OUTPUT + '/Add1_ro.dll'] != seed['outputs'][TEST_OUTPUT + '/Add1_ro.dll']
         source.write_bytes(original.replace(b'return x+1;', b'return x+2;'))
         invoke('failure', False)
@@ -100,7 +139,7 @@ def main():
         assert invoke('restored')['outputs'] == seed['outputs']
         generator.write_bytes(original_generator + ('\ninternal static class QualificationGeneratorInput_' + uuid.uuid4().hex + ' {}\n').encode())
         changed = invoke('generator')
-        assert (changed['hits'], changed['misses']) == (1, 2)
+        assert (changed['hits'], changed['misses']) == (1, node_count-1)
         generator.write_bytes(original_generator)
         assert invoke('generator-restored')['outputs'] == seed['outputs']
         bindings = re.findall(r'"[^"]+":"artifacts/bin/ref/net10.0"', original_generated)
