@@ -228,7 +228,8 @@ internal static class GraphGenerator
                         continue;
                     }
                     var fullPath = item.GetMetadataValue("FullPath");
-                    if (fullPath.Length == 0 || IsSdk(fullPath) || IsRestored(fullPath))
+                    if (fullPath.Length == 0 || IsSdk(fullPath) || IsRestored(fullPath) ||
+                        (item.ItemType == "None" && IsSdk(item.Xml.ContainingProject.FullPath) && view?.IsEvaluationOnly(Relative(fullPath)) == true))
                     {
                         continue;
                     }

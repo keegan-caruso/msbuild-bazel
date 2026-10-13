@@ -141,8 +141,6 @@ class GraphSyncTests(unittest.TestCase):
             self.assertIn('reserved sync input', self.sync(flags=flags, success=False))
 
     def test_tree_contract_guards_membership_and_hashes_bytes(self):
-        (self.root / 'NuGet.Config').write_text('<configuration><packageSources><clear/></packageSources>'
-            '<fallbackPackageFolders><clear/></fallbackPackageFolders></configuration>')
         with tempfile.TemporaryDirectory(prefix='graph-tree-cache-') as directory:
             base = Path(directory)
             tree = base / 'producer'
@@ -159,6 +157,8 @@ class GraphSyncTests(unittest.TestCase):
             (self.root / 'graph.generated.bzl').unlink()
             data = json.loads(contract.read_text())
             self.assertEqual(data['InputTrees']['inputs']['Directories'], ['inputs/empty'])
+            self.assertFalse((self.root / 'NuGet.Config').exists())
+            self.assertFalse(any('NuGet.Config' in node['Inputs'] for project in data['Projects'].values() for node in project['Configurations']))
             self.assertEqual(data['InputTrees']['empty-tree'], {'Files': [], 'Directories': []})
             self.assertIn('empty-tree', data['InputDirectories'])
             shutil.copytree(tree, self.root / 'inputs')

@@ -35,6 +35,7 @@ internal sealed class WorkspaceView : IDisposable
         get; private set;
     }
     internal Dictionary<string, string> Labels { get; } = new(StringComparer.Ordinal);
+    private readonly HashSet<string> evaluationOnly = new(StringComparer.Ordinal);
     private readonly HashSet<string> treeRoots = new(StringComparer.Ordinal);
     private readonly Dictionary<string, string> producerRoots = new(StringComparer.Ordinal);
 
@@ -180,6 +181,10 @@ internal sealed class WorkspaceView : IDisposable
             view.SelectPackageLock(inputs.PackageLock);
             // A missing SDK must not fall back to a user's feeds/cache.
             var configName = Directory.EnumerateFiles(root).Select(Path.GetFileName).FirstOrDefault(name => name!.Equals("NuGet.Config", StringComparison.OrdinalIgnoreCase)) ?? "NuGet.Config";
+            if (!File.Exists(Path.Combine(root, configName)))
+            {
+                view.evaluationOnly.Add(configName);
+            }
             var config = Path.Combine(temporary, configName);
             File.Delete(config);
             File.WriteAllText(config, "<configuration><packageSources><clear/></packageSources><fallbackPackageFolders><clear/></fallbackPackageFolders></configuration>");
@@ -282,6 +287,7 @@ internal sealed class WorkspaceView : IDisposable
 
     private static string LabelKey(string label) => label.StartsWith(':') ? "@@//" + label : label.StartsWith("//", StringComparison.Ordinal) ? "@@" + label : label;
     internal bool IsPackage(string path) => path.StartsWith(Path.Combine(Root, ".nuget", "packages") + Path.DirectorySeparatorChar, StringComparison.Ordinal);
+    internal bool IsEvaluationOnly(string relative) => evaluationOnly.Contains(relative);
     internal IEnumerable<string> ProducerRoots => producerRoots.Values;
     internal Dictionary<string, SyncInputTree> InputTrees => treeRoots.Order(StringComparer.Ordinal).ToDictionary(root => root,
         root => new SyncInputTree(Labels.Keys.Where(path => path.StartsWith(root + "/", StringComparison.Ordinal) && File.Exists(Path.Combine(Root, path))).Order(StringComparer.Ordinal).ToArray(),
