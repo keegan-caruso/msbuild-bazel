@@ -148,9 +148,11 @@ independent stopped-producer recovery: normal Restore + graph action hits, then
 forced HTTP project recovery with zero compilations and identical bytes/modes.
 The small slice's app verified and exercised the source-built Pipelines DLL on the
 downloaded host. The large slice executed an app on its declared source-built native
-runtime plus eight upstream suites; its independent consumer recovered cached test
-results. Forced consumer test execution was blocked by filesystem damage and remains
-unqualified. See [measurements and reproduction](performance.md#large-downloaded-sdk-graph).
+runtime plus eight upstream suites. A healthy independent consumer now actually
+executes all nine tests after normal Restore/graph action recovery and after forced
+**481 HTTP project hits / zero compilations**. Both match **10,780 retained files**
+including modes, **118,952 passed / 64 skipped** upstream cases, and loaded source-runtime
+hashes. Test-result caching is disabled and the producer is stopped. See [measurements and reproduction](performance.md#large-downloaded-sdk-graph).
 This is a bounded managed graph with declared native producers, not the entire
 runtime repo, a full source-built SDK, Linux x64 or remote execution.
 
