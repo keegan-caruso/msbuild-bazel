@@ -50,15 +50,18 @@ def main():
     assert refs and any(p.endswith('/System.Runtime.dll') for p in refs)
     for path, digest in PINNED.items():
         assert hashlib.sha256((root / path).read_bytes()).hexdigest() == digest
-    config = root / 'NuGet.Config'
-    config.write_text('<configuration><packageSources><clear/><add key="declared" value=".package-source"/></packageSources><fallbackPackageFolders><clear/></fallbackPackageFolders></configuration>')
+    # Keep the authored root config unchanged; raw Restore uses this explicit
+    # private offline config, matching the graph runner's declared-package feed.
+    config = root / '.qualification/NuGet.Config'
+    config.parent.mkdir()
+    config.write_text('<configuration><packageSources><clear/><add key="declared" value="../.package-source"/></packageSources><fallbackPackageFolders><clear/></fallbackPackageFolders></configuration>')
     scratch = base / 'scratch'
     scratch.mkdir()
     stable = '/__rules_msbuild_graph/output/workspace'
     properties = dict(Configuration='Release', TargetOS='linux', TargetArchitecture='arm64',
                       BuildAllTestsAsStandalone='true', CLRTestPriorityToBuild='1', UseSharedCompilation='false',
                       NuGetAudit='false', LibrariesSharedFrameworkRefArtifactsPath=stable + '/' + REFS + '/',
-                      RestoreSources=stable + '/.package-source', RestoreConfigFile=stable + '/NuGet.Config',
+                      RestoreSources=stable + '/.package-source', RestoreConfigFile=stable + '/' + str(config.relative_to(root)),
                       RestorePackagesPath=stable + '/.nuget',
                       PathMap=stable + '=/_/workspace%2C/__rules_msbuild_graph/sdk=/_/sdk')
     prefix = ['bash', str(Path(__file__).with_name('runtime_raw.sh')), os.environ['RULES_MSBUILD_DOTNET_ROOT'], str(root), str(scratch)]

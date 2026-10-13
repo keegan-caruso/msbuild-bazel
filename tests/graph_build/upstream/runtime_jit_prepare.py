@@ -33,10 +33,12 @@ def main():
     for path, digest in PINNED.items():
         assert hashlib.sha256((raw / path).read_bytes()).hexdigest() == digest, 'Authored JIT source changed: ' + path
     assert (raw / TEST_OUTPUT / 'Add1_ro.dll').is_file(), 'Raw unchanged test must compile first'
+    configs = [path for path in raw.iterdir() if path.name.lower() == 'nuget.config']
+    assert len(configs) == 1
     authored = [p for path in ['eng', 'src/tests/Common', 'src/tests/JIT/CodeGenBringUpTests']
                 for p in (raw / path).rglob('*') if p.is_file()]
     authored += [raw / p for p in ['global.json', 'Directory.Build.props', 'Directory.Build.targets',
-                 'NuGet.Config', 'src/tests/Directory.Build.props', 'src/tests/Directory.Build.targets',
+                 configs[0].name, 'src/tests/Directory.Build.props', 'src/tests/Directory.Build.targets',
                  'src/tests/Directory.Merged.props', 'src/tests/JIT/Directory.Build.props',
                  'src/coreclr/Directory.Build.props', 'src/coreclr/Directory.Build.targets', 'src/coreclr/clr.featuredefines.props']]
     paths = sorted({str(p.relative_to(raw)) for p in authored})

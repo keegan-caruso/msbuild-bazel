@@ -329,13 +329,46 @@ passed independent HTTP recovery on 8.8.0 / 9.2.0 with Bazel action caches disab
 Missing blobs rebuild; corruption fails. Warm local builds alone do not prove recovery.
 See [performance and reproduction](performance.md).
 
-One unchanged CoreCLR/JIT project,
-`src/tests/JIT/CodeGenBringUpTests/Add1_ro.csproj` (#74), passed raw/graph byte parity,
-body edits, source-built corerun execution and stopped-producer HTTP recovery
-(three hits, zero compilations). Its dependency bootstrap and wrapper/compiler are
-declared inputs; success exit code 100 is checked. This is one test, not a JIT suite.
-Drivers: [prepare](../tests/graph_build/upstream/runtime_jit_prepare.py),
-[qualify](../tests/graph_build/upstream/runtime_jit.py).
+### First unchanged JIT test
+
+`src/tests/JIT/CodeGenBringUpTests/Add1_ro.csproj` at runtime v10.0.0 passed on
+Linux ARM64, four CPUs / 6 GiB, SDK **10.0.400** / Bazel **9.3.0**. Raw MSBuild
+builds the authored external/test dependencies and wrapper generator; Bazel declares
+those producers, generated reference trees and the generator's implementation edge.
+All **12 emitted DLL/PDB files** match raw bytes; the unchanged test runs on
+source-built corerun.
+
+Body edits yield **two hits / one compilation**; generator implementation edits
+require **one hit / two compilations**, even with unchanged test DLL bytes.
+Success requires exit **100**; the upstream failing wrapper returns **101**, which
+Bazel rejects. Missing reference trees, compiler archives and generator sources fail.
+Native worker pass/fail controls also cover the exit contract on both Bazel pins.
+
+A fresh relocated consumer with the producer stopped recovered **three project
+snapshots / zero compilations**, matched product/runtime bytes and modes, and
+actually executed the recovered test with test caching disabled. Its only runtime
+inputs are digest-locked declared producer artifacts; it receives no local Bazel
+cache or snapshots. Bootstrap preparation is separate from the three-project test
+recovery. This qualifies Add1_ro, not JIT suites/stress, other architectures or RBE.
+
+Reproduce in a qualified source-runtime workspace:
+
+1. [Raw bootstrap](../tests/graph_build/upstream/runtime_jit_raw.py):
+   `SOURCE_ARCHIVE PINNED_FEED SOURCE_REFS RAW_RESULTS`.
+2. [Declare](../tests/graph_build/upstream/runtime_jit_prepare.py):
+   `RUNTIME_WORKSPACE RAW_RESULTS/workspace`.
+3. [Qualify](../tests/graph_build/upstream/runtime_jit.py):
+   `RUNTIME_WORKSPACE RESULTS --phase=producer --raw=RAW_RESULTS/workspace
+   --output-base=BASE --trim-between-rows`.
+4. [Close consumer inputs](../tests/graph_build/upstream/runtime_jit_consumer.py):
+   `RUNTIME_WORKSPACE RESULTS/seed.json FRESH_CONSUMER`. Relocate to a fresh machine,
+   stop the producer, then run the qualifier with `--phase=consumer
+   --seed-report=FRESH_CONSUMER/seed.json --output-base=FRESH_BASE`.
+
+Set `RULES_MSBUILD_PROJECT_CACHE_URL` to the HTTP cache endpoint. Package hashes
+are pinned in [the JIT feed](../tests/graph_build/upstream/runtime_jit_packages.json).
+Use `--host-space-path=HOST_BIND` to require 8 GiB free before invocations. Reports
+stay outside Git; interrupted disk/setup attempts are excluded.
 
 ## Limits
 
