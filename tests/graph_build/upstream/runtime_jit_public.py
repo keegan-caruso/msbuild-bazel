@@ -37,6 +37,7 @@ def main():
         assert expected['machine'] != socket.gethostname() and expected['workspace'] != str(root), 'Require an independent relocated consumer'
         assert not args.output_base.exists(), 'Recovery requires a fresh output base'
     metadata = json.loads((root / 'jit-public.json').read_text())
+    assert not metadata.get('sourceProducer'), 'Use runtime_jit_live.py for live source-runtime qualification'
     cases = metadata['cases']
     contract = json.loads((root / "graph.generated.json").read_text())
     node_count = sum(len(project.get("Configurations", [{}])) for project in contract["Projects"].values())
@@ -181,6 +182,10 @@ def main():
                         del missing['Projects'][case['dependency']['project']]
                 contract_path.write_text(json.dumps(missing) + '\n')
                 invoke('missing-helper', False)
+                diagnostic = (results / 'missing-helper.log').read_text()
+                for case in cases:
+                    if 'dependency' in case:
+                        assert 'Missing project contract: ' + case['dependency']['project'] in diagnostic
             finally:
                 contract_path.write_bytes(contract_original)
         bindings = re.findall(r'"[^"]+":"artifacts/bin/ref/net10.0"', original_generated)

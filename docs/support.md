@@ -371,7 +371,8 @@ Reproduce with the pinned source archive/feed and declared source-runtime produc
 
 ```sh
 python3 tests/graph_build/upstream/runtime_jit_public_prepare.py \
-  SOURCE_ARCHIVE SOURCE_PRODUCTS PRODUCER_SEED OUTPUT --host-space-path=HOST_BIND \
+  SOURCE_ARCHIVE OUTPUT --source-products=SOURCE_PRODUCTS \
+  --seed-report=PRODUCER_SEED --host-space-path=HOST_BIND \
   --cases=tests/graph_build/upstream/runtime_jit_cases.json
 python3 tests/graph_build/upstream/runtime_jit_raw.py \
   SOURCE_ARCHIVE PINNED_FEED SOURCE_REFS RAW_RESULTS \
@@ -390,6 +391,39 @@ the source-product archive hash. Raw preparation uses native extraction of signe
 packages. Reports stay outside Git; these are correctness controls, not paired
 performance measurements. Scope: these six tests and one helper dependency, not complete JIT
 suites/stress, other architectures or RBE.
+
+### Connected source-runtime workflow
+
+Connect the qualified runtime workspace directly:
+
+```sh
+python3 tests/graph_build/upstream/runtime_jit_public_prepare.py \
+  SOURCE_ARCHIVE OUTPUT --source-producer=QUALIFIED_RUNTIME_WORKSPACE \
+  --cases=tests/graph_build/upstream/runtime_jit_cases.json --host-space-path=HOST_BIND
+```
+
+The generated test module binds `@jit_source_runtime//:references` into sync and
+uses `@jit_source_runtime//:host` for execution. The producer's generated managed
+graph, five native producers and package deployment form normal Bazel dependencies.
+`bazel test //:jit_tests` builds/reuses that closure; there is no intermediate
+`source-products.tar.gz` or hash-report handoff. Public update/check and sync/check
+pass; compiled and host bytes/modes match the raw-qualified bounded control.
+
+A fresh relocated Bazel 9.3 consumer, with the producer stopped, remotely recovered
+Restore, managed graphs and all five native actions, then **actually executed all
+six tests**. Forcing only the JIT graph action recovered **nine HTTP project
+snapshots / zero compilations** and executed the tests again. Outputs, the
+reference tree and runtime bytes/modes match the producer.
+
+Reproduce with `runtime_jit_live.py OUTPUT RESULTS --output-base=OUTPUT/bazel
+--bounded-seed=BOUNDED_RESULTS/seed.json --host-space-path=HOST_BIND`. Close inputs
+with `runtime_jit_public_consumer.py OUTPUT RESULTS/seed.json FRESH`, relocate to
+another machine, stop the producer, then run `runtime_jit_live.py FRESH RESULTS
+--output-base=FRESH_BASE --seed-report=FRESH/seed.json --host-space-path=HOST_BIND`.
+
+The preparation still requires the pinned qualified runtime graph and declared
+native source/toolchain inputs. It is not full checkout/bootstrap support. These
+controls are Linux ARM64 correctness evidence, not paired timings.
 
 ## Limits
 

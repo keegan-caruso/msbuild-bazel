@@ -24,7 +24,7 @@ sys.path.insert(0, str(ROOT / 'tests/runtime'))
 from case_names import normalize
 
 
-def graph_actions(path):
+def graph_actions(path, mnemonics=('MSBuildGraph', 'MSBuildGraphRestore')):
     # Keep only graph/cache summaries. Decode at offsets, avoiding repeated
     # copies of the large log and retention of every SDK/test input inventory.
     text, decoder, selected, position = path.read_text(), json.JSONDecoder(), [], 0
@@ -34,7 +34,7 @@ def graph_actions(path):
         if position == len(text):
             break
         row, position = decoder.raw_decode(text, position)
-        if row.get('mnemonic') in ['MSBuildGraph', 'MSBuildGraphRestore']:
+        if row.get('mnemonic') in mnemonics:
             selected.append({key: row.get(key) for key in ['mnemonic', 'targetLabel', 'listedOutputs', 'cacheHit', 'runner', 'status', 'metrics']})
     return selected
 
