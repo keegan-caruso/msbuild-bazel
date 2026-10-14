@@ -333,7 +333,7 @@ See [performance and reproduction](performance.md).
 
 ### Unchanged JIT tests
 
-Five authored runtime v10.0.0 tests pass on Linux ARM64, four CPUs / 6 GiB,
+Six authored runtime v10.0.0 tests pass on Linux ARM64, four CPUs / 6 GiB,
 SDK **10.0.400**, Bazel **8.8.0 / 9.3.0**, running on source-built corerun:
 
 | Project | Behavior |
@@ -343,20 +343,26 @@ SDK **10.0.400**, Bazel **8.8.0 / 9.3.0**, running on source-built corerun:
 | `CodeGenBringUpTests/FactorialRec_ro` | Recursion |
 | `CodeGenBringUpTests/ArrayExc_ro` | Exception handling |
 | `Generics/ConstrainedCall/vt1_cs_ro` | Constrained generic calls |
+| `Directed/PREFIX/PrimitiveVT/callconv1_PREFIX_cs_ro` | Cross-assembly value-type calls through `helper.csproj` |
 
 Bootstrap and test graphs use public NuGet update/check, sync/check and generated
 `app_graph`. Reviewed mappings declare custom targets and deployment outputs;
-sync captures the wrapper generator's implementation edges. All **26 DLL/PDBs**
-and **69 deployed package files** match native raw bytes. All five raw binaries
-also execute with the installed SDK absent. A body edit requires **six hits / one
-compilation**; a fresh generator edit requires **one hit / six compilations**.
-Success/failure codes **100 / 101** are preserved; omitted reference producers fail.
+sync captures the wrapper generator's implementation edges. All **36 DLL/PDBs**
+and **69 deployed package files** match native raw bytes. All six raw binaries
+also execute with the installed SDK absent. A body edit requires **eight hits / one
+compilation**; a fresh generator edit requires **two hits / seven compilations**.
+Success/failure codes **100 / 101** are preserved; omitted reference or helper producers fail.
 Thirty-six sync controls cover tree bytes/membership, symlinks, collisions and
 artifact-only outputs.
 
+Helper body/API edits both produce **seven hits / two compilations** and refresh
+the deployed helper. These custom test targets use a conservative boundary; their
+compiler-reference bindings have not been qualified. Restoring the authored files
+recovers all nine projects and the exact original outputs.
+
 A fresh relocated consumer, with the producer stopped and action/disk/test caches
-disabled, recovered **seven HTTP project snapshots / zero compilations** and
-actually executed all five tests. Compiled, deployed and runtime bytes/modes match.
+disabled, recovered **nine HTTP project snapshots / zero compilations** and
+actually executed all six tests. Compiled, deployed and runtime bytes/modes match.
 The closed source-only input bundle is **27 MB**; SDK/packages come from declared
 repositories. The ordinary SDK deployment project reruns when Bazel's action cache
 is disabled and emits no assembly; its whole action remains cacheable by Bazel.
@@ -382,7 +388,7 @@ with `--seed-report=FRESH/seed.json`, a fresh `--output-base`, and the host-spac
 Set `RULES_MSBUILD_PROJECT_CACHE_URL` to the HTTP cache. `PRODUCER_SEED` carries
 the source-product archive hash. Raw preparation uses native extraction of signed
 packages. Reports stay outside Git; these are correctness controls, not paired
-performance measurements. Scope: these five standalone tests, not complete JIT
+performance measurements. Scope: these six tests and one helper dependency, not complete JIT
 suites/stress, other architectures or RBE.
 
 ## Limits
