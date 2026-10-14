@@ -109,10 +109,16 @@ recovered normal Restore + graph actions in **8.83 s**. Forced graph execution t
 **30.28 s**, retained the Restore remote hit and recovered **481 HTTP project
 snapshots / zero compilations**. Both matched **10,780 retained files**, including
 modes. These separate recovery controls used the producer's default 512 MiB budget;
-acquisition/bootstrap were separate. The producer executed a source-built-runtime
-app and eight upstream suites. Consumer test results recovered from Bazel's cache;
-forced test execution was blocked by filesystem damage after disk exhaustion and
-is excluded from qualification.
+acquisition/bootstrap were separate.
+
+The current-code correctness refresh seeded **481 compilations** on a healthy
+four-CPU / 8 GiB producer, then stopped it. An independent four-CPU / 6 GiB consumer
+actually executed the app and all eight suites after normal Restore/graph remote
+action hits, then after forced **481 HTTP project hits / zero compilations**.
+Both runs matched all **10,780 files**, normalized **118,952 passed / 64 skipped**
+cases and **96 loaded-runtime observations**. Test-result caching was disabled.
+The refresh also matches the earlier producer's entire retained byte/mode inventory.
+These are full-workflow correctness controls, not new paired build timings.
 
 Prepare with `runtime_downloaded_prepare.py SOURCE_ARCHIVE OUTPUT
 --slice=runtime-suites --evaluation-reuse --evaluation-cache-mb=1024`, then use
@@ -120,7 +126,11 @@ Prepare with `runtime_downloaded_prepare.py SOURCE_ARCHIVE OUTPUT
 `runtime_benchmark.py --slice=runtime-suites --qualified-raw-results=RAW_RESULTS
 --evaluation-reuse --samples=3 --memory-gib=8 --project-cache-url=URL --diagnostics
 --trim-between-rows`. For independent recovery use `runtime_complete_remote.py`
-with the same source/contract and budget on producer and consumer. Public preparation
+with the same source/contract and budget on producer and consumer. For actual suite
+execution use `runtime_recovered_tests.py WORKSPACE RESULTS --phase=producer
+--output-base=FRESH_BASE --cache-url=URL --host-space-path=HOST_BIND`. Relocate the
+source-only fixture, stop the producer, then use `--phase=consumer` and
+`--seed-report=PRODUCER_RESULTS/seed.json` with another fresh base. Public preparation
 performs full SDK compiler qualification; it is outside incremental scores.
 See [runtime support](support.md#downloaded-sdk-and-runtime-sources) for scope.
 

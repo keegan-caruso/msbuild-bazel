@@ -15,9 +15,9 @@ internal static class CompileGlobInputs
         {
             return contract;
         }
-        if (contract.Version != 11)
+        if (contract.Version is not (11 or 12))
         {
-            throw new InvalidDataException("Compile globs require graph contract version 11");
+            throw new InvalidDataException("Compile globs require graph contract version 11 or 12");
         }
         var reserved = contract.SharedInputs.Concat((contract.DefinitionDigests ?? []).Keys)
             .Concat(contract.Restore?.Inputs ?? []).Concat(contract.Restore?.Outputs ?? []);

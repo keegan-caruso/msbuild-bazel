@@ -120,9 +120,9 @@ exec "$runfiles/"%s "$runfiles/"%s nuget-update "${BUILD_WORKSPACE_DIRECTORY:?Ru
     input_files = []
     for target, path in ctx.attr.inputs.items():
         files = target[DefaultInfo].files.to_list()
-        if len(files) != 1 or files[0].is_directory:
-            fail("sync inputs require exactly one file per label")
-        bound.append({"path": path, "label": str(target.label), "runfile": _runfile(ctx, files[0])})
+        if len(files) != 1:
+            fail("sync inputs require exactly one file or directory tree per label")
+        bound.append({"path": path, "label": str(target.label), "runfile": _runfile(ctx, files[0]), "directory": files[0].is_directory})
         input_files.extend(files)
     packages = []
     package_files = []
@@ -216,7 +216,7 @@ def msbuild_sync(name, projects, mappings = None, inputs = {}, package_lock = No
         resolve_references: Run a private qualification Build and emit complete SDK-selected compiler/copy bindings at supported reference boundaries. Requires package_build.
         package_inputs: Additional workspace-relative files read by reviewed package tasks.
         mappings: Optional JSON file with reviewed input, output and dependency contracts.
-        inputs: Single-file labels mapped to workspace-relative evaluation/build paths.
+        inputs: Single-file or directory-tree labels mapped to workspace-relative evaluation/build paths.
         bindings: Complete tool layouts bound to task properties during evaluation.
         package_lock: Optional default closed NuGet package set, including imported SDKs.
         package_locks: Additional package inventories available to evaluation.

@@ -148,9 +148,11 @@ independent stopped-producer recovery: normal Restore + graph action hits, then
 forced HTTP project recovery with zero compilations and identical bytes/modes.
 The small slice's app verified and exercised the source-built Pipelines DLL on the
 downloaded host. The large slice executed an app on its declared source-built native
-runtime plus eight upstream suites; its independent consumer recovered cached test
-results. Forced consumer test execution was blocked by filesystem damage and remains
-unqualified. See [measurements and reproduction](performance.md#large-downloaded-sdk-graph).
+runtime plus eight upstream suites. A healthy independent consumer now actually
+executes all nine tests after normal Restore/graph action recovery and after forced
+**481 HTTP project hits / zero compilations**. Both match **10,780 retained files**
+including modes, **118,952 passed / 64 skipped** upstream cases, and loaded source-runtime
+hashes. Test-result caching is disabled and the producer is stopped. See [measurements and reproduction](performance.md#large-downloaded-sdk-graph).
 This is a bounded managed graph with declared native producers, not the entire
 runtime repo, a full source-built SDK, Linux x64 or remote execution.
 
@@ -329,46 +331,59 @@ passed independent HTTP recovery on 8.8.0 / 9.2.0 with Bazel action caches disab
 Missing blobs rebuild; corruption fails. Warm local builds alone do not prove recovery.
 See [performance and reproduction](performance.md).
 
-### First unchanged JIT test
+### Unchanged JIT tests
 
-`src/tests/JIT/CodeGenBringUpTests/Add1_ro.csproj` at runtime v10.0.0 passed on
-Linux ARM64, four CPUs / 6 GiB, SDK **10.0.400** / Bazel **9.3.0**. Raw MSBuild
-builds the authored external/test dependencies and wrapper generator; Bazel declares
-those producers, generated reference trees and the generator's implementation edge.
-All **12 emitted DLL/PDB files** match raw bytes; the unchanged test runs on
-source-built corerun.
+Five authored runtime v10.0.0 tests pass on Linux ARM64, four CPUs / 6 GiB,
+SDK **10.0.400**, Bazel **8.8.0 / 9.3.0**, running on source-built corerun:
 
-Body edits yield **two hits / one compilation**; generator implementation edits
-require **one hit / two compilations**, even with unchanged test DLL bytes.
-Success requires exit **100**; the upstream failing wrapper returns **101**, which
-Bazel rejects. Missing reference trees, compiler archives and generator sources fail.
-Native worker pass/fail controls also cover the exit contract on both Bazel pins.
+| Project | Behavior |
+| --- | --- |
+| `CodeGenBringUpTests/Add1_ro` | Arithmetic |
+| `CodeGenBringUpTests/Switch_ro` | Control flow |
+| `CodeGenBringUpTests/FactorialRec_ro` | Recursion |
+| `CodeGenBringUpTests/ArrayExc_ro` | Exception handling |
+| `Generics/ConstrainedCall/vt1_cs_ro` | Constrained generic calls |
 
-A fresh relocated consumer with the producer stopped recovered **three project
-snapshots / zero compilations**, matched product/runtime bytes and modes, and
-actually executed the recovered test with test caching disabled. Its only runtime
-inputs are digest-locked declared producer artifacts; it receives no local Bazel
-cache or snapshots. Bootstrap preparation is separate from the three-project test
-recovery. This qualifies Add1_ro, not JIT suites/stress, other architectures or RBE.
+Bootstrap and test graphs use public NuGet update/check, sync/check and generated
+`app_graph`. Reviewed mappings declare custom targets and deployment outputs;
+sync captures the wrapper generator's implementation edges. All **26 DLL/PDBs**
+and **69 deployed package files** match native raw bytes. All five raw binaries
+also execute with the installed SDK absent. A body edit requires **six hits / one
+compilation**; a fresh generator edit requires **one hit / six compilations**.
+Success/failure codes **100 / 101** are preserved; omitted reference producers fail.
+Thirty-six sync controls cover tree bytes/membership, symlinks, collisions and
+artifact-only outputs.
 
-Reproduce in a qualified source-runtime workspace:
+A fresh relocated consumer, with the producer stopped and action/disk/test caches
+disabled, recovered **seven HTTP project snapshots / zero compilations** and
+actually executed all five tests. Compiled, deployed and runtime bytes/modes match.
+The closed source-only input bundle is **27 MB**; SDK/packages come from declared
+repositories. The ordinary SDK deployment project reruns when Bazel's action cache
+is disabled and emits no assembly; its whole action remains cacheable by Bazel.
 
-1. [Raw bootstrap](../tests/graph_build/upstream/runtime_jit_raw.py):
-   `SOURCE_ARCHIVE PINNED_FEED SOURCE_REFS RAW_RESULTS`.
-2. [Declare](../tests/graph_build/upstream/runtime_jit_prepare.py):
-   `RUNTIME_WORKSPACE RAW_RESULTS/workspace`.
-3. [Qualify](../tests/graph_build/upstream/runtime_jit.py):
-   `RUNTIME_WORKSPACE RESULTS --phase=producer --raw=RAW_RESULTS/workspace
-   --output-base=BASE --trim-between-rows`.
-4. [Close consumer inputs](../tests/graph_build/upstream/runtime_jit_consumer.py):
-   `RUNTIME_WORKSPACE RESULTS/seed.json FRESH_CONSUMER`. Relocate to a fresh machine,
-   stop the producer, then run the qualifier with `--phase=consumer
-   --seed-report=FRESH_CONSUMER/seed.json --output-base=FRESH_BASE`.
+Reproduce with the pinned source archive/feed and declared source-runtime products:
 
-Set `RULES_MSBUILD_PROJECT_CACHE_URL` to the HTTP cache endpoint. Package hashes
-are pinned in [the JIT feed](../tests/graph_build/upstream/runtime_jit_packages.json).
-Use `--host-space-path=HOST_BIND` to require 8 GiB free before invocations. Reports
-stay outside Git; interrupted disk/setup attempts are excluded.
+```sh
+python3 tests/graph_build/upstream/runtime_jit_public_prepare.py \
+  SOURCE_ARCHIVE SOURCE_PRODUCTS PRODUCER_SEED OUTPUT --host-space-path=HOST_BIND \
+  --cases=tests/graph_build/upstream/runtime_jit_cases.json
+python3 tests/graph_build/upstream/runtime_jit_raw.py \
+  SOURCE_ARCHIVE PINNED_FEED SOURCE_REFS RAW_RESULTS \
+  --native-inventory=OUTPUT/workspace/nuget.lock.json \
+  --cases=tests/graph_build/upstream/runtime_jit_cases.json
+python3 tests/graph_build/upstream/runtime_jit_public.py OUTPUT/workspace RESULTS \
+  --output-base=OUTPUT/bazel --raw=RAW_RESULTS/workspace --host-space-path=HOST_BIND
+```
+
+For independent recovery, run `runtime_jit_public_consumer.py OUTPUT RESULTS/seed.json
+FRESH`, relocate it, stop the producer, then run the qualifier on `FRESH/workspace`
+with `--seed-report=FRESH/seed.json`, a fresh `--output-base`, and the host-space bind.
+
+Set `RULES_MSBUILD_PROJECT_CACHE_URL` to the HTTP cache. `PRODUCER_SEED` carries
+the source-product archive hash. Raw preparation uses native extraction of signed
+packages. Reports stay outside Git; these are correctness controls, not paired
+performance measurements. Scope: these five standalone tests, not complete JIT
+suites/stress, other architectures or RBE.
 
 ## Limits
 

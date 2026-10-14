@@ -13,6 +13,22 @@ internal sealed class GraphEvaluationWorkspace : IDisposable
         try
         {
             Copy(source, Root);
+            // Bound artifacts remain inputs even when their logical path contains
+            // bin/obj, which ordinary authored-source copying excludes.
+            foreach (var path in view.ProducerRoots.Concat(view.Labels.Keys).Distinct(StringComparer.Ordinal))
+            {
+                var target = Path.Combine(Root, path);
+                if (Directory.Exists(Path.Combine(source, path)))
+                {
+                    Directory.CreateDirectory(target);
+                    continue;
+                }
+                Directory.CreateDirectory(Path.GetDirectoryName(target)!);
+                if (!File.Exists(target))
+                {
+                    File.Copy(Path.Combine(source, path), target);
+                }
+            }
             properties = new Dictionary<string, string>(properties, StringComparer.OrdinalIgnoreCase) { ["NetCoreSdkRoot"] = sdk };
             var sdkRoot = Path.GetDirectoryName(Path.GetDirectoryName(sdk))!;
             foreach (var (name, path) in toolProperties ?? [])

@@ -39,7 +39,11 @@ internal static class GraphRestoreGenerator
                 relative(Path.Combine(extensionRoot, Path.GetFileName(project.FullPath) + ".nuget.g.targets")),
                 relative(Path.Combine(extensionRoot, Path.GetFileName(project.FullPath) + ".nuget.dgspec.json")),
                 relative(Path.Combine(extensionRoot, "project.nuget.cache"))
-            }.Concat(pair.binding.RestoreOutputs.Select(WorkspaceView.Safe));
+            // Build can consume a shared ProjectAssetsFile while NuGet still
+            // writes this project's own assets during the private Restore.
+            }.Concat(File.Exists(Path.Combine(extensionRoot, "project.assets.json"))
+                ? new[] { relative(Path.Combine(extensionRoot, "project.assets.json")) } : [])
+                .Concat(pair.binding.RestoreOutputs.Select(WorkspaceView.Safe));
         }).Distinct().Order(StringComparer.Ordinal).ToArray();
         if (outputs.Any(inputs.Contains))
         {
