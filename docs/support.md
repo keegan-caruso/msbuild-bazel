@@ -430,6 +430,33 @@ with `runtime_jit_public_consumer.py OUTPUT RESULTS/seed.json FRESH`, relocate t
 another machine, stop the producer, then run `runtime_jit_live.py FRESH RESULTS
 --output-base=FRESH_BASE --seed-report=FRESH/seed.json --host-space-path=HOST_BIND`.
 
+Connected edits rerun all six tests against the refreshed runtime:
+
+| Edit | Runtime compilations | JIT compilations | Native actions | Restore actions |
+| --- | ---: | ---: | ---: | ---: |
+| Pipelines body | 6 | 0 | 0 | 0 |
+| Pipelines API | 17 | 9 | 0 | 1 |
+| Native version marker | 0 | 0 | 1 | 0 |
+
+Body edits preserve reference and JIT output bytes. Native edits change only
+`libSystem.Native.so`; managed outputs stay unchanged. Restoring each edit recovers
+exact original bytes/modes with no graph, native or Restore executions. A fresh
+machine recovered the **API-edited** closure through normal Bazel remote caching,
+with the edited-state producer stopped: zero compilations/build/Restore executions
+and six actual test runs. The JIT Restore action conservatively includes reference
+tree bytes, so API edits still invalidate it. These are correctness controls.
+
+```sh
+python3 tests/graph_build/upstream/runtime_jit_connected_edits.py OUTPUT RESULTS \
+  --output-base=OUTPUT/bazel --host-space-path=HOST_BIND \
+  --case=api --close-api=EDITED_INPUTS
+# Relocate EDITED_INPUTS, stop the producer; use a fresh output base:
+python3 tests/graph_build/upstream/runtime_jit_connected_edits.py EDITED_INPUTS RECOVERY \
+  --output-base=FRESH_BASE --host-space-path=HOST_BIND --recover=EDITED_INPUTS/seed.json
+```
+
+Omit `--case` to run body, API and native controls in sequence.
+
 The preparation still requires the pinned qualified runtime graph and declared
 native source/toolchain inputs. It is not full checkout/bootstrap support. These
 controls are Linux ARM64 correctness evidence, not paired timings.
