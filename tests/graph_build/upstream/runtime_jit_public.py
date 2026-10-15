@@ -37,8 +37,10 @@ def main():
         assert expected['machine'] != socket.gethostname() and expected['workspace'] != str(root), 'Require an independent relocated consumer'
         assert not args.output_base.exists(), 'Recovery requires a fresh output base'
     metadata = json.loads((root / 'jit-public.json').read_text())
+    assert not metadata.get('sourceProducer'), 'Use runtime_jit_live.py for live source-runtime qualification'
     cases = metadata['cases']
-    node_count = len(cases) + 2
+    contract = json.loads((root / "graph.generated.json").read_text())
+    node_count = sum(len(project.get("Configurations", [{}])) for project in contract["Projects"].values())
     for path, value in metadata['sourceDigests'].items():
         assert digest(root / path) == value, path
     endpoint = os.environ['RULES_MSBUILD_PROJECT_CACHE_URL']
@@ -139,9 +141,53 @@ def main():
         assert invoke('restored')['outputs'] == seed['outputs']
         generator.write_bytes(original_generator + ('\ninternal static class QualificationGeneratorInput_' + uuid.uuid4().hex + ' {}\n').encode())
         changed = invoke('generator')
-        assert (changed['hits'], changed['misses']) == (1, node_count-1)
+        wrapper = 'src/tests/Common/XUnitWrapperGenerator/XUnitWrapperGenerator.csproj'
+        generator_dependents = sum(wrapper in config.get('ImplementationDependencies', [])
+            for project in contract['Projects'].values() for config in project.get('Configurations', []))
+        assert (changed['hits'], changed['misses']) == (node_count-generator_dependents-1, generator_dependents+1)
         generator.write_bytes(original_generator)
         assert invoke('generator-restored')['outputs'] == seed['outputs']
+        for case in cases:
+            if 'dependency' not in case:
+                continue
+            dependency = case['dependency']
+            helper = root / dependency['source']
+            helper_original = helper.read_bytes()
+            assert dependency['project'] in contract['Projects']
+            assert '<ProjectReference Include="helper.csproj"' in (root / case['project']).read_text()
+            assert not contract['Projects'][case['project']]['Configurations'][0]['ReferenceBoundary']
+            helper_output = 'artifacts/tests/coreclr/linux.arm64.Release/' + str(Path(dependency['project']).parent.relative_to('src/tests')) + '/' + Path(dependency['project']).stem
+            test_output = 'artifacts/tests/coreclr/linux.arm64.Release/' + str(Path(case['project']).parent.relative_to('src/tests')) + '/' + Path(case['project']).stem
+            try:
+                before = b'return x.m + y.m;'
+                assert before in helper_original
+                helper.write_bytes(helper_original.replace(before, b'return unchecked(x.m + y.m);') + ('\n// Body token: ' + uuid.uuid4().hex + '\n').encode())
+                dependency_body = invoke(case['name'] + '-dependency-body')
+                assert (dependency_body['hits'], dependency_body['misses']) == (node_count-2, 2)
+                assert dependency_body['outputs'][helper_output + '/helper.dll'] != seed['outputs'][helper_output + '/helper.dll']
+                assert dependency_body['outputs'][test_output + '/helper.dll'] == dependency_body['outputs'][helper_output + '/helper.dll']
+                helper.write_bytes(helper_original + ('\npublic static class QualificationApi_' + uuid.uuid4().hex + ' {}\n').encode())
+                dependency_api = invoke(case['name'] + '-dependency-api')
+                assert (dependency_api['hits'], dependency_api['misses']) == (node_count-2, 2)
+            finally:
+                helper.write_bytes(helper_original)
+            assert invoke(case['name'] + '-dependency-restored')['outputs'] == seed['outputs']
+        if any('dependency' in case for case in cases):
+            contract_path = root / 'graph.generated.json'
+            contract_original = contract_path.read_bytes()
+            try:
+                missing = json.loads(contract_original)
+                for case in cases:
+                    if 'dependency' in case:
+                        del missing['Projects'][case['dependency']['project']]
+                contract_path.write_text(json.dumps(missing) + '\n')
+                invoke('missing-helper', False)
+                diagnostic = (results / 'missing-helper.log').read_text()
+                for case in cases:
+                    if 'dependency' in case:
+                        assert 'Missing project contract: ' + case['dependency']['project'] in diagnostic
+            finally:
+                contract_path.write_bytes(contract_original)
         bindings = re.findall(r'"[^"]+":"artifacts/bin/ref/net10.0"', original_generated)
         assert bindings and len(set(bindings)) == 1
         binding = bindings[0]

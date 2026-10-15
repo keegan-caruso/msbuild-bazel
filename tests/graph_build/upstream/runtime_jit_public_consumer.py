@@ -22,8 +22,11 @@ def main():
     source, output = args.prepared.resolve(), args.output.resolve()
     assert not output.exists() and not output.is_relative_to(source)
     seed = json.loads(args.seed_report.read_text())
+    metadata = json.loads((source / 'workspace/jit-public.json').read_text())
+    live = bool(metadata.get('sourceProducer'))
     products = source / 'workspace/source-products.tar.gz'
-    assert hashlib.sha256(products.read_bytes()).hexdigest() == seed['sourceProductsSha256']
+    if not live:
+        assert hashlib.sha256(products.read_bytes()).hexdigest() == seed['sourceProductsSha256']
     output.mkdir(parents=True)
     counts = {}
     for name in ['bootstrap', 'workspace']:
@@ -31,7 +34,9 @@ def main():
         contract = json.loads((root / 'graph.generated.json').read_text())
         wanted = {'BUILD.bazel', 'MODULE.bazel', 'graph.generated.bzl', 'graph.generated.json', 'mappings.json', 'nuget.lock.json'}
         if name == 'workspace':
-            wanted.update(['jit-public.json', 'products.bzl', 'source-products.tar.gz'])
+            wanted.add('jit-public.json')
+            if not live:
+                wanted.update(['products.bzl', 'source-products.tar.gz'])
         wanted.update(contract['SharedInputs'])
         wanted.update(contract.get('DefinitionDigests', {}))
         wanted.update(contract.get('Restore', {}).get('Inputs', []))
@@ -54,13 +59,24 @@ def main():
             'local_path_override(module_name="rules_msbuild",path=' + json.dumps(str(ROOT)) + ')', module)
         module = re.sub(r'local_path_override\(module_name="jit_bootstrap",path="[^"]+"\)',
             'local_path_override(module_name="jit_bootstrap",path="../bootstrap")', module)
+        module = re.sub(r'local_path_override\(module_name="jit_source_runtime",path="[^"]+"\)',
+            'local_path_override(module_name="jit_source_runtime",path="../source_runtime")', module)
         (target / 'MODULE.bazel').write_text(module)
         counts[name] = len(wanted)
+    if live:
+        producer = source / 'source_runtime'
+        for path in producer.rglob('*'):
+            assert not path.is_symlink(), path
+        shutil.copytree(producer, output / 'source_runtime', copy_function=shutil.copy2)
+        module = output / 'source_runtime/MODULE.bazel'
+        module.write_text(re.sub(r'local_path_override\(module_name="rules_msbuild",path="[^"]+"\)',
+            'local_path_override(module_name="rules_msbuild",path=' + json.dumps(str(ROOT)) + ')', module.read_text()))
+        counts['source_runtime'] = sum(path.is_file() for path in producer.rglob('*'))
     for path, digest in seed['sourceDigests'].items():
         assert hashlib.sha256((output / 'workspace' / path).read_bytes()).hexdigest() == digest, path
     shutil.copyfile(args.seed_report, output / 'seed.json')
     (output / 'consumer.json').write_text(json.dumps(dict(copiedInputs=counts,
-        sourceProductsSha256=seed['sourceProductsSha256'], scope='generated public modules; no outputs or local cache'), indent=2) + '\n')
+        sourceProductsSha256=seed.get('sourceProductsSha256'), liveSourceProducer=live, scope='generated public modules; no outputs or local cache'), indent=2) + '\n')
     print(output, flush=True)
 
 

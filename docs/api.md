@@ -303,6 +303,13 @@ integrity)`. Source-built `msbuild_runtime` targets retain the same `runtime_hos
 handoff. Other shared frameworks require a complete declared runtime layout.
 Download availability does not qualify additional platforms or workloads.
 
+For source-runtime builds, export a reference tree with `msbuild_graph_output`
+and bind its label through `msbuild_sync.inputs` at the path the authored project
+expects. Compose managed and native producer outputs with `msbuild_layout`, then
+pass the resulting `msbuild_runtime` target as `runtime_host`. These are separate
+compilation/execution edges; no manual products archive or hash report is needed.
+The [JIT qualification](support.md#unchanged-jit-tests) exercises this handoff.
+
 ## Tests
 
 `test_protocol` is `executable` (default), `mtp` (direct execution), or `vstest`

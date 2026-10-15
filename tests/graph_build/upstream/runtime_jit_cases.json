@@ -53,5 +53,22 @@
       "src/tests/JIT/Generics/ConstrainedCall/vt1.cs": "84080a347b447aa800605639e2f6a75ce4dbf5e04579adfd066bc4c9fc3a3f06"
     },
     "compiledFiles": 2
+  },
+  {
+    "name": "callconv_dependency",
+    "project": "src/tests/JIT/Directed/PREFIX/PrimitiveVT/callconv1_PREFIX_cs_ro.csproj",
+    "source": "src/tests/JIT/Directed/PREFIX/PrimitiveVT/callconv1.cs",
+    "scope": "cross-assembly value-type calls",
+    "sourceDigests": {
+      "src/tests/JIT/Directed/PREFIX/PrimitiveVT/callconv1_PREFIX_cs_ro.csproj": "db191bcd6772b8e648f07d30619382d6afead89167e05e40205fff113a19823d",
+      "src/tests/JIT/Directed/PREFIX/PrimitiveVT/callconv1.cs": "f7c68c394e268d9ac399ab826bd50d854266d492dc8f8f2c8f1da3aa033e0ef4",
+      "src/tests/JIT/Directed/PREFIX/PrimitiveVT/helper.csproj": "a43ee78548f0d9fa24b6b11bbc688551c664a509d41f65f16feb38e875ea6fec",
+      "src/tests/JIT/Directed/PREFIX/PrimitiveVT/helper.cs": "4b00346eb59fdc096f7b396a14a814e042a8cb3397d9a767042704dbe02bd9d5"
+    },
+    "compiledFiles": 10,
+    "dependency": {
+      "project": "src/tests/JIT/Directed/PREFIX/PrimitiveVT/helper.csproj",
+      "source": "src/tests/JIT/Directed/PREFIX/PrimitiveVT/helper.cs"
+    }
   }
 ]
