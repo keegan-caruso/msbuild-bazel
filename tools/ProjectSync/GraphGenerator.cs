@@ -343,6 +343,9 @@ internal static class GraphGenerator
             shared.Concat(definitions.Keys).Concat(restore?.Inputs ?? []).Concat(restore?.Outputs ?? []), outputs.Values.SelectMany(paths => paths), globOutputDirectories, (view?.Labels ?? []).Keys));
         var dynamicPatterns = compileGlobs.Values.SelectMany(patterns => patterns).Distinct(StringComparer.Ordinal).Order(StringComparer.Ordinal).ToArray();
         var boundaries = new Dictionary<ProjectGraphNode, bool>();
+        // Qualification executes SDK targets that can mutate ProjectReference items.
+        // Export implementation roles from the original static graph.
+        var implementationDependencies = graph.ProjectNodes.ToDictionary(node => node, ImplementationDependencies);
         var resolved = resolveReferences ? ResolvedGraphInputs.Build(graph, collection, root, sdkRoot,
             graph.ProjectNodes.Where(node => node.ProjectInstance.GetPropertyValue("Language") == "C#" && CanUseReferenceBoundary(node)).ToArray(), CompilerProducts, Dependencies,
             inputs.Values.SelectMany(paths => paths).Concat(shared), packageIdentities,
@@ -365,7 +368,7 @@ internal static class GraphGenerator
                     .Select(path => Relative(Path.GetFullPath(node.ProjectInstance.ExpandString(path).Replace('\\', '/'), Path.GetDirectoryName(node.ProjectInstance.FullPath)!)))
                     .Distinct().Order(StringComparer.Ordinal).ToArray(),
                 ReferenceBoundary = CanUseReferenceBoundary(node),
-                ImplementationDependencies = ImplementationDependencies(node),
+                ImplementationDependencies = implementationDependencies[node],
                 CompilerReference = CompilerReference(node),
                 CompilerReferences = CompilerReferences(node),
                 CompilerReferencesComplete = resolved?.ContainsKey(node) == true || mappings.ForProject(group.Key, node.ProjectInstance.GetPropertyValue("TargetFramework")).CompilerReferencesComplete,
@@ -401,7 +404,7 @@ internal static class GraphGenerator
         {
             GeneratedBy = "ProjectSync",
             Version = graph.ProjectNodes.Any(node => mappings.ForProject(Relative(node.ProjectInstance.FullPath),
-                node.ProjectInstance.GetPropertyValue("TargetFramework")).ReferenceBoundary == true || ImplementationDependencies(node).Length != 0) ? 3 : 2,
+                node.ProjectInstance.GetPropertyValue("TargetFramework")).ReferenceBoundary == true || implementationDependencies[node].Length != 0) ? 3 : 2,
             Entry = entry,
             Entries = entries,
             SdkVersion = Path.GetFileName(sdk),
@@ -601,7 +604,10 @@ internal static class GraphGenerator
             }
             var analyzers = node.ProjectInstance.GetItems("ProjectReference")
                 .Where(item => item.GetMetadataValue("OutputItemType").Equals("Analyzer", StringComparison.OrdinalIgnoreCase))
-                .Select(item => Relative(Path.GetFullPath(item.EvaluatedInclude.Replace('\\', '/'), Path.GetDirectoryName(node.ProjectInstance.FullPath)!)));
+                .Select(item => Relative(Path.GetFullPath(item.EvaluatedInclude.Replace('\\', '/'), Path.GetDirectoryName(node.ProjectInstance.FullPath)!)))
+                // Outer SDK dispatchers evaluate these items but schedule only
+                // their inner builds. Each inner node owns its analyzer edges.
+                .Where(path => node.ProjectReferences.Any(dependency => Relative(dependency.ProjectInstance.FullPath) == path));
             return binding.ImplementationDependencies.Concat(analyzers).Distinct().Order(StringComparer.Ordinal).ToArray();
         }
         string? CompilerReference(ProjectGraphNode node)
