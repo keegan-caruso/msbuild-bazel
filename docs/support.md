@@ -356,8 +356,10 @@ Thirty-six sync controls cover tree bytes/membership, symlinks, collisions and
 artifact-only outputs.
 
 Helper body/API edits both produce **seven hits / two compilations** and refresh
-the deployed helper. These custom test targets use a conservative boundary; their
-compiler-reference bindings have not been qualified. Restoring the authored files
+the deployed helper. Public sync with `--compiler-references` qualifies the helper
+and consumer bindings: upstream disables reference assembly emission, and Csc selects
+`helper/helper.dll`. Its implementation bytes correctly invalidate the consumer.
+Other custom test targets retain conservative boundaries. Restoring the authored files
 recovers all nine projects and the exact original outputs.
 
 A fresh relocated consumer, with the producer stopped and action/disk/test caches
@@ -373,7 +375,7 @@ Reproduce with the pinned source archive/feed and declared source-runtime produc
 python3 tests/graph_build/upstream/runtime_jit_public_prepare.py \
   SOURCE_ARCHIVE OUTPUT --source-products=SOURCE_PRODUCTS \
   --seed-report=PRODUCER_SEED --host-space-path=HOST_BIND \
-  --cases=tests/graph_build/upstream/runtime_jit_cases.json
+  --cases=tests/graph_build/upstream/runtime_jit_cases.json --compiler-references
 python3 tests/graph_build/upstream/runtime_jit_raw.py \
   SOURCE_ARCHIVE PINNED_FEED SOURCE_REFS RAW_RESULTS \
   --native-inventory=OUTPUT/workspace/nuget.lock.json \
@@ -387,10 +389,17 @@ FRESH`, relocate it, stop the producer, then run the qualifier on `FRESH/workspa
 with `--seed-report=FRESH/seed.json`, a fresh `--output-base`, and the host-space bind.
 
 Set `RULES_MSBUILD_PROJECT_CACHE_URL` to the HTTP cache. `PRODUCER_SEED` carries
-the source-product archive hash. Raw preparation uses native extraction of signed
-packages. Reports stay outside Git; these are correctness controls, not paired
+the source-product archive hash. The owned root props resolve reference inputs
+relative to the workspace, including private sync builds; authored test projects
+stay unchanged. A fixture-only NuGet source mapping selects `dotnet-public` for
+`Microsoft.Diagnostics.NETCore.Client`, avoiding differently signed copies from
+racing feeds. Raw preparation uses native extraction of signed packages. Reports stay outside Git; these are correctness controls, not paired
 performance measurements. Scope: these six tests and one helper dependency, not complete JIT
 suites/stress, other architectures or RBE.
+
+Inspect the authored SDK boundary with `runtime_jit_reference_probe.py RAW_RESULTS
+SDK_ROOT REPORT.json`. It rebuilds the helper and consumer using the raw control's
+properties, then checks reference-emission settings and `ReferencePathWithRefAssemblies`.
 
 ### Connected source-runtime workflow
 

@@ -12,6 +12,7 @@ import shutil
 import subprocess
 import tarfile
 
+from runtime_feed_config import pin_runtime_feeds
 from runtime_jit_prepare import DEPENDENCIES, ENTRY, EXTERNAL, PINNED
 from runtime_prepare import COMMIT, SOURCE_SHA256
 from runtime_jit_source import export_source_runtime
@@ -28,6 +29,7 @@ def main():
     handoff.add_argument('--source-producer', type=Path, help='qualified source-only runtime workspace; use live Bazel producer edges')
     parser.add_argument('--seed-report', type=Path, help='required only with --source-products')
     parser.add_argument('--cases', type=Path, help='reviewed unchanged JIT case declarations')
+    parser.add_argument('--compiler-references', action='store_true', help='qualify the reviewed helper/consumer SDK compiler and copy selections')
     parser.add_argument('--resume', action='store_true', help='resume an interrupted disposable preparation')
     parser.add_argument('--host-space-path', type=Path, required=True)
     args = parser.parse_args()
@@ -67,9 +69,19 @@ def main():
                 assert not member.issym() and not member.islnk()
                 member.name = relative
                 archive.extract(member, source, filter='data')
+    pin_runtime_feeds(source / 'NuGet.config')
     for path, digest in pins.items():
         assert hashlib.sha256((source / path).read_bytes()).hexdigest() == digest
     shutil.copyfile(Path(__file__).with_name('runtime_jit_public_mappings.json'), source / 'mappings.json')
+    # Resolve the declared reference root in either sync's private copy or the
+    # stable build namespace, without changing any authored test project.
+    props = source / 'Directory.Build.props'
+    props.write_text(props.read_text().replace('</Project>',
+        '<PropertyGroup><LibrariesSharedFrameworkRefArtifactsPath>$(MSBuildThisFileDirectory)artifacts/bin/ref/net10.0/</LibrariesSharedFrameworkRefArtifactsPath></PropertyGroup>\n</Project>'))
+    mapping_path = source / 'mappings.json'
+    mapping = json.loads(mapping_path.read_text())
+    del mapping['projectDefaults']['properties']['LibrariesSharedFrameworkRefArtifactsPath']
+    mapping_path.write_text(json.dumps(mapping, indent=2) + '\n')
     if args.source_products:
         shutil.copyfile(Path(__file__).with_name('runtime_jit_artifacts.bzl'), source / 'products.bzl')
         shutil.copyfile(args.source_products, source / 'source-products.tar.gz')
@@ -104,6 +116,8 @@ def main():
     bootstrap = base / 'bootstrap'
     if not bootstrap.exists():
         shutil.copytree(source, bootstrap, ignore=shutil.ignore_patterns('bazel-*', '*.lock.json'))
+    for name in ['NuGet.config', 'Directory.Build.props']:
+        shutil.copyfile(source / name, bootstrap / name)
     bootstrap_module = module.replace('jit_public', 'jit_bootstrap').replace('dotnet.sdk(name="dotnet"', 'dotnet.sdk(name="jit_bootstrap_sdk"').replace('use_repo(dotnet,"dotnet")', 'use_repo(dotnet,dotnet="jit_bootstrap_sdk")')
     (bootstrap / 'MODULE.bazel').write_text(bootstrap_module)
     bootstrap_mapping = json.loads((source / 'mappings.json').read_text())
@@ -131,6 +145,10 @@ def main():
     test_mapping = json.loads((source / 'mappings.json').read_text())
     test_mapping.pop('entryProperties')
     test_mapping.pop('projects')
+    if args.compiler_references:
+        test_mapping['projects'] = {project: dict(referenceBoundary=True)
+            for case in cases if 'dependency' in case for project in [case['project'], case['dependency']['project']]}
+        assert test_mapping['projects'], 'Compiler qualification requires a declared dependency case'
     (source / 'mappings.json').write_text(json.dumps(test_mapping, indent=2) + '\n')
     module += 'bazel_dep(name="jit_bootstrap",version="0.0.0")\nlocal_path_override(module_name="jit_bootstrap",path=' + json.dumps(str(bootstrap)) + ')\n'
     producer = export_source_runtime(args.source_producer, base / 'source_runtime', ROOT, resume=args.resume) if args.source_producer else None
@@ -149,7 +167,7 @@ def main():
         declarations.append('load(":products.bzl","runtime_jit_products")')
         for name, prefix in [('refs', 'references'), ('host_products', 'core-root')]:
             declarations.append('runtime_jit_products(name=' + repr(name) + ',archive="source-products.tar.gz",sha256=' + repr(seed['sourceProductsSha256']) + ',prefix=' + repr(prefix) + ')')
-    declarations.append('msbuild_sync(name="sync",projects=projects,mappings="mappings.json",package_lock="@nuget//:packages",package_build=True,inputs={":refs":"artifacts/bin/ref/net10.0","@jit_bootstrap//:targeting":"artifacts/TargetingPack"})')
+    declarations.append('msbuild_sync(name="sync",projects=projects,mappings="mappings.json",package_lock="@nuget//:packages",package_build=True,' + ('resolve_references=True,' if args.compiler_references else '') + 'inputs={":refs":"artifacts/bin/ref/net10.0","@jit_bootstrap//:targeting":"artifacts/TargetingPack"})')
     (source / 'BUILD.bazel').write_text('\n'.join(declarations) + '\n')
     run('sync', ['run', '//:sync'])
     run('sync-check', ['run', '//:sync', '--', '--check'])
@@ -166,7 +184,7 @@ def main():
     wrapper = 'src/tests/Common/XUnitWrapperGenerator/XUnitWrapperGenerator.csproj'
     for case in cases:
         assert contract['Projects'][case['project']]['Configurations'][0]['ImplementationDependencies'] == [wrapper]
-    (source / 'jit-public.json').write_text(json.dumps(dict(cases=cases, sourceDigests=pins, sourceProducer=producer), indent=2) + '\n')
+    (source / 'jit-public.json').write_text(json.dumps(dict(cases=cases, sourceDigests=pins, sourceProducer=producer, compilerReferences=args.compiler_references), indent=2) + '\n')
     manifest = json.loads((source / 'nuget.lock.json').read_text())
     (base / 'summary.json').write_text(json.dumps(dict(commit=COMMIT, sdk='10.0.400',
         sourceDigests=pins, projects=list(contract['Projects']), archives=len(manifest['packages']),
