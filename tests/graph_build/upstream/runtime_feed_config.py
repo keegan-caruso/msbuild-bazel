@@ -2,7 +2,7 @@
 import xml.etree.ElementTree as ET
 
 
-def pin_runtime_feeds(config):
+def pin_runtime_feeds(config, packages=('Microsoft.Diagnostics.NETCore.Client',)):
     text = config.read_text()
     document = ET.fromstring(text)
     keys = [item.get('key') for item in document.findall('./packageSources/add')]
@@ -12,7 +12,8 @@ def pin_runtime_feeds(config):
         feed = ET.SubElement(mapping, 'packageSource', key=key)
         ET.SubElement(feed, 'package', pattern='*')
         if key == 'dotnet-public':
-            ET.SubElement(feed, 'package', pattern='Microsoft.Diagnostics.NETCore.Client')
+            for package in packages:
+                ET.SubElement(feed, 'package', pattern=package)
     existing = document.find('packageSourceMapping')
     if existing is not None:
         def rows(element):

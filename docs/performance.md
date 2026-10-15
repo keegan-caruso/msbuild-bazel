@@ -104,6 +104,13 @@ There is no new paired cold result; full-source raw correctness ran during unsco
 preparation. This contract retains disposable intermediates, so its file counts and
 Pipelines edits differ from the older LINQ baseline below.
 
+A separate source-only preparation run on four CPUs / 8 GiB measured public
+package update/check at **147.19 / 175.91 s** and compiler-selection sync/check
+at **1526.98 / 1469.58 s**. Qualification uses a single-node private SDK Build. These are
+unpaired declaration-preparation observations, separate from incremental build
+scores. Reproduce with [source-only preparation](../tests/graph_build/upstream/runtime_checkout_prepare.py)
+using the pins and tools in [support](support.md#connected-source-runtime-workflow).
+
 A fresh relocated Linux ARM64 consumer, four CPUs / 6 GiB, with the producer stopped,
 recovered normal Restore + graph actions in **8.83 s**. Forced graph execution took
 **30.28 s**, retained the Restore remote hit and recovered **481 HTTP project

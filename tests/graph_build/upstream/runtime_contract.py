@@ -10,6 +10,18 @@ import json
 from pathlib import Path
 
 
+def bind_outer_outputs(mapping):
+    # The authored linker target runs only for configured inner frameworks. Its
+    # evaluated outer item is a placeholder, not an output of the dispatcher.
+    linker = "@(ILLinkSubstitutionsXmls->WithMetadataValue('Filename', 'ILLink.Resources.Substitutions'))"
+    for binding in [mapping['projectDefaults']] + list(mapping.get('projects', {}).values()):
+        if linker not in binding.get('outputFiles', []):
+            continue
+        outer = copy.deepcopy({key: value for key, value in binding.items() if key not in ['properties', 'frameworkOverrides']})
+        outer['outputFiles'] = [value for value in outer['outputFiles'] if value != linker]
+        binding.setdefault('frameworkOverrides', {})[''] = outer
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('output', type=Path)
@@ -235,6 +247,7 @@ def main():
             binding.pop('properties', None)
             for variant in [binding] + list(binding.get('frameworkOverrides', {}).values()):
                 variant['evaluationReuseInputs'] = [source]
+    bind_outer_outputs(mapping)
     args.output.write_text(json.dumps(mapping, indent=2) + '\n')
 
 

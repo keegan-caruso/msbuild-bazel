@@ -14,6 +14,7 @@ import tarfile
 import time
 
 from runtime_prepare import COMMIT, SOURCE_SHA256
+from runtime_feed_config import pin_runtime_feeds
 
 ROOT = Path(__file__).resolve().parents[3]
 
@@ -64,6 +65,9 @@ def main():
                 data = target.read_bytes()
                 path.unlink()
                 path.write_bytes(data)
+    prior_mapping = (source / 'mappings.json').read_bytes() if (source / 'mappings.json').exists() else None
+    # Avoid differently signed copies of the same package racing across feeds.
+    pin_runtime_feeds(source / 'NuGet.config', packages=('Microsoft.TestPlatform.ObjectModel',))
     subprocess.run(['python3', str(Path(__file__).with_name('runtime_contract.py')), str(source / 'mappings.json'),
                     '--platform', 'linux-arm64', '--prepared-restore', '--resolve-references'] + (['--evaluation-reuse'] if args.evaluation_reuse else []), check=True)
     mapping_path = source / 'mappings.json'
@@ -106,7 +110,7 @@ def main():
         (source / 'BUILD.bazel').write_text(update + sync)
         prior_reuse = json.loads((source / 'graph.generated.json').read_text()).get('EvaluationReuseInputs') if args.resume else None
         expected_reuse = sorted([edit['implementation'], edit['reference']]) if args.evaluation_reuse else None
-        if not args.resume or prior_reuse != expected_reuse:
+        if not args.resume or prior_reuse != expected_reuse or prior_mapping != mapping_path.read_bytes():
             run('sync', '//:sync')
         run('sync-check', '//:sync', True)
         contract = json.loads((source / 'graph.generated.json').read_text())
