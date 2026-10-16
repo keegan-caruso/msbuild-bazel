@@ -45,19 +45,19 @@ cp artifacts/bin/linux-arm64.Release/corehost/libhostfxr.so result/
 cp artifacts/bin/linux-arm64.Release/corehost/libhostpolicy.so result/
 '''
 script='set -euo pipefail\n'+script+'tar --sort=name --mtime=@0 --owner=0 --group=0 --numeric-owner -cf result.tar -C result .\n'
-# The pinned native archive already owns the complete tracked native tree.
-# The header bootstrap is explicit because no managed Arcade build runs here.
+# Preserve the generated version inputs owned by native_prepare; replace only
+# the component script. Duplicate members would fail strict action extraction.
 with tarfile.open(a.native/'source.tar') as original,tarfile.open(folder/'source.tar','w') as out:
+    seen=set()
     for member in original:
-        # Replace bootstrap members once; native_prepare may already own
-        # explicit version headers. Duplicate tar members fail safe extraction.
-        if member.name in ['build-native.sh', 'artifacts/obj/_version.h', 'artifacts/obj/runtime_version.h']:continue
-        out.addfile(member,original.extractfile(member) if member.isfile() else None)
-    headers={name:original.extractfile('eng/native/version/'+name).read().decode() for name in ['_version.h','runtime_version.h']}
-    headers['_version.h']=headers['_version.h'].replace('00,00,00,00000','10,0,0,0').replace('"0.0.0"','"10.0.0"')
-    headers['runtime_version.h']=headers['runtime_version.h'].replace('MajorVersion 0','MajorVersion 10').replace('RuntimeProductVersion 0.0.0-dev','RuntimeProductVersion 10.0.0')
-    for name,text in {'build-native.sh':script,**{'artifacts/obj/'+n:v for n,v in headers.items()}}.items():
-        data=text.encode();member=tarfile.TarInfo(name);member.size=len(data);member.mode=0o644;out.addfile(member,io.BytesIO(data))
+        assert member.name not in seen, member.name
+        seen.add(member.name)
+        if member.name=='build-native.sh':
+            data=script.encode();member=tarfile.TarInfo('build-native.sh');member.size=len(data);member.mode=0o644
+            out.addfile(member,io.BytesIO(data))
+        else:
+            out.addfile(member,original.extractfile(member) if member.isfile() else None)
+    assert {'build-native.sh','artifacts/obj/_version.h','artifacts/obj/runtime_version.h'} <= seen
 for name in ['toolchain.tar','bwrap']:os.link(a.native/name,folder/name)
 shutil.copyfile(here/'NativeBuild.cs.txt',folder/'NativeBuild.cs')
 shutil.copyfile(here/'native_action.bzl',folder/'native_action.bzl')

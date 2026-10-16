@@ -5,6 +5,7 @@ and native outputs remain Bazel edges; no products archive or producer report is
 required. This is the pinned Linux ARM64 qualification, not full runtime bootstrap.
 """
 import json
+import os
 from pathlib import Path
 import re
 import shutil
@@ -58,6 +59,14 @@ def export_source_runtime(source, output, rules, resume=False):
         if target.exists():
             assert same_input(target, original), 'Changed producer input: ' + name
         else:
+            # These immutable declared archives can be shared inside an owned
+            # preparation. Edit controls replace archives before mutating them.
+            if path.name in ['source.tar', 'toolchain.tar']:
+                try:
+                    os.link(original, target)
+                    continue
+                except OSError:
+                    pass
             shutil.copy2(original, target)
     module = (source / 'MODULE.bazel').read_text()
     module = re.sub(r'module\(name="[^"]+"\)', 'module(name="jit_source_runtime")', module)

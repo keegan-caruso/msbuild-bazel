@@ -13,14 +13,14 @@ import tempfile
 
 def component_archive_control():
     # Updated native inputs already contain bootstrap headers. Composing a
-    # component must replace them, retaining strict duplicate-free extraction.
+    # component must preserve them, retaining strict duplicate-free extraction.
     with tempfile.TemporaryDirectory(prefix='native-component-archive-') as temporary:
         root = Path(temporary)
         native = root / 'native'
         native.mkdir()
         files = {'eng/native/version/_version.h': '00,00,00,00000 "0.0.0"',
                  'eng/native/version/runtime_version.h': 'MajorVersion 0\nRuntimeProductVersion 0.0.0-dev\n',
-                 'artifacts/obj/_version.h': 'old', 'artifacts/obj/runtime_version.h': 'old',
+                 'artifacts/obj/_version.h': 'generated 10.0.0 header', 'artifacts/obj/runtime_version.h': 'generated 10.0.0 runtime',
                  'build-native.sh': 'old', 'src/native/keep.txt': 'authored'}
         with tarfile.open(native / 'source.tar', 'w') as archive:
             for name, body in files.items():
@@ -39,9 +39,9 @@ def component_archive_control():
                 assert all(count == 1 for count in Counter(member.name for member in archive).values())
                 assert archive.extractfile('src/native/keep.txt').read() == b'authored'
                 for name in ['_version.h', 'runtime_version.h']:
-                    assert b'10.0.0' in archive.extractfile('artifacts/obj/' + name).read()
+                    assert archive.extractfile('artifacts/obj/' + name).read() == files['artifacts/obj/' + name].encode()
                 assert b'-ninja' in archive.extractfile('build-native.sh').read()
-        print('PASS: four component archives retain authored files and replace version headers once', flush=True)
+        print('PASS: four component archives retain authored files and generated version headers once', flush=True)
 
 
 component_archive_control()

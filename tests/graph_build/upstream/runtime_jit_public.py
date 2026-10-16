@@ -155,7 +155,13 @@ def main():
             helper_original = helper.read_bytes()
             assert dependency['project'] in contract['Projects']
             assert '<ProjectReference Include="helper.csproj"' in (root / case['project']).read_text()
-            assert not contract['Projects'][case['project']]['Configurations'][0]['ReferenceBoundary']
+            configuration = contract['Projects'][case['project']]['Configurations'][0]
+            assert configuration['ReferenceBoundary'] == bool(metadata.get('compilerReferences'))
+            if metadata.get('compilerReferences'):
+                assert configuration['CompilerReferencesComplete']
+                assert configuration['CompilerReferences'][dependency['project']].endswith('/helper/helper.dll')
+                producer = contract['Projects'][dependency['project']]['Configurations'][0]
+                assert producer['CompilerReference'] is None  # SDK default implementation output, not an invented ref DLL
             helper_output = 'artifacts/tests/coreclr/linux.arm64.Release/' + str(Path(dependency['project']).parent.relative_to('src/tests')) + '/' + Path(dependency['project']).stem
             test_output = 'artifacts/tests/coreclr/linux.arm64.Release/' + str(Path(case['project']).parent.relative_to('src/tests')) + '/' + Path(case['project']).stem
             try:
