@@ -6,6 +6,7 @@ runtime_jit_public.py --seed-report. No outputs or local caches are copied.
 import argparse
 import hashlib
 import json
+import os
 from pathlib import Path
 import re
 import shutil
@@ -67,7 +68,17 @@ def main():
         producer = source / 'source_runtime'
         for path in producer.rglob('*'):
             assert not path.is_symlink(), path
-        shutil.copytree(producer, output / 'source_runtime', copy_function=shutil.copy2)
+        def copy_input(source, destination):
+            # Keep immutable native archives shared inside the owned closure.
+            # Edit controls replace archives before modifying their contents.
+            if Path(source).name in ['source.tar', 'toolchain.tar']:
+                try:
+                    os.link(source, destination)
+                    return destination
+                except OSError:
+                    pass
+            return shutil.copy2(source, destination)
+        shutil.copytree(producer, output / 'source_runtime', copy_function=copy_input)
         module = output / 'source_runtime/MODULE.bazel'
         module.write_text(re.sub(r'local_path_override\(module_name="rules_msbuild",path="[^"]+"\)',
             'local_path_override(module_name="rules_msbuild",path=' + json.dumps(str(ROOT)) + ')', module.read_text()))

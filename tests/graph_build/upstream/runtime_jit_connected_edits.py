@@ -105,10 +105,7 @@ def main():
         if label in ['body', 'api']:
             assert len(source_graph) == 1 and row['sourceMisses'] == edit['expectedMisses'][label], row['sourceMisses']
             assert not native_actions, ran
-            if label == 'body':
-                assert not restore, ran
-            else:
-                assert len(restore) == 1 and any(path.endswith('/graph_restore.restore') and '/external/' not in path for path in restore[0]['listedOutputs']), restore
+            assert not restore, ran
             assert row['sourceHost']['System.IO.Pipelines.dll'] != baseline['sourceHost']['System.IO.Pipelines.dll']
             if label == 'body':
                 assert not jit_graph and row['sourceReferences'] == baseline['sourceReferences'], ran

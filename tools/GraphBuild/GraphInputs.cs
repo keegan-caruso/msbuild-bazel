@@ -82,9 +82,9 @@ internal sealed class GraphInputs : IDisposable
                     throw new InvalidDataException("Declared graph input is missing: " + path);
                 }
             }
-            if (contract.Version is not (1 or 2 or 3 or 4 or 5 or 6 or 7 or 8 or 9 or 10 or 11 or 12) || contract.Projects.Count == 0)
+            if (contract.Version is not (1 or 2 or 3 or 4 or 5 or 6 or 7 or 8 or 9 or 10 or 11 or 12 or 13) || contract.Projects.Count == 0)
             {
-                throw new InvalidDataException("Expected graph contract version 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11 or 12 with explicit project inputs and outputs");
+                throw new InvalidDataException("Expected graph contract version 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12 or 13 with explicit project inputs and outputs");
             }
             sdk = Path.Combine(sdkRoot, "sdk", contract.SdkVersion);
             if (!Directory.Exists(sdk))
@@ -169,9 +169,9 @@ internal sealed class GraphInputs : IDisposable
         }
         if (contract.EvaluationReuseInputs is not null)
         {
-            if (contract.Version is not (9 or 10 or 11 or 12))
+            if (contract.Version is not (9 or 10 or 11 or 12 or 13))
             {
-                throw new InvalidDataException("Evaluation reuse inputs require graph contract version 9, 10, 11 or 12");
+                throw new InvalidDataException("Evaluation reuse inputs require graph contract version 9, 10, 11, 12 or 13");
             }
             var compiler = Graph.ProjectNodes.SelectMany(node => node.ProjectInstance.GetItems("Compile")
                 .Select(item => Path.GetRelativePath(Files.Root, Path.GetFullPath(item.EvaluatedInclude.Replace('\\', '/'), Path.GetDirectoryName(node.ProjectInstance.FullPath)!))))
@@ -238,9 +238,9 @@ internal sealed class GraphInputs : IDisposable
         {
             return project;
         }
-        if (contract.Version is not (2 or 3 or 4 or 5 or 6 or 7 or 8 or 9 or 10 or 11 or 12) || project.OutputDirectories.Length != 0 || project.OutputFiles?.Length > 0 || project.ReferenceBoundary || project.DependencyCopies?.Count > 0 || project.ImplementationDependencies?.Length > 0 || project.CompilerReference is not null || project.CompilerReferences?.Count > 0 || project.CompilerReferencesComplete || project.ReplayOmissions?.Length > 0)
+        if (contract.Version is not (2 or 3 or 4 or 5 or 6 or 7 or 8 or 9 or 10 or 11 or 12 or 13) || project.OutputDirectories.Length != 0 || project.OutputFiles?.Length > 0 || project.ReferenceBoundary || project.DependencyCopies?.Count > 0 || project.ImplementationDependencies?.Length > 0 || project.CompilerReference is not null || project.CompilerReferences?.Count > 0 || project.CompilerReferencesComplete || project.ReplayOmissions?.Length > 0)
         {
-            throw new InvalidDataException("Configured projects require version 2, 3, 4, 5, 6, 7, 8, 9, 10, 11 or 12 and configuration-owned outputs: " + Relative(node));
+            throw new InvalidDataException("Configured projects require version 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12 or 13 and configuration-owned outputs: " + Relative(node));
         }
         var matches = project.Configurations.Where(configuration => configuration.Properties.Count != 0 &&
             configuration.Properties.All(property =>

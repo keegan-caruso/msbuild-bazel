@@ -19,7 +19,7 @@ internal sealed class EvaluationSession : IDisposable
 
     internal void Prepare(GraphContract contract, ContractFiles files, string sdkDigest, Dictionary<string, string> digests)
     {
-        if (contract.Version is not (9 or 10 or 11 or 12) || contract.EvaluationReuseInputs is null)
+        if (contract.Version is not (9 or 10 or 11 or 12 or 13) || contract.EvaluationReuseInputs is null)
         {
             throw new InvalidDataException("Evaluation reuse requires a version 9, 10 or 11 reviewed compiler-only input inventory");
         }

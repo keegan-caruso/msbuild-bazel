@@ -4,7 +4,7 @@ using System.Text.Json.Serialization;
 namespace RulesMSBuild.ProjectSync;
 
 internal sealed record SyncInputTree(string[] Files, string[] Directories);
-internal sealed record SyncInput(string Path, string Label, string Runfile, bool Directory = false);
+internal sealed record SyncInput(string Path, string Label, string Runfile, bool Directory = false, bool BuildOnly = false);
 internal sealed record SyncPackage(string Id, string Version, string Runfile);
 internal sealed record SyncBinding(string Label, string Property, string[] Runfiles, string Entry, bool Closure = false);
 internal sealed record SyncPackageLock(string Label, string[] Packages);
@@ -36,6 +36,12 @@ internal sealed class WorkspaceView : IDisposable
     }
     internal Dictionary<string, string> Labels { get; } = new(StringComparer.Ordinal);
     private readonly HashSet<string> evaluationOnly = new(StringComparer.Ordinal);
+    private readonly HashSet<string> buildInputs = new(StringComparer.Ordinal);
+    internal bool HasBuildInputs
+    {
+        get; private set;
+    }
+    internal string[] BuildInputs => buildInputs.Order(StringComparer.Ordinal).ToArray();
     private readonly HashSet<string> treeRoots = new(StringComparer.Ordinal);
     private readonly Dictionary<string, string> producerRoots = new(StringComparer.Ordinal);
 
@@ -89,6 +95,7 @@ internal sealed class WorkspaceView : IDisposable
             CopySources(root, temporary);
             foreach (var input in inputs.Inputs)
             {
+                view.HasBuildInputs |= input.BuildOnly;
                 var path = Safe(input.Path);
                 if (path.Split('/').Any(p => p is ".git" or ".nuget") || !view.producerRoots.TryAdd(input.Label, path))
                 {
@@ -120,6 +127,10 @@ internal sealed class WorkspaceView : IDisposable
                         else
                         {
                             File.Copy(file, target);
+                            if (input.BuildOnly)
+                            {
+                                view.buildInputs.Add(relative);
+                            }
                         }
                     }
                     Directory.CreateDirectory(destination);
@@ -132,6 +143,10 @@ internal sealed class WorkspaceView : IDisposable
                     }
                     Directory.CreateDirectory(Path.GetDirectoryName(destination)!);
                     File.CreateSymbolicLink(destination, source);
+                    if (input.BuildOnly)
+                    {
+                        view.buildInputs.Add(path);
+                    }
                 }
             }
             foreach (var binding in inputs.Bindings ?? [])

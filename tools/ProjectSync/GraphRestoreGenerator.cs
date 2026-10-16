@@ -2,24 +2,33 @@ using Microsoft.Build.Graph;
 
 namespace RulesMSBuild.ProjectSync;
 
-internal sealed record GraphRestoreDeclaration(string[] Inputs, string[] Outputs);
+internal sealed record GraphRestoreDeclaration(string[] Inputs, string[] Outputs, string[]? BuildInputs = null);
 
 internal static class GraphRestoreGenerator
 {
     internal static GraphRestoreDeclaration? Create(ProjectGraph graph, GraphMappings mappings, IEnumerable<string> definitions,
-        IEnumerable<string> shared, Func<string, string> relative)
+        IEnumerable<string> shared, Func<string, string> relative, string[] buildInputs, bool hasBuildInputs)
     {
         var nodes = graph.ProjectNodes.Select(node => (node, binding: mappings.ForProject(relative(node.ProjectInstance.FullPath),
             node.ProjectInstance.GetPropertyValue("TargetFramework")))).ToArray();
         if (!nodes.Any(pair => pair.binding.PreparedRestore))
         {
+            if (hasBuildInputs)
+            {
+                throw new InvalidDataException("build_inputs requires preparedRestore for every configuration");
+            }
             return null;
         }
         if (nodes.Any(pair => !pair.binding.PreparedRestore))
         {
             throw new InvalidDataException("Prepared graph Restore requires a complete contract for every configuration");
         }
-        var inputs = definitions.Concat(shared).Concat(nodes.SelectMany(pair => pair.binding.RestoreInputs))
+        var required = definitions.Concat(nodes.SelectMany(pair => pair.binding.RestoreInputs)).ToArray();
+        if (required.Intersect(buildInputs, StringComparer.Ordinal).Any())
+        {
+            throw new InvalidDataException("Build-only producer content cannot be a definition or explicit Restore input");
+        }
+        var inputs = required.Concat(shared.Except(buildInputs, StringComparer.Ordinal))
             .Select(WorkspaceView.Safe).Distinct().Order(StringComparer.Ordinal).ToArray();
         var outputs = nodes.SelectMany(pair =>
         {
@@ -45,10 +54,10 @@ internal static class GraphRestoreGenerator
                 ? new[] { relative(Path.Combine(extensionRoot, "project.assets.json")) } : [])
                 .Concat(pair.binding.RestoreOutputs.Select(WorkspaceView.Safe));
         }).Distinct().Order(StringComparer.Ordinal).ToArray();
-        if (outputs.Any(inputs.Contains))
+        if (outputs.Any(path => inputs.Contains(path) || buildInputs.Contains(path)))
         {
             throw new InvalidDataException("Prepared graph Restore outputs overlap authored inputs");
         }
-        return new(inputs, outputs);
+        return new(inputs, outputs, hasBuildInputs ? buildInputs : null);
     }
 }

@@ -312,7 +312,7 @@ internal static class GraphGenerator
         {
             definitions.TryAdd(nativeLock, 0);
         }
-        var shared = (File.Exists(Path.Combine(root, "global.json")) ? new[] { "global.json" } : []).Concat(packageInputs ?? []).Concat(view?.InputTrees.Values.SelectMany(tree => tree.Files) ?? []).Concat(nativeLocks).Concat(solution ? entries : []).Distinct().Order(StringComparer.Ordinal).ToArray();
+        var shared = (File.Exists(Path.Combine(root, "global.json")) ? new[] { "global.json" } : []).Concat(packageInputs ?? []).Concat(view?.InputTrees.Values.SelectMany(tree => tree.Files) ?? []).Concat(view?.BuildInputs ?? []).Concat(nativeLocks).Concat(solution ? entries : []).Distinct().Order(StringComparer.Ordinal).ToArray();
         foreach (var path in shared)
         {
             if (!File.Exists(Path.Combine(root, WorkspaceView.Safe(path))))
@@ -320,7 +320,11 @@ internal static class GraphGenerator
                 throw new InvalidDataException("Missing declared package task input: " + path);
             }
         }
-        var restore = GraphRestoreGenerator.Create(graph, mappings, definitions.Keys, shared, Relative);
+        if ((packageInputs ?? []).Intersect(view?.BuildInputs ?? [], StringComparer.Ordinal).Any())
+        {
+            throw new InvalidDataException("Build-only producer content cannot be a package task input");
+        }
+        var restore = GraphRestoreGenerator.Create(graph, mappings, definitions.Keys, shared, Relative, view?.BuildInputs ?? [], view?.HasBuildInputs == true);
         if (restore is not null)
         {
             shared = shared.Concat(restore.Inputs.Except(definitions.Keys)).Distinct().Order(StringComparer.Ordinal).ToArray();
@@ -507,6 +511,10 @@ internal static class GraphGenerator
         {
             contractData["Version"] = 12;
             contractData["InputTrees"] = JsonSerializer.SerializeToNode(view.InputTrees);
+        }
+        if (view?.HasBuildInputs == true)
+        {
+            contractData["Version"] = 13;
         }
         foreach (var project in contractData["Projects"]!.AsObject().Select(pair => pair.Value!))
         {

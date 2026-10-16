@@ -140,6 +140,99 @@ class GraphSyncTests(unittest.TestCase):
             (tree / '.nuget/injected').write_text('reserved')
             self.assertIn('reserved sync input', self.sync(flags=flags, success=False))
 
+    def test_build_only_producers_separate_restore_content_and_keep_layout(self):
+        with tempfile.TemporaryDirectory(prefix='sync-build-only-') as directory:
+            base = Path(directory)
+            tree = base / 'tree'
+            (tree / 'empty').mkdir(parents=True)
+            (tree / 'data.txt').write_text('first build content')
+            (base / 'single.txt').write_text('single build content')
+            manifest = base / 'inputs.json'
+            manifest.write_text(json.dumps({'inputs': [
+                {'path': 'producer', 'label': '@producer//:tree', 'runfile': 'tree', 'directory': True, 'buildOnly': True},
+                {'path': 'single.txt', 'label': '@producer//:file', 'runfile': 'single.txt', 'buildOnly': True}], 'packages': []}))
+            flags = ['--inputs', str(manifest), '--runfiles', str(base)]
+            self.assertIn('requires preparedRestore', self.sync(flags=flags, success=False))
+            mapping = {'projectDefaults': {'preparedRestore': True}}
+            self.sync(mapping, flags=flags)
+            contract = json.loads((self.root / 'graph.generated.json').read_text())
+            self.assertEqual(contract['Version'], 13)
+            self.assertEqual(contract['Restore']['BuildInputs'], ['producer/data.txt', 'single.txt'])
+            self.assertFalse(set(contract['Restore']['Inputs']) & set(contract['Restore']['BuildInputs']))
+            self.assertEqual(contract['InputTrees']['producer']['Directories'], ['producer/empty'])
+            self.assertIn('producer', contract['InputDirectories'])
+            text = (self.root / 'graph.generated.bzl').read_text()
+            restore, build = text.split('    msbuild_graph_restore(', 1)[1].split('    msbuild_graph(', 1)
+            self.assertNotIn('@producer//', restore)
+            self.assertIn('@producer//:tree', build)
+            self.assertIn('@producer//:file', build)
+            generated = {name: (self.root / name).read_bytes() for name in ['graph.generated.json', 'graph.generated.bzl']}
+            for name in generated:
+                (self.root / name).unlink()
+            runner = ROOT / 'tools/GraphBuild/bin/Release/net10.0/GraphBuild.dll'
+            payload = base / 'contract.json'
+            prepared = base / 'prepared'
+            report = base / 'report.json'
+            command = [str(SDK / 'dotnet'), str(runner)]
+            environment = dict(os.environ, DOTNET_ROOT=str(SDK))
+            for case in ['version', 'duplicate', 'definition', 'undeclared']:
+                invalid = json.loads(json.dumps(contract))
+                if case == 'version':
+                    invalid['Version'] = 12
+                elif case == 'duplicate':
+                    invalid['Restore']['BuildInputs'].append('single.txt')
+                elif case == 'definition':
+                    invalid['Restore']['BuildInputs'].append('App.csproj')
+                else:
+                    invalid['Restore']['BuildInputs'].append('missing.txt')
+                payload.write_text(json.dumps(invalid))
+                result = subprocess.run(command + ['prepare', str(self.root), str(payload), str(report), str(prepared)],
+                    env=environment, capture_output=True, text=True)
+                self.assertNotEqual(result.returncode, 0, case)
+                self.assertIn('Build-only Restore inputs', result.stderr)
+                self.assertFalse((self.root / 'producer/data.txt').exists())
+                self.assertFalse(prepared.exists())
+            payload.write_text(json.dumps(contract))
+            result = subprocess.run(command + ['prepare', str(self.root), str(payload), str(report), str(prepared)],
+                env=environment, capture_output=True, text=True)
+            self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+            self.assertEqual((self.root / 'producer/data.txt').read_bytes(), b'')
+            self.assertEqual((self.root / 'single.txt').read_bytes(), b'')
+            # The build receives real bytes, while the same verified Restore artifact applies.
+            shutil.copy2(tree / 'data.txt', self.root / 'producer/data.txt')
+            shutil.copy2(base / 'single.txt', self.root / 'single.txt')
+            environment['RULES_MSBUILD_GRAPH_PREPARED_RESTORE'] = str(prepared)
+            for content in ['first content', 'changed content']:
+                (self.root / 'producer/data.txt').write_text(content)
+                for name in ['bin', 'obj/Release']:
+                    shutil.rmtree(self.root / name, ignore_errors=True)
+                result = subprocess.run(command + ['action', str(self.root), str(payload), str(report), str(base / 'cache')],
+                    env=environment, capture_output=True, text=True)
+                self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+                self.assertEqual(json.loads(report.read_text())['misses'], 1)
+            shutil.rmtree(self.root / 'producer')
+            (self.root / 'single.txt').unlink()
+            for name in ['bin', 'obj']:
+                shutil.rmtree(self.root / name, ignore_errors=True)
+            for name, content in generated.items():
+                (self.root / name).write_bytes(content)
+            # Byte changes do not change Restore's key or structural declaration.
+            (tree / 'data.txt').write_text('second build content')
+            (base / 'single.txt').write_text('second single content')
+            self.sync(mapping, flags=flags + ['--check'])
+            # Membership changes still require review; they affect Restore layout.
+            (tree / 'added.txt').write_text('new member')
+            self.sync(mapping, flags=flags + ['--check'], success=False)
+            self.sync(mapping, flags=flags)
+            mapping['projectDefaults']['restoreInputs'] = ['producer/data.txt']
+            self.assertIn('explicit Restore input', self.sync(mapping, flags=flags, success=False))
+            mapping['projectDefaults'].pop('restoreInputs')
+            self.assertIn('package task input', self.sync(mapping, flags=flags + ['--package-input', 'producer/data.txt'], success=False))
+            # Imported definitions cannot be declared content-independent.
+            (base / 'single.txt').write_text('<Project><PropertyGroup><Extra>true</Extra></PropertyGroup></Project>')
+            (self.root / 'App.csproj').write_text(self.project.replace('</Project>', '<Import Project="single.txt" /></Project>'))
+            self.assertIn('definition', self.sync(mapping, flags=flags, success=False))
+
     def test_tree_contract_guards_membership_and_hashes_bytes(self):
         with tempfile.TemporaryDirectory(prefix='graph-tree-cache-') as directory:
             base = Path(directory)
