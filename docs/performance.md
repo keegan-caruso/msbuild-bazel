@@ -36,6 +36,42 @@ RULES_MSBUILD_DOTNET_ROOT=PINNED_SDK bash tests/project_sync/preparation_benchma
 Paths should be absolute. Optional trailing root counts select individual sizes.
 CSV/logs stay in `FRESH_OUTPUT`; the benchmark does not reuse qualification products.
 
+## Cached preparation
+
+With a complete `msbuild_sync(srcs = ...)` snapshot, Bazel can reuse qualification
+between sync and check. Linux ARM64, four CPUs / 8 GiB, SDK **10.0.400**, Bazel
+**9.3.0**. The same synthetic three-library chain and unchanged graph declarations
+are used by both modes. Three alternating public `bazel run` pairs; median wall
+seconds, including publication/check:
+
+| Roots / projects | Ordinary `--check` | Cached `--check` |
+| --- | ---: | ---: |
+| 1 / 4 | 2.580 | 0.094 |
+| 16 / 19 | 9.537 | 0.087 |
+| 64 / 67 | 31.887 | 0.094 |
+
+At 67 projects, unchanged checks took **99.7% less time**, with no qualification
+action executed. Single cold observations were **34.85 / 34.53 s** for ordinary /
+cached sync, including runner bootstrap; both compiled all 67 projects.
+These are reuse measurements, not new
+large-runtime or incremental-build timings. SDK/registry acquisition is excluded;
+the harness separately records cold runs including runner bootstrap. Native cache
+controls verify that changed source bytes/membership, definitions, props, mappings,
+producer artifacts and package inventories requalify, while unchanged checks do not.
+
+```sh
+RULES_MSBUILD_BAZEL=PINNED_BAZEL bash tests/project_sync/cached_preparation_benchmark.sh \
+  FRESH_OUTPUT ABSOLUTE_RULES_CHECKOUT
+```
+
+Optional trailing root counts select sizes (default **1 / 16 / 64**). Set
+`RULES_MSBUILD_TEST_REPOSITORY_CACHE` to an existing verified acquisition cache.
+`SYNC_PREPARE_CACHE_URL=URL` seeds a normal Bazel remote cache. Relocate the source
+workspace and identical rules, stop the producer, then run `bazel run //:sync
+--remote_cache=URL --disk_cache= --lockfile_mode=error -- --check` with a fresh
+`--output_base`. The independent four-project control recovered bootstrap and
+preparation remotely with zero qualification executions and identical declarations.
+
 ## Downloaded-SDK workflow
 
 Runtime v10.0.0, four managed roots (Pipelines, Encodings.Web, Json and ComponentModel

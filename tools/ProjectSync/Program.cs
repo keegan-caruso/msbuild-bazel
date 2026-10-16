@@ -6,6 +6,16 @@ internal static class Program
     {
         try
         {
+            if (args.Length != 0 && args[0] == "publish")
+            {
+                PreparedSync.Publish(args[1..]);
+                return 0;
+            }
+            if (args.Length == 3 && args[0] == "stage")
+            {
+                PreparedSync.Stage(args[1], args[2]);
+                return 0;
+            }
             if (args.Length != 0 && args[0] == "nuget-update")
             {
                 NuGetUpdate.Run(args[1..]).GetAwaiter().GetResult();

@@ -37,6 +37,44 @@ class GraphSyncTests(unittest.TestCase):
         self.assertFalse((self.root / "projects.generated.bzl").exists())
         self.sync(flags=["--check"])
 
+    def test_prepared_publication_checks_both_outputs_and_rejects_links(self):
+        self.sync()
+        with tempfile.TemporaryDirectory(prefix='prepared-sync-') as directory:
+            prepared = Path(directory)
+            expected = {}
+            for name in ['graph.generated.json', 'graph.generated.bzl']:
+                expected[name] = (self.root / name).read_bytes()
+                (prepared / name).write_bytes(expected[name])
+
+            def publish(*flags):
+                return subprocess.run([str(SDK / 'dotnet'), str(RUNNER), 'publish', str(prepared), str(self.root), *flags],
+                    capture_output=True, text=True)
+
+            self.assertEqual(publish('--check').returncode, 0)
+            (self.root / 'graph.generated.bzl').write_text('# authored file\n')
+            result = publish()
+            self.assertNotEqual(result.returncode, 0)
+            self.assertIn('Refusing to overwrite', result.stderr)
+            self.assertEqual((self.root / 'graph.generated.json').read_bytes(), expected['graph.generated.json'])
+            (self.root / 'graph.generated.bzl').unlink()
+            (self.root / 'graph.generated.bzl').symlink_to(prepared / 'graph.generated.bzl')
+            self.assertIn('Refusing to replace a linked', publish().stderr)
+            (self.root / 'graph.generated.bzl').unlink()
+            self.assertEqual(publish().returncode, 0)
+            self.assertIn('accepts only --check', publish('--framework', 'net8.0').stderr)
+            (prepared / 'graph.generated.bzl').write_text('# invalid preparation\n')
+            self.assertIn('Invalid prepared sync outputs', publish().stderr)
+            for name, contents in expected.items():
+                self.assertEqual((self.root / name).read_bytes(), contents)
+
+    def test_prepared_staging_rejects_path_escape_and_overlaps(self):
+        manifest = self.root / 'stage.json'
+        for paths in [['../outside'], ['same', 'same'], ['parent', 'parent/child']]:
+            manifest.write_text(json.dumps({'sources': [{'path': path, 'file': str(self.root / 'Program.cs')} for path in paths], 'runfiles': []}))
+            with tempfile.TemporaryDirectory(prefix='sync-stage-') as directory:
+                result = subprocess.run([str(SDK / 'dotnet'), str(RUNNER), 'stage', str(manifest), directory], capture_output=True, text=True)
+                self.assertNotEqual(result.returncode, 0, result.stdout + result.stderr)
+
     def test_analyzer_discovery_stays_inside_workspace(self):
         parent = self.root
         self.root = parent / 'workspace'

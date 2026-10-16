@@ -2,6 +2,7 @@
 
 load("//msbuild/private:paths.bzl", _TOOLCHAIN = "TOOLCHAIN", _quote = "quote", _runfile = "runfile")
 load("//msbuild/private:providers.bzl", "MSBuildBindingInfo", "MSBuildPackageLockInfo")
+load("//msbuild/private:sync_preparation.bzl", "prepare_sync")
 
 def _source_globs_impl(ctx):
     if ctx.attr.package_crossings:
@@ -74,6 +75,8 @@ def sync_source_globs(name, globs, compile_globs = []):
 def _sync_impl(ctx):
     if ctx.label.package:
         fail("msbuild_sync currently belongs in the workspace root BUILD file")
+    if ctx.attr.nuget_update and ctx.attr.srcs:
+        fail("NuGet updates resolve packages explicitly; srcs caching is only for msbuild_sync")
     tc = ctx.toolchains[_TOOLCHAIN]
     payload = ctx.actions.declare_directory(ctx.label.name + ".project-sync")
     ctx.actions.run_shell(
@@ -156,6 +159,8 @@ exec "$runfiles/"%s "$runfiles/"%s nuget-update "${BUILD_WORKSPACE_DIRECTORY:?Ru
         binding_files.append(closure)
     manifest = ctx.actions.declare_file(ctx.label.name + ".sync-inputs.json")
     ctx.actions.write(manifest, json.encode({"inputs": bound, "packages": packages, "packageLock": default_lock_label, "bindings": evaluation_bindings, "packageLocks": package_locks}))
+    if ctx.attr.srcs:
+        return [prepare_sync(ctx, tc, payload, manifest, input_files + package_files + binding_files)]
     launcher = ctx.actions.declare_file(ctx.label.name)
     ctx.actions.write(launcher, """#!/usr/bin/env bash
 set -euo pipefail
@@ -188,6 +193,7 @@ _sync = rule(
     toolchains = [_TOOLCHAIN],
     attrs = {
         "projects": attr.string_list(mandatory = True),
+        "srcs": attr.label_list(allow_files = True),
         "output": attr.string(default = "nuget.lock.json"),
         "nuget_update": attr.bool(),
         "configuration": attr.string(default = "Release"),
@@ -207,12 +213,13 @@ _sync = rule(
     },
 )
 
-def msbuild_sync(name, projects, mappings = None, inputs = {}, package_lock = None, bindings = [], package_locks = [], configuration = "Release", framework = "", package_build = False, package_inputs = [], resolve_references = False, build_inputs = {}, **kwargs):
+def msbuild_sync(name, projects, mappings = None, inputs = {}, package_lock = None, bindings = [], package_locks = [], configuration = "Release", framework = "", package_build = False, package_inputs = [], resolve_references = False, build_inputs = {}, srcs = None, **kwargs):
     """Declare a tool that evaluates local projects and writes graph.generated.json and graph.generated.bzl.
 
     Args:
         name: Runnable target name, conventionally sync.
         projects: Workspace-relative project paths or a single .sln/.slnx, not labels. References are discovered at run time.
+        srcs: Optional complete authored workspace snapshot. Bazel caches preparation; use inputs for generated producers. Exclude generated declarations and build outputs.
         configuration: Graph configuration, default Release.
         framework: Optional graph target framework; empty builds declared frameworks.
         package_build: Opt in to offline Restore and package build/content evaluation in a disposable copy.
@@ -228,6 +235,8 @@ def msbuild_sync(name, projects, mappings = None, inputs = {}, package_lock = No
     """
     if any([label in inputs for label in build_inputs]):
         fail("A producer cannot be both inputs and build_inputs")
+    if srcs != None and not srcs:
+        fail("Cached sync requires a nonempty srcs workspace snapshot")
     if not projects:
         fail("msbuild_sync requires at least one entry project")
     if resolve_references and not package_build:
@@ -238,7 +247,7 @@ def msbuild_sync(name, projects, mappings = None, inputs = {}, package_lock = No
 
     # Keep apparent external labels portable across Bazel canonical-name changes.
     lock_name = package_lock if type(package_lock) == "string" and package_lock.startswith("@") and not package_lock.startswith("@@") else ""
-    _sync(name = name, projects = projects, package_lock_name = lock_name, configuration = configuration, framework = framework, package_build = package_build, package_inputs = package_inputs, resolve_references = resolve_references, mappings = mappings, inputs = inputs, build_inputs = build_inputs, package_lock = package_lock, package_locks = package_locks, bindings = bindings, **kwargs)
+    _sync(name = name, projects = projects, srcs = srcs or [], package_lock_name = lock_name, configuration = configuration, framework = framework, package_build = package_build, package_inputs = package_inputs, resolve_references = resolve_references, mappings = mappings, inputs = inputs, build_inputs = build_inputs, package_lock = package_lock, package_locks = package_locks, bindings = bindings, **kwargs)
 
 def msbuild_nuget_update(name, projects, output = "nuget.lock.json", configuration = "Release", framework = "", mappings = None, **kwargs):
     """Resolve with the declared SDK's NuGet; commit native locks and archive manifest.

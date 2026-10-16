@@ -1328,6 +1328,13 @@ sh_binary(
     data = ["common.sh"],
 )
 
+sh_binary(
+    name = "cached_sync_runner",
+    testonly = True,
+    srcs = ["cached_sync.sh"],
+    data = ["common.sh"],
+)
+
 [
     bazel_integration_tests(
         name = name + "_cases",
@@ -1359,6 +1366,7 @@ sh_binary(
         ("resolved_inputs", ":resolved_inputs_runner", "worker"),
         ("restore_inputs", ":restore_inputs_runner", "worker"),
         ("preparation", ":preparation_runner", "worker"),
+        ("cached_sync", ":cached_sync_runner", "worker"),
         ("resolved_package_copies", ":package_copies_runner", "worker"),
         ("resolved_il_sdk", ":il_sdk_runner", "il_sdk"),
     ]
@@ -1377,6 +1385,7 @@ sh_binary(
         "resolved_inputs",
         "restore_inputs",
         "preparation",
+        "cached_sync",
         "resolved_package_copies",
         "resolved_il_sdk",
     ]

@@ -33,6 +33,11 @@ project keys and reset evaluation without changing the prepared Restore contract
 Custom task reads need reviewed declarations; evaluation does not trace arbitrary
 file access.
 
+With a complete `msbuild_sync(srcs = ...)` snapshot, evaluation and private compiler
+qualification form a Bazel action. A local publisher writes or checks its generated
+declarations. Bazel owns reuse and invalidation; no separate qualification cache is
+maintained. Without that snapshot, sync evaluates the local workspace on each run.
+
 Bazel can recover a whole unchanged Restore/build action. When the graph action
 changes, the MSBuild plugin can recover individual projects from worker snapshots
 or HTTP AC/CAS. A hit restores artifact bytes and target-result metadata.
