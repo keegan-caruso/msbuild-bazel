@@ -1,5 +1,41 @@
 # Performance versus raw MSBuild
 
+## Sync preparation
+
+Multi-root offline sync now calls each root's Restore target within one native
+MSBuild invocation. Shared configured dependencies reuse evaluation/target results;
+root hooks and per-entry properties remain intact. Single-root Restore is unchanged.
+The private compiler-selection Build still runs once per sync/check.
+
+Synthetic roots share a three-library chain: Linux ARM64, four CPUs / 6 GiB,
+SDK **10.0.400**, no external packages. Three alternating before/after pairs against
+**da16128**, fresh private workspaces, medians in seconds. Each pair verifies
+byte-identical generated JSON and Starlark; later samples also run `--check`.
+
+| Roots / projects | Offline sync before → after | With compiler qualification before → after |
+| --- | ---: | ---: |
+| 1 / 4 | 0.64 → 0.59 | 2.44 → 2.44 |
+| 4 / 7 | 2.00 → 0.74 | 5.10 → 3.88 |
+| 16 / 19 | 7.66 → 1.24 | 15.67 → 9.36 |
+| 64 / 67 | 30.12 → 3.36 | 58.12 → 31.60 |
+
+At 64 roots, offline sync fell **88.8%** and qualified sync **45.6%**.
+SDK/runner acquisition, NuGet update and ordinary incremental builds are excluded.
+These small compilations isolate repeated Restore work; the large runtime graph's
+preparation timings below have not been refreshed. Its private Build remains the
+next cost to investigate.
+
+Build each revision's `tools/ProjectSync/ProjectSync.csproj` with the same pinned SDK,
+using `-c Release -o ABSOLUTE_PAYLOAD_DIRECTORY`, then run from this checkout:
+
+```sh
+RULES_MSBUILD_DOTNET_ROOT=PINNED_SDK bash tests/project_sync/preparation_benchmark.sh \
+  FRESH_OUTPUT BASELINE/ProjectSync.dll CANDIDATE/ProjectSync.dll
+```
+
+Paths should be absolute. Optional trailing root counts select individual sizes.
+CSV/logs stay in `FRESH_OUTPUT`; the benchmark does not reuse qualification products.
+
 ## Downloaded-SDK workflow
 
 Runtime v10.0.0, four managed roots (Pipelines, Encodings.Web, Json and ComponentModel

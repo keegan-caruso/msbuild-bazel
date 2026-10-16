@@ -30,7 +30,9 @@ internal static class GraphEntryProperties
         }
     }
 
-    internal static string Argument(string name, string value) => "-p:" + name + "=" +
+    internal static string Argument(string name, string value) => "-p:" + Assignment(name, value);
+
+    internal static string Assignment(string name, string value) => name + "=" +
         Microsoft.Build.Evaluation.ProjectCollection.Escape(value).Replace(",", "%2C", StringComparison.Ordinal);
 
     internal static Dictionary<string, string> For(string entry, Dictionary<string, string> defaults, Dictionary<string, Dictionary<string, string>> overrides)

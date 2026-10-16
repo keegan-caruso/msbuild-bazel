@@ -256,6 +256,13 @@ need a complete declared layout. See
 
 ## Graph inputs
 
+`//tests/integration:preparation` passed on Linux ARM64 / Bazel 8.8.0 and 9.3.0:
+multi-root sync shares one offline Restore process and shared dependency walks,
+retains authored root Restore hooks, builds both apps and preserves contracts on
+failure. Sync controls also cover escaped/per-root properties, locked-mode isolation
+and all-framework Restore. Compiler qualification still performs a private Build;
+see [preparation measurements](performance.md#sync-preparation).
+
 `bash scripts/bazel.sh test //tests/integration:source_globs --test_output=errors`
 passed on Linux ARM64 with 8.8.0 / 9.2.0: method-body output changes, addition/removal/
 rename guards and resync followed by app/tests. Sync controls cover exclusions,
