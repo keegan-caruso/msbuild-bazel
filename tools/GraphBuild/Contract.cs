@@ -14,7 +14,7 @@ internal sealed record GraphContract(
 
 internal sealed record InputTreeContract(string[] Files, string[] Directories);
 
-internal sealed record RestoreContract(string[] Inputs, string[] Outputs);
+internal sealed record RestoreContract(string[] Inputs, string[] Outputs, string[]? BuildInputs = null);
 
 // Inputs include task reads that evaluation cannot discover. Outputs are owned
 // directories or required files relative to the workspace; dependency copies are handled separately.

@@ -48,6 +48,7 @@ from MSBuild's Compile items.
 | `projects` | Project paths (`.csproj`, `.ilproj`, Traversal/NoTargets `.proj`) or one `.sln` / `.slnx` |
 | `configuration`, `framework` | Release by default; optional entry framework |
 | `inputs` | Single-file or directory-tree producer labels mapped to workspace-relative paths |
+| `build_inputs` | Same bindings, with bytes used only by Build; requires `preparedRestore` |
 | `package_lock`, `package_locks` | Closed package inventories, including package SDKs |
 | `package_build`, `package_inputs` | Offline Restore/package evaluation; extra declared task reads |
 | `resolve_references` | Private Build to capture complete compiler/copy selections; requires `package_build` |
@@ -59,6 +60,15 @@ Assembly `Reference` items may use a `HintPath` or relative `Include` supplied b
 supplied DLL. Bound trees retain one producer edge and declare all member bytes as
 shared inputs. Membership changes require resync; `inputDirectories` alone declares
 presence. Trees reject internal symlinks and authored-path collisions.
+
+`build_inputs` explicitly declares that Restore needs names and directory presence,
+but does not read file contents. Restore materializes the committed layout with
+empty files; Build receives and hashes the real producer bytes. This preserves
+`Exists()` and globs without invalidating Restore for API edits. Membership changes
+require resync. Imports, explicit Restore inputs and package-task reads cannot use
+this role; use conservative `inputs` for content or other file-metadata reads.
+Sync does not trace arbitrary task reads.
+
 Unbound workspace/host assembly paths fail. Sources from the graph's own repository stage
 relative to that repository; cross-repository producers require `input_paths`.
 

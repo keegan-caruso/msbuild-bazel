@@ -14,6 +14,23 @@ internal static class PreparedRestore
     {
         var files = new ContractFiles(root, sdk);
         Validate(contract, files);
+        // Build-only bytes are deliberately absent from the Restore action. Keep
+        // file membership for Exists/globs without supplying compiler contents.
+        foreach (var path in contract.Restore!.BuildInputs ?? [])
+        {
+            var destinationPath = files.Resolve(path);
+            if (Path.Exists(destinationPath))
+            {
+                throw new InvalidDataException("Restore requires absent build-only content: " + path);
+            }
+            Directory.CreateDirectory(Path.GetDirectoryName(destinationPath)!);
+            File.WriteAllBytes(destinationPath, []);
+        }
+        foreach (var directory in (contract.InputTrees ?? []).Values.SelectMany(tree => tree.Directories))
+        {
+            Directory.CreateDirectory(files.Resolve(directory));
+        }
+        GraphTrees.Verify(contract, files);
         var sdkDigest = ContractFiles.TreeDigest(sdk);
         var key = Key(contract, files, sdkDigest);
         if (contract.Restore!.Outputs.Any(path => File.Exists(files.Resolve(path))) ||
@@ -193,15 +210,27 @@ internal static class PreparedRestore
             throw new InvalidDataException("Prepared Restore requires explicit complete input and output lists");
         }
         var inputs = contract.Restore.Inputs.ToHashSet(StringComparer.Ordinal);
-        if ((contract.DefinitionDigests ?? []).Keys.Concat(contract.SharedInputs).Concat(contract.Projects.Keys).Any(path => !inputs.Contains(path)))
+        var buildInputs = (contract.Restore.BuildInputs ?? []).ToHashSet(StringComparer.Ordinal);
+        if (contract.Restore.BuildInputs is not null && contract.Version != 13)
+        {
+            throw new InvalidDataException("Build-only Restore inputs require graph contract version 13");
+        }
+        if ((contract.Restore.BuildInputs?.Length ?? 0) != buildInputs.Count ||
+            buildInputs.Any(path => path.Split('/')[0] is ".package-source" or ".graph-tools" or ".nuget" || !contract.SharedInputs.Contains(path, StringComparer.Ordinal) || inputs.Contains(path) ||
+            (contract.DefinitionDigests ?? []).ContainsKey(path) || contract.Projects.ContainsKey(path) ||
+            (contract.InputDirectories ?? []).Contains(path, StringComparer.Ordinal)))
+        {
+            throw new InvalidDataException("Build-only Restore inputs must be distinct shared files, not definitions, directories or Restore inputs");
+        }
+        if ((contract.DefinitionDigests ?? []).Keys.Concat(contract.SharedInputs.Except(buildInputs)).Concat(contract.Projects.Keys).Any(path => !inputs.Contains(path)))
         {
             throw new InvalidDataException("Restore inputs must include every project, definition and shared input");
         }
-        foreach (var path in contract.Restore.Inputs.Concat(contract.Restore.Outputs))
+        foreach (var path in contract.Restore.Inputs.Concat(contract.Restore.Outputs).Concat(buildInputs))
         {
             files.Resolve(path);
         }
-        if (contract.Restore.Outputs.Any(path => inputs.Contains(path) || path.StartsWith(".package-source/", StringComparison.Ordinal) || path.StartsWith(".graph-tools/", StringComparison.Ordinal)))
+        if (contract.Restore.Outputs.Any(path => inputs.Contains(path) || buildInputs.Contains(path) || path.StartsWith(".package-source/", StringComparison.Ordinal) || path.StartsWith(".graph-tools/", StringComparison.Ordinal)))
         {
             throw new InvalidDataException("Restore outputs must not overwrite authored inputs or tools");
         }

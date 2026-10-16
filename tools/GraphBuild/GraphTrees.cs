@@ -10,9 +10,9 @@ internal static class GraphTrees
         {
             return;
         }
-        if (contract.Version != 12)
+        if (contract.Version is not (12 or 13))
         {
-            throw new InvalidDataException("Input trees require graph contract version 12");
+            throw new InvalidDataException("Input trees require graph contract version 12 or 13");
         }
         var shared = contract.SharedInputs.ToHashSet(StringComparer.Ordinal);
         foreach (var (root, tree) in contract.InputTrees)

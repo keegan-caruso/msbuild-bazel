@@ -167,7 +167,7 @@ def main():
         declarations.append('load(":products.bzl","runtime_jit_products")')
         for name, prefix in [('refs', 'references'), ('host_products', 'core-root')]:
             declarations.append('runtime_jit_products(name=' + repr(name) + ',archive="source-products.tar.gz",sha256=' + repr(seed['sourceProductsSha256']) + ',prefix=' + repr(prefix) + ')')
-    declarations.append('msbuild_sync(name="sync",projects=projects,mappings="mappings.json",package_lock="@nuget//:packages",package_build=True,' + ('resolve_references=True,' if args.compiler_references else '') + 'inputs={":refs":"artifacts/bin/ref/net10.0","@jit_bootstrap//:targeting":"artifacts/TargetingPack"})')
+    declarations.append('msbuild_sync(name="sync",projects=projects,mappings="mappings.json",package_lock="@nuget//:packages",package_build=True,' + ('resolve_references=True,' if args.compiler_references else '') + 'build_inputs={":refs":"artifacts/bin/ref/net10.0"},inputs={"@jit_bootstrap//:targeting":"artifacts/TargetingPack"})')
     (source / 'BUILD.bazel').write_text('\n'.join(declarations) + '\n')
     run('sync', ['run', '//:sync'])
     run('sync-check', ['run', '//:sync', '--', '--check'])

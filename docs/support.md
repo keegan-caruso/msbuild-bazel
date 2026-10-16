@@ -330,6 +330,12 @@ edge, outer dispatch stays intact, and a generator body edit rebuilds both inner
 consumers. Body/API, implementation and explicit tool controls retain fresh bytes.
 Run `bash scripts/bazel.sh test //tests/integration:resolved_inputs --test_output=errors`.
 
+The `restore_inputs` integration suite passes 8.8 / 9.3 on Linux ARM64: a
+build-only producer API edit recompiles the consumer without Restore. `Exists()`
+and globs retain layout, Restore outputs match conservative inputs byte-for-byte,
+and fresh compilation matches. Ordinary `inputs` retains byte invalidation. Run
+`bash scripts/bazel.sh test //tests/integration:restore_inputs --test_output=errors`.
+
 Normal Bazel remote-cache recovery hits both Restore and graph actions on a fresh
 consumer. Forced project recovery with a stopped producer also passed: complete
 inventories yielded **481 hits / zero compilations**, with all **9,972 retained
