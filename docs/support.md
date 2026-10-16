@@ -473,7 +473,7 @@ Connected edits rerun all six tests against the refreshed runtime:
 | Edit | Runtime compilations | JIT compilations | Native actions | Restore actions |
 | --- | ---: | ---: | ---: | ---: |
 | Pipelines body | 6 | 0 | 0 | 0 |
-| Pipelines API | 17 | 9 | 0 | 1 |
+| Pipelines API | 17 | 9 | 0 | 0 |
 | Native version marker | 0 | 0 | 1 | 0 |
 
 Body edits preserve reference and JIT output bytes. Native edits change only
@@ -481,8 +481,9 @@ Body edits preserve reference and JIT output bytes. Native edits change only
 exact original bytes/modes with no graph, native or Restore executions. A fresh
 machine recovered the **API-edited** closure through normal Bazel remote caching,
 with the edited-state producer stopped: zero compilations/build/Restore executions
-and six actual test runs. The JIT Restore action conservatively includes reference
-tree bytes, so API edits still invalidate it. These are correctness controls.
+and six actual test runs. The 138 reference files use `build_inputs`: API edits
+retain the JIT Restore action. All **2,908 Restore files** match the conservative
+binding in bytes and modes. These are correctness controls, not paired timings.
 
 ```sh
 python3 tests/graph_build/upstream/runtime_jit_connected_edits.py OUTPUT RESULTS \
