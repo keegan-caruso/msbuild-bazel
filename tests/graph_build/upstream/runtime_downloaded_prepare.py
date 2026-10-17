@@ -15,6 +15,7 @@ import time
 
 from runtime_prepare import COMMIT, SOURCE_SHA256
 from runtime_feed_config import pin_runtime_feeds
+from runtime_sync_inputs import SYNC_SRCS, assert_preparation_reused
 
 ROOT = Path(__file__).resolve().parents[3]
 
@@ -65,7 +66,6 @@ def main():
                 data = target.read_bytes()
                 path.unlink()
                 path.write_bytes(data)
-    prior_mapping = (source / 'mappings.json').read_bytes() if (source / 'mappings.json').exists() else None
     # Avoid differently signed copies of the same package racing across feeds.
     pin_runtime_feeds(source / 'NuGet.config', packages=('Microsoft.TestPlatform.ObjectModel',))
     subprocess.run(['python3', str(Path(__file__).with_name('runtime_contract.py')), str(source / 'mappings.json'),
@@ -85,10 +85,10 @@ def main():
     update = ('load("@rules_msbuild//msbuild:sync.bzl","msbuild_nuget_update","msbuild_sync")\n'
               'entries=' + json.dumps(entries) + '\n'
               'msbuild_nuget_update(name="update_packages",projects=entries,framework="net10.0",mappings="mappings.json")\n')
-    sync = 'msbuild_sync(name="sync",projects=entries,framework="net10.0",mappings="mappings.json",package_lock="@nuget//:packages",package_build=True,resolve_references=True)\n'
+    sync = 'msbuild_sync(name="sync",projects=entries,framework="net10.0",mappings="mappings.json",package_lock="@nuget//:packages",package_build=True,resolve_references=True,' + SYNC_SRCS + ')\n'
     if args.resume:
         assert (source / 'MODULE.bazel').read_text() == module + inventory
-        assert (source / 'BUILD.bazel').read_text() == update + sync
+        assert (source / 'BUILD.bazel').read_text() in [update + sync, update + sync.replace(',' + SYNC_SRCS, '')]
     (source / 'MODULE.bazel').write_text(module)
     (source / 'BUILD.bazel').write_text(update)
     command = [str(ROOT / 'scripts/bazel-launcher.sh'), '--output_base=' + str(base / 'sync-bazel'), 'run']
@@ -97,10 +97,14 @@ def main():
 
     def run(label, target, check=False):
         start = time.monotonic()
+        trace = base / (label + '.actions.json')
         with (base / (label + '.log')).open('w') as log:
-            subprocess.run(command + [target, *options] + (['--', '--check'] if check else []), cwd=source,
+            subprocess.run(command + [target, *options, '--execution_log_json_file=' + str(trace)] + (['--', '--check'] if check else []), cwd=source,
                            stdout=log, stderr=subprocess.STDOUT, check=True)
-        rows.append(dict(command=target + (' -- --check' if check else ''), seconds=time.monotonic() - start))
+        elapsed = time.monotonic() - start
+        if label == 'sync-check':
+            assert_preparation_reused(trace)
+        rows.append(dict(command=target + (' -- --check' if check else ''), seconds=elapsed))
         print(json.dumps(rows[-1]), flush=True)
 
     try:
@@ -108,10 +112,7 @@ def main():
         run('update-check', '//:update_packages', True)
         (source / 'MODULE.bazel').write_text(module + inventory)
         (source / 'BUILD.bazel').write_text(update + sync)
-        prior_reuse = json.loads((source / 'graph.generated.json').read_text()).get('EvaluationReuseInputs') if args.resume else None
-        expected_reuse = sorted([edit['implementation'], edit['reference']]) if args.evaluation_reuse else None
-        if not args.resume or prior_reuse != expected_reuse or prior_mapping != mapping_path.read_bytes():
-            run('sync', '//:sync')
+        run('sync', '//:sync')
         run('sync-check', '//:sync', True)
         contract = json.loads((source / 'graph.generated.json').read_text())
         variants = [v for p in contract['Projects'].values() for v in p.get('Configurations') or [p]]
