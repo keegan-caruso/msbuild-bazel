@@ -475,6 +475,7 @@ class GraphSyncTests(unittest.TestCase):
         self.assertEqual(contract["Version"], 11)
         self.assertEqual(contract["EvaluationReuseGlobs"], defaults["compileGlobs"])
         self.assertEqual(contract["EvaluationReuseInputs"], ["Program.cs"])
+        self.assertNotIn('BuildInputs', contract['Restore'])
         selected = contract["Projects"]["App.csproj"]["Configurations"][0]
         self.assertEqual(selected["CompileGlobs"], defaults["compileGlobs"])
         self.assertFalse(any(path.startswith("LongDirectoryPrefix/") for path in selected["Inputs"]))
