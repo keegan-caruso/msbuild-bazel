@@ -156,4 +156,8 @@ BUILD
 if bazel build //:bad_empty > "$TEST_TMPDIR/empty-source.log" 2>&1; then echo 'Accepted empty srcs' >&2; exit 1; fi
 assert_contains "$TEST_TMPDIR/empty-source.log" 'requires a nonempty srcs'
 cp "$TEST_TMPDIR/valid.BUILD" BUILD.bazel
+bazel run //:sync --action_env=RULES_MSBUILD_SYNC_PROFILE=1 --execution_log_json_file="$TEST_TMPDIR/profile.actions.json" -- --check > "$TEST_TMPDIR/profile.log" 2>&1 || { cat "$TEST_TMPDIR/profile.log" >&2; exit 1; }
+preparations profile 1
+assert_contains "$TEST_TMPDIR/profile.log" '"phase":"private-build"'
+assert_contains "$TEST_TMPDIR/profile.log" '"phase":"sync-total"'
 echo 'PASS: cached qualification, normal-mode parity, source/producer/config/package inputs and protected publication'
