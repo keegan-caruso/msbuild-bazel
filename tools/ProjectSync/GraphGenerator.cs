@@ -89,7 +89,7 @@ internal static class GraphGenerator
         }
         var entry = WorkspaceView.Safe(entries[0]);
         var evaluationContext = EvaluationContext.Create(EvaluationContext.SharingPolicy.Shared);
-        var graph = new ProjectGraph(entries.Select(path => new ProjectGraphEntryPoint(Path.Combine(root, WorkspaceView.Safe(path)), GraphEntryProperties.For(path, evaluationProperties, mappings.EntryProperties))), collection,
+        var graph = SyncProfile.Run("graph-evaluation", () => new ProjectGraph(entries.Select(path => new ProjectGraphEntryPoint(Path.Combine(root, WorkspaceView.Safe(path)), GraphEntryProperties.For(path, evaluationProperties, mappings.EntryProperties))), collection,
             (path, globals, projects) =>
             {
                 var project = Project.FromFile(path, new ProjectOptions
@@ -282,7 +282,7 @@ internal static class GraphGenerator
                 inputs[Key(instance)] = declared.Order(StringComparer.Ordinal).ToArray();
                 fixedInputs[Key(instance)] = inputs[Key(instance)];
                 return instance;
-            });
+            }));
         var dependencyClosure = new Dictionary<ProjectGraphNode, HashSet<ProjectGraphNode>>();
         foreach (var node in graph.ProjectNodes)
         {

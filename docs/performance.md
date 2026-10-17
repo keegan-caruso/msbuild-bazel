@@ -298,6 +298,12 @@ speedup or a new runtime test-suite run.
 
 ## Reproduce
 
+For separate sync diagnostics, use `bazel run //:sync
+--action_env=RULES_MSBUILD_SYNC_PROFILE=1` with declared `srcs`. Profiling is off
+by default. `PROJECT_SYNC_PROFILE` lines report staging, bindings, offline
+preparation/Restore, evaluation and private Build; nested totals overlap.
+Check the execution log: a remote hit can replay the producer's timing lines.
+
 Use matching source, properties, compiler sets, packages, Restore/cache state,
 native products and resource inputs. Keep profiling off for scores. Report project
 hits/misses, compiler calls, output byte parity and whether acquisition was timed.

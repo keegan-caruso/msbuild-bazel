@@ -37,6 +37,25 @@ class GraphSyncTests(unittest.TestCase):
         self.assertFalse((self.root / "projects.generated.bzl").exists())
         self.sync(flags=["--check"])
 
+    def test_opt_in_profiling_preserves_declarations(self):
+        command = [str(SDK / 'dotnet'), str(RUNNER), str(self.root), str(SDK / 'sdk/10.0.400'), 'App.csproj']
+        expected = None
+        for enabled in [None, '1']:
+            environment = dict(os.environ, DOTNET_ROOT=str(SDK))
+            environment.pop('RULES_MSBUILD_SYNC_PROFILE', None)
+            if enabled:
+                environment['RULES_MSBUILD_SYNC_PROFILE'] = enabled
+            result = subprocess.run(command, capture_output=True, text=True, env=environment)
+            self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+            phases = [json.loads(line.removeprefix('PROJECT_SYNC_PROFILE ')) for line in result.stderr.splitlines()
+                if line.startswith('PROJECT_SYNC_PROFILE ')]
+            self.assertEqual(bool(phases), enabled == '1')
+            self.assertTrue(all(row['seconds'] >= 0 for row in phases))
+            current = [(self.root / name).read_bytes() for name in ['graph.generated.json', 'graph.generated.bzl']]
+            if expected is not None:
+                self.assertEqual(current, expected)
+            expected = current
+
     def test_prepared_publication_checks_both_outputs_and_rejects_links(self):
         self.sync()
         with tempfile.TemporaryDirectory(prefix='prepared-sync-') as directory:

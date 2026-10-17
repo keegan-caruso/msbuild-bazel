@@ -11,6 +11,7 @@ internal static class PreparedSync
 {
     internal static void Stage(string manifest, string destination)
     {
+        using var profile = SyncProfile.Measure("declared-source-staging");
         var data = JsonSerializer.Deserialize<SyncStage>(File.ReadAllText(manifest), new JsonSerializerOptions
         {
             PropertyNameCaseInsensitive = true,

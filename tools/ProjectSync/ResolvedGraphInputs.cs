@@ -14,6 +14,7 @@ internal sealed record ResolvedGraphInputs(Dictionary<string, string> CompilerRe
         Func<ProjectGraphNode, IEnumerable<ProjectGraphNode>> dependencies, IEnumerable<string> inputs, HashSet<string> packages,
         Func<ProjectGraphNode, IEnumerable<string>> consumerInputs)
     {
+        using var profile = SyncProfile.Measure("compiler-inventory");
         if (selected.Length == 0)
         {
             throw new InvalidDataException("Compiler input resolution requires at least one supported reference boundary");
@@ -39,12 +40,12 @@ internal sealed record ResolvedGraphInputs(Dictionary<string, string> CompilerRe
             Directory.SetCurrentDirectory(root);
             Environment.SetEnvironmentVariable("NUGET_PACKAGES", Path.Combine(root, ".nuget"));
             using var manager = new BuildManager();
-            result = manager.Build(new BuildParameters(collection)
+            result = SyncProfile.Run("private-build", () => manager.Build(new BuildParameters(collection)
             {
                 MaxNodeCount = 1,
                 EnableNodeReuse = false,
                 Loggers = [new Microsoft.Build.Logging.ConsoleLogger(Microsoft.Build.Framework.LoggerVerbosity.Minimal)]
-            }, new GraphBuildRequestData(graph, ["Build"], null, BuildRequestDataFlags.ProvideProjectStateAfterBuild));
+            }, new GraphBuildRequestData(graph, ["Build"], null, BuildRequestDataFlags.ProvideProjectStateAfterBuild)));
         }
         finally
         {
