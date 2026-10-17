@@ -569,14 +569,7 @@ internal static class GraphGenerator
             "    msbuild_graph_runner(name = name + \"_runner\")\n" + sourceGlobs.Declaration + restoreRule + "    msbuild_graph(\n        name = name,\n        linux_stable_paths = linux_stable_paths,\n        linux_worker = linux_worker,\n        worker_cache_mb = worker_cache_mb,\n        evaluation_cache_mb = evaluation_cache_mb,\n        profile_build = profile_build,\n        target = target,\n        runner = \":\" + name + \"_runner\",\n" +
             (restore is null ? "" : "        restore = \":\" + name + \"_restore\",\n") +
             "        contract = \"" + ContractName + "\",\n        srcs = " + sourceGlobs.Expression + ",\n        bindings = " + StarlarkLiteral.Serialize(view?.GraphBindingLabels ?? []) + ",\n        input_paths = " + StarlarkLiteral.Serialize(view?.Bindings(sources.Concat(inputDirectories)) ?? []) + ",\n        project_outputs = " + StarlarkLiteral.Serialize(runtimeOutputs) + ",\n        publish_outputs = " + StarlarkLiteral.Serialize(publishOutputs) + ",\n" + (view?.DefaultPackageLock is null ? "" : "        package_lock = " + StarlarkLiteral.Serialize(view.DefaultPackageLock) + ",\n") + "    )\n";
-        // Validate both destinations before replacing either generated file.
-        Verify(ContractName, contract, "{\n  \"GeneratedBy\": \"ProjectSync\",");
-        Verify(BuildName, text, Header);
-        if (!check)
-        {
-            File.WriteAllText(Path.Combine(outputRoot, ContractName), contract);
-            File.WriteAllText(Path.Combine(outputRoot, BuildName), text);
-        }
+        Publish(outputRoot, check, contract, text);
 
         IEnumerable<ProjectGraphNode> Dependencies(ProjectGraphNode node)
         {
@@ -856,9 +849,31 @@ internal static class GraphGenerator
             }
             return relative;
         }
+    }
+
+    internal static void Publish(string outputRoot, bool check, string contract, string text)
+    {
+        using var document = JsonDocument.Parse(contract);
+        if (document.RootElement.GetProperty("GeneratedBy").GetString() != "ProjectSync" || !text.StartsWith(Header, StringComparison.Ordinal))
+        {
+            throw new InvalidDataException("Invalid prepared sync outputs");
+        }
+        // Validate both destinations before replacing either generated file.
+        Verify(ContractName, contract, "{\n  \"GeneratedBy\": \"ProjectSync\",");
+        Verify(BuildName, text, Header);
+        if (!check)
+        {
+            File.WriteAllText(Path.Combine(outputRoot, ContractName), contract);
+            File.WriteAllText(Path.Combine(outputRoot, BuildName), text);
+        }
+
         void Verify(string name, string expected, string header)
         {
             var path = Path.Combine(outputRoot, name);
+            if (Directory.Exists(path) || new FileInfo(path).LinkTarget is not null)
+            {
+                throw new InvalidDataException("Refusing to replace a linked or directory " + name);
+            }
             if (check && (!File.Exists(path) || File.ReadAllText(path) != expected))
             {
                 throw new InvalidDataException(name + " is stale; run your sync target (bazel run //:sync), then commit the generated files");

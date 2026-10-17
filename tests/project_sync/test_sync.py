@@ -37,6 +37,44 @@ class GraphSyncTests(unittest.TestCase):
         self.assertFalse((self.root / "projects.generated.bzl").exists())
         self.sync(flags=["--check"])
 
+    def test_prepared_publication_checks_both_outputs_and_rejects_links(self):
+        self.sync()
+        with tempfile.TemporaryDirectory(prefix='prepared-sync-') as directory:
+            prepared = Path(directory)
+            expected = {}
+            for name in ['graph.generated.json', 'graph.generated.bzl']:
+                expected[name] = (self.root / name).read_bytes()
+                (prepared / name).write_bytes(expected[name])
+
+            def publish(*flags):
+                return subprocess.run([str(SDK / 'dotnet'), str(RUNNER), 'publish', str(prepared), str(self.root), *flags],
+                    capture_output=True, text=True)
+
+            self.assertEqual(publish('--check').returncode, 0)
+            (self.root / 'graph.generated.bzl').write_text('# authored file\n')
+            result = publish()
+            self.assertNotEqual(result.returncode, 0)
+            self.assertIn('Refusing to overwrite', result.stderr)
+            self.assertEqual((self.root / 'graph.generated.json').read_bytes(), expected['graph.generated.json'])
+            (self.root / 'graph.generated.bzl').unlink()
+            (self.root / 'graph.generated.bzl').symlink_to(prepared / 'graph.generated.bzl')
+            self.assertIn('Refusing to replace a linked', publish().stderr)
+            (self.root / 'graph.generated.bzl').unlink()
+            self.assertEqual(publish().returncode, 0)
+            self.assertIn('accepts only --check', publish('--framework', 'net8.0').stderr)
+            (prepared / 'graph.generated.bzl').write_text('# invalid preparation\n')
+            self.assertIn('Invalid prepared sync outputs', publish().stderr)
+            for name, contents in expected.items():
+                self.assertEqual((self.root / name).read_bytes(), contents)
+
+    def test_prepared_staging_rejects_path_escape_and_overlaps(self):
+        manifest = self.root / 'stage.json'
+        for paths in [['../outside'], ['same', 'same'], ['parent', 'parent/child']]:
+            manifest.write_text(json.dumps({'sources': [{'path': path, 'file': str(self.root / 'Program.cs')} for path in paths], 'runfiles': []}))
+            with tempfile.TemporaryDirectory(prefix='sync-stage-') as directory:
+                result = subprocess.run([str(SDK / 'dotnet'), str(RUNNER), 'stage', str(manifest), directory], capture_output=True, text=True)
+                self.assertNotEqual(result.returncode, 0, result.stdout + result.stderr)
+
     def test_analyzer_discovery_stays_inside_workspace(self):
         parent = self.root
         self.root = parent / 'workspace'
@@ -592,6 +630,67 @@ class GraphSyncTests(unittest.TestCase):
         (library / 'Code.cs').write_text('invalid C#')
         self.assertIn('qualification Build failed', self.sync(flags=flags, success=False))
         self.assertEqual((self.root / 'graph.generated.json').read_bytes(), before)
+
+    def test_multiple_roots_share_restore_walk_and_keep_root_hooks(self):
+        for name in ['Library', 'Peer']:
+            directory = self.root / name
+            directory.mkdir()
+            reference = '<ItemGroup><ProjectReference Include="../Library/Library.csproj" /></ItemGroup>' if name == 'Peer' else ''
+            (directory / (name + '.csproj')).write_text('<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup><TargetFramework>net10.0</TargetFramework></PropertyGroup>' + reference + '</Project>')
+            (directory / 'Code.cs').write_text('public class ' + name + ' {}')
+        (self.root / 'App.csproj').write_text(self.project.replace('</Project>',
+            '<ItemGroup><Compile Remove="Library/**/*.cs;Peer/**/*.cs" /><ProjectReference Include="Library/Library.csproj" /></ItemGroup></Project>'))
+        targets = ('<Project><Target Name="RestoreWalkProbe" BeforeTargets="_GenerateRestoreGraphProjectEntry">'
+            '<Message Importance="high" Text="RESTORE_WALK: $(MSBuildProjectName)" /></Target>'
+            '<Target Name="RestoreRootProbe" BeforeTargets="Restore">'
+            '<Message Importance="high" Text="RESTORE_ROOT: $(MSBuildProjectName)" /></Target></Project>')
+        (self.root / 'Directory.Build.targets').write_text(targets)
+        mapping = {'projectDefaults': {'referenceBoundary': True, 'documents': {'Directory.Build.targets': {
+            'sha256': hashlib.sha256(targets.encode()).hexdigest(),
+            'targets': ['RestoreWalkProbe', 'RestoreRootProbe'], 'tasks': [], 'inputs': []}}}}
+        flags = ['Peer/Peer.csproj', '--package-build', '--resolve-references']
+        output = self.sync(mapping, flags=flags)
+        self.assertEqual(output.count('RESTORE_WALK: Library'), 1, output)
+        for name in ['App', 'Peer']:
+            self.assertEqual(output.count('RESTORE_ROOT: ' + name), 1, output)
+        contract = json.loads((self.root / 'graph.generated.json').read_text())
+        for project in ['App.csproj', 'Peer/Peer.csproj']:
+            self.assertEqual(contract['Projects'][project]['Configurations'][0]['CompilerReferences'],
+                {'Library/Library.csproj': 'Library/obj/Release/net10.0/ref/Library.dll'})
+        self.sync(mapping, flags=flags + ['--check'])
+        self.assertFalse((self.root / 'obj').exists())
+        self.assertFalse((self.root / 'Library/obj').exists())
+
+    def test_multiple_restore_roots_keep_properties_and_fail_atomically(self):
+        peer = self.root / 'Peer'
+        peer.mkdir()
+        (peer / 'Peer.csproj').write_text('<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup><TargetFrameworks>net10.0;net10.0-windows</TargetFrameworks></PropertyGroup></Project>')
+        (peer / 'Code.cs').write_text('public class Peer {}')
+        (self.root / 'App.csproj').write_text(self.project.replace('</Project>', '<ItemGroup><Compile Remove="Peer/**" /></ItemGroup></Project>'))
+        (self.root / 'packages.lock.json').write_text('{"version":1,"dependencies":{"net10.0":{}}}')
+        targets = ('<Project><Target Name="CheckRestoreProperties" BeforeTargets="Restore">'
+            '<Error Condition="\'$(RoundTrip)\' != \'a;b,c%z\'" Text="Lost property escaping" />'
+            '<Error Condition="\'$(MSBuildProjectName)\' == \'Peer\' and \'$(RootOnly)\' != \'peer\'" Text="Lost root override" />'
+            '<Error Condition="\'$(MSBuildProjectName)\' == \'App\' and \'$(RootOnly)\' != \'app\'" Text="Leaked root override" />'
+            '<Error Condition="\'$(MSBuildProjectName)\' == \'Peer\' and \'$(TargetFramework)\' != \'\'" Text="Restore lost authored frameworks" />'
+            '<Error Condition="\'$(MSBuildProjectName)\' == \'App\' and \'$(RestoreLockedMode)\' != \'true\'" Text="Lost locked Restore" />'
+            '<Error Condition="\'$(MSBuildProjectName)\' == \'Peer\' and \'$(RestoreLockedMode)\' == \'true\'" Text="Leaked locked Restore" />'
+            '<Error Condition="\'$(FailRestore)\' == \'true\'" Text="Deliberate root failure" />'
+            '</Target></Project>')
+        (self.root / 'Directory.Build.targets').write_text(targets)
+        mapping = {'projectDefaults': {'referenceBoundary': True, 'properties': {'RoundTrip': 'a;b,c%z', 'RootOnly': 'app'},
+            'documents': {'Directory.Build.targets': {'sha256': hashlib.sha256(targets.encode()).hexdigest(),
+                'targets': ['CheckRestoreProperties'], 'tasks': [], 'inputs': []}}},
+            'entryProperties': {'Peer/Peer.csproj': {'RootOnly': 'peer'}}}
+        flags = ['Peer/Peer.csproj', '--package-build', '--framework', 'net10.0', '--resolve-references']
+        self.sync(mapping, flags=flags)
+        generated = {name: (self.root / name).read_bytes() for name in ['graph.generated.json', 'graph.generated.bzl']}
+        self.sync(mapping, flags=flags + ['--check'])
+        mapping['entryProperties']['Peer/Peer.csproj']['FailRestore'] = 'true'
+        self.assertIn('Deliberate root failure', self.sync(mapping, flags=flags, success=False))
+        for name, contents in generated.items():
+            self.assertEqual((self.root / name).read_bytes(), contents)
+        self.assertFalse((peer / 'obj').exists())
 
     def test_resolved_compiler_inputs_reject_conflicting_manual_selection(self):
         library = self.root / 'Library'

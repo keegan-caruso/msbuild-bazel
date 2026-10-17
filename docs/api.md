@@ -46,6 +46,7 @@ from MSBuild's Compile items.
 | Attribute | Use |
 | --- | --- |
 | `projects` | Project paths (`.csproj`, `.ilproj`, Traversal/NoTargets `.proj`) or one `.sln` / `.slnx` |
+| `srcs` | Optional complete authored snapshot; makes sync preparation a cacheable Bazel action |
 | `configuration`, `framework` | Release by default; optional entry framework |
 | `inputs` | Single-file or directory-tree producer labels mapped to workspace-relative paths |
 | `build_inputs` | Same bindings, with bytes used only by Build; requires `preparedRestore` |
@@ -83,7 +84,35 @@ Restore and Build in a disposable workspace, then captures the DLLs and copy sou
 selected by the SDK at supported C# reference boundaries. Multi-target selection
 uses configured producer ownership. Failed qualification, undeclared inputs,
 ambiguous producers or conflicting manual bindings leave existing contracts intact.
-Ordinary builds consume the contract; `--check` repeats qualification.
+Ordinary builds consume the contract; default `--check` repeats qualification.
+
+To reuse preparation between sync and check, declare the complete workspace:
+
+```starlark
+msbuild_sync(
+    name = "sync",
+    projects = ["src/App/App.csproj"],
+    srcs = glob(
+        ["src/**", "*.props", "*.targets", "global.json", "NuGet.Config",
+         ".editorconfig", "**/.editorconfig", ".globalconfig", "**/.globalconfig"],
+        exclude = ["**/bin/**", "**/obj/**"],
+        allow_empty = True,
+    ),
+    package_build = True,
+    resolve_references = True,
+)
+```
+
+`srcs` defines what MSBuild can see. Include imports, data, locks and implicit
+configuration files; omitted files are absent during evaluation. Declare cached sync
+and its sources in the main workspace's root Bazel package. Use `inputs`, `build_inputs` and `bindings` for generated
+artifacts/tools; exclude generated declarations and build outputs from `srcs`.
+Empty authored directories cannot be represented by a file list.
+Bazel keys preparation on these sources, SDK/runner, settings, mappings, packages
+and producers. Changes requalify; unchanged sync/check reuses the result. The
+launcher accepts only `--check`; change other settings in the target. Publication
+still protects authored files and checks both declarations before replacing either.
+NuGet update remains an explicit resolving command, outside this cache.
 
 Complete inventories exclude unselected compiler edges from invalidation while
 retaining graph execution and noncompiler dependency roles. New snapshots verify

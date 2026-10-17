@@ -1,5 +1,77 @@
 # Performance versus raw MSBuild
 
+## Sync preparation
+
+Multi-root offline sync now calls each root's Restore target within one native
+MSBuild invocation. Shared configured dependencies reuse evaluation/target results;
+root hooks and per-entry properties remain intact. Single-root Restore is unchanged.
+The private compiler-selection Build still runs once per sync/check.
+
+Synthetic roots share a three-library chain: Linux ARM64, four CPUs / 6 GiB,
+SDK **10.0.400**, no external packages. Three alternating before/after pairs against
+**da16128**, fresh private workspaces, medians in seconds. Each pair verifies
+byte-identical generated JSON and Starlark; later samples also run `--check`.
+
+| Roots / projects | Offline sync before → after | With compiler qualification before → after |
+| --- | ---: | ---: |
+| 1 / 4 | 0.64 → 0.59 | 2.44 → 2.44 |
+| 4 / 7 | 2.00 → 0.74 | 5.10 → 3.88 |
+| 16 / 19 | 7.66 → 1.24 | 15.67 → 9.36 |
+| 64 / 67 | 30.12 → 3.36 | 58.12 → 31.60 |
+
+At 64 roots, offline sync fell **88.8%** and qualified sync **45.6%**.
+SDK/runner acquisition, NuGet update and ordinary incremental builds are excluded.
+These small compilations isolate repeated Restore work; the large runtime graph's
+preparation timings below have not been refreshed. Its private Build remains the
+next cost to investigate.
+
+Build each revision's `tools/ProjectSync/ProjectSync.csproj` with the same pinned SDK,
+using `-c Release -o ABSOLUTE_PAYLOAD_DIRECTORY`, then run from this checkout:
+
+```sh
+RULES_MSBUILD_DOTNET_ROOT=PINNED_SDK bash tests/project_sync/preparation_benchmark.sh \
+  FRESH_OUTPUT BASELINE/ProjectSync.dll CANDIDATE/ProjectSync.dll
+```
+
+Paths should be absolute. Optional trailing root counts select individual sizes.
+CSV/logs stay in `FRESH_OUTPUT`; the benchmark does not reuse qualification products.
+
+## Cached preparation
+
+With a complete `msbuild_sync(srcs = ...)` snapshot, Bazel can reuse qualification
+between sync and check. Linux ARM64, four CPUs / 8 GiB, SDK **10.0.400**, Bazel
+**9.3.0**. The same synthetic three-library chain and unchanged graph declarations
+are used by both modes. Three alternating public `bazel run` pairs; median wall
+seconds, including publication/check:
+
+| Roots / projects | Ordinary `--check` | Cached `--check` |
+| --- | ---: | ---: |
+| 1 / 4 | 2.580 | 0.094 |
+| 16 / 19 | 9.537 | 0.087 |
+| 64 / 67 | 31.887 | 0.094 |
+
+At 67 projects, unchanged checks took **99.7% less time**, with no qualification
+action executed. Single cold observations were **34.85 / 34.53 s** for ordinary /
+cached sync, including runner bootstrap; both compiled all 67 projects.
+These are reuse measurements, not new
+large-runtime or incremental-build timings. SDK/registry acquisition is excluded;
+the harness separately records cold runs including runner bootstrap. Native cache
+controls verify that changed source bytes/membership, definitions, props, mappings,
+producer artifacts and package inventories requalify, while unchanged checks do not.
+
+```sh
+RULES_MSBUILD_BAZEL=PINNED_BAZEL bash tests/project_sync/cached_preparation_benchmark.sh \
+  FRESH_OUTPUT ABSOLUTE_RULES_CHECKOUT
+```
+
+Optional trailing root counts select sizes (default **1 / 16 / 64**). Set
+`RULES_MSBUILD_TEST_REPOSITORY_CACHE` to an existing verified acquisition cache.
+`SYNC_PREPARE_CACHE_URL=URL` seeds a normal Bazel remote cache. Relocate the source
+workspace and identical rules, stop the producer, then run `bazel run //:sync
+--remote_cache=URL --disk_cache= --lockfile_mode=error -- --check` with a fresh
+`--output_base`. The independent four-project control recovered bootstrap and
+preparation remotely with zero qualification executions and identical declarations.
+
 ## Downloaded-SDK workflow
 
 Runtime v10.0.0, four managed roots (Pipelines, Encodings.Web, Json and ComponentModel

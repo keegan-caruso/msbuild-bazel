@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Xml.Linq;
 
 namespace RulesMSBuild.ProjectSync;
 
@@ -45,24 +46,36 @@ internal sealed class GraphEvaluationWorkspace : IDisposable
             using var packageSdks = RulesMSBuild.PackageSdks.Prepare(Root);
             var config = Path.Combine(Root, ".graph.nuget.config");
             File.WriteAllText(config, "<configuration><packageSources><clear/></packageSources><fallbackPackageFolders><clear/></fallbackPackageFolders></configuration>");
-            foreach (var entry in entries)
+            var roots = entries.ToArray();
+            var coordinator = Root + ".restore.proj";
+            try
             {
+                // Keep each authored Restore target and its global properties, but
+                // let one MSBuild invocation reuse shared dependency evaluations.
+                if (roots.Length > 1)
+                {
+                    using var file = File.Create(coordinator);
+                    var requests = roots.Select(entry => new XElement("MSBuild",
+                        new XAttribute("Projects", Microsoft.Build.Evaluation.ProjectCollection.Escape(Path.Combine(Root, WorkspaceView.Safe(entry)))),
+                        new XAttribute("Targets", "Restore"),
+                        new XAttribute("BuildInParallel", "false"),
+                        new XAttribute("Properties", string.Join(';', RestoreProperties(entry)
+                            .Select(property => GraphEntryProperties.Assignment(property.Key, property.Value))))));
+                    new XDocument(new XElement("Project", new XElement("Target", new XAttribute("Name", "Restore"), requests))).Save(file);
+                }
                 var start = new ProcessStartInfo(Path.Combine(sdkRoot, "dotnet")) { WorkingDirectory = Root };
-                foreach (var argument in new[] { "restore", Path.Combine(Root, WorkspaceView.Safe(entry)), "--configfile", config,
+                foreach (var argument in new[] { "restore", roots.Length > 1 ? coordinator : Path.Combine(Root, WorkspaceView.Safe(roots[0])), "--configfile", config,
                     "--source", feed, "--packages", Path.Combine(Root, ".nuget"), "-p:NuGetAudit=false",
                     "-p:RestoreFallbackFolders=", "-p:RestoreAdditionalProjectSources=", "-p:RestoreAdditionalProjectFallbackFolders=" })
                 {
                     start.ArgumentList.Add(argument);
                 }
-                // Restore each project's authored frameworks; the build graph still selects its requested framework.
-                foreach (var (key, value) in GraphEntryProperties.For(entry, properties, entryProperties ?? []).Where(property => !property.Key.Equals("TargetFramework", StringComparison.OrdinalIgnoreCase)))
+                if (roots.Length == 1)
                 {
-                    start.ArgumentList.Add(GraphEntryProperties.Argument(key, value));
-                }
-                if (File.Exists(NuGetLocks.ForProject(Path.Combine(Root, entry))) ||
-                    GraphSolutions.IsSolution(entry) && Directory.EnumerateFiles(Root, "*.lock.json", SearchOption.AllDirectories).Any(NuGetLocks.IsLockFile))
-                {
-                    start.ArgumentList.Add("-p:RestoreLockedMode=true");
+                    foreach (var (key, value) in RestoreProperties(roots[0]))
+                    {
+                        start.ArgumentList.Add(GraphEntryProperties.Argument(key, value));
+                    }
                 }
                 start.Environment["DOTNET_ROOT"] = sdkRoot;
                 start.Environment["DOTNET_CLI_HOME"] = Path.Combine(Root, ".cli");
@@ -73,8 +86,25 @@ internal sealed class GraphEvaluationWorkspace : IDisposable
                 process.WaitForExit();
                 if (process.ExitCode != 0)
                 {
-                    throw new InvalidDataException("Graph sync offline Restore failed for " + entry + "; check the declared package closure");
+                    throw new InvalidDataException("Graph sync offline Restore failed for " + string.Join(", ", roots) + "; check the declared package closure");
                 }
+            }
+            finally
+            {
+                File.Delete(coordinator);
+            }
+
+            Dictionary<string, string> RestoreProperties(string entry)
+            {
+                // Restore all authored frameworks, even when Build selects one.
+                var selected = GraphEntryProperties.For(entry, properties, entryProperties ?? []);
+                selected.Remove("TargetFramework");
+                if (File.Exists(NuGetLocks.ForProject(Path.Combine(Root, entry))) ||
+                    GraphSolutions.IsSolution(entry) && Directory.EnumerateFiles(Root, "*.lock.json", SearchOption.AllDirectories).Any(NuGetLocks.IsLockFile))
+                {
+                    selected["RestoreLockedMode"] = "true";
+                }
+                return selected;
             }
         }
         catch
