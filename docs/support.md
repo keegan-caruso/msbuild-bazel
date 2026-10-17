@@ -267,7 +267,10 @@ see [preparation measurements](performance.md#sync-preparation).
 source/membership/producer/props/mapping invalidation, SDK-selected implementation
 references, package inventories, runnable output and failure/publication guards.
 The prepared contracts match ordinary sync. Pins: Linux ARM64, SDK 10.0.400,
-Bazel 8.8.0 / 9.3.0. A separate source-only four-project consumer, with the producer
+Bazel 8.8.0 / 9.3.0. Directory producers materialize sandbox-projected files;
+authored file/directory links remain rejected. Shell-task controls pass during
+qualification and ordinary graph builds, with explicit SDK/system tool paths.
+A separate source-only four-project consumer, with the producer
 stopped, passed strict-lock sync/check through 9.3 remote hits for bootstrap and
 preparation: no qualification execution. This does not qualify remote execution
 or the full runtime preparation workflow; see [cached preparation](performance.md#cached-preparation).

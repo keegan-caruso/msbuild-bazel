@@ -94,6 +94,45 @@ class GraphSyncTests(unittest.TestCase):
                 result = subprocess.run([str(SDK / 'dotnet'), str(RUNNER), 'stage', str(manifest), directory], capture_output=True, text=True)
                 self.assertNotEqual(result.returncode, 0, result.stdout + result.stderr)
 
+    def test_prepared_tree_materializes_projection_and_rejects_authored_links(self):
+        relative = Path('bazel-out/bin/producer')
+        original, projected = self.root / 'execroot' / relative, self.root / relative
+        for root in [original, projected]:
+            (root / 'nested').mkdir(parents=True)
+        for name in ['Code.cs', 'nested/metadata.txt']:
+            (original / name).write_text('declared artifact')
+            (projected / name).symlink_to(original / name)
+        manifest = self.root / 'tree-stage.json'
+        manifest.write_text(json.dumps({'sources': [], 'runfiles': [{'path': 'producer', 'file': str(relative), 'tree': True}]}))
+
+        def stage():
+            destination = Path(tempfile.mkdtemp(dir=self.root))
+            result = subprocess.run([str(SDK / 'dotnet'), str(RUNNER), 'stage', str(manifest), str(destination)],
+                cwd=self.root, capture_output=True, text=True)
+            return result, destination / 'runfiles/producer'
+
+        result, staged = stage()
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        for name in ['Code.cs', 'nested/metadata.txt']:
+            self.assertEqual((staged / name).read_text(), 'declared artifact')
+            self.assertFalse((staged / name).is_symlink())
+        outside = self.root / 'outside.txt'
+        outside.write_text('undeclared')
+        (original / 'Code.cs').unlink()
+        (original / 'Code.cs').symlink_to(outside)
+        self.assertIn('tree symlinks are unsupported', stage()[0].stderr)
+        (original / 'Code.cs').unlink()
+        (original / 'Code.cs').write_text('declared artifact')
+        (projected / 'Code.cs').unlink()
+        (projected / 'Code.cs').symlink_to(outside)
+        self.assertIn('tree symlinks are unsupported', stage()[0].stderr)
+        (projected / 'Code.cs').unlink()
+        (projected / 'Code.cs').symlink_to(original / 'Code.cs')
+        directory = self.root / 'outside-directory'
+        (original / 'nested').rename(directory)
+        (original / 'nested').symlink_to(directory, target_is_directory=True)
+        self.assertIn('tree directory symlinks are unsupported', stage()[0].stderr)
+
     def test_analyzer_discovery_stays_inside_workspace(self):
         parent = self.root
         self.root = parent / 'workspace'
