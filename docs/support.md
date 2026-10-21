@@ -260,8 +260,10 @@ need a complete declared layout. See
 multi-root sync shares one offline Restore process and shared dependency walks,
 retains authored root Restore hooks, builds both apps and preserves contracts on
 failure. Sync controls also cover escaped/per-root properties, locked-mode isolation
-and all-framework Restore. Compiler qualification still performs a private Build;
-see [preparation measurements](performance.md#sync-preparation).
+and all-framework Restore. Compiler qualification retains the full private SDK
+Build with up to four nodes, bounded by available CPUs. Serial/parallel controls
+cover multi-targeting, implementation/reference assembly selection, XML copies and
+byte-identical declarations; see [measurements](performance.md#parallel-compiler-qualification).
 
 `//tests/integration:cached_sync` covers declared-source preparation, cached checks,
 source/membership/producer/props/mapping invalidation, SDK-selected implementation

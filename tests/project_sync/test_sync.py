@@ -7,6 +7,7 @@ import subprocess
 import shutil
 import tempfile
 import unittest
+from unittest.mock import patch
 
 ROOT = Path(__file__).resolve().parents[2]
 SDK = Path(os.environ["RULES_MSBUILD_DOTNET_ROOT"])
@@ -689,6 +690,35 @@ class GraphSyncTests(unittest.TestCase):
         (library / 'Code.cs').write_text('invalid C#')
         self.assertIn('qualification Build failed', self.sync(flags=flags, success=False))
         self.assertEqual((self.root / 'graph.generated.json').read_bytes(), before)
+
+    def test_serial_and_parallel_qualification_preserve_selected_artifacts(self):
+        references = []
+        for name, properties in [('First', '<ProduceReferenceAssembly>false</ProduceReferenceAssembly>'),
+                                 ('Second', '<GenerateDocumentationFile>true</GenerateDocumentationFile>')]:
+            directory = self.root / name
+            directory.mkdir()
+            (directory / (name + '.csproj')).write_text('<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup>'
+                '<TargetFrameworks>net10.0;net10.0-windows</TargetFrameworks>' + properties + '</PropertyGroup></Project>')
+            (directory / 'Code.cs').write_text('/// <summary>Public dependency.</summary>\npublic class ' + name + ' {}')
+            references.append('<ProjectReference Include="' + name + '/' + name + '.csproj" />')
+        (self.root / 'App.csproj').write_text(self.project.replace('</Project>',
+            '<ItemGroup><Compile Remove="First/**;Second/**" />' + ''.join(references) + '</ItemGroup></Project>'))
+        expected = None
+        for cpus in ['1', '4']:
+            with patch.dict(os.environ, DOTNET_PROCESSOR_COUNT=cpus):
+                self.sync(flags=['--package-build', '--resolve-references'])
+            actual = [(self.root / name).read_bytes() for name in ['graph.generated.json', 'graph.generated.bzl']]
+            if expected is not None:
+                self.assertEqual(actual, expected)
+            expected = actual
+        selected = json.loads(actual[0])['Projects']['App.csproj']['Configurations'][0]
+        self.assertEqual(selected['CompilerReferences'], {
+            'First/First.csproj': 'First/bin/Release/net10.0/First.dll',
+            'Second/Second.csproj': 'Second/obj/Release/net10.0/ref/Second.dll'})
+        self.assertEqual(selected['DependencyCopies']['bin/Release/net10.0/Second.xml'],
+            'Second/bin/Release/net10.0/Second.xml')
+        self.assertFalse((self.root / 'bin').exists())
+        self.assertFalse((self.root / 'First/obj').exists())
 
     def test_multiple_roots_share_restore_walk_and_keep_root_hooks(self):
         for name in ['Library', 'Peer']:
