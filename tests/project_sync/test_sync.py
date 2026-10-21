@@ -104,7 +104,8 @@ class GraphSyncTests(unittest.TestCase):
             (original / name).write_text('declared artifact')
             (projected / name).symlink_to(original / name)
         manifest = self.root / 'tree-stage.json'
-        manifest.write_text(json.dumps({'sources': [], 'runfiles': [{'path': 'producer', 'file': str(relative), 'tree': True}]}))
+        manifest.write_text(json.dumps({'sources': [], 'runfiles': [{'path': 'producer', 'file': str(relative), 'tree': True},
+            {'path': 'single.txt', 'file': str(original / 'nested/metadata.txt'), 'tree': True}]}))
 
         def stage():
             destination = Path(tempfile.mkdtemp(dir=self.root))
@@ -117,6 +118,8 @@ class GraphSyncTests(unittest.TestCase):
         for name in ['Code.cs', 'nested/metadata.txt']:
             self.assertEqual((staged / name).read_text(), 'declared artifact')
             self.assertFalse((staged / name).is_symlink())
+        self.assertEqual((staged.parent / 'single.txt').read_text(), 'declared artifact')
+        self.assertFalse((staged.parent / 'single.txt').is_symlink())
         outside = self.root / 'outside.txt'
         outside.write_text('undeclared')
         (original / 'Code.cs').unlink()
@@ -691,6 +694,93 @@ class GraphSyncTests(unittest.TestCase):
         self.assertIn('qualification Build failed', self.sync(flags=flags, success=False))
         self.assertEqual((self.root / 'graph.generated.json').read_bytes(), before)
 
+    @unittest.skipUnless(os.path.isfile("/usr/bin/bwrap"), "Linux qualification sandbox required")
+    def test_qualification_cache_reuses_projects_and_preserves_sdk_inventory(self):
+        for name, dependency in [('C', None), ('B', 'C'), ('D', None)]:
+            directory = self.root / name
+            directory.mkdir()
+            reference = '<ItemGroup><ProjectReference Include="../C/C.csproj" /></ItemGroup>' if dependency else ''
+            (directory / (name + '.csproj')).write_text('<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup>'
+                '<TargetFramework>net10.0</TargetFramework><GenerateDocumentationFile>true</GenerateDocumentationFile>'
+                '<ProduceReferenceAssembly>false</ProduceReferenceAssembly></PropertyGroup>' + reference + '</Project>')
+            (directory / 'Code.cs').write_text('public static class ' + name + ' { public static int Value() => 1; }')
+        (self.root / 'App.csproj').write_text(self.project.replace('</Project>',
+            '<ItemGroup><Compile Remove="B/**;C/**;D/**" /><ProjectReference Include="B/B.csproj" /></ItemGroup></Project>'))
+        flags = ['D/D.csproj', '--package-build', '--resolve-references']
+        self.sync(flags=flags)
+        expected = [(self.root / name).read_bytes() for name in ['graph.generated.json', 'graph.generated.bzl']]
+        cache = tempfile.TemporaryDirectory(prefix='qualification-cache-')
+        self.addCleanup(cache.cleanup)
+
+        def run(*extra, success=True):
+            output = self.sync(flags=flags + ['--qualification-cache', cache.name] + list(extra), success=success)
+            reports = [json.loads(line.split(' ', 1)[1]) for line in output.splitlines() if line.startswith('PROJECT_SYNC_CACHE ')]
+            return reports[-1] if success else output
+
+        self.assertEqual(run(), {'hits': 0, 'misses': 4, 'uncacheable': 0, 'compilations': 4})
+        self.assertEqual([(self.root / name).read_bytes() for name in ['graph.generated.json', 'graph.generated.bzl']], expected)
+        self.assertEqual(run('--check'), {'hits': 4, 'misses': 0, 'uncacheable': 0, 'compilations': 0})
+        original = (self.root / 'C/Code.cs').read_text()
+        (self.root / 'C/Code.cs').write_text(original.replace('=> 1', '=> 2'))
+        self.assertEqual(run()['hits'], 1)
+        self.assertEqual(run('--check')['compilations'], 0)
+        (self.root / 'C/Code.cs').write_text(original.replace('public static int Value()', 'public static int Added() => 3; public static int Value()'))
+        self.assertEqual(run()['compilations'], 3)
+        (self.root / 'C/Code.cs').write_text(original)
+        self.assertEqual(run('--check')['compilations'], 0)
+        for name, data in zip(['graph.generated.json', 'graph.generated.bzl'], expected):
+            self.assertEqual((self.root / name).read_bytes(), data)
+        (self.root / 'C/Code.cs').chmod(0o755)
+        self.assertEqual(run()['compilations'], 3)
+        (self.root / 'C/Code.cs').chmod(0o644)
+        self.assertEqual(run('--check')['compilations'], 0)
+        # Shared evaluation inputs affect every project. Failed builds publish nothing.
+        props = self.root / 'Directory.Build.props'
+        props.write_text('<Project><PropertyGroup><DefineConstants>CHANGED</DefineConstants></PropertyGroup></Project>')
+        self.assertEqual(run()['compilations'], 4)
+        self.assertEqual(run('--check')['compilations'], 0)
+        props.unlink()
+        self.assertEqual(run()['compilations'], 0)
+        (self.root / 'C/Code.cs').write_text('invalid C#')
+        entries = set(Path(cache.name).glob('*/manifest.json'))
+        self.assertIn('qualification Build failed', run(success=False))
+        self.assertEqual(set(Path(cache.name).glob('*/manifest.json')), entries)
+        (self.root / 'C/Code.cs').write_text(original)
+        self.assertEqual(run('--check')['compilations'], 0)
+        # A relocated source and fresh private build recover the same metadata.
+        relocated = Path(tempfile.mkdtemp(prefix='qualification-relocated-'))
+        self.addCleanup(shutil.rmtree, relocated)
+        for path in self.root.iterdir():
+            if path.is_dir():
+                shutil.copytree(path, relocated / path.name)
+            else:
+                shutil.copyfile(path, relocated / path.name)
+        prior = self.root
+        self.root = relocated
+        try:
+            self.assertEqual(run('--check')['compilations'], 0)
+        finally:
+            self.root = prior
+        # Inventory is a verified payload too. Corruption preserves both outputs.
+        for state in Path(cache.name).glob('*/state.json'):
+            state.write_text(state.read_text() + ' ')
+        self.assertIn('Corrupt qualification snapshot', run(success=False))
+        for name, data in zip(['graph.generated.json', 'graph.generated.bzl'], expected):
+            self.assertEqual((self.root / name).read_bytes(), data)
+
+    @unittest.skipUnless(os.path.isfile("/usr/bin/bwrap"), "Linux qualification sandbox required")
+    def test_qualification_cache_rejects_output_directory_symlinks(self):
+        (self.root / 'Directory.Build.targets').write_text('<Project><Target Name="LinkOutput" AfterTargets="Build">'
+            '<Exec Command="ln -s /tmp &quot;$(OutputPath)escape&quot;" /></Target></Project>')
+        with tempfile.TemporaryDirectory(prefix='qualification-links-') as directory:
+            mapping = {'projectDefaults': {'referenceBoundary': True, 'documents': {'Directory.Build.targets': {
+                'sha256': hashlib.sha256((self.root / 'Directory.Build.targets').read_bytes()).hexdigest(),
+                'targets': ['LinkOutput'], 'tasks': [], 'inputs': []}}}}
+            output = self.sync(mapping, flags=['--package-build', '--resolve-references', '--qualification-cache', directory], success=False)
+            self.assertIn('Qualification output symlink', output)
+            self.assertFalse(list(Path(directory).glob('*/manifest.json')))
+            self.assertFalse((self.root / 'graph.generated.json').exists())
+
     def test_serial_and_parallel_qualification_preserve_selected_artifacts(self):
         references = []
         for name, properties in [('First', '<ProduceReferenceAssembly>false</ProduceReferenceAssembly>'),
@@ -719,6 +809,13 @@ class GraphSyncTests(unittest.TestCase):
             'Second/bin/Release/net10.0/Second.xml')
         self.assertFalse((self.root / 'bin').exists())
         self.assertFalse((self.root / 'First/obj').exists())
+        if os.path.isfile('/usr/bin/bwrap'):
+            with tempfile.TemporaryDirectory(prefix='qualification-multi-') as directory:
+                for hits in [False, True]:
+                    output = self.sync(flags=['--package-build', '--resolve-references', '--qualification-cache', directory])
+                    report = next(json.loads(line.split(' ', 1)[1]) for line in output.splitlines() if line.startswith('PROJECT_SYNC_CACHE '))
+                    self.assertEqual(report['compilations'] == 0, hits)
+                    self.assertEqual([(self.root / name).read_bytes() for name in ['graph.generated.json', 'graph.generated.bzl']], expected)
 
     def test_multiple_roots_share_restore_walk_and_keep_root_hooks(self):
         for name in ['Library', 'Peer']:

@@ -1710,3 +1710,44 @@ test_suite(
         bazel_binaries.versions.all,
     ),
 )
+
+sh_binary(
+    name = "qualification_cache_runner",
+    testonly = True,
+    srcs = ["qualification_cache.sh"],
+    data = ["common.sh"],
+)
+
+bazel_integration_tests(
+    name = "qualification_cache_cases",
+    additional_env_inherit = [
+        "BAZELISK_HOME",
+        "RULES_MSBUILD_TEST_REPOSITORY_CACHE",
+        "QUALIFICATION_CACHE_URL",
+    ],
+    bazel_binaries = bazel_binaries,
+    bazel_versions = bazel_binaries.versions.all,
+    data = [":rules_archive"],
+    env = {"RULES_ARCHIVE": "$(rootpath :rules_archive)"},
+    tags = [
+        "exclusive",
+        "manual",
+        "no-sandbox",
+    ],
+    target_compatible_with = [
+        "@platforms//os:linux",
+        "@platforms//cpu:aarch64",
+    ],
+    test_runner = ":qualification_cache_runner",
+    workspace_files = glob(["fixtures/worker/**"]),
+    workspace_path = "tests/integration/fixtures/worker",
+)
+
+test_suite(
+    name = "qualification_cache",
+    tags = ["manual"],
+    tests = integration_test_utils.bazel_integration_test_names(
+        "qualification_cache_cases",
+        bazel_binaries.versions.all,
+    ),
+)

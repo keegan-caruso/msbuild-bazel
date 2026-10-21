@@ -20,5 +20,8 @@ filegroup(
         "//tools:MSBuildTool.props",
         "//tools:NuGetLocks.cs",
         "//tools:PackageSdks.cs",
+        "//tools/ProjectCache:CachedTargetItem.cs",
+        "//tools/ProjectCache:RemoteSnapshotStore.cs",
+        "//tools/ProjectCache:SnapshotPayloads.cs",
     ],
 )

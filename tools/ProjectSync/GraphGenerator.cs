@@ -38,7 +38,7 @@ internal static class GraphGenerator
         }
     }
 
-    internal static void Run(string root, string sdk, string[] entries, bool check, string outputRoot, string configuration = "Release", string framework = "", WorkspaceView? view = null, bool packageBuild = false, string[]? packageInputs = null, GraphMappings? mappings = null, bool resolveReferences = false)
+    internal static void Run(string root, string sdk, string[] entries, bool check, string outputRoot, string configuration = "Release", string framework = "", WorkspaceView? view = null, bool packageBuild = false, string[]? packageInputs = null, GraphMappings? mappings = null, bool resolveReferences = false, QualificationOptions? qualificationCache = null, string? publicationRoot = null)
     {
         if (resolveReferences && !packageBuild)
         {
@@ -353,7 +353,9 @@ internal static class GraphGenerator
         var resolved = resolveReferences ? ResolvedGraphInputs.Build(graph, collection, root, sdkRoot,
             graph.ProjectNodes.Where(node => node.ProjectInstance.GetPropertyValue("Language") == "C#" && CanUseReferenceBoundary(node)).ToArray(), CompilerProducts, Dependencies,
             inputs.Values.SelectMany(paths => paths).Concat(shared), packageIdentities,
-            node => inputs[Key(node.ProjectInstance)].Concat(shared)) : null;
+            node => inputs[Key(node.ProjectInstance)].Concat(shared), qualificationCache,
+            node => JsonSerializer.Serialize(mappings.ForProject(Relative(node.ProjectInstance.FullPath), node.ProjectInstance.GetPropertyValue("TargetFramework"))),
+            qualificationCache is null ? [] : view?.GraphPackageDigests()) : null;
         var declarations = new SortedDictionary<string, object>(StringComparer.Ordinal);
         foreach (var group in graph.ProjectNodes.GroupBy(node => Relative(node.ProjectInstance.FullPath)))
         {
@@ -569,7 +571,7 @@ internal static class GraphGenerator
             "    msbuild_graph_runner(name = name + \"_runner\")\n" + sourceGlobs.Declaration + restoreRule + "    msbuild_graph(\n        name = name,\n        linux_stable_paths = linux_stable_paths,\n        linux_worker = linux_worker,\n        worker_cache_mb = worker_cache_mb,\n        evaluation_cache_mb = evaluation_cache_mb,\n        profile_build = profile_build,\n        target = target,\n        runner = \":\" + name + \"_runner\",\n" +
             (restore is null ? "" : "        restore = \":\" + name + \"_restore\",\n") +
             "        contract = \"" + ContractName + "\",\n        srcs = " + sourceGlobs.Expression + ",\n        bindings = " + StarlarkLiteral.Serialize(view?.GraphBindingLabels ?? []) + ",\n        input_paths = " + StarlarkLiteral.Serialize(view?.Bindings(sources.Concat(inputDirectories)) ?? []) + ",\n        project_outputs = " + StarlarkLiteral.Serialize(runtimeOutputs) + ",\n        publish_outputs = " + StarlarkLiteral.Serialize(publishOutputs) + ",\n" + (view?.DefaultPackageLock is null ? "" : "        package_lock = " + StarlarkLiteral.Serialize(view.DefaultPackageLock) + ",\n") + "    )\n";
-        Publish(outputRoot, check, contract, text);
+        Publish(publicationRoot ?? outputRoot, check, contract, text);
 
         IEnumerable<ProjectGraphNode> Dependencies(ProjectGraphNode node)
         {

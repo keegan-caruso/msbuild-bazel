@@ -2,6 +2,11 @@ using System.Security.Cryptography;
 using Microsoft.Build.Evaluation;
 using Microsoft.Build.Execution;
 using Microsoft.Build.Graph;
+#if STABLE_PROJECT_CACHE
+using Microsoft.Build.ProjectCache;
+#else
+using Microsoft.Build.Experimental.ProjectCache;
+#endif
 
 namespace RulesMSBuild.ProjectSync;
 
@@ -12,7 +17,8 @@ internal sealed record ResolvedGraphInputs(Dictionary<string, string> CompilerRe
     internal static Dictionary<ProjectGraphNode, ResolvedGraphInputs> Build(ProjectGraph graph, ProjectCollection collection,
         string root, string sdkRoot, ProjectGraphNode[] selected, Func<ProjectGraphNode, IEnumerable<string>> products,
         Func<ProjectGraphNode, IEnumerable<ProjectGraphNode>> dependencies, IEnumerable<string> inputs, HashSet<string> packages,
-        Func<ProjectGraphNode, IEnumerable<string>> consumerInputs)
+        Func<ProjectGraphNode, IEnumerable<string>> consumerInputs, QualificationOptions? cacheOptions = null,
+        Func<ProjectGraphNode, string>? cacheConfiguration = null, IEnumerable<string>? packageDigests = null)
     {
         using var profile = SyncProfile.Measure("compiler-inventory");
         if (selected.Length == 0)
@@ -31,7 +37,22 @@ internal sealed record ResolvedGraphInputs(Dictionary<string, string> CompilerRe
             }
         }
         var declared = inputs.ToHashSet(StringComparer.Ordinal);
+        if (cacheOptions is not null)
+        {
+            foreach (var name in new[] { ".nuget", ".graph-tools" })
+            {
+                var directory = Path.Combine(root, name);
+                if (Directory.Exists(directory))
+                {
+                    declared.UnionWith(Directory.EnumerateFiles(directory, "*", SearchOption.AllDirectories)
+                        .Select(path => Path.GetRelativePath(root, path).Replace('\\', '/')));
+                }
+            }
+        }
         var digests = declared.ToDictionary(path => path, path => Digest(Path.Combine(root, path)), StringComparer.Ordinal);
+        using var cache = cacheOptions is null ? null : new QualificationCache(new QualificationInputs(graph, root, sdkRoot,
+            digests, consumerInputs, products, cacheConfiguration!, packageDigests!), cacheOptions);
+        var counter = cache is null ? null : new QualificationCounter();
         var oldDirectory = Directory.GetCurrentDirectory();
         var oldPackages = Environment.GetEnvironmentVariable("NUGET_PACKAGES");
         GraphBuildResult result;
@@ -40,14 +61,21 @@ internal sealed record ResolvedGraphInputs(Dictionary<string, string> CompilerRe
             Directory.SetCurrentDirectory(root);
             Environment.SetEnvironmentVariable("NUGET_PACKAGES", Path.Combine(root, ".nuget"));
             using var manager = new BuildManager();
-            result = SyncProfile.Run("private-build", () => manager.Build(new BuildParameters(collection)
+            var parameters = new BuildParameters(collection)
             {
                 // Match the graph runner's bounded concurrency without forcing
                 // extra nodes on a single-CPU execution platform.
                 MaxNodeCount = Math.Clamp(Environment.ProcessorCount, 1, 4),
                 EnableNodeReuse = false,
+                ProjectCacheDescriptor = cache is null ? null : ProjectCacheDescriptor.FromInstance(cache),
                 Loggers = [new Microsoft.Build.Logging.ConsoleLogger(Microsoft.Build.Framework.LoggerVerbosity.Minimal)]
-            }, new GraphBuildRequestData(graph, ["Build"], null, BuildRequestDataFlags.ProvideProjectStateAfterBuild)));
+            };
+            if (counter is not null)
+            {
+                parameters.Loggers = parameters.Loggers.Append(counter);
+            }
+            result = SyncProfile.Run("private-build", () => manager.Build(parameters,
+                new GraphBuildRequestData(graph, ["Build"], null, BuildRequestDataFlags.ProvideProjectStateAfterBuild)));
         }
         finally
         {
@@ -72,17 +100,17 @@ internal sealed record ResolvedGraphInputs(Dictionary<string, string> CompilerRe
         var selections = new Dictionary<ProjectGraphNode, ResolvedGraphInputs>();
         foreach (var node in selected)
         {
-            var state = result.ResultsByNode.GetValueOrDefault(node)?.ProjectStateAfterBuild
-                ?? throw new InvalidDataException("Missing resolved compiler state: " + Relative(node.ProjectInstance.FullPath));
+            var state = cache is null ? QualificationState.From(result.ResultsByNode.GetValueOrDefault(node)?.ProjectStateAfterBuild
+                ?? throw new InvalidDataException("Missing resolved compiler state: " + Relative(node.ProjectInstance.FullPath))) : cache.State(node, result);
             var closure = dependencies(node).ToHashSet();
             var allowed = consumerInputs(node).ToHashSet(StringComparer.Ordinal);
             // Out-of-process result state can omit FullPath. Resolve its item
             // and property values against the original configured graph node.
             var project = node.ProjectInstance;
             var references = new Dictionary<string, string>(StringComparer.Ordinal);
-            foreach (var item in state.GetItems("ReferencePathWithRefAssemblies"))
+            foreach (var item in state.References)
             {
-                var path = Full(project, item.EvaluatedInclude);
+                var path = Full(project, item);
                 var owner = Owner(path, closure);
                 if (owner is not null)
                 {
@@ -100,13 +128,13 @@ internal sealed record ResolvedGraphInputs(Dictionary<string, string> CompilerRe
                 }
             }
             var copies = new Dictionary<string, string>(StringComparer.Ordinal);
-            var target = Full(project, state.GetPropertyValue("TargetPath"));
+            var target = Full(project, state.TargetPath);
             var output = Path.GetDirectoryName(target)!;
-            var publish = state.GetPropertyValue("PublishDir");
+            var publish = state.PublishDir;
             var destinations = publish.Length == 0 ? [output] : new[] { output, Full(project, publish) }.Distinct().ToArray();
-            foreach (var item in state.GetItems("ReferenceCopyLocalPaths"))
+            foreach (var item in state.Copies)
             {
-                var path = Full(project, item.EvaluatedInclude);
+                var path = Full(project, item.Include);
                 if (Path.GetExtension(path) is not (".dll" or ".pdb" or ".xml"))
                 {
                     continue;
@@ -119,7 +147,7 @@ internal sealed record ResolvedGraphInputs(Dictionary<string, string> CompilerRe
                     }
                     continue; // SDK copies retain SDK input hashes and fixed snapshot payloads.
                 }
-                var subdirectory = item.GetMetadataValue("DestinationSubDirectory").Replace('\\', '/');
+                var subdirectory = item.Subdirectory.Replace('\\', '/');
                 if (subdirectory.Length != 0)
                 {
                     WorkspaceView.Safe(subdirectory.TrimEnd('/'));
@@ -149,6 +177,7 @@ internal sealed record ResolvedGraphInputs(Dictionary<string, string> CompilerRe
             }
             selections.Add(node, new(references, copies));
         }
+        cache?.Save(result, counter!.Compilations);
         return selections;
 
         string Relative(string path) => WorkspaceView.Safe(Path.GetRelativePath(root, path).Replace('\\', '/'));
@@ -199,6 +228,7 @@ internal sealed record ResolvedGraphInputs(Dictionary<string, string> CompilerRe
     private static string Digest(string path)
     {
         using var stream = File.OpenRead(path);
-        return Convert.ToHexString(SHA256.HashData(stream)).ToLowerInvariant();
+        return Convert.ToHexString(SHA256.HashData(stream)).ToLowerInvariant() + ":" +
+            (OperatingSystem.IsWindows() ? 0 : (int)File.GetUnixFileMode(path) & 511).ToString(System.Globalization.CultureInfo.InvariantCulture);
     }
 }

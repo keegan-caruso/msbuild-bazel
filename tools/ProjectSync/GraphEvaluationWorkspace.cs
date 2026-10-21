@@ -6,7 +6,21 @@ namespace RulesMSBuild.ProjectSync;
 // Package evaluation runs only in an owned copy, never through source symlinks.
 internal sealed class GraphEvaluationWorkspace : IDisposable
 {
-    internal string Root { get; } = WorkspaceView.PhysicalPath(Directory.CreateTempSubdirectory("graph-sync-").FullName);
+    internal string Root { get; } = CreateRoot();
+
+    private static string CreateRoot()
+    {
+        if (!QualificationSandbox.Inside)
+        {
+            return WorkspaceView.PhysicalPath(Directory.CreateTempSubdirectory("graph-sync-").FullName);
+        }
+        var path = QualificationSandbox.Base + "/scratch/evaluation";
+        if (Directory.Exists(path))
+        {
+            throw new InvalidDataException("Qualification requires a fresh private evaluation workspace");
+        }
+        return Directory.CreateDirectory(path).FullName;
+    }
 
     internal GraphEvaluationWorkspace(string source, string sdk, IEnumerable<string> entries,
         Dictionary<string, string> properties, WorkspaceView view, Dictionary<string, string>? toolProperties = null, Dictionary<string, Dictionary<string, string>>? entryProperties = null)

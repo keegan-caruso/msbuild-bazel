@@ -53,6 +53,7 @@ from MSBuild's Compile items.
 | `package_lock`, `package_locks` | Closed package inventories, including package SDKs |
 | `package_build`, `package_inputs` | Offline Restore/package evaluation; extra declared task reads |
 | `resolve_references` | Private Build to capture complete compiler/copy selections; requires `package_build` |
+| `qualification_cache` | Reuse projects within changed qualification actions; requires `srcs`, `resolve_references`, Linux/bwrap and an HTTP project cache |
 | `bindings` | Complete tool layouts bound to MSBuild properties |
 | `mappings` | Reviewed JSON contracts for custom inputs, outputs and dependency roles |
 
@@ -113,6 +114,22 @@ and producers. Changes requalify; unchanged sync/check reuses the result. The
 launcher accepts only `--check`; change other settings in the target. Publication
 still protects authored files and checks both declarations before replacing either.
 NuGet update remains an explicit resolving command, outside this cache.
+
+To reuse individual projects after a source change, add `qualification_cache = True`
+and pass `--action_env=RULES_MSBUILD_PROJECT_CACHE_URL=http://cache:8080` to Bazel.
+An optional bearer token uses `RULES_MSBUILD_PROJECT_CACHE_BEARER_TOKEN` through
+`--action_env`. This requires Linux with `/usr/bin/bwrap` and user namespaces;
+use the qualified execution image. Package/tool runfiles are materialized before
+entering a fixed private namespace; authored sources are read-only. Publication
+still happens after successful qualification.
+
+This cache uses evaluated project/configuration inputs before the final contract
+exists. Keys include SDK/runner bytes, declared inputs, package archives, Restore
+assets, requested targets and conservative dependency source/product hashes.
+A hit restores verified owned artifacts and SDK compiler/copy metadata. Fresh
+Restore/evaluation still run; the first miss runs normal SDK Build. Shared inputs
+invalidate every affected key. Overlapping output owners and their consumers skip
+reuse. This does not infer precise reference boundaries before qualification.
 
 Complete inventories exclude unselected compiler edges from invalidation while
 retaining graph execution and noncompiler dependency roles. New snapshots verify

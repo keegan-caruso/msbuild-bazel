@@ -6,7 +6,7 @@ internal sealed record SyncStageFile(string Path, string File, bool Tree = false
 internal sealed record SyncStage(SyncStageFile[] Sources, SyncStageFile[] Runfiles);
 
 // Bazel owns cache identity. This tool stages only declared artifacts and publishes
-// the resulting declarations; it does not maintain a second qualification cache.
+// the resulting declarations. Per-project SDK reuse belongs to QualificationCache.
 internal static class PreparedSync
 {
     internal static void Stage(string manifest, string destination)
@@ -56,7 +56,7 @@ internal static class PreparedSync
                 {
                     File.CreateSymbolicLink(target, source);
                 }
-                else if (!links && File.Exists(source) && !Directory.Exists(source))
+                else if ((!links || file.Tree) && File.Exists(source) && !Directory.Exists(source))
                 {
                     File.Copy(source, target);
                 }
