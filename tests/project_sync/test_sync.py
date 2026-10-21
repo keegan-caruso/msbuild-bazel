@@ -7,6 +7,7 @@ import subprocess
 import shutil
 import tempfile
 import unittest
+import zipfile
 from unittest.mock import patch
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -854,6 +855,38 @@ class GraphSyncTests(unittest.TestCase):
             before = (self.root / 'graph.generated.json').read_bytes()
             self.assertIn('RESTORE_INPUT_CHANGED', self.sync(mapping, flags=flags, success=False))
             self.assertEqual((self.root / 'graph.generated.json').read_bytes(), before)
+
+    @unittest.skipUnless(os.path.isfile("/usr/bin/bwrap"), "Linux qualification sandbox required")
+    def test_qualification_restore_cache_keeps_package_sdk_resolution(self):
+        (self.root / 'global.json').write_text(json.dumps({'sdk': {'version': '10.0.400'},
+            'msbuild-sdks': {'Microsoft.DotNet.Arcade.Sdk': '1.0.0'}}))
+        (self.root / 'App.csproj').write_text(self.project.replace('<PropertyGroup>',
+            '<Import Project="Sdk.props" Sdk="Microsoft.DotNet.Arcade.Sdk" /><PropertyGroup>', 1))
+        (self.root / 'Program.cs').write_text('#if !DECLARED_PACKAGE_SDK\n#error Missing package SDK\n#endif\nSystem.Console.WriteLine(1);')
+        with tempfile.TemporaryDirectory(prefix='qualification-package-sdk-') as directory:
+            base = Path(directory)
+            package = base / 'runfiles/arcade'
+            package.mkdir(parents=True)
+            archive = package / 'microsoft.dotnet.arcade.sdk.1.0.0.nupkg'
+            with zipfile.ZipFile(archive, 'w') as zip_file:
+                zip_file.writestr('Microsoft.DotNet.Arcade.Sdk.nuspec', '<package><metadata><id>Microsoft.DotNet.Arcade.Sdk</id>'
+                    '<version>1.0.0</version><authors>fixture</authors><description>fixture</description></metadata></package>')
+                zip_file.writestr('sdk/Sdk.props', '<Project><PropertyGroup><DefineConstants>$(DefineConstants);DECLARED_PACKAGE_SDK</DefineConstants></PropertyGroup></Project>')
+                zip_file.writestr('sdk/Sdk.targets', '<Project />')
+            with zipfile.ZipFile(archive) as zip_file:
+                zip_file.extractall(package)
+            manifest = base / 'inputs.json'
+            manifest.write_text(json.dumps({'inputs': [], 'packages': [{'id': 'Microsoft.DotNet.Arcade.Sdk',
+                'version': '1.0.0', 'runfile': 'arcade'}], 'packageLock': '@sdk//:packages'}))
+            flags = ['--package-build', '--resolve-references', '--inputs', str(manifest), '--runfiles', str(base / 'runfiles')]
+            self.sync(flags=flags)
+            expected = [(self.root / name).read_bytes() for name in ['graph.generated.json', 'graph.generated.bzl']]
+            flags += ['--qualification-cache', str(base / 'cache')]
+            self.assertIn('PROJECT_SYNC_RESTORE_CACHE miss', self.sync(flags=flags))
+            output = self.sync(flags=flags)
+            self.assertIn('PROJECT_SYNC_RESTORE_CACHE hit', output)
+            self.assertIn('"compilations":0', output)
+            self.assertEqual([(self.root / name).read_bytes() for name in ['graph.generated.json', 'graph.generated.bzl']], expected)
 
     @unittest.skipUnless(os.path.isfile("/usr/bin/bwrap"), "Linux qualification sandbox required")
     def test_qualification_cache_skips_both_overlapping_owners_and_consumers(self):

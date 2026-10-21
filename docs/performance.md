@@ -293,6 +293,9 @@ RULES_MSBUILD_DOTNET_ROOT=PINNED_SDK python3 benchmarks/qualification.py FRESH_O
 
 This excludes initial cache seeding and checks compiler counts and declaration
 hashes after every distinct body/API edit. Use `--profile` separately for phases.
+A separate four-project Linux ARM64 consumer recovered Restore and all projects in
+**1.01 s**, with the producer stopped, no copied local cache, zero compilations
+and byte-identical declarations. This single correctness profile excludes acquisition.
 
 ## Reviewed evaluation reuse
 

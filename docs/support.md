@@ -139,16 +139,19 @@ action; it requires `srcs`, `package_build` and `resolve_references`. Linux ARM6
 on both Bazel pins: normal-mode declaration parity, forced preparation with an empty
 local cache, body/API invalidation, independent-branch reuse, app execution and
 Newtonsoft.Json **13.0.3** package-tree materialization/recovery.
-The 50 ProjectSync controls cover props and executable-mode changes, multi-target
+The 51 ProjectSync controls cover props and executable-mode changes, multi-target
 selection, implementation/reference DLLs, XML copies, failed builds, corrupt
 artifacts/metadata, relocation, source/SDK aliases and overlapping output owners.
 
 Verified Restore snapshots passed small controls for compiler-only edits, source
 membership/modes, failed compilation, corrupt assets, authored Restore-hook inputs
-and empty generated directories. Serial/parallel multi-target qualification retains
+empty generated directories and synthetic package-SDK resolution after replay.
+Serial/parallel multi-target qualification retains
 SDK selections with full-state worker transfer; the small cache fixture reports
 zero worker evaluations. Root `restoreReuseInputs` requires a separate
 review of compiler-only contents; arbitrary Restore task reads remain declared.
+A stopped-producer, relocated-VM control recovered Restore and all four projects
+through HTTP with no local cache, zero compilations and identical declarations.
 
 Requires the qualified Linux/bwrap environment; the Apple container must allow
 user namespaces and avoid read-only `/proc` submounts, as in

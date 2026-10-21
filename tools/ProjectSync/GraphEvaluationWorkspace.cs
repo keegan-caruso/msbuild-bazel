@@ -67,6 +67,9 @@ internal sealed class GraphEvaluationWorkspace : IDisposable
             }
             var config = Path.Combine(Root, ".graph.nuget.config");
             File.WriteAllText(config, "<configuration><packageSources><clear/></packageSources><fallbackPackageFolders><clear/></fallbackPackageFolders></configuration>");
+            // Package SDK resolution happens before generated NuGet imports.
+            // Restore replay must establish the same package root as a fresh run.
+            Environment.SetEnvironmentVariable("NUGET_PACKAGES", Path.Combine(Root, ".nuget"));
             if (restoreCache?.Restore() == true)
             {
                 return;
