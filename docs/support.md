@@ -132,6 +132,30 @@ reviewed body/API reuse, fresh build state, evaluation-input/task changes and fa
 build recovery. Retention requires explicit compiler-only input review; see
 [configuration](api.md#caching-and-workers) and [runtime timings](performance.md#reviewed-evaluation-reuse).
 
+## Project qualification cache
+
+`qualification_cache = True` adds HTTP project reuse inside a changed preparation
+action; it requires `srcs`, `package_build` and `resolve_references`. Linux ARM64 / SDK **10.0.400** passed small controls
+on both Bazel pins: normal-mode declaration parity, forced preparation with an empty
+local cache, body/API invalidation, independent-branch reuse, app execution and
+Newtonsoft.Json **13.0.3** package-tree materialization/recovery.
+The 48 ProjectSync controls cover props and executable-mode changes, multi-target
+selection, implementation/reference DLLs, XML copies, failed builds, corrupt
+artifacts/metadata, relocation, source/SDK aliases and overlapping output owners.
+
+Requires the qualified Linux/bwrap environment; the Apple container must allow
+user namespaces and avoid read-only `/proc` submounts, as in
+`scripts/run-apple-container.sh`. This is stable-path isolation, not tracing of
+arbitrary task reads. Declare custom inputs and tools. Other .NET SDK versions,
+platforms and RBE remain unqualified for this option. Non-assembly projects run
+normally; overlapping output owners and their consumers skip reuse. See [configuration](api.md#compiler-selections)
+and [measurements](performance.md#project-qualification-reuse).
+
+```sh
+QUALIFICATION_CACHE_URL=http://cache:8080 bash scripts/bazel.sh test \
+  //tests/integration:qualification_cache --test_output=errors
+```
+
 ## Downloaded SDK and runtime sources
 
 The public `dotnet.sdk(version="10.0.400")` → native package update/check → offline

@@ -2,10 +2,11 @@
 
 ## Sync preparation
 
-Multi-root offline sync now calls each root's Restore target within one native
+Multi-root offline sync calls each root's Restore target within one native
 MSBuild invocation. Shared configured dependencies reuse evaluation/target results;
 root hooks and per-entry properties remain intact. Single-root Restore is unchanged.
-The private compiler-selection Build still runs once per sync/check.
+Private qualification uses normal SDK targets; the sections below describe
+whole-action and project reuse.
 
 Synthetic roots share a three-library chain: Linux ARM64, four CPUs / 6 GiB,
 SDK **10.0.400**, no external packages. Three alternating before/after pairs against
@@ -170,6 +171,49 @@ with identical declarations: private Build **1,016.89 s** (**95.9%** of sync), t
 separate profiles, not paired scores. The new run invokes ProjectSync directly,
 excluding Bazel staging/publication and acquisition. Remote-recovery figures above
 predate this concurrency change.
+
+### Project qualification reuse
+
+Opt-in qualification caching reuses individual projects inside a changed sync
+preparation action. It does not replace the ordinary graph-build cache. Keys use
+conservative dependency inputs; fresh Restore/evaluation and contract validation
+still run. Misses use normal SDK Build. See [configuration](api.md#compiler-selections).
+
+Runtime v10.0.0, **543 configurations / 481 cacheable projects**, SDK **10.0.400**,
+Linux ARM64, four CPUs / 8 GiB, qualification core **bc745a1**. Single direct-CLI
+diagnostic observations; these are sync preparation, not ordinary build scores:
+
+| Case | Total seconds | Private Build seconds | Project hits | Csc tasks |
+| --- | ---: | ---: | ---: | ---: |
+| Empty project cache | 1,168.40 | 1,109.78 | 0 | 611 |
+| Empty local cache, HTTP recovery | 52.97 | 2.82 | 481 | 0 |
+| Pipelines body edit | 60.20 | 22.21 | 474 | 7 |
+| Pipelines implementation + reference API edit | 68.27 | 28.62 | 464 | 17 |
+| Original sources restored, local reuse | 39.75 | 1.86 | 481 | 0 |
+
+Every row preserves both declarations byte-for-byte against ordinary sync. Body
+edits add `GC.KeepAlive` in `PipeOptions`; API edits add a method to implementation
+and reference sources. Cache keys remain conservative across dependencies.
+An earlier local replay took **88.50 s** with 481 hits / zero Csc tasks; filesystem
+cache states differ, so these profiles do not compare local and HTTP transport
+speed. Body/API controls resumed after host disk exhaustion; deleted scratch
+blocks were released between those measured commands. The interrupted row is excluded.
+On original-state replay, Restore (**21.69 s**) and evaluation/input handling now
+dominate; the private Build is **1.86 s**. The large HTTP row uses another empty
+cache on the same VM; independent-machine correctness is the separate control below.
+
+Correctness controls passed both Bazel pins on Linux ARM64 / SDK **10.0.400**.
+A separate producer/consumer control stopped the producer before recovery: a new
+local cache on the other VM recovered all four projects in **1.29 s**, with zero
+Csc tasks and identical declarations. This is a recovery control, not a paired
+speedup; the producer/consumer had four CPUs and 6/8 GiB respectively.
+
+To measure project reuse, repeat the pinned runtime command above with
+`--qualification-cache OWNED_CACHE --qualification-cache-url http://cache:8080`.
+Use a new empty `OWNED_CACHE` for HTTP recovery. `RULES_MSBUILD_SYNC_PROFILE=1`
+reports phases; `PROJECT_SYNC_CACHE` reports project hits/misses and actual Csc
+task calls. SDK/acquisition and Bazel staging are outside these direct profiles;
+OS caches are not reset. Raw reports stay outside Git.
 
 ## Downloaded-SDK workflow
 
