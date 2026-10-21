@@ -21,9 +21,9 @@ byte-identical generated JSON and Starlark; later samples also run `--check`.
 
 At 64 roots, offline sync fell **88.8%** and qualified sync **45.6%**.
 SDK/runner acquisition, NuGet update and ordinary incremental builds are excluded.
-These small compilations isolate repeated Restore work; the large runtime graph's
-preparation timings below have not been refreshed. Its private Build remains the
-next cost to investigate.
+These small compilations isolate repeated Restore work. The
+[runtime preparation profile](#runtime-preparation) identifies private Build as
+the remaining cold cost.
 
 Build each revision's `tools/ProjectSync/ProjectSync.csproj` with the same pinned SDK,
 using `-c Release -o ABSOLUTE_PAYLOAD_DIRECTORY`, then run from this checkout:
@@ -77,7 +77,8 @@ preparation remotely with zero qualification executions and identical declaratio
 Runtime v10.0.0, Linux ARM64, four CPUs / 8 GiB, SDK **10.0.400**, Bazel **9.3.0**.
 The declared snapshot includes roughly 61,000 authored files. The full managed
 graph (**543 configurations / 481 compilation nodes**) produces byte-identical
-JSON and Starlark to retained ordinary sync. One isolated cold diagnostic run:
+JSON and Starlark to retained ordinary sync. One isolated cold diagnostic run
+with serial compiler qualification (revision `28b36dc`):
 
 | Phase | Seconds |
 | --- | ---: |
@@ -127,6 +128,48 @@ results; the six-test local qualification and producer-API controls passed.
 To repeat independent recovery, relocate the same sources/rules and native locks,
 stop the producer, then run the helper with `--consumer --seed-report=PRODUCER_SEED`.
 Use `--profile` only when the seed also used it, to preserve the action environment.
+
+### Parallel compiler qualification
+
+Private qualification now allows up to four MSBuild nodes, bounded by available
+CPUs. The full SDK Build and input-mutation checks remain. Bazel accounts for four
+CPUs / 4 GiB for cached compiler qualification. Linux ARM64, four CPUs / 8 GiB,
+SDK **10.0.400**, serial baseline **28b36dc**; alternating pairs, median seconds:
+
+| Scope | Serial command | Parallel command | Serial private Build | Parallel private Build |
+| --- | ---: | ---: | ---: | ---: |
+| Synthetic, 17 projects, three pairs | 9.06 | 6.80 | 7.89 | 5.75 |
+| Runtime Pipelines, 32 configurations, two pairs | 133.30 | 103.49 | 113.26 | 90.78 |
+
+Both declarations match byte-for-byte in every sample. Pipelines command time fell
+**22.4%**, private Build **19.9%**. Each invocation has fresh private outputs and
+fixed sources, SDK and packages; OS caches are not reset. Acquisition, NuGet update,
+Bazel staging and ordinary incremental builds are excluded.
+
+Build both revisions' ProjectSync payloads, then reproduce the synthetic pairs:
+
+```sh
+RULES_MSBUILD_DOTNET_ROOT=PINNED_SDK python3 benchmarks/qualification.py FRESH_OUTPUT \
+  --baseline-runner=BASELINE/ProjectSync.dll \
+  --candidate-runner=CANDIDATE/ProjectSync.dll
+```
+
+For runtime pairs, use each payload with the same owned source workspace and
+verified package bindings, with `RULES_MSBUILD_SYNC_PROFILE=1`:
+
+```sh
+PINNED_SDK/dotnet PAYLOAD/ProjectSync.dll SOURCE PINNED_SDK/sdk/10.0.400 \
+  src/libraries/System.IO.Pipelines/src/System.IO.Pipelines.csproj \
+  --framework net10.0 --package-build --resolve-references --mappings mappings.json \
+  --inputs INPUTS.json --runfiles RUNFILES
+```
+
+A separate full-runtime profile qualified **543 configurations / 481 compilations**
+with identical declarations: private Build **1,016.89 s** (**95.9%** of sync), total
+**1,059.89 s**. The earlier serial private Build was **1,362.47 s**; these are
+separate profiles, not paired scores. The new run invokes ProjectSync directly,
+excluding Bazel staging/publication and acquisition. Remote-recovery figures above
+predate this concurrency change.
 
 ## Downloaded-SDK workflow
 

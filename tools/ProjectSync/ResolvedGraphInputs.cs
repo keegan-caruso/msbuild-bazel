@@ -42,7 +42,9 @@ internal sealed record ResolvedGraphInputs(Dictionary<string, string> CompilerRe
             using var manager = new BuildManager();
             result = SyncProfile.Run("private-build", () => manager.Build(new BuildParameters(collection)
             {
-                MaxNodeCount = 1,
+                // Match the graph runner's bounded concurrency without forcing
+                // extra nodes on a single-CPU execution platform.
+                MaxNodeCount = Math.Clamp(Environment.ProcessorCount, 1, 4),
                 EnableNodeReuse = false,
                 Loggers = [new Microsoft.Build.Logging.ConsoleLogger(Microsoft.Build.Framework.LoggerVerbosity.Minimal)]
             }, new GraphBuildRequestData(graph, ["Build"], null, BuildRequestDataFlags.ProvideProjectStateAfterBuild)));
@@ -74,10 +76,13 @@ internal sealed record ResolvedGraphInputs(Dictionary<string, string> CompilerRe
                 ?? throw new InvalidDataException("Missing resolved compiler state: " + Relative(node.ProjectInstance.FullPath));
             var closure = dependencies(node).ToHashSet();
             var allowed = consumerInputs(node).ToHashSet(StringComparer.Ordinal);
+            // Out-of-process result state can omit FullPath. Resolve its item
+            // and property values against the original configured graph node.
+            var project = node.ProjectInstance;
             var references = new Dictionary<string, string>(StringComparer.Ordinal);
             foreach (var item in state.GetItems("ReferencePathWithRefAssemblies"))
             {
-                var path = Full(state, item.EvaluatedInclude);
+                var path = Full(project, item.EvaluatedInclude);
                 var owner = Owner(path, closure);
                 if (owner is not null)
                 {
@@ -95,13 +100,13 @@ internal sealed record ResolvedGraphInputs(Dictionary<string, string> CompilerRe
                 }
             }
             var copies = new Dictionary<string, string>(StringComparer.Ordinal);
-            var target = Full(state, state.GetPropertyValue("TargetPath"));
+            var target = Full(project, state.GetPropertyValue("TargetPath"));
             var output = Path.GetDirectoryName(target)!;
             var publish = state.GetPropertyValue("PublishDir");
-            var destinations = publish.Length == 0 ? [output] : new[] { output, Full(state, publish) }.Distinct().ToArray();
+            var destinations = publish.Length == 0 ? [output] : new[] { output, Full(project, publish) }.Distinct().ToArray();
             foreach (var item in state.GetItems("ReferenceCopyLocalPaths"))
             {
-                var path = Full(state, item.EvaluatedInclude);
+                var path = Full(project, item.EvaluatedInclude);
                 if (Path.GetExtension(path) is not (".dll" or ".pdb" or ".xml"))
                 {
                     continue;

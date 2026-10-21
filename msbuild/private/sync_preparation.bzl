@@ -2,6 +2,9 @@
 
 load(":paths.bzl", "quote", "runfile")
 
+def _qualification_resources(_os_name, _input_size):
+    return {"cpu": 4, "memory": 4096}
+
 def prepare_sync(ctx, tc, payload, manifest, bound_files):
     """Create cacheable preparation and its runnable publisher.
 
@@ -47,6 +50,7 @@ def prepare_sync(ctx, tc, payload, manifest, bound_files):
         inputs = depset(ctx.files.srcs + bound_files + [payload, manifest, stage] + ([ctx.file.mappings] if ctx.file.mappings else []), transitive = [tc.sdk]),
         tools = [tc.dotnet],
         outputs = [prepared],
+        resource_set = _qualification_resources if ctx.attr.resolve_references else None,
         env = {key: value for key, value in ctx.configuration.default_shell_env.items() if key == "RULES_MSBUILD_SYNC_PROFILE"},
         arguments = [tc.dotnet.path, payload.path, stage.path, prepared.path, manifest.path, tc.sdk_version, ctx.file.mappings.path if ctx.file.mappings else ""] + ctx.attr.projects,
         command = """set -eu
