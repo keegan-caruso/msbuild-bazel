@@ -28,9 +28,10 @@ def prepare_sync(ctx, tc, payload, manifest, bound_files):
             fail("Exclude graph.generated.json and graph.generated.bzl from sync srcs")
         sources.append({"path": path, "file": file.path})
     stage = ctx.actions.declare_file(ctx.label.name + ".sync-stage.json")
+    producer_trees = {file: True for target in ctx.attr.inputs | ctx.attr.build_inputs for file in target[DefaultInfo].files.to_list() if file.is_directory}
     ctx.actions.write(stage, json.encode({
         "sources": sources,
-        "runfiles": [{"path": path, "file": file.path} for path, file in {runfile(ctx, file): file for file in bound_files}.items()],
+        "runfiles": [{"path": path, "file": file.path, "tree": file in producer_trees} for path, file in {runfile(ctx, file): file for file in bound_files}.items()],
     }))
     prepared = ctx.actions.declare_directory(ctx.label.name + ".sync-prepared")
     flags = ["--configuration", ctx.attr.configuration]
@@ -46,6 +47,7 @@ def prepare_sync(ctx, tc, payload, manifest, bound_files):
         inputs = depset(ctx.files.srcs + bound_files + [payload, manifest, stage] + ([ctx.file.mappings] if ctx.file.mappings else []), transitive = [tc.sdk]),
         tools = [tc.dotnet],
         outputs = [prepared],
+        env = {key: value for key, value in ctx.configuration.default_shell_env.items() if key == "RULES_MSBUILD_SYNC_PROFILE"},
         arguments = [tc.dotnet.path, payload.path, stage.path, prepared.path, manifest.path, tc.sdk_version, ctx.file.mappings.path if ctx.file.mappings else ""] + ctx.attr.projects,
         command = """set -eu
 base="$PWD"
@@ -55,6 +57,7 @@ shift 7
 scratch=$(mktemp -d)
 trap 'rm -rf "$scratch"' EXIT
 export DOTNET_ROOT="$(dirname "$dotnet")" DOTNET_CLI_HOME="$scratch/home"
+export PATH="$DOTNET_ROOT:/usr/bin:/bin"
 export DOTNET_SKIP_FIRST_TIME_EXPERIENCE=1 DOTNET_CLI_TELEMETRY_OPTOUT=1 DOTNET_NOLOGO=1
 export DOTNET_GENERATE_ASPNET_CERTIFICATE=false DOTNET_MULTILEVEL_LOOKUP=0
 "$dotnet" "$runner" stage "$stage" "$scratch"

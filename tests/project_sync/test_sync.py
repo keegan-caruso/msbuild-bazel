@@ -37,6 +37,25 @@ class GraphSyncTests(unittest.TestCase):
         self.assertFalse((self.root / "projects.generated.bzl").exists())
         self.sync(flags=["--check"])
 
+    def test_opt_in_profiling_preserves_declarations(self):
+        command = [str(SDK / 'dotnet'), str(RUNNER), str(self.root), str(SDK / 'sdk/10.0.400'), 'App.csproj']
+        expected = None
+        for enabled in [None, '1']:
+            environment = dict(os.environ, DOTNET_ROOT=str(SDK))
+            environment.pop('RULES_MSBUILD_SYNC_PROFILE', None)
+            if enabled:
+                environment['RULES_MSBUILD_SYNC_PROFILE'] = enabled
+            result = subprocess.run(command, capture_output=True, text=True, env=environment)
+            self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+            phases = [json.loads(line.removeprefix('PROJECT_SYNC_PROFILE ')) for line in result.stderr.splitlines()
+                if line.startswith('PROJECT_SYNC_PROFILE ')]
+            self.assertEqual(bool(phases), enabled == '1')
+            self.assertTrue(all(row['seconds'] >= 0 for row in phases))
+            current = [(self.root / name).read_bytes() for name in ['graph.generated.json', 'graph.generated.bzl']]
+            if expected is not None:
+                self.assertEqual(current, expected)
+            expected = current
+
     def test_prepared_publication_checks_both_outputs_and_rejects_links(self):
         self.sync()
         with tempfile.TemporaryDirectory(prefix='prepared-sync-') as directory:
@@ -74,6 +93,45 @@ class GraphSyncTests(unittest.TestCase):
             with tempfile.TemporaryDirectory(prefix='sync-stage-') as directory:
                 result = subprocess.run([str(SDK / 'dotnet'), str(RUNNER), 'stage', str(manifest), directory], capture_output=True, text=True)
                 self.assertNotEqual(result.returncode, 0, result.stdout + result.stderr)
+
+    def test_prepared_tree_materializes_projection_and_rejects_authored_links(self):
+        relative = Path('bazel-out/bin/producer')
+        original, projected = self.root / 'execroot' / relative, self.root / relative
+        for root in [original, projected]:
+            (root / 'nested').mkdir(parents=True)
+        for name in ['Code.cs', 'nested/metadata.txt']:
+            (original / name).write_text('declared artifact')
+            (projected / name).symlink_to(original / name)
+        manifest = self.root / 'tree-stage.json'
+        manifest.write_text(json.dumps({'sources': [], 'runfiles': [{'path': 'producer', 'file': str(relative), 'tree': True}]}))
+
+        def stage():
+            destination = Path(tempfile.mkdtemp(dir=self.root))
+            result = subprocess.run([str(SDK / 'dotnet'), str(RUNNER), 'stage', str(manifest), str(destination)],
+                cwd=self.root, capture_output=True, text=True)
+            return result, destination / 'runfiles/producer'
+
+        result, staged = stage()
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        for name in ['Code.cs', 'nested/metadata.txt']:
+            self.assertEqual((staged / name).read_text(), 'declared artifact')
+            self.assertFalse((staged / name).is_symlink())
+        outside = self.root / 'outside.txt'
+        outside.write_text('undeclared')
+        (original / 'Code.cs').unlink()
+        (original / 'Code.cs').symlink_to(outside)
+        self.assertIn('tree symlinks are unsupported', stage()[0].stderr)
+        (original / 'Code.cs').unlink()
+        (original / 'Code.cs').write_text('declared artifact')
+        (projected / 'Code.cs').unlink()
+        (projected / 'Code.cs').symlink_to(outside)
+        self.assertIn('tree symlinks are unsupported', stage()[0].stderr)
+        (projected / 'Code.cs').unlink()
+        (projected / 'Code.cs').symlink_to(original / 'Code.cs')
+        directory = self.root / 'outside-directory'
+        (original / 'nested').rename(directory)
+        (original / 'nested').symlink_to(directory, target_is_directory=True)
+        self.assertIn('tree directory symlinks are unsupported', stage()[0].stderr)
 
     def test_analyzer_discovery_stays_inside_workspace(self):
         parent = self.root
@@ -417,6 +475,7 @@ class GraphSyncTests(unittest.TestCase):
         self.assertEqual(contract["Version"], 11)
         self.assertEqual(contract["EvaluationReuseGlobs"], defaults["compileGlobs"])
         self.assertEqual(contract["EvaluationReuseInputs"], ["Program.cs"])
+        self.assertNotIn('BuildInputs', contract['Restore'])
         selected = contract["Projects"]["App.csproj"]["Configurations"][0]
         self.assertEqual(selected["CompileGlobs"], defaults["compileGlobs"])
         self.assertFalse(any(path.startswith("LongDirectoryPrefix/") for path in selected["Inputs"]))

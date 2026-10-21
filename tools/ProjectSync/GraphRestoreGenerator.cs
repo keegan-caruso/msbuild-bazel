@@ -1,8 +1,10 @@
+using System.Text.Json.Serialization;
 using Microsoft.Build.Graph;
 
 namespace RulesMSBuild.ProjectSync;
 
-internal sealed record GraphRestoreDeclaration(string[] Inputs, string[] Outputs, string[]? BuildInputs = null);
+internal sealed record GraphRestoreDeclaration(string[] Inputs, string[] Outputs,
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] string[]? BuildInputs = null);
 
 internal static class GraphRestoreGenerator
 {

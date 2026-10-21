@@ -72,6 +72,62 @@ workspace and identical rules, stop the producer, then run `bazel run //:sync
 `--output_base`. The independent four-project control recovered bootstrap and
 preparation remotely with zero qualification executions and identical declarations.
 
+### Runtime preparation
+
+Runtime v10.0.0, Linux ARM64, four CPUs / 8 GiB, SDK **10.0.400**, Bazel **9.3.0**.
+The declared snapshot includes roughly 61,000 authored files. The full managed
+graph (**543 configurations / 481 compilation nodes**) produces byte-identical
+JSON and Starlark to retained ordinary sync. One isolated cold diagnostic run:
+
+| Phase | Seconds |
+| --- | ---: |
+| Declared source staging | 5.89 |
+| Producer bindings | 5.53 |
+| Workspace copy | 8.84 |
+| Offline Restore | 20.84 |
+| Graph evaluation | 5.88 |
+| Private SDK Build | 1,362.47 |
+| Sync process total | 1,413.43 |
+| Public command total | 1,444.91 |
+
+The private Build accounts for **96.4%** of the sync process. Totals include
+additional inventory, publication and cleanup work; this is a profile, not a paired
+cold speedup. Three unchanged checks took **3.34 / 1.98 / 0.47 s**, each with zero
+preparation executions. Ordinary incremental-build timings are unchanged by this
+qualification measurement.
+
+A 32-configuration Pipelines control matches freshly executed ordinary sync;
+body/API, props, mappings and lock-byte edits requalify, unchanged checks reuse,
+and original-state remote recovery restores identical declarations. The JIT control
+also verifies an actual source-runtime reference DLL change invalidates preparation,
+restoring it recovers the prior result, and all six upstream tests execute.
+
+Use the source workspace retained by `runtime_downloaded_prepare.py` or
+`runtime_jit_public_prepare.py`, not the pruned build consumer:
+
+```sh
+python3 tests/graph_build/upstream/runtime_preparation_cache.py \
+  SOURCE_WORKSPACE RESULTS --output-base=FRESH_BASE --cache-url=URL
+```
+
+`--controls` exercises Pipelines edits; `--producer-controls=SOURCE_RUNTIME` exercises
+the JIT reference producer. For a separate cold profile, use `--profile` and
+`--reference-contracts=ORDINARY_DECLARATIONS` to avoid another full ordinary Build.
+The helper checks parity, action execution counts and restored output hashes.
+
+With the producer stopped, a relocated four-CPU / 6 GiB consumer, fresh output base,
+strict module lock and no disk cache recovered full managed preparation in
+**17.78 s**: **144 remote spawn hits / zero executions**, identical declarations.
+Runtime-bootstrap recovery took **8.14 s**, with **37 remote spawn hits / zero
+executions**. These single observations include consumer startup/acquisition work;
+replayed producer profile lines are not consumer execution timings. The final live
+runtime/JIT reseed exhausted host storage and is excluded from successful recovery
+results; the six-test local qualification and producer-API controls passed.
+
+To repeat independent recovery, relocate the same sources/rules and native locks,
+stop the producer, then run the helper with `--consumer --seed-report=PRODUCER_SEED`.
+Use `--profile` only when the seed also used it, to preserve the action environment.
+
 ## Downloaded-SDK workflow
 
 Runtime v10.0.0, four managed roots (Pipelines, Encodings.Web, Json and ComponentModel
@@ -176,12 +232,10 @@ There is no new paired cold result; full-source raw correctness ran during unsco
 preparation. This contract retains disposable intermediates, so its file counts and
 Pipelines edits differ from the older LINQ baseline below.
 
-A separate source-only preparation run on four CPUs / 8 GiB measured public
-package update/check at **147.19 / 175.91 s** and compiler-selection sync/check
-at **1526.98 / 1469.58 s**. Qualification uses a single-node private SDK Build. These are
-unpaired declaration-preparation observations, separate from incremental build
-scores. Reproduce with [source-only preparation](../tests/graph_build/upstream/runtime_checkout_prepare.py)
-using the pins and tools in [support](support.md#connected-source-runtime-workflow).
+Earlier source-only package update/check measured **147.19 / 175.91 s** and ordinary
+compiler-selection sync/check **1526.98 / 1469.58 s** (unpaired). The
+[current preparation profile](#runtime-preparation) measures declared-source reuse;
+these preparation costs are outside incremental-build scores.
 
 A fresh relocated Linux ARM64 consumer, four CPUs / 6 GiB, with the producer stopped,
 recovered normal Restore + graph actions in **8.83 s**. Forced graph execution took
@@ -297,6 +351,12 @@ the profiled runner took 17.06 s. This is a correctness control, not a paired
 speedup or a new runtime test-suite run.
 
 ## Reproduce
+
+For separate sync diagnostics, use `bazel run //:sync
+--action_env=RULES_MSBUILD_SYNC_PROFILE=1` with declared `srcs`. Profiling is off
+by default. `PROJECT_SYNC_PROFILE` lines report staging, bindings, offline
+preparation/Restore, evaluation and private Build; nested totals overlap.
+Check the execution log: a remote hit can replay the producer's timing lines.
 
 Use matching source, properties, compiler sets, packages, Restore/cache state,
 native products and resource inputs. Keep profiling off for scores. Report project

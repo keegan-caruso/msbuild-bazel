@@ -16,6 +16,7 @@ from runtime_feed_config import pin_runtime_feeds
 from runtime_jit_prepare import DEPENDENCIES, ENTRY, EXTERNAL, PINNED
 from runtime_prepare import COMMIT, SOURCE_SHA256
 from runtime_jit_source import export_source_runtime
+from runtime_sync_inputs import SYNC_SRCS, assert_preparation_reused
 
 ROOT = Path(__file__).resolve().parents[3]
 
@@ -100,16 +101,19 @@ def main():
         disk = os.statvfs(args.host_space_path)
         assert disk.f_bavail * disk.f_frsize >= 8 * 1024**3, 'Insufficient physical host disk headroom'
         with (base / (label + '.log')).open('w') as log:
-            options = []
+            trace = base / (label + '.actions.json')
+            options = ['--execution_log_json_file=' + str(trace)]
             if args.source_producer:
                 endpoint = os.environ['RULES_MSBUILD_PROJECT_CACHE_URL']
-                options = ['--jobs=1', '--strategy=MSBuildGraph=worker', '--worker_sandboxing',
+                options += ['--jobs=1', '--strategy=MSBuildGraph=worker', '--worker_sandboxing',
                     '--worker_max_instances=MSBuildGraph=1', '--strategy=RuntimeNative=standalone',
                     '--remote_cache=' + endpoint, '--remote_cache_async=false', '--remote_download_outputs=all',
                     '--action_env=RULES_MSBUILD_PROJECT_CACHE_URL=' + endpoint]
             separator = arguments.index('--') if '--' in arguments else len(arguments)
             subprocess.run((command if output_base is None else [command[0], '--output_base=' + str(output_base)]) +
                 arguments[:separator] + options + arguments[separator:], cwd=cwd, stdout=log, stderr=subprocess.STDOUT, check=True)
+        if label in ['bootstrap-sync-check', 'sync-check']:
+            assert_preparation_reused(trace)
         subprocess.run(['fstrim', '/'], check=True, capture_output=True)
 
     # Bootstrap is its own public generated graph and an explicit producer module.
@@ -133,7 +137,7 @@ def main():
     run('bootstrap-update-check', ['run', '//:update_packages', '--', '--check'], bootstrap, base / 'bootstrap-bazel')
     nuget = 'nuget=use_extension("@rules_msbuild//msbuild:nuget.bzl","nuget")\nnuget.lock(name="nuget",lockfile="//:nuget.lock.json")\nuse_repo(nuget,"nuget")\n'
     (bootstrap / 'MODULE.bazel').write_text(bootstrap_module + nuget.replace('lock(name="nuget"', 'lock(name="jit_bootstrap_nuget"').replace('use_repo(nuget,"nuget")', 'use_repo(nuget,nuget="jit_bootstrap_nuget")'))
-    bootstrap_build += 'msbuild_sync(name="sync",projects=projects,mappings="mappings.json",package_lock="@nuget//:packages",package_build=True)\n'
+    bootstrap_build += 'msbuild_sync(name="sync",projects=projects,mappings="mappings.json",package_lock="@nuget//:packages",package_build=True,' + SYNC_SRCS + ')\n'
     (bootstrap / 'BUILD.bazel').write_text(bootstrap_build)
     run('bootstrap-sync', ['run', '//:sync'], bootstrap, base / 'bootstrap-bazel')
     run('bootstrap-sync-check', ['run', '//:sync', '--', '--check'], bootstrap, base / 'bootstrap-bazel')
@@ -150,10 +154,10 @@ def main():
             for case in cases if 'dependency' in case for project in [case['project'], case['dependency']['project']]}
         assert test_mapping['projects'], 'Compiler qualification requires a declared dependency case'
     (source / 'mappings.json').write_text(json.dumps(test_mapping, indent=2) + '\n')
-    module += 'bazel_dep(name="jit_bootstrap",version="0.0.0")\nlocal_path_override(module_name="jit_bootstrap",path=' + json.dumps(str(bootstrap)) + ')\n'
+    module += 'bazel_dep(name="jit_bootstrap",version="0.0.0")\nlocal_path_override(module_name="jit_bootstrap",path="../bootstrap")\n'
     producer = export_source_runtime(args.source_producer, base / 'source_runtime', ROOT, resume=args.resume) if args.source_producer else None
     if producer:
-        module += 'bazel_dep(name="jit_source_runtime",version="0.0.0")\nlocal_path_override(module_name="jit_source_runtime",path=' + json.dumps(str(base / 'source_runtime')) + ')\n'
+        module += 'bazel_dep(name="jit_source_runtime",version="0.0.0")\nlocal_path_override(module_name="jit_source_runtime",path="../source_runtime")\n'
     (source / 'MODULE.bazel').write_text(module)
     run('update', ['run', '//:update_packages'])
     run('update-check', ['run', '//:update_packages', '--', '--check'])
@@ -167,7 +171,7 @@ def main():
         declarations.append('load(":products.bzl","runtime_jit_products")')
         for name, prefix in [('refs', 'references'), ('host_products', 'core-root')]:
             declarations.append('runtime_jit_products(name=' + repr(name) + ',archive="source-products.tar.gz",sha256=' + repr(seed['sourceProductsSha256']) + ',prefix=' + repr(prefix) + ')')
-    declarations.append('msbuild_sync(name="sync",projects=projects,mappings="mappings.json",package_lock="@nuget//:packages",package_build=True,' + ('resolve_references=True,' if args.compiler_references else '') + 'build_inputs={":refs":"artifacts/bin/ref/net10.0"},inputs={"@jit_bootstrap//:targeting":"artifacts/TargetingPack"})')
+    declarations.append('msbuild_sync(name="sync",projects=projects,mappings="mappings.json",package_lock="@nuget//:packages",package_build=True,' + ('resolve_references=True,' if args.compiler_references else '') + 'build_inputs={":refs":"artifacts/bin/ref/net10.0"},inputs={"@jit_bootstrap//:targeting":"artifacts/TargetingPack"},' + SYNC_SRCS + ')')
     (source / 'BUILD.bazel').write_text('\n'.join(declarations) + '\n')
     run('sync', ['run', '//:sync'])
     run('sync-check', ['run', '//:sync', '--', '--check'])

@@ -4,13 +4,30 @@ source "$(dirname -- "${BASH_SOURCE[0]}")/common.sh"
 printf 'public static class Extra { public static int Value() => 1; }\n' > Extra.input
 printf 'public class P0 { public static int Value() => Extra.Value(); }\n' > P0/Code.cs
 sed -i 's|</Project>|<ItemGroup><Compile Include="../inputs/Extra.cs" /></ItemGroup></Project>|' P0/P0.csproj
-printf '{"projectDefaults":{"referenceBoundary":true,"properties":{"DefineConstants":"FIRST"}}}\n' > mappings.json
+cat > Directory.Build.targets <<'TARGETS'
+<Project><Target Name="ShellProbe" BeforeTargets="CoreCompile"><Exec Command="sh -c &quot;exit 0&quot;" /></Target></Project>
+TARGETS
+python3 - <<'MAPPING'
+import hashlib,json
+from pathlib import Path
+Path('mappings.json').write_text(json.dumps({'projectDefaults': {'referenceBoundary': True, 'properties': {'DefineConstants':'FIRST'},
+    'documents': {'Directory.Build.targets': {'sha256': hashlib.sha256(Path('Directory.Build.targets').read_bytes()).hexdigest(),
+        'targets': ['ShellProbe'], 'tasks': [], 'inputs': []}}}}))
+MAPPING
 printf '<configuration><packageSources><clear/><add key="nuget.org" value="https://api.nuget.org/v3/index.json"/></packageSources></configuration>\n' > NuGet.Config
+cat > producer.bzl <<'RULE'
+def _tree(ctx):
+    output = ctx.actions.declare_directory(ctx.label.name + ".tree")
+    ctx.actions.run_shell(inputs=[ctx.file.src], outputs=[output], arguments=[ctx.file.src.path, output.path], command='mkdir -p "$2"; cp "$1" "$2/Extra.cs"')
+    return [DefaultInfo(files=depset([output]))]
+source_tree = rule(implementation=_tree, attrs={"src": attr.label(allow_single_file=True)})
+RULE
 cat > BUILD.bazel <<'BUILD'
 load("@rules_msbuild//msbuild:sync.bzl", "msbuild_sync")
-genrule(name="extra", srcs=["Extra.input"], outs=["extra.cs"], cmd="cat $(location Extra.input) > $@")
-msbuild_sync(name="baseline", projects=["P2/P2.csproj"], mappings="mappings.json", inputs={":extra":"inputs/Extra.cs"}, package_build=True, resolve_references=True)
-msbuild_sync(name="sync", projects=["P2/P2.csproj"], mappings="mappings.json", inputs={":extra":"inputs/Extra.cs"}, srcs=glob(["P*/**", "global.json", "Directory.Build.*", "NuGet.Config"]), package_build=True, resolve_references=True)
+load(":producer.bzl", "source_tree")
+source_tree(name="extra", src="Extra.input")
+msbuild_sync(name="baseline", projects=["P2/P2.csproj"], mappings="mappings.json", inputs={":extra":"inputs"}, package_build=True, resolve_references=True)
+msbuild_sync(name="sync", projects=["P2/P2.csproj"], mappings="mappings.json", inputs={":extra":"inputs"}, srcs=glob(["P*/**", "global.json", "Directory.Build.*", "NuGet.Config"]), package_build=True, resolve_references=True)
 BUILD
 sync_run() {
     local name=$1; shift
@@ -139,4 +156,8 @@ BUILD
 if bazel build //:bad_empty > "$TEST_TMPDIR/empty-source.log" 2>&1; then echo 'Accepted empty srcs' >&2; exit 1; fi
 assert_contains "$TEST_TMPDIR/empty-source.log" 'requires a nonempty srcs'
 cp "$TEST_TMPDIR/valid.BUILD" BUILD.bazel
+bazel run //:sync --action_env=RULES_MSBUILD_SYNC_PROFILE=1 --execution_log_json_file="$TEST_TMPDIR/profile.actions.json" -- --check > "$TEST_TMPDIR/profile.log" 2>&1 || { cat "$TEST_TMPDIR/profile.log" >&2; exit 1; }
+preparations profile 1
+assert_contains "$TEST_TMPDIR/profile.log" '"phase":"private-build"'
+assert_contains "$TEST_TMPDIR/profile.log" '"phase":"sync-total"'
 echo 'PASS: cached qualification, normal-mode parity, source/producer/config/package inputs and protected publication'

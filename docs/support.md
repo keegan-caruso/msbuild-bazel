@@ -267,10 +267,28 @@ see [preparation measurements](performance.md#sync-preparation).
 source/membership/producer/props/mapping invalidation, SDK-selected implementation
 references, package inventories, runnable output and failure/publication guards.
 The prepared contracts match ordinary sync. Pins: Linux ARM64, SDK 10.0.400,
-Bazel 8.8.0 / 9.3.0. A separate source-only four-project consumer, with the producer
-stopped, passed strict-lock sync/check through 9.3 remote hits for bootstrap and
-preparation: no qualification execution. This does not qualify remote execution
-or the full runtime preparation workflow; see [cached preparation](performance.md#cached-preparation).
+Bazel 8.8.0 / 9.3.0. Directory producers materialize sandbox-projected files;
+authored file/directory links remain rejected. Shell-task controls pass during
+qualification and ordinary graph builds, with explicit SDK/system tool paths.
+Independent four-project, runtime-bootstrap and 543-configuration managed consumers
+passed strict-lock sync/check with fresh output bases and the producer stopped:
+all recorded spawns were remote hits, with no qualification execution. See
+[cached preparation](performance.md#cached-preparation); remote execution remains
+unqualified.
+
+The runtime preparation drivers now declare authored snapshots, native locks and
+implicit analyzer configuration; SDKs and generated reference/targeting layouts
+remain separate artifacts. A 32-configuration Pipelines slice matches ordinary
+sync through body/API, props, mappings and lock-byte edits and original-state
+remote recovery. The six-test JIT graph also matches ordinary sync: a live runtime
+reference-assembly API edit requalifies, an unchanged check reuses preparation,
+and restoring the producer recovers the original result and reference DLL bytes.
+All six upstream tests execute successfully with test-result caching disabled.
+Scope: Linux ARM64, SDK 10.0.400, Bazel 9.3.0.
+Full managed preparation also matches retained ordinary declarations byte-for-byte.
+Latest-payload independent recovery of the combined live runtime/JIT producer chain
+remains unqualified: its final reseed was interrupted by exhausted host storage.
+This does not affect the completed managed/bootstrap recovery or local JIT controls.
 
 `bash scripts/bazel.sh test //tests/integration:source_globs --test_output=errors`
 passed on Linux ARM64 with 8.8.0 / 9.2.0: method-body output changes, addition/removal/

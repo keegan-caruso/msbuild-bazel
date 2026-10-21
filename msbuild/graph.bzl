@@ -162,6 +162,7 @@ def _graph_action(ctx, prepare = False):
         fi
     done
     export DOTNET_ROOT="$(dirname "$dotnet")" DOTNET_CLI_HOME="$scratch" HOME="$scratch"
+    export PATH="$DOTNET_ROOT:/usr/bin:/bin"
     export DOTNET_CLI_TELEMETRY_OPTOUT=1 DOTNET_SKIP_FIRST_TIME_EXPERIENCE=1 DOTNET_NOLOGO=1
     export MSBUILDDISABLENODEREUSE=1
     if test "$isolated" = 1; then

@@ -11,9 +11,13 @@ internal sealed class GraphEvaluationWorkspace : IDisposable
     internal GraphEvaluationWorkspace(string source, string sdk, IEnumerable<string> entries,
         Dictionary<string, string> properties, WorkspaceView view, Dictionary<string, string>? toolProperties = null, Dictionary<string, Dictionary<string, string>>? entryProperties = null)
     {
+        using var profile = SyncProfile.Measure("offline-preparation");
         try
         {
-            Copy(source, Root);
+            using (SyncProfile.Measure("workspace-copy"))
+            {
+                Copy(source, Root);
+            }
             // Bound artifacts remain inputs even when their logical path contains
             // bin/obj, which ordinary authored-source copying excludes.
             foreach (var path in view.ProducerRoots.Concat(view.Labels.Keys).Distinct(StringComparer.Ordinal))
@@ -82,6 +86,7 @@ internal sealed class GraphEvaluationWorkspace : IDisposable
                 start.Environment["DOTNET_SKIP_FIRST_TIME_EXPERIENCE"] = "1";
                 start.Environment["DOTNET_GENERATE_ASPNET_CERTIFICATE"] = "false";
                 start.Environment["MSBUILDDISABLENODEREUSE"] = "1";
+                using var restoreProfile = SyncProfile.Measure("offline-restore");
                 using var process = Process.Start(start)!;
                 process.WaitForExit();
                 if (process.ExitCode != 0)

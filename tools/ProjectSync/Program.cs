@@ -25,6 +25,7 @@ internal static class Program
             {
                 throw new ArgumentException("ProjectSync <workspace> <sdk-directory> <project.csproj|project.ilproj|dirs.proj>... [--check] [--configuration Release] [--framework TFM] [--package-build] [--resolve-references] [--package-input FILE] [--mappings mappings.json]");
             }
+            using var profile = SyncProfile.Measure("sync-total");
             var sdk = WorkspaceView.PhysicalPath(args[1]);
             if (!File.Exists(Path.Combine(sdk, "MSBuild.dll")))
             {
@@ -117,7 +118,7 @@ internal static class Program
                 }
             }
             var root = WorkspaceView.PhysicalPath(args[0]);
-            using var view = WorkspaceView.Create(root, inputs, runfiles);
+            using var view = SyncProfile.Run("producer-bindings", () => WorkspaceView.Create(root, inputs, runfiles));
             if (view.HasIncompleteGraphBindings)
             {
                 throw new InvalidDataException("Sync requires complete tool layouts in msbuild_sync bindings");
