@@ -144,14 +144,14 @@ selection, implementation/reference DLLs, XML copies, failed builds, corrupt
 artifacts/metadata, relocation, source/SDK aliases and overlapping output owners.
 
 Verified Restore snapshots passed small controls for compiler-only edits, source
-membership/modes, failed compilation, corrupt assets, authored Restore-hook inputs
+membership/modes, failed compilation, corrupt assets, authored Restore-hook inputs,
 empty generated directories and synthetic package-SDK resolution after replay.
-Serial/parallel multi-target qualification retains
-SDK selections with full-state worker transfer; the small cache fixture reports
-zero worker evaluations. Root `restoreReuseInputs` requires a separate
-review of compiler-only contents; arbitrary Restore task reads remain declared.
+Serial/parallel multi-target qualification retains SDK selections with full-state
+worker transfer; the small cache fixture reports zero worker evaluations. Root
+`restoreReuseInputs` requires a separate review of compiler-only contents; arbitrary Restore task reads remain declared.
 A stopped-producer, relocated-VM control recovered Restore and all four projects
-through HTTP with no local cache, zero compilations and identical declarations.
+through HTTP, including package-SDK resolution, with no local cache, zero
+compilations, identical declarations and matching artifact digests.
 
 Requires the qualified Linux/bwrap environment; the Apple container must allow
 user namespaces and avoid read-only `/proc` submounts, as in
@@ -165,6 +165,11 @@ and [measurements](performance.md#project-qualification-reuse).
 QUALIFICATION_CACHE_URL=http://cache:8080 bash scripts/bazel.sh test \
   //tests/integration:qualification_cache --test_output=errors
 ```
+
+The broader legacy acceptance command still rejects its unsupported `Fixture.Sdk`
+synthetic on both starting and candidate runners. Its protocol slice also stops
+at archive/lock content-hash mismatches before graph sync. Those fixtures do not
+qualify this cache option; use the native integration command above.
 
 ## Downloaded SDK and runtime sources
 
