@@ -142,6 +142,10 @@ contracts. Unsupported boundaries retain conservative keys.
 Use `projectDefaults`, project-path `projects`, `frameworkOverrides`, and root
 `entryProperties`; graph-wide properties go in `projectDefaults.properties`.
 Unknown/duplicate fields, unsafe paths and changed document attestations fail.
+With qualification caching, root `restoreReuseInputs` may list reviewed workspace-
+relative Compile files whose contents cannot affect Restore. Their names and modes
+remain inputs; definitions, explicit Restore inputs and other files cannot be exempt.
+This is a separate review from `evaluationReuseInputs`.
 
 | Contract fields | Purpose |
 | --- | --- |

@@ -27,7 +27,7 @@ internal sealed class GraphMappings
                         Validate(project.Value, defaults: false);
                     }
                 }
-                else if (section.Name != "entryProperties")
+                else if (section.Name is not ("entryProperties" or "restoreReuseInputs"))
                 {
                     throw new InvalidDataException("Graph mappings do not support section: " + section.Name);
                 }
@@ -59,6 +59,10 @@ internal sealed class GraphMappings
             }
         }
     }
+
+    internal string[] RestoreReuseInputs => mappings.RestoreReuseInputs;
+
+    internal string CacheIdentity => JsonSerializer.Serialize(mappings);
 
     internal Dictionary<string, Dictionary<string, string>> EntryProperties => mappings.EntryProperties;
 

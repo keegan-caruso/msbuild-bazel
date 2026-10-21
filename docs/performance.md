@@ -260,6 +260,21 @@ stop the producer, and run `--phase=consumer --seed-evidence=SEED_JSON`.
 Then run [consumer smoke](../tests/graph_build/upstream/runtime_downloaded_smoke.py)
 with `RUNTIME_WORKSPACE FRESH_APP --cache-url=URL`.
 
+## Qualification preparation reuse
+
+Linux ARM64, SDK 10.0.400, four CPUs / 8 GiB; a 17-project synthetic with one
+consumer and 16 independent producers. Three distinct body edits and three API
+edits per runner, unprofiled, warm acquisition/cache; medians:
+
+| Preparation | Body | API |
+| --- | ---: | ---: |
+| Project qualification cache, fresh Restore | 2.38 s | 2.39 s |
+| Verified Restore replay, reviewed edit input | 1.95 s | 1.93 s |
+
+Both compiled two projects per edit and emitted identical JSON/Starlark contracts.
+Versions ran consecutively, not alternating pairs; these are small-graph diagnostic
+comparisons, not updated runtime scores. Restore replay still verifies every file.
+
 ## Reviewed evaluation reuse
 
 On the same 163-compilation downloaded-SDK slice, opt into only the two reviewed

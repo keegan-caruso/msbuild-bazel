@@ -143,6 +143,11 @@ The 48 ProjectSync controls cover props and executable-mode changes, multi-targe
 selection, implementation/reference DLLs, XML copies, failed builds, corrupt
 artifacts/metadata, relocation, source/SDK aliases and overlapping output owners.
 
+Verified Restore snapshots passed small controls for compiler-only edits, source
+membership/modes, failed compilation, corrupt assets, authored Restore-hook inputs
+and empty generated directories. Root `restoreReuseInputs` requires a separate
+review of compiler-only contents; arbitrary Restore task reads remain declared.
+
 Requires the qualified Linux/bwrap environment; the Apple container must allow
 user namespaces and avoid read-only `/proc` submounts, as in
 `scripts/run-apple-container.sh`. This is stable-path isolation, not tracing of

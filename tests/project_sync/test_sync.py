@@ -778,6 +778,79 @@ class GraphSyncTests(unittest.TestCase):
             self.assertEqual((self.root / name).read_bytes(), data)
 
     @unittest.skipUnless(os.path.isfile("/usr/bin/bwrap"), "Linux qualification sandbox required")
+    def test_qualification_restore_cache_reviews_contents_but_keeps_membership(self):
+        flags = ['--package-build', '--resolve-references']
+        self.sync(flags=flags)
+        with tempfile.TemporaryDirectory(prefix='qualification-restore-') as directory:
+            flags += ['--qualification-cache', directory]
+            mapping = {'restoreReuseInputs': ['Program.cs']}
+
+            def run(success=True):
+                return self.sync(mapping, flags=flags, success=success)
+
+            self.assertIn('PROJECT_SYNC_RESTORE_CACHE miss', run())
+            expected = [(self.root / name).read_bytes() for name in ['graph.generated.json', 'graph.generated.bzl']]
+            self.assertIn('PROJECT_SYNC_RESTORE_CACHE hit', run())
+            (self.root / 'Program.cs').write_text('System.Console.WriteLine(2);')
+            output = run()
+            self.assertIn('PROJECT_SYNC_RESTORE_CACHE hit', output)
+            self.assertIn('"compilations":1', output)
+            self.assertEqual([(self.root / name).read_bytes() for name in ['graph.generated.json', 'graph.generated.bzl']], expected)
+            (self.root / 'Added.cs').write_text('public class Added {}')
+            self.assertIn('PROJECT_SYNC_RESTORE_CACHE miss', run())
+            self.assertIn('PROJECT_SYNC_RESTORE_CACHE hit', run())
+            (self.root / 'Added.cs').unlink()
+            self.assertIn('PROJECT_SYNC_RESTORE_CACHE hit', run())
+            (self.root / 'Program.cs').chmod(0o755)
+            self.assertIn('PROJECT_SYNC_RESTORE_CACHE miss', run())
+            (self.root / 'Program.cs').chmod(0o644)
+            self.assertIn('PROJECT_SYNC_RESTORE_CACHE hit', run())
+            # Failed compilation cannot add a prepared Restore entry.
+            (self.root / 'Program.cs').write_text('invalid C#')
+            (self.root / 'new.txt').write_text('new layout')
+            before = set(Path(directory).glob('restore/*/manifest.json'))
+            self.assertIn('qualification Build failed', run(success=False))
+            self.assertEqual(set(Path(directory).glob('restore/*/manifest.json')), before)
+            (self.root / 'new.txt').unlink()
+            (self.root / 'Program.cs').write_text('System.Console.WriteLine(2);')
+            # Definitions cannot use the content exemption.
+            mapping['restoreReuseInputs'] = ['App.csproj']
+            self.assertIn('must name authored Compile', run(success=False))
+            mapping['restoreReuseInputs'] = ['Program.cs']
+            # Verified Restore metadata and products fail closed before publication.
+            generated = [(self.root / name).read_bytes() for name in ['graph.generated.json', 'graph.generated.bzl']]
+            for path in Path(directory).glob('restore/*/outputs/**/project.assets.json'):
+                path.write_text('corrupt')
+            self.assertIn('Corrupt Restore snapshot', run(success=False))
+            self.assertEqual([(self.root / name).read_bytes() for name in ['graph.generated.json', 'graph.generated.bzl']], generated)
+
+    @unittest.skipUnless(os.path.isfile("/usr/bin/bwrap"), "Linux qualification sandbox required")
+    def test_qualification_restore_cache_keeps_custom_restore_inputs(self):
+        targets = ('<Project><Target Name="RestoreProbe" BeforeTargets="Restore">'
+            '<Message Importance="High" Text="RESTORE_HOOK_RAN" />'
+            "<Error Condition=\"'$([System.IO.File]::ReadAllText(`restore-input.txt`))' == 'fail'\" Text=\"RESTORE_INPUT_CHANGED\" />"
+            '<MakeDir Directories="obj/empty-restore-product" />'
+            '</Target><Target Name="CheckRestoreProduct" BeforeTargets="Build">'
+            '<Error Condition="!Exists(&apos;obj/empty-restore-product&apos;)" Text="Lost empty Restore product" />'
+            '</Target></Project>')
+        (self.root / 'Directory.Build.targets').write_text(targets)
+        (self.root / 'restore-input.txt').write_text('pass')
+        mapping = {'restoreReuseInputs': ['Program.cs'], 'projectDefaults': {'referenceBoundary': True, 'documents': {'Directory.Build.targets': {
+            'sha256': hashlib.sha256(targets.encode()).hexdigest(), 'targets': ['RestoreProbe', 'CheckRestoreProduct'],
+            'tasks': [], 'inputs': ['restore-input.txt']}}}}
+        with tempfile.TemporaryDirectory(prefix='qualification-restore-hooks-') as directory:
+            flags = ['--package-build', '--resolve-references', '--qualification-cache', directory]
+            first = self.sync(mapping, flags=flags)
+            self.assertIn('RESTORE_HOOK_RAN', first)
+            second = self.sync(mapping, flags=flags)
+            self.assertIn('PROJECT_SYNC_RESTORE_CACHE hit', second)
+            self.assertNotIn('RESTORE_HOOK_RAN', second)
+            (self.root / 'restore-input.txt').write_text('fail')
+            before = (self.root / 'graph.generated.json').read_bytes()
+            self.assertIn('RESTORE_INPUT_CHANGED', self.sync(mapping, flags=flags, success=False))
+            self.assertEqual((self.root / 'graph.generated.json').read_bytes(), before)
+
+    @unittest.skipUnless(os.path.isfile("/usr/bin/bwrap"), "Linux qualification sandbox required")
     def test_qualification_cache_skips_both_overlapping_owners_and_consumers(self):
         for name in ['A', 'B', 'D']:
             directory = self.root / name

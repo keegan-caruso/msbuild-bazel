@@ -56,7 +56,7 @@ internal static class GraphGenerator
         GraphEntryProperties.Validate(entries, mappings.EntryProperties, (view?.GraphToolProperties ?? []).Keys);
         var solution = GraphSolutions.Validate(root, entries, properties.Keys.Concat(mappings.EntryProperties.Values.SelectMany(values => values.Keys)).Concat((view?.GraphToolProperties ?? []).Keys));
         using var restored = packageBuild ? new GraphEvaluationWorkspace(root, sdk, entries, properties,
-            view ?? throw new InvalidDataException("Package build sync requires declared package inputs"), view?.GraphToolProperties, mappings.EntryProperties) : null;
+            view ?? throw new InvalidDataException("Package build sync requires declared package inputs"), view?.GraphToolProperties, mappings.EntryProperties, qualificationCache, mappings) : null;
         if (restored is not null)
         {
             root = restored.Root;
@@ -336,6 +336,21 @@ internal static class GraphGenerator
                 }
             }
         }
+        if (mappings.RestoreReuseInputs.Length != 0)
+        {
+            if (qualificationCache is null)
+            {
+                throw new InvalidDataException("restoreReuseInputs requires qualification caching");
+            }
+            var authoredCompile = graph.ProjectNodes.SelectMany(node => node.ProjectInstance.GetItems("Compile")
+                .Select(item => Path.GetFullPath(item.EvaluatedInclude.Replace('\\', '/'), Path.GetDirectoryName(node.ProjectInstance.FullPath)!)))
+                .Where(path => path.StartsWith(root + Path.DirectorySeparatorChar, StringComparison.Ordinal))
+                .Select(path => Path.GetRelativePath(root, path).Replace('\\', '/')).ToHashSet(StringComparer.Ordinal);
+            if (mappings.RestoreReuseInputs.Any(path => !authoredCompile.Contains(path) || definitions.ContainsKey(path) || shared.Contains(path) || (restore?.Inputs.Contains(path) == true)))
+            {
+                throw new InvalidDataException("restoreReuseInputs must name authored Compile files outside Restore inputs and definitions");
+            }
+        }
         var globOutputDirectories = !graph.ProjectNodes.Any(node => mappings.ForProject(Relative(node.ProjectInstance.FullPath),
             node.ProjectInstance.GetPropertyValue("TargetFramework")).CompileGlobs.Length != 0) ? [] : graph.ProjectNodes.Where(node => GraphProjectKind.HasAssembly(node.ProjectInstance))
             .SelectMany(node => new[] { "OutputPath", "IntermediateOutputPath" }.Select(property =>
@@ -572,6 +587,7 @@ internal static class GraphGenerator
             (restore is null ? "" : "        restore = \":\" + name + \"_restore\",\n") +
             "        contract = \"" + ContractName + "\",\n        srcs = " + sourceGlobs.Expression + ",\n        bindings = " + StarlarkLiteral.Serialize(view?.GraphBindingLabels ?? []) + ",\n        input_paths = " + StarlarkLiteral.Serialize(view?.Bindings(sources.Concat(inputDirectories)) ?? []) + ",\n        project_outputs = " + StarlarkLiteral.Serialize(runtimeOutputs) + ",\n        publish_outputs = " + StarlarkLiteral.Serialize(publishOutputs) + ",\n" + (view?.DefaultPackageLock is null ? "" : "        package_lock = " + StarlarkLiteral.Serialize(view.DefaultPackageLock) + ",\n") + "    )\n";
         Publish(publicationRoot ?? outputRoot, check, contract, text);
+        restored?.SaveRestore();
 
         IEnumerable<ProjectGraphNode> Dependencies(ProjectGraphNode node)
         {

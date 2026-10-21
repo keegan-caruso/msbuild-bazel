@@ -39,8 +39,11 @@ declarations. Bazel owns whole-action reuse and invalidation. Without that snaps
 evaluates the local workspace on each run. Opt-in Linux qualification caching
 adds project reuse inside a changed preparation action: early evaluated inputs
 key verified SDK artifacts and compiler/copy metadata in HTTP AC/CAS. It uses
-a fixed private namespace and conservative dependency closure keys; Restore
-and evaluation still run. The final graph contract remains the build interface.
+a fixed private namespace and conservative dependency closure keys. Verified Restore
+products have a separate key over source layout/content, SDK, packages, tools,
+properties and mappings. Explicit `restoreReuseInputs` can omit reviewed compiler-
+only contents; post-Restore evaluation and compiler keys still read current files.
+The final graph contract remains the build interface.
 
 Bazel can recover a whole unchanged Restore/build action. When the graph action
 changes, the MSBuild plugin can recover individual projects from worker snapshots

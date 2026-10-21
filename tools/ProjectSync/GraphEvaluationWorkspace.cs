@@ -7,6 +7,9 @@ namespace RulesMSBuild.ProjectSync;
 internal sealed class GraphEvaluationWorkspace : IDisposable
 {
     internal string Root { get; } = CreateRoot();
+    private readonly QualificationRestoreCache? restoreCache;
+
+    internal void SaveRestore() => restoreCache?.Save();
 
     private static string CreateRoot()
     {
@@ -23,7 +26,7 @@ internal sealed class GraphEvaluationWorkspace : IDisposable
     }
 
     internal GraphEvaluationWorkspace(string source, string sdk, IEnumerable<string> entries,
-        Dictionary<string, string> properties, WorkspaceView view, Dictionary<string, string>? toolProperties = null, Dictionary<string, Dictionary<string, string>>? entryProperties = null)
+        Dictionary<string, string> properties, WorkspaceView view, Dictionary<string, string>? toolProperties = null, Dictionary<string, Dictionary<string, string>>? entryProperties = null, QualificationOptions? cache = null, GraphMappings? mappings = null)
     {
         using var profile = SyncProfile.Measure("offline-preparation");
         try
@@ -55,15 +58,20 @@ internal sealed class GraphEvaluationWorkspace : IDisposable
                 GraphGenerator.ValidateToolProperty(name, properties);
                 properties.Add(name, Path.Combine(Root, path));
             }
+            restoreCache = cache is null ? null : new QualificationRestoreCache(Root, sdkRoot, entries, properties, view, mappings!, cache);
             var feed = Path.Combine(Root, ".package-source");
             Directory.CreateDirectory(feed);
             foreach (var archive in view.GraphPackageArchives())
             {
                 File.Copy(archive, Path.Combine(feed, Path.GetFileName(archive)));
             }
-            using var packageSdks = RulesMSBuild.PackageSdks.Prepare(Root);
             var config = Path.Combine(Root, ".graph.nuget.config");
             File.WriteAllText(config, "<configuration><packageSources><clear/></packageSources><fallbackPackageFolders><clear/></fallbackPackageFolders></configuration>");
+            if (restoreCache?.Restore() == true)
+            {
+                return;
+            }
+            using var packageSdks = RulesMSBuild.PackageSdks.Prepare(Root);
             var roots = entries.ToArray();
             var coordinator = Root + ".restore.proj";
             try
@@ -113,6 +121,9 @@ internal sealed class GraphEvaluationWorkspace : IDisposable
                 File.Delete(coordinator);
             }
 
+            packageSdks?.Dispose();
+            restoreCache?.Capture();
+
             Dictionary<string, string> RestoreProperties(string entry)
             {
                 // Restore all authored frameworks, even when Build selects one.
@@ -133,12 +144,12 @@ internal sealed class GraphEvaluationWorkspace : IDisposable
         }
     }
 
-    private static void Copy(string source, string destination)
+    private static void Copy(string source, string destination, bool top = true)
     {
         foreach (var path in Directory.EnumerateFileSystemEntries(source))
         {
             var name = Path.GetFileName(path);
-            if (name is ".git" or ".tools" or ".cache" or ".nuget" or ".package-source" or ".cli" or "bin" or "obj" || name.StartsWith("bazel-", StringComparison.Ordinal) && Directory.Exists(path))
+            if (top && name is ("graph.generated.json" or "graph.generated.bzl") || name is ".git" or ".tools" or ".cache" or ".nuget" or ".package-source" or ".cli" or "bin" or "obj" || name.StartsWith("bazel-", StringComparison.Ordinal) && Directory.Exists(path))
             {
                 continue;
             }
@@ -150,14 +161,18 @@ internal sealed class GraphEvaluationWorkspace : IDisposable
                     throw new InvalidDataException("Graph sync directory symlink requires an explicit input: " + path);
                 }
                 Directory.CreateDirectory(target);
-                Copy(path, target);
+                Copy(path, target, false);
             }
             else
             {
-                File.Copy(path, target);
+                File.Copy(path, target, false);
             }
         }
     }
 
-    public void Dispose() => Directory.Delete(Root, true);
+    public void Dispose()
+    {
+        restoreCache?.Dispose();
+        Directory.Delete(Root, true);
+    }
 }
