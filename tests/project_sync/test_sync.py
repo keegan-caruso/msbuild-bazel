@@ -761,12 +761,58 @@ class GraphSyncTests(unittest.TestCase):
             self.assertEqual(run('--check')['compilations'], 0)
         finally:
             self.root = prior
+        # Verify artifact bytes even when the manifest and metadata are intact.
+        artifacts = {path: path.read_bytes() for path in Path(cache.name).glob('*/outputs/**/*.dll')}
+        self.assertTrue(artifacts)
+        for path, data in artifacts.items():
+            path.write_bytes(data + b'corrupt')
+        self.assertIn('Corrupt qualification snapshot', run(success=False))
+        for path, data in artifacts.items():
+            path.write_bytes(data)
+        self.assertEqual(run('--check')['compilations'], 0)
         # Inventory is a verified payload too. Corruption preserves both outputs.
         for state in Path(cache.name).glob('*/state.json'):
             state.write_text(state.read_text() + ' ')
         self.assertIn('Corrupt qualification snapshot', run(success=False))
         for name, data in zip(['graph.generated.json', 'graph.generated.bzl'], expected):
             self.assertEqual((self.root / name).read_bytes(), data)
+
+    @unittest.skipUnless(os.path.isfile("/usr/bin/bwrap"), "Linux qualification sandbox required")
+    def test_qualification_cache_skips_both_overlapping_owners_and_consumers(self):
+        for name in ['A', 'B', 'D']:
+            directory = self.root / name
+            directory.mkdir()
+            (directory / (name + '.csproj')).write_text('<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup>'
+                '<TargetFramework>net10.0</TargetFramework></PropertyGroup></Project>')
+            (directory / 'Code.cs').write_text('public class ' + name + ' {}')
+        (self.root / 'App.csproj').write_text(self.project.replace('</Project>', '<ItemGroup>'
+            '<Compile Remove="A/**;B/**;D/**" /><ProjectReference Include="B/B.csproj" /></ItemGroup></Project>'))
+        target = ('<Project><Target Name="SharedProduct" AfterTargets="Build" Condition="&apos;$(MSBuildProjectName)&apos; == &apos;B&apos;">'
+            '<MakeDir Directories="$(MSBuildThisFileDirectory)A/bin/Release/net10.0" />'
+            '<WriteLinesToFile File="$(MSBuildThisFileDirectory)A/bin/Release/net10.0/shared.txt" Lines="shared" Overwrite="true" />'
+            '</Target></Project>')
+        (self.root / 'Directory.Build.targets').write_text(target)
+        mapping = {'projectDefaults': {'referenceBoundary': True, 'documents': {'Directory.Build.targets': {
+            'sha256': hashlib.sha256(target.encode()).hexdigest(), 'targets': ['SharedProduct'], 'tasks': [], 'inputs': []}}},
+            'projects': {'B/B.csproj': {'outputFiles': ['A/bin/Release/net10.0/shared.txt']}}}
+        with tempfile.TemporaryDirectory(prefix='qualification-overlap-') as directory:
+            for warm in [False, True]:
+                output = self.sync(mapping, flags=['A/A.csproj', 'D/D.csproj', '--package-build', '--resolve-references', '--qualification-cache', directory])
+                report = next(json.loads(line.split(' ', 1)[1]) for line in output.splitlines() if line.startswith('PROJECT_SYNC_CACHE '))
+                self.assertEqual(report, {'hits': int(warm), 'misses': int(not warm), 'uncacheable': 0, 'compilations': 3 if warm else 4})
+
+    @unittest.skipUnless(os.path.isfile("/usr/bin/bwrap"), "Linux qualification sandbox required")
+    def test_qualification_cache_rejects_source_and_sdk_aliases(self):
+        with tempfile.TemporaryDirectory(prefix='qualification-alias-') as directory:
+            link = Path(directory) / 'cache'
+            for target in [self.root, SDK]:
+                link.symlink_to(target, target_is_directory=True)
+                try:
+                    output = self.sync(flags=['--package-build', '--resolve-references', '--qualification-cache', str(link)], success=False)
+                    self.assertIn('Qualification cache requires a separate directory on Linux', output)
+                finally:
+                    link.unlink()
+            self.assertEqual({path.name for path in self.root.iterdir()}, {'App.csproj', 'Program.cs'})
 
     @unittest.skipUnless(os.path.isfile("/usr/bin/bwrap"), "Linux qualification sandbox required")
     def test_qualification_cache_rejects_output_directory_symlinks(self):

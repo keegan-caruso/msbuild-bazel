@@ -71,7 +71,7 @@ internal static class Program
                     }
                     if (option == "--qualification-cache")
                     {
-                        qualificationDirectory = Path.GetFullPath(args[i]);
+                        qualificationDirectory = WorkspaceView.PhysicalPath(args[i]);
                     }
                     else
                     {

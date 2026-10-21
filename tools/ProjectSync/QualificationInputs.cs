@@ -119,7 +119,8 @@ internal sealed class QualificationInputs
             if (graph.ProjectNodes.Any(other => other != node &&
                 (Products[node].Overlaps(Products[other]) ||
                  Directories.TryGetValue(node, out var left) && (Products[other].Any(path => path.StartsWith(left + "/", StringComparison.Ordinal)) ||
-                    Directories.TryGetValue(other, out var right) && Overlaps(left, right)))))
+                    Directories.TryGetValue(other, out var right) && Overlaps(left, right)) ||
+                 Directories.TryGetValue(other, out var owner) && Products[node].Any(path => path.StartsWith(owner + "/", StringComparison.Ordinal)))))
             {
                 ambiguous.Add(node);
             }
