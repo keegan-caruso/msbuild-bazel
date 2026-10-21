@@ -2,7 +2,7 @@ using System.Collections;
 using Microsoft.Build.Framework;
 using Microsoft.Build.Utilities;
 
-namespace RulesMSBuild.GraphBuild;
+namespace RulesMSBuild.ProjectCache;
 
 internal sealed class CachedTargetItem(string include) : ITaskItem2
 {

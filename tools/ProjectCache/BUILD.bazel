@@ -1,4 +1,6 @@
 exports_files([
     "BUILD.bazel",
     "RemoteSnapshotStore.cs",
+    "SnapshotPayloads.cs",
+    "CachedTargetItem.cs",
 ])

@@ -1,8 +1,8 @@
 using System.Collections.Concurrent;
 using System.Runtime.InteropServices;
-using RulesMSBuild.ProjectCache;
+using System.Security.Cryptography;
 
-namespace RulesMSBuild.GraphBuild;
+namespace RulesMSBuild.ProjectCache;
 
 // Links are confined to immutable cache entries. Replay always copies/clones to
 // writable project outputs, and checks bytes before using an entry.
@@ -20,7 +20,7 @@ internal sealed class SnapshotPayloads(string cache) : IProjectCacheContentStore
         catch (InvalidDataException error)
         {
             throw new InvalidDataException(error.Message + "; source " + source + "; expected " + digest +
-                "; current " + ContractFiles.Digest(source), error);
+                "; current " + Digest(source), error);
         }
         Link(blob, destination);
     }
@@ -100,10 +100,16 @@ internal sealed class SnapshotPayloads(string cache) : IProjectCacheContentStore
 
     private static void Verify(string path, string digest)
     {
-        if (new FileInfo(path).LinkTarget is not null || ContractFiles.Digest(path) != digest)
+        if (new FileInfo(path).LinkTarget is not null || Digest(path) != digest)
         {
             throw new InvalidDataException("Corrupt graph snapshot payload: " + path);
         }
+    }
+
+    internal static string Digest(string path)
+    {
+        using var stream = File.OpenRead(path);
+        return Convert.ToHexString(SHA256.HashData(stream)).ToLowerInvariant();
     }
 
     private static void Link(string source, string destination)
