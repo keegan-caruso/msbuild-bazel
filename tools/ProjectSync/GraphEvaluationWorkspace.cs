@@ -26,7 +26,7 @@ internal sealed class GraphEvaluationWorkspace : IDisposable
     }
 
     internal GraphEvaluationWorkspace(string source, string sdk, IEnumerable<string> entries,
-        Dictionary<string, string> properties, WorkspaceView view, Dictionary<string, string>? toolProperties = null, Dictionary<string, Dictionary<string, string>>? entryProperties = null, QualificationOptions? cache = null, GraphMappings? mappings = null)
+        Dictionary<string, string> properties, WorkspaceView view, Dictionary<string, string>? toolProperties = null, Dictionary<string, Dictionary<string, string>>? entryProperties = null, QualificationOptions? cache = null, GraphMappings? mappings = null, QualificationEnvironment? environment = null)
     {
         using var profile = SyncProfile.Measure("offline-preparation");
         try
@@ -48,7 +48,7 @@ internal sealed class GraphEvaluationWorkspace : IDisposable
                 Directory.CreateDirectory(Path.GetDirectoryName(target)!);
                 if (!File.Exists(target))
                 {
-                    File.Copy(Path.Combine(source, path), target);
+                    SyncFiles.Copy(Path.Combine(source, path), target);
                 }
             }
             properties = new Dictionary<string, string>(properties, StringComparer.OrdinalIgnoreCase) { ["NetCoreSdkRoot"] = sdk };
@@ -58,12 +58,12 @@ internal sealed class GraphEvaluationWorkspace : IDisposable
                 GraphGenerator.ValidateToolProperty(name, properties);
                 properties.Add(name, Path.Combine(Root, path));
             }
-            restoreCache = cache is null ? null : new QualificationRestoreCache(Root, sdkRoot, entries, properties, view, mappings!, cache);
+            restoreCache = cache is null ? null : new QualificationRestoreCache(Root, environment!, entries, properties, view, mappings!, cache);
             var feed = Path.Combine(Root, ".package-source");
             Directory.CreateDirectory(feed);
             foreach (var archive in view.GraphPackageArchives())
             {
-                File.Copy(archive, Path.Combine(feed, Path.GetFileName(archive)));
+                SyncFiles.Copy(archive, Path.Combine(feed, Path.GetFileName(archive)));
             }
             var config = Path.Combine(Root, ".graph.nuget.config");
             File.WriteAllText(config, "<configuration><packageSources><clear/></packageSources><fallbackPackageFolders><clear/></fallbackPackageFolders></configuration>");
@@ -165,7 +165,7 @@ internal sealed class GraphEvaluationWorkspace : IDisposable
             }
             else
             {
-                File.Copy(path, target, false);
+                SyncFiles.Copy(path, target);
             }
         }
     }

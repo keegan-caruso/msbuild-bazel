@@ -139,7 +139,7 @@ action; it requires `srcs`, `package_build` and `resolve_references`. Linux ARM6
 on both Bazel pins: normal-mode declaration parity, forced preparation with an empty
 local cache, body/API invalidation, independent-branch reuse, app execution and
 Newtonsoft.Json **13.0.3** package-tree materialization/recovery.
-The 48 ProjectSync controls cover props and executable-mode changes, multi-target
+The 50 ProjectSync controls cover props and executable-mode changes, multi-target
 selection, implementation/reference DLLs, XML copies, failed builds, corrupt
 artifacts/metadata, relocation, source/SDK aliases and overlapping output owners.
 

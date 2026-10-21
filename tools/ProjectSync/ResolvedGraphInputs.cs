@@ -18,7 +18,7 @@ internal sealed record ResolvedGraphInputs(Dictionary<string, string> CompilerRe
         string root, string sdkRoot, ProjectGraphNode[] selected, Func<ProjectGraphNode, IEnumerable<string>> products,
         Func<ProjectGraphNode, IEnumerable<ProjectGraphNode>> dependencies, IEnumerable<string> inputs, HashSet<string> packages,
         Func<ProjectGraphNode, IEnumerable<string>> consumerInputs, QualificationOptions? cacheOptions = null,
-        Func<ProjectGraphNode, string>? cacheConfiguration = null, IEnumerable<string>? packageDigests = null)
+        Func<ProjectGraphNode, string>? cacheConfiguration = null, IEnumerable<string>? packageDigests = null, QualificationEnvironment? environment = null)
     {
         using var profile = SyncProfile.Measure("compiler-inventory");
         if (selected.Length == 0)
@@ -53,7 +53,7 @@ internal sealed record ResolvedGraphInputs(Dictionary<string, string> CompilerRe
             }
         }
         var digests = declared.ToDictionary(path => path, path => Digest(Path.Combine(root, path)), StringComparer.Ordinal);
-        using var cache = cacheOptions is null ? null : new QualificationCache(new QualificationInputs(graph, root, sdkRoot,
+        using var cache = cacheOptions is null ? null : new QualificationCache(new QualificationInputs(graph, root, environment!,
             digests, consumerInputs, products, cacheConfiguration!, packageDigests!), cacheOptions);
         var counter = cache is null ? null : new QualificationCounter();
         var oldDirectory = Directory.GetCurrentDirectory();

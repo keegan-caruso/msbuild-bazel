@@ -35,7 +35,7 @@ internal sealed class QualificationInputs
     }
     internal HashSet<ProjectGraphNode> Eligible { get; } = [];
 
-    internal QualificationInputs(ProjectGraph graph, string root, string sdk,
+    internal QualificationInputs(ProjectGraph graph, string root, QualificationEnvironment environment,
         IReadOnlyDictionary<string, string> digests, Func<ProjectGraphNode, IEnumerable<string>> inputs,
         Func<ProjectGraphNode, IEnumerable<string>> products, Func<ProjectGraphNode, string> configuration, IEnumerable<string> packages)
     {
@@ -44,25 +44,11 @@ internal sealed class QualificationInputs
         Nodes = graph.ProjectNodes.ToDictionary(node => Key(node.ProjectInstance));
         using var context = IncrementalHash.CreateHash(HashAlgorithmName.SHA256);
         Add(context, "qualification-project-v1");
-        Add(context, System.Runtime.InteropServices.RuntimeInformation.RuntimeIdentifier);
-        Add(context, Math.Clamp(Environment.ProcessorCount, 1, 4).ToString(System.Globalization.CultureInfo.InvariantCulture));
-        foreach (var file in new[] { "/etc/os-release", "/usr/bin/bwrap", "/bin/sh" })
-        {
-            Add(context, file);
-            Add(context, SnapshotPayloads.Digest(file));
-            Add(context, Mode(file));
-        }
+        Add(context, environment.Identity);
         foreach (var (path, digest) in digests.Where(pair => pair.Key.StartsWith(".graph-tools/", StringComparison.Ordinal)).OrderBy(pair => pair.Key, StringComparer.Ordinal))
         {
             Add(context, path);
             Add(context, digest);
-        }
-        Add(context, SnapshotPayloads.Digest(typeof(QualificationInputs).Assembly.Location));
-        foreach (var file in Directory.EnumerateFiles(sdk, "*", SearchOption.AllDirectories).Order(StringComparer.Ordinal))
-        {
-            Add(context, Path.GetRelativePath(sdk, file));
-            Add(context, SnapshotPayloads.Digest(file));
-            Add(context, Mode(file));
         }
         foreach (var package in packages.Order(StringComparer.Ordinal))
         {

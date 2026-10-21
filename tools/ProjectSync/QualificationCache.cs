@@ -73,13 +73,9 @@ internal sealed class QualificationCache : ProjectCachePluginBase, IDisposable
         {
             throw new InvalidDataException("Invalid qualification manifest");
         }
-        foreach (var (path, digest) in manifest.Files)
+        if (SnapshotPayloads.Digest(Safe(entry, "state.json")) != manifest.Files["state.json"])
         {
-            var file = Safe(entry, path);
-            if (new FileInfo(file).LinkTarget is not null || SnapshotPayloads.Digest(file) != digest)
-            {
-                throw new InvalidDataException("Corrupt qualification snapshot: " + path);
-            }
+            throw new InvalidDataException("Corrupt qualification snapshot: state.json");
         }
         var metadata = JsonSerializer.Deserialize<QualificationMetadata>(File.ReadAllText(Safe(entry, "state.json")))
             ?? throw new InvalidDataException("Missing qualification state");
@@ -96,10 +92,13 @@ internal sealed class QualificationCache : ProjectCachePluginBase, IDisposable
             }
             var target = inputs.Resolve(path[8..]);
             Directory.CreateDirectory(Path.GetDirectoryName(target)!);
-            File.Copy(Safe(entry, path), target, overwrite: true);
-            if (SnapshotPayloads.Digest(target) != manifest.Files[path])
+            try
             {
-                throw new InvalidDataException("Corrupt qualification replay: " + path);
+                SyncFiles.Copy(Safe(entry, path), target, overwrite: true, expectedDigest: manifest.Files[path]);
+            }
+            catch (InvalidDataException error)
+            {
+                throw new InvalidDataException("Corrupt qualification snapshot: " + path, error);
             }
             if (!OperatingSystem.IsWindows())
             {

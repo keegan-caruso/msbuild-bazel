@@ -20,7 +20,7 @@ internal sealed class QualificationRestoreCache : IDisposable
     private readonly Dictionary<string, string> authored;
     private string? pending;
 
-    internal QualificationRestoreCache(string root, string sdk, IEnumerable<string> entries,
+    internal QualificationRestoreCache(string root, QualificationEnvironment environment, IEnumerable<string> entries,
         Dictionary<string, string> properties, WorkspaceView view, GraphMappings mappings, QualificationOptions options)
     {
         using var profile = SyncProfile.Measure("restore-cache-inputs");
@@ -36,19 +36,7 @@ internal sealed class QualificationRestoreCache : IDisposable
         Add(mappings.CacheIdentity);
         Add(JsonSerializer.Serialize(entries));
         Add(JsonSerializer.Serialize(properties.OrderBy(pair => pair.Key, StringComparer.Ordinal)));
-        Add(SnapshotPayloads.Digest(typeof(QualificationRestoreCache).Assembly.Location));
-        Add(System.Runtime.InteropServices.RuntimeInformation.RuntimeIdentifier);
-        Add(Math.Clamp(Environment.ProcessorCount, 1, 4).ToString(System.Globalization.CultureInfo.InvariantCulture));
-        foreach (var path in new[] { "/etc/os-release", "/usr/bin/bwrap", "/bin/sh" })
-        {
-            Add(path);
-            Add(Digest(path));
-        }
-        foreach (var path in Files(sdk).Order(StringComparer.Ordinal))
-        {
-            Add(Path.GetRelativePath(sdk, path));
-            Add(Digest(path));
-        }
+        Add(environment.Identity);
         foreach (var package in view.GraphPackageDigests())
         {
             Add(package);
@@ -103,13 +91,9 @@ internal sealed class QualificationRestoreCache : IDisposable
         {
             throw new InvalidDataException("Invalid Restore cache manifest");
         }
-        foreach (var (path, digest) in manifest.Files)
+        if (SnapshotPayloads.Digest(Resolve(entry, "modes.json")) != manifest.Files["modes.json"])
         {
-            var source = Resolve(entry, path);
-            if (!File.Exists(source) || SnapshotPayloads.Digest(source) != digest)
-            {
-                throw new InvalidDataException("Corrupt Restore snapshot: " + path);
-            }
+            throw new InvalidDataException("Corrupt Restore snapshot: modes.json");
         }
         var modes = JsonSerializer.Deserialize<RestoreModes>(File.ReadAllText(Resolve(entry, "modes.json")))
             ?? throw new InvalidDataException("Missing Restore cache modes");
@@ -130,7 +114,16 @@ internal sealed class QualificationRestoreCache : IDisposable
             }
             var target = Resolve(root, path);
             Directory.CreateDirectory(Path.GetDirectoryName(target)!);
-            File.Copy(Resolve(entry, "outputs/" + path), target);
+            try
+            {
+                // Verify the bytes actually materialized, without an extra
+                // pre-read of every package and generated Restore artifact.
+                SyncFiles.Copy(Resolve(entry, "outputs/" + path), target, expectedDigest: manifest.Files["outputs/" + path]);
+            }
+            catch (InvalidDataException error)
+            {
+                throw new InvalidDataException("Corrupt Restore snapshot: " + path, error);
+            }
             if (!OperatingSystem.IsWindows())
             {
                 File.SetUnixFileMode(target, (UnixFileMode)mode);

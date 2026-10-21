@@ -44,7 +44,10 @@ products have a separate key over source layout/content, SDK, packages, tools,
 properties and mappings. Explicit `restoreReuseInputs` can omit reviewed compiler-
 only contents; post-Restore evaluation and compiler keys still read current files.
 Qualification transfers full evaluated instances to build nodes, sharing targets
-and task registrations rather than evaluating those projects again.
+and task registrations rather than evaluating those projects again. Read-only SDK
+and package identities are shared within the invocation. Private staging uses
+copy-on-write clones where available and ordinary copies otherwise; replay verifies
+the bytes materialized. Mutable project inputs retain pre/post-Build byte checks.
 The final graph contract remains the build interface.
 
 Bazel can recover a whole unchanged Restore/build action. When the graph action

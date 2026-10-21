@@ -165,5 +165,9 @@ internal static class Program
             Console.Error.WriteLine(error.Message);
             return 1;
         }
+        finally
+        {
+            SyncFiles.Report();
+        }
     }
 }

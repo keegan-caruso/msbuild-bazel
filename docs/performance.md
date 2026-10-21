@@ -176,8 +176,9 @@ predate this concurrency change.
 
 Opt-in qualification caching reuses individual projects inside a changed sync
 preparation action. It does not replace the ordinary graph-build cache. Keys use
-conservative dependency inputs; fresh Restore/evaluation and contract validation
-still run. Misses use normal SDK Build. See [configuration](api.md#compiler-selections).
+conservative dependency inputs; evaluation and contract validation still run.
+The original measurements below execute fresh Restore; the preparation-reuse
+section measures verified Restore replay. Misses use normal SDK Build. See [configuration](api.md#compiler-selections).
 
 Runtime v10.0.0, **543 configurations / 481 cacheable projects**, SDK **10.0.400**,
 Linux ARM64, four CPUs / 8 GiB, qualification core **bc745a1**. Single direct-CLI
@@ -271,11 +272,27 @@ edits per runner, unprofiled, warm acquisition/cache; medians:
 | Project qualification cache, fresh Restore | 2.38 s | 2.39 s |
 | Verified Restore replay, reviewed edit input | 1.95 s | 1.93 s |
 | Full evaluated-state transfer to MSBuild nodes | 1.92 s | 1.93 s |
+| Shared immutable hashes + verified copy/clone replay | 1.63 s | 1.63 s |
 
 Full-state transfer alone showed no material small-graph incremental gain.
 All versions compiled two projects per edit and emitted identical JSON/Starlark contracts.
 Versions ran consecutively, not alternating pairs; these are small-graph diagnostic
 comparisons, not updated runtime scores. Restore replay still verifies every file.
+Cloning falls back to copies on the qualified ext4 filesystem. SDK bytes are read
+once per invocation; package digests share that read-only lifetime. Mutable project
+inputs retain fresh pre/post-Build verification.
+
+For alternating pairs on a fresh 17-project fixture, build both payloads and run:
+
+```sh
+RULES_MSBUILD_DOTNET_ROOT=PINNED_SDK python3 benchmarks/qualification.py FRESH_OUTPUT \
+  --baseline-runner=BASELINE/ProjectSync.dll \
+  --candidate-runner=CANDIDATE/ProjectSync.dll \
+  --cached-edits --width=16 --depth=1 --samples=3
+```
+
+This excludes initial cache seeding and checks compiler counts and declaration
+hashes after every distinct body/API edit. Use `--profile` separately for phases.
 
 ## Reviewed evaluation reuse
 

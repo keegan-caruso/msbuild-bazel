@@ -55,8 +55,9 @@ internal static class GraphGenerator
         }
         GraphEntryProperties.Validate(entries, mappings.EntryProperties, (view?.GraphToolProperties ?? []).Keys);
         var solution = GraphSolutions.Validate(root, entries, properties.Keys.Concat(mappings.EntryProperties.Values.SelectMany(values => values.Keys)).Concat((view?.GraphToolProperties ?? []).Keys));
+        var qualificationEnvironment = qualificationCache is null ? null : QualificationEnvironment.Create(sdkRoot);
         using var restored = packageBuild ? new GraphEvaluationWorkspace(root, sdk, entries, properties,
-            view ?? throw new InvalidDataException("Package build sync requires declared package inputs"), view?.GraphToolProperties, mappings.EntryProperties, qualificationCache, mappings) : null;
+            view ?? throw new InvalidDataException("Package build sync requires declared package inputs"), view?.GraphToolProperties, mappings.EntryProperties, qualificationCache, mappings, qualificationEnvironment) : null;
         if (restored is not null)
         {
             root = restored.Root;
@@ -370,7 +371,7 @@ internal static class GraphGenerator
             inputs.Values.SelectMany(paths => paths).Concat(shared), packageIdentities,
             node => inputs[Key(node.ProjectInstance)].Concat(shared), qualificationCache,
             node => JsonSerializer.Serialize(mappings.ForProject(Relative(node.ProjectInstance.FullPath), node.ProjectInstance.GetPropertyValue("TargetFramework"))),
-            qualificationCache is null ? [] : view?.GraphPackageDigests()) : null;
+            qualificationCache is null ? [] : view?.GraphPackageDigests(), qualificationEnvironment) : null;
         var declarations = new SortedDictionary<string, object>(StringComparer.Ordinal);
         foreach (var group in graph.ProjectNodes.GroupBy(node => Relative(node.ProjectInstance.FullPath)))
         {

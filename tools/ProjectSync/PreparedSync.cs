@@ -58,7 +58,7 @@ internal static class PreparedSync
                 }
                 else if ((!links || file.Tree) && File.Exists(source) && !Directory.Exists(source))
                 {
-                    File.Copy(source, target);
+                    SyncFiles.Copy(source, target);
                 }
                 else
                 {
@@ -114,7 +114,7 @@ internal static class PreparedSync
                         }
                     }
                 }
-                File.Copy(entry, destination);
+                SyncFiles.Copy(entry, destination);
             }
         }
     }

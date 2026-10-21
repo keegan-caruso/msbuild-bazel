@@ -10,10 +10,11 @@ cat > NuGet.Config <<'CONFIG'
 CONFIG
 printf '<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup><TargetFramework>net10.0</TargetFramework></PropertyGroup></Project>\n' > Other/Other.csproj
 printf 'public class Other {}\n' > Other/Code.cs
+printf '{"restoreReuseInputs":["P0/Code.cs"]}\n' > mappings.json
 cat > BUILD.bazel <<'BUILD'
 load("@rules_msbuild//msbuild:sync.bzl", "msbuild_sync")
 msbuild_sync(name="baseline", projects=["P2/P2.csproj", "Other/Other.csproj"], package_build=True, resolve_references=True)
-msbuild_sync(name="sync", projects=["P2/P2.csproj", "Other/Other.csproj"], srcs=glob(["P*/**", "Other/**", "global.json", "Directory.Build.*", "NuGet.Config"]), package_build=True, resolve_references=True, qualification_cache=True)
+msbuild_sync(name="sync", mappings="mappings.json", projects=["P2/P2.csproj", "Other/Other.csproj"], srcs=glob(["P*/**", "Other/**", "global.json", "Directory.Build.*", "NuGet.Config"]), package_build=True, resolve_references=True, qualification_cache=True)
 BUILD
 run() {
     local name=$1; shift
@@ -33,13 +34,16 @@ cmp graph.generated.bzl "$TEST_TMPDIR/baseline.bzl"
 # Bootstrap still uses the same runner bytes. The HTTP cache supplies all projects.
 run recovered --action_env=RULES_MSBUILD_SYNC_PROFILE=1 -- --check
 report recovered 4 0 0
+assert_contains "$TEST_TMPDIR/recovered.log" "PROJECT_SYNC_RESTORE_CACHE hit"
 assert_contains "$TEST_TMPDIR/recovered.log" '"phase":"private-build"'
 printf 'public class P0 { public static int Value() => 2; }\n' > P0/Code.cs
 run body
 report body 1 3 3
+assert_contains "$TEST_TMPDIR/body.log" "PROJECT_SYNC_RESTORE_CACHE hit"
 printf 'public class P0 { public static int Value() => 2; public static int Added() => 3; }\n' > P0/Code.cs
 run api
 report api 1 3 3
+assert_contains "$TEST_TMPDIR/api.log" "PROJECT_SYNC_RESTORE_CACHE hit"
 cp BUILD.bazel "$TEST_TMPDIR/sync.BUILD"
 cat >> BUILD.bazel <<'BUILD'
 load(":graph.generated.bzl", "app_graph")
@@ -76,6 +80,7 @@ run packages
 report packages 0 4 4
 run packages-recovered --action_env=RULES_MSBUILD_SYNC_PROFILE=1 -- --check
 report packages-recovered 4 0 0
+assert_contains "$TEST_TMPDIR/packages-recovered.log" "PROJECT_SYNC_RESTORE_CACHE hit"
 cmp graph.generated.json "$TEST_TMPDIR/packages.json"
 cmp graph.generated.bzl "$TEST_TMPDIR/packages.bzl"
 echo 'PASS: per-project qualification HTTP recovery, branch reuse, body/API invalidation, package materialization and app execution'
