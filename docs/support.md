@@ -145,7 +145,9 @@ artifacts/metadata, relocation, source/SDK aliases and overlapping output owners
 
 Verified Restore snapshots passed small controls for compiler-only edits, source
 membership/modes, failed compilation, corrupt assets, authored Restore-hook inputs
-and empty generated directories. Root `restoreReuseInputs` requires a separate
+and empty generated directories. Serial/parallel multi-target qualification retains
+SDK selections with full-state worker transfer; the small cache fixture reports
+zero worker evaluations. Root `restoreReuseInputs` requires a separate
 review of compiler-only contents; arbitrary Restore task reads remain declared.
 
 Requires the qualified Linux/bwrap environment; the Apple container must allow

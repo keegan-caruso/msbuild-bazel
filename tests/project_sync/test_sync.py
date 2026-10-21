@@ -717,7 +717,12 @@ class GraphSyncTests(unittest.TestCase):
             reports = [json.loads(line.split(' ', 1)[1]) for line in output.splitlines() if line.startswith('PROJECT_SYNC_CACHE ')]
             return reports[-1] if success else output
 
-        self.assertEqual(run(), {'hits': 0, 'misses': 4, 'uncacheable': 0, 'compilations': 4})
+        with patch.dict(os.environ, {'RULES_MSBUILD_SYNC_PROFILE': '1'}):
+            output = self.sync(flags=flags + ['--qualification-cache', cache.name])
+        report = next(json.loads(line.split(' ', 1)[1]) for line in output.splitlines() if line.startswith('PROJECT_SYNC_CACHE '))
+        self.assertEqual(report, {'hits': 0, 'misses': 4, 'uncacheable': 0, 'compilations': 4})
+        evaluation = next(json.loads(line.split(' ', 1)[1]) for line in output.splitlines() if line.startswith('PROJECT_SYNC_EVALUATION '))
+        self.assertEqual(evaluation['workerEvaluations'], 0)
         self.assertEqual([(self.root / name).read_bytes() for name in ['graph.generated.json', 'graph.generated.bzl']], expected)
         self.assertEqual(run('--check'), {'hits': 4, 'misses': 0, 'uncacheable': 0, 'compilations': 0})
         original = (self.root / 'C/Code.cs').read_text()

@@ -43,6 +43,8 @@ a fixed private namespace and conservative dependency closure keys. Verified Res
 products have a separate key over source layout/content, SDK, packages, tools,
 properties and mappings. Explicit `restoreReuseInputs` can omit reviewed compiler-
 only contents; post-Restore evaluation and compiler keys still read current files.
+Qualification transfers full evaluated instances to build nodes, sharing targets
+and task registrations rather than evaluating those projects again.
 The final graph contract remains the build interface.
 
 Bazel can recover a whole unchanged Restore/build action. When the graph action

@@ -5,6 +5,8 @@ namespace RulesMSBuild.ProjectSync;
 internal sealed class QualificationCounter : ILogger
 {
     private int compilations;
+    private int evaluations;
+    internal int Evaluations => evaluations;
     internal int Compilations => compilations;
     public LoggerVerbosity Verbosity
     {
@@ -14,13 +16,23 @@ internal sealed class QualificationCounter : ILogger
     {
         get; set;
     }
-    public void Initialize(IEventSource eventSource) => eventSource.TaskStarted += (_, args) =>
+    public void Initialize(IEventSource eventSource)
     {
-        if (args.TaskName == "Csc")
+        eventSource.TaskStarted += (_, args) =>
         {
-            Interlocked.Increment(ref compilations);
-        }
-    };
+            if (args.TaskName == "Csc")
+            {
+                Interlocked.Increment(ref compilations);
+            }
+        };
+        eventSource.AnyEventRaised += (_, args) =>
+        {
+            if (args is ProjectEvaluationFinishedEventArgs)
+            {
+                Interlocked.Increment(ref evaluations);
+            }
+        };
+    }
     public void Shutdown()
     {
     }

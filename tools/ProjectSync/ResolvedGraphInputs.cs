@@ -27,6 +27,9 @@ internal sealed record ResolvedGraphInputs(Dictionary<string, string> CompilerRe
         }
         foreach (var project in graph.ProjectNodes.Select(node => node.ProjectInstance))
         {
+            // Worker nodes must consume the evaluated SDK state already qualified
+            // by GraphGenerator, rather than reconstructing its targets from disk.
+            project.TranslateEntireState = true;
             foreach (var name in new[] { "OutputPath", "IntermediateOutputPath", "TargetPath", "PublishDir" })
             {
                 var value = project.GetPropertyValue(name);
@@ -81,6 +84,13 @@ internal sealed record ResolvedGraphInputs(Dictionary<string, string> CompilerRe
         {
             Directory.SetCurrentDirectory(oldDirectory);
             Environment.SetEnvironmentVariable("NUGET_PACKAGES", oldPackages);
+        }
+        if (counter is not null && Environment.GetEnvironmentVariable("RULES_MSBUILD_SYNC_PROFILE") == "1")
+        {
+            Console.Error.WriteLine("PROJECT_SYNC_EVALUATION " + System.Text.Json.JsonSerializer.Serialize(new
+            {
+                workerEvaluations = counter.Evaluations
+            }));
         }
         if (result.OverallResult != BuildResultCode.Success)
         {

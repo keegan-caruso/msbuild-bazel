@@ -270,8 +270,10 @@ edits per runner, unprofiled, warm acquisition/cache; medians:
 | --- | ---: | ---: |
 | Project qualification cache, fresh Restore | 2.38 s | 2.39 s |
 | Verified Restore replay, reviewed edit input | 1.95 s | 1.93 s |
+| Full evaluated-state transfer to MSBuild nodes | 1.92 s | 1.93 s |
 
-Both compiled two projects per edit and emitted identical JSON/Starlark contracts.
+Full-state transfer alone showed no material small-graph incremental gain.
+All versions compiled two projects per edit and emitted identical JSON/Starlark contracts.
 Versions ran consecutively, not alternating pairs; these are small-graph diagnostic
 comparisons, not updated runtime scores. Restore replay still verifies every file.
 
