@@ -1,0 +1,8 @@
+[
+  {
+    "name": "api",
+    "path": "src/OrchardCore.Modules/OrchardCore.Setup/ViewModels/SetupViewModel.cs",
+    "before": "public class SetupViewModel\n{",
+    "sampleAfter": "public class SetupViewModel\n{\n    public bool CacheQualificationMarker${sample} => true;"
+  }
+]
