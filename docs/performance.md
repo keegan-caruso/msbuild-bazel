@@ -387,6 +387,55 @@ source-only fixture, stop the producer, then use `--phase=consumer` and
 performs full SDK compiler qualification; it is outside incremental scores.
 See [runtime support](support.md#downloaded-sdk-and-runtime-sources) for scope.
 
+### Runtime CI demo
+
+Production code **88c25ed**, runtime v10.0.0, SDK 10.0.400, Bazel 9.3.0.
+Independent Linux ARM64 consumer, four CPUs / 6 GiB; producer stopped, fresh
+Bazel base, retained repository acquisition cache, no copied action/project/test
+cache. HTTP cache on the private VM network; all build outputs downloaded.
+Single observations:
+
+| Stage | Seconds |
+| --- | ---: |
+| Recover app/test build closure | 53.24 |
+| Execute app and eight suites | 86.47 |
+| Complete demo command, including verification and cleanup | 145.18 |
+
+All **309 build spawns** were remote hits, including Restore, the 481-compilation
+graph and five native producers. Test-result caching was disabled. All **10,780
+retained files/modes**, **118,952 passed / 64 skipped** cases and **96 loaded-runtime
+observations** matched the seed. The earlier 8.83 s graph-only control excludes
+acquisition/bootstrap and this app/test closure; it is not a direct comparison.
+
+A second fresh-base recovery took **28.46 s** on the same consumer. Its unique
+Pipelines body edit then took **62.42 s** to rebuild the full app/test closure and
+**89.05 s** to execute the tests: **475 hits / six compilations / zero Restore
+executions**, unchanged reference bytes and identical normalized outcomes. The
+MSBuild worker was fresh (**543 loaded / zero retained evaluations**); this is not
+a comparison with the retained-worker paired graph timings above. The complete
+recovery → test → edit → test → restore rehearsal took **289.86 s**.
+
+Seed the qualified 39-root workspace with `runtime_recovered_tests.py
+--phase=producer` as above, using the same rules on both machines. Relocate the
+closed workspace and seed report, stop the producer, then run:
+
+```sh
+bash tests/graph_build/upstream/runtime_ci_demo.sh \
+  WORKSPACE PRODUCER_RESULTS/seed.json /tmp/runtime-demo-1 CACHE_URL HOST_SPACE_BIND \
+  --body-edit
+```
+
+Optional `--body-edit` inserts a unique Pipelines method-body change, requires
+**475 project hits / six compilations** with unchanged reference bytes, and
+executes all nine targets again. It restores the source and original products.
+Successful runs discard their disposable Bazel base; reports remain. Failed runs
+retain outputs. The directory must be absolute and absent; use explicit
+Bazelisk/repository-cache overrides as for the qualification drivers.
+
+This is a prepared-fixture handoff: source acquisition, NuGet update and compiler
+qualification precede the demo. It requires the qualified nested-namespace Linux
+container and 12 GiB physical host headroom at entry. Raw reports stay outside Git.
+
 ## Paired runtime baseline
 
 Runtime v10.0.0 (`60629d14374c56f1cb51819049ad1fa529307f8d`): **260 project paths /
