@@ -415,26 +415,49 @@ MSBuild worker was fresh (**543 loaded / zero retained evaluations**); this is n
 a comparison with the retained-worker paired graph timings above. The complete
 recovery → test → edit → test → restore rehearsal took **289.86 s**.
 
-Seed the qualified 39-root workspace with `runtime_recovered_tests.py
---phase=producer` as above, using the same rules on both machines. Relocate the
-closed workspace and seed report, stop the producer, then run:
+Set up on an Apple silicon Mac with Git, Python 3 and Apple Container running.
+Cold setup requires **60 GiB free** and network access:
 
 ```sh
-bash tests/graph_build/upstream/runtime_ci_demo.sh \
-  WORKSPACE PRODUCER_RESULTS/seed.json /tmp/runtime-demo-1 CACHE_URL HOST_SPACE_BIND \
-  --body-edit
+python3 scripts/setup-runtime-demo.py /absolute/runtime-demo
+bash /absolute/runtime-demo/run.sh /tmp/runtime-demo-1
+# Include recovery, tests, a unique body edit, tests again and restoration:
+bash /absolute/runtime-demo/run.sh /tmp/runtime-demo-2 --body-edit
+# Continue an interrupted setup from its frozen inputs:
+python3 scripts/setup-runtime-demo.py /absolute/runtime-demo --resume
 ```
 
-Optional `--body-edit` inserts a unique Pipelines method-body change, requires
-**475 project hits / six compilations** with unchanged reference bytes, and
-executes all nine targets again. It restores the source and original products.
-Successful runs discard their disposable Bazel base; reports remain. Failed runs
-retain outputs. The directory must be absolute and absent; use explicit
-Bazelisk/repository-cache overrides as for the qualification drivers.
+Setup builds an Ubuntu 22.04 / Clang 14 image, records its immutable digest/package
+inventory, downloads verified runtime sources and pinned tools, updates NuGet and
+qualifies the 39-root graph. It declares five native producers, composes the
+source runtime/app and eight suites, then seeds the cache with actual test runs.
+It transfers a manifest-verified input checkpoint, stops the producer and creates
+an independent consumer. Consumer setup acquires SDK/package archives and the
+runner without building Restore or the managed/native graph; its disposable base
+is removed before the timed demo. The default cache is private to the VMs; its
+stable alias survives container IP changes.
 
-This is a prepared-fixture handoff: source acquisition, NuGet update and compiler
-qualification precede the demo. It requires the qualified nested-namespace Linux
-container and 12 GiB physical host headroom at entry. Raw reports stay outside Git.
+`setup.json`, frozen rules, input checkpoint, seed, package inventories and logs
+stay in the setup directory. Resume uses that snapshot; source/tool changes need
+a fresh directory. Runs reject a live producer and use fresh Bazel bases, with
+test-result caching disabled. Successful runs restore edited sources/products and
+remove their output base; failed runs keep outputs. No GitHub CI is started.
+
+Optional `--image=IMAGE@sha256:DIGEST` reuses an immutable Ubuntu image;
+`--cache-url=URL` uses an existing unauthenticated cache. A prior source-only
+checkpoint can be supplied with `--prepared-inputs=FILE --prepared-sha256=HASH`;
+with an external cache, this path requires **32 GiB free**. Checkpoints contain
+source, declarations and pinned archives, not producer outputs or local caches.
+They can be exported from a qualified workspace with
+`runtime_demo_prepare.py pack --workspace=WORKSPACE --archive=INPUTS.tar.gz`.
+
+Validation: 13 tooling controls pass on Linux ARM64, including six archive fault
+controls. Checkpoint-based setup, seeding, transfer and independent recovery pass:
+**29.18 s build / 96.15 s tests**, 118,952 passed / 64 skipped, zero executed build
+actions. Frozen-input resume and refusal to run with a live producer also pass.
+The full cold image/source-preparation path has not been rerun in this setup
+change because this host lacks the 60 GiB reserve. Its preparation stages reuse
+the separately qualified drivers above; cold setup is outside demo timings.
 
 ## Paired runtime baseline
 
