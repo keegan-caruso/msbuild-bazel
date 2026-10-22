@@ -2,10 +2,11 @@
 
 ## Sync preparation
 
-Multi-root offline sync now calls each root's Restore target within one native
+Multi-root offline sync calls each root's Restore target within one native
 MSBuild invocation. Shared configured dependencies reuse evaluation/target results;
 root hooks and per-entry properties remain intact. Single-root Restore is unchanged.
-The private compiler-selection Build still runs once per sync/check.
+Private qualification uses normal SDK targets; the sections below describe
+whole-action and project reuse.
 
 Synthetic roots share a three-library chain: Linux ARM64, four CPUs / 6 GiB,
 SDK **10.0.400**, no external packages. Three alternating before/after pairs against
@@ -170,6 +171,82 @@ with identical declarations: private Build **1,016.89 s** (**95.9%** of sync), t
 separate profiles, not paired scores. The new run invokes ProjectSync directly,
 excluding Bazel staging/publication and acquisition. Remote-recovery figures above
 predate this concurrency change.
+
+### Project qualification reuse
+
+`qualification_cache = True` adds verified Restore and project snapshots inside a
+changed preparation action. Misses execute normal SDK targets; post-Restore graph
+evaluation and contract validation remain fresh. Keys retain conservative dependency
+inputs. See [configuration](api.md#compiler-selections).
+
+#### Small graph
+
+Linux ARM64, SDK **10.0.400**, four CPUs / 6 GiB; 17 projects, one consumer and
+16 producers. Three alternating unprofiled pairs with distinct body/API edits;
+cache seeding excluded. Baseline **d1021ba**, candidate **59d3a79**; medians:
+
+| Edit | Fresh Restore | Restore reuse + shared hashing/materialization |
+| --- | ---: | ---: |
+| Body | 2.42 s | 1.65 s |
+| API | 2.39 s | 1.65 s |
+
+Every row compiles the same two projects and produces identical declarations.
+[Intermediate diagnostics](https://github.com/keegan-caruso/msbuild-bazel/blob/7eecc63/docs/performance.md#qualification-preparation-reuse)
+separated Restore reuse from shared immutable hashes/verified replay. Full evaluated-
+state transfer alone showed no material small-graph incremental gain. Cloning falls
+back to ordinary copies on the qualified ext4 filesystem.
+
+```sh
+RULES_MSBUILD_DOTNET_ROOT=PINNED_SDK python3 benchmarks/qualification.py FRESH_OUTPUT \
+  --baseline-runner=BASELINE/ProjectSync.dll \
+  --candidate-runner=CANDIDATE/ProjectSync.dll \
+  --cached-edits --width=16 --depth=1 --samples=3
+```
+
+Use `--profile` separately for phase diagnostics. The helper checks compiler counts,
+declaration hashes and source restoration.
+
+#### Runtime graph
+
+Runtime v10.0.0, **543 configurations / 481 cacheable projects**, SDK **10.0.400**,
+Linux ARM64, four CPUs / 8 GiB, code **59d3a79**. Single direct-CLI profiles on one
+VM; each HTTP row starts with an empty local cache. These measure preparation,
+not ordinary builds or paired speedups:
+
+| Case | Total | Restore replay | Private SDK Build | Csc tasks |
+| --- | ---: | ---: | ---: | ---: |
+| HTTP recovery | 29.99 s | 6.35 s | 3.57 s | 0 |
+| HTTP + Pipelines body edit | 47.21 s | 6.66 s | 19.70 s | 7 |
+| HTTP + implementation/reference API edit | 59.27 s | 7.47 s | 29.22 s | 17 |
+
+All rows hit Restore and reproduce ordinary sync's JSON/Starlark byte-for-byte.
+Body edits add `GC.KeepAlive` in `PipeOptions`; API edits add a method in its
+implementation and reference sources. Graph evaluation remains **5.65–6.19 s**;
+source copying **2.70–6.44 s**. SDK identity is hashed once per invocation; declared
+mutable inputs retain fresh pre/post-Build byte checks.
+
+The empty-cache seed took **1,178.71 s**, including **611 Csc tasks** and cache
+publication. It overlapped validation on another VM and is not a paired cold score.
+Local replay took **31.76 s**, later original-state recovery **23.08 s**, both with
+481 hits / zero Csc tasks. Filesystem cache states differ; do not infer transport
+speed from local/HTTP wall times. SDK/package acquisition and Bazel staging are
+excluded; scratch blocks were trimmed between commands, outside timers.
+[Earlier fresh-Restore profiles](https://github.com/keegan-caruso/msbuild-bazel/blob/d1021ba/docs/performance.md#project-qualification-reuse)
+retain the preceding baseline.
+
+For direct reproduction, use the source workspace retained by
+`runtime_downloaded_prepare.py --slice=runtime-suites`, its native input manifest
+and extracted runfiles, and all 39 `entries` from its BUILD file. This is a harness
+handoff. Extend the pinned ProjectSync command above with `--qualification-cache
+OWNED_CACHE --qualification-cache-url http://cache:8080`; root `restoreReuseInputs`
+reviews the two Pipelines files. Use a fresh cache per HTTP edit and a distinct edit
+per compilation control. `RULES_MSBUILD_SYNC_PROFILE=1` reports phases;
+`PROJECT_SYNC_CACHE` reports hits/misses and Csc calls. Raw reports stay outside Git.
+
+A separate four-project consumer, including a declared package SDK, recovered
+Restore and all projects in **1.14 s** with its producer stopped and no copied local
+cache. Zero compilations, identical declarations and all artifact digests matched.
+This independent correctness profile excludes acquisition; RBE remains unqualified.
 
 ## Downloaded-SDK workflow
 

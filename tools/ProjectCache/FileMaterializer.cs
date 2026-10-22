@@ -4,7 +4,7 @@ using System.Runtime.InteropServices;
 using System.Security.Cryptography;
 using Microsoft.Win32.SafeHandles;
 
-namespace RulesMSBuild.GraphBuild;
+namespace RulesMSBuild.ProjectCache;
 
 internal sealed class FileMaterializer(bool clone, bool profile)
 {
@@ -14,6 +14,7 @@ internal sealed class FileMaterializer(bool clone, bool profile)
     private long fallbacks;
     private long bytes;
     private long verifiedCopies;
+    private int linuxCloneUnsupported;
     internal object? Report => profile ? new { seconds = (double)ticks / Stopwatch.Frequency, copies, clones, fallbacks, bytes, verifiedCopies } : null;
 
     internal void Copy(string source, string destination, string? expectedDigest = null)
@@ -51,7 +52,7 @@ internal sealed class FileMaterializer(bool clone, bool profile)
                 Interlocked.Increment(ref copies);
             }
         }
-        if (cloned && expectedDigest is not null && ContractFiles.Digest(destination) != expectedDigest)
+        if (cloned && expectedDigest is not null && SnapshotPayloads.Digest(destination) != expectedDigest)
         {
             File.Delete(destination);
             throw new InvalidDataException("Corrupt graph snapshot: " + source);
@@ -105,19 +106,25 @@ internal sealed class FileMaterializer(bool clone, bool profile)
         }
     }
 
-    private static bool TryClone(string source, string destination)
+    private bool TryClone(string source, string destination)
     {
         if (OperatingSystem.IsMacOS())
         {
             return CloneFile(source, destination, 0) == 0;
         }
-        if (OperatingSystem.IsLinux() && IntPtr.Size == 8)
+        if (OperatingSystem.IsLinux() && IntPtr.Size == 8 && Volatile.Read(ref linuxCloneUnsupported) == 0)
         {
             using var input = File.OpenHandle(source, FileMode.Open, FileAccess.Read);
             using (var output = File.OpenHandle(destination, FileMode.CreateNew, FileAccess.Write))
             {
                 if (CloneLinux(output, 0x40049409, input) != 0)
                 {
+                    // ext4 commonly has no reflink support. Do not repeat two
+                    // opens and an unsupported ioctl for every staged input.
+                    if (Marshal.GetLastPInvokeError() is 25 or 95)
+                    {
+                        Interlocked.Exchange(ref linuxCloneUnsupported, 1);
+                    }
                     return false;
                 }
             }

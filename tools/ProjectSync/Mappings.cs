@@ -37,6 +37,7 @@ internal sealed class ProjectBinding
 
 internal sealed class Mappings
 {
+    public string[] RestoreReuseInputs { get; set; } = [];
     public ProjectBinding ProjectDefaults { get; set; } = new();
     public Dictionary<string, Dictionary<string, string>> EntryProperties { get; set; } = [];
     public Dictionary<string, ProjectBinding> Projects { get; set; } = [];
@@ -44,6 +45,10 @@ internal sealed class Mappings
     internal static Mappings Read(string? path)
     {
         var mappings = path is null ? new Mappings() : JsonSerializer.Deserialize<Mappings>(MappingDefaults.Expand(File.ReadAllText(path)), new JsonSerializerOptions { PropertyNameCaseInsensitive = true, UnmappedMemberHandling = JsonUnmappedMemberHandling.Disallow }) ?? throw new InvalidDataException("Empty sync mappings");
+        foreach (var input in mappings.RestoreReuseInputs)
+        {
+            WorkspaceView.Safe(input);
+        }
         foreach (var project in mappings.Projects.Keys)
         {
             WorkspaceView.Safe(project);

@@ -126,7 +126,7 @@ internal sealed class WorkspaceView : IDisposable
                         }
                         else
                         {
-                            File.Copy(file, target);
+                            SyncFiles.Copy(file, target);
                             if (input.BuildOnly)
                             {
                                 view.buildInputs.Add(relative);
@@ -235,9 +235,22 @@ internal sealed class WorkspaceView : IDisposable
     internal IEnumerable<string> GraphPackageArchives() => GraphPackageIdentities(true).Select(identity =>
         Path.Combine(packageSources[identity], identity.Replace('/', '.') + ".nupkg"));
 
-    internal string[] GraphPackageDigests() => GraphPackageIdentities(true).Select(identity =>
-        Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(File.ReadAllBytes(
-            Path.Combine(packageSources[identity], identity.Replace('/', '.') + ".nupkg")))).ToLowerInvariant()).Order(StringComparer.Ordinal).ToArray();
+    private string[]? packageDigests;
+    internal string[] GraphPackageDigests()
+    {
+        if (QualificationSandbox.Inside && packageDigests is not null)
+        {
+            return packageDigests;
+        }
+        var result = GraphPackageIdentities(true).Select(identity =>
+            RulesMSBuild.ProjectCache.SnapshotPayloads.Digest(Path.Combine(packageSources[identity], identity.Replace('/', '.') + ".nupkg")))
+            .Order(StringComparer.Ordinal).ToArray();
+        if (QualificationSandbox.Inside)
+        {
+            packageDigests = result;
+        }
+        return result;
+    }
 
     internal void SelectPackageLock(string? label)
     {

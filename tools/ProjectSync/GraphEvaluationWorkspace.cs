@@ -6,10 +6,27 @@ namespace RulesMSBuild.ProjectSync;
 // Package evaluation runs only in an owned copy, never through source symlinks.
 internal sealed class GraphEvaluationWorkspace : IDisposable
 {
-    internal string Root { get; } = WorkspaceView.PhysicalPath(Directory.CreateTempSubdirectory("graph-sync-").FullName);
+    internal string Root { get; } = CreateRoot();
+    private readonly QualificationRestoreCache? restoreCache;
+
+    internal void SaveRestore() => restoreCache?.Save();
+
+    private static string CreateRoot()
+    {
+        if (!QualificationSandbox.Inside)
+        {
+            return WorkspaceView.PhysicalPath(Directory.CreateTempSubdirectory("graph-sync-").FullName);
+        }
+        var path = QualificationSandbox.Base + "/scratch/evaluation";
+        if (Directory.Exists(path))
+        {
+            throw new InvalidDataException("Qualification requires a fresh private evaluation workspace");
+        }
+        return Directory.CreateDirectory(path).FullName;
+    }
 
     internal GraphEvaluationWorkspace(string source, string sdk, IEnumerable<string> entries,
-        Dictionary<string, string> properties, WorkspaceView view, Dictionary<string, string>? toolProperties = null, Dictionary<string, Dictionary<string, string>>? entryProperties = null)
+        Dictionary<string, string> properties, WorkspaceView view, Dictionary<string, string>? toolProperties = null, Dictionary<string, Dictionary<string, string>>? entryProperties = null, QualificationOptions? cache = null, GraphMappings? mappings = null, QualificationEnvironment? environment = null)
     {
         using var profile = SyncProfile.Measure("offline-preparation");
         try
@@ -31,7 +48,7 @@ internal sealed class GraphEvaluationWorkspace : IDisposable
                 Directory.CreateDirectory(Path.GetDirectoryName(target)!);
                 if (!File.Exists(target))
                 {
-                    File.Copy(Path.Combine(source, path), target);
+                    SyncFiles.Copy(Path.Combine(source, path), target);
                 }
             }
             properties = new Dictionary<string, string>(properties, StringComparer.OrdinalIgnoreCase) { ["NetCoreSdkRoot"] = sdk };
@@ -41,15 +58,23 @@ internal sealed class GraphEvaluationWorkspace : IDisposable
                 GraphGenerator.ValidateToolProperty(name, properties);
                 properties.Add(name, Path.Combine(Root, path));
             }
+            restoreCache = cache is null ? null : new QualificationRestoreCache(Root, environment!, entries, properties, view, mappings!, cache);
             var feed = Path.Combine(Root, ".package-source");
             Directory.CreateDirectory(feed);
             foreach (var archive in view.GraphPackageArchives())
             {
-                File.Copy(archive, Path.Combine(feed, Path.GetFileName(archive)));
+                SyncFiles.Copy(archive, Path.Combine(feed, Path.GetFileName(archive)));
             }
-            using var packageSdks = RulesMSBuild.PackageSdks.Prepare(Root);
             var config = Path.Combine(Root, ".graph.nuget.config");
             File.WriteAllText(config, "<configuration><packageSources><clear/></packageSources><fallbackPackageFolders><clear/></fallbackPackageFolders></configuration>");
+            // Package SDK resolution happens before generated NuGet imports.
+            // Restore replay must establish the same package root as a fresh run.
+            Environment.SetEnvironmentVariable("NUGET_PACKAGES", Path.Combine(Root, ".nuget"));
+            if (restoreCache?.Restore() == true)
+            {
+                return;
+            }
+            using var packageSdks = RulesMSBuild.PackageSdks.Prepare(Root);
             var roots = entries.ToArray();
             var coordinator = Root + ".restore.proj";
             try
@@ -99,6 +124,9 @@ internal sealed class GraphEvaluationWorkspace : IDisposable
                 File.Delete(coordinator);
             }
 
+            packageSdks?.Dispose();
+            restoreCache?.Capture();
+
             Dictionary<string, string> RestoreProperties(string entry)
             {
                 // Restore all authored frameworks, even when Build selects one.
@@ -119,12 +147,12 @@ internal sealed class GraphEvaluationWorkspace : IDisposable
         }
     }
 
-    private static void Copy(string source, string destination)
+    private static void Copy(string source, string destination, bool top = true)
     {
         foreach (var path in Directory.EnumerateFileSystemEntries(source))
         {
             var name = Path.GetFileName(path);
-            if (name is ".git" or ".tools" or ".cache" or ".nuget" or ".package-source" or ".cli" or "bin" or "obj" || name.StartsWith("bazel-", StringComparison.Ordinal) && Directory.Exists(path))
+            if (top && name is ("graph.generated.json" or "graph.generated.bzl") || name is ".git" or ".tools" or ".cache" or ".nuget" or ".package-source" or ".cli" or "bin" or "obj" || name.StartsWith("bazel-", StringComparison.Ordinal) && Directory.Exists(path))
             {
                 continue;
             }
@@ -136,14 +164,18 @@ internal sealed class GraphEvaluationWorkspace : IDisposable
                     throw new InvalidDataException("Graph sync directory symlink requires an explicit input: " + path);
                 }
                 Directory.CreateDirectory(target);
-                Copy(path, target);
+                Copy(path, target, false);
             }
             else
             {
-                File.Copy(path, target);
+                SyncFiles.Copy(path, target);
             }
         }
     }
 
-    public void Dispose() => Directory.Delete(Root, true);
+    public void Dispose()
+    {
+        restoreCache?.Dispose();
+        Directory.Delete(Root, true);
+    }
 }

@@ -34,7 +34,7 @@ def prepare_sync(ctx, tc, payload, manifest, bound_files):
     producer_trees = {file: True for target in ctx.attr.inputs | ctx.attr.build_inputs for file in target[DefaultInfo].files.to_list() if file.is_directory}
     ctx.actions.write(stage, json.encode({
         "sources": sources,
-        "runfiles": [{"path": path, "file": file.path, "tree": file in producer_trees} for path, file in {runfile(ctx, file): file for file in bound_files}.items()],
+        "runfiles": [{"path": path, "file": file.path, "tree": ctx.attr.qualification_cache or file in producer_trees} for path, file in {runfile(ctx, file): file for file in bound_files}.items()],
     }))
     prepared = ctx.actions.declare_directory(ctx.label.name + ".sync-prepared")
     flags = ["--configuration", ctx.attr.configuration]
@@ -46,12 +46,19 @@ def prepare_sync(ctx, tc, payload, manifest, bound_files):
         flags.append("--resolve-references")
     for path in ctx.attr.package_inputs:
         flags.extend(["--package-input", path])
+    environment = {key: value for key, value in ctx.configuration.default_shell_env.items() if key == "RULES_MSBUILD_SYNC_PROFILE"}
+    cache_command = ""
+    if ctx.attr.qualification_cache:
+        for key in ["RULES_MSBUILD_PROJECT_CACHE_URL", "RULES_MSBUILD_PROJECT_CACHE_BEARER_TOKEN"]:
+            if key in ctx.configuration.default_shell_env:
+                environment[key] = ctx.configuration.default_shell_env[key]
+        cache_command = 'set -- "$@" --qualification-cache "$scratch/project-cache" --qualification-cache-url "${RULES_MSBUILD_PROJECT_CACHE_URL:?Set the qualification project-cache URL through --action_env}"'
     ctx.actions.run_shell(
         inputs = depset(ctx.files.srcs + bound_files + [payload, manifest, stage] + ([ctx.file.mappings] if ctx.file.mappings else []), transitive = [tc.sdk]),
         tools = [tc.dotnet],
         outputs = [prepared],
         resource_set = _qualification_resources if ctx.attr.resolve_references else None,
-        env = {key: value for key, value in ctx.configuration.default_shell_env.items() if key == "RULES_MSBUILD_SYNC_PROFILE"},
+        env = environment,
         arguments = [tc.dotnet.path, payload.path, stage.path, prepared.path, manifest.path, tc.sdk_version, ctx.file.mappings.path if ctx.file.mappings else ""] + ctx.attr.projects,
         command = """set -eu
 base="$PWD"
@@ -66,10 +73,11 @@ export DOTNET_SKIP_FIRST_TIME_EXPERIENCE=1 DOTNET_CLI_TELEMETRY_OPTOUT=1 DOTNET_
 export DOTNET_GENERATE_ASPNET_CERTIFICATE=false DOTNET_MULTILEVEL_LOOKUP=0
 "$dotnet" "$runner" stage "$stage" "$scratch"
 if [ -n "$mappings" ]; then set -- "$@" --mappings "$base/$mappings"; fi
+%s
 "$dotnet" "$runner" "$scratch/workspace" "$DOTNET_ROOT/sdk/$version" "$@" %s --inputs "$manifest" --runfiles "$scratch/runfiles"
 mkdir -p "$output"
 cp "$scratch/workspace/graph.generated.json" "$scratch/workspace/graph.generated.bzl" "$output/"
-""" % " ".join([quote(flag) for flag in flags]),
+""" % (cache_command, " ".join([quote(flag) for flag in flags])),
         mnemonic = "MSBuildSyncPrepare",
         progress_message = "Qualifying declared MSBuild graph %s" % ctx.label,
     )

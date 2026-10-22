@@ -38,7 +38,7 @@ internal static class GraphGenerator
         }
     }
 
-    internal static void Run(string root, string sdk, string[] entries, bool check, string outputRoot, string configuration = "Release", string framework = "", WorkspaceView? view = null, bool packageBuild = false, string[]? packageInputs = null, GraphMappings? mappings = null, bool resolveReferences = false)
+    internal static void Run(string root, string sdk, string[] entries, bool check, string outputRoot, string configuration = "Release", string framework = "", WorkspaceView? view = null, bool packageBuild = false, string[]? packageInputs = null, GraphMappings? mappings = null, bool resolveReferences = false, QualificationOptions? qualificationCache = null, string? publicationRoot = null)
     {
         if (resolveReferences && !packageBuild)
         {
@@ -55,8 +55,9 @@ internal static class GraphGenerator
         }
         GraphEntryProperties.Validate(entries, mappings.EntryProperties, (view?.GraphToolProperties ?? []).Keys);
         var solution = GraphSolutions.Validate(root, entries, properties.Keys.Concat(mappings.EntryProperties.Values.SelectMany(values => values.Keys)).Concat((view?.GraphToolProperties ?? []).Keys));
+        var qualificationEnvironment = qualificationCache is null ? null : QualificationEnvironment.Create(sdkRoot);
         using var restored = packageBuild ? new GraphEvaluationWorkspace(root, sdk, entries, properties,
-            view ?? throw new InvalidDataException("Package build sync requires declared package inputs"), view?.GraphToolProperties, mappings.EntryProperties) : null;
+            view ?? throw new InvalidDataException("Package build sync requires declared package inputs"), view?.GraphToolProperties, mappings.EntryProperties, qualificationCache, mappings, qualificationEnvironment) : null;
         if (restored is not null)
         {
             root = restored.Root;
@@ -336,6 +337,21 @@ internal static class GraphGenerator
                 }
             }
         }
+        if (mappings.RestoreReuseInputs.Length != 0)
+        {
+            if (qualificationCache is null)
+            {
+                throw new InvalidDataException("restoreReuseInputs requires qualification caching");
+            }
+            var authoredCompile = graph.ProjectNodes.SelectMany(node => node.ProjectInstance.GetItems("Compile")
+                .Select(item => Path.GetFullPath(item.EvaluatedInclude.Replace('\\', '/'), Path.GetDirectoryName(node.ProjectInstance.FullPath)!)))
+                .Where(path => path.StartsWith(root + Path.DirectorySeparatorChar, StringComparison.Ordinal))
+                .Select(path => Path.GetRelativePath(root, path).Replace('\\', '/')).ToHashSet(StringComparer.Ordinal);
+            if (mappings.RestoreReuseInputs.Any(path => !authoredCompile.Contains(path) || definitions.ContainsKey(path) || shared.Contains(path) || (restore?.Inputs.Contains(path) == true)))
+            {
+                throw new InvalidDataException("restoreReuseInputs must name authored Compile files outside Restore inputs and definitions");
+            }
+        }
         var globOutputDirectories = !graph.ProjectNodes.Any(node => mappings.ForProject(Relative(node.ProjectInstance.FullPath),
             node.ProjectInstance.GetPropertyValue("TargetFramework")).CompileGlobs.Length != 0) ? [] : graph.ProjectNodes.Where(node => GraphProjectKind.HasAssembly(node.ProjectInstance))
             .SelectMany(node => new[] { "OutputPath", "IntermediateOutputPath" }.Select(property =>
@@ -353,7 +369,9 @@ internal static class GraphGenerator
         var resolved = resolveReferences ? ResolvedGraphInputs.Build(graph, collection, root, sdkRoot,
             graph.ProjectNodes.Where(node => node.ProjectInstance.GetPropertyValue("Language") == "C#" && CanUseReferenceBoundary(node)).ToArray(), CompilerProducts, Dependencies,
             inputs.Values.SelectMany(paths => paths).Concat(shared), packageIdentities,
-            node => inputs[Key(node.ProjectInstance)].Concat(shared)) : null;
+            node => inputs[Key(node.ProjectInstance)].Concat(shared), qualificationCache,
+            node => JsonSerializer.Serialize(mappings.ForProject(Relative(node.ProjectInstance.FullPath), node.ProjectInstance.GetPropertyValue("TargetFramework"))),
+            qualificationCache is null ? [] : view?.GraphPackageDigests(), qualificationEnvironment) : null;
         var declarations = new SortedDictionary<string, object>(StringComparer.Ordinal);
         foreach (var group in graph.ProjectNodes.GroupBy(node => Relative(node.ProjectInstance.FullPath)))
         {
@@ -569,7 +587,8 @@ internal static class GraphGenerator
             "    msbuild_graph_runner(name = name + \"_runner\")\n" + sourceGlobs.Declaration + restoreRule + "    msbuild_graph(\n        name = name,\n        linux_stable_paths = linux_stable_paths,\n        linux_worker = linux_worker,\n        worker_cache_mb = worker_cache_mb,\n        evaluation_cache_mb = evaluation_cache_mb,\n        profile_build = profile_build,\n        target = target,\n        runner = \":\" + name + \"_runner\",\n" +
             (restore is null ? "" : "        restore = \":\" + name + \"_restore\",\n") +
             "        contract = \"" + ContractName + "\",\n        srcs = " + sourceGlobs.Expression + ",\n        bindings = " + StarlarkLiteral.Serialize(view?.GraphBindingLabels ?? []) + ",\n        input_paths = " + StarlarkLiteral.Serialize(view?.Bindings(sources.Concat(inputDirectories)) ?? []) + ",\n        project_outputs = " + StarlarkLiteral.Serialize(runtimeOutputs) + ",\n        publish_outputs = " + StarlarkLiteral.Serialize(publishOutputs) + ",\n" + (view?.DefaultPackageLock is null ? "" : "        package_lock = " + StarlarkLiteral.Serialize(view.DefaultPackageLock) + ",\n") + "    )\n";
-        Publish(outputRoot, check, contract, text);
+        Publish(publicationRoot ?? outputRoot, check, contract, text);
+        restored?.SaveRestore();
 
         IEnumerable<ProjectGraphNode> Dependencies(ProjectGraphNode node)
         {

@@ -132,6 +132,45 @@ reviewed body/API reuse, fresh build state, evaluation-input/task changes and fa
 build recovery. Retention requires explicit compiler-only input review; see
 [configuration](api.md#caching-and-workers) and [runtime timings](performance.md#reviewed-evaluation-reuse).
 
+## Project qualification cache
+
+`qualification_cache = True` adds HTTP project reuse inside a changed preparation
+action; it requires `srcs`, `package_build` and `resolve_references`. Linux ARM64 / SDK **10.0.400** passed small controls
+on both Bazel pins: normal-mode declaration parity, forced preparation with an empty
+local cache, body/API invalidation, independent-branch reuse, app execution and
+Newtonsoft.Json **13.0.3** package-tree materialization/recovery.
+The 51 ProjectSync controls cover props and executable-mode changes, multi-target
+selection, implementation/reference DLLs, XML copies, failed builds, corrupt
+artifacts/metadata, relocation, source/SDK aliases and overlapping output owners.
+
+Verified Restore snapshots passed small controls for compiler-only edits, source
+membership/modes, failed compilation, corrupt assets, authored Restore-hook inputs,
+empty generated directories and synthetic package-SDK resolution after replay.
+Serial/parallel multi-target qualification retains SDK selections with full-state
+worker transfer; the small cache fixture reports zero worker evaluations. Root
+`restoreReuseInputs` requires a separate review of compiler-only contents; arbitrary Restore task reads remain declared.
+A stopped-producer, relocated-VM control recovered Restore and all four projects
+through HTTP, including package-SDK resolution, with no local cache, zero
+compilations, identical declarations and matching artifact digests.
+
+Requires the qualified Linux/bwrap environment; the Apple container must allow
+user namespaces and avoid read-only `/proc` submounts, as in
+`scripts/run-apple-container.sh`. This is stable-path isolation, not tracing of
+arbitrary task reads. Declare custom inputs and tools. Other .NET SDK versions,
+platforms and RBE remain unqualified for this option. Non-assembly projects run
+normally; overlapping output owners and their consumers skip reuse. See [configuration](api.md#compiler-selections)
+and [measurements](performance.md#project-qualification-reuse).
+
+```sh
+QUALIFICATION_CACHE_URL=http://cache:8080 bash scripts/bazel.sh test \
+  //tests/integration:qualification_cache --test_output=errors
+```
+
+The broader legacy acceptance command still rejects its unsupported `Fixture.Sdk`
+synthetic on both starting and candidate runners. Its protocol slice also stops
+at archive/lock content-hash mismatches before graph sync. Those fixtures do not
+qualify this cache option; use the native integration command above.
+
 ## Downloaded SDK and runtime sources
 
 The public `dotnet.sdk(version="10.0.400")` → native package update/check → offline

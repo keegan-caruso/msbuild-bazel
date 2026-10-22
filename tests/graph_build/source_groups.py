@@ -11,14 +11,14 @@ def metadata_copy(base):
     probe = base / 'metadata-copy'
     probe.mkdir()
     (probe / 'Probe.csproj').write_text('<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup><TargetFramework>net10.0</TargetFramework><OutputType>Exe</OutputType><ImplicitUsings>enable</ImplicitUsings></PropertyGroup><ItemGroup>' +
-        f'<Compile Include="{ROOT}/tools/GraphBuild/CachedTargetItem.cs" />' +
+        f'<Compile Include="{ROOT}/tools/ProjectCache/CachedTargetItem.cs" />' +
         ''.join(f'<Reference Include="{name}" HintPath="{SDK}/sdk/10.0.400/{name}.dll" />' for name in
                 ['Microsoft.Build', 'Microsoft.Build.Framework', 'Microsoft.Build.Utilities.Core']) + '</ItemGroup></Project>')
     (probe / 'Program.cs').write_text('''using Microsoft.Build.Framework;
 using Microsoft.Build.Utilities;
 using Microsoft.Build.Execution;
 using Microsoft.Build.ProjectCache;
-using RulesMSBuild.GraphBuild;
+using RulesMSBuild.ProjectCache;
 const string original = "relative;a%3B$.cs";
 ITaskItem2 source = new CachedTargetItem(Microsoft.Build.Evaluation.ProjectCollection.Escape("/absolute/a;b%3B$.cs"));
 source.SetMetadataValueLiteral("OriginalItemSpec", original);

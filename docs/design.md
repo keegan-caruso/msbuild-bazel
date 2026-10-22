@@ -35,8 +35,20 @@ file access.
 
 With a complete `msbuild_sync(srcs = ...)` snapshot, evaluation and private compiler
 qualification form a Bazel action. A local publisher writes or checks its generated
-declarations. Bazel owns reuse and invalidation; no separate qualification cache is
-maintained. Without that snapshot, sync evaluates the local workspace on each run.
+declarations. Bazel owns whole-action reuse and invalidation. Without that snapshot, sync
+evaluates the local workspace on each run. Opt-in Linux qualification caching
+adds project reuse inside a changed preparation action: early evaluated inputs
+key verified SDK artifacts and compiler/copy metadata in HTTP AC/CAS. It uses
+a fixed private namespace and conservative dependency closure keys. Verified Restore
+products have a separate key over source layout/content, SDK, packages, tools,
+properties and mappings. Explicit `restoreReuseInputs` can omit reviewed compiler-
+only contents; post-Restore evaluation and compiler keys still read current files.
+Qualification transfers full evaluated instances to build nodes, sharing targets
+and task registrations rather than evaluating those projects again. Read-only SDK
+and package identities are shared within the invocation. Private staging uses
+copy-on-write clones where available and ordinary copies otherwise; replay verifies
+the bytes materialized. Mutable project inputs retain pre/post-Build byte checks.
+The final graph contract remains the build interface.
 
 Bazel can recover a whole unchanged Restore/build action. When the graph action
 changes, the MSBuild plugin can recover individual projects from worker snapshots

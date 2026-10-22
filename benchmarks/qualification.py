@@ -13,6 +13,61 @@ import subprocess
 import time
 
 
+def cached_edits(args, sdk, version, output, root, count):
+    source = root / 'P0/Code.cs'
+    original = source.read_text()
+    mapping = output / 'restore-reuse.json'
+    mapping.write_text(json.dumps({'restoreReuseInputs': ['P0/Code.cs']}))
+    rows, expected = [], None
+    environment = dict(os.environ, DOTNET_ROOT=str(sdk), RULES_MSBUILD_SYNC_PROFILE='1' if args.profile else '0',
+        DOTNET_CLI_TELEMETRY_OPTOUT='1', DOTNET_NOLOGO='1', DOTNET_SKIP_FIRST_TIME_EXPERIENCE='1')
+
+    def run(mode, case, sample):
+        nonlocal expected
+        command = [str(sdk / 'dotnet'), str(getattr(args, mode + '_runner').resolve()), str(root),
+            str(sdk / 'sdk' / version), 'P{0}/P{0}.csproj'.format(count), '--package-build', '--resolve-references',
+            '--qualification-cache', str(output / (mode + '-cache'))]
+        if mode == 'candidate':
+            command += ['--mappings', str(mapping)]
+        log = output / (mode + '-' + case + '-' + str(sample) + '.log')
+        start = time.monotonic()
+        with log.open('w') as stream:
+            subprocess.run(command, env=environment, stdout=stream, stderr=subprocess.STDOUT, check=True)
+        seconds = time.monotonic() - start
+        hashes = {name: hashlib.sha256((root / name).read_bytes()).hexdigest()
+            for name in ['graph.generated.json', 'graph.generated.bzl']}
+        assert expected is None or hashes == expected, 'Preparation declarations differ'
+        expected = hashes
+        text = log.read_text()
+        counter = next(json.loads(line.split(' ', 1)[1]) for line in text.splitlines() if line.startswith('PROJECT_SYNC_CACHE '))
+        assert counter['compilations'] == (count + 1 if case == 'seed' else args.depth + 1), counter
+        assert not any(root.glob('P*/bin')) and not any(root.glob('P*/obj')), 'Qualification touched authored outputs'
+        row = dict(mode=mode, case=case, sample=sample, seconds=seconds, outputs=hashes, cache=counter,
+            restore='hit' if 'PROJECT_SYNC_RESTORE_CACHE hit' in text else 'executed', command=command,
+            phases=[json.loads(line.split(' ', 1)[1]) for line in text.splitlines() if line.startswith('PROJECT_SYNC_PROFILE ')])
+        rows.append(row)
+        (output / 'results.json').write_text(json.dumps(rows, indent=2) + '\n')
+        print(json.dumps(row), flush=True)
+
+    try:
+        for mode in ['baseline', 'candidate']:
+            run(mode, 'seed', -1)
+        for sample in range(args.samples):
+            order = ['baseline', 'candidate'] if sample % 2 == 0 else ['candidate', 'baseline']
+            for case in ['body', 'api']:
+                changed = original.replace('Value() => 1;', 'Value() => ' + str(sample + 10) + ';')
+                assert changed != original
+                if case == 'api':
+                    changed = changed.replace('public static class P0 {', 'public static class P0 { public static int Added' + str(sample) + '() => 1;')
+                source.write_text(changed)
+                for mode in order:
+                    run(mode, case, sample)
+        print(json.dumps({mode: {case: statistics.median(row['seconds'] for row in rows if row['mode'] == mode and row['case'] == case)
+            for case in ['body', 'api']} for mode in ['baseline', 'candidate']}), flush=True)
+    finally:
+        source.write_text(original)
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('output', type=Path)
@@ -21,6 +76,8 @@ def main():
     parser.add_argument('--width', type=int, default=4)
     parser.add_argument('--depth', type=int, default=4)
     parser.add_argument('--samples', type=int, default=3)
+    parser.add_argument('--cached-edits', action='store_true', help='Compare distinct body/API edits with per-project qualification caching')
+    parser.add_argument('--profile', action='store_true', help='Include phase diagnostics in cached-edit runs')
     args = parser.parse_args()
     assert min(args.width, args.depth, args.samples) > 0
     sdk = Path(os.environ['RULES_MSBUILD_DOTNET_ROOT']).resolve()
@@ -41,6 +98,9 @@ def main():
         value = '+'.join('P' + str(dependency) + '.Value()' for dependency in dependencies) or '1'
         methods = ''.join('public static int Method{0}(int value) => value + {0};\n'.format(method) for method in range(256))
         (folder / 'Code.cs').write_text('public static class ' + name + ' { public static int Value() => ' + value + ';\n' + methods + '}\n')
+    if args.cached_edits:
+        cached_edits(args, sdk, version, output, root, count)
+        return
     rows, expected = [], None
     environment = dict(os.environ, DOTNET_ROOT=str(sdk), RULES_MSBUILD_SYNC_PROFILE='1',
         DOTNET_CLI_TELEMETRY_OPTOUT='1', DOTNET_NOLOGO='1', DOTNET_SKIP_FIRST_TIME_EXPERIENCE='1')
