@@ -24,6 +24,9 @@ Bazel **8.8.0 / 9.3.0** (default).
 **Experimental:** consume a pinned source checkout. No BCR or runner release;
 the API may change. See [validated scope and limits](docs/support.md).
 
+The [Orchard CI demo](docs/performance.md#orchard-ci-demo) exercises a real CMS graph,
+fresh-runner cache recovery and source edits.
+
 ## Measured progress
 
 On a public downloaded-SDK runtime graph with **543 configurations / 481 compilations**,

@@ -195,6 +195,25 @@ hashes. Test-result caching is disabled and the producer is stopped. See [measur
 This is a bounded managed graph with declared native producers, not the entire
 runtime repo, a full source-built SDK, Linux x64 or remote execution.
 
+## Orchard CMS
+
+The Orchard CMS [CI demo](performance.md#orchard-ci-demo) uses source commit
+`04467a3438d4255627c1a478598a1585b3ff2947`, SDK **10.0.400** and Bazel **9.3.0**
+on Linux ARM64. Public SDK/NuGet/sync APIs qualify **202 compilation projects /
+403 configurations / 347 archives**, including the netstandard source generator
+and Razor modules. Authored project files remain unchanged; the fixture pins
+`global.json` and adds reviewed mappings and Bazel declarations.
+
+The native Bazel HTTP test executes the app and checks its setup page plus three
+embedded assets. Source-body/API scenarios restore their authored files afterward.
+This covers the CMS startup graph, not tenant creation or Orchard's upstream unit
+and functional suites. Its random-ID source generator prevents full raw-build
+byte parity; recovery checks require exact seed bytes and modes.
+With the producer stopped, an independent VM recovered both Restore/graph actions
+and ran the test, preserving all **1,041 app files**. Complete **16,250-file**
+recovery passed with a relocated workspace/output base on the producer VM;
+independent full-graph materialization was stopped by the storage guard.
+
 ## NuGet inventories
 
 `//tests/integration:solutions` passed `.sln` / `.slnx` update, strict child locks,

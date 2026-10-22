@@ -444,6 +444,81 @@ One unprofiled validation pair compiled 1/47 projects, matched 2,814 required fi
 and recovered all 481 snapshots. It extends correctness coverage, not the paired
 baseline above; private sync qualification performs a full Build.
 
+## Orchard CI demo
+
+Source **04467a3**, rules **88c25ed**, SDK **10.0.400**, Bazel **9.3.0**;
+Linux ARM64, four CPUs / 8 GiB, HTTP cache on the same host's VM network.
+The CMS closure has **202 compilation projects / 403 configurations**, including
+the netstandard generator and Razor modules. See [qualified scope](support.md#orchard-cms).
+
+Jobs start with fresh outputs/local project caches and available SDK/package
+archives. Bazel includes startup, repository materialization, Restore, graph and app
+composition. Raw includes offline Restore + graph Build, four nodes, no shared
+compiler, and a task summary confirming **202 Csc calls**. Checkout/downloads,
+package update and sync are setup. Tests run separately except in the CI row.
+
+| Case | Raw Restore + Build | Bazel | Projects reused / rebuilt | Method |
+| --- | ---: | ---: | --- | --- |
+| Same commit, all outputs recovered | 141.06 s | 29.39 s | Whole-action hit | Single controls |
+| Same commit, top-level app outputs | — | 10.02 s | Whole-action hit | Median of three fresh bases |
+| CI build + actual HTTP test | — | 11.10 s | Whole-action hit; test executes | One independent-VM run |
+| Core-library body edit | 136.25 s | 49.04 s | 201 / 1 | Three paired medians |
+| Setup feature API edit | 139.21 s | 55.55 s | 198 / 4 | One pair |
+| Core-library API edit | 137.89 s | 183.47 s | 9 / 193 | Three paired medians |
+
+The body edit uses **64% less build time**. The all-output control preserves all
+**16,250 files**, including modes. One-time native package update/sync took
+**67.24 / 184.36 s**; these are setup observations, outside the job comparisons.
+The core API edit rebuilds most projects and remains **33% slower** than raw;
+cache reuse does not remove its real compilation work.
+
+With the producer stopped, one fresh VM recovered **353 remote actions / zero build
+executions** and all **1,041 app files**; tests executed with result caching off.
+Independent full-graph materialization hit the space guard and is excluded; the
+16,250-file control used relocated sources on the producer VM. These do not isolate
+download-policy speed, or qualify GitHub-hosted/WAN performance.
+
+Core edits change `NotFoundManifestInfo`; the feature API adds a Setup view-model
+property. Body/API reference checks and assembly file sets match. The
+[generator control](../tests/graph_build/upstream/generator_determinism.py)
+reproduces Orchard's random-ID DLL/PDB differences; raw byte parity is unqualified.
+Recovery requires exact seed bytes/modes.
+
+Requires qualified Linux ARM64, Bash, Python 3.10+, Bubblewrap, pinned tools and a
+writable HTTP AC/CAS service. Keep physical space for package/Restore trees;
+`--host-space-path` guards a host bind. Reports stay outside Git.
+
+```sh
+source scripts/env.sh
+python3 tests/graph_build/upstream/orchard_demo_prepare.py ORCHARD_ARCHIVE PREPARATION
+python3 tests/graph_build/upstream/orchard_demo.py PREPARATION/workspace SEED_RESULTS \
+  --phase=seed --output-base=SEED_BASE --cache-url=URL \
+  --discard-output-bases --trim-between-rows
+```
+
+For the live CI demo, the prepared workspace supplies one native Bazel command:
+
+```sh
+bash PREPARATION/workspace/ci.sh ABSOLUTE_FRESH_OUTPUT_BASE URL
+```
+
+This runs `bazel test //:smoke` with top-level downloads and test-result caching off.
+
+The preparation driver verifies the pinned archive hash and uses public downloaded-
+SDK, native NuGet update and compiler-selection sync. For CI controls, copy only the
+closed workspace, matching rules and verified dependency archives to a fresh runner;
+stop the producer. Use `--phase=recover --seed=SEED_RESULTS/seed.json` with fresh
+results/output bases. `--download-outputs=all` verifies the complete graph;
+`toplevel` verifies the app layout. Both execute the native `//:smoke` test.
+
+For three alternating fresh-output edit pairs, use `--phase=edits --samples=3
+--seed=SEED_RESULTS/seed.json --sdk=PINNED_SDK`. The feature scenario adds
+`--edits=tests/graph_build/upstream/orchard_feature_edit.json --only=api
+--reference-assembly=src/OrchardCore.Modules/OrchardCore.Setup/obj/Release/net10.0/ref/OrchardCore.Setup.dll`.
+Seeding is unscored and splits Restore/compilation to bound peak storage. Optional
+trimming and exited-worker cleanup happen outside scored intervals; trim requires
+a disposable root-owned filesystem. Each driver's `--help` lists the controls.
+
 ## Complete remote-cache recovery
 
 At **bee52f6**, a fresh relocated Linux ARM64 consumer with the producer stopped,
