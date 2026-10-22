@@ -192,6 +192,8 @@ executes all nine tests after normal Restore/graph action recovery and after for
 **481 HTTP project hits / zero compilations**. Both match **10,780 retained files**
 including modes, **118,952 passed / 64 skipped** upstream cases, and loaded source-runtime
 hashes. Test-result caching is disabled and the producer is stopped. See [measurements and reproduction](performance.md#large-downloaded-sdk-graph).
+A [runtime CI demo](performance.md#runtime-ci-demo) separates full build recovery
+from actual suite execution and includes an optional body-edit rehearsal.
 This is a bounded managed graph with declared native producers, not the entire
 runtime repo, a full source-built SDK, Linux x64 or remote execution.
 

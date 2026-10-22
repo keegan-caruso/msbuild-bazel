@@ -387,6 +387,78 @@ source-only fixture, stop the producer, then use `--phase=consumer` and
 performs full SDK compiler qualification; it is outside incremental scores.
 See [runtime support](support.md#downloaded-sdk-and-runtime-sources) for scope.
 
+### Runtime CI demo
+
+Production code **88c25ed**, runtime v10.0.0, SDK 10.0.400, Bazel 9.3.0.
+Independent Linux ARM64 consumer, four CPUs / 6 GiB; producer stopped, fresh
+Bazel base, retained repository acquisition cache, no copied action/project/test
+cache. HTTP cache on the private VM network; all build outputs downloaded.
+Single observations:
+
+| Stage | Seconds |
+| --- | ---: |
+| Recover app/test build closure | 53.24 |
+| Execute app and eight suites | 86.47 |
+| Complete demo command, including verification and cleanup | 145.18 |
+
+All **309 build spawns** were remote hits, including Restore, the 481-compilation
+graph and five native producers. Test-result caching was disabled. All **10,780
+retained files/modes**, **118,952 passed / 64 skipped** cases and **96 loaded-runtime
+observations** matched the seed. The earlier 8.83 s graph-only control excludes
+acquisition/bootstrap and this app/test closure; it is not a direct comparison.
+
+A second fresh-base recovery took **28.46 s** on the same consumer. Its unique
+Pipelines body edit then took **62.42 s** to rebuild the full app/test closure and
+**89.05 s** to execute the tests: **475 hits / six compilations / zero Restore
+executions**, unchanged reference bytes and identical normalized outcomes. The
+MSBuild worker was fresh (**543 loaded / zero retained evaluations**); this is not
+a comparison with the retained-worker paired graph timings above. The complete
+recovery → test → edit → test → restore rehearsal took **289.86 s**.
+
+Set up on an Apple silicon Mac with Git, Python 3 and Apple Container running.
+Cold setup requires **60 GiB free** and network access:
+
+```sh
+python3 scripts/setup-runtime-demo.py /absolute/runtime-demo
+bash /absolute/runtime-demo/run.sh /tmp/runtime-demo-1
+# Include recovery, tests, a unique body edit, tests again and restoration:
+bash /absolute/runtime-demo/run.sh /tmp/runtime-demo-2 --body-edit
+# Continue an interrupted setup from its frozen inputs:
+python3 scripts/setup-runtime-demo.py /absolute/runtime-demo --resume
+```
+
+Setup builds an Ubuntu 22.04 / Clang 14 image, records its immutable digest/package
+inventory, downloads verified runtime sources and pinned tools, updates NuGet and
+qualifies the 39-root graph. It declares five native producers, composes the
+source runtime/app and eight suites, then seeds the cache with actual test runs.
+It transfers a manifest-verified input checkpoint, stops the producer and creates
+an independent consumer. Consumer setup acquires SDK/package archives and the
+runner without building Restore or the managed/native graph; its disposable base
+is removed before the timed demo. The default cache is private to the VMs; its
+stable alias survives container IP changes.
+
+`setup.json`, frozen rules, input checkpoint, seed, package inventories and logs
+stay in the setup directory. Resume uses that snapshot; source/tool changes need
+a fresh directory. Runs reject a live producer and use fresh Bazel bases, with
+test-result caching disabled. Successful runs restore edited sources/products and
+remove their output base; failed runs keep outputs. No GitHub CI is started.
+
+Optional `--image=IMAGE@sha256:DIGEST` reuses an immutable Ubuntu image;
+`--cache-url=URL` uses an existing unauthenticated cache. A prior source-only
+checkpoint can be supplied with `--prepared-inputs=FILE --prepared-sha256=HASH`;
+with an external cache, this path requires **32 GiB free**. Checkpoints contain
+source, declarations and pinned archives, not producer outputs or local caches.
+They can be exported from a qualified workspace with
+`runtime_demo_prepare.py pack --workspace=WORKSPACE --archive=INPUTS.tar.gz`.
+
+Validation: 13 tooling controls pass on Linux ARM64, including six archive fault
+controls. Checkpoint-based setup, seeding, transfer and independent recovery pass:
+**29.18 s build / 96.15 s tests**, 118,952 passed / 64 skipped, zero executed build
+actions. Frozen-input resume and refusal to run with a live producer also pass.
+The full cold image/source-preparation path has not been rerun in this setup
+change because this host lacks the 60 GiB reserve. Its preparation stages reuse
+the separately qualified drivers above; cold setup is outside demo timings.
+
 ## Paired runtime baseline
 
 Runtime v10.0.0 (`60629d14374c56f1cb51819049ad1fa529307f8d`): **260 project paths /
