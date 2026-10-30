@@ -439,22 +439,35 @@ fixed through the edits. This is a bounded runtime slice, not upstream's full CI
 | Raw MSBuild, fresh outputs | 1,030.76 s | 90.37 s, nine actual targets | 1,121.13 s |
 | Bazel, download all | 32.01 s | 1.20 s, nine remote test hits | 33.21 s |
 | Bazel, top-level downloads | 19.42 s | 1.01 s, nine remote test hits | 20.43 s |
+| Bazel, top-level + batched layouts | 13.15 s | 0.99 s, nine remote test hits | 14.15 s |
 
-Raw is one observation. Bazel values are medians of three alternating pairs
-(ABBAAB), excluding interphase report checks. Every run recovered **309 build
-spawns / zero executions**, including Restore and five native producers. Top-level
-downloads reduce CLI time **38.5%**. A separate diagnostic reduced aggregate
+Raw is one observation. The first two Bazel rows are medians of three alternating
+pairs (ABBAAB); the batched row is the median of three further fresh-base runs.
+Times exclude interphase report checks. Every Bazel run recovered all build actions
+with zero executions, including Restore and five native producers: **309 spawns**
+before batching, **186** afterward. Top-level downloads alone reduce CLI time
+**38.5%**. A separate diagnostic reduced aggregate
 remote-output download spans **8.83 → 0.70 s**; spans overlap and are not wall time.
 The top-level proof subsequently downloads all artifacts for auditing, adding
-**21.16–21.52 s** outside the CI timer. Normal CI does not need that audit download.
+**21.16–21.52 s** before batching or **13.94–14.38 s** afterward outside the CI
+timer. Normal CI does not need that audit download.
+
+`msbuild_graph_layouts` replaces **124** host project-directory exports with one
+manifest-driven action. The complete host matches **490 legacy files and modes**.
+Three alternating, unprofiled body-build pairs measured **77.28 → 65.39 s**
+medians (**15.4% less**), always **475 project hits / six compilations**, unchanged
+reference bytes and zero Restore/native execution. These build-only pairs exclude
+tests; actual test controls are below. A separate diagnostic recorded **37.65 s**
+inside the MSBuild worker, including **4.23 s** staging and **32.87 s** in its child.
+Operation totals overlap; they are not the paired timing scores.
 
 Single edit observations below compare **raw retained outputs** with a **fresh
 Bazel worker**, keeping the source changes identical:
 
 | Edit | Raw build/publication | Bazel build | Actual tests, raw / Bazel |
 | --- | ---: | ---: | ---: |
-| Pipelines body | 29.09 s | 85.72 s | 90.04 / 90.93 s |
-| Pipelines API | 46.11 s | 95.43 s | 94.57 / 90.42 s |
+| Pipelines body | 29.88 s | 67.29 s | 89.47 / 92.75 s |
+| Pipelines API | 45.20 s | 76.86 s | 93.67 / 89.11 s |
 
 Bazel reused **475 / 464** projects and compiled **6 / 17**, with no Restore
 execution. Both edits executed all nine test targets and matched raw's **3,622

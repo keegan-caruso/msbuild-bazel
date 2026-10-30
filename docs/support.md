@@ -196,6 +196,13 @@ A [runtime CI demo](performance.md#runtime-ci-demo) separates full build recover
 from actual suite execution and includes an optional body-edit rehearsal.
 Clean image/source/cache setup, interrupted resume and independent recovery after
 verified producer deletion also pass on Linux ARM64; test-result caching is disabled.
+Batched project layouts passed three-project baseline/body-edit byte-and-mode
+parity on Bazel **8.8.0 / 9.3.0**, with one layout action and pre-build `aquery`.
+Unknown configured projects and escaping destinations fail analysis.
+On the large graph, one batch replaces 124 host-directory exports and matches all
+490 host files/modes. A stopped-producer consumer recovered **186 build actions
+and nine test results remotely**, then body/API edits each executed all nine tests
+with **6 / 17** compilations and raw output/case parity. These controls use 9.3.0.
 This is a bounded managed graph with declared native producers, not the entire
 runtime repo, a full source-built SDK, Linux x64 or remote execution.
 

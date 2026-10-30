@@ -93,18 +93,11 @@ def main():
             'targets': {'.NETCoreApp,Version=v10.0': {}, target: {identity: products}},
             'libraries': {identity: {'type': 'package', 'serviceable': True, 'sha512': ''}}}
     (framework / 'Microsoft.NETCore.App.deps.json').write_text(json.dumps(deps, indent=2) + '\n')
-    declarations = ['load("@rules_msbuild//msbuild:defs.bzl", "msbuild_graph", "msbuild_graph_layout", "msbuild_graph_binary", "msbuild_graph_test", "msbuild_layout", "msbuild_runtime")']
-    paths = {}
-    for index, (name, producer) in enumerate(sorted(managed.items())):
-        label = 'app_library_' + str(index)
-        declarations.append('msbuild_graph_layout(name=' + json.dumps(label) + ', graph=":graph", project=' +
-            json.dumps(producer['project']) + ', framework=' + json.dumps(producer['framework']) + ')')
-        paths[':' + label] = shared
-    for index, (name, producer) in enumerate(sorted(private.items())):
-        label = 'app_private_' + str(index)
-        declarations.append('msbuild_graph_layout(name=' + json.dumps(label) + ', graph=":graph", project=' +
-            json.dumps(producer['project']) + ', framework=' + json.dumps(producer['framework']) + ')')
-        paths[':' + label] = 'private'
+    declarations = ['load("@rules_msbuild//msbuild:defs.bzl", "msbuild_graph", "msbuild_graph_layouts", "msbuild_graph_binary", "msbuild_graph_test", "msbuild_layout", "msbuild_runtime")']
+    projects = {producer['project'] + '|' + producer['framework']: destination
+        for producers, destination in [(managed, shared), (private, 'private')] for producer in producers.values()}
+    declarations.append('msbuild_graph_layouts(name="app_managed",graph=":graph",projects=' + json.dumps(projects, sort_keys=True) + ')')
+    paths = {':app_managed': '.'}
     paths.update({label: destination for label, destination, _ in native_products.values()})
     paths.update({'runtime/' + shared + '/' + name: shared + '/' + name for name in
                   ['.version', 'Microsoft.NETCore.App.runtimeconfig.json', 'Microsoft.NETCore.App.deps.json']})
