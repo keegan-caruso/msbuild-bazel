@@ -425,6 +425,8 @@ bash /absolute/runtime-demo/run.sh /tmp/runtime-demo-1
 bash /absolute/runtime-demo/run.sh /tmp/runtime-demo-2 --body-edit
 # Continue an interrupted setup from its frozen inputs:
 python3 scripts/setup-runtime-demo.py /absolute/runtime-demo --resume
+# Verify the retained handoff and remove the stopped producer VM:
+python3 scripts/setup-runtime-demo.py /absolute/runtime-demo --archive-producer
 ```
 
 Setup builds an Ubuntu 22.04 / Clang 14 image, records its immutable digest/package
@@ -439,7 +441,9 @@ stable alias survives container IP changes.
 
 `setup.json`, frozen rules, input checkpoint, seed, package inventories and logs
 stay in the setup directory. Resume uses that snapshot; source/tool changes need
-a fresh directory. Runs reject a live producer and use fresh Bazel bases, with
+a fresh directory. `--archive-producer` verifies the retained rules, checkpoint and
+seed before deleting the stopped VM. Runs require that producer to be stopped or
+its archive proof to match the retained files. They use fresh Bazel bases, with
 test-result caching disabled. Successful runs restore edited sources/products and
 remove their output base; failed runs keep outputs. No GitHub CI is started.
 
