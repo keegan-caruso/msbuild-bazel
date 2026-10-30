@@ -1,5 +1,20 @@
 # Performance versus raw MSBuild
 
+## CI comparison controls
+
+`runtime_recovered_tests.py --demo --test-cache=yes` measures normal CI test-result
+reuse; `--require-test-recovery` requires nine remote test hits. Use
+`--initial-edit=body|api --edit-token=TOKEN` to edit before a fresh worker's first
+build. The default test-cache policy remains `no` for actual-execution controls.
+
+Pair these with `runtime_ci_raw.py --case=body|api --edit-token=TOKEN` after a
+full-source raw control. `--fresh-outputs` removes owned outputs and Restore assets,
+retaining SDK/packages. Native binaries and unchanged demo helpers are shared
+prepared prerequisites. Compare reports with `runtime_ci_compare.py --case=CASE`;
+it requires matching contracts, edits, compiled bytes/modes and test outcomes.
+Report executed tests and remote test hits separately. These helpers have synthetic
+controls; full CI timing results remain pending.
+
 ## Sync preparation
 
 Multi-root offline sync calls each root's Restore target within one native
