@@ -6,6 +6,8 @@
 reuse; `--require-test-recovery` requires nine remote test hits. Use
 `--initial-edit=body|api --edit-token=TOKEN` to edit before a fresh worker's first
 build. The default test-cache policy remains `no` for actual-execution controls.
+The helper checks HTTP cache reachability before building, so a disconnected cache
+cannot silently turn a recovery measurement into a local rebuild.
 
 Prepare raw inputs with `runtime_full_source.py --prepare-only`, then use
 `runtime_ci_raw.py --case=body|api --edit-token=TOKEN`. Its first scored run can

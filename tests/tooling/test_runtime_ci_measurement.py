@@ -1,11 +1,13 @@
 """Do not report recovered test results as actual executions in CI measurements."""
 from pathlib import Path
+from http.server import BaseHTTPRequestHandler, HTTPServer
 import sys
 import tempfile
 import unittest
+import threading
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'graph_build/upstream'))
-from runtime_recovered_tests import edited_sources, test_cache_counts
+from runtime_recovered_tests import edited_sources, test_cache_counts, require_http_cache
 from runtime_ci_raw import clean_products
 from runtime_ci_compare import compare
 
@@ -15,6 +17,33 @@ def result(remote=False, local=False, status='PASSED'):
 
 
 class CiMeasurement(unittest.TestCase):
+    def test_cache_preflight_accepts_miss_and_rejects_outage(self):
+        class Handler(BaseHTTPRequestHandler):
+            status = 404
+
+            def do_GET(self):
+                self.send_response(self.status)
+                self.end_headers()
+
+            def log_message(self, *args):
+                pass
+
+        server = HTTPServer(('127.0.0.1', 0), Handler)
+        thread = threading.Thread(target=server.serve_forever, daemon=True)
+        thread.start()
+        url = 'http://127.0.0.1:' + str(server.server_port)
+        try:
+            require_http_cache(url)
+            Handler.status = 503
+            with self.assertRaisesRegex(RuntimeError, 'refusing a local fallback'):
+                require_http_cache(url)
+        finally:
+            server.shutdown()
+            thread.join()
+            server.server_close()
+        with self.assertRaisesRegex(RuntimeError, 'unreachable'):
+            require_http_cache(url)
+
     def test_comparison_rejects_different_edits_products_or_test_work(self):
         common = dict(contractSha256='contract', editToken='same', sourceEdits={'Source.cs': 'edit'},
             signatures={'suite': 'cases'}, outcomes={'passed': 1}, files={'Output.dll': dict(sha256='bytes', mode=420)},

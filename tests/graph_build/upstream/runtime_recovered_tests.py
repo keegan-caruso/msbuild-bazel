@@ -17,6 +17,8 @@ import subprocess
 import sys
 import time
 import uuid
+import urllib.error
+import urllib.request
 import xml.etree.ElementTree as ET
 
 from runtime_suite_verify import proofs
@@ -80,6 +82,19 @@ def test_cache_counts(tests, policy, require_remote=False):
     return dict(executed=len(tests) - remote - local, remote=remote, local=local)
 
 
+def require_http_cache(url):
+    # A standard AC miss proves connectivity without warming any seed entry.
+    # Otherwise Bazel may silently fall back to an expensive local rebuild.
+    try:
+        with urllib.request.urlopen(url.rstrip('/') + '/ac/' + '0' * 64, timeout=10) as response:
+            assert response.status == 200
+    except urllib.error.HTTPError as error:
+        if error.code != 404:
+            raise RuntimeError(f'HTTP cache preflight failed ({error.code}); refusing a local fallback') from None
+    except (urllib.error.URLError, TimeoutError):
+        raise RuntimeError('HTTP cache is unreachable; refusing a local fallback') from None
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('workspace', type=Path)
@@ -114,6 +129,7 @@ def main():
     assert not base.is_relative_to(root) and not root.is_relative_to(base)
     assert not results.is_relative_to(root) and not root.is_relative_to(results)
     assert not results.is_relative_to(base) and not base.is_relative_to(results)
+    require_http_cache(args.cache_url)
     results.mkdir(parents=True, exist_ok=False)
     contract = json.loads((root / 'graph.generated.json').read_text())
     nodes = [node for project in contract['Projects'].values() for node in project['Configurations']]
