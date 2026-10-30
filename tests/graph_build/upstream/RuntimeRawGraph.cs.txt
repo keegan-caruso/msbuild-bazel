@@ -31,7 +31,7 @@ Dictionary<string, string> EntryProperties(string project)
         foreach (var property in values.EnumerateObject()) globals[property.Name] = property.Value.GetString()!;
     return globals;
 }
-if (args[2] == "restore")
+if (args[2] is "restore" or "restore-unlocked")
 {
     // Same normal Restore targets and per-root properties, sharing one native
     // MSBuild session instead of charging raw CI for 39 separate CLI startups.
@@ -47,7 +47,8 @@ if (args[2] == "restore")
             globals["RestoreConfigFile"] = Path.Combine(root, args[3]);
             globals["RestoreSources"] = Path.Combine(root, ".package-source");
             globals["RestorePackagesPath"] = Path.Combine(root, ".nuget");
-            globals["RestoreLockedMode"] = "true";
+            globals["RestoreLockedMode"] = (args[2] == "restore").ToString();
+            if (args[2] == "restore-unlocked") globals["RestorePackagesWithLockFile"] = "true";
             globals["NuGetAudit"] = "false";
             globals["RestoreFallbackFolders"] = "";
             globals["RestoreAdditionalProjectSources"] = "";

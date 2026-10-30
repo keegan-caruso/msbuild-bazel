@@ -1,6 +1,6 @@
 """Measure raw MSBuild and the same app/eight suites used by the runtime CI demo.
 
-Requires a completed full-source raw control and built graph demo assets. Native
+Requires a prepared full-source raw workspace and built graph demo assets. Native
 runtime files and unchanged demo helpers are shared prerequisites, not cold native
 build scores. Package/SDK acquisition and asset preparation precede the timer.
 """
@@ -48,7 +48,7 @@ def clean_products(raw, contract):
         target = raw / path
         assert target.resolve().is_relative_to(raw) and not target.is_symlink()
         directory_targets.append(target)
-    for name in {path for node in nodes for path in node.get('OutputFiles', [])}:
+    for name in {path for node in nodes for path in node.get('OutputFiles', [])} | set(contract['Restore'].get('Outputs', [])):
         path = Path(name)
         assert path.parts and not path.is_absolute() and '..' not in path.parts and name not in inputs
         assert path.parts[0] not in ['.nuget', '.package-source', '.qualification']
@@ -66,7 +66,7 @@ def clean_products(raw, contract):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('workspace', type=Path, help='built runtime CI graph, with source host and demo helper outputs')
-    parser.add_argument('raw_results', type=Path, help='successful runtime_full_source.py control')
+    parser.add_argument('raw_results', type=Path, help='runtime_full_source.py control or --prepare-only workspace')
     parser.add_argument('assets', type=Path, help='owned reusable native/runner/helper template; created if absent')
     parser.add_argument('results', type=Path, help='fresh evidence directory')
     parser.add_argument('--case', choices=['unchanged', 'body', 'api'], default='unchanged')

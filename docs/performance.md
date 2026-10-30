@@ -7,13 +7,21 @@ reuse; `--require-test-recovery` requires nine remote test hits. Use
 `--initial-edit=body|api --edit-token=TOKEN` to edit before a fresh worker's first
 build. The default test-cache policy remains `no` for actual-execution controls.
 
-Pair these with `runtime_ci_raw.py --case=body|api --edit-token=TOKEN` after a
-full-source raw control. `--fresh-outputs` removes owned outputs and Restore assets,
+Prepare raw inputs with `runtime_full_source.py --prepare-only`, then use
+`runtime_ci_raw.py --case=body|api --edit-token=TOKEN`. Its first scored run can
+also serve as the full-source correctness control.
+`--fresh-outputs` removes owned outputs and every declared Restore file,
 retaining SDK/packages. Native binaries and unchanged demo helpers are shared
 prepared prerequisites. Compare reports with `runtime_ci_compare.py --case=CASE`;
 it requires matching contracts, edits, compiled bytes/modes and test outcomes.
 Report executed tests and remote test hits separately. These helpers have synthetic
 controls; full CI timing results remain pending.
+
+For a pruned source handoff, `runtime_full_source.py --bootstrap-unused-locks`
+can reconstruct inventory locks outside the declared graph using offline packages.
+It requires every declared lock and verifies all retained locks stay identical.
+The current runtime control reconstructed five locks while preserving 260; this
+is unscored package preparation, not additional build qualification.
 
 ## Sync preparation
 

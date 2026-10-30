@@ -55,12 +55,12 @@ class CiMeasurement(unittest.TestCase):
     def test_cold_cleanup_retains_inputs_packages_and_raw_driver(self):
         with tempfile.TemporaryDirectory() as folder:
             root = Path(folder)
-            for name in ['src/Code.cs', '.nuget/keep', '.qualification/Raw.dll', 'artifacts/obj/old', 'artifacts/bin/Extra.dll']:
+            for name in ['src/Code.cs', '.nuget/keep', '.qualification/Raw.dll', 'artifacts/obj/old', 'artifacts/bin/Extra.dll', 'artifacts/restore/project.assets.json']:
                 path = root / name
                 path.parent.mkdir(parents=True, exist_ok=True)
                 path.write_text(name)
             node = dict(Inputs=['src/Code.cs'], OutputDirectories=['artifacts/obj'], OutputFiles=['artifacts/bin/Extra.dll'])
-            contract = dict(SharedInputs=[], Restore=dict(Inputs=[]), Projects={'P': dict(Inputs=[], Configurations=[node])})
+            contract = dict(SharedInputs=[], Restore=dict(Inputs=[], Outputs=['artifacts/restore/project.assets.json']), Projects={'P': dict(Inputs=[], Configurations=[node])})
             for bad in ['src', '.nuget', '../outside']:
                 node['OutputDirectories'].append(bad)
                 with self.assertRaises(AssertionError):
@@ -70,6 +70,7 @@ class CiMeasurement(unittest.TestCase):
             clean_products(root, contract)
             self.assertFalse((root / 'artifacts/obj').exists())
             self.assertFalse((root / 'artifacts/bin/Extra.dll').exists())
+            self.assertFalse((root / 'artifacts/restore/project.assets.json').exists())
             for name in ['src/Code.cs', '.nuget/keep', '.qualification/Raw.dll']:
                 self.assertEqual((root / name).read_text(), name)
 
