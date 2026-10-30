@@ -110,9 +110,12 @@ def main():
     parser.add_argument('--edit-token', help='shared unique token for a paired raw/graph edit')
     parser.add_argument('--test-cache', choices=['no', 'yes'], default='no', help='default executes correctness controls; yes measures normal cached CI tests')
     parser.add_argument('--require-test-recovery', action='store_true', help='require all nine test results to come from the remote cache')
+    parser.add_argument('--download-outputs', choices=['all', 'toplevel'],
+        help='default toplevel for cached CI demos, all for actual-execution controls; audit remaining products outside the CI timer')
     parser.add_argument('--discard-output-base', action='store_true', help="with --demo: after success, remove only this run's fresh Bazel base; retain reports")
     parser.add_argument('--host-space-path', type=Path, required=True)
     args = parser.parse_args()
+    args.download_outputs = args.download_outputs or ('toplevel' if args.demo and args.test_cache == 'yes' else 'all')
     assert os.uname().sysname == 'Linux' and os.uname().machine == 'aarch64'
     assert bool(args.seed_report) == (args.phase == 'consumer')
     assert not args.demo or args.phase == 'consumer'
@@ -122,6 +125,7 @@ def main():
     assert not edit_kind or args.demo
     assert not args.edit_token or edit_kind
     assert not args.require_test_recovery or args.demo and not edit_kind and args.test_cache == 'yes'
+    assert args.download_outputs == 'all' or args.demo
     assert not args.discard_output_base or args.demo
     root, results = args.workspace.resolve(), args.results.resolve()
     assert args.output_base.is_absolute() and not args.output_base.exists()
@@ -152,7 +156,7 @@ def main():
         '--output_base=' + str(base)]
     options = ['--jobs=1', '--strategy=MSBuildGraph=worker', '--worker_sandboxing', '--worker_max_instances=MSBuildGraph=1',
         '--local_test_jobs=1', '--disk_cache=', '--remote_cache=' + args.cache_url, '--remote_cache_async=false',
-        '--remote_download_outputs=all', '--remote_upload_local_results=' + str(args.phase == 'producer').lower(),
+        '--remote_download_outputs=' + args.download_outputs, '--remote_upload_local_results=' + str(args.phase == 'producer').lower(),
         '--cache_test_results=' + args.test_cache, '--test_output=errors', '--action_env=RULES_MSBUILD_PROJECT_CACHE_URL=' + args.cache_url]
     if os.environ.get('RULES_MSBUILD_TEST_REPOSITORY_CACHE'):
         options += ['--repository_cache=' + os.environ['RULES_MSBUILD_TEST_REPOSITORY_CACHE']]
@@ -190,7 +194,8 @@ def main():
                 assert not any(row['mnemonic'] == 'MSBuildGraphRestore' and not row['cacheHit'] for row in recovered), recovered
             (results / (label + '-build-actions.json')).write_text(json.dumps(recovered, indent=2) + '\n')
             build_log.unlink()
-            assert runner_digest(root) == seed['runnerSha256'], 'Producer/consumer runner bytes differ'
+            if args.download_outputs == 'all':
+                assert runner_digest(root) == seed['runnerSha256'], 'Producer/consumer runner bytes differ'
             print(f'Build completed in {build_seconds:.2f}s; testing nine targets (cache={args.test_cache})...', flush=True)
         test_start = time.monotonic()
         with (results / (label + '.log')).open('w') as log:
@@ -198,6 +203,19 @@ def main():
                 '--execution_log_json_file=' + str(execution)], cwd=root, stdout=log, stderr=subprocess.STDOUT, check=True)
         command_seconds = time.monotonic() - start
         test_seconds = time.monotonic() - test_start
+        audit_download_seconds = 0
+        if args.download_outputs != 'all':
+            # Keep the complete byte/mode/runtime audit, without making a cached
+            # CI job download intermediate files it does not consume.
+            audit_start = time.monotonic()
+            audit_trace = results / (label + '-audit.execution.json')
+            audit_options = [option for option in options if not option.startswith('--remote_download_outputs=')]
+            with (results / (label + '-audit.log')).open('w') as log:
+                subprocess.run(command + ['build', *sorted(targets), *audit_options, '--remote_download_outputs=all',
+                    '--execution_log_json_file=' + str(audit_trace)], cwd=root, stdout=log, stderr=subprocess.STDOUT, check=True)
+            audit_download_seconds = time.monotonic() - audit_start
+            assert all(row['cacheHit'] for row in graph_actions(audit_trace, mnemonics=None)), 'Audit unexpectedly executed build work'
+            audit_trace.unlink()
         verification_start = time.monotonic()
         records = [json.loads(line) for line in events.read_text().splitlines()]
         tests = [event for event in records if 'testResult' in event]
@@ -208,6 +226,8 @@ def main():
         graph = root / 'bazel-bin/graph.graph'
         report = json.loads((graph / 'report.json').read_text())
         runner_sha256 = runner_digest(root)
+        if seed:
+            assert runner_sha256 == seed['runnerSha256'], 'Producer/consumer runner bytes differ'
         actions = recovered if args.demo else graph_actions(execution)
         (results / (label + '-actions.json')).write_text(json.dumps(actions, indent=2) + '\n')
         main = next(row for row in actions if row.get('mnemonic') == 'MSBuildGraph' and any(path.endswith('/graph.graph') for path in row['listedOutputs']))
@@ -267,6 +287,9 @@ def main():
             else:
                 assert files == seed['files'], 'Recovered products differ'
         row = dict(case=label, seconds=time.monotonic()-start, commandSeconds=command_seconds,
+            downloadOutputs=args.download_outputs, auditDownloadSeconds=audit_download_seconds,
+            buildAndTestSeconds=build_seconds + test_seconds if args.demo else command_seconds,
+            interphaseCheckSeconds=command_seconds - build_seconds - test_seconds if args.demo else 0,
             editToken=edit_token if label in ['body', 'api'] else None,
             sourceEdits={name: hashlib.sha256((root / name).read_bytes()).hexdigest() for name in changes}
                 if label in ['body', 'api'] else {},
@@ -290,7 +313,8 @@ def main():
         execution.unlink()
         if args.demo:
             print(f"PASS: {outcomes['passed']:,} passed / {outcomes['skipped']} skipped; "
-                f"build + tests {command_seconds:.2f}s; verification {row['verificationSeconds']:.2f}s", flush=True)
+                f"build + tests {row['buildAndTestSeconds']:.2f}s; audit download {audit_download_seconds:.2f}s; "
+                f"verification {row['verificationSeconds']:.2f}s", flush=True)
             if not whole:
                 print(f"Projects: {report['hits']} reused / {report['misses']} compiled; reference assembly " +
                     ('unchanged' if label == 'body' else 'changed'), flush=True)

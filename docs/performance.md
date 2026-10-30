@@ -18,8 +18,9 @@ prepared prerequisites. Compare reports with `runtime_ci_compare.py --case=CASE`
 it requires matching contracts, edits, compiled bytes and test outcomes. Managed
 output modes follow each producer's policy: raw SDK `0644`/`0744`, Bazel `0555`.
 Graph producer/consumer recovery still requires exact file-mode parity.
-Report executed tests and remote test hits separately. These helpers have synthetic
-controls; full CI timing results remain pending.
+Report executed tests and remote test hits separately. Cached CI demos default to
+top-level downloads; complete artifact verification follows outside the CI timer.
+See [measured CI results](#runtime-ci-demo).
 
 For a pruned source handoff, `runtime_full_source.py --bootstrap-unused-locks`
 can reconstruct inventory locks outside the declared graph using offline packages.
@@ -426,31 +427,46 @@ See [runtime support](support.md#downloaded-sdk-and-runtime-sources) for scope.
 
 ### Runtime CI demo
 
-Production code **88c25ed**, runtime v10.0.0, SDK 10.0.400, Bazel 9.3.0.
-Independent Linux ARM64 consumer, four CPUs / 6 GiB; producer stopped, fresh
-Bazel base, retained repository acquisition cache, no copied action/project/test
-cache. HTTP cache on the private VM network; all build outputs downloaded.
-Single observations:
+Runtime v10.0.0 (`60629d1`), SDK **10.0.400**, Bazel **9.3.0**, runner SHA
+`95368b8b…`. Linux ARM64, four CPUs / 6 GiB per worker; private HTTP cache,
+producer stopped, relocated source-only consumer and fresh output bases.
+Scope: **39 managed roots / 543 configurations / 481 compilations**, source-native
+binaries, SDK/packages and unchanged app/test helpers prepared. Version inputs stay
+fixed through the edits. This is a bounded runtime slice, not upstream's full CI.
 
-| Stage | Seconds |
-| --- | ---: |
-| Recover app/test build closure | 53.24 |
-| Execute app and eight suites | 86.47 |
-| Complete demo command, including verification and cleanup | 145.18 |
+| Unchanged job | Restore/build | Tests/results | Total CLI |
+| --- | ---: | ---: | ---: |
+| Raw MSBuild, fresh outputs | 1,030.76 s | 90.37 s, nine actual targets | 1,121.13 s |
+| Bazel, download all | 32.01 s | 1.20 s, nine remote test hits | 33.21 s |
+| Bazel, top-level downloads | 19.42 s | 1.01 s, nine remote test hits | 20.43 s |
 
-All **309 build spawns** were remote hits, including Restore, the 481-compilation
-graph and five native producers. Test-result caching was disabled. All **10,780
-retained files/modes**, **118,952 passed / 64 skipped** cases and **96 loaded-runtime
-observations** matched the seed. The earlier 8.83 s graph-only control excludes
-acquisition/bootstrap and this app/test closure; it is not a direct comparison.
+Raw is one observation. Bazel values are medians of three alternating pairs
+(ABBAAB), excluding interphase report checks. Every run recovered **309 build
+spawns / zero executions**, including Restore and five native producers. Top-level
+downloads reduce CLI time **38.5%**. A separate diagnostic reduced aggregate
+remote-output download spans **8.83 → 0.70 s**; spans overlap and are not wall time.
+The top-level proof subsequently downloads all artifacts for auditing, adding
+**21.16–21.52 s** outside the CI timer. Normal CI does not need that audit download.
 
-A second fresh-base recovery took **28.46 s** on the same consumer. Its unique
-Pipelines body edit then took **62.42 s** to rebuild the full app/test closure and
-**89.05 s** to execute the tests: **475 hits / six compilations / zero Restore
-executions**, unchanged reference bytes and identical normalized outcomes. The
-MSBuild worker was fresh (**543 loaded / zero retained evaluations**); this is not
-a comparison with the retained-worker paired graph timings above. The complete
-recovery → test → edit → test → restore rehearsal took **289.86 s**.
+Single edit observations below compare **raw retained outputs** with a **fresh
+Bazel worker**, keeping the source changes identical:
+
+| Edit | Raw build/publication | Bazel build | Actual tests, raw / Bazel |
+| --- | ---: | ---: | ---: |
+| Pipelines body | 29.09 s | 85.72 s | 90.04 / 90.93 s |
+| Pipelines API | 46.11 s | 95.43 s | 94.57 / 90.42 s |
+
+Bazel reused **475 / 464** projects and compiled **6 / 17**, with no Restore
+execution. Both edits executed all nine test targets and matched raw's **3,622
+DLL/PDB/resource files**, normalized cases and **118,952 passed / 64 skipped**
+outcomes. Body edits preserve reference bytes. All graph recoveries also match
+**10,780 retained files/modes**. The fresh-worker edit overhead remains significant;
+these rows are not the retained-worker measurements above.
+
+Normal test-result recovery needs a producer pass with
+`runtime_recovered_tests.py --phase=producer --test-cache=yes` before stopping it.
+The default setup/rehearsal below disables test-result caching and actually runs
+the tests; it does not produce the 20-second cached-test result.
 
 Set up on an Apple silicon Mac with Git, Python 3 and Apple Container running.
 Cold setup requires **60 GiB free** and network access:
