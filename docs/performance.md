@@ -455,13 +455,19 @@ source, declarations and pinned archives, not producer outputs or local caches.
 They can be exported from a qualified workspace with
 `runtime_demo_prepare.py pack --workspace=WORKSPACE --archive=INPUTS.tar.gz`.
 
-Validation: 13 tooling controls pass on Linux ARM64, including six archive fault
-controls. Checkpoint-based setup, seeding, transfer and independent recovery pass:
-**29.18 s build / 96.15 s tests**, 118,952 passed / 64 skipped, zero executed build
-actions. Frozen-input resume and refusal to run with a live producer also pass.
-The full cold image/source-preparation path has not been rerun in this setup
-change because this host lacks the 60 GiB reserve. Its preparation stages reuse
-the separately qualified drivers above; cold setup is outside demo timings.
+Clean setup passed on Linux ARM64 with a freshly built image, downloaded sources
+and empty private cache, without a prepared checkpoint. A deliberate interruption
+after tools resumed successfully. After verified producer deletion, the consumer
+recovered **309 remote build spawns / zero executions** in **28.93 s**, then actually
+ran all nine targets in **91.55 s**: **118,952 passed / 64 skipped**, matching
+**10,780 files and modes**. The command took **122.37 s**, including interphase
+checks; post-run verification took **1.09 s**. These are single observations,
+not a paired MSBuild comparison. Cold setup is outside demo timings.
+
+All 20 tooling controls passed in the new image, including archive integrity and
+producer-retirement guards. Standalone resume after deletion passed; a changed
+retained seed was rejected before execution. The earlier checkpoint setup remains
+qualified. Keep the setup directory in durable storage for resume and runs.
 
 ## Paired runtime baseline
 

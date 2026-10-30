@@ -194,6 +194,8 @@ including modes, **118,952 passed / 64 skipped** upstream cases, and loaded sour
 hashes. Test-result caching is disabled and the producer is stopped. See [measurements and reproduction](performance.md#large-downloaded-sdk-graph).
 A [runtime CI demo](performance.md#runtime-ci-demo) separates full build recovery
 from actual suite execution and includes an optional body-edit rehearsal.
+Clean image/source/cache setup, interrupted resume and independent recovery after
+verified producer deletion also pass on Linux ARM64; test-result caching is disabled.
 This is a bounded managed graph with declared native producers, not the entire
 runtime repo, a full source-built SDK, Linux x64 or remote execution.
 
