@@ -13,7 +13,9 @@ also serve as the full-source correctness control.
 `--fresh-outputs` removes owned outputs and every declared Restore file,
 retaining SDK/packages. Native binaries and unchanged demo helpers are shared
 prepared prerequisites. Compare reports with `runtime_ci_compare.py --case=CASE`;
-it requires matching contracts, edits, compiled bytes/modes and test outcomes.
+it requires matching contracts, edits, compiled bytes and test outcomes. Managed
+output modes follow each producer's policy: raw SDK `0644`/`0744`, Bazel `0555`.
+Graph producer/consumer recovery still requires exact file-mode parity.
 Report executed tests and remote test hits separately. These helpers have synthetic
 controls; full CI timing results remain pending.
 

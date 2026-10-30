@@ -21,8 +21,10 @@ class CiMeasurement(unittest.TestCase):
             executedTests=9, commandSeconds=10)
         raw = dict(common, case='body', restoreSeconds=0, buildSeconds=1, publicationSeconds=1, testSeconds=8, scope='test')
         graph = dict(common, case='body', remoteTestHits=0, localTestHits=0, buildSeconds=2, testCommandSeconds=8)
+        graph['files'] = {'Output.dll': dict(sha256='bytes', mode=0o555)}
         self.assertEqual(compare(raw, graph)['compiledFiles'], 1)
-        for key, value in [('sourceEdits', {'Source.cs': 'other'}), ('files', {}), ('localTestHits', 1)]:
+        for key, value in [('sourceEdits', {'Source.cs': 'other'}), ('files', {}),
+            ('files', {'Output.dll': dict(sha256='bytes', mode=0o444)}), ('localTestHits', 1)]:
             with self.assertRaises(AssertionError):
                 compare(raw, dict(graph, **{key: value}))
 
