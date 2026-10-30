@@ -76,7 +76,8 @@ def export_source_runtime(source, output, rules, resume=False):
     module = module.replace('use_repo(dotnet,"dotnet")', 'use_repo(dotnet,dotnet="jit_source_sdk")')
     module = module.replace('nuget.lock(name="nuget"', 'nuget.lock(name="jit_source_nuget"')
     module = module.replace('use_repo(nuget,"nuget")', 'use_repo(nuget,nuget="jit_source_nuget")')
-    module += 'bazel_dep(name="jit_bootstrap",version="0.0.0")\nlocal_path_override(module_name="jit_bootstrap",path="../bootstrap")\n'
+    if 'bazel_dep(name="jit_bootstrap",' not in module:
+        module += 'bazel_dep(name="jit_bootstrap",version="0.0.0")\nlocal_path_override(module_name="jit_bootstrap",path="../bootstrap")\n'
     (output / 'MODULE.bazel').write_text(module)
     lines = ['load(":graph.generated.bzl","app_graph")',
         'load("@rules_msbuild//msbuild:defs.bzl","msbuild_graph_output","msbuild_layout","msbuild_runtime")',

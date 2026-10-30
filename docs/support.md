@@ -331,9 +331,15 @@ and restoring the producer recovers the original result and reference DLL bytes.
 All six upstream tests execute successfully with test-result caching disabled.
 Scope: Linux ARM64, SDK 10.0.400, Bazel 9.3.0.
 Full managed preparation also matches retained ordinary declarations byte-for-byte.
-Latest-payload independent recovery of the combined live runtime/JIT producer chain
-remains unqualified: its final reseed was interrupted by exhausted host storage.
-This does not affect the completed managed/bootstrap recovery or local JIT controls.
+The current runner also passed independent live runtime/JIT recovery: a relocated
+consumer with fresh output bases, strict module locks and the producer stopped
+recovered preparation with **227 remote spawn hits / zero executions**. All five
+native producers and the managed graphs recovered remotely; all six JIT tests
+executed. Forcing JIT project recovery then produced **9 hits / zero compilations**
+and six more actual test executions. Outputs, modes, runtime host and reference
+assemblies match the producer and retained raw-qualified control. The handoff uses
+`runtime_jit_public_consumer.py --preparation-base=BASE` to retain exact authored
+sync sources, executable modes and module locks; no outputs or local caches transfer.
 
 `bash scripts/bazel.sh test //tests/integration:source_globs --test_output=errors`
 passed on Linux ARM64 with 8.8.0 / 9.2.0: method-body output changes, addition/removal/

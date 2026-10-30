@@ -122,13 +122,23 @@ strict module lock and no disk cache recovered full managed preparation in
 **17.78 s**: **144 remote spawn hits / zero executions**, identical declarations.
 Runtime-bootstrap recovery took **8.14 s**, with **37 remote spawn hits / zero
 executions**. These single observations include consumer startup/acquisition work;
-replayed producer profile lines are not consumer execution timings. The final live
-runtime/JIT reseed exhausted host storage and is excluded from successful recovery
-results; the six-test local qualification and producer-API controls passed.
+replayed producer profile lines are not consumer execution timings.
+
+The latest live runtime/JIT handoff recovered preparation in **58.13 s** with
+**227 remote spawn hits / zero executions**; an unchanged check took **2.04 s**.
+These single observations include first-base startup and repository acquisition
+on a separate four-CPU / 6 GiB Linux ARM64 consumer (SDK 10.0.400, Bazel 9.3.0).
+All five native producers and managed graphs recovered remotely, then six JIT tests
+executed. A forced project recovery reused nine project snapshots with zero
+compilations and executed the six tests again. Source/runtime/reference bytes and
+modes matched the producer and retained raw-qualified control. This is a recovery
+qualification, not a paired raw-MSBuild timing comparison.
 
 To repeat independent recovery, relocate the same sources/rules and native locks,
 stop the producer, then run the helper with `--consumer --seed-report=PRODUCER_SEED`.
 Use `--profile` only when the seed also used it, to preserve the action environment.
+For JIT, close inputs with `runtime_jit_public_consumer.py PREPARED SEED OUTPUT
+--preparation-base=BASE`; this retains the declared sync snapshot and module locks.
 
 ### Parallel compiler qualification
 
