@@ -312,6 +312,8 @@ def main():
             (results / 'seed.json').write_text(json.dumps(row, indent=2) + '\n')
         execution.unlink()
         if args.demo:
+            print(f"Test targets: {test_counts['executed']} executed / {test_counts['remote']} remote results / "
+                f"{test_counts['local']} local results", flush=True)
             print(f"PASS: {outcomes['passed']:,} passed / {outcomes['skipped']} skipped; "
                 f"build + tests {row['buildAndTestSeconds']:.2f}s; audit download {audit_download_seconds:.2f}s; "
                 f"verification {row['verificationSeconds']:.2f}s", flush=True)

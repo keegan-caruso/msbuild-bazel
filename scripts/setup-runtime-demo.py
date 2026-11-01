@@ -127,41 +127,48 @@ def main():
     parser.add_argument('--prepared-sha256', help='required digest for --prepared-inputs')
     parser.add_argument('--run', type=str, metavar='FRESH_GUEST_DIRECTORY', help='run an already prepared demo')
     parser.add_argument('--body-edit', action='store_true', help='with --run: also rehearse a unique body edit')
+    parser.add_argument('--test-cache', choices=['yes', 'no'], help='new setup default yes: recover test results; no forces actual tests. With --run, override the saved policy')
     parser.add_argument('--archive-producer', action='store_true', help='verify retained inputs/seed, then delete the stopped producer; consumer runs remain supported')
     args = parser.parse_args()
     assert platform.system() == 'Darwin' and platform.machine() == 'arm64', 'Requires an Apple silicon Mac'
     assert shutil.which('container') and shutil.which('git'), 'Install Apple Container and Git first'
     assert not args.body_edit or args.run
-    assert not args.archive_producer or not (args.run or args.resume or args.image or args.cache_url or args.prepared_inputs or args.prepared_sha256)
+    assert not args.archive_producer or not (args.run or args.resume or args.image or args.cache_url or args.prepared_inputs or args.prepared_sha256 or args.test_cache)
     output = args.output.expanduser().resolve()
     state_path = output / 'setup.json'
     if args.run or args.archive_producer:
-        setup_lock = (output / 'setup.lock').open('a+')
-        fcntl.flock(setup_lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
-        state = json.loads(state_path.read_text())
-        assert state['version'] == 1 and state['ready'], 'Setup has not completed; rerun with --resume'
-        if args.archive_producer:
-            archive_producer(output, state)
-            print('Producer archived and deleted; keep this setup directory for consumer runs.', flush=True)
+        with (output / 'setup.lock').open('a+') as setup_lock:
+            fcntl.flock(setup_lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
+            state = json.loads(state_path.read_text())
+            assert state['version'] == 1 and state['ready'], 'Setup has not completed; rerun with --resume'
+            if args.archive_producer:
+                archive_producer(output, state)
+                print('Producer archived and deleted; keep this setup directory for consumer runs.', flush=True)
+                return
+            verify_producer(output, state)
+            policy = args.test_cache or state['options'].get('testCache', 'no')
+            if policy == 'yes':
+                seed = json.loads((output / 'seed.json').read_text())
+                assert seed.get('testCachePolicy') == 'yes', 'This setup did not seed cached tests; create a fresh setup with --test-cache=yes'
+            if state.get('cache'):
+                cache = inspect(state['cache'])
+                assert cache and cache['configuration']['labels'].get('rules-msbuild.demo') == state['id']
+                assert cache['configuration']['image']['descriptor']['digest'] == state.get('cacheImage', CACHE_IMAGE).split('@', 1)[1]
+                if cache['status']['state'] != 'running':
+                    call('container', 'start', state['cache'])
+                address = cache_address(inspect(state['cache']))
+            consumer = inspect(state['consumer'])
+            assert consumer and consumer['configuration']['labels'].get('rules-msbuild.demo') == state['id']
+            assert consumer['configuration']['image']['descriptor']['digest'] == state['image'].split('@', 1)[1]
+            if consumer['status']['state'] != 'running':
+                call('container', 'start', state['consumer'])
+            if state.get('cache'):
+                set_cache_host(state['consumer'], address)
+            call('container', 'exec', state['consumer'], 'bash', '/demo/rehearse.sh', args.run,
+                '--test-cache=' + policy,
+                *(['--require-test-recovery'] if policy == 'yes' and not args.body_edit else []),
+                *(['--body-edit'] if args.body_edit else []))
             return
-        verify_producer(output, state)
-        if state.get('cache'):
-            cache = inspect(state['cache'])
-            assert cache and cache['configuration']['labels'].get('rules-msbuild.demo') == state['id']
-            assert cache['configuration']['image']['descriptor']['digest'] == state.get('cacheImage', CACHE_IMAGE).split('@', 1)[1]
-            if cache['status']['state'] != 'running':
-                call('container', 'start', state['cache'])
-            address = cache_address(inspect(state['cache']))
-        consumer = inspect(state['consumer'])
-        assert consumer and consumer['configuration']['labels'].get('rules-msbuild.demo') == state['id']
-        assert consumer['configuration']['image']['descriptor']['digest'] == state['image'].split('@', 1)[1]
-        if consumer['status']['state'] != 'running':
-            call('container', 'start', state['consumer'])
-        if state.get('cache'):
-            set_cache_host(state['consumer'], address)
-        call('container', 'exec', state['consumer'], 'bash', '/demo/rehearse.sh', args.run,
-            *(['--body-edit'] if args.body_edit else []))
-        return
 
     assert bool(args.prepared_inputs) == bool(args.prepared_sha256), 'Supply checkpoint and SHA-256 together'
     if args.image:
@@ -179,6 +186,7 @@ def main():
             supplied = getattr(args, attribute)
             assert supplied is None or supplied == state['options'][key], 'Setup options changed; use a fresh output'
             setattr(args, attribute, state['options'][key])
+        assert args.test_cache is None or args.test_cache == state['options'].get('testCache', 'no'), 'Setup test policy changed; use a fresh output'
         if args.prepared_sha256 and args.prepared_inputs is None:
             args.prepared_inputs = output / 'prepared.tar.gz'
     else:
@@ -191,7 +199,7 @@ def main():
         output.mkdir(parents=True, mode=0o700)
         identity = uuid.uuid4().hex[:10]
         prefix = 'msbuild-runtime-demo-' + identity
-        state = dict(version=1, id=identity, options=dict(image=args.image, cacheUrl=args.cache_url, preparedSha256=args.prepared_sha256),
+        state = dict(version=1, id=identity, options=dict(image=args.image, cacheUrl=args.cache_url, preparedSha256=args.prepared_sha256, testCache=args.test_cache or 'yes'),
             cacheImage=CACHE_IMAGE, producer=prefix + '-producer', consumer=prefix + '-consumer', cache=None if args.cache_url else prefix + '-cache', completed=[], ready=False)
 
     setup_lock = (output / 'setup.lock').open('a+')
@@ -286,6 +294,8 @@ def main():
         (output / (name + '-packages.txt')).write_text(packages)
 
     config = dict(rulesSha256=state['rulesSha256'], image=state['image'], cacheUrl=state['cacheUrl'], preparedSha256=args.prepared_sha256)
+    if 'testCache' in state['options']:
+        config['testCache'] = state['options']['testCache']
     def producer():
         install(state['producer'], config)
         with (output / 'producer.log').open('a') as log:

@@ -236,7 +236,7 @@ def main():
         def seed(log):
             subprocess.run([sys.executable, str(HERE / 'runtime_recovered_tests.py'), str(workspace), str(seed_results),
                 '--phase=producer', '--output-base=' + str(BASE / 'seed-bazel'), '--cache-url=' + config['cacheUrl'],
-                '--host-space-path=/host'], stdout=log, stderr=subprocess.STDOUT, check=True)
+                '--host-space-path=/host', '--test-cache=' + config.get('testCache', 'no')], stdout=log, stderr=subprocess.STDOUT, check=True)
             shutil.copyfile(seed_results / 'seed.json', BASE / 'seed.json')
         step('seed', seed, owned=BASE / 'seed-bazel')
     if not (BASE / 'inputs.tar.gz').exists():

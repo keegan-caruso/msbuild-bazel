@@ -3,6 +3,7 @@ import importlib.util
 import json
 from pathlib import Path
 import tempfile
+import sys
 import unittest
 from unittest.mock import patch
 
@@ -82,6 +83,40 @@ class ProducerLifecycle(unittest.TestCase):
         saved = json.loads((self.root / 'setup.json').read_text())
         self.inspect.return_value = None
         self.assertIsNone(setup.verify_producer(self.root, saved))
+
+    def run_consumer(self, policy=None, override=None, seeded='yes'):
+        self.state['options'] = {} if policy is None else dict(testCache=policy)
+        self.state.update(version=1, consumer='consumer', cache=None)
+        setup.save_state(self.root / 'setup.json', self.state)
+        (self.root / 'seed.json').write_text(json.dumps(dict(testCachePolicy=seeded)))
+        consumer = dict(self.row, status=dict(state='running'))
+        self.inspect.side_effect = lambda name: self.row if name == 'producer' else consumer
+        command = ['setup-runtime-demo.py', str(self.root), '--run=/tmp/fresh-demo']
+        if override:
+            command.append('--test-cache=' + override)
+        with patch.object(sys, 'argv', command), patch.object(setup.platform, 'system', return_value='Darwin'), \
+            patch.object(setup.platform, 'machine', return_value='arm64'), patch.object(setup.shutil, 'which', return_value='/tool'):
+            setup.main()
+        return self.call.call_args.args
+
+    def test_new_saved_policy_requires_remote_results(self):
+        command = self.run_consumer('yes')
+        self.assertIn('--test-cache=yes', command)
+        self.assertIn('--require-test-recovery', command)
+
+    def test_actual_execution_override_keeps_seeded_setup(self):
+        command = self.run_consumer('yes', 'no')
+        self.assertIn('--test-cache=no', command)
+        self.assertNotIn('--require-test-recovery', command)
+        self.assertEqual(json.loads((self.root / 'setup.json').read_text())['options']['testCache'], 'yes')
+
+    def test_old_setup_retains_actual_execution(self):
+        self.assertIn('--test-cache=no', self.run_consumer(seeded='no'))
+
+    def test_old_seed_cannot_claim_cached_recovery(self):
+        with self.assertRaisesRegex(AssertionError, 'did not seed cached tests'):
+            self.run_consumer(override='yes', seeded='no')
+        self.call.assert_not_called()
 
 
 if __name__ == '__main__':
