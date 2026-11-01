@@ -476,10 +476,36 @@ outcomes. Body edits preserve reference bytes. All graph recoveries also match
 **10,780 retained files/modes**. The fresh-worker edit overhead remains significant;
 these rows are not the retained-worker measurements above.
 
+An updated, separate body-edit profile kept **475 hits / six compilations** and
+zero Restore/native executions. Worker wall time was **39.06 s**: staging
+**6.00 s**, child **32.52 s**, verification/publication/cleanup **0.54 s**. The
+child included **7.32 s** evaluation, **3.30 s** prepared Restore validation and
+**18.64 s** execution/recovery. These are diagnostic phases, not a new paired
+build score; operation totals can overlap.
+
+The broker now stages independent files with at most four concurrent copies.
+Three alternating isolated pairs audited **19,319 files / 2.21 GB** after each
+copy. With guest page caches dropped before every sample, staging medians were
+**5.82 → 3.89 s** (**33.1% less**). Without explicit page-cache drops, medians
+were **1.69 → 1.36 s**.
+The child was replaced by a complete byte/mode audit, outside the staging timer.
+Full child verification remains required in production. These measurements do
+not establish a new end-to-end body/API time or change evaluation costs.
+
+Reproduce staging in a disposable Linux VM using retained, fully materialized
+graph inputs and their action request; both runners need their complete payloads:
+
+```sh
+python3 tests/graph_build/worker_staging.py /tmp/new-staging-results \
+  --execroot=EXECROOT --request=GRAPH_REQUEST_JSON \
+  --runner=BASELINE/GraphBuild.dll --runner=CANDIDATE/GraphBuild.dll --cold
+```
+
 Normal test-result recovery needs a producer pass with
 `runtime_recovered_tests.py --phase=producer --test-cache=yes` before stopping it.
-The default setup/rehearsal below disables test-result caching and actually runs
-the tests; it does not produce the 20-second cached-test result.
+New setups below seed cached tests and default to the cached-CI mode. The runner
+requires all nine results to come from the remote cache and prints executed,
+remote and local counts. Use `--test-cache=no` to force actual execution.
 
 Set up on an Apple silicon Mac with Git, Python 3 and Apple Container running.
 Cold setup requires **60 GiB free** and network access:
@@ -487,8 +513,10 @@ Cold setup requires **60 GiB free** and network access:
 ```sh
 python3 scripts/setup-runtime-demo.py /absolute/runtime-demo
 bash /absolute/runtime-demo/run.sh /tmp/runtime-demo-1
+# Execute all nine targets instead of recovering test results:
+bash /absolute/runtime-demo/run.sh /tmp/runtime-demo-actual --test-cache=no
 # Include recovery, tests, a unique body edit, tests again and restoration:
-bash /absolute/runtime-demo/run.sh /tmp/runtime-demo-2 --body-edit
+bash /absolute/runtime-demo/run.sh /tmp/runtime-demo-2 --body-edit --test-cache=no
 # Continue an interrupted setup from its frozen inputs:
 python3 scripts/setup-runtime-demo.py /absolute/runtime-demo --resume
 # Verify the retained handoff and remove the stopped producer VM:
@@ -498,7 +526,7 @@ python3 scripts/setup-runtime-demo.py /absolute/runtime-demo --archive-producer
 Setup builds an Ubuntu 22.04 / Clang 14 image, records its immutable digest/package
 inventory, downloads verified runtime sources and pinned tools, updates NuGet and
 qualifies the 39-root graph. It declares five native producers, composes the
-source runtime/app and eight suites, then seeds the cache with actual test runs.
+source runtime/app and eight suites, then seeds build outputs and test results.
 It transfers a manifest-verified input checkpoint, stops the producer and creates
 an independent consumer. Consumer setup acquires SDK/package archives and the
 runner without building Restore or the managed/native graph; its disposable base
@@ -509,9 +537,11 @@ stable alias survives container IP changes.
 stay in the setup directory. Resume uses that snapshot; source/tool changes need
 a fresh directory. `--archive-producer` verifies the retained rules, checkpoint and
 seed before deleting the stopped VM. Runs require that producer to be stopped or
-its archive proof to match the retained files. They use fresh Bazel bases, with
-test-result caching disabled. Successful runs restore edited sources/products and
-remove their output base; failed runs keep outputs. No GitHub CI is started.
+its archive proof to match the retained files. They use fresh Bazel bases. Existing
+saved setups keep their original policy; a setup seeded with `--test-cache=no`
+needs a fresh setup to demonstrate remote test-result recovery. Successful runs
+restore edited sources/products and remove their output base; failed runs keep
+outputs. No GitHub CI is started.
 
 Optional `--image=IMAGE@sha256:DIGEST` reuses an immutable Ubuntu image;
 `--cache-url=URL` uses an existing unauthenticated cache. A prior source-only

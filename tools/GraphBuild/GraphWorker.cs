@@ -141,7 +141,7 @@ internal static class GraphWorker
                         contract = engine.Prepare(contract, prepared);
                     }
                 }
-                foreach (var source in request.Sources)
+                Parallel.ForEach(request.Sources, new ParallelOptions { MaxDegreeOfParallelism = Math.Min(Environment.ProcessorCount, 4) }, source =>
                 {
                     var path = InputPath(source.Path);
                     var destination = Path.Combine(workspace, Safe(source.Destination));
@@ -157,7 +157,7 @@ internal static class GraphWorker
                     {
                         Copy(path, destination);
                     }
-                }
+                });
                 stageSeconds = requestTimer?.Elapsed.TotalSeconds ?? 0;
                 var childTimer = request.ProfileBuild ? Stopwatch.StartNew() : null;
                 var sdk = Path.GetDirectoryName(Environment.ProcessPath!)!;

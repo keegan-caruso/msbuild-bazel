@@ -2,7 +2,7 @@
 # Requires a relocated, qualified runtime-suites workspace and a stopped producer.
 set -euo pipefail
 if (( $# < 5 )); then
-    echo "Usage: $0 WORKSPACE SEED_REPORT FRESH_DEMO_DIRECTORY CACHE_URL HOST_SPACE_BIND [--body-edit]" >&2
+    echo "Usage: $0 WORKSPACE SEED_REPORT FRESH_DEMO_DIRECTORY CACHE_URL HOST_SPACE_BIND [--test-cache=yes|no] [--body-edit]" >&2
     exit 2
 fi
 workspace="$1"
