@@ -600,6 +600,9 @@ passed on Linux ARM64: concurrent file/tree staging preserves bytes/modes,
 rejects undeclared and overlapping destinations, detects corrupt preparation,
 and clears failed/zero-budget state. Staging still uses private copies; full
 prepared payload verification precedes any child workspace writes or evaluation.
+`//tests/integration:{workers,evaluation_worker}` also passed all six controls on
+Bazel 8.8.0 / 9.3.0, covering actual builds, body/API edits, retained evaluation,
+fresh-build byte parity, failure recovery and cached/zero-budget workers.
 
 ## Limits
 
