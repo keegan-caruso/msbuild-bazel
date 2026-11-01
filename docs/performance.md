@@ -1,5 +1,33 @@
 # Performance versus raw MSBuild
 
+## CI comparison controls
+
+`runtime_recovered_tests.py --demo --test-cache=yes` measures normal CI test-result
+reuse; `--require-test-recovery` requires nine remote test hits. Use
+`--initial-edit=body|api --edit-token=TOKEN` to edit before a fresh worker's first
+build. The default test-cache policy remains `no` for actual-execution controls.
+The helper checks HTTP cache reachability before building, so a disconnected cache
+cannot silently turn a recovery measurement into a local rebuild.
+
+Prepare raw inputs with `runtime_full_source.py --prepare-only`, then use
+`runtime_ci_raw.py --case=body|api --edit-token=TOKEN`. Its first scored run can
+also serve as the full-source correctness control.
+`--fresh-outputs` removes owned outputs and every declared Restore file,
+retaining SDK/packages. Native binaries and unchanged demo helpers are shared
+prepared prerequisites. Compare reports with `runtime_ci_compare.py --case=CASE`;
+it requires matching contracts, edits, compiled bytes and test outcomes. Managed
+output modes follow each producer's policy: raw SDK `0644`/`0744`, Bazel `0555`.
+Graph producer/consumer recovery still requires exact file-mode parity.
+Report executed tests and remote test hits separately. Cached CI demos default to
+top-level downloads; complete artifact verification follows outside the CI timer.
+See [measured CI results](#runtime-ci-demo).
+
+For a pruned source handoff, `runtime_full_source.py --bootstrap-unused-locks`
+can reconstruct inventory locks outside the declared graph using offline packages.
+It requires every declared lock and verifies all retained locks stay identical.
+The current runtime control reconstructed five locks while preserving 260; this
+is unscored package preparation, not additional build qualification.
+
 ## Sync preparation
 
 Multi-root offline sync calls each root's Restore target within one native
@@ -122,13 +150,23 @@ strict module lock and no disk cache recovered full managed preparation in
 **17.78 s**: **144 remote spawn hits / zero executions**, identical declarations.
 Runtime-bootstrap recovery took **8.14 s**, with **37 remote spawn hits / zero
 executions**. These single observations include consumer startup/acquisition work;
-replayed producer profile lines are not consumer execution timings. The final live
-runtime/JIT reseed exhausted host storage and is excluded from successful recovery
-results; the six-test local qualification and producer-API controls passed.
+replayed producer profile lines are not consumer execution timings.
+
+The latest live runtime/JIT handoff recovered preparation in **58.13 s** with
+**227 remote spawn hits / zero executions**; an unchanged check took **2.04 s**.
+These single observations include first-base startup and repository acquisition
+on a separate four-CPU / 6 GiB Linux ARM64 consumer (SDK 10.0.400, Bazel 9.3.0).
+All five native producers and managed graphs recovered remotely, then six JIT tests
+executed. A forced project recovery reused nine project snapshots with zero
+compilations and executed the six tests again. Source/runtime/reference bytes and
+modes matched the producer and retained raw-qualified control. This is a recovery
+qualification, not a paired raw-MSBuild timing comparison.
 
 To repeat independent recovery, relocate the same sources/rules and native locks,
 stop the producer, then run the helper with `--consumer --seed-report=PRODUCER_SEED`.
 Use `--profile` only when the seed also used it, to preserve the action environment.
+For JIT, close inputs with `runtime_jit_public_consumer.py PREPARED SEED OUTPUT
+--preparation-base=BASE`; this retains the declared sync snapshot and module locks.
 
 ### Parallel compiler qualification
 
@@ -389,31 +427,59 @@ See [runtime support](support.md#downloaded-sdk-and-runtime-sources) for scope.
 
 ### Runtime CI demo
 
-Production code **88c25ed**, runtime v10.0.0, SDK 10.0.400, Bazel 9.3.0.
-Independent Linux ARM64 consumer, four CPUs / 6 GiB; producer stopped, fresh
-Bazel base, retained repository acquisition cache, no copied action/project/test
-cache. HTTP cache on the private VM network; all build outputs downloaded.
-Single observations:
+Runtime v10.0.0 (`60629d1`), SDK **10.0.400**, Bazel **9.3.0**, runner SHA
+`95368b8b…`. Linux ARM64, four CPUs / 6 GiB per worker; private HTTP cache,
+producer stopped, relocated source-only consumer and fresh output bases.
+Scope: **39 managed roots / 543 configurations / 481 compilations**, source-native
+binaries, SDK/packages and unchanged app/test helpers prepared. Version inputs stay
+fixed through the edits. This is a bounded runtime slice, not upstream's full CI.
 
-| Stage | Seconds |
-| --- | ---: |
-| Recover app/test build closure | 53.24 |
-| Execute app and eight suites | 86.47 |
-| Complete demo command, including verification and cleanup | 145.18 |
+| Unchanged job | Restore/build | Tests/results | Total CLI |
+| --- | ---: | ---: | ---: |
+| Raw MSBuild, fresh outputs | 1,030.76 s | 90.37 s, nine actual targets | 1,121.13 s |
+| Bazel, download all | 32.01 s | 1.20 s, nine remote test hits | 33.21 s |
+| Bazel, top-level downloads | 19.42 s | 1.01 s, nine remote test hits | 20.43 s |
+| Bazel, top-level + batched layouts | 13.15 s | 0.99 s, nine remote test hits | 14.15 s |
 
-All **309 build spawns** were remote hits, including Restore, the 481-compilation
-graph and five native producers. Test-result caching was disabled. All **10,780
-retained files/modes**, **118,952 passed / 64 skipped** cases and **96 loaded-runtime
-observations** matched the seed. The earlier 8.83 s graph-only control excludes
-acquisition/bootstrap and this app/test closure; it is not a direct comparison.
+Raw is one observation. The first two Bazel rows are medians of three alternating
+pairs (ABBAAB); the batched row is the median of three further fresh-base runs.
+Times exclude interphase report checks. Every Bazel run recovered all build actions
+with zero executions, including Restore and five native producers: **309 spawns**
+before batching, **186** afterward. Top-level downloads alone reduce CLI time
+**38.5%**. A separate diagnostic reduced aggregate
+remote-output download spans **8.83 → 0.70 s**; spans overlap and are not wall time.
+The top-level proof subsequently downloads all artifacts for auditing, adding
+**21.16–21.52 s** before batching or **13.94–14.38 s** afterward outside the CI
+timer. Normal CI does not need that audit download.
 
-A second fresh-base recovery took **28.46 s** on the same consumer. Its unique
-Pipelines body edit then took **62.42 s** to rebuild the full app/test closure and
-**89.05 s** to execute the tests: **475 hits / six compilations / zero Restore
-executions**, unchanged reference bytes and identical normalized outcomes. The
-MSBuild worker was fresh (**543 loaded / zero retained evaluations**); this is not
-a comparison with the retained-worker paired graph timings above. The complete
-recovery → test → edit → test → restore rehearsal took **289.86 s**.
+`msbuild_graph_layouts` replaces **124** host project-directory exports with one
+manifest-driven action. The complete host matches **490 legacy files and modes**.
+Three alternating, unprofiled body-build pairs measured **77.28 → 65.39 s**
+medians (**15.4% less**), always **475 project hits / six compilations**, unchanged
+reference bytes and zero Restore/native execution. These build-only pairs exclude
+tests; actual test controls are below. A separate diagnostic recorded **37.65 s**
+inside the MSBuild worker, including **4.23 s** staging and **32.87 s** in its child.
+Operation totals overlap; they are not the paired timing scores.
+
+Single edit observations below compare **raw retained outputs** with a **fresh
+Bazel worker**, keeping the source changes identical:
+
+| Edit | Raw build/publication | Bazel build | Actual tests, raw / Bazel |
+| --- | ---: | ---: | ---: |
+| Pipelines body | 29.88 s | 67.29 s | 89.47 / 92.75 s |
+| Pipelines API | 45.20 s | 76.86 s | 93.67 / 89.11 s |
+
+Bazel reused **475 / 464** projects and compiled **6 / 17**, with no Restore
+execution. Both edits executed all nine test targets and matched raw's **3,622
+DLL/PDB/resource files**, normalized cases and **118,952 passed / 64 skipped**
+outcomes. Body edits preserve reference bytes. All graph recoveries also match
+**10,780 retained files/modes**. The fresh-worker edit overhead remains significant;
+these rows are not the retained-worker measurements above.
+
+Normal test-result recovery needs a producer pass with
+`runtime_recovered_tests.py --phase=producer --test-cache=yes` before stopping it.
+The default setup/rehearsal below disables test-result caching and actually runs
+the tests; it does not produce the 20-second cached-test result.
 
 Set up on an Apple silicon Mac with Git, Python 3 and Apple Container running.
 Cold setup requires **60 GiB free** and network access:
@@ -425,6 +491,8 @@ bash /absolute/runtime-demo/run.sh /tmp/runtime-demo-1
 bash /absolute/runtime-demo/run.sh /tmp/runtime-demo-2 --body-edit
 # Continue an interrupted setup from its frozen inputs:
 python3 scripts/setup-runtime-demo.py /absolute/runtime-demo --resume
+# Verify the retained handoff and remove the stopped producer VM:
+python3 scripts/setup-runtime-demo.py /absolute/runtime-demo --archive-producer
 ```
 
 Setup builds an Ubuntu 22.04 / Clang 14 image, records its immutable digest/package
@@ -439,7 +507,9 @@ stable alias survives container IP changes.
 
 `setup.json`, frozen rules, input checkpoint, seed, package inventories and logs
 stay in the setup directory. Resume uses that snapshot; source/tool changes need
-a fresh directory. Runs reject a live producer and use fresh Bazel bases, with
+a fresh directory. `--archive-producer` verifies the retained rules, checkpoint and
+seed before deleting the stopped VM. Runs require that producer to be stopped or
+its archive proof to match the retained files. They use fresh Bazel bases, with
 test-result caching disabled. Successful runs restore edited sources/products and
 remove their output base; failed runs keep outputs. No GitHub CI is started.
 
@@ -451,13 +521,19 @@ source, declarations and pinned archives, not producer outputs or local caches.
 They can be exported from a qualified workspace with
 `runtime_demo_prepare.py pack --workspace=WORKSPACE --archive=INPUTS.tar.gz`.
 
-Validation: 13 tooling controls pass on Linux ARM64, including six archive fault
-controls. Checkpoint-based setup, seeding, transfer and independent recovery pass:
-**29.18 s build / 96.15 s tests**, 118,952 passed / 64 skipped, zero executed build
-actions. Frozen-input resume and refusal to run with a live producer also pass.
-The full cold image/source-preparation path has not been rerun in this setup
-change because this host lacks the 60 GiB reserve. Its preparation stages reuse
-the separately qualified drivers above; cold setup is outside demo timings.
+Clean setup passed on Linux ARM64 with a freshly built image, downloaded sources
+and empty private cache, without a prepared checkpoint. A deliberate interruption
+after tools resumed successfully. After verified producer deletion, the consumer
+recovered **309 remote build spawns / zero executions** in **28.93 s**, then actually
+ran all nine targets in **91.55 s**: **118,952 passed / 64 skipped**, matching
+**10,780 files and modes**. The command took **122.37 s**, including interphase
+checks; post-run verification took **1.09 s**. These are single observations,
+not a paired MSBuild comparison. Cold setup is outside demo timings.
+
+All 20 tooling controls passed in the new image, including archive integrity and
+producer-retirement guards. Standalone resume after deletion passed; a changed
+retained seed was rejected before execution. The earlier checkpoint setup remains
+qualified. Keep the setup directory in durable storage for resume and runs.
 
 ## Paired runtime baseline
 

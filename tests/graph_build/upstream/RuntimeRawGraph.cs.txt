@@ -24,13 +24,45 @@ properties["UseSharedCompilation"] = "false";
 properties["PathMap"] = root + "=/_/workspace," + sdkRoot + "=/_/sdk";
 using var collection = new ProjectCollection();
 var entries = data.TryGetProperty("Entries", out var selected) ? selected.EnumerateArray().Select(p => p.GetString()!) : [data.GetProperty("Entry").GetString()!];
-var graph = new ProjectGraph(entries.Select(p =>
+Dictionary<string, string> EntryProperties(string project)
 {
     var globals = new Dictionary<string, string>(properties, StringComparer.OrdinalIgnoreCase);
-    if (data.TryGetProperty("EntryProperties", out var overrides) && overrides.TryGetProperty(p, out var values))
+    if (data.TryGetProperty("EntryProperties", out var overrides) && overrides.TryGetProperty(project, out var values))
         foreach (var property in values.EnumerateObject()) globals[property.Name] = property.Value.GetString()!;
-    return new ProjectGraphEntryPoint(Path.Combine(root, p), globals);
-}), collection,
+    return globals;
+}
+if (args[2] is "restore" or "restore-unlocked")
+{
+    // Same normal Restore targets and per-root properties, sharing one native
+    // MSBuild session instead of charging raw CI for 39 separate CLI startups.
+    using var restoreManager = new BuildManager();
+    restoreManager.BeginBuild(new BuildParameters(collection) { MaxNodeCount = 4, EnableNodeReuse = false,
+        Loggers = [new ConsoleLogger(LoggerVerbosity.Minimal)] });
+    try
+    {
+        foreach (var entry in entries)
+        {
+            var globals = EntryProperties(entry);
+            globals.Remove("TargetFramework");
+            globals["RestoreConfigFile"] = Path.Combine(root, args[3]);
+            globals["RestoreSources"] = Path.Combine(root, ".package-source");
+            globals["RestorePackagesPath"] = Path.Combine(root, ".nuget");
+            globals["RestoreLockedMode"] = (args[2] == "restore").ToString();
+            if (args[2] == "restore-unlocked") globals["RestorePackagesWithLockFile"] = "true";
+            globals["NuGetAudit"] = "false";
+            globals["RestoreFallbackFolders"] = "";
+            globals["RestoreAdditionalProjectSources"] = "";
+            globals["RestoreAdditionalProjectFallbackFolders"] = "";
+            var result = restoreManager.BuildRequest(new BuildRequestData(Path.Combine(root, entry),
+                globals.ToDictionary(p => p.Key, p => (string?)p.Value, StringComparer.OrdinalIgnoreCase), null, ["Restore"], null));
+            if (result.OverallResult != BuildResultCode.Success)
+                throw new InvalidDataException("Raw Restore failed: " + entry);
+        }
+    }
+    finally { restoreManager.EndBuild(); }
+    return;
+}
+var graph = new ProjectGraph(entries.Select(p => new ProjectGraphEntryPoint(Path.Combine(root, p), EntryProperties(p))), collection,
     (path, globals, owner) => new ProjectInstance(path, globals, null, owner));
 var declarations = data.GetProperty("Projects");
 var expectedNodes = declarations.EnumerateObject().Sum(p => p.Value.TryGetProperty("Configurations", out var values) ? values.GetArrayLength() : 1);

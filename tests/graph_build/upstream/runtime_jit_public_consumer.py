@@ -10,8 +10,27 @@ import os
 from pathlib import Path
 import re
 import shutil
+import subprocess
 
 ROOT = Path(__file__).resolve().parents[3]
+
+
+def preparation_sources(root, output_base):
+    command = [str(ROOT / 'scripts/bazel-launcher.sh'), '--nosystem_rc', '--nohome_rc', '--noworkspace_rc',
+        '--output_base=' + str(output_base) + '-handoff-' + root.name]
+    try:
+        labels = subprocess.check_output(command + ['query', 'labels(srcs, //:sync)', '--output=label',
+            '--noshow_progress'], cwd=root, text=True).splitlines()
+    finally:
+        subprocess.run(command + ['shutdown'], cwd=root, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, check=True)
+    paths = set()
+    for label in labels:
+        prefix, separator, name = label.partition(':')
+        assert separator and prefix in ['//', '@@//', '@@_main//'], label
+        assert name and not Path(name).is_absolute() and '..' not in Path(name).parts, label
+        paths.add(name)
+    assert paths, 'Preparation recovery requires an explicit authored snapshot'
+    return paths
 
 
 def main():
@@ -19,6 +38,7 @@ def main():
     parser.add_argument('prepared', type=Path, help='runtime_jit_public_prepare.py output')
     parser.add_argument('seed_report', type=Path)
     parser.add_argument('output', type=Path)
+    parser.add_argument('--preparation-base', type=Path, help='producer output base; include exact authored sync srcs for preparation recovery')
     args = parser.parse_args()
     source, output = args.prepared.resolve(), args.output.resolve()
     assert not output.exists() and not output.is_relative_to(source)
@@ -34,6 +54,10 @@ def main():
         root, target = source / name, output / name
         contract = json.loads((root / 'graph.generated.json').read_text())
         wanted = {'BUILD.bazel', 'MODULE.bazel', 'graph.generated.bzl', 'graph.generated.json', 'mappings.json', 'nuget.lock.json'}
+        if (root / 'MODULE.bazel.lock').is_file():
+            wanted.add('MODULE.bazel.lock')
+        if args.preparation_base:
+            wanted.update(preparation_sources(root, args.preparation_base))
         if name == 'workspace':
             wanted.add('jit-public.json')
             if not live:
@@ -51,10 +75,10 @@ def main():
             relative = Path(path)
             assert not relative.is_absolute() and '..' not in relative.parts
             original = root / relative
-            assert original.is_file() and original.resolve().is_relative_to(root), path
+            assert original.is_file() and not original.is_symlink() and original.resolve().is_relative_to(root), path
             destination = target / relative
             destination.parent.mkdir(parents=True, exist_ok=True)
-            shutil.copyfile(original, destination)
+            shutil.copy2(original, destination)
         module = (target / 'MODULE.bazel').read_text()
         module = re.sub(r'local_path_override\(module_name="rules_msbuild",path="[^"]+"\)',
             'local_path_override(module_name="rules_msbuild",path=' + json.dumps(str(ROOT)) + ')', module)
@@ -87,7 +111,8 @@ def main():
         assert hashlib.sha256((output / 'workspace' / path).read_bytes()).hexdigest() == digest, path
     shutil.copyfile(args.seed_report, output / 'seed.json')
     (output / 'consumer.json').write_text(json.dumps(dict(copiedInputs=counts,
-        sourceProductsSha256=seed.get('sourceProductsSha256'), liveSourceProducer=live, scope='generated public modules; no outputs or local cache'), indent=2) + '\n')
+        sourceProductsSha256=seed.get('sourceProductsSha256'), liveSourceProducer=live,
+        preparationSnapshot=bool(args.preparation_base), scope='generated public modules; no outputs or local cache'), indent=2) + '\n')
     print(output, flush=True)
 
 

@@ -26,12 +26,12 @@ the API may change. See [validated scope and limits](docs/support.md).
 
 ## Measured progress
 
-On a public downloaded-SDK runtime graph with **543 configurations / 481 compilations**,
-paired Pipelines body/API edits measured **26.49 / 41.39 s**, versus **31.65 / 46.00 s**
-for raw MSBuild, with the same **6 / 17** compiler calls and matching outputs.
-An independent machine recovered Restore and compilation remotely with zero
-compilations. These are scoped Linux ARM64 qualifications with reviewed evaluation
-reuse; see [performance](docs/performance.md).
+On a scoped dotnet/runtime graph with **543 configurations / 481 compilations**,
+an independent Linux ARM64 worker recovered all build actions and nine cached test
+results in **14.15 s** (median of three runs). Separate correctness runs actually
+executed **118,952 tests, with 64 skips**. Tools, packages and native prerequisites
+were prepared; see [performance](docs/performance.md) for raw MSBuild comparisons,
+edit costs and reproduction.
 
 [Design](docs/design.md) · [API](docs/api.md) · [Support](docs/support.md) ·
 [Contributing](CONTRIBUTING.md) · [Security](SECURITY.md) ·

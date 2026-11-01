@@ -48,13 +48,16 @@ def main():
     generated.write_text(prefix + '    msbuild_graph(\n' + action.replace('        srcs = [', '        srcs = ["jit-recovery-request.txt",', 1))
     marker.write_text('jit-live-seed')
     endpoint = os.environ['RULES_MSBUILD_PROJECT_CACHE_URL']
-    command = [str(ROOT / 'scripts/bazel-launcher.sh'), '--output_base=' + str(args.output_base.resolve())]
+    command = [str(ROOT / 'scripts/bazel-launcher.sh'), '--nosystem_rc', '--nohome_rc', '--noworkspace_rc',
+        '--output_base=' + str(args.output_base.resolve())]
     options = ['--jobs=1', '--strategy=MSBuildGraph=worker', '--worker_sandboxing',
         '--worker_max_instances=MSBuildGraph=1', '--strategy=RuntimeNative=standalone',
         '--disk_cache=', '--remote_cache=' + endpoint, '--remote_cache_async=false',
         '--remote_download_outputs=all', '--remote_upload_local_results=' + str(not expected).lower(),
-        '--nocache_test_results', '--test_output=all', '--lockfile_mode=off',
+        '--nocache_test_results', '--test_output=all', '--lockfile_mode=error',
         '--action_env=RULES_MSBUILD_PROJECT_CACHE_URL=' + endpoint]
+    if os.environ.get('RULES_MSBUILD_TEST_REPOSITORY_CACHE'):
+        options += ['--repository_cache=' + os.environ['RULES_MSBUILD_TEST_REPOSITORY_CACHE']]
     rows = []
 
     def invoke(label, whole=False):
@@ -117,6 +120,7 @@ def main():
     finally:
         generated.write_text(original)
         marker.unlink()
+        subprocess.run(command + ['shutdown'], cwd=root, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, check=True)
     print('PASS: declared source-runtime edges and actual JIT execution', flush=True)
 
 

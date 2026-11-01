@@ -297,6 +297,57 @@ def _layout(ctx):
     )
     return [DefaultInfo(files = depset([output])), MSBuildLayoutInfo(directory = output)]
 
+def _combined_layout(ctx):
+    graph = ctx.attr.graph[MSBuildGraphInfo]
+    if not ctx.attr.projects:
+        fail("Graph layout batch requires at least one configured project")
+    selections = []
+    for key, destination in sorted(ctx.attr.projects.items()):
+        if key not in graph.projects:
+            fail("Unknown configured graph layout project: " + key)
+        directory, assembly, _kind = graph.projects[key]
+        for path in [directory, assembly]:
+            if path.startswith("/") or "\\" in path or any([part in ["", ".", ".."] for part in path.split("/")]):
+                fail("Graph layout requires safe workspace-relative outputs")
+        if destination != "." and (destination.startswith("/") or "\\" in destination or any([part in ["", ".", ".."] for part in destination.split("/")])):
+            fail("Graph layout destination must be a safe relative path")
+        selections.append(("workspace/" + directory + "/", assembly, destination))
+
+    # Expand the declared graph tree once. One action avoids rebuilding a full
+    # input sandbox for each selected project; the manifest retains file paths.
+    def entries(file, expander):
+        children = {child.path[len(file.path) + 1:]: child for child in expander.expand(file)}
+        result = []
+        for prefix, assembly, destination in selections:
+            result.append(json.encode({"source": "", "path": destination, "directory": True}))
+            target = "" if destination == "." else destination + "/"
+
+            # Require the entry assembly at execution. aquery may expand args
+            # before the producer tree's children are available.
+            required = prefix + assembly
+            result.append(json.encode({"source": file.path + "/" + required, "path": target + assembly}))
+            for relative, child in children.items():
+                if relative.startswith(prefix) and relative != required:
+                    result.append(json.encode({"source": child.path, "path": target + relative[len(prefix):]}))
+        return result
+
+    output = ctx.actions.declare_directory(ctx.label.name + ".layout")
+    request = ctx.actions.declare_file(ctx.label.name + ".layout.json")
+    ctx.actions.write(request, json.encode({"output": output.path}))
+    args = ctx.actions.args()
+    args.use_param_file("@%s", use_always = True)
+    args.set_param_file_format("multiline")
+    args.add_all([graph.directory], map_each = entries, expand_directories = False, allow_closure = True)
+    tc = ctx.toolchains[_TOOLCHAIN]
+    ctx.actions.run(
+        executable = tc.dotnet,
+        arguments = [tc.runner.path, "layout", request.path, args],
+        inputs = depset([graph.directory, request, tc.runner], transitive = [tc.runtime, tc.runner_support]),
+        outputs = [output],
+        mnemonic = "MSBuildGraphLayout",
+    )
+    return [DefaultInfo(files = depset([output])), MSBuildLayoutInfo(directory = output)]
+
 msbuild_graph_layout = rule(
     implementation = _layout,
     attrs = {
@@ -304,6 +355,15 @@ msbuild_graph_layout = rule(
         "project": attr.string(mandatory = True),
         "framework": attr.string(),
     },
+)
+
+msbuild_graph_layouts = rule(
+    implementation = _combined_layout,
+    attrs = {
+        "graph": attr.label(providers = [MSBuildGraphInfo], mandatory = True),
+        "projects": attr.string_dict(mandatory = True, doc = "Configured project|framework keys mapped to layout directories; merge all selections in one action, rejecting conflicting file contents."),
+    },
+    toolchains = [_TOOLCHAIN],
 )
 
 def _output(ctx):

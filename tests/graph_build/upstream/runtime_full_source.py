@@ -127,13 +127,17 @@ def main():
     parser.add_argument('results', type=Path, help='new disposable directory')
     parser.add_argument('--replay-omissions', action='store_true', help='compare all required products and require explicit optional intermediates to be absent')
     parser.add_argument('--inventory-only', action='store_true', help='raw Build and target-derived binplace inventory before graph qualification')
+    parser.add_argument('--prepare-only', action='store_true', help='prepare source, raw driver and packages; leave Build for the scored CI control')
+    parser.add_argument('--bootstrap-unused-locks', action='store_true',
+        help='offline setup only: reconstruct inventory locks omitted from a closed graph handoff; declared Restore locks must already exist and remain identical')
     args = parser.parse_args()
-    assert not args.replay_omissions or not args.inventory_only
+    assert not (args.prepare_only and args.inventory_only)
+    assert not args.replay_omissions or not (args.inventory_only or args.prepare_only)
     assert os.uname().sysname == 'Linux' and os.uname().machine == 'aarch64'
     assert hashlib.sha256(args.source_archive.read_bytes()).hexdigest() == SOURCE_SHA256
     root, results = args.workspace.resolve(), args.results.resolve()
     assert not results.is_relative_to(root) and not root.is_relative_to(results)
-    expected = None if args.inventory_only else (root / 'bazel-bin/graph.graph/workspace').resolve(strict=True)
+    expected = None if args.inventory_only or args.prepare_only else (root / 'bazel-bin/graph.graph/workspace').resolve(strict=True)
     results.mkdir(parents=True, exist_ok=False)
     with tarfile.open(args.source_archive) as archive:
         archive.extractall(results, filter='data')
@@ -143,16 +147,27 @@ def main():
     # Public update inventories include signed-package native locks. Preserve
     # that policy in the raw control instead of hand-expanding ordinary packages.
     manifest = root / 'nuget.lock.json'
+    contract = json.loads((root / 'graph.generated.json').read_text())
+    declared_inputs = set(contract['Restore']['Inputs']) | set(contract['SharedInputs']) | set(contract.get('DefinitionDigests', {}))
+    for project in contract['Projects'].values():
+        declared_inputs.update(project['Inputs'])
+        for variant in project.get('Configurations', []):
+            declared_inputs.update(variant['Inputs'])
+    retained_locks, missing_locks = {}, []
     if manifest.is_file():
         shutil.copyfile(manifest, raw / manifest.name)
         for path in json.loads(manifest.read_text())['lockFiles']:
             relative = Path(path)
             assert not relative.is_absolute() and '..' not in relative.parts
             assert (root / relative).resolve().is_relative_to(root)
+            if not (root / relative).is_file():
+                assert args.bootstrap_unused_locks and path not in declared_inputs, path
+                missing_locks.append(path)
+                continue
+            retained_locks[path] = hashlib.sha256((root / relative).read_bytes()).hexdigest()
             destination = raw / relative
             destination.parent.mkdir(parents=True, exist_ok=True)
             shutil.copyfile(root / relative, destination)
-    contract = json.loads((root / 'graph.generated.json').read_text())
     (raw / 'graph.generated.json').write_text(json.dumps(contract) + '\n')
     expansion_seconds = expand_raw_packages(raw)
     configs = [path for path in raw.iterdir() if path.name.lower() == 'nuget.config']
@@ -180,11 +195,23 @@ def main():
     stable = '/__rules_msbuild_graph/output/workspace'
     stable_sdk = '/__rules_msbuild_graph/sdk'
     host = ['bash', str(directory / 'runtime_raw.sh'), str(sdk), str(raw), str(scratch)]
+    if missing_locks:
+        run(host + [stable + '/.qualification/Raw.dll', stable, stable + '/graph.generated.json',
+            'restore-unlocked', config.name], 'bootstrap-unused-locks', raw)
+        assert all(hashlib.sha256((raw / path).read_bytes()).hexdigest() == digest for path, digest in retained_locks.items()), 'Declared lock changed during offline bootstrap'
+        assert all((raw / path).is_file() for path in missing_locks), 'Offline Restore did not reconstruct every omitted inventory lock'
+        (results / 'reconstructed-locks.json').write_text(json.dumps(dict(
+            scope='unscored offline setup; every retained lock remained byte-identical',
+            retained=len(retained_locks), reconstructed={path: hashlib.sha256((raw / path).read_bytes()).hexdigest()
+                for path in missing_locks}), indent=2) + '\n')
     for index, entry in enumerate(contract.get('Entries') or [contract['Entry']]):
         properties = [f'-p:{k}={v}' for k, v in root_properties(contract, entry).items() if k.lower() != 'targetframework']
         if manifest.is_file():
             properties.append('-p:RestoreLockedMode=true')
         run(host + ['restore', stable + '/' + entry, '--configfile', stable + '/' + config.name, '--source', stable + '/.package-source', '--packages', stable + '/.nuget', '-p:NuGetAudit=false', '-p:NetCoreSdkRoot=' + stable_sdk + '/sdk/' + contract['SdkVersion'], *properties], 'restore-' + str(index), raw)
+    if args.prepare_only:
+        print('PASS: full source, raw graph driver and declared packages prepared; no Build or timing qualification', flush=True)
+        return
     run(host + [stable + '/.qualification/Raw.dll', stable, stable + '/graph.generated.json', 'build'], 'raw-build', raw)
     variants = [v for p in contract['Projects'].values() for v in p.get('Configurations') or [p]]
     if args.inventory_only:

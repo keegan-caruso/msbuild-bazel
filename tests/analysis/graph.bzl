@@ -1,7 +1,7 @@
 """Graph inputs, worker defaults, complete layouts and launch contracts."""
 
 load("@rules_testing//lib:analysis_test.bzl", "analysis_test")
-load("//msbuild:defs.bzl", "MSBuildLayoutInfo", "MSBuildRuntimeInfo", "MSBuildToolInfo", "msbuild_file_binding", "msbuild_graph", "msbuild_graph_binary", "msbuild_graph_layout", "msbuild_graph_output", "msbuild_graph_restore", "msbuild_graph_test", "msbuild_layout", "msbuild_nuget_package", "msbuild_package_lock", "msbuild_runtime", "msbuild_tool")
+load("//msbuild:defs.bzl", "MSBuildLayoutInfo", "MSBuildRuntimeInfo", "MSBuildToolInfo", "msbuild_file_binding", "msbuild_graph", "msbuild_graph_binary", "msbuild_graph_layout", "msbuild_graph_layouts", "msbuild_graph_output", "msbuild_graph_restore", "msbuild_graph_test", "msbuild_layout", "msbuild_nuget_package", "msbuild_package_lock", "msbuild_runtime", "msbuild_tool")
 load(":helpers.bzl", "action", "failure_test", "paths", "request")
 
 def _inputs(env, targets):
@@ -26,6 +26,11 @@ def _launch(env, targets):
     env.expect.that_collection(targets.app[DefaultInfo].default_runfiles.files.to_list()).contains_at_least(host.files.to_list())
     env.expect.that_collection(paths(targets.app[DefaultInfo].default_runfiles.files)).not_contains("tests/analysis/sdk.txt")
 
+def _combined_layout(env, target):
+    layout = action(target, "MSBuildGraphLayout")
+    env.expect.that_collection(paths(layout.inputs)).contains("tests/analysis/graph.graph")
+    env.expect.that_bool(request(target, ".layout.json")["output"].endswith("combined_export.layout")).equals(True)
+
 def graph_tests(name):
     """Declare graph analysis controls.
 
@@ -47,6 +52,15 @@ def graph_tests(name):
     msbuild_graph_binary(name = "app", graph = ":graph", project = "App.csproj", runtime_host = ":source_host", tags = ["manual"])
     analysis_test(name = name + "_launch", targets = {"host": ":source_host", "app": ":app"}, impl = _launch)
     msbuild_graph_layout(name = "export", graph = ":graph", project = "App.csproj", tags = ["manual"])
+    msbuild_graph_layouts(name = "combined_export", graph = ":graph", projects = {"App.csproj|net10.0": "app"}, tags = ["manual"])
+    analysis_test(name = name + "_combined_layout", target = ":combined_export", impl = _combined_layout)
+    for case, attrs, message in [
+        ("layout_empty", {"projects": {}}, "Graph layout batch requires at least one"),
+        ("layout_missing", {"projects": {"Missing.csproj|net10.0": "."}}, "Unknown configured graph layout project"),
+        ("layout_escape", {"projects": {"App.csproj|net10.0": "../outside"}}, "Graph layout destination must be a safe"),
+    ]:
+        msbuild_graph_layouts(name = case, graph = ":graph", tags = ["manual"], **attrs)
+        failure_test(name + "_" + case, ":" + case, message)
     msbuild_graph_output(name = "file", graph = ":graph", path = "bin/Release/net10.0/App.dll", tags = ["manual"])
     for case, attrs, message in [
         ("worker_paths", {"linux_worker": True}, "Graph workers require linux_stable_paths"),

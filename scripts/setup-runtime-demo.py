@@ -80,6 +80,43 @@ p.write_text('\\n'.join(lines)+'\\n')
     call('container', 'exec', name, 'python3', '-c', program, address)
 
 
+def save_state(path, state):
+    temporary = path.with_suffix('.partial')
+    temporary.write_text(json.dumps(state, indent=2) + '\n')
+    temporary.replace(path)
+
+
+def transfer_identity(output, state):
+    assert state['ready'] and 'transfer' in state['completed'], 'Complete setup before archiving its producer'
+    rules = digest(output / 'rules.tar')
+    inputs = digest(output / 'inputs.tar.gz')
+    assert rules == state['rulesSha256'], 'Frozen rules archive changed'
+    assert inputs == json.loads((output / 'transfer.json').read_text())['inputsSha256'], 'Input checkpoint changed'
+    return dict(producer=state['producer'], image=state['image'], rulesSha256=rules,
+        inputsSha256=inputs, seedSha256=digest(output / 'seed.json'))
+
+
+def verify_producer(output, state):
+    row = inspect(state['producer'])
+    if row is None:
+        assert state.get('producerArchive'), 'Producer missing without a verified archive; use --archive-producer before deletion'
+        assert state['producerArchive'] == transfer_identity(output, state), 'Archived producer inputs changed'
+    else:
+        assert row['configuration']['labels'].get('rules-msbuild.demo') == state['id'], 'Producer ownership differs'
+        assert row['configuration']['image']['descriptor']['digest'] == state['image'].split('@', 1)[1], 'Producer image differs'
+        assert row['status']['state'] == 'stopped', 'Stop this setup\'s producer before running the consumer'
+    return row
+
+
+def archive_producer(output, state):
+    row = verify_producer(output, state)
+    if row is not None:
+        state['producerArchive'] = transfer_identity(output, state)
+        # Persist proof before deletion so an interrupted host call can resume.
+        save_state(output / 'setup.json', state)
+        call('container', 'delete', state['producer'])
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('output', type=Path, help='new owned setup/state directory; retain it for resume and run')
@@ -90,20 +127,24 @@ def main():
     parser.add_argument('--prepared-sha256', help='required digest for --prepared-inputs')
     parser.add_argument('--run', type=str, metavar='FRESH_GUEST_DIRECTORY', help='run an already prepared demo')
     parser.add_argument('--body-edit', action='store_true', help='with --run: also rehearse a unique body edit')
+    parser.add_argument('--archive-producer', action='store_true', help='verify retained inputs/seed, then delete the stopped producer; consumer runs remain supported')
     args = parser.parse_args()
     assert platform.system() == 'Darwin' and platform.machine() == 'arm64', 'Requires an Apple silicon Mac'
     assert shutil.which('container') and shutil.which('git'), 'Install Apple Container and Git first'
     assert not args.body_edit or args.run
+    assert not args.archive_producer or not (args.run or args.resume or args.image or args.cache_url or args.prepared_inputs or args.prepared_sha256)
     output = args.output.expanduser().resolve()
     state_path = output / 'setup.json'
-    if args.run:
+    if args.run or args.archive_producer:
         setup_lock = (output / 'setup.lock').open('a+')
         fcntl.flock(setup_lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
         state = json.loads(state_path.read_text())
         assert state['version'] == 1 and state['ready'], 'Setup has not completed; rerun with --resume'
-        producer = inspect(state['producer'])
-        assert producer and producer['status']['state'] == 'stopped', 'Stop this setup\'s producer before running the consumer'
-        assert producer['configuration']['labels'].get('rules-msbuild.demo') == state['id']
+        if args.archive_producer:
+            archive_producer(output, state)
+            print('Producer archived and deleted; keep this setup directory for consumer runs.', flush=True)
+            return
+        verify_producer(output, state)
         if state.get('cache'):
             cache = inspect(state['cache'])
             assert cache and cache['configuration']['labels'].get('rules-msbuild.demo') == state['id']
@@ -157,9 +198,7 @@ def main():
     fcntl.flock(setup_lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
 
     def save():
-        temporary = state_path.with_suffix('.partial')
-        temporary.write_text(json.dumps(state, indent=2) + '\n')
-        temporary.replace(state_path)
+        save_state(state_path, state)
 
     def stage(name, action):
         if name not in state['completed']:
@@ -177,6 +216,8 @@ def main():
         temporary_rules.replace(output / 'rules.tar')
         state['rulesSha256'] = current
         save()
+    if state.get('producerArchive'):
+        verify_producer(output, state)
     if Path(__file__).resolve() != output / 'control.py':
         shutil.copyfile(Path(__file__).resolve(), output / 'control.py')
     if args.prepared_inputs and not (output / 'prepared.tar.gz').exists():
@@ -279,7 +320,7 @@ exec bash /demo/rules/tests/graph_build/upstream/runtime_ci_demo.sh /demo/consum
     save()
     run = ['python3', str(output / 'control.py'), str(output), '--run']
     (output / 'run.sh').write_text('#!/usr/bin/env bash\nset -euo pipefail\nexec ' + shlex.join(run) + ' "$@"\n')
-    print('Ready. Producer stopped; consumer and cache retained.\nRun: bash ' + shlex.quote(str(output / 'run.sh')) + ' /tmp/runtime-demo-1', flush=True)
+    print('Ready. Consumer and cache retained.\nRun: bash ' + shlex.quote(str(output / 'run.sh')) + ' /tmp/runtime-demo-1', flush=True)
 
 
 if __name__ == '__main__':

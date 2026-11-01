@@ -53,12 +53,16 @@ def main():
 
     def run(label, target='sync', check=False, expected=0, remote=False):
         trace = results / (label + '.actions.json')
-        command = [str(ROOT / 'scripts/bazel-launcher.sh'), '--output_base=' + str(base), 'run', '//:' + target,
+        command = [str(ROOT / 'scripts/bazel-launcher.sh'), '--nosystem_rc', '--nohome_rc', '--noworkspace_rc',
+            '--output_base=' + str(base), 'run', '//:' + target,
             '--remote_cache=' + args.cache_url, '--disk_cache=', '--remote_cache_async=false',
+            '--remote_upload_local_results=' + str(not args.consumer).lower(),
             '--execution_log_json_file=' + str(trace), '--noshow_progress', '--jobs=1',
             '--strategy=MSBuildGraph=worker', '--worker_sandboxing', '--worker_max_instances=MSBuildGraph=1',
             '--strategy=RuntimeNative=standalone', '--remote_download_outputs=all',
             '--action_env=RULES_MSBUILD_PROJECT_CACHE_URL=' + args.cache_url]
+        if os.environ.get('RULES_MSBUILD_TEST_REPOSITORY_CACHE'):
+            command.append('--repository_cache=' + os.environ['RULES_MSBUILD_TEST_REPOSITORY_CACHE'])
         if args.consumer:
             command.append('--lockfile_mode=error')
         if args.profile:

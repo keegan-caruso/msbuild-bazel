@@ -1,6 +1,6 @@
 """Public API for declared MSBuild graphs, artifacts and executable tests."""
 
-load("//msbuild:graph.bzl", _msbuild_graph = "msbuild_graph", _msbuild_graph_binary = "msbuild_graph_binary", _msbuild_graph_layout = "msbuild_graph_layout", _msbuild_graph_output = "msbuild_graph_output", _msbuild_graph_restore = "msbuild_graph_restore", _msbuild_graph_runner = "msbuild_graph_runner", _msbuild_graph_test = "msbuild_graph_test")
+load("//msbuild:graph.bzl", _msbuild_graph = "msbuild_graph", _msbuild_graph_binary = "msbuild_graph_binary", _msbuild_graph_layout = "msbuild_graph_layout", _msbuild_graph_layouts = "msbuild_graph_layouts", _msbuild_graph_output = "msbuild_graph_output", _msbuild_graph_restore = "msbuild_graph_restore", _msbuild_graph_runner = "msbuild_graph_runner", _msbuild_graph_test = "msbuild_graph_test")
 load("//msbuild/private:inputs.bzl", _msbuild_file_binding = "msbuild_file_binding", _msbuild_tool = "msbuild_tool")
 load("//msbuild/private:layouts.bzl", _msbuild_layout = "msbuild_layout", _msbuild_native_tool = "msbuild_native_tool", _msbuild_runtime = "msbuild_runtime")
 load("//msbuild/private:native_toolchain.bzl", _msbuild_native_toolchain = "msbuild_native_toolchain", _msbuild_native_toolchain_archive = "msbuild_native_toolchain_archive", _msbuild_native_toolchain_packages = "msbuild_native_toolchain_packages")
@@ -37,5 +37,6 @@ msbuild_graph_test = _msbuild_graph_test
 msbuild_graph_binary = _msbuild_graph_binary
 
 msbuild_graph_layout = _msbuild_graph_layout
+msbuild_graph_layouts = _msbuild_graph_layouts
 
 msbuild_graph_output = _msbuild_graph_output

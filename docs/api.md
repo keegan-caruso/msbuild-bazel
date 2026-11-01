@@ -177,11 +177,27 @@ target-result paths cannot be omitted; this contract is qualified for Build only
 | `msbuild_graph_runner`, `msbuild_graph` | Runner bootstrap; Build, Pack or Publish a graph |
 | `msbuild_graph_binary`, `msbuild_graph_test` | Run/test a `project`; choose `framework` if ambiguous |
 | `msbuild_graph_layout`, `msbuild_graph_output` | Export a layout, owned file or directory tree |
+| `msbuild_graph_layouts` | Merge selected configured project outputs in one action |
 | `msbuild_graph_restore` | Prepare offline Restore for a matching stable-path graph |
 | `msbuild_tool`, `msbuild_file_binding`, `msbuild_native_tool` | Bind complete task/native-tool layouts |
 | `msbuild_layout`, `msbuild_runtime` | Compose artifacts and describe an execution host |
 | `msbuild_nuget_package`, `msbuild_generated_nuget_package` | Validate/extract acquired or produced packages |
 | `msbuild_nuget_dependencies`, `msbuild_package_lock` | Declare closed package inventories |
+
+For larger graphs, batch project directories instead of exporting each one and
+then composing them. Keys match generated `project_outputs`; values are layout
+directories. Shared destination files must have identical bytes.
+
+```starlark
+msbuild_graph_layouts(
+    name = "application_layout",
+    graph = ":build",
+    projects = {
+        "App/App.csproj|net10.0": ".",
+        "Tools/Tool.csproj|net10.0": "tools",
+    },
+)
+```
 | `msbuild_test_tool`, `msbuild_native_toolchain*` | Select package test tools and native toolchains |
 
 Handwritten graphs supply `contract`, `srcs`, and optional `input_paths`, `bindings`

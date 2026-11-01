@@ -399,6 +399,42 @@ sh_binary(
 )
 
 sh_binary(
+    name = "graph_layouts_runner",
+    testonly = True,
+    srcs = ["graph_layouts.sh"],
+    data = ["common.sh"],
+)
+
+bazel_integration_tests(
+    name = "graph_layouts_cases",
+    additional_env_inherit = [
+        "BAZELISK_HOME",
+        "RULES_MSBUILD_TEST_REPOSITORY_CACHE",
+    ],
+    bazel_binaries = bazel_binaries,
+    bazel_versions = bazel_binaries.versions.all,
+    data = [":rules_archive"],
+    env = {"RULES_ARCHIVE": "$(rootpath :rules_archive)"},
+    tags = [
+        "exclusive",
+        "manual",
+        "no-sandbox",
+    ],
+    test_runner = ":graph_layouts_runner",
+    workspace_files = glob(["fixtures/worker/**"]),
+    workspace_path = "tests/integration/fixtures/worker",
+)
+
+test_suite(
+    name = "graph_layouts",
+    tags = ["manual"],
+    tests = integration_test_utils.bazel_integration_test_names(
+        "graph_layouts_cases",
+        bazel_binaries.versions.all,
+    ),
+)
+
+sh_binary(
     name = "source_globs_runner",
     testonly = True,
     srcs = ["source_globs.sh"],
