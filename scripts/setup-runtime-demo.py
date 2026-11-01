@@ -147,8 +147,8 @@ def main():
                 return
             verify_producer(output, state)
             policy = args.test_cache or state['options'].get('testCache', 'no')
+            seed = json.loads((output / 'seed.json').read_text())
             if policy == 'yes':
-                seed = json.loads((output / 'seed.json').read_text())
                 assert seed.get('testCachePolicy') == 'yes', 'This setup did not seed cached tests; create a fresh setup with --test-cache=yes'
             if state.get('cache'):
                 cache = inspect(state['cache'])
@@ -165,7 +165,9 @@ def main():
             if state.get('cache'):
                 set_cache_host(state['consumer'], address)
             call('container', 'exec', state['consumer'], 'bash', '/demo/rehearse.sh', args.run,
-                '--test-cache=' + policy,
+                # Older frozen guest runners always execute tests and do not
+                # accept the new option. Their seed has no policy field.
+                *(['--test-cache=' + policy] if 'testCachePolicy' in seed else []),
                 *(['--require-test-recovery'] if policy == 'yes' and not args.body_edit else []),
                 *(['--body-edit'] if args.body_edit else []))
             return

@@ -88,7 +88,7 @@ class ProducerLifecycle(unittest.TestCase):
         self.state['options'] = {} if policy is None else dict(testCache=policy)
         self.state.update(version=1, consumer='consumer', cache=None)
         setup.save_state(self.root / 'setup.json', self.state)
-        (self.root / 'seed.json').write_text(json.dumps(dict(testCachePolicy=seeded)))
+        (self.root / 'seed.json').write_text(json.dumps({} if seeded is None else dict(testCachePolicy=seeded)))
         consumer = dict(self.row, status=dict(state='running'))
         self.inspect.side_effect = lambda name: self.row if name == 'producer' else consumer
         command = ['setup-runtime-demo.py', str(self.root), '--run=/tmp/fresh-demo']
@@ -111,7 +111,13 @@ class ProducerLifecycle(unittest.TestCase):
         self.assertEqual(json.loads((self.root / 'setup.json').read_text())['options']['testCache'], 'yes')
 
     def test_old_setup_retains_actual_execution(self):
-        self.assertIn('--test-cache=no', self.run_consumer(seeded='no'))
+        command = self.run_consumer(seeded=None)
+        self.assertFalse(any(part.startswith('--test-cache=') for part in command))
+        self.assertNotIn('--require-test-recovery', command)
+
+    def test_actual_override_on_old_frozen_guest_needs_no_new_option(self):
+        command = self.run_consumer(override='no', seeded=None)
+        self.assertFalse(any(part.startswith('--test-cache=') for part in command))
 
     def test_old_seed_cannot_claim_cached_recovery(self):
         with self.assertRaisesRegex(AssertionError, 'did not seed cached tests'):

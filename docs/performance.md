@@ -539,8 +539,9 @@ a fresh directory. `--archive-producer` verifies the retained rules, checkpoint 
 seed before deleting the stopped VM. Runs require that producer to be stopped or
 its archive proof to match the retained files. They use fresh Bazel bases. Existing
 saved setups keep their original policy; a setup seeded with `--test-cache=no`
-needs a fresh setup to demonstrate remote test-result recovery. Successful runs restore edited sources/products and
-remove their output base; failed runs keep outputs. No GitHub CI is started.
+needs a fresh setup to demonstrate remote test-result recovery. Successful runs
+restore edited sources/products and remove their output base; failed runs keep
+outputs. No GitHub CI is started.
 
 Optional `--image=IMAGE@sha256:DIGEST` reuses an immutable Ubuntu image;
 `--cache-url=URL` uses an existing unauthenticated cache. A prior source-only
