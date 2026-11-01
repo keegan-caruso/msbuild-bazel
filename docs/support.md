@@ -595,6 +595,12 @@ bounded runtime/test graph: no complete repository bootstrap, official versionin
 or signing, native toolchain bootstrap, other-architecture or RBE qualification.
 Reports are correctness evidence, not paired timings.
 
+`python3 tests/graph_build/worker_preparation.py` and its `--cache-mb=0` variant
+passed on Linux ARM64: concurrent file/tree staging preserves bytes/modes,
+rejects undeclared and overlapping destinations, detects corrupt preparation,
+and clears failed/zero-budget state. Staging still uses private copies; full
+prepared payload verification precedes any child workspace writes or evaluation.
+
 ## Limits
 
 - Persistent workers require Bubblewrap and nested namespaces. Native worker/remote

@@ -476,6 +476,31 @@ outcomes. Body edits preserve reference bytes. All graph recoveries also match
 **10,780 retained files/modes**. The fresh-worker edit overhead remains significant;
 these rows are not the retained-worker measurements above.
 
+An updated, separate body-edit profile kept **475 hits / six compilations** and
+zero Restore/native executions. Worker wall time was **39.06 s**: staging
+**6.00 s**, child **32.52 s**, verification/publication/cleanup **0.54 s**. The
+child included **7.32 s** evaluation, **3.30 s** prepared Restore validation and
+**18.64 s** execution/recovery. These are diagnostic phases, not a new paired
+build score; operation totals can overlap.
+
+The broker now stages independent files with at most four concurrent copies.
+Three alternating isolated pairs audited **19,319 files / 2.21 GB** after each
+copy. With guest page caches dropped before every sample, staging medians were
+**5.82 → 3.89 s** (**33.1% less**). Without explicit page-cache drops, medians
+were **1.69 → 1.36 s**.
+The child was replaced by a complete byte/mode audit, outside the staging timer.
+Full child verification remains required in production. These measurements do
+not establish a new end-to-end body/API time or change evaluation costs.
+
+Reproduce staging in a disposable Linux VM using retained, fully materialized
+graph inputs and their action request; both runners need their complete payloads:
+
+```sh
+python3 tests/graph_build/worker_staging.py /tmp/new-staging-results \
+  --execroot=EXECROOT --request=GRAPH_REQUEST_JSON \
+  --runner=BASELINE/GraphBuild.dll --runner=CANDIDATE/GraphBuild.dll --cold
+```
+
 Normal test-result recovery needs a producer pass with
 `runtime_recovered_tests.py --phase=producer --test-cache=yes` before stopping it.
 New setups below seed cached tests and default to the cached-CI mode. The runner

@@ -24,17 +24,21 @@ internal static class WorkerPreparation
             throw new InvalidDataException("Unsupported preparation manifest");
         }
         var inputs = new ContractFiles(source, source).ResolveInputs(manifest.Files.Keys);
+        foreach (var (relative, record) in manifest.Files)
+        {
+            if ((record.Mode & ~0xFFF) != 0)
+            {
+                throw new InvalidDataException("Invalid prepared file mode: " + relative);
+            }
+        }
         var staging = destination + ".pending-" + Guid.NewGuid().ToString("N");
         try
         {
             var root = Path.Combine(staging, "prepared");
             Directory.CreateDirectory(Path.Combine(root, ".nuget"));
-            foreach (var (relative, record) in manifest.Files)
+            Parallel.ForEach(manifest.Files, new ParallelOptions { MaxDegreeOfParallelism = Math.Min(Environment.ProcessorCount, 4) }, pair =>
             {
-                if ((record.Mode & ~0xFFF) != 0)
-                {
-                    throw new InvalidDataException("Invalid prepared file mode: " + relative);
-                }
+                var (relative, record) = pair;
                 var target = Path.Combine(root, relative);
                 Directory.CreateDirectory(Path.GetDirectoryName(target)!);
                 File.Copy(inputs[relative], target);
@@ -45,7 +49,7 @@ internal static class WorkerPreparation
                 {
                     File.SetUnixFileMode(target, (UnixFileMode)record.Mode);
                 }
-            }
+            });
             File.WriteAllBytes(Path.Combine(root, "manifest.json"), bytes);
             Directory.Move(staging, destination);
             return destination;
