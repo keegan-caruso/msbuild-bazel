@@ -184,6 +184,10 @@ target-result paths cannot be omitted; this contract is qualified for Build only
 | `msbuild_nuget_package`, `msbuild_generated_nuget_package` | Validate/extract acquired or produced packages |
 | `msbuild_nuget_dependencies`, `msbuild_package_lock` | Declare closed package inventories |
 
+Graph and Restore targets expose their exec-configured tool in the `runner`
+output group. Use `bazel build TARGET --output_groups=+runner` to inspect it
+without downloading every intermediate artifact.
+
 For larger graphs, batch project directories instead of exporting each one and
 then composing them. Keys match generated `project_outputs`; values are layout
 directories. Shared destination files must have identical bytes.

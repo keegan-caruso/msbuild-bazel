@@ -111,11 +111,11 @@ def main():
     parser.add_argument('--test-cache', choices=['no', 'yes'], default='no', help='default executes correctness controls; yes measures normal cached CI tests')
     parser.add_argument('--require-test-recovery', action='store_true', help='require all nine test results to come from the remote cache')
     parser.add_argument('--download-outputs', choices=['all', 'toplevel'],
-        help='default toplevel for cached CI demos, all for actual-execution controls; audit remaining products outside the CI timer')
+        help='default toplevel for CI demos, all for non-demo controls; audit remaining products outside the CI timer')
     parser.add_argument('--discard-output-base', action='store_true', help="with --demo: after success, remove only this run's fresh Bazel base; retain reports")
     parser.add_argument('--host-space-path', type=Path, required=True)
     args = parser.parse_args()
-    args.download_outputs = args.download_outputs or ('toplevel' if args.demo and args.test_cache == 'yes' else 'all')
+    args.download_outputs = args.download_outputs or ('toplevel' if args.demo else 'all')
     assert os.uname().sysname == 'Linux' and os.uname().machine == 'aarch64'
     assert bool(args.seed_report) == (args.phase == 'consumer')
     assert not args.demo or args.phase == 'consumer'
@@ -139,6 +139,7 @@ def main():
     nodes = [node for project in contract['Projects'].values() for node in project['Configurations']]
     assert len(nodes) == 543
     suite = json.loads((root / 'suite.json').read_text())
+    application = json.loads((root / 'application.json').read_text())
     assert len(suite['tests']) == 8
     targets = {row['target'] for row in suite['tests']} | {'//:app_test'}
     seed = json.loads(args.seed_report.read_text()) if args.seed_report else None
@@ -205,13 +206,17 @@ def main():
         test_seconds = time.monotonic() - test_start
         audit_download_seconds = 0
         if args.download_outputs != 'all':
-            # Keep the complete byte/mode/runtime audit, without making a cached
-            # CI job download intermediate files it does not consume.
+            # Materialize the owned graph and native products for the complete
+            # byte/mode/runtime audit. Expanded NuGet trees are not audited.
+            # The runner is an exec-configured tool; select its existing output
+            # rather than building a second target-configured bootstrap.
             audit_start = time.monotonic()
             audit_trace = results / (label + '-audit.execution.json')
             audit_options = [option for option in options if not option.startswith('--remote_download_outputs=')]
             with (results / (label + '-audit.log')).open('w') as log:
-                subprocess.run(command + ['build', *sorted(targets), *audit_options, '--remote_download_outputs=all',
+                audit_targets = {'//:graph'} | {'//' + row['producer'] + ':runtime' for row in application['native'].values()}
+                subprocess.run(command + ['build', *sorted(audit_targets), *audit_options, '--remote_download_outputs=toplevel',
+                    '--output_groups=+runner',
                     '--execution_log_json_file=' + str(audit_trace)], cwd=root, stdout=log, stderr=subprocess.STDOUT, check=True)
             audit_download_seconds = time.monotonic() - audit_start
             assert all(row['cacheHit'] for row in graph_actions(audit_trace, mnemonics=None)), 'Audit unexpectedly executed build work'
@@ -252,7 +257,6 @@ def main():
             (str(p.relative_to(graph / 'workspace')) not in disposable or str(p.relative_to(graph / 'workspace')) in outputs)}
         outcomes, signatures = Counter(), {}
         observations = 0
-        application = json.loads((root / 'application.json').read_text())
         expected_runtime = {}
         for scope in ['managed', 'private']:
             for name, producer in application.get(scope, {}).items():
@@ -337,7 +341,7 @@ def main():
                 for name, content in originals.items():
                     (root / name).write_bytes(content)
             with (results / 'restore-original.log').open('w') as log:
-                subprocess.run(command + ['build', *sorted(targets), *options], cwd=root, stdout=log, stderr=subprocess.STDOUT, check=True)
+                subprocess.run(command + ['build', '//:graph', *sorted(targets), *options], cwd=root, stdout=log, stderr=subprocess.STDOUT, check=True)
             workspace = root / 'bazel-bin/graph.graph/workspace'
             for name in ['implDll', 'refDll']:
                 path = mutation[name]

@@ -18,8 +18,9 @@ prepared prerequisites. Compare reports with `runtime_ci_compare.py --case=CASE`
 it requires matching contracts, edits, compiled bytes and test outcomes. Managed
 output modes follow each producer's policy: raw SDK `0644`/`0744`, Bazel `0555`.
 Graph producer/consumer recovery still requires exact file-mode parity.
-Report executed tests and remote test hits separately. Cached CI demos default to
-top-level downloads; complete artifact verification follows outside the CI timer.
+Report executed tests and remote test hits separately. CI demos default to
+top-level downloads, including actual-test and edit controls; complete artifact
+verification follows outside the CI timer.
 See [measured CI results](#runtime-ci-demo).
 
 For a pruned source handoff, `runtime_full_source.py --bootstrap-unused-locks`
@@ -454,15 +455,36 @@ timer. Normal CI does not need that audit download.
 
 `msbuild_graph_layouts` replaces **124** host project-directory exports with one
 manifest-driven action. The complete host matches **490 legacy files and modes**.
-Three alternating, unprofiled body-build pairs measured **77.28 → 65.39 s**
-medians (**15.4% less**), always **475 project hits / six compilations**, unchanged
-reference bytes and zero Restore/native execution. These build-only pairs exclude
-tests; actual test controls are below. A separate diagnostic recorded **37.65 s**
-inside the MSBuild worker, including **4.23 s** staging and **32.87 s** in its child.
-Operation totals overlap; they are not the paired timing scores.
 
-Single edit observations below compare **raw retained outputs** with a **fresh
-Bazel worker**, keeping the source changes identical:
+With runner **`039b9ced…`** (parallel staging), three alternating fresh-worker
+body-build pairs measured:
+
+| Download policy | Median build CLI | Range |
+| --- | ---: | ---: |
+| All outputs | 62.11 s | 61.63–63.49 s |
+| Top-level outputs | 56.61 s | 56.31–57.18 s |
+
+This removes **5.49 s / 8.8%** by leaving unused expanded NuGet trees remote.
+The graph consumes package archives and prepared Restore data. Pins, scope and
+consumer resources match the demo above; the stopped producer used 8 GiB to seed
+the current runner. Each sample used a fresh base and unique body edit, retaining
+**475 hits / six compilations**, reference bytes and all **10,780 file modes**.
+Tests and artifact audits are excluded; JSON execution logging and build profiling
+are disabled in these scores. A separate JSON control took **57.86 s** and established
+zero Restore/native executions; every scored run matched its worker/local action
+counts. The demo uses top-level downloads by default; its audit selects the graph,
+native products and `runner` output group explicitly.
+
+The revised demo passed independent whole-action recovery and a body edit with
+**nine actual test targets / 118,952 passed / 64 skipped**, plus original-output
+restoration. The body control matched the archived raw control's **3,622 compiled
+files** for the same edit; raw timing was not refreshed. Its JSON-instrumented
+build took **60.71 s**, with tests timed separately at **91.66 s**. The targeted
+audit added **2.12 s** for whole recovery or **0.56 s** after the local body build;
+full byte/mode/runtime verification remained outside those audit-download times.
+
+Earlier single edit observations (runner `95368b8b…`) compare **raw retained
+outputs** with a **fresh Bazel worker**, keeping the source changes identical:
 
 | Edit | Raw build/publication | Bazel build | Actual tests, raw / Bazel |
 | --- | ---: | ---: | ---: |

@@ -6,6 +6,7 @@ load(":helpers.bzl", "action", "failure_test", "paths", "request")
 
 def _inputs(env, targets):
     build = action(targets.graph, "MSBuildGraph")
+    env.expect.that_collection(paths(targets.graph[OutputGroupInfo].runner)).contains_exactly(["tests/analysis/Runner.dll"])
     env.expect.that_collection(paths(build.inputs)).contains_at_least(["tests/analysis/App.csproj", "tests/analysis/Source.cs", "tests/analysis/contract.json", "tests/analysis/sdk.txt"])
     env.expect.that_collection(build.argv).contains("0")
 
