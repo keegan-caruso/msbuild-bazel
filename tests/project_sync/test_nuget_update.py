@@ -60,12 +60,15 @@ class NuGetUpdateCacheTests(unittest.TestCase):
             (source/'NuGet.Config').write_text('<configuration><packageSources><clear/><add key="fixture" value="'+address+'/index.json" allowInsecureConnections="true"/></packageSources></configuration>')
             (source/'App.csproj').write_text('<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup><TargetFramework>net10.0</TargetFramework></PropertyGroup><ItemGroup><PackageReference Include="Fixture.Cache" Version="1.0.0"/></ItemGroup></Project>')
             (source/'Code.cs').write_text('public class C {}')
-            command=[str(SDK/'dotnet'),str(RUNNER),'nuget-update',str(source),str(SDK),'App.csproj','--http-cache',str(cache)]
+            command=[str(SDK/'dotnet'),str(RUNNER),'nuget-update',str(source),str(SDK),'App.csproj','--http-cache',str(cache),'--distdir',str(base/'distdir')]
             first=subprocess.run(command,text=True,capture_output=True)
             self.assertEqual(first.returncode,0,first.stdout+first.stderr)
             expected={name:(source/name).read_bytes() for name in ['nuget.lock.json','packages.lock.json']}
             package_path='/flat/fixture.cache/1.0.0/fixture.cache.1.0.0.nupkg'
             self.assertEqual(requests[package_path],1)
+            exported=base/'distdir/fixture.cache.1.0.0.nupkg'
+            self.assertEqual(exported.read_bytes(),data)
+            exported.unlink()
             second=subprocess.run(command+['--check'],text=True,capture_output=True)
             self.assertEqual(second.returncode,0,second.stdout+second.stderr)
             self.assertEqual(requests[package_path],1,'update/check downloaded the same archive twice')
@@ -73,6 +76,12 @@ class NuGetUpdateCacheTests(unittest.TestCase):
             self.assertTrue(list(cache.rglob('nupkg_fixture.cache.1.0.0.dat')))
             self.assertFalse((source/'bin').exists())
             self.assertFalse((source/'obj').exists())
+            self.assertEqual(exported.read_bytes(),data)
+            exported.write_bytes(b'corrupt')
+            rejected=subprocess.run(command+['--check'],text=True,capture_output=True)
+            self.assertNotEqual(rejected.returncode,0)
+            self.assertIn('NuGet distdir archive differs',rejected.stderr)
+            self.assertEqual(exported.read_bytes(),b'corrupt')
 
 
 if __name__=='__main__':

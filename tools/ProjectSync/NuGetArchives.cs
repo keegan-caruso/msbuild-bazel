@@ -58,6 +58,48 @@ internal static class NuGetArchives
         return rows.Values.ToArray();
     }
 
+    internal static void Export(string packages, NuGetArchive[] archives, string destination)
+    {
+        Directory.CreateDirectory(destination);
+        foreach (var archive in archives)
+        {
+            var id = archive.id.ToLowerInvariant();
+            var name = id + "." + archive.version + ".nupkg";
+            var source = Path.Combine(packages, id, archive.version, name);
+            var target = Path.Combine(destination, name);
+            if (File.Exists(target))
+            {
+                if ((File.GetAttributes(target) & FileAttributes.ReparsePoint) != 0 || !Matches(target, archive))
+                {
+                    throw new InvalidDataException("NuGet distdir archive differs from resolved facts: " + name);
+                }
+                continue;
+            }
+            var temporary = target + "." + Guid.NewGuid().ToString("N") + ".partial";
+            try
+            {
+                File.Copy(source, temporary);
+                if (!Matches(temporary, archive))
+                {
+                    throw new InvalidDataException("NuGet archive changed during export: " + name);
+                }
+                File.Move(temporary, target);
+            }
+            finally
+            {
+                File.Delete(temporary);
+            }
+        }
+    }
+
+    private static bool Matches(string path, NuGetArchive archive)
+    {
+        using var stream = File.OpenRead(path);
+        var sha256 = Convert.ToHexString(SHA256.HashData(stream)).ToLowerInvariant();
+        stream.Position = 0;
+        return sha256 == archive.sha256 && Convert.ToBase64String(SHA512.HashData(stream)) == archive.archiveSha512;
+    }
+
     private static bool Safe(string value) => value.Length != 0 && value.All(c => char.IsAsciiLetterOrDigit(c) || c is '.' or '_' or '-');
 
     private static void ValidateUrl(string value)

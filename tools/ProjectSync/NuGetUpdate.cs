@@ -21,6 +21,7 @@ internal static class NuGetUpdate
         string? sdkVersion = null;
         string? mappingPath = null;
         string? httpCache = null;
+        string? distdir = null;
         var framework = "";
         var check = false;
         for (var i = 2; i < args.Length; i++)
@@ -29,7 +30,7 @@ internal static class NuGetUpdate
             {
                 check = true;
             }
-            else if (args[i] is "--output" or "--configuration" or "--sdk-version" or "--mappings" or "--framework" or "--http-cache")
+            else if (args[i] is "--output" or "--configuration" or "--sdk-version" or "--mappings" or "--framework" or "--http-cache" or "--distdir")
             {
                 var option = args[i];
                 if (++i == args.Length)
@@ -47,6 +48,10 @@ internal static class NuGetUpdate
                 else if (option == "--mappings")
                 {
                     mappingPath = args[i];
+                }
+                else if (option == "--distdir")
+                {
+                    distdir = Path.GetFullPath(args[i]);
                 }
                 else if (option == "--http-cache")
                 {
@@ -197,6 +202,10 @@ internal static class NuGetUpdate
             else
             {
                 Publish(products);
+            }
+            if (distdir is not null)
+            {
+                NuGetArchives.Export(packageRoot, packages, distdir);
             }
             Console.WriteLine($"NuGet locks: {packages.Length} archives, {locks.Count} projects; {(check ? "current" : "updated")}");
         }

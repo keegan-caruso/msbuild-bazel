@@ -230,6 +230,8 @@ underscores); colliding names fail before publication. Other projects retain
 Pass `--http-cache /absolute/cache` after `--` to share NuGet's native HTTP
 acquisition cache across update/check. Package extraction and lock publication
 remain private; normal graph builds still consume the closed archive inventory.
+Add `--distdir /absolute/archives` to export verified archives for Bazel's
+`--distdir=PATH`, avoiding another download. Existing files must match the resolved hashes.
 
 After the first update, add to `MODULE.bazel`:
 
