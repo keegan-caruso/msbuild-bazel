@@ -227,6 +227,9 @@ Shared directories use NuGet's `packages.PROJECT.lock.json` naming (spaces becom
 underscores); colliding names fail before publication. Other projects retain
 `packages.lock.json`. Existing project-specific locks take precedence.
 `--check` resolves again and rejects stale locks; it requires network access.
+Pass `--http-cache /absolute/cache` after `--` to share NuGet's native HTTP
+acquisition cache across update/check. Package extraction and lock publication
+remain private; normal graph builds still consume the closed archive inventory.
 
 After the first update, add to `MODULE.bazel`:
 
