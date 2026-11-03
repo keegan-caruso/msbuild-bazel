@@ -1,6 +1,7 @@
 # Design
 
-Build a selected project graph in one Bazel action. MSBuild retains SDK targets,
+Build a selected project graph in one Bazel action with the MSBuild project-cache
+plugin. This is the only compilation backend. MSBuild retains SDK targets,
 configuration and scheduling; sharing evaluation avoids a process per project.
 
 ## Ownership

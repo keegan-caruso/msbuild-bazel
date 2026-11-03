@@ -587,6 +587,41 @@ producer-retirement guards. Standalone resume after deletion passed; a changed
 retained seed was rejected before execution. The earlier checkpoint setup remains
 qualified. Keep the setup directory in durable storage for resume and runs.
 
+## Compilation model comparison
+
+The graph/plugin workflow remains the only compilation backend. A retired native-
+batch experiment put the entire Pipelines closure in one action; edits rebuilt
+unchanged projects instead of reusing them through the plugin.
+
+Runtime v10.0.0 (`60629d1`), **28 project paths / 42 configurations / 38 compilation
+nodes**, SDK **10.0.400**, Bazel **9.3.0**, native Linux ARM64, four CPUs / 6 GiB.
+Single unprofiled CLI observations in seconds, with identical configured graphs:
+
+| Case | Raw MSBuild graph | Graph/plugin | Retired native batch |
+| --- | ---: | ---: | ---: |
+| Fresh Restore + Build | 225.41 | 206.38 | 220.41 |
+| Pipelines body edit | 18.55 | 17.13 | 148.16 |
+| Pipelines API edit | 21.96 | 21.24 | 146.78 |
+
+Cold runs clear outputs/packages and Bazel action/worker state. SDK/package archive
+acquisition, sync, tool bootstrap and disk trim are unscored. Edits retain normal
+local state; remote caches and profiling are disabled. Raw Build uses MSBuild's
+graph API with the same roots, properties, packages, four nodes and stable paths.
+All project dependencies are source-built. No tests run in these build timings.
+
+All three cases match **412 DLL/PDB/resource files** by path and SHA-256. The body
+edit preserves reference bytes; the API edit changes them. Neither edit reruns
+Restore. The plugin retains all 42 evaluations and rebuilds **6 / 11** projects for
+body/API edits. Separate body-edit binlogs show six `CoreCompile` calls for both
+raw and plugin builds. The native batch rebuilds 38 main assemblies plus 39 distinct
+localized satellite assemblies for three generators; these are not duplicate outputs.
+
+The native body/API observations are **8.6× / 6.9× slower** than the graph/plugin
+path. They are single observations, not repeated-pair medians or a full-runtime
+baseline. An earlier frozen projection's 17.5% saving did not carry over to generated
+source-built batches. The alternative backend and its configuration are removed;
+raw reports and the experimental revisions remain outside this workflow.
+
 ## Paired runtime baseline
 
 Runtime v10.0.0 (`60629d14374c56f1cb51819049ad1fa529307f8d`): **260 project paths /

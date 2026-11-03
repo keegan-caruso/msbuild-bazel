@@ -1,7 +1,7 @@
 # Support and limits
 
-The graph workflow is the sole backend. Pins: SDK **10.0.400**, Bazel
-**8.8.0 / 9.3.0**. Inputs, packages, tool layouts, generated files and output
+The graph workflow with the MSBuild project-cache plugin is the sole backend.
+Pins: SDK **10.0.400**, Bazel **8.8.0 / 9.3.0**. Inputs, packages, tool layouts, generated files and output
 ownership must be explicit. Sync does not trace arbitrary task reads or acquire
 missing packages.
 

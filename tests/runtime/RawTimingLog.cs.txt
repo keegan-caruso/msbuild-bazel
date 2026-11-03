@@ -4,6 +4,7 @@ using Microsoft.Build.Logging;
 
 var projects = new Dictionary<(int Node, int Project), string>();
 var compiled = new List<object>();
+var targets = new Dictionary<(int Node, int Project, int Target), string>();
 var compilerServerMessages = new List<string>();
 var tasks = new Dictionary<(int Node, int Project, int Target, int Task), (string Name, DateTime Started)>();
 var taskSeconds = new Dictionary<string, double>();
@@ -20,13 +21,19 @@ replay.ProjectStarted += (_, e) =>
                 framework = property.Value?.ToString() ?? "";
     projects[(context.NodeId, context.ProjectContextId)] = framework;
 };
+replay.TargetStarted += (_, e) =>
+{
+    var context = e.BuildEventContext!;
+    targets[(context.NodeId, context.ProjectContextId, context.TargetId)] = e.TargetName!;
+};
 replay.TaskStarted += (_, e) =>
 {
     var context = e.BuildEventContext!;
     tasks[(context.NodeId, context.ProjectContextId, context.TargetId, context.TaskId)] = (e.TaskName!, e.Timestamp);
     if (e.TaskName is not ("Csc" or "Vbc")) return;
     projects.TryGetValue((context.NodeId, context.ProjectContextId), out var framework);
-    compiled.Add(new { project = e.ProjectFile, framework, task = e.TaskName });
+    targets.TryGetValue((context.NodeId, context.ProjectContextId, context.TargetId), out var target);
+    compiled.Add(new { project = e.ProjectFile, framework, task = e.TaskName, target });
 };
 replay.TaskFinished += (_, e) =>
 {
