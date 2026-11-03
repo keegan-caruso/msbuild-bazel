@@ -54,6 +54,11 @@ macOS controls use ordinary sandboxed actions, with remote actions disabled;
 Linux workers, published-byte parity and HTTP recovery retain their separate
 qualification above.
 
+`//tests/integration:visual_basic` passed on Linux ARM64 with SDK **10.0.400**
+and both current Bazel pins: explicit `.vbproj` roots/mappings, a C# consumer,
+body edits, execution and independent disk-cache recovery. VB inputs remain
+explicit; automatic compiler-input qualification and Compile globs are C# only.
+
 ## Qualified SDKs
 
 The SDK suites below were qualified on Linux ARM64 with Bazel 8.8.0 / 9.2.0:

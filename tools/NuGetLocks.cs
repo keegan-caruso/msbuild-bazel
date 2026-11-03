@@ -17,7 +17,7 @@ internal static class NuGetLocks
     internal static void SeedSharedDirectories(string root)
     {
         var projects = Directory.EnumerateFiles(root, "*", SearchOption.AllDirectories)
-            .Where(path => Path.GetExtension(path) is ".csproj" or ".ilproj" or ".proj");
+            .Where(path => Path.GetExtension(path) is ".csproj" or ".vbproj" or ".ilproj" or ".proj");
         foreach (var group in projects.GroupBy(Path.GetDirectoryName).Where(group => group.Count() > 1))
         {
             var paths = group.Select(Named).Distinct(StringComparer.Ordinal).ToArray();

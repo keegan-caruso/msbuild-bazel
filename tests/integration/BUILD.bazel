@@ -1787,3 +1787,39 @@ test_suite(
         bazel_binaries.versions.all,
     ),
 )
+
+sh_binary(
+    name = "visual_basic_runner",
+    testonly = True,
+    srcs = ["visual_basic.sh"],
+    data = ["common.sh"],
+)
+
+bazel_integration_tests(
+    name = "visual_basic_cases",
+    additional_env_inherit = [
+        "BAZELISK_HOME",
+        "RULES_MSBUILD_TEST_REPOSITORY_CACHE",
+    ],
+    bazel_binaries = bazel_binaries,
+    bazel_versions = bazel_binaries.versions.all,
+    data = [":rules_archive"],
+    env = {"RULES_ARCHIVE": "$(rootpath :rules_archive)"},
+    tags = [
+        "exclusive",
+        "manual",
+        "no-sandbox",
+    ],
+    test_runner = ":visual_basic_runner",
+    workspace_files = glob(["fixtures/visual_basic/**"]),
+    workspace_path = "tests/integration/fixtures/visual_basic",
+)
+
+test_suite(
+    name = "visual_basic",
+    tags = ["manual"],
+    tests = integration_test_utils.bazel_integration_test_names(
+        "visual_basic_cases",
+        bazel_binaries.versions.all,
+    ),
+)

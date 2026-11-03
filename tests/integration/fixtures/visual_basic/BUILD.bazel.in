@@ -1,0 +1,2 @@
+load("@rules_msbuild//msbuild:sync.bzl", "msbuild_sync")
+msbuild_sync(name="sync",projects=["Library/Library.vbproj","App/App.csproj"],mappings="mappings.json")
