@@ -18,6 +18,7 @@ files and MSBuild's SDK behavior.
 The [quick start](examples/quickstart/README.md) has separate
 [downloaded SDK](examples/quickstart/README.md#downloaded-sdk) and
 [source-built SDK](examples/quickstart/README.md#source-built-sdk) scenarios.
+For a source-built execution runtime, see the [source-to-app workflow](examples/source-runtime-app/README.md).
 Requires Bazelisk and OS .NET prerequisites. Pins: SDK **10.0.400**;
 Bazel **8.8.0 / 9.3.0** (default).
 

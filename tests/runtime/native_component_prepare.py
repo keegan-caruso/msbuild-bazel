@@ -13,15 +13,29 @@ from native_driver import write_contract
 p=argparse.ArgumentParser(description=__doc__)
 p.add_argument('native',type=Path)
 p.add_argument('output',type=Path)
-p.add_argument('component',choices=['support','host','crypto','compression'])
+p.add_argument('component',choices=['support','host','crypto','compression','libraries'])
 p.add_argument('--jobs',type=int,default=4)
 p.add_argument('--ninja',action='store_true')
 a=p.parse_args();assert a.jobs>0
 folder=a.output.resolve();folder.mkdir(parents=True,exist_ok=False)
 here=Path(__file__).resolve().parent
 commit='60629d14374c56f1cb51819049ad1fa529307f8d'
-shared='shared/Microsoft.NETCore.App/10.0.11/'
-if a.component!='host':
+shared='shared/Microsoft.NETCore.App/' + ('10.0.0' if a.component == 'libraries' else '10.0.11') + '/'
+if a.component == 'libraries':
+    products = {'system_native':'libSystem.Native.so', 'compression':'libSystem.IO.Compression.Native.so',
+                'openssl':'libSystem.Security.Cryptography.Native.OpenSsl.so',
+                'globalization':'libSystem.Globalization.Native.so', 'net_security':'libSystem.Net.Security.Native.so'}
+    destinations = {name: shared + name for name in products.values()}
+    targets = ['System.Native', 'System.IO.Compression.Native', 'System.Security.Cryptography.Native.OpenSsl',
+               'System.Globalization.Native', 'System.Net.Security.Native']
+    script = f'''./src/native/libs/build-native.sh -arm64 -release -outconfig qualification -configureonly -numproc {a.jobs}{" -ninja" if a.ninja else ""}
+cmake --build artifacts/obj/native/qualification --target {" ".join(targets)} --parallel {a.jobs}
+mkdir result
+'''
+    for name in products.values():
+        subdir = name.removeprefix('lib').removesuffix('.so').removesuffix('.OpenSsl')
+        script += 'cp artifacts/obj/native/qualification/' + subdir + '/' + name + ' result/\n'
+elif a.component!='host':
     target,subdir,group={
         'support':('System.Native','System.Native','system_native'),
         'crypto':('System.Security.Cryptography.Native.OpenSsl','System.Security.Cryptography.Native','openssl'),

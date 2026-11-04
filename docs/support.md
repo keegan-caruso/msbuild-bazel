@@ -511,6 +511,38 @@ Inspect the authored SDK boundary with `runtime_jit_reference_probe.py RAW_RESUL
 SDK_ROOT REPORT.json`. It rebuilds the helper and consumer using the raw control's
 properties, then checks reference-emission settings and `ReferencePathWithRefAssemblies`.
 
+### Complete source-runtime product
+
+The [source-to-app workflow](../examples/source-runtime-app/README.md) acquires the
+pinned source and bootstrap SDK, updates packages, qualifies the graph, and builds
+an app plus `//:runtime_package`:
+
+```sh
+python3 scripts/setup-source-runtime.py OUTPUT
+bash OUTPUT/run.sh --describe-runtime --verify-product
+```
+
+Upstream MSBuild selects **172 managed assemblies**. Declared native producers add
+**16 runtime files**, including globalization, network security, standalone GCs,
+debugging libraries and `createdump`. The archive retains upstream licenses and
+records source, SDK, toolchain and graph identities. This is an unsigned IL
+developer runtime; official signing, ReadyToRun and release-pack parity are outside
+this workflow.
+
+The component pipeline passed on Ubuntu 22.04 ARM64 with SDK **10.0.400** and
+Bazel **9.3.0**: **631 configurations / 563 compilations**, 119 package archives
+and 320 native lockfiles. Producer bytes and executable bits match; all 172
+framework names resolve from the source runtime. The launcher and extracted
+archive both execute with the SDK absent; removing CoreCLR fails. Bazel actually
+executed the app test. The worker used 6 GiB RAM plus 2 GiB temporary swap.
+Qualification reused verified acquisition caches and prepared native tools;
+complete setup from an empty image remains unqualified.
+
+Execution requires Ubuntu 22.04 ARM64 with nested namespaces. Apple silicon setup
+creates that environment in one owned container. Fresh-image Apple setup and
+native Linux x64 remain unqualified. For compilation with a source-built **SDK**,
+use the separate [quick-start scenario](../examples/quickstart/README.md#source-built-sdk).
+
 ### Connected source-runtime workflow
 
 Set `RULES_MSBUILD_PROJECT_CACHE_URL` to the HTTP cache. Prepare from the pinned

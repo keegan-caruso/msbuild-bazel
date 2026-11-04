@@ -22,6 +22,7 @@ parser = argparse.ArgumentParser(description=__doc__)
 parser.add_argument('source', type=Path, help='pinned Git checkout or verified runtime source tar.gz')
 parser.add_argument('--jobs', type=int, default=4)
 parser.add_argument('--ninja', action='store_true')
+parser.add_argument('--product', action='store_true', help='retain the complete CoreCLR shared-framework native closure')
 parser.add_argument('--toolchain-archive', type=Path, help='declared complete native tool filesystem')
 parser.add_argument('--toolchain-sha256')
 parser.add_argument('--sandbox', type=Path, help='declared Linux bubblewrap executable')
@@ -87,6 +88,11 @@ else:
 # Versions.props is a preparation input for the generated headers, not an
 # input consumed by the bounded native scripts. Keep the action archive precise.
 paths = [name for name in paths if name != 'eng/Versions.props']
+products = {'coreclr': 'libcoreclr.so', 'jit': 'libclrjit.so', 'host': 'corerun'}
+if args.product:
+    products.update(gc='libclrgc.so', gcexp='libclrgcexp.so', dac='libmscordaccore.so',
+                    dbi='libmscordbi.so', trace='libcoreclrtraceptprovider.so', dump='createdump')
+copy_products = ''.join('cp artifacts/bin/coreclr/linux.arm64.Release/' + name + ' result/\n' for name in products.values())
 # Only tracked native build inputs: no raw artifacts, git database or NuGet cache.
 with tarfile.open(folder/'source.tar','w') as archive:
     for name in paths:
@@ -98,9 +104,7 @@ with tarfile.open(folder/'source.tar','w') as archive:
     additions={'artifacts/obj/_version.c':generated['_version.c'], 'build-native.sh':f'''set -euo pipefail
 ./src/coreclr/build-runtime.sh -arm64 -release -component runtime -component jit -component hosts -numproc {args.jobs}{" -ninja" if args.ninja else ""}
 mkdir result
-cp artifacts/bin/coreclr/linux.arm64.Release/libcoreclr.so result/
-cp artifacts/bin/coreclr/linux.arm64.Release/libclrjit.so result/
-cp artifacts/bin/coreclr/linux.arm64.Release/corerun result/
+{copy_products.rstrip()}
 tar --sort=name --mtime=@0 --owner=0 --group=0 --numeric-owner -cf result.tar -C result .
 '''}
     additions.update({'artifacts/obj/' + name: generated[name] for name in ['_version.h', 'runtime_version.h']})
@@ -112,12 +116,16 @@ shutil.copyfile(here/'native_action.bzl',folder/'native_action.bzl')
 write_contract(folder)
 (folder/'BUILD.bazel').write_text('''load(":native_action.bzl","native_graph_driver","native_runtime")
 native_graph_driver(name="driver")
-native_runtime(name="runtime",driver=":driver",sandbox="bwrap",toolchain_archive="toolchain.tar",source_archive="source.tar",visibility=["//visibility:public"])
+native_runtime(name="runtime",driver=":driver",sandbox="bwrap",toolchain_archive="toolchain.tar",source_archive="source.tar",products=PRODUCTS,visibility=["//visibility:public"])
 filegroup(name="coreclr",srcs=[":runtime"],output_group="coreclr",visibility=["//visibility:public"])
 filegroup(name="jit",srcs=[":runtime"],output_group="jit",visibility=["//visibility:public"])
 filegroup(name="host",srcs=[":runtime"],output_group="host",visibility=["//visibility:public"])
-''')
-report={'commit':commit,'sourceArchiveSha256':source_sha256,'jobs':args.jobs,'generator':'Ninja' if args.ninja else 'Unix Makefiles','sourceFiles':len(paths),'inputs':{name:{'sha256':digest(folder/name),'bytes':(folder/name).stat().st_size} for name in ['toolchain.tar','source.tar','bwrap']},'packages':[] if args.toolchain_archive else subprocess.check_output(['dpkg-query','-W','-f=${Package}\t${Version}\n'],text=True).splitlines()}
+'''.replace('PRODUCTS', json.dumps(products)))
+if args.product:
+    with (folder/'BUILD.bazel').open('a') as build:
+        for group in sorted(products.keys() - {'coreclr', 'jit', 'host'}):
+            build.write('filegroup(name=' + json.dumps(group) + ',srcs=[":runtime"],output_group=' + json.dumps(group) + ',visibility=["//visibility:public"])\n')
+report={'commit':commit,'sourceArchiveSha256':source_sha256,'jobs':args.jobs,'generator':'Ninja' if args.ninja else 'Unix Makefiles','products':products,'sourceFiles':len(paths),'inputs':{name:{'sha256':digest(folder/name),'bytes':(folder/name).stat().st_size} for name in ['toolchain.tar','source.tar','bwrap']},'packages':[] if args.toolchain_archive else subprocess.check_output(['dpkg-query','-W','-f=${Package}\t${Version}\n'],text=True).splitlines()}
 (folder/'acquisition.json').write_text(json.dumps(report,indent=2)+'\n')
 print(json.dumps({k:v for k,v in report.items() if k!='packages'}),flush=True)
 
