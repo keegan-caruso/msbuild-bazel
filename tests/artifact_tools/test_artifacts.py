@@ -77,6 +77,43 @@ class ArtifactToolsTests(unittest.TestCase):
         manifest.write_text('\n'.join(json.dumps(dict(source=str(p),path='file')) for p in [a,b])+'\n')
         self.assertIn('Conflicting',self.invoke('layout',dict(output=str(self.root/'layout')),'@'+str(manifest),success=False))
 
+    def runtime_request(self):
+        assembly = self.root/'A.dll'; assembly.write_bytes(b'owned assembly')
+        contract = self.root/'graph.json'; contract.write_text('{"Version":3}')
+        manifest = self.root/'manifest'
+        manifest.write_text(json.dumps(dict(source=str(assembly),path='shared/Microsoft.NETCore.App/10.0.0/A.dll'))+'\n')
+        request = dict(output=str(self.root/'runtime'),shared='shared/Microsoft.NETCore.App/10.0.0',
+            frameworkName='Microsoft.NETCore.App',version='10.0.0',targetFramework='net10.0',
+            targetFrameworkMoniker='.NETCoreApp,Version=v10.0',runtimeIdentifier='linux-arm64',
+            buildId='source-commit',buildInfo='source-runtime.json',graphContract=str(contract),
+            managed={'A.dll':dict(project='A.csproj',framework='net10.0',path='bin/A.dll')},native={},
+            provenance=dict(sourceCommit='source-commit'))
+        return request,manifest
+
+    def test_runtime_layout_metadata_uses_declared_producers_and_actual_contract(self):
+        request,manifest = self.runtime_request()
+        self.invoke('runtime-layout',request,'@'+str(manifest))
+        runtime=self.root/'runtime'
+        shared=runtime/request['shared']
+        self.assertEqual((shared/'A.dll').read_bytes(),b'owned assembly')
+        deps=json.loads((shared/'Microsoft.NETCore.App.deps.json').read_text())
+        target=deps['runtimeTarget']['name']
+        assets=deps['targets'][target]['Microsoft.NETCore.App.Runtime.linux-arm64/10.0.0']
+        self.assertEqual(assets['runtime'],{'A.dll':{}})
+        self.assertEqual((shared/'.version').read_text(),'source-commit\n10.0.0\n')
+        info=json.loads((runtime/'source-runtime.json').read_text())
+        self.assertEqual(info['managed'],request['managed'])
+        self.assertEqual(info['graphContractSha256'],hashlib.sha256((self.root/'graph.json').read_bytes()).hexdigest())
+
+    def test_runtime_metadata_rejects_conflicts_and_escaping_names(self):
+        request,manifest = self.runtime_request()
+        self.assertIn('Unsafe logical path',self.invoke('runtime-layout',dict(request,buildInfo='../escape'),
+            '@'+str(manifest),success=False))
+        self.assertFalse((self.root/'escape').exists())
+        payload=self.root/'conflict';payload.write_text('wrong metadata')
+        manifest.write_text(json.dumps(dict(source=str(payload),path=request['shared']+'/.version'))+'\n')
+        self.assertIn('metadata conflicts',self.invoke('runtime-layout',request,'@'+str(manifest),success=False))
+
     def test_native_archive_integrity(self):
         path=self.root/'native.tar.gz'
         with tarfile.open(path,'w:gz') as archive:

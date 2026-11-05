@@ -6,6 +6,7 @@ load("//msbuild/private:layouts.bzl", _msbuild_layout = "msbuild_layout", _msbui
 load("//msbuild/private:native_toolchain.bzl", _msbuild_native_toolchain = "msbuild_native_toolchain", _msbuild_native_toolchain_archive = "msbuild_native_toolchain_archive", _msbuild_native_toolchain_packages = "msbuild_native_toolchain_packages")
 load("//msbuild/private:packages.bzl", _msbuild_generated_nuget_package = "msbuild_generated_nuget_package", _msbuild_nuget_dependencies = "msbuild_nuget_dependencies", _msbuild_nuget_package = "msbuild_nuget_package", _msbuild_package_lock = "msbuild_package_lock")
 load("//msbuild/private:providers.bzl", _MSBuildBindingInfo = "MSBuildBindingInfo", _MSBuildLayoutInfo = "MSBuildLayoutInfo", _MSBuildPackageInfo = "MSBuildPackageInfo", _MSBuildPackageLockInfo = "MSBuildPackageLockInfo", _MSBuildRuntimeInfo = "MSBuildRuntimeInfo", _MSBuildTestToolInfo = "MSBuildTestToolInfo", _MSBuildToolInfo = "MSBuildToolInfo")
+load("//msbuild/private:runtime_layout.bzl", _msbuild_runtime_layout = "msbuild_runtime_layout")
 load("//msbuild/private:test_tools.bzl", _msbuild_test_tool = "msbuild_test_tool")
 
 MSBuildBindingInfo = _MSBuildBindingInfo
@@ -26,6 +27,7 @@ msbuild_nuget_dependencies = _msbuild_nuget_dependencies
 msbuild_nuget_package = _msbuild_nuget_package
 msbuild_package_lock = _msbuild_package_lock
 msbuild_runtime = _msbuild_runtime
+msbuild_runtime_layout = _msbuild_runtime_layout
 msbuild_test_tool = _msbuild_test_tool
 msbuild_tool = _msbuild_tool
 

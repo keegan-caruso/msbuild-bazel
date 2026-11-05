@@ -43,3 +43,35 @@ compare
 bazel aquery 'mnemonic("MSBuildGraphLayout", //:batch)' --output=text > "$TEST_TMPDIR/actions.log"
 [[ $(grep -c 'Mnemonic: MSBuildGraphLayout' "$TEST_TMPDIR/actions.log") == 1 ]]
 echo 'PASS: one graph-layout action on the current Bazel pin'
+
+cat >> BUILD.bazel <<'BUILD'
+load("@rules_msbuild//msbuild:defs.bzl", "msbuild_runtime_layout")
+msbuild_runtime_layout(
+    name="framework",graph=":graph",projects=["P0/P0.csproj|net10.0","P1/P1.csproj|net10.0"],
+    version="10.0.0",target_framework="net10.0",target_framework_moniker=".NETCoreApp,Version=v10.0",
+    runtime_identifier="linux-arm64",build_id="fixture",data={"global.json":"build/global.json"},
+)
+BUILD
+bazel build //:framework
+python3 - <<'PY'
+import hashlib,json
+from pathlib import Path
+root=Path('bazel-bin/framework.layout')
+info=json.loads((root/'runtime-build.json').read_text())
+assert sorted(info['managed'])==['P0.dll','P1.dll']
+assert info['graphContractSha256']==hashlib.sha256(Path('graph.generated.json').read_bytes()).hexdigest()
+shared=root/'shared/Microsoft.NETCore.App/10.0.0'
+deps=json.loads((shared/'Microsoft.NETCore.App.deps.json').read_text())
+assets=deps['targets'][deps['runtimeTarget']['name']]['Microsoft.NETCore.App.Runtime.linux-arm64/10.0.0']
+assert sorted(assets['runtime'])==['P0.dll','P1.dll']
+assert (root/'build/global.json').read_bytes()==Path('global.json').read_bytes()
+Path('before.sha').write_text(hashlib.sha256((shared/'P0.dll').read_bytes()).hexdigest())
+p=Path('P0/Code.cs');p.write_text(p.read_text().replace('=> 7;','=> 11;'))
+PY
+bazel build //:framework
+python3 - <<'PY'
+import hashlib
+from pathlib import Path
+assert hashlib.sha256(Path('bazel-bin/framework.layout/shared/Microsoft.NETCore.App/10.0.0/P0.dll').read_bytes()).hexdigest()!=Path('before.sha').read_text()
+print('PASS: declared runtime metadata, producer files and body-edit invalidation')
+PY

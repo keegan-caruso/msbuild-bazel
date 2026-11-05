@@ -178,11 +178,13 @@ target-result paths cannot be omitted; this contract is qualified for Build only
 | `msbuild_graph_binary`, `msbuild_graph_test` | Run/test a `project`; choose `framework` if ambiguous |
 | `msbuild_graph_layout`, `msbuild_graph_output` | Export a layout, owned file or directory tree |
 | `msbuild_graph_layouts` | Merge selected configured project outputs in one action |
+| `msbuild_runtime_layout` | Compose a shared framework and its runtime metadata from declared producers |
 | `msbuild_graph_restore` | Prepare offline Restore for a matching stable-path graph |
 | `msbuild_tool`, `msbuild_file_binding`, `msbuild_native_tool` | Bind complete task/native-tool layouts |
 | `msbuild_layout`, `msbuild_runtime` | Compose artifacts and describe an execution host |
 | `msbuild_nuget_package`, `msbuild_generated_nuget_package` | Validate/extract acquired or produced packages |
 | `msbuild_nuget_dependencies`, `msbuild_package_lock` | Declare closed package inventories |
+| `msbuild_test_tool`, `msbuild_native_toolchain*` | Select package test tools and native toolchains |
 
 Graph and Restore targets expose their exec-configured tool in the `runner`
 output group. Use `bazel build TARGET --output_groups=+runner` to inspect it
@@ -202,7 +204,30 @@ msbuild_graph_layouts(
     },
 )
 ```
-| `msbuild_test_tool`, `msbuild_native_toolchain*` | Select package test tools and native toolchains |
+
+For a source-built execution runtime, select managed producers by the same keys
+and map individual native files to their destination paths:
+
+```starlark
+msbuild_runtime_layout(
+    name = "runtime_layout",
+    graph = ":build",
+    projects = ["CoreLib/CoreLib.csproj|net10.0", "Library/Library.csproj|net10.0"],
+    native = {":coreclr": "shared/Microsoft.NETCore.App/10.0.0/libcoreclr.so"},
+    version = "10.0.0",
+    target_framework = "net10.0",
+    target_framework_moniker = ".NETCoreApp,Version=v10.0",
+    runtime_identifier = "linux-arm64",
+)
+```
+
+The action copies selected output directories, adds `.deps.json`, runtime config,
+version and build provenance, and rejects conflicting destinations. `data` maps
+single-file labels to extra paths; `provenance` accepts JSON build facts. The graph
+contract hash is computed from the actual input. This composes declared producers;
+the example above omits the other assemblies and native files needed to run an app.
+Pass the layout to `msbuild_runtime` or `rules_pkg`'s `pkg_tar`; the
+[complete runtime example](../examples/source-runtime-app/README.md) connects both.
 
 Handwritten graphs supply `contract`, `srcs`, and optional `input_paths`, `bindings`
 and `packages`/`package_lock`. `source_root` removes a Bazel package prefix.
@@ -392,7 +417,8 @@ Download availability does not qualify additional platforms or workloads.
 
 For source-runtime builds, export a reference tree with `msbuild_graph_output`
 and bind its label through `msbuild_sync.inputs` at the path the authored project
-expects. Compose managed and native producer outputs with `msbuild_layout`, then
+expects. Compose shared-framework producers with `msbuild_runtime_layout`
+(or an existing host layout with `msbuild_layout`), then
 pass the resulting `msbuild_runtime` target as `runtime_host`. These are separate
 compilation/execution edges; no manual products archive or hash report is needed.
 The [JIT qualification](support.md#unchanged-jit-tests) exercises this handoff.
