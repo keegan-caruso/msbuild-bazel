@@ -190,6 +190,15 @@ Graph and Restore targets expose their exec-configured tool in the `runner`
 output group. Use `bazel build TARGET --output_groups=+runner` to inspect it
 without downloading every intermediate artifact.
 
+`msbuild_native_toolchain_packages` assembles SHA-256-locked `.deb` inputs into a
+tool tree. Supply a sorted `manifest` for an exact file selection, or omit it to
+retain package files under `usr` and `etc`. Complete-package mode accepts explicit
+`exclude_prefixes` while retaining required copyright notices. `symlinks` declares
+post-install aliases without running package scripts. `archive = True` also emits
+a deterministic, link-preserving USTAR tar through the `archive` output group.
+Missing files, dangling/escaping links and conflicting paths fail assembly.
+Extraction currently uses the qualified Ubuntu host's `dpkg-deb`.
+
 For larger graphs, batch project directories instead of exporting each one and
 then composing them. Keys match generated `project_outputs`; values are layout
 directories. Shared destination files must have identical bytes.

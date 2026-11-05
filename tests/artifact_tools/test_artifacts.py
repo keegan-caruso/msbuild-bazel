@@ -136,11 +136,16 @@ class ArtifactToolsTests(unittest.TestCase):
             'usr/lib/fixture/libc_nonshared.a': b'locked static payload',
             'usr/share/doc/fixture/copyright': b'fixture license',
             'etc/config': b'fixture config',
+            'usr/lib/fixture/empty': b'',
+            'usr/share/locale/fixture': b'optional translation',
         }
         for name, data in payloads.items():
             path = package/name
             path.parent.mkdir(parents=True, exist_ok=True)
             path.write_bytes(data)
+        (package/'etc/empty').mkdir()
+        (package/'usr/lib/fixture/config').symlink_to('../../../etc/empty',target_is_directory=True)
+        os.link(package/'usr/lib/fixture/libc_nonshared.a',package/'usr/lib/fixture/linked.a')
         archive = self.root/'fixture.deb'
         subprocess.run(['dpkg-deb', '--build', str(package), str(archive)], check=True, capture_output=True)
         manifest = self.root/'files.manifest'
@@ -150,6 +155,33 @@ class ArtifactToolsTests(unittest.TestCase):
         self.invoke('native-toolchain-packages', request)
         self.assertIn(' /usr/lib/fixture/libc.so.6', (output/'usr/lib/fixture/libc.so').read_text())
         self.assertEqual((output/'usr/lib/fixture/libc.so.6').read_bytes(), payloads['lib/fixture/libc.so.6'])
+        complete = self.root/'complete'
+        bundle = self.root/'tools.tar'
+        self.invoke('native-toolchain-packages', dict(request, manifest=None, output=str(complete),
+            archive=str(bundle),excludePrefixes=['usr/share/locale','usr/share/doc'],symlinks={'usr/bin/fixture':'usr/lib/fixture/libc_nonshared.a'}))
+        self.assertEqual((complete/'etc/config').read_bytes(), payloads['etc/config'])
+        self.assertEqual((complete/'usr/lib/fixture/libc.so.6').read_bytes(), payloads['lib/fixture/libc.so.6'])
+        self.assertTrue((complete/'etc/empty').is_dir())
+        self.assertTrue((complete/'usr/lib/fixture/config').resolve().samefile(complete/'etc/empty'))
+        self.assertEqual((complete/'usr/lib/fixture/linked.a').read_bytes(),payloads['usr/lib/fixture/libc_nonshared.a'])
+        self.assertTrue((complete/'usr/bin/fixture').resolve().samefile(complete/'usr/lib/fixture/libc_nonshared.a'))
+        self.assertFalse((complete/'usr/share/locale').exists())
+        self.assertEqual((complete/'usr/share/doc/fixture/copyright').read_bytes(),b'fixture license')
+        with tarfile.open(bundle) as tar:
+            members={member.name.removeprefix('./'):member for member in tar}
+            self.assertIn('usr/bin/fixture',members)
+            alias=members['usr/bin/fixture']
+            self.assertTrue(alias.issym())
+            self.assertEqual(alias.linkname,'../lib/fixture/libc_nonshared.a')
+        second=self.root/'second.tar'
+        self.invoke('native-toolchain-packages',dict(request,output=str(self.root/'second'),archive=str(second)))
+        third=self.root/'third.tar'
+        self.invoke('native-toolchain-packages',dict(request,output=str(self.root/'third'),archive=str(third)))
+        self.assertEqual(second.read_bytes(),third.read_bytes())
+        self.assertIn('Unsafe logical path',self.invoke('native-toolchain-packages',dict(request,manifest=None,
+            output=str(self.root/'escaped'),symlinks={'usr/bin/fixture':'../escape'}),success=False))
+        self.assertIn('dangling',self.invoke('native-toolchain-packages',dict(request,manifest=None,
+            output=str(self.root/'dangling'),symlinks={'usr/bin/fixture':'usr/bin/missing'}),success=False))
         # Archive verification precedes any relocation of owned files.
         archive.write_bytes(b'changed package')
         self.assertIn('locked SHA-256', self.invoke('native-toolchain-packages', dict(request, output=str(self.root/'bad')), success=False))

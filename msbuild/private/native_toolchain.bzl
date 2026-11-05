@@ -37,6 +37,7 @@ def _package_name(package):
 def _native_toolchain_packages(ctx):
     tc = ctx.toolchains[_TOOLCHAIN]
     root = ctx.actions.declare_directory(ctx.label.name + ".root")
+    bundle = ctx.actions.declare_file(ctx.label.name + ".tar") if ctx.attr.archive else None
     request = ctx.actions.declare_file(ctx.label.name + ".json")
     packages = []
     archives = []
@@ -56,26 +57,32 @@ def _native_toolchain_packages(ctx):
     packages = sorted(packages, key = _package_name)
     ctx.actions.write(request, json.encode({
         "packages": packages,
-        "manifest": ctx.file.manifest.path,
+        "manifest": ctx.file.manifest.path if ctx.file.manifest else None,
+        "symlinks": ctx.attr.symlinks,
+        "excludePrefixes": ctx.attr.exclude_prefixes,
+        "archive": bundle.path if bundle else None,
         "output": root.path,
     }))
     ctx.actions.run(
         executable = tc.dotnet,
         arguments = [tc.runner.path, "native-toolchain-packages", request.path],
-        inputs = depset(archives + [ctx.file.manifest, request, tc.runner], transitive = [tc.runtime, tc.runner_support]),
-        outputs = [root],
+        inputs = depset(archives + ctx.files.manifest + [request, tc.runner], transitive = [tc.runtime, tc.runner_support]),
+        outputs = [root] + ([bundle] if bundle else []),
         mnemonic = "MSBuildNativeToolchainPackages",
         env = {"LANG": "en_US.UTF-8"},
         # dpkg-deb comes from the qualified Ubuntu build image, not a declared tool.
         execution_requirements = {"block-network": "1", "no-remote": "1"},
     )
-    return [DefaultInfo(files = depset([root]))]
+    return [DefaultInfo(files = depset([root])), OutputGroupInfo(archive = depset([bundle] if bundle else []))]
 
 msbuild_native_toolchain_packages = rule(
     implementation = _native_toolchain_packages,
     attrs = {
         "packages": attr.label_keyed_string_dict(allow_files = [".deb"], mandatory = True),
-        "manifest": attr.label(allow_single_file = True, mandatory = True),
+        "manifest": attr.label(allow_single_file = True, doc = "Optional sorted file selection. Omit to retain all package files under usr and etc."),
+        "symlinks": attr.string_dict(doc = "Explicit post-install aliases, with both paths relative to the toolchain root."),
+        "exclude_prefixes": attr.string_list(doc = "Directories omitted from complete-package assembly; incompatible with manifest."),
+        "archive": attr.bool(doc = "Also expose a deterministic, link-preserving tar in the archive output group."),
     },
     toolchains = [_TOOLCHAIN],
 )
