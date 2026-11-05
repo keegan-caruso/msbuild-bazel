@@ -548,6 +548,29 @@ creates that environment in one owned container. Fresh-image Apple setup and
 native Linux x64 remain unqualified. For compilation with a source-built **SDK**,
 use the separate [quick-start scenario](../examples/quickstart/README.md#source-built-sdk).
 
+### Declared native preparation
+
+The source-to-app workflow declares native source selection, three version files,
+shared source archives and compiler/tool trees as Bazel outputs. Its default tools
+come from 194 hash-locked Ubuntu 22.04 ARM64 packages; package scripts do not run.
+Explicit aliases replace required post-install links. Assembly still uses the
+qualified host's `dpkg-deb`, so this does not qualify remote execution or toolchain
+bootstrap from source.
+
+`//tests/integration:native_preparation` covers source/body/version invalidation,
+Brotli's nested BUILD file, failed-build recovery and link-preserving tool archives
+on Bazel 8.8 / 9.3. All 7,806 source/version members match the previous native input
+archive in bytes, link targets and executable modes. The package-built tools also
+built CoreCLR/JIT, five runtime native libraries and three host files on Linux
+ARM64 / 9.3. In the prepared workspace, build `//native:runtime_coreclr`,
+`//native:runtime_libraries` and `//native:runtime_host`.
+
+Combining all 16 new native products with the retained same-source managed runtime
+passed `runtime_product_test.py`: producer bytes/modes, loading all 172 assemblies,
+SDK-absent execution of the app and archive, and missing-CoreCLR rejection.
+Fresh complete setup and independent recovery with these new tools remain
+unqualified; the complete-product results above used the prior supplied bundle.
+
 ### Connected source-runtime workflow
 
 Set `RULES_MSBUILD_PROJECT_CACHE_URL` to the HTTP cache. Prepare from the pinned

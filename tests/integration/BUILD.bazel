@@ -405,6 +405,60 @@ sh_binary(
     data = ["common.sh"],
 )
 
+genrule(
+    name = "native_preparation_helpers",
+    testonly = True,
+    srcs = ["//:native_preparation_sources"],
+    outs = ["native-preparation.tar"],
+    cmd = 'tar -chf "$@" $(SRCS)',
+)
+
+sh_binary(
+    name = "native_preparation_runner",
+    testonly = True,
+    srcs = ["native_preparation.sh"],
+    data = ["common.sh"],
+)
+
+bazel_integration_tests(
+    name = "native_preparation_cases",
+    additional_env_inherit = [
+        "BAZELISK_HOME",
+        "RULES_MSBUILD_TEST_REPOSITORY_CACHE",
+    ],
+    bazel_binaries = bazel_binaries,
+    bazel_versions = bazel_binaries.versions.all,
+    data = [
+        ":native_preparation_helpers",
+        ":rules_archive",
+    ],
+    env = {
+        "RULES_ARCHIVE": "$(rootpath :rules_archive)",
+        "NATIVE_HELPERS": "$(rootpath :native_preparation_helpers)",
+    },
+    tags = [
+        "exclusive",
+        "manual",
+        "no-sandbox",
+    ],
+    target_compatible_with = [
+        "@platforms//os:linux",
+        "@platforms//cpu:aarch64",
+    ],
+    test_runner = ":native_preparation_runner",
+    workspace_files = glob(["fixtures/worker/**"]),
+    workspace_path = "tests/integration/fixtures/worker",
+)
+
+test_suite(
+    name = "native_preparation",
+    tags = ["manual"],
+    tests = integration_test_utils.bazel_integration_test_names(
+        "native_preparation_cases",
+        bazel_binaries.versions.all,
+    ),
+)
+
 bazel_integration_tests(
     name = "graph_layouts_cases",
     additional_env_inherit = [

@@ -33,7 +33,10 @@ bazel test //:app_test //:runtime_test
 Use the Bazel launcher and cache options recorded by setup. `runtime_test` checks
 producer hashes, executable bits, SDK-absent execution and the extracted archive;
 reports appear in Bazel's test outputs. Source downloads use Bazel's verified
-repository cache; graph sync and native toolchain preparation remain setup steps.
+repository cache. Native source selection, version headers, shared source archives
+and the compiler/tool filesystem are declared Bazel outputs. The native tools come
+from [locked Ubuntu packages](../../tests/runtime/native-packages.json); compilation
+does not copy the worker's installed compiler files. Graph sync remains a setup step.
 
 Pass `--cache-url=http://CACHE:8080` to reuse Bazel actions and MSBuild project
 snapshots. The endpoint must be reachable from the build worker.

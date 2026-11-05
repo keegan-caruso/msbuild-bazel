@@ -12,9 +12,9 @@ import time
 
 from .common import ROOT, digest, read_recipe, rules_identity, run, save, owned_output
 from .acquisition import acquire_source
+from .native import prepare_inputs
 
 PREPARE = ROOT / 'tests/graph_build/upstream'
-NATIVE = ROOT / 'tests/runtime'
 
 
 def launcher(path, bazelisk, registry, repository_cache, cache_url, distdir=None):
@@ -71,8 +71,8 @@ def setup(args):
     budget_kib = sum(int(memory[name].split()[0]) for name in ['MemTotal', 'SwapTotal'])
     if budget_kib < 7.5 * 1024**2:
         raise ValueError('The full runtime graph needs an 8 GiB memory budget (RAM plus swap)')
-    if not all(shutil.which(name) for name in ['clang-14', 'cmake', 'ninja', 'pkg-config', 'bwrap']):
-        raise ValueError('Native prerequisites missing; use containers/runtime-demo.Dockerfile')
+    if not args.native_toolchain and not shutil.which('dpkg-deb'):
+        raise ValueError('Native package assembly requires dpkg-deb; use containers/runtime-demo.Dockerfile')
     base = args.output.expanduser().resolve()
     state = owned_output(base, args.resume, 'linux-source-runtime')
     if state:
@@ -82,9 +82,8 @@ def setup(args):
     if bool(args.native_toolchain) != bool(args.sandbox):
         raise ValueError('Provide --native-toolchain and --sandbox together')
     recipe = read_recipe()
-    packages=subprocess.check_output(['dpkg-query','-W','-f=${Package}\t${Version}\n'],text=True)
     identity = dict(recipe=recipe, rulesSha256=rules_identity(), registry=args.registry, cacheUrl=args.cache_url,
-                    nativePackagesSha256=__import__('hashlib').sha256(packages.encode()).hexdigest(),
+                    nativePackagesSha256=digest(ROOT/'tests/runtime/native-packages.json') if not args.native_toolchain else None,
                     nativeToolchainSha256=digest(args.native_toolchain) if args.native_toolchain else None,
                     sandboxSha256=digest(args.sandbox) if args.sandbox else None,
                     repositoryCache=str(args.repository_cache.resolve()) if args.repository_cache else None)
@@ -154,22 +153,14 @@ def setup(args):
         if (managed / 'source/nuget.lock.json').exists() and not (managed / 'workspace').exists():
             managed_command.append('--resume')
         stage('managed', managed_command)
-        native.mkdir(exist_ok=True)
-        native_args = []
-        if args.native_toolchain:
-            if not args.sandbox:
-                raise ValueError('--native-toolchain requires --sandbox')
-            native_args = ['--toolchain-archive=' + str(args.native_toolchain.resolve()), '--toolchain-sha256=' + digest(args.native_toolchain),
-                           '--sandbox=' + str(args.sandbox.resolve()), '--sandbox-sha256=' + digest(args.sandbox)]
-        for name in ['native','libraries','host']:
-            if name not in state['completed'] and (native/name).exists():
+        if 'native' not in state['completed']:
+            if native.exists():
                 if not args.resume:
-                    raise ValueError('Partial native preparation requires --resume')
-                shutil.rmtree(native/name)
-            command = ([sys.executable, NATIVE / 'native_prepare.py', archive, native, '--ninja', '--jobs=4', '--product', *native_args] if name == 'native' else
-                       [sys.executable, NATIVE / 'native_component_prepare.py', native/'native', native/name,
-                        {'libraries':'libraries','host':'host'}[name], '--ninja', '--jobs=4'])
-            stage(name, command)
+                    raise ValueError('Partial native declarations require --resume')
+                shutil.rmtree(native)
+            prepare_inputs(native, archive, args.native_toolchain, args.sandbox)
+            state['completed'].append('native')
+            save(state_path,state)
         workspace = base / 'workspace'
         state['workspace'] = str(workspace)
         if 'application' not in state['completed']:
