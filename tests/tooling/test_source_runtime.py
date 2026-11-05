@@ -1,5 +1,4 @@
 """Standalone runtime acquisition and nested Bazel invocation controls."""
-import hashlib
 import json
 import os
 from pathlib import Path
@@ -12,7 +11,7 @@ from types import SimpleNamespace
 
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / 'scripts'))
-from source_runtime.common import acquire, digest, read_recipe, owned_output, save
+from source_runtime.common import stage_source, digest, read_recipe, owned_output, save
 from source_runtime.linux import launcher, build_command
 from source_runtime import apple
 sys.path.insert(0, str(ROOT / 'tests/graph_build/upstream'))
@@ -92,16 +91,16 @@ class SourceRuntimeSetupTests(unittest.TestCase):
             source, destination = base/'source', base/'download'
             source.write_bytes(b'pinned source')
             expected = digest(source)
-            acquire(destination, 'https://unused.invalid', expected, source)
+            stage_source(destination, expected, source)
             self.assertEqual(destination.read_bytes(), source.read_bytes())
             # A retained source is checked again, even though no download runs.
             destination.unlink()
             destination.write_bytes(b'corrupt')
             with self.assertRaisesRegex(ValueError, 'Retained download changed'):
-                acquire(destination, 'https://unused.invalid', expected)
+                stage_source(destination, expected, source)
             destination.unlink()
             with self.assertRaisesRegex(ValueError, 'Supplied source archive differs'):
-                acquire(destination, 'https://unused.invalid', '0'*64, source)
+                stage_source(destination, '0'*64, source)
             self.assertFalse(destination.exists())
 
     def test_interrupted_acquisition_cannot_overwrite_the_supplied_inode(self):
@@ -110,12 +109,10 @@ class SourceRuntimeSetupTests(unittest.TestCase):
             original=base/'original';original.write_bytes(b'keep original')
             destination=base/'download.tar.gz'
             os.link(original, destination.with_suffix('.partial'))
-            def download(command, **kwargs):
-                Path(command[command.index('--output')+1]).write_bytes(b'new download')
-            with patch('source_runtime.common.run', side_effect=download):
-                acquire(destination,'https://fixture.invalid',hashlib.sha256(b'new download').hexdigest())
+            supplied=base/'supplied'; supplied.write_bytes(b'new source')
+            stage_source(destination,digest(supplied),supplied)
             self.assertEqual(original.read_bytes(),b'keep original')
-            self.assertEqual(destination.read_bytes(),b'new download')
+            self.assertEqual(destination.read_bytes(),b'new source')
 
     def test_resume_requires_owned_state_and_preserves_unowned_files(self):
         with tempfile.TemporaryDirectory() as temporary:
@@ -192,6 +189,7 @@ class SourceRuntimeSetupTests(unittest.TestCase):
             self.assertEqual(env['USE_BAZEL_VERSION'],'9.3.0')
             test,_,_=build_command(base,'test')
             self.assertIn('--nocache_test_results',test)
+            self.assertIn('//:runtime_test',test)
 
 
 if __name__ == '__main__':

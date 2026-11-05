@@ -10,7 +10,8 @@ import subprocess
 import sys
 import time
 
-from .common import ROOT, acquire, digest, read_recipe, rules_identity, run, save, owned_output
+from .common import ROOT, digest, read_recipe, rules_identity, run, save, owned_output
+from .acquisition import acquire_source
 
 PREPARE = ROOT / 'tests/graph_build/upstream'
 NATIVE = ROOT / 'tests/runtime'
@@ -54,7 +55,7 @@ def build_command(base, action, arguments=()):
     if action == 'run':
         command += ['//:app', '--jobs=1', '--strategy=MSBuildGraph=worker', '--worker_sandboxing', '--', *arguments]
     elif action == 'test':
-        command += ['//:app_test', '--jobs=1', '--strategy=MSBuildGraph=worker', '--worker_sandboxing', '--nocache_test_results', '--test_output=errors']
+        command += ['//:app_test', '//:runtime_test', '--jobs=1', '--strategy=MSBuildGraph=worker', '--worker_sandboxing', '--nocache_test_results', '--test_output=errors']
     else:
         command += ['//:app', '//:runtime_package', '--jobs=1', '--strategy=MSBuildGraph=worker', '--worker_sandboxing']
     return command, workspace, env
@@ -139,8 +140,7 @@ def setup(args):
             'RULES_MSBUILD_BAZELISK','RULES_MSBUILD_BAZEL','RULES_MSBUILD_TEST_REPOSITORY_CACHE','RULES_MSBUILD_PROJECT_CACHE_URL','USE_BAZEL_VERSION','BAZELISK_HOME']}
         save(state_path, state)
         stage('tools', ['bash', ROOT / 'scripts/check.sh', '--toolchain-only'])
-        archive = base / 'downloads/runtime.tar.gz'
-        acquire(archive, recipe['source']['url'], recipe['source']['sha256'], args.source_archive)
+        archive = acquire_source(base, recipe['source'], env, args.source_archive)
         managed, native = base / 'managed', base / 'native'
         if 'managed' not in state['completed'] and managed.exists():
             if not args.resume:
@@ -182,7 +182,8 @@ def setup(args):
         command, cwd, _ = build_command(base, 'build')
         # The driver runs from the prepared source workspace, never from this repo.
         stage('build', command, cwd=cwd)
-        stage('verify', [sys.executable, PREPARE / 'runtime_application_verify.py', workspace, evidence/'runtime.json'])
+        command, cwd, _ = build_command(base, 'test')
+        stage('verify', command, cwd=cwd)
         package = base/'runtime-linux-arm64.tar.gz'
         shutil.copyfile(workspace/'bazel-bin/runtime_package.tar.gz', package.with_suffix('.partial'))
         package.with_suffix('.partial').replace(package)

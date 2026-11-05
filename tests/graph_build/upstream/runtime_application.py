@@ -1,6 +1,5 @@
 """Compose qualified managed/native graph products for an ordinary source-runtime app."""
 import argparse
-import hashlib
 import ast
 import json
 import os
@@ -8,7 +7,6 @@ from pathlib import Path
 import shutil
 
 from runtime_host import declare_native
-from runtime_prepare import SOURCE_SHA256
 
 ROOT = Path(__file__).resolve().parents[3]
 COMMIT = '60629d14374c56f1cb51819049ad1fa529307f8d'
@@ -25,6 +23,13 @@ def main():
     assert not (root / 'app').exists() and not (root / 'runtime').exists()
     contract = json.loads((root / 'graph.generated.json').read_text())
     assert contract['SdkVersion'] == '10.0.400'
+    if (root/'runtime-product.json').exists():
+        if args.include_private_frameworks:
+            parser.error('The complete product selects its upstream framework producers')
+        from runtime_product_declarations import declare_product
+        declare_product(root,native,json.loads((root/'runtime-product.json').read_text()))
+        print(root,flush=True)
+        return
     # The generated macro exposes evaluated output paths; never infer host
     # ownership from a directory scan or copy an installed framework template.
     tree = ast.parse((root / 'graph.generated.bzl').read_text())
@@ -34,9 +39,6 @@ def main():
     selection = json.loads((ROOT / 'tests/runtime/subset_slices.json').read_text())
     assert selection['commit'] == COMMIT
     shim_framework = next(item['framework'] for item in selection['slices'] if item['name'] == 'loaded-shims')
-    product_path = root / 'runtime-product.json'
-    product = json.loads(product_path.read_text()) if product_path.exists() else None
-    selected = {value['project'] + '|' + value['framework']: name for name, value in product['producers'].items()} if product else None
     managed, private = {}, {}
     for key, (directory, assembly, kind) in outputs[0].items():
         project, framework = key.split('|')
@@ -47,24 +49,18 @@ def main():
             assert kind == 'Library' and assembly not in private
             private[assembly] = dict(project=project, framework=framework, path=directory + '/' + assembly)
             continue
-        if selected is not None:
-            if key not in selected:
-                continue
-            assert selected[key] == assembly, (key, assembly)
         default_framework = shim_framework if project.startswith('src/libraries/shims/') else 'net10.0'
-        if selected is None and framework != selection['hostFrameworks'].get(assembly.removesuffix('.dll'), default_framework):
+        if framework != selection['hostFrameworks'].get(assembly.removesuffix('.dll'), default_framework):
             continue
         assert kind == 'Library' and assembly.endswith('.dll') and assembly not in managed
         managed[assembly] = dict(project=project, framework=framework, path=directory + '/' + assembly)
     required = {'System.Private.CoreLib.dll', 'System.Runtime.dll', 'System.Console.dll', 'System.Linq.dll',
                 'System.Text.Json.dll', 'System.Text.Encodings.Web.dll', 'System.IO.Compression.dll',
                 'System.Security.Cryptography.dll'}
-    if product:
-        assert sorted(managed) == product['assemblies'], 'Complete upstream framework producers are required'
     assert required <= managed.keys(), sorted(required - managed.keys())
     if args.include_private_frameworks:
         assert set(private) == {name + '.dll' for name in selection['privateFrameworks']}, 'The graph lacks reviewed private framework producers'
-    names = ['native', 'libraries', 'host'] if product else ['native', 'native_support', 'host', 'crypto', 'compression']
+    names = ['native', 'native_support', 'host', 'crypto', 'compression']
     for name in names:
         metadata = json.loads((native / name / 'acquisition.json').read_text())
         assert metadata['commit'] == COMMIT and metadata['jobs'] == 4 and metadata['generator'] == 'Ninja'
@@ -96,21 +92,13 @@ def main():
         'libSystem.Security.Cryptography.Native.OpenSsl.so': ('//crypto:openssl', shared + '/libSystem.Security.Cryptography.Native.OpenSsl.so', 'crypto'),
         'libSystem.IO.Compression.Native.so': ('//compression:compression', shared + '/libSystem.IO.Compression.Native.so', 'compression'),
     }
-    if product:
-        native_products = {name: ('//native:' + group, shared + '/' + name, 'native')
-            for group, name in json.loads((native/'native/acquisition.json').read_text())['products'].items() if group != 'host'}
-        native_products.update({name: ('//libraries:' + group, shared + '/' + name, 'libraries')
-            for group, name in json.loads((native/'libraries/products.json').read_text())['products'].items()})
-        native_products.update(dotnet=('//host:muxer', 'dotnet', 'host'),
-            **{'libhostfxr.so': ('//host:fxr', 'host/fxr/10.0.0/libhostfxr.so', 'host'),
-               'libhostpolicy.so': ('//host:policy', shared + '/libhostpolicy.so', 'host')})
     target = '.NETCoreApp,Version=v10.0/linux-arm64'
     identity = 'Microsoft.NETCore.App.Runtime.linux-arm64/10.0.0'
     products = {'runtime': {name: {} for name in sorted(managed)},
                 'native': {name: {} for name, (_, destination, _) in native_products.items() if destination.startswith(shared + '/')}}
     deps = {'runtimeTarget': {'name': target, 'signature': ''}, 'compilationOptions': {},
             'targets': {'.NETCoreApp,Version=v10.0': {}, target: {identity: products}},
-            'libraries': {identity: {'type': 'package', 'serviceable': not bool(product), 'sha512': ''}}}
+            'libraries': {identity: {'type': 'package', 'serviceable': True, 'sha512': ''}}}
     (framework / 'Microsoft.NETCore.App.deps.json').write_text(json.dumps(deps, indent=2) + '\n')
     declarations = ['load("@rules_msbuild//msbuild:defs.bzl", "msbuild_graph", "msbuild_graph_layouts", "msbuild_graph_binary", "msbuild_graph_test", "msbuild_layout", "msbuild_runtime")']
     projects = {producer['project'] + '|' + producer['framework']: destination
@@ -120,33 +108,16 @@ def main():
     paths.update({label: destination for label, destination, _ in native_products.values()})
     paths.update({'runtime/' + shared + '/' + name: shared + '/' + name for name in
                   ['.version', 'Microsoft.NETCore.App.runtimeconfig.json', 'Microsoft.NETCore.App.deps.json']})
-    if product:
-        for name in ['LICENSE.TXT', 'THIRD-PARTY-NOTICES.TXT']:
-            paths[name] = name
-        provenance = dict(sourceCommit=COMMIT, sourceArchiveSha256=SOURCE_SHA256, framework='10.0.0', platform='linux-arm64',
-            build='unsigned developer runtime, IL assemblies', readyToRun=False,
-            bootstrapSdk=json.loads((ROOT/'examples/source-runtime-app/source.json').read_text())['sdk'],
-            nativeToolchainSha256=json.loads((native/'native/acquisition.json').read_text())['inputs']['toolchain.tar']['sha256'],
-            graphContractSha256=hashlib.sha256((root/'graph.generated.json').read_bytes()).hexdigest(),
-            managed=managed, native={name:dict(label=label, path=path, producer=producer)
-                for name,(label,path,producer) in native_products.items()})
-        (runtime/'source-runtime.json').write_text(json.dumps(provenance, indent=2) + '\n')
-        paths['runtime/source-runtime.json'] = 'source-runtime.json'
     declarations += ['msbuild_layout(name="app_source_runtime", paths=' + json.dumps(paths) + ')',
         'msbuild_runtime(name="app_host", layout=":app_source_runtime", entry_point="dotnet", runtime_identifier="linux-arm64", version="10.0.0", env={"RUNTIME_PROVIDER":"source"})',
         'msbuild_graph(name="app_build", runner=":graph_runner", contract="app/contract.json", source_root="app", srcs=["app/App.csproj","app/Program.cs"], linux_stable_paths=True, linux_worker=True)',
         'msbuild_graph_binary(name="app", graph=":app_build", assembly="bin/Release/net10.0/App.dll", runtime_host=":app_host")',
         'msbuild_graph_test(name="app_test", graph=":app_build", assembly="bin/Release/net10.0/App.dll", runtime_host=":app_host")']
-    if product:
-        with (root/'MODULE.bazel').open('a') as module:
-            module.write('bazel_dep(name="rules_pkg",version="1.3.0")\nbazel_dep(name="rules_python",version="1.7.0")\n')
-        declarations += ['load("@rules_pkg//pkg:tar.bzl","pkg_tar")',
-            'pkg_tar(name="runtime_package",visibility=["//visibility:public"],srcs=[":app_source_runtime"],strip_prefix="app_source_runtime.layout",extension="tar.gz",preserve_mode=True,stamp=0,allow_duplicates_with_different_content=False)']
     with (root / 'BUILD.bazel').open('a') as build:
         build.write('\n' + '\n'.join(declarations) + '\n')
     (root / 'application.json').write_text(json.dumps(dict(commit=COMMIT, framework='10.0.0', managed=managed, private=private,
         native={name: dict(label=label, path=path, producer=producer) for name, (label, path, producer) in native_products.items()},
-        scope='complete upstream shared-framework developer closure; unsigned IL product' if product else 'selected source framework for ordinary app; not a redistributable runtime'), indent=2) + '\n')
+        scope='selected source framework for ordinary app; not a redistributable runtime'), indent=2) + '\n')
     print(root, flush=True)
 
 

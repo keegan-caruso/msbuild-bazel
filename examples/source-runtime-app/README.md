@@ -23,6 +23,18 @@ Resume interrupted setup with the same command plus `--resume`. Retain the setup
 directory; Linux also retains a dependency on this rules checkout. Reports and
 timings stay under the setup directory.
 
+In the prepared Linux workspace, Bazel owns the remaining operations:
+
+```sh
+bazel build //:runtime_package
+bazel test //:app_test //:runtime_test
+```
+
+Use the Bazel launcher and cache options recorded by setup. `runtime_test` checks
+producer hashes, executable bits, SDK-absent execution and the extracted archive;
+reports appear in Bazel's test outputs. Source downloads use Bazel's verified
+repository cache; graph sync and native toolchain preparation remain setup steps.
+
 Pass `--cache-url=http://CACHE:8080` to reuse Bazel actions and MSBuild project
 snapshots. The endpoint must be reachable from the build worker.
 

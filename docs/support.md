@@ -534,7 +534,12 @@ Bazel **9.3.0**: **631 configurations / 563 compilations**, 119 package archives
 and 320 native lockfiles. Producer bytes and executable bits match; all 172
 framework names resolve from the source runtime. The launcher and extracted
 archive both execute with the SDK absent; removing CoreCLR fails. Bazel actually
-executed the app test. The worker used 6 GiB RAM plus 2 GiB temporary swap.
+executed `//:app_test` and `//:runtime_test`; the latter checks all producer hashes,
+modes and archive members. `msbuild_runtime_layout` produces metadata in a declared
+action and `rules_pkg` produces the archive. Source acquisition uses Bazel's
+hash-verified downloader and repository cache. The original compilation used
+6 GiB RAM plus 2 GiB temporary swap; these Bazel-test controls reused cached graph
+actions from a fresh source workspace/output base.
 Qualification reused verified acquisition caches and prepared native tools;
 complete setup from an empty image remains unqualified.
 

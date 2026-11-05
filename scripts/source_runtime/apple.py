@@ -11,7 +11,7 @@ import subprocess
 import tarfile
 import uuid
 
-from .common import ROOT, acquire, digest, read_recipe, run, save
+from .common import ROOT, stage_source, digest, read_recipe, run, save
 
 
 def demo_helpers():
@@ -121,7 +121,7 @@ def setup(args):
         if state['cacheUrl']:command+=['--cache-url='+state['cacheUrl']]
         if args.source_archive:
             source=read_recipe()['source']
-            acquire(base/'runtime-source.tar.gz',source['url'],source['sha256'],args.source_archive.resolve())
+            stage_source(base/'runtime-source.tar.gz',source['sha256'],args.source_archive.resolve())
             state['suppliedSource']=True
             save(base/'setup.json',state)
         if state.get('suppliedSource'):command+=['--source-archive=/host/runtime-source.tar.gz']

@@ -36,29 +36,25 @@ def run(command, **kwargs):
     return subprocess.run([str(value) for value in command], check=True, **kwargs)
 
 
-def acquire(destination, url, expected, supplied=None):
+def stage_source(destination, expected, supplied):
     if destination.exists():
         if digest(destination) != expected:
             raise ValueError('Retained download changed: ' + str(destination))
         return
     destination.parent.mkdir(parents=True, exist_ok=True)
     temporary = destination.with_suffix('.partial')
-    # An interrupted hardlink/copy must never become curl's output inode.
+    # Never reuse a partial inode from an interrupted hardlink/copy.
     temporary.unlink(missing_ok=True)
-    if supplied:
-        if digest(supplied) != expected:
-            raise ValueError('Supplied source archive differs from the pinned source')
-        try:
-            os.link(supplied, temporary)
-        except OSError:
-            import shutil
-            shutil.copy2(supplied, temporary)
-    else:
-        run(['curl', '--fail', '--location', '--retry', '3', '--connect-timeout', '20',
-             '--max-time', '600', '--output', temporary, url])
+    if digest(supplied) != expected:
+        raise ValueError('Supplied source archive differs from the pinned source')
+    try:
+        os.link(supplied, temporary)
+    except OSError:
+        import shutil
+        shutil.copy2(supplied, temporary)
     if digest(temporary) != expected:
         temporary.unlink()
-        raise ValueError('Download hash differs: ' + url)
+        raise ValueError('Staged source archive differs from the pinned source')
     temporary.replace(destination)
 
 
