@@ -705,6 +705,47 @@ matched all 9,972 retained files. Acquisition/bootstrap/Restore/build took 124.1
 the profiled runner took 17.06 s. This is a correctness control, not a paired
 speedup or a new runtime test-suite run.
 
+### Source-runtime product
+
+One correctness run on Ubuntu 22.04 ARM64, four CPUs / 8 GiB, SDK 10.0.400 and
+Bazel 9.3.0 used the complete 172-assembly / 16-native-file developer runtime:
+
+| Phase | Wall time | Cache state |
+| --- | ---: | --- |
+| Initial sync / sync-check | 1,200.00 / 3.46 s | Fresh qualification / retained preparation |
+| Declared runtime + app build | 225.27 s | Native compilation; 563 managed project hits |
+| Producer tests | 37.40 s | Two actual test executions |
+| Independent build recovery | 75.70 s | 138 remote spawn hits; one local package extraction |
+| Consumer tests | 6.67 s | Two actual test executions |
+
+The producer used a fresh pinned image, a supplied source archive and available
+HTTP caches. The stopped-producer consumer received only **10,025 declared inputs**
+(16 MiB compressed), source rules and hash metadata. Tools were bootstrapped;
+verified repository downloads from an earlier analysis attempt were available.
+No compiled outputs or local action cache transferred. The three graph actions,
+Restore, three native builds and version generation were remote hits. All 649
+runtime files match in bytes/modes, as does the complete archive. These single-run
+controls are not paired raw-MSBuild comparisons or a cold-cache speedup claim.
+
+A separate profiled replay with verified acquisition caches prepared and another
+fresh output base took **51.06 s**, with the same cache counts and exact output
+parity. Its source-repository extraction took **11.26 s**; package assembly took
+about **4.2 s**. Repository setup and remote output downloads remain material.
+Profile intervals overlap; these are diagnostics, not additional benchmark samples.
+
+The [recovery helper](../tests/graph_build/upstream/runtime_product_recovery.py)
+provides `close WORKSPACE HANDOFF/workspace` and `seed WORKSPACE HANDOFF/seed.json`.
+Transfer the handoff and the matching rules checkout as `HANDOFF/rules`; stop the
+producer. In the relocated workspace use the rules' `scripts/bazel-launcher.sh`
+with a fresh output base, `--disk_cache=`, the same `--remote_cache`,
+`--remote_cache_async=false`, `--remote_download_outputs=all`,
+`--action_env=RULES_MSBUILD_PROJECT_CACHE_URL=URL`, `--strategy=MSBuildGraph=worker`
+and `--worker_sandboxing`. Build `//:app
+//:runtime_package` with `--execution_log_json_file=ACTIONS`; run `check WORKSPACE
+RESULT --seed=HANDOFF/seed.json --actions=ACTIONS`. Actually execute `//:app_test
+//:runtime_test` with `--nocache_test_results`. This handoff requires a prepared
+producer and the [qualified Linux environment](support.md#complete-source-runtime-product).
+
 ## Reproduce
 
 For separate sync diagnostics, use `bazel run //:sync

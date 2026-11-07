@@ -529,47 +529,40 @@ records source, SDK, toolchain and graph identities. This is an unsigned IL
 developer runtime; official signing, ReadyToRun and release-pack parity are outside
 this workflow.
 
-The component pipeline passed on Ubuntu 22.04 ARM64 with SDK **10.0.400** and
-Bazel **9.3.0**: **631 configurations / 563 compilations**, 119 package archives
-and 320 native lockfiles. Producer bytes and executable bits match; all 172
-framework names resolve from the source runtime. The launcher and extracted
-archive both execute with the SDK absent; removing CoreCLR fails. Bazel actually
-executed `//:app_test` and `//:runtime_test`; the latter checks all producer hashes,
-modes and archive members. `msbuild_runtime_layout` produces metadata in a declared
-action and `rules_pkg` produces the archive. Source acquisition uses Bazel's
-hash-verified downloader and repository cache. The original compilation used
-6 GiB RAM plus 2 GiB temporary swap; these Bazel-test controls reused cached graph
-actions from a fresh source workspace/output base.
-Qualification reused verified acquisition caches and prepared native tools;
-complete setup from an empty image remains unqualified.
+The public setup passed in a fresh pinned Ubuntu 22.04 ARM64 container, four CPUs /
+8 GiB, SDK **10.0.400**, Bazel **9.3.0**. Setup used a pinned source archive and
+prebuilt image. SDK/tool and package acquisition ran in the new container, with HTTP action
+and project caches available. Public update/check and sync/check qualified
+**631 configurations / 563 compilations**, 119 package archives and 320 native
+lockfiles. Native producers built CoreCLR/JIT, five libraries and three host files;
+the managed graph recovered 563 projects from the project cache.
 
-Execution requires Ubuntu 22.04 ARM64 with nested namespaces. Apple silicon setup
-creates that environment in one owned container. Fresh-image Apple setup and
-native Linux x64 remain unqualified. For compilation with a source-built **SDK**,
-use the separate [quick-start scenario](../examples/quickstart/README.md#source-built-sdk).
+Bazel actually executed `//:app_test` and `//:runtime_test`: all 172 framework names
+load from the source product, producer bytes/modes and archive members match,
+SDK-absent execution succeeds, and removing CoreCLR fails. A relocated independent
+container, with the producer stopped and no local action cache, recovered all three
+graph actions, Restore, all three native producers and version generation through
+HTTP. All **649 runtime files** and the complete archive match; both tests actually
+executed again. Package extraction is the sole local build action.
+[Timings and method](performance.md#source-runtime-product) separate setup from recovery.
+
+Execution requires Ubuntu 22.04 ARM64 with nested namespaces. Building the image
+from the Dockerfile, native Linux x64 and RBE remain unqualified. For compilation
+with a source-built **SDK**, use the separate
+[quick-start scenario](../examples/quickstart/README.md#source-built-sdk).
 
 ### Declared native preparation
 
-The source-to-app workflow declares native source selection, three version files,
-shared source archives and compiler/tool trees as Bazel outputs. Its default tools
-come from 194 hash-locked Ubuntu 22.04 ARM64 packages; package scripts do not run.
-Explicit aliases replace required post-install links. Assembly still uses the
-qualified host's `dpkg-deb`, so this does not qualify remote execution or toolchain
-bootstrap from source.
+Source selection, three version files, shared source archives and tool trees are
+Bazel outputs. Tools come from 194 hash-locked Ubuntu ARM64 packages; explicit
+aliases replace package scripts. Extraction still uses the qualified host's
+`dpkg-deb`; native compilation uses the declared tool filesystem.
 
-`//tests/integration:native_preparation` covers source/body/version invalidation,
-Brotli's nested BUILD file, failed-build recovery and link-preserving tool archives
-on Bazel 8.8 / 9.3. All 7,806 source/version members match the previous native input
-archive in bytes, link targets and executable modes. The package-built tools also
-built CoreCLR/JIT, five runtime native libraries and three host files on Linux
-ARM64 / 9.3. In the prepared workspace, build `//native:runtime_coreclr`,
-`//native:runtime_libraries` and `//native:runtime_host`.
-
-Combining all 16 new native products with the retained same-source managed runtime
-passed `runtime_product_test.py`: producer bytes/modes, loading all 172 assemblies,
-SDK-absent execution of the app and archive, and missing-CoreCLR rejection.
-Fresh complete setup and independent recovery with these new tools remain
-unqualified; the complete-product results above used the prior supplied bundle.
+`//tests/integration:native_preparation` passes Bazel 8.8 / 9.3: suffixless source
+URLs, body/version invalidation, Brotli's nested BUILD file, failed-build recovery
+and link-preserving archives. All 7,806 source/version members match the previous
+input archive in bytes, link targets and executable modes. Build the three
+producers with `//native:{runtime_coreclr,runtime_libraries,runtime_host}`.
 
 ### Connected source-runtime workflow
 
