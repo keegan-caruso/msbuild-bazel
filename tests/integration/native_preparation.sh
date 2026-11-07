@@ -132,3 +132,22 @@ with tarfile.open('bazel-bin/tool_fixture.tar') as archive:
  assert archive.extractfile(members['usr/bin/tool']).read().startswith(b'#!/bin/sh')
 print('PASS: complete native package tree and link-preserving archive output group')
 PY
+
+# Expanded SDK/source repositories must survive a fresh output base without
+# executing the downloader again. No local or remote action cache is available.
+repo_seed="$scratch/repo-seed"
+repo_consumer="$scratch/repo-consumer"
+repo_contents="$scratch/repo-contents"
+repo_bazel() {
+    local base=$1; shift
+    "$BIT_BAZEL_BINARY" --nosystem_rc --nohome_rc --noworkspace_rc "--output_base=$base" "$@"
+}
+trap 'repo_bazel "$repo_seed" shutdown >/dev/null 2>&1 || true; repo_bazel "$repo_consumer" shutdown >/dev/null 2>&1 || true; cleanup' EXIT
+repo_bazel "$repo_seed" build //native:sources --repo_contents_cache="$repo_contents" --disk_cache= --remote_cache=
+cp bazel-bin/native/sources.tar "$scratch/expected-sources.tar"
+repo_bazel "$repo_seed" shutdown
+mv source-archive source-archive.offline
+repo_bazel "$repo_consumer" build //native:sources --repo_contents_cache="$repo_contents" --repository_disable_download --disk_cache= --remote_cache=
+cmp "$scratch/expected-sources.tar" bazel-bin/native/sources.tar
+repo_bazel "$repo_consumer" shutdown
+echo 'PASS: SDK and native-source repository contents recover without download or action caches'

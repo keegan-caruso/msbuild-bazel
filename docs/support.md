@@ -561,7 +561,12 @@ aliases replace package scripts. Extraction still uses the qualified host's
 `//tests/integration:native_preparation` passes Bazel 8.8 / 9.3: suffixless source
 URLs, body/version invalidation, Brotli's nested BUILD file, failed-build recovery
 and link-preserving archives. All 7,806 source/version members match the previous
-input archive in bytes, link targets and executable modes. Build the three
+input archive in bytes, link targets and executable modes. On both pins, fresh
+output bases recover expanded SDK/source repositories with the downloader disabled,
+the source archive absent and both action caches disabled. A separate 9.3 control
+with isolated local repository caches recovers them through the experimental HTTP
+repository-contents cache; an actually executed action reads matching SDK/source
+bytes. This qualifies these repositories, not general remote execution. Build the three
 producers with `//native:{runtime_coreclr,runtime_libraries,runtime_host}`.
 
 ### Connected source-runtime workflow

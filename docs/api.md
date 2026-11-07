@@ -388,6 +388,12 @@ there is no SDK-family allowlist. Their current source/API requirements are C# 1
 .NET 8 and MSBuild project-cache support. Acquisition alone does not qualify old
 SDKs or additional workloads.
 
+Hash-verified SDK repositories are reproducible. Bazel's `--repo_contents_cache`
+can reuse expanded layouts across workspaces/output bases; `--repository_cache`
+stores downloaded archives. Bazel 9.3 additionally supports the opt-in startup flag
+`--experimental_remote_repo_contents_cache` with a configured remote cache.
+Archive/repository reuse does not enable remote execution. See [qualification](support.md#declared-native-preparation).
+
 `msbuild_sdk` describes a complete downloaded or produced layout rooted beside
 `dotnet`; register `<name>_registered` and `<name>_runtime_registered`. The producer
 needs a separate bootstrap toolchain. Host-path SDK repositories are unsupported.

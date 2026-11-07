@@ -1,6 +1,8 @@
 """Verified runtime sources with upstream BUILD files retained as source data."""
 
 def _source(ctx):
+    if not ctx.attr.sha256:
+        fail("Runtime source archives require sha256")
     ctx.download_and_extract(
         url = ctx.attr.urls,
         sha256 = ctx.attr.sha256,
@@ -28,6 +30,7 @@ pkg_tar(
     stamp = 0,
 )
 """.replace("__SOURCE_PREFIX__", json.encode("/external/" + ctx.name)), executable = False)
+    return ctx.repo_metadata(reproducible = True)
 
 runtime_source = repository_rule(
     implementation = _source,

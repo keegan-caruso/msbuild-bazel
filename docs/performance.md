@@ -733,6 +733,13 @@ parity. Its source-repository extraction took **11.26 s**; package assembly took
 about **4.2 s**. Repository setup and remote output downloads remain material.
 Profile intervals overlap; these are diagnostics, not additional benchmark samples.
 
+With reproducible SDK/source repositories, a fresh-base diagnostic replay took
+**34.63 s** with the downloader disabled, identical product bytes and the same
+138 remote hits / one local action. Neither repository was extracted again.
+A control with the contents cache disabled extracted sources in 8.83 s and the
+SDK in 5.37 s. These profiles overlapped other validation; use the removed
+extraction events as evidence, not the wall times as a paired speedup.
+
 The [recovery helper](../tests/graph_build/upstream/runtime_product_recovery.py)
 provides `close WORKSPACE HANDOFF/workspace` and `seed WORKSPACE HANDOFF/seed.json`.
 Transfer the handoff and the matching rules checkout as `HANDOFF/rules`; stop the

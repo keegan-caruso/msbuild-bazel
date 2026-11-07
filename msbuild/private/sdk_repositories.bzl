@@ -21,6 +21,7 @@ package(default_visibility = ["//visibility:public"])
 filegroup(name = "files", srcs = glob(["sdk/**"], exclude = ["sdk/**/BUILD", "sdk/**/BUILD.bazel"]))
 msbuild_sdk(name = "sdk", dotnet = "sdk/dotnet", files = [":files"], sdk_version = %s, runtime_identifier = %s, runtime_version = %s)
 """ % (json.encode(str(ctx.attr._declarations)), json.encode(ctx.attr.version), json.encode(ctx.attr.platform), json.encode(ctx.attr.runtime_version)))
+    return ctx.repo_metadata(reproducible = True)
 
 sdk_archive = repository_rule(
     implementation = _sdk_archive,
