@@ -148,6 +148,12 @@ The 51 ProjectSync controls cover props and executable-mode changes, multi-targe
 selection, implementation/reference DLLs, XML copies, failed builds, corrupt
 artifacts/metadata, relocation, source/SDK aliases and overlapping output owners.
 
+The complete source-runtime graph also passed on 9.3: all 563 eligible projects
+replayed through HTTP; Pipelines body/API edits ran 11/26 Csc tasks and retained
+byte-identical declarations. Source-runtime setup enables this option when
+`--cache-url` is supplied. Its initial cache seed still performs the SDK Build;
+whole-action recovery and per-project replay are separate controls below.
+
 Verified Restore snapshots passed small controls for compiler-only edits, source
 membership/modes, failed compilation, corrupt assets, authored Restore-hook inputs,
 empty generated directories and synthetic package-SDK resolution after replay.
@@ -544,6 +550,10 @@ container, with the producer stopped and no local action cache, recovered all th
 graph actions, Restore, all three native producers and version generation through
 HTTP. All **649 runtime files** and the complete archive match; both tests actually
 executed again. Package extraction is the sole local build action.
+A separate source-only consumer also recovered the whole `MSBuildSyncPrepare`
+action with misses forbidden: 122 remote spawn hits, zero executed spawns and
+byte-identical declarations. The producer was stopped; only the exact authored
+sync inputs and module locks transferred.
 [Timings and method](performance.md#source-runtime-product) separate setup from recovery.
 
 Execution requires Ubuntu 22.04 ARM64 with nested namespaces. Building the image

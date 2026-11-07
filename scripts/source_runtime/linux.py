@@ -150,6 +150,8 @@ def setup(args):
                 shutil.rmtree(managed)
         managed_command = [sys.executable, PREPARE / 'runtime_downloaded_prepare.py', archive, managed,
                            '--slice=runtime-product', '--evaluation-cache-mb=1024', '--nuget-http-cache=' + str(base/'downloads/nuget-http'), '--distdir=' + str(distdir), '--sdk-archive=' + str(ROOT / 'examples/source-runtime-app/source.json')]
+        if args.cache_url:
+            managed_command.append('--qualification-cache')
         if (managed / 'source/nuget.lock.json').exists() and not (managed / 'workspace').exists():
             managed_command.append('--resume')
         stage('managed', managed_command)

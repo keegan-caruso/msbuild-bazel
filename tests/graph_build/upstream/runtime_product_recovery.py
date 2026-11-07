@@ -12,6 +12,7 @@ import socket
 import sys
 
 from runtime_complete_remote import ROOT, spawns
+from runtime_jit_public_consumer import preparation_sources
 
 sys.path.insert(0, str(ROOT/'scripts'))
 from source_runtime.common import digest
@@ -19,8 +20,6 @@ from source_runtime.common import digest
 
 def close(root, output):
     root, output = root.resolve(), output.resolve()
-    if output.exists() or output.is_relative_to(root):
-        raise ValueError('Use a fresh closure outside the producer workspace')
     contract = json.loads((root/'graph.generated.json').read_text())
     wanted = {'BUILD.bazel', 'MODULE.bazel', 'MODULE.bazel.lock', 'graph.generated.bzl',
         'graph.generated.json', 'nuget.lock.json', 'runtime-product.json', 'runtime_product.bzl',
@@ -41,6 +40,19 @@ def close(root, output):
             wanted.update(directory+'/'+name for name in node['Inputs'])
     trees = tuple(name+'/' for name in contract.get('InputTrees', {}))
     wanted = {name for name in wanted if not name.startswith(trees+('.nuget/', '.graph-tools/'))}
+    publish_inputs(root, output, wanted)
+
+
+def close_sync(root, output, query_base):
+    root, output = root.resolve(), output.resolve()
+    wanted = preparation_sources(root, query_base)
+    wanted.update(['BUILD.bazel', 'MODULE.bazel', 'MODULE.bazel.lock', 'graph.generated.json', 'graph.generated.bzl'])
+    publish_inputs(root, output, wanted)
+
+
+def publish_inputs(root, output, wanted):
+    if output.exists() or output.is_relative_to(root):
+        raise ValueError('Use a fresh closure outside the producer workspace')
     for name in sorted(wanted):
         source = root/name
         if Path(name).is_absolute() or '..' in Path(name).parts or source.is_symlink() or not source.is_file() or not source.resolve().is_relative_to(root):
@@ -91,15 +103,20 @@ def check(root, seed, actions, result):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('phase', choices=['close', 'seed', 'check'])
+    parser.add_argument('phase', choices=['close', 'close-sync', 'seed', 'check'])
     parser.add_argument('workspace', type=Path)
     parser.add_argument('output', type=Path)
     parser.add_argument('--seed', type=Path)
     parser.add_argument('--actions', type=Path)
+    parser.add_argument('--preparation-base', type=Path, help='fresh query base for close-sync authored membership')
     args = parser.parse_args()
     root = args.workspace.resolve()
     if args.phase == 'close':
         close(root, args.output.resolve())
+    elif args.phase == 'close-sync':
+        if args.preparation_base is None:
+            parser.error('close-sync requires --preparation-base')
+        close_sync(root, args.output, args.preparation_base)
     elif args.phase == 'seed':
         args.output.write_text(json.dumps(capture(root), indent=2)+'\n')
     elif args.seed is None or args.actions is None:

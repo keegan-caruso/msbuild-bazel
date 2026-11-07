@@ -79,6 +79,18 @@ class SourceRuntimeSetupTests(unittest.TestCase):
             self.assertEqual(overrides['Multi/Multi.csproj']['TargetFramework'],'net10.0-linux')
             self.assertEqual(json.loads(mapping.read_text())['entryProperties'],overrides)
 
+    def test_qualification_cache_requires_an_explicit_endpoint(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            base=Path(temporary)
+            environment=dict(os.environ)
+            environment.pop('RULES_MSBUILD_PROJECT_CACHE_URL',None)
+            result=subprocess.run([sys.executable,str(ROOT/'tests/graph_build/upstream/runtime_downloaded_prepare.py'),
+                str(base/'source.tar.gz'),str(base/'output'),'--qualification-cache'],env=environment,
+                text=True,capture_output=True)
+            self.assertEqual(result.returncode,2)
+            self.assertIn('--qualification-cache requires RULES_MSBUILD_PROJECT_CACHE_URL',result.stderr)
+            self.assertFalse((base/'output').exists())
+
     def test_recipe_matches_bootstrap_pins(self):
         recipe = read_recipe()
         pins = json.loads((ROOT / 'scripts/toolchains.json').read_text())

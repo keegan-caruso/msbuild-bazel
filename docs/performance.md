@@ -740,6 +740,40 @@ A control with the contents cache disabled extracted sources in 8.83 s and the
 SDK in 5.37 s. These profiles overlapped other validation; use the removed
 extraction events as evidence, not the wall times as a paired speedup.
 
+A source-only sync consumer received **60,958 authored/control files** (91 MiB
+compressed), with the producer stopped. A fresh output base recovered preparation
+in **35.64 s**: 122 remote spawn hits, including `MSBuildSyncPrepare`, zero executed
+spawns and byte-identical declarations. `sync --check` passed with cache misses
+forbidden. This measures whole-action recovery; cached stdout can still contain
+the producer's private-Build messages.
+
+With `qualification_cache = True`, separate forced-preparation profiles on the
+same 631-configuration / 563-project graph used HTTP project caching with both
+Bazel action caches disabled:
+
+| Qualification case | Bazel wall | Private SDK Build | Project hits | Csc tasks |
+| --- | ---: | ---: | ---: | ---: |
+| Empty project-cache seed | 1,316.98 s | 1,171.65 s | 0 | 691 |
+| Fresh output base, unchanged sources | 90.39 s | 3.50 s | 563 | 0 |
+| Pipelines body edit | 137.62 s | 42.73 s | 552 | 11 |
+| Pipelines implementation/reference API edit | 156.16 s | 60.69 s | 537 | 26 |
+
+All declarations match ordinary sync byte-for-byte. The fresh-base control also
+recovered Restore (9.43 s), with no Restore execution. Edit controls changed an
+unused declared input to force preparation; conservative Restore keys therefore
+reran Restore (35.54 / 36.05 s). Original-source recovery returned 563 hits / zero
+Csc tasks. These are single diagnostic runs, excluding acquisition/update and
+product selection, not paired speedups or ordinary-build timings. Cold seeding
+remains expensive. Setup's `--cache-url` now enables qualification reuse too;
+standalone preparation accepts `--qualification-cache` with
+`RULES_MSBUILD_PROJECT_CACHE_URL` set.
+
+For that preparation handoff, run `close-sync SOURCE HANDOFF/workspace
+--preparation-base=FRESH_BASE` with the helper below. It queries the exact sync
+`srcs` rather than transferring private build products. Use the same remote cache
+and a fresh consumer base; `--experimental_remote_require_cached` makes an
+unexpected execution fail.
+
 The [recovery helper](../tests/graph_build/upstream/runtime_product_recovery.py)
 provides `close WORKSPACE HANDOFF/workspace` and `seed WORKSPACE HANDOFF/seed.json`.
 Transfer the handoff and the matching rules checkout as `HANDOFF/rules`; stop the

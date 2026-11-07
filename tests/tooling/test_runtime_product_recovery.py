@@ -5,6 +5,7 @@ from pathlib import Path
 import sys
 import tempfile
 import unittest
+from unittest.mock import patch
 
 UPSTREAM = Path(__file__).resolve().parents[1]/'graph_build/upstream'
 sys.path.insert(0, str(UPSTREAM))
@@ -51,6 +52,16 @@ class ProductRecovery(unittest.TestCase):
         self.assertEqual((target/'Code.cs').read_bytes(), (self.root/'Code.cs').read_bytes())
         self.assertNotIn('/producer/', (target/'MODULE.bazel').read_text())
         self.assertIn('https://example.invalid/source.tar.gz', (target/'MODULE.bazel').read_text())
+
+    def test_sync_closure_uses_authored_query_membership(self):
+        target = self.base/'sync-consumer'
+        with patch.object(recovery, 'preparation_sources', return_value={'Code.cs', 'native/coreclr.sh'}):
+            recovery.close_sync(self.root, target, self.base/'query')
+        self.assertEqual((target/'Code.cs').read_bytes(), (self.root/'Code.cs').read_bytes())
+        self.assertEqual((target/'native/coreclr.sh').stat().st_mode & 0o777, 0o755)
+        self.assertFalse((target/'app').exists())
+        self.assertFalse((target/'native/obj').exists())
+        self.assertFalse((target/'runtime-product.json').exists())
 
     def test_declared_symlink_is_rejected(self):
         source = self.root/'Code.cs'

@@ -39,7 +39,8 @@ from [locked Ubuntu packages](../../tests/runtime/native-packages.json); compila
 does not copy the worker's installed compiler files. Graph sync remains a setup step.
 
 Pass `--cache-url=http://CACHE:8080` to reuse Bazel actions and MSBuild project
-snapshots. The endpoint must be reachable from the build worker.
+snapshots during qualification and ordinary builds. The endpoint must be reachable
+from the build worker. A cold cache still requires the initial SDK Build.
 
 The declared `//:runtime_package` output is exported as
 `runtime-linux-arm64.tar.gz` in that directory. It is an unsigned IL developer

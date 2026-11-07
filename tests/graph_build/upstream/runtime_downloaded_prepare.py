@@ -27,6 +27,7 @@ def main():
     parser.add_argument('output', type=Path, help='fresh owned preparation directory')
     parser.add_argument('--slice', choices=['loaded-common', 'runtime-suites', 'runtime-product'], default='loaded-common', help='four roots, the reviewed test graph, or the complete shared-framework developer product')
     parser.add_argument('--evaluation-reuse', action='store_true', help='opt into the reviewed Pipelines body/API evaluation contract')
+    parser.add_argument('--qualification-cache', action='store_true', help='reuse qualified projects through RULES_MSBUILD_PROJECT_CACHE_URL')
     parser.add_argument('--evaluation-cache-mb', type=int, default=512, help='explicit retained-evaluation memory budget; 1024 for the large reviewed graph')
     parser.add_argument('--distdir', type=Path, help='export verified NuGet archives for Bazel acquisition and the offline product inventory')
     parser.add_argument('--nuget-http-cache', type=Path, help='explicit native NuGet acquisition cache for update/check')
@@ -35,6 +36,9 @@ def main():
     args = parser.parse_args()
     if args.evaluation_cache_mb <= 0:
         parser.error('--evaluation-cache-mb must be positive')
+    if args.qualification_cache and not os.environ.get('RULES_MSBUILD_PROJECT_CACHE_URL'):
+        parser.error('--qualification-cache requires RULES_MSBUILD_PROJECT_CACHE_URL')
+    qualification = 'qualification_cache=True,' if args.qualification_cache else ''
     product = args.slice == 'runtime-product'
     if product:
         entries = ['src/libraries/sfx-src.proj']
@@ -118,7 +122,7 @@ def main():
     update = ('load("@rules_msbuild//msbuild:sync.bzl","msbuild_nuget_update","msbuild_sync")\n'
               'entries=' + json.dumps(entries) + '\n'
               'msbuild_nuget_update(name="update_packages",projects=entries,framework="net10.0",mappings="mappings.json")\n')
-    sync = 'msbuild_sync(name="sync",projects=entries,framework="net10.0",mappings="mappings.json",package_lock="@nuget//:packages",package_build=True,resolve_references=True,' + SYNC_SRCS + ')\n'
+    sync = 'msbuild_sync(name="sync",projects=entries,framework="net10.0",mappings="mappings.json",package_lock="@nuget//:packages",package_build=True,resolve_references=True,' + qualification + SYNC_SRCS + ')\n'
     if args.resume:
         assert (source / 'MODULE.bazel').read_text() in [module, module + inventory]
         assert (source / 'BUILD.bazel').read_text().startswith(update)
@@ -162,7 +166,7 @@ def main():
                 Path(os.environ.get('RULES_MSBUILD_DOTNET_ROOT', ROOT/'.tools/dotnet')).resolve(),
                 base/'runtime-product.json', build_mapping, base)
             entries, overrides = configure_sync(base/'runtime-product.json', build_mapping)
-            sync = 'msbuild_sync(name="sync",projects=' + json.dumps(entries) + ',mappings="sync-mappings.json",package_lock="@nuget//:packages",package_build=True,resolve_references=True,' + SYNC_SRCS + ')\n'
+            sync = 'msbuild_sync(name="sync",projects=' + json.dumps(entries) + ',mappings="sync-mappings.json",package_lock="@nuget//:packages",package_build=True,resolve_references=True,' + qualification + SYNC_SRCS + ')\n'
             (source/'BUILD.bazel').write_text(update + sync)
         run('sync', '//:sync')
         run('sync-check', '//:sync', True)
@@ -209,7 +213,7 @@ def main():
             assert hashlib.sha256(archive.read_bytes()).hexdigest() == expected[archive.name]
             shutil.copyfile(archive, feed / archive.name)
         shutil.copyfile(source / 'MODULE.bazel.lock', workspace / 'MODULE.bazel.lock')
-        summary = dict(resumed=args.resume, evaluationReuseInputs=contract.get('EvaluationReuseInputs'), evaluationCacheMiB=args.evaluation_cache_mb, commit=COMMIT, sourceSha256=SOURCE_SHA256, sdk='10.0.400', slice=args.slice, entries=entries,
+        summary = dict(resumed=args.resume, qualificationCache=args.qualification_cache, evaluationReuseInputs=contract.get('EvaluationReuseInputs'), evaluationCacheMiB=args.evaluation_cache_mb, commit=COMMIT, sourceSha256=SOURCE_SHA256, sdk='10.0.400', slice=args.slice, entries=entries,
                        configurations=len(variants), compilations=compilations,
                        archives=len(manifest['packages']), nativeLocks=len(manifest['lockFiles']), inputs=len(paths), commands=rows)
         (base / 'summary.json').write_text(json.dumps(summary, indent=2) + '\n')
