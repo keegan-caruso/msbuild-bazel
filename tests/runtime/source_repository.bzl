@@ -4,6 +4,7 @@ def _source(ctx):
     ctx.download_and_extract(
         url = ctx.attr.urls,
         sha256 = ctx.attr.sha256,
+        type = "tar.gz",
         stripPrefix = "runtime-" + ctx.attr.commit,
     )
 

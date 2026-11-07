@@ -48,7 +48,7 @@ files={'eng/Versions.props':'<Project><PropertyGroup><ProductVersion>10.0.'+patc
  'src/native/external/libunwind/README':'upstream readme\n',
  'src/native/body.c':body,'src/native/external/brotli/BUILD.bazel':'# upstream BUILD must remain source data\n',
  'src/native/external/brotli/fixture.c':'nested source', 'src/coreclr/run.sh':'#!/bin/sh\nexit 0\n'}
-archive=Path('source.tar.gz').resolve()
+archive=Path('source-archive').resolve()  # Upstream commit URLs also lack a tar suffix.
 with tarfile.open(archive,'w:gz') as output:
  for name,text in sorted(files.items()):
   entry=tarfile.TarInfo('runtime-'+'a'*40+'/'+name);data=text.encode();entry.size=len(data)
