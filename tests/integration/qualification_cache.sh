@@ -59,6 +59,18 @@ run restored
 report restored 4 0 0
 cmp graph.generated.json "$TEST_TMPDIR/baseline.json"
 cmp graph.generated.bzl "$TEST_TMPDIR/baseline.bzl"
+# A compiler-content exemption must not hide project definition changes.
+cp Directory.Build.props "$TEST_TMPDIR/original.props"
+printf '<!-- Restore definition changed -->\n' >> Directory.Build.props
+run props
+report props 0 4 4
+assert_contains "$TEST_TMPDIR/props.log" "PROJECT_SYNC_RESTORE_CACHE miss"
+cp "$TEST_TMPDIR/original.props" Directory.Build.props
+run props-restored
+report props-restored 4 0 0
+assert_contains "$TEST_TMPDIR/props-restored.log" "PROJECT_SYNC_RESTORE_CACHE hit"
+cmp graph.generated.json "$TEST_TMPDIR/baseline.json"
+cmp graph.generated.bzl "$TEST_TMPDIR/baseline.bzl"
 # Package/tool directories must become regular files inside the private namespace.
 cp "$TEST_TMPDIR/sync.BUILD" BUILD.bazel
 sed -i 's|</Project>|<ItemGroup><PackageReference Include="Newtonsoft.Json" Version="13.0.3" /></ItemGroup></Project>|' P0/P0.csproj
@@ -78,6 +90,7 @@ cp graph.generated.json "$TEST_TMPDIR/packages.json"
 cp graph.generated.bzl "$TEST_TMPDIR/packages.bzl"
 run packages
 report packages 0 4 4
+assert_contains "$TEST_TMPDIR/packages.log" "PROJECT_SYNC_RESTORE_CACHE miss"
 run packages-recovered --action_env=RULES_MSBUILD_SYNC_PROFILE=1 -- --check
 report packages-recovered 4 0 0
 assert_contains "$TEST_TMPDIR/packages-recovered.log" "PROJECT_SYNC_RESTORE_CACHE hit"
