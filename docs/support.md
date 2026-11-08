@@ -144,15 +144,19 @@ action; it requires `srcs`, `package_build` and `resolve_references`. Linux ARM6
 on both Bazel pins: normal-mode declaration parity, forced preparation with an empty
 local cache, body/API invalidation, independent-branch reuse, app execution and
 Newtonsoft.Json **13.0.3** package-tree materialization/recovery.
-The 51 ProjectSync controls cover props and executable-mode changes, multi-target
+The ProjectSync controls cover props and executable-mode changes, multi-target
 selection, implementation/reference DLLs, XML copies, failed builds, corrupt
 artifacts/metadata, relocation, source/SDK aliases and overlapping output owners.
 
 The complete source-runtime graph also passed on 9.3: all 563 eligible projects
 replayed through HTTP; Pipelines body/API edits ran 11/26 Csc tasks and retained
-byte-identical declarations. Source-runtime setup enables this option when
-`--cache-url` is supplied. Its initial cache seed still performs the SDK Build;
-whole-action recovery and per-project replay are separate controls below.
+byte-identical declarations. With `--cache-url`, source-runtime setup also enables
+reviewed Restore reuse for `PipeOptions.cs` and its reference source. Only those
+compiler-only contents are exempt; file names/modes, definitions, packages and
+other contents remain keyed. Small Bazel controls on both pins verify body/API
+Restore hits and props/package misses. Initial seeding still performs the SDK
+Build; [timings](performance.md#source-runtime-product) separate qualification
+from ordinary builds.
 
 Verified Restore snapshots passed small controls for compiler-only edits, source
 membership/modes, failed compilation, corrupt assets, authored Restore-hook inputs,

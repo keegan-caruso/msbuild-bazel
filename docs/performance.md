@@ -747,26 +747,49 @@ spawns and byte-identical declarations. `sync --check` passed with cache misses
 forbidden. This measures whole-action recovery; cached stdout can still contain
 the producer's private-Build messages.
 
-With `qualification_cache = True`, separate forced-preparation profiles on the
-same 631-configuration / 563-project graph used HTTP project caching with both
-Bazel action caches disabled:
+Qualification on this graph still needs a cold seed. Separate profiles with
+HTTP project caching and Bazel disk/remote action caches disabled recorded:
 
 | Qualification case | Bazel wall | Private SDK Build | Project hits | Csc tasks |
 | --- | ---: | ---: | ---: | ---: |
 | Empty project-cache seed | 1,316.98 s | 1,171.65 s | 0 | 691 |
 | Fresh output base, unchanged sources | 90.39 s | 3.50 s | 563 | 0 |
-| Pipelines body edit | 137.62 s | 42.73 s | 552 | 11 |
-| Pipelines implementation/reference API edit | 156.16 s | 60.69 s | 537 | 26 |
 
-All declarations match ordinary sync byte-for-byte. The fresh-base control also
-recovered Restore (9.43 s), with no Restore execution. Edit controls changed an
-unused declared input to force preparation; conservative Restore keys therefore
-reran Restore (35.54 / 36.05 s). Original-source recovery returned 563 hits / zero
-Csc tasks. These are single diagnostic runs, excluding acquisition/update and
-product selection, not paired speedups or ordinary-build timings. Cold seeding
-remains expensive. Setup's `--cache-url` now enables qualification reuse too;
-standalone preparation accepts `--qualification-cache` with
-`RULES_MSBUILD_PROJECT_CACHE_URL` set.
+The fresh-base control recovered Restore in 9.43 s without executing it. These are
+single profiles, not paired scores. The [earlier forced-edit profiles](https://github.com/keegan-caruso/msbuild-bazel/blob/aa6749b/docs/performance.md#source-runtime-product)
+also changed an unused input, so they do not isolate compiler-only invalidation.
+
+For actual Pipelines edits, three alternating unprofiled pairs on the same VM,
+SDK and runner compare conservative Restore keys with the two reviewed compiler-
+content exemptions. Tools/packages and HTTP project snapshots were prepared;
+Bazel disk/remote action caches were disabled. Median qualification times:
+
+| Edit | Conservative Restore | Reviewed Restore reuse | Reduction | Csc tasks in both |
+| --- | ---: | ---: | ---: | ---: |
+| Body | 154.21 s | 89.65 s | 41.9% | 11 |
+| Implementation/reference API | 158.53 s | 102.58 s | 35.3% | 26 |
+
+Only compiler files and the compared mapping changed; there was no forcing file.
+Distinct equivalent edits prevent cross-mode compilation hits. Every candidate
+reused Restore; every baseline executed it. Each run reproduced ordinary sync's
+JSON/Starlark byte-for-byte. Restoring the original sources recovered Restore and
+all 563 projects with zero Csc tasks. These measure qualification, excluding
+acquisition, update, product selection and cache seeding; ordinary-build timings
+are separate.
+
+Reproduce with the retained full `managed/source` workspace, not its pruned build
+consumer. Its `//:sync` must enable `qualification_cache`. The helper restores
+sources/mappings on exit; `--trim-between-rows` requires guest trim permission:
+
+```sh
+python3 benchmarks/runtime_qualification.py OWNED_RUNTIME_SOURCE FRESH_RESULTS \
+  --mappings=sync-mappings.json --output-base=FRESH_BASE \
+  --cache-url=http://cache:8080 --samples=3 --trim-between-rows
+```
+
+Source-runtime setup's `--cache-url` enables this reviewed reuse; standalone
+preparation accepts `--qualification-cache` with
+`RULES_MSBUILD_PROJECT_CACHE_URL` set. Other source contents remain conservative.
 
 For that preparation handoff, run `close-sync SOURCE HANDOFF/workspace
 --preparation-base=FRESH_BASE` with the helper below. It queries the exact sync

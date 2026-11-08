@@ -29,12 +29,15 @@ def main():
     parser.add_argument('output', type=Path)
     parser.add_argument('--platform', choices=['osx-arm64', 'linux-arm64'], default='osx-arm64')
     parser.add_argument('--prepared-restore', action='store_true', help='declare the reviewed managed graph Restore contract')
+    parser.add_argument('--restore-reuse', action='store_true', help='review only the pinned Pipelines sources for Linux qualification Restore reuse')
     parser.add_argument('--evaluation-reuse', action='store_true', help='review only the pinned Pipelines body/API edit sources for pristine evaluation reuse')
     parser.add_argument('--reference-bindings', type=Path, help='reviewed full raw Build compiler/copy selection inventory')
     parser.add_argument('--resolve-references', action='store_true', help='review managed reference boundaries; generic ProjectSync captures SDK selections')
     args = parser.parse_args()
     if args.evaluation_reuse and not args.prepared_restore:
         parser.error('--evaluation-reuse requires --prepared-restore')
+    if args.restore_reuse and (not args.prepared_restore or args.platform != 'linux-arm64'):
+        parser.error('--restore-reuse requires --prepared-restore and --platform=linux-arm64')
     if args.resolve_references and args.reference_bindings:
         parser.error('--resolve-references replaces --reference-bindings')
     assert not args.reference_bindings or args.platform == 'linux-arm64'
@@ -249,13 +252,17 @@ def main():
             'sha256': '725b28b562ac95a065e7b92aff977b7e1f4f9703bac217546f91bc54be140d76',
             'targets': [], 'tasks': [],
             'inputs': ['src/libraries/Microsoft.VisualBasic.Core/src/ILLink/ILLink.Descriptors.Windows.xml']}
+    reviewed = {
+        'src/libraries/System.IO.Pipelines/src/System.IO.Pipelines.csproj': 'System/IO/Pipelines/PipeOptions.cs',
+        'src/libraries/System.IO.Pipelines/ref/System.IO.Pipelines.csproj': 'System.IO.Pipelines.cs',
+    }
+    if args.restore_reuse:
+        mapping['restoreReuseInputs'] = sorted(project.rsplit('/', 1)[0] + '/' + source
+            for project, source in reviewed.items())
     if args.evaluation_reuse:
         # Explicit source-content exemptions, not a blanket exemption of Compile.
         # Source membership, project definitions and all build hashes remain checked.
-        for project, source in {
-            'src/libraries/System.IO.Pipelines/src/System.IO.Pipelines.csproj': 'System/IO/Pipelines/PipeOptions.cs',
-            'src/libraries/System.IO.Pipelines/ref/System.IO.Pipelines.csproj': 'System.IO.Pipelines.cs',
-        }.items():
+        for project, source in reviewed.items():
             binding = mapping['projects'].setdefault(project, copy.deepcopy(mapping['projectDefaults']))
             binding.pop('properties', None)
             for variant in [binding] + list(binding.get('frameworkOverrides', {}).values()):

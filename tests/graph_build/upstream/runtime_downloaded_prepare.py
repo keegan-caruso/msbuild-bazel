@@ -101,7 +101,9 @@ def main():
     # Avoid differently signed copies of the same package racing across feeds.
     pin_runtime_feeds(source / 'NuGet.config', packages=('Microsoft.TestPlatform.ObjectModel',))
     subprocess.run(['python3', str(Path(__file__).with_name('runtime_contract.py')), str(source / 'mappings.json'),
-                    '--platform', 'linux-arm64', '--prepared-restore', '--resolve-references'] + (['--evaluation-reuse'] if args.evaluation_reuse else []), check=True)
+                    '--platform', 'linux-arm64', '--prepared-restore', '--resolve-references']
+                    + (['--restore-reuse'] if args.qualification_cache else [])
+                    + (['--evaluation-reuse'] if args.evaluation_reuse else []), check=True)
     mapping_path = source / 'mappings.json'
     mapping = json.loads(mapping_path.read_text())
     overrides = {project: {'TargetFramework': framework} for project, framework in frameworks.items() if framework != 'net10.0'}
@@ -213,7 +215,7 @@ def main():
             assert hashlib.sha256(archive.read_bytes()).hexdigest() == expected[archive.name]
             shutil.copyfile(archive, feed / archive.name)
         shutil.copyfile(source / 'MODULE.bazel.lock', workspace / 'MODULE.bazel.lock')
-        summary = dict(resumed=args.resume, qualificationCache=args.qualification_cache, evaluationReuseInputs=contract.get('EvaluationReuseInputs'), evaluationCacheMiB=args.evaluation_cache_mb, commit=COMMIT, sourceSha256=SOURCE_SHA256, sdk='10.0.400', slice=args.slice, entries=entries,
+        summary = dict(resumed=args.resume, qualificationCache=args.qualification_cache, restoreReuseInputs=mapping.get('restoreReuseInputs'), evaluationReuseInputs=contract.get('EvaluationReuseInputs'), evaluationCacheMiB=args.evaluation_cache_mb, commit=COMMIT, sourceSha256=SOURCE_SHA256, sdk='10.0.400', slice=args.slice, entries=entries,
                        configurations=len(variants), compilations=compilations,
                        archives=len(manifest['packages']), nativeLocks=len(manifest['lockFiles']), inputs=len(paths), commands=rows)
         (base / 'summary.json').write_text(json.dumps(summary, indent=2) + '\n')

@@ -19,6 +19,22 @@ from runtime_product_inventory import configure_sync, inventory
 
 
 class SourceRuntimeSetupTests(unittest.TestCase):
+    def test_restore_reuse_reviews_only_pinned_linux_compile_contents(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            output = Path(temporary)/'mappings.json'
+            command = [sys.executable, str(ROOT/'tests/graph_build/upstream/runtime_contract.py'),
+                str(output), '--restore-reuse']
+            rejected = subprocess.run(command, text=True, capture_output=True)
+            self.assertEqual(rejected.returncode, 2)
+            self.assertIn('--prepared-restore and --platform=linux-arm64', rejected.stderr)
+            self.assertFalse(output.exists())
+            subprocess.run(command + ['--prepared-restore', '--platform=linux-arm64'], check=True)
+            mapping = json.loads(output.read_text())
+            self.assertEqual(mapping['restoreReuseInputs'], [
+                'src/libraries/System.IO.Pipelines/ref/System.IO.Pipelines.cs',
+                'src/libraries/System.IO.Pipelines/src/System/IO/Pipelines/PipeOptions.cs'])
+            self.assertNotIn('evaluationReuseInputs', mapping['projectDefaults'])
+
     def test_runtime_contract_declares_late_vb_resource_and_outer_tool_roles(self):
         with tempfile.TemporaryDirectory() as temporary:
             output = Path(temporary)/'mappings.json'
