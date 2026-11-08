@@ -140,6 +140,9 @@ repo_consumer="$scratch/repo-consumer"
 repo_contents="$scratch/repo-contents"
 repo_bazel() {
     local base=$1; shift
+    if [[ "$1" == build && -n "${RULES_MSBUILD_TEST_REPOSITORY_CACHE:-}" ]]; then
+        set -- "$1" "--repository_cache=$RULES_MSBUILD_TEST_REPOSITORY_CACHE" "${@:2}"
+    fi
     "$BIT_BAZEL_BINARY" --nosystem_rc --nohome_rc --noworkspace_rc "--output_base=$base" "$@"
 }
 trap 'repo_bazel "$repo_seed" shutdown >/dev/null 2>&1 || true; repo_bazel "$repo_consumer" shutdown >/dev/null 2>&1 || true; cleanup' EXIT
