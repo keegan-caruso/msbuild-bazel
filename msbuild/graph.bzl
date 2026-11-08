@@ -176,8 +176,8 @@ def _graph_action(ctx, prepare = False):
             mnemonic = "MSBuildGraphRestore" if prepare else "MSBuildGraph",
         )
     if prepare:
-        return [DefaultInfo(files = depset([output])), MSBuildGraphRestoreInfo(directory = output, contract = ctx.file.contract, runner = runner[0], sdk = tc.sdk)]
-    return [DefaultInfo(files = depset([output])), MSBuildGraphInfo(directory = output, contract = ctx.file.contract, dotnet = tc.dotnet, sdk = tc.sdk, projects = ctx.attr.publish_outputs if ctx.attr.target == "Publish" else ctx.attr.project_outputs)]
+        return [DefaultInfo(files = depset([output])), OutputGroupInfo(runner = depset(runner)), MSBuildGraphRestoreInfo(directory = output, contract = ctx.file.contract, runner = runner[0], sdk = tc.sdk)]
+    return [DefaultInfo(files = depset([output])), OutputGroupInfo(runner = depset(runner)), MSBuildGraphInfo(directory = output, contract = ctx.file.contract, dotnet = tc.dotnet, sdk = tc.sdk, projects = ctx.attr.publish_outputs if ctx.attr.target == "Publish" else ctx.attr.project_outputs)]
 
 def _graph(ctx):
     return _graph_action(ctx)

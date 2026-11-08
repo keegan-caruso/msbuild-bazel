@@ -1,6 +1,7 @@
 # Design
 
-Build a selected project graph in one Bazel action. MSBuild retains SDK targets,
+Build a selected project graph in one Bazel action with the MSBuild project-cache
+plugin. This is the only compilation backend. MSBuild retains SDK targets,
 configuration and scheduling; sharing evaluation avoids a process per project.
 
 ## Ownership
@@ -48,7 +49,11 @@ and task registrations rather than evaluating those projects again. Read-only SD
 and package identities are shared within the invocation. Private staging uses
 copy-on-write clones where available and ordinary copies otherwise; replay verifies
 the bytes materialized. Mutable project inputs retain pre/post-Build byte checks.
-The final graph contract remains the build interface.
+The final graph contract remains the build interface. Qualification snapshots and
+ordinary build snapshots have different keys and output inventories. Sharing
+compiled products requires matching configuration, compiler inputs and complete
+owned outputs, including intermediates; qualification hits alone do not establish
+that compatibility.
 
 Bazel can recover a whole unchanged Restore/build action. When the graph action
 changes, the MSBuild plugin can recover individual projects from worker snapshots

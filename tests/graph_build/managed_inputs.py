@@ -111,7 +111,9 @@ def main():
                 (workspace / path).write_bytes(original)
             if label == 'imported-property':
                 run(DOTNET, sync, root, SDK / 'sdk/10.0.400', 'App/App.csproj', 'Unrelated/Unrelated.csproj', '--mappings', mapping)
-            assert build(label + '-restored', misses if label == 'imported-property' else 0, original_value, raw_compilers=raw_compilers) == baseline
+            # Resync restores the original definition digests, so the original
+            # project snapshots should be reusable for every restored input.
+            assert build(label + '-restored', 0, original_value, raw_compilers=raw_compilers) == baseline
             print('PASS:', label, 'owner invalidation, unchanged consumer/reference bytes, current runtime value, raw byte parity and exact restoration', flush=True)
 
 

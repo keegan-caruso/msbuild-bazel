@@ -41,6 +41,11 @@ internal static class Program
                 ArtifactLayouts.Compose(Read<LayoutRequest>(layout), manifest[1..]);
                 return 0;
             }
+            if (args is ["runtime-layout", var runtimeLayout, var runtimeManifest] && runtimeManifest.StartsWith('@'))
+            {
+                RuntimeLayouts.Compose(Read<RuntimeLayoutRequest>(runtimeLayout), runtimeManifest[1..]);
+                return 0;
+            }
             if (args is ["extract", var extraction])
             {
                 Package.Extract(Read<PackageRequest>(extraction));

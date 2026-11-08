@@ -1,0 +1,58 @@
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+using System.Text;
+using System.Text.RegularExpressions;
+using System.Xml.Linq;
+
+// Invoked only by declared native preparation actions.
+public static class NativePreparation
+{
+    public static void Main(string[] args)
+    {
+        if (args.Length == 3 && args[0] == "export")
+        {
+            File.Copy(args[1], args[2]);
+            return;
+        }
+        if (args.Length != 9 || args[0] != "versions")
+        {
+            NativeBuild.Main(args);
+            return;
+        }
+        var properties = XDocument.Load(args[1]).Root!.Elements().SelectMany(group => group.Elements())
+            .GroupBy(property => property.Name.LocalName).ToDictionary(group => group.Key, group => group.Last().Value);
+        var version = properties["ProductVersion"];
+        if (!Regex.IsMatch(version, @"^\d+\.\d+\.\d+$") || !Regex.IsMatch(args[5], "^[0-9a-f]{40}$"))
+            throw new InvalidDataException("Expected a release version and source commit");
+        var pieces = version.Split('.').Select(int.Parse).ToArray();
+        if (!new[] { "MajorVersion", "MinorVersion", "PatchVersion" }.Select(name => int.Parse(properties[name])).SequenceEqual(pieces))
+            throw new InvalidDataException("Native product version fields disagree");
+        var header = File.ReadAllText(args[2]).Replace("00,00,00,00000", string.Join(",", pieces) + ",0")
+            .Replace("\"0.0.0\"", "\"" + version + "\"");
+        var runtime = File.ReadAllText(args[3]);
+        var values = new Dictionary<string, string>
+        {
+            ["RuntimeAssemblyMajorVersion"] = pieces[0].ToString(), ["RuntimeAssemblyMinorVersion"] = pieces[1].ToString(),
+            ["RuntimeFileMajorVersion"] = pieces[0].ToString(), ["RuntimeFileMinorVersion"] = pieces[1].ToString(),
+            ["RuntimeFileBuildVersion"] = pieces[2].ToString(), ["RuntimeFileRevisionVersion"] = "0",
+            ["RuntimeProductMajorVersion"] = pieces[0].ToString(), ["RuntimeProductMinorVersion"] = pieces[1].ToString(),
+            ["RuntimeProductPatchVersion"] = pieces[2].ToString(), ["RuntimeProductVersion"] = version
+        };
+        foreach (var pair in values)
+        {
+            var pattern = new Regex("^(#define " + pair.Key + @" )[^\n]+$", RegexOptions.Multiline);
+            if (pattern.Matches(runtime).Count != 1) throw new InvalidDataException("Missing or duplicate native version field: " + pair.Key);
+            runtime = pattern.Replace(runtime, match => match.Groups[1].Value + pair.Value);
+        }
+        var implementation = File.ReadAllText(args[4]);
+        const string marker = "@(#)No version information produced";
+        if (implementation.Split(marker).Length != 2) throw new InvalidDataException("Expected one native version marker");
+        implementation = implementation.Replace(marker, "@(#)Version " + version + " @Commit: " + args[5]);
+        var encoding = new UTF8Encoding(false);
+        File.WriteAllText(args[6], header, encoding);
+        File.WriteAllText(args[7], runtime, encoding);
+        File.WriteAllText(args[8], implementation, encoding);
+    }
+}

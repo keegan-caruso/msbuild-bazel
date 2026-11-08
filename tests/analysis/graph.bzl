@@ -1,11 +1,12 @@
 """Graph inputs, worker defaults, complete layouts and launch contracts."""
 
 load("@rules_testing//lib:analysis_test.bzl", "analysis_test")
-load("//msbuild:defs.bzl", "MSBuildLayoutInfo", "MSBuildRuntimeInfo", "MSBuildToolInfo", "msbuild_file_binding", "msbuild_graph", "msbuild_graph_binary", "msbuild_graph_layout", "msbuild_graph_layouts", "msbuild_graph_output", "msbuild_graph_restore", "msbuild_graph_test", "msbuild_layout", "msbuild_nuget_package", "msbuild_package_lock", "msbuild_runtime", "msbuild_tool")
+load("//msbuild:defs.bzl", "MSBuildLayoutInfo", "MSBuildRuntimeInfo", "MSBuildToolInfo", "msbuild_file_binding", "msbuild_graph", "msbuild_graph_binary", "msbuild_graph_layout", "msbuild_graph_layouts", "msbuild_graph_output", "msbuild_graph_restore", "msbuild_graph_test", "msbuild_layout", "msbuild_nuget_package", "msbuild_package_lock", "msbuild_runtime", "msbuild_runtime_layout", "msbuild_tool")
 load(":helpers.bzl", "action", "failure_test", "paths", "request")
 
 def _inputs(env, targets):
     build = action(targets.graph, "MSBuildGraph")
+    env.expect.that_collection(paths(targets.graph[OutputGroupInfo].runner)).contains_exactly(["tests/analysis/Runner.dll"])
     env.expect.that_collection(paths(build.inputs)).contains_at_least(["tests/analysis/App.csproj", "tests/analysis/Source.cs", "tests/analysis/contract.json", "tests/analysis/sdk.txt"])
     env.expect.that_collection(build.argv).contains("0")
 
@@ -31,6 +32,14 @@ def _combined_layout(env, target):
     env.expect.that_collection(paths(layout.inputs)).contains("tests/analysis/graph.graph")
     env.expect.that_bool(request(target, ".layout.json")["output"].endswith("combined_export.layout")).equals(True)
 
+def _runtime_layout(env, target):
+    layout = action(target, "MSBuildRuntimeLayout")
+    env.expect.that_collection(paths(layout.inputs)).contains_at_least(["tests/analysis/framework_graph.graph", "tests/analysis/contract.json", "tests/analysis/dotnet"])
+    data = request(target, ".runtime-layout.json")
+    env.expect.that_str(data["managed"]["App.dll"]["path"]).equals("bin/Release/net10.0/App.dll")
+    env.expect.that_str(data["native"]["dotnet"]["path"]).equals("dotnet")
+    env.expect.that_str(data["shared"]).equals("shared/Microsoft.NETCore.App/10.0.0")
+
 def graph_tests(name):
     """Declare graph analysis controls.
 
@@ -54,6 +63,17 @@ def graph_tests(name):
     msbuild_graph_layout(name = "export", graph = ":graph", project = "App.csproj", tags = ["manual"])
     msbuild_graph_layouts(name = "combined_export", graph = ":graph", projects = {"App.csproj|net10.0": "app"}, tags = ["manual"])
     analysis_test(name = name + "_combined_layout", target = ":combined_export", impl = _combined_layout)
+    msbuild_graph(name = "framework_graph", project_outputs = {"App.csproj|net10.0": ["bin/Release/net10.0", "App.dll", "Library"]}, **common)
+    runtime_attrs = {"graph": ":framework_graph", "projects": ["App.csproj|net10.0"], "native": {"dotnet": "dotnet"}, "version": "10.0.0", "target_framework": "net10.0", "target_framework_moniker": ".NETCoreApp,Version=v10.0", "runtime_identifier": "linux-arm64", "tags": ["manual"]}
+    msbuild_runtime_layout(name = "framework_layout", **runtime_attrs)
+    analysis_test(name = name + "_runtime_layout", target = ":framework_layout", impl = _runtime_layout)
+    for case, attrs, message in [
+        ("runtime_missing", {"projects": ["missing|net10.0"]}, "Unknown runtime graph project"),
+        ("runtime_duplicate", {"projects": ["App.csproj|net10.0", "App.csproj|net10.0"]}, "Duplicate runtime assembly"),
+        ("runtime_escape", {"native": {"dotnet": "../dotnet"}}, "Runtime layout requires a safe"),
+    ]:
+        msbuild_runtime_layout(name = case, **dict(runtime_attrs, **attrs))
+        failure_test(name + "_" + case, ":" + case, message)
     for case, attrs, message in [
         ("layout_empty", {"projects": {}}, "Graph layout batch requires at least one"),
         ("layout_missing", {"projects": {"Missing.csproj|net10.0": "."}}, "Unknown configured graph layout project"),

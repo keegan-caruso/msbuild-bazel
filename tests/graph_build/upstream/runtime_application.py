@@ -23,6 +23,13 @@ def main():
     assert not (root / 'app').exists() and not (root / 'runtime').exists()
     contract = json.loads((root / 'graph.generated.json').read_text())
     assert contract['SdkVersion'] == '10.0.400'
+    if (root/'runtime-product.json').exists():
+        if args.include_private_frameworks:
+            parser.error('The complete product selects its upstream framework producers')
+        from runtime_product_declarations import declare_product
+        declare_product(root,native,json.loads((root/'runtime-product.json').read_text()))
+        print(root,flush=True)
+        return
     # The generated macro exposes evaluated output paths; never infer host
     # ownership from a directory scan or copy an installed framework template.
     tree = ast.parse((root / 'graph.generated.bzl').read_text())

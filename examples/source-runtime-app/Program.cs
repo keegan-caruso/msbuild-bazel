@@ -20,6 +20,30 @@ if (await reader.ReadToEndAsync() != message.Text)
 }
 Console.WriteLine(message.Text);
 Console.WriteLine("SHA256=" + Convert.ToHexString(SHA256.HashData(bytes)));
+if (args.Contains("--verify-product"))
+{
+    var shared = Path.GetDirectoryName(typeof(object).Assembly.Location)!;
+    using var product = JsonDocument.Parse(File.ReadAllText(Path.GetFullPath(Path.Combine(shared, "../../..", "source-runtime.json"))));
+    var assemblies = product.RootElement.GetProperty("managed").EnumerateObject().Select(item => item.Name).ToArray();
+    foreach (var name in assemblies)
+    {
+        var assembly = System.Reflection.Assembly.Load(new System.Reflection.AssemblyName(Path.GetFileNameWithoutExtension(name)));
+        if (Path.GetDirectoryName(assembly.Location) != shared)
+        {
+            throw new InvalidOperationException("Framework assembly escaped source product: " + name);
+        }
+    }
+    if (System.Globalization.CultureInfo.GetCultureInfo("tr-TR").TextInfo.ToUpper("i") != "İ")
+    {
+        throw new InvalidOperationException("Source globalization failed");
+    }
+    var strings = Type.GetType("Microsoft.VisualBasic.Strings, Microsoft.VisualBasic.Core", throwOnError: true)!;
+    if ((string)strings.GetMethod("StrReverse", [typeof(string)])!.Invoke(null, ["abc"])! != "cba")
+    {
+        throw new InvalidOperationException("Source Visual Basic library failed");
+    }
+    Console.WriteLine("PRODUCT_MEMBERS=" + assemblies.Length);
+}
 if (args.Contains("--describe-runtime"))
 {
     // The acceptance driver compares these observed files with Bazel producers.

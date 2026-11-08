@@ -38,6 +38,7 @@ manual and must not be started without an explicit request.
 
 - Retain normal SDK-style csproj files and MSBuild compilation. Do not replace MSBuild with rules_dotnet without discussing the change in direction.
 - Prefer explicit project inputs, dependency edges and configuration in Bazel BUILD files.
+- Keep the graph/plugin compilation model as the only backend. Improve reuse within it; do not add a separate native-batch or per-project compilation backend.
 - Keep the graph path independent of historical per-project and discovery/replay implementations.
 - Identify graph nodes by project path plus global properties. MSBuild result caches hold metadata, not artifact contents.
 - Distinguish project-graph isolation from filesystem hermeticity. Do not claim remote-cache correctness based only on a warm local build.

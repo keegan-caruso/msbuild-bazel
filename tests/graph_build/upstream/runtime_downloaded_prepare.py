@@ -11,6 +11,7 @@ from pathlib import Path
 import shutil
 import subprocess
 import tarfile
+import tempfile
 import time
 
 from runtime_prepare import COMMIT, SOURCE_SHA256
@@ -24,34 +25,65 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('source_archive', type=Path)
     parser.add_argument('output', type=Path, help='fresh owned preparation directory')
-    parser.add_argument('--slice', choices=['loaded-common', 'runtime-suites'], default='loaded-common', help='reviewed four-root or 39-root/eight-suite graph')
+    parser.add_argument('--slice', choices=['loaded-common', 'runtime-suites', 'runtime-product'], default='loaded-common', help='four roots, the reviewed test graph, or the complete shared-framework developer product')
     parser.add_argument('--evaluation-reuse', action='store_true', help='opt into the reviewed Pipelines body/API evaluation contract')
+    parser.add_argument('--qualification-cache', action='store_true', help='reuse qualified projects through RULES_MSBUILD_PROJECT_CACHE_URL')
     parser.add_argument('--evaluation-cache-mb', type=int, default=512, help='explicit retained-evaluation memory budget; 1024 for the large reviewed graph')
+    parser.add_argument('--distdir', type=Path, help='export verified NuGet archives for Bazel acquisition and the offline product inventory')
+    parser.add_argument('--nuget-http-cache', type=Path, help='explicit native NuGet acquisition cache for update/check')
+    parser.add_argument('--sdk-archive', type=Path, help='recipe containing immutable SDK archive facts instead of release-metadata resolution')
     parser.add_argument('--resume', action='store_true', help='recheck a retained preparation after a completed sync; consumer workspace must still be absent')
     args = parser.parse_args()
     if args.evaluation_cache_mb <= 0:
         parser.error('--evaluation-cache-mb must be positive')
-    descriptor = 'runtime_source_host_edit.json' if args.slice == 'runtime-suites' else 'runtime_loaded_common_edit.json'
-    edit = json.loads(Path(__file__).with_name(descriptor).read_text())
-    entries = edit['entries']
-    selection = json.loads((ROOT / 'tests/runtime/subset_slices.json').read_text())
-    assert selection['commit'] == COMMIT
-    frameworks = {}
-    for row in selection['slices']:
-        for value in row['entries']:
-            project = value if isinstance(value, str) else value['project']
-            framework = row['framework'] if isinstance(value, str) else value['framework']
-            if project in entries:
-                assert project not in frameworks or frameworks[project] == framework, project
-                frameworks[project] = framework
-    assert set(frameworks) == set(entries)
+    if args.qualification_cache and not os.environ.get('RULES_MSBUILD_PROJECT_CACHE_URL'):
+        parser.error('--qualification-cache requires RULES_MSBUILD_PROJECT_CACHE_URL')
+    qualification = 'qualification_cache=True,' if args.qualification_cache else ''
+    product = args.slice == 'runtime-product'
+    if product:
+        entries = ['src/libraries/sfx-src.proj']
+        frameworks = {entries[0]: 'net10.0-linux'}
+        edit = None
+    else:
+        descriptor = 'runtime_source_host_edit.json' if args.slice == 'runtime-suites' else 'runtime_loaded_common_edit.json'
+        edit = json.loads(Path(__file__).with_name(descriptor).read_text())
+        entries = edit['entries']
+        selection = json.loads((ROOT / 'tests/runtime/subset_slices.json').read_text())
+        assert selection['commit'] == COMMIT
+        frameworks = {}
+        for row in selection['slices']:
+            for value in row['entries']:
+                project = value if isinstance(value, str) else value['project']
+                framework = row['framework'] if isinstance(value, str) else value['framework']
+                if project in entries:
+                    assert project not in frameworks or frameworks[project] == framework, project
+                    frameworks[project] = framework
+        assert set(frameworks) == set(entries)
     assert os.uname().sysname == 'Linux' and os.uname().machine == 'aarch64'
     assert hashlib.sha256(args.source_archive.read_bytes()).hexdigest() == SOURCE_SHA256
     base = args.output.resolve()
     source = base / 'source'
     if args.resume:
         assert source.is_dir() and not (base / 'workspace').exists()
-        assert (source / 'graph.generated.json').is_file() and (source / 'nuget.lock.json').is_file()
+        assert (source / 'nuget.lock.json').is_file()
+        # Locks and Bazel declarations are owned preparation products. Every
+        # authored upstream file must still match the pinned source archive.
+        with tarfile.open(args.source_archive) as archive:
+            prefix = 'runtime-' + COMMIT + '/'
+            for member in archive:
+                if not (member.isfile() or member.issym()):
+                    continue
+                relative = member.name.removeprefix(prefix)
+                if Path(relative).name.startswith('packages.') and relative.endswith('.lock.json'):
+                    continue
+                expected = archive.extractfile(member).read()
+                if relative == 'NuGet.config':
+                    with tempfile.TemporaryDirectory() as directory:
+                        config = Path(directory)/'NuGet.config'
+                        config.write_bytes(expected)
+                        pin_runtime_feeds(config, packages=('Microsoft.TestPlatform.ObjectModel',))
+                        expected = config.read_bytes()
+                assert not (source/relative).is_symlink() and (source/relative).read_bytes() == expected, relative
     else:
         base.mkdir(parents=True, exist_ok=False)
         with tarfile.open(args.source_archive) as archive:
@@ -80,15 +112,20 @@ def main():
               'local_path_override(module_name="rules_msbuild",path=' + json.dumps(str(ROOT)) + ')\n'
               'dotnet=use_extension("@rules_msbuild//msbuild:extensions.bzl","dotnet")\n'
               'dotnet.sdk(name="dotnet",version="10.0.400")\nuse_repo(dotnet,"dotnet")\nregister_toolchains("@dotnet//:all")\n')
+    if args.sdk_archive:
+        facts = json.loads(args.sdk_archive.read_text())['sdk']
+        assert facts['version'] == '10.0.400' and facts['platform'] == 'linux-arm64'
+        attributes = ','.join(key + '=' + json.dumps(value) for key, value in facts.items())
+        module = module.replace('dotnet.sdk(name="dotnet",version="10.0.400")', 'dotnet.sdk_archive(name="dotnet",' + attributes + ')')
     inventory = ('nuget=use_extension("@rules_msbuild//msbuild:nuget.bzl","nuget")\n'
                  'nuget.lock(name="nuget",lockfile="//:nuget.lock.json")\nuse_repo(nuget,"nuget")\n')
     update = ('load("@rules_msbuild//msbuild:sync.bzl","msbuild_nuget_update","msbuild_sync")\n'
               'entries=' + json.dumps(entries) + '\n'
               'msbuild_nuget_update(name="update_packages",projects=entries,framework="net10.0",mappings="mappings.json")\n')
-    sync = 'msbuild_sync(name="sync",projects=entries,framework="net10.0",mappings="mappings.json",package_lock="@nuget//:packages",package_build=True,resolve_references=True,' + SYNC_SRCS + ')\n'
+    sync = 'msbuild_sync(name="sync",projects=entries,framework="net10.0",mappings="mappings.json",package_lock="@nuget//:packages",package_build=True,resolve_references=True,' + qualification + SYNC_SRCS + ')\n'
     if args.resume:
-        assert (source / 'MODULE.bazel').read_text() == module + inventory
-        assert (source / 'BUILD.bazel').read_text() in [update + sync, update + sync.replace(',' + SYNC_SRCS, '')]
+        assert (source / 'MODULE.bazel').read_text() in [module, module + inventory]
+        assert (source / 'BUILD.bazel').read_text().startswith(update)
     (source / 'MODULE.bazel').write_text(module)
     (source / 'BUILD.bazel').write_text(update)
     command = [str(ROOT / 'scripts/bazel-launcher.sh'), '--output_base=' + str(base / 'sync-bazel'), 'run']
@@ -99,7 +136,13 @@ def main():
         start = time.monotonic()
         trace = base / (label + '.actions.json')
         with (base / (label + '.log')).open('w') as log:
-            subprocess.run(command + [target, *options, '--execution_log_json_file=' + str(trace)] + (['--', '--check'] if check else []), cwd=source,
+            extra = ['--check'] if check else []
+            if target == '//:update_packages':
+                if args.nuget_http_cache:
+                    extra += ['--http-cache', str(args.nuget_http_cache.resolve())]
+                if args.distdir:
+                    extra += ['--distdir', str(args.distdir.resolve())]
+            subprocess.run(command + [target, *options, '--execution_log_json_file=' + str(trace)] + (['--', *extra] if extra else []), cwd=source,
                            stdout=log, stderr=subprocess.STDOUT, check=True)
         elapsed = time.monotonic() - start
         if label == 'sync-check':
@@ -108,17 +151,31 @@ def main():
         print(json.dumps(rows[-1]), flush=True)
 
     try:
-        run('update', '//:update_packages')
+        if not args.resume:
+            run('update', '//:update_packages')
         run('update-check', '//:update_packages', True)
         (source / 'MODULE.bazel').write_text(module + inventory)
         (source / 'BUILD.bazel').write_text(update + sync)
+        if product:
+            if not args.distdir:
+                raise ValueError('The full product requires --distdir for offline native framework selection')
+            from runtime_product_inventory import inventory as product_inventory, configure_sync
+            build_mapping = source/'sync-mappings.json'
+            shutil.copyfile(mapping_path, build_mapping)
+            product_inventory(source, args.distdir.resolve(),
+                Path(os.environ.get('RULES_MSBUILD_DOTNET_ROOT', ROOT/'.tools/dotnet')).resolve(),
+                base/'runtime-product.json', build_mapping, base)
+            entries, overrides = configure_sync(base/'runtime-product.json', build_mapping)
+            sync = 'msbuild_sync(name="sync",projects=' + json.dumps(entries) + ',mappings="sync-mappings.json",package_lock="@nuget//:packages",package_build=True,resolve_references=True,' + qualification + SYNC_SRCS + ')\n'
+            (source/'BUILD.bazel').write_text(update + sync)
         run('sync', '//:sync')
         run('sync-check', '//:sync', True)
         contract = json.loads((source / 'graph.generated.json').read_text())
         variants = [v for p in contract['Projects'].values() for v in p.get('Configurations') or [p]]
         assert contract['Entries'] == entries
         compilations = sum(bool(v['OutputDirectories'] or v.get('OutputFiles')) for v in variants)
-        assert compilations == edit['compiled'], 'Unexpected reviewed compilation scope'
+        if edit:
+            assert compilations == edit['compiled'], 'Unexpected reviewed compilation scope'
         assert contract.get('EntryProperties', {}) == overrides
         paths = set(contract['SharedInputs']) | set(contract['DefinitionDigests']) | {p for v in variants for p in v['Inputs']}
         paths |= set(contract['Restore']['Inputs'])
@@ -132,6 +189,11 @@ def main():
             shutil.copyfile(original, destination)
         for name in ['graph.generated.json', 'graph.generated.bzl', 'nuget.lock.json', 'mappings.json', 'NuGet.config']:
             shutil.copyfile(source / name, workspace / name)
+        if product:
+            shutil.copyfile(base/'runtime-product.json', workspace/'runtime-product.json')
+            shutil.copyfile(source/'sync-mappings.json', workspace/'sync-mappings.json')
+            for name in ['LICENSE.TXT', 'THIRD-PARTY-NOTICES.TXT']:
+                shutil.copyfile(source / name, workspace / name)
         (workspace / 'MODULE.bazel').write_text(module + inventory)
         # Update belongs in the retained full source, not this pruned consumer.
         budget = ',evaluation_cache_mb=' + str(args.evaluation_cache_mb) if args.evaluation_cache_mb != 512 else ''
@@ -151,7 +213,7 @@ def main():
             assert hashlib.sha256(archive.read_bytes()).hexdigest() == expected[archive.name]
             shutil.copyfile(archive, feed / archive.name)
         shutil.copyfile(source / 'MODULE.bazel.lock', workspace / 'MODULE.bazel.lock')
-        summary = dict(resumed=args.resume, evaluationReuseInputs=contract.get('EvaluationReuseInputs'), evaluationCacheMiB=args.evaluation_cache_mb, commit=COMMIT, sourceSha256=SOURCE_SHA256, sdk='10.0.400', slice=args.slice, entries=entries,
+        summary = dict(resumed=args.resume, qualificationCache=args.qualification_cache, evaluationReuseInputs=contract.get('EvaluationReuseInputs'), evaluationCacheMiB=args.evaluation_cache_mb, commit=COMMIT, sourceSha256=SOURCE_SHA256, sdk='10.0.400', slice=args.slice, entries=entries,
                        configurations=len(variants), compilations=compilations,
                        archives=len(manifest['packages']), nativeLocks=len(manifest['lockFiles']), inputs=len(paths), commands=rows)
         (base / 'summary.json').write_text(json.dumps(summary, indent=2) + '\n')

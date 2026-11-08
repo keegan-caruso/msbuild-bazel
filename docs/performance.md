@@ -18,8 +18,9 @@ prepared prerequisites. Compare reports with `runtime_ci_compare.py --case=CASE`
 it requires matching contracts, edits, compiled bytes and test outcomes. Managed
 output modes follow each producer's policy: raw SDK `0644`/`0744`, Bazel `0555`.
 Graph producer/consumer recovery still requires exact file-mode parity.
-Report executed tests and remote test hits separately. Cached CI demos default to
-top-level downloads; complete artifact verification follows outside the CI timer.
+Report executed tests and remote test hits separately. CI demos default to
+top-level downloads, including actual-test and edit controls; complete artifact
+verification follows outside the CI timer.
 See [measured CI results](#runtime-ci-demo).
 
 For a pruned source handoff, `runtime_full_source.py --bootstrap-unused-locks`
@@ -454,15 +455,36 @@ timer. Normal CI does not need that audit download.
 
 `msbuild_graph_layouts` replaces **124** host project-directory exports with one
 manifest-driven action. The complete host matches **490 legacy files and modes**.
-Three alternating, unprofiled body-build pairs measured **77.28 → 65.39 s**
-medians (**15.4% less**), always **475 project hits / six compilations**, unchanged
-reference bytes and zero Restore/native execution. These build-only pairs exclude
-tests; actual test controls are below. A separate diagnostic recorded **37.65 s**
-inside the MSBuild worker, including **4.23 s** staging and **32.87 s** in its child.
-Operation totals overlap; they are not the paired timing scores.
 
-Single edit observations below compare **raw retained outputs** with a **fresh
-Bazel worker**, keeping the source changes identical:
+With runner **`039b9ced…`** (parallel staging), three alternating fresh-worker
+body-build pairs measured:
+
+| Download policy | Median build CLI | Range |
+| --- | ---: | ---: |
+| All outputs | 62.11 s | 61.63–63.49 s |
+| Top-level outputs | 56.61 s | 56.31–57.18 s |
+
+This removes **5.49 s / 8.8%** by leaving unused expanded NuGet trees remote.
+The graph consumes package archives and prepared Restore data. Pins, scope and
+consumer resources match the demo above; the stopped producer used 8 GiB to seed
+the current runner. Each sample used a fresh base and unique body edit, retaining
+**475 hits / six compilations**, reference bytes and all **10,780 file modes**.
+Tests and artifact audits are excluded; JSON execution logging and build profiling
+are disabled in these scores. A separate JSON control took **57.86 s** and established
+zero Restore/native executions; every scored run matched its worker/local action
+counts. The demo uses top-level downloads by default; its audit selects the graph,
+native products and `runner` output group explicitly.
+
+The revised demo passed independent whole-action recovery and a body edit with
+**nine actual test targets / 118,952 passed / 64 skipped**, plus original-output
+restoration. The body control matched the archived raw control's **3,622 compiled
+files** for the same edit; raw timing was not refreshed. Its JSON-instrumented
+build took **60.71 s**, with tests timed separately at **91.66 s**. The targeted
+audit added **2.12 s** for whole recovery or **0.56 s** after the local body build;
+full byte/mode/runtime verification remained outside those audit-download times.
+
+Earlier single edit observations (runner `95368b8b…`) compare **raw retained
+outputs** with a **fresh Bazel worker**, keeping the source changes identical:
 
 | Edit | Raw build/publication | Bazel build | Actual tests, raw / Bazel |
 | --- | ---: | ---: | ---: |
@@ -565,6 +587,41 @@ producer-retirement guards. Standalone resume after deletion passed; a changed
 retained seed was rejected before execution. The earlier checkpoint setup remains
 qualified. Keep the setup directory in durable storage for resume and runs.
 
+## Compilation model comparison
+
+The graph/plugin workflow remains the only compilation backend. A retired native-
+batch experiment put the entire Pipelines closure in one action; edits rebuilt
+unchanged projects instead of reusing them through the plugin.
+
+Runtime v10.0.0 (`60629d1`), **28 project paths / 42 configurations / 38 compilation
+nodes**, SDK **10.0.400**, Bazel **9.3.0**, native Linux ARM64, four CPUs / 6 GiB.
+Single unprofiled CLI observations in seconds, with identical configured graphs:
+
+| Case | Raw MSBuild graph | Graph/plugin | Retired native batch |
+| --- | ---: | ---: | ---: |
+| Fresh Restore + Build | 225.41 | 206.38 | 220.41 |
+| Pipelines body edit | 18.55 | 17.13 | 148.16 |
+| Pipelines API edit | 21.96 | 21.24 | 146.78 |
+
+Cold runs clear outputs/packages and Bazel action/worker state. SDK/package archive
+acquisition, sync, tool bootstrap and disk trim are unscored. Edits retain normal
+local state; remote caches and profiling are disabled. Raw Build uses MSBuild's
+graph API with the same roots, properties, packages, four nodes and stable paths.
+All project dependencies are source-built. No tests run in these build timings.
+
+All three cases match **412 DLL/PDB/resource files** by path and SHA-256. The body
+edit preserves reference bytes; the API edit changes them. Neither edit reruns
+Restore. The plugin retains all 42 evaluations and rebuilds **6 / 11** projects for
+body/API edits. Separate body-edit binlogs show six `CoreCompile` calls for both
+raw and plugin builds. The native batch rebuilds 38 main assemblies plus 39 distinct
+localized satellite assemblies for three generators; these are not duplicate outputs.
+
+The native body/API observations are **8.6× / 6.9× slower** than the graph/plugin
+path. They are single observations, not repeated-pair medians or a full-runtime
+baseline. An earlier frozen projection's 17.5% saving did not carry over to generated
+source-built batches. The alternative backend and its configuration are removed;
+raw reports and the experimental revisions remain outside this workflow.
+
 ## Paired runtime baseline
 
 Runtime v10.0.0 (`60629d14374c56f1cb51819049ad1fa529307f8d`): **260 project paths /
@@ -647,6 +704,88 @@ both Bazel action caches disabled had **481 HTTP hits / zero compilations** and
 matched all 9,972 retained files. Acquisition/bootstrap/Restore/build took 124.17 s;
 the profiled runner took 17.06 s. This is a correctness control, not a paired
 speedup or a new runtime test-suite run.
+
+### Source-runtime product
+
+One correctness run on Ubuntu 22.04 ARM64, four CPUs / 8 GiB, SDK 10.0.400 and
+Bazel 9.3.0 used the complete 172-assembly / 16-native-file developer runtime:
+
+| Phase | Wall time | Cache state |
+| --- | ---: | --- |
+| Initial sync / sync-check | 1,200.00 / 3.46 s | Fresh qualification / retained preparation |
+| Declared runtime + app build | 225.27 s | Native compilation; 563 managed project hits |
+| Producer tests | 37.40 s | Two actual test executions |
+| Independent build recovery | 75.70 s | 138 remote spawn hits; one local package extraction |
+| Consumer tests | 6.67 s | Two actual test executions |
+
+The producer used a fresh pinned image, a supplied source archive and available
+HTTP caches. The stopped-producer consumer received only **10,025 declared inputs**
+(16 MiB compressed), source rules and hash metadata. Tools were bootstrapped;
+verified repository downloads from an earlier analysis attempt were available.
+No compiled outputs or local action cache transferred. The three graph actions,
+Restore, three native builds and version generation were remote hits. All 649
+runtime files match in bytes/modes, as does the complete archive. These single-run
+controls are not paired raw-MSBuild comparisons or a cold-cache speedup claim.
+
+A separate profiled replay with verified acquisition caches prepared and another
+fresh output base took **51.06 s**, with the same cache counts and exact output
+parity. Its source-repository extraction took **11.26 s**; package assembly took
+about **4.2 s**. Repository setup and remote output downloads remain material.
+Profile intervals overlap; these are diagnostics, not additional benchmark samples.
+
+With reproducible SDK/source repositories, a fresh-base diagnostic replay took
+**34.63 s** with the downloader disabled, identical product bytes and the same
+138 remote hits / one local action. Neither repository was extracted again.
+A control with the contents cache disabled extracted sources in 8.83 s and the
+SDK in 5.37 s. These profiles overlapped other validation; use the removed
+extraction events as evidence, not the wall times as a paired speedup.
+
+A source-only sync consumer received **60,958 authored/control files** (91 MiB
+compressed), with the producer stopped. A fresh output base recovered preparation
+in **35.64 s**: 122 remote spawn hits, including `MSBuildSyncPrepare`, zero executed
+spawns and byte-identical declarations. `sync --check` passed with cache misses
+forbidden. This measures whole-action recovery; cached stdout can still contain
+the producer's private-Build messages.
+
+With `qualification_cache = True`, separate forced-preparation profiles on the
+same 631-configuration / 563-project graph used HTTP project caching with both
+Bazel action caches disabled:
+
+| Qualification case | Bazel wall | Private SDK Build | Project hits | Csc tasks |
+| --- | ---: | ---: | ---: | ---: |
+| Empty project-cache seed | 1,316.98 s | 1,171.65 s | 0 | 691 |
+| Fresh output base, unchanged sources | 90.39 s | 3.50 s | 563 | 0 |
+| Pipelines body edit | 137.62 s | 42.73 s | 552 | 11 |
+| Pipelines implementation/reference API edit | 156.16 s | 60.69 s | 537 | 26 |
+
+All declarations match ordinary sync byte-for-byte. The fresh-base control also
+recovered Restore (9.43 s), with no Restore execution. Edit controls changed an
+unused declared input to force preparation; conservative Restore keys therefore
+reran Restore (35.54 / 36.05 s). Original-source recovery returned 563 hits / zero
+Csc tasks. These are single diagnostic runs, excluding acquisition/update and
+product selection, not paired speedups or ordinary-build timings. Cold seeding
+remains expensive. Setup's `--cache-url` now enables qualification reuse too;
+standalone preparation accepts `--qualification-cache` with
+`RULES_MSBUILD_PROJECT_CACHE_URL` set.
+
+For that preparation handoff, run `close-sync SOURCE HANDOFF/workspace
+--preparation-base=FRESH_BASE` with the helper below. It queries the exact sync
+`srcs` rather than transferring private build products. Use the same remote cache
+and a fresh consumer base; `--experimental_remote_require_cached` makes an
+unexpected execution fail.
+
+The [recovery helper](../tests/graph_build/upstream/runtime_product_recovery.py)
+provides `close WORKSPACE HANDOFF/workspace` and `seed WORKSPACE HANDOFF/seed.json`.
+Transfer the handoff and the matching rules checkout as `HANDOFF/rules`; stop the
+producer. In the relocated workspace use the rules' `scripts/bazel-launcher.sh`
+with a fresh output base, `--disk_cache=`, the same `--remote_cache`,
+`--remote_cache_async=false`, `--remote_download_outputs=all`,
+`--action_env=RULES_MSBUILD_PROJECT_CACHE_URL=URL`, `--strategy=MSBuildGraph=worker`
+and `--worker_sandboxing`. Build `//:app
+//:runtime_package` with `--execution_log_json_file=ACTIONS`; run `check WORKSPACE
+RESULT --seed=HANDOFF/seed.json --actions=ACTIONS`. Actually execute `//:app_test
+//:runtime_test` with `--nocache_test_results`. This handoff requires a prepared
+producer and the [qualified Linux environment](support.md#complete-source-runtime-product).
 
 ## Reproduce
 

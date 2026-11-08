@@ -11,6 +11,18 @@ filegroup(
 
 exports_files([".editorconfig"])
 
+filegroup(
+    name = "native_preparation_sources",
+    srcs = [
+        "tests/runtime/NativeBuild.cs.txt",
+        "tests/runtime/NativePreparation.cs.txt",
+        "tests/runtime/native_action.bzl",
+        "tests/runtime/native_inputs.bzl",
+        "tests/runtime/source_repository.bzl",
+    ],
+    visibility = ["//tests/integration:__pkg__"],
+)
+
 # Declared sources for independent integration consumers; no checkout access.
 filegroup(
     name = "catalog_web_sources",

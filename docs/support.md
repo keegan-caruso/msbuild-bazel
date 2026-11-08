@@ -1,7 +1,7 @@
 # Support and limits
 
-The graph workflow is the sole backend. Pins: SDK **10.0.400**, Bazel
-**8.8.0 / 9.3.0**. Inputs, packages, tool layouts, generated files and output
+The graph workflow with the MSBuild project-cache plugin is the sole backend.
+Pins: SDK **10.0.400**, Bazel **8.8.0 / 9.3.0**. Inputs, packages, tool layouts, generated files and output
 ownership must be explicit. Sync does not trace arbitrary task reads or acquire
 missing packages.
 
@@ -53,6 +53,11 @@ Linux x64; no host was available, so that platform remains unqualified. These
 macOS controls use ordinary sandboxed actions, with remote actions disabled;
 Linux workers, published-byte parity and HTTP recovery retain their separate
 qualification above.
+
+`//tests/integration:visual_basic` passed on Linux ARM64 with SDK **10.0.400**
+and both current Bazel pins: explicit `.vbproj` roots/mappings, a C# consumer,
+body edits, execution and independent disk-cache recovery. VB inputs remain
+explicit; automatic compiler-input qualification and Compile globs are C# only.
 
 ## Qualified SDKs
 
@@ -142,6 +147,12 @@ Newtonsoft.Json **13.0.3** package-tree materialization/recovery.
 The 51 ProjectSync controls cover props and executable-mode changes, multi-target
 selection, implementation/reference DLLs, XML copies, failed builds, corrupt
 artifacts/metadata, relocation, source/SDK aliases and overlapping output owners.
+
+The complete source-runtime graph also passed on 9.3: all 563 eligible projects
+replayed through HTTP; Pipelines body/API edits ran 11/26 Csc tasks and retained
+byte-identical declarations. Source-runtime setup enables this option when
+`--cache-url` is supplied. Its initial cache seed still performs the SDK Build;
+whole-action recovery and per-project replay are separate controls below.
 
 Verified Restore snapshots passed small controls for compiler-only edits, source
 membership/modes, failed compilation, corrupt assets, authored Restore-hook inputs,
@@ -505,6 +516,68 @@ suites/stress, other architectures or RBE.
 Inspect the authored SDK boundary with `runtime_jit_reference_probe.py RAW_RESULTS
 SDK_ROOT REPORT.json`. It rebuilds the helper and consumer using the raw control's
 properties, then checks reference-emission settings and `ReferencePathWithRefAssemblies`.
+
+### Complete source-runtime product
+
+The [source-to-app workflow](../examples/source-runtime-app/README.md) acquires the
+pinned source and bootstrap SDK, updates packages, qualifies the graph, and builds
+an app plus `//:runtime_package`:
+
+```sh
+python3 scripts/setup-source-runtime.py OUTPUT
+bash OUTPUT/run.sh --describe-runtime --verify-product
+```
+
+Upstream MSBuild selects **172 managed assemblies**. Declared native producers add
+**16 runtime files**, including globalization, network security, standalone GCs,
+debugging libraries and `createdump`. The archive retains upstream licenses and
+records source, SDK, toolchain and graph identities. This is an unsigned IL
+developer runtime; official signing, ReadyToRun and release-pack parity are outside
+this workflow.
+
+The public setup passed in a fresh pinned Ubuntu 22.04 ARM64 container, four CPUs /
+8 GiB, SDK **10.0.400**, Bazel **9.3.0**. Setup used a pinned source archive and
+prebuilt image. SDK/tool and package acquisition ran in the new container, with HTTP action
+and project caches available. Public update/check and sync/check qualified
+**631 configurations / 563 compilations**, 119 package archives and 320 native
+lockfiles. Native producers built CoreCLR/JIT, five libraries and three host files;
+the managed graph recovered 563 projects from the project cache.
+
+Bazel actually executed `//:app_test` and `//:runtime_test`: all 172 framework names
+load from the source product, producer bytes/modes and archive members match,
+SDK-absent execution succeeds, and removing CoreCLR fails. A relocated independent
+container, with the producer stopped and no local action cache, recovered all three
+graph actions, Restore, all three native producers and version generation through
+HTTP. All **649 runtime files** and the complete archive match; both tests actually
+executed again. Package extraction is the sole local build action.
+A separate source-only consumer also recovered the whole `MSBuildSyncPrepare`
+action with misses forbidden: 122 remote spawn hits, zero executed spawns and
+byte-identical declarations. The producer was stopped; only the exact authored
+sync inputs and module locks transferred.
+[Timings and method](performance.md#source-runtime-product) separate setup from recovery.
+
+Execution requires Ubuntu 22.04 ARM64 with nested namespaces. Building the image
+from the Dockerfile, native Linux x64 and RBE remain unqualified. For compilation
+with a source-built **SDK**, use the separate
+[quick-start scenario](../examples/quickstart/README.md#source-built-sdk).
+
+### Declared native preparation
+
+Source selection, three version files, shared source archives and tool trees are
+Bazel outputs. Tools come from 194 hash-locked Ubuntu ARM64 packages; explicit
+aliases replace package scripts. Extraction still uses the qualified host's
+`dpkg-deb`; native compilation uses the declared tool filesystem.
+
+`//tests/integration:native_preparation` passes Bazel 8.8 / 9.3: suffixless source
+URLs, body/version invalidation, Brotli's nested BUILD file, failed-build recovery
+and link-preserving archives. All 7,806 source/version members match the previous
+input archive in bytes, link targets and executable modes. On both pins, fresh
+output bases recover expanded SDK/source repositories with the downloader disabled,
+the source archive absent and both action caches disabled. A separate 9.3 control
+with isolated local repository caches recovers them through the experimental HTTP
+repository-contents cache; an actually executed action reads matching SDK/source
+bytes. This qualifies these repositories, not general remote execution. Build the three
+producers with `//native:{runtime_coreclr,runtime_libraries,runtime_host}`.
 
 ### Connected source-runtime workflow
 

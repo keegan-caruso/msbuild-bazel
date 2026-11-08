@@ -19,6 +19,8 @@ def bind_outer_outputs(mapping):
             continue
         outer = copy.deepcopy({key: value for key, value in binding.items() if key not in ['properties', 'frameworkOverrides']})
         outer['outputFiles'] = [value for value in outer['outputFiles'] if value != linker]
+        # The dispatcher references its inner builds, not their compiler tools.
+        outer['implementationDependencies'] = []
         binding.setdefault('frameworkOverrides', {})[''] = outer
 
 
@@ -43,7 +45,7 @@ def main():
         # Reviewed host/mobile coordination and runner-command items are
         # metadata, not file inputs consumed by this Linux managed Build.
         mapping['projectDefaults']['evaluationItems'] += [
-            'ManagedProjectToBuild', 'MonoAotCrossCompiler', 'SetScriptCommands']
+            'ManagedProjectToBuild', 'MonoAotCrossCompiler', 'SetScriptCommands', 'AnyProject', 'NonNetCoreAppProject']
         mapping['projectDefaults']['documents'].update(json.loads((directory / 'runtime_test_documents.json').read_text()))
         mapping['projectDefaults']['inputItems']['RdXmlFile'] = []
         # API validation discovers this authored suppression file in a target.
@@ -236,6 +238,17 @@ def main():
                 variant['referenceBoundary'] = True
                 for field in ['compilerReference', 'compilerReferences', 'compilerReferencesComplete', 'dependencyCopies']:
                     variant.pop(field, None)
+    visual_basic = 'src/libraries/Microsoft.VisualBasic.Core/src/Microsoft.VisualBasic.Core.vbproj'
+    binding = mapping['projects'].setdefault(visual_basic, copy.deepcopy(mapping['projectDefaults']))
+    binding.pop('properties', None)
+    for variant in [binding] + list(binding.get('frameworkOverrides', {}).values()):
+        variant['referenceBoundary'] = False
+        # The linker embeds this property-selected resource only in the Windows
+        # inner build. Traversal still builds that framework for the full graph.
+        variant.setdefault('documents', {})[visual_basic] = {
+            'sha256': '725b28b562ac95a065e7b92aff977b7e1f4f9703bac217546f91bc54be140d76',
+            'targets': [], 'tasks': [],
+            'inputs': ['src/libraries/Microsoft.VisualBasic.Core/src/ILLink/ILLink.Descriptors.Windows.xml']}
     if args.evaluation_reuse:
         # Explicit source-content exemptions, not a blanket exemption of Compile.
         # Source membership, project definitions and all build hashes remain checked.

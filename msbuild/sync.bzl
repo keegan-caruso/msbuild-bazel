@@ -246,8 +246,8 @@ def msbuild_sync(name, projects, mappings = None, inputs = {}, package_lock = No
     if resolve_references and not package_build:
         fail("resolve_references requires package_build for private offline Restore and qualification Build")
     for project in projects:
-        if project.startswith("/") or "\\" in project or any([part in ["", ".", ".."] for part in project.split("/")]) or not (project.endswith(".csproj") or project.endswith(".proj") or project.endswith(".ilproj") or project.endswith(".sln") or project.endswith(".slnx")):
-            fail("Expected a workspace-relative .csproj, .proj, .ilproj, .sln or .slnx path: " + project)
+        if project.startswith("/") or "\\" in project or any([part in ["", ".", ".."] for part in project.split("/")]) or not (project.endswith(".csproj") or project.endswith(".vbproj") or project.endswith(".proj") or project.endswith(".ilproj") or project.endswith(".sln") or project.endswith(".slnx")):
+            fail("Expected a workspace-relative .csproj, .vbproj, .proj, .ilproj, .sln or .slnx path: " + project)
 
     # Keep apparent external labels portable across Bazel canonical-name changes.
     lock_name = package_lock if type(package_lock) == "string" and package_lock.startswith("@") and not package_lock.startswith("@@") else ""

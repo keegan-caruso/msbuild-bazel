@@ -20,6 +20,8 @@ internal static class NuGetUpdate
         var configuration = "Release";
         string? sdkVersion = null;
         string? mappingPath = null;
+        string? httpCache = null;
+        string? distdir = null;
         var framework = "";
         var check = false;
         for (var i = 2; i < args.Length; i++)
@@ -28,7 +30,7 @@ internal static class NuGetUpdate
             {
                 check = true;
             }
-            else if (args[i] is "--output" or "--configuration" or "--sdk-version" or "--mappings" or "--framework")
+            else if (args[i] is "--output" or "--configuration" or "--sdk-version" or "--mappings" or "--framework" or "--http-cache" or "--distdir")
             {
                 var option = args[i];
                 if (++i == args.Length)
@@ -46,6 +48,14 @@ internal static class NuGetUpdate
                 else if (option == "--mappings")
                 {
                     mappingPath = args[i];
+                }
+                else if (option == "--distdir")
+                {
+                    distdir = Path.GetFullPath(args[i]);
+                }
+                else if (option == "--http-cache")
+                {
+                    httpCache = Path.GetFullPath(args[i]);
                 }
                 else if (option == "--framework")
                 {
@@ -101,6 +111,11 @@ internal static class NuGetUpdate
         var scratch = WorkspaceView.PhysicalPath(Directory.CreateTempSubdirectory("nuget-update-").FullName);
         try
         {
+            // An explicit acquisition cache can survive update/check. Package
+            // extraction and all source/configuration writes remain private;
+            // native NuGet verifies cached responses before locks are published.
+            httpCache ??= Path.Combine(scratch, "http");
+            Directory.CreateDirectory(httpCache);
             var workspace = Path.Combine(scratch, "workspace");
             Directory.CreateDirectory(workspace);
             var originals = new Dictionary<string, string>(StringComparer.Ordinal);
@@ -112,7 +127,7 @@ internal static class NuGetUpdate
             var lockOwners = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
             foreach (var project in projects.Distinct())
             {
-                await Restore(sdk, workspace, packageRoot, project, GraphEntryProperties.For(project, properties, mappings.EntryProperties), scratch, engine);
+                await Restore(sdk, workspace, packageRoot, project, GraphEntryProperties.For(project, properties, mappings.EntryProperties), scratch, engine, httpCache);
                 CaptureLocks(workspace, locks, lockOwners);
                 NuGetConfigs.Capture(workspace, source, Path.Combine(scratch, "home"), originals);
             }
@@ -122,7 +137,7 @@ internal static class NuGetUpdate
             Environment.SetEnvironmentVariable("MSBuildSDKsPath", Path.Combine(engine, "Sdks"));
             Environment.SetEnvironmentVariable("DOTNET_HOST_PATH", Path.Combine(sdk, "dotnet"));
             Environment.SetEnvironmentVariable("NUGET_PACKAGES", packageRoot);
-            Environment.SetEnvironmentVariable("NUGET_HTTP_CACHE_PATH", Path.Combine(scratch, "http"));
+            Environment.SetEnvironmentVariable("NUGET_HTTP_CACHE_PATH", httpCache);
             Environment.SetEnvironmentVariable("MSBuildEnableWorkloadResolver", "false");
             string[] required;
             try
@@ -188,6 +203,10 @@ internal static class NuGetUpdate
             {
                 Publish(products);
             }
+            if (distdir is not null)
+            {
+                NuGetArchives.Export(packageRoot, packages, distdir);
+            }
             Console.WriteLine($"NuGet locks: {packages.Length} archives, {locks.Count} projects; {(check ? "current" : "updated")}");
         }
         finally
@@ -196,7 +215,7 @@ internal static class NuGetUpdate
         }
     }
 
-    private static async Task Restore(string sdk, string workspace, string packages, string project, Dictionary<string, string> properties, string scratch, string engine)
+    private static async Task Restore(string sdk, string workspace, string packages, string project, Dictionary<string, string> properties, string scratch, string engine, string httpCache)
     {
         if (!File.Exists(Path.Combine(workspace, project)))
         {
@@ -222,7 +241,7 @@ internal static class NuGetUpdate
             ["DOTNET_CLI_HOME"] = Path.Combine(scratch, "home"),
             ["HOME"] = Path.Combine(scratch, "home"),
             ["NUGET_PACKAGES"] = packages,
-            ["NUGET_HTTP_CACHE_PATH"] = Path.Combine(scratch, "http"),
+            ["NUGET_HTTP_CACHE_PATH"] = httpCache,
             ["NUGET_PLUGINS_CACHE_PATH"] = Path.Combine(scratch, "plugins"),
             ["DOTNET_MULTILEVEL_LOOKUP"] = "0",
             ["DOTNET_CLI_TELEMETRY_OPTOUT"] = "1",
