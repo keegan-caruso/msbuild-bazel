@@ -14,7 +14,7 @@ internal sealed class DocumentBinding
 internal sealed class ProjectBinding
 {
     public Dictionary<string, ProjectBinding> FrameworkOverrides { get; set; } = [];
-    public bool PreparedRestore { get; set; } = false;
+    public bool? PreparedRestore { get; set; } = null;
     public string[] InputDirectories { get; set; } = [];
     public string[] TemporaryDirectories { get; set; } = [];
     public string[] RestoreInputs { get; set; } = [];
@@ -83,7 +83,7 @@ internal sealed class Mappings
             {
                 WorkspaceView.Safe(input);
             }
-            if ((binding.RestoreInputs.Length != 0 || binding.RestoreOutputs.Length != 0) && !binding.PreparedRestore)
+            if ((binding.RestoreInputs.Length != 0 || binding.RestoreOutputs.Length != 0) && binding.PreparedRestore != true)
             {
                 throw new InvalidDataException("restoreInputs and restoreOutputs require preparedRestore");
             }

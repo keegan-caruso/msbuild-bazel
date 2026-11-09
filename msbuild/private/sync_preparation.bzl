@@ -1,5 +1,6 @@
 """Cache synchronization only when the complete source workspace is declared."""
 
+load(":defaults.bzl", "stable_paths")
 load(":paths.bzl", "quote", "runfile")
 
 def _qualification_resources(_os_name, _input_size):
@@ -22,6 +23,14 @@ def prepare_sync(ctx, tc, payload, manifest, bound_files):
         fail("Cached sync publishes in the main workspace; declare it in that workspace's root package")
     if not ctx.files.srcs:
         fail("Cached sync requires a nonempty srcs workspace snapshot")
+    configured = bool(ctx.attr.resolve_references and ctx.attr.package_build and ctx.configuration.default_shell_env.get("RULES_MSBUILD_PROJECT_CACHE_URL"))
+    eligible = configured and stable_paths(ctx)
+    qualification_cache = eligible if ctx.attr.qualification_cache == -1 else ctx.attr.qualification_cache == 1
+    if qualification_cache and not configured:
+        fail("qualification_cache requires complete srcs, resolve_references, package_build, a qualified Linux execution platform and RULES_MSBUILD_PROJECT_CACHE_URL in --action_env")
+    seed_cache = qualification_cache and stable_paths(ctx) if ctx.attr.seed_build_cache == -1 else ctx.attr.seed_build_cache == 1
+    if seed_cache and not qualification_cache:
+        fail("seed_build_cache requires eligible qualification_cache")
     sources = []
     for file in ctx.files.srcs:
         if not file.is_source or file.owner.workspace_name != ctx.label.workspace_name or file.owner.package:
@@ -34,7 +43,7 @@ def prepare_sync(ctx, tc, payload, manifest, bound_files):
     producer_trees = {file: True for target in ctx.attr.inputs | ctx.attr.build_inputs for file in target[DefaultInfo].files.to_list() if file.is_directory}
     ctx.actions.write(stage, json.encode({
         "sources": sources,
-        "runfiles": [{"path": path, "file": file.path, "tree": ctx.attr.qualification_cache or file in producer_trees} for path, file in {runfile(ctx, file): file for file in bound_files}.items()],
+        "runfiles": [{"path": path, "file": file.path, "tree": qualification_cache or file in producer_trees} for path, file in {runfile(ctx, file): file for file in bound_files}.items()],
     }))
     prepared = ctx.actions.declare_directory(ctx.label.name + ".sync-prepared")
     flags = ["--configuration", ctx.attr.configuration]
@@ -48,15 +57,15 @@ def prepare_sync(ctx, tc, payload, manifest, bound_files):
         flags.extend(["--package-input", path])
     environment = {key: value for key, value in ctx.configuration.default_shell_env.items() if key == "RULES_MSBUILD_SYNC_PROFILE"}
     cache_command = ""
-    if ctx.attr.qualification_cache:
+    if qualification_cache:
         for key in ["RULES_MSBUILD_PROJECT_CACHE_URL", "RULES_MSBUILD_PROJECT_CACHE_BEARER_TOKEN"]:
             if key in ctx.configuration.default_shell_env:
                 environment[key] = ctx.configuration.default_shell_env[key]
         cache_command = 'set -- "$@" --qualification-cache "$scratch/project-cache" --qualification-cache-url "${RULES_MSBUILD_PROJECT_CACHE_URL:?Set the qualification project-cache URL through --action_env}"'
-    if ctx.file.seed_runner:
+    if seed_cache:
         cache_command += "\nseed_runner=" + quote(ctx.file.seed_runner.path) + '\nset -- "$@" --seed-build-cache "$base/$seed_runner"'
     ctx.actions.run_shell(
-        inputs = depset(ctx.files.srcs + bound_files + ctx.files.seed_runner + [payload, manifest, stage] + ([ctx.file.mappings] if ctx.file.mappings else []), transitive = [tc.sdk]),
+        inputs = depset(ctx.files.srcs + bound_files + (ctx.files.seed_runner if seed_cache else []) + [payload, manifest, stage] + ([ctx.file.mappings] if ctx.file.mappings else []), transitive = [tc.sdk]),
         tools = [tc.dotnet],
         outputs = [prepared],
         resource_set = _qualification_resources if ctx.attr.resolve_references else None,

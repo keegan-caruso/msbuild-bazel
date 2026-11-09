@@ -88,6 +88,12 @@ sed -i 's/package_build=True/package_lock="@packages\/\/:packages", package_buil
 bazel run //:baseline > "$TEST_TMPDIR/packages-baseline.log" 2>&1 || { cat "$TEST_TMPDIR/packages-baseline.log" >&2; exit 1; }
 cp graph.generated.json "$TEST_TMPDIR/packages.json"
 cp graph.generated.bzl "$TEST_TMPDIR/packages.bzl"
+cat >> BUILD.bazel <<'BUILD'
+msbuild_sync(name="auto_package", projects=["P2/P2.csproj", "Other/Other.csproj"], package_lock="@packages//:packages")
+BUILD
+bazel run //:auto_package > "$TEST_TMPDIR/auto-package.log" 2>&1 || { cat "$TEST_TMPDIR/auto-package.log" >&2; exit 1; }
+cmp graph.generated.json "$TEST_TMPDIR/packages.json"
+cmp graph.generated.bzl "$TEST_TMPDIR/packages.bzl"
 run packages
 report packages 0 4 4
 assert_contains "$TEST_TMPDIR/packages.log" "PROJECT_SYNC_RESTORE_CACHE miss"

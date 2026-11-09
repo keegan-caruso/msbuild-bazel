@@ -39,6 +39,48 @@ class GraphSyncTests(unittest.TestCase):
         self.assertFalse((self.root / "projects.generated.bzl").exists())
         self.sync(flags=["--check"])
 
+    def test_closed_standard_restore_infers_conservative_inputs_and_false_disables_it(self):
+        flags=['--package-build']
+        self.sync(flags=flags)
+        contract=json.loads((self.root/'graph.generated.json').read_text())
+        self.assertIn('Program.cs', contract['Restore']['Inputs'])
+        self.assertIn('App.csproj', contract['Restore']['Inputs'])
+        generated=(self.root/'graph.generated.bzl').read_text()
+        self.assertIn('optional_restore = True', generated)
+        self.assertIn('linux_stable_paths = None', generated)
+        self.sync({'projectDefaults':{'preparedRestore':True}}, flags=flags)
+        self.assertNotIn('Program.cs', json.loads((self.root/'graph.generated.json').read_text())['Restore']['Inputs'])
+        for mapping in [{'projectDefaults':{'preparedRestore':False}}, {'projects':{'App.csproj':{'preparedRestore':False}}}]:
+            self.sync(mapping, flags=flags)
+            self.assertNotIn('Restore', json.loads((self.root/'graph.generated.json').read_text()))
+
+    def test_inferred_restore_retains_reviewed_build_only_input_contract(self):
+        with tempfile.TemporaryDirectory(prefix='inferred-build-input-') as directory:
+            base=Path(directory)
+            (base/'data.txt').write_text('build-only contents')
+            manifest=base/'inputs.json'
+            manifest.write_text(json.dumps({'inputs':[{'path':'data.txt','label':'@producer//:data','runfile':'data.txt','buildOnly':True}],'packages':[]}))
+            self.sync(flags=['--package-build','--inputs',str(manifest),'--runfiles',str(base)])
+            contract=json.loads((self.root/'graph.generated.json').read_text())
+            self.assertEqual(contract['Restore']['BuildInputs'],['data.txt'])
+            self.assertNotIn('data.txt',contract['Restore']['Inputs'])
+            self.assertIn('Program.cs',contract['Restore']['Inputs'])
+
+    def test_authored_restore_hooks_require_explicit_contracts(self):
+        hook='<Target Name="BeforeRestore" BeforeTargets="Restore"><WriteLinesToFile File="hook.txt" Lines="owned" Overwrite="true" /></Target>'
+        for document in ['App.csproj', 'Directory.Build.targets']:
+            with self.subTest(document=document):
+                if document=='App.csproj':
+                    (self.root/document).write_text(self.project.replace('</Project>',hook+'</Project>'))
+                else:
+                    (self.root/'App.csproj').write_text(self.project)
+                    (self.root/document).write_text('<Project>'+hook+'</Project>')
+                body=(self.root/document).read_bytes()
+                mapping={'projectDefaults':{'documents':{document:{'sha256':hashlib.sha256(body).hexdigest(),'targets':['BeforeRestore'],'tasks':[],'inputs':[]}}}}
+                self.sync(mapping, flags=['--package-build'])
+                self.assertNotIn('Restore', json.loads((self.root/'graph.generated.json').read_text()))
+                (self.root/document).unlink()
+
     def test_opt_in_profiling_preserves_declarations(self):
         command = [str(SDK / 'dotnet'), str(RUNNER), str(self.root), str(SDK / 'sdk/10.0.400'), 'App.csproj']
         expected = None

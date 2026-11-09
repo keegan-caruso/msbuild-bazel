@@ -139,14 +139,29 @@ build recovery. Retention requires explicit compiler-only input review; see
 
 ## Project qualification cache
 
-`qualification_cache = True` adds HTTP project reuse inside a changed preparation
-action; it requires `srcs`, `package_build` and `resolve_references`. Linux ARM64 / SDK **10.0.400** passed small controls
+Closed sync automatically enables HTTP project reuse when complete `srcs`,
+package/reference qualification, the declared qualified Linux execution capability
+and a project HTTP endpoint are available. Explicit `qualification_cache = True`
+retains the forced Linux path; `False` disables it. See [default eligibility](api.md#sync). Linux ARM64 / SDK **10.0.400** passed small controls
 on both Bazel pins: normal-mode declaration parity, forced preparation with an empty
 local cache, body/API invalidation, independent-branch reuse, app execution and
 Newtonsoft.Json **13.0.3** package-tree materialization/recovery.
 The ProjectSync controls cover props and executable-mode changes, multi-target
 selection, implementation/reference DLLs, XML copies, failed builds, corrupt
 artifacts/metadata, relocation, source/SDK aliases and overlapping output owners.
+
+The conditional-default fixture passed on Linux ARM64 / SDK **10.0.400**, both
+current Bazel pins: package-free closed sync, absent-endpoint and target-only
+capability fallback, explicit disable/forced-prerequisite controls, automatic
+qualification/seeding and portable consumers. The three-project Build recovered
+all seeded snapshots; body/API edits retained **two / one** project hits and matched
+fresh DLL/PDB bytes with the project cache disabled. Inferred Restore keys source
+contents without making those contents shared Build inputs.
+
+```sh
+QUALIFICATION_CACHE_URL=http://cache:8080 bash scripts/bazel.sh test \
+  //tests/integration:defaults --test_output=errors
+```
 
 The complete source-runtime graph also passed on 9.3: all 563 eligible projects
 replayed through HTTP; Pipelines body/API edits ran 11/26 Csc tasks and retained
@@ -168,7 +183,8 @@ A stopped-producer, relocated-VM control recovered Restore and all four projects
 through HTTP, including package-SDK resolution, with no local cache, zero
 compilations, identical declarations and matching artifact digests.
 
-`seed_build_cache = True` passed a three-project chain, a five-node/two-framework
+Build snapshot seeding (automatic with the declared qualified execution capability,
+or forced with `seed_build_cache = True`) passed a three-project chain, a five-node/two-framework
 graph, a query-only coordinator, globs over unselected files and generated-file
 conditions on Linux ARM64,
 SDK **10.0.400**, both current Bazel pins. First ordinary
@@ -700,6 +716,21 @@ prepared payload verification precedes any child workspace writes or evaluation.
 `//tests/integration:{workers,evaluation_worker}` also passed all six controls on
 Bazel 8.8.0 / 9.3.0, covering actual builds, body/API edits, retained evaluation,
 fresh-build byte parity, failure recovery and cached/zero-budget workers.
+
+## Snapshot materialization defaults
+
+Production `FileMaterializer` passed real XFS reflink and ext4 copy-fallback controls
+on Linux ARM64 / SDK **10.0.400**: empty, small and multi-buffer files preserve
+bytes, executable modes and timestamps; writable replays remain independent;
+same-size/time corruption is rejected and the destination removed. The graph replay
+suite with the default clone mode passed body/API edits, fresh-build byte parity,
+Publish replay and corrupt-payload controls on XFS. Replay/body/API rows recorded
+**54 / 40 / 23 actual clones**; Publish replay recorded **64**. These are small
+correctness controls, not performance measurements or qualification of other filesystems.
+Unsupported clones use verified private copies. Reproduce the graph controls with
+`RULES_MSBUILD_GRAPH_PROFILE=1 python3 tests/graph_build/replay.py`; place `TMPDIR`
+on a reflink-capable filesystem to exercise cloning. `RULES_MSBUILD_GRAPH_COPY_MODE=copy`
+retains an explicit copy control.
 
 ## Limits
 

@@ -140,7 +140,7 @@ producer preparation driver, then runs its generated `//:smoke` test. The driver
 
 The basic example demonstrates action caching. Project reuse within changed graphs
 needs a qualified Linux worker or HTTP project cache. [Cache setup](../../docs/api.md#caching-and-workers)
-shows both levels. Opt-in `package_build = True, resolve_references = True` captures
+shows both levels. Closed package inventories or complete sync `srcs` automatically capture
 complete SDK compiler/copy selections during a private sync Build; custom task reads
 still need contracts. [API](../../docs/api.md) covers packages, tools and tests;
 [support](../../docs/support.md) lists validated scope and limits.

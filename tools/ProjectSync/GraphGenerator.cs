@@ -68,6 +68,7 @@ internal static class GraphGenerator
         var deferred = new System.Collections.Concurrent.ConcurrentDictionary<string, List<string>>();
         var outputs = new System.Collections.Concurrent.ConcurrentDictionary<string, string[]>();
         var definitions = new System.Collections.Concurrent.ConcurrentDictionary<string, byte>();
+        var customRestoreDocuments = new System.Collections.Concurrent.ConcurrentDictionary<string, byte>();
         if (solution)
         {
             definitions.TryAdd(entries[0], 0);
@@ -196,6 +197,11 @@ internal static class GraphGenerator
                 if (unsupportedItems.Length != 0)
                 {
                     throw new InvalidDataException("Graph sync item requires contract transfer in " + Relative(path) + ": " + string.Join(", ", unsupportedItems));
+                }
+                foreach (var document in documents.Where(document => document.Targets.Count != 0 || document.UsingTasks.Count != 0 ||
+                    document.Imports.Count != 0 || document.Children.OfType<Microsoft.Build.Construction.ProjectSdkElement>().Any()))
+                {
+                    customRestoreDocuments.TryAdd(Relative(document.FullPath), 0);
                 }
                 var declared = new HashSet<string>(documents.Select(document => Relative(document.FullPath)), StringComparer.Ordinal);
                 foreach (var document in declared)
@@ -343,10 +349,14 @@ internal static class GraphGenerator
         {
             throw new InvalidDataException("Build-only producer content cannot be a package task input");
         }
-        var restore = GraphRestoreGenerator.Create(graph, mappings, definitions.Keys, shared, Relative, view?.BuildInputs ?? [], view?.HasBuildInputs == true);
+        var restore = GraphRestoreGenerator.Create(graph, mappings, definitions.Keys, shared, Relative, view?.BuildInputs ?? [], view?.HasBuildInputs == true, packageBuild && view is not null, inputs.Values.SelectMany(files => files), customRestoreDocuments.IsEmpty);
         if (restore is not null)
         {
-            shared = shared.Concat(restore.Inputs.Except(definitions.Keys)).Distinct().Order(StringComparer.Ordinal).ToArray();
+            // Inferred Restore conservatively keys source bytes for its action.
+            // Keep those bytes in their existing per-project Build keys rather
+            // than promoting every source edit to a whole-graph invalidation.
+            var projectInputs = restore.Inferred ? inputs.Values.SelectMany(files => files) : [];
+            shared = shared.Concat(restore.Inputs.Except(definitions.Keys).Except(projectInputs, StringComparer.Ordinal)).Distinct().Order(StringComparer.Ordinal).ToArray();
             foreach (var path in restore.Inputs)
             {
                 if (!File.Exists(Path.Combine(root, path)))
@@ -365,7 +375,7 @@ internal static class GraphGenerator
                 .Select(item => Path.GetFullPath(item.EvaluatedInclude.Replace('\\', '/'), Path.GetDirectoryName(node.ProjectInstance.FullPath)!)))
                 .Where(path => path.StartsWith(root + Path.DirectorySeparatorChar, StringComparison.Ordinal))
                 .Select(path => Path.GetRelativePath(root, path).Replace('\\', '/')).ToHashSet(StringComparer.Ordinal);
-            if (mappings.RestoreReuseInputs.Any(path => !authoredCompile.Contains(path) || definitions.ContainsKey(path) || shared.Contains(path) || (restore?.Inputs.Contains(path) == true)))
+            if (mappings.RestoreReuseInputs.Any(path => !authoredCompile.Contains(path) || definitions.ContainsKey(path) || shared.Contains(path) || (restore?.Inferred != true && restore?.Inputs.Contains(path) == true)))
             {
                 throw new InvalidDataException("restoreReuseInputs must name authored Compile files outside Restore inputs and definitions");
             }
@@ -595,14 +605,13 @@ internal static class GraphGenerator
                 node => new[] { Relative(Path.TrimEndingDirectorySeparator(Path.GetFullPath(node.ProjectInstance.GetPropertyValue("PublishDir"), Path.GetDirectoryName(node.ProjectInstance.FullPath)!))),
                     Path.GetFileName(node.ProjectInstance.GetPropertyValue("TargetPath")), node.ProjectInstance.GetPropertyValue("OutputType") });
         var restoreRule = restore is null ? "" :
-            "    if not linux_stable_paths:\n        fail(\"Prepared Restore requires linux_stable_paths\")\n" +
-            "    msbuild_graph_restore(\n        name = name + \"_restore\",\n        runner = \":\" + name + \"_runner\",\n        contract = \"" + ContractName + "\",\n        linux_stable_paths = True,\n        profile_build = profile_build,\n" +
+            "    msbuild_graph_restore(\n        name = name + \"_restore\",\n        runner = \":\" + name + \"_runner\",\n        contract = \"" + ContractName + "\",\n        linux_stable_paths = linux_stable_paths,\n        optional_restore = True,\n        profile_build = profile_build,\n" +
             "        srcs = " + StarlarkLiteral.Serialize(restore.Inputs.Where(path => view?.Labels.ContainsKey(path) != true && !path.StartsWith(".graph-tools/", StringComparison.Ordinal)).ToArray()) + ",\n" +
             "        bindings = " + StarlarkLiteral.Serialize(view?.GraphBindingLabels ?? []) + ",\n" +
             "        input_paths = " + StarlarkLiteral.Serialize(view?.Bindings(restore.Inputs) ?? []) + ",\n" +
             (view?.DefaultPackageLock is null ? "" : "        package_lock = " + StarlarkLiteral.Serialize(view.DefaultPackageLock) + ",\n") + "    )\n";
         var text = Header + "load(\"@rules_msbuild//msbuild:defs.bzl\", \"msbuild_graph\", \"msbuild_graph_runner\"" + (restore is null ? "" : ", \"msbuild_graph_restore\"") + ")\n" + sourceGlobs.Load + "\n" +
-            "def app_graph(name = \"app\", linux_stable_paths = False, target = \"Build\", linux_worker = False, worker_cache_mb = 4096, evaluation_cache_mb = 512, profile_build = False):\n    if native.package_name():\n        fail(\"app_graph must be called from the workspace root\")\n" +
+            "def app_graph(name = \"app\", linux_stable_paths = None, target = \"Build\", linux_worker = False, worker_cache_mb = 4096, evaluation_cache_mb = 512, profile_build = False):\n    if native.package_name():\n        fail(\"app_graph must be called from the workspace root\")\n" +
             "    msbuild_graph_runner(name = name + \"_runner\")\n" + sourceGlobs.Declaration + restoreRule + "    msbuild_graph(\n        name = name,\n        linux_stable_paths = linux_stable_paths,\n        linux_worker = linux_worker,\n        worker_cache_mb = worker_cache_mb,\n        evaluation_cache_mb = evaluation_cache_mb,\n        profile_build = profile_build,\n        target = target,\n        runner = \":\" + name + \"_runner\",\n" +
             (restore is null ? "" : "        restore = \":\" + name + \"_restore\",\n") +
             "        contract = \"" + ContractName + "\",\n        srcs = " + sourceGlobs.Expression + ",\n        bindings = " + StarlarkLiteral.Serialize(view?.GraphBindingLabels ?? []) + ",\n        input_paths = " + StarlarkLiteral.Serialize(view?.Bindings(sources.Concat(inputDirectories)) ?? []) + ",\n        project_outputs = " + StarlarkLiteral.Serialize(runtimeOutputs) + ",\n        publish_outputs = " + StarlarkLiteral.Serialize(publishOutputs) + ",\n" + (view?.DefaultPackageLock is null ? "" : "        package_lock = " + StarlarkLiteral.Serialize(view.DefaultPackageLock) + ",\n") + "    )\n";
@@ -815,7 +824,7 @@ internal static class GraphGenerator
                 var producer = WorkspaceView.Safe(project.ExpandString(source).Replace('\\', '/'));
                 var extension = Path.GetExtension(producer);
                 var parts = producer.Split('/');
-                var package = packageBuild && binding.PreparedRestore && parts.Length >= 5 && parts[0] == ".nuget" &&
+                var package = packageBuild && binding.PreparedRestore == true && parts.Length >= 5 && parts[0] == ".nuget" &&
                     packageIdentities.Contains(parts[1] + "/" + parts[2]) && File.Exists(Path.Combine(root, Path.ChangeExtension(producer, ".dll")));
                 var allowed = extension is ".dll" or ".pdb" or ".xml" &&
                     (package || Dependencies(node).Where(dependency => GraphProjectKind.HasAssembly(dependency.ProjectInstance)).Any(dependency =>
