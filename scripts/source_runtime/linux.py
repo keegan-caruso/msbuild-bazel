@@ -76,6 +76,7 @@ def setup(args):
     base = args.output.expanduser().resolve()
     state = owned_output(base, args.resume, 'linux-source-runtime')
     if state:
+        args.resume = True
         for name, value in state['options'].items():
             if getattr(args, name) is None and value is not None:
                 setattr(args, name, Path(value) if name in ['repository_cache', 'native_toolchain', 'sandbox', 'host_space_path'] else value)

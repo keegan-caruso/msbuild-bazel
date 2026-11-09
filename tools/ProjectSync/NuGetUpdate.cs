@@ -22,11 +22,16 @@ internal static class NuGetUpdate
         string? mappingPath = null;
         string? httpCache = null;
         string? distdir = null;
+        var persistentHttpCache = true;
         var framework = "";
         var check = false;
         for (var i = 2; i < args.Length; i++)
         {
-            if (args[i] == "--check")
+            if (args[i] == "--no-http-cache")
+            {
+                persistentHttpCache = false;
+            }
+            else if (args[i] == "--check")
             {
                 check = true;
             }
@@ -111,10 +116,16 @@ internal static class NuGetUpdate
         var scratch = WorkspaceView.PhysicalPath(Directory.CreateTempSubdirectory("nuget-update-").FullName);
         try
         {
-            // An explicit acquisition cache can survive update/check. Package
+            // Owned acquisition responses persist across update/check. Package
             // extraction and all source/configuration writes remain private;
             // native NuGet verifies cached responses before locks are published.
-            httpCache ??= Path.Combine(scratch, "http");
+            if (!persistentHttpCache && httpCache is not null)
+            {
+                throw new ArgumentException("Choose --http-cache or --no-http-cache");
+            }
+            httpCache ??= persistentHttpCache
+                ? DefaultHttpCache()
+                : Path.Combine(scratch, "http");
             Directory.CreateDirectory(httpCache);
             var workspace = Path.Combine(scratch, "workspace");
             Directory.CreateDirectory(workspace);
@@ -213,6 +224,20 @@ internal static class NuGetUpdate
         {
             Directory.Delete(scratch, true);
         }
+    }
+
+    private static string DefaultHttpCache()
+    {
+        var root = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData, Environment.SpecialFolderOption.DoNotVerify);
+        if (!Path.IsPathRooted(root))
+        {
+            root = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile, Environment.SpecialFolderOption.DoNotVerify), ".cache");
+        }
+        if (!Path.IsPathRooted(root))
+        {
+            throw new InvalidDataException("A persistent NuGet cache requires an absolute user cache directory; supply --http-cache or --no-http-cache");
+        }
+        return Path.Combine(root, "rules-msbuild", "nuget-http");
     }
 
     private static async Task Restore(string sdk, string workspace, string packages, string project, Dictionary<string, string> properties, string scratch, string engine, string httpCache)

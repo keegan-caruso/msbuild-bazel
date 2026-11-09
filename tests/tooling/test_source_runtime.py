@@ -152,13 +152,33 @@ class SourceRuntimeSetupTests(unittest.TestCase):
             self.assertEqual(sentinel.read_text(),'user data')
             owned=base/'owned'
             self.assertIsNone(owned_output(owned,False,'linux-source-runtime'))
-            state=dict(kind='linux-source-runtime',completed=['tools'])
+            state=dict(version=1,kind='linux-source-runtime',completed=['tools'])
             save(owned/'setup.json',state)
             self.assertEqual(owned_output(owned,True,'linux-source-runtime'),state)
             with self.assertRaisesRegex(ValueError,'another workflow'):
                 owned_output(owned,True,'apple-source-runtime')
-            with self.assertRaisesRegex(ValueError,'fresh output'):
-                owned_output(owned,False,'linux-source-runtime')
+            self.assertEqual(owned_output(owned,False,'linux-source-runtime'),state)
+
+    def test_automatic_apple_resume_rejects_changed_rules_and_options_without_writes(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            base=Path(temporary)
+            state=dict(version=1,kind='apple-source-runtime',sourceIdentity='old',requestedImage='pinned-image',cacheUrl='http://cache')
+            save(base/'setup.json',state)
+            sentinel=base/'keep';sentinel.write_text('retained')
+            def arguments():
+                return SimpleNamespace(output=base,resume=False,native_toolchain=None,sandbox=None,registry=None,
+                    repository_cache=None,host_space_path=None,image=None,cache_url=None)
+            with patch.object(apple.platform,'machine',return_value='arm64'), patch.object(apple.shutil,'which',return_value='container'), \
+                 patch.object(apple,'demo_helpers'), patch.object(apple,'rules_identity',return_value='current'):
+                with self.assertRaisesRegex(ValueError,'matching owned setup inputs'):
+                    apple.setup(arguments())
+                state['sourceIdentity']='current'
+                save(base/'setup.json',state)
+                args=arguments();args.cache_url='http://changed-cache'
+                with self.assertRaisesRegex(ValueError,'options changed'):
+                    apple.setup(args)
+            self.assertEqual(sentinel.read_text(),'retained')
+            self.assertEqual(json.loads((base/'setup.json').read_text()),state)
 
     def test_nested_bazel_options_preserve_arguments_and_do_not_execute_shell(self):
         with tempfile.TemporaryDirectory() as temporary:

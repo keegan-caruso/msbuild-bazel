@@ -13,7 +13,7 @@ from source_runtime.linux import build_command, setup
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('output', type=Path, help='owned setup directory; retain it for run and resume')
-    parser.add_argument('--resume', action='store_true')
+    parser.add_argument('--resume', action='store_true', help='explicit resume; matching owned inputs resume automatically')
     parser.add_argument('--image', help='Apple Container native environment pinned by @sha256; default builds the supplied image')
     parser.add_argument('--run', action='store_true', help='run the app from a completed setup; remaining arguments go to the app')
     parser.add_argument('--test', action='store_true', help='actually execute the prepared app test')

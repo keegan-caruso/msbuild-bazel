@@ -2,7 +2,7 @@
 """Create a seeded runtime CI demo on an Apple silicon Mac with Apple Container.
 
 Cold setup downloads pinned sources/tools, qualifies 481 compilations, builds the
-source runtime and executes eight suites. --resume reuses only completed stages
+source runtime and executes eight suites. Matching owned inputs resume completed stages
 with identical inputs. --run executes the independent demo after setup.
 """
 import argparse
@@ -120,7 +120,7 @@ def archive_producer(output, state):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('output', type=Path, help='new owned setup/state directory; retain it for resume and run')
-    parser.add_argument('--resume', action='store_true')
+    parser.add_argument('--resume', action='store_true', help='explicit resume; matching owned inputs resume automatically')
     parser.add_argument('--image', help='reuse an immutable Ubuntu 22.04 ARM64 image; default builds the native demo image')
     parser.add_argument('--cache-url', help='use an existing unauthenticated HTTP(S) cache instead of creating one')
     parser.add_argument('--prepared-inputs', type=Path, help='optional source-only checkpoint emitted by runtime_demo_prepare.py pack')
@@ -181,6 +181,12 @@ def main():
     if args.prepared_inputs:
         assert re.fullmatch('[a-f0-9]{64}', args.prepared_sha256)
         assert digest(args.prepared_inputs) == args.prepared_sha256
+    if output.exists() and not args.resume:
+        assert state_path.is_file(), 'Refusing to resume an unowned output directory'
+        from source_runtime.common import rules_identity
+        recorded = json.loads(state_path.read_text())
+        assert recorded.get('kind') == 'runtime-demo' and recorded.get('version') == 1 and recorded.get('sourceIdentity') == rules_identity(), 'Automatic resume requires matching owned setup inputs'
+        args.resume = True
     if args.resume:
         state = json.loads(state_path.read_text())
         assert state['version'] == 1
@@ -201,7 +207,8 @@ def main():
         output.mkdir(parents=True, mode=0o700)
         identity = uuid.uuid4().hex[:10]
         prefix = 'msbuild-runtime-demo-' + identity
-        state = dict(version=1, id=identity, options=dict(image=args.image, cacheUrl=args.cache_url, preparedSha256=args.prepared_sha256, testCache=args.test_cache or 'yes'),
+        from source_runtime.common import rules_identity
+        state = dict(version=1, kind='runtime-demo', sourceIdentity=rules_identity(), id=identity, options=dict(image=args.image, cacheUrl=args.cache_url, preparedSha256=args.prepared_sha256, testCache=args.test_cache or 'yes'),
             cacheImage=CACHE_IMAGE, producer=prefix + '-producer', consumer=prefix + '-consumer', cache=None if args.cache_url else prefix + '-cache', completed=[], ready=False)
 
     setup_lock = (output / 'setup.lock').open('a+')
