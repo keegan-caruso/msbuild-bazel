@@ -220,15 +220,33 @@ inputs. See [configuration](api.md#compiler-selections).
 
 #### Qualification-to-Build handoff
 
-The opt-in `seed_build_cache` control reuses qualification's compiled products in
-ordinary Build snapshots. On Linux ARM64 / SDK **10.0.400** / Bazel **9.3.0**, one
-three-project correctness run took **1.65 s** for the first Build (three HTTP hits,
-zero compilations), versus **3.98 s** uncached. Seed verification/publication itself
-took **1.33 s**, so this small control establishes removed compilation, not an
-end-to-end speedup. Runner times exclude Bazel/bootstrap and initial qualification;
-these are single observations, not paired medians. Reproduce with
-`QUALIFICATION_CACHE_URL=http://cache:8080 bash scripts/bazel.sh test
-//tests/integration:qualification_seed --test_output=all`.
+`seed_build_cache = True` reuses qualification's compiled products in ordinary
+Build snapshots. The complete managed runtime graph at `60629d1` (631 configurations)
+passed on Ubuntu 22.04 ARM64, four CPUs / 8 GiB RAM plus 4 GiB swap, SDK **10.0.400**
+and Bazel **9.3.0**. Cold qualification ran **691 Csc tasks** and seeded **563**
+assembly snapshots; seed verification/publication took **41.11 s**. Both ordinary
+Builds below recovered all 563 snapshots with zero misses. The first consumer's
+keys and manifest bytes matched the seed; a separate binlog control recorded
+**zero Csc/Vbc calls**.
+
+| Consumer state | Bazel wall | Restore action | Graph action | Graph runner |
+| --- | ---: | ---: | ---: | ---: |
+| New Restore contract | 447.84 s | 408.72 s | 36.07 s | 21.49 s |
+| Restore prepared | 40.84 s | Action hit | 35.68 s | 20.91 s |
+
+Tools/packages were available; Bazel disk/remote caches were disabled, while the
+local action cache retained Restore.
+The second request changed only the cache URL's trailing slash to force graph
+execution while retaining Restore. Action durations come from Bazel's native
+trace; the runner is inside the graph action. These are single correctness
+observations, not paired speedups. Qualification still performs the initial SDK
+Build; the handoff removes its repetition. It also declares 63 formerly omitted
+file members of reviewed evaluation items in Build and Restore.
+
+Enable the flag on the retained runtime workspace's `//:sync` and use the same
+HTTP project cache with `app_graph(linux_stable_paths = True)`. The smaller,
+independently runnable [controls](support.md#project-qualification-cache) cover
+both Bazel pins, output parity, relocation and body/API invalidation.
 
 #### Small graph
 

@@ -181,8 +181,12 @@ inputs could not reuse stale products or publish invalid declarations. Replayed
 qualification snapshots also seeded complete Build snapshots. Real Traversal **4.1.82**
 and NoTargets **3.7.0** controls recovered both assemblies, ran the declared file
 producer and matched uncached output bytes. SDK archive copies keep data permissions
-before compilation; executable-mode hashing remains enabled. This opt-in qualifies
-Build handoff; Pack/Publish seeding and other platforms remain unqualified.
+before compilation; executable-mode hashing remains enabled.
+
+On 9.3, the complete managed runtime graph (631 configurations) recovered all 563
+seeded assembly snapshots with matching keys and manifest bytes. A separate binlog
+control recorded zero Csc/Vbc calls and zero build-node evaluations. This qualifies
+managed Build handoff; Pack/Publish seeding and other platforms remain unqualified.
 
 Requires the qualified Linux/bwrap environment; the Apple container must allow
 user namespaces and avoid read-only `/proc` submounts, as in
