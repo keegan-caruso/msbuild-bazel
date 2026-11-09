@@ -49,11 +49,14 @@ and task registrations rather than evaluating those projects again. Read-only SD
 and package identities are shared within the invocation. Private staging uses
 copy-on-write clones where available and ordinary copies otherwise; replay verifies
 the bytes materialized. Mutable project inputs retain pre/post-Build byte checks.
-The final graph contract remains the build interface. Qualification snapshots and
-ordinary build snapshots have different keys and output inventories. Sharing
-compiled products requires matching configuration, compiler inputs and complete
-owned outputs, including intermediates; qualification hits alone do not establish
-that compatibility.
+The final graph contract remains the build interface. Opt-in `seed_build_cache`
+qualifies at the ordinary Linux namespace, retains intermediate products and hands
+an input/output proof to the ordinary runner. That runner reuses verified Restore
+products and evaluates with generated products temporarily set aside, checking
+SDK bytes, pristine properties/items, compiler selections,
+requested targets and complete owned products, then publishes its usual snapshots.
+Qualification and ordinary keys remain separate; only validated products cross
+the boundary. A changed input or incompatible context rejects the handoff.
 
 Bazel can recover a whole unchanged Restore/build action. When the graph action
 changes, the MSBuild plugin can recover individual projects from worker snapshots

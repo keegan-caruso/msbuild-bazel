@@ -61,7 +61,7 @@ internal sealed class QualificationRestoreCache : IDisposable
         entry = Path.Combine(directory, fingerprint);
         payloads = new SnapshotPayloads(directory);
         remote = options.Url is null ? null : new RemoteSnapshotStore(new Uri(options.Url.TrimEnd('/') + "/"),
-            bearerToken: Environment.GetEnvironmentVariable("RULES_MSBUILD_PROJECT_CACHE_BEARER_TOKEN"), contentStore: payloads);
+            bearerToken: options.BearerToken ?? Environment.GetEnvironmentVariable("RULES_MSBUILD_PROJECT_CACHE_BEARER_TOKEN"), contentStore: payloads);
         return;
 
         void Add(string value)

@@ -20,6 +20,7 @@ filegroup(
         "//tools:MSBuildTool.props",
         "//tools:NuGetLocks.cs",
         "//tools:PackageSdks.cs",
+        "//tools/ProjectCache:BuildSeed.cs",
         "//tools/ProjectCache:CachedTargetItem.cs",
         "//tools/ProjectCache:FileMaterializer.cs",
         "//tools/ProjectCache:RemoteSnapshotStore.cs",

@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using System.Reflection;
+using RulesMSBuild.ProjectCache;
 
 namespace RulesMSBuild.ProjectSync;
 
@@ -8,8 +9,12 @@ namespace RulesMSBuild.ProjectSync;
 internal static class QualificationSandbox
 {
     internal const string Base = "/__rules_msbuild_sync";
-    internal static bool Inside => Environment.GetEnvironmentVariable("RULES_MSBUILD_SYNC_SANDBOX") == "1" &&
-        Directory.GetCurrentDirectory() == Base + "/source";
+    internal static string? SeedRunner { get; } = Environment.GetEnvironmentVariable("RULES_MSBUILD_SYNC_SEED_RUNNER");
+    internal static bool Inside
+    {
+        get;
+    } = Environment.GetEnvironmentVariable("RULES_MSBUILD_SYNC_SANDBOX") == "1" &&
+        Directory.GetCurrentDirectory() == (SeedRunner is null ? Base + "/source" : BuildSeedProof.Root);
 
     internal static int Run(string source, string sdkDirectory, string[] projects, bool check, string configuration,
         string framework, string[] packageInputs, string? mappings, string? manifest, string? runfiles, QualificationOptions options)
@@ -30,6 +35,13 @@ internal static class QualificationSandbox
             Directory.CreateDirectory(Path.Combine(scratch, "output"));
             var sdk = Path.GetDirectoryName(WorkspaceView.PhysicalPath(Path.Combine(Path.GetDirectoryName(Path.GetDirectoryName(sdkDirectory))!, "dotnet")))!;
             var runner = Path.GetDirectoryName(WorkspaceView.PhysicalPath(Assembly.GetExecutingAssembly().Location))!;
+            var seed = options.GraphRunner is not null;
+            var home = seed ? BuildSeedProof.Base + "/scratch" : Base + "/scratch";
+            if (seed)
+            {
+                Directory.CreateDirectory(Path.Combine(scratch, "graph-output/workspace"));
+                Directory.CreateDirectory(Path.Combine(scratch, "graph-scratch/.local/share"));
+            }
             var start = new ProcessStartInfo("/usr/bin/bwrap");
             void Args(params string[] values)
             {
@@ -38,7 +50,7 @@ internal static class QualificationSandbox
                     start.ArgumentList.Add(value);
                 }
             }
-            Args("--die-with-parent", "--unshare-user", "--unshare-pid", "--unshare-ipc", "--unshare-uts", "--hostname", "rules-msbuild-sync",
+            Args("--die-with-parent", "--unshare-user", "--unshare-pid", "--unshare-ipc", "--unshare-uts",
                 "--new-session", "--cap-drop", "ALL", "--clearenv", "--proc", "/proc", "--dev", "/dev", "--tmpfs", "/tmp");
             foreach (var path in new[] { "/usr", "/bin", "/lib", "/lib64", "/etc/ld.so.cache", "/etc/os-release", "/etc/passwd", "/etc/group", "/etc/ssl/certs", "/etc/resolv.conf", "/etc/hosts", "/etc/nsswitch.conf" })
             {
@@ -50,7 +62,18 @@ internal static class QualificationSandbox
             Args("--ro-bind", sdk, Base + "/sdk", "--ro-bind", runner, Base + "/runner",
                 "--ro-bind", source, Base + "/source", "--bind", scratch, Base + "/scratch",
                 "--bind", Path.Combine(scratch, "output"), Base + "/output",
-                "--bind", Path.GetFullPath(options.Directory), Base + "/cache", "--chdir", Base + "/source");
+                "--bind", Path.GetFullPath(options.Directory), Base + "/cache", "--chdir", seed ? BuildSeedProof.Root : Base + "/source");
+            if (seed)
+            {
+                Args("--ro-bind", sdk, BuildSeedProof.Sdk, "--ro-bind", options.GraphRunner!, BuildSeedProof.Base + "/runner",
+                    "--bind", Path.Combine(scratch, "graph-output"), BuildSeedProof.Base + "/output",
+                    "--bind", Path.Combine(scratch, "graph-scratch"), BuildSeedProof.Base + "/scratch",
+                    "--setenv", "RULES_MSBUILD_SYNC_SEED_RUNNER", BuildSeedProof.Base + "/runner");
+            }
+            else
+            {
+                Args("--hostname", "rules-msbuild-sync");
+            }
             if (runfiles is not null)
             {
                 Args("--ro-bind", runfiles, Base + "/runfiles");
@@ -66,10 +89,10 @@ internal static class QualificationSandbox
             foreach (var (key, value) in new Dictionary<string, string>
             {
                 ["RULES_MSBUILD_SYNC_SANDBOX"] = "1",
-                ["DOTNET_ROOT"] = Base + "/sdk",
-                ["HOME"] = Base + "/scratch",
-                ["DOTNET_CLI_HOME"] = Base + "/scratch",
-                ["PATH"] = Base + "/sdk:/usr/bin:/bin",
+                ["DOTNET_ROOT"] = seed ? BuildSeedProof.Sdk : Base + "/sdk",
+                ["HOME"] = home,
+                ["DOTNET_CLI_HOME"] = home,
+                ["PATH"] = seed ? "/usr/bin:/bin" : Base + "/sdk:/usr/bin:/bin",
                 ["TMPDIR"] = "/tmp",
                 ["LANG"] = "C.UTF-8",
                 ["TZ"] = "UTC",
@@ -85,12 +108,17 @@ internal static class QualificationSandbox
             }
             foreach (var name in new[] { "RULES_MSBUILD_SYNC_PROFILE", "RULES_MSBUILD_PROJECT_CACHE_BEARER_TOKEN", "DOTNET_PROCESSOR_COUNT" })
             {
-                if (Environment.GetEnvironmentVariable(name) is { } value)
+                if ((!seed || name != "DOTNET_PROCESSOR_COUNT") && Environment.GetEnvironmentVariable(name) is { } value)
                 {
                     Args("--setenv", name, value);
                 }
             }
-            Args("--", Base + "/sdk/dotnet", Base + "/runner/ProjectSync.dll", Base + "/source", Base + "/sdk/sdk/" + Path.GetFileName(sdkDirectory));
+            Args("--", (seed ? BuildSeedProof.Sdk : Base + "/sdk") + "/dotnet", Base + "/runner/ProjectSync.dll", Base + "/source",
+                (seed ? BuildSeedProof.Sdk : Base + "/sdk") + "/sdk/" + Path.GetFileName(sdkDirectory));
+            if (seed)
+            {
+                Args("--seed-build-cache", BuildSeedProof.Base + "/runner");
+            }
             Args(projects);
             Args("--package-build", "--resolve-references", "--qualification-cache", Base + "/cache", "--configuration", configuration);
             if (framework.Length != 0)

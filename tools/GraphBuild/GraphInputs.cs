@@ -307,16 +307,25 @@ internal sealed class GraphInputs : IDisposable
         {
             return;
         }
-        using var timing = GraphProfile.Measure("compilerReferenceVerification");
         if (state is null)
         {
             throw new InvalidDataException("Missing post-build compiler state: " + Relative(node));
         }
+        VerifyCompilerReferences(node, state.GetItems("ReferencePathWithRefAssemblies").Select(item => item.EvaluatedInclude));
+    }
+
+    internal void VerifyCompilerReferences(ProjectGraphNode node, IEnumerable<string> references)
+    {
+        if (!For(node).CompilerReferencesComplete)
+        {
+            return;
+        }
+        using var timing = GraphProfile.Measure("compilerReferenceVerification");
         var selected = new HashSet<string>(StringComparer.Ordinal);
         var allowed = For(node).Inputs.Select(path => resolvedInputs[path]).ToHashSet(StringComparer.Ordinal);
-        foreach (var item in state.GetItems("ReferencePathWithRefAssemblies"))
+        foreach (var item in references)
         {
-            var path = Path.GetFullPath(item.EvaluatedInclude.Replace('\\', '/'), Path.GetDirectoryName(state.FullPath)!);
+            var path = Path.GetFullPath(item.Replace('\\', '/'), Path.GetDirectoryName(node.ProjectInstance.FullPath)!);
             if (OutputOwner(path) is not null)
             {
                 selected.Add(path);
@@ -385,6 +394,21 @@ internal sealed class GraphInputs : IDisposable
         baseFingerprints[node] = ContractFiles.Hash(records.Concat(paths.Select(path => path + ":" + inputDigests[path])));
         dependencyFingerprints[node] = ContractFiles.Hash(records.Concat(paths
             .Where(path => !compileInputs.Contains(resolvedInputs[path])).Select(path => path + ":" + inputDigests[path])));
+    }
+
+    internal void VerifySeedInputs(RulesMSBuild.ProjectCache.BuildSeed seed)
+    {
+        foreach (var (relative, path) in resolvedInputs)
+        {
+            if (path.StartsWith(Files.Sdk + Path.DirectorySeparatorChar, StringComparison.Ordinal))
+            {
+                continue;
+            }
+            if (!seed.Inputs.TryGetValue(relative, out var digest) || RulesMSBuild.ProjectCache.BuildSeedProof.Digest(path) != digest)
+            {
+                throw new InvalidDataException("Qualification seed omits or changes an ordinary input: " + relative);
+            }
+        }
     }
 
     internal void VerifyUnchangedInputs()
