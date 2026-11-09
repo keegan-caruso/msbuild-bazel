@@ -10,7 +10,14 @@ sdk=$(dirname "$(realpath "$execroot/$(bazel cquery @dotnet//:files --output=fil
 cp -a "$sdk" "$scratch/proof-sdk"
 mkdir "$scratch/proof"
 cp "$runner_dir/SnapshotReplay.cs.txt" "$scratch/proof/Program.cs"
-for file in FileMaterializer Contract GraphProfile; do cp "$scratch/msbuild-bazel/tools/GraphBuild/$file.cs" "$scratch/proof/"; done
+cp "$scratch/msbuild-bazel/tools/ProjectCache/FileMaterializer.cs" "$scratch/proof/"
+cat > "$scratch/proof/SnapshotPayloads.cs" <<'CS'
+namespace RulesMSBuild.ProjectCache;
+internal static class SnapshotPayloads
+{
+    internal static string Digest(string path) => Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(File.ReadAllBytes(path))).ToLowerInvariant();
+}
+CS
 cat > "$scratch/proof/Proof.csproj" <<'XML'
 <Project Sdk="Microsoft.NET.Sdk"><PropertyGroup><TargetFramework>net10.0</TargetFramework><OutputType>Exe</OutputType><ImplicitUsings>enable</ImplicitUsings><Nullable>enable</Nullable></PropertyGroup></Project>
 XML
