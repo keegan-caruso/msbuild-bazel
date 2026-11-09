@@ -52,8 +52,14 @@ internal sealed class WorkspaceView : IDisposable
         DefaultPackageLock = packageLock;
     }
 
-    internal static string PhysicalPath(string path)
+    internal static string PhysicalPath(string path) => PhysicalPath(path, 0);
+
+    private static string PhysicalPath(string path, int depth)
     {
+        if (depth > 64)
+        {
+            throw new IOException("Too many symbolic links while resolving: " + path);
+        }
         var full = Path.GetFullPath(path);
         var current = Path.GetPathRoot(full)!;
         foreach (var part in full[current.Length..].Split(Path.DirectorySeparatorChar, StringSplitOptions.RemoveEmptyEntries))
@@ -62,7 +68,9 @@ internal sealed class WorkspaceView : IDisposable
             var info = new FileInfo(current);
             if (info.LinkTarget is not null)
             {
-                current = info.ResolveLinkTarget(true)!.FullName;
+                // A link target can itself contain links in ancestor components.
+                // Resolve that complete path before continuing with the suffix.
+                current = PhysicalPath(info.ResolveLinkTarget(false)!.FullName, depth + 1);
             }
         }
         return current;

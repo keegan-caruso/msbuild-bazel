@@ -916,7 +916,9 @@ class GraphSyncTests(unittest.TestCase):
     def test_qualification_cache_rejects_source_and_sdk_aliases(self):
         with tempfile.TemporaryDirectory(prefix='qualification-alias-') as directory:
             link = Path(directory) / 'cache'
-            for target in [self.root, SDK]:
+            ancestor = Path(directory) / 'ancestor'
+            ancestor.symlink_to(SDK.parent, target_is_directory=True)
+            for target in [self.root, SDK, ancestor / SDK.name]:
                 link.symlink_to(target, target_is_directory=True)
                 try:
                     output = self.sync(flags=['--package-build', '--resolve-references', '--qualification-cache', str(link)], success=False)
