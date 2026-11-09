@@ -1,5 +1,6 @@
 """MSBuild traversal graph actions with explicit project contracts."""
 
+load("//msbuild/private:defaults.bzl", "STABLE_PATHS_TOOLCHAIN", "stable_paths")
 load("//msbuild/private:paths.bzl", _RUNTIME_TOOLCHAIN = "RUNTIME_TOOLCHAIN", _TOOLCHAIN = "TOOLCHAIN")
 load("//msbuild/private:project_launch.bzl", _create_launcher = "create_launcher")
 load("//msbuild/private:providers.bzl", "MSBuildBindingInfo", "MSBuildLayoutInfo", "MSBuildPackageLockInfo", "MSBuildRuntimeInfo")
@@ -45,18 +46,23 @@ MSBuildGraphRestoreInfo = provider("An explicitly declared offline Restore artif
 
 def _graph_action(ctx, prepare = False):
     tc = ctx.toolchains["//msbuild:toolchain_type"]
-    output = ctx.actions.declare_directory(ctx.label.name + (".restore" if prepare else ".graph"))
     runner = ctx.attr.runner[DefaultInfo].files.to_list()
     if len(runner) != 1:
         fail("runner must provide one graph runner payload")
+    linux_stable_paths = stable_paths(ctx) if ctx.attr.automatic_stable_paths else ctx.attr.linux_stable_paths
+    if prepare and not linux_stable_paths and ctx.attr.optional_restore:
+        return [DefaultInfo(), MSBuildGraphRestoreInfo(directory = None, contract = ctx.file.contract, runner = runner[0], sdk = tc.sdk)]
+    output = ctx.actions.declare_directory(ctx.label.name + (".restore" if prepare else ".graph"))
     prepared = ctx.attr.restore[MSBuildGraphRestoreInfo] if ctx.attr.restore else None
+    if prepared and prepared.directory == None:
+        prepared = None
     if prepare and prepared:
         fail("Restore preparation cannot consume another Restore artifact")
-    if (prepare or prepared) and not ctx.attr.linux_stable_paths:
+    if (prepare or prepared) and not linux_stable_paths:
         fail("Prepared Restore requires linux_stable_paths for relocation")
     if prepared and (prepared.contract != ctx.file.contract or prepared.runner != runner[0] or sorted([file.path for file in prepared.sdk.to_list()]) != sorted([file.path for file in tc.sdk.to_list()])):
         fail("Prepared Restore must use the graph's contract, runner and SDK")
-    if ctx.attr.linux_worker and (prepare or not ctx.attr.linux_stable_paths):
+    if ctx.attr.linux_worker and (prepare or not linux_stable_paths):
         fail("Graph workers require linux_stable_paths and build actions")
     if ctx.attr.worker_cache_mb < 0:
         fail("worker_cache_mb must be nonnegative")
@@ -65,7 +71,7 @@ def _graph_action(ctx, prepare = False):
     worker_sources = []
     prefix = ctx.attr.source_root + "/" if ctx.attr.source_root else ""
     args = ctx.actions.args()
-    args.add_all([tc.dotnet.path, runner[0].path, output.path, ctx.file.contract.path, ctx.attr.target, "1" if ctx.attr.linux_stable_paths else "0", ctx.file._linux_stable_paths.path, "prepare" if prepare else "action", prepared.directory.path if prepared else "-", "1" if ctx.attr.profile_build else "0"])
+    args.add_all([tc.dotnet.path, runner[0].path, output.path, ctx.file.contract.path, ctx.attr.target, "1" if linux_stable_paths else "0", ctx.file._linux_stable_paths.path, "prepare" if prepare else "action", prepared.directory.path if prepared else "-", "1" if ctx.attr.profile_build else "0"])
     for file in ctx.files.srcs:
         if file.owner.repo_name != ctx.label.repo_name:
             fail("Graph sources from other repositories require input_paths: " + file.short_path)
@@ -201,22 +207,32 @@ _GRAPH_ATTRS = {
     "evaluation_cache_mb": attr.int(default = 512, doc = "Retained evaluation heap budget in MiB for reviewed compiler-only contracts; zero uses fresh engines. Retire between requests above this live-heap budget or max(256 MiB, three times this limit) resident memory; these are not peak-memory caps."),
     "worker_cache_mb": attr.int(default = 4096, doc = "Conservative logical snapshot-cache budget in MiB; zero discards between requests."),
     "linux_worker": attr.bool(default = False, doc = "Opt-in Linux cache broker; each request runs a fresh sandboxed MSBuild process."),
+    "automatic_stable_paths": attr.bool(default = True),
+    "optional_restore": attr.bool(default = False),
     "linux_stable_paths": attr.bool(default = False, doc = "Use bubblewrap on Linux for stable graph paths; cache transport retains network access."),
     "_linux_stable_paths": attr.label(default = "//msbuild:graph-sandbox.sh", allow_single_file = True),
     "target": attr.string(default = "Build", values = ["Build", "Pack", "Publish"]),
 }
 
-msbuild_graph = rule(
+_msbuild_graph = rule(
     implementation = _graph,
     attrs = _GRAPH_ATTRS,
-    toolchains = ["//msbuild:toolchain_type"],
+    toolchains = ["//msbuild:toolchain_type", config_common.toolchain_type(STABLE_PATHS_TOOLCHAIN, mandatory = False)],
 )
 
-msbuild_graph_restore = rule(
+_msbuild_graph_restore = rule(
     implementation = _restore,
     attrs = _GRAPH_ATTRS,
-    toolchains = ["//msbuild:toolchain_type"],
+    toolchains = ["//msbuild:toolchain_type", config_common.toolchain_type(STABLE_PATHS_TOOLCHAIN, mandatory = False)],
 )
+
+def msbuild_graph(name, linux_stable_paths = None, **kwargs):
+    """Build with stable paths on a declared qualified execution platform."""
+    _msbuild_graph(name = name, linux_stable_paths = linux_stable_paths if linux_stable_paths != None else False, automatic_stable_paths = linux_stable_paths == None, **kwargs)
+
+def msbuild_graph_restore(name, linux_stable_paths = None, **kwargs):
+    """Prepare Restore; generated optional Restore falls back on portable platforms."""
+    _msbuild_graph_restore(name = name, linux_stable_paths = linux_stable_paths if linux_stable_paths != None else False, automatic_stable_paths = linux_stable_paths == None, **kwargs)
 
 def _runtime(ctx, test = False):
     graph = ctx.attr.graph[MSBuildGraphInfo]
@@ -369,6 +385,8 @@ msbuild_graph_layouts = rule(
 def _output(ctx):
     restore = MSBuildGraphRestoreInfo in ctx.attr.graph
     graph = ctx.attr.graph[MSBuildGraphRestoreInfo] if restore else ctx.attr.graph[MSBuildGraphInfo]
+    if graph.directory == None:
+        fail("Cannot export an optional Restore artifact on a portable execution platform")
     path = ctx.attr.path
     if path.startswith("/") or "\\" in path or any([part in ["", ".", ".."] for part in path.split("/")]):
         fail("Graph output requires a safe workspace-relative path")

@@ -4,6 +4,12 @@ source "$(dirname -- "${BASH_SOURCE[0]}")/common.sh"
 cp BUILD.bazel.in BUILD.bazel
 bazel run //:sync
 cat >> BUILD.bazel <<'BUILD'
+msbuild_sync(name="sync_auto", projects=["Library/Library.vbproj","App/App.csproj"], mappings="mappings.json", srcs=glob(["App/**", "Library/**", "global.json", "NuGet.Config"], allow_empty=True))
+BUILD
+# Closed-input defaults qualify C# selections while the reviewed VB boundary
+# remains conservative. The VB SDK still owns its ordinary compilation.
+bazel run //:sync_auto
+cat >> BUILD.bazel <<'BUILD'
 load(":graph.generated.bzl", "app_graph")
 load("@rules_msbuild//msbuild:defs.bzl", "msbuild_graph_binary", "msbuild_graph_test")
 app_graph(name="graph")
@@ -19,7 +25,7 @@ run seed 1
 sed -i.bak 's/Return 1/Return 2/' Library/Code.vb
 rm Library/Code.vb.bak
 run body 2
-bazel run //:sync -- --check
+bazel run //:sync_auto -- --check
 bazel test //:test "${options[@]}" --test_output=errors
 bazel shutdown
 rm -rf "$scratch/bazel"

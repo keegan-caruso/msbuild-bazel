@@ -51,10 +51,10 @@ from MSBuild's Compile items.
 | `inputs` | Single-file or directory-tree producer labels mapped to workspace-relative paths |
 | `build_inputs` | Same bindings, with bytes used only by Build; requires `preparedRestore` |
 | `package_lock`, `package_locks` | Closed package inventories, including package SDKs |
-| `package_build`, `package_inputs` | Offline Restore/package evaluation; extra declared task reads |
-| `resolve_references` | Private Build to capture complete compiler/copy selections; requires `package_build` |
-| `qualification_cache` | Reuse Restore/products within changed qualification actions; requires `srcs`, `resolve_references`, Linux/bwrap and an HTTP project cache |
-| `seed_build_cache` | Seed ordinary Build snapshots from qualification; requires `qualification_cache` and matching Linux stable-path consumers |
+| `package_build`, `package_inputs` | Offline Restore/package evaluation defaults on with a closed package inventory or complete `srcs`; extra declared task reads remain explicit |
+| `resolve_references` | Defaults on with `package_build`; private Build captures compiler/copy selections at supported boundaries |
+| `qualification_cache` | Automatic with complete `srcs`, reference qualification, a qualified execution platform and a configured HTTP project cache |
+| `seed_build_cache` | Defaults on with eligible `qualification_cache`; consumers need matching Linux stable paths |
 | `bindings` | Complete tool layouts bound to MSBuild properties |
 | `mappings` | Reviewed JSON contracts for custom inputs, outputs and dependency roles |
 
@@ -75,14 +75,14 @@ Sync does not trace arbitrary task reads.
 Unbound workspace/host assembly paths fail. Sources from the graph's own repository stage
 relative to that repository; cross-repository producers require `input_paths`.
 
-For Traversal/NoTargets/IL/Arcade, lock the SDK and implicit/native packages, set
-`package_build = True`, and declare custom tasks/products. Unknown SDKs fail.
+For Traversal/NoTargets/IL/Arcade, lock the SDK and implicit/native packages
+and declare custom tasks/products. Closed inventories enable package evaluation. Unknown SDKs fail.
 [Support](support.md#qualified-sdks) lists SDK-specific requirements and limits.
 
 ### Compiler selections
 
-`msbuild_sync(..., package_build = True, resolve_references = True)` runs offline
-Restore and Build in a disposable workspace, then captures the DLLs and copy sources
+Closed sync (a package inventory or complete `srcs`) runs offline
+Restore and Build by default in a disposable workspace, then captures the DLLs and copy sources
 selected by the SDK at supported C# reference boundaries. Multi-target selection
 uses configured producer ownership. Failed qualification, undeclared inputs,
 ambiguous producers or conflicting manual bindings leave existing contracts intact.
@@ -100,8 +100,6 @@ msbuild_sync(
         exclude = ["**/bin/**", "**/obj/**"],
         allow_empty = True,
     ),
-    package_build = True,
-    resolve_references = True,
 )
 ```
 
@@ -116,11 +114,35 @@ launcher accepts only `--check`; change other settings in the target. Publicatio
 still protects authored files and checks both declarations before replacing either.
 NuGet update remains an explicit resolving command, outside this cache.
 
-To reuse individual projects after a source change, add `qualification_cache = True`
-and pass `--action_env=RULES_MSBUILD_PROJECT_CACHE_URL=http://cache:8080` to Bazel.
+Closed sync workflows reuse individual projects after a source change when you
+pass `--action_env=RULES_MSBUILD_PROJECT_CACHE_URL=http://cache:8080` to Bazel.
 An optional bearer token uses `RULES_MSBUILD_PROJECT_CACHE_BEARER_TOKEN` through
 `--action_env`. This requires Linux with `/usr/bin/bwrap` and user namespaces;
-use the qualified execution image. Package/tool runfiles are materialized before
+use the qualified execution image. Declare that capability on the **execution**
+platform (the SDK toolchain must also support it). Add
+`bazel_dep(name = "platforms", version = "1.0.0")` to `MODULE.bazel` if absent,
+then declare in the root `BUILD.bazel`:
+
+```starlark
+platform(
+    name = "qualified_linux",
+    constraint_values = [
+        "@platforms//os:linux",
+        "@platforms//cpu:aarch64",
+        "@rules_msbuild//msbuild:qualified_linux_bwrap",
+    ],
+)
+```
+
+Select it with `--extra_execution_platforms=//:qualified_linux`. The capability
+attests the qualified Ubuntu ARM64 image, working Bubblewrap and nested namespaces;
+a target-platform OS constraint alone does not enable it. Rules register the optional
+capability toolchain automatically. Missing capability or endpoint falls back to
+ordinary qualification. Explicit `qualification_cache = True` retains the forced
+Linux/bwrap path and rejects missing inputs or endpoint. `False` disables each
+automatic option. No endpoint is inferred from Bazel's general remote cache.
+
+Package/tool runfiles are materialized before
 entering a fixed private namespace; authored sources are read-only. Publication
 still happens after successful qualification.
 
@@ -134,15 +156,17 @@ compiler-only content exemptions. Project misses run normal SDK Build. Shared in
 invalidate every affected key. Overlapping output owners and their consumers skip
 reuse. This does not infer precise reference boundaries before qualification.
 
-`seed_build_cache = True` additionally publishes ordinary Build snapshots to the
-same HTTP cache. Consumers must use `linux_stable_paths = True`, the same SDK,
+Eligible qualification also publishes ordinary Build snapshots to the
+same HTTP cache. Consumers automatically use stable paths on that declared execution
+platform, or can set `linux_stable_paths = True`; they must use the same SDK,
 runner, configuration and inputs. Qualification captures intermediate outputs;
 the ordinary runner verifies SDK/input/output bytes, evaluated properties/items,
 target results and compiler selections before writing its usual snapshots. This
 reuses verified Restore products and adds evaluation/verification, with no second compilation. Incompatible
 handoffs fail before declarations are published. Publication runs when qualification
 executes; a whole-action cache hit does not refill evicted project entries. The
-option is off by default; see [qualified scope](support.md#project-qualification-cache).
+option defaults on only with the declared execution capability and can be disabled
+with `seed_build_cache = False`; see [qualified scope](support.md#project-qualification-cache).
 
 Complete inventories exclude unselected compiler edges from invalidation while
 retaining graph execution and noncompiler dependency roles. New snapshots verify
@@ -164,7 +188,7 @@ This is a separate review from `evaluationReuseInputs`.
 | --- | --- |
 | `documents`, `inputItems`, `evaluationItems` | Attested target/task documents and extra reads |
 | `inputDirectories`, `temporaryDirectories`, `outputFiles` | Input trees, private scratch and owned products |
-| `preparedRestore`, `restoreInputs`, `restoreOutputs` | Separate declared Restore action |
+| `preparedRestore`, `restoreInputs`, `restoreOutputs` | Separate Restore contract; inferred for closed standard SDK projects without package/custom hooks, or reviewed explicitly |
 | `referenceBoundary`, `implementationDependencies` | Qualified compiler boundary; conservative task/tool edges |
 | `compilerReference`, `compilerReferences`, `compilerReferencesComplete` | Producer artifact, consumer selections and complete-inventory assertion |
 | `dependencyCopies` | Consumer DLL/PDB/XML destinations mapped to graph/locked-package sources |
@@ -276,8 +300,9 @@ Shared directories use NuGet's `packages.PROJECT.lock.json` naming (spaces becom
 underscores); colliding names fail before publication. Other projects retain
 `packages.lock.json`. Existing project-specific locks take precedence.
 `--check` resolves again and rejects stale locks; it requires network access.
-Pass `--http-cache /absolute/cache` after `--` to share NuGet's native HTTP
-acquisition cache across update/check. Package extraction and lock publication
+NuGet HTTP acquisition responses persist by default in the user data directory
+under `rules-msbuild/nuget-http`. Pass `--http-cache /absolute/cache` after `--`
+to choose another location, or `--no-http-cache` for disposable acquisition. Package extraction and lock publication
 remain private; normal graph builds still consume the closed archive inventory.
 Add `--distdir /absolute/archives` to export verified archives for Bazel's
 `--distdir=PATH`, avoiding another download. Existing files must match the resolved hashes.
@@ -290,7 +315,7 @@ nuget.lock(name = "nuget", lockfile = "//:nuget.lock.json")
 use_repo(nuget, "nuget")
 ```
 
-Set `msbuild_sync(..., package_lock = "@nuget//:packages", package_build = True)`
+Set `msbuild_sync(..., package_lock = "@nuget//:packages")`
 and run `bazel run //:sync`. Bazel downloads the committed archive inventory with
 SHA256 verification. `@nuget//:archives` exposes the original `.nupkg` files.
 Builds and sync restore offline; native NuGet locks preserve
@@ -472,6 +497,20 @@ See [test attributes](../msbuild/private/test_options.bzl).
 
 Bazel caches unchanged graph actions. Changed graphs need a Linux persistent worker
 or HTTP project cache to reuse snapshots; a fresh local action starts empty.
+Stable paths default on only for the declared qualified execution platform above;
+portable platforms use ordinary actions. Closed bundled `Microsoft.NET.Sdk` graphs
+without package tasks, custom documents or dynamic Compile globs infer a conservative
+Restore contract including all declared source bytes. `preparedRestore: false`
+disables inference globally or per project. Custom Restore hooks/outputs retain
+explicit reviewed contracts. Generated Restore actions fall back to ordinary Restore
+on portable platforms or with `linux_stable_paths = False`.
+
+Snapshot replay defaults to filesystem clones with a verified private-copy
+fallback. `RULES_MSBUILD_GRAPH_COPY_MODE=copy` forces copies for diagnosis; the
+runner consumes this setting before MSBuild evaluation.
+
+Workers remain explicit: cold/warm memory and failure behavior across Build,
+Pack and Publish have not qualified a universal worker default.
 Set `linux_stable_paths = True, linux_worker = True` on `app_graph`, then use
 `--strategy=MSBuildGraph=worker --worker_sandboxing`. Bubblewrap supplies stable paths
 and fresh build nodes. See [platform limits](support.md#limits).

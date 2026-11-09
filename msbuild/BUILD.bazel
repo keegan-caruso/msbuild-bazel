@@ -1,3 +1,5 @@
+load("//msbuild/private:defaults.bzl", "stable_paths_capability")
+
 package(default_visibility = ["//visibility:public"])
 
 toolchain_type(name = "toolchain_type")
@@ -27,4 +29,28 @@ filegroup(
         "//msbuild/private:integration_sources",
     ],
     visibility = ["//:__pkg__"],
+)
+
+# Declaring this capability attests the qualified Ubuntu ARM64 environment and
+# working Bubblewrap/nested namespaces. It is not inferred from the target OS.
+constraint_setting(name = "stable_paths_environment")
+
+constraint_value(
+    name = "qualified_linux_bwrap",
+    constraint_setting = ":stable_paths_environment",
+)
+
+toolchain_type(name = "stable_paths_toolchain_type")
+
+stable_paths_capability(name = "stable_paths_capability")
+
+toolchain(
+    name = "qualified_stable_paths_toolchain",
+    exec_compatible_with = [
+        "@platforms//os:linux",
+        "@platforms//cpu:aarch64",
+        ":qualified_linux_bwrap",
+    ],
+    toolchain = ":stable_paths_capability",
+    toolchain_type = ":stable_paths_toolchain_type",
 )

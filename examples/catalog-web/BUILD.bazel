@@ -15,13 +15,11 @@ msbuild_nuget_update(
 msbuild_sync(
     name = "sync",
     mappings = "mappings.json",
-    package_build = True,
     package_lock = "@nuget//:packages",
     projects = [
         "Web/Web.csproj",
         "Tests/Tests.csproj",
     ],
-    resolve_references = True,
 )
 
 app_graph(name = "build")

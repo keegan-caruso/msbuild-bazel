@@ -1,6 +1,7 @@
 """Local project synchronization, invoked explicitly with bazel run."""
 
 load("//msbuild:graph.bzl", "msbuild_graph_runner")
+load("//msbuild/private:defaults.bzl", "STABLE_PATHS_TOOLCHAIN", "automatic")
 load("//msbuild/private:paths.bzl", _TOOLCHAIN = "TOOLCHAIN", _quote = "quote", _runfile = "runfile")
 load("//msbuild/private:providers.bzl", "MSBuildBindingInfo", "MSBuildPackageLockInfo")
 load("//msbuild/private:sync_preparation.bzl", "prepare_sync")
@@ -191,7 +192,7 @@ exec "$runfiles/"%s "$runfiles/"%s "$BUILD_WORKSPACE_DIRECTORY" "$DOTNET_ROOT/sd
 _sync = rule(
     implementation = _sync_impl,
     executable = True,
-    toolchains = [_TOOLCHAIN],
+    toolchains = [_TOOLCHAIN, config_common.toolchain_type(STABLE_PATHS_TOOLCHAIN, mandatory = False)],
     attrs = {
         "projects": attr.string_list(mandatory = True),
         "srcs": attr.label_list(allow_files = True),
@@ -201,7 +202,8 @@ _sync = rule(
         "framework": attr.string(),
         "package_build": attr.bool(),
         "resolve_references": attr.bool(),
-        "qualification_cache": attr.bool(),
+        "qualification_cache": attr.int(default = -1, values = [-1, 0, 1]),
+        "seed_build_cache": attr.int(default = -1, values = [-1, 0, 1]),
         "seed_runner": attr.label(allow_single_file = True, cfg = "exec"),
         "package_inputs": attr.string_list(),
         "bindings": attr.label_list(providers = [MSBuildBindingInfo], cfg = "exec"),
@@ -216,7 +218,7 @@ _sync = rule(
     },
 )
 
-def msbuild_sync(name, projects, mappings = None, inputs = {}, package_lock = None, bindings = [], package_locks = [], configuration = "Release", framework = "", package_build = False, package_inputs = [], resolve_references = False, build_inputs = {}, srcs = None, qualification_cache = False, seed_build_cache = False, **kwargs):
+def msbuild_sync(name, projects, mappings = None, inputs = {}, package_lock = None, bindings = [], package_locks = [], configuration = "Release", framework = "", package_build = None, package_inputs = [], resolve_references = None, build_inputs = {}, srcs = None, qualification_cache = None, seed_build_cache = None, **kwargs):
     """Declare a tool that evaluates local projects and writes graph.generated.json and graph.generated.bzl.
 
     Args:
@@ -225,10 +227,10 @@ def msbuild_sync(name, projects, mappings = None, inputs = {}, package_lock = No
         srcs: Optional complete authored workspace snapshot. Bazel caches preparation; use inputs for generated producers. Exclude generated declarations and build outputs.
         configuration: Graph configuration, default Release.
         framework: Optional graph target framework; empty builds declared frameworks.
-        package_build: Opt in to offline Restore and package build/content evaluation in a disposable copy.
-        seed_build_cache: Opt into verified Build snapshot publication from qualification; requires qualification_cache and Linux stable paths for consumers.
-        qualification_cache: Opt into per-project qualification reuse in a stable Linux sandbox. Requires srcs, resolve_references and RULES_MSBUILD_PROJECT_CACHE_URL in action_env.
-        resolve_references: Run a private qualification Build and emit complete SDK-selected compiler/copy bindings at supported reference boundaries. Requires package_build.
+        package_build: Offline Restore/package evaluation. Defaults on with closed package inventories or complete srcs; False disables it.
+        seed_build_cache: Defaults on with eligible qualification caching; False disables publication. Consumers require matching Linux stable paths.
+        qualification_cache: Defaults on with srcs, reference qualification, a qualified execution platform and a configured project HTTP endpoint. False disables it.
+        resolve_references: Defaults on with package_build. Captures supported SDK-selected compiler/copy bindings; unsupported boundaries stay conservative.
         package_inputs: Additional workspace-relative files read by reviewed package tasks.
         mappings: Optional JSON file with reviewed input, output and dependency contracts.
         inputs: Single-file or directory-tree labels mapped to workspace-relative evaluation/build paths.
@@ -244,9 +246,15 @@ def msbuild_sync(name, projects, mappings = None, inputs = {}, package_lock = No
         fail("Cached sync requires a nonempty srcs workspace snapshot")
     if not projects:
         fail("msbuild_sync requires at least one entry project")
-    if seed_build_cache and not qualification_cache:
+    if package_build == None:
+        package_build = bool(package_lock or package_locks or srcs)
+    if resolve_references == None:
+        resolve_references = package_build
+    if seed_build_cache == True and (not srcs or not resolve_references or not package_build):
+        fail("seed_build_cache requires srcs, resolve_references and package_build")
+    if seed_build_cache == True and qualification_cache == False:
         fail("seed_build_cache requires qualification_cache")
-    if qualification_cache and (not srcs or not resolve_references):
+    if qualification_cache == True and (not srcs or not resolve_references):
         fail("qualification_cache requires srcs and resolve_references")
     if resolve_references and not package_build:
         fail("resolve_references requires package_build for private offline Restore and qualification Build")
@@ -256,9 +264,10 @@ def msbuild_sync(name, projects, mappings = None, inputs = {}, package_lock = No
 
     # Keep apparent external labels portable across Bazel canonical-name changes.
     lock_name = package_lock if type(package_lock) == "string" and package_lock.startswith("@") and not package_lock.startswith("@@") else ""
-    if seed_build_cache:
+    seed_runner = seed_build_cache != False and qualification_cache != False and bool(srcs) and resolve_references
+    if seed_runner:
         msbuild_graph_runner(name = name + "_seed_runner")
-    _sync(name = name, seed_runner = ":" + name + "_seed_runner" if seed_build_cache else None, projects = projects, srcs = srcs or [], package_lock_name = lock_name, configuration = configuration, framework = framework, package_build = package_build, package_inputs = package_inputs, resolve_references = resolve_references, qualification_cache = qualification_cache, mappings = mappings, inputs = inputs, build_inputs = build_inputs, package_lock = package_lock, package_locks = package_locks, bindings = bindings, **kwargs)
+    _sync(name = name, seed_runner = ":" + name + "_seed_runner" if seed_runner else None, projects = projects, srcs = srcs or [], package_lock_name = lock_name, configuration = configuration, framework = framework, package_build = package_build, package_inputs = package_inputs, resolve_references = resolve_references, qualification_cache = automatic(qualification_cache), seed_build_cache = automatic(seed_build_cache), mappings = mappings, inputs = inputs, build_inputs = build_inputs, package_lock = package_lock, package_locks = package_locks, bindings = bindings, **kwargs)
 
 def msbuild_nuget_update(name, projects, output = "nuget.lock.json", configuration = "Release", framework = "", mappings = None, **kwargs):
     """Resolve with the declared SDK's NuGet; commit native locks and archive manifest.
