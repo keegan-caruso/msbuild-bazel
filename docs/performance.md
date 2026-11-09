@@ -218,6 +218,18 @@ changed preparation action. Misses execute normal SDK targets; post-Restore grap
 evaluation and contract validation remain fresh. Keys retain conservative dependency
 inputs. See [configuration](api.md#compiler-selections).
 
+#### Qualification-to-Build handoff
+
+The opt-in `seed_build_cache` control reuses qualification's compiled products in
+ordinary Build snapshots. On Linux ARM64 / SDK **10.0.400** / Bazel **9.3.0**, one
+three-project correctness run took **1.65 s** for the first Build (three HTTP hits,
+zero compilations), versus **3.98 s** uncached. Seed verification/publication itself
+took **1.33 s**, so this small control establishes removed compilation, not an
+end-to-end speedup. Runner times exclude Bazel/bootstrap and initial qualification;
+these are single observations, not paired medians. Reproduce with
+`QUALIFICATION_CACHE_URL=http://cache:8080 bash scripts/bazel.sh test
+//tests/integration:qualification_seed --test_output=all`.
+
 #### Small graph
 
 Linux ARM64, SDK **10.0.400**, four CPUs / 6 GiB; 17 projects, one consumer and

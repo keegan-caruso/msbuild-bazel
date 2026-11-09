@@ -43,6 +43,7 @@ internal static class Program
             var resolveReferences = false;
             string? qualificationDirectory = null;
             string? qualificationUrl = null;
+            string? graphRunner = null;
             var packageInputs = new List<string>();
             var configuration = "Release";
             var framework = "";
@@ -62,7 +63,7 @@ internal static class Program
                 {
                     resolveReferences = true;
                 }
-                else if (args[i] is "--qualification-cache" or "--qualification-cache-url")
+                else if (args[i] is "--qualification-cache" or "--qualification-cache-url" or "--seed-build-cache")
                 {
                     var option = args[i];
                     if (++i == args.Length || args[i].Length == 0)
@@ -72,6 +73,10 @@ internal static class Program
                     if (option == "--qualification-cache")
                     {
                         qualificationDirectory = WorkspaceView.PhysicalPath(args[i]);
+                    }
+                    else if (option == "--seed-build-cache")
+                    {
+                        graphRunner = Path.GetDirectoryName(WorkspaceView.PhysicalPath(Path.Combine(args[i], "GraphBuild.dll")))!;
                     }
                     else
                     {
@@ -139,6 +144,19 @@ internal static class Program
             {
                 throw new ArgumentException("Qualification caching requires --resolve-references and --qualification-cache");
             }
+            if (graphRunner is not null && qualificationDirectory is null)
+            {
+                throw new ArgumentException("--seed-build-cache requires --qualification-cache");
+            }
+            var inside = QualificationSandbox.Inside;
+            var bearerToken = Environment.GetEnvironmentVariable("RULES_MSBUILD_PROJECT_CACHE_BEARER_TOKEN");
+            if (inside && graphRunner is not null)
+            {
+                foreach (var name in new[] { "RULES_MSBUILD_SYNC_SANDBOX", "RULES_MSBUILD_SYNC_SEED_RUNNER", "DOTNET_GENERATE_ASPNET_CERTIFICATE", "DOTNET_MULTILEVEL_LOOKUP", "MSBuildEnableWorkloadResolver", "RULES_MSBUILD_SYNC_PROFILE", "RULES_MSBUILD_PROJECT_CACHE_BEARER_TOKEN" })
+                {
+                    Environment.SetEnvironmentVariable(name, null);
+                }
+            }
             var root = WorkspaceView.PhysicalPath(args[0]);
             if (qualificationDirectory is not null && (QualificationInputs.Overlaps(root, qualificationDirectory) ||
                 QualificationInputs.Overlaps(Path.GetDirectoryName(Path.GetDirectoryName(sdk))!, qualificationDirectory) || OperatingSystem.IsWindows()))
@@ -148,15 +166,19 @@ internal static class Program
             if (qualificationDirectory is not null && !QualificationSandbox.Inside)
             {
                 return QualificationSandbox.Run(root, sdk, projects.ToArray(), check, configuration, framework,
-                    packageInputs.ToArray(), mappings, inputs, runfiles, new QualificationOptions(qualificationDirectory, qualificationUrl));
+                    packageInputs.ToArray(), mappings, inputs, runfiles, new QualificationOptions(qualificationDirectory, qualificationUrl, graphRunner, bearerToken));
             }
             using var view = SyncProfile.Run("producer-bindings", () => WorkspaceView.Create(root, inputs, runfiles));
+            if (graphRunner is not null)
+            {
+                Environment.SetEnvironmentVariable("NUGET_HTTP_CACHE_PATH", null);
+            }
             if (view.HasIncompleteGraphBindings)
             {
                 throw new InvalidDataException("Sync requires complete tool layouts in msbuild_sync bindings");
             }
             GraphGenerator.Run(view.Root, sdk, projects.ToArray(), check, root, configuration, framework, view, packageBuild, packageInputs.ToArray(), new GraphMappings(mappings), resolveReferences,
-                qualificationDirectory is null ? null : new QualificationOptions(qualificationDirectory, qualificationUrl),
+                qualificationDirectory is null ? null : new QualificationOptions(qualificationDirectory, qualificationUrl, graphRunner, bearerToken),
                 QualificationSandbox.Inside ? QualificationSandbox.Base + "/output" : null);
             return 0;
         }

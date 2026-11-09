@@ -27,6 +27,7 @@ internal sealed class QualificationCache : ProjectCachePluginBase, IDisposable
     private readonly RemoteSnapshotStore? remote;
     private readonly ConcurrentDictionary<ProjectGraphNode, (string Fingerprint, string[] Targets)> requests = new();
     private readonly ConcurrentDictionary<ProjectGraphNode, QualificationState> states = new();
+    private readonly ConcurrentDictionary<ProjectGraphNode, QualificationTarget[]> replayTargets = new();
     private readonly ConcurrentDictionary<ProjectGraphNode, byte> hits = new();
     private int uncacheable;
 
@@ -41,7 +42,7 @@ internal sealed class QualificationCache : ProjectCachePluginBase, IDisposable
         }
         payloads = new SnapshotPayloads(directory);
         remote = options.Url is null ? null : new RemoteSnapshotStore(new Uri(options.Url.TrimEnd('/') + "/"),
-            bearerToken: Environment.GetEnvironmentVariable("RULES_MSBUILD_PROJECT_CACHE_BEARER_TOKEN"), contentStore: payloads);
+            bearerToken: options.BearerToken ?? Environment.GetEnvironmentVariable("RULES_MSBUILD_PROJECT_CACHE_BEARER_TOKEN"), contentStore: payloads);
     }
 
     public override Task BeginBuildAsync(CacheContext context, PluginLoggerBase logger, CancellationToken cancellationToken) => Task.CompletedTask;
@@ -106,6 +107,7 @@ internal sealed class QualificationCache : ProjectCachePluginBase, IDisposable
             }
         }
         states[node] = metadata.State;
+        replayTargets[node] = metadata.Targets;
         hits[node] = 0;
         return CacheResult.IndicateCacheHit(metadata.Targets.Select(target => new PluginTargetResult(target.Name,
             target.Items.Select(item =>
@@ -122,6 +124,13 @@ internal sealed class QualificationCache : ProjectCachePluginBase, IDisposable
     internal QualificationState State(ProjectGraphNode node, GraphBuildResult result) => states.TryGetValue(node, out var state) ? state :
         QualificationState.From(result.ResultsByNode.GetValueOrDefault(node)?.ProjectStateAfterBuild
             ?? throw new InvalidDataException("Missing resolved compiler state: " + node.ProjectInstance.FullPath));
+
+    internal string[] Requested(ProjectGraphNode node) => requests.TryGetValue(node, out var request) ? request.Targets : [];
+
+    internal QualificationTarget[] Results(ProjectGraphNode node, GraphBuildResult result) => replayTargets.TryGetValue(node, out var targets) ? targets :
+        Targets(node).Select(name => new QualificationTarget(name, result.ResultsByNode[node].ResultsByTarget[name].Items
+            .Select(item => new QualificationResult(item.ItemSpec, item.CloneCustomMetadata().Keys.Cast<string>().Order(StringComparer.Ordinal)
+                .ToDictionary(key => key, item.GetMetadata, StringComparer.Ordinal))).ToArray())).ToArray();
 
     internal void Save(GraphBuildResult result, int compilations)
     {

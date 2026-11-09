@@ -54,6 +54,7 @@ from MSBuild's Compile items.
 | `package_build`, `package_inputs` | Offline Restore/package evaluation; extra declared task reads |
 | `resolve_references` | Private Build to capture complete compiler/copy selections; requires `package_build` |
 | `qualification_cache` | Reuse Restore/products within changed qualification actions; requires `srcs`, `resolve_references`, Linux/bwrap and an HTTP project cache |
+| `seed_build_cache` | Seed ordinary Build snapshots from qualification; requires `qualification_cache` and matching Linux stable-path consumers |
 | `bindings` | Complete tool layouts bound to MSBuild properties |
 | `mappings` | Reviewed JSON contracts for custom inputs, outputs and dependency roles |
 
@@ -132,6 +133,16 @@ all source contents invalidate Restore; root `restoreReuseInputs` explicitly rev
 compiler-only content exemptions. Project misses run normal SDK Build. Shared inputs
 invalidate every affected key. Overlapping output owners and their consumers skip
 reuse. This does not infer precise reference boundaries before qualification.
+
+`seed_build_cache = True` additionally publishes ordinary Build snapshots to the
+same HTTP cache. Consumers must use `linux_stable_paths = True`, the same SDK,
+runner, configuration and inputs. Qualification captures intermediate outputs;
+the ordinary runner verifies SDK/input/output bytes, evaluated properties/items,
+target results and compiler selections before writing its usual snapshots. This
+reuses verified Restore products and adds evaluation/verification, with no second compilation. Incompatible
+handoffs fail before declarations are published. Publication runs when qualification
+executes; a whole-action cache hit does not refill evicted project entries. The
+option is off by default; see [qualified scope](support.md#project-qualification-cache).
 
 Complete inventories exclude unselected compiler edges from invalidation while
 retaining graph execution and noncompiler dependency roles. New snapshots verify

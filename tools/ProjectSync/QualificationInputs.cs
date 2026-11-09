@@ -7,7 +7,7 @@ using RulesMSBuild.ProjectCache;
 
 namespace RulesMSBuild.ProjectSync;
 
-internal sealed record QualificationOptions(string Directory, string? Url);
+internal sealed record QualificationOptions(string Directory, string? Url, string? GraphRunner = null, string? BearerToken = null);
 internal sealed record QualificationItem(string Include, string Subdirectory);
 internal sealed record QualificationState(string TargetPath, string PublishDir, string[] References, QualificationItem[] Copies)
 {
@@ -27,7 +27,7 @@ internal sealed class QualificationInputs
     {
         get;
     }
-    internal Dictionary<ProjectGraphNode, string> Directories { get; } = [];
+    internal Dictionary<ProjectGraphNode, string[]> Directories { get; } = [];
     internal Dictionary<ProjectGraphNode, HashSet<string>> Products { get; } = [];
     internal HashSet<string> Sources
     {
@@ -37,13 +37,13 @@ internal sealed class QualificationInputs
 
     internal QualificationInputs(ProjectGraph graph, string root, QualificationEnvironment environment,
         IReadOnlyDictionary<string, string> digests, Func<ProjectGraphNode, IEnumerable<string>> inputs,
-        Func<ProjectGraphNode, IEnumerable<string>> products, Func<ProjectGraphNode, string> configuration, IEnumerable<string> packages)
+        Func<ProjectGraphNode, IEnumerable<string>> products, Func<ProjectGraphNode, string> configuration, IEnumerable<string> packages, bool complete = false)
     {
         this.root = root;
         Sources = digests.Keys.ToHashSet(StringComparer.Ordinal);
         Nodes = graph.ProjectNodes.ToDictionary(node => Key(node.ProjectInstance));
         using var context = IncrementalHash.CreateHash(HashAlgorithmName.SHA256);
-        Add(context, "qualification-project-v1");
+        Add(context, complete ? "qualification-project-v2" : "qualification-project-v1");
         Add(context, environment.Identity);
         foreach (var (path, digest) in digests.Where(pair => pair.Key.StartsWith(".graph-tools/", StringComparison.Ordinal)).OrderBy(pair => pair.Key, StringComparer.Ordinal))
         {
@@ -93,7 +93,8 @@ internal sealed class QualificationInputs
             var output = project.GetPropertyValue("OutputPath");
             if (GraphProjectKind.HasAssembly(project) && output.Length != 0)
             {
-                Directories[node] = Relative(Path.TrimEndingDirectorySeparator(Full(project, output)));
+                Directories[node] = (complete ? new[] { "OutputPath", "IntermediateOutputPath" } : new[] { "OutputPath" })
+                    .Select(project.GetPropertyValue).Where(value => value.Length != 0).Select(value => Relative(Path.TrimEndingDirectorySeparator(Full(project, value)))).Distinct().ToArray();
                 Eligible.Add(node);
             }
         }
@@ -104,9 +105,9 @@ internal sealed class QualificationInputs
         {
             if (graph.ProjectNodes.Any(other => other != node &&
                 (Products[node].Overlaps(Products[other]) ||
-                 Directories.TryGetValue(node, out var left) && (Products[other].Any(path => path.StartsWith(left + "/", StringComparison.Ordinal)) ||
-                    Directories.TryGetValue(other, out var right) && Overlaps(left, right)) ||
-                 Directories.TryGetValue(other, out var owner) && Products[node].Any(path => path.StartsWith(owner + "/", StringComparison.Ordinal)))))
+                 Directories.TryGetValue(node, out var left) && left.Any(directory => Products[other].Any(path => path.StartsWith(directory + "/", StringComparison.Ordinal)) ||
+                    Directories.TryGetValue(other, out var right) && right.Any(path => Overlaps(directory, path))) ||
+                 Directories.TryGetValue(other, out var owner) && owner.Any(directory => Products[node].Any(path => path.StartsWith(directory + "/", StringComparison.Ordinal))))))
             {
                 ambiguous.Add(node);
             }
@@ -170,9 +171,9 @@ internal sealed class QualificationInputs
     internal IEnumerable<string> Files(ProjectGraphNode node)
     {
         var files = Products[node].Select(Resolve).Where(File.Exists);
-        if (Directories.TryGetValue(node, out var directory) && Directory.Exists(Resolve(directory)))
+        if (Directories.TryGetValue(node, out var directories))
         {
-            files = files.Concat(Tree(Resolve(directory)));
+            files = files.Concat(directories.Select(Resolve).Where(Directory.Exists).SelectMany(Tree));
         }
         return files.Distinct(StringComparer.Ordinal);
     }
@@ -215,7 +216,7 @@ internal sealed class QualificationInputs
         return target;
     }
     internal bool Owns(ProjectGraphNode node, string path) => !Sources.Contains(path) && Eligible.Contains(node) &&
-        (path.StartsWith(Directories[node] + "/", StringComparison.Ordinal) || Products[node].Contains(path));
+        (Directories[node].Any(directory => path.StartsWith(directory + "/", StringComparison.Ordinal)) || Products[node].Contains(path));
     internal static string Key(ProjectInstance project) => project.FullPath + "|" + string.Join(";", project.GlobalProperties.OrderBy(pair => pair.Key, StringComparer.Ordinal).Select(pair => pair.Key + "=" + pair.Value));
     internal static string Full(ProjectInstance project, string value) => Path.GetFullPath(value.Replace('\\', '/'), Path.GetDirectoryName(project.FullPath)!);
     internal static bool Overlaps(string left, string right) => left == right || left.StartsWith(right + "/", StringComparison.Ordinal) || right.StartsWith(left + "/", StringComparison.Ordinal);

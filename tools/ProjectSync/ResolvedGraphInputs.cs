@@ -2,6 +2,7 @@ using System.Security.Cryptography;
 using Microsoft.Build.Evaluation;
 using Microsoft.Build.Execution;
 using Microsoft.Build.Graph;
+using RulesMSBuild.ProjectCache;
 #if STABLE_PROJECT_CACHE
 using Microsoft.Build.ProjectCache;
 #else
@@ -10,11 +11,13 @@ using Microsoft.Build.Experimental.ProjectCache;
 
 namespace RulesMSBuild.ProjectSync;
 
+internal sealed record QualifiedGraph(Dictionary<ProjectGraphNode, ResolvedGraphInputs> Selections, BuildSeed? Seed);
+
 internal sealed record ResolvedGraphInputs(Dictionary<string, string> CompilerReferences, Dictionary<string, string> DependencyCopies)
 {
     // Evaluation cannot predict reference selection performed by SDK/custom targets.
     // Qualify once in the private offline workspace; ordinary builds use the contract.
-    internal static Dictionary<ProjectGraphNode, ResolvedGraphInputs> Build(ProjectGraph graph, ProjectCollection collection,
+    internal static QualifiedGraph Build(ProjectGraph graph, ProjectCollection collection,
         string root, string sdkRoot, ProjectGraphNode[] selected, Func<ProjectGraphNode, IEnumerable<string>> products,
         Func<ProjectGraphNode, IEnumerable<ProjectGraphNode>> dependencies, IEnumerable<string> inputs, HashSet<string> packages,
         Func<ProjectGraphNode, IEnumerable<string>> consumerInputs, QualificationOptions? cacheOptions = null,
@@ -54,8 +57,15 @@ internal sealed record ResolvedGraphInputs(Dictionary<string, string> CompilerRe
         }
         var digests = declared.ToDictionary(path => path, path => Digest(Path.Combine(root, path)), StringComparer.Ordinal);
         using var cache = cacheOptions is null ? null : new QualificationCache(new QualificationInputs(graph, root, environment!,
-            digests, consumerInputs, products, cacheConfiguration!, packageDigests!), cacheOptions);
+            digests, consumerInputs, products, cacheConfiguration!, packageDigests!, complete: cacheOptions.GraphRunner is not null), cacheOptions);
         var counter = cache is null ? null : new QualificationCounter();
+        var seedContexts = cacheOptions?.GraphRunner is null ? null : graph.ProjectNodes.ToDictionary(node => node, node => BuildSeedProof.Context(node.ProjectInstance));
+        var seedInputs = seedContexts is null ? null : declared.Concat(graph.ProjectNodes
+            .Select(node => node.ProjectInstance).Where(project => project.GetPropertyValue("MSBuildProjectExtensionsPath").Length != 0)
+            .Select(project => Full(project, project.GetPropertyValue("MSBuildProjectExtensionsPath"))).Distinct(StringComparer.Ordinal)
+            .Where(Directory.Exists).SelectMany(directory => Directory.EnumerateFiles(directory, "*", SearchOption.AllDirectories)).Select(Relative))
+            .Distinct(StringComparer.Ordinal).ToDictionary(path => path, path => BuildSeedProof.Digest(Path.Combine(root, path)), StringComparer.Ordinal);
+        var seedSdk = seedContexts is null ? null : BuildSeedProof.TreeDigest(sdkRoot);
         var oldDirectory = Directory.GetCurrentDirectory();
         var oldPackages = Environment.GetEnvironmentVariable("NUGET_PACKAGES");
         GraphBuildResult result;
@@ -85,7 +95,7 @@ internal sealed record ResolvedGraphInputs(Dictionary<string, string> CompilerRe
             Directory.SetCurrentDirectory(oldDirectory);
             Environment.SetEnvironmentVariable("NUGET_PACKAGES", oldPackages);
         }
-        if (counter is not null && Environment.GetEnvironmentVariable("RULES_MSBUILD_SYNC_PROFILE") == "1")
+        if (counter is not null && SyncProfile.Enabled)
         {
             Console.Error.WriteLine("PROJECT_SYNC_EVALUATION " + System.Text.Json.JsonSerializer.Serialize(new
             {
@@ -101,6 +111,13 @@ internal sealed record ResolvedGraphInputs(Dictionary<string, string> CompilerRe
             if (!File.Exists(Path.Combine(root, path)) || Digest(Path.Combine(root, path)) != digest)
             {
                 throw new InvalidDataException("Qualification Build modified a declared input: " + path);
+            }
+        }
+        foreach (var (path, digest) in seedInputs ?? [])
+        {
+            if (!File.Exists(Path.Combine(root, path)) || BuildSeedProof.Digest(Path.Combine(root, path)) != digest)
+            {
+                throw new InvalidDataException("Qualification Build modified a seeded input: " + path);
             }
         }
         var owners = graph.ProjectNodes.Where(node => GraphProjectKind.HasAssembly(node.ProjectInstance))
@@ -188,7 +205,31 @@ internal sealed record ResolvedGraphInputs(Dictionary<string, string> CompilerRe
             selections.Add(node, new(references, copies));
         }
         cache?.Save(result, counter!.Compilations);
-        return selections;
+        BuildSeed? seed = null;
+        if (seedContexts is not null)
+        {
+            var files = graph.ProjectNodes
+                .SelectMany(node => (GraphProjectKind.HasAssembly(node.ProjectInstance) ? new[] { "OutputPath", "IntermediateOutputPath" } : []).Select(node.ProjectInstance.GetPropertyValue)
+                    .Where(value => value.Length != 0).Select(value => Full(node.ProjectInstance, value))
+                    .Where(Directory.Exists).SelectMany(directory => Directory.EnumerateFiles(directory, "*", SearchOption.AllDirectories))
+                    .Concat(products(node).Where(File.Exists))).Distinct(StringComparer.Ordinal);
+            seed = new BuildSeed(1, root, sdkRoot, seedSdk!, seedInputs!, files.ToDictionary(path => Relative(path), BuildSeedProof.Digest, StringComparer.Ordinal),
+                graph.ProjectNodes.Select(Describe).ToArray());
+
+            SeedProject Describe(ProjectGraphNode node)
+            {
+                var requested = cache!.Requested(node);
+                if (!GraphProjectKind.HasAssembly(node.ProjectInstance) || requested.Length == 0)
+                {
+                    return new(BuildSeedProof.Key(node.ProjectInstance), seedContexts[node], [], [], []);
+                }
+                return new(BuildSeedProof.Key(node.ProjectInstance), seedContexts[node], requested,
+                    cache.Results(node, result).Select(target => new SeedTarget(target.Name,
+                        target.Items.Select(item => new SeedItem(item.Include, item.Metadata)).ToArray())).ToArray(),
+                    cache.State(node, result).References);
+            }
+        }
+        return new(selections, seed);
 
         string Relative(string path) => WorkspaceView.Safe(Path.GetRelativePath(root, path).Replace('\\', '/'));
         bool IsSdk(string path) => path.StartsWith(sdkRoot + Path.DirectorySeparatorChar, StringComparison.Ordinal);

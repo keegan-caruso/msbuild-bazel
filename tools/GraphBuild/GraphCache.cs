@@ -17,7 +17,7 @@ internal sealed record TargetOutput(string Name, ResultItem[] Items);
 internal sealed record ProjectSnapshot(string Fingerprint, Dictionary<string, string> Files,
     Dictionary<string, string> ProjectCopies, TargetOutput[] Targets, Dictionary<string, int> UnixModes);
 
-internal sealed class GraphCache(GraphInputs inputs, string cache, bool read, RemoteSnapshotStore? remote, FileMaterializer materializer, SnapshotPayloads payloads, TemporaryOutputs temporaryOutputs, LocalGraphState? localState = null) : ProjectCachePluginBase
+internal sealed partial class GraphCache(GraphInputs inputs, string cache, bool read, RemoteSnapshotStore? remote, FileMaterializer materializer, SnapshotPayloads payloads, TemporaryOutputs temporaryOutputs, LocalGraphState? localState = null) : ProjectCachePluginBase
 {
     private readonly ReplayOmissions omissions = new(inputs);
     private readonly Dictionary<string, ProjectGraphNode> nodes = inputs.Graph.ProjectNodes.ToDictionary(n => GraphInputs.Key(n.ProjectInstance));
@@ -135,101 +135,106 @@ internal sealed class GraphCache(GraphInputs inputs, string cache, bool read, Re
         foreach (var (node, build) in result.ResultsByNode)
         {
             var key = GraphInputs.Key(node.ProjectInstance);
-            if (hits.ContainsKey(key) || !fingerprints.TryGetValue(key, out var fingerprint))
+            if (hits.ContainsKey(key) || !fingerprints.ContainsKey(key))
             {
                 continue;
             }
             inputs.VerifyCompilerReferences(node, build.ProjectStateAfterBuild);
-            var files = new Dictionary<string, string>(StringComparer.Ordinal);
-            var modes = new Dictionary<string, int>(StringComparer.Ordinal);
-            var copies = new Dictionary<string, string>(StringComparer.Ordinal);
-            var staging = Path.Combine(cache, ".staging-" + Guid.NewGuid().ToString("N"));
-            Directory.CreateDirectory(staging);
-            try
+            // Initial-target results are also required by nested MSBuild requests.
+            // A skipped initial target is represented as success by the plugin API.
+            await CaptureAsync(node, () => ReplayTargets(node, requestedTargets[key]).Select(name =>
             {
-                foreach (var file in inputs.DeclaredOutputFiles(node))
+                if (!build.ResultsByTarget.TryGetValue(name, out var target) ||
+                    (target.ResultCode != TargetResultCode.Success &&
+                     !(target.ResultCode == TargetResultCode.Skipped && node.ProjectInstance.InitialTargets.Contains(name, StringComparer.OrdinalIgnoreCase))))
                 {
-                    if (!File.Exists(file))
-                    {
-                        throw new InvalidDataException("Missing declared output file: " + file);
-                    }
+                    throw new InvalidDataException("Missing successful target result: " + name);
                 }
-                foreach (var file in SnapshotFiles(node))
+                return new TargetOutput(name, target.Items.Select(item => new ResultItem(item.ItemSpec,
+                    Metadata(item))).ToArray());
+            }).ToArray());
+        }
+    }
+
+    private async Task CaptureAsync(ProjectGraphNode node, Func<TargetOutput[]> targetFactory)
+    {
+        var key = GraphInputs.Key(node.ProjectInstance);
+        var fingerprint = fingerprints[key];
+        var files = new Dictionary<string, string>(StringComparer.Ordinal);
+        var modes = new Dictionary<string, int>(StringComparer.Ordinal);
+        var copies = new Dictionary<string, string>(StringComparer.Ordinal);
+        var staging = Path.Combine(cache, ".staging-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(staging);
+        try
+        {
+            foreach (var file in inputs.DeclaredOutputFiles(node))
+            {
+                if (!File.Exists(file))
                 {
-                    var relative = Path.GetRelativePath(inputs.Files.Root, file);
-                    ValidateCopyOwnership(node, relative);
-                    var digest = OutputDigest(file);
-                    var producer = (inputs.For(node).DependencyCopies ?? []).GetValueOrDefault(relative);
-                    if (producer is not null)
-                    {
-                        var source = inputs.Files.Resolve(producer);
-                        var package = inputs.IsDeclaredPackageInput(source);
-                        if ((!IsDependencyOutput(node, source) && !package) || OutputDigest(source) != digest)
-                        {
-                            throw new InvalidDataException("Declared dependency copy does not match its producer: " + relative);
-                        }
-                        if (package)
-                        {
-                            // Locked package bytes already participate in the input
-                            // key. Retain this fixed payload and its consumer mode,
-                            // rather than refreshing it from a read-only input mount.
-                            producer = null;
-                        }
-                        else
-                        {
-                            copies.Add(relative, producer);
-                        }
-                    }
-                    if (producer is null)
-                    {
-                        files.Add(relative, digest);
-                        modes.Add(relative, OperatingSystem.IsWindows() ? 0 : (int)File.GetUnixFileMode(file));
-                        payloads.Store(file, digest, Path.Combine(staging, relative));
-                    }
-                }
-                // Nested MSBuild requests also require initial-target results.
-                // Without them, a cached dependency can execute its Build again.
-                // A skipped initial target completed without work. The plugin API
-                // represents that result as success under the same fingerprint.
-                var targets = ReplayTargets(node, requestedTargets[key]).Select(name =>
-                {
-                    if (!build.ResultsByTarget.TryGetValue(name, out var target) ||
-                        (target.ResultCode != TargetResultCode.Success &&
-                         !(target.ResultCode == TargetResultCode.Skipped && node.ProjectInstance.InitialTargets.Contains(name, StringComparer.OrdinalIgnoreCase))))
-                    {
-                        throw new InvalidDataException("Missing successful target result: " + name);
-                    }
-                    return new TargetOutput(name, target.Items.Select(item => new ResultItem(item.ItemSpec,
-                        Metadata(item))).ToArray());
-                }).ToArray();
-                omissions.RequireTargetOutputs(node, targets);
-                var snapshot = new ProjectSnapshot(fingerprint, files, copies, targets, modes);
-                File.WriteAllText(Path.Combine(staging, "manifest.json"), JsonSerializer.Serialize(snapshot));
-                var destination = Path.Combine(cache, fingerprint);
-                try
-                {
-                    Directory.Move(staging, destination);
-                }
-                catch (IOException) when (Directory.Exists(destination))
-                {
-                    var existing = JsonSerializer.Deserialize<ProjectSnapshot>(File.ReadAllText(Path.Combine(destination, "manifest.json")))!;
-                    if (JsonSerializer.Serialize(existing) != JsonSerializer.Serialize(snapshot))
-                    {
-                        throw new InvalidDataException("Conflicting graph snapshot: " + fingerprint);
-                    }
-                }
-                if (remote is not null)
-                {
-                    using var upload = GraphProfile.Measure("remotePublish");
-                    await remote.PublishAsync(fingerprint, destination, CancellationToken.None);
+                    throw new InvalidDataException("Missing declared output file: " + file);
                 }
             }
-            finally
+            foreach (var file in SnapshotFiles(node))
             {
-                if (Directory.Exists(staging))
+                var relative = Path.GetRelativePath(inputs.Files.Root, file);
+                ValidateCopyOwnership(node, relative);
+                var digest = OutputDigest(file);
+                var producer = (inputs.For(node).DependencyCopies ?? []).GetValueOrDefault(relative);
+                if (producer is not null)
                 {
-                    Directory.Delete(staging, recursive: true);
+                    var source = inputs.Files.Resolve(producer);
+                    var package = inputs.IsDeclaredPackageInput(source);
+                    if ((!IsDependencyOutput(node, source) && !package) || OutputDigest(source) != digest)
+                    {
+                        throw new InvalidDataException("Declared dependency copy does not match its producer: " + relative);
+                    }
+                    if (package)
+                    {
+                        // Locked package bytes already participate in the input
+                        // key. Retain this fixed payload and its consumer mode,
+                        // rather than refreshing it from a read-only input mount.
+                        producer = null;
+                    }
+                    else
+                    {
+                        copies.Add(relative, producer);
+                    }
                 }
+                if (producer is null)
+                {
+                    files.Add(relative, digest);
+                    modes.Add(relative, OperatingSystem.IsWindows() ? 0 : (int)File.GetUnixFileMode(file));
+                    payloads.Store(file, digest, Path.Combine(staging, relative));
+                }
+            }
+            var targets = targetFactory();
+            omissions.RequireTargetOutputs(node, targets);
+            var snapshot = new ProjectSnapshot(fingerprint, files, copies, targets, modes);
+            File.WriteAllText(Path.Combine(staging, "manifest.json"), JsonSerializer.Serialize(snapshot));
+            var destination = Path.Combine(cache, fingerprint);
+            try
+            {
+                Directory.Move(staging, destination);
+            }
+            catch (IOException) when (Directory.Exists(destination))
+            {
+                var existing = JsonSerializer.Deserialize<ProjectSnapshot>(File.ReadAllText(Path.Combine(destination, "manifest.json")))!;
+                if (JsonSerializer.Serialize(existing) != JsonSerializer.Serialize(snapshot))
+                {
+                    throw new InvalidDataException("Conflicting graph snapshot: " + fingerprint);
+                }
+            }
+            if (remote is not null)
+            {
+                using var upload = GraphProfile.Measure("remotePublish");
+                await remote.PublishAsync(fingerprint, destination, CancellationToken.None);
+            }
+        }
+        finally
+        {
+            if (Directory.Exists(staging))
+            {
+                Directory.Delete(staging, recursive: true);
             }
         }
     }

@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using System.Xml.Linq;
+using RulesMSBuild.ProjectCache;
 
 namespace RulesMSBuild.ProjectSync;
 
@@ -17,7 +18,11 @@ internal sealed class GraphEvaluationWorkspace : IDisposable
         {
             return WorkspaceView.PhysicalPath(Directory.CreateTempSubdirectory("graph-sync-").FullName);
         }
-        var path = QualificationSandbox.Base + "/scratch/evaluation";
+        var path = QualificationSandbox.SeedRunner is null ? QualificationSandbox.Base + "/scratch/evaluation" : BuildSeedProof.Root;
+        if (QualificationSandbox.SeedRunner is not null && Directory.Exists(path) && !Directory.EnumerateFileSystemEntries(path).Any())
+        {
+            return path;
+        }
         if (Directory.Exists(path))
         {
             throw new InvalidDataException("Qualification requires a fresh private evaluation workspace");
@@ -63,9 +68,17 @@ internal sealed class GraphEvaluationWorkspace : IDisposable
             Directory.CreateDirectory(feed);
             foreach (var archive in view.GraphPackageArchives())
             {
-                SyncFiles.Copy(archive, Path.Combine(feed, Path.GetFileName(archive)));
+                var destination = Path.Combine(feed, Path.GetFileName(archive));
+                SyncFiles.Copy(archive, destination);
+                if (cache?.GraphRunner is not null && !OperatingSystem.IsWindows())
+                {
+                    // Tree artifacts normalize modes. SDK bootstrap copies the
+                    // archive into NuGet's cache; stage it as data, not a tool.
+                    File.SetUnixFileMode(destination, File.GetUnixFileMode(destination) &
+                        ~(UnixFileMode.UserExecute | UnixFileMode.GroupExecute | UnixFileMode.OtherExecute));
+                }
             }
-            var config = Path.Combine(Root, ".graph.nuget.config");
+            var config = QualificationSandbox.SeedRunner is null ? Path.Combine(Root, ".graph.nuget.config") : Path.Combine(feed, "NuGet.Config");
             File.WriteAllText(config, "<configuration><packageSources><clear/></packageSources><fallbackPackageFolders><clear/></fallbackPackageFolders></configuration>");
             // Package SDK resolution happens before generated NuGet imports.
             // Restore replay must establish the same package root as a fresh run.
@@ -107,7 +120,10 @@ internal sealed class GraphEvaluationWorkspace : IDisposable
                     }
                 }
                 start.Environment["DOTNET_ROOT"] = sdkRoot;
-                start.Environment["DOTNET_CLI_HOME"] = Path.Combine(Root, ".cli");
+                if (QualificationSandbox.SeedRunner is null)
+                {
+                    start.Environment["DOTNET_CLI_HOME"] = Path.Combine(Root, ".cli");
+                }
                 start.Environment["DOTNET_SKIP_FIRST_TIME_EXPERIENCE"] = "1";
                 start.Environment["DOTNET_GENERATE_ASPNET_CERTIFICATE"] = "false";
                 start.Environment["MSBUILDDISABLENODEREUSE"] = "1";

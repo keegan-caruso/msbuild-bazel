@@ -53,8 +53,10 @@ def prepare_sync(ctx, tc, payload, manifest, bound_files):
             if key in ctx.configuration.default_shell_env:
                 environment[key] = ctx.configuration.default_shell_env[key]
         cache_command = 'set -- "$@" --qualification-cache "$scratch/project-cache" --qualification-cache-url "${RULES_MSBUILD_PROJECT_CACHE_URL:?Set the qualification project-cache URL through --action_env}"'
+    if ctx.file.seed_runner:
+        cache_command += "\nseed_runner=" + quote(ctx.file.seed_runner.path) + '\nset -- "$@" --seed-build-cache "$base/$seed_runner"'
     ctx.actions.run_shell(
-        inputs = depset(ctx.files.srcs + bound_files + [payload, manifest, stage] + ([ctx.file.mappings] if ctx.file.mappings else []), transitive = [tc.sdk]),
+        inputs = depset(ctx.files.srcs + bound_files + ctx.files.seed_runner + [payload, manifest, stage] + ([ctx.file.mappings] if ctx.file.mappings else []), transitive = [tc.sdk]),
         tools = [tc.dotnet],
         outputs = [prepared],
         resource_set = _qualification_resources if ctx.attr.resolve_references else None,

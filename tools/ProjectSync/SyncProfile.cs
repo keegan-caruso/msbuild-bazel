@@ -6,7 +6,8 @@ namespace RulesMSBuild.ProjectSync;
 // Diagnostics are opt-in. Nested phase times overlap; never use them as scores.
 internal static class SyncProfile
 {
-    internal static IDisposable? Measure(string phase) => Environment.GetEnvironmentVariable("RULES_MSBUILD_SYNC_PROFILE") == "1" ? new Scope(phase) : null;
+    internal static bool Enabled { get; } = Environment.GetEnvironmentVariable("RULES_MSBUILD_SYNC_PROFILE") == "1";
+    internal static IDisposable? Measure(string phase) => Enabled ? new Scope(phase) : null;
 
     internal static T Run<T>(string phase, Func<T> operation)
     {

@@ -168,6 +168,21 @@ A stopped-producer, relocated-VM control recovered Restore and all four projects
 through HTTP, including package-SDK resolution, with no local cache, zero
 compilations, identical declarations and matching artifact digests.
 
+`seed_build_cache = True` passed a three-project chain, a five-node/two-framework
+graph, a query-only coordinator and generated-file conditions on Linux ARM64,
+SDK **10.0.400**, both current Bazel pins. First ordinary
+Builds recovered all three/four project snapshots without compilation. A fresh
+source/output-base consumer recovered through HTTP with Bazel action caching off;
+owned outputs matched uncached Build bytes, excluding the ordinary protocol's
+private `AssemblyReference.cache` omission. Body/API edits missed one/two projects;
+configuration changes, failed compilation and a reviewed target mutating Restore
+inputs could not reuse stale products or publish invalid declarations. Replayed
+qualification snapshots also seeded complete Build snapshots. Real Traversal **4.1.82**
+and NoTargets **3.7.0** controls recovered both assemblies, ran the declared file
+producer and matched uncached output bytes. SDK archive copies keep data permissions
+before compilation; executable-mode hashing remains enabled. This opt-in qualifies
+Build handoff; Pack/Publish seeding and other platforms remain unqualified.
+
 Requires the qualified Linux/bwrap environment; the Apple container must allow
 user namespaces and avoid read-only `/proc` submounts, as in
 `scripts/run-apple-container.sh`. This is stable-path isolation, not tracing of
@@ -178,7 +193,7 @@ and [measurements](performance.md#project-qualification-reuse).
 
 ```sh
 QUALIFICATION_CACHE_URL=http://cache:8080 bash scripts/bazel.sh test \
-  //tests/integration:qualification_cache --test_output=errors
+  //tests/integration:{qualification_cache,qualification_seed} --test_output=errors
 ```
 
 The broader legacy acceptance command still rejects its unsupported `Fixture.Sdk`

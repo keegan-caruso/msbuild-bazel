@@ -88,6 +88,11 @@ internal static class GraphGenerator
             ValidateToolProperty(name, evaluationProperties);
             evaluationProperties.Add(name, Path.Combine(root, path));
         }
+        if (QualificationSandbox.SeedRunner is not null)
+        {
+            evaluationProperties.Remove("ImportProjectExtensionProps");
+            evaluationProperties.Remove("ImportProjectExtensionTargets");
+        }
         var entry = WorkspaceView.Safe(entries[0]);
         var evaluationContext = EvaluationContext.Create(EvaluationContext.SharingPolicy.Shared);
         var graph = SyncProfile.Run("graph-evaluation", () => new ProjectGraph(entries.Select(path => new ProjectGraphEntryPoint(Path.Combine(root, WorkspaceView.Safe(path)), GraphEntryProperties.For(path, evaluationProperties, mappings.EntryProperties))), collection,
@@ -366,12 +371,13 @@ internal static class GraphGenerator
         // Qualification executes SDK targets that can mutate ProjectReference items.
         // Export implementation roles from the original static graph.
         var implementationDependencies = graph.ProjectNodes.ToDictionary(node => node, ImplementationDependencies);
-        var resolved = resolveReferences ? ResolvedGraphInputs.Build(graph, collection, root, sdkRoot,
+        var qualification = resolveReferences ? ResolvedGraphInputs.Build(graph, collection, root, sdkRoot,
             graph.ProjectNodes.Where(node => node.ProjectInstance.GetPropertyValue("Language") == "C#" && CanUseReferenceBoundary(node)).ToArray(), CompilerProducts, Dependencies,
             inputs.Values.SelectMany(paths => paths).Concat(shared), packageIdentities,
             node => inputs[Key(node.ProjectInstance)].Concat(shared), qualificationCache,
             node => JsonSerializer.Serialize(mappings.ForProject(Relative(node.ProjectInstance.FullPath), node.ProjectInstance.GetPropertyValue("TargetFramework"))),
             qualificationCache is null ? [] : view?.GraphPackageDigests(), qualificationEnvironment) : null;
+        var resolved = qualification?.Selections;
         var declarations = new SortedDictionary<string, object>(StringComparer.Ordinal);
         foreach (var group in graph.ProjectNodes.GroupBy(node => Relative(node.ProjectInstance.FullPath)))
         {
@@ -587,6 +593,10 @@ internal static class GraphGenerator
             "    msbuild_graph_runner(name = name + \"_runner\")\n" + sourceGlobs.Declaration + restoreRule + "    msbuild_graph(\n        name = name,\n        linux_stable_paths = linux_stable_paths,\n        linux_worker = linux_worker,\n        worker_cache_mb = worker_cache_mb,\n        evaluation_cache_mb = evaluation_cache_mb,\n        profile_build = profile_build,\n        target = target,\n        runner = \":\" + name + \"_runner\",\n" +
             (restore is null ? "" : "        restore = \":\" + name + \"_restore\",\n") +
             "        contract = \"" + ContractName + "\",\n        srcs = " + sourceGlobs.Expression + ",\n        bindings = " + StarlarkLiteral.Serialize(view?.GraphBindingLabels ?? []) + ",\n        input_paths = " + StarlarkLiteral.Serialize(view?.Bindings(sources.Concat(inputDirectories)) ?? []) + ",\n        project_outputs = " + StarlarkLiteral.Serialize(runtimeOutputs) + ",\n        publish_outputs = " + StarlarkLiteral.Serialize(publishOutputs) + ",\n" + (view?.DefaultPackageLock is null ? "" : "        package_lock = " + StarlarkLiteral.Serialize(view.DefaultPackageLock) + ",\n") + "    )\n";
+        if (qualification?.Seed is not null)
+        {
+            QualificationSeed.Publish(qualification.Seed, root, sdkRoot, contract, qualificationCache!);
+        }
         Publish(publicationRoot ?? outputRoot, check, contract, text);
         restored?.SaveRestore();
 
