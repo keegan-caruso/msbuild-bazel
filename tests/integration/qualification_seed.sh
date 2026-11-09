@@ -4,7 +4,10 @@ source "$(dirname -- "${BASH_SOURCE[0]}")/common.sh"
 : "${QUALIFICATION_CACHE_URL:?Set an HTTP AC/CAS endpoint}"
 # Separate this cold control from earlier runs using the same HTTP cache.
 printf '<!-- Seed control: %s -->\n' "${scratch##*/}" >> Directory.Build.props
-printf '{}\n' > mappings.json
+mkdir PDiscovery
+printf 'unselected evaluation member\n' > PDiscovery/member.txt
+sed -i 's|</Project>|<ItemGroup><DiscoveryFiles Include="$(MSBuildThisFileDirectory)PDiscovery/*.txt;not-a-file" /></ItemGroup></Project>|' Directory.Build.props
+printf '{"projectDefaults":{"evaluationItems":["DiscoveryFiles"]}}\n' > mappings.json
 cat > BUILD.bazel <<'BUILD'
 load("@rules_msbuild//msbuild:sync.bzl", "msbuild_sync")
 msbuild_sync(name="sync",mappings="mappings.json",projects=["P2/P2.csproj"],srcs=glob(["P*/**","global.json","Directory.Build.*"]),package_build=True,resolve_references=True,qualification_cache=True,seed_build_cache=True)
@@ -101,7 +104,7 @@ GENERATED
 python3 - <<'GENERATED'
 import hashlib,json
 from pathlib import Path
-Path('mappings.json').write_text(json.dumps({'projectDefaults':{'referenceBoundary':True,'documents':{'Directory.Build.targets':{
+Path('mappings.json').write_text(json.dumps({'projectDefaults':{'evaluationItems':['DiscoveryFiles'],'referenceBoundary':True,'documents':{'Directory.Build.targets':{
     'sha256':hashlib.sha256(Path('Directory.Build.targets').read_bytes()).hexdigest(),'targets':['GeneratedArtifact'],'tasks':[],'inputs':[]}}},
     'projects':{name+'/'+name+'.csproj':{'outputFiles':[name+'/obj/post.marker']} for name in ['P0','P1','P2']}}))
 GENERATED
@@ -109,7 +112,7 @@ label=generated-artifact; sync
 run generated-artifact 1 3 0
 [[ $(cat bazel-bin/graph.graph/workspace/P0/obj/post.marker) == 'generated artifact' ]]
 rm Directory.Build.targets
-printf '{}\n' > mappings.json
+printf '{"projectDefaults":{"evaluationItems":["DiscoveryFiles"]}}\n' > mappings.json
 # A different global configuration cannot consume the Release snapshots.
 sed -i 's/seed_build_cache=True/seed_build_cache=True,configuration="Debug"/' BUILD.bazel
 label=configuration; sync
@@ -124,7 +127,7 @@ TARGETS
 python3 - <<'MAPPING'
 import hashlib,json
 from pathlib import Path
-Path('mappings.json').write_text(json.dumps({'projectDefaults':{'referenceBoundary':True,'documents':{'Directory.Build.targets':{
+Path('mappings.json').write_text(json.dumps({'projectDefaults':{'evaluationItems':['DiscoveryFiles'],'referenceBoundary':True,'documents':{'Directory.Build.targets':{
     'sha256':hashlib.sha256(Path('Directory.Build.targets').read_bytes()).hexdigest(),'targets':['MutateRestoreInput'],'tasks':[],'inputs':[]}}}}))
 MAPPING
 if bazel run //:sync --action_env="RULES_MSBUILD_PROJECT_CACHE_URL=$QUALIFICATION_CACHE_URL" > "$TEST_TMPDIR/mutated.log" 2>&1; then
@@ -137,7 +140,7 @@ if grep -Fq 'GRAPH_CACHE_SEED ' "$TEST_TMPDIR/mutated.log"; then
     echo 'Input mutation published graph snapshots' >&2; exit 1
 fi
 rm Directory.Build.targets
-printf '{}\n' > mappings.json
+printf '{"projectDefaults":{"evaluationItems":["DiscoveryFiles"]}}\n' > mappings.json
 # Include an outer dispatcher and both inner frameworks in the next graph.
 sed -i 's/seed_build_cache=True,configuration="Debug"/seed_build_cache=True/' BUILD.bazel
 sed -i 's/projects=\["P2\/P2.csproj"\]/projects=["P2\/P2.csproj","P1\/P1.csproj"]/' BUILD.bazel
@@ -161,7 +164,7 @@ import hashlib,json
 from pathlib import Path
 p=Path('P2/P2.csproj')
 p.write_text(p.read_text().replace('</Project>','<ItemGroup><ProjectReference Include="../PQuery/PQuery.csproj" ReferenceOutputAssembly="false" Targets="Query" /></ItemGroup></Project>'))
-Path('mappings.json').write_text(json.dumps({'projectDefaults':{'referenceBoundary':True,'documents':{'PQuery/PQuery.csproj':{
+Path('mappings.json').write_text(json.dumps({'projectDefaults':{'evaluationItems':['DiscoveryFiles'],'referenceBoundary':True,'documents':{'PQuery/PQuery.csproj':{
     'sha256':hashlib.sha256(Path('PQuery/PQuery.csproj').read_bytes()).hexdigest(),'targets':['Build','Query'],'tasks':[],'inputs':[]}}}}))
 QUERY
 label=query-coordinator; sync

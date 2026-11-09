@@ -169,7 +169,8 @@ through HTTP, including package-SDK resolution, with no local cache, zero
 compilations, identical declarations and matching artifact digests.
 
 `seed_build_cache = True` passed a three-project chain, a five-node/two-framework
-graph, a query-only coordinator and generated-file conditions on Linux ARM64,
+graph, a query-only coordinator, globs over unselected files and generated-file
+conditions on Linux ARM64,
 SDK **10.0.400**, both current Bazel pins. First ordinary
 Builds recovered all three/four project snapshots without compilation. A fresh
 source/output-base consumer recovered through HTTP with Bazel action caching off;

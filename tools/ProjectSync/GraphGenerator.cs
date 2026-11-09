@@ -202,6 +202,19 @@ internal static class GraphGenerator
                 {
                     definitions.TryAdd(document, 0);
                 }
+                // Reviewed evaluation items can contain file globs outside the
+                // selected graph. Preserve those members in Build and Restore:
+                // evaluating a smaller source view would change their values.
+                foreach (var item in binding.EvaluationItems.SelectMany(project.GetItems))
+                {
+                    var member = item.GetMetadataValue("FullPath");
+                    if (member.Length != 0 && File.Exists(member) && !IsSdk(member) && !IsRestored(member))
+                    {
+                        var relative = Relative(member);
+                        declared.Add(relative);
+                        definitions.TryAdd(relative, 0);
+                    }
+                }
                 foreach (var input in taskInputs)
                 {
                     if (!File.Exists(Path.Combine(root, input)))
