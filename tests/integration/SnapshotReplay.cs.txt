@@ -1,4 +1,4 @@
-using RulesMSBuild.GraphBuild;
+using RulesMSBuild.ProjectCache;
 var root = args[0];
 Directory.CreateDirectory(root);
 var source = Path.Combine(root, "source");
@@ -11,13 +11,17 @@ foreach (var size in new[] { 0, 8, 262144 })
     var stamp = DateTime.UnixEpoch.AddDays(10000);
     File.SetLastWriteTimeUtc(source, stamp);
     File.SetUnixFileMode(source, UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute);
-    var digest = ContractFiles.Digest(source);
+    var digest = SnapshotPayloads.Digest(source);
     var copy = new FileMaterializer(clone, true);
     copy.Copy(source, output, digest);
-    if (ContractFiles.Digest(output) != digest || File.GetLastWriteTimeUtc(output) != stamp ||
+    var report = System.Text.Json.JsonSerializer.SerializeToElement(copy.Report);
+    Console.WriteLine("MATERIALIZER " + report);
+    if (clone && Environment.GetEnvironmentVariable("RULES_MSBUILD_REQUIRE_CLONE") == "1" && report.GetProperty("clones").GetInt64() == 0)
+        throw new Exception("Real filesystem clone was required");
+    if (SnapshotPayloads.Digest(output) != digest || File.GetLastWriteTimeUtc(output) != stamp ||
         File.GetUnixFileMode(output) != File.GetUnixFileMode(source)) throw new Exception("Replay bytes/mode/time changed");
     File.WriteAllText(output, "changed output");
-    if (ContractFiles.Digest(source) != digest) throw new Exception("Replay output shares cache storage");
+    if (SnapshotPayloads.Digest(source) != digest) throw new Exception("Replay output shares cache storage");
     if (size == 0) continue;
     bytes[0] ^= 1;
     File.WriteAllBytes(source, bytes);

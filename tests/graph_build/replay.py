@@ -55,10 +55,13 @@ def main():
             app = root / ('P2/bin/Release/net10.0/publish/P2.dll' if publish else 'P2/bin/Release/net10.0/P2.dll')
             assert run(DOTNET, app).stdout.strip() == expected
 
-        mode = ENV.get('RULES_MSBUILD_GRAPH_COPY_MODE', 'copy')
+        mode = ENV.get('RULES_MSBUILD_GRAPH_COPY_MODE')
         ENV['RULES_MSBUILD_GRAPH_COPY_MODE'] = 'copy'
         results = {'base': build(expected=0)}
-        ENV['RULES_MSBUILD_GRAPH_COPY_MODE'] = mode
+        if mode is None:
+            ENV.pop('RULES_MSBUILD_GRAPH_COPY_MODE', None)
+        else:
+            ENV['RULES_MSBUILD_GRAPH_COPY_MODE'] = mode
         results['replay'] = build(expected=3)
         execute('1')
         # Writes through a replayed dependency must not mutate its producer or CAS.
