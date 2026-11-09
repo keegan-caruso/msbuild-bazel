@@ -171,6 +171,10 @@ This is a separate review from `evaluationReuseInputs`.
 | `compileGlobs` | Reviewed C# source membership, per configured project |
 | `evaluationReuseInputs`, `replayOmissions` | Reviewed compiler-only inputs and disposable intermediates |
 
+Existing workspace files named by reviewed `evaluationItems` are definition inputs
+for Build and prepared Restore. This preserves glob membership outside the selected
+project graph; scalar values remain metadata.
+
 Manual `compilerReferencesComplete: true` requires `referenceBoundary: true` and
 all project DLLs selected by the SDK. Partial maps retain conservative transitive
 keys. Implementation DLLs belong in `compilerReferences` when Csc reads them;
