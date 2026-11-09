@@ -20,6 +20,15 @@ RUNNER = ROOT / 'tools/ProjectSync/bin/Release/net10.0/ProjectSync.dll'
 
 class NuGetUpdateCacheTests(unittest.TestCase):
     def test_explicit_http_cache_reuses_download_without_changing_locks(self):
+        self.check_http_cache(False)
+
+    def test_default_http_cache_reuses_download_without_changing_locks(self):
+        self.check_http_cache(True)
+
+    def test_no_http_cache_keeps_acquisition_disposable(self):
+        self.check_http_cache(None)
+
+    def check_http_cache(self, automatic):
         package = io.BytesIO()
         with zipfile.ZipFile(package, 'w') as archive:
             archive.writestr('Fixture.Cache.nuspec', '<package><metadata><id>Fixture.Cache</id><version>1.0.0</version><authors>fixture</authors><description>cache control</description></metadata></package>')
@@ -60,8 +69,15 @@ class NuGetUpdateCacheTests(unittest.TestCase):
             (source/'NuGet.Config').write_text('<configuration><packageSources><clear/><add key="fixture" value="'+address+'/index.json" allowInsecureConnections="true"/></packageSources></configuration>')
             (source/'App.csproj').write_text('<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup><TargetFramework>net10.0</TargetFramework></PropertyGroup><ItemGroup><PackageReference Include="Fixture.Cache" Version="1.0.0"/></ItemGroup></Project>')
             (source/'Code.cs').write_text('public class C {}')
-            command=[str(SDK/'dotnet'),str(RUNNER),'nuget-update',str(source),str(SDK),'App.csproj','--http-cache',str(cache),'--distdir',str(base/'distdir')]
-            first=subprocess.run(command,text=True,capture_output=True)
+            command=[str(SDK/'dotnet'),str(RUNNER),'nuget-update',str(source),str(SDK),'App.csproj','--distdir',str(base/'distdir')]
+            environment=dict(os.environ, XDG_DATA_HOME=str(base/'data'))
+            if automatic is None:
+                command+=['--no-http-cache']
+            elif automatic:
+                cache=base/'data/rules-msbuild/nuget-http'
+            else:
+                command+=['--http-cache',str(cache)]
+            first=subprocess.run(command,text=True,capture_output=True,env=environment)
             self.assertEqual(first.returncode,0,first.stdout+first.stderr)
             expected={name:(source/name).read_bytes() for name in ['nuget.lock.json','packages.lock.json']}
             package_path='/flat/fixture.cache/1.0.0/fixture.cache.1.0.0.nupkg'
@@ -69,16 +85,16 @@ class NuGetUpdateCacheTests(unittest.TestCase):
             exported=base/'distdir/fixture.cache.1.0.0.nupkg'
             self.assertEqual(exported.read_bytes(),data)
             exported.unlink()
-            second=subprocess.run(command+['--check'],text=True,capture_output=True)
+            second=subprocess.run(command+['--check'],text=True,capture_output=True,env=environment)
             self.assertEqual(second.returncode,0,second.stdout+second.stderr)
-            self.assertEqual(requests[package_path],1,'update/check downloaded the same archive twice')
+            self.assertEqual(requests[package_path],2 if automatic is None else 1,'acquisition did not follow the requested cache policy')
             self.assertEqual({name:(source/name).read_bytes() for name in expected},expected)
-            self.assertTrue(list(cache.rglob('nupkg_fixture.cache.1.0.0.dat')))
+            self.assertEqual(bool(list(cache.rglob('nupkg_fixture.cache.1.0.0.dat'))),automatic is not None)
             self.assertFalse((source/'bin').exists())
             self.assertFalse((source/'obj').exists())
             self.assertEqual(exported.read_bytes(),data)
             exported.write_bytes(b'corrupt')
-            rejected=subprocess.run(command+['--check'],text=True,capture_output=True)
+            rejected=subprocess.run(command+['--check'],text=True,capture_output=True,env=environment)
             self.assertNotEqual(rejected.returncode,0)
             self.assertIn('NuGet distdir archive differs',rejected.stderr)
             self.assertEqual(exported.read_bytes(),b'corrupt')

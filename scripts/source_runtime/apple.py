@@ -11,7 +11,7 @@ import subprocess
 import tarfile
 import uuid
 
-from .common import ROOT, stage_source, digest, read_recipe, run, save
+from .common import ROOT, stage_source, digest, read_recipe, run, save, rules_identity
 
 
 def demo_helpers():
@@ -50,9 +50,17 @@ def setup(args):
         raise ValueError('Native tool/cache paths are Linux options; Apple setup creates its own declared environment')
     base = args.output.expanduser().resolve()
     helpers = demo_helpers()
+    if base.exists() and not args.resume:
+        state_path = base/'setup.json'
+        if not state_path.is_file():
+            raise ValueError('Refusing to resume an unowned output directory')
+        recorded = json.loads(state_path.read_text())
+        if recorded.get('kind') != 'apple-source-runtime' or recorded.get('version') != 1 or recorded.get('sourceIdentity') != rules_identity():
+            raise ValueError('Automatic resume requires matching owned setup inputs')
+        args.resume = True
     if args.resume:
         state = json.loads((base/'setup.json').read_text())
-        if state.get('kind') != 'apple-source-runtime':
+        if state.get('kind') != 'apple-source-runtime' or state.get('version') != 1:
             raise ValueError('Output belongs to another workflow')
         for supplied,recorded in [(args.image,state['requestedImage']),(args.cache_url,state['cacheUrl'])]:
             if supplied is not None and supplied != recorded:
@@ -73,7 +81,7 @@ def setup(args):
         identifier = uuid.uuid4().hex[:10]
         archive = base/'rules.tar'
         state = dict(version=1,kind='apple-source-runtime',id=identifier,worker='msbuild-source-runtime-'+identifier,
-                     requestedImage=args.image,cacheUrl=args.cache_url,rulesSha256=helpers.snapshot(archive),ready=False)
+                     requestedImage=args.image,cacheUrl=args.cache_url,sourceIdentity=rules_identity(),rulesSha256=helpers.snapshot(archive),ready=False)
         save(base/'setup.json',state)
     with (base/'setup.lock').open('a+') as lock:
         fcntl.flock(lock,fcntl.LOCK_EX|fcntl.LOCK_NB)

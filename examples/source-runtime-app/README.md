@@ -19,7 +19,8 @@ the app and runtime archive. Native Ubuntu 22.04 ARM64 can run the same command
 with those dependencies, an 8 GiB memory budget (RAM plus swap), and nested
 user/mount namespaces available.
 
-Resume interrupted setup with the same command plus `--resume`. Retain the setup
+Rerun the same command to resume an owned setup with matching inputs. `--resume`
+also remains available. Retain the setup
 directory; Linux also retains a dependency on this rules checkout. Reports and
 timings stay under the setup directory.
 

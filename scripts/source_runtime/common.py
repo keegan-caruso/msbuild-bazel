@@ -78,13 +78,11 @@ def rules_identity():
 
 def owned_output(base, resume, kind):
     if base.exists():
-        if not resume:
-            raise ValueError('Use a fresh output directory or --resume')
         state_path = base/'setup.json'
         if not state_path.is_file():
             raise ValueError('Refusing to resume an unowned output directory')
         state = json.loads(state_path.read_text())
-        if state.get('kind') != kind:
+        if state.get('kind') != kind or state.get('version') != 1:
             raise ValueError('Output belongs to another workflow')
         return state
     base.mkdir(parents=True, mode=0o700)
