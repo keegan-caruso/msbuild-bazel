@@ -22,6 +22,68 @@ The earlier 481-compilation runtime baseline and source-built SDK consumers belo
 retain their recorded 9.2 qualification. The downloaded-SDK runtime slice below
 has separate 9.3 results.
 
+## Shared cache on two Macs
+
+Use the same reachable HTTP(S) endpoint for both hosts; keep its address in the
+host environment, outside Git. Each host runs an independent consumer:
+
+```sh
+# Export a reachable endpoint as RULES_MSBUILD_SHARED_CACHE_URL first.
+bash scripts/run-apple-container.sh bash scripts/bazel.sh test \
+  //tests/integration:quickstart --test_output=errors
+```
+
+With `RULES_MSBUILD_SHARED_CACHE_URL` set, the wrapper forwards it into the guest
+and writes guest-only Bazel defaults: the same URL for the action cache and
+`RULES_MSBUILD_PROJECT_CACHE_URL` (including action environment), no disk action
+cache, synchronous uploads and complete output downloads. It bounds Bazel to two
+jobs, one local test and one MSBuild graph worker instance. This does not enable
+worker execution or change sandboxing. Command-line flags, including fixture
+recovery controls, can override these defaults; consumers that ignore Bazel rc
+files must pass the cache flags explicitly. An absent URL leaves cache and job
+configuration unchanged. `RULES_MSBUILD_CONTAINER_PREBUILT=1` is forwarded too;
+use it only with a prepared image matching repository pins.
+
+If the Linux guest cannot route to the HTTPS endpoint, optionally set
+`RULES_MSBUILD_SHARED_CACHE_SOCKET` to an existing host UNIX socket whose service
+forwards raw bytes to that endpoint. The wrapper mounts the socket and starts a
+guest TCP relay, deriving its loopback port and `/etc/hosts` mapping from the
+shared HTTPS URL. TLS still verifies the original server hostname; the relay does
+not terminate TLS or change either cache URL. Use a DNS hostname without URL
+credentials. The host must provision and keep that socket service running; the
+wrapper does not install it. This transport is opt-in and requires Python 3 in
+prebuilt images. Relay process lifetime follows the disposable container.
+
+Run one heavy container per host, with the wrapper's four CPU / 6 GiB defaults.
+Split independent suites or producer/consumer runs between the Macs; a shared
+cache reuses results, it does not distribute compilation. Check `df -h` before
+large source builds and leave room for the complete active output tree and image.
+The remote cache avoids retaining duplicate persistent action caches; active
+outputs, expanded SDKs/packages and repository downloads still need local space.
+Repository acquisition is separate from action/project reuse: this setting does
+not configure an HTTP repository-contents cache or eliminate SDK downloads.
+
+Containers use `--rm` and keep only explicitly written `/evidence` files and the
+run log in `artifacts/apple-container/run.*`. Put reports in `/evidence`, rather
+than copying the workspace or output base back to the host. Review and prune old
+evidence when it is no longer needed. Producer/consumer recovery evidence still
+requires fresh workspaces/output bases and a stopped producer; warm local reuse
+alone does not qualify cross-host recovery.
+
+The wrapper forwarding/default controls pass with
+`python3 -m unittest discover -s tests/tooling -p test_apple_container.py -v`.
+The separate `test_shared_cache_guest_relay.py` controls exercise bidirectional
+TCP/UNIX bytes and half-close behavior. These mock the host launcher and execute
+guest configuration. A fresh Ubuntu ARM64 guest on Bazel **9.3.2** also passed
+public quickstart Build/test/run with the generic relay and shared action/project
+cache URLs: the sandboxed graph action actually executed, loaded `GraphCache`,
+and the app printed its expected greeting. The command used
+`--remote_accept_cached=false` for the test build and retained an execution log;
+HTTPS cache status also succeeded. This qualifies Linux Bazel/MSBuild access,
+not stopped-producer cross-host Linux recovery, worker reliability or resource
+sufficiency. Keep the consumer and rules checkout outside `/tmp`, or under one
+common scratch parent: Bazel's hermetic `/tmp` can hide a sibling local override.
+
 ## Downloaded SDK platforms
 
 Downloaded-SDK controls passed on native Linux ARM64 and Linux x64 **under
