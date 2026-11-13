@@ -87,3 +87,13 @@ def owned_output(base, resume, kind):
         return state
     base.mkdir(parents=True, mode=0o700)
     return None
+
+
+def selected_bazel_version():
+    """Use an explicit override, otherwise the rules checkout's pin."""
+    return os.environ.get('USE_BAZEL_VERSION') or (ROOT / '.bazelversion').read_text().strip()
+
+
+def validate_bazel_version(state):
+    if state.get('bazelVersion') != selected_bazel_version():
+        raise ValueError('Bazel version changed; use a fresh output directory')

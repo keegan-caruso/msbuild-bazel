@@ -24,9 +24,8 @@ class ToolChecks(unittest.TestCase):
         version = json.loads((ROOT/'global.json').read_text())['sdk']['version']
         self.executable(self.sdk/'dotnet', version)
         self.bazel = self.root/'bazel'
-        self.executable(self.bazel, 'bazel 8.8.0')
-        self.env = dict(os.environ, DOTNET_ROOT=str(self.sdk), RULES_MSBUILD_BAZEL=str(self.bazel), RULES_MSBUILD_BAZEL_VERSION='8.8.0')
-        self.env.pop('USE_BAZEL_VERSION', None)
+        self.executable(self.bazel, 'bazel 9.3.2')
+        self.env = dict(os.environ, DOTNET_ROOT=str(self.sdk), RULES_MSBUILD_BAZEL=str(self.bazel), USE_BAZEL_VERSION='9.3.2')
 
     def executable(self, path, value):
         path.write_text('#!/bin/sh\necho "'+value+'"\n'); path.chmod(0o755)
@@ -36,15 +35,26 @@ class ToolChecks(unittest.TestCase):
                               env=self.env, capture_output=True, text=True)
 
     def test_selected_versions_without_preparation(self):
-        for version in ['8.8.0', '9.3.0']:
+        for version in ['9.3.2']:
             self.executable(self.bazel, 'bazel '+version)
-            self.env['RULES_MSBUILD_BAZEL_VERSION'] = version
+            self.env['USE_BAZEL_VERSION'] = version
             result = self.check()
             self.assertEqual(result.returncode, 0, result.stderr)
             self.assertIn('Toolchain checks passed', result.stdout)
 
+    def test_repository_pin_ignores_legacy_override(self):
+        self.env.pop('USE_BAZEL_VERSION')
+        self.env['RULES_MSBUILD_BAZEL_VERSION'] = '0.0.0'
+        result = self.check()
+        self.assertEqual(result.returncode, 0, result.stderr)
+
+    def test_empty_override_uses_repository_pin(self):
+        self.env['USE_BAZEL_VERSION'] = ''
+        result = self.check()
+        self.assertEqual(result.returncode, 0, result.stderr)
+
     def test_wrong_binary_is_rejected(self):
-        self.env['RULES_MSBUILD_BAZEL_VERSION'] = '9.3.0'
+        self.env['USE_BAZEL_VERSION'] = '0.0.0'
         result = self.check()
         self.assertNotEqual(result.returncode, 0)
         self.assertIn('Bazel version differs', result.stderr)

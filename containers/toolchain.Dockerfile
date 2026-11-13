@@ -8,7 +8,7 @@ COPY payload.tar ./
 RUN tar -xf payload.tar && rm payload.tar
 ENV BAZELISK_HOME=/opt/rules_msbuild-toolchain/.cache/bazelisk
 RUN bash scripts/setup.sh --toolchain-only \
-    && USE_BAZEL_VERSION=8.8.0 bash scripts/bazel.sh --version \
+    && bash scripts/bazel.sh --version \
     && rm -rf .cache/downloads .cache/nuget .cache/dotnet-home
 RUN apt-get update -qq && apt-get install -y -qq bubblewrap python3 && rm -rf /var/lib/apt/lists/*
 ENV RULES_MSBUILD_DOTNET_ROOT=/opt/rules_msbuild-toolchain/.tools/dotnet \

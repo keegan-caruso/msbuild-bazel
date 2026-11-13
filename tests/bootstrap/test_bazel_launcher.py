@@ -16,7 +16,7 @@ class BazelLauncherTests(unittest.TestCase):
             repo = root/'repo'; (repo/'scripts').mkdir(parents=True)
             for name in ('env.sh', 'bazel-launcher.sh'):
                 shutil.copy2(ROOT/'scripts'/name, repo/'scripts'/name)
-            (repo/'.bazelversion').write_text('9.3.0\n')
+            (repo/'.bazelversion').write_text('9.3.2\n')
             workspace = root/'generated'; workspace.mkdir()
             (workspace/'.bazelversion').write_text('0.0.0\n')
             fake = root/'bazelisk'
@@ -32,13 +32,13 @@ class BazelLauncherTests(unittest.TestCase):
             return version
 
     def test_default_ignores_unrelated_workspace_pin(self):
-        self.assertEqual(self.invoke(), '9.3.0')
+        self.assertEqual(self.invoke(), '9.3.2')
 
-    def test_bazelisk_override_selects_compatibility_version(self):
+    def test_bazelisk_override_selects_experimental_version(self):
         self.assertEqual(self.invoke(USE_BAZEL_VERSION='8.8.0'), '8.8.0')
 
-    def test_legacy_override_is_preserved(self):
-        self.assertEqual(self.invoke(RULES_MSBUILD_BAZEL_VERSION='8.8.0'), '8.8.0')
+    def test_legacy_override_does_not_replace_repository_pin(self):
+        self.assertEqual(self.invoke(RULES_MSBUILD_BAZEL_VERSION='8.8.0'), '9.3.2')
 
     def test_bazelisk_override_takes_precedence(self):
-        self.assertEqual(self.invoke(USE_BAZEL_VERSION='8.8.0', RULES_MSBUILD_BAZEL_VERSION='9.3.0'), '8.8.0')
+        self.assertEqual(self.invoke(USE_BAZEL_VERSION='8.8.0', RULES_MSBUILD_BAZEL_VERSION='9.3.2'), '8.8.0')

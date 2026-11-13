@@ -13,5 +13,5 @@ export PATH="$REPO_ROOT/.tools/bin:$DOTNET_ROOT:$PATH"
 
 # Carry the selected version into generated workspaces without a .bazelversion.
 export RULES_MSBUILD_BAZELISK="${RULES_MSBUILD_BAZELISK:-$REPO_ROOT/.tools/bin/bazelisk}"
-export USE_BAZEL_VERSION="${USE_BAZEL_VERSION:-${RULES_MSBUILD_BAZEL_VERSION:-$(cat "$REPO_ROOT/.bazelversion")}}"
+export USE_BAZEL_VERSION="${USE_BAZEL_VERSION:-$(cat "$REPO_ROOT/.bazelversion")}"
 export BAZELISK_HOME="${BAZELISK_HOME:-$REPO_ROOT/.cache/bazelisk}"
