@@ -1,14 +1,30 @@
 # Support and limits
 
 The graph workflow with the MSBuild project-cache plugin is the sole backend.
-Pins: SDK **10.0.400**, Bazel **8.8.0 / 9.3.0**. Inputs, packages, tool layouts, generated files and output
-ownership must be explicit. Sync does not trace arbitrary task reads or acquire
+Current baseline: SDK **10.0.400**, Bazel **9.3.2** only. Bazel 8.x is no longer supported.
+`USE_BAZEL_VERSION` overrides the repository `.bazelversion`; source-runtime setup
+records that selection and rejects resume with a different version. Historical
+qualification and timing pins below describe their original runs, not 9.3.2
+qualification. The release gates in [the work queue](../WORK_QUEUE.md) track current
+requalification; Linux checks are deferred pending the new build server.
+
+Inputs, packages, tool layouts, generated files and output ownership must be explicit. Sync does not trace arbitrary task reads or acquire
 missing packages.
 
-The 9.3 upgrade passed 29 analysis/integration checks on Linux ARM64, including
+Native macOS ARM64 baseline checks passed `scripts/check.sh`, all 25 analysis
+controls and the execution-requirements check on 9.3.2. Portable version controls
+cover generated workspaces, explicit override precedence, repository-pin fallback,
+empty/legacy overrides and source-runtime resume mismatch rejection. The owned
+.NET projects pass compilation and formatting. Full `scripts/check-dotnet.sh` reached
+one failure in the default NuGet HTTP-cache control because the restricted host
+could not write macOS Application Support; this is not a passing full-suite result.
+Linux execution and source-runtime production on 9.3.2 remain pending.
+
+The historical 9.3.0 upgrade passed 29 analysis/integration checks on Linux ARM64, including
 8.8 compatibility, SDK facts, cached/uncached workers, compiler selections and
 recursive-source HTTP Restore/project recovery. Cached HTTPS SDK acquisition also
-passed with all downloader URLs blocked and metadata removed. Reproduce with:
+passed with all downloader URLs blocked and metadata removed. Run the corresponding
+current-baseline gate with:
 
 ```sh
 SDK_VERSION_CACHE_URL=http://cache:8080 DYNAMIC_SOURCE_CACHE_URL=http://cache:8080 \

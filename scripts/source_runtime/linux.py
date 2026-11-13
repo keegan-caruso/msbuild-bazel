@@ -10,7 +10,7 @@ import subprocess
 import sys
 import time
 
-from .common import ROOT, digest, read_recipe, rules_identity, run, save, owned_output
+from .common import ROOT, digest, read_recipe, rules_identity, run, save, owned_output, selected_bazel_version
 from .acquisition import acquire_source
 from .native import prepare_inputs
 
@@ -83,7 +83,7 @@ def setup(args):
     if bool(args.native_toolchain) != bool(args.sandbox):
         raise ValueError('Provide --native-toolchain and --sandbox together')
     recipe = read_recipe()
-    identity = dict(recipe=recipe, rulesSha256=rules_identity(), registry=args.registry, cacheUrl=args.cache_url,
+    identity = dict(bazelVersion=selected_bazel_version(), recipe=recipe, rulesSha256=rules_identity(), registry=args.registry, cacheUrl=args.cache_url,
                     nativePackagesSha256=digest(ROOT/'tests/runtime/native-packages.json') if not args.native_toolchain else None,
                     nativeToolchainSha256=digest(args.native_toolchain) if args.native_toolchain else None,
                     sandboxSha256=digest(args.sandbox) if args.sandbox else None,
@@ -128,7 +128,7 @@ def setup(args):
         launcher(wrapper, bazelisk, args.registry, args.repository_cache, args.cache_url, distdir)
         env = dict(os.environ, RULES_MSBUILD_DOTNET_ROOT=str(sdk), RULES_MSBUILD_BAZELISK=str(wrapper),
                    RULES_MSBUILD_BAZEL=str(ROOT / 'scripts/bazel-launcher.sh'),
-                   USE_BAZEL_VERSION='9.3.0', BAZELISK_HOME=os.environ.get('BAZELISK_HOME', str(ROOT / '.cache/bazelisk')))
+                   USE_BAZEL_VERSION=identity['bazelVersion'], BAZELISK_HOME=os.environ.get('BAZELISK_HOME', str(ROOT / '.cache/bazelisk')))
         if args.repository_cache:
             env['RULES_MSBUILD_TEST_REPOSITORY_CACHE'] = str(args.repository_cache.resolve())
         if args.cache_url:

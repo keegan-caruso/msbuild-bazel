@@ -18,13 +18,11 @@ bazel_dep(name = "rules_shell", version = "0.6.1", dev_dependency = True)
 
 bazel_binaries = use_extension("@rules_bazel_integration_test//:extensions.bzl", "bazel_binaries", dev_dependency = True)
 bazel_binaries.download(version_file = "//:.bazelversion")
-bazel_binaries.download(version = "8.8.0")
 use_repo(
     bazel_binaries,
     "bazel_binaries",
     "bazel_binaries_bazelisk",
     "build_bazel_bazel_.bazelversion",
-    "build_bazel_bazel_8_8_0",
 )
 
 register_toolchains("//msbuild:qualified_stable_paths_toolchain")

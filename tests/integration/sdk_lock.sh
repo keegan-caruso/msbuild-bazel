@@ -1,9 +1,6 @@
 #!/usr/bin/env bash
 set -euo pipefail
 sdk_qualification_metadata=$(realpath "$SDK_QUALIFICATION_METADATA")
-for binary in $BAZEL_8; do
-    if [[ "$binary" == */bazel_binary ]]; then bazel_8=$(realpath "$binary"); fi
-done
 for binary in $BAZEL_9; do
     if [[ "$binary" == */bazel_binary ]]; then bazel_9=$(realpath "$binary"); fi
 done
@@ -74,8 +71,8 @@ mv releases.json unavailable.json
     cd "$scratch/clone"
     fresh "$scratch/clone-base" build @supplied//:files --lockfile_mode=error
 )
-# Switching Bazel versions may add registry entries; SDK facts survive unchanged.
-for other_bazel in "$bazel_8" "$bazel_9"; do
+# A fresh baseline binary preserves SDK facts and strict lockfile replay.
+for other_bazel in "$bazel_9"; do
     (
         cd "$scratch/clone"
         cross_base="$scratch/cross-$(basename "$(dirname "$other_bazel")")"

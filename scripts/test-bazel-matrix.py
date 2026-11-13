@@ -12,7 +12,7 @@ ROOT = Path(__file__).resolve().parents[1]
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--output', type=Path, required=True)
-    parser.add_argument('--versions', nargs='+', choices=['8.8.0', '9.3.0'], default=['8.8.0', '9.3.0'])
+    parser.add_argument('--versions', nargs='+', choices=['9.3.2'], default=['9.3.2'])
     args = parser.parse_args()
     output = args.output.resolve()
     if output.is_relative_to(ROOT):
@@ -35,7 +35,7 @@ def main():
     if not run('common', ['bash', 'scripts/validation.sh', 'common'], env):
         return 1
     for version in args.versions:
-        selected = dict(env, USE_BAZEL_VERSION=version, RULES_MSBUILD_BAZEL_VERSION=version)
+        selected = dict(env, USE_BAZEL_VERSION=version)
         for name, command in [
             ('checks', ['bash', 'scripts/validation.sh', 'version']),
             ('acceptance', ['bash', 'scripts/validation.sh', 'acceptance', str(output/version)]),
