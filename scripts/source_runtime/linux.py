@@ -10,17 +10,19 @@ import subprocess
 import sys
 import time
 
-from .common import ROOT, digest, read_recipe, rules_identity, run, save, owned_output, selected_bazel_version
+from .common import ROOT, digest, read_recipe, rules_identity, run, save, owned_output, selected_bazel_version, project_cache_read_only
 from .acquisition import acquire_source
 from .native import prepare_inputs
 
 PREPARE = ROOT / 'tests/graph_build/upstream'
 
 
-def launcher(path, bazelisk, registry, repository_cache, cache_url, distdir=None):
+def launcher(path, bazelisk, registry, repository_cache, cache_url, distdir=None, read_only='0'):
     # Helpers call the repository launcher. Its explicit Bazelisk override keeps
     # common acquisition/cache options on every nested Bazel invocation as well.
-    options = []
+    if read_only not in ('0', '1'):
+        raise ValueError('RULES_MSBUILD_PROJECT_CACHE_READ_ONLY must be 0 or 1')
+    options = ['--action_env=RULES_MSBUILD_PROJECT_CACHE_READ_ONLY=' + read_only]
     if registry:
         options.append('--registry=' + registry)
     if repository_cache:
@@ -50,6 +52,7 @@ def build_command(base, action, arguments=()):
     state = json.loads((base / 'setup.json').read_text())
     workspace = Path(state['workspace'])
     env = dict(os.environ, **state['environment'])
+    env['RULES_MSBUILD_PROJECT_CACHE_READ_ONLY'] = project_cache_read_only(state.get('identity', state))
     command = [str(ROOT / 'scripts/bazel-launcher.sh'), '--nosystem_rc', '--nohome_rc', '--noworkspace_rc',
                '--output_base=' + str(base / 'bazel'), action]
     if action == 'run':
@@ -83,7 +86,7 @@ def setup(args):
     if bool(args.native_toolchain) != bool(args.sandbox):
         raise ValueError('Provide --native-toolchain and --sandbox together')
     recipe = read_recipe()
-    identity = dict(bazelVersion=selected_bazel_version(), recipe=recipe, rulesSha256=rules_identity(), registry=args.registry, cacheUrl=args.cache_url,
+    identity = dict(projectCacheReadOnly=project_cache_read_only(state['identity'] if state else None), bazelVersion=selected_bazel_version(), recipe=recipe, rulesSha256=rules_identity(), registry=args.registry, cacheUrl=args.cache_url,
                     nativePackagesSha256=digest(ROOT/'tests/runtime/native-packages.json') if not args.native_toolchain else None,
                     nativeToolchainSha256=digest(args.native_toolchain) if args.native_toolchain else None,
                     sandboxSha256=digest(args.sandbox) if args.sandbox else None,
@@ -125,10 +128,11 @@ def setup(args):
         wrapper = base / 'bazelisk.sh'
         distdir = base / 'downloads/nuget-dist'
         distdir.mkdir(parents=True, exist_ok=True)
-        launcher(wrapper, bazelisk, args.registry, args.repository_cache, args.cache_url, distdir)
+        launcher(wrapper, bazelisk, args.registry, args.repository_cache, args.cache_url, distdir, read_only=identity['projectCacheReadOnly'])
         env = dict(os.environ, RULES_MSBUILD_DOTNET_ROOT=str(sdk), RULES_MSBUILD_BAZELISK=str(wrapper),
                    RULES_MSBUILD_BAZEL=str(ROOT / 'scripts/bazel-launcher.sh'),
                    USE_BAZEL_VERSION=identity['bazelVersion'], BAZELISK_HOME=os.environ.get('BAZELISK_HOME', str(ROOT / '.cache/bazelisk')))
+        env['RULES_MSBUILD_PROJECT_CACHE_READ_ONLY'] = identity['projectCacheReadOnly']
         if args.repository_cache:
             env['RULES_MSBUILD_TEST_REPOSITORY_CACHE'] = str(args.repository_cache.resolve())
         if args.cache_url:
@@ -137,7 +141,7 @@ def setup(args):
             env.pop('RULES_MSBUILD_PROJECT_CACHE_URL', None)
             env.pop('RULES_MSBUILD_PROJECT_CACHE_BEARER_TOKEN', None)
         state['environment'] = {key: value for key, value in env.items() if key in ['RULES_MSBUILD_DOTNET_ROOT',
-            'RULES_MSBUILD_BAZELISK','RULES_MSBUILD_BAZEL','RULES_MSBUILD_TEST_REPOSITORY_CACHE','RULES_MSBUILD_PROJECT_CACHE_URL','USE_BAZEL_VERSION','BAZELISK_HOME']}
+            'RULES_MSBUILD_PROJECT_CACHE_READ_ONLY','RULES_MSBUILD_BAZELISK','RULES_MSBUILD_BAZEL','RULES_MSBUILD_TEST_REPOSITORY_CACHE','RULES_MSBUILD_PROJECT_CACHE_URL','USE_BAZEL_VERSION','BAZELISK_HOME']}
         save(state_path, state)
         stage('tools', ['bash', ROOT / 'scripts/check.sh', '--toolchain-only'])
         archive = acquire_source(base, recipe['source'], env, args.source_archive)
