@@ -5,11 +5,10 @@ scope, finding a blocker, completing checks, or integrating a change. Keep entri
 small until they are ready to execute. Completed entries may be removed or reduced
 to a short result after their changes and evidence are preserved.
 
-Execution resumed at the user's request. Verify both hosts and integrate Q01 before
-dispatching independent ready items; preserve existing work and use the shared cache.
-The user is preparing a Linux build server: focus current work on native macOS and
-portable checks. Do not start Linux jobs; preserve existing Linux evidence and leave
-new Linux qualification pending the server.
+Execution resumed at the user's request. Q01 was integrated before dispatching
+independent ready work across both Macs. Current work is native macOS and portable
+checks: the user is preparing a Linux build server. Do not start Linux jobs; retain
+existing Linux evidence and qualify the new server when requested.
 
 ## Agreed release scope
 
@@ -62,18 +61,27 @@ cross-host Bazel 9.3.2 reuse and Linux curl transport passed; full Linux Bazel/M
 recovery remains to be qualified. Cache retention does not replace active outputs or
 SDK/package acquisition. User LaunchAgents require login.
 
-## Ready and active work
+## Ready and deferred work
 
 | ID | Priority / status | Task and acceptance | Owner / host / worktree | Dependencies and evidence |
 | --- | --- | --- | --- | --- |
-| Q01 | P0 / done | Shared-cache guest launcher/relay integrated as `e002504`; portable controls (3), Linux public quickstart test/run with real graph execution, cache HTTPS access and integration controls (2) passed. | Coordinator; clean dedicated worktree removed; both Q01 Rex sessions closed after preserving evidence. | Evidence `/tmp/msbuild-q01-evidence-1113/REPORT.md`; scope in `docs/support.md`. Linux stopped-producer cross-host recovery and workers remain unqualified. |
-| Q02 | P0 / done (scoped repairs) | Package SDK, protocol archive and payload fixture repairs integrated as `c3bc5ae` (`12f1143`); affected native9.3.2 controls pass. | Sol implementation, lead review; both clean worktrees removed without force and Q02 sessions closed. Mini retained equivalent commit `992e58b` after all4 file SHA256 matched integrated content. | Full acceptance passed9 slices then independent `tools.py:104` read-only replay `NuGet.Config` failure; no complete gate pass or nested integration. Local report `/tmp/msbuild-q02-evidence-1113/REPORT.md`; mini verified reports `/Users/keegancaruso/q02-evidence-1113`; SDK/tools preserved at mini `~/.cache/msbuild-native-tools-1113` (SDK10.0.400 verified). Interrupted Linux run preserved, no qualification. |
-| Q02a | P0 / queued | Resolve remaining native gate fixture failures: `tools.py:104` cannot rewrite copied read-only replay `NuGet.Config` (`tools/PackageSdks.cs:72`); default NuGet HTTP-cache fixture assumes Linux XDG path on macOS. Preserve intended assertions, then rerun full graph acceptance and .NET checks on current9.3.2 composition. | Unassigned; no worktree/session until dispatch. | Q02/Q03 integrated. Evidence in Q02 and Q03 reports; targeted repaired controls pass, full gates remain incomplete. Linux deferred. |
-| Q03 | P0 / done | Bazel selection and active 9.3.2-only baseline integrated as `4d23b2a` (commits `15e5ae2`, `25857f4`); workflow state validates resume identity. | Sol implementation; clean worktree removed and Q03 Rex session closed after preserving reports. | Native analysis 25/25, execution requirements, scaffold, portable tooling/bootstrap and owned build/format checks pass. Full .NET gate retains independent macOS default NuGet-cache fixture failure (Linux XDG path assumption); explicit/disposable cache controls pass. Evidence `/tmp/msbuild-q03-evidence-1113/REPORT.md`. Linux qualification deferred pending new server. |
-| Q04 | P0 / queued | Make the supported Linux configuration use workers by default. Define the release gate and qualify failure recovery, bounded output/resource behavior and clean retries. | Sol 6.1; local code and mini qualified Linux runs. | Q01, Q02, Q03. Inspect active-request deadlines, output capture and publication cleanup; do not assume all audit questions are confirmed defects. |
-| Q05 | P0 / review | Specify and test concurrent project-cache publication, interruptions, eviction and corruption. Implement the supported policy without claiming cross-machine atomicity from a local lock. | Lead; native/portable fault fixtures in `/private/tmp/msbuild-q05-cache-policy-1113` (`codex/q05-cache-policy`), MacBook Rex `session:01a1d6f1-2be6-7046-b4c1-da341dc399d1`. No Linux jobs; cross-host Linux controls deferred. Native mini probe session `session:01a1d6f7-3b35-70a0-a4cd-8049b0bd3861`: fresh read-only fetch after publisher exit matches SHA256. Local publication/graph HTTP fault controls,53 ProjectSync checks (7Linux skips), targeted environment hiding, builds/style/scaffold pass. Added publication/fault controls to acceptance. Review found source-runtime propagation gap; bounded fix in `/private/tmp/msbuild-q05-runtime-policy-1113` (`codex/q05-runtime-policy`), Rex `session:01a1d6fd-ac3f-74e9-84af-4496dcd2f6b4`, portable-only. | Q01. Existing check-then-PUT has a documented divergent-writer race. Existing transport retries and integrity checks remain in scope. |
-| Q06 | P0 / queued | Qualify source-built SDK/runtime production workflows on the release baseline: declared producer handoff, consumer operations, actual tests, stopped-producer recovery and source/runtime identity. | Sol 6.1; distribute producer and consumer between hosts, one heavy job each. | Q01–Q05 as relevant. Keep full upstream parity, official signing and unsupported architectures explicit rather than implied. |
-| Q07 | P1 / done | Private graph selection/path helpers integrated as `5e93290` (`9591cbe`); rule-specific actions/errors and source-path behavior preserved. | Terra implementation, lead review; clean worktree removed and session closed after evidence preservation. | Native macOS / Bazel9.3.2 analysis31/31, scaffold, buildifier and diff checks pass. Evidence `/tmp/msbuild-q07-analysis-rerun-1113.log`, `/tmp/msbuild-q07-check-1113.log`. No Linux/CI. |
+| Q02a | P0 / queued | Resolve remaining native gate fixture failures: `tools.py:104` cannot rewrite copied read-only replay `NuGet.Config` (`tools/PackageSdks.cs:72`); default NuGet HTTP-cache fixture assumes a Linux XDG path on macOS. Preserve assertions, then rerun full graph acceptance and .NET checks on the composed 9.3.2 baseline. | Unassigned; no worktree/session until dispatch. | Q02/Q03 integrated. Reports below preserve failures. Affected repaired controls pass; full gates remain incomplete. |
+| Q04 | P0 / queued; Linux deferred | Make supported Linux execution use workers by default; qualify failure recovery, bounded output/resources and clean retries. Inspect deadlines, output capture and publication cleanup before treating audit questions as defects. | Unassigned pending the user's Linux build server. | Q01–Q03 integrated; full native gate follow-up Q02a remains queued. No new Linux runs. |
+| Q06 | P0 / queued; Linux deferred | Qualify source-built SDK/runtime production on 9.3.2: producer handoff, consumer Build/test/Pack/Publish, actual tests, stopped-producer recovery and source/runtime identity. | Unassigned pending the Linux server and worker gate. | Q01–Q05 as relevant. Preserve scope limits: no inferred whole-upstream parity, signing or unsupported architectures. |
+
+## Completed work
+
+Passing affected controls do not imply a passing complete release gate. Reports
+retain commands, pins, worktree/session ownership and limits; task branches remain
+available after clean worktree removal.
+
+| ID | Integration / result | Evidence and limits |
+| --- | --- | --- |
+| Q01 | `e002504`: shared HTTPS container defaults and generic guest relay. Portable controls3, fresh Linux direct quickstart test/run and existing integration controls2 passed before Linux deferral. | `/tmp/msbuild-q01-evidence-1113/REPORT.md`; prior native cross-host tiny-action recovery `/tmp/msbuild-cross-host-cache-20261113/REPORT.md`. No complete Linux cross-host graph recovery or worker claim. |
+| Q02 | `c3bc5ae` (`12f1143`): supported package-SDK/protocol/payload fixture repairs and local-cache acceptance isolation. Affected native9.3.2 controls pass; full gate passed9 slices then stopped at Q02a. | `/tmp/msbuild-q02-evidence-1113/REPORT.md`; mini `/Users/keegancaruso/q02-evidence-1113`. Mini equivalent commit `992e58b` retained after all4 file hashes matched. Native tools preserved at mini `~/.cache/msbuild-native-tools-1113`, SDK10.0.400 verified. No nested integration or complete acceptance pass. |
+| Q03 | `4d23b2a` (`15e5ae2`, `25857f4`): explicit override then repository pin, recorded/resume-validated workflow selection, active9.3.2-only baseline. Native analysis25, scaffold, portable tooling and owned builds/format pass. | `/tmp/msbuild-q03-evidence-1113/REPORT.md`. Complete .NET gate retains Q02a default-cache fixture failure; Linux qualification deferred. |
+| Q05 | `b360d86` (`5b921df`, `760aeeb`, `aaeb3cc`): explicit read-only consumers, serialized-publisher policy, independent-process faults, runtime policy retention and GET-only consumer preflight. Defaults remain read-write. | `/tmp/msbuild-q05-evidence-1113/REPORT.md`, `/tmp/msbuild-q05-runtime-evidence-1113/REPORT.md`. Native graph/store faults and independent mini snapshot digest pass; ProjectSync53/7skips plus targeted mode control; final composed tooling69/2skips and scaffold pass. Divergent racing HTTP writers remain unsupported; live Linux worker/source-runtime propagation deferred. |
+| Q07 | `5e93290` (`9591cbe`): private graph selection/path helpers preserve rule-specific actions/errors. Native analysis31/31, scaffold, buildifier and diff checks pass. | `/tmp/msbuild-q07-analysis-rerun-1113.log`, `/tmp/msbuild-q07-check-1113.log`. No Linux or CI. |
 
 ## Later work
 

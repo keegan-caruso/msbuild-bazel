@@ -559,6 +559,8 @@ consumers still fetch snapshots and build misses locally, but send no project-ca
 PUT requests and do not repair missing remote entries. It also applies to prepared
 sync qualification and graph-cache seeding; direct ProjectSync callers may use
 `--qualification-cache-read-only` with `--qualification-cache`.
+Source-runtime setup records this mode; generated commands retain it when the
+host variable is absent, and an explicit mode change requires a fresh output.
 
 The supported publication policy requires serialized publishing processes for each
 shared endpoint/key namespace, across all hosts and containers. Selecting one host
