@@ -1,4 +1,5 @@
 """Small, real test-framework projects exercising the Bazel test contract on Linux."""
+import base64
 import hashlib
 import json
 import os
@@ -31,7 +32,10 @@ def packages(lock, workspace):
         archive = name.lower()+'.'+version+'.nupkg'
         source = lock/'packages'/name.lower()/version/archive
         shutil.copyfile(source, directory/archive)
-        attrs = dict(name=name.lower(), package_id=name, version=version, archive=archive, content_hash=assets['libraries'][key]['sha512'], archive_sha256=hashlib.sha256(source.read_bytes()).hexdigest(), deps=[':'+d.lower() for d in record.get('dependencies', {})], visibility=['//visibility:public'])
+        # Signed packages can have an assets hash unlike their archive bytes.
+        # Lock the exact archive copied into this self-contained fixture.
+        archive_bytes = source.read_bytes()
+        attrs = dict(name=name.lower(), package_id=name, version=version, archive=archive, content_hash=base64.b64encode(hashlib.sha512(archive_bytes).digest()).decode(), archive_sha256=hashlib.sha256(archive_bytes).hexdigest(), deps=[':'+d.lower() for d in record.get('dependencies', {})], visibility=['//visibility:public'])
         rows.append('msbuild_nuget_package('+','.join(k+'='+json.dumps(v) for k,v in attrs.items())+')')
     (directory/'BUILD.bazel').write_text('\n'.join(rows)+'\n')
 
