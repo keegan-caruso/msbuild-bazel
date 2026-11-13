@@ -124,7 +124,7 @@ internal static class GraphRunner
             }
             var timer = System.Diagnostics.Stopwatch.StartNew();
             var payloads = new SnapshotPayloads(cache ?? throw new InvalidDataException("Cache directory is required"));
-            using var remote = remoteUrl is null ? null : new RemoteSnapshotStore(new Uri(remoteUrl.TrimEnd('/') + "/"), bearerToken: bearerToken, profile: profile, contentStore: payloads);
+            using var remote = remoteUrl is null ? null : new RemoteSnapshotStore(new Uri(remoteUrl.TrimEnd('/') + "/"), bearerToken: bearerToken, profile: profile, contentStore: payloads, readOnly: options.RemoteReadOnly);
             var materializer = new FileMaterializer(copyMode == "clone", profile);
             var plugin = new GraphCache(inputs, cache ?? throw new InvalidDataException("Cache directory is required"), args.Length < 7 || args[6] != "no-read", remote, materializer, payloads, temporaryOutputs, localState);
             var buildEvaluation = profile || evaluation is not null ? new BuildEvaluationCounter() : null;

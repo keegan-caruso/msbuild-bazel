@@ -7,13 +7,13 @@ import subprocess
 import sys
 
 ROOT = Path(__file__).resolve().parents[2]
-SLICES = ["qualify", "replay", "reviewed_dependencies", "source_groups", "output_ownership", "payload_concurrency", "shared_payloads", "signing", "package_sdks", "tools", "native_tools", "protocols"]
+SLICES = ["qualify", "replay", "reviewed_dependencies", "source_groups", "output_ownership", "payload_concurrency", "shared_payloads", "remote", "remote_publication", "signing", "package_sdks", "tools", "native_tools", "protocols"]
 
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("directory", type=Path)
-    parser.add_argument("--linux-workers", action="store_true", default=os.environ.get("RULES_MSBUILD_GRAPH_WORKER") == "1", help="include qualified Linux ARM64 workers on both Bazel baselines")
+    parser.add_argument("--linux-workers", action="store_true", default=os.environ.get("RULES_MSBUILD_GRAPH_WORKER") == "1", help="include qualified Linux ARM64 workers on the supported Bazel baseline")
     args = parser.parse_args()
     if args.linux_workers and (sys.platform != "linux" or platform.machine() != "aarch64"):
         parser.error("worker qualification requires Linux ARM64")
