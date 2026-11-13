@@ -2,6 +2,14 @@
 
 Use a separate Git worktree for each change.
 
+Use `WORK_QUEUE.md` as the authoritative work queue. Read it before starting work;
+update status, ownership, dependencies, worktree and validation evidence as work
+progresses. Coordinate edits through the lead instance. Parallelize independent
+slices across hosts and instances; design details only as needed. Use Sol 6.1 as the
+maximum agent model and Terra 6.1 for simpler tasks. After review and integration,
+remove clean completed worktrees without discarding unmerged or unrelated work.
+Simplify or remove completed queue entries once useful evidence is preserved.
+
 ## Goal and current state
 
 The sole build interface is `msbuild/defs.bzl` / `msbuild/graph.bzl` with
