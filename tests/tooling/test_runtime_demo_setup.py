@@ -8,6 +8,7 @@ import tarfile
 import subprocess
 import tempfile
 import unittest
+import urllib.error
 from unittest.mock import patch
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2] / 'scripts'))
@@ -43,6 +44,39 @@ class RuntimeDemoInputs(unittest.TestCase):
         (outputs/'App.dll').write_bytes(b'not an input')
         (self.root/'bazel-bin').symlink_to(outputs, target_is_directory=True)
         self.archive = self.base/'inputs.tar.gz'
+
+    def test_read_only_cache_probe_accepts_missing_entry_without_put(self):
+        missing = urllib.error.HTTPError('http://cache/cas/probe', 404, 'missing', {}, io.BytesIO())
+        with patch.object(demo.urllib.request, 'urlopen', side_effect=missing) as request:
+            demo.probe_cache('http://cache', '1')
+            self.assertEqual(request.call_count, 1)
+            self.assertIsInstance(request.call_args.args[0], str)
+
+    def test_read_only_cache_probe_verifies_present_bytes(self):
+        for body, valid in [(b'rules-msbuild-runtime-demo-cache-probe', True), (b'corrupt', False)]:
+            with self.subTest(valid=valid):
+                response = io.BytesIO(body); response.status = 200
+                with patch.object(demo.urllib.request, 'urlopen', return_value=response) as request:
+                    if valid:
+                        demo.probe_cache('http://cache', '1')
+                    else:
+                        with self.assertRaisesRegex(AssertionError, 'bytes differ'):
+                            demo.probe_cache('http://cache', '1')
+                    self.assertEqual(request.call_count, 1)
+                    self.assertIsInstance(request.call_args.args[0], str)
+        denied = urllib.error.HTTPError('http://cache/cas/probe', 403, 'denied', {}, io.BytesIO())
+        with patch.object(demo.urllib.request, 'urlopen', side_effect=denied):
+            with self.assertRaises(urllib.error.HTTPError):
+                demo.probe_cache('http://cache', '1')
+
+    def test_default_cache_probe_keeps_put_then_get(self):
+        uploaded = io.BytesIO(); uploaded.status = 204
+        downloaded = io.BytesIO(b'rules-msbuild-runtime-demo-cache-probe'); downloaded.status = 200
+        with patch.object(demo.urllib.request, 'urlopen', side_effect=[uploaded, downloaded]) as request:
+            demo.probe_cache('http://cache')
+            self.assertEqual(request.call_count, 2)
+            self.assertEqual(request.call_args_list[0].args[0].get_method(), 'PUT')
+            self.assertIsInstance(request.call_args_list[1].args[0], str)
 
     def test_demo_guest_injects_saved_policy_into_nested_bazel(self):
         binary = self.root/'.tools/bin/bazelisk'
