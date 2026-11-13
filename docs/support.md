@@ -16,8 +16,10 @@ controls and the execution-requirements check on 9.3.2. Portable version control
 cover generated workspaces, explicit override precedence, repository-pin fallback,
 empty/legacy overrides and source-runtime resume mismatch rejection. The owned
 .NET projects pass compilation and formatting. Full `scripts/check-dotnet.sh` reached
-one failure in the default NuGet HTTP-cache control because the restricted host
-could not write macOS Application Support; this is not a passing full-suite result.
+one independent failure in the default NuGet HTTP-cache fixture: restricted runs
+cannot write macOS Application Support, and an unrestricted native retry exposes
+the fixture's Linux XDG-path assumption. Explicit/disposable cache controls pass;
+this is not a passing full-suite result.
 Linux execution and source-runtime production on 9.3.2 remain pending.
 
 The historical 9.3.0 upgrade passed 29 analysis/integration checks on Linux ARM64, including
@@ -103,7 +105,7 @@ common scratch parent: Bazel's hermetic `/tmp` can hide a sibling local override
 ## Downloaded SDK platforms
 
 Downloaded-SDK controls passed on native Linux ARM64 and Linux x64 **under
-Apple Rosetta**: 29 analysis/integration checks across both current Bazel pins,
+Apple Rosetta**: 29 analysis/integration checks across the recorded 8.8.0 / 9.3.0 pins,
 plus 21 SDK/runtime repository controls. Scope: SDK selection/locks, quickstart,
 SDK-only Web/Razor Build/test/Publish and HTTP recovery, cached/uncached sandboxed
 workers, body/API edits and raw MSBuild output parity. The Web fixture checks the
@@ -122,7 +124,7 @@ Mac. This establishes emulated x64 behavior, not native x64 performance or
 source-built SDK/runtime qualification. Native Linux x64 remains unqualified.
 
 Native macOS ARM64 passed `//tests/integration:{quickstart,native_sdk}` on
-both current Bazel pins with SDK **10.0.400**: the public catalog's packages,
+the recorded 8.8.0 / 9.3.0 pins with SDK **10.0.400**: the public catalog's packages,
 Razor/Publish, app/tests, body/API reference checks, sync/check and an independent
 strict-lock source/output-base consumer. These four controls also passed on
 native Linux ARM64. All 24 SDK/runtime repository controls
@@ -133,7 +135,7 @@ Linux workers, published-byte parity and HTTP recovery retain their separate
 qualification above.
 
 `//tests/integration:visual_basic` passed on Linux ARM64 with SDK **10.0.400**
-and both current Bazel pins: explicit `.vbproj` roots/mappings, a C# consumer,
+and the recorded 8.8.0 / 9.3.0 pins: explicit `.vbproj` roots/mappings, a C# consumer,
 body edits, execution and independent disk-cache recovery. VB inputs remain
 explicit; automatic compiler-input qualification and Compile globs are C# only.
 
@@ -154,7 +156,7 @@ public sync, raw MSBuild parity, edits, failures and cached/uncached workers.
 Web/Razor [graph controls](../tests/graph_build/web.py) cover compile/replay, Razor
 edits and assembly attributes; source-built Razor consumers are covered below.
 
-`//tests/integration:sdk_web` passed both current Bazel pins on Linux ARM64 with
+`//tests/integration:sdk_web` passed the recorded 8.8.0 / 9.3.0 pins on Linux ARM64 with
 SDK **10.0.400**, using its bundled ASP.NET framework without `runtime_host`.
 Build/test and Publish serve a compiled Razor page and published static assets;
 content edits require no sync. Published files match ordinary/graph MSBuild bytes,
@@ -210,7 +212,7 @@ remain unsupported; selection uses published releases, not installed SDKs.
 Linux ARM64: local/external-module graph compilation, body edits, pinned membership
 and rejection of undeclared cross-repository sources.
 
-`//tests/integration:evaluation_worker` passed both current pins on Linux ARM64:
+`//tests/integration:evaluation_worker` passed the recorded 8.8.0 / 9.3.0 pins on Linux ARM64:
 reviewed body/API reuse, fresh build state, evaluation-input/task changes and failed-
 build recovery. Retention requires explicit compiler-only input review; see
 [configuration](api.md#caching-and-workers) and [runtime timings](performance.md#reviewed-evaluation-reuse).
@@ -265,7 +267,7 @@ Build snapshot seeding (automatic with the declared qualified execution capabili
 or forced with `seed_build_cache = True`) passed a three-project chain, a five-node/two-framework
 graph, a query-only coordinator, globs over unselected files and generated-file
 conditions on Linux ARM64,
-SDK **10.0.400**, both current Bazel pins. First ordinary
+SDK **10.0.400**, the recorded 8.8.0 / 9.3.0 pins. First ordinary
 Builds recovered all three/four project snapshots without compilation. A fresh
 source/output-base consumer recovered through HTTP with Bazel action caching off;
 owned outputs matched uncached Build bytes, excluding the ordinary protocol's
