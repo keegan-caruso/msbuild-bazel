@@ -27,12 +27,20 @@ class AppleContainerTests(unittest.TestCase):
             env = dict(os.environ, PATH=str(tools) + ':' + os.environ['PATH'], CAPTURE=folder,
                        RULES_MSBUILD_SHARED_CACHE_URL='http://cache.invalid:8080',
                        RULES_MSBUILD_CONTAINER_PREBUILT='1')
+            env.pop('USE_BAZEL_VERSION', None)
             result = subprocess.run(['bash', str(script), 'printf', 'done'], env=env, capture_output=True)
             self.assertEqual(result.returncode, 0, result.stderr)
             args = (root / 'args').read_text().splitlines()
             for expected in ('--rm', 'RULES_MSBUILD_CONTAINER_PREBUILT=1',
                              'RULES_MSBUILD_SHARED_CACHE_URL=http://cache.invalid:8080'):
                 self.assertIn(expected, args)
+            self.assertIn('USE_BAZEL_VERSION=', args)
+            env['USE_BAZEL_VERSION'] = '9.3.2'
+            result = subprocess.run(['bash', str(script), 'true'], env=env, capture_output=True)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            override_args = (root / 'args').read_text().splitlines()
+            self.assertIn('USE_BAZEL_VERSION=9.3.2', override_args)
+            self.assertEqual(override_args[override_args.index('USE_BAZEL_VERSION=9.3.2') - 1], '-e')
             with socket.socket(socket.AF_UNIX) as relay_socket:
                 socket_path = str(root / 'host.sock')
                 relay_socket.bind(socket_path)
