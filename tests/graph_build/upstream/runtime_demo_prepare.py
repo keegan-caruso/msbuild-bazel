@@ -105,6 +105,18 @@ def unpack(archive, expected, destination):
     return root
 
 
+def configure_project_cache(config):
+    # Every nested repository launcher must retain the owned publication policy.
+    sys.path.insert(0, str(ROOT / 'scripts'))
+    from source_runtime.common import project_cache_read_only
+    from source_runtime.linux import launcher
+    read_only = project_cache_read_only(config)
+    wrapper = BASE / 'project-cache-bazelisk.sh'
+    launcher(wrapper, ROOT / '.tools/bin/bazelisk', None, None, None, read_only=read_only)
+    os.environ['RULES_MSBUILD_BAZELISK'] = str(wrapper)
+    os.environ['RULES_MSBUILD_PROJECT_CACHE_READ_ONLY'] = read_only
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('mode', choices=['producer', 'consumer', 'pack'])
@@ -154,6 +166,7 @@ def main():
         print('PASS: ' + name, flush=True)
 
     step('tools', ['bash', str(ROOT / 'scripts/setup.sh'), '--toolchain-only'])
+    configure_project_cache(config)
     probe = b'rules-msbuild-runtime-demo-cache-probe'
     url = config['cacheUrl'].rstrip('/') + '/cas/' + hashlib.sha256(probe).hexdigest()
     with urllib.request.urlopen(urllib.request.Request(url, data=probe, method='PUT'), timeout=15) as response:

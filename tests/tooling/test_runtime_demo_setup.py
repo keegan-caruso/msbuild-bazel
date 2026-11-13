@@ -5,10 +5,14 @@ import os
 from pathlib import Path
 import sys
 import tarfile
+import subprocess
 import tempfile
 import unittest
+from unittest.mock import patch
 
+sys.path.insert(0, str(Path(__file__).resolve().parents[2] / 'scripts'))
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'graph_build/upstream'))
+import runtime_demo_prepare as demo
 from runtime_demo_prepare import AUXILIARY, digest, pack, unpack
 
 
@@ -39,6 +43,20 @@ class RuntimeDemoInputs(unittest.TestCase):
         (outputs/'App.dll').write_bytes(b'not an input')
         (self.root/'bazel-bin').symlink_to(outputs, target_is_directory=True)
         self.archive = self.base/'inputs.tar.gz'
+
+    def test_demo_guest_injects_saved_policy_into_nested_bazel(self):
+        binary = self.root/'.tools/bin/bazelisk'
+        binary.parent.mkdir(parents=True)
+        binary.write_text('#!/bin/sh\nprintf "%s\\n" "$@"\n')
+        binary.chmod(0o755)
+        with patch.object(demo, 'ROOT', self.root), patch.object(demo, 'BASE', self.base), patch.dict(os.environ):
+            os.environ.pop('RULES_MSBUILD_PROJECT_CACHE_READ_ONLY', None)
+            demo.configure_project_cache({'projectCacheReadOnly': '1'})
+            wrapper = os.environ['RULES_MSBUILD_BAZELISK']
+            args = subprocess.check_output([wrapper, 'build', '//:app'], text=True).splitlines()
+            self.assertIn('--action_env=RULES_MSBUILD_PROJECT_CACHE_READ_ONLY=1', args)
+            self.assertEqual(os.environ['RULES_MSBUILD_PROJECT_CACHE_READ_ONLY'], '1')
+            self.assertFalse(any(arg.startswith('--remote_upload_local_results') for arg in args))
 
     @unittest.skipUnless(hasattr(tarfile, 'data_filter'), 'Secure extraction requires the qualified Linux Python runtime')
     def test_round_trip_preserves_inputs_hardlinks_modes_and_rebases_rules(self):

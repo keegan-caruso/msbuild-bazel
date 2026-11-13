@@ -97,3 +97,15 @@ def selected_bazel_version():
 def validate_bazel_version(state):
     if state.get('bazelVersion') != selected_bazel_version():
         raise ValueError('Bazel version changed; use a fresh output directory')
+
+
+def project_cache_read_only(state=None):
+    """Retain an owned workflow's publication policy when the host env is absent."""
+    key = 'RULES_MSBUILD_PROJECT_CACHE_READ_ONLY'
+    recorded = (state or {}).get('projectCacheReadOnly', '0')
+    selected = os.environ.get(key, recorded)
+    if selected not in ('0', '1') or recorded not in ('0', '1'):
+        raise ValueError(key + ' must be 0 or 1')
+    if state is not None and selected != recorded:
+        raise ValueError('Project-cache publication policy changed; use a fresh output directory')
+    return selected
