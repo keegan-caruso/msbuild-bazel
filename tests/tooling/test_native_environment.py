@@ -45,7 +45,6 @@ class NativeEnvironmentTests(unittest.TestCase):
         dockerfile = (ROOT / 'containers/runtime-demo.Dockerfile').read_text()
         self.assertIn('clang-18 lld-18 llvm-18', dockerfile)
         self.assertNotIn('clang clang-', dockerfile)
-        self.assertIn('coreutils-from-gnu', dockerfile)
         self.assertNotIn('build-essential', dockerfile)
         catalog = json.loads((ROOT / 'tests/runtime/native-packages.json').read_text())
         names = {package['name'] for package in catalog['packages']}

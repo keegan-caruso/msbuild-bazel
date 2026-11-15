@@ -4,7 +4,7 @@ ENV DEBIAN_FRONTEND=noninteractive
 # Setup records the resulting immutable image digest and installed packages.
 RUN apt-get update -qq && apt-get install -y -qq --no-install-recommends \
     ca-certificates curl git python3 bubblewrap clang-18 lld-18 llvm-18 \
-    gcc g++ make dpkg-dev libc6-dev libcrypt-dev coreutils-from-uutils- coreutils-from-gnu \
+    gcc g++ make dpkg-dev libc6-dev libcrypt-dev \
     cmake ninja-build pkg-config libicu-dev libssl-dev \
     liblttng-ust-dev libnuma-dev libunwind-dev zlib1g-dev libkrb5-dev uuid-dev \
     && rm -rf /var/lib/apt/lists/*
