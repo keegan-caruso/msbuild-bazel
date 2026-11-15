@@ -840,6 +840,41 @@ RESULT --seed=HANDOFF/seed.json --actions=ACTIONS`. Actually execute `//:app_tes
 //:runtime_test` with `--nocache_test_results`. This handoff requires a prepared
 producer and the [qualified Linux environment](support.md#complete-source-runtime-product).
 
+## Bounded cache controls
+
+Native macOS ARM64, SDK **10.0.400**: `remote_streaming.py` fetches eight 8 MiB
+payloads concurrently with a store budget of two. Its sampled managed-memory growth
+was **3,359,440 bytes** for distinct payloads and **2,141,080 bytes** for shared
+content; maximum active payload responses was **two**. The shared payload required
+one GET, and an interrupted body recovered exact bytes on retry. These single
+synthetic observations exclude the Python server's memory, native allocations and
+package/build work; they are neither RSS budgets nor before/after speedups.
+
+`publication_queue.py` uses controlled completion signals to verify capture can
+continue with two active publications, admission blocks at capacity, and failures
+drain started work. Concurrent distinct-key HTTP publications share one payload
+PUT. No wall-time improvement is inferred from these concurrency controls.
+
+The native ownership-index control classifies independent outputs and performs one
+lookup per node. Single observations were **7.43 / 19.92 / 52.13 ms** at
+**1,000 / 4,000 / 16,000 nodes**. The former conflict-free algorithm would visit
+**999,000 / 15,996,000 / 255,984,000 ordered node pairs** before path comparisons;
+these are operation counts, not a timed baseline. Run
+`python3 -m unittest discover -s tests/project_sync -p test_input_observations.py -v`.
+
+`python3 tests/analysis/runtime_layout_scaling.py` exercises the actual expansion
+callback and compares output with the previous nested scan. Increasing files from
+1,000 to 10,000 and selections from 101 to 1,001 required 3,000 to 30,000 prefix
+probes, with nested member ordering preserved. This isolates prefix selection,
+not complete Bazel action latency.
+
+One native extraction of a generated 128 MiB uncompressed package used
+**69,484,544 bytes peak RSS**, measured with macOS `/usr/bin/time -l`; the retained
+archive and extracted payload matched their inputs. This is one bounded-memory
+control, without a comparative baseline or whole-build timing claim. Private
+verified staging adds temporary disk I/O while removing whole-archive managed
+buffers.
+
 ## Reproduce
 
 For separate sync diagnostics, use `bazel run //:sync
