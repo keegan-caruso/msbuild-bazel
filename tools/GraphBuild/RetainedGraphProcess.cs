@@ -1,5 +1,6 @@
 using System.Collections.Concurrent;
 using System.Diagnostics;
+using System.Text;
 using System.Text.Json;
 
 namespace RulesMSBuild.GraphBuild;
@@ -10,9 +11,9 @@ internal sealed class RetainedGraphProcess : IDisposable
 {
     private sealed record Command(EngineRequest Request, TaskCompletionSource<EngineReply> Completion);
     private readonly BlockingCollection<Command> commands = new();
+    private readonly CancellationTokenSource stopped = new();
     private readonly Thread thread;
-    private Process? process;
-    private Exception? failure;
+    private volatile Exception? failure;
 
     internal RetainedGraphProcess(ProcessStartInfo start)
     {
@@ -23,15 +24,27 @@ internal sealed class RetainedGraphProcess : IDisposable
         thread.Start();
     }
 
-    internal async Task<EngineReply> Run(EngineRequest request)
+    internal async Task<EngineReply> Run(EngineRequest request, CancellationToken cancellationToken = default,
+        TimeSpan? timeout = null)
     {
-        if (failure is not null)
+        cancellationToken.ThrowIfCancellationRequested();
+        if (failure is not null || commands.IsAddingCompleted)
         {
-            throw new IOException("Retained graph engine failed", failure);
+            throw new IOException("Retained graph engine stopped", failure);
         }
         var completion = new TaskCompletionSource<EngineReply>(TaskCreationOptions.RunContinuationsAsynchronously);
-        commands.Add(new(request, completion));
-        return await completion.Task;
+        try
+        {
+            commands.Add(new(request, completion), cancellationToken);
+            return await completion.Task.WaitAsync(timeout ?? WorkerProcess.RequestTimeout, cancellationToken);
+        }
+        catch (Exception error) when (error is TimeoutException or OperationCanceledException)
+        {
+            failure = error;
+            stopped.Cancel();
+            WorkerProcess.Observe(completion.Task);
+            throw;
+        }
     }
 
     private void Serve(ProcessStartInfo start)
@@ -39,44 +52,59 @@ internal sealed class RetainedGraphProcess : IDisposable
         Command? current = null;
         try
         {
+            stopped.Token.ThrowIfCancellationRequested();
             using var child = Process.Start(start) ?? throw new IOException("Cannot start retained graph sandbox");
-            process = child;
-            var stderr = child.StandardError.ReadToEndAsync();
-            foreach (var command in commands.GetConsumingEnumerable())
+            using var terminate = stopped.Token.Register(() =>
             {
-                current = command;
-                child.StandardInput.WriteLine(JsonSerializer.Serialize(command.Request));
-                child.StandardInput.Flush();
-                var line = child.StandardOutput.ReadLine();
-                if (line is null)
+                var terminationFailure = WorkerProcess.Terminate(child);
+                if (terminationFailure is not null)
                 {
-                    child.WaitForExit();
-                    throw new IOException("Retained graph engine exited: " + stderr.GetAwaiter().GetResult());
+                    failure = terminationFailure;
                 }
-                var reply = JsonSerializer.Deserialize<EngineReply>(line) ?? throw new InvalidDataException("Missing engine reply");
-                command.Completion.SetResult(reply);
-                current = null;
-                if (reply.Restart || reply.Retire)
+            });
+            using var errors = new WorkerOutput();
+            using var drain = new CancellationTokenSource();
+            var stderr = errors.DrainAsync(child.StandardError, drain.Token);
+            try
+            {
+                foreach (var command in commands.GetConsumingEnumerable(stopped.Token))
                 {
-                    break;
+                    current = command;
+                    child.StandardInput.WriteLine(JsonSerializer.Serialize(command.Request));
+                    child.StandardInput.Flush();
+                    var line = ReadReply(child.StandardOutput);
+                    if (line is null)
+                    {
+                        throw new IOException("Retained graph engine exited: " + errors);
+                    }
+                    var reply = JsonSerializer.Deserialize<EngineReply>(line) ?? throw new InvalidDataException("Missing engine reply");
+                    if (reply.Output.Length > WorkerProcess.OutputCharacters + 128)
+                    {
+                        throw new InvalidDataException("Retained graph engine output exceeds diagnostic budget");
+                    }
+                    command.Completion.TrySetResult(reply);
+                    current = null;
+                    if (reply.Restart || reply.Retire)
+                    {
+                        break;
+                    }
                 }
             }
-            child.StandardInput.Close();
-            if (!child.WaitForExit(5000))
+            finally
             {
-                child.Kill(entireProcessTree: true);
-                child.WaitForExit();
+                var terminationFailure = WorkerProcess.Terminate(child);
+                drain.Cancel();
+                WorkerProcess.Observe(stderr);
+                if (terminationFailure is not null)
+                {
+                    throw new IOException("Retained graph sandbox termination failed", terminationFailure);
+                }
             }
-            stderr.GetAwaiter().GetResult();
         }
         catch (Exception error)
         {
-            failure = error;
-            current?.Completion.TrySetException(error);
-            while (commands.TryTake(out var command))
-            {
-                command.Completion.TrySetException(error);
-            }
+            failure ??= error;
+            current?.Completion.TrySetException(failure);
         }
         finally
         {
@@ -88,21 +116,37 @@ internal sealed class RetainedGraphProcess : IDisposable
         }
     }
 
+    private static string? ReadReply(StreamReader reader)
+    {
+        // JSON can escape one diagnostic character as six wire characters. Read
+        // through StreamReader's buffer without allocating an unbounded line.
+        const int limit = WorkerProcess.OutputCharacters * 6 + 4096;
+        var line = new StringBuilder();
+        int value;
+        while ((value = reader.Read()) != -1)
+        {
+            if (value == '\n')
+            {
+                return line.ToString();
+            }
+            if (line.Length == limit)
+            {
+                throw new InvalidDataException("Retained graph engine reply exceeds protocol budget");
+            }
+            line.Append((char)value);
+        }
+        return line.Length == 0 ? null : throw new InvalidDataException("Incomplete retained graph engine reply");
+    }
+
     public void Dispose()
     {
         commands.CompleteAdding();
+        stopped.Cancel();
         if (!thread.Join(10000))
         {
-            try
-            {
-                process?.Kill(entireProcessTree: true);
-            }
-            catch (InvalidOperationException)
-            {
-                // It already exited while the broker was shutting down.
-            }
-            thread.Join();
+            throw new IOException("Retained graph engine supervisor did not stop", failure);
         }
         commands.Dispose();
+        stopped.Dispose();
     }
 }
