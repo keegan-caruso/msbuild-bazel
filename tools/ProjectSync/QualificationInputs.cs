@@ -100,18 +100,10 @@ internal sealed class QualificationInputs
         }
         // Shared output roots/products cannot be independently replayed. Nor
         // can their consumers safely hash an output while another owner writes it.
-        var ambiguous = new HashSet<ProjectGraphNode>();
-        foreach (var node in graph.ProjectNodes)
-        {
-            if (graph.ProjectNodes.Any(other => other != node &&
-                (Products[node].Overlaps(Products[other]) ||
-                 Directories.TryGetValue(node, out var left) && left.Any(directory => Products[other].Any(path => path.StartsWith(directory + "/", StringComparison.Ordinal)) ||
-                    Directories.TryGetValue(other, out var right) && right.Any(path => Overlaps(directory, path))) ||
-                 Directories.TryGetValue(other, out var owner) && owner.Any(directory => Products[node].Any(path => path.StartsWith(directory + "/", StringComparison.Ordinal))))))
-            {
-                ambiguous.Add(node);
-            }
-        }
+        var ownership = new OutputOwnershipIndex<ProjectGraphNode>(
+            Directories.SelectMany(pair => pair.Value.Select(path => (pair.Key, path))),
+            Products.SelectMany(pair => pair.Value.Select(path => (pair.Key, path))));
+        var ambiguous = ownership.ConflictingOwners();
         var unsafeDependencies = new Dictionary<ProjectGraphNode, bool>();
         bool Unsafe(ProjectGraphNode node)
         {

@@ -38,8 +38,7 @@ internal static class BuildSeedProof
 
     internal static string Digest(string path)
     {
-        using var stream = File.OpenRead(path);
-        return Hash(Convert.ToHexString(SHA256.HashData(stream)) + ":" + (OperatingSystem.IsWindows() ? 0 : (int)File.GetUnixFileMode(path)));
+        return FileObservation.Read(path).SeedDigest;
     }
 
     internal static string TreeDigest(string root) => Hash(JsonSerializer.Serialize(Directory.EnumerateFiles(root, "*", SearchOption.AllDirectories)

@@ -14,7 +14,8 @@ def main():
         (base / 'Probe.csproj').write_text('<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup>'
             '<TargetFramework>net10.0</TargetFramework><OutputType>Exe</OutputType><ImplicitUsings>enable</ImplicitUsings>'
             '<Nullable>enable</Nullable></PropertyGroup><ItemGroup>'
-            f'<Compile Include="{ROOT}/tools/GraphBuild/OutputOwnership.cs" /></ItemGroup></Project>')
+            f'<Compile Include="{ROOT}/tools/GraphBuild/OutputOwnership.cs" />'
+            f'<Compile Include="{ROOT}/tools/OutputOwnershipIndex.cs" /></ItemGroup></Project>')
         run(DOTNET, 'build', base / 'Probe.csproj', '-c', 'Release', '-p:UseSharedCompilation=false', '-warnaserror')
         print(run(DOTNET, base / 'bin/Release/net10.0/Probe.dll').stdout.strip())
         root = base / 'workspace'

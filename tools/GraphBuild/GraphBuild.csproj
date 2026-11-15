@@ -16,6 +16,8 @@
     <Compile Include="../GraphCompilerReferences.cs" />
     <Compile Include="../GraphProjectKind.cs" />
     <Compile Include="../GraphSourcePattern.cs" />
+    <Compile Include="../OutputOwnershipIndex.cs" />
+    <Compile Include="../ProjectCache/FileObservation.cs" />
     <Compile Include="../ProjectCache/SnapshotPayloads.cs" />
     <Compile Include="../ProjectCache/BuildSeed.cs" />
     <Compile Include="../ProjectCache/FileMaterializer.cs" />

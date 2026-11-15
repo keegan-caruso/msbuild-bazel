@@ -10,4 +10,5 @@ exports_files([
     "GraphSourcePattern.cs",
     "GraphEntryProperties.cs",
     "GraphSolutions.cs",
+    "OutputOwnershipIndex.cs",
 ])
