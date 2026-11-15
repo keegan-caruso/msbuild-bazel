@@ -36,7 +36,7 @@ internal sealed class WorkerEngine(string root) : IDisposable
         return destination;
     }
 
-    internal async Task<EngineReply> Run(string sandbox, string sdk, string runner, string contract, string prepared, string cache, string target, bool profile, int megabytes)
+    internal async Task<EngineReply> Run(string sandbox, string sdk, string runner, string contract, string prepared, string cache, string target, bool profile, int megabytes, CancellationToken cancellationToken = default)
     {
         if (budget != megabytes)
         {
@@ -55,7 +55,7 @@ internal sealed class WorkerEngine(string root) : IDisposable
                 process = new(start);
                 Generation++;
             }
-            var reply = await process.Run(new(target, profile, megabytes));
+            var reply = await process.Run(new(target, profile, megabytes), cancellationToken);
             LastReply = reply;
             if (reply.Restart)
             {

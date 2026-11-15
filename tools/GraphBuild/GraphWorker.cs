@@ -8,9 +8,6 @@ namespace RulesMSBuild.GraphBuild;
 // sandboxed evaluation engine; every request still gets fresh workspace contents.
 internal static class GraphWorker
 {
-    private sealed record Input(string Path, string Digest = "");
-    private sealed record WorkRequest(string[] Arguments, Input[] Inputs, int RequestId = 0, bool Cancel = false);
-    private sealed record Reply(int ExitCode, string Output, int RequestId = 0);
     private sealed record Source(string Path, string Destination);
     private sealed record Request(string Contract, string Output, string Target, string? Prepared, Source[] Sources, bool ProfileBuild = false, int EvaluationCacheMb = 512);
     private static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web);
@@ -50,35 +47,28 @@ internal static class GraphWorker
             Console.Error.Write(result.Output);
             return result.ExitCode;
         }
-        while (await Console.In.ReadLineAsync() is { } line)
+        await WorkerRequests.Run(Console.In, Console.Out, async (work, cancellationToken) =>
         {
-            var id = 0;
-            Reply reply;
             try
             {
-                var work = JsonSerializer.Deserialize<WorkRequest>(line, Json) ?? throw new InvalidDataException("Missing worker request");
-                id = work.RequestId;
-                if (work.Cancel || work.Arguments.Length != 1)
+                if (work.Arguments.Length != 1)
                 {
-                    throw new InvalidDataException("Expected one graph request; cancellation is unsupported");
+                    throw new InvalidDataException("Expected one graph request");
                 }
+                cancellationToken.ThrowIfCancellationRequested();
                 var declared = work.Inputs.Select(input => Safe(input.Path)).ToHashSet(StringComparer.Ordinal);
-                reply = (await Build(work.Arguments[0], declared, work.Inputs.ToDictionary(input => input.Path, input => input.Digest, StringComparer.Ordinal))) with
-                {
-                    RequestId = id
-                };
+                return await Build(work.Arguments[0], declared,
+                    work.Inputs.ToDictionary(input => input.Path, input => input.Digest, StringComparer.Ordinal), cancellationToken);
             }
-            catch (Exception error)
+            catch
             {
                 engine.Stop();
-                reply = new(1, error.ToString(), id);
+                throw;
             }
-            await Console.Out.WriteLineAsync(JsonSerializer.Serialize(reply, Json));
-            await Console.Out.FlushAsync();
-        }
+        });
         return 0;
 
-        async Task<Reply> Build(string requestPath, HashSet<string>? declared, Dictionary<string, string>? inputDigests = null)
+        async Task<WorkerReply> Build(string requestPath, HashSet<string>? declared, Dictionary<string, string>? inputDigests = null, CancellationToken cancellationToken = default)
         {
             string InputPath(string path)
             {
@@ -141,7 +131,8 @@ internal static class GraphWorker
                         contract = engine.Prepare(contract, prepared);
                     }
                 }
-                Parallel.ForEach(request.Sources, new ParallelOptions { MaxDegreeOfParallelism = Math.Min(Environment.ProcessorCount, 4) }, source =>
+                cancellationToken.ThrowIfCancellationRequested();
+                Parallel.ForEach(request.Sources, new ParallelOptions { MaxDegreeOfParallelism = Math.Min(Environment.ProcessorCount, 4), CancellationToken = cancellationToken }, source =>
                 {
                     var path = InputPath(source.Path);
                     var destination = Path.Combine(workspace, Safe(source.Destination));
@@ -164,7 +155,7 @@ internal static class GraphWorker
                 (int ExitCode, string Output) child;
                 if (reuse)
                 {
-                    var result = await engine.Run(sandbox, sdk, AppContext.BaseDirectory, contract, prepared, cache, request.Target, request.ProfileBuild, request.EvaluationCacheMb);
+                    var result = await engine.Run(sandbox, sdk, AppContext.BaseDirectory, contract, prepared, cache, request.Target, request.ProfileBuild, request.EvaluationCacheMb, cancellationToken);
                     child = (result.ExitCode, result.Output);
                 }
                 else
@@ -174,8 +165,9 @@ internal static class GraphWorker
                     {
                         start.ArgumentList.Add(argument);
                     }
-                    child = await WorkerProcess.RunAsync(start);
+                    child = await WorkerProcess.RunAsync(start, cancellationToken);
                 }
+                cancellationToken.ThrowIfCancellationRequested();
                 childSeconds = childTimer?.Elapsed.TotalSeconds ?? 0;
                 var verificationTimer = request.ProfileBuild ? Stopwatch.StartNew() : null;
                 if (child.ExitCode == 0)
