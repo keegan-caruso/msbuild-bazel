@@ -17,7 +17,8 @@ sdk = Path(os.environ['RULES_MSBUILD_DOTNET_ROOT']).resolve()
 with tempfile.TemporaryDirectory(prefix='graph-process-lifetime-') as name:
     root = Path(name)
     shutil.copyfile(Path(__file__).with_name('WorkerProcessProbe.cs.txt'), root / 'Program.cs')
-    shutil.copyfile(ROOT / 'tools/GraphBuild/WorkerProcess.cs', root / 'WorkerProcess.cs')
+    for source in ['WorkerProcess.cs', 'WorkerOutput.cs']:
+        shutil.copyfile(ROOT / 'tools/GraphBuild' / source, root / source)
     (root / 'Probe.csproj').write_text('<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup><TargetFramework>net10.0</TargetFramework><OutputType>Exe</OutputType><ImplicitUsings>enable</ImplicitUsings><Nullable>enable</Nullable></PropertyGroup></Project>')
     env = dict(os.environ, DOTNET_ROOT=str(sdk), DOTNET_HOST_PATH=str(sdk / 'dotnet'))
     with (root / 'build.log').open('w') as log:

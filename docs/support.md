@@ -824,6 +824,58 @@ a fresh snapshot through the shared HTTPS service; payload SHA256 matched. This
 cross-host check uses a synthetic snapshot, not a whole graph or Linux workers.
 Linux qualification remains pending the new build server.
 
+## Bounded native regression controls
+
+Project-cache payload transfers use 64 KiB buffers and one transfer budget per
+store (default eight), including concurrent project requests. Uploads first verify
+private staged payloads; retries reopen those verified bytes. Downloads verify
+streamed digests before publication, retain disk verification and deduplicate shared
+payloads. Small protocol manifests remain buffered. Graph snapshot capture stays
+serial while up to two immutable publications overlap capture; all started
+publications finish before the invocation succeeds or reports failure. This does
+not change the serialized-publisher policy above.
+
+Worker child and retained-engine invocations have a one-hour active deadline.
+Cancellation terminates their process trees and retires retained engines. Output
+pipes continue draining while retaining at most 1,048,576 characters of diagnostic
+tail plus a truncation marker; oversized retained replies fail. The input pump
+receives cancellation while the serial executor builds and permits one queued
+request. These bounds apply to child execution and diagnostics, not the complete
+staging/publication lifecycle; synchronous filesystem operations are not immediately
+interruptible. Native fake-child controls cover noisy/hung/failed children,
+descendant cleanup, cancellation, protocol rejection and fresh retries. Actual
+Linux/Bazel sandbox cancellation remains deferred under the worker release gate.
+
+Qualification shares raw content/mode observations within each before/after-Build
+verification phase, preserving both existing digest encodings. It never reuses
+pre-Build observations after Build. A shared immutable multi-owner path index
+preserves distinct policies: qualification excludes ambiguous owners and their
+consumers; execution rejects overlapping outputs. Native sync/compiler-copy,
+mode/mutation and randomized ownership controls pass; Linux-only seeded-cache
+qualification remains unrun.
+
+Runtime layout selection indexes tree members by selected ancestor prefixes,
+retaining nested selections and member ordering. Native Bazel 9.3.2 analysis and
+graph-layout controls pass. Package extraction hashes into a private staged archive,
+then uses that same handle for ZIP validation, extraction and retained archive bytes;
+a final source check precedes completion metadata. Native artifact controls cover
+locked/generated identities, tampering, traversal, validation markers and retained
+bytes. Neither change implies source-runtime or Linux qualification.
+
+Run the portable controls with the pinned SDK and fresh temporary fixtures:
+
+```sh
+python3 tests/graph_build/worker_supervision.py
+python3 tests/graph_build/publication_queue.py
+python3 tests/graph_build/remote_streaming.py
+python3 tests/graph_build/remote_publication.py
+```
+
+The native streaming control fetches eight 8 MiB payloads with a two-transfer
+budget, verifies interrupted-body recovery and one GET for shared content.
+[Performance](performance.md#bounded-cache-controls) records scoped observations;
+these controls do not qualify Linux workers or claim end-to-end speedups.
+
 ## Snapshot materialization defaults
 
 Production `FileMaterializer` passed real XFS reflink and ext4 copy-fallback controls
