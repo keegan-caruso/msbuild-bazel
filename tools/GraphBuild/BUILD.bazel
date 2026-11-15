@@ -14,6 +14,8 @@ filegroup(
         "//tools:GraphProjectKind.cs",
         "//tools:GraphSolutions.cs",
         "//tools:GraphSourcePattern.cs",
+        "//tools:OutputOwnershipIndex.cs",
+        "//tools/ProjectCache:FileObservation.cs",
         "//tools:MSBuildTool.props",
         "//tools:NuGetLocks.cs",
         "//tools:PackageSdks.cs",
