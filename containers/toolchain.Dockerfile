@@ -5,7 +5,7 @@ RUN apt-get update -qq && apt-get install -y -qq \
     && rm -rf /var/lib/apt/lists/*
 WORKDIR /opt/rules_msbuild-toolchain
 COPY payload.tar ./
-RUN bsdtar -xf payload.tar && rm payload.tar
+RUN bsdtar --no-xattrs -xf payload.tar && rm payload.tar
 ENV RULES_MSBUILD_TAR=/usr/bin/bsdtar
 ENV BAZELISK_HOME=/opt/rules_msbuild-toolchain/.cache/bazelisk
 RUN bash scripts/setup.sh --toolchain-only \

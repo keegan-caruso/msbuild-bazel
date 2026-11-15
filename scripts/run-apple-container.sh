@@ -49,7 +49,7 @@ export RULES_MSBUILD_TAR=/usr/bin/bsdtar
 mkdir /workspace
 tar -C /src --exclude=.git --exclude=.tools --exclude=.cache --exclude=artifacts \
     --exclude=bin --exclude=obj --exclude='./bazel-*' --exclude=__pycache__ -cf - . |
-    "$RULES_MSBUILD_TAR" -C /workspace -xf -
+    "$RULES_MSBUILD_TAR" --no-xattrs -C /workspace -xf -
 cd /workspace
 if [[ "${RULES_MSBUILD_SHARED_CACHE_RELAY:-}" == 1 ]]; then
     python3 scripts/shared-cache-guest-relay.py --url "$RULES_MSBUILD_SHARED_CACHE_URL" \
