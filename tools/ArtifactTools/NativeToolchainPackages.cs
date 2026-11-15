@@ -186,6 +186,20 @@ internal static class NativeToolchainPackages
 
         Program.Safe(source);
         var relative = Map(source);
+        // Ubuntu's merged-/usr root aliases refer to the directory into which
+        // those paths are already mapped; do not create a self-referential link.
+        if (source is "bin" or "lib" or "sbin" && entry.EntryType == TarEntryType.SymbolicLink)
+        {
+            if (entry.LinkName != "usr/" + source)
+            {
+                throw new InvalidDataException("Invalid native package root alias: " + source);
+            }
+            if (complete)
+            {
+                EnsureDirectory(output, Path.Combine(output, relative));
+            }
+            return;
+        }
         if (!notices.Contains(relative) && excluded.Any(prefix => relative == prefix || relative.StartsWith(prefix + "/", StringComparison.Ordinal)))
         {
             return;
