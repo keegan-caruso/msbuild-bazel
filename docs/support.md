@@ -6,28 +6,28 @@ Current baseline: SDK **10.0.400**, Bazel **9.3.2** only. Bazel 8.x is no longer
 records that selection and rejects resume with a different version. Historical
 qualification and timing pins below describe their original runs, not 9.3.2
 qualification. The release gates in [the work queue](../WORK_QUEUE.md) track current
-requalification; Linux checks are deferred pending the new build server.
+requalification; current Linux worker and source-runtime checks remain pending.
 
 Inputs, packages, tool layouts, generated files and output ownership must be explicit. Sync does not trace arbitrary task reads or acquire
 missing packages.
 
-Native macOS ARM64 baseline checks passed `scripts/check.sh`, all 25 analysis
-controls and the execution-requirements check on 9.3.2. Portable version controls
-cover generated workspaces, explicit override precedence, repository-pin fallback,
-empty/legacy overrides and source-runtime resume mismatch rejection. The owned
-.NET projects pass compilation and formatting. Full `scripts/check-dotnet.sh` reached
-one independent failure in the default NuGet HTTP-cache fixture: restricted runs
-cannot write macOS Application Support, and an unrestricted native retry exposes
-the fixture's Linux XDG-path assumption. Explicit/disposable cache controls pass;
-this is not a passing full-suite result.
-Linux execution and source-runtime production on 9.3.2 remain pending.
+Native macOS ARM64 baseline checks passed `scripts/check.sh`, analysis and
+execution-requirements controls on 9.3.2. Portable version controls cover generated
+workspaces, explicit override precedence, repository-pin fallback, empty/legacy
+overrides and source-runtime resume mismatch rejection.
 
-Native macOS / 9.3.2 fixture controls pass for offline supported package SDKs,
-signed package archive identities, MTP/VSTest protocols and independent payload
-publication. The full graph acceptance run passes nine slices through package
-SDKs, then stops in `tools.py` while replaying a read-only copied `NuGet.Config`;
-this separate native gate failure remains queued. No complete acceptance pass or
-subsequent nested integration run is claimed.
+With SDK **10.0.400** and Bazel **9.3.2**, full `scripts/check-dotnet.sh` passes:
+all four owned projects compile and format cleanly, and the style, tooling,
+artifact and ProjectSync controls pass with platform-specific skips. The 61
+ProjectSync tests include seven Linux-only skips.
+
+Full native graph acceptance passes all **17 slices** and the Bazel quickstart,
+including offline supported package SDKs, signed archive identities, MTP/VSTest
+protocols, tool replay and independent payload publication. Replay fixtures make
+their copied roots writable so Restore can create its temporary `NuGet.Config`;
+the default HTTP-cache fixture isolates macOS LocalApplicationData in its native
+home location. Production cache and output-permission policies are unchanged.
+Linux execution and source-runtime production on 9.3.2 remain separate gates.
 
 The historical 9.3.0 upgrade passed 29 analysis/integration checks on Linux ARM64, including
 8.8 compatibility, SDK facts, cached/uncached workers, compiler selections and
