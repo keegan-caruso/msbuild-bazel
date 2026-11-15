@@ -34,6 +34,7 @@ class NativeEnvironmentTests(unittest.TestCase):
                 self.assertIn('-clang18 -arm64', body)
                 self.assertIn('test "$ID/$VERSION_ID" = ubuntu/26.04', body)
                 self.assertIn('export CC=clang-18 CXX=clang++-18', body)
+                self.assertIn('export PATH=/usr/lib/llvm-18/bin:$PATH', body)
                 self.assertIn(f'clang version {LLVM_VERSION}', body)
                 subprocess.run(['bash', '-n', str(script)], check=True)
 

@@ -8,6 +8,7 @@ LLVM_VERSION = '18.1.8'
 def build_prefix():
     # Check the mounted declared root, rather than the container that assembled it.
     return ('set -euo pipefail\n'
+            f'export PATH=/usr/lib/llvm-{LLVM_MAJOR}/bin:$PATH\n'
             f'export CC=clang-{LLVM_MAJOR} CXX=clang++-{LLVM_MAJOR}\n'
             '. /etc/os-release\n'
             f'test "$ID/$VERSION_ID" = {DISTRIBUTION}\n'
