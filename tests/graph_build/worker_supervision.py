@@ -82,6 +82,12 @@ void CheckExited(string path)
 }
 
 var noise = await WorkerProcess.RunAsync(Start("noise"));
+using (var tail = new WorkerOutput(32))
+{
+    tail.Write(new string('x', 100));
+    tail.Write("final error");
+    Check(tail.ToString().EndsWith("final error"), "Final diagnostics lost after truncation");
+}
 Check(noise.ExitCode == 0 && noise.Output.Length < WorkerProcess.OutputCharacters + 128 && noise.Output.Contains("output truncated"), "Unbounded output or drain deadlock");
 Check((await WorkerProcess.RunAsync(Start("exit"))).ExitCode == 17, "Lost child exit status");
 var pids = Path.Combine(Path.GetTempPath(), "worker-process-" + Guid.NewGuid() + ".pids");

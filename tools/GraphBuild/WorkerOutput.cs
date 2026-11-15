@@ -6,37 +6,25 @@ namespace RulesMSBuild.GraphBuild;
 // would otherwise turn a noisy build into a deadlock.
 internal sealed class WorkerOutput(int limit = WorkerProcess.OutputCharacters) : TextWriter
 {
-    private readonly StringBuilder text = new();
+    private readonly char[] text = new char[limit];
     private readonly object gate = new();
+    private int position;
+    private int length;
     private bool truncated;
     public override Encoding Encoding => Encoding.UTF8;
 
     public override void Write(char value)
     {
-        lock (gate)
-        {
-            if (text.Length < limit)
-            {
-                text.Append(value);
-            }
-            else
-            {
-                truncated = true;
-            }
-        }
+        Span<char> character = stackalloc char[1];
+        character[0] = value;
+        Write(character);
     }
 
     public override void Write(string? value)
     {
-        if (value is null)
+        if (value is not null)
         {
-            return;
-        }
-        lock (gate)
-        {
-            var count = Math.Min(value.Length, limit - text.Length);
-            text.Append(value, 0, count);
-            truncated |= count != value.Length;
+            Write(value.AsSpan());
         }
     }
 
@@ -46,9 +34,19 @@ internal sealed class WorkerOutput(int limit = WorkerProcess.OutputCharacters) :
     {
         lock (gate)
         {
-            var count = Math.Min(buffer.Length, limit - text.Length);
-            text.Append(buffer[..count]);
-            truncated |= count != buffer.Length;
+            truncated |= buffer.Length > limit - length;
+            if (buffer.Length >= limit)
+            {
+                buffer[^limit..].CopyTo(text);
+                position = 0;
+                length = limit;
+                return;
+            }
+            var first = Math.Min(buffer.Length, limit - position);
+            buffer[..first].CopyTo(text.AsSpan(position));
+            buffer[first..].CopyTo(text);
+            position = (position + buffer.Length) % limit;
+            length = Math.Min(limit, length + buffer.Length);
         }
     }
 
@@ -56,7 +54,12 @@ internal sealed class WorkerOutput(int limit = WorkerProcess.OutputCharacters) :
     {
         lock (gate)
         {
-            return text.ToString() + (truncated ? "\n[graph worker output truncated]\n" : "");
+            if (!truncated)
+            {
+                return new string(text, 0, length);
+            }
+            return "[graph worker output truncated; showing tail]\n" +
+                new string(text, position, limit - position) + new string(text, 0, position);
         }
     }
 
