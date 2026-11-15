@@ -19,6 +19,7 @@ internal static class QualificationSeed
         {
             start.ArgumentList.Add(argument);
         }
+        start.Environment["RULES_MSBUILD_PROJECT_CACHE_READ_ONLY"] = options.ReadOnly ? "1" : "0";
         start.Environment["RULES_MSBUILD_PROJECT_CACHE_URL"] = options.Url;
         start.Environment["RULES_MSBUILD_PROJECT_CACHE_BEARER_TOKEN"] = options.BearerToken;
         start.Environment.Remove("RULES_MSBUILD_SYNC_PROFILE");

@@ -28,6 +28,7 @@ container run --rm --init -i --arch "$arch" --cpus "${RULES_MSBUILD_CONTAINER_CP
     ${relay_mount[@]+"${relay_mount[@]}"} \
     -e "RULES_MSBUILD_SHARED_CACHE_RELAY=${RULES_MSBUILD_SHARED_CACHE_SOCKET:+1}" \
     -e "RULES_MSBUILD_SHARED_CACHE_URL=$cache_url" \
+    -e "RULES_MSBUILD_PROJECT_CACHE_READ_ONLY=${RULES_MSBUILD_PROJECT_CACHE_READ_ONLY:-0}" \
     -e "USE_BAZEL_VERSION=${USE_BAZEL_VERSION:-}" \
     -e "RULES_MSBUILD_CONTAINER_PREBUILT=${RULES_MSBUILD_CONTAINER_PREBUILT:-0}" \
     -e "RULES_MSBUILD_BAZEL_MODE=${RULES_MSBUILD_BAZEL_MODE:-server}" \
@@ -64,6 +65,7 @@ if [[ -n "${RULES_MSBUILD_SHARED_CACHE_URL:-}" ]]; then
     cat >> "$HOME/.bazelrc" <<CACHE
 build --remote_cache=$RULES_MSBUILD_SHARED_CACHE_URL
 build --action_env=RULES_MSBUILD_PROJECT_CACHE_URL=$RULES_MSBUILD_SHARED_CACHE_URL
+build --action_env=RULES_MSBUILD_PROJECT_CACHE_READ_ONLY=${RULES_MSBUILD_PROJECT_CACHE_READ_ONLY:-0}
 build --disk_cache=
 build --remote_download_outputs=all
 build --remote_cache_async=false

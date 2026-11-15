@@ -45,7 +45,7 @@ if [[ $prepared != - ]]; then
                --setenv RULES_MSBUILD_GRAPH_READONLY_PACKAGES 1)
     fi
 fi
-for key in RULES_MSBUILD_PROJECT_CACHE_URL RULES_MSBUILD_PROJECT_CACHE_BEARER_TOKEN; do
+for key in RULES_MSBUILD_PROJECT_CACHE_URL RULES_MSBUILD_PROJECT_CACHE_BEARER_TOKEN RULES_MSBUILD_PROJECT_CACHE_READ_ONLY; do
     if value=$(printenv "$key"); then args+=(--setenv "$key" "$value"); fi
 done
 if [[ ${11:-0} == 1 ]]; then args+=(--setenv RULES_MSBUILD_GRAPH_PROFILE 1); fi

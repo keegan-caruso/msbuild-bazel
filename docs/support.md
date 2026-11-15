@@ -20,6 +20,13 @@ one failure in the default NuGet HTTP-cache control because the restricted host
 could not write macOS Application Support; this is not a passing full-suite result.
 Linux execution and source-runtime production on 9.3.2 remain pending.
 
+Native macOS / 9.3.2 fixture controls pass for offline supported package SDKs,
+signed package archive identities, MTP/VSTest protocols and independent payload
+publication. The full graph acceptance run passes nine slices through package
+SDKs, then stops in `tools.py` while replaying a read-only copied `NuGet.Config`;
+this separate native gate failure remains queued. No complete acceptance pass or
+subsequent nested integration run is claimed.
+
 The historical 9.3.0 upgrade passed 29 analysis/integration checks on Linux ARM64, including
 8.8 compatibility, SDK facts, cached/uncached workers, compiler selections and
 recursive-source HTTP Restore/project recovery. Cached HTTPS SDK acquisition also
@@ -794,6 +801,26 @@ prepared payload verification precedes any child workspace writes or evaluation.
 `//tests/integration:{workers,evaluation_worker}` also passed all six controls on
 Bazel 8.8.0 / 9.3.0, covering actual builds, body/API edits, retained evaluation,
 fresh-build byte parity, failure recovery and cached/zero-budget workers.
+
+## Project-cache publication
+
+Use serialized publishing processes per shared endpoint/key namespace, and explicit
+read-only consumers. This applies across processes, containers and hosts; a chosen
+publisher host alone does not serialize its jobs. Ordinary Bazel HTTP AC does not
+provide compare-and-swap publication for divergent writers. The default remains
+read-write; [cache configuration](api.md#caching-and-workers) describes the
+consumer flags and limits.
+
+Native macOS ARM64 / SDK **10.0.400** controls pass with
+`python3 tests/graph_build/remote_publication.py`: independent identical writers,
+concurrent complete readers, serialized divergence rejection, no-PUT consumers,
+failed/cancelled publication and strict option parsing. `remote.py` also passes
+actual three-project HTTP recovery, read-only misses without remote repair,
+eviction, interrupted downloads and corruption rejection. A native MacBook
+publisher exited before an independent native Mac mini read-only consumer fetched
+a fresh snapshot through the shared HTTPS service; payload SHA256 matched. This
+cross-host check uses a synthetic snapshot, not a whole graph or Linux workers.
+Linux qualification remains pending the new build server.
 
 ## Snapshot materialization defaults
 

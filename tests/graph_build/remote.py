@@ -134,6 +134,14 @@ def main():
             # A missing snapshot is an ordinary miss; rebuilding repairs its pointer.
             action = next(key for key in Cache.blobs if '/ac/' in key)
             pointer = Cache.blobs.pop(action)
+            ENV['RULES_MSBUILD_PROJECT_CACHE_READ_ONLY'] = '1'
+            readonly = build()
+            assert readonly['misses'] == 1 and readonly['remote']['uploads'] == 0, readonly
+            assert action not in Cache.blobs and outputs() == original_outputs
+            # Read-only consumers still fetch complete snapshots and rebuild a miss,
+            # but only the separately serialized publisher can repair the pointer.
+            assert build()['misses'] == 1 and action not in Cache.blobs
+            ENV.pop('RULES_MSBUILD_PROJECT_CACHE_READ_ONLY')
             assert build()['misses'] == 1
             assert Cache.blobs[action] == pointer and outputs() == original_outputs
             assert build()['hits'] == 3 and outputs() == original_outputs

@@ -12,6 +12,7 @@ import subprocess
 import sys
 import tarfile
 import uuid
+import urllib.error
 import urllib.request
 
 from runtime_prepare import COMMIT, SOURCE_SHA256
@@ -105,6 +106,34 @@ def unpack(archive, expected, destination):
     return root
 
 
+def configure_project_cache(config):
+    # Every nested repository launcher must retain the owned publication policy.
+    sys.path.insert(0, str(ROOT / 'scripts'))
+    from source_runtime.common import project_cache_read_only
+    from source_runtime.linux import launcher
+    read_only = project_cache_read_only(config)
+    wrapper = BASE / 'project-cache-bazelisk.sh'
+    launcher(wrapper, ROOT / '.tools/bin/bazelisk', None, None, None, read_only=read_only)
+    os.environ['RULES_MSBUILD_BAZELISK'] = str(wrapper)
+    os.environ['RULES_MSBUILD_PROJECT_CACHE_READ_ONLY'] = read_only
+    return read_only
+
+
+def probe_cache(cache_url, read_only='0'):
+    probe = b'rules-msbuild-runtime-demo-cache-probe'
+    url = cache_url.rstrip('/') + '/cas/' + hashlib.sha256(probe).hexdigest()
+    if read_only == '0':
+        with urllib.request.urlopen(urllib.request.Request(url, data=probe, method='PUT'), timeout=15) as response:
+            assert response.status in [200, 201, 204]
+    try:
+        with urllib.request.urlopen(url, timeout=15) as response:
+            assert response.status == 200 and response.read() == probe, 'Cache preflight bytes differ'
+    except urllib.error.HTTPError as error:
+        if read_only != '1' or error.code != 404:
+            raise
+        error.close()  # A reachable cache may not contain the publisher's probe.
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('mode', choices=['producer', 'consumer', 'pack'])
@@ -154,12 +183,8 @@ def main():
         print('PASS: ' + name, flush=True)
 
     step('tools', ['bash', str(ROOT / 'scripts/setup.sh'), '--toolchain-only'])
-    probe = b'rules-msbuild-runtime-demo-cache-probe'
-    url = config['cacheUrl'].rstrip('/') + '/cas/' + hashlib.sha256(probe).hexdigest()
-    with urllib.request.urlopen(urllib.request.Request(url, data=probe, method='PUT'), timeout=15) as response:
-        assert response.status in [200, 201, 204]
-    with urllib.request.urlopen(url, timeout=15) as response:
-        assert response.read() == probe, 'Cache read/write preflight failed'
+    read_only = configure_project_cache(config)
+    probe_cache(config['cacheUrl'], read_only)
     subprocess.run(['bwrap', '--unshare-all', '--ro-bind', '/', '/', '--proc', '/proc', '--dev', '/dev', '/bin/true'], check=True)
     if args.mode == 'consumer':
         if 'unpack' not in state['completed']:

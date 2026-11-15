@@ -133,6 +133,10 @@ internal static class QualificationSandbox
             {
                 Args("--inputs", Base + "/inputs.json", "--runfiles", Base + "/runfiles");
             }
+            if (options.ReadOnly)
+            {
+                Args("--qualification-cache-read-only");
+            }
             if (options.Url is not null)
             {
                 Args("--qualification-cache-url", options.Url);

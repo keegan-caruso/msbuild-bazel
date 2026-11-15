@@ -545,5 +545,31 @@ Use the worker flags above for local retention. The two caches have separate key
 Restore action hits skip preparation. SDK/package acquisition is separate.
 If needed, pass `RULES_MSBUILD_PROJECT_CACHE_BEARER_TOKEN` from the environment.
 Missing blobs rebuild; corruption fails; transfers are checked/retried.
-HTTP publication has no atomic guarantee for divergent writers. Cache recovery
-is not remote execution or proof of filesystem hermeticity.
+For an independent consumer, disable uploads at both cache levels:
+
+```sh
+bazel build //:graph --remote_cache=http://cache:9090 \
+  --remote_upload_local_results=false \
+  --action_env=RULES_MSBUILD_PROJECT_CACHE_URL=http://cache:9090 \
+  --action_env=RULES_MSBUILD_PROJECT_CACHE_READ_ONLY=1
+```
+
+`RULES_MSBUILD_PROJECT_CACHE_READ_ONLY` accepts `0` (default) or `1`. Read-only
+consumers still fetch snapshots and build misses locally, but send no project-cache
+PUT requests and do not repair missing remote entries. It also applies to prepared
+sync qualification and graph-cache seeding; direct ProjectSync callers may use
+`--qualification-cache-read-only` with `--qualification-cache`.
+
+The supported publication policy requires serialized publishing processes for each
+shared endpoint/key namespace, across all hosts and containers. Selecting one host
+alone does not serialize its processes. Use separate read-only credentials for
+consumers where the service supports them; the client switch is not access control.
+Concurrent identical publications preserve complete content-addressed snapshots;
+serialized divergent outputs fail before replacing the existing pointer. Ordinary
+Bazel HTTP AC has no conditional-write guarantee: divergent writers that both see a
+miss can race, so this configuration is unsupported. A local lock or a successful
+post-upload check would not establish cross-machine atomicity. Failed uploads can
+leave unreferenced CAS blobs for service eviction; the action pointer is published
+only after all payloads and the manifest have completed.
+
+Cache recovery is not remote execution or proof of filesystem hermeticity.

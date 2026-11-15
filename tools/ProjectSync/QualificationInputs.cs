@@ -7,7 +7,7 @@ using RulesMSBuild.ProjectCache;
 
 namespace RulesMSBuild.ProjectSync;
 
-internal sealed record QualificationOptions(string Directory, string? Url, string? GraphRunner = null, string? BearerToken = null);
+internal sealed record QualificationOptions(string Directory, string? Url, string? GraphRunner = null, string? BearerToken = null, bool ReadOnly = false);
 internal sealed record QualificationItem(string Include, string Subdirectory);
 internal sealed record QualificationState(string TargetPath, string PublishDir, string[] References, QualificationItem[] Copies)
 {

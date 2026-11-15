@@ -11,7 +11,7 @@ from types import SimpleNamespace
 
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / 'scripts'))
-from source_runtime.common import stage_source, digest, read_recipe, owned_output, save, selected_bazel_version, validate_bazel_version
+from source_runtime.common import stage_source, digest, read_recipe, owned_output, save, selected_bazel_version, validate_bazel_version, project_cache_read_only
 from source_runtime.linux import launcher, build_command
 from source_runtime import apple
 sys.path.insert(0, str(ROOT / 'tests/graph_build/upstream'))
@@ -19,6 +19,59 @@ from runtime_product_inventory import configure_sync, inventory
 
 
 class SourceRuntimeSetupTests(unittest.TestCase):
+    def test_project_cache_policy_is_strict_and_retains_owned_state(self):
+        with patch.dict(os.environ, {}, clear=True):
+            self.assertEqual(project_cache_read_only(), '0')
+            self.assertEqual(project_cache_read_only({'projectCacheReadOnly': '1'}), '1')
+        for value in ('0', '1'):
+            with patch.dict(os.environ, {'RULES_MSBUILD_PROJECT_CACHE_READ_ONLY': value}):
+                self.assertEqual(project_cache_read_only(), value)
+                self.assertEqual(project_cache_read_only({'projectCacheReadOnly': value}), value)
+                with self.assertRaisesRegex(ValueError, 'policy changed'):
+                    project_cache_read_only({'projectCacheReadOnly': '1' if value == '0' else '0'})
+        for value in ('', 'true', '2', ' 1'):
+            with patch.dict(os.environ, {'RULES_MSBUILD_PROJECT_CACHE_READ_ONLY': value}):
+                with self.assertRaisesRegex(ValueError, 'must be 0 or 1'):
+                    project_cache_read_only()
+
+    def test_saved_runtime_commands_retain_read_only_and_reject_override(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            base = Path(temporary)
+            save(base/'setup.json', dict(workspace=str(base/'workspace'),
+                identity={'projectCacheReadOnly': '1'}, environment={}))
+            with patch.dict(os.environ, {}, clear=True):
+                _, _, env = build_command(base, 'build')
+                self.assertEqual(env['RULES_MSBUILD_PROJECT_CACHE_READ_ONLY'], '1')
+            with patch.dict(os.environ, {'RULES_MSBUILD_PROJECT_CACHE_READ_ONLY': '0'}):
+                with self.assertRaisesRegex(ValueError, 'policy changed'):
+                    build_command(base, 'run')
+
+    def test_apple_setup_forwards_retained_project_cache_policy(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            base = Path(temporary)
+            (base/'rules').mkdir()
+            archive = base/'rules.tar'; archive.write_bytes(b'frozen')
+            state = dict(version=1, kind='apple-source-runtime', requestedImage=None, cacheUrl=None,
+                projectCacheReadOnly='1', bazelVersion=(ROOT/'.bazelversion').read_text().strip(),
+                rulesSha256=digest(archive), id='owned', worker='worker', image='runtime@sha256:'+'a'*64)
+            save(base/'setup.json', state)
+            worker = dict(configuration=dict(labels={'rules-msbuild.source-runtime': 'owned'},
+                image=dict(descriptor=dict(digest='sha256:'+'a'*64))), status={'state': 'running'})
+            args = SimpleNamespace(output=base, resume=True, native_toolchain=None, sandbox=None,
+                registry=None, repository_cache=None, host_space_path=None, image=None, cache_url=None,
+                source_archive=None)
+            with patch.dict(os.environ, {}, clear=True), \
+                 patch.object(apple.platform, 'machine', return_value='arm64'), \
+                 patch.object(apple.shutil, 'which', return_value='container'), \
+                 patch.object(apple, 'demo_helpers', return_value=SimpleNamespace(inspect=lambda name: worker)), \
+                 patch.object(apple, 'run'), \
+                 patch.object(apple.subprocess, 'Popen', side_effect=RuntimeError('captured')) as execute:
+                with self.assertRaisesRegex(RuntimeError, 'captured'):
+                    apple.setup(args)
+                command = execute.call_args.args[0]
+                self.assertIn('RULES_MSBUILD_PROJECT_CACHE_READ_ONLY=1', command)
+                self.assertEqual(command[command.index('RULES_MSBUILD_PROJECT_CACHE_READ_ONLY=1')-1], '--env')
+
     def test_bazel_selection_and_resume_identity(self):
         with patch.dict(os.environ, {}, clear=True):
             self.assertEqual(selected_bazel_version(), (ROOT/'.bazelversion').read_text().strip())
@@ -216,12 +269,14 @@ class SourceRuntimeSetupTests(unittest.TestCase):
             script = base/'wrapper'
             marker = base/'injected'
             cache = 'https://cache.invalid/$(touch ' + str(marker) + ')'
-            launcher(script, binary, 'file:///registry with spaces', base/'acquisition cache', cache)
+            launcher(script, binary, 'file:///registry with spaces', base/'acquisition cache', cache, read_only='1')
             result = subprocess.check_output([script,'--output_base=/base with spaces','run','//:sync','--','--check'],text=True)
             arguments = json.loads(result)
             self.assertEqual(arguments[:2], ['--output_base=/base with spaces','run'])
             self.assertIn('--registry=file:///registry with spaces',arguments)
             self.assertIn('--remote_cache=' + cache,arguments)
+            self.assertIn('--action_env=RULES_MSBUILD_PROJECT_CACHE_READ_ONLY=1', arguments)
+            self.assertFalse(any(arg.startswith('--remote_upload_local_results') for arg in arguments))
             self.assertIn('--action_env=RULES_MSBUILD_PROJECT_CACHE_URL=' + cache,arguments)
             self.assertEqual(arguments[-3:],['//:sync','--','--check'])
             self.assertFalse(marker.exists())
@@ -245,12 +300,13 @@ class SourceRuntimeSetupTests(unittest.TestCase):
     def test_apple_run_starts_only_the_owned_worker_and_preserves_app_arguments(self):
         with tempfile.TemporaryDirectory() as temporary:
             base=Path(temporary)
-            state=dict(kind='apple-source-runtime',ready=True,id='owned',worker='owned-worker',image='runtime@sha256:'+'a'*64)
+            state=dict(projectCacheReadOnly='1',kind='apple-source-runtime',ready=True,id='owned',worker='owned-worker',image='runtime@sha256:'+'a'*64)
             save(base/'setup.json',state)
             worker={'configuration':{'labels':{'rules-msbuild.source-runtime':'owned'},'image':{'descriptor':{'digest':'sha256:'+'a'*64}}},'status':{'state':'stopped'}}
             with patch.object(apple,'demo_helpers',return_value=SimpleNamespace(inspect=lambda name:worker)), patch.object(apple,'run') as action, patch.object(apple.subprocess,'run',return_value=SimpleNamespace(returncode=0)) as execute:
                 self.assertEqual(apple.operate(SimpleNamespace(output=base,test=False),['--test','argument with spaces']),0)
                 action.assert_called_once_with(['container','start','owned-worker'])
+                self.assertIn('RULES_MSBUILD_PROJECT_CACHE_READ_ONLY=1', execute.call_args.args[0])
                 self.assertEqual(execute.call_args.args[0][-4:],['--run','--','--test','argument with spaces'])
 
     def test_run_uses_the_prepared_workspace_and_forwards_arguments(self):
