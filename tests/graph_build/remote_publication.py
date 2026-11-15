@@ -32,6 +32,7 @@ class Cache(BaseHTTPRequestHandler):
             time.sleep(.5)
         with self.server.lock:
             self.server.puts += 1
+            self.server.put_paths[self.path] = self.server.put_paths.get(self.path, 0) + 1
             if '/ac/' in self.path:
                 if self.server.fail_pointer:
                     self.reply(503)
@@ -73,6 +74,12 @@ using var store = new RemoteSnapshotStore(new Uri(args[1]), readOnly: args[0] ==
 using var cancel = new CancellationTokenSource(args[0] == "cancel" ? 100 : 30000);
 try
 {
+    if (args[0] == "pair")
+    {
+        await Task.WhenAll(store.PublishAsync("pair-left", Path.Combine(args[3], "pair-left"), cancel.Token),
+            store.PublishAsync("pair-right", Path.Combine(args[3], "pair-right"), cancel.Token));
+        return 0;
+    }
     Console.WriteLine(args[0] == "fetch"
         ? await store.FetchAsync(args[2], args[3], cancel.Token)
         : await store.PublishAsync(args[2], args[3], cancel.Token));
@@ -84,6 +91,7 @@ catch (OperationCanceledException) { return 2; }
         program = work / 'bin/Release/net10.0/Probe.dll'
         server = ThreadingHTTPServer(('127.0.0.1', 0), Cache)
         server.blobs, server.lock, server.puts = {}, threading.Lock(), 0
+        server.put_paths = {}
         server.barrier, server.fail_pointer, server.delay_upload = None, False, False
         thread = threading.Thread(target=server.serve_forever, daemon=True)
         thread.start()
@@ -113,6 +121,17 @@ catch (OperationCanceledException) { return 2; }
             assert (destination / 'payload').read_bytes() == b'identical publication'
             assert not list(work.glob('fetched.fetch-*'))
             print('PASS: independent identical writers and concurrent complete readers')
+
+            payload = b'one upload across distinct snapshots' * 10000
+            snapshot('pair-left', 'pair-left', payload)
+            snapshot('pair-right', 'pair-right', payload)
+            probe('pair', 'unused', work)
+            digest = hashlib.sha256(payload).hexdigest()
+            assert server.put_paths['/cas/' + digest] == 1, server.put_paths
+            probe('fetch', 'pair-left', work / 'pair-left-fetch')
+            probe('fetch', 'pair-right', work / 'pair-right-fetch')
+            assert (work / 'pair-right-fetch/payload').read_bytes() == payload
+            print('PASS: overlapping distinct-key publications share one verified payload PUT')
 
             # Divergence is detectable when publications are serialized. Ordinary
             # HTTP AC has no compare-and-swap guarantee for divergent racing writers.
