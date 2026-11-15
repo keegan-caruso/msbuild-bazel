@@ -41,14 +41,24 @@ class ArtifactToolsTests(unittest.TestCase):
         return dict(id='Example',version='1.0.0',archive=str(path),archiveSha256=hashlib.sha256(data).hexdigest(),contentHash=base64.b64encode(hashlib.sha512(data).digest()).decode(),output=str(self.root/'package'))
 
     def test_locked_package_extracts(self):
-        self.invoke('extract',self.package())
+        request = self.package()
+        self.invoke('extract', request)
         self.assertEqual((self.root/'package/lib/net10.0/Example.dll').read_bytes(),b'fixture payload')
+        self.assertEqual((self.root/'package/example.1.0.0.nupkg').read_bytes(), Path(request['archive']).read_bytes())
 
     def test_hash_and_identity_fail_closed(self):
         request=self.package()
         for field,value,message in [('archiveSha256','0'*64,'locked archive hash'),('contentHash',base64.b64encode(b'x').decode(),'content hash'),('contentHash',base64.b64encode(b'x'*64).decode(),'locked content hash'),('id','Other','identity differs')]:
             with self.subTest(field=field):
                 self.assertIn(message,self.invoke('extract',dict(request,**{field:value}),success=False))
+
+    def test_tampered_archive_cannot_produce_validation(self):
+        request = self.package()
+        marker = self.root/'validated.json'
+        with Path(request['archive']).open('ab') as archive:
+            archive.write(b'tampered')
+        self.assertIn('locked archive hash', self.invoke('extract', dict(request, validationOutput=str(marker)), success=False))
+        self.assertFalse(marker.exists())
 
     def test_validation_output_requires_complete_package_validation(self):
         request = self.package()
@@ -64,6 +74,12 @@ class ArtifactToolsTests(unittest.TestCase):
     def test_zip_traversal_is_rejected(self):
         self.assertIn('Unsafe logical path',self.invoke('extract',self.package('../outside'),success=False))
         self.assertFalse((self.root/'outside').exists())
+
+    def test_duplicate_package_entry_is_rejected(self):
+        request = self.package('LIB/net10.0/example.dll')
+        marker = self.root/'validated.json'
+        self.assertIn('Duplicate package entry', self.invoke('extract', dict(request, validationOutput=str(marker)), success=False))
+        self.assertFalse(marker.exists())
 
     def test_generated_package_has_no_acquired_hash(self):
         request=self.package()
