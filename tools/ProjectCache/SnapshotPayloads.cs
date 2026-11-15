@@ -25,7 +25,7 @@ internal sealed class SnapshotPayloads(string cache) : IProjectCacheContentStore
         Link(blob, destination);
     }
 
-    public async Task MaterializeAsync(string digest, Func<CancellationToken, Task<byte[]>> download,
+    public async Task MaterializeAsync(string digest, Func<string, CancellationToken, Task> download,
         string[] destinations, CancellationToken cancellationToken)
     {
         var gate = transfers.GetOrAdd(digest, _ => new SemaphoreSlim(1));
@@ -35,9 +35,17 @@ internal sealed class SnapshotPayloads(string cache) : IProjectCacheContentStore
             var blob = Blob(digest);
             if (!File.Exists(blob))
             {
-                var bytes = await download(cancellationToken);
-                cancellationToken.ThrowIfCancellationRequested();
-                Publish(blob, digest, temporary => File.WriteAllBytes(temporary, bytes));
+                var temporary = blob + ".download-" + Guid.NewGuid().ToString("N");
+                try
+                {
+                    await download(temporary, cancellationToken);
+                    cancellationToken.ThrowIfCancellationRequested();
+                    Publish(blob, digest, pending => File.Move(temporary, pending));
+                }
+                finally
+                {
+                    File.Delete(temporary);
+                }
             }
             else
             {
