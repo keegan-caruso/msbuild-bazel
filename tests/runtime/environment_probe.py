@@ -41,6 +41,8 @@ def main():
     (native / 'probe.sh').write_text(build_prefix() + '''{
 cat /etc/os-release
 clang-18 --version
+cp --version | head -n 1
+mv --version | head -n 1
 clang-18 -dumpmachine
 sha256sum /usr/lib/llvm-18/bin/clang
 for tool in bash cp mv uname sha256sum clang-18 clang ld.lld llvm-ar python3 cmake ninja pkg-config; do command -v "$tool"; done
@@ -48,6 +50,9 @@ for tool in bash cp mv uname sha256sum clang-18 clang ld.lld llvm-ar python3 cma
 printf 'int main(void) { return 0; }\\n' > proof.c
 clang-18 -Werror proof.c -o proof
 ./proof
+printf '#include <vector>\\nint main() { std::vector<int> v{1,2}; return v.size() != 2; }\\n' > proof.cpp
+clang++-18 -std=c++17 -Werror proof.cpp -o proof-cxx
+./proof-cxx
 mkdir result
 cp proof.txt result/
 tar --sort=name --mtime=@0 --owner=0 --group=0 --numeric-owner -cf result.tar -C result .
@@ -90,7 +95,7 @@ tar --sort=name --mtime=@0 --owner=0 --group=0 --numeric-owner -cf result.tar -C
             toolchainSha256=digest(workspace / 'bazel-bin/native/toolchain.tar'), provenance=provenance,
             memoryMethod='0.25s guest-wide summed process VmRSS (shared pages can be counted more than once) and MemAvailable')
         print((base / 'reports/proof.txt').read_text(), end='')
-        print('PASS: declared Ubuntu 26.04 ARM64 LLVM 18.1.8 package assembly, C compilation/link and execution')
+        print('PASS: declared Ubuntu 26.04 ARM64 LLVM 18.1.8 package assembly, C/C++ compilation/link and execution')
     finally:
         stopped.set()
         observer.join()
