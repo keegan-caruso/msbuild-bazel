@@ -8,6 +8,15 @@ load("//msbuild/private:test_options.bzl", _TEST_OPTIONS_ATTRS = "TEST_OPTIONS_A
 
 MSBuildGraphInfo = provider("A declared MSBuild graph workspace and its execution SDK.", fields = {"directory": "Graph output workspace", "contract": "Declared graph output ownership", "dotnet": "Execution host", "sdk": "Declared SDK files", "projects": "Configured project runtime outputs"})
 
+def _safe_relative_path(path):
+    return not path.startswith("/") and "\\" not in path and not any([part in ["", ".", ".."] for part in path.split("/")])
+
+def _project_output(graph, project, framework):
+    candidates = [value for key, value in graph.projects.items() if key.split("|")[0] == project and (not framework or key.split("|")[1] == framework)]
+    if len(candidates) != 1:
+        fail("Select one generated project/framework with project and framework: " + project)
+    return candidates[0]
+
 def _runner(ctx):
     tc = ctx.toolchains["//msbuild:toolchain_type"]
     output = ctx.actions.declare_directory(ctx.label.name + ".runner")
@@ -87,7 +96,7 @@ def _graph_action(ctx, prepare = False):
         files = target[DefaultInfo].files.to_list()
         if len(files) != 1:
             fail("Graph input_paths requires one file or directory per label")
-        if relative.startswith("/") or "\\" in relative or any([part in ["", ".", ".."] for part in relative.split("/")]):
+        if not _safe_relative_path(relative):
             fail("Graph input_paths requires safe workspace-relative paths")
         args.add_all([files[0].path, relative])
         worker_sources.append({"path": files[0].path, "destination": relative})
@@ -240,10 +249,7 @@ def _runtime(ctx, test = False):
     if ctx.attr.project:
         if assembly:
             fail("Use project or assembly, not both")
-        candidates = [value for key, value in graph.projects.items() if key.split("|")[0] == ctx.attr.project and (not ctx.attr.framework or key.split("|")[1] == ctx.attr.framework)]
-        if len(candidates) != 1:
-            fail("Select one generated project/framework with project and framework: " + ctx.attr.project)
-        directory, assembly, kind = candidates[0]
+        directory, assembly, kind = _project_output(graph, ctx.attr.project, ctx.attr.framework)
         if kind.lower() not in ["exe", "winexe"] and not (test and ctx.attr.test_protocol == "vstest"):
             fail("Run and executable tests require an executable project: " + ctx.attr.project)
     else:
@@ -251,7 +257,7 @@ def _runtime(ctx, test = False):
             fail("Specify a generated project or a workspace-relative assembly path")
         directory, assembly = assembly.rsplit("/", 1)
     for path in [directory, assembly]:
-        if path.startswith("/") or any([part in ["", ".", ".."] for part in path.split("/")]) or "\\" in path:
+        if not _safe_relative_path(path):
             fail("Runtime outputs must be safe workspace-relative paths")
     output = ctx.actions.declare_directory(ctx.label.name + ".runtime")
     ctx.actions.run_shell(
@@ -296,12 +302,9 @@ msbuild_graph_test = rule(
 
 def _layout(ctx):
     graph = ctx.attr.graph[MSBuildGraphInfo]
-    candidates = [value for key, value in graph.projects.items() if key.split("|")[0] == ctx.attr.project and (not ctx.attr.framework or key.split("|")[1] == ctx.attr.framework)]
-    if len(candidates) != 1:
-        fail("Select one generated project/framework with project and framework: " + ctx.attr.project)
-    directory, assembly, _kind = candidates[0]
+    directory, assembly, _kind = _project_output(graph, ctx.attr.project, ctx.attr.framework)
     for path in [directory, assembly]:
-        if path.startswith("/") or "\\" in path or any([part in ["", ".", ".."] for part in path.split("/")]):
+        if not _safe_relative_path(path):
             fail("Graph layout requires safe workspace-relative outputs")
     output = ctx.actions.declare_directory(ctx.label.name + ".layout")
     ctx.actions.run_shell(
@@ -323,9 +326,9 @@ def _combined_layout(ctx):
             fail("Unknown configured graph layout project: " + key)
         directory, assembly, _kind = graph.projects[key]
         for path in [directory, assembly]:
-            if path.startswith("/") or "\\" in path or any([part in ["", ".", ".."] for part in path.split("/")]):
+            if not _safe_relative_path(path):
                 fail("Graph layout requires safe workspace-relative outputs")
-        if destination != "." and (destination.startswith("/") or "\\" in destination or any([part in ["", ".", ".."] for part in destination.split("/")])):
+        if destination != "." and not _safe_relative_path(destination):
             fail("Graph layout destination must be a safe relative path")
         selections.append(("workspace/" + directory + "/", assembly, destination))
 
@@ -388,7 +391,7 @@ def _output(ctx):
     if graph.directory == None:
         fail("Cannot export an optional Restore artifact on a portable execution platform")
     path = ctx.attr.path
-    if path.startswith("/") or "\\" in path or any([part in ["", ".", ".."] for part in path.split("/")]):
+    if not _safe_relative_path(path):
         fail("Graph output requires a safe workspace-relative path")
     output = ctx.actions.declare_directory(ctx.label.name + "/" + path.rsplit("/", 1)[-1]) if ctx.attr.directory else ctx.actions.declare_file(ctx.label.name + "/" + path.rsplit("/", 1)[-1])
     tc = ctx.toolchains[_TOOLCHAIN]
