@@ -29,7 +29,7 @@ internal static class GraphEngine
         using var evaluation = new EvaluationSession();
         while (await Console.In.ReadLineAsync() is { } line)
         {
-            using var output = new StringWriter(System.Globalization.CultureInfo.InvariantCulture);
+            using var output = new WorkerOutput();
             Console.SetOut(output);
             Console.SetError(output);
             EngineReply reply;
@@ -51,7 +51,8 @@ internal static class GraphEngine
             }
             catch (Exception error)
             {
-                reply = new(1, output + error.ToString(), Retire: true);
+                output.Write(error.ToString());
+                reply = new(1, output.ToString(), Retire: true);
             }
             finally
             {
