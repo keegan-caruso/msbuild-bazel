@@ -26,12 +26,6 @@ sh_binary(
 )
 
 filegroup(
-    name = "sdk_lock_bazel_8",
-    testonly = True,
-    srcs = [bazel_binaries.label("8.8.0")],
-)
-
-filegroup(
     name = "sdk_lock_bazel_9",
     testonly = True,
     srcs = [bazel_binaries.label(bazel_binaries.versions.current)],
@@ -48,12 +42,10 @@ bazel_integration_tests(
     data = [
         "sdk-10.0.302.metadata.json",
         ":rules_archive",
-        ":sdk_lock_bazel_8",
         ":sdk_lock_bazel_9",
     ],
     env = {
         "RULES_ARCHIVE": "$(rootpath :rules_archive)",
-        "BAZEL_8": "$(rootpaths :sdk_lock_bazel_8)",
         "BAZEL_9": "$(rootpaths :sdk_lock_bazel_9)",
         "SDK_QUALIFICATION_METADATA": "$(rootpath sdk-10.0.302.metadata.json)",
     },

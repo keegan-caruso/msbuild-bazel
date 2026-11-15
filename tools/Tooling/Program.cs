@@ -68,7 +68,8 @@ internal static class Program
 
         var bazel = Environment.GetEnvironmentVariable("RULES_MSBUILD_BAZEL") ?? Path.Combine(root, "scripts/bazel-launcher.sh");
         var actual = Host.Run(bazel, ["--version"], root).Trim();
-        var expected = "bazel " + (Environment.GetEnvironmentVariable("USE_BAZEL_VERSION") ?? Environment.GetEnvironmentVariable("RULES_MSBUILD_BAZEL_VERSION") ?? File.ReadAllText(Path.Combine(root, ".bazelversion")).Trim());
+        var selectedBazel = Environment.GetEnvironmentVariable("USE_BAZEL_VERSION");
+        var expected = "bazel " + (string.IsNullOrEmpty(selectedBazel) ? File.ReadAllText(Path.Combine(root, ".bazelversion")).Trim() : selectedBazel);
         if (actual != expected && actual != expected + "- (@non-git)")
         {
             throw new InvalidDataException("Bazel version differs: " + actual);

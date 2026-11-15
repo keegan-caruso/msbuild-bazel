@@ -125,7 +125,7 @@ def main():
         assert all(shutil.which(name) for name in ['clang-14', 'cmake', 'ninja', 'pkg-config', 'bwrap']), 'Native tools missing from supplied image'
     os.environ.update(RULES_MSBUILD_DOTNET_ROOT=str(ROOT / '.tools/dotnet'),
         RULES_MSBUILD_BAZELISK=str(ROOT / '.tools/bin/bazelisk'), RULES_MSBUILD_BAZEL=str(ROOT / 'scripts/bazel-launcher.sh'),
-        RULES_MSBUILD_TEST_REPOSITORY_CACHE=str(BASE / 'repository-cache'), USE_BAZEL_VERSION='9.3.0')
+        RULES_MSBUILD_TEST_REPOSITORY_CACHE=str(BASE / 'repository-cache'), USE_BAZEL_VERSION=config['bazelVersion'])
     progress = BASE / (args.mode + '-progress.json')
     state = json.loads(progress.read_text()) if progress.exists() else dict(identity=config, completed=[])
     assert state['identity'] == config, 'Setup inputs changed; use a fresh setup directory'

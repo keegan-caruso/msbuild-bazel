@@ -11,7 +11,7 @@ from types import SimpleNamespace
 
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / 'scripts'))
-from source_runtime.common import stage_source, digest, read_recipe, owned_output, save
+from source_runtime.common import stage_source, digest, read_recipe, owned_output, save, selected_bazel_version, validate_bazel_version
 from source_runtime.linux import launcher, build_command
 from source_runtime import apple
 sys.path.insert(0, str(ROOT / 'tests/graph_build/upstream'))
@@ -19,6 +19,33 @@ from runtime_product_inventory import configure_sync, inventory
 
 
 class SourceRuntimeSetupTests(unittest.TestCase):
+    def test_bazel_selection_and_resume_identity(self):
+        with patch.dict(os.environ, {}, clear=True):
+            self.assertEqual(selected_bazel_version(), (ROOT/'.bazelversion').read_text().strip())
+        with patch.dict(os.environ, {'USE_BAZEL_VERSION': 'experimental'}):
+            self.assertEqual(selected_bazel_version(), 'experimental')
+            validate_bazel_version({'bazelVersion': 'experimental'})
+            with self.assertRaisesRegex(ValueError, 'Bazel version changed'):
+                validate_bazel_version({'bazelVersion': 'old'})
+            with self.assertRaisesRegex(ValueError, 'Bazel version changed'):
+                validate_bazel_version({})
+
+    def test_apple_resume_rejects_bazel_override_before_container_work(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            base = Path(temporary)
+            save(base/'setup.json', dict(version=1, kind='apple-source-runtime',
+                requestedImage=None, cacheUrl=None, bazelVersion='old'))
+            args = SimpleNamespace(output=base, resume=True, native_toolchain=None, sandbox=None,
+                registry=None, repository_cache=None, host_space_path=None, image=None, cache_url=None)
+            with patch.object(apple.platform, 'machine', return_value='arm64'), \
+                 patch.object(apple.shutil, 'which', return_value='container'), \
+                 patch.dict(os.environ, {'USE_BAZEL_VERSION': 'new'}), \
+                 patch.object(apple, 'run') as run:
+                with self.assertRaisesRegex(ValueError, 'Bazel version changed'):
+                    apple.setup(args)
+                run.assert_not_called()
+            self.assertEqual(json.loads((base/'setup.json').read_text())['bazelVersion'], 'old')
+
     def test_restore_reuse_reviews_only_pinned_linux_compile_contents(self):
         with tempfile.TemporaryDirectory() as temporary:
             output = Path(temporary)/'mappings.json'
@@ -229,12 +256,12 @@ class SourceRuntimeSetupTests(unittest.TestCase):
     def test_run_uses_the_prepared_workspace_and_forwards_arguments(self):
         with tempfile.TemporaryDirectory() as temporary:
             base = Path(temporary)
-            (base/'setup.json').write_text(json.dumps(dict(workspace=str(base/'workspace'),environment={'USE_BAZEL_VERSION':'9.3.0'})))
+            (base/'setup.json').write_text(json.dumps(dict(workspace=str(base/'workspace'),environment={'USE_BAZEL_VERSION':'9.3.2'})))
             command,cwd,env=build_command(base,'run',['--describe-runtime','argument with spaces'])
             self.assertEqual(cwd,base/'workspace')
             self.assertEqual(command[-3:],['--','--describe-runtime','argument with spaces'])
             self.assertIn('//:app',command)
-            self.assertEqual(env['USE_BAZEL_VERSION'],'9.3.0')
+            self.assertEqual(env['USE_BAZEL_VERSION'],'9.3.2')
             test,_,_=build_command(base,'test')
             self.assertIn('--nocache_test_results',test)
             self.assertIn('//:runtime_test',test)

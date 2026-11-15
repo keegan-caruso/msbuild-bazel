@@ -11,7 +11,7 @@ import subprocess
 import tarfile
 import uuid
 
-from .common import ROOT, stage_source, digest, read_recipe, run, save, rules_identity
+from .common import ROOT, stage_source, digest, read_recipe, run, save, rules_identity, selected_bazel_version, validate_bazel_version
 
 
 def demo_helpers():
@@ -65,6 +65,7 @@ def setup(args):
         for supplied,recorded in [(args.image,state['requestedImage']),(args.cache_url,state['cacheUrl'])]:
             if supplied is not None and supplied != recorded:
                 raise ValueError('Setup options changed; use a fresh directory')
+        validate_bazel_version(state)
         args.image=state['requestedImage']
         if digest(base/'rules.tar') != state['rulesSha256']:
             raise ValueError('Frozen source-runtime rules changed')
@@ -80,7 +81,7 @@ def setup(args):
         base.mkdir(parents=True,mode=0o700)
         identifier = uuid.uuid4().hex[:10]
         archive = base/'rules.tar'
-        state = dict(version=1,kind='apple-source-runtime',id=identifier,worker='msbuild-source-runtime-'+identifier,
+        state = dict(bazelVersion=selected_bazel_version(),version=1,kind='apple-source-runtime',id=identifier,worker='msbuild-source-runtime-'+identifier,
                      requestedImage=args.image,cacheUrl=args.cache_url,sourceIdentity=rules_identity(),rulesSha256=helpers.snapshot(archive),ready=False)
         save(base/'setup.json',state)
     with (base/'setup.lock').open('a+') as lock:
@@ -124,7 +125,7 @@ def setup(args):
                  '--label','rules-msbuild.source-runtime='+state['id'],'--volume',str(base)+':/host:ro',state['image'],'sleep','infinity'])
         run(['container','exec',state['worker'],'mkdir','-p','/source-runtime/rules'])
         run(['container','exec',state['worker'],'tar','-xf','/host/rules.tar','-C','/source-runtime/rules'])
-        command=['container','exec',state['worker'],'python3','/source-runtime/rules/scripts/setup-source-runtime.py',
+        command=['container','exec','--env','USE_BAZEL_VERSION='+state['bazelVersion'],state['worker'],'python3','/source-runtime/rules/scripts/setup-source-runtime.py',
                  '/source-runtime/work','--host-space-path=/host']
         if state['cacheUrl']:command+=['--cache-url='+state['cacheUrl']]
         if args.source_archive:

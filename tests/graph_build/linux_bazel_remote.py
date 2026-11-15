@@ -1,4 +1,4 @@
-"""Public Bazel 8/9 actions share project snapshots across fresh output bases."""
+"""Public Bazel actions share project snapshots across fresh output bases."""
 
 import argparse
 import hashlib
@@ -42,15 +42,15 @@ def main():
             'app_graph(name="graph",linux_stable_paths=True' + (',linux_worker=True' if args.graph_worker else '') + ')\n'
             'msbuild_graph_binary(name="app",graph=":graph",project="P2/P2.csproj")\n')
         digests = []
-        steps = [('8.8.0', 0, 1), ('9.3.0', 3, 1), ('9.3.0', 2, 2)]
+        steps = [('9.3.2', 0, 1), ('9.3.2', 3, 1), ('9.3.2', 2, 2)]
         if args.phase == 'producer':
             steps = steps[:1]
         elif args.phase == 'consumer':
             steps = steps[1:]
-        for version, hits, value in steps:
+        for step, (version, hits, value) in enumerate(steps):
             if value == 2:
                 (root / 'P0/Code.cs').write_text('public class P0 { public static int Value() => 2; }')
-            output = base / ('bazel-' + version)
+            output = base / ('bazel-' + version + '-' + str(step))
             command = [str(ROOT / 'scripts/bazel-launcher.sh'), '--batch', '--output_base=' + str(output),
                        'run', '//:app', '--spawn_strategy=' + args.spawn_strategy,
                        '--action_env=RULES_MSBUILD_PROJECT_CACHE_URL=' + cache]

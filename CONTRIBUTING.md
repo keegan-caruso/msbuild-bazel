@@ -20,7 +20,8 @@ python3 tests/graph_build/acceptance.py /tmp/fresh-graph-acceptance
 Setup acquires pinned contributor tools. Checks cover shell/Starlark/pins, owned
 .NET formatting/warnings/unit tests, and rule contracts. Use fresh fixture/report
 directories. Documentation-only changes need link/path checks and `git diff --check`.
-Select the other baseline with `USE_BAZEL_VERSION=8.8.0`. Use wrappers and explicit
+Bazel 9.3.2 is the supported baseline. `USE_BAZEL_VERSION` explicitly overrides
+the repository `.bazelversion` for experiments; other versions are unqualified. Use wrappers and explicit
 `RULES_MSBUILD_BAZELISK` / `RULES_MSBUILD_DOTNET_ROOT` overrides; the latter selects
 contributor tooling, not an application SDK repository.
 

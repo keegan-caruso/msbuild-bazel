@@ -22,6 +22,8 @@ import tarfile
 import uuid
 from urllib.parse import urlsplit
 
+from source_runtime.common import selected_bazel_version, validate_bazel_version
+
 ROOT = Path(__file__).resolve().parents[1]
 PREPARE = 'tests/graph_build/upstream/runtime_demo_prepare.py'
 CACHE_IMAGE = 'docker.io/buchgr/bazel-remote-cache@sha256:8109f1f39eb17d898cf51e08b41e4eabaaaeb1f584c2f22c1be45b7568fcc512'
@@ -190,6 +192,7 @@ def main():
     if args.resume:
         state = json.loads(state_path.read_text())
         assert state['version'] == 1
+        validate_bazel_version(state)
         for attribute, key in [('image', 'image'), ('cache_url', 'cacheUrl'), ('prepared_sha256', 'preparedSha256')]:
             supplied = getattr(args, attribute)
             assert supplied is None or supplied == state['options'][key], 'Setup options changed; use a fresh output'
@@ -208,7 +211,7 @@ def main():
         identity = uuid.uuid4().hex[:10]
         prefix = 'msbuild-runtime-demo-' + identity
         from source_runtime.common import rules_identity
-        state = dict(version=1, kind='runtime-demo', sourceIdentity=rules_identity(), id=identity, options=dict(image=args.image, cacheUrl=args.cache_url, preparedSha256=args.prepared_sha256, testCache=args.test_cache or 'yes'),
+        state = dict(bazelVersion=selected_bazel_version(), version=1, kind='runtime-demo', sourceIdentity=rules_identity(), id=identity, options=dict(image=args.image, cacheUrl=args.cache_url, preparedSha256=args.prepared_sha256, testCache=args.test_cache or 'yes'),
             cacheImage=CACHE_IMAGE, producer=prefix + '-producer', consumer=prefix + '-consumer', cache=None if args.cache_url else prefix + '-cache', completed=[], ready=False)
 
     setup_lock = (output / 'setup.lock').open('a+')
@@ -302,7 +305,7 @@ def main():
         packages = subprocess.check_output(['container', 'exec', name, 'dpkg-query', '-W', '-f=${Package}\t${Version}\n'], text=True)
         (output / (name + '-packages.txt')).write_text(packages)
 
-    config = dict(rulesSha256=state['rulesSha256'], image=state['image'], cacheUrl=state['cacheUrl'], preparedSha256=args.prepared_sha256)
+    config = dict(bazelVersion=state['bazelVersion'], rulesSha256=state['rulesSha256'], image=state['image'], cacheUrl=state['cacheUrl'], preparedSha256=args.prepared_sha256)
     if 'testCache' in state['options']:
         config['testCache'] = state['options']['testCache']
     def producer():
@@ -329,7 +332,7 @@ set -euo pipefail
 export RULES_MSBUILD_DOTNET_ROOT=/demo/rules/.tools/dotnet
 export RULES_MSBUILD_BAZELISK=/demo/rules/.tools/bin/bazelisk
 export RULES_MSBUILD_TEST_REPOSITORY_CACHE=/demo/repository-cache
-export USE_BAZEL_VERSION=9.3.0
+export USE_BAZEL_VERSION=''' + shlex.quote(state['bazelVersion']) + '''
 exec bash /demo/rules/tests/graph_build/upstream/runtime_ci_demo.sh /demo/consumer/workspace /demo/seed.json "$1" ''' + shlex.quote(state['cacheUrl']) + ''' /host "${@:2}"
 '''
         (output / 'guest-run.sh').write_text(script)
