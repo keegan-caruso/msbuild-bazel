@@ -15,14 +15,38 @@ internal static class Package
             throw new InvalidDataException("Invalid package identity");
         }
 
-        var bytes = File.ReadAllBytes(request.Archive);
         if (request.Generated && (request.ContentHash.Length != 0 || request.ArchiveSha256.Length != 0))
         {
             throw new InvalidDataException("Generated packages must not specify acquired archive hashes");
         }
 
-        var contentHash = Convert.ToBase64String(SHA512.HashData(bytes));
-        var archiveHash = Convert.ToHexString(SHA256.HashData(bytes)).ToLowerInvariant();
+        using var source = new FileStream(request.Archive, FileMode.Open, FileAccess.Read, FileShare.Read);
+        var stagedPath = Path.Combine(Path.GetTempPath(), "msbuild-package-" + Guid.NewGuid().ToString("N"));
+        var stageOptions = new FileStreamOptions
+        {
+            Mode = FileMode.CreateNew,
+            Access = FileAccess.ReadWrite,
+            Share = FileShare.None,
+            BufferSize = 81920,
+            Options = FileOptions.DeleteOnClose,
+        };
+        if (!OperatingSystem.IsWindows())
+        {
+            stageOptions.UnixCreateMode = UnixFileMode.UserRead | UnixFileMode.UserWrite;
+        }
+        using var staged = new FileStream(stagedPath, stageOptions);
+        using var sha256 = IncrementalHash.CreateHash(HashAlgorithmName.SHA256);
+        using var sha512 = IncrementalHash.CreateHash(HashAlgorithmName.SHA512);
+        var buffer = new byte[81920];
+        int count;
+        while ((count = source.Read(buffer)) != 0)
+        {
+            sha256.AppendData(buffer, 0, count);
+            sha512.AppendData(buffer, 0, count);
+            staged.Write(buffer, 0, count);
+        }
+        var contentHash = Convert.ToBase64String(sha512.GetHashAndReset());
+        var archiveHash = Convert.ToHexString(sha256.GetHashAndReset()).ToLowerInvariant();
         if (!request.Generated && Convert.FromBase64String(request.ContentHash).Length != 64)
         {
             throw new InvalidDataException("Invalid NuGet content hash");
@@ -39,7 +63,8 @@ internal static class Package
         }
 
         Directory.CreateDirectory(request.Output);
-        using var zip = new ZipArchive(new MemoryStream(bytes));
+        staged.Position = 0;
+        using var zip = new ZipArchive(staged, ZipArchiveMode.Read, leaveOpen: true);
         var nuspec = zip.Entries.Single(e => !e.FullName.Contains('/') && e.FullName.EndsWith(".nuspec", StringComparison.OrdinalIgnoreCase));
         using (var stream = nuspec.Open())
         {
@@ -71,7 +96,16 @@ internal static class Package
             input.CopyTo(output);
         }
         var archive = Path.Combine(request.Output, id + "." + version + ".nupkg");
-        File.WriteAllBytes(archive, bytes);
+        staged.Position = 0;
+        using (var retained = File.Create(archive))
+        {
+            staged.CopyTo(retained);
+        }
+        source.Position = 0;
+        if (!Convert.ToHexString(SHA256.HashData(source)).Equals(archiveHash, StringComparison.OrdinalIgnoreCase))
+        {
+            throw new InvalidDataException("Package archive changed during extraction");
+        }
         File.WriteAllText(archive + ".sha512", contentHash);
         File.WriteAllText(Path.Combine(request.Output, ".nupkg.metadata"), JsonSerializer.Serialize(new
         {
