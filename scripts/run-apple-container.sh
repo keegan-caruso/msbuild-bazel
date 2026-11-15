@@ -8,8 +8,10 @@ fi
 command -v container >/dev/null || { echo 'Install Apple container first.' >&2; exit 1; }
 if [[ $# == 0 ]]; then echo 'Usage: bash scripts/run-apple-container.sh COMMAND [ARGS...]' >&2; exit 2; fi
 arch="${RULES_MSBUILD_CONTAINER_ARCH:-arm64}"
-image="${RULES_MSBUILD_CONTAINER_IMAGE:-ubuntu@sha256:2edbbc5dc405e9612ba3584ce95480277e3eb374407b5505fe26f17df77c7dbc}"
+image="${RULES_MSBUILD_CONTAINER_IMAGE:-ubuntu@sha256:065aa8626841f16057b78b027b464cd59c4fac36c204c72dcbf48d66f5fa8a96}"
 case "$arch" in arm64|amd64) ;; *) echo 'RULES_MSBUILD_CONTAINER_ARCH must be arm64 or amd64.' >&2; exit 2 ;; esac
+rosetta=()
+if [[ "$arch" == amd64 ]]; then rosetta=(--rosetta); fi
 cache_url="${RULES_MSBUILD_SHARED_CACHE_URL:-}"
 if [[ -n "$cache_url" && ( ! "$cache_url" =~ ^https?://[^[:space:]\"]+$ || "$cache_url" == *"'"* || "$cache_url" == *\\* || "$cache_url" == *'#'* ) ]]; then
     echo 'RULES_MSBUILD_SHARED_CACHE_URL must be an HTTP(S) URL without whitespace, quotes, backslashes or fragments.' >&2; exit 2
@@ -25,6 +27,7 @@ mkdir -p "$repo_root/artifacts/apple-container"
 run_dir="$(mktemp -d "$repo_root/artifacts/apple-container/run.XXXXXX")"
 printf 'Container evidence: %s\n' "$run_dir"
 container run --rm --init -i --arch "$arch" --cpus "${RULES_MSBUILD_CONTAINER_CPUS:-4}" --memory "${RULES_MSBUILD_CONTAINER_MEMORY:-6G}" \
+    ${rosetta[@]+"${rosetta[@]}"} \
     ${relay_mount[@]+"${relay_mount[@]}"} \
     -e "RULES_MSBUILD_SHARED_CACHE_RELAY=${RULES_MSBUILD_SHARED_CACHE_SOCKET:+1}" \
     -e "RULES_MSBUILD_SHARED_CACHE_URL=$cache_url" \
@@ -40,7 +43,7 @@ set -euo pipefail
 export DEBIAN_FRONTEND=noninteractive
 if [[ "${RULES_MSBUILD_CONTAINER_PREBUILT:-0}" != 1 ]]; then
     apt-get update -qq
-    apt-get install -y -qq python3 curl ca-certificates libicu70 libssl3 zlib1g git
+    apt-get install -y -qq python3 curl ca-certificates libbrotli1 libc6 libgcc-s1 libgssapi-krb5-2 libicu78 libssl3t64 libstdc++6 tzdata zlib1g git
 fi
 mkdir /workspace
 tar -C /src --exclude=.git --exclude=.tools --exclude=.cache --exclude=artifacts \

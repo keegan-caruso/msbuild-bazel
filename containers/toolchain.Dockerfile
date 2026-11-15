@@ -1,7 +1,7 @@
-FROM ubuntu@sha256:2edbbc5dc405e9612ba3584ce95480277e3eb374407b5505fe26f17df77c7dbc
+FROM ubuntu@sha256:065aa8626841f16057b78b027b464cd59c4fac36c204c72dcbf48d66f5fa8a96
 ENV DEBIAN_FRONTEND=noninteractive
 RUN apt-get update -qq && apt-get install -y -qq \
-    curl ca-certificates libicu70 libssl3 zlib1g git \
+    curl ca-certificates libbrotli1 libc6 libgcc-s1 libgssapi-krb5-2 libicu78 libssl3t64 libstdc++6 tzdata zlib1g git \
     && rm -rf /var/lib/apt/lists/*
 WORKDIR /opt/rules_msbuild-toolchain
 COPY payload.tar ./

@@ -28,6 +28,8 @@ class AppleContainerTests(unittest.TestCase):
                        RULES_MSBUILD_SHARED_CACHE_URL='http://cache.invalid:8080',
                        RULES_MSBUILD_CONTAINER_PREBUILT='1', RULES_MSBUILD_PROJECT_CACHE_READ_ONLY='1')
             env.pop('USE_BAZEL_VERSION', None)
+            env.pop('RULES_MSBUILD_CONTAINER_IMAGE', None)
+            env.pop('RULES_MSBUILD_CONTAINER_ARCH', None)
             result = subprocess.run(['bash', str(script), 'printf', 'done'], env=env, capture_output=True)
             self.assertEqual(result.returncode, 0, result.stderr)
             args = (root / 'args').read_text().splitlines()
@@ -36,6 +38,16 @@ class AppleContainerTests(unittest.TestCase):
                              'RULES_MSBUILD_PROJECT_CACHE_READ_ONLY=1'):
                 self.assertIn(expected, args)
             self.assertIn('USE_BAZEL_VERSION=', args)
+            pin='ubuntu@sha256:065aa8626841f16057b78b027b464cd59c4fac36c204c72dcbf48d66f5fa8a96'
+            self.assertIn(pin, args)
+            self.assertNotIn('--rosetta', args)
+            self.assertIn('libicu78 libssl3t64', (root / 'guest').read_text())
+            self.assertIn('FROM '+pin, (ROOT / 'containers/toolchain.Dockerfile').read_text())
+            env['RULES_MSBUILD_CONTAINER_ARCH']='amd64'
+            amd64=subprocess.run(['bash', str(script), 'true'], env=env, capture_output=True)
+            self.assertEqual(amd64.returncode, 0, amd64.stderr)
+            self.assertIn('--rosetta', (root / 'args').read_text().splitlines())
+            env.pop('RULES_MSBUILD_CONTAINER_ARCH')
             env['USE_BAZEL_VERSION'] = '9.3.2'
             result = subprocess.run(['bash', str(script), 'true'], env=env, capture_output=True)
             self.assertEqual(result.returncode, 0, result.stderr)
