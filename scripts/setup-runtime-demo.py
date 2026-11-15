@@ -142,7 +142,7 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('output', type=Path, help='new owned setup/state directory; retain it for resume and run')
     parser.add_argument('--resume', action='store_true', help='explicit resume; matching owned inputs resume automatically')
-    parser.add_argument('--image', help='reuse an immutable Ubuntu 22.04 ARM64 image; default builds the native demo image')
+    parser.add_argument('--image', help='reuse an immutable Ubuntu 26.04 ARM64 image; default builds the native demo image')
     parser.add_argument('--cache-url', help='use an existing unauthenticated HTTP(S) cache instead of creating one')
     parser.add_argument('--prepared-inputs', type=Path, help='optional source-only checkpoint emitted by runtime_demo_prepare.py pack')
     parser.add_argument('--prepared-sha256', help='required digest for --prepared-inputs')

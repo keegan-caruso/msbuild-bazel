@@ -9,6 +9,7 @@ import shutil
 import tarfile
 
 from native_driver import write_contract
+from native_environment import build_prefix
 
 p=argparse.ArgumentParser(description=__doc__)
 p.add_argument('native',type=Path)
@@ -28,7 +29,7 @@ if a.component == 'libraries':
     destinations = {name: shared + name for name in products.values()}
     targets = ['System.Native', 'System.IO.Compression.Native', 'System.Security.Cryptography.Native.OpenSsl',
                'System.Globalization.Native', 'System.Net.Security.Native']
-    script = f'''./src/native/libs/build-native.sh -arm64 -release -outconfig qualification -configureonly -numproc {a.jobs}{" -ninja" if a.ninja else ""}
+    script = f'''./src/native/libs/build-native.sh -clang18 -arm64 -release -outconfig qualification -configureonly -numproc {a.jobs}{" -ninja" if a.ninja else ""}
 cmake --build artifacts/obj/native/qualification --target {" ".join(targets)} --parallel {a.jobs}
 mkdir result
 '''
@@ -44,7 +45,7 @@ elif a.component!='host':
     filename='lib'+target+'.so'
     products={group:filename}
     destinations={filename:shared+filename}
-    script=f'''./src/native/libs/build-native.sh -arm64 -release -outconfig qualification -configureonly -numproc {a.jobs}{" -ninja" if a.ninja else ""}
+    script=f'''./src/native/libs/build-native.sh -clang18 -arm64 -release -outconfig qualification -configureonly -numproc {a.jobs}{" -ninja" if a.ninja else ""}
 cmake --build artifacts/obj/native/qualification --target {target} --parallel {a.jobs}
 mkdir result
 cp artifacts/obj/native/qualification/{subdir}/{filename} result/
@@ -52,13 +53,13 @@ cp artifacts/obj/native/qualification/{subdir}/{filename} result/
 else:
     products={'muxer':'dotnet','fxr':'libhostfxr.so','policy':'libhostpolicy.so'}
     destinations={'dotnet':'dotnet','libhostfxr.so':'host/fxr/10.0.0/libhostfxr.so','libhostpolicy.so':shared+'libhostpolicy.so'}
-    script=f'''./src/native/corehost/build.sh -arm64 -release -commithash {commit} -numproc {a.jobs}{" -ninja" if a.ninja else ""}
+    script=f'''./src/native/corehost/build.sh -clang18 -arm64 -release -commithash {commit} -numproc {a.jobs}{" -ninja" if a.ninja else ""}
 mkdir result
 cp artifacts/bin/linux-arm64.Release/corehost/dotnet result/
 cp artifacts/bin/linux-arm64.Release/corehost/libhostfxr.so result/
 cp artifacts/bin/linux-arm64.Release/corehost/libhostpolicy.so result/
 '''
-script='set -euo pipefail\n'+script+'tar --sort=name --mtime=@0 --owner=0 --group=0 --numeric-owner -cf result.tar -C result .\n'
+script=build_prefix()+script+'tar --sort=name --mtime=@0 --owner=0 --group=0 --numeric-owner -cf result.tar -C result .\n'
 # Preserve the generated version inputs owned by native_prepare; replace only
 # the component script. Duplicate members would fail strict action extraction.
 with tarfile.open(a.native/'source.tar') as original,tarfile.open(folder/'source.tar','w') as out:

@@ -59,7 +59,12 @@ class NativePreparationTests(unittest.TestCase):
                     self.assertTrue(all(count == 1 for count in Counter(member.name for member in archive).values()))
                     for name in ['artifacts/obj/_version.h', 'artifacts/obj/runtime_version.h', 'src/native/keep.txt']:
                         self.assertEqual(archive.extractfile(name).read(), files[name])
-                    self.assertIn(b'-ninja', archive.extractfile('build-native.sh').read())
+                    script = archive.extractfile('build-native.sh').read()
+                    self.assertIn(b'-ninja', script)
+                    self.assertIn(b'-clang18 -arm64', script)
+                    self.assertIn(b'export CC=clang-18 CXX=clang++-18', script)
+                    self.assertIn(b'ubuntu/26.04', script)
+                    self.assertIn(b'clang version 18.1.8', script)
 
 
 if __name__ == '__main__':

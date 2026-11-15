@@ -7,6 +7,9 @@ import sys
 
 from .common import ROOT, read_recipe, digest
 
+sys.path.insert(0, str(ROOT / "tests/runtime"))
+from native_environment import build_prefix
+
 CORECLR = dict(coreclr='libcoreclr.so', jit='libclrjit.so', host='corerun', gc='libclrgc.so', gcexp='libclrgcexp.so',
     dac='libmscordaccore.so', dbi='libmscordbi.so', trace='libcoreclrtraceptprovider.so', dump='createdump')
 LIBRARIES = dict(system_native='libSystem.Native.so', compression='libSystem.IO.Compression.Native.so',
@@ -69,11 +72,11 @@ def declare_inputs(root, preparation):
         'filegroup(name="sandbox",srcs=['+json.dumps(sandbox)+'],visibility=["//visibility:public"])']
     commit=source['commit']
     for component,products,script in [
-        ('coreclr',CORECLR,'./src/coreclr/build-runtime.sh -arm64 -release -component runtime -component jit -component hosts -numproc 4 -ninja\nmkdir result\n'+''.join('cp artifacts/bin/coreclr/linux.arm64.Release/'+name+' result/\n' for name in CORECLR.values())),
-        ('libraries',LIBRARIES,'./src/native/libs/build-native.sh -arm64 -release -outconfig qualification -configureonly -numproc 4 -ninja\ncmake --build artifacts/obj/native/qualification --target System.Native System.IO.Compression.Native System.Security.Cryptography.Native.OpenSsl System.Globalization.Native System.Net.Security.Native --parallel 4\nmkdir result\n'+''.join('cp artifacts/obj/native/qualification/'+name.removeprefix('lib').removesuffix('.so').removesuffix('.OpenSsl')+'/'+name+' result/\n' for name in LIBRARIES.values())),
-        ('host',HOST,'./src/native/corehost/build.sh -arm64 -release -commithash '+commit+' -numproc 4 -ninja\nmkdir result\n'+''.join('cp artifacts/bin/linux-arm64.Release/corehost/'+name+' result/\n' for name in HOST.values())),
+        ('coreclr',CORECLR,'./src/coreclr/build-runtime.sh -clang18 -arm64 -release -component runtime -component jit -component hosts -numproc 4 -ninja\nmkdir result\n'+''.join('cp artifacts/bin/coreclr/linux.arm64.Release/'+name+' result/\n' for name in CORECLR.values())),
+        ('libraries',LIBRARIES,'./src/native/libs/build-native.sh -clang18 -arm64 -release -outconfig qualification -configureonly -numproc 4 -ninja\ncmake --build artifacts/obj/native/qualification --target System.Native System.IO.Compression.Native System.Security.Cryptography.Native.OpenSsl System.Globalization.Native System.Net.Security.Native --parallel 4\nmkdir result\n'+''.join('cp artifacts/obj/native/qualification/'+name.removeprefix('lib').removesuffix('.so').removesuffix('.OpenSsl')+'/'+name+' result/\n' for name in LIBRARIES.values())),
+        ('host',HOST,'./src/native/corehost/build.sh -clang18 -arm64 -release -commithash '+commit+' -numproc 4 -ninja\nmkdir result\n'+''.join('cp artifacts/bin/linux-arm64.Release/corehost/'+name+' result/\n' for name in HOST.values())),
     ]:
-        (folder/(component+'.sh')).write_text('set -euo pipefail\n'+script+'tar --sort=name --mtime=@0 --owner=0 --group=0 --numeric-owner -cf result.tar -C result .\n')
+        (folder/(component+'.sh')).write_text(build_prefix()+script+'tar --sort=name --mtime=@0 --owner=0 --group=0 --numeric-owner -cf result.tar -C result .\n')
         lines.append('native_runtime(name='+json.dumps('runtime_'+component)+',driver=":driver",sandbox='+json.dumps(sandbox)+',toolchain_archive='+json.dumps(toolchain)+',source_archive=":sources",script='+json.dumps(component+'.sh')+',products='+json.dumps(products)+')')
         for group in products:
             label=group if component=='coreclr' else component+'_'+group
