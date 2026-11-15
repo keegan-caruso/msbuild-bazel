@@ -16,8 +16,10 @@ controls and the execution-requirements check on 9.3.2. Portable version control
 cover generated workspaces, explicit override precedence, repository-pin fallback,
 empty/legacy overrides and source-runtime resume mismatch rejection. The owned
 .NET projects pass compilation and formatting. Full `scripts/check-dotnet.sh` reached
-one failure in the default NuGet HTTP-cache control because the restricted host
-could not write macOS Application Support; this is not a passing full-suite result.
+one independent failure in the default NuGet HTTP-cache fixture: restricted runs
+cannot write macOS Application Support, and an unrestricted native retry exposes
+the fixture's Linux XDG-path assumption. Explicit/disposable cache controls pass;
+this is not a passing full-suite result.
 Linux execution and source-runtime production on 9.3.2 remain pending.
 
 Native macOS / 9.3.2 fixture controls pass for offline supported package SDKs,
@@ -110,7 +112,7 @@ common scratch parent: Bazel's hermetic `/tmp` can hide a sibling local override
 ## Downloaded SDK platforms
 
 Downloaded-SDK controls passed on native Linux ARM64 and Linux x64 **under
-Apple Rosetta**: 29 analysis/integration checks across both current Bazel pins,
+Apple Rosetta**: 29 analysis/integration checks across the recorded 8.8.0 / 9.3.0 pins,
 plus 21 SDK/runtime repository controls. Scope: SDK selection/locks, quickstart,
 SDK-only Web/Razor Build/test/Publish and HTTP recovery, cached/uncached sandboxed
 workers, body/API edits and raw MSBuild output parity. The Web fixture checks the
@@ -129,7 +131,7 @@ Mac. This establishes emulated x64 behavior, not native x64 performance or
 source-built SDK/runtime qualification. Native Linux x64 remains unqualified.
 
 Native macOS ARM64 passed `//tests/integration:{quickstart,native_sdk}` on
-both current Bazel pins with SDK **10.0.400**: the public catalog's packages,
+the recorded 8.8.0 / 9.3.0 pins with SDK **10.0.400**: the public catalog's packages,
 Razor/Publish, app/tests, body/API reference checks, sync/check and an independent
 strict-lock source/output-base consumer. These four controls also passed on
 native Linux ARM64. All 24 SDK/runtime repository controls
@@ -140,7 +142,7 @@ Linux workers, published-byte parity and HTTP recovery retain their separate
 qualification above.
 
 `//tests/integration:visual_basic` passed on Linux ARM64 with SDK **10.0.400**
-and both current Bazel pins: explicit `.vbproj` roots/mappings, a C# consumer,
+and the recorded 8.8.0 / 9.3.0 pins: explicit `.vbproj` roots/mappings, a C# consumer,
 body edits, execution and independent disk-cache recovery. VB inputs remain
 explicit; automatic compiler-input qualification and Compile globs are C# only.
 
@@ -161,7 +163,7 @@ public sync, raw MSBuild parity, edits, failures and cached/uncached workers.
 Web/Razor [graph controls](../tests/graph_build/web.py) cover compile/replay, Razor
 edits and assembly attributes; source-built Razor consumers are covered below.
 
-`//tests/integration:sdk_web` passed both current Bazel pins on Linux ARM64 with
+`//tests/integration:sdk_web` passed the recorded 8.8.0 / 9.3.0 pins on Linux ARM64 with
 SDK **10.0.400**, using its bundled ASP.NET framework without `runtime_host`.
 Build/test and Publish serve a compiled Razor page and published static assets;
 content edits require no sync. Published files match ordinary/graph MSBuild bytes,
@@ -217,7 +219,7 @@ remain unsupported; selection uses published releases, not installed SDKs.
 Linux ARM64: local/external-module graph compilation, body edits, pinned membership
 and rejection of undeclared cross-repository sources.
 
-`//tests/integration:evaluation_worker` passed both current pins on Linux ARM64:
+`//tests/integration:evaluation_worker` passed the recorded 8.8.0 / 9.3.0 pins on Linux ARM64:
 reviewed body/API reuse, fresh build state, evaluation-input/task changes and failed-
 build recovery. Retention requires explicit compiler-only input review; see
 [configuration](api.md#caching-and-workers) and [runtime timings](performance.md#reviewed-evaluation-reuse).
@@ -272,7 +274,7 @@ Build snapshot seeding (automatic with the declared qualified execution capabili
 or forced with `seed_build_cache = True`) passed a three-project chain, a five-node/two-framework
 graph, a query-only coordinator, globs over unselected files and generated-file
 conditions on Linux ARM64,
-SDK **10.0.400**, both current Bazel pins. First ordinary
+SDK **10.0.400**, the recorded 8.8.0 / 9.3.0 pins. First ordinary
 Builds recovered all three/four project snapshots without compilation. A fresh
 source/output-base consumer recovered through HTTP with Bazel action caching off;
 owned outputs matched uncached Build bytes, excluding the ordinary protocol's
@@ -821,6 +823,58 @@ publisher exited before an independent native Mac mini read-only consumer fetche
 a fresh snapshot through the shared HTTPS service; payload SHA256 matched. This
 cross-host check uses a synthetic snapshot, not a whole graph or Linux workers.
 Linux qualification remains pending the new build server.
+
+## Bounded native regression controls
+
+Project-cache payload transfers use 64 KiB buffers and one transfer budget per
+store (default eight), including concurrent project requests. Uploads first verify
+private staged payloads; retries reopen those verified bytes. Downloads verify
+streamed digests before publication, retain disk verification and deduplicate shared
+payloads. Small protocol manifests remain buffered. Graph snapshot capture stays
+serial while up to two immutable publications overlap capture; all started
+publications finish before the invocation succeeds or reports failure. This does
+not change the serialized-publisher policy above.
+
+Worker child and retained-engine invocations have a one-hour active deadline.
+Cancellation terminates their process trees and retires retained engines. Output
+pipes continue draining while retaining at most 1,048,576 characters of diagnostic
+tail plus a truncation marker; oversized retained replies fail. The input pump
+receives cancellation while the serial executor builds and permits one queued
+request. These bounds apply to child execution and diagnostics, not the complete
+staging/publication lifecycle; synchronous filesystem operations are not immediately
+interruptible. Native fake-child controls cover noisy/hung/failed children,
+descendant cleanup, cancellation, protocol rejection and fresh retries. Actual
+Linux/Bazel sandbox cancellation remains deferred under the worker release gate.
+
+Qualification shares raw content/mode observations within each before/after-Build
+verification phase, preserving both existing digest encodings. It never reuses
+pre-Build observations after Build. A shared immutable multi-owner path index
+preserves distinct policies: qualification excludes ambiguous owners and their
+consumers; execution rejects overlapping outputs. Native sync/compiler-copy,
+mode/mutation and randomized ownership controls pass; Linux-only seeded-cache
+qualification remains unrun.
+
+Runtime layout selection indexes tree members by selected ancestor prefixes,
+retaining nested selections and member ordering. Native Bazel 9.3.2 analysis and
+graph-layout controls pass. Package extraction hashes into a private staged archive,
+then uses that same handle for ZIP validation, extraction and retained archive bytes;
+a final source check precedes completion metadata. Native artifact controls cover
+locked/generated identities, tampering, traversal, validation markers and retained
+bytes. Neither change implies source-runtime or Linux qualification.
+
+Run the portable controls with the pinned SDK and fresh temporary fixtures:
+
+```sh
+python3 tests/graph_build/worker_supervision.py
+python3 tests/graph_build/publication_queue.py
+python3 tests/graph_build/remote_streaming.py
+python3 tests/graph_build/remote_publication.py
+```
+
+The native streaming control fetches eight 8 MiB payloads with a two-transfer
+budget, verifies interrupted-body recovery and one GET for shared content.
+[Performance](performance.md#bounded-cache-controls) records scoped observations;
+these controls do not qualify Linux workers or claim end-to-end speedups.
 
 ## Snapshot materialization defaults
 
