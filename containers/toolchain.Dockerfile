@@ -13,5 +13,6 @@ RUN bash scripts/setup.sh --toolchain-only \
 RUN apt-get update -qq && apt-get install -y -qq bubblewrap python3 && rm -rf /var/lib/apt/lists/*
 ENV RULES_MSBUILD_DOTNET_ROOT=/opt/rules_msbuild-toolchain/.tools/dotnet \
     RULES_MSBUILD_BAZEL=/opt/rules_msbuild-toolchain/scripts/bazel-launcher.sh \
+    RULES_MSBUILD_BAZELISK=/opt/rules_msbuild-toolchain/.tools/bin/bazelisk \
     RULES_MSBUILD_CONTAINER_PREBUILT=1
 WORKDIR /

@@ -1,5 +1,6 @@
 """Host forwarding and guest cache configuration without starting a VM."""
 import os
+import shlex
 from pathlib import Path
 import subprocess
 import socket
@@ -11,6 +12,18 @@ SCRIPT = ROOT / 'scripts/run-apple-container.sh'
 
 
 class AppleContainerTests(unittest.TestCase):
+    def test_prebuilt_bazelisk_survives_workspace_environment(self):
+        dockerfile=(ROOT / 'containers/toolchain.Dockerfile').read_text().replace('\\\n', ' ')
+        tools={}
+        for line in dockerfile.splitlines():
+            if line.startswith('ENV '):
+                tools.update(part.split('=', 1) for part in shlex.split(line[4:]) if '=' in part)
+        env=dict(os.environ, **tools)
+        result=subprocess.run(['bash', '-c', 'source scripts/env.sh; printf "%s" "$RULES_MSBUILD_BAZELISK"'],
+                              cwd=ROOT, env=env, capture_output=True, text=True)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(result.stdout, '/opt/rules_msbuild-toolchain/.tools/bin/bazelisk')
+
     def test_forwarding_and_guest_cache(self):
         with tempfile.TemporaryDirectory() as folder:
             root = Path(folder)
