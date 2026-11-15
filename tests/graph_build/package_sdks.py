@@ -22,28 +22,33 @@ def main():
         base = Path(temporary).resolve()
         root = base / 'workspace'
         root.mkdir()
-        with zipfile.ZipFile(root / 'fixture.sdk.1.0.0.nupkg', 'w') as archive:
-            archive.writestr('Fixture.Sdk.nuspec', '<package><metadata><id>Fixture.Sdk</id><version>1.0.0</version><authors>fixture</authors><description>fixture</description><packageTypes><packageType name="MSBuildSdk" /></packageTypes></metadata></package>')
+        # Use a supported SDK identity; the synthetic archive isolates offline
+        # resolver/closure behavior from the real Arcade SDK's package graph.
+        with zipfile.ZipFile(root / 'microsoft.dotnet.arcade.sdk.1.0.0.nupkg', 'w') as archive:
+            archive.writestr('Microsoft.DotNet.Arcade.Sdk.nuspec', '<package><metadata><id>Microsoft.DotNet.Arcade.Sdk</id><version>1.0.0</version><authors>fixture</authors><description>fixture</description><packageTypes><packageType name="MSBuildSdk" /></packageTypes></metadata></package>')
             archive.writestr('sdk/Sdk.props', '<Project><PropertyGroup><DefineConstants>$(DefineConstants);PACKAGE_SDK</DefineConstants></PropertyGroup><ItemGroup><GlobalAnalyzerConfigFiles Include="$(MSBuildProjectDirectory)/../../missing.globalconfig" /></ItemGroup></Project>')
             archive.writestr('sdk/Sdk.targets', '<Project />')
-        data = (root / 'fixture.sdk.1.0.0.nupkg').read_bytes()
+        data = (root / 'microsoft.dotnet.arcade.sdk.1.0.0.nupkg').read_bytes()
         global_json = json.loads((ROOT / 'global.json').read_text())
-        global_json['msbuild-sdks'] = {'Fixture.Sdk': '1.0.0', 'Unused.Sdk': '9.9.9'}
+        global_json['msbuild-sdks'] = {'Microsoft.DotNet.Arcade.Sdk': '1.0.0', 'Unused.Sdk': '9.9.9'}
         (root / 'global.json').write_text(json.dumps(global_json))
         config = '<configuration><packageSources><clear /></packageSources></configuration>'
         (root / 'NuGet.Config').write_text(config)
         (root / 'App').mkdir()
-        (root / 'App/App.csproj').write_text('<Project Sdk="Microsoft.NET.Sdk"><Import Project="Sdk.props" Sdk="Fixture.Sdk" /><PropertyGroup><TargetFramework>net10.0</TargetFramework><OutputType>Exe</OutputType></PropertyGroup><ItemGroup><Content Include="../NuGet.Config" Link="NuGet.Config" CopyToOutputDirectory="Always" /></ItemGroup></Project>')
+        (root / 'App/App.csproj').write_text('<Project Sdk="Microsoft.NET.Sdk"><Import Project="Sdk.props" Sdk="Microsoft.DotNet.Arcade.Sdk" /><PropertyGroup><TargetFramework>net10.0</TargetFramework><OutputType>Exe</OutputType></PropertyGroup><ItemGroup><Content Include="../NuGet.Config" Link="NuGet.Config" CopyToOutputDirectory="Always" /></ItemGroup></Project>')
         (root / 'App/Code.cs').write_text('#if PACKAGE_SDK\nSystem.Console.WriteLine("declared SDK");\n#else\n#error Missing package SDK\n#endif')
         (root / 'MODULE.bazel').write_text('module(name="package_sdks")\nbazel_dep(name="rules_msbuild",version="0.0.0")\n'
             f'local_path_override(module_name="rules_msbuild",path={json.dumps(str(ROOT))})\n'
             'dotnet=use_extension("@rules_msbuild//msbuild:extensions.bzl","dotnet")\n'
             'dotnet.sdk(name="dotnet",global_json="//:global.json")\nuse_repo(dotnet,"dotnet")\nregister_toolchains("@dotnet//:all")\n')
+        # This synthetic SDK only adds a define; its compiler reference boundary
+        # is reviewed explicitly rather than inferred for an arbitrary import.
+        (root / 'mapping.json').write_text(json.dumps({'projectDefaults': {'referenceBoundary': True}}))
         authored = ('load("@rules_msbuild//msbuild:defs.bzl","msbuild_nuget_package","msbuild_package_lock","msbuild_graph_binary")\n'
             'load("@rules_msbuild//msbuild:sync.bzl","msbuild_sync")\n'
-            f'msbuild_nuget_package(name="sdk",package_id="Fixture.Sdk",version="1.0.0",archive="fixture.sdk.1.0.0.nupkg",archive_sha256="{hashlib.sha256(data).hexdigest()}",content_hash="{base64.b64encode(hashlib.sha512(data).digest()).decode()}")\n'
+            f'msbuild_nuget_package(name="sdk",package_id="Microsoft.DotNet.Arcade.Sdk",version="1.0.0",archive="microsoft.dotnet.arcade.sdk.1.0.0.nupkg",archive_sha256="{hashlib.sha256(data).hexdigest()}",content_hash="{base64.b64encode(hashlib.sha512(data).digest()).decode()}")\n'
             'msbuild_package_lock(name="packages",packages=[":sdk"])\n'
-            'msbuild_sync(name="sync",package_build=True,package_lock=":packages",projects=["App/App.csproj"])\n')
+            'msbuild_sync(name="sync",package_build=True,package_lock=":packages",mappings="mapping.json",projects=["App/App.csproj"])\n')
         (root / 'BUILD.bazel').write_text(authored)
         prefix = [str(ROOT / 'scripts/bazel-launcher.sh'), f'--output_base={base / "bazel"}']
         def bazel(*args, success=True):
@@ -59,8 +64,8 @@ def main():
             assert (root / 'bazel-bin/graph.graph/workspace/App/bin/Release/net10.0/NuGet.Config').read_text() == config
             if args.prepared_restore:
                 # Package-SDK bootstrap must leave Restore's environment key stable.
-                (root / 'mapping.json').write_text(json.dumps({'projectDefaults': {'preparedRestore': True}}))
-                prepared = authored.replace('projects=["App/App.csproj"]', 'projects=["App/App.csproj"],mappings="mapping.json"')
+                (root / 'mapping.json').write_text(json.dumps({'projectDefaults': {'referenceBoundary': True, 'preparedRestore': True}}))
+                prepared = authored
                 (root / 'BUILD.bazel').write_text(prepared)
                 bazel('run', '//:sync')
                 bazel('run', '//:sync', '--', '--check')
@@ -78,7 +83,7 @@ def main():
                 assert (root / 'bazel-bin/graph.graph/workspace/App/bin/Release/net10.0/NuGet.Config').read_text() == config
             # Even after a successful run, missing declared SDKs cannot use a warm host cache.
             (root / 'BUILD.bazel').write_text(authored.replace('packages=[":sdk"]', 'packages=[]'))
-            assert 'Fixture.Sdk' in bazel('run', '//:sync', success=False)
+            assert 'Microsoft.DotNet.Arcade.Sdk' in bazel('run', '//:sync', success=False)
             print('PASS: offline package SDK sync/build, authored config preservation and missing-closure rejection'
                   + ('; prepared Restore/body reuse' if args.prepared_restore else ''))
         finally:
