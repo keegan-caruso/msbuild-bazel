@@ -132,6 +132,7 @@ internal sealed partial class GraphCache(GraphInputs inputs, string cache, bool 
 
     internal async Task SaveAsync(GraphBuildResult result)
     {
+        await using var publications = new SnapshotPublications();
         foreach (var (node, build) in result.ResultsByNode)
         {
             var key = GraphInputs.Key(node.ProjectInstance);
@@ -152,11 +153,11 @@ internal sealed partial class GraphCache(GraphInputs inputs, string cache, bool 
                 }
                 return new TargetOutput(name, target.Items.Select(item => new ResultItem(item.ItemSpec,
                     Metadata(item))).ToArray());
-            }).ToArray());
+            }).ToArray(), publications);
         }
     }
 
-    private async Task CaptureAsync(ProjectGraphNode node, Func<TargetOutput[]> targetFactory)
+    private async Task CaptureAsync(ProjectGraphNode node, Func<TargetOutput[]> targetFactory, SnapshotPublications publications)
     {
         var key = GraphInputs.Key(node.ProjectInstance);
         var fingerprint = fingerprints[key];
@@ -226,8 +227,11 @@ internal sealed partial class GraphCache(GraphInputs inputs, string cache, bool 
             }
             if (remote is not null)
             {
-                using var upload = GraphProfile.Measure("remotePublish");
-                await remote.PublishAsync(fingerprint, destination, CancellationToken.None);
+                await publications.Add(async () =>
+                {
+                    using var upload = GraphProfile.Measure("remotePublish");
+                    await remote.PublishAsync(fingerprint, destination, CancellationToken.None);
+                });
             }
         }
         finally

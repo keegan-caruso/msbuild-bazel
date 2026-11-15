@@ -43,12 +43,13 @@ internal sealed partial class GraphCache
         }
         // Validate every project before making any graph-cache entry visible.
         inputs.VerifyUnchangedInputs();
+        await using var publications = new SnapshotPublications();
         foreach (var (node, requested, targets) in selected)
         {
             var key = GraphInputs.Key(node.ProjectInstance);
             fingerprints[key] = Fingerprint(node, requested);
             requestedTargets[key] = requested;
-            await CaptureAsync(node, () => targets);
+            await CaptureAsync(node, () => targets, publications);
         }
         return selected.Count;
     }
