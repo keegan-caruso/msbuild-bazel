@@ -49,6 +49,26 @@ has separate 9.3 results.
 
 ## Shared cache on two Macs
 
+The general Apple Container wrapper defaults to pinned Ubuntu 26.04 ARM64.
+Set `RULES_MSBUILD_CONTAINER_ARCH=amd64` for explicit Rosetta execution on Apple
+silicon. The image installs the Ubuntu 26.04 .NET prerequisites; SDK 10.0.400
+and Bazel 9.3.2 remain independently pinned.
+
+Container payload, workspace and SDK bootstrap extraction use Ubuntu's pinned
+`libarchive-tools` 3.8.5-1ubuntu2.3. GNU tar in this Ubuntu release fails nested
+extraction under Rosetta when `openat2` returns `ENOSYS`
+([Ubuntu report](https://bugs.launchpad.net/ubuntu/+source/tar/+bug/2166326)).
+Source archive creation retains GNU tar. Outside the container, bootstrap uses
+`tar` by default; `RULES_MSBUILD_TAR` explicitly selects another executable.
+SDK archives are hash-verified before that executable is called.
+
+Fresh Ubuntu 26.04 ARM64 and AMD64 Rosetta containers passed the public
+downloaded-SDK quickstart: sandboxed graph Build, executable test, greeting with
+explicit `RuntimeInformation.ProcessArchitecture` assertions (`Arm64` / `X64`),
+and sync `--check`.
+This validates the general SDK/Bazel path; it does not qualify a source-built
+x64 runtime producer or Linux worker/recovery behavior.
+
 Use the same reachable HTTP(S) endpoint for both hosts; keep its address in the
 host environment, outside Git. Each host runs an independent consumer:
 

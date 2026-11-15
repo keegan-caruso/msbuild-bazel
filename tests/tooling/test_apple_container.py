@@ -1,5 +1,6 @@
 """Host forwarding and guest cache configuration without starting a VM."""
 import os
+import shlex
 from pathlib import Path
 import subprocess
 import socket
@@ -11,6 +12,18 @@ SCRIPT = ROOT / 'scripts/run-apple-container.sh'
 
 
 class AppleContainerTests(unittest.TestCase):
+    def test_prebuilt_bazelisk_survives_workspace_environment(self):
+        dockerfile=(ROOT / 'containers/toolchain.Dockerfile').read_text().replace('\\\n', ' ')
+        tools={}
+        for line in dockerfile.splitlines():
+            if line.startswith('ENV '):
+                tools.update(part.split('=', 1) for part in shlex.split(line[4:]) if '=' in part)
+        env=dict(os.environ, **tools)
+        result=subprocess.run(['bash', '-c', 'source scripts/env.sh; printf "%s" "$RULES_MSBUILD_BAZELISK"'],
+                              cwd=ROOT, env=env, capture_output=True, text=True)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(result.stdout, '/opt/rules_msbuild-toolchain/.tools/bin/bazelisk')
+
     def test_forwarding_and_guest_cache(self):
         with tempfile.TemporaryDirectory() as folder:
             root = Path(folder)
@@ -28,6 +41,8 @@ class AppleContainerTests(unittest.TestCase):
                        RULES_MSBUILD_SHARED_CACHE_URL='http://cache.invalid:8080',
                        RULES_MSBUILD_CONTAINER_PREBUILT='1', RULES_MSBUILD_PROJECT_CACHE_READ_ONLY='1')
             env.pop('USE_BAZEL_VERSION', None)
+            env.pop('RULES_MSBUILD_CONTAINER_IMAGE', None)
+            env.pop('RULES_MSBUILD_CONTAINER_ARCH', None)
             result = subprocess.run(['bash', str(script), 'printf', 'done'], env=env, capture_output=True)
             self.assertEqual(result.returncode, 0, result.stderr)
             args = (root / 'args').read_text().splitlines()
@@ -36,6 +51,18 @@ class AppleContainerTests(unittest.TestCase):
                              'RULES_MSBUILD_PROJECT_CACHE_READ_ONLY=1'):
                 self.assertIn(expected, args)
             self.assertIn('USE_BAZEL_VERSION=', args)
+            pin='ubuntu@sha256:065aa8626841f16057b78b027b464cd59c4fac36c204c72dcbf48d66f5fa8a96'
+            self.assertIn(pin, args)
+            self.assertNotIn('--rosetta', args)
+            self.assertIn('libicu78 libssl3t64', (root / 'guest').read_text())
+            self.assertIn('export RULES_MSBUILD_TAR=/usr/bin/bsdtar', (root / 'guest').read_text())
+            self.assertIn('libarchive-tools=3.8.5-1ubuntu2.3', (root / 'guest').read_text())
+            self.assertIn('FROM '+pin, (ROOT / 'containers/toolchain.Dockerfile').read_text())
+            env['RULES_MSBUILD_CONTAINER_ARCH']='amd64'
+            amd64=subprocess.run(['bash', str(script), 'true'], env=env, capture_output=True)
+            self.assertEqual(amd64.returncode, 0, amd64.stderr)
+            self.assertIn('--rosetta', (root / 'args').read_text().splitlines())
+            env.pop('RULES_MSBUILD_CONTAINER_ARCH')
             env['USE_BAZEL_VERSION'] = '9.3.2'
             result = subprocess.run(['bash', str(script), 'true'], env=env, capture_output=True)
             self.assertEqual(result.returncode, 0, result.stderr)

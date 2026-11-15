@@ -57,7 +57,7 @@ cp "$BOOTSTRAP_FIXTURE/$source" "$output"''')
             for name, filename in [('dotnet', 'sdk.tar.gz'), ('bazelisk', 'bazel')]) + '\n')
         self.log = self.root / 'log'
         self.env = dict(os.environ, PATH=str(commands), BOOTSTRAP_FIXTURE=str(self.root), BOOTSTRAP_LOG=str(self.log))
-        for key in ('RULES_MSBUILD_DOTNET_ROOT', 'RULES_MSBUILD_BAZEL', 'RULES_MSBUILD_CONTAINER_PREBUILT'):
+        for key in ('RULES_MSBUILD_DOTNET_ROOT', 'RULES_MSBUILD_BAZEL', 'RULES_MSBUILD_CONTAINER_PREBUILT', 'RULES_MSBUILD_TAR'):
             self.env.pop(key, None)
 
     def script(self, path, body):
@@ -78,6 +78,9 @@ cp "$BOOTSTRAP_FIXTURE/$source" "$output"''')
         self.assertNotIn('forbidden', self.log.read_text())
 
     def test_corrupt_download_is_rejected_before_install(self):
+        extractor = self.root / 'must-not-extract'
+        self.script(extractor, 'echo extractor >> "$BOOTSTRAP_LOG"; exit 99')
+        self.env['RULES_MSBUILD_TAR'] = str(extractor)
         (self.root / 'sdk.tar.gz').write_bytes(b'corrupt')
         result = self.run_setup()
         self.assertNotEqual(result.returncode, 0)
@@ -85,6 +88,22 @@ cp "$BOOTSTRAP_FIXTURE/$source" "$output"''')
         self.assertFalse((self.root / '.tools/dotnet').exists())
         self.assertFalse((self.root / '.cache/downloads' / self.hashes['dotnet']).exists())
         self.assertNotIn('dotnet', self.log.read_text())
+        self.assertNotIn('extractor', self.log.read_text())
+
+    def test_explicit_archive_extractor_receives_verified_sdk(self):
+        extractor = self.root / 'archive extractor'
+        self.script(extractor, 'echo extractor >> "$BOOTSTRAP_LOG"; exec "'+shutil.which('tar')+'" "$@"')
+        self.env['RULES_MSBUILD_TAR'] = str(extractor)
+        result = self.run_setup()
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(self.log.read_text().count('extractor'), 1)
+        self.assertTrue((self.root/'.tools/dotnet/dotnet').is_file())
+
+    def test_missing_explicit_archive_extractor_fails_clearly(self):
+        self.env['RULES_MSBUILD_TAR'] = str(self.root/'missing-extractor')
+        result = self.run_setup()
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn('Missing prerequisite: '+self.env['RULES_MSBUILD_TAR'], result.stderr)
 
     def test_macos_bootstrap_uses_portable_extraction_and_checksums(self):
         self.env.update(BOOTSTRAP_OS='Darwin', BOOTSTRAP_ARCH='arm64')
