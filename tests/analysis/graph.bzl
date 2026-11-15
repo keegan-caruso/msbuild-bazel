@@ -32,6 +32,10 @@ def _combined_layout(env, target):
     env.expect.that_collection(paths(layout.inputs)).contains("tests/analysis/graph.graph")
     env.expect.that_bool(request(target, ".layout.json")["output"].endswith("combined_export.layout")).equals(True)
 
+def _selected_layout(env, target):
+    layout = action(target, "MSBuildGraphLayout")
+    env.expect.that_bool(any([arg.endswith("tests/analysis/multiple_frameworks.graph/workspace/bin/net10.0") for arg in layout.argv])).equals(True)
+
 def _runtime_layout(env, target):
     layout = action(target, "MSBuildRuntimeLayout")
     env.expect.that_collection(paths(layout.inputs)).contains_at_least(["tests/analysis/framework_graph.graph", "tests/analysis/contract.json", "tests/analysis/dotnet"])
@@ -100,6 +104,23 @@ def graph_tests(name):
     failure_test(name + "_output_escape", ":unsafe_output", "Graph output requires a safe")
     msbuild_graph_binary(name = "missing_project", graph = ":graph", project = "Missing.csproj", tags = ["manual"])
     failure_test(name + "_project", ":missing_project", "Select one generated project/framework")
+    msbuild_graph(name = "multiple_frameworks", project_outputs = {
+        "App.csproj|net9.0": ["bin/net9.0", "App.dll", "Exe"],
+        "App.csproj|net10.0": ["bin/net10.0", "App.dll", "Exe"],
+    }, **common)
+    msbuild_graph_binary(name = "ambiguous_binary", graph = ":multiple_frameworks", project = "App.csproj", tags = ["manual"])
+    failure_test(name + "_ambiguous_binary", ":ambiguous_binary", "Select one generated project/framework with project and framework: App.csproj")
+    msbuild_graph_layout(name = "ambiguous_layout", graph = ":multiple_frameworks", project = "App.csproj", tags = ["manual"])
+    failure_test(name + "_ambiguous_layout", ":ambiguous_layout", "Select one generated project/framework with project and framework: App.csproj")
+    msbuild_graph_layout(name = "selected_layout", graph = ":multiple_frameworks", project = "App.csproj", framework = "net10.0", tags = ["manual"])
+    analysis_test(name = name + "_selected_layout", target = ":selected_layout", impl = _selected_layout)
+    msbuild_graph(name = "unsafe_project_output", project_outputs = {"App.csproj|net10.0": ["../bin", "App.dll", "Exe"]}, **common)
+    msbuild_graph_binary(name = "unsafe_binary", graph = ":unsafe_project_output", project = "App.csproj", tags = ["manual"])
+    failure_test(name + "_unsafe_binary", ":unsafe_binary", "Runtime outputs must be safe workspace-relative paths")
+    msbuild_graph_layout(name = "unsafe_layout", graph = ":unsafe_project_output", project = "App.csproj", tags = ["manual"])
+    failure_test(name + "_unsafe_layout", ":unsafe_layout", "Graph layout requires safe workspace-relative outputs")
+    msbuild_graph_layouts(name = "unsafe_combined_layout", graph = ":unsafe_project_output", projects = {"App.csproj|net10.0": "."}, tags = ["manual"])
+    failure_test(name + "_unsafe_combined_layout", ":unsafe_combined_layout", "Graph layout requires safe workspace-relative outputs")
     for case, attrs, message in [
         ("exit_range", {"expected_exit_code": 256}, "expected_exit_code must be between"),
         ("exit_protocol", {"expected_exit_code": 100, "test_protocol": "mtp"}, "expected_exit_code requires"),
