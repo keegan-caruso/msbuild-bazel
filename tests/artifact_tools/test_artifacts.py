@@ -214,6 +214,7 @@ class ArtifactToolsTests(unittest.TestCase):
             (directory/'member').write_text(name)
         (package/'usr/bin/nested-link').symlink_to('member')
         (package/'etc').mkdir()
+        (package/'etc/config').write_text('config')
         notice = package/'usr/share/doc/merged-fixture/copyright'
         notice.parent.mkdir(parents=True)
         notice.write_text('notice')
@@ -233,7 +234,7 @@ class ArtifactToolsTests(unittest.TestCase):
             self.assertFalse((self.root/'valid/usr'/name).is_symlink())
         self.assertEqual(os.readlink(self.root/'valid/usr/bin/nested-link'), 'member')
         manifest = self.root/'merged-manifest'
-        manifest.write_text('usr/bin/member\nusr/lib/member\nusr/sbin/member\nusr/share/doc/merged-fixture/copyright\n')
+        manifest.write_text('etc/config\nusr/bin/member\nusr/lib/member\nusr/sbin/member\nusr/share/doc/merged-fixture/copyright\n')
         self.invoke('native-toolchain-packages', dict(valid, manifest=str(manifest), output=str(self.root/'selected')))
         self.assertEqual((self.root/'selected/usr/bin/member').read_text(), 'bin')
 
