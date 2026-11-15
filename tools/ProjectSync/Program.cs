@@ -23,7 +23,7 @@ internal static class Program
             }
             if (args.Length < 3)
             {
-                throw new ArgumentException("ProjectSync <workspace> <sdk-directory> <project.csproj|project.ilproj|dirs.proj>... [--check] [--configuration Release] [--framework TFM] [--package-build] [--resolve-references] [--package-input FILE] [--mappings mappings.json] [--qualification-cache DIR [--qualification-cache-url URL]]");
+                throw new ArgumentException("ProjectSync <workspace> <sdk-directory> <project.csproj|project.ilproj|dirs.proj>... [--check] [--configuration Release] [--framework TFM] [--package-build] [--resolve-references] [--package-input FILE] [--mappings mappings.json] [--qualification-cache DIR [--qualification-cache-url URL] [--qualification-cache-read-only]]");
             }
             using var profile = SyncProfile.Measure("sync-total");
             var sdk = WorkspaceView.PhysicalPath(args[1]);
@@ -41,6 +41,9 @@ internal static class Program
             var check = false;
             var packageBuild = false;
             var resolveReferences = false;
+            var qualificationReadOnly = RulesMSBuild.ProjectCache.ProjectCachePolicy.ReadOnly(
+                Environment.GetEnvironmentVariable("RULES_MSBUILD_PROJECT_CACHE_READ_ONLY"));
+            Environment.SetEnvironmentVariable("RULES_MSBUILD_PROJECT_CACHE_READ_ONLY", null);
             string? qualificationDirectory = null;
             string? qualificationUrl = null;
             string? graphRunner = null;
@@ -62,6 +65,10 @@ internal static class Program
                 else if (args[i] == "--resolve-references")
                 {
                     resolveReferences = true;
+                }
+                else if (args[i] == "--qualification-cache-read-only")
+                {
+                    qualificationReadOnly = true;
                 }
                 else if (args[i] is "--qualification-cache" or "--qualification-cache-url" or "--seed-build-cache")
                 {
@@ -166,7 +173,7 @@ internal static class Program
             if (qualificationDirectory is not null && !QualificationSandbox.Inside)
             {
                 return QualificationSandbox.Run(root, sdk, projects.ToArray(), check, configuration, framework,
-                    packageInputs.ToArray(), mappings, inputs, runfiles, new QualificationOptions(qualificationDirectory, qualificationUrl, graphRunner, bearerToken));
+                    packageInputs.ToArray(), mappings, inputs, runfiles, new QualificationOptions(qualificationDirectory, qualificationUrl, graphRunner, bearerToken, qualificationReadOnly));
             }
             using var view = SyncProfile.Run("producer-bindings", () => WorkspaceView.Create(root, inputs, runfiles));
             if (graphRunner is not null)
@@ -178,7 +185,7 @@ internal static class Program
                 throw new InvalidDataException("Sync requires complete tool layouts in msbuild_sync bindings");
             }
             GraphGenerator.Run(view.Root, sdk, projects.ToArray(), check, root, configuration, framework, view, packageBuild, packageInputs.ToArray(), new GraphMappings(mappings), resolveReferences,
-                qualificationDirectory is null ? null : new QualificationOptions(qualificationDirectory, qualificationUrl, graphRunner, bearerToken),
+                qualificationDirectory is null ? null : new QualificationOptions(qualificationDirectory, qualificationUrl, graphRunner, bearerToken, qualificationReadOnly),
                 QualificationSandbox.Inside ? QualificationSandbox.Base + "/output" : null);
             return 0;
         }

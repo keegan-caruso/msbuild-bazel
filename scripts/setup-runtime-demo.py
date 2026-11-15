@@ -22,7 +22,7 @@ import tarfile
 import uuid
 from urllib.parse import urlsplit
 
-from source_runtime.common import selected_bazel_version, validate_bazel_version
+from source_runtime.common import selected_bazel_version, validate_bazel_version, project_cache_read_only
 
 ROOT = Path(__file__).resolve().parents[1]
 PREPARE = 'tests/graph_build/upstream/runtime_demo_prepare.py'
@@ -119,6 +119,25 @@ def archive_producer(output, state):
         call('container', 'delete', state['producer'])
 
 
+def demo_config(state, prepared_sha256):
+    config = dict(projectCacheReadOnly=project_cache_read_only(state), bazelVersion=state['bazelVersion'], rulesSha256=state['rulesSha256'], image=state['image'], cacheUrl=state['cacheUrl'], preparedSha256=prepared_sha256)
+    if 'testCache' in state['options']:
+        config['testCache'] = state['options']['testCache']
+    return config
+
+
+def rehearsal_script(state):
+    return '''#!/usr/bin/env bash
+set -euo pipefail
+export RULES_MSBUILD_DOTNET_ROOT=/demo/rules/.tools/dotnet
+export RULES_MSBUILD_BAZELISK=/demo/project-cache-bazelisk.sh
+export RULES_MSBUILD_TEST_REPOSITORY_CACHE=/demo/repository-cache
+export USE_BAZEL_VERSION=''' + shlex.quote(state['bazelVersion']) + '''
+export RULES_MSBUILD_PROJECT_CACHE_READ_ONLY=''' + shlex.quote(project_cache_read_only(state)) + '''
+exec bash /demo/rules/tests/graph_build/upstream/runtime_ci_demo.sh /demo/consumer/workspace /demo/seed.json "$1" ''' + shlex.quote(state['cacheUrl']) + ''' /host "${@:2}"
+'''
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('output', type=Path, help='new owned setup/state directory; retain it for resume and run')
@@ -147,6 +166,7 @@ def main():
                 archive_producer(output, state)
                 print('Producer archived and deleted; keep this setup directory for consumer runs.', flush=True)
                 return
+            read_only = project_cache_read_only(state)
             verify_producer(output, state)
             policy = args.test_cache or state['options'].get('testCache', 'no')
             seed = json.loads((output / 'seed.json').read_text())
@@ -166,7 +186,7 @@ def main():
                 call('container', 'start', state['consumer'])
             if state.get('cache'):
                 set_cache_host(state['consumer'], address)
-            call('container', 'exec', state['consumer'], 'bash', '/demo/rehearse.sh', args.run,
+            call('container', 'exec', '--env', 'RULES_MSBUILD_PROJECT_CACHE_READ_ONLY=' + read_only, state['consumer'], 'bash', '/demo/rehearse.sh', args.run,
                 # Older frozen guest runners always execute tests and do not
                 # accept the new option. Their seed has no policy field.
                 *(['--test-cache=' + policy] if 'testCachePolicy' in seed else []),
@@ -193,6 +213,7 @@ def main():
         state = json.loads(state_path.read_text())
         assert state['version'] == 1
         validate_bazel_version(state)
+        project_cache_read_only(state)
         for attribute, key in [('image', 'image'), ('cache_url', 'cacheUrl'), ('prepared_sha256', 'preparedSha256')]:
             supplied = getattr(args, attribute)
             assert supplied is None or supplied == state['options'][key], 'Setup options changed; use a fresh output'
@@ -211,7 +232,7 @@ def main():
         identity = uuid.uuid4().hex[:10]
         prefix = 'msbuild-runtime-demo-' + identity
         from source_runtime.common import rules_identity
-        state = dict(bazelVersion=selected_bazel_version(), version=1, kind='runtime-demo', sourceIdentity=rules_identity(), id=identity, options=dict(image=args.image, cacheUrl=args.cache_url, preparedSha256=args.prepared_sha256, testCache=args.test_cache or 'yes'),
+        state = dict(projectCacheReadOnly=project_cache_read_only(), bazelVersion=selected_bazel_version(), version=1, kind='runtime-demo', sourceIdentity=rules_identity(), id=identity, options=dict(image=args.image, cacheUrl=args.cache_url, preparedSha256=args.prepared_sha256, testCache=args.test_cache or 'yes'),
             cacheImage=CACHE_IMAGE, producer=prefix + '-producer', consumer=prefix + '-consumer', cache=None if args.cache_url else prefix + '-cache', completed=[], ready=False)
 
     setup_lock = (output / 'setup.lock').open('a+')
@@ -305,9 +326,7 @@ def main():
         packages = subprocess.check_output(['container', 'exec', name, 'dpkg-query', '-W', '-f=${Package}\t${Version}\n'], text=True)
         (output / (name + '-packages.txt')).write_text(packages)
 
-    config = dict(bazelVersion=state['bazelVersion'], rulesSha256=state['rulesSha256'], image=state['image'], cacheUrl=state['cacheUrl'], preparedSha256=args.prepared_sha256)
-    if 'testCache' in state['options']:
-        config['testCache'] = state['options']['testCache']
+    config = demo_config(state, args.prepared_sha256)
     def producer():
         install(state['producer'], config)
         with (output / 'producer.log').open('a') as log:
@@ -327,14 +346,7 @@ def main():
         install(state['consumer'], config)
         with (output / 'consumer.log').open('a') as log:
             call('container', 'exec', state['consumer'], 'python3', '/demo/rules/' + PREPARE, 'consumer', stdout=log, stderr=subprocess.STDOUT)
-        script = '''#!/usr/bin/env bash
-set -euo pipefail
-export RULES_MSBUILD_DOTNET_ROOT=/demo/rules/.tools/dotnet
-export RULES_MSBUILD_BAZELISK=/demo/rules/.tools/bin/bazelisk
-export RULES_MSBUILD_TEST_REPOSITORY_CACHE=/demo/repository-cache
-export USE_BAZEL_VERSION=''' + shlex.quote(state['bazelVersion']) + '''
-exec bash /demo/rules/tests/graph_build/upstream/runtime_ci_demo.sh /demo/consumer/workspace /demo/seed.json "$1" ''' + shlex.quote(state['cacheUrl']) + ''' /host "${@:2}"
-'''
+        script = rehearsal_script(state)
         (output / 'guest-run.sh').write_text(script)
         call('container', 'cp', output / 'guest-run.sh', state['consumer'] + ':/demo/rehearse.sh')
     stage('consumer', consumer)

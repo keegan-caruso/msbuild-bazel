@@ -58,7 +58,7 @@ def prepare_sync(ctx, tc, payload, manifest, bound_files):
     environment = {key: value for key, value in ctx.configuration.default_shell_env.items() if key == "RULES_MSBUILD_SYNC_PROFILE"}
     cache_command = ""
     if qualification_cache:
-        for key in ["RULES_MSBUILD_PROJECT_CACHE_URL", "RULES_MSBUILD_PROJECT_CACHE_BEARER_TOKEN"]:
+        for key in ["RULES_MSBUILD_PROJECT_CACHE_URL", "RULES_MSBUILD_PROJECT_CACHE_BEARER_TOKEN", "RULES_MSBUILD_PROJECT_CACHE_READ_ONLY"]:
             if key in ctx.configuration.default_shell_env:
                 environment[key] = ctx.configuration.default_shell_env[key]
         cache_command = 'set -- "$@" --qualification-cache "$scratch/project-cache" --qualification-cache-url "${RULES_MSBUILD_PROJECT_CACHE_URL:?Set the qualification project-cache URL through --action_env}"'

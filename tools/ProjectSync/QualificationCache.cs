@@ -42,7 +42,7 @@ internal sealed class QualificationCache : ProjectCachePluginBase, IDisposable
         }
         payloads = new SnapshotPayloads(directory);
         remote = options.Url is null ? null : new RemoteSnapshotStore(new Uri(options.Url.TrimEnd('/') + "/"),
-            bearerToken: options.BearerToken ?? Environment.GetEnvironmentVariable("RULES_MSBUILD_PROJECT_CACHE_BEARER_TOKEN"), contentStore: payloads);
+            bearerToken: options.BearerToken ?? Environment.GetEnvironmentVariable("RULES_MSBUILD_PROJECT_CACHE_BEARER_TOKEN"), contentStore: payloads, readOnly: options.ReadOnly);
     }
 
     public override Task BeginBuildAsync(CacheContext context, PluginLoggerBase logger, CancellationToken cancellationToken) => Task.CompletedTask;

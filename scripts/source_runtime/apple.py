@@ -11,7 +11,7 @@ import subprocess
 import tarfile
 import uuid
 
-from .common import ROOT, stage_source, digest, read_recipe, run, save, rules_identity, selected_bazel_version, validate_bazel_version
+from .common import ROOT, stage_source, digest, read_recipe, run, save, rules_identity, selected_bazel_version, validate_bazel_version, project_cache_read_only
 
 
 def demo_helpers():
@@ -30,6 +30,7 @@ def operate(args, application):
             raise ValueError('Output belongs to another workflow')
         if not state.get('ready'):
             raise ValueError('Complete setup with --resume before running the app')
+        read_only = project_cache_read_only(state)
         helpers = demo_helpers()
         worker = helpers.inspect(state['worker'])
         if not worker or worker['configuration']['labels'].get('rules-msbuild.source-runtime') != state['id']:
@@ -38,7 +39,7 @@ def operate(args, application):
             raise ValueError('Source-runtime worker image differs from setup')
         if worker['status']['state'] != 'running':
             run(['container','start',state['worker']])
-        command = ['container','exec',state['worker'],'python3','/source-runtime/rules/scripts/setup-source-runtime.py',
+        command = ['container','exec','--env','RULES_MSBUILD_PROJECT_CACHE_READ_ONLY='+read_only,state['worker'],'python3','/source-runtime/rules/scripts/setup-source-runtime.py',
                    '/source-runtime/work','--test' if args.test else '--run',*(['--',*application] if application else [])]
         return subprocess.run(command).returncode
 
@@ -66,6 +67,7 @@ def setup(args):
             if supplied is not None and supplied != recorded:
                 raise ValueError('Setup options changed; use a fresh directory')
         validate_bazel_version(state)
+        project_cache_read_only(state)
         args.image=state['requestedImage']
         if digest(base/'rules.tar') != state['rulesSha256']:
             raise ValueError('Frozen source-runtime rules changed')
@@ -81,7 +83,7 @@ def setup(args):
         base.mkdir(parents=True,mode=0o700)
         identifier = uuid.uuid4().hex[:10]
         archive = base/'rules.tar'
-        state = dict(bazelVersion=selected_bazel_version(),version=1,kind='apple-source-runtime',id=identifier,worker='msbuild-source-runtime-'+identifier,
+        state = dict(projectCacheReadOnly=project_cache_read_only(),bazelVersion=selected_bazel_version(),version=1,kind='apple-source-runtime',id=identifier,worker='msbuild-source-runtime-'+identifier,
                      requestedImage=args.image,cacheUrl=args.cache_url,sourceIdentity=rules_identity(),rulesSha256=helpers.snapshot(archive),ready=False)
         save(base/'setup.json',state)
     with (base/'setup.lock').open('a+') as lock:
@@ -125,7 +127,7 @@ def setup(args):
                  '--label','rules-msbuild.source-runtime='+state['id'],'--volume',str(base)+':/host:ro',state['image'],'sleep','infinity'])
         run(['container','exec',state['worker'],'mkdir','-p','/source-runtime/rules'])
         run(['container','exec',state['worker'],'tar','-xf','/host/rules.tar','-C','/source-runtime/rules'])
-        command=['container','exec','--env','USE_BAZEL_VERSION='+state['bazelVersion'],state['worker'],'python3','/source-runtime/rules/scripts/setup-source-runtime.py',
+        command=['container','exec','--env','USE_BAZEL_VERSION='+state['bazelVersion'],'--env','RULES_MSBUILD_PROJECT_CACHE_READ_ONLY='+project_cache_read_only(state),state['worker'],'python3','/source-runtime/rules/scripts/setup-source-runtime.py',
                  '/source-runtime/work','--host-space-path=/host']
         if state['cacheUrl']:command+=['--cache-url='+state['cacheUrl']]
         if args.source_archive:

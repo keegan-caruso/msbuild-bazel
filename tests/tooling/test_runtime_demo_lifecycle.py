@@ -1,6 +1,7 @@
 """Keep consumer recovery independent of a verified, retired producer VM."""
 import importlib.util
 import json
+import os
 from pathlib import Path
 import tempfile
 import sys
@@ -29,6 +30,26 @@ class ProducerLifecycle(unittest.TestCase):
         self.inspect = patch.object(setup, 'inspect', return_value=self.row).start()
         self.call = patch.object(setup, 'call').start()
         self.addCleanup(patch.stopall)
+
+    def test_demo_config_and_rehearsal_retain_project_cache_policy(self):
+        state = dict(self.state, projectCacheReadOnly='1', bazelVersion='9.3.2',
+            cacheUrl='http://cache', options={'testCache': 'yes'})
+        with patch.dict(os.environ, {}, clear=True):
+            config = setup.demo_config(state, None)
+            self.assertEqual(config['projectCacheReadOnly'], '1')
+            script = setup.rehearsal_script(state)
+            self.assertIn('export RULES_MSBUILD_PROJECT_CACHE_READ_ONLY=1\n', script)
+            self.assertIn('export RULES_MSBUILD_BAZELISK=/demo/project-cache-bazelisk.sh\n', script)
+            self.assertNotIn('remote_upload_local_results', script)
+        with patch.dict(os.environ, {'RULES_MSBUILD_PROJECT_CACHE_READ_ONLY': '0'}):
+            with self.assertRaisesRegex(ValueError, 'policy changed'):
+                setup.demo_config(state, None)
+
+    def test_demo_run_retains_saved_read_only(self):
+        self.state['projectCacheReadOnly'] = '1'
+        with patch.dict(os.environ, {}, clear=True):
+            command = self.run_consumer(seeded=None)
+        self.assertIn('RULES_MSBUILD_PROJECT_CACHE_READ_ONLY=1', command)
 
     def test_archive_persists_proof_before_delete_and_supports_missing_producer(self):
         def deleted(*command):

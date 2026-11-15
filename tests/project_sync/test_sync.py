@@ -39,6 +39,14 @@ class GraphSyncTests(unittest.TestCase):
         self.assertFalse((self.root / "projects.generated.bzl").exists())
         self.sync(flags=["--check"])
 
+    def test_project_cache_read_only_mode_is_validated_and_hidden(self):
+        (self.root / "App.csproj").write_text(self.project.replace('</Project>',
+            """<Import Project="missing-policy-input.props" Condition="'$(RULES_MSBUILD_PROJECT_CACHE_READ_ONLY)' != ''" /></Project>"""))
+        with patch.dict(os.environ, {"RULES_MSBUILD_PROJECT_CACHE_READ_ONLY": "1"}):
+            self.sync()
+        with patch.dict(os.environ, {"RULES_MSBUILD_PROJECT_CACHE_READ_ONLY": "yes"}):
+            self.assertIn("RULES_MSBUILD_PROJECT_CACHE_READ_ONLY must be 0 or 1", self.sync(success=False))
+
     def test_closed_standard_restore_infers_conservative_inputs_and_false_disables_it(self):
         flags=['--package-build']
         self.sync(flags=flags)

@@ -58,7 +58,7 @@ internal static class GraphSeed
         inputs.VerifySeedInputs(seed);
         var payloads = new SnapshotPayloads(args[3]);
         using var remote = options.RemoteUrl is null ? null : new RemoteSnapshotStore(new Uri(options.RemoteUrl.TrimEnd('/') + "/"),
-            bearerToken: options.BearerToken, contentStore: payloads);
+            bearerToken: options.BearerToken, contentStore: payloads, readOnly: options.RemoteReadOnly);
         var plugin = new GraphCache(inputs, args[3], false, remote, new FileMaterializer(false, false), payloads, new TemporaryOutputs(contract, inputs));
         var seeded = await plugin.SeedAsync(seed);
         File.WriteAllText(args[2], JsonSerializer.Serialize(new

@@ -26,13 +26,14 @@ class AppleContainerTests(unittest.TestCase):
                 tool.chmod(0o755)
             env = dict(os.environ, PATH=str(tools) + ':' + os.environ['PATH'], CAPTURE=folder,
                        RULES_MSBUILD_SHARED_CACHE_URL='http://cache.invalid:8080',
-                       RULES_MSBUILD_CONTAINER_PREBUILT='1')
+                       RULES_MSBUILD_CONTAINER_PREBUILT='1', RULES_MSBUILD_PROJECT_CACHE_READ_ONLY='1')
             env.pop('USE_BAZEL_VERSION', None)
             result = subprocess.run(['bash', str(script), 'printf', 'done'], env=env, capture_output=True)
             self.assertEqual(result.returncode, 0, result.stderr)
             args = (root / 'args').read_text().splitlines()
             for expected in ('--rm', 'RULES_MSBUILD_CONTAINER_PREBUILT=1',
-                             'RULES_MSBUILD_SHARED_CACHE_URL=http://cache.invalid:8080'):
+                             'RULES_MSBUILD_SHARED_CACHE_URL=http://cache.invalid:8080',
+                             'RULES_MSBUILD_PROJECT_CACHE_READ_ONLY=1'):
                 self.assertIn(expected, args)
             self.assertIn('USE_BAZEL_VERSION=', args)
             env['USE_BAZEL_VERSION'] = '9.3.2'
@@ -61,6 +62,7 @@ class AppleContainerTests(unittest.TestCase):
             rc = (root / '.bazelrc').read_text()
             self.assertIn('build --remote_cache=http://cache.invalid:8080\n', rc)
             self.assertIn('build --action_env=RULES_MSBUILD_PROJECT_CACHE_URL=http://cache.invalid:8080\n', rc)
+            self.assertIn('build --action_env=RULES_MSBUILD_PROJECT_CACHE_READ_ONLY=1\n', rc)
             for option in ('--jobs=2', '--worker_max_instances=MSBuildGraph=1', '--local_test_jobs=1', '--disk_cache=', '--remote_download_outputs=all'):
                 self.assertIn(option + '\n', rc)
             (root / '.bazelrc').unlink()

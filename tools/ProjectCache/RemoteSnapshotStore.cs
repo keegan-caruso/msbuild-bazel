@@ -16,7 +16,7 @@ public interface IProjectCacheContentStore
         string[] destinations, CancellationToken cancellationToken);
 }
 
-public sealed class RemoteSnapshotStore(Uri endpoint, int parallelism = 8, string? bearerToken = null, bool profile = false, IProjectCacheContentStore? contentStore = null) : IDisposable
+public sealed class RemoteSnapshotStore(Uri endpoint, int parallelism = 8, string? bearerToken = null, bool profile = false, IProjectCacheContentStore? contentStore = null, bool readOnly = false) : IDisposable
 {
     private long downloadBytes;
     private long uploadBytes;
@@ -106,6 +106,11 @@ public sealed class RemoteSnapshotStore(Uri endpoint, int parallelism = 8, strin
 
     public async Task<bool> PublishAsync(string fingerprint, string source, CancellationToken cancellationToken)
     {
+        // Consumers may rebuild a miss locally without acquiring publication rights.
+        if (readOnly)
+        {
+            return false;
+        }
         var manifest = await File.ReadAllBytesAsync(Path.Combine(source, "manifest.json"), cancellationToken);
         var snapshot = JsonSerializer.Deserialize<RemoteManifest>(manifest)
             ?? throw new InvalidDataException("Missing project-cache manifest");
@@ -277,4 +282,14 @@ public sealed class RemoteSnapshotStore(Uri endpoint, int parallelism = 8, strin
     public void Dispose() => client.Dispose();
 
     private sealed record RemoteManifest(string Fingerprint, Dictionary<string, string> Files, Dictionary<string, string>? ProjectCopies = null);
+}
+
+internal static class ProjectCachePolicy
+{
+    internal static bool ReadOnly(string? value) => value switch
+    {
+        null or "" or "0" => false,
+        "1" => true,
+        _ => throw new InvalidDataException("RULES_MSBUILD_PROJECT_CACHE_READ_ONLY must be 0 or 1")
+    };
 }
