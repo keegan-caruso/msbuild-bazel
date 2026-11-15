@@ -5,23 +5,20 @@ namespace RulesMSBuild.GraphBuild;
 internal sealed class OutputOwnership<TOwner> where TOwner : class
 {
     private readonly string root;
-    private readonly Dictionary<string, TOwner> directories = new(StringComparer.Ordinal);
-    private readonly Dictionary<string, TOwner> files = new(StringComparer.Ordinal);
+    private readonly OutputOwnershipIndex<TOwner> ownership;
+    private readonly Dictionary<string, TOwner> directories;
+    private readonly Dictionary<string, TOwner> files;
     private readonly string[] inputs;
 
     internal OutputOwnership(string root, IEnumerable<(TOwner owner, string path)> directories,
         IEnumerable<(TOwner owner, string path)> files, IEnumerable<string> inputs)
     {
+        ownership = new OutputOwnershipIndex<TOwner>(directories, files);
+        // Keep execution's fail-fast diagnostics and exact-path restrictions.
         this.root = root;
         this.inputs = inputs.Distinct(StringComparer.Ordinal).Order(StringComparer.Ordinal).ToArray();
-        foreach (var (owner, path) in directories)
-        {
-            Add(this.directories, owner, path, "Overlapping output directories: ");
-        }
-        foreach (var (owner, path) in files)
-        {
-            Add(this.files, owner, path, "Overlapping output file ownership: ");
-        }
+        this.directories = SingleOwners(ownership.Directories, "Overlapping output directories: ");
+        this.files = SingleOwners(ownership.Files, "Overlapping output file ownership: ");
     }
 
     internal void Validate()
@@ -58,21 +55,7 @@ internal sealed class OutputOwnership<TOwner> where TOwner : class
         }
     }
 
-    internal TOwner? Owner(string path)
-    {
-        if (files.TryGetValue(path, out var owner))
-        {
-            return owner;
-        }
-        foreach (var parent in Parents(path))
-        {
-            if (directories.TryGetValue(parent, out owner))
-            {
-                return owner;
-            }
-        }
-        return null;
-    }
+    internal TOwner? Owner(string path) => ownership.Owners(path, root).FirstOrDefault();
 
     private bool ContainsInput(string directory)
     {
@@ -87,19 +70,8 @@ internal sealed class OutputOwnership<TOwner> where TOwner : class
         return index < inputs.Length && inputs[index].StartsWith(prefix, StringComparison.Ordinal);
     }
 
-    private IEnumerable<string> Parents(string path)
-    {
-        for (var parent = Path.GetDirectoryName(path); parent is not null && parent != root; parent = Path.GetDirectoryName(parent))
-        {
-            yield return parent;
-        }
-    }
+    private IEnumerable<string> Parents(string path) => OutputOwnershipIndex<TOwner>.Parents(path, root);
 
-    private static void Add(Dictionary<string, TOwner> index, TOwner owner, string path, string message)
-    {
-        if (!index.TryAdd(path, owner) && !ReferenceEquals(index[path], owner))
-        {
-            throw new InvalidDataException(message + path);
-        }
-    }
+    private static Dictionary<string, TOwner> SingleOwners(IReadOnlyDictionary<string, IReadOnlySet<TOwner>> index, string message) =>
+        index.ToDictionary(pair => pair.Key, pair => pair.Value.Count == 1 ? pair.Value.Single() : throw new InvalidDataException(message + pair.Key), StringComparer.Ordinal);
 }

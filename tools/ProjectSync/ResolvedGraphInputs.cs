@@ -1,4 +1,3 @@
-using System.Security.Cryptography;
 using Microsoft.Build.Evaluation;
 using Microsoft.Build.Execution;
 using Microsoft.Build.Graph;
@@ -55,7 +54,8 @@ internal sealed record ResolvedGraphInputs(Dictionary<string, string> CompilerRe
                 }
             }
         }
-        var digests = declared.ToDictionary(path => path, path => Digest(Path.Combine(root, path)), StringComparer.Ordinal);
+        var observations = declared.ToDictionary(path => path, path => FileObservation.Read(Path.Combine(root, path)), StringComparer.Ordinal);
+        var digests = observations.ToDictionary(pair => pair.Key, pair => pair.Value.QualificationDigest, StringComparer.Ordinal);
         using var cache = cacheOptions is null ? null : new QualificationCache(new QualificationInputs(graph, root, environment!,
             digests, consumerInputs, products, cacheConfiguration!, packageDigests!, complete: cacheOptions.GraphRunner is not null), cacheOptions);
         var counter = cache is null ? null : new QualificationCounter();
@@ -64,7 +64,9 @@ internal sealed record ResolvedGraphInputs(Dictionary<string, string> CompilerRe
             .Select(node => node.ProjectInstance).Where(project => project.GetPropertyValue("MSBuildProjectExtensionsPath").Length != 0)
             .Select(project => Full(project, project.GetPropertyValue("MSBuildProjectExtensionsPath"))).Distinct(StringComparer.Ordinal)
             .Where(Directory.Exists).SelectMany(directory => Directory.EnumerateFiles(directory, "*", SearchOption.AllDirectories)).Select(Relative))
-            .Distinct(StringComparer.Ordinal).ToDictionary(path => path, path => BuildSeedProof.Digest(Path.Combine(root, path)), StringComparer.Ordinal);
+            .Distinct(StringComparer.Ordinal).ToDictionary(path => path, path =>
+                (observations.TryGetValue(path, out var observed) ? observed : FileObservation.Read(Path.Combine(root, path))).SeedDigest, StringComparer.Ordinal);
+        observations.Clear();
         var seedSdk = seedContexts is null ? null : BuildSeedProof.TreeDigest(sdkRoot);
         var oldDirectory = Directory.GetCurrentDirectory();
         var oldPackages = Environment.GetEnvironmentVariable("NUGET_PACKAGES");
@@ -106,24 +108,34 @@ internal sealed record ResolvedGraphInputs(Dictionary<string, string> CompilerRe
         {
             throw new InvalidDataException("Compiler input qualification Build failed: " + result.Exception);
         }
+        // Observe each file once again after Build; never reuse pre-Build facts.
+        var verified = new Dictionary<string, FileObservation>(StringComparer.Ordinal);
         foreach (var (path, digest) in digests)
         {
-            if (!File.Exists(Path.Combine(root, path)) || Digest(Path.Combine(root, path)) != digest)
+            if (!File.Exists(Path.Combine(root, path)) || (verified[path] = FileObservation.Read(Path.Combine(root, path))).QualificationDigest != digest)
             {
                 throw new InvalidDataException("Qualification Build modified a declared input: " + path);
             }
         }
         foreach (var (path, digest) in seedInputs ?? [])
         {
-            if (!File.Exists(Path.Combine(root, path)) || BuildSeedProof.Digest(Path.Combine(root, path)) != digest)
+            if (!File.Exists(Path.Combine(root, path)) ||
+                (verified.TryGetValue(path, out var observed) ? observed : FileObservation.Read(Path.Combine(root, path))).SeedDigest != digest)
             {
                 throw new InvalidDataException("Qualification Build modified a seeded input: " + path);
             }
         }
+        verified.Clear();
         var owners = graph.ProjectNodes.Where(node => GraphProjectKind.HasAssembly(node.ProjectInstance))
             .SelectMany(node => products(node).Where(path => Path.GetExtension(path) == ".dll").Select(path => (path, node)))
             .GroupBy(pair => pair.path, StringComparer.Ordinal).ToDictionary(group => group.Key,
                 group => group.Select(pair => pair.node).Distinct().ToArray(), StringComparer.Ordinal);
+        var copyOwners = new OutputOwnershipIndex<ProjectGraphNode>(
+            graph.ProjectNodes.Where(node => GraphProjectKind.HasAssembly(node.ProjectInstance) || GraphProjectKind.IsNoTargets(node.ProjectInstance))
+                .SelectMany(node => new[] { "OutputPath", "IntermediateOutputPath" }.Select(node.ProjectInstance.GetPropertyValue)
+                    .Where(value => value.Length != 0).Select(value => (node, Path.TrimEndingDirectorySeparator(Full(node.ProjectInstance, value))))),
+            graph.ProjectNodes.Where(node => GraphProjectKind.HasAssembly(node.ProjectInstance) || GraphProjectKind.IsNoTargets(node.ProjectInstance))
+                .SelectMany(node => products(node).Select(path => (node, path))));
         var selections = new Dictionary<ProjectGraphNode, ResolvedGraphInputs>();
         foreach (var node in selected)
         {
@@ -259,12 +271,7 @@ internal sealed record ResolvedGraphInputs(Dictionary<string, string> CompilerRe
         {
             // Transitive copy items may name an already composed dependency
             // layout (B/bin/C.dll), rather than C's original TargetPath.
-            var owners = closure.Where(node => GraphProjectKind.HasAssembly(node.ProjectInstance) || GraphProjectKind.IsNoTargets(node.ProjectInstance))
-                .Where(node => products(node).Contains(path, StringComparer.Ordinal) ||
-                new[] { "OutputPath", "IntermediateOutputPath" }.Select(node.ProjectInstance.GetPropertyValue)
-                    .Where(value => value.Length != 0).Any(value => path.StartsWith(
-                        Path.TrimEndingDirectorySeparator(Full(node.ProjectInstance, value)) + Path.DirectorySeparatorChar,
-                        StringComparison.Ordinal))).ToArray();
+            var owners = copyOwners.Owners(path).Where(closure.Contains).ToArray();
             if (owners.Length > 1)
             {
                 throw new InvalidDataException("Ambiguous resolved dependency output: " + path);
@@ -276,10 +283,5 @@ internal sealed record ResolvedGraphInputs(Dictionary<string, string> CompilerRe
     private static string Full(ProjectInstance project, string value) =>
         Path.GetFullPath(value.Replace('\\', '/'), Path.GetDirectoryName(project.FullPath)!);
 
-    private static string Digest(string path)
-    {
-        using var stream = File.OpenRead(path);
-        return Convert.ToHexString(SHA256.HashData(stream)).ToLowerInvariant() + ":" +
-            (OperatingSystem.IsWindows() ? 0 : (int)File.GetUnixFileMode(path) & 511).ToString(System.Globalization.CultureInfo.InvariantCulture);
-    }
+    private static string Digest(string path) => FileObservation.Read(path).QualificationDigest;
 }
