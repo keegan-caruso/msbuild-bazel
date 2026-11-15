@@ -5,10 +5,11 @@ scope, finding a blocker, completing checks, or integrating a change. Keep entri
 small until they are ready to execute. Completed entries may be removed or reduced
 to a short result after their changes and evidence are preserved.
 
-Execution resumed at the user's request. Q01 was integrated before dispatching
-independent ready work across both Macs. Current work is native macOS and portable
-checks: the user is preparing a Linux build server. Do not start Linux jobs; retain
-existing Linux evidence and qualify the new server when requested.
+Execution resumed at the user's request. Use the Macs for edits, builds and portable
+checks. The user reports a new Azure Ubuntu 26.04 x64 Rex connection for scoped
+Linux-specific qualification only; its availability has not been independently
+verified. Prepare bounded checks before using it and batch them to minimize cost.
+Do not launch qualification jobs until dispatched; preserve existing Linux evidence.
 
 ## Agreed release scope
 
@@ -52,7 +53,8 @@ scratch outputs only after preserving useful reports and verifying ownership.
 | Host | Assignment | Resource and transport notes |
 | --- | --- | --- |
 | MacBook Pro | Source edits, portable checks, producer builds, integration review | 18 GiB RAM; approximately 241 GiB free at setup. Primary checkout is the integration point. |
-| Mac mini | Shared cache, native macOS independent consumers; Linux qualification deferred | 16 GiB RAM; approximately 279 GiB free after authorized container reset, before new jobs. Cache eviction budget 50 GiB, hard cap 53 GiB. |
+| Mac mini | Shared cache, native macOS independent consumers and portable checks | 16 GiB RAM; approximately 279 GiB free after authorized container reset, before new jobs. Cache eviction budget 50 GiB, hard cap 53 GiB. |
+| Azure VM | Linux-specific qualification only; user-reported Ubuntu 26.04 x64 | Run one preprepared bounded job at a time with conservative concurrency; no general tasks or idle build servers. Preserve reports and clean up owned worktrees and processes; leave independently managed services alone. This x64 host does not replace the qualified Ubuntu ARM64 worker release gate. |
 
 Host addresses, service files and client overrides stay outside Git. Both hosts have
 ignored `.cache/shared-cache/` client configuration. Linux guests require the optional
@@ -66,8 +68,8 @@ SDK/package acquisition. User LaunchAgents require login.
 | ID | Priority / status | Task and acceptance | Owner / host / worktree | Dependencies and evidence |
 | --- | --- | --- | --- | --- |
 | Q02a | P0 / queued | Resolve remaining native gate fixture failures: `tools.py:104` cannot rewrite copied read-only replay `NuGet.Config` (`tools/PackageSdks.cs:72`); default NuGet HTTP-cache fixture assumes a Linux XDG path on macOS. Preserve assertions, then rerun full graph acceptance and .NET checks on the composed 9.3.2 baseline. | Unassigned; no worktree/session until dispatch. | Q02/Q03 integrated. Reports below preserve failures. Affected repaired controls pass; full gates remain incomplete. |
-| Q04 | P0 / queued; Linux deferred | Make supported Linux execution use workers by default; qualify failure recovery, bounded output/resources and clean retries. Portable supervision/deadline/output/cancellation changes integrated in R04; qualify them in the actual Linux/Bazel worker environment, including publication cleanup. | Unassigned pending the user's Linux build server. | Q01–Q03 integrated; full native gate follow-up Q02a remains queued. No new Linux runs. |
-| Q06 | P0 / queued; Linux deferred | Qualify source-built SDK/runtime production on 9.3.2: producer handoff, consumer Build/test/Pack/Publish, actual tests, stopped-producer recovery and source/runtime identity. | Unassigned pending the Linux server and worker gate. | Q01–Q05 as relevant. Preserve scope limits: no inferred whole-upstream parity, signing or unsupported architectures. |
+| Q04 | P0 / queued; scoped Linux qualification | Make supported Linux execution use workers by default; qualify failure recovery, bounded output/resources and clean retries. Portable supervision/deadline/output/cancellation changes integrated in R04; qualify them in the actual Linux/Bazel worker environment, including publication cleanup. | Unassigned; scoped qualification on the user-reported Azure VM pending dispatch. | Q01–Q03 integrated; full native gate follow-up Q02a remains queued. No new Linux runs yet. |
+| Q06 | P0 / queued; scoped Linux qualification | Qualify source-built SDK/runtime production on 9.3.2: producer handoff, consumer Build/test/Pack/Publish, actual tests, stopped-producer recovery and source/runtime identity. | Unassigned; scoped qualification on the user-reported Azure VM and worker gate pending dispatch. | Q01–Q05 as relevant. Preserve scope limits: no inferred whole-upstream parity, signing or unsupported architectures. |
 
 ## Completed work
 
@@ -77,6 +79,7 @@ available after clean worktree removal.
 
 | ID | Integration / result | Evidence and limits |
 | --- | --- | --- |
+| Policy | Azure qualification-only host policy recorded; local documentation worktree removed and Rex session closed after integration. | MacBook; worktree `/tmp/msbuild-azure-policy`; Rex `session:01a1e0d5-4877-71fb-9624-24f47ee139fc`. `git diff --check` passed; no host verification, Linux jobs or CI. |
 | R02-R08 | `0ff6eda` through `b8cddc1`: all seven review fixes implemented, independently reviewed and integrated across both Macs; controls/docs wired. Clean worktrees and dedicated sessions removed; branches/evidence preserved. | `/tmp/msbuild-review-fixes-1115/REPORT.md`; composed owned builds/style, scaffold and affected native controls pass. Full .NET gate retains Q02a default-cache fixture failure; complete graph acceptance and actual Linux qualification remain incomplete. No end-to-end speedup claim or CI. |
 | R01 | Static deep review of `307dca0` complete; no production edits or CI. Review worktree clean and removed; dedicated local Rex session closed. | `/tmp/msbuild-deep-review-report-1113.md`; independent `/tmp/msbuild-graph-review.md` and `/tmp/msbuild-sync-review.md`. Seven ranked recommendations, refactor boundaries and validation proposals; no benchmark or new qualification claims. |
 | Q01 | `e002504`: shared HTTPS container defaults and generic guest relay. Portable controls3, fresh Linux direct quickstart test/run and existing integration controls2 passed before Linux deferral. | `/tmp/msbuild-q01-evidence-1113/REPORT.md`; prior native cross-host tiny-action recovery `/tmp/msbuild-cross-host-cache-20261113/REPORT.md`. No complete Linux cross-host graph recovery or worker claim. |
