@@ -31,13 +31,20 @@ def _runtime_layout(ctx):
         selections.append(("workspace/" + directory + "/", assembly))
 
     def entries(file, expander):
-        children = {child.path[len(file.path) + 1:]: child for child in expander.expand(file)}
+        by_prefix = {prefix: [] for prefix, _ in selections}
+        for child in expander.expand(file):
+            relative = child.path[len(file.path) + 1:]
+            parts = relative.split("/")
+            for end in range(1, len(parts)):
+                prefix = "/".join(parts[:end]) + "/"
+                if prefix in by_prefix:
+                    by_prefix[prefix].append((relative, child))
         result = []
         for prefix, assembly in selections:
             required = prefix + assembly
             result.append(json.encode({"source": file.path + "/" + required, "path": shared + "/" + assembly}))
-            for relative, child in children.items():
-                if relative.startswith(prefix) and relative != required:
+            for relative, child in by_prefix[prefix]:
+                if relative != required:
                     result.append(json.encode({"source": child.path, "path": shared + "/" + relative[len(prefix):]}))
         return result
 
