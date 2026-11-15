@@ -62,7 +62,9 @@ def main():
             assert '41' in bazel('run', '//:app').splitlines()
             replay = base / 'replay'
             shutil.copytree(root / 'bazel-bin/graph.graph/workspace', replay)
-            # Bazel makes outputs read-only; preserve executable bits.
+            # Include the root so Restore can create its temporary NuGet.Config;
+            # Bazel makes outputs read-only. Preserve executable bits throughout.
+            replay.chmod(replay.stat().st_mode | 0o200)
             for file in replay.rglob('*'):
                 file.chmod(file.stat().st_mode | 0o200)
             def build(value, hits):

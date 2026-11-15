@@ -92,6 +92,9 @@ public class Generate : ITask {
             assert '41' in bazel('run', '//:app').splitlines()
             replay = base / 'replay'
             shutil.copytree(root / 'bazel-bin/graph.graph/workspace', replay)
+            # Bazel makes the output tree read-only, including its root. Offline
+            # Restore creates a temporary root NuGet.Config as well as subtrees.
+            replay.chmod(0o755)
             for file in replay.rglob('*'):
                 file.chmod(0o755 if file.is_dir() else 0o644)
             def replay_build(value, hits):

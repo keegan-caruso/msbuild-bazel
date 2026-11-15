@@ -8,6 +8,7 @@ import json
 import os
 from pathlib import Path
 import subprocess
+import sys
 import tempfile
 import threading
 import unittest
@@ -70,11 +71,18 @@ class NuGetUpdateCacheTests(unittest.TestCase):
             (source/'App.csproj').write_text('<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup><TargetFramework>net10.0</TargetFramework></PropertyGroup><ItemGroup><PackageReference Include="Fixture.Cache" Version="1.0.0"/></ItemGroup></Project>')
             (source/'Code.cs').write_text('public class C {}')
             command=[str(SDK/'dotnet'),str(RUNNER),'nuget-update',str(source),str(SDK),'App.csproj','--distdir',str(base/'distdir')]
-            environment=dict(os.environ, XDG_DATA_HOME=str(base/'data'))
+            home=base/'home'
+            home.mkdir()
+            environment=dict(os.environ, HOME=str(home), XDG_DATA_HOME=str(base/'data'))
+            if sys.platform == 'darwin':
+                # Foundation ignores HOME/XDG for LocalApplicationData. Keep its
+                # native default inside this fixture rather than the user's home.
+                environment['CFFIXED_USER_HOME']=str(home)
             if automatic is None:
                 command+=['--no-http-cache']
             elif automatic:
-                cache=base/'data/rules-msbuild/nuget-http'
+                application_data=home/'Library/Application Support' if sys.platform == 'darwin' else base/'data'
+                cache=application_data/'rules-msbuild/nuget-http'
             else:
                 command+=['--http-cache',str(cache)]
             first=subprocess.run(command,text=True,capture_output=True,env=environment)
