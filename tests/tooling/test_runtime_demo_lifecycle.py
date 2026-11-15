@@ -8,6 +8,7 @@ import unittest
 from unittest.mock import patch
 
 SCRIPT = Path(__file__).resolve().parents[2] / 'scripts/setup-runtime-demo.py'
+sys.path.insert(0, str(SCRIPT.parent))
 spec = importlib.util.spec_from_file_location('runtime_demo_setup', SCRIPT)
 setup = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(setup)

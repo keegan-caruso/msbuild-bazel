@@ -28,6 +28,7 @@ container run --rm --init -i --arch "$arch" --cpus "${RULES_MSBUILD_CONTAINER_CP
     ${relay_mount[@]+"${relay_mount[@]}"} \
     -e "RULES_MSBUILD_SHARED_CACHE_RELAY=${RULES_MSBUILD_SHARED_CACHE_SOCKET:+1}" \
     -e "RULES_MSBUILD_SHARED_CACHE_URL=$cache_url" \
+    -e "USE_BAZEL_VERSION=${USE_BAZEL_VERSION:-}" \
     -e "RULES_MSBUILD_CONTAINER_PREBUILT=${RULES_MSBUILD_CONTAINER_PREBUILT:-0}" \
     -e "RULES_MSBUILD_BAZEL_MODE=${RULES_MSBUILD_BAZEL_MODE:-server}" \
     --masked-path NONE --read-only-path NONE \
