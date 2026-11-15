@@ -57,7 +57,7 @@ def declare_inputs(root, preparation):
         packages['@'+name+'//file']=item['sha256']
     if packages:
         toolchain=':toolchain';sandbox=':bwrap'
-        provenance=dict(kind='packages',packagesSha256=hashlib.sha256(json.dumps(value['packages'],sort_keys=True).encode()).hexdigest())
+        provenance=dict(kind='packages',packagesSha256=hashlib.sha256(json.dumps(value['packages'],sort_keys=True).encode()).hexdigest(),distribution='ubuntu-26.04',compiler='clang-18',compilerVersion='18.1.8',timezone='Etc/UTC')
     else:
         for name,item,filename,executable in [('runtime_native_tools',value['archive'],'toolchain.tar',False),('runtime_native_sandbox',value['sandbox'],'bwrap',True)]:
             module.append('http_file(name='+json.dumps(name)+',url='+json.dumps(item['url'])+',sha256='+json.dumps(item['sha256'])+',downloaded_file_path='+json.dumps(filename)+',executable='+str(executable)+')')

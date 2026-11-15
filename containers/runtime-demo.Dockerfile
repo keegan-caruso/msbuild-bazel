@@ -3,7 +3,9 @@ ENV DEBIAN_FRONTEND=noninteractive
 # Ubuntu 26.04 with the explicitly selected LLVM 18 compiler family.
 # Setup records the resulting immutable image digest and installed packages.
 RUN apt-get update -qq && apt-get install -y -qq --no-install-recommends \
-    ca-certificates curl git python3 bubblewrap clang-18 lld-18 llvm-18 \
+    ca-certificates curl git python3 bubblewrap \
+    clang-18=1:18.1.8-20ubuntu8 lld-18=1:18.1.8-20ubuntu8 \
+    llvm-18=1:18.1.8-20ubuntu8 libclang-rt-18-dev=1:18.1.8-20ubuntu8 \
     gcc g++ make dpkg-dev libc6-dev libcrypt-dev \
     cmake ninja-build pkg-config libicu-dev libssl-dev \
     liblttng-ust-dev libnuma-dev libunwind-dev zlib1g-dev libkrb5-dev uuid-dev \
