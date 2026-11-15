@@ -43,12 +43,13 @@ set -euo pipefail
 export DEBIAN_FRONTEND=noninteractive
 if [[ "${RULES_MSBUILD_CONTAINER_PREBUILT:-0}" != 1 ]]; then
     apt-get update -qq
-    apt-get install -y -qq python3 curl ca-certificates libbrotli1 libc6 libgcc-s1 libgssapi-krb5-2 libicu78 libssl3t64 libstdc++6 tzdata zlib1g git
+    apt-get install -y -qq python3 curl ca-certificates libbrotli1 libc6 libgcc-s1 libgssapi-krb5-2 libicu78 libssl3t64 libstdc++6 tzdata zlib1g git libarchive-tools=3.8.5-1ubuntu2.3
 fi
+export RULES_MSBUILD_TAR=/usr/bin/bsdtar
 mkdir /workspace
 tar -C /src --exclude=.git --exclude=.tools --exclude=.cache --exclude=artifacts \
     --exclude=bin --exclude=obj --exclude='./bazel-*' --exclude=__pycache__ -cf - . |
-    tar -C /workspace -xf -
+    "$RULES_MSBUILD_TAR" -C /workspace -xf -
 cd /workspace
 if [[ "${RULES_MSBUILD_SHARED_CACHE_RELAY:-}" == 1 ]]; then
     python3 scripts/shared-cache-guest-relay.py --url "$RULES_MSBUILD_SHARED_CACHE_URL" \

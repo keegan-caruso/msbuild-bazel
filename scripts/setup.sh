@@ -6,7 +6,8 @@ case "$(uname -s):$(uname -m)" in
     Linux:x86_64|Linux:aarch64|Linux:arm64|Darwin:arm64) ;;
     *) echo 'The bootstrap supports Linux x86-64/ARM64 and macOS ARM64.' >&2; exit 1 ;;
 esac
-for prerequisite in curl tar; do
+archive_tar="${RULES_MSBUILD_TAR:-tar}"
+for prerequisite in curl "$archive_tar"; do
     command -v "$prerequisite" >/dev/null || { echo "Missing prerequisite: $prerequisite" >&2; exit 1; }
 done
 if command -v shasum >/dev/null; then
@@ -36,7 +37,7 @@ install_tool() {
     if [[ "$name" == dotnet ]]; then
         local temporary
         temporary="$(mktemp -d "$REPO_ROOT/.tools/dotnet.XXXXXX")"
-        tar --no-same-owner -xzf "$archive" -C "$temporary"
+        "$archive_tar" --no-same-owner -xzf "$archive" -C "$temporary"
         rm -rf "$REPO_ROOT/.tools/dotnet"
         mv "$temporary" "$REPO_ROOT/.tools/dotnet"
     else
