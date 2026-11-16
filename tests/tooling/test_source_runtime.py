@@ -13,7 +13,7 @@ from types import SimpleNamespace
 
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / 'scripts'))
-from source_runtime.common import stage_source, digest, read_recipe, owned_output, save, selected_bazel_version, validate_bazel_version, project_cache_read_only
+from source_runtime.common import stage_source, digest, read_recipe, owned_output, save, selected_bazel_version, validate_bazel_version, project_cache_read_only, bazel_cache_read_only
 from source_runtime.linux import launcher, build_command
 from source_runtime import apple
 sys.path.insert(0, str(ROOT / 'tests/graph_build/upstream'))
@@ -95,6 +95,56 @@ class SourceRuntimeSetupTests(unittest.TestCase):
                 command = execute.call_args.args[0]
                 self.assertIn('RULES_MSBUILD_PROJECT_CACHE_READ_ONLY=1', command)
                 self.assertEqual(command[command.index('RULES_MSBUILD_PROJECT_CACHE_READ_ONLY=1')-1], '--env')
+
+    def test_bazel_read_only_wrapper_and_saved_identity(self):
+        self.assertFalse(bazel_cache_read_only({}))
+        self.assertTrue(bazel_cache_read_only({'bazelCacheReadOnly': True}))
+        with self.assertRaisesRegex(ValueError, 'policy changed'):
+            bazel_cache_read_only({}, True)
+        with self.assertRaisesRegex(ValueError, 'policy changed'):
+            bazel_cache_read_only({'bazelCacheReadOnly': True}, False)
+        with tempfile.TemporaryDirectory() as temporary:
+            base = Path(temporary)
+            binary = base/'fake-bazel'
+            binary.write_text('#!/usr/bin/env python3\nimport json,sys\nprint(json.dumps(sys.argv[1:]))\n')
+            binary.chmod(0o755)
+            wrapper = base/'bazelisk.sh'
+            launcher(wrapper, binary, None, None, 'http://cache', bazel_read_only=True)
+            args = json.loads(subprocess.check_output([wrapper, 'run', '//:app', '--config=custom', '--', '--remote_upload_local_results=true'], text=True))
+            self.assertEqual(args[-3:], ['--remote_upload_local_results=false', '--', '--remote_upload_local_results=true'])
+            for allowed in ('--remote_upload_local_results=false', '--noremote_upload_local_results'):
+                arguments = json.loads(subprocess.check_output([wrapper, 'test', '//:app', allowed], text=True))
+                self.assertIn(allowed, arguments)
+                self.assertEqual(arguments[-1], '--remote_upload_local_results=false')
+            for override in ('--remote_upload_local_results=true', '--remote_upload_local_results'):
+                result = subprocess.run([wrapper, 'build', '//:app', override], capture_output=True, text=True)
+                self.assertEqual(result.returncode, 2)
+            save(base/'setup.json', dict(workspace=str(base/'workspace'), identity={'bazelCacheReadOnly': True},
+                environment={'RULES_MSBUILD_BAZELISK': str(wrapper)}, bazelWrapperSha256=digest(wrapper)))
+            with patch.dict(os.environ, {'RULES_MSBUILD_BAZELISK': '/host/override'}):
+                _, _, env = build_command(base, 'build')
+                self.assertEqual(env['RULES_MSBUILD_BAZELISK'], str(wrapper))
+            wrapper.write_text('changed')
+            with self.assertRaisesRegex(ValueError, 'wrapper is missing or changed'):
+                build_command(base, 'build')
+
+    def test_apple_run_forwards_saved_bazel_policy_before_app_arguments(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            base = Path(temporary)
+            state = dict(kind='apple-source-runtime', ready=True, id='owned', worker='worker',
+                image='runtime@sha256:'+'a'*64, bazelCacheReadOnly=True)
+            save(base/'setup.json', state)
+            worker = dict(configuration=dict(labels={'rules-msbuild.source-runtime': 'owned'},
+                image=dict(descriptor=dict(digest='sha256:'+'a'*64)),
+                resources={'memoryInBytes': 8*1024**3}), status={'state': 'running'})
+            with patch.dict(os.environ, {}, clear=True), \
+                 patch.object(apple, 'demo_helpers', return_value=SimpleNamespace(inspect=lambda name: worker)), \
+                 patch.object(apple.subprocess, 'run', return_value=SimpleNamespace(returncode=0)) as execute:
+                with self.assertRaisesRegex(ValueError, 'policy changed'):
+                    apple.operate(SimpleNamespace(output=base, test=False, bazel_cache_read_only=False), [])
+                execute.assert_not_called()
+                self.assertEqual(apple.operate(SimpleNamespace(output=base, test=False), ['app arg']), 0)
+            self.assertEqual(execute.call_args.args[0][-3:], ['--bazel-cache-read-only', '--', 'app arg'])
 
     def test_apple_memory_selection_is_frozen_and_matches_worker(self):
         self.assertEqual(apple.worker_memory({}), 8)
@@ -180,7 +230,7 @@ class SourceRuntimeSetupTests(unittest.TestCase):
                 (base/'rules').mkdir()
                 archive = base/'rules.tar'; archive.write_bytes(b'frozen')
                 state = dict(version=1, kind='apple-source-runtime', requestedImage=None,
-                    cacheUrl='https://cache.example', cacheSocket=path, workerMemoryGiB=12,
+                    cacheUrl='https://cache.example', cacheSocket=path, workerMemoryGiB=12, bazelCacheReadOnly=True,
                     bazelVersion=(ROOT/'.bazelversion').read_text().strip(), rulesSha256=digest(archive),
                     id='owned', worker='worker', image='runtime@sha256:'+'a'*64)
                 save(base/'setup.json', state)
@@ -192,9 +242,10 @@ class SourceRuntimeSetupTests(unittest.TestCase):
                      patch.object(apple.shutil, 'which', return_value='container'), \
                      patch.object(apple, 'demo_helpers', return_value=SimpleNamespace(inspect=lambda name: None)), \
                      patch.object(apple, 'run') as run, \
-                     patch.object(apple.subprocess, 'Popen', side_effect=RuntimeError('captured')):
+                     patch.object(apple.subprocess, 'Popen', side_effect=RuntimeError('captured')) as execute:
                     with self.assertRaisesRegex(RuntimeError, 'captured'):
                         apple.setup(args)
+                self.assertIn('--bazel-cache-read-only', execute.call_args.args[0])
                 calls = [call.args[0] for call in run.call_args_list]
                 self.assertIn(path+':'+apple.RELAY_SOCKET, calls[0])
                 self.assertEqual(calls[0][calls[0].index('--memory')+1], '12G')

@@ -8,6 +8,7 @@ import subprocess
 from urllib.parse import urlsplit
 
 from source_runtime.linux import build_command, setup
+from source_runtime.common import bazel_cache_read_only
 
 
 def positive_gib(value):
@@ -28,6 +29,7 @@ def main():
     parser.add_argument('--image', help='Apple Container native environment pinned by @sha256; default builds the supplied image')
     parser.add_argument('--run', action='store_true', help='run the app from a completed setup; remaining arguments go to the app')
     parser.add_argument('--test', action='store_true', help='actually execute the prepared app test')
+    parser.add_argument('--bazel-cache-read-only', action='store_true', default=None, help='disable uploads to the Bazel action cache')
     parser.add_argument('--cache-url', help='optional Bazel and project AC/CAS endpoint')
     parser.add_argument('--registry', help='optional verified Bazel registry URL')
     parser.add_argument('--repository-cache', type=Path, help='optional acquisition cache')
@@ -54,6 +56,7 @@ def main():
         parser.error('--image and --worker-memory-gib are Apple Container setup options')
     if args.run or args.test:
         state = json.loads((args.output/'setup.json').read_text())
+        bazel_cache_read_only(state.get('identity', state), args.bazel_cache_read_only)
         if not state.get('ready'):
             parser.error('Complete setup first, using --resume after interruption')
         command, cwd, env = build_command(args.output.resolve(), 'run' if args.run else 'test', application)

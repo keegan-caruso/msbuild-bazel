@@ -109,3 +109,12 @@ def project_cache_read_only(state=None):
     if state is not None and selected != recorded:
         raise ValueError('Project-cache publication policy changed; use a fresh output directory')
     return selected
+
+
+def bazel_cache_read_only(state=None, supplied=None):
+    recorded = state.get('bazelCacheReadOnly', False) if state is not None else False
+    if type(recorded) is not bool:
+        raise ValueError('Invalid saved Bazel cache policy')
+    if state is not None and supplied is not None and supplied != recorded:
+        raise ValueError('Bazel cache policy changed; use a fresh directory')
+    return recorded if state is not None else bool(supplied)
