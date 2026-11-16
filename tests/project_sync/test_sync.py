@@ -5,6 +5,7 @@ import os
 from pathlib import Path
 import subprocess
 import shutil
+import stat
 import tempfile
 import unittest
 import zipfile
@@ -796,9 +797,10 @@ class GraphSyncTests(unittest.TestCase):
         self.assertEqual(run('--check')['compilations'], 0)
         for name, data in zip(['graph.generated.json', 'graph.generated.bzl'], expected):
             self.assertEqual((self.root / name).read_bytes(), data)
-        (self.root / 'C/Code.cs').chmod(0o755)
+        mode = stat.S_IMODE((self.root / 'C/Code.cs').stat().st_mode)
+        (self.root / 'C/Code.cs').chmod(mode | stat.S_IXUSR)
         self.assertEqual(run()['compilations'], 3)
-        (self.root / 'C/Code.cs').chmod(0o644)
+        (self.root / 'C/Code.cs').chmod(mode)
         self.assertEqual(run('--check')['compilations'], 0)
         # Shared evaluation inputs affect every project. Failed builds publish nothing.
         props = self.root / 'Directory.Build.props'
@@ -867,9 +869,10 @@ class GraphSyncTests(unittest.TestCase):
             self.assertIn('PROJECT_SYNC_RESTORE_CACHE hit', run())
             (self.root / 'Added.cs').unlink()
             self.assertIn('PROJECT_SYNC_RESTORE_CACHE hit', run())
-            (self.root / 'Program.cs').chmod(0o755)
+            mode = stat.S_IMODE((self.root / 'Program.cs').stat().st_mode)
+            (self.root / 'Program.cs').chmod(mode | stat.S_IXUSR)
             self.assertIn('PROJECT_SYNC_RESTORE_CACHE miss', run())
-            (self.root / 'Program.cs').chmod(0o644)
+            (self.root / 'Program.cs').chmod(mode)
             self.assertIn('PROJECT_SYNC_RESTORE_CACHE hit', run())
             # Failed compilation cannot add a prepared Restore entry.
             (self.root / 'Program.cs').write_text('invalid C#')
