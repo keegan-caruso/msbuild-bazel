@@ -24,9 +24,10 @@ class Cache(ThreadingHTTPServer):
     daemon_threads = True
     request_queue_size = 64
 
-    def __init__(self, root, limit):
+    def __init__(self, root, limit, request_limit=128 * 1024**2):
         super().__init__(('127.0.0.1', 0), Handler)
         self.root, self.limit, self.used, self.reserved = root, limit, 0, 0
+        self.request_limit = request_limit
         self.phase = 'seed'
         self.counts = collections.Counter()
         self.lock = threading.Lock()
@@ -78,7 +79,7 @@ class Handler(BaseHTTPRequestHandler):
             self.reply(403 if readonly else 400)
             return
         size = int(self.headers.get('Content-Length', '-1'))
-        if size < 0 or size > 128 * 1024**2:
+        if size < 0 or size > self.server.request_limit:
             status = 411 if size < 0 else 413
             self.record('PUT', status); self.close_connection = True; self.reply(status); return
         with self.server.lock:

@@ -55,6 +55,22 @@ class CacheTests(unittest.TestCase):
         self.assertEqual(self.cache.counts[('consumer', 'GET', 200)], 1)
         self.assertEqual(self.cache.used, len(payload))
 
+    def test_custom_request_limit_is_enforced(self):
+        original = self.cache
+        custom = recovery.Cache(Path(self.temp.name), 1024, request_limit=512)
+        thread = threading.Thread(target=custom.serve_forever, daemon=True)
+        thread.start()
+        self.addCleanup(lambda: (custom.shutdown(), custom.server_close(), thread.join(timeout=10)))
+        self.addCleanup(setattr, self, 'cache', original)
+        self.cache = custom
+        self.base = 'http://127.0.0.1:' + str(custom.server_port)
+        payload = b'x' * 512
+        digest = hashlib.sha256(payload).hexdigest()
+        self.assertEqual(self.put('/cas/' + digest, payload), 200)
+        self.assertEqual(self.put('/ac/' + '1' * 64, payload + b'x'), 413)
+        self.assertEqual(self.cache.used, 512)
+        self.assertEqual(self.cache.counts[('seed', 'PUT', 413)], 1)
+
     def test_large_request_is_rejected_before_body(self):
         conn = http.client.HTTPConnection('127.0.0.1', self.cache.server_port, timeout=5)
         self.addCleanup(conn.close)
