@@ -24,7 +24,7 @@ def main():
         manifest = base / 'inputs.json'
         manifest.write_text(json.dumps({'Inputs': [], 'PackageLock': ':packages', 'Packages': [
             {'Id': name, 'Version': '1.0.3', 'Runfile': name + '/1.0.3'} for name in names]}))
-        sync = [DOTNET, ROOT / 'tools/ProjectSync/bin/Release/net10.0/ProjectSync.dll', root, SDK / 'sdk/10.0.400',
+        sync = [DOTNET, ROOT / 'tools/ProjectSync/bin/Release/net11.0/ProjectSync.dll', root, SDK / 'sdk/11.0.100',
                 'Library/Library.csproj', '--package-build', '--inputs', manifest, '--runfiles', packages]
         run(*sync)
         feed = root / '.package-source'

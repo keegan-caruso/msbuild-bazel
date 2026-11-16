@@ -68,7 +68,7 @@ def main():
     probe.mkdir(exist_ok=False)
     shutil.copyfile(ROOT / 'tests/runtime/SubsetProbe.cs.txt', probe / 'StartupHook.cs')
     (probe / 'Probe.csproj').write_text('<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup><TargetFramework>net10.0</TargetFramework><Nullable>enable</Nullable></PropertyGroup></Project>')
-    (probe / 'contract.json').write_text(json.dumps(dict(Version=1, Entry='Probe.csproj', SdkVersion='10.0.400',
+    (probe / 'contract.json').write_text(json.dumps(dict(Version=1, Entry='Probe.csproj', SdkVersion='11.0.100',
         Properties=dict(Configuration='Release'), SharedInputs=[], Projects={'Probe.csproj': dict(
             Inputs=['Probe.csproj', 'StartupHook.cs'], OutputDirectories=['bin/Release/net10.0', 'obj/Release/net10.0'])}), indent=2) + '\n')
     host = root / 'suite-host'
@@ -107,7 +107,7 @@ exec "$root/dotnet" "$@"
         shutil.copyfile(Path(__file__).with_name('RuntimeTestSettings.cs.txt'), settings_tool / 'Program.cs')
         shutil.copyfile(Path(__file__).with_name('runtime_test_settings.bzl'), root / 'runtime_test_settings.bzl')
         (settings_tool / 'Settings.csproj').write_text('<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup><TargetFramework>net10.0</TargetFramework><OutputType>Exe</OutputType><ImplicitUsings>enable</ImplicitUsings><Nullable>enable</Nullable></PropertyGroup></Project>')
-        (settings_tool / 'contract.json').write_text(json.dumps(dict(Version=1, Entry='Settings.csproj', SdkVersion='10.0.400',
+        (settings_tool / 'contract.json').write_text(json.dumps(dict(Version=1, Entry='Settings.csproj', SdkVersion='11.0.100',
             Properties=dict(Configuration='Release'), SharedInputs=[], Projects={'Settings.csproj': dict(Inputs=['Settings.csproj', 'Program.cs'],
             OutputDirectories=['bin/Release/net10.0', 'obj/Release/net10.0'])}), indent=2) + '\n')
         lines += ['load(":runtime_test_settings.bzl","runtime_test_settings")',

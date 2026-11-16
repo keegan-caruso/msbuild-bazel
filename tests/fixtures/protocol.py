@@ -27,7 +27,7 @@ def packages(lock, workspace):
     assets = json.loads((lock/'obj/project.assets.json').read_text())
     directory = workspace/'packages'; directory.mkdir(exist_ok=True)
     rows = ['load("@rules_msbuild//msbuild:defs.bzl", "msbuild_nuget_package")']
-    for key, record in assets['targets']['net10.0'].items():
+    for key, record in assets['targets']['net11.0'].items():
         name, version = key.split('/')
         archive = name.lower()+'.'+version+'.nupkg'
         source = lock/'packages'/name.lower()/version/archive
@@ -48,7 +48,7 @@ local_path_override(module_name="rules_msbuild", path={json.dumps(str(RULES))})
 ''' + sdk_declarations())
     (workspace/'BUILD.bazel').write_text('')
     test = workspace/'Mtp'; test.mkdir(exist_ok=True)
-    project = '''<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup><TargetFramework>net10.0</TargetFramework><OutputType>Exe</OutputType><UseMicrosoftTestingPlatformRunner>true</UseMicrosoftTestingPlatformRunner></PropertyGroup><ItemGroup><PackageReference Include="xunit.v3.mtp-v2" Version="4.0.0"/><PackageReference Include="Microsoft.Testing.Extensions.TrxReport" Version="2.3.3"/></ItemGroup></Project>'''
+    project = '''<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup><TargetFramework>net11.0</TargetFramework><OutputType>Exe</OutputType><UseMicrosoftTestingPlatformRunner>true</UseMicrosoftTestingPlatformRunner></PropertyGroup><ItemGroup><PackageReference Include="xunit.v3.mtp-v2" Version="4.0.0"/><PackageReference Include="Microsoft.Testing.Extensions.TrxReport" Version="2.3.3"/></ItemGroup></Project>'''
     (test/'Mtp.csproj').write_text(project)
     lock = folder/'lock'; lock.mkdir(exist_ok=True); (lock/'Lock.csproj').write_text(project)
     p = command([SDK/'dotnet', 'restore', lock/'Lock.csproj', '--packages', lock/'packages', '-p:NuGetAudit=false'], folder, folder/'restore.log')

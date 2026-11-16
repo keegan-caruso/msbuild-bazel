@@ -6,7 +6,7 @@
     "App/App.csproj",
     "Tests/Tests.csproj"
   ],
-  "SdkVersion": "10.0.400",
+  "SdkVersion": "11.0.100",
   "Properties": {
     "Configuration": "Release"
   },
@@ -40,16 +40,16 @@
           "CompilerReference": null,
           "CompilerReferences": {},
           "DependencyCopies": {
-            "App/bin/Release/net10.0/Library.dll": "Library/bin/Release/net10.0/Library.dll",
-            "App/bin/Release/net10.0/publish/Library.dll": "Library/bin/Release/net10.0/Library.dll",
-            "App/bin/Release/net10.0/Library.pdb": "Library/bin/Release/net10.0/Library.pdb",
-            "App/bin/Release/net10.0/publish/Library.pdb": "Library/bin/Release/net10.0/Library.pdb",
-            "App/bin/Release/net10.0/Library.xml": "Library/bin/Release/net10.0/Library.xml",
-            "App/bin/Release/net10.0/publish/Library.xml": "Library/bin/Release/net10.0/Library.xml"
+            "App/bin/Release/net11.0/Library.dll": "Library/bin/Release/net11.0/Library.dll",
+            "App/bin/Release/net11.0/publish/Library.dll": "Library/bin/Release/net11.0/Library.dll",
+            "App/bin/Release/net11.0/Library.pdb": "Library/bin/Release/net11.0/Library.pdb",
+            "App/bin/Release/net11.0/publish/Library.pdb": "Library/bin/Release/net11.0/Library.pdb",
+            "App/bin/Release/net11.0/Library.xml": "Library/bin/Release/net11.0/Library.xml",
+            "App/bin/Release/net11.0/publish/Library.xml": "Library/bin/Release/net11.0/Library.xml"
           },
           "OutputDirectories": [
-            "App/bin/Release/net10.0",
-            "App/obj/Release/net10.0"
+            "App/bin/Release/net11.0",
+            "App/obj/Release/net11.0"
           ]
         }
       ]
@@ -74,8 +74,8 @@
           "CompilerReferences": {},
           "DependencyCopies": {},
           "OutputDirectories": [
-            "Library/bin/Release/net10.0",
-            "Library/obj/Release/net10.0"
+            "Library/bin/Release/net11.0",
+            "Library/obj/Release/net11.0"
           ]
         }
       ]
@@ -99,16 +99,16 @@
           "CompilerReference": null,
           "CompilerReferences": {},
           "DependencyCopies": {
-            "Tests/bin/Release/net10.0/Library.dll": "Library/bin/Release/net10.0/Library.dll",
-            "Tests/bin/Release/net10.0/publish/Library.dll": "Library/bin/Release/net10.0/Library.dll",
-            "Tests/bin/Release/net10.0/Library.pdb": "Library/bin/Release/net10.0/Library.pdb",
-            "Tests/bin/Release/net10.0/publish/Library.pdb": "Library/bin/Release/net10.0/Library.pdb",
-            "Tests/bin/Release/net10.0/Library.xml": "Library/bin/Release/net10.0/Library.xml",
-            "Tests/bin/Release/net10.0/publish/Library.xml": "Library/bin/Release/net10.0/Library.xml"
+            "Tests/bin/Release/net11.0/Library.dll": "Library/bin/Release/net11.0/Library.dll",
+            "Tests/bin/Release/net11.0/publish/Library.dll": "Library/bin/Release/net11.0/Library.dll",
+            "Tests/bin/Release/net11.0/Library.pdb": "Library/bin/Release/net11.0/Library.pdb",
+            "Tests/bin/Release/net11.0/publish/Library.pdb": "Library/bin/Release/net11.0/Library.pdb",
+            "Tests/bin/Release/net11.0/Library.xml": "Library/bin/Release/net11.0/Library.xml",
+            "Tests/bin/Release/net11.0/publish/Library.xml": "Library/bin/Release/net11.0/Library.xml"
           },
           "OutputDirectories": [
-            "Tests/bin/Release/net10.0",
-            "Tests/obj/Release/net10.0"
+            "Tests/bin/Release/net11.0",
+            "Tests/obj/Release/net11.0"
           ]
         }
       ]

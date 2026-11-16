@@ -9,7 +9,7 @@ def main():
         work = Path(temporary)
         source = ROOT/'tools/GraphBuild/SnapshotPublications.cs'
         (work/'Probe.csproj').write_text('<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup>'
-            '<TargetFramework>net10.0</TargetFramework><OutputType>Exe</OutputType><ImplicitUsings>enable</ImplicitUsings>'
+            '<TargetFramework>net11.0</TargetFramework><OutputType>Exe</OutputType><ImplicitUsings>enable</ImplicitUsings>'
             '<Nullable>enable</Nullable></PropertyGroup><ItemGroup>' + f'<Compile Include="{source}" />' + '</ItemGroup></Project>')
         (work/'Program.cs').write_text('''using RulesMSBuild.GraphBuild;
 var release = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -48,7 +48,7 @@ if (!captureDrained) throw new Exception("Capture failure did not drain");
 Console.WriteLine("PASS: overlapping capture, capacity2, publication/capture failure drain");
 ''')
         run(DOTNET, 'build', work/'Probe.csproj', '-c', 'Release')
-        result = run(DOTNET, work/'bin/Release/net10.0/Probe.dll')
+        result = run(DOTNET, work/'bin/Release/net11.0/Probe.dll')
         print(result.stdout.strip())
 
 

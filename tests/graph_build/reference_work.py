@@ -32,7 +32,7 @@ def main():
             project.write_text(original.replace('</Project>', '<ItemGroup><ProjectReference Include="../P0/./P0.csproj" '
                                                 + metadata + ' /></ItemGroup></Project>'))
             report = base / (name + '.json')
-            run(DOTNET, driver / 'bin/Release/net10.0/Raw.dll', root, manifest, 'reference-work', report)
+            run(DOTNET, driver / 'bin/Release/net11.0/Raw.dll', root, manifest, 'reference-work', report)
             result = json.loads(report.read_text())
             assert result['rolesEqual'] and result['duplicateAuthoredPaths'] == 1 and result['compiledNodes'] == 3, result
             assert result['implementationReferences'] == int(name != 'ordinary'), result

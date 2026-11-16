@@ -12,7 +12,7 @@ def main():
         sources = ''.join(f'<Compile Include="{ROOT / "tools/GraphBuild" / name}" />'
                           for name in ['WorkerProcess.cs', 'WorkerOutput.cs', 'RetainedGraphProcess.cs', 'WorkerRequests.cs'])
         (work / 'Probe.csproj').write_text('<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup>'
-            '<OutputType>Exe</OutputType><TargetFramework>net10.0</TargetFramework>'
+            '<OutputType>Exe</OutputType><TargetFramework>net11.0</TargetFramework>'
             '<ImplicitUsings>enable</ImplicitUsings><Nullable>enable</Nullable>'
             '<TreatWarningsAsErrors>true</TreatWarningsAsErrors></PropertyGroup>'
             f'<ItemGroup>{sources}</ItemGroup></Project>')
@@ -175,7 +175,7 @@ namespace RulesMSBuild.GraphBuild
 }
 ''')
         run(DOTNET, 'build', work / 'Probe.csproj', '-c', 'Release')
-        print(run(DOTNET, work / 'bin/Release/net10.0/Probe.dll').stdout, end='')
+        print(run(DOTNET, work / 'bin/Release/net11.0/Probe.dll').stdout, end='')
 
 
 if __name__ == '__main__':

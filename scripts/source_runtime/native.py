@@ -41,7 +41,7 @@ def declare_inputs(root, preparation):
     for source,target in [('NativeBuild.cs.txt','NativeBuild.cs'),('NativePreparation.cs.txt','NativePreparation.cs'),('native_action.bzl','native_action.bzl')]:
         shutil.copyfile(here/source,folder/target)
     shutil.copyfile(here/'native_inputs.bzl',folder/'native_inputs.bzl')
-    (folder/'Task.csproj').write_text('<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup><TargetFramework>net10.0</TargetFramework><OutputType>Exe</OutputType><StartupObject>NativePreparation</StartupObject></PropertyGroup></Project>')
+    (folder/'Task.csproj').write_text('<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup><TargetFramework>net11.0</TargetFramework><OutputType>Exe</OutputType><StartupObject>NativePreparation</StartupObject></PropertyGroup></Project>')
     sys.path.insert(0,str(here))
     from native_driver import write_contract
     write_contract(folder,['NativePreparation.cs'])

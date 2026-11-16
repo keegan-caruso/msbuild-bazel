@@ -9,7 +9,7 @@ import unittest
 
 ROOT = Path(__file__).resolve().parents[2]
 DOTNET = Path(os.environ.get('RULES_MSBUILD_DOTNET_ROOT', ROOT/'.tools/dotnet'))/'dotnet'
-TOOL = ROOT/'tools/Tooling/bin/Release/net10.0/Tooling.dll'
+TOOL = ROOT/'tools/Tooling/bin/Release/net11.0/Tooling.dll'
 
 
 class ToolChecks(unittest.TestCase):

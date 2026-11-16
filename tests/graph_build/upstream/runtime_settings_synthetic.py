@@ -25,7 +25,7 @@ def main():
     shutil.copyfile(Path(__file__).with_name('RuntimeTestSettings.cs.txt'), tool / 'Program.cs')
     shutil.copyfile(Path(__file__).with_name('runtime_test_settings.bzl'), workspace / 'settings.bzl')
     (tool / 'Settings.csproj').write_text('<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup><TargetFramework>net10.0</TargetFramework><OutputType>Exe</OutputType><ImplicitUsings>enable</ImplicitUsings><Nullable>enable</Nullable></PropertyGroup></Project>')
-    (tool / 'contract.json').write_text(json.dumps(dict(Version=1, Entry='Settings.csproj', SdkVersion='10.0.400',
+    (tool / 'contract.json').write_text(json.dumps(dict(Version=1, Entry='Settings.csproj', SdkVersion='11.0.100',
         Properties=dict(Configuration='Release'), SharedInputs=[], Projects={'Settings.csproj': dict(Inputs=['Settings.csproj', 'Program.cs'],
         OutputDirectories=['bin/Release/net10.0', 'obj/Release/net10.0'])}), indent=2) + '\n')
     source = workspace / 'filtered.runsettings'

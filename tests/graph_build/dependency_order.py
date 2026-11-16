@@ -33,8 +33,8 @@ def main():
                 project.write_text(project.read_text().replace('</Project>', '<ItemGroup><ProjectReference Include="../P1/P1.csproj" /></ItemGroup></Project>'))
             if shape == 'configured':
                 project = root / 'P0/P0.csproj'
-                project.write_text(project.read_text().replace('<TargetFramework>net10.0</TargetFramework>',
-                                  '<TargetFrameworks>net10.0;net10.0-windows</TargetFrameworks>'))
+                project.write_text(project.read_text().replace('<TargetFramework>net11.0</TargetFramework>',
+                                  '<TargetFrameworks>net11.0;net11.0-windows</TargetFrameworks>'))
                 contract['Version'] = 2
                 contract['Entries'] = ['P0/P0.csproj', 'P2/P2.csproj']
                 producer = contract['Projects']['P0/P0.csproj']
@@ -43,11 +43,11 @@ def main():
                 producer['Configurations'] = [{'Properties': {'TargetFramework': framework}, 'Inputs': [],
                     'ReferenceBoundary': bool(framework), 'OutputDirectories':
                     [f'P0/bin/Release/{framework}', f'P0/obj/Release/{framework}'] if framework else []}
-                    for framework in ['', 'net10.0', 'net10.0-windows']]
+                    for framework in ['', 'net11.0', 'net11.0-windows']]
             manifest = root / 'contract.json'
             manifest.write_text(json.dumps(contract))
             report = base / (root.name + '.json')
-            run(DOTNET, driver / 'bin/Release/net10.0/Raw.dll', root, manifest, 'dependency-order', report)
+            run(DOTNET, driver / 'bin/Release/net11.0/Raw.dll', root, manifest, 'dependency-order', report)
             result = json.loads(report.read_text())
             assert result['orderEqual'], result
             if shape == 'configured':

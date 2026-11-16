@@ -10,9 +10,9 @@ from qualify import DOTNET, ROOT, RUNNER, SDK, fixture, run
 def metadata_copy(base):
     probe = base / 'metadata-copy'
     probe.mkdir()
-    (probe / 'Probe.csproj').write_text('<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup><TargetFramework>net10.0</TargetFramework><OutputType>Exe</OutputType><ImplicitUsings>enable</ImplicitUsings></PropertyGroup><ItemGroup>' +
+    (probe / 'Probe.csproj').write_text('<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup><TargetFramework>net11.0</TargetFramework><OutputType>Exe</OutputType><ImplicitUsings>enable</ImplicitUsings></PropertyGroup><ItemGroup>' +
         f'<Compile Include="{ROOT}/tools/ProjectCache/CachedTargetItem.cs" />' +
-        ''.join(f'<Reference Include="{name}" HintPath="{SDK}/sdk/10.0.400/{name}.dll" />' for name in
+        ''.join(f'<Reference Include="{name}" HintPath="{SDK}/sdk/11.0.100/{name}.dll" />' for name in
                 ['Microsoft.Build', 'Microsoft.Build.Framework', 'Microsoft.Build.Utilities.Core']) + '</ItemGroup></Project>')
     (probe / 'Program.cs').write_text('''using Microsoft.Build.Framework;
 using Microsoft.Build.Utilities;
@@ -37,7 +37,7 @@ if (fresh.GetMetadata("OriginalItemSpec") != source.ItemSpec) throw new Exceptio
 Console.WriteLine("PASS: cache adapter preserves escaped source identity, destination precedence and ordinary defaults");
 ''')
     run(DOTNET, 'build', probe / 'Probe.csproj', '-c', 'Release', '-p:UseSharedCompilation=false')
-    print(run(DOTNET, probe / 'bin/Release/net10.0/Probe.dll').stdout.strip())
+    print(run(DOTNET, probe / 'bin/Release/net11.0/Probe.dll').stdout.strip())
 
 
 def main():
@@ -60,8 +60,8 @@ def main():
                     shutil.rmtree(root / directory, ignore_errors=True)
             result = run(DOTNET, RUNNER, 'action', root, manifest, report, cache)
             assert json.loads(report.read_text())['hits'] == hits, report.read_text()
-            assert run(DOTNET, root / 'P2/bin/Release/net10.0/P2.dll').stdout.strip() == str(value)
-            observed = (root / 'P2/obj/Release/net10.0/source-group-observation.txt').read_text()
+            assert run(DOTNET, root / 'P2/bin/Release/net11.0/P2.dll').stdout.strip() == str(value)
+            observed = (root / 'P2/obj/Release/net11.0/source-group-observation.txt').read_text()
             assert '/P0/Code.cs|Code.cs|False' in observed, observed
             return {str(p.relative_to(root)): p.read_bytes() for node in contract['Projects'].values()
                     for directory in node['OutputDirectories'] for p in (root / directory).rglob('*')

@@ -26,7 +26,7 @@ def main():
                 items += '<ItemGroup><Compile Include="../Shared/Code.cs"/></ItemGroup>'
             if name == 'P0':
                 items += '<Import Project="Options.props"/><Import Project="Generate.targets"/>'
-            (folder / (name + '.csproj')).write_text('<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup><TargetFramework>net10.0</TargetFramework>' + extra + '</PropertyGroup>' + items + '</Project>')
+            (folder / (name + '.csproj')).write_text('<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup><TargetFramework>net11.0</TargetFramework>' + extra + '</PropertyGroup>' + items + '</Project>')
             code = {'P0': 'public static class P0 { public static string Value() => Shared.Value + "/" + new System.Resources.ResourceManager("P0.Resource",typeof(P0).Assembly).GetString("Value") + "/" + Generated.Value; }',
                     'P1': 'public static class P1 { public static string Value() => Shared.Value; }',
                     'App': 'System.Console.WriteLine(P0.Value() + ";" + P1.Value());',
@@ -40,8 +40,8 @@ def main():
         mapping = base / 'mapping.json'
         mapping.write_text(json.dumps({'projectDefaults': {'referenceBoundary': True, 'documents': {
             'P0/Generate.targets': {'sha256': hashlib.sha256(target.encode()).hexdigest(), 'targets': ['Generate'], 'tasks': [], 'inputs': ['P0/meta.txt']}}}}))
-        sync = ROOT / 'tools/ProjectSync/bin/Release/net10.0/ProjectSync.dll'
-        run(DOTNET, sync, root, SDK / 'sdk/10.0.400', 'App/App.csproj', 'Unrelated/Unrelated.csproj', '--mappings', mapping)
+        sync = ROOT / 'tools/ProjectSync/bin/Release/net11.0/ProjectSync.dll'
+        run(DOTNET, sync, root, SDK / 'sdk/11.0.100', 'App/App.csproj', 'Unrelated/Unrelated.csproj', '--mappings', mapping)
         manifest = root / 'graph.generated.json'
         contract = json.loads(manifest.read_text())
         shutil.copytree(root, raw)
@@ -72,12 +72,12 @@ def main():
                     shutil.rmtree(root / folder / tree, ignore_errors=True)
             run(DOTNET, RUNNER, 'action', root, manifest, report, cache)
             result = json.loads(report.read_text())
-            observed = run(DOTNET, root / 'App/bin/Release/net10.0/App.dll').stdout.strip()
+            observed = run(DOTNET, root / 'App/bin/Release/net11.0/App.dll').stdout.strip()
             assert observed == value, (label, observed, value)
             binlog = base / (label + '.binlog')
-            run(DOTNET, driver / 'bin/Release/net10.0/Raw.dll', raw, manifest, 'build', binlog)
-            compiled = json.loads(run(DOTNET, reader / 'bin/Release/net10.0/Reader.dll', binlog).stdout)['compiled']
-            print(json.dumps({'case': label, 'graphMisses': result['misses'], 'rawCompilerProjects': [c['project'] for c in compiled], 'referenceSha256': hashlib.sha256((root / 'P0/obj/Release/net10.0/ref/P0.dll').read_bytes()).hexdigest()}), flush=True)
+            run(DOTNET, driver / 'bin/Release/net11.0/Raw.dll', raw, manifest, 'build', binlog)
+            compiled = json.loads(run(DOTNET, reader / 'bin/Release/net11.0/Reader.dll', binlog).stdout)['compiled']
+            print(json.dumps({'case': label, 'graphMisses': result['misses'], 'rawCompilerProjects': [c['project'] for c in compiled], 'referenceSha256': hashlib.sha256((root / 'P0/obj/Release/net11.0/ref/P0.dll').read_bytes()).hexdigest()}), flush=True)
             assert (result['hits'], result['misses']) == (4 - misses, misses), result
             expected = misses if raw_compilers is None else raw_compilers
             assert len(compiled) == expected, (label, compiled)
@@ -102,15 +102,15 @@ def main():
             if label == 'imported-property':
                 rejected = run(DOTNET, RUNNER, 'action', root, manifest, report, cache, success=False)
                 assert 'Graph definition changed; rerun sync: P0/Options.props' in rejected.stderr
-                run(DOTNET, sync, root, SDK / 'sdk/10.0.400', 'App/App.csproj', 'Unrelated/Unrelated.csproj', '--mappings', mapping)
+                run(DOTNET, sync, root, SDK / 'sdk/11.0.100', 'App/App.csproj', 'Unrelated/Unrelated.csproj', '--mappings', mapping)
             changed = build(label, misses, original_value.replace(before, after), raw_compilers)
-            assert changed['Unrelated/bin/Release/net10.0/Unrelated.dll'] == baseline['Unrelated/bin/Release/net10.0/Unrelated.dll']
-            assert changed['App/bin/Release/net10.0/App.dll'] == baseline['App/bin/Release/net10.0/App.dll']
-            assert changed['P0/obj/Release/net10.0/ref/P0.dll'] == baseline['P0/obj/Release/net10.0/ref/P0.dll']
+            assert changed['Unrelated/bin/Release/net11.0/Unrelated.dll'] == baseline['Unrelated/bin/Release/net11.0/Unrelated.dll']
+            assert changed['App/bin/Release/net11.0/App.dll'] == baseline['App/bin/Release/net11.0/App.dll']
+            assert changed['P0/obj/Release/net11.0/ref/P0.dll'] == baseline['P0/obj/Release/net11.0/ref/P0.dll']
             for workspace in [root, raw]:
                 (workspace / path).write_bytes(original)
             if label == 'imported-property':
-                run(DOTNET, sync, root, SDK / 'sdk/10.0.400', 'App/App.csproj', 'Unrelated/Unrelated.csproj', '--mappings', mapping)
+                run(DOTNET, sync, root, SDK / 'sdk/11.0.100', 'App/App.csproj', 'Unrelated/Unrelated.csproj', '--mappings', mapping)
             # Resync restores the original definition digests, so the original
             # project snapshots should be reusable for every restored input.
             assert build(label + '-restored', 0, original_value, raw_compilers=raw_compilers) == baseline

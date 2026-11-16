@@ -16,7 +16,7 @@ import zipfile
 
 ROOT = Path(__file__).resolve().parents[2]
 SDK = Path(os.environ['RULES_MSBUILD_DOTNET_ROOT'])
-RUNNER = ROOT / 'tools/ProjectSync/bin/Release/net10.0/ProjectSync.dll'
+RUNNER = ROOT / 'tools/ProjectSync/bin/Release/net11.0/ProjectSync.dll'
 
 
 class NuGetUpdateCacheTests(unittest.TestCase):
@@ -79,7 +79,7 @@ class NuGetUpdateCacheTests(unittest.TestCase):
             source=base/'source';source.mkdir()
             cache=base/'http'
             (source/'NuGet.Config').write_text('<configuration><packageSources><clear/><add key="fixture" value="'+address+'/index.json" allowInsecureConnections="true"/></packageSources></configuration>')
-            (source/'App.csproj').write_text('<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup><TargetFramework>net10.0</TargetFramework></PropertyGroup><ItemGroup><PackageReference Include="Fixture.Cache" Version="1.0.0"/></ItemGroup></Project>')
+            (source/'App.csproj').write_text('<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup><TargetFramework>net11.0</TargetFramework></PropertyGroup><ItemGroup><PackageReference Include="Fixture.Cache" Version="1.0.0"/></ItemGroup></Project>')
             (source/'Code.cs').write_text('public class C {}')
             command=[str(SDK/'dotnet'),str(RUNNER),'nuget-update',str(source),str(SDK),'App.csproj','--distdir',str(base/'distdir')]
             home=base/'home'

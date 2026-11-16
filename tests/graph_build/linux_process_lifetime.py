@@ -19,11 +19,11 @@ with tempfile.TemporaryDirectory(prefix='graph-process-lifetime-') as name:
     shutil.copyfile(Path(__file__).with_name('WorkerProcessProbe.cs.txt'), root / 'Program.cs')
     for source in ['WorkerProcess.cs', 'WorkerOutput.cs']:
         shutil.copyfile(ROOT / 'tools/GraphBuild' / source, root / source)
-    (root / 'Probe.csproj').write_text('<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup><TargetFramework>net10.0</TargetFramework><OutputType>Exe</OutputType><ImplicitUsings>enable</ImplicitUsings><Nullable>enable</Nullable></PropertyGroup></Project>')
+    (root / 'Probe.csproj').write_text('<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup><TargetFramework>net11.0</TargetFramework><OutputType>Exe</OutputType><ImplicitUsings>enable</ImplicitUsings><Nullable>enable</Nullable></PropertyGroup></Project>')
     env = dict(os.environ, DOTNET_ROOT=str(sdk), DOTNET_HOST_PATH=str(sdk / 'dotnet'))
     with (root / 'build.log').open('w') as log:
         subprocess.run([str(sdk / 'dotnet'), 'build', str(root / 'Probe.csproj'), '-c', 'Release', '-p:UseSharedCompilation=false', '-p:NuGetAudit=false'], env=env, stdout=log, stderr=subprocess.STDOUT, check=True)
-    command = [str(sdk / 'dotnet'), str(root / 'bin/Release/net10.0/Probe.dll')]
+    command = [str(sdk / 'dotnet'), str(root / 'bin/Release/net11.0/Probe.dll')]
     baseline = subprocess.check_output(command + ['retire', str(root)], env=env, text=True).strip()
     assert baseline == '137', 'Expected creator-thread death to kill bubblewrap: ' + baseline
     for _ in range(3):

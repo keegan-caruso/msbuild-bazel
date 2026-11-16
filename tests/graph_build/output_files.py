@@ -18,17 +18,17 @@ def main():
         for name in ['Library', 'App']:
             (root / name).mkdir()
             reference = '<ItemGroup><ProjectReference Include="../Library/Library.csproj" /></ItemGroup>' if name == 'App' else ''
-            (root / name / f'{name}.csproj').write_text('<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup><TargetFramework>net10.0</TargetFramework></PropertyGroup>' + reference + '</Project>')
+            (root / name / f'{name}.csproj').write_text('<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup><TargetFramework>net11.0</TargetFramework></PropertyGroup>' + reference + '</Project>')
             (root / name / 'Code.cs').write_text(f'public class {name} {{ public static int Value() => 1; }}')
         target = root / 'Directory.Build.targets'
         target.write_text('<Project><ItemGroup><GraphOutput Include="shared/$(AssemblyName).dll" Kind="published" /></ItemGroup><Target Name="SharedOutput" AfterTargets="Build"><Copy SourceFiles="$(TargetPath)" DestinationFiles="$(MSBuildThisFileDirectory)shared/$(AssemblyName).dll" /></Target></Project>')
         mapping = {'projectDefaults': {'outputFiles': ["@(GraphOutput->WithMetadataValue('Kind', 'published'));$(AbsentOutput)"], 'evaluationItems': ['GraphOutput'], 'documents': {'Directory.Build.targets': {
             'sha256': hashlib.sha256(target.read_bytes()).hexdigest(), 'targets': ['SharedOutput'], 'tasks': [], 'inputs': []}}}}
-        mapping['projectDefaults']['frameworkOverrides'] = {'net10.0': {'outputFiles': mapping['projectDefaults']['outputFiles']}}
+        mapping['projectDefaults']['frameworkOverrides'] = {'net11.0': {'outputFiles': mapping['projectDefaults']['outputFiles']}}
         mapping['projectDefaults']['outputFiles'] = ['shared/wrong-framework.dll']
         mapping_path = root / 'mappings.json'
         mapping_path.write_text(json.dumps(mapping))
-        sync = [DOTNET, ROOT / 'tools/ProjectSync/bin/Release/net10.0/ProjectSync.dll', root, SDK / 'sdk/10.0.400', 'App/App.csproj', '--mappings', mapping_path]
+        sync = [DOTNET, ROOT / 'tools/ProjectSync/bin/Release/net11.0/ProjectSync.dll', root, SDK / 'sdk/11.0.100', 'App/App.csproj', '--mappings', mapping_path]
         run(*sync)
         contract_path = root / 'graph.generated.json'
         contract = json.loads(contract_path.read_text())
@@ -49,16 +49,16 @@ def main():
             run(*command)
             assert json.loads(report.read_text())['hits'] == hits, report.read_text()
             for name in ['Library', 'App']:
-                assert (root / f'shared/{name}.dll').read_bytes() == (root / name / f'bin/Release/net10.0/{name}.dll').read_bytes()
+                assert (root / f'shared/{name}.dll').read_bytes() == (root / name / f'bin/Release/net11.0/{name}.dll').read_bytes()
             return (root / 'shared/Library.dll').read_bytes()
         before = build(0)
         assert build(2) == before
         # An ownership index must still reject a cached file owned by another node.
         snapshot = next(path for path in cache.glob('*/manifest.json')
-                        if 'App/bin/Release/net10.0/App.dll' in json.loads(path.read_text())['Files'])
+                        if 'App/bin/Release/net11.0/App.dll' in json.loads(path.read_text())['Files'])
         original_snapshot = snapshot.read_text()
         forged = json.loads(original_snapshot)
-        forged['Files']['Library/bin/Release/net10.0/foreign.dll'] = next(iter(forged['Files'].values()))
+        forged['Files']['Library/bin/Release/net11.0/foreign.dll'] = next(iter(forged['Files'].values()))
         snapshot.write_text(json.dumps(forged))
         clear()
         assert 'Snapshot output escaped project ownership' in run(*command, success=False).stderr
@@ -82,7 +82,7 @@ def main():
         assert 'requires absent declared output files' in run(*command, success=False).stderr
         clear()
         for output, error in [('shared/Library.dll', 'Overlapping output file ownership'),
-                              ('Library/bin/Release/net10.0/foreign.dll', 'Overlapping output file ownership'),
+                              ('Library/bin/Release/net11.0/foreign.dll', 'Overlapping output file ownership'),
                               ('App/Code.cs', 'Output file overlaps a declared input'),
                               ('shared/missing.dll', 'Missing declared output file')]:
             changed = copy.deepcopy(contract)

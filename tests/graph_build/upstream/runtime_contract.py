@@ -226,7 +226,7 @@ def main():
                 'targets': [], 'tasks': [], 'inputs': []}
     if args.reference_bindings:
         references = json.loads(args.reference_bindings.read_text())
-        assert references['sdkVersion'] == '10.0.400' and references['compiledNodes'] == 481 and references['configuredNodes'] == 543
+        assert references['sdkVersion'] == '11.0.100' and references['compiledNodes'] == 481 and references['configuredNodes'] == 543
         for project, configurations in references['projects'].items():
             binding = mapping['projects'].setdefault(project, copy.deepcopy(mapping['projectDefaults']))
             binding.pop('properties', None)

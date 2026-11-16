@@ -14,18 +14,18 @@ def main():
         root = base / 'workspace'
         root.mkdir()
         project = root / 'Library.csproj'
-        original = ('<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup><TargetFramework>net10.0</TargetFramework>'
+        original = ('<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup><TargetFramework>net11.0</TargetFramework>'
                     '</PropertyGroup><Target Name="GenerateScratch" BeforeTargets="CoreCompile">'
                     '<MakeDir Directories="$(IntermediateOutputPath)temporary"/>'
                     '<WriteLinesToFile File="$(IntermediateOutputPath)temporary/$([System.Guid]::NewGuid()).txt" Lines="temporary"/>'
                     '</Target></Project>')
         project.write_text(original)
         (root / 'Code.cs').write_text('public class Library { public const int Value = 7; }')
-        contract = {'Version': 5, 'Entry': 'Library.csproj', 'SdkVersion': '10.0.400',
+        contract = {'Version': 5, 'Entry': 'Library.csproj', 'SdkVersion': '11.0.100',
                     'Properties': {'Configuration': 'Release'}, 'SharedInputs': [],
-                    'TemporaryDirectories': ['obj/Release/net10.0/temporary'], 'InputDirectories': ['empty-input'],
+                    'TemporaryDirectories': ['obj/Release/net11.0/temporary'], 'InputDirectories': ['empty-input'],
                     'Projects': {'Library.csproj': {'Inputs': ['Library.csproj', 'Code.cs'],
-                                'OutputDirectories': ['bin/Release/net10.0', 'obj/Release/net10.0']}}}
+                                'OutputDirectories': ['bin/Release/net11.0', 'obj/Release/net11.0']}}}
         manifest, report, cache = base / 'contract.json', base / 'report.json', base / 'cache'
         def build(failure=None):
             for directory in ['bin', 'obj/Release']:
@@ -37,45 +37,45 @@ def main():
                 assert failure in result.stderr, result.stderr
                 assert set(cache.glob('*/manifest.json')) == before, 'Failure published a snapshot'
                 return
-            assert not (root / 'obj/Release/net10.0/temporary').exists()
+            assert not (root / 'obj/Release/net11.0/temporary').exists()
             return json.loads(report.read_text())
         assert build()['temporaryDirectoriesRemoved'] == 1
-        product = root / 'bin/Release/net10.0/Library.dll'
+        product = root / 'bin/Release/net11.0/Library.dll'
         baseline = hashlib.sha256(product.read_bytes()).hexdigest()
         replay = build()
         assert replay['hits'] == 1 and replay['temporaryDirectoriesRemoved'] == 0
         assert hashlib.sha256(product.read_bytes()).hexdigest() == baseline
-        contract['TemporaryDirectories'] += ['obj/Release/net10.0/other-temporary']
+        contract['TemporaryDirectories'] += ['obj/Release/net11.0/other-temporary']
         assert build()['misses'] == 1, 'Cleanup contract changes must invalidate replay'
         mapping = base / 'mapping.json'
         mapping.write_text(json.dumps({'projectDefaults': {
             'documents': {'Library.csproj': {'sha256': hashlib.sha256(project.read_bytes()).hexdigest(),
                            'targets': ['GenerateScratch'], 'tasks': [], 'inputs': []}},
             'temporaryDirectories': ['$(IntermediateOutputPath)temporary'], 'inputDirectories': ['empty-input']}}))
-        run(DOTNET, ROOT / 'tools/ProjectSync/bin/Release/net10.0/ProjectSync.dll', root,
-            SDK / 'sdk/10.0.400', 'Library.csproj', '--mappings', mapping)
+        run(DOTNET, ROOT / 'tools/ProjectSync/bin/Release/net11.0/ProjectSync.dll', root,
+            SDK / 'sdk/11.0.100', 'Library.csproj', '--mappings', mapping)
         generated = json.loads((root / 'graph.generated.json').read_text())
-        assert generated['Version'] == 5 and generated['TemporaryDirectories'] == ['obj/Release/net10.0/temporary']
+        assert generated['Version'] == 5 and generated['TemporaryDirectories'] == ['obj/Release/net11.0/temporary']
         assert generated['InputDirectories'] == ['empty-input']
         (root / 'graph.generated.json').unlink()
         (root / 'graph.generated.bzl').unlink()
         contract['TemporaryDirectories'] = ['outside']
         build('strict child of an owned output')
-        contract['TemporaryDirectories'] = ['obj/Release/net10.0']
+        contract['TemporaryDirectories'] = ['obj/Release/net11.0']
         build('strict child of an owned output')
-        contract['TemporaryDirectories'] = ['bin/Release/net10.0']
+        contract['TemporaryDirectories'] = ['bin/Release/net11.0']
         build('strict child of an owned output')
-        contract['TemporaryDirectories'] = ['obj/Release/net10.0/temporary']
-        contract['Projects']['Library.csproj']['OutputFiles'] = ['obj/Release/net10.0/temporary/required.txt']
+        contract['TemporaryDirectories'] = ['obj/Release/net11.0/temporary']
+        contract['Projects']['Library.csproj']['OutputFiles'] = ['obj/Release/net11.0/temporary/required.txt']
         build('overlaps an input or required product')
         del contract['Projects']['Library.csproj']['OutputFiles']
-        for copied, producer in [('obj/Release/net10.0/temporary/copy.txt', 'bin/Release/net10.0/Library.dll'),
-                                 ('bin/Release/net10.0/copy.txt', 'obj/Release/net10.0/temporary/producer.txt')]:
+        for copied, producer in [('obj/Release/net11.0/temporary/copy.txt', 'bin/Release/net11.0/Library.dll'),
+                                 ('bin/Release/net11.0/copy.txt', 'obj/Release/net11.0/temporary/producer.txt')]:
             contract['Projects']['Library.csproj']['DependencyCopies'] = {copied: producer}
             build('overlaps an input or required product')
         del contract['Projects']['Library.csproj']['DependencyCopies']
-        contract['Projects']['Library.csproj']['Inputs'].append('obj/Release/net10.0/temporary/input.txt')
-        path = root / 'obj/Release/net10.0/temporary/input.txt'
+        contract['Projects']['Library.csproj']['Inputs'].append('obj/Release/net11.0/temporary/input.txt')
+        path = root / 'obj/Release/net11.0/temporary/input.txt'
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text('protected')
         # Build's reset deletes ordinary outputs, so test constructor validation
@@ -89,12 +89,12 @@ def main():
         contract['Version'] = 5
         project.write_text(original.replace('<Project Sdk=', '<Project InitialTargets="ReturnScratch" Sdk=').replace('</Project>',
             '<Target Name="ReturnScratch" Returns="@(Scratch)"><ItemGroup>'
-            '<Scratch Include="obj/Release/net10.0/temporary/result.txt" />'
+            '<Scratch Include="obj/Release/net11.0/temporary/result.txt" />'
             '</ItemGroup></Target></Project>'))
         build('Target result references a temporary directory')
         project.write_text(original.replace('<Project Sdk=', '<Project InitialTargets="ReturnScratch" Sdk=').replace('</Project>',
             '<Target Name="ReturnScratch" Returns="@(Scratch)"><ItemGroup>'
-            '<Scratch Include="ordinary"><DataPath>obj/Release/net10.0/temporary/result.txt</DataPath></Scratch>'
+            '<Scratch Include="ordinary"><DataPath>obj/Release/net11.0/temporary/result.txt</DataPath></Scratch>'
             '</ItemGroup></Target></Project>'))
         build('Target result references a temporary directory')
         project.write_text(original.replace('</Project>', '<Target Name="LinkScratch" AfterTargets="Build">'
@@ -118,7 +118,7 @@ def dependent_projects():
         root.mkdir()
         contract = fixture(root)
         contract['Version'] = 5
-        contract['TemporaryDirectories'] = ['P0/obj/Release/net10.0/temporary']
+        contract['TemporaryDirectories'] = ['P0/obj/Release/net11.0/temporary']
         project = root / 'P0/P0.csproj'
         project.write_text(project.read_text().replace('</Project>',
             '<Target Name="Scratch" BeforeTargets="CoreCompile">'

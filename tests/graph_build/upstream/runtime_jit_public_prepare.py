@@ -89,7 +89,7 @@ def main():
     module = ('module(name="jit_public")\nbazel_dep(name="rules_msbuild",version="0.0.0")\n'
         'local_path_override(module_name="rules_msbuild",path=' + json.dumps(str(ROOT)) + ')\n'
         'dotnet=use_extension("@rules_msbuild//msbuild:extensions.bzl","dotnet")\n'
-        'dotnet.sdk(name="dotnet",version="10.0.400")\nuse_repo(dotnet,"dotnet")\nregister_toolchains("@dotnet//:all")\n')
+        'dotnet.sdk(name="dotnet",version="11.0.100")\nuse_repo(dotnet,"dotnet")\nregister_toolchains("@dotnet//:all")\n')
     (source / 'MODULE.bazel').write_text(module)
     update = ('load("@rules_msbuild//msbuild:sync.bzl","msbuild_nuget_update","msbuild_sync")\n'
         'projects=' + repr(projects) + '\n'
@@ -190,7 +190,7 @@ def main():
         assert contract['Projects'][case['project']]['Configurations'][0]['ImplementationDependencies'] == [wrapper]
     (source / 'jit-public.json').write_text(json.dumps(dict(cases=cases, sourceDigests=pins, sourceProducer=producer, compilerReferences=args.compiler_references), indent=2) + '\n')
     manifest = json.loads((source / 'nuget.lock.json').read_text())
-    (base / 'summary.json').write_text(json.dumps(dict(commit=COMMIT, sdk='10.0.400',
+    (base / 'summary.json').write_text(json.dumps(dict(commit=COMMIT, sdk='11.0.100',
         sourceDigests=pins, projects=list(contract['Projects']), archives=len(manifest['packages']),
         nativeLocks=len(manifest['lockFiles']), sourceProductsSha256=seed.get('sourceProductsSha256'), sourceProducer=producer), indent=2) + '\n')
     print(source, flush=True)

@@ -36,13 +36,13 @@ def main():
         assert build()['hits'] == 0
         digest = hashlib.sha256(payload).hexdigest()
         blob = cache / '.cas' / digest
-        entries = [path for path in cache.glob('*/P*/bin/Release/net10.0/shared.txt')]
+        entries = [path for path in cache.glob('*/P*/bin/Release/net11.0/shared.txt')]
         assert len(entries) == 3 and blob.read_bytes() == payload, entries
         if os.name != 'nt':
             assert all(path.stat().st_ino == blob.stat().st_ino for path in entries)
         assert build()['hits'] == 3
         for index in range(3):
-            output = root / f'P{index}/bin/Release/net10.0/shared.txt'
+            output = root / f'P{index}/bin/Release/net11.0/shared.txt'
             assert output.read_bytes() == payload
             if os.name != 'nt':
                 assert output.stat().st_ino != blob.stat().st_ino
