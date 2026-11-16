@@ -822,6 +822,13 @@ ordinary-mode tampering, special-bit stripping, traversal and symlink rejection.
 
 ### Complete source-runtime product
 
+For the generated net10 app, a newer bootstrap SDK selects its net10 targeting
+pack versions from its bundled SDK properties. The application graph declares
+only the matching packages from the verified NuGet lock and records their archive
+hashes in its contract. Portable controls cover selection, the SDK 10 no-package
+path and rejection of mismatched or ambiguous inputs; full SDK 11 source-runtime
+qualification remains a separate gate.
+
 The [source-to-app workflow](../examples/source-runtime-app/README.md) acquires the
 pinned source and bootstrap SDK, updates packages, qualifies the graph, and builds
 an app plus `//:runtime_package`. Its optional Apple guest cache relay is configured

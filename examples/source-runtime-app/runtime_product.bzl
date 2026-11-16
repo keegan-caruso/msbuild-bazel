@@ -1,10 +1,10 @@
 """Declared build, package and execution checks for the pinned runtime example."""
 
-load("@rules_msbuild//msbuild:defs.bzl", "msbuild_graph", "msbuild_graph_binary", "msbuild_graph_test", "msbuild_runtime", "msbuild_runtime_layout")
+load("@rules_msbuild//msbuild:defs.bzl", "msbuild_graph", "msbuild_graph_binary", "msbuild_graph_test", "msbuild_package_lock", "msbuild_runtime", "msbuild_runtime_layout")
 load("@rules_pkg//pkg:tar.bzl", "pkg_tar")
 load("@rules_python//python:defs.bzl", "py_test")
 
-def source_runtime_application(name, projects, native_files, provenance):
+def source_runtime_application(name, projects, native_files, provenance, reference_packs = []):
     """Connect explicit framework projects and native artifacts to the sample app.
 
     Args:
@@ -12,6 +12,7 @@ def source_runtime_application(name, projects, native_files, provenance):
         projects: Configured shared-framework project keys in the graph.
         native_files: Native producer labels mapped to runtime destination paths.
         provenance: Pinned source and toolchain build facts.
+        reference_packs: Selected NuGet targeting pack labels for the app restore.
     """
     runtime = name + "_source_runtime"
     host = name + "_host"
@@ -32,7 +33,9 @@ def source_runtime_application(name, projects, native_files, provenance):
         provenance = json.encode(provenance),
     )
     msbuild_runtime(name = host, layout = ":" + runtime, entry_point = "dotnet", runtime_identifier = "linux-arm64", version = "10.0.0", env = {"RUNTIME_PROVIDER": "source"})
-    msbuild_graph(name = build, runner = ":graph_runner", contract = "app/contract.json", source_root = "app", srcs = ["app/App.csproj", "app/Program.cs"], linux_stable_paths = True, linux_worker = True)
+    if reference_packs:
+        msbuild_package_lock(name = name + "_reference_packs", packages = reference_packs)
+    msbuild_graph(name = build, runner = ":graph_runner", contract = "app/contract.json", source_root = "app", srcs = ["app/App.csproj", "app/Program.cs"], linux_stable_paths = True, linux_worker = True, **({"package_lock": ":" + name + "_reference_packs"} if reference_packs else {}))
     msbuild_graph_binary(name = name, graph = ":" + build, assembly = "bin/Release/net10.0/App.dll", runtime_host = ":" + host)
     native.filegroup(name = files, srcs = [":" + name])
     msbuild_graph_test(name = name + "_test", graph = ":" + build, assembly = "bin/Release/net10.0/App.dll", runtime_host = ":" + host, args = ["--verify-product"])
