@@ -401,12 +401,17 @@ class SourceRuntimeSetupTests(unittest.TestCase):
             self.assertEqual(arguments[:2], ['--output_base=/base with spaces','run'])
             self.assertIn('--registry=file:///registry with spaces',arguments)
             self.assertIn('--remote_cache=' + cache,arguments)
+            self.assertIn('--remote_max_connections=8', arguments)
+            self.assertIn('--remote_timeout=60s', arguments)
             self.assertIn('--action_env=RULES_MSBUILD_PROJECT_CACHE_READ_ONLY=1', arguments)
             self.assertFalse(any(arg.startswith('--remote_upload_local_results') for arg in arguments))
             self.assertIn('--action_env=RULES_MSBUILD_PROJECT_CACHE_URL=' + cache,arguments)
             self.assertEqual(arguments[-3:],['//:sync','--','--check'])
             self.assertFalse(marker.exists())
             self.assertEqual(json.loads(subprocess.check_output([script,'--version'],text=True)),['--version'])
+            launcher(script, binary, None, None, None)
+            uncached = json.loads(subprocess.check_output([script, 'build', '//:target'], text=True))
+            self.assertFalse(any(arg.startswith(('--remote_cache=', '--remote_cache_async=', '--remote_max_connections=', '--remote_timeout=')) for arg in uncached))
 
     def test_apple_run_requires_owned_worker_and_pinned_image(self):
         with tempfile.TemporaryDirectory() as temporary:
