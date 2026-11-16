@@ -8,6 +8,10 @@ qualification and timing pins below describe their original runs, not 9.3.2
 qualification. The release gates in [the work queue](../WORK_QUEUE.md) track current
 remaining SDK and platform requalification; each result below retains its recorded scope.
 
+The current distribution is a reviewed Git commit selected with `git_override`;
+there is no BCR release or cross-revision API/cache compatibility guarantee. See
+[pinning and rollback](api.md#pin-update-and-roll-back-the-rules).
+
 Inputs, packages, tool layouts, generated files and output ownership must be explicit. Sync does not trace arbitrary task reads or acquire
 missing packages.
 

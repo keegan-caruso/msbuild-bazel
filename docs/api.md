@@ -4,6 +4,39 @@ Start with the [quick start](../examples/quickstart/README.md). Load rules from
 `@rules_msbuild//msbuild:defs.bzl`, sync from `@rules_msbuild//msbuild:sync.bzl`,
 and SDK declarations from `@rules_msbuild//msbuild:sdk.bzl`. [Design](design.md) explains ownership and invalidation.
 
+## Pin, update and roll back the rules
+
+The supported distribution today is a pinned source revision, not a published
+Bazel module release. In the root `MODULE.bazel`, select a reviewed full Git
+commit and register the SDK toolchains as in the quick start:
+
+```starlark
+bazel_dep(name = "rules_msbuild", version = "0.0.0")
+git_override(
+    module_name = "rules_msbuild",
+    remote = "https://github.com/keegan-caruso/msbuild-bazel.git",
+    commit = "REPLACE_WITH_FULL_REVIEWED_COMMIT",
+)
+```
+
+`0.0.0` is the current module placeholder, not a release or compatibility
+promise; the Git commit selects the source. Keep the commit and
+`MODULE.bazel.lock` under version control. After changing the pin, update and
+review the lockfile, run sync, review any generated graph changes, and validate
+your builds and tests. Roll back by restoring the previous reviewed commit,
+lockfile and matching generated declarations, then rerun the same checks. The
+revision must remain available from its Git remote or a retained mirror.
+
+The API, generated contracts, runner and project-cache format may change between
+commits; cross-revision compatibility is not guaranteed. Bazel's action cache
+keys include declared action inputs and commands, while project-cache snapshots
+have their own fingerprints and validation. Neither is a promise that every
+revision change invalidates every entry. Until a compatibility policy is
+published, use separate action and project-cache namespaces or endpoints per
+reviewed rules revision, and retain the old namespace for rollback. This is an
+operational recommendation, not automatic namespace enforcement. Keep SDK,
+Bazel and package pins with each reviewed consumer state.
+
 ## Sync
 
 ```starlark
