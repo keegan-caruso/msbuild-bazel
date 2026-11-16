@@ -222,6 +222,33 @@ not stopped-producer cross-host Linux recovery, worker reliability or resource
 sufficiency. Keep the consumer and rules checkout outside `/tmp`, or under one
 common scratch parent: Bazel's hermetic `/tmp` can hide a sibling local override.
 
+## Native Linux x64 controls
+
+On native Ubuntu 26.04 x64 with SDK **10.0.400** and repository Bazel pin
+**9.3.2**, nine standalone worker-broker,
+publication, transfer, input-integrity and output-ownership controls passed;
+the worker preparation control also passed with a zero cache budget. The full
+`test_sync.py` module passed **54 tests** in 275.640 s. These standalone controls do
+not qualify Bazel's x64 worker strategy, whole-action recovery or source builds.
+
+The original cache-reuse fixtures assumed files started at mode 0644. Controlled
+retries reproduced both failures under umask 002 but passed under 022; after
+restoring each file's actual starting mode, both tests passed under 022, 002 and
+077. The SDK file-content and mode inventory was unchanged. The original run did
+not record its umask, so its exact inherited mode is not established.
+
+With `RULES_MSBUILD_DOTNET_ROOT` set to the pinned SDK, build `GraphBuild` and
+`ProjectSync` in Release, then run:
+
+```sh
+for test in worker_supervision worker_preparation publication_queue worker_lifecycle \
+  remote_streaming remote_publication remote input_integrity output_ownership; do
+  python3 "tests/graph_build/$test.py"
+done
+python3 tests/graph_build/worker_preparation.py --cache-mb=0
+python3 -m unittest discover -s tests/project_sync -p test_sync.py -v
+```
+
 ## Downloaded SDK platforms
 
 Downloaded-SDK controls passed on native Linux ARM64 and Linux x64 **under
@@ -241,7 +268,8 @@ python3 -m unittest discover -s tests/sdk_repository -v
 
 The x64 controls used amd64 SDK/Bazel binaries in Ubuntu containers on an ARM64
 Mac. This establishes emulated x64 behavior, not native x64 performance or
-source-built SDK/runtime qualification. Native Linux x64 remains unqualified.
+source-built SDK/runtime qualification. The complete native Linux x64 downloaded-SDK
+workflow remains unqualified.
 
 Native macOS ARM64 passed `//tests/integration:{quickstart,native_sdk}` on
 the recorded 8.8.0 / 9.3.0 pins with SDK **10.0.400**: the public catalog's packages,
