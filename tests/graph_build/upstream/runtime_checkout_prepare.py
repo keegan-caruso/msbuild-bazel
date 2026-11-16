@@ -43,7 +43,7 @@ def main():
     base = args.output.resolve()
     base.mkdir(parents=True, exist_ok=args.resume)
     identity = dict(commit=COMMIT, sourceSha256=SOURCE_SHA256, toolchainSha256=args.toolchain_sha256,
-        sandboxSha256=args.sandbox_sha256, nativeEnvironmentSha256=digest(ROOT/'tests/runtime/native_environment.py'), platform='linux-arm64', sdk='10.0.400', jobs=4, generator='Ninja')
+        sandboxSha256=args.sandbox_sha256, nativeEnvironmentSha256=digest(ROOT/'tests/runtime/native_environment.py'), platform='linux-arm64', sdk='11.0.100', jobs=4, generator='Ninja')
     progress = base / 'preparation.json'
     if progress.exists():
         state = json.loads(progress.read_text())

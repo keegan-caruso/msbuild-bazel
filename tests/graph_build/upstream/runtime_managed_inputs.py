@@ -137,8 +137,8 @@ def main():
     reviewed_mappings = results / 'reviewed-mappings.json'
     reviewed_mappings.write_text(json.dumps(mappings, indent=2) + '\n')
     def sync(label):
-        invoke([str(sdk / 'dotnet'), str(ROOT / 'tools/ProjectSync/bin/Release/net10.0/ProjectSync.dll'), str(root),
-            str(sdk / 'sdk/10.0.400'), *contract['Entries'], '--framework', contract['Properties']['TargetFramework'], '--package-build',
+        invoke([str(sdk / 'dotnet'), str(ROOT / 'tools/ProjectSync/bin/Release/net11.0/ProjectSync.dll'), str(root),
+            str(sdk / 'sdk/11.0.100'), *contract['Entries'], '--framework', contract['Properties']['TargetFramework'], '--package-build',
             '--inputs', str(args.inputs.resolve()), '--runfiles', str(args.runfiles.resolve()),
             '--mappings', str(reviewed_mappings)], label + '-sync')
         updated = json.loads(manifest.read_text())

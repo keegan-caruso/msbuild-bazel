@@ -13,13 +13,13 @@ def main():
         root = base / 'workspace'
         root.mkdir()
         (root / 'Web.csproj').write_text('<Project Sdk="Microsoft.NET.Sdk.Web"><PropertyGroup>'
-            '<TargetFramework>net10.0</TargetFramework><ImplicitUsings>enable</ImplicitUsings>'
+            '<TargetFramework>net11.0</TargetFramework><ImplicitUsings>enable</ImplicitUsings>'
             '</PropertyGroup></Project>')
         (root / 'Program.cs').write_text('var app = WebApplication.CreateBuilder(args).Build(); app.Run();')
-        contract = {'Version': 4, 'Entry': 'Web.csproj', 'SdkVersion': '10.0.400',
+        contract = {'Version': 4, 'Entry': 'Web.csproj', 'SdkVersion': '11.0.100',
             'Properties': {'Configuration': 'Release'}, 'SharedInputs': [], 'InputDirectories': ['wwwroot'],
             'Projects': {'Web.csproj': {'Inputs': ['Web.csproj', 'Program.cs'],
-                'OutputDirectories': ['bin/Release/net10.0', 'obj/Release/net10.0']}}}
+                'OutputDirectories': ['bin/Release/net11.0', 'obj/Release/net11.0']}}}
         manifest, report = base / 'contract.json', base / 'report.json'
         def build(failure=None):
             for directory in ['bin', 'obj']:
@@ -31,7 +31,7 @@ def main():
                 return
             return json.loads(report.read_text())
         assert build()['hits'] == 0
-        discovery = root / 'obj/Release/net10.0/staticwebassets.build.json'
+        discovery = root / 'obj/Release/net11.0/staticwebassets.build.json'
         baseline = json.loads(discovery.read_text())
         assert any(p['ContentRoot'] == str(root / 'wwwroot') + '/' for p in baseline['DiscoveryPatterns'])
         (root / 'wwwroot').rmdir()
@@ -43,13 +43,13 @@ def main():
         assert build()['hits'] == 0
         mapping = base / 'mapping.json'
         mapping.write_text(json.dumps({'projectDefaults': {'inputDirectories': ['wwwroot']}}))
-        run(DOTNET, ROOT / 'tools/ProjectSync/bin/Release/net10.0/ProjectSync.dll', root,
-            SDK / 'sdk/10.0.400', 'Web.csproj', '--mappings', mapping)
+        run(DOTNET, ROOT / 'tools/ProjectSync/bin/Release/net11.0/ProjectSync.dll', root,
+            SDK / 'sdk/11.0.100', 'Web.csproj', '--mappings', mapping)
         generated = json.loads((root / 'graph.generated.json').read_text())
         assert generated['Version'] == 4 and generated['InputDirectories'] == ['wwwroot']
         (root / 'graph.generated.json').unlink()
         (root / 'graph.generated.bzl').unlink()
-        contract['InputDirectories'] = ['bin/Release/net10.0/empty']
+        contract['InputDirectories'] = ['bin/Release/net11.0/empty']
         build('Input directory overlaps generated state')
         contract['InputDirectories'] = ['Program.cs']
         build('Expected input directory, found file')

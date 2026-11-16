@@ -25,8 +25,8 @@ def main():
         # Distinct contract inputs avoid hits from previous invocations.
         with (source / 'Directory.Build.props').open('a') as stream:
             stream.write('<!-- ' + str(uuid.uuid4()) + ' -->')
-        sync = ROOT / 'tools/ProjectSync/bin/Release/net10.0/ProjectSync.dll'
-        run(DOTNET, sync, source, SDK / 'sdk/10.0.400', f'P{count - 1}/P{count - 1}.csproj', )
+        sync = ROOT / 'tools/ProjectSync/bin/Release/net11.0/ProjectSync.dll'
+        run(DOTNET, sync, source, SDK / 'sdk/11.0.100', f'P{count - 1}/P{count - 1}.csproj', )
 
         def build(name, hits, value):
             output = work / name / 'output'
@@ -35,11 +35,11 @@ def main():
             scratch = work / name / 'scratch'
             scratch.mkdir()
             run('bash', ROOT / 'msbuild/graph-sandbox.sh', SDK,
-                ROOT / 'tools/GraphBuild/bin/Release/net10.0', output,
+                ROOT / 'tools/GraphBuild/bin/Release/net11.0', output,
                 source / 'graph.generated.json', scratch, 'Build')
             report = json.loads((output / 'report.json').read_text())
             assert report['hits'] == hits, (name, report)
-            assert run(DOTNET, output / f'workspace/P{count - 1}/bin/Release/net10.0/P{count - 1}.dll').stdout.strip() == value
+            assert run(DOTNET, output / f'workspace/P{count - 1}/bin/Release/net11.0/P{count - 1}.dll').stdout.strip() == value
             print(name, json.dumps(report), flush=True)
 
         build('producer', 0, '1')

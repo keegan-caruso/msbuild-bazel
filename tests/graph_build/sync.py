@@ -7,7 +7,7 @@ import tempfile
 
 from qualify import DOTNET, ROOT, RUNNER, SDK, fixture, run
 
-SYNC = ROOT / 'tools/ProjectSync/bin/Release/net10.0/ProjectSync.dll'
+SYNC = ROOT / 'tools/ProjectSync/bin/Release/net11.0/ProjectSync.dll'
 
 
 def main():
@@ -20,7 +20,7 @@ def main():
         # Command-line build semantics skip them, including disabled platform globs.
         props = root / 'Directory.Build.props'
         props.write_text('''<Project><ItemGroup Condition="false"><Compile Include="$([System.Int32]::Parse('inactive-item-must-not-expand'))" /></ItemGroup></Project>''')
-        command = [DOTNET, SYNC, root, SDK / 'sdk/10.0.400', 'P2/P2.csproj', ]
+        command = [DOTNET, SYNC, root, SDK / 'sdk/11.0.100', 'P2/P2.csproj', ]
         run(*command)
         run(*command, '--check')
         inactive = props.read_text()
@@ -44,7 +44,7 @@ def main():
             shutil.rmtree(project / 'obj/Release')
         run(DOTNET, RUNNER, 'action', root, contract, report, cache)
         assert json.loads(report.read_text())['hits'] == 3
-        assert run(DOTNET, root / 'P2/bin/Release/net10.0/P2.dll').stdout.strip() == '1'
+        assert run(DOTNET, root / 'P2/bin/Release/net11.0/P2.dll').stdout.strip() == '1'
         run(*command, '--check')
         # A stale definition must fail before Restore can run a newly added task.
         entry = root / 'P2/P2.csproj'
@@ -68,7 +68,7 @@ def main():
         multi = directory / 'multi'
         multi.mkdir()
         (multi / 'Library.csproj').write_text('<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup>'
-            '<TargetFrameworks>net10.0;net10.0-windows</TargetFrameworks>'
+            '<TargetFrameworks>net11.0;net11.0-windows</TargetFrameworks>'
             '<EnableDefaultCompileItems>false</EnableDefaultCompileItems></PropertyGroup></Project>')
         (multi / 'Code.cs').write_text('public class Library {}')
         # Outer SDK evaluation has no language extension or compiler target.
@@ -80,7 +80,7 @@ def main():
             '</ItemGroup></Project>')
         (multi / 'Helper.cs').write_text('public class Helper {}')
         (multi / 'Outer.cs').write_text('// Existing outer evaluation input must remain declared.')
-        run(DOTNET, SYNC, multi, SDK / 'sdk/10.0.400', 'Library.csproj', )
+        run(DOTNET, SYNC, multi, SDK / 'sdk/11.0.100', 'Library.csproj', )
         staged = directory / 'multi-staged'
         staged.mkdir()
         for name in ['Library.csproj', 'Code.cs', 'Helper.cs', 'Outer.cs', 'Directory.Build.targets']:
@@ -88,19 +88,19 @@ def main():
         run(DOTNET, RUNNER, 'action', staged, multi / 'graph.generated.json', report, directory / 'multi-cache')
         assert json.loads(report.read_text())['misses'] == 2
         (multi / 'Helper.cs').unlink()
-        missing = run(DOTNET, SYNC, multi, SDK / 'sdk/10.0.400', 'Library.csproj', success=False)
+        missing = run(DOTNET, SYNC, multi, SDK / 'sdk/11.0.100', 'Library.csproj', success=False)
         assert 'Helper.cs' in missing.stderr and 'no project producer' in missing.stderr
         mixed = directory / 'mixed'
         for name in ['App', 'Library']:
             (mixed / name).mkdir(parents=True)
-        (mixed / 'Library/Library.csproj').write_text('<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup><TargetFramework>net10.0</TargetFramework></PropertyGroup></Project>')
+        (mixed / 'Library/Library.csproj').write_text('<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup><TargetFramework>net11.0</TargetFramework></PropertyGroup></Project>')
         (mixed / 'Library/Code.cs').write_text('public class Library { public static int Value => 42; }')
-        (mixed / 'App/App.csproj').write_text('<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup><TargetFramework>net10.0-windows</TargetFramework><OutputType>Exe</OutputType></PropertyGroup><ItemGroup><ProjectReference Include="../Library/Library.csproj" /></ItemGroup></Project>')
+        (mixed / 'App/App.csproj').write_text('<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup><TargetFramework>net11.0-windows</TargetFramework><OutputType>Exe</OutputType></PropertyGroup><ItemGroup><ProjectReference Include="../Library/Library.csproj" /></ItemGroup></Project>')
         (mixed / 'App/Code.cs').write_text('System.Console.WriteLine(Library.Value);')
-        run(DOTNET, SYNC, mixed, SDK / 'sdk/10.0.400', 'App/App.csproj', '--framework', 'net10.0-windows')
+        run(DOTNET, SYNC, mixed, SDK / 'sdk/11.0.100', 'App/App.csproj', '--framework', 'net11.0-windows')
         run(DOTNET, RUNNER, 'action', mixed, mixed / 'graph.generated.json', report, directory / 'mixed-cache')
-        assert run(DOTNET, mixed / 'App/bin/Release/net10.0-windows/App.dll').stdout.strip() == '42'
-        assert (mixed / 'Library/bin/Release/net10.0/Library.dll').is_file()
+        assert run(DOTNET, mixed / 'App/bin/Release/net11.0-windows/App.dll').stdout.strip() == '42'
+        assert (mixed / 'Library/bin/Release/net11.0/Library.dll').is_file()
         print('PASS: generated graph build/replay, freshness, custom/package rejection, authored-file protection')
 
 

@@ -1,25 +1,25 @@
 # Generated from toolchains.json; verified by the .NET tooling check.
 case "$(uname -s):$(uname -m)" in
     Linux:x86_64)
-        dotnet_version=10.0.400
-        dotnet_url=https://builds.dotnet.microsoft.com/dotnet/Sdk/10.0.400/dotnet-sdk-10.0.400-linux-x64.tar.gz
-        dotnet_sha256=7ad9d2db01512e41fd580a0630321bb70cd062d7fe4c5badfb4ce81ec1eddbb8
+        dotnet_version=11.0.100
+        dotnet_url=https://builds.dotnet.microsoft.com/dotnet/Sdk/11.0.100/dotnet-sdk-11.0.100-linux-x64.tar.gz
+        dotnet_sha256=6fdb8822f47ccdba28f507dcd5d92e632d5b99cd27908d6838f0cc575be33baf
         bazelisk_version=1.29.0
         bazelisk_url=https://github.com/bazelbuild/bazelisk/releases/download/v1.29.0/bazelisk-linux-amd64
         bazelisk_sha256=5a408715e932c0250d28bd84555f12edbf70117de42f9181691c736eacc4a992
         ;;
     Linux:aarch64|Linux:arm64)
-        dotnet_version=10.0.400
-        dotnet_url=https://builds.dotnet.microsoft.com/dotnet/Sdk/10.0.400/dotnet-sdk-10.0.400-linux-arm64.tar.gz
-        dotnet_sha256=13c219bfd1ff00a886c1523a9c7027c4f24c1e730e653376d2b81f1435da5a59
+        dotnet_version=11.0.100
+        dotnet_url=https://builds.dotnet.microsoft.com/dotnet/Sdk/11.0.100/dotnet-sdk-11.0.100-linux-arm64.tar.gz
+        dotnet_sha256=699951697c76af6ba714fbbe9b45372d1f189d00f303a67ba2e90d53acf630b2
         bazelisk_version=1.29.0
         bazelisk_url=https://github.com/bazelbuild/bazelisk/releases/download/v1.29.0/bazelisk-linux-arm64
         bazelisk_sha256=e20e8b0f4f240091b7a55bf17b9398bd4f40ee70ae0208dff95dd4c445fb4010
         ;;
     Darwin:arm64)
-        dotnet_version=10.0.400
-        dotnet_url=https://builds.dotnet.microsoft.com/dotnet/Sdk/10.0.400/dotnet-sdk-10.0.400-osx-arm64.tar.gz
-        dotnet_sha256=8f11629611787a2856535aba4102b1f7ab73740aca46e88b6703502299635453
+        dotnet_version=11.0.100
+        dotnet_url=https://builds.dotnet.microsoft.com/dotnet/Sdk/11.0.100/dotnet-sdk-11.0.100-osx-arm64.tar.gz
+        dotnet_sha256=a2e6635ffec544e9a7a98bde44d75bfbc71b2c19b33c3c088774ef2498edf380
         bazelisk_version=1.29.0
         bazelisk_url=https://github.com/bazelbuild/bazelisk/releases/download/v1.29.0/bazelisk-darwin-arm64
         bazelisk_sha256=cee851f726789227d5561004e9904a52be45c3efb56f8b38b6993d6adbaa0409

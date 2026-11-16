@@ -32,7 +32,7 @@ def declare_product(root, native, product):
     project.write_text(project.read_text().replace('<OutputType>Exe</OutputType>',
         '<OutputType>Exe</OutputType><UseAppHost>false</UseAppHost><RuntimeFrameworkVersion>10.0.0</RuntimeFrameworkVersion>'))
     (app/'BUILD.bazel').unlink()
-    (app/'contract.json').write_text(json.dumps(dict(Version=1,Entry='App.csproj',SdkVersion='10.0.400',
+    (app/'contract.json').write_text(json.dumps(dict(Version=1,Entry='App.csproj',SdkVersion='11.0.100',
         Properties=dict(Configuration='Release'),SharedInputs=[],Projects={'App.csproj':dict(
             Inputs=['App.csproj','Program.cs'],OutputDirectories=['bin/Release/net10.0','obj/Release/net10.0'])}),indent=2)+'\n')
     shutil.copyfile(app/'runtime_product.bzl', root/'runtime_product.bzl')

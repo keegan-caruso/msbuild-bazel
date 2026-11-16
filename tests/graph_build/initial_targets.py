@@ -36,7 +36,7 @@ def main():
             run(DOTNET, RUNNER, 'build', root, manifest, report, cache)
             result = json.loads(report.read_text())
             assert (result['hits'], result['misses']) == (hits, 3 - hits), result
-            assert run(DOTNET, root / 'P2/bin/Release/net10.0/P2.dll').stdout.strip() == expected
+            assert run(DOTNET, root / 'P2/bin/Release/net11.0/P2.dll').stdout.strip() == expected
 
         build(0, '1')
         build(3, '1')

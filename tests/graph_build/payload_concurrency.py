@@ -15,13 +15,13 @@ def main():
         digest = hashlib.sha256(source.read_bytes()).hexdigest()
         includes = [ROOT / 'tools/ProjectCache' / name for name in ['SnapshotPayloads.cs', 'RemoteSnapshotStore.cs']]
         (root / 'Probe.csproj').write_text('<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup>'
-            '<TargetFramework>net10.0</TargetFramework><OutputType>Exe</OutputType><ImplicitUsings>enable</ImplicitUsings>'
+            '<TargetFramework>net11.0</TargetFramework><OutputType>Exe</OutputType><ImplicitUsings>enable</ImplicitUsings>'
             '<Nullable>enable</Nullable></PropertyGroup><ItemGroup>' +
             ''.join(f'<Compile Include="{path}" />' for path in includes) + '</ItemGroup></Project>')
         (root / 'Program.cs').write_text('using RulesMSBuild.ProjectCache;\n'
             'new SnapshotPayloads(args[0]).Store(args[1], args[2], args[3]);\n')
         run(DOTNET, 'build', root / 'Probe.csproj', '-c', 'Release')
-        program = root / 'bin/Release/net10.0/Probe.dll'
+        program = root / 'bin/Release/net11.0/Probe.dll'
         cache = root / 'cache'
         commands = [[str(p) for p in [DOTNET, program, cache, source, digest, cache / f'snapshot-{i}/payload']] for i in range(12)]
         processes = [subprocess.Popen(command, env=ENV, stdout=subprocess.PIPE, stderr=subprocess.PIPE) for command in commands]

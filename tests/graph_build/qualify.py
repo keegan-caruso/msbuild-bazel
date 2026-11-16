@@ -9,7 +9,7 @@ import tempfile
 ROOT = Path(__file__).resolve().parents[2]
 SDK = Path(os.environ['RULES_MSBUILD_DOTNET_ROOT']).resolve()
 DOTNET = SDK / 'dotnet'
-RUNNER = ROOT / 'tools/GraphBuild/bin/Release/net10.0/GraphBuild.dll'
+RUNNER = ROOT / 'tools/GraphBuild/bin/Release/net11.0/GraphBuild.dll'
 ENV = dict(os.environ, DOTNET_ROOT=str(SDK), DOTNET_CLI_TELEMETRY_OPTOUT='1')
 
 
@@ -27,18 +27,18 @@ def fixture(root, count=3):
         directory.mkdir()
         reference = f'<ItemGroup><ProjectReference Include="../P{index-1}/P{index-1}.csproj" /></ItemGroup>' if index else ''
         (directory / f'P{index}.csproj').write_text(
-            '<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup><TargetFramework>net10.0</TargetFramework>'
+            '<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup><TargetFramework>net11.0</TargetFramework>'
             + ('<OutputType>Exe</OutputType>' if index == count - 1 else '')
             + '</PropertyGroup>' + reference + '</Project>')
         (directory / 'Code.cs').write_text(f'System.Console.WriteLine(P{count - 2}.Value());' if index == count - 1 else
                                           f'public class P{index} {{ public static int Value() => ' + (f'P{index - 1}.Value(); }}' if index else '1; }'))
     run(DOTNET, 'restore', root / f'P{count - 1}/P{count - 1}.csproj', '--source', root, '-p:NuGetAudit=false')
     return {
-        'Version': 1, 'Entry': f'P{count - 1}/P{count - 1}.csproj', 'SdkVersion': '10.0.400',
+        'Version': 1, 'Entry': f'P{count - 1}/P{count - 1}.csproj', 'SdkVersion': '11.0.100',
         'Properties': {'Configuration': 'Release'}, 'SharedInputs': ['Directory.Build.props'],
         'Projects': {f'P{i}/P{i}.csproj': {
             'Inputs': sorted(str(p.relative_to(root)) for p in (root / f'P{i}').rglob('*') if p.is_file()),
-            'OutputDirectories': [f'P{i}/bin/Release/net10.0', f'P{i}/obj/Release/net10.0'],
+            'OutputDirectories': [f'P{i}/bin/Release/net11.0', f'P{i}/obj/Release/net11.0'],
         } for i in range(count)},
     }
 
@@ -68,7 +68,7 @@ def main():
         contract['SharedInputs'] = []
         assert 'Undeclared graph input' in inspect(root, contract, success=False)
         contract['SharedInputs'] = ['Directory.Build.props']
-        contract['Projects']['P1/P1.csproj']['OutputDirectories'].append('P0/bin/Release/net10.0')
+        contract['Projects']['P1/P1.csproj']['OutputDirectories'].append('P0/bin/Release/net11.0')
         assert 'Overlapping output' in inspect(root, contract, success=False)
         print('PASS: source/import invalidation, undeclared imports, output ownership')
 

@@ -51,7 +51,7 @@ def main():
         harness = work / 'harness'
         harness.mkdir()
         (harness / 'Harness.csproj').write_text(
-            '<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup><TargetFramework>net10.0</TargetFramework>'
+            '<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup><TargetFramework>net11.0</TargetFramework>'
             '<OutputType>Exe</OutputType><ImplicitUsings>enable</ImplicitUsings><Nullable>enable</Nullable>'
             '</PropertyGroup><ItemGroup>' + ''.join(f'<Compile Include="{ROOT}/tools/GraphBuild/{name}.cs" />'
             for name in ['Contract', 'GraphProfile']) + '</ItemGroup></Project>')
@@ -120,7 +120,7 @@ foreach (var invalid in new[] { "../outside/a", "/absolute", "directory//a", "di
 Console.WriteLine("PASS: fingerprint compatibility, batch paths, fresh symlink checks, timestamp-independent bytes and SDK modes");
 ''')
         run(DOTNET, 'build', harness / 'Harness.csproj', '-c', 'Release', '--nologo', '-p:UseSharedCompilation=false')
-        result = run(DOTNET, harness / 'bin/Release/net10.0/Harness.dll', work)
+        result = run(DOTNET, harness / 'bin/Release/net11.0/Harness.dll', work)
         print(result.stdout.strip())
         print('PASS: target input mutation and post-plan output symlink rejected before publishing those bytes')
 

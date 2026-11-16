@@ -30,7 +30,7 @@ def main():
             run('cc', code, '-o', root / 'generator')
         compile_tool(0)
         (root / 'generator.data').write_text('41')
-        project = '<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup><TargetFramework>net10.0</TargetFramework><OutputType>Exe</OutputType></PropertyGroup>' \
+        project = '<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup><TargetFramework>net11.0</TargetFramework><OutputType>Exe</OutputType></PropertyGroup>' \
             '<Target Name="Generate" BeforeTargets="CoreCompile"><Exec ToolPath="/bin" Command="&quot;$(GeneratorPath)&quot; &quot;$(IntermediateOutputPath)Generated.cs&quot;" />' \
             '<ItemGroup><Compile Include="$(IntermediateOutputPath)Generated.cs" /></ItemGroup></Target></Project>'
         (root / 'App/App.csproj').write_text(project)
@@ -73,7 +73,7 @@ def main():
                 report = base / 'report.json'
                 run(DOTNET, RUNNER, 'action', replay, root / 'graph.generated.json', report, base / 'cache')
                 assert json.loads(report.read_text())['hits'] == hits, report.read_text()
-                assert run(DOTNET, replay / 'App/bin/Release/net10.0/App.dll').stdout.strip() == str(value)
+                assert run(DOTNET, replay / 'App/bin/Release/net11.0/App.dll').stdout.strip() == str(value)
             build(41, 0)
             build(41, 1)
             (root / 'generator.data').write_text('42')

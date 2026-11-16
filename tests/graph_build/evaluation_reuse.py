@@ -21,17 +21,17 @@ def main():
         sources += [ROOT / 'tools/GraphProjectKind.cs', ROOT / 'tools/GraphEntryProperties.cs', ROOT / 'tools/GraphCompilerReferences.cs', ROOT / 'tools/PackageSdks.cs', ROOT / 'tools/ProjectCache/RemoteSnapshotStore.cs']
         references = ['Microsoft.Build', 'Microsoft.Build.Framework', 'Microsoft.Build.Utilities.Core']
         (probe / 'Probe.csproj').write_text('<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup>'
-            '<TargetFramework>net10.0</TargetFramework><OutputType>Exe</OutputType><ImplicitUsings>enable</ImplicitUsings>'
+            '<TargetFramework>net11.0</TargetFramework><OutputType>Exe</OutputType><ImplicitUsings>enable</ImplicitUsings>'
             '<Nullable>enable</Nullable></PropertyGroup><ItemGroup>' +
             ''.join(f'<Compile Include="{p}" />' for p in sources) +
-            ''.join(f'<Reference Include="{name}" HintPath="{SDK}/sdk/10.0.400/{name}.dll" />' for name in references) + '</ItemGroup></Project>')
+            ''.join(f'<Reference Include="{name}" HintPath="{SDK}/sdk/11.0.100/{name}.dll" />' for name in references) + '</ItemGroup></Project>')
         (probe / 'Program.cs').write_text('''using System.Text.Json;
 using RulesMSBuild.GraphBuild;
 var root = args[0];
 var sdk = args[2];
 Directory.SetCurrentDirectory(root);
 System.Runtime.Loader.AssemblyLoadContext.Default.Resolving += (context, name) =>
-    File.Exists(Path.Combine(sdk, "sdk/10.0.400", name.Name + ".dll")) ? context.LoadFromAssemblyPath(Path.Combine(sdk, "sdk/10.0.400", name.Name + ".dll")) : null;
+    File.Exists(Path.Combine(sdk, "sdk/11.0.100", name.Name + ".dll")) ? context.LoadFromAssemblyPath(Path.Combine(sdk, "sdk/11.0.100", name.Name + ".dll")) : null;
 var contract = JsonSerializer.Deserialize<GraphContract>(File.ReadAllText(args[1]))!;
 using (var first = new GraphInputs(contract, root, sdk))
 {
@@ -59,7 +59,7 @@ if (!rejected) throw new Exception("Active item expression was skipped");
 Console.WriteLine("PASS: inactive items skipped; active conditions, new imports, globs, import bytes and project mutations refresh");
 ''')
         run(DOTNET, 'build', probe / 'Probe.csproj', '-c', 'Release')
-        result = run(DOTNET, probe / 'bin/Release/net10.0/Probe.dll', root, manifest, SDK)
+        result = run(DOTNET, probe / 'bin/Release/net11.0/Probe.dll', root, manifest, SDK)
         print(result.stdout.strip())
 
 

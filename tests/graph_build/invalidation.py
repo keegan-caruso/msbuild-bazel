@@ -8,7 +8,7 @@ import tempfile
 
 from qualify import DOTNET, ROOT, RUNNER, SDK, fixture, run
 
-SYNC = ROOT / 'tools/ProjectSync/bin/Release/net10.0/ProjectSync.dll'
+SYNC = ROOT / 'tools/ProjectSync/bin/Release/net11.0/ProjectSync.dll'
 
 
 def qualify(transitive):
@@ -24,7 +24,7 @@ def qualify(transitive):
         report = work / 'report.json'
 
         def sync():
-            run(DOTNET, SYNC, root, SDK / 'sdk/10.0.400', 'P2/P2.csproj', )
+            run(DOTNET, SYNC, root, SDK / 'sdk/11.0.100', 'P2/P2.csproj', )
             return json.loads(manifest.read_text())
 
         contract = sync()
@@ -37,7 +37,7 @@ def qualify(transitive):
             run(DOTNET, RUNNER, 'action', root, manifest, report, work / cache, target)
             result = json.loads(report.read_text())
             assert result['hits'] == hits, result
-            assembly = root / ('P2/bin/Release/net10.0/publish/P2.dll' if target == 'Publish' else 'P2/bin/Release/net10.0/P2.dll')
+            assembly = root / ('P2/bin/Release/net11.0/publish/P2.dll' if target == 'Publish' else 'P2/bin/Release/net11.0/P2.dll')
             assert run(DOTNET, assembly).stdout.strip() == value
             return {str(p.relative_to(root)): hashlib.sha256(p.read_bytes()).hexdigest()
                     for project in root.glob('P*') for tree in ['bin/Release', 'obj/Release']
@@ -47,7 +47,7 @@ def qualify(transitive):
         (root / 'P0/Code.cs').write_text('/// <summary>Changed documentation</summary>\npublic class P0 { public static int Value() => 2; }')
         outputs = build(2)
         assert outputs == build(0, cache='body-control')
-        assert 'Changed documentation' in (root / 'P2/bin/Release/net10.0/P0.xml').read_text()
+        assert 'Changed documentation' in (root / 'P2/bin/Release/net11.0/P0.xml').read_text()
         (root / 'P0/Code.cs').write_text('public class P0 { public static int Value() => 2; public static int Extra() => 3; }')
         outputs = build(0 if transitive else 1)
         assert outputs == build(0, cache='api-control')
@@ -64,11 +64,11 @@ def qualify(transitive):
         assert 'Graph definition changed' in run(DOTNET, RUNNER, 'inspect', root, manifest, report, success=False).stderr
         sync()
         build(0, value='3')
-        assert not (root / 'P2/bin/Release/net10.0/P0.xml').exists()
+        assert not (root / 'P2/bin/Release/net11.0/P0.xml').exists()
         project.write_text(original)
         sync()
         build(0, value='3')
-        assert (root / 'P2/bin/Release/net10.0/P0.xml').is_file()
+        assert (root / 'P2/bin/Release/net11.0/P0.xml').is_file()
         # Content can affect consumers independently of a reference assembly.
         project.write_text(project.read_text().replace('</Project>', '<ItemGroup><None Update="data.txt" CopyToOutputDirectory="PreserveNewest" /></ItemGroup></Project>'))
         (root / 'P0/data.txt').write_text('first')
@@ -77,7 +77,7 @@ def qualify(transitive):
         build(0, value='3')
         (root / 'P0/data.txt').write_text('second')
         build(0, value='3')
-        assert (root / 'P2/bin/Release/net10.0/data.txt').read_text() == 'second'
+        assert (root / 'P2/bin/Release/net11.0/data.txt').read_text() == 'second'
         print(f'PASS: transitive={transitive}, body/API/propagated API, XML copies, publish, content fallback')
 
 

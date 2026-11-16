@@ -22,7 +22,7 @@ def main():
             declaration['Inputs'] = [p for p in declaration['Inputs'] if '/obj/' not in p]
             declaration['ReferenceBoundary'] = True
             declaration['DependencyCopies'] = {
-                f'P{i}/bin/Release/net10.0/P{d}.{ext}': f'P{d}/bin/Release/net10.0/P{d}.{ext}'
+                f'P{i}/bin/Release/net11.0/P{d}.{ext}': f'P{d}/bin/Release/net11.0/P{d}.{ext}'
                 for d in range(i) for ext in ['dll', 'pdb']}
             shutil.rmtree(root / f'P{i}/obj')
         project = root / 'P2/P2.csproj'
@@ -67,7 +67,7 @@ def main():
             for path in contract['Restore']['Outputs']:
                 (root / path).unlink()
             build(3)
-            assert run(DOTNET, root / 'P2/bin/Release/net10.0/P2.dll').stdout.strip() == '2'
+            assert run(DOTNET, root / 'P2/bin/Release/net11.0/P2.dll').stdout.strip() == '2'
             data.write_text('changed custom input')
             build(failure='Prepared Restore inputs changed')
             data.write_text('custom restore input')

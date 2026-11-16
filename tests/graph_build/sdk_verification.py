@@ -22,12 +22,12 @@ def main():
     driver = base / 'driver'
     driver.mkdir()
     (driver / 'Probe.csproj').write_text('<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup>'
-        '<TargetFramework>net10.0</TargetFramework><OutputType>Exe</OutputType>'
+        '<TargetFramework>net11.0</TargetFramework><OutputType>Exe</OutputType>'
         '<ImplicitUsings>enable</ImplicitUsings><Nullable>enable</Nullable></PropertyGroup></Project>')
     shutil.copyfile(ROOT / 'tests/graph_build/SdkVerification.cs.txt', driver / 'Program.cs')
     build = run(DOTNET, 'build', driver / 'Probe.csproj', '-c', 'Release', '-p:UseSharedCompilation=false', '-p:NuGetAudit=false', '-warnaserror')
     (base / 'build.log').write_text(build.stdout + build.stderr)
-    run(DOTNET, driver / 'bin/Release/net10.0/Probe.dll', RUNNER, sdk, base / 'hash.json',
+    run(DOTNET, driver / 'bin/Release/net11.0/Probe.dll', RUNNER, sdk, base / 'hash.json',
         *([base / 'owned-sdk'] if args.copy else []))
     if os.uname().sysname == 'Linux':
         source = base / 'borrowed'
