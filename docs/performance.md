@@ -994,3 +994,57 @@ Keep reports outside Git; use `--trim-between-rows` for unscored thin-disk recla
 Drivers accept `--help`. The complete tables, profiles and historical commands are
 preserved in the [versioned record](https://github.com/keegan-caruso/msbuild-bazel/blob/fa2764b55f630ae0462e836aa3163b0807f07f7f/docs/performance.md).
 See [support](support.md) for qualification and isolation limits.
+
+## Sustained catalog application
+
+A five-project package-backed catalog app was exercised on Ubuntu 26.04 ARM64,
+SDK **10.0.400** and Bazel **9.3.2**. It includes Razor pages/API, JSON data, package
+dependencies/analyzer, unit checks and published static assets. One guest was
+configured for four CPUs and six GiB, with two Bazel jobs, one local test and one
+worker instance per worker key. The guest reported five online CPUs; that observation
+is separate from the configured allocation. No source-runtime production is timed
+here.
+
+Five distinct body edits and five distinct API edits each executed the app's HTTP
+smoke and forced unit/web tests. Every body edit reused four projects and compiled
+one; every API edit compiled four and reused one. Reference bytes stayed unchanged
+for body edits and changed for API edits. Five Publish invocations and forced
+published-product tests also passed. All **33 commands**, including separate
+bootstrap/seed commands, succeeded; **25 test executions** were forced.
+
+| Invocation | Observations | p50 | Nearest-rank p95 |
+| --- | ---: | ---: | ---: |
+| Body edit + app HTTP smoke | 5 | 1.435 s | 1.485 s |
+| API edit + app HTTP smoke | 5 | 3.060 s | 3.225 s |
+| Publish + app HTTP/static smoke, mixed initial/retained target | 5 | 1.428 s | 8.290 s |
+
+These are whole Bazel invocations, including process/app startup and resource
+monitoring, not individual HTTP-request latency. With five observations, p95 is
+the maximum and is a weak tail estimate. The first Publish initialized that target
+and took 8.290 s; the remaining four retained-target invocations took
+**1.378–1.434 s**. Do not interpret the mixed Publish p95 as a warm-only tail.
+SDK/package/sync bootstrap (**62.03 s**), sync-check (**3.94 s**) and initial Build/app
+seed (**8.85 s**) are separate from the edit distributions. There is no paired
+raw-MSBuild comparison or speedup claim.
+
+Whole-guest memory was sampled every 0.25 s. Minimum available memory was
+**4,966,104 KiB**; peak summed process RSS was **1,508,003,840 bytes**. RSS sums count
+shared pages in each process and are not physical peak usage. Maximum observed
+allocated disk at command boundaries was **535,314,432 bytes** for the owned
+consumer/output base. This includes any SDK/repository expansions under that base,
+excludes the image, preinstalled tools and other filesystem paths, and is not an
+instantaneous disk peak. From the first completed Publish/test cycle to the final
+cycle, that boundary total grew **200,704 bytes**.
+
+The current four-CPU/six-GiB qualification cap remains unchanged. One small real
+application and a short series cannot set a universal production budget or close
+the separate sustained source-producer gate. Reproduce with the pinned tools in
+the qualified guest, using a fresh owned directory outside the checkout:
+
+```sh
+python3 benchmarks/sustained.py OUTPUT --revision RULES_COMMIT --samples 5
+```
+
+The controller retains each command log, failures/timeouts, memory samples,
+allocated-disk boundaries, graph observations and a summary. It explicitly selects
+Build/Publish workers and uses no HTTP project-cache backend.
