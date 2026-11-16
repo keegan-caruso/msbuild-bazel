@@ -55,6 +55,55 @@ The earlier 481-compilation runtime baseline and source-built SDK consumers belo
 retain their recorded 9.2 qualification. The downloaded-SDK runtime slice below
 has separate 9.3 results.
 
+## Cache and worker diagnosis
+
+Start with the exact rules commit, SDK version, Bazel version, execution platform
+and command. Keep the first failing run before retrying; a successful retry does
+not explain it. Use a fresh disposable output base when checking independent
+recovery. Separate SDK acquisition, whole-action hits and project snapshot hits.
+
+| Symptom | Evidence to inspect | Next check |
+| --- | --- | --- |
+| Unchanged Bazel action runs again | Execution log `mnemonic`, `runner` and `cacheHit`; changed command/action environment | Compare declared inputs, flags and SDK/rules pins. A cache endpoint flag change can change the experiment. |
+| Graph runs with zero project hits | Graph `report.json` hits/misses, prepared Restore and worker fields | Confirm actual worker selection or project endpoint, then compare input bytes, Unix modes, membership, global properties and SDK inventory. Cache misses alone do not prove a platform is unsupported. |
+| Sync or Restore repeats compilation | `PROJECT_SYNC_CACHE` and `PROJECT_SYNC_RESTORE_CACHE` diagnostics | Confirm qualified execution and explicit sources; compare both pre/post-build observations. Restore a file's original mode when testing rollback, rather than assuming `0644`. |
+| TLS handshake/body timeout | First client error and cache/relay connection counts | Confirm guest TLS trust and endpoint reachability, then bound concurrent connections. Preserve corruption/authentication failures; do not disable verification to make a retry pass. |
+| Worker hangs, exits or truncates output | Bazel worker log, process exit/signal, bounded diagnostic tail and graph report | Distinguish request deadline, child termination and retained-engine failure. Preserve the first error and retry with a fresh worker to test recovery. |
+
+For a short graph diagnostic, set `profile_build = True` on the authored graph
+wrapper, then retain its `bazel-bin/NAME.graph/report.json`, sibling binary log and
+Bazel `--execution_log_json_file=PATH` output. Profiling adds work; its overlapping
+phase times are not an unprofiled performance comparison. Remote counters count
+successful logical payloads, excluding retry traffic and HTTP framing; unchanged
+cache size or a read-only setting alone is not a measurement of network PUTs.
+In the consumer workspace, set the sync launcher and prepared-action environments
+together:
+
+```sh
+RULES_MSBUILD_SYNC_PROFILE=1 bazel run //:sync \
+  --action_env=RULES_MSBUILD_SYNC_PROFILE=1
+```
+
+Retain the `PROJECT_SYNC_PROFILE` phase records from the command log. The
+launcher inherits its process environment; cached preparation uses `--action_env`.
+
+The worker keeps a diagnostic tail of at most **1,048,576 characters** while
+continuing to drain output. Its request deadline is one hour; termination waits
+up to five seconds. Project-cache HTTP operations have a two-minute deadline,
+including streamed body reads. These are failure bounds, not suggested workload
+budgets. Use a shorter external qualification deadline with owned-process cleanup
+for small experiments; do not change production bounds merely to hide a failure.
+
+Keep a bounded evidence bundle: a short reproduction/limits file, exact pins and
+command, first failure plus one controlled retry, graph/sync summaries and only
+the execution/binary logs needed to explain the issue. Record wall time, exit code,
+peak memory method and disk growth separately. Logs can contain source paths,
+properties, task output or credentials; inspect them before sharing and never
+include bearer tokens, private cache configuration or entire workspaces by default.
+Preserve reports outside Git, remove only owned disposable worktrees/processes,
+and close their sessions after cleanup. Independently managed services and caches
+remain intact.
+
 ## Dependency updates and security triage
 
 Repository maintainers own bootstrap pins, declared package catalogs and optional
