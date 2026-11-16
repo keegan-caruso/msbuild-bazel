@@ -271,7 +271,9 @@ internal static class NuGetUpdate
             ["DOTNET_MULTILEVEL_LOOKUP"] = "0",
             ["DOTNET_CLI_TELEMETRY_OPTOUT"] = "1",
             ["DOTNET_GENERATE_ASPNET_CERTIFICATE"] = "false",
-            ["MSBUILDDISABLENODEREUSE"] = "1"
+            ["MSBUILDDISABLENODEREUSE"] = "1",
+            ["DOTNET_CLI_USE_MSBUILD_SERVER"] = "false",
+            ["MSBUILDUSESERVER"] = "0"
         })
         {
             start.Environment[name] = value;

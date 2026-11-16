@@ -25,6 +25,7 @@ trap 'rm -rf "$scratch"' EXIT
 mkdir -p "$scratch/empty"
 export DOTNET_ROOT="$(dirname "$dotnet")" DOTNET_CLI_HOME="$scratch" HOME="$scratch"
 export DOTNET_SKIP_FIRST_TIME_EXPERIENCE=1 DOTNET_CLI_TELEMETRY_OPTOUT=1 DOTNET_NOLOGO=1
+export DOTNET_CLI_USE_MSBUILD_SERVER=false MSBUILDUSESERVER=0
 export DOTNET_GENERATE_ASPNET_CERTIFICATE=false
 export DOTNET_MULTILEVEL_LOOKUP=0 NUGET_PACKAGES="$scratch/packages"
 cd "$scratch"

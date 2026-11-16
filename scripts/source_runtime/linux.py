@@ -52,6 +52,7 @@ def build_command(base, action, arguments=()):
     state = json.loads((base / 'setup.json').read_text())
     workspace = Path(state['workspace'])
     env = dict(os.environ, **state['environment'])
+    env.update(DOTNET_CLI_USE_MSBUILD_SERVER='false', MSBUILDUSESERVER='0')
     env['RULES_MSBUILD_PROJECT_CACHE_READ_ONLY'] = project_cache_read_only(state.get('identity', state))
     command = [str(ROOT / 'scripts/bazel-launcher.sh'), '--nosystem_rc', '--nohome_rc', '--noworkspace_rc',
                '--output_base=' + str(base / 'bazel'), action]
@@ -129,7 +130,8 @@ def setup(args):
         distdir = base / 'downloads/nuget-dist'
         distdir.mkdir(parents=True, exist_ok=True)
         launcher(wrapper, bazelisk, args.registry, args.repository_cache, args.cache_url, distdir, read_only=identity['projectCacheReadOnly'])
-        env = dict(os.environ, RULES_MSBUILD_DOTNET_ROOT=str(sdk), RULES_MSBUILD_BAZELISK=str(wrapper),
+        env = dict(os.environ, DOTNET_CLI_USE_MSBUILD_SERVER='false', MSBUILDUSESERVER='0',
+                   RULES_MSBUILD_DOTNET_ROOT=str(sdk), RULES_MSBUILD_BAZELISK=str(wrapper),
                    RULES_MSBUILD_BAZEL=str(ROOT / 'scripts/bazel-launcher.sh'),
                    USE_BAZEL_VERSION=identity['bazelVersion'], BAZELISK_HOME=os.environ.get('BAZELISK_HOME', str(ROOT / '.cache/bazelisk')))
         env['RULES_MSBUILD_PROJECT_CACHE_READ_ONLY'] = identity['projectCacheReadOnly']

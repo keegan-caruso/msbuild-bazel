@@ -93,6 +93,7 @@ trap 'rm -rf "$scratch"' EXIT
 mkdir -p "$scratch/empty"
 export DOTNET_ROOT="$(dirname "$dotnet")" DOTNET_CLI_HOME="$scratch"
 export DOTNET_SKIP_FIRST_TIME_EXPERIENCE=1 DOTNET_CLI_TELEMETRY_OPTOUT=1 DOTNET_NOLOGO=1
+export DOTNET_CLI_USE_MSBUILD_SERVER=false MSBUILDUSESERVER=0
 export DOTNET_GENERATE_ASPNET_CERTIFICATE=false DOTNET_MULTILEVEL_LOOKUP=0
 export NUGET_PACKAGES="$scratch/packages"
 cd "$scratch"
@@ -173,6 +174,7 @@ fi
 runfiles="${RUNFILES_DIR:-$0.runfiles}"
 export DOTNET_ROOT="$runfiles/"%s
 export DOTNET_NOLOGO=1 DOTNET_CLI_TELEMETRY_OPTOUT=1
+export DOTNET_CLI_USE_MSBUILD_SERVER=false MSBUILDUSESERVER=0
 exec "$runfiles/"%s "$runfiles/"%s "$BUILD_WORKSPACE_DIRECTORY" "$DOTNET_ROOT/sdk/"%s %s %s %s --inputs "$runfiles/"%s --runfiles "$runfiles" "$@"
 """ % (
         _quote(_runfile(ctx, tc.dotnet).rsplit("/", 1)[0]),
