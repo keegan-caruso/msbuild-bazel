@@ -31,6 +31,7 @@ def launcher(path, bazelisk, registry, repository_cache, cache_url, distdir=None
         options.append('--distdir=' + str(distdir))
     if cache_url:
         options += ['--remote_cache=' + cache_url, '--remote_cache_async=false',
+                    '--remote_max_connections=8', '--remote_timeout=60s',
                     '--action_env=RULES_MSBUILD_PROJECT_CACHE_URL=' + cache_url]
     path.write_text('''#!/usr/bin/env bash
 set -euo pipefail

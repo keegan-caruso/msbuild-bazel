@@ -402,7 +402,9 @@ QUALIFICATION_CACHE_URL=http://cache:8080 bash scripts/bazel.sh test \
 The complete source-runtime graph also passed on 9.3: all 563 eligible projects
 replayed through HTTP; Pipelines body/API edits ran 11/26 Csc tasks and retained
 byte-identical declarations. With `--cache-url`, source-runtime setup also enables
-reviewed Restore reuse for `PipeOptions.cs` and its reference source. Only those
+reviewed Restore reuse for `PipeOptions.cs` and its reference source. Its Bazel
+launcher limits remote cache connections to eight and uses a 60-second timeout;
+portable wrapper controls check both cache-enabled and cache-free arguments. Only those
 compiler-only contents are exempt; file names/modes, definitions, packages and
 other contents remain keyed. Small Bazel controls on both pins verify body/API
 Restore hits and props/package misses. Initial seeding still performs the SDK
