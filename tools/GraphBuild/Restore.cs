@@ -6,7 +6,7 @@ internal static class Restore
 {
     internal static GraphContract Run(GraphContract contract, string root, string sdkRoot)
     {
-        var owned = new[] { "NetCoreSdkRoot", "DOTNET_HOST_PATH", "RestoreSources", "RestoreConfigFile", "RestorePackagesPath", "RestoreFallbackFolders", "RestoreAdditionalProjectSources", "RestoreAdditionalProjectFallbackFolders" };
+        var owned = new[] { "NetCoreSdkRoot", "NETCoreSdkBundledVersionsProps", "DOTNET_HOST_PATH", "RestoreSources", "RestoreConfigFile", "RestorePackagesPath", "RestoreFallbackFolders", "RestoreAdditionalProjectSources", "RestoreAdditionalProjectFallbackFolders" };
         if (contract.Properties.Keys.Any(key => owned.Contains(key, StringComparer.OrdinalIgnoreCase)))
         {
             throw new InvalidDataException("Graph Restore source, package and fallback paths are controlled by declared archives");
@@ -34,7 +34,7 @@ internal static class Restore
             {
                 process.ArgumentList.Add(argument);
             }
-            process.ArgumentList.Add(GraphEntryProperties.Argument("NetCoreSdkRoot", Path.Combine(sdkRoot, "sdk", contract.SdkVersion)));
+            process.ArgumentList.Add(GraphEntryProperties.Argument("NETCoreSdkBundledVersionsProps", Path.Combine(sdkRoot, "sdk", contract.SdkVersion, "Microsoft.NETCoreSdk.BundledVersions.props")));
             // Restore each project's authored frameworks; the build graph still selects its requested framework.
             foreach (var (key, value) in GraphEntryProperties.For(entry, contract.Properties, contract.EntryProperties ?? []).Where(property => !property.Key.Equals("TargetFramework", StringComparison.OrdinalIgnoreCase)))
             {

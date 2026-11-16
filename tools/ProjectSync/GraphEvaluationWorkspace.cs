@@ -56,7 +56,7 @@ internal sealed class GraphEvaluationWorkspace : IDisposable
                     SyncFiles.Copy(Path.Combine(source, path), target);
                 }
             }
-            properties = new Dictionary<string, string>(properties, StringComparer.OrdinalIgnoreCase) { ["NetCoreSdkRoot"] = sdk };
+            properties = new Dictionary<string, string>(properties, StringComparer.OrdinalIgnoreCase) { ["NETCoreSdkBundledVersionsProps"] = Path.Combine(sdk, "Microsoft.NETCoreSdk.BundledVersions.props") };
             var sdkRoot = Path.GetDirectoryName(Path.GetDirectoryName(sdk))!;
             foreach (var (name, path) in toolProperties ?? [])
             {

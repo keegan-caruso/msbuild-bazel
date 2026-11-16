@@ -21,6 +21,14 @@ all four owned projects compile and format cleanly, and the style, tooling,
 artifact and ProjectSync controls pass with platform-specific skips. The 61
 ProjectSync tests include seven Linux-only skips.
 
+Graph evaluation and Restore bind the selected SDK's
+`Microsoft.NETCoreSdk.BundledVersions.props` explicitly, allowing the SDK to
+initialize `NetCoreSdkRoot` itself. This also supports the earlier SDK-version
+imports in SDK 11.0.100. Authored properties cannot override either input.
+Native macOS ProjectSync controls pass with SDK 10.0.400 and 11.0.100
+(61 tests each, seven Linux-only skips); this compatibility check does not
+change the repository baseline or qualify the complete .NET 11 workflow.
+
 Full native graph acceptance passes all **17 slices** and the Bazel quickstart,
 including offline supported package SDKs, signed archive identities, MTP/VSTest
 protocols, tool replay and independent payload publication. Replay fixtures make

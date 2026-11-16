@@ -34,7 +34,7 @@ internal sealed class GraphMappings
             }
         }
         mappings = Mappings.Read(path);
-        var owned = new[] { "NetCoreSdkRoot", "DOTNET_HOST_PATH", "PathMap", "UseSharedCompilation", "RestoreSources", "RestoreConfigFile", "RestorePackagesPath", "RestoreFallbackFolders", "RestoreAdditionalProjectSources", "RestoreAdditionalProjectFallbackFolders" };
+        var owned = new[] { "NetCoreSdkRoot", "NETCoreSdkBundledVersionsProps", "DOTNET_HOST_PATH", "PathMap", "UseSharedCompilation", "RestoreSources", "RestoreConfigFile", "RestorePackagesPath", "RestoreFallbackFolders", "RestoreAdditionalProjectSources", "RestoreAdditionalProjectFallbackFolders" };
         if (mappings.ProjectDefaults.Properties.Keys.Any(key => owned.Contains(key, StringComparer.OrdinalIgnoreCase)))
         {
             throw new InvalidDataException("Graph paths and Restore sources are controlled by declared inputs");

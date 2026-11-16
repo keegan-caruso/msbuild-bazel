@@ -21,7 +21,7 @@ internal static class GraphEntryProperties
                 if (!names.Add(name) || value is null || toolNames.Contains(name) ||
                     name.StartsWith("MSBuild", StringComparison.OrdinalIgnoreCase) || name.StartsWith("Restore", StringComparison.OrdinalIgnoreCase) ||
                     name.StartsWith("_Bazel", StringComparison.OrdinalIgnoreCase) || name.Equals("PathMap", StringComparison.OrdinalIgnoreCase) ||
-                    name.Equals("UseSharedCompilation", StringComparison.OrdinalIgnoreCase) || name.Equals("NetCoreSdkRoot", StringComparison.OrdinalIgnoreCase) ||
+                    name.Equals("UseSharedCompilation", StringComparison.OrdinalIgnoreCase) || name.Equals("NetCoreSdkRoot", StringComparison.OrdinalIgnoreCase) || name.Equals("NETCoreSdkBundledVersionsProps", StringComparison.OrdinalIgnoreCase) ||
                     name.Equals("DOTNET_HOST_PATH", StringComparison.OrdinalIgnoreCase))
                 {
                     throw new InvalidDataException("Reserved, ambiguous or conflicting graph entry property: " + name);
