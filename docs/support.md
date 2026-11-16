@@ -556,7 +556,15 @@ consumer adds StaticWebAssets from the produced component bundle.
 The [component producer](../tests/source_sdk/component_graph_prepare.py) and
 [pins](../tests/source_sdk/pin.json) are qualification tooling, not a general SDK
 source-build rule. [Quick start](../examples/quickstart/README.md#source-built-sdk)
-shows the public toolchain handoff. These consumers use Bazel 9.2.0.
+shows the public toolchain handoff. Those historical consumers use Bazel 9.2.0.
+
+On Bazel **9.3.2**, a retained source-built SDK 10.0.100 archive passed Pack,
+generated-package and Razor tests, and framework-dependent Publish/run in Ubuntu
+26.04 ARM64. A fresh same-host consumer recovered the SDK layout and consumer
+actions from HTTP after its seed stopped; both tests actually ran and package and
+published file hashes matched. This qualifies the retained artifact handoff, not a
+new source SDK build or recovery of its producer action. See the
+[method and limits](performance.md#retained-source-sdk-consumer-recovery).
 
 Graph NativeAOT Build/Publish/run, body edits and missing-compiler rejection passed
 on Linux ARM64. Independent recovery had one project hit, zero compilations,
