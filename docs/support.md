@@ -115,6 +115,14 @@ Preserve reports outside Git, remove only owned disposable worktrees/processes,
 and close their sessions after cleanup. Independently managed services and caches
 remain intact.
 
+The pinned runtime source preparation applies one reviewed linker adaptation before
+input discovery: `StringBuilder.Append(new string(character, count))` becomes
+`Append(character, count)` under its existing positive-count guard. SDK 11's CA1830
+analyzer rejects the temporary allocation. The original file hash is checked before
+adaptation, and resume compares against the same transformed archive bytes;
+unrelated source edits remain rejected. Analyzer and warning policies remain enabled.
+This source compatibility change does not by itself qualify a complete SDK 11 build.
+
 ## Dependency updates and security triage
 
 Repository maintainers own bootstrap pins, declared package catalogs and optional

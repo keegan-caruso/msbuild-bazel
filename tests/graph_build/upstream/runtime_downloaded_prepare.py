@@ -16,6 +16,7 @@ import time
 
 from runtime_prepare import COMMIT, SOURCE_SHA256
 from runtime_feed_config import pin_runtime_feeds
+from runtime_source_compatibility import LINKER_DRIVER, compatible_source
 from runtime_sync_inputs import SYNC_SRCS, assert_preparation_reused
 
 ROOT = Path(__file__).resolve().parents[3]
@@ -67,7 +68,7 @@ def main():
         assert source.is_dir() and not (base / 'workspace').exists()
         assert (source / 'nuget.lock.json').is_file()
         # Locks and Bazel declarations are owned preparation products. Every
-        # authored upstream file must still match the pinned source archive.
+        # authored upstream file must match the pinned archive plus reviewed adaptations.
         with tarfile.open(args.source_archive) as archive:
             prefix = 'runtime-' + COMMIT + '/'
             for member in archive:
@@ -76,7 +77,7 @@ def main():
                 relative = member.name.removeprefix(prefix)
                 if Path(relative).name.startswith('packages.') and relative.endswith('.lock.json'):
                     continue
-                expected = archive.extractfile(member).read()
+                expected = compatible_source(relative, archive.extractfile(member).read())
                 if relative == 'NuGet.config':
                     with tempfile.TemporaryDirectory() as directory:
                         config = Path(directory)/'NuGet.config'
@@ -98,6 +99,8 @@ def main():
                 data = target.read_bytes()
                 path.unlink()
                 path.write_bytes(data)
+        linker = source / LINKER_DRIVER
+        linker.write_bytes(compatible_source(LINKER_DRIVER, linker.read_bytes()))
     # Avoid differently signed copies of the same package racing across feeds.
     pin_runtime_feeds(source / 'NuGet.config', packages=('Microsoft.TestPlatform.ObjectModel',))
     subprocess.run(['python3', str(Path(__file__).with_name('runtime_contract.py')), str(source / 'mappings.json'),
