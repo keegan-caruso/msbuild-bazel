@@ -675,7 +675,7 @@ class GraphSyncTests(unittest.TestCase):
         self.assertIn("Compile", self.sync({"projectDefaults": defaults}, success=False))
 
     def test_owned_paths_cannot_be_overridden(self):
-        for name in ["NetCoreSdkRoot", "PathMap", "RestoreSources"]:
+        for name in ["NetCoreSdkRoot", "NETCoreSdkBundledVersionsProps", "PathMap", "RestoreSources"]:
             self.assertIn("declared inputs", self.sync({"projectDefaults": {"properties": {name: "/host"}}}, success=False))
 
     def test_document_contract_is_digest_bound(self):

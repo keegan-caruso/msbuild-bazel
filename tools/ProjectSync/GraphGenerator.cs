@@ -32,7 +32,7 @@ internal static class GraphGenerator
     {
         System.Xml.XmlConvert.VerifyNCName(name);
         if (name.StartsWith("MSBuild", StringComparison.OrdinalIgnoreCase) || name.StartsWith("Restore", StringComparison.OrdinalIgnoreCase) ||
-            name.StartsWith("_Bazel", StringComparison.OrdinalIgnoreCase) || name.Equals("PathMap", StringComparison.OrdinalIgnoreCase) || name.Equals("UseSharedCompilation", StringComparison.OrdinalIgnoreCase) || name.Equals("NetCoreSdkRoot", StringComparison.OrdinalIgnoreCase) || name.Equals("DOTNET_HOST_PATH", StringComparison.OrdinalIgnoreCase) || properties.ContainsKey(name))
+            name.StartsWith("_Bazel", StringComparison.OrdinalIgnoreCase) || name.Equals("PathMap", StringComparison.OrdinalIgnoreCase) || name.Equals("UseSharedCompilation", StringComparison.OrdinalIgnoreCase) || name.Equals("NetCoreSdkRoot", StringComparison.OrdinalIgnoreCase) || name.Equals("NETCoreSdkBundledVersionsProps", StringComparison.OrdinalIgnoreCase) || name.Equals("DOTNET_HOST_PATH", StringComparison.OrdinalIgnoreCase) || properties.ContainsKey(name))
         {
             throw new InvalidDataException("Reserved or conflicting graph tool property: " + name);
         }
@@ -80,8 +80,8 @@ internal static class GraphGenerator
             ["ImportProjectExtensionProps"] = packageBuild ? "true" : "false",
             ["ImportProjectExtensionTargets"] = packageBuild ? "true" : "false",
             ["UseSharedCompilation"] = "false",
-            // Runtime="NET" task hosts read the SDK version from its directory name.
-            ["NetCoreSdkRoot"] = sdk,
+            // Import selected SDK facts before it initializes NetCoreSdkRoot itself.
+            ["NETCoreSdkBundledVersionsProps"] = Path.Combine(sdk, "Microsoft.NETCoreSdk.BundledVersions.props"),
             ["PathMap"] = root + "=/_/workspace," + sdkRoot + "=/_/sdk"
         };
         foreach (var (name, path) in view?.GraphToolProperties ?? [])

@@ -153,7 +153,7 @@ internal static class NuGetUpdate
             string[] required;
             try
             {
-                required = NuGetGraph.Projects(workspace, projects.Distinct(), new Dictionary<string, string>(properties, StringComparer.OrdinalIgnoreCase) { ["NetCoreSdkRoot"] = engine }, mappings.EntryProperties);
+                required = NuGetGraph.Projects(workspace, projects.Distinct(), new Dictionary<string, string>(properties, StringComparer.OrdinalIgnoreCase) { ["NETCoreSdkBundledVersionsProps"] = Path.Combine(engine, "Microsoft.NETCoreSdk.BundledVersions.props") }, mappings.EntryProperties);
             }
             catch (Exception error)
             {
@@ -253,7 +253,7 @@ internal static class NuGetUpdate
         {
             start.ArgumentList.Add(argument);
         }
-        start.ArgumentList.Add(GraphEntryProperties.Argument("NetCoreSdkRoot", engine));
+        start.ArgumentList.Add(GraphEntryProperties.Argument("NETCoreSdkBundledVersionsProps", Path.Combine(engine, "Microsoft.NETCoreSdk.BundledVersions.props")));
         foreach (var (name, value) in properties.Where(pair => !pair.Key.Equals("TargetFramework", StringComparison.OrdinalIgnoreCase)))
         {
             start.ArgumentList.Add(GraphEntryProperties.Argument(name, value));

@@ -96,13 +96,13 @@ internal sealed class GraphInputs : IDisposable
             ownsCollection = evaluation is null;
             collection = evaluation?.Collection ?? new ProjectCollection();
             properties = new Dictionary<string, string>(contract.Properties, StringComparer.OrdinalIgnoreCase);
-            if (properties.ContainsKey("PathMap") || properties.ContainsKey("UseSharedCompilation") || properties.ContainsKey("NetCoreSdkRoot") || properties.ContainsKey("DOTNET_HOST_PATH"))
+            if (properties.ContainsKey("PathMap") || properties.ContainsKey("UseSharedCompilation") || properties.ContainsKey("NetCoreSdkRoot") || properties.ContainsKey("NETCoreSdkBundledVersionsProps") || properties.ContainsKey("DOTNET_HOST_PATH"))
             {
                 throw new InvalidDataException("SDK host paths, PathMap and UseSharedCompilation are controlled by the graph runner");
             }
             properties["PathMap"] = Files.Root + "=/_/workspace," + Files.Sdk + "=/_/sdk";
             properties["UseSharedCompilation"] = "false";
-            properties["NetCoreSdkRoot"] = sdk;
+            properties["NETCoreSdkBundledVersionsProps"] = Path.Combine(sdk, "Microsoft.NETCoreSdk.BundledVersions.props");
             evaluationContext = evaluation?.Context ?? EvaluationContext.Create(EvaluationContext.SharingPolicy.Shared);
             evaluationProfile = GraphProfile.Enabled && GraphProfile.EvaluationEnabled ? new GraphEvaluationProfile(Files) : null;
             if (evaluationProfile is not null)
