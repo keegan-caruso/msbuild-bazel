@@ -55,6 +55,31 @@ The earlier 481-compilation runtime baseline and source-built SDK consumers belo
 retain their recorded 9.2 qualification. The downloaded-SDK runtime slice below
 has separate 9.3 results.
 
+## Dependency updates and security triage
+
+Repository maintainers own bootstrap pins, declared package catalogs and optional
+benchmark dependencies. Before changing a pin, check its upstream advisory and
+fixed version, identify the repository call sites, and validate the affected
+workflow in a fresh tool environment. Keep source-product and bootstrap versions
+separate; updating one does not qualify the other. Preserve the old pins and
+qualification revision for reproducing historical measurements.
+
+The optional benchmark environment pins GitPython **3.2.1** and its dependencies.
+This replaces 3.1.62, which had seven open GitHub dependency alerts at review
+(five high and two moderate). The pinned upstream bazel-bench invokes GitPython
+for repository clone, fetch and checkout, so this dependency participates in the
+benchmark workflow even though normal builds do not install it. A fresh
+`scripts/setup-bench.sh` environment passed dependency consistency checks and
+real clone/fetch/checkout controls against the pinned bazel-bench implementation;
+the four owned measurement tests also passed. This does not audit arbitrary
+benchmark repositories or establish that future dependency alerts are absent.
+
+For a release candidate, review current dependency alerts and supported platform
+qualification in [the work queue](../WORK_QUEUE.md), run the affected behavioral
+checks and scaffold/style gates, and preserve the exact pins, report and remaining
+limits. Publish through a reviewed change; do not describe an unrun platform or a
+warm local cache as a qualified release.
+
 ## Shared cache on two Macs
 
 The general Apple Container wrapper defaults to pinned Ubuntu 26.04 ARM64.
