@@ -675,29 +675,39 @@ ambient Git, Helix and full native Arcade orchestration are unqualified.
 
 ## Source toolchains and NativeAOT
 
-The coarse SDK source qualification producer requires a declared Ubuntu 26.04
-ARM64 native root with LLVM 18.1.8. It shares the runtime producer's compiler
-selection guard and records that helper's digest with its generated inputs. The
-controller remains SDK 10.0.400 and the upstream VMR remains .NET 10. Historical
-Ubuntu 22.04 SDK archives below do not qualify this new producer; its full build
-and stopped-producer recovery gate remain pending.
+The coarse qualification producer rebuilt the pinned .NET 10 VMR on Ubuntu
+26.04 ARM64 / Clang 18.1.8 / Bazel **9.3.2**, producing SDK **10.0.100** and
+Core/ASP.NET runtimes **10.0.0**. Its controller remains SDK 10.0.400; the upstream
+bootstrap SDK and source-built bootstrap artifacts are declared inputs. The
+captured native root matches its sealed-root preflight, and actual C/C++ compiler
+logs select LLVM 18. This is qualification tooling, not a general SDK source rule.
 
-Linux ARM64 consumer controls passed with the **10.0.100 source-built SDK**:
-generated NuGet packages, NoTargets, Pack, Razor rendering and framework-dependent
-Publish/run. Complete layouts include required SDK components: the qualified Razor
-consumer adds StaticWebAssets from the produced component bundle.
-The [component producer](../tests/source_sdk/component_graph_prepare.py) and
-[pins](../tests/source_sdk/pin.json) are qualification tooling, not a general SDK
-source-build rule. [Quick start](../examples/quickstart/README.md#source-built-sdk)
-shows the public toolchain handoff. Those historical consumers use Bazel 9.2.0.
+After stopping the producer, a fresh read-only consumer recovered the complete
+`SourceSdkBuild`, SDK layouts and graph actions from HTTP with the same SDK archive
+hash. Body/API edits and a forced smoke test executed without rebuilding the SDK.
+The consumer made **zero PUTs**, and cache bytes stayed unchanged. A separate cold
+consumer against the pinned SDK 11 migration candidate also passed Pack,
+generated-package and Razor tests, Publish/run, and SDK/runtime identity checks
+using only this new archive. It needed no StaticWebAssets supplement from an older
+build. [Method, pins and limits](performance.md#source-sdk-production-and-recovery)
+separate production, recovery and that SDK 11-rules handoff.
 
-On Bazel **9.3.2**, a retained source-built SDK 10.0.100 archive passed Pack,
-generated-package and Razor tests, and framework-dependent Publish/run in Ubuntu
-26.04 ARM64. A fresh same-host consumer recovered the SDK layout and consumer
-actions from HTTP after its seed stopped; both tests actually ran and package and
-published file hashes matched. This qualifies the retained artifact handoff, not a
-new source SDK build or recovery of its producer action. See the
-[method and limits](performance.md#retained-source-sdk-consumer-recovery).
+The [producer](../tests/source_sdk/source_action_prepare.py),
+[recovery driver](../tests/source_sdk/source_action_recovery.py) and
+[consumer controls](../tests/source_sdk/consumer_scenarios.py) require their declared
+bootstrap inputs. The [quick start](../examples/quickstart/README.md#source-built-sdk)
+shows the public toolchain handoff, not a standalone upstream bootstrap recipe.
+This qualifies one local ARM64 build and same-host recovery, not native x64,
+older-glibc deployment, signing or full upstream test parity. The product remains
+.NET 10; using SDK 11 rules does not turn it into an SDK 11 source build.
+
+Earlier Bazel 9.2 component consumers used an Ubuntu 22.04 source build and an
+explicit StaticWebAssets supplement from its component bundle. The
+[component producer](../tests/source_sdk/component_graph_prepare.py) and
+[pins](../tests/source_sdk/pin.json) retain that historical scope. A separate
+Bazel 9.3.2 retained-archive consumer control also passed;
+[its results](performance.md#retained-source-sdk-consumer-recovery) do not substitute
+for the new producer qualification above.
 
 Graph NativeAOT Build/Publish/run, body edits and missing-compiler rejection passed
 on Linux ARM64. Independent recovery had one project hit, zero compilations,
