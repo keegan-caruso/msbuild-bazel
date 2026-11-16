@@ -385,6 +385,64 @@ stop the producer, and run `--phase=consumer --seed-evidence=SEED_JSON`.
 Then run [consumer smoke](../tests/graph_build/upstream/runtime_downloaded_smoke.py)
 with `RUNTIME_WORKSPACE FRESH_APP --cache-url=URL`.
 
+## Source SDK production and recovery
+
+One native Ubuntu 26.04 ARM64 / LLVM 18.1.8 trial on Bazel **9.3.2** rebuilt VMR
+`b0f34d51fccc69fd334253924abd8d6853fad7aa` using
+[rules `4158b03`](https://github.com/keegan-caruso/msbuild-bazel/tree/4158b034e2917990287753f5b2805b6f47b27318).
+Controller SDK **10.0.400**, upstream SDK **10.0.100-rc.2.25502.107** and verified
+source-built bootstrap artifacts remain separate declared inputs. The
+`Private.SourceBuilt.Artifacts.Bootstrap.tar.gz` input has SHA-256
+`47f6aea3a4688d24bcb5aee0b8b394398ae8bd7244c8ccabe938bb5dd2a19487`;
+the generated declared `bootstrap.tar` containing it and the upstream SDK has
+SHA-256 `974ca15d1498735faa9ef3fa72d85898358bbded97e68b87d1c5aa142c7078a1`. The native
+archive SHA-256 `1854d067717cba3afe85c01e166e2a2c7d95c4dafea89e172b69da8b536c874a`
+matched the sealed-root preflight; actual upstream C/C++/ASM logs selected Clang
+18.1.8. Four CPUs / 8 GiB were configured, with one Bazel job,
+`DOTNET_PROCESSOR_COUNT=2` and upstream `BuildInParallel=false`.
+
+| Phase | Wall time | Observed result |
+| --- | ---: | --- |
+| Upstream source build | 28 min 22.23 s | Actual `SourceSdkBuild` cache miss, SDK 10.0.100 / runtime 10.0.0 |
+| Producer Bazel test, including source build | 1,826.669 s | Build and actual smoke test pass |
+| Fresh read-only consumer after seed stopped | 727.782 s | All 12 recorded spawns remote hits, including producer and graph |
+| Consumer body / API edits | 15.694 / 17.172 s | Graph and tests execute; SDK reused |
+| Extra forced smoke test | 12.625 s | Test executes; source SDK does not rebuild |
+
+The upstream time is nested inside the producer Bazel time. The complete guardian
+including preparation, export and startup took 2,735.352 s. The new archive is
+569,564,274 bytes, SHA-256
+`e043c131f157a4dfd8f66bfe6016b95ee301d0265b075a69b5c84dd9577c45a2`.
+The fresh consumer copied declared inputs only; its expected archive oracle was
+excluded from the consumer workspace. Recovery verified the downloaded archive
+against that hash. Both seed and consumer used project-cache read-only mode;
+only the seed uploaded Bazel actions. The separate fixture HTTP cache recorded
+7,431 successful seed PUTs, **14,987 successful consumer GETs / zero consumer
+PUTs**, and unchanged **2,641,967,172** stored bytes. Its 6 GiB disk / 2 GiB request
+limits and single connection deliberately bounded transfer concurrency; recovery
+includes serial SDK-tree downloads. There is no comparison with older timings.
+
+Across 1,911 producer samples, minimum available guest memory was 1,996,292 KiB,
+peak summed RSS was 6,219,744 KiB and maximum whole-guest filesystem usage was
+34,674,176,000 bytes. Summed RSS can count shared pages repeatedly. GNU time's
+separate maximum-resident-set measure was 2,334,916 KiB. One cold producer and
+one recovery are not sustained or paired measurements.
+
+A cold consumer with the
+[SDK 11 rules candidate `6760e9f`](https://github.com/keegan-caruso/msbuild-bazel/tree/6760e9f637e257b2c2d070c908dbbd24900a3a5a)
+and this new archive alone
+also executed package and Razor tests and ran the published app. Its controller
+used SDK 11.0.100; the declared source SDK remained 10.0.100 / runtime 10.0.0.
+The generated package identified `SourceSdk.Package` 1.0.0 with
+`lib/net10.0/Package.dll`, SHA-256
+`3fa898a68359711ef6f576b044dde2feb0a840678bfdb4eb899fc92bfd24bb10`.
+No old component-bundle overlay or source rebuild occurred in that handoff.
+Guest-local outputs and non-overlapping host mounts were used. See the
+[qualified scope](support.md#source-toolchains-and-nativeaot) for platform limits.
+Use the [producer](../tests/source_sdk/source_action_prepare.py) with verified
+VMR/bootstrap inputs, then the [recovery driver](../tests/source_sdk/source_action_recovery.py)
+and [consumer scenarios](../tests/source_sdk/consumer_scenarios.py).
+
 ## Retained source SDK consumer recovery
 
 On Ubuntu 26.04 ARM64 with Bazel **9.3.2**, a retained source-built SDK archive
