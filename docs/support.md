@@ -219,8 +219,11 @@ alone does not qualify cross-host recovery.
 The wrapper forwarding/default controls pass with
 `python3 -m unittest discover -s tests/tooling -p test_apple_container.py -v`.
 The separate `test_shared_cache_guest_relay.py` controls exercise bidirectional
-TCP/UNIX bytes and half-close behavior. These mock the host launcher and execute
-guest configuration. A fresh Ubuntu ARM64 guest on Bazel **9.3.2** also passed
+TCP/UNIX bytes and half-close behavior, including delayed and sustained reverse
+responses and a nonclosing peer. After either side reaches EOF, the relay bounds
+idle reverse draining to 30 seconds and resets that deadline on progress;
+portable controls also cover a blocked reverse write. These mock the host launcher
+and execute guest configuration. A fresh Ubuntu ARM64 guest on Bazel **9.3.2** also passed
 public quickstart Build/test/run with the generic relay and shared action/project
 cache URLs: the sandboxed graph action actually executed, loaded `GraphCache`,
 and the app printed its expected greeting. The command used
