@@ -16,9 +16,9 @@
   ],
   "PackageDigests": [],
   "DefinitionDigests": {
-    "App/App.csproj": "62cc150ba79c8835af615b1a83c2cddc4a1317af9a7d9bf76bab381654f882e8",
-    "Library/Library.csproj": "e2c08643e21eba9123e4b319840fec508efc44b473a7cab491d6188e5f6905ca",
-    "Tests/Tests.csproj": "62cc150ba79c8835af615b1a83c2cddc4a1317af9a7d9bf76bab381654f882e8"
+    "App/App.csproj": "e8583f03c252d869a6a215bc204617f9f439106303196939945428a955426288",
+    "Library/Library.csproj": "5abcb000d2c948b5d417d6abc79e265e72c3f15ca91d295b1645d4ba5751bf31",
+    "Tests/Tests.csproj": "e8583f03c252d869a6a215bc204617f9f439106303196939945428a955426288"
   },
   "Projects": {
     "App/App.csproj": {
