@@ -46,7 +46,11 @@ producer and does not qualify an x64 source build.
 
 Pass `--cache-url=http://CACHE:8080` to reuse Bazel actions and MSBuild project
 snapshots during qualification and ordinary builds. The endpoint must be reachable
-from the build worker. A cold cache still requires the initial SDK Build.
+from the build worker. On Apple silicon, set `RULES_MSBUILD_SHARED_CACHE_SOCKET`
+to an existing host UNIX relay socket and pass its HTTPS DNS URL with
+`--cache-url` to route through the guest relay without changing TLS identity. The
+socket and URL are frozen with the owned setup; use a fresh setup to change them.
+A cold cache still requires the initial SDK Build.
 
 The declared `//:runtime_package` output is exported as
 `runtime-linux-arm64.tar.gz` in that directory. It is an unsigned IL developer

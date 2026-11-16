@@ -797,12 +797,17 @@ properties, then checks reference-emission settings and `ReferencePathWithRefAss
 
 The [source-to-app workflow](../examples/source-runtime-app/README.md) acquires the
 pinned source and bootstrap SDK, updates packages, qualifies the graph, and builds
-an app plus `//:runtime_package`:
+an app plus `//:runtime_package`. Its optional Apple guest cache relay is configured
+when the worker is created, as described in the workflow guide:
 
 ```sh
 python3 scripts/setup-source-runtime.py OUTPUT
 bash OUTPUT/run.sh --describe-runtime --verify-product
 ```
+
+A 2 CPU / 512 MiB Apple ARM64 guest transport probe checked the mounted socket,
+relay restart and repeated startup, and an HTTPS cache status request with TLS
+verification. This probe did not build a source runtime or qualify cache recovery.
 
 Upstream MSBuild selects **172 managed assemblies**. Declared native producers add
 **16 runtime files**, including globalization, network security, standalone GCs,
