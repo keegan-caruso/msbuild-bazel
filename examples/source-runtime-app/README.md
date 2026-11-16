@@ -12,6 +12,10 @@ python3 scripts/setup-source-runtime.py "$HOME/source-runtime"
 bash "$HOME/source-runtime/run.sh" --describe-runtime --verify-product
 ```
 
+The Apple worker defaults to 8 GiB. To choose a different budget for a fresh
+setup, pass `--worker-memory-gib 12` (or another positive whole number). The
+selected budget is retained in the setup; changing it requires a fresh directory.
+
 Run from the rules checkout with Git, Python and download access. Setup builds the
 [native environment](../../containers/runtime-demo.Dockerfile), creates an owned
 worker, runs package update/check and graph sync/check, then builds and verifies

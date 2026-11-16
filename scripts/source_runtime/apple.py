@@ -91,6 +91,20 @@ echo 'Shared cache relay startup timed out' >&2; exit 1
     run(['container', 'exec', worker, 'sh', '-c', script, 'relay', cache_url])
 
 
+def worker_memory(state, supplied=None):
+    recorded = state.get('workerMemoryGiB', 8)
+    if type(recorded) is not int or recorded <= 0:
+        raise ValueError('Invalid saved worker memory')
+    if supplied is not None and supplied != recorded:
+        raise ValueError('Worker memory changed; use a fresh directory')
+    return recorded
+
+
+def validate_worker_memory(worker, memory):
+    if worker['configuration'].get('resources', {}).get('memoryInBytes') != memory * 1024**3:
+        raise ValueError('Source-runtime worker memory differs from setup')
+
+
 def operate(args, application):
     base = args.output.expanduser().resolve()
     with (base/'setup.lock').open('a+') as lock:
@@ -101,6 +115,7 @@ def operate(args, application):
         if not state.get('ready'):
             raise ValueError('Complete setup with --resume before running the app')
         read_only = project_cache_read_only(state)
+        memory = worker_memory(state, getattr(args, 'worker_memory_gib', None))
         socket_path = cache_socket(state.get('cacheUrl'), state)
         helpers = demo_helpers()
         worker = helpers.inspect(state['worker'])
@@ -108,6 +123,7 @@ def operate(args, application):
             raise ValueError('Source-runtime worker is missing or has different ownership')
         if worker['configuration']['image']['descriptor']['digest'] != state['image'].split('@',1)[1]:
             raise ValueError('Source-runtime worker image differs from setup')
+        validate_worker_memory(worker, memory)
         validate_relay_mount(worker, socket_path)
         if worker['status']['state'] != 'running':
             run(['container','start',state['worker']])
@@ -142,6 +158,7 @@ def setup(args):
                 raise ValueError('Setup options changed; use a fresh directory')
         validate_bazel_version(state)
         project_cache_read_only(state)
+        memory = worker_memory(state, getattr(args, 'worker_memory_gib', None))
         socket_path = cache_socket(state['cacheUrl'], state)
         args.image=state['requestedImage']
         if digest(base/'rules.tar') != state['rulesSha256']:
@@ -155,12 +172,17 @@ def setup(args):
             raise ValueError('A new source-runtime worker needs 32 GiB free')
         if args.image and not re.fullmatch(r'[^\s]+@sha256:[a-f0-9]{64}',args.image):
             raise ValueError('Use an immutable image reference')
+        memory = getattr(args, 'worker_memory_gib', None)
+        if memory is None:
+            memory = 8
+        if type(memory) is not int or memory <= 0:
+            raise ValueError('Worker memory must be a positive integer in GiB')
         socket_path = cache_socket(args.cache_url)
         base.mkdir(parents=True,mode=0o700)
         identifier = uuid.uuid4().hex[:10]
         archive = base/'rules.tar'
         state = dict(projectCacheReadOnly=project_cache_read_only(),bazelVersion=selected_bazel_version(),version=1,kind='apple-source-runtime',id=identifier,worker='msbuild-source-runtime-'+identifier,
-                     requestedImage=args.image,cacheUrl=args.cache_url,cacheSocket=socket_path,sourceIdentity=rules_identity(),rulesSha256=helpers.snapshot(archive),ready=False)
+                     requestedImage=args.image,cacheUrl=args.cache_url,cacheSocket=socket_path,workerMemoryGiB=memory,sourceIdentity=rules_identity(),rulesSha256=helpers.snapshot(archive),ready=False)
         save(base/'setup.json',state)
     with (base/'setup.lock').open('a+') as lock:
         fcntl.flock(lock,fcntl.LOCK_EX|fcntl.LOCK_NB)
@@ -196,11 +218,12 @@ def setup(args):
                 raise ValueError('Container ownership differs')
             if worker['configuration']['image']['descriptor']['digest'] != state['image'].split('@',1)[1]:
                 raise ValueError('Container image differs')
+            validate_worker_memory(worker, memory)
             validate_relay_mount(worker, socket_path)
             if worker['status']['state']!='running':run(['container','start',state['worker']])
         else:
             mount = ['--volume', socket_path+':'+RELAY_SOCKET] if socket_path else []
-            run(['container','run','-d','--init','--arch','arm64','--name',state['worker'],'--cpus','4','--memory','8G',
+            run(['container','run','-d','--init','--arch','arm64','--name',state['worker'],'--cpus','4','--memory',str(memory)+'G',
                  '--cap-add','SYS_ADMIN','--masked-path','NONE','--read-only-path','NONE',
                  '--label','rules-msbuild.source-runtime='+state['id'],'--volume',str(base)+':/host:ro',*mount,state['image'],'sleep','infinity'])
         run(['container','exec',state['worker'],'mkdir','-p','/source-runtime/rules'])

@@ -10,10 +10,21 @@ from urllib.parse import urlsplit
 from source_runtime.linux import build_command, setup
 
 
+def positive_gib(value):
+    try:
+        result = int(value)
+    except ValueError:
+        raise argparse.ArgumentTypeError('worker memory must be a positive integer in GiB')
+    if result <= 0:
+        raise argparse.ArgumentTypeError('worker memory must be a positive integer in GiB')
+    return result
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('output', type=Path, help='owned setup directory; retain it for run and resume')
     parser.add_argument('--resume', action='store_true', help='explicit resume; matching owned inputs resume automatically')
+    parser.add_argument('--worker-memory-gib', type=positive_gib, help='Apple Container worker memory in GiB (default: 8)')
     parser.add_argument('--image', help='Apple Container native environment pinned by @sha256; default builds the supplied image')
     parser.add_argument('--run', action='store_true', help='run the app from a completed setup; remaining arguments go to the app')
     parser.add_argument('--test', action='store_true', help='actually execute the prepared app test')
@@ -39,8 +50,8 @@ def main():
             raise SystemExit(apple.operate(args, application))
         apple.setup(args)
         return
-    if args.image:
-        parser.error('--image is an Apple Container setup option')
+    if args.image or args.worker_memory_gib is not None:
+        parser.error('--image and --worker-memory-gib are Apple Container setup options')
     if args.run or args.test:
         state = json.loads((args.output/'setup.json').read_text())
         if not state.get('ready'):
