@@ -822,7 +822,9 @@ ordinary-mode tampering, special-bit stripping, traversal and symlink rejection.
 The [source-to-app workflow](../examples/source-runtime-app/README.md) acquires the
 pinned source and bootstrap SDK, updates packages, qualifies the graph, and builds
 an app plus `//:runtime_package`. Its optional Apple guest cache relay is configured
-when the worker is created, as described in the workflow guide:
+when the worker is created, as described in the workflow guide. `--worker-memory-gib`
+selects worker memory at creation (default 8 GiB); portable controls check option
+validation, saved identity, worker resource matching and container arguments:
 
 ```sh
 python3 scripts/setup-source-runtime.py OUTPUT

@@ -80,7 +80,7 @@ class SourceRuntimeSetupTests(unittest.TestCase):
                 rulesSha256=digest(archive), id='owned', worker='worker', image='runtime@sha256:'+'a'*64)
             save(base/'setup.json', state)
             worker = dict(configuration=dict(labels={'rules-msbuild.source-runtime': 'owned'},
-                image=dict(descriptor=dict(digest='sha256:'+'a'*64))), status={'state': 'running'})
+                image=dict(descriptor=dict(digest='sha256:'+'a'*64)), resources={'memoryInBytes': 8*1024**3}), status={'state': 'running'})
             args = SimpleNamespace(output=base, resume=True, native_toolchain=None, sandbox=None,
                 registry=None, repository_cache=None, host_space_path=None, image=None, cache_url=None,
                 source_archive=None)
@@ -95,6 +95,55 @@ class SourceRuntimeSetupTests(unittest.TestCase):
                 command = execute.call_args.args[0]
                 self.assertIn('RULES_MSBUILD_PROJECT_CACHE_READ_ONLY=1', command)
                 self.assertEqual(command[command.index('RULES_MSBUILD_PROJECT_CACHE_READ_ONLY=1')-1], '--env')
+
+    def test_apple_memory_selection_is_frozen_and_matches_worker(self):
+        self.assertEqual(apple.worker_memory({}), 8)
+        self.assertEqual(apple.worker_memory({'workerMemoryGiB': 12}), 12)
+        self.assertEqual(apple.worker_memory({'workerMemoryGiB': 12}, 12), 12)
+        for invalid in (0, -1, '12', True):
+            with self.assertRaisesRegex(ValueError, 'Invalid saved'):
+                apple.worker_memory({'workerMemoryGiB': invalid})
+        with self.assertRaisesRegex(ValueError, 'memory changed'):
+            apple.worker_memory({}, 12)
+        worker = {'configuration': {'resources': {'memoryInBytes': 12*1024**3}}}
+        apple.validate_worker_memory(worker, 12)
+        with self.assertRaisesRegex(ValueError, 'memory differs'):
+            apple.validate_worker_memory(worker, 8)
+
+    def test_apple_run_rejects_changed_memory_before_starting_worker(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            base = Path(temporary)
+            save(base/'setup.json', dict(kind='apple-source-runtime', ready=True, id='owned',
+                worker='worker', image='runtime@sha256:'+'a'*64, workerMemoryGiB=12))
+            args = SimpleNamespace(output=base, test=False, worker_memory_gib=8)
+            with patch.dict(os.environ, {}, clear=True), patch.object(apple, 'run') as run:
+                with self.assertRaisesRegex(ValueError, 'memory changed'):
+                    apple.operate(args, [])
+                run.assert_not_called()
+            args.worker_memory_gib = None
+            worker = dict(configuration=dict(labels={'rules-msbuild.source-runtime': 'owned'},
+                image=dict(descriptor=dict(digest='sha256:'+'a'*64)),
+                resources={'memoryInBytes': 8*1024**3}), status={'state': 'stopped'})
+            with patch.dict(os.environ, {}, clear=True), patch.object(apple, 'run') as run, \
+                 patch.object(apple, 'demo_helpers', return_value=SimpleNamespace(inspect=lambda name: worker)):
+                with self.assertRaisesRegex(ValueError, 'memory differs'):
+                    apple.operate(args, [])
+                run.assert_not_called()
+
+    def test_worker_memory_cli_rejects_invalid_values_and_linux_use(self):
+        command = [sys.executable, str(ROOT/'scripts/setup-source-runtime.py'), '/unused']
+        for value in ('0', '-1', '1.5', '12G'):
+            result = subprocess.run(command + ['--worker-memory-gib', value], capture_output=True, text=True)
+            self.assertEqual(result.returncode, 2)
+            self.assertIn('positive integer', result.stderr)
+        help_result = subprocess.run(command + ['--help'], capture_output=True, text=True)
+        self.assertIn('--worker-memory-gib', help_result.stdout)
+        code = ('import platform,runpy,sys; platform.system=lambda: "Linux"; '
+                'sys.argv=["setup-source-runtime.py", "/unused", "--worker-memory-gib", "12"]; '
+                'runpy.run_path(sys.argv[0], run_name="__main__")')
+        result = subprocess.run([sys.executable, '-c', code], cwd=ROOT/'scripts', capture_output=True, text=True)
+        self.assertEqual(result.returncode, 2)
+        self.assertIn('Apple Container setup options', result.stderr)
 
     def test_apple_relay_freezes_socket_and_validates_url_and_mount(self):
         with tempfile.TemporaryDirectory() as temporary:
@@ -131,13 +180,13 @@ class SourceRuntimeSetupTests(unittest.TestCase):
                 (base/'rules').mkdir()
                 archive = base/'rules.tar'; archive.write_bytes(b'frozen')
                 state = dict(version=1, kind='apple-source-runtime', requestedImage=None,
-                    cacheUrl='https://cache.example', cacheSocket=path,
+                    cacheUrl='https://cache.example', cacheSocket=path, workerMemoryGiB=12,
                     bazelVersion=(ROOT/'.bazelversion').read_text().strip(), rulesSha256=digest(archive),
                     id='owned', worker='worker', image='runtime@sha256:'+'a'*64)
                 save(base/'setup.json', state)
                 args = SimpleNamespace(output=base, resume=True, native_toolchain=None, sandbox=None,
                     registry=None, repository_cache=None, host_space_path=None, image=None, cache_url=None,
-                    source_archive=None)
+                    source_archive=None, worker_memory_gib=12)
                 with patch.dict(os.environ, {}, clear=True), \
                      patch.object(apple.platform, 'machine', return_value='arm64'), \
                      patch.object(apple.shutil, 'which', return_value='container'), \
@@ -148,6 +197,7 @@ class SourceRuntimeSetupTests(unittest.TestCase):
                         apple.setup(args)
                 calls = [call.args[0] for call in run.call_args_list]
                 self.assertIn(path+':'+apple.RELAY_SOCKET, calls[0])
+                self.assertEqual(calls[0][calls[0].index('--memory')+1], '12G')
                 self.assertEqual(calls[2][3], 'tar')
                 self.assertEqual(calls[3][:4], ['container', 'exec', 'worker', 'sh'])
 
@@ -162,7 +212,7 @@ class SourceRuntimeSetupTests(unittest.TestCase):
                 save(base/'setup.json', state)
                 worker = dict(configuration=dict(labels={'rules-msbuild.source-runtime': 'owned'},
                     image=dict(descriptor=dict(digest='sha256:'+'a'*64)),
-                    mounts=[dict(source=path, destination=apple.RELAY_SOCKET)]), status={'state': 'stopped'})
+                    mounts=[dict(source=path, destination=apple.RELAY_SOCKET)], resources={'memoryInBytes': 8*1024**3}), status={'state': 'stopped'})
                 with patch.dict(os.environ, {}, clear=True), \
                      patch.object(apple, 'demo_helpers', return_value=SimpleNamespace(inspect=lambda name: worker)), \
                      patch.object(apple, 'run') as run, \
@@ -433,7 +483,7 @@ class SourceRuntimeSetupTests(unittest.TestCase):
             base=Path(temporary)
             state=dict(projectCacheReadOnly='1',kind='apple-source-runtime',ready=True,id='owned',worker='owned-worker',image='runtime@sha256:'+'a'*64)
             save(base/'setup.json',state)
-            worker={'configuration':{'labels':{'rules-msbuild.source-runtime':'owned'},'image':{'descriptor':{'digest':'sha256:'+'a'*64}}},'status':{'state':'stopped'}}
+            worker={'configuration':{'labels':{'rules-msbuild.source-runtime':'owned'},'image':{'descriptor':{'digest':'sha256:'+'a'*64}},'resources':{'memoryInBytes':8*1024**3}},'status':{'state':'stopped'}}
             with patch.object(apple,'demo_helpers',return_value=SimpleNamespace(inspect=lambda name:worker)), patch.object(apple,'run') as action, patch.object(apple.subprocess,'run',return_value=SimpleNamespace(returncode=0)) as execute:
                 self.assertEqual(apple.operate(SimpleNamespace(output=base,test=False),['--test','argument with spaces']),0)
                 action.assert_called_once_with(['container','start','owned-worker'])
