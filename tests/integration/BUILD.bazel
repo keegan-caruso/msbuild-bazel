@@ -129,8 +129,8 @@ bazel_integration_tests(
     bazel_binaries = bazel_binaries,
     bazel_versions = bazel_binaries.versions.all,
     data = [
-        "sdk-11.0.100-rc.1.26425.128.metadata.json",
         "sdk-11.0.100.metadata.json",
+        "sdk-11.0.100-rc.1.26425.128.metadata.json",
         "sdk-8.0.425.metadata.json",
         "sdk-9.0.318.metadata.json",
         ":rules_archive",
