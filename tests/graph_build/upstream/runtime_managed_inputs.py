@@ -98,7 +98,7 @@ def main():
     def raw_build(label):
         name = 'managed-' + label + '.binlog'
         invoke(raw_command + [stable + '/.qualification/' + name], label + '-raw', raw)
-        return json.loads(subprocess.check_output([str(sdk / 'dotnet'), str(reader / 'bin/Release/net10.0/Tool.dll'),
+        return json.loads(subprocess.check_output([str(sdk / 'dotnet'), str(reader / 'bin/Release/net11.0/Tool.dll'),
             str(raw / '.qualification' / name)], env=environment, text=True))['compiled']
     def graph(label, restored=False, resynced=False):
         events = results / (label + '.bep')

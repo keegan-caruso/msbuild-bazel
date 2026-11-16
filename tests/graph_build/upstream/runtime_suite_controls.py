@@ -186,7 +186,7 @@ def main():
                 (raw / p).write_bytes(content)
             binlog = raw / '.qualification' / (case + '-suite.binlog')
             assert invoke(raw_command + [stable + '/.qualification/' + binlog.name], case + '-raw', raw).returncode == 0
-            details = json.loads(subprocess.check_output([str(sdk / 'dotnet'), str(reader / 'bin/Release/net10.0/Reader.dll'), str(binlog)], env=environment, text=True))
+            details = json.loads(subprocess.check_output([str(sdk / 'dotnet'), str(reader / 'bin/Release/net11.0/Reader.dll'), str(binlog)], env=environment, text=True))
             compiled = details['compiled']
             assert compiled and len({(c['project'], c['framework']) for c in compiled}) == len(compiled), compiled
             row = test(case, len(compiled))
@@ -209,7 +209,7 @@ def main():
         for workspace in [root, raw]:
             (workspace / test_source).write_bytes(changed)
         assert invoke(raw_command + [stable + '/.qualification/assertion-suite.binlog'], 'assertion-raw', raw).returncode == 0
-        compiled = json.loads(subprocess.check_output([str(sdk / 'dotnet'), str(reader / 'bin/Release/net10.0/Reader.dll'),
+        compiled = json.loads(subprocess.check_output([str(sdk / 'dotnet'), str(reader / 'bin/Release/net11.0/Reader.dll'),
             str(raw / '.qualification/assertion-suite.binlog')], env=environment, text=True))['compiled']
         assert len(compiled) == 1 and compiled[0]['project'].endswith('/System.IO.Pipelines.Tests.csproj'), compiled
         row = test('assertion-failure', 1, failure='assertion')

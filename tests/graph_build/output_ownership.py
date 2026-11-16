@@ -54,7 +54,7 @@ def main():
             clear()
             run(DOTNET, 'msbuild', root / 'P3/P3.csproj', '-graphBuild', '-m:4', '-t:Build',
                 '-p:Configuration=Release', '-p:UseSharedCompilation=false', '-p:DisableTransitiveProjectReferences=true',
-                '-p:NetCoreSdkRoot=' + str(SDK / 'sdk/11.0.100'),
+                '-p:NETCoreSdkBundledVersionsProps=' + str(SDK / 'sdk/11.0.100/Microsoft.NETCoreSdk.BundledVersions.props'),
                 '-p:PathMap=' + str(root) + '=/_/workspace%2C' + str(SDK) + '=/_/sdk')
             assert products() == cached, case
         print('PASS: diamond seed/body/API raw compiler-output parity and expected cache boundaries')
