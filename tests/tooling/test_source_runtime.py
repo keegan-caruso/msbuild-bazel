@@ -1,4 +1,5 @@
 """Standalone runtime acquisition and nested Bazel invocation controls."""
+import hashlib
 import json
 import os
 import socket
@@ -17,9 +18,20 @@ from source_runtime.linux import launcher, build_command
 from source_runtime import apple
 sys.path.insert(0, str(ROOT / 'tests/graph_build/upstream'))
 from runtime_product_inventory import configure_sync, inventory
+import runtime_source_compatibility as compatibility
 
 
 class SourceRuntimeSetupTests(unittest.TestCase):
+    def test_runtime_linker_adaptation_preserves_other_bytes_and_rejects_drift(self):
+        original = b"prefix\nargBuilder.Append(new string('\\\\', numBackslash));\nsuffix\n"
+        expected = b"prefix\nargBuilder.Append('\\\\', numBackslash);\nsuffix\n"
+        with patch.object(compatibility, 'LINKER_SHA256', hashlib.sha256(original).hexdigest()):
+            self.assertEqual(compatibility.compatible_source(compatibility.LINKER_DRIVER, original), expected)
+            for changed in (original + b'changed', expected):
+                with self.assertRaisesRegex(ValueError, 'source changed'):
+                    compatibility.compatible_source(compatibility.LINKER_DRIVER, changed)
+        self.assertEqual(compatibility.compatible_source('unrelated.cs', original), original)
+
     def test_project_cache_policy_is_strict_and_retains_owned_state(self):
         with patch.dict(os.environ, {}, clear=True):
             self.assertEqual(project_cache_read_only(), '0')
