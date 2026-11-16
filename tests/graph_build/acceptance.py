@@ -23,13 +23,17 @@ def main():
     local_env = dict(os.environ)
     for key in ("RULES_MSBUILD_PROJECT_CACHE_URL", "RULES_MSBUILD_PROJECT_CACHE_BEARER_TOKEN", "RULES_MSBUILD_PROJECT_CACHE_READ_ONLY"):
         local_env.pop(key, None)
-    for name in SLICES:
+    slices = [(name, []) for name in SLICES]
+    if args.linux_workers:
+        slices += [("worker_lifecycle", []), ("worker_preparation", []), ("worker_preparation_zero", ["--cache-mb=0"])]
+    for name, options in slices:
+        script = "worker_preparation" if name == "worker_preparation_zero" else name
         with (args.directory / (name + ".log")).open("w") as log:
-            result = subprocess.run([sys.executable, str(ROOT / "tests/graph_build" / (name + ".py"))], cwd=ROOT, env=local_env, stdout=log, stderr=subprocess.STDOUT)
+            result = subprocess.run([sys.executable, str(ROOT / "tests/graph_build" / (script + ".py")), *options], cwd=ROOT, env=local_env, stdout=log, stderr=subprocess.STDOUT)
         if result.returncode:
             raise SystemExit(f"{name} failed: {args.directory / (name + '.log')}")
         print(f"PASS {name}", flush=True)
-    for name, target in [("quickstart", "//tests/integration:quickstart")] + ([("workers", "//tests/integration:workers")] if args.linux_workers else []):
+    for name, target in [("quickstart", "//tests/integration:quickstart")] + ([("workers", "//tests/integration:workers"), ("evaluation_worker", "//tests/integration:evaluation_worker")] if args.linux_workers else []):
         with (args.directory / (name + ".log")).open("w") as log:
             result = subprocess.run(["bash", str(ROOT / "scripts/bazel.sh"), "test", target, "--test_output=errors"], cwd=ROOT, env=os.environ, stdout=log, stderr=subprocess.STDOUT)
         if result.returncode:

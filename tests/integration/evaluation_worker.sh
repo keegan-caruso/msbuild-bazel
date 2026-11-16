@@ -19,10 +19,19 @@ public sealed class ProofTask : Microsoft.Build.Utilities.Task {
  public string Project {get;set;} = ""; public string File {get;set;} = ""; public string Value {get;set;} = "";
  private static readonly HashSet<string> Seen = new();
  public override bool Execute() {
-  if(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData)!="/__rules_msbuild_graph/scratch/.local/share") throw new Exception("Private application-data layout changed");
-  var marker=Path.Combine(Path.GetTempPath(),"qualification-"+Path.GetFileNameWithoutExtension(Project));
-  if(!Seen.Add(Project)||System.IO.File.Exists(marker)) throw new Exception("Retained task/request scratch leaked");
-  System.IO.File.WriteAllText(marker,"first"); System.IO.File.WriteAllText(File,"v1:"+Value); return true;
+  var graph=Project.StartsWith("/__rules_msbuild_graph/output/workspace/",StringComparison.Ordinal);
+  var home=Environment.GetEnvironmentVariable("HOME") ?? throw new Exception("Missing private HOME");
+  var xdg=Environment.GetEnvironmentVariable("XDG_DATA_HOME");
+  var expected=String.IsNullOrEmpty(xdg) ? Path.Combine(home,".local/share") : xdg;
+  if(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData,Environment.SpecialFolderOption.DoNotVerify)!=expected) throw new Exception("Application-data HOME/XDG policy changed");
+  if(graph) {
+   if(home!="/__rules_msbuild_graph/scratch" || Environment.CurrentDirectory!=Path.GetDirectoryName(Project) || Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData)!="/__rules_msbuild_graph/scratch/.local/share") throw new Exception("Private worker application-data layout changed: HOME="+home+" CWD="+Environment.CurrentDirectory+" Local="+Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData));
+   var marker=Path.Combine(Path.GetTempPath(),"qualification-"+Path.GetFileNameWithoutExtension(Project));
+   if(!Seen.Add(Project)||System.IO.File.Exists(marker)) throw new Exception("Retained task/request scratch leaked");
+   System.IO.File.WriteAllText(marker,"first");
+   System.IO.File.WriteAllText(Path.Combine(Path.GetDirectoryName(File)!,"worker-environment.txt"),"/__rules_msbuild_graph/scratch/.local/share");
+  }
+  System.IO.File.WriteAllText(File,"v1:"+Value); return true;
  }
 }
 CS
@@ -92,6 +101,7 @@ for p in sorted(files):print(hashlib.sha256(p.read_bytes()).hexdigest(),str(p.re
 PY3
 }
 run seed 1 5 0 3
+[[ "$(cat bazel-bin/graph.graph/workspace/src/Library/obj/Release/net10.0/worker-environment.txt)" == /__rules_msbuild_graph/scratch/.local/share ]]
 sed -i 's/profile_build=True/profile_build=False/' BUILD.bazel
 run reused 1 0 3 0
 sed -i 's/=> 1/=> 2/' src/Library/Code.cs
