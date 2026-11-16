@@ -14,7 +14,7 @@ import tarfile
 import uuid
 from urllib.parse import urlsplit
 
-from .common import ROOT, stage_source, digest, read_recipe, run, save, rules_identity, selected_bazel_version, validate_bazel_version, project_cache_read_only
+from .common import ROOT, stage_source, digest, read_recipe, run, save, rules_identity, selected_bazel_version, validate_bazel_version, project_cache_read_only, bazel_cache_read_only
 
 
 def demo_helpers():
@@ -115,6 +115,7 @@ def operate(args, application):
         if not state.get('ready'):
             raise ValueError('Complete setup with --resume before running the app')
         read_only = project_cache_read_only(state)
+        bazel_readonly = bazel_cache_read_only(state, getattr(args, 'bazel_cache_read_only', None))
         memory = worker_memory(state, getattr(args, 'worker_memory_gib', None))
         socket_path = cache_socket(state.get('cacheUrl'), state)
         helpers = demo_helpers()
@@ -130,7 +131,9 @@ def operate(args, application):
         if socket_path:
             start_relay(state['worker'], state['cacheUrl'])
         command = ['container','exec','--env','RULES_MSBUILD_PROJECT_CACHE_READ_ONLY='+read_only,state['worker'],'python3','/source-runtime/rules/scripts/setup-source-runtime.py',
-                   '/source-runtime/work','--test' if args.test else '--run',*(['--',*application] if application else [])]
+                   '/source-runtime/work','--test' if args.test else '--run']
+        if bazel_readonly: command.append('--bazel-cache-read-only')
+        if application: command += ['--', *application]
         return subprocess.run(command).returncode
 
 
@@ -159,6 +162,7 @@ def setup(args):
         validate_bazel_version(state)
         project_cache_read_only(state)
         memory = worker_memory(state, getattr(args, 'worker_memory_gib', None))
+        bazel_readonly = bazel_cache_read_only(state, getattr(args, 'bazel_cache_read_only', None))
         socket_path = cache_socket(state['cacheUrl'], state)
         args.image=state['requestedImage']
         if digest(base/'rules.tar') != state['rulesSha256']:
@@ -177,12 +181,13 @@ def setup(args):
             memory = 8
         if type(memory) is not int or memory <= 0:
             raise ValueError('Worker memory must be a positive integer in GiB')
+        bazel_readonly = bazel_cache_read_only(None, getattr(args, 'bazel_cache_read_only', None))
         socket_path = cache_socket(args.cache_url)
         base.mkdir(parents=True,mode=0o700)
         identifier = uuid.uuid4().hex[:10]
         archive = base/'rules.tar'
         state = dict(projectCacheReadOnly=project_cache_read_only(),bazelVersion=selected_bazel_version(),version=1,kind='apple-source-runtime',id=identifier,worker='msbuild-source-runtime-'+identifier,
-                     requestedImage=args.image,cacheUrl=args.cache_url,cacheSocket=socket_path,workerMemoryGiB=memory,sourceIdentity=rules_identity(),rulesSha256=helpers.snapshot(archive),ready=False)
+                     requestedImage=args.image,cacheUrl=args.cache_url,cacheSocket=socket_path,workerMemoryGiB=memory,bazelCacheReadOnly=bazel_readonly,sourceIdentity=rules_identity(),rulesSha256=helpers.snapshot(archive),ready=False)
         save(base/'setup.json',state)
     with (base/'setup.lock').open('a+') as lock:
         fcntl.flock(lock,fcntl.LOCK_EX|fcntl.LOCK_NB)
@@ -233,6 +238,7 @@ def setup(args):
         command=['container','exec','--env','USE_BAZEL_VERSION='+state['bazelVersion'],'--env','RULES_MSBUILD_PROJECT_CACHE_READ_ONLY='+project_cache_read_only(state),state['worker'],'python3','/source-runtime/rules/scripts/setup-source-runtime.py',
                  '/source-runtime/work','--host-space-path=/host']
         if state['cacheUrl']:command+=['--cache-url='+state['cacheUrl']]
+        if bazel_readonly:command+=['--bazel-cache-read-only']
         if args.source_archive:
             source=read_recipe()['source']
             stage_source(base/'runtime-source.tar.gz',source['sha256'],args.source_archive.resolve())

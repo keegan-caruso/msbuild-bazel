@@ -10,14 +10,14 @@ import subprocess
 import sys
 import time
 
-from .common import ROOT, digest, read_recipe, rules_identity, run, save, owned_output, selected_bazel_version, project_cache_read_only
+from .common import ROOT, digest, read_recipe, rules_identity, run, save, owned_output, selected_bazel_version, project_cache_read_only, bazel_cache_read_only
 from .acquisition import acquire_source
 from .native import prepare_inputs
 
 PREPARE = ROOT / 'tests/graph_build/upstream'
 
 
-def launcher(path, bazelisk, registry, repository_cache, cache_url, distdir=None, read_only='0'):
+def launcher(path, bazelisk, registry, repository_cache, cache_url, distdir=None, read_only='0', bazel_read_only=False):
     # Helpers call the repository launcher. Its explicit Bazelisk override keeps
     # common acquisition/cache options on every nested Bazel invocation as well.
     if read_only not in ('0', '1'):
@@ -37,13 +37,23 @@ def launcher(path, bazelisk, registry, repository_cache, cache_url, distdir=None
 set -euo pipefail
 args=()
 added=0
+ended=0
 for argument in "$@"; do
+    if [[ "$argument" == -- && "$ended" == 0 ]]; then
+        if [[ ''' + ('1' if bazel_read_only else '0') + ''' == 1 && "$added" == 1 ]]; then args+=(--remote_upload_local_results=false); fi
+        ended=1
+    fi
+    if [[ "$ended" == 0 && ''' + ('1' if bazel_read_only else '0') + ''' == 1 && "$argument" == --remote_upload_local_results* && "$argument" != --remote_upload_local_results=false ]]; then
+        echo 'Cannot override the saved read-only Bazel cache policy' >&2; exit 2
+    fi
     args+=("$argument")
+    if [[ "$ended" == 1 ]]; then continue; fi
     case "$argument" in
         build|run|test|cquery|aquery|query|fetch)
             if [[ "$added" == 0 ]]; then args+=(''' + shlex.join(options) + '''); added=1; fi ;;
     esac
 done
+if [[ ''' + ('1' if bazel_read_only else '0') + ''' == 1 && "$added" == 1 && "$ended" == 0 ]]; then args+=(--remote_upload_local_results=false); fi
 exec ''' + shlex.quote(str(bazelisk)) + ''' "${args[@]}"
 ''')
     path.chmod(0o755)
@@ -52,6 +62,11 @@ exec ''' + shlex.quote(str(bazelisk)) + ''' "${args[@]}"
 def build_command(base, action, arguments=()):
     state = json.loads((base / 'setup.json').read_text())
     workspace = Path(state['workspace'])
+    readonly = bazel_cache_read_only(state.get('identity', state))
+    if readonly:
+        wrapper = base / 'bazelisk.sh'
+        if state.get('environment', {}).get('RULES_MSBUILD_BAZELISK') != str(wrapper) or not wrapper.is_file() or digest(wrapper) != state.get('bazelWrapperSha256'):
+            raise ValueError('Saved read-only Bazel wrapper is missing or changed')
     env = dict(os.environ, **state['environment'])
     env.update(DOTNET_CLI_USE_MSBUILD_SERVER='false', MSBUILDUSESERVER='0')
     env['RULES_MSBUILD_PROJECT_CACHE_READ_ONLY'] = project_cache_read_only(state.get('identity', state))
@@ -88,7 +103,8 @@ def setup(args):
     if bool(args.native_toolchain) != bool(args.sandbox):
         raise ValueError('Provide --native-toolchain and --sandbox together')
     recipe = read_recipe()
-    identity = dict(projectCacheReadOnly=project_cache_read_only(state['identity'] if state else None), bazelVersion=selected_bazel_version(), recipe=recipe, rulesSha256=rules_identity(), registry=args.registry, cacheUrl=args.cache_url,
+    bazel_readonly = bazel_cache_read_only(state['identity'] if state else None, getattr(args, 'bazel_cache_read_only', None))
+    identity = dict(bazelCacheReadOnly=bazel_readonly, projectCacheReadOnly=project_cache_read_only(state['identity'] if state else None), bazelVersion=selected_bazel_version(), recipe=recipe, rulesSha256=rules_identity(), registry=args.registry, cacheUrl=args.cache_url,
                     nativePackagesSha256=digest(ROOT/'tests/runtime/native-packages.json') if not args.native_toolchain else None,
                     nativeToolchainSha256=digest(args.native_toolchain) if args.native_toolchain else None,
                     sandboxSha256=digest(args.sandbox) if args.sandbox else None,
@@ -97,7 +113,9 @@ def setup(args):
     with (base / 'setup.lock').open('a+') as lock:
         fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
         if state:
-            if state['identity'] != identity:
+            prior_identity = dict(state['identity'])
+            prior_identity.setdefault('bazelCacheReadOnly', False)
+            if prior_identity != identity:
                 raise ValueError('Setup inputs changed; use a fresh output directory')
         else:
             state = dict(version=1, kind='linux-source-runtime', identity=identity, completed=[], stages=[], ready=False,
@@ -130,7 +148,8 @@ def setup(args):
         wrapper = base / 'bazelisk.sh'
         distdir = base / 'downloads/nuget-dist'
         distdir.mkdir(parents=True, exist_ok=True)
-        launcher(wrapper, bazelisk, args.registry, args.repository_cache, args.cache_url, distdir, read_only=identity['projectCacheReadOnly'])
+        launcher(wrapper, bazelisk, args.registry, args.repository_cache, args.cache_url, distdir, read_only=identity['projectCacheReadOnly'], bazel_read_only=bazel_readonly)
+        state['bazelWrapperSha256'] = digest(wrapper)
         env = dict(os.environ, DOTNET_CLI_USE_MSBUILD_SERVER='false', MSBUILDUSESERVER='0',
                    RULES_MSBUILD_DOTNET_ROOT=str(sdk), RULES_MSBUILD_BAZELISK=str(wrapper),
                    RULES_MSBUILD_BAZEL=str(ROOT / 'scripts/bazel-launcher.sh'),

@@ -403,7 +403,10 @@ The complete source-runtime graph also passed on 9.3: all 563 eligible projects
 replayed through HTTP; Pipelines body/API edits ran 11/26 Csc tasks and retained
 byte-identical declarations. With `--cache-url`, source-runtime setup also enables
 reviewed Restore reuse for `PipeOptions.cs` and its reference source. Its Bazel
-launcher limits remote cache connections to eight and uses a 60-second timeout;
+launcher limits remote cache connections to eight and uses a 60-second timeout.
+`--bazel-cache-read-only` freezes disabled Bazel action uploads for a source-runtime
+setup; `RULES_MSBUILD_PROJECT_CACHE_READ_ONLY=1` separately disables project
+snapshot uploads. Portable controls verify both policies and saved wrapper identity;
 portable wrapper controls check both cache-enabled and cache-free arguments. Only those
 compiler-only contents are exempt; file names/modes, definitions, packages and
 other contents remain keyed. Small Bazel controls on both pins verify body/API

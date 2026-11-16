@@ -54,7 +54,11 @@ from the build worker. On Apple silicon, set `RULES_MSBUILD_SHARED_CACHE_SOCKET`
 to an existing host UNIX relay socket and pass its HTTPS DNS URL with
 `--cache-url` to route through the guest relay without changing TLS identity. The
 socket and URL are frozen with the owned setup; use a fresh setup to change them.
-A cold cache still requires the initial SDK Build.
+For a consumer that must not upload whole Bazel actions, pass
+`--bazel-cache-read-only` on initial setup; it is retained on resume and run.
+This is separate from `RULES_MSBUILD_PROJECT_CACHE_READ_ONLY=1`, which controls
+project snapshot publication. Set both for a consumer that should only read both
+cache layers. A cold cache still requires the initial SDK Build.
 
 The declared `//:runtime_package` output is exported as
 `runtime-linux-arm64.tar.gz` in that directory. It is an unsigned IL developer
