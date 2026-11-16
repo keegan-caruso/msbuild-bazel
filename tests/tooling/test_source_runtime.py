@@ -1,6 +1,7 @@
 """Standalone runtime acquisition and nested Bazel invocation controls."""
 import json
 import os
+import socket
 from pathlib import Path
 import subprocess
 import sys
@@ -82,6 +83,108 @@ class SourceRuntimeSetupTests(unittest.TestCase):
                 command = execute.call_args.args[0]
                 self.assertIn('RULES_MSBUILD_PROJECT_CACHE_READ_ONLY=1', command)
                 self.assertEqual(command[command.index('RULES_MSBUILD_PROJECT_CACHE_READ_ONLY=1')-1], '--env')
+
+    def test_apple_relay_freezes_socket_and_validates_url_and_mount(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            path = str((Path(temporary) / 'relay.sock').resolve())
+            with socket.socket(socket.AF_UNIX) as server:
+                server.bind(path)
+                with patch.dict(os.environ, {'RULES_MSBUILD_SHARED_CACHE_SOCKET': path}, clear=True):
+                    self.assertEqual(apple.cache_socket('https://cache.example:8443'), path)
+                    for url in ('http://cache.example', 'https://127.0.0.1', 'https://user:pass@cache.example', 'https://cache.example/?token=x', 'https://cache.example/#fragment'):
+                        with self.assertRaises(ValueError):
+                            apple.cache_socket(url)
+                    with self.assertRaisesRegex(ValueError, 'socket changed'):
+                        apple.cache_socket('https://cache.example', {})
+                with patch.dict(os.environ, {}, clear=True):
+                    state = {'cacheSocket': path}
+                    self.assertEqual(apple.cache_socket('https://cache.example', state), path)
+                    self.assertIsNone(apple.cache_socket(None, {}))
+                worker = {'configuration': {'mounts': [{'source': path, 'destination': apple.RELAY_SOCKET}]}}
+                apple.validate_relay_mount(worker, path)
+                worker['configuration']['mounts'][0]['source'] = '/different'
+                with self.assertRaisesRegex(ValueError, 'mount differs'):
+                    apple.validate_relay_mount(worker, path)
+            Path(path).unlink()
+            with patch.dict(os.environ, {'RULES_MSBUILD_SHARED_CACHE_SOCKET': path}, clear=True):
+                with self.assertRaisesRegex(ValueError, 'existing host UNIX socket'):
+                    apple.cache_socket('https://cache.example')
+
+    def test_apple_setup_mounts_socket_before_extract_and_relay(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            base = Path(temporary).resolve()
+            path = str(base/'relay.sock')
+            with socket.socket(socket.AF_UNIX) as server:
+                server.bind(path)
+                (base/'rules').mkdir()
+                archive = base/'rules.tar'; archive.write_bytes(b'frozen')
+                state = dict(version=1, kind='apple-source-runtime', requestedImage=None,
+                    cacheUrl='https://cache.example', cacheSocket=path,
+                    bazelVersion=(ROOT/'.bazelversion').read_text().strip(), rulesSha256=digest(archive),
+                    id='owned', worker='worker', image='runtime@sha256:'+'a'*64)
+                save(base/'setup.json', state)
+                args = SimpleNamespace(output=base, resume=True, native_toolchain=None, sandbox=None,
+                    registry=None, repository_cache=None, host_space_path=None, image=None, cache_url=None,
+                    source_archive=None)
+                with patch.dict(os.environ, {}, clear=True), \
+                     patch.object(apple.platform, 'machine', return_value='arm64'), \
+                     patch.object(apple.shutil, 'which', return_value='container'), \
+                     patch.object(apple, 'demo_helpers', return_value=SimpleNamespace(inspect=lambda name: None)), \
+                     patch.object(apple, 'run') as run, \
+                     patch.object(apple.subprocess, 'Popen', side_effect=RuntimeError('captured')):
+                    with self.assertRaisesRegex(RuntimeError, 'captured'):
+                        apple.setup(args)
+                calls = [call.args[0] for call in run.call_args_list]
+                self.assertIn(path+':'+apple.RELAY_SOCKET, calls[0])
+                self.assertEqual(calls[2][3], 'tar')
+                self.assertEqual(calls[3][:4], ['container', 'exec', 'worker', 'sh'])
+
+    def test_apple_relay_is_started_after_restoring_owned_worker(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            base = Path(temporary)
+            path = str((base/'relay.sock').resolve())
+            with socket.socket(socket.AF_UNIX) as server:
+                server.bind(path)
+                state = dict(kind='apple-source-runtime', ready=True, id='owned', worker='worker',
+                    image='runtime@sha256:'+'a'*64, cacheSocket=path, cacheUrl='https://cache.example')
+                save(base/'setup.json', state)
+                worker = dict(configuration=dict(labels={'rules-msbuild.source-runtime': 'owned'},
+                    image=dict(descriptor=dict(digest='sha256:'+'a'*64)),
+                    mounts=[dict(source=path, destination=apple.RELAY_SOCKET)]), status={'state': 'stopped'})
+                with patch.dict(os.environ, {}, clear=True), \
+                     patch.object(apple, 'demo_helpers', return_value=SimpleNamespace(inspect=lambda name: worker)), \
+                     patch.object(apple, 'run') as run, \
+                     patch.object(apple.subprocess, 'run', return_value=SimpleNamespace(returncode=0)):
+                    self.assertEqual(apple.operate(SimpleNamespace(output=base, test=False), []), 0)
+                self.assertEqual(run.call_args_list[0].args[0], ['container', 'start', 'worker'])
+                command = run.call_args_list[1].args[0]
+                self.assertEqual(command[:4], ['container', 'exec', 'worker', 'sh'])
+                self.assertEqual(command[-1], 'https://cache.example')
+                self.assertIn('kill "$pid"', command[5])
+                self.assertIn('rm -f "$ready" "$pidfile"', command[5])
+
+    def test_apple_relay_failed_start_and_timeout_remove_owned_state(self):
+        with patch.object(apple, 'run') as run:
+            apple.start_relay('worker', 'https://cache.example')
+        original = run.call_args.args[0][5]
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            for mode in ('fail', 'timeout'):
+                fake = root/'fake-python'
+                fake.write_text('#!/bin/sh\n' + ('exit 7\n' if mode == 'fail' else 'echo $$ > "'+str(root/'child')+'"\nexec sleep 30\n'))
+                fake.chmod(0o755)
+                script = original.replace('/tmp/rules-msbuild-source-runtime-relay', str(root/'relay'))
+                script = script.replace('nohup python3 ', 'nohup '+str(fake)+' ')
+                script = script.replace('seq 1 100', 'seq 1 2')
+                result = subprocess.run(['sh', '-c', script, 'relay', 'https://cache.example'], capture_output=True, text=True, timeout=5)
+                self.assertNotEqual(result.returncode, 0)
+                self.assertFalse((root/'relay.pid').exists())
+                self.assertFalse((root/'relay.ready').exists())
+                if mode == 'timeout':
+                    self.assertIn('timed out', result.stderr)
+                    pid = int((root/'child').read_text())
+                    with self.assertRaises(ProcessLookupError):
+                        os.kill(pid, 0)
 
     def test_bazel_selection_and_resume_identity(self):
         with patch.dict(os.environ, {}, clear=True):

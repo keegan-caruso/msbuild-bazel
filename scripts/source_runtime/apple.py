@@ -2,6 +2,8 @@
 import fcntl
 import importlib.util
 import json
+import os
+import stat
 import platform
 from pathlib import Path
 import re
@@ -10,6 +12,7 @@ import shutil
 import subprocess
 import tarfile
 import uuid
+from urllib.parse import urlsplit
 
 from .common import ROOT, stage_source, digest, read_recipe, run, save, rules_identity, selected_bazel_version, validate_bazel_version, project_cache_read_only
 
@@ -19,6 +22,73 @@ def demo_helpers():
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
     return module
+
+
+RELAY_SOCKET = '/var/host-services/shared-cache.sock'
+
+
+def cache_socket(cache_url, state=None):
+    supplied = os.environ.get('RULES_MSBUILD_SHARED_CACHE_SOCKET') or None
+    recorded = state.get('cacheSocket') if state is not None else None
+    if supplied:
+        supplied = str(Path(supplied).expanduser().resolve())
+    if state is not None and supplied is not None and supplied != recorded:
+        raise ValueError('Shared cache socket changed; use a fresh directory')
+    socket_path = recorded if state is not None else supplied
+    if socket_path:
+        spec = importlib.util.spec_from_file_location('shared_cache_guest_relay', ROOT/'scripts/shared-cache-guest-relay.py')
+        relay = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(relay)
+        relay.endpoint(cache_url or '')
+        parsed = urlsplit(cache_url)
+        if parsed.query or parsed.fragment:
+            raise ValueError('Shared cache relay URL cannot contain a query or fragment')
+        try:
+            valid = stat.S_ISSOCK(Path(socket_path).stat().st_mode)
+        except OSError:
+            valid = False
+        if not valid:
+            raise ValueError('Shared cache relay requires an existing host UNIX socket')
+    return socket_path
+
+
+def validate_relay_mount(worker, socket_path):
+    if not socket_path:
+        return
+    mounts = worker['configuration'].get('mounts', [])
+    matches = [mount for mount in mounts if mount.get('destination') == RELAY_SOCKET]
+    if len(matches) != 1 or matches[0].get('source') != socket_path:
+        raise ValueError('Source-runtime worker shared cache socket mount differs from setup')
+
+
+def start_relay(worker, cache_url):
+    # The worker outlives container exec. A PID check keeps repeated setup/run
+    # calls idempotent while rejecting stale ready files after a worker restart.
+    script = r'''set -eu
+pidfile=/tmp/rules-msbuild-source-runtime-relay.pid
+ready=/tmp/rules-msbuild-source-runtime-relay.ready
+if [ -f "$pidfile" ]; then
+    pid=$(cat "$pidfile")
+    case "$pid" in ''|*[!0-9]*) exit 1;; esac
+    if [ -r "/proc/$pid/cmdline" ] && tr '\0' '\n' < "/proc/$pid/cmdline" | grep -Fxq /source-runtime/rules/scripts/shared-cache-guest-relay.py; then
+        [ -f "$ready" ] && exit 0
+        kill "$pid" 2>/dev/null || :
+    fi
+fi
+rm -f "$ready" "$pidfile"
+nohup python3 /source-runtime/rules/scripts/shared-cache-guest-relay.py --url "$1" --socket /var/host-services/shared-cache.sock --ready "$ready" >/tmp/rules-msbuild-source-runtime-relay.log 2>&1 </dev/null &
+pid=$!
+echo "$pid" > "$pidfile"
+for attempt in $(seq 1 100); do
+    kill -0 "$pid" 2>/dev/null || { cat /tmp/rules-msbuild-source-runtime-relay.log >&2; rm -f "$ready" "$pidfile"; exit 1; }
+    [ -f "$ready" ] && exit 0
+    sleep 0.1
+done
+kill "$pid" 2>/dev/null || :
+rm -f "$ready" "$pidfile"
+echo 'Shared cache relay startup timed out' >&2; exit 1
+'''
+    run(['container', 'exec', worker, 'sh', '-c', script, 'relay', cache_url])
 
 
 def operate(args, application):
@@ -31,14 +101,18 @@ def operate(args, application):
         if not state.get('ready'):
             raise ValueError('Complete setup with --resume before running the app')
         read_only = project_cache_read_only(state)
+        socket_path = cache_socket(state.get('cacheUrl'), state)
         helpers = demo_helpers()
         worker = helpers.inspect(state['worker'])
         if not worker or worker['configuration']['labels'].get('rules-msbuild.source-runtime') != state['id']:
             raise ValueError('Source-runtime worker is missing or has different ownership')
         if worker['configuration']['image']['descriptor']['digest'] != state['image'].split('@',1)[1]:
             raise ValueError('Source-runtime worker image differs from setup')
+        validate_relay_mount(worker, socket_path)
         if worker['status']['state'] != 'running':
             run(['container','start',state['worker']])
+        if socket_path:
+            start_relay(state['worker'], state['cacheUrl'])
         command = ['container','exec','--env','RULES_MSBUILD_PROJECT_CACHE_READ_ONLY='+read_only,state['worker'],'python3','/source-runtime/rules/scripts/setup-source-runtime.py',
                    '/source-runtime/work','--test' if args.test else '--run',*(['--',*application] if application else [])]
         return subprocess.run(command).returncode
@@ -68,6 +142,7 @@ def setup(args):
                 raise ValueError('Setup options changed; use a fresh directory')
         validate_bazel_version(state)
         project_cache_read_only(state)
+        socket_path = cache_socket(state['cacheUrl'], state)
         args.image=state['requestedImage']
         if digest(base/'rules.tar') != state['rulesSha256']:
             raise ValueError('Frozen source-runtime rules changed')
@@ -80,11 +155,12 @@ def setup(args):
             raise ValueError('A new source-runtime worker needs 32 GiB free')
         if args.image and not re.fullmatch(r'[^\s]+@sha256:[a-f0-9]{64}',args.image):
             raise ValueError('Use an immutable image reference')
+        socket_path = cache_socket(args.cache_url)
         base.mkdir(parents=True,mode=0o700)
         identifier = uuid.uuid4().hex[:10]
         archive = base/'rules.tar'
         state = dict(projectCacheReadOnly=project_cache_read_only(),bazelVersion=selected_bazel_version(),version=1,kind='apple-source-runtime',id=identifier,worker='msbuild-source-runtime-'+identifier,
-                     requestedImage=args.image,cacheUrl=args.cache_url,sourceIdentity=rules_identity(),rulesSha256=helpers.snapshot(archive),ready=False)
+                     requestedImage=args.image,cacheUrl=args.cache_url,cacheSocket=socket_path,sourceIdentity=rules_identity(),rulesSha256=helpers.snapshot(archive),ready=False)
         save(base/'setup.json',state)
     with (base/'setup.lock').open('a+') as lock:
         fcntl.flock(lock,fcntl.LOCK_EX|fcntl.LOCK_NB)
@@ -120,13 +196,17 @@ def setup(args):
                 raise ValueError('Container ownership differs')
             if worker['configuration']['image']['descriptor']['digest'] != state['image'].split('@',1)[1]:
                 raise ValueError('Container image differs')
+            validate_relay_mount(worker, socket_path)
             if worker['status']['state']!='running':run(['container','start',state['worker']])
         else:
+            mount = ['--volume', socket_path+':'+RELAY_SOCKET] if socket_path else []
             run(['container','run','-d','--init','--arch','arm64','--name',state['worker'],'--cpus','4','--memory','8G',
                  '--cap-add','SYS_ADMIN','--masked-path','NONE','--read-only-path','NONE',
-                 '--label','rules-msbuild.source-runtime='+state['id'],'--volume',str(base)+':/host:ro',state['image'],'sleep','infinity'])
+                 '--label','rules-msbuild.source-runtime='+state['id'],'--volume',str(base)+':/host:ro',*mount,state['image'],'sleep','infinity'])
         run(['container','exec',state['worker'],'mkdir','-p','/source-runtime/rules'])
         run(['container','exec',state['worker'],'tar','-xf','/host/rules.tar','-C','/source-runtime/rules'])
+        if socket_path:
+            start_relay(state['worker'], state['cacheUrl'])
         command=['container','exec','--env','USE_BAZEL_VERSION='+state['bazelVersion'],'--env','RULES_MSBUILD_PROJECT_CACHE_READ_ONLY='+project_cache_read_only(state),state['worker'],'python3','/source-runtime/rules/scripts/setup-source-runtime.py',
                  '/source-runtime/work','--host-space-path=/host']
         if state['cacheUrl']:command+=['--cache-url='+state['cacheUrl']]
