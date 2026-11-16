@@ -12,9 +12,13 @@ import platform
 import posixpath
 import shutil
 import subprocess
+import sys
 import tarfile
 
 from inventory import digest
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "runtime"))
+from native_environment import build_prefix
 
 
 def normalize(entry):
@@ -65,7 +69,7 @@ def main():
         archive.add(baseline / '.dotnet', arcname='.dotnet', filter=normalize)
         archive.add(bootstrap_archive, arcname='prereqs/packages/archive/Private.SourceBuilt.Artifacts.Bootstrap.tar.gz', filter=normalize)
 
-    script = '''set -euo pipefail
+    script = build_prefix() + '''
     export DOTNET_PROCESSOR_COUNT=2 DOTNET_CLI_TELEMETRY_OPTOUT=1 DOTNET_GENERATE_ASPNET_CERTIFICATE=false NuGetAudit=false
     patch -p1 < identitymodel.patch
     ./prep-source-build.sh --no-sdk --no-bootstrap --no-artifacts --no-prebuilts > preparation.log 2>&1 || { tail -100 preparation.log; exit 1; }
@@ -120,7 +124,8 @@ def main():
     (w / 'App.csproj').write_text('<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup><TargetFramework>net10.0</TargetFramework><OutputType>Exe</OutputType><UseAppHost>false</UseAppHost><EnableDefaultCompileItems>false</EnableDefaultCompileItems></PropertyGroup><ItemGroup><Compile Include="App.cs" /></ItemGroup></Project>')
     (w / 'App.cs').write_text('System.Console.WriteLine("SDK_FROM_SOURCE="+System.Environment.Version); return System.Environment.Version.ToString()=="10.0.0" ? 0 : 1;')
     (w / 'app-contract.json').write_text(json.dumps(dict(Version=1,Entry='App.csproj',SdkVersion='10.0.100',Properties={'Configuration':'Release'},SharedInputs=[],Projects={'App.csproj':dict(Inputs=['App.csproj','App.cs'],OutputDirectories=['bin/Release/net10.0','obj/Release/net10.0'])})))
-    report = {'sourceRevision': pin['sourceRevision'], 'sourceArchiveSha256': pin['sourceArchive']['sha256'],
+    report = {'nativeEnvironmentSha256': digest(rules / 'tests/runtime/native_environment.py'),
+              'sourceRevision': pin['sourceRevision'], 'sourceArchiveSha256': pin['sourceArchive']['sha256'],
               'bootstrapArtifactsSha256': digest(bootstrap_archive),
               'bootstrapSdkVersion': bootstrap_version,
               'inputs': {name: {'sha256': digest(w / name), 'bytes': (w / name).stat().st_size}
