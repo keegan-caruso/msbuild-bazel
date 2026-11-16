@@ -19,7 +19,7 @@ System.Runtime.Loader.AssemblyLoadContext.Default.Resolving += (context, name) =
 Environment.SetEnvironmentVariable("MSBUILD_EXE_PATH", Path.Combine(sdk, "MSBuild.dll"));
 Environment.SetEnvironmentVariable("MSBuildSDKsPath", Path.Combine(sdk, "Sdks"));
 var properties = data.GetProperty("Properties").EnumerateObject().ToDictionary(p => p.Name, p => p.Value.GetString()!, StringComparer.OrdinalIgnoreCase);
-properties["NetCoreSdkRoot"] = sdk;
+properties["NETCoreSdkBundledVersionsProps"] = Path.Combine(sdk, "Microsoft.NETCoreSdk.BundledVersions.props");
 properties["UseSharedCompilation"] = "false";
 properties["PathMap"] = root + "=/_/workspace," + sdkRoot + "=/_/sdk";
 using var collection = new ProjectCollection();

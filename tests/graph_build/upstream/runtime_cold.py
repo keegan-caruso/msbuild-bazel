@@ -64,7 +64,7 @@ def main():
     sdk = Path(os.environ['RULES_MSBUILD_DOTNET_ROOT']).resolve()
     stable, stable_sdk = '/__rules_msbuild_graph/output/workspace', '/__rules_msbuild_graph/sdk'
     raw_host = ['bash', str(ROOT / 'tests/graph_build/upstream/runtime_raw.sh'), str(sdk), str(raw), str(scratch)]
-    common = ['-p:UseSharedCompilation=false', '-p:NetCoreSdkRoot=' + stable_sdk + '/sdk/' + contract['SdkVersion'],
+    common = ['-p:UseSharedCompilation=false', '-p:NETCoreSdkBundledVersionsProps=' + stable_sdk + '/sdk/' + contract['SdkVersion'] + '/Microsoft.NETCoreSdk.BundledVersions.props',
               '-p:PathMap=' + stable + '=/_/workspace%2C' + stable_sdk + '=/_/sdk']
     properties = [f'-p:{k}={v}' for k, v in contract['Properties'].items()]
     environment = dict(os.environ, USE_BAZEL_VERSION='9.3.2')
@@ -128,7 +128,7 @@ def main():
         for index, entry in enumerate(entries):
             restore = raw_host + ['restore', stable + '/' + entry, '--configfile', stable + '/NuGet.Config',
                       '--source', stable + '/.package-source', '--packages', stable + '/.nuget', '-p:NuGetAudit=false',
-                      '-p:NetCoreSdkRoot=' + stable_sdk + '/sdk/' + contract['SdkVersion']]
+                      '-p:NETCoreSdkBundledVersionsProps=' + stable_sdk + '/sdk/' + contract['SdkVersion'] + '/Microsoft.NETCoreSdk.BundledVersions.props']
             restore += [f'-p:{k}={v}' for k, v in root_properties(contract, entry).items() if k.lower() != 'targetframework']
             restore_seconds += execute(restore, 'raw-restore-' + str(index), raw)
         diagnostic.mkdir(exist_ok=True)

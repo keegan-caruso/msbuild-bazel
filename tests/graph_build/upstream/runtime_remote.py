@@ -277,7 +277,7 @@ def main():
         binlog = label + '.binlog'
         with (results / (label + '-raw.log')).open('w') as log:
             subprocess.run(command + [stable + '/.qualification/' + binlog], env=environment, stdout=log, stderr=subprocess.STDOUT, check=True)
-        compiled = json.loads(subprocess.check_output([str(sdk / 'dotnet'), str(reader / 'bin/Release/net10.0/Tool.dll'),
+        compiled = json.loads(subprocess.check_output([str(sdk / 'dotnet'), str(reader / 'bin/Release/net11.0/Tool.dll'),
             str(raw / '.qualification' / binlog)], env=environment, text=True))['compiled']
         if label in ['body-remote', 'api-remote']:
             assert len(compiled) == mutation['expectedMisses'][label.split('-')[0]], compiled
@@ -304,7 +304,7 @@ def main():
         stable, stable_sdk = '/__rules_msbuild_graph/output/workspace', '/__rules_msbuild_graph/sdk'
         host = ['bash', str(ROOT / 'tests/graph_build/upstream/runtime_raw.sh'), str(sdk), str(raw), str(scratch)]
         properties = [f'-p:{k}={v}' for k, v in contract['Properties'].items()]
-        common = ['-p:UseSharedCompilation=false', '-p:NetCoreSdkRoot=' + stable_sdk + '/sdk/' + contract['SdkVersion'],
+        common = ['-p:UseSharedCompilation=false', '-p:NETCoreSdkBundledVersionsProps=' + stable_sdk + '/sdk/' + contract['SdkVersion'] + '/Microsoft.NETCoreSdk.BundledVersions.props',
                   '-p:PathMap=' + stable + '=/_/workspace%2C' + stable_sdk + '=/_/sdk']
         entries = contract.get('Entries') or [contract['Entry']]
         def execute(command, label):
@@ -316,7 +316,7 @@ def main():
         for index, entry in enumerate(entries):
             restore = host + ['restore', stable + '/' + entry, '--configfile', stable + '/NuGet.Config',
                              '--source', stable + '/.package-source', '--packages', stable + '/.nuget', '-p:NuGetAudit=false',
-                             '-p:NetCoreSdkRoot=' + stable_sdk + '/sdk/' + contract['SdkVersion']]
+                             '-p:NETCoreSdkBundledVersionsProps=' + stable_sdk + '/sdk/' + contract['SdkVersion'] + '/Microsoft.NETCoreSdk.BundledVersions.props']
             restore += [f'-p:{k}={v}' for k, v in root_properties(contract, entry).items() if k.lower() != 'targetframework']
             restore_seconds += execute(restore, 'raw-restore-' + str(index))
         if len(entries) == 1:
@@ -327,7 +327,7 @@ def main():
             for source, target in [('RuntimeRawGraph.cs.txt', 'Program.cs'), ('RuntimeRawGraph.csproj.txt', 'Raw.csproj')]:
                 shutil.copyfile(Path(__file__).with_name(source), driver / target)
             execute([str(sdk / 'dotnet'), 'build', str(driver / 'Raw.csproj'), '-c', 'Release', '-p:UseSharedCompilation=false'], 'raw-driver-build')
-            shutil.copytree(driver / 'bin/Release/net10.0', raw / '.qualification')
+            shutil.copytree(driver / 'bin/Release/net11.0', raw / '.qualification')
             command = host + [stable + '/.qualification/Raw.dll', stable, stable + '/graph.generated.json', 'build']
         build_seconds = execute(command, 'raw-build')
         products = {p: v['sha256'] for p, v in seed['outputs'].items() if Path(p).suffix in ['.dll', '.pdb', '.resources']
