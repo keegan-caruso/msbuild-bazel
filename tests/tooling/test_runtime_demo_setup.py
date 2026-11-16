@@ -94,14 +94,38 @@ class RuntimeDemoInputs(unittest.TestCase):
 
     @unittest.skipUnless(hasattr(tarfile, 'data_filter'), 'Secure extraction requires the qualified Linux Python runtime')
     def test_round_trip_preserves_inputs_hardlinks_modes_and_rebases_rules(self):
+        (self.root/'Source.cs').chmod(0o664)
+        (self.root/'native/source.tar').chmod(0o660)
         expected = pack(self.root, self.archive)
         consumer = unpack(self.archive, expected, self.base/'consumer')
         self.assertEqual((consumer/'Source.cs').read_bytes(), (self.root/'Source.cs').read_bytes())
+        self.assertEqual((consumer/'Source.cs').stat().st_mode & 0o777, 0o664)
+        self.assertEqual((consumer/'native/source.tar').stat().st_mode & 0o777, 0o660)
         self.assertTrue((consumer/'suite-host/host.sh').stat().st_mode & 0o111)
         self.assertEqual((consumer/'native/source.tar').stat().st_ino, (consumer/'host/source.tar').stat().st_ino)
         self.assertNotIn('/old/rules', (consumer/'MODULE.bazel').read_text())
         self.assertFalse((consumer/'bazel-bin').exists())
         self.assertFalse((consumer/'out').exists())
+
+    @unittest.skipUnless(hasattr(tarfile, 'data_filter'), 'Secure extraction requires the qualified Linux Python runtime')
+    def test_input_modes_are_manifest_checked_and_special_bits_stripped(self):
+        pack(self.root, self.archive)
+        for special in (False, True):
+            with self.subTest(special=special):
+                altered = self.base/('mode-' + str(special) + '.tar.gz')
+                with tarfile.open(self.archive) as source, tarfile.open(altered, 'w:gz') as output:
+                    for member in source:
+                        if member.name == 'workspace/Source.cs':
+                            member.mode = (member.mode | 0o7000) if special else (member.mode ^ 0o020)
+                        output.addfile(member, source.extractfile(member) if member.isfile() else None)
+                destination = self.base/('mode-consumer-' + str(special))
+                if special:
+                    consumer = unpack(altered, digest(altered), destination)
+                    self.assertEqual((consumer/'Source.cs').stat().st_mode & 0o7777,
+                                     (self.root/'Source.cs').stat().st_mode & 0o777)
+                else:
+                    with self.assertRaisesRegex(AssertionError, 'Source.cs'):
+                        unpack(altered, digest(altered), destination)
 
     def test_wrong_archive_digest_rejected_before_extraction(self):
         pack(self.root, self.archive)

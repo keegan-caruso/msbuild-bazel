@@ -87,7 +87,15 @@ def unpack(archive, expected, destination):
                 assert member.linkname.startswith('workspace/') and '..' not in Path(member.linkname).parts
             seen.add(member.name)
         assert hasattr(tarfile, 'data_filter'), 'Secure extraction requires the qualified Linux Python runtime'
-        source.extractall(destination, members=members, filter='data')
+        def input_filter(member, target):
+            filtered = tarfile.data_filter(member, target)
+            if filtered is not None and (member.isfile() or member.islnk()):
+                # This digest-bound input checkpoint records ordinary permission
+                # bits. Keep data_filter's path/link checks and strip special
+                # bits, but do not silently remove declared group-write modes.
+                filtered = filtered.replace(mode=member.mode & 0o777)
+            return filtered
+        source.extractall(destination, members=members, filter=input_filter)
     manifest = json.loads((destination / 'manifest.json').read_text())
     assert manifest['version'] == 1 and manifest['commit'] == COMMIT
     root = destination / 'workspace'

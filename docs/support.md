@@ -801,6 +801,13 @@ Inspect the authored SDK boundary with `runtime_jit_reference_probe.py RAW_RESUL
 SDK_ROOT REPORT.json`. It rebuilds the helper and consumer using the raw control's
 properties, then checks reference-emission settings and `ReferencePathWithRefAssemblies`.
 
+Runtime demo input checkpoints preserve declared ordinary file permissions and
+internal hardlinks across extraction, including group-write bits. Secure extraction
+still checks paths and links and removes special permission bits; the manifest
+checks content, membership and modes. `test_runtime_demo_setup.py` passes all 11
+controls on Ubuntu 26.04 / Python 3.14.4 under umasks `022`, `002` and `077`, including
+ordinary-mode tampering, special-bit stripping, traversal and symlink rejection.
+
 ### Complete source-runtime product
 
 The [source-to-app workflow](../examples/source-runtime-app/README.md) acquires the
