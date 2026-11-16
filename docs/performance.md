@@ -1,5 +1,28 @@
 # Performance versus raw MSBuild
 
+## Pinned source lifecycle control
+
+A native macOS ARM64 control on Bazel **9.3.2** installed two synthetic Git
+snapshots of the tracked rules source, upgraded from A to B, then rolled back to
+A. Each phase used a fresh output base and one shared local action cache. A
+consumer analyzed the public `msbuild_graph` rule with a fake SDK and built a
+small action using a marker from the selected source. Output bytes were A, B,
+A; the action missed on install and upgrade and hit on rollback. This tests that
+specific declared action boundary, not .NET compilation, graph recovery or
+cross-revision project-cache compatibility. No release was created.
+
+Reproduce with a pinned Bazel executable and new disposable directories:
+
+```sh
+python3 tests/tooling/source_distribution_lifecycle.py /tmp/source-lifecycle-run \
+  --bazel /absolute/path/to/bazel --disk-cache /tmp/source-lifecycle-cache
+```
+
+The driver writes the synthetic commit IDs, consumer module files, action logs
+and results in the evidence directory. It shuts down each owned Bazel server.
+See [pinning and rollback](api.md#pin-update-and-roll-back-the-rules) for the
+consumer policy.
+
 ## CI comparison controls
 
 `runtime_recovered_tests.py --demo --test-cache=yes` measures normal CI test-result
