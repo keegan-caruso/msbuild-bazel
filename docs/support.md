@@ -62,9 +62,9 @@ SDK_VERSION_CACHE_URL=http://cache:8080 DYNAMIC_SOURCE_CACHE_URL=http://cache:80
   --test_output=errors
 ```
 
-The earlier 481-compilation runtime baseline and source-built SDK consumers below
-retain their recorded 9.2 qualification. The downloaded-SDK runtime slice below
-has separate 9.3 results.
+The earlier 481-compilation runtime baseline and historical source-SDK component
+consumers retain their recorded 9.2 qualification. The downloaded-SDK runtime
+slice and current source-SDK producer have separate 9.3 results.
 
 ## Cache and worker diagnosis
 
@@ -307,8 +307,9 @@ python3 -m unittest discover -s tests/sdk_repository -v
 
 The x64 controls used amd64 SDK/Bazel binaries in Ubuntu containers on an ARM64
 Mac. This establishes emulated x64 behavior, not native x64 performance or
-source-built SDK/runtime qualification. The complete native Linux x64 downloaded-SDK
-workflow remains unqualified.
+source-built SDK/runtime qualification. Current native x64 owned checks,
+quickstart and HTTP recovery are recorded in the [SDK 11 matrix](#sdk-11-platform-qualification);
+x64 source production, automatic workers and large upstream graphs remain unqualified.
 
 Native macOS ARM64 passed `//tests/integration:{quickstart,native_sdk}` on
 the recorded 8.8.0 / 9.3.0 pins with SDK **10.0.400**: the public catalog's packages,
@@ -316,7 +317,7 @@ Razor/Publish, app/tests, body/API reference checks, sync/check and an independe
 strict-lock source/output-base consumer. These four controls also passed on
 native Linux ARM64. All 24 SDK/runtime repository controls
 also passed on macOS / 9.3. The portable `native_sdk` suite is ready for native
-Linux x64; no host was available, so that platform remains unqualified. These
+Linux x64, but that specific suite was not run in the native SDK 11 matrix. These
 macOS controls use ordinary sandboxed actions, with remote actions disabled;
 Linux workers, published-byte parity and HTTP recovery retain their separate
 qualification above.
@@ -875,12 +876,13 @@ qualification remains a separate gate.
 The [source-to-app workflow](../examples/source-runtime-app/README.md) acquires the
 pinned source and bootstrap SDK, updates packages, qualifies the graph, and builds
 an app plus `//:runtime_package`. Its optional Apple guest cache relay is configured
-when the worker is created, as described in the workflow guide. `--worker-memory-gib`
-selects worker memory at creation (default 8 GiB); portable controls check option
-validation, saved identity, worker resource matching and container arguments:
+when the worker is created, as described in the workflow guide. On Apple silicon,
+`--worker-memory-gib` selects worker memory at creation (default 8 GiB). For SDK 11, explicitly select
+12 GiB: the 8 GiB qualification attempt exhausted guest memory. Portable controls
+check option validation, saved identity, worker resource matching and container arguments:
 
 ```sh
-python3 scripts/setup-source-runtime.py OUTPUT
+python3 scripts/setup-source-runtime.py OUTPUT --worker-memory-gib 12
 bash OUTPUT/run.sh --describe-runtime --verify-product
 ```
 
@@ -908,17 +910,17 @@ Current producers require Ubuntu 26.04 ARM64 and explicitly select LLVM/Clang
 root links against glibc 2.43; deployment on older-glibc distributions is
 unqualified. Native Linux x64 and RBE remain unqualified.
 
-This migration covers the IL source-runtime producers. The source-built SDK
-10.0.100 archive, separate NativeAOT compiler/catalog and manual Linux CI retain
-their own Ubuntu 22.04 / LLVM 14 pins where declared; they are not relabeled as
-Ubuntu 26.04 qualification.
+The [source-SDK producer](#source-toolchains-and-nativeaot) is separately qualified
+on Ubuntu 26.04 / LLVM 18. Historical SDK archives, the separate NativeAOT
+compiler/catalog and manual Linux CI retain their original Ubuntu 22.04 / LLVM 14
+pins where declared; those results are not relabeled as Ubuntu 26.04 qualification.
 
 The declared-environment probe passed in a six-GiB ARM64 guest: all 194 packages
 assembled, and C/C++ compiled, linked and ran inside the bubblewrap root. The
 root reported Ubuntu 26.04, Clang 18.1.8 and GNU coreutils 9.7. Reproduce with
 `python3 tests/runtime/environment_probe.py FRESH_OUTPUT --source-archive PINNED_SOURCE`.
 This checks toolchain closure and compiler selection; the full runtime product
-requires the separate eight-GiB setup above.
+requires the separately budgeted source-to-app workflow above.
 
 The full Ubuntu 26.04 ARM64 workflow passed on four CPUs / 8 GiB, SDK
 **10.0.400** and Bazel **9.3.2**. It built CoreCLR/JIT, native libraries and the
@@ -958,7 +960,8 @@ sync inputs and module locks transferred.
 [Timings and method](performance.md#source-runtime-product) separate setup from recovery.
 
 The Ubuntu 22.04 results above are historical; current execution requires Ubuntu
-26.04 ARM64 with nested namespaces and an 8 GiB memory budget. For compilation
+26.04 ARM64 with nested namespaces; the SDK 11 recipe above explicitly selects
+12 GiB. For compilation
 with a source-built **SDK**, use the separate
 [quick-start scenario](../examples/quickstart/README.md#source-built-sdk).
 

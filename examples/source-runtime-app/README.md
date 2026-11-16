@@ -8,20 +8,24 @@ On Apple silicon, install Apple Container and provide 32 GiB free space:
 
 ```sh
 container system start
-python3 scripts/setup-source-runtime.py "$HOME/source-runtime"
+python3 scripts/setup-source-runtime.py "$HOME/source-runtime" --worker-memory-gib 12
 bash "$HOME/source-runtime/run.sh" --describe-runtime --verify-product
 ```
 
-The Apple worker defaults to 8 GiB. To choose a different budget for a fresh
-setup, pass `--worker-memory-gib 12` (or another positive whole number). The
-selected budget is retained in the setup; changing it requires a fresh directory.
+The SDK 11 workflow above explicitly selects 12 GiB: an 8 GiB qualification
+run exhausted guest memory. The option defaults to 8 GiB for existing callers;
+the selected budget is retained in the setup, and changing it requires a fresh
+directory. General build containers retain their separate resource defaults.
 
 Run from the rules checkout with Git, Python and download access. Setup builds the
 [native environment](../../containers/runtime-demo.Dockerfile), creates an owned
 worker, runs package update/check and graph sync/check, then builds and verifies
-the app and runtime archive. Native Ubuntu 26.04 ARM64 with LLVM/Clang 18.1.8 can run the same command
-with those dependencies, an 8 GiB memory budget (RAM plus swap), and nested
-user/mount namespaces available.
+the app and runtime archive. On native Ubuntu 26.04 ARM64 with LLVM/Clang 18.1.8,
+omit the Apple-only `--worker-memory-gib` option and configure the OS memory
+budget separately. That path requires the same dependencies and nested user/mount
+namespaces. Provision at least the 12 GiB used for Apple guest qualification;
+the preflight minimum does not guarantee that the full graph fits. The Apple
+guest result does not independently qualify a bare-host SDK 11 run.
 
 Rerun the same command to resume an owned setup with matching inputs. `--resume`
 also remains available. Retain the setup
