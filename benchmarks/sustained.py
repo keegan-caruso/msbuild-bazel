@@ -74,10 +74,11 @@ def main():
     metadata = dict(revision=args.revision, workload='catalog-web: five projects, Razor/API, JSON data, packages/analyzer',
                     platform=platform.platform(), architecture=platform.machine(),
                     sdk=json.loads((work/'global.json').read_text())['sdk']['version'],
-                    targetFramework=framework, cpus=os.cpu_count(), samplesPerCase=args.samples, timingScope='Bazel command including app smoke execution where applicable',
+                    targetFramework=framework, onlineCpus=os.cpu_count(), samplesPerCase=args.samples, timingScope='Bazel command including app smoke execution where applicable',
                     memoryScope='whole guest, sampled; RSS sums double-count shared pages',
                     diskScope='owned consumer/output-base allocated blocks at command boundaries; includes SDK/repository expansions under output base; excludes external image/preinstalled tools and other host state',
-                    workerSelection='explicit Build and Publish workers',
+                    workerSelection='explicit Build and Publish workers; one instance per worker key',
+                    publishState='first Publish initializes that target; remaining Publish observations retain worker state',
                     sourceProduction=False)
     (reports/'metadata.json').write_text(json.dumps(metadata, indent=2)+'\n')
 
