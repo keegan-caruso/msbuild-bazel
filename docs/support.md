@@ -1,7 +1,7 @@
 # Support and limits
 
 The graph workflow with the MSBuild project-cache plugin is the sole backend.
-Current baseline: SDK **10.0.400**, Bazel **9.3.2** only. Bazel 8.x is no longer supported.
+Current baseline: SDK **11.0.100**, Bazel **9.3.2** only. Bazel 8.x is no longer supported.
 `USE_BAZEL_VERSION` overrides the repository `.bazelversion`; source-runtime setup
 records that selection and rejects resume with a different version. Historical
 qualification and timing pins below describe their original runs, not 9.3.2
@@ -20,9 +20,9 @@ execution-requirements controls on 9.3.2. Portable version controls cover genera
 workspaces, explicit override precedence, repository-pin fallback, empty/legacy
 overrides and source-runtime resume mismatch rejection.
 
-With SDK **10.0.400** and Bazel **9.3.2**, full `scripts/check-dotnet.sh` passes:
+With SDK **11.0.100** and Bazel **9.3.2**, full `scripts/check-dotnet.sh` passes:
 all four owned projects compile and format cleanly, and the style, tooling,
-artifact and ProjectSync controls pass with platform-specific skips. The 61
+artifact and ProjectSync controls pass with platform-specific skips. The 63
 ProjectSync tests include seven Linux-only skips.
 
 Graph evaluation and Restore bind the selected SDK's
@@ -30,15 +30,15 @@ Graph evaluation and Restore bind the selected SDK's
 initialize `NetCoreSdkRoot` itself. This also supports the earlier SDK-version
 imports in SDK 11.0.100. Authored properties cannot override either input.
 Native macOS ProjectSync controls pass with SDK 10.0.400 and 11.0.100
-(61 tests each, seven Linux-only skips); this compatibility check does not
-change the repository baseline or qualify the complete .NET 11 workflow.
+(61 tests each, seven Linux-only skips) in the SDK-selection compatibility check;
+the current qualification below includes the additional server-isolation controls.
 
 Owned SDK bootstrap and Restore processes explicitly disable the CLI MSBuild
 server, which is [enabled by default in SDK 11](https://github.com/dotnet/docs/blob/main/docs/core/whats-new/dotnet-11/sdk.md#msbuild-server-enabled-by-default).
 This preserves their isolated process lifetimes; disabling Roslyn shared compilation
 alone does not disable the MSBuild server. Restore controls verify that an ambient
 server opt-in cannot override this policy. This compatibility policy does not change
-the SDK baseline above.
+the selected SDK or upstream product version.
 
 Full native graph acceptance passes all **17 slices** and the Bazel quickstart,
 including offline supported package SDKs, signed archive identities, MTP/VSTest
@@ -46,7 +46,7 @@ protocols, tool replay and independent payload publication. Replay fixtures make
 their copied roots writable so Restore can create its temporary `NuGet.Config`;
 the default HTTP-cache fixture isolates macOS LocalApplicationData in its native
 home location. Production cache and output-permission policies are unchanged.
-Linux execution and source-runtime production on 9.3.2 remain separate gates.
+Linux execution and source-runtime production have the separately scoped evidence below.
 
 The historical 9.3.0 upgrade passed 29 analysis/integration checks on Linux ARM64, including
 8.8 compatibility, SDK facts, cached/uncached workers, compiler selections and
@@ -115,14 +115,6 @@ Preserve reports outside Git, remove only owned disposable worktrees/processes,
 and close their sessions after cleanup. Independently managed services and caches
 remain intact.
 
-The pinned runtime source preparation applies one reviewed linker adaptation before
-input discovery: `StringBuilder.Append(new string(character, count))` becomes
-`Append(character, count)` under its existing positive-count guard. SDK 11's CA1830
-analyzer rejects the temporary allocation. The original file hash is checked before
-adaptation, and resume compares against the same transformed archive bytes;
-unrelated source edits remain rejected. Analyzer and warning policies remain enabled.
-This source compatibility change does not by itself qualify a complete SDK 11 build.
-
 ## Dependency updates and security triage
 
 Repository maintainers own bootstrap pins, declared package catalogs and optional
@@ -152,7 +144,7 @@ warm local cache as a qualified release.
 
 The general Apple Container wrapper defaults to pinned Ubuntu 26.04 ARM64.
 Set `RULES_MSBUILD_CONTAINER_ARCH=amd64` for explicit Rosetta execution on Apple
-silicon. The image installs the Ubuntu 26.04 .NET prerequisites; SDK 10.0.400
+silicon. The image installs the Ubuntu 26.04 .NET prerequisites; SDK 11.0.100
 and Bazel 9.3.2 remain independently pinned.
 
 Container payload, workspace and SDK bootstrap extraction use Ubuntu's pinned
@@ -259,6 +251,25 @@ done
 python3 tests/graph_build/worker_preparation.py --cache-mb=0
 python3 -m unittest discover -s tests/project_sync -p test_sync.py -v
 ```
+
+## SDK 11 platform qualification
+
+SDK **11.0.100** / runtime **11.0.0** and Bazel **9.3.2** pass these checks:
+
+| Environment | Observed scope |
+| --- | --- |
+| Native macOS ARM64 | Owned build/format and tests, all 17 graph acceptance slices, actual Bazel quickstart test. |
+| Ubuntu 26.04 ARM64, four CPUs / 6 GiB | Owned checks including all 61 ProjectSync controls available at that revision, real broker lifetime/preparation, cached and uncached workers, evaluation worker, quickstart and automatic worker defaults. The default-worker body edit reuses two projects and compiles one. |
+| Ubuntu 26.04 AMD64 under Rosetta, four CPUs / 6 GiB | Fresh prebuilt toolchain image, public quickstart sync/check, app greeting and forced executable test. |
+
+The Rosetta integration-test archive helper fails in GNU tar while following Bazel
+input symlinks (`Function not implemented`); it does not reach the test. The direct
+public quickstart above passes without that helper. This limitation is separate
+from SDK/archive extraction, which uses the pinned libarchive tool.
+
+Source-runtime bootstrap uses SDK 11 while its pinned upstream product remains
+runtime 10.0.0. The retained source-built SDK 10.0.100 and NativeAOT compiler retain
+their own recorded pins; they are not SDK 11 products.
 
 ## Downloaded SDK platforms
 
@@ -866,6 +877,14 @@ debugging libraries and `createdump`. The archive retains upstream licenses and
 records source, SDK, toolchain and graph identities. This is an unsigned IL
 developer runtime; official signing, ReadyToRun and release-pack parity are outside
 this workflow.
+
+The pinned runtime source preparation applies one reviewed linker adaptation before
+input discovery: `StringBuilder.Append(new string(character, count))` becomes
+`Append(character, count)` under its existing positive-count guard. SDK 11's CA1830
+analyzer rejects the temporary allocation. The original file hash is checked before
+adaptation, and resume compares against the same transformed archive bytes;
+unrelated source edits remain rejected. Analyzer and warning policies remain enabled.
+This source compatibility change does not by itself qualify a complete SDK 11 build.
 
 Current producers require Ubuntu 26.04 ARM64 and explicitly select LLVM/Clang
 18.1.8 for CoreCLR, native libraries and the host. The declared native package
