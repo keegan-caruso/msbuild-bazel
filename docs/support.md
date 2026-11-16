@@ -224,12 +224,28 @@ common scratch parent: Bazel's hermetic `/tmp` can hide a sibling local override
 
 ## Native Linux x64 controls
 
-On native Ubuntu 26.04 x64 with SDK **10.0.400** and repository Bazel pin
-**9.3.2**, nine standalone worker-broker,
-publication, transfer, input-integrity and output-ownership controls passed;
-the worker preparation control also passed with a zero cache budget. The full
-`test_sync.py` module passed **54 tests** in 275.640 s. These standalone controls do
-not qualify Bazel's x64 worker strategy, whole-action recovery or source builds.
+On native Ubuntu 26.04 x64 with SDK **11.0.100** and Bazel **9.3.2**, the
+four-CPU / 6 GiB qualification passed all four owned builds and format checks,
+plus 5 style, 81 tooling, 19 artifact and 63 ProjectSync tests without skips. Nine
+standalone worker-broker, publication, transfer, input-integrity and output-ownership
+controls also passed. Worker preparation additionally passed with a zero cache budget.
+
+A separate public quickstart seed populated a bounded local HTTP action cache and
+stopped its Bazel server. A fresh output-base consumer recovered the graph action,
+executed its test with test-result caching disabled, and matched all 112 output
+tree entries, including bytes and modes. The server counted 498 successful consumer
+GETs and zero consumer PUTs; seed and consumer kept the same project-cache read-only
+setting. This qualifies same-host whole-action recovery, not cross-host recovery,
+Bazel's x64 worker strategy or native x64 source production.
+
+Reproduce with the [manual recovery driver](../tests/graph_build/linux_action_recovery.py)
+on native Linux x64, using a clean checkout and a fresh output directory:
+
+```sh
+python3 tests/graph_build/linux_action_recovery.py /tmp/action-recovery \
+  --rules "$PWD" --bazel "$PWD/.tools/bin/bazelisk" \
+  --expected-revision "$(git rev-parse HEAD)"
+```
 
 The original cache-reuse fixtures assumed files started at mode 0644. Controlled
 retries reproduced both failures under umask 002 but passed under 022; after
@@ -258,6 +274,7 @@ SDK **11.0.100** / runtime **11.0.0** and Bazel **9.3.2** pass these checks:
 | Native macOS ARM64 | Owned build/format and tests, all 17 graph acceptance slices, actual Bazel quickstart test. |
 | Ubuntu 26.04 ARM64, four CPUs / 6 GiB | Owned checks including all 61 ProjectSync controls available at that revision, real broker lifetime/preparation, cached and uncached workers, evaluation worker, quickstart and automatic worker defaults. The default-worker body edit reuses two projects and compiles one. |
 | Ubuntu 26.04 AMD64 under Rosetta, four CPUs / 6 GiB | Fresh prebuilt toolchain image, public quickstart sync/check, app greeting and forced executable test. |
+| Native Ubuntu 26.04 x64, four CPUs / 6 GiB | Full owned gate without skips, nine broker/transfer/input controls, and stopped-seed fresh-output HTTP graph recovery with forced test execution and zero consumer PUTs. |
 
 The Rosetta integration-test archive helper fails in GNU tar while following Bazel
 input symlinks (`Function not implemented`); it does not reach the test. The direct
@@ -1068,7 +1085,9 @@ eviction, interrupted downloads and corruption rejection. A native MacBook
 publisher exited before an independent native Mac mini read-only consumer fetched
 a fresh snapshot through the shared HTTPS service; payload SHA256 matched. This
 cross-host check uses a synthetic snapshot, not a whole graph or Linux workers.
-Linux qualification remains pending the new build server.
+Native Linux transfer and same-host whole-action recovery passed the
+[Linux x64 controls](#native-linux-x64-controls). Whole-graph cross-host recovery
+remains unqualified.
 
 ## Linux worker qualification
 
@@ -1097,8 +1116,9 @@ rerun to adopt [automatic defaults](api.md#caching-and-workers).
 
 These are small correctness controls with a four-CPU/six-GiB guest, two Bazel jobs,
 one local test and one worker. The qualification copy explicitly applies those
-nested resource limits; test expectations are unchanged. SDK 11 worker qualification
-is pending, and this ARM64 evidence does not qualify x64, macOS workers or RBE.
+nested resource limits; test expectations are unchanged. The
+[SDK 11 platform matrix](#sdk-11-platform-qualification) records the corresponding current
+worker checks. ARM64 evidence does not qualify x64, macOS workers or RBE.
 Run the portable and broker controls via
 `python3 tests/graph_build/acceptance.py OUTPUT --linux-workers` after building the
 runner in the qualified ARM64 environment.
