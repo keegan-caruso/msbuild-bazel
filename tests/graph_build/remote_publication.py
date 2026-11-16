@@ -58,7 +58,7 @@ def main():
         work = Path(temporary)
         sources = [ROOT / 'tools/ProjectCache/RemoteSnapshotStore.cs', ROOT / 'tools/GraphBuild/GraphRunOptions.cs']
         (work / 'Probe.csproj').write_text('<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup>'
-            '<TargetFramework>net10.0</TargetFramework><OutputType>Exe</OutputType><ImplicitUsings>enable</ImplicitUsings>'
+            '<TargetFramework>net11.0</TargetFramework><OutputType>Exe</OutputType><ImplicitUsings>enable</ImplicitUsings>'
             '<Nullable>enable</Nullable></PropertyGroup><ItemGroup>' +
             ''.join(f'<Compile Include="{path}" />' for path in sources) + '</ItemGroup></Project>')
         (work / 'Program.cs').write_text('''using RulesMSBuild.ProjectCache;
@@ -88,7 +88,7 @@ try
 catch (OperationCanceledException) { return 2; }
 ''')
         run(DOTNET, 'build', work / 'Probe.csproj', '-c', 'Release')
-        program = work / 'bin/Release/net10.0/Probe.dll'
+        program = work / 'bin/Release/net11.0/Probe.dll'
         server = ThreadingHTTPServer(('127.0.0.1', 0), Cache)
         server.blobs, server.lock, server.puts = {}, threading.Lock(), 0
         server.put_paths = {}

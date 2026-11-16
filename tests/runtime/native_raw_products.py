@@ -22,7 +22,7 @@ products=out/'products';products.mkdir();records=[]
 for package in packages:
     inputs=w/package;folder=out/package;folder.mkdir()
     definitions=json.loads((inputs/'products.json').read_text())['products'] if (inputs/'products.json').exists() else {'coreclr':'libcoreclr.so','jit':'libclrjit.so','host':'corerun'}
-    command=[sdk/'dotnet',driver/'bin/Release/net10.0/Task.dll',inputs/'bwrap',inputs/'toolchain.tar',inputs/'source.tar','/source/build-native.sh',folder/'runtime.tar',*[folder/name for name in definitions.values()]]
+    command=[sdk/'dotnet',driver/'bin/Release/net11.0/Task.dll',inputs/'bwrap',inputs/'toolchain.tar',inputs/'source.tar','/source/build-native.sh',folder/'runtime.tar',*[folder/name for name in definitions.values()]]
     begin=time.monotonic()
     with (folder/'build.log').open('w') as log:p=subprocess.run(list(map(str,command)),stdout=log,stderr=subprocess.STDOUT,timeout=1800)
     row=dict(component=package,seconds=round(time.monotonic()-begin,3),exitCode=p.returncode,command=list(map(str,command)),sourceSha256=hashlib.sha256((inputs/'source.tar').read_bytes()).hexdigest())

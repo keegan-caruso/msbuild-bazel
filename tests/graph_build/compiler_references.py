@@ -16,7 +16,7 @@ def main():
         root.mkdir()
         fixture(root)
         (root / 'Api').mkdir()
-        (root / 'Api/Api.csproj').write_text('<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup><TargetFramework>net10.0</TargetFramework><AssemblyName>P0</AssemblyName><ProduceOnlyReferenceAssembly>true</ProduceOnlyReferenceAssembly></PropertyGroup></Project>')
+        (root / 'Api/Api.csproj').write_text('<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup><TargetFramework>net11.0</TargetFramework><AssemblyName>P0</AssemblyName><ProduceOnlyReferenceAssembly>true</ProduceOnlyReferenceAssembly></PropertyGroup></Project>')
         api = root / 'Api/Code.cs'
         api.write_text('public class P0 { public static int Value() => throw null!; }')
         p0 = root / 'P0/P0.csproj'
@@ -33,15 +33,15 @@ def main():
         report = base / 'report.json'
         def sync(success=True):
             mapping_path.write_text(json.dumps(mapping))
-            return run(DOTNET, ROOT / 'tools/ProjectSync/bin/Release/net10.0/ProjectSync.dll', root,
-                       SDK / 'sdk/10.0.400', 'P2/P2.csproj', '--mappings', mapping_path, success=success)
+            return run(DOTNET, ROOT / 'tools/ProjectSync/bin/Release/net11.0/ProjectSync.dll', root,
+                       SDK / 'sdk/11.0.100', 'P2/P2.csproj', '--mappings', mapping_path, success=success)
         def build(hits, value, cache):
             for name in ['P0', 'P1', 'P2', 'Api']:
                 for folder in ['bin', 'obj']:
                     shutil.rmtree(root / name / folder, ignore_errors=True)
             run(DOTNET, RUNNER, 'action', root, contract, report, base / cache)
             assert json.loads(report.read_text())['hits'] == hits, report.read_text()
-            assert run(DOTNET, root / 'P2/bin/Release/net10.0/P2.dll').stdout.strip() == str(value)
+            assert run(DOTNET, root / 'P2/bin/Release/net11.0/P2.dll').stdout.strip() == str(value)
             return {str(p.relative_to(root)): hashlib.sha256(p.read_bytes()).hexdigest()
                     for name in ['P0', 'P1', 'P2', 'Api'] for folder in ['bin', 'obj/Release']
                     for p in (root / name / folder).rglob('*') if p.is_file() and not p.name.endswith('.AssemblyReference.cache')}
@@ -55,7 +55,7 @@ def main():
             'documents': mapping['projectDefaults']['documents']}}
         sync()
         assert json.loads(contract.read_text())['Version'] == 7
-        assert json.loads(contract.read_text())['Projects']['P0/P0.csproj']['Configurations'][0]['CompilerReference'] == 'Api/bin/Release/net10.0/P0.dll'
+        assert json.loads(contract.read_text())['Projects']['P0/P0.csproj']['Configurations'][0]['CompilerReference'] == 'Api/bin/Release/net11.0/P0.dll'
         build(0, 2, 'explicit')
         build(4, 2, 'explicit')
         (root / 'P0/Code.cs').write_text('public class P0 { public static int Value() => 3; }')
@@ -80,8 +80,8 @@ def main():
         assert not report.exists()
         contract.write_text(current)
         missing = json.loads(current)
-        missing['Projects']['P0/P0.csproj']['Configurations'][0]['CompilerReference'] = 'Api/bin/Release/net10.0/absent.dll'
-        missing['Projects']['Api/Api.csproj']['Configurations'][0]['OutputFiles'].append('Api/bin/Release/net10.0/absent.dll')
+        missing['Projects']['P0/P0.csproj']['Configurations'][0]['CompilerReference'] = 'Api/bin/Release/net11.0/absent.dll'
+        missing['Projects']['Api/Api.csproj']['Configurations'][0]['OutputFiles'].append('Api/bin/Release/net11.0/absent.dll')
         contract.write_text(json.dumps(missing))
         for name in ['P0', 'P1', 'P2', 'Api']:
             for folder in ['bin', 'obj']:
@@ -90,9 +90,9 @@ def main():
         assert 'Missing declared compiler reference' in failed.stdout + failed.stderr, failed.stdout + failed.stderr
         assert not report.exists()
         contract.write_text(current)
-        for path, message in [('Api/bin/Release/net10.0/P0.pdb', 'configured managed DLL'),
-                              ('P2/bin/Release/net10.0/P2.dll', 'producer dependency closure'),
-                              ('Api/bin/Release/net10.0/missing.dll', 'producer dependency closure'),
+        for path, message in [('Api/bin/Release/net11.0/P0.pdb', 'configured managed DLL'),
+                              ('P2/bin/Release/net11.0/P2.dll', 'producer dependency closure'),
+                              ('Api/bin/Release/net11.0/missing.dll', 'producer dependency closure'),
                               ('../outside.dll', 'path'), ('/tmp/outside.dll', 'path')]:
             mapping['projects']['P0/P0.csproj']['compilerReference'] = path
             assert message.lower() in sync(False).stderr.lower()

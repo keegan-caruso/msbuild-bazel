@@ -29,7 +29,7 @@ def main():
                 package = directory / (name + version)
                 package.mkdir()
                 project = package / (name + '.csproj')
-                project.write_text('<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup><TargetFramework>net10.0</TargetFramework>'
+                project.write_text('<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup><TargetFramework>net11.0</TargetFramework>'
                                    f'<Version>{version}</Version></PropertyGroup>{reference}</Project>')
                 (package / 'Code.cs').write_text(source)
                 run(DOTNET, 'pack', project, '-o', archives, '-p:RestoreSources=' + str(archives),
@@ -63,20 +63,20 @@ def main():
                          + ('deps=[":Core"]' if name == 'Api' and complete else '') + ')\n')
             text += 'msbuild_package_lock(name="packages",packages=[":Api"])\n'
             text += ('msbuild_sync(name="sync",projects=["App/App.csproj"],'
-                     'configuration="Debug",framework="net10.0",package_lock=":packages")\n')
+                     'configuration="Debug",framework="net11.0",package_lock=":packages")\n')
             return text
 
         try:
             for version, value in [('1.0.0', 11), ('2.0.0', 22)]:
                 (app / 'App.csproj').write_text('<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup>'
-                    '<TargetFrameworks>net10.0;net10.0-windows</TargetFrameworks><OutputType>Exe</OutputType></PropertyGroup>'
+                    '<TargetFrameworks>net11.0;net11.0-windows</TargetFrameworks><OutputType>Exe</OutputType></PropertyGroup>'
                     f'<ItemGroup><PackageReference Include="Api" Version="{version}" /></ItemGroup></Project>')
                 authored = declarations(version)
                 (workspace / 'BUILD.bazel').write_text(authored)
                 bazel('run', '//:sync')
                 bazel('run', '//:sync', '--', '--check')
                 contract = json.loads((workspace / 'graph.generated.json').read_text())
-                assert contract['Properties'] == {'Configuration': 'Debug', 'TargetFramework': 'net10.0'}
+                assert contract['Properties'] == {'Configuration': 'Debug', 'TargetFramework': 'net11.0'}
                 assert len(contract['Projects']['App/App.csproj']['Configurations']) == 1
                 (workspace / 'BUILD.bazel').write_text(authored +
                     'load(":graph.generated.bzl","app_graph")\napp_graph(name="graph")\n'
@@ -86,7 +86,7 @@ def main():
             other = workspace / 'Other'
             other.mkdir()
             (other / 'Other.csproj').write_text('<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup>'
-                '<TargetFramework>net10.0</TargetFramework><OutputType>Exe</OutputType></PropertyGroup>'
+                '<TargetFramework>net11.0</TargetFramework><OutputType>Exe</OutputType></PropertyGroup>'
                 '<ItemGroup><PackageReference Include="Api" Version="1.0.0" /></ItemGroup></Project>')
             (other / 'Code.cs').write_text('System.Console.WriteLine(Api.Value);')
             old_packages = '\n'.join(line for line in declarations('1.0.0').splitlines() if line.startswith('msbuild_nuget_package('))

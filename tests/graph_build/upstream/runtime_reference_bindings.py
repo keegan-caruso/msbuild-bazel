@@ -19,7 +19,7 @@ def relative(path):
 
 
 def bindings(contract, inventory):
-    assert len(inventory) == 543 and contract['SdkVersion'] == '10.0.400'
+    assert len(inventory) == 543 and contract['SdkVersion'] == '11.0.100'
     nodes = {row['key']: row for row in inventory}
     assert len(nodes) == len(inventory)
     managed = {key: row for key, row in nodes.items()

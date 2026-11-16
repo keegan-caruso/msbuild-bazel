@@ -116,12 +116,12 @@ def main():
     module = ('module(name="runtime_downloaded_workflow")\nbazel_dep(name="rules_msbuild",version="0.0.0")\n'
               'local_path_override(module_name="rules_msbuild",path=' + json.dumps(str(ROOT)) + ')\n'
               'dotnet=use_extension("@rules_msbuild//msbuild:extensions.bzl","dotnet")\n'
-              'dotnet.sdk(name="dotnet",version="10.0.400")\nuse_repo(dotnet,"dotnet")\nregister_toolchains("@dotnet//:all")\n')
+              'dotnet.sdk(name="dotnet",version="11.0.100")\nuse_repo(dotnet,"dotnet")\nregister_toolchains("@dotnet//:all")\n')
     if args.sdk_archive:
         facts = json.loads(args.sdk_archive.read_text())['sdk']
-        assert facts['version'] == '10.0.400' and facts['platform'] == 'linux-arm64'
+        assert facts['version'] == '11.0.100' and facts['platform'] == 'linux-arm64'
         attributes = ','.join(key + '=' + json.dumps(value) for key, value in facts.items())
-        module = module.replace('dotnet.sdk(name="dotnet",version="10.0.400")', 'dotnet.sdk_archive(name="dotnet",' + attributes + ')')
+        module = module.replace('dotnet.sdk(name="dotnet",version="11.0.100")', 'dotnet.sdk_archive(name="dotnet",' + attributes + ')')
     inventory = ('nuget=use_extension("@rules_msbuild//msbuild:nuget.bzl","nuget")\n'
                  'nuget.lock(name="nuget",lockfile="//:nuget.lock.json")\nuse_repo(nuget,"nuget")\n')
     update = ('load("@rules_msbuild//msbuild:sync.bzl","msbuild_nuget_update","msbuild_sync")\n'
@@ -218,7 +218,7 @@ def main():
             assert hashlib.sha256(archive.read_bytes()).hexdigest() == expected[archive.name]
             shutil.copyfile(archive, feed / archive.name)
         shutil.copyfile(source / 'MODULE.bazel.lock', workspace / 'MODULE.bazel.lock')
-        summary = dict(resumed=args.resume, qualificationCache=args.qualification_cache, restoreReuseInputs=mapping.get('restoreReuseInputs'), evaluationReuseInputs=contract.get('EvaluationReuseInputs'), evaluationCacheMiB=args.evaluation_cache_mb, commit=COMMIT, sourceSha256=SOURCE_SHA256, sdk='10.0.400', slice=args.slice, entries=entries,
+        summary = dict(resumed=args.resume, qualificationCache=args.qualification_cache, restoreReuseInputs=mapping.get('restoreReuseInputs'), evaluationReuseInputs=contract.get('EvaluationReuseInputs'), evaluationCacheMiB=args.evaluation_cache_mb, commit=COMMIT, sourceSha256=SOURCE_SHA256, sdk='11.0.100', slice=args.slice, entries=entries,
                        configurations=len(variants), compilations=compilations,
                        archives=len(manifest['packages']), nativeLocks=len(manifest['lockFiles']), inputs=len(paths), commands=rows)
         (base / 'summary.json').write_text(json.dumps(summary, indent=2) + '\n')

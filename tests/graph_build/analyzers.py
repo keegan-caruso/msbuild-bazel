@@ -15,7 +15,7 @@ def main():
         root = base / 'source'
         for name in ['Generator', 'App']:
             (root / name).mkdir(parents=True)
-        project = '<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup><TargetFramework>net10.0</TargetFramework>{}</PropertyGroup>{}</Project>'
+        project = '<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup><TargetFramework>net11.0</TargetFramework>{}</PropertyGroup>{}</Project>'
         (root / 'Generator/Generator.csproj').write_text(project.format('', '<ItemGroup>' + ''.join(
             f'<Reference Include="{name}" HintPath="$(MSBuildBinPath)/Roslyn/bincore/{name}.dll" Private="false" />'
             for name in ['Microsoft.CodeAnalysis', 'Microsoft.CodeAnalysis.CSharp']) + '<None Include="$(OutputPath)$(AssemblyName).dll" Pack="true" /></ItemGroup>'))
@@ -27,9 +27,9 @@ def main():
             ('<ProjectReference Include="../Generator/Generator.csproj" ReferenceOutputAssembly="false" OutputItemType="Analyzer" /></ItemGroup>'
              if '--project-reference' in sys.argv else
              '<ProjectReference Include="../Generator/Generator.csproj" ReferenceOutputAssembly="false" />'
-             '<Analyzer Include="../Generator/bin/Release/net10.0/Generator.dll" /></ItemGroup>')))
+             '<Analyzer Include="../Generator/bin/Release/net11.0/Generator.dll" /></ItemGroup>')))
         (root / 'App/Code.cs').write_text('System.Console.WriteLine(Value.Number);')
-        sync = [DOTNET, ROOT / 'tools/ProjectSync/bin/Release/net10.0/ProjectSync.dll', root, SDK / 'sdk/10.0.400', 'App/App.csproj', ]
+        sync = [DOTNET, ROOT / 'tools/ProjectSync/bin/Release/net11.0/ProjectSync.dll', root, SDK / 'sdk/11.0.100', 'App/App.csproj', ]
         run(*sync)
         contract = root / 'graph.generated.json'
         assert not any('/bin/' in file for project in json.loads(contract.read_text())['Projects'].values() for config in project['Configurations'] for file in config['Inputs'])
@@ -40,7 +40,7 @@ def main():
                     shutil.rmtree(root / name / folder, ignore_errors=True)
             run(DOTNET, RUNNER, 'action', root, contract, report, base / 'cache')
             assert json.loads(report.read_text())['hits'] == hits, report.read_text()
-            assert run(DOTNET, root / 'App/bin/Release/net10.0/App.dll').stdout.strip() == str(value)
+            assert run(DOTNET, root / 'App/bin/Release/net11.0/App.dll').stdout.strip() == str(value)
         build(1, 0)
         build(1, 2)
         # Sync must also exclude an already-built producer output.

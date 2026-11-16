@@ -18,6 +18,6 @@ def app_graph(name = "app", linux_stable_paths = None, target = "Build", linux_w
         srcs = ["App/App.csproj","App/Program.cs","Library/Library.csproj","Library/Message.cs","Tests/Program.cs","Tests/Tests.csproj","global.json"],
         bindings = [],
         input_paths = {},
-        project_outputs = {"App/App.csproj|net10.0":["App/bin/Release/net10.0","App.dll","Exe"],"Library/Library.csproj|net10.0":["Library/bin/Release/net10.0","Library.dll","Library"],"Tests/Tests.csproj|net10.0":["Tests/bin/Release/net10.0","Tests.dll","Exe"]},
-        publish_outputs = {"App/App.csproj|net10.0":["App/bin/Release/net10.0/publish","App.dll","Exe"],"Library/Library.csproj|net10.0":["Library/bin/Release/net10.0/publish","Library.dll","Library"],"Tests/Tests.csproj|net10.0":["Tests/bin/Release/net10.0/publish","Tests.dll","Exe"]},
+        project_outputs = {"App/App.csproj|net11.0":["App/bin/Release/net11.0","App.dll","Exe"],"Library/Library.csproj|net11.0":["Library/bin/Release/net11.0","Library.dll","Library"],"Tests/Tests.csproj|net11.0":["Tests/bin/Release/net11.0","Tests.dll","Exe"]},
+        publish_outputs = {"App/App.csproj|net11.0":["App/bin/Release/net11.0/publish","App.dll","Exe"],"Library/Library.csproj|net11.0":["Library/bin/Release/net11.0/publish","Library.dll","Library"],"Tests/Tests.csproj|net11.0":["Tests/bin/Release/net11.0/publish","Tests.dll","Exe"]},
     )

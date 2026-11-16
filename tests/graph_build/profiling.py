@@ -21,7 +21,7 @@ def main():
         run(DOTNET, RUNNER, 'build', root, manifest, report, work / 'cache')
         first = json.loads(report.read_text())
         assert first['operations'] is None and first['materialization'] is None and first['evaluationProfile'] is None
-        expected = {str(p.relative_to(root)): p.read_bytes() for p in root.glob('P*/bin/Release/net10.0/*.dll')}
+        expected = {str(p.relative_to(root)): p.read_bytes() for p in root.glob('P*/bin/Release/net11.0/*.dll')}
         for item in contract['Projects'].values():
             for path in item['OutputDirectories']:
                 shutil.rmtree(root / path)
@@ -50,7 +50,7 @@ def main():
         assert result['operations']['fileHash']['bytes'] > 0
         assert result['materialization']['bytes'] > 0
         assert sum(result[key] for key in ['restoreSeconds', 'evaluationSeconds', 'inputHashSeconds', 'executionSeconds', 'verificationSeconds', 'snapshotSeconds']) <= result['totalSeconds'] + .01
-        assert expected == {str(p.relative_to(root)): p.read_bytes() for p in root.glob('P*/bin/Release/net10.0/*.dll')}
+        assert expected == {str(p.relative_to(root)): p.read_bytes() for p in root.glob('P*/bin/Release/net11.0/*.dll')}
         print('PASS: profiling default, cache identity, disjoint phases, counters and output parity')
 
 

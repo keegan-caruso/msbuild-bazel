@@ -18,8 +18,8 @@ def main():
         workspace.mkdir()
         tool = root / 'task'
         tool.mkdir()
-        (tool / 'Task.csproj').write_text('<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup><TargetFramework>net10.0</TargetFramework></PropertyGroup><ItemGroup>' + ''.join(
-            f'<Reference Include="{name}" HintPath="{SDK}/sdk/10.0.400/{name}.dll" Private="false" />'
+        (tool / 'Task.csproj').write_text('<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup><TargetFramework>net11.0</TargetFramework></PropertyGroup><ItemGroup>' + ''.join(
+            f'<Reference Include="{name}" HintPath="{SDK}/sdk/11.0.100/{name}.dll" Private="false" />'
             for name in ['Microsoft.Build.Framework', 'Microsoft.Build.Utilities.Core']) + '</ItemGroup></Project>')
         (tool / 'Code.cs').write_text('public sealed class Generate : Microsoft.Build.Utilities.Task { '
             '[Microsoft.Build.Framework.Required] public string Input {get;set;} '
@@ -27,11 +27,11 @@ def main():
             'public override bool Execute() { System.IO.File.WriteAllText(Output, '
             '"public class Generated { public static int Value => " + System.IO.File.ReadAllText(Input).Trim() + "; }"); return true; }}')
         run(DOTNET, 'build', tool / 'Task.csproj', '-c', 'Release', '--nologo')
-        shutil.copy(tool / 'bin/Release/net10.0/Task.dll', workspace / 'Task.dll')
+        shutil.copy(tool / 'bin/Release/net11.0/Task.dll', workspace / 'Task.dll')
         shutil.copy(ROOT / 'global.json', workspace / 'global.json')
         (workspace / 'App').mkdir()
         project = workspace / 'App/App.csproj'
-        project.write_text('<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup><TargetFramework>net10.0</TargetFramework><OutputType>Exe</OutputType></PropertyGroup>'
+        project.write_text('<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup><TargetFramework>net11.0</TargetFramework><OutputType>Exe</OutputType></PropertyGroup>'
             '<ItemGroup><Schema Include="../value.txt"><Mode>read</Mode></Schema></ItemGroup>'
             '<PropertyGroup><DefineConstants Condition="&apos;$(GraphProbe)&apos; == &apos;true&apos;">$(DefineConstants);GRAPH_PROBE</DefineConstants></PropertyGroup>'
             '<Target Name="RequireProbe" BeforeTargets="Restore"><Error Condition="&apos;$(GraphProbe)&apos; != &apos;true&apos;" Text="missing graph property" /></Target>'

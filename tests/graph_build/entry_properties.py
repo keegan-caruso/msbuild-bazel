@@ -14,11 +14,11 @@ def main():
         root = base / 'workspace'
         root.mkdir()
         (root / 'empty-input').mkdir()
-        for name, framework in [('A', 'net10.0'), ('B', None), ('Common', None)]:
+        for name, framework in [('A', 'net11.0'), ('B', None), ('Common', None)]:
             folder = root / name
             folder.mkdir()
             selected = ('<TargetFramework>' + framework + '</TargetFramework>' if framework else
-                        '<TargetFrameworks>net10.0;net10.0-windows</TargetFrameworks>')
+                        '<TargetFrameworks>net11.0;net11.0-windows</TargetFrameworks>')
             reference = '<ItemGroup><ProjectReference Include="../Common/Common.csproj"/></ItemGroup>' if name != 'Common' else ''
             (folder / (name + '.csproj')).write_text('<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup>' + selected +
                 '</PropertyGroup>' + reference + '</Project>')
@@ -26,15 +26,15 @@ def main():
                 'public class Common { public const int Value = 11; }')
         entries = ['A/A.csproj', 'B/B.csproj']
         mapping = base / 'mapping.json'
-        declarations = {'A/A.csproj': {}, 'B/B.csproj': {'TargetFramework': 'net10.0-windows'}}
-        sync = ROOT / 'tools/ProjectSync/bin/Release/net10.0/ProjectSync.dll'
+        declarations = {'A/A.csproj': {}, 'B/B.csproj': {'TargetFramework': 'net11.0-windows'}}
+        sync = ROOT / 'tools/ProjectSync/bin/Release/net11.0/ProjectSync.dll'
         cache, report = base / 'cache', base / 'report.json'
         def generate(success=True, scratch=False):
             defaults = {'inputDirectories': ['empty-input']}
             if scratch:
                 defaults['temporaryDirectories'] = ['$(IntermediateOutputPath)temporary']
             mapping.write_text(json.dumps({'entryProperties': declarations, 'projectDefaults': defaults}))
-            return run(DOTNET, sync, root, SDK / 'sdk/10.0.400', *entries, '--framework', 'net10.0',
+            return run(DOTNET, sync, root, SDK / 'sdk/11.0.100', *entries, '--framework', 'net11.0',
                        '--mappings', mapping, success=success)
         def build(success=True):
             for folder in ['A', 'B', 'Common']:
@@ -50,8 +50,8 @@ def main():
         assert sum(bool(value['OutputDirectories']) for value in variants) == 4, variants
         assert build()['misses'] == 4
         baseline = {name: hashlib.sha256((root / name).read_bytes()).hexdigest() for name in
-                    ['A/bin/Release/net10.0/A.dll', 'B/bin/Release/net10.0-windows/B.dll',
-                     'Common/bin/Release/net10.0/Common.dll', 'Common/bin/Release/net10.0-windows/Common.dll']}
+                    ['A/bin/Release/net11.0/A.dll', 'B/bin/Release/net11.0-windows/B.dll',
+                     'Common/bin/Release/net11.0/Common.dll', 'Common/bin/Release/net11.0-windows/Common.dll']}
         driver = base / 'raw-driver'
         driver.mkdir()
         shutil.copyfile(ROOT / 'tests/graph_build/upstream/RuntimeRawGraph.cs.txt', driver / 'Program.cs')
@@ -60,16 +60,16 @@ def main():
         for folder in ['A', 'B', 'Common']:
             for directory in ['bin', 'obj/Release']:
                 shutil.rmtree(root / folder / directory, ignore_errors=True)
-        run(DOTNET, driver / 'bin/Release/net10.0/Raw.dll', root, root / 'graph.generated.json', 'build')
+        run(DOTNET, driver / 'bin/Release/net11.0/Raw.dll', root, root / 'graph.generated.json', 'build')
         assert all(hashlib.sha256((root / name).read_bytes()).hexdigest() == digest for name, digest in baseline.items()), 'Raw mixed-root byte parity failed'
         assert build()['hits'] == 4
         assert all(hashlib.sha256((root / name).read_bytes()).hexdigest() == digest for name, digest in baseline.items())
-        declarations['B/B.csproj']['TargetFramework'] = 'net10.0'
+        declarations['B/B.csproj']['TargetFramework'] = 'net11.0'
         generate()
         observed = build()
         assert (observed['hits'], observed['misses']) == (3, 1), observed
-        assert hashlib.sha256((root / 'A/bin/Release/net10.0/A.dll').read_bytes()).hexdigest() == baseline['A/bin/Release/net10.0/A.dll']
-        assert hashlib.sha256((root / 'B/bin/Release/net10.0/B.dll').read_bytes()).hexdigest() != baseline['B/bin/Release/net10.0-windows/B.dll']
+        assert hashlib.sha256((root / 'A/bin/Release/net11.0/A.dll').read_bytes()).hexdigest() == baseline['A/bin/Release/net11.0/A.dll']
+        assert hashlib.sha256((root / 'B/bin/Release/net11.0/B.dll').read_bytes()).hexdigest() != baseline['B/bin/Release/net11.0-windows/B.dll']
         generate(scratch=True)
         combined = json.loads((root / 'graph.generated.json').read_text())
         assert combined['Version'] == 6 and combined['InputDirectories'] == ['empty-input']
@@ -80,7 +80,7 @@ def main():
             declarations['A/A.csproj'][key] = 'forbidden'
             assert 'graph entry property' in generate(False).stderr
             del declarations['A/A.csproj'][key]
-        declarations['Unselected.csproj'] = {'TargetFramework': 'net10.0'}
+        declarations['Unselected.csproj'] = {'TargetFramework': 'net11.0'}
         assert 'selected graph root' in generate(False).stderr
         del declarations['Unselected.csproj']
         declarations['B/B.csproj']['targetframework'] = 'ambiguous'

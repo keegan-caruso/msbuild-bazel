@@ -66,7 +66,7 @@ def main():
     driver = base / 'driver'
     driver.mkdir()
     (driver / 'Probe.csproj').write_text('<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup>'
-        '<TargetFramework>net10.0</TargetFramework><OutputType>Exe</OutputType>'
+        '<TargetFramework>net11.0</TargetFramework><OutputType>Exe</OutputType>'
         '<ImplicitUsings>enable</ImplicitUsings><Nullable>enable</Nullable></PropertyGroup></Project>')
     shutil.copyfile(ROOT / 'tests/graph_build/PackageVerification.cs.txt', driver / 'Program.cs')
     build = run(DOTNET, 'build', driver / 'Probe.csproj', '-c', 'Release',
@@ -98,7 +98,7 @@ def main():
             for index in range(len(runners)):
                 candidate = (sample + index) % len(runners)
                 runner = runners[candidate]
-                probe = [str(DOTNET), str(driver / 'bin/Release/net10.0/Probe.dll'), str(runner),
+                probe = [str(DOTNET), str(driver / 'bin/Release/net11.0/Probe.dll'), str(runner),
                          str(workspace), str(args.contract.resolve()), str(args.sdk.resolve()), str(prepared)]
                 report = base / f'sample-{sample}-runner-{candidate}.json'
                 subprocess.run(['bwrap', '--die-with-parent', '--bind', '/', '/',
@@ -126,7 +126,7 @@ def main():
     materialization = []
     for sample in range(args.samples):
         report = base / f'sample-{sample}.json'
-        run(DOTNET, driver / 'bin/Release/net10.0/Probe.dll', args.runner.resolve(), args.workspace.resolve(),
+        run(DOTNET, driver / 'bin/Release/net11.0/Probe.dll', args.runner.resolve(), args.workspace.resolve(),
             args.contract.resolve(), args.sdk.resolve(), args.prepared.resolve(), report,
             *([base / f'broker-copy-{sample}'] if args.materialize else []))
         data = json.loads(report.read_text())

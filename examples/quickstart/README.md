@@ -19,7 +19,7 @@ bazel run //:sync -- --check
 ```
 
 The app prints `Hello from MSBuild and Bazel`. Bazel supplies the SDK; a host SDK
-installation is unnecessary. [global.json](global.json) pins 10.0.400 with roll-forward
+installation is unnecessary. [global.json](global.json) pins 11.0.100 with roll-forward
 disabled. [MODULE.bazel](MODULE.bazel) selects it:
 
 ```starlark
@@ -120,7 +120,10 @@ step. A host SDK directory is not an input. Match versions/platform to your actu
 producer; source-built Razor consumers also need the produced StaticWebAssets SDK.
 
 **3. Sync and run the same app.** Set `sdk.version` in `global.json` to `10.0.100`
-to match the produced SDK. Keep the app BUILD targets above, then run:
+to match the produced SDK, and set `TargetFramework` to `net10.0` in the
+App, Library and Tests project files. The downloaded-SDK example targets
+`net11.0`; the pinned source-built SDK 10.0.100 cannot compile that framework.
+Keep the app BUILD targets above, then run:
 
 ```sh
 bazel run //:sync

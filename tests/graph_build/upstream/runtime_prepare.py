@@ -120,8 +120,8 @@ def main():
         reviewed['entryProperties'] = entry_properties
         mapping.write_text(json.dumps(reviewed, indent=2) + '\n')
     with (base / 'sync.log').open('w') as log:
-        subprocess.run([str(dotnet), str(ROOT / 'tools/ProjectSync/bin/Release/net10.0/ProjectSync.dll'),
-                        str(source), str(sdk / 'sdk/10.0.400'), *entries, '--framework', framework,
+        subprocess.run([str(dotnet), str(ROOT / 'tools/ProjectSync/bin/Release/net11.0/ProjectSync.dll'),
+                        str(source), str(sdk / 'sdk/11.0.100'), *entries, '--framework', framework,
                         '--package-build', '--inputs', str(inputs), '--runfiles', str(packages),
                         '--mappings', str(mapping)] + (['--resolve-references'] if args.resolve_references else []), cwd=ROOT, env=env, stdout=log, stderr=subprocess.STDOUT, check=True)
     contract = json.loads((source / 'graph.generated.json').read_text())

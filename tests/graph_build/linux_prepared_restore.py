@@ -51,14 +51,14 @@ def main():
             project = contract['Projects'][f'P{i}/P{i}.csproj']
             project['Inputs'] = [p for p in project['Inputs'] if '/obj/' not in p]
             project['ReferenceBoundary'] = True
-            project['DependencyCopies'] = {f'P{i}/bin/Release/net10.0/P{d}.{ext}': f'P{d}/bin/Release/net10.0/P{d}.{ext}'
+            project['DependencyCopies'] = {f'P{i}/bin/Release/net11.0/P{d}.{ext}': f'P{d}/bin/Release/net11.0/P{d}.{ext}'
                                            for d in range(i) for ext in ['dll', 'pdb']}
         package_source = None
         if args.package:
             package = base / 'package'
             package.mkdir()
             (package / 'Package.csproj').write_text('<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup>'
-                '<TargetFramework>net10.0</TargetFramework><PackageId>ReadOnly.Probe</PackageId></PropertyGroup>'
+                '<TargetFramework>net11.0</TargetFramework><PackageId>ReadOnly.Probe</PackageId></PropertyGroup>'
                 '<ItemGroup><None Include="ReadOnly.Probe.targets" Pack="true" PackagePath="buildTransitive/" /></ItemGroup></Project>')
             (package / 'Code.cs').write_text('public static class PackageApi { public static int Value => 7; }')
             (package / 'ReadOnly.Probe.targets').write_text('<Project><Target Name="TryPackageWrite" BeforeTargets="CoreCompile" Condition="&apos;$(AttemptPackageWrite)&apos; == &apos;true&apos;">'
@@ -85,12 +85,12 @@ def main():
             'msbuild_graph_runner(name="runner")\n'
             'msbuild_graph_restore(name="prepare",runner=":runner",contract="contract.json",linux_stable_paths=True,srcs=' + json.dumps(restore_inputs) + ')\n'
             'msbuild_graph(name="graph",runner=":runner",contract="contract.json",restore=":prepare",linux_stable_paths=True,srcs=' + json.dumps(sources) + ')\n'
-            'msbuild_graph_binary(name="app",graph=":graph",assembly="P2/bin/Release/net10.0/P2.dll")\n')
+            'msbuild_graph_binary(name="app",graph=":graph",assembly="P2/bin/Release/net11.0/P2.dll")\n')
         def sync():
             mapping = base / 'mapping.json'
             mapping.write_text(json.dumps({'projectDefaults': {'preparedRestore': True}}))
-            run(DOTNET, ROOT / 'tools/ProjectSync/bin/Release/net10.0/ProjectSync.dll', root,
-                SDK / 'sdk/10.0.400', 'P2/P2.csproj', '--mappings', mapping)
+            run(DOTNET, ROOT / 'tools/ProjectSync/bin/Release/net11.0/ProjectSync.dll', root,
+                SDK / 'sdk/11.0.100', 'P2/P2.csproj', '--mappings', mapping)
         if args.generated:
             sync()
             (root / 'BUILD.bazel').write_text('load(":graph.generated.bzl", "app_graph")\n'
@@ -144,7 +144,7 @@ def main():
                 else:
                     assert len(current) == len(preparation_paths) + 1 and preparation_paths <= current, current
             if args.package:
-                assert (root / 'bazel-bin/graph.graph/workspace/P2/bin/Release/net10.0/Package.dll').is_file()
+                assert (root / 'bazel-bin/graph.graph/workspace/P2/bin/Release/net11.0/Package.dll').is_file()
             executed = [row for row in actions(execution) if row.get('mnemonic') == 'MSBuildGraphRestore' and not row.get('cacheHit')]
             assert len(executed) == prepare_runs, (name, prepare_runs, [row['targetLabel'] for row in executed])
             print(name, json.dumps(report), flush=True)

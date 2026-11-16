@@ -70,7 +70,7 @@ def main():
     (base / 'build.log').write_text(build.stdout + build.stderr)
     for label, profiled in [('off', 'off'), ('phases', 'phases'), ('on', 'evaluation')]:
         result = run('bash', ROOT / 'tests/graph_build/evaluation_profile.sh', SDK, RUNNER.parent,
-            workspace, args.prepared.resolve(), args.contract.resolve(), driver / 'bin/Release/net10.0', base, label, profiled)
+            workspace, args.prepared.resolve(), args.contract.resolve(), driver / 'bin/Release/net11.0', base, label, profiled)
         (base / (label + '.log')).write_text(result.stdout + result.stderr)
     off, phases, on = [json.loads((base / (label + '.json')).read_text()) for label in ['off', 'phases', 'on']]
     assert off['shapeSha256'] == phases['shapeSha256'] == on['shapeSha256'], 'Profiling changed evaluated graph shape'

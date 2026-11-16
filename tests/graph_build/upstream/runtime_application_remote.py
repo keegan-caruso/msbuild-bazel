@@ -26,7 +26,7 @@ def main():
     contract = json.loads((root / 'graph.generated.json').read_text())
     count = sum(bool(node['OutputDirectories'] or node.get('OutputFiles')) for project in contract['Projects'].values()
                 for node in project.get('Configurations') or [project])
-    assert contract['SdkVersion'] == '10.0.400' and count == 263
+    assert contract['SdkVersion'] == '11.0.100' and count == 263
     manifest = json.loads((root / 'application.json').read_text())
     assert len(manifest['managed']) == 58 and len(manifest['native']) == 8 and manifest['framework'] == '10.0.0'
     results.mkdir(parents=True, exist_ok=False)

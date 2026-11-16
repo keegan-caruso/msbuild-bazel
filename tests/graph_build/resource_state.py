@@ -21,14 +21,14 @@ def main():
         resource.write_text('<root><resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>'
             '<resheader name="version"><value>2.0</value></resheader><data name="Value" xml:space="preserve"><value>1</value></data></root>')
         contract['Projects']['P0/P0.csproj']['Inputs'] += ['P0/Resource.resx']
-        owned = 'P0/bin/Release/net10.0/custom.GenerateResource.cache'
+        owned = 'P0/bin/Release/net11.0/custom.GenerateResource.cache'
         contract['Projects']['P0/P0.csproj']['OutputFiles'] = [owned]
         path = base / 'contract.json'
         path.write_text(json.dumps(contract))
         report = base / 'report.json'
         cache = base / 'cache'
         command = [DOTNET, RUNNER, 'action', root, path, report, cache]
-        state = root / 'P0/obj/Release/net10.0/P0.csproj.GenerateResource.cache'
+        state = root / 'P0/obj/Release/net11.0/P0.csproj.GenerateResource.cache'
         def clear():
             for name in ['P0', 'P1', 'P2']:
                 for directory in ['bin', 'obj']:
@@ -37,21 +37,21 @@ def main():
             clear()
             run(*command)
             assert json.loads(report.read_text())['hits'] == hits
-            result = run(DOTNET, root / 'P2/bin/Release/net10.0/P2.dll')
+            result = run(DOTNET, root / 'P2/bin/Release/net11.0/P2.dll')
             assert result.stdout.strip() == str(value), result.stdout
             assert (root / owned).read_text().strip() == 'owned'
         build(0, 1)
         assert state.exists(), 'SDK should generate dependency state on a miss'
-        before = (root / 'P0/bin/Release/net10.0/P0.dll').read_bytes()
+        before = (root / 'P0/bin/Release/net11.0/P0.dll').read_bytes()
         manifests = [json.loads(p.read_text()) for p in cache.glob('*/manifest.json')]
-        assert all('P0/obj/Release/net10.0/P0.csproj.GenerateResource.cache' not in p['Files'] for p in manifests)
+        assert all('P0/obj/Release/net11.0/P0.csproj.GenerateResource.cache' not in p['Files'] for p in manifests)
         build(3, 1)
         assert not state.exists(), 'Cache hits do not need SDK resource state'
-        assert (root / 'P0/bin/Release/net10.0/P0.dll').read_bytes() == before
+        assert (root / 'P0/bin/Release/net11.0/P0.dll').read_bytes() == before
         resource.write_text(resource.read_text().replace('<value>1</value>', '<value>2</value>'))
         build(0, 2)
         assert state.exists(), 'Changed resources must regenerate dependency state'
-        assert (root / 'P0/bin/Release/net10.0/P0.dll').read_bytes() != before
+        assert (root / 'P0/bin/Release/net11.0/P0.dll').read_bytes() != before
         build(3, 2)
         print('PASS: resource invalidation, state recreation, runtime values and explicit cache-named outputs')
 

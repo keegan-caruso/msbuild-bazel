@@ -59,7 +59,7 @@ def main():
             'artifacts/tests/coreclr/linux.arm64.Release/' + relative,
             'artifacts/tests/coreclr/obj/linux.arm64.Release/Managed/' + relative])
     def contract(entries, projects, extra=()):
-        return dict(Version=6, Entry=entries[0], Entries=entries, SdkVersion='10.0.400',
+        return dict(Version=6, Entry=entries[0], Entries=entries, SdkVersion='11.0.100',
                     Properties=properties, SharedInputs=shared + list(extra), Projects=projects,
                     DefinitionDigests={p: hashlib.sha256((root / p).read_bytes()).hexdigest()
                                        for p in shared + list(projects)})

@@ -14,7 +14,7 @@ import zipfile
 
 ROOT = Path(__file__).resolve().parents[2]
 SDK = Path(os.environ['RULES_MSBUILD_DOTNET_ROOT'])
-RUNNER = ROOT/'tools/ArtifactTools/bin/Release/net10.0/ArtifactTools.dll'
+RUNNER = ROOT/'tools/ArtifactTools/bin/Release/net11.0/ArtifactTools.dll'
 
 
 class ArtifactToolsTests(unittest.TestCase):

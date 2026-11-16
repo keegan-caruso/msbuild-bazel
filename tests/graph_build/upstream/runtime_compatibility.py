@@ -35,7 +35,7 @@ def main():
     nodes = [v for p in contract['Projects'].values() for v in p.get('Configurations') or [p]]
     assert len(nodes) == 543 and sum(bool(v['OutputDirectories'] or v.get('OutputFiles')) for v in nodes) == 481
     suite = json.loads((root / 'suite.json').read_text())
-    assert len(suite['tests']) == 8 and contract['SdkVersion'] == '10.0.400'
+    assert len(suite['tests']) == 8 and contract['SdkVersion'] == '11.0.100'
     environment = dict(os.environ, USE_BAZEL_VERSION=args.version)
     for key in ['RULES_MSBUILD_PROJECT_CACHE_URL', 'RULES_MSBUILD_PROJECT_CACHE_BEARER_TOKEN',
                 'RULES_MSBUILD_GRAPH_PROFILE', 'RULES_MSBUILD_GRAPH_EVALUATION_PROFILE']:

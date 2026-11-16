@@ -26,6 +26,6 @@ msbuild_toolchain = rule(
         "sdk": attr.label(mandatory = True, cfg = "exec"),
         "runner": attr.label(allow_single_file = True, mandatory = True, cfg = "exec"),
         "runner_support": attr.label_list(allow_files = True, cfg = "exec"),
-        "sdk_version": attr.string(default = "10.0.400"),
+        "sdk_version": attr.string(default = "11.0.100"),
     },
 )

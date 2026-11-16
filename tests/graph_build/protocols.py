@@ -45,7 +45,7 @@ def main():
                 project_file.write_text(project_file.read_text().replace('<GenerateProgramFile>false</GenerateProgramFile>', ''))
             dependency = workspace / 'Dependency'
             dependency.mkdir()
-            (dependency / 'Dependency.csproj').write_text('<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup><TargetFramework>net10.0</TargetFramework></PropertyGroup></Project>')
+            (dependency / 'Dependency.csproj').write_text('<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup><TargetFramework>net11.0</TargetFramework></PropertyGroup></Project>')
             dependency_source = dependency / 'Code.cs'
             original_dependency = 'public static class Dependency { public static int Value => 1; }'
             dependency_source.write_text(original_dependency)
@@ -96,7 +96,7 @@ def main():
                     if case == 'fail':
                         assert len(xml.findall('.//failure')) == 1
                     print('PASS:', protocol, case, flush=True)
-                reference = workspace / 'bazel-bin/graph.graph/workspace/Dependency/obj/Release/net10.0/ref/Dependency.dll'
+                reference = workspace / 'bazel-bin/graph.graph/workspace/Dependency/obj/Release/net11.0/ref/Dependency.dll'
                 reference_bytes = reference.read_bytes()
                 dependency_source.write_text(original_dependency.replace('=> 1;', '=> 2;'))
                 bazel('test', '//:tests', '--test_output=errors', success=False)

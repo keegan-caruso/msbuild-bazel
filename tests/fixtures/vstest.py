@@ -20,7 +20,7 @@ def setup(folder):
     lock=folder/'vstest-lock';lock.mkdir(exist_ok=True)
     versions={'Microsoft.NET.Test.Sdk':'17.14.1','Microsoft.TestPlatform.CLI':'17.14.1','xunit':'2.9.3','xunit.runner.visualstudio':'3.1.1','NUnit':'4.3.2','NUnit3TestAdapter':'5.0.0','MSTest.TestFramework':'3.8.3','MSTest.TestAdapter':'3.8.3'}
     def project(names):
-        return '<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup><TargetFramework>net10.0</TargetFramework><IsTestProject>true</IsTestProject><GenerateProgramFile>false</GenerateProgramFile></PropertyGroup><ItemGroup>'+''.join('<PackageReference Include="'+n+'" Version="'+versions[n]+'"/>' for n in names)+'</ItemGroup></Project>'
+        return '<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup><TargetFramework>net11.0</TargetFramework><IsTestProject>true</IsTestProject><GenerateProgramFile>false</GenerateProgramFile></PropertyGroup><ItemGroup>'+''.join('<PackageReference Include="'+n+'" Version="'+versions[n]+'"/>' for n in names)+'</ItemGroup></Project>'
     (lock/'Lock.csproj').write_text(project(versions))
     p=command([SDK/'dotnet','restore',lock/'Lock.csproj','--packages',lock/'packages','-p:NuGetAudit=false'],folder,folder/'vstest-restore.log');assert p.returncode==0,p.stdout+p.stderr
     # packages() writes a self-contained package BUILD; place it in a separate subtree.

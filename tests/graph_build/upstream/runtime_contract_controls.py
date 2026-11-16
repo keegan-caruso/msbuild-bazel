@@ -14,10 +14,10 @@ ROOT = Path(__file__).resolve().parents[3]
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('sdk', type=Path, help='declared SDK extraction containing dotnet and sdk/10.0.400')
+    parser.add_argument('sdk', type=Path, help='declared SDK extraction containing dotnet and sdk/11.0.100')
     args = parser.parse_args()
     sdk = args.sdk.resolve()
-    tool = ROOT / 'tools/ProjectSync/bin/Release/net10.0/ProjectSync.dll'
+    tool = ROOT / 'tools/ProjectSync/bin/Release/net11.0/ProjectSync.dll'
     assert tool.is_file(), 'Build ProjectSync first'
     with tempfile.TemporaryDirectory(prefix='runtime-outer-outputs-') as temporary:
         root = Path(temporary)
@@ -39,7 +39,7 @@ def main():
             evaluationItems=['ILLinkSubstitutionsXmls'], documents={'Directory.Build.targets': dict(
                 sha256=hashlib.sha256(target.read_bytes()).hexdigest(), targets=['GenerateLinkerOutput'], tasks=[], inputs=[])}))
         mapping_path = root / 'mappings.json'
-        command = [str(sdk / 'dotnet'), str(tool), str(root), str(sdk / 'sdk/10.0.400'), 'Library.csproj', '--mappings', str(mapping_path)]
+        command = [str(sdk / 'dotnet'), str(tool), str(root), str(sdk / 'sdk/11.0.100'), 'Library.csproj', '--mappings', str(mapping_path)]
         mapping_path.write_text(json.dumps(mapping))
         subprocess.run(command, check=True)
         contract = root / 'graph.generated.json'

@@ -35,7 +35,7 @@ def main():
         config = '<configuration><packageSources><clear /></packageSources></configuration>'
         (root / 'NuGet.Config').write_text(config)
         (root / 'App').mkdir()
-        (root / 'App/App.csproj').write_text('<Project Sdk="Microsoft.NET.Sdk"><Import Project="Sdk.props" Sdk="Microsoft.DotNet.Arcade.Sdk" /><PropertyGroup><TargetFramework>net10.0</TargetFramework><OutputType>Exe</OutputType></PropertyGroup><ItemGroup><Content Include="../NuGet.Config" Link="NuGet.Config" CopyToOutputDirectory="Always" /></ItemGroup></Project>')
+        (root / 'App/App.csproj').write_text('<Project Sdk="Microsoft.NET.Sdk"><Import Project="Sdk.props" Sdk="Microsoft.DotNet.Arcade.Sdk" /><PropertyGroup><TargetFramework>net11.0</TargetFramework><OutputType>Exe</OutputType></PropertyGroup><ItemGroup><Content Include="../NuGet.Config" Link="NuGet.Config" CopyToOutputDirectory="Always" /></ItemGroup></Project>')
         (root / 'App/Code.cs').write_text('#if PACKAGE_SDK\nSystem.Console.WriteLine("declared SDK");\n#else\n#error Missing package SDK\n#endif')
         (root / 'MODULE.bazel').write_text('module(name="package_sdks")\nbazel_dep(name="rules_msbuild",version="0.0.0")\n'
             f'local_path_override(module_name="rules_msbuild",path={json.dumps(str(ROOT))})\n'
@@ -61,7 +61,7 @@ def main():
             (root / 'BUILD.bazel').write_text(authored + 'load(":graph.generated.bzl","app_graph")\napp_graph(name="graph")\nmsbuild_graph_binary(name="app",graph=":graph",project="App/App.csproj")\n')
             assert '\ndeclared SDK\n' in bazel('run', '//:app')
             assert (root / 'NuGet.Config').read_text() == config
-            assert (root / 'bazel-bin/graph.graph/workspace/App/bin/Release/net10.0/NuGet.Config').read_text() == config
+            assert (root / 'bazel-bin/graph.graph/workspace/App/bin/Release/net11.0/NuGet.Config').read_text() == config
             if args.prepared_restore:
                 # Package-SDK bootstrap must leave Restore's environment key stable.
                 (root / 'mapping.json').write_text(json.dumps({'projectDefaults': {'referenceBoundary': True, 'preparedRestore': True}}))
@@ -80,7 +80,7 @@ def main():
                 preparations = sum(int(row.get('actionsExecuted', 0)) for row in metrics.get('actionData', []) if row['mnemonic'] == 'MSBuildGraphRestore')
                 assert preparations == 0, 'A body edit must reuse package-SDK Restore'
                 assert (root / 'NuGet.Config').read_text() == config
-                assert (root / 'bazel-bin/graph.graph/workspace/App/bin/Release/net10.0/NuGet.Config').read_text() == config
+                assert (root / 'bazel-bin/graph.graph/workspace/App/bin/Release/net11.0/NuGet.Config').read_text() == config
             # Even after a successful run, missing declared SDKs cannot use a warm host cache.
             (root / 'BUILD.bazel').write_text(authored.replace('packages=[":sdk"]', 'packages=[]'))
             assert 'Microsoft.DotNet.Arcade.Sdk' in bazel('run', '//:sync', success=False)

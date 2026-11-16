@@ -29,7 +29,7 @@ def declare_native(root, native, names):
         assert 'native_graph_driver(name="driver")' in lines
         declaration.write_text('\n'.join(lines) + '\n')
         (root / name / 'driver-contract.json').write_text(json.dumps(dict(
-            Version=1, Entry='Task.csproj', SdkVersion='10.0.400',
+            Version=1, Entry='Task.csproj', SdkVersion='11.0.100',
             Properties=dict(Configuration='Release'), SharedInputs=[],
             Projects={'Task.csproj': dict(Inputs=['Task.csproj', 'NativeBuild.cs'], OutputDirectories=['bin/Release/net10.0', 'obj/Release/net10.0'])}), indent=2) + '\n')
 
@@ -42,7 +42,7 @@ def main():
     assert os.uname().sysname == "Linux" and os.uname().machine == "aarch64", "Qualification requires Linux ARM64"
     root, native = args.workspace.resolve(), args.native_workspace.resolve()
     contract = json.loads((root / 'graph.generated.json').read_text())
-    assert contract['SdkVersion'] == '10.0.400'
+    assert contract['SdkVersion'] == '11.0.100'
     metadata = json.loads((native / 'native/acquisition.json').read_text())
     assert metadata['commit'] == '60629d14374c56f1cb51819049ad1fa529307f8d'
     assert metadata['jobs'] == 4 and metadata['generator'] == 'Ninja'
@@ -64,7 +64,7 @@ def main():
 ''')
     (app / 'runtime-state.txt').write_text('valid')
     (app / 'contract.json').write_text(json.dumps(dict(
-        Version=1, Entry='App.csproj', SdkVersion='10.0.400',
+        Version=1, Entry='App.csproj', SdkVersion='11.0.100',
         Properties=dict(Configuration='Release'), SharedInputs=[],
         Projects={'App.csproj': dict(Inputs=['App.csproj', 'Program.cs'], OutputDirectories=['bin/Release/net10.0', 'obj/Release/net10.0'])}), indent=2) + '\n')
     declarations = '''
