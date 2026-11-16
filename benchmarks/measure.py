@@ -5,7 +5,7 @@ import subprocess
 import time
 
 
-def command(argv, cwd, log, timeout=None):
+def command(argv, cwd, log, timeout=None, environment=None):
     """Keep process startup inside timing; preserve failed samples beside logs."""
     argv = list(map(str, argv))
     log = Path(log)
@@ -14,7 +14,7 @@ def command(argv, cwd, log, timeout=None):
     failure = None
     try:
         with log.open('w') as stream:
-            result = subprocess.run(argv, cwd=cwd, stdout=stream, stderr=subprocess.STDOUT, timeout=timeout)
+            result = subprocess.run(argv, cwd=cwd, stdout=stream, stderr=subprocess.STDOUT, timeout=timeout, env=environment)
     except (OSError, subprocess.TimeoutExpired) as error:
         failure = str(error)
         raise
