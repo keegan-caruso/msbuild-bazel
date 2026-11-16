@@ -14,6 +14,7 @@ import shutil
 import subprocess
 import sys
 import tarfile
+import textwrap
 
 from inventory import digest
 
@@ -31,6 +32,33 @@ def normalize(entry):
     if entry.issym() and entry.linkname.startswith('/'):
         entry.linkname = posixpath.relpath(entry.linkname, '/' + posixpath.dirname(entry.name))
     return entry
+
+
+def write_bazel_files(w, rules):
+    (w / 'MODULE.bazel').write_text(textwrap.dedent('''\
+    module(name="source_sdk_action")
+    bazel_dep(name="platforms",version="1.0.0")
+    bazel_dep(name="rules_msbuild",version="0.0.0")
+    local_path_override(module_name="rules_msbuild",path=%s)
+    dotnet=use_extension("@rules_msbuild//msbuild:extensions.bzl","dotnet")
+    dotnet.sdk(name="controller",version="10.0.400",platforms=["linux-arm64"])
+    use_repo(dotnet,"controller")
+    register_toolchains("//:produced_registered","//:produced_runtime_registered")
+    ''') % json.dumps(str(rules)))
+    (w / 'BUILD.bazel').write_text(textwrap.dedent('''\
+    load(":source_action.bzl","source_sdk","sdk_layout")
+    load("@rules_msbuild//msbuild:sdk.bzl","msbuild_sdk")
+    load("@rules_msbuild//msbuild:defs.bzl","msbuild_graph", "msbuild_graph_runner", "msbuild_graph_test")
+    source_sdk(name="sdk",driver_sdk="@controller//:sdk_host",driver_project="Driver.csproj",driver_source="Driver.cs",sandbox="bwrap",native_tools="native.tar",sources="sources.tar",bootstrap="bootstrap.tar",exec_compatible_with=["@platforms//os:linux","@platforms//cpu:aarch64"])
+    filegroup(name="evidence",srcs=[":sdk"],output_group="evidence")
+    filegroup(name="driver",srcs=[":sdk"],output_group="driver")
+    sdk_layout(name="layout",archive=":sdk")
+    filegroup(name="dotnet",srcs=[":layout"],output_group="dotnet")
+    msbuild_sdk(name="produced",dotnet=":dotnet",files=[":layout"],sdk_version="10.0.100",runtime_version="10.0.0",runtime_identifier="linux-arm64")
+    msbuild_graph_runner(name="runner")
+    msbuild_graph(name="graph",runner=":runner",contract="app-contract.json",srcs=["App.csproj","App.cs"],project_outputs={"App.csproj|net10.0":["bin/Release/net10.0","App.dll","Exe"]})
+    msbuild_graph_test(name="smoke",graph=":graph",project="App.csproj")
+    '''))
 
 
 def main():
@@ -99,28 +127,7 @@ def main():
     shutil.copyfile(here / 'source_action.bzl', w / 'source_action.bzl')
     shutil.copyfile(rules / 'tests/runtime/NativeBuild.cs.txt', w / 'Driver.cs')
     (w / 'Driver.csproj').write_text('<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup><TargetFramework>net10.0</TargetFramework><OutputType>Exe</OutputType><Nullable>enable</Nullable></PropertyGroup></Project>')
-    (w / 'MODULE.bazel').write_text('''module(name="source_sdk_action")
-    bazel_dep(name="platforms",version="1.0.0")
-    bazel_dep(name="rules_msbuild",version="0.0.0")
-    local_path_override(module_name="rules_msbuild",path=%s)
-    dotnet=use_extension("@rules_msbuild//msbuild:extensions.bzl","dotnet")
-    dotnet.sdk(name="controller",version="10.0.400",platforms=["linux-arm64"])
-    use_repo(dotnet,"controller")
-    register_toolchains("//:produced_registered","//:produced_runtime_registered")
-    ''' % json.dumps(str(rules)))
-    (w / 'BUILD.bazel').write_text('''load(":source_action.bzl","source_sdk","sdk_layout")
-    load("@rules_msbuild//msbuild:sdk.bzl","msbuild_sdk")
-    load("@rules_msbuild//msbuild:defs.bzl","msbuild_graph", "msbuild_graph_runner", "msbuild_graph_test")
-    source_sdk(name="sdk",driver_sdk="@controller//:sdk_host",driver_project="Driver.csproj",driver_source="Driver.cs",sandbox="bwrap",native_tools="native.tar",sources="sources.tar",bootstrap="bootstrap.tar",exec_compatible_with=["@platforms//os:linux","@platforms//cpu:aarch64"])
-    filegroup(name="evidence",srcs=[":sdk"],output_group="evidence")
-    filegroup(name="driver",srcs=[":sdk"],output_group="driver")
-    sdk_layout(name="layout",archive=":sdk")
-    filegroup(name="dotnet",srcs=[":layout"],output_group="dotnet")
-    msbuild_sdk(name="produced",dotnet=":dotnet",files=[":layout"],sdk_version="10.0.100",runtime_version="10.0.0",runtime_identifier="linux-arm64")
-    msbuild_graph_runner(name="runner")
-    msbuild_graph(name="graph",runner=":runner",contract="app-contract.json",srcs=["App.csproj","App.cs"],project_outputs={"App.csproj|net10.0":["bin/Release/net10.0","App.dll","Exe"]})
-    msbuild_graph_test(name="smoke",graph=":graph",project="App.csproj")
-    ''')
+    write_bazel_files(w, rules)
     (w / 'App.csproj').write_text('<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup><TargetFramework>net10.0</TargetFramework><OutputType>Exe</OutputType><UseAppHost>false</UseAppHost><EnableDefaultCompileItems>false</EnableDefaultCompileItems></PropertyGroup><ItemGroup><Compile Include="App.cs" /></ItemGroup></Project>')
     (w / 'App.cs').write_text('System.Console.WriteLine("SDK_FROM_SOURCE="+System.Environment.Version); return System.Environment.Version.ToString()=="10.0.0" ? 0 : 1;')
     (w / 'app-contract.json').write_text(json.dumps(dict(Version=1,Entry='App.csproj',SdkVersion='10.0.100',Properties={'Configuration':'Release'},SharedInputs=[],Projects={'App.csproj':dict(Inputs=['App.csproj','App.cs'],OutputDirectories=['bin/Release/net10.0','obj/Release/net10.0'])})))
