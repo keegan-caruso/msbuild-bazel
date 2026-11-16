@@ -77,6 +77,7 @@ def _graph_action(ctx, prepare = False):
         fail("worker_cache_mb must be nonnegative")
     if ctx.attr.evaluation_cache_mb < 0 or ctx.attr.evaluation_cache_mb > 4096:
         fail("evaluation_cache_mb must be between zero and 4096")
+    linux_worker = ctx.attr.linux_worker or (ctx.attr.automatic_worker and not prepare and ctx.attr.target == "Build" and linux_stable_paths and stable_paths(ctx))
     worker_sources = []
     prefix = ctx.attr.source_root + "/" if ctx.attr.source_root else ""
     args = ctx.actions.args()
@@ -122,7 +123,7 @@ def _graph_action(ctx, prepare = False):
         args.add_all([file.path, ".package-source/" + file.basename])
         worker_sources.append({"path": file.path, "destination": ".package-source/" + file.basename})
     action_inputs = depset(ctx.files.srcs + [file for target in ctx.attr.input_paths for file in target[DefaultInfo].files.to_list()] + packages + closures + ([prepared.directory] if prepared else []) + [ctx.file.contract, runner[0], ctx.file._linux_stable_paths], transitive = [tc.sdk] + ([ctx.attr.package_lock[MSBuildPackageLockInfo].validations] if ctx.attr.package_lock else []))
-    if ctx.attr.linux_worker:
+    if linux_worker:
         request = ctx.actions.declare_file(ctx.label.name + ".graph-request.json")
         ctx.actions.write(request, json.encode({
             "contract": ctx.file.contract.path,
@@ -215,7 +216,8 @@ _GRAPH_ATTRS = {
     "profile_build": attr.bool(default = False, doc = "Opt-in runner operation and worker staging timings; profiling is disabled by default."),
     "evaluation_cache_mb": attr.int(default = 512, doc = "Retained evaluation heap budget in MiB for reviewed compiler-only contracts; zero uses fresh engines. Retire between requests above this live-heap budget or max(256 MiB, three times this limit) resident memory; these are not peak-memory caps."),
     "worker_cache_mb": attr.int(default = 4096, doc = "Conservative logical snapshot-cache budget in MiB; zero discards between requests."),
-    "linux_worker": attr.bool(default = False, doc = "Opt-in Linux cache broker; each request runs a fresh sandboxed MSBuild process."),
+    "linux_worker": attr.bool(default = False, doc = "Use the Linux graph worker; None selects it on the declared qualified execution platform."),
+    "automatic_worker": attr.bool(default = False),
     "automatic_stable_paths": attr.bool(default = True),
     "optional_restore": attr.bool(default = False),
     "linux_stable_paths": attr.bool(default = False, doc = "Use bubblewrap on Linux for stable graph paths; cache transport retains network access."),
@@ -235,9 +237,9 @@ _msbuild_graph_restore = rule(
     toolchains = ["//msbuild:toolchain_type", config_common.toolchain_type(STABLE_PATHS_TOOLCHAIN, mandatory = False)],
 )
 
-def msbuild_graph(name, linux_stable_paths = None, **kwargs):
-    """Build with stable paths on a declared qualified execution platform."""
-    _msbuild_graph(name = name, linux_stable_paths = linux_stable_paths if linux_stable_paths != None else False, automatic_stable_paths = linux_stable_paths == None, **kwargs)
+def msbuild_graph(name, linux_stable_paths = None, linux_worker = None, **kwargs):
+    """Build with stable paths and workers on a declared qualified execution platform."""
+    _msbuild_graph(name = name, linux_worker = linux_worker if linux_worker != None else False, automatic_worker = linux_worker == None, linux_stable_paths = linux_stable_paths if linux_stable_paths != None else False, automatic_stable_paths = linux_stable_paths == None, **kwargs)
 
 def msbuild_graph_restore(name, linux_stable_paths = None, **kwargs):
     """Prepare Restore; generated optional Restore falls back on portable platforms."""

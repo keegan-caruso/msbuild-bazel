@@ -509,11 +509,19 @@ Snapshot replay defaults to filesystem clones with a verified private-copy
 fallback. `RULES_MSBUILD_GRAPH_COPY_MODE=copy` forces copies for diagnosis; the
 runner consumes this setting before MSBuild evaluation.
 
-Workers remain explicit: cold/warm memory and failure behavior across Build,
-Pack and Publish have not qualified a universal worker default.
-Set `linux_stable_paths = True, linux_worker = True` on `app_graph`, then use
-`--strategy=MSBuildGraph=worker --worker_sandboxing`. Bubblewrap supplies stable paths
-and fresh build nodes. See [platform limits](support.md#limits).
+`linux_worker = None` is the default on `msbuild_graph` and newly generated
+`app_graph` wrappers. It selects workers only for `target = "Build"` with stable
+paths on the declared qualified Ubuntu ARM64 execution platform. A target-platform
+marker alone does not enable workers. Restore, Pack, Publish and portable execution
+keep ordinary actions. `linux_worker = False` opts out; `linux_stable_paths = False`
+also disables automatic selection. Explicit `linux_worker = True` remains available
+with stable paths, including reviewed Publish workflows. Bazel can select the worker
+strategy without extra flags; `--worker_sandboxing` enables its outer worker sandbox.
+
+Existing generated wrappers that declare `linux_worker = False` keep that explicit
+opt-out. Rerun the public sync target to regenerate them and adopt the automatic
+default. [Worker qualification](support.md#linux-worker-qualification) records the
+SDK and platform scope; [platform limits](support.md#limits) still apply.
 
 `worker_cache_mb` defaults to 4096 logical MiB; `evaluation_cache_mb` defaults to
 512 MiB and zero disables retention. These are retention limits, not peak RSS caps.
