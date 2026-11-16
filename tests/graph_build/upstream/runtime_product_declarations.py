@@ -1,5 +1,8 @@
 """Write only Bazel declarations; Bazel owns product metadata and verification."""
 import json
+import os
+import re
+import xml.etree.ElementTree as ET
 from pathlib import Path
 import shutil
 import sys
@@ -8,6 +11,36 @@ from runtime_host import declare_native
 from runtime_prepare import COMMIT, SOURCE_SHA256
 
 ROOT = Path(__file__).resolve().parents[3]
+
+
+def reference_packs(root, sdk_version, sdk_root):
+    """Bind only net10 reference archives selected by a newer bootstrap SDK."""
+    if not re.fullmatch(r'[0-9]+\.[0-9]+\.[0-9]+(?:[-.][A-Za-z0-9.-]+)?', sdk_version):
+        raise ValueError('Invalid selected SDK version')
+    lock_path = root/'nuget.lock.json'
+    lock = json.loads(lock_path.read_text()) if lock_path.exists() else None
+    if lock is not None and lock.get('sdkVersion') != sdk_version:
+        raise ValueError('NuGet lock SDK version differs from graph contract')
+    if int(sdk_version.split('.')[0]) <= 10:
+        return [], []
+    if lock is None:
+        raise ValueError('NuGet lock required for selected targeting packs')
+    props = ET.parse(Path(sdk_root)/'sdk'/sdk_version/'Microsoft.NETCoreSdk.BundledVersions.props').getroot()
+    refs = []
+    for framework in ('Microsoft.NETCore.App', 'Microsoft.AspNetCore.App'):
+        selected = [node for node in props.iter('KnownFrameworkReference')
+                    if node.get('Include') == framework and node.get('TargetFramework') == 'net10.0']
+        if len(selected) != 1 or selected[0].get('Condition'):
+            raise ValueError('Expected one unconditional net10 framework reference: ' + framework)
+        name, version = selected[0].get('TargetingPackName'), selected[0].get('TargetingPackVersion')
+        if name != framework + '.Ref' or not version or not version.startswith('10.0.'):
+            raise ValueError('Unexpected net10 targeting pack for ' + framework)
+        matches = [p for p in lock['packages'] if p['id'].lower() == name.lower() and p['version'].lower() == version.lower()]
+        if len(matches) != 1 or not re.fullmatch(r'[0-9a-f]{64}', matches[0]['sha256']):
+            raise ValueError('Missing or ambiguous selected targeting pack: ' + name + ' ' + version)
+        refs.append(matches[0])
+    return (['@nuget//:' + p['id'].lower() + '__' + p['version'].lower() for p in refs],
+            sorted(p['sha256'] for p in refs))
 
 
 def declare_product(root, native, product):
@@ -32,9 +65,16 @@ def declare_product(root, native, product):
     project.write_text(project.read_text().replace('<OutputType>Exe</OutputType>',
         '<OutputType>Exe</OutputType><UseAppHost>false</UseAppHost><RuntimeFrameworkVersion>10.0.0</RuntimeFrameworkVersion>'))
     (app/'BUILD.bazel').unlink()
-    (app/'contract.json').write_text(json.dumps(dict(Version=1,Entry='App.csproj',SdkVersion='10.0.400',
+    assert ET.parse(project).getroot().findtext('.//TargetFramework') == 'net10.0'
+    sdk_version = json.loads((root/'graph.generated.json').read_text())['SdkVersion']
+    sdk_root = Path(os.environ.get('RULES_MSBUILD_DOTNET_ROOT', ROOT/'.tools/dotnet'))
+    labels, digests = reference_packs(root, sdk_version, sdk_root)
+    app_contract = dict(Version=1,Entry='App.csproj',SdkVersion=sdk_version,
         Properties=dict(Configuration='Release'),SharedInputs=[],Projects={'App.csproj':dict(
-            Inputs=['App.csproj','Program.cs'],OutputDirectories=['bin/Release/net10.0','obj/Release/net10.0'])}),indent=2)+'\n')
+            Inputs=['App.csproj','Program.cs'],OutputDirectories=['bin/Release/net10.0','obj/Release/net10.0'])})
+    if digests:
+        app_contract['PackageDigests'] = digests
+    (app/'contract.json').write_text(json.dumps(app_contract,indent=2)+'\n')
     shutil.copyfile(app/'runtime_product.bzl', root/'runtime_product.bzl')
     shutil.copyfile(Path(__file__).with_name('runtime_product_test.py'),root/'runtime_product_test.py')
     shared='shared/Microsoft.NETCore.App/10.0.0/'
@@ -50,4 +90,4 @@ def declare_product(root, native, product):
         module.write('bazel_dep(name="platforms",version="1.0.0")\nbazel_dep(name="rules_pkg",version="1.3.0")\nbazel_dep(name="rules_python",version="1.7.0")\n')
     with (root/'BUILD.bazel').open('a') as build:
         build.write('\nload(":runtime_product.bzl","source_runtime_application")\nsource_runtime_application(name="app",projects='+
-            json.dumps(projects)+',native_files='+json.dumps(files)+',provenance='+repr(provenance)+')\n')
+            json.dumps(projects)+',native_files='+json.dumps(files)+',provenance='+repr(provenance)+',reference_packs='+json.dumps(labels)+')\n')
