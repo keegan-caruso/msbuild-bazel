@@ -39,6 +39,16 @@ class GraphSyncTests(unittest.TestCase):
         self.assertFalse((self.root / "projects.generated.bzl").exists())
         self.sync(flags=["--check"])
 
+    def test_offline_restore_disables_ambient_msbuild_server(self):
+        hook = """<Target Name="CheckServerIsolation" BeforeTargets="Restore"><Error Condition="'$(MSBUILDUSESERVER)' != '0'" Text="Restore must not use an ambient MSBuild server" /></Target>"""
+        project = self.project.replace('</Project>', hook + '</Project>')
+        (self.root / 'App.csproj').write_text(project)
+        mapping = {'projectDefaults': {'documents': {'App.csproj': {
+            'sha256': hashlib.sha256(project.encode()).hexdigest(),
+            'targets': ['CheckServerIsolation'], 'tasks': [], 'inputs': []}}}}
+        with patch.dict(os.environ, {'DOTNET_CLI_USE_MSBUILD_SERVER': 'true', 'MSBUILDUSESERVER': '1'}):
+            self.sync(mapping, flags=['--package-build'])
+
     def test_project_cache_read_only_mode_is_validated_and_hidden(self):
         (self.root / "App.csproj").write_text(self.project.replace('</Project>',
             """<Import Project="missing-policy-input.props" Condition="'$(RULES_MSBUILD_PROJECT_CACHE_READ_ONLY)' != ''" /></Project>"""))

@@ -33,6 +33,13 @@ Native macOS ProjectSync controls pass with SDK 10.0.400 and 11.0.100
 (61 tests each, seven Linux-only skips); this compatibility check does not
 change the repository baseline or qualify the complete .NET 11 workflow.
 
+Owned SDK bootstrap and Restore processes explicitly disable the CLI MSBuild
+server, which is [enabled by default in SDK 11](https://github.com/dotnet/docs/blob/main/docs/core/whats-new/dotnet-11/sdk.md#msbuild-server-enabled-by-default).
+This preserves their isolated process lifetimes; disabling Roslyn shared compilation
+alone does not disable the MSBuild server. Restore controls verify that an ambient
+server opt-in cannot override this policy. This compatibility policy does not change
+the SDK baseline above.
+
 Full native graph acceptance passes all **17 slices** and the Bazel quickstart,
 including offline supported package SDKs, signed archive identities, MTP/VSTest
 protocols, tool replay and independent payload publication. Replay fixtures make

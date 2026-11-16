@@ -30,7 +30,7 @@ fi
 for pair in "DOTNET_ROOT=$base/sdk" "HOME=$base/scratch" "DOTNET_CLI_HOME=$base/scratch" \
     'PATH=/usr/bin:/bin' 'TMPDIR=/tmp' 'LANG=C.UTF-8' 'TZ=UTC' \
     'DOTNET_CLI_TELEMETRY_OPTOUT=1' 'DOTNET_SKIP_FIRST_TIME_EXPERIENCE=1' 'DOTNET_NOLOGO=1' \
-    'MSBUILDDISABLENODEREUSE=1'; do
+    'MSBUILDDISABLENODEREUSE=1' 'DOTNET_CLI_USE_MSBUILD_SERVER=false' 'MSBUILDUSESERVER=0'; do
     args+=(--setenv "${pair%%=*}" "${pair#*=}")
 done
 if [[ $prepared != - ]]; then

@@ -127,6 +127,8 @@ internal sealed class GraphEvaluationWorkspace : IDisposable
                 start.Environment["DOTNET_SKIP_FIRST_TIME_EXPERIENCE"] = "1";
                 start.Environment["DOTNET_GENERATE_ASPNET_CERTIFICATE"] = "false";
                 start.Environment["MSBUILDDISABLENODEREUSE"] = "1";
+                start.Environment["DOTNET_CLI_USE_MSBUILD_SERVER"] = "false";
+                start.Environment["MSBUILDUSESERVER"] = "0";
                 using var restoreProfile = SyncProfile.Measure("offline-restore");
                 using var process = Process.Start(start)!;
                 process.WaitForExit();

@@ -20,6 +20,17 @@ RUNNER = ROOT / 'tools/ProjectSync/bin/Release/net10.0/ProjectSync.dll'
 
 
 class NuGetUpdateCacheTests(unittest.TestCase):
+    def test_restore_disables_ambient_msbuild_server(self):
+        with tempfile.TemporaryDirectory(prefix='nuget-server-control-') as temporary:
+            root = Path(temporary)
+            (root / 'NuGet.Config').write_text('<configuration><packageSources><clear/></packageSources></configuration>')
+            (root / 'App.csproj').write_text("""<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup><TargetFramework>""" + RUNNER.parent.name + """</TargetFramework></PropertyGroup>
+<Target Name="CheckServerIsolation" BeforeTargets="Restore"><Error Condition="'$(MSBUILDUSESERVER)' != '0'" Text="Restore must not use an ambient MSBuild server" /></Target></Project>""")
+            result = subprocess.run([str(SDK / 'dotnet'), str(RUNNER), 'nuget-update', str(root), str(SDK),
+                                     'App.csproj', '--distdir', str(root / 'distdir')], text=True, capture_output=True,
+                                    env=dict(os.environ, DOTNET_CLI_USE_MSBUILD_SERVER='true', MSBUILDUSESERVER='1'))
+            self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+
     def test_explicit_http_cache_reuses_download_without_changing_locks(self):
         self.check_http_cache(False)
 

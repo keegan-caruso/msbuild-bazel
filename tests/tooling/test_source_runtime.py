@@ -46,6 +46,17 @@ class SourceRuntimeSetupTests(unittest.TestCase):
                 with self.assertRaisesRegex(ValueError, 'policy changed'):
                     build_command(base, 'run')
 
+    def test_saved_runtime_commands_disable_ambient_msbuild_server(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            base = Path(temporary)
+            save(base/'setup.json', dict(workspace=str(base/'workspace'), environment={
+                'DOTNET_CLI_USE_MSBUILD_SERVER': 'true', 'MSBUILDUSESERVER': '1'}))
+            with patch.dict(os.environ, {'DOTNET_CLI_USE_MSBUILD_SERVER': 'true', 'MSBUILDUSESERVER': '1'}):
+                for action in ('build', 'test', 'run'):
+                    _, _, env = build_command(base, action)
+                    self.assertEqual(env['DOTNET_CLI_USE_MSBUILD_SERVER'], 'false')
+                    self.assertEqual(env['MSBUILDUSESERVER'], '0')
+
     def test_apple_setup_forwards_retained_project_cache_policy(self):
         with tempfile.TemporaryDirectory() as temporary:
             base = Path(temporary)
