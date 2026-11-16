@@ -202,6 +202,52 @@ class ArtifactToolsTests(unittest.TestCase):
         archive.write_bytes(b'changed package')
         self.assertIn('locked SHA-256', self.invoke('native-toolchain-packages', dict(request, output=str(self.root/'bad')), success=False))
 
+    @unittest.skipUnless(os.name == 'posix' and shutil.which('dpkg-deb'), 'Linux package assembler')
+    def test_native_package_merged_usr_aliases(self):
+        package = self.root/'merged-deb'
+        (package/'DEBIAN').mkdir(parents=True)
+        (package/'DEBIAN/control').write_text('Package: merged-fixture\nVersion: 1.0\nArchitecture: all\nMaintainer: fixture\nDescription: merged usr control\n')
+        for name in ('bin', 'lib', 'sbin'):
+            (package/name).symlink_to('usr/'+name)
+            directory = package/'usr'/name
+            directory.mkdir(parents=True)
+            (directory/'member').write_text(name)
+        (package/'usr/bin/nested-link').symlink_to('member')
+        (package/'etc').mkdir()
+        (package/'etc/config').write_text('config')
+        notice = package/'usr/share/doc/merged-fixture/copyright'
+        notice.parent.mkdir(parents=True)
+        notice.write_text('notice')
+
+        def request(name):
+            archive = self.root/(name+'.deb')
+            subprocess.run(['dpkg-deb', '--build', str(package), str(archive)], check=True, capture_output=True)
+            return dict(packages=[dict(name='fixture', archive=str(archive),
+                sha256=hashlib.sha256(archive.read_bytes()).hexdigest(),
+                licensePath='usr/share/doc/merged-fixture/copyright')],
+                manifest=None, output=str(self.root/name))
+
+        valid = request('valid')
+        self.invoke('native-toolchain-packages', valid)
+        for name in ('bin', 'lib', 'sbin'):
+            self.assertEqual((self.root/'valid/usr'/name/'member').read_text(), name)
+            self.assertFalse((self.root/'valid/usr'/name).is_symlink())
+        self.assertEqual(os.readlink(self.root/'valid/usr/bin/nested-link'), 'member')
+        manifest = self.root/'merged-manifest'
+        manifest.write_text('etc/config\nusr/bin/member\nusr/lib/member\nusr/sbin/member\nusr/share/doc/merged-fixture/copyright\n')
+        self.invoke('native-toolchain-packages', dict(valid, manifest=str(manifest), output=str(self.root/'selected')))
+        self.assertEqual((self.root/'selected/usr/bin/member').read_text(), 'bin')
+
+        (package/'bin').unlink()
+        (package/'bin').symlink_to('../escape')
+        self.assertIn('Invalid native package root alias', self.invoke('native-toolchain-packages', request('hostile'), success=False))
+        (package/'bin').unlink()
+        (package/'bin').symlink_to('usr/lib')
+        self.assertIn('Invalid native package root alias', self.invoke('native-toolchain-packages', request('wrong-target'), success=False))
+        self.assertIn('Duplicate native toolchain package file', self.invoke('native-toolchain-packages',
+            dict(valid, packages=valid['packages']+[dict(valid['packages'][0], name='duplicate')],
+                output=str(self.root/'duplicate')), success=False))
+
     def test_graph_output_requires_declared_ownership(self):
         workspace=self.root/'workspace';workspace.mkdir()
         (workspace/'source.txt').write_text('source')

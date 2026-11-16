@@ -682,7 +682,40 @@ records source, SDK, toolchain and graph identities. This is an unsigned IL
 developer runtime; official signing, ReadyToRun and release-pack parity are outside
 this workflow.
 
-The public setup passed in a fresh pinned Ubuntu 22.04 ARM64 container, four CPUs /
+Current producers require Ubuntu 26.04 ARM64 and explicitly select LLVM/Clang
+18.1.8 for CoreCLR, native libraries and the host. The declared native package
+root links against glibc 2.43; deployment on older-glibc distributions is
+unqualified. Native Linux x64 and RBE remain unqualified.
+
+This migration covers the IL source-runtime producers. The source-built SDK
+10.0.100 archive, separate NativeAOT compiler/catalog and manual Linux CI retain
+their own Ubuntu 22.04 / LLVM 14 pins where declared; they are not relabeled as
+Ubuntu 26.04 qualification.
+
+The declared-environment probe passed in a six-GiB ARM64 guest: all 194 packages
+assembled, and C/C++ compiled, linked and ran inside the bubblewrap root. The
+root reported Ubuntu 26.04, Clang 18.1.8 and GNU coreutils 9.7. Reproduce with
+`python3 tests/runtime/environment_probe.py FRESH_OUTPUT --source-archive PINNED_SOURCE`.
+This checks toolchain closure and compiler selection; the full runtime product
+requires the separate eight-GiB setup above.
+
+The full Ubuntu 26.04 ARM64 workflow passed on four CPUs / 8 GiB, SDK
+**10.0.400** and Bazel **9.3.2**. It built CoreCLR/JIT, native libraries and the
+host with Clang **18.1.8**, then built the managed graph with **563 misses / zero
+project-cache hits**. Both `//:app_test` and `//:runtime_test` actually executed:
+172 source-framework members, producer hashes/modes, archive contents, SDK-absent
+execution and the missing-CoreCLR negative control passed.
+
+A host/service interruption stopped the first final managed Build. Supported
+`--resume` reused the same owned setup and accepted the completed native outputs
+from cache, then completed managed Build, packaging and forced tests. The exported
+22 MiB archive has SHA256
+`5bc7ec87952a0062eaaf991e7a04fd8b090e4f73c95139d7ea96db2a71d0d3a6`.
+This is local product/recovery qualification, not stopped-producer remote recovery
+or a paired performance result. [Phase observations](performance.md#source-runtime-product)
+keep qualification, resumed managed execution, Restore and tests separate.
+
+The earlier public setup passed in a fresh pinned Ubuntu 22.04 ARM64 container, four CPUs /
 8 GiB, SDK **10.0.400**, Bazel **9.3.0**. Setup used a pinned source archive and
 prebuilt image. SDK/tool and package acquisition ran in the new container, with HTTP action
 and project caches available. Public update/check and sync/check qualified
@@ -703,20 +736,24 @@ byte-identical declarations. The producer was stopped; only the exact authored
 sync inputs and module locks transferred.
 [Timings and method](performance.md#source-runtime-product) separate setup from recovery.
 
-Execution requires Ubuntu 22.04 ARM64 with nested namespaces. Building the image
-from the Dockerfile, native Linux x64 and RBE remain unqualified. For compilation
+The Ubuntu 22.04 results above are historical; current execution requires Ubuntu
+26.04 ARM64 with nested namespaces and an 8 GiB memory budget. For compilation
 with a source-built **SDK**, use the separate
 [quick-start scenario](../examples/quickstart/README.md#source-built-sdk).
 
 ### Declared native preparation
 
 Source selection, three version files, shared source archives and tool trees are
-Bazel outputs. Tools come from 194 hash-locked Ubuntu ARM64 packages; explicit
-aliases replace package scripts. Extraction still uses the qualified host's
+Bazel outputs. Tools come from 194 hash-locked Ubuntu 26.04 ARM64 packages,
+including the explicit compiler-rt dependency. Clang, LLD and LLVM are pinned to
+`1:18.1.8-20ubuntu8`; declared-root checks verify the OS and compiler before
+compilation. Explicit aliases replace package scripts, including deterministic
+`Etc/UTC` for `/etc/localtime`. Extraction still uses the qualified host's
 `dpkg-deb`; native compilation uses the declared tool filesystem.
 
-`//tests/integration:native_preparation` passes Bazel 8.8 / 9.3: suffixless source
-URLs, body/version invalidation, Brotli's nested BUILD file, failed-build recovery
+Historical `//tests/integration:native_preparation` controls passed Bazel 8.8 /
+9.3 with the earlier Ubuntu 22.04 toolchain: suffixless source URLs, body/version
+invalidation, Brotli's nested BUILD file, failed-build recovery
 and link-preserving archives. All 7,806 source/version members match the previous
 input archive in bytes, link targets and executable modes. On both pins, fresh
 output bases recover expanded SDK/source repositories with the downloader disabled,

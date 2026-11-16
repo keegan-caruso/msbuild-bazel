@@ -81,7 +81,8 @@ def native_inputs(name, commit, packages):
         stamp = 0,
     )
     if packages:
-        msbuild_native_toolchain_packages(name = "tools", packages = packages, archive = True, exclude_prefixes = ["usr/share/locale", "usr/share/man", "usr/share/info", "usr/share/doc"], symlinks = {"usr/bin/sh": "usr/bin/bash", "usr/bin/cc": "usr/bin/gcc", "usr/bin/c++": "usr/bin/g++", "usr/bin/awk": "usr/bin/mawk", "usr/sbin/rmt": "usr/sbin/rmt-tar"})
+        # Package maintainer scripts are not run; declare tzdata localtime as UTC.
+        msbuild_native_toolchain_packages(name = "tools", packages = packages, archive = True, exclude_prefixes = ["usr/share/locale", "usr/share/man", "usr/share/info", "usr/share/doc"], symlinks = {"etc/localtime": "usr/share/zoneinfo/Etc/UTC", "usr/bin/sh": "usr/bin/bash", "usr/bin/cc": "usr/bin/gcc", "usr/bin/c++": "usr/bin/g++", "usr/bin/awk": "usr/bin/mawk", "usr/bin/clang": "usr/bin/clang-18", "usr/bin/clang++": "usr/bin/clang++-18", "usr/bin/clang-cpp": "usr/bin/clang-cpp-18", "usr/bin/lld": "usr/bin/lld-18", "usr/bin/ld.lld": "usr/bin/ld.lld-18", "usr/bin/llvm-ar": "usr/bin/llvm-ar-18", "usr/bin/llvm-nm": "usr/bin/llvm-nm-18", "usr/bin/llvm-objcopy": "usr/bin/llvm-objcopy-18", "usr/bin/llvm-objdump": "usr/bin/llvm-objdump-18", "usr/bin/llvm-ranlib": "usr/bin/llvm-ranlib-18", "usr/bin/llvm-readelf": "usr/bin/llvm-readelf-18", "usr/bin/llvm-strip": "usr/bin/llvm-strip-18", "usr/bin/llvm-config": "usr/bin/llvm-config-18", "usr/bin/llvm-profdata": "usr/bin/llvm-profdata-18", "usr/sbin/rmt": "usr/sbin/rmt-tar"})
         native.filegroup(name = "toolchain_files", srcs = [":tools"], output_group = "archive")
         pkg_tar(
             name = "toolchain",
