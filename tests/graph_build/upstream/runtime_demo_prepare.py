@@ -149,9 +149,9 @@ def main():
     fcntl.flock(setup_lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
     config = json.loads((BASE / 'config.json').read_text())
     release = dict(line.split('=', 1) for line in Path('/etc/os-release').read_text().splitlines() if '=' in line)
-    assert release['ID'].strip('"') == 'ubuntu' and release['VERSION_ID'].strip('"') == '22.04', 'Use the qualified Ubuntu 22.04 boundary'
+    assert release['ID'].strip('"') == 'ubuntu' and release['VERSION_ID'].strip('"') == '26.04', 'Use the qualified Ubuntu 26.04 boundary'
     if args.mode == 'producer' and not config.get('preparedSha256'):
-        assert all(shutil.which(name) for name in ['clang-14', 'cmake', 'ninja', 'pkg-config', 'bwrap']), 'Native tools missing from supplied image'
+        assert all(shutil.which(name) for name in ['clang-18', 'cmake', 'ninja', 'pkg-config', 'bwrap']), 'Native tools missing from supplied image'
     os.environ.update(RULES_MSBUILD_DOTNET_ROOT=str(ROOT / '.tools/dotnet'),
         RULES_MSBUILD_BAZELISK=str(ROOT / '.tools/bin/bazelisk'), RULES_MSBUILD_BAZEL=str(ROOT / 'scripts/bazel-launcher.sh'),
         RULES_MSBUILD_TEST_REPOSITORY_CACHE=str(BASE / 'repository-cache'), USE_BAZEL_VERSION=config['bazelVersion'])

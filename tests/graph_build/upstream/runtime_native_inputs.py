@@ -164,12 +164,12 @@ def main():
                     body = body.replace(guard, marker + guard)
                     rewrite(backup, archive, {name: body})
                 else:
-                    name = 'usr/lib/llvm-14/bin/clang'
+                    name = 'usr/lib/llvm-18/bin/clang'
                     with tarfile.open(backup) as source:
                         compiler = source.extractfile(name).read()
-                    wrapper = b'#!/bin/sh\nmode=\ncase "$0" in *clang++*) mode=--driver-mode=g++ ;; esac\nexec /usr/lib/llvm-14/bin/clang.qualification-real $mode -include /qualification-native-tool.h "$@"\n'
+                    wrapper = b'#!/bin/sh\nmode=\ncase "$0" in *clang++*) mode=--driver-mode=g++ ;; esac\nexec /usr/lib/llvm-18/bin/clang.qualification-real $mode -include /qualification-native-tool.h "$@"\n'
                     marker = b'static const char QualificationToolProbe[] __attribute__((used, retain)) = "' + token.encode() + b'";\n'
-                    rewrite(backup, archive, {name: wrapper}, [('usr/lib/llvm-14/bin/clang.qualification-real', compiler, 0o755),
+                    rewrite(backup, archive, {name: wrapper}, [('usr/lib/llvm-18/bin/clang.qualification-real', compiler, 0o755),
                                                                ('qualification-native-tool.h', marker, 0o644)])
                 test(kind + '-edit', True, token)
             finally:

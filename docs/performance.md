@@ -458,6 +458,10 @@ See [runtime support](support.md#downloaded-sdk-and-runtime-sources) for scope.
 
 ### Runtime CI demo
 
+The recorded measurements here use the earlier Ubuntu 22.04 / Clang 14 producer.
+Current setup commands below select Ubuntu 26.04 / Clang 18.1.8; these historical
+timings are not measurements of the replacement toolchain.
+
 Runtime v10.0.0 (`60629d1`), SDK **10.0.400**, Bazel **9.3.0**, runner SHA
 `95368b8b…`. Linux ARM64, four CPUs / 6 GiB per worker; private HTTP cache,
 producer stopped, relocated source-only consumer and fresh output bases.
@@ -575,7 +579,7 @@ python3 scripts/setup-runtime-demo.py /absolute/runtime-demo --resume
 python3 scripts/setup-runtime-demo.py /absolute/runtime-demo --archive-producer
 ```
 
-Setup builds an Ubuntu 22.04 / Clang 14 image, records its immutable digest/package
+Current setup builds an Ubuntu 26.04 / Clang 18.1.8 image, records its immutable digest/package
 inventory, downloads verified runtime sources and pinned tools, updates NuGet and
 qualifies the 39-root graph. It declares five native producers, composes the
 source runtime/app and eight suites, then seeds build outputs and test results.
@@ -736,6 +740,31 @@ the profiled runner took 17.06 s. This is a correctness control, not a paired
 speedup or a new runtime test-suite run.
 
 ### Source-runtime product
+
+#### Ubuntu 26.04 / LLVM 18 qualification
+
+One correctness workflow used Ubuntu 26.04 ARM64, four CPUs / 8 GiB,
+SDK **10.0.400**, Bazel **9.3.2** and Clang **18.1.8**. A host/service interruption
+stopped the first final managed Build. The supported resume retained the same
+setup/source and reused all three completed native producers; it then finished
+the managed product, archive and forced consumer tests.
+
+| Phase | Observed wall time | Method / cache state |
+| --- | ---: | --- |
+| Initial managed preparation / qualification | 1,274.60 s | Separate initial phase; sync 1,118.92 s, sync-check 3.36 s |
+| Resumed managed graph | 1,093.20 s total / 1,078.88 s execution | 563 project misses, zero hits; MSBuild execution, not pure Csc CPU time |
+| Whole resumed Build stage | 1,474.28 s | Includes repeated offline 172-root Restore, managed graph above, layout/archive; native outputs cached |
+| Forced consumer verification | 36.26 s | Two actual tests: app 0.2 s, runtime/product 34.2 s |
+
+The 194-package declared compiler root passed C/C++ compile/link/run before the
+full workflow. The product tests verify 172 source-framework members, producer
+bytes/modes, SDK-absent execution and rejection when CoreCLR is removed. The
+exported archive is 22 MiB. Raw reports retain image/toolchain/product hashes,
+interruption evidence and guest memory observations. No uninterrupted total or
+comparison with the historical HTTP-warm timings below is claimed. Source, SDK
+and native producer boundaries are in [support](support.md#complete-source-runtime-product).
+
+#### Historical Ubuntu 22.04 qualification
 
 One correctness run on Ubuntu 22.04 ARM64, four CPUs / 8 GiB, SDK 10.0.400 and
 Bazel 9.3.0 used the complete 172-assembly / 16-native-file developer runtime:

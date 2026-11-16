@@ -15,7 +15,7 @@ bash "$HOME/source-runtime/run.sh" --describe-runtime --verify-product
 Run from the rules checkout with Git, Python and download access. Setup builds the
 [native environment](../../containers/runtime-demo.Dockerfile), creates an owned
 worker, runs package update/check and graph sync/check, then builds and verifies
-the app and runtime archive. Native Ubuntu 22.04 ARM64 can run the same command
+the app and runtime archive. Native Ubuntu 26.04 ARM64 with LLVM/Clang 18.1.8 can run the same command
 with those dependencies, an 8 GiB memory budget (RAM plus swap), and nested
 user/mount namespaces available.
 
@@ -37,7 +37,12 @@ reports appear in Bazel's test outputs. Source downloads use Bazel's verified
 repository cache. Native source selection, version headers, shared source archives
 and the compiler/tool filesystem are declared Bazel outputs. The native tools come
 from [locked Ubuntu packages](../../tests/runtime/native-packages.json); compilation
-does not copy the worker's installed compiler files. Graph sync remains a setup step.
+does not copy the worker's installed compiler files. Compiler selection is explicit for
+CoreCLR, native libraries and the host. Graph sync remains a setup step.
+
+The declared native environment uses Ubuntu 26.04 glibc 2.43. Deployment on
+Ubuntu 22.04 or other older-glibc systems is unqualified; this remains an ARM64
+producer and does not qualify an x64 source build.
 
 Pass `--cache-url=http://CACHE:8080` to reuse Bazel actions and MSBuild project
 snapshots during qualification and ordinary builds. The endpoint must be reachable

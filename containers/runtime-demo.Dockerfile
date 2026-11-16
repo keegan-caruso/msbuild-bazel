@@ -1,10 +1,13 @@
-FROM ubuntu@sha256:2edbbc5dc405e9612ba3584ce95480277e3eb374407b5505fe26f17df77c7dbc
+FROM ubuntu@sha256:065aa8626841f16057b78b027b464cd59c4fac36c204c72dcbf48d66f5fa8a96
 ENV DEBIAN_FRONTEND=noninteractive
-# Ubuntu 22.04 / Clang 14 matches the qualified native runtime tool boundary.
+# Ubuntu 26.04 with the explicitly selected LLVM 18 compiler family.
 # Setup records the resulting immutable image digest and installed packages.
 RUN apt-get update -qq && apt-get install -y -qq --no-install-recommends \
-    ca-certificates curl git python3 bubblewrap clang clang-14 lld lld-14 llvm llvm-14 \
-    build-essential cmake ninja-build pkg-config libicu-dev libssl-dev \
+    ca-certificates curl git python3 bubblewrap \
+    clang-18=1:18.1.8-20ubuntu8 lld-18=1:18.1.8-20ubuntu8 \
+    llvm-18=1:18.1.8-20ubuntu8 libclang-rt-18-dev=1:18.1.8-20ubuntu8 \
+    gcc g++ make dpkg-dev libc6-dev libcrypt-dev \
+    cmake ninja-build pkg-config libicu-dev libssl-dev \
     liblttng-ust-dev libnuma-dev libunwind-dev zlib1g-dev libkrb5-dev uuid-dev \
     && rm -rf /var/lib/apt/lists/*
 WORKDIR /

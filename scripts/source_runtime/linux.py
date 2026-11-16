@@ -68,8 +68,8 @@ def setup(args):
     if platform.system() != 'Linux' or platform.machine() != 'aarch64':
         raise ValueError('Source-runtime builds require native Linux ARM64')
     release = dict(line.split('=', 1) for line in Path('/etc/os-release').read_text().splitlines() if '=' in line)
-    if release.get('ID', '').strip('"') != 'ubuntu' or release.get('VERSION_ID', '').strip('"') != '22.04':
-        raise ValueError('Use the supplied Ubuntu 22.04 native build image')
+    if release.get('ID', '').strip('"') != 'ubuntu' or release.get('VERSION_ID', '').strip('"') != '26.04':
+        raise ValueError('Use the supplied Ubuntu 26.04 native build image')
     memory = dict(line.split(':', 1) for line in Path('/proc/meminfo').read_text().splitlines())
     budget_kib = sum(int(memory[name].split()[0]) for name in ['MemTotal', 'SwapTotal'])
     if budget_kib < 7.5 * 1024**2:

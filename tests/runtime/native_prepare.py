@@ -16,6 +16,7 @@ import tarfile
 import tempfile
 
 from native_driver import write_contract
+from native_environment import build_prefix
 from native_version import version_inputs
 
 parser = argparse.ArgumentParser(description=__doc__)
@@ -101,8 +102,7 @@ with tarfile.open(folder/'source.tar','w') as archive:
     import io
     generated = version_inputs(source, commit)
     # Retain the qualified archive member order as well as file bytes/modes.
-    additions={'artifacts/obj/_version.c':generated['_version.c'], 'build-native.sh':f'''set -euo pipefail
-./src/coreclr/build-runtime.sh -arm64 -release -component runtime -component jit -component hosts -numproc {args.jobs}{" -ninja" if args.ninja else ""}
+    additions={'artifacts/obj/_version.c':generated['_version.c'], 'build-native.sh':build_prefix()+f'''./src/coreclr/build-runtime.sh -clang18 -arm64 -release -component runtime -component jit -component hosts -numproc {args.jobs}{" -ninja" if args.ninja else ""}
 mkdir result
 {copy_products.rstrip()}
 tar --sort=name --mtime=@0 --owner=0 --group=0 --numeric-owner -cf result.tar -C result .
