@@ -362,6 +362,37 @@ stop the producer, and run `--phase=consumer --seed-evidence=SEED_JSON`.
 Then run [consumer smoke](../tests/graph_build/upstream/runtime_downloaded_smoke.py)
 with `RUNTIME_WORKSPACE FRESH_APP --cache-url=URL`.
 
+## Retained source SDK consumer recovery
+
+On Ubuntu 26.04 ARM64 with Bazel **9.3.2**, a retained source-built SDK archive
+(SDK 10.0.100 / runtime 10.0.0, SHA-256
+`dc795ffff8b6b3c2adac341c844ca71116cb2144c4c745ee2bc9f52a60836345`)
+was declared with `msbuild_sdk`. A cold consumer packed a generated NuGet package,
+executed its consumer and Razor tests, then published and ran an app. The archive
+came from the historical Ubuntu 22.04 source build; no SDK source producer ran
+in this control.
+
+A seed guest uploaded the consumer actions, then stopped. A fresh guest with an
+empty output base, uploads disabled and project cache read-only recovered the
+SDK layout, Pack, package extraction, graph and Publish layout actions over HTTP.
+Both tests were forced to execute. Package SHA-256
+`b7a4cd4fccea6be8522d63b6e97bbaa9d7d02068293004fb1a50b05e2d498773` and
+four published-file hashes matched; package inspection confirmed its identity,
+version and library DLL. Both guests used four CPUs / 6 GiB, two Bazel jobs,
+one local test, `--remote_max_connections=8` and the same project-cache URL and
+read-only action environment. A prior seed without the intended connection cap
+failed with TLS handshake timeouts; the bounded retry passed. Cache size did not
+change during the consumer, but request-level PUTs were not measured.
+
+The [consumer driver](../tests/source_sdk/consumer_scenarios.py) ran against a
+prepared workspace containing the verified archive, a declared SDK layout and
+the source toolchain. Cold correctness used a fresh local output base; recovery
+used explicit remote cache flags and forced test execution. This is one same-host
+consumer recovery control, not source-producer recovery, a cross-host result,
+SDK 11 qualification or a performance benchmark. Guest-local workspace and output
+storage were required for the archive's internal symlinks in this Apple Container
+setup; an earlier host-mounted output base failed during extraction.
+
 ## Reviewed evaluation reuse
 
 On the same 163-compilation downloaded-SDK slice, opt into only the two reviewed
