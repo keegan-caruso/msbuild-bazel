@@ -3,7 +3,7 @@ using Microsoft.Build.Evaluation;
 using Microsoft.Build.Graph;
 using Microsoft.Build.Execution;
 using Microsoft.Build.Framework;
-var sdk = Environment.GetEnvironmentVariable("RULES_MSBUILD_DOTNET_ROOT")! + "/sdk/10.0.400";
+var sdk = Environment.GetEnvironmentVariable("RULES_MSBUILD_DOTNET_ROOT")! + "/sdk/11.0.100";
 System.Runtime.Loader.AssemblyLoadContext.Default.Resolving += (c,n) => File.Exists(sdk+"/"+n.Name+".dll") ? c.LoadFromAssemblyPath(sdk+"/"+n.Name+".dll") : null;
 Environment.SetEnvironmentVariable("MSBUILD_EXE_PATH", sdk+"/MSBuild.dll");
 Environment.SetEnvironmentVariable("MSBuildSDKsPath", sdk+"/Sdks");

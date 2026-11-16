@@ -189,7 +189,7 @@ def main():
     shutil.copyfile(directory / 'RuntimeRawGraph.cs.txt', driver / 'Program.cs')
     shutil.copyfile(directory / 'RuntimeRawGraph.csproj.txt', driver / 'Raw.csproj')
     run([str(sdk / 'dotnet'), 'build', str(driver / 'Raw.csproj'), '-c', 'Release', '-p:NuGetAudit=false', '-p:UseSharedCompilation=false'], 'driver-build', ROOT)
-    shutil.copytree(driver / 'bin/Release/net10.0', raw / '.qualification')
+    shutil.copytree(driver / 'bin/Release/net11.0', raw / '.qualification')
     scratch = results / 'scratch'
     scratch.mkdir()
     stable = '/__rules_msbuild_graph/output/workspace'
@@ -208,7 +208,7 @@ def main():
         properties = [f'-p:{k}={v}' for k, v in root_properties(contract, entry).items() if k.lower() != 'targetframework']
         if manifest.is_file():
             properties.append('-p:RestoreLockedMode=true')
-        run(host + ['restore', stable + '/' + entry, '--configfile', stable + '/' + config.name, '--source', stable + '/.package-source', '--packages', stable + '/.nuget', '-p:NuGetAudit=false', '-p:NetCoreSdkRoot=' + stable_sdk + '/sdk/' + contract['SdkVersion'], *properties], 'restore-' + str(index), raw)
+        run(host + ['restore', stable + '/' + entry, '--configfile', stable + '/' + config.name, '--source', stable + '/.package-source', '--packages', stable + '/.nuget', '-p:NuGetAudit=false', '-p:NETCoreSdkBundledVersionsProps=' + stable_sdk + '/sdk/' + contract['SdkVersion'] + '/Microsoft.NETCoreSdk.BundledVersions.props', *properties], 'restore-' + str(index), raw)
     if args.prepare_only:
         print('PASS: full source, raw graph driver and declared packages prepared; no Build or timing qualification', flush=True)
         return
