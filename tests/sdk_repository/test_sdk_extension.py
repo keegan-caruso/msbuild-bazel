@@ -11,12 +11,12 @@ BAZEL=os.environ.get('RULES_MSBUILD_BAZEL',str(ROOT/'scripts/bazel-launcher.sh')
 
 
 class SdkExtension(unittest.TestCase):
-    def check(self, declaration='global_json="//:global.json"', contents=None, error=None, metadata_version='10.0.400', options=()):
+    def check(self, declaration='global_json="//:global.json"', contents=None, error=None, metadata_version='10.0.400', metadata_runtime='10.0.11', options=()):
         with tempfile.TemporaryDirectory() as directory:
             root=Path(directory)
             (root/'global.json').write_text(contents or '{"sdk":{"version":"10.0.400"}}')
             (root/'BUILD.bazel').write_text('exports_files(["global.json"])')
-            metadata = {'releases': [{'sdk': {'version': metadata_version, 'runtime-version': '10.0.11', 'files': [
+            metadata = {'releases': [{'sdk': {'version': metadata_version, 'runtime-version': metadata_runtime, 'files': [
                 {'rid': rid, 'name': 'dotnet-sdk-' + rid + '.tar.gz', 'url': 'https://example.invalid/sdk.tar.gz', 'hash': '00' * 64}
                 for rid in ['linux-arm64', 'linux-x64', 'osx-arm64', 'osx-x64']
             ]}}]}
@@ -33,6 +33,9 @@ class SdkExtension(unittest.TestCase):
                 self.assertIn('sdk_linux_arm64',output)
                 self.assertIn('runtime_osx_arm64',output)
                 self.assertIn('@dotnet//:sdk_host',output)
+
+    def test_net11_release(self):
+        self.check('version="11.0.100"', metadata_version="11.0.100", metadata_runtime="11.0.0")
 
     def test_exact_version(self):
         self.check('version="10.0.400"')

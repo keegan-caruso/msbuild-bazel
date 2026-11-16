@@ -59,8 +59,8 @@ def native_graph_driver(name, sources = []):
         contract = "driver-contract.json",
         source_root = native.package_name(),
         srcs = ["Task.csproj", "NativeBuild.cs"] + sources,
-        project_outputs = {"Task.csproj|net10.0": ["bin/Release/net10.0", "Task.dll", "Exe"]},
+        project_outputs = {"Task.csproj|net11.0": ["bin/Release/net11.0", "Task.dll", "Exe"]},
         linux_stable_paths = True,
         linux_worker = True,
     )
-    msbuild_graph_layout(name = name, graph = ":" + name + "_build", project = "Task.csproj", framework = "net10.0")
+    msbuild_graph_layout(name = name, graph = ":" + name + "_build", project = "Task.csproj", framework = "net11.0")

@@ -221,7 +221,7 @@ def main():
     scratch.mkdir()
     raw_host = ['bash', str(ROOT / 'tests/graph_build/upstream/runtime_raw.sh'), str(sdk), str(raw), str(scratch)]
     properties = [f'-p:{key}={value}' for key, value in contract['Properties'].items()]
-    common = ['-p:UseSharedCompilation=false', '-p:NetCoreSdkRoot=' + stable_sdk + '/sdk/' + contract['SdkVersion'],
+    common = ['-p:UseSharedCompilation=false', '-p:NETCoreSdkBundledVersionsProps=' + stable_sdk + '/sdk/' + contract['SdkVersion'] + '/Microsoft.NETCoreSdk.BundledVersions.props',
               '-p:PathMap=' + stable + '=/_/workspace%2C' + stable_sdk + '=/_/sdk']
     raw_command = raw_host + ['msbuild', stable + '/' + contract['Entry'], '-graphBuild', '-m:4', '-t:Build', '-nologo', *common, *properties]
     bazel = [str(ROOT / 'scripts/bazel-launcher.sh'), '--output_base=' + str(args.output_base.resolve()),
@@ -428,7 +428,7 @@ def main():
                 bootstrap_seconds = execute(bazel[:3] + ['//:packages', '//:graph_runner'] + bazel[4:], 'graph-bootstrap', root)
             restore_command = raw_host + ['restore', stable + '/' + contract['Entry'], '--configfile', stable + '/' + config.name, '--source', stable + '/.package-source',
                                '--packages', stable + '/.nuget', '-p:NuGetAudit=false', '-p:RestoreFallbackFolders=',
-                               '-p:RestoreAdditionalProjectSources=', '-p:RestoreAdditionalProjectFallbackFolders=', '-p:NetCoreSdkRoot=' + stable_sdk + '/sdk/' + contract['SdkVersion']]
+                               '-p:RestoreAdditionalProjectSources=', '-p:RestoreAdditionalProjectFallbackFolders=', '-p:NETCoreSdkBundledVersionsProps=' + stable_sdk + '/sdk/' + contract['SdkVersion'] + '/Microsoft.NETCoreSdk.BundledVersions.props']
             if (raw / 'nuget.lock.json').is_file():
                 restore_command += ['-p:RestoreLockedMode=true']
             restore_seconds = 0
@@ -443,7 +443,7 @@ def main():
                 shutil.copyfile(directory / 'RuntimeRawGraph.cs.txt', driver / 'Program.cs')
                 shutil.copyfile(directory / 'RuntimeRawGraph.csproj.txt', driver / 'Raw.csproj')
                 execute([dotnet, 'build', str(driver / 'Raw.csproj'), '-c', 'Release', '-p:UseSharedCompilation=false', '-p:NuGetAudit=false'], 'raw-driver-build', results)
-                shutil.copytree(driver / 'bin/Release/net10.0', raw / '.qualification')
+                shutil.copytree(driver / 'bin/Release/net11.0', raw / '.qualification')
                 raw_command = raw_host + [stable + '/.qualification/Raw.dll', stable, stable + '/graph.generated.json', 'build']
             seed_raw = execute(raw_command, 'raw-seed', raw)
             seed_graph, report = graph('graph-seed')
@@ -560,7 +560,7 @@ def main():
             shutil.copyfile(fixture / 'RawTimingLog.cs.txt', reader / 'Program.cs')
             execute([dotnet, 'build', str(reader / 'Reader.csproj'), '-c', 'Release', '-p:UseSharedCompilation=false'], 'reader-build', results)
             def compilation(path):
-                details = json.loads(subprocess.check_output([dotnet, str(reader / 'bin/Release/net10.0/Reader.dll'), str(path)], env=environment, text=True))
+                details = json.loads(subprocess.check_output([dotnet, str(reader / 'bin/Release/net11.0/Reader.dll'), str(path)], env=environment, text=True))
                 return details['compiled']
             edits = ['body'] if args.body_only else ['body', 'api']
             controls = [(case, False) for case in edits]

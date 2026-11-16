@@ -51,7 +51,7 @@ def main():
     assert all(path.resolve().is_relative_to(root) and path.resolve() != root for path in directories | files)
     environment = dict(ENV, DOTNET_HOST_PATH=str(DOTNET), NUGET_PACKAGES=str(root / '.nuget'), MSBUILDDISABLENODEREUSE='1')
     raw = [DOTNET, 'msbuild', root / contract['Entry'], '-graphBuild', '-m:4', '-t:Build', '-nologo',
-           '-p:UseSharedCompilation=false', f'-p:NetCoreSdkRoot={SDK}/sdk/{contract["SdkVersion"]}',
+           '-p:UseSharedCompilation=false', f'-p:NETCoreSdkBundledVersionsProps={SDK}/sdk/{contract["SdkVersion"]}/Microsoft.NETCoreSdk.BundledVersions.props',
            f'-p:PathMap={root}=/_/workspace%2C{SDK}=/_/sdk']
     raw += [f'-p:{key}={value}' for key, value in contract['Properties'].items()]
     declared_inputs = set(contract['SharedInputs']) | {path for item in declarations for path in item['Inputs']}
@@ -125,7 +125,7 @@ def main():
                 for index, entry in enumerate(contract.get('Entries') or [contract['Entry']]):
                     command = [DOTNET, 'restore', root / entry, '--configfile', root / '.package-source/NuGet.Config',
                                '--source', root / '.package-source', '--packages', root / '.nuget', '-p:NuGetAudit=false',
-                               f'-p:NetCoreSdkRoot={SDK}/sdk/{contract["SdkVersion"]}', '-p:RestoreFallbackFolders=',
+                               f'-p:NETCoreSdkBundledVersionsProps={SDK}/sdk/{contract["SdkVersion"]}/Microsoft.NETCoreSdk.BundledVersions.props', '-p:RestoreFallbackFolders=',
                                '-p:RestoreAdditionalProjectSources=', '-p:RestoreAdditionalProjectFallbackFolders=']
                     command += [f'-p:{key}={value}' for key, value in contract['Properties'].items() if key.lower() != 'targetframework']
                     raw_restore_seconds += execute(command, edit['name'] + '-raw-restore-' + str(index))
